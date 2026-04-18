@@ -228,8 +228,8 @@ static uint32_t xorshift32(uint32_t *state)
     return x;
 }
 
-/*! Convert uniform uint32 to approximate Gaussian via Box-Muller-like transform.
-    Uses the simple (u1 + u2 + ... + u12 - 6) / 12 approximation (CLT). */
+/*! Convert uniform uint32 to approximate N(0,1) Gaussian via CLT.
+    Sum of 12 U(0,1) samples minus 6 gives mean=0, variance=1. */
 static double prng_gaussian(uint32_t *state)
 {
     double sum = 0.0;
@@ -305,8 +305,7 @@ void AnscombeInverse(COMPONENT_VALUE *data, DIMENSION width, DIMENSION height,
                With bias correction: subtract 1/(4*alpha) per Makitalo & Foi (2011) */
             double val = half_alpha * d;
             val = val * val;                     /* (alpha*d/2)^2 */
-            val = (val - offset) / alpha;        /* invert: x = ((c*d)^2 - offset) / alpha */
-            val -= 1.0 / (4.0 * alpha);          /* bias correction */
+            val = (val - offset) / alpha;        /* algebraic inverse: x = ((c*d)^2 - offset) / alpha */
             row_ptr[col] = (COMPONENT_VALUE)(val + 0.5);
         }
     }

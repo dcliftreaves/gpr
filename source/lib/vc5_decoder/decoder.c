@@ -80,7 +80,6 @@ static void AnscombeInverseArray(COMPONENT_VALUE *data, DIMENSION width, DIMENSI
             double val = half_alpha * d;
             val = val * val;
             val = (val - offset) / alpha;
-            val -= 1.0 / (4.0 * alpha);
             row_ptr[col] = (COMPONENT_VALUE)(val + 0.5);
         }
     }

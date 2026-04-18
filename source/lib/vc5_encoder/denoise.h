@@ -130,7 +130,7 @@ void AnscombeForward(COMPONENT_VALUE *data, DIMENSION width, DIMENSION height,
     @brief Apply exact unbiased inverse Generalized Anscombe Transform
 
     Inverts the GAT applied during encoding, restoring original signal scale.
-    Uses closed-form asymptotic inverse with bias correction.
+    Uses closed-form algebraic inverse (no bias correction for exact round-trip).
 
     @param data         Component array data (modified in-place)
     @param width        Array width
