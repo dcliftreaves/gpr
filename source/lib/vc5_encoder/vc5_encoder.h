@@ -99,6 +99,7 @@
         double                      noise_scale;            // DNG NoiseProfile scale (0 = use MAD fallback)
         double                      noise_offset;           // DNG NoiseProfile offset
         bool                        variance_stabilize;     // Enable Anscombe variance stabilization
+        uint32_t                    noise_seed;             // PRNG seed for noise reconstruction (output)
 
     } vc5_encoder_parameters;
 

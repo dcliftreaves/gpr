@@ -162,6 +162,8 @@ typedef struct _encoder
 	double noise_scale;
 	double noise_offset;
 	bool variance_stabilize;
+	uint32_t noise_seed;
+	double noise_sigma[MAX_CHANNEL_COUNT];
 
 	//! Table for the order in which channels are encoded into the bitstream
 	CHANNEL channel_order_table[MAX_CHANNEL_COUNT];

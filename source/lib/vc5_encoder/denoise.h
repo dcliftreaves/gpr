@@ -91,6 +91,24 @@ void SoftThresholdBand(PIXEL *data, DIMENSION width, DIMENSION height,
                        DIMENSION pitch, double threshold);
 
 /*!
+    @brief Generate and add back wavelet-domain noise from stored model parameters
+
+    Reconstructs statistically-equivalent noise using a PRNG seeded with
+    the stored seed value and the estimated noise sigma per level. This
+    restores the original image's noise characteristics after compression.
+
+    @param data         Band data (modified in-place: signal + noise)
+    @param width        Band width
+    @param height       Band height
+    @param pitch        Row stride in bytes
+    @param sigma        Noise sigma for this band
+    @param seed         PRNG seed (must match the seed stored during encoding)
+    @param band_id      Unique band identifier for seed mixing (level*4 + band)
+*/
+void AddNoiseFromModel(PIXEL *data, DIMENSION width, DIMENSION height,
+                       DIMENSION pitch, double sigma, uint32_t seed, int band_id);
+
+/*!
     @brief Apply Generalized Anscombe Transform to a component array in-place
 
     Stabilizes Poisson-Gaussian noise variance so that the output has

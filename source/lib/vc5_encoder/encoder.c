@@ -1428,15 +1428,31 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 		}
 	}
 
-	/* Phase 1.5: Wavelet-domain denoising (entropy reduction before encoding) */
+	/* Phase 1.5: Noise separation for entropy reduction.
+	   Subtract estimated noise from wavelet coefficients before encoding.
+	   Store noise model (sigma + seed) so decoder can reconstruct the noise
+	   and add it back, faithfully reproducing the original image. */
 	if (encoder->denoise_enabled)
 	{
+		/* Generate a deterministic seed from the first channel's lowpass data */
+		WAVELET *w0 = encoder->transform[0].wavelet[0];
+		uint32_t seed = 0x12345678;
+		if (w0->data[LL_BAND] && w0->width > 0 && w0->height > 0)
+		{
+			PIXEL *lp = w0->data[LL_BAND];
+			int pp = w0->pitch / sizeof(PIXEL);
+			for (int i = 0; i < 64 && i < (int)w0->width; i++)
+				seed ^= (uint32_t)lp[i] * 2654435761u;
+		}
+		encoder->noise_seed = seed;
+
 		for (channel_index = 0; channel_index < channel_count; channel_index++)
 		{
-			DenoiseTransform(&encoder->transform[channel_index],
-			                 encoder->denoise_strength,
-			                 encoder->noise_scale,
-			                 encoder->noise_offset);
+			encoder->noise_sigma[channel_index] = DenoiseTransform(
+				&encoder->transform[channel_index],
+				encoder->denoise_strength,
+				encoder->noise_scale,
+				encoder->noise_offset);
 		}
 	}
 

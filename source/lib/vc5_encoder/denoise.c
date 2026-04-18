@@ -163,6 +163,51 @@ double DenoiseTransform(TRANSFORM *transform, double strength,
     return sigma;
 }
 
+/*! Simple xorshift32 PRNG for reproducible noise generation */
+static uint32_t xorshift32(uint32_t *state)
+{
+    uint32_t x = *state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    *state = x;
+    return x;
+}
+
+/*! Convert uniform uint32 to approximate Gaussian via Box-Muller-like transform.
+    Uses the simple (u1 + u2 + ... + u12 - 6) / 12 approximation (CLT). */
+static double prng_gaussian(uint32_t *state)
+{
+    double sum = 0.0;
+    for (int i = 0; i < 12; i++)
+        sum += (double)xorshift32(state) / 4294967296.0;
+    return sum - 6.0;
+}
+
+void AddNoiseFromModel(PIXEL *data, DIMENSION width, DIMENSION height,
+                       DIMENSION pitch, double sigma, uint32_t seed, int band_id)
+{
+    if (sigma <= 0.0) return;
+
+    /* Mix seed with band_id for unique noise per band */
+    uint32_t state = seed ^ ((uint32_t)band_id * 2654435761u);
+    if (state == 0) state = 1;
+
+    int pitch_pixels = pitch / sizeof(PIXEL);
+    int32_t isigma = (int32_t)(sigma + 0.5);
+    if (isigma <= 0) return;
+
+    for (int row = 0; row < height; row++)
+    {
+        PIXEL *row_ptr = data + row * pitch_pixels;
+        for (int col = 0; col < width; col++)
+        {
+            double noise = prng_gaussian(&state) * sigma;
+            row_ptr[col] += (int32_t)(noise + (noise >= 0 ? 0.5 : -0.5));
+        }
+    }
+}
+
 void AnscombeForward(COMPONENT_VALUE *data, DIMENSION width, DIMENSION height,
                      size_t pitch, double alpha, double sigma_sq)
 {

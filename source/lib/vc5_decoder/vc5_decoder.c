@@ -32,6 +32,9 @@ void vc5_decoder_parameters_set_default(vc5_decoder_parameters* decoding_paramet
     decoding_parameters->variance_stabilize = false;
     decoding_parameters->noise_scale        = 0.0;
     decoding_parameters->noise_offset       = 0.0;
+    decoding_parameters->add_noise_back     = false;
+    decoding_parameters->noise_seed         = 0;
+    memset(decoding_parameters->noise_sigma, 0, sizeof(decoding_parameters->noise_sigma));
 }
 
 CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_parameters,    /* vc5 decoding parameters */
@@ -68,6 +71,9 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
     parameters.variance_stabilize = decoding_parameters->variance_stabilize;
     parameters.noise_scale        = decoding_parameters->noise_scale;
     parameters.noise_offset       = decoding_parameters->noise_offset;
+    parameters.add_noise_back     = decoding_parameters->add_noise_back;
+    parameters.noise_seed         = decoding_parameters->noise_seed;
+    memcpy(parameters.noise_sigma, decoding_parameters->noise_sigma, sizeof(parameters.noise_sigma));
     
     switch( decoding_parameters->pixel_format )
     {

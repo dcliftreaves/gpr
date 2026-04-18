@@ -74,6 +74,9 @@
         bool                            variance_stabilize;     // Apply inverse Anscombe after decode
         double                          noise_scale;            // DNG NoiseProfile scale
         double                          noise_offset;           // DNG NoiseProfile offset
+        bool                            add_noise_back;         // Reconstruct and add noise after decode
+        uint32_t                        noise_seed;             // PRNG seed from encoder
+        double                          noise_sigma[4];         // Per-channel noise sigma from encoder
 
     } vc5_decoder_parameters;
         

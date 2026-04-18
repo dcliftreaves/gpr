@@ -24,6 +24,45 @@
 #include <pthread.h>
 
 /*! @brief Apply inverse Generalized Anscombe Transform to a component array */
+/*! Simple xorshift32 PRNG — must match encoder's implementation */
+static uint32_t xorshift32_dec(uint32_t *state)
+{
+    uint32_t x = *state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    *state = x;
+    return x;
+}
+
+static double prng_gaussian_dec(uint32_t *state)
+{
+    double sum = 0.0;
+    for (int i = 0; i < 12; i++)
+        sum += (double)xorshift32_dec(state) / 4294967296.0;
+    return sum - 6.0;
+}
+
+/*! @brief Add back noise to a wavelet band from stored model (must match encoder) */
+static void AddNoiseFromModelDec(PIXEL *data, DIMENSION width, DIMENSION height,
+                                 DIMENSION pitch, double sigma, uint32_t seed, int band_id)
+{
+    if (sigma <= 0.0) return;
+    uint32_t state = seed ^ ((uint32_t)band_id * 2654435761u);
+    if (state == 0) state = 1;
+    int pitch_pixels = pitch / sizeof(PIXEL);
+
+    for (int row = 0; row < (int)height; row++)
+    {
+        PIXEL *row_ptr = data + row * pitch_pixels;
+        for (int col = 0; col < (int)width; col++)
+        {
+            double noise = prng_gaussian_dec(&state) * sigma;
+            row_ptr[col] += (int32_t)(noise + (noise >= 0 ? 0.5 : -0.5));
+        }
+    }
+}
+
 static void AnscombeInverseArray(COMPONENT_VALUE *data, DIMENSION width, DIMENSION height,
                                  size_t pitch, double alpha, double sigma_sq)
 {

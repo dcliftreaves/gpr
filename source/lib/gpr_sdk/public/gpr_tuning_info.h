@@ -146,9 +146,11 @@
         uint32_t                default_crop_size_h;
         uint32_t                default_crop_size_v;
 
-        bool                    denoise_enabled;    // Enable wavelet-domain denoising before compression
+        bool                    denoise_enabled;    // Enable noise separation for entropy reduction
         double                  denoise_strength;   // Threshold multiplier 0.0-1.0 (default 1.0)
         bool                    variance_stabilize; // Enable Anscombe variance stabilization
+        uint32_t                noise_seed;         // PRNG seed for noise reconstruction (set by encoder)
+        double                  noise_sigma_est[4]; // Per-channel estimated noise sigma (set by encoder)
 
     } gpr_tuning_info;
 
