@@ -239,31 +239,81 @@ int main(int argc, char **argv)
         printf("  Channel %d: poly[0]=%.4f (DC offset)\n", ch, poly_coeffs[ch][0]);
     }
 
-    /* Compute residual sigma after polynomial subtraction */
-    double residual_sigma[4] = {0};
+    /* Subtract polynomial from FPN to get residual */
+    double *residual[4];
     for (int ch = 0; ch < 4; ch++)
     {
-        double sum_sq = 0;
+        residual[ch] = (double *)malloc(half_size * sizeof(double));
         for (int row = 0; row < half_h; row++)
             for (int col = 0; col < half_w; col++)
             {
                 double x = (2.0 * col / (half_w - 1)) - 1.0;
                 double y = (2.0 * row / (half_h - 1)) - 1.0;
                 double fitted = eval_poly_2d(poly_coeffs[ch], poly_order, x, y);
-                double residual = fpn[ch][row * half_w + col] - fitted;
-                sum_sq += residual * residual;
+                residual[ch][row * half_w + col] = fpn[ch][row * half_w + col] - fitted;
+            }
+    }
+    for (int ch = 0; ch < 4; ch++) free(fpn[ch]);
+
+    /* Compute per-row and per-column mean offsets from residual (banding correction) */
+    double *row_offsets[4], *col_offsets[4];
+    for (int ch = 0; ch < 4; ch++)
+    {
+        row_offsets[ch] = (double *)calloc(half_h, sizeof(double));
+        col_offsets[ch] = (double *)calloc(half_w, sizeof(double));
+
+        /* Per-row means */
+        for (int row = 0; row < half_h; row++)
+        {
+            double sum = 0;
+            for (int col = 0; col < half_w; col++)
+                sum += residual[ch][row * half_w + col];
+            row_offsets[ch][row] = sum / half_w;
+        }
+
+        /* Per-column means */
+        for (int col = 0; col < half_w; col++)
+        {
+            double sum = 0;
+            for (int row = 0; row < half_h; row++)
+                sum += residual[ch][row * half_w + col];
+            col_offsets[ch][col] = sum / half_h;
+        }
+    }
+
+    /* Compute residual sigma after polynomial + row/col correction */
+    double residual_sigma[4] = {0};
+    double residual_sigma_rc[4] = {0};
+    for (int ch = 0; ch < 4; ch++)
+    {
+        double sum_sq = 0, sum_sq_rc = 0;
+        for (int row = 0; row < half_h; row++)
+            for (int col = 0; col < half_w; col++)
+            {
+                double r = residual[ch][row * half_w + col];
+                sum_sq += r * r;
+                double r_rc = r - row_offsets[ch][row] - col_offsets[ch][col];
+                sum_sq_rc += r_rc * r_rc;
             }
         residual_sigma[ch] = sqrt(sum_sq / half_size);
+        residual_sigma_rc[ch] = sqrt(sum_sq_rc / half_size);
     }
-    printf("  Residual sigma (after poly fit): R=%.2f Gr=%.2f Gb=%.2f B=%.2f\n",
+    for (int ch = 0; ch < 4; ch++) free(residual[ch]);
+
+    printf("  Residual sigma (poly only): R=%.2f Gr=%.2f Gb=%.2f B=%.2f\n",
            residual_sigma[0], residual_sigma[1], residual_sigma[2], residual_sigma[3]);
-    printf("  Fit captured: R=%.0f%% Gr=%.0f%% Gb=%.0f%% B=%.0f%%\n",
+    printf("  Residual sigma (poly+row/col): R=%.2f Gr=%.2f Gb=%.2f B=%.2f\n",
+           residual_sigma_rc[0], residual_sigma_rc[1], residual_sigma_rc[2], residual_sigma_rc[3]);
+    printf("  Poly captured: R=%.0f%% Gr=%.0f%% Gb=%.0f%% B=%.0f%%\n",
            (1 - residual_sigma[0]/fpn_sigma[0]) * 100,
            (1 - residual_sigma[1]/fpn_sigma[1]) * 100,
            (1 - residual_sigma[2]/fpn_sigma[2]) * 100,
            (1 - residual_sigma[3]/fpn_sigma[3]) * 100);
-
-    for (int ch = 0; ch < 4; ch++) free(fpn[ch]);
+    printf("  Poly+Row/Col captured: R=%.0f%% Gr=%.0f%% Gb=%.0f%% B=%.0f%%\n",
+           (1 - residual_sigma_rc[0]/fpn_sigma[0]) * 100,
+           (1 - residual_sigma_rc[1]/fpn_sigma[1]) * 100,
+           (1 - residual_sigma_rc[2]/fpn_sigma[2]) * 100,
+           (1 - residual_sigma_rc[3]/fpn_sigma[3]) * 100);
 
     /* Generate seed from polynomial coefficients */
     uint32_t seed = 0x55AA55AA;
@@ -295,8 +345,30 @@ int main(int argc, char **argv)
         fprintf(out, "  \"%s\": [", ch_names[ch]);
         for (int i = 0; i < n_terms; i++)
             fprintf(out, "%s%.8f", i > 0 ? ", " : "", poly_coeffs[ch][i]);
+        fprintf(out, "],\n");
+    }
+
+    /* Write per-row offsets */
+    const char *row_names[] = {"row_offsets_R", "row_offsets_Gr", "row_offsets_Gb", "row_offsets_B"};
+    for (int ch = 0; ch < 4; ch++)
+    {
+        fprintf(out, "  \"%s\": [", row_names[ch]);
+        for (int i = 0; i < half_h; i++)
+            fprintf(out, "%s%.4f", i > 0 ? "," : "", row_offsets[ch][i]);
+        fprintf(out, "],\n");
+    }
+
+    /* Write per-column offsets */
+    const char *col_names[] = {"col_offsets_R", "col_offsets_Gr", "col_offsets_Gb", "col_offsets_B"};
+    for (int ch = 0; ch < 4; ch++)
+    {
+        fprintf(out, "  \"%s\": [", col_names[ch]);
+        for (int i = 0; i < half_w; i++)
+            fprintf(out, "%s%.4f", i > 0 ? "," : "", col_offsets[ch][i]);
         fprintf(out, "]%s\n", ch < 3 ? "," : "");
     }
+
+    for (int ch = 0; ch < 4; ch++) { free(row_offsets[ch]); free(col_offsets[ch]); }
 
     fprintf(out, "}\n");
     fclose(out);

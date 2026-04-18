@@ -15,6 +15,22 @@
 void fpn_model_init(fpn_model *model)
 {
     memset(model, 0, sizeof(fpn_model));
+    for (int ch = 0; ch < 4; ch++)
+    {
+        model->row_offsets[ch] = NULL;
+        model->col_offsets[ch] = NULL;
+    }
+}
+
+void fpn_model_free(fpn_model *model)
+{
+    for (int ch = 0; ch < 4; ch++)
+    {
+        free(model->row_offsets[ch]);
+        free(model->col_offsets[ch]);
+        model->row_offsets[ch] = NULL;
+        model->col_offsets[ch] = NULL;
+    }
 }
 
 /* Simple JSON number array parser (no external dependency) */
@@ -98,6 +114,40 @@ int fpn_model_load(fpn_model *model, const char *json_path)
 
     free(json);
 
+    /* Load row/column offsets if present */
+    int half_h = model->height / 2;
+    int half_w = model->width / 2;
+    const char *row_keys[] = {"row_offsets_R", "row_offsets_Gr", "row_offsets_Gb", "row_offsets_B"};
+    const char *col_keys[] = {"col_offsets_R", "col_offsets_Gr", "col_offsets_Gb", "col_offsets_B"};
+    int has_rc = 0;
+
+    for (int ch = 0; ch < 4; ch++)
+    {
+        if (strstr(json, row_keys[ch]) != NULL && half_h > 0)
+        {
+            model->row_offsets[ch] = (double *)calloc(half_h, sizeof(double));
+            if (model->row_offsets[ch])
+            {
+                int n = parse_double_array(json, row_keys[ch], model->row_offsets[ch], half_h);
+                if (n > 0) has_rc = 1;
+            }
+        }
+        if (strstr(json, col_keys[ch]) != NULL && half_w > 0)
+        {
+            model->col_offsets[ch] = (double *)calloc(half_w, sizeof(double));
+            if (model->col_offsets[ch])
+            {
+                int n = parse_double_array(json, col_keys[ch], model->col_offsets[ch], half_w);
+                if (n > 0) has_rc = 1;
+            }
+        }
+    }
+    model->has_row_col_offsets = has_rc;
+    model->half_rows = half_h;
+    model->half_cols = half_w;
+
+    free(json);
+
     if (model->width > 0 && model->height > 0 && model->poly_order > 0)
         model->valid = 1;
 
@@ -124,14 +174,26 @@ double fpn_model_eval(const fpn_model *model, int row, int col)
 
     /* Determine Bayer channel: 0=R(even row, even col), 1=Gr, 2=Gb, 3=B */
     int ch = (row & 1) * 2 + (col & 1);
+    int hr = row / 2, hc = col / 2;
 
     /* Normalize coordinates to [-1, 1] using half-resolution grid */
     int half_w = model->width / 2;
     int half_h = model->height / 2;
-    double x = (half_w > 1) ? (2.0 * (col / 2) / (half_w - 1)) - 1.0 : 0.0;
-    double y = (half_h > 1) ? (2.0 * (row / 2) / (half_h - 1)) - 1.0 : 0.0;
+    double x = (half_w > 1) ? (2.0 * hc / (half_w - 1)) - 1.0 : 0.0;
+    double y = (half_h > 1) ? (2.0 * hr / (half_h - 1)) - 1.0 : 0.0;
 
-    return eval_poly(model->poly_coeffs[ch], model->poly_order, x, y);
+    double fpn = eval_poly(model->poly_coeffs[ch], model->poly_order, x, y);
+
+    /* Add row/column banding offsets if available */
+    if (model->has_row_col_offsets)
+    {
+        if (model->row_offsets[ch] && hr < model->half_rows)
+            fpn += model->row_offsets[ch][hr];
+        if (model->col_offsets[ch] && hc < model->half_cols)
+            fpn += model->col_offsets[ch][hc];
+    }
+
+    return fpn;
 }
 
 void fpn_subtract(const fpn_model *model, uint16_t *raw, int width, int height)

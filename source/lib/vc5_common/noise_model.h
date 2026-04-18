@@ -21,6 +21,10 @@ extern "C" {
 #define FPN_MAX_POLY_ORDER 4
 #define FPN_MAX_POLY_TERMS 15   /* (4+1)*(4+2)/2 */
 
+/*! Maximum row/column offsets (half resolution for Bayer) */
+#define FPN_MAX_ROWS 4400   /* Max sensor height / 2 */
+#define FPN_MAX_COLS 6000   /* Max sensor width / 2 */
+
 /*! @brief Per-sensor FPN calibration model */
 typedef struct {
     int         valid;                                  /* Model loaded and ready */
@@ -31,6 +35,11 @@ typedef struct {
     double      poly_coeffs[4][FPN_MAX_POLY_TERMS];    /* Polynomial coefficients per Bayer channel */
     double      residual_sigma[4];                      /* Residual noise sigma per channel */
     uint32_t    seed;                                   /* PRNG seed for residual reconstruction */
+    int         has_row_col_offsets;                     /* Row/column offset data loaded */
+    int         half_rows;                              /* Number of row offsets per channel */
+    int         half_cols;                              /* Number of column offsets per channel */
+    double      *row_offsets[4];                        /* Per-row mean offset per Bayer channel (heap allocated) */
+    double      *col_offsets[4];                        /* Per-column mean offset per Bayer channel (heap allocated) */
 } fpn_model;
 
 /*! @brief Initialize FPN model to invalid/empty state */
