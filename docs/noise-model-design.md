@@ -205,6 +205,26 @@ For each phase:
 5. **Backwards compatibility**: Old files decode correctly, default behavior unchanged
 6. **16-bit data**: Test with X2D to verify the wider dynamic range benefits
 
+## Measured Compression Results
+
+### Improvement Scales with Noise Level
+
+| Sensor | ISO | Normal Q4 | Denoise N=30 Q4 | Improvement Factor |
+|--------|-----|-----------|-----------------|-------------------|
+| X2D 100C | 64 | 3.6x | 4.7x | 1.3x |
+| Hero6 Black | 100 | 4.2x | 5.9x | 1.4x |
+| Hero10 Black (night TL) | 400 | 3.3x | 10.8x | 3.3x |
+| Hero10 Black | 1600 | 3.5x | 11.5x | 3.3x |
+
+At high ISO, noise dominates signal entropy. The noise-aware compression identifies this noise entropy and separates it, achieving up to 3.3x better compression. At low ISO (clean sensor data), the improvement is modest (1.3-1.4x) because there's less noise to separate.
+
+### Dark Frame Performance
+
+On a near-dark timelapse frame (HERO10, 30s, ISO 400, 83% dark pixels):
+- Normal Q4: 9.1 MB (3.3x compression)
+- Denoise N=30: 2.8 MB (10.8x compression)
+- **69% file size reduction** from noise separation alone
+
 ## Key Design Principles
 
 1. **Sensor characterization first** — always prefer calibrated parameters over blind estimation
