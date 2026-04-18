@@ -112,9 +112,7 @@ int fpn_model_load(fpn_model *model, const char *json_path)
     parse_double_array(json, "fpn_poly_Gb", model->poly_coeffs[2], FPN_MAX_POLY_TERMS);
     parse_double_array(json, "fpn_poly_B", model->poly_coeffs[3], FPN_MAX_POLY_TERMS);
 
-    free(json);
-
-    /* Load row/column offsets if present */
+    /* Load row/column offsets if present (before freeing json!) */
     int half_h = model->height / 2;
     int half_w = model->width / 2;
     const char *row_keys[] = {"row_offsets_R", "row_offsets_Gr", "row_offsets_Gb", "row_offsets_B"};
