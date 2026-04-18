@@ -182,17 +182,23 @@ int fpn_model_load(fpn_model *model, const char *json_path)
     return model->valid ? 0 : -1;
 }
 
-/* Evaluate 2D polynomial at normalized coordinates */
+/* Evaluate 2D polynomial at normalized coordinates using precomputed powers */
 static double eval_poly(const double *coeffs, int order, double x, double y)
 {
+    /* Precompute powers: avoids 60 pow() calls per pixel */
+    double xp[FPN_MAX_POLY_ORDER + 1], yp[FPN_MAX_POLY_ORDER + 1];
+    xp[0] = 1.0; yp[0] = 1.0;
+    for (int k = 1; k <= order; k++)
+    {
+        xp[k] = xp[k-1] * x;
+        yp[k] = yp[k-1] * y;
+    }
+
     double result = 0;
     int idx = 0;
     for (int total = 0; total <= order; total++)
         for (int i = total; i >= 0; i--)
-        {
-            int j = total - i;
-            result += coeffs[idx++] * pow(x, i) * pow(y, j);
-        }
+            result += coeffs[idx++] * xp[i] * yp[total - i];
     return result;
 }
 
