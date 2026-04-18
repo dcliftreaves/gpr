@@ -22,11 +22,36 @@
 /*! Noise energy scaling per wavelet level (halves at each coarser scale) */
 static const double level_scale[MAX_WAVELET_COUNT] = {1.0, 0.5, 0.25};
 
-static int compare_int32(const void *a, const void *b)
+/*! Quickselect partition for O(N) median finding */
+static int partition(int32_t *arr, int lo, int hi)
 {
-    int32_t va = *(const int32_t *)a;
-    int32_t vb = *(const int32_t *)b;
-    return (va > vb) - (va < vb);
+    int32_t pivot = arr[hi];
+    int i = lo;
+    for (int j = lo; j < hi; j++)
+    {
+        if (arr[j] <= pivot)
+        {
+            int32_t t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+            i++;
+        }
+    }
+    int32_t t = arr[i]; arr[i] = arr[hi]; arr[hi] = t;
+    return i;
+}
+
+/*! O(N) average-case median via quickselect */
+static int32_t quickselect_median(int32_t *arr, int n)
+{
+    int k = n / 2;
+    int lo = 0, hi = n - 1;
+    while (lo < hi)
+    {
+        int p = partition(arr, lo, hi);
+        if (p == k) return arr[k];
+        else if (p < k) lo = p + 1;
+        else hi = p - 1;
+    }
+    return arr[lo];
 }
 
 double EstimateNoiseSigma(const PIXEL *data, DIMENSION width,
@@ -51,14 +76,7 @@ double EstimateNoiseSigma(const PIXEL *data, DIMENSION width,
         }
     }
 
-    qsort(abs_vals, count, sizeof(int32_t), compare_int32);
-
-    double median;
-    if (count % 2 == 0)
-        median = (abs_vals[count / 2 - 1] + abs_vals[count / 2]) / 2.0;
-    else
-        median = abs_vals[count / 2];
-
+    double median = (double)quickselect_median(abs_vals, count);
     free(abs_vals);
 
     return median * MAD_SIGMA_FACTOR;
