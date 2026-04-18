@@ -22,9 +22,17 @@
 /*! Noise energy scaling per wavelet level (halves at each coarser scale) */
 static const double level_scale[MAX_WAVELET_COUNT] = {1.0, 0.5, 0.25};
 
-/*! Quickselect partition for O(N) median finding */
+/*! Quickselect partition with median-of-three pivot for O(N) median finding */
 static int partition(int32_t *arr, int lo, int hi)
 {
+    /* Median-of-three pivot to avoid O(N²) on sorted data */
+    int mid = lo + (hi - lo) / 2;
+    if (arr[lo] > arr[mid]) { int32_t t = arr[lo]; arr[lo] = arr[mid]; arr[mid] = t; }
+    if (arr[lo] > arr[hi])  { int32_t t = arr[lo]; arr[lo] = arr[hi]; arr[hi] = t; }
+    if (arr[mid] > arr[hi]) { int32_t t = arr[mid]; arr[mid] = arr[hi]; arr[hi] = t; }
+    /* Swap median to hi-1 position as pivot */
+    { int32_t t = arr[mid]; arr[mid] = arr[hi]; arr[hi] = t; }
+
     int32_t pivot = arr[hi];
     int i = lo;
     for (int j = lo; j < hi; j++)
@@ -35,7 +43,7 @@ static int partition(int32_t *arr, int lo, int hi)
             i++;
         }
     }
-    int32_t t = arr[i]; arr[i] = arr[hi]; arr[hi] = t;
+    { int32_t t = arr[i]; arr[i] = arr[hi]; arr[hi] = t; }
     return i;
 }
 
@@ -54,29 +62,47 @@ static int32_t quickselect_median(int32_t *arr, int n)
     return arr[lo];
 }
 
+/*! Maximum samples for MAD estimation (limits memory and compute).
+    10K samples gives excellent statistical accuracy for median estimation. */
+#define MAX_MAD_SAMPLES 10000
+
 double EstimateNoiseSigma(const PIXEL *data, DIMENSION width,
                           DIMENSION height, DIMENSION pitch)
 {
-    int count = (int)width * (int)height;
-    if (count <= 0) return 0.0;
+    int total = (int)width * (int)height;
+    if (total <= 0) return 0.0;
+
+    /* Subsample for large bands to keep MAD estimation fast */
+    int step = 1;
+    int count = total;
+    if (total > MAX_MAD_SAMPLES)
+    {
+        step = total / MAX_MAD_SAMPLES;
+        count = MAX_MAD_SAMPLES;
+    }
 
     int32_t *abs_vals = (int32_t *)malloc(count * sizeof(int32_t));
     if (abs_vals == NULL) return 0.0;
 
     int pitch_pixels = pitch / sizeof(PIXEL);
     int idx = 0;
+    int sample_idx = 0;
 
-    for (int row = 0; row < height; row++)
+    for (int row = 0; row < (int)height && idx < count; row++)
     {
         const PIXEL *row_ptr = data + row * pitch_pixels;
-        for (int col = 0; col < width; col++)
+        for (int col = 0; col < (int)width && idx < count; col++)
         {
-            int32_t v = row_ptr[col];
-            abs_vals[idx++] = (v < 0) ? -v : v;
+            if (sample_idx % step == 0)
+            {
+                int32_t v = row_ptr[col];
+                abs_vals[idx++] = (v < 0) ? -v : v;
+            }
+            sample_idx++;
         }
     }
 
-    double median = (double)quickselect_median(abs_vals, count);
+    double median = (double)quickselect_median(abs_vals, idx);
     free(abs_vals);
 
     return median * MAD_SIGMA_FACTOR;
