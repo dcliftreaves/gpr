@@ -70,6 +70,19 @@ From analysis of actual images (no formal calibration):
 | X2D 100C | 11664×8750 | 200 | 6.75e-05 | 222 DN | 130 DN | Vertical | 14.01 bits |
 | X2D 100C | 11664×8750 | 12800 | 4.27e-03 | 915 DN | 278 DN | Vertical | 13.71 bits |
 
+### X2D Dark Frame Calibration (50 frames per ISO, Phocus tethered capture)
+
+| ISO | Black Level | DSNU σ R | DSNU σ Gr | DSNU σ Gb | DSNU σ B |
+|-----|------------|---------|----------|----------|---------|
+| 64 | 4094.2 | 0.60 | 0.65 | 0.85 | 0.86 |
+| 200 | 4094.5 | 0.96 | 1.01 | 1.33 | 1.29 |
+| 12800 | 4089.9 | 56.17 | 57.27 | 80.48 | 81.84 |
+
+**Key finding**: The X2D's BSI sensor has exceptionally low DSNU (sub-1.3 DN at ISO 200).
+Even at ISO 12800, DSNU (56-82 DN) is small relative to total noise (~915 DN).
+Dark frame calibration adds negligible compression improvement over Phase A wavelet
+thresholding alone — Phase A already captures pattern noise in the wavelet domain.
+
 **Key observations:**
 - GoPro sensors: consistent horizontal banding (FPN from row readout)
 - X2D: vertical banding (FPN from column ADCs)
