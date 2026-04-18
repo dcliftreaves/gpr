@@ -40,7 +40,15 @@ typedef struct {
     int         half_cols;                              /* Number of column offsets per channel */
     double      *row_offsets[4];                        /* Per-row mean offset per Bayer channel (heap allocated) */
     double      *col_offsets[4];                        /* Per-column mean offset per Bayer channel (heap allocated) */
-    int16_t     *precomputed_map;                       /* Precomputed FPN map (full resolution, heap allocated) */
+    int16_t     *precomputed_map;                       /* Precomputed DSNU map (full resolution, heap allocated) */
+
+    /* PRNU (Photo Response Non-Uniformity) — multiplicative gain variation */
+    int         has_prnu;                               /* PRNU calibration data loaded */
+    double      prnu_mean_gain[4];                      /* Per-channel mean PRNU gain (normalized to 1.0) */
+    double      prnu_poly_coeffs[4][FPN_MAX_POLY_TERMS]; /* PRNU 2D polynomial per channel */
+    double      *prnu_row_gains[4];                     /* Per-row PRNU gain variation (heap) */
+    double      *prnu_col_gains[4];                     /* Per-column PRNU gain variation (heap) */
+    uint16_t    *precomputed_prnu_map;                  /* Precomputed PRNU map: fixed-point gain × 16384 (heap) */
 } fpn_model;
 
 /*! @brief Generate Gaussian noise sample from PRNG state (shared by encoder/decoder) */
@@ -66,6 +74,24 @@ int fpn_model_load(fpn_model *model, const char *json_path);
     @return         Estimated FPN offset for this pixel (add channel_mean for absolute dark level)
 */
 double fpn_model_eval(const fpn_model *model, int row, int col);
+
+/*! @brief Apply all noise corrections to a single Bayer pixel (for use inside UnpackPixel)
+    @param model    Loaded noise model
+    @param value    Raw pixel value
+    @param row      Full Bayer grid row
+    @param col      Full Bayer grid column
+    @return         Corrected pixel value
+*/
+uint16_t noise_correct_pixel(const fpn_model *model, uint16_t value, int row, int col);
+
+/*! @brief Restore all noise to a single pixel (inverse of noise_correct_pixel)
+    @param model    Loaded noise model
+    @param value    Corrected pixel value
+    @param row      Full Bayer grid row
+    @param col      Full Bayer grid column
+    @return         Original (noise-restored) pixel value
+*/
+uint16_t noise_restore_pixel(const fpn_model *model, uint16_t value, int row, int col);
 
 /*! @brief Subtract FPN from raw Bayer pixels in-place
     @param model    Loaded FPN model

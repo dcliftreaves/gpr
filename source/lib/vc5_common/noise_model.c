@@ -59,8 +59,11 @@ void fpn_model_init(fpn_model *model)
     {
         model->row_offsets[ch] = NULL;
         model->col_offsets[ch] = NULL;
+        model->prnu_row_gains[ch] = NULL;
+        model->prnu_col_gains[ch] = NULL;
     }
     model->precomputed_map = NULL;
+    model->precomputed_prnu_map = NULL;
 }
 
 void fpn_model_free(fpn_model *model)
@@ -69,11 +72,17 @@ void fpn_model_free(fpn_model *model)
     {
         free(model->row_offsets[ch]);
         free(model->col_offsets[ch]);
+        free(model->prnu_row_gains[ch]);
+        free(model->prnu_col_gains[ch]);
         model->row_offsets[ch] = NULL;
         model->col_offsets[ch] = NULL;
+        model->prnu_row_gains[ch] = NULL;
+        model->prnu_col_gains[ch] = NULL;
     }
     free(model->precomputed_map);
+    free(model->precomputed_prnu_map);
     model->precomputed_map = NULL;
+    model->precomputed_prnu_map = NULL;
 }
 
 /*! Precompute the full-resolution FPN map for fast subtraction/addition.
@@ -270,6 +279,56 @@ double fpn_model_eval(const fpn_model *model, int row, int col)
     }
 
     return fpn;
+}
+
+uint16_t noise_correct_pixel(const fpn_model *model, uint16_t value, int row, int col)
+{
+    if (!model->valid) return value;
+
+    int idx = row * model->width + col;
+    int32_t corrected = (int32_t)value;
+
+    /* Step 1: DSNU subtraction (additive dark frame) */
+    if (model->precomputed_map && row < model->height && col < model->width)
+        corrected -= (int32_t)model->precomputed_map[idx];
+
+    /* Step 2: PRNU correction (multiplicative gain normalization) */
+    if (model->has_prnu && model->precomputed_prnu_map && row < model->height && col < model->width)
+    {
+        /* precomputed_prnu_map stores gain × 16384 (fixed-point 2.14) */
+        uint16_t gain_fp = model->precomputed_prnu_map[idx];
+        if (gain_fp > 0)
+            corrected = (int32_t)((int64_t)corrected * 16384 / gain_fp);
+    }
+
+    if (corrected < 0) corrected = 0;
+    if (corrected > 65535) corrected = 65535;
+    return (uint16_t)corrected;
+}
+
+uint16_t noise_restore_pixel(const fpn_model *model, uint16_t value, int row, int col)
+{
+    if (!model->valid) return value;
+
+    int idx = row * model->width + col;
+    int32_t restored = (int32_t)value;
+
+    /* Reverse order: PRNU first (multiply), then DSNU (add) */
+
+    /* Step 9: PRNU restore (multiply by gain) */
+    if (model->has_prnu && model->precomputed_prnu_map && row < model->height && col < model->width)
+    {
+        uint16_t gain_fp = model->precomputed_prnu_map[idx];
+        restored = (int32_t)((int64_t)restored * gain_fp / 16384);
+    }
+
+    /* Step 10: DSNU restore (add dark frame) */
+    if (model->precomputed_map && row < model->height && col < model->width)
+        restored += (int32_t)model->precomputed_map[idx];
+
+    if (restored < 0) restored = 0;
+    if (restored > 65535) restored = 65535;
+    return (uint16_t)restored;
 }
 
 void fpn_subtract(const fpn_model *model, uint16_t *raw, int width, int height)
