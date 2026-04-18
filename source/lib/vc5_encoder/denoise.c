@@ -122,45 +122,55 @@ double DenoiseTransform(TRANSFORM *transform, double strength,
     if (strength <= 0.0) return 0.0;
 
     WAVELET *finest = transform->wavelet[0];
-    double sigma;
+    double global_sigma;
 
     /* Prefer calibrated noise model when DNG NoiseProfile is available */
     if (noise_scale > 0.0)
     {
-        sigma = CalibratedNoiseSigma(finest->data[LL_BAND],
-                                     finest->width, finest->height,
-                                     finest->pitch,
-                                     noise_scale, noise_offset);
+        global_sigma = CalibratedNoiseSigma(finest->data[LL_BAND],
+                                            finest->width, finest->height,
+                                            finest->pitch,
+                                            noise_scale, noise_offset);
     }
     else
     {
         /* Fallback: estimate from finest HH band using MAD */
-        sigma = EstimateNoiseSigma(finest->data[HH_BAND],
-                                   finest->width, finest->height,
-                                   finest->pitch);
+        global_sigma = EstimateNoiseSigma(finest->data[HH_BAND],
+                                          finest->width, finest->height,
+                                          finest->pitch);
     }
 
-    if (sigma <= 0.0) return 0.0;
+    if (global_sigma <= 0.0) return 0.0;
 
-    /* Soft-threshold all highpass bands at all wavelet levels */
+    /* Per-band adaptive thresholding: estimate sigma individually per band
+       for more accurate noise separation. Use global sigma as fallback. */
     for (int level = 0; level < MAX_WAVELET_COUNT; level++)
     {
         WAVELET *wavelet = transform->wavelet[level];
         int N = (int)wavelet->width * (int)wavelet->height;
+        if (N <= 0) continue;
 
-        double T_base = sigma * sqrt(2.0 * log((double)N));
-        double T = T_base * level_scale[level] * strength;
-
-        /* Threshold LH, HL, HH bands — never touch LL */
         for (int band = LH_BAND; band <= HH_BAND; band++)
         {
+            /* Estimate per-band sigma using MAD (more accurate than global) */
+            double band_sigma = EstimateNoiseSigma(wavelet->data[band],
+                                                    wavelet->width,
+                                                    wavelet->height,
+                                                    wavelet->pitch);
+
+            /* Use per-band estimate if reasonable, else fall back to global scaled */
+            if (band_sigma <= 0.0)
+                band_sigma = global_sigma * level_scale[level];
+
+            double T = band_sigma * sqrt(2.0 * log((double)N)) * strength;
+
             SoftThresholdBand(wavelet->data[band],
                               wavelet->width, wavelet->height,
                               wavelet->pitch, T);
         }
     }
 
-    return sigma;
+    return global_sigma;
 }
 
 /*! Simple xorshift32 PRNG for reproducible noise generation */
