@@ -32,6 +32,11 @@ void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_paramet
 
     encoding_parameters->mem_alloc = malloc;
     encoding_parameters->mem_free  = free;
+
+    encoding_parameters->denoise_enabled  = false;
+    encoding_parameters->denoise_strength = 1.0;
+    encoding_parameters->noise_scale      = 0.0;
+    encoding_parameters->noise_offset     = 0.0;
 }
 
 CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters*   encoding_parameters,    /* vc5 encoding parameters */
@@ -89,6 +94,11 @@ const size_t max_vc5_buffer_size = base_size + (base_size >> 1) + (1 << 20);
     
     parameters.allocator.Alloc = encoding_parameters->mem_alloc;
     parameters.allocator.Free = encoding_parameters->mem_free;
+
+    parameters.denoise_enabled  = encoding_parameters->denoise_enabled;
+    parameters.denoise_strength = encoding_parameters->denoise_strength;
+    parameters.noise_scale      = encoding_parameters->noise_scale;
+    parameters.noise_offset     = encoding_parameters->noise_offset;
     
     // Check that the enabled parts are correct
     error = CheckEnabledParts(&parameters.enabled_parts);

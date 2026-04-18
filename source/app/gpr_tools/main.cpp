@@ -72,6 +72,9 @@ public:
 
     int     quality;
 
+    bool    denoise;
+    int     denoise_strength_pct;
+
 public:
 
     bool get_verbose() { return verbose; }
@@ -113,7 +116,10 @@ public:
         
         ("OutputFilePath,o",                                output_file_path,                           string(""),             "Output file path.\n(files types: GPR, DNG, PPM, RAW, JPG)")
 
-        ("Quality,q",                                       quality,                                    -1,                     "Encoder quality\n(0=Low, 1=Medium, 2=High, 3=FS1, 4=FSX, 5=FS2, 6=FS3, 7=FS4, 8=FS5, -1=auto)");
+        ("Quality,q",                                       quality,                                    -1,                     "Encoder quality\n(0=Low, 1=Medium, 2=High, 3=FS1, 4=FSX, 5=FS2, 6=FS3, 7=FS4, 8=FS5, -1=auto)")
+
+        ("Denoise,D",                                       denoise,                                    false,                  "Enable wavelet-domain denoising before compression")
+        ("DenoiseStrength,N",                               denoise_strength_pct,                       100,                    "Denoise strength [0-100, default: 100]");
         ;
     }
 };
@@ -199,7 +205,8 @@ int main(int argc, char *argv [])
     {
         return dng_convert_main(args.input_file_path.c_str(), args.input_width, args.input_height, args.input_pitch, args.input_skip_rows, args.input_pixel_format.c_str(),
                                 args.output_file_path.c_str(), args.apply_gpr_parameters.c_str(), args.gpmf_file_path.c_str(), args.rgb_file_resolution.c_str(), args.rgb_file_bits,
-                                args.jpg_preview_file_path.c_str(), args.jpg_preview_file_width, args.jpg_preview_file_height, args.quality );
+                                args.jpg_preview_file_path.c_str(), args.jpg_preview_file_width, args.jpg_preview_file_height, args.quality,
+                                args.denoise, args.denoise_strength_pct / 100.0 );
     }
     
     return 0;

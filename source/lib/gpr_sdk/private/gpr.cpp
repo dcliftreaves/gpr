@@ -180,6 +180,11 @@ static void set_vc5_encoder_parameters( vc5_encoder_parameters& vc5_encoder_para
     else
         vc5_encoder_params.quality_setting = VC5_ENCODER_QUALITY_SETTING_FS1;
 
+    vc5_encoder_params.denoise_enabled  = convert_params->tuning_info.denoise_enabled;
+    vc5_encoder_params.denoise_strength = convert_params->tuning_info.denoise_strength;
+    vc5_encoder_params.noise_scale      = convert_params->tuning_info.noise_scale;
+    vc5_encoder_params.noise_offset     = convert_params->tuning_info.noise_offset;
+
 }
 #endif
 

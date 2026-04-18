@@ -94,6 +94,11 @@
 
         gpr_free                    mem_free;               // Callback function to free memory
 
+        bool                        denoise_enabled;        // Enable wavelet-domain denoising
+        double                      denoise_strength;       // Threshold multiplier (0.0-1.0)
+        double                      noise_scale;            // DNG NoiseProfile scale (0 = use MAD fallback)
+        double                      noise_offset;           // DNG NoiseProfile offset
+
     } vc5_encoder_parameters;
 
     void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_parameters);

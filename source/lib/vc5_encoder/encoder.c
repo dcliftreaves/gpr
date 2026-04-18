@@ -527,6 +527,12 @@ CODEC_ERROR PrepareEncoder(ENCODER *encoder,
 	// Initialize the encoding parameters and the codec state
 	PrepareEncoderState(encoder, image, parameters);
 
+	// Copy denoise parameters
+	encoder->denoise_enabled  = parameters->denoise_enabled;
+	encoder->denoise_strength = parameters->denoise_strength;
+	encoder->noise_scale      = parameters->noise_scale;
+	encoder->noise_offset     = parameters->noise_offset;
+
 	// Allocate the wavelet transforms
 	AllocEncoderTransforms(encoder);
 
@@ -1404,6 +1410,18 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 				for (row = 0; row < ROW_BUFFER_COUNT; row++)
 					allocator->Free(thread_args[channel_index].lowpass_buffer[wavelet_index][row]);
 			}
+		}
+	}
+
+	/* Phase 1.5: Wavelet-domain denoising (entropy reduction before encoding) */
+	if (encoder->denoise_enabled)
+	{
+		for (channel_index = 0; channel_index < channel_count; channel_index++)
+		{
+			DenoiseTransform(&encoder->transform[channel_index],
+			                 encoder->denoise_strength,
+			                 encoder->noise_scale,
+			                 encoder->noise_offset);
 		}
 	}
 

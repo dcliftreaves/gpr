@@ -43,6 +43,7 @@
 #include "sections.h"
 #endif
 
+#include "denoise.h"
 #include "parameters.h"
 #include "encoder.h"
 #include "vc5_encoder.h"

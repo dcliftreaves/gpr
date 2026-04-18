@@ -85,6 +85,9 @@ void gpr_tuning_info_set_defaults( gpr_tuning_info* x )
 
     x->default_crop_size_h = 0;
     x->default_crop_size_v = 0;
+
+    x->denoise_enabled = false;
+    x->denoise_strength = 1.0;
 }
 
 

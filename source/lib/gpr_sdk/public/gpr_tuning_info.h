@@ -146,6 +146,9 @@
         uint32_t                default_crop_size_h;
         uint32_t                default_crop_size_v;
 
+        bool                    denoise_enabled;    // Enable wavelet-domain denoising before compression
+        double                  denoise_strength;   // Threshold multiplier 0.0-1.0 (default 1.0)
+
     } gpr_tuning_info;
 
     int32_t gpr_tuning_info_get_dgain_saturation_level(const gpr_tuning_info* x, GPR_RAW_CHANNEL channel);
