@@ -1860,9 +1860,16 @@ bool gpr_convert_raw_to_gpr(const gpr_allocator*    allocator,
     gpr_buffer_auto raw_buffer(allocator->Alloc, allocator->Free);
     
     raw_buffer.set(inp_raw_buffer->buffer, inp_raw_buffer->size);
-    
+
+    // Phase C: Subtract fixed-pattern noise before encoding (if calibration loaded)
+    if (parameters->fpn.valid)
+    {
+        fpn_subtract(&parameters->fpn, (uint16_t*)raw_buffer.get_buffer(),
+                     parameters->input_width, parameters->input_height);
+    }
+
     dng_memory_stream out_gpr_stream( gDefaultDNGMemoryAllocator );
-    
+
     write_dng( allocator, &out_gpr_stream, &raw_buffer, true, NULL, parameters );
 
     write_dngstream_to_buffer( &out_gpr_stream, out_gpr_buffer, allocator->Alloc, allocator->Free );

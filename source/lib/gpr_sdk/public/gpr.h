@@ -29,6 +29,7 @@
 #include "gpr_allocator.h"
 #include "gpr_buffer.h"
 #include "gpr_rgb_buffer.h"
+#include "noise_model.h"
 
 #ifdef __cplusplus
     extern "C" {
@@ -69,6 +70,8 @@
             gpr_profile_info    profile_info;   /* Camera color profile info object */
             
             gpr_tuning_info     tuning_info;    /* Camera tuning info object */
+
+            fpn_model           fpn;            /* Fixed-pattern noise calibration (Phase C) */
 
         } gpr_parameters;
         
