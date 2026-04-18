@@ -1447,7 +1447,6 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 		if (w0->data[LL_BAND] && w0->width > 0 && w0->height > 0)
 		{
 			PIXEL *lp = w0->data[LL_BAND];
-			int pp = w0->pitch / sizeof(PIXEL);
 			for (int i = 0; i < 64 && i < (int)w0->width; i++)
 				seed ^= (uint32_t)lp[i] * 2654435761u;
 		}

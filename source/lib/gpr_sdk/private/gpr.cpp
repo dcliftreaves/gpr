@@ -211,6 +211,14 @@ void gpr_parameters_construct_copy(const gpr_parameters* y, gpr_parameters* x, g
 
     *x = *y;
 
+    // Clear FPN heap pointers to prevent double-free (shallow copy shares pointers)
+    // The copy does NOT own the FPN allocations — only the original does.
+    x->fpn.row_offsets[0] = NULL; x->fpn.row_offsets[1] = NULL;
+    x->fpn.row_offsets[2] = NULL; x->fpn.row_offsets[3] = NULL;
+    x->fpn.col_offsets[0] = NULL; x->fpn.col_offsets[1] = NULL;
+    x->fpn.col_offsets[2] = NULL; x->fpn.col_offsets[3] = NULL;
+    x->fpn.precomputed_map = NULL;
+
     if( y->gpmf_payload.size > 0 && y->gpmf_payload.buffer != NULL )
     {
         x->gpmf_payload.buffer = mem_alloc( y->gpmf_payload.size );
@@ -279,6 +287,8 @@ void gpr_parameters_destroy(gpr_parameters* x, gpr_free mem_free)
         mem_free( x->profile_info.hue_sat_map_data2 );
         x->profile_info.hue_sat_map_data2 = NULL;
     }
+
+    fpn_model_free(&x->fpn);
 }
 
 

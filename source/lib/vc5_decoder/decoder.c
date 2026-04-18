@@ -280,7 +280,7 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
     // Reconstruct and add back noise for faithful original reproduction
     if (parameters->add_noise_back && parameters->noise_seed != 0)
     {
-        for (int ch = 0; ch < unpacked_image.component_count; ch++)
+        for (int ch = 0; ch < unpacked_image.component_count && ch < 4; ch++)
         {
             if (parameters->noise_sigma[ch] > 0.0)
             {

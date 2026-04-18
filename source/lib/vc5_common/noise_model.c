@@ -129,6 +129,8 @@ int fpn_model_load(fpn_model *model, const char *json_path)
     parse_int(json, "width", &model->width);
     parse_int(json, "height", &model->height);
     parse_int(json, "fpn_poly_order", &model->poly_order);
+    if (model->poly_order > FPN_MAX_POLY_ORDER)
+        model->poly_order = FPN_MAX_POLY_ORDER;
     parse_uint32(json, "fpn_seed", &model->seed);
 
     parse_double_array(json, "channel_means", model->channel_means, 4);
