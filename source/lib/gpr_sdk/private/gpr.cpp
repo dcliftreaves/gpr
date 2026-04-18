@@ -930,6 +930,40 @@ static bool read_dng(const gpr_allocator*       allocator,
                     }
                 }
 
+                // Read FPN polynomial from XMP (if stored during encoding)
+                {
+                    dng_xmp *xmp2 = negative->GetXMP();
+                    if (xmp2)
+                    {
+                        const char *ns2 = "http://ns.adobe.com/exif/1.0/aux/";
+                        uint32 poly_order = 0;
+                        if (xmp2->Get_uint32(ns2, "GPRFpnPolyOrder", poly_order) && poly_order > 0)
+                        {
+                            convert_params->fpn.poly_order = poly_order;
+                            uint32 fw = 0, fh = 0;
+                            xmp2->Get_uint32(ns2, "GPRFpnWidth", fw);
+                            xmp2->Get_uint32(ns2, "GPRFpnHeight", fh);
+                            convert_params->fpn.width = fw;
+                            convert_params->fpn.height = fh;
+
+                            const char *ch_prefix[] = {"GPRFpnR", "GPRFpnGr", "GPRFpnGb", "GPRFpnB"};
+                            for (int ch = 0; ch < 4; ch++)
+                            {
+                                for (int i = 0; i < FPN_MAX_POLY_TERMS && i < 15; i++)
+                                {
+                                    char key[64];
+                                    snprintf(key, sizeof(key), "%s%d", ch_prefix[ch], i);
+                                    real64 val = 0;
+                                    xmp2->Get_real64(ns2, key, val);
+                                    convert_params->fpn.poly_coeffs[ch][i] = val;
+                                }
+                            }
+                            if (fw > 0 && fh > 0)
+                                convert_params->fpn.valid = 1;
+                        }
+                    }
+                }
+
                 // DefaultCropOrigin and DefaultCropSize
                 tuning_info.default_crop_origin_h = Round_uint32(negative->DefaultCropOriginH().As_real64());
                 tuning_info.default_crop_origin_v = Round_uint32(negative->DefaultCropOriginV().As_real64());
@@ -1604,6 +1638,29 @@ static void write_dng(const gpr_allocator*          allocator,
                     xmp->Set_real64(ns, "GPRNoiseSigma1", enc_params.noise_sigma_out[1], 6);
                     xmp->Set_real64(ns, "GPRNoiseSigma2", enc_params.noise_sigma_out[2], 6);
                     xmp->Set_real64(ns, "GPRNoiseSigma3", enc_params.noise_sigma_out[3], 6);
+                }
+            }
+
+            // Write FPN polynomial coefficients if calibration was used
+            if (convert_params->fpn.valid)
+            {
+                dng_xmp *xmp = negative->GetXMP();
+                if (xmp)
+                {
+                    const char *ns = "http://ns.adobe.com/exif/1.0/aux/";
+                    xmp->Set_uint32(ns, "GPRFpnPolyOrder", (uint32)convert_params->fpn.poly_order);
+                    xmp->Set_uint32(ns, "GPRFpnWidth", (uint32)convert_params->fpn.width);
+                    xmp->Set_uint32(ns, "GPRFpnHeight", (uint32)convert_params->fpn.height);
+                    const char *ch_prefix[] = {"GPRFpnR", "GPRFpnGr", "GPRFpnGb", "GPRFpnB"};
+                    for (int ch = 0; ch < 4; ch++)
+                    {
+                        for (int i = 0; i < FPN_MAX_POLY_TERMS && i < 15; i++)
+                        {
+                            char key[64];
+                            snprintf(key, sizeof(key), "%s%d", ch_prefix[ch], i);
+                            xmp->Set_real64(ns, key, convert_params->fpn.poly_coeffs[ch][i], 8);
+                        }
+                    }
                 }
             }
         }
