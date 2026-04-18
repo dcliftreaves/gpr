@@ -165,6 +165,12 @@
         bool gpr_convert_gpr_to_raw(const gpr_allocator*    allocator,
                                           gpr_buffer*       inp_gpr_buffer,
                                           gpr_buffer*       out_raw_buffer);
+
+        //!< gpr to raw conversion with FPN noise reconstruction
+        bool gpr_convert_gpr_to_raw_ex(const gpr_allocator*    allocator,
+                                       const gpr_parameters*   parameters,
+                                             gpr_buffer*       inp_gpr_buffer,
+                                             gpr_buffer*       out_raw_buffer);
 #endif
         
 #ifdef __cplusplus

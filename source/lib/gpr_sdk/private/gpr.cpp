@@ -2087,6 +2087,22 @@ bool gpr_convert_gpr_to_raw(const gpr_allocator*            allocator,
     return true;
 }
 
+bool gpr_convert_gpr_to_raw_ex(const gpr_allocator*    allocator,
+                               const gpr_parameters*   parameters,
+                                     gpr_buffer*       inp_gpr_buffer,
+                                     gpr_buffer*       out_raw_buffer)
+{
+    bool result = gpr_convert_gpr_to_raw(allocator, inp_gpr_buffer, out_raw_buffer);
+
+    if (result && parameters && parameters->fpn.valid && !parameters->tuning_info.denoise_output)
+    {
+        fpn_add_back(&parameters->fpn, (uint16_t*)out_raw_buffer->buffer,
+                     parameters->input_width, parameters->input_height);
+    }
+
+    return result;
+}
+
 #endif // GPR_READING
 
 bool gpr_check_vc5( const gpr_allocator*        allocator,
