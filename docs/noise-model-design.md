@@ -77,6 +77,25 @@ From analysis of actual images (no formal calibration):
 - Dark sigma is the noise floor in shadow regions (read noise + dark current)
 - Shannon entropy: 10.7–14.0 bits/pixel (theoretical lossless compression limit: 1.1–1.3x)
 
+### Photon Transfer Curve (HERO10 Black, sunset timelapse ramp)
+
+From 1,408-frame sunset-to-dark ramp (ISO 100→800, 2 hours):
+
+| ISO | Read Noise (DN) | Dark σ (DN) | Entropy (bits) |
+|-----|-----------------|-----------|----------------|
+| 100 | 6.3 | 4.5 | 8.41 |
+| 131 | 7.3 | 4.7 | 8.47 |
+| 230 | 9.4 | 5.0 | 8.54 |
+| 400 | 6.3–9.4 | 2.2–2.8 | 8.08–8.34 |
+| 474 | 10.5 | 3.0 | 8.46 |
+| 787 | 15.7 | 3.8 | 8.69 |
+| 800 | 4.2–8.4 | 3.6–4.2 | 4.52–7.69 |
+
+**Key findings:**
+- Read noise scales ~sqrt(ISO): 6.3 DN at ISO 100 → 15.7 DN at ISO 787
+- Dark sigma drifts upward over time: 2.2→4.2 DN (thermal warm-up over 2 hours)
+- Entropy drops from 8.4 to 4.5 bits as scene darkens (noise becomes dominant)
+
 ## Three-Phase Implementation
 
 ### Phase A: Wavelet-Domain Soft Thresholding ✅ DONE
