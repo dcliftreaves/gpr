@@ -486,6 +486,15 @@ ostream& operator<<(ostream& output, const gpr_tuning_info& x)
 
     print_val( output, "noise_offset", x.noise_offset );
 
+    print_val( output, "denoise_enabled", (int)x.denoise_enabled );
+    print_val( output, "denoise_strength", x.denoise_strength );
+    print_val( output, "variance_stabilize", (int)x.variance_stabilize );
+    print_val( output, "noise_seed", x.noise_seed );
+    print_val( output, "noise_sigma_est_0", x.noise_sigma_est[0] );
+    print_val( output, "noise_sigma_est_1", x.noise_sigma_est[1] );
+    print_val( output, "noise_sigma_est_2", x.noise_sigma_est[2] );
+    print_val( output, "noise_sigma_est_3", x.noise_sigma_est[3] );
+
     print_val( output, "warp_red_coefficient", x.warp_red_coefficient );
     
     print_val( output, "warp_blue_coefficient", x.warp_blue_coefficient );
