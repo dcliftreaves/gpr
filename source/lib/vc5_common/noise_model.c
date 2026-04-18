@@ -20,6 +20,7 @@ void fpn_model_init(fpn_model *model)
         model->row_offsets[ch] = NULL;
         model->col_offsets[ch] = NULL;
     }
+    model->precomputed_map = NULL;
 }
 
 void fpn_model_free(fpn_model *model)
@@ -30,6 +31,31 @@ void fpn_model_free(fpn_model *model)
         free(model->col_offsets[ch]);
         model->row_offsets[ch] = NULL;
         model->col_offsets[ch] = NULL;
+    }
+    free(model->precomputed_map);
+    model->precomputed_map = NULL;
+}
+
+/*! Precompute the full-resolution FPN map for fast subtraction/addition.
+    Evaluates polynomial + row/col offsets once per pixel at load time. */
+static void fpn_precompute(fpn_model *model)
+{
+    if (!model->valid || model->width <= 0 || model->height <= 0) return;
+
+    size_t npixels = (size_t)model->width * model->height;
+    model->precomputed_map = (int16_t *)calloc(npixels, sizeof(int16_t));
+    if (!model->precomputed_map) return;
+
+    for (int row = 0; row < model->height; row++)
+    {
+        for (int col = 0; col < model->width; col++)
+        {
+            double fpn = fpn_model_eval(model, row, col);
+            int32_t rounded = (int32_t)(fpn + (fpn >= 0 ? 0.5 : -0.5));
+            if (rounded > 32767) rounded = 32767;
+            if (rounded < -32768) rounded = -32768;
+            model->precomputed_map[row * model->width + col] = (int16_t)rounded;
+        }
     }
 }
 
@@ -149,6 +175,10 @@ int fpn_model_load(fpn_model *model, const char *json_path)
     if (model->width > 0 && model->height > 0 && model->poly_order > 0)
         model->valid = 1;
 
+    /* Precompute the full-resolution FPN map for fast per-image subtraction */
+    if (model->valid)
+        fpn_precompute(model);
+
     return model->valid ? 0 : -1;
 }
 
@@ -198,16 +228,30 @@ void fpn_subtract(const fpn_model *model, uint16_t *raw, int width, int height)
 {
     if (!model->valid) return;
 
-    for (int row = 0; row < height; row++)
+    if (model->precomputed_map && width == model->width && height == model->height)
     {
-        for (int col = 0; col < width; col++)
+        /* Fast path: use precomputed int16 map */
+        size_t npixels = (size_t)width * height;
+        for (size_t i = 0; i < npixels; i++)
         {
-            double fpn = fpn_model_eval(model, row, col);
-            int32_t corrected = (int32_t)raw[row * width + col] - (int32_t)(fpn + 0.5);
+            int32_t corrected = (int32_t)raw[i] - (int32_t)model->precomputed_map[i];
             if (corrected < 0) corrected = 0;
             if (corrected > 65535) corrected = 65535;
-            raw[row * width + col] = (uint16_t)corrected;
+            raw[i] = (uint16_t)corrected;
         }
+    }
+    else
+    {
+        /* Slow path: evaluate polynomial per pixel */
+        for (int row = 0; row < height; row++)
+            for (int col = 0; col < width; col++)
+            {
+                double fpn = fpn_model_eval(model, row, col);
+                int32_t corrected = (int32_t)raw[row * width + col] - (int32_t)(fpn + 0.5);
+                if (corrected < 0) corrected = 0;
+                if (corrected > 65535) corrected = 65535;
+                raw[row * width + col] = (uint16_t)corrected;
+            }
     }
 }
 
@@ -215,15 +259,29 @@ void fpn_add_back(const fpn_model *model, uint16_t *raw, int width, int height)
 {
     if (!model->valid) return;
 
-    for (int row = 0; row < height; row++)
+    if (model->precomputed_map && width == model->width && height == model->height)
     {
-        for (int col = 0; col < width; col++)
+        /* Fast path: use precomputed int16 map */
+        size_t npixels = (size_t)width * height;
+        for (size_t i = 0; i < npixels; i++)
         {
-            double fpn = fpn_model_eval(model, row, col);
-            int32_t restored = (int32_t)raw[row * width + col] + (int32_t)(fpn + 0.5);
+            int32_t restored = (int32_t)raw[i] + (int32_t)model->precomputed_map[i];
             if (restored < 0) restored = 0;
             if (restored > 65535) restored = 65535;
-            raw[row * width + col] = (uint16_t)restored;
+            raw[i] = (uint16_t)restored;
         }
+    }
+    else
+    {
+        /* Slow path: evaluate polynomial per pixel */
+        for (int row = 0; row < height; row++)
+            for (int col = 0; col < width; col++)
+            {
+                double fpn = fpn_model_eval(model, row, col);
+                int32_t restored = (int32_t)raw[row * width + col] + (int32_t)(fpn + 0.5);
+                if (restored < 0) restored = 0;
+                if (restored > 65535) restored = 65535;
+                raw[row * width + col] = (uint16_t)restored;
+            }
     }
 }

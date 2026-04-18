@@ -40,10 +40,14 @@ typedef struct {
     int         half_cols;                              /* Number of column offsets per channel */
     double      *row_offsets[4];                        /* Per-row mean offset per Bayer channel (heap allocated) */
     double      *col_offsets[4];                        /* Per-column mean offset per Bayer channel (heap allocated) */
+    int16_t     *precomputed_map;                       /* Precomputed FPN map (full resolution, heap allocated) */
 } fpn_model;
 
 /*! @brief Initialize FPN model to invalid/empty state */
 void fpn_model_init(fpn_model *model);
+
+/*! @brief Free heap-allocated FPN model data */
+void fpn_model_free(fpn_model *model);
 
 /*! @brief Load FPN model from JSON calibration file */
 int fpn_model_load(fpn_model *model, const char *json_path);
