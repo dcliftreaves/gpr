@@ -278,6 +278,25 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
         }
     }
 
+    // Reconstruct and add back noise for faithful original reproduction
+    if (parameters->add_noise_back && parameters->noise_seed != 0)
+    {
+        for (int ch = 0; ch < unpacked_image.component_count; ch++)
+        {
+            if (parameters->noise_sigma[ch] > 0.0)
+            {
+                AddNoiseFromModelDec(
+                    (PIXEL *)unpacked_image.component_array_list[ch].data,
+                    unpacked_image.component_array_list[ch].width,
+                    unpacked_image.component_array_list[ch].height,
+                    unpacked_image.component_array_list[ch].pitch,
+                    parameters->noise_sigma[ch],
+                    parameters->noise_seed,
+                    ch);
+            }
+        }
+    }
+
     switch (parameters->rgb_resolution) {
 
         case GPR_RGB_RESOLUTION_NONE:
