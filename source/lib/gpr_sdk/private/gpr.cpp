@@ -180,10 +180,11 @@ static void set_vc5_encoder_parameters( vc5_encoder_parameters& vc5_encoder_para
     else
         vc5_encoder_params.quality_setting = VC5_ENCODER_QUALITY_SETTING_FS1;
 
-    vc5_encoder_params.denoise_enabled  = convert_params->tuning_info.denoise_enabled;
-    vc5_encoder_params.denoise_strength = convert_params->tuning_info.denoise_strength;
-    vc5_encoder_params.noise_scale      = convert_params->tuning_info.noise_scale;
-    vc5_encoder_params.noise_offset     = convert_params->tuning_info.noise_offset;
+    vc5_encoder_params.denoise_enabled    = convert_params->tuning_info.denoise_enabled;
+    vc5_encoder_params.denoise_strength   = convert_params->tuning_info.denoise_strength;
+    vc5_encoder_params.noise_scale        = convert_params->tuning_info.noise_scale;
+    vc5_encoder_params.noise_offset       = convert_params->tuning_info.noise_offset;
+    vc5_encoder_params.variance_stabilize = convert_params->tuning_info.variance_stabilize;
 
 }
 #endif
@@ -1205,9 +1206,13 @@ static void write_dng(const gpr_allocator*          allocator,
                 return;
         };
 
+        vc5_decoder_params.variance_stabilize = convert_params->tuning_info.variance_stabilize;
+        vc5_decoder_params.noise_scale        = convert_params->tuning_info.noise_scale;
+        vc5_decoder_params.noise_offset       = convert_params->tuning_info.noise_offset;
+
         gpr_buffer vc5_image = { vc5_image_buffer->get_buffer(), vc5_image_buffer->get_size() };
         gpr_buffer raw_image = { raw_allocated_buffer.get_buffer(), raw_allocated_buffer.get_size()  };
-        
+
         if( vc5_decoder_process( &vc5_decoder_params, &vc5_image, &raw_image, NULL ) != CODEC_ERROR_OKAY )
         {
             assert(0);

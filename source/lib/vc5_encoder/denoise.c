@@ -162,3 +162,53 @@ double DenoiseTransform(TRANSFORM *transform, double strength,
 
     return sigma;
 }
+
+void AnscombeForward(COMPONENT_VALUE *data, DIMENSION width, DIMENSION height,
+                     size_t pitch, double alpha, double sigma_sq)
+{
+    if (alpha <= 0.0) return;
+
+    double inv_alpha = 2.0 / alpha;
+    double offset = 3.0 / 8.0 * alpha * alpha + sigma_sq;
+    int pitch_elems = (int)(pitch / sizeof(COMPONENT_VALUE));
+
+    for (int row = 0; row < height; row++)
+    {
+        COMPONENT_VALUE *row_ptr = data + row * pitch_elems;
+        for (int col = 0; col < width; col++)
+        {
+            double x = (double)row_ptr[col];
+            double arg = alpha * x + offset;
+            double stabilized = (arg > 0.0) ? inv_alpha * sqrt(arg) : 0.0;
+            row_ptr[col] = (COMPONENT_VALUE)(stabilized + 0.5);
+        }
+    }
+}
+
+void AnscombeInverse(COMPONENT_VALUE *data, DIMENSION width, DIMENSION height,
+                     size_t pitch, double alpha, double sigma_sq)
+{
+    if (alpha <= 0.0) return;
+
+    double half_alpha = alpha / 2.0;
+    double offset = 3.0 / 8.0 * alpha * alpha + sigma_sq;
+    int pitch_elems = (int)(pitch / sizeof(COMPONENT_VALUE));
+
+    for (int row = 0; row < height; row++)
+    {
+        COMPONENT_VALUE *row_ptr = data + row * pitch_elems;
+        for (int col = 0; col < width; col++)
+        {
+            double d = (double)row_ptr[col];
+            /* Exact unbiased inverse (asymptotic): x = (d/c)^2 - offset/alpha
+               where c = 2/alpha, so (d/c)^2 = (d*alpha/2)^2 = d^2*alpha^2/4
+               Then x = d^2*alpha/4 - 3/8*alpha - sigma^2/alpha
+               With bias correction: subtract 1/(4*alpha) per Makitalo & Foi (2011) */
+            double val = half_alpha * d;
+            val = val * val;                     /* (alpha*d/2)^2 */
+            val = (val - offset) / alpha;        /* invert: x = ((c*d)^2 - offset) / alpha */
+            val -= 1.0 / (4.0 * alpha);          /* bias correction */
+            row_ptr[col] = (COMPONENT_VALUE)(val + 0.5);
+        }
+    }
+}

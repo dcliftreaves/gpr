@@ -98,6 +98,7 @@
         double                      denoise_strength;       // Threshold multiplier (0.0-1.0)
         double                      noise_scale;            // DNG NoiseProfile scale (0 = use MAD fallback)
         double                      noise_offset;           // DNG NoiseProfile offset
+        bool                        variance_stabilize;     // Enable Anscombe variance stabilization
 
     } vc5_encoder_parameters;
 

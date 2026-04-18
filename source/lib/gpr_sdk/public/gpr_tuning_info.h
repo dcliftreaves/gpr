@@ -148,6 +148,7 @@
 
         bool                    denoise_enabled;    // Enable wavelet-domain denoising before compression
         double                  denoise_strength;   // Threshold multiplier 0.0-1.0 (default 1.0)
+        bool                    variance_stabilize; // Enable Anscombe variance stabilization
 
     } gpr_tuning_info;
 

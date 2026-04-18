@@ -98,7 +98,7 @@ static FILE_TYPE GetFileType( const char* file_path )
 int dng_convert_main(const char*  input_file_path, unsigned int input_width, unsigned int input_height, size_t input_pitch, size_t input_skip_rows, const char* input_pixel_format,
                      const char*  output_file_path, const char*  metadata_file_path, const char* gpmf_file_path, const char* rgb_file_resolution, int rgb_file_bits,
                      const char*  jpg_preview_file_path, int jpg_preview_file_width, int jpg_preview_file_height, int quality,
-                     bool denoise_enabled, double denoise_strength )
+                     bool denoise_enabled, double denoise_strength, bool variance_stabilize )
 {
     bool success;
     bool write_buffer_to_file = true;
@@ -127,6 +127,7 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     params.quality = quality;
     params.tuning_info.denoise_enabled = denoise_enabled;
     params.tuning_info.denoise_strength = denoise_strength;
+    params.tuning_info.variance_stabilize = variance_stabilize;
 
     gpr_buffer input_buffer  = { NULL, 0 };
     

@@ -28,6 +28,10 @@ void vc5_decoder_parameters_set_default(vc5_decoder_parameters* decoding_paramet
     decoding_parameters->rgb_bits = 8;
     
     gpr_rgb_gain_set_defaults(&decoding_parameters->rgb_gain);
+
+    decoding_parameters->variance_stabilize = false;
+    decoding_parameters->noise_scale        = 0.0;
+    decoding_parameters->noise_offset       = 0.0;
 }
 
 CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_parameters,    /* vc5 decoding parameters */
@@ -60,6 +64,10 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
         
     parameters.allocator.Alloc = decoding_parameters->mem_alloc;
     parameters.allocator.Free  = decoding_parameters->mem_free;
+
+    parameters.variance_stabilize = decoding_parameters->variance_stabilize;
+    parameters.noise_scale        = decoding_parameters->noise_scale;
+    parameters.noise_offset       = decoding_parameters->noise_offset;
     
     switch( decoding_parameters->pixel_format )
     {

@@ -128,6 +128,7 @@ typedef struct _encoder_parameters
     double              denoise_strength;
     double              noise_scale;
     double              noise_offset;
+    bool                variance_stabilize;
 
 } ENCODER_PARAMETERS;
 

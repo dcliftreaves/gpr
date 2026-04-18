@@ -90,6 +90,40 @@ double CalibratedNoiseSigma(const PIXEL *lowpass_data, DIMENSION width,
 void SoftThresholdBand(PIXEL *data, DIMENSION width, DIMENSION height,
                        DIMENSION pitch, double threshold);
 
+/*!
+    @brief Apply Generalized Anscombe Transform to a component array in-place
+
+    Stabilizes Poisson-Gaussian noise variance so that the output has
+    approximately unit Gaussian noise regardless of signal level.
+
+    GAT: f(x) = (2/α) × sqrt(α×x + 3/8×α² + σ²)
+
+    @param data         Component array data (modified in-place)
+    @param width        Array width
+    @param height       Array height
+    @param pitch        Row stride in bytes
+    @param alpha        Poisson noise parameter (DNG noise_scale)
+    @param sigma_sq     Gaussian noise variance (DNG noise_offset)
+*/
+void AnscombeForward(COMPONENT_VALUE *data, DIMENSION width, DIMENSION height,
+                     size_t pitch, double alpha, double sigma_sq);
+
+/*!
+    @brief Apply exact unbiased inverse Generalized Anscombe Transform
+
+    Inverts the GAT applied during encoding, restoring original signal scale.
+    Uses closed-form asymptotic inverse with bias correction.
+
+    @param data         Component array data (modified in-place)
+    @param width        Array width
+    @param height       Array height
+    @param pitch        Row stride in bytes
+    @param alpha        Poisson noise parameter (must match forward transform)
+    @param sigma_sq     Gaussian noise variance (must match forward transform)
+*/
+void AnscombeInverse(COMPONENT_VALUE *data, DIMENSION width, DIMENSION height,
+                     size_t pitch, double alpha, double sigma_sq);
+
 #ifdef __cplusplus
 }
 #endif

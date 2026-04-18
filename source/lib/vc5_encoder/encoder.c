@@ -359,6 +359,20 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
 	}
 
 
+	// Apply variance-stabilizing transform if enabled (Phase B)
+	if (encoder.variance_stabilize && encoder.noise_scale > 0.0)
+	{
+		for (int ch = 0; ch < unpacked_image.component_count; ch++)
+		{
+			AnscombeForward(unpacked_image.component_array_list[ch].data,
+			                unpacked_image.component_array_list[ch].width,
+			                unpacked_image.component_array_list[ch].height,
+			                unpacked_image.component_array_list[ch].pitch,
+			                encoder.noise_scale,
+			                encoder.noise_offset);
+		}
+	}
+
 	// Initialize the bitstream data structure
 	InitBitstream(&bitstream);
 
@@ -528,10 +542,11 @@ CODEC_ERROR PrepareEncoder(ENCODER *encoder,
 	PrepareEncoderState(encoder, image, parameters);
 
 	// Copy denoise parameters
-	encoder->denoise_enabled  = parameters->denoise_enabled;
-	encoder->denoise_strength = parameters->denoise_strength;
-	encoder->noise_scale      = parameters->noise_scale;
-	encoder->noise_offset     = parameters->noise_offset;
+	encoder->denoise_enabled    = parameters->denoise_enabled;
+	encoder->denoise_strength   = parameters->denoise_strength;
+	encoder->noise_scale        = parameters->noise_scale;
+	encoder->noise_offset       = parameters->noise_offset;
+	encoder->variance_stabilize = parameters->variance_stabilize;
 
 	// Allocate the wavelet transforms
 	AllocEncoderTransforms(encoder);

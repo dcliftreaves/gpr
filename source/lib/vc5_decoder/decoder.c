@@ -20,7 +20,32 @@
 
 #include "headers.h"
 #include <stdio.h>
+#include <math.h>
 #include <pthread.h>
+
+/*! @brief Apply inverse Generalized Anscombe Transform to a component array */
+static void AnscombeInverseArray(COMPONENT_VALUE *data, DIMENSION width, DIMENSION height,
+                                 size_t pitch, double alpha, double sigma_sq)
+{
+    if (alpha <= 0.0) return;
+    double half_alpha = alpha / 2.0;
+    double offset = 3.0 / 8.0 * alpha * alpha + sigma_sq;
+    int pitch_elems = (int)(pitch / sizeof(COMPONENT_VALUE));
+
+    for (int row = 0; row < (int)height; row++)
+    {
+        COMPONENT_VALUE *row_ptr = data + row * pitch_elems;
+        for (int col = 0; col < (int)width; col++)
+        {
+            double d = (double)row_ptr[col];
+            double val = half_alpha * d;
+            val = val * val;
+            val = (val - offset) / alpha;
+            val -= 1.0 / (4.0 * alpha);
+            row_ptr[col] = (COMPONENT_VALUE)(val + 0.5);
+        }
+    }
+}
 
 /*!
 	@brief Align the bitstream to a byte boundary
@@ -198,6 +223,20 @@ CODEC_ERROR DecodeImage(STREAM *stream, IMAGE *packed_image, RGB_IMAGE *rgb_imag
     if( error != CODEC_ERROR_OKAY )
     {
         return error;
+    }
+
+    // Apply inverse variance-stabilizing transform if encoding used it (Phase B)
+    if (parameters->variance_stabilize && parameters->noise_scale > 0.0)
+    {
+        for (int ch = 0; ch < unpacked_image.component_count; ch++)
+        {
+            AnscombeInverseArray(unpacked_image.component_array_list[ch].data,
+                                unpacked_image.component_array_list[ch].width,
+                                unpacked_image.component_array_list[ch].height,
+                                unpacked_image.component_array_list[ch].pitch,
+                                parameters->noise_scale,
+                                parameters->noise_offset);
+        }
     }
 
     switch (parameters->rgb_resolution) {

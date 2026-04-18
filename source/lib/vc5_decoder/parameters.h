@@ -103,7 +103,11 @@ typedef struct _decoder_parameters
     gpr_rgb_gain                rgb_gain;
     
     gpr_allocator allocator;
-    
+
+    bool                variance_stabilize;
+    double              noise_scale;
+    double              noise_offset;
+
 } DECODER_PARAMETERS;
 
 #ifdef __cplusplus
