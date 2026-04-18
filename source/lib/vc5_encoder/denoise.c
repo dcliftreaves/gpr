@@ -12,6 +12,7 @@
 
 #include "headers.h"
 #include "denoise.h"
+#include "noise_model.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -217,49 +218,13 @@ double DenoiseTransform(TRANSFORM *transform, double strength,
     return global_sigma;
 }
 
-/*! Simple xorshift32 PRNG for reproducible noise generation */
-static uint32_t xorshift32(uint32_t *state)
-{
-    uint32_t x = *state;
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
-    *state = x;
-    return x;
-}
-
-/*! Convert uniform uint32 to approximate N(0,1) Gaussian via CLT.
-    Sum of 12 U(0,1) samples minus 6 gives mean=0, variance=1. */
-static double prng_gaussian(uint32_t *state)
-{
-    double sum = 0.0;
-    for (int i = 0; i < 12; i++)
-        sum += (double)xorshift32(state) / 4294967296.0;
-    return sum - 6.0;
-}
+/* Noise reconstruction now uses shared functions from noise_model.c:
+   noise_prng_gaussian() and noise_add_to_pixels() */
 
 void AddNoiseFromModel(PIXEL *data, DIMENSION width, DIMENSION height,
                        DIMENSION pitch, double sigma, uint32_t seed, int band_id)
 {
-    if (sigma <= 0.0) return;
-
-    /* Mix seed with band_id for unique noise per band */
-    uint32_t state = seed ^ ((uint32_t)band_id * 2654435761u);
-    if (state == 0) state = 1;
-
-    int pitch_pixels = pitch / sizeof(PIXEL);
-    int32_t isigma = (int32_t)(sigma + 0.5);
-    if (isigma <= 0) return;
-
-    for (int row = 0; row < height; row++)
-    {
-        PIXEL *row_ptr = data + row * pitch_pixels;
-        for (int col = 0; col < width; col++)
-        {
-            double noise = prng_gaussian(&state) * sigma;
-            row_ptr[col] += (int32_t)(noise + (noise >= 0 ? 0.5 : -0.5));
-        }
-    }
+    noise_add_to_pixels((int32_t *)data, width, height, pitch, sigma, seed, band_id);
 }
 
 void AnscombeForward(COMPONENT_VALUE *data, DIMENSION width, DIMENSION height,

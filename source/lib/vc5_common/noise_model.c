@@ -12,6 +12,46 @@
 #include <string.h>
 #include <math.h>
 
+/* Shared PRNG for noise reconstruction (used by both encoder and decoder) */
+
+static uint32_t xorshift32(uint32_t *state)
+{
+    uint32_t x = *state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    *state = x;
+    return x;
+}
+
+double noise_prng_gaussian(uint32_t *state)
+{
+    /* Sum of 12 U(0,1) samples minus 6 gives approximately N(0,1) via CLT */
+    double sum = 0.0;
+    for (int i = 0; i < 12; i++)
+        sum += (double)xorshift32(state) / 4294967296.0;
+    return sum - 6.0;
+}
+
+void noise_add_to_pixels(int32_t *data, int width, int height, int pitch_bytes,
+                         double sigma, uint32_t seed, int band_id)
+{
+    if (sigma <= 0.0) return;
+    uint32_t state = seed ^ ((uint32_t)band_id * 2654435761u);
+    if (state == 0) state = 1;
+    int pitch_elems = pitch_bytes / (int)sizeof(int32_t);
+
+    for (int row = 0; row < height; row++)
+    {
+        int32_t *row_ptr = data + row * pitch_elems;
+        for (int col = 0; col < width; col++)
+        {
+            double noise = noise_prng_gaussian(&state) * sigma;
+            row_ptr[col] += (int32_t)(noise + (noise >= 0 ? 0.5 : -0.5));
+        }
+    }
+}
+
 void fpn_model_init(fpn_model *model)
 {
     memset(model, 0, sizeof(fpn_model));

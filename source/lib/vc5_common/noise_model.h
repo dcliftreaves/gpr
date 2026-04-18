@@ -43,6 +43,13 @@ typedef struct {
     int16_t     *precomputed_map;                       /* Precomputed FPN map (full resolution, heap allocated) */
 } fpn_model;
 
+/*! @brief Generate Gaussian noise sample from PRNG state (shared by encoder/decoder) */
+double noise_prng_gaussian(uint32_t *state);
+
+/*! @brief Add noise to a pixel array from model parameters (shared by encoder/decoder) */
+void noise_add_to_pixels(int32_t *data, int width, int height, int pitch_bytes,
+                         double sigma, uint32_t seed, int band_id);
+
 /*! @brief Initialize FPN model to invalid/empty state */
 void fpn_model_init(fpn_model *model);
 
