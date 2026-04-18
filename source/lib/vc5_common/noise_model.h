@@ -1,0 +1,70 @@
+/*! @file noise_model.h
+ *
+ *  @brief Fixed-pattern noise model for sensor calibration.
+ *
+ *  Evaluates a 2D polynomial FPN model per Bayer channel, with optional
+ *  PRNG-seeded residual for stochastic FPN components.
+ *
+ *  (C) Copyright 2018 GoPro Inc (http://gopro.com/).
+ *  Licensed under Apache-2.0 or MIT at your option.
+ */
+
+#ifndef NOISE_MODEL_H
+#define NOISE_MODEL_H
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define FPN_MAX_POLY_ORDER 4
+#define FPN_MAX_POLY_TERMS 15   /* (4+1)*(4+2)/2 */
+
+/*! @brief Per-sensor FPN calibration model */
+typedef struct {
+    int         valid;                                  /* Model loaded and ready */
+    int         width;                                  /* Sensor width in pixels */
+    int         height;                                 /* Sensor height in pixels */
+    int         poly_order;                             /* Polynomial order (default 4) */
+    double      channel_means[4];                       /* Per-channel mean dark level */
+    double      poly_coeffs[4][FPN_MAX_POLY_TERMS];    /* Polynomial coefficients per Bayer channel */
+    double      residual_sigma[4];                      /* Residual noise sigma per channel */
+    uint32_t    seed;                                   /* PRNG seed for residual reconstruction */
+} fpn_model;
+
+/*! @brief Initialize FPN model to invalid/empty state */
+void fpn_model_init(fpn_model *model);
+
+/*! @brief Load FPN model from JSON calibration file */
+int fpn_model_load(fpn_model *model, const char *json_path);
+
+/*! @brief Evaluate FPN at a specific pixel position
+    @param model    Loaded FPN model
+    @param row      Pixel row (0-based, full Bayer grid)
+    @param col      Pixel column (0-based, full Bayer grid)
+    @return         Estimated FPN offset for this pixel (add channel_mean for absolute dark level)
+*/
+double fpn_model_eval(const fpn_model *model, int row, int col);
+
+/*! @brief Subtract FPN from raw Bayer pixels in-place
+    @param model    Loaded FPN model
+    @param raw      Raw uint16 Bayer pixel data
+    @param width    Image width
+    @param height   Image height
+*/
+void fpn_subtract(const fpn_model *model, uint16_t *raw, int width, int height);
+
+/*! @brief Add FPN back to raw Bayer pixels in-place (for noise reconstruction)
+    @param model    Loaded FPN model
+    @param raw      Raw uint16 Bayer pixel data
+    @param width    Image width
+    @param height   Image height
+*/
+void fpn_add_back(const fpn_model *model, uint16_t *raw, int width, int height);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* NOISE_MODEL_H */
