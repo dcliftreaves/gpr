@@ -1229,7 +1229,8 @@ static void write_dng(const gpr_allocator*          allocator,
         vc5_decoder_params.noise_scale        = convert_params->tuning_info.noise_scale;
         vc5_decoder_params.noise_offset       = convert_params->tuning_info.noise_offset;
         vc5_decoder_params.noise_seed         = convert_params->tuning_info.noise_seed;
-        vc5_decoder_params.add_noise_back     = (convert_params->tuning_info.noise_seed != 0);
+        vc5_decoder_params.add_noise_back     = (convert_params->tuning_info.noise_seed != 0)
+                                                && !convert_params->tuning_info.denoise_output;
         memcpy(vc5_decoder_params.noise_sigma, convert_params->tuning_info.noise_sigma_est,
                sizeof(vc5_decoder_params.noise_sigma));
 
