@@ -68,6 +68,7 @@ From analysis of actual images (no formal calibration):
 | Fusion | 3104×3000 | 100 | 7.81e-05 | 35.6 DN | 11.1 DN | Horizontal | 10.85 bits |
 | X2D 100C | 11664×8750 | 64 | 2.10e-05 | 252 DN | 128 DN | Vertical | 13.63 bits |
 | X2D 100C | 11664×8750 | 200 | 6.75e-05 | 222 DN | 130 DN | Vertical | 14.01 bits |
+| X2D 100C | 11664×8750 | 12800 | 4.27e-03 | 915 DN | 278 DN | Vertical | 13.71 bits |
 
 **Key observations:**
 - GoPro sensors: consistent horizontal banding (FPN from row readout)
@@ -215,6 +216,7 @@ For each phase:
 | Hero6 Black | 100 | 4.2x | 5.9x | 1.4x |
 | Hero10 Black (night TL) | 400 | 3.3x | 10.8x | 3.3x |
 | Hero10 Black | 1600 | 3.5x | 11.5x | 3.3x |
+| X2D 100C | 12800 | 2.2x | 10.1x | 4.6x |
 
 At high ISO, noise dominates signal entropy. The noise-aware compression identifies this noise entropy and separates it, achieving up to 3.3x better compression. At low ISO (clean sensor data), the improvement is modest (1.3-1.4x) because there's less noise to separate.
 
