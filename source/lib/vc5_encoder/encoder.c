@@ -398,6 +398,13 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
                      rgb_image, 14, 8, &parameters->rgb_gain );
     }
     
+    // Copy noise model output back to parameters for caller access
+    if (encoder.denoise_enabled)
+    {
+        parameters->noise_seed = encoder.noise_seed;
+        memcpy(parameters->noise_sigma, encoder.noise_sigma, sizeof(parameters->noise_sigma));
+    }
+
     error = ReleaseComponentArrays( &parameters->allocator, &unpacked_image, unpacked_image.component_count );
     if (error != CODEC_ERROR_OKAY) {
         return error;

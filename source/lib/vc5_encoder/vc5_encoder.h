@@ -100,12 +100,13 @@
         double                      noise_offset;           // DNG NoiseProfile offset
         bool                        variance_stabilize;     // Enable Anscombe variance stabilization
         uint32_t                    noise_seed;             // PRNG seed for noise reconstruction (output)
+        double                      noise_sigma_out[4];     // Per-channel noise sigma (output, set by encoder)
 
     } vc5_encoder_parameters;
 
     void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_parameters);
 
-    CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters*   encoding_parameters,    /* vc5 encoding parameters */
+    CODEC_ERROR vc5_encoder_process(vc5_encoder_parameters*         encoding_parameters,    /* vc5 encoding parameters (non-const: writes noise_sigma_out) */
                                     const gpr_buffer*               raw_buffer,             /* raw input buffer. */
                                           gpr_buffer*               vc5_buffer,
                                           gpr_rgb_buffer*           rgb_buffer);            /* vc5 output buffer. */

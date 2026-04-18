@@ -40,7 +40,7 @@ void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_paramet
     encoding_parameters->variance_stabilize = false;
 }
 
-CODEC_ERROR vc5_encoder_process(const vc5_encoder_parameters*   encoding_parameters,    /* vc5 encoding parameters */
+CODEC_ERROR vc5_encoder_process(vc5_encoder_parameters*         encoding_parameters,    /* vc5 encoding parameters */
                                 const gpr_buffer*               raw_buffer,             /* raw input buffer. */
                                       gpr_buffer*               vc5_buffer,
                                       gpr_rgb_buffer*           rgb_buffer)             /* rgb output buffer. */
@@ -183,6 +183,14 @@ const size_t max_vc5_buffer_size = base_size + (base_size >> 1) + (1 << 20);
     error = EncodeImage(&image, &bitstream_file, &rgb_image, &parameters);
     if (error != CODEC_ERROR_OKAY) {
         return error;
+    }
+
+    // Copy noise model output back to caller (for DNG XMP serialization)
+    if (encoding_parameters->denoise_enabled)
+    {
+        encoding_parameters->noise_seed = parameters.noise_seed;
+        memcpy(encoding_parameters->noise_sigma_out, parameters.noise_sigma,
+               sizeof(encoding_parameters->noise_sigma_out));
     }
     
     if( rgb_buffer )

@@ -911,6 +911,25 @@ static bool read_dng(const gpr_allocator*       allocator,
                     tuning_info.noise_offset = noise_function.Offset();
                }
 
+                // Read noise model metadata from XMP (if encoded with --Denoise)
+                {
+                    dng_xmp *xmp = negative->GetXMP();
+                    if (xmp)
+                    {
+                        const char *ns = "http://ns.adobe.com/exif/1.0/aux/";
+                        uint32 seed = 0;
+                        if (xmp->Get_uint32(ns, "GPRNoiseSeed", seed))
+                        {
+                            tuning_info.noise_seed = seed;
+                            real64 sig = 0;
+                            if (xmp->Get_real64(ns, "GPRNoiseSigma0", sig)) tuning_info.noise_sigma_est[0] = sig;
+                            if (xmp->Get_real64(ns, "GPRNoiseSigma1", sig)) tuning_info.noise_sigma_est[1] = sig;
+                            if (xmp->Get_real64(ns, "GPRNoiseSigma2", sig)) tuning_info.noise_sigma_est[2] = sig;
+                            if (xmp->Get_real64(ns, "GPRNoiseSigma3", sig)) tuning_info.noise_sigma_est[3] = sig;
+                        }
+                    }
+                }
+
                 // DefaultCropOrigin and DefaultCropSize
                 tuning_info.default_crop_origin_h = Round_uint32(negative->DefaultCropOriginH().As_real64());
                 tuning_info.default_crop_origin_v = Round_uint32(negative->DefaultCropOriginV().As_real64());
@@ -1209,6 +1228,10 @@ static void write_dng(const gpr_allocator*          allocator,
         vc5_decoder_params.variance_stabilize = convert_params->tuning_info.variance_stabilize;
         vc5_decoder_params.noise_scale        = convert_params->tuning_info.noise_scale;
         vc5_decoder_params.noise_offset       = convert_params->tuning_info.noise_offset;
+        vc5_decoder_params.noise_seed         = convert_params->tuning_info.noise_seed;
+        vc5_decoder_params.add_noise_back     = (convert_params->tuning_info.noise_seed != 0);
+        memcpy(vc5_decoder_params.noise_sigma, convert_params->tuning_info.noise_sigma_est,
+               sizeof(vc5_decoder_params.noise_sigma));
 
         gpr_buffer vc5_image = { vc5_image_buffer->get_buffer(), vc5_image_buffer->get_size() };
         gpr_buffer raw_image = { raw_allocated_buffer.get_buffer(), raw_allocated_buffer.get_size()  };
@@ -1565,7 +1588,25 @@ static void write_dng(const gpr_allocator*          allocator,
         set_vc5_encoder_parameters( gpr_writer->GetVc5EncoderParams(), convert_params );
       
         gpr_writer->EncodeVc5Image();
-                
+
+        // Write noise model metadata to XMP (after encoding populates sigma/seed)
+        {
+            vc5_encoder_parameters& enc_params = gpr_writer->GetVc5EncoderParams();
+            if (enc_params.denoise_enabled && enc_params.noise_seed != 0)
+            {
+                dng_xmp *xmp = negative->GetXMP();
+                if (xmp)
+                {
+                    const char *ns = "http://ns.adobe.com/exif/1.0/aux/";
+                    xmp->Set_uint32(ns, "GPRNoiseSeed", enc_params.noise_seed);
+                    xmp->Set_real64(ns, "GPRNoiseSigma0", enc_params.noise_sigma_out[0], 6);
+                    xmp->Set_real64(ns, "GPRNoiseSigma1", enc_params.noise_sigma_out[1], 6);
+                    xmp->Set_real64(ns, "GPRNoiseSigma2", enc_params.noise_sigma_out[2], 6);
+                    xmp->Set_real64(ns, "GPRNoiseSigma3", enc_params.noise_sigma_out[3], 6);
+                }
+            }
+        }
+
         if( convert_params->enable_preview )
         {
             const gpr_preview_image& preview_image = convert_params->preview_image;

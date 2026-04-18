@@ -129,6 +129,8 @@ typedef struct _encoder_parameters
     double              noise_scale;
     double              noise_offset;
     bool                variance_stabilize;
+    uint32_t            noise_seed;
+    double              noise_sigma[MAX_CHANNEL_COUNT];
 
 } ENCODER_PARAMETERS;
 
