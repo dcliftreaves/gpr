@@ -55,6 +55,27 @@ The DNG NoiseProfile gives us the combined Poisson-Gaussian parameters:
 - `noise_scale` ≈ 1/gain (maps photon noise to DN noise)
 - `noise_offset` ≈ σ_read² (read noise variance)
 
+## Measured Sensor Characteristics
+
+From analysis of actual images (no formal calibration):
+
+| Sensor | Resolution | ISO | DNG noise_scale | Read Noise | Dark σ | FPN Direction | Entropy |
+|--------|-----------|-----|-----------------|-----------|--------|---------------|---------|
+| Hero5 Black | 4000×3000 | 100 | 7.81e-05 | 57.7 DN | 22.9 DN | Horizontal | 10.90 bits |
+| Hero6 Black | 4000×3000 | 100 | 1.56e-04 | 39.8 DN | 22.9 DN | Horizontal | 10.98 bits |
+| Hero7 Black | 4000×3000 | 100 | 3.94e-04 | 51.4 DN | 13.1 DN | Horizontal | 10.74 bits |
+| Hero9 Black | 5568×4176 | 100 | 1.56e-04 | 46.1 DN | 26.0 DN | Horizontal | 11.17 bits |
+| Fusion | 3104×3000 | 100 | 7.81e-05 | 35.6 DN | 11.1 DN | Horizontal | 10.85 bits |
+| X2D 100C | 11664×8750 | 64 | 2.10e-05 | 252 DN | 128 DN | Vertical | 13.63 bits |
+| X2D 100C | 11664×8750 | 200 | 6.75e-05 | 222 DN | 130 DN | Vertical | 14.01 bits |
+
+**Key observations:**
+- GoPro sensors: consistent horizontal banding (FPN from row readout)
+- X2D: vertical banding (FPN from column ADCs)
+- X2D DNG NoiseProfile scales correctly with ISO (3.2x for 64→200)
+- Dark sigma is the noise floor in shadow regions (read noise + dark current)
+- Shannon entropy: 10.7–14.0 bits/pixel (theoretical lossless compression limit: 1.1–1.3x)
+
 ## Three-Phase Implementation
 
 ### Phase A: Wavelet-Domain Soft Thresholding ✅ DONE
