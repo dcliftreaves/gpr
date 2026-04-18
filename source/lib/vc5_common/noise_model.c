@@ -335,60 +335,20 @@ void fpn_subtract(const fpn_model *model, uint16_t *raw, int width, int height)
 {
     if (!model->valid) return;
 
-    if (model->precomputed_map && width == model->width && height == model->height)
-    {
-        /* Fast path: use precomputed int16 map */
-        size_t npixels = (size_t)width * height;
-        for (size_t i = 0; i < npixels; i++)
-        {
-            int32_t corrected = (int32_t)raw[i] - (int32_t)model->precomputed_map[i];
-            if (corrected < 0) corrected = 0;
-            if (corrected > 65535) corrected = 65535;
-            raw[i] = (uint16_t)corrected;
-        }
-    }
-    else
-    {
-        /* Slow path: evaluate polynomial per pixel */
-        for (int row = 0; row < height; row++)
-            for (int col = 0; col < width; col++)
-            {
-                double fpn = fpn_model_eval(model, row, col);
-                int32_t corrected = (int32_t)raw[row * width + col] - (int32_t)(fpn + 0.5);
-                if (corrected < 0) corrected = 0;
-                if (corrected > 65535) corrected = 65535;
-                raw[row * width + col] = (uint16_t)corrected;
-            }
-    }
+    /* Apply full noise correction pipeline: DSNU subtract → PRNU divide
+       Uses precomputed maps for O(1) per pixel via noise_correct_pixel() */
+    for (int row = 0; row < height; row++)
+        for (int col = 0; col < width; col++)
+            raw[row * width + col] = noise_correct_pixel(model, raw[row * width + col], row, col);
 }
 
 void fpn_add_back(const fpn_model *model, uint16_t *raw, int width, int height)
 {
     if (!model->valid) return;
 
-    if (model->precomputed_map && width == model->width && height == model->height)
-    {
-        /* Fast path: use precomputed int16 map */
-        size_t npixels = (size_t)width * height;
-        for (size_t i = 0; i < npixels; i++)
-        {
-            int32_t restored = (int32_t)raw[i] + (int32_t)model->precomputed_map[i];
-            if (restored < 0) restored = 0;
-            if (restored > 65535) restored = 65535;
-            raw[i] = (uint16_t)restored;
-        }
-    }
-    else
-    {
-        /* Slow path: evaluate polynomial per pixel */
-        for (int row = 0; row < height; row++)
-            for (int col = 0; col < width; col++)
-            {
-                double fpn = fpn_model_eval(model, row, col);
-                int32_t restored = (int32_t)raw[row * width + col] + (int32_t)(fpn + 0.5);
-                if (restored < 0) restored = 0;
-                if (restored > 65535) restored = 65535;
-                raw[row * width + col] = (uint16_t)restored;
-            }
-    }
+    /* Reverse noise correction: PRNU multiply → DSNU add
+       Uses precomputed maps for O(1) per pixel via noise_restore_pixel() */
+    for (int row = 0; row < height; row++)
+        for (int col = 0; col < width; col++)
+            raw[row * width + col] = noise_restore_pixel(model, raw[row * width + col], row, col);
 }
