@@ -1391,35 +1391,14 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 			const COMPONENT_ARRAY *comp = &image->component_array_list[channel_index];
 			double raw_sigma;
 
-			if (encoder->noise_scale > 0.0)
-			{
-				/* Calibrated: compute sigma from DNG NoiseProfile */
-				/* Compute mean signal level from component array */
-				int count = 0;
-				double sum = 0.0;
-				int step = ((int)comp->width * (int)comp->height > 10000) ?
-				           ((int)comp->width * (int)comp->height / 10000) : 1;
-				int idx = 0;
-				int pitch_elems = (int)(comp->pitch / sizeof(COMPONENT_VALUE));
-				for (int r = 0; r < (int)comp->height; r++)
-				{
-					COMPONENT_VALUE *row = comp->data + r * pitch_elems;
-					for (int c = 0; c < (int)comp->width; c++)
-					{
-						if (idx % step == 0) { sum += (double)row[c]; count++; }
-						idx++;
-					}
-				}
-				double mean = (count > 0) ? sum / count : 0;
-				double variance = encoder->noise_scale * mean + encoder->noise_offset;
-				raw_sigma = (variance > 0.0) ? sqrt(variance) : 0.0;
-			}
-			else
-			{
-				/* Fallback: estimate from pixel differences */
-				raw_sigma = EstimateRawNoiseSigma(comp->data, comp->width,
-				                                   comp->height, comp->pitch);
-			}
+			/* Always estimate noise from the component arrays (post-log-curve).
+			   This captures the actual noise statistics in the wavelet transform's
+			   input space, including log curve amplification of shadow noise.
+			   The DNG NoiseProfile (if available) is in normalized linear space
+			   and doesn't account for the log curve — it's used for pixel-domain
+			   noise_remove but not for wavelet-domain quant adjustment. */
+			raw_sigma = EstimateRawNoiseSigma(comp->data, comp->width,
+			                                   comp->height, comp->pitch);
 
 			if (raw_sigma > 0.0)
 			{

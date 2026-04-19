@@ -1945,8 +1945,12 @@ bool gpr_convert_raw_to_gpr(const gpr_allocator*    allocator,
     if (parameters->tuning_info.noise_replace &&
         parameters->tuning_info.noise_scale > 0)
     {
-        double nr_scale = parameters->tuning_info.noise_scale;
-        double nr_offset = parameters->tuning_info.noise_offset;
+        // DNG NoiseProfile is in normalized [0,1] units.
+        // Convert to raw pixel units: variance_raw = scale * raw * max + offset * max^2
+        double max_val = (double)parameters->tuning_info.dgain_saturation_level.level_red;
+        if (max_val <= 0) max_val = 16383.0;
+        double nr_scale = parameters->tuning_info.noise_scale * max_val;
+        double nr_offset = parameters->tuning_info.noise_offset * max_val * max_val;
 
         if (nr_scale > 0)
         {
@@ -1962,9 +1966,8 @@ bool gpr_convert_raw_to_gpr(const gpr_allocator*    allocator,
             for (int i = 0; i < 64 && i < parameters->input_width; i++)
                 seed ^= (uint32_t)raw16[i] * 2654435761u;
 
-            // Store the noise model + seed so the decoder can restore noise
-            const_cast<gpr_parameters*>(parameters)->tuning_info.noise_scale = nr_scale;
-            const_cast<gpr_parameters*>(parameters)->tuning_info.noise_offset = nr_offset;
+            // Store seed so the decoder can restore noise.
+            // Keep noise_scale/offset in DNG-normalized form (already stored from metadata).
             const_cast<gpr_parameters*>(parameters)->tuning_info.noise_seed = seed;
         }
     }
@@ -2203,10 +2206,15 @@ bool gpr_convert_gpr_to_raw_ex(const gpr_allocator*    allocator,
         if (parameters->tuning_info.noise_scale > 0 &&
             parameters->tuning_info.noise_seed != 0)
         {
+            // Convert DNG-normalized noise model to raw pixel units
+            double max_val = (double)parameters->tuning_info.dgain_saturation_level.level_red;
+            if (max_val <= 0) max_val = 16383.0;
+            double nr_scale = parameters->tuning_info.noise_scale * max_val;
+            double nr_offset = parameters->tuning_info.noise_offset * max_val * max_val;
+
             noise_restore((uint16_t*)out_raw_buffer->buffer,
                           parameters->input_width, parameters->input_height,
-                          parameters->tuning_info.noise_scale,
-                          parameters->tuning_info.noise_offset,
+                          nr_scale, nr_offset,
                           parameters->tuning_info.noise_seed);
         }
 
