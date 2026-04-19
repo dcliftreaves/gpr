@@ -320,57 +320,132 @@ void NoiseAwareRequantize(PIXEL *data, DIMENSION width, DIMENSION height,
 double EstimateRawNoiseSigma(const COMPONENT_VALUE *data, DIMENSION width,
                              DIMENSION height, size_t pitch)
 {
-    /* Robust noise estimation from raw pixel data using the difference
-       between horizontally adjacent pixels.  For a signal s[x] + n[x],
-       the difference d = (s[x+1]+n[x+1]) - (s[x]+n[x]) has variance
-       = var(signal_diff) + 2*var(noise).  Since noise changes faster than
-       signal, the MAD of differences is dominated by noise.
+    /* Signal-dependent noise estimation from component arrays (post-log-curve).
 
-       After the encoder's log curve, dark pixels have amplified noise
-       (log curve has high derivative in shadows). The MAD estimator
-       naturally gives a robust estimate that's resistant to outliers
-       from texture/edges.
+       Instead of a single global MAD, we bin pixels by signal level and
+       compute MAD in each bin. The reported sigma is the WEIGHTED MEDIAN
+       across bins — representing the noise at the typical signal level.
+
+       This is more conservative than the global MAD (which is dominated by
+       dark pixels where log-curve amplification inflates the noise), leading
+       to smaller quant divisors that better preserve bright-region signal.
+
+       For images with very uniform brightness, this falls back to a single
+       global estimate.
 
        We subsample to keep this fast (<10K samples). */
     if (width < 2 || height < 2) return 0.0;
 
     int pitch_pixels = (int)(pitch / sizeof(COMPONENT_VALUE));
-    int total_pairs = (int)(width - 1) * (int)height;
-    int step = 1;
+    int total_pixels = (int)width * (int)height;
+
+    /* Collect (signal_level, abs_diff) pairs */
     int max_samples = 10000;
-    if (total_pairs > max_samples)
-        step = total_pairs / max_samples;
+    int step = 1;
+    if (total_pixels > max_samples)
+        step = total_pixels / max_samples;
 
-    int32_t *abs_diffs = (int32_t *)malloc(max_samples * sizeof(int32_t));
-    if (!abs_diffs) return 0.0;
+    #define NOISE_BINS 4
+    int32_t *bin_diffs[NOISE_BINS];
+    int bin_count[NOISE_BINS] = {0};
+    int bin_alloc = max_samples / NOISE_BINS + 100;
+    for (int b = 0; b < NOISE_BINS; b++)
+    {
+        bin_diffs[b] = (int32_t *)malloc(bin_alloc * sizeof(int32_t));
+        if (!bin_diffs[b])
+        {
+            for (int j = 0; j < b; j++) free(bin_diffs[j]);
+            return 0.0;
+        }
+    }
 
-    int count = 0;
+    /* First pass: find approximate max value for binning */
+    int32_t approx_max = 1;
+    {
+        int sample_idx = 0;
+        for (int row = 0; row < (int)height; row += 8)
+        {
+            const COMPONENT_VALUE *row_ptr = data + row * pitch_pixels;
+            for (int col = 0; col < (int)width; col += 8)
+            {
+                int32_t v = row_ptr[col];
+                if (v > approx_max) approx_max = v;
+            }
+        }
+    }
+
+    /* Second pass: collect diffs per signal-level bin */
     int sample_idx = 0;
-
-    for (int row = 0; row < (int)height && count < max_samples; row++)
+    for (int row = 0; row < (int)height; row++)
     {
         const COMPONENT_VALUE *row_ptr = data + row * pitch_pixels;
-        for (int col = 0; col < (int)width - 1 && count < max_samples; col++)
+        for (int col = 0; col < (int)width - 1; col++)
         {
             if (sample_idx % step == 0)
             {
-                int32_t diff = row_ptr[col + 1] - row_ptr[col];
-                abs_diffs[count++] = (diff < 0) ? -diff : diff;
+                int32_t avg = (row_ptr[col] + row_ptr[col + 1]) / 2;
+                int bin = (int)((int64_t)avg * NOISE_BINS / (approx_max + 1));
+                if (bin < 0) bin = 0;
+                if (bin >= NOISE_BINS) bin = NOISE_BINS - 1;
+
+                if (bin_count[bin] < bin_alloc)
+                {
+                    int32_t diff = row_ptr[col + 1] - row_ptr[col];
+                    bin_diffs[bin][bin_count[bin]++] = (diff < 0) ? -diff : diff;
+                }
             }
             sample_idx++;
         }
     }
 
-    if (count == 0) { free(abs_diffs); return 0.0; }
+    /* Compute sigma per bin */
+    double bin_sigma[NOISE_BINS];
+    int valid_bins = 0;
+    for (int b = 0; b < NOISE_BINS; b++)
+    {
+        if (bin_count[b] >= 20)
+        {
+            double median_diff = (double)quickselect_median(bin_diffs[b], bin_count[b]);
+            bin_sigma[b] = median_diff * MAD_SIGMA_FACTOR / 1.41421356;
+            valid_bins++;
+        }
+        else
+        {
+            bin_sigma[b] = 0.0;
+        }
+        free(bin_diffs[b]);
+    }
 
-    double median_diff = (double)quickselect_median(abs_diffs, count);
-    free(abs_diffs);
+    if (valid_bins == 0) return 0.0;
 
-    /* MAD of differences → sigma_diff = median * 1.4826
-       sigma_diff² = 2 * sigma_noise² (for white noise)
-       sigma_noise = sigma_diff / sqrt(2) */
-    double sigma_diff = median_diff * MAD_SIGMA_FACTOR;
-    return sigma_diff / 1.41421356;
+    /* Use the sigma from the MIDDLE bins (25th-75th percentile of signal).
+       This avoids the dark-pixel bias of the global MAD while not being
+       skewed by bright-region texture. */
+    double sum = 0.0;
+    int count = 0;
+    for (int b = NOISE_BINS / 4; b < NOISE_BINS * 3 / 4 + 1; b++)
+    {
+        if (b < NOISE_BINS && bin_sigma[b] > 0.0)
+        {
+            sum += bin_sigma[b];
+            count++;
+        }
+    }
+
+    /* Fall back to the minimum non-zero sigma if middle bins are empty */
+    if (count == 0)
+    {
+        double min_sigma = 1e30;
+        for (int b = 0; b < NOISE_BINS; b++)
+        {
+            if (bin_sigma[b] > 0.0 && bin_sigma[b] < min_sigma)
+                min_sigma = bin_sigma[b];
+        }
+        return (min_sigma < 1e30) ? min_sigma : 0.0;
+    }
+
+    return sum / count;
+    #undef NOISE_BINS
 }
 
 /*! Wavelet filter gain factors for CineForm's 2/6 biorthogonal wavelet.
