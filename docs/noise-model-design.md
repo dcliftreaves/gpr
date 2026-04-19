@@ -90,6 +90,18 @@ thresholding alone — Phase A already captures pattern noise in the wavelet dom
 - Dark sigma is the noise floor in shadow regions (read noise + dark current)
 - Shannon entropy: 10.7–14.0 bits/pixel (theoretical lossless compression limit: 1.1–1.3x)
 
+### HERO10 Dark Frame Calibration (50 frames per ISO, manual capture)
+
+| ISO | Black Level | DSNU σ R | DSNU σ Gr | DSNU σ Gb | DSNU σ B |
+|-----|------------|---------|----------|----------|---------|
+| 100 | 12.0 | 0.41 | 0.29 | 0.32 | 0.38 |
+| 400 | 12.0 | 1.56 | 1.05 | 1.19 | 1.45 |
+| 1600 | 14.1 | 4.32 | 3.37 | 3.73 | 4.03 |
+
+**Key finding**: HERO10 DSNU is even lower than the X2D at comparable ISOs. DSNU scales
+linearly with ISO (as expected from analog gain amplifying fixed-pattern offsets). At ISO 1600,
+DSNU (~4 DN) is still only 25% of the read noise (~16 DN from PTC data).
+
 ### Photon Transfer Curve (HERO10 Black, sunset timelapse ramp)
 
 From 1,408-frame sunset-to-dark ramp (ISO 100→800, 2 hours):
