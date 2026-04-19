@@ -2450,15 +2450,18 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
     }
 #endif
     
-	// Signal ANS coding method BEFORE the subband header (so decoder sees it during tag parsing)
-	if (encoder->ans_enabled)
+	/* ANS is beneficial for ≤14-bit data where the companding maps coefficients
+	   to [0,255] with a skewed distribution. For 16-bit data, the distribution
+	   is flatter and VLC's joint RLV encoding is more efficient. */
+	bool use_ans = encoder->ans_enabled && (encoder->internal_precision <= 14);
+	if (use_ans)
 		PutTagPairOptional(stream, CODEC_TAG_BandCodingMethod, 1);
 
 	// Output the tag-value pairs for this subband
 	PutVideoSubbandHeader(encoder, subband, quantization, stream);
 
 	// Encode the highpass coefficients for this subband
-	if (encoder->ans_enabled)
+	if (use_ans)
 	{
 
 		/* Apply cubic companding (same as VLC's cubic_table) to map quantized
