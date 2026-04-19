@@ -1406,15 +1406,30 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 				   Cap the increase to MAX_QUANT_RATIO × default to prevent
 				   destroying signal on images where the noise estimate is
 				   inflated by texture or extreme dynamic range. */
-				#define MAX_QUANT_RATIO 4
+				#define MAX_QUANT_RATIO 3
 				TRANSFORM *transform = &encoder->transform[channel_index];
+
+				/* Compute prescale divisors for this transform.
+				   prescale[level] is the right-shift applied during the forward
+				   horizontal filter. The cumulative divisor at each level is:
+				   level 0: 2^prescale[0]
+				   level 1: 2^prescale[0] * 2^prescale[1]
+				   level 2: 2^prescale[0] * 2^prescale[1] * 2^prescale[2]
+				*/
+				double prescale_div[MAX_WAVELET_COUNT];
+				prescale_div[0] = (double)(1 << transform->prescale[0]);
+				for (int l = 1; l < MAX_WAVELET_COUNT; l++)
+					prescale_div[l] = prescale_div[l-1] * (double)(1 << transform->prescale[l]);
+
 				for (int wl = 0; wl < MAX_WAVELET_COUNT; wl++)
 				{
 					WAVELET *wavelet = transform->wavelet[wl];
 					for (int band = LH_BAND; band <= HH_BAND; band++)
 					{
-						int flat_idx = 1 + wl * 3 + (band - LH_BAND);
-						double gain = (flat_idx < 10) ? wavelet_noise_gain[flat_idx] : 1.0;
+						/* Wavelet filter gain: LH/HL = sqrt(2), HH = 2.0 */
+						double filter_gain = (band == HH_BAND) ? 2.0 : 1.414;
+						/* Net gain = filter_gain / cumulative_prescale_divisor */
+						double gain = filter_gain / prescale_div[wl];
 						double band_sigma = raw_sigma * gain * encoder->denoise_strength;
 						int noise_quant = (int)(band_sigma + 0.5);
 						if (noise_quant < 1) noise_quant = 1;
