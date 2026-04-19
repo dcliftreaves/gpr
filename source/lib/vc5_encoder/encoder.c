@@ -1402,12 +1402,15 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 
 			if (raw_sigma > 0.0)
 			{
-				/* Adjust quant tables: increase divisors to noise floor */
+				/* Adjust quant tables: increase divisors to noise floor.
+				   Cap the increase to MAX_QUANT_RATIO × default to prevent
+				   destroying signal on images where the noise estimate is
+				   inflated by texture or extreme dynamic range. */
+				#define MAX_QUANT_RATIO 4
 				TRANSFORM *transform = &encoder->transform[channel_index];
 				for (int wl = 0; wl < MAX_WAVELET_COUNT; wl++)
 				{
 					WAVELET *wavelet = transform->wavelet[wl];
-					/* Subbands for this wavelet level: indices 1+wl*3 through 3+wl*3 in the flat table */
 					for (int band = LH_BAND; band <= HH_BAND; band++)
 					{
 						int flat_idx = 1 + wl * 3 + (band - LH_BAND);
@@ -1416,10 +1419,17 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 						int noise_quant = (int)(band_sigma + 0.5);
 						if (noise_quant < 1) noise_quant = 1;
 
-						if (noise_quant > wavelet->quant[band])
+						int default_quant = wavelet->quant[band];
+						int max_quant = default_quant * MAX_QUANT_RATIO;
+						if (max_quant < default_quant) max_quant = default_quant; /* overflow guard */
+						if (noise_quant > max_quant)
+							noise_quant = max_quant;
+
+						if (noise_quant > default_quant)
 							wavelet->quant[band] = noise_quant;
 					}
 				}
+				#undef MAX_QUANT_RATIO
 
 				/* Store the noise sigma for decoder-side reconstruction */
 				encoder->noise_sigma[channel_index] = raw_sigma;
