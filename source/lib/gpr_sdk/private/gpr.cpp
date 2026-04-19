@@ -1935,6 +1935,17 @@ bool gpr_convert_raw_to_gpr(const gpr_allocator*    allocator,
                      parameters->input_width, parameters->input_height);
     }
 
+    // Pixel-domain noise replacement: quantize to noise floor, replace with PRNG noise
+    if (parameters->tuning_info.noise_replace &&
+        parameters->tuning_info.noise_scale > 0)
+    {
+        noise_replace((uint16_t*)raw_buffer.get_buffer(),
+                      parameters->input_width, parameters->input_height,
+                      parameters->tuning_info.noise_scale,
+                      parameters->tuning_info.noise_offset,
+                      parameters->tuning_info.noise_seed ? parameters->tuning_info.noise_seed : 0x55AA1234);
+    }
+
     dng_memory_stream out_gpr_stream( gDefaultDNGMemoryAllocator );
 
     write_dng( allocator, &out_gpr_stream, &raw_buffer, true, NULL, parameters );

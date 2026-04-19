@@ -52,6 +52,47 @@ void noise_add_to_pixels(int32_t *data, int width, int height, int pitch_bytes,
     }
 }
 
+void noise_replace(uint16_t *raw, int width, int height,
+                   double noise_scale, double noise_offset, uint32_t seed)
+{
+    if (noise_scale <= 0 && noise_offset <= 0) return;
+
+    uint32_t state = seed;
+    if (state == 0) state = 0x12345678;
+
+    for (int row = 0; row < height; row++)
+    {
+        for (int col = 0; col < width; col++)
+        {
+            int idx = row * width + col;
+            double signal = (double)raw[idx];
+
+            /* Compute per-pixel noise sigma from Poisson-Gaussian model */
+            double variance = noise_scale * signal + noise_offset;
+            if (variance < 1.0) variance = 1.0;
+            double sigma = sqrt(variance);
+
+            /* Quantize signal to noise-aware step size.
+               Step size = sigma means we lose at most ±sigma/2 per pixel,
+               which is below the noise floor (invisible). */
+            double step = sigma;
+            if (step < 1.0) step = 1.0;
+            double quantized = round(signal / step) * step;
+
+            /* Replace the quantization residual with deterministic PRNG noise.
+               This noise has the same scale as the original noise but is
+               reproducible from the seed — zero additional entropy. */
+            double prng_noise = noise_prng_gaussian(&state) * sigma * 0.5;
+            double result = quantized + prng_noise;
+
+            /* Clamp to valid range */
+            if (result < 0) result = 0;
+            if (result > 65535) result = 65535;
+            raw[idx] = (uint16_t)(result + 0.5);
+        }
+    }
+}
+
 void fpn_model_init(fpn_model *model)
 {
     memset(model, 0, sizeof(fpn_model));

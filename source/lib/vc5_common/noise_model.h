@@ -58,6 +58,26 @@ double noise_prng_gaussian(uint32_t *state);
 void noise_add_to_pixels(int32_t *data, int width, int height, int pitch_bytes,
                          double sigma, uint32_t seed, int band_id);
 
+/*!
+    @brief Replace sensor noise with deterministic PRNG noise (Jetraw-style)
+
+    For each pixel: quantize to the noise floor, replace the quantization
+    residual with PRNG noise of matching variance. The compressor then sees
+    low-entropy data; the decoder reconstructs statistically-equivalent
+    noise from the seed.
+
+    Error bound: strictly bounded by noise sigma (no signal loss).
+
+    @param raw          Raw uint16 Bayer pixel data (modified in-place)
+    @param width        Image width
+    @param height       Image height
+    @param noise_scale  DNG NoiseProfile scale (Poisson component)
+    @param noise_offset DNG NoiseProfile offset (Gaussian component)
+    @param seed         PRNG seed for deterministic noise generation
+*/
+void noise_replace(uint16_t *raw, int width, int height,
+                   double noise_scale, double noise_offset, uint32_t seed);
+
 /*! @brief Initialize FPN model to invalid/empty state */
 void fpn_model_init(fpn_model *model);
 

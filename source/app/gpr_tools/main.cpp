@@ -76,6 +76,7 @@ public:
     int     denoise_strength_pct;
     bool    stabilize;
     bool    denoise_output;
+    bool    noise_replace;
     string  fpn_calibration;
 
 public:
@@ -125,6 +126,7 @@ public:
         ("DenoiseStrength,N",                               denoise_strength_pct,                       100,                    "Denoise strength [0-100, default: 100]")
         ("Stabilize,V",                                     stabilize,                                  false,                  "Enable Anscombe variance stabilization")
         ("DenoiseOutput",                                   denoise_output,                             false,                  "Output denoised image (skip noise reconstruction)")
+        ("NoiseReplace,R",                                  noise_replace,                              false,                  "Pixel-domain noise replacement (best compression)")
         ("FpnCalibration,F",                                fpn_calibration,                            string(""),             "FPN calibration file (JSON from fpn_extract)");
         ;
     }
@@ -213,7 +215,7 @@ int main(int argc, char *argv [])
                                 args.output_file_path.c_str(), args.apply_gpr_parameters.c_str(), args.gpmf_file_path.c_str(), args.rgb_file_resolution.c_str(), args.rgb_file_bits,
                                 args.jpg_preview_file_path.c_str(), args.jpg_preview_file_width, args.jpg_preview_file_height, args.quality,
                                 args.denoise, args.denoise_strength_pct / 100.0, args.stabilize, args.denoise_output,
-                                args.fpn_calibration.c_str() );
+                                args.noise_replace, args.fpn_calibration.c_str() );
     }
     
     return 0;

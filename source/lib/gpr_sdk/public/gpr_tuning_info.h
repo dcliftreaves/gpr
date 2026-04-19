@@ -150,6 +150,7 @@
         double                  denoise_strength;   // Threshold multiplier 0.0-1.0 (default 1.0)
         bool                    variance_stabilize; // Enable Anscombe variance stabilization
         bool                    denoise_output;     // Skip noise reconstruction on decode (actual denoising)
+        bool                    noise_replace;      // Pixel-domain noise replacement (Jetraw-style)
         uint32_t                noise_seed;         // PRNG seed for noise reconstruction (set by encoder)
         double                  noise_sigma_est[4]; // Per-channel estimated noise sigma (set by encoder)
 
