@@ -2468,11 +2468,11 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 	if (use_ans)
 	{
 
-		/* Apply cubic companding (same as VLC's cubic_table) to map quantized
-		   coefficients to the [0,255] range the decoder expects. Build the
-		   inverse-cubic table locally (same as ComputeCubicTable). */
-		int16_t cubic_inv[1024];
-		{
+		/* Cubic companding table — built once, reused across all bands.
+		   Maps quantized magnitudes [0,1023] → companded [0,255]. */
+		static int16_t cubic_inv[1024];
+		static int cubic_inv_ready = 0;
+		if (!cubic_inv_ready) {
 			memset(cubic_inv, 0, sizeof(cubic_inv));
 			for (int i = 1; i <= 255; i++) {
 				double cubic = (double)i * i * i * 768.0 / (255.0 * 255.0 * 255.0);
@@ -2480,12 +2480,12 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 				if (mag > 1023) mag = 1023;
 				cubic_inv[mag] = (int16_t)i;
 			}
-			/* Fill gaps with nearest valid entry */
 			int16_t last = 0;
 			for (int i = 0; i < 1024; i++) {
 				if (cubic_inv[i]) last = cubic_inv[i];
 				else cubic_inv[i] = last;
 			}
+			cubic_inv_ready = 1;
 		}
 
 		size_t band_elems = (size_t)band_width * band_height;

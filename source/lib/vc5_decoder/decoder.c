@@ -2062,7 +2062,7 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
     AlignBitsSegment(stream);
     
     // Decode this subband (VLC or ANS depending on coding method tag)
-    if (decoder->codec.band.coding_method == 1)
+    if (decoder->codec.band.coding_method >= 1)
     {
         // ANS adaptive entropy decoding
         AlignBitsSegment(stream);
@@ -2085,8 +2085,6 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
 
         decoder->allocator->Free(tables_buf);
         decoder->allocator->Free(coded_buf);
-
-        // Reset coding method for next band
         decoder->codec.band.coding_method = 0;
     }
     else
