@@ -12,6 +12,7 @@
 #include "ans.h"
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 
 /* rANS constants */
 #define RANS_BYTE_L    (1u << 23)
@@ -30,13 +31,15 @@ static inline void rans_enc_put(uint32_t *state, uint8_t **pptr,
     *state = ((x / freq) << ANS_TABLE_BITS) + (x % freq) + start;
 }
 
-static inline uint32_t rans_dec_renorm(uint32_t state, const uint8_t **pptr)
+static inline int rans_dec_renorm(uint32_t *state, const uint8_t **pptr,
+                                  const uint8_t *in_end)
 {
-    while (state < RANS_BYTE_L) {
-        state = (state << 8) | **pptr;
+    while (*state < RANS_BYTE_L) {
+        if (*pptr >= in_end) return -1;  /* buffer overread */
+        *state = (*state << 8) | **pptr;
         (*pptr)++;
     }
-    return state;
+    return 0;
 }
 
 /* ---- Frequency table construction ---- */
@@ -160,15 +163,19 @@ int ans_encode_band(uint8_t *out_buf, size_t out_capacity,
     if (!ctx->initialized) return -1;
     int pitch_elems = pitch / sizeof(int32_t);
 
+    /* Guard against integer overflow for large images */
+    size_t pixels = (size_t)width * (size_t)height;
+    if (pixels > (size_t)(INT32_MAX / 2)) return -1;
+
     /* Collect (run, mag, sign) triples */
-    int max_pairs = width * height + height + (width * height / ANS_MAX_SYMBOL) + 16;
+    size_t max_pairs = pixels + (size_t)height + (pixels / ANS_MAX_SYMBOL) + 16;
     typedef struct { uint16_t run, mag; uint8_t sign; } PAIR;
     PAIR *pairs = (PAIR *)malloc(max_pairs * sizeof(PAIR));
     if (!pairs) return -1;
     int pair_count = 0;
 
     /* Also collect signs separately */
-    int sign_alloc = width * height;
+    size_t sign_alloc = pixels;
     uint8_t *sign_buf = (uint8_t *)calloc((sign_alloc + 7) / 8 + 1, 1);
     if (!sign_buf) { free(pairs); return -1; }
     int sign_count = 0;
@@ -284,7 +291,16 @@ int ans_decode_band(const uint8_t *in_buf, size_t in_size,
     int rans_size  = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
     int sign_bytes = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
 
+    /* Validate header fields against buffer bounds */
+    if (pair_count < 0 || rans_size < 4 || sign_bytes < 0) return -1;
+    if ((size_t)12 + (size_t)rans_size + (size_t)sign_bytes > in_size) return -1;
+
+    /* Validate pair_count is reasonable for the image dimensions */
+    size_t max_reasonable_pairs = (size_t)width * (size_t)height * 2;
+    if ((size_t)pair_count > max_reasonable_pairs && max_reasonable_pairs > 0) return -1;
+
     const uint8_t *rans_data = p;
+    const uint8_t *rans_end  = p + rans_size;
     const uint8_t *sign_data = p + rans_size;
 
     /* Initialize rANS state from first 4 bytes (big-endian after reversal) */
@@ -305,14 +321,14 @@ int ans_decode_band(const uint8_t *in_buf, size_t in_size,
         int run = ctx->run_table.decode_sym[slot];
         uint16_t rf = ctx->run_table.freq[run];
         state = rf * (state >> ANS_TABLE_BITS) + slot - ctx->run_table.cum_freq[run];
-        state = rans_dec_renorm(state, &rptr);
+        if (rans_dec_renorm(&state, &rptr, rans_end) != 0) return -1;
 
         /* Decode magnitude */
         slot = state & (ANS_TABLE_SIZE - 1);
         int mag = ctx->mag_table.decode_sym[slot];
         uint16_t mf = ctx->mag_table.freq[mag];
         state = mf * (state >> ANS_TABLE_BITS) + slot - ctx->mag_table.cum_freq[mag];
-        state = rans_dec_renorm(state, &rptr);
+        if (rans_dec_renorm(&state, &rptr, rans_end) != 0) return -1;
 
         /* Apply the zero run */
         col += run;
@@ -366,6 +382,13 @@ int ans_deserialize_tables(ANS_BAND_CTX *ctx, const uint8_t *in_buf, size_t in_s
     for (int i = 0; i < ANS_NUM_SYMBOLS; i++) {
         ctx->mag_table.freq[i] = ((uint16_t)p[0] << 8) | p[1]; p += 2;
     }
+
+    /* Validate deserialized freq tables: ensure no zero-freq symbol exists
+       between non-zero-freq symbols, which would cause division by zero in
+       rans_enc_put. Re-normalize to guarantee sum == ANS_TABLE_SIZE and
+       every symbol in the active range has freq >= 1. */
+    normalize_freq(ctx->run_table.freq, ANS_NUM_SYMBOLS);
+    normalize_freq(ctx->mag_table.freq, ANS_NUM_SYMBOLS);
 
     build_tables(&ctx->run_table, ANS_NUM_SYMBOLS);
     build_tables(&ctx->mag_table, ANS_NUM_SYMBOLS);

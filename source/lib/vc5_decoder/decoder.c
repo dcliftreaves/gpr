@@ -1080,9 +1080,9 @@ CODEC_ERROR GetSectionNumber(TAGWORD tag, int *section_number_out)
             
         default:
             assert(0);
-            break;
+            return CODEC_ERROR_BITSTREAM_SYNTAX;
     }
-    
+
     if (section_number_out != NULL) {
         *section_number_out = section_number;
     }

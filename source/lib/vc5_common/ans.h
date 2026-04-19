@@ -50,6 +50,7 @@ typedef struct {
     uint32_t state;         /* Current ANS state */
     const uint8_t *in_buf;  /* Input buffer */
     const uint8_t *in_ptr;  /* Current read position */
+    const uint8_t *in_end;  /* One past last valid byte */
 } ANS_DECODER;
 
 /*! Frequency table for one symbol distribution */
