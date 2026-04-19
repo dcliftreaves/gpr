@@ -168,7 +168,7 @@ int ans_encode_band(uint8_t *out_buf, size_t out_capacity,
     int pair_count = 0;
 
     /* Also collect signs separately */
-    int sign_alloc = width * height / 2 + 16;
+    int sign_alloc = width * height;
     uint8_t *sign_buf = (uint8_t *)calloc((sign_alloc + 7) / 8 + 1, 1);
     if (!sign_buf) { free(pairs); return -1; }
     int sign_count = 0;

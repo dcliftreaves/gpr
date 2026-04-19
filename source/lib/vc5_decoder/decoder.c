@@ -2060,15 +2060,15 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
     if (decoder->codec.band.coding_method == 1)
     {
         // ANS adaptive entropy decoding
+        AlignBitsSegment(stream);
         uint32_t tables_size = GetBits(stream, 32);
         uint8_t *tables_buf = (uint8_t *)decoder->allocator->Alloc(tables_size);
-        for (uint32_t i = 0; i < tables_size; i++)
-            tables_buf[i] = (uint8_t)GetBits(stream, 8);
+        GetByteArray(stream, tables_buf, tables_size);
 
+        AlignBitsSegment(stream);
         uint32_t coded_size = GetBits(stream, 32);
         uint8_t *coded_buf = (uint8_t *)decoder->allocator->Alloc(coded_size);
-        for (uint32_t i = 0; i < coded_size; i++)
-            coded_buf[i] = (uint8_t)GetBits(stream, 8);
+        GetByteArray(stream, coded_buf, coded_size);
 
         ANS_BAND_CTX ans_ctx;
         memset(&ans_ctx, 0, sizeof(ans_ctx));

@@ -2450,22 +2450,61 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
     }
 #endif
     
+	// Signal ANS coding method BEFORE the subband header (so decoder sees it during tag parsing)
+	if (encoder->ans_enabled)
+		PutTagPairOptional(stream, CODEC_TAG_BandCodingMethod, 1);
+
 	// Output the tag-value pairs for this subband
 	PutVideoSubbandHeader(encoder, subband, quantization, stream);
 
 	// Encode the highpass coefficients for this subband
 	if (encoder->ans_enabled)
 	{
-		// ANS adaptive entropy coding path
-		PutTagPairOptional(stream, CODEC_TAG_BandCodingMethod, 1);
+
+		/* Apply cubic companding (same as VLC's cubic_table) to map quantized
+		   coefficients to the [0,255] range the decoder expects. Build the
+		   inverse-cubic table locally (same as ComputeCubicTable). */
+		int16_t cubic_inv[1024];
+		{
+			memset(cubic_inv, 0, sizeof(cubic_inv));
+			for (int i = 1; i <= 255; i++) {
+				double cubic = (double)i * i * i * 768.0 / (255.0 * 255.0 * 255.0);
+				int mag = i + (int)cubic;
+				if (mag > 1023) mag = 1023;
+				cubic_inv[mag] = (int16_t)i;
+			}
+			/* Fill gaps with nearest valid entry */
+			int16_t last = 0;
+			for (int i = 0; i < 1024; i++) {
+				if (cubic_inv[i]) last = cubic_inv[i];
+				else cubic_inv[i] = last;
+			}
+		}
+
+		size_t band_elems = (size_t)band_width * band_height;
+		int32_t *companded = (int32_t *)encoder->allocator->Alloc(band_elems * sizeof(int32_t));
+		if (!companded) return CODEC_ERROR_OUTOFMEMORY;
+		{
+			int bp = band_pitch / sizeof(PIXEL);
+			PIXEL *src = (PIXEL *)band_data;
+			for (int r = 0; r < band_height; r++)
+			{
+				for (int c = 0; c < band_width; c++)
+				{
+					int32_t val = src[r * bp + c];
+					int32_t mag = (val < 0) ? -val : val;
+					if (mag > 1023) mag = 1023;
+					int32_t comp = cubic_inv[mag];
+					companded[r * band_width + c] = (val < 0) ? -comp : comp;
+				}
+			}
+		}
 
 		ANS_BAND_CTX ans_ctx;
 		memset(&ans_ctx, 0, sizeof(ans_ctx));
-		ans_build_tables(&ans_ctx, (const int32_t *)band_data,
-		                 band_width, band_height, band_pitch);
+		ans_build_tables(&ans_ctx, companded, band_width, band_height,
+		                 band_width * sizeof(int32_t));
 
-		/* ANS compressed output is at most slightly larger than uncompressed.
-		   Use band_width * band_height * 2 as a safe upper bound. */
 		size_t buf_cap = (size_t)band_width * band_height * 2 + 4096;
 		uint8_t *tables_buf = (uint8_t *)encoder->allocator->Alloc(buf_cap);
 		uint8_t *coded_buf  = (uint8_t *)encoder->allocator->Alloc(buf_cap);
@@ -2473,13 +2512,14 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 		if (!tables_buf || !coded_buf) {
 			if (tables_buf) encoder->allocator->Free(tables_buf);
 			if (coded_buf) encoder->allocator->Free(coded_buf);
+			encoder->allocator->Free(companded);
 			return CODEC_ERROR_OUTOFMEMORY;
 		}
 
 		int tables_size = ans_serialize_tables(&ans_ctx, tables_buf, buf_cap);
 		int coded_size = ans_encode_band(coded_buf, buf_cap, &ans_ctx,
-		                                 (const int32_t *)band_data,
-		                                 band_width, band_height, band_pitch);
+		                                 companded, band_width, band_height,
+		                                 band_width * sizeof(int32_t));
 
 		if (tables_size < 0 || coded_size < 0) {
 			encoder->allocator->Free(tables_buf);
@@ -2488,15 +2528,16 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 		}
 
 		// Write: [tables_size:32] [tables_data] [coded_size:32] [coded_data]
+		AlignBitsSegment(stream);
 		PutLong(stream, (uint32_t)tables_size);
-		for (int i = 0; i < tables_size; i++)
-			PutBits(stream, tables_buf[i], 8);
+		PutByteArray(stream, tables_buf, (size_t)tables_size);
+		AlignBitsSegment(stream);
 		PutLong(stream, (uint32_t)coded_size);
-		for (int i = 0; i < coded_size; i++)
-			PutBits(stream, coded_buf[i], 8);
+		PutByteArray(stream, coded_buf, (size_t)coded_size);
 
 		encoder->allocator->Free(tables_buf);
 		encoder->allocator->Free(coded_buf);
+		encoder->allocator->Free(companded);
 	}
 	else
 	{
