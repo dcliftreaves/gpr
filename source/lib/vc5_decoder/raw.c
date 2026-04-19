@@ -173,9 +173,25 @@ CODEC_ERROR PackComponentsToRAW(const UNPACKED_IMAGE *image,
                 int32x4_t bg = vld1q_s32(&BG_input_row_ptr[column]);
                 int32x4_t gd = vld1q_s32(&GD_input_row_ptr[column]);
 
+                /* Clamp components to valid range BEFORE color conversion
+                   to prevent quantization error from compounding */
+                gs = vmaxq_s32(vminq_s32(gs, v_max), v_zero);
+                rg = vmaxq_s32(vminq_s32(rg, v_max), v_zero);
+                bg = vmaxq_s32(vminq_s32(bg, v_max), v_zero);
+                gd = vmaxq_s32(vminq_s32(gd, v_max), v_zero);
+
                 gd = vsubq_s32(gd, v_midpoint);
                 rg = vsubq_s32(rg, v_midpoint);
                 bg = vsubq_s32(bg, v_midpoint);
+
+                /* Clamp color differences to valid signed range [-midpoint, midpoint-1] */
+                {
+                    const int32x4_t v_neg_mid = vnegq_s32(v_midpoint);
+                    const int32x4_t v_mid_m1 = vsubq_s32(v_midpoint, vdupq_n_s32(1));
+                    rg = vmaxq_s32(vminq_s32(rg, v_mid_m1), v_neg_mid);
+                    bg = vmaxq_s32(vminq_s32(bg, v_mid_m1), v_neg_mid);
+                    gd = vmaxq_s32(vminq_s32(gd, v_mid_m1), v_neg_mid);
+                }
 
                 int32x4_t r  = vaddq_s32(vshlq_n_s32(rg, 1), gs);
                 int32x4_t b  = vaddq_s32(vshlq_n_s32(bg, 1), gs);
@@ -242,9 +258,32 @@ CODEC_ERROR PackComponentsToRAW(const UNPACKED_IMAGE *image,
             BG = BG_input_row_ptr[column];
             GD = GD_input_row_ptr[column];
 
+            /* Clamp components to valid range BEFORE color conversion.
+               The inverse wavelet + dequantization + uncompanding can produce
+               values outside the valid [0, 2^bits-1] range. Without clamping,
+               the R=(RG<<1)+GS reconstruction doubles the RG error, causing
+               catastrophic overflow at high quality (Q6+) with 14-bit data. */
+            {
+                const int32_t comp_max = (1 << log_bits) - 1;
+                if (GS < 0) GS = 0; else if (GS > comp_max) GS = comp_max;
+                if (RG < 0) RG = 0; else if (RG > comp_max) RG = comp_max;
+                if (BG < 0) BG = 0; else if (BG > comp_max) BG = comp_max;
+                if (GD < 0) GD = 0; else if (GD > comp_max) GD = comp_max;
+            }
+
             GD -= midpoint;
             RG -= midpoint;
             BG -= midpoint;
+
+            /* Clamp color differences to their valid signed range.
+               RG = (R-GS)/2, so valid range is [-midpoint, midpoint-1].
+               Without this clamp, dequantization errors are doubled by <<1. */
+            {
+                const int32_t diff_max = midpoint - 1;
+                if (RG < -midpoint) RG = -midpoint; else if (RG > diff_max) RG = diff_max;
+                if (BG < -midpoint) BG = -midpoint; else if (BG > diff_max) BG = diff_max;
+                if (GD < -midpoint) GD = -midpoint; else if (GD > diff_max) GD = diff_max;
+            }
 
             R = (RG << 1) + GS;
             B = (BG << 1) + GS;
