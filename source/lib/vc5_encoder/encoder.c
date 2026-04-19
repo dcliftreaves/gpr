@@ -554,6 +554,7 @@ CODEC_ERROR PrepareEncoder(ENCODER *encoder,
 	encoder->noise_scale        = parameters->noise_scale;
 	encoder->noise_offset       = parameters->noise_offset;
 	encoder->variance_stabilize = parameters->variance_stabilize;
+	encoder->ans_enabled        = parameters->ans_enabled;
 
 	// Allocate the wavelet transforms
 	AllocEncoderTransforms(encoder);
@@ -2452,10 +2453,58 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 	// Output the tag-value pairs for this subband
 	PutVideoSubbandHeader(encoder, subband, quantization, stream);
 
-	// Encode the highpass coefficients for this subband into the bitstream
-	error = EncodeHighpassBandRowRuns(stream, codeset, band_data, band_width, band_height, band_pitch);
-	if (error != CODEC_ERROR_OKAY) {
-		return error;
+	// Encode the highpass coefficients for this subband
+	if (encoder->ans_enabled)
+	{
+		// ANS adaptive entropy coding path
+		PutTagPairOptional(stream, CODEC_TAG_BandCodingMethod, 1);
+
+		ANS_BAND_CTX ans_ctx;
+		memset(&ans_ctx, 0, sizeof(ans_ctx));
+		ans_build_tables(&ans_ctx, (const int32_t *)band_data,
+		                 band_width, band_height, band_pitch);
+
+		/* ANS compressed output is at most slightly larger than uncompressed.
+		   Use band_width * band_height * 2 as a safe upper bound. */
+		size_t buf_cap = (size_t)band_width * band_height * 2 + 4096;
+		uint8_t *tables_buf = (uint8_t *)encoder->allocator->Alloc(buf_cap);
+		uint8_t *coded_buf  = (uint8_t *)encoder->allocator->Alloc(buf_cap);
+
+		if (!tables_buf || !coded_buf) {
+			if (tables_buf) encoder->allocator->Free(tables_buf);
+			if (coded_buf) encoder->allocator->Free(coded_buf);
+			return CODEC_ERROR_OUTOFMEMORY;
+		}
+
+		int tables_size = ans_serialize_tables(&ans_ctx, tables_buf, buf_cap);
+		int coded_size = ans_encode_band(coded_buf, buf_cap, &ans_ctx,
+		                                 (const int32_t *)band_data,
+		                                 band_width, band_height, band_pitch);
+
+		if (tables_size < 0 || coded_size < 0) {
+			encoder->allocator->Free(tables_buf);
+			encoder->allocator->Free(coded_buf);
+			return CODEC_ERROR_OKAY; /* Fall through — band end marker still needed */
+		}
+
+		// Write: [tables_size:32] [tables_data] [coded_size:32] [coded_data]
+		PutLong(stream, (uint32_t)tables_size);
+		for (int i = 0; i < tables_size; i++)
+			PutBits(stream, tables_buf[i], 8);
+		PutLong(stream, (uint32_t)coded_size);
+		for (int i = 0; i < coded_size; i++)
+			PutBits(stream, coded_buf[i], 8);
+
+		encoder->allocator->Free(tables_buf);
+		encoder->allocator->Free(coded_buf);
+	}
+	else
+	{
+		// Legacy VLC run-length coding path
+		error = EncodeHighpassBandRowRuns(stream, codeset, band_data, band_width, band_height, band_pitch);
+		if (error != CODEC_ERROR_OKAY) {
+			return error;
+		}
 	}
     
 	// Align the bitstream to a segment boundary

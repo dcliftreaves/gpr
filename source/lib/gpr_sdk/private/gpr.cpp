@@ -185,6 +185,7 @@ static void set_vc5_encoder_parameters( vc5_encoder_parameters& vc5_encoder_para
     vc5_encoder_params.noise_scale        = convert_params->tuning_info.noise_scale;
     vc5_encoder_params.noise_offset       = convert_params->tuning_info.noise_offset;
     vc5_encoder_params.variance_stabilize = convert_params->tuning_info.variance_stabilize;
+    vc5_encoder_params.ans_enabled       = convert_params->tuning_info.ans_enabled;
 
 }
 #endif

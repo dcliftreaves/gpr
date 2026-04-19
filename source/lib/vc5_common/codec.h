@@ -112,6 +112,9 @@ typedef enum _codec_tag
     CODEC_TAG_LargeMetadata = 0x6100,			//!< Large chunk containing metadata tuples (VC-5 Part 7)
 #endif
     
+    // ANS entropy coding (optional, per-band)
+    CODEC_TAG_BandCodingMethod = 200,       //!< 0 = VLC run-length (default), 1 = ANS entropy coding
+
 } CODEC_TAG;
 
 #if VC5_ENABLED_PART(VC5_PART_IMAGE_FORMATS)
@@ -234,7 +237,7 @@ typedef struct _codec_state
 		//DIMENSION width;				//!< Width of the decoded band
 		//DIMENSION height;				//!< Height of the decoded band
 		uint_least8_t subband;			//!< Subband index
-		//uint_least8_t encoding;		//!< Band encoding method
+		uint_least8_t coding_method;	//!< 0 = VLC run-length (default), 1 = ANS
 		uint16_t quantization;			//!< Quantization parameter
 
 	} band;			//!< Information about the current highpass band

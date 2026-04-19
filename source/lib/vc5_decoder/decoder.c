@@ -1253,6 +1253,10 @@ CODEC_ERROR UpdateCodecState(DECODER *decoder, BITSTREAM *stream, TAGVALUE segme
         case CODEC_TAG_Quantization:		// Quantization applied to band
             codec->band.quantization = value;
             break;
+
+        case CODEC_TAG_BandCodingMethod:	// 0 = VLC, 1 = ANS
+            codec->band.coding_method = (uint_least8_t)value;
+            break;
             
         case CODEC_TAG_LowpassPrecision:	// Number of bits per lowpass coefficient
             if (! (PRECISION_MIN <= value && value <= PRECISION_MAX)) {
@@ -2052,8 +2056,38 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
     // Encoded coefficients start on a tag boundary
     AlignBitsSegment(stream);
     
-    // Decode this subband
-    error = DecodeBandRuns(stream, decoder->codebook, wavelet->data[band], width, height, wavelet->pitch);
+    // Decode this subband (VLC or ANS depending on coding method tag)
+    if (decoder->codec.band.coding_method == 1)
+    {
+        // ANS adaptive entropy decoding
+        uint32_t tables_size = GetBits(stream, 32);
+        uint8_t *tables_buf = (uint8_t *)decoder->allocator->Alloc(tables_size);
+        for (uint32_t i = 0; i < tables_size; i++)
+            tables_buf[i] = (uint8_t)GetBits(stream, 8);
+
+        uint32_t coded_size = GetBits(stream, 32);
+        uint8_t *coded_buf = (uint8_t *)decoder->allocator->Alloc(coded_size);
+        for (uint32_t i = 0; i < coded_size; i++)
+            coded_buf[i] = (uint8_t)GetBits(stream, 8);
+
+        ANS_BAND_CTX ans_ctx;
+        memset(&ans_ctx, 0, sizeof(ans_ctx));
+        ans_deserialize_tables(&ans_ctx, tables_buf, tables_size);
+        int rc = ans_decode_band(coded_buf, coded_size, &ans_ctx,
+                                 (int32_t *)wavelet->data[band],
+                                 width, height, wavelet->pitch);
+        error = (rc == 0) ? CODEC_ERROR_OKAY : CODEC_ERROR_DECODING_SUBBAND;
+
+        decoder->allocator->Free(tables_buf);
+        decoder->allocator->Free(coded_buf);
+
+        // Reset coding method for next band
+        decoder->codec.band.coding_method = 0;
+    }
+    else
+    {
+        error = DecodeBandRuns(stream, decoder->codebook, wavelet->data[band], width, height, wavelet->pitch);
+    }
     assert(error == CODEC_ERROR_OKAY);
     
     // Return failure if a problem was encountered while reading the band coefficients

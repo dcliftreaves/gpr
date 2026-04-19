@@ -151,6 +151,7 @@
         bool                    variance_stabilize; // Enable Anscombe variance stabilization
         bool                    denoise_output;     // Skip noise reconstruction on decode (actual denoising)
         bool                    noise_replace;      // Pixel-domain noise replacement (Jetraw-style)
+        bool                    ans_enabled;        // Use ANS entropy coding (replaces VLC codebook)
         uint32_t                noise_seed;         // PRNG seed for noise reconstruction (set by encoder)
         double                  noise_sigma_est[4]; // Per-channel estimated noise sigma (set by encoder)
 

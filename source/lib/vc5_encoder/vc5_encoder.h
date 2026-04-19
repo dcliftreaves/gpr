@@ -99,6 +99,7 @@
         double                      noise_scale;            // DNG NoiseProfile scale (0 = use MAD fallback)
         double                      noise_offset;           // DNG NoiseProfile offset
         bool                        variance_stabilize;     // Enable Anscombe variance stabilization
+        bool                        ans_enabled;            // Use ANS entropy coding
         uint32_t                    noise_seed;             // PRNG seed for noise reconstruction (output)
         double                      noise_sigma_out[4];     // Per-channel noise sigma (output, set by encoder)
 

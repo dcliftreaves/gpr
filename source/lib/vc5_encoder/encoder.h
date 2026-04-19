@@ -156,6 +156,9 @@ typedef struct _encoder
 	//! Parameter that controls the amount of rounding before quantization
 	int midpoint_prequant;
 
+	//! ANS entropy coding (replaces fixed VLC codebook)
+	bool ans_enabled;
+
 	//! Noise-aware compression parameters
 	bool denoise_enabled;
 	double denoise_strength;

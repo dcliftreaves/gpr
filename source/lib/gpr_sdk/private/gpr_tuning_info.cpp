@@ -91,6 +91,7 @@ void gpr_tuning_info_set_defaults( gpr_tuning_info* x )
     x->variance_stabilize = false;
     x->denoise_output = false;
     x->noise_replace = false;
+    x->ans_enabled = false;
     x->noise_seed = 0;
     memset(x->noise_sigma_est, 0, sizeof(x->noise_sigma_est));
 }
