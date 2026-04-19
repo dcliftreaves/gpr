@@ -59,22 +59,44 @@ void noise_add_to_pixels(int32_t *data, int width, int height, int pitch_bytes,
                          double sigma, uint32_t seed, int band_id);
 
 /*!
-    @brief Replace sensor noise with deterministic PRNG noise (Jetraw-style)
+    @brief Remove noise by quantizing each pixel to its noise floor (encoder side)
 
-    For each pixel: quantize to the noise floor, replace the quantization
-    residual with PRNG noise of matching variance. The compressor then sees
-    low-entropy data; the decoder reconstructs statistically-equivalent
-    noise from the seed.
+    For each pixel: compute sigma from the noise model, then quantize the
+    pixel value to the nearest multiple of sigma. The result is a clean
+    signal with no noise — minimal entropy for the compressor.
 
-    Error bound: strictly bounded by noise sigma (no signal loss).
+    Error bound: ±sigma/2 per pixel (within noise floor, no signal loss).
 
     @param raw          Raw uint16 Bayer pixel data (modified in-place)
     @param width        Image width
     @param height       Image height
     @param noise_scale  DNG NoiseProfile scale (Poisson component)
     @param noise_offset DNG NoiseProfile offset (Gaussian component)
-    @param seed         PRNG seed for deterministic noise generation
 */
+void noise_remove(uint16_t *raw, int width, int height,
+                  double noise_scale, double noise_offset);
+
+/*!
+    @brief Restore statistically equivalent noise after decompression (decoder side)
+
+    For each pixel: compute sigma from the noise model, then add PRNG
+    noise with matching variance. The PRNG is seeded deterministically
+    so the decoder produces the same noise pattern as the original.
+
+    Must be called with the same noise_scale, noise_offset, and seed
+    that were used during encoding.
+
+    @param raw          Raw uint16 Bayer pixel data (modified in-place)
+    @param width        Image width
+    @param height       Image height
+    @param noise_scale  DNG NoiseProfile scale (Poisson component)
+    @param noise_offset DNG NoiseProfile offset (Gaussian component)
+    @param seed         PRNG seed (must match encoder)
+*/
+void noise_restore(uint16_t *raw, int width, int height,
+                   double noise_scale, double noise_offset, uint32_t seed);
+
+/*! @brief Legacy: remove noise then immediately add it back (no compression benefit) */
 void noise_replace(uint16_t *raw, int width, int height,
                    double noise_scale, double noise_offset, uint32_t seed);
 

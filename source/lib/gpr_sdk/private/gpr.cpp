@@ -1637,13 +1637,15 @@ static void write_dng(const gpr_allocator*          allocator,
         // Write noise model metadata to XMP (after encoding populates sigma/seed)
         {
             vc5_encoder_parameters& enc_params = gpr_writer->GetVc5EncoderParams();
-            if (enc_params.denoise_enabled && enc_params.noise_seed != 0)
+            uint32_t noise_seed = enc_params.noise_seed;
+            if (noise_seed == 0) noise_seed = convert_params->tuning_info.noise_seed;
+            if (noise_seed != 0)
             {
                 dng_xmp *xmp = negative->GetXMP();
                 if (xmp)
                 {
                     const char *ns = "http://ns.adobe.com/exif/1.0/aux/";
-                    xmp->Set_uint32(ns, "GPRNoiseSeed", enc_params.noise_seed);
+                    xmp->Set_uint32(ns, "GPRNoiseSeed", noise_seed);
                     xmp->Set_real64(ns, "GPRNoiseSigma0", enc_params.noise_sigma_out[0], 6);
                     xmp->Set_real64(ns, "GPRNoiseSigma1", enc_params.noise_sigma_out[1], 6);
                     xmp->Set_real64(ns, "GPRNoiseSigma2", enc_params.noise_sigma_out[2], 6);
@@ -1935,26 +1937,35 @@ bool gpr_convert_raw_to_gpr(const gpr_allocator*    allocator,
                      parameters->input_width, parameters->input_height);
     }
 
-    // Pixel-domain noise replacement: quantize to noise floor, replace with PRNG noise
-    if (parameters->tuning_info.noise_replace)
+    // Pixel-domain noise removal: quantize each pixel to the noise floor.
+    // The compressor then sees a clean signal with minimal entropy.
+    // Noise is restored on decode via noise_restore() with the same seed.
+    // REQUIRES calibrated noise model (DNG NoiseProfile) — auto-estimation
+    // from pixel differences conflates texture with noise and destroys signal.
+    if (parameters->tuning_info.noise_replace &&
+        parameters->tuning_info.noise_scale > 0)
     {
         double nr_scale = parameters->tuning_info.noise_scale;
         double nr_offset = parameters->tuning_info.noise_offset;
 
-        // Auto-estimate noise model if no DNG NoiseProfile provided
-        if (nr_scale <= 0)
-        {
-            noise_estimate_model((const uint16_t*)raw_buffer.get_buffer(),
-                                 parameters->input_width, parameters->input_height,
-                                 &nr_scale, &nr_offset);
-        }
-
         if (nr_scale > 0)
         {
-            noise_replace((uint16_t*)raw_buffer.get_buffer(),
-                          parameters->input_width, parameters->input_height,
-                          nr_scale, nr_offset,
-                          parameters->tuning_info.noise_seed ? parameters->tuning_info.noise_seed : 0x55AA1234);
+            // ENCODER: remove noise only (no PRNG addition).
+            // The clean quantized signal compresses much better.
+            noise_remove((uint16_t*)raw_buffer.get_buffer(),
+                         parameters->input_width, parameters->input_height,
+                         nr_scale, nr_offset);
+
+            // Generate a deterministic seed from the raw data for noise restoration
+            uint32_t seed = 0x55AA1234;
+            const uint16_t *raw16 = (const uint16_t*)raw_buffer.get_buffer();
+            for (int i = 0; i < 64 && i < parameters->input_width; i++)
+                seed ^= (uint32_t)raw16[i] * 2654435761u;
+
+            // Store the noise model + seed so the decoder can restore noise
+            const_cast<gpr_parameters*>(parameters)->tuning_info.noise_scale = nr_scale;
+            const_cast<gpr_parameters*>(parameters)->tuning_info.noise_offset = nr_offset;
+            const_cast<gpr_parameters*>(parameters)->tuning_info.noise_seed = seed;
         }
     }
 
@@ -2184,10 +2195,27 @@ bool gpr_convert_gpr_to_raw_ex(const gpr_allocator*    allocator,
 {
     bool result = gpr_convert_gpr_to_raw(allocator, inp_gpr_buffer, out_raw_buffer);
 
-    if (result && parameters && parameters->fpn.valid && !parameters->tuning_info.denoise_output)
+    if (result && parameters && !parameters->tuning_info.denoise_output)
     {
-        fpn_add_back(&parameters->fpn, (uint16_t*)out_raw_buffer->buffer,
-                     parameters->input_width, parameters->input_height);
+        // Restore noise: add back statistically equivalent noise from PRNG.
+        // Triggers automatically when the GPR contains a noise seed (from encoding
+        // with -R), unless denoise_output is set (user wants the clean signal).
+        if (parameters->tuning_info.noise_scale > 0 &&
+            parameters->tuning_info.noise_seed != 0)
+        {
+            noise_restore((uint16_t*)out_raw_buffer->buffer,
+                          parameters->input_width, parameters->input_height,
+                          parameters->tuning_info.noise_scale,
+                          parameters->tuning_info.noise_offset,
+                          parameters->tuning_info.noise_seed);
+        }
+
+        // Restore FPN (fixed-pattern noise)
+        if (parameters->fpn.valid)
+        {
+            fpn_add_back(&parameters->fpn, (uint16_t*)out_raw_buffer->buffer,
+                         parameters->input_width, parameters->input_height);
+        }
     }
 
     return result;

@@ -123,13 +123,10 @@ void noise_estimate_model(const uint16_t *raw, int width, int height,
     #undef NOISE_EST_BINS
 }
 
-void noise_replace(uint16_t *raw, int width, int height,
-                   double noise_scale, double noise_offset, uint32_t seed)
+void noise_remove(uint16_t *raw, int width, int height,
+                  double noise_scale, double noise_offset)
 {
     if (noise_scale <= 0 && noise_offset <= 0) return;
-
-    uint32_t state = seed;
-    if (state == 0) state = 0x12345678;
 
     for (int row = 0; row < height; row++)
     {
@@ -150,11 +147,40 @@ void noise_replace(uint16_t *raw, int width, int height,
             if (step < 1.0) step = 1.0;
             double quantized = round(signal / step) * step;
 
-            /* Replace the quantization residual with deterministic PRNG noise.
-               This noise has the same scale as the original noise but is
-               reproducible from the seed — zero additional entropy. */
+            /* Clamp to valid range */
+            if (quantized < 0) quantized = 0;
+            if (quantized > 65535) quantized = 65535;
+            raw[idx] = (uint16_t)(quantized + 0.5);
+        }
+    }
+}
+
+void noise_restore(uint16_t *raw, int width, int height,
+                   double noise_scale, double noise_offset, uint32_t seed)
+{
+    if (noise_scale <= 0 && noise_offset <= 0) return;
+
+    uint32_t state = seed;
+    if (state == 0) state = 0x12345678;
+
+    for (int row = 0; row < height; row++)
+    {
+        for (int col = 0; col < width; col++)
+        {
+            int idx = row * width + col;
+            double signal = (double)raw[idx];
+
+            /* Compute the noise sigma this pixel SHOULD have */
+            double variance = noise_scale * signal + noise_offset;
+            if (variance < 1.0) variance = 1.0;
+            double sigma = sqrt(variance);
+
+            /* Add back statistically equivalent noise from deterministic PRNG.
+               The PRNG sequence matches the encoder's seed, so this reconstructs
+               noise with the correct per-pixel variance. Scale by 0.5 because
+               quantization already left ±step/2 residual. */
             double prng_noise = noise_prng_gaussian(&state) * sigma * 0.5;
-            double result = quantized + prng_noise;
+            double result = signal + prng_noise;
 
             /* Clamp to valid range */
             if (result < 0) result = 0;
@@ -162,6 +188,14 @@ void noise_replace(uint16_t *raw, int width, int height,
             raw[idx] = (uint16_t)(result + 0.5);
         }
     }
+}
+
+/* Legacy combined function (deprecated — use noise_remove + noise_restore) */
+void noise_replace(uint16_t *raw, int width, int height,
+                   double noise_scale, double noise_offset, uint32_t seed)
+{
+    noise_remove(raw, width, height, noise_scale, noise_offset);
+    noise_restore(raw, width, height, noise_scale, noise_offset, seed);
 }
 
 void fpn_model_init(fpn_model *model)

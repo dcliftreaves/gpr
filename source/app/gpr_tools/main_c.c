@@ -350,7 +350,7 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( input_file_type == FILE_TYPE_GPR && output_file_type == FILE_TYPE_RAW )
     {
-        success = gpr_convert_gpr_to_raw( &allocator, &input_buffer, &output_buffer );
+        success = gpr_convert_gpr_to_raw_ex( &allocator, &params, &input_buffer, &output_buffer );
     }
 #endif
     else
