@@ -2515,10 +2515,25 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 		}
 		else
 		{
-			/* Mode 2: raw magnitudes — encode the quantized coefficients directly.
-			   The decoder sets quant=0 to skip uncompanding+dequantization. */
-			ans_input = (int32_t *)band_data;
-			ans_input_pitch = band_pitch;
+			/* Mode 2: Joint RLV ANS — single symbol per coefficient.
+			   Encodes raw quantized coefficients directly. */
+			size_t jans_cap = band_elems * 4 + 4096;
+			uint8_t *jans_buf = (uint8_t *)encoder->allocator->Alloc(jans_cap);
+			if (!jans_buf) return CODEC_ERROR_OUTOFMEMORY;
+
+			int jans_size = jans_encode_band(jans_buf, jans_cap,
+			                                 (const int32_t *)band_data,
+			                                 band_width, band_height, band_pitch);
+
+			if (jans_size > 0) {
+				AlignBitsSegment(stream);
+				PutLong(stream, (uint32_t)jans_size);
+				PutByteArray(stream, jans_buf, (size_t)jans_size);
+			}
+			encoder->allocator->Free(jans_buf);
+
+			/* Skip the regular ANS path below */
+			goto ans_done;
 		}
 
 		ANS_BAND_CTX ans_ctx;
@@ -2559,6 +2574,8 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 		encoder->allocator->Free(tables_buf);
 		encoder->allocator->Free(coded_buf);
 		if (ans_input_owned) encoder->allocator->Free(ans_input);
+
+ans_done: ;
 	}
 	else
 	{

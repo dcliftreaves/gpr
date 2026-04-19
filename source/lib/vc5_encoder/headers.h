@@ -45,6 +45,7 @@
 
 #include "denoise.h"
 #include "ans.h"
+#include "ans_joint.h"
 #include "parameters.h"
 #include "encoder.h"
 #include "vc5_encoder.h"
