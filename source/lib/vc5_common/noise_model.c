@@ -52,6 +52,77 @@ void noise_add_to_pixels(int32_t *data, int width, int height, int pitch_bytes,
     }
 }
 
+void noise_estimate_model(const uint16_t *raw, int width, int height,
+                          double *noise_scale, double *noise_offset)
+{
+    *noise_scale = 0.0;
+    *noise_offset = 0.0;
+
+    if (width < 4 || height < 4) return;
+
+    /* Bin pixels by signal level (8 bins), compute noise variance in each */
+    #define NOISE_EST_BINS 8
+    double bin_sum_signal[NOISE_EST_BINS] = {0};
+    double bin_sum_var[NOISE_EST_BINS] = {0};
+    int bin_count[NOISE_EST_BINS] = {0};
+
+    /* Subsample: use every 4th row, every 4th column for speed */
+    for (int row = 0; row < height; row += 4)
+    {
+        for (int col = 0; col < width - 2; col += 4)
+        {
+            int idx = row * width + col;
+            double v0 = (double)raw[idx];
+            double v2 = (double)raw[idx + 2]; /* Same Bayer channel, 2 apart */
+            double signal = (v0 + v2) * 0.5;
+            double diff = v2 - v0;
+            double noise_var = diff * diff * 0.5; /* var = diff²/2 */
+
+            int bin = (int)(signal * NOISE_EST_BINS / 16384.0);
+            if (bin < 0) bin = 0;
+            if (bin >= NOISE_EST_BINS) bin = NOISE_EST_BINS - 1;
+
+            bin_sum_signal[bin] += signal;
+            bin_sum_var[bin] += noise_var;
+            bin_count[bin]++;
+        }
+    }
+
+    /* Linear regression: variance = scale * signal + offset
+       Using bins with enough samples */
+    double sum_x = 0, sum_y = 0, sum_xx = 0, sum_xy = 0;
+    int n = 0;
+    for (int i = 0; i < NOISE_EST_BINS; i++)
+    {
+        if (bin_count[i] < 100) continue;
+        double x = bin_sum_signal[i] / bin_count[i]; /* mean signal in bin */
+        double y = bin_sum_var[i] / bin_count[i];     /* mean variance in bin */
+        sum_x += x;
+        sum_y += y;
+        sum_xx += x * x;
+        sum_xy += x * y;
+        n++;
+    }
+
+    if (n >= 2)
+    {
+        double denom = n * sum_xx - sum_x * sum_x;
+        if (denom > 0)
+        {
+            *noise_scale = (n * sum_xy - sum_x * sum_y) / denom;
+            *noise_offset = (sum_y - *noise_scale * sum_x) / n;
+            if (*noise_scale < 0) *noise_scale = 0;
+            if (*noise_offset < 0) *noise_offset = 0;
+        }
+    }
+    else if (n == 1)
+    {
+        /* Single bin: assume all Gaussian */
+        *noise_offset = sum_y / n;
+    }
+    #undef NOISE_EST_BINS
+}
+
 void noise_replace(uint16_t *raw, int width, int height,
                    double noise_scale, double noise_offset, uint32_t seed)
 {

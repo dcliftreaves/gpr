@@ -78,6 +78,22 @@ void noise_add_to_pixels(int32_t *data, int width, int height, int pitch_bytes,
 void noise_replace(uint16_t *raw, int width, int height,
                    double noise_scale, double noise_offset, uint32_t seed);
 
+/*!
+    @brief Auto-estimate Poisson-Gaussian noise model from raw pixels
+
+    Fits variance = noise_scale * signal + noise_offset by binning pixels
+    by signal level and measuring local noise in each bin. Uses adjacent-pixel
+    differences (robust to image content).
+
+    @param raw          Raw uint16 Bayer pixel data
+    @param width        Image width
+    @param height       Image height
+    @param[out] noise_scale  Poisson component (slope)
+    @param[out] noise_offset Gaussian component (intercept)
+*/
+void noise_estimate_model(const uint16_t *raw, int width, int height,
+                          double *noise_scale, double *noise_offset);
+
 /*! @brief Initialize FPN model to invalid/empty state */
 void fpn_model_init(fpn_model *model);
 
