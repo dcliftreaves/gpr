@@ -253,13 +253,189 @@ double DenoiseTransform(TRANSFORM *transform, double strength,
 
             T *= strength;
 
-            SoftThresholdBand(wavelet->data[band],
-                              wavelet->width, wavelet->height,
-                              wavelet->pitch, T);
+            /* Use noise-aware requantization: rounds coefficients to
+               nearest multiple of sigma_noise rather than binary keep/zero.
+               This creates more zeros for RLE while preserving coefficient
+               precision at noise-floor granularity. Falls back to soft
+               thresholding only for pure-noise bands (no signal to quantize). */
+            if (sigma_signal_sq > sigma_noise_sq * 0.01)
+            {
+                NoiseAwareRequantize(wavelet->data[band],
+                                     wavelet->width, wavelet->height,
+                                     wavelet->pitch, sigma_noise, strength);
+            }
+            else
+            {
+                /* Pure noise band: soft threshold removes everything */
+                SoftThresholdBand(wavelet->data[band],
+                                  wavelet->width, wavelet->height,
+                                  wavelet->pitch, T);
+            }
         }
     }
 
     return global_sigma;
+}
+
+void NoiseAwareRequantize(PIXEL *data, DIMENSION width, DIMENSION height,
+                          DIMENSION pitch, double sigma_noise, double strength)
+{
+    if (sigma_noise <= 0.0 || strength <= 0.0) return;
+
+    /* Quantization step: round each coefficient to the nearest multiple of
+       sigma_noise.  Coefficients whose magnitude is below sigma_noise/2
+       become zero (they're indistinguishable from noise).  This maximizes
+       zero runs for RLE while bounding quantization error to ±sigma/2,
+       which is within the noise floor by definition. */
+    double step = sigma_noise * strength;
+    double half_step = step * 0.5;
+    int32_t istep = (int32_t)(step + 0.5);
+    if (istep <= 0) istep = 1;
+
+    int pitch_pixels = pitch / sizeof(PIXEL);
+
+    for (int row = 0; row < height; row++)
+    {
+        PIXEL *row_ptr = data + row * pitch_pixels;
+        for (int col = 0; col < width; col++)
+        {
+            int32_t val = row_ptr[col];
+            int32_t abs_val = (val < 0) ? -val : val;
+
+            if (abs_val < (int32_t)(half_step + 0.5))
+            {
+                /* Below half a quantization step — pure noise */
+                row_ptr[col] = 0;
+            }
+            else
+            {
+                /* Round to nearest multiple of step */
+                int32_t quantized = ((abs_val + istep / 2) / istep) * istep;
+                row_ptr[col] = (val > 0) ? quantized : -quantized;
+            }
+        }
+    }
+}
+
+double EstimateRawNoiseSigma(const COMPONENT_VALUE *data, DIMENSION width,
+                             DIMENSION height, size_t pitch)
+{
+    /* Robust noise estimation from raw pixel data using the difference
+       between horizontally adjacent pixels.  For a signal s[x] + n[x],
+       the difference d = (s[x+1]+n[x+1]) - (s[x]+n[x]) has variance
+       = var(signal_diff) + 2*var(noise).  Since noise changes faster than
+       signal, the MAD of differences is dominated by noise.
+
+       After the encoder's log curve, dark pixels have amplified noise
+       (log curve has high derivative in shadows). The MAD estimator
+       naturally gives a robust estimate that's resistant to outliers
+       from texture/edges.
+
+       We subsample to keep this fast (<10K samples). */
+    if (width < 2 || height < 2) return 0.0;
+
+    int pitch_pixels = (int)(pitch / sizeof(COMPONENT_VALUE));
+    int total_pairs = (int)(width - 1) * (int)height;
+    int step = 1;
+    int max_samples = 10000;
+    if (total_pairs > max_samples)
+        step = total_pairs / max_samples;
+
+    int32_t *abs_diffs = (int32_t *)malloc(max_samples * sizeof(int32_t));
+    if (!abs_diffs) return 0.0;
+
+    int count = 0;
+    int sample_idx = 0;
+
+    for (int row = 0; row < (int)height && count < max_samples; row++)
+    {
+        const COMPONENT_VALUE *row_ptr = data + row * pitch_pixels;
+        for (int col = 0; col < (int)width - 1 && count < max_samples; col++)
+        {
+            if (sample_idx % step == 0)
+            {
+                int32_t diff = row_ptr[col + 1] - row_ptr[col];
+                abs_diffs[count++] = (diff < 0) ? -diff : diff;
+            }
+            sample_idx++;
+        }
+    }
+
+    if (count == 0) { free(abs_diffs); return 0.0; }
+
+    double median_diff = (double)quickselect_median(abs_diffs, count);
+    free(abs_diffs);
+
+    /* MAD of differences → sigma_diff = median * 1.4826
+       sigma_diff² = 2 * sigma_noise² (for white noise)
+       sigma_noise = sigma_diff / sqrt(2) */
+    double sigma_diff = median_diff * MAD_SIGMA_FACTOR;
+    return sigma_diff / 1.41421356;
+}
+
+/*! Wavelet filter gain factors for CineForm's 2/6 biorthogonal wavelet.
+
+    The noise gain in each subband is: filter_gain / prescale_divisor.
+
+    CineForm uses a 2/6 biorthogonal wavelet where:
+    - Horizontal lowpass: averages 2 samples → gain 1/sqrt(2)
+    - Horizontal highpass: differences 2 samples → gain sqrt(2)
+    - Vertical uses same filters
+    - LH = lowpass-H × highpass-V → gain √2 × 1 = √2
+    - HL = highpass-H × lowpass-V → gain √2 × 1 = √2
+    - HH = highpass-H × highpass-V → gain 2
+
+    Prescale for 14-bit data: {0, 2, 2} → divides by {1, 4, 4}
+    Level 1 operates on the level 0 lowpass (already 1/2 scale), so
+    the cumulative prescale divisor is: level 0=1, level 1=4, level 2=16.
+
+    subband layout: [0]=LL, [1-3]=L0(LH,HL,HH), [4-6]=L1(LH,HL,HH), [7-9]=L2(LH,HL,HH)
+*/
+const double wavelet_noise_gain[10] = {
+    1.0,            /* LL: not used for noise */
+    1.414,          /* L0 LH: √2 / 1 (no prescale) */
+    1.414,          /* L0 HL: √2 / 1 */
+    2.0,            /* L0 HH: 2 / 1 */
+    0.354,          /* L1 LH: √2 / 4 (prescale=2) */
+    0.354,          /* L1 HL: √2 / 4 */
+    0.500,          /* L1 HH: 2 / 4 */
+    0.088,          /* L2 LH: √2 / 16 (prescale=2+2 cumulative) */
+    0.088,          /* L2 HL: √2 / 16 */
+    0.125           /* L2 HH: 2 / 16 */
+};
+
+void ComputeNoiseAwareQuantTable(double raw_sigma, const int *default_table,
+                                 int *output_table, int table_length,
+                                 double strength)
+{
+    if (raw_sigma <= 0.0 || strength <= 0.0)
+    {
+        memcpy(output_table, default_table, table_length * sizeof(int));
+        return;
+    }
+
+    /* Lowpass band: always keep quant=1 */
+    output_table[0] = default_table[0];
+
+    /* For each highpass subband, compute the noise sigma in that band
+       and set the quant divisor to the larger of default or noise sigma.
+       This ensures noise is quantized away while not degrading the
+       codec's default quality for signal. */
+    for (int i = 1; i < table_length && i < 10; i++)
+    {
+        double band_sigma = raw_sigma * wavelet_noise_gain[i] * strength;
+        int noise_quant = (int)(band_sigma + 0.5);
+        if (noise_quant < 1) noise_quant = 1;
+
+        /* Take the larger of default and noise-based quant.
+           This way noise-aware compression never REDUCES quality
+           below the selected quality preset. */
+        output_table[i] = (noise_quant > default_table[i]) ? noise_quant : default_table[i];
+    }
+
+    /* Copy any remaining entries unchanged */
+    for (int i = 10; i < table_length; i++)
+        output_table[i] = default_table[i];
 }
 
 /* Noise reconstruction now uses shared functions from noise_model.c:

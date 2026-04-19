@@ -1380,6 +1380,84 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 
 	CODEC_STATE *codec = &encoder->codec;
 
+	/* Phase 0.5: Pre-transform noise estimation and adaptive quantization.
+	   Estimate noise from component arrays before the wavelet transform
+	   quantizes them away. Then increase quant divisors to the noise floor
+	   so the codec's own quantization removes noise natively. */
+	if (encoder->denoise_enabled)
+	{
+		for (channel_index = 0; channel_index < channel_count; channel_index++)
+		{
+			const COMPONENT_ARRAY *comp = &image->component_array_list[channel_index];
+			double raw_sigma;
+
+			if (encoder->noise_scale > 0.0)
+			{
+				/* Calibrated: compute sigma from DNG NoiseProfile */
+				/* Compute mean signal level from component array */
+				int count = 0;
+				double sum = 0.0;
+				int step = ((int)comp->width * (int)comp->height > 10000) ?
+				           ((int)comp->width * (int)comp->height / 10000) : 1;
+				int idx = 0;
+				int pitch_elems = (int)(comp->pitch / sizeof(COMPONENT_VALUE));
+				for (int r = 0; r < (int)comp->height; r++)
+				{
+					COMPONENT_VALUE *row = comp->data + r * pitch_elems;
+					for (int c = 0; c < (int)comp->width; c++)
+					{
+						if (idx % step == 0) { sum += (double)row[c]; count++; }
+						idx++;
+					}
+				}
+				double mean = (count > 0) ? sum / count : 0;
+				double variance = encoder->noise_scale * mean + encoder->noise_offset;
+				raw_sigma = (variance > 0.0) ? sqrt(variance) : 0.0;
+			}
+			else
+			{
+				/* Fallback: estimate from pixel differences */
+				raw_sigma = EstimateRawNoiseSigma(comp->data, comp->width,
+				                                   comp->height, comp->pitch);
+			}
+
+			if (raw_sigma > 0.0)
+			{
+				/* Adjust quant tables: increase divisors to noise floor */
+				TRANSFORM *transform = &encoder->transform[channel_index];
+				for (int wl = 0; wl < MAX_WAVELET_COUNT; wl++)
+				{
+					WAVELET *wavelet = transform->wavelet[wl];
+					/* Subbands for this wavelet level: indices 1+wl*3 through 3+wl*3 in the flat table */
+					for (int band = LH_BAND; band <= HH_BAND; band++)
+					{
+						int flat_idx = 1 + wl * 3 + (band - LH_BAND);
+						double gain = (flat_idx < 10) ? wavelet_noise_gain[flat_idx] : 1.0;
+						double band_sigma = raw_sigma * gain * encoder->denoise_strength;
+						int noise_quant = (int)(band_sigma + 0.5);
+						if (noise_quant < 1) noise_quant = 1;
+
+						if (noise_quant > wavelet->quant[band])
+							wavelet->quant[band] = noise_quant;
+					}
+				}
+
+				/* Store the noise sigma for decoder-side reconstruction */
+				encoder->noise_sigma[channel_index] = raw_sigma;
+			}
+		}
+
+		/* Generate seed from first component array */
+		{
+			const COMPONENT_ARRAY *comp0 = &image->component_array_list[0];
+			uint32_t seed = 0x12345678;
+			int pitch_elems = (int)(comp0->pitch / sizeof(COMPONENT_VALUE));
+			for (int i = 0; i < 64 && i < (int)comp0->width; i++)
+				seed ^= (uint32_t)comp0->data[i] * 2654435761u;
+			encoder->noise_seed = seed;
+		}
+	}
+
 	/* Phase 1: Run forward wavelet transforms in parallel (one thread per channel) */
 	{
 		gpr_allocator *allocator = encoder->allocator;
@@ -1435,13 +1513,12 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 		}
 	}
 
-	/* Phase 1.5: Noise separation for entropy reduction.
-	   Subtract estimated noise from wavelet coefficients before encoding.
-	   Store noise model (sigma + seed) so decoder can reconstruct the noise
-	   and add it back, faithfully reproducing the original image. */
-	if (encoder->denoise_enabled)
+	/* Phase 1.5: Post-transform wavelet denoise (only if Phase 0.5 didn't already handle it).
+	   Phase 0.5 adjusts quant tables pre-transform, which is the primary noise removal.
+	   Phase 1.5 is a legacy fallback for when Phase 0.5 couldn't run. */
+	if (encoder->denoise_enabled && encoder->noise_sigma[0] <= 0.0)
 	{
-		/* Generate a deterministic seed from the first channel's lowpass data */
+		/* Phase 0.5 didn't run — fall back to post-transform denoise */
 		WAVELET *w0 = encoder->transform[0].wavelet[0];
 		uint32_t seed = 0x12345678;
 		if (w0->data[LL_BAND] && w0->width > 0 && w0->height > 0)

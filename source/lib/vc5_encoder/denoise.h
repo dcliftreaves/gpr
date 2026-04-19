@@ -27,6 +27,9 @@
 extern "C" {
 #endif
 
+/*! Wavelet filter noise gain per subband (10 entries, indexed by flat subband ID) */
+extern const double wavelet_noise_gain[10];
+
 /*!
     @brief Denoise all highpass bands of one channel's wavelet transform
 
@@ -107,6 +110,58 @@ void SoftThresholdBand(PIXEL *data, DIMENSION width, DIMENSION height,
 */
 void AddNoiseFromModel(PIXEL *data, DIMENSION width, DIMENSION height,
                        DIMENSION pitch, double sigma, uint32_t seed, int band_id);
+
+/*!
+    @brief Noise-aware requantization of wavelet coefficients
+
+    Instead of soft thresholding (binary keep/zero), quantize each
+    coefficient to its noise-aware precision. Coefficients below the
+    noise floor become zero; coefficients above are rounded to the
+    nearest multiple of sigma_noise. This maximizes zero runs (better RLE)
+    while bounding error to the noise floor.
+
+    @param data         Band data (modified in-place)
+    @param width        Band width
+    @param height       Band height
+    @param pitch        Row stride in bytes
+    @param sigma_noise  Noise sigma for this band
+    @param strength     User-controlled strength (0.0-1.0)
+*/
+void NoiseAwareRequantize(PIXEL *data, DIMENSION width, DIMENSION height,
+                          DIMENSION pitch, double sigma_noise, double strength);
+
+/*!
+    @brief Estimate noise sigma from raw pixel data (pre-transform)
+
+    Computes local variance across the image to estimate noise level.
+    Uses the difference between adjacent pixels as a noise proxy,
+    which is robust to image content.
+
+    @param data         Raw pixel data
+    @param width        Image width
+    @param height       Image height
+    @param pitch        Row stride in bytes
+    @return             Estimated noise sigma in pixel units
+*/
+double EstimateRawNoiseSigma(const COMPONENT_VALUE *data, DIMENSION width,
+                             DIMENSION height, size_t pitch);
+
+/*!
+    @brief Compute noise-aware quantization table
+
+    Given a noise sigma in pixel units, computes the noise sigma in each
+    wavelet subband and returns quant divisors that ensure noise is
+    quantized away while preserving all signal above the noise floor.
+
+    @param raw_sigma        Noise sigma from EstimateRawNoiseSigma
+    @param default_table    Default quant table (quality setting)
+    @param output_table     Output table (max of default and noise-based)
+    @param table_length     Number of entries in the table
+    @param strength         User-controlled denoise strength (0.0-1.0)
+*/
+void ComputeNoiseAwareQuantTable(double raw_sigma, const int *default_table,
+                                 int *output_table, int table_length,
+                                 double strength);
 
 /*!
     @brief Apply Generalized Anscombe Transform to a component array in-place
