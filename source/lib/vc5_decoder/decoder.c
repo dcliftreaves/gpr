@@ -1257,6 +1257,11 @@ CODEC_ERROR UpdateCodecState(DECODER *decoder, BITSTREAM *stream, TAGVALUE segme
         case CODEC_TAG_BandCodingMethod:	// 0 = VLC, 1 = ANS
             codec->band.coding_method = (uint_least8_t)value;
             break;
+
+        case CODEC_TAG_FormatVersion:	// GPR format version (0x0200 = v2.0)
+            /* Informational only — the decoder handles features individually
+               via specific tags (BandCodingMethod, etc.) */
+            break;
             
         case CODEC_TAG_LowpassPrecision:	// Number of bits per lowpass coefficient
             if (! (PRECISION_MIN <= value && value <= PRECISION_MAX)) {
