@@ -187,8 +187,16 @@ double DenoiseTransform(TRANSFORM *transform, double strength,
 
     if (global_sigma <= 0.0) return 0.0;
 
-    /* Per-band adaptive thresholding: estimate sigma individually per band
-       for more accurate noise separation. Use global sigma as fallback. */
+    /* BayesShrink: adaptive per-band threshold based on signal content.
+       T = sigma_noise² / sigma_signal, where:
+       - sigma_noise = MAD estimate of noise in this band
+       - sigma_signal = sqrt(max(sigma_band² - sigma_noise², 0))
+
+       This adapts: bands with strong signal get lower T (preserve detail),
+       bands with mostly noise get higher T (remove more).
+
+       Falls back to VisuShrink (T = sigma * sqrt(2*ln(N))) when
+       sigma_signal ≈ 0 (pure noise band). */
     for (int level = 0; level < MAX_WAVELET_COUNT; level++)
     {
         WAVELET *wavelet = transform->wavelet[level];
@@ -197,17 +205,53 @@ double DenoiseTransform(TRANSFORM *transform, double strength,
 
         for (int band = LH_BAND; band <= HH_BAND; band++)
         {
-            /* Estimate per-band sigma using MAD (more accurate than global) */
-            double band_sigma = EstimateNoiseSigma(wavelet->data[band],
-                                                    wavelet->width,
-                                                    wavelet->height,
-                                                    wavelet->pitch);
+            /* Estimate noise sigma using MAD */
+            double sigma_noise = EstimateNoiseSigma(wavelet->data[band],
+                                                     wavelet->width,
+                                                     wavelet->height,
+                                                     wavelet->pitch);
+            if (sigma_noise <= 0.0)
+                sigma_noise = global_sigma * level_scale[level];
 
-            /* Use per-band estimate if reasonable, else fall back to global scaled */
-            if (band_sigma <= 0.0)
-                band_sigma = global_sigma * level_scale[level];
+            /* Compute total band variance (signal + noise) */
+            int pitch_pixels = wavelet->pitch / sizeof(PIXEL);
+            double sum_sq = 0;
+            int sample_count = 0;
+            int step = (N > 10000) ? N / 10000 : 1;
+            int idx = 0;
+            for (int row = 0; row < wavelet->height && sample_count < 10000; row++)
+            {
+                PIXEL *row_ptr = wavelet->data[band] + row * pitch_pixels;
+                for (int col = 0; col < wavelet->width && sample_count < 10000; col++)
+                {
+                    if (idx % step == 0)
+                    {
+                        double v = (double)row_ptr[col];
+                        sum_sq += v * v;
+                        sample_count++;
+                    }
+                    idx++;
+                }
+            }
+            double sigma_band_sq = (sample_count > 0) ? sum_sq / sample_count : 0;
+            double sigma_noise_sq = sigma_noise * sigma_noise;
 
-            double T = band_sigma * sqrt(2.0 * log((double)N)) * strength;
+            /* BayesShrink threshold */
+            double sigma_signal_sq = sigma_band_sq - sigma_noise_sq;
+            double T;
+            if (sigma_signal_sq > sigma_noise_sq * 0.01)
+            {
+                /* Signal present: T = sigma_noise² / sigma_signal */
+                double sigma_signal = sqrt(sigma_signal_sq);
+                T = sigma_noise_sq / sigma_signal;
+            }
+            else
+            {
+                /* Pure noise band: fall back to VisuShrink */
+                T = sigma_noise * sqrt(2.0 * log((double)N));
+            }
+
+            T *= strength;
 
             SoftThresholdBand(wavelet->data[band],
                               wavelet->width, wavelet->height,
