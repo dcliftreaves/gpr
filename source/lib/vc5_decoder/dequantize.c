@@ -38,6 +38,20 @@ static const int midpoint = 0;
 
 CODEC_ERROR DequantizeBandRow16s(PIXEL *input, int width, int quantization, PIXEL *output)
 {
+	/* quantization < 0: ANS raw mode — skip uncompanding, but still apply
+	   dequantization (multiply by abs(quant)). The actual quant is stored
+	   as -quant to signal "skip uncompanding only". */
+	if (quantization < 0) {
+		int q = -quantization;
+		for (int i = 0; i < width; i++) {
+			int32_t v = input[i];
+			if (v > 0) output[i] = v * q;
+			else if (v < 0) output[i] = -((-v) * q);
+			else output[i] = 0;
+		}
+		return CODEC_ERROR_OKAY;
+	}
+
 	int column = 0;
 	const int width_m4 = (width / 4) * 4;
 	const int32x4_t zero = vdupq_n_s32(0);
@@ -102,6 +116,20 @@ CODEC_ERROR DequantizeBandRow16s(PIXEL *input, int width, int quantization, PIXE
 
 CODEC_ERROR DequantizeBandRow16s(PIXEL *input, int width, int quantization, PIXEL *output)
 {
+	/* quantization < 0: ANS raw mode — skip uncompanding, but still apply
+	   dequantization (multiply by abs(quant)). The actual quant is stored
+	   as -quant to signal "skip uncompanding only". */
+	if (quantization < 0) {
+		int q = -quantization;
+		for (int i = 0; i < width; i++) {
+			int32_t v = input[i];
+			if (v > 0) output[i] = v * q;
+			else if (v < 0) output[i] = -((-v) * q);
+			else output[i] = 0;
+		}
+		return CODEC_ERROR_OKAY;
+	}
+
 	int column;
 
 	// Undo quantization in the entire row

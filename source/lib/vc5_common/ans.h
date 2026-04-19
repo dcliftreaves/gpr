@@ -27,12 +27,13 @@ extern "C" {
 
 /*! ANS table size (must be power of 2). Larger = better compression, more memory.
     2048 gives excellent compression with ~8KB tables. */
-#define ANS_TABLE_BITS  11
+#define ANS_TABLE_BITS  12
 #define ANS_TABLE_SIZE  (1 << ANS_TABLE_BITS)
 
 /*! Maximum symbol value for magnitude coding.
-    Magnitudes above this are escaped with a raw binary code. */
-#define ANS_MAX_SYMBOL  256
+    Must be >= 1023 to handle uncompanded wavelet coefficients in raw mode.
+    Magnitudes above this are clipped. */
+#define ANS_MAX_SYMBOL  1024
 
 /*! Number of symbols: 0..ANS_MAX_SYMBOL plus escape */
 #define ANS_NUM_SYMBOLS (ANS_MAX_SYMBOL + 2)

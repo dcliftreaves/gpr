@@ -1857,6 +1857,12 @@ CODEC_ERROR DecodeChannelSubband(DECODER *decoder, BITSTREAM *input, size_t chun
         
         // Save the quantization factor
         wavelet->quant[band] = codec->band.quantization;
+
+        // ANS mode 2: negate quant to skip uncompanding in DequantizeBandRow16s
+        if (codec->band.coding_method == 2) {
+            wavelet->quant[band] = -wavelet->quant[band];
+            codec->band.coding_method = 0;
+        }
     }
     else
     {
@@ -2085,7 +2091,11 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
 
         decoder->allocator->Free(tables_buf);
         decoder->allocator->Free(coded_buf);
-        decoder->codec.band.coding_method = 0;
+
+        /* Don't reset coding_method here for mode 2 — it's needed after quant
+           is set in the caller. Mode 1 can be reset immediately. */
+        if (decoder->codec.band.coding_method == 1)
+            decoder->codec.band.coding_method = 0;
     }
     else
     {

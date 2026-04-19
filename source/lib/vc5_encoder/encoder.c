@@ -2454,18 +2454,20 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
     }
 #endif
     
-	/* ANS is beneficial for ≤14-bit data where the companding maps coefficients
-	   to [0,255] with a skewed distribution. For 16-bit data, the distribution
-	   is flatter and VLC's joint RLV encoding is more efficient. */
-	bool use_ans = encoder->ans_enabled && (encoder->internal_precision <= 14);
-	if (use_ans)
-		PutTagPairOptional(stream, CODEC_TAG_BandCodingMethod, 1);
+	/* ANS mode: 1 = companded (≤14-bit), 2 = raw magnitudes (16-bit).
+	   Mode 2 skips companding and tells the decoder to skip uncompanding
+	   by setting quant=0 (sentinel for "already dequantized"). */
+	int ans_mode = 0;
+	if (encoder->ans_enabled)
+		ans_mode = (encoder->internal_precision <= 14) ? 1 : 2;
+	if (ans_mode > 0)
+		PutTagPairOptional(stream, CODEC_TAG_BandCodingMethod, ans_mode);
 
 	// Output the tag-value pairs for this subband
 	PutVideoSubbandHeader(encoder, subband, quantization, stream);
 
 	// Encode the highpass coefficients for this subband
-	if (use_ans)
+	if (ans_mode > 0)
 	{
 
 		/* Cubic companding table — built once, reused across all bands.
@@ -2489,28 +2491,40 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 		}
 
 		size_t band_elems = (size_t)band_width * band_height;
-		int32_t *companded = (int32_t *)encoder->allocator->Alloc(band_elems * sizeof(int32_t));
-		if (!companded) return CODEC_ERROR_OUTOFMEMORY;
+		int32_t *ans_input;
+		int ans_input_pitch;
+		int ans_input_owned = 0; /* whether we need to free ans_input */
+
+		if (ans_mode == 1)
 		{
+			/* Mode 1: cubic companding to [0,255] */
+			ans_input = (int32_t *)encoder->allocator->Alloc(band_elems * sizeof(int32_t));
+			if (!ans_input) return CODEC_ERROR_OUTOFMEMORY;
+			ans_input_owned = 1;
 			int bp = band_pitch / sizeof(PIXEL);
 			PIXEL *src = (PIXEL *)band_data;
 			for (int r = 0; r < band_height; r++)
-			{
-				for (int c = 0; c < band_width; c++)
-				{
+				for (int c = 0; c < band_width; c++) {
 					int32_t val = src[r * bp + c];
 					int32_t mag = (val < 0) ? -val : val;
 					if (mag > 1023) mag = 1023;
 					int32_t comp = cubic_inv[mag];
-					companded[r * band_width + c] = (val < 0) ? -comp : comp;
+					ans_input[r * band_width + c] = (val < 0) ? -comp : comp;
 				}
-			}
+			ans_input_pitch = band_width * sizeof(int32_t);
+		}
+		else
+		{
+			/* Mode 2: raw magnitudes — encode the quantized coefficients directly.
+			   The decoder sets quant=0 to skip uncompanding+dequantization. */
+			ans_input = (int32_t *)band_data;
+			ans_input_pitch = band_pitch;
 		}
 
 		ANS_BAND_CTX ans_ctx;
 		memset(&ans_ctx, 0, sizeof(ans_ctx));
-		ans_build_tables(&ans_ctx, companded, band_width, band_height,
-		                 band_width * sizeof(int32_t));
+		ans_build_tables(&ans_ctx, ans_input, band_width, band_height,
+		                 ans_input_pitch);
 
 		size_t buf_cap = (size_t)band_width * band_height * 2 + 4096;
 		uint8_t *tables_buf = (uint8_t *)encoder->allocator->Alloc(buf_cap);
@@ -2519,14 +2533,14 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 		if (!tables_buf || !coded_buf) {
 			if (tables_buf) encoder->allocator->Free(tables_buf);
 			if (coded_buf) encoder->allocator->Free(coded_buf);
-			encoder->allocator->Free(companded);
+			if (ans_input_owned) encoder->allocator->Free(ans_input);
 			return CODEC_ERROR_OUTOFMEMORY;
 		}
 
 		int tables_size = ans_serialize_tables(&ans_ctx, tables_buf, buf_cap);
 		int coded_size = ans_encode_band(coded_buf, buf_cap, &ans_ctx,
-		                                 companded, band_width, band_height,
-		                                 band_width * sizeof(int32_t));
+		                                 ans_input, band_width, band_height,
+		                                 ans_input_pitch);
 
 		if (tables_size < 0 || coded_size < 0) {
 			encoder->allocator->Free(tables_buf);
@@ -2544,7 +2558,7 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 
 		encoder->allocator->Free(tables_buf);
 		encoder->allocator->Free(coded_buf);
-		encoder->allocator->Free(companded);
+		if (ans_input_owned) encoder->allocator->Free(ans_input);
 	}
 	else
 	{
