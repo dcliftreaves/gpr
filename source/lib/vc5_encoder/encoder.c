@@ -1392,6 +1392,59 @@ static void ensure_cubic_inv_table(void)
 	g_cubic_inv_ready = 1;
 }
 
+/*! Estimate VLC encoded size in bytes for a band, without actually encoding.
+    Simulates EncodeHighpassBandRowRuns using the codeset's magnitude and run tables. */
+static size_t vlc_estimate_band_size(const ENCODER_CODESET *codeset,
+                                     const PIXEL *data, int width, int height, int pitch_pixels)
+{
+	const MAGS_TABLE *mags_table = codeset->mags_table;
+	const RUNS_TABLE *runs_table = codeset->runs_table;
+	uint32_t runs_table_length = runs_table->length;
+	RLC *rlc = (RLC *)((uint8_t *)runs_table + sizeof(RUNS_TABLE));
+	VLE *mags_entry = (VLE *)((uint8_t *)mags_table + sizeof(MAGS_TABLE));
+	int mags_table_length_m1 = mags_table->length - 1;
+	int row_padding = pitch_pixels - width;
+
+	size_t total_bits = 0;
+	uint32_t run = 0;
+
+	for (int row = 0; row < height; row++)
+	{
+		const PIXEL *rowptr = data + row * pitch_pixels;
+		for (int col = 0; col < width; col++)
+		{
+			if (rowptr[col] == 0) { run++; continue; }
+
+			/* Cost of the accumulated zero run */
+			uint32_t r = run;
+			while (r > 0) {
+				if (r < 12) {
+					total_bits += r; /* r zero bits */
+					r = 0;
+				} else {
+					uint32_t idx = (r < runs_table_length) ? r : runs_table_length - 1;
+					total_bits += rlc[idx].size;
+					r -= rlc[idx].count;
+					r = (r > run) ? 0 : r; /* safety */
+				}
+			}
+			run = 0;
+
+			/* Cost of the magnitude + sign */
+			int mag = abs(rowptr[col]);
+			if (mag > mags_table_length_m1) mag = mags_table_length_m1;
+			total_bits += mags_entry[mag].size; /* includes sign bit */
+		}
+		run += row_padding;
+	}
+
+	/* Trailing run (end of band) — VLC writes a band-end marker */
+	/* The band-end marker is typically ~24 bits in Table17 */
+	total_bits += 24;
+
+	return (total_bits + 7) / 8;
+}
+
 /*! Pre-encode all ANS bands for one channel (runs in a worker thread) */
 static void *AnsPreEncodeThread(void *arg)
 {
@@ -1461,6 +1514,21 @@ static void *AnsPreEncodeThread(void *arg)
 					encoder->preencoded_band[ch][wl][band].coding_method = 1;
 				}
 				free(ans_input);
+			}
+
+			/* Compare ANS size with VLC estimate — use whichever is smaller.
+			   For companded modes (3), compare against VLC on the ORIGINAL
+			   (uncompanded) data since VLC uses its own companding internally. */
+			if (total_size > 0 && encoder->codeset)
+			{
+				int bp = band_pitch / sizeof(PIXEL);
+				size_t vlc_est = vlc_estimate_band_size(encoder->codeset,
+				                                        (const PIXEL *)band_data,
+				                                        band_width, band_height, bp);
+				if (vlc_est < total_size) {
+					/* VLC wins — discard ANS, let Phase 2 use VLC fallback */
+					total_size = 0;
+				}
 			}
 
 			if (total_size > 0) {
@@ -2594,107 +2662,48 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
     }
 #endif
     
-	/* ANS mode selection:
-	   Mode 1: Companded Joint RLV ANS (≤14-bit). Companding clips to [0,255].
-	   Mode 2: Raw Joint RLV ANS (16-bit). Decoder uses negative quant.
-	   Mode 3: Companded 4-way interleaved rANS (≤14-bit). Faster decode.
-	   Mode 4: Raw 4-way interleaved rANS (16-bit). Faster decode. */
+	/* Per-band ANS vs VLC selection:
+	   Check if pre-encoded ANS data exists for this band. If the pre-encode
+	   thread found VLC would be smaller, no pre-encoded data is stored and
+	   we fall through to VLC. The coding method tag is written per-band. */
 	int ans_mode = 0;
 	if (encoder->ans_enabled)
 		ans_mode = (encoder->internal_precision <= 14) ? 3 : 4;
-	if (ans_mode > 0)
+
+	/* Check for pre-encoded ANS data from parallel Phase 1.8 */
+	uint8_t *preenc_data = NULL;
+	size_t preenc_size = 0;
+	if (ans_mode > 0 && channel_number >= 0 && wavelet_index >= 0 &&
+	    channel_number < MAX_CHANNEL_COUNT && wavelet_index < MAX_WAVELET_COUNT &&
+	    band < MAX_BAND_COUNT)
+	{
+		preenc_data = encoder->preencoded_band[channel_number][wavelet_index][band].data;
+		preenc_size = encoder->preencoded_band[channel_number][wavelet_index][band].size;
+	}
+
+	/* Write coding method tag: ANS if pre-encoded data exists, VLC otherwise */
+	if (preenc_data && preenc_size > 0)
 		PutTagPairOptional(stream, CODEC_TAG_BandCodingMethod, ans_mode);
+	/* else: no tag → decoder defaults to VLC (coding_method = 0) */
 
 	// Output the tag-value pairs for this subband
 	PutVideoSubbandHeader(encoder, subband, quantization, stream);
 
 	// Encode the highpass coefficients for this subband
-	if (ans_mode > 0)
+	if (preenc_data && preenc_size > 0)
 	{
-		/* Check for pre-encoded data from parallel Phase 1.8 */
-		uint8_t *preenc_data = NULL;
-		size_t preenc_size = 0;
-		int preenc_method = 0;
+		/* ANS path: write pre-encoded data directly to bitstream */
+		AlignBitsSegment(stream);
+		PutLong(stream, (uint32_t)preenc_size);
+		PutByteArray(stream, preenc_data, preenc_size);
 
-		if (channel_number >= 0 && wavelet_index >= 0 &&
-		    channel_number < MAX_CHANNEL_COUNT && wavelet_index < MAX_WAVELET_COUNT &&
-		    band < MAX_BAND_COUNT)
-		{
-			preenc_data = encoder->preencoded_band[channel_number][wavelet_index][band].data;
-			preenc_size = encoder->preencoded_band[channel_number][wavelet_index][band].size;
-			preenc_method = encoder->preencoded_band[channel_number][wavelet_index][band].coding_method;
-		}
-
-		if (preenc_data && preenc_size > 0)
-		{
-			/* Fast path: write pre-encoded ANS data directly to bitstream.
-			   Both mode 1 and mode 2 now use Joint RLV ANS blob format. */
-			AlignBitsSegment(stream);
-			PutLong(stream, (uint32_t)preenc_size);
-			PutByteArray(stream, preenc_data, preenc_size);
-
-			/* Free pre-encoded buffer */
-			free(preenc_data);
-			encoder->preencoded_band[channel_number][wavelet_index][band].data = NULL;
-			encoder->preencoded_band[channel_number][wavelet_index][band].size = 0;
-		}
-		else
-		{
-			/* Fallback: encode inline using Joint RLV ANS for both modes */
-			ensure_cubic_inv_table();
-			size_t band_elems = (size_t)band_width * band_height;
-			size_t jans_cap = band_elems * 4 + 4096;
-
-			if (ans_mode == 1)
-			{
-				/* Mode 1: cubic companding then jans */
-				int32_t *ans_input = (int32_t *)encoder->allocator->Alloc(band_elems * sizeof(int32_t));
-				if (!ans_input) return CODEC_ERROR_OUTOFMEMORY;
-				int bp = band_pitch / sizeof(PIXEL);
-				PIXEL *src = (PIXEL *)band_data;
-				for (int r = 0; r < band_height; r++)
-					for (int c = 0; c < band_width; c++) {
-						int32_t val = src[r * bp + c];
-						int32_t m = (val < 0) ? -val : val;
-						if (m > 1023) m = 1023;
-						int32_t comp = g_cubic_inv[m];
-						ans_input[r * band_width + c] = (val < 0) ? -comp : comp;
-					}
-				int ans_input_pitch = band_width * sizeof(int32_t);
-				uint8_t *jans_buf = (uint8_t *)encoder->allocator->Alloc(jans_cap);
-				if (jans_buf) {
-					int jans_size = jans_encode_band_x4(jans_buf, jans_cap,
-					                                 ans_input, band_width, band_height,
-					                                 ans_input_pitch);
-					if (jans_size > 0) {
-						AlignBitsSegment(stream);
-						PutLong(stream, (uint32_t)jans_size);
-						PutByteArray(stream, jans_buf, (size_t)jans_size);
-					}
-					encoder->allocator->Free(jans_buf);
-				}
-				encoder->allocator->Free(ans_input);
-			}
-			else
-			{
-				/* Mode 2: raw coefficients + jans */
-				uint8_t *jans_buf = (uint8_t *)encoder->allocator->Alloc(jans_cap);
-				if (!jans_buf) return CODEC_ERROR_OUTOFMEMORY;
-				int jans_size = jans_encode_band_x4(jans_buf, jans_cap,
-				                                 (const int32_t *)band_data,
-				                                 band_width, band_height, band_pitch);
-				if (jans_size > 0) {
-					AlignBitsSegment(stream);
-					PutLong(stream, (uint32_t)jans_size);
-					PutByteArray(stream, jans_buf, (size_t)jans_size);
-				}
-				encoder->allocator->Free(jans_buf);
-			}
-		}
+		free(preenc_data);
+		encoder->preencoded_band[channel_number][wavelet_index][band].data = NULL;
+		encoder->preencoded_band[channel_number][wavelet_index][band].size = 0;
 	}
 	else
 	{
-		// Legacy VLC run-length coding path
+		/* VLC path: either ANS not enabled, or Phase 1.8 chose VLC for this band */
 		error = EncodeHighpassBandRowRuns(stream, codeset, band_data, band_width, band_height, band_pitch);
 		if (error != CODEC_ERROR_OKAY) {
 			return error;
