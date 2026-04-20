@@ -14,8 +14,9 @@
    Class 1: run=1 (0 bits)      Class 5: run=8-15 (3 bits)
    Class 2: run=2 (0 bits)      Class 6: run=16-31 (4 bits)
    Class 3: run=3 (0 bits)      Class 7: run=32-287 (8 bits) */
-static const int run_class_min[JANS_RUN_CLASSES] = {0, 1, 2, 3, 4, 8, 16, 32};
-static const int run_class_bits[JANS_RUN_CLASSES] = {0, 0, 0, 0, 2, 3, 4, 8};
+/* Contiguous exponentially spaced run classes — no gaps */
+static const int run_class_min[JANS_RUN_CLASSES] = {0, 1, 2, 3, 4,  8, 16, 32,  64,  128};
+static const int run_class_bits[JANS_RUN_CLASSES] = {0, 0, 0, 0, 2,  3,  4,  5,   6,    7};
 
 static int run_to_class(int run, int *residual) {
     for (int c = JANS_RUN_CLASSES - 1; c >= 0; c--) {
@@ -187,13 +188,13 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
             int32_t mag = (val < 0) ? -val : val;
 
             /* Emit long runs as run-only tokens (mag_class=0) */
-            while (run >= 288) {
-                int rr; int rc = run_to_class(287, &rr);
+            while (run >= 256) {
+                int rr; int rc = run_to_class(255, &rr);
                 int sym = rc * JANS_MAG_CLASSES + 0;
                 table.freq[sym]++;
                 tokens[token_count++] = (uint16_t)sym;
                 bitbuf_write(&bb, rr, run_class_bits[rc]);
-                run -= 287;
+                run -= 255;
             }
 
             int run_resid, mag_resid;
@@ -215,7 +216,7 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
         /* Trailing zeros: run-only token */
         if (run > 0) {
             while (run > 0) {
-                int actual = (run > 287) ? 287 : run;
+                int actual = (run > 255) ? 255 : run;
                 int rr; int rc = run_to_class(actual, &rr);
                 int sym = rc * JANS_MAG_CLASSES + 0;
                 table.freq[sym]++;

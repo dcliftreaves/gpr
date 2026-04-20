@@ -21,8 +21,8 @@
 extern "C" {
 #endif
 
-/* Run classes: 0-3 direct, 4-7 use 1-4 extra bits */
-#define JANS_RUN_CLASSES 8
+/* Run classes: 0-3 direct, 4-9 use exponentially increasing extra bits */
+#define JANS_RUN_CLASSES 10
 /* Mag classes: 0-7 direct, 8-15 use 1-8 extra bits */
 #define JANS_MAG_CLASSES 16
 /* Total joint symbols: run_class × mag_class */
