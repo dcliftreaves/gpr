@@ -54,6 +54,23 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
 int jans_decode_band(const uint8_t *in_buf, size_t in_size,
                      int32_t *data, int width, int height, int pitch);
 
+/*!
+    @brief Encode using 4-way interleaved rANS for parallel decode.
+    Same blob format header but rANS data uses 4 interleaved states.
+    Bitwise identical compression to jans_encode_band.
+
+    @return Number of bytes written, or -1 on error.
+*/
+int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
+                        const int32_t *data, int width, int height, int pitch);
+
+/*!
+    @brief Decode 4-way interleaved rANS band.
+    @return 0 on success, -1 on error.
+*/
+int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
+                        int32_t *data, int width, int height, int pitch);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1853,8 +1853,8 @@ CODEC_ERROR DecodeChannelSubband(DECODER *decoder, BITSTREAM *input, size_t chun
         // Save the quantization factor
         wavelet->quant[band] = codec->band.quantization;
 
-        // ANS mode 2: negate quant to skip uncompanding in DequantizeBandRow16s
-        if (codec->band.coding_method == 2) {
+        // ANS mode 2/4: negate quant to skip uncompanding in DequantizeBandRow16s
+        if (codec->band.coding_method == 2 || codec->band.coding_method == 4) {
             wavelet->quant[band] = -wavelet->quant[band];
             codec->band.coding_method = 0;
         }
@@ -2066,24 +2066,32 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
     if (decoder->codec.band.coding_method >= 1)
     {
         {
-            /* Both mode 1 and mode 2 use Joint RLV ANS blob format.
-               Mode 1: decoded values are companded [0,255], uncompanded by dequantizer.
-               Mode 2: decoded values are raw magnitudes, dequantizer skips uncompanding. */
+            /* All ANS modes use Joint RLV blob format.
+               Mode 1/3: companded [0,255], uncompanded by dequantizer.
+               Mode 2/4: raw magnitudes, dequantizer skips uncompanding.
+               Mode 3/4: 4-way interleaved rANS (faster decode). */
             AlignBitsSegment(stream);
             uint32_t jans_size = GetBits(stream, 32);
             uint8_t *jans_buf = (uint8_t *)decoder->allocator->Alloc(jans_size);
             GetByteArray(stream, jans_buf, jans_size);
 
-            int rc = jans_decode_band(jans_buf, jans_size,
+            int rc;
+            int cm = decoder->codec.band.coding_method;
+            if (cm >= 3)
+                rc = jans_decode_band_x4(jans_buf, jans_size,
+                                         (int32_t *)wavelet->data[band],
+                                         width, height, wavelet->pitch);
+            else
+                rc = jans_decode_band(jans_buf, jans_size,
                                       (int32_t *)wavelet->data[band],
                                       width, height, wavelet->pitch);
             error = (rc == 0) ? CODEC_ERROR_OKAY : CODEC_ERROR_DECODING_SUBBAND;
             decoder->allocator->Free(jans_buf);
         }
 
-        /* Don't reset coding_method here for mode 2 — it's needed after quant
-           is set in the caller. Mode 1 can be reset immediately. */
-        if (decoder->codec.band.coding_method == 1)
+        /* Mode 2/4 need coding_method preserved for quant negation in caller.
+           Mode 1/3 (companded) can be reset immediately. */
+        if (decoder->codec.band.coding_method == 1 || decoder->codec.band.coding_method == 3)
             decoder->codec.band.coding_method = 0;
     }
     else

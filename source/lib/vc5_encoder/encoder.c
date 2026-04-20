@@ -1401,7 +1401,7 @@ static void *AnsPreEncodeThread(void *arg)
 	TRANSFORM *transform = &encoder->transform[ch];
 	int wavelet_count = encoder->wavelet_count;
 	int last_wavelet_index = wavelet_count - 1;
-	int ans_mode = (encoder->internal_precision <= 14) ? 1 : 2;
+	int ans_mode = (encoder->internal_precision <= 14) ? 3 : 4;
 
 	for (int wl = last_wavelet_index; wl >= 0; wl--)
 	{
@@ -1424,7 +1424,7 @@ static void *AnsPreEncodeThread(void *arg)
 			if (ans_mode == 2)
 			{
 				/* Mode 2: Joint RLV ANS — single blob */
-				int jans_size = jans_encode_band(out_buf, buf_cap,
+				int jans_size = jans_encode_band_x4(out_buf, buf_cap,
 				                                 (const int32_t *)band_data,
 				                                 band_width, band_height, band_pitch);
 				if (jans_size > 0) {
@@ -1453,7 +1453,7 @@ static void *AnsPreEncodeThread(void *arg)
 					}
 
 				int ans_input_pitch = band_width * sizeof(int32_t);
-				int jans_size = jans_encode_band(out_buf, buf_cap,
+				int jans_size = jans_encode_band_x4(out_buf, buf_cap,
 				                                 ans_input, band_width, band_height,
 				                                 ans_input_pitch);
 				if (jans_size > 0) {
@@ -2594,17 +2594,14 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
     }
 #endif
     
-	/* ANS mode: 1 = companded (≤14-bit), 2 = raw magnitudes (16-bit).
-	   Mode 2 skips companding and tells the decoder to skip uncompanding
-	   by setting quant=0 (sentinel for "already dequantized"). */
 	/* ANS mode selection:
-	   Mode 1: Standard ANS with companding (≤14-bit). Companding clips
-	           coefficients to [0,255] which prevents reconstruction overflow.
-	   Mode 2: Joint RLV ANS without companding (16-bit / >14-bit internal).
-	           Raw coefficients; decoder uses negative quant to skip uncompanding. */
+	   Mode 1: Companded Joint RLV ANS (≤14-bit). Companding clips to [0,255].
+	   Mode 2: Raw Joint RLV ANS (16-bit). Decoder uses negative quant.
+	   Mode 3: Companded 4-way interleaved rANS (≤14-bit). Faster decode.
+	   Mode 4: Raw 4-way interleaved rANS (16-bit). Faster decode. */
 	int ans_mode = 0;
 	if (encoder->ans_enabled)
-		ans_mode = (encoder->internal_precision <= 14) ? 1 : 2;
+		ans_mode = (encoder->internal_precision <= 14) ? 3 : 4;
 	if (ans_mode > 0)
 		PutTagPairOptional(stream, CODEC_TAG_BandCodingMethod, ans_mode);
 
@@ -2666,7 +2663,7 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 				int ans_input_pitch = band_width * sizeof(int32_t);
 				uint8_t *jans_buf = (uint8_t *)encoder->allocator->Alloc(jans_cap);
 				if (jans_buf) {
-					int jans_size = jans_encode_band(jans_buf, jans_cap,
+					int jans_size = jans_encode_band_x4(jans_buf, jans_cap,
 					                                 ans_input, band_width, band_height,
 					                                 ans_input_pitch);
 					if (jans_size > 0) {
@@ -2683,7 +2680,7 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 				/* Mode 2: raw coefficients + jans */
 				uint8_t *jans_buf = (uint8_t *)encoder->allocator->Alloc(jans_cap);
 				if (!jans_buf) return CODEC_ERROR_OUTOFMEMORY;
-				int jans_size = jans_encode_band(jans_buf, jans_cap,
+				int jans_size = jans_encode_band_x4(jans_buf, jans_cap,
 				                                 (const int32_t *)band_data,
 				                                 band_width, band_height, band_pitch);
 				if (jans_size > 0) {

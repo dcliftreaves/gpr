@@ -391,3 +391,211 @@ int jans_decode_band(const uint8_t *in_buf, size_t in_size,
 
     return 0;
 }
+
+/* ================================================================
+   4-way interleaved rANS encode/decode
+   ================================================================ */
+
+#define JANS_INTERLEAVE 4
+
+int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
+                        const int32_t *data, int width, int height, int pitch) {
+    int pitch_elems = pitch / sizeof(int32_t);
+    size_t pixels = (size_t)width * (size_t)height;
+    if (pixels > (size_t)(INT32_MAX / 2)) return -1;
+
+    size_t max_tokens = pixels + height + 16;
+    uint16_t *tokens = (uint16_t *)malloc(max_tokens * sizeof(uint16_t));
+    if (!tokens) return -1;
+
+    size_t resid_cap = pixels * 2;
+    uint8_t *resid_buf = (uint8_t *)malloc(resid_cap);
+    if (!resid_buf) { free(tokens); return -1; }
+
+    BITBUF bb;
+    bitbuf_init(&bb, resid_buf, resid_cap);
+
+    JANS_TABLE table;
+    memset(&table, 0, sizeof(table));
+    int token_count = 0;
+
+    for (int row = 0; row < height; row++) {
+        const int32_t *rowptr = data + row * pitch_elems;
+        int run = 0;
+        for (int col = 0; col < width; col++) {
+            int32_t val = rowptr[col];
+            if (val == 0) { run++; continue; }
+            int32_t mag = (val < 0) ? -val : val;
+            while (run >= 256) {
+                int rr; int rc = run_to_class(255, &rr);
+                int sym = rc * JANS_MAG_CLASSES + 0;
+                table.freq[sym]++;
+                tokens[token_count++] = (uint16_t)sym;
+                bitbuf_write(&bb, rr, run_class_bits[rc]);
+                run -= 255;
+            }
+            int run_resid, mag_resid;
+            int rc = run_to_class(run, &run_resid);
+            int mc = mag_to_class(mag, &mag_resid);
+            int sym = rc * JANS_MAG_CLASSES + mc;
+            table.freq[sym]++;
+            tokens[token_count++] = (uint16_t)sym;
+            bitbuf_write(&bb, run_resid, run_class_bits[rc]);
+            bitbuf_write(&bb, mag_resid, mag_class_bits[mc]);
+            if (mc > 0) bitbuf_write(&bb, (val < 0) ? 1 : 0, 1);
+            run = 0;
+        }
+        if (run > 0) {
+            while (run > 0) {
+                int actual = (run > 255) ? 255 : run;
+                int rr; int rc = run_to_class(actual, &rr);
+                int sym = rc * JANS_MAG_CLASSES + 0;
+                table.freq[sym]++;
+                tokens[token_count++] = (uint16_t)sym;
+                bitbuf_write(&bb, rr, run_class_bits[rc]);
+                run -= actual;
+            }
+        }
+    }
+
+    size_t resid_size = bitbuf_size(&bb);
+    normalize_freq(table.freq, JANS_NUM_SYMBOLS);
+    build_tables(&table, JANS_NUM_SYMBOLS);
+
+    /* 4-way interleaved rANS encode */
+    size_t rans_cap = pixels * 2 + 4096;
+    uint8_t *rans_buf = (uint8_t *)malloc(rans_cap);
+    if (!rans_buf) { free(tokens); free(resid_buf); return -1; }
+
+    uint8_t *rans_ptr = rans_buf;
+    uint32_t states[JANS_INTERLEAVE];
+    for (int s = 0; s < JANS_INTERLEAVE; s++) states[s] = RANS_BYTE_L;
+
+    for (int i = token_count - 1; i >= 0; i--) {
+        int s = i % JANS_INTERLEAVE;
+        int sym = tokens[i];
+        rans_enc_put(&states[s], &rans_ptr,
+                     table.cum_freq[sym], table.freq[sym]);
+    }
+
+    /* Flush 4 states (state 3 first, state 0 last → read state 0 first) */
+    for (int s = JANS_INTERLEAVE - 1; s >= 0; s--) {
+        *rans_ptr++ = (uint8_t)(states[s] >> 0);
+        *rans_ptr++ = (uint8_t)(states[s] >> 8);
+        *rans_ptr++ = (uint8_t)(states[s] >> 16);
+        *rans_ptr++ = (uint8_t)(states[s] >> 24);
+    }
+
+    size_t rans_size = rans_ptr - rans_buf;
+
+    for (size_t i = 0; i < rans_size / 2; i++) {
+        uint8_t t = rans_buf[i]; rans_buf[i] = rans_buf[rans_size-1-i];
+        rans_buf[rans_size-1-i] = t;
+    }
+
+    free(tokens);
+
+    uint8_t freq_buf[JANS_NUM_SYMBOLS * 2];
+    for (int i = 0; i < JANS_NUM_SYMBOLS; i++) {
+        freq_buf[i*2] = (uint8_t)(table.freq[i] >> 8);
+        freq_buf[i*2+1] = (uint8_t)(table.freq[i]);
+    }
+    int freq_size = JANS_NUM_SYMBOLS * 2;
+
+    size_t total = 16 + freq_size + rans_size + resid_size;
+    if (total > out_capacity) { free(rans_buf); free(resid_buf); return -1; }
+
+    uint8_t *op = out_buf;
+    *op++ = (token_count>>24)&0xFF; *op++ = (token_count>>16)&0xFF;
+    *op++ = (token_count>>8)&0xFF;  *op++ = token_count&0xFF;
+    *op++ = (freq_size>>24)&0xFF;   *op++ = (freq_size>>16)&0xFF;
+    *op++ = (freq_size>>8)&0xFF;    *op++ = freq_size&0xFF;
+    *op++ = (rans_size>>24)&0xFF;   *op++ = (rans_size>>16)&0xFF;
+    *op++ = (rans_size>>8)&0xFF;    *op++ = rans_size&0xFF;
+    *op++ = (resid_size>>24)&0xFF;  *op++ = (resid_size>>16)&0xFF;
+    *op++ = (resid_size>>8)&0xFF;   *op++ = resid_size&0xFF;
+    memcpy(op, freq_buf, freq_size); op += freq_size;
+    memcpy(op, rans_buf, rans_size); op += rans_size;
+    memcpy(op, resid_buf, resid_size);
+
+    free(rans_buf);
+    free(resid_buf);
+    return (int)total;
+}
+
+int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
+                        int32_t *data, int width, int height, int pitch) {
+    if (in_size < 16) return -1;
+    int pitch_elems = pitch / sizeof(int32_t);
+
+    const uint8_t *p = in_buf;
+    int token_count = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
+    int freq_size   = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
+    int rans_size   = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
+    int resid_size  = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
+
+    if (token_count < 0 || freq_size < 0 || rans_size < (int)(4*JANS_INTERLEAVE) || resid_size < 0) return -1;
+    if ((size_t)16 + (size_t)freq_size + (size_t)rans_size + (size_t)resid_size > in_size) return -1;
+    if (freq_size < JANS_NUM_SYMBOLS * 2) return -1;
+
+    const uint8_t *freq_data = p; p += freq_size;
+    JANS_TABLE table;
+    memset(&table, 0, sizeof(table));
+    for (int i = 0; i < JANS_NUM_SYMBOLS && i*2+1 < freq_size; i++)
+        table.freq[i] = ((uint16_t)freq_data[i*2] << 8) | freq_data[i*2+1];
+    normalize_freq(table.freq, JANS_NUM_SYMBOLS);
+    build_tables(&table, JANS_NUM_SYMBOLS);
+
+    const uint8_t *rans_data = p; p += rans_size;
+    const uint8_t *rans_end = rans_data + rans_size;
+    const uint8_t *resid_data = p;
+
+    /* Initialize 4 states */
+    uint32_t states[JANS_INTERLEAVE];
+    const uint8_t *rptr = rans_data;
+    for (int s = 0; s < JANS_INTERLEAVE; s++) {
+        states[s] = ((uint32_t)rptr[0]<<24) | ((uint32_t)rptr[1]<<16) |
+                    ((uint32_t)rptr[2]<<8)  | (uint32_t)rptr[3];
+        rptr += 4;
+    }
+
+    for (int row = 0; row < height; row++)
+        memset(data + row * pitch_elems, 0, width * sizeof(int32_t));
+
+    size_t resid_byte = 0;
+    int resid_bit = 0;
+    int row = 0, col = 0;
+
+    for (int t = 0; t < token_count && row < height; t++) {
+        int s = t % JANS_INTERLEAVE;
+
+        uint32_t slot = states[s] & (JANS_TABLE_SIZE - 1);
+        int sym = table.decode_sym[slot];
+        uint16_t freq = table.freq[sym];
+        states[s] = freq * (states[s] >> JANS_TABLE_BITS) + slot - table.cum_freq[sym];
+        if (rans_dec_renorm(&states[s], &rptr, rans_end) != 0) return -1;
+
+        int rc = sym / JANS_MAG_CLASSES;
+        int mc = sym % JANS_MAG_CLASSES;
+
+        int run_resid = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
+                                    run_class_bits[rc]);
+        int run = class_to_run(rc, run_resid);
+
+        col += run;
+        while (col >= width) { col -= width; row++; }
+
+        if (mc > 0 && row < height) {
+            int mag_resid = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
+                                        mag_class_bits[mc]);
+            int mag = class_to_mag(mc, mag_resid);
+            int sign = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit, 1);
+            if (col < width)
+                data[row * pitch_elems + col] = sign ? -mag : mag;
+            col++;
+            if (col >= width) { row++; col = 0; }
+        }
+    }
+
+    return 0;
+}
