@@ -29,6 +29,9 @@
 #include "gpr_allocator.h"
 #include "gpr_buffer.h"
 #include "gpr_rgb_buffer.h"
+/* noise_model.h is included here because fpn_model is embedded in gpr_parameters.
+   This exposes internal types to API consumers — a future version should use an
+   opaque pointer instead. See docs/future-ideas.md. */
 #include "noise_model.h"
 
 #ifdef __cplusplus
