@@ -1,0 +1,7 @@
+data/test_sets/smoke/nikon/*.DNG
+data/test_sets/smoke/hasselblad/*.DNG
+data/test_sets/smoke/hero10/*.GPR
+data/test_sets/medium/hasselblad/*.DNG
+data/test_sets/medium/hero10_dark/*.GPR
+data/test_sets/corner_cases/**/*.GPR
+!data/test_sets/*/gopro/*.GPR
