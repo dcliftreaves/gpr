@@ -602,9 +602,15 @@ CODEC_ERROR ReleaseEncoder(ENCODER *encoder)
 		for (channel = 0; channel < MAX_CHANNEL_COUNT; channel++)
 		{
 			ReleaseTransform(allocator, &encoder->transform[channel]);
-		}
 
-		//TODO: Free the encoding buffers
+			// Free any leftover pre-encoded ANS buffers
+			for (int wl = 0; wl < MAX_WAVELET_COUNT; wl++)
+				for (int b = 0; b < MAX_BAND_COUNT; b++)
+					if (encoder->preencoded_band[channel][wl][b].data) {
+						free(encoder->preencoded_band[channel][wl][b].data);
+						encoder->preencoded_band[channel][wl][b].data = NULL;
+					}
+		}
 	}
 
 	return CODEC_ERROR_OKAY;
@@ -1360,6 +1366,137 @@ static void *ForwardTransformThread(void *arg)
 	return NULL;
 }
 
+/*! Thread argument for parallel ANS pre-encoding */
+typedef struct {
+	ENCODER *encoder;
+	int channel_index;
+} ANS_PREENC_THREAD_ARG;
+
+/*! Cubic companding table — built once, shared across threads */
+static int16_t g_cubic_inv[1024];
+static int g_cubic_inv_ready = 0;
+
+static void ensure_cubic_inv_table(void)
+{
+	if (g_cubic_inv_ready) return;
+	memset(g_cubic_inv, 0, sizeof(g_cubic_inv));
+	for (int i = 1; i <= 255; i++) {
+		double cubic = (double)i * i * i * 768.0 / (255.0 * 255.0 * 255.0);
+		int mag = i + (int)cubic;
+		if (mag > 1023) mag = 1023;
+		g_cubic_inv[mag] = (int16_t)i;
+	}
+	int16_t last = 0;
+	for (int i = 0; i < 1024; i++) {
+		if (g_cubic_inv[i]) last = g_cubic_inv[i];
+		else g_cubic_inv[i] = last;
+	}
+	g_cubic_inv_ready = 1;
+}
+
+/*! Pre-encode all ANS bands for one channel (runs in a worker thread) */
+static void *AnsPreEncodeThread(void *arg)
+{
+	ANS_PREENC_THREAD_ARG *a = (ANS_PREENC_THREAD_ARG *)arg;
+	ENCODER *encoder = a->encoder;
+	int ch = a->channel_index;
+	TRANSFORM *transform = &encoder->transform[ch];
+	int wavelet_count = encoder->wavelet_count;
+	int last_wavelet_index = wavelet_count - 1;
+	int ans_mode = (encoder->internal_precision <= 14) ? 1 : 2;
+
+	for (int wl = last_wavelet_index; wl >= 0; wl--)
+	{
+		WAVELET *wavelet = transform->wavelet[wl];
+		for (int band = 1; band < wavelet->band_count; band++)
+		{
+			DIMENSION band_width = wavelet->width;
+			DIMENSION band_height = wavelet->height;
+			DIMENSION band_pitch = wavelet->pitch;
+			void *band_data = wavelet->data[band];
+			size_t band_elems = (size_t)band_width * band_height;
+
+			/* Allocate output buffer for pre-encoded data */
+			size_t buf_cap = band_elems * 4 + 8192;
+			uint8_t *out_buf = (uint8_t *)malloc(buf_cap);
+			if (!out_buf) continue;
+
+			size_t total_size = 0;
+
+			if (ans_mode == 2)
+			{
+				/* Mode 2: Joint RLV ANS — single blob */
+				int jans_size = jans_encode_band(out_buf, buf_cap,
+				                                 (const int32_t *)band_data,
+				                                 band_width, band_height, band_pitch);
+				if (jans_size > 0) {
+					total_size = (size_t)jans_size;
+					encoder->preencoded_band[ch][wl][band].coding_method = 2;
+				}
+			}
+			else
+			{
+				/* Mode 1: Cubic companding + separate tables/coded */
+				int32_t *ans_input = (int32_t *)malloc(band_elems * sizeof(int32_t));
+				if (!ans_input) { free(out_buf); continue; }
+
+				int bp = band_pitch / sizeof(PIXEL);
+				PIXEL *src = (PIXEL *)band_data;
+				for (int r = 0; r < band_height; r++)
+					for (int c = 0; c < band_width; c++) {
+						int32_t val = src[r * bp + c];
+						int32_t m = (val < 0) ? -val : val;
+						if (m > 1023) m = 1023;
+						int32_t comp = g_cubic_inv[m];
+						ans_input[r * band_width + c] = (val < 0) ? -comp : comp;
+					}
+
+				int ans_input_pitch = band_width * sizeof(int32_t);
+				ANS_BAND_CTX ans_ctx;
+				memset(&ans_ctx, 0, sizeof(ans_ctx));
+				ans_build_tables(&ans_ctx, ans_input, band_width, band_height, ans_input_pitch);
+
+				/* Pack: [tables_size:4][tables][coded_size:4][coded] */
+				uint8_t *p = out_buf;
+				size_t remain = buf_cap;
+
+				uint8_t *tables_buf = p + 4; /* skip size field */
+				int tables_size = ans_serialize_tables(&ans_ctx, tables_buf, remain - 4);
+				if (tables_size > 0) {
+					p[0] = (tables_size >> 24) & 0xFF;
+					p[1] = (tables_size >> 16) & 0xFF;
+					p[2] = (tables_size >> 8)  & 0xFF;
+					p[3] =  tables_size        & 0xFF;
+					p += 4 + tables_size;
+					remain -= 4 + tables_size;
+
+					uint8_t *coded_buf = p + 4;
+					int coded_size = ans_encode_band(coded_buf, remain - 4, &ans_ctx,
+					                                 ans_input, band_width, band_height,
+					                                 ans_input_pitch);
+					if (coded_size > 0) {
+						p[0] = (coded_size >> 24) & 0xFF;
+						p[1] = (coded_size >> 16) & 0xFF;
+						p[2] = (coded_size >> 8)  & 0xFF;
+						p[3] =  coded_size        & 0xFF;
+						total_size = (4 + tables_size) + (4 + coded_size);
+						encoder->preencoded_band[ch][wl][band].coding_method = 1;
+					}
+				}
+				free(ans_input);
+			}
+
+			if (total_size > 0) {
+				encoder->preencoded_band[ch][wl][band].data = out_buf;
+				encoder->preencoded_band[ch][wl][band].size = total_size;
+			} else {
+				free(out_buf);
+			}
+		}
+	}
+	return NULL;
+}
+
 /*!
 	@brief Encode the portion of a sample that corresponds to a single layer
 */
@@ -1545,6 +1682,38 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 				encoder->denoise_strength,
 				encoder->noise_scale,
 				encoder->noise_offset);
+		}
+	}
+
+	/* Phase 1.8: Pre-encode ANS bands in parallel (one thread per channel).
+	   This moves the expensive ANS table building and encoding off the serial
+	   bitstream path. Phase 2 then just copies the pre-encoded blobs. */
+	if (encoder->ans_enabled)
+	{
+		ensure_cubic_inv_table();
+
+		/* Clear pre-encoded storage */
+		memset(encoder->preencoded_band, 0, sizeof(encoder->preencoded_band));
+
+		ANS_PREENC_THREAD_ARG ans_args[MAX_CHANNEL_COUNT];
+		pthread_t ans_threads[MAX_CHANNEL_COUNT];
+		int ans_thread_ok[MAX_CHANNEL_COUNT];
+
+		for (channel_index = 0; channel_index < channel_count; channel_index++)
+		{
+			ans_args[channel_index].encoder = encoder;
+			ans_args[channel_index].channel_index = channel_index;
+			ans_thread_ok[channel_index] = (pthread_create(&ans_threads[channel_index], NULL,
+			                                                AnsPreEncodeThread,
+			                                                &ans_args[channel_index]) == 0);
+			if (!ans_thread_ok[channel_index])
+				AnsPreEncodeThread(&ans_args[channel_index]);
+		}
+
+		for (channel_index = 0; channel_index < channel_count; channel_index++)
+		{
+			if (ans_thread_ok[channel_index])
+				pthread_join(ans_threads[channel_index], NULL);
 		}
 	}
 
@@ -1813,11 +1982,11 @@ CODEC_ERROR EncodeChannelSubbands(ENCODER *encoder, int channel_number, BITSTREA
 		// Encode the highpass bands in this wavelet
 		for (band_index = 1; band_index < wavelet->band_count; band_index++)
 		{
-			error = EncodeHighpassBand(encoder, wavelet, band_index, subband, stream);
+			error = EncodeHighpassBand(encoder, wavelet, band_index, subband, stream, channel_number, wavelet_index);
 			if (error != CODEC_ERROR_OKAY) {
 				return error;
 			}
-            
+
 			// Advance to the next subband
 			subband++;
 		}
@@ -2419,7 +2588,7 @@ CODEC_ERROR PutVideoSubbandHeader(ENCODER *encoder, int subband_number, QUANT qu
 	using the codebook and encoding method specified in the
 	bitstream.
 */
-CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int subband, BITSTREAM *stream)
+CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int subband, BITSTREAM *stream, int channel_number, int wavelet_index)
 {
 	CODEC_ERROR error = CODEC_ERROR_OKAY;
 	CODEC_STATE *codec = &encoder->codec;
@@ -2431,14 +2600,8 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 	DIMENSION band_pitch = wavelet->pitch;
 
 	QUANT quantization = wavelet->quant[band];
-	//uint16_t scale = wavelet->scale[band];
-
-	//int divisor = 0;
-	//int peaks_coding = 0;
 
 	ENCODER_CODESET *codeset = encoder->codeset;
-
-	//int encoding_method = BAND_ENCODING_RUNLENGTHS;
 
 	// Check that the band header starts on a tag boundary
 	assert(IsAlignedTag(stream));
@@ -2474,113 +2637,114 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 	// Encode the highpass coefficients for this subband
 	if (ans_mode > 0)
 	{
+		/* Check for pre-encoded data from parallel Phase 1.8 */
+		uint8_t *preenc_data = NULL;
+		size_t preenc_size = 0;
+		int preenc_method = 0;
 
-		/* Cubic companding table — built once, reused across all bands.
-		   Maps quantized magnitudes [0,1023] → companded [0,255]. */
-		static int16_t cubic_inv[1024];
-		static int cubic_inv_ready = 0;
-		if (!cubic_inv_ready) {
-			memset(cubic_inv, 0, sizeof(cubic_inv));
-			for (int i = 1; i <= 255; i++) {
-				double cubic = (double)i * i * i * 768.0 / (255.0 * 255.0 * 255.0);
-				int mag = i + (int)cubic;
-				if (mag > 1023) mag = 1023;
-				cubic_inv[mag] = (int16_t)i;
-			}
-			int16_t last = 0;
-			for (int i = 0; i < 1024; i++) {
-				if (cubic_inv[i]) last = cubic_inv[i];
-				else cubic_inv[i] = last;
-			}
-			cubic_inv_ready = 1;
+		if (channel_number >= 0 && wavelet_index >= 0 &&
+		    channel_number < MAX_CHANNEL_COUNT && wavelet_index < MAX_WAVELET_COUNT &&
+		    band < MAX_BAND_COUNT)
+		{
+			preenc_data = encoder->preencoded_band[channel_number][wavelet_index][band].data;
+			preenc_size = encoder->preencoded_band[channel_number][wavelet_index][band].size;
+			preenc_method = encoder->preencoded_band[channel_number][wavelet_index][band].coding_method;
 		}
 
-		size_t band_elems = (size_t)band_width * band_height;
-		int32_t *ans_input;
-		int ans_input_pitch;
-		int ans_input_owned = 0; /* whether we need to free ans_input */
-
-		if (ans_mode == 1)
+		if (preenc_data && preenc_size > 0)
 		{
-			/* Mode 1: cubic companding to [0,255] */
-			ans_input = (int32_t *)encoder->allocator->Alloc(band_elems * sizeof(int32_t));
-			if (!ans_input) return CODEC_ERROR_OUTOFMEMORY;
-			ans_input_owned = 1;
-			int bp = band_pitch / sizeof(PIXEL);
-			PIXEL *src = (PIXEL *)band_data;
-			for (int r = 0; r < band_height; r++)
-				for (int c = 0; c < band_width; c++) {
-					int32_t val = src[r * bp + c];
-					int32_t mag = (val < 0) ? -val : val;
-					if (mag > 1023) mag = 1023;
-					int32_t comp = cubic_inv[mag];
-					ans_input[r * band_width + c] = (val < 0) ? -comp : comp;
-				}
-			ans_input_pitch = band_width * sizeof(int32_t);
+			/* Fast path: write pre-encoded ANS data directly to bitstream */
+			if (preenc_method == 2)
+			{
+				/* Mode 2 (Joint RLV): blob is [jans_data] */
+				AlignBitsSegment(stream);
+				PutLong(stream, (uint32_t)preenc_size);
+				PutByteArray(stream, preenc_data, preenc_size);
+			}
+			else
+			{
+				/* Mode 1: blob is [tables_size:4][tables][coded_size:4][coded] */
+				uint8_t *pp = preenc_data;
+				uint32_t ts = ((uint32_t)pp[0]<<24)|((uint32_t)pp[1]<<16)|((uint32_t)pp[2]<<8)|pp[3];
+				pp += 4;
+				AlignBitsSegment(stream);
+				PutLong(stream, ts);
+				PutByteArray(stream, pp, ts);
+				pp += ts;
+				uint32_t cs = ((uint32_t)pp[0]<<24)|((uint32_t)pp[1]<<16)|((uint32_t)pp[2]<<8)|pp[3];
+				pp += 4;
+				AlignBitsSegment(stream);
+				PutLong(stream, cs);
+				PutByteArray(stream, pp, cs);
+			}
+
+			/* Free pre-encoded buffer */
+			free(preenc_data);
+			encoder->preencoded_band[channel_number][wavelet_index][band].data = NULL;
+			encoder->preencoded_band[channel_number][wavelet_index][band].size = 0;
 		}
 		else
 		{
-			/* Mode 2: Joint RLV ANS — single symbol per coefficient.
-			   Encodes raw quantized coefficients directly. */
-			size_t jans_cap = band_elems * 4 + 4096;
-			uint8_t *jans_buf = (uint8_t *)encoder->allocator->Alloc(jans_cap);
-			if (!jans_buf) return CODEC_ERROR_OUTOFMEMORY;
+			/* Fallback: encode inline (shouldn't happen when Phase 1.8 ran) */
+			ensure_cubic_inv_table();
+			size_t band_elems = (size_t)band_width * band_height;
 
-			int jans_size = jans_encode_band(jans_buf, jans_cap,
-			                                 (const int32_t *)band_data,
-			                                 band_width, band_height, band_pitch);
-
-			if (jans_size > 0) {
-				AlignBitsSegment(stream);
-				PutLong(stream, (uint32_t)jans_size);
-				PutByteArray(stream, jans_buf, (size_t)jans_size);
+			if (ans_mode == 2)
+			{
+				size_t jans_cap = band_elems * 4 + 4096;
+				uint8_t *jans_buf = (uint8_t *)encoder->allocator->Alloc(jans_cap);
+				if (!jans_buf) return CODEC_ERROR_OUTOFMEMORY;
+				int jans_size = jans_encode_band(jans_buf, jans_cap,
+				                                 (const int32_t *)band_data,
+				                                 band_width, band_height, band_pitch);
+				if (jans_size > 0) {
+					AlignBitsSegment(stream);
+					PutLong(stream, (uint32_t)jans_size);
+					PutByteArray(stream, jans_buf, (size_t)jans_size);
+				}
+				encoder->allocator->Free(jans_buf);
 			}
-			encoder->allocator->Free(jans_buf);
+			else
+			{
+				int32_t *ans_input = (int32_t *)encoder->allocator->Alloc(band_elems * sizeof(int32_t));
+				if (!ans_input) return CODEC_ERROR_OUTOFMEMORY;
+				int bp = band_pitch / sizeof(PIXEL);
+				PIXEL *src = (PIXEL *)band_data;
+				for (int r = 0; r < band_height; r++)
+					for (int c = 0; c < band_width; c++) {
+						int32_t val = src[r * bp + c];
+						int32_t m = (val < 0) ? -val : val;
+						if (m > 1023) m = 1023;
+						int32_t comp = g_cubic_inv[m];
+						ans_input[r * band_width + c] = (val < 0) ? -comp : comp;
+					}
+				int ans_input_pitch = band_width * sizeof(int32_t);
+				ANS_BAND_CTX ans_ctx;
+				memset(&ans_ctx, 0, sizeof(ans_ctx));
+				ans_build_tables(&ans_ctx, ans_input, band_width, band_height, ans_input_pitch);
 
-			/* Skip the regular ANS path below */
-			goto ans_done;
+				size_t buf_cap = band_elems * 2 + 4096;
+				uint8_t *tables_buf = (uint8_t *)encoder->allocator->Alloc(buf_cap);
+				uint8_t *coded_buf  = (uint8_t *)encoder->allocator->Alloc(buf_cap);
+				if (tables_buf && coded_buf) {
+					int tables_size = ans_serialize_tables(&ans_ctx, tables_buf, buf_cap);
+					int coded_size = ans_encode_band(coded_buf, buf_cap, &ans_ctx,
+					                                 ans_input, band_width, band_height,
+					                                 ans_input_pitch);
+					if (tables_size > 0 && coded_size > 0) {
+						AlignBitsSegment(stream);
+						PutLong(stream, (uint32_t)tables_size);
+						PutByteArray(stream, tables_buf, (size_t)tables_size);
+						AlignBitsSegment(stream);
+						PutLong(stream, (uint32_t)coded_size);
+						PutByteArray(stream, coded_buf, (size_t)coded_size);
+					}
+				}
+				if (tables_buf) encoder->allocator->Free(tables_buf);
+				if (coded_buf) encoder->allocator->Free(coded_buf);
+				encoder->allocator->Free(ans_input);
+			}
 		}
-
-		ANS_BAND_CTX ans_ctx;
-		memset(&ans_ctx, 0, sizeof(ans_ctx));
-		ans_build_tables(&ans_ctx, ans_input, band_width, band_height,
-		                 ans_input_pitch);
-
-		size_t buf_cap = (size_t)band_width * band_height * 2 + 4096;
-		uint8_t *tables_buf = (uint8_t *)encoder->allocator->Alloc(buf_cap);
-		uint8_t *coded_buf  = (uint8_t *)encoder->allocator->Alloc(buf_cap);
-
-		if (!tables_buf || !coded_buf) {
-			if (tables_buf) encoder->allocator->Free(tables_buf);
-			if (coded_buf) encoder->allocator->Free(coded_buf);
-			if (ans_input_owned) encoder->allocator->Free(ans_input);
-			return CODEC_ERROR_OUTOFMEMORY;
-		}
-
-		int tables_size = ans_serialize_tables(&ans_ctx, tables_buf, buf_cap);
-		int coded_size = ans_encode_band(coded_buf, buf_cap, &ans_ctx,
-		                                 ans_input, band_width, band_height,
-		                                 ans_input_pitch);
-
-		if (tables_size < 0 || coded_size < 0) {
-			encoder->allocator->Free(tables_buf);
-			encoder->allocator->Free(coded_buf);
-			return CODEC_ERROR_OKAY; /* Fall through — band end marker still needed */
-		}
-
-		// Write: [tables_size:32] [tables_data] [coded_size:32] [coded_data]
-		AlignBitsSegment(stream);
-		PutLong(stream, (uint32_t)tables_size);
-		PutByteArray(stream, tables_buf, (size_t)tables_size);
-		AlignBitsSegment(stream);
-		PutLong(stream, (uint32_t)coded_size);
-		PutByteArray(stream, coded_buf, (size_t)coded_size);
-
-		encoder->allocator->Free(tables_buf);
-		encoder->allocator->Free(coded_buf);
-		if (ans_input_owned) encoder->allocator->Free(ans_input);
-
-ans_done: ;
 	}
 	else
 	{

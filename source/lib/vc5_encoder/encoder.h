@@ -186,9 +186,17 @@ typedef struct _encoder
 
     //! Six rows of horizontal lowpass results for each channel
     PIXEL *lowpass_buffer[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT];
-    
+
     //! Six rows of horizontal highpass results for each channel
     PIXEL *highpass_buffer[MAX_WAVELET_COUNT][ROW_BUFFER_COUNT];
+
+    //! Pre-encoded ANS band data (filled in parallel, written serially)
+    //! Index: [channel][wavelet_level][band_in_wavelet(1-3)]
+    struct {
+        uint8_t *data;
+        size_t   size;
+        int      coding_method;  // 0=none, 1=ANS companded, 2=Joint RLV
+    } preencoded_band[MAX_CHANNEL_COUNT][MAX_WAVELET_COUNT][MAX_BAND_COUNT];
     
 #if VC5_ENABLED_PART(VC5_PART_SECTIONS)
     ENABLED_SECTIONS enabled_sections;
@@ -328,7 +336,7 @@ extern "C" {
     
     CODEC_ERROR EncodeLowpassBand(ENCODER *encoder, WAVELET *wavelet, int channel_number, BITSTREAM *stream);
     
-    CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int subband, BITSTREAM *stream);
+    CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int subband, BITSTREAM *stream, int channel_number, int wavelet_index);
     
     CODEC_ERROR EncodeHighpassBandLongRuns(BITSTREAM *stream, ENCODER_CODESET *codeset, PIXEL *data,
                                            DIMENSION width, DIMENSION height, DIMENSION pitch);
