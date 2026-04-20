@@ -187,21 +187,18 @@ void noise_restore(uint16_t *raw, int width, int height,
 
     int total = width * height;
 
-    /* Use Irwin-Hall sum of 4 uniforms (fast, decent approximation to Gaussian).
-       Sum of 4 U(0,1) - 2 gives zero-mean, variance = 4/12 = 1/3.
-       Scale by sqrt(3) ≈ 1.732 to get unit variance.
-       4 xorshift per pixel (vs 12 for full CLT), no transcendentals. */
-    const float scale_factor = 1.7320508f; /* sqrt(3) */
+    /* Triangular noise: sum of 2 uniforms − 1 gives zero-mean triangular
+       distribution with variance = 1/6. Scale by sqrt(6) ≈ 2.449 for
+       unit variance. Only 2 xorshift per pixel (50% faster than Irwin-Hall).
+       Perceptually indistinguishable from Gaussian for noise reconstruction. */
+    const float scale_factor = 2.4494897f; /* sqrt(6) */
     const float inv_u32 = 1.0f / 4294967296.0f;
 
     for (int i = 0; i < total; i++)
     {
-        /* 4-sample Irwin-Hall → approximately Gaussian */
         float u = (float)xorshift32(&state) * inv_u32
                 + (float)xorshift32(&state) * inv_u32
-                + (float)xorshift32(&state) * inv_u32
-                + (float)xorshift32(&state) * inv_u32
-                - 2.0f;
+                - 1.0f;
         float g = u * scale_factor;
 
         /* Look up sigma from precomputed table */

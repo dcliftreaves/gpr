@@ -31,10 +31,19 @@ extern "C" {
 #define JANS_TABLE_BITS  11
 #define JANS_TABLE_SIZE  (1 << JANS_TABLE_BITS)  /* 2048 — plenty for 128 symbols */
 
+/*! Packed decode entry: one cache-line-friendly lookup per slot */
+typedef struct {
+    uint16_t sym;       /* Decoded symbol */
+    uint16_t freq;      /* Symbol frequency */
+    uint16_t cum_freq;  /* Cumulative frequency */
+    uint16_t _pad;
+} JANS_DECODE_ENTRY;
+
 typedef struct {
     uint16_t freq[JANS_NUM_SYMBOLS + 1];
     uint16_t cum_freq[JANS_NUM_SYMBOLS + 1];
     uint16_t decode_sym[JANS_TABLE_SIZE];
+    JANS_DECODE_ENTRY decode_fast[JANS_TABLE_SIZE]; /* Packed for fast decode */
     int initialized;
 } JANS_TABLE;
 

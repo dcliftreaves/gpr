@@ -109,6 +109,22 @@ static size_t bitbuf_size(const BITBUF *bb) {
 
 static uint32_t bitbuf_read(const uint8_t *buf, size_t buf_size,
                             size_t *byte_pos, int *bit_pos, int bits) {
+    if (bits == 0) return 0;
+    /* Fast path: read up to 32 bits from a little-endian word at byte_pos.
+       This avoids the per-bit loop entirely for the common case where
+       byte_pos + 3 < buf_size (all residual reads are ≤ 10 bits). */
+    if (*byte_pos + 3 < buf_size) {
+        uint32_t word = (uint32_t)buf[*byte_pos]
+                      | ((uint32_t)buf[*byte_pos + 1] << 8)
+                      | ((uint32_t)buf[*byte_pos + 2] << 16)
+                      | ((uint32_t)buf[*byte_pos + 3] << 24);
+        uint32_t value = (word >> *bit_pos) & ((1u << bits) - 1);
+        int new_bit = *bit_pos + bits;
+        *byte_pos += new_bit >> 3;
+        *bit_pos = new_bit & 7;
+        return value;
+    }
+    /* Slow fallback for end of buffer */
     uint32_t value = 0;
     for (int i = 0; i < bits; i++) {
         if (*byte_pos < buf_size) {
@@ -150,6 +166,10 @@ static void build_tables(JANS_TABLE *t, int n) {
     for (int i = 0; i < JANS_TABLE_SIZE; i++) {
         while (sym < n-1 && i >= t->cum_freq[sym] + t->freq[sym]) sym++;
         t->decode_sym[i] = (uint16_t)sym;
+        /* Packed decode entry: sym + freq + cum_freq in one lookup */
+        t->decode_fast[i].sym = (uint16_t)sym;
+        t->decode_fast[i].freq = t->freq[sym];
+        t->decode_fast[i].cum_freq = t->cum_freq[sym];
     }
 }
 
@@ -567,14 +587,20 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
     int row = 0, col = 0;
 
     for (int t = 0; t < token_count && row < height; t++) {
-        int s = t % JANS_INTERLEAVE;
+        int s = t & (JANS_INTERLEAVE - 1);  /* fast mod for power of 2 */
 
+        /* Single packed lookup: sym + freq + cum_freq */
         uint32_t slot = states[s] & (JANS_TABLE_SIZE - 1);
-        int sym = table.decode_sym[slot];
-        uint16_t freq = table.freq[sym];
-        states[s] = freq * (states[s] >> JANS_TABLE_BITS) + slot - table.cum_freq[sym];
-        if (rans_dec_renorm(&states[s], &rptr, rans_end) != 0) return -1;
+        const JANS_DECODE_ENTRY *de = &table.decode_fast[slot];
+        states[s] = de->freq * (states[s] >> JANS_TABLE_BITS) + slot - de->cum_freq;
 
+        /* Inline renormalization (avoid function call overhead) */
+        while (states[s] < RANS_BYTE_L) {
+            if (rptr >= rans_end) return -1;
+            states[s] = (states[s] << 8) | *rptr++;
+        }
+
+        int sym = de->sym;
         int rc = sym / JANS_MAG_CLASSES;
         int mc = sym % JANS_MAG_CLASSES;
 
