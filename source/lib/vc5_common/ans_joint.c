@@ -307,7 +307,16 @@ int jans_decode_band(const uint8_t *in_buf, size_t in_size,
     int resid_size  = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
 
     if (token_count < 0 || freq_size < 0 || rans_size < 4 || resid_size < 0) return -1;
-    if ((size_t)16 + freq_size + rans_size + resid_size > in_size) return -1;
+    if ((size_t)16 + (size_t)freq_size + (size_t)rans_size + (size_t)resid_size > in_size) return -1;
+
+    /* Validate freq_size is sufficient for the full frequency table */
+    if (freq_size < JANS_NUM_SYMBOLS * 2) return -1;
+
+    /* Validate token_count is reasonable for the image dimensions */
+    {
+        size_t max_reasonable_tokens = (size_t)width * (size_t)height * 2;
+        if (max_reasonable_tokens > 0 && (size_t)token_count > max_reasonable_tokens) return -1;
+    }
 
     /* Deserialize frequency table */
     const uint8_t *freq_data = p; p += freq_size;
@@ -316,6 +325,15 @@ int jans_decode_band(const uint8_t *in_buf, size_t in_size,
     for (int i = 0; i < JANS_NUM_SYMBOLS && i*2+1 < freq_size; i++)
         table.freq[i] = ((uint16_t)freq_data[i*2] << 8) | freq_data[i*2+1];
     normalize_freq(table.freq, JANS_NUM_SYMBOLS);
+
+    /* Verify normalization produced a valid table */
+    {
+        uint32_t freq_sum = 0;
+        for (int i = 0; i < JANS_NUM_SYMBOLS; i++)
+            freq_sum += table.freq[i];
+        if (freq_sum != JANS_TABLE_SIZE) return -1;
+    }
+
     build_tables(&table, JANS_NUM_SYMBOLS);
 
     const uint8_t *rans_data = p; p += rans_size;

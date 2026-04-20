@@ -813,9 +813,7 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
         break;
             
 	default:
-		assert(0);
 		return CODEC_ERROR_PIXEL_FORMAT;
-		break;
 	}
 
 	// Allocate space for the component arrays
@@ -859,9 +857,7 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
             break;
             
         default:
-            assert(0);
             return CODEC_ERROR_PIXEL_FORMAT;
-            break;
     }
     
 	return CODEC_ERROR_OKAY;

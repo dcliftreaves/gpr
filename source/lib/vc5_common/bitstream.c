@@ -289,11 +289,8 @@ CODEC_ERROR GetBuffer(BITSTREAM *bitstream)
  */
 CODEC_ERROR PutBuffer(BITSTREAM *bitstream)
 {
-    //TODO: Need to signal an overflow error
-    assert(bitstream != NULL && bitstream->stream != NULL);
-    
-    // The bit buffer should be full
-    assert(bitstream->count == bit_word_count);
+    if (bitstream == NULL || bitstream->stream == NULL)
+        return CODEC_ERROR_NULLPTR;
     
     // Write the bit buffer to the byte stream
     CODEC_ERROR err = PutWord(bitstream->stream, bitstream->buffer );

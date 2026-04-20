@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
                                               &ctx, band, width, height, pitch);
 
         /* Table overhead */
-        uint8_t table_buf[4096];
+        uint8_t table_buf[8192];
         int table_size = ans_serialize_tables(&ctx, table_buf, sizeof(table_buf));
 
         if (compressed_size > 0 && table_size > 0)

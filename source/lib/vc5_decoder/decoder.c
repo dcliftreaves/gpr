@@ -958,12 +958,8 @@ CODEC_ERROR ImageRepackingProcess(const UNPACKED_IMAGE *unpacked_image,
             break;
             
         default:
-            assert(0);
-            break;
+            return CODEC_ERROR_UNSUPPORTED_FORMAT;
     }
-    
-    // Unsupported output image format
-    return CODEC_ERROR_UNSUPPORTED_FORMAT;
 }
 
 /*!
@@ -1736,10 +1732,9 @@ uint16_t GetHeaderMask(TAGWORD tag)
 #endif
             
         default:
-            assert(0);
-            break;
+            return 0;
     }
-    
+
     return header_mask;
 }
 

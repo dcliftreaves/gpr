@@ -390,6 +390,18 @@ int ans_deserialize_tables(ANS_BAND_CTX *ctx, const uint8_t *in_buf, size_t in_s
     normalize_freq(ctx->run_table.freq, ANS_NUM_SYMBOLS);
     normalize_freq(ctx->mag_table.freq, ANS_NUM_SYMBOLS);
 
+    /* Verify normalization produced valid tables (guards against underflow
+       in the adjustment step when adversarial frequency data is provided) */
+    {
+        uint32_t run_sum = 0, mag_sum = 0;
+        for (int i = 0; i < ANS_NUM_SYMBOLS; i++) {
+            run_sum += ctx->run_table.freq[i];
+            mag_sum += ctx->mag_table.freq[i];
+        }
+        if (run_sum != ANS_TABLE_SIZE || mag_sum != ANS_TABLE_SIZE)
+            return -1;
+    }
+
     build_tables(&ctx->run_table, ANS_NUM_SYMBOLS);
     build_tables(&ctx->mag_table, ANS_NUM_SYMBOLS);
     ctx->initialized = 1;
