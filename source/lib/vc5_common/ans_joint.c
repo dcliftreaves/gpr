@@ -7,6 +7,11 @@
 #include <string.h>
 #include <limits.h>
 
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#include <arm_neon.h>
+#define JANS_NEON 1
+#endif
+
 #define RANS_BYTE_L (1u << 23)
 
 /* Run class encoding: class → (min_run, extra_bits)
@@ -586,31 +591,76 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
     int resid_bit = 0;
     int row = 0, col = 0;
 
-    for (int t = 0; t < token_count && row < height; t++) {
-        int s = t & (JANS_INTERLEAVE - 1);  /* fast mod for power of 2 */
+    /* Process tokens in groups of 4 (one per interleaved state).
+       Step 1: Decode 4 symbols + update 4 states (NEON-accelerated).
+       Step 2: Renormalize 4 states (serial — shared byte stream).
+       Step 3: Process 4 decoded symbols (serial — position-dependent). */
+    int t = 0;
+    while (t + JANS_INTERLEAVE <= token_count && row < height)
+    {
+        /* Step 1: Decode 4 symbols and update states (scalar — NEON gather
+           overhead exceeds vectorized multiply benefit on ARM) */
+        uint16_t syms[JANS_INTERLEAVE];
+        for (int s = 0; s < JANS_INTERLEAVE; s++) {
+            uint32_t slot = states[s] & (JANS_TABLE_SIZE - 1);
+            const JANS_DECODE_ENTRY *de = &table.decode_fast[slot];
+            syms[s] = de->sym;
+            states[s] = de->freq * (states[s] >> JANS_TABLE_BITS) + slot - de->cum_freq;
+        }
 
-        /* Single packed lookup: sym + freq + cum_freq */
+        /* Step 2: Renormalize 4 states (serial — shared byte stream) */
+        for (int s = 0; s < JANS_INTERLEAVE; s++) {
+            while (states[s] < RANS_BYTE_L) {
+                if (rptr >= rans_end) return -1;
+                states[s] = (states[s] << 8) | *rptr++;
+            }
+        }
+
+        /* Step 3: Process 4 decoded symbols (serial — output position depends on runs) */
+        for (int s = 0; s < JANS_INTERLEAVE && row < height; s++) {
+            int sym = syms[s];
+            int rc = sym / JANS_MAG_CLASSES;
+            int mc = sym % JANS_MAG_CLASSES;
+
+            int run_resid = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
+                                        run_class_bits[rc]);
+            int run = class_to_run(rc, run_resid);
+
+            col += run;
+            while (col >= width) { col -= width; row++; }
+
+            if (mc > 0 && row < height) {
+                int mag_resid = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
+                                            mag_class_bits[mc]);
+                int mag = class_to_mag(mc, mag_resid);
+                int sign = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit, 1);
+                if (col < width)
+                    data[row * pitch_elems + col] = sign ? -mag : mag;
+                col++;
+                if (col >= width) { row++; col = 0; }
+            }
+        }
+        t += JANS_INTERLEAVE;
+    }
+
+    /* Handle remaining tokens (< 4) */
+    for (; t < token_count && row < height; t++) {
+        int s = t & (JANS_INTERLEAVE - 1);
         uint32_t slot = states[s] & (JANS_TABLE_SIZE - 1);
         const JANS_DECODE_ENTRY *de = &table.decode_fast[slot];
         states[s] = de->freq * (states[s] >> JANS_TABLE_BITS) + slot - de->cum_freq;
-
-        /* Inline renormalization (avoid function call overhead) */
         while (states[s] < RANS_BYTE_L) {
             if (rptr >= rans_end) return -1;
             states[s] = (states[s] << 8) | *rptr++;
         }
-
         int sym = de->sym;
         int rc = sym / JANS_MAG_CLASSES;
         int mc = sym % JANS_MAG_CLASSES;
-
         int run_resid = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
                                     run_class_bits[rc]);
         int run = class_to_run(rc, run_resid);
-
         col += run;
         while (col >= width) { col -= width; row++; }
-
         if (mc > 0 && row < height) {
             int mag_resid = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
                                         mag_class_bits[mc]);
