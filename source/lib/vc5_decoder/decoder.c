@@ -2065,9 +2065,10 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
     // Decode this subband (VLC or ANS depending on coding method tag)
     if (decoder->codec.band.coding_method >= 1)
     {
-        if (decoder->codec.band.coding_method == 2)
         {
-            /* Mode 2: Joint RLV ANS — single blob */
+            /* Both mode 1 and mode 2 use Joint RLV ANS blob format.
+               Mode 1: decoded values are companded [0,255], uncompanded by dequantizer.
+               Mode 2: decoded values are raw magnitudes, dequantizer skips uncompanding. */
             AlignBitsSegment(stream);
             uint32_t jans_size = GetBits(stream, 32);
             uint8_t *jans_buf = (uint8_t *)decoder->allocator->Alloc(jans_size);
@@ -2078,30 +2079,6 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
                                       width, height, wavelet->pitch);
             error = (rc == 0) ? CODEC_ERROR_OKAY : CODEC_ERROR_DECODING_SUBBAND;
             decoder->allocator->Free(jans_buf);
-        }
-        else
-        {
-            /* Mode 1: Standard ANS (tables + coded + signs) */
-            AlignBitsSegment(stream);
-            uint32_t tables_size = GetBits(stream, 32);
-            uint8_t *tables_buf = (uint8_t *)decoder->allocator->Alloc(tables_size);
-            GetByteArray(stream, tables_buf, tables_size);
-
-            AlignBitsSegment(stream);
-            uint32_t coded_size = GetBits(stream, 32);
-            uint8_t *coded_buf = (uint8_t *)decoder->allocator->Alloc(coded_size);
-            GetByteArray(stream, coded_buf, coded_size);
-
-            ANS_BAND_CTX ans_ctx;
-            memset(&ans_ctx, 0, sizeof(ans_ctx));
-            ans_deserialize_tables(&ans_ctx, tables_buf, tables_size);
-            int rc = ans_decode_band(coded_buf, coded_size, &ans_ctx,
-                                     (int32_t *)wavelet->data[band],
-                                     width, height, wavelet->pitch);
-            error = (rc == 0) ? CODEC_ERROR_OKAY : CODEC_ERROR_DECODING_SUBBAND;
-
-            decoder->allocator->Free(tables_buf);
-            decoder->allocator->Free(coded_buf);
         }
 
         /* Don't reset coding_method here for mode 2 — it's needed after quant
