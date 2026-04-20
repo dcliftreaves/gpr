@@ -356,7 +356,8 @@ A v2.0 encoder with ANS disabled and denoise disabled produces a byte-identical 
 - Encoder: `source/lib/vc5_encoder/encoder.c` — `EncodeHighpassBand()`
 - Decoder: `source/lib/vc5_decoder/decoder.c` — `DecodeHighpassBand()`
 - ANS coder (mode 1): `source/lib/vc5_common/ans.c`
-- Joint RLV ANS coder (mode 2): `source/lib/vc5_common/ans.c`
+- Joint RLV ANS coder (mode 2): `source/lib/vc5_common/ans_joint.c`
+- Batch CLI: `source/app/gpr_tools/gpr_batch.sh`
 - Noise estimation: `source/lib/vc5_encoder/denoise.c`
 - CLI: `source/app/gpr_tools/main.cpp` — flags `-D`, `-A`, `-R`
 
@@ -371,3 +372,43 @@ A conforming v2.0 encoder/decoder must:
 3. Produce files that open in standard DNG readers (metadata and thumbnail accessible)
 4. Fail gracefully when encountering unsupported codec features (return error, don't corrupt)
 5. Validate all untrusted data from the bitstream (sizes, frequencies, pair counts)
+
+---
+
+## Compression Results Reference
+
+### GoPro (14-bit, `-A -D`)
+
+| Camera | Quality | VLC | ANS+DN | vs VLC |
+|--------|---------|-----|--------|--------|
+| Hero6 | Q3 | 5.3MB | 3.1MB | **+41%** |
+| HERO7 | Q3 | 7.7MB | 5.5MB | **+24%** |
+| Hero5 | Q3 | 8.5MB | 6.0MB | **+30%** |
+
+### Hasselblad X2D 100C (16-bit, `-A -D`)
+
+| Image | ISO | VLC | ANS+DN | vs VLC |
+|-------|-----|-----|--------|--------|
+| Scene | 64 | 48.2MB | 41.5MB | **+14%** |
+| Scene | 200 | 41.3MB | 40.9MB | **+1%** |
+| Scene | 1600 | 89.6MB | 63.4MB | **+29%** |
+| Scene | 3200 | 62.3MB | 49.9MB | **+20%** |
+| Flat field | 800 | 11.6MB | 5.1MB | **+56%** |
+| Flat field | 3200 | 31.3MB | 10.9MB | **+65%** |
+
+### Nikon Z8 (14-bit via DNG, `-A -D`)
+
+| Image | ISO | VLC | ANS+DN | vs VLC |
+|-------|-----|-----|--------|--------|
+| Scene | 64 | 14.8MB | 18.7MB | -26% |
+| Scene | 320 | 15.5MB | 16.5MB | -6% |
+| Scene | 22800 | 39.5MB | 30.5MB | **+23%** |
+
+### Key Findings
+
+- ANS+DN advantage increases with ISO (more noise to remove adaptively)
+- At ISO 1600+, ANS+DN beats VLC by 20-29% on scene photos
+- At ISO 64, VLC's fixed codebook is near-optimal for detail-rich scenes
+- Flat fields benefit most: up to 65% smaller at ISO 3200
+- 5,348 Z8 images scanned with zero quality outliers (ongoing)
+- 402 GoPro/HERO10/X2D images: zero outliers
