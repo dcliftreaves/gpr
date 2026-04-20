@@ -2457,10 +2457,14 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 	/* ANS mode: 1 = companded (≤14-bit), 2 = raw magnitudes (16-bit).
 	   Mode 2 skips companding and tells the decoder to skip uncompanding
 	   by setting quant=0 (sentinel for "already dequantized"). */
-	/* ANS mode: always use joint RLV (mode 2) when enabled.
-	   Mode 2 uses a single ANS symbol per coefficient, which is
-	   efficient for all bit depths and coefficient distributions. */
-	int ans_mode = encoder->ans_enabled ? 2 : 0;
+	/* ANS mode selection:
+	   Mode 1: Standard ANS with companding (≤14-bit). Companding clips
+	           coefficients to [0,255] which prevents reconstruction overflow.
+	   Mode 2: Joint RLV ANS without companding (16-bit / >14-bit internal).
+	           Raw coefficients; decoder uses negative quant to skip uncompanding. */
+	int ans_mode = 0;
+	if (encoder->ans_enabled)
+		ans_mode = (encoder->internal_precision <= 14) ? 1 : 2;
 	if (ans_mode > 0)
 		PutTagPairOptional(stream, CODEC_TAG_BandCodingMethod, ans_mode);
 

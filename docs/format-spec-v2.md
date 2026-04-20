@@ -72,7 +72,8 @@ Each highpass subband may independently use VLC or ANS coding:
 ```
 CODEC_TAG_BandCodingMethod = 200  (optional tag, per-band)
 Value: 0 = VLC run-length (default, backward compatible)
-       1 = ANS adaptive entropy coding
+       1 = ANS adaptive entropy coding (separate run + mag streams)
+       2 = Joint RLV ANS coding (single joint symbol stream)
 ```
 
 When this tag is absent, the band uses VLC (full backward compatibility with v1.0).
@@ -142,6 +143,97 @@ Magnitudes are cubic-companded before ANS encoding (same `ComputeCubicTable` cur
 - Initial state: `RANS_BYTE_L`
 - Final state flushed as 4 bytes (little-endian, then reversed with buffer)
 - Decoder reads state from first 4 bytes (big-endian after reversal)
+
+### Joint RLV ANS Band Data Format (Mode 2)
+
+When `CODEC_TAG_BandCodingMethod = 2`, the band uses joint run-length/value ANS coding. Instead of two separate symbol streams (run and magnitude), mode 2 encodes a single joint symbol per coefficient combining the run class and magnitude class.
+
+Mode 2 is selected for all cameras when the `-A` flag is passed to the encoder.
+
+#### Joint Symbol Classes
+
+**Run classes** (10 classes, `JANS_RUN_CLASSES = 10`):
+
+| Class | Base value | Extra bits |
+|-------|-----------|------------|
+| 0 | 0 | 0 |
+| 1 | 1 | 0 |
+| 2 | 2 | 0 |
+| 3 | 3 | 0 |
+| 4 | 4 | 2 |
+| 5 | 8 | 3 |
+| 6 | 16 | 4 |
+| 7 | 32 | 5 |
+| 8 | 64 | 6 |
+| 9 | 128 | 7 |
+
+Run class values are contiguous: the base values are `{0, 1, 2, 3, 4, 8, 16, 32, 64, 128}` with `{0, 0, 0, 0, 2, 3, 4, 5, 6, 7}` extra bits respectively.
+
+**Magnitude classes** (16 classes, `JANS_MAG_CLASSES = 16`):
+
+| Class | Base value | Extra bits |
+|-------|-----------|------------|
+| 0 | 0 | 0 |
+| 1 | 1 | 0 |
+| 2 | 2 | 0 |
+| 3 | 3 | 0 |
+| 4 | 4 | 0 |
+| 5 | 5 | 0 |
+| 6 | 6 | 0 |
+| 7 | 7 | 0 |
+| 8 | 8 | 3 |
+| 9 | 16 | 4 |
+| 10 | 32 | 5 |
+| 11 | 64 | 6 |
+| 12 | 128 | 7 |
+| 13 | 256 | 8 |
+| 14 | 512 | 9 |
+| 15 | 1024 | 10 |
+
+The base values are `{0, 1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64, 128, 256, 512, 1024}` with `{0, 0, 0, 0, 0, 0, 0, 0, 3, 4, 5, 6, 7, 8, 9, 10}` extra bits respectively.
+
+#### Joint Symbol Encoding
+
+Each (run, magnitude) pair is encoded as a single joint symbol:
+
+```
+joint_symbol = run_class × JANS_MAG_CLASSES + mag_class
+```
+
+Total joint symbols: `JANS_NUM_SYMBOLS = JANS_RUN_CLASSES × JANS_MAG_CLASSES = 10 × 16 = 160`
+
+#### ANS Table Parameters (Mode 2)
+
+- `ANS_TABLE_BITS = 11`
+- `ANS_TABLE_SIZE = 2048`
+- Single frequency table over 160 joint symbols
+
+#### Blob Format (Mode 2)
+
+The band codeblock for mode 2 contains a single self-describing blob:
+
+```
+[token_count: 32 bits]    — number of (run, magnitude) tokens
+[freq_size: 32 bits]      — byte count of frequency table data
+[rans_size: 32 bits]      — byte count of rANS-coded joint symbols
+[resid_size: 32 bits]     — byte count of residual stream (extra bits + sign bits)
+[freq_data: freq_size bytes]   — serialized joint frequency table
+[rans_data: rans_size bytes]   — rANS-encoded joint symbols
+[resid_data: resid_size bytes] — packed extra bits and sign bits
+```
+
+The residual stream contains, for each token in order:
+1. Extra bits for the run class (if the class requires extra bits)
+2. Extra bits for the magnitude class (if the class requires extra bits)
+3. A sign bit (1 raw bit) for each nonzero coefficient (magnitude class > 0)
+
+#### Inverse Quantization (Mode 2)
+
+Mode 2 does **not** apply cubic uncompanding. The magnitude values are raw quantized coefficients, not companded indices. The encoder signals this to the decoder by using a negative quantization sentinel, which causes the decoder to skip the uncompanding step during inverse quantization.
+
+#### rANS Parameters (Mode 2)
+
+Same as mode 1: byte-aligned rANS (Giesen-style), `RANS_BYTE_L = 1 << 23`, encoder writes forward with buffer reversal, initial state `RANS_BYTE_L`.
 
 ---
 
@@ -231,9 +323,17 @@ Subband mapping: `[LL, L0_LH, L0_HL, L0_HH, L1_LH, L1_HL, L1_HH, L2_LH, L2_HL, L
 
 ## ANS Auto-Selection
 
-ANS coding is automatically disabled for `internal_precision > 14` (16-bit data). For 16-bit sensors, the cubic companding maps many coefficients to the same value (255), creating a flat distribution where VLC's joint RLV encoding is more efficient.
+ANS mode 1 (separate streams) is automatically disabled for `internal_precision > 14` (16-bit data). For 16-bit sensors, the cubic companding maps many coefficients to the same value (255), creating a flat distribution where mode 1's separate run/magnitude streams are inefficient.
 
-When ANS is disabled, bands use standard VLC encoding and no `CODEC_TAG_BandCodingMethod` tag is emitted.
+When the `-A` flag is set, the encoder uses mode 2 (joint RLV ANS) for all cameras regardless of bit depth. Mode 2 does not use cubic companding and instead encodes raw quantized magnitudes with class-based extra bits, making it effective across all bit depths including 16-bit.
+
+| Bit depth | Default (no flag) | `-A` flag |
+|-----------|-------------------|-----------|
+| 12-bit | Mode 1 (ANS separate) | Mode 2 (joint RLV ANS) |
+| 14-bit | Mode 1 (ANS separate) | Mode 2 (joint RLV ANS) |
+| 16-bit | Mode 0 (VLC) | Mode 2 (joint RLV ANS) |
+
+When ANS is disabled (mode 0), bands use standard VLC encoding and no `CODEC_TAG_BandCodingMethod` tag is emitted.
 
 ---
 
@@ -242,7 +342,8 @@ When ANS is disabled, bands use standard VLC encoding and no `CODEC_TAG_BandCodi
 | Feature | v1.0 decoder behavior | v2.0 decoder behavior |
 |---------|----------------------|----------------------|
 | VLC-only file | Full decode | Full decode |
-| ANS-encoded band | Fails at VLC decode | Reads ANS tag, uses ANS decoder |
+| ANS mode 1 band | Fails at VLC decode | Reads ANS tag, uses ANS decoder (separate streams) |
+| ANS mode 2 band | Fails at VLC decode | Reads ANS tag, uses joint RLV ANS decoder |
 | Noise metadata in XMP | Ignored | Reads seed/sigma for reconstruction |
 | FormatVersion tag | Skipped (optional) | Reads version, validates |
 
@@ -254,7 +355,8 @@ A v2.0 encoder with ANS disabled and denoise disabled produces a byte-identical 
 
 - Encoder: `source/lib/vc5_encoder/encoder.c` — `EncodeHighpassBand()`
 - Decoder: `source/lib/vc5_decoder/decoder.c` — `DecodeHighpassBand()`
-- ANS coder: `source/lib/vc5_common/ans.c`
+- ANS coder (mode 1): `source/lib/vc5_common/ans.c`
+- Joint RLV ANS coder (mode 2): `source/lib/vc5_common/ans.c`
 - Noise estimation: `source/lib/vc5_encoder/denoise.c`
 - CLI: `source/app/gpr_tools/main.cpp` — flags `-D`, `-A`, `-R`
 
