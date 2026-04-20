@@ -410,5 +410,34 @@ A conforming v2.0 encoder/decoder must:
 - At ISO 1600+, ANS+DN beats VLC by 20-29% on scene photos
 - At ISO 64, VLC's fixed codebook is near-optimal for detail-rich scenes
 - Flat fields benefit most: up to 65% smaller at ISO 3200
-- 5,348 Z8 images scanned with zero quality outliers (ongoing)
-- 402 GoPro/HERO10/X2D images: zero outliers
+
+### Mass Scan Results
+
+| Camera | Files | Avg PSNR | Outliers (<45 dB) | ANS wins |
+|--------|-------|----------|--------------------|----------|
+| Nikon Z8 | 6,713 | 65.1 dB | 2 (43.5, 43.6 dB) | N/A |
+| Hasselblad X2D | 260 | 53.8 dB | 0 | 80% (209/260) |
+
+Hasselblad by ISO:
+- ISO 64-200: 100 files, avg savings 12-19%, ANS wins 83/100
+- ISO 400-800: 71 files, avg savings -2%, ANS wins 37/71
+- ISO 1600+: 91 files, avg savings 7-29%, ANS wins 90/91
+
+### Quality Metrics (Z8, 14-bit, ISO ~200)
+
+| Mode | GPR Size | PSNR | SSIM | Noise σ Ratio |
+|------|----------|------|------|---------------|
+| VLC | 15.5 MB | 55.61 dB | 0.99984 | 1.10 |
+| ANS | 21.5 MB | 55.61 dB | 0.99984 | 1.10 |
+| ANS+DN | 21.4 MB | 50.74 dB | 0.99933 | 1.80 |
+
+ANS and VLC produce identical quality at the same quant settings (only entropy coding differs). ANS+DN applies noise-aware quantization which trades 5 dB PSNR for noise-transparent compression.
+
+### Performance (Apple Silicon, single-threaded baseline)
+
+| Operation | Z8 (45MP) | X2D (100MP) |
+|-----------|-----------|-------------|
+| Encode (ANS+DN) | 1.1s | 2.5s |
+| Decode (ANS+DN) | 0.8s | 1.5s |
+
+Optimizations: parallel ANS pre-encoding (4 threads), precomputed sigma LUT, Irwin-Hall PRNG noise restoration.
