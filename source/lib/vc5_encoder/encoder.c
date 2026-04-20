@@ -467,7 +467,7 @@ CODEC_ERROR EncodingProcess(ENCODER *encoder,
 
 	// Write format version tag if v2.0 features are in use (ANS or denoise)
 	if (parameters->ans_enabled || parameters->denoise_enabled)
-		PutTagPairOptional(&bitstream, CODEC_TAG_FormatVersion, 0x0200);
+		PutTagPairOptional(bitstream, CODEC_TAG_FormatVersion, 0x0200);
 
     // Allocate six pairs of lowpass and highpass buffers for each channel
     AllocateEncoderHorizontalBuffers(encoder);
