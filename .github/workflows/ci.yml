@@ -49,11 +49,12 @@ jobs:
         done
 
     - name: ANS standalone test
+      run: build/source/app/ans_test/ans_test
+
+    - name: Compare quality tool
       run: |
-        gcc -O2 -I source/lib/vc5_common \
-            -o /tmp/ans_test source/app/ans_test/ans_test.c \
-            source/lib/vc5_common/ans.c -lm
-        /tmp/ans_test
+        CQ=build/source/app/compare_quality/compare_quality
+        [ -x "$CQ" ] && echo "compare_quality built OK" || { echo "FAIL: compare_quality not built"; exit 1; }
 
   build-macos:
     runs-on: macos-latest
@@ -71,4 +72,8 @@ jobs:
         GPR=build/source/app/gpr_tools/gpr_tools
         $GPR -i data/samples/Hero6/GOPR0024.GPR -o /tmp/test.DNG
         $GPR -i /tmp/test.DNG -o /tmp/test.GPR -A 1 -D 1
-        [ -s /tmp/test.GPR ] && echo "PASS" || exit 1
+        $GPR -i /tmp/test.GPR -o /tmp/test.RAW
+        [ -s /tmp/test.GPR ] && [ -s /tmp/test.RAW ] && echo "PASS" || exit 1
+
+    - name: ANS standalone test
+      run: build/source/app/ans_test/ans_test
