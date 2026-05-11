@@ -1299,9 +1299,15 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
         return NULL;
     }
 
-    /* Pre-fault all pages so the first frame doesn't pay page-fault tax */
+    /* Pre-fault only the buffers we KNOW will be fully written every frame:
+       - stream_buf: holds final concat (typical ~5 MB, capped at ~12 MB)
+       - band_data: split-pass mode writes every pixel; inline mode skips (NULL)
+       enc_bufs are OVER-sized for worst case but typically use ~10% of capacity
+       — leaving them un-pre-faulted means peak RSS reflects actual byte
+       count written, not allocated capacity. ~60 MB RSS savings at 23 MP,
+       ~130 MB at 50 MP, at the cost of one-time first-frame page-fault tax
+       on the touched bytes. */
     memset(ctx->stream_buf, 0, ctx->stream_cap);
-    for (int i = 0; i < 12; i++) memset(ctx->enc_bufs[i], 0, ctx->enc_caps[i]);
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         for (int band = 0; band < 4; band++) {
