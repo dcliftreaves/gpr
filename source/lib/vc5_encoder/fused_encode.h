@@ -4,11 +4,36 @@
  *
  *  Replaces the 4-stage serial pipeline with a 2-pass fused design:
  *  Pass 1: Stream Bayer pixels through log curve → horizontal filter → vertical
- *          filter + quantize, counting ANS frequencies inline.
- *  Pass 2: rANS encode using pre-counted frequencies.
+ *          filter + quantize, with optional inline tokenization (embedded mode).
+ *  Pass 2: rANS encode using per-band (or per-stripe) frequency tables.
  *
- *  Eliminates 44MB of intermediate component arrays (for Z8 45MP).
  *  Designed for GoPro ARM (Cortex-A78), testable on Mac ARM64.
+ *
+ *  ## Known limitation: single-level wavelet only
+ *
+ *  This encoder applies ONLY the level-0 wavelet decomposition. The
+ *  production GPR encoder (encoder.c) applies 3 levels (LL → LL2 → LL3)
+ *  which removes more inter-band correlation. As a result, the fused
+ *  encoder produces ~2× larger compressed output than the standard
+ *  GPR encoder on the same input — about 24 % of raw vs. 12 % for the
+ *  same quality preset.
+ *
+ *  Trade-off: the fused encoder is much faster and uses far less RAM,
+ *  so it's the right choice for:
+ *    - Live preview / monitoring streams
+ *    - Embedded targets that can't afford the 3-level memory cost
+ *    - Burst photography where throughput beats minimum size
+ *
+ *  For archival or "best compression" workflows, the production encoder
+ *  is still preferred.
+ *
+ *  Measured at quality 3 (Filmscan-1):
+ *
+ *    Input              | Standard GPR | Fused split | Fused stripe
+ *    -------------------+--------------+-------------+--------------
+ *    HERO10 23 MP 14-bit| ~4-6 MB      |  5.4 MB     |  4.4 MB
+ *    MISSION 1 50 MP    | n/a yet      | 11.7 MB     | 10.5 MB
+ *    X2D 100 MP 16-bit  |  23.5 MB     | 55.8 MB     | 46.4 MB
  *
  *  (C) Copyright 2018 GoPro Inc. Licensed under Apache-2.0 or MIT.
  */
