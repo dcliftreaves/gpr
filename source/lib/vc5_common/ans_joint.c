@@ -135,12 +135,6 @@ static inline void rans_enc_put(uint32_t *state, uint8_t **pptr,
     uint32_t x = *state;
     uint32_t x_max = ((RANS_BYTE_L >> JANS_TABLE_BITS) << 8) * freq;
     while (x >= x_max) { *(*pptr)++ = (uint8_t)(x & 0xFF); x >>= 8; }
-    /* State update: x/freq and x%freq.
-       Use hardware division — it's fast on Cortex-A78 (~10 cycles)
-       and the reciprocal trick requires 128-bit math for exact results
-       which isn't available on all ARM targets.
-       The (void)rcp_freq suppresses the unused parameter warning. */
-    (void)rcp_freq;
     *state = ((x / freq) << JANS_TABLE_BITS) + (x % freq) + start;
 }
 
@@ -388,11 +382,18 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
             table.freq[sym]++;
             tokens[token_count++] = (uint16_t)sym;
 
-            /* Write residual bits: run extra, mag extra, sign */
-            bitbuf_write(&bb, run_resid, run_class_bits[rc]);
-            bitbuf_write(&bb, mag_resid, mag_class_bits[mc]);
-            if (mc > 0) /* sign bit for nonzero magnitude */
-                bitbuf_write(&bb, (val < 0) ? 1 : 0, 1);
+            /* Merged residual write: run_resid + mag_resid + sign in one call */
+            {
+                int rb = run_class_bits[rc], mb = mag_class_bits[mc];
+                uint32_t merged = (uint32_t)run_resid;
+                if (mc > 0) {
+                    merged |= ((uint32_t)mag_resid << rb);
+                    merged |= ((val < 0) ? 1u : 0u) << (rb + mb);
+                    bitbuf_write(&bb, merged, rb + mb + 1);
+                } else {
+                    bitbuf_write(&bb, merged, rb);
+                }
+            }
 
             run = 0;
         }
@@ -627,9 +628,19 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
             int sym = rc * JANS_MAG_CLASSES + mc;
             table.freq[sym]++;
             tokens[token_count++] = (uint16_t)sym;
-            bitbuf_write(&bb, run_resid, run_class_bits[rc]);
-            bitbuf_write(&bb, mag_resid, mag_class_bits[mc]);
-            if (mc > 0) bitbuf_write(&bb, (val < 0) ? 1 : 0, 1);
+            /* Merged residual write: pack run_resid + mag_resid + sign into one word */
+            {
+                int rb = run_class_bits[rc];
+                int mb = mag_class_bits[mc];
+                uint32_t merged = (uint32_t)run_resid;
+                if (mc > 0) {
+                    merged |= ((uint32_t)mag_resid << rb);
+                    merged |= ((val < 0) ? 1u : 0u) << (rb + mb);
+                    bitbuf_write(&bb, merged, rb + mb + 1);
+                } else {
+                    bitbuf_write(&bb, merged, rb);
+                }
+            }
             run = 0;
         }
         if (run > 0) {
