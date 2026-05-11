@@ -17,6 +17,7 @@
 #include "headers.h"
 #include "ans_joint.h"
 #include "logcurve.h"
+#include "inverse.h"
 #ifndef _WIN32
 #include <pthread.h>
 #endif
@@ -713,6 +714,51 @@ static void fused_pack_row(uint16_t *out_r1, uint16_t *out_r2,
 
     This eliminates the separate pack phase entirely and halves L2 cache pressure.
 */
+/* NEON helpers for fused path vertical filter */
+#if ENABLED(NEON)
+static INLINE int32x4_t FusedDequant4(const PIXEL *src, int col, int32x4_t quant_vec) {
+    int32x4_t v = vld1q_s32(&src[col]);
+    int32x4_t abs_v = vabsq_s32(v);
+    int32x4_t dq = vmulq_s32(abs_v, quant_vec);
+    uint32x4_t neg = vcltq_s32(v, vdupq_n_s32(0));
+    return vbslq_s32(neg, vnegq_s32(dq), dq);
+}
+static INLINE void FusedVertMid8(
+    const PIXEL *r0, const PIXEL *r1, const PIXEL *r2,
+    const PIXEL *hp, PIXEL *ev_out, PIXEL *od_out, int col) {
+    const int32x4_t four = vdupq_n_s32(4);
+    int32x4_t r0a=vld1q_s32(&r0[col]),r0b=vld1q_s32(&r0[col+4]);
+    int32x4_t r1a=vld1q_s32(&r1[col]),r1b=vld1q_s32(&r1[col+4]);
+    int32x4_t r2a=vld1q_s32(&r2[col]),r2b=vld1q_s32(&r2[col+4]);
+    int32x4_t ha=vld1q_s32(&hp[col]),hb=vld1q_s32(&hp[col+4]);
+    int32x4_t da=vshrq_n_s32(vaddq_s32(vsubq_s32(r0a,r2a),four),3);
+    int32x4_t db=vshrq_n_s32(vaddq_s32(vsubq_s32(r0b,r2b),four),3);
+    vst1q_s32(&ev_out[col],vshrq_n_s32(vaddq_s32(vaddq_s32(da,r1a),ha),1));
+    vst1q_s32(&ev_out[col+4],vshrq_n_s32(vaddq_s32(vaddq_s32(db,r1b),hb),1));
+    int32x4_t oa=vshrq_n_s32(vaddq_s32(vsubq_s32(r2a,r0a),four),3);
+    int32x4_t ob=vshrq_n_s32(vaddq_s32(vsubq_s32(r2b,r0b),four),3);
+    vst1q_s32(&od_out[col],vshrq_n_s32(vsubq_s32(vaddq_s32(oa,r1a),ha),1));
+    vst1q_s32(&od_out[col+4],vshrq_n_s32(vsubq_s32(vaddq_s32(ob,r1b),hb),1));
+}
+static INLINE void FusedVertMid8_Dq(
+    const PIXEL *r0, const PIXEL *r1, const PIXEL *r2,
+    const PIXEL *hp_raw, int32x4_t hq, PIXEL *ev_out, PIXEL *od_out, int col) {
+    const int32x4_t four = vdupq_n_s32(4);
+    int32x4_t r0a=vld1q_s32(&r0[col]),r0b=vld1q_s32(&r0[col+4]);
+    int32x4_t r1a=vld1q_s32(&r1[col]),r1b=vld1q_s32(&r1[col+4]);
+    int32x4_t r2a=vld1q_s32(&r2[col]),r2b=vld1q_s32(&r2[col+4]);
+    int32x4_t ha=FusedDequant4(hp_raw,col,hq),hb=FusedDequant4(hp_raw,col+4,hq);
+    int32x4_t da=vshrq_n_s32(vaddq_s32(vsubq_s32(r0a,r2a),four),3);
+    int32x4_t db=vshrq_n_s32(vaddq_s32(vsubq_s32(r0b,r2b),four),3);
+    vst1q_s32(&ev_out[col],vshrq_n_s32(vaddq_s32(vaddq_s32(da,r1a),ha),1));
+    vst1q_s32(&ev_out[col+4],vshrq_n_s32(vaddq_s32(vaddq_s32(db,r1b),hb),1));
+    int32x4_t oa=vshrq_n_s32(vaddq_s32(vsubq_s32(r2a,r0a),four),3);
+    int32x4_t ob=vshrq_n_s32(vaddq_s32(vsubq_s32(r2b,r0b),four),3);
+    vst1q_s32(&od_out[col],vshrq_n_s32(vsubq_s32(vaddq_s32(oa,r1a),ha),1));
+    vst1q_s32(&od_out[col+4],vshrq_n_s32(vsubq_s32(vaddq_s32(ob,r1b),hb),1));
+}
+#endif
+
 static CODEC_ERROR ReconstructAndPackDirect(
     gpr_allocator *allocator,
     WAVELET *wav[4],                 /* wavelet[0] for each of 4 channels (GS,RG,BG,GD) */
@@ -867,6 +913,33 @@ static CODEC_ERROR ReconstructAndPackDirect(
 } while(0)
 
     /* Helper: run the vertical middle-row filter for one channel */
+#if ENABLED(NEON)
+#define NEON_VERT_MID_BODY(ch) { \
+    CH_STATE *_s = &cs[ch]; \
+    int _w8 = ((int)input_width / 8) * 8; \
+    int32x4_t _hlq = vdupq_n_s32(_s->fuse_highlow ? -_s->hl_quant : 1); \
+    int32x4_t _hhq = vdupq_n_s32(_s->fuse_highhigh ? -_s->hh_quant : 1); \
+    for (; col < _w8; col += 8) { \
+        if (_s->fuse_highlow) \
+            FusedVertMid8_Dq(_s->lowlow + 0 * _s->lowlow_pitch, _s->lowlow + 1 * _s->lowlow_pitch, \
+                _s->lowlow + 2 * _s->lowlow_pitch, _s->highlow, _hlq, \
+                _s->even_lowpass, _s->odd_lowpass, col); \
+        else \
+            FusedVertMid8(_s->lowlow + 0 * _s->lowlow_pitch, _s->lowlow + 1 * _s->lowlow_pitch, \
+                _s->lowlow + 2 * _s->lowlow_pitch, _s->highlow_line, \
+                _s->even_lowpass, _s->odd_lowpass, col); \
+        if (_s->fuse_highhigh) \
+            FusedVertMid8_Dq(_s->lowhigh_line[0], _s->lowhigh_line[1], _s->lowhigh_line[2], \
+                _s->highhigh, _hhq, _s->even_highpass, _s->odd_highpass, col); \
+        else \
+            FusedVertMid8(_s->lowhigh_line[0], _s->lowhigh_line[1], _s->lowhigh_line[2], \
+                _s->highhigh_line, _s->even_highpass, _s->odd_highpass, col); \
+    } \
+}
+#else
+#define NEON_VERT_MID_BODY(ch) /* no NEON */
+#endif
+
 #define VERT_MID(ch) do { \
     CH_STATE *s = &cs[ch]; \
     if (!s->fuse_highlow) \
@@ -874,6 +947,7 @@ static CODEC_ERROR ReconstructAndPackDirect(
     if (!s->fuse_highhigh) \
         DequantizeBandRow16s(s->highhigh, input_width, s->hh_quant, s->highhigh_line); \
     int col = 0; \
+    NEON_VERT_MID_BODY(ch) \
     for (; col < (int)input_width; col++) { \
         int32_t ev, od, hl_val, hh_val; \
         if (s->fuse_highlow) { \
