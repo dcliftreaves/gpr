@@ -314,16 +314,19 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
 
     buffer_row_size = input_width * sizeof(PIXEL);
 
-    even_lowpass  = (PIXEL *)allocator->Alloc(buffer_row_size);
-    even_highpass = (PIXEL *)allocator->Alloc(buffer_row_size);
-    odd_lowpass   = (PIXEL *)allocator->Alloc(buffer_row_size);
-    odd_highpass  = (PIXEL *)allocator->Alloc(buffer_row_size);
-
-    lowhigh_line[0] = (PIXEL *)allocator->Alloc(buffer_row_size);
-    lowhigh_line[1] = (PIXEL *)allocator->Alloc(buffer_row_size);
-    lowhigh_line[2] = (PIXEL *)allocator->Alloc(buffer_row_size);
-    highlow_line    = (PIXEL *)allocator->Alloc(buffer_row_size);
-    highhigh_line   = (PIXEL *)allocator->Alloc(buffer_row_size);
+    /* Single arena allocation for all 9 row buffers (1 malloc instead of 9) */
+    size_t aligned_row = (buffer_row_size + 15) & ~(size_t)15;
+    uint8_t *arena = (uint8_t *)allocator->Alloc(aligned_row * 9);
+    if (!arena) return CODEC_ERROR_OUTOFMEMORY;
+    even_lowpass    = (PIXEL *)(arena + aligned_row * 0);
+    even_highpass   = (PIXEL *)(arena + aligned_row * 1);
+    odd_lowpass     = (PIXEL *)(arena + aligned_row * 2);
+    odd_highpass    = (PIXEL *)(arena + aligned_row * 3);
+    lowhigh_line[0] = (PIXEL *)(arena + aligned_row * 4);
+    lowhigh_line[1] = (PIXEL *)(arena + aligned_row * 5);
+    lowhigh_line[2] = (PIXEL *)(arena + aligned_row * 6);
+    highlow_line    = (PIXEL *)(arena + aligned_row * 7);
+    highhigh_line   = (PIXEL *)(arena + aligned_row * 8);
 
     lowlow_pitch   /= sizeof(PIXEL);
     lowhigh_pitch  /= sizeof(PIXEL);
@@ -666,15 +669,7 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
     if (2 * row + 1 < output_height)
         InvertHorizontal16s(odd_lowpass, odd_highpass, odd_output, input_width, output_width);
 
-    allocator->Free(even_lowpass);
-    allocator->Free(even_highpass);
-    allocator->Free(odd_lowpass);
-    allocator->Free(odd_highpass);
-    allocator->Free(lowhigh_line[0]);
-    allocator->Free(lowhigh_line[1]);
-    allocator->Free(lowhigh_line[2]);
-    allocator->Free(highlow_line);
-    allocator->Free(highhigh_line);
+    allocator->Free(arena);
 
     return CODEC_ERROR_OKAY;
 }
@@ -712,16 +707,19 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
 
     buffer_row_size = input_width * sizeof(PIXEL);
 
-    even_lowpass  = (PIXEL *)allocator->Alloc(buffer_row_size);
-    even_highpass = (PIXEL *)allocator->Alloc(buffer_row_size);
-    odd_lowpass   = (PIXEL *)allocator->Alloc(buffer_row_size);
-    odd_highpass  = (PIXEL *)allocator->Alloc(buffer_row_size);
-
-    lowhigh_line[0] = (PIXEL *)allocator->Alloc(buffer_row_size);
-    lowhigh_line[1] = (PIXEL *)allocator->Alloc(buffer_row_size);
-    lowhigh_line[2] = (PIXEL *)allocator->Alloc(buffer_row_size);
-    highlow_line    = (PIXEL *)allocator->Alloc(buffer_row_size);
-    highhigh_line   = (PIXEL *)allocator->Alloc(buffer_row_size);
+    /* Single arena allocation for all 9 row buffers (1 malloc instead of 9) */
+    size_t aligned_row = (buffer_row_size + 15) & ~(size_t)15;
+    uint8_t *arena = (uint8_t *)allocator->Alloc(aligned_row * 9);
+    if (!arena) return CODEC_ERROR_OUTOFMEMORY;
+    even_lowpass    = (PIXEL *)(arena + aligned_row * 0);
+    even_highpass   = (PIXEL *)(arena + aligned_row * 1);
+    odd_lowpass     = (PIXEL *)(arena + aligned_row * 2);
+    odd_highpass    = (PIXEL *)(arena + aligned_row * 3);
+    lowhigh_line[0] = (PIXEL *)(arena + aligned_row * 4);
+    lowhigh_line[1] = (PIXEL *)(arena + aligned_row * 5);
+    lowhigh_line[2] = (PIXEL *)(arena + aligned_row * 6);
+    highlow_line    = (PIXEL *)(arena + aligned_row * 7);
+    highhigh_line   = (PIXEL *)(arena + aligned_row * 8);
 
     lowlow_pitch   /= sizeof(PIXEL);
     lowhigh_pitch  /= sizeof(PIXEL);
@@ -1060,15 +1058,7 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
     if (2 * row + 1 < output_height)
         InvertHorizontalDescale16s(odd_lowpass, odd_highpass, odd_output, input_width, output_width, descale);
 
-    allocator->Free(even_lowpass);
-    allocator->Free(even_highpass);
-    allocator->Free(odd_lowpass);
-    allocator->Free(odd_highpass);
-    allocator->Free(lowhigh_line[0]);
-    allocator->Free(lowhigh_line[1]);
-    allocator->Free(lowhigh_line[2]);
-    allocator->Free(highlow_line);
-    allocator->Free(highhigh_line);
+    allocator->Free(arena);
 
     return CODEC_ERROR_OKAY;
 }

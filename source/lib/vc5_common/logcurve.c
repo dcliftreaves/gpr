@@ -56,9 +56,12 @@ static void SetupDecoderCurve(uint16_t *table, int bits)
 
 void SetupDecoderLogCurve(void)
 {
+    static int initialized = 0;
+    if (initialized) return;
     SetupDecoderCurve(DecoderLogCurve12, 12);
     SetupDecoderCurve(DecoderLogCurve14, 14);
     SetupDecoderCurve(DecoderLogCurve16, 16);
+    initialized = 1;
 }
 
 static void SetupEncoderLogCurveBits(uint16_t* table, int input_bits, int output_bits)
