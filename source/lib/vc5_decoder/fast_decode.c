@@ -345,47 +345,62 @@ static void *fast_channel_recon_thread(void *arg)
    Enables full NEON vectorization of the log curve (no scalar LUT lookups). */
 typedef struct { int32_t offset; int32_t slope; } LOG_APPROX_SEG;
 static LOG_APPROX_SEG log_approx_14[256];
+static LOG_APPROX_SEG log_approx_16[1024];
 static int log_approx_initialized = 0;
 
 static void init_log_approx(void)
 {
     if (log_approx_initialized) return;
-    int max_in = (1 << 14) - 1;
-    int seg_size = (max_in + 1) / 256;
-    for (int i = 0; i < 256; i++) {
-        int x0 = i * seg_size;
-        int x1 = x0 + seg_size;
-        if (x1 > max_in) x1 = max_in;
-        int y0 = DecoderLogCurve14[x0];
-        int y1 = DecoderLogCurve14[x1];
-        log_approx_14[i].offset = y0;
-        /* Q16 fixed-point slope */
-        log_approx_14[i].slope = (int32_t)(((int64_t)(y1 - y0) * 65536 + seg_size/2) / seg_size);
+
+    /* 14-bit: 256 segments, 64-entry spacing, 2KB table */
+    {
+        int max_in = (1 << 14) - 1;
+        int seg_size = (max_in + 1) / 256;
+        for (int i = 0; i < 256; i++) {
+            int x0 = i * seg_size;
+            int x1 = x0 + seg_size;
+            if (x1 > max_in) x1 = max_in;
+            int y0 = DecoderLogCurve14[x0];
+            int y1 = DecoderLogCurve14[x1];
+            log_approx_14[i].offset = y0;
+            log_approx_14[i].slope = (int32_t)(((int64_t)(y1 - y0) * 65536 + seg_size/2) / seg_size);
+        }
     }
+
+    /* 16-bit: 1024 segments, 64-entry spacing, 8KB table, max_err=5 */
+    {
+        int max_in = (1 << 16) - 1;
+        int seg_size = (max_in + 1) / 1024;
+        for (int i = 0; i < 1024; i++) {
+            int x0 = i * seg_size;
+            int x1 = x0 + seg_size;
+            if (x1 > max_in) x1 = max_in;
+            int y0 = DecoderLogCurve16[x0];
+            int y1 = DecoderLogCurve16[x1];
+            log_approx_16[i].offset = y0;
+            log_approx_16[i].slope = (int32_t)(((int64_t)(y1 - y0) * 65536 + seg_size/2) / seg_size);
+        }
+    }
+
     log_approx_initialized = 1;
 }
 
 #if ENABLED(NEON)
-/* NEON log curve evaluation: 4 values at once using piecewise linear approx */
-static INLINE int32x4_t log_curve_neon_14(int32x4_t x)
+/* NEON log curve evaluation using piecewise linear approx.
+   Both 14-bit (256 seg) and 16-bit (1024 seg) use 64-entry spacing (>> 6). */
+static INLINE int32x4_t log_curve_neon(int32x4_t x, const LOG_APPROX_SEG *table, int max_seg)
 {
-    /* Segment index = x >> 6 (64-entry segments for 14-bit / 256 segments) */
-    int32x4_t seg_idx = vshrq_n_s32(x, 6);
-    /* Fraction = x & 63 */
-    int32x4_t frac = vandq_s32(x, vdupq_n_s32(63));
-
-    /* Load 4 segments (can't vectorize the table load, do scalar) */
     int32_t idx[4], f[4];
-    vst1q_s32(idx, seg_idx);
-    vst1q_s32(f, frac);
+    vst1q_s32(idx, vshrq_n_s32(x, 6));
+    vst1q_s32(f, vandq_s32(x, vdupq_n_s32(63)));
 
     int32_t results[4];
     for (int k = 0; k < 4; k++) {
         int i = idx[k];
         if (i < 0) i = 0;
-        if (i > 255) i = 255;
-        results[k] = log_approx_14[i].offset +
-                     (int32_t)(((int64_t)log_approx_14[i].slope * f[k] + 32768) >> 16);
+        if (i >= max_seg) i = max_seg - 1;
+        results[k] = table[i].offset +
+                     (int32_t)(((int64_t)table[i].slope * f[k] + 32768) >> 16);
     }
     return vld1q_s32(results);
 }
@@ -495,13 +510,15 @@ static void *fast_pack_thread(void *arg)
 
                 /* Apply log curve: NEON piecewise linear for 14-bit, scalar LUT fallback */
                 int32_t ra[4], g1a[4], g2a[4], ba[4];
-                if (!bypass && log_bits == 14) {
-                    /* NEON piecewise linear approximation — 4 values at once, no scalar LUT */
+                if (!bypass && (log_bits == 14 || log_bits == 16)) {
+                    /* NEON piecewise linear approximation — 4 values at once */
+                    const LOG_APPROX_SEG *tbl = (log_bits == 14) ? log_approx_14 : log_approx_16;
+                    int max_seg = (log_bits == 14) ? 256 : 1024;
                     int32x4_t neg_shift = vdupq_n_s32(-shift);
-                    int32x4_t r_log  = vshlq_s32(log_curve_neon_14(r), neg_shift);
-                    int32x4_t g1_log = vshlq_s32(log_curve_neon_14(g1), neg_shift);
-                    int32x4_t g2_log = vshlq_s32(log_curve_neon_14(g2), neg_shift);
-                    int32x4_t b_log  = vshlq_s32(log_curve_neon_14(b), neg_shift);
+                    int32x4_t r_log  = vshlq_s32(log_curve_neon(r, tbl, max_seg), neg_shift);
+                    int32x4_t g1_log = vshlq_s32(log_curve_neon(g1, tbl, max_seg), neg_shift);
+                    int32x4_t g2_log = vshlq_s32(log_curve_neon(g2, tbl, max_seg), neg_shift);
+                    int32x4_t b_log  = vshlq_s32(log_curve_neon(b, tbl, max_seg), neg_shift);
                     vst1q_s32(ra, r_log); vst1q_s32(g1a, g1_log);
                     vst1q_s32(g2a, g2_log); vst1q_s32(ba, b_log);
                 } else if (!bypass) {
