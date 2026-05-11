@@ -1252,24 +1252,20 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
                 return NULL;
             }
             if (ctx->inline_mode) {
-                /* Stripe encoding: configurable via env vars.
-                     FUSED_STRIPE_ROWS         — global default (128)
-                     FUSED_STRIPE_ROWS_LH      — override for LH band (band==1)
-                     FUSED_STRIPE_ROWS_HL      — override for HL band (band==2)
-                     FUSED_STRIPE_ROWS_HH      — override for HH band (band==3)
-                   Default of 128 found via sweep on HERO10 23 MP:
-                       rows | vc5_bytes
-                         32 |  4,458,691
-                         64 |  4,393,276
-                        128 |  4,362,153  <-- minimum
-                        256 |  4,610,706
-                   Per-band sweeps (LH/HL/HH each independently varied) all
-                   minimize at the same 128 value, so no per-band tuning is
-                   needed for this data. The env vars remain for tuning on
-                   workloads with different statistics (e.g., 50 MP MISSION 1
-                   images may want different optima — re-sweep when target
-                   hardware is available). */
-                int rows = 128;
+                /* Stripe encoding: adaptive default based on band height,
+                   overridable via env vars.
+
+                   Sweep data:
+                     23 MP HERO10 (band_height=1044): 128 wins (4.36 MB vs
+                       4.39 MB at 64 — 0.7% better)
+                     50 MP MISSION 1 (band_height=1450): 64 wins (9.50 MB vs
+                       10.55 MB at 128 — 10% better)
+                   Larger bands benefit from more stripes (tighter local
+                   freq fit per stripe outweighs per-stripe table overhead).
+
+                   Heuristic: 128 below 1200 rows, 64 above.
+                   Env overrides take precedence. */
+                int rows = (cs->band_height < 1200) ? 128 : 64;
                 const char *e_global = getenv("FUSED_STRIPE_ROWS");
                 if (e_global) { int v = atoi(e_global); if (v > 0) rows = v; }
                 const char *band_env = NULL;
