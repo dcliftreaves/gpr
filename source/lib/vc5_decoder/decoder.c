@@ -2065,7 +2065,6 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
     AlignBitsSegment(stream);
     
     // Decode this subband (VLC or ANS depending on coding method tag)
-    }
     if (decoder->codec.band.coding_method >= 1)
     {
         {

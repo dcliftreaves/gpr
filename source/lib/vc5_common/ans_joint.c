@@ -226,6 +226,21 @@ static void build_tables(JANS_TABLE *t, int n) {
         t->decode_fast[i].freq = t->freq[sym];
         t->decode_fast[i].cum_freq = t->cum_freq[sym];
     }
+    /* Precompute ultra-packed decode info per table slot.
+       Eliminates per-token: sym/16, sym%16, class_to_run, class_to_mag lookups. */
+    for (int i = 0; i < JANS_TABLE_SIZE; i++) {
+        int sym = t->decode_fast[i].sym;
+        int rc = sym / JANS_MAG_CLASSES;
+        int mc = sym % JANS_MAG_CLASSES;
+        t->decode_info[i].freq = t->decode_fast[i].freq;
+        t->decode_info[i].cum_freq = t->decode_fast[i].cum_freq;
+        t->decode_info[i].run_bits = (uint8_t)run_class_bits[rc];
+        t->decode_info[i].mag_bits = (mc > 0) ? (uint8_t)mag_class_bits[mc] : 0;
+        t->decode_info[i].has_value = (mc > 0) ? 1 : 0;
+        t->decode_info[i].total_bits = t->decode_info[i].run_bits + t->decode_info[i].mag_bits + t->decode_info[i].has_value;
+        t->decode_info[i].run_min = (uint16_t)run_class_min[rc];
+        t->decode_info[i].mag_min = (mc > 0) ? (uint16_t)mag_class_min[mc] : 0;
+    }
     /* Precompute reciprocals for division-free encode (Giesen's trick).
        rcp_freq[i] = ceil(2^32 / freq[i]). Then x / freq ≈ (x * rcp) >> 32.
        This eliminates the two integer divides per token in the encoder,
@@ -650,53 +665,58 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
     int resid_bit = 0;
     int row = 0, col = 0;
 
-    /* Process tokens in groups of 4 (one per interleaved state).
-       Step 1: Decode 4 symbols + update 4 states (NEON-accelerated).
-       Step 2: Renormalize 4 states (serial — shared byte stream).
-       Step 3: Process 4 decoded symbols (serial — position-dependent). */
+    /* Ultra-fast decode loop using precomputed decode_info table.
+       Per token: 1 table lookup (decode_info), 1 rANS state update,
+       1 renorm, 1 merged bitbuf_read, 1 output store.
+       Eliminates: sym/16, sym%16, class_to_run, class_to_mag, 2 extra bitbuf_reads. */
     int t = 0;
+
+    /* Precompute row start pointers for scatter-free output */
+    int32_t *row_ptr = data;
+
     while (t + JANS_INTERLEAVE <= token_count && row < height)
     {
-        /* Step 1: Decode 4 symbols and update states (scalar — NEON gather
-           overhead exceeds vectorized multiply benefit on ARM) */
-        uint16_t syms[JANS_INTERLEAVE];
+        /* Decode 4 symbols: state update + renorm */
+        const JANS_DECODE_INFO *infos[JANS_INTERLEAVE];
         for (int s = 0; s < JANS_INTERLEAVE; s++) {
             uint32_t slot = states[s] & (JANS_TABLE_SIZE - 1);
-            const JANS_DECODE_ENTRY *de = &table.decode_fast[slot];
-            syms[s] = de->sym;
-            states[s] = de->freq * (states[s] >> JANS_TABLE_BITS) + slot - de->cum_freq;
-        }
-
-        /* Step 2: Renormalize 4 states (serial — shared byte stream) */
-        for (int s = 0; s < JANS_INTERLEAVE; s++) {
+            infos[s] = &table.decode_info[slot];
+            states[s] = infos[s]->freq * (states[s] >> JANS_TABLE_BITS) + slot - infos[s]->cum_freq;
+            /* Inline renorm */
             while (states[s] < RANS_BYTE_L) {
                 if (rptr >= rans_end) return -1;
                 states[s] = (states[s] << 8) | *rptr++;
             }
         }
 
-        /* Step 3: Process 4 decoded symbols (serial — output position depends on runs) */
+        /* Process 4 decoded tokens */
         for (int s = 0; s < JANS_INTERLEAVE && row < height; s++) {
-            int sym = syms[s];
-            int rc = sym / JANS_MAG_CLASSES;
-            int mc = sym % JANS_MAG_CLASSES;
+            const JANS_DECODE_INFO *di = infos[s];
 
-            int run_resid = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
-                                        run_class_bits[rc]);
-            int run = class_to_run(rc, run_resid);
+            /* Single merged bitbuf_read for ALL residual bits (run + mag + sign) */
+            uint32_t all_bits = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
+                                            di->total_bits);
 
+            /* Extract run from bottom run_bits */
+            int run = di->run_min + (all_bits & ((1u << di->run_bits) - 1));
+            all_bits >>= di->run_bits;
+
+            /* Advance position by run */
             col += run;
-            while (col >= width) { col -= width; row++; }
+            while (col >= width) { col -= width; row++; row_ptr = data + row * pitch_elems; }
 
-            if (mc > 0 && row < height) {
-                int mag_resid = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
-                                            mag_class_bits[mc]);
-                int mag = class_to_mag(mc, mag_resid);
-                int sign = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit, 1);
+            if (di->has_value && row < height) {
+                /* Extract magnitude from next mag_bits */
+                int mag = di->mag_min + (all_bits & ((1u << di->mag_bits) - 1));
+                all_bits >>= di->mag_bits;
+
+                /* Extract sign from next 1 bit */
+                int sign = all_bits & 1;
+
                 if (col < width)
-                    data[row * pitch_elems + col] = sign ? -mag : mag;
+                    row_ptr[col] = sign ? -mag : mag;
                 col++;
-                if (col >= width) { row++; col = 0; }
+                if (col >= width) { row++; col = 0; row_ptr = data + row * pitch_elems; }
             }
         }
         t += JANS_INTERLEAVE;
@@ -706,29 +726,26 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
     for (; t < token_count && row < height; t++) {
         int s = t & (JANS_INTERLEAVE - 1);
         uint32_t slot = states[s] & (JANS_TABLE_SIZE - 1);
-        const JANS_DECODE_ENTRY *de = &table.decode_fast[slot];
-        states[s] = de->freq * (states[s] >> JANS_TABLE_BITS) + slot - de->cum_freq;
+        const JANS_DECODE_INFO *di = &table.decode_info[slot];
+        states[s] = di->freq * (states[s] >> JANS_TABLE_BITS) + slot - di->cum_freq;
         while (states[s] < RANS_BYTE_L) {
             if (rptr >= rans_end) return -1;
             states[s] = (states[s] << 8) | *rptr++;
         }
-        int sym = de->sym;
-        int rc = sym / JANS_MAG_CLASSES;
-        int mc = sym % JANS_MAG_CLASSES;
-        int run_resid = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
-                                    run_class_bits[rc]);
-        int run = class_to_run(rc, run_resid);
+        uint32_t all_bits = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
+                                        di->total_bits);
+        int run = di->run_min + (all_bits & ((1u << di->run_bits) - 1));
+        all_bits >>= di->run_bits;
         col += run;
-        while (col >= width) { col -= width; row++; }
-        if (mc > 0 && row < height) {
-            int mag_resid = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
-                                        mag_class_bits[mc]);
-            int mag = class_to_mag(mc, mag_resid);
-            int sign = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit, 1);
+        while (col >= width) { col -= width; row++; row_ptr = data + row * pitch_elems; }
+        if (di->has_value && row < height) {
+            int mag = di->mag_min + (all_bits & ((1u << di->mag_bits) - 1));
+            all_bits >>= di->mag_bits;
+            int sign = all_bits & 1;
             if (col < width)
-                data[row * pitch_elems + col] = sign ? -mag : mag;
+                row_ptr[col] = sign ? -mag : mag;
             col++;
-            if (col >= width) { row++; col = 0; }
+            if (col >= width) { row++; col = 0; row_ptr = data + row * pitch_elems; }
         }
     }
 
