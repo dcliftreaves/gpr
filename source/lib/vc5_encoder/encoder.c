@@ -1516,6 +1516,7 @@ static void *AnsPreEncodeThread(void *arg)
 				if (jans_size > 0) {
 					total_size = (size_t)jans_size;
 					encoder->preencoded_band[ch][wl][band].coding_method = 1;
+				} else {
 				}
 				free(ans_input);
 			}
@@ -1790,8 +1791,17 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 #endif
 	if (encoder->ans_enabled)
 	{
-		/* Embedded mode: clear pre-encoded storage so Phase 2 encodes inline */
+		/* Embedded mode: single-threaded ANS pre-encode (one channel at a time) */
+		ensure_cubic_inv_table();
 		memset(encoder->preencoded_band, 0, sizeof(encoder->preencoded_band));
+
+		for (channel_index = 0; channel_index < channel_count; channel_index++)
+		{
+			ANS_PREENC_THREAD_ARG arg;
+			arg.encoder = encoder;
+			arg.channel_index = channel_index;
+			AnsPreEncodeThread(&arg);
+		}
 	}
 
 	/* Phase 2: Encode channels sequentially (bitstream is serial) */
