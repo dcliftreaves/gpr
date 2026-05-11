@@ -20,6 +20,10 @@
 #include <string.h>
 #include <limits.h>
 
+#ifdef __aarch64__
+#include "rans_kernel_arm64.h"
+#endif
+
 /* NEON vectorization of the rANS decode was tested and reverted —
    ARM lacks gather instructions, making scalar table lookups faster.
    See docs/future-ideas.md for details. */
@@ -771,131 +775,43 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
     int pair_count = 0;
     int t = 0;
 
-    /* Double-pumped loop: process TWO groups of 4 tokens per iteration.
-       This doubles instruction-level parallelism by keeping 8 independent
-       operations in flight across the two groups. The CPU can pipeline
-       group B's table lookups while group A's multiplies are executing. */
-    while (t + 2 * JANS_INTERLEAVE <= token_count)
-    {
-        const JANS_DECODE_INFO *infos[8];
-        uint32_t slots[8];
-
-        /* Phase A: 8 table lookups — slots computed, then loads issued.
-           The 4 loads in group B can overlap with group A's multiply latency. */
-        slots[0] = states[0] & (JANS_TABLE_SIZE - 1);
-        slots[1] = states[1] & (JANS_TABLE_SIZE - 1);
-        slots[2] = states[2] & (JANS_TABLE_SIZE - 1);
-        slots[3] = states[3] & (JANS_TABLE_SIZE - 1);
-        infos[0] = &table.decode_info[slots[0]];
-        infos[1] = &table.decode_info[slots[1]];
-        infos[2] = &table.decode_info[slots[2]];
-        infos[3] = &table.decode_info[slots[3]];
-
-        /* Phase B group A: 4 state updates */
-        states[0] = infos[0]->freq * (states[0] >> JANS_TABLE_BITS) + slots[0] - infos[0]->cum_freq;
-        states[1] = infos[1]->freq * (states[1] >> JANS_TABLE_BITS) + slots[1] - infos[1]->cum_freq;
-        states[2] = infos[2]->freq * (states[2] >> JANS_TABLE_BITS) + slots[2] - infos[2]->cum_freq;
-        states[3] = infos[3]->freq * (states[3] >> JANS_TABLE_BITS) + slots[3] - infos[3]->cum_freq;
-
-        /* Phase C group A: 4 renorms */
-        for (int s = 0; s < 4; s++) {
-            while (states[s] < RANS_BYTE_L) {
-                if (rptr >= rans_end) { free(alloc_buf); return -1; }
-                states[s] = (states[s] << 8) | *rptr++;
-            }
-        }
-
-        /* Group B: slots + lookups (pipelined with group A's extraction) */
-        slots[4] = states[0] & (JANS_TABLE_SIZE - 1);
-        slots[5] = states[1] & (JANS_TABLE_SIZE - 1);
-        slots[6] = states[2] & (JANS_TABLE_SIZE - 1);
-        slots[7] = states[3] & (JANS_TABLE_SIZE - 1);
-        infos[4] = &table.decode_info[slots[4]];
-        infos[5] = &table.decode_info[slots[5]];
-        infos[6] = &table.decode_info[slots[6]];
-        infos[7] = &table.decode_info[slots[7]];
-
-        /* Phase D group A: Extract 4 tokens while group B loads are in flight */
-        for (int s = 0; s < 4; s++) {
-            const JANS_DECODE_INFO *di = infos[s];
-            int idx = pair_count++;
-            uint32_t all_bits = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit, di->total_bits);
-            runs[idx] = (uint16_t)(di->run_min + (all_bits & ((1u << di->run_bits) - 1)));
-            all_bits >>= di->run_bits;
-            if (di->has_value) {
-                int mag = di->mag_min + (all_bits & ((1u << di->mag_bits) - 1));
-                all_bits >>= di->mag_bits;
-                values[idx] = (all_bits & 1) ? -mag : mag;
-            } else {
-                values[idx] = 0;
-            }
-        }
-
-        /* Phase B group B: 4 state updates */
-        states[0] = infos[4]->freq * (states[0] >> JANS_TABLE_BITS) + slots[4] - infos[4]->cum_freq;
-        states[1] = infos[5]->freq * (states[1] >> JANS_TABLE_BITS) + slots[5] - infos[5]->cum_freq;
-        states[2] = infos[6]->freq * (states[2] >> JANS_TABLE_BITS) + slots[6] - infos[6]->cum_freq;
-        states[3] = infos[7]->freq * (states[3] >> JANS_TABLE_BITS) + slots[7] - infos[7]->cum_freq;
-
-        /* Phase C group B: 4 renorms */
-        for (int s = 0; s < 4; s++) {
-            while (states[s] < RANS_BYTE_L) {
-                if (rptr >= rans_end) { free(alloc_buf); return -1; }
-                states[s] = (states[s] << 8) | *rptr++;
-            }
-        }
-
-        /* Prefetch next iteration */
-        __builtin_prefetch(&table.decode_info[states[0] & (JANS_TABLE_SIZE - 1)], 0, 3);
-        __builtin_prefetch(&table.decode_info[states[1] & (JANS_TABLE_SIZE - 1)], 0, 3);
-
-        /* Phase D group B: Extract 4 tokens */
-        for (int s = 0; s < 4; s++) {
-            const JANS_DECODE_INFO *di = infos[4 + s];
-            int idx = pair_count++;
-            uint32_t all_bits = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit, di->total_bits);
-            runs[idx] = (uint16_t)(di->run_min + (all_bits & ((1u << di->run_bits) - 1)));
-            all_bits >>= di->run_bits;
-            if (di->has_value) {
-                int mag = di->mag_min + (all_bits & ((1u << di->mag_bits) - 1));
-                all_bits >>= di->mag_bits;
-                values[idx] = (all_bits & 1) ? -mag : mag;
-            } else {
-                values[idx] = 0;
-            }
-        }
-        t += 2 * JANS_INTERLEAVE;
-    }
-
-    /* Handle remaining tokens in groups of 4 */
+    /* Main decode loop with ARM64 assembly kernel for state updates */
     while (t + JANS_INTERLEAVE <= token_count)
     {
-        const JANS_DECODE_INFO *infos[4];
-        uint32_t slots[4];
+        const void *infos_raw[4];
 
+#ifdef __aarch64__
+        /* ARM64 assembly kernel: state update + renorm with no bounds check,
+           paired loads, and prefetching. */
+        rans_quad_step_arm64(states, &rptr, table.decode_info, infos_raw);
+#else
+        /* Generic C fallback */
+        const JANS_DECODE_INFO *infos_c[4];
+        uint32_t slots[4];
         slots[0] = states[0] & (JANS_TABLE_SIZE - 1);
         slots[1] = states[1] & (JANS_TABLE_SIZE - 1);
         slots[2] = states[2] & (JANS_TABLE_SIZE - 1);
         slots[3] = states[3] & (JANS_TABLE_SIZE - 1);
-        infos[0] = &table.decode_info[slots[0]];
-        infos[1] = &table.decode_info[slots[1]];
-        infos[2] = &table.decode_info[slots[2]];
-        infos[3] = &table.decode_info[slots[3]];
-
-        states[0] = infos[0]->freq * (states[0] >> JANS_TABLE_BITS) + slots[0] - infos[0]->cum_freq;
-        states[1] = infos[1]->freq * (states[1] >> JANS_TABLE_BITS) + slots[1] - infos[1]->cum_freq;
-        states[2] = infos[2]->freq * (states[2] >> JANS_TABLE_BITS) + slots[2] - infos[2]->cum_freq;
-        states[3] = infos[3]->freq * (states[3] >> JANS_TABLE_BITS) + slots[3] - infos[3]->cum_freq;
-
+        infos_c[0] = &table.decode_info[slots[0]];
+        infos_c[1] = &table.decode_info[slots[1]];
+        infos_c[2] = &table.decode_info[slots[2]];
+        infos_c[3] = &table.decode_info[slots[3]];
+        states[0] = infos_c[0]->freq * (states[0] >> JANS_TABLE_BITS) + slots[0] - infos_c[0]->cum_freq;
+        states[1] = infos_c[1]->freq * (states[1] >> JANS_TABLE_BITS) + slots[1] - infos_c[1]->cum_freq;
+        states[2] = infos_c[2]->freq * (states[2] >> JANS_TABLE_BITS) + slots[2] - infos_c[2]->cum_freq;
+        states[3] = infos_c[3]->freq * (states[3] >> JANS_TABLE_BITS) + slots[3] - infos_c[3]->cum_freq;
         for (int s = 0; s < 4; s++) {
             while (states[s] < RANS_BYTE_L) {
                 if (rptr >= rans_end) { free(alloc_buf); return -1; }
                 states[s] = (states[s] << 8) | *rptr++;
             }
         }
+        infos_raw[0] = infos_c[0]; infos_raw[1] = infos_c[1];
+        infos_raw[2] = infos_c[2]; infos_raw[3] = infos_c[3];
+#endif
 
         for (int s = 0; s < 4; s++) {
-            const JANS_DECODE_INFO *di = infos[s];
+            const JANS_DECODE_INFO *di = (const JANS_DECODE_INFO *)infos_raw[s];
             int idx = pair_count++;
             uint32_t all_bits = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit, di->total_bits);
             runs[idx] = (uint16_t)(di->run_min + (all_bits & ((1u << di->run_bits) - 1)));
