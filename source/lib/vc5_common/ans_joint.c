@@ -658,6 +658,39 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
     double _t0 = _jans_ms();
 #endif
 
+    /* Hoist BITBUF state into local register variables. The compiler can't
+       usually do this through a pointer because aliasing rules forbid it.
+       We sync back at end of tokenize. Each non-zero coefficient calls into
+       the merged-write path below, which touches accum/accum_bits/byte_pos
+       without going through memory. */
+    uint64_t bb_accum = bb.accum;
+    int      bb_accum_bits = bb.accum_bits;
+    size_t   bb_pos = bb.byte_pos;
+    uint8_t * const bb_buf = bb.buf;
+    const size_t bb_cap = bb.capacity;
+
+    #define BB_WRITE_LOCAL(value, bits) do {                              \
+        if ((bits) > 0) {                                                 \
+            uint32_t _v = (uint32_t)(value);                              \
+            int _b = (bits);                                              \
+            uint32_t _mask = (_b >= 32) ? 0xFFFFFFFFu : ((1u << _b) - 1); \
+            bb_accum |= ((uint64_t)(_v & _mask)) << bb_accum_bits;        \
+            bb_accum_bits += _b;                                          \
+            if (bb_accum_bits >= 32 && bb_pos + 4 <= bb_cap) {            \
+                uint32_t _w = (uint32_t)bb_accum;                         \
+                memcpy(bb_buf + bb_pos, &_w, 4);                          \
+                bb_pos += 4;                                              \
+                bb_accum >>= 32;                                          \
+                bb_accum_bits -= 32;                                      \
+            }                                                             \
+            while (bb_accum_bits >= 8) {                                  \
+                if (bb_pos < bb_cap) bb_buf[bb_pos++] = (uint8_t)bb_accum;\
+                bb_accum >>= 8;                                           \
+                bb_accum_bits -= 8;                                       \
+            }                                                             \
+        }                                                                 \
+    } while (0)
+
     for (int row = 0; row < height; row++) {
         const int32_t *rowptr = data + row * pitch_elems;
         int run = 0;
@@ -670,7 +703,7 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
                 int sym = rc * JANS_MAG_CLASSES + 0;
                 table.freq[sym]++;
                 tokens[token_count++] = (uint16_t)sym;
-                bitbuf_write(&bb, rr, run_class_bits[rc]);
+                BB_WRITE_LOCAL(rr, run_class_bits[rc]);
                 run -= 255;
             }
             int run_resid, mag_resid;
@@ -679,7 +712,6 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
             int sym = rc * JANS_MAG_CLASSES + mc;
             table.freq[sym]++;
             tokens[token_count++] = (uint16_t)sym;
-            /* Merged residual write: pack run_resid + mag_resid + sign into one word */
             {
                 int rb = run_class_bits[rc];
                 int mb = mag_class_bits[mc];
@@ -687,9 +719,9 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
                 if (mc > 0) {
                     merged |= ((uint32_t)mag_resid << rb);
                     merged |= ((val < 0) ? 1u : 0u) << (rb + mb);
-                    bitbuf_write(&bb, merged, rb + mb + 1);
+                    BB_WRITE_LOCAL(merged, rb + mb + 1);
                 } else {
-                    bitbuf_write(&bb, merged, rb);
+                    BB_WRITE_LOCAL(merged, rb);
                 }
             }
             run = 0;
@@ -701,11 +733,17 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
                 int sym = rc * JANS_MAG_CLASSES + 0;
                 table.freq[sym]++;
                 tokens[token_count++] = (uint16_t)sym;
-                bitbuf_write(&bb, rr, run_class_bits[rc]);
+                BB_WRITE_LOCAL(rr, run_class_bits[rc]);
                 run -= actual;
             }
         }
     }
+    #undef BB_WRITE_LOCAL
+
+    /* Sync local bitbuf state back to bb so bitbuf_size() works */
+    bb.accum = bb_accum;
+    bb.accum_bits = bb_accum_bits;
+    bb.byte_pos = bb_pos;
 
     size_t resid_size = bitbuf_size(&bb);
 #if defined(JANS_TIMING_DETAIL)
