@@ -1523,7 +1523,11 @@ static void *AnsPreEncodeThread(void *arg)
 			/* Compare ANS size with VLC estimate — use whichever is smaller.
 			   For companded modes (3), compare against VLC on the ORIGINAL
 			   (uncompanded) data since VLC uses its own companding internally. */
-			if (total_size > 0 && encoder->codeset)
+			/* Per-band auto-select: compare ANS size with VLC estimate.
+			   Disabled when embedded_mode is set — always use ANS for
+			   faster decode (ANS reads from contiguous buffer, no
+			   per-symbol bitstream refills like VLC). */
+			if (total_size > 0 && encoder->codeset && !encoder->embedded_mode)
 			{
 				int bp = band_pitch / sizeof(PIXEL);
 				size_t vlc_est = vlc_estimate_band_size(encoder->codeset,
