@@ -634,29 +634,21 @@ static void pass1_run_channel(
                 is_top, is_bottom);
 
 #ifdef FUSED_TIMING_DETAIL
-            t_vert += _fused_ms() - _td; _td = _fused_ms();
+            t_vert += _fused_ms() - _td;
 #endif
 
-            count_freq_row(lh_row, bw, cs->freq[1], &cs->run_state[1]);
-            count_freq_row(hl_row, bw, cs->freq[2], &cs->run_state[2]);
-            count_freq_row(hh_row, bw, cs->freq[3], &cs->run_state[3]);
-
-#ifdef FUSED_TIMING_DETAIL
-            t_freq += _fused_ms() - _td;
-#endif
+            /* NOTE: no freq counting here — jans_encode_band_x4 in Pass 2 builds
+               its own table.freq internally as it tokenizes. The Pass 1 freq
+               counting was redundant work (the cs->freq tables were never read). */
+            (void)lh_row; (void)hl_row; (void)hh_row;
 
             cs->band_out_row++;
         }
     }
 
-    /* Flush trailing zero runs for this channel's 3 highpass bands */
-    for (int band = 1; band < 4; band++) {
-        count_freq_flush(cs->freq[band], &cs->run_state[band]);
-    }
-
 #ifdef FUSED_TIMING_DETAIL
-    fprintf(stderr, "    ch%d: unpack=%.1f, horiz=%.1f, vert+quant=%.1f, freq=%.1f\n",
-            channel, t_unpack, t_horiz, t_vert, t_freq);
+    fprintf(stderr, "    ch%d: unpack=%.1f, horiz=%.1f, vert+quant=%.1f\n",
+            channel, t_unpack, t_horiz, t_vert);
 #endif
 
     free(unpack_row);
