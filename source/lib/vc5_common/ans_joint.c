@@ -676,7 +676,8 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
 
     while (t + JANS_INTERLEAVE <= token_count && row < height)
     {
-        /* Decode 4 symbols: state update + renorm */
+        /* Decode 4 symbols: state update + renorm.
+           Prefetch next iteration's table entries while processing current. */
         const JANS_DECODE_INFO *infos[JANS_INTERLEAVE];
         for (int s = 0; s < JANS_INTERLEAVE; s++) {
             uint32_t slot = states[s] & (JANS_TABLE_SIZE - 1);
@@ -687,6 +688,8 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
                 if (rptr >= rans_end) return -1;
                 states[s] = (states[s] << 8) | *rptr++;
             }
+            /* Prefetch next lookup for this state (speculative) */
+            __builtin_prefetch(&table.decode_info[states[s] & (JANS_TABLE_SIZE - 1)], 0, 3);
         }
 
         /* Process 4 decoded tokens */
