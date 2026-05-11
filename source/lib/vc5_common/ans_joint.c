@@ -203,14 +203,21 @@ static inline __attribute__((always_inline))
 uint32_t bitbuf_read(const uint8_t *buf, size_t buf_size,
                      size_t *byte_pos, int *bit_pos, int bits) {
     if (bits == 0) return 0;
-    /* Fast path: read up to 32 bits from a little-endian word at byte_pos.
-       This avoids the per-bit loop entirely for the common case where
-       byte_pos + 3 < buf_size (all residual reads are ≤ 10 bits). */
+    /* Fast path: single unaligned 64-bit load covers up to 57 bits.
+       Use memcpy for strict aliasing compliance — compiler generates LDR. */
+    if (__builtin_expect(*byte_pos + 7 < buf_size, 1)) {
+        uint64_t word;
+        memcpy(&word, buf + *byte_pos, 8);
+        uint32_t value = (uint32_t)(word >> *bit_pos) & ((1u << bits) - 1);
+        int new_bit = *bit_pos + bits;
+        *byte_pos += new_bit >> 3;
+        *bit_pos = new_bit & 7;
+        return value;
+    }
+    /* Fallback: 32-bit load for near end of buffer */
     if (*byte_pos + 3 < buf_size) {
-        uint32_t word = (uint32_t)buf[*byte_pos]
-                      | ((uint32_t)buf[*byte_pos + 1] << 8)
-                      | ((uint32_t)buf[*byte_pos + 2] << 16)
-                      | ((uint32_t)buf[*byte_pos + 3] << 24);
+        uint32_t word;
+        memcpy(&word, buf + *byte_pos, 4);
         uint32_t mask = (bits >= 32) ? 0xFFFFFFFFu : ((1u << bits) - 1);
         uint32_t value = (word >> *bit_pos) & mask;
         int new_bit = *bit_pos + bits;
