@@ -334,6 +334,11 @@ extern "C" {
                                 IMAGE *packed_image, RGB_IMAGE *rgb_image,
                                 DECODER_PARAMETERS *parameters);
 
+    /* Direct GPR decode: bypass DNG SDK for maximum speed */
+    int gpr_fast_decode(const uint8_t *gpr_data, size_t gpr_size,
+                        void **raw_output, size_t *raw_size,
+                        int pixel_format);
+
 #ifdef __cplusplus
 }
 #endif
