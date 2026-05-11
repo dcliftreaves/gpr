@@ -2002,26 +2002,70 @@ CODEC_ERROR DecodeLowpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wave
     // Decode each row in the lowpass image
     if (lowpass_precision == 16)
     {
-        // Fast path: extract 16-bit coefficients directly from the 32-bit buffer
-        for (row = 0; row < lowpass_band_height; row++)
+        STREAM *bytestream = stream->stream;
+
+        /* Direct memory bulk read: when the bitstream buffer is empty and
+           the underlying stream is a contiguous memory buffer, read 16-bit
+           big-endian coefficients directly from the buffer pointer.
+           This eliminates all GetBits/GetBuffer/GetWord overhead for the
+           entire lowpass band (~2500 coefficients per channel). */
+        if (stream->count == 0 &&
+            bytestream != NULL &&
+            bytestream->type == STREAM_TYPE_MEMORY)
         {
-            for (column = 0; column < lowpass_band_width; column++)
+            int total_pixels = lowpass_band_width * lowpass_band_height;
+            size_t bytes_needed = (size_t)total_pixels * 2;
+            uint8_t *src = (uint8_t *)bytestream->location.memory.buffer + bytestream->byte_count;
+
+            if (lowpass_band_width == lowpass_band_pitch)
             {
-                if (stream->count < 16)
+                /* Contiguous destination: convert all at once */
+                for (int i = 0; i < total_pixels; i++)
                 {
-                    if (stream->count == 0) {
-                        CODEC_ERROR gb_error = GetBuffer(stream);
-                        if (gb_error != CODEC_ERROR_OKAY) return gb_error;
-                    } else {
-                        lowpass_band_ptr[column] = (COEFFICIENT)GetBits(stream, 16);
-                        continue;
-                    }
+                    /* Big-endian 16-bit unsigned -> int32_t PIXEL */
+                    lowpass_band_ptr[i] = (COEFFICIENT)((uint16_t)(src[0] << 8) | src[1]);
+                    src += 2;
                 }
-                lowpass_band_ptr[column] = (COEFFICIENT)(stream->buffer >> 16);
-                stream->buffer <<= 16;
-                stream->count -= 16;
             }
-            lowpass_band_ptr += lowpass_band_pitch;
+            else
+            {
+                /* Padded rows: convert row by row */
+                for (row = 0; row < lowpass_band_height; row++)
+                {
+                    for (column = 0; column < lowpass_band_width; column++)
+                    {
+                        lowpass_band_ptr[column] = (COEFFICIENT)((uint16_t)(src[0] << 8) | src[1]);
+                        src += 2;
+                    }
+                    lowpass_band_ptr += lowpass_band_pitch;
+                }
+            }
+
+            bytestream->byte_count += bytes_needed;
+        }
+        else
+        {
+            /* Bitstream-based fast path for 16-bit precision */
+            for (row = 0; row < lowpass_band_height; row++)
+            {
+                for (column = 0; column < lowpass_band_width; column++)
+                {
+                    if (stream->count < 16)
+                    {
+                        if (stream->count == 0) {
+                            CODEC_ERROR gb_error = GetBuffer(stream);
+                            if (gb_error != CODEC_ERROR_OKAY) return gb_error;
+                        } else {
+                            lowpass_band_ptr[column] = (COEFFICIENT)GetBits(stream, 16);
+                            continue;
+                        }
+                    }
+                    lowpass_band_ptr[column] = (COEFFICIENT)(stream->buffer >> 16);
+                    stream->buffer <<= 16;
+                    stream->count -= 16;
+                }
+                lowpass_band_ptr += lowpass_band_pitch;
+            }
         }
     }
     else
@@ -2074,21 +2118,35 @@ CODEC_ERROR DecodeHighpassBand(DECODER *decoder, BITSTREAM *stream, WAVELET *wav
                Mode 3/4: 4-way interleaved rANS (faster decode). */
             AlignBitsSegment(stream);
             uint32_t jans_size = GetBits(stream, 32);
-            uint8_t *jans_buf = (uint8_t *)decoder->allocator->Alloc(jans_size);
-            GetByteArray(stream, jans_buf, jans_size);
+
+            /* Try zero-copy: get a direct pointer into the stream buffer
+               to avoid malloc + memcpy + free per band (up to 36 bands). */
+            const uint8_t *jans_ptr = NULL;
+            uint8_t *jans_buf_alloc = NULL;
+            CODEC_ERROR zc_err = GetByteArrayZeroCopy(stream, jans_size, &jans_ptr);
+            if (zc_err != CODEC_ERROR_OKAY)
+            {
+                /* Fallback: allocate and copy (e.g., file-backed stream) */
+                jans_buf_alloc = (uint8_t *)decoder->allocator->Alloc(jans_size);
+                GetByteArray(stream, jans_buf_alloc, jans_size);
+                jans_ptr = jans_buf_alloc;
+            }
 
             int rc;
             int cm = decoder->codec.band.coding_method;
             if (cm >= 3)
-                rc = jans_decode_band_x4(jans_buf, jans_size,
+                rc = jans_decode_band_x4(jans_ptr, jans_size,
                                          (int32_t *)wavelet->data[band],
                                          width, height, wavelet->pitch);
             else
-                rc = jans_decode_band(jans_buf, jans_size,
+                rc = jans_decode_band(jans_ptr, jans_size,
                                       (int32_t *)wavelet->data[band],
                                       width, height, wavelet->pitch);
             error = (rc == 0) ? CODEC_ERROR_OKAY : CODEC_ERROR_DECODING_SUBBAND;
-            decoder->allocator->Free(jans_buf);
+
+            /* Free only if we allocated (zero-copy case: nothing to free) */
+            if (jans_buf_alloc)
+                decoder->allocator->Free(jans_buf_alloc);
         }
 
         /* Mode 2/4 need coding_method preserved for quant negation in caller.
