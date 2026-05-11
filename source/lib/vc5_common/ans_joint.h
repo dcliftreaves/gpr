@@ -101,6 +101,34 @@ int jans_decode_band(const uint8_t *in_buf, size_t in_size,
 int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
                         const int32_t *data, int width, int height, int pitch);
 
+/* ================================================================
+   Inline-tokenize API — for the fused encoder's "memory-tight" mode.
+
+   Lets a producer (Pass 1's vert+quant) tokenize each quantized band row
+   immediately, without first materializing the whole band as a buffer.
+   The Pass 2 phase then only does rANS encode + output, no tokenize.
+
+   Saves the full band_data buffer (~5.8 MB per band × 12 bands = ~70 MB
+   at 23 MP, ~150 MB at 50 MP). The trade-off is that tokenize work moves
+   from 12 Pass 2 threads into 4 Pass 1 threads — neutral or a small loss
+   on wide-core machines (M1), neutral on 4-core embedded.
+
+   Lifecycle:
+       state = jans_inline_create(max_coeffs);
+       jans_inline_reset(state);             // per-frame
+       for each band row k:
+           jans_inline_row(state, row, width);
+       int n = jans_inline_finalize(out_buf, out_cap, state);
+       jans_inline_destroy(state);           // at program end
+   ================================================================ */
+typedef struct JANS_INLINE_STATE JANS_INLINE_STATE;
+
+JANS_INLINE_STATE *jans_inline_create(size_t max_coeffs);
+void jans_inline_reset(JANS_INLINE_STATE *s);
+void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width);
+int  jans_inline_finalize(uint8_t *out_buf, size_t out_cap, JANS_INLINE_STATE *s);
+void jans_inline_destroy(JANS_INLINE_STATE *s);
+
 /*!
     @brief Decode 4-way interleaved rANS band.
     @return 0 on success, -1 on error.
