@@ -22,6 +22,7 @@
 #include "fused_encode.h"
 #include "ans_joint.h"
 #include <pthread.h>
+#include <unistd.h>  /* for sysconf */
 
 #define FUSED_TIMING
 #define FUSED_TIMING_DETAIL
@@ -414,7 +415,8 @@ typedef struct {
     int buf_row;                           /* Current position in circular buffer */
 
     /* Per-level, per-band output */
-    PIXEL *band_data[FUSED_MAX_BANDS];    /* Quantized band output buffers */
+    PIXEL *band_data[FUSED_MAX_BANDS];    /* Quantized band buffers (NULL in inline mode) */
+    PIXEL *row_scratch[FUSED_MAX_BANDS];  /* Per-row scratch (~5KB × 4) used in inline mode */
     int band_width, band_height;
     int band_pitch;                        /* In pixels */
     int band_out_row;                      /* Current output row */
@@ -423,9 +425,13 @@ typedef struct {
     int32_t midpoint[FUSED_MAX_BANDS];
     int32_t multiplier[FUSED_MAX_BANDS];
 
-    /* ANS frequency tables per band */
-    uint16_t freq[FUSED_MAX_BANDS][160];  /* 10 run classes × 16 mag classes = 160 */
-    int run_state[FUSED_MAX_BANDS];        /* Run counter per band */
+    /* ANS frequency tables per band (legacy/unused since the freq-removal commit) */
+    uint16_t freq[FUSED_MAX_BANDS][160];
+    int run_state[FUSED_MAX_BANDS];
+
+    /* Inline-tokenize state per highpass band (NULL in split-pass mode).
+       Owned by FUSED_ENCODER; reset each frame. */
+    JANS_INLINE_STATE *inline_state[FUSED_MAX_BANDS];
 } FUSED_CHANNEL_STATE;
 
 /* ================================================================
@@ -617,8 +623,19 @@ static void pass1_run_channel(
             int is_bottom = (out_row == cs->band_height - 1);
             int bw = cs->band_width;
 
-            PIXEL *ll_row = cs->band_data[0] + out_row * cs->band_pitch;
-            PIXEL *lh_row = cs->band_data[1] + out_row * cs->band_pitch;
+            /* Output destinations: either into the full band buffer (split mode)
+               or into a per-row scratch (inline mode). LL is discarded either
+               way at this level. */
+            const int inline_mode = (cs->inline_state[1] != NULL);
+            PIXEL *ll_row = inline_mode ? cs->row_scratch[0]
+                                        : (cs->band_data[0] + out_row * cs->band_pitch);
+            PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
+                                        : (cs->band_data[1] + out_row * cs->band_pitch);
+            PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
+                                        : (cs->band_data[2] + out_row * cs->band_pitch);
+            PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
+                                        : (cs->band_data[3] + out_row * cs->band_pitch);
+
             vertical_filter_quantize_row(lp_rows, bw,
                 cs->midpoint[0], cs->multiplier[0],
                 cs->midpoint[1], cs->multiplier[1],
@@ -626,8 +643,6 @@ static void pass1_run_channel(
                 ll_row, lh_row, NULL, NULL,
                 is_top, is_bottom);
 
-            PIXEL *hl_row = cs->band_data[2] + out_row * cs->band_pitch;
-            PIXEL *hh_row = cs->band_data[3] + out_row * cs->band_pitch;
             vertical_filter_quantize_row(hp_rows, bw,
                 cs->midpoint[2], cs->multiplier[2],
                 cs->midpoint[3], cs->multiplier[3],
@@ -636,24 +651,50 @@ static void pass1_run_channel(
                 is_top, is_bottom);
 
 #ifdef FUSED_TIMING_DETAIL
-            t_vert += _fused_ms() - _td;
+            t_vert += _fused_ms() - _td; _td = _fused_ms();
 #endif
 
-            /* NOTE: no freq counting here — jans_encode_band_x4 in Pass 2 builds
-               its own table.freq internally as it tokenizes. The Pass 1 freq
-               counting was redundant work (the cs->freq tables were never read). */
-            (void)lh_row; (void)hl_row; (void)hh_row;
+            /* Inline-mode: tokenize each highpass band's row immediately while
+               it's still hot in L1. Pass 2 will only do rANS encode. */
+            if (inline_mode) {
+                jans_inline_row(cs->inline_state[1], lh_row, bw);
+                jans_inline_row(cs->inline_state[2], hl_row, bw);
+                jans_inline_row(cs->inline_state[3], hh_row, bw);
+            }
+
+#ifdef FUSED_TIMING_DETAIL
+            t_freq += _fused_ms() - _td;
+#endif
 
             cs->band_out_row++;
+        }
+    }
+
+    /* The 6-tap vertical filter underflows by 2 rows at the bottom — the last
+       2 band rows are never produced by the loop. The split-pass encoder's
+       jans_encode_band_x4 still tokenizes the full band (those untouched
+       trailing rows are calloc'd zero), so inline mode must do the same to
+       stay bit-identical: emit zero-row tokens for the missing rows. */
+    if (cs->inline_state[1] != NULL) {
+        int bw = cs->band_width;
+        PIXEL *zero_row = (PIXEL *)calloc(bw, sizeof(PIXEL));
+        if (zero_row) {
+            while (cs->band_out_row < cs->band_height) {
+                jans_inline_row(cs->inline_state[1], zero_row, bw);
+                jans_inline_row(cs->inline_state[2], zero_row, bw);
+                jans_inline_row(cs->inline_state[3], zero_row, bw);
+                cs->band_out_row++;
+            }
+            free(zero_row);
         }
     }
 
 #ifdef FUSED_TIMING_DETAIL
     double _ch_end = _fused_ms();
     double _ch_total = _ch_end - _ch_start;
-    double _ch_other = _ch_total - t_unpack - t_horiz - t_vert;
-    fprintf(stderr, "    ch%d: unpack=%.1f, horiz=%.1f, vert+quant=%.1f, other=%.1f, TOTAL=%.1f\n",
-            channel, t_unpack, t_horiz, t_vert, _ch_other, _ch_total);
+    double _ch_other = _ch_total - t_unpack - t_horiz - t_vert - t_freq;
+    fprintf(stderr, "    ch%d: unpack=%.1f, horiz=%.1f, vert+quant=%.1f, tokenize=%.1f, other=%.1f, TOTAL=%.1f\n",
+            channel, t_unpack, t_horiz, t_vert, t_freq, _ch_other, _ch_total);
 #endif
 
     free(unpack_row);
@@ -691,11 +732,13 @@ static void *pass1_channel_thread(void *arg) {
     return NULL;
 }
 
-/* One-time channel state setup: allocates band buffers, row buffers, quant params.
-   Returns 0 on success. */
+/* One-time channel state setup. In inline_mode, skips the per-band full-image
+   buffers and allocates per-row scratch instead — ~85 MB savings at 23 MP,
+   ~200 MB at 50 MP. */
 static int setup_channel_state(
     FUSED_CHANNEL_STATE ch_state[4],
-    int width, int height, int quality, int *out_is_rggb, int *out_log_bits)
+    int width, int height, int quality, int inline_mode,
+    int *out_is_rggb, int *out_log_bits)
 {
     int ch_width = width / 2;
     int ch_height = height / 2;
@@ -718,8 +761,16 @@ static int setup_channel_state(
         int bw = ch_state[ch].band_width;
         int bh = ch_state[ch].band_height;
         for (int band = 0; band < 4; band++) {
-            ch_state[ch].band_data[band] = (PIXEL *)calloc(bw * bh, sizeof(PIXEL));
-            if (!ch_state[ch].band_data[band]) return -1;
+            if (inline_mode) {
+                /* Need only a small row scratch instead of the full band */
+                ch_state[ch].band_data[band] = NULL;
+                ch_state[ch].row_scratch[band] = (PIXEL *)calloc(bw, sizeof(PIXEL));
+                if (!ch_state[ch].row_scratch[band]) return -1;
+            } else {
+                ch_state[ch].band_data[band] = (PIXEL *)calloc(bw * bh, sizeof(PIXEL));
+                ch_state[ch].row_scratch[band] = NULL;
+                if (!ch_state[ch].band_data[band]) return -1;
+            }
         }
         for (int r = 0; r < FUSED_ROW_BUFS; r++) {
             ch_state[ch].lowpass_buf[r] = (PIXEL *)calloc(ch_width / 2, sizeof(PIXEL));
@@ -981,8 +1032,12 @@ static int fused_pass1_serial(
 
 typedef struct {
     int channel;        /* Which channel's P1 we depend on (0..3) */
+    /* Split mode: scan band_data here in Pass 2's tokenize+rANS */
     PIXEL *band_data;
     int width, height, pitch;
+    /* Inline mode: pre-built tokens/freq/bitbuf from Pass 1, just rANS-encode */
+    JANS_INLINE_STATE *inline_state;
+    /* Common */
     uint8_t *enc_buf;
     size_t enc_cap;
     int enc_size;
@@ -1001,9 +1056,15 @@ static void *pass2_band_thread(void *arg) {
         pthread_mutex_unlock(&t->sync->lock);
     }
 
-    t->enc_size = jans_encode_band_x4(t->enc_buf, t->enc_cap,
-                                       (const int32_t *)t->band_data,
-                                       t->width, t->height, t->pitch);
+    if (t->inline_state) {
+        /* Inline mode: Pass 1 already tokenized; just do rANS encode + emit */
+        t->enc_size = jans_inline_finalize(t->enc_buf, t->enc_cap, t->inline_state);
+    } else {
+        /* Split mode: full tokenize + rANS over the band buffer */
+        t->enc_size = jans_encode_band_x4(t->enc_buf, t->enc_cap,
+                                           (const int32_t *)t->band_data,
+                                           t->width, t->height, t->pitch);
+    }
     return NULL;
 }
 
@@ -1111,6 +1172,8 @@ struct FUSED_ENCODER {
     int is_rggb;
     int log_bits;
     int prescale;
+    int inline_mode;  /* 1 = tokenize inline in Pass 1 (low DRAM, embedded);
+                          0 = split-pass (band_data buffer + Pass 2 tokenize) */
 
     FUSED_CHANNEL_STATE ch_state[4];
 
@@ -1123,8 +1186,22 @@ struct FUSED_ENCODER {
     size_t   stream_cap;
 };
 
-/* Reset just the per-frame state on a context (counters, run state, freq tables).
-   Band buffers and row buffers are kept as-is — their contents are overwritten. */
+/* Decide which mode to use. Default: inline mode when CPU count is ≤6
+   (typical embedded camera SoC like GP3 with 4× A78). M1 / large servers
+   default to split-pass for the wider Pass 2 parallelism. Override via env. */
+static int fused_choose_inline_mode(void) {
+    const char *env = getenv("FUSED_INLINE_TOKENIZE");
+    if (env) {
+        if (env[0] == '0') return 0;
+        if (env[0] == '1') return 1;
+    }
+    long ncpu = sysconf(_SC_NPROCESSORS_ONLN);
+    return (ncpu > 0 && ncpu <= 6) ? 1 : 0;
+}
+
+/* Reset just the per-frame state on a context (counters, run state, freq tables,
+   inline-tokenize state). Band buffers / row scratch are overwritten as work
+   progresses so no per-frame zeroing needed. */
 static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
@@ -1132,6 +1209,9 @@ static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
         cs->buf_row = 0;
         memset(cs->freq, 0, sizeof(cs->freq));
         memset(cs->run_state, 0, sizeof(cs->run_state));
+        for (int band = 1; band < 4; band++) {
+            if (cs->inline_state[band]) jans_inline_reset(cs->inline_state[band]);
+        }
     }
 }
 
@@ -1145,34 +1225,44 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     ctx->is_rggb = (pixel_format == 1 || pixel_format == 0 || pixel_format == 4);
     ctx->log_bits = (pixel_format >= 4) ? 16 : 14;
     ctx->prescale = 2;
+    ctx->inline_mode = fused_choose_inline_mode();
 
     SetupEncoderLogCurve();
     fused_init_luts();
 
     int dummy_is_rggb, dummy_log_bits;
     if (setup_channel_state(ctx->ch_state, width, height, quality,
+                             ctx->inline_mode,
                              &dummy_is_rggb, &dummy_log_bits) != 0) {
         gpr_encode_fused_destroy(ctx);
         return NULL;
     }
 
-    /* Pre-allocate persistent enc buffers, one per band (4 ch × 3 highpass) */
+    /* Pre-allocate persistent enc buffers + (if inline) inline-tokenize state */
     int p2_idx = 0;
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
+        size_t band_coeffs = (size_t)cs->band_width * cs->band_height;
         for (int band = 1; band < 4; band++) {
-            size_t cap = (size_t)cs->band_width * cs->band_height * 4 + 8192;
+            size_t cap = band_coeffs * 4 + 8192;
             ctx->enc_caps[p2_idx] = cap;
             ctx->enc_bufs[p2_idx] = (uint8_t *)malloc(cap);
             if (!ctx->enc_bufs[p2_idx]) {
                 gpr_encode_fused_destroy(ctx);
                 return NULL;
             }
+            if (ctx->inline_mode) {
+                cs->inline_state[band] = jans_inline_create(band_coeffs);
+                if (!cs->inline_state[band]) {
+                    gpr_encode_fused_destroy(ctx);
+                    return NULL;
+                }
+            }
             p2_idx++;
         }
     }
 
-    /* Pre-allocate output stream buffer (size = raw frame size as upper bound) */
+    /* Pre-allocate output stream buffer */
     ctx->stream_cap = (size_t)width * height * 2;
     ctx->stream_buf = (uint8_t *)malloc(ctx->stream_cap);
     if (!ctx->stream_buf) {
@@ -1180,14 +1270,16 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
         return NULL;
     }
 
-    /* Touch all pages once to fault them in NOW, not on first frame */
+    /* Pre-fault all pages so the first frame doesn't pay page-fault tax */
     memset(ctx->stream_buf, 0, ctx->stream_cap);
     for (int i = 0; i < 12; i++) memset(ctx->enc_bufs[i], 0, ctx->enc_caps[i]);
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         for (int band = 0; band < 4; band++) {
-            memset(cs->band_data[band], 0,
-                   (size_t)cs->band_width * cs->band_height * sizeof(PIXEL));
+            if (cs->band_data[band]) {
+                memset(cs->band_data[band], 0,
+                       (size_t)cs->band_width * cs->band_height * sizeof(PIXEL));
+            }
         }
     }
 
@@ -1199,12 +1291,15 @@ void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
     for (int i = 0; i < 12; i++) if (ctx->enc_bufs[i]) free(ctx->enc_bufs[i]);
     if (ctx->stream_buf) free(ctx->stream_buf);
     for (int ch = 0; ch < 4; ch++) {
+        FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         for (int band = 0; band < 4; band++) {
-            if (ctx->ch_state[ch].band_data[band]) free(ctx->ch_state[ch].band_data[band]);
+            if (cs->band_data[band])   free(cs->band_data[band]);
+            if (cs->row_scratch[band]) free(cs->row_scratch[band]);
+            if (cs->inline_state[band]) jans_inline_destroy(cs->inline_state[band]);
         }
         for (int r = 0; r < FUSED_ROW_BUFS; r++) {
-            if (ctx->ch_state[ch].lowpass_buf[r]) free(ctx->ch_state[ch].lowpass_buf[r]);
-            if (ctx->ch_state[ch].highpass_buf[r]) free(ctx->ch_state[ch].highpass_buf[r]);
+            if (cs->lowpass_buf[r])  free(cs->lowpass_buf[r]);
+            if (cs->highpass_buf[r]) free(cs->highpass_buf[r]);
         }
     }
     free(ctx);
@@ -1264,7 +1359,8 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
         for (int band = 1; band < 4; band++) {
             PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
             pt->channel = ch;
-            pt->band_data = cs->band_data[band];
+            pt->band_data    = cs->band_data[band];     /* NULL in inline mode */
+            pt->inline_state = cs->inline_state[band];  /* NULL in split mode */
             pt->width = cs->band_width;
             pt->height = cs->band_height;
             pt->pitch = cs->band_width * sizeof(int32_t);

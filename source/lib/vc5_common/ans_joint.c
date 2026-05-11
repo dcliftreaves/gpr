@@ -858,6 +858,184 @@ void jans_encode_band_x4_report_timing(void) {
 #endif
 
 /* ================================================================
+   Inline-tokenize implementation. Mirrors jans_encode_band_x4's
+   tokenize loop exactly so the produced tokens/bitbuf/freq are
+   bit-identical to the split-pass implementation.
+   ================================================================ */
+
+struct JANS_INLINE_STATE {
+    uint16_t *tokens;
+    int       token_count;
+    size_t    token_cap;
+    uint8_t  *resid_buf;
+    size_t    resid_cap;
+    BITBUF    bb;
+    JANS_TABLE table;
+};
+
+JANS_INLINE_STATE *jans_inline_create(size_t max_coeffs) {
+    JANS_INLINE_STATE *s = (JANS_INLINE_STATE *)calloc(1, sizeof(*s));
+    if (!s) return NULL;
+    init_run_lut();
+    init_mag_lut();
+    /* Worst case sizing: 1 token per coefficient + some run-flush headroom. */
+    s->token_cap = max_coeffs + 4096;
+    s->resid_cap = max_coeffs * 2 + 4096;
+    s->tokens    = (uint16_t *)malloc(s->token_cap * sizeof(uint16_t));
+    s->resid_buf = (uint8_t  *)malloc(s->resid_cap);
+    if (!s->tokens || !s->resid_buf) { jans_inline_destroy(s); return NULL; }
+    /* Pre-fault pages so the first frame doesn't pay a page-fault tax */
+    memset(s->tokens, 0, s->token_cap * sizeof(uint16_t));
+    memset(s->resid_buf, 0, s->resid_cap);
+    return s;
+}
+
+void jans_inline_reset(JANS_INLINE_STATE *s) {
+    if (!s) return;
+    s->token_count = 0;
+    bitbuf_init(&s->bb, s->resid_buf, s->resid_cap);
+    memset(&s->table, 0, sizeof(s->table));
+}
+
+void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
+    if (!s) return;
+    uint16_t *tokens = s->tokens;
+    int token_count = s->token_count;
+    int run = 0;
+
+    for (int col = 0; col < width; col++) {
+        int32_t val = row[col];
+        if (val == 0) { run++; continue; }
+        int32_t mag = (val < 0) ? -val : val;
+        while (run >= 256) {
+            int rr; int rc = run_to_class(255, &rr);
+            int sym = rc * JANS_MAG_CLASSES + 0;
+            s->table.freq[sym]++;
+            tokens[token_count++] = (uint16_t)sym;
+            bitbuf_write(&s->bb, rr, run_class_bits[rc]);
+            run -= 255;
+        }
+        int run_resid, mag_resid;
+        int rc = run_to_class(run, &run_resid);
+        int mc = mag_to_class(mag, &mag_resid);
+        int sym = rc * JANS_MAG_CLASSES + mc;
+        s->table.freq[sym]++;
+        tokens[token_count++] = (uint16_t)sym;
+        {
+            int rb = run_class_bits[rc];
+            int mb = mag_class_bits[mc];
+            uint32_t merged = (uint32_t)run_resid;
+            merged |= ((uint32_t)mag_resid << rb);
+            merged |= ((val < 0) ? 1u : 0u) << (rb + mb);
+            bitbuf_write(&s->bb, merged, rb + mb + 1);
+        }
+        run = 0;
+    }
+    /* End-of-row trailing-zero flush — matches jans_encode_band_x4 boundary */
+    while (run > 0) {
+        int actual = (run > 255) ? 255 : run;
+        int rr; int rc = run_to_class(actual, &rr);
+        int sym = rc * JANS_MAG_CLASSES + 0;
+        s->table.freq[sym]++;
+        tokens[token_count++] = (uint16_t)sym;
+        bitbuf_write(&s->bb, rr, run_class_bits[rc]);
+        run -= actual;
+    }
+    s->token_count = token_count;
+}
+
+int jans_inline_finalize(uint8_t *out_buf, size_t out_capacity, JANS_INLINE_STATE *s) {
+    if (!s || !out_buf) return -1;
+
+    size_t resid_size = bitbuf_size(&s->bb);
+    normalize_freq(s->table.freq, JANS_NUM_SYMBOLS);
+    build_tables(&s->table, JANS_NUM_SYMBOLS);
+
+    size_t rans_cap = (size_t)s->token_count * 4 + 4096;
+    uint8_t *rans_buf = (uint8_t *)malloc(rans_cap);
+    if (!rans_buf) return -1;
+    uint8_t *rans_ptr = rans_buf;
+    uint32_t states[JANS_INTERLEAVE];
+    for (int j = 0; j < JANS_INTERLEAVE; j++) states[j] = RANS_BYTE_L;
+
+    /* 4-way unrolled rANS encode (matches jans_encode_band_x4) */
+    int i = s->token_count - 1;
+    while (i >= 0 && (i & 3) != 3) {
+        int sym = s->tokens[i];
+        rans_ptr = rans_enc_put(&states[i & 3], rans_ptr,
+                     s->table.cum_freq[sym], s->table.freq[sym], s->table.rcp_freq[sym]);
+        i--;
+    }
+    for (; i >= 3; i -= 4) {
+        int sym3 = s->tokens[i];
+        int sym2 = s->tokens[i - 1];
+        int sym1 = s->tokens[i - 2];
+        int sym0 = s->tokens[i - 3];
+        rans_ptr = rans_enc_put(&states[3], rans_ptr,
+                     s->table.cum_freq[sym3], s->table.freq[sym3], s->table.rcp_freq[sym3]);
+        rans_ptr = rans_enc_put(&states[2], rans_ptr,
+                     s->table.cum_freq[sym2], s->table.freq[sym2], s->table.rcp_freq[sym2]);
+        rans_ptr = rans_enc_put(&states[1], rans_ptr,
+                     s->table.cum_freq[sym1], s->table.freq[sym1], s->table.rcp_freq[sym1]);
+        rans_ptr = rans_enc_put(&states[0], rans_ptr,
+                     s->table.cum_freq[sym0], s->table.freq[sym0], s->table.rcp_freq[sym0]);
+    }
+    while (i >= 0) {
+        int sym = s->tokens[i];
+        rans_ptr = rans_enc_put(&states[i & 3], rans_ptr,
+                     s->table.cum_freq[sym], s->table.freq[sym], s->table.rcp_freq[sym]);
+        i--;
+    }
+
+    for (int j = JANS_INTERLEAVE - 1; j >= 0; j--) {
+        *rans_ptr++ = (uint8_t)(states[j] >> 0);
+        *rans_ptr++ = (uint8_t)(states[j] >> 8);
+        *rans_ptr++ = (uint8_t)(states[j] >> 16);
+        *rans_ptr++ = (uint8_t)(states[j] >> 24);
+    }
+    size_t rans_size = rans_ptr - rans_buf;
+
+    /* Reverse rans_buf in place */
+    for (size_t j = 0; j < rans_size / 2; j++) {
+        uint8_t t = rans_buf[j]; rans_buf[j] = rans_buf[rans_size-1-j];
+        rans_buf[rans_size-1-j] = t;
+    }
+
+    /* Same blob format as jans_encode_band_x4 */
+    uint8_t freq_buf[JANS_NUM_SYMBOLS * 2];
+    for (int j = 0; j < JANS_NUM_SYMBOLS; j++) {
+        freq_buf[j*2]   = (uint8_t)(s->table.freq[j] >> 8);
+        freq_buf[j*2+1] = (uint8_t)(s->table.freq[j]);
+    }
+    int freq_size = JANS_NUM_SYMBOLS * 2;
+    size_t total = 16 + freq_size + rans_size + resid_size;
+    if (total > out_capacity) { free(rans_buf); return -1; }
+
+    uint8_t *op = out_buf;
+    int tc = s->token_count;
+    *op++ = (tc>>24)&0xFF; *op++ = (tc>>16)&0xFF; *op++ = (tc>>8)&0xFF; *op++ = tc&0xFF;
+    *op++ = (freq_size>>24)&0xFF; *op++ = (freq_size>>16)&0xFF;
+    *op++ = (freq_size>>8)&0xFF;  *op++ = freq_size&0xFF;
+    *op++ = (rans_size>>24)&0xFF; *op++ = (rans_size>>16)&0xFF;
+    *op++ = (rans_size>>8)&0xFF;  *op++ = rans_size&0xFF;
+    *op++ = (resid_size>>24)&0xFF; *op++ = (resid_size>>16)&0xFF;
+    *op++ = (resid_size>>8)&0xFF;  *op++ = resid_size&0xFF;
+    memcpy(op, freq_buf, freq_size); op += freq_size;
+    memcpy(op, rans_buf, rans_size); op += rans_size;
+    memcpy(op, s->resid_buf, resid_size);
+
+    free(rans_buf);
+    return (int)total;
+}
+
+void jans_inline_destroy(JANS_INLINE_STATE *s) {
+    if (!s) return;
+    if (s->tokens) free(s->tokens);
+    if (s->resid_buf) free(s->resid_buf);
+    free(s);
+}
+
+/* ================================================================
    Two-pass x4 decode: separates rANS token decoding from output scatter.
 
    Pass 1 does pure rANS + bitbuf work into a sequential buffer.
