@@ -306,33 +306,39 @@ static void count_freq_row(const PIXEL *data, int width,
     int col = 0;
 
 #if ENABLED(NEON)
-    /* Fast 4-wide: NEON zero-skip + NEON magnitude classify (no LUT).
-       Classifier: mag_class = (|v| <= 7) ? |v| : min(36 - clz(|v|), 15).
-       Boundaries match fused_mag_class_min exactly (verified). */
-    const int width_m4 = (width / 4) * 4;
+    /* 8-wide zero-skip + NEON magnitude classify (no LUT).
+       Wider scan amortizes the cross-lane vmaxvq across more coefficients.
+       Classifier: mag_class = (|v| <= 7) ? |v| : min(36 - clz(|v|), 15). */
+    const int width_m8 = (width / 8) * 8;
     const int32x4_t v_2047 = vdupq_n_s32(2047);
     const int32x4_t v_7 = vdupq_n_s32(7);
     const int32x4_t v_15 = vdupq_n_s32(15);
     const int32x4_t v_36 = vdupq_n_s32(36);
-    for (; col < width_m4; col += 4) {
-        int32x4_t v = vld1q_s32(&data[col]);
-        int32x4_t absv = vabsq_s32(v);
-        uint32_t any_nonzero = vmaxvq_u32(vreinterpretq_u32_s32(absv));
-        if (any_nonzero == 0) { run += 4; continue; }
+    for (; col < width_m8; col += 8) {
+        int32x4_t v1 = vld1q_s32(&data[col]);
+        int32x4_t v2 = vld1q_s32(&data[col + 4]);
+        int32x4_t a1 = vabsq_s32(v1);
+        int32x4_t a2 = vabsq_s32(v2);
+        uint32_t any_nonzero = vmaxvq_u32(
+            vreinterpretq_u32_s32(vmaxq_s32(a1, a2)));
+        if (any_nonzero == 0) { run += 8; continue; }
 
-        /* NEON magnitude classifier: avoids 4 LUT lookups */
-        int32x4_t clamped = vminq_s32(absv, v_2047);
-        int32x4_t clz_val = vreinterpretq_s32_u32(
-                                vclzq_u32(vreinterpretq_u32_s32(clamped)));
-        int32x4_t formula = vminq_s32(vsubq_s32(v_36, clz_val), v_15);
-        uint32x4_t is_small = vcleq_s32(clamped, v_7);
-        int32x4_t mag_class = vbslq_s32(is_small, clamped, formula);
+        int32x4_t c1 = vminq_s32(a1, v_2047);
+        int32x4_t c2 = vminq_s32(a2, v_2047);
+        int32x4_t lz1 = vreinterpretq_s32_u32(
+                          vclzq_u32(vreinterpretq_u32_s32(c1)));
+        int32x4_t lz2 = vreinterpretq_s32_u32(
+                          vclzq_u32(vreinterpretq_u32_s32(c2)));
+        int32x4_t f1 = vminq_s32(vsubq_s32(v_36, lz1), v_15);
+        int32x4_t f2 = vminq_s32(vsubq_s32(v_36, lz2), v_15);
+        int32x4_t mc1 = vbslq_s32(vcleq_s32(c1, v_7), c1, f1);
+        int32x4_t mc2 = vbslq_s32(vcleq_s32(c2, v_7), c2, f2);
 
-        int32_t vals[4], mcs[4];
-        vst1q_s32(vals, v);
-        vst1q_s32(mcs, mag_class);
+        int32_t vals[8], mcs[8];
+        vst1q_s32(vals,     v1); vst1q_s32(vals + 4, v2);
+        vst1q_s32(mcs,      mc1); vst1q_s32(mcs + 4, mc2);
 
-        for (int k = 0; k < 4; k++) {
+        for (int k = 0; k < 8; k++) {
             int32_t val = vals[k];
             if (val == 0) { run++; continue; }
             while (run >= 256) {
