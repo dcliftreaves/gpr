@@ -130,8 +130,9 @@ static size_t bitbuf_size(const BITBUF *bb) {
     return bb->byte_pos + (bb->bit_pos > 0 ? 1 : 0);
 }
 
-static uint32_t bitbuf_read(const uint8_t *buf, size_t buf_size,
-                            size_t *byte_pos, int *bit_pos, int bits) {
+static inline __attribute__((always_inline))
+uint32_t bitbuf_read(const uint8_t *buf, size_t buf_size,
+                     size_t *byte_pos, int *bit_pos, int bits) {
     if (bits == 0) return 0;
     /* Fast path: read up to 32 bits from a little-endian word at byte_pos.
        This avoids the per-bit loop entirely for the common case where
@@ -676,21 +677,40 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
 
     while (t + JANS_INTERLEAVE <= token_count && row < height)
     {
-        /* Decode 4 symbols: state update + renorm.
-           Prefetch next iteration's table entries while processing current. */
-        const JANS_DECODE_INFO *infos[JANS_INTERLEAVE];
-        for (int s = 0; s < JANS_INTERLEAVE; s++) {
-            uint32_t slot = states[s] & (JANS_TABLE_SIZE - 1);
-            infos[s] = &table.decode_info[slot];
-            states[s] = infos[s]->freq * (states[s] >> JANS_TABLE_BITS) + slot - infos[s]->cum_freq;
-            /* Inline renorm */
+        /* Fully unrolled 4-state decode: interleave lookups with renorms
+           to hide memory latency and multiply latency. */
+        const JANS_DECODE_INFO *infos[4];
+        uint32_t slots[4];
+
+        /* Phase A: All 4 table lookups (back-to-back, pipelined) */
+        slots[0] = states[0] & (JANS_TABLE_SIZE - 1);
+        slots[1] = states[1] & (JANS_TABLE_SIZE - 1);
+        slots[2] = states[2] & (JANS_TABLE_SIZE - 1);
+        slots[3] = states[3] & (JANS_TABLE_SIZE - 1);
+        infos[0] = &table.decode_info[slots[0]];
+        infos[1] = &table.decode_info[slots[1]];
+        infos[2] = &table.decode_info[slots[2]];
+        infos[3] = &table.decode_info[slots[3]];
+
+        /* Phase B: All 4 state updates (multiply can pipeline across states) */
+        states[0] = infos[0]->freq * (states[0] >> JANS_TABLE_BITS) + slots[0] - infos[0]->cum_freq;
+        states[1] = infos[1]->freq * (states[1] >> JANS_TABLE_BITS) + slots[1] - infos[1]->cum_freq;
+        states[2] = infos[2]->freq * (states[2] >> JANS_TABLE_BITS) + slots[2] - infos[2]->cum_freq;
+        states[3] = infos[3]->freq * (states[3] >> JANS_TABLE_BITS) + slots[3] - infos[3]->cum_freq;
+
+        /* Phase C: All 4 renorms (serial per state, but each is short) */
+        for (int s = 0; s < 4; s++) {
             while (states[s] < RANS_BYTE_L) {
                 if (rptr >= rans_end) return -1;
                 states[s] = (states[s] << 8) | *rptr++;
             }
-            /* Prefetch next lookup for this state (speculative) */
-            __builtin_prefetch(&table.decode_info[states[s] & (JANS_TABLE_SIZE - 1)], 0, 3);
         }
+
+        /* Prefetch next iteration's table entries */
+        __builtin_prefetch(&table.decode_info[states[0] & (JANS_TABLE_SIZE - 1)], 0, 3);
+        __builtin_prefetch(&table.decode_info[states[1] & (JANS_TABLE_SIZE - 1)], 0, 3);
+        __builtin_prefetch(&table.decode_info[states[2] & (JANS_TABLE_SIZE - 1)], 0, 3);
+        __builtin_prefetch(&table.decode_info[states[3] & (JANS_TABLE_SIZE - 1)], 0, 3);
 
         /* Process 4 decoded tokens */
         for (int s = 0; s < JANS_INTERLEAVE && row < height; s++) {
