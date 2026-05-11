@@ -897,18 +897,18 @@ static CODEC_ERROR ReconstructAndPackDirect(
            -  4 * s->lowlow[col + 1 * s->lowlow_pitch] \
            +  1 * s->lowlow[col + 2 * s->lowlow_pitch] + 4; \
         ev >>= 3; ev += s->highlow_line[col]; ev >>= 1; \
-        s->even_lowpass[col] = ClampPixel(ev); \
+        s->even_lowpass[col] = ev; \
         od = 5 * s->lowlow[col + 0 * s->lowlow_pitch] \
            + 4 * s->lowlow[col + 1 * s->lowlow_pitch] \
            - 1 * s->lowlow[col + 2 * s->lowlow_pitch] + 4; \
         od >>= 3; od -= s->highlow_line[col]; od >>= 1; \
-        s->odd_lowpass[col] = ClampPixel(od); \
+        s->odd_lowpass[col] = od; \
         ev = 11 * s->lowhigh_line[0][col] - 4 * s->lowhigh_line[1][col] + s->lowhigh_line[2][col] + 4; \
         ev >>= 3; ev += s->highhigh_line[col]; ev >>= 1; \
-        s->even_highpass[col] = ClampPixel(ev); \
+        s->even_highpass[col] = ev; \
         od = 5 * s->lowhigh_line[0][col] + 4 * s->lowhigh_line[1][col] - s->lowhigh_line[2][col] + 4; \
         od >>= 3; od -= s->highhigh_line[col]; od >>= 1; \
-        s->odd_highpass[col] = ClampPixel(od); \
+        s->odd_highpass[col] = od; \
     } \
 } while(0)
 
@@ -960,16 +960,16 @@ static CODEC_ERROR ReconstructAndPackDirect(
         } else { hh_val = s->highhigh_line[col]; } \
         ev = s->lowlow[col + 0 * s->lowlow_pitch] - s->lowlow[col + 2 * s->lowlow_pitch] + 4; \
         ev >>= 3; ev += s->lowlow[col + 1 * s->lowlow_pitch]; ev += hl_val; ev >>= 1; \
-        s->even_lowpass[col] = ClampPixel(ev); \
+        s->even_lowpass[col] = ev; \
         od = -s->lowlow[col + 0 * s->lowlow_pitch] + s->lowlow[col + 2 * s->lowlow_pitch] + 4; \
         od >>= 3; od += s->lowlow[col + 1 * s->lowlow_pitch]; od -= hl_val; od >>= 1; \
-        s->odd_lowpass[col] = ClampPixel(od); \
+        s->odd_lowpass[col] = od; \
         ev = s->lowhigh_line[0][col] - s->lowhigh_line[2][col] + 4; \
         ev >>= 3; ev += s->lowhigh_line[1][col]; ev += hh_val; ev >>= 1; \
-        s->even_highpass[col] = ClampPixel(ev); \
+        s->even_highpass[col] = ev; \
         od = -s->lowhigh_line[0][col] + s->lowhigh_line[2][col] + 4; \
         od >>= 3; od += s->lowhigh_line[1][col]; od -= hh_val; od >>= 1; \
-        s->odd_highpass[col] = ClampPixel(od); \
+        s->odd_highpass[col] = od; \
     } \
 } while(0)
 
@@ -985,18 +985,18 @@ static CODEC_ERROR ReconstructAndPackDirect(
            + 4 * s->lowlow[col - 1 * s->lowlow_pitch] \
            - 1 * s->lowlow[col - 2 * s->lowlow_pitch] + 4; \
         ev >>= 3; ev += s->highlow_line[col]; ev >>= 1; \
-        s->even_lowpass[col] = ClampPixel(ev); \
+        s->even_lowpass[col] = ev; \
         od = 11 * s->lowlow[col + 0 * s->lowlow_pitch] \
            -  4 * s->lowlow[col - 1 * s->lowlow_pitch] \
            +  1 * s->lowlow[col - 2 * s->lowlow_pitch] + 4; \
         od >>= 3; od -= s->highlow_line[col]; od >>= 1; \
-        s->odd_lowpass[col] = ClampPixel(od); \
+        s->odd_lowpass[col] = od; \
         ev = 5 * s->lowhigh_line[2][col] + 4 * s->lowhigh_line[1][col] - s->lowhigh_line[0][col] + 4; \
         ev >>= 3; ev += s->highhigh_line[col]; ev >>= 1; \
-        s->even_highpass[col] = ClampPixel(ev); \
+        s->even_highpass[col] = ev; \
         od = 11 * s->lowhigh_line[2][col] - 4 * s->lowhigh_line[1][col] + s->lowhigh_line[0][col] + 4; \
         od >>= 3; od -= s->highhigh_line[col]; od >>= 1; \
-        s->odd_highpass[col] = ClampPixel(od); \
+        s->odd_highpass[col] = od; \
     } \
 } while(0)
 
