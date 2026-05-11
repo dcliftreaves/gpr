@@ -1252,11 +1252,19 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
                 return NULL;
             }
             if (ctx->inline_mode) {
-                cs->inline_state[band] = jans_inline_create(band_coeffs);
+                /* Stripe encoding: 64 band rows per stripe (~16 stripes at
+                   23 MP, ~35 at 50 MP). Size inline_state buffers for ONE
+                   stripe — the big memory win comes from not allocating
+                   full-band token/resid buffers. */
+                const int kStripeRows = 64;
+                size_t stripe_coeffs = (size_t)cs->band_width * (size_t)kStripeRows;
+                if (stripe_coeffs > band_coeffs) stripe_coeffs = band_coeffs;
+                cs->inline_state[band] = jans_inline_create(stripe_coeffs);
                 if (!cs->inline_state[band]) {
                     gpr_encode_fused_destroy(ctx);
                     return NULL;
                 }
+                jans_inline_set_stripe_rows(cs->inline_state[band], kStripeRows);
             }
             p2_idx++;
         }
