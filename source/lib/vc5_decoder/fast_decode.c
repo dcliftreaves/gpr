@@ -1128,6 +1128,18 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
     InitUncompandTable();
     init_log_approx();
 
+    /* Check env var for log curve bypass (for benchmarking raw component output) */
+    {
+        static int checked = 0;
+        if (!checked) {
+            if (getenv("GPR_LOG_BYPASS")) {
+                extern void vc5_logcurve_set_bypass(int);
+                vc5_logcurve_set_bypass(1);
+            }
+            checked = 1;
+        }
+    }
+
     /* ---- Step 1: Pre-index the VC5 bitstream ---- */
     FAST_INDEX idx;
     if (fast_preindex(vc5_buf, vc5_size, &idx) != 0)
