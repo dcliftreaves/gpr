@@ -136,17 +136,13 @@ static inline void rans_enc_put(uint32_t *state, uint8_t **pptr,
     uint32_t x_max = ((RANS_BYTE_L >> JANS_TABLE_BITS) << 8) * freq;
     while (x >= x_max) { *(*pptr)++ = (uint8_t)(x & 0xFF); x >>= 8; }
 
-    /* Division-free encode using precomputed rcp_freq = floor(2^32 / freq).
-       64-bit mul + correction is ~3-15 cycles cheaper than 32-bit udiv on
-       Cortex-A78 / A53. Special case freq=1 because rcp would be 2^32 (wraps). */
-    if (freq == 1) {
-        *state = (x << JANS_TABLE_BITS) + start;
-    } else {
-        uint32_t q = (uint32_t)(((uint64_t)x * rcp_freq) >> 32);
-        uint32_t mod = x - q * freq;
-        if (mod >= freq) { q++; mod -= freq; }
-        *state = (q << JANS_TABLE_BITS) + mod + start;
-    }
+    /* Division-free encode with unified path for all freq values.
+       build_tables stores 0xFFFFFFFF for freq=1 so the same formula
+       produces q=x, mod=0 after the off-by-one correction (verified). */
+    uint32_t q = (uint32_t)(((uint64_t)x * rcp_freq) >> 32);
+    uint32_t mod = x - q * freq;
+    if (mod >= freq) { q++; mod -= freq; }
+    *state = (q << JANS_TABLE_BITS) + mod + start;
 }
 
 static inline int rans_dec_renorm(uint32_t *state, const uint8_t **pptr,
@@ -335,12 +331,18 @@ static void build_tables(JANS_TABLE *t, int n) {
         t->decode_info[i].mag_min = (mc > 0) ? (uint16_t)mag_class_min[mc] : 0;
     }
     /* Precompute reciprocals for division-free encode (Giesen's trick).
-       rcp_freq[i] = ceil(2^32 / freq[i]). Then x / freq ≈ (x * rcp) >> 32.
-       This eliminates the two integer divides per token in the encoder,
-       saving ~0.4 seconds per image on Cortex-A53. */
+       rcp_freq[i] = floor(2^32 / freq[i]). Then x / freq ≈ (x * rcp) >> 32,
+       corrected by an off-by-one fix in rans_enc_put.
+
+       Special case: freq=1 wants rcp=2^32 which overflows uint32. Use
+       0xFFFFFFFF (= 2^32 - 1) instead: the correction loop still yields
+       q=x, mod=0, so the result matches the freq=1 ideal. This lets us
+       eliminate the `if (freq == 1)` branch from the hot encoder loop. */
     for (int i = 0; i < n; i++) {
-        if (t->freq[i] > 0)
+        if (t->freq[i] > 1)
             t->rcp_freq[i] = (uint32_t)(((uint64_t)1 << 32) / t->freq[i]);
+        else if (t->freq[i] == 1)
+            t->rcp_freq[i] = 0xFFFFFFFFu;
         else
             t->rcp_freq[i] = 0;
     }
