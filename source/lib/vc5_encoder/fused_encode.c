@@ -89,31 +89,60 @@ static void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpas
 #if ENABLED(NEON)
         const int32x4_t vround = vdupq_n_s32(prescale_rounding);
         const int32x4_t four = vdupq_n_s32(4);
-        const int interior_m4 = ((half - 2) / 4) * 4 + 1; /* Align to 4 from i=1 */
+        const int32x4_t neg_ps = vdupq_n_s32(-prescale);
 
         for (; i + 3 < half - 1; i += 4) {
-            /* Load 8 input pairs (16 values) for 4 output lowpass+highpass */
+            /* Output i covers input indices [2i-2 .. 2i+3] (6 inputs per output) */
+            /* For 4 outputs (i..i+3): need inputs [2i-2 .. 2i+9] = 12 consecutive inputs */
             int idx = 2 * i;
-            /* Deinterleave even/odd */
-            int32x4x2_t pairs = vld2q_s32(&input[idx]);
-            int32x4_t neg_ps = vdupq_n_s32(-prescale);
-            int32x4_t evens = vshlq_s32(vaddq_s32(pairs.val[0], vround), neg_ps);
-            int32x4_t odds  = vshlq_s32(vaddq_s32(pairs.val[1], vround), neg_ps);
+
+            /* Load 12 consecutive inputs, prescale them all */
+            int32x4_t in_lo  = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx-2]), vround), neg_ps); /* [2i-2 .. 2i+1] */
+            int32x4_t in_md  = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx+2]), vround), neg_ps); /* [2i+2 .. 2i+5] */
+            int32x4_t in_hi  = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx+6]), vround), neg_ps); /* [2i+6 .. 2i+9] */
+
+            /* Extract even and odd samples for the 4 outputs.
+               Output i uses inputs[2i], inputs[2i+1] for current pair.
+               Output i+1 uses [2i+2], [2i+3]. Output i+2 uses [2i+4], [2i+5]. Output i+3 uses [2i+6], [2i+7].
+               So evens = inputs at offsets 2,4,6,8 from idx-2 = [2i, 2i+2, 2i+4, 2i+6]
+                   odds = inputs at offsets 3,5,7,9 from idx-2 = [2i+1, 2i+3, 2i+5, 2i+7] */
+            /* Use VEXT to slide and pick: */
+            /* in_lo = [2i-2, 2i-1, 2i, 2i+1], in_md = [2i+2, 2i+3, 2i+4, 2i+5], in_hi = [2i+6, 2i+7, 2i+8, 2i+9] */
+            /* evens[0..3] = [2i, 2i+2, 2i+4, 2i+6] */
+            /* odds[0..3]  = [2i+1, 2i+3, 2i+5, 2i+7] */
+            int32x4_t cur_pair = vextq_s32(in_lo, in_md, 2);  /* [2i, 2i+1, 2i+2, 2i+3] */
+            int32x4_t nxt_pair = vextq_s32(in_md, in_hi, 2);  /* [2i+4, 2i+5, 2i+6, 2i+7] */
+            /* Deinterleave cur_pair and nxt_pair to get evens/odds */
+            int32x4x2_t cn = vuzpq_s32(cur_pair, nxt_pair);
+            int32x4_t evens = cn.val[0];  /* [2i, 2i+2, 2i+4, 2i+6] */
+            int32x4_t odds  = cn.val[1];  /* [2i+1, 2i+3, 2i+5, 2i+7] */
 
             /* Lowpass = even + odd */
             vst1q_s32(&lowpass[i], vaddq_s32(evens, odds));
 
+            /* For highpass: prev_sum[k] = input[2(i+k)-2] + input[2(i+k)-1]
+                              next_sum[k] = input[2(i+k)+2] + input[2(i+k)+3]
+               prev_sum_vec = [pair_sum at 2i-2, 2i, 2i+2, 2i+4]
+               next_sum_vec = [pair_sum at 2i+2, 2i+4, 2i+6, 2i+8]
+
+               in_lo split: [2i-2, 2i-1, 2i, 2i+1]
+                  in_lo even/odd via vuzp:
+                    evens_lo = [2i-2, 2i]   odds_lo = [2i-1, 2i+1]
+               in_md split: [2i+2, 2i+3, 2i+4, 2i+5]
+                    evens_md = [2i+2, 2i+4] odds_md = [2i+3, 2i+5]
+               in_hi split: [2i+6, 2i+7, 2i+8, 2i+9]
+                    evens_hi = [2i+6, 2i+8] odds_hi = [2i+7, 2i+9]
+            */
+            int32x4x2_t ulo = vuzpq_s32(in_lo, in_md);  /* even[0..3] = [2i-2,2i,2i+2,2i+4]; odd[0..3] = [2i-1,2i+1,2i+3,2i+5] */
+            int32x4x2_t uhi = vuzpq_s32(in_md, in_hi);  /* even[0..3] = [2i+2,2i+4,2i+6,2i+8]; odd[0..3] = [2i+3,2i+5,2i+7,2i+9] */
+            int32x4_t prev_sum = vaddq_s32(ulo.val[0], ulo.val[1]);  /* pair_sum at 2i-2, 2i, 2i+2, 2i+4 */
+            int32x4_t next_sum = vaddq_s32(uhi.val[0], uhi.val[1]);  /* pair_sum at 2i+2, 2i+4, 2i+6, 2i+8 */
+
             /* Highpass = ((next_sum - prev_sum + 4) >> 3) + (even - odd) */
-            /* prev_sum and next_sum need neighbor pairs — do scalar for now */
-            int32_t hp[4];
-            for (int k = 0; k < 4; k++) {
-                int ii = i + k;
-                int ix = 2 * ii;
-                int32_t ep = PS(input[ix-2]) + PS(input[ix-1]);
-                int32_t en = PS(input[ix+2]) + PS(input[ix+3]);
-                hp[k] = ((en - ep + 4) >> 3) + (PS(input[ix]) - PS(input[ix+1]));
-            }
-            vst1q_s32(&highpass[i], vld1q_s32(hp));
+            int32x4_t diff = vsubq_s32(next_sum, prev_sum);
+            int32x4_t hp = vshrq_n_s32(vaddq_s32(diff, four), 3);
+            hp = vaddq_s32(hp, vsubq_s32(evens, odds));
+            vst1q_s32(&highpass[i], hp);
         }
 #endif
         for (; i < half - 1; i++) {
@@ -572,6 +601,15 @@ static int fused_pass2(
    Main entry point
    ================================================================ */
 
+#ifdef FUSED_TIMING
+#include <mach/mach_time.h>
+static double _fused_ms(void) {
+    static double s = 0;
+    if (!s) { mach_timebase_info_data_t i; mach_timebase_info(&i); s = (double)i.numer/i.denom/1e6; }
+    return mach_absolute_time() * s;
+}
+#endif
+
 int gpr_encode_fused(
     const uint8_t *raw_bayer,
     size_t raw_size,
@@ -584,10 +622,19 @@ int gpr_encode_fused(
     FUSED_CHANNEL_STATE ch_state[4];
     memset(ch_state, 0, sizeof(ch_state));
 
+#ifdef FUSED_TIMING
+    double t0 = _fused_ms();
+#endif
+
     /* === PASS 1: Fused unpack → wavelet → quantize → freq count === */
     int rc = fused_pass1(raw_bayer, width, height, pixel_format, quality,
                           ch_state, NULL);
     if (rc != 0) goto cleanup;
+
+#ifdef FUSED_TIMING
+    double t1 = _fused_ms();
+    fprintf(stderr, "  FUSED Pass1 (unpack+wavelet+quant+freq): %.1fms\n", t1 - t0);
+#endif
 
     /* === PASS 2: rANS encode === */
     size_t stream_cap = raw_size;
@@ -597,6 +644,12 @@ int gpr_encode_fused(
     size_t written = 0;
     rc = fused_pass2(ch_state, stream_buf, stream_cap, &written);
     if (rc != 0) { free(stream_buf); goto cleanup; }
+
+#ifdef FUSED_TIMING
+    double t2 = _fused_ms();
+    fprintf(stderr, "  FUSED Pass2 (rANS encode):              %.1fms\n", t2 - t1);
+    fprintf(stderr, "  FUSED Total:                             %.1fms\n", t2 - t0);
+#endif
 
     *vc5_out = stream_buf;
     *vc5_size = written;
