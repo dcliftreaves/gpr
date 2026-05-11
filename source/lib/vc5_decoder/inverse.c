@@ -346,7 +346,70 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
     DequantizeBandRow16s(highlow,  input_width, highlow_quantization,  highlow_line);
     DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
 
-    for (column = 0; column < input_width; column++)
+    column = 0;
+#if ENABLED(NEON)
+    {
+        const int width_m4 = (input_width / 4) * 4;
+        const int32x4_t four = vdupq_n_s32(4);
+        const int32x4_t c11 = vdupq_n_s32(11);
+        const int32x4_t c5  = vdupq_n_s32(5);
+        const int32x4_t c4  = vdupq_n_s32(4);
+
+        for (; column < width_m4; column += 4)
+        {
+            /* Left bands (lowlow + highlow) - top border */
+            int32x4_t r0 = vld1q_s32(&lowlow[column + 0 * lowlow_pitch]);
+            int32x4_t r1 = vld1q_s32(&lowlow[column + 1 * lowlow_pitch]);
+            int32x4_t r2 = vld1q_s32(&lowlow[column + 2 * lowlow_pitch]);
+            int32x4_t hp = vld1q_s32(&highlow_line[column]);
+
+            /* even = (11*r0 - 4*r1 + r2 + 4) >> 3 + hp, then >> 1 */
+            int32x4_t even_v = vmulq_s32(c11, r0);
+            even_v = vmlsq_s32(even_v, c4, r1);
+            even_v = vaddq_s32(even_v, r2);
+            even_v = vaddq_s32(even_v, four);
+            even_v = vshrq_n_s32(even_v, 3);
+            even_v = vaddq_s32(even_v, hp);
+            even_v = vshrq_n_s32(even_v, 1);
+            vst1q_s32(&even_lowpass[column], even_v);
+
+            /* odd = (5*r0 + 4*r1 - r2 + 4) >> 3 - hp, then >> 1 */
+            int32x4_t odd_v = vmulq_s32(c5, r0);
+            odd_v = vmlaq_s32(odd_v, c4, r1);
+            odd_v = vsubq_s32(odd_v, r2);
+            odd_v = vaddq_s32(odd_v, four);
+            odd_v = vshrq_n_s32(odd_v, 3);
+            odd_v = vsubq_s32(odd_v, hp);
+            odd_v = vshrq_n_s32(odd_v, 1);
+            vst1q_s32(&odd_lowpass[column], odd_v);
+
+            /* Right bands (lowhigh + highhigh) - top border */
+            r0 = vld1q_s32(&lowhigh_line[0][column]);
+            r1 = vld1q_s32(&lowhigh_line[1][column]);
+            r2 = vld1q_s32(&lowhigh_line[2][column]);
+            hp = vld1q_s32(&highhigh_line[column]);
+
+            even_v = vmulq_s32(c11, r0);
+            even_v = vmlsq_s32(even_v, c4, r1);
+            even_v = vaddq_s32(even_v, r2);
+            even_v = vaddq_s32(even_v, four);
+            even_v = vshrq_n_s32(even_v, 3);
+            even_v = vaddq_s32(even_v, hp);
+            even_v = vshrq_n_s32(even_v, 1);
+            vst1q_s32(&even_highpass[column], even_v);
+
+            odd_v = vmulq_s32(c5, r0);
+            odd_v = vmlaq_s32(odd_v, c4, r1);
+            odd_v = vsubq_s32(odd_v, r2);
+            odd_v = vaddq_s32(odd_v, four);
+            odd_v = vshrq_n_s32(odd_v, 3);
+            odd_v = vsubq_s32(odd_v, hp);
+            odd_v = vshrq_n_s32(odd_v, 1);
+            vst1q_s32(&odd_highpass[column], odd_v);
+        }
+    }
+#endif
+    for (; column < input_width; column++)
     {
         int32_t even = 0, odd = 0;
 
@@ -492,7 +555,70 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
     DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
 
     // Last row (bottom border)
-    for (column = 0; column < input_width; column++)
+    column = 0;
+#if ENABLED(NEON)
+    {
+        const int width_m4 = (input_width / 4) * 4;
+        const int32x4_t four = vdupq_n_s32(4);
+        const int32x4_t c11 = vdupq_n_s32(11);
+        const int32x4_t c5  = vdupq_n_s32(5);
+        const int32x4_t c4  = vdupq_n_s32(4);
+
+        for (; column < width_m4; column += 4)
+        {
+            /* Left bands - bottom border:
+               even = (5*r0 + 4*r_m1 - r_m2 + 4) >> 3 + hp, then >> 1
+               odd  = (11*r0 - 4*r_m1 + r_m2 + 4) >> 3 - hp, then >> 1 */
+            int32x4_t r0  = vld1q_s32(&lowlow[column + 0 * lowlow_pitch]);
+            int32x4_t rm1 = vld1q_s32(&lowlow[column - 1 * lowlow_pitch]);
+            int32x4_t rm2 = vld1q_s32(&lowlow[column - 2 * lowlow_pitch]);
+            int32x4_t hp  = vld1q_s32(&highlow_line[column]);
+
+            int32x4_t even_v = vmulq_s32(c5, r0);
+            even_v = vmlaq_s32(even_v, c4, rm1);
+            even_v = vsubq_s32(even_v, rm2);
+            even_v = vaddq_s32(even_v, four);
+            even_v = vshrq_n_s32(even_v, 3);
+            even_v = vaddq_s32(even_v, hp);
+            even_v = vshrq_n_s32(even_v, 1);
+            vst1q_s32(&even_lowpass[column], even_v);
+
+            int32x4_t odd_v = vmulq_s32(c11, r0);
+            odd_v = vmlsq_s32(odd_v, c4, rm1);
+            odd_v = vaddq_s32(odd_v, rm2);
+            odd_v = vaddq_s32(odd_v, four);
+            odd_v = vshrq_n_s32(odd_v, 3);
+            odd_v = vsubq_s32(odd_v, hp);
+            odd_v = vshrq_n_s32(odd_v, 1);
+            vst1q_s32(&odd_lowpass[column], odd_v);
+
+            /* Right bands - bottom border */
+            r0  = vld1q_s32(&lowhigh_line[2][column]);
+            rm1 = vld1q_s32(&lowhigh_line[1][column]);
+            rm2 = vld1q_s32(&lowhigh_line[0][column]);
+            hp  = vld1q_s32(&highhigh_line[column]);
+
+            even_v = vmulq_s32(c5, r0);
+            even_v = vmlaq_s32(even_v, c4, rm1);
+            even_v = vsubq_s32(even_v, rm2);
+            even_v = vaddq_s32(even_v, four);
+            even_v = vshrq_n_s32(even_v, 3);
+            even_v = vaddq_s32(even_v, hp);
+            even_v = vshrq_n_s32(even_v, 1);
+            vst1q_s32(&even_highpass[column], even_v);
+
+            odd_v = vmulq_s32(c11, r0);
+            odd_v = vmlsq_s32(odd_v, c4, rm1);
+            odd_v = vaddq_s32(odd_v, rm2);
+            odd_v = vaddq_s32(odd_v, four);
+            odd_v = vshrq_n_s32(odd_v, 3);
+            odd_v = vsubq_s32(odd_v, hp);
+            odd_v = vshrq_n_s32(odd_v, 1);
+            vst1q_s32(&odd_highpass[column], odd_v);
+        }
+    }
+#endif
+    for (; column < input_width; column++)
     {
         int32_t even = 0, odd = 0;
 
@@ -618,7 +744,68 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
     DequantizeBandRow16s(highlow,  input_width, highlow_quantization,  highlow_line);
     DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
 
-    for (column = 0; column < input_width; column++)
+    column = 0;
+#if ENABLED(NEON)
+    {
+        const int width_m4 = (input_width / 4) * 4;
+        const int32x4_t four = vdupq_n_s32(4);
+        const int32x4_t c11 = vdupq_n_s32(11);
+        const int32x4_t c5  = vdupq_n_s32(5);
+        const int32x4_t c4  = vdupq_n_s32(4);
+
+        for (; column < width_m4; column += 4)
+        {
+            /* Left bands - top border (descale: DivideByShift(x,1) = >> 1) */
+            int32x4_t r0 = vld1q_s32(&lowlow[column + 0 * lowlow_pitch]);
+            int32x4_t r1 = vld1q_s32(&lowlow[column + 1 * lowlow_pitch]);
+            int32x4_t r2 = vld1q_s32(&lowlow[column + 2 * lowlow_pitch]);
+            int32x4_t hp = vld1q_s32(&highlow_line[column]);
+
+            int32x4_t even_v = vmulq_s32(c11, r0);
+            even_v = vmlsq_s32(even_v, c4, r1);
+            even_v = vaddq_s32(even_v, r2);
+            even_v = vaddq_s32(even_v, four);
+            even_v = vshrq_n_s32(even_v, 3);
+            even_v = vaddq_s32(even_v, hp);
+            even_v = vshrq_n_s32(even_v, 1);
+            vst1q_s32(&even_lowpass[column], even_v);
+
+            int32x4_t odd_v = vmulq_s32(c5, r0);
+            odd_v = vmlaq_s32(odd_v, c4, r1);
+            odd_v = vsubq_s32(odd_v, r2);
+            odd_v = vaddq_s32(odd_v, four);
+            odd_v = vshrq_n_s32(odd_v, 3);
+            odd_v = vsubq_s32(odd_v, hp);
+            odd_v = vshrq_n_s32(odd_v, 1);
+            vst1q_s32(&odd_lowpass[column], odd_v);
+
+            /* Right bands - top border */
+            r0 = vld1q_s32(&lowhigh_line[0][column]);
+            r1 = vld1q_s32(&lowhigh_line[1][column]);
+            r2 = vld1q_s32(&lowhigh_line[2][column]);
+            hp = vld1q_s32(&highhigh_line[column]);
+
+            even_v = vmulq_s32(c11, r0);
+            even_v = vmlsq_s32(even_v, c4, r1);
+            even_v = vaddq_s32(even_v, r2);
+            even_v = vaddq_s32(even_v, four);
+            even_v = vshrq_n_s32(even_v, 3);
+            even_v = vaddq_s32(even_v, hp);
+            even_v = vshrq_n_s32(even_v, 1);
+            vst1q_s32(&even_highpass[column], even_v);
+
+            odd_v = vmulq_s32(c5, r0);
+            odd_v = vmlaq_s32(odd_v, c4, r1);
+            odd_v = vsubq_s32(odd_v, r2);
+            odd_v = vaddq_s32(odd_v, four);
+            odd_v = vshrq_n_s32(odd_v, 3);
+            odd_v = vsubq_s32(odd_v, hp);
+            odd_v = vshrq_n_s32(odd_v, 1);
+            vst1q_s32(&odd_highpass[column], odd_v);
+        }
+    }
+#endif
+    for (; column < input_width; column++)
     {
         int32_t even = 0, odd = 0;
 
@@ -764,7 +951,68 @@ CODEC_ERROR InvertSpatialQuantDescale16s(gpr_allocator *allocator,
     DequantizeBandRow16s(highhigh, input_width, highhigh_quantization, highhigh_line);
 
     // Last row (bottom border)
-    for (column = 0; column < input_width; column++)
+    column = 0;
+#if ENABLED(NEON)
+    {
+        const int width_m4 = (input_width / 4) * 4;
+        const int32x4_t four = vdupq_n_s32(4);
+        const int32x4_t c11 = vdupq_n_s32(11);
+        const int32x4_t c5  = vdupq_n_s32(5);
+        const int32x4_t c4  = vdupq_n_s32(4);
+
+        for (; column < width_m4; column += 4)
+        {
+            /* Left bands - bottom border (descale) */
+            int32x4_t r0  = vld1q_s32(&lowlow[column + 0 * lowlow_pitch]);
+            int32x4_t rm1 = vld1q_s32(&lowlow[column - 1 * lowlow_pitch]);
+            int32x4_t rm2 = vld1q_s32(&lowlow[column - 2 * lowlow_pitch]);
+            int32x4_t hp  = vld1q_s32(&highlow_line[column]);
+
+            int32x4_t even_v = vmulq_s32(c5, r0);
+            even_v = vmlaq_s32(even_v, c4, rm1);
+            even_v = vsubq_s32(even_v, rm2);
+            even_v = vaddq_s32(even_v, four);
+            even_v = vshrq_n_s32(even_v, 3);
+            even_v = vaddq_s32(even_v, hp);
+            even_v = vshrq_n_s32(even_v, 1);
+            vst1q_s32(&even_lowpass[column], even_v);
+
+            int32x4_t odd_v = vmulq_s32(c11, r0);
+            odd_v = vmlsq_s32(odd_v, c4, rm1);
+            odd_v = vaddq_s32(odd_v, rm2);
+            odd_v = vaddq_s32(odd_v, four);
+            odd_v = vshrq_n_s32(odd_v, 3);
+            odd_v = vsubq_s32(odd_v, hp);
+            odd_v = vshrq_n_s32(odd_v, 1);
+            vst1q_s32(&odd_lowpass[column], odd_v);
+
+            /* Right bands - bottom border (descale) */
+            r0  = vld1q_s32(&lowhigh_line[2][column]);
+            rm1 = vld1q_s32(&lowhigh_line[1][column]);
+            rm2 = vld1q_s32(&lowhigh_line[0][column]);
+            hp  = vld1q_s32(&highhigh_line[column]);
+
+            even_v = vmulq_s32(c5, r0);
+            even_v = vmlaq_s32(even_v, c4, rm1);
+            even_v = vsubq_s32(even_v, rm2);
+            even_v = vaddq_s32(even_v, four);
+            even_v = vshrq_n_s32(even_v, 3);
+            even_v = vaddq_s32(even_v, hp);
+            even_v = vshrq_n_s32(even_v, 1);
+            vst1q_s32(&even_highpass[column], even_v);
+
+            odd_v = vmulq_s32(c11, r0);
+            odd_v = vmlsq_s32(odd_v, c4, rm1);
+            odd_v = vaddq_s32(odd_v, rm2);
+            odd_v = vaddq_s32(odd_v, four);
+            odd_v = vshrq_n_s32(odd_v, 3);
+            odd_v = vsubq_s32(odd_v, hp);
+            odd_v = vshrq_n_s32(odd_v, 1);
+            vst1q_s32(&odd_highpass[column], odd_v);
+        }
+    }
+#endif
+    for (; column < input_width; column++)
     {
         int32_t even = 0, odd = 0;
 
