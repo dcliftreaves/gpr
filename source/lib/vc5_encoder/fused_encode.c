@@ -321,37 +321,72 @@ static int fused_pass1(
         const uint16_t *row2 = row1 + bayer_pitch;
 
         /* --- UNPACK: Bayer → GS, RG, BG, GD with log curve --- */
-        for (int col = 0; col < ch_width; col++) {
-            uint16_t R1, G1, G2, B1;
-            if (is_rggb) {
-                R1 = row1[2 * col];
-                G1 = row1[2 * col + 1];
-                G2 = row2[2 * col];
-                B1 = row2[2 * col + 1];
-            } else {
-                G1 = row1[2 * col];
-                B1 = row1[2 * col + 1];
-                R1 = row2[2 * col];
-                G2 = row2[2 * col + 1];
+        {
+            const int32_t mid2 = 2 * (1 << (log_bits - 1));
+            uint16_t *log_tbl = (log_bits <= 14) ? EncoderLogCurve14 : EncoderLogCurve16;
+            int log_max = (log_bits <= 14) ? 16383 : 65535;
+
+            int col = 0;
+#if ENABLED(NEON)
+            /* NEON: batch 4 pixels — scalar LUT lookups, then NEON color convert */
+            const int ch_width_m4 = (ch_width / 4) * 4;
+            const int32x4_t vmid2 = vdupq_n_s32(mid2);
+
+            for (; col < ch_width_m4; col += 4) {
+                /* Scalar: 4× Bayer load + log curve */
+                int32_t ra[4], g1a[4], g2a[4], ba[4];
+                for (int k = 0; k < 4; k++) {
+                    int c = col + k;
+                    uint16_t R1, G1, G2, B1;
+                    if (is_rggb) {
+                        R1 = row1[2*c]; G1 = row1[2*c+1]; G2 = row2[2*c]; B1 = row2[2*c+1];
+                    } else {
+                        G1 = row1[2*c]; B1 = row1[2*c+1]; R1 = row2[2*c]; G2 = row2[2*c+1];
+                    }
+                    if (R1 > log_max) R1 = log_max;
+                    if (G1 > log_max) G1 = log_max;
+                    if (G2 > log_max) G2 = log_max;
+                    if (B1 > log_max) B1 = log_max;
+                    ra[k] = log_tbl[R1]; g1a[k] = log_tbl[G1];
+                    g2a[k] = log_tbl[G2]; ba[k] = log_tbl[B1];
+                }
+
+                /* NEON: color conversion for 4 pixels */
+                int32x4_t vr  = vld1q_s32(ra);
+                int32x4_t vg1 = vld1q_s32(g1a);
+                int32x4_t vg2 = vld1q_s32(g2a);
+                int32x4_t vb  = vld1q_s32(ba);
+
+                int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+                int32x4_t vgd = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+                int32x4_t vrg = vshrq_n_s32(vaddq_s32(vsubq_s32(vr, vgs), vmid2), 1);
+                int32x4_t vbg = vshrq_n_s32(vaddq_s32(vsubq_s32(vb, vgs), vmid2), 1);
+
+                vst1q_s32(&unpack_row[0][col], vgs);
+                vst1q_s32(&unpack_row[1][col], vrg);
+                vst1q_s32(&unpack_row[2][col], vbg);
+                vst1q_s32(&unpack_row[3][col], vgd);
             }
-
-            /* Apply log curve */
-            int32_t r = apply_log_curve(R1, log_bits);
-            int32_t g1 = apply_log_curve(G1, log_bits);
-            int32_t g2 = apply_log_curve(G2, log_bits);
-            int32_t b = apply_log_curve(B1, log_bits);
-
-            /* Bayer → component conversion */
-            int32_t midpoint = (1 << (log_bits - 1));
-            int32_t gs = (g1 + g2) >> 1;
-            int32_t gd = ((g1 - g2) + 2 * midpoint) >> 1;
-            int32_t rg = ((r - gs) + 2 * midpoint) >> 1;
-            int32_t bg = ((b - gs) + 2 * midpoint) >> 1;
-
-            unpack_row[0][col] = gs;
-            unpack_row[1][col] = rg;
-            unpack_row[2][col] = bg;
-            unpack_row[3][col] = gd;
+#endif
+            /* Scalar cleanup */
+            for (; col < ch_width; col++) {
+                uint16_t R1, G1, G2, B1;
+                if (is_rggb) {
+                    R1 = row1[2*col]; G1 = row1[2*col+1]; G2 = row2[2*col]; B1 = row2[2*col+1];
+                } else {
+                    G1 = row1[2*col]; B1 = row1[2*col+1]; R1 = row2[2*col]; G2 = row2[2*col+1];
+                }
+                int32_t r = apply_log_curve(R1, log_bits);
+                int32_t g1 = apply_log_curve(G1, log_bits);
+                int32_t g2 = apply_log_curve(G2, log_bits);
+                int32_t b = apply_log_curve(B1, log_bits);
+                int32_t gs = (g1 + g2) >> 1;
+                int32_t gd = ((g1 - g2) + mid2) >> 1;
+                int32_t rg = ((r - gs) + mid2) >> 1;
+                int32_t bg_v = ((b - gs) + mid2) >> 1;
+                unpack_row[0][col] = gs; unpack_row[1][col] = rg;
+                unpack_row[2][col] = bg_v; unpack_row[3][col] = gd;
+            }
         }
 
         /* --- HORIZONTAL FILTER for each channel --- */
