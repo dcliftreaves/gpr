@@ -147,6 +147,7 @@
         uint32_t                default_crop_size_v;
 
         bool                    denoise_enabled;    // Enable noise separation for entropy reduction
+        bool                    denoise_auto;       // Auto-enable denoise when DNG NoiseProfile is present (default true)
         double                  denoise_strength;   // Threshold multiplier 0.0-1.0 (default 1.0)
         bool                    variance_stabilize; // Enable Anscombe variance stabilization
         bool                    denoise_output;     // Skip noise reconstruction on decode (actual denoising)
