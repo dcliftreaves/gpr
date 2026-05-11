@@ -50,6 +50,45 @@ int gpr_encode_fused(
     size_t *vc5_size
 );
 
+/*!
+    @brief Reusable encoder context for video / batch encoding.
+
+    Pre-allocates band buffers, row buffers, and the output stream buffer.
+    Subsequent encode_frame calls touch already-faulted pages, eliminating
+    the ~5ms-per-frame calloc+page-fault cost.
+
+    Single-thread is the embedded baseline; the same context works with
+    parallel mode (the FUSED_THREADS=1 env var still selects serial).
+
+    Lifetime:
+        ctx = gpr_encode_fused_create(width, height, pixel_format, quality);
+        for each frame: gpr_encode_fused_frame(ctx, raw, ...);
+        gpr_encode_fused_destroy(ctx);
+*/
+typedef struct FUSED_ENCODER FUSED_ENCODER;
+
+FUSED_ENCODER *gpr_encode_fused_create(
+    int width, int height,
+    int pixel_format,
+    int quality);
+
+/*! Encode one frame using a pre-allocated context.
+    @param ctx        Encoder context from gpr_encode_fused_create().
+    @param raw_bayer  Raw input pixels (uint16_t interleaved).
+    @param raw_size   Size of raw data in bytes.
+    @param vc5_out    Output pointer (points into ctx-owned buffer; do not free).
+    @param vc5_size   Output: size of VC5 bitstream.
+    @return 0 on success, -1 on error.
+*/
+int gpr_encode_fused_frame(
+    FUSED_ENCODER *ctx,
+    const uint8_t *raw_bayer,
+    size_t raw_size,
+    uint8_t **vc5_out,
+    size_t *vc5_size);
+
+void gpr_encode_fused_destroy(FUSED_ENCODER *ctx);
+
 #ifdef __cplusplus
 }
 #endif

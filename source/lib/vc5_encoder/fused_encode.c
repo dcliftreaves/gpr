@@ -24,6 +24,7 @@
 #include <pthread.h>
 
 #define FUSED_TIMING
+#define FUSED_TIMING_DETAIL
 
 #if defined(FUSED_TIMING) || defined(FUSED_TIMING_DETAIL)
 #include <mach/mach_time.h>
@@ -571,6 +572,7 @@ static void pass1_run_channel(
 #ifdef FUSED_TIMING_DETAIL
     double t_unpack = 0, t_horiz = 0, t_vert = 0, t_freq = 0;
     double _td;
+    double _ch_start = _fused_ms();
 #endif
 
     for (int row = 0; row < ch_height; row++) {
@@ -647,8 +649,11 @@ static void pass1_run_channel(
     }
 
 #ifdef FUSED_TIMING_DETAIL
-    fprintf(stderr, "    ch%d: unpack=%.1f, horiz=%.1f, vert+quant=%.1f\n",
-            channel, t_unpack, t_horiz, t_vert);
+    double _ch_end = _fused_ms();
+    double _ch_total = _ch_end - _ch_start;
+    double _ch_other = _ch_total - t_unpack - t_horiz - t_vert;
+    fprintf(stderr, "    ch%d: unpack=%.1f, horiz=%.1f, vert+quant=%.1f, other=%.1f, TOTAL=%.1f\n",
+            channel, t_unpack, t_horiz, t_vert, _ch_other, _ch_total);
 #endif
 
     free(unpack_row);
@@ -1096,22 +1101,122 @@ static int fused_pass2_serial(
 }
 
 /* ================================================================
-   Main entry point
+   Reusable encoder context (for video / batch frames)
    ================================================================ */
 
-int gpr_encode_fused(
-    const uint8_t *raw_bayer,
-    size_t raw_size,
-    int width, int height,
-    int pixel_format,
-    int quality,
-    uint8_t **vc5_out,
-    size_t *vc5_size)
-{
+struct FUSED_ENCODER {
+    int width, height;
+    int pixel_format;
+    int quality;
+    int is_rggb;
+    int log_bits;
+    int prescale;
+
     FUSED_CHANNEL_STATE ch_state[4];
-    memset(ch_state, 0, sizeof(ch_state));
+
+    /* Persistent Pass 2 enc buffers (one per band) */
+    uint8_t *enc_bufs[12];
+    size_t   enc_caps[12];
+
+    /* Persistent output stream buffer */
+    uint8_t *stream_buf;
+    size_t   stream_cap;
+};
+
+/* Reset just the per-frame state on a context (counters, run state, freq tables).
+   Band buffers and row buffers are kept as-is — their contents are overwritten. */
+static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
+    for (int ch = 0; ch < 4; ch++) {
+        FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
+        cs->band_out_row = 0;
+        cs->buf_row = 0;
+        memset(cs->freq, 0, sizeof(cs->freq));
+        memset(cs->run_state, 0, sizeof(cs->run_state));
+    }
+}
+
+FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, int quality) {
+    FUSED_ENCODER *ctx = (FUSED_ENCODER *)calloc(1, sizeof(*ctx));
+    if (!ctx) return NULL;
+    ctx->width = width;
+    ctx->height = height;
+    ctx->pixel_format = pixel_format;
+    ctx->quality = quality;
+    ctx->is_rggb = (pixel_format == 1 || pixel_format == 0 || pixel_format == 4);
+    ctx->log_bits = (pixel_format >= 4) ? 16 : 14;
+    ctx->prescale = 2;
+
+    SetupEncoderLogCurve();
+    fused_init_luts();
+
+    int dummy_is_rggb, dummy_log_bits;
+    if (setup_channel_state(ctx->ch_state, width, height, quality,
+                             &dummy_is_rggb, &dummy_log_bits) != 0) {
+        gpr_encode_fused_destroy(ctx);
+        return NULL;
+    }
+
+    /* Pre-allocate persistent enc buffers, one per band (4 ch × 3 highpass) */
+    int p2_idx = 0;
+    for (int ch = 0; ch < 4; ch++) {
+        FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
+        for (int band = 1; band < 4; band++) {
+            size_t cap = (size_t)cs->band_width * cs->band_height * 4 + 8192;
+            ctx->enc_caps[p2_idx] = cap;
+            ctx->enc_bufs[p2_idx] = (uint8_t *)malloc(cap);
+            if (!ctx->enc_bufs[p2_idx]) {
+                gpr_encode_fused_destroy(ctx);
+                return NULL;
+            }
+            p2_idx++;
+        }
+    }
+
+    /* Pre-allocate output stream buffer (size = raw frame size as upper bound) */
+    ctx->stream_cap = (size_t)width * height * 2;
+    ctx->stream_buf = (uint8_t *)malloc(ctx->stream_cap);
+    if (!ctx->stream_buf) {
+        gpr_encode_fused_destroy(ctx);
+        return NULL;
+    }
+
+    /* Touch all pages once to fault them in NOW, not on first frame */
+    memset(ctx->stream_buf, 0, ctx->stream_cap);
+    for (int i = 0; i < 12; i++) memset(ctx->enc_bufs[i], 0, ctx->enc_caps[i]);
+    for (int ch = 0; ch < 4; ch++) {
+        FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
+        for (int band = 0; band < 4; band++) {
+            memset(cs->band_data[band], 0,
+                   (size_t)cs->band_width * cs->band_height * sizeof(PIXEL));
+        }
+    }
+
+    return ctx;
+}
+
+void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
+    if (!ctx) return;
+    for (int i = 0; i < 12; i++) if (ctx->enc_bufs[i]) free(ctx->enc_bufs[i]);
+    if (ctx->stream_buf) free(ctx->stream_buf);
+    for (int ch = 0; ch < 4; ch++) {
+        for (int band = 0; band < 4; band++) {
+            if (ctx->ch_state[ch].band_data[band]) free(ctx->ch_state[ch].band_data[band]);
+        }
+        for (int r = 0; r < FUSED_ROW_BUFS; r++) {
+            if (ctx->ch_state[ch].lowpass_buf[r]) free(ctx->ch_state[ch].lowpass_buf[r]);
+            if (ctx->ch_state[ch].highpass_buf[r]) free(ctx->ch_state[ch].highpass_buf[r]);
+        }
+    }
+    free(ctx);
+}
+
+int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
+                            const uint8_t *raw_bayer, size_t raw_size,
+                            uint8_t **vc5_out, size_t *vc5_size)
+{
+    (void)raw_size;
+    if (!ctx || !raw_bayer || !vc5_out || !vc5_size) return -1;
     int rc = 0;
-    uint8_t *stream_buf = NULL;
     PASS2_BAND_TASK p2_tasks[12];
     memset(p2_tasks, 0, sizeof(p2_tasks));
     pthread_t p2_threads[12];
@@ -1123,43 +1228,29 @@ int gpr_encode_fused(
     double t0 = _fused_ms();
 #endif
 
-    /* Optional single-thread mode for embedded-target evaluation.
-       FUSED_THREADS env var: "1" = all serial, anything else = parallel (default). */
     const char *threads_env = getenv("FUSED_THREADS");
     int run_serial = (threads_env && threads_env[0] == '1' && threads_env[1] == '\0');
 
-    SetupEncoderLogCurve();
-    fused_init_luts();
+    fused_reset_frame_state(ctx);
 
-    int dummy_is_rggb, dummy_log_bits;
-    rc = setup_channel_state(ch_state, width, height, quality,
-                              &dummy_is_rggb, &dummy_log_bits);
-    if (rc != 0) goto cleanup;
-
-    int is_rggb = (pixel_format == 1 || pixel_format == 0 || pixel_format == 4);
-    int log_bits = (pixel_format >= 4) ? 16 : 14;
-    int prescale = 2;
-
-    /* Init sync for P1/P2 overlap */
     CHANNEL_SYNC sync;
     pthread_mutex_init(&sync.lock, NULL);
     pthread_cond_init(&sync.cv, NULL);
     for (int i = 0; i < 4; i++) sync.p1_done[i] = 0;
 
-    /* === STAGE 1: Spawn 4 Pass-1 channel threads (or run serial if FUSED_THREADS=1) === */
     PASS1_CHANNEL_TASK p1_tasks[4];
     for (int ch = 0; ch < 4; ch++) {
         p1_tasks[ch].channel = ch;
         p1_tasks[ch].raw_bayer = raw_bayer;
-        p1_tasks[ch].width = width;
-        p1_tasks[ch].height = height;
-        p1_tasks[ch].log_bits = log_bits;
-        p1_tasks[ch].is_rggb = is_rggb;
-        p1_tasks[ch].prescale = prescale;
-        p1_tasks[ch].cs = &ch_state[ch];
+        p1_tasks[ch].width = ctx->width;
+        p1_tasks[ch].height = ctx->height;
+        p1_tasks[ch].log_bits = ctx->log_bits;
+        p1_tasks[ch].is_rggb = ctx->is_rggb;
+        p1_tasks[ch].prescale = ctx->prescale;
+        p1_tasks[ch].cs = &ctx->ch_state[ch];
         p1_tasks[ch].sync = &sync;
         if (run_serial) {
-            pass1_channel_thread(&p1_tasks[ch]);  /* serial: signals p1_done */
+            pass1_channel_thread(&p1_tasks[ch]);
             p1_created[ch] = 0;
         } else {
             p1_created[ch] = (pthread_create(&p1_threads[ch], NULL,
@@ -1167,10 +1258,9 @@ int gpr_encode_fused(
         }
     }
 
-    /* === STAGE 2: While P1 threads run, set up + spawn 12 P2 threads (they'll block on p1_done) === */
     int p2_count = 0;
     for (int ch = 0; ch < 4; ch++) {
-        FUSED_CHANNEL_STATE *cs = &ch_state[ch];
+        FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         for (int band = 1; band < 4; band++) {
             PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
             pt->channel = ch;
@@ -1178,13 +1268,12 @@ int gpr_encode_fused(
             pt->width = cs->band_width;
             pt->height = cs->band_height;
             pt->pitch = cs->band_width * sizeof(int32_t);
-            pt->enc_cap = (size_t)pt->width * pt->height * 4 + 8192;
-            pt->enc_buf = (uint8_t *)malloc(pt->enc_cap);
+            pt->enc_cap = ctx->enc_caps[p2_count];
+            pt->enc_buf = ctx->enc_bufs[p2_count];  /* persistent */
             pt->enc_size = 0;
             pt->sync = &sync;
-            if (!pt->enc_buf) { rc = -1; goto cleanup; }
             if (run_serial) {
-                pass2_band_thread(pt);  /* serial run */
+                pass2_band_thread(pt);
                 p2_created[p2_count] = 0;
             } else {
                 p2_created[p2_count] = (pthread_create(&p2_threads[p2_count], NULL,
@@ -1194,14 +1283,11 @@ int gpr_encode_fused(
         }
     }
 
-    /* Inline fallback for any P1 thread that failed to spawn (only when parallel) */
     if (!run_serial) {
         for (int ch = 0; ch < 4; ch++) {
             if (!p1_created[ch]) pass1_channel_thread(&p1_tasks[ch]);
         }
     }
-
-    /* Join Pass 1 threads (signals are already set, P2 may already be running) */
     for (int ch = 0; ch < 4; ch++) {
         if (p1_created[ch]) pthread_join(p1_threads[ch], NULL);
     }
@@ -1211,10 +1297,8 @@ int gpr_encode_fused(
     fprintf(stderr, "  FUSED Pass1 (parallel, signals P2):      %.1fms\n", t1 - t0);
 #endif
 
-    /* Join Pass 2 threads (which started as soon as their channel's P1 finished) */
     for (int i = 0; i < 12; i++) {
         if (p2_created[i]) pthread_join(p2_threads[i], NULL);
-        else pass2_band_thread(&p2_tasks[i]); /* inline fallback */
     }
 
 #ifdef FUSED_TIMING
@@ -1225,15 +1309,12 @@ int gpr_encode_fused(
     pthread_mutex_destroy(&sync.lock);
     pthread_cond_destroy(&sync.cv);
 
-    /* === STAGE 3: Concat outputs sequentially (preserves band order) === */
-    size_t stream_cap = raw_size;
-    stream_buf = (uint8_t *)malloc(stream_cap);
-    if (!stream_buf) { rc = -1; goto cleanup; }
+    /* Concat into the persistent stream buffer */
     size_t pos = 0;
     for (int i = 0; i < 12; i++) {
         PASS2_BAND_TASK *pt = &p2_tasks[i];
-        if (pt->enc_size > 0 && pos + pt->enc_size <= stream_cap) {
-            memcpy(stream_buf + pos, pt->enc_buf, pt->enc_size);
+        if (pt->enc_size > 0 && pos + pt->enc_size <= ctx->stream_cap) {
+            memcpy(ctx->stream_buf + pos, pt->enc_buf, pt->enc_size);
             pos += pt->enc_size;
         }
     }
@@ -1243,23 +1324,37 @@ int gpr_encode_fused(
     fprintf(stderr, "  FUSED Total:                             %.1fms\n", t3 - t0);
 #endif
 
-    *vc5_out = stream_buf;
+    *vc5_out = ctx->stream_buf;  /* context-owned; caller must NOT free */
     *vc5_size = pos;
+    return rc;
+}
 
-cleanup:
-    /* Free Pass 2 enc buffers */
-    for (int i = 0; i < 12; i++) {
-        if (p2_tasks[i].enc_buf) free(p2_tasks[i].enc_buf);
+/* ================================================================
+   One-shot entry point (back-compat: creates context per call)
+   ================================================================ */
+
+int gpr_encode_fused(
+    const uint8_t *raw_bayer,
+    size_t raw_size,
+    int width, int height,
+    int pixel_format,
+    int quality,
+    uint8_t **vc5_out,
+    size_t *vc5_size)
+{
+    FUSED_ENCODER *ctx = gpr_encode_fused_create(width, height, pixel_format, quality);
+    if (!ctx) return -1;
+    uint8_t *internal_out = NULL;
+    size_t internal_size = 0;
+    int rc = gpr_encode_fused_frame(ctx, raw_bayer, raw_size, &internal_out, &internal_size);
+    if (rc == 0) {
+        /* Copy the context-owned bytes into a fresh malloc'd buffer for the caller */
+        *vc5_out = (uint8_t *)malloc(internal_size);
+        if (!*vc5_out) { rc = -1; goto out; }
+        memcpy(*vc5_out, internal_out, internal_size);
+        *vc5_size = internal_size;
     }
-    /* Free band buffers and circular buffers */
-    for (int ch = 0; ch < 4; ch++) {
-        for (int band = 0; band < 4; band++) {
-            if (ch_state[ch].band_data[band]) free(ch_state[ch].band_data[band]);
-        }
-        for (int r = 0; r < FUSED_ROW_BUFS; r++) {
-            if (ch_state[ch].lowpass_buf[r]) free(ch_state[ch].lowpass_buf[r]);
-            if (ch_state[ch].highpass_buf[r]) free(ch_state[ch].highpass_buf[r]);
-        }
-    }
+out:
+    gpr_encode_fused_destroy(ctx);
     return rc;
 }
