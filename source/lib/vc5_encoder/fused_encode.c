@@ -84,16 +84,47 @@ static void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpas
     highpass[0] = PS(input[0]) - PS(input[1]);
 
     /* Interior */
-    for (int i = 1; i < half - 1; i++) {
-        int idx = 2 * i;
-        int32_t e0 = PS(input[idx]);
-        int32_t o0 = PS(input[idx + 1]);
-        lowpass[i] = e0 + o0;
+    {
+        int i = 1;
+#if ENABLED(NEON)
+        const int32x4_t vround = vdupq_n_s32(prescale_rounding);
+        const int32x4_t four = vdupq_n_s32(4);
+        const int interior_m4 = ((half - 2) / 4) * 4 + 1; /* Align to 4 from i=1 */
 
-        /* 6-tap highpass: uses neighbors */
-        int32_t e_prev = PS(input[idx - 2]) + PS(input[idx - 1]);
-        int32_t e_next = PS(input[idx + 2]) + PS(input[idx + 3]);
-        highpass[i] = ((e_next - e_prev + 4) >> 3) + (e0 - o0);
+        for (; i + 3 < half - 1; i += 4) {
+            /* Load 8 input pairs (16 values) for 4 output lowpass+highpass */
+            int idx = 2 * i;
+            /* Deinterleave even/odd */
+            int32x4x2_t pairs = vld2q_s32(&input[idx]);
+            int32x4_t neg_ps = vdupq_n_s32(-prescale);
+            int32x4_t evens = vshlq_s32(vaddq_s32(pairs.val[0], vround), neg_ps);
+            int32x4_t odds  = vshlq_s32(vaddq_s32(pairs.val[1], vround), neg_ps);
+
+            /* Lowpass = even + odd */
+            vst1q_s32(&lowpass[i], vaddq_s32(evens, odds));
+
+            /* Highpass = ((next_sum - prev_sum + 4) >> 3) + (even - odd) */
+            /* prev_sum and next_sum need neighbor pairs — do scalar for now */
+            int32_t hp[4];
+            for (int k = 0; k < 4; k++) {
+                int ii = i + k;
+                int ix = 2 * ii;
+                int32_t ep = PS(input[ix-2]) + PS(input[ix-1]);
+                int32_t en = PS(input[ix+2]) + PS(input[ix+3]);
+                hp[k] = ((en - ep + 4) >> 3) + (PS(input[ix]) - PS(input[ix+1]));
+            }
+            vst1q_s32(&highpass[i], vld1q_s32(hp));
+        }
+#endif
+        for (; i < half - 1; i++) {
+            int idx = 2 * i;
+            int32_t e0 = PS(input[idx]);
+            int32_t o0 = PS(input[idx + 1]);
+            lowpass[i] = e0 + o0;
+            int32_t e_prev = PS(input[idx - 2]) + PS(input[idx - 1]);
+            int32_t e_next = PS(input[idx + 2]) + PS(input[idx + 3]);
+            highpass[i] = ((e_next - e_prev + 4) >> 3) + (e0 - o0);
+        }
     }
 
     /* Right boundary */
