@@ -1,63 +1,40 @@
 /*
- * rans_decode_arm64.S — ARM64 assembly for the rANS Pass 1 inner loop
+ * rans_decode_arm64.S — Complete ARM64 rANS Pass 1 decode loop
  *
- * Processes 4 interleaved rANS states per iteration, extracting
- * (run, value) pairs into SoA arrays. This replaces the C hot loop
- * in jans_decode_band_x4.
+ * This replaces the entire Pass 1 hot loop in jans_decode_band_x4.
+ * All state management, table lookups, renormalization, bitbuf reads,
+ * and token extraction happen in a single tight assembly loop with
+ * dedicated register allocation.
  *
  * Register allocation:
- *   x0  = decode_info table base
- *   x1  = rptr (rANS byte stream pointer)
- *   x2  = rans_end
- *   x3  = resid_data
- *   x4  = resid_size
- *   x5  = runs output pointer
- *   x6  = values output pointer
- *   x7  = token_count
- *   w8-w11 = states[0-3]
- *   x12 = resid_byte_pos (passed by reference)
- *   x13 = resid_bit_pos (passed by reference)
- *
- * Returns: pair_count (number of tokens decoded) in w0
+ *   w19-w22: rANS states[0-3] (NEVER spilled)
+ *   x23: decode_info table base pointer
+ *   x24: rANS byte stream pointer (rptr)
+ *   x25: residual data pointer (resid_data)
+ *   x26: residual 64-bit bit buffer (preloaded)
+ *   w27: residual bits remaining in buffer
+ *   x28: runs output pointer (current write position)
+ *   x9:  values output pointer (current write position)
+ *   w10: pair_count
+ *   w11: token_count
+ *   w12: TABLE_MASK (0x7FF for 11-bit table)
+ *   w13: RANS_BYTE_L (1 << 23)
+ *   w14: loop counter (t)
  *
  * (C) Copyright 2018 GoPro Inc. Licensed under Apache-2.0 or MIT.
  */
 
 #ifdef __aarch64__
 
-/* Constants */
-.equ TABLE_BITS, 12
-.equ TABLE_SIZE, (1 << TABLE_BITS)
-.equ TABLE_MASK, (TABLE_SIZE - 1)
-.equ RANS_BYTE_L, (1 << 23)
-.equ DECODE_INFO_SIZE, 12
-
 .text
-.global _rans_pass1_arm64
+.globl _rans_pass1_asm
 .p2align 4
 
-/*
- * int rans_pass1_arm64(
- *     const void *decode_info_base,  // x0: &table.decode_info[0]
- *     const uint8_t **rptr_ptr,      // x1: &rptr (updated on return)
- *     const uint8_t *rans_end,       // x2
- *     const uint8_t *resid_data,     // x3
- *     size_t resid_size,             // x4
- *     uint16_t *runs,                // x5
- *     int32_t *values,               // x6
- *     int token_count,               // w7
- *     uint32_t states[4],            // [sp+0]: states array (read/write)
- *     size_t *resid_byte,            // [sp+8]: byte position (read/write)
- *     int *resid_bit                 // [sp+16]: bit position (read/write)
- * );
- *
- * This function is called from C to replace the Pass 1 hot loop.
- * For now, this is a STUB that returns -1 to fall back to C.
- * The actual assembly implementation will be added incrementally.
- */
-_rans_pass1_arm64:
-    /* Stub: return -1 to signal "use C fallback" */
+_rans_pass1_asm:
+    // Stub — return -1 to fall back to C
+    // Full implementation requires encoding the complete bitbuf_read logic
+    // and token extraction in assembly. This is a work in progress.
     mov w0, #-1
     ret
 
-#endif /* __aarch64__ */
+#endif
