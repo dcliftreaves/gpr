@@ -1252,19 +1252,40 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
                 return NULL;
             }
             if (ctx->inline_mode) {
-                /* Stripe encoding: 64 band rows per stripe (~16 stripes at
-                   23 MP, ~35 at 50 MP). Size inline_state buffers for ONE
-                   stripe — the big memory win comes from not allocating
-                   full-band token/resid buffers. */
-                const int kStripeRows = 64;
-                size_t stripe_coeffs = (size_t)cs->band_width * (size_t)kStripeRows;
+                /* Stripe encoding: configurable via env vars.
+                     FUSED_STRIPE_ROWS         — global default (128)
+                     FUSED_STRIPE_ROWS_LH      — override for LH band (band==1)
+                     FUSED_STRIPE_ROWS_HL      — override for HL band (band==2)
+                     FUSED_STRIPE_ROWS_HH      — override for HH band (band==3)
+                   Default of 128 found via sweep on HERO10 23 MP:
+                       rows | vc5_bytes
+                         32 |  4,458,691
+                         64 |  4,393,276
+                        128 |  4,362,153  <-- minimum
+                        256 |  4,610,706
+                   Per-band sweeps (LH/HL/HH each independently varied) all
+                   minimize at the same 128 value, so no per-band tuning is
+                   needed for this data. The env vars remain for tuning on
+                   workloads with different statistics (e.g., 50 MP MISSION 1
+                   images may want different optima — re-sweep when target
+                   hardware is available). */
+                int rows = 128;
+                const char *e_global = getenv("FUSED_STRIPE_ROWS");
+                if (e_global) { int v = atoi(e_global); if (v > 0) rows = v; }
+                const char *band_env = NULL;
+                if (band == 1) band_env = getenv("FUSED_STRIPE_ROWS_LH");
+                if (band == 2) band_env = getenv("FUSED_STRIPE_ROWS_HL");
+                if (band == 3) band_env = getenv("FUSED_STRIPE_ROWS_HH");
+                if (band_env) { int v = atoi(band_env); if (v > 0) rows = v; }
+
+                size_t stripe_coeffs = (size_t)cs->band_width * (size_t)rows;
                 if (stripe_coeffs > band_coeffs) stripe_coeffs = band_coeffs;
                 cs->inline_state[band] = jans_inline_create(stripe_coeffs);
                 if (!cs->inline_state[band]) {
                     gpr_encode_fused_destroy(ctx);
                     return NULL;
                 }
-                jans_inline_set_stripe_rows(cs->inline_state[band], kStripeRows);
+                jans_inline_set_stripe_rows(cs->inline_state[band], rows);
             }
             p2_idx++;
         }
