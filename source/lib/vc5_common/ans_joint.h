@@ -124,6 +124,25 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
 typedef struct JANS_INLINE_STATE JANS_INLINE_STATE;
 
 JANS_INLINE_STATE *jans_inline_create(size_t max_coeffs);
+
+/*! Enable stripe mode: emit num_stripes independent rANS sub-blobs per band.
+    Tokens/resid/rANS buffers only need to hold one stripe's worth at a time —
+    cuts peak memory in the encoder by ~(num_stripes - 1)/num_stripes.
+
+    Format produced by jans_inline_finalize when stripe_rows > 0:
+        marker (4 bytes) = 0xFFFFFFFF (illegal as a token_count, signals stripe mode)
+        num_stripes (4 bytes)
+        for each stripe:
+            stripe_row_count (4 bytes)   -- band rows covered by this stripe
+            stripe_size      (4 bytes)   -- byte length of stripe_data
+            stripe_data      (stripe_size bytes)  -- single-blob format
+
+    jans_decode_band_x4 detects the 0xFFFFFFFF marker and decodes accordingly.
+
+    Pass stripe_rows = 0 to disable (default: single-blob output, backward
+    compatible with the old format). */
+void jans_inline_set_stripe_rows(JANS_INLINE_STATE *s, int stripe_rows);
+
 void jans_inline_reset(JANS_INLINE_STATE *s);
 void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width);
 int  jans_inline_finalize(uint8_t *out_buf, size_t out_cap, JANS_INLINE_STATE *s);
