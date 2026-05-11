@@ -114,6 +114,32 @@ int gpr_encode_fused_frame(
 
 void gpr_encode_fused_destroy(FUSED_ENCODER *ctx);
 
+/*!
+    @brief Enable wavelet-domain BayesShrink denoise on the fused encoder.
+
+    Operates on each highpass band between Pass 1 (wavelet+quantize) and
+    Pass 2 (tokenize+rANS), thresholding noise-dominated coefficients.
+    Measured on the production-encoder equivalent: 3-38% file-size win
+    at SSIM 0.9998, signal-detail preserved.
+
+    Enabling denoise forces split-pass mode (the band buffer must exist
+    for per-band threshold estimation). With strength=0 (default) the
+    encoder behaves as before.
+
+    @param ctx           Encoder context from gpr_encode_fused_create().
+    @param noise_scale   Poisson noise component in raw-pixel units
+                         (multiply DNG NoiseProfile scale by max_val).
+                         Pass 0 to use MAD-based auto-estimation per band.
+    @param noise_offset  Gaussian noise component in raw-pixel units
+                         (multiply DNG NoiseProfile offset by max_val^2).
+    @param strength      Threshold multiplier [0.0-1.0]. 0 disables denoise.
+                         1.0 = full BayesShrink strength.
+*/
+void gpr_encode_fused_set_denoise(FUSED_ENCODER *ctx,
+                                  double noise_scale,
+                                  double noise_offset,
+                                  double strength);
+
 #ifdef __cplusplus
 }
 #endif
