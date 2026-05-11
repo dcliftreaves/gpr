@@ -355,13 +355,22 @@ CODEC_ERROR BitstreamCodecError(BITSTREAM *bitstream)
  */
 CODEC_ERROR GetByteArray(BITSTREAM *bitstream, uint8_t *array, size_t size)
 {
-    size_t i;
-    
-    for (i = 0; i < size; i++)
+    /* Fast path: if bitstream is byte-aligned and reading from memory,
+       bulk memcpy instead of byte-by-byte GetBits.
+       This is the ANS blob read path — always called after AlignBitsSegment. */
+    STREAM *stream = bitstream->stream;
+    if (bitstream->count == 0 && stream && stream->type == STREAM_TYPE_MEMORY)
     {
-        array[i] = GetBits(bitstream, 8);
+        uint8_t *src = (uint8_t *)stream->location.memory.buffer + stream->byte_count;
+        memcpy(array, src, size);
+        stream->byte_count += size;
+        return CODEC_ERROR_OKAY;
     }
-    
+
+    /* Slow fallback for non-aligned or file-based streams */
+    for (size_t i = 0; i < size; i++)
+        array[i] = GetBits(bitstream, 8);
+
     return CODEC_ERROR_OKAY;
 }
 
