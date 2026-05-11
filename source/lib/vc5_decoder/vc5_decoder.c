@@ -48,7 +48,6 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
     // Clear the members of the image data structure
     InitImage(&output_image);
     
-    STREAM input;
     DECODER_PARAMETERS parameters;
     
     // Initialize the parameters passed to the decoder
@@ -111,31 +110,42 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
         return CODEC_ERROR_ENABLED_PARTS;
     }
 
-    error = OpenStreamBuffer(&input, vc5_buffer->buffer, vc5_buffer->size );
-    if (error != CODEC_ERROR_OKAY) {
-        fprintf(stderr, "Could not open input vc5 stream\n" );
-        return error;
-    }
-
     RGB_IMAGE rgb_image;
     InitRGBImage(&rgb_image);
-    
-    error = DecodeImage(&input, &output_image, &rgb_image, &parameters);
+
+    /* Use fast parallel decoder: pre-index + multi-thread band decode */
+    error = DecodeFastImage((const uint8_t *)vc5_buffer->buffer, vc5_buffer->size,
+                            &output_image, &rgb_image, &parameters);
     if (error != CODEC_ERROR_OKAY) {
-        fprintf(stderr, "Could not decode input vc5 bitstream. Error number %d\n", error );
-        return error;
+        /* Fallback to serial decoder on failure */
+        fprintf(stderr, "Fast decoder failed (error %d), falling back to serial decoder\n", error);
+
+        STREAM input;
+        error = OpenStreamBuffer(&input, vc5_buffer->buffer, vc5_buffer->size);
+        if (error != CODEC_ERROR_OKAY) {
+            fprintf(stderr, "Could not open input vc5 stream\n");
+            return error;
+        }
+
+        InitRGBImage(&rgb_image);
+        InitImage(&output_image);
+        error = DecodeImage(&input, &output_image, &rgb_image, &parameters);
+        if (error != CODEC_ERROR_OKAY) {
+            fprintf(stderr, "Could not decode input vc5 bitstream. Error number %d\n", error);
+            return error;
+        }
     }
-    
+
     if( parameters.rgb_resolution != GPR_RGB_RESOLUTION_NONE )
     {
         assert( rgb_buffer);
-        
+
         rgb_buffer->buffer  = rgb_image.buffer;
         rgb_buffer->size    = rgb_image.size;
         rgb_buffer->width   = rgb_image.width;
         rgb_buffer->height  = rgb_image.height;
     }
-    
+
     if( raw_buffer )
     {
         assert( output_image.buffer );
@@ -149,6 +159,6 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
         // Nothing should be returned in output_image since we do not want output raw image
         assert( output_image.buffer == NULL );
     }
-    
+
     return error;
 }
