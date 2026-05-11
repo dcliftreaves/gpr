@@ -36,6 +36,9 @@
 #if ENABLED(NEON)
 #include <arm_neon.h>
 #endif
+#ifdef FAST_ENCODE_TIMING
+#include <mach/mach_time.h>
+#endif
 #ifndef _WIN32
 #include <pthread.h>
 #endif
@@ -352,15 +355,24 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
 	BITSTREAM bitstream;
     
     SetupEncoderLogCurve();
-    
+
 	UNPACKED_IMAGE unpacked_image;
 
+#ifdef FAST_ENCODE_TIMING
+	{
+		static double _es = 0;
+		if (!_es) { mach_timebase_info_data_t info; mach_timebase_info(&info); _es = (double)info.numer/info.denom/1e6; }
+		double _et0 = mach_absolute_time() * _es;
+		error = ImageUnpackingProcess(image, &unpacked_image, parameters, &parameters->allocator);
+		fprintf(stderr, "  ENC %-20s %.1fms\n", "unpack", mach_absolute_time() * _es - _et0);
+	}
+#else
 	// Unpack the image into a set of component arrays
 	error = ImageUnpackingProcess(image, &unpacked_image, parameters, &parameters->allocator);
+#endif
 	if (error != CODEC_ERROR_OKAY) {
 		return error;
 	}
-
 
 	// Apply variance-stabilizing transform if enabled (Phase B)
 	if (encoder.variance_stabilize && encoder.noise_scale > 0.0)
@@ -1576,6 +1588,17 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 
 	CODEC_STATE *codec = &encoder->codec;
 
+#ifdef FAST_ENCODE_TIMING
+#include <mach/mach_time.h>
+	static double _enc_scale = 0;
+	if (!_enc_scale) { mach_timebase_info_data_t info; mach_timebase_info(&info); _enc_scale = (double)info.numer/info.denom/1e6; }
+	double _enc_t0 = mach_absolute_time() * _enc_scale, _enc_t1;
+#define ENC_T() do { _enc_t1 = mach_absolute_time() * _enc_scale; fprintf(stderr, "  ENC %-20s %.1fms\n", _enc_phase, _enc_t1 - _enc_t0); _enc_t0 = _enc_t1; } while(0)
+	const char *_enc_phase = "init";
+#else
+#define ENC_T() ((void)0)
+#endif
+
 	/* Phase 0.5: Pre-transform noise estimation and adaptive quantization.
 	   Estimate noise from component arrays before the wavelet transform
 	   quantizes them away. Then increase quant divisors to the noise floor
@@ -1658,6 +1681,11 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 		}
 	}
 
+#ifdef FAST_ENCODE_TIMING
+	_enc_phase = "phase0.5_denoise";
+#endif
+	ENC_T();
+
 	/* Phase 1: Forward wavelet transforms.
 	   Parallel (4 threads) in normal mode, serial in embedded/Windows mode. */
 #ifdef _WIN32
@@ -1728,6 +1756,11 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 		}
 	}
 
+#ifdef FAST_ENCODE_TIMING
+	_enc_phase = "phase1_wavelet";
+#endif
+	ENC_T();
+
 	/* Phase 1.5: Post-transform wavelet denoise (only if Phase 0.5 didn't already handle it).
 	   Phase 0.5 adjusts quant tables pre-transform, which is the primary noise removal.
 	   Phase 1.5 is a legacy fallback for when Phase 0.5 couldn't run. */
@@ -1753,6 +1786,11 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 				encoder->noise_offset);
 		}
 	}
+
+#ifdef FAST_ENCODE_TIMING
+	_enc_phase = "phase1.5_denoise";
+#endif
+	ENC_T();
 
 	/* Phase 1.8: Pre-encode ANS bands in parallel (one thread per channel).
 	   This moves the expensive ANS table building and encoding off the serial
@@ -1804,6 +1842,11 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 		}
 	}
 
+#ifdef FAST_ENCODE_TIMING
+	_enc_phase = "phase1.8_ans";
+#endif
+	ENC_T();
+
 	/* Phase 2: Encode channels sequentially (bitstream is serial) */
 	for (channel_index = 0; channel_index < channel_count; channel_index++)
 	{
@@ -1829,7 +1872,12 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 		codec->channel_number = (channel_number + 1);
 		codec->subband_number = 0;
 	}
-    
+
+#ifdef FAST_ENCODE_TIMING
+	_enc_phase = "phase2_bitstream";
+	ENC_T();
+#endif
+
 #if VC5_ENABLED_PART(VC5_PART_LAYERS)
 	if (IsPartEnabled(encoder->enabled_parts, VC5_PART_LAYERS))
 	{

@@ -35,7 +35,31 @@
 static const int run_class_min[JANS_RUN_CLASSES] = {0, 1, 2, 3, 4,  8, 16, 32,  64,  128};
 static const int run_class_bits[JANS_RUN_CLASSES] = {0, 0, 0, 0, 2,  3,  4,  5,   6,    7};
 
-static int run_to_class(int run, int *residual) {
+/* Fast LUT-based run_to_class: O(1) lookup for runs 0-255 */
+static uint8_t run_class_lut[256];
+static uint8_t run_resid_lut[256];
+static int run_lut_initialized = 0;
+
+static void init_run_lut(void) {
+    if (run_lut_initialized) return;
+    for (int r = 0; r < 256; r++) {
+        for (int c = JANS_RUN_CLASSES - 1; c >= 0; c--) {
+            if (r >= run_class_min[c]) {
+                run_class_lut[r] = (uint8_t)c;
+                run_resid_lut[r] = (uint8_t)(r - run_class_min[c]);
+                break;
+            }
+        }
+    }
+    run_lut_initialized = 1;
+}
+
+static inline int run_to_class(int run, int *residual) {
+    if (run < 256) {
+        *residual = run_resid_lut[run];
+        return run_class_lut[run];
+    }
+    /* Fallback for run >= 256 (rare) */
     for (int c = JANS_RUN_CLASSES - 1; c >= 0; c--) {
         if (run >= run_class_min[c]) {
             *residual = run - run_class_min[c];
@@ -62,7 +86,30 @@ static int class_to_run(int cls, int residual) {
 static const int mag_class_min[JANS_MAG_CLASSES] = {0,1,2,3,4,5,6,7,8,16,32,64,128,256,512,1024};
 static const int mag_class_bits[JANS_MAG_CLASSES] = {0,0,0,0,0,0,0,0,3,4,5,6,7,8,9,10};
 
-static int mag_to_class(int mag, int *residual) {
+/* Fast LUT-based mag_to_class: O(1) for magnitudes 0-2047, O(N) fallback for larger */
+static uint8_t mag_class_lut[2048];
+static uint16_t mag_resid_lut[2048];
+static int mag_lut_initialized = 0;
+
+static void init_mag_lut(void) {
+    if (mag_lut_initialized) return;
+    for (int m = 0; m < 2048; m++) {
+        for (int c = JANS_MAG_CLASSES - 1; c >= 0; c--) {
+            if (m >= mag_class_min[c]) {
+                mag_class_lut[m] = (uint8_t)c;
+                mag_resid_lut[m] = (uint16_t)(m - mag_class_min[c]);
+                break;
+            }
+        }
+    }
+    mag_lut_initialized = 1;
+}
+
+static inline int mag_to_class(int mag, int *residual) {
+    if (mag < 2048) {
+        *residual = mag_resid_lut[mag];
+        return mag_class_lut[mag];
+    }
     for (int c = JANS_MAG_CLASSES - 1; c >= 0; c--) {
         if (mag >= mag_class_min[c]) {
             *residual = mag - mag_class_min[c];
@@ -116,7 +163,25 @@ static void bitbuf_init(BITBUF *bb, uint8_t *buf, size_t cap) {
     if (buf) memset(buf, 0, cap);
 }
 
-static void bitbuf_write(BITBUF *bb, uint32_t value, int bits) {
+static inline __attribute__((always_inline))
+void bitbuf_write(BITBUF *bb, uint32_t value, int bits) {
+    if (bits == 0) return;
+    /* Fast path: write up to 25 bits into the current word position.
+       Works when byte_pos + 3 < capacity (common case). */
+    if (bb->byte_pos + 3 < bb->capacity && bits <= 25) {
+        /* Read existing 32-bit word, OR in new bits, write back */
+        uint32_t *wp = (uint32_t *)(bb->buf + bb->byte_pos);
+        uint32_t mask = (bits >= 32) ? 0xFFFFFFFFu : ((1u << bits) - 1);
+        uint32_t word;
+        memcpy(&word, wp, 4);
+        word |= (value & mask) << bb->bit_pos;
+        memcpy(wp, &word, 4);
+        int new_bit = bb->bit_pos + bits;
+        bb->byte_pos += new_bit >> 3;
+        bb->bit_pos = new_bit & 7;
+        return;
+    }
+    /* Slow fallback for end of buffer */
     for (int i = 0; i < bits; i++) {
         if (bb->byte_pos < bb->capacity) {
             bb->buf[bb->byte_pos] |= ((value >> i) & 1) << bb->bit_pos;
@@ -261,6 +326,9 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
     int pitch_elems = pitch / sizeof(int32_t);
     size_t pixels = (size_t)width * (size_t)height;
     if (pixels > (size_t)(INT32_MAX / 2)) return -1;
+
+    init_run_lut();
+    init_mag_lut();
 
     /* Single allocation for all encode buffers (embedded-friendly).
        tokens: max_tokens × 2 bytes, resid: pixels × 2, rans: pixels × 2 + 4K */
@@ -503,6 +571,10 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
     int pitch_elems = pitch / sizeof(int32_t);
     size_t pixels = (size_t)width * (size_t)height;
     if (pixels > (size_t)(INT32_MAX / 2)) return -1;
+
+    /* Initialize classification LUTs (once) */
+    init_run_lut();
+    init_mag_lut();
 
     /* Single allocation for all encode buffers (embedded-friendly) */
     size_t max_tokens = pixels + height + 16;
