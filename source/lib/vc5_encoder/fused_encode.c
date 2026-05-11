@@ -285,24 +285,53 @@ static inline int fused_mag_to_class(int mag) {
 }
 
 /* Count frequencies for one row of quantized band data.
-   Maintains run state across rows via the run_state pointer. */
+   Maintains run state across rows via the run_state pointer.
+   NEON zero-skip: scan 4 pixels at a time, skip all-zero groups. */
 static void count_freq_row(const PIXEL *data, int width,
                             uint16_t *freq, int *run_state)
 {
     int run = *run_state;
-    for (int col = 0; col < width; col++) {
+    int col = 0;
+
+#if ENABLED(NEON)
+    /* Fast zero-skip: check 4 pixels at a time */
+    const int width_m4 = (width / 4) * 4;
+    for (; col < width_m4; col += 4) {
+        int32x4_t v = vld1q_s32(&data[col]);
+        /* Check if all 4 are zero: max of |v| == 0 */
+        uint32_t any_nonzero = vmaxvq_u32(vreinterpretq_u32_s32(vabsq_s32(v)));
+        if (any_nonzero == 0) { run += 4; continue; }
+
+        /* At least one non-zero — process individually */
+        int32_t vals[4]; vst1q_s32(vals, v);
+        for (int k = 0; k < 4; k++) {
+            int32_t val = vals[k];
+            if (val == 0) { run++; continue; }
+            int32_t mag = (val < 0) ? -val : val;
+            while (run >= 256) {
+                int rc = fused_run_to_class(255);
+                freq[rc * 16 + 0]++;
+                run -= 255;
+            }
+            int rc = fused_run_to_class(run);
+            int mc = fused_mag_to_class(mag > 2047 ? 2047 : mag);
+            freq[rc * 16 + mc]++;
+            run = 0;
+        }
+    }
+#endif
+
+    /* Scalar cleanup */
+    for (; col < width; col++) {
         int32_t val = data[col];
         if (val == 0) { run++; continue; }
 
         int32_t mag = (val < 0) ? -val : val;
-
-        /* Emit long-run tokens */
         while (run >= 256) {
             int rc = fused_run_to_class(255);
             freq[rc * 16 + 0]++;
             run -= 255;
         }
-
         int rc = fused_run_to_class(run);
         int mc = fused_mag_to_class(mag > 2047 ? 2047 : mag);
         freq[rc * 16 + mc]++;
