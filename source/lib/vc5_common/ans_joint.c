@@ -159,49 +159,60 @@ static inline int rans_dec_renorm(uint32_t *state, const uint8_t **pptr,
     return 0;
 }
 
-/* --- Bit buffer for residual bits --- */
+/* --- Bit buffer for residual bits ---
+ *
+ * Accumulator design: bits accumulate in a 64-bit register, only whole bytes
+ * are emitted to memory. Eliminates the read-modify-write dependency of the
+ * old "OR into 32-bit word at buf[byte_pos]" approach, which forced the CPU
+ * to load each word it had just stored — a serial chain on the hot path.
+ *
+ * Also skips the memset(buf, 0, cap) at init since we write whole bytes
+ * rather than OR'ing into pre-zeroed memory.
+ *
+ * Call bitbuf_size(bb) at end of band to flush trailing partial byte.
+ * Output byte stream is bit-identical to the previous implementation.
+ */
 typedef struct {
     uint8_t *buf;
     size_t   capacity;
-    size_t   byte_pos;
-    int      bit_pos;  /* bits written in current byte (0-7) */
+    size_t   byte_pos;     /* bytes already emitted to buf */
+    uint64_t accum;        /* bits not yet emitted, LSB-aligned */
+    int      accum_bits;   /* number of valid bits in accum (0..63) */
 } BITBUF;
 
 static void bitbuf_init(BITBUF *bb, uint8_t *buf, size_t cap) {
-    bb->buf = buf; bb->capacity = cap; bb->byte_pos = 0; bb->bit_pos = 0;
-    if (buf) memset(buf, 0, cap);
+    bb->buf = buf; bb->capacity = cap;
+    bb->byte_pos = 0;
+    bb->accum = 0;
+    bb->accum_bits = 0;
+    /* No memset needed — bytes are overwritten, not OR'd into. */
 }
 
 static inline __attribute__((always_inline))
 void bitbuf_write(BITBUF *bb, uint32_t value, int bits) {
     if (bits == 0) return;
-    /* Fast path: write up to 25 bits into the current word position.
-       Works when byte_pos + 3 < capacity (common case). */
-    if (bb->byte_pos + 3 < bb->capacity && bits <= 25) {
-        /* Read existing 32-bit word, OR in new bits, write back */
-        uint32_t *wp = (uint32_t *)(bb->buf + bb->byte_pos);
-        uint32_t mask = (bits >= 32) ? 0xFFFFFFFFu : ((1u << bits) - 1);
-        uint32_t word;
-        memcpy(&word, wp, 4);
-        word |= (value & mask) << bb->bit_pos;
-        memcpy(wp, &word, 4);
-        int new_bit = bb->bit_pos + bits;
-        bb->byte_pos += new_bit >> 3;
-        bb->bit_pos = new_bit & 7;
-        return;
-    }
-    /* Slow fallback for end of buffer */
-    for (int i = 0; i < bits; i++) {
+    uint32_t mask = (bits >= 32) ? 0xFFFFFFFFu : ((1u << bits) - 1);
+    bb->accum |= ((uint64_t)(value & mask)) << bb->accum_bits;
+    bb->accum_bits += bits;
+    /* Drain whole bytes from accumulator. Typical: 0-2 bytes per call. */
+    while (bb->accum_bits >= 8) {
         if (bb->byte_pos < bb->capacity) {
-            bb->buf[bb->byte_pos] |= ((value >> i) & 1) << bb->bit_pos;
-            bb->bit_pos++;
-            if (bb->bit_pos >= 8) { bb->bit_pos = 0; bb->byte_pos++; }
+            bb->buf[bb->byte_pos++] = (uint8_t)bb->accum;
         }
+        bb->accum >>= 8;
+        bb->accum_bits -= 8;
     }
 }
 
-static size_t bitbuf_size(const BITBUF *bb) {
-    return bb->byte_pos + (bb->bit_pos > 0 ? 1 : 0);
+/* Returns the total byte size, flushing any trailing partial byte into buf. */
+static size_t bitbuf_size(BITBUF *bb) {
+    if (bb->accum_bits > 0) {
+        if (bb->byte_pos < bb->capacity) {
+            bb->buf[bb->byte_pos] = (uint8_t)bb->accum;  /* low 8 bits, rest are zero */
+        }
+        return bb->byte_pos + 1;
+    }
+    return bb->byte_pos;
 }
 
 static inline __attribute__((always_inline))
