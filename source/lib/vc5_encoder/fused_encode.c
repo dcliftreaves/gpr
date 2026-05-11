@@ -654,97 +654,76 @@ static void pass1_run_channel(
     free(unpack_row);
 }
 
+/* Sync structure: shared between Pass 1 and Pass 2 threads to overlap them.
+   Pass 2 band threads wait on their channel's p1_done flag before encoding. */
+typedef struct {
+    pthread_mutex_t lock;
+    pthread_cond_t cv;
+    volatile int p1_done[4];
+} CHANNEL_SYNC;
+
 typedef struct {
     int channel;
     const uint8_t *raw_bayer;
     int width, height;
     int log_bits, is_rggb, prescale;
     FUSED_CHANNEL_STATE *cs;
+    CHANNEL_SYNC *sync;
 } PASS1_CHANNEL_TASK;
 
 static void *pass1_channel_thread(void *arg) {
     PASS1_CHANNEL_TASK *t = (PASS1_CHANNEL_TASK *)arg;
     pass1_run_channel(t->channel, t->raw_bayer, t->width, t->height,
                       t->log_bits, t->is_rggb, t->prescale, t->cs);
+
+    /* Signal that this channel's Pass 1 is complete — unblocks its 3 P2 bands */
+    if (t->sync) {
+        pthread_mutex_lock(&t->sync->lock);
+        t->sync->p1_done[t->channel] = 1;
+        pthread_cond_broadcast(&t->sync->cv);
+        pthread_mutex_unlock(&t->sync->lock);
+    }
     return NULL;
 }
 
-static int fused_pass1(
-    const uint8_t *raw_bayer, int width, int height,
-    int pixel_format, int quality,
+/* One-time channel state setup: allocates band buffers, row buffers, quant params.
+   Returns 0 on success. */
+static int setup_channel_state(
     FUSED_CHANNEL_STATE ch_state[4],
-    PIXEL **ll_output[4]  /* LL band pointers for recursive levels */
-)
+    int width, int height, int quality, int *out_is_rggb, int *out_log_bits)
 {
-    (void)ll_output;
-    SetupEncoderLogCurve();
-    fused_init_luts();
-
     int ch_width = width / 2;
     int ch_height = height / 2;
-    int is_rggb = (pixel_format == 1 || pixel_format == 0 || pixel_format == 4);
-    int log_bits = (pixel_format >= 4) ? 16 : 14;
-
     const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
 
-    /* Set up quantization for level 0 */
     for (int ch = 0; ch < 4; ch++) {
         for (int band = 0; band < 4; band++) {
-            int qi = band; /* LL=0, LH=1, HL=2, HH=3 */
-            int divisor = qt[qi];
+            int divisor = qt[band];
             ch_state[ch].midpoint[band] = get_midpoint(divisor);
             ch_state[ch].multiplier[band] = get_multiplier(divisor);
         }
-
         ch_state[ch].band_width = ch_width / 2;
         ch_state[ch].band_height = ch_height / 2;
         ch_state[ch].band_pitch = ch_state[ch].band_width;
         ch_state[ch].band_out_row = 0;
         ch_state[ch].buf_row = 0;
-
         memset(ch_state[ch].freq, 0, sizeof(ch_state[ch].freq));
         memset(ch_state[ch].run_state, 0, sizeof(ch_state[ch].run_state));
 
-        /* Allocate band buffers */
         int bw = ch_state[ch].band_width;
         int bh = ch_state[ch].band_height;
         for (int band = 0; band < 4; band++) {
             ch_state[ch].band_data[band] = (PIXEL *)calloc(bw * bh, sizeof(PIXEL));
             if (!ch_state[ch].band_data[band]) return -1;
         }
-
-        /* Allocate 6-row circular buffers */
         for (int r = 0; r < FUSED_ROW_BUFS; r++) {
             ch_state[ch].lowpass_buf[r] = (PIXEL *)calloc(ch_width / 2, sizeof(PIXEL));
             ch_state[ch].highpass_buf[r] = (PIXEL *)calloc(ch_width / 2, sizeof(PIXEL));
             if (!ch_state[ch].lowpass_buf[r] || !ch_state[ch].highpass_buf[r]) return -1;
         }
     }
-
-    /* Prescale for level 0 (typically 2 for 14-bit) */
-    int prescale = 2;
-
-    /* === SPAWN 4 PARALLEL CHANNEL THREADS === */
-    PASS1_CHANNEL_TASK tasks[4];
-    pthread_t threads[4];
-    int created[4];
-    for (int ch = 0; ch < 4; ch++) {
-        tasks[ch].channel = ch;
-        tasks[ch].raw_bayer = raw_bayer;
-        tasks[ch].width = width;
-        tasks[ch].height = height;
-        tasks[ch].log_bits = log_bits;
-        tasks[ch].is_rggb = is_rggb;
-        tasks[ch].prescale = prescale;
-        tasks[ch].cs = &ch_state[ch];
-        created[ch] = (pthread_create(&threads[ch], NULL,
-                                       pass1_channel_thread, &tasks[ch]) == 0);
-        if (!created[ch]) pass1_channel_thread(&tasks[ch]);
-    }
-    for (int ch = 0; ch < 4; ch++) {
-        if (created[ch]) pthread_join(threads[ch], NULL);
-    }
-
+    (void)ch_height;
+    *out_is_rggb = 0; *out_log_bits = 14; /* caller sets actual values */
     return 0;
 }
 
@@ -996,15 +975,27 @@ static int fused_pass1_serial(
 
 
 typedef struct {
+    int channel;        /* Which channel's P1 we depend on (0..3) */
     PIXEL *band_data;
     int width, height, pitch;
     uint8_t *enc_buf;
     size_t enc_cap;
     int enc_size;
+    CHANNEL_SYNC *sync;
 } PASS2_BAND_TASK;
 
 static void *pass2_band_thread(void *arg) {
     PASS2_BAND_TASK *t = (PASS2_BAND_TASK *)arg;
+
+    /* Wait for our channel's Pass 1 to complete (overlap with other channels' P1) */
+    if (t->sync) {
+        pthread_mutex_lock(&t->sync->lock);
+        while (!t->sync->p1_done[t->channel]) {
+            pthread_cond_wait(&t->sync->cv, &t->sync->lock);
+        }
+        pthread_mutex_unlock(&t->sync->lock);
+    }
+
     t->enc_size = jans_encode_band_x4(t->enc_buf, t->enc_cap,
                                        (const int32_t *)t->band_data,
                                        t->width, t->height, t->pitch);
@@ -1118,40 +1109,126 @@ int gpr_encode_fused(
 {
     FUSED_CHANNEL_STATE ch_state[4];
     memset(ch_state, 0, sizeof(ch_state));
+    int rc = 0;
+    uint8_t *stream_buf = NULL;
+    PASS2_BAND_TASK p2_tasks[12];
+    memset(p2_tasks, 0, sizeof(p2_tasks));
+    pthread_t p2_threads[12];
+    int p2_created[12] = {0};
+    pthread_t p1_threads[4];
+    int p1_created[4] = {0};
 
 #ifdef FUSED_TIMING
     double t0 = _fused_ms();
 #endif
 
-    /* === PASS 1: Fused unpack → wavelet → quantize → freq count === */
-    int rc = fused_pass1(raw_bayer, width, height, pixel_format, quality,
-                          ch_state, NULL);
+    SetupEncoderLogCurve();
+    fused_init_luts();
+
+    int dummy_is_rggb, dummy_log_bits;
+    rc = setup_channel_state(ch_state, width, height, quality,
+                              &dummy_is_rggb, &dummy_log_bits);
     if (rc != 0) goto cleanup;
+
+    int is_rggb = (pixel_format == 1 || pixel_format == 0 || pixel_format == 4);
+    int log_bits = (pixel_format >= 4) ? 16 : 14;
+    int prescale = 2;
+
+    /* Init sync for P1/P2 overlap */
+    CHANNEL_SYNC sync;
+    pthread_mutex_init(&sync.lock, NULL);
+    pthread_cond_init(&sync.cv, NULL);
+    for (int i = 0; i < 4; i++) sync.p1_done[i] = 0;
+
+    /* === STAGE 1: Spawn 12 Pass-2 threads up-front (they block on per-channel p1_done) === */
+    int p2_count = 0;
+    for (int ch = 0; ch < 4; ch++) {
+        FUSED_CHANNEL_STATE *cs = &ch_state[ch];
+        for (int band = 1; band < 4; band++) {
+            PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
+            pt->channel = ch;
+            pt->band_data = cs->band_data[band];
+            pt->width = cs->band_width;
+            pt->height = cs->band_height;
+            pt->pitch = cs->band_width * sizeof(int32_t);
+            pt->enc_cap = (size_t)pt->width * pt->height * 4 + 8192;
+            pt->enc_buf = (uint8_t *)malloc(pt->enc_cap);
+            pt->enc_size = 0;
+            pt->sync = &sync;
+            if (!pt->enc_buf) { rc = -1; goto cleanup; }
+            p2_created[p2_count] = (pthread_create(&p2_threads[p2_count], NULL,
+                                                    pass2_band_thread, pt) == 0);
+            p2_count++;
+        }
+    }
+
+    /* === STAGE 2: Spawn 4 Pass-1 channel threads (signal p1_done as they finish) === */
+    PASS1_CHANNEL_TASK p1_tasks[4];
+    for (int ch = 0; ch < 4; ch++) {
+        p1_tasks[ch].channel = ch;
+        p1_tasks[ch].raw_bayer = raw_bayer;
+        p1_tasks[ch].width = width;
+        p1_tasks[ch].height = height;
+        p1_tasks[ch].log_bits = log_bits;
+        p1_tasks[ch].is_rggb = is_rggb;
+        p1_tasks[ch].prescale = prescale;
+        p1_tasks[ch].cs = &ch_state[ch];
+        p1_tasks[ch].sync = &sync;
+        p1_created[ch] = (pthread_create(&p1_threads[ch], NULL,
+                                          pass1_channel_thread, &p1_tasks[ch]) == 0);
+        if (!p1_created[ch]) pass1_channel_thread(&p1_tasks[ch]); /* inline fallback */
+    }
+
+    /* Join Pass 1 threads (signals are already set, P2 may already be running) */
+    for (int ch = 0; ch < 4; ch++) {
+        if (p1_created[ch]) pthread_join(p1_threads[ch], NULL);
+    }
 
 #ifdef FUSED_TIMING
     double t1 = _fused_ms();
-    fprintf(stderr, "  FUSED Pass1 (unpack+wavelet+quant+freq): %.1fms\n", t1 - t0);
+    fprintf(stderr, "  FUSED Pass1 (parallel, signals P2):      %.1fms\n", t1 - t0);
 #endif
 
-    /* === PASS 2: rANS encode === */
-    size_t stream_cap = raw_size;
-    uint8_t *stream_buf = (uint8_t *)malloc(stream_cap);
-    if (!stream_buf) { rc = -1; goto cleanup; }
-
-    size_t written = 0;
-    rc = fused_pass2(ch_state, stream_buf, stream_cap, &written);
-    if (rc != 0) { free(stream_buf); goto cleanup; }
+    /* Join Pass 2 threads (which started as soon as their channel's P1 finished) */
+    for (int i = 0; i < 12; i++) {
+        if (p2_created[i]) pthread_join(p2_threads[i], NULL);
+        else pass2_band_thread(&p2_tasks[i]); /* inline fallback */
+    }
 
 #ifdef FUSED_TIMING
     double t2 = _fused_ms();
-    fprintf(stderr, "  FUSED Pass2 (rANS encode):              %.1fms\n", t2 - t1);
-    fprintf(stderr, "  FUSED Total:                             %.1fms\n", t2 - t0);
+    fprintf(stderr, "  FUSED Pass2 (overlapped w/ P1):          %.1fms (since P1 end)\n", t2 - t1);
+#endif
+
+    pthread_mutex_destroy(&sync.lock);
+    pthread_cond_destroy(&sync.cv);
+
+    /* === STAGE 3: Concat outputs sequentially (preserves band order) === */
+    size_t stream_cap = raw_size;
+    stream_buf = (uint8_t *)malloc(stream_cap);
+    if (!stream_buf) { rc = -1; goto cleanup; }
+    size_t pos = 0;
+    for (int i = 0; i < 12; i++) {
+        PASS2_BAND_TASK *pt = &p2_tasks[i];
+        if (pt->enc_size > 0 && pos + pt->enc_size <= stream_cap) {
+            memcpy(stream_buf + pos, pt->enc_buf, pt->enc_size);
+            pos += pt->enc_size;
+        }
+    }
+
+#ifdef FUSED_TIMING
+    double t3 = _fused_ms();
+    fprintf(stderr, "  FUSED Total:                             %.1fms\n", t3 - t0);
 #endif
 
     *vc5_out = stream_buf;
-    *vc5_size = written;
+    *vc5_size = pos;
 
 cleanup:
+    /* Free Pass 2 enc buffers */
+    for (int i = 0; i < 12; i++) {
+        if (p2_tasks[i].enc_buf) free(p2_tasks[i].enc_buf);
+    }
     /* Free band buffers and circular buffers */
     for (int ch = 0; ch < 4; ch++) {
         for (int band = 0; band < 4; band++) {
@@ -1162,6 +1239,5 @@ cleanup:
             if (ch_state[ch].highpass_buf[r]) free(ch_state[ch].highpass_buf[r]);
         }
     }
-
     return rc;
 }
