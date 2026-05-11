@@ -357,13 +357,29 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( input_file_type == FILE_TYPE_GPR && output_file_type == FILE_TYPE_RAW )
     {
-        /* Use _ex only when noise/FPN features were explicitly enabled via CLI.
-           This preserves backward compat for existing GPR files that have DNG
-           NoiseProfile but weren't encoded with the noise replacement flag. */
-        if (params.fpn.valid || noise_replace)
-            success = gpr_convert_gpr_to_raw_ex( &allocator, &params, &input_buffer, &output_buffer );
-        else
-            success = gpr_convert_gpr_to_raw( &allocator, &input_buffer, &output_buffer );
+        /* Try fast GPR decode first (bypasses DNG SDK, ~10x faster) */
+        {
+            extern int gpr_fast_decode(const uint8_t *gpr_data, size_t gpr_size,
+                                        void **raw_output, size_t *raw_size,
+                                        int pixel_format);
+
+            void *raw_out = NULL;
+            size_t raw_sz = 0;
+            int pf = 1; /* Default: RGGB_14 */
+            int rc = gpr_fast_decode((const uint8_t *)input_buffer.buffer, input_buffer.size,
+                                      &raw_out, &raw_sz, pf);
+            if (rc == 0 && raw_out) {
+                output_buffer.buffer = raw_out;
+                output_buffer.size = raw_sz;
+                success = 1;
+            } else {
+                /* Fallback to DNG SDK path */
+                if (params.fpn.valid || noise_replace)
+                    success = gpr_convert_gpr_to_raw_ex( &allocator, &params, &input_buffer, &output_buffer );
+                else
+                    success = gpr_convert_gpr_to_raw( &allocator, &input_buffer, &output_buffer );
+            }
+        }
     }
 #endif
     else

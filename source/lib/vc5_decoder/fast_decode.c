@@ -824,3 +824,76 @@ cleanup:
 
     return error;
 }
+
+/* ================================================================
+   Direct GPR decode: bypass DNG SDK entirely
+   ================================================================ */
+
+/* Lightweight GPR parser (defined in fast_gpr.c) */
+extern int fast_gpr_extract_vc5(const uint8_t *gpr_data, size_t gpr_size,
+                                 size_t *vc5_offset, size_t *vc5_size,
+                                 int *image_width, int *image_height);
+
+/*!
+    @brief Decode a GPR file directly to raw pixels, bypassing the DNG SDK.
+
+    This is the fastest possible GPR decode path:
+    1. Lightweight TIFF parse to find VC5 blob (< 0.1ms)
+    2. Fast parallel VC5 decode (pre-index + parallel ANS + parallel wavelet)
+    3. Parallel image packing
+
+    @param gpr_data     GPR file data in memory
+    @param gpr_size     GPR file size
+    @param raw_output   Output: pointer to allocated raw pixel buffer (caller must free)
+    @param raw_size     Output: size of raw pixel buffer
+    @param pixel_format Output pixel format (e.g., VC5_DECODER_PIXEL_FORMAT_RGGB_14)
+    @return 0 on success
+*/
+int gpr_fast_decode(const uint8_t *gpr_data, size_t gpr_size,
+                    void **raw_output, size_t *raw_size,
+                    int pixel_format)
+{
+    /* Step 1: Extract VC5 blob from GPR container */
+    size_t vc5_offset, vc5_size;
+    int img_width, img_height;
+
+    if (fast_gpr_extract_vc5(gpr_data, gpr_size, &vc5_offset, &vc5_size,
+                              &img_width, &img_height) != 0)
+        return -1;
+
+    const uint8_t *vc5_buf = gpr_data + vc5_offset;
+
+    /* Step 2: Set up minimal decoder parameters */
+    DECODER_PARAMETERS parameters;
+    InitDecoderParameters(&parameters);
+    parameters.allocator.Alloc = malloc;
+    parameters.allocator.Free = free;
+
+    switch (pixel_format) {
+        case 0: parameters.output.format = PIXEL_FORMAT_RAW_RGGB_12; break;
+        case 1: parameters.output.format = PIXEL_FORMAT_RAW_RGGB_14; break;
+        case 2: parameters.output.format = PIXEL_FORMAT_RAW_GBRG_12; break;
+        case 3: parameters.output.format = PIXEL_FORMAT_RAW_GBRG_14; break;
+        case 4: parameters.output.format = PIXEL_FORMAT_RAW_RGGB_16; break;
+        case 5: parameters.output.format = PIXEL_FORMAT_RAW_GBRG_16; break;
+        default: parameters.output.format = PIXEL_FORMAT_RAW_RGGB_14; break;
+    }
+    parameters.rgb_resolution = GPR_RGB_RESOLUTION_NONE;
+
+    /* Step 3: Fast parallel VC5 decode */
+    IMAGE output_image;
+    InitImage(&output_image);
+    RGB_IMAGE rgb_image;
+    InitRGBImage(&rgb_image);
+
+    CODEC_ERROR error = DecodeFastImage(vc5_buf, vc5_size,
+                                         &output_image, &rgb_image, &parameters);
+    if (error != CODEC_ERROR_OKAY)
+        return (int)error;
+
+    /* Return the decoded image */
+    *raw_output = output_image.buffer;
+    *raw_size = output_image.size;
+
+    return 0;
+}
