@@ -829,19 +829,56 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
         __builtin_prefetch(&table.decode_info[states[2] & (JANS_TABLE_SIZE - 1)], 0, 3);
         __builtin_prefetch(&table.decode_info[states[3] & (JANS_TABLE_SIZE - 1)], 0, 3);
 
-        for (int s = 0; s < 4; s++) {
-            const JANS_DECODE_INFO *di = infos[s];
-            int idx = pair_count++;
-            uint32_t all_bits = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit, di->total_bits);
-            runs[idx] = (uint16_t)(di->run_min + (all_bits & ((1u << di->run_bits) - 1)));
-            all_bits >>= di->run_bits;
-            if (di->has_value) {
-                int mag = di->mag_min + (all_bits & ((1u << di->mag_bits) - 1));
-                all_bits >>= di->mag_bits;
-                values[idx] = (all_bits & 1) ? -mag : mag;
+        /* Batch residual extraction: single 64-bit load for all 4 tokens' residual bits.
+           Max total_bits per token is ~10, so 4 tokens ≤ 40 bits. With resid_bit offset
+           up to 7, we need up to 47 bits — always fits in a 64-bit window. */
+        {
+            uint64_t resid_word = 0;
+            if (__builtin_expect(resid_byte + 7 < resid_size, 1)) {
+                memcpy(&resid_word, resid_data + resid_byte, 8);
+                resid_word >>= resid_bit;
             } else {
-                values[idx] = 0;
+                /* Near end of buffer: fall back to per-token reads */
+                for (int s = 0; s < 4; s++) {
+                    const JANS_DECODE_INFO *di = infos[s];
+                    int idx = pair_count++;
+                    uint32_t all_bits = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit, di->total_bits);
+                    runs[idx] = (uint16_t)(di->run_min + (all_bits & ((1u << di->run_bits) - 1)));
+                    all_bits >>= di->run_bits;
+                    if (di->has_value) {
+                        int mag = di->mag_min + (all_bits & ((1u << di->mag_bits) - 1));
+                        all_bits >>= di->mag_bits;
+                        values[idx] = (all_bits & 1) ? -mag : mag;
+                    } else { values[idx] = 0; }
+                }
+                t += JANS_INTERLEAVE;
+                continue;
             }
+
+            int consumed = 0;
+            for (int s = 0; s < 4; s++) {
+                const JANS_DECODE_INFO *di = infos[s];
+                int idx = pair_count++;
+                uint32_t all_bits;
+                if (di->total_bits > 0)
+                    all_bits = (uint32_t)(resid_word >> consumed) & ((1u << di->total_bits) - 1);
+                else
+                    all_bits = 0;
+                consumed += di->total_bits;
+                runs[idx] = (uint16_t)(di->run_min + (all_bits & ((1u << di->run_bits) - 1)));
+                all_bits >>= di->run_bits;
+                if (di->has_value) {
+                    int mag = di->mag_min + (all_bits & ((1u << di->mag_bits) - 1));
+                    all_bits >>= di->mag_bits;
+                    values[idx] = (all_bits & 1) ? -mag : mag;
+                } else {
+                    values[idx] = 0;
+                }
+            }
+
+            int new_bit = resid_bit + consumed;
+            resid_byte += new_bit >> 3;
+            resid_bit = new_bit & 7;
         }
         t += JANS_INTERLEAVE;
     }
