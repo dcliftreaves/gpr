@@ -1002,6 +1002,7 @@ static void *pass2_band_thread(void *arg) {
     return NULL;
 }
 
+
 static int fused_pass2(
     FUSED_CHANNEL_STATE ch_state[4],
     uint8_t *output_buf, size_t output_cap, size_t *output_written
@@ -1122,6 +1123,11 @@ int gpr_encode_fused(
     double t0 = _fused_ms();
 #endif
 
+    /* Optional single-thread mode for embedded-target evaluation.
+       FUSED_THREADS env var: "1" = all serial, anything else = parallel (default). */
+    const char *threads_env = getenv("FUSED_THREADS");
+    int run_serial = (threads_env && threads_env[0] == '1' && threads_env[1] == '\0');
+
     SetupEncoderLogCurve();
     fused_init_luts();
 
@@ -1140,7 +1146,7 @@ int gpr_encode_fused(
     pthread_cond_init(&sync.cv, NULL);
     for (int i = 0; i < 4; i++) sync.p1_done[i] = 0;
 
-    /* === STAGE 1: Spawn 4 Pass-1 channel threads FIRST so they can begin work immediately === */
+    /* === STAGE 1: Spawn 4 Pass-1 channel threads (or run serial if FUSED_THREADS=1) === */
     PASS1_CHANNEL_TASK p1_tasks[4];
     for (int ch = 0; ch < 4; ch++) {
         p1_tasks[ch].channel = ch;
@@ -1152,8 +1158,13 @@ int gpr_encode_fused(
         p1_tasks[ch].prescale = prescale;
         p1_tasks[ch].cs = &ch_state[ch];
         p1_tasks[ch].sync = &sync;
-        p1_created[ch] = (pthread_create(&p1_threads[ch], NULL,
-                                          pass1_channel_thread, &p1_tasks[ch]) == 0);
+        if (run_serial) {
+            pass1_channel_thread(&p1_tasks[ch]);  /* serial: signals p1_done */
+            p1_created[ch] = 0;
+        } else {
+            p1_created[ch] = (pthread_create(&p1_threads[ch], NULL,
+                                              pass1_channel_thread, &p1_tasks[ch]) == 0);
+        }
     }
 
     /* === STAGE 2: While P1 threads run, set up + spawn 12 P2 threads (they'll block on p1_done) === */
@@ -1172,15 +1183,22 @@ int gpr_encode_fused(
             pt->enc_size = 0;
             pt->sync = &sync;
             if (!pt->enc_buf) { rc = -1; goto cleanup; }
-            p2_created[p2_count] = (pthread_create(&p2_threads[p2_count], NULL,
-                                                    pass2_band_thread, pt) == 0);
+            if (run_serial) {
+                pass2_band_thread(pt);  /* serial run */
+                p2_created[p2_count] = 0;
+            } else {
+                p2_created[p2_count] = (pthread_create(&p2_threads[p2_count], NULL,
+                                                       pass2_band_thread, pt) == 0);
+            }
             p2_count++;
         }
     }
 
-    /* Inline fallback for any P1 thread that failed to spawn */
-    for (int ch = 0; ch < 4; ch++) {
-        if (!p1_created[ch]) pass1_channel_thread(&p1_tasks[ch]);
+    /* Inline fallback for any P1 thread that failed to spawn (only when parallel) */
+    if (!run_serial) {
+        for (int ch = 0; ch < 4; ch++) {
+            if (!p1_created[ch]) pass1_channel_thread(&p1_tasks[ch]);
+        }
     }
 
     /* Join Pass 1 threads (signals are already set, P2 may already be running) */
