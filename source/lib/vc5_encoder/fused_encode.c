@@ -249,13 +249,36 @@ static void vertical_filter_quantize_row(
 static const int fused_run_class_min[] = {0, 1, 2, 3, 4, 8, 16, 32, 64, 128};
 static const int fused_mag_class_min[] = {0,1,2,3,4,5,6,7,8,16,32,64,128,256,512,1024};
 
+/* O(1) classification LUTs */
+static uint8_t fused_run_lut[256];
+static uint8_t fused_mag_lut[2048];
+static int fused_luts_initialized = 0;
+
+static void fused_init_luts(void) {
+    if (fused_luts_initialized) return;
+    for (int r = 0; r < 256; r++) {
+        for (int c = 9; c >= 0; c--) {
+            if (r >= fused_run_class_min[c]) { fused_run_lut[r] = (uint8_t)c; break; }
+        }
+    }
+    for (int m = 0; m < 2048; m++) {
+        for (int c = 15; c >= 0; c--) {
+            if (m >= fused_mag_class_min[c]) { fused_mag_lut[m] = (uint8_t)c; break; }
+        }
+    }
+    fused_luts_initialized = 1;
+}
+
 static inline int fused_run_to_class(int run) {
+    if (run < 256) return fused_run_lut[run];
+    /* Fallback for >= 256 */
     for (int c = 9; c >= 0; c--)
         if (run >= fused_run_class_min[c]) return c;
     return 0;
 }
 
 static inline int fused_mag_to_class(int mag) {
+    if (mag < 2048) return fused_mag_lut[mag];
     for (int c = 15; c >= 0; c--)
         if (mag >= fused_mag_class_min[c]) return c;
     return 0;
@@ -351,6 +374,7 @@ static int fused_pass1(
 )
 {
     SetupEncoderLogCurve();
+    fused_init_luts();
 
     int ch_width = width / 2;
     int ch_height = height / 2;
