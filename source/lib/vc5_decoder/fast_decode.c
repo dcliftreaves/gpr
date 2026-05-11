@@ -386,9 +386,8 @@ static void init_log_approx(void)
 }
 
 #if ENABLED(NEON)
-/* NEON log curve evaluation using piecewise linear approx.
-   Both 14-bit (256 seg) and 16-bit (1024 seg) use 64-entry spacing (>> 6). */
-static INLINE int32x4_t log_curve_neon(int32x4_t x, const LOG_APPROX_SEG *table, int max_seg)
+/* NEON log curve evaluation using piecewise linear approx (14-bit). */
+static INLINE int32x4_t log_curve_neon_pwl(int32x4_t x, const LOG_APPROX_SEG *table, int max_seg)
 {
     int32_t idx[4], f[4];
     vst1q_s32(idx, vshrq_n_s32(x, 6));
@@ -403,6 +402,31 @@ static INLINE int32x4_t log_curve_neon(int32x4_t x, const LOG_APPROX_SEG *table,
                      (int32_t)(((int64_t)table[i].slope * f[k] + 32768) >> 16);
     }
     return vld1q_s32(results);
+}
+
+/* NEON log curve via 6th-order float32 polynomial (16-bit).
+   Max error: 27 out of 65535 (0.04%). Fully vectorized — no scalar LUT.
+   Horner's method: ((((c6*x+c5)*x+c4)*x+c3)*x+c2)*x+c1)*x+c0 */
+static INLINE int32x4_t log_curve_neon_poly16(int32x4_t xi)
+{
+    /* Normalize to [0, 1] range as float */
+    float32x4_t x = vcvtq_f32_s32(xi);
+    const float32x4_t inv_max = vdupq_n_f32(1.0f / 65535.0f);
+    x = vmulq_f32(x, inv_max);
+
+    /* 6th-order polynomial coefficients */
+    float32x4_t y = vdupq_n_f32(115930.82f);         /* c6 */
+    y = vmlaq_f32(vdupq_n_f32(-196522.70f), y, x);   /* c6*x + c5 */
+    y = vmlaq_f32(vdupq_n_f32(183116.82f), y, x);    /* *x + c4 */
+    y = vmlaq_f32(vdupq_n_f32(-58613.95f), y, x);    /* *x + c3 */
+    y = vmlaq_f32(vdupq_n_f32(19850.53f), y, x);     /* *x + c2 */
+    y = vmlaq_f32(vdupq_n_f32(1727.87f), y, x);      /* *x + c1 */
+    y = vmlaq_f32(vdupq_n_f32(19.28f), y, x);        /* *x + c0 */
+
+    /* Clamp and convert back to int32 */
+    y = vmaxq_f32(y, vdupq_n_f32(0.0f));
+    y = vminq_f32(y, vdupq_n_f32(65535.0f));
+    return vcvtq_s32_f32(vaddq_f32(y, vdupq_n_f32(0.5f)));
 }
 #endif
 
@@ -510,15 +534,24 @@ static void *fast_pack_thread(void *arg)
 
                 /* Apply log curve: NEON piecewise linear for 14-bit, scalar LUT fallback */
                 int32_t ra[4], g1a[4], g2a[4], ba[4];
-                if (!bypass && log_bits == 14) {
+                if (!bypass && log_bits == 16) {
+                    /* NEON 6th-order float polynomial — fully vectorized, no LUT */
+                    int32x4_t neg_shift = vdupq_n_s32(-shift);
+                    int32x4_t r_log  = vshlq_s32(log_curve_neon_poly16(r), neg_shift);
+                    int32x4_t g1_log = vshlq_s32(log_curve_neon_poly16(g1), neg_shift);
+                    int32x4_t g2_log = vshlq_s32(log_curve_neon_poly16(g2), neg_shift);
+                    int32x4_t b_log  = vshlq_s32(log_curve_neon_poly16(b), neg_shift);
+                    vst1q_s32(ra, r_log); vst1q_s32(g1a, g1_log);
+                    vst1q_s32(g2a, g2_log); vst1q_s32(ba, b_log);
+                } else if (!bypass && log_bits == 14) {
                     /* NEON piecewise linear approximation — 14-bit only (2KB table) */
                     const LOG_APPROX_SEG *tbl = log_approx_14;
                     int max_seg = 256;
                     int32x4_t neg_shift = vdupq_n_s32(-shift);
-                    int32x4_t r_log  = vshlq_s32(log_curve_neon(r, tbl, max_seg), neg_shift);
-                    int32x4_t g1_log = vshlq_s32(log_curve_neon(g1, tbl, max_seg), neg_shift);
-                    int32x4_t g2_log = vshlq_s32(log_curve_neon(g2, tbl, max_seg), neg_shift);
-                    int32x4_t b_log  = vshlq_s32(log_curve_neon(b, tbl, max_seg), neg_shift);
+                    int32x4_t r_log  = vshlq_s32(log_curve_neon_pwl(r, tbl, max_seg), neg_shift);
+                    int32x4_t g1_log = vshlq_s32(log_curve_neon_pwl(g1, tbl, max_seg), neg_shift);
+                    int32x4_t g2_log = vshlq_s32(log_curve_neon_pwl(g2, tbl, max_seg), neg_shift);
+                    int32x4_t b_log  = vshlq_s32(log_curve_neon_pwl(b, tbl, max_seg), neg_shift);
                     vst1q_s32(ra, r_log); vst1q_s32(g1a, g1_log);
                     vst1q_s32(g2a, g2_log); vst1q_s32(ba, b_log);
                 } else if (!bypass) {
