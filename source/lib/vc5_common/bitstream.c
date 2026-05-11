@@ -263,21 +263,28 @@ CODEC_ERROR PutBits(BITSTREAM *stream, BITWORD bits, BITCOUNT count)
  */
 CODEC_ERROR GetBuffer(BITSTREAM *bitstream)
 {
-    // Need to signal an underflow error?
-    if (! (bitstream != NULL && bitstream->stream != NULL)) {
-        assert(0);
-        
-        if( bitstream->error == BITSTREAM_ERROR_UNDERFLOW )
-            return CODEC_ERROR_OUTOFMEMORY;
+    if (bitstream == NULL || bitstream->stream == NULL)
+        return CODEC_ERROR_NULLPTR;
+
+    STREAM *stream = bitstream->stream;
+
+    /* Fast path: direct memory read for in-memory streams.
+       Eliminates function call overhead of GetWord + Swap32.
+       This is the decode hot path — called once per 32-bit refill. */
+    if (stream->type == STREAM_TYPE_MEMORY)
+    {
+        uint8_t *p = (uint8_t *)stream->location.memory.buffer + stream->byte_count;
+        /* Big-endian read (VC5 bitstream is big-endian) */
+        bitstream->buffer = ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) |
+                            ((uint32_t)p[2] << 8)  |  (uint32_t)p[3];
+        stream->byte_count += 4;
     }
-    
-    // The bit buffer should be empty
-    assert(bitstream->count == 0);
-    
-    // Fill the bit buffer with a word from the byte stream
-    bitstream->buffer = Swap32(GetWord(bitstream->stream));
+    else
+    {
+        bitstream->buffer = Swap32(GetWord(stream));
+    }
+
     bitstream->count = bit_word_count;
-    
     return CODEC_ERROR_OKAY;
 }
 
