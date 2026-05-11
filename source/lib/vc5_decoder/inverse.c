@@ -73,6 +73,77 @@ static INLINE void InvertVerticalMiddle4_NEON(
 }
 
 /*!
+ @brief 8-wide vertical filter: process 8 columns per call (2x throughput).
+ Uses 20 registers — fits in ARM64's 32-register file with room to spare.
+ */
+static INLINE void InvertVerticalMiddle8_NEON(
+    const PIXEL *row0, const PIXEL *row1, const PIXEL *row2,
+    const PIXEL *hp, PIXEL *even_out, PIXEL *odd_out, int col)
+{
+    const int32x4_t four = vdupq_n_s32(4);
+
+    /* Load 8 values from each source (2 × 4-wide) */
+    int32x4_t r0a = vld1q_s32(&row0[col]);
+    int32x4_t r0b = vld1q_s32(&row0[col + 4]);
+    int32x4_t r1a = vld1q_s32(&row1[col]);
+    int32x4_t r1b = vld1q_s32(&row1[col + 4]);
+    int32x4_t r2a = vld1q_s32(&row2[col]);
+    int32x4_t r2b = vld1q_s32(&row2[col + 4]);
+    int32x4_t ha  = vld1q_s32(&hp[col]);
+    int32x4_t hb  = vld1q_s32(&hp[col + 4]);
+
+    /* Even path: (r0 - r2 + 4) >> 3 + r1 + h, then >> 1 */
+    int32x4_t da = vshrq_n_s32(vaddq_s32(vsubq_s32(r0a, r2a), four), 3);
+    int32x4_t db = vshrq_n_s32(vaddq_s32(vsubq_s32(r0b, r2b), four), 3);
+    int32x4_t ea = vshrq_n_s32(vaddq_s32(vaddq_s32(da, r1a), ha), 1);
+    int32x4_t eb = vshrq_n_s32(vaddq_s32(vaddq_s32(db, r1b), hb), 1);
+    vst1q_s32(&even_out[col], ea);
+    vst1q_s32(&even_out[col + 4], eb);
+
+    /* Odd path: (-r0 + r2 + 4) >> 3 + r1 - h, then >> 1 */
+    int32x4_t oa = vshrq_n_s32(vaddq_s32(vsubq_s32(r2a, r0a), four), 3);
+    int32x4_t ob = vshrq_n_s32(vaddq_s32(vsubq_s32(r2b, r0b), four), 3);
+    int32x4_t ova = vshrq_n_s32(vsubq_s32(vaddq_s32(oa, r1a), ha), 1);
+    int32x4_t ovb = vshrq_n_s32(vsubq_s32(vaddq_s32(ob, r1b), hb), 1);
+    vst1q_s32(&odd_out[col], ova);
+    vst1q_s32(&odd_out[col + 4], ovb);
+}
+
+/*!
+ @brief 8-wide fused dequantize + vertical filter for ANS raw mode.
+ */
+static INLINE void InvertVerticalMiddle8_Fused_NEON(
+    const PIXEL *row0, const PIXEL *row1, const PIXEL *row2,
+    const PIXEL *hp_raw, int32x4_t hp_quant,
+    PIXEL *even_out, PIXEL *odd_out, int col)
+{
+    const int32x4_t four = vdupq_n_s32(4);
+
+    int32x4_t r0a = vld1q_s32(&row0[col]);
+    int32x4_t r0b = vld1q_s32(&row0[col + 4]);
+    int32x4_t r1a = vld1q_s32(&row1[col]);
+    int32x4_t r1b = vld1q_s32(&row1[col + 4]);
+    int32x4_t r2a = vld1q_s32(&row2[col]);
+    int32x4_t r2b = vld1q_s32(&row2[col + 4]);
+    int32x4_t ha  = DequantInline4_NEON(hp_raw, col, hp_quant);
+    int32x4_t hb  = DequantInline4_NEON(hp_raw, col + 4, hp_quant);
+
+    int32x4_t da = vshrq_n_s32(vaddq_s32(vsubq_s32(r0a, r2a), four), 3);
+    int32x4_t db = vshrq_n_s32(vaddq_s32(vsubq_s32(r0b, r2b), four), 3);
+    int32x4_t ea = vshrq_n_s32(vaddq_s32(vaddq_s32(da, r1a), ha), 1);
+    int32x4_t eb = vshrq_n_s32(vaddq_s32(vaddq_s32(db, r1b), hb), 1);
+    vst1q_s32(&even_out[col], ea);
+    vst1q_s32(&even_out[col + 4], eb);
+
+    int32x4_t oa = vshrq_n_s32(vaddq_s32(vsubq_s32(r2a, r0a), four), 3);
+    int32x4_t ob = vshrq_n_s32(vaddq_s32(vsubq_s32(r2b, r0b), four), 3);
+    int32x4_t ova = vshrq_n_s32(vsubq_s32(vaddq_s32(oa, r1a), ha), 1);
+    int32x4_t ovb = vshrq_n_s32(vsubq_s32(vaddq_s32(ob, r1b), hb), 1);
+    vst1q_s32(&odd_out[col], ova);
+    vst1q_s32(&odd_out[col + 4], ovb);
+}
+
+/*!
  @brief Fused dequantize + vertical filter for middle rows (ANS raw mode).
  Reads raw highpass band data directly and dequantizes inline during the filter,
  eliminating the separate DequantizeBandRow16s call and its temp buffer writes.
@@ -532,10 +603,32 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
         column = 0;
 #if ENABLED(NEON)
         {
+            /* 8-wide loop: process 8 columns per iteration for 2x throughput */
+            const int width_m8 = (input_width / 8) * 8;
+            for (; column < width_m8; column += 8)
+            {
+                if (fuse_highlow)
+                    InvertVerticalMiddle8_Fused_NEON(
+                        lowlow + 0 * lowlow_pitch, lowlow + 1 * lowlow_pitch, lowlow + 2 * lowlow_pitch,
+                        highlow, hl_quant_vec, even_lowpass, odd_lowpass, column);
+                else
+                    InvertVerticalMiddle8_NEON(
+                        lowlow + 0 * lowlow_pitch, lowlow + 1 * lowlow_pitch, lowlow + 2 * lowlow_pitch,
+                        highlow_line, even_lowpass, odd_lowpass, column);
+
+                if (fuse_highhigh)
+                    InvertVerticalMiddle8_Fused_NEON(
+                        lowhigh_line[0], lowhigh_line[1], lowhigh_line[2],
+                        highhigh, hh_quant_vec, even_highpass, odd_highpass, column);
+                else
+                    InvertVerticalMiddle8_NEON(
+                        lowhigh_line[0], lowhigh_line[1], lowhigh_line[2],
+                        highhigh_line, even_highpass, odd_highpass, column);
+            }
+            /* 4-wide cleanup for remaining 4-7 columns */
             const int width_m4 = (input_width / 4) * 4;
             for (; column < width_m4; column += 4)
             {
-                // Left bands: fused or normal depending on highlow coding mode
                 if (fuse_highlow)
                     InvertVerticalMiddle4_Fused_NEON(
                         lowlow + 0 * lowlow_pitch, lowlow + 1 * lowlow_pitch, lowlow + 2 * lowlow_pitch,
@@ -545,7 +638,6 @@ CODEC_ERROR InvertSpatialQuant16s(gpr_allocator *allocator,
                         lowlow + 0 * lowlow_pitch, lowlow + 1 * lowlow_pitch, lowlow + 2 * lowlow_pitch,
                         highlow_line, even_lowpass, odd_lowpass, column);
 
-                // Right bands: fused or normal depending on highhigh coding mode
                 if (fuse_highhigh)
                     InvertVerticalMiddle4_Fused_NEON(
                         lowhigh_line[0], lowhigh_line[1], lowhigh_line[2],
