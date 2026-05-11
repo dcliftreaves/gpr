@@ -43,7 +43,33 @@ CODEC_ERROR DequantizeBandRow16s(PIXEL *input, int width, int quantization, PIXE
 	   as -quant to signal "skip uncompanding only". */
 	if (quantization < 0) {
 		int q = -quantization;
-		for (int i = 0; i < width; i++) {
+		int i = 0;
+		const int width_m8 = (width / 8) * 8;
+		const int32x4_t zero = vdupq_n_s32(0);
+		const int32x4_t quant_vec = vdupq_n_s32(q);
+
+		/* Process 8 pixels per iteration (2x4-wide NEON) */
+		for (; i < width_m8; i += 8)
+		{
+			int32x4_t v0 = vld1q_s32(&input[i]);
+			int32x4_t v1 = vld1q_s32(&input[i + 4]);
+
+			int32x4_t abs0 = vabsq_s32(v0);
+			int32x4_t abs1 = vabsq_s32(v1);
+			uint32x4_t neg0 = vcltq_s32(v0, zero);
+			uint32x4_t neg1 = vcltq_s32(v1, zero);
+
+			int32x4_t mul0 = vmulq_s32(abs0, quant_vec);
+			int32x4_t mul1 = vmulq_s32(abs1, quant_vec);
+
+			int32x4_t res0 = vbslq_s32(neg0, vnegq_s32(mul0), mul0);
+			int32x4_t res1 = vbslq_s32(neg1, vnegq_s32(mul1), mul1);
+
+			vst1q_s32(&output[i], res0);
+			vst1q_s32(&output[i + 4], res1);
+		}
+		/* Scalar cleanup */
+		for (; i < width; i++) {
 			int32_t v = input[i];
 			if (v > 0) output[i] = v * q;
 			else if (v < 0) output[i] = -((-v) * q);
