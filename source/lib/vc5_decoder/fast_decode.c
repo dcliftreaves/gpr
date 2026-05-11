@@ -612,6 +612,371 @@ static void *fast_pack_thread(void *arg)
 }
 
 /* ================================================================
+   Fused wavelet level-0 reconstruct + color convert + pack
+   ================================================================ */
+
+/*!
+    @brief Fused final-level wavelet reconstruction + color convert + log curve + Bayer pack.
+
+    Instead of reconstructing 4 channels to intermediate arrays and then packing them,
+    this function processes all 4 channels row-by-row: for each output row pair, it runs
+    the vertical + horizontal inverse wavelet filters for all 4 channels, then immediately
+    color-converts, applies the log curve, and writes directly to the packed Bayer output.
+
+    This eliminates the separate pack phase entirely and halves L2 cache pressure.
+*/
+static CODEC_ERROR ReconstructAndPackDirect(
+    gpr_allocator *allocator,
+    WAVELET *wav[4],                 /* wavelet[0] for each of 4 channels (GS,RG,BG,GD) */
+    PRESCALE prescale,               /* prescale for level 0 */
+    IMAGE *packed_image,             /* output packed Bayer image */
+    int bits_per_component,          /* e.g. 14 or 16 */
+    PIXEL_FORMAT output_format)      /* e.g. PIXEL_FORMAT_RAW_RGGB_14 */
+{
+    DIMENSION input_width  = wav[0]->width;
+    DIMENSION input_height = wav[0]->height;
+    DIMENSION output_width = input_width * 2;
+    DIMENSION output_height_ch = input_height * 2;  /* per-channel output height */
+
+    int last_row = input_height - 1;
+
+    /* Determine output params */
+    int output_bit_depth = 14;
+    switch (output_format) {
+        case PIXEL_FORMAT_RAW_RGGB_12: case PIXEL_FORMAT_RAW_GBRG_12: output_bit_depth = 12; break;
+        case PIXEL_FORMAT_RAW_RGGB_14: case PIXEL_FORMAT_RAW_GBRG_14: output_bit_depth = 14; break;
+        case PIXEL_FORMAT_RAW_RGGB_16: case PIXEL_FORMAT_RAW_GBRG_16: output_bit_depth = 16; break;
+        default: break;
+    }
+    int rggb_order = (output_format == PIXEL_FORMAT_RAW_RGGB_12 ||
+                      output_format == PIXEL_FORMAT_RAW_RGGB_14 ||
+                      output_format == PIXEL_FORMAT_RAW_RGGB_16) ? 1 : 0;
+
+    int log_bits = bits_per_component;
+    if (log_bits <= 0) log_bits = 12;
+    if (log_bits > 16) log_bits = 16;
+
+    uint16_t *log_table;
+    int log_max;
+    if (log_bits <= 12) { log_table = DecoderLogCurve12; log_max = (1 << 12) - 1; }
+    else if (log_bits <= 14) { log_table = DecoderLogCurve14; log_max = (1 << 14) - 1; }
+    else { log_table = DecoderLogCurve16; log_max = (1 << 16) - 1; }
+
+    const int32_t midpoint = 1 << (log_bits - 1);
+    const int shift = 16 - output_bit_depth;
+    int bypass = vc5_logcurve_bypass();
+
+    /* Bayer output geometry: output_width*2 wide, output_height_ch*2 tall (full sensor) */
+    size_t bayer_pitch = packed_image->pitch * 2;  /* pitch is per Bayer-row-pair */
+    size_t bayer_half_pitch = bayer_pitch / 2;
+
+    /* Validate quant values */
+    for (int ch = 0; ch < 4; ch++) {
+        for (int i = 0; i < 4; i++) {
+            if (wav[ch]->quant[i] == 0)
+                wav[ch]->quant[i] = 1;
+        }
+    }
+
+    /* Check if we need descale */
+    int use_descale = (prescale > 1);
+    int descale_shift = 0;
+    if (use_descale) {
+        if (prescale == 2) descale_shift = 1;
+        else if (prescale == 3) descale_shift = 2;
+    }
+
+    /* Allocate row buffers: 4 channels x 4 buffers (even_lp, even_hp, odd_lp, odd_hp)
+       + 4 channels x (3 lowhigh_line + 1 highlow_line + 1 highhigh_line) = 4*9 = 36 buffers
+       + 4 channels x 2 output rows = 8 buffers
+       Total: 44 row buffers. All from one arena. */
+    size_t buffer_row_size = input_width * sizeof(PIXEL);
+    size_t aligned_row = (buffer_row_size + 15) & ~(size_t)15;
+    size_t horiz_row_size = output_width * sizeof(PIXEL);
+    size_t aligned_horiz = (horiz_row_size + 15) & ~(size_t)15;
+
+    /* Per-channel: 9 temp rows (same as InvertSpatialQuant16s) + 2 horizontal output rows */
+    size_t per_ch = aligned_row * 9 + aligned_horiz * 2;
+    uint8_t *arena = (uint8_t *)allocator->Alloc(per_ch * 4);
+    if (!arena) return CODEC_ERROR_OUTOFMEMORY;
+
+    /* Set up per-channel state */
+    typedef struct {
+        PIXEL *even_lowpass, *even_highpass, *odd_lowpass, *odd_highpass;
+        PIXEL *lowhigh_line[3];
+        PIXEL *highlow_line, *highhigh_line;
+        PIXEL *even_row, *odd_row;   /* full-width horizontal output */
+        PIXEL *lowlow, *lowhigh, *highlow, *highhigh;
+        int lowlow_pitch, lowhigh_pitch, highlow_pitch, highhigh_pitch;
+        QUANT hl_quant, lh_quant, hh_quant;
+        int fuse_highlow, fuse_highhigh;
+    } CH_STATE;
+
+    CH_STATE cs[4];
+    for (int ch = 0; ch < 4; ch++) {
+        uint8_t *base = arena + ch * per_ch;
+        cs[ch].even_lowpass    = (PIXEL *)(base + aligned_row * 0);
+        cs[ch].even_highpass   = (PIXEL *)(base + aligned_row * 1);
+        cs[ch].odd_lowpass     = (PIXEL *)(base + aligned_row * 2);
+        cs[ch].odd_highpass    = (PIXEL *)(base + aligned_row * 3);
+        cs[ch].lowhigh_line[0] = (PIXEL *)(base + aligned_row * 4);
+        cs[ch].lowhigh_line[1] = (PIXEL *)(base + aligned_row * 5);
+        cs[ch].lowhigh_line[2] = (PIXEL *)(base + aligned_row * 6);
+        cs[ch].highlow_line    = (PIXEL *)(base + aligned_row * 7);
+        cs[ch].highhigh_line   = (PIXEL *)(base + aligned_row * 8);
+        cs[ch].even_row        = (PIXEL *)(base + aligned_row * 9);
+        cs[ch].odd_row         = (PIXEL *)(base + aligned_row * 9 + aligned_horiz);
+
+        cs[ch].lowlow   = (PIXEL *)wav[ch]->data[LL_BAND];
+        cs[ch].lowhigh  = (PIXEL *)wav[ch]->data[LH_BAND];
+        cs[ch].highlow  = (PIXEL *)wav[ch]->data[HL_BAND];
+        cs[ch].highhigh = (PIXEL *)wav[ch]->data[HH_BAND];
+
+        cs[ch].lowlow_pitch   = wav[ch]->pitch / sizeof(PIXEL);
+        cs[ch].lowhigh_pitch  = wav[ch]->pitch / sizeof(PIXEL);
+        cs[ch].highlow_pitch  = wav[ch]->pitch / sizeof(PIXEL);
+        cs[ch].highhigh_pitch = wav[ch]->pitch / sizeof(PIXEL);
+
+        cs[ch].hl_quant = wav[ch]->quant[HL_BAND];
+        cs[ch].lh_quant = wav[ch]->quant[LH_BAND];
+        cs[ch].hh_quant = wav[ch]->quant[HH_BAND];
+
+        cs[ch].fuse_highlow  = (cs[ch].hl_quant < 0);
+        cs[ch].fuse_highhigh = (cs[ch].hh_quant < 0);
+    }
+
+    /* ---- Macro to run vertical filter for one channel, writing to even_lp/hp and odd_lp/hp ---- */
+    /* Then run horizontal filter to produce even_row and odd_row */
+
+    /* Helper: run the vertical top-border filter for one channel */
+#define VERT_TOP(ch) do { \
+    CH_STATE *s = &cs[ch]; \
+    DequantizeBandRow16s(s->lowhigh + 0 * s->lowhigh_pitch, input_width, s->lh_quant, s->lowhigh_line[0]); \
+    DequantizeBandRow16s(s->lowhigh + 1 * s->lowhigh_pitch, input_width, s->lh_quant, s->lowhigh_line[1]); \
+    DequantizeBandRow16s(s->lowhigh + 2 * s->lowhigh_pitch, input_width, s->lh_quant, s->lowhigh_line[2]); \
+    DequantizeBandRow16s(s->highlow,  input_width, s->hl_quant, s->highlow_line); \
+    DequantizeBandRow16s(s->highhigh, input_width, s->hh_quant, s->highhigh_line); \
+    int col = 0; \
+    for (; col < (int)input_width; col++) { \
+        int32_t ev, od; \
+        ev = 11 * s->lowlow[col + 0 * s->lowlow_pitch] \
+           -  4 * s->lowlow[col + 1 * s->lowlow_pitch] \
+           +  1 * s->lowlow[col + 2 * s->lowlow_pitch] + 4; \
+        ev >>= 3; ev += s->highlow_line[col]; ev >>= 1; \
+        s->even_lowpass[col] = ClampPixel(ev); \
+        od = 5 * s->lowlow[col + 0 * s->lowlow_pitch] \
+           + 4 * s->lowlow[col + 1 * s->lowlow_pitch] \
+           - 1 * s->lowlow[col + 2 * s->lowlow_pitch] + 4; \
+        od >>= 3; od -= s->highlow_line[col]; od >>= 1; \
+        s->odd_lowpass[col] = ClampPixel(od); \
+        ev = 11 * s->lowhigh_line[0][col] - 4 * s->lowhigh_line[1][col] + s->lowhigh_line[2][col] + 4; \
+        ev >>= 3; ev += s->highhigh_line[col]; ev >>= 1; \
+        s->even_highpass[col] = ClampPixel(ev); \
+        od = 5 * s->lowhigh_line[0][col] + 4 * s->lowhigh_line[1][col] - s->lowhigh_line[2][col] + 4; \
+        od >>= 3; od -= s->highhigh_line[col]; od >>= 1; \
+        s->odd_highpass[col] = ClampPixel(od); \
+    } \
+} while(0)
+
+    /* Helper: run the vertical middle-row filter for one channel */
+#define VERT_MID(ch) do { \
+    CH_STATE *s = &cs[ch]; \
+    if (!s->fuse_highlow) \
+        DequantizeBandRow16s(s->highlow, input_width, s->hl_quant, s->highlow_line); \
+    if (!s->fuse_highhigh) \
+        DequantizeBandRow16s(s->highhigh, input_width, s->hh_quant, s->highhigh_line); \
+    int col = 0; \
+    for (; col < (int)input_width; col++) { \
+        int32_t ev, od, hl_val, hh_val; \
+        if (s->fuse_highlow) { \
+            int32_t v = s->highlow[col]; \
+            hl_val = (v > 0) ? v * (-s->hl_quant) : (v < 0) ? -((-v) * (-s->hl_quant)) : 0; \
+        } else { hl_val = s->highlow_line[col]; } \
+        if (s->fuse_highhigh) { \
+            int32_t v = s->highhigh[col]; \
+            hh_val = (v > 0) ? v * (-s->hh_quant) : (v < 0) ? -((-v) * (-s->hh_quant)) : 0; \
+        } else { hh_val = s->highhigh_line[col]; } \
+        ev = s->lowlow[col + 0 * s->lowlow_pitch] - s->lowlow[col + 2 * s->lowlow_pitch] + 4; \
+        ev >>= 3; ev += s->lowlow[col + 1 * s->lowlow_pitch]; ev += hl_val; ev >>= 1; \
+        s->even_lowpass[col] = ClampPixel(ev); \
+        od = -s->lowlow[col + 0 * s->lowlow_pitch] + s->lowlow[col + 2 * s->lowlow_pitch] + 4; \
+        od >>= 3; od += s->lowlow[col + 1 * s->lowlow_pitch]; od -= hl_val; od >>= 1; \
+        s->odd_lowpass[col] = ClampPixel(od); \
+        ev = s->lowhigh_line[0][col] - s->lowhigh_line[2][col] + 4; \
+        ev >>= 3; ev += s->lowhigh_line[1][col]; ev += hh_val; ev >>= 1; \
+        s->even_highpass[col] = ClampPixel(ev); \
+        od = -s->lowhigh_line[0][col] + s->lowhigh_line[2][col] + 4; \
+        od >>= 3; od += s->lowhigh_line[1][col]; od -= hh_val; od >>= 1; \
+        s->odd_highpass[col] = ClampPixel(od); \
+    } \
+} while(0)
+
+    /* Helper: run the vertical bottom-border filter for one channel */
+#define VERT_BOT(ch) do { \
+    CH_STATE *s = &cs[ch]; \
+    DequantizeBandRow16s(s->highlow, input_width, s->hl_quant, s->highlow_line); \
+    DequantizeBandRow16s(s->highhigh, input_width, s->hh_quant, s->highhigh_line); \
+    int col = 0; \
+    for (; col < (int)input_width; col++) { \
+        int32_t ev, od; \
+        ev = 5 * s->lowlow[col + 0 * s->lowlow_pitch] \
+           + 4 * s->lowlow[col - 1 * s->lowlow_pitch] \
+           - 1 * s->lowlow[col - 2 * s->lowlow_pitch] + 4; \
+        ev >>= 3; ev += s->highlow_line[col]; ev >>= 1; \
+        s->even_lowpass[col] = ClampPixel(ev); \
+        od = 11 * s->lowlow[col + 0 * s->lowlow_pitch] \
+           -  4 * s->lowlow[col - 1 * s->lowlow_pitch] \
+           +  1 * s->lowlow[col - 2 * s->lowlow_pitch] + 4; \
+        od >>= 3; od -= s->highlow_line[col]; od >>= 1; \
+        s->odd_lowpass[col] = ClampPixel(od); \
+        ev = 5 * s->lowhigh_line[2][col] + 4 * s->lowhigh_line[1][col] - s->lowhigh_line[0][col] + 4; \
+        ev >>= 3; ev += s->highhigh_line[col]; ev >>= 1; \
+        s->even_highpass[col] = ClampPixel(ev); \
+        od = 11 * s->lowhigh_line[2][col] - 4 * s->lowhigh_line[1][col] + s->lowhigh_line[0][col] + 4; \
+        od >>= 3; od -= s->highhigh_line[col]; od >>= 1; \
+        s->odd_highpass[col] = ClampPixel(od); \
+    } \
+} while(0)
+
+    /* Helper: run horizontal filter for one channel (using descale or not) */
+#define HORIZ(ch) do { \
+    CH_STATE *s = &cs[ch]; \
+    if (use_descale) { \
+        InvertHorizontalDescale16s(s->even_lowpass, s->even_highpass, s->even_row, input_width, output_width, prescale); \
+        InvertHorizontalDescale16s(s->odd_lowpass, s->odd_highpass, s->odd_row, input_width, output_width, prescale); \
+    } else { \
+        InvertHorizontal16s(s->even_lowpass, s->even_highpass, s->even_row, input_width, output_width); \
+        InvertHorizontal16s(s->odd_lowpass, s->odd_highpass, s->odd_row, input_width, output_width); \
+    } \
+} while(0)
+
+    /* Helper: color convert + log curve + pack two output rows from 4 channels' even_row/odd_row.
+       out_row is the Bayer output row index (0-based, counting channel-output rows). */
+#define PACK_ROWS(out_row) do { \
+    uint8_t *out_base = (uint8_t *)packed_image->buffer + (out_row) * bayer_pitch; \
+    uint16_t *out_r1 = (uint16_t *)out_base; \
+    uint16_t *out_r2 = (uint16_t *)(out_base + bayer_half_pitch); \
+    PIXEL *gs_even = cs[0].even_row, *gs_odd = cs[0].odd_row; \
+    PIXEL *rg_even = cs[1].even_row, *rg_odd = cs[1].odd_row; \
+    PIXEL *bg_even = cs[2].even_row, *bg_odd = cs[2].odd_row; \
+    PIXEL *gd_even = cs[3].even_row, *gd_odd = cs[3].odd_row; \
+    /* Pack even row (Bayer row 1) and odd row (Bayer row 2) */ \
+    /* Each channel row has output_width pixels. The Bayer has output_width*2 pixels per row. */ \
+    /* For each col in [0, output_width), produce 2 Bayer pixels on each of 2 rows. */ \
+    int col = 0; \
+    PACK_ROWS_INNER(out_r1, out_r2, gs_even, rg_even, bg_even, gd_even, col); \
+    out_base = (uint8_t *)packed_image->buffer + ((out_row) + 1) * bayer_pitch; \
+    out_r1 = (uint16_t *)out_base; \
+    out_r2 = (uint16_t *)(out_base + bayer_half_pitch); \
+    col = 0; \
+    PACK_ROWS_INNER(out_r1, out_r2, gs_odd, rg_odd, bg_odd, gd_odd, col); \
+} while(0)
+
+    /* Inner pack: process one component-row → two Bayer rows */
+#define PACK_ROWS_INNER(out_r1, out_r2, gs_row, rg_row, bg_row, gd_row, col) do { \
+    int width_half = (int)output_width; \
+    for (col = 0; col < width_half; col++) { \
+        int32_t GS = gs_row[col], RG = rg_row[col], BG = bg_row[col], GD = gd_row[col]; \
+        if (GS < 0) GS = 0; else if (GS > log_max) GS = log_max; \
+        if (RG < 0) RG = 0; else if (RG > log_max) RG = log_max; \
+        if (BG < 0) BG = 0; else if (BG > log_max) BG = log_max; \
+        if (GD < 0) GD = 0; else if (GD > log_max) GD = log_max; \
+        RG -= midpoint; BG -= midpoint; GD -= midpoint; \
+        int32_t R = (RG << 1) + GS, B = (BG << 1) + GS; \
+        int32_t G1 = GS + GD, G2 = GS - GD; \
+        if (R < 0) R = 0; else if (R > log_max) R = log_max; \
+        if (G1 < 0) G1 = 0; else if (G1 > log_max) G1 = log_max; \
+        if (G2 < 0) G2 = 0; else if (G2 > log_max) G2 = log_max; \
+        if (B < 0) B = 0; else if (B > log_max) B = log_max; \
+        if (!bypass) { R = log_table[R]>>shift; G1 = log_table[G1]>>shift; G2 = log_table[G2]>>shift; B = log_table[B]>>shift; } \
+        if (rggb_order) { \
+            out_r1[2*col] = (uint16_t)R; out_r1[2*col+1] = (uint16_t)G1; \
+            out_r2[2*col] = (uint16_t)G2; out_r2[2*col+1] = (uint16_t)B; \
+        } else { \
+            out_r1[2*col] = (uint16_t)G1; out_r1[2*col+1] = (uint16_t)B; \
+            out_r2[2*col] = (uint16_t)R; out_r2[2*col+1] = (uint16_t)G2; \
+        } \
+    } \
+} while(0)
+
+    /* ---- Process rows ---- */
+    int out_bayer_row = 0;  /* counts in Bayer row-pairs (each has 2 rows) */
+
+    /* Top border row (row 0) */
+    for (int ch = 0; ch < 4; ch++) { VERT_TOP(ch); HORIZ(ch); }
+    PACK_ROWS(out_bayer_row);
+    out_bayer_row += 2;  /* each wavelet row produces 2 output rows = 1 Bayer pair */
+
+    /* Advance pointers for all channels */
+    for (int ch = 0; ch < 4; ch++) {
+        cs[ch].highlow  += cs[ch].highlow_pitch;
+        cs[ch].highhigh += cs[ch].highhigh_pitch;
+    }
+
+    /* Middle rows */
+    int row;
+    for (row = 1; row < last_row; row++) {
+        for (int ch = 0; ch < 4; ch++) { VERT_MID(ch); HORIZ(ch); }
+        PACK_ROWS(out_bayer_row);
+        out_bayer_row += 2;
+
+        /* Advance band pointers */
+        for (int ch = 0; ch < 4; ch++) {
+            cs[ch].lowlow  += cs[ch].lowlow_pitch;
+            cs[ch].lowhigh += cs[ch].lowhigh_pitch;
+            cs[ch].highlow += cs[ch].highlow_pitch;
+            cs[ch].highhigh += cs[ch].highhigh_pitch;
+
+            /* Rotate lowhigh_line ring buffer */
+            if (row < last_row - 1) {
+                PIXEL *temp = cs[ch].lowhigh_line[0];
+                cs[ch].lowhigh_line[0] = cs[ch].lowhigh_line[1];
+                cs[ch].lowhigh_line[1] = cs[ch].lowhigh_line[2];
+                cs[ch].lowhigh_line[2] = temp;
+                DequantizeBandRow16s(cs[ch].lowhigh + 2 * cs[ch].lowhigh_pitch,
+                                     input_width, cs[ch].lh_quant, cs[ch].lowhigh_line[2]);
+            }
+        }
+    }
+
+    /* Bottom border row */
+    assert(row == last_row);
+    for (int ch = 0; ch < 4; ch++) {
+        cs[ch].lowlow += cs[ch].lowlow_pitch;
+    }
+    for (int ch = 0; ch < 4; ch++) { VERT_BOT(ch); HORIZ(ch); }
+
+    /* Pack even row, and only pack odd row if it fits */
+    {
+        /* Even row */
+        uint8_t *out_base = (uint8_t *)packed_image->buffer + out_bayer_row * bayer_pitch;
+        uint16_t *out_r1 = (uint16_t *)out_base;
+        uint16_t *out_r2 = (uint16_t *)(out_base + bayer_half_pitch);
+        int col = 0;
+        PACK_ROWS_INNER(out_r1, out_r2, cs[0].even_row, cs[1].even_row, cs[2].even_row, cs[3].even_row, col);
+
+        /* Odd row (if it fits) */
+        if (2 * last_row + 1 < (int)output_height_ch) {
+            out_base = (uint8_t *)packed_image->buffer + (out_bayer_row + 1) * bayer_pitch;
+            out_r1 = (uint16_t *)out_base;
+            out_r2 = (uint16_t *)(out_base + bayer_half_pitch);
+            col = 0;
+            PACK_ROWS_INNER(out_r1, out_r2, cs[0].odd_row, cs[1].odd_row, cs[2].odd_row, cs[3].odd_row, col);
+        }
+    }
+
+#undef VERT_TOP
+#undef VERT_MID
+#undef VERT_BOT
+#undef HORIZ
+#undef PACK_ROWS
+#undef PACK_ROWS_INNER
+
+    allocator->Free(arena);
+    return CODEC_ERROR_OKAY;
+}
+
+/* ================================================================
    Main entry: DecodeFastImage — drop-in replacement for DecodeImage
    ================================================================ */
 
@@ -791,7 +1156,46 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
     }
 
     FD_P(ans_decode, ans); FD_T(wavelet);
-    /* ---- Step 5+6: Full wavelet reconstruction (all levels) in parallel per channel ---- */
+
+    /* ---- Fused path: wavelet level 2→1→0 + color convert + pack in one pass ---- */
+    /* Use fused path when: raw Bayer output, no variance stabilize, 4 channels */
+    if (parameters->rgb_resolution == GPR_RGB_RESOLUTION_NONE &&
+        channel_count == 4 &&
+        !(parameters->variance_stabilize && parameters->noise_scale > 0.0))
+    {
+        /* Step 5a: Intermediate wavelet levels (2→1 and 1→0) per channel */
+        for (int ch = 0; ch < channel_count; ch++) {
+            if (BandsAllValid(wavelets[ch][2])) {
+                TransformInverseSpatialQuantLowpass(allocator,
+                    wavelets[ch][2], wavelets[ch][1], prescale_table[2]);
+                UpdateWaveletValidBandMask(wavelets[ch][1], 0);
+            }
+            if (BandsAllValid(wavelets[ch][1])) {
+                TransformInverseSpatialQuantLowpass(allocator,
+                    wavelets[ch][1], wavelets[ch][0], prescale_table[1]);
+                UpdateWaveletValidBandMask(wavelets[ch][0], 0);
+            }
+        }
+
+        FD_P(wavelet_intermediate, wavelet); FD_T(pack);
+
+        /* Step 5b: Allocate and fused level-0 reconstruct + pack */
+        DIMENSION packed_width = idx.image_width;
+        DIMENSION packed_height = idx.image_height;
+        PIXEL_FORMAT packed_format = parameters->output.format;
+
+        AllocImage(allocator, packed_image, packed_width, packed_height, packed_format);
+
+        WAVELET *wav0[4] = { wavelets[0][0], wavelets[1][0], wavelets[2][0], wavelets[3][0] };
+        error = ReconstructAndPackDirect(allocator, wav0, prescale_table[0],
+                                         packed_image, bits_per_component, packed_format);
+
+        FD_P(fused_recon_pack, pack);
+    }
+    else
+    {
+    /* ---- Legacy path: separate wavelet recon + pack ---- */
+    /* Step 5+6: Full wavelet reconstruction (all levels) in parallel per channel */
     {
         UNPACKED_IMAGE unpacked_image;
         InitUnpackedImage(&unpacked_image);
@@ -1014,6 +1418,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
         FD_P(pack_output, pack);
         ReleaseComponentArrays(allocator, &unpacked_image, channel_count);
     }
+    } /* end legacy path */
 
 cleanup:
     /* Free all wavelets */
