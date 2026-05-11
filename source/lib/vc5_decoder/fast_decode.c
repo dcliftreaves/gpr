@@ -641,11 +641,41 @@ static void fused_pack_row(uint16_t *out_r1, uint16_t *out_r2,
             int32x4_t g2 = vmaxq_s32(vminq_s32(vsubq_s32(vgs, vgd), v_max), v_zero);
             int32_t ra[4], g1a[4], g2a[4], ba[4];
             if (!bypass && log_bits == 16) {
+                /* Dual polynomial evaluation: process R+G1 and G2+B simultaneously
+                   to keep the FMLA pipeline saturated with independent chains */
+                float32x4_t inv = vdupq_n_f32(1.0f / 65535.0f);
+                float32x4_t xr  = vmulq_f32(vcvtq_f32_s32(r), inv);
+                float32x4_t xg1 = vmulq_f32(vcvtq_f32_s32(g1), inv);
+                float32x4_t xg2 = vmulq_f32(vcvtq_f32_s32(g2), inv);
+                float32x4_t xb  = vmulq_f32(vcvtq_f32_s32(b), inv);
+
+                /* Interleaved Horner: process (r,g2) and (g1,b) in alternating FMLA */
+                float32x4_t yr  = vdupq_n_f32(115930.82f);
+                float32x4_t yg2 = vdupq_n_f32(115930.82f);
+                float32x4_t yg1 = vdupq_n_f32(115930.82f);
+                float32x4_t yb  = vdupq_n_f32(115930.82f);
+
+                #define STEP(c) \
+                    yr  = vmlaq_f32(vdupq_n_f32(c), yr, xr); \
+                    yg2 = vmlaq_f32(vdupq_n_f32(c), yg2, xg2); \
+                    yg1 = vmlaq_f32(vdupq_n_f32(c), yg1, xg1); \
+                    yb  = vmlaq_f32(vdupq_n_f32(c), yb, xb);
+                STEP(-196522.70f)
+                STEP(183116.82f)
+                STEP(-58613.95f)
+                STEP(19850.53f)
+                STEP(1727.87f)
+                STEP(19.28f)
+                #undef STEP
+
+                float32x4_t fmax = vdupq_n_f32(65535.0f);
+                float32x4_t fzero = vdupq_n_f32(0.0f);
+                float32x4_t fhalf = vdupq_n_f32(0.5f);
                 int32x4_t ns = vdupq_n_s32(-shift);
-                vst1q_s32(ra,  vshlq_s32(log_curve_neon_poly16(r), ns));
-                vst1q_s32(g1a, vshlq_s32(log_curve_neon_poly16(g1), ns));
-                vst1q_s32(g2a, vshlq_s32(log_curve_neon_poly16(g2), ns));
-                vst1q_s32(ba,  vshlq_s32(log_curve_neon_poly16(b), ns));
+                vst1q_s32(ra,  vshlq_s32(vcvtq_s32_f32(vaddq_f32(vminq_f32(vmaxq_f32(yr,fzero),fmax),fhalf)), ns));
+                vst1q_s32(g1a, vshlq_s32(vcvtq_s32_f32(vaddq_f32(vminq_f32(vmaxq_f32(yg1,fzero),fmax),fhalf)), ns));
+                vst1q_s32(g2a, vshlq_s32(vcvtq_s32_f32(vaddq_f32(vminq_f32(vmaxq_f32(yg2,fzero),fmax),fhalf)), ns));
+                vst1q_s32(ba,  vshlq_s32(vcvtq_s32_f32(vaddq_f32(vminq_f32(vmaxq_f32(yb,fzero),fmax),fhalf)), ns));
             } else if (!bypass && log_bits == 14) {
                 int32x4_t ns = vdupq_n_s32(-shift);
                 vst1q_s32(ra,  vshlq_s32(log_curve_neon_pwl(r, log_approx_14, 256), ns));
