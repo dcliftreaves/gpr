@@ -20,6 +20,14 @@
 #ifndef _WIN32
 #include <pthread.h>
 #endif
+
+/* When FAST_SINGLE_THREAD is defined, all operations run single-threaded.
+   Used for benchmarking single-threaded performance. */
+#if defined(FAST_SINGLE_THREAD) && !defined(_WIN32)
+#define FAST_USE_THREADS 0
+#else
+#define FAST_USE_THREADS 1
+#endif
 #include <string.h>
 #include <stdlib.h>
 
