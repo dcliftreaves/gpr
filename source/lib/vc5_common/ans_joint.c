@@ -690,11 +690,41 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
     uint32_t states[JANS_INTERLEAVE];
     for (int s = 0; s < JANS_INTERLEAVE; s++) states[s] = RANS_BYTE_L;
 
-    for (int i = token_count - 1; i >= 0; i--) {
-        int s = i % JANS_INTERLEAVE;
+    /* 4-way unrolled rANS encode (backward).
+       Each iteration touches 4 *independent* states — no cross-stream data
+       dependency — letting the CPU pipeline them in parallel. The compiler
+       inlines rans_enc_put, exposing the per-stream UMULL + correction +
+       optional renormalize as 4 disjoint chains.
+       Stream assignment matches the original `i % 4` mapping for bit-identical
+       output: tokens[i] -> states[i % 4]. */
+    int i = token_count - 1;
+    /* Align so that the unrolled chunk processes [i, i-1, i-2, i-3] where
+       (i % 4) == 3 — then each call below uses a constant stream index. */
+    while (i >= 0 && (i & 3) != 3) {
         int sym = tokens[i];
-        rans_enc_put(&states[s], &rans_ptr,
+        rans_enc_put(&states[i & 3], &rans_ptr,
                      table.cum_freq[sym], table.freq[sym], table.rcp_freq[sym]);
+        i--;
+    }
+    for (; i >= 3; i -= 4) {
+        int sym3 = tokens[i];      /* stream 3 */
+        int sym2 = tokens[i - 1];  /* stream 2 */
+        int sym1 = tokens[i - 2];  /* stream 1 */
+        int sym0 = tokens[i - 3];  /* stream 0 */
+        rans_enc_put(&states[3], &rans_ptr,
+                     table.cum_freq[sym3], table.freq[sym3], table.rcp_freq[sym3]);
+        rans_enc_put(&states[2], &rans_ptr,
+                     table.cum_freq[sym2], table.freq[sym2], table.rcp_freq[sym2]);
+        rans_enc_put(&states[1], &rans_ptr,
+                     table.cum_freq[sym1], table.freq[sym1], table.rcp_freq[sym1]);
+        rans_enc_put(&states[0], &rans_ptr,
+                     table.cum_freq[sym0], table.freq[sym0], table.rcp_freq[sym0]);
+    }
+    while (i >= 0) {
+        int sym = tokens[i];
+        rans_enc_put(&states[i & 3], &rans_ptr,
+                     table.cum_freq[sym], table.freq[sym], table.rcp_freq[sym]);
+        i--;
     }
 
     /* Flush 4 states (state 3 first, state 0 last → read state 0 first) */
