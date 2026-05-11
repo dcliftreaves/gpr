@@ -1158,8 +1158,10 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
     FD_P(ans_decode, ans); FD_T(wavelet);
 
     /* ---- Fused path: wavelet level 2→1→0 + color convert + pack in one pass ---- */
-    /* Use fused path when: raw Bayer output, no variance stabilize, 4 channels */
-    if (parameters->rgb_resolution == GPR_RGB_RESOLUTION_NONE &&
+    /* Use fused path ONLY in single-threaded mode (multi-threaded uses parallel channels).
+       Fused processes all 4 channels per-row which can't be easily parallelized. */
+    if (FAST_NO_THREADS &&
+        parameters->rgb_resolution == GPR_RGB_RESOLUTION_NONE &&
         channel_count == 4 &&
         !(parameters->variance_stabilize && parameters->noise_scale > 0.0))
     {
