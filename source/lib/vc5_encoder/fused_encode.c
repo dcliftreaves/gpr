@@ -1140,7 +1140,23 @@ int gpr_encode_fused(
     pthread_cond_init(&sync.cv, NULL);
     for (int i = 0; i < 4; i++) sync.p1_done[i] = 0;
 
-    /* === STAGE 1: Spawn 12 Pass-2 threads up-front (they block on per-channel p1_done) === */
+    /* === STAGE 1: Spawn 4 Pass-1 channel threads FIRST so they can begin work immediately === */
+    PASS1_CHANNEL_TASK p1_tasks[4];
+    for (int ch = 0; ch < 4; ch++) {
+        p1_tasks[ch].channel = ch;
+        p1_tasks[ch].raw_bayer = raw_bayer;
+        p1_tasks[ch].width = width;
+        p1_tasks[ch].height = height;
+        p1_tasks[ch].log_bits = log_bits;
+        p1_tasks[ch].is_rggb = is_rggb;
+        p1_tasks[ch].prescale = prescale;
+        p1_tasks[ch].cs = &ch_state[ch];
+        p1_tasks[ch].sync = &sync;
+        p1_created[ch] = (pthread_create(&p1_threads[ch], NULL,
+                                          pass1_channel_thread, &p1_tasks[ch]) == 0);
+    }
+
+    /* === STAGE 2: While P1 threads run, set up + spawn 12 P2 threads (they'll block on p1_done) === */
     int p2_count = 0;
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ch_state[ch];
@@ -1162,21 +1178,9 @@ int gpr_encode_fused(
         }
     }
 
-    /* === STAGE 2: Spawn 4 Pass-1 channel threads (signal p1_done as they finish) === */
-    PASS1_CHANNEL_TASK p1_tasks[4];
+    /* Inline fallback for any P1 thread that failed to spawn */
     for (int ch = 0; ch < 4; ch++) {
-        p1_tasks[ch].channel = ch;
-        p1_tasks[ch].raw_bayer = raw_bayer;
-        p1_tasks[ch].width = width;
-        p1_tasks[ch].height = height;
-        p1_tasks[ch].log_bits = log_bits;
-        p1_tasks[ch].is_rggb = is_rggb;
-        p1_tasks[ch].prescale = prescale;
-        p1_tasks[ch].cs = &ch_state[ch];
-        p1_tasks[ch].sync = &sync;
-        p1_created[ch] = (pthread_create(&p1_threads[ch], NULL,
-                                          pass1_channel_thread, &p1_tasks[ch]) == 0);
-        if (!p1_created[ch]) pass1_channel_thread(&p1_tasks[ch]); /* inline fallback */
+        if (!p1_created[ch]) pass1_channel_thread(&p1_tasks[ch]);
     }
 
     /* Join Pass 1 threads (signals are already set, P2 may already be running) */
