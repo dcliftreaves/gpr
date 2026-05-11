@@ -21,6 +21,7 @@
 #include "headers.h"
 #include "fused_encode.h"
 #include "ans_joint.h"
+#include "denoise.h"
 #include <pthread.h>
 #include <unistd.h>  /* for sysconf */
 
@@ -670,7 +671,16 @@ typedef struct {
     size_t enc_cap;
     int enc_size;
     CHANNEL_SYNC *sync;
+    /* Optional wavelet-domain denoise (split mode only; ignored if inline). */
+    double denoise_strength;
+    double noise_scale;
+    double noise_offset;
 } PASS2_BAND_TASK;
+
+static void fused_denoise_band(PIXEL *band_data, int width, int height,
+                               int pitch_bytes,
+                               double noise_scale, double noise_offset,
+                               double strength);
 
 static void *pass2_band_thread(void *arg) {
     PASS2_BAND_TASK *t = (PASS2_BAND_TASK *)arg;
@@ -688,7 +698,12 @@ static void *pass2_band_thread(void *arg) {
         /* Inline mode: Pass 1 already tokenized; just do rANS encode + emit */
         t->enc_size = jans_inline_finalize(t->enc_buf, t->enc_cap, t->inline_state);
     } else {
-        /* Split mode: full tokenize + rANS over the band buffer */
+        /* Split mode: optional wavelet-domain denoise, then tokenize + rANS */
+        if (t->denoise_strength > 0.0) {
+            fused_denoise_band(t->band_data, t->width, t->height, t->pitch,
+                               t->noise_scale, t->noise_offset,
+                               t->denoise_strength);
+        }
         t->enc_size = jans_encode_band_x4(t->enc_buf, t->enc_cap,
                                            (const int32_t *)t->band_data,
                                            t->width, t->height, t->pitch);
@@ -812,6 +827,15 @@ struct FUSED_ENCODER {
     /* Persistent output stream buffer */
     uint8_t *stream_buf;
     size_t   stream_cap;
+
+    /* Wavelet-domain denoise (BayesShrink). When denoise_strength > 0,
+       inline mode is disabled (split-pass only — denoise needs the band
+       buffer to compute per-band thresholds). noise_scale/noise_offset
+       are in raw-pixel units (multiply DNG NoiseProfile by max_val and
+       max_val^2 respectively before passing in). */
+    double   noise_scale;
+    double   noise_offset;
+    double   denoise_strength;
 };
 
 /* Decide which mode to use. Default: inline mode when CPU count is ≤6
@@ -942,6 +966,79 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     return ctx;
 }
 
+void gpr_encode_fused_set_denoise(FUSED_ENCODER *ctx,
+                                  double noise_scale,
+                                  double noise_offset,
+                                  double strength)
+{
+    if (!ctx) return;
+    if (strength > 0.0 && ctx->inline_mode) {
+        fprintf(stderr, "gpr_encode_fused_set_denoise: denoise requires split mode; "
+                        "set FUSED_INLINE_TOKENIZE=0 before gpr_encode_fused_create. "
+                        "Denoise NOT enabled.\n");
+        return;
+    }
+    ctx->noise_scale = noise_scale;
+    ctx->noise_offset = noise_offset;
+    ctx->denoise_strength = strength;
+}
+
+/* Per-band BayesShrink denoise: estimate noise sigma from this band (MAD on
+   the band itself, since the fused encoder doesn't keep an LL band around for
+   calibrated sigma), compute the threshold, then noise-aware-requantize. Falls
+   back to soft-thresholding when the band is pure noise (no signal energy). */
+static void fused_denoise_band(PIXEL *band_data, int width, int height,
+                               int pitch_bytes,
+                               double noise_scale, double noise_offset,
+                               double strength)
+{
+    if (!band_data || strength <= 0.0) return;
+
+    /* Estimate noise sigma. Prefer calibrated noise model when available
+       (operates on the band's local mean signal), otherwise MAD. */
+    double sigma_noise;
+    if (noise_scale > 0.0) {
+        sigma_noise = CalibratedNoiseSigma(band_data, width, height,
+                                            pitch_bytes,
+                                            noise_scale, noise_offset);
+    } else {
+        sigma_noise = EstimateNoiseSigma(band_data, width, height, pitch_bytes);
+    }
+    if (sigma_noise <= 0.0) return;
+
+    /* Sample band variance for the BayesShrink threshold. */
+    int pitch_pixels = pitch_bytes / (int)sizeof(PIXEL);
+    int N = width * height;
+    int step = (N > 10000) ? (N / 10000) : 1;
+    double sum_sq = 0.0;
+    int sample_count = 0;
+    int idx = 0;
+    for (int row = 0; row < height && sample_count < 10000; row++) {
+        const PIXEL *row_ptr = band_data + row * pitch_pixels;
+        for (int col = 0; col < width && sample_count < 10000; col++) {
+            if (idx % step == 0) {
+                double v = (double)row_ptr[col];
+                sum_sq += v * v;
+                sample_count++;
+            }
+            idx++;
+        }
+    }
+    double sigma_band_sq = (sample_count > 0) ? sum_sq / sample_count : 0.0;
+    double sigma_noise_sq = sigma_noise * sigma_noise;
+    double sigma_signal_sq = sigma_band_sq - sigma_noise_sq;
+
+    if (sigma_signal_sq > sigma_noise_sq * 0.01) {
+        /* Signal present: noise-aware requantize at sigma_noise step. */
+        NoiseAwareRequantize(band_data, width, height, pitch_bytes,
+                             sigma_noise, strength);
+    } else {
+        /* Pure noise band: soft threshold at the VisuShrink scale. */
+        double T = sigma_noise * sqrt(2.0 * log((double)N)) * strength;
+        SoftThresholdBand(band_data, width, height, pitch_bytes, T);
+    }
+}
+
 void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
     if (!ctx) return;
     for (int i = 0; i < 12; i++) if (ctx->enc_bufs[i]) free(ctx->enc_bufs[i]);
@@ -1024,6 +1121,9 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
             pt->enc_buf = ctx->enc_bufs[p2_count];  /* persistent */
             pt->enc_size = 0;
             pt->sync = &sync;
+            pt->denoise_strength = ctx->denoise_strength;
+            pt->noise_scale = ctx->noise_scale;
+            pt->noise_offset = ctx->noise_offset;
             if (run_serial) {
                 pass2_band_thread(pt);
                 p2_created[p2_count] = 0;
