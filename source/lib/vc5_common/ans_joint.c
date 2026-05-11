@@ -716,17 +716,16 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
             int sym = rc * JANS_MAG_CLASSES + mc;
             table.freq[sym]++;
             tokens[token_count++] = (uint16_t)sym;
+            /* val != 0 here (checked above) -> mag >= 1 -> mc >= 1, so the
+               (mc > 0) check that wrapped this block in the original code
+               was always true. Inline the always-taken path. */
             {
                 int rb = run_class_bits[rc];
                 int mb = mag_class_bits[mc];
                 uint32_t merged = (uint32_t)run_resid;
-                if (mc > 0) {
-                    merged |= ((uint32_t)mag_resid << rb);
-                    merged |= ((val < 0) ? 1u : 0u) << (rb + mb);
-                    BB_WRITE_LOCAL(merged, rb + mb + 1);
-                } else {
-                    BB_WRITE_LOCAL(merged, rb);
-                }
+                merged |= ((uint32_t)mag_resid << rb);
+                merged |= ((val < 0) ? 1u : 0u) << (rb + mb);
+                BB_WRITE_LOCAL(merged, rb + mb + 1);
             }
             run = 0;
         }
