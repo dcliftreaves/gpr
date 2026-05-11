@@ -235,6 +235,33 @@ CODEC_ERROR InvertHorizontal16s(PIXEL *lowpass, PIXEL *highpass, PIXEL *output,
 #if ENABLED(NEON)
     {
         const int32x4_t four = vdupq_n_s32(4);
+
+        /* 8-wide: process 8 input columns → 16 output pixels per iteration */
+        for (; column + 7 < last_column; column += 8)
+        {
+            /* First 4 columns */
+            int32x4_t lp_la = vld1q_s32(&lowpass[column - 1]);
+            int32x4_t lp_ca = vld1q_s32(&lowpass[column]);
+            int32x4_t lp_ra = vld1q_s32(&lowpass[column + 1]);
+            int32x4_t hp_ca = vld1q_s32(&highpass[column]);
+            /* Second 4 columns */
+            int32x4_t lp_lb = vld1q_s32(&lowpass[column + 3]);
+            int32x4_t lp_cb = vld1q_s32(&lowpass[column + 4]);
+            int32x4_t lp_rb = vld1q_s32(&lowpass[column + 5]);
+            int32x4_t hp_cb = vld1q_s32(&highpass[column + 4]);
+
+            int32x4_t ea = vshrq_n_s32(vaddq_s32(vaddq_s32(vshrq_n_s32(vaddq_s32(vsubq_s32(lp_la, lp_ra), four), 3), lp_ca), hp_ca), 1);
+            int32x4_t oa = vshrq_n_s32(vsubq_s32(vaddq_s32(vshrq_n_s32(vaddq_s32(vsubq_s32(lp_ra, lp_la), four), 3), lp_ca), hp_ca), 1);
+            int32x4_t eb = vshrq_n_s32(vaddq_s32(vaddq_s32(vshrq_n_s32(vaddq_s32(vsubq_s32(lp_lb, lp_rb), four), 3), lp_cb), hp_cb), 1);
+            int32x4_t ob = vshrq_n_s32(vsubq_s32(vaddq_s32(vshrq_n_s32(vaddq_s32(vsubq_s32(lp_rb, lp_lb), four), 3), lp_cb), hp_cb), 1);
+
+            int32x4x2_t ia = { .val = { ea, oa } };
+            int32x4x2_t ib = { .val = { eb, ob } };
+            vst2q_s32(&output[2 * column], ia);
+            vst2q_s32(&output[2 * (column + 4)], ib);
+        }
+
+        /* 4-wide cleanup */
         for (; column + 3 < last_column; column += 4)
         {
             int32x4_t lp_left   = vld1q_s32(&lowpass[column - 1]);
