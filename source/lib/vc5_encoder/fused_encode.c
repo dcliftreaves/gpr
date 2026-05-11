@@ -613,7 +613,80 @@ static int fused_pass1(
    Pass 2: rANS Encode using pre-counted frequencies
    ================================================================ */
 
+#include <pthread.h>
+
+typedef struct {
+    PIXEL *band_data;
+    int width, height, pitch;
+    uint8_t *enc_buf;
+    size_t enc_cap;
+    int enc_size;
+} PASS2_BAND_TASK;
+
+static void *pass2_band_thread(void *arg) {
+    PASS2_BAND_TASK *t = (PASS2_BAND_TASK *)arg;
+    t->enc_size = jans_encode_band_x4(t->enc_buf, t->enc_cap,
+                                       (const int32_t *)t->band_data,
+                                       t->width, t->height, t->pitch);
+    return NULL;
+}
+
 static int fused_pass2(
+    FUSED_CHANNEL_STATE ch_state[4],
+    uint8_t *output_buf, size_t output_cap, size_t *output_written
+)
+{
+    size_t pos = 0;
+
+    /* Parallel encode: 12 independent band tasks (4 channels × 3 highpass bands).
+       Allocate buffers and dispatch threads. */
+    PASS2_BAND_TASK tasks[12];
+    pthread_t threads[12];
+    int task_count = 0;
+    int created[12];
+
+    for (int ch = 0; ch < 4; ch++) {
+        FUSED_CHANNEL_STATE *cs = &ch_state[ch];
+        for (int band = 1; band < 4; band++) {
+            PASS2_BAND_TASK *t = &tasks[task_count];
+            t->band_data = cs->band_data[band];
+            t->width = cs->band_width;
+            t->height = cs->band_height;
+            t->pitch = cs->band_width * sizeof(int32_t);
+            t->enc_cap = (size_t)t->width * t->height * 4 + 8192;
+            t->enc_buf = (uint8_t *)malloc(t->enc_cap);
+            t->enc_size = 0;
+            if (!t->enc_buf) return -1;
+
+            /* Spawn thread */
+            created[task_count] = (pthread_create(&threads[task_count], NULL,
+                                                    pass2_band_thread, t) == 0);
+            if (!created[task_count]) pass2_band_thread(t);
+            task_count++;
+        }
+    }
+
+    /* Wait for all threads, then concatenate outputs in order */
+    for (int i = 0; i < task_count; i++) {
+        if (created[i]) pthread_join(threads[i], NULL);
+    }
+
+    /* Sequential output concat (preserves band order) */
+    for (int i = 0; i < task_count; i++) {
+        PASS2_BAND_TASK *t = &tasks[i];
+        if (t->enc_size > 0 && pos + t->enc_size <= output_cap) {
+            memcpy(output_buf + pos, t->enc_buf, t->enc_size);
+            pos += t->enc_size;
+        }
+        free(t->enc_buf);
+    }
+
+    *output_written = pos;
+    return 0;
+}
+
+/* OLD serial version kept for reference */
+static int fused_pass2_serial(
     FUSED_CHANNEL_STATE ch_state[4],
     uint8_t *output_buf, size_t output_cap, size_t *output_written
 )
