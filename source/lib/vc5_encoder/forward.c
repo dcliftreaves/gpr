@@ -81,146 +81,112 @@ static void FilterVerticalTopBottom_Core_8x_C_(PIXEL *coefficients[], int column
 #define HorizontalFilter_Prescale2_4x HorizontalFilter_Prescale2_4x_NEON_
 void HorizontalFilter_Prescale2_4x_NEON_(PIXEL *input, PIXEL* lowpass, PIXEL* highpass )
 {
-    const int prescale_rounding = 3;
-    int32_t scaled[12];
+    __builtin_prefetch(input + 12, 0, 1);
 
-    for (int i = 0; i < 12; ++i)
-    {
-        scaled[i] = (input[i] + prescale_rounding) >> 2;
-    }
+    int32x4x2_t p03 = vld2q_s32(input);
+    int32x4x2_t p25 = vld2q_s32(input + 4);
 
-    int32_t sum_prev_vals[4] = {
-        scaled[0] + scaled[1],
-        scaled[2] + scaled[3],
-        scaled[4] + scaled[5],
-        scaled[6] + scaled[7]
-    };
+    const int32x4_t pr = vdupq_n_s32(3);
+    int32x4_t ev03 = vshrq_n_s32(vaddq_s32(p03.val[0], pr), 2);
+    int32x4_t od03 = vshrq_n_s32(vaddq_s32(p03.val[1], pr), 2);
+    int32x4_t ev25 = vshrq_n_s32(vaddq_s32(p25.val[0], pr), 2);
+    int32x4_t od25 = vshrq_n_s32(vaddq_s32(p25.val[1], pr), 2);
 
-    int32_t sum_next_vals[4] = {
-        scaled[4] + scaled[5],
-        scaled[6] + scaled[7],
-        scaled[8] + scaled[9],
-        scaled[10] + scaled[11]
-    };
+    int32x4_t sum_03 = vaddq_s32(ev03, od03);
+    int32x4_t diff_03 = vsubq_s32(ev03, od03);
+    int32x4_t sum_25 = vaddq_s32(ev25, od25);
+    int32x4_t diff_25 = vsubq_s32(ev25, od25);
 
-    int32_t diff_vals[4] = {
-        scaled[2] - scaled[3],
-        scaled[4] - scaled[5],
-        scaled[6] - scaled[7],
-        scaled[8] - scaled[9]
-    };
+    int32x4_t diffs = vcombine_s32(
+        vext_s32(vget_low_s32(diff_03), vget_high_s32(diff_03), 1),
+        vext_s32(vget_high_s32(diff_03), vget_high_s32(diff_25), 1)
+    );
 
-    int32x4_t sum_prev = vld1q_s32(sum_prev_vals);
-    int32x4_t sum_next = vld1q_s32(sum_next_vals);
-    int32x4_t diffs = vld1q_s32(diff_vals);
-
-    int32x4_t hp = vsubq_s32(sum_next, sum_prev);
+    int32x4_t hp = vsubq_s32(sum_25, sum_03);
     hp = vaddq_s32(hp, vdupq_n_s32(rounding));
     hp = vshrq_n_s32(hp, 3);
     hp = vaddq_s32(hp, diffs);
     vst1q_s32(highpass, hp);
 
-    int32_t low_vals[4] = {
-        (input[2] + input[3] + prescale_rounding) >> 2,
-        (input[4] + input[5] + prescale_rounding) >> 2,
-        (input[6] + input[7] + prescale_rounding) >> 2,
-        (input[8] + input[9] + prescale_rounding) >> 2
-    };
-    vst1q_s32(lowpass, vld1q_s32(low_vals));
+    int32x4_t raw_sum_03 = vaddq_s32(p03.val[0], p03.val[1]);
+    int32x4_t raw_sum_25 = vaddq_s32(p25.val[0], p25.val[1]);
+    int32x4_t raw_mid = vcombine_s32(
+        vext_s32(vget_low_s32(raw_sum_03), vget_high_s32(raw_sum_03), 1),
+        vext_s32(vget_high_s32(raw_sum_03), vget_high_s32(raw_sum_25), 1)
+    );
+    int32x4_t lp = vshrq_n_s32(vaddq_s32(raw_mid, pr), 2);
+    vst1q_s32(lowpass, lp);
 }
 
 #define HorizontalFilter_Prescale3_4x HorizontalFilter_Prescale3_4x_NEON_
 void HorizontalFilter_Prescale3_4x_NEON_(PIXEL *input, PIXEL* lowpass, PIXEL* highpass )
 {
-    const int prescale_rounding = 7;
-    int32_t scaled[12];
+    __builtin_prefetch(input + 12, 0, 1);
 
-    for (int i = 0; i < 12; ++i)
-    {
-        scaled[i] = (input[i] + prescale_rounding) >> 3;
-    }
+    int32x4x2_t p03 = vld2q_s32(input);
+    int32x4x2_t p25 = vld2q_s32(input + 4);
 
-    int32_t sum_prev_vals[4] = {
-        scaled[0] + scaled[1],
-        scaled[2] + scaled[3],
-        scaled[4] + scaled[5],
-        scaled[6] + scaled[7]
-    };
+    const int32x4_t pr = vdupq_n_s32(7);
+    int32x4_t ev03 = vshrq_n_s32(vaddq_s32(p03.val[0], pr), 3);
+    int32x4_t od03 = vshrq_n_s32(vaddq_s32(p03.val[1], pr), 3);
+    int32x4_t ev25 = vshrq_n_s32(vaddq_s32(p25.val[0], pr), 3);
+    int32x4_t od25 = vshrq_n_s32(vaddq_s32(p25.val[1], pr), 3);
 
-    int32_t sum_next_vals[4] = {
-        scaled[4] + scaled[5],
-        scaled[6] + scaled[7],
-        scaled[8] + scaled[9],
-        scaled[10] + scaled[11]
-    };
+    int32x4_t sum_03 = vaddq_s32(ev03, od03);
+    int32x4_t diff_03 = vsubq_s32(ev03, od03);
+    int32x4_t sum_25 = vaddq_s32(ev25, od25);
+    int32x4_t diff_25 = vsubq_s32(ev25, od25);
 
-    int32_t diff_vals[4] = {
-        scaled[2] - scaled[3],
-        scaled[4] - scaled[5],
-        scaled[6] - scaled[7],
-        scaled[8] - scaled[9]
-    };
+    int32x4_t diffs = vcombine_s32(
+        vext_s32(vget_low_s32(diff_03), vget_high_s32(diff_03), 1),
+        vext_s32(vget_high_s32(diff_03), vget_high_s32(diff_25), 1)
+    );
 
-    int32x4_t sum_prev = vld1q_s32(sum_prev_vals);
-    int32x4_t sum_next = vld1q_s32(sum_next_vals);
-    int32x4_t diffs = vld1q_s32(diff_vals);
-
-    int32x4_t hp = vsubq_s32(sum_next, sum_prev);
+    int32x4_t hp = vsubq_s32(sum_25, sum_03);
     hp = vaddq_s32(hp, vdupq_n_s32(rounding));
     hp = vshrq_n_s32(hp, 3);
     hp = vaddq_s32(hp, diffs);
     vst1q_s32(highpass, hp);
 
-    int32_t low_vals[4] = {
-        (input[2] + input[3] + prescale_rounding) >> 3,
-        (input[4] + input[5] + prescale_rounding) >> 3,
-        (input[6] + input[7] + prescale_rounding) >> 3,
-        (input[8] + input[9] + prescale_rounding) >> 3
-    };
-    vst1q_s32(lowpass, vld1q_s32(low_vals));
+    int32x4_t raw_sum_03 = vaddq_s32(p03.val[0], p03.val[1]);
+    int32x4_t raw_sum_25 = vaddq_s32(p25.val[0], p25.val[1]);
+    int32x4_t raw_mid = vcombine_s32(
+        vext_s32(vget_low_s32(raw_sum_03), vget_high_s32(raw_sum_03), 1),
+        vext_s32(vget_high_s32(raw_sum_03), vget_high_s32(raw_sum_25), 1)
+    );
+    int32x4_t lp = vshrq_n_s32(vaddq_s32(raw_mid, pr), 3);
+    vst1q_s32(lowpass, lp);
 }
 
 #define HorizontalFilter_Prescale0_4x HorizontalFilter_Prescale0_4x_NEON_
 void HorizontalFilter_Prescale0_4x_NEON_(PIXEL *input, PIXEL* lowpass, PIXEL* highpass )
 {
-    int32_t sum_prev_vals[4] = {
-        input[0] + input[1],
-        input[2] + input[3],
-        input[4] + input[5],
-        input[6] + input[7]
-    };
+    __builtin_prefetch(input + 12, 0, 1);
 
-    int32_t sum_next_vals[4] = {
-        input[4] + input[5],
-        input[6] + input[7],
-        input[8] + input[9],
-        input[10] + input[11]
-    };
+    int32x4x2_t p03 = vld2q_s32(input);
+    int32x4x2_t p25 = vld2q_s32(input + 4);
 
-    int32_t diff_vals[4] = {
-        input[2] - input[3],
-        input[4] - input[5],
-        input[6] - input[7],
-        input[8] - input[9]
-    };
+    int32x4_t sum_03 = vaddq_s32(p03.val[0], p03.val[1]);
+    int32x4_t sum_25 = vaddq_s32(p25.val[0], p25.val[1]);
+    int32x4_t diff_03 = vsubq_s32(p03.val[0], p03.val[1]);
+    int32x4_t diff_25 = vsubq_s32(p25.val[0], p25.val[1]);
 
-    int32x4_t sum_prev = vld1q_s32(sum_prev_vals);
-    int32x4_t sum_next = vld1q_s32(sum_next_vals);
-    int32x4_t diffs = vld1q_s32(diff_vals);
+    int32x4_t diffs = vcombine_s32(
+        vext_s32(vget_low_s32(diff_03), vget_high_s32(diff_03), 1),
+        vext_s32(vget_high_s32(diff_03), vget_high_s32(diff_25), 1)
+    );
 
-    int32x4_t hp = vsubq_s32(sum_next, sum_prev);
+    int32x4_t hp = vsubq_s32(sum_25, sum_03);
     hp = vaddq_s32(hp, vdupq_n_s32(rounding));
     hp = vshrq_n_s32(hp, 3);
     hp = vaddq_s32(hp, diffs);
     vst1q_s32(highpass, hp);
 
-    int32_t low_vals[4] = {
-        input[2] + input[3],
-        input[4] + input[5],
-        input[6] + input[7],
-        input[8] + input[9]
-    };
-    vst1q_s32(lowpass, vld1q_s32(low_vals));
+    int32x4_t lp = vcombine_s32(
+        vext_s32(vget_low_s32(sum_03), vget_high_s32(sum_03), 1),
+        vext_s32(vget_high_s32(sum_03), vget_high_s32(sum_25), 1)
+    );
+    vst1q_s32(lowpass, lp);
 }
 
 static INLINE int32x4_t QuantizeVector(int32x4_t values, int32_t midpoint, int32_t multiplier)
@@ -246,6 +212,8 @@ static INLINE int32x4_t QuantizeVector(int32x4_t values, int32_t midpoint, int32
 
 void QuantizeBand_8x_NEON_(const PIXEL* wavelet_band, int32_t midpoint, int32_t multiplier, PIXEL *output )
 {
+    __builtin_prefetch(wavelet_band + 8, 0, 1);
+    __builtin_prefetch(output + 8, 1, 1);
     int32x4_t v0 = vld1q_s32(wavelet_band);
     int32x4_t v1 = vld1q_s32(wavelet_band + 4);
     int32x4_t q0 = QuantizeVector(v0, midpoint, multiplier);
@@ -277,6 +245,12 @@ static INLINE void FilterVerticalCoreBlock(int32x4_t row0,
 
 void FilterVerticalMiddle_Core_8x_NEON_(PIXEL *coefficients[], int column, PIXEL* highpass, PIXEL* lowpass )
 {
+    __builtin_prefetch(&coefficients[0][column + 8], 0, 1);
+    __builtin_prefetch(&coefficients[1][column + 8], 0, 1);
+    __builtin_prefetch(&coefficients[2][column + 8], 0, 1);
+    __builtin_prefetch(&coefficients[3][column + 8], 0, 1);
+    __builtin_prefetch(&coefficients[4][column + 8], 0, 1);
+    __builtin_prefetch(&coefficients[5][column + 8], 0, 1);
     int32x4_t row0_lo = vld1q_s32(&coefficients[0][column]);
     int32x4_t row0_hi = vld1q_s32(&coefficients[0][column + 4]);
     int32x4_t row1_lo = vld1q_s32(&coefficients[1][column]);
@@ -294,34 +268,124 @@ void FilterVerticalMiddle_Core_8x_NEON_(PIXEL *coefficients[], int column, PIXEL
     FilterVerticalCoreBlock(row0_hi, row1_hi, row2_hi, row3_hi, row4_hi, row5_hi, highpass + 4, lowpass + 4);
 }
 
+static INLINE void FilterVerticalFusedQuant_8x_NEON_(
+    PIXEL *coefficients[], int column,
+    int32_t mid_high, int32_t mul_high, PIXEL *high_dest,
+    int32_t mid_low, int32_t mul_low, PIXEL *low_dest)
+{
+    __builtin_prefetch(&coefficients[0][column + 8], 0, 1);
+    __builtin_prefetch(&coefficients[1][column + 8], 0, 1);
+    __builtin_prefetch(&coefficients[2][column + 8], 0, 1);
+    __builtin_prefetch(&coefficients[3][column + 8], 0, 1);
+    __builtin_prefetch(&coefficients[4][column + 8], 0, 1);
+    __builtin_prefetch(&coefficients[5][column + 8], 0, 1);
+
+    int32x4_t r0lo = vld1q_s32(&coefficients[0][column]);
+    int32x4_t r0hi = vld1q_s32(&coefficients[0][column + 4]);
+    int32x4_t r1lo = vld1q_s32(&coefficients[1][column]);
+    int32x4_t r1hi = vld1q_s32(&coefficients[1][column + 4]);
+    int32x4_t r2lo = vld1q_s32(&coefficients[2][column]);
+    int32x4_t r2hi = vld1q_s32(&coefficients[2][column + 4]);
+    int32x4_t r3lo = vld1q_s32(&coefficients[3][column]);
+    int32x4_t r3hi = vld1q_s32(&coefficients[3][column + 4]);
+    int32x4_t r4lo = vld1q_s32(&coefficients[4][column]);
+    int32x4_t r4hi = vld1q_s32(&coefficients[4][column + 4]);
+    int32x4_t r5lo = vld1q_s32(&coefficients[5][column]);
+    int32x4_t r5hi = vld1q_s32(&coefficients[5][column + 4]);
+
+    int32x4_t rnd = vdupq_n_s32(rounding);
+
+    int32x4_t hlo = vsubq_s32(r5lo, r0lo);
+    hlo = vaddq_s32(hlo, vsubq_s32(r4lo, r1lo));
+    hlo = vaddq_s32(hlo, rnd);
+    hlo = vshrq_n_s32(hlo, 3);
+    hlo = vaddq_s32(hlo, vsubq_s32(r2lo, r3lo));
+
+    int32x4_t hhi = vsubq_s32(r5hi, r0hi);
+    hhi = vaddq_s32(hhi, vsubq_s32(r4hi, r1hi));
+    hhi = vaddq_s32(hhi, rnd);
+    hhi = vshrq_n_s32(hhi, 3);
+    hhi = vaddq_s32(hhi, vsubq_s32(r2hi, r3hi));
+
+    int32x4_t llo = vaddq_s32(r2lo, r3lo);
+    int32x4_t lhi = vaddq_s32(r2hi, r3hi);
+
+    vst1q_s32(high_dest,     QuantizeVector(hlo, mid_high, mul_high));
+    vst1q_s32(high_dest + 4, QuantizeVector(hhi, mid_high, mul_high));
+    vst1q_s32(low_dest,      QuantizeVector(llo, mid_low, mul_low));
+    vst1q_s32(low_dest + 4,  QuantizeVector(lhi, mid_low, mul_low));
+}
+
 #define FilterVerticalMiddle_8x FilterVerticalMiddle_8x_NEON_
 void FilterVerticalMiddle_8x_NEON_(PIXEL *lowpass[], PIXEL *highpass[], int column, int32_t* midpoints, int32_t* multipliers, PIXEL *result[])
 {
-    PIXEL LOW[8];
-    PIXEL HIGH[8];
+    FilterVerticalFusedQuant_8x_NEON_(highpass, column,
+        midpoints[HH_BAND], multipliers[HH_BAND], result[HH_BAND] + column,
+        midpoints[LH_BAND], multipliers[LH_BAND], result[LH_BAND] + column);
 
-    FilterVerticalMiddle_Core_8x_NEON_( highpass, column, HIGH, LOW);
-    QuantizeBand_8x_NEON_( LOW, midpoints[LH_BAND], multipliers[LH_BAND], result[LH_BAND] + column );
-    QuantizeBand_8x_NEON_( HIGH, midpoints[HH_BAND], multipliers[HH_BAND], result[HH_BAND] + column );
+    FilterVerticalFusedQuant_8x_NEON_(lowpass, column,
+        midpoints[HL_BAND], multipliers[HL_BAND], result[HL_BAND] + column,
+        midpoints[LL_BAND], multipliers[LL_BAND], result[LL_BAND] + column);
+}
 
-    FilterVerticalMiddle_Core_8x_NEON_( lowpass, column, HIGH, LOW);
-    QuantizeBand_8x_NEON_( LOW, midpoints[LL_BAND], multipliers[LL_BAND], result[LL_BAND] + column );
-    QuantizeBand_8x_NEON_( HIGH, midpoints[HL_BAND], multipliers[HL_BAND], result[HL_BAND] + column );
+static INLINE void FilterVerticalTopBottomFusedQuant_8x_NEON_(
+    PIXEL *coefficients[], int column, bool top,
+    int32_t mid_high, int32_t mul_high, PIXEL *high_dest,
+    int32_t mid_low, int32_t mul_low, PIXEL *low_dest)
+{
+    int32x4_t r0lo = vld1q_s32(&coefficients[0][column]);
+    int32x4_t r0hi = vld1q_s32(&coefficients[0][column + 4]);
+    int32x4_t r1lo = vld1q_s32(&coefficients[1][column]);
+    int32x4_t r1hi = vld1q_s32(&coefficients[1][column + 4]);
+    int32x4_t r2lo = vld1q_s32(&coefficients[2][column]);
+    int32x4_t r2hi = vld1q_s32(&coefficients[2][column + 4]);
+    int32x4_t r3lo = vld1q_s32(&coefficients[3][column]);
+    int32x4_t r3hi = vld1q_s32(&coefficients[3][column + 4]);
+    int32x4_t r4lo = vld1q_s32(&coefficients[4][column]);
+    int32x4_t r4hi = vld1q_s32(&coefficients[4][column + 4]);
+    int32x4_t r5lo = vld1q_s32(&coefficients[5][column]);
+    int32x4_t r5hi = vld1q_s32(&coefficients[5][column + 4]);
+
+    int32x4_t llo, lhi;
+    if (top) { llo = vaddq_s32(r0lo, r1lo); lhi = vaddq_s32(r0hi, r1hi); }
+    else     { llo = vaddq_s32(r4lo, r5lo); lhi = vaddq_s32(r4hi, r5hi); }
+
+    int32x4_t hlo, hhi;
+    int32x4_t rnd = vdupq_n_s32(rounding);
+
+    if (top) {
+        int32x4_t c0=vdupq_n_s32(5), c1=vdupq_n_s32(-11), c2=vdupq_n_s32(4), c4=vdupq_n_s32(-1);
+        hlo = vmulq_s32(c0,r0lo); hlo = vmlaq_s32(hlo,c1,r1lo); hlo = vmlaq_s32(hlo,c2,r2lo);
+        hlo = vmlaq_s32(hlo,c2,r3lo); hlo = vmlaq_s32(hlo,c4,r4lo); hlo = vmlaq_s32(hlo,c4,r5lo);
+        hhi = vmulq_s32(c0,r0hi); hhi = vmlaq_s32(hhi,c1,r1hi); hhi = vmlaq_s32(hhi,c2,r2hi);
+        hhi = vmlaq_s32(hhi,c2,r3hi); hhi = vmlaq_s32(hhi,c4,r4hi); hhi = vmlaq_s32(hhi,c4,r5hi);
+    } else {
+        int32x4_t c0=vdupq_n_s32(1), c2=vdupq_n_s32(-4), c4=vdupq_n_s32(11), c5=vdupq_n_s32(-5);
+        hlo = vmulq_s32(c0,r0lo); hlo = vmlaq_s32(hlo,c0,r1lo); hlo = vmlaq_s32(hlo,c2,r2lo);
+        hlo = vmlaq_s32(hlo,c2,r3lo); hlo = vmlaq_s32(hlo,c4,r4lo); hlo = vmlaq_s32(hlo,c5,r5lo);
+        hhi = vmulq_s32(c0,r0hi); hhi = vmlaq_s32(hhi,c0,r1hi); hhi = vmlaq_s32(hhi,c2,r2hi);
+        hhi = vmlaq_s32(hhi,c2,r3hi); hhi = vmlaq_s32(hhi,c4,r4hi); hhi = vmlaq_s32(hhi,c5,r5hi);
+    }
+
+    hlo = vshrq_n_s32(vaddq_s32(hlo, rnd), 3);
+    hhi = vshrq_n_s32(vaddq_s32(hhi, rnd), 3);
+
+    vst1q_s32(high_dest,     QuantizeVector(hlo, mid_high, mul_high));
+    vst1q_s32(high_dest + 4, QuantizeVector(hhi, mid_high, mul_high));
+    vst1q_s32(low_dest,      QuantizeVector(llo, mid_low, mul_low));
+    vst1q_s32(low_dest + 4,  QuantizeVector(lhi, mid_low, mul_low));
 }
 
 #define FilterVerticalTopBottom_8x FilterVerticalTopBottom_8x_NEON_
 void FilterVerticalTopBottom_8x_NEON_(PIXEL *lowpass[], PIXEL *highpass[], int column, int32_t* midpoints, int32_t* multipliers, PIXEL *result[], bool top )
 {
-    PIXEL LOW[8];
-    PIXEL HIGH[8];
+    FilterVerticalTopBottomFusedQuant_8x_NEON_(highpass, column, top,
+        midpoints[HH_BAND], multipliers[HH_BAND], result[HH_BAND] + column,
+        midpoints[LH_BAND], multipliers[LH_BAND], result[LH_BAND] + column);
 
-    FilterVerticalTopBottom_Core_8x_C_( highpass, column, HIGH, LOW, top );
-    QuantizeBand_8x_NEON_( LOW, midpoints[LH_BAND], multipliers[LH_BAND], result[LH_BAND] + column );
-    QuantizeBand_8x_NEON_( HIGH, midpoints[HH_BAND], multipliers[HH_BAND], result[HH_BAND] + column );
-
-    FilterVerticalTopBottom_Core_8x_C_( lowpass, column, HIGH, LOW, top );
-    QuantizeBand_8x_NEON_( LOW, midpoints[LL_BAND], multipliers[LL_BAND], result[LL_BAND] + column );
-    QuantizeBand_8x_NEON_( HIGH, midpoints[HL_BAND], multipliers[HL_BAND], result[HL_BAND] + column );
+    FilterVerticalTopBottomFusedQuant_8x_NEON_(lowpass, column, top,
+        midpoints[HL_BAND], multipliers[HL_BAND], result[HL_BAND] + column,
+        midpoints[LL_BAND], multipliers[LL_BAND], result[LL_BAND] + column);
 }
 
 
