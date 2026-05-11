@@ -752,14 +752,29 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
     }
 
     /* SoA intermediate buffers: separate runs[] and values[] arrays.
-       Single malloc with two sub-arrays for better allocator behavior.
-       Runs are uint16_t (2 bytes), values are int32_t (4 bytes).
-       Pad the runs region to 8-byte alignment for the values array. */
+       Use thread-local reusable buffer to avoid per-band malloc overhead.
+       For Z8 45MP: 36 bands × ~5MB each = 180MB of malloc/free eliminated. */
     size_t runs_bytes = ((size_t)token_count * sizeof(uint16_t) + 7) & ~(size_t)7;
     size_t values_bytes = (size_t)token_count * sizeof(int32_t);
     size_t alloc_size = runs_bytes + values_bytes;
-    uint8_t *alloc_buf = (uint8_t *)malloc(alloc_size);
-    if (!alloc_buf) return -1;
+
+    static _Thread_local uint8_t *tls_buf = NULL;
+    static _Thread_local size_t tls_size = 0;
+    uint8_t *alloc_buf;
+    int alloc_is_tls = 0;
+
+    if (alloc_size <= tls_size && tls_buf) {
+        alloc_buf = tls_buf;
+        alloc_is_tls = 1;
+    } else {
+        alloc_buf = (uint8_t *)malloc(alloc_size);
+        if (!alloc_buf) return -1;
+        /* Update TLS cache for future reuse */
+        if (tls_buf) free(tls_buf);
+        tls_buf = alloc_buf;
+        tls_size = alloc_size;
+        alloc_is_tls = 1;
+    }
 
     uint16_t *runs = (uint16_t *)alloc_buf;
     int32_t *values = (int32_t *)(alloc_buf + runs_bytes);
@@ -778,40 +793,37 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
     /* Main decode loop with ARM64 assembly kernel for state updates */
     while (t + JANS_INTERLEAVE <= token_count)
     {
-        const void *infos_raw[4];
-
-#ifdef __aarch64__
-        /* ARM64 assembly kernel: state update + renorm with no bounds check,
-           paired loads, and prefetching. */
-        rans_quad_step_arm64(states, &rptr, table.decode_info, infos_raw);
-#else
-        /* Generic C fallback */
-        const JANS_DECODE_INFO *infos_c[4];
+        const JANS_DECODE_INFO *infos[4];
         uint32_t slots[4];
+
         slots[0] = states[0] & (JANS_TABLE_SIZE - 1);
         slots[1] = states[1] & (JANS_TABLE_SIZE - 1);
         slots[2] = states[2] & (JANS_TABLE_SIZE - 1);
         slots[3] = states[3] & (JANS_TABLE_SIZE - 1);
-        infos_c[0] = &table.decode_info[slots[0]];
-        infos_c[1] = &table.decode_info[slots[1]];
-        infos_c[2] = &table.decode_info[slots[2]];
-        infos_c[3] = &table.decode_info[slots[3]];
-        states[0] = infos_c[0]->freq * (states[0] >> JANS_TABLE_BITS) + slots[0] - infos_c[0]->cum_freq;
-        states[1] = infos_c[1]->freq * (states[1] >> JANS_TABLE_BITS) + slots[1] - infos_c[1]->cum_freq;
-        states[2] = infos_c[2]->freq * (states[2] >> JANS_TABLE_BITS) + slots[2] - infos_c[2]->cum_freq;
-        states[3] = infos_c[3]->freq * (states[3] >> JANS_TABLE_BITS) + slots[3] - infos_c[3]->cum_freq;
+        infos[0] = &table.decode_info[slots[0]];
+        infos[1] = &table.decode_info[slots[1]];
+        infos[2] = &table.decode_info[slots[2]];
+        infos[3] = &table.decode_info[slots[3]];
+
+        states[0] = infos[0]->freq * (states[0] >> JANS_TABLE_BITS) + slots[0] - infos[0]->cum_freq;
+        states[1] = infos[1]->freq * (states[1] >> JANS_TABLE_BITS) + slots[1] - infos[1]->cum_freq;
+        states[2] = infos[2]->freq * (states[2] >> JANS_TABLE_BITS) + slots[2] - infos[2]->cum_freq;
+        states[3] = infos[3]->freq * (states[3] >> JANS_TABLE_BITS) + slots[3] - infos[3]->cum_freq;
+
         for (int s = 0; s < 4; s++) {
             while (states[s] < RANS_BYTE_L) {
-                if (rptr >= rans_end) { free(alloc_buf); return -1; }
+                if (rptr >= rans_end) { return -1; }
                 states[s] = (states[s] << 8) | *rptr++;
             }
         }
-        infos_raw[0] = infos_c[0]; infos_raw[1] = infos_c[1];
-        infos_raw[2] = infos_c[2]; infos_raw[3] = infos_c[3];
-#endif
+
+        __builtin_prefetch(&table.decode_info[states[0] & (JANS_TABLE_SIZE - 1)], 0, 3);
+        __builtin_prefetch(&table.decode_info[states[1] & (JANS_TABLE_SIZE - 1)], 0, 3);
+        __builtin_prefetch(&table.decode_info[states[2] & (JANS_TABLE_SIZE - 1)], 0, 3);
+        __builtin_prefetch(&table.decode_info[states[3] & (JANS_TABLE_SIZE - 1)], 0, 3);
 
         for (int s = 0; s < 4; s++) {
-            const JANS_DECODE_INFO *di = (const JANS_DECODE_INFO *)infos_raw[s];
+            const JANS_DECODE_INFO *di = infos[s];
             int idx = pair_count++;
             uint32_t all_bits = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit, di->total_bits);
             runs[idx] = (uint16_t)(di->run_min + (all_bits & ((1u << di->run_bits) - 1)));
@@ -834,7 +846,7 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
         const JANS_DECODE_INFO *di = &table.decode_info[slot];
         states[s] = di->freq * (states[s] >> JANS_TABLE_BITS) + slot - di->cum_freq;
         while (states[s] < RANS_BYTE_L) {
-            if (rptr >= rans_end) { free(alloc_buf); return -1; }
+            if (rptr >= rans_end) { return -1; }
             states[s] = (states[s] << 8) | *rptr++;
         }
 
@@ -896,7 +908,7 @@ int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
         }
     }
 
-    free(alloc_buf);
+    /* TLS buffer is reused across calls — don't free */
     return 0;
 }
 
