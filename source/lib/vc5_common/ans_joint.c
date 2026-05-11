@@ -623,7 +623,223 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
     return (int)total;
 }
 
+/* ================================================================
+   Two-pass x4 decode: separates rANS token decoding from output scatter.
+
+   Pass 1 does pure rANS + bitbuf work into a sequential buffer.
+   Pass 2 scatters to the 2D output. Separating these improves:
+   - Cache behavior in pass 1 (sequential writes, no pitch-gap skips)
+   - Enables bulk memset for zero runs in pass 2
+   - On weak ARM cores (Cortex-A53/A78), avoids the scatter-in-loop
+     pattern that causes TLB and store-buffer stalls.
+
+   SoA layout: separate runs[] and values[] arrays instead of AoS.
+   This gives tighter packing in pass 1 (writes to two streams instead
+   of scattered struct fields) and lets pass 2 read runs[] without
+   pulling in values[] cache lines for run-only tokens.
+   ================================================================ */
+
 int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
+                        int32_t *data, int width, int height, int pitch) {
+    if (in_size < 16) return -1;
+    int pitch_elems = pitch / sizeof(int32_t);
+
+    const uint8_t *p = in_buf;
+    int token_count = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
+    int freq_size   = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
+    int rans_size   = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
+    int resid_size  = (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3]; p += 4;
+
+    if (token_count < 0 || freq_size < 0 || rans_size < (int)(4*JANS_INTERLEAVE) || resid_size < 0) return -1;
+    if ((size_t)16 + (size_t)freq_size + (size_t)rans_size + (size_t)resid_size > in_size) return -1;
+    if (freq_size < JANS_NUM_SYMBOLS * 2) return -1;
+
+    const uint8_t *freq_data = p; p += freq_size;
+    JANS_TABLE table;
+    memset(&table, 0, sizeof(table));
+    for (int i = 0; i < JANS_NUM_SYMBOLS && i*2+1 < freq_size; i++)
+        table.freq[i] = ((uint16_t)freq_data[i*2] << 8) | freq_data[i*2+1];
+    normalize_freq(table.freq, JANS_NUM_SYMBOLS);
+    build_tables(&table, JANS_NUM_SYMBOLS);
+
+    const uint8_t *rans_data = p; p += rans_size;
+    const uint8_t *rans_end = rans_data + rans_size;
+    const uint8_t *resid_data = p;
+
+    /* Initialize 4 states */
+    uint32_t states[JANS_INTERLEAVE];
+    const uint8_t *rptr = rans_data;
+    for (int s = 0; s < JANS_INTERLEAVE; s++) {
+        states[s] = ((uint32_t)rptr[0]<<24) | ((uint32_t)rptr[1]<<16) |
+                    ((uint32_t)rptr[2]<<8)  | (uint32_t)rptr[3];
+        rptr += 4;
+    }
+
+    /* SoA intermediate buffers: separate runs[] and values[] arrays.
+       Single malloc with two sub-arrays for better allocator behavior.
+       Runs are uint16_t (2 bytes), values are int32_t (4 bytes).
+       Pad the runs region to 8-byte alignment for the values array. */
+    size_t runs_bytes = ((size_t)token_count * sizeof(uint16_t) + 7) & ~(size_t)7;
+    size_t values_bytes = (size_t)token_count * sizeof(int32_t);
+    size_t alloc_size = runs_bytes + values_bytes;
+    uint8_t *alloc_buf = (uint8_t *)malloc(alloc_size);
+    if (!alloc_buf) return -1;
+
+    uint16_t *runs = (uint16_t *)alloc_buf;
+    int32_t *values = (int32_t *)(alloc_buf + runs_bytes);
+
+    /* ============================================================
+       PASS 1: Decode all rANS tokens into flat SoA arrays.
+       Pure sequential memory access — no output scatter, no row/col tracking.
+       This is the hot loop and should be very cache-friendly.
+       ============================================================ */
+
+    size_t resid_byte = 0;
+    int resid_bit = 0;
+    int pair_count = 0;
+    int t = 0;
+
+    while (t + JANS_INTERLEAVE <= token_count)
+    {
+        /* Phase A: 4 table lookups (pipelined) */
+        const JANS_DECODE_INFO *infos[4];
+        uint32_t slots[4];
+
+        slots[0] = states[0] & (JANS_TABLE_SIZE - 1);
+        slots[1] = states[1] & (JANS_TABLE_SIZE - 1);
+        slots[2] = states[2] & (JANS_TABLE_SIZE - 1);
+        slots[3] = states[3] & (JANS_TABLE_SIZE - 1);
+        infos[0] = &table.decode_info[slots[0]];
+        infos[1] = &table.decode_info[slots[1]];
+        infos[2] = &table.decode_info[slots[2]];
+        infos[3] = &table.decode_info[slots[3]];
+
+        /* Phase B: 4 state updates */
+        states[0] = infos[0]->freq * (states[0] >> JANS_TABLE_BITS) + slots[0] - infos[0]->cum_freq;
+        states[1] = infos[1]->freq * (states[1] >> JANS_TABLE_BITS) + slots[1] - infos[1]->cum_freq;
+        states[2] = infos[2]->freq * (states[2] >> JANS_TABLE_BITS) + slots[2] - infos[2]->cum_freq;
+        states[3] = infos[3]->freq * (states[3] >> JANS_TABLE_BITS) + slots[3] - infos[3]->cum_freq;
+
+        /* Phase C: 4 renorms */
+        for (int s = 0; s < 4; s++) {
+            while (states[s] < RANS_BYTE_L) {
+                if (rptr >= rans_end) { free(alloc_buf); return -1; }
+                states[s] = (states[s] << 8) | *rptr++;
+            }
+        }
+
+        /* Prefetch next iteration's table entries */
+        __builtin_prefetch(&table.decode_info[states[0] & (JANS_TABLE_SIZE - 1)], 0, 3);
+        __builtin_prefetch(&table.decode_info[states[1] & (JANS_TABLE_SIZE - 1)], 0, 3);
+        __builtin_prefetch(&table.decode_info[states[2] & (JANS_TABLE_SIZE - 1)], 0, 3);
+        __builtin_prefetch(&table.decode_info[states[3] & (JANS_TABLE_SIZE - 1)], 0, 3);
+
+        /* Phase D: Extract (run, value) into SoA arrays — sequential writes only.
+           values[] uses a sentinel: 0 means run-only token (since actual zero
+           coefficients are never emitted as values — they're part of run counts). */
+        for (int s = 0; s < JANS_INTERLEAVE; s++) {
+            const JANS_DECODE_INFO *di = infos[s];
+            int idx = pair_count++;
+
+            /* Single merged bitbuf_read for ALL residual bits */
+            uint32_t all_bits = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
+                                            di->total_bits);
+
+            /* Extract run from bottom run_bits */
+            runs[idx] = (uint16_t)(di->run_min + (all_bits & ((1u << di->run_bits) - 1)));
+            all_bits >>= di->run_bits;
+
+            if (di->has_value) {
+                /* Extract magnitude from next mag_bits */
+                int mag = di->mag_min + (all_bits & ((1u << di->mag_bits) - 1));
+                all_bits >>= di->mag_bits;
+                /* Extract sign from next 1 bit */
+                values[idx] = (all_bits & 1) ? -mag : mag;
+            } else {
+                values[idx] = 0;
+            }
+        }
+        t += JANS_INTERLEAVE;
+    }
+
+    /* Handle remaining tokens (< 4) */
+    for (; t < token_count; t++) {
+        int s = t & (JANS_INTERLEAVE - 1);
+        uint32_t slot = states[s] & (JANS_TABLE_SIZE - 1);
+        const JANS_DECODE_INFO *di = &table.decode_info[slot];
+        states[s] = di->freq * (states[s] >> JANS_TABLE_BITS) + slot - di->cum_freq;
+        while (states[s] < RANS_BYTE_L) {
+            if (rptr >= rans_end) { free(alloc_buf); return -1; }
+            states[s] = (states[s] << 8) | *rptr++;
+        }
+
+        int idx = pair_count++;
+        uint32_t all_bits = bitbuf_read(resid_data, resid_size, &resid_byte, &resid_bit,
+                                        di->total_bits);
+        runs[idx] = (uint16_t)(di->run_min + (all_bits & ((1u << di->run_bits) - 1)));
+        all_bits >>= di->run_bits;
+        if (di->has_value) {
+            int mag = di->mag_min + (all_bits & ((1u << di->mag_bits) - 1));
+            all_bits >>= di->mag_bits;
+            values[idx] = (all_bits & 1) ? -mag : mag;
+        } else {
+            values[idx] = 0;
+        }
+    }
+
+    /* ============================================================
+       PASS 2: Scatter (run, value) pairs to the output buffer.
+       Uses bulk memset for zero runs and direct writes for values.
+
+       Strategy: clear the output once upfront, then just write nonzero
+       values. Run lengths just advance the position pointer — the zeros
+       are already there from the memset.
+       ============================================================ */
+
+    if (pitch_elems == width) {
+        /* Fast path: output is contiguous 1D — no pitch gaps.
+           Single memset, then scatter nonzero values only. */
+        size_t total_pixels = (size_t)width * (size_t)height;
+        memset(data, 0, total_pixels * sizeof(int32_t));
+
+        int pos = 0;
+        for (int i = 0; i < pair_count; i++) {
+            pos += runs[i];
+            if (values[i] != 0 && pos < (int)total_pixels) {
+                data[pos] = values[i];
+                pos++;
+            }
+        }
+    } else {
+        /* General path: 2D output with pitch gaps.
+           Clear each row individually, then scatter values. */
+        for (int row = 0; row < height; row++)
+            memset(data + row * pitch_elems, 0, width * sizeof(int32_t));
+
+        int row = 0, col = 0;
+        for (int i = 0; i < pair_count && row < height; i++) {
+            /* Advance by run length */
+            col += runs[i];
+            while (col >= width && row < height) { col -= width; row++; }
+
+            if (values[i] != 0 && row < height) {
+                if (col < width)
+                    data[row * pitch_elems + col] = values[i];
+                col++;
+                if (col >= width) { row++; col = 0; }
+            }
+        }
+    }
+
+    free(alloc_buf);
+    return 0;
+}
+
+/* ================================================================
+   Original single-pass x4 decode (kept for A/B benchmarking)
+   ================================================================ */
+
+int jans_decode_band_x4_onepass(const uint8_t *in_buf, size_t in_size,
                         int32_t *data, int width, int height, int pitch) {
     if (in_size < 16) return -1;
     int pitch_elems = pitch / sizeof(int32_t);

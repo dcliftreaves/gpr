@@ -108,6 +108,13 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
 int jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
                         int32_t *data, int width, int height, int pitch);
 
+/*!
+    @brief Original single-pass decode (kept for A/B benchmarking).
+    @return 0 on success, -1 on error.
+*/
+int jans_decode_band_x4_onepass(const uint8_t *in_buf, size_t in_size,
+                                int32_t *data, int width, int height, int pitch);
+
 #ifdef __cplusplus
 }
 #endif
