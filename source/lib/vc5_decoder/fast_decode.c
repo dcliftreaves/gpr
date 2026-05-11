@@ -612,6 +612,94 @@ static void *fast_pack_thread(void *arg)
 }
 
 /* ================================================================
+   Fused pack helper: color convert + log curve + Bayer store (NEON)
+   ================================================================ */
+
+static void fused_pack_row(uint16_t *out_r1, uint16_t *out_r2,
+                           const PIXEL *gs_row, const PIXEL *rg_row,
+                           const PIXEL *bg_row, const PIXEL *gd_row,
+                           int width, int log_max, int32_t midpoint,
+                           int shift, int bypass, int rggb_order,
+                           int log_bits, uint16_t *log_table)
+{
+    int col = 0;
+#if ENABLED(NEON)
+    {
+        const int32x4_t v_zero = vdupq_n_s32(0);
+        const int32x4_t v_max = vdupq_n_s32(log_max);
+        const int32x4_t v_mid = vdupq_n_s32(midpoint);
+        const int width_m4 = (width / 4) * 4;
+        for (; col < width_m4; col += 4) {
+            int32x4_t vgs = vmaxq_s32(vminq_s32(vld1q_s32(&gs_row[col]), v_max), v_zero);
+            int32x4_t vrg = vsubq_s32(vmaxq_s32(vminq_s32(vld1q_s32(&rg_row[col]), v_max), v_zero), v_mid);
+            int32x4_t vbg = vsubq_s32(vmaxq_s32(vminq_s32(vld1q_s32(&bg_row[col]), v_max), v_zero), v_mid);
+            int32x4_t vgd = vsubq_s32(vmaxq_s32(vminq_s32(vld1q_s32(&gd_row[col]), v_max), v_zero), v_mid);
+            int32x4_t r  = vmaxq_s32(vminq_s32(vaddq_s32(vshlq_n_s32(vrg, 1), vgs), v_max), v_zero);
+            int32x4_t b  = vmaxq_s32(vminq_s32(vaddq_s32(vshlq_n_s32(vbg, 1), vgs), v_max), v_zero);
+            int32x4_t g1 = vmaxq_s32(vminq_s32(vaddq_s32(vgs, vgd), v_max), v_zero);
+            int32x4_t g2 = vmaxq_s32(vminq_s32(vsubq_s32(vgs, vgd), v_max), v_zero);
+            int32_t ra[4], g1a[4], g2a[4], ba[4];
+            if (!bypass && log_bits == 16) {
+                int32x4_t ns = vdupq_n_s32(-shift);
+                vst1q_s32(ra,  vshlq_s32(log_curve_neon_poly16(r), ns));
+                vst1q_s32(g1a, vshlq_s32(log_curve_neon_poly16(g1), ns));
+                vst1q_s32(g2a, vshlq_s32(log_curve_neon_poly16(g2), ns));
+                vst1q_s32(ba,  vshlq_s32(log_curve_neon_poly16(b), ns));
+            } else if (!bypass && log_bits == 14) {
+                int32x4_t ns = vdupq_n_s32(-shift);
+                vst1q_s32(ra,  vshlq_s32(log_curve_neon_pwl(r, log_approx_14, 256), ns));
+                vst1q_s32(g1a, vshlq_s32(log_curve_neon_pwl(g1, log_approx_14, 256), ns));
+                vst1q_s32(g2a, vshlq_s32(log_curve_neon_pwl(g2, log_approx_14, 256), ns));
+                vst1q_s32(ba,  vshlq_s32(log_curve_neon_pwl(b, log_approx_14, 256), ns));
+            } else if (!bypass) {
+                vst1q_s32(ra, r); vst1q_s32(g1a, g1); vst1q_s32(g2a, g2); vst1q_s32(ba, b);
+                for (int k = 0; k < 4; k++) {
+                    ra[k] = log_table[ra[k]] >> shift;
+                    g1a[k] = log_table[g1a[k]] >> shift;
+                    g2a[k] = log_table[g2a[k]] >> shift;
+                    ba[k] = log_table[ba[k]] >> shift;
+                }
+            } else {
+                vst1q_s32(ra, r); vst1q_s32(g1a, g1); vst1q_s32(g2a, g2); vst1q_s32(ba, b);
+            }
+            for (int k = 0; k < 4; k++) {
+                int c = col + k;
+                if (rggb_order) {
+                    out_r1[2*c] = (uint16_t)ra[k]; out_r1[2*c+1] = (uint16_t)g1a[k];
+                    out_r2[2*c] = (uint16_t)g2a[k]; out_r2[2*c+1] = (uint16_t)ba[k];
+                } else {
+                    out_r1[2*c] = (uint16_t)g1a[k]; out_r1[2*c+1] = (uint16_t)ba[k];
+                    out_r2[2*c] = (uint16_t)ra[k]; out_r2[2*c+1] = (uint16_t)g2a[k];
+                }
+            }
+        }
+    }
+#endif
+    for (; col < width; col++) {
+        int32_t GS = gs_row[col], RG = rg_row[col], BG = bg_row[col], GD = gd_row[col];
+        if (GS < 0) GS = 0; else if (GS > log_max) GS = log_max;
+        if (RG < 0) RG = 0; else if (RG > log_max) RG = log_max;
+        if (BG < 0) BG = 0; else if (BG > log_max) BG = log_max;
+        if (GD < 0) GD = 0; else if (GD > log_max) GD = log_max;
+        RG -= midpoint; BG -= midpoint; GD -= midpoint;
+        int32_t R = (RG << 1) + GS, B = (BG << 1) + GS;
+        int32_t G1 = GS + GD, G2 = GS - GD;
+        if (R < 0) R = 0; else if (R > log_max) R = log_max;
+        if (G1 < 0) G1 = 0; else if (G1 > log_max) G1 = log_max;
+        if (G2 < 0) G2 = 0; else if (G2 > log_max) G2 = log_max;
+        if (B < 0) B = 0; else if (B > log_max) B = log_max;
+        if (!bypass) { R = log_table[R]>>shift; G1 = log_table[G1]>>shift; G2 = log_table[G2]>>shift; B = log_table[B]>>shift; }
+        if (rggb_order) {
+            out_r1[2*col] = (uint16_t)R; out_r1[2*col+1] = (uint16_t)G1;
+            out_r2[2*col] = (uint16_t)G2; out_r2[2*col+1] = (uint16_t)B;
+        } else {
+            out_r1[2*col] = (uint16_t)G1; out_r1[2*col+1] = (uint16_t)B;
+            out_r2[2*col] = (uint16_t)R; out_r2[2*col+1] = (uint16_t)G2;
+        }
+    }
+}
+
+/* ================================================================
    Fused wavelet level-0 reconstruct + color convert + pack
    ================================================================ */
 
@@ -850,52 +938,16 @@ static CODEC_ERROR ReconstructAndPackDirect(
     } \
 } while(0)
 
-    /* Helper: color convert + log curve + pack two output rows from 4 channels' even_row/odd_row.
-       out_row is the Bayer output row index (0-based, counting channel-output rows). */
+    /* Helper: color convert + log curve + pack two output rows from 4 channels */
 #define PACK_ROWS(out_row) do { \
-    uint8_t *out_base = (uint8_t *)packed_image->buffer + (out_row) * bayer_pitch; \
-    uint16_t *out_r1 = (uint16_t *)out_base; \
-    uint16_t *out_r2 = (uint16_t *)(out_base + bayer_half_pitch); \
-    PIXEL *gs_even = cs[0].even_row, *gs_odd = cs[0].odd_row; \
-    PIXEL *rg_even = cs[1].even_row, *rg_odd = cs[1].odd_row; \
-    PIXEL *bg_even = cs[2].even_row, *bg_odd = cs[2].odd_row; \
-    PIXEL *gd_even = cs[3].even_row, *gd_odd = cs[3].odd_row; \
-    /* Pack even row (Bayer row 1) and odd row (Bayer row 2) */ \
-    /* Each channel row has output_width pixels. The Bayer has output_width*2 pixels per row. */ \
-    /* For each col in [0, output_width), produce 2 Bayer pixels on each of 2 rows. */ \
-    int col = 0; \
-    PACK_ROWS_INNER(out_r1, out_r2, gs_even, rg_even, bg_even, gd_even, col); \
-    out_base = (uint8_t *)packed_image->buffer + ((out_row) + 1) * bayer_pitch; \
-    out_r1 = (uint16_t *)out_base; \
-    out_r2 = (uint16_t *)(out_base + bayer_half_pitch); \
-    col = 0; \
-    PACK_ROWS_INNER(out_r1, out_r2, gs_odd, rg_odd, bg_odd, gd_odd, col); \
-} while(0)
-
-    /* Inner pack: process one component-row → two Bayer rows */
-#define PACK_ROWS_INNER(out_r1, out_r2, gs_row, rg_row, bg_row, gd_row, col) do { \
-    int width_half = (int)output_width; \
-    for (col = 0; col < width_half; col++) { \
-        int32_t GS = gs_row[col], RG = rg_row[col], BG = bg_row[col], GD = gd_row[col]; \
-        if (GS < 0) GS = 0; else if (GS > log_max) GS = log_max; \
-        if (RG < 0) RG = 0; else if (RG > log_max) RG = log_max; \
-        if (BG < 0) BG = 0; else if (BG > log_max) BG = log_max; \
-        if (GD < 0) GD = 0; else if (GD > log_max) GD = log_max; \
-        RG -= midpoint; BG -= midpoint; GD -= midpoint; \
-        int32_t R = (RG << 1) + GS, B = (BG << 1) + GS; \
-        int32_t G1 = GS + GD, G2 = GS - GD; \
-        if (R < 0) R = 0; else if (R > log_max) R = log_max; \
-        if (G1 < 0) G1 = 0; else if (G1 > log_max) G1 = log_max; \
-        if (G2 < 0) G2 = 0; else if (G2 > log_max) G2 = log_max; \
-        if (B < 0) B = 0; else if (B > log_max) B = log_max; \
-        if (!bypass) { R = log_table[R]>>shift; G1 = log_table[G1]>>shift; G2 = log_table[G2]>>shift; B = log_table[B]>>shift; } \
-        if (rggb_order) { \
-            out_r1[2*col] = (uint16_t)R; out_r1[2*col+1] = (uint16_t)G1; \
-            out_r2[2*col] = (uint16_t)G2; out_r2[2*col+1] = (uint16_t)B; \
-        } else { \
-            out_r1[2*col] = (uint16_t)G1; out_r1[2*col+1] = (uint16_t)B; \
-            out_r2[2*col] = (uint16_t)R; out_r2[2*col+1] = (uint16_t)G2; \
-        } \
+    for (int _sub = 0; _sub < 2; _sub++) { \
+        uint8_t *_ob = (uint8_t *)packed_image->buffer + ((out_row) + _sub) * bayer_pitch; \
+        fused_pack_row((uint16_t *)_ob, (uint16_t *)(_ob + bayer_half_pitch), \
+            (_sub == 0) ? cs[0].even_row : cs[0].odd_row, \
+            (_sub == 0) ? cs[1].even_row : cs[1].odd_row, \
+            (_sub == 0) ? cs[2].even_row : cs[2].odd_row, \
+            (_sub == 0) ? cs[3].even_row : cs[3].odd_row, \
+            (int)output_width, log_max, midpoint, shift, bypass, rggb_order, log_bits, log_table); \
     } \
 } while(0)
 
@@ -946,23 +998,19 @@ static CODEC_ERROR ReconstructAndPackDirect(
     }
     for (int ch = 0; ch < 4; ch++) { VERT_BOT(ch); HORIZ(ch); }
 
-    /* Pack even row, and only pack odd row if it fits */
+    /* Pack even row */
     {
-        /* Even row */
         uint8_t *out_base = (uint8_t *)packed_image->buffer + out_bayer_row * bayer_pitch;
-        uint16_t *out_r1 = (uint16_t *)out_base;
-        uint16_t *out_r2 = (uint16_t *)(out_base + bayer_half_pitch);
-        int col = 0;
-        PACK_ROWS_INNER(out_r1, out_r2, cs[0].even_row, cs[1].even_row, cs[2].even_row, cs[3].even_row, col);
-
-        /* Odd row (if it fits) */
-        if (2 * last_row + 1 < (int)output_height_ch) {
-            out_base = (uint8_t *)packed_image->buffer + (out_bayer_row + 1) * bayer_pitch;
-            out_r1 = (uint16_t *)out_base;
-            out_r2 = (uint16_t *)(out_base + bayer_half_pitch);
-            col = 0;
-            PACK_ROWS_INNER(out_r1, out_r2, cs[0].odd_row, cs[1].odd_row, cs[2].odd_row, cs[3].odd_row, col);
-        }
+        fused_pack_row((uint16_t *)out_base, (uint16_t *)(out_base + bayer_half_pitch),
+                       cs[0].even_row, cs[1].even_row, cs[2].even_row, cs[3].even_row,
+                       (int)output_width, log_max, midpoint, shift, bypass, rggb_order, log_bits, log_table);
+    }
+    /* Pack odd row if it fits */
+    if (2 * last_row + 1 < (int)output_height_ch) {
+        uint8_t *out_base = (uint8_t *)packed_image->buffer + (out_bayer_row + 1) * bayer_pitch;
+        fused_pack_row((uint16_t *)out_base, (uint16_t *)(out_base + bayer_half_pitch),
+                       cs[0].odd_row, cs[1].odd_row, cs[2].odd_row, cs[3].odd_row,
+                       (int)output_width, log_max, midpoint, shift, bypass, rggb_order, log_bits, log_table);
     }
 
 #undef VERT_TOP
@@ -970,7 +1018,6 @@ static CODEC_ERROR ReconstructAndPackDirect(
 #undef VERT_BOT
 #undef HORIZ
 #undef PACK_ROWS
-#undef PACK_ROWS_INNER
 
     allocator->Free(arena);
     return CODEC_ERROR_OKAY;
