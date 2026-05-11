@@ -110,43 +110,74 @@ static void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpas
    Vertical filter + quantize (simplified from forward.c)
    ================================================================ */
 
+#if ENABLED(NEON)
+static inline int32x4_t quantize_neon4(int32x4_t values, int32_t midpoint, int32_t multiplier) {
+    int32x4_t abs_v = vabsq_s32(values);
+    abs_v = vaddq_s32(abs_v, vdupq_n_s32(midpoint));
+    /* 32×32→64 multiply, take high 32 bits (>> 16) */
+    int32x2_t mul_v = vdup_n_s32(multiplier);
+    int64x2_t plo = vmull_s32(vget_low_s32(abs_v), mul_v);
+    int64x2_t phi = vmull_s32(vget_high_s32(abs_v), mul_v);
+    int32x4_t scaled = vcombine_s32(vmovn_s64(vshrq_n_s64(plo, 16)),
+                                     vmovn_s64(vshrq_n_s64(phi, 16)));
+    uint32x4_t neg = vcltq_s32(values, vdupq_n_s32(0));
+    return vbslq_s32(neg, vnegq_s32(scaled), scaled);
+}
+#endif
+
 static void vertical_filter_quantize_row(
-    PIXEL *rows[6],    /* 6-row circular buffer */
+    PIXEL *rows[6],
     int width,
-    int32_t mid_ll, int32_t mul_ll,
-    int32_t mid_lh, int32_t mul_lh,
-    int32_t mid_hl, int32_t mul_hl,
-    int32_t mid_hh, int32_t mul_hh,
-    PIXEL *out_ll, PIXEL *out_lh, PIXEL *out_hl, PIXEL *out_hh,
+    int32_t mid_lo, int32_t mul_lo,
+    int32_t mid_hi, int32_t mul_hi,
+    int32_t mid_unused1, int32_t mul_unused1,
+    int32_t mid_unused2, int32_t mul_unused2,
+    PIXEL *out_lo, PIXEL *out_hi, PIXEL *unused1, PIXEL *unused2,
     int is_top, int is_bottom)
 {
-    for (int col = 0; col < width; col++) {
+    (void)mid_unused1; (void)mul_unused1; (void)mid_unused2; (void)mul_unused2;
+    (void)unused1; (void)unused2;
+
+    int col = 0;
+
+#if ENABLED(NEON)
+    if (!is_top && !is_bottom) {
+        /* NEON middle row: 4-wide vertical filter + quantize */
+        const int32x4_t four = vdupq_n_s32(4);
+        const int width_m4 = (width / 4) * 4;
+
+        for (; col < width_m4; col += 4) {
+            int32x4_t r0 = vld1q_s32(&rows[0][col]);
+            int32x4_t r1 = vld1q_s32(&rows[1][col]);
+            int32x4_t r2 = vld1q_s32(&rows[2][col]);
+            int32x4_t r3 = vld1q_s32(&rows[3][col]);
+            int32x4_t r4 = vld1q_s32(&rows[4][col]);
+            int32x4_t r5 = vld1q_s32(&rows[5][col]);
+
+            /* low = r2 + r3 */
+            int32x4_t low = vaddq_s32(r2, r3);
+            /* high = ((r4+r5-r0-r1+4)>>3) + (r2-r3) */
+            int32x4_t high = vsubq_s32(vaddq_s32(r4, r5), vaddq_s32(r0, r1));
+            high = vshrq_n_s32(vaddq_s32(high, four), 3);
+            high = vaddq_s32(high, vsubq_s32(r2, r3));
+
+            vst1q_s32(&out_lo[col], quantize_neon4(low, mid_lo, mul_lo));
+            vst1q_s32(&out_hi[col], quantize_neon4(high, mid_hi, mul_hi));
+        }
+    }
+#endif
+
+    /* Scalar fallback (boundaries + cleanup) */
+    for (; col < width; col++) {
         int32_t r0 = rows[0][col], r1 = rows[1][col], r2 = rows[2][col];
         int32_t r3 = rows[3][col], r4 = rows[4][col], r5 = rows[5][col];
-
         int32_t low, high;
-
-        if (is_top) {
-            /* Top boundary filter */
-            low = r0 + r1;
-            high = ((r4 + r5 - r0 - r1 + 4) >> 3) + (r2 - r3);
-        } else if (is_bottom) {
-            /* Bottom boundary filter */
-            low = r4 + r5;
-            high = ((r4 + r5 - r0 - r1 + 4) >> 3) + (r2 - r3);
-        } else {
-            /* Middle rows */
-            low = r2 + r3;
-            high = ((r4 + r5 - r0 - r1 + 4) >> 3) + (r2 - r3);
-        }
-
-        /* Separate into lowpass/highpass pairs for LL/LH and HL/HH */
-        /* The 6-row buffer alternates lowpass and highpass horizontal outputs */
-        /* rows[0,2,4] = lowpass horizontal, rows[1,3,5] = highpass horizontal */
-        /* But for simplicity, process the lowpass and highpass sets separately */
-
-        out_ll[col] = quantize_scalar(low, mid_ll, mul_ll);
-        out_lh[col] = quantize_scalar(high, mid_lh, mul_lh);
+        if (is_top) { low = r0 + r1; }
+        else if (is_bottom) { low = r4 + r5; }
+        else { low = r2 + r3; }
+        high = ((r4 + r5 - r0 - r1 + 4) >> 3) + (r2 - r3);
+        out_lo[col] = quantize_scalar(low, mid_lo, mul_lo);
+        out_hi[col] = quantize_scalar(high, mid_hi, mul_hi);
     }
 }
 
