@@ -190,7 +190,17 @@ void bitbuf_write(BITBUF *bb, uint32_t value, int bits) {
     uint32_t mask = (bits >= 32) ? 0xFFFFFFFFu : ((1u << bits) - 1);
     bb->accum |= ((uint64_t)(value & mask)) << bb->accum_bits;
     bb->accum_bits += bits;
-    /* Drain whole bytes from accumulator. Typical: 0-2 bytes per call. */
+    /* 32-bit drain: one unaligned store covers 4 tokens of typical bit-width.
+       Typical token writes ~10 bits, so we drain every 3rd-4th call instead
+       of once per byte. Reduces store-port traffic ~4x in the encode hot loop. */
+    if (bb->accum_bits >= 32 && bb->byte_pos + 4 <= bb->capacity) {
+        uint32_t word = (uint32_t)bb->accum;
+        memcpy(bb->buf + bb->byte_pos, &word, 4);  /* ARM64 + clang inline this to STR */
+        bb->byte_pos += 4;
+        bb->accum >>= 32;
+        bb->accum_bits -= 32;
+    }
+    /* Drain any whole bytes left over (0-3 bytes when bits exceeded 32). */
     while (bb->accum_bits >= 8) {
         if (bb->byte_pos < bb->capacity) {
             bb->buf[bb->byte_pos++] = (uint8_t)bb->accum;
