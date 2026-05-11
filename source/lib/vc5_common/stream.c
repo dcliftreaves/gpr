@@ -266,12 +266,37 @@ CODEC_ERROR RewindStream(STREAM *stream)
 
 /*!
 	@brief Skip the specified number of bytes in the stream
+
+	For memory streams, this advances the byte counter directly in O(1)
+	instead of reading each byte individually.  For file streams, we use
+	fseek to skip efficiently.
 */
 CODEC_ERROR SkipBytes(STREAM *stream, size_t size)
 {
-	for (; size > 0; size--)
+	if (size == 0) return CODEC_ERROR_OKAY;
+
+	switch (stream->type)
 	{
-		(void)GetByte(stream);
+	case STREAM_TYPE_MEMORY:
+		// O(1) skip: just advance the byte counter
+		assert(stream->byte_count + size <= stream->location.memory.size);
+		stream->byte_count += size;
+		break;
+
+	case STREAM_TYPE_FILE:
+		// Use fseek instead of reading byte-by-byte
+		if (fseek(stream->location.file.iobuf, (long)size, SEEK_CUR) != 0) {
+			return CODEC_ERROR_FILE_SEEK;
+		}
+		stream->byte_count += size;
+		break;
+
+	default:
+		// Fallback: read byte-by-byte (should not happen)
+		for (; size > 0; size--) {
+			(void)GetByte(stream);
+		}
+		break;
 	}
 	return CODEC_ERROR_OKAY;
 }
