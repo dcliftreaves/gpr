@@ -1460,7 +1460,10 @@ static void *AnsPreEncodeThread(void *arg)
 	TRANSFORM *transform = &encoder->transform[ch];
 	int wavelet_count = encoder->wavelet_count;
 	int last_wavelet_index = wavelet_count - 1;
-	int ans_mode = (encoder->internal_precision <= 14) ? 3 : 4;
+	/* Mode 4 (raw + interleaved) for all bit depths: fastest encode AND decode.
+	   Mode 3 (companded + interleaved) gives ~5-10% smaller files but requires
+	   UncompandedValue LUT during decode (29% of wavelet recon time). */
+	int ans_mode = 4;
 
 	for (int wl = last_wavelet_index; wl >= 0; wl--)
 	{
@@ -2748,7 +2751,7 @@ CODEC_ERROR EncodeHighpassBand(ENCODER *encoder, WAVELET *wavelet, int band, int
 	   we fall through to VLC. The coding method tag is written per-band. */
 	int ans_mode = 0;
 	if (encoder->ans_enabled)
-		ans_mode = (encoder->internal_precision <= 14) ? 3 : 4;
+		ans_mode = 4;  /* Always use raw + interleaved for fastest decode */
 
 	/* Check for pre-encoded ANS data from parallel Phase 1.8 */
 	uint8_t *preenc_data = NULL;
