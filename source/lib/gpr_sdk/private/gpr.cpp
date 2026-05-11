@@ -1789,6 +1789,42 @@ bool gpr_parse_metadata(const gpr_allocator*        allocator,
     return true;
 }
 
+// Pixel-domain noise removal: quantize each pixel to the noise floor.
+// The compressor then sees a clean signal with minimal entropy.
+// Noise is restored on decode via noise_restore() with the same seed.
+// REQUIRES calibrated noise model (DNG NoiseProfile) — auto-estimation
+// from pixel differences conflates texture with noise and destroys signal.
+static void apply_noise_replace(const gpr_parameters* parameters, void* raw_buffer_ptr)
+{
+    if (!parameters->tuning_info.noise_replace ||
+        parameters->tuning_info.noise_scale <= 0)
+        return;
+
+    // DNG NoiseProfile is in normalized [0,1] units.
+    // Convert to raw pixel units: variance_raw = scale * raw * max + offset * max^2
+    double max_val = (double)parameters->tuning_info.dgain_saturation_level.level_red;
+    if (max_val <= 0) max_val = 16383.0;
+    double nr_scale = parameters->tuning_info.noise_scale * max_val;
+    double nr_offset = parameters->tuning_info.noise_offset * max_val * max_val;
+
+    if (nr_scale <= 0) return;
+
+    // ENCODER: remove noise only (no PRNG addition).
+    // The clean quantized signal compresses much better.
+    noise_remove((uint16_t*)raw_buffer_ptr,
+                 parameters->input_width, parameters->input_height,
+                 nr_scale, nr_offset);
+
+    // Generate a deterministic seed from the raw data for noise restoration
+    uint32_t seed = 0x55AA1234;
+    const uint16_t *raw16 = (const uint16_t*)raw_buffer_ptr;
+    for (int i = 0; i < 64 && i < parameters->input_width; i++)
+        seed ^= (uint32_t)raw16[i] * 2654435761u;
+
+    // Store seed so the decoder can restore noise.
+    const_cast<gpr_parameters*>(parameters)->tuning_info.noise_seed = seed;
+}
+
 bool gpr_convert_raw_to_dng(const gpr_allocator*    allocator,
                             const gpr_parameters*   parameters,
                                   gpr_buffer*       inp_raw_buffer,
@@ -1939,40 +1975,7 @@ bool gpr_convert_raw_to_gpr(const gpr_allocator*    allocator,
                      parameters->input_width, parameters->input_height);
     }
 
-    // Pixel-domain noise removal: quantize each pixel to the noise floor.
-    // The compressor then sees a clean signal with minimal entropy.
-    // Noise is restored on decode via noise_restore() with the same seed.
-    // REQUIRES calibrated noise model (DNG NoiseProfile) — auto-estimation
-    // from pixel differences conflates texture with noise and destroys signal.
-    if (parameters->tuning_info.noise_replace &&
-        parameters->tuning_info.noise_scale > 0)
-    {
-        // DNG NoiseProfile is in normalized [0,1] units.
-        // Convert to raw pixel units: variance_raw = scale * raw * max + offset * max^2
-        double max_val = (double)parameters->tuning_info.dgain_saturation_level.level_red;
-        if (max_val <= 0) max_val = 16383.0;
-        double nr_scale = parameters->tuning_info.noise_scale * max_val;
-        double nr_offset = parameters->tuning_info.noise_offset * max_val * max_val;
-
-        if (nr_scale > 0)
-        {
-            // ENCODER: remove noise only (no PRNG addition).
-            // The clean quantized signal compresses much better.
-            noise_remove((uint16_t*)raw_buffer.get_buffer(),
-                         parameters->input_width, parameters->input_height,
-                         nr_scale, nr_offset);
-
-            // Generate a deterministic seed from the raw data for noise restoration
-            uint32_t seed = 0x55AA1234;
-            const uint16_t *raw16 = (const uint16_t*)raw_buffer.get_buffer();
-            for (int i = 0; i < 64 && i < parameters->input_width; i++)
-                seed ^= (uint32_t)raw16[i] * 2654435761u;
-
-            // Store seed so the decoder can restore noise.
-            // Keep noise_scale/offset in DNG-normalized form (already stored from metadata).
-            const_cast<gpr_parameters*>(parameters)->tuning_info.noise_seed = seed;
-        }
-    }
+    apply_noise_replace(parameters, raw_buffer.get_buffer());
 
     dng_memory_stream out_gpr_stream( gDefaultDNGMemoryAllocator );
 
@@ -2007,6 +2010,8 @@ bool gpr_convert_dng_to_gpr(const gpr_allocator*    allocator,
         gpr_parameters_destroy( &params_with_meta, allocator->Free );
         assert(0); return false;
     }
+
+    apply_noise_replace(&params_with_meta, raw_buffer.get_buffer());
 
     dng_memory_stream out_gpr_stream( gDefaultDNGMemoryAllocator );
 
