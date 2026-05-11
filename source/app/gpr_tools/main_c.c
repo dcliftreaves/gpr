@@ -19,6 +19,10 @@
 #include <stdio.h>
 #ifndef _WIN32
 #include <strings.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 #include <string.h>
 #include <stdbool.h>
@@ -148,10 +152,34 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
 
     gpr_buffer input_buffer  = { NULL, 0 };
-    
-    if( read_from_file( &input_buffer, input_file_path, allocator.Alloc, allocator.Free ) != 0 )
+    int input_mmap_fd = -1;
+
+#ifndef _WIN32
+    /* Fast input: mmap the file for zero-copy access */
     {
-        return -1;
+        struct stat st;
+        input_mmap_fd = open(input_file_path, O_RDONLY);
+        if (input_mmap_fd >= 0 && fstat(input_mmap_fd, &st) == 0 && st.st_size > 0) {
+            void *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, input_mmap_fd, 0);
+            if (map != MAP_FAILED) {
+                input_buffer.buffer = map;
+                input_buffer.size = st.st_size;
+            } else {
+                close(input_mmap_fd);
+                input_mmap_fd = -1;
+            }
+        } else {
+            if (input_mmap_fd >= 0) close(input_mmap_fd);
+            input_mmap_fd = -1;
+        }
+    }
+    if (input_mmap_fd < 0)
+#endif
+    {
+        if( read_from_file( &input_buffer, input_file_path, allocator.Alloc, allocator.Free ) != 0 )
+        {
+            return -1;
+        }
     }
   
     if( metadata_file_path && strcmp(metadata_file_path, "") )
@@ -161,7 +189,11 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( input_file_type == FILE_TYPE_GPR || input_file_type == FILE_TYPE_DNG )
     {
-        gpr_parse_metadata( &allocator, &input_buffer, &params );
+        /* Skip expensive DNG metadata parsing for GPR→RAW fast path
+           (gpr_parse_metadata calls into DNG SDK, ~40ms overhead).
+           Only parse when we actually need the metadata. */
+        if (output_file_type != FILE_TYPE_RAW)
+            gpr_parse_metadata( &allocator, &input_buffer, &params );
     }
     else
     {
@@ -409,6 +441,13 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     
     gpr_parameters_destroy(&params, allocator.Free);
-    
+
+#ifndef _WIN32
+    if (input_mmap_fd >= 0) {
+        munmap(input_buffer.buffer, input_buffer.size);
+        close(input_mmap_fd);
+    }
+#endif
+
     return 0;
 }
