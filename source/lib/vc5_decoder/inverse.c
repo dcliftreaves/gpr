@@ -211,8 +211,8 @@ static INLINE void InvertVerticalMiddle4Descale_NEON(
 /*!
  @brief Apply the inverse horizontal wavelet transform
  */
-STATIC CODEC_ERROR InvertHorizontal16s(PIXEL *lowpass, PIXEL *highpass, PIXEL *output,
-                                       DIMENSION input_width, DIMENSION output_width)
+CODEC_ERROR InvertHorizontal16s(PIXEL *lowpass, PIXEL *highpass, PIXEL *output,
+                                DIMENSION input_width, DIMENSION output_width)
 {
     const int last_column = input_width - 1;
     int32_t even;
@@ -302,9 +302,9 @@ STATIC CODEC_ERROR InvertHorizontal16s(PIXEL *lowpass, PIXEL *highpass, PIXEL *o
 /*!
  @brief Apply the inverse horizontal wavelet transform with descaling
  */
-STATIC CODEC_ERROR InvertHorizontalDescale16s(PIXEL *lowpass, PIXEL *highpass, PIXEL *output,
-                                              DIMENSION input_width, DIMENSION output_width,
-                                              int descale)
+CODEC_ERROR InvertHorizontalDescale16s(PIXEL *lowpass, PIXEL *highpass, PIXEL *output,
+                                       DIMENSION input_width, DIMENSION output_width,
+                                       int descale)
 {
     const int last_column = input_width - 1;
     int column = 0;
