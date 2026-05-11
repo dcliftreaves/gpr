@@ -211,7 +211,16 @@ Total joint symbols: `JANS_NUM_SYMBOLS = JANS_RUN_CLASSES × JANS_MAG_CLASSES = 
 
 #### Blob Format (Mode 2)
 
-The band codeblock for mode 2 contains a single self-describing blob:
+A mode-2 band codeblock is either a **single-blob** (legacy) or a **stripe-mode** variant. The first 4 bytes of the codeblock distinguish them:
+
+```
+single-blob:   [token_count: 32 bits]    — small unsigned (typical < 1 M)
+stripe-mode:   [0xFFFFFFFF: 32 bits]     — marker, never a valid token_count
+```
+
+Decoders MUST inspect the first 32-bit word and dispatch accordingly. Encoders MAY emit either form per band; the stripe form trades a small per-band header overhead for ~15-20% smaller compressed output by using per-stripe frequency tables that match local coefficient distributions more tightly.
+
+##### Single-blob layout
 
 ```
 [token_count: 32 bits]    — number of (run, magnitude) tokens
@@ -222,6 +231,22 @@ The band codeblock for mode 2 contains a single self-describing blob:
 [rans_data: rans_size bytes]   — rANS-encoded joint symbols
 [resid_data: resid_size bytes] — packed extra bits and sign bits
 ```
+
+##### Stripe-mode layout
+
+```
+[0xFFFFFFFF: 32 bits]       — stripe marker
+[num_stripes: 32 bits]      — number of independent rANS sub-blobs
+[reserved: 64 bits]         — must be zero in encoder, ignored by decoder
+for each stripe:
+    [stripe_rows: 32 bits]      — band rows covered by this stripe
+    [stripe_size: 32 bits]      — byte count of the following stripe_data
+    [stripe_data: stripe_size bytes]  — single-blob format (see above) for these rows
+```
+
+The N stripes cover the band's rows in order from top to bottom. Stripe `i` covers band rows `[Σⱼ₌₀ⁱ⁻¹ stripe_rowsⱼ, Σⱼ₌₀ⁱ stripe_rowsⱼ)`. The sum of all `stripe_rows` MUST equal the band height — there are no gaps or overlaps. Each stripe's `stripe_data` is a complete, independently-decodable single-blob.
+
+##### Residual stream contents (both modes)
 
 The residual stream contains, for each token in order:
 1. Extra bits for the run class (if the class requires extra bits)
