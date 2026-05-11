@@ -22,11 +22,11 @@
 #endif
 
 /* When FAST_SINGLE_THREAD is defined, all operations run single-threaded.
-   Used for benchmarking single-threaded performance. */
-#if defined(FAST_SINGLE_THREAD) && !defined(_WIN32)
-#define FAST_USE_THREADS 0
+   Used for benchmarking single-threaded performance on embedded targets. */
+#ifdef FAST_SINGLE_THREAD
+#define FAST_NO_THREADS 1
 #else
-#define FAST_USE_THREADS 1
+#define FAST_NO_THREADS 0
 #endif
 #include <string.h>
 #include <stdlib.h>
@@ -757,7 +757,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
 
     FD_P(band_decode, bands); FD_T(ans);
     /* ---- Step 4: Parallel ANS decode ---- */
-#ifndef _WIN32
+#if !defined(_WIN32) && !FAST_NO_THREADS
     {
         pthread_t threads[FAST_MAX_BANDS];
         int thread_count = 0;
@@ -816,7 +816,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
 
         /* Run ALL wavelet reconstruction levels in parallel (one thread per channel).
            Each thread does: level 2→1, level 1→0, level 0→output */
-#ifndef _WIN32
+#if !defined(_WIN32) && !FAST_NO_THREADS
         {
             pthread_t threads[MAX_CHANNEL_COUNT];
             FAST_CHANNEL_RECON_ARG recon_args[MAX_CHANNEL_COUNT];
@@ -923,7 +923,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
                     int num_pack_threads = 4;
                     if (num_pack_threads > half_height) num_pack_threads = half_height;
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !FAST_NO_THREADS
                     {
                         pthread_t pack_threads[8];
                         FAST_PACK_ARG pack_args[8];
