@@ -324,6 +324,113 @@ static void *fast_channel_recon_thread(void *arg)
 }
 
 /* ================================================================
+   Parallel image packing (row-striped)
+   ================================================================ */
+
+typedef struct {
+    const UNPACKED_IMAGE *image;
+    PACKED_IMAGE *packed;
+    const DECODER_PARAMETERS *params;
+    int row_start;    /* First row (in Bayer half-rows) */
+    int row_end;      /* Last row (exclusive) */
+} FAST_PACK_ARG;
+
+static void *fast_pack_thread(void *arg)
+{
+    FAST_PACK_ARG *a = (FAST_PACK_ARG *)arg;
+    const UNPACKED_IMAGE *image = a->image;
+    PACKED_IMAGE *packed = a->packed;
+
+    DIMENSION width = packed->width / 2;   /* Bayer pattern units */
+    size_t output_pitch = packed->pitch * 2;
+    PIXEL_FORMAT output_format = packed->format;
+    int output_bit_depth = 14;
+
+    /* Determine output bit depth from format */
+    switch (output_format) {
+        case PIXEL_FORMAT_RAW_RGGB_12: case PIXEL_FORMAT_RAW_GBRG_12: output_bit_depth = 12; break;
+        case PIXEL_FORMAT_RAW_RGGB_14: case PIXEL_FORMAT_RAW_GBRG_14: output_bit_depth = 14; break;
+        case PIXEL_FORMAT_RAW_RGGB_16: case PIXEL_FORMAT_RAW_GBRG_16: output_bit_depth = 16; break;
+        default: break;
+    }
+
+    int rggb_order = (output_format == PIXEL_FORMAT_RAW_RGGB_12 ||
+                      output_format == PIXEL_FORMAT_RAW_RGGB_14 ||
+                      output_format == PIXEL_FORMAT_RAW_RGGB_16) ? 1 : 0;
+
+    int log_bits = image->component_array_list[0].bits_per_component;
+    if (log_bits <= 0) log_bits = 12;
+    if (log_bits > 16) log_bits = 16;
+
+    /* Use appropriate log curve table */
+    uint16_t *log_table;
+    int log_max;
+    if (log_bits <= 12) { log_table = DecoderLogCurve12; log_max = (1 << 12) - 1; }
+    else if (log_bits <= 14) { log_table = DecoderLogCurve14; log_max = (1 << 14) - 1; }
+    else { log_table = DecoderLogCurve16; log_max = (1 << 16) - 1; }
+
+    const int32_t midpoint = 1 << (log_bits - 1);
+    const int shift = 16 - output_bit_depth;
+    size_t output_half_pitch = output_pitch / 2;
+    int bypass = vc5_logcurve_bypass();
+
+    for (int row = a->row_start; row < a->row_end; row++)
+    {
+        COMPONENT_VALUE *GS_row = (COMPONENT_VALUE *)((uintptr_t)image->component_array_list[0].data + row * image->component_array_list[0].pitch);
+        COMPONENT_VALUE *RG_row = (COMPONENT_VALUE *)((uintptr_t)image->component_array_list[1].data + row * image->component_array_list[1].pitch);
+        COMPONENT_VALUE *BG_row = (COMPONENT_VALUE *)((uintptr_t)image->component_array_list[2].data + row * image->component_array_list[2].pitch);
+        COMPONENT_VALUE *GD_row = (COMPONENT_VALUE *)((uintptr_t)image->component_array_list[3].data + row * image->component_array_list[3].pitch);
+
+        uint8_t *output_row_ptr = (uint8_t *)packed->buffer + row * output_pitch;
+        uint16_t *out_row1 = (uint16_t *)output_row_ptr;
+        uint16_t *out_row2 = (uint16_t *)(output_row_ptr + output_half_pitch);
+
+        for (int col = 0; col < (int)width; col++)
+        {
+            int32_t GS = GS_row[col], RG = RG_row[col], BG = BG_row[col], GD = GD_row[col];
+
+            /* Clamp to valid range */
+            if (GS < 0) GS = 0; else if (GS > log_max) GS = log_max;
+            if (RG < 0) RG = 0; else if (RG > log_max) RG = log_max;
+            if (BG < 0) BG = 0; else if (BG > log_max) BG = log_max;
+            if (GD < 0) GD = 0; else if (GD > log_max) GD = log_max;
+
+            GD -= midpoint; RG -= midpoint; BG -= midpoint;
+
+            int32_t R  = (RG << 1) + GS;
+            int32_t B  = (BG << 1) + GS;
+            int32_t G1 = GS + GD;
+            int32_t G2 = GS - GD;
+
+            if (R < 0) R = 0; else if (R > log_max) R = log_max;
+            if (G1 < 0) G1 = 0; else if (G1 > log_max) G1 = log_max;
+            if (G2 < 0) G2 = 0; else if (G2 > log_max) G2 = log_max;
+            if (B < 0) B = 0; else if (B > log_max) B = log_max;
+
+            if (!bypass) {
+                R  = log_table[R]  >> shift;
+                G1 = log_table[G1] >> shift;
+                G2 = log_table[G2] >> shift;
+                B  = log_table[B]  >> shift;
+            }
+
+            if (rggb_order) {
+                out_row1[2*col]   = (uint16_t)R;
+                out_row1[2*col+1] = (uint16_t)G1;
+                out_row2[2*col]   = (uint16_t)G2;
+                out_row2[2*col+1] = (uint16_t)B;
+            } else {
+                out_row1[2*col]   = (uint16_t)G1;
+                out_row1[2*col+1] = (uint16_t)B;
+                out_row2[2*col]   = (uint16_t)R;
+                out_row2[2*col+1] = (uint16_t)G2;
+            }
+        }
+    }
+    return NULL;
+}
+
+/* ================================================================
    Main entry: DecodeFastImage — drop-in replacement for DecodeImage
    ================================================================ */
 
@@ -359,6 +466,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
         prescale_table[i] = (idx.prescale_shift >> (14 - i * 2)) & 0x03;
     }
 
+
     /* ---- Step 2: Create wavelets for all channels ---- */
     gpr_allocator *allocator = &parameters->allocator;
     WAVELET *wavelets[MAX_CHANNEL_COUNT][MAX_WAVELET_COUNT];
@@ -381,6 +489,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
             }
         }
     }
+
 
     /* ---- Step 3: Map pre-indexed bands to wavelet tree positions ---- */
     /* Subband mapping: same as SubbandWaveletIndex/SubbandBandIndex */
@@ -479,6 +588,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
             goto cleanup;
         }
     }
+
     /* ---- Step 5+6: Full wavelet reconstruction (all levels) in parallel per channel ---- */
     {
         UNPACKED_IMAGE unpacked_image;
@@ -561,6 +671,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
             goto cleanup;
         }
 
+
         /* ---- Step 7: Apply inverse variance-stabilizing transform if needed ---- */
         if (parameters->variance_stabilize && parameters->noise_scale > 0.0)
         {
@@ -602,7 +713,42 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
                 PIXEL_FORMAT packed_format = parameters->output.format;
 
                 AllocImage(allocator, packed_image, packed_width, packed_height, packed_format);
-                ImageRepackingProcess(&unpacked_image, packed_image, parameters);
+
+                /* Parallel image packing: split rows across threads */
+                {
+                    int half_height = packed_height / 2;
+                    int num_pack_threads = 4;
+                    if (num_pack_threads > half_height) num_pack_threads = half_height;
+
+#ifndef _WIN32
+                    {
+                        pthread_t pack_threads[8];
+                        FAST_PACK_ARG pack_args[8];
+                        int pack_created[8];
+                        int rows_per = half_height / num_pack_threads;
+
+                        for (int t = 0; t < num_pack_threads; t++) {
+                            pack_args[t].image = &unpacked_image;
+                            pack_args[t].packed = packed_image;
+                            pack_args[t].params = parameters;
+                            pack_args[t].row_start = t * rows_per;
+                            pack_args[t].row_end = (t == num_pack_threads - 1) ? half_height : (t + 1) * rows_per;
+
+                            pack_created[t] = (pthread_create(&pack_threads[t], NULL,
+                                                               fast_pack_thread, &pack_args[t]) == 0);
+                            if (!pack_created[t])
+                                fast_pack_thread(&pack_args[t]);
+                        }
+
+                        for (int t = 0; t < num_pack_threads; t++) {
+                            if (pack_created[t])
+                                pthread_join(pack_threads[t], NULL);
+                        }
+                    }
+#else
+                    ImageRepackingProcess(&unpacked_image, packed_image, parameters);
+#endif
+                }
                 break;
             }
 
@@ -660,6 +806,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
                 error = CODEC_ERROR_UNSUPPORTED_FORMAT;
                 break;
         }
+
 
         ReleaseComponentArrays(allocator, &unpacked_image, channel_count);
     }
