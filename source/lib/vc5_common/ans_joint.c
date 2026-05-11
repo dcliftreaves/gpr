@@ -19,6 +19,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#if defined(JANS_TIMING_DETAIL)
+#include <stdio.h>
+#endif
 
 #ifdef __aarch64__
 #include "rans_kernel_arm64.h"
@@ -612,6 +615,16 @@ int jans_decode_band(const uint8_t *in_buf, size_t in_size,
 
 #define JANS_INTERLEAVE 4
 
+#if defined(JANS_TIMING_DETAIL)
+#include <mach/mach_time.h>
+static double _jans_ms(void) {
+    static double s = 0;
+    if (!s) { mach_timebase_info_data_t i; mach_timebase_info(&i); s=(double)i.numer/i.denom/1e6; }
+    return mach_absolute_time() * s;
+}
+static double _jans_tok_ms = 0, _jans_rans_ms = 0, _jans_out_ms = 0;
+#endif
+
 int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
                         const int32_t *data, int width, int height, int pitch) {
     int pitch_elems = pitch / sizeof(int32_t);
@@ -640,6 +653,10 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
     JANS_TABLE table;
     memset(&table, 0, sizeof(table));
     int token_count = 0;
+
+#if defined(JANS_TIMING_DETAIL)
+    double _t0 = _jans_ms();
+#endif
 
     for (int row = 0; row < height; row++) {
         const int32_t *rowptr = data + row * pitch_elems;
@@ -691,6 +708,9 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
     }
 
     size_t resid_size = bitbuf_size(&bb);
+#if defined(JANS_TIMING_DETAIL)
+    _jans_tok_ms += _jans_ms() - _t0; _t0 = _jans_ms();
+#endif
     normalize_freq(table.freq, JANS_NUM_SYMBOLS);
     build_tables(&table, JANS_NUM_SYMBOLS);
 
@@ -748,6 +768,9 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
     }
 
     size_t rans_size = rans_ptr - rans_buf;
+#if defined(JANS_TIMING_DETAIL)
+    _jans_rans_ms += _jans_ms() - _t0; _t0 = _jans_ms();
+#endif
 
     for (size_t i = 0; i < rans_size / 2; i++) {
         uint8_t t = rans_buf[i]; rans_buf[i] = rans_buf[rans_size-1-i];
@@ -778,8 +801,19 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
     memcpy(op, resid_buf, resid_size);
 
     arena_free(&arena);  /* Single free for all encode buffers */
+#if defined(JANS_TIMING_DETAIL)
+    _jans_out_ms += _jans_ms() - _t0;
+#endif
     return (int)total;
 }
+
+#if defined(JANS_TIMING_DETAIL)
+void jans_encode_band_x4_report_timing(void) {
+    fprintf(stderr, "  jans: tokenize=%.1fms, rans=%.1fms, out=%.1fms (total over all bands)\n",
+            _jans_tok_ms, _jans_rans_ms, _jans_out_ms);
+    _jans_tok_ms = 0; _jans_rans_ms = 0; _jans_out_ms = 0;
+}
+#endif
 
 /* ================================================================
    Two-pass x4 decode: separates rANS token decoding from output scatter.
