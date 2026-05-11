@@ -16,11 +16,16 @@
 
 #include "headers.h"
 #include "ans_joint.h"
+#include "logcurve.h"
 #ifndef _WIN32
 #include <pthread.h>
 #endif
 #include <string.h>
 #include <stdlib.h>
+
+#if ENABLED(NEON)
+#include <arm_neon.h>
+#endif
 
 /* ================================================================
    Pre-indexer: single fast pass over VC5 tag stream
@@ -385,45 +390,100 @@ static void *fast_pack_thread(void *arg)
         uint16_t *out_row1 = (uint16_t *)output_row_ptr;
         uint16_t *out_row2 = (uint16_t *)(output_row_ptr + output_half_pitch);
 
-        for (int col = 0; col < (int)width; col++)
+        int col = 0;
+
+#if ENABLED(NEON)
+        {
+            const int32x4_t v_zero = vdupq_n_s32(0);
+            const int32x4_t v_max = vdupq_n_s32(log_max);
+            const int32x4_t v_mid = vdupq_n_s32(midpoint);
+            const int width_m4 = ((int)width / 4) * 4;
+
+            for (; col < width_m4; col += 4)
+            {
+                /* Load 4 pixels from each component */
+                int32x4_t gs = vld1q_s32(&GS_row[col]);
+                int32x4_t rg = vld1q_s32(&RG_row[col]);
+                int32x4_t bg = vld1q_s32(&BG_row[col]);
+                int32x4_t gd = vld1q_s32(&GD_row[col]);
+
+                /* Clamp to [0, log_max] */
+                gs = vmaxq_s32(vminq_s32(gs, v_max), v_zero);
+                rg = vmaxq_s32(vminq_s32(rg, v_max), v_zero);
+                bg = vmaxq_s32(vminq_s32(bg, v_max), v_zero);
+                gd = vmaxq_s32(vminq_s32(gd, v_max), v_zero);
+
+                /* Subtract midpoint from color differences */
+                rg = vsubq_s32(rg, v_mid);
+                bg = vsubq_s32(bg, v_mid);
+                gd = vsubq_s32(gd, v_mid);
+
+                /* Color conversion: R=(RG<<1)+GS, B=(BG<<1)+GS, G1=GS+GD, G2=GS-GD */
+                int32x4_t r  = vaddq_s32(vshlq_n_s32(rg, 1), gs);
+                int32x4_t b  = vaddq_s32(vshlq_n_s32(bg, 1), gs);
+                int32x4_t g1 = vaddq_s32(gs, gd);
+                int32x4_t g2 = vsubq_s32(gs, gd);
+
+                /* Clamp results to [0, log_max] */
+                r  = vmaxq_s32(vminq_s32(r,  v_max), v_zero);
+                g1 = vmaxq_s32(vminq_s32(g1, v_max), v_zero);
+                g2 = vmaxq_s32(vminq_s32(g2, v_max), v_zero);
+                b  = vmaxq_s32(vminq_s32(b,  v_max), v_zero);
+
+                /* Extract to scalar for LUT lookups + store */
+                int32_t ra[4], g1a[4], g2a[4], ba[4];
+                vst1q_s32(ra, r); vst1q_s32(g1a, g1); vst1q_s32(g2a, g2); vst1q_s32(ba, b);
+
+                for (int k = 0; k < 4; k++) {
+                    int32_t R_out, G1_out, G2_out, B_out;
+                    if (!bypass) {
+                        R_out  = log_table[ra[k]]  >> shift;
+                        G1_out = log_table[g1a[k]] >> shift;
+                        G2_out = log_table[g2a[k]] >> shift;
+                        B_out  = log_table[ba[k]]  >> shift;
+                    } else {
+                        R_out = ra[k]; G1_out = g1a[k]; G2_out = g2a[k]; B_out = ba[k];
+                    }
+
+                    int c = col + k;
+                    if (rggb_order) {
+                        out_row1[2*c]   = (uint16_t)R_out;
+                        out_row1[2*c+1] = (uint16_t)G1_out;
+                        out_row2[2*c]   = (uint16_t)G2_out;
+                        out_row2[2*c+1] = (uint16_t)B_out;
+                    } else {
+                        out_row1[2*c]   = (uint16_t)G1_out;
+                        out_row1[2*c+1] = (uint16_t)B_out;
+                        out_row2[2*c]   = (uint16_t)R_out;
+                        out_row2[2*c+1] = (uint16_t)G2_out;
+                    }
+                }
+            }
+        }
+#endif
+
+        /* Scalar cleanup */
+        for (; col < (int)width; col++)
         {
             int32_t GS = GS_row[col], RG = RG_row[col], BG = BG_row[col], GD = GD_row[col];
-
-            /* Clamp to valid range */
             if (GS < 0) GS = 0; else if (GS > log_max) GS = log_max;
             if (RG < 0) RG = 0; else if (RG > log_max) RG = log_max;
             if (BG < 0) BG = 0; else if (BG > log_max) BG = log_max;
             if (GD < 0) GD = 0; else if (GD > log_max) GD = log_max;
-
             GD -= midpoint; RG -= midpoint; BG -= midpoint;
-
-            int32_t R  = (RG << 1) + GS;
-            int32_t B  = (BG << 1) + GS;
-            int32_t G1 = GS + GD;
-            int32_t G2 = GS - GD;
-
+            int32_t R  = (RG << 1) + GS, B  = (BG << 1) + GS;
+            int32_t G1 = GS + GD,        G2 = GS - GD;
             if (R < 0) R = 0; else if (R > log_max) R = log_max;
             if (G1 < 0) G1 = 0; else if (G1 > log_max) G1 = log_max;
             if (G2 < 0) G2 = 0; else if (G2 > log_max) G2 = log_max;
             if (B < 0) B = 0; else if (B > log_max) B = log_max;
-
-            if (!bypass) {
-                R  = log_table[R]  >> shift;
-                G1 = log_table[G1] >> shift;
-                G2 = log_table[G2] >> shift;
-                B  = log_table[B]  >> shift;
-            }
-
+            if (!bypass) { R = log_table[R]>>shift; G1 = log_table[G1]>>shift; G2 = log_table[G2]>>shift; B = log_table[B]>>shift; }
             if (rggb_order) {
-                out_row1[2*col]   = (uint16_t)R;
-                out_row1[2*col+1] = (uint16_t)G1;
-                out_row2[2*col]   = (uint16_t)G2;
-                out_row2[2*col+1] = (uint16_t)B;
+                out_row1[2*col] = (uint16_t)R; out_row1[2*col+1] = (uint16_t)G1;
+                out_row2[2*col] = (uint16_t)G2; out_row2[2*col+1] = (uint16_t)B;
             } else {
-                out_row1[2*col]   = (uint16_t)G1;
-                out_row1[2*col+1] = (uint16_t)B;
-                out_row2[2*col]   = (uint16_t)R;
-                out_row2[2*col+1] = (uint16_t)G2;
+                out_row1[2*col] = (uint16_t)G1; out_row1[2*col+1] = (uint16_t)B;
+                out_row2[2*col] = (uint16_t)R; out_row2[2*col+1] = (uint16_t)G2;
             }
         }
     }
@@ -434,11 +494,27 @@ static void *fast_pack_thread(void *arg)
    Main entry: DecodeFastImage — drop-in replacement for DecodeImage
    ================================================================ */
 
+/* Optional timing (compile with -DFAST_DECODE_TIMING to enable) */
+#ifdef FAST_DECODE_TIMING
+#include <mach/mach_time.h>
+static double _fd_ms(void) {
+    static double s = 0;
+    if (!s) { mach_timebase_info_data_t i; mach_timebase_info(&i); s = (double)i.numer/i.denom/1e6; }
+    return mach_absolute_time() * s;
+}
+#define FD_T(name) double _t_##name = _fd_ms()
+#define FD_P(name, prev) fprintf(stderr, "  %-25s %.1fms\n", #name, _fd_ms() - _t_##prev)
+#else
+#define FD_T(name)
+#define FD_P(name, prev)
+#endif
+
 CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
                             IMAGE *packed_image, RGB_IMAGE *rgb_image,
                             DECODER_PARAMETERS *parameters)
 {
     CODEC_ERROR error = CODEC_ERROR_OKAY;
+    FD_T(start);
 
     /* Initialize LUTs (same as DecodeImage) */
     SetupDecoderLogCurve();
@@ -467,6 +543,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
     }
 
 
+    FD_P(preindex, start); FD_T(alloc);
     /* ---- Step 2: Create wavelets for all channels ---- */
     gpr_allocator *allocator = &parameters->allocator;
     WAVELET *wavelets[MAX_CHANNEL_COUNT][MAX_WAVELET_COUNT];
@@ -491,6 +568,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
     }
 
 
+    FD_P(wavelet_alloc, alloc); FD_T(bands);
     /* ---- Step 3: Map pre-indexed bands to wavelet tree positions ---- */
     /* Subband mapping: same as SubbandWaveletIndex/SubbandBandIndex */
     static const int subband_wavelet[] = {2, 2, 2, 2, 1, 1, 1, 0, 0, 0};
@@ -555,6 +633,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
         }
     }
 
+    FD_P(band_decode, bands); FD_T(ans);
     /* ---- Step 4: Parallel ANS decode ---- */
 #ifndef _WIN32
     {
@@ -589,6 +668,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
         }
     }
 
+    FD_P(ans_decode, ans); FD_T(wavelet);
     /* ---- Step 5+6: Full wavelet reconstruction (all levels) in parallel per channel ---- */
     {
         UNPACKED_IMAGE unpacked_image;
@@ -672,6 +752,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
         }
 
 
+        FD_P(wavelet_recon, wavelet); FD_T(pack);
         /* ---- Step 7: Apply inverse variance-stabilizing transform if needed ---- */
         if (parameters->variance_stabilize && parameters->noise_scale > 0.0)
         {
@@ -808,6 +889,7 @@ CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
         }
 
 
+        FD_P(pack_output, pack);
         ReleaseComponentArrays(allocator, &unpacked_image, channel_count);
     }
 
