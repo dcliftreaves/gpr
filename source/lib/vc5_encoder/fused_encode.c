@@ -21,6 +21,16 @@
 #include "headers.h"
 #include "fused_encode.h"
 #include "ans_joint.h"
+#include <pthread.h>
+
+#if defined(FUSED_TIMING) || defined(FUSED_TIMING_DETAIL)
+#include <mach/mach_time.h>
+static double _fused_ms(void) {
+    static double s = 0;
+    if (!s) { mach_timebase_info_data_t i; mach_timebase_info(&i); s = (double)i.numer/i.denom/1e6; }
+    return mach_absolute_time() * s;
+}
+#endif
 
 #if ENABLED(NEON)
 #include <arm_neon.h>
@@ -395,6 +405,151 @@ typedef struct {
     int run_state[FUSED_MAX_BANDS];        /* Run counter per band */
 } FUSED_CHANNEL_STATE;
 
+/* ================================================================
+   Per-channel Pass 1 (one of 4 parallel threads)
+   ================================================================ */
+
+/* Unpack ONE channel from a Bayer row pair (called per output row by a channel thread).
+   GS/GD need G1+G2 only. RG/BG also need R or B and compute GS as an intermediate. */
+static void unpack_channel_row(
+    int channel, int is_rggb,
+    const uint16_t *log_tbl, int log_max, int32_t mid2,
+    const uint16_t *row1, const uint16_t *row2,
+    PIXEL *output, int ch_width)
+{
+    for (int col = 0; col < ch_width; col++) {
+        uint16_t Rv, G1v, G2v, Bv;
+        if (is_rggb) {
+            Rv = row1[2*col]; G1v = row1[2*col+1]; G2v = row2[2*col]; Bv = row2[2*col+1];
+        } else {
+            G1v = row1[2*col]; Bv = row1[2*col+1]; Rv = row2[2*col]; G2v = row2[2*col+1];
+        }
+        if (G1v > log_max) G1v = log_max;
+        if (G2v > log_max) G2v = log_max;
+        int32_t g1 = log_tbl[G1v], g2 = log_tbl[G2v];
+
+        switch (channel) {
+            case 0: /* GS */
+                output[col] = (g1 + g2) >> 1;
+                break;
+            case 1: { /* RG */
+                if (Rv > log_max) Rv = log_max;
+                int32_t r = log_tbl[Rv];
+                int32_t gs = (g1 + g2) >> 1;
+                output[col] = ((r - gs) + mid2) >> 1;
+            } break;
+            case 2: { /* BG */
+                if (Bv > log_max) Bv = log_max;
+                int32_t b = log_tbl[Bv];
+                int32_t gs = (g1 + g2) >> 1;
+                output[col] = ((b - gs) + mid2) >> 1;
+            } break;
+            case 3: /* GD */
+                output[col] = ((g1 - g2) + mid2) >> 1;
+                break;
+        }
+    }
+}
+
+/* Run the entire Pass 1 pipeline for a single channel: unpack → horiz → vert+quant → freq.
+   Each invocation owns its 6-row buffer and freq tables in *cs. */
+static void pass1_run_channel(
+    int channel,
+    const uint8_t *raw_bayer, int width, int height,
+    int log_bits, int is_rggb, int prescale,
+    FUSED_CHANNEL_STATE *cs)
+{
+    int ch_width = width / 2;
+    int ch_height = height / 2;
+    const uint16_t *bayer = (const uint16_t *)raw_bayer;
+    int bayer_pitch = width;
+
+    int32_t mid2 = 2 * (1 << (log_bits - 1));
+    uint16_t *log_tbl = (log_bits <= 14) ? EncoderLogCurve14 : EncoderLogCurve16;
+    int log_max = (log_bits <= 14) ? 16383 : 65535;
+
+    PIXEL *unpack_row = (PIXEL *)malloc(ch_width * sizeof(PIXEL));
+    if (!unpack_row) return;
+
+    for (int row = 0; row < ch_height; row++) {
+        const uint16_t *row1 = bayer + (row * 2) * bayer_pitch;
+        const uint16_t *row2 = row1 + bayer_pitch;
+
+        unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
+                           row1, row2, unpack_row, ch_width);
+
+        int buf_idx = cs->buf_row % FUSED_ROW_BUFS;
+        horizontal_filter(unpack_row,
+                          cs->lowpass_buf[buf_idx],
+                          cs->highpass_buf[buf_idx],
+                          ch_width, prescale);
+        cs->buf_row++;
+
+        if (cs->buf_row >= 6 && (cs->buf_row % 2) == 0) {
+            int out_row = cs->band_out_row;
+            if (out_row >= cs->band_height) continue;
+
+            PIXEL *lp_rows[6], *hp_rows[6];
+            int base = (cs->buf_row - 6) % FUSED_ROW_BUFS;
+            for (int r = 0; r < 6; r++) {
+                int idx = (base + r) % FUSED_ROW_BUFS;
+                lp_rows[r] = cs->lowpass_buf[idx];
+                hp_rows[r] = cs->highpass_buf[idx];
+            }
+
+            int is_top = (out_row == 0);
+            int is_bottom = (out_row == cs->band_height - 1);
+            int bw = cs->band_width;
+
+            PIXEL *ll_row = cs->band_data[0] + out_row * cs->band_pitch;
+            PIXEL *lh_row = cs->band_data[1] + out_row * cs->band_pitch;
+            vertical_filter_quantize_row(lp_rows, bw,
+                cs->midpoint[0], cs->multiplier[0],
+                cs->midpoint[1], cs->multiplier[1],
+                0, 0, 0, 0,
+                ll_row, lh_row, NULL, NULL,
+                is_top, is_bottom);
+
+            PIXEL *hl_row = cs->band_data[2] + out_row * cs->band_pitch;
+            PIXEL *hh_row = cs->band_data[3] + out_row * cs->band_pitch;
+            vertical_filter_quantize_row(hp_rows, bw,
+                cs->midpoint[2], cs->multiplier[2],
+                cs->midpoint[3], cs->multiplier[3],
+                0, 0, 0, 0,
+                hl_row, hh_row, NULL, NULL,
+                is_top, is_bottom);
+
+            count_freq_row(lh_row, bw, cs->freq[1], &cs->run_state[1]);
+            count_freq_row(hl_row, bw, cs->freq[2], &cs->run_state[2]);
+            count_freq_row(hh_row, bw, cs->freq[3], &cs->run_state[3]);
+
+            cs->band_out_row++;
+        }
+    }
+
+    /* Flush trailing zero runs for this channel's 3 highpass bands */
+    for (int band = 1; band < 4; band++) {
+        count_freq_flush(cs->freq[band], &cs->run_state[band]);
+    }
+
+    free(unpack_row);
+}
+
+typedef struct {
+    int channel;
+    const uint8_t *raw_bayer;
+    int width, height;
+    int log_bits, is_rggb, prescale;
+    FUSED_CHANNEL_STATE *cs;
+} PASS1_CHANNEL_TASK;
+
+static void *pass1_channel_thread(void *arg) {
+    PASS1_CHANNEL_TASK *t = (PASS1_CHANNEL_TASK *)arg;
+    pass1_run_channel(t->channel, t->raw_bayer, t->width, t->height,
+                      t->log_bits, t->is_rggb, t->prescale, t->cs);
+    return NULL;
+}
+
 static int fused_pass1(
     const uint8_t *raw_bayer, int width, int height,
     int pixel_format, int quality,
@@ -402,6 +557,7 @@ static int fused_pass1(
     PIXEL **ll_output[4]  /* LL band pointers for recursive levels */
 )
 {
+    (void)ll_output;
     SetupEncoderLogCurve();
     fused_init_luts();
 
@@ -446,23 +602,107 @@ static int fused_pass1(
         }
     }
 
-    /* Temporary row buffer for unpacked channel data */
+    /* Prescale for level 0 (typically 2 for 14-bit) */
+    int prescale = 2;
+
+    /* === SPAWN 4 PARALLEL CHANNEL THREADS === */
+    PASS1_CHANNEL_TASK tasks[4];
+    pthread_t threads[4];
+    int created[4];
+    for (int ch = 0; ch < 4; ch++) {
+        tasks[ch].channel = ch;
+        tasks[ch].raw_bayer = raw_bayer;
+        tasks[ch].width = width;
+        tasks[ch].height = height;
+        tasks[ch].log_bits = log_bits;
+        tasks[ch].is_rggb = is_rggb;
+        tasks[ch].prescale = prescale;
+        tasks[ch].cs = &ch_state[ch];
+        created[ch] = (pthread_create(&threads[ch], NULL,
+                                       pass1_channel_thread, &tasks[ch]) == 0);
+        if (!created[ch]) pass1_channel_thread(&tasks[ch]);
+    }
+    for (int ch = 0; ch < 4; ch++) {
+        if (created[ch]) pthread_join(threads[ch], NULL);
+    }
+
+    return 0;
+}
+
+/* === OLD SERIAL PASS 1 (kept for reference / debugging) === */
+#if 0
+static int fused_pass1_serial(
+    const uint8_t *raw_bayer, int width, int height,
+    int pixel_format, int quality,
+    FUSED_CHANNEL_STATE ch_state[4],
+    PIXEL **ll_output[4])
+{
+    SetupEncoderLogCurve();
+    fused_init_luts();
+
+    int ch_width = width / 2;
+    int ch_height = height / 2;
+    int is_rggb = (pixel_format == 1 || pixel_format == 0 || pixel_format == 4);
+    int log_bits = (pixel_format >= 4) ? 16 : 14;
+
+    const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
+
+    /* Set up quantization for level 0 */
+    for (int ch = 0; ch < 4; ch++) {
+        for (int band = 0; band < 4; band++) {
+            int qi = band; /* LL=0, LH=1, HL=2, HH=3 */
+            int divisor = qt[qi];
+            ch_state[ch].midpoint[band] = get_midpoint(divisor);
+            ch_state[ch].multiplier[band] = get_multiplier(divisor);
+        }
+
+        ch_state[ch].band_width = ch_width / 2;
+        ch_state[ch].band_height = ch_height / 2;
+        ch_state[ch].band_pitch = ch_state[ch].band_width;
+        ch_state[ch].band_out_row = 0;
+        ch_state[ch].buf_row = 0;
+
+        memset(ch_state[ch].freq, 0, sizeof(ch_state[ch].freq));
+        memset(ch_state[ch].run_state, 0, sizeof(ch_state[ch].run_state));
+
+        int bw = ch_state[ch].band_width;
+        int bh = ch_state[ch].band_height;
+        for (int band = 0; band < 4; band++) {
+            ch_state[ch].band_data[band] = (PIXEL *)calloc(bw * bh, sizeof(PIXEL));
+            if (!ch_state[ch].band_data[band]) return -1;
+        }
+
+        for (int r = 0; r < FUSED_ROW_BUFS; r++) {
+            ch_state[ch].lowpass_buf[r] = (PIXEL *)calloc(ch_width / 2, sizeof(PIXEL));
+            ch_state[ch].highpass_buf[r] = (PIXEL *)calloc(ch_width / 2, sizeof(PIXEL));
+            if (!ch_state[ch].lowpass_buf[r] || !ch_state[ch].highpass_buf[r]) return -1;
+        }
+    }
+
     PIXEL *unpack_row[4];
     for (int ch = 0; ch < 4; ch++) {
         unpack_row[ch] = (PIXEL *)malloc(ch_width * sizeof(PIXEL));
         if (!unpack_row[ch]) return -1;
     }
 
-    /* Prescale for level 0 (typically 2 for 14-bit) */
     int prescale = 2;
 
     /* === MAIN ROW LOOP === */
     const uint16_t *bayer = (const uint16_t *)raw_bayer;
     int bayer_pitch = width; /* In uint16_t elements */
 
+#ifdef FUSED_TIMING_DETAIL
+    double t_unpack = 0, t_horiz = 0, t_vert = 0, t_freq = 0;
+    double _td;
+#endif
+
     for (int row = 0; row < ch_height; row++) {
         const uint16_t *row1 = bayer + (row * 2) * bayer_pitch;
         const uint16_t *row2 = row1 + bayer_pitch;
+
+#ifdef FUSED_TIMING_DETAIL
+        _td = _fused_ms();
+#endif
 
         /* --- UNPACK: Bayer → GS, RG, BG, GD with log curve --- */
         {
@@ -533,6 +773,10 @@ static int fused_pass1(
             }
         }
 
+#ifdef FUSED_TIMING_DETAIL
+        t_unpack += _fused_ms() - _td; _td = _fused_ms();
+#endif
+
         /* --- HORIZONTAL FILTER for each channel --- */
         for (int ch = 0; ch < 4; ch++) {
             int buf_idx = ch_state[ch].buf_row % FUSED_ROW_BUFS;
@@ -542,6 +786,10 @@ static int fused_pass1(
                               ch_width, prescale);
             ch_state[ch].buf_row++;
         }
+
+#ifdef FUSED_TIMING_DETAIL
+        t_horiz += _fused_ms() - _td; _td = _fused_ms();
+#endif
 
         /* --- VERTICAL FILTER + QUANTIZE + FREQ COUNT --- */
         /* Vertical filter needs 6 rows, fires every 2 input rows */
@@ -586,15 +834,28 @@ static int fused_pass1(
                     hl_row, hh_row, NULL, NULL,
                     is_top, is_bottom);
 
+#ifdef FUSED_TIMING_DETAIL
+                t_vert += _fused_ms() - _td; _td = _fused_ms();
+#endif
+
                 /* --- INLINE FREQUENCY COUNT (the fusion!) --- */
                 count_freq_row(lh_row, bw, cs->freq[1], &cs->run_state[1]);
                 count_freq_row(hl_row, bw, cs->freq[2], &cs->run_state[2]);
                 count_freq_row(hh_row, bw, cs->freq[3], &cs->run_state[3]);
 
+#ifdef FUSED_TIMING_DETAIL
+                t_freq += _fused_ms() - _td;
+#endif
+
                 cs->band_out_row++;
             }
         }
     }
+
+#ifdef FUSED_TIMING_DETAIL
+    fprintf(stderr, "    Pass1 detail: unpack=%.1f, horiz=%.1f, vert+quant=%.1f, freq=%.1f\n",
+            t_unpack, t_horiz, t_vert, t_freq);
+#endif
 
     /* Flush trailing zero runs */
     for (int ch = 0; ch < 4; ch++) {
@@ -608,12 +869,12 @@ static int fused_pass1(
 
     return 0;
 }
+#endif /* old serial fused_pass1 */
 
 /* ================================================================
    Pass 2: rANS Encode using pre-counted frequencies
    ================================================================ */
 
-#include <pthread.h>
 
 typedef struct {
     PIXEL *band_data;
@@ -726,15 +987,6 @@ static int fused_pass2_serial(
 /* ================================================================
    Main entry point
    ================================================================ */
-
-#ifdef FUSED_TIMING
-#include <mach/mach_time.h>
-static double _fused_ms(void) {
-    static double s = 0;
-    if (!s) { mach_timebase_info_data_t i; mach_timebase_info(&i); s = (double)i.numer/i.denom/1e6; }
-    return mach_absolute_time() * s;
-}
-#endif
 
 int gpr_encode_fused(
     const uint8_t *raw_bayer,
