@@ -328,7 +328,12 @@ extern "C" {
 #endif
     
     CODEC_ERROR TransformInverseSpatialQuantBuffer(DECODER *decoder, void *output_buffer, DIMENSION output_width, DIMENSION output_pitch);
-    
+
+    /* Fast parallel decoder: drop-in replacement for DecodeImage */
+    CODEC_ERROR DecodeFastImage(const uint8_t *vc5_buf, size_t vc5_size,
+                                IMAGE *packed_image, RGB_IMAGE *rgb_image,
+                                DECODER_PARAMETERS *parameters);
+
 #ifdef __cplusplus
 }
 #endif
