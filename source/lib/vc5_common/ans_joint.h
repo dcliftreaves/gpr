@@ -52,12 +52,26 @@ typedef struct {
     uint16_t _pad;
 } JANS_DECODE_ENTRY;
 
+/*! Ultra-packed decode entry: ALL per-token info in one 16-byte struct.
+    Eliminates per-token division, class lookup, and class_to_run/mag. */
+typedef struct {
+    uint16_t freq;        /* Symbol frequency for rANS state update */
+    uint16_t cum_freq;    /* Cumulative frequency for rANS state update */
+    uint8_t  total_bits;  /* run_bits + mag_bits + (mc>0 ? 1 : 0) = total resid bits */
+    uint8_t  run_bits;    /* Extra bits for run class */
+    uint8_t  mag_bits;    /* Extra bits for mag class */
+    uint8_t  has_value;   /* 1 if mc > 0 (nonzero coefficient) */
+    uint16_t run_min;     /* Minimum run for this class */
+    uint16_t mag_min;     /* Minimum magnitude for this class */
+} JANS_DECODE_INFO;
+
 typedef struct {
     uint16_t freq[JANS_NUM_SYMBOLS + 1];
     uint16_t cum_freq[JANS_NUM_SYMBOLS + 1];
     uint32_t rcp_freq[JANS_NUM_SYMBOLS + 1];  /* Reciprocal: ceil(2^32 / freq) for division-free encode */
     uint16_t decode_sym[JANS_TABLE_SIZE];
     JANS_DECODE_ENTRY decode_fast[JANS_TABLE_SIZE]; /* Packed for fast decode */
+    JANS_DECODE_INFO decode_info[JANS_TABLE_SIZE]; /* Ultra-packed: all per-token info */
     int initialized;
 } JANS_TABLE;
 
