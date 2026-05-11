@@ -23,6 +23,8 @@
 #include "ans_joint.h"
 #include <pthread.h>
 
+#define FUSED_TIMING
+
 #if defined(FUSED_TIMING) || defined(FUSED_TIMING_DETAIL)
 #include <mach/mach_time.h>
 static double _fused_ms(void) {
@@ -304,28 +306,42 @@ static void count_freq_row(const PIXEL *data, int width,
     int col = 0;
 
 #if ENABLED(NEON)
-    /* Fast zero-skip: check 4 pixels at a time */
+    /* Fast 4-wide: NEON zero-skip + NEON magnitude classify (no LUT).
+       Classifier: mag_class = (|v| <= 7) ? |v| : min(36 - clz(|v|), 15).
+       Boundaries match fused_mag_class_min exactly (verified). */
     const int width_m4 = (width / 4) * 4;
+    const int32x4_t v_2047 = vdupq_n_s32(2047);
+    const int32x4_t v_7 = vdupq_n_s32(7);
+    const int32x4_t v_15 = vdupq_n_s32(15);
+    const int32x4_t v_36 = vdupq_n_s32(36);
     for (; col < width_m4; col += 4) {
         int32x4_t v = vld1q_s32(&data[col]);
-        /* Check if all 4 are zero: max of |v| == 0 */
-        uint32_t any_nonzero = vmaxvq_u32(vreinterpretq_u32_s32(vabsq_s32(v)));
+        int32x4_t absv = vabsq_s32(v);
+        uint32_t any_nonzero = vmaxvq_u32(vreinterpretq_u32_s32(absv));
         if (any_nonzero == 0) { run += 4; continue; }
 
-        /* At least one non-zero — process individually */
-        int32_t vals[4]; vst1q_s32(vals, v);
+        /* NEON magnitude classifier: avoids 4 LUT lookups */
+        int32x4_t clamped = vminq_s32(absv, v_2047);
+        int32x4_t clz_val = vreinterpretq_s32_u32(
+                                vclzq_u32(vreinterpretq_u32_s32(clamped)));
+        int32x4_t formula = vminq_s32(vsubq_s32(v_36, clz_val), v_15);
+        uint32x4_t is_small = vcleq_s32(clamped, v_7);
+        int32x4_t mag_class = vbslq_s32(is_small, clamped, formula);
+
+        int32_t vals[4], mcs[4];
+        vst1q_s32(vals, v);
+        vst1q_s32(mcs, mag_class);
+
         for (int k = 0; k < 4; k++) {
             int32_t val = vals[k];
             if (val == 0) { run++; continue; }
-            int32_t mag = (val < 0) ? -val : val;
             while (run >= 256) {
                 int rc = fused_run_to_class(255);
                 freq[rc * 16 + 0]++;
                 run -= 255;
             }
             int rc = fused_run_to_class(run);
-            int mc = fused_mag_to_class(mag > 2047 ? 2047 : mag);
-            freq[rc * 16 + mc]++;
+            freq[rc * 16 + mcs[k]]++;
             run = 0;
         }
     }
@@ -471,12 +487,25 @@ static void pass1_run_channel(
     PIXEL *unpack_row = (PIXEL *)malloc(ch_width * sizeof(PIXEL));
     if (!unpack_row) return;
 
+#ifdef FUSED_TIMING_DETAIL
+    double t_unpack = 0, t_horiz = 0, t_vert = 0, t_freq = 0;
+    double _td;
+#endif
+
     for (int row = 0; row < ch_height; row++) {
         const uint16_t *row1 = bayer + (row * 2) * bayer_pitch;
         const uint16_t *row2 = row1 + bayer_pitch;
 
+#ifdef FUSED_TIMING_DETAIL
+        _td = _fused_ms();
+#endif
+
         unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
                            row1, row2, unpack_row, ch_width);
+
+#ifdef FUSED_TIMING_DETAIL
+        t_unpack += _fused_ms() - _td; _td = _fused_ms();
+#endif
 
         int buf_idx = cs->buf_row % FUSED_ROW_BUFS;
         horizontal_filter(unpack_row,
@@ -484,6 +513,10 @@ static void pass1_run_channel(
                           cs->highpass_buf[buf_idx],
                           ch_width, prescale);
         cs->buf_row++;
+
+#ifdef FUSED_TIMING_DETAIL
+        t_horiz += _fused_ms() - _td; _td = _fused_ms();
+#endif
 
         if (cs->buf_row >= 6 && (cs->buf_row % 2) == 0) {
             int out_row = cs->band_out_row;
@@ -519,9 +552,17 @@ static void pass1_run_channel(
                 hl_row, hh_row, NULL, NULL,
                 is_top, is_bottom);
 
+#ifdef FUSED_TIMING_DETAIL
+            t_vert += _fused_ms() - _td; _td = _fused_ms();
+#endif
+
             count_freq_row(lh_row, bw, cs->freq[1], &cs->run_state[1]);
             count_freq_row(hl_row, bw, cs->freq[2], &cs->run_state[2]);
             count_freq_row(hh_row, bw, cs->freq[3], &cs->run_state[3]);
+
+#ifdef FUSED_TIMING_DETAIL
+            t_freq += _fused_ms() - _td;
+#endif
 
             cs->band_out_row++;
         }
@@ -531,6 +572,11 @@ static void pass1_run_channel(
     for (int band = 1; band < 4; band++) {
         count_freq_flush(cs->freq[band], &cs->run_state[band]);
     }
+
+#ifdef FUSED_TIMING_DETAIL
+    fprintf(stderr, "    ch%d: unpack=%.1f, horiz=%.1f, vert+quant=%.1f, freq=%.1f\n",
+            channel, t_unpack, t_horiz, t_vert, t_freq);
+#endif
 
     free(unpack_row);
 }
