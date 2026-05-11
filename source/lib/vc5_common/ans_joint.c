@@ -133,11 +133,14 @@ static int class_to_mag(int cls, int residual) {
 
 /* --- rANS core --- */
 
-static inline void rans_enc_put(uint32_t *state, uint8_t **pptr,
-                                uint32_t start, uint32_t freq, uint32_t rcp_freq) {
+/* Pass rans_ptr by value, return updated value. Lets the compiler keep
+   rans_ptr in a register across the 4 unrolled rans_enc_put calls per
+   loop iteration — no spill through &rans_ptr. */
+static inline uint8_t *rans_enc_put(uint32_t *state, uint8_t *ptr,
+                                    uint32_t start, uint32_t freq, uint32_t rcp_freq) {
     uint32_t x = *state;
     uint32_t x_max = ((RANS_BYTE_L >> JANS_TABLE_BITS) << 8) * freq;
-    while (x >= x_max) { *(*pptr)++ = (uint8_t)(x & 0xFF); x >>= 8; }
+    while (x >= x_max) { *ptr++ = (uint8_t)(x & 0xFF); x >>= 8; }
 
     /* Division-free encode with unified path for all freq values.
        build_tables stores 0xFFFFFFFF for freq=1 so the same formula
@@ -146,6 +149,7 @@ static inline void rans_enc_put(uint32_t *state, uint8_t **pptr,
     uint32_t mod = x - q * freq;
     if (mod >= freq) { q++; mod -= freq; }
     *state = (q << JANS_TABLE_BITS) + mod + start;
+    return ptr;
 }
 
 static inline int rans_dec_renorm(uint32_t *state, const uint8_t **pptr,
@@ -464,7 +468,7 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
 
     for (int i = token_count - 1; i >= 0; i--) {
         int sym = tokens[i];
-        rans_enc_put(&state, &rans_ptr,
+        rans_ptr = rans_enc_put(&state, rans_ptr,
                      table.cum_freq[sym], table.freq[sym], table.rcp_freq[sym]);
     }
     *rans_ptr++ = (uint8_t)(state >> 0);
@@ -769,10 +773,11 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
        output: tokens[i] -> states[i % 4]. */
     int i = token_count - 1;
     /* Align so that the unrolled chunk processes [i, i-1, i-2, i-3] where
-       (i % 4) == 3 — then each call below uses a constant stream index. */
+       (i % 4) == 3 — then each call below uses a constant stream index.
+       Pass rans_ptr by value to keep it in a register across calls. */
     while (i >= 0 && (i & 3) != 3) {
         int sym = tokens[i];
-        rans_enc_put(&states[i & 3], &rans_ptr,
+        rans_ptr = rans_enc_put(&states[i & 3], rans_ptr,
                      table.cum_freq[sym], table.freq[sym], table.rcp_freq[sym]);
         i--;
     }
@@ -781,18 +786,18 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
         int sym2 = tokens[i - 1];  /* stream 2 */
         int sym1 = tokens[i - 2];  /* stream 1 */
         int sym0 = tokens[i - 3];  /* stream 0 */
-        rans_enc_put(&states[3], &rans_ptr,
+        rans_ptr = rans_enc_put(&states[3], rans_ptr,
                      table.cum_freq[sym3], table.freq[sym3], table.rcp_freq[sym3]);
-        rans_enc_put(&states[2], &rans_ptr,
+        rans_ptr = rans_enc_put(&states[2], rans_ptr,
                      table.cum_freq[sym2], table.freq[sym2], table.rcp_freq[sym2]);
-        rans_enc_put(&states[1], &rans_ptr,
+        rans_ptr = rans_enc_put(&states[1], rans_ptr,
                      table.cum_freq[sym1], table.freq[sym1], table.rcp_freq[sym1]);
-        rans_enc_put(&states[0], &rans_ptr,
+        rans_ptr = rans_enc_put(&states[0], rans_ptr,
                      table.cum_freq[sym0], table.freq[sym0], table.rcp_freq[sym0]);
     }
     while (i >= 0) {
         int sym = tokens[i];
-        rans_enc_put(&states[i & 3], &rans_ptr,
+        rans_ptr = rans_enc_put(&states[i & 3], rans_ptr,
                      table.cum_freq[sym], table.freq[sym], table.rcp_freq[sym]);
         i--;
     }
