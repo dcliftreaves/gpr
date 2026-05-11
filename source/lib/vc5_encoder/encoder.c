@@ -358,18 +358,8 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
 
 	UNPACKED_IMAGE unpacked_image;
 
-#ifdef FAST_ENCODE_TIMING
-	{
-		static double _es = 0;
-		if (!_es) { mach_timebase_info_data_t info; mach_timebase_info(&info); _es = (double)info.numer/info.denom/1e6; }
-		double _et0 = mach_absolute_time() * _es;
-		error = ImageUnpackingProcess(image, &unpacked_image, parameters, &parameters->allocator);
-		fprintf(stderr, "  ENC %-20s %.1fms\n", "unpack", mach_absolute_time() * _es - _et0);
-	}
-#else
 	// Unpack the image into a set of component arrays
 	error = ImageUnpackingProcess(image, &unpacked_image, parameters, &parameters->allocator);
-#endif
 	if (error != CODEC_ERROR_OKAY) {
 		return error;
 	}
