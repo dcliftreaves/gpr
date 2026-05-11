@@ -415,7 +415,7 @@ static INLINE int32x4_t log_curve_neon_poly16(int32x4_t xi)
     const float32x4_t inv_max = vdupq_n_f32(1.0f / 65535.0f);
     x = vmulq_f32(x, inv_max);
 
-    /* 6th-order polynomial coefficients */
+    /* 6th-order polynomial (max_err=27/65535 = 0.04%) — Horner evaluation */
     float32x4_t y = vdupq_n_f32(115930.82f);         /* c6 */
     y = vmlaq_f32(vdupq_n_f32(-196522.70f), y, x);   /* c6*x + c5 */
     y = vmlaq_f32(vdupq_n_f32(183116.82f), y, x);    /* *x + c4 */
