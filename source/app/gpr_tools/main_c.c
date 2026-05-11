@@ -318,7 +318,28 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( input_file_type == FILE_TYPE_RAW && output_file_type == FILE_TYPE_GPR )
     {
-        success = gpr_convert_raw_to_gpr( &allocator, &params, &input_buffer, &output_buffer );
+        /* Try fast encode path first (bypasses DNG SDK write) */
+        extern int gpr_fast_encode(const uint8_t *raw_data, size_t raw_size,
+                                    int width, int height, int pixel_format,
+                                    int ans_enabled, int embedded_mode,
+                                    void **gpr_output, size_t *gpr_size);
+        void *fast_out = NULL;
+        size_t fast_sz = 0;
+        int pf = 1; /* RGGB_14 default */
+        int enc_rc = gpr_fast_encode((const uint8_t *)input_buffer.buffer, input_buffer.size,
+                                      params.input_width, params.input_height, pf,
+                                      params.tuning_info.ans_enabled,
+                                      params.tuning_info.embedded_mode,
+                                      &fast_out, &fast_sz);
+        if (enc_rc != 0) fprintf(stderr, "gpr_fast_encode failed: %d (w=%d h=%d)\n", enc_rc, params.input_width, params.input_height);
+        if (enc_rc == 0 && fast_out) {
+            output_buffer.buffer = fast_out;
+            output_buffer.size = fast_sz;
+            success = 1;
+        } else {
+            /* Fallback to DNG SDK */
+            success = gpr_convert_raw_to_gpr( &allocator, &params, &input_buffer, &output_buffer );
+        }
     }
 #endif
 #if GPR_READING
