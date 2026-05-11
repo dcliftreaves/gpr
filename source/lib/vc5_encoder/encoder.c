@@ -780,6 +780,31 @@ CODEC_ERROR PrepareEncoderTransforms(ENCODER *encoder)
 /*!
 	@brief Unpack the image into component arrays for encoding
 */
+/* Parallel unpack thread arg and function */
+#ifndef _WIN32
+typedef struct {
+    PACKED_IMAGE sub_input;
+    UNPACKED_IMAGE sub_output;
+    COMPONENT_ARRAY sub_comp[MAX_CHANNEL_COUNT];
+    ENABLED_PARTS enabled_parts;
+    PIXEL_FORMAT format;
+} UNPACK_THREAD_ARG;
+
+static void *unpack_thread_func(void *arg) {
+    UNPACK_THREAD_ARG *a = (UNPACK_THREAD_ARG *)arg;
+    switch (a->format) {
+        case PIXEL_FORMAT_RAW_RGGB_14: UnpackImage_14(&a->sub_input, &a->sub_output, a->enabled_parts, true); break;
+        case PIXEL_FORMAT_RAW_GBRG_14: UnpackImage_14(&a->sub_input, &a->sub_output, a->enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_RGGB_16: UnpackImage_16(&a->sub_input, &a->sub_output, a->enabled_parts, true); break;
+        case PIXEL_FORMAT_RAW_GBRG_16: UnpackImage_16(&a->sub_input, &a->sub_output, a->enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_RGGB_12: UnpackImage_12(&a->sub_input, &a->sub_output, a->enabled_parts, true); break;
+        case PIXEL_FORMAT_RAW_GBRG_12: UnpackImage_12(&a->sub_input, &a->sub_output, a->enabled_parts, false); break;
+        default: break;
+    }
+    return NULL;
+}
+#endif
+
 CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
 								  UNPACKED_IMAGE *output,
 								  const ENCODER_PARAMETERS *parameters,
@@ -829,44 +854,76 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
 		input->format, bits_per_component);
 
     
-    // The configuration of component arrays is determined by the image format
+    /* Parallel image unpack: split rows across 4 threads.
+       Each thread creates a sub-image covering its row stripe and calls the
+       appropriate UnpackImage function. The sub-image adjusts input buffer
+       offset and output component pointers to the correct row. */
+#ifndef _WIN32
+    {
+        int num_threads = 4;
+        int half_height = max_channel_height; /* rows in Bayer half-height */
+        int rows_per = half_height / num_threads;
+        if (rows_per < 1) rows_per = half_height;
+
+        pthread_t unpack_threads[4];
+        UNPACK_THREAD_ARG unpack_args[4];
+        int unpack_created[4];
+
+        for (int t = 0; t < num_threads; t++) {
+            int row_start = t * rows_per;
+            int row_end = (t == num_threads - 1) ? half_height : (t + 1) * rows_per;
+            int stripe_height = row_end - row_start;
+            if (stripe_height <= 0) { unpack_created[t] = 0; continue; }
+
+            /* Create sub-images pointing to the correct row offsets */
+            UNPACK_THREAD_ARG *a = &unpack_args[t];
+            a->sub_input = *input;
+            a->sub_input.height = stripe_height * 2; /* Bayer rows */
+            a->sub_input.offset = input->offset + row_start * 2 * input->pitch;
+
+            a->sub_output.component_count = output->component_count;
+            a->sub_output.component_array_list = a->sub_comp;
+            for (int ch = 0; ch < channel_count; ch++) {
+                a->sub_comp[ch] = output->component_array_list[ch];
+                a->sub_comp[ch].height = stripe_height;
+                a->sub_comp[ch].data = (COMPONENT_VALUE *)((uintptr_t)output->component_array_list[ch].data
+                    + row_start * output->component_array_list[ch].pitch);
+            }
+            a->enabled_parts = enabled_parts;
+            a->format = input->format;
+
+            /* Thread function just calls the right unpack */
+            unpack_created[t] = 0; /* will set to 1 if thread created */
+        }
+
+        for (int t = 0; t < num_threads; t++) {
+            if (unpack_args[t].sub_input.height <= 0) continue;
+            unpack_created[t] = (pthread_create(&unpack_threads[t], NULL,
+                                                 unpack_thread_func, &unpack_args[t]) == 0);
+            if (!unpack_created[t])
+                unpack_thread_func(&unpack_args[t]);
+        }
+
+        for (int t = 0; t < num_threads; t++) {
+            if (unpack_created[t])
+                pthread_join(unpack_threads[t], NULL);
+        }
+    }
+#else
+    /* Serial fallback */
     switch (input->format)
     {
-        case PIXEL_FORMAT_RAW_RGGB_14:
-            UnpackImage_14(input, output, enabled_parts, true );
-            break;
-
-        case PIXEL_FORMAT_RAW_GBRG_14:
-            UnpackImage_14(input, output, enabled_parts, false );
-            break;
-
-        case PIXEL_FORMAT_RAW_RGGB_12:
-            UnpackImage_12(input, output, enabled_parts, true );
-            break;
-
-        case PIXEL_FORMAT_RAW_GBRG_12:
-            UnpackImage_12(input, output, enabled_parts, false );
-            break;
-
-        case PIXEL_FORMAT_RAW_RGGB_12P:
-            UnpackImage_12P(input, output, enabled_parts, true );
-            break;
-
-        case PIXEL_FORMAT_RAW_GBRG_12P:
-            UnpackImage_12P(input, output, enabled_parts, false );
-            break;
-
-        case PIXEL_FORMAT_RAW_RGGB_16:
-            UnpackImage_16(input, output, enabled_parts, true );
-            break;
-
-        case PIXEL_FORMAT_RAW_GBRG_16:
-            UnpackImage_16(input, output, enabled_parts, false );
-            break;
-            
-        default:
-            return CODEC_ERROR_PIXEL_FORMAT;
+        case PIXEL_FORMAT_RAW_RGGB_14: UnpackImage_14(input, output, enabled_parts, true); break;
+        case PIXEL_FORMAT_RAW_GBRG_14: UnpackImage_14(input, output, enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_RGGB_12: UnpackImage_12(input, output, enabled_parts, true); break;
+        case PIXEL_FORMAT_RAW_GBRG_12: UnpackImage_12(input, output, enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_RGGB_12P: UnpackImage_12P(input, output, enabled_parts, true); break;
+        case PIXEL_FORMAT_RAW_GBRG_12P: UnpackImage_12P(input, output, enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_RGGB_16: UnpackImage_16(input, output, enabled_parts, true); break;
+        case PIXEL_FORMAT_RAW_GBRG_16: UnpackImage_16(input, output, enabled_parts, false); break;
+        default: return CODEC_ERROR_PIXEL_FORMAT;
     }
+#endif
     
 	return CODEC_ERROR_OKAY;
 }
