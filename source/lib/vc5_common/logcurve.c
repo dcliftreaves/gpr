@@ -20,9 +20,16 @@
 
 #include "common.h"
 
+static int _logcurve_bypass = 0;
+
 int vc5_logcurve_bypass(void)
 {
-    return 0;
+    return _logcurve_bypass;
+}
+
+void vc5_logcurve_set_bypass(int bypass)
+{
+    _logcurve_bypass = bypass;
 }
 
 uint16_t EncoderLogCurve12[LOG_CURVE_TABLE_LENGTH_12];
