@@ -135,7 +135,18 @@ static inline void rans_enc_put(uint32_t *state, uint8_t **pptr,
     uint32_t x = *state;
     uint32_t x_max = ((RANS_BYTE_L >> JANS_TABLE_BITS) << 8) * freq;
     while (x >= x_max) { *(*pptr)++ = (uint8_t)(x & 0xFF); x >>= 8; }
-    *state = ((x / freq) << JANS_TABLE_BITS) + (x % freq) + start;
+
+    /* Division-free encode using precomputed rcp_freq = floor(2^32 / freq).
+       64-bit mul + correction is ~3-15 cycles cheaper than 32-bit udiv on
+       Cortex-A78 / A53. Special case freq=1 because rcp would be 2^32 (wraps). */
+    if (freq == 1) {
+        *state = (x << JANS_TABLE_BITS) + start;
+    } else {
+        uint32_t q = (uint32_t)(((uint64_t)x * rcp_freq) >> 32);
+        uint32_t mod = x - q * freq;
+        if (mod >= freq) { q++; mod -= freq; }
+        *state = (q << JANS_TABLE_BITS) + mod + start;
+    }
 }
 
 static inline int rans_dec_renorm(uint32_t *state, const uint8_t **pptr,
