@@ -510,10 +510,10 @@ static void *fast_pack_thread(void *arg)
 
                 /* Apply log curve: NEON piecewise linear for 14-bit, scalar LUT fallback */
                 int32_t ra[4], g1a[4], g2a[4], ba[4];
-                if (!bypass && (log_bits == 14 || log_bits == 16)) {
-                    /* NEON piecewise linear approximation — 4 values at once */
-                    const LOG_APPROX_SEG *tbl = (log_bits == 14) ? log_approx_14 : log_approx_16;
-                    int max_seg = (log_bits == 14) ? 256 : 1024;
+                if (!bypass && log_bits == 14) {
+                    /* NEON piecewise linear approximation — 14-bit only (2KB table) */
+                    const LOG_APPROX_SEG *tbl = log_approx_14;
+                    int max_seg = 256;
                     int32x4_t neg_shift = vdupq_n_s32(-shift);
                     int32x4_t r_log  = vshlq_s32(log_curve_neon(r, tbl, max_seg), neg_shift);
                     int32x4_t g1_log = vshlq_s32(log_curve_neon(g1, tbl, max_seg), neg_shift);
