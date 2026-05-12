@@ -124,6 +124,9 @@ int main(int argc, char **argv) {
     double gc_stall   = atof(argv[9]);
     double gc_period  = atof(argv[10]);
     int ring_depth = (argc > 11) ? atoi(argv[11]) : 3;
+    double noise_scale  = (argc > 12) ? atof(argv[12]) : 0.0;  /* 0 = no denoise */
+    double noise_offset = (argc > 13) ? atof(argv[13]) : 0.0;
+    double denoise_strength = (argc > 14) ? atof(argv[14]) : 0.0;
 
     /* Load one frame; we replay it as if it were a stream. */
     FILE *f = fopen(raw_path, "rb");
@@ -153,9 +156,19 @@ int main(int argc, char **argv) {
     ws.gc_stall_ms = gc_stall;
     ws.gc_period_s = gc_period;
 
+    /* Denoise must be set BEFORE first submit. Force split mode since
+       wavelet denoise requires the band buffer. */
+    if (denoise_strength > 0.0) setenv("FUSED_INLINE_TOKENIZE", "0", 1);
+
     GPR_VIDEO_ENCODER *enc = gpr_video_encoder_create(
         w, h, pf, q, ring_depth, throttled_writer, &ws);
     if (!enc) { fprintf(stderr, "encoder create failed\n"); return 1; }
+
+    if (denoise_strength > 0.0) {
+        gpr_video_encoder_set_denoise(enc, noise_scale, noise_offset, denoise_strength);
+        fprintf(stderr, "  denoise:      scale=%g offset=%g strength=%g\n",
+                noise_scale, noise_offset, denoise_strength);
+    }
 
     double frame_interval_ms = 1000.0 / target_fps;
     double sim_start = now_ms();
