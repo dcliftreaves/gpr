@@ -95,7 +95,9 @@ extern uint16_t DecoderLogCurve16[];
 #define BANDS_PER_FRAME (4 * BANDS_PER_CHANNEL)
 #define FUSED_LL_DIVISOR  64  /* Must match encoder's value in fused_encode.c */
 #define FUSED_LL1_DIVISOR 64  /* Must match encoder's value in fused_encode.c */
+#ifndef FUSED_LL2_DIVISOR
 #define FUSED_LL2_DIVISOR 64  /* Must match encoder's value in fused_encode.c */
+#endif
 
 /* ============================================================
    Per-frame bitstream collection (copy from existing test)
@@ -1574,6 +1576,30 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
     out->psnr_raw_total = psnr_per_bayer_channel(
         (const uint16_t *)raw, recon_bayer, w, h, log_bits, is_rggb,
         out->psnr_raw_per_ch);
+
+    /* Optional: dump reconstructed Bayer as 16-bit PGM (big-endian, per PGM spec).
+       Env var DUMP_BAYER=/path/to/file.pgm enables the dump. Only the first
+       frame of the run is written (avoid overwriting on multi-frame runs). */
+    {
+        static int dumped_already = 0;
+        const char *dump_path = getenv("DUMP_BAYER");
+        if (dump_path && dump_path[0] && !dumped_already) {
+            FILE *fp = fopen(dump_path, "wb");
+            if (fp) {
+                fprintf(fp, "P5\n%d %d\n65535\n", w, h);
+                uint8_t *be = (uint8_t *)malloc((size_t)w * h * 2);
+                for (size_t k = 0, n = (size_t)w * h; k < n; k++) {
+                    be[2*k]     = (uint8_t)(recon_bayer[k] >> 8);
+                    be[2*k + 1] = (uint8_t)(recon_bayer[k] & 0xFF);
+                }
+                fwrite(be, 1, (size_t)w * h * 2, fp);
+                free(be);
+                fclose(fp);
+                fprintf(stderr, "  DUMP_BAYER -> %s (%dx%d 16-bit)\n", dump_path, w, h);
+                dumped_already = 1;
+            }
+        }
+    }
 
     /* Cleanup */
     for (int i = 0; i < 4; i++) {
