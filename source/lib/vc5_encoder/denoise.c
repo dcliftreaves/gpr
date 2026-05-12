@@ -16,6 +16,10 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(__aarch64__) || defined(__ARM_NEON)
+#include <arm_neon.h>
+#define DENOISE_NEON 1
+#endif
 
 /*! MAD-to-sigma normalization: 1 / 0.6745 (Donoho & Johnstone) */
 #define MAD_SIGMA_FACTOR 1.4826
@@ -291,25 +295,56 @@ void NoiseAwareRequantize(PIXEL *data, DIMENSION width, DIMENSION height,
     double half_step = step * 0.5;
     int32_t istep = (int32_t)(step + 0.5);
     if (istep <= 0) istep = 1;
+    int32_t half_step_i = (int32_t)(half_step + 0.5);
 
     int pitch_pixels = pitch / sizeof(PIXEL);
 
     for (int row = 0; row < height; row++)
     {
         PIXEL *row_ptr = data + row * pitch_pixels;
-        for (int col = 0; col < width; col++)
+        int col = 0;
+#if DENOISE_NEON
+        /* NEON: 4-wide branchless requantize.
+           Integer divide replaced by float reciprocal-multiply
+           (vcvtnq round-to-nearest matches the (x + istep/2)/istep integer math
+           except at exact half-points, which off-by-1 LSB at noise floor is
+           a non-issue for compression). */
+        const float    inv_step = 1.0f / (float)istep;
+        const int32x4_t vistep      = vdupq_n_s32(istep);
+        const int32x4_t vhalf_step  = vdupq_n_s32(half_step_i);
+        const int32x4_t vzero       = vdupq_n_s32(0);
+        const float32x4_t vinv_step = vdupq_n_f32(inv_step);
+
+        for (; col + 4 <= width; col += 4) {
+            int32x4_t v     = vld1q_s32(&row_ptr[col]);
+            int32x4_t abs_v = vabsq_s32(v);
+            /* mask_zero[i] = all-1s if |v| < half_step_i */
+            uint32x4_t mask_zero = vcltq_s32(abs_v, vhalf_step);
+            /* quantized = round(abs_v / istep) * istep */
+            float32x4_t abs_f = vcvtq_f32_s32(abs_v);
+            float32x4_t q_f   = vmulq_f32(abs_f, vinv_step);
+            int32x4_t   q_idx = vcvtnq_s32_f32(q_f);              /* round-to-nearest */
+            int32x4_t   quant = vmulq_s32(q_idx, vistep);
+            /* Apply original sign */
+            uint32x4_t neg_mask = vcltq_s32(v, vzero);
+            int32x4_t  signed_q = vbslq_s32(neg_mask, vnegq_s32(quant), quant);
+            /* Zero where |v| < half_step */
+            int32x4_t  result   = vbslq_s32(mask_zero, vzero, signed_q);
+            vst1q_s32(&row_ptr[col], result);
+        }
+#endif
+        /* Scalar tail (and full path on non-NEON builds) */
+        for (; col < width; col++)
         {
             int32_t val = row_ptr[col];
             int32_t abs_val = (val < 0) ? -val : val;
 
-            if (abs_val < (int32_t)(half_step + 0.5))
+            if (abs_val < half_step_i)
             {
-                /* Below half a quantization step — pure noise */
                 row_ptr[col] = 0;
             }
             else
             {
-                /* Round to nearest multiple of step */
                 int32_t quantized = ((abs_val + istep / 2) / istep) * istep;
                 row_ptr[col] = (val > 0) ? quantized : -quantized;
             }
