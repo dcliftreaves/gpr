@@ -55,6 +55,11 @@ jobs:
           # cmake & clang come with the macOS runner image; just sanity check.
           cmake --version
           clang --version
+          # GNU coreutils for `timeout` (macOS ships BSD utils, no timeout).
+          # Add the gnubin dir to PATH so `timeout` resolves to gtimeout
+          # without per-call renaming.
+          brew install coreutils
+          echo "$(brew --prefix coreutils)/libexec/gnubin" >> "$GITHUB_PATH"
 
       - name: Configure
         run: |
