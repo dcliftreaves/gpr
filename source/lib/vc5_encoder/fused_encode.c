@@ -525,6 +525,114 @@ typedef struct {
    Per-channel Pass 1 (one of 4 parallel threads)
    ================================================================ */
 
+/* Combined 4-channel unpack from one Bayer row pair.
+   Each Bayer 2×2 block produces exactly 4 unique log_tbl lookups (R, G1, G2, B)
+   shared across all 4 channel outputs:
+     GS = (G1+G2)>>1
+     RG = ((R-GS)+mid2)>>1
+     BG = ((B-GS)+mid2)>>1
+     GD = ((G1-G2)+mid2)>>1
+   vs. the per-channel unpack which redundantly looks up G1/G2 four times
+   (2 LUTs ch0+ch3 each, 3 LUTs ch1+ch2 each = 10 LUTs per block, only 4 unique).
+   NEON path uses vld2q_u16 to deinterleave Bayer pairs and vminq_u16 for
+   branchless clip. */
+static void unpack_all_channels_row(
+    int is_rggb,
+    const uint16_t *log_tbl, int log_max, int32_t mid2,
+    const uint16_t *row1, const uint16_t *row2,
+    PIXEL *out_gs, PIXEL *out_rg, PIXEL *out_bg, PIXEL *out_gd,
+    int ch_width)
+{
+    int col = 0;
+
+#if ENABLED(NEON)
+    /* Process 8 Bayer blocks (16 source pixels per row, 8 outputs per channel) per iter. */
+    const int ch_width_m8 = (ch_width / 8) * 8;
+    const int32x4_t vmid2 = vdupq_n_s32(mid2);
+    const uint16x8_t vclip = vdupq_n_u16((uint16_t)log_max);
+
+    for (; col < ch_width_m8; col += 8) {
+        /* Deinterleaved load: row1 holds [A B A B ...], row2 holds [C D C D ...].
+           For RGGB: A=R, B=G1 in row1; C=G2, D=B in row2.
+           For GBRG: A=G1, B=B in row1; C=R, D=G2 in row2. */
+        uint16x8x2_t r1 = vld2q_u16(&row1[2*col]);
+        uint16x8x2_t r2 = vld2q_u16(&row2[2*col]);
+
+        uint16x8_t Rv, G1v, G2v, Bv;
+        if (is_rggb) {
+            Rv  = r1.val[0]; G1v = r1.val[1];
+            G2v = r2.val[0]; Bv  = r2.val[1];
+        } else {
+            G1v = r1.val[0]; Bv  = r1.val[1];
+            Rv  = r2.val[0]; G2v = r2.val[1];
+        }
+        /* Branchless clip to log_max. */
+        Rv  = vminq_u16(Rv,  vclip);
+        G1v = vminq_u16(G1v, vclip);
+        G2v = vminq_u16(G2v, vclip);
+        Bv  = vminq_u16(Bv,  vclip);
+
+        /* Spill clipped values to stack and gather 4 LUT lookups per lane (8 lanes). */
+        uint16_t Rs[8], G1s[8], G2s[8], Bs[8];
+        vst1q_u16(Rs,  Rv);
+        vst1q_u16(G1s, G1v);
+        vst1q_u16(G2s, G2v);
+        vst1q_u16(Bs,  Bv);
+
+        int32_t r_arr[8], g1_arr[8], g2_arr[8], b_arr[8];
+        for (int k = 0; k < 8; k++) {
+            r_arr[k]  = log_tbl[Rs[k]];
+            g1_arr[k] = log_tbl[G1s[k]];
+            g2_arr[k] = log_tbl[G2s[k]];
+            b_arr[k]  = log_tbl[Bs[k]];
+        }
+
+        /* Process the 8 outputs as 2 × 4-wide NEON tiles. */
+        for (int half = 0; half < 2; half++) {
+            int32x4_t vr  = vld1q_s32(&r_arr[half*4]);
+            int32x4_t vg1 = vld1q_s32(&g1_arr[half*4]);
+            int32x4_t vg2 = vld1q_s32(&g2_arr[half*4]);
+            int32x4_t vb  = vld1q_s32(&b_arr[half*4]);
+
+            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            int32x4_t vgd = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+            int32x4_t vrg = vshrq_n_s32(vaddq_s32(vsubq_s32(vr, vgs), vmid2), 1);
+            int32x4_t vbg = vshrq_n_s32(vaddq_s32(vsubq_s32(vb, vgs), vmid2), 1);
+
+            vst1q_s32(&out_gs[col + half*4], vgs);
+            vst1q_s32(&out_rg[col + half*4], vrg);
+            vst1q_s32(&out_bg[col + half*4], vbg);
+            vst1q_s32(&out_gd[col + half*4], vgd);
+        }
+    }
+#endif
+
+    /* Scalar cleanup for tail columns. */
+    for (; col < ch_width; col++) {
+        uint16_t R1, G1, G2, B1;
+        if (is_rggb) {
+            R1 = row1[2*col];   G1 = row1[2*col+1];
+            G2 = row2[2*col];   B1 = row2[2*col+1];
+        } else {
+            G1 = row1[2*col];   B1 = row1[2*col+1];
+            R1 = row2[2*col];   G2 = row2[2*col+1];
+        }
+        if (R1 > log_max) R1 = log_max;
+        if (G1 > log_max) G1 = log_max;
+        if (G2 > log_max) G2 = log_max;
+        if (B1 > log_max) B1 = log_max;
+        int32_t r  = log_tbl[R1];
+        int32_t g1 = log_tbl[G1];
+        int32_t g2 = log_tbl[G2];
+        int32_t b  = log_tbl[B1];
+        int32_t gs = (g1 + g2) >> 1;
+        out_gs[col] = gs;
+        out_rg[col] = ((r - gs) + mid2) >> 1;
+        out_bg[col] = ((b - gs) + mid2) >> 1;
+        out_gd[col] = ((g1 - g2) + mid2) >> 1;
+    }
+}
+
 /* Unpack ONE channel from a Bayer row pair (called per output row by a channel thread).
    GS/GD need G1+G2 only. RG/BG also need R or B and compute GS as an intermediate.
    NEON path: 4-wide arithmetic with scalar LUT lookups (gather phase + NEON compute). */
@@ -872,6 +980,158 @@ typedef struct {
     volatile int p1_done[4];
 } CHANNEL_SYNC;
 
+/* ================================================================
+   Shared-unpack ring buffer (N producers + 4 consumers)
+   ----------------------------------------------------------------
+   N producer threads (row-interleaved: producer p handles rows where
+   row % N_PRODUCERS == p) cooperatively fill a small ring of unpacked
+   rows (4 channel-row pointers per slot). The 4 P1 channel consumer
+   threads each consume their channel from the ring and run
+   horiz+vert+quant as before. This eliminates the ~10 LUT lookups per
+   Bayer block (only 4 unique) duplicated across the 4 prior per-channel
+   unpack threads — each Bayer block now goes through the log curve once
+   per pixel-lane instead of 2.5×.
+
+   Each ring slot s carries the row number currently occupying it in
+   slot_row[s]; consumers wait for slot_row[s] == r before reading row r.
+   Producers wait for min_consumer > r - N_RING before writing slot s.
+   N_RING = 64 → ~4.5 MB at 50 MP. Signalling batched every
+   RING_BATCH rows to keep mutex traffic low. */
+#define UNPACK_RING_SIZE  64
+#define UNPACK_RING_BATCH 16
+#ifndef UNPACK_PRODUCERS
+#define UNPACK_PRODUCERS  4
+#endif
+
+typedef struct {
+    PIXEL *rows[UNPACK_RING_SIZE][4];  /* row buf per slot per channel */
+    int ch_width;
+    int total_rows;
+
+    /* slot_row[s] = row number currently occupying slot s (or s - N_RING
+       initially). When producer finishes writing row r to slot s, it sets
+       slot_row[s] = r. Consumers read slot s for row r once slot_row[s] >= r. */
+    volatile int slot_row[UNPACK_RING_SIZE];
+
+    /* Per-producer position (rows produced so far in this producer's stride). */
+    volatile int prod_max_row[UNPACK_PRODUCERS];
+
+    /* Per-consumer position (rows consumed so far, monotonic). */
+    volatile int consumed[4];
+
+    pthread_mutex_t lock;
+    pthread_cond_t  prod_cv;   /* producers wait when ring is full */
+    pthread_cond_t  cons_cv;   /* consumers wait when ring is empty */
+} UNPACK_RING;
+
+static int unpack_ring_init(UNPACK_RING *ring, int ch_width, int total_rows) {
+    memset(ring, 0, sizeof(*ring));
+    ring->ch_width = ch_width;
+    ring->total_rows = total_rows;
+    for (int s = 0; s < UNPACK_RING_SIZE; s++) {
+        for (int c = 0; c < 4; c++) {
+            ring->rows[s][c] = (PIXEL *)malloc(ch_width * sizeof(PIXEL));
+            if (!ring->rows[s][c]) return -1;
+        }
+        ring->slot_row[s] = s - UNPACK_RING_SIZE;  /* "before-start" sentinel */
+    }
+    pthread_mutex_init(&ring->lock, NULL);
+    pthread_cond_init(&ring->prod_cv, NULL);
+    pthread_cond_init(&ring->cons_cv, NULL);
+    return 0;
+}
+
+static void unpack_ring_destroy(UNPACK_RING *ring) {
+    for (int s = 0; s < UNPACK_RING_SIZE; s++) {
+        for (int c = 0; c < 4; c++) {
+            if (ring->rows[s][c]) free(ring->rows[s][c]);
+        }
+    }
+    pthread_mutex_destroy(&ring->lock);
+    pthread_cond_destroy(&ring->prod_cv);
+    pthread_cond_destroy(&ring->cons_cv);
+}
+
+typedef struct {
+    UNPACK_RING *ring;
+    int producer_id;       /* 0..UNPACK_PRODUCERS-1 */
+    const uint8_t *raw_bayer;
+    int width, height;     /* full image dimensions (rows = height/2 = ring->total_rows) */
+    int log_bits, is_rggb;
+} UNPACK_PRODUCER_TASK;
+
+static void *unpack_producer_thread(void *arg) {
+    UNPACK_PRODUCER_TASK *t = (UNPACK_PRODUCER_TASK *)arg;
+    UNPACK_RING *ring = t->ring;
+    int pid = t->producer_id;
+    const uint16_t *bayer = (const uint16_t *)t->raw_bayer;
+    int bayer_pitch = t->width;
+    int ch_width = ring->ch_width;
+    int total_rows = ring->total_rows;
+    int log_bits = t->log_bits;
+    int is_rggb = t->is_rggb;
+    int32_t mid2 = 2 * (1 << (log_bits - 1));
+    uint16_t *log_tbl = (log_bits <= 14) ? EncoderLogCurve14 : EncoderLogCurve16;
+    int log_max = (log_bits <= 14) ? 16383 : 65535;
+    int batch_counter = 0;
+
+#ifdef FUSED_TIMING_DETAIL
+    double _start = _fused_ms();
+#endif
+
+    /* Row-interleaved: each producer handles rows where row % N_PRODUCERS == pid. */
+    for (int row = pid; row < total_rows; row += UNPACK_PRODUCERS) {
+        int slot = row % UNPACK_RING_SIZE;
+
+        /* Wait until all consumers have advanced past row - UNPACK_RING_SIZE
+           so the slot is free to overwrite. */
+        if (row >= UNPACK_RING_SIZE) {
+            pthread_mutex_lock(&ring->lock);
+            for (;;) {
+                int min_cons = ring->consumed[0];
+                if (ring->consumed[1] < min_cons) min_cons = ring->consumed[1];
+                if (ring->consumed[2] < min_cons) min_cons = ring->consumed[2];
+                if (ring->consumed[3] < min_cons) min_cons = ring->consumed[3];
+                if (min_cons > row - UNPACK_RING_SIZE) break;
+                pthread_cond_wait(&ring->prod_cv, &ring->lock);
+            }
+            pthread_mutex_unlock(&ring->lock);
+        }
+
+        const uint16_t *row1 = bayer + (row * 2) * bayer_pitch;
+        const uint16_t *row2 = row1 + bayer_pitch;
+
+        unpack_all_channels_row(is_rggb, log_tbl, log_max, mid2,
+                                row1, row2,
+                                ring->rows[slot][0], ring->rows[slot][1],
+                                ring->rows[slot][2], ring->rows[slot][3],
+                                ch_width);
+
+        /* Publish this slot. Use a per-slot row-number tag so the consumer
+           knows when slot s contains row r (slot_row[s] == r).
+           Periodic mutex broadcast wakes the consumer; in between, the plain
+           volatile stores are picked up by the consumer's spin-then-wait. */
+        ring->slot_row[slot] = row;
+        ring->prod_max_row[pid] = row;
+        batch_counter++;
+        if (batch_counter >= UNPACK_RING_BATCH || row + UNPACK_PRODUCERS >= total_rows) {
+            pthread_mutex_lock(&ring->lock);
+            pthread_cond_broadcast(&ring->cons_cv);
+            pthread_mutex_unlock(&ring->lock);
+            batch_counter = 0;
+        }
+    }
+
+#ifdef FUSED_TIMING_DETAIL
+    double _end = _fused_ms();
+    if (pid == 0) {
+        fprintf(stderr, "    producer-unpack[0..%d]: %.1fms (P0 thread, %d producers total)\n",
+                UNPACK_PRODUCERS - 1, _end - _start, UNPACK_PRODUCERS);
+    }
+#endif
+    return NULL;
+}
+
 typedef struct {
     int channel;
     const uint8_t *raw_bayer;
@@ -879,12 +1139,173 @@ typedef struct {
     int log_bits, is_rggb, prescale;
     FUSED_CHANNEL_STATE *cs;
     CHANNEL_SYNC *sync;
+    UNPACK_RING *ring;   /* if non-NULL, consume from ring instead of unpacking */
 } PASS1_CHANNEL_TASK;
+
+/* Producer/consumer variant of pass1_run_channel: consumes unpacked channel
+   rows from the shared ring (filled by unpack_producer_thread). Otherwise
+   identical to pass1_run_channel: horiz → vert+quant → optional tokenize. */
+static void pass1_run_channel_consumer(
+    int channel,
+    int width, int height,
+    int prescale,
+    FUSED_CHANNEL_STATE *cs,
+    UNPACK_RING *ring)
+{
+    int ch_width = width / 2;
+    int ch_height = height / 2;
+    (void)ch_width;  /* used via ring->ch_width */
+
+#ifdef FUSED_TIMING_DETAIL
+    double t_wait = 0, t_horiz = 0, t_vert = 0, t_freq = 0;
+    double _td;
+    double _ch_start = _fused_ms();
+#endif
+
+    for (int row = 0; row < ch_height; row++) {
+        int slot = row % UNPACK_RING_SIZE;
+#ifdef FUSED_TIMING_DETAIL
+        _td = _fused_ms();
+#endif
+        /* Wait for SOME producer to have published this row. slot_row[slot]
+           starts negative and only grows in increments of UNPACK_RING_SIZE;
+           we want slot_row[slot] == row. */
+        if (ring->slot_row[slot] < row) {
+            /* Brief spin in case the producer is about to publish (avoid the
+               mutex when the producer is already finishing this row). */
+            for (int spin = 0; spin < 1024; spin++) {
+                if (ring->slot_row[slot] >= row) break;
+            }
+            if (ring->slot_row[slot] < row) {
+                pthread_mutex_lock(&ring->lock);
+                while (ring->slot_row[slot] < row) {
+                    pthread_cond_wait(&ring->cons_cv, &ring->lock);
+                }
+                pthread_mutex_unlock(&ring->lock);
+            }
+        }
+#ifdef FUSED_TIMING_DETAIL
+        t_wait += _fused_ms() - _td; _td = _fused_ms();
+#endif
+
+        PIXEL *unpack_row = ring->rows[slot][channel];
+
+        int buf_idx = cs->buf_row % FUSED_ROW_BUFS;
+        horizontal_filter(unpack_row,
+                          cs->lowpass_buf[buf_idx],
+                          cs->highpass_buf[buf_idx],
+                          width / 2, prescale);
+        cs->buf_row++;
+
+#ifdef FUSED_TIMING_DETAIL
+        t_horiz += _fused_ms() - _td; _td = _fused_ms();
+#endif
+
+        if (cs->buf_row >= 6 && (cs->buf_row % 2) == 0) {
+            int out_row = cs->band_out_row;
+            if (out_row >= cs->band_height) goto advance_consumer;
+
+            PIXEL *lp_rows[6], *hp_rows[6];
+            int base = (cs->buf_row - 6) % FUSED_ROW_BUFS;
+            for (int r = 0; r < 6; r++) {
+                int idx = (base + r) % FUSED_ROW_BUFS;
+                lp_rows[r] = cs->lowpass_buf[idx];
+                hp_rows[r] = cs->highpass_buf[idx];
+            }
+
+            int is_top = (out_row == 0);
+            int is_bottom = (out_row == cs->band_height - 1);
+            int bw = cs->band_width;
+
+            const int inline_mode = (cs->inline_state[1] != NULL);
+            PIXEL *ll_row = inline_mode ? cs->row_scratch[0]
+                                        : (cs->band_data[0] + out_row * cs->band_pitch);
+            PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
+                                        : (cs->band_data[1] + out_row * cs->band_pitch);
+            PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
+                                        : (cs->band_data[2] + out_row * cs->band_pitch);
+            PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
+                                        : (cs->band_data[3] + out_row * cs->band_pitch);
+
+            vertical_filter_quantize_row(lp_rows, bw,
+                cs->midpoint[0], cs->multiplier[0],
+                cs->midpoint[1], cs->multiplier[1],
+                0, 0, 0, 0,
+                ll_row, lh_row, NULL, NULL,
+                is_top, is_bottom);
+
+            vertical_filter_quantize_row(hp_rows, bw,
+                cs->midpoint[2], cs->multiplier[2],
+                cs->midpoint[3], cs->multiplier[3],
+                0, 0, 0, 0,
+                hl_row, hh_row, NULL, NULL,
+                is_top, is_bottom);
+
+#ifdef FUSED_TIMING_DETAIL
+            t_vert += _fused_ms() - _td; _td = _fused_ms();
+#endif
+
+            if (inline_mode) {
+                jans_inline_row(cs->inline_state[1], lh_row, bw);
+                jans_inline_row(cs->inline_state[2], hl_row, bw);
+                jans_inline_row(cs->inline_state[3], hh_row, bw);
+            }
+
+#ifdef FUSED_TIMING_DETAIL
+            t_freq += _fused_ms() - _td;
+#endif
+            cs->band_out_row++;
+        }
+
+advance_consumer:
+        /* Release the slot. Batch the signal so the producer isn't woken
+           per row; the producer only blocks when min_consumer is far behind. */
+        {
+            int new_cons = row + 1;
+            if ((new_cons % UNPACK_RING_BATCH) == 0 || new_cons == ch_height) {
+                pthread_mutex_lock(&ring->lock);
+                ring->consumed[channel] = new_cons;
+                pthread_cond_signal(&ring->prod_cv);
+                pthread_mutex_unlock(&ring->lock);
+            } else {
+                ring->consumed[channel] = new_cons;
+            }
+        }
+    }
+
+    /* Same bottom-of-band zero-row flush as the original per-channel path. */
+    if (cs->inline_state[1] != NULL) {
+        int bw = cs->band_width;
+        PIXEL *zero_row = (PIXEL *)calloc(bw, sizeof(PIXEL));
+        if (zero_row) {
+            while (cs->band_out_row < cs->band_height) {
+                jans_inline_row(cs->inline_state[1], zero_row, bw);
+                jans_inline_row(cs->inline_state[2], zero_row, bw);
+                jans_inline_row(cs->inline_state[3], zero_row, bw);
+                cs->band_out_row++;
+            }
+            free(zero_row);
+        }
+    }
+
+#ifdef FUSED_TIMING_DETAIL
+    double _ch_end = _fused_ms();
+    double _ch_total = _ch_end - _ch_start;
+    double _ch_other = _ch_total - t_wait - t_horiz - t_vert - t_freq;
+    fprintf(stderr, "    ch%d: wait=%.1f, horiz=%.1f, vert+quant=%.1f, tokenize=%.1f, other=%.1f, TOTAL=%.1f\n",
+            channel, t_wait, t_horiz, t_vert, t_freq, _ch_other, _ch_total);
+#endif
+}
 
 static void *pass1_channel_thread(void *arg) {
     PASS1_CHANNEL_TASK *t = (PASS1_CHANNEL_TASK *)arg;
-    pass1_run_channel(t->channel, t->raw_bayer, t->width, t->height,
-                      t->log_bits, t->is_rggb, t->prescale, t->cs);
+    if (t->ring) {
+        pass1_run_channel_consumer(t->channel, t->width, t->height,
+                                    t->prescale, t->cs, t->ring);
+    } else {
+        pass1_run_channel(t->channel, t->raw_bayer, t->width, t->height,
+                          t->log_bits, t->is_rggb, t->prescale, t->cs);
+    }
 
     /* Signal that this channel's Pass 1 is complete — unblocks its 3 P2 bands */
     if (t->sync) {
@@ -1148,6 +1569,11 @@ struct FUSED_ENCODER {
        aggressive quantization → smaller output. */
     int32_t  base_divisors[FUSED_MAX_BANDS];
     double   quant_scale;
+
+    /* Shared 4-channel unpack ring. Producer thread fills, 4 P1 channel
+       threads consume. When NULL, falls back to the legacy per-channel
+       unpack inside each P1 thread. */
+    UNPACK_RING *unpack_ring;
 };
 
 /* Decide which mode to use. Default: inline mode when CPU count is ≤6
@@ -1176,6 +1602,15 @@ static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
         for (int band = 1; band < 4; band++) {
             if (cs->inline_state[band]) jans_inline_reset(cs->inline_state[band]);
         }
+    }
+    if (ctx->unpack_ring) {
+        for (int s = 0; s < UNPACK_RING_SIZE; s++) {
+            ctx->unpack_ring->slot_row[s] = s - UNPACK_RING_SIZE;
+        }
+        for (int p = 0; p < UNPACK_PRODUCERS; p++) {
+            ctx->unpack_ring->prod_max_row[p] = -1;
+        }
+        for (int c = 0; c < 4; c++) ctx->unpack_ring->consumed[c] = 0;
     }
 }
 
@@ -1258,6 +1693,21 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     if (!ctx->stream_buf) {
         gpr_encode_fused_destroy(ctx);
         return NULL;
+    }
+
+    /* Pre-allocate the shared 4-channel unpack ring (producer + 4 consumers).
+       Can be disabled via FUSED_PRODUCER_UNPACK=0 to fall back to the legacy
+       per-channel unpack inside each P1 thread. */
+    int use_producer = 1;
+    const char *prod_env = getenv("FUSED_PRODUCER_UNPACK");
+    if (prod_env && prod_env[0] == '0') use_producer = 0;
+    if (use_producer) {
+        ctx->unpack_ring = (UNPACK_RING *)calloc(1, sizeof(UNPACK_RING));
+        if (!ctx->unpack_ring ||
+            unpack_ring_init(ctx->unpack_ring, width / 2, height / 2) != 0) {
+            gpr_encode_fused_destroy(ctx);
+            return NULL;
+        }
     }
 
     /* Lazy paging strategy: skip pre-fault on stream_buf and enc_bufs (both
@@ -1375,6 +1825,11 @@ static void fused_denoise_band(PIXEL *band_data, int width, int height,
 
 void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
     if (!ctx) return;
+    if (ctx->unpack_ring) {
+        unpack_ring_destroy(ctx->unpack_ring);
+        free(ctx->unpack_ring);
+        ctx->unpack_ring = NULL;
+    }
     for (int i = 0; i < 12; i++) if (ctx->enc_bufs[i]) free(ctx->enc_bufs[i]);
     if (ctx->stream_buf) free(ctx->stream_buf);
     for (int ch = 0; ch < 4; ch++) {
@@ -1420,6 +1875,43 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     pthread_cond_init(&sync.cv, NULL);
     for (int i = 0; i < 4; i++) sync.p1_done[i] = 0;
 
+    /* Producer-unpack threads: when ctx->unpack_ring is set and we're running
+       parallel, UNPACK_PRODUCERS dedicated threads cooperatively do the
+       combined 4-channel Bayer unpack (deinterleaved NEON load, 4 unique LUT
+       lookups per Bayer block, branchless clip) and the 4 channel threads
+       consume from the ring. Falls back to per-channel unpack inside each P1
+       thread when the ring is disabled or run_serial. */
+    UNPACK_RING *ring = (!run_serial) ? ctx->unpack_ring : NULL;
+    UNPACK_PRODUCER_TASK prod_tasks[UNPACK_PRODUCERS];
+    pthread_t prod_threads[UNPACK_PRODUCERS];
+    int prod_created[UNPACK_PRODUCERS] = {0};
+    if (ring) {
+        for (int p = 0; p < UNPACK_PRODUCERS; p++) {
+            prod_tasks[p].ring = ring;
+            prod_tasks[p].producer_id = p;
+            prod_tasks[p].raw_bayer = raw_bayer;
+            prod_tasks[p].width = ctx->width;
+            prod_tasks[p].height = ctx->height;
+            prod_tasks[p].log_bits = ctx->log_bits;
+            prod_tasks[p].is_rggb = ctx->is_rggb;
+            prod_created[p] = (pthread_create(&prod_threads[p], NULL,
+                                              unpack_producer_thread,
+                                              &prod_tasks[p]) == 0);
+        }
+        /* If we failed to launch ANY producer, abort the ring path; the four
+           channel consumers would deadlock waiting for slot_row to advance. */
+        int any_failed = 0;
+        for (int p = 0; p < UNPACK_PRODUCERS; p++) if (!prod_created[p]) any_failed = 1;
+        if (any_failed) {
+            /* Wait for whatever did launch, then disable the ring. */
+            for (int p = 0; p < UNPACK_PRODUCERS; p++) {
+                if (prod_created[p]) pthread_join(prod_threads[p], NULL);
+                prod_created[p] = 0;
+            }
+            ring = NULL;
+        }
+    }
+
     PASS1_CHANNEL_TASK p1_tasks[4];
     for (int ch = 0; ch < 4; ch++) {
         p1_tasks[ch].channel = ch;
@@ -1431,6 +1923,7 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
         p1_tasks[ch].prescale = ctx->prescale;
         p1_tasks[ch].cs = &ctx->ch_state[ch];
         p1_tasks[ch].sync = &sync;
+        p1_tasks[ch].ring = ring;
         if (run_serial) {
             pass1_channel_thread(&p1_tasks[ch]);
             p1_created[ch] = 0;
@@ -1476,6 +1969,9 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     }
     for (int ch = 0; ch < 4; ch++) {
         if (p1_created[ch]) pthread_join(p1_threads[ch], NULL);
+    }
+    for (int p = 0; p < UNPACK_PRODUCERS; p++) {
+        if (prod_created[p]) pthread_join(prod_threads[p], NULL);
     }
 
 #ifdef FUSED_TIMING
