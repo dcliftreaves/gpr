@@ -77,10 +77,10 @@ extern uint16_t DecoderLogCurve14[];
 extern uint16_t DecoderLogCurve16[];
 
 /* Must match encoder's FUSED_WAVELET_LEVELS in fused_encode.c.
-   Default 3 (matches encoder default); override via -DFUSED_WAVELET_LEVELS=1
-   or =2 at compile time when testing shallower configurations. */
+   Default 2 (matches encoder default); override via -DFUSED_WAVELET_LEVELS=1
+   or =3 at compile time when testing other configurations. */
 #ifndef FUSED_WAVELET_LEVELS
-#define FUSED_WAVELET_LEVELS 3
+#define FUSED_WAVELET_LEVELS 2
 #endif
 
 #if FUSED_WAVELET_LEVELS == 1

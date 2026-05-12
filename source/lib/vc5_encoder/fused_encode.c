@@ -136,9 +136,15 @@ static inline int32x4_t fused_log_curve_neon4(uint16x4_t x_u16, int max_v) {
                             [8] HL0   (level-0 vertical highpass,   qt[8])
                             [9] HH0   (level-0 diagonal highpass,   qt[9])
                             LL0 and LL1 are NOT emitted (intermediates).
-   Default = 3 for best compression. Override at compile time. */
+   Default = 2 for clean output. 3-level gives ~17 % smaller files at q=3
+   but introduces visible wavelet edge ringing on high-contrast features
+   (the LL2 quantization error propagates through the L1/L0 inverse
+   stages and is magnified by the inverse log curve near edges; verified
+   2026-05-12 not to be fixable by quantizer tuning). 3-level remains
+   available via -DFUSED_WAVELET_LEVELS=3 for storage-constrained ship
+   profiles where motion blur masks the artifact. */
 #ifndef FUSED_WAVELET_LEVELS
-#define FUSED_WAVELET_LEVELS 3
+#define FUSED_WAVELET_LEVELS 2
 #endif
 
 #if FUSED_WAVELET_LEVELS == 1
