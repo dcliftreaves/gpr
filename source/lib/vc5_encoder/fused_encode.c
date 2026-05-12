@@ -29,12 +29,23 @@
 #define FUSED_TIMING_DETAIL
 
 #if defined(FUSED_TIMING) || defined(FUSED_TIMING_DETAIL)
+#if defined(__APPLE__)
 #include <mach/mach_time.h>
 static double _fused_ms(void) {
     static double s = 0;
     if (!s) { mach_timebase_info_data_t i; mach_timebase_info(&i); s = (double)i.numer/i.denom/1e6; }
     return mach_absolute_time() * s;
 }
+#else
+/* Linux / other POSIX: use clock_gettime(CLOCK_MONOTONIC). Same monotonic
+   semantics as mach_absolute_time on macOS. */
+#include <time.h>
+static double _fused_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1e6;
+}
+#endif
 #endif
 
 #if ENABLED(NEON)
