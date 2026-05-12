@@ -1,0 +1,22 @@
+@PACKAGE_INIT@
+
+# gprConfig.cmake — CMake package config for the GPR library.
+#
+# Provides imported targets for downstream consumers using
+#   find_package(gpr 2.0 REQUIRED)
+#
+# Imported targets:
+#   gpr::vc5_encoder   — static library (Bayer→GPR encode core)
+#   gpr::vc5_common    — static library (shared encoder/decoder bits)
+#   gpr::vc5_decoder   — static library (GPR→Bayer decode core), if built
+#   gpr::gpr_sdk       — static library (high-level read/write API),  if built
+#   gpr::gpr_video     — INTERFACE convenience target that link-depends on
+#                        vc5_encoder + vc5_common + Threads + m. Use this
+#                        for the raw-video / fused-encode pipeline.
+
+include(CMakeFindDependencyMacro)
+find_dependency(Threads)
+
+include("${CMAKE_CURRENT_LIST_DIR}/gprTargets.cmake")
+
+check_required_components(gpr)
