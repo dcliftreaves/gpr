@@ -156,7 +156,7 @@ static inline int32_t quantize_scalar(int32_t value, int32_t midpoint, int32_t m
    ================================================================ */
 
 static void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpass,
-                               int width, int prescale)
+                               int width, int prescale, int log_bits)
 {
     int prescale_rounding = (1 << prescale) - 1;
     int half = width / 2;
@@ -168,15 +168,26 @@ static void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpas
     lowpass[0] = PS(input[0]) + PS(input[1]);
     highpass[0] = PS(input[0]) - PS(input[1]);
 
+    /* The int16 fast path is safe when prescaled-pair-sums fit int16:
+       PS-value max = (max_input+1) >> prescale, pair-sum = 2 × PS-max.
+       Need 2 × PS-max ≤ 32767 → PS-max ≤ 16383. With prescale=2:
+         14-bit input → PS-max = 4096, pair-sum ≤ 8192 ✓
+         16-bit input → PS-max = 16384, pair-sum = 32768 ✗ (overflow)
+       So enable int16 only for ≤14-bit input. */
+    const int can_use_s16 = (log_bits <= 14);
+
     /* Interior */
     {
         int i = 1;
 #if ENABLED(NEON)
+        /* Shared NEON constants — used by both int16 fast path (when enabled)
+           and the always-correct int32 4-wide cleanup below. */
+        const int32x4_t vround = vdupq_n_s32(prescale_rounding);
+        const int32x4_t neg_ps = vdupq_n_s32(-prescale);
+      if (can_use_s16) {
         /* All horiz filter intermediates fit int16 (input ≤ 16383, PS ≤ 4095,
            pair-sums ≤ 8190, diff ≤ ±16380, +4 ≤ ±16384 — well within ±32767).
            Loads are int32 (PIXEL = int32), narrowed to int16 in-register. */
-        const int32x4_t vround = vdupq_n_s32(prescale_rounding);
-        const int32x4_t neg_ps = vdupq_n_s32(-prescale);
         const int16x8_t four16 = vdupq_n_s16(4);
 
         /* 8-wide pass: produce 8 outputs per iteration. Needs inputs [2i-2 .. 2i+17] = 20.
@@ -237,8 +248,11 @@ static void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpas
             vst1q_s32(&highpass[i],     vmovl_s16(vget_low_s16(hp)));
             vst1q_s32(&highpass[i + 4], vmovl_s16(vget_high_s16(hp)));
         }
+      }  /* if (can_use_s16) */
 
-        /* 4-wide cleanup (existing path) for remaining outputs */
+        /* 4-wide int32 cleanup (always-correct path: handles either the
+           int16 fast path's leftover columns OR the entire interior when
+           can_use_s16 is false). */
         const int32x4_t four = vdupq_n_s32(4);
         for (; i + 3 < half - 1; i += 4) {
             int idx = 2 * i;
@@ -794,7 +808,7 @@ static void pass1_run_channel(
         horizontal_filter(unpack_row,
                           cs->lowpass_buf[buf_idx],
                           cs->highpass_buf[buf_idx],
-                          ch_width, prescale);
+                          ch_width, prescale, log_bits);
         cs->buf_row++;
 
 #ifdef FUSED_TIMING_DETAIL
@@ -1070,7 +1084,7 @@ typedef struct {
 static void pass1_run_channel_consumer(
     int channel,
     int width, int height,
-    int prescale,
+    int prescale, int log_bits,
     FUSED_CHANNEL_STATE *cs,
     UNPACK_RING *ring)
 {
@@ -1116,7 +1130,7 @@ static void pass1_run_channel_consumer(
         horizontal_filter(unpack_row,
                           cs->lowpass_buf[buf_idx],
                           cs->highpass_buf[buf_idx],
-                          width / 2, prescale);
+                          width / 2, prescale, log_bits);
         cs->buf_row++;
 
 #ifdef FUSED_TIMING_DETAIL
@@ -1223,7 +1237,7 @@ static void *pass1_channel_thread(void *arg) {
     PASS1_CHANNEL_TASK *t = (PASS1_CHANNEL_TASK *)arg;
     if (t->ring) {
         pass1_run_channel_consumer(t->channel, t->width, t->height,
-                                    t->prescale, t->cs, t->ring);
+                                    t->prescale, t->log_bits, t->cs, t->ring);
     } else {
         pass1_run_channel(t->channel, t->raw_bayer, t->width, t->height,
                           t->log_bits, t->is_rggb, t->prescale, t->cs);
