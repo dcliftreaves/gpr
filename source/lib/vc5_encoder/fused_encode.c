@@ -614,11 +614,17 @@ static int setup_channel_state(
     int ch_height = height / 2;
     const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
 
+    /* The quality_tables row layout is for the production encoder's 3-level
+       codec: [LL_final, LH_L2, HL_L2, HH_L2, LH_L1, HL_L1, HH_L1, LH_L0, HL_L0, HH_L0].
+       The fused encoder is single-level, so its 3 highpass bands ARE the
+       finest level (level 0). We need qt[7..9], not qt[1..3] — those are the
+       coarsest-level divisors and barely change across quality presets,
+       which is why every quality was producing identical output. */
     for (int ch = 0; ch < 4; ch++) {
+        int divisors[4] = { qt[0], qt[7], qt[8], qt[9] };  /* LL + LH/HL/HH at L0 */
         for (int band = 0; band < 4; band++) {
-            int divisor = qt[band];
-            ch_state[ch].midpoint[band] = get_midpoint(divisor);
-            ch_state[ch].multiplier[band] = get_multiplier(divisor);
+            ch_state[ch].midpoint[band] = get_midpoint(divisors[band]);
+            ch_state[ch].multiplier[band] = get_multiplier(divisors[band]);
         }
         ch_state[ch].band_width = ch_width / 2;
         ch_state[ch].band_height = ch_height / 2;
