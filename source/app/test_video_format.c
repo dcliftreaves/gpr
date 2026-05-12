@@ -1,0 +1,121 @@
+/*! @file test_video_format.c
+ *
+ *  @brief Roundtrip test for the gpr_video container format (clip header
+ *  + per-frame headers). Encodes header → decodes header → compares fields.
+ *  Also tests bad inputs (short buffer, wrong magic, future version).
+ *
+ *  Build:
+ *    clang -O2 -o /tmp/test_video_format source/app/test_video_format.c \
+ *      build/source/lib/vc5_encoder/libvc5_encoder.a -lpthread -lm
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+#include "../lib/vc5_encoder/gpr_video_format.h"
+
+#define CHECK(cond, msg) do { \
+    if (!(cond)) { fprintf(stderr, "FAIL: %s (line %d)\n", (msg), __LINE__); return 1; } \
+} while (0)
+
+static int test_clip_header_roundtrip(void) {
+    uint8_t buf[GPR_VIDEO_CLIP_HEADER_SIZE];
+    int n = gpr_video_write_clip_header(buf, sizeof(buf),
+                                         /*w*/ 8688, /*h*/ 5800,
+                                         /*pf*/ 1, /*q*/ 3,
+                                         /*fps*/ 24.0,
+                                         /*target_MBps*/ 150.0,
+                                         /*denoise*/ 1,
+                                         /*frame_count_hint*/ 1440);
+    CHECK(n == GPR_VIDEO_CLIP_HEADER_SIZE, "write_clip_header size");
+
+    gpr_video_clip_header h;
+    int rc = gpr_video_read_clip_header(buf, sizeof(buf), &h);
+    CHECK(rc == 0, "read_clip_header rc");
+
+    CHECK(h.magic == GPR_VIDEO_CLIP_MAGIC, "magic");
+    CHECK(h.version == GPR_VIDEO_FORMAT_VERSION, "version");
+    CHECK(h.flags == (GPR_VIDEO_FLAG_RATE_CONTROL | GPR_VIDEO_FLAG_DENOISE), "flags");
+    CHECK(h.pixel_format == 1, "pixel_format");
+    CHECK(h.quality == 3, "quality");
+    CHECK(h.width == 8688, "width");
+    CHECK(h.height == 5800, "height");
+    CHECK(h.fps_x1000 == 24000, "fps_x1000");
+    /* 150 MB/s * 8 * 1024 = 1228800 kbps */
+    CHECK(h.target_kbps == 1228800u, "target_kbps");
+    CHECK(h.frame_count_hint == 1440, "frame_count_hint");
+    printf("  PASS  clip header roundtrip (1440-frame, 150 MB/s, denoise on)\n");
+    return 0;
+}
+
+static int test_clip_header_no_rc(void) {
+    uint8_t buf[GPR_VIDEO_CLIP_HEADER_SIZE];
+    int n = gpr_video_write_clip_header(buf, sizeof(buf), 1920, 1080, 0, 5,
+                                         60.0, 0.0, 0, 0);
+    CHECK(n == GPR_VIDEO_CLIP_HEADER_SIZE, "write size");
+
+    gpr_video_clip_header h;
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == 0, "read");
+    CHECK((h.flags & GPR_VIDEO_FLAG_RATE_CONTROL) == 0, "no rate control flag");
+    CHECK((h.flags & GPR_VIDEO_FLAG_DENOISE) == 0, "no denoise flag");
+    CHECK(h.target_kbps == 0, "target_kbps zero");
+    CHECK(h.fps_x1000 == 60000, "fps_x1000 60000");
+    CHECK(h.frame_count_hint == 0, "unknown frame count");
+    printf("  PASS  clip header with rate-control disabled\n");
+    return 0;
+}
+
+static int test_frame_header_roundtrip(void) {
+    uint8_t buf[GPR_VIDEO_FRAME_HEADER_SIZE];
+    int n = gpr_video_write_frame_header(buf, sizeof(buf),
+                                          /*payload*/ 6345678,
+                                          /*tag*/ 0x1234567890abcdefULL);
+    CHECK(n == GPR_VIDEO_FRAME_HEADER_SIZE, "write size");
+
+    gpr_video_frame_header h;
+    CHECK(gpr_video_read_frame_header(buf, sizeof(buf), &h) == 0, "read");
+    CHECK(h.magic == GPR_VIDEO_FRAME_MAGIC, "magic");
+    CHECK(h.payload_size == 6345678u, "payload_size");
+    CHECK(h.frame_tag == 0x1234567890abcdefULL, "tag");
+    printf("  PASS  frame header roundtrip (tag 0x12345...)\n");
+    return 0;
+}
+
+static int test_bad_inputs(void) {
+    uint8_t buf[GPR_VIDEO_CLIP_HEADER_SIZE];
+    /* Short write buffer */
+    CHECK(gpr_video_write_clip_header(buf, 16, 100, 100, 0, 3, 24.0, 150.0, 1, 0) == -1, "short write rejected");
+
+    /* Out-of-range parameters */
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, /*pf*/ 9, 3, 24.0, 150.0, 1, 0) == -1, "bad pixel_format rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, /*q*/ 9, 24.0, 150.0, 1, 0) == -1, "bad quality rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, /*fps*/ 0.0, 150.0, 1, 0) == -1, "bad fps rejected");
+
+    /* Wrong magic */
+    gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, 24.0, 150.0, 1, 0);
+    buf[0] = 'X';
+    gpr_video_clip_header h;
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "wrong magic rejected");
+
+    /* Future version */
+    gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, 24.0, 150.0, 1, 0);
+    buf[4] = 99;  /* version 99 */
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "unknown version rejected");
+
+    /* Short read buffer */
+    CHECK(gpr_video_read_clip_header(buf, 16, &h) == -1, "short read rejected");
+
+    printf("  PASS  bad inputs handled cleanly\n");
+    return 0;
+}
+
+int main(void) {
+    int failed = 0;
+    failed += test_clip_header_roundtrip();
+    failed += test_clip_header_no_rc();
+    failed += test_frame_header_roundtrip();
+    failed += test_bad_inputs();
+    printf("\n%s\n", failed == 0 ? "All tests PASS" : "SOME TESTS FAILED");
+    return failed;
+}
