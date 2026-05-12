@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: gpr
+Description: GoPro RAW (GPR) encoder/decoder + fused raw-video pipeline
+URL: https://github.com/gopro/gpr
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lvc5_encoder -lvc5_common -lvc5_decoder -lpthread -lm
+Cflags: -I${includedir}/gpr
