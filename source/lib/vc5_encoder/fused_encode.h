@@ -11,19 +11,21 @@
  *
  *  ## Wavelet levels
  *
- *  The encoder applies a 3-level wavelet transform by default
- *  (FUSED_WAVELET_LEVELS=3). The bitstream per channel is (10 bands):
- *    [0..3] LL2, LH2, HL2, HH2   (level-2 bands, 1/64 of channel pixels each)
- *    [4..6] LH1, HL1, HH1        (level-1 highpass, 1/16 each)
- *    [7..9] LH0, HL0, HH0        (level-0 highpass, 1/4 each)
- *  LL0 and LL1 are computed without quantization as intermediate buffers
- *  and are NOT emitted in the bitstream — the four level-2 bands together
- *  represent the level-1 lowpass; the level-1 bands together represent the
- *  level-0 lowpass.
+ *  The encoder applies a 2-level wavelet transform by default
+ *  (FUSED_WAVELET_LEVELS=2). The bitstream per channel is (7 bands):
+ *    [0..3] LL1, LH1, HL1, HH1   (level-1 bands, 1/16 of channel pixels each)
+ *    [4..6] LH0, HL0, HH0        (level-0 highpass, 1/4 each)
+ *  LL0 is computed without quantization as an intermediate buffer and is NOT
+ *  emitted — the four level-1 bands together represent the level-0 lowpass.
  *
- *  Set FUSED_WAVELET_LEVELS=2 to use the 7-band 2-level layout (LL1, LH1,
- *  HL1, HH1, LH0, HL0, HH0), or FUSED_WAVELET_LEVELS=1 to fall back to the
- *  original single-level layout (LL0, LH0, HL0, HH0 per channel).
+ *  Set FUSED_WAVELET_LEVELS=3 to use the 10-band 3-level layout (LL2, LH2,
+ *  HL2, HH2, LH1, HL1, HH1, LH0, HL0, HH0). 3-level gives an additional
+ *  ~17 % size reduction at q=3, but propagates LL2 quantization through
+ *  two extra inverse stages, producing visible wavelet edge ringing on
+ *  high-contrast features (verified 2026-05-12). 3-level is intended for
+ *  storage-constrained ship profiles where motion masks the artifact.
+ *  Set FUSED_WAVELET_LEVELS=1 for the original single-level layout
+ *  (LL0, LH0, HL0, HH0 per channel) — best fidelity, largest files.
  *
  *  Production GPR uses 3 levels with a fixed-width LL encoding (separate
  *  from rANS, lossless). The 2-level fused encoder gets within ~30-50 %
