@@ -122,6 +122,30 @@ void gpr_video_encoder_set_denoise(GPR_VIDEO_ENCODER *ctx,
                                     double noise_offset,
                                     double strength);
 
+/*!
+    @brief Enable adaptive bitrate (target-rate rate control).
+
+    When set, the encoder varies its quantization per frame to track
+    the target byte rate, smoothing out the content-dependent swing
+    (clean ISO 64 vs noisy ISO 22800 can differ 3-4× in raw output
+    size). With rate control, the storage sees a steady-state bitrate
+    near @p target_MBps regardless of scene content.
+
+    The controller is a proportional one driven by an EMA of recent
+    output sizes vs the target. It converges within ~10 frames after
+    a content change.
+
+    Pass target_MBps=0 to disable rate control (fall back to fixed
+    quality preset). Call before first submit().
+
+    @param target_MBps  Desired sustained output rate in MB/s
+    @param fps          Frame rate the caller intends to submit at;
+                        used to convert target_MBps to bytes/frame
+*/
+void gpr_video_encoder_set_target_bitrate(GPR_VIDEO_ENCODER *ctx,
+                                           double target_MBps,
+                                           double fps);
+
 /*! @brief Stats snapshot. Cheap; safe to call from any thread. */
 typedef struct {
     uint64_t frames_submitted;
