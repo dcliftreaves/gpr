@@ -88,6 +88,31 @@ GPR_VIDEO_ENCODER *gpr_video_encoder_create(
     gpr_video_writer_fn writer, void *user_data);
 
 /*!
+    @brief Same as gpr_video_encoder_create() but with explicit encoder count.
+
+    encoder_count=1 is identical to gpr_video_encoder_create().
+    encoder_count=2 enables dual ping-pong mode:
+      - Two FUSED_ENCODER contexts run in parallel encoder threads.
+      - Frames are dispatched to encoder (frame_tag % 2).
+      - The writer thread emits in frame_tag order; out-of-order
+        completions are reordered before writer_fn() is called.
+      - Memory roughly doubles (2x band buffers + 2x input ring slots).
+    Use 2 only on machines with >= 4 cores; on 4-core systems the
+    internal 4-thread fused encoder will partially contend but
+    complementary memory/compute phases give net throughput win.
+
+    Each encoder maintains independent rate-control state (rc_scale,
+    rc_avg_bytes). They converge independently; tracking error on
+    average is acceptable for adaptive-bitrate use (perfect lockstep
+    isn't required).
+*/
+GPR_VIDEO_ENCODER *gpr_video_encoder_create_dual(
+    int width, int height,
+    int pixel_format, int quality,
+    int ring_depth, int encoder_count,
+    gpr_video_writer_fn writer, void *user_data);
+
+/*!
     @brief Submit a raw Bayer frame for encoding.
 
     Blocks if the input ring is full (natural backpressure). The frame is
