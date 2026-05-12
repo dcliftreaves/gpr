@@ -38,7 +38,13 @@ static double _fused_ms(void) {
 }
 #else
 /* Linux / other POSIX: use clock_gettime(CLOCK_MONOTONIC). Same monotonic
-   semantics as mach_absolute_time on macOS. */
+   semantics as mach_absolute_time on macOS.
+
+   glibc gates clock_gettime + CLOCK_MONOTONIC behind _POSIX_C_SOURCE >=
+   199309L. Defining it here is local to this file. */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 #include <time.h>
 static double _fused_ms(void) {
     struct timespec ts;
