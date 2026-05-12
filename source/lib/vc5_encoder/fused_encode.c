@@ -109,6 +109,16 @@ static inline int32x4_t fused_log_curve_neon4(uint16x4_t x_u16, int max_v) {
 #define FUSED_MAX_WAVELETS 3
 #define FUSED_MAX_BANDS    4
 #define FUSED_ROW_BUFS     6
+#define FUSED_CHANNELS     4
+#define FUSED_NUM_P2_TASKS (FUSED_CHANNELS * FUSED_MAX_BANDS)  /* 16: all 4 bands per channel */
+
+/* LL band quantizer divisor. The rANS tokenizer alphabet caps at ~2047
+   (10-bit mag class). 14-bit input has LL coefficients up to ~16383, 16-bit
+   up to ~65535. Divisor of 64 brings both safely into alphabet:
+     14-bit: max stored ≈ 256, error ≤ ±32 per LL coefficient
+     16-bit: max stored ≈ 1024, error ≤ ±32 per LL coefficient (~0.05% rel)
+   After inverse wavelet diffusion the per-pixel error is much smaller. */
+#define FUSED_LL_DIVISOR   64
 
 /* Quality presets: quant divisors per subband [LL, LH, HL, HH for each level] */
 static const QUANT quality_tables[9][10] = {
@@ -1336,7 +1346,11 @@ static int setup_channel_state(
        finest level (level 0). We need qt[7..9], not qt[1..3] — those are the
        coarsest-level divisors and barely change across quality presets,
        which is why every quality was producing identical output. */
-    int base_divisors[4] = { qt[0], qt[7], qt[8], qt[9] };  /* LL + LH/HL/HH at L0 */
+    /* LL uses FUSED_LL_DIVISOR (64) so coefficients fit the rANS alphabet.
+       qt[0]=1 from the quality table is meant for a 3-level codec's tiny
+       final LL — that's lossless-friendly there but inappropriate at our
+       half-res single-level LL where coefficients are too large to encode. */
+    int base_divisors[4] = { FUSED_LL_DIVISOR, qt[7], qt[8], qt[9] };
     if (out_base_divisors) {
         for (int band = 0; band < 4; band++) out_base_divisors[band] = base_divisors[band];
     }
@@ -1446,14 +1460,14 @@ static int fused_pass2(
 
     /* Parallel encode: 12 independent band tasks (4 channels × 3 highpass bands).
        Allocate buffers and dispatch threads. */
-    PASS2_BAND_TASK tasks[12];
+    PASS2_BAND_TASK tasks[FUSED_NUM_P2_TASKS];
     pthread_t threads[12];
     int task_count = 0;
     int created[12];
 
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ch_state[ch];
-        for (int band = 1; band < 4; band++) {
+        for (int band = 0; band < 4; band++) {
             PASS2_BAND_TASK *t = &tasks[task_count];
             t->band_data = cs->band_data[band];
             t->width = cs->band_width;
@@ -1503,7 +1517,7 @@ static int fused_pass2_serial(
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ch_state[ch];
 
-        for (int band = 1; band < 4; band++) {
+        for (int band = 0; band < 4; band++) {
             PIXEL *data = cs->band_data[band];
             int bw = cs->band_width;
             int bh = cs->band_height;
@@ -1546,8 +1560,8 @@ struct FUSED_ENCODER {
     FUSED_CHANNEL_STATE ch_state[4];
 
     /* Persistent Pass 2 enc buffers (one per band) */
-    uint8_t *enc_bufs[12];
-    size_t   enc_caps[12];
+    uint8_t *enc_bufs[FUSED_NUM_P2_TASKS];
+    size_t   enc_caps[FUSED_NUM_P2_TASKS];
 
     /* Persistent output stream buffer */
     uint8_t *stream_buf;
@@ -1599,7 +1613,7 @@ static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
         cs->buf_row = 0;
         memset(cs->freq, 0, sizeof(cs->freq));
         memset(cs->run_state, 0, sizeof(cs->run_state));
-        for (int band = 1; band < 4; band++) {
+        for (int band = 0; band < 4; band++) {
             if (cs->inline_state[band]) jans_inline_reset(cs->inline_state[band]);
         }
     }
@@ -1643,7 +1657,7 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         size_t band_coeffs = (size_t)cs->band_width * cs->band_height;
-        for (int band = 1; band < 4; band++) {
+        for (int band = 0; band < 4; band++) {
             size_t cap = band_coeffs * 4 + 8192;
             ctx->enc_caps[p2_idx] = cap;
             ctx->enc_bufs[p2_idx] = (uint8_t *)malloc(cap);
@@ -1830,7 +1844,7 @@ void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
         free(ctx->unpack_ring);
         ctx->unpack_ring = NULL;
     }
-    for (int i = 0; i < 12; i++) if (ctx->enc_bufs[i]) free(ctx->enc_bufs[i]);
+    for (int i = 0; i < FUSED_NUM_P2_TASKS; i++) if (ctx->enc_bufs[i]) free(ctx->enc_bufs[i]);
     if (ctx->stream_buf) free(ctx->stream_buf);
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
@@ -1854,10 +1868,10 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     (void)raw_size;
     if (!ctx || !raw_bayer || !vc5_out || !vc5_size) return -1;
     int rc = 0;
-    PASS2_BAND_TASK p2_tasks[12];
+    PASS2_BAND_TASK p2_tasks[FUSED_NUM_P2_TASKS];
     memset(p2_tasks, 0, sizeof(p2_tasks));
-    pthread_t p2_threads[12];
-    int p2_created[12] = {0};
+    pthread_t p2_threads[FUSED_NUM_P2_TASKS];
+    int p2_created[FUSED_NUM_P2_TASKS] = {0};
     pthread_t p1_threads[4];
     int p1_created[4] = {0};
 
@@ -1936,7 +1950,7 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     int p2_count = 0;
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
-        for (int band = 1; band < 4; band++) {
+        for (int band = 0; band < 4; band++) {
             PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
             pt->channel = ch;
             pt->band_data    = cs->band_data[band];     /* NULL in inline mode */
@@ -1979,7 +1993,7 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     fprintf(stderr, "  FUSED Pass1 (parallel, signals P2):      %.1fms\n", t1 - t0);
 #endif
 
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < FUSED_NUM_P2_TASKS; i++) {
         if (p2_created[i]) pthread_join(p2_threads[i], NULL);
     }
 
@@ -1993,7 +2007,7 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
 
     /* Concat into the persistent stream buffer */
     size_t pos = 0;
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < FUSED_NUM_P2_TASKS; i++) {
         PASS2_BAND_TASK *pt = &p2_tasks[i];
         if (pt->enc_size > 0 && pos + pt->enc_size <= ctx->stream_cap) {
             memcpy(ctx->stream_buf + pos, pt->enc_buf, pt->enc_size);
