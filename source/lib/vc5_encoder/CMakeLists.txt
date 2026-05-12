@@ -4,6 +4,15 @@ set( LIB_NAME vc5_encoder )
 # get source files
 file( GLOB SRC_FILES "*.c" )
 
+# get ARM64 assembly sources (only on ARM64 hosts).
+# Clang/GCC treat .S (capital) as preprocessed assembly: the C preprocessor
+# runs first so #ifdef __aarch64__ inside the file is honored.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)")
+  enable_language(ASM)
+  file( GLOB ASM_FILES "*.S" )
+  list(APPEND SRC_FILES ${ASM_FILES})
+endif()
+
 # get include files
 file( GLOB INC_FILES "*.h" )
 

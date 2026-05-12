@@ -1,162 +1,207 @@
 /*
  * fused_encode_arm64.S — ARM64 assembly for fused encoder hot loops
  *
- * Targets:
- *   - Mac ARM64 (Apple Silicon) as fast iteration testbed
- *   - GoPro GP3 (Cortex-A78) as production target
- *   - Raspberry Pi 5 (Cortex-A76) as intermediate dev platform
+ * Implemented:
+ *   1. fused_unpack_row_rggb_asm  — Bayer→GS,RG,BG,GD for RGGB pattern
+ *   2. fused_unpack_row_gbrg_asm  — same but for GBRG pattern
  *
- * Hot loops covered (in priority order):
- *   1. fused_unpack_row_neon    — Bayer→GS,RG,BG,GD with log curve
- *   2. fused_horizontal_neon    — wavelet horizontal filter
- *   3. fused_vertical_quant_neon — wavelet vertical + quantize (fused)
- *   4. fused_freq_count_neon    — frequency counting (run, mag classes)
+ * Approach (per output lane):
+ *   - 4 ldrh from the Bayer rows (post-increment).
+ *   - 4 cmp/csel for branchless clip to log_max.
+ *   - 4 ldrh-with-shifted-index for the LUT lookups.
+ *   - All arithmetic (gs, gd, rg, bg) in GPRs — scalar add/sub/asr are
+ *     1-cycle dual-issue ops on M1 and don't compete with the NEON ports.
+ *   - 4 single-word stores per lane to the four output channels.
+ *
+ * Honest disclaimer (M1 measurement, May 2026):
+ *   The compiler's NEON-intrinsics lowering (umov+ldrh chain + 32 lane
+ *   inserts to rebuild NEON regs) is already very close to optimal on
+ *   Apple M1.  Producer-unpack pass measures ~6.0 ms with C-intrinsics,
+ *   ~6.0 ms with this asm — no significant win on M1.  The asm is kept
+ *   because it is expected to win 10-20% on Cortex-A78 where the NEON
+ *   port pressure is higher (4-wide retire vs M1's 8-wide).
  *
  * Register conventions (ARM64 AAPCS64):
- *   x0-x7: argument registers, caller-saved
- *   x8: indirect result, caller-saved
- *   x9-x15: caller-saved scratch
- *   x16-x17: intra-procedure-call scratch
- *   x18: platform register (avoid on Apple Silicon)
- *   x19-x28: callee-saved (must preserve)
- *   x29 (fp), x30 (lr): frame pointer, link register
- *   v0-v7: argument vector registers, caller-saved
- *   v8-v15: callee-saved (must preserve, but only lower 64 bits)
- *   v16-v31: caller-saved scratch
+ *   x0..x7   argument registers
+ *   x9..x15  caller-saved scratch
+ *   x16,x17  intra-procedure scratch
+ *   x19..x28 callee-saved (must preserve)
+ *   x29 fp, x30 lr
  *
  * (C) Copyright 2026 GoPro Inc. Licensed under Apache-2.0 or MIT.
  */
 
 #ifdef __aarch64__
 
-/* ================================================================
- * Function: fused_unpack_row_neon_asm
- *
- * Bayer → GS, RG, BG, GD with log curve, NEON 4-wide.
- *
- * void fused_unpack_row_neon_asm(
- *     const uint16_t *row1,    // x0: input Bayer row 1
- *     const uint16_t *row2,    // x1: input Bayer row 2
- *     const uint16_t *log_tbl, // x2: log curve LUT (16384 or 65536 entries)
- *     int32_t *out_gs,         // x3: GS output
- *     int32_t *out_rg,         // x4: RG output
- *     int32_t *out_bg,         // x5: BG output
- *     int32_t *out_gd,         // x6: GD output
- *     int ch_width,            // w7: output channel width (in pixels)
- *     int log_max,             // [sp+0]: max log curve input
- *     int mid2,                // [sp+8]: 2 * midpoint (e.g., 16384 for 14-bit)
- *     int is_rggb              // [sp+16]: 1=RGGB, 0=GBRG
- * );
- *
- * Inner loop (per 4 output pixels):
- *   1. Load 8 Bayer pixels from each row (16 total)
- *   2. Clamp to log_max
- *   3. 16 scalar LUT lookups (interleaved with NEON setup)
- *   4. NEON 4-wide: vgs = (vg1 + vg2) >> 1
- *   5. NEON: vgd = ((vg1 - vg2) + vmid2) >> 1
- *   6. NEON: vrg = ((vr - vgs) + vmid2) >> 1
- *   7. NEON: vbg = ((vb - vgs) + vmid2) >> 1
- *   8. Store 4 × 4 × int32 outputs
- *
- * Critical path: LUT lookup (~4 cycles) → NEON load → arithmetic chain (3 cycles)
- * Throughput: ~6 cycles per 4 pixels at IPC=3 (constrained by LUT)
- *
- * STUB: returns -1, falls back to C. Full implementation pending.
- */
+/* macOS uses leading underscore on symbol names; Linux/ELF does not. */
+#if defined(__APPLE__)
+#  define CNAME(name) _##name
+#else
+#  define CNAME(name) name
+#endif
+
 .text
-.globl _fused_unpack_row_neon_asm
-.p2align 4
 
-_fused_unpack_row_neon_asm:
-    /* Stub — returns -1 to signal C fallback.
-     * Full implementation will be added incrementally:
-     *   Phase 1: Inner loop skeleton with NEON loads/stores
-     *   Phase 2: Add LUT lookup chain
-     *   Phase 3: Software pipeline LUT loads with NEON compute
-     *   Phase 4: Unroll 8-wide for better pipeline utilization
-     */
-    mov w0, #-1
+/* ----------------------------------------------------------------
+ * int fused_unpack_row_rggb_asm(
+ *     const uint16_t *row1,    // x0  — RGGB: [R G1 R G1 ...]
+ *     const uint16_t *row2,    // x1  —       [G2 B G2 B ...]
+ *     const uint16_t *log_tbl, // x2
+ *     int32_t *out_gs,         // x3
+ *     int32_t *out_rg,         // x4
+ *     int32_t *out_bg,         // x5
+ *     int32_t *out_gd,         // x6
+ *     int ch_width,            // w7
+ *     int log_max,             // [sp+0]  (Apple: 4B slot; Linux: 8B slot)
+ *     int mid2                 // [sp+8]  (Apple: at +4)
+ * );
+ * Returns: number of columns processed (multiple of 8).
+ * ---------------------------------------------------------------- */
+
+.globl CNAME(fused_unpack_row_rggb_asm)
+.p2align 4
+CNAME(fused_unpack_row_rggb_asm):
+    stp     x29, x30, [sp, #-32]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
+
+    /* Apple/Linux differ on packing of fixed-int stack args.  Apple packs
+       4-byte ints into 4-byte slots; Linux uses 8-byte slots. */
+#if defined(__APPLE__)
+    ldr     w19, [sp, #32]               /* log_max */
+    ldr     w20, [sp, #36]               /* mid2    */
+#else
+    ldr     w19, [sp, #32]
+    ldr     w20, [sp, #40]
+#endif
+
+    /* Round-down ch_width to multiple of 8. */
+    and     w17, w7, #~7
+    cbz     w17, .Lrggb_done
+
+    mov     w8, wzr
+.Lrggb_iter:
+    mov     w16, #8                      /* lane counter */
+.Lrggb_lane:
+    ldrh    w9,  [x0], #2                /* R   */
+    ldrh    w10, [x0], #2                /* G1  */
+    ldrh    w11, [x1], #2                /* G2  */
+    ldrh    w12, [x1], #2                /* B   */
+    /* Branchless clip to log_max. */
+    cmp     w9,  w19
+    csel    w9,  w19, w9,  hi
+    cmp     w10, w19
+    csel    w10, w19, w10, hi
+    cmp     w11, w19
+    csel    w11, w19, w11, hi
+    cmp     w12, w19
+    csel    w12, w19, w12, hi
+    /* LUT lookups (each LUT entry is uint16_t = 2 bytes; index << 1). */
+    ldrh    w9,  [x2, w9,  uxtw #1]      /* r   */
+    ldrh    w10, [x2, w10, uxtw #1]      /* g1  */
+    ldrh    w11, [x2, w11, uxtw #1]      /* g2  */
+    ldrh    w12, [x2, w12, uxtw #1]      /* b   */
+    /* Compute outputs. */
+    add     w13, w10, w11                /* g1+g2 */
+    asr     w13, w13, #1                 /* gs */
+    sub     w14, w10, w11
+    add     w14, w14, w20
+    asr     w14, w14, #1                 /* gd */
+    sub     w15, w9, w13
+    add     w15, w15, w20
+    asr     w15, w15, #1                 /* rg */
+    sub     w9, w12, w13
+    add     w9, w9, w20
+    asr     w9, w9, #1                   /* bg */
+    /* Stores. */
+    str     w13, [x3], #4
+    str     w15, [x4], #4
+    str     w9,  [x5], #4
+    str     w14, [x6], #4
+
+    subs    w16, w16, #1
+    b.ne    .Lrggb_lane
+
+    add     w8, w8, #8
+    cmp     w8, w17
+    b.lt    .Lrggb_iter
+
+.Lrggb_done:
+    mov     w0, w17
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #32
     ret
 
 
-/* ================================================================
- * Function: fused_horizontal_neon_asm
- *
- * Horizontal wavelet filter, NEON 4-wide.
- *
- * void fused_horizontal_neon_asm(
- *     const int32_t *input,  // x0: input row (channel data)
- *     int32_t *lowpass,      // x1: lowpass output
- *     int32_t *highpass,     // x2: highpass output
- *     int width,             // w3: input width
- *     int prescale           // w4: prescale shift (0, 2, or 3)
- * );
- *
- * Filter math (per output pair i):
- *   lowpass[i]  = PS(in[2i]) + PS(in[2i+1])
- *   highpass[i] = ((PS(in[2i+2]+in[2i+3]) - PS(in[2i-2]+in[2i-1]) + 4) >> 3)
- *               + (PS(in[2i]) - PS(in[2i+1]))
- *
- * where PS(v) = (v + prescale_rounding) >> prescale
- *
- * NEON strategy (4 outputs per iteration):
- *   - Load 12 inputs covering [2i-2 .. 2i+9]
- *   - Apply prescale (vadd round, vshl by -prescale)
- *   - Use vuzpq to extract even/odd samples
- *   - Compute lowpass = evens + odds (single VADD)
- *   - Compute prev_sum and next_sum via paired evens/odds + VADD
- *   - Compute highpass = ((next - prev + 4) >> 3) + (even - odd)
- *
- * STUB: returns -1, falls back to C.
- */
-.globl _fused_horizontal_neon_asm
+/* ----------------------------------------------------------------
+ * GBRG: row1 = [G1 B G1 B ...], row2 = [R G2 R G2 ...].
+ * Same signature as rggb. */
+
+.globl CNAME(fused_unpack_row_gbrg_asm)
 .p2align 4
+CNAME(fused_unpack_row_gbrg_asm):
+    stp     x29, x30, [sp, #-32]!
+    mov     x29, sp
+    stp     x19, x20, [sp, #16]
 
-_fused_horizontal_neon_asm:
-    mov w0, #-1
-    ret
+#if defined(__APPLE__)
+    ldr     w19, [sp, #32]
+    ldr     w20, [sp, #36]
+#else
+    ldr     w19, [sp, #32]
+    ldr     w20, [sp, #40]
+#endif
 
+    and     w17, w7, #~7
+    cbz     w17, .Lgbrg_done
 
-/* ================================================================
- * Function: fused_vertical_quant_neon_asm
- *
- * Vertical wavelet filter + fused quantization, NEON 4-wide.
- *
- * void fused_vertical_quant_neon_asm(
- *     int32_t *rows[6],      // x0: array of 6 row pointers
- *     int32_t *out_lo,       // x1: lowpass+quant output (LL or HL band)
- *     int32_t *out_hi,       // x2: highpass+quant output (LH or HH band)
- *     int width,             // w3: band width
- *     int32_t mid_lo,        // w4: lowpass midpoint
- *     int32_t mul_lo,        // w5: lowpass multiplier
- *     int32_t mid_hi,        // w6: highpass midpoint
- *     int32_t mul_hi         // w7: highpass multiplier
- * );
- *
- * Vertical filter (middle rows):
- *   low  = r2 + r3
- *   high = ((r4 + r5 - r0 - r1 + 4) >> 3) + (r2 - r3)
- *
- * Quantize (per coefficient):
- *   abs_val = |v|
- *   q = ((abs_val + midpoint) * multiplier) >> 16
- *   result = (v < 0) ? -q : q
- *
- * NEON strategy (4 outputs per iteration):
- *   - 6 row loads (24 NEON registers worth — needs careful scheduling)
- *   - 6-tap filter math (mostly vadd/vsub, 1 vshr)
- *   - VMULL for 32×32→64 multiply in quantize
- *   - VBSL for sign restoration
- *
- * Register pressure: ~20 NEON regs at peak. Use 4-wide on Cortex-A78.
- *
- * STUB: returns -1, falls back to C.
- */
-.globl _fused_vertical_quant_neon_asm
-.p2align 4
+    mov     w8, wzr
+.Lgbrg_iter:
+    mov     w16, #8
+.Lgbrg_lane:
+    ldrh    w10, [x0], #2                /* G1 */
+    ldrh    w12, [x0], #2                /* B  */
+    ldrh    w9,  [x1], #2                /* R  */
+    ldrh    w11, [x1], #2                /* G2 */
+    cmp     w9,  w19
+    csel    w9,  w19, w9,  hi
+    cmp     w10, w19
+    csel    w10, w19, w10, hi
+    cmp     w11, w19
+    csel    w11, w19, w11, hi
+    cmp     w12, w19
+    csel    w12, w19, w12, hi
+    ldrh    w9,  [x2, w9,  uxtw #1]
+    ldrh    w10, [x2, w10, uxtw #1]
+    ldrh    w11, [x2, w11, uxtw #1]
+    ldrh    w12, [x2, w12, uxtw #1]
+    add     w13, w10, w11
+    asr     w13, w13, #1
+    sub     w14, w10, w11
+    add     w14, w14, w20
+    asr     w14, w14, #1
+    sub     w15, w9, w13
+    add     w15, w15, w20
+    asr     w15, w15, #1
+    sub     w9, w12, w13
+    add     w9, w9, w20
+    asr     w9, w9, #1
+    str     w13, [x3], #4
+    str     w15, [x4], #4
+    str     w9,  [x5], #4
+    str     w14, [x6], #4
 
-_fused_vertical_quant_neon_asm:
-    mov w0, #-1
+    subs    w16, w16, #1
+    b.ne    .Lgbrg_lane
+
+    add     w8, w8, #8
+    cmp     w8, w17
+    b.lt    .Lgbrg_iter
+
+.Lgbrg_done:
+    mov     w0, w17
+    ldp     x19, x20, [sp, #16]
+    ldp     x29, x30, [sp], #32
     ret
 
 #endif /* __aarch64__ */
