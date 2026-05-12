@@ -134,9 +134,19 @@ endif()
 # ----------------------------------------------------------------------------
 
 # Public C headers — the small, stable surface a downstream user actually
-# needs to write raw-video or fused-encode code. Internal headers
-# (error.h, types.h, headers.h, codebooks.h, etc.) are deliberately NOT
-# installed.
+# needs to write raw-video, fused-encode, or full GPR-SDK code.
+#
+# The "advertised" public API is in three sets (ENCODER, DECODER, SDK).
+# Those headers transitively #include a handful of supporting headers
+# from source/lib/common/public/ and source/lib/vc5_common/ — types
+# like CODEC_ERROR, gpr_buffer, gpr_rgb_buffer, fpn_model, ENABLED_PARTS.
+# Those transitive headers are listed in GPR_PUBLIC_HEADERS_SUPPORT
+# below and installed flat into include/gpr/ alongside the rest, so the
+# #include "foo.h" lines in the advertised headers resolve correctly
+# when consumers do #include <gpr/...>.
+#
+# Truly internal headers (headers.h, codebooks.h, syntax.h, encoder.h,
+# decoder.h, parameters.h, log.h, etc.) are NOT installed.
 set(GPR_PUBLIC_HEADERS_ENCODER
   "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/vc5_encoder/gpr_video.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/vc5_encoder/gpr_video_format.h"
@@ -156,6 +166,21 @@ set(GPR_PUBLIC_HEADERS_SDK
   "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/gpr_sdk/public/gpr_exif_info.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/gpr_sdk/public/gpr_profile_info.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/gpr_sdk/public/gpr_tuning_info.h"
+)
+
+# Supporting headers that the advertised public headers transitively
+# #include. Required for <gpr/gpr.h>, <gpr/vc5_encoder.h>, and
+# <gpr/vc5_decoder.h> to compile in a downstream project.
+set(GPR_PUBLIC_HEADERS_SUPPORT
+  "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/common/public/gpr_platform.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/common/public/gpr_allocator.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/common/public/gpr_buffer.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/common/public/gpr_rgb_buffer.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/vc5_common/error.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/vc5_common/types.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/vc5_common/vc5_common.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/vc5_common/config.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/source/lib/vc5_common/noise_model.h"
 )
 
 # Convenience INTERFACE target for raw-video / fused-encode users.
@@ -188,13 +213,14 @@ install(
   ARCHIVE        DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY        DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME        DESTINATION ${CMAKE_INSTALL_BINDIR}
-  INCLUDES       DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gpr
+  INCLUDES       DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(
   FILES ${GPR_PUBLIC_HEADERS_ENCODER}
         ${GPR_PUBLIC_HEADERS_DECODER}
         ${GPR_PUBLIC_HEADERS_SDK}
+        ${GPR_PUBLIC_HEADERS_SUPPORT}
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gpr
 )
 
