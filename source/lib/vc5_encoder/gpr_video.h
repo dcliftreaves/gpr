@@ -131,9 +131,14 @@ GPR_VIDEO_ENCODER *gpr_video_encoder_create_dual(
     @param ctx        Encoder context
     @param raw_bayer  Raw Bayer pixel data
     @param raw_size   Size of raw data in bytes (must equal width*height*2)
-    @param frame_tag  Caller-supplied tag (e.g. frame number or timestamp);
-                      passed through to the writer callback unchanged
-    @return           0 on success, -1 on error
+    @param frame_tag  Caller-supplied tag passed through to writer_fn.
+                      MUST be a contiguous sequence 0, 1, 2, ... — the
+                      writer thread emits frames in strict tag order
+                      starting at 0, so any gap or out-of-order start
+                      will deadlock the writer. (If you need wall-clock
+                      timestamps in the output, store them yourself in
+                      the writer_fn keyed by tag.)
+    @return           0 on success, -1 on error (including encoder aborted)
 */
 int gpr_video_encoder_submit(GPR_VIDEO_ENCODER *ctx,
                               const uint8_t *raw_bayer, size_t raw_size,
