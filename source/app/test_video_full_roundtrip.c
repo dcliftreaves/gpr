@@ -78,7 +78,7 @@ extern uint16_t DecoderLogCurve16[];
 
 /* Must match encoder's FUSED_WAVELET_LEVELS in fused_encode.c.
    Default 2 (matches encoder default); override via -DFUSED_WAVELET_LEVELS=1
-   or =3 at compile time when testing other configurations. */
+   at compile time when testing the single-level configuration. */
 #ifndef FUSED_WAVELET_LEVELS
 #define FUSED_WAVELET_LEVELS 2
 #endif
@@ -87,23 +87,12 @@ extern uint16_t DecoderLogCurve16[];
 #define BANDS_PER_CHANNEL 4    /* LL0, LH0, HL0, HH0 */
 #elif FUSED_WAVELET_LEVELS == 2
 #define BANDS_PER_CHANNEL 7    /* LL1, LH1, HL1, HH1, LH0, HL0, HH0 */
-#elif FUSED_WAVELET_LEVELS == 3
-#define BANDS_PER_CHANNEL 10   /* LL2, LH2, HL2, HH2, LH1, HL1, HH1, LH0, HL0, HH0 */
 #else
-#error "FUSED_WAVELET_LEVELS must be 1, 2, or 3"
+#error "FUSED_WAVELET_LEVELS must be 1 or 2"
 #endif
 #define BANDS_PER_FRAME (4 * BANDS_PER_CHANNEL)
 #define FUSED_LL_DIVISOR  64  /* Must match encoder's value in fused_encode.c */
 #define FUSED_LL1_DIVISOR 64  /* Must match encoder's value in fused_encode.c */
-#ifndef FUSED_LL2_DIVISOR
-#define FUSED_LL2_DIVISOR 64  /* Must match encoder's value in fused_encode.c */
-#endif
-#ifndef FUSED_L1_PRESCALE
-#define FUSED_L1_PRESCALE 2  /* Forward wavelet prescale at level 1 */
-#endif
-#ifndef FUSED_L2_PRESCALE
-#define FUSED_L2_PRESCALE 2  /* Forward wavelet prescale at level 2 */
-#endif
 
 /* ============================================================
    Per-frame bitstream collection (copy from existing test)
@@ -152,28 +141,6 @@ static int collect_writer(void *user_data, const uint8_t *vc5, size_t size,
 static int probe_band_bytes(const uint8_t *p, size_t avail, size_t *consumed)
 {
     if (avail < 16) return -1;
-
-    /* Lossless u16-BE LL format (FUSED_LL2_LOSSLESS encoder path):
-       0xFEFEFEFE + u16-BE width + u16-BE height + w*h u16-BE coefficients. */
-    if (p[0] == 0xFE && p[1] == 0xFE && p[2] == 0xFE && p[3] == 0xFE) {
-        int w = (p[4] << 8) | p[5];
-        int h = (p[6] << 8) | p[7];
-        if (w <= 0 || h <= 0 || w > 65535 || h > 65535) return -1;
-        size_t total = 8 + (size_t)2 * w * h;
-        if (total > avail) return -1;
-        *consumed = total;
-        return 0;
-    }
-    /* Lossless s32-BE LL format (FUSED_LL_WIDE_STORAGE encoder path) */
-    if (p[0] == 0xFD && p[1] == 0xFD && p[2] == 0xFD && p[3] == 0xFD) {
-        int w = (p[4] << 8) | p[5];
-        int h = (p[6] << 8) | p[7];
-        if (w <= 0 || h <= 0 || w > 65535 || h > 65535) return -1;
-        size_t total = 8 + (size_t)4 * w * h;
-        if (total > avail) return -1;
-        *consumed = total;
-        return 0;
-    }
 
     if (p[0] == 0xFF && p[1] == 0xFF && p[2] == 0xFF && p[3] == 0xFF) {
         int num_stripes = (p[4]<<24)|(p[5]<<16)|(p[6]<<8)|p[7];
@@ -261,40 +228,6 @@ static void fused_base_divisors_2level(int quality, int32_t base[7]) {
     base[4] = quality_tables[qi][7];
     base[5] = quality_tables[qi][8];
     base[6] = quality_tables[qi][9];
-}
-#endif
-
-#if FUSED_WAVELET_LEVELS >= 3
-/* Per-band divisor table for 3-level layout:
-     [0] LL2: FUSED_LL2_DIVISOR (level-2 lowpass)
-     [1] LH2: qt[1]
-     [2] HL2: qt[2]
-     [3] HH2: qt[3]
-     [4] LH1: qt[4]
-     [5] HL1: qt[5]
-     [6] HH1: qt[6]
-     [7] LH0: qt[7]
-     [8] HL0: qt[8]
-     [9] HH0: qt[9]
-   LL0 and LL1 are intermediate (NOT emitted). */
-#ifndef FUSED_LL2_LOSSLESS
-#define FUSED_LL2_LOSSLESS 0
-#endif
-#ifndef FUSED_HF_ALL_LOSSLESS
-#define FUSED_HF_ALL_LOSSLESS 0
-#endif
-static void fused_base_divisors_3level(int quality, int32_t base[10]) {
-    int qi = (quality >= 0 && quality < 9) ? quality : 3;
-    base[0] = FUSED_LL2_LOSSLESS ? 1 : FUSED_LL2_DIVISOR;
-    base[1] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][1];
-    base[2] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][2];
-    base[3] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][3];
-    base[4] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][4];
-    base[5] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][5];
-    base[6] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][6];
-    base[7] = quality_tables[qi][7];
-    base[8] = quality_tables[qi][8];
-    base[9] = quality_tables[qi][9];
 }
 #endif
 
@@ -752,73 +685,12 @@ static void fwd_wavelet_quantize_2level(const int32_t *channel, int ch_w, int ch
 }
 #endif
 
-#if FUSED_WAVELET_LEVELS >= 3
-/* 3-level forward wavelet + quantization (matches fused_encode.c FUSED_WAVELET_LEVELS=3).
-   Produces 10 quantized bands per channel in the order:
-     l2_bands[0..3] = LL2, LH2, HL2, HH2   (at bw2*bh2)
-     l1_hp[0..2]    = LH1, HL1, HH1        (at bw1*bh1)
-     l0_hp[0..2]    = LH0, HL0, HH0        (at bw*bh)
-   ch_w x ch_h is the channel image size (= w/2 x h/2).
-   bw = ch_w/2, bh = ch_h/2.
-   bw1 = bw/2, bh1 = bh/2.
-   bw2 = bw1/2, bh2 = bh1/2.
-
-   base_divisors[10] = { FUSED_LL2_DIVISOR, qt[1], qt[2], qt[3],
-                         qt[4], qt[5], qt[6], qt[7], qt[8], qt[9] }.
-
-   The intermediate LL0 and LL1 are held with divisor=1 (no quantization)
-   so deeper wavelets see clean values. */
-static void fwd_wavelet_quantize_3level(const int32_t *channel, int ch_w, int ch_h,
-                                         int prescale,
-                                         const int32_t base_divisors[10],
-                                         double quant_scale,
-                                         int32_t *l2_bands[4],   /* LL2, LH2, HL2, HH2 */
-                                         int32_t *l1_hp[3],      /* LH1, HL1, HH1 */
-                                         int32_t *l0_hp[3])      /* LH0, HL0, HH0 */
-{
-    int bw  = ch_w / 2, bh  = ch_h / 2;
-    int bw1 = bw / 2,   bh1 = bh / 2;
-    int bw2 = bw1 / 2,  bh2 = bh1 / 2;
-
-    /* Level-0 forward with LL lossless (divisor=1), LH/HL/HH = base_divisors[7..9]. */
-    int32_t *ll0 = (int32_t *)calloc((size_t)bw * bh, sizeof(int32_t));
-    int32_t l0_base[4] = { 1, base_divisors[7], base_divisors[8], base_divisors[9] };
-    fwd_wavelet_quantize(channel, ch_w, ch_h, prescale,
-                          l0_base, quant_scale,
-                          ll0, l0_hp[0], l0_hp[1], l0_hp[2]);
-
-    /* Level-1 forward on the (unquantized) LL0. LL1 also lossless (divisor=1)
-       so the level-2 wavelet sees clean values. LH1/HL1/HH1 = base_divisors[4..6].
-       Prescale matches encoder's FUSED_L1_PRESCALE. */
-    int32_t *ll1 = (int32_t *)calloc((size_t)bw1 * bh1, sizeof(int32_t));
-    int32_t l1_base[4] = { 1, base_divisors[4], base_divisors[5], base_divisors[6] };
-    fwd_wavelet_quantize(ll0, bw, bh, FUSED_L1_PRESCALE,
-                          l1_base, quant_scale,
-                          ll1, l1_hp[0], l1_hp[1], l1_hp[2]);
-
-    /* Level-2 forward on the (unquantized) LL1. Prescale matches encoder's
-       FUSED_L2_PRESCALE. */
-    int32_t l2_base[4] = { base_divisors[0], base_divisors[1], base_divisors[2], base_divisors[3] };
-    fwd_wavelet_quantize(ll1, bw1, bh1, FUSED_L2_PRESCALE,
-                          l2_base, quant_scale,
-                          l2_bands[0], l2_bands[1], l2_bands[2], l2_bands[3]);
-
-    free(ll0);
-    free(ll1);
-    (void)bw2; (void)bh2;
-}
-#endif
-
 /* ============================================================
    Decode all bands from one frame bitstream into per-channel int32 buffers.
    In single-level mode (BANDS_PER_CHANNEL=4): band_buffers[ch][band] is a
        bw*bh buffer for band 0..3 (LL, LH, HL, HH all at level-0 size).
    In 2-level mode (BANDS_PER_CHANNEL=7): band_buffers[ch][0..3] are level-1
        bands at (bw/2 × bh/2). band_buffers[ch][4..6] are level-0 highpass
-       at (bw × bh).
-   In 3-level mode (BANDS_PER_CHANNEL=10): band_buffers[ch][0..3] are level-2
-       bands at (bw/4 × bh/4). band_buffers[ch][4..6] are level-1 highpass
-       at (bw/2 × bh/2). band_buffers[ch][7..9] are level-0 highpass
        at (bw × bh).
    The CALLER must allocate each buffer at the correct dimensions.
    ============================================================ */
@@ -831,10 +703,7 @@ static int decode_frame_bands(const uint8_t *vc5, size_t size,
     for (int ch = 0; ch < 4; ch++) {
         for (int band = 0; band < BANDS_PER_CHANNEL; band++) {
             int this_w = bw, this_h = bh;
-#if FUSED_WAVELET_LEVELS == 3
-            if (band < 4) { this_w = bw / 4; this_h = bh / 4; }
-            else if (band < 7) { this_w = bw / 2; this_h = bh / 2; }
-#elif FUSED_WAVELET_LEVELS == 2
+#if FUSED_WAVELET_LEVELS == 2
             if (band < 4) { this_w = bw / 2; this_h = bh / 2; }
 #endif
             size_t band_bytes = 0;
@@ -845,41 +714,13 @@ static int decode_frame_bands(const uint8_t *vc5, size_t size,
             }
             memset(band_buffers[ch][band], 0,
                    (size_t)this_w * this_h * sizeof(int32_t));
-            const uint8_t *bp = vc5 + pos;
-            if ((bp[0] == 0xFE || bp[0] == 0xFD) && bp[1] == bp[0] && bp[2] == bp[0] && bp[3] == bp[0]) {
-                /* Lossless LL fast path. 0xFEFEFEFE = u16-BE (compact),
-                   0xFDFDFDFD = s32-BE (wide, for reduced-prescale variants). */
-                int hw = (bp[4] << 8) | bp[5];
-                int hh = (bp[6] << 8) | bp[7];
-                if (hw != this_w || hh != this_h) {
-                    fprintf(stderr, "    lossless LL dim mismatch ch=%d band=%d hdr=%dx%d expect=%dx%d\n",
-                            ch, band, hw, hh, this_w, this_h);
-                    return bands_ok;
-                }
-                const uint8_t *src = bp + 8;
-                int32_t *dst = band_buffers[ch][band];
-                if (bp[0] == 0xFE) {
-                    for (size_t k = 0, n = (size_t)hw * hh; k < n; k++) {
-                        dst[k] = (int32_t)(((uint32_t)src[2*k] << 8) | src[2*k + 1]);
-                    }
-                } else {
-                    for (size_t k = 0, n = (size_t)hw * hh; k < n; k++) {
-                        uint32_t u = ((uint32_t)src[4*k]   << 24) |
-                                     ((uint32_t)src[4*k+1] << 16) |
-                                     ((uint32_t)src[4*k+2] << 8)  |
-                                      (uint32_t)src[4*k+3];
-                        dst[k] = (int32_t)u;
-                    }
-                }
-            } else {
-                int rc = jans_decode_band_x4(vc5 + pos, band_bytes,
-                                              band_buffers[ch][band],
-                                              this_w, this_h, this_w * sizeof(int32_t));
-                if (rc != 0) {
-                    fprintf(stderr, "    jans_decode_band_x4 ch=%d band=%d → %d\n",
-                            ch, band, rc);
-                    return bands_ok;
-                }
+            int rc = jans_decode_band_x4(vc5 + pos, band_bytes,
+                                          band_buffers[ch][band],
+                                          this_w, this_h, this_w * sizeof(int32_t));
+            if (rc != 0) {
+                fprintf(stderr, "    jans_decode_band_x4 ch=%d band=%d → %d\n",
+                        ch, band, rc);
+                return bands_ok;
             }
             pos += band_bytes;
             bands_ok++;
@@ -1341,7 +1182,7 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
        wavelet halves the magnitude scale (it doesn't undo the forward
        prescale). To recover the true LL0 scale we must apply <<prescale_l1
        after inverting level 1, before feeding into the level-0 inverse. */
-    const int prescale_l1 = FUSED_L1_PRESCALE;
+    const int prescale_l1 = 2;
     for (int ch = 0; ch < 4; ch++) {
         /* Invert level-1: LL1+LH1+HL1+HH1 (at bw1*bh1) → LL0 reconstructed (at bw*bh).
            invert_spatial_band takes 4 bands at (input_w, input_h) and writes
@@ -1392,219 +1233,6 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
             free(oracle_bands_dq[ch][b]);
         }
 
-#else  /* FUSED_WAVELET_LEVELS == 3 */
-    /* ================================================================
-       3-level path: 10 bands per channel
-       (LL2, LH2, HL2, HH2, LH1, HL1, HH1, LH0, HL0, HH0).
-       ================================================================ */
-    int bw1 = bw / 2,   bh1 = bh / 2;
-    int bw2 = bw1 / 2,  bh2 = bh1 / 2;
-
-    int32_t *oracle_bands[4][10];
-    int32_t *decoded_bands[4][10];
-    /* Per-band dimensions: bands 0..3 level-2 (bw2*bh2),
-       4..6 level-1 (bw1*bh1), 7..9 level-0 (bw*bh). */
-    for (int ch = 0; ch < 4; ch++) {
-        for (int b = 0; b < 10; b++) {
-            int W, H;
-            if (b < 4)      { W = bw2; H = bh2; }
-            else if (b < 7) { W = bw1; H = bh1; }
-            else            { W = bw;  H = bh;  }
-            oracle_bands[ch][b]  = (int32_t *)calloc((size_t)W * H, sizeof(int32_t));
-            decoded_bands[ch][b] = (int32_t *)calloc((size_t)W * H, sizeof(int32_t));
-        }
-    }
-
-    /* Channel-domain images for forward pass */
-    int32_t *channels[4];
-    for (int i = 0; i < 4; i++) {
-        channels[i] = (int32_t *)calloc((size_t)ch_w * ch_h, sizeof(int32_t));
-    }
-
-    fwd_channels((const uint16_t *)raw, w, h, log_bits, is_rggb,
-                 channels[0], channels[1], channels[2], channels[3]);
-
-    int32_t base_divisors_3l[10];
-    fused_base_divisors_3level(quality, base_divisors_3l);
-
-    for (int ch = 0; ch < 4; ch++) {
-        int32_t *l2_bands[4] = {
-            oracle_bands[ch][0], oracle_bands[ch][1],
-            oracle_bands[ch][2], oracle_bands[ch][3]
-        };
-        int32_t *l1_hp[3] = {
-            oracle_bands[ch][4], oracle_bands[ch][5], oracle_bands[ch][6]
-        };
-        int32_t *l0_hp[3] = {
-            oracle_bands[ch][7], oracle_bands[ch][8], oracle_bands[ch][9]
-        };
-        fwd_wavelet_quantize_3level(channels[ch], ch_w, ch_h, prescale,
-                                     base_divisors_3l, quant_scale,
-                                     l2_bands, l1_hp, l0_hp);
-    }
-
-    /* Decode bitstream → decoded_bands. */
-    int bands_ok = decode_frame_bands(vc5, vc5_size, bw, bh, decoded_bands);
-    if (bands_ok != BANDS_PER_FRAME) {
-        fprintf(stderr, "    DECODE FAILED: %d/%d bands\n", bands_ok, BANDS_PER_FRAME);
-        for (int ch = 0; ch < 4; ch++)
-            for (int b = 0; b < 10; b++) {
-                free(oracle_bands[ch][b]); free(decoded_bands[ch][b]);
-            }
-        for (int i = 0; i < 4; i++) free(channels[i]);
-        return -1;
-    }
-
-    /* Per-band stats. */
-    for (int ch = 0; ch < 4; ch++) {
-        for (int b = 0; b < 10; b++) {
-            int bi = ch * 10 + b;
-            int32_t mn = INT32_MAX, mx = INT32_MIN;
-            int nz = 0, matches = 0;
-            int W, H;
-            if (b < 4)      { W = bw2; H = bh2; }
-            else if (b < 7) { W = bw1; H = bh1; }
-            else            { W = bw;  H = bh;  }
-            size_t n = (size_t)W * H;
-            for (size_t k = 0; k < n; k++) {
-                int32_t v = decoded_bands[ch][b][k];
-                if (v != 0) nz++;
-                if (v < mn) mn = v;
-                if (v > mx) mx = v;
-                if (v == oracle_bands[ch][b][k]) matches++;
-            }
-            out->band_min[bi] = mn;
-            out->band_max[bi] = mx;
-            out->band_nonzero[bi] = nz;
-            out->band_match_pct[bi] = 100.0 * matches / (double)n;
-        }
-    }
-
-    /* Inverse quant: in-place multiply by effective divisor. */
-    int32_t eff_div[10];
-    for (int b = 0; b < 10; b++) {
-        eff_div[b] = (int32_t)((double)base_divisors_3l[b] * quant_scale + 0.5);
-        if (eff_div[b] < 1) eff_div[b] = 1;
-    }
-    for (int ch = 0; ch < 4; ch++) {
-        for (int b = 0; b < 10; b++) {
-            int32_t d = eff_div[b];
-            if (d == 1) continue;
-            int W, H;
-            if (b < 4)      { W = bw2; H = bh2; }
-            else if (b < 7) { W = bw1; H = bh1; }
-            else            { W = bw;  H = bh;  }
-            size_t n = (size_t)W * H;
-            for (size_t k = 0; k < n; k++) {
-                decoded_bands[ch][b][k] = dequantize_scalar(decoded_bands[ch][b][k], d);
-            }
-        }
-    }
-
-    /* 3-level inverse chain:
-         1. Invert level-2 (4 bands at bw2×bh2) → reconstructed LL1 (bw1×bh1).
-            Apply <<prescale_l2 to recover the magnitude scale that the
-            encoder's LL1 buffer had pre-L2-wavelet.
-         2. Invert level-1 (recon LL1 + decoded LH1/HL1/HH1 at bw1×bh1) →
-            reconstructed LL0 (bw×bh). Apply <<prescale_l1.
-         3. Invert level-0 (recon LL0 + decoded LH0/HL0/HH0 at bw×bh) →
-            channel-domain reconstruction (ch_w×ch_h).
-       The level-0 prescale shift is handled by reconstruct_bayer_row. */
-    const int prescale_l2 = FUSED_L2_PRESCALE;
-    const int prescale_l1 = FUSED_L1_PRESCALE;
-
-    int32_t *ll1_recon  = (int32_t *)calloc((size_t)bw1 * bh1, sizeof(int32_t));
-    int32_t *ll1_oracle = (int32_t *)calloc((size_t)bw1 * bh1, sizeof(int32_t));
-    int32_t *ll0_recon  = (int32_t *)calloc((size_t)bw  * bh,  sizeof(int32_t));
-    int32_t *ll0_oracle = (int32_t *)calloc((size_t)bw  * bh,  sizeof(int32_t));
-    int32_t *recon_ch[4];
-    int32_t *oracle_ch[4];
-    int32_t *oracle_bands_dq[4][10];
-    for (int i = 0; i < 4; i++) {
-        recon_ch[i]  = (int32_t *)calloc((size_t)ch_w * ch_h, sizeof(int32_t));
-        oracle_ch[i] = (int32_t *)calloc((size_t)ch_w * ch_h, sizeof(int32_t));
-    }
-
-    /* Build oracle dequantized buffers. */
-    for (int ch = 0; ch < 4; ch++) {
-        for (int b = 0; b < 10; b++) {
-            int W, H;
-            if (b < 4)      { W = bw2; H = bh2; }
-            else if (b < 7) { W = bw1; H = bh1; }
-            else            { W = bw;  H = bh;  }
-            size_t n = (size_t)W * H;
-            oracle_bands_dq[ch][b] = (int32_t *)malloc(n * sizeof(int32_t));
-            int32_t d = eff_div[b];
-            for (size_t k = 0; k < n; k++) {
-                oracle_bands_dq[ch][b][k] = dequantize_scalar(oracle_bands[ch][b][k], d);
-            }
-        }
-    }
-
-    for (int ch = 0; ch < 4; ch++) {
-        /* Decoded path: L2 inverse → ll1_recon, shift, L1 inverse → ll0_recon,
-           shift, L0 inverse → recon_ch[ch]. */
-        invert_spatial_band(decoded_bands[ch][0],   /* LL2 */
-                             decoded_bands[ch][1],   /* LH2 */
-                             decoded_bands[ch][2],   /* HL2 */
-                             decoded_bands[ch][3],   /* HH2 */
-                             bw2, bh2,
-                             ll1_recon, bw1);
-        for (size_t k = 0, n = (size_t)bw1 * bh1; k < n; k++) {
-            ll1_recon[k] <<= prescale_l2;
-        }
-
-        invert_spatial_band(ll1_recon,                /* LL1 reconstructed */
-                             decoded_bands[ch][4],    /* LH1 */
-                             decoded_bands[ch][5],    /* HL1 */
-                             decoded_bands[ch][6],    /* HH1 */
-                             bw1, bh1,
-                             ll0_recon, bw);
-        for (size_t k = 0, n = (size_t)bw * bh; k < n; k++) {
-            ll0_recon[k] <<= prescale_l1;
-        }
-
-        invert_spatial_band(ll0_recon,                /* LL0 reconstructed */
-                             decoded_bands[ch][7],    /* LH0 */
-                             decoded_bands[ch][8],    /* HL0 */
-                             decoded_bands[ch][9],    /* HH0 */
-                             bw, bh,
-                             recon_ch[ch], ch_w);
-
-        /* Oracle path: same with oracle bands. */
-        invert_spatial_band(oracle_bands_dq[ch][0],
-                             oracle_bands_dq[ch][1],
-                             oracle_bands_dq[ch][2],
-                             oracle_bands_dq[ch][3],
-                             bw2, bh2,
-                             ll1_oracle, bw1);
-        for (size_t k = 0, n = (size_t)bw1 * bh1; k < n; k++) {
-            ll1_oracle[k] <<= prescale_l2;
-        }
-        invert_spatial_band(ll1_oracle,
-                             oracle_bands_dq[ch][4],
-                             oracle_bands_dq[ch][5],
-                             oracle_bands_dq[ch][6],
-                             bw1, bh1,
-                             ll0_oracle, bw);
-        for (size_t k = 0, n = (size_t)bw * bh; k < n; k++) {
-            ll0_oracle[k] <<= prescale_l1;
-        }
-        invert_spatial_band(ll0_oracle,
-                             oracle_bands_dq[ch][7],
-                             oracle_bands_dq[ch][8],
-                             oracle_bands_dq[ch][9],
-                             bw, bh,
-                             oracle_ch[ch], ch_w);
-    }
-
-    free(ll1_recon); free(ll1_oracle);
-    free(ll0_recon); free(ll0_oracle);
-    for (int ch = 0; ch < 4; ch++)
-        for (int b = 0; b < 10; b++) {
-            free(oracle_bands[ch][b]); free(decoded_bands[ch][b]);
-            free(oracle_bands_dq[ch][b]);
-        }
 #endif  /* FUSED_WAVELET_LEVELS */
 
     /* Reconstruct Bayer image (decoded path) */
