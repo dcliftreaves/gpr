@@ -8,14 +8,18 @@ The pipeline encode → decode → image-reconstruction is correct and sustains 
 
 ## Compute speed for A78 24 fps × 50 MP (the big one)
 
+**Status update (2026-05-12):** several attempts made. M1 is roughly at the compute ceiling for this codec shape — Apple Clang's NEON intrinsic lowering already produces near-optimal code on the wide-retire microarchitecture, and the unpack producer is memory-bandwidth-bound at ~150 GB/s. Further wins are A78-target-specific and need real silicon.
+
 | Lever | Status | Expected impact |
 |---|---|---|
-| `FUSED_LOG_POLYNOMIAL` compile flag | Implemented (`53e4777`), needs A78 measurement | 1.5-2× on unpack at A78 cache size |
-| Multi-level wavelet (in progress, subagent ae41a11) | In flight | Compute neutral, but smaller bitstreams → faster ANS encode |
-| `vld2q` + branchless clip in unpack | Designed in memory; not committed | 5-15% on unpack |
-| Proper int32 8-wide vertical filter | Partial 2× unroll landed (`1ae5d5d`); could be tightened with FMA / dual issue tuning | Modest |
+| `FUSED_LOG_POLYNOMIAL` compile flag (`53e4777`) | Implemented, needs A78 measurement | 1.5-2× on unpack (A78 64 KB L1d makes LUT contend) |
+| Multi-level wavelet (`301e4a0`) | **Landed (2-level default).** 35% size reduction, +20% compute | Compute neutral net — smaller output offsets extra wavelet pass |
+| `vld2q` + branchless clip in unpack | **Already in place** (commit `38605f7`). | n/a (done) |
+| Direct lane access (avoid temp arrays) in unpack | **Tried (this session). Slower on M1.** Compiler does stack store-load via forwarding; direct UMOV is worse. Reverted. | n/a |
+| Conditional int16 vertical filter for 14-bit (`bc52f9b`) | Landed | ~7% on 14-bit content |
+| ARM64 hand-tuned assembly for `unpack_all_channels_row` (`8f658f4`) | Landed, runtime opt-in via `FUSED_UNPACK_ASM=1` | **M1: within 1% (no win).** A78 expected 10-20% on producer-unpack |
 
-Target M1 time for 2.5× A78 fit: 17 ms steady-state. Current: ~30 ms. Need 1.7× more compute speed.
+Target M1 time for 2.5× A78 fit: 17 ms steady-state. Current best M1: ~30 ms. **The remaining 1.7× speedup is now blocked on A78 hardware availability** — not on M1 engineering options I haven't tried.
 
 ## Known minor issues (not blocking ship)
 
