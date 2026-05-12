@@ -140,6 +140,25 @@ void gpr_encode_fused_set_denoise(FUSED_ENCODER *ctx,
                                   double noise_offset,
                                   double strength);
 
+/*!
+    @brief Per-frame quantization scale knob for rate control.
+
+    Multiplies the base quality preset's divisors by @p scale. Larger
+    scale → coarser quantization → smaller output. Clamped to a sane
+    range; the encoder won't crash on extreme values, just produce
+    very bad output.
+
+    Intended for use by a rate controller (e.g. gpr_video_encoder)
+    between frames to hit a target bitrate independent of scene
+    content. Safe to call at any time but only takes effect on the
+    next frame's encode.
+
+    @param scale   1.0 = base quality preset, 2.0 = double the divisor
+                   (≈ one quality preset coarser), 0.5 = halve the
+                   divisor (≈ one preset finer). Clamped to [0.25, 16].
+*/
+void gpr_encode_fused_set_quant_scale(FUSED_ENCODER *ctx, double scale);
+
 #ifdef __cplusplus
 }
 #endif
