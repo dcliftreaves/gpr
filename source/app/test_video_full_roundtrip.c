@@ -98,6 +98,12 @@ extern uint16_t DecoderLogCurve16[];
 #ifndef FUSED_LL2_DIVISOR
 #define FUSED_LL2_DIVISOR 64  /* Must match encoder's value in fused_encode.c */
 #endif
+#ifndef FUSED_L1_PRESCALE
+#define FUSED_L1_PRESCALE 2  /* Forward wavelet prescale at level 1 */
+#endif
+#ifndef FUSED_L2_PRESCALE
+#define FUSED_L2_PRESCALE 2  /* Forward wavelet prescale at level 2 */
+#endif
 
 /* ============================================================
    Per-frame bitstream collection (copy from existing test)
@@ -154,6 +160,16 @@ static int probe_band_bytes(const uint8_t *p, size_t avail, size_t *consumed)
         int h = (p[6] << 8) | p[7];
         if (w <= 0 || h <= 0 || w > 65535 || h > 65535) return -1;
         size_t total = 8 + (size_t)2 * w * h;
+        if (total > avail) return -1;
+        *consumed = total;
+        return 0;
+    }
+    /* Lossless s32-BE LL format (FUSED_LL_WIDE_STORAGE encoder path) */
+    if (p[0] == 0xFD && p[1] == 0xFD && p[2] == 0xFD && p[3] == 0xFD) {
+        int w = (p[4] << 8) | p[5];
+        int h = (p[6] << 8) | p[7];
+        if (w <= 0 || h <= 0 || w > 65535 || h > 65535) return -1;
+        size_t total = 8 + (size_t)4 * w * h;
         if (total > avail) return -1;
         *consumed = total;
         return 0;
@@ -773,17 +789,17 @@ static void fwd_wavelet_quantize_3level(const int32_t *channel, int ch_w, int ch
 
     /* Level-1 forward on the (unquantized) LL0. LL1 also lossless (divisor=1)
        so the level-2 wavelet sees clean values. LH1/HL1/HH1 = base_divisors[4..6].
-       Prescale=2 to match run_level1_wavelet. */
+       Prescale matches encoder's FUSED_L1_PRESCALE. */
     int32_t *ll1 = (int32_t *)calloc((size_t)bw1 * bh1, sizeof(int32_t));
     int32_t l1_base[4] = { 1, base_divisors[4], base_divisors[5], base_divisors[6] };
-    fwd_wavelet_quantize(ll0, bw, bh, 2,
+    fwd_wavelet_quantize(ll0, bw, bh, FUSED_L1_PRESCALE,
                           l1_base, quant_scale,
                           ll1, l1_hp[0], l1_hp[1], l1_hp[2]);
 
-    /* Level-2 forward on the (unquantized) LL1. LL2 = FUSED_LL2_DIVISOR,
-       LH2/HL2/HH2 = base_divisors[1..3]. Prescale=2 to match run_level2_wavelet. */
+    /* Level-2 forward on the (unquantized) LL1. Prescale matches encoder's
+       FUSED_L2_PRESCALE. */
     int32_t l2_base[4] = { base_divisors[0], base_divisors[1], base_divisors[2], base_divisors[3] };
-    fwd_wavelet_quantize(ll1, bw1, bh1, 2,
+    fwd_wavelet_quantize(ll1, bw1, bh1, FUSED_L2_PRESCALE,
                           l2_base, quant_scale,
                           l2_bands[0], l2_bands[1], l2_bands[2], l2_bands[3]);
 
@@ -830,8 +846,9 @@ static int decode_frame_bands(const uint8_t *vc5, size_t size,
             memset(band_buffers[ch][band], 0,
                    (size_t)this_w * this_h * sizeof(int32_t));
             const uint8_t *bp = vc5 + pos;
-            if (bp[0] == 0xFE && bp[1] == 0xFE && bp[2] == 0xFE && bp[3] == 0xFE) {
-                /* Lossless u16-BE LL fast path. Header: magic(4) + w(2) + h(2). */
+            if ((bp[0] == 0xFE || bp[0] == 0xFD) && bp[1] == bp[0] && bp[2] == bp[0] && bp[3] == bp[0]) {
+                /* Lossless LL fast path. 0xFEFEFEFE = u16-BE (compact),
+                   0xFDFDFDFD = s32-BE (wide, for reduced-prescale variants). */
                 int hw = (bp[4] << 8) | bp[5];
                 int hh = (bp[6] << 8) | bp[7];
                 if (hw != this_w || hh != this_h) {
@@ -841,8 +858,18 @@ static int decode_frame_bands(const uint8_t *vc5, size_t size,
                 }
                 const uint8_t *src = bp + 8;
                 int32_t *dst = band_buffers[ch][band];
-                for (size_t k = 0, n = (size_t)hw * hh; k < n; k++) {
-                    dst[k] = (int32_t)(((uint32_t)src[2*k] << 8) | src[2*k + 1]);
+                if (bp[0] == 0xFE) {
+                    for (size_t k = 0, n = (size_t)hw * hh; k < n; k++) {
+                        dst[k] = (int32_t)(((uint32_t)src[2*k] << 8) | src[2*k + 1]);
+                    }
+                } else {
+                    for (size_t k = 0, n = (size_t)hw * hh; k < n; k++) {
+                        uint32_t u = ((uint32_t)src[4*k]   << 24) |
+                                     ((uint32_t)src[4*k+1] << 16) |
+                                     ((uint32_t)src[4*k+2] << 8)  |
+                                      (uint32_t)src[4*k+3];
+                        dst[k] = (int32_t)u;
+                    }
                 }
             } else {
                 int rc = jans_decode_band_x4(vc5 + pos, band_bytes,
@@ -1314,7 +1341,7 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
        wavelet halves the magnitude scale (it doesn't undo the forward
        prescale). To recover the true LL0 scale we must apply <<prescale_l1
        after inverting level 1, before feeding into the level-0 inverse. */
-    const int prescale_l1 = 2;
+    const int prescale_l1 = FUSED_L1_PRESCALE;
     for (int ch = 0; ch < 4; ch++) {
         /* Invert level-1: LL1+LH1+HL1+HH1 (at bw1*bh1) → LL0 reconstructed (at bw*bh).
            invert_spatial_band takes 4 bands at (input_w, input_h) and writes
@@ -1483,8 +1510,8 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
          3. Invert level-0 (recon LL0 + decoded LH0/HL0/HH0 at bw×bh) →
             channel-domain reconstruction (ch_w×ch_h).
        The level-0 prescale shift is handled by reconstruct_bayer_row. */
-    const int prescale_l2 = 2;
-    const int prescale_l1 = 2;
+    const int prescale_l2 = FUSED_L2_PRESCALE;
+    const int prescale_l1 = FUSED_L1_PRESCALE;
 
     int32_t *ll1_recon  = (int32_t *)calloc((size_t)bw1 * bh1, sizeof(int32_t));
     int32_t *ll1_oracle = (int32_t *)calloc((size_t)bw1 * bh1, sizeof(int32_t));

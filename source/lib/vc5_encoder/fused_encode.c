@@ -166,6 +166,30 @@ static inline int32x4_t fused_log_curve_neon4(uint16x4_t x_u16, int max_v) {
 #error "FUSED_LL2_LOSSLESS only makes sense with FUSED_WAVELET_LEVELS=3"
 #endif
 
+/* Per-level forward-wavelet prescale (>>N inside horizontal_filter). Default
+   2 at every level, sized for 14-bit input + DC preservation through 3
+   cascade levels. Reducing prescale at deep levels preserves LL precision
+   at the cost of larger coefficient magnitudes (would exceed u16 → need
+   widened lossless storage and bigger rANS alphabet, both gated below). */
+#ifndef FUSED_L0_PRESCALE
+#define FUSED_L0_PRESCALE 2
+#endif
+#ifndef FUSED_L1_PRESCALE
+#define FUSED_L1_PRESCALE 2
+#endif
+#ifndef FUSED_L2_PRESCALE
+#define FUSED_L2_PRESCALE 2
+#endif
+
+/* When prescale at any non-zero level is below default, LL coefficient
+   magnitudes can exceed 16-bit unsigned. Use int32 BE storage in the
+   lossless LL format. Otherwise stay with u16 BE for compactness. */
+#if (FUSED_L1_PRESCALE < 2) || (FUSED_L2_PRESCALE < 2)
+#define FUSED_LL_WIDE_STORAGE 1
+#else
+#define FUSED_LL_WIDE_STORAGE 0
+#endif
+
 #if FUSED_WAVELET_LEVELS == 1
 #define FUSED_BANDS_PER_CHANNEL 4    /* LL0, LH0, HL0, HH0 */
 #elif FUSED_WAVELET_LEVELS == 2
@@ -1504,7 +1528,7 @@ static void run_level1_wavelet(FUSED_CHANNEL_STATE *cs)
        and applies prescale=2 at level 0 universally. For level 1 we use
        prescale=2 to keep LL1 dynamic range manageable; production-equivalent
        prescale=3 (for 16-bit) reduces LL1 by another factor of 2. */
-    const int prescale = 2;
+    const int prescale = FUSED_L1_PRESCALE;
     /* log_bits is only used by horizontal_filter for the can_use_s16 check.
        Level-1 input is bounded by level-0 LL values which are 14-bit-ish
        (with prescale=2 already applied at level 0), so 14 is safe. We pass
@@ -1593,7 +1617,7 @@ static void run_level2_wavelet(FUSED_CHANNEL_STATE *cs)
     const int in_h = cs->band_height_l1;
     const int bw2  = cs->band_width_l2;
     const int bh2  = cs->band_height_l2;
-    const int prescale = 2;
+    const int prescale = FUSED_L2_PRESCALE;
     const int log_bits = 16;  /* conservative — disables int16 fast path */
 
     PIXEL *lp_buf[FUSED_ROW_BUFS];
@@ -1871,19 +1895,27 @@ static void *pass2_band_thread(void *arg) {
     }
 
     if (t->lossless_u16_be) {
-        /* Lossless LL2 path: write fixed-width u16-BE per coefficient with a
-           magic+dims header. See FUSED_LL2_LOSSLESS comment for format.
-           This entirely bypasses rANS and the 2047-magnitude alphabet cap. */
+        /* Lossless LL2 path. Two variants gated by FUSED_LL_WIDE_STORAGE:
+             u16-BE (default, compact): magic 0xFEFEFEFE + w,h (u16 BE)
+                 + w*h u16-BE coefficients clamped to [0,65535].
+             s32-BE (wide, when L1/L2 prescale < 2): magic 0xFDFDFDFD
+                 + w,h (u16 BE) + w*h int32-BE signed coefficients.
+           The decoder distinguishes by the magic. */
         const int w = t->width, h = t->height;
-        const size_t needed = (size_t)8 + (size_t)2 * w * h;
+#if FUSED_LL_WIDE_STORAGE
+        const size_t bytes_per_coef = 4;
+        const uint8_t magic_byte = 0xFD;
+#else
+        const size_t bytes_per_coef = 2;
+        const uint8_t magic_byte = 0xFE;
+#endif
+        const size_t needed = (size_t)8 + bytes_per_coef * (size_t)w * h;
         if (needed > t->enc_cap) {
             t->enc_size = -1;
             return NULL;
         }
         uint8_t *p = t->enc_buf;
-        /* Magic 0xFEFEFEFE distinguishes this from the stripe-format magic
-           0xFFFFFFFF and from the legacy 3-byte token-count framing. */
-        p[0] = 0xFE; p[1] = 0xFE; p[2] = 0xFE; p[3] = 0xFE;
+        p[0] = magic_byte; p[1] = magic_byte; p[2] = magic_byte; p[3] = magic_byte;
         p[4] = (uint8_t)((w >> 8) & 0xFF); p[5] = (uint8_t)(w & 0xFF);
         p[6] = (uint8_t)((h >> 8) & 0xFF); p[7] = (uint8_t)(h & 0xFF);
         p += 8;
@@ -1893,9 +1925,17 @@ static void *pass2_band_thread(void *arg) {
             const int32_t *row = src + (size_t)r * pitch_pix;
             for (int c = 0; c < w; c++) {
                 int32_t v = row[c];
+#if FUSED_LL_WIDE_STORAGE
+                /* Signed int32 BE — preserves full magnitude range. */
+                *p++ = (uint8_t)((v >> 24) & 0xFF);
+                *p++ = (uint8_t)((v >> 16) & 0xFF);
+                *p++ = (uint8_t)((v >> 8)  & 0xFF);
+                *p++ = (uint8_t)( v        & 0xFF);
+#else
                 if (v < 0) v = 0; else if (v > 65535) v = 65535;
                 *p++ = (uint8_t)((v >> 8) & 0xFF);
                 *p++ = (uint8_t)(v & 0xFF);
+#endif
             }
         }
         t->enc_size = (int)needed;
