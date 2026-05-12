@@ -373,8 +373,39 @@ static void vertical_filter_quantize_row(
 
         /* int16 paths removed — see comment block above */
 
-        /* 4-wide int32 NEON path (handles all middle-row columns) */
+        /* 8-wide int32 NEON path (unrolled 2× of the 4-wide for ILP).
+           Always correct for 14- and 16-bit input. */
         const int32x4_t four = vdupq_n_s32(4);
+        const int width_m8 = (width / 8) * 8;
+        for (; col < width_m8; col += 8) {
+            int32x4_t r0a = vld1q_s32(&rows[0][col]);
+            int32x4_t r0b = vld1q_s32(&rows[0][col + 4]);
+            int32x4_t r1a = vld1q_s32(&rows[1][col]);
+            int32x4_t r1b = vld1q_s32(&rows[1][col + 4]);
+            int32x4_t r2a = vld1q_s32(&rows[2][col]);
+            int32x4_t r2b = vld1q_s32(&rows[2][col + 4]);
+            int32x4_t r3a = vld1q_s32(&rows[3][col]);
+            int32x4_t r3b = vld1q_s32(&rows[3][col + 4]);
+            int32x4_t r4a = vld1q_s32(&rows[4][col]);
+            int32x4_t r4b = vld1q_s32(&rows[4][col + 4]);
+            int32x4_t r5a = vld1q_s32(&rows[5][col]);
+            int32x4_t r5b = vld1q_s32(&rows[5][col + 4]);
+
+            int32x4_t low_a  = vaddq_s32(r2a, r3a);
+            int32x4_t low_b  = vaddq_s32(r2b, r3b);
+            int32x4_t high_a = vsubq_s32(vaddq_s32(r4a, r5a), vaddq_s32(r0a, r1a));
+            int32x4_t high_b = vsubq_s32(vaddq_s32(r4b, r5b), vaddq_s32(r0b, r1b));
+            high_a = vshrq_n_s32(vaddq_s32(high_a, four), 3);
+            high_b = vshrq_n_s32(vaddq_s32(high_b, four), 3);
+            high_a = vaddq_s32(high_a, vsubq_s32(r2a, r3a));
+            high_b = vaddq_s32(high_b, vsubq_s32(r2b, r3b));
+
+            vst1q_s32(&out_lo[col],     quantize_neon4(low_a,  mid_lo, mul_lo));
+            vst1q_s32(&out_lo[col + 4], quantize_neon4(low_b,  mid_lo, mul_lo));
+            vst1q_s32(&out_hi[col],     quantize_neon4(high_a, mid_hi, mul_hi));
+            vst1q_s32(&out_hi[col + 4], quantize_neon4(high_b, mid_hi, mul_hi));
+        }
+        /* 4-wide tail for remaining columns < 8 */
         const int width_m4 = (width / 4) * 4;
         for (; col < width_m4; col += 4) {
             int32x4_t r0 = vld1q_s32(&rows[0][col]);
