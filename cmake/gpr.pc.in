@@ -8,4 +8,4 @@ Description: GoPro RAW (GPR) encoder/decoder + fused raw-video pipeline
 URL: https://github.com/gopro/gpr
 Version: @PROJECT_VERSION@
 Libs: -L${libdir} -lvc5_encoder -lvc5_common -lvc5_decoder -lpthread -lm
-Cflags: -I${includedir}/gpr
+Cflags: -I${includedir}
