@@ -1,18 +1,34 @@
 # GPR Raw Video Encoder — Operating Envelope
 
-**Date:** 2026-05-11 (M1 dev platform measurements). **Updated** for 2-level wavelet landing at commit `301e4a0`.
-**Codec state:** feature/raw-video, 2-level wavelet default (`FUSED_WAVELET_LEVELS=2`), rate control + LL emission. Single-level fallback still available at `FUSED_WAVELET_LEVELS=1`.
+**Date:** 2026-05-12 (M1 dev platform measurements). **Updated** for 3-level wavelet (commit `86de303`) and dual-encoder ping-pong (commit `9b9ab0a`).
+**Codec state:** feature/raw-video, 3-level wavelet default (`FUSED_WAVELET_LEVELS=3`, 1/2 still available via flag), rate control + LL emission, opt-in dual-encoder mode via `gpr_video_encoder_create_dual()`.
 
-## Multi-level wavelet impact (2026-05-11 late session)
+## Multi-level wavelet impact (Z8 45 MP, q=3, no rate control)
 
-Going from single-level to 2-level wavelet:
-- **Z8 ISO 64 q=3: 19.9 MB → 13.0 MB (-35%)** — main shipping win
-- Z8 ISO 22800 q=3: 33.8 MB → 29.9 MB (-12%) — less because noise dominates
-- PSNR cost: ~2-3 dB (48 → 46 dB clean, 46 → 44 dB noisy)
-- Compute cost: +20% wall time (extra wavelet pass at 1/4 resolution)
-- **Per-band overhead higher** — 7 bands × 4 channels = 28 bands vs 16 single-level. This raises the minimum sustainable bitrate floor for the rate controller.
+| Levels | Z8 ISO 64 | Z8 ISO 22800 | PSNR clean | PSNR noisy |
+|---|---|---|---|---|
+| 1 | 19.9 MB | 33.8 MB | 48.2 dB | 46.4 dB |
+| 2 | 13.0 MB (−35%) | 29.9 MB (−12%) | 45.6 dB | 44.3 dB |
+| **3 (default)** | **10.77 MB (−46%)** | **28.47 MB (−16%)** | **43.7 dB** | **42.65 dB** |
 
-Net: **2-level is better for typical operating points (target ≥ 100 MB/s)** but single-level has a lower minimum-bitrate floor for extreme storage constraints. Compile flag chooses.
+Going from 2 → 3 levels: another 17% off clean-content size and 5% off noisy, for ~2 dB more PSNR cost. Oracle PSNR remains infinite (math is exact) — quality cost is from LL quantization at level 2 (`FUSED_LL2_DIVISOR=64`), not from reconstruction errors. Per-band header overhead: 40 bands × 4 channels at 3-level vs 28 at 2-level vs 16 at 1-level. Compute cost vs 2-level is negligible because the extra wavelet pass runs at 1/16 resolution.
+
+**Bonus: LL2 at 1034×775 on Z8 is under 2K horizontal** — natural multi-resolution decode mode. A user-facing decoder could expose "1080p preview" by stopping after the level-2 inverse, sidestepping the RED `'967` patent claims that gate on raw resolution. The full-resolution decode path requires the same patent posture analysis as before.
+
+Net: **3-level is the default ship target** at typical operating points (target ≥ 100 MB/s). 2-level reduces per-band overhead floor; 1-level is for extreme storage constraints. Compile flag chooses.
+
+## Dual-encoder ping-pong throughput (M1, Z8 ISO 64, 3-level)
+
+Encoder-bound regime (unlimited bandwidth, no GC, target_fps=120 to saturate):
+
+| Mode | Sustained fps | Throughput |
+|---|---|---|
+| `encoder_count=1` | 29.76 fps | 295 MB/s |
+| **`encoder_count=2`** | **41.64 fps (+40%)** | **413 MB/s** |
+
+Storage-throttled regime (24 fps target × UHS-II V90 simulation): both modes hit 23.94-23.95 fps sustained — bottleneck is writer, not encoder. The +40% win on M1 buys headroom for thermal throttling and worst-case noisy content. On A78 (no shared E-cluster contention), the win should be at least as good.
+
+Memory cost: 2× input slots + 2× output ring + 2× per-encoder band buffers. ~410 MB single → ~820 MB dual at 45 MP/ring_depth=3.
 
 ## Quality vs file size at fixed q (45 MP Z8, no rate control)
 
@@ -85,27 +101,18 @@ Net: **2-level is better for typical operating points (target ≥ 100 MB/s)** bu
 
 **Recommended deployment: UHS-II V90 microSD with target=150 MB/s.** Handles any ISO content at 24 fps × 45 MP with 30% storage headroom.
 
-## What multi-level wavelet would change
+## What's still cold on M1 (3-level wavelet, single-encoder mode)
 
-(Currently in progress, subagent ae41a11.) Adding a second wavelet level would:
-- Cut LL bitstream by ~75% (LL at second level is 1/16 of source vs 1/4 today)
-- Reduce file sizes by ~30-50% on real images
-- **Lower the noisy-content rate-control floor from 100 MB/s to ~50-70 MB/s** — would make UHS-I V30 viable
-- Closes the compression gap to production 3-level encoder
-
-## What's still cold on M1
-
-| Workload | M1 wall time | A78 estimate (2.5×) | 24 fps budget |
+| Workload | M1 sustained fps | A78 estimate (÷2.5) | 24 fps budget |
 |---|---|---|---|
-| 45 MP one-shot encode | ~35 ms | ~88 ms | doesn't fit |
-| 45 MP steady-state pipeline | ~25 ms | ~63 ms | tight |
-| 50 MP one-shot encode | ~38 ms | ~95 ms | doesn't fit |
-| 50 MP steady-state pipeline | ~30 ms | ~75 ms | doesn't fit |
+| 45 MP single-encoder (encoder-bound ceiling) | 29.8 fps | 11.9 fps | doesn't fit at 50 MP |
+| 45 MP dual-encoder (encoder-bound ceiling) | 41.6 fps | 16.6 fps | fits 45 MP, tight at 50 MP |
+| 45 MP × 24 fps × UHS-II V90 (rate-controlled) | 23.95 fps | ✓ regardless of encoder_count | ✓ |
 
-A78 compute headroom is the remaining bottleneck for 24 fps × 50 MP. Three queued optimizations:
+A78 compute headroom is still the gating factor for 24 fps × 50 MP. Remaining queued optimizations for real-A78 measurement:
 1. `FUSED_LOG_POLYNOMIAL=ON` at cross-compile (5× slower on M1, 1.5-2× faster on A78)
-2. Multi-level wavelet (compute neutral, but smaller output → faster ANS)
-3. `vld2q` + branchless clip in unpack (small drop-in win)
+2. ARM64 hand-asm unpack (`FUSED_UNPACK_ASM=1`, 1% on M1, expected 10-20% on A78)
+3. (3-level wavelet and dual-encoder: shipped)
 
 ## Verified guarantees today
 

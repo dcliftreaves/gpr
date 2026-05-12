@@ -1,25 +1,24 @@
 # Raw Video Pipeline — Follow-Up Items
 
-**Status: 2026-05-11 end of autonomous session.** All shipping-critical items are working. This is the parking lot for everything else discovered in the work.
+**Status: 2026-05-12.** 3-level wavelet and dual-encoder ping-pong both landed; the compute-throughput story is materially better. This is the parking lot for everything else.
 
 ## Shipping blockers (none currently)
 
-The pipeline encode → decode → image-reconstruction is correct and sustains 24 fps × 45 MP × UHS-II V90 microSD. All test harnesses green.
+The pipeline encode → decode → image-reconstruction is correct and sustains 24 fps × 45 MP × UHS-II V90 microSD. All test harnesses green at 3-level wavelet default.
 
-## Compute speed for A78 24 fps × 50 MP (the big one)
+## Compute speed for A78 24 fps × 50 MP
 
-**Status update (2026-05-12):** several attempts made. M1 is roughly at the compute ceiling for this codec shape — Apple Clang's NEON intrinsic lowering already produces near-optimal code on the wide-retire microarchitecture, and the unpack producer is memory-bandwidth-bound at ~150 GB/s. Further wins are A78-target-specific and need real silicon.
+**Status update (2026-05-12):** dual-encoder mode (commit `9b9ab0a`) lifted M1 sustained fps from 29.8 → 41.6 on Z8 45 MP (+40%). A78 estimate at 2.5× M1 is ~16.6 fps with dual-encoder — fits 45 MP comfortably, tight at 50 MP. Remaining gap to 50 MP × 24 fps × A78 is now blocked on A78-specific silicon wins.
 
 | Lever | Status | Expected impact |
 |---|---|---|
 | `FUSED_LOG_POLYNOMIAL` compile flag (`53e4777`) | Implemented, needs A78 measurement | 1.5-2× on unpack (A78 64 KB L1d makes LUT contend) |
-| Multi-level wavelet (`301e4a0`) | **Landed (2-level default).** 35% size reduction, +20% compute | Compute neutral net — smaller output offsets extra wavelet pass |
+| **Multi-level wavelet (3 levels, `86de303`)** | **Landed (3-level default).** 46% size reduction vs 1-level; quality 43.7 dB raw PSNR clean | Smaller output → faster ANS + lower writer pressure |
+| **Dual-encoder ping-pong (`9b9ab0a`)** | **Landed (opt-in via `gpr_video_encoder_create_dual`).** | **+40% M1 throughput**; expect same or better on A78 |
 | `vld2q` + branchless clip in unpack | **Already in place** (commit `38605f7`). | n/a (done) |
-| Direct lane access (avoid temp arrays) in unpack | **Tried (this session). Slower on M1.** Compiler does stack store-load via forwarding; direct UMOV is worse. Reverted. | n/a |
+| Direct lane access (avoid temp arrays) in unpack | Tried; slower on M1 (compiler does store-load via forwarding). Reverted. | n/a |
 | Conditional int16 vertical filter for 14-bit (`bc52f9b`) | Landed | ~7% on 14-bit content |
-| ARM64 hand-tuned assembly for `unpack_all_channels_row` (`8f658f4`) | Landed, runtime opt-in via `FUSED_UNPACK_ASM=1` | **M1: within 1% (no win).** A78 expected 10-20% on producer-unpack |
-
-Target M1 time for 2.5× A78 fit: 17 ms steady-state. Current best M1: ~30 ms. **The remaining 1.7× speedup is now blocked on A78 hardware availability** — not on M1 engineering options I haven't tried.
+| ARM64 hand-tuned assembly for `unpack_all_channels_row` (`8f658f4`) | Landed, opt-in via `FUSED_UNPACK_ASM=1` | M1: within 1% (no win). A78 expected 10-20% on producer-unpack |
 
 ## Known minor issues (not blocking ship)
 
