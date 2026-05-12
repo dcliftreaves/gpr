@@ -175,7 +175,9 @@ static inline int32x4_t fused_log_curve_neon4(uint16x4_t x_u16, int max_v) {
    so the dynamic range is mild. Divisor=64 matches FUSED_LL_DIVISOR /
    FUSED_LL1_DIVISOR for consistency and keeps the stored max safely within
    the rANS 2047 alphabet cap. */
+#ifndef FUSED_LL2_DIVISOR
 #define FUSED_LL2_DIVISOR  64
+#endif
 
 /* Quality presets: quant divisors per subband [LL, LH, HL, HH for each level] */
 static const QUANT quality_tables[9][10] = {
