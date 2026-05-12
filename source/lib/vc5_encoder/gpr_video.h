@@ -1,0 +1,145 @@
+/*! @file gpr_video.h
+ *
+ *  @brief Pipelined video encoder: caller → encoder → writer, three threads.
+ *
+ *  Wraps the fused encoder for raw video. The point of the pipeline is to
+ *  hide write latency on storage with variable throughput (microSD, especially
+ *  during internal GC) so the encoder never stalls waiting on I/O.
+ *
+ *  ## Architecture
+ *
+ *  Caller thread       Encoder thread          Writer thread
+ *  ─────────────       ──────────────          ─────────────
+ *      submit() ─→  input ring ─→  encode  ─→  output ring  ─→  writer_fn()
+ *
+ *  Two SPSC ring buffers; encoder owns one fused-encoder context (which
+ *  internally uses 4 worker threads for channel-parallel Pass 1 and
+ *  band-parallel Pass 2). One encoder thread is enough because the inner
+ *  fused encoder already saturates 4 cores.
+ *
+ *  ## Backpressure
+ *
+ *  submit() blocks when the input ring is full — natural backpressure to
+ *  the caller. The encoder thread blocks when the output ring is full
+ *  (i.e. writer is behind). If you want frame-drop-on-overflow behavior,
+ *  poll with the non-blocking variant.
+ *
+ *  ## Buffer ownership
+ *
+ *  submit() copies the raw frame into a pre-allocated slot. This is the
+ *  safe default but costs one full-frame memcpy per submit (~100 MB at
+ *  50 MP). Zero-copy buffer-transfer variant can be added if profile data
+ *  shows it matters.
+ *
+ *  (C) Copyright 2018 GoPro Inc. Licensed under Apache-2.0 or MIT.
+ */
+
+#ifndef GPR_VIDEO_H
+#define GPR_VIDEO_H
+
+#include <stdint.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct GPR_VIDEO_ENCODER GPR_VIDEO_ENCODER;
+
+/*!
+    @brief Writer callback invoked by the writer thread per encoded frame.
+
+    Called from the writer thread, NOT the caller's thread. Implementation
+    should be thread-safe with respect to anything else it touches.
+
+    The vc5 bitstream buffer is owned by the encoder context — do not free
+    it, and do not use it after this call returns (it will be reused for
+    a later frame).
+
+    @param user_data    Pointer passed at create() time
+    @param vc5_bitstream Encoded VC5 bitstream (caller does not own)
+    @param size         Size of bitstream in bytes
+    @param frame_tag    Tag that was passed to submit() for this frame
+    @return             0 on success, nonzero to signal error (logged; encoder
+                        continues with the next frame)
+*/
+typedef int (*gpr_video_writer_fn)(void *user_data,
+                                    const uint8_t *vc5_bitstream,
+                                    size_t size,
+                                    uint64_t frame_tag);
+
+/*!
+    @brief Create a pipelined video encoder.
+
+    @param width         Frame width in pixels
+    @param height        Frame height in pixels
+    @param pixel_format  0=RGGB12, 1=RGGB14, 2=GBRG12, 3=GBRG14, 4=RGGB16, 5=GBRG16
+    @param quality       VC5 quality preset (0-8, 3=Filmscan-1 default)
+    @param ring_depth    Number of in-flight frame slots (2-4 typical).
+                         Bigger ring = more memory + more latency hiding.
+    @param writer        Callback invoked on each encoded frame
+    @param user_data     Opaque pointer passed to writer
+    @return              Encoder context, or NULL on allocation failure
+*/
+GPR_VIDEO_ENCODER *gpr_video_encoder_create(
+    int width, int height,
+    int pixel_format, int quality,
+    int ring_depth,
+    gpr_video_writer_fn writer, void *user_data);
+
+/*!
+    @brief Submit a raw Bayer frame for encoding.
+
+    Blocks if the input ring is full (natural backpressure). The frame is
+    copied into an internal slot; the caller's buffer can be reused after
+    this call returns.
+
+    @param ctx        Encoder context
+    @param raw_bayer  Raw Bayer pixel data
+    @param raw_size   Size of raw data in bytes (must equal width*height*2)
+    @param frame_tag  Caller-supplied tag (e.g. frame number or timestamp);
+                      passed through to the writer callback unchanged
+    @return           0 on success, -1 on error
+*/
+int gpr_video_encoder_submit(GPR_VIDEO_ENCODER *ctx,
+                              const uint8_t *raw_bayer, size_t raw_size,
+                              uint64_t frame_tag);
+
+/*! @brief Block until all submitted frames have been encoded and written. */
+void gpr_video_encoder_flush(GPR_VIDEO_ENCODER *ctx);
+
+/*! @brief Stop the encoder threads and free all resources.
+           Implicitly flushes before stopping. */
+void gpr_video_encoder_destroy(GPR_VIDEO_ENCODER *ctx);
+
+/*!
+    @brief Optional: enable wavelet-domain denoise on every frame.
+    Mirrors gpr_encode_fused_set_denoise(). Must be called before the
+    first submit() — changing denoise params mid-stream is not supported.
+*/
+void gpr_video_encoder_set_denoise(GPR_VIDEO_ENCODER *ctx,
+                                    double noise_scale,
+                                    double noise_offset,
+                                    double strength);
+
+/*! @brief Stats snapshot. Cheap; safe to call from any thread. */
+typedef struct {
+    uint64_t frames_submitted;
+    uint64_t frames_encoded;
+    uint64_t frames_written;
+    uint64_t writer_errors;
+    /* Wait events: how often each stage stalled on the next. Useful for
+       diagnosing the pipeline's binding constraint. */
+    uint64_t submit_waited;    /* caller blocked on full input ring */
+    uint64_t encoder_waited;   /* encoder blocked on full output ring */
+    uint64_t writer_waited;    /* writer blocked on empty output ring */
+} gpr_video_stats;
+
+void gpr_video_encoder_get_stats(const GPR_VIDEO_ENCODER *ctx,
+                                  gpr_video_stats *out);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* GPR_VIDEO_H */
