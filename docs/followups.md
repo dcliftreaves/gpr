@@ -21,80 +21,32 @@ The pipeline encode → decode → image-reconstruction is correct and sustains 
 | Conditional int16 vertical filter for 14-bit (`bc52f9b`) | Landed | ~7% on 14-bit content |
 | ARM64 hand-tuned assembly for `unpack_all_channels_row` (`8f658f4`) | Landed, opt-in via `FUSED_UNPACK_ASM=1` | M1: within 1% (no win). A78 expected 10-20% on producer-unpack |
 
+## Done since the original parking-lot
+
+- **Encoder API: fatal-writer + force-cancel** (`029ed4f`) — writer return <0 aborts cleanly, `gpr_video_encoder_cancel()` for caller-driven stop, destroy() skips flush on abort. Covered by `test_video_encoder_abort`.
+- **Format header versioning policy** (`dc63e91`) — v1 forward-compat rules documented in `gpr_video_format.h`.
+- **`vc5_decoder/fast_decode.c` audit** (no commit, 2026-05-12) — clean. No further sign-extension bugs beyond the one fixed at `f1ba70a`.
+- **Full encode → container → reader → decode integration test** (`9bbb5c7`) — `test_video_full_chain.c`. Caught a documented frame_tag-must-be-sequential gotcha during development.
+- **Visual quality at RC-limited operating points** (`4d7bea0`) — assessed at `quant_scale` ∈ {1..16}. No cliff; recommend soft cap at 8, hard cap at 16. See `docs/rc-limited-quality.md`.
+- **q ≥ 6 noisy roundtrip bug** — not reproducible under current 2-level default (inline_mode=0 path doesn't emit stripe-format magic). Walker fragility remains a latent risk if inline_mode + 1-level is ever re-enabled.
+
 ## Known minor issues (not blocking ship)
 
-1. **q ≥ 6 on heavily-noisy content fails roundtrip test**
-   - Symptom: `probe_band_bytes` reports `pos > buffer size` at last band.
-   - Encoder produces valid-looking output (size 43-50 MB), but the test's stripe-mode walker over-counts somehow on rANS streams with rare 0xFFFFFFFF byte patterns.
-   - Workaround: rate controller stays in q=0..3 so this is never hit in production.
-   - Real fix: improve probe walker to handle edge cases, OR add explicit per-band byte-length prefix in the encoder output (small format change).
+1. **Speed regression from int16 NEON revert (~25%)** — reverted for correctness on 16-bit input. Partially recovered with 8-wide int32 unroll (`1ae5d5d`). Conditional int16 path for 14-bit-only input would buy ~3-5 ms M1.
 
-2. **Speed regression from int16 NEON revert (~25%)**
-   - Reverted for correctness on 16-bit input. Lost ~5-9 ms on 50 MP M1.
-   - Partially recovered with 8-wide int32 unroll (`1ae5d5d`).
-   - Could write a conditional int16 path for 14-bit input only (cleanly safe). Estimated value: 3-5 ms M1.
+2. **Quality plateau at PSNR ~48 dB** — LL quantizer (`FUSED_LL_DIVISOR=64`) caps reconstruction quality. Going above q=3 doesn't move the needle. A different (wider-bitwidth lossless) LL would change this; see 3-level investigation for why we didn't pursue.
 
-3. **Quality plateau at PSNR ~48 dB**
-   - LL band quantizer (FUSED_LL_DIVISOR=64) caps reconstruction quality.
-   - Going above q=3 doesn't improve PSNR meaningfully because highpass quality is already excellent and LL is the bottleneck.
-   - Multi-level wavelet would change this (smaller LL coefficients → can use smaller divisor → higher LL quality).
-
-
-
-## Architectural improvements deferrable
-
-1. **Kill-switch for Green Average Subtraction (GAS)**
-   - Compile flag to use direct R/G1/G2/B channels instead of GS/RG/BG/GD math.
-   - File size penalty likely 20-40% (R and B compress worse without GS-subtracted differential).
-   - Estimated 1-2 days of work.
-
-2. **Adaptive bitrate algorithm refinement**
-   - Current controller: EMA + sqrt(error) step, clamped ±15%/frame.
-   - Floor on noisy content is ~100 MB/s — multi-level wavelet would lower it.
-   - More sophisticated controller (PID with bitrate ceiling/floor enforcement) could give tighter tracking near floor.
-
-3. **Encoder context API audit**
-   - `gpr_video_writer_fn` doesn't have a way to signal "fatal — stop encoding."
-   - `gpr_video_encoder_destroy` blocks on flush; no force-cancel option.
-   - These matter for production embedded use.
-
-4. **Format header versioning**
-   - Container format is at version 1. Reserved bytes for future fields.
-   - Should agree on a forward-compat policy before shipping a v1.0 release.
-
-5. **vc5_decoder fast_decode audit**
-   - Subagent F found one sign-extension bug; entire `fast_decode.c` worth a once-over for similar issues at 16-bit boundary.
+3. **q ≥ 6 walker latent risk** — if inline_mode is ever re-enabled (sub-6-core path or `FUSED_INLINE_TOKENIZE=1`), `probe_band_bytes` in `test_video_full_roundtrip.c` can mis-read rANS payloads that start with `0xFFFFFFFF`. Fix: add lookahead validation. Not reachable under current defaults.
 
 ## Test/validation gaps
 
-1. **No automated integration test for the full encode → write → read → decode chain**
-   - Have band-level decode (`test_video_roundtrip`) and full PSNR (`test_video_full_roundtrip`).
-   - Don't have one that uses the actual gpr_video_encoder → container format → reader path end-to-end.
-   - Worth ~half a day.
-
-2. **No long-duration thermal/sustained test**
-   - 400-frame stress (~16 s) passes; haven't tested 10+ minutes.
-   - Thermal throttling on M1 wouldn't trigger in 16s but might in 10 min.
-   - Need actual A78 hardware to test thermals properly.
-
-3. **Visual quality assessment at rate-controller-limited operating points**
-   - Subagent E tested visual quality at fixed q presets via gpr_tools.
-   - **Investigated 2026-05-12** at scales {1, 2, 4, 8, 16} on Z8 45 MP — see
-     `docs/rc-limited-quality.md`. Degradation is gradual, not cliff-edge.
-     Dominant artifact at high scales is fine-detail smoothing (no blockiness,
-     ringing, or color shifts). LL1 is preserved because it uses a fixed
-     divisor independent of `quant_scale`, so tonality stays intact.
-   - **Recommendation:** soft cap rate controller at `quant_scale ≤ 8` for
-     editing-quality output; hard cap at 16. Beyond 8 the finest detail
-     starts to noticeably soften, though the image is still recognizable.
-     If the controller is consistently hitting 16+, lowering the quality
-     preset (q=3 → q=4) gives a more balanced bit budget than further
-     scale increase.
+1. **No long-duration thermal/sustained test** — 400-frame stress (~16 s) passes; haven't tested 10+ minutes. Needs A78 hardware to test thermals properly.
 
 ## Documentation
 
-- `docs/session-2026-05-11-summary.md` — what was done this session
 - `docs/operating-envelope.md` — measured PSNR/bitrate/storage tradeoffs
+- `docs/rc-limited-quality.md` — visual quality at high `quant_scale`
+- `docs/v2-migration-guide.md` — upgrading from stills-only GPR
 - `docs/followups.md` — this file
 
-The branch `feature/raw-video` is in a known-good state. Picking up from here, the highest-leverage next move is probably the multi-level wavelet (currently in subagent flight) since it would directly enable cheaper microSD card classes for video.
+Branch `feature/raw-video` is shippable. The remaining items above are either A78-hardware-gated (thermal, log polynomial, hand-asm unpack) or speed-optional (int16 14-bit path) — none block 2.0.
