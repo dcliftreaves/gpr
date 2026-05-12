@@ -38,6 +38,12 @@ endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
 # library
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} ${INC_FILES} )
 
+target_include_directories( ${LIB_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/public>
+    $<INSTALL_INTERFACE:include/gpr>
+)
+
 target_link_libraries( ${LIB_NAME} )
 
 # set the folder where to place the projects

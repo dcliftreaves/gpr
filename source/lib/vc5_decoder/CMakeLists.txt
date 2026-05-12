@@ -16,6 +16,12 @@ include_directories( "../common/public" )
 # library
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} ${INC_FILES} )
 
+target_include_directories( ${LIB_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include/gpr>
+)
+
 if(NOT WIN32)
   find_package( Threads REQUIRED )
   target_link_libraries( ${LIB_NAME} Threads::Threads )
