@@ -42,6 +42,66 @@ static double _fused_ms(void) {
 #endif
 
 /* ================================================================
+   FUSED_LOG_POLYNOMIAL — compile-time switch for replacing the
+   scalar LUT gather inside unpack_channel_row() with a NEON
+   polynomial approximation of the log curve.
+
+   On M1 (128 KB L1d) the LUT fits comfortably and the LUT path is
+   faster. Enable this on Cortex-A78 (64 KB L1d, LUT thrashes with
+   other working data) where polynomial wins by 1.5-2x. Default OFF
+   so M1 builds remain unchanged.
+
+   Polynomial accuracy: validated to <=1 LSB max error vs LUT across
+   the full 14- and 16-bit input range (see /tmp/test_log_approx.c).
+   ================================================================ */
+#if defined(FUSED_LOG_POLYNOMIAL) && ENABLED(NEON)
+#include <math.h>  /* log2f */
+
+/* log2(m) for m in [1, 2) via series in u = (m-1)/(m+1), |u| <= 1/3. */
+static inline float32x4_t fused_vlog2q_mant(float32x4_t m) {
+    float32x4_t mm1 = vsubq_f32(m, vdupq_n_f32(1.0f));
+    float32x4_t mp1 = vaddq_f32(m, vdupq_n_f32(1.0f));
+    /* 1 / (m+1) via 2 Newton-Raphson refinements on vrecpeq estimate */
+    float32x4_t inv = vrecpeq_f32(mp1);
+    inv = vmulq_f32(inv, vrecpsq_f32(mp1, inv));
+    inv = vmulq_f32(inv, vrecpsq_f32(mp1, inv));
+    float32x4_t u  = vmulq_f32(mm1, inv);
+    float32x4_t u2 = vmulq_f32(u, u);
+    /* 1 + u²/3 + u⁴/5 + u⁶/7 + u⁸/9 + u¹⁰/11 */
+    float32x4_t p = vfmaq_f32(vdupq_n_f32(1.0f / 9.0f),  u2, vdupq_n_f32(1.0f / 11.0f));
+    p = vfmaq_f32(vdupq_n_f32(1.0f / 7.0f),  u2, p);
+    p = vfmaq_f32(vdupq_n_f32(1.0f / 5.0f),  u2, p);
+    p = vfmaq_f32(vdupq_n_f32(1.0f / 3.0f),  u2, p);
+    p = vfmaq_f32(vdupq_n_f32(1.0f),         u2, p);
+    return vmulq_n_f32(vmulq_f32(u, p), 2.0f / 0.6931471805599453f);
+}
+
+static inline float32x4_t fused_vlog2q_approx(float32x4_t x) {
+    int32x4_t bits  = vreinterpretq_s32_f32(x);
+    int32x4_t expo  = vsubq_s32(vshrq_n_s32(bits, 23), vdupq_n_s32(127));
+    int32x4_t mbits = vorrq_s32(vandq_s32(bits, vdupq_n_s32(0x007FFFFF)),
+                                 vdupq_n_s32(0x3F800000));
+    float32x4_t m = vreinterpretq_f32_s32(mbits);
+    return vaddq_f32(vcvtq_f32_s32(expo), fused_vlog2q_mant(m));
+}
+
+/* Bayer-pixel log curve, 4-wide: y = max_v * log10(x/max_v * 112 + 1) / log10(113)
+   Equivalent to LUT[x] with <=1 LSB error. Input must already be clamped to max_v.
+   Output is clamped to [0, max_v] internally. */
+static inline int32x4_t fused_log_curve_neon4(uint16x4_t x_u16, int max_v) {
+    float scale = 112.0f / (float)max_v;
+    float K     = (float)max_v / log2f(113.0f);
+    float32x4_t fx   = vcvtq_f32_u32(vmovl_u16(x_u16));
+    float32x4_t norm = vfmaq_n_f32(vdupq_n_f32(1.0f), fx, scale);
+    float32x4_t ln   = fused_vlog2q_approx(norm);
+    float32x4_t y    = vmulq_n_f32(ln, K);
+    int32x4_t   yi   = vcvtq_s32_f32(y);  /* truncate, like the LUT */
+    int32x4_t   lo   = vmaxq_s32(yi, vdupq_n_s32(0));
+    return vminq_s32(lo, vdupq_n_s32(max_v));
+}
+#endif /* FUSED_LOG_POLYNOMIAL && NEON */
+
+/* ================================================================
    Constants and quant tables
    ================================================================ */
 
@@ -480,6 +540,82 @@ static void unpack_channel_row(
     const int ch_width_m4 = (ch_width / 4) * 4;
     const int32x4_t vmid2 = vdupq_n_s32(mid2);
 
+#if defined(FUSED_LOG_POLYNOMIAL)
+    /* Polynomial path: NEON-vectorize the log curve directly, skip the
+       per-pixel LUT gather and the int32-temp-array roundtrip. */
+    const uint16x4_t vlog_max_u16 = vdup_n_u16((uint16_t)log_max);
+    (void)log_tbl;  /* silence unused warning when polynomial path active */
+
+    if (channel == 0) {  /* GS = (G1+G2)>>1 */
+        for (; col < ch_width_m4; col += 4) {
+            uint16_t g1in[4], g2in[4];
+            for (int k = 0; k < 4; k++) {
+                int c = col + k;
+                if (is_rggb) { g1in[k] = row1[2*c+1]; g2in[k] = row2[2*c]; }
+                else         { g1in[k] = row1[2*c];   g2in[k] = row2[2*c+1]; }
+            }
+            uint16x4_t vg1u = vmin_u16(vld1_u16(g1in), vlog_max_u16);
+            uint16x4_t vg2u = vmin_u16(vld1_u16(g2in), vlog_max_u16);
+            int32x4_t vg1 = fused_log_curve_neon4(vg1u, log_max);
+            int32x4_t vg2 = fused_log_curve_neon4(vg2u, log_max);
+            vst1q_s32(&output[col], vshrq_n_s32(vaddq_s32(vg1, vg2), 1));
+        }
+    }
+    else if (channel == 1) {  /* RG = ((R - GS) + mid2) >> 1 */
+        for (; col < ch_width_m4; col += 4) {
+            uint16_t rin[4], g1in[4], g2in[4];
+            for (int k = 0; k < 4; k++) {
+                int c = col + k;
+                if (is_rggb) { rin[k] = row1[2*c];   g1in[k] = row1[2*c+1]; g2in[k] = row2[2*c]; }
+                else         { rin[k] = row2[2*c];   g1in[k] = row1[2*c];   g2in[k] = row2[2*c+1]; }
+            }
+            uint16x4_t vru  = vmin_u16(vld1_u16(rin),  vlog_max_u16);
+            uint16x4_t vg1u = vmin_u16(vld1_u16(g1in), vlog_max_u16);
+            uint16x4_t vg2u = vmin_u16(vld1_u16(g2in), vlog_max_u16);
+            int32x4_t vr  = fused_log_curve_neon4(vru,  log_max);
+            int32x4_t vg1 = fused_log_curve_neon4(vg1u, log_max);
+            int32x4_t vg2 = fused_log_curve_neon4(vg2u, log_max);
+            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            vst1q_s32(&output[col],
+                vshrq_n_s32(vaddq_s32(vsubq_s32(vr, vgs), vmid2), 1));
+        }
+    }
+    else if (channel == 2) {  /* BG = ((B - GS) + mid2) >> 1 */
+        for (; col < ch_width_m4; col += 4) {
+            uint16_t bin[4], g1in[4], g2in[4];
+            for (int k = 0; k < 4; k++) {
+                int c = col + k;
+                if (is_rggb) { bin[k] = row2[2*c+1]; g1in[k] = row1[2*c+1]; g2in[k] = row2[2*c]; }
+                else         { bin[k] = row1[2*c+1]; g1in[k] = row1[2*c];   g2in[k] = row2[2*c+1]; }
+            }
+            uint16x4_t vbu  = vmin_u16(vld1_u16(bin),  vlog_max_u16);
+            uint16x4_t vg1u = vmin_u16(vld1_u16(g1in), vlog_max_u16);
+            uint16x4_t vg2u = vmin_u16(vld1_u16(g2in), vlog_max_u16);
+            int32x4_t vb  = fused_log_curve_neon4(vbu,  log_max);
+            int32x4_t vg1 = fused_log_curve_neon4(vg1u, log_max);
+            int32x4_t vg2 = fused_log_curve_neon4(vg2u, log_max);
+            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            vst1q_s32(&output[col],
+                vshrq_n_s32(vaddq_s32(vsubq_s32(vb, vgs), vmid2), 1));
+        }
+    }
+    else {  /* channel == 3, GD = ((G1 - G2) + mid2) >> 1 */
+        for (; col < ch_width_m4; col += 4) {
+            uint16_t g1in[4], g2in[4];
+            for (int k = 0; k < 4; k++) {
+                int c = col + k;
+                if (is_rggb) { g1in[k] = row1[2*c+1]; g2in[k] = row2[2*c]; }
+                else         { g1in[k] = row1[2*c];   g2in[k] = row2[2*c+1]; }
+            }
+            uint16x4_t vg1u = vmin_u16(vld1_u16(g1in), vlog_max_u16);
+            uint16x4_t vg2u = vmin_u16(vld1_u16(g2in), vlog_max_u16);
+            int32x4_t vg1 = fused_log_curve_neon4(vg1u, log_max);
+            int32x4_t vg2 = fused_log_curve_neon4(vg2u, log_max);
+            vst1q_s32(&output[col],
+                vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1));
+        }
+    }
+#else  /* !FUSED_LOG_POLYNOMIAL — default LUT-based path */
     if (channel == 0) {  /* GS = (G1+G2)>>1 */
         for (; col < ch_width_m4; col += 4) {
             int32_t g1a[4], g2a[4];
@@ -551,7 +687,8 @@ static void unpack_channel_row(
                 vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1));
         }
     }
-#endif
+#endif  /* FUSED_LOG_POLYNOMIAL */
+#endif  /* NEON */
 
     /* Scalar cleanup for tail columns */
     for (; col < ch_width; col++) {

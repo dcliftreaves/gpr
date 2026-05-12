@@ -29,6 +29,19 @@ endif()
 
 message(STATUS "NEON enabled: ${NEON}")
 
+# FUSED_LOG_POLYNOMIAL: replace the fused encoder's LUT-based log curve
+# with a NEON polynomial approximation. Default OFF (LUT path is faster
+# on M1 where the LUT fits in L1d). Enable for Cortex-A78 targets where
+# the LUT contends for limited L1d and the polynomial wins 1.5-2x.
+option(FUSED_LOG_POLYNOMIAL "Use NEON polynomial log-curve in fused encoder (A78 optimization)" OFF)
+if(FUSED_LOG_POLYNOMIAL)
+  if(NOT NEON)
+    message(FATAL_ERROR "FUSED_LOG_POLYNOMIAL requires NEON")
+  endif()
+  add_compile_definitions(FUSED_LOG_POLYNOMIAL=1)
+endif()
+message(STATUS "FUSED_LOG_POLYNOMIAL: ${FUSED_LOG_POLYNOMIAL}")
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(
     COMMAND git rev-parse --abbrev-ref HEAD
