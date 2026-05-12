@@ -362,11 +362,24 @@ static void vertical_filter_quantize_row(
            Slow path: at least one mul=65536 → widen to int32 for quantize. */
 
         const int width_m8 = (width / 8) * 8;
+        /* The int16 fast-path quantize uses vqaddq_s16 + vabsq_s16 which
+           saturates / behaves incorrectly when filter output magnitude
+           reaches int16 boundary (±32767). The LL band's vertical filter
+           output (r2+r3 of horizontal lowpasses) can reach ±32766 — at
+           the edge — so the fast path produces slightly wrong values for
+           LL. Highpass bands have smaller magnitudes (differential) and
+           are safe. Detect LL by its small midpoint (mid_lo < 64 with our
+           FUSED_LL_DIVISOR=64 gives mid_lo=31; highpass divisors give
+           larger midpoints). Force mixed path when LL is the lo output. */
+        const int safe_lo = (mid_lo > 64);   /* large midpoint = highpass */
+        const int safe_hi = (mid_hi > 64);
         const int both_fit_s16 = (mul_lo > 0 && mul_lo <= 32767 &&
-                                   mul_hi > 0 && mul_hi <= 32767);
+                                   mul_hi > 0 && mul_hi <= 32767 &&
+                                   safe_lo && safe_hi);
 
         if (both_fit_s16) {
-            /* Pure int16 fast path */
+            /* Pure int16 fast path — only safe when both outputs are highpass
+               bands (filter output magnitude bounded well below int16). */
             const int16x8_t four16 = vdupq_n_s16(4);
             const int16_t mid_lo16 = (int16_t)mid_lo;
             const int16_t mul_lo16 = (int16_t)mul_lo;
@@ -404,48 +417,10 @@ static void vertical_filter_quantize_row(
                 vst1q_s32(&out_hi[col],     vmovl_s16(vget_low_s16(qhi)));
                 vst1q_s32(&out_hi[col + 4], vmovl_s16(vget_high_s16(qhi)));
             }
-        } else {
-            /* Mixed path: one band has mul=65536 (LL, divisor=1).
-               Do filter in int16, widen, then int32 quantize for whichever
-               band needs it. */
-            const int16x8_t four16 = vdupq_n_s16(4);
-
-            for (; col < width_m8; col += 8) {
-                int16x8_t r0 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[0][col])),
-                                             vmovn_s32(vld1q_s32(&rows[0][col + 4])));
-                int16x8_t r1 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[1][col])),
-                                             vmovn_s32(vld1q_s32(&rows[1][col + 4])));
-                int16x8_t r2 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[2][col])),
-                                             vmovn_s32(vld1q_s32(&rows[2][col + 4])));
-                int16x8_t r3 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[3][col])),
-                                             vmovn_s32(vld1q_s32(&rows[3][col + 4])));
-                int16x8_t r4 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[4][col])),
-                                             vmovn_s32(vld1q_s32(&rows[4][col + 4])));
-                int16x8_t r5 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[5][col])),
-                                             vmovn_s32(vld1q_s32(&rows[5][col + 4])));
-
-                int16x8_t low16  = vaddq_s16(r2, r3);
-                int16x8_t r45    = vaddq_s16(r4, r5);
-                int16x8_t r01    = vaddq_s16(r0, r1);
-                int16x8_t hpre   = vaddq_s16(vsubq_s16(r45, r01), four16);
-                int16x8_t high16 = vaddq_s16(vshrq_n_s16(hpre, 3),
-                                              vsubq_s16(r2, r3));
-
-                /* Widen to int32 and use int32 quantize for both bands.
-                   (We could split per-band, but the 65536 case is the LL
-                   output that's never encoded, so this slow path is rare
-                   and not on the critical perf path.) */
-                int32x4_t low_lo  = vmovl_s16(vget_low_s16(low16));
-                int32x4_t low_hi  = vmovl_s16(vget_high_s16(low16));
-                int32x4_t high_lo = vmovl_s16(vget_low_s16(high16));
-                int32x4_t high_hi = vmovl_s16(vget_high_s16(high16));
-
-                vst1q_s32(&out_lo[col],     quantize_neon4(low_lo,  mid_lo, mul_lo));
-                vst1q_s32(&out_lo[col + 4], quantize_neon4(low_hi,  mid_lo, mul_lo));
-                vst1q_s32(&out_hi[col],     quantize_neon4(high_lo, mid_hi, mul_hi));
-                vst1q_s32(&out_hi[col + 4], quantize_neon4(high_hi, mid_hi, mul_hi));
-            }
         }
+        /* When the int16 fast path isn't safe (e.g., LL band emission where
+           filter output magnitude can reach int16 boundary), fall through to
+           the 4-wide int32 NEON path below — it's slightly slower but exact. */
 
         /* 4-wide int32 cleanup for remaining width%8 columns */
         const int32x4_t four = vdupq_n_s32(4);

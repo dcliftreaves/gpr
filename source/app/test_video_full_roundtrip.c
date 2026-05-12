@@ -880,10 +880,11 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
         return -1;
     }
 
-    /* Sanity stats per band (using decoded values, post-dequant) */
+    /* Sanity stats per band (using decoded values, post-dequant).
+       16-band layout: bi = ch*4 + b (was ch*3+(b-1) when LL wasn't emitted). */
     for (int ch = 0; ch < 4; ch++) {
-        for (int b = 1; b < 4; b++) {
-            int bi = ch * 3 + (b - 1);
+        for (int b = 0; b < 4; b++) {
+            int bi = ch * 4 + b;
             int32_t mn = INT32_MAX, mx = INT32_MIN;
             int nz = 0;
             int matches = 0;
@@ -1124,6 +1125,29 @@ static int run_one_input(const char *raw_path, int w, int h, int pf, int q,
             fs.psnr_raw_total,
             fs.psnr_raw_per_ch[0], fs.psnr_raw_per_ch[1],
             fs.psnr_raw_per_ch[2], fs.psnr_raw_per_ch[3]);
+
+        /* Per-band detail on the first frame only — locate which bands diverge */
+        if (frame->tag == 0) {
+            fprintf(stderr, "         per-band match%%: ");
+            for (int b = 0; b < BANDS_PER_FRAME; b++) {
+                fprintf(stderr, "%s%5.1f%s", (b % 4 == 0) ? "ch" : "/",
+                        fs.band_match_pct[b], "");
+                if (b % 4 == 3) fprintf(stderr, "  ");
+            }
+            fprintf(stderr, "\n         per-band nonzero: ");
+            for (int b = 0; b < BANDS_PER_FRAME; b++) {
+                fprintf(stderr, "%s%5d%s", (b % 4 == 0) ? "ch" : "/",
+                        fs.band_nonzero[b], "");
+                if (b % 4 == 3) fprintf(stderr, "  ");
+            }
+            fprintf(stderr, "\n         per-band [min,max]: ");
+            for (int b = 0; b < BANDS_PER_FRAME; b++) {
+                fprintf(stderr, "[%d,%d]%s",
+                        fs.band_min[b], fs.band_max[b],
+                        (b % 4 == 3) ? "  " : " ");
+            }
+            fprintf(stderr, "\n");
+        }
 
         sum_oracle_psnr += fs.psnr_oracle_total;
         sum_raw_psnr    += fs.psnr_raw_total;
