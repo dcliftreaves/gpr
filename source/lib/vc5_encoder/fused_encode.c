@@ -1461,9 +1461,9 @@ static int fused_pass2(
     /* Parallel encode: 12 independent band tasks (4 channels × 3 highpass bands).
        Allocate buffers and dispatch threads. */
     PASS2_BAND_TASK tasks[FUSED_NUM_P2_TASKS];
-    pthread_t threads[12];
+    pthread_t threads[FUSED_NUM_P2_TASKS];
     int task_count = 0;
-    int created[12];
+    int created[FUSED_NUM_P2_TASKS];
 
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ch_state[ch];

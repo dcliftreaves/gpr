@@ -76,7 +76,8 @@ extern uint16_t EncoderLogCurve16[];
 extern uint16_t DecoderLogCurve14[];
 extern uint16_t DecoderLogCurve16[];
 
-#define BANDS_PER_FRAME 12   /* 4 channels x 3 highpass bands (LL not emitted) */
+#define BANDS_PER_FRAME 16   /* 4 channels × 4 bands (LL+LH+HL+HH) — LL now emitted (commit bdeb3b3) */
+#define FUSED_LL_DIVISOR 64  /* Must match encoder's value in fused_encode.c */
 
 /* ============================================================
    Per-frame bitstream collection (copy from existing test)
@@ -182,14 +183,14 @@ static const int32_t quality_tables[9][10] = {
     {1,  4,  4,  2, 10, 10,  6, 16, 16, 24},
 };
 
-/* Single-level fused encoder uses base_divisors = qt[0], qt[7], qt[8], qt[9]
-   (LL + LH/HL/HH at level 0). LL band is unused on output. */
+/* Single-level fused encoder uses base_divisors = FUSED_LL_DIVISOR, qt[7], qt[8], qt[9]
+   (LL with safe quant + LH/HL/HH at level 0). LL is now emitted (commit bdeb3b3). */
 static void fused_base_divisors(int quality, int32_t base[4]) {
     int qi = (quality >= 0 && quality < 9) ? quality : 3;
-    base[0] = quality_tables[qi][0];  /* LL — not emitted */
-    base[1] = quality_tables[qi][7];  /* LH */
-    base[2] = quality_tables[qi][8];  /* HL */
-    base[3] = quality_tables[qi][9];  /* HH */
+    base[0] = FUSED_LL_DIVISOR;            /* LL — emitted with fixed divisor */
+    base[1] = quality_tables[qi][7];       /* LH */
+    base[2] = quality_tables[qi][8];       /* HL */
+    base[3] = quality_tables[qi][9];       /* HH */
 }
 
 /* Inverse quant: multiply quantized value by divisor.
@@ -613,14 +614,11 @@ static int decode_frame_bands(const uint8_t *vc5, size_t size,
                                int bw, int bh,
                                int32_t *band_buffers[4][4])
 {
-    /* Zero LL bands (not transmitted by fused encoder). */
-    for (int ch = 0; ch < 4; ch++) {
-        memset(band_buffers[ch][0], 0, (size_t)bw * bh * sizeof(int32_t));
-    }
+    /* Decode all 4 bands per channel (LL + 3 highpass). LL is now emitted. */
     size_t pos = 0;
     int bands_ok = 0;
     for (int ch = 0; ch < 4; ch++) {
-        for (int band = 1; band < 4; band++) {
+        for (int band = 0; band < 4; band++) {
             size_t band_bytes = 0;
             if (probe_band_bytes(vc5 + pos, size - pos, &band_bytes) != 0) {
                 fprintf(stderr, "    band-probe failed at ch=%d band=%d pos=%zu\n",
@@ -775,12 +773,12 @@ typedef struct {
     double psnr_raw_per_ch[4];
 
     /* Coefficient sanity: */
-    int32_t band_min[12], band_max[12];
-    int     band_nonzero[12];
+    int32_t band_min[BANDS_PER_FRAME], band_max[BANDS_PER_FRAME];
+    int     band_nonzero[BANDS_PER_FRAME];
 
     /* For verifying band-level decode (Stage A): also compare decoded
        bands against the encoder's exact pre-rANS coefficient values. */
-    double band_match_pct[12];  /* % of coeffs that match the oracle exactly */
+    double band_match_pct[BANDS_PER_FRAME];  /* % of coeffs that match the oracle exactly */
 } frame_stats;
 
 static double psnr_per_bayer_channel(const uint16_t *orig, const uint16_t *recon,
@@ -905,16 +903,15 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
     }
 
     /* Inverse quant: in-place multiply by effective divisor.
-       Note: LL band has divisor=1 in the table (and isn't transmitted),
-       so we keep decoded LL at 0. The encoded highpass bands are
-       multiplied by their per-band effective divisor. */
+       LL band is now emitted with FUSED_LL_DIVISOR (commit bdeb3b3) so it
+       needs the same dequant treatment as the highpass bands. */
     int32_t eff_div[4];
     for (int b = 0; b < 4; b++) {
         eff_div[b] = (int32_t)((double)base_divisors[b] * quant_scale + 0.5);
         if (eff_div[b] < 1) eff_div[b] = 1;
     }
     for (int ch = 0; ch < 4; ch++) {
-        for (int b = 1; b < 4; b++) {
+        for (int b = 0; b < 4; b++) {
             int32_t d = eff_div[b];
             if (d == 1) continue;
             size_t n = (size_t)bw * bh;
@@ -922,7 +919,6 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
                 decoded_bands[ch][b][k] = dequantize_scalar(decoded_bands[ch][b][k], d);
             }
         }
-        /* LL is divisor=1 (no scaling) — left as zero. */
     }
 
     /* Build per-channel reconstruction (channel domain, post-prescale,
@@ -951,10 +947,9 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
         for (int b = 0; b < 4; b++) {
             size_t n = (size_t)bw * bh;
             oracle_bands_dq[ch][b] = (int32_t *)malloc(n * sizeof(int32_t));
-            int32_t d = (b == 0) ? 1 : eff_div[b];   /* LL forced 0 below anyway */
+            int32_t d = eff_div[b];
             for (size_t k = 0; k < n; k++) {
-                oracle_bands_dq[ch][b][k] = (b == 0) ? 0 :
-                    dequantize_scalar(oracle_bands[ch][b][k], d);
+                oracle_bands_dq[ch][b][k] = dequantize_scalar(oracle_bands[ch][b][k], d);
             }
         }
         invert_spatial_band(oracle_bands_dq[ch][0],
@@ -1111,12 +1106,12 @@ static int run_one_input(const char *raw_path, int w, int h, int pf, int q,
         /* Compute average band-match% to spot any rANS mismatch quickly. */
         double sum_match = 0;
         int32_t min_v = INT32_MAX, max_v = INT32_MIN;
-        for (int b = 0; b < 12; b++) {
+        for (int b = 0; b < BANDS_PER_FRAME; b++) {
             sum_match += fs.band_match_pct[b];
             if (fs.band_min[b] < min_v) min_v = fs.band_min[b];
             if (fs.band_max[b] > max_v) max_v = fs.band_max[b];
         }
-        double avg_match = sum_match / 12.0;
+        double avg_match = sum_match / (double)BANDS_PER_FRAME;
 
         fprintf(stderr,
             "  frame %2" PRIu64 ": size=%5.2f MB | bands match=%6.2f%% | "
