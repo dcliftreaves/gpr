@@ -1,21 +1,21 @@
 # GPR Raw Video Encoder — Operating Envelope
 
-**Date:** 2026-05-12 (M1 dev platform measurements). **Updated** for 3-level wavelet (commit `86de303`) and dual-encoder ping-pong (commit `9b9ab0a`).
-**Codec state:** feature/raw-video, 3-level wavelet default (`FUSED_WAVELET_LEVELS=3`, 1/2 still available via flag), rate control + LL emission, opt-in dual-encoder mode via `gpr_video_encoder_create_dual()`.
+**Date:** 2026-05-12 (M1 dev platform measurements). **Updated** for the 2-level wavelet default flip after visual-quality testing.
+**Codec state:** feature/raw-video, **2-level wavelet default** (`FUSED_WAVELET_LEVELS=2`, 1/3 still available via flag), rate control + LL emission, opt-in dual-encoder mode via `gpr_video_encoder_create_dual()`. The `test_preview_decode` binary (`source/app/test_preview_decode.c`) demonstrates the LL2-only 1034×690 preview decode path used by the restricted-rights strategy.
 
 ## Multi-level wavelet impact (Z8 45 MP, q=3, no rate control)
 
-| Levels | Z8 ISO 64 | Z8 ISO 22800 | PSNR clean | PSNR noisy |
-|---|---|---|---|---|
-| 1 | 19.9 MB | 33.8 MB | 48.2 dB | 46.4 dB |
-| 2 | 13.0 MB (−35%) | 29.9 MB (−12%) | 45.6 dB | 44.3 dB |
-| **3 (default)** | **10.77 MB (−46%)** | **28.47 MB (−16%)** | **43.7 dB** | **42.65 dB** |
+| Levels | Z8 ISO 64 | Z8 ISO 22800 | PSNR clean | PSNR noisy | Visual |
+|---|---|---|---|---|---|
+| 1 | 19.9 MB | 33.8 MB | 48.2 dB | 46.4 dB | no artifacts |
+| **2 (default)** | **13.0 MB (−35%)** | **29.9 MB (−12%)** | **45.6 dB** | **44.3 dB** | minor edge ringing only |
+| 3 (opt-in) | 10.77 MB (−46%) | 28.47 MB (−16%) | 43.7 dB | 42.65 dB | visible "comb" ringing on high-contrast edges |
 
-Going from 2 → 3 levels: another 17% off clean-content size and 5% off noisy, for ~2 dB more PSNR cost. Oracle PSNR remains infinite (math is exact) — quality cost is from LL quantization at level 2 (`FUSED_LL2_DIVISOR=64`), not from reconstruction errors. Per-band header overhead: 40 bands × 4 channels at 3-level vs 28 at 2-level vs 16 at 1-level. Compute cost vs 2-level is negligible because the extra wavelet pass runs at 1/16 resolution.
+**Why 2-level is the default, not 3-level:** Empirical visual-quality testing (montage crops, gamma-corrected, both auto-leveled and natural exposure) showed 3-level produces pronounced wavelet edge-ringing on high-contrast features (rooflines, structures). The artifact comes from the LL2 quantization error propagating through the L1/L0 inverse cascade and getting magnified by the inverse log curve in dark regions adjacent to bright edges. Confirmed *not* fixable by quantizer tuning: a sweep of `FUSED_L1_HF_SHRINK`, `FUSED_L2_HF_SHRINK`, and `FUSED_LL2_DIVISOR` (including effectively-lossless HF bands ballooning the file to 17 MB) left the visible ringing unchanged.
 
-**Bonus: LL2 at 1034×775 on Z8 is under 2K horizontal** — natural multi-resolution decode mode. A user-facing decoder could expose "1080p preview" by stopping after the level-2 inverse, sidestepping the RED `'967` restricted claims that gate on raw resolution. The full-resolution decode path requires the same rights posture analysis as before.
+Fixing 3-level properly would require porting the production GPR decoder's *fixed-width lossless LL storage* (separate from rANS, avoids the 2047-magnitude alphabet cap that forces LL2_DIVISOR≥20). Multi-day work; deferred.
 
-Net: **3-level is the default ship target** at typical operating points (target ≥ 100 MB/s). 2-level reduces per-band overhead floor; 1-level is for extreme storage constraints. Compile flag chooses.
+**Bonus: LL1 at 2070×1380 on Z8 is at 2K horizontal; LL2 (still computable from 3-level mode) at 517×345 gives a 1034×690 preview**. The `test_preview_decode` binary cashes this in as a restricted-rights decode mode that physically lacks any inverse-wavelet logic. 2-level default + `test_preview_decode` together give us full-quality decode AND a sub-2K preview path.
 
 ## Dual-encoder ping-pong throughput (M1, Z8 ISO 64, 3-level)
 
