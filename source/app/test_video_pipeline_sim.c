@@ -28,6 +28,7 @@
 #include <unistd.h>
 
 #include "../lib/vc5_encoder/gpr_video.h"
+#include "../lib/vc5_encoder/gpr_video_format.h"
 
 static double _ms_scale = 0;
 static double now_ms(void) {
@@ -44,6 +45,7 @@ typedef struct {
     double bw_MBps;       /* bandwidth ceiling (MB/s). 0 = unlimited. */
     double gc_stall_ms;   /* extra stall length to simulate GC */
     double gc_period_s;   /* how often to insert a GC stall */
+    FILE  *out_fp;        /* optional: write the actual container to disk (NULL = discard) */
     /* State (writer-thread only — no lock needed) */
     double start_ms;
     uint64_t total_bytes;
@@ -66,7 +68,17 @@ static int throttled_writer(void *user_data, const uint8_t *vc5, size_t size,
         ws->t_first_write_ms = t_enter;
         ws->last_gc_ms = t_enter;
     }
-    ws->total_bytes += size;
+
+    /* Emit per-frame header + payload. The container's clip header was
+       already written in main() before we ran. The bytes counted toward
+       throttle reflect what actually hits storage (header overhead included). */
+    uint8_t fh[GPR_VIDEO_FRAME_HEADER_SIZE];
+    gpr_video_write_frame_header(fh, sizeof(fh), size, frame_tag);
+    if (ws->out_fp) {
+        fwrite(fh, 1, sizeof(fh), ws->out_fp);
+        fwrite(vc5, 1, size, ws->out_fp);
+    }
+    ws->total_bytes += sizeof(fh) + size;
     ws->frame_count++;
 
     /* Bandwidth throttle: ensure cumulative bytes/time ratio stays at or
@@ -128,6 +140,7 @@ int main(int argc, char **argv) {
     double noise_offset = (argc > 13) ? atof(argv[13]) : 0.0;
     double denoise_strength = (argc > 14) ? atof(argv[14]) : 0.0;
     double target_MBps      = (argc > 15) ? atof(argv[15]) : 0.0;  /* 0 = no rate control */
+    const char *out_path    = (argc > 16) ? argv[16] : NULL;       /* NULL = discard */
 
     /* Load one frame; we replay it as if it were a stream. */
     FILE *f = fopen(raw_path, "rb");
@@ -156,6 +169,21 @@ int main(int argc, char **argv) {
     ws.bw_MBps = bw_MBps;
     ws.gc_stall_ms = gc_stall;
     ws.gc_period_s = gc_period;
+    if (out_path) {
+        ws.out_fp = fopen(out_path, "wb");
+        if (!ws.out_fp) {
+            fprintf(stderr, "open %s for write failed\n", out_path);
+            return 1;
+        }
+        uint8_t ch[GPR_VIDEO_CLIP_HEADER_SIZE];
+        gpr_video_write_clip_header(ch, sizeof(ch), w, h, pf, q,
+                                     target_fps, target_MBps,
+                                     denoise_strength > 0.0 ? 1 : 0,
+                                     (uint32_t)num_frames);
+        fwrite(ch, 1, sizeof(ch), ws.out_fp);
+        fprintf(stderr, "  output:       %s (clip header + %d frame headers + payloads)\n",
+                out_path, num_frames);
+    }
 
     /* Denoise must be set BEFORE first submit. Force split mode since
        wavelet denoise requires the band buffer. */
@@ -247,6 +275,7 @@ int main(int argc, char **argv) {
     }
 
     gpr_video_encoder_destroy(enc);
+    if (ws.out_fp) fclose(ws.out_fp);
     free(raw);
     (void)expected_wall;
     return 0;
