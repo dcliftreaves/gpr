@@ -56,6 +56,9 @@ typedef struct {
     double t_last_write_ms;
     double total_stall_ms;     /* time spent throttling */
     double total_gc_ms;        /* time spent in GC stalls */
+    /* Tag-order verification */
+    uint64_t expected_next_tag;   /* next frame_tag we expect to receive */
+    uint64_t out_of_order_count;  /* number of out-of-order writer invocations */
 } writer_state;
 
 static int throttled_writer(void *user_data, const uint8_t *vc5, size_t size,
@@ -67,7 +70,17 @@ static int throttled_writer(void *user_data, const uint8_t *vc5, size_t size,
         ws->start_ms = t_enter;
         ws->t_first_write_ms = t_enter;
         ws->last_gc_ms = t_enter;
+        ws->expected_next_tag = 0;
     }
+    /* Verify tag order — caller submits 0..N-1 in order, writer must emit in
+       the same order regardless of how many encoders ran in parallel. */
+    if (frame_tag != ws->expected_next_tag) {
+        ws->out_of_order_count++;
+        fprintf(stderr, "  [ORDER ERROR] expected tag %llu, got %llu\n",
+                (unsigned long long)ws->expected_next_tag,
+                (unsigned long long)frame_tag);
+    }
+    ws->expected_next_tag = frame_tag + 1;
 
     /* Emit per-frame header + payload. The container's clip header was
        already written in main() before we ran. The bytes counted toward
@@ -114,7 +127,7 @@ static int throttled_writer(void *user_data, const uint8_t *vc5, size_t size,
 int main(int argc, char **argv) {
     if (argc < 11) {
         fprintf(stderr,
-            "usage: %s raw w h pf q num_frames target_fps bw_MBps gc_stall_ms gc_period_s [ring_depth=3]\n"
+            "usage: %s raw w h pf q num_frames target_fps bw_MBps gc_stall_ms gc_period_s [ring_depth=3] [noise_scale] [noise_offset] [denoise_strength] [target_MBps] [out_path] [encoder_count=1]\n"
             "\nstorage profile suggestions:\n"
             "  UHS-I V30 microSD:    bw=80   gc_stall=200 gc_period=8\n"
             "  UHS-I V90 microSD:    bw=150  gc_stall=150 gc_period=10\n"
@@ -141,6 +154,9 @@ int main(int argc, char **argv) {
     double denoise_strength = (argc > 14) ? atof(argv[14]) : 0.0;
     double target_MBps      = (argc > 15) ? atof(argv[15]) : 0.0;  /* 0 = no rate control */
     const char *out_path    = (argc > 16) ? argv[16] : NULL;       /* NULL = discard */
+    int encoder_count       = (argc > 17) ? atoi(argv[17]) : 1;    /* 1 = legacy, 2 = ping-pong */
+    if (encoder_count < 1) encoder_count = 1;
+    if (encoder_count > 2) encoder_count = 2;
 
     /* Load one frame; we replay it as if it were a stream. */
     FILE *f = fopen(raw_path, "rb");
@@ -163,13 +179,15 @@ int main(int argc, char **argv) {
     fprintf(stderr, "  storage:      %.1f MB/s, GC stalls %.0f ms every %.1f s\n",
             bw_MBps, gc_stall, gc_period);
     fprintf(stderr, "  ring depth:   %d\n", ring_depth);
+    fprintf(stderr, "  encoders:     %d %s\n", encoder_count,
+            encoder_count == 2 ? "(dual ping-pong)" : "(single)");
 
     writer_state ws;
     memset(&ws, 0, sizeof(ws));
     ws.bw_MBps = bw_MBps;
     ws.gc_stall_ms = gc_stall;
     ws.gc_period_s = gc_period;
-    if (out_path) {
+    if (out_path && out_path[0]) {
         ws.out_fp = fopen(out_path, "wb");
         if (!ws.out_fp) {
             fprintf(stderr, "open %s for write failed\n", out_path);
@@ -189,8 +207,8 @@ int main(int argc, char **argv) {
        wavelet denoise requires the band buffer. */
     if (denoise_strength > 0.0) setenv("FUSED_INLINE_TOKENIZE", "0", 1);
 
-    GPR_VIDEO_ENCODER *enc = gpr_video_encoder_create(
-        w, h, pf, q, ring_depth, throttled_writer, &ws);
+    GPR_VIDEO_ENCODER *enc = gpr_video_encoder_create_dual(
+        w, h, pf, q, ring_depth, encoder_count, throttled_writer, &ws);
     if (!enc) { fprintf(stderr, "encoder create failed\n"); return 1; }
 
     if (denoise_strength > 0.0) {
@@ -261,6 +279,9 @@ int main(int argc, char **argv) {
     fprintf(stderr, "  caller>=5ms blks: %d\n", submit_blocks);
     fprintf(stderr, "  writer stalls:    %.1f ms throttle + %.1f ms GC\n",
             ws.total_stall_ms, ws.total_gc_ms);
+    fprintf(stderr, "  out-of-order:     %llu writer invocations %s\n",
+            (unsigned long long)ws.out_of_order_count,
+            ws.out_of_order_count == 0 ? "(OK — strict tag order preserved)" : "(FAIL)");
 
     /* Verdict */
     double expected_wall = num_frames / target_fps;
