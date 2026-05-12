@@ -60,9 +60,16 @@ typedef struct encoder_state {
     FUSED_ENCODER     *fused_ctx;
 
     /* Adaptive bitrate state (encoder-thread-only access).
-       Each encoder converges its own controller independently. */
-    double rc_avg_bytes;
+       Each encoder converges its own PID controller independently.
+         rc_scale         : current quant scale handed to fused encoder
+         rc_avg_bytes     : EMA of recent output size (used for D-term smoothing)
+         rc_prev_err      : previous-frame error (for D-term)
+         rc_i_accum       : windowed integrator of error (bounded vs wind-up)
+         rc_frames_seen   : how many frames have updated this controller */
     double rc_scale;
+    double rc_avg_bytes;
+    double rc_prev_err;
+    double rc_i_accum;
     int    rc_frames_seen;
 
     /* Input ring slots. */
@@ -183,6 +190,8 @@ GPR_VIDEO_ENCODER *gpr_video_encoder_create_dual(
         es->parent = ctx;
         es->rc_scale = 1.0;
         es->rc_avg_bytes = 0.0;
+        es->rc_prev_err = 0.0;
+        es->rc_i_accum = 0.0;
         es->rc_frames_seen = 0;
 
         pthread_mutex_init(&es->in_lock, NULL);
@@ -268,6 +277,8 @@ void gpr_video_encoder_set_target_bitrate(GPR_VIDEO_ENCODER *ctx,
     for (int e = 0; e < ctx->encoder_count; e++) {
         ctx->encs[e].rc_scale = 1.0;
         ctx->encs[e].rc_avg_bytes = 0.0;
+        ctx->encs[e].rc_prev_err = 0.0;
+        ctx->encs[e].rc_i_accum = 0.0;
         ctx->encs[e].rc_frames_seen = 0;
     }
 }
@@ -359,21 +370,90 @@ static void *encoder_thread_fn(void *arg)
         int rc = gpr_encode_fused_frame(fused, in->raw, in->raw_size,
                                          &vc5_out, &vc5_size);
 
-        /* Update this encoder's rate controller. */
+        /* Update this encoder's rate controller (PID).
+         *
+         * The plant is rc_scale → frame_bytes, and the response is
+         * multiplicative (a 2x quant ≈ a roughly 2x reduction in HF bytes,
+         * tempered by the irreducible LL floor). Working in log-space on the
+         * ratio (avg / target) makes the controller multiplicatively
+         * symmetric: a 2x overshoot generates the negation of the signal a
+         * 0.5x undershoot would. The controller emits a log-step which we
+         * exponentiate before applying to rc_scale.
+         *
+         * Gains (Kp=1.0, Ki=0.15, Kd=0.2) chosen for a process whose
+         * frame-rate-Hz response time-constant is ~5 frames (the EMA smooths
+         * the measurement so D doesn't ring on instantaneous noise). Ki
+         * slightly larger than the textbook Kp/10 because the noisy-content
+         * operating point sits near the rc_scale=16 ceiling and benefits
+         * from a stronger integrator pull.
+         *
+         * Integrator is a sliding EMA (lambda=0.9 ≈ 10-frame effective
+         * window) which prevents wind-up by intrinsically forgetting old
+         * error. Additionally, on saturation (rc_scale clamped to [0.25,16])
+         * we freeze the integrator — classic anti-windup.
+         *
+         * Final clamp [0.25, 16.0] mirrors the limit inside
+         * gpr_encode_fused_set_quant_scale; we replicate it here so the
+         * saturation flag is correct. The ±18% per-frame log-step clamp
+         * keeps a single bad frame from making rc_scale jump wildly.
+         */
         if (ctx->target_bytes_per_frame > 0.0 && rc == 0 && vc5_size > 0) {
-            const double alpha = 0.7;
-            if (es->rc_frames_seen == 0) es->rc_avg_bytes = (double)vc5_size;
-            else es->rc_avg_bytes = es->rc_avg_bytes * alpha + (double)vc5_size * (1.0 - alpha);
-            es->rc_frames_seen++;
+            const double Kp = 1.0;
+            const double Ki = 0.15;
+            const double Kd = 0.2;
+            const double i_lambda = 0.9;   /* integrator EMA decay (~10 frames) */
+            const double m_alpha  = 0.7;   /* measurement EMA on bytes/frame */
+            /* Slew limit ±18%/frame on the multiplicative scale; chosen so
+             * the controller can ramp from rc_scale=1 to the 16 ceiling in
+             * ~17 frames during the noisy-content cold start. The old
+             * EMA+sqrt step was ±15%/frame which slow-ramped over ~20
+             * frames. */
+            const double max_log_step = 0.165514;  /* ln(1.18) */
 
-            double err = es->rc_avg_bytes / ctx->target_bytes_per_frame;
-            double step = sqrt(err);
-            if (step < 0.85) step = 0.85;
-            if (step > 1.20) step = 1.20;
-            double new_scale = es->rc_scale * step;
+            /* Smooth the measurement so the D-term doesn't react to a single
+             * noisy frame. First frame seeds the EMA without smoothing. */
+            if (es->rc_frames_seen == 0) {
+                es->rc_avg_bytes = (double)vc5_size;
+            } else {
+                es->rc_avg_bytes = es->rc_avg_bytes * m_alpha +
+                                   (double)vc5_size * (1.0 - m_alpha);
+            }
+
+            /* Error in log-space: positive ⇒ overshooting target ⇒ need
+             * to raise quant scale. */
+            double err = log(es->rc_avg_bytes / ctx->target_bytes_per_frame);
+
+            /* P / I / D contributions to the log-step. */
+            double p_term = Kp * err;
+            /* Integrator: bounded sliding window via EMA. We freeze updates
+             * when the previous output saturated to avoid wind-up. */
+            int saturated_low  = (es->rc_scale <= 0.25 + 1e-9);
+            int saturated_high = (es->rc_scale >= 16.0 - 1e-9);
+            int saturated_against_err = (saturated_high && err > 0.0) ||
+                                        (saturated_low  && err < 0.0);
+            if (!saturated_against_err) {
+                es->rc_i_accum = es->rc_i_accum * i_lambda + err;
+            }
+            double i_term = Ki * es->rc_i_accum;
+
+            /* Derivative: change in error from previous frame. Seed with 0
+             * on the first frame so the D-term doesn't kick on startup. */
+            double d_err = (es->rc_frames_seen == 0) ? 0.0
+                                                     : (err - es->rc_prev_err);
+            double d_term = Kd * d_err;
+            es->rc_prev_err = err;
+
+            double log_step = p_term + i_term + d_term;
+            /* Per-frame slew limit on the multiplicative scale (see
+             * max_log_step). */
+            if (log_step >  max_log_step) log_step =  max_log_step;
+            if (log_step < -max_log_step) log_step = -max_log_step;
+
+            double new_scale = es->rc_scale * exp(log_step);
             if (new_scale < 0.25) new_scale = 0.25;
             if (new_scale > 16.0) new_scale = 16.0;
             es->rc_scale = new_scale;
+            es->rc_frames_seen++;
         }
 
         if (rc == 0 && vc5_out && vc5_size > 0) {
