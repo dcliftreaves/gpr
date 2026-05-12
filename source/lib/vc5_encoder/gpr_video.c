@@ -112,6 +112,12 @@ struct GPR_VIDEO_ENCODER {
     pthread_t writer_thread;
     int threads_started;
     int stop_requested;
+    /* When the writer callback returns a negative value the encoder treats
+       that as fatal and shuts down; when the caller invokes
+       gpr_video_encoder_cancel() the same flag is set. Either way, pending
+       frames are dropped (writer is NOT called for them) and destroy() skips
+       flush(). */
+    int aborted;
 
     /* Writer callback */
     gpr_video_writer_fn writer;
@@ -436,6 +442,20 @@ static void *writer_thread_fn(void *arg)
         int waited = 0;
         int found;
         for (;;) {
+            /* Aborted path: drop any pending slots without calling writer
+               and exit. Encoder threads may still be racing to push their
+               in-flight frame; that's OK -- slots will be freed by destroy. */
+            if (ctx->aborted) {
+                for (int i = 0; i < ctx->out_ring_size; i++) {
+                    if (ctx->out_slots[i].valid) {
+                        ctx->out_slots[i].valid = 0;
+                        ctx->out_count--;
+                    }
+                }
+                pthread_cond_broadcast(&ctx->out_not_full);
+                pthread_mutex_unlock(&ctx->out_lock);
+                return NULL;
+            }
             found = -1;
             for (int i = 0; i < ctx->out_ring_size; i++) {
                 if (ctx->out_slots[i].valid &&
@@ -465,15 +485,31 @@ static void *writer_thread_fn(void *arg)
         pthread_mutex_unlock(&ctx->out_lock);
 
         int rc = ctx->writer(ctx->writer_data, vc5, vc5_size, tag);
-        if (rc != 0) {
-            ctx->stats.writer_errors++;
-        }
 
         pthread_mutex_lock(&ctx->out_lock);
         out->valid = 0;
         ctx->out_count--;
         ctx->writer_expected_tag++;
         ctx->stats.frames_written++;
+        if (rc > 0) {
+            ctx->stats.writer_errors++;
+        } else if (rc < 0) {
+            /* Writer said this is fatal. Stop everything ASAP. */
+            ctx->stats.writer_errors++;
+            ctx->aborted = 1;
+            ctx->stop_requested = 1;
+            /* Wake every waiter so they can observe the abort and exit. */
+            pthread_cond_broadcast(&ctx->out_not_full);
+            pthread_cond_broadcast(&ctx->out_not_empty);
+            for (int e = 0; e < ctx->encoder_count; e++) {
+                pthread_mutex_lock(&ctx->encs[e].in_lock);
+                pthread_cond_broadcast(&ctx->encs[e].in_not_empty);
+                pthread_cond_broadcast(&ctx->encs[e].in_not_full);
+                pthread_mutex_unlock(&ctx->encs[e].in_lock);
+            }
+            pthread_mutex_unlock(&ctx->out_lock);
+            return NULL;
+        }
         pthread_cond_broadcast(&ctx->out_not_full);
         pthread_mutex_unlock(&ctx->out_lock);
     }
@@ -485,8 +521,11 @@ void gpr_video_encoder_flush(GPR_VIDEO_ENCODER *ctx)
     if (!ctx) return;
     /* Wait for all per-encoder input rings to drain, then for the output
        ring to drain. We poll with a short condition wait on out_not_full
-       (which fires every time the writer completes a frame). */
+       (which fires every time the writer completes a frame). On abort,
+       return immediately rather than waiting for frames that will never
+       be emitted. */
     for (;;) {
+        if (ctx->aborted) return;
         int any_pending = 0;
         for (int e = 0; e < ctx->encoder_count; e++) {
             pthread_mutex_lock(&ctx->encs[e].in_lock);
@@ -511,17 +550,47 @@ void gpr_video_encoder_flush(GPR_VIDEO_ENCODER *ctx)
     }
 
     pthread_mutex_lock(&ctx->out_lock);
-    while (ctx->out_count > 0) {
+    while (ctx->out_count > 0 && !ctx->aborted) {
         pthread_cond_wait(&ctx->out_not_full, &ctx->out_lock);
     }
     pthread_mutex_unlock(&ctx->out_lock);
+}
+
+void gpr_video_encoder_cancel(GPR_VIDEO_ENCODER *ctx)
+{
+    if (!ctx) return;
+    /* Mark aborted, then wake every waiter so encode/writer threads exit
+       promptly. Pending frames are dropped without invoking writer_fn.
+       Safe to call from any thread and idempotent. */
+    pthread_mutex_lock(&ctx->out_lock);
+    if (ctx->aborted) {
+        pthread_mutex_unlock(&ctx->out_lock);
+        return;
+    }
+    ctx->aborted = 1;
+    ctx->stop_requested = 1;
+    pthread_cond_broadcast(&ctx->out_not_empty);
+    pthread_cond_broadcast(&ctx->out_not_full);
+    pthread_mutex_unlock(&ctx->out_lock);
+    for (int e = 0; e < ctx->encoder_count; e++) {
+        pthread_mutex_lock(&ctx->encs[e].in_lock);
+        pthread_cond_broadcast(&ctx->encs[e].in_not_empty);
+        pthread_cond_broadcast(&ctx->encs[e].in_not_full);
+        pthread_mutex_unlock(&ctx->encs[e].in_lock);
+    }
 }
 
 void gpr_video_encoder_destroy(GPR_VIDEO_ENCODER *ctx)
 {
     if (!ctx) return;
     if (ctx->threads_started) {
-        gpr_video_encoder_flush(ctx);
+        /* Only attempt to flush if we haven't been aborted (either by the
+           caller via cancel() or by the writer returning a fatal code). On
+           the abort path, flush() would block indefinitely because pending
+           output slots are dropped without forward progress. */
+        if (!ctx->aborted) {
+            gpr_video_encoder_flush(ctx);
+        }
         ctx->stop_requested = 1;
         for (int e = 0; e < ctx->encoder_count; e++) {
             pthread_mutex_lock(&ctx->encs[e].in_lock);
