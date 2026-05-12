@@ -1,7 +1,18 @@
 # GPR Raw Video Encoder — Operating Envelope
 
-**Date:** 2026-05-11 (M1 dev platform measurements)
-**Codec state:** feature/raw-video at commit ~48b45df, single-level wavelet + rate control + LL emission
+**Date:** 2026-05-11 (M1 dev platform measurements). **Updated** for 2-level wavelet landing at commit `301e4a0`.
+**Codec state:** feature/raw-video, 2-level wavelet default (`FUSED_WAVELET_LEVELS=2`), rate control + LL emission. Single-level fallback still available at `FUSED_WAVELET_LEVELS=1`.
+
+## Multi-level wavelet impact (2026-05-11 late session)
+
+Going from single-level to 2-level wavelet:
+- **Z8 ISO 64 q=3: 19.9 MB → 13.0 MB (-35%)** — main shipping win
+- Z8 ISO 22800 q=3: 33.8 MB → 29.9 MB (-12%) — less because noise dominates
+- PSNR cost: ~2-3 dB (48 → 46 dB clean, 46 → 44 dB noisy)
+- Compute cost: +20% wall time (extra wavelet pass at 1/4 resolution)
+- **Per-band overhead higher** — 7 bands × 4 channels = 28 bands vs 16 single-level. This raises the minimum sustainable bitrate floor for the rate controller.
+
+Net: **2-level is better for typical operating points (target ≥ 100 MB/s)** but single-level has a lower minimum-bitrate floor for extreme storage constraints. Compile flag chooses.
 
 ## Quality vs file size at fixed q (45 MP Z8, no rate control)
 
