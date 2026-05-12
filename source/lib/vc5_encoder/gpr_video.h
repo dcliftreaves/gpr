@@ -60,8 +60,17 @@ typedef struct GPR_VIDEO_ENCODER GPR_VIDEO_ENCODER;
     @param vc5_bitstream Encoded VC5 bitstream (caller does not own)
     @param size         Size of bitstream in bytes
     @param frame_tag    Tag that was passed to submit() for this frame
-    @return             0 on success, nonzero to signal error (logged; encoder
-                        continues with the next frame)
+    @return    0  → success.
+               >0 → recoverable error on this frame; logged in
+                    stats.writer_errors and the encoder continues with the
+                    next frame.
+               <0 → fatal: the encoder marks itself aborted, drops pending
+                    frames without invoking writer_fn for them, and unblocks
+                    any in-flight gpr_video_encoder_flush() /
+                    gpr_video_encoder_destroy(). Use this on unrecoverable
+                    I/O errors (disk full, write returned EIO) where the
+                    caller wants the pipeline to stop immediately rather
+                    than back-pressure indefinitely.
 */
 typedef int (*gpr_video_writer_fn)(void *user_data,
                                     const uint8_t *vc5_bitstream,
@@ -130,11 +139,30 @@ int gpr_video_encoder_submit(GPR_VIDEO_ENCODER *ctx,
                               const uint8_t *raw_bayer, size_t raw_size,
                               uint64_t frame_tag);
 
-/*! @brief Block until all submitted frames have been encoded and written. */
+/*! @brief Block until all submitted frames have been encoded and written.
+           Returns immediately if the encoder has been aborted (writer
+           returned <0, or gpr_video_encoder_cancel() was called). */
 void gpr_video_encoder_flush(GPR_VIDEO_ENCODER *ctx);
 
+/*! @brief Abort pending work and unblock destroy().
+
+    Marks the encoder aborted. Submitted-but-unwritten frames are dropped
+    without invoking writer_fn for them. Subsequent gpr_video_encoder_submit()
+    calls return -1. gpr_video_encoder_flush() returns immediately. Threads
+    exit on their next loop iteration.
+
+    Use this on app shutdown, user cancellation, or any other path where
+    the caller wants the encoder to stop without waiting for storage I/O
+    to complete. Safe to call from any thread (including the writer
+    callback). Idempotent.
+*/
+void gpr_video_encoder_cancel(GPR_VIDEO_ENCODER *ctx);
+
 /*! @brief Stop the encoder threads and free all resources.
-           Implicitly flushes before stopping. */
+           If the encoder has not been aborted, implicitly flushes first
+           (waiting for pending frames to complete). If aborted (writer
+           returned <0, or gpr_video_encoder_cancel() was called), skips
+           the flush and tears down immediately. */
 void gpr_video_encoder_destroy(GPR_VIDEO_ENCODER *ctx);
 
 /*!
