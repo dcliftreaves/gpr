@@ -77,10 +77,19 @@ The pipeline encode → decode → image-reconstruction is correct and sustains 
    - Thermal throttling on M1 wouldn't trigger in 16s but might in 10 min.
    - Need actual A78 hardware to test thermals properly.
 
-3. **No visual quality assessment at rate-controller-limited operating points**
+3. **Visual quality assessment at rate-controller-limited operating points**
    - Subagent E tested visual quality at fixed q presets via gpr_tools.
-   - Haven't visually inspected output where rate controller pushes quant_scale > 4×.
-   - At those points, the LL gets aggressively quantized; want to know if it shows.
+   - **Investigated 2026-05-12** at scales {1, 2, 4, 8, 16} on Z8 45 MP — see
+     `docs/rc-limited-quality.md`. Degradation is gradual, not cliff-edge.
+     Dominant artifact at high scales is fine-detail smoothing (no blockiness,
+     ringing, or color shifts). LL1 is preserved because it uses a fixed
+     divisor independent of `quant_scale`, so tonality stays intact.
+   - **Recommendation:** soft cap rate controller at `quant_scale ≤ 8` for
+     editing-quality output; hard cap at 16. Beyond 8 the finest detail
+     starts to noticeably soften, though the image is still recognizable.
+     If the controller is consistently hitting 16+, lowering the quality
+     preset (q=3 → q=4) gives a more balanced bit budget than further
+     scale increase.
 
 ## Documentation
 
