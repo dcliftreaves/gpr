@@ -26,13 +26,14 @@ add_library( ${LIB_NAME} STATIC ${SRC_FILES} ${INC_FILES} )
 
 # Public include directories for downstream consumers via install/export.
 # Existing in-tree users still rely on the include_directories() above
-# (kept for backwards-compatible build behavior); these are appended for
-# the install/export interface so find_package(gpr) consumers get the
-# right -I when they #include <gpr/gpr_video.h>.
+# (kept for backwards-compatible build behavior); the INSTALL_INTERFACE
+# below is what find_package(gpr) consumers see. We expose just
+# ${prefix}/include so consumers write `#include <gpr/gpr_video.h>`,
+# matching the pkg-config Cflags and the public install layout.
 target_include_directories( ${LIB_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include/gpr>
+    $<INSTALL_INTERFACE:include>
 )
 
 if(NOT WIN32)
