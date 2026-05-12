@@ -37,6 +37,47 @@
  *
  *  No clip trailer — readers detect EOF naturally.
  *
+ *  ## Versioning and forward compatibility
+ *
+ *  The version byte (offset 4) governs wire-format compatibility. See the
+ *  diagram above for the v1 layout.
+ *
+ *  Bump policy:
+ *   - Stays at 1 for **additive** changes that an unaware reader can ignore
+ *     without producing incorrect output. Examples: defining a new bit in
+ *     `flags` (5), defining a sub-flag in `reserved2` (10..11), or repurposing
+ *     other currently-zero reserved bits. An existing v1 reader continues to
+ *     decode such streams; it just won't act on the new hint.
+ *   - Bumps to 2 (or higher) for **structural** changes a v1 reader cannot
+ *     safely ignore. Examples: a new frame-header magic, a new payload
+ *     encoding (different wavelet basis / quantizer / bitstream layout), or
+ *     a new field that is load-bearing for correct decode.
+ *
+ *  Reader behavior:
+ *   - Readers MUST reject versions newer than they recognize (current code
+ *     in `gpr_video_read_clip_header` rejects anything ≠ 1). Never silently
+ *     degrade on an unknown version — that hides corrupted output.
+ *   - Readers MAY support older versions by branching on the version byte.
+ *
+ *  v1 clip-header stability matrix:
+ *   - [0..3] magic, [4] version              : stable across all v1.x
+ *   - [5] flags                              : extensible — new bits 2..7
+ *                                              may be defined; readers
+ *                                              should mask unknown bits
+ *                                              rather than treat as error
+ *   - [6..7] pixel_format, [8..9] quality    : stable
+ *   - [10..11] reserved2                     : may carry new sub-flags in
+ *                                              future v1.x; v1 readers MUST
+ *                                              ignore unrecognized bits
+ *   - [12..27] width, height, fps_x1000,
+ *              target_kbps                   : stable
+ *   - [28..31] frame_count_hint              : stable (0 = unknown remains
+ *                                              the documented sentinel)
+ *
+ *  What requires a v2 bump: a new frame_header magic, any change to the
+ *  payload bitstream encoding (basis, quantizer table, entropy coder), or
+ *  any new field whose absence breaks correct decode.
+ *
  *  (C) Copyright 2018 GoPro Inc. Licensed under Apache-2.0 or MIT.
  */
 
