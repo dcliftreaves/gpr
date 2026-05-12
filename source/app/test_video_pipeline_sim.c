@@ -127,6 +127,7 @@ int main(int argc, char **argv) {
     double noise_scale  = (argc > 12) ? atof(argv[12]) : 0.0;  /* 0 = no denoise */
     double noise_offset = (argc > 13) ? atof(argv[13]) : 0.0;
     double denoise_strength = (argc > 14) ? atof(argv[14]) : 0.0;
+    double target_MBps      = (argc > 15) ? atof(argv[15]) : 0.0;  /* 0 = no rate control */
 
     /* Load one frame; we replay it as if it were a stream. */
     FILE *f = fopen(raw_path, "rb");
@@ -168,6 +169,12 @@ int main(int argc, char **argv) {
         gpr_video_encoder_set_denoise(enc, noise_scale, noise_offset, denoise_strength);
         fprintf(stderr, "  denoise:      scale=%g offset=%g strength=%g\n",
                 noise_scale, noise_offset, denoise_strength);
+    }
+
+    if (target_MBps > 0.0) {
+        gpr_video_encoder_set_target_bitrate(enc, target_MBps, target_fps);
+        fprintf(stderr, "  rate control: target=%.1f MB/s @ %.1f fps (%.2f MB/frame)\n",
+                target_MBps, target_fps, target_MBps / target_fps);
     }
 
     double frame_interval_ms = 1000.0 / target_fps;

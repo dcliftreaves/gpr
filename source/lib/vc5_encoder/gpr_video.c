@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 
 #define VIDEO_MAX_RING_DEPTH 8
 
@@ -46,6 +47,13 @@ struct GPR_VIDEO_ENCODER {
     FUSED_ENCODER *fused_ctx;
     int denoise_set;
     double noise_scale, noise_offset, denoise_strength;
+
+    /* Adaptive bitrate state (encoder-thread-only access).
+       target_bytes_per_frame=0 means rate control disabled. */
+    double target_bytes_per_frame;
+    double rc_avg_bytes;        /* EMA of recent vc5 sizes */
+    double rc_scale;            /* current quant scale to apply on next frame */
+    int    rc_frames_seen;      /* warms the EMA */
 
     /* Input ring: caller produces, encoder consumes (SPSC) */
     input_slot  *in_slots;
@@ -166,6 +174,20 @@ void gpr_video_encoder_set_denoise(GPR_VIDEO_ENCODER *ctx,
     ctx->denoise_set = 1;
 }
 
+void gpr_video_encoder_set_target_bitrate(GPR_VIDEO_ENCODER *ctx,
+                                           double target_MBps, double fps)
+{
+    if (!ctx) return;
+    if (target_MBps <= 0.0 || fps <= 0.0) {
+        ctx->target_bytes_per_frame = 0.0;   /* disable */
+        return;
+    }
+    ctx->target_bytes_per_frame = target_MBps * 1024.0 * 1024.0 / fps;
+    ctx->rc_scale = 1.0;
+    ctx->rc_avg_bytes = 0.0;
+    ctx->rc_frames_seen = 0;
+}
+
 int gpr_video_encoder_submit(GPR_VIDEO_ENCODER *ctx,
                               const uint8_t *raw_bayer, size_t raw_size,
                               uint64_t frame_tag)
@@ -233,10 +255,35 @@ static void *encoder_thread_fn(void *arg)
            via the tail pointer). Don't advance tail until encoding is done. */
         pthread_mutex_unlock(&ctx->in_lock);
 
+        /* Apply adaptive bitrate scale (if enabled) before encoding. */
+        if (ctx->target_bytes_per_frame > 0.0) {
+            gpr_encode_fused_set_quant_scale(fused, ctx->rc_scale);
+        }
+
         /* Encode (this is where the fused encoder runs its 4 internal threads). */
         uint8_t *vc5_out = NULL;
         size_t vc5_size = 0;
         int rc = gpr_encode_fused_frame(fused, in->raw, in->raw_size, &vc5_out, &vc5_size);
+
+        /* Update rate controller. Smooth output size with an EMA, then
+           adjust the scale toward the target. Use sqrt(error) so we move
+           gently — frame sizes for noisy content can swing wide. */
+        if (ctx->target_bytes_per_frame > 0.0 && rc == 0 && vc5_size > 0) {
+            const double alpha = 0.7;       /* EMA weight on history */
+            if (ctx->rc_frames_seen == 0) ctx->rc_avg_bytes = (double)vc5_size;
+            else ctx->rc_avg_bytes = ctx->rc_avg_bytes * alpha + (double)vc5_size * (1.0 - alpha);
+            ctx->rc_frames_seen++;
+
+            double err = ctx->rc_avg_bytes / ctx->target_bytes_per_frame;
+            /* sqrt damps overshoot; clamp the multiplicative step too */
+            double step = sqrt(err);
+            if (step < 0.85) step = 0.85;
+            if (step > 1.20) step = 1.20;
+            double new_scale = ctx->rc_scale * step;
+            if (new_scale < 0.25) new_scale = 0.25;
+            if (new_scale > 16.0) new_scale = 16.0;
+            ctx->rc_scale = new_scale;
+        }
 
         if (rc == 0 && vc5_out && vc5_size > 0) {
             /* Push to output ring, copying the bitstream into the slot

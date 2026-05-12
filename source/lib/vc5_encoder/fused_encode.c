@@ -608,7 +608,8 @@ static void *pass1_channel_thread(void *arg) {
 static int setup_channel_state(
     FUSED_CHANNEL_STATE ch_state[4],
     int width, int height, int quality, int inline_mode,
-    int *out_is_rggb, int *out_log_bits)
+    int *out_is_rggb, int *out_log_bits,
+    int32_t out_base_divisors[4])
 {
     int ch_width = width / 2;
     int ch_height = height / 2;
@@ -620,11 +621,14 @@ static int setup_channel_state(
        finest level (level 0). We need qt[7..9], not qt[1..3] — those are the
        coarsest-level divisors and barely change across quality presets,
        which is why every quality was producing identical output. */
+    int base_divisors[4] = { qt[0], qt[7], qt[8], qt[9] };  /* LL + LH/HL/HH at L0 */
+    if (out_base_divisors) {
+        for (int band = 0; band < 4; band++) out_base_divisors[band] = base_divisors[band];
+    }
     for (int ch = 0; ch < 4; ch++) {
-        int divisors[4] = { qt[0], qt[7], qt[8], qt[9] };  /* LL + LH/HL/HH at L0 */
         for (int band = 0; band < 4; band++) {
-            ch_state[ch].midpoint[band] = get_midpoint(divisors[band]);
-            ch_state[ch].multiplier[band] = get_multiplier(divisors[band]);
+            ch_state[ch].midpoint[band] = get_midpoint(base_divisors[band]);
+            ch_state[ch].multiplier[band] = get_multiplier(base_divisors[band]);
         }
         ch_state[ch].band_width = ch_width / 2;
         ch_state[ch].band_height = ch_height / 2;
@@ -842,6 +846,14 @@ struct FUSED_ENCODER {
     double   noise_scale;
     double   noise_offset;
     double   denoise_strength;
+
+    /* Per-band base divisors from the chosen quality preset; the actual
+       midpoint/multiplier in ch_state are derived from base × quant_scale.
+       quant_scale defaults to 1.0; the video encoder's rate controller
+       varies it per frame to hit a target bitrate. Larger scale → more
+       aggressive quantization → smaller output. */
+    int32_t  base_divisors[FUSED_MAX_BANDS];
+    double   quant_scale;
 };
 
 /* Decide which mode to use. Default: inline mode when CPU count is ≤6
@@ -890,10 +902,12 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     int dummy_is_rggb, dummy_log_bits;
     if (setup_channel_state(ctx->ch_state, width, height, quality,
                              ctx->inline_mode,
-                             &dummy_is_rggb, &dummy_log_bits) != 0) {
+                             &dummy_is_rggb, &dummy_log_bits,
+                             ctx->base_divisors) != 0) {
         gpr_encode_fused_destroy(ctx);
         return NULL;
     }
+    ctx->quant_scale = 1.0;
 
     /* Pre-allocate persistent enc buffers + (if inline) inline-tokenize state */
     int p2_idx = 0;
@@ -987,6 +1001,25 @@ void gpr_encode_fused_set_denoise(FUSED_ENCODER *ctx,
     ctx->noise_scale = noise_scale;
     ctx->noise_offset = noise_offset;
     ctx->denoise_strength = strength;
+}
+
+void gpr_encode_fused_set_quant_scale(FUSED_ENCODER *ctx, double scale)
+{
+    if (!ctx) return;
+    if (scale < 0.25) scale = 0.25;
+    if (scale > 16.0) scale = 16.0;
+    if (scale == ctx->quant_scale) return;   /* no-op */
+    ctx->quant_scale = scale;
+    for (int band = 0; band < 4; band++) {
+        int eff_divisor = (int)((double)ctx->base_divisors[band] * scale + 0.5);
+        if (eff_divisor < 1) eff_divisor = 1;
+        int32_t mp = get_midpoint(eff_divisor);
+        int32_t ml = get_multiplier(eff_divisor);
+        for (int ch = 0; ch < 4; ch++) {
+            ctx->ch_state[ch].midpoint[band]   = mp;
+            ctx->ch_state[ch].multiplier[band] = ml;
+        }
+    }
 }
 
 /* Per-band BayesShrink denoise: estimate noise sigma from this band (MAD on
