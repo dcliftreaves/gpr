@@ -18,14 +18,13 @@
  *  LL0 is computed without quantization as an intermediate buffer and is NOT
  *  emitted — the four level-1 bands together represent the level-0 lowpass.
  *
- *  Set FUSED_WAVELET_LEVELS=3 to use the 10-band 3-level layout (LL2, LH2,
- *  HL2, HH2, LH1, HL1, HH1, LH0, HL0, HH0). 3-level gives an additional
- *  ~17 % size reduction at q=3, but propagates LL2 quantization through
- *  two extra inverse stages, producing visible wavelet edge ringing on
- *  high-contrast features (verified 2026-05-12). 3-level is intended for
- *  storage-constrained ship profiles where motion masks the artifact.
  *  Set FUSED_WAVELET_LEVELS=1 for the original single-level layout
  *  (LL0, LH0, HL0, HH0 per channel) — best fidelity, largest files.
+ *
+ *  Only 1 and 2 levels are supported. A 3-level cascade was prototyped but
+ *  produced visible inverse-wavelet ringing inherent to the biorthogonal
+ *  5/3 basis (not fixable by quantization, prescale, or lossless-LL
+ *  tuning), so it was removed.
  *
  *  Production GPR uses 3 levels with a fixed-width LL encoding (separate
  *  from rANS, lossless). The 2-level fused encoder gets within ~30-50 %
