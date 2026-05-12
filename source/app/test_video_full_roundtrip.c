@@ -147,6 +147,18 @@ static int probe_band_bytes(const uint8_t *p, size_t avail, size_t *consumed)
 {
     if (avail < 16) return -1;
 
+    /* Lossless u16-BE LL format (FUSED_LL2_LOSSLESS encoder path):
+       0xFEFEFEFE + u16-BE width + u16-BE height + w*h u16-BE coefficients. */
+    if (p[0] == 0xFE && p[1] == 0xFE && p[2] == 0xFE && p[3] == 0xFE) {
+        int w = (p[4] << 8) | p[5];
+        int h = (p[6] << 8) | p[7];
+        if (w <= 0 || h <= 0 || w > 65535 || h > 65535) return -1;
+        size_t total = 8 + (size_t)2 * w * h;
+        if (total > avail) return -1;
+        *consumed = total;
+        return 0;
+    }
+
     if (p[0] == 0xFF && p[1] == 0xFF && p[2] == 0xFF && p[3] == 0xFF) {
         int num_stripes = (p[4]<<24)|(p[5]<<16)|(p[6]<<8)|p[7];
         if (num_stripes < 0 || num_stripes > 1000000) return -1;
@@ -249,15 +261,21 @@ static void fused_base_divisors_2level(int quality, int32_t base[7]) {
      [8] HL0: qt[8]
      [9] HH0: qt[9]
    LL0 and LL1 are intermediate (NOT emitted). */
+#ifndef FUSED_LL2_LOSSLESS
+#define FUSED_LL2_LOSSLESS 0
+#endif
+#ifndef FUSED_HF_ALL_LOSSLESS
+#define FUSED_HF_ALL_LOSSLESS 0
+#endif
 static void fused_base_divisors_3level(int quality, int32_t base[10]) {
     int qi = (quality >= 0 && quality < 9) ? quality : 3;
-    base[0] = FUSED_LL2_DIVISOR;
-    base[1] = quality_tables[qi][1];
-    base[2] = quality_tables[qi][2];
-    base[3] = quality_tables[qi][3];
-    base[4] = quality_tables[qi][4];
-    base[5] = quality_tables[qi][5];
-    base[6] = quality_tables[qi][6];
+    base[0] = FUSED_LL2_LOSSLESS ? 1 : FUSED_LL2_DIVISOR;
+    base[1] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][1];
+    base[2] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][2];
+    base[3] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][3];
+    base[4] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][4];
+    base[5] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][5];
+    base[6] = FUSED_HF_ALL_LOSSLESS ? 1 : quality_tables[qi][6];
     base[7] = quality_tables[qi][7];
     base[8] = quality_tables[qi][8];
     base[9] = quality_tables[qi][9];
@@ -811,13 +829,30 @@ static int decode_frame_bands(const uint8_t *vc5, size_t size,
             }
             memset(band_buffers[ch][band], 0,
                    (size_t)this_w * this_h * sizeof(int32_t));
-            int rc = jans_decode_band_x4(vc5 + pos, band_bytes,
-                                          band_buffers[ch][band],
-                                          this_w, this_h, this_w * sizeof(int32_t));
-            if (rc != 0) {
-                fprintf(stderr, "    jans_decode_band_x4 ch=%d band=%d → %d\n",
-                        ch, band, rc);
-                return bands_ok;
+            const uint8_t *bp = vc5 + pos;
+            if (bp[0] == 0xFE && bp[1] == 0xFE && bp[2] == 0xFE && bp[3] == 0xFE) {
+                /* Lossless u16-BE LL fast path. Header: magic(4) + w(2) + h(2). */
+                int hw = (bp[4] << 8) | bp[5];
+                int hh = (bp[6] << 8) | bp[7];
+                if (hw != this_w || hh != this_h) {
+                    fprintf(stderr, "    lossless LL dim mismatch ch=%d band=%d hdr=%dx%d expect=%dx%d\n",
+                            ch, band, hw, hh, this_w, this_h);
+                    return bands_ok;
+                }
+                const uint8_t *src = bp + 8;
+                int32_t *dst = band_buffers[ch][band];
+                for (size_t k = 0, n = (size_t)hw * hh; k < n; k++) {
+                    dst[k] = (int32_t)(((uint32_t)src[2*k] << 8) | src[2*k + 1]);
+                }
+            } else {
+                int rc = jans_decode_band_x4(vc5 + pos, band_bytes,
+                                              band_buffers[ch][band],
+                                              this_w, this_h, this_w * sizeof(int32_t));
+                if (rc != 0) {
+                    fprintf(stderr, "    jans_decode_band_x4 ch=%d band=%d → %d\n",
+                            ch, band, rc);
+                    return bands_ok;
+                }
             }
             pos += band_bytes;
             bands_ok++;

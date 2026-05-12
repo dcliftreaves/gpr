@@ -147,6 +147,25 @@ static inline int32x4_t fused_log_curve_neon4(uint16x4_t x_u16, int max_v) {
 #define FUSED_WAVELET_LEVELS 2
 #endif
 
+/* FUSED_LL2_LOSSLESS: in 3-level mode, store LL2 with a fixed-width 16-bit
+   big-endian path (bypassing rANS) instead of quantizing by FUSED_LL2_DIVISOR.
+   This eliminates the rANS-alphabet-imposed quantization (LL2 values reach
+   ~40000 mag on 14-bit content; the rANS 2047 cap forced a minimum divisor
+   of ~20, which produced visible cascade ringing on high-contrast edges).
+   With lossless LL2 the 3-level reconstruction is mathematically identical
+   to 1-level + extra HF detail bands -- ringing eliminated.
+
+   Format per band: 0xFEFEFEFE magic + u16-BE width + u16-BE height +
+   width*height u16-BE coefficients (clamped to [0,65535]). Production GPR
+   uses essentially the same format for its top-level lowpass; this is a
+   self-contained variant for the fused encoder's band-walker. */
+#ifndef FUSED_LL2_LOSSLESS
+#define FUSED_LL2_LOSSLESS 0
+#endif
+#if FUSED_LL2_LOSSLESS && FUSED_WAVELET_LEVELS != 3
+#error "FUSED_LL2_LOSSLESS only makes sense with FUSED_WAVELET_LEVELS=3"
+#endif
+
 #if FUSED_WAVELET_LEVELS == 1
 #define FUSED_BANDS_PER_CHANNEL 4    /* LL0, LH0, HL0, HH0 */
 #elif FUSED_WAVELET_LEVELS == 2
@@ -1704,11 +1723,25 @@ static int setup_channel_state(
               plus FUSED_LL_DIVISOR for LL1. */
 #if FUSED_WAVELET_LEVELS >= 3
     /* In 3-level mode both LL0 and LL1 must be unquantized so the next
-       deeper wavelet sees true coefficients. LL2 is the deepest LL and gets
-       FUSED_LL2_DIVISOR; level-2 highpass uses qt[1..3]. */
+       deeper wavelet sees true coefficients. LL2 is the deepest LL.
+       Default: quantize by FUSED_LL2_DIVISOR. With FUSED_LL2_LOSSLESS=1,
+       LL2 is also stored unquantized (divisor=1) and goes through the
+       fixed-width u16-BE path in Pass 2 instead of rANS, sidestepping
+       the alphabet-cap quantization that caused visible cascade ringing. */
     int base_divisors[4] = { 1, qt[7], qt[8], qt[9] };  /* LL0 lossless */
+    #if FUSED_HF_ALL_LOSSLESS
+    /* Experimental: every HF band lossless (huge file, used for ringing
+       isolation experiments). */
+    int base_divisors_l1[4] = { 1, 1, 1, 1 };
+    int base_divisors_l2[4] = { 1, 1, 1, 1 };
+    #else
     int base_divisors_l1[4] = { 1, qt[4], qt[5], qt[6] }; /* LL1 lossless */
+    #if FUSED_LL2_LOSSLESS
+    int base_divisors_l2[4] = { 1, qt[1], qt[2], qt[3] };  /* LL2 lossless too */
+    #else
     int base_divisors_l2[4] = { FUSED_LL2_DIVISOR, qt[1], qt[2], qt[3] };
+    #endif
+    #endif
 #elif FUSED_WAVELET_LEVELS >= 2
     int base_divisors[4] = { 1, qt[7], qt[8], qt[9] };  /* LL0 lossless */
     int base_divisors_l1[4] = { FUSED_LL1_DIVISOR, qt[4], qt[5], qt[6] };
@@ -1813,6 +1846,11 @@ typedef struct {
     double denoise_strength;
     double noise_scale;
     double noise_offset;
+    /* Lossless-LL fast path: bypass rANS entirely, emit fixed-width u16-BE
+       coefficients (see FUSED_LL2_LOSSLESS comment above). When set,
+       inline_state and band_data semantics are unchanged but the encode
+       step is replaced. */
+    int lossless_u16_be;
 } PASS2_BAND_TASK;
 
 static void fused_denoise_band(PIXEL *band_data, int width, int height,
@@ -1830,6 +1868,38 @@ static void *pass2_band_thread(void *arg) {
             pthread_cond_wait(&t->sync->cv, &t->sync->lock);
         }
         pthread_mutex_unlock(&t->sync->lock);
+    }
+
+    if (t->lossless_u16_be) {
+        /* Lossless LL2 path: write fixed-width u16-BE per coefficient with a
+           magic+dims header. See FUSED_LL2_LOSSLESS comment for format.
+           This entirely bypasses rANS and the 2047-magnitude alphabet cap. */
+        const int w = t->width, h = t->height;
+        const size_t needed = (size_t)8 + (size_t)2 * w * h;
+        if (needed > t->enc_cap) {
+            t->enc_size = -1;
+            return NULL;
+        }
+        uint8_t *p = t->enc_buf;
+        /* Magic 0xFEFEFEFE distinguishes this from the stripe-format magic
+           0xFFFFFFFF and from the legacy 3-byte token-count framing. */
+        p[0] = 0xFE; p[1] = 0xFE; p[2] = 0xFE; p[3] = 0xFE;
+        p[4] = (uint8_t)((w >> 8) & 0xFF); p[5] = (uint8_t)(w & 0xFF);
+        p[6] = (uint8_t)((h >> 8) & 0xFF); p[7] = (uint8_t)(h & 0xFF);
+        p += 8;
+        const int32_t *src = (const int32_t *)t->band_data;
+        const int pitch_pix = t->pitch / (int)sizeof(int32_t);
+        for (int r = 0; r < h; r++) {
+            const int32_t *row = src + (size_t)r * pitch_pix;
+            for (int c = 0; c < w; c++) {
+                int32_t v = row[c];
+                if (v < 0) v = 0; else if (v > 65535) v = 65535;
+                *p++ = (uint8_t)((v >> 8) & 0xFF);
+                *p++ = (uint8_t)(v & 0xFF);
+            }
+        }
+        t->enc_size = (int)needed;
+        return NULL;
     }
 
     if (t->inline_state) {
@@ -1875,6 +1945,7 @@ static int fused_pass2(
             t->enc_cap = (size_t)t->width * t->height * 4 + 8192;
             t->enc_buf = (uint8_t *)malloc(t->enc_cap);
             t->enc_size = 0;
+            t->lossless_u16_be = 0;  /* legacy path: no lossless LL */
             if (!t->enc_buf) return -1;
 
             /* Spawn thread */
@@ -2409,12 +2480,16 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
         for (int band = 0; band < 10; band++) {
             PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
             pt->channel = ch;
+            pt->lossless_u16_be = 0;
             if (band < 4) {
                 /* Level-2 band: LL2, LH2, HL2, HH2 */
                 pt->band_data    = cs->band_data_l2[band];
                 pt->width        = cs->band_width_l2;
                 pt->height       = cs->band_height_l2;
                 pt->pitch        = cs->band_width_l2 * sizeof(int32_t);
+                #if FUSED_LL2_LOSSLESS
+                if (band == 0) pt->lossless_u16_be = 1;  /* LL2 bypasses rANS */
+                #endif
             } else if (band < 7) {
                 /* Level-1 highpass: LH1(=l1[1]), HL1(=l1[2]), HH1(=l1[3]) */
                 int l1_band = band - 4 + 1;
@@ -2455,6 +2530,7 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
         for (int band = 0; band < 7; band++) {
             PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
             pt->channel = ch;
+            pt->lossless_u16_be = 0;
             if (band < 4) {
                 /* Level-1 band: LL1, LH1, HL1, HH1 */
                 pt->band_data    = cs->band_data_l1[band];
@@ -2490,6 +2566,7 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
         for (int band = 0; band < 4; band++) {
             PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
             pt->channel = ch;
+            pt->lossless_u16_be = 0;
             pt->band_data    = cs->band_data[band];     /* NULL in inline mode */
             pt->inline_state = cs->inline_state[band];  /* NULL in split mode */
             pt->width = cs->band_width;
