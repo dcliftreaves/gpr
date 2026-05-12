@@ -9,23 +9,24 @@
  *
  *  Designed for GoPro ARM (Cortex-A78), testable on Mac ARM64.
  *
- *  ## Known limitation: single-level wavelet only
+ *  ## Wavelet levels
  *
- *  This encoder applies ONLY the level-0 wavelet decomposition. The
- *  production GPR encoder (encoder.c) applies 3 levels (LL → LL2 → LL3)
- *  which removes more inter-band correlation. As a result, the fused
- *  encoder produces ~2× larger compressed output than the standard
- *  GPR encoder on the same input — about 24 % of raw vs. 12 % for the
- *  same quality preset.
+ *  The encoder applies a 2-level wavelet transform by default
+ *  (FUSED_WAVELET_LEVELS=2). The bitstream per channel is:
+ *    [0..3] LL1, LH1, HL1, HH1   (level-1 bands, 1/16 of channel pixels each)
+ *    [4..6] LH0, HL0, HH0        (level-0 highpass, 1/4 of channel pixels each)
+ *  LL0 is computed without quantization as an intermediate buffer and is
+ *  NOT emitted in the bitstream — the four level-1 bands together
+ *  represent the level-0 lowpass.
  *
- *  Trade-off: the fused encoder is much faster and uses far less RAM,
- *  so it's the right choice for:
- *    - Live preview / monitoring streams
- *    - Embedded targets that can't afford the 3-level memory cost
- *    - Burst photography where throughput beats minimum size
+ *  Set FUSED_WAVELET_LEVELS=1 at compile time to fall back to the original
+ *  single-level layout (LL0, LH0, HL0, HH0 per channel).
  *
- *  For archival or "best compression" workflows, the production encoder
- *  is still preferred.
+ *  Production GPR uses 3 levels with a fixed-width LL encoding (separate
+ *  from rANS, lossless). The 2-level fused encoder gets within ~30-50 %
+ *  of production's compression at substantially higher throughput and
+ *  lower peak RAM. PSNR vs raw Bayer at quality 3 is ~45 dB on real
+ *  images, vs ~48 dB for single-level (which trades size for fidelity).
  *
  *  Measured at quality 3 (Filmscan-1):
  *

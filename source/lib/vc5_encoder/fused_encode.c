@@ -110,7 +110,34 @@ static inline int32x4_t fused_log_curve_neon4(uint16x4_t x_u16, int max_v) {
 #define FUSED_MAX_BANDS    4
 #define FUSED_ROW_BUFS     6
 #define FUSED_CHANNELS     4
-#define FUSED_NUM_P2_TASKS (FUSED_CHANNELS * FUSED_MAX_BANDS)  /* 16: all 4 bands per channel */
+
+/* Multi-level wavelet support.
+   FUSED_WAVELET_LEVELS=1: original behaviour (single-level), 4 bands per channel.
+   FUSED_WAVELET_LEVELS=2: 2-level wavelet. Per-channel band layout in the
+                            output bitstream is, in order:
+                            [0] LL1   (level-1 lowpass, quant=FUSED_LL_DIVISOR)
+                            [1] LH1   (level-1 horizontal highpass, qt[4])
+                            [2] HL1   (level-1 vertical highpass,   qt[5])
+                            [3] HH1   (level-1 diagonal highpass,   qt[6])
+                            [4] LH0   (level-0 horizontal highpass, qt[7])
+                            [5] HL0   (level-0 vertical highpass,   qt[8])
+                            [6] HH0   (level-0 diagonal highpass,   qt[9])
+                            LL0 is NOT emitted (it is replaced by the
+                            four level-1 bands which together reconstruct it).
+   Default = 2 for better compression. Override at compile time. */
+#ifndef FUSED_WAVELET_LEVELS
+#define FUSED_WAVELET_LEVELS 2
+#endif
+
+#if FUSED_WAVELET_LEVELS == 1
+#define FUSED_BANDS_PER_CHANNEL 4   /* LL0, LH0, HL0, HH0 */
+#elif FUSED_WAVELET_LEVELS == 2
+#define FUSED_BANDS_PER_CHANNEL 7   /* LL1, LH1, HL1, HH1, LH0, HL0, HH0 */
+#else
+#error "FUSED_WAVELET_LEVELS must be 1 or 2"
+#endif
+
+#define FUSED_NUM_P2_TASKS (FUSED_CHANNELS * FUSED_BANDS_PER_CHANNEL)
 
 /* LL band quantizer divisor. The rANS tokenizer alphabet caps at ~2047
    (10-bit mag class). 14-bit input has LL coefficients up to ~16383, 16-bit
@@ -119,6 +146,14 @@ static inline int32x4_t fused_log_curve_neon4(uint16x4_t x_u16, int max_v) {
      16-bit: max stored ≈ 1024, error ≤ ±32 per LL coefficient (~0.05% rel)
    After inverse wavelet diffusion the per-pixel error is much smaller. */
 #define FUSED_LL_DIVISOR   64
+
+/* Level-1 LL band divisor for 2-level mode. Measured pre-quant LL1 max on
+   Z8 ISO64 16-bit is ~40K. Divisor=32 brings stored max to ~1270 (within
+   the rANS 2047 alphabet cap). Divisor=64 brings it to ~635 with more
+   compression headroom; PSNR difference is negligible (the inverse-wavelet
+   error amplification dominates over LL1 step size). Stick with 64 to
+   match the single-level encoder's FUSED_LL_DIVISOR convention. */
+#define FUSED_LL1_DIVISOR  64
 
 /* Quality presets: quant divisors per subband [LL, LH, HL, HH for each level] */
 static const QUANT quality_tables[9][10] = {
@@ -463,21 +498,38 @@ static inline uint16_t apply_log_curve(uint16_t value, int bits) {
    ================================================================ */
 
 typedef struct {
-    /* Per-channel wavelet state */
+    /* Per-channel wavelet state (level 0 streaming) */
     PIXEL *lowpass_buf[FUSED_ROW_BUFS];   /* Horizontal lowpass 6-row circular buffer */
     PIXEL *highpass_buf[FUSED_ROW_BUFS];  /* Horizontal highpass 6-row circular buffer */
     int buf_row;                           /* Current position in circular buffer */
 
-    /* Per-level, per-band output */
+    /* Level-0 output. band_data[0..3] are LL0, LH0, HL0, HH0 at (bw × bh).
+       In FUSED_WAVELET_LEVELS=2 mode, LL0 (band_data[0]) is an intermediate
+       buffer that is consumed by the level-1 pass and NOT emitted.
+       In FUSED_WAVELET_LEVELS=1 mode, LL0 IS emitted. */
     PIXEL *band_data[FUSED_MAX_BANDS];    /* Quantized band buffers (NULL in inline mode) */
     PIXEL *row_scratch[FUSED_MAX_BANDS];  /* Per-row scratch (~5KB × 4) used in inline mode */
     int band_width, band_height;
     int band_pitch;                        /* In pixels */
     int band_out_row;                      /* Current output row */
 
-    /* Quantization parameters per band */
+    /* Quantization parameters per band (level 0) */
     int32_t midpoint[FUSED_MAX_BANDS];
     int32_t multiplier[FUSED_MAX_BANDS];
+
+#if FUSED_WAVELET_LEVELS >= 2
+    /* Level-1 output. band_data_l1[0..3] are LL1, LH1, HL1, HH1 at (bw/2 × bh/2).
+       The level-1 wavelet operates on UNQUANTIZED level-0 LL coefficients,
+       which means the level-0 LL0 buffer must hold pre-quant values when
+       FUSED_WAVELET_LEVELS>=2 (see use of midpoint_l0/multiplier_l0 below). */
+    PIXEL *band_data_l1[4];
+    int band_width_l1, band_height_l1;
+    int32_t midpoint_l1[4];
+    int32_t multiplier_l1[4];
+    /* In multi-level mode, LL0 must be stored without quantization so the
+       level-1 wavelet sees the true coefficients. The other level-0 bands
+       still apply quantization at production time. */
+#endif
 
     /* ANS frequency tables per band (legacy/unused since the freq-removal commit) */
     uint16_t freq[FUSED_MAX_BANDS][160];
@@ -1264,6 +1316,108 @@ advance_consumer:
 #endif
 }
 
+#if FUSED_WAVELET_LEVELS >= 2
+/* Run the level-1 wavelet on a channel's already-produced LL0 buffer.
+   LL0 lives in cs->band_data[0] at (cs->band_width × cs->band_height).
+   Outputs 4 quantised bands into cs->band_data_l1[0..3] at (bw/2 × bh/2):
+       [0] LL1, [1] LH1, [2] HL1, [3] HH1.
+
+   Mirrors the level-0 streaming path: horizontal filter into a 6-row
+   circular buffer; emit one band-row every 2 input rows once the 6-row
+   window is full; vertical filter + quantise (level-1 midpoints/multipliers)
+   into the 4 output bands.
+
+   Prescale for level 1: we use prescale=2 (same as level 0). LL0 values are
+   roughly in 14-bit-channel range (the level-0 pass has already applied
+   prescale=2), so a further prescale=2 inside FilterHorizontalRow brings
+   them down a factor of 4 each time. The decoder's inverse wavelet will
+   reapply prescale on output (handled in the test_video_full_roundtrip
+   harness via cumulative prescale).
+*/
+static void run_level1_wavelet(FUSED_CHANNEL_STATE *cs)
+{
+    const int in_w = cs->band_width;
+    const int in_h = cs->band_height;
+    const int bw1  = cs->band_width_l1;
+    const int bh1  = cs->band_height_l1;
+    /* Level-1 prescale: production uses 2 (14-bit) or 3 (16-bit). The fused
+       encoder runs all inputs at log_bits=14 or 16 (via the encoder log curve)
+       and applies prescale=2 at level 0 universally. For level 1 we use
+       prescale=2 to keep LL1 dynamic range manageable; production-equivalent
+       prescale=3 (for 16-bit) reduces LL1 by another factor of 2. */
+    const int prescale = 2;
+    /* log_bits is only used by horizontal_filter for the can_use_s16 check.
+       Level-1 input is bounded by level-0 LL values which are 14-bit-ish
+       (with prescale=2 already applied at level 0), so 14 is safe. We pass
+       16 to be conservative — disables the int16 fast path inside horiz
+       filter for level 1, but level 1 is 1/16 the data so cost is tiny. */
+    const int log_bits = 16;
+
+    /* 6-row circular buffer for horizontal filter outputs */
+    PIXEL *lp_buf[FUSED_ROW_BUFS];
+    PIXEL *hp_buf[FUSED_ROW_BUFS];
+    for (int r = 0; r < FUSED_ROW_BUFS; r++) {
+        lp_buf[r] = (PIXEL *)calloc(bw1, sizeof(PIXEL));
+        hp_buf[r] = (PIXEL *)calloc(bw1, sizeof(PIXEL));
+        if (!lp_buf[r] || !hp_buf[r]) goto cleanup;
+    }
+
+    int buf_row = 0;
+    int out_row = 0;
+
+    PIXEL *ll0 = cs->band_data[0];
+
+    for (int row = 0; row < in_h; row++) {
+        const PIXEL *src = ll0 + (size_t)row * in_w;
+        int idx = buf_row % FUSED_ROW_BUFS;
+        horizontal_filter(src, lp_buf[idx], hp_buf[idx], in_w, prescale, log_bits);
+        buf_row++;
+
+        if (buf_row >= 6 && (buf_row % 2) == 0) {
+            if (out_row >= bh1) continue;
+            int is_top = (out_row == 0);
+            int is_bottom = (out_row == bh1 - 1);
+
+            PIXEL *lp_rows[6], *hp_rows[6];
+            int base = (buf_row - 6) % FUSED_ROW_BUFS;
+            for (int r = 0; r < 6; r++) {
+                int ii = (base + r) % FUSED_ROW_BUFS;
+                lp_rows[r] = lp_buf[ii];
+                hp_rows[r] = hp_buf[ii];
+            }
+
+            PIXEL *ll1 = cs->band_data_l1[0] + (size_t)out_row * bw1;
+            PIXEL *lh1 = cs->band_data_l1[1] + (size_t)out_row * bw1;
+            PIXEL *hl1 = cs->band_data_l1[2] + (size_t)out_row * bw1;
+            PIXEL *hh1 = cs->band_data_l1[3] + (size_t)out_row * bw1;
+
+            vertical_filter_quantize_row(lp_rows, bw1,
+                cs->midpoint_l1[0], cs->multiplier_l1[0],
+                cs->midpoint_l1[1], cs->multiplier_l1[1],
+                0, 0, 0, 0,
+                ll1, lh1, NULL, NULL,
+                is_top, is_bottom);
+
+            vertical_filter_quantize_row(hp_rows, bw1,
+                cs->midpoint_l1[2], cs->multiplier_l1[2],
+                cs->midpoint_l1[3], cs->multiplier_l1[3],
+                0, 0, 0, 0,
+                hl1, hh1, NULL, NULL,
+                is_top, is_bottom);
+
+            out_row++;
+        }
+    }
+    /* Trailing 2 band rows untouched (calloc'd zero) — same as level 0. */
+
+cleanup:
+    for (int r = 0; r < FUSED_ROW_BUFS; r++) {
+        if (lp_buf[r]) free(lp_buf[r]);
+        if (hp_buf[r]) free(hp_buf[r]);
+    }
+}
+#endif  /* FUSED_WAVELET_LEVELS >= 2 */
+
 static void *pass1_channel_thread(void *arg) {
     PASS1_CHANNEL_TASK *t = (PASS1_CHANNEL_TASK *)arg;
     if (t->ring) {
@@ -1274,7 +1428,15 @@ static void *pass1_channel_thread(void *arg) {
                           t->log_bits, t->is_rggb, t->prescale, t->cs);
     }
 
-    /* Signal that this channel's Pass 1 is complete — unblocks its 3 P2 bands */
+#if FUSED_WAVELET_LEVELS >= 2
+    /* Run the level-1 wavelet on this channel's LL0 buffer.
+       Done inside the per-channel Pass 1 thread so all 4 channels' level-1
+       passes run in parallel. The LL0 buffer (cs->band_data[0]) was produced
+       with divisor=1 (no quantization) by Pass 1, so level-1 sees true values. */
+    run_level1_wavelet(t->cs);
+#endif
+
+    /* Signal that this channel's Pass 1 is complete — unblocks its P2 bands */
     if (t->sync) {
         pthread_mutex_lock(&t->sync->lock);
         t->sync->p1_done[t->channel] = 1;
@@ -1286,7 +1448,9 @@ static void *pass1_channel_thread(void *arg) {
 
 /* One-time channel state setup. In inline_mode, skips the per-band full-image
    buffers and allocates per-row scratch instead — ~85 MB savings at 23 MP,
-   ~200 MB at 50 MP. */
+   ~200 MB at 50 MP.
+   When FUSED_WAVELET_LEVELS >= 2, inline_mode is forced off (the level-1 pass
+   needs the full LL0 buffer materialised). */
 static int setup_channel_state(
     FUSED_CHANNEL_STATE ch_state[4],
     int width, int height, int quality, int inline_mode,
@@ -1299,15 +1463,21 @@ static int setup_channel_state(
 
     /* The quality_tables row layout is for the production encoder's 3-level
        codec: [LL_final, LH_L2, HL_L2, HH_L2, LH_L1, HL_L1, HH_L1, LH_L0, HL_L0, HH_L0].
-       The fused encoder is single-level, so its 3 highpass bands ARE the
-       finest level (level 0). We need qt[7..9], not qt[1..3] — those are the
-       coarsest-level divisors and barely change across quality presets,
-       which is why every quality was producing identical output. */
-    /* LL uses FUSED_LL_DIVISOR (64) so coefficients fit the rANS alphabet.
-       qt[0]=1 from the quality table is meant for a 3-level codec's tiny
-       final LL — that's lossless-friendly there but inappropriate at our
-       half-res single-level LL where coefficients are too large to encode. */
+       In single-level mode the 3 highpass bands ARE the finest level (level 0):
+         use qt[7..9] for LH/HL/HH. LL uses FUSED_LL_DIVISOR.
+       In 2-level mode:
+         LL0 is intermediate (NOT emitted) — use divisor=1 so the level-1
+              wavelet sees unquantized values, matching production's "all
+              LL bands use qt[0]=1" behaviour.
+         LH0/HL0/HH0 use qt[7..9] (finest-level highpass).
+         Level-1 quant params (midpoint_l1/multiplier_l1) are set from qt[4..6]
+              plus FUSED_LL_DIVISOR for LL1. */
+#if FUSED_WAVELET_LEVELS >= 2
+    int base_divisors[4] = { 1, qt[7], qt[8], qt[9] };  /* LL0 lossless */
+    int base_divisors_l1[4] = { FUSED_LL1_DIVISOR, qt[4], qt[5], qt[6] };
+#else
     int base_divisors[4] = { FUSED_LL_DIVISOR, qt[7], qt[8], qt[9] };
+#endif
     if (out_base_divisors) {
         for (int band = 0; band < 4; band++) out_base_divisors[band] = base_divisors[band];
     }
@@ -1316,6 +1486,12 @@ static int setup_channel_state(
             ch_state[ch].midpoint[band] = get_midpoint(base_divisors[band]);
             ch_state[ch].multiplier[band] = get_multiplier(base_divisors[band]);
         }
+#if FUSED_WAVELET_LEVELS >= 2
+        for (int band = 0; band < 4; band++) {
+            ch_state[ch].midpoint_l1[band] = get_midpoint(base_divisors_l1[band]);
+            ch_state[ch].multiplier_l1[band] = get_multiplier(base_divisors_l1[band]);
+        }
+#endif
         ch_state[ch].band_width = ch_width / 2;
         ch_state[ch].band_height = ch_height / 2;
         ch_state[ch].band_pitch = ch_state[ch].band_width;
@@ -1343,6 +1519,18 @@ static int setup_channel_state(
             ch_state[ch].highpass_buf[r] = (PIXEL *)calloc(ch_width / 2, sizeof(PIXEL));
             if (!ch_state[ch].lowpass_buf[r] || !ch_state[ch].highpass_buf[r]) return -1;
         }
+
+#if FUSED_WAVELET_LEVELS >= 2
+        /* Allocate level-1 band buffers (1/4 the size of level-0 bands). */
+        int bw1 = bw / 2;
+        int bh1 = bh / 2;
+        ch_state[ch].band_width_l1 = bw1;
+        ch_state[ch].band_height_l1 = bh1;
+        for (int band = 0; band < 4; band++) {
+            ch_state[ch].band_data_l1[band] = (PIXEL *)calloc((size_t)bw1 * bh1, sizeof(PIXEL));
+            if (!ch_state[ch].band_data_l1[band]) return -1;
+        }
+#endif
     }
     (void)ch_height;
     *out_is_rggb = 0; *out_log_bits = 14; /* caller sets actual values */
@@ -1573,6 +1761,15 @@ static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
         for (int band = 0; band < 4; band++) {
             if (cs->inline_state[band]) jans_inline_reset(cs->inline_state[band]);
         }
+#if FUSED_WAVELET_LEVELS >= 2
+        /* Zero the level-1 band buffers: the streaming level-1 wavelet does
+           not produce values for the bottom 2 rows (6-tap filter underflows),
+           so without zeroing previous frames' values would leak through. */
+        size_t l1_bytes = (size_t)cs->band_width_l1 * cs->band_height_l1 * sizeof(PIXEL);
+        for (int band = 0; band < 4; band++) {
+            if (cs->band_data_l1[band]) memset(cs->band_data_l1[band], 0, l1_bytes);
+        }
+#endif
     }
     if (ctx->unpack_ring) {
         for (int s = 0; s < UNPACK_RING_SIZE; s++) {
@@ -1596,6 +1793,13 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     ctx->log_bits = (pixel_format >= 4) ? 16 : 14;
     ctx->prescale = 2;
     ctx->inline_mode = fused_choose_inline_mode();
+#if FUSED_WAVELET_LEVELS >= 2
+    /* Multi-level mode requires the LL0 band buffer to be materialised so the
+       level-1 wavelet can read it. Inline tokenisation streams band rows to
+       per-band rANS state without keeping a band buffer, so it is incompatible
+       with multi-level. Force split-pass mode here. */
+    ctx->inline_mode = 0;
+#endif
 
     SetupEncoderLogCurve();
 
@@ -1609,20 +1813,33 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     }
     ctx->quant_scale = 1.0;
 
-    /* Pre-allocate persistent enc buffers + (if inline) inline-tokenize state */
+    /* Pre-allocate persistent enc buffers + (if inline) inline-tokenize state.
+       In single-level mode: 4 bands per channel (LL0, LH0, HL0, HH0).
+       In 2-level mode: 7 bands per channel (LL1, LH1, HL1, HH1, LH0, HL0, HH0).
+       Inline tokenisation is disabled in 2-level mode (the level-1 pass needs
+       the full LL0 buffer materialised, which is incompatible with inline). */
     int p2_idx = 0;
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
-        size_t band_coeffs = (size_t)cs->band_width * cs->band_height;
-        for (int band = 0; band < 4; band++) {
-            size_t cap = band_coeffs * 4 + 8192;
+        size_t band_coeffs_l0 = (size_t)cs->band_width * cs->band_height;
+        for (int band = 0; band < FUSED_BANDS_PER_CHANNEL; band++) {
+            /* Allocate enc buffer sized for this band's dimensions. In 2-level
+               mode the first 4 bands are level-1 (smaller) and the next 3
+               are level-0 (full size). */
+            size_t this_coeffs = band_coeffs_l0;
+#if FUSED_WAVELET_LEVELS >= 2
+            if (band < 4) {
+                this_coeffs = (size_t)cs->band_width_l1 * cs->band_height_l1;
+            }
+#endif
+            size_t cap = this_coeffs * 4 + 8192;
             ctx->enc_caps[p2_idx] = cap;
             ctx->enc_bufs[p2_idx] = (uint8_t *)malloc(cap);
             if (!ctx->enc_bufs[p2_idx]) {
                 gpr_encode_fused_destroy(ctx);
                 return NULL;
             }
-            if (ctx->inline_mode) {
+            if (ctx->inline_mode && band < 4) {
                 /* Stripe encoding: adaptive default based on band height,
                    overridable via env vars.
 
@@ -1646,7 +1863,7 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
                 if (band_env) { int v = atoi(band_env); if (v > 0) rows = v; }
 
                 size_t stripe_coeffs = (size_t)cs->band_width * (size_t)rows;
-                if (stripe_coeffs > band_coeffs) stripe_coeffs = band_coeffs;
+                if (stripe_coeffs > band_coeffs_l0) stripe_coeffs = band_coeffs_l0;
                 cs->inline_state[band] = jans_inline_create(stripe_coeffs);
                 if (!cs->inline_state[band]) {
                     gpr_encode_fused_destroy(ctx);
@@ -1809,6 +2026,9 @@ void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
             if (cs->band_data[band])   free(cs->band_data[band]);
             if (cs->row_scratch[band]) free(cs->row_scratch[band]);
             if (cs->inline_state[band]) jans_inline_destroy(cs->inline_state[band]);
+#if FUSED_WAVELET_LEVELS >= 2
+            if (cs->band_data_l1[band]) free(cs->band_data_l1[band]);
+#endif
         }
         for (int r = 0; r < FUSED_ROW_BUFS; r++) {
             if (cs->lowpass_buf[r])  free(cs->lowpass_buf[r]);
@@ -1907,6 +2127,46 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     int p2_count = 0;
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
+#if FUSED_WAVELET_LEVELS >= 2
+        /* 2-level bitstream band order per channel:
+             [0..3] LL1, LH1, HL1, HH1   (from band_data_l1, smaller dimensions)
+             [4..6] LH0, HL0, HH0        (from band_data[1..3], level-0 dimensions)
+           LL0 (band_data[0]) is intermediate and is NOT emitted. */
+        for (int band = 0; band < 7; band++) {
+            PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
+            pt->channel = ch;
+            if (band < 4) {
+                /* Level-1 band: LL1, LH1, HL1, HH1 */
+                pt->band_data    = cs->band_data_l1[band];
+                pt->width        = cs->band_width_l1;
+                pt->height       = cs->band_height_l1;
+                pt->pitch        = cs->band_width_l1 * sizeof(int32_t);
+            } else {
+                /* Level-0 highpass: LH0(=band1), HL0(=band2), HH0(=band3) */
+                int l0_band = band - 4 + 1;
+                pt->band_data    = cs->band_data[l0_band];
+                pt->width        = cs->band_width;
+                pt->height       = cs->band_height;
+                pt->pitch        = cs->band_width * sizeof(int32_t);
+            }
+            pt->inline_state = NULL;  /* 2-level always uses split mode */
+            pt->enc_cap = ctx->enc_caps[p2_count];
+            pt->enc_buf = ctx->enc_bufs[p2_count];  /* persistent */
+            pt->enc_size = 0;
+            pt->sync = &sync;
+            pt->denoise_strength = ctx->denoise_strength;
+            pt->noise_scale = ctx->noise_scale;
+            pt->noise_offset = ctx->noise_offset;
+            if (run_serial) {
+                pass2_band_thread(pt);
+                p2_created[p2_count] = 0;
+            } else {
+                p2_created[p2_count] = (pthread_create(&p2_threads[p2_count], NULL,
+                                                       pass2_band_thread, pt) == 0);
+            }
+            p2_count++;
+        }
+#else
         for (int band = 0; band < 4; band++) {
             PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
             pt->channel = ch;
@@ -1931,6 +2191,7 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
             }
             p2_count++;
         }
+#endif
     }
 
     if (!run_serial) {
