@@ -1,0 +1,158 @@
+name: Sanitizers
+
+# AddressSanitizer / UndefinedBehaviorSanitizer / ThreadSanitizer runs.
+#
+# These are noticeably slower (5-30x) than the standard CI matrix, so we don't
+# gate every PR on them. Instead we run on:
+#   - master push  (catch issues right after they land)
+#   - daily 06:00 UTC schedule
+#   - manual dispatch
+#
+# Linux-only for two reasons:
+#   1. clang sanitizers on darwin-arm64 have spotty support for some NEON
+#      intrinsics used in the fused encoder (false UBSan reports on
+#      vld2q_u8 / vst1q_s16 patterns).
+#   2. The Linux clang shipped on ubuntu-latest is the well-tested combo.
+#
+# TSan is the most valuable of the three: the dual-encoder ping-pong path in
+# gpr_video_encoder is heavy on pthread synchronisation, and TSan has
+# previously caught real data races in this code.
+
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    # Daily at 06:00 UTC.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sanitizers-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sanitize:
+    name: ${{ matrix.sanitizer }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sanitizer: asan
+            cflags: "-O1 -g -fsanitize=address -fno-omit-frame-pointer"
+            ldflags: "-fsanitize=address"
+            # Halt the program on first error so the CI step exits non-zero.
+            run_env: "ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1"
+          - sanitizer: ubsan
+            cflags: "-O1 -g -fsanitize=undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
+            ldflags: "-fsanitize=undefined"
+            run_env: "UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1"
+          - sanitizer: tsan
+            cflags: "-O1 -g -fsanitize=thread -fno-omit-frame-pointer"
+            ldflags: "-fsanitize=thread"
+            run_env: "TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential clang llvm
+
+      - name: Configure (Debug build, NEON off)
+        run: |
+          mkdir -p build
+          cd build
+          # NEON=OFF on x86_64 anyway; explicit for clarity.
+          # Sanitizer flags are injected via CFLAGS/CXXFLAGS so they reach
+          # every TU compiled by the project.
+          CFLAGS="${{ matrix.cflags }}" \
+          CXXFLAGS="${{ matrix.cflags }}" \
+          LDFLAGS="${{ matrix.ldflags }}" \
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DNEON=OFF
+
+      - name: Build libraries
+        run: |
+          cd build
+          make -j"$(nproc)"
+
+      - name: Generate synthetic Z8 raw input
+        run: |
+          python3 - <<'PY'
+          import os, random
+          W, H = 8280, 5520
+          for name, seed in (("Z8_ISO64.raw", 42), ("Z8_ISO22800.raw", 4242)):
+              path = f"/tmp/{name}"
+              rng = random.Random(seed)
+              with open(path, "wb") as f:
+                  chunk_px = 512 * 1024
+                  remaining = W * H
+                  while remaining > 0:
+                      n = min(chunk_px, remaining)
+                      buf = bytearray(n * 2)
+                      for i in range(n):
+                          v = rng.getrandbits(14)
+                          buf[2*i]   = v & 0xFF
+                          buf[2*i+1] = (v >> 8) & 0xFF
+                      f.write(buf)
+                      remaining -= n
+              assert os.path.getsize(path) == W * H * 2
+          PY
+
+      - name: Build test binaries (instrumented)
+        run: |
+          set -e
+          mkdir -p /tmp/gpr-tests
+          ENCODER_LIB="build/source/lib/vc5_encoder/libvc5_encoder.a"
+          COMMON_LIB="build/source/lib/vc5_common/libvc5_common.a"
+          CFLAGS="${{ matrix.cflags }}"
+          LDFLAGS="${{ matrix.ldflags }}"
+          LDLIBS="-lpthread -lm"
+
+          build_test() {
+            local name="$1"
+            echo "::group::Build $name (${{ matrix.sanitizer }})"
+            clang $CFLAGS -o "/tmp/gpr-tests/$name" "source/app/$name.c" \
+              "$ENCODER_LIB" "$COMMON_LIB" $LDFLAGS $LDLIBS
+            echo "::endgroup::"
+          }
+
+          # Linux-only matrix, so test_video_pipeline_sim (which needs
+          # mach/mach_time.h) is omitted by design.
+          build_test test_video_roundtrip
+          build_test test_video_full_roundtrip
+          build_test test_video_format
+          build_test test_edge_sizes
+          build_test test_video_encoder_abort
+          build_test test_video_full_chain
+
+      - name: Run test_video_format
+        run: |
+          env ${{ matrix.run_env }} timeout 120 /tmp/gpr-tests/test_video_format
+
+      - name: Run test_video_encoder_abort
+        run: |
+          env ${{ matrix.run_env }} timeout 180 /tmp/gpr-tests/test_video_encoder_abort
+
+      - name: Run test_edge_sizes
+        run: |
+          env ${{ matrix.run_env }} timeout 300 /tmp/gpr-tests/test_edge_sizes
+
+      - name: Run test_video_full_chain
+        run: |
+          env ${{ matrix.run_env }} timeout 300 /tmp/gpr-tests/test_video_full_chain
+
+      - name: Run test_video_roundtrip
+        run: |
+          env ${{ matrix.run_env }} timeout 600 /tmp/gpr-tests/test_video_roundtrip
+
+      - name: Run test_video_full_roundtrip
+        run: |
+          env ${{ matrix.run_env }} timeout 600 /tmp/gpr-tests/test_video_full_roundtrip
