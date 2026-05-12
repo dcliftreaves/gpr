@@ -594,6 +594,23 @@ typedef struct {
    Per-channel Pass 1 (one of 4 parallel threads)
    ================================================================ */
 
+/* Hand-tuned ARM64 assembly inner-loop for the combined unpack. Pure-GPR
+   arithmetic version: bypasses the compiler's NEON-umin + 32× umov + 32×
+   lane-insert lowering of the NEON-intrinsic body below. See
+   fused_encode_arm64.S for details and benchmarks. */
+#if defined(__aarch64__)
+extern int fused_unpack_row_rggb_asm(
+    const uint16_t *row1, const uint16_t *row2,
+    const uint16_t *log_tbl,
+    int32_t *out_gs, int32_t *out_rg, int32_t *out_bg, int32_t *out_gd,
+    int ch_width, int log_max, int mid2);
+extern int fused_unpack_row_gbrg_asm(
+    const uint16_t *row1, const uint16_t *row2,
+    const uint16_t *log_tbl,
+    int32_t *out_gs, int32_t *out_rg, int32_t *out_bg, int32_t *out_gd,
+    int ch_width, int log_max, int mid2);
+#endif
+
 /* Combined 4-channel unpack from one Bayer row pair.
    Each Bayer 2×2 block produces exactly 4 unique log_tbl lookups (R, G1, G2, B)
    shared across all 4 channel outputs:
@@ -614,6 +631,36 @@ static void unpack_all_channels_row(
 {
     int col = 0;
 
+#if defined(__aarch64__) && !defined(FUSED_DISABLE_UNPACK_ASM)
+    /* Hand-tuned asm fast path (see fused_encode_arm64.S). Processes all
+       multiples of 8 columns; the scalar tail below handles the remainder.
+       Runtime opt-in via env var FUSED_UNPACK_ASM=1 so A/B benchmarking is
+       trivial (no rebuild needed). Default OFF on M1 since baseline matches;
+       expected to be ON for A78 production target. */
+    static int unpack_asm_enabled = -1;
+    if (unpack_asm_enabled < 0) {
+        const char *e = getenv("FUSED_UNPACK_ASM");
+        unpack_asm_enabled = (e && e[0] == '1') ? 1 : 0;
+    }
+    if (unpack_asm_enabled) {
+        int processed;
+        if (is_rggb) {
+            processed = fused_unpack_row_rggb_asm(
+                row1, row2, log_tbl,
+                (int32_t *)out_gs, (int32_t *)out_rg,
+                (int32_t *)out_bg, (int32_t *)out_gd,
+                ch_width, log_max, mid2);
+        } else {
+            processed = fused_unpack_row_gbrg_asm(
+                row1, row2, log_tbl,
+                (int32_t *)out_gs, (int32_t *)out_rg,
+                (int32_t *)out_bg, (int32_t *)out_gd,
+                ch_width, log_max, mid2);
+        }
+        col = processed;
+        goto unpack_tail;
+    }
+#endif
 #if ENABLED(NEON)
     /* Process 8 Bayer blocks (16 source pixels per row, 8 outputs per channel) per iter. */
     const int ch_width_m8 = (ch_width / 8) * 8;
@@ -676,6 +723,9 @@ static void unpack_all_channels_row(
     }
 #endif
 
+#if defined(__aarch64__) && !defined(FUSED_DISABLE_UNPACK_ASM)
+unpack_tail:
+#endif
     /* Scalar cleanup for tail columns. */
     for (; col < ch_width; col++) {
         uint16_t R1, G1, G2, B1;
