@@ -89,22 +89,20 @@ double EstimateNoiseSigma(const PIXEL *data, DIMENSION width,
     int32_t *abs_vals = (int32_t *)malloc(count * sizeof(int32_t));
     if (abs_vals == NULL) return 0.0;
 
+    /* Stride directly to the sampled indices. Old code iterated every pixel
+       and did a modulo per iteration to decide whether to sample — wasted
+       99% of loop body work on large bands. */
     int pitch_pixels = pitch / sizeof(PIXEL);
     int idx = 0;
-    int sample_idx = 0;
-
-    for (int row = 0; row < (int)height && idx < count; row++)
+    for (int s = 0; s < count; s++)
     {
-        const PIXEL *row_ptr = data + row * pitch_pixels;
-        for (int col = 0; col < (int)width && idx < count; col++)
-        {
-            if (sample_idx % step == 0)
-            {
-                int32_t v = row_ptr[col];
-                abs_vals[idx++] = (v < 0) ? -v : v;
-            }
-            sample_idx++;
-        }
+        int i = s * step;
+        if (i >= total) break;
+        int row = i / (int)width;
+        int col = i - row * (int)width;
+        if (row >= (int)height) break;
+        int32_t v = data[row * pitch_pixels + col];
+        abs_vals[idx++] = (v < 0) ? -v : v;
     }
 
     double median = (double)quickselect_median(abs_vals, idx);
@@ -121,16 +119,32 @@ double CalibratedNoiseSigma(const PIXEL *lowpass_data, DIMENSION width,
     if (count <= 0) return 0.0;
 
     int pitch_pixels = pitch / sizeof(PIXEL);
-    double sum = 0.0;
+    int64_t sum = 0;
 
     for (int row = 0; row < height; row++)
     {
         const PIXEL *row_ptr = lowpass_data + row * pitch_pixels;
-        for (int col = 0; col < width; col++)
-            sum += (double)row_ptr[col];
+        int col = 0;
+#if DENOISE_NEON
+        /* NEON: 4-wide accumulate per row into int32 (safe up to ~33M added
+           int16-magnitude values per row), promote to int64 once per row. */
+        int32x4_t v_row = vdupq_n_s32(0);
+        for (; col + 16 <= (int)width; col += 16) {
+            v_row = vaddq_s32(v_row, vld1q_s32(&row_ptr[col]));
+            v_row = vaddq_s32(v_row, vld1q_s32(&row_ptr[col + 4]));
+            v_row = vaddq_s32(v_row, vld1q_s32(&row_ptr[col + 8]));
+            v_row = vaddq_s32(v_row, vld1q_s32(&row_ptr[col + 12]));
+        }
+        for (; col + 4 <= (int)width; col += 4) {
+            v_row = vaddq_s32(v_row, vld1q_s32(&row_ptr[col]));
+        }
+        sum += (int64_t)vaddvq_s32(v_row);
+#endif
+        for (; col < (int)width; col++)
+            sum += row_ptr[col];
     }
 
-    double mean_signal = sum / count;
+    double mean_signal = (double)sum / count;
     double variance = noise_scale * mean_signal + noise_offset;
 
     return (variance > 0.0) ? sqrt(variance) : 0.0;
@@ -217,25 +231,23 @@ double DenoiseTransform(TRANSFORM *transform, double strength,
             if (sigma_noise <= 0.0)
                 sigma_noise = global_sigma * level_scale[level];
 
-            /* Compute total band variance (signal + noise) */
+            /* Compute total band variance (signal + noise). Stride directly
+               to sampled indices — old code did a modulo per pixel. */
             int pitch_pixels = wavelet->pitch / sizeof(PIXEL);
             double sum_sq = 0;
             int sample_count = 0;
             int step = (N > 10000) ? N / 10000 : 1;
-            int idx = 0;
-            for (int row = 0; row < wavelet->height && sample_count < 10000; row++)
+            int sample_target = (N + step - 1) / step;
+            if (sample_target > 10000) sample_target = 10000;
+            for (int s = 0; s < sample_target; s++)
             {
-                PIXEL *row_ptr = wavelet->data[band] + row * pitch_pixels;
-                for (int col = 0; col < wavelet->width && sample_count < 10000; col++)
-                {
-                    if (idx % step == 0)
-                    {
-                        double v = (double)row_ptr[col];
-                        sum_sq += v * v;
-                        sample_count++;
-                    }
-                    idx++;
-                }
+                int i = s * step;
+                int row = i / (int)wavelet->width;
+                if (row >= wavelet->height) break;
+                int col = i - row * (int)wavelet->width;
+                double v = (double)wavelet->data[band][row * pitch_pixels + col];
+                sum_sq += v * v;
+                sample_count++;
             }
             double sigma_band_sq = (sample_count > 0) ? sum_sq / sample_count : 0;
             double sigma_noise_sq = sigma_noise * sigma_noise;

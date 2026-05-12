@@ -1006,23 +1006,24 @@ static void fused_denoise_band(PIXEL *band_data, int width, int height,
     }
     if (sigma_noise <= 0.0) return;
 
-    /* Sample band variance for the BayesShrink threshold. */
+    /* Sample band variance for the BayesShrink threshold. Stride directly
+       across band_data — old code iterated every pixel just to sample every
+       Nth, wasting ~99% of the loop body on a modulo check. */
     int pitch_pixels = pitch_bytes / (int)sizeof(PIXEL);
     int N = width * height;
     int step = (N > 10000) ? (N / 10000) : 1;
+    int sample_target = (N + step - 1) / step;
+    if (sample_target > 10000) sample_target = 10000;
     double sum_sq = 0.0;
     int sample_count = 0;
-    int idx = 0;
-    for (int row = 0; row < height && sample_count < 10000; row++) {
-        const PIXEL *row_ptr = band_data + row * pitch_pixels;
-        for (int col = 0; col < width && sample_count < 10000; col++) {
-            if (idx % step == 0) {
-                double v = (double)row_ptr[col];
-                sum_sq += v * v;
-                sample_count++;
-            }
-            idx++;
-        }
+    for (int s = 0; s < sample_target; s++) {
+        int idx = s * step;
+        int row = idx / width;
+        if (row >= height) break;
+        int col = idx - row * width;
+        double v = (double)band_data[row * pitch_pixels + col];
+        sum_sq += v * v;
+        sample_count++;
     }
     double sigma_band_sq = (sample_count > 0) ? sum_sq / sample_count : 0.0;
     double sigma_noise_sq = sigma_noise * sigma_noise;
