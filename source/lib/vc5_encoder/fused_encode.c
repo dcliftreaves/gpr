@@ -378,18 +378,23 @@ static inline int16x8_t quantize_neon8_s16(int16x8_t values,
 }
 #endif
 
+/* The previously-named mid_unused1 parameter now carries the input log_bits
+   (14 or 16) so the filter can pick the int16 fast path safely. Pass 14 only
+   when the input range fits int16 for the wavelet intermediates — that's
+   level-0 wavelet with ≤14-bit pixel input. Pass 16 (or 0 = legacy) otherwise. */
 static void vertical_filter_quantize_row(
     PIXEL *rows[6],
     int width,
     int32_t mid_lo, int32_t mul_lo,
     int32_t mid_hi, int32_t mul_hi,
-    int32_t mid_unused1, int32_t mul_unused1,
+    int32_t input_log_bits, int32_t mul_unused1,
     int32_t mid_unused2, int32_t mul_unused2,
     PIXEL *out_lo, PIXEL *out_hi, PIXEL *unused1, PIXEL *unused2,
     int is_top, int is_bottom)
 {
-    (void)mid_unused1; (void)mul_unused1; (void)mid_unused2; (void)mul_unused2;
+    (void)mul_unused1; (void)mid_unused2; (void)mul_unused2;
     (void)unused1; (void)unused2;
+    const int safe_int16 = (input_log_bits > 0 && input_log_bits <= 14);
 
     int col = 0;
 
@@ -406,12 +411,56 @@ static void vertical_filter_quantize_row(
            cost at 16-bit (where the int16 path wouldn't have worked).
            A correct int32 8-wide path could be written later. */
 
-        /* int16 paths removed — see comment block above */
-
-        /* 8-wide int32 NEON path (unrolled 2× of the 4-wide for ILP).
-           Always correct for 14- and 16-bit input. */
         const int32x4_t four = vdupq_n_s32(4);
         const int width_m8 = (width / 8) * 8;
+
+        if (safe_int16) {
+            /* int16 8-wide filter + int32 quantize. Bounds analysis (level-0
+               wavelet, log_bits=14 input, prescale=2):
+                 prescaled values ≤ 4096
+                 horizontal lowpass ≤ ±8192
+                 r2+r3 ≤ ±16380   (LL band output, fits int16)
+                 (r4+r5)-(r0+r1)+4 ≤ ±32764 (just inside int16 ±32767)
+                 (>>3) + (r2-r3) ≤ ±20475 (HH output, fits int16)
+               Filter math is byte-identical to int32 for 14-bit level-0.
+               Quantize stays int32 (LL coefficients can reach the int16
+               edge — abs+midpoint would saturate with int16 quantize). */
+            const int16x8_t four16 = vdupq_n_s16(4);
+            for (; col < width_m8; col += 8) {
+                int16x8_t r0 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[0][col])),
+                                             vmovn_s32(vld1q_s32(&rows[0][col + 4])));
+                int16x8_t r1 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[1][col])),
+                                             vmovn_s32(vld1q_s32(&rows[1][col + 4])));
+                int16x8_t r2 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[2][col])),
+                                             vmovn_s32(vld1q_s32(&rows[2][col + 4])));
+                int16x8_t r3 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[3][col])),
+                                             vmovn_s32(vld1q_s32(&rows[3][col + 4])));
+                int16x8_t r4 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[4][col])),
+                                             vmovn_s32(vld1q_s32(&rows[4][col + 4])));
+                int16x8_t r5 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[5][col])),
+                                             vmovn_s32(vld1q_s32(&rows[5][col + 4])));
+
+                int16x8_t low16  = vaddq_s16(r2, r3);
+                int16x8_t r45    = vaddq_s16(r4, r5);
+                int16x8_t r01    = vaddq_s16(r0, r1);
+                int16x8_t hpre   = vaddq_s16(vsubq_s16(r45, r01), four16);
+                int16x8_t high16 = vaddq_s16(vshrq_n_s16(hpre, 3),
+                                              vsubq_s16(r2, r3));
+
+                /* Widen to int32 for quantize (handles LL boundary safely). */
+                int32x4_t low_lo  = vmovl_s16(vget_low_s16(low16));
+                int32x4_t low_hi  = vmovl_s16(vget_high_s16(low16));
+                int32x4_t high_lo = vmovl_s16(vget_low_s16(high16));
+                int32x4_t high_hi = vmovl_s16(vget_high_s16(high16));
+
+                vst1q_s32(&out_lo[col],     quantize_neon4(low_lo,  mid_lo, mul_lo));
+                vst1q_s32(&out_lo[col + 4], quantize_neon4(low_hi,  mid_lo, mul_lo));
+                vst1q_s32(&out_hi[col],     quantize_neon4(high_lo, mid_hi, mul_hi));
+                vst1q_s32(&out_hi[col + 4], quantize_neon4(high_hi, mid_hi, mul_hi));
+            }
+        } else {
+        /* Fallback: int32 8-wide filter for 16-bit input or level-1 wavelet
+           (where LL0 input range can exceed int16 bounds). */
         for (; col < width_m8; col += 8) {
             int32x4_t r0a = vld1q_s32(&rows[0][col]);
             int32x4_t r0b = vld1q_s32(&rows[0][col + 4]);
@@ -440,6 +489,7 @@ static void vertical_filter_quantize_row(
             vst1q_s32(&out_hi[col],     quantize_neon4(high_a, mid_hi, mul_hi));
             vst1q_s32(&out_hi[col + 4], quantize_neon4(high_b, mid_hi, mul_hi));
         }
+        }  /* close else block */
         /* 4-wide tail for remaining columns < 8 */
         const int width_m4 = (width / 4) * 4;
         for (; col < width_m4; col += 4) {
@@ -930,14 +980,14 @@ static void pass1_run_channel(
             vertical_filter_quantize_row(lp_rows, bw,
                 cs->midpoint[0], cs->multiplier[0],
                 cs->midpoint[1], cs->multiplier[1],
-                0, 0, 0, 0,
+                log_bits, 0, 0, 0,
                 ll_row, lh_row, NULL, NULL,
                 is_top, is_bottom);
 
             vertical_filter_quantize_row(hp_rows, bw,
                 cs->midpoint[2], cs->multiplier[2],
                 cs->midpoint[3], cs->multiplier[3],
-                0, 0, 0, 0,
+                log_bits, 0, 0, 0,
                 hl_row, hh_row, NULL, NULL,
                 is_top, is_bottom);
 
@@ -1249,14 +1299,14 @@ static void pass1_run_channel_consumer(
             vertical_filter_quantize_row(lp_rows, bw,
                 cs->midpoint[0], cs->multiplier[0],
                 cs->midpoint[1], cs->multiplier[1],
-                0, 0, 0, 0,
+                log_bits, 0, 0, 0,
                 ll_row, lh_row, NULL, NULL,
                 is_top, is_bottom);
 
             vertical_filter_quantize_row(hp_rows, bw,
                 cs->midpoint[2], cs->multiplier[2],
                 cs->midpoint[3], cs->multiplier[3],
-                0, 0, 0, 0,
+                log_bits, 0, 0, 0,
                 hl_row, hh_row, NULL, NULL,
                 is_top, is_bottom);
 
