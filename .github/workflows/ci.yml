@@ -1,0 +1,170 @@
+name: CI
+
+# PR / branch test matrix for GPR 2.0.
+#
+# Builds the core static libraries and 7 test binaries (band-level roundtrip,
+# full-image roundtrip, container format, edge sizes, pipeline simulator,
+# encoder abort, full-chain end-to-end), then runs each against a synthesized
+# Z8-shaped raw input frame.
+#
+# Platforms:
+#   ubuntu-latest  -> x86_64 (NEON off)
+#   macos-latest   -> arm64  (NEON on, automatically by CMakeLists.txt)
+#
+# Note: test_video_pipeline_sim.c uses mach/mach_time.h and only builds on
+# macOS. It is skipped on Linux runners.
+
+on:
+  push:
+    branches:
+      - master
+      - 'feature/*'
+  pull_request:
+    branches:
+      - master
+      - 'feature/*'
+
+# Cancel in-progress runs for the same branch / PR when a new commit lands.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }} / ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        build_type: [Release, Debug]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential clang
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # cmake & clang come with the macOS runner image; just sanity check.
+          cmake --version
+          clang --version
+
+      - name: Configure
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build libraries
+        run: |
+          cd build
+          # The 7 test binaries link directly against vc5_encoder / vc5_common.
+          # gpr_sdk / dng_sdk / md5_lib are part of the normal target set and
+          # build cheaply, so we just build the default `all` target rather
+          # than enumerate each one (matches how devs build locally).
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            make -j"$(nproc)"
+          else
+            make -j"$(sysctl -n hw.ncpu)"
+          fi
+
+      - name: Generate synthetic Z8 raw input
+        # Tests default-open /tmp/Z8_ISO64.raw at 8280x5520 (RGGB16, 2 B/px).
+        # Real fixture is 91,411,200 bytes. A pseudo-random 14-bit pattern is
+        # enough to exercise every code path (boundary handling, quant, rANS,
+        # band decode). We also emit a second file for the ISO22800 case so
+        # the defaulted tests don't bail on missing file.
+        run: |
+          python3 - <<'PY'
+          import os, struct, random
+          W, H = 8280, 5520
+          for name, seed in (("Z8_ISO64.raw", 42), ("Z8_ISO22800.raw", 4242)):
+              path = f"/tmp/{name}"
+              rng = random.Random(seed)
+              with open(path, "wb") as f:
+                  # Write 16-bit LE little-endian samples in 1 MiB chunks.
+                  chunk_px = 512 * 1024
+                  remaining = W * H
+                  while remaining > 0:
+                      n = min(chunk_px, remaining)
+                      buf = bytearray(n * 2)
+                      for i in range(n):
+                          v = rng.getrandbits(14)
+                          buf[2*i]   = v & 0xFF
+                          buf[2*i+1] = (v >> 8) & 0xFF
+                      f.write(buf)
+                      remaining -= n
+              sz = os.path.getsize(path)
+              print(f"{path}: {sz} bytes (expected {W*H*2})")
+              assert sz == W * H * 2, "size mismatch"
+          PY
+
+      - name: Build test binaries
+        run: |
+          set -e
+          mkdir -p /tmp/gpr-tests
+
+          # Common link line for the 7 tests. All of them depend on
+          # libvc5_encoder.a and libvc5_common.a. Both archives are required
+          # because jans_decode_band_x4 lives in vc5_common.
+          ENCODER_LIB="build/source/lib/vc5_encoder/libvc5_encoder.a"
+          COMMON_LIB="build/source/lib/vc5_common/libvc5_common.a"
+          LDLIBS="-lpthread -lm"
+
+          # Build each test. We use clang on both platforms (Linux job
+          # installed it explicitly; macOS ships with it). -O2 matches the
+          # build line documented in each test source.
+          build_test() {
+            local name="$1"
+            echo "::group::Build $name"
+            clang -O2 -o "/tmp/gpr-tests/$name" "source/app/$name.c" \
+              "$ENCODER_LIB" "$COMMON_LIB" $LDLIBS
+            echo "::endgroup::"
+          }
+
+          build_test test_video_roundtrip
+          build_test test_video_full_roundtrip
+          build_test test_video_format
+          build_test test_edge_sizes
+          build_test test_video_encoder_abort
+          build_test test_video_full_chain
+
+          # test_video_pipeline_sim uses mach/mach_time.h -> macOS only.
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            build_test test_video_pipeline_sim
+          else
+            echo "Skipping test_video_pipeline_sim build (mach_time.h is macOS-only)."
+          fi
+
+      - name: Run test_video_format
+        run: timeout 60 /tmp/gpr-tests/test_video_format
+
+      - name: Run test_video_encoder_abort
+        run: timeout 60 /tmp/gpr-tests/test_video_encoder_abort
+
+      - name: Run test_edge_sizes
+        run: timeout 120 /tmp/gpr-tests/test_edge_sizes
+
+      - name: Run test_video_full_chain
+        run: timeout 120 /tmp/gpr-tests/test_video_full_chain
+
+      - name: Run test_video_roundtrip
+        # Uses /tmp/Z8_ISO64.raw and /tmp/Z8_ISO22800.raw generated above.
+        run: timeout 180 /tmp/gpr-tests/test_video_roundtrip
+
+      - name: Run test_video_full_roundtrip
+        run: timeout 240 /tmp/gpr-tests/test_video_full_roundtrip
+
+      - name: Run test_video_pipeline_sim (macOS only)
+        if: runner.os == 'macOS'
+        # 10 frames, 24 fps, 150 MB/s, 0 ms GC stall, 1 s GC period, ring=3.
+        run: |
+          timeout 180 /tmp/gpr-tests/test_video_pipeline_sim \
+            /tmp/Z8_ISO64.raw 8280 5520 4 3 10 24.0 150.0 0.0 1.0
