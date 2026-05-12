@@ -102,58 +102,93 @@ static void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpas
     {
         int i = 1;
 #if ENABLED(NEON)
+        /* All horiz filter intermediates fit int16 (input ≤ 16383, PS ≤ 4095,
+           pair-sums ≤ 8190, diff ≤ ±16380, +4 ≤ ±16384 — well within ±32767).
+           Loads are int32 (PIXEL = int32), narrowed to int16 in-register. */
         const int32x4_t vround = vdupq_n_s32(prescale_rounding);
-        const int32x4_t four = vdupq_n_s32(4);
         const int32x4_t neg_ps = vdupq_n_s32(-prescale);
+        const int16x8_t four16 = vdupq_n_s16(4);
 
-        for (; i + 3 < half - 1; i += 4) {
-            /* Output i covers input indices [2i-2 .. 2i+3] (6 inputs per output) */
-            /* For 4 outputs (i..i+3): need inputs [2i-2 .. 2i+9] = 12 consecutive inputs */
+        /* 8-wide pass: produce 8 outputs per iteration. Needs inputs [2i-2 .. 2i+17] = 20.
+           Load via 5 int32x4 loads, narrow to make 3 int16x8 vectors (with 4 spare lanes). */
+        for (; i + 7 < half - 1; i += 8) {
             int idx = 2 * i;
 
-            /* Load 12 consecutive inputs, prescale them all */
-            int32x4_t in_lo  = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx-2]), vround), neg_ps); /* [2i-2 .. 2i+1] */
-            int32x4_t in_md  = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx+2]), vround), neg_ps); /* [2i+2 .. 2i+5] */
-            int32x4_t in_hi  = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx+6]), vround), neg_ps); /* [2i+6 .. 2i+9] */
+            /* Load 5 int32x4 spans of 4 inputs each: covers [idx-2 .. idx+17] */
+            int32x4_t l0 = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx - 2]),  vround), neg_ps);
+            int32x4_t l1 = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx + 2]),  vround), neg_ps);
+            int32x4_t l2 = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx + 6]),  vround), neg_ps);
+            int32x4_t l3 = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx + 10]), vround), neg_ps);
+            int32x4_t l4 = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx + 14]), vround), neg_ps);
 
-            /* Extract even and odd samples for the 4 outputs.
-               Output i uses inputs[2i], inputs[2i+1] for current pair.
-               Output i+1 uses [2i+2], [2i+3]. Output i+2 uses [2i+4], [2i+5]. Output i+3 uses [2i+6], [2i+7].
-               So evens = inputs at offsets 2,4,6,8 from idx-2 = [2i, 2i+2, 2i+4, 2i+6]
-                   odds = inputs at offsets 3,5,7,9 from idx-2 = [2i+1, 2i+3, 2i+5, 2i+7] */
-            /* Use VEXT to slide and pick: */
-            /* in_lo = [2i-2, 2i-1, 2i, 2i+1], in_md = [2i+2, 2i+3, 2i+4, 2i+5], in_hi = [2i+6, 2i+7, 2i+8, 2i+9] */
-            /* evens[0..3] = [2i, 2i+2, 2i+4, 2i+6] */
-            /* odds[0..3]  = [2i+1, 2i+3, 2i+5, 2i+7] */
-            int32x4_t cur_pair = vextq_s32(in_lo, in_md, 2);  /* [2i, 2i+1, 2i+2, 2i+3] */
-            int32x4_t nxt_pair = vextq_s32(in_md, in_hi, 2);  /* [2i+4, 2i+5, 2i+6, 2i+7] */
-            /* Deinterleave cur_pair and nxt_pair to get evens/odds */
+            /* Pack to int16x8: in0 = [idx-2..idx+5], in1 = [idx+6..idx+13], in2 = [idx+14..idx+21 (last 4 don't care)] */
+            int16x8_t in0 = vcombine_s16(vmovn_s32(l0), vmovn_s32(l1));
+            int16x8_t in1 = vcombine_s16(vmovn_s32(l2), vmovn_s32(l3));
+            int16x8_t in2 = vcombine_s16(vmovn_s32(l4), vdup_n_s16(0));
+
+            /* Current pair vectors (8 outputs × 2 inputs):
+               cur1 = inputs[2i..2i+7], cur2 = inputs[2i+8..2i+15] */
+            int16x8_t cur1 = vextq_s16(in0, in1, 2);
+            int16x8_t cur2 = vextq_s16(in1, in2, 2);
+
+            /* Deinterleave cur1/cur2 → 8 evens, 8 odds */
+            int16x8x2_t cn = vuzpq_s16(cur1, cur2);
+            int16x8_t evens = cn.val[0];  /* [2i, 2i+2, ..., 2i+14] */
+            int16x8_t odds  = cn.val[1];  /* [2i+1, 2i+3, ..., 2i+15] */
+
+            /* Lowpass = evens + odds. Output as 2× int32x4 (sign-extend). */
+            int16x8_t low16 = vaddq_s16(evens, odds);
+            vst1q_s32(&lowpass[i],     vmovl_s16(vget_low_s16(low16)));
+            vst1q_s32(&lowpass[i + 4], vmovl_s16(vget_high_s16(low16)));
+
+            /* prev pair set (8 outputs × pair_sum at offset 2k-2):
+               positions [2i-2, 2i, 2i+2, ..., 2i+12] */
+            int16x8x2_t ulo = vuzpq_s16(in0, in1);
+            int16x8_t prev_sum = vaddq_s16(ulo.val[0], ulo.val[1]);
+            /* ulo.val[0] = [in0[0], in0[2], in0[4], in0[6], in1[0], in1[2], in1[4], in1[6]]
+                          = [2i-2, 2i, 2i+2, 2i+4, 2i+6, 2i+8, 2i+10, 2i+12]
+               ulo.val[1] = [2i-1, 2i+1, 2i+3, 2i+5, 2i+7, 2i+9, 2i+11, 2i+13]
+               sum = pair sums at [2i-2, 2i, 2i+2, ..., 2i+12] ✓ */
+
+            /* next pair set: pair_sum at [2i+2, 2i+4, ..., 2i+16]
+               Achieved by deinterleaving the shifted (in0, in1) and (in1, in2). */
+            int16x8_t shifted01 = vextq_s16(in0, in1, 4);  /* [2i+2..2i+9] */
+            int16x8_t shifted12 = vextq_s16(in1, in2, 4);  /* [2i+10..2i+17] */
+            int16x8x2_t uhi = vuzpq_s16(shifted01, shifted12);
+            int16x8_t next_sum = vaddq_s16(uhi.val[0], uhi.val[1]);
+            /* uhi.val[0] = [2i+2, 2i+4, 2i+6, 2i+8, 2i+10, 2i+12, 2i+14, 2i+16]
+               uhi.val[1] = [2i+3, 2i+5, ..., 2i+17]
+               sum = pair sums at [2i+2, 2i+4, ..., 2i+16] ✓ */
+
+            /* hp = ((next_sum - prev_sum + 4) >> 3) + (evens - odds), all in int16 */
+            int16x8_t diff = vsubq_s16(next_sum, prev_sum);
+            int16x8_t hp = vshrq_n_s16(vaddq_s16(diff, four16), 3);
+            hp = vaddq_s16(hp, vsubq_s16(evens, odds));
+            vst1q_s32(&highpass[i],     vmovl_s16(vget_low_s16(hp)));
+            vst1q_s32(&highpass[i + 4], vmovl_s16(vget_high_s16(hp)));
+        }
+
+        /* 4-wide cleanup (existing path) for remaining outputs */
+        const int32x4_t four = vdupq_n_s32(4);
+        for (; i + 3 < half - 1; i += 4) {
+            int idx = 2 * i;
+            int32x4_t in_lo  = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx-2]), vround), neg_ps);
+            int32x4_t in_md  = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx+2]), vround), neg_ps);
+            int32x4_t in_hi  = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx+6]), vround), neg_ps);
+
+            int32x4_t cur_pair = vextq_s32(in_lo, in_md, 2);
+            int32x4_t nxt_pair = vextq_s32(in_md, in_hi, 2);
             int32x4x2_t cn = vuzpq_s32(cur_pair, nxt_pair);
-            int32x4_t evens = cn.val[0];  /* [2i, 2i+2, 2i+4, 2i+6] */
-            int32x4_t odds  = cn.val[1];  /* [2i+1, 2i+3, 2i+5, 2i+7] */
+            int32x4_t evens = cn.val[0];
+            int32x4_t odds  = cn.val[1];
 
-            /* Lowpass = even + odd */
             vst1q_s32(&lowpass[i], vaddq_s32(evens, odds));
 
-            /* For highpass: prev_sum[k] = input[2(i+k)-2] + input[2(i+k)-1]
-                              next_sum[k] = input[2(i+k)+2] + input[2(i+k)+3]
-               prev_sum_vec = [pair_sum at 2i-2, 2i, 2i+2, 2i+4]
-               next_sum_vec = [pair_sum at 2i+2, 2i+4, 2i+6, 2i+8]
+            int32x4x2_t ulo = vuzpq_s32(in_lo, in_md);
+            int32x4x2_t uhi = vuzpq_s32(in_md, in_hi);
+            int32x4_t prev_sum = vaddq_s32(ulo.val[0], ulo.val[1]);
+            int32x4_t next_sum = vaddq_s32(uhi.val[0], uhi.val[1]);
 
-               in_lo split: [2i-2, 2i-1, 2i, 2i+1]
-                  in_lo even/odd via vuzp:
-                    evens_lo = [2i-2, 2i]   odds_lo = [2i-1, 2i+1]
-               in_md split: [2i+2, 2i+3, 2i+4, 2i+5]
-                    evens_md = [2i+2, 2i+4] odds_md = [2i+3, 2i+5]
-               in_hi split: [2i+6, 2i+7, 2i+8, 2i+9]
-                    evens_hi = [2i+6, 2i+8] odds_hi = [2i+7, 2i+9]
-            */
-            int32x4x2_t ulo = vuzpq_s32(in_lo, in_md);  /* even[0..3] = [2i-2,2i,2i+2,2i+4]; odd[0..3] = [2i-1,2i+1,2i+3,2i+5] */
-            int32x4x2_t uhi = vuzpq_s32(in_md, in_hi);  /* even[0..3] = [2i+2,2i+4,2i+6,2i+8]; odd[0..3] = [2i+3,2i+5,2i+7,2i+9] */
-            int32x4_t prev_sum = vaddq_s32(ulo.val[0], ulo.val[1]);  /* pair_sum at 2i-2, 2i, 2i+2, 2i+4 */
-            int32x4_t next_sum = vaddq_s32(uhi.val[0], uhi.val[1]);  /* pair_sum at 2i+2, 2i+4, 2i+6, 2i+8 */
-
-            /* Highpass = ((next_sum - prev_sum + 4) >> 3) + (even - odd) */
             int32x4_t diff = vsubq_s32(next_sum, prev_sum);
             int32x4_t hp = vshrq_n_s32(vaddq_s32(diff, four), 3);
             hp = vaddq_s32(hp, vsubq_s32(evens, odds));
@@ -198,6 +233,30 @@ static inline int32x4_t quantize_neon4(int32x4_t values, int32_t midpoint, int32
     uint32x4_t neg = vcltq_s32(values, vdupq_n_s32(0));
     return vbslq_s32(neg, vnegq_s32(scaled), scaled);
 }
+
+/* Int16 fast quantize: applies when |values|+midpoint fits int16 AND
+   multiplier fits int16 (mul ≤ 32767, i.e. divisor ≥ 2). For divisor=1
+   (LL band, mul=65536) the caller must fall back to quantize_neon4.
+   This produces *exactly* the same result as quantize_scalar — uses
+   16×16→32 widening multiply then >>16, which equals (mag*mul)>>16. */
+static inline int16x8_t quantize_neon8_s16(int16x8_t values,
+                                            int16_t midpoint, int16_t multiplier) {
+    int16x8_t abs_v = vabsq_s16(values);
+    /* mag + midpoint — saturating to be defensive (we've bounded mag ≤ ~20K,
+       midpoint ≤ ~32; sum well within int16). */
+    int16x8_t mag = vqaddq_s16(abs_v, vdupq_n_s16(midpoint));
+
+    int16x4_t mul_v = vdup_n_s16(multiplier);
+    int32x4_t plo = vmull_s16(vget_low_s16(mag),  mul_v);
+    int32x4_t phi = vmull_s16(vget_high_s16(mag), mul_v);
+    /* >> 16 then narrow back to int16 */
+    int16x4_t scaled_lo = vshrn_n_s32(plo, 16);
+    int16x4_t scaled_hi = vshrn_n_s32(phi, 16);
+    int16x8_t scaled = vcombine_s16(scaled_lo, scaled_hi);
+    /* Re-apply sign of the original value */
+    uint16x8_t neg = vcltq_s16(values, vdupq_n_s16(0));
+    return vbslq_s16(neg, vnegq_s16(scaled), scaled);
+}
 #endif
 
 static void vertical_filter_quantize_row(
@@ -217,10 +276,110 @@ static void vertical_filter_quantize_row(
 
 #if ENABLED(NEON)
     if (!is_top && !is_bottom) {
-        /* NEON middle row: 4-wide vertical filter + quantize */
+        /* The filter input values after horizontal lowpass are ≤ ±8190
+           (or ≤ ±16380 for the pre-prescaled horiz highpass input case).
+           Filter intermediates:
+             low = r2+r3                  ≤ ±16380
+             r2-r3                        ≤ ±16380
+             r4+r5, r0+r1                 ≤ ±16380
+             (r4+r5)-(r0+r1)+4            ≤ ±32764  (right at int16 limit ±32767)
+             ((..)>>3) + (r2-r3)          ≤ ±20475
+           So ALL filter ops fit int16x8 (1 op for 8 lanes vs 2 int32x4 ops).
+           Quantize: scalar uses (mag*mul)>>16. mul ≤ 32768 for divisor ≥ 2.
+           For divisor=1 (LL band, mul=65536), use the int32 quantize.
+
+           Fast path: both bands have mul ≤ 32767 → all-int16 path.
+           Slow path: at least one mul=65536 → widen to int32 for quantize. */
+
+        const int width_m8 = (width / 8) * 8;
+        const int both_fit_s16 = (mul_lo > 0 && mul_lo <= 32767 &&
+                                   mul_hi > 0 && mul_hi <= 32767);
+
+        if (both_fit_s16) {
+            /* Pure int16 fast path */
+            const int16x8_t four16 = vdupq_n_s16(4);
+            const int16_t mid_lo16 = (int16_t)mid_lo;
+            const int16_t mul_lo16 = (int16_t)mul_lo;
+            const int16_t mid_hi16 = (int16_t)mid_hi;
+            const int16_t mul_hi16 = (int16_t)mul_hi;
+
+            for (; col < width_m8; col += 8) {
+                int16x8_t r0 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[0][col])),
+                                             vmovn_s32(vld1q_s32(&rows[0][col + 4])));
+                int16x8_t r1 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[1][col])),
+                                             vmovn_s32(vld1q_s32(&rows[1][col + 4])));
+                int16x8_t r2 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[2][col])),
+                                             vmovn_s32(vld1q_s32(&rows[2][col + 4])));
+                int16x8_t r3 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[3][col])),
+                                             vmovn_s32(vld1q_s32(&rows[3][col + 4])));
+                int16x8_t r4 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[4][col])),
+                                             vmovn_s32(vld1q_s32(&rows[4][col + 4])));
+                int16x8_t r5 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[5][col])),
+                                             vmovn_s32(vld1q_s32(&rows[5][col + 4])));
+
+                int16x8_t low16  = vaddq_s16(r2, r3);
+                int16x8_t r45    = vaddq_s16(r4, r5);
+                int16x8_t r01    = vaddq_s16(r0, r1);
+                int16x8_t hpre   = vaddq_s16(vsubq_s16(r45, r01), four16);
+                int16x8_t high16 = vaddq_s16(vshrq_n_s16(hpre, 3),
+                                              vsubq_s16(r2, r3));
+
+                int16x8_t qlo = quantize_neon8_s16(low16,  mid_lo16, mul_lo16);
+                int16x8_t qhi = quantize_neon8_s16(high16, mid_hi16, mul_hi16);
+
+                /* Widen quantized int16 results back to int32 for storage
+                   (PIXEL is int32). Sign-extend. */
+                vst1q_s32(&out_lo[col],     vmovl_s16(vget_low_s16(qlo)));
+                vst1q_s32(&out_lo[col + 4], vmovl_s16(vget_high_s16(qlo)));
+                vst1q_s32(&out_hi[col],     vmovl_s16(vget_low_s16(qhi)));
+                vst1q_s32(&out_hi[col + 4], vmovl_s16(vget_high_s16(qhi)));
+            }
+        } else {
+            /* Mixed path: one band has mul=65536 (LL, divisor=1).
+               Do filter in int16, widen, then int32 quantize for whichever
+               band needs it. */
+            const int16x8_t four16 = vdupq_n_s16(4);
+
+            for (; col < width_m8; col += 8) {
+                int16x8_t r0 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[0][col])),
+                                             vmovn_s32(vld1q_s32(&rows[0][col + 4])));
+                int16x8_t r1 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[1][col])),
+                                             vmovn_s32(vld1q_s32(&rows[1][col + 4])));
+                int16x8_t r2 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[2][col])),
+                                             vmovn_s32(vld1q_s32(&rows[2][col + 4])));
+                int16x8_t r3 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[3][col])),
+                                             vmovn_s32(vld1q_s32(&rows[3][col + 4])));
+                int16x8_t r4 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[4][col])),
+                                             vmovn_s32(vld1q_s32(&rows[4][col + 4])));
+                int16x8_t r5 = vcombine_s16(vmovn_s32(vld1q_s32(&rows[5][col])),
+                                             vmovn_s32(vld1q_s32(&rows[5][col + 4])));
+
+                int16x8_t low16  = vaddq_s16(r2, r3);
+                int16x8_t r45    = vaddq_s16(r4, r5);
+                int16x8_t r01    = vaddq_s16(r0, r1);
+                int16x8_t hpre   = vaddq_s16(vsubq_s16(r45, r01), four16);
+                int16x8_t high16 = vaddq_s16(vshrq_n_s16(hpre, 3),
+                                              vsubq_s16(r2, r3));
+
+                /* Widen to int32 and use int32 quantize for both bands.
+                   (We could split per-band, but the 65536 case is the LL
+                   output that's never encoded, so this slow path is rare
+                   and not on the critical perf path.) */
+                int32x4_t low_lo  = vmovl_s16(vget_low_s16(low16));
+                int32x4_t low_hi  = vmovl_s16(vget_high_s16(low16));
+                int32x4_t high_lo = vmovl_s16(vget_low_s16(high16));
+                int32x4_t high_hi = vmovl_s16(vget_high_s16(high16));
+
+                vst1q_s32(&out_lo[col],     quantize_neon4(low_lo,  mid_lo, mul_lo));
+                vst1q_s32(&out_lo[col + 4], quantize_neon4(low_hi,  mid_lo, mul_lo));
+                vst1q_s32(&out_hi[col],     quantize_neon4(high_lo, mid_hi, mul_hi));
+                vst1q_s32(&out_hi[col + 4], quantize_neon4(high_hi, mid_hi, mul_hi));
+            }
+        }
+
+        /* 4-wide int32 cleanup for remaining width%8 columns */
         const int32x4_t four = vdupq_n_s32(4);
         const int width_m4 = (width / 4) * 4;
-
         for (; col < width_m4; col += 4) {
             int32x4_t r0 = vld1q_s32(&rows[0][col]);
             int32x4_t r1 = vld1q_s32(&rows[1][col]);
@@ -229,9 +388,7 @@ static void vertical_filter_quantize_row(
             int32x4_t r4 = vld1q_s32(&rows[4][col]);
             int32x4_t r5 = vld1q_s32(&rows[5][col]);
 
-            /* low = r2 + r3 */
             int32x4_t low = vaddq_s32(r2, r3);
-            /* high = ((r4+r5-r0-r1+4)>>3) + (r2-r3) */
             int32x4_t high = vsubq_s32(vaddq_s32(r4, r5), vaddq_s32(r0, r1));
             high = vshrq_n_s32(vaddq_s32(high, four), 3);
             high = vaddq_s32(high, vsubq_s32(r2, r3));
