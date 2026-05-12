@@ -1,20 +1,21 @@
 # Raw Video Pipeline — Follow-Up Items
 
-**Status: 2026-05-12.** 3-level wavelet and dual-encoder ping-pong both landed; the compute-throughput story is materially better. This is the parking lot for everything else.
+**Status: 2026-05-12.** 2-level wavelet shipping default + dual-encoder ping-pong landed. 3-level prototype was removed after failing visual-quality testing; only a different wavelet basis would fix it. Parking lot for everything else below.
 
 ## Shipping blockers (none currently)
 
-The pipeline encode → decode → image-reconstruction is correct and sustains 24 fps × 45 MP × UHS-II V90 microSD. All test harnesses green at 3-level wavelet default.
+The pipeline encode → decode → image-reconstruction is correct and sustains 24 fps × 45 MP × UHS-II V90 microSD. All test harnesses green.
 
 ## Compute speed for A78 24 fps × 50 MP
 
-**Status update (2026-05-12):** dual-encoder mode (commit `9b9ab0a`) lifted M1 sustained fps from 29.8 → 41.6 on Z8 45 MP (+40%). A78 estimate at 2.5× M1 is ~16.6 fps with dual-encoder — fits 45 MP comfortably, tight at 50 MP. Remaining gap to 50 MP × 24 fps × A78 is now blocked on A78-specific silicon wins.
+**Status update (2026-05-12):** dual-encoder mode (commit `9b9ab0a`) lifted M1 sustained fps from ~30 → ~42 on Z8 45 MP at 2-level (+40%). A78 estimate at 2.5× M1 is ~17 fps with dual-encoder — fits 45 MP comfortably, tight at 50 MP. Remaining gap to 50 MP × 24 fps × A78 is now blocked on A78-specific silicon wins.
 
 | Lever | Status | Expected impact |
 |---|---|---|
 | `FUSED_LOG_POLYNOMIAL` compile flag (`53e4777`) | Implemented, needs A78 measurement | 1.5-2× on unpack (A78 64 KB L1d makes LUT contend) |
-| **Multi-level wavelet (3 levels, `86de303`)** | **Landed (3-level default).** 46% size reduction vs 1-level; quality 43.7 dB raw PSNR clean | Smaller output → faster ANS + lower writer pressure |
+| **2-level wavelet (default, `301e4a0`)** | **Landed.** 35% size reduction vs 1-level; PSNR 45.6 dB raw clean | Smaller output → faster ANS + lower writer pressure |
 | **Dual-encoder ping-pong (`9b9ab0a`)** | **Landed (opt-in via `gpr_video_encoder_create_dual`).** | **+40% M1 throughput**; expect same or better on A78 |
+| 3-level wavelet | **Tried, removed (`2b1c152`).** Visible inverse-wavelet ringing on high-contrast edges. Verified not fixable via quantization, prescale, or lossless storage — inherent to cascading the biorthogonal 5/3 inverse three times. Only fix is a different wavelet basis (full codec rewrite). | (deleted) |
 | `vld2q` + branchless clip in unpack | **Already in place** (commit `38605f7`). | n/a (done) |
 | Direct lane access (avoid temp arrays) in unpack | Tried; slower on M1 (compiler does store-load via forwarding). Reverted. | n/a |
 | Conditional int16 vertical filter for 14-bit (`bc52f9b`) | Landed | ~7% on 14-bit content |
