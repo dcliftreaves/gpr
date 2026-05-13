@@ -1034,9 +1034,18 @@ static void pass1_run_channel(
 #endif
 
         if (cs->buf_row >= 6 && (cs->buf_row % 2) == 0) {
-            int out_row = cs->band_out_row;
-            if (out_row >= cs->band_height) continue;
+            /* Set up the 6-row window from the circular buffer. The middle-row
+               wavelet formula uses v2,v3 as the source-pair being represented;
+               the top variant uses v0,v1; the bottom variant uses v4,v5.
 
+               Correct band-row layout (vs. source rows 2K, 2K+1):
+                 buf_row=6   (window 0..5): emit band-row K=0 (is_top, v0,v1=src 0,1)
+                                            AND band-row K=1 (middle, v2,v3=src 2,3)
+                 buf_row=2K+4 (window 2K-2..2K+3): emit band-row K (middle), K=2..N-2
+                 buf_row=ch_h (window ch_h-6..ch_h-1): emit band-row N-2 (middle)
+                                                       AND N-1 (is_bottom, v4,v5=src ch_h-2,ch_h-1)
+               This was previously off-by-one-band-row everywhere except K=0,
+               producing a ~10-row vertical shift in the decoded output. */
             PIXEL *lp_rows[6], *hp_rows[6];
             int base = (cs->buf_row - 6) % FUSED_ROW_BUFS;
             for (int r = 0; r < 6; r++) {
@@ -1044,64 +1053,79 @@ static void pass1_run_channel(
                 lp_rows[r] = cs->lowpass_buf[idx];
                 hp_rows[r] = cs->highpass_buf[idx];
             }
-
-            int is_top = (out_row == 0);
-            int is_bottom = (out_row == cs->band_height - 1);
             int bw = cs->band_width;
-
-            /* Output destinations: either into the full band buffer (split mode)
-               or into a per-row scratch (inline mode). LL is discarded either
-               way at this level. */
             const int inline_mode = (cs->inline_state[1] != NULL);
-            PIXEL *ll_row = inline_mode ? cs->row_scratch[0]
-                                        : (cs->band_data[0] + out_row * cs->band_pitch);
-            PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
-                                        : (cs->band_data[1] + out_row * cs->band_pitch);
-            PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
-                                        : (cs->band_data[2] + out_row * cs->band_pitch);
-            PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
-                                        : (cs->band_data[3] + out_row * cs->band_pitch);
 
-            vertical_filter_quantize_row(lp_rows, bw,
-                cs->midpoint[0], cs->multiplier[0],
-                cs->midpoint[1], cs->multiplier[1],
-                log_bits, 0, 0, 0,
-                ll_row, lh_row, NULL, NULL,
-                is_top, is_bottom);
+            #define EMIT_BAND_ROW(K, IS_TOP, IS_BOTTOM) do {                              \
+                int _out_row = (K);                                                       \
+                PIXEL *_ll = inline_mode ? cs->row_scratch[0]                             \
+                                         : (cs->band_data[0] + _out_row * cs->band_pitch);\
+                PIXEL *_lh = inline_mode ? cs->row_scratch[1]                             \
+                                         : (cs->band_data[1] + _out_row * cs->band_pitch);\
+                PIXEL *_hl = inline_mode ? cs->row_scratch[2]                             \
+                                         : (cs->band_data[2] + _out_row * cs->band_pitch);\
+                PIXEL *_hh = inline_mode ? cs->row_scratch[3]                             \
+                                         : (cs->band_data[3] + _out_row * cs->band_pitch);\
+                vertical_filter_quantize_row(lp_rows, bw,                                 \
+                    cs->midpoint[0], cs->multiplier[0],                                   \
+                    cs->midpoint[1], cs->multiplier[1],                                   \
+                    log_bits, 0, 0, 0,                                                    \
+                    _ll, _lh, NULL, NULL,                                                 \
+                    (IS_TOP), (IS_BOTTOM));                                               \
+                vertical_filter_quantize_row(hp_rows, bw,                                 \
+                    cs->midpoint[2], cs->multiplier[2],                                   \
+                    cs->midpoint[3], cs->multiplier[3],                                   \
+                    log_bits, 0, 0, 0,                                                    \
+                    _hl, _hh, NULL, NULL,                                                 \
+                    (IS_TOP), (IS_BOTTOM));                                               \
+                if (inline_mode) {                                                        \
+                    jans_inline_row(cs->inline_state[1], _lh, bw);                        \
+                    jans_inline_row(cs->inline_state[2], _hl, bw);                        \
+                    jans_inline_row(cs->inline_state[3], _hh, bw);                        \
+                }                                                                         \
+                cs->band_out_row++;                                                       \
+            } while (0)
 
-            vertical_filter_quantize_row(hp_rows, bw,
-                cs->midpoint[2], cs->multiplier[2],
-                cs->midpoint[3], cs->multiplier[3],
-                log_bits, 0, 0, 0,
-                hl_row, hh_row, NULL, NULL,
-                is_top, is_bottom);
+            /* First-window special case: emit band-row 0 (is_top) before the
+               normal middle emit, both using window source rows 0..5. */
+            if (cs->buf_row == 6 && cs->band_out_row == 0 &&
+                cs->band_out_row < cs->band_height) {
+                EMIT_BAND_ROW(0, 1 /*is_top*/, 0);
+            }
 
-#ifdef FUSED_TIMING_DETAIL
-            t_vert += _fused_ms() - _td; _td = _fused_ms();
-#endif
+            /* Middle band-row emit. K = (buf_row - 4) / 2 corresponds to
+               source rows 2K, 2K+1 at v2, v3 of the current window. */
+            {
+                int K = (cs->buf_row - 4) / 2;
+                if (K == cs->band_out_row && K < cs->band_height) {
+                    int is_bottom = (K == cs->band_height - 1);
+                    EMIT_BAND_ROW(K, 0, is_bottom);
+                }
+            }
 
-            /* Inline-mode: tokenize each highpass band's row immediately while
-               it's still hot in L1. Pass 2 will only do rANS encode. */
-            if (inline_mode) {
-                jans_inline_row(cs->inline_state[1], lh_row, bw);
-                jans_inline_row(cs->inline_state[2], hl_row, bw);
-                jans_inline_row(cs->inline_state[3], hh_row, bw);
+            /* Last-window special case: emit band-row N-1 (is_bottom) using
+               the same window as the final middle emit (v4,v5 = src ch_h-2,
+               ch_h-1). Fires when buf_row reaches the channel's last source
+               row pair. */
+            if (cs->buf_row == (int)ch_height &&
+                cs->band_out_row == cs->band_height - 1) {
+                EMIT_BAND_ROW(cs->band_height - 1, 0, 1 /*is_bottom*/);
             }
 
 #ifdef FUSED_TIMING_DETAIL
+            t_vert += _fused_ms() - _td; _td = _fused_ms();
             t_freq += _fused_ms() - _td;
 #endif
 
-            cs->band_out_row++;
+            #undef EMIT_BAND_ROW
         }
     }
 
-    /* The 6-tap vertical filter underflows by 2 rows at the bottom — the last
-       2 band rows are never produced by the loop. The split-pass encoder's
-       jans_encode_band_x4 still tokenizes the full band (those untouched
-       trailing rows are calloc'd zero), so inline mode must do the same to
-       stay bit-identical: emit zero-row tokens for the missing rows. */
-    if (cs->inline_state[1] != NULL) {
+    /* All band-rows should be produced by the loop now (including is_top and
+       is_bottom variants). If a tiny image (ch_height < 6) ends up with
+       under-emitted bands, fall back to zero-fill to keep inline tokenize
+       byte-stable with the split-pass encoder. */
+    if (cs->inline_state[1] != NULL && cs->band_out_row < cs->band_height) {
         int bw = cs->band_width;
         PIXEL *zero_row = (PIXEL *)calloc(bw, sizeof(PIXEL));
         if (zero_row) {
@@ -1356,9 +1380,8 @@ static void pass1_run_channel_consumer(
 #endif
 
         if (cs->buf_row >= 6 && (cs->buf_row % 2) == 0) {
-            int out_row = cs->band_out_row;
-            if (out_row >= cs->band_height) goto advance_consumer;
-
+            /* Same band-row alignment fix as the per-channel path. See
+               comments at the equivalent block in pass1_run_channel above. */
             PIXEL *lp_rows[6], *hp_rows[6];
             int base = (cs->buf_row - 6) % FUSED_ROW_BUFS;
             for (int r = 0; r < 6; r++) {
@@ -1366,49 +1389,60 @@ static void pass1_run_channel_consumer(
                 lp_rows[r] = cs->lowpass_buf[idx];
                 hp_rows[r] = cs->highpass_buf[idx];
             }
-
-            int is_top = (out_row == 0);
-            int is_bottom = (out_row == cs->band_height - 1);
             int bw = cs->band_width;
-
             const int inline_mode = (cs->inline_state[1] != NULL);
-            PIXEL *ll_row = inline_mode ? cs->row_scratch[0]
-                                        : (cs->band_data[0] + out_row * cs->band_pitch);
-            PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
-                                        : (cs->band_data[1] + out_row * cs->band_pitch);
-            PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
-                                        : (cs->band_data[2] + out_row * cs->band_pitch);
-            PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
-                                        : (cs->band_data[3] + out_row * cs->band_pitch);
 
-            vertical_filter_quantize_row(lp_rows, bw,
-                cs->midpoint[0], cs->multiplier[0],
-                cs->midpoint[1], cs->multiplier[1],
-                log_bits, 0, 0, 0,
-                ll_row, lh_row, NULL, NULL,
-                is_top, is_bottom);
+            #define EMIT_L0_BAND_ROW(K, IS_TOP, IS_BOTTOM) do {                            \
+                int _out_row = (K);                                                        \
+                PIXEL *_ll = inline_mode ? cs->row_scratch[0]                              \
+                                         : (cs->band_data[0] + _out_row * cs->band_pitch); \
+                PIXEL *_lh = inline_mode ? cs->row_scratch[1]                              \
+                                         : (cs->band_data[1] + _out_row * cs->band_pitch); \
+                PIXEL *_hl = inline_mode ? cs->row_scratch[2]                              \
+                                         : (cs->band_data[2] + _out_row * cs->band_pitch); \
+                PIXEL *_hh = inline_mode ? cs->row_scratch[3]                              \
+                                         : (cs->band_data[3] + _out_row * cs->band_pitch); \
+                vertical_filter_quantize_row(lp_rows, bw,                                  \
+                    cs->midpoint[0], cs->multiplier[0],                                    \
+                    cs->midpoint[1], cs->multiplier[1],                                    \
+                    log_bits, 0, 0, 0,                                                     \
+                    _ll, _lh, NULL, NULL,                                                  \
+                    (IS_TOP), (IS_BOTTOM));                                                \
+                vertical_filter_quantize_row(hp_rows, bw,                                  \
+                    cs->midpoint[2], cs->multiplier[2],                                    \
+                    cs->midpoint[3], cs->multiplier[3],                                    \
+                    log_bits, 0, 0, 0,                                                     \
+                    _hl, _hh, NULL, NULL,                                                  \
+                    (IS_TOP), (IS_BOTTOM));                                                \
+                if (inline_mode) {                                                         \
+                    jans_inline_row(cs->inline_state[1], _lh, bw);                         \
+                    jans_inline_row(cs->inline_state[2], _hl, bw);                         \
+                    jans_inline_row(cs->inline_state[3], _hh, bw);                         \
+                }                                                                          \
+                cs->band_out_row++;                                                        \
+            } while (0)
 
-            vertical_filter_quantize_row(hp_rows, bw,
-                cs->midpoint[2], cs->multiplier[2],
-                cs->midpoint[3], cs->multiplier[3],
-                log_bits, 0, 0, 0,
-                hl_row, hh_row, NULL, NULL,
-                is_top, is_bottom);
-
-#ifdef FUSED_TIMING_DETAIL
-            t_vert += _fused_ms() - _td; _td = _fused_ms();
-#endif
-
-            if (inline_mode) {
-                jans_inline_row(cs->inline_state[1], lh_row, bw);
-                jans_inline_row(cs->inline_state[2], hl_row, bw);
-                jans_inline_row(cs->inline_state[3], hh_row, bw);
+            if (cs->buf_row == 6 && cs->band_out_row == 0 &&
+                cs->band_out_row < cs->band_height) {
+                EMIT_L0_BAND_ROW(0, 1, 0);
+            }
+            {
+                int K = (cs->buf_row - 4) / 2;
+                if (K == cs->band_out_row && K < cs->band_height) {
+                    int is_bottom = (K == cs->band_height - 1);
+                    EMIT_L0_BAND_ROW(K, 0, is_bottom);
+                }
+            }
+            if (cs->buf_row == (int)ch_height &&
+                cs->band_out_row == cs->band_height - 1) {
+                EMIT_L0_BAND_ROW(cs->band_height - 1, 0, 1);
             }
 
 #ifdef FUSED_TIMING_DETAIL
+            t_vert += _fused_ms() - _td; _td = _fused_ms();
             t_freq += _fused_ms() - _td;
 #endif
-            cs->band_out_row++;
+            #undef EMIT_L0_BAND_ROW
         }
 
 advance_consumer:
@@ -1509,10 +1543,10 @@ static void run_level1_wavelet(FUSED_CHANNEL_STATE *cs)
         buf_row++;
 
         if (buf_row >= 6 && (buf_row % 2) == 0) {
-            if (out_row >= bh1) continue;
-            int is_top = (out_row == 0);
-            int is_bottom = (out_row == bh1 - 1);
-
+            /* Same band-row alignment fix as level 0 (see comments in
+               pass1_run_channel). Emit two band-rows at the first window
+               (band-row 0 is_top + band-row 1 middle) and two at the last
+               window (band-row N-2 middle + band-row N-1 is_bottom). */
             PIXEL *lp_rows[6], *hp_rows[6];
             int base = (buf_row - 6) % FUSED_ROW_BUFS;
             for (int r = 0; r < 6; r++) {
@@ -1521,29 +1555,44 @@ static void run_level1_wavelet(FUSED_CHANNEL_STATE *cs)
                 hp_rows[r] = hp_buf[ii];
             }
 
-            PIXEL *ll1 = cs->band_data_l1[0] + (size_t)out_row * bw1;
-            PIXEL *lh1 = cs->band_data_l1[1] + (size_t)out_row * bw1;
-            PIXEL *hl1 = cs->band_data_l1[2] + (size_t)out_row * bw1;
-            PIXEL *hh1 = cs->band_data_l1[3] + (size_t)out_row * bw1;
+            #define EMIT_L1_BAND_ROW(K, IS_TOP, IS_BOTTOM) do {                            \
+                int _out = (K);                                                            \
+                PIXEL *_ll = cs->band_data_l1[0] + (size_t)_out * bw1;                     \
+                PIXEL *_lh = cs->band_data_l1[1] + (size_t)_out * bw1;                     \
+                PIXEL *_hl = cs->band_data_l1[2] + (size_t)_out * bw1;                     \
+                PIXEL *_hh = cs->band_data_l1[3] + (size_t)_out * bw1;                     \
+                vertical_filter_quantize_row(lp_rows, bw1,                                 \
+                    cs->midpoint_l1[0], cs->multiplier_l1[0],                              \
+                    cs->midpoint_l1[1], cs->multiplier_l1[1],                              \
+                    0, 0, 0, 0,                                                            \
+                    _ll, _lh, NULL, NULL,                                                  \
+                    (IS_TOP), (IS_BOTTOM));                                                \
+                vertical_filter_quantize_row(hp_rows, bw1,                                 \
+                    cs->midpoint_l1[2], cs->multiplier_l1[2],                              \
+                    cs->midpoint_l1[3], cs->multiplier_l1[3],                              \
+                    0, 0, 0, 0,                                                            \
+                    _hl, _hh, NULL, NULL,                                                  \
+                    (IS_TOP), (IS_BOTTOM));                                                \
+                out_row++;                                                                 \
+            } while (0)
 
-            vertical_filter_quantize_row(lp_rows, bw1,
-                cs->midpoint_l1[0], cs->multiplier_l1[0],
-                cs->midpoint_l1[1], cs->multiplier_l1[1],
-                0, 0, 0, 0,
-                ll1, lh1, NULL, NULL,
-                is_top, is_bottom);
-
-            vertical_filter_quantize_row(hp_rows, bw1,
-                cs->midpoint_l1[2], cs->multiplier_l1[2],
-                cs->midpoint_l1[3], cs->multiplier_l1[3],
-                0, 0, 0, 0,
-                hl1, hh1, NULL, NULL,
-                is_top, is_bottom);
-
-            out_row++;
+            if (buf_row == 6 && out_row == 0 && out_row < bh1) {
+                EMIT_L1_BAND_ROW(0, 1, 0);
+            }
+            {
+                int K = (buf_row - 4) / 2;
+                if (K == out_row && K < bh1) {
+                    int is_bottom = (K == bh1 - 1);
+                    EMIT_L1_BAND_ROW(K, 0, is_bottom);
+                }
+            }
+            if (buf_row == in_h && out_row == bh1 - 1) {
+                EMIT_L1_BAND_ROW(bh1 - 1, 0, 1);
+            }
+            #undef EMIT_L1_BAND_ROW
         }
     }
-    /* Trailing 2 band rows untouched (calloc'd zero) — same as level 0. */
+    /* All N band rows produced (including is_top and is_bottom). */
 
 cleanup:
     for (int r = 0; r < FUSED_ROW_BUFS; r++) {
