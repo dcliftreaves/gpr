@@ -608,9 +608,10 @@ static void fwd_wavelet_quantize(const int32_t *channel, int ch_w, int ch_h,
         buf_row++;
 
         if (buf_row >= 6 && (buf_row % 2) == 0) {
-            if (out_row >= bh) continue;
-            int is_top = (out_row == 0);
-            int is_bottom = (out_row == bh - 1);
+            /* Same band-row alignment fix as fused_encode.c. Emit two band-rows
+               at the first window (top + middle K=1) and two at the last
+               window (middle K=N-2 + bottom K=N-1). See pass1_run_channel
+               comments in fused_encode.c for the full explanation. */
             int base = (buf_row - 6) % 6;
             int32_t *L[6], *H[6];
             for (int i = 0; i < 6; i++) {
@@ -619,24 +620,40 @@ static void fwd_wavelet_quantize(const int32_t *channel, int ch_w, int ch_h,
                 H[i] = hp_buf[ii];
             }
 
-            fwd_vertical_row(L[0], L[1], L[2], L[3], L[4], L[5],
-                              bw, is_top, is_bottom, tmp_low, tmp_high);
-            for (int c = 0; c < bw; c++) {
-                ll[out_row * bw + c] = quantize_scalar(tmp_low[c],  mid[0], mul[0]);
-                lh[out_row * bw + c] = quantize_scalar(tmp_high[c], mid[1], mul[1]);
-            }
+            #define EMIT_TEST_BAND_ROW(K, IS_TOP, IS_BOTTOM) do {                     \
+                int _out = (K);                                                       \
+                fwd_vertical_row(L[0], L[1], L[2], L[3], L[4], L[5],                  \
+                                  bw, (IS_TOP), (IS_BOTTOM), tmp_low, tmp_high);      \
+                for (int _c = 0; _c < bw; _c++) {                                     \
+                    ll[_out * bw + _c] = quantize_scalar(tmp_low[_c],  mid[0], mul[0]); \
+                    lh[_out * bw + _c] = quantize_scalar(tmp_high[_c], mid[1], mul[1]); \
+                }                                                                     \
+                fwd_vertical_row(H[0], H[1], H[2], H[3], H[4], H[5],                  \
+                                  bw, (IS_TOP), (IS_BOTTOM), tmp_low, tmp_high);      \
+                for (int _c = 0; _c < bw; _c++) {                                     \
+                    hl[_out * bw + _c] = quantize_scalar(tmp_low[_c],  mid[2], mul[2]); \
+                    hh[_out * bw + _c] = quantize_scalar(tmp_high[_c], mid[3], mul[3]); \
+                }                                                                     \
+                out_row++;                                                            \
+            } while (0)
 
-            fwd_vertical_row(H[0], H[1], H[2], H[3], H[4], H[5],
-                              bw, is_top, is_bottom, tmp_low, tmp_high);
-            for (int c = 0; c < bw; c++) {
-                hl[out_row * bw + c] = quantize_scalar(tmp_low[c],  mid[2], mul[2]);
-                hh[out_row * bw + c] = quantize_scalar(tmp_high[c], mid[3], mul[3]);
+            if (buf_row == 6 && out_row == 0 && out_row < bh) {
+                EMIT_TEST_BAND_ROW(0, 1, 0);
             }
-            out_row++;
+            {
+                int K = (buf_row - 4) / 2;
+                if (K == out_row && K < bh) {
+                    int is_bottom = (K == bh - 1);
+                    EMIT_TEST_BAND_ROW(K, 0, is_bottom);
+                }
+            }
+            if (buf_row == ch_h && out_row == bh - 1) {
+                EMIT_TEST_BAND_ROW(bh - 1, 0, 1);
+            }
+            #undef EMIT_TEST_BAND_ROW
         }
     }
-    /* Trailing 2 band rows that the 6-tap filter doesn't produce are left
-       at calloc-zero, matching the encoder behaviour. */
+    /* All N band rows produced (including is_top and is_bottom). */
 
     free(tmp_low); free(tmp_high);
     for (int r = 0; r < 6; r++) { free(lp_buf[r]); free(hp_buf[r]); }
