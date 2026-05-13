@@ -34,3 +34,5 @@ scripts/*.pyc
 *.exe
 *.out
 *.app
+build-win/
+
