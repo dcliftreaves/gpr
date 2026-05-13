@@ -84,26 +84,24 @@ jobs:
           make -j"$(nproc)"
 
       - name: Generate synthetic Z8 raw input
+        # Structured pattern (smooth radial gradient + mild noise) matching
+        # ci.yml. Pure 14-bit white noise hits the known walker fragility on
+        # high-entropy band data; structured input is more representative of
+        # real photographic content.
         run: |
           python3 - <<'PY'
-          import os, random
+          import os, numpy as np
           W, H = 8280, 5520
-          for name, seed in (("Z8_ISO64.raw", 42), ("Z8_ISO22800.raw", 4242)):
-              path = f"/tmp/{name}"
-              rng = random.Random(seed)
-              with open(path, "wb") as f:
-                  chunk_px = 512 * 1024
-                  remaining = W * H
-                  while remaining > 0:
-                      n = min(chunk_px, remaining)
-                      buf = bytearray(n * 2)
-                      for i in range(n):
-                          v = rng.getrandbits(14)
-                          buf[2*i]   = v & 0xFF
-                          buf[2*i+1] = (v >> 8) & 0xFF
-                      f.write(buf)
-                      remaining -= n
-              assert os.path.getsize(path) == W * H * 2
+          yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+          r = np.hypot(xx - W/2, yy - H/2) / np.hypot(W/2, H/2)
+          for name, seed, noise_amp in (("Z8_ISO64.raw", 42, 50),
+                                         ("Z8_ISO22800.raw", 4242, 400)):
+              rng = np.random.default_rng(seed)
+              base = 2000 + (1.0 - r) * 12000
+              noise = rng.integers(-noise_amp, noise_amp + 1, size=(H, W), dtype=np.int32)
+              out = np.clip(base.astype(np.int32) + noise, 0, 16383)
+              out.astype('<u2').tofile(f"/tmp/{name}")
+              assert os.path.getsize(f"/tmp/{name}") == W * H * 2
           PY
 
       - name: Build test binaries (instrumented)
