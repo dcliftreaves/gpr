@@ -20,6 +20,19 @@
  *  (C) Copyright 2018 GoPro Inc. Licensed under Apache-2.0 or MIT.
  */
 
+/* Must precede ALL system headers — glibc gates nanosleep() in <time.h>
+   behind _POSIX_C_SOURCE >= 199309L. Define _POSIX_C_SOURCE + _DARWIN_C_SOURCE
+   + _GNU_SOURCE so all platforms expose what we need. Mirrors fused_encode.c. */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+#ifndef _DARWIN_C_SOURCE
+#define _DARWIN_C_SOURCE 1
+#endif
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
+
 #include "gpr_video.h"
 #include "fused_encode.h"
 
@@ -29,6 +42,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <math.h>
+#include <time.h>   /* nanosleep */
 
 #define VIDEO_MAX_RING_DEPTH 8
 #define VIDEO_MAX_ENCODERS   2
