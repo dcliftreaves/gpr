@@ -4,24 +4,6 @@ All notable changes to GPR are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.1] — 2026-05-12
-
-### Fixed
-
-- **Row-alignment bug in the streaming wavelet emit (critical).** The fused
-  encoder's middle-row emit was off-by-one band-row from band-row K=1
-  onwards. Net effect: decoded images were vertically shifted by ~10-12
-  source rows. PSNR-only testing missed it because the metric averaged
-  the spatial error across millions of pixels. Marker-line test confirms
-  source bright rows now decode to centered positions instead of shifted.
-  PSNR(raw) on Z8 ISO 64 q=3 jumped from 45.57 dB → 50.71 dB after the fix.
-  Applied to all three streaming-emit sites in `fused_encode.c`
-  (`pass1_run_channel`, `pass1_run_channel_consumer`, `run_level1_wavelet`)
-  and mirrored in the test's forward wavelet. Conformance vectors
-  regenerated. See commit for details.
-- v2.0.0 binaries (linux-x86_64, linux-arm64, macos-arm64) are affected by
-  this bug and should not be used. Upgrade to 2.0.1.
-
 ## [2.0.0] — 2026-05-12
 
 GPR 2.0 turns the original stills-only VC-5 codec into a production raw-video
