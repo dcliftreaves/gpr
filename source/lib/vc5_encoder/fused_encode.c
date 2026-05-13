@@ -18,11 +18,18 @@
  *  (C) Copyright 2018 GoPro Inc. Licensed under Apache-2.0 or MIT.
  */
 
-/* Must precede ALL system headers — glibc gates clock_gettime + CLOCK_MONOTONIC
-   on _POSIX_C_SOURCE >= 199309L. Defining here as 200809L is harmless on macOS
-   (where the timing path uses mach_absolute_time instead). */
+/* Must precede ALL system headers — glibc gates clock_gettime +
+   CLOCK_MONOTONIC on _POSIX_C_SOURCE >= 199309L. On macOS / BSD we
+   *also* need _DARWIN_C_SOURCE to keep `_SC_NPROCESSORS_ONLN` (used
+   in choose_inline_mode below) visible, since strict POSIX hides it. */
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
+#endif
+#ifndef _DARWIN_C_SOURCE
+#define _DARWIN_C_SOURCE 1
+#endif
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
 #endif
 
 #include "headers.h"
