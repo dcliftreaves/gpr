@@ -184,7 +184,11 @@ jobs:
         run: timeout 180 /tmp/gpr-tests/test_video_roundtrip
 
       - name: Run test_video_full_roundtrip
-        run: timeout 240 /tmp/gpr-tests/test_video_full_roundtrip
+        # 240s was tight on macOS Debug builds — the test has its own
+        # full inverse-wavelet machinery (separate from the encoder lib)
+        # which is unoptimized under -O0. Bump to 600s. Real run time
+        # on a Release build is ~30s.
+        run: timeout 600 /tmp/gpr-tests/test_video_full_roundtrip
 
       - name: Run test_video_pipeline_sim (macOS only)
         if: runner.os == 'macOS'
