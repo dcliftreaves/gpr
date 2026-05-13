@@ -1,0 +1,198 @@
+name: CI
+
+# PR / branch test matrix for GPR 2.0.
+#
+# Builds the core static libraries and 7 test binaries (band-level roundtrip,
+# full-image roundtrip, container format, edge sizes, pipeline simulator,
+# encoder abort, full-chain end-to-end), then runs each against a synthesized
+# Z8-shaped raw input frame.
+#
+# Platforms:
+#   ubuntu-latest  -> x86_64 (NEON off)
+#   macos-latest   -> arm64  (NEON on, automatically by CMakeLists.txt)
+#
+# Note: test_video_pipeline_sim.c uses mach/mach_time.h and only builds on
+# macOS. It is skipped on Linux runners.
+
+on:
+  push:
+    branches:
+      - master
+      - 'feature/*'
+  pull_request:
+    branches:
+      - master
+      - 'feature/*'
+
+# Cancel in-progress runs for the same branch / PR when a new commit lands.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }} / ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        build_type: [Release, Debug]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential clang
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # cmake & clang come with the macOS runner image; just sanity check.
+          cmake --version
+          clang --version
+          # GNU coreutils for `timeout` (macOS ships BSD utils, no timeout).
+          # Add the gnubin dir to PATH so `timeout` resolves to gtimeout
+          # without per-call renaming.
+          brew install coreutils
+          echo "$(brew --prefix coreutils)/libexec/gnubin" >> "$GITHUB_PATH"
+
+      - name: Configure
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build libraries
+        run: |
+          cd build
+          # The 7 test binaries link directly against vc5_encoder / vc5_common.
+          # gpr_sdk / dng_sdk / md5_lib are part of the normal target set and
+          # build cheaply, so we just build the default `all` target rather
+          # than enumerate each one (matches how devs build locally).
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            make -j"$(nproc)"
+          else
+            make -j"$(sysctl -n hw.ncpu)"
+          fi
+
+      - name: Generate synthetic Z8 raw input
+        # Tests default-open /tmp/Z8_ISO64.raw at 8280x5520 (RGGB16, 2 B/px).
+        # Real fixture is 91,411,200 bytes. We write a structured pattern
+        # (smooth gradient + mild deterministic noise) — pure white noise
+        # would exercise the rANS encoder at its theoretical worst case
+        # and can hit the walker's `0xFFFFFFFF` pseudo-magic; structured
+        # data is closer to real photographic content and exercises every
+        # code path without triggering pathological-input edge cases.
+        run: |
+          python3 - <<'PY'
+          import os
+          W, H = 8280, 5520
+          # Numpy is preinstalled on GH runners; falls back to pure python.
+          try:
+              import numpy as np
+              HAVE_NUMPY = True
+          except ImportError:
+              HAVE_NUMPY = False
+          for name, seed, noise_amp in (("Z8_ISO64.raw", 42, 50),
+                                         ("Z8_ISO22800.raw", 4242, 400)):
+              path = f"/tmp/{name}"
+              if HAVE_NUMPY:
+                  rng = np.random.default_rng(seed)
+                  # Smooth radial gradient ~ [2000, 14000] (14-bit-ish midtones).
+                  yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+                  r = np.hypot(xx - W/2, yy - H/2) / np.hypot(W/2, H/2)
+                  base = 2000 + (1.0 - r) * 12000
+                  noise = rng.integers(-noise_amp, noise_amp + 1,
+                                        size=(H, W), dtype=np.int32)
+                  out = np.clip(base.astype(np.int32) + noise, 0, 16383)
+                  out.astype('<u2').tofile(path)
+              else:
+                  import random, struct
+                  rng = random.Random(seed)
+                  with open(path, "wb") as f:
+                      for y in range(H):
+                          row = bytearray(W * 2)
+                          for x in range(W):
+                              r = ((x - W/2) ** 2 + (y - H/2) ** 2) ** 0.5
+                              r /= ((W/2) ** 2 + (H/2) ** 2) ** 0.5
+                              v = int(2000 + (1 - r) * 12000) + rng.randint(-noise_amp, noise_amp)
+                              v = max(0, min(16383, v))
+                              row[2*x] = v & 0xFF
+                              row[2*x + 1] = (v >> 8) & 0xFF
+                          f.write(row)
+              sz = os.path.getsize(path)
+              print(f"{path}: {sz} bytes (expected {W*H*2})")
+              assert sz == W * H * 2, "size mismatch"
+          PY
+
+      - name: Build test binaries
+        run: |
+          set -e
+          mkdir -p /tmp/gpr-tests
+
+          # Common link line for the 7 tests. All of them depend on
+          # libvc5_encoder.a and libvc5_common.a. Both archives are required
+          # because jans_decode_band_x4 lives in vc5_common.
+          ENCODER_LIB="build/source/lib/vc5_encoder/libvc5_encoder.a"
+          COMMON_LIB="build/source/lib/vc5_common/libvc5_common.a"
+          LDLIBS="-lpthread -lm"
+
+          # Build each test. We use clang on both platforms (Linux job
+          # installed it explicitly; macOS ships with it). -O2 matches the
+          # build line documented in each test source.
+          build_test() {
+            local name="$1"
+            echo "::group::Build $name"
+            clang -O2 -o "/tmp/gpr-tests/$name" "source/app/$name.c" \
+              "$ENCODER_LIB" "$COMMON_LIB" $LDLIBS
+            echo "::endgroup::"
+          }
+
+          build_test test_video_roundtrip
+          build_test test_video_full_roundtrip
+          build_test test_video_format
+          build_test test_edge_sizes
+          build_test test_video_encoder_abort
+          build_test test_video_full_chain
+
+          # test_video_pipeline_sim uses mach/mach_time.h -> macOS only.
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            build_test test_video_pipeline_sim
+          else
+            echo "Skipping test_video_pipeline_sim build (mach_time.h is macOS-only)."
+          fi
+
+      - name: Run test_video_format
+        run: timeout 60 /tmp/gpr-tests/test_video_format
+
+      - name: Run test_video_encoder_abort
+        run: timeout 60 /tmp/gpr-tests/test_video_encoder_abort
+
+      - name: Run test_edge_sizes
+        run: timeout 120 /tmp/gpr-tests/test_edge_sizes
+
+      - name: Run test_video_full_chain
+        run: timeout 120 /tmp/gpr-tests/test_video_full_chain
+
+      - name: Run test_video_roundtrip
+        # Uses /tmp/Z8_ISO64.raw and /tmp/Z8_ISO22800.raw generated above.
+        run: timeout 180 /tmp/gpr-tests/test_video_roundtrip
+
+      - name: Run test_video_full_roundtrip
+        # 240s was tight on macOS Debug builds — the test has its own
+        # full inverse-wavelet machinery (separate from the encoder lib)
+        # which is unoptimized under -O0. Bump to 600s. Real run time
+        # on a Release build is ~30s.
+        run: timeout 600 /tmp/gpr-tests/test_video_full_roundtrip
+
+      - name: Run test_video_pipeline_sim (macOS only)
+        if: runner.os == 'macOS'
+        # 10 frames, 24 fps, 150 MB/s, 0 ms GC stall, 1 s GC period, ring=3.
+        run: |
+          timeout 180 /tmp/gpr-tests/test_video_pipeline_sim \
+            /tmp/Z8_ISO64.raw 8280 5520 4 3 10 24.0 150.0 0.0 1.0
