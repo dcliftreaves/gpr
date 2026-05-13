@@ -18,6 +18,13 @@
  *  (C) Copyright 2018 GoPro Inc. Licensed under Apache-2.0 or MIT.
  */
 
+/* Must precede ALL system headers — glibc gates clock_gettime + CLOCK_MONOTONIC
+   on _POSIX_C_SOURCE >= 199309L. Defining here as 200809L is harmless on macOS
+   (where the timing path uses mach_absolute_time instead). */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include "headers.h"
 #include "fused_encode.h"
 #include "ans_joint.h"
