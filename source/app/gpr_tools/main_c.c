@@ -17,7 +17,13 @@
  */
 
 #include <stdio.h>
+#ifndef _WIN32
 #include <strings.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 #include <string.h>
 #include <stdbool.h>
 
@@ -25,8 +31,9 @@
 
 #if defined __GNUC__
 #define stricmp strcasecmp
-#else
-#endif // if defined __GNUC__
+#elif defined _WIN32
+#define stricmp _stricmp
+#endif
 
 #include "main_c.h"
 #include "gpr_parse_utils.h"
@@ -97,7 +104,9 @@ static FILE_TYPE GetFileType( const char* file_path )
 
 int dng_convert_main(const char*  input_file_path, unsigned int input_width, unsigned int input_height, size_t input_pitch, size_t input_skip_rows, const char* input_pixel_format,
                      const char*  output_file_path, const char*  metadata_file_path, const char* gpmf_file_path, const char* rgb_file_resolution, int rgb_file_bits,
-                     const char*  jpg_preview_file_path, int jpg_preview_file_width, int jpg_preview_file_height )
+                     const char*  jpg_preview_file_path, int jpg_preview_file_width, int jpg_preview_file_height, int quality,
+                     bool denoise_enabled, bool denoise_auto, double denoise_strength, bool variance_stabilize, bool denoise_output,
+                     bool noise_replace, const char* fpn_calibration_path, bool ans_enabled, bool embedded_mode )
 {
     bool success;
     bool write_buffer_to_file = true;
@@ -123,12 +132,55 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     
     gpr_parameters params;
     gpr_parameters_set_defaults(&params);
-    
-    gpr_buffer input_buffer  = { NULL, 0 };
-    
-    if( read_from_file( &input_buffer, input_file_path, allocator.Alloc, allocator.Free ) != 0 )
+    params.quality = quality;
+    params.tuning_info.denoise_enabled = denoise_enabled;
+    params.tuning_info.denoise_auto = denoise_auto;
+    params.tuning_info.denoise_strength = denoise_strength;
+    params.tuning_info.variance_stabilize = variance_stabilize;
+    params.tuning_info.denoise_output = denoise_output;
+    params.tuning_info.noise_replace = noise_replace;
+    params.tuning_info.ans_enabled = ans_enabled;
+    params.tuning_info.embedded_mode = embedded_mode;
+    if (embedded_mode)
+        fprintf(stderr, "  Embedded mode: single-thread, no parallel pre-encode\n");
+
+    if (fpn_calibration_path && fpn_calibration_path[0] != '\0')
     {
-        return -1;
+        if (fpn_model_load(&params.fpn, fpn_calibration_path) == 0)
+            fprintf(stderr, "  Loaded FPN calibration: %s\n", fpn_calibration_path);
+        else
+            fprintf(stderr, "  Warning: Failed to load FPN calibration: %s\n", fpn_calibration_path);
+    }
+
+    gpr_buffer input_buffer  = { NULL, 0 };
+    int input_mmap_fd = -1;
+
+#ifndef _WIN32
+    /* Fast input: mmap the file for zero-copy access */
+    {
+        struct stat st;
+        input_mmap_fd = open(input_file_path, O_RDONLY);
+        if (input_mmap_fd >= 0 && fstat(input_mmap_fd, &st) == 0 && st.st_size > 0) {
+            void *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, input_mmap_fd, 0);
+            if (map != MAP_FAILED) {
+                input_buffer.buffer = map;
+                input_buffer.size = st.st_size;
+            } else {
+                close(input_mmap_fd);
+                input_mmap_fd = -1;
+            }
+        } else {
+            if (input_mmap_fd >= 0) close(input_mmap_fd);
+            input_mmap_fd = -1;
+        }
+    }
+    if (input_mmap_fd < 0)
+#endif
+    {
+        if( read_from_file( &input_buffer, input_file_path, allocator.Alloc, allocator.Free ) != 0 )
+        {
+            return -1;
+        }
     }
   
     if( metadata_file_path && strcmp(metadata_file_path, "") )
@@ -138,59 +190,86 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( input_file_type == FILE_TYPE_GPR || input_file_type == FILE_TYPE_DNG )
     {
-        gpr_parse_metadata( &allocator, &input_buffer, &params );
+        /* Skip expensive DNG metadata parsing for GPR→RAW fast path
+           (gpr_parse_metadata calls into DNG SDK, ~40ms overhead).
+           Only parse when we actually need the metadata. */
+        if (output_file_type != FILE_TYPE_RAW)
+            gpr_parse_metadata( &allocator, &input_buffer, &params );
     }
     else
     {
         params.input_width  = input_width;
         params.input_height = input_height;
-        params.input_pitch  = input_pitch;
-        
+
         int32_t saturation_level = params.tuning_info.dgain_saturation_level.level_red;
-        
+
         if( output_file_type == FILE_TYPE_GPR )
             saturation_level = (1 << 14) - 1;
         else if( output_file_type == FILE_TYPE_DNG )
             saturation_level = (1 << 12) - 1;
-        
+
         if( strcmp(input_pixel_format, "rggb12") == 0 )
         {
             params.tuning_info.pixel_format = PIXEL_FORMAT_RGGB_12;
-            
-            if( input_pitch == -1 )
+
+            saturation_level = (1 << 12) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
                 input_pitch = input_width * 2;
         }
         if( strcmp(input_pixel_format, "rggb12p") == 0 )
         {
             params.tuning_info.pixel_format = PIXEL_FORMAT_RGGB_12P;
-            
-            if( input_pitch == -1 )
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
                 input_pitch = (input_width * 3 / 4) * 2;
         }
         else if( strcmp(input_pixel_format, "rggb14") == 0 )
         {
             params.tuning_info.pixel_format = PIXEL_FORMAT_RGGB_14;
-            
+
             saturation_level = (1 << 14) - 1;
 
-            if( input_pitch == -1 )
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
+                input_pitch = input_width * 2;
+        }
+        else if( strcmp(input_pixel_format, "rggb16") == 0 )
+        {
+            params.tuning_info.pixel_format = PIXEL_FORMAT_RGGB_16;
+
+            saturation_level = (1 << 16) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
                 input_pitch = input_width * 2;
         }
         else if( strcmp(input_pixel_format, "gbrg12") == 0 )
         {
             params.tuning_info.pixel_format = PIXEL_FORMAT_GBRG_12;
-            
-            if( input_pitch == -1 )
+
+            saturation_level = (1 << 12) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
                 input_pitch = input_width * 2;
         }
         else if( strcmp(input_pixel_format, "gbrg12p") == 0 )
         {
             params.tuning_info.pixel_format = PIXEL_FORMAT_GBRG_12P;
-            
-            if( input_pitch == -1 )
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
                 input_pitch = (input_width * 3 / 4) * 2;
         }
-        
+        else if( strcmp(input_pixel_format, "gbrg16") == 0 )
+        {
+            params.tuning_info.pixel_format = PIXEL_FORMAT_GBRG_16;
+
+            saturation_level = (1 << 16) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
+                input_pitch = input_width * 2;
+        }
+
+        params.input_pitch  = input_pitch;
+
         params.tuning_info.dgain_saturation_level.level_red         = saturation_level;
         params.tuning_info.dgain_saturation_level.level_green_even  = saturation_level;
         params.tuning_info.dgain_saturation_level.level_green_odd   = saturation_level;
@@ -240,7 +319,28 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( input_file_type == FILE_TYPE_RAW && output_file_type == FILE_TYPE_GPR )
     {
-        success = gpr_convert_raw_to_gpr( &allocator, &params, &input_buffer, &output_buffer );
+        /* Try fast encode path first (bypasses DNG SDK write) */
+        extern int gpr_fast_encode(const uint8_t *raw_data, size_t raw_size,
+                                    int width, int height, int pixel_format,
+                                    int ans_enabled, int embedded_mode,
+                                    void **gpr_output, size_t *gpr_size);
+        void *fast_out = NULL;
+        size_t fast_sz = 0;
+        int pf = 1; /* RGGB_14 default */
+        int enc_rc = gpr_fast_encode((const uint8_t *)input_buffer.buffer, input_buffer.size,
+                                      params.input_width, params.input_height, pf,
+                                      params.tuning_info.ans_enabled,
+                                      params.tuning_info.embedded_mode,
+                                      &fast_out, &fast_sz);
+        if (enc_rc != 0) fprintf(stderr, "gpr_fast_encode failed: %d (w=%d h=%d)\n", enc_rc, params.input_width, params.input_height);
+        if (enc_rc == 0 && fast_out) {
+            output_buffer.buffer = fast_out;
+            output_buffer.size = fast_sz;
+            success = 1;
+        } else {
+            /* Fallback to DNG SDK */
+            success = gpr_convert_raw_to_gpr( &allocator, &params, &input_buffer, &output_buffer );
+        }
     }
 #endif
 #if GPR_READING
@@ -311,7 +411,29 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( input_file_type == FILE_TYPE_GPR && output_file_type == FILE_TYPE_RAW )
     {
-        success = gpr_convert_gpr_to_raw( &allocator, &input_buffer, &output_buffer );
+        /* Try fast GPR decode first (bypasses DNG SDK, ~10x faster) */
+        {
+            extern int gpr_fast_decode(const uint8_t *gpr_data, size_t gpr_size,
+                                        void **raw_output, size_t *raw_size,
+                                        int pixel_format);
+
+            void *raw_out = NULL;
+            size_t raw_sz = 0;
+            int pf = 1; /* Default: RGGB_14 */
+            int rc = gpr_fast_decode((const uint8_t *)input_buffer.buffer, input_buffer.size,
+                                      &raw_out, &raw_sz, pf);
+            if (rc == 0 && raw_out) {
+                output_buffer.buffer = raw_out;
+                output_buffer.size = raw_sz;
+                success = 1;
+            } else {
+                /* Fallback to DNG SDK path */
+                if (params.fpn.valid || noise_replace)
+                    success = gpr_convert_gpr_to_raw_ex( &allocator, &params, &input_buffer, &output_buffer );
+                else
+                    success = gpr_convert_gpr_to_raw( &allocator, &input_buffer, &output_buffer );
+            }
+        }
     }
 #endif
     else
@@ -341,7 +463,13 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     
     gpr_parameters_destroy(&params, allocator.Free);
-    
+
+#ifndef _WIN32
+    if (input_mmap_fd >= 0) {
+        munmap(input_buffer.buffer, input_buffer.size);
+        close(input_mmap_fd);
+    }
+#endif
+
     return 0;
 }
-
