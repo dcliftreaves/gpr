@@ -1195,9 +1195,14 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
                              ll0_recon, bw);
 
         /* Scale up by 1<<prescale_l1 so ll0_recon matches the magnitude scale
-           that the encoder's LL0 buffer had pre-L1-wavelet. */
+           that the encoder's LL0 buffer had pre-L1-wavelet. ll0_recon is
+           signed int32 and can briefly be negative on highpass edges; C
+           standard makes `<<` on negatives undefined behavior, so use a
+           multiply by the same factor (well-defined for signed, identical
+           output). */
+        const int32_t scale_l1 = (int32_t)1 << prescale_l1;
         for (size_t k = 0, n = (size_t)bw * bh; k < n; k++) {
-            ll0_recon[k] <<= prescale_l1;
+            ll0_recon[k] *= scale_l1;
         }
 
         /* Invert level-0: reconstructed LL0 + decoded LH0/HL0/HH0 → channel domain. */
@@ -1216,7 +1221,7 @@ static int run_frame_test(const uint8_t *raw, const uint8_t *vc5,
                              bw1, bh1,
                              ll0_oracle, bw);
         for (size_t k = 0, n = (size_t)bw * bh; k < n; k++) {
-            ll0_oracle[k] <<= prescale_l1;
+            ll0_oracle[k] *= scale_l1;
         }
         invert_spatial_band(ll0_oracle,
                              oracle_bands_dq[ch][4],
