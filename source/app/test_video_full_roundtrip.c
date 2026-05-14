@@ -811,15 +811,18 @@ static void reconstruct_bayer_row(const int32_t *gs_row, const int32_t *rg_row,
 {
     int log_max = (log_bits <= 14) ? 16383 : 65535;
     int32_t mid_half = 1 << (log_bits - 1);  /* fast_decode's "midpoint" */
+    /* Multiplication instead of <<: inverse-wavelet outputs can be negative
+       and left-shift of negative signed values is UB (caught by UBSan). */
+    int32_t prescale_mul = (int32_t)1 << prescale;
 
     for (int c = 0; c < ch_w; c++) {
         /* Undo prescale: encoder did >>prescale during horizontal_filter.
            Multiplying by 1<<prescale restores the channel-domain scale.
            This is the same as the decoder's descale_shift = prescale. */
-        int32_t GS = gs_row[c] << prescale;
-        int32_t RG = rg_row[c] << prescale;
-        int32_t BG = bg_row[c] << prescale;
-        int32_t GD = gd_row[c] << prescale;
+        int32_t GS = gs_row[c] * prescale_mul;
+        int32_t RG = rg_row[c] * prescale_mul;
+        int32_t BG = bg_row[c] * prescale_mul;
+        int32_t GD = gd_row[c] * prescale_mul;
 
         /* The encoder stored channels at >>1, but: the prescale shift
            already accounts for the factor of 2 inside the wavelet sum
@@ -836,8 +839,10 @@ static void reconstruct_bayer_row(const int32_t *gs_row, const int32_t *rg_row,
         RG -= mid_half;
         BG -= mid_half;
 
-        int32_t R  = (RG << 1) + GS;
-        int32_t B  = (BG << 1) + GS;
+        /* RG / BG can be negative here after mid_half subtraction; use *2
+           instead of <<1 to avoid signed-shift UB. */
+        int32_t R  = (RG * 2) + GS;
+        int32_t B  = (BG * 2) + GS;
         int32_t G1 = GS + GD;
         int32_t G2 = GS - GD;
 
