@@ -437,79 +437,105 @@ static void unpack_channel_row(
     int col = 0;
 
 #if ENABLED(NEON)
+    const int ch_width_m8 = (ch_width / 8) * 8;
     const int ch_width_m4 = (ch_width / 4) * 4;
     const int32x4_t vmid2 = vdupq_n_s32(mid2);
+    const uint16x8_t v_log_max = vdupq_n_u16((uint16_t)log_max);
 
-    if (channel == 0) {  /* GS = (G1+G2)>>1 */
-        for (; col < ch_width_m4; col += 4) {
+    /* 8-wide path: load + branchless clip via NEON; LUT gather stays scalar
+       (ARM has no arbitrary u16 gather). Outputs are emitted in two 4-wide
+       NEON chunks so the downstream arithmetic stays identical to the
+       4-wide path. */
+    for (; col < ch_width_m8; col += 8) {
+        /* vld2q_u16 deinterleaves the strided Bayer reads:
+             RGGB: row1 = R G1 R G1 ... → (R[0..7], G1[0..7])
+                   row2 = G2 B G2 B ... → (G2[0..7], B[0..7])
+             GBRG: row1 = G1 B G1 B ... → (G1[0..7], B[0..7])
+                   row2 = R G2 R G2 ... → (R[0..7], G2[0..7])
+           One vld2q replaces 8 strided u16 loads + an 8-way clip. */
+        uint16x8x2_t r1d = vld2q_u16(&row1[2*col]);
+        uint16x8x2_t r2d = vld2q_u16(&row2[2*col]);
+
+        uint16x8_t vR, vG1, vG2, vB;
+        if (is_rggb) {
+            vR  = vminq_u16(r1d.val[0], v_log_max);
+            vG1 = vminq_u16(r1d.val[1], v_log_max);
+            vG2 = vminq_u16(r2d.val[0], v_log_max);
+            vB  = vminq_u16(r2d.val[1], v_log_max);
+        } else {
+            vG1 = vminq_u16(r1d.val[0], v_log_max);
+            vB  = vminq_u16(r1d.val[1], v_log_max);
+            vR  = vminq_u16(r2d.val[0], v_log_max);
+            vG2 = vminq_u16(r2d.val[1], v_log_max);
+        }
+
+        uint16_t Rs[8], G1s[8], G2s[8], Bs[8];
+        if (channel == 1) vst1q_u16(Rs, vR);
+        if (channel == 2) vst1q_u16(Bs, vB);
+        vst1q_u16(G1s, vG1);
+        vst1q_u16(G2s, vG2);
+
+        /* Emit two 4-wide NEON output chunks per 8-pixel iter. */
+        for (int half = 0; half < 2; half++) {
             int32_t g1a[4], g2a[4];
             for (int k = 0; k < 4; k++) {
-                int c = col + k;
-                uint16_t G1, G2;
-                if (is_rggb) { G1 = row1[2*c+1]; G2 = row2[2*c]; }
-                else         { G1 = row1[2*c];   G2 = row2[2*c+1]; }
-                if (G1 > log_max) G1 = log_max;
-                if (G2 > log_max) G2 = log_max;
-                g1a[k] = log_tbl[G1]; g2a[k] = log_tbl[G2];
+                g1a[k] = log_tbl[G1s[half*4 + k]];
+                g2a[k] = log_tbl[G2s[half*4 + k]];
             }
-            int32x4_t vg1 = vld1q_s32(g1a), vg2 = vld1q_s32(g2a);
-            vst1q_s32(&output[col], vshrq_n_s32(vaddq_s32(vg1, vg2), 1));
+            int32x4_t vg1 = vld1q_s32(g1a);
+            int32x4_t vg2 = vld1q_s32(g2a);
+
+            int32x4_t result;
+            if (channel == 0) {
+                result = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            } else if (channel == 3) {
+                result = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+            } else {
+                int32_t xa[4];
+                if (channel == 1) {
+                    for (int k = 0; k < 4; k++) xa[k] = log_tbl[Rs[half*4 + k]];
+                } else {
+                    for (int k = 0; k < 4; k++) xa[k] = log_tbl[Bs[half*4 + k]];
+                }
+                int32x4_t vx = vld1q_s32(xa);
+                int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+                result = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
+            }
+            vst1q_s32(&output[col + half*4], result);
         }
     }
-    else if (channel == 1) {  /* RG = ((R - GS) + mid2) >> 1 */
-        for (; col < ch_width_m4; col += 4) {
-            int32_t ra[4], g1a[4], g2a[4];
-            for (int k = 0; k < 4; k++) {
-                int c = col + k;
-                uint16_t R, G1, G2;
-                if (is_rggb) { R = row1[2*c];   G1 = row1[2*c+1]; G2 = row2[2*c]; }
-                else         { R = row2[2*c];   G1 = row1[2*c];   G2 = row2[2*c+1]; }
-                if (R  > log_max) R  = log_max;
-                if (G1 > log_max) G1 = log_max;
-                if (G2 > log_max) G2 = log_max;
-                ra[k] = log_tbl[R]; g1a[k] = log_tbl[G1]; g2a[k] = log_tbl[G2];
+
+    /* 4-wide tail when ch_width isn't a multiple of 8 (rare — almost
+       always 0 cols for the common Z8/X2D widths). */
+    for (; col < ch_width_m4; col += 4) {
+        int32_t ra[4], ba[4], g1a[4], g2a[4];
+        for (int k = 0; k < 4; k++) {
+            int c = col + k;
+            uint16_t R, G1, G2, B;
+            if (is_rggb) {
+                R  = row1[2*c]; G1 = row1[2*c+1]; G2 = row2[2*c]; B  = row2[2*c+1];
+            } else {
+                G1 = row1[2*c]; B  = row1[2*c+1]; R  = row2[2*c]; G2 = row2[2*c+1];
             }
-            int32x4_t vr = vld1q_s32(ra), vg1 = vld1q_s32(g1a), vg2 = vld1q_s32(g2a);
+            if (R  > log_max) R  = log_max;
+            if (G1 > log_max) G1 = log_max;
+            if (G2 > log_max) G2 = log_max;
+            if (B  > log_max) B  = log_max;
+            ra[k] = log_tbl[R]; g1a[k] = log_tbl[G1];
+            g2a[k] = log_tbl[G2]; ba[k] = log_tbl[B];
+        }
+        int32x4_t vg1 = vld1q_s32(g1a), vg2 = vld1q_s32(g2a);
+        int32x4_t result;
+        if (channel == 0) {
+            result = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+        } else if (channel == 3) {
+            result = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+        } else {
+            int32x4_t vx = vld1q_s32(channel == 1 ? ra : ba);
             int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
-            vst1q_s32(&output[col],
-                vshrq_n_s32(vaddq_s32(vsubq_s32(vr, vgs), vmid2), 1));
+            result = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
         }
-    }
-    else if (channel == 2) {  /* BG = ((B - GS) + mid2) >> 1 */
-        for (; col < ch_width_m4; col += 4) {
-            int32_t ba[4], g1a[4], g2a[4];
-            for (int k = 0; k < 4; k++) {
-                int c = col + k;
-                uint16_t B, G1, G2;
-                if (is_rggb) { B = row2[2*c+1]; G1 = row1[2*c+1]; G2 = row2[2*c]; }
-                else         { B = row1[2*c+1]; G1 = row1[2*c];   G2 = row2[2*c+1]; }
-                if (B  > log_max) B  = log_max;
-                if (G1 > log_max) G1 = log_max;
-                if (G2 > log_max) G2 = log_max;
-                ba[k] = log_tbl[B]; g1a[k] = log_tbl[G1]; g2a[k] = log_tbl[G2];
-            }
-            int32x4_t vb = vld1q_s32(ba), vg1 = vld1q_s32(g1a), vg2 = vld1q_s32(g2a);
-            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
-            vst1q_s32(&output[col],
-                vshrq_n_s32(vaddq_s32(vsubq_s32(vb, vgs), vmid2), 1));
-        }
-    }
-    else {  /* channel == 3, GD = ((G1 - G2) + mid2) >> 1 */
-        for (; col < ch_width_m4; col += 4) {
-            int32_t g1a[4], g2a[4];
-            for (int k = 0; k < 4; k++) {
-                int c = col + k;
-                uint16_t G1, G2;
-                if (is_rggb) { G1 = row1[2*c+1]; G2 = row2[2*c]; }
-                else         { G1 = row1[2*c];   G2 = row2[2*c+1]; }
-                if (G1 > log_max) G1 = log_max;
-                if (G2 > log_max) G2 = log_max;
-                g1a[k] = log_tbl[G1]; g2a[k] = log_tbl[G2];
-            }
-            int32x4_t vg1 = vld1q_s32(g1a), vg2 = vld1q_s32(g2a);
-            vst1q_s32(&output[col],
-                vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1));
-        }
+        vst1q_s32(&output[col], result);
     }
 #endif
 
