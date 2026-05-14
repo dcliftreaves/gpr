@@ -167,6 +167,19 @@ jobs:
             echo "Skipping test_video_pipeline_sim build (mach_time.h is macOS-only)."
           fi
 
+          # test_gpr_polish — CoreML wrapper smoke test, macOS only. Links
+          # against libgpr_polish.a (built when GPR_POLISH=ON, default on
+          # Apple) plus the CoreML / Foundation frameworks and libc++ (the
+          # library is Objective-C++).
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            echo "::group::Build test_gpr_polish"
+            clang -O2 -I source/lib/gpr_polish \
+              -o /tmp/gpr-tests/test_gpr_polish source/app/test_gpr_polish.c \
+              build/source/lib/gpr_polish/libgpr_polish.a \
+              -framework CoreML -framework Foundation -lc++
+            echo "::endgroup::"
+          fi
+
       - name: Run test_video_format
         run: timeout 60 /tmp/gpr-tests/test_video_format
 
@@ -196,3 +209,10 @@ jobs:
         run: |
           timeout 180 /tmp/gpr-tests/test_video_pipeline_sim \
             /tmp/Z8_ISO64.raw 8280 5520 4 3 10 24.0 150.0 0.0 1.0
+
+      - name: Run test_gpr_polish (macOS only)
+        if: runner.os == 'macOS'
+        # No model path: exercises the create(NULL)/available() smoke. A
+        # model-bearing run requires shipping a .mlpackage which we don't
+        # do in-repo today; the full apply path is exercised locally.
+        run: timeout 30 /tmp/gpr-tests/test_gpr_polish

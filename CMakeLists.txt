@@ -45,6 +45,16 @@ if(FUSED_LOG_POLYNOMIAL)
 endif()
 message(STATUS "FUSED_LOG_POLYNOMIAL: ${FUSED_LOG_POLYNOMIAL}")
 
+# GPR_POLISH: optional decoder-side CNN polish (CoreML-backed). Apple-only.
+# Off by default on non-Apple platforms; on by default on macOS if the
+# CoreML framework is present.
+set(GPR_POLISH_DEFAULT OFF)
+if(APPLE AND EXISTS "${CMAKE_SOURCE_DIR}/source/lib/gpr_polish")
+  set(GPR_POLISH_DEFAULT ON)
+endif()
+option(GPR_POLISH "Build CoreML-backed decoder polish library" ${GPR_POLISH_DEFAULT})
+message(STATUS "GPR_POLISH: ${GPR_POLISH}")
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(
     COMMAND git rev-parse --abbrev-ref HEAD
@@ -95,6 +105,12 @@ add_subdirectory( "source/lib/gpr_sdk" )
 add_subdirectory( "source/lib/xmp_core" )
 add_subdirectory( "source/lib/expat_lib" )
 add_subdirectory( "source/lib/md5_lib" )
+
+if(GPR_POLISH)
+  MESSAGE( STATUS "Found source/lib/gpr_polish and APPLE - enabling CoreML polish library" )
+  add_subdirectory( "source/lib/gpr_polish" )
+  add_compile_definitions(GPR_POLISH_ENABLED=1)
+endif()
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
   MESSAGE( STATUS "Found source/lib/tiny_jpeg - enabling jpeg writing and setting GPR_JPEG_AVAILABLE=1" )
