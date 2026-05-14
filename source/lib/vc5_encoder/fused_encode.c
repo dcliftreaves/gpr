@@ -394,16 +394,31 @@ typedef struct {
     JANS_INLINE_STATE *inline_state[FUSED_MAX_BANDS];
 
     /* ---- Multi-level (3-level wavelet) extension. NULL when multi_level off.
-       Level 2: input is band_data[0] (LL1). Outputs band_data_l2[0..3]:
-                LL2 (fed to level 3) + LH2/HL2/HH2 (encoded).
-       Level 3: input is band_data_l2[0] (LL2). Outputs band_data_l3[0..3]:
-                LL3 (encoded as the lowpass) + LH3/HL3/HH3 (encoded). */
+       Sequential mode: band_data_l2[0] holds the entire LL2 band (input to
+       level-3). Streaming mode: band_data_l2[0] is NULL — LL2 rows feed
+       directly into the level-3 horizontal filter via lp_buf_l3.
+       LH/HL/HH at each level are always allocated (they are Pass 2 inputs).
+       LL3 is always allocated and encoded. */
     PIXEL *band_data_l2[FUSED_MAX_BANDS];
     PIXEL *band_data_l3[FUSED_MAX_BANDS];
     int band_width_l2, band_height_l2;
     int band_width_l3, band_height_l3;
     int32_t midpoint_l2[FUSED_MAX_BANDS], multiplier_l2[FUSED_MAX_BANDS];
     int32_t midpoint_l3[FUSED_MAX_BANDS], multiplier_l3[FUSED_MAX_BANDS];
+
+    /* Streaming pyramid: per-level 6-row horizontal filter buffer fed by
+       the previous level's vertical-filter output. NULL when not in
+       streaming mode. */
+    PIXEL *lp_buf_l2[FUSED_ROW_BUFS], *hp_buf_l2[FUSED_ROW_BUFS];
+    int buf_row_l2;
+    int band_out_row_l2;
+    PIXEL *ll2_row_scratch;  /* 1-row buffer for the unused LL2 result */
+
+    PIXEL *lp_buf_l3[FUSED_ROW_BUFS], *hp_buf_l3[FUSED_ROW_BUFS];
+    int buf_row_l3;
+    int band_out_row_l3;
+
+    int streaming_active;  /* 1 = run cascade in pass1; 0 = sequential post-pass */
 } FUSED_CHANNEL_STATE;
 
 /* ================================================================
@@ -527,6 +542,110 @@ static void unpack_channel_row(
     }
 }
 
+/* Streaming cascade: feed one newly-produced LL1 row into level-2's
+   horizontal filter, then (if enough rows are queued) run level-2's
+   vertical filter, then cascade the LL2 row into level-3's horizontal
+   filter, then (if enough rows) run level-3's vertical filter.
+
+   This eliminates the LL1 and LL2 full-image buffers (saves ~57 MB at
+   50 MP), keeping only the small 6-row horizontal buffers per level. */
+static void stream_cascade_higher_levels(FUSED_CHANNEL_STATE *cs,
+                                         const PIXEL *ll1_row)
+{
+    int bw_l2 = cs->band_width_l2;
+    int bw_l3 = cs->band_width_l3;
+
+    /* ---- Level 2 horizontal filter ---- */
+    int slot2 = cs->buf_row_l2 % FUSED_ROW_BUFS;
+    horizontal_filter(ll1_row,
+                      cs->lp_buf_l2[slot2], cs->hp_buf_l2[slot2],
+                      cs->band_width, /*prescale=*/0);
+    cs->buf_row_l2++;
+
+    /* ---- Level 2 vertical filter (emit one output row every 2 inputs after row 6) ---- */
+    if (cs->buf_row_l2 >= 6 && (cs->buf_row_l2 % 2) == 0) {
+        int out_row_l2 = cs->band_out_row_l2;
+        if (out_row_l2 >= cs->band_height_l2) return;
+
+        PIXEL *lp_rows[6], *hp_rows[6];
+        int base = (cs->buf_row_l2 - 6) % FUSED_ROW_BUFS;
+        for (int r = 0; r < 6; r++) {
+            int idx = (base + r) % FUSED_ROW_BUFS;
+            if (idx < 0) idx += FUSED_ROW_BUFS;
+            lp_rows[r] = cs->lp_buf_l2[idx];
+            hp_rows[r] = cs->hp_buf_l2[idx];
+        }
+        int is_top = (out_row_l2 == 0);
+        int is_bottom = (out_row_l2 == cs->band_height_l2 - 1);
+
+        PIXEL *ll2 = cs->ll2_row_scratch;  /* fed to level 3 below */
+        PIXEL *lh2 = cs->band_data_l2[1] + out_row_l2 * bw_l2;
+        PIXEL *hl2 = cs->band_data_l2[2] + out_row_l2 * bw_l2;
+        PIXEL *hh2 = cs->band_data_l2[3] + out_row_l2 * bw_l2;
+
+        vertical_filter_quantize_row(lp_rows, bw_l2,
+            cs->midpoint_l2[0], cs->multiplier_l2[0],
+            cs->midpoint_l2[1], cs->multiplier_l2[1],
+            0,0, 0,0,
+            ll2, lh2, NULL, NULL,
+            is_top, is_bottom);
+
+        vertical_filter_quantize_row(hp_rows, bw_l2,
+            cs->midpoint_l2[2], cs->multiplier_l2[2],
+            cs->midpoint_l2[3], cs->multiplier_l2[3],
+            0,0, 0,0,
+            hl2, hh2, NULL, NULL,
+            is_top, is_bottom);
+
+        cs->band_out_row_l2++;
+
+        /* ---- Cascade the LL2 row into level 3 ---- */
+        int slot3 = cs->buf_row_l3 % FUSED_ROW_BUFS;
+        horizontal_filter(ll2,
+                          cs->lp_buf_l3[slot3], cs->hp_buf_l3[slot3],
+                          bw_l2, /*prescale=*/0);
+        cs->buf_row_l3++;
+
+        /* ---- Level 3 vertical filter ---- */
+        if (cs->buf_row_l3 >= 6 && (cs->buf_row_l3 % 2) == 0) {
+            int out_row_l3 = cs->band_out_row_l3;
+            if (out_row_l3 >= cs->band_height_l3) return;
+
+            PIXEL *lp_rows3[6], *hp_rows3[6];
+            int base3 = (cs->buf_row_l3 - 6) % FUSED_ROW_BUFS;
+            for (int r = 0; r < 6; r++) {
+                int idx = (base3 + r) % FUSED_ROW_BUFS;
+                if (idx < 0) idx += FUSED_ROW_BUFS;
+                lp_rows3[r] = cs->lp_buf_l3[idx];
+                hp_rows3[r] = cs->hp_buf_l3[idx];
+            }
+            int is_top3 = (out_row_l3 == 0);
+            int is_bottom3 = (out_row_l3 == cs->band_height_l3 - 1);
+
+            PIXEL *ll3 = cs->band_data_l3[0] + out_row_l3 * bw_l3;
+            PIXEL *lh3 = cs->band_data_l3[1] + out_row_l3 * bw_l3;
+            PIXEL *hl3 = cs->band_data_l3[2] + out_row_l3 * bw_l3;
+            PIXEL *hh3 = cs->band_data_l3[3] + out_row_l3 * bw_l3;
+
+            vertical_filter_quantize_row(lp_rows3, bw_l3,
+                cs->midpoint_l3[0], cs->multiplier_l3[0],
+                cs->midpoint_l3[1], cs->multiplier_l3[1],
+                0,0, 0,0,
+                ll3, lh3, NULL, NULL,
+                is_top3, is_bottom3);
+
+            vertical_filter_quantize_row(hp_rows3, bw_l3,
+                cs->midpoint_l3[2], cs->multiplier_l3[2],
+                cs->midpoint_l3[3], cs->multiplier_l3[3],
+                0,0, 0,0,
+                hl3, hh3, NULL, NULL,
+                is_top3, is_bottom3);
+
+            cs->band_out_row_l3++;
+        }
+    }
+}
+
 /* Run the entire Pass 1 pipeline for a single channel: unpack → horiz → vert+quant → freq.
    Each invocation owns its 6-row buffer and freq tables in *cs. */
 static void pass1_run_channel(
@@ -595,12 +714,18 @@ static void pass1_run_channel(
             int is_bottom = (out_row == cs->band_height - 1);
             int bw = cs->band_width;
 
-            /* Output destinations: either into the full band buffer (split mode)
-               or into a per-row scratch (inline mode). LL is discarded either
-               way at this level. */
+            /* Output destinations:
+               - single-level inline tokenize: per-row scratch (band rows are
+                 immediately tokenized, no full band buffer needed)
+               - multi-level streaming: LL1 goes to row_scratch[0] (consumed
+                 immediately by the streaming cascade); LH1/HL1/HH1 go to
+                 their full band buffers (Pass 2 input)
+               - everything else (split mode): full band buffers */
             const int inline_mode = (cs->inline_state[1] != NULL);
-            PIXEL *ll_row = inline_mode ? cs->row_scratch[0]
-                                        : (cs->band_data[0] + out_row * cs->band_pitch);
+            const int streaming = cs->streaming_active;
+            PIXEL *ll_row = inline_mode    ? cs->row_scratch[0]
+                          : streaming      ? cs->row_scratch[0]
+                                           : (cs->band_data[0] + out_row * cs->band_pitch);
             PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
                                         : (cs->band_data[1] + out_row * cs->band_pitch);
             PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
@@ -632,6 +757,12 @@ static void pass1_run_channel(
                 jans_inline_row(cs->inline_state[1], lh_row, bw);
                 jans_inline_row(cs->inline_state[2], hl_row, bw);
                 jans_inline_row(cs->inline_state[3], hh_row, bw);
+            }
+
+            /* Multi-level streaming: cascade the fresh LL1 row through
+               level-2 and level-3 wavelets while it's hot in cache. */
+            if (streaming) {
+                stream_cascade_higher_levels(cs, ll_row);
             }
 
 #ifdef FUSED_TIMING_DETAIL
@@ -710,7 +841,8 @@ static void *pass1_channel_thread(void *arg) {
    level-3 band buffers (each is 1/4 and 1/16 the level-1 band size). */
 static int setup_channel_state(
     FUSED_CHANNEL_STATE ch_state[4],
-    int width, int height, int quality, int inline_mode, int multi_level,
+    int width, int height, int quality,
+    int inline_mode, int multi_level, int streaming,
     int *out_is_rggb, int *out_log_bits)
 {
     int ch_width = width / 2;
@@ -750,6 +882,13 @@ static int setup_channel_state(
                 ch_state[ch].band_data[band] = NULL;
                 ch_state[ch].row_scratch[band] = (PIXEL *)calloc(bw, sizeof(PIXEL));
                 if (!ch_state[ch].row_scratch[band]) return -1;
+            } else if (multi_level && streaming && band == 0) {
+                /* Streaming multi-level: LL1 is consumed inline as it's
+                   produced — no need to buffer the full band. Use a 1-row
+                   scratch instead. */
+                ch_state[ch].band_data[band] = NULL;
+                ch_state[ch].row_scratch[band] = (PIXEL *)calloc(bw, sizeof(PIXEL));
+                if (!ch_state[ch].row_scratch[band]) return -1;
             } else {
                 ch_state[ch].band_data[band] = (PIXEL *)calloc(bw * bh, sizeof(PIXEL));
                 ch_state[ch].row_scratch[band] = NULL;
@@ -771,10 +910,37 @@ static int setup_channel_state(
             ch_state[ch].band_width_l3 = bw3;
             ch_state[ch].band_height_l3 = bh3;
             for (int band = 0; band < 4; band++) {
-                ch_state[ch].band_data_l2[band] = (PIXEL *)calloc(bw2 * bh2, sizeof(PIXEL));
+                /* Streaming mode: skip the LL2 full-image buffer (band==0). */
+                int need_l2 = !(streaming && band == 0);
+                if (need_l2) {
+                    ch_state[ch].band_data_l2[band] = (PIXEL *)calloc(bw2 * bh2, sizeof(PIXEL));
+                    if (!ch_state[ch].band_data_l2[band]) return -1;
+                } else {
+                    ch_state[ch].band_data_l2[band] = NULL;
+                }
                 ch_state[ch].band_data_l3[band] = (PIXEL *)calloc(bw3 * bh3, sizeof(PIXEL));
-                if (!ch_state[ch].band_data_l2[band]) return -1;
                 if (!ch_state[ch].band_data_l3[band]) return -1;
+            }
+            /* Streaming buffers — only in streaming mode */
+            if (streaming) {
+                for (int r = 0; r < FUSED_ROW_BUFS; r++) {
+                    ch_state[ch].lp_buf_l2[r] = (PIXEL *)calloc(bw2, sizeof(PIXEL));
+                    ch_state[ch].hp_buf_l2[r] = (PIXEL *)calloc(bw2, sizeof(PIXEL));
+                    ch_state[ch].lp_buf_l3[r] = (PIXEL *)calloc(bw3, sizeof(PIXEL));
+                    ch_state[ch].hp_buf_l3[r] = (PIXEL *)calloc(bw3, sizeof(PIXEL));
+                    if (!ch_state[ch].lp_buf_l2[r] || !ch_state[ch].hp_buf_l2[r] ||
+                        !ch_state[ch].lp_buf_l3[r] || !ch_state[ch].hp_buf_l3[r])
+                        return -1;
+                }
+                ch_state[ch].ll2_row_scratch = (PIXEL *)calloc(bw2, sizeof(PIXEL));
+                if (!ch_state[ch].ll2_row_scratch) return -1;
+                ch_state[ch].buf_row_l2 = 0;
+                ch_state[ch].band_out_row_l2 = 0;
+                ch_state[ch].buf_row_l3 = 0;
+                ch_state[ch].band_out_row_l3 = 0;
+                ch_state[ch].streaming_active = 1;
+            } else {
+                ch_state[ch].streaming_active = 0;
             }
             /* Level-2: qt[0]=LL2 (no-op), qt[4,5,6]=LH2,HL2,HH2 */
             ch_state[ch].midpoint_l2[0] = get_midpoint(qt[0]);
@@ -973,6 +1139,9 @@ struct FUSED_ENCODER {
                           0 = split-pass (band_data buffer + Pass 2 tokenize) */
     int multi_level;  /* 1 = 3-level wavelet decomposition (10 bands × 4 ch);
                           0 = single-level (3 bands × 4 ch, legacy) */
+    int streaming;    /* When multi_level=1: 1 = stream level-2/3 inline with
+                          level-1 (no LL1/LL2 band buffers, embedded-friendly);
+                          0 = sequential (full LL1/LL2 buffers, simpler). */
 
     FUSED_CHANNEL_STATE ch_state[4];
 
@@ -1020,6 +1189,21 @@ static int fused_choose_multi_level(void) {
     return 0;
 }
 
+/* Multi-level streaming: when set (and multi_level=1), runs levels 2 and 3
+   inline inside each channel's Pass 1 thread instead of as a separate
+   post-Pass-1 stage. Saves the LL1 and LL2 full-image buffers
+   (~57 MB at 50 MP) at the cost of slightly more complex bookkeeping.
+   Default: 1 (streaming is the embedded-friendly choice; sequential
+   is kept as a debug/comparison path). */
+static int fused_choose_streaming(void) {
+    const char *env = getenv("FUSED_MULTI_LEVEL_STREAMING");
+    if (env) {
+        if (env[0] == '0') return 0;
+        if (env[0] == '1') return 1;
+    }
+    return 1;
+}
+
 /* Reset just the per-frame state on a context (counters, run state, freq tables,
    inline-tokenize state). Band buffers / row scratch are overwritten as work
    progresses so no per-frame zeroing needed. */
@@ -1028,6 +1212,10 @@ static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         cs->band_out_row = 0;
         cs->buf_row = 0;
+        cs->buf_row_l2 = 0;
+        cs->band_out_row_l2 = 0;
+        cs->buf_row_l3 = 0;
+        cs->band_out_row_l3 = 0;
         memset(cs->freq, 0, sizeof(cs->freq));
         memset(cs->run_state, 0, sizeof(cs->run_state));
         for (int band = 1; band < 4; band++) {
@@ -1048,6 +1236,7 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     ctx->prescale = 2;
     ctx->inline_mode = fused_choose_inline_mode();
     ctx->multi_level = fused_choose_multi_level();
+    ctx->streaming = ctx->multi_level ? fused_choose_streaming() : 0;
     /* Multi-level requires split mode (we need LL1/LL2 buffers in memory). */
     if (ctx->multi_level && ctx->inline_mode) {
         ctx->inline_mode = 0;
@@ -1057,7 +1246,7 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
 
     int dummy_is_rggb, dummy_log_bits;
     if (setup_channel_state(ctx->ch_state, width, height, quality,
-                             ctx->inline_mode, ctx->multi_level,
+                             ctx->inline_mode, ctx->multi_level, ctx->streaming,
                              &dummy_is_rggb, &dummy_log_bits) != 0) {
         gpr_encode_fused_destroy(ctx);
         return NULL;
@@ -1230,7 +1419,12 @@ void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
         for (int r = 0; r < FUSED_ROW_BUFS; r++) {
             if (cs->lowpass_buf[r])  free(cs->lowpass_buf[r]);
             if (cs->highpass_buf[r]) free(cs->highpass_buf[r]);
+            if (cs->lp_buf_l2[r])    free(cs->lp_buf_l2[r]);
+            if (cs->hp_buf_l2[r])    free(cs->hp_buf_l2[r]);
+            if (cs->lp_buf_l3[r])    free(cs->lp_buf_l3[r]);
+            if (cs->hp_buf_l3[r])    free(cs->hp_buf_l3[r]);
         }
+        if (cs->ll2_row_scratch) free(cs->ll2_row_scratch);
     }
     free(ctx);
 }
@@ -1467,27 +1661,32 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
     fprintf(stderr, "  FUSED ML Pass1 (level-1, parallel):       %.1fms\n", t1 - t0);
 #endif
 
-    /* ---- Level 2 + Level 3 wavelets per channel (parallel) ---- */
-    LEVEL23_TASK l23_tasks[4];
-    pthread_t l23_threads[4];
-    int l23_created[4] = {0};
-    for (int ch = 0; ch < 4; ch++) {
-        l23_tasks[ch].cs = &ctx->ch_state[ch];
-        if (run_serial) {
-            level23_run_channel(&l23_tasks[ch]);
-        } else {
-            l23_created[ch] = (pthread_create(&l23_threads[ch], NULL,
-                                               level23_run_channel, &l23_tasks[ch]) == 0);
-            if (!l23_created[ch]) level23_run_channel(&l23_tasks[ch]);
+    /* ---- Level 2 + Level 3 wavelets per channel (parallel).
+       Streaming mode: skip — already run inline in pass1 per channel. */
+    if (!ctx->streaming) {
+        LEVEL23_TASK l23_tasks[4];
+        pthread_t l23_threads[4];
+        int l23_created[4] = {0};
+        for (int ch = 0; ch < 4; ch++) {
+            l23_tasks[ch].cs = &ctx->ch_state[ch];
+            if (run_serial) {
+                level23_run_channel(&l23_tasks[ch]);
+            } else {
+                l23_created[ch] = (pthread_create(&l23_threads[ch], NULL,
+                                                   level23_run_channel, &l23_tasks[ch]) == 0);
+                if (!l23_created[ch]) level23_run_channel(&l23_tasks[ch]);
+            }
         }
-    }
-    for (int ch = 0; ch < 4; ch++) {
-        if (l23_created[ch]) pthread_join(l23_threads[ch], NULL);
+        for (int ch = 0; ch < 4; ch++) {
+            if (l23_created[ch]) pthread_join(l23_threads[ch], NULL);
+        }
     }
 
 #ifdef FUSED_TIMING
     double t2 = _fused_ms();
-    fprintf(stderr, "  FUSED ML Level23 (sequential per ch):     %.1fms\n", t2 - t1);
+    fprintf(stderr, "  FUSED ML Level23 (%s):     %.1fms\n",
+            ctx->streaming ? "streamed in pass1" : "post-pass1 per ch",
+            t2 - t1);
 #endif
 
     /* ---- Dispatch Pass 2 for all 40 bands ---- */
