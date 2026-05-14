@@ -1567,9 +1567,31 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     pthread_mutex_destroy(&sync.lock);
     pthread_cond_destroy(&sync.cv);
 
-    /* Concat into the persistent stream buffer */
+    /* Emit header + band manifest + band data into stream_buf. */
+    const int num_bands = 12;
+    FUSED_HEADER hdr;
+    hdr.magic = FUSED_MAGIC;
+    hdr.version = FUSED_VERSION;
+    hdr.width = ctx->width;
+    hdr.height = ctx->height;
+    hdr.pixel_format = ctx->pixel_format;
+    hdr.quality = ctx->quality;
+    hdr.is_rggb = ctx->is_rggb;
+    hdr.log_bits = ctx->log_bits;
+    hdr.prescale = ctx->prescale;
+    hdr.multi_level = 0;
+    hdr.num_bands = num_bands;
+    hdr.reserved = 0;
+
     size_t pos = 0;
-    for (int i = 0; i < 12; i++) {
+    memcpy(ctx->stream_buf + pos, &hdr, sizeof(hdr)); pos += sizeof(hdr);
+    /* Band-size table */
+    for (int i = 0; i < num_bands; i++) {
+        uint32_t sz = (uint32_t)p2_tasks[i].enc_size;
+        memcpy(ctx->stream_buf + pos, &sz, sizeof(sz)); pos += sizeof(sz);
+    }
+    /* Band data */
+    for (int i = 0; i < num_bands; i++) {
         PASS2_BAND_TASK *pt = &p2_tasks[i];
         if (pt->enc_size > 0 && pos + pt->enc_size <= ctx->stream_cap) {
             memcpy(ctx->stream_buf + pos, pt->enc_buf, pt->enc_size);
@@ -1773,8 +1795,27 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
     fprintf(stderr, "  FUSED ML Pass2 (40 bands, parallel):      %.1fms\n", t3 - t2);
 #endif
 
-    /* ---- Concat outputs ---- */
+    /* ---- Emit header + band manifest + band data ---- */
+    FUSED_HEADER hdr;
+    hdr.magic = FUSED_MAGIC;
+    hdr.version = FUSED_VERSION;
+    hdr.width = ctx->width;
+    hdr.height = ctx->height;
+    hdr.pixel_format = ctx->pixel_format;
+    hdr.quality = ctx->quality;
+    hdr.is_rggb = ctx->is_rggb;
+    hdr.log_bits = ctx->log_bits;
+    hdr.prescale = ctx->prescale;
+    hdr.multi_level = 1;
+    hdr.num_bands = p2_tasks_total;
+    hdr.reserved = 0;
+
     size_t pos = 0;
+    memcpy(ctx->stream_buf + pos, &hdr, sizeof(hdr)); pos += sizeof(hdr);
+    for (int i = 0; i < p2_tasks_total; i++) {
+        uint32_t sz = (uint32_t)p2_tasks[i].enc_size;
+        memcpy(ctx->stream_buf + pos, &sz, sizeof(sz)); pos += sizeof(sz);
+    }
     for (int i = 0; i < p2_tasks_total; i++) {
         PASS2_BAND_TASK *pt = &p2_tasks[i];
         if (pt->enc_size > 0 && pos + pt->enc_size <= ctx->stream_cap) {

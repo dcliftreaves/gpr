@@ -48,6 +48,36 @@
 extern "C" {
 #endif
 
+/* Fused-codec self-describing wrapper format. Output starts with this
+   fixed header followed by a per-band length table and the band data.
+   This is NOT a VC5 bitstream — it's a private format used by the fused
+   encoder/decoder pair until the encoder learns to emit standard VC5.
+
+   Layout:
+     FUSED_HEADER  header
+     uint32_t      band_size[num_bands]    -- byte length of each band
+     uint8_t       band_data[band_size[0]]
+     uint8_t       band_data[band_size[1]]
+     ...
+*/
+#define FUSED_MAGIC    0x44535546u   /* 'FUSD' little-endian */
+#define FUSED_VERSION  1
+
+typedef struct {
+    uint32_t magic;          /* FUSED_MAGIC */
+    uint32_t version;        /* FUSED_VERSION */
+    uint32_t width;          /* pixel width  (Bayer pattern width)  */
+    uint32_t height;         /* pixel height (Bayer pattern height) */
+    uint32_t pixel_format;   /* same encoding as gpr_encode_fused()  */
+    uint32_t quality;        /* 0..8 */
+    uint32_t is_rggb;        /* 1 = RGGB, 0 = GBRG */
+    uint32_t log_bits;       /* 14 for 12/14-bit input, 16 for 16-bit */
+    uint32_t prescale;       /* level-1 prescale (typically 2) */
+    uint32_t multi_level;    /* 1 = 3-level wavelet, 0 = single-level */
+    uint32_t num_bands;      /* 12 (single-level) or 40 (multi-level) */
+    uint32_t reserved;       /* padding to 12 u32's */
+} FUSED_HEADER;
+
 /*!
     @brief Fused encode: raw Bayer pixels → VC5 bitstream.
 
