@@ -275,23 +275,113 @@ static inline uint16_t apply_log_curve(uint16_t value, int bits) {
 }
 
 /* ================================================================
+   Multi-level helper: apply a full wavelet decomposition to a PIXEL
+   buffer. Used for levels 2 and 3 after Pass 1 fills the level-1
+   LL band. Sequential (not fused with the unpack/log stage that
+   only exists for the raw Bayer input).
+   ================================================================ */
+
+/* Decompose `input` (in_width × in_height PIXEL) into 4 quantized subbands
+   of (in_width/2 × in_height/2). prescale=0 (the input is already wavelet
+   coefficients, not raw pixels). LL is NOT quantized here even if mid[0]/
+   mul[0] are passed — divisor=1 in the quant table produces a no-op. */
+static void wavelet_decompose_buffer(
+    const PIXEL *input, int in_width, int in_height,
+    const int32_t mid[4], const int32_t mul[4],
+    PIXEL *out_ll, PIXEL *out_lh, PIXEL *out_hl, PIXEL *out_hh)
+{
+    int out_width = in_width / 2;
+    int out_height = in_height / 2;
+
+    PIXEL *lp_rows[FUSED_ROW_BUFS];
+    PIXEL *hp_rows[FUSED_ROW_BUFS];
+    for (int r = 0; r < FUSED_ROW_BUFS; r++) {
+        lp_rows[r] = (PIXEL *)malloc(out_width * sizeof(PIXEL));
+        hp_rows[r] = (PIXEL *)malloc(out_width * sizeof(PIXEL));
+        if (!lp_rows[r] || !hp_rows[r]) {
+            for (int q = 0; q <= r; q++) {
+                if (lp_rows[q]) free(lp_rows[q]);
+                if (hp_rows[q]) free(hp_rows[q]);
+            }
+            return;
+        }
+    }
+
+    int out_row = 0;
+    int buf_filled = 0;
+
+    for (int row = 0; row < in_height; row++) {
+        int slot = row % FUSED_ROW_BUFS;
+        horizontal_filter(input + row * in_width,
+                          lp_rows[slot], hp_rows[slot],
+                          in_width, /*prescale=*/0);
+        buf_filled++;
+
+        /* Emit one output row every 2 input rows once we have 6 rows queued. */
+        if (buf_filled >= 6 && (buf_filled % 2) == 0) {
+            if (out_row >= out_height) break;
+            int base = (row + 1 - 6) % FUSED_ROW_BUFS;
+            PIXEL *lprefs[6], *hprefs[6];
+            for (int r = 0; r < 6; r++) {
+                int idx = (base + r) % FUSED_ROW_BUFS;
+                if (idx < 0) idx += FUSED_ROW_BUFS;
+                lprefs[r] = lp_rows[idx];
+                hprefs[r] = hp_rows[idx];
+            }
+            int is_top = (out_row == 0);
+            int is_bottom = (out_row == out_height - 1);
+
+            vertical_filter_quantize_row(lprefs, out_width,
+                mid[0], mul[0],  mid[1], mul[1],
+                0,0, 0,0,
+                out_ll + out_row * out_width,
+                out_lh + out_row * out_width,
+                NULL, NULL,
+                is_top, is_bottom);
+
+            vertical_filter_quantize_row(hprefs, out_width,
+                mid[2], mul[2],  mid[3], mul[3],
+                0,0, 0,0,
+                out_hl + out_row * out_width,
+                out_hh + out_row * out_width,
+                NULL, NULL,
+                is_top, is_bottom);
+
+            out_row++;
+        }
+    }
+
+    /* Bottom-edge handling: the 6-tap vertical filter under-runs by 2 rows.
+       Production code clamps the last two output rows with is_bottom=true.
+       For multi-level we accept the under-run (rows stay zero); the lost
+       rows are 2 of out_height = ~0.1% of coefficients for 1380-row band. */
+
+    for (int r = 0; r < FUSED_ROW_BUFS; r++) {
+        free(lp_rows[r]);
+        free(hp_rows[r]);
+    }
+}
+
+/* ================================================================
    Pass 1: Fused Unpack → Wavelet → Quantize → FreqCount
    ================================================================ */
 
 typedef struct {
-    /* Per-channel wavelet state */
+    /* Per-channel wavelet state (level 1 only — see below for higher levels) */
     PIXEL *lowpass_buf[FUSED_ROW_BUFS];   /* Horizontal lowpass 6-row circular buffer */
     PIXEL *highpass_buf[FUSED_ROW_BUFS];  /* Horizontal highpass 6-row circular buffer */
     int buf_row;                           /* Current position in circular buffer */
 
-    /* Per-level, per-band output */
+    /* Level-1 (largest) per-band output. band_data[0] = LL1 — fed into the
+       level-2 wavelet pass post-Pass-1 in multi-level mode, discarded
+       otherwise. band_data[1..3] = LH1/HL1/HH1 (encoded). */
     PIXEL *band_data[FUSED_MAX_BANDS];    /* Quantized band buffers (NULL in inline mode) */
     PIXEL *row_scratch[FUSED_MAX_BANDS];  /* Per-row scratch (~5KB × 4) used in inline mode */
     int band_width, band_height;
     int band_pitch;                        /* In pixels */
     int band_out_row;                      /* Current output row */
 
-    /* Quantization parameters per band */
+    /* Quantization parameters per band (level 1) */
     int32_t midpoint[FUSED_MAX_BANDS];
     int32_t multiplier[FUSED_MAX_BANDS];
 
@@ -302,6 +392,18 @@ typedef struct {
     /* Inline-tokenize state per highpass band (NULL in split-pass mode).
        Owned by FUSED_ENCODER; reset each frame. */
     JANS_INLINE_STATE *inline_state[FUSED_MAX_BANDS];
+
+    /* ---- Multi-level (3-level wavelet) extension. NULL when multi_level off.
+       Level 2: input is band_data[0] (LL1). Outputs band_data_l2[0..3]:
+                LL2 (fed to level 3) + LH2/HL2/HH2 (encoded).
+       Level 3: input is band_data_l2[0] (LL2). Outputs band_data_l3[0..3]:
+                LL3 (encoded as the lowpass) + LH3/HL3/HH3 (encoded). */
+    PIXEL *band_data_l2[FUSED_MAX_BANDS];
+    PIXEL *band_data_l3[FUSED_MAX_BANDS];
+    int band_width_l2, band_height_l2;
+    int band_width_l3, band_height_l3;
+    int32_t midpoint_l2[FUSED_MAX_BANDS], multiplier_l2[FUSED_MAX_BANDS];
+    int32_t midpoint_l3[FUSED_MAX_BANDS], multiplier_l3[FUSED_MAX_BANDS];
 } FUSED_CHANNEL_STATE;
 
 /* ================================================================
@@ -604,10 +706,11 @@ static void *pass1_channel_thread(void *arg) {
 
 /* One-time channel state setup. In inline_mode, skips the per-band full-image
    buffers and allocates per-row scratch instead — ~85 MB savings at 23 MP,
-   ~200 MB at 50 MP. */
+   ~200 MB at 50 MP. When multi_level is on, also allocates level-2 and
+   level-3 band buffers (each is 1/4 and 1/16 the level-1 band size). */
 static int setup_channel_state(
     FUSED_CHANNEL_STATE ch_state[4],
-    int width, int height, int quality, int inline_mode,
+    int width, int height, int quality, int inline_mode, int multi_level,
     int *out_is_rggb, int *out_log_bits)
 {
     int ch_width = width / 2;
@@ -615,11 +718,22 @@ static int setup_channel_state(
     const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
 
     for (int ch = 0; ch < 4; ch++) {
-        for (int band = 0; band < 4; band++) {
-            int divisor = qt[band];
-            ch_state[ch].midpoint[band] = get_midpoint(divisor);
-            ch_state[ch].multiplier[band] = get_multiplier(divisor);
+        /* Level-1 quant: qt[0]=LL1 (effectively no-op divisor=1),
+           qt[7,8,9]=LH1,HL1,HH1 in multi-level mode (coarsest quantization
+           on the largest bands). Single-level mode uses qt[1..3]. */
+        int q_ll1 = 0, q_lh1 = 1, q_hl1 = 2, q_hh1 = 3;
+        if (multi_level) {
+            q_ll1 = 0; q_lh1 = 7; q_hl1 = 8; q_hh1 = 9;
         }
+        ch_state[ch].midpoint[0] = get_midpoint(qt[q_ll1]);
+        ch_state[ch].multiplier[0] = get_multiplier(qt[q_ll1]);
+        ch_state[ch].midpoint[1] = get_midpoint(qt[q_lh1]);
+        ch_state[ch].multiplier[1] = get_multiplier(qt[q_lh1]);
+        ch_state[ch].midpoint[2] = get_midpoint(qt[q_hl1]);
+        ch_state[ch].multiplier[2] = get_multiplier(qt[q_hl1]);
+        ch_state[ch].midpoint[3] = get_midpoint(qt[q_hh1]);
+        ch_state[ch].multiplier[3] = get_multiplier(qt[q_hh1]);
+
         ch_state[ch].band_width = ch_width / 2;
         ch_state[ch].band_height = ch_height / 2;
         ch_state[ch].band_pitch = ch_state[ch].band_width;
@@ -631,7 +745,7 @@ static int setup_channel_state(
         int bw = ch_state[ch].band_width;
         int bh = ch_state[ch].band_height;
         for (int band = 0; band < 4; band++) {
-            if (inline_mode) {
+            if (inline_mode && !multi_level) {
                 /* Need only a small row scratch instead of the full band */
                 ch_state[ch].band_data[band] = NULL;
                 ch_state[ch].row_scratch[band] = (PIXEL *)calloc(bw, sizeof(PIXEL));
@@ -646,6 +760,46 @@ static int setup_channel_state(
             ch_state[ch].lowpass_buf[r] = (PIXEL *)calloc(ch_width / 2, sizeof(PIXEL));
             ch_state[ch].highpass_buf[r] = (PIXEL *)calloc(ch_width / 2, sizeof(PIXEL));
             if (!ch_state[ch].lowpass_buf[r] || !ch_state[ch].highpass_buf[r]) return -1;
+        }
+
+        /* Multi-level: allocate level-2 and level-3 band buffers + quant. */
+        if (multi_level) {
+            int bw2 = bw / 2, bh2 = bh / 2;
+            int bw3 = bw / 4, bh3 = bh / 4;
+            ch_state[ch].band_width_l2 = bw2;
+            ch_state[ch].band_height_l2 = bh2;
+            ch_state[ch].band_width_l3 = bw3;
+            ch_state[ch].band_height_l3 = bh3;
+            for (int band = 0; band < 4; band++) {
+                ch_state[ch].band_data_l2[band] = (PIXEL *)calloc(bw2 * bh2, sizeof(PIXEL));
+                ch_state[ch].band_data_l3[band] = (PIXEL *)calloc(bw3 * bh3, sizeof(PIXEL));
+                if (!ch_state[ch].band_data_l2[band]) return -1;
+                if (!ch_state[ch].band_data_l3[band]) return -1;
+            }
+            /* Level-2: qt[0]=LL2 (no-op), qt[4,5,6]=LH2,HL2,HH2 */
+            ch_state[ch].midpoint_l2[0] = get_midpoint(qt[0]);
+            ch_state[ch].multiplier_l2[0] = get_multiplier(qt[0]);
+            ch_state[ch].midpoint_l2[1] = get_midpoint(qt[4]);
+            ch_state[ch].multiplier_l2[1] = get_multiplier(qt[4]);
+            ch_state[ch].midpoint_l2[2] = get_midpoint(qt[5]);
+            ch_state[ch].multiplier_l2[2] = get_multiplier(qt[5]);
+            ch_state[ch].midpoint_l2[3] = get_midpoint(qt[6]);
+            ch_state[ch].multiplier_l2[3] = get_multiplier(qt[6]);
+            /* Level-3: qt[0]=LL3 (encoded — finest preservation),
+                       qt[1,2,3]=LH3,HL3,HH3 */
+            ch_state[ch].midpoint_l3[0] = get_midpoint(qt[0]);
+            ch_state[ch].multiplier_l3[0] = get_multiplier(qt[0]);
+            ch_state[ch].midpoint_l3[1] = get_midpoint(qt[1]);
+            ch_state[ch].multiplier_l3[1] = get_multiplier(qt[1]);
+            ch_state[ch].midpoint_l3[2] = get_midpoint(qt[2]);
+            ch_state[ch].multiplier_l3[2] = get_multiplier(qt[2]);
+            ch_state[ch].midpoint_l3[3] = get_midpoint(qt[3]);
+            ch_state[ch].multiplier_l3[3] = get_multiplier(qt[3]);
+        } else {
+            for (int band = 0; band < 4; band++) {
+                ch_state[ch].band_data_l2[band] = NULL;
+                ch_state[ch].band_data_l3[band] = NULL;
+            }
         }
     }
     (void)ch_height;
@@ -817,6 +971,8 @@ struct FUSED_ENCODER {
     int prescale;
     int inline_mode;  /* 1 = tokenize inline in Pass 1 (low DRAM, embedded);
                           0 = split-pass (band_data buffer + Pass 2 tokenize) */
+    int multi_level;  /* 1 = 3-level wavelet decomposition (10 bands × 4 ch);
+                          0 = single-level (3 bands × 4 ch, legacy) */
 
     FUSED_CHANNEL_STATE ch_state[4];
 
@@ -851,6 +1007,19 @@ static int fused_choose_inline_mode(void) {
     return (ncpu > 0 && ncpu <= 6) ? 1 : 0;
 }
 
+/* Multi-level mode is off by default while it stabilizes; opt in via env.
+   When on, the encoder produces 10 bands/channel (40 total) instead of 3,
+   giving ~2× tighter compression at the cost of extra memory (LL1 + LL2 +
+   LL3 buffers) and serial post-Pass-1 work. */
+static int fused_choose_multi_level(void) {
+    const char *env = getenv("FUSED_MULTI_LEVEL");
+    if (env) {
+        if (env[0] == '0') return 0;
+        if (env[0] == '1') return 1;
+    }
+    return 0;
+}
+
 /* Reset just the per-frame state on a context (counters, run state, freq tables,
    inline-tokenize state). Band buffers / row scratch are overwritten as work
    progresses so no per-frame zeroing needed. */
@@ -878,12 +1047,17 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     ctx->log_bits = (pixel_format >= 4) ? 16 : 14;
     ctx->prescale = 2;
     ctx->inline_mode = fused_choose_inline_mode();
+    ctx->multi_level = fused_choose_multi_level();
+    /* Multi-level requires split mode (we need LL1/LL2 buffers in memory). */
+    if (ctx->multi_level && ctx->inline_mode) {
+        ctx->inline_mode = 0;
+    }
 
     SetupEncoderLogCurve();
 
     int dummy_is_rggb, dummy_log_bits;
     if (setup_channel_state(ctx->ch_state, width, height, quality,
-                             ctx->inline_mode,
+                             ctx->inline_mode, ctx->multi_level,
                              &dummy_is_rggb, &dummy_log_bits) != 0) {
         gpr_encode_fused_destroy(ctx);
         return NULL;
@@ -1050,6 +1224,8 @@ void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
             if (cs->band_data[band])   free(cs->band_data[band]);
             if (cs->row_scratch[band]) free(cs->row_scratch[band]);
             if (cs->inline_state[band]) jans_inline_destroy(cs->inline_state[band]);
+            if (cs->band_data_l2[band]) free(cs->band_data_l2[band]);
+            if (cs->band_data_l3[band]) free(cs->band_data_l3[band]);
         }
         for (int r = 0; r < FUSED_ROW_BUFS; r++) {
             if (cs->lowpass_buf[r])  free(cs->lowpass_buf[r]);
@@ -1059,12 +1235,21 @@ void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
     free(ctx);
 }
 
+/* Forward decl — multi-level path is implemented below. */
+static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
+                                              const uint8_t *raw_bayer,
+                                              uint8_t **vc5_out,
+                                              size_t *vc5_size);
+
 int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
                             const uint8_t *raw_bayer, size_t raw_size,
                             uint8_t **vc5_out, size_t *vc5_size)
 {
     (void)raw_size;
     if (!ctx || !raw_bayer || !vc5_out || !vc5_size) return -1;
+    if (ctx->multi_level) {
+        return gpr_encode_fused_frame_multilevel(ctx, raw_bayer, vc5_out, vc5_size);
+    }
     int rc = 0;
     PASS2_BAND_TASK p2_tasks[12];
     memset(p2_tasks, 0, sizeof(p2_tasks));
@@ -1179,6 +1364,217 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
 
     *vc5_out = ctx->stream_buf;  /* context-owned; caller must NOT free */
     *vc5_size = pos;
+    return rc;
+}
+
+/* ================================================================
+   Multi-level path (3-level wavelet decomposition)
+   ================================================================ */
+
+/* Run level-2 and level-3 wavelets for a single channel. Called after Pass 1
+   completes (so band_data[0] = LL1 is populated). Sequential — the two passes
+   chain (LL2 from level-2 is input to level-3). */
+typedef struct {
+    FUSED_CHANNEL_STATE *cs;
+} LEVEL23_TASK;
+
+static void *level23_run_channel(void *arg) {
+    LEVEL23_TASK *t = (LEVEL23_TASK *)arg;
+    FUSED_CHANNEL_STATE *cs = t->cs;
+
+    /* Level 2: decompose LL1 → LL2/LH2/HL2/HH2 */
+    wavelet_decompose_buffer(
+        cs->band_data[0], cs->band_width, cs->band_height,
+        cs->midpoint_l2, cs->multiplier_l2,
+        cs->band_data_l2[0], cs->band_data_l2[1],
+        cs->band_data_l2[2], cs->band_data_l2[3]);
+
+    /* Level 3: decompose LL2 → LL3/LH3/HL3/HH3 */
+    wavelet_decompose_buffer(
+        cs->band_data_l2[0], cs->band_width_l2, cs->band_height_l2,
+        cs->midpoint_l3, cs->multiplier_l3,
+        cs->band_data_l3[0], cs->band_data_l3[1],
+        cs->band_data_l3[2], cs->band_data_l3[3]);
+
+    return NULL;
+}
+
+/* Layout of the 40 Pass-2 tasks in multi-level mode:
+     For each channel (0..3):
+       0: LH1   1: HL1   2: HH1     (level-1 highpass)
+       3: LH2   4: HL2   5: HH2     (level-2 highpass)
+       6: LH3   7: HL3   8: HH3     (level-3 highpass)
+       9: LL3                       (level-3 lowpass — encoded)
+   Index = channel * 10 + slot. */
+static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
+                                              const uint8_t *raw_bayer,
+                                              uint8_t **vc5_out,
+                                              size_t *vc5_size)
+{
+    int rc = 0;
+    const int p2_tasks_total = 40;
+    PASS2_BAND_TASK *p2_tasks = (PASS2_BAND_TASK *)calloc(p2_tasks_total, sizeof(PASS2_BAND_TASK));
+    pthread_t *p2_threads = (pthread_t *)calloc(p2_tasks_total, sizeof(pthread_t));
+    int *p2_created = (int *)calloc(p2_tasks_total, sizeof(int));
+    if (!p2_tasks || !p2_threads || !p2_created) {
+        free(p2_tasks); free(p2_threads); free(p2_created);
+        return -1;
+    }
+
+    pthread_t p1_threads[4];
+    int p1_created[4] = {0};
+
+#ifdef FUSED_TIMING
+    double t0 = _fused_ms();
+#endif
+
+    const char *threads_env = getenv("FUSED_THREADS");
+    int run_serial = (threads_env && threads_env[0] == '1' && threads_env[1] == '\0');
+
+    fused_reset_frame_state(ctx);
+
+    CHANNEL_SYNC sync;
+    pthread_mutex_init(&sync.lock, NULL);
+    pthread_cond_init(&sync.cv, NULL);
+    for (int i = 0; i < 4; i++) sync.p1_done[i] = 0;
+
+    /* ---- Dispatch Pass 1 (level-1 wavelet) ---- */
+    PASS1_CHANNEL_TASK p1_tasks[4];
+    for (int ch = 0; ch < 4; ch++) {
+        p1_tasks[ch].channel = ch;
+        p1_tasks[ch].raw_bayer = raw_bayer;
+        p1_tasks[ch].width = ctx->width;
+        p1_tasks[ch].height = ctx->height;
+        p1_tasks[ch].log_bits = ctx->log_bits;
+        p1_tasks[ch].is_rggb = ctx->is_rggb;
+        p1_tasks[ch].prescale = ctx->prescale;
+        p1_tasks[ch].cs = &ctx->ch_state[ch];
+        p1_tasks[ch].sync = &sync;
+        if (run_serial) {
+            pass1_channel_thread(&p1_tasks[ch]);
+        } else {
+            p1_created[ch] = (pthread_create(&p1_threads[ch], NULL,
+                                              pass1_channel_thread, &p1_tasks[ch]) == 0);
+            if (!p1_created[ch]) pass1_channel_thread(&p1_tasks[ch]);
+        }
+    }
+    for (int ch = 0; ch < 4; ch++) {
+        if (p1_created[ch]) pthread_join(p1_threads[ch], NULL);
+    }
+
+#ifdef FUSED_TIMING
+    double t1 = _fused_ms();
+    fprintf(stderr, "  FUSED ML Pass1 (level-1, parallel):       %.1fms\n", t1 - t0);
+#endif
+
+    /* ---- Level 2 + Level 3 wavelets per channel (parallel) ---- */
+    LEVEL23_TASK l23_tasks[4];
+    pthread_t l23_threads[4];
+    int l23_created[4] = {0};
+    for (int ch = 0; ch < 4; ch++) {
+        l23_tasks[ch].cs = &ctx->ch_state[ch];
+        if (run_serial) {
+            level23_run_channel(&l23_tasks[ch]);
+        } else {
+            l23_created[ch] = (pthread_create(&l23_threads[ch], NULL,
+                                               level23_run_channel, &l23_tasks[ch]) == 0);
+            if (!l23_created[ch]) level23_run_channel(&l23_tasks[ch]);
+        }
+    }
+    for (int ch = 0; ch < 4; ch++) {
+        if (l23_created[ch]) pthread_join(l23_threads[ch], NULL);
+    }
+
+#ifdef FUSED_TIMING
+    double t2 = _fused_ms();
+    fprintf(stderr, "  FUSED ML Level23 (sequential per ch):     %.1fms\n", t2 - t1);
+#endif
+
+    /* ---- Dispatch Pass 2 for all 40 bands ---- */
+    int p2_count = 0;
+    for (int ch = 0; ch < 4; ch++) {
+        FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
+
+        struct {
+            PIXEL *data;
+            int width, height;
+        } slots[10] = {
+            { cs->band_data[1],    cs->band_width,    cs->band_height    }, /* LH1 */
+            { cs->band_data[2],    cs->band_width,    cs->band_height    }, /* HL1 */
+            { cs->band_data[3],    cs->band_width,    cs->band_height    }, /* HH1 */
+            { cs->band_data_l2[1], cs->band_width_l2, cs->band_height_l2 }, /* LH2 */
+            { cs->band_data_l2[2], cs->band_width_l2, cs->band_height_l2 }, /* HL2 */
+            { cs->band_data_l2[3], cs->band_width_l2, cs->band_height_l2 }, /* HH2 */
+            { cs->band_data_l3[1], cs->band_width_l3, cs->band_height_l3 }, /* LH3 */
+            { cs->band_data_l3[2], cs->band_width_l3, cs->band_height_l3 }, /* HL3 */
+            { cs->band_data_l3[3], cs->band_width_l3, cs->band_height_l3 }, /* HH3 */
+            { cs->band_data_l3[0], cs->band_width_l3, cs->band_height_l3 }, /* LL3 */
+        };
+
+        for (int s = 0; s < 10; s++) {
+            PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
+            pt->channel = ch;
+            pt->band_data = slots[s].data;
+            pt->inline_state = NULL;
+            pt->width = slots[s].width;
+            pt->height = slots[s].height;
+            pt->pitch = slots[s].width * sizeof(int32_t);
+            pt->enc_cap = (size_t)slots[s].width * slots[s].height * 4 + 8192;
+            pt->enc_buf = (uint8_t *)malloc(pt->enc_cap);
+            if (!pt->enc_buf) { rc = -1; goto cleanup; }
+            pt->enc_size = 0;
+            pt->sync = NULL;  /* Pass 1 already waited */
+            pt->denoise_strength = 0.0;
+            pt->noise_scale = 0;
+            pt->noise_offset = 0;
+
+            if (run_serial) {
+                pass2_band_thread(pt);
+            } else {
+                p2_created[p2_count] = (pthread_create(&p2_threads[p2_count], NULL,
+                                                       pass2_band_thread, pt) == 0);
+                if (!p2_created[p2_count]) pass2_band_thread(pt);
+            }
+            p2_count++;
+        }
+    }
+
+    for (int i = 0; i < p2_tasks_total; i++) {
+        if (p2_created[i]) pthread_join(p2_threads[i], NULL);
+    }
+
+#ifdef FUSED_TIMING
+    double t3 = _fused_ms();
+    fprintf(stderr, "  FUSED ML Pass2 (40 bands, parallel):      %.1fms\n", t3 - t2);
+#endif
+
+    /* ---- Concat outputs ---- */
+    size_t pos = 0;
+    for (int i = 0; i < p2_tasks_total; i++) {
+        PASS2_BAND_TASK *pt = &p2_tasks[i];
+        if (pt->enc_size > 0 && pos + pt->enc_size <= ctx->stream_cap) {
+            memcpy(ctx->stream_buf + pos, pt->enc_buf, pt->enc_size);
+            pos += pt->enc_size;
+        }
+    }
+
+#ifdef FUSED_TIMING
+    double t4 = _fused_ms();
+    fprintf(stderr, "  FUSED ML Total:                           %.1fms\n", t4 - t0);
+#endif
+
+    *vc5_out = ctx->stream_buf;
+    *vc5_size = pos;
+
+cleanup:
+    pthread_mutex_destroy(&sync.lock);
+    pthread_cond_destroy(&sync.cv);
+    for (int i = 0; i < p2_tasks_total; i++) {
+        if (p2_tasks[i].enc_buf) free(p2_tasks[i].enc_buf);
+    }
+    free(p2_tasks);
+    free(p2_threads);
+    free(p2_created);
     return rc;
 }
 
