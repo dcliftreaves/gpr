@@ -29,6 +29,21 @@ endif()
 
 message(STATUS "NEON enabled: ${NEON}")
 
+# Cortex-A76 / Pi 5 tuning. Native ARM clang on Apple Silicon already targets
+# apple-m1 by default, but Linux ARM64 (Pi 5) needs an explicit -mcpu= for
+# the scheduler to pick A76-specific latencies and pipeline assignments.
+# Default to -mcpu=native on Linux aarch64; users can override via
+# CMAKE_C_FLAGS / CMAKE_CXX_FLAGS or set FUSED_TUNE_CPU=cortex-a76 to pin.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)" AND
+   CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(FUSED_TUNE_CPU "native" CACHE STRING
+      "ARM cpu tuning for the encoder (passed as -mcpu=)")
+  if(FUSED_TUNE_CPU)
+    add_compile_options(-mcpu=${FUSED_TUNE_CPU})
+    message(STATUS "ARM tuning: -mcpu=${FUSED_TUNE_CPU}")
+  endif()
+endif()
+
 # FUSED_LOG_POLYNOMIAL: replace the fused encoder's LUT-based 14-bit log
 # curve with a NEON polynomial approximation. Default OFF — measured
 # slower than the LUT on Cortex-A76 (the 5-deep fma chain in the
