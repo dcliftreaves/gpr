@@ -229,6 +229,16 @@ int main(int argc, char **argv) {
         printf("PIXEL ROUNDTRIP %dx%d multi-level q=3: PSNR = %.2f dB "
                "(encoded %.1f KB)\n",
                w, h, psnr, enc_sz / 1024.0);
+        /* Regression floor: synthetic gradients at this size routinely
+           hit 45+ dB after the bottom-edge fixes. Anything below 35 dB
+           means a real regression — bottom-edge underrun, scaling, or
+           rANS overflow are likely. */
+        const double psnr_floor = 35.0;
+        if (psnr < psnr_floor) {
+            fprintf(stderr, "FAIL pixel roundtrip: PSNR %.2f below %.1f floor\n",
+                    psnr, psnr_floor);
+            total_failures++;
+        }
         free(enc); free(recon);
     }
 
