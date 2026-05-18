@@ -282,9 +282,13 @@ static inline uint16_t apply_log_curve(uint16_t value, int bits) {
    ================================================================ */
 
 /* Decompose `input` (in_width × in_height PIXEL) into 4 quantized subbands
-   of (in_width/2 × in_height/2). prescale=0 (the input is already wavelet
-   coefficients, not raw pixels). LL is NOT quantized here even if mid[0]/
-   mul[0] are passed — divisor=1 in the quant table produces a no-op. */
+   of (in_width/2 × in_height/2). prescale=2 — without this the LL magnitude
+   grows 4× per level and quickly overflows the rANS encoder's mag-class
+   ceiling (2047). Matches the production encoder's {0,2,2} prescale table:
+   level 1 (this encoder's level 1) uses prescale=2 already, and so do
+   levels 2 and 3 here, keeping LL bounded at every level.
+   LL is NOT quantized here even if mid[0]/mul[0] are passed —
+   divisor=1 in the quant table produces a no-op. */
 static void wavelet_decompose_buffer(
     const PIXEL *input, int in_width, int in_height,
     const int32_t mid[4], const int32_t mul[4],
@@ -314,7 +318,7 @@ static void wavelet_decompose_buffer(
         int slot = row % FUSED_ROW_BUFS;
         horizontal_filter(input + row * in_width,
                           lp_rows[slot], hp_rows[slot],
-                          in_width, /*prescale=*/0);
+                          in_width, /*prescale=*/2);
         buf_filled++;
 
         /* Emit one output row every 2 input rows once we have 6 rows queued. */
@@ -585,7 +589,7 @@ static void stream_cascade_higher_levels(FUSED_CHANNEL_STATE *cs,
     int slot2 = cs->buf_row_l2 % FUSED_ROW_BUFS;
     horizontal_filter(ll1_row,
                       cs->lp_buf_l2[slot2], cs->hp_buf_l2[slot2],
-                      cs->band_width, /*prescale=*/0);
+                      cs->band_width, /*prescale=*/2);
     cs->buf_row_l2++;
 
     /* ---- Level 2 vertical filter (emit one output row every 2 inputs after row 6) ---- */
@@ -629,7 +633,7 @@ static void stream_cascade_higher_levels(FUSED_CHANNEL_STATE *cs,
         int slot3 = cs->buf_row_l3 % FUSED_ROW_BUFS;
         horizontal_filter(ll2,
                           cs->lp_buf_l3[slot3], cs->hp_buf_l3[slot3],
-                          bw_l2, /*prescale=*/0);
+                          bw_l2, /*prescale=*/2);
         cs->buf_row_l3++;
 
         /* ---- Level 3 vertical filter ---- */
@@ -977,10 +981,16 @@ static int setup_channel_state(
             ch_state[ch].multiplier_l2[2] = get_multiplier(qt[5]);
             ch_state[ch].midpoint_l2[3] = get_midpoint(qt[6]);
             ch_state[ch].multiplier_l2[3] = get_multiplier(qt[6]);
-            /* Level-3: qt[0]=LL3 (encoded — finest preservation),
-                       qt[1,2,3]=LH3,HL3,HH3 */
-            ch_state[ch].midpoint_l3[0] = get_midpoint(qt[0]);
-            ch_state[ch].multiplier_l3[0] = get_multiplier(qt[0]);
+            /* Level-3: qt[0]=LL3 (encoded), qt[1,2,3]=LH3,HL3,HH3.
+               The LL3 divisor needs to keep magnitudes under rANS's
+               2047 mag-class ceiling. With prescale=2 at every wavelet
+               level the LL3 magnitude stays around the original log
+               value (≤16383 for 14-bit input), so a divisor of 16
+               drops it to ≤1024 — comfortably inside class 14. */
+            #define FUSED_LL3_EXTRA_DIVISOR 16
+            int ll3_div = qt[0] * FUSED_LL3_EXTRA_DIVISOR;
+            ch_state[ch].midpoint_l3[0] = get_midpoint(ll3_div);
+            ch_state[ch].multiplier_l3[0] = get_multiplier(ll3_div);
             ch_state[ch].midpoint_l3[1] = get_midpoint(qt[1]);
             ch_state[ch].multiplier_l3[1] = get_multiplier(qt[1]);
             ch_state[ch].midpoint_l3[2] = get_midpoint(qt[2]);

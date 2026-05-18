@@ -11,6 +11,9 @@ file( GLOB INC_FILES "*.h" )
 include_directories( "../vc5_common" )
 include_directories( "../common/private" )
 include_directories( "../common/public" )
+# fused_decode.c includes ../vc5_encoder/fused_encode.h for the wrapper
+# header definition (FUSED_HEADER, FUSED_MAGIC).
+include_directories( "../vc5_encoder" )
 
 
 # library

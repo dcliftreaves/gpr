@@ -21,9 +21,28 @@
 
 #include "fused_encode.h"
 #include "ans_joint.h"
+#include "fused_decode.h"
+
+#include <math.h>
 
 extern int gpr_encode_fused(const unsigned char *raw, size_t sz,
     int w, int h, int pf, int q, unsigned char **out, size_t *out_sz);
+
+/* Compute PSNR (dB) between two uint16 Bayer planes. log_max is the
+   maximum valid value (e.g. 16383 for 14-bit). */
+static double psnr_uint16(const uint16_t *a, const uint16_t *b,
+                          int width, int height, int log_max) {
+    double sse = 0.0;
+    size_t n = (size_t)width * height;
+    for (size_t i = 0; i < n; i++) {
+        double d = (double)a[i] - (double)b[i];
+        sse += d * d;
+    }
+    if (sse <= 0.0) return 99.0;  /* identical */
+    double mse = sse / (double)n;
+    double peak = (double)log_max;
+    return 10.0 * log10((peak * peak) / mse);
+}
 
 static unsigned char *make_synthetic(int w, int h, uint32_t seed) {
     size_t sz = (size_t)w * h * 2;
@@ -183,6 +202,34 @@ int main(int argc, char **argv) {
         }
         total_failures += band_failures;
         free(band_sizes); free(enc);
+    }
+
+    /* ---- Full pixel-level multi-level roundtrip via gpr_decode_fused ---- */
+    {
+        setenv("FUSED_MULTI_LEVEL", "1", 1);
+        unsigned char *enc = NULL; size_t enc_sz = 0;
+        int rc = gpr_encode_fused(raw, (size_t)w * h * 2, w, h, 1, 3, &enc, &enc_sz);
+        if (rc != 0) {
+            fprintf(stderr, "FAIL pixel roundtrip: encode rc=%d\n", rc);
+            free(raw); return 1;
+        }
+        uint16_t *recon = (uint16_t *)malloc((size_t)w * h * 2);
+        int out_w = 0, out_h = 0;
+        int drc = gpr_decode_fused(enc, enc_sz, recon, (size_t)w * 2, &out_w, &out_h);
+        if (drc != 0) {
+            fprintf(stderr, "FAIL pixel roundtrip: decode rc=%d\n", drc);
+            free(enc); free(recon); free(raw); return 1;
+        }
+        if (out_w != w || out_h != h) {
+            fprintf(stderr, "FAIL pixel roundtrip: dim mismatch (%dx%d vs %dx%d)\n",
+                    out_w, out_h, w, h);
+            free(enc); free(recon); free(raw); return 1;
+        }
+        double psnr = psnr_uint16((const uint16_t *)raw, recon, w, h, 16383);
+        printf("PIXEL ROUNDTRIP %dx%d multi-level q=3: PSNR = %.2f dB "
+               "(encoded %.1f KB)\n",
+               w, h, psnr, enc_sz / 1024.0);
+        free(enc); free(recon);
     }
 
     free(raw);
