@@ -1041,9 +1041,11 @@ static int setup_channel_state(
             /* Level-3: qt[0]=LL3 (encoded), qt[1,2,3]=LH3,HL3,HH3.
                The LL3 divisor needs to keep magnitudes under rANS's
                2047 mag-class ceiling. With prescale=2 at every wavelet
-               level the LL3 magnitude stays around the original log
-               value (≤16383 for 14-bit input), so a divisor of 16
-               drops it to ≤1024 — comfortably inside class 14. */
+               level, LL3 magnitude stays near the original log value
+               (≤16383 for 14-bit input). Divisor of 16 keeps worst-case
+               ≤1024 with safe headroom. Empirically, going to 8 doesn't
+               move PSNR meaningfully (LL3 isn't the quality bottleneck —
+               highpass quant is). */
             #define FUSED_LL3_EXTRA_DIVISOR 16
             int ll3_div = qt[0] * FUSED_LL3_EXTRA_DIVISOR;
             ch_state[ch].midpoint_l3[0] = get_midpoint(ll3_div);
