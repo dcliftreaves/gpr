@@ -33,8 +33,9 @@
 #include <pthread.h>
 #include <unistd.h>  /* for sysconf */
 
-#define FUSED_TIMING
-#define FUSED_TIMING_DETAIL
+/* Per-frame timing prints. Comment out for clean micro-benchmarks. */
+/* #define FUSED_TIMING */
+/* #define FUSED_TIMING_DETAIL */
 
 #if defined(FUSED_TIMING) || defined(FUSED_TIMING_DETAIL)
 #if defined(__APPLE__)
