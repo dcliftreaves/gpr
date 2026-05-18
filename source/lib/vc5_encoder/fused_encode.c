@@ -103,7 +103,8 @@ static inline int32_t quantize_scalar(int32_t value, int32_t midpoint, int32_t m
    Horizontal wavelet filter (simplified from forward.c)
    ================================================================ */
 
-static void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpass,
+static inline __attribute__((always_inline))
+void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpass,
                                int width, int prescale)
 {
     int prescale_rounding = (1 << prescale) - 1;
