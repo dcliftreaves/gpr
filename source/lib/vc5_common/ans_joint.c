@@ -27,6 +27,10 @@
 #include "rans_kernel_arm64.h"
 #endif
 
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
+
 /* NEON vectorization of the rANS decode was tested and reverted —
    ARM lacks gather instructions, making scalar table lookups faster.
    See docs/future-ideas.md for details. */
@@ -989,9 +993,36 @@ static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
         *rans_ptr++ = (uint8_t)(states[j] >> 24);
     }
     size_t rans_size = rans_ptr - rans_buf;
-    for (size_t j = 0; j < rans_size / 2; j++) {
-        uint8_t t = rans_buf[j]; rans_buf[j] = rans_buf[rans_size-1-j];
-        rans_buf[rans_size-1-j] = t;
+    /* In-place byte reverse — rANS encodes backward, so the bitstream
+       is currently in reverse order on disk. Vectorize 32 bytes per
+       iter on NEON: load 16 from each end, vqtbl1q with reverse-index
+       reverses each 16-byte vector in one cycle, then swap-store.
+       Clang doesn't auto-vectorize this because the in-place swap looks
+       aliased; we know it isn't (lo and hi never overlap inside the
+       loop). */
+    {
+        size_t lo = 0, hi = rans_size;
+#if defined(__ARM_NEON)
+        static const uint8_t rev_idx_bytes[16] = {15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0};
+        const uint8x16_t rev_idx = vld1q_u8(rev_idx_bytes);
+        while (lo + 32 <= hi) {
+            uint8x16_t l = vld1q_u8(&rans_buf[lo]);
+            uint8x16_t h = vld1q_u8(&rans_buf[hi - 16]);
+            vst1q_u8(&rans_buf[lo],       vqtbl1q_u8(h, rev_idx));
+            vst1q_u8(&rans_buf[hi - 16],  vqtbl1q_u8(l, rev_idx));
+            lo += 16;
+            hi -= 16;
+        }
+#endif
+        while (lo + 1 < hi + 1 && lo < hi) {
+            /* Above test rewritten lo+1 <= hi to silence "always true" warnings.
+               When lo == hi (middle byte of odd-length buffer) no swap needed. */
+            uint8_t t = rans_buf[lo];
+            rans_buf[lo] = rans_buf[hi - 1];
+            rans_buf[hi - 1] = t;
+            lo++;
+            hi--;
+        }
     }
 
     uint8_t freq_buf[JANS_NUM_SYMBOLS * 2];
