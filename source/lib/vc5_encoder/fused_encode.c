@@ -249,14 +249,14 @@ static void vertical_filter_quantize_row(
 
 #if ENABLED(NEON)
     if (!is_top && !is_bottom) {
-        /* NEON middle row: 4-wide vertical filter + quantize.
-           A76 tuning: hoist row pointers into __restrict locals + use
-           post-incremented loads so the compiler emits `ldr q,[x],#16`
-           (single dispatch slot) instead of indexed `ldr q,[x,x]`
-           (5-cycle latency). Without restrict-locals + post-inc, clang
-           reloads the rows[] pointer array inside the loop on every
-           iteration (verified in clang -S output on aarch64). */
+        /* NEON middle row: 8-wide vertical filter + quantize.
+           A76/A78 tuning: 8 outputs per iter doubles the in-flight
+           independent loads/ops so the OOO core can keep both NEON pipes
+           saturated. Restrict-locals + post-inc loads emit ldr q,[x],#16
+           (single dispatch slot) vs indexed ldr q,[x,x] (5-cycle).
+           4-wide tail handles width%8. */
         const int32x4_t four = vdupq_n_s32(4);
+        const int width_m8 = (width / 8) * 8;
         const int width_m4 = (width / 4) * 4;
         const PIXEL *__restrict__ p0 = rows[0];
         const PIXEL *__restrict__ p1 = rows[1];
@@ -267,22 +267,47 @@ static void vertical_filter_quantize_row(
         PIXEL *__restrict__ qlo = out_lo;
         PIXEL *__restrict__ qhi = out_hi;
 
-        for (int c = 0; c < width_m4; c += 4) {
+        for (int c = 0; c < width_m8; c += 8) {
+            int32x4_t r0a = vld1q_s32(p0); p0 += 4;
+            int32x4_t r0b = vld1q_s32(p0); p0 += 4;
+            int32x4_t r1a = vld1q_s32(p1); p1 += 4;
+            int32x4_t r1b = vld1q_s32(p1); p1 += 4;
+            int32x4_t r2a = vld1q_s32(p2); p2 += 4;
+            int32x4_t r2b = vld1q_s32(p2); p2 += 4;
+            int32x4_t r3a = vld1q_s32(p3); p3 += 4;
+            int32x4_t r3b = vld1q_s32(p3); p3 += 4;
+            int32x4_t r4a = vld1q_s32(p4); p4 += 4;
+            int32x4_t r4b = vld1q_s32(p4); p4 += 4;
+            int32x4_t r5a = vld1q_s32(p5); p5 += 4;
+            int32x4_t r5b = vld1q_s32(p5); p5 += 4;
+
+            int32x4_t low_a  = vaddq_s32(r2a, r3a);
+            int32x4_t low_b  = vaddq_s32(r2b, r3b);
+            int32x4_t high_a = vsubq_s32(vaddq_s32(r4a, r5a), vaddq_s32(r0a, r1a));
+            int32x4_t high_b = vsubq_s32(vaddq_s32(r4b, r5b), vaddq_s32(r0b, r1b));
+            high_a = vshrq_n_s32(vaddq_s32(high_a, four), 3);
+            high_b = vshrq_n_s32(vaddq_s32(high_b, four), 3);
+            high_a = vaddq_s32(high_a, vsubq_s32(r2a, r3a));
+            high_b = vaddq_s32(high_b, vsubq_s32(r2b, r3b));
+
+            vst1q_s32(qlo, quantize_neon4(low_a,  mid_lo, mul_lo)); qlo += 4;
+            vst1q_s32(qlo, quantize_neon4(low_b,  mid_lo, mul_lo)); qlo += 4;
+            vst1q_s32(qhi, quantize_neon4(high_a, mid_hi, mul_hi)); qhi += 4;
+            vst1q_s32(qhi, quantize_neon4(high_b, mid_hi, mul_hi)); qhi += 4;
+        }
+        /* 4-wide tail */
+        for (int c = width_m8; c < width_m4; c += 4) {
             int32x4_t r0 = vld1q_s32(p0); p0 += 4;
             int32x4_t r1 = vld1q_s32(p1); p1 += 4;
             int32x4_t r2 = vld1q_s32(p2); p2 += 4;
             int32x4_t r3 = vld1q_s32(p3); p3 += 4;
             int32x4_t r4 = vld1q_s32(p4); p4 += 4;
             int32x4_t r5 = vld1q_s32(p5); p5 += 4;
-
-            /* low = r2 + r3 */
-            int32x4_t low = vaddq_s32(r2, r3);
-            /* high = ((r4+r5-r0-r1+4)>>3) + (r2-r3) */
+            int32x4_t low  = vaddq_s32(r2, r3);
             int32x4_t high = vsubq_s32(vaddq_s32(r4, r5), vaddq_s32(r0, r1));
             high = vshrq_n_s32(vaddq_s32(high, four), 3);
             high = vaddq_s32(high, vsubq_s32(r2, r3));
-
-            vst1q_s32(qlo, quantize_neon4(low, mid_lo, mul_lo)); qlo += 4;
+            vst1q_s32(qlo, quantize_neon4(low,  mid_lo, mul_lo)); qlo += 4;
             vst1q_s32(qhi, quantize_neon4(high, mid_hi, mul_hi)); qhi += 4;
         }
         col = width_m4;
