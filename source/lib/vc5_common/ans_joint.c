@@ -324,6 +324,22 @@ static void normalize_freq(uint16_t *freq, int n) {
     memcpy(freq, scaled, n * sizeof(uint16_t));
 }
 
+/* Encoder-only path: just cum_freq + rcp_freq. Skips the 3 × 2048-entry
+   decode tables that build_tables fills (decode_sym/decode_fast/decode_info)
+   — those are only read by the decoder. */
+static void build_encode_tables(JANS_TABLE *t, int n) {
+    t->cum_freq[0] = 0;
+    for (int i = 1; i < n; i++) t->cum_freq[i] = t->cum_freq[i-1] + t->freq[i-1];
+    for (int i = 0; i < n; i++) {
+        if (t->freq[i] > 1)
+            t->rcp_freq[i] = (uint32_t)(((uint64_t)1 << 32) / t->freq[i]);
+        else if (t->freq[i] == 1)
+            t->rcp_freq[i] = 0xFFFFFFFFu;
+        else
+            t->rcp_freq[i] = 0;
+    }
+}
+
 static void build_tables(JANS_TABLE *t, int n) {
     t->cum_freq[0] = 0;
     for (int i = 1; i < n; i++) t->cum_freq[i] = t->cum_freq[i-1] + t->freq[i-1];
@@ -460,7 +476,7 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
 
     /* Normalize and build ANS table */
     normalize_freq(table.freq, JANS_NUM_SYMBOLS);
-    build_tables(&table, JANS_NUM_SYMBOLS);
+    build_encode_tables(&table, JANS_NUM_SYMBOLS);
     table.initialized = 1;
 
     /* rANS encode tokens in reverse (from pre-allocated arena) */
@@ -757,7 +773,7 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
     _jans_tok_ms += _jans_ms() - _t0; _t0 = _jans_ms();
 #endif
     normalize_freq(table.freq, JANS_NUM_SYMBOLS);
-    build_tables(&table, JANS_NUM_SYMBOLS);
+    build_encode_tables(&table, JANS_NUM_SYMBOLS);
 
     /* 4-way interleaved rANS encode (from pre-allocated arena) */
     uint8_t *rans_buf = (uint8_t *)arena_alloc(&arena, rans_cap);
@@ -944,7 +960,7 @@ static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
 {
     size_t resid_size = bitbuf_size(&s->bb);
     normalize_freq(s->table.freq, JANS_NUM_SYMBOLS);
-    build_tables(&s->table, JANS_NUM_SYMBOLS);
+    build_encode_tables(&s->table, JANS_NUM_SYMBOLS);
 
     size_t rans_cap = (size_t)s->token_count * 4 + 4096;
     if (rans_cap > s->rans_scratch_cap) {
