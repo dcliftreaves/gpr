@@ -122,6 +122,7 @@ add_subdirectory( "source/app/common/argument_parser" )
 add_subdirectory( "source/app/gpr_tools" )
 add_subdirectory( "source/app/compare_quality" )
 add_subdirectory( "source/app/ans_test" )
+add_subdirectory( "source/app/bench_fused" )
 
 # Fix byte order detection for Linux ARM64 (from gopro/gpr#53 by mckfarm)
 include(TestBigEndian)

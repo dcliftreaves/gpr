@@ -11,15 +11,9 @@
 #   ./pi_benchmark.sh                            # uses defaults
 #   RAW=/path/to.raw W=8280 H=5520 N=30 ./pi_benchmark.sh
 #
-# To produce /tmp/bench_clean on the Pi after scp'ing this repo:
+# To build the bench binary on the Pi after scp'ing this repo:
 #   cmake -B build -DCMAKE_BUILD_TYPE=Release
-#   cmake --build build -j$(nproc)
-#   clang -O3 -DNDEBUG -I source/lib/vc5_encoder \
-#     tools/bench_clean.c \
-#     build/source/lib/vc5_encoder/libvc5_encoder.a \
-#     build/source/lib/vc5_common/libvc5_common.a \
-#     build/source/lib/common/libcommon.a \
-#     -lm -lpthread -o /tmp/bench_clean
+#   cmake --build build -j$(nproc) --target bench_fused
 
 set -u
 
@@ -27,7 +21,9 @@ RAW="${RAW:-/tmp/Z8_textured.raw}"
 W="${W:-8280}"
 H="${H:-5520}"
 N="${N:-30}"
-BENCH="${BENCH:-/tmp/bench_clean}"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+BENCH="${BENCH:-$REPO/build/source/app/bench_fused/bench_fused}"
+[ -x "$BENCH" ] || BENCH="$REPO/build-neon/source/app/bench_fused/bench_fused"
 
 if [ ! -x "$BENCH" ]; then
     echo "ERROR: $BENCH not found or not executable" >&2
