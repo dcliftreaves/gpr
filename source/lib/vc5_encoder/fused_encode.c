@@ -1730,6 +1730,15 @@ struct FUSED_ENCODER {
     uint8_t *enc_bufs[12];
     size_t   enc_caps[12];
 
+    /* Multi-level: persistent Pass 2 enc buffers for all 40 bands
+       (4 channels × {3 L1 highpass + 3 L2 + 3 L3 + LL3}) and the
+       per-frame task scratch. Allocated only when multi_level=1.
+       Without these, each frame paid 40 × {alloc + page-fault on first
+       write + free} for buffers totalling ~50 MB at 50 MP — visible
+       in median-frame jitter on LPDDR4x. */
+    uint8_t *enc_bufs_ml[40];
+    size_t   enc_caps_ml[40];
+
     /* Persistent output stream buffer */
     uint8_t *stream_buf;
     size_t   stream_cap;
@@ -1905,6 +1914,35 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
         return NULL;
     }
 
+    /* Pre-allocate Pass-2 enc buffers for multi-level. Slot layout per channel
+       (must match gpr_encode_fused_frame_multilevel): 0..2=L1 hp, 3..5=L2 hp,
+       6..8=L3 hp, 9=LL3. Capacity = width*height*4 + 8K (jans_encode_band_x4's
+       upper bound; the actual encoded sizes are an order of magnitude less). */
+    if (ctx->multi_level) {
+        FUSED_CHANNEL_STATE *cs0 = &ctx->ch_state[0];
+        size_t per_slot_cap[10] = {
+            (size_t)cs0->band_width    * cs0->band_height    * 4 + 8192,
+            (size_t)cs0->band_width    * cs0->band_height    * 4 + 8192,
+            (size_t)cs0->band_width    * cs0->band_height    * 4 + 8192,
+            (size_t)cs0->band_width_l2 * cs0->band_height_l2 * 4 + 8192,
+            (size_t)cs0->band_width_l2 * cs0->band_height_l2 * 4 + 8192,
+            (size_t)cs0->band_width_l2 * cs0->band_height_l2 * 4 + 8192,
+            (size_t)cs0->band_width_l3 * cs0->band_height_l3 * 4 + 8192,
+            (size_t)cs0->band_width_l3 * cs0->band_height_l3 * 4 + 8192,
+            (size_t)cs0->band_width_l3 * cs0->band_height_l3 * 4 + 8192,
+            (size_t)cs0->band_width_l3 * cs0->band_height_l3 * 4 + 8192,
+        };
+        for (int i = 0; i < 40; i++) {
+            size_t cap = per_slot_cap[i % 10];
+            ctx->enc_caps_ml[i] = cap;
+            ctx->enc_bufs_ml[i] = (uint8_t *)malloc(cap);
+            if (!ctx->enc_bufs_ml[i]) {
+                gpr_encode_fused_destroy(ctx);
+                return NULL;
+            }
+        }
+    }
+
     /* Optional: pre-allocate the shared 4-channel unpack ring (producer
        pool + 4 channel consumers). Disabled by default; enable via
        FUSED_PRODUCER_UNPACK=1. Falls back to per-channel unpack inside
@@ -2025,6 +2063,7 @@ void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
         ctx->unpack_ring = NULL;
     }
     for (int i = 0; i < 12; i++) if (ctx->enc_bufs[i]) free(ctx->enc_bufs[i]);
+    for (int i = 0; i < 40; i++) if (ctx->enc_bufs_ml[i]) free(ctx->enc_bufs_ml[i]);
     if (ctx->stream_buf) free(ctx->stream_buf);
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
@@ -2436,9 +2475,8 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
             pt->width = slots[s].width;
             pt->height = slots[s].height;
             pt->pitch = slots[s].width * sizeof(int32_t);
-            pt->enc_cap = (size_t)slots[s].width * slots[s].height * 4 + 8192;
-            pt->enc_buf = (uint8_t *)malloc(pt->enc_cap);
-            if (!pt->enc_buf) { rc = -1; goto cleanup; }
+            pt->enc_cap = ctx->enc_caps_ml[p2_count];
+            pt->enc_buf = ctx->enc_bufs_ml[p2_count];
             pt->enc_size = 0;
             pt->sync = NULL;  /* Pass 1 already waited */
             pt->denoise_strength = 0.0;
@@ -2505,9 +2543,7 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
 cleanup:
     pthread_mutex_destroy(&sync.lock);
     pthread_cond_destroy(&sync.cv);
-    for (int i = 0; i < p2_tasks_total; i++) {
-        if (p2_tasks[i].enc_buf) free(p2_tasks[i].enc_buf);
-    }
+    /* enc_buf is owned by ctx->enc_bufs_ml — do not free per-frame. */
     free(p2_tasks);
     free(p2_threads);
     free(p2_created);
