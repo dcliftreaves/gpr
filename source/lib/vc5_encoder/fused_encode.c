@@ -2327,14 +2327,11 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
                                               size_t *vc5_size)
 {
     int rc = 0;
-    const int p2_tasks_total = 40;
-    PASS2_BAND_TASK *p2_tasks = (PASS2_BAND_TASK *)calloc(p2_tasks_total, sizeof(PASS2_BAND_TASK));
-    pthread_t *p2_threads = (pthread_t *)calloc(p2_tasks_total, sizeof(pthread_t));
-    int *p2_created = (int *)calloc(p2_tasks_total, sizeof(int));
-    if (!p2_tasks || !p2_threads || !p2_created) {
-        free(p2_tasks); free(p2_threads); free(p2_created);
-        return -1;
-    }
+    enum { p2_tasks_total = 40 };
+    PASS2_BAND_TASK p2_tasks[p2_tasks_total];
+    pthread_t       p2_threads[p2_tasks_total];
+    int             p2_created[p2_tasks_total] = {0};
+    memset(p2_tasks, 0, sizeof(p2_tasks));
 
     pthread_t p1_threads[4];
     int p1_created[4] = {0};
@@ -2543,10 +2540,8 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
 cleanup:
     pthread_mutex_destroy(&sync.lock);
     pthread_cond_destroy(&sync.cv);
-    /* enc_buf is owned by ctx->enc_bufs_ml — do not free per-frame. */
-    free(p2_tasks);
-    free(p2_threads);
-    free(p2_created);
+    /* enc_buf is owned by ctx->enc_bufs_ml — do not free per-frame.
+       p2_tasks/threads/created are stack-allocated — no free needed. */
     return rc;
 }
 
