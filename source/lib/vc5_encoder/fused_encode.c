@@ -216,15 +216,17 @@ static void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpas
    ================================================================ */
 
 #if ENABLED(NEON)
+/* Quantize 4 int32 lanes: out = sign(v) * ((|v| + midpoint) * multiplier) >> 16.
+   A76 tuning: fuses (>>16) + narrow into one `vshrn_n_s64` (shrn) per half
+   instead of `vshrq_n_s64 + vmovn_s64`. Saves a dispatch slot; shrn issues
+   on V1 freeing V0 for the next iteration's smull. Byte-exact result. */
 static inline int32x4_t quantize_neon4(int32x4_t values, int32_t midpoint, int32_t multiplier) {
     int32x4_t abs_v = vabsq_s32(values);
     abs_v = vaddq_s32(abs_v, vdupq_n_s32(midpoint));
-    /* 32×32→64 multiply, take high 32 bits (>> 16) */
     int32x2_t mul_v = vdup_n_s32(multiplier);
     int64x2_t plo = vmull_s32(vget_low_s32(abs_v), mul_v);
     int64x2_t phi = vmull_s32(vget_high_s32(abs_v), mul_v);
-    int32x4_t scaled = vcombine_s32(vmovn_s64(vshrq_n_s64(plo, 16)),
-                                     vmovn_s64(vshrq_n_s64(phi, 16)));
+    int32x4_t scaled = vcombine_s32(vshrn_n_s64(plo, 16), vshrn_n_s64(phi, 16));
     uint32x4_t neg = vcltq_s32(values, vdupq_n_s32(0));
     return vbslq_s32(neg, vnegq_s32(scaled), scaled);
 }
@@ -247,17 +249,31 @@ static void vertical_filter_quantize_row(
 
 #if ENABLED(NEON)
     if (!is_top && !is_bottom) {
-        /* NEON middle row: 4-wide vertical filter + quantize */
+        /* NEON middle row: 4-wide vertical filter + quantize.
+           A76 tuning: hoist row pointers into __restrict locals + use
+           post-incremented loads so the compiler emits `ldr q,[x],#16`
+           (single dispatch slot) instead of indexed `ldr q,[x,x]`
+           (5-cycle latency). Without restrict-locals + post-inc, clang
+           reloads the rows[] pointer array inside the loop on every
+           iteration (verified in clang -S output on aarch64). */
         const int32x4_t four = vdupq_n_s32(4);
         const int width_m4 = (width / 4) * 4;
+        const PIXEL *__restrict__ p0 = rows[0];
+        const PIXEL *__restrict__ p1 = rows[1];
+        const PIXEL *__restrict__ p2 = rows[2];
+        const PIXEL *__restrict__ p3 = rows[3];
+        const PIXEL *__restrict__ p4 = rows[4];
+        const PIXEL *__restrict__ p5 = rows[5];
+        PIXEL *__restrict__ qlo = out_lo;
+        PIXEL *__restrict__ qhi = out_hi;
 
-        for (; col < width_m4; col += 4) {
-            int32x4_t r0 = vld1q_s32(&rows[0][col]);
-            int32x4_t r1 = vld1q_s32(&rows[1][col]);
-            int32x4_t r2 = vld1q_s32(&rows[2][col]);
-            int32x4_t r3 = vld1q_s32(&rows[3][col]);
-            int32x4_t r4 = vld1q_s32(&rows[4][col]);
-            int32x4_t r5 = vld1q_s32(&rows[5][col]);
+        for (int c = 0; c < width_m4; c += 4) {
+            int32x4_t r0 = vld1q_s32(p0); p0 += 4;
+            int32x4_t r1 = vld1q_s32(p1); p1 += 4;
+            int32x4_t r2 = vld1q_s32(p2); p2 += 4;
+            int32x4_t r3 = vld1q_s32(p3); p3 += 4;
+            int32x4_t r4 = vld1q_s32(p4); p4 += 4;
+            int32x4_t r5 = vld1q_s32(p5); p5 += 4;
 
             /* low = r2 + r3 */
             int32x4_t low = vaddq_s32(r2, r3);
@@ -266,9 +282,10 @@ static void vertical_filter_quantize_row(
             high = vshrq_n_s32(vaddq_s32(high, four), 3);
             high = vaddq_s32(high, vsubq_s32(r2, r3));
 
-            vst1q_s32(&out_lo[col], quantize_neon4(low, mid_lo, mul_lo));
-            vst1q_s32(&out_hi[col], quantize_neon4(high, mid_hi, mul_hi));
+            vst1q_s32(qlo, quantize_neon4(low, mid_lo, mul_lo)); qlo += 4;
+            vst1q_s32(qhi, quantize_neon4(high, mid_hi, mul_hi)); qhi += 4;
         }
+        col = width_m4;
     }
 #endif
 
