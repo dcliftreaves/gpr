@@ -595,7 +595,10 @@ static void stream_cascade_higher_levels(FUSED_CHANNEL_STATE *cs,
     /* ---- Level 2 vertical filter (emit one output row every 2 inputs after row 6) ---- */
     if (cs->buf_row_l2 >= 6 && (cs->buf_row_l2 % 2) == 0) {
         int out_row_l2 = cs->band_out_row_l2;
-        if (out_row_l2 >= cs->band_height_l2) return;
+        /* Allow writing up to band_height_l2 + 4 (extra scratch rows in
+           band_data_l2) so the cascade can still drive level-3 even after
+           the "real" band is full. */
+        if (out_row_l2 >= cs->band_height_l2 + 4) return;
 
         PIXEL *lp_rows[6], *hp_rows[6];
         int base = (cs->buf_row_l2 - 6) % FUSED_ROW_BUFS;
@@ -639,7 +642,8 @@ static void stream_cascade_higher_levels(FUSED_CHANNEL_STATE *cs,
         /* ---- Level 3 vertical filter ---- */
         if (cs->buf_row_l3 >= 6 && (cs->buf_row_l3 % 2) == 0) {
             int out_row_l3 = cs->band_out_row_l3;
-            if (out_row_l3 >= cs->band_height_l3) return;
+            /* Allow writing into the +4 scratch rows of band_data_l3. */
+            if (out_row_l3 >= cs->band_height_l3 + 4) return;
 
             PIXEL *lp_rows3[6], *hp_rows3[6];
             int base3 = (cs->buf_row_l3 - 6) % FUSED_ROW_BUFS;
@@ -756,7 +760,10 @@ static void pass1_run_channel(
 
         if (cs->buf_row >= 6 && (cs->buf_row % 2) == 0) {
             int out_row = cs->band_out_row;
-            if (out_row >= cs->band_height) continue;
+            /* Allow the tail to write into the +4 scratch rows in
+               band_data so the streaming cascade can still cascade past
+               band_height (needed to fill the deeper levels). */
+            if (out_row >= cs->band_height + 4) continue;
 
             PIXEL *lp_rows[6], *hp_rows[6];
             int base = (cs->buf_row - 6) % FUSED_ROW_BUFS;
@@ -946,7 +953,11 @@ static int setup_channel_state(
                 ch_state[ch].row_scratch[band] = (PIXEL *)calloc(bw, sizeof(PIXEL));
                 if (!ch_state[ch].row_scratch[band]) return -1;
             } else {
-                ch_state[ch].band_data[band] = (PIXEL *)calloc(bw * bh, sizeof(PIXEL));
+                /* +4 extra rows: scratch space for the bottom-edge tail
+                   handler (under-run cascade pushes a few rows past
+                   band_height). Pass 2 only encodes the first band_height
+                   rows. */
+                ch_state[ch].band_data[band] = (PIXEL *)calloc((size_t)bw * (bh + 4), sizeof(PIXEL));
                 ch_state[ch].row_scratch[band] = NULL;
                 if (!ch_state[ch].band_data[band]) return -1;
             }
@@ -969,12 +980,16 @@ static int setup_channel_state(
                 /* Streaming mode: skip the LL2 full-image buffer (band==0). */
                 int need_l2 = !(streaming && band == 0);
                 if (need_l2) {
-                    ch_state[ch].band_data_l2[band] = (PIXEL *)calloc(bw2 * bh2, sizeof(PIXEL));
+                    /* +4 extra rows so the bottom-edge tail cascade can
+                       write past band_height without overflowing. */
+                    ch_state[ch].band_data_l2[band] = (PIXEL *)calloc(
+                        (size_t)bw2 * (bh2 + 4), sizeof(PIXEL));
                     if (!ch_state[ch].band_data_l2[band]) return -1;
                 } else {
                     ch_state[ch].band_data_l2[band] = NULL;
                 }
-                ch_state[ch].band_data_l3[band] = (PIXEL *)calloc(bw3 * bh3, sizeof(PIXEL));
+                ch_state[ch].band_data_l3[band] = (PIXEL *)calloc(
+                    (size_t)bw3 * (bh3 + 4), sizeof(PIXEL));
                 if (!ch_state[ch].band_data_l3[band]) return -1;
             }
             /* Streaming buffers — only in streaming mode */
