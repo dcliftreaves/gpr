@@ -75,12 +75,14 @@ int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
     memcpy(band_sizes, enc + off, sizeof(band_sizes));
     off += sizeof(band_sizes);
 
-    /* Dimensions per level */
+    /* Dimensions per level — ceil at each step to match the encoder's
+       odd-width handling (otherwise odd intermediate widths drop the
+       last column on the way down the pyramid). */
     int ch_w = (int)hdr.width  / 2;
     int ch_h = (int)hdr.height / 2;
     int bw1  = ch_w / 2, bh1 = ch_h / 2;
-    int bw2  = bw1  / 2, bh2 = bh1 / 2;
-    int bw3  = bw1  / 4, bh3 = bh1 / 4;
+    int bw2  = (bw1 + 1) / 2, bh2 = (bh1 + 1) / 2;
+    int bw3  = (bw2 + 1) / 2, bh3 = (bh2 + 1) / 2;
 
     /* Slot widths/heights — matches encoder write order:
          0..2 = LH1/HL1/HH1   (bw1×bh1)

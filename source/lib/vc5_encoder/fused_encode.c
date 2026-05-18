@@ -178,6 +178,18 @@ static void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpas
         highpass[half - 1] = PS(input[idx]) - PS(input[idx + 1]);
     }
 
+    /* Odd-width tail: produce one extra output for the unpaired last
+       column by treating it as a pair with itself (replicated). Without
+       this, every wavelet level whose input width is odd silently drops
+       the right-most column — visible as a chunk of dead pixels in the
+       reconstructed image. */
+    if (width & 1) {
+        int idx = width - 1;
+        PIXEL last = PS(input[idx]);
+        lowpass[half]  = last + last;
+        highpass[half] = 0;
+    }
+
     #undef PS
 }
 
@@ -969,10 +981,12 @@ static int setup_channel_state(
             if (!ch_state[ch].lowpass_buf[r] || !ch_state[ch].highpass_buf[r]) return -1;
         }
 
-        /* Multi-level: allocate level-2 and level-3 band buffers + quant. */
+        /* Multi-level: allocate level-2 and level-3 band buffers + quant.
+           Use ceil at each step so odd-width inputs don't silently drop
+           the unpaired column. */
         if (multi_level) {
-            int bw2 = bw / 2, bh2 = bh / 2;
-            int bw3 = bw / 4, bh3 = bh / 4;
+            int bw2 = (bw + 1) / 2, bh2 = (bh + 1) / 2;
+            int bw3 = (bw2 + 1) / 2, bh3 = (bh2 + 1) / 2;
             ch_state[ch].band_width_l2 = bw2;
             ch_state[ch].band_height_l2 = bh2;
             ch_state[ch].band_width_l3 = bw3;
