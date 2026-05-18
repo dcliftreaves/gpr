@@ -713,10 +713,11 @@ static void pass1_run_channel(
        of extras needed depends on how many levels are stacked. */
     int tail_extras = 4;  /* enough for pass1 alone */
     if (cs->streaming_active) {
-        /* Each additional level under-runs by 2 outputs, each requiring 2
-           more inputs. Cascade has 2 levels (l2 and l3), so 4 + 8 = 12
-           extras would suffice; round up for safety. */
-        tail_extras = 16;
+        /* Each cascade level needs 4 extra inputs to emit its 2 missing
+           bottom-edge outputs. Three levels stacked needs
+             tail = 2*(2*(2*band_h_l3+4)+4)+4 - 2*band_h_l1 = 28.
+           Derivation: L_in(L_out)=2*L_out+4 per level, applied 3 times. */
+        tail_extras = 28;
     }
     int total_rows = ch_height + tail_extras;
 
@@ -760,10 +761,10 @@ static void pass1_run_channel(
 
         if (cs->buf_row >= 6 && (cs->buf_row % 2) == 0) {
             int out_row = cs->band_out_row;
-            /* Allow the tail to write into the +4 scratch rows in
+            /* Allow the tail to write into the +8 scratch rows in
                band_data so the streaming cascade can still cascade past
                band_height (needed to fill the deeper levels). */
-            if (out_row >= cs->band_height + 4) continue;
+            if (out_row >= cs->band_height + 8) continue;
 
             PIXEL *lp_rows[6], *hp_rows[6];
             int base = (cs->buf_row - 6) % FUSED_ROW_BUFS;
@@ -953,11 +954,11 @@ static int setup_channel_state(
                 ch_state[ch].row_scratch[band] = (PIXEL *)calloc(bw, sizeof(PIXEL));
                 if (!ch_state[ch].row_scratch[band]) return -1;
             } else {
-                /* +4 extra rows: scratch space for the bottom-edge tail
-                   handler (under-run cascade pushes a few rows past
-                   band_height). Pass 2 only encodes the first band_height
-                   rows. */
-                ch_state[ch].band_data[band] = (PIXEL *)calloc((size_t)bw * (bh + 4), sizeof(PIXEL));
+                /* +8 extra rows for the bottom-edge tail handler. The
+                   cascade in streaming mode pushes a few rows past
+                   band_height to drive the deeper levels. L1 needs the
+                   most headroom because it sources the whole pyramid. */
+                ch_state[ch].band_data[band] = (PIXEL *)calloc((size_t)bw * (bh + 8), sizeof(PIXEL));
                 ch_state[ch].row_scratch[band] = NULL;
                 if (!ch_state[ch].band_data[band]) return -1;
             }
