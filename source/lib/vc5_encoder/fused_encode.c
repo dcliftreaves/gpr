@@ -18,6 +18,14 @@
  *  (C) Copyright 2018 GoPro Inc. Licensed under Apache-2.0 or MIT.
  */
 
+/* POSIX feature test must precede any system header so clock_gettime
+   and CLOCK_MONOTONIC are exposed on Linux (Pi). */
+#if !defined(__APPLE__)
+#  ifndef _POSIX_C_SOURCE
+#  define _POSIX_C_SOURCE 199309L
+#  endif
+#endif
+
 #include "headers.h"
 #include "fused_encode.h"
 #include "ans_joint.h"
@@ -29,12 +37,21 @@
 #define FUSED_TIMING_DETAIL
 
 #if defined(FUSED_TIMING) || defined(FUSED_TIMING_DETAIL)
+#if defined(__APPLE__)
 #include <mach/mach_time.h>
 static double _fused_ms(void) {
     static double s = 0;
     if (!s) { mach_timebase_info_data_t i; mach_timebase_info(&i); s = (double)i.numer/i.denom/1e6; }
     return mach_absolute_time() * s;
 }
+#else
+#include <time.h>
+static double _fused_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1.0e6;
+}
+#endif
 #endif
 
 #if ENABLED(NEON)
