@@ -887,6 +887,13 @@ struct JANS_INLINE_STATE {
     size_t    stripe_acc_pos;
     size_t    stripe_acc_cap;
     int       num_stripes;
+
+    /* Persistent rANS scratch reused across every blob emit. Previously
+       malloc'd inside jans_inline_emit_blob: stripe mode at q=3 / 50 MP =
+       ~132 mallocs of a few MB per frame, all returned to libc and re-acquired
+       next frame. */
+    uint8_t  *rans_scratch;
+    size_t    rans_scratch_cap;
 };
 
 JANS_INLINE_STATE *jans_inline_create(size_t max_coeffs) {
@@ -936,8 +943,13 @@ static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
     build_tables(&s->table, JANS_NUM_SYMBOLS);
 
     size_t rans_cap = (size_t)s->token_count * 4 + 4096;
-    uint8_t *rans_buf = (uint8_t *)malloc(rans_cap);
-    if (!rans_buf) return -1;
+    if (rans_cap > s->rans_scratch_cap) {
+        uint8_t *nb = (uint8_t *)realloc(s->rans_scratch, rans_cap);
+        if (!nb) return -1;
+        s->rans_scratch = nb;
+        s->rans_scratch_cap = rans_cap;
+    }
+    uint8_t *rans_buf = s->rans_scratch;
     uint8_t *rans_ptr = rans_buf;
     uint32_t states[JANS_INTERLEAVE];
     for (int j = 0; j < JANS_INTERLEAVE; j++) states[j] = RANS_BYTE_L;
@@ -1004,7 +1016,6 @@ static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
     memcpy(op, rans_buf, rans_size); op += rans_size;
     memcpy(op, s->resid_buf, resid_size);
 
-    free(rans_buf);
     return (int)total;
 }
 
@@ -1140,9 +1151,10 @@ int jans_inline_finalize(uint8_t *out_buf, size_t out_capacity, JANS_INLINE_STAT
 
 void jans_inline_destroy(JANS_INLINE_STATE *s) {
     if (!s) return;
-    if (s->tokens)     free(s->tokens);
-    if (s->resid_buf)  free(s->resid_buf);
-    if (s->stripe_acc) free(s->stripe_acc);
+    if (s->tokens)        free(s->tokens);
+    if (s->resid_buf)     free(s->resid_buf);
+    if (s->stripe_acc)    free(s->stripe_acc);
+    if (s->rans_scratch)  free(s->rans_scratch);
     free(s);
 }
 
