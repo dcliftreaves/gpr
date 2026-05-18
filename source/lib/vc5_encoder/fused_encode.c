@@ -702,26 +702,52 @@ static void pass1_run_channel(
     double _ch_start = _fused_ms();
 #endif
 
-    for (int row = 0; row < ch_height; row++) {
-        const uint16_t *row1 = bayer + (row * 2) * bayer_pitch;
-        const uint16_t *row2 = row1 + bayer_pitch;
+    /* Bottom-edge handling: the 6-tap vertical filter under-runs by 2
+       rows per level. To produce the missing bottom outputs, we run
+       extra "tail" iterations beyond ch_height that replicate the last
+       horizontal-filter result instead of consuming new input. The number
+       of extras needed depends on how many levels are stacked. */
+    int tail_extras = 4;  /* enough for pass1 alone */
+    if (cs->streaming_active) {
+        /* Each additional level under-runs by 2 outputs, each requiring 2
+           more inputs. Cascade has 2 levels (l2 and l3), so 4 + 8 = 12
+           extras would suffice; round up for safety. */
+        tail_extras = 16;
+    }
+    int total_rows = ch_height + tail_extras;
 
-#ifdef FUSED_TIMING_DETAIL
-        _td = _fused_ms();
-#endif
-
-        unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
-                           row1, row2, unpack_row, ch_width);
-
-#ifdef FUSED_TIMING_DETAIL
-        t_unpack += _fused_ms() - _td; _td = _fused_ms();
-#endif
-
+    for (int row = 0; row < total_rows; row++) {
         int buf_idx = cs->buf_row % FUSED_ROW_BUFS;
-        horizontal_filter(unpack_row,
-                          cs->lowpass_buf[buf_idx],
-                          cs->highpass_buf[buf_idx],
-                          ch_width, prescale);
+
+        if (row < ch_height) {
+            const uint16_t *row1 = bayer + (row * 2) * bayer_pitch;
+            const uint16_t *row2 = row1 + bayer_pitch;
+
+#ifdef FUSED_TIMING_DETAIL
+            _td = _fused_ms();
+#endif
+
+            unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
+                               row1, row2, unpack_row, ch_width);
+
+#ifdef FUSED_TIMING_DETAIL
+            t_unpack += _fused_ms() - _td; _td = _fused_ms();
+#endif
+
+            horizontal_filter(unpack_row,
+                              cs->lowpass_buf[buf_idx],
+                              cs->highpass_buf[buf_idx],
+                              ch_width, prescale);
+        } else {
+            /* Tail: replicate the previous slot's lp/hp. */
+            int prev = (cs->buf_row - 1) % FUSED_ROW_BUFS;
+            if (prev != buf_idx) {
+                memcpy(cs->lowpass_buf[buf_idx], cs->lowpass_buf[prev],
+                       (size_t)(ch_width / 2) * sizeof(PIXEL));
+                memcpy(cs->highpass_buf[buf_idx], cs->highpass_buf[prev],
+                       (size_t)(ch_width / 2) * sizeof(PIXEL));
+            }
+        }
         cs->buf_row++;
 
 #ifdef FUSED_TIMING_DETAIL
