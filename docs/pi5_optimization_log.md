@@ -44,6 +44,29 @@
 - `jans_inline_emit_blob` (rANS encode) — 22%
 - `vertical_filter_quantize_row` — 7%
 
+## Ablation breakdown of tokenize wall (Pi 6.6.51, post-P3)
+
+Phase=N runs jans_inline_row with parts of the nonzero body conditionally
+disabled, then runs emit_blob normally (token_count=0 ⇒ rANS skipped):
+
+| Phase | Body executed | Wall ms | Δ vs prev |
+|---|---|---|---|
+| 1 | zero scan + abs(val) only | 86 | floor |
+| 2 | + class lookups (run_to_class + mag_to_class) | 94 | +8 |
+| 3 | + freq[sym]++ | 101 | +7 |
+| 4 | + tokens[]= write **and the rANS encode in emit_blob** | 150 | **+49** |
+| 5 | + bitbuf_write of merged residuals (= full) | 182 | **+32** |
+
+Therefore on textured Z8 at q=3 the wall is:
+- ~86 ms unavoidable scan + abs floor
+- ~30 ms rANS encode in emit_blob (after P3)
+- ~30 ms bitbuf_write of merged residuals
+- ~15 ms class lookups + freq[]++ + tokens[]= store
+
+This kills "just cleverly skim zeros" — the 86 ms floor IS the iteration cost
+on textured data. The two big targets above 86 ms are rANS encode and
+bitbuf_write.
+
 ## Key revelation (2026-05-19)
 
 **Tokenize is 60% of the work**, not unpack. Earlier session readings showing
@@ -115,6 +138,25 @@ Each gets a real attempt with measurement on Pi before moving on.
 Key inference: `normalize_freq + build_encode_tables` cost is essentially **zero**. The 173 ms wall is the actual `jans_inline_row` (tokenize) and `jans_inline_emit_blob` rANS core loops. Reverted. **Kills E3 as well if its only motivation was skipping table build.** Static-freq codecs only win if combined with a fundamentally cheaper symbol encode (Golomb-Rice).
 
 See `pi5_creative_ideas.md` for the next round of Pi-specific ideas.
+
+### P1 — prfm hints in rANS reverse-encode loop
+**Result: FLAT/SLIGHT NEGATIVE**. Added explicit `__builtin_prefetch` for `tokens[i-32]` and chained `enc[tokens[i-16]]` in the 4-way unrolled rANS body. Tight A/B: −1.5 ms (regression). HW stride prefetcher on A76 evidently handles even backward tokens[] reads within the working set. Reverted.
+
+### P2 — NEON zero-skim in tokenize
+**Result: NEGATIVE (+5 ms)**. After hitting a zero, scan-ahead 4 lanes via `vld1q_s32 + vmaxvq_u32` to skip all-zero chunks. The cross-lane reduce (~7 cycles) costs more on textured Z8 than it earns — zero-clusters between nonzeros are short. P2v2 scalar 64-bit pair-probe variant: +3 ms (also negative, less bad). Both reverted.
+
+### Ablation (env-gated GPR_TOKEN_PHASE)
+Critical methodology step: added a phase-controlled bypass of work inside `jans_inline_row` body to attribute time to specific operations. See the ablation table above. This identified bitbuf_write as ~32 ms/ch wall — leading to P3.
+
+### P3 — BITBUF locals across jans_inline_row (commit 53fd870)
+**Result: WIN −20 ms wall (180→160 ms)**. Hoisted `bb->accum / accum_bits / byte_pos` into row-local registers via a `BB_WRITE_FAST` macro. Previously each bitbuf_write call read those fields from memory, ORed in new bits, and wrote them back — forming a per-call serial RMW chain through L1d. With locals the compiler keeps them in registers across all ~1.6M calls per channel. Also drops the dead `if (bits==0)` and `bits>=32` branches since neither triggers in the hot path. **Byte-identical output.**
+
+### P4 — packed-LDR enc loads + 8-way unroll on rANS encode
+**Result: marginal (~1-2 ms, within noise)**. Forced `memcpy`-style 8-byte loads of `JANS_ENC_ENTRY` (compiler now emits `ldr x` + bit-extracts instead of 3 separate `ldrh/ldrh/ldr`), then 8-way unrolled the 4-way state machine (2 rounds per loop iteration). The asm IS cleaner (12 loads → 4 per 4-token block) but throughput-limited elsewhere; A76 had enough OoO headroom that load count wasn't the bottleneck. Reverted.
+
+## Session result
+
+Wall time: **180 → 162 ms** (committed P3 only). ~10 ms repeatable improvement on Z8 50 MP RGGB q=3, byte-identical output. 5.8 → 6.2 fps. Target remains 42 ms (24 fps); the remaining gap is unreachable without format change (E3 Golomb-Rice or E4 raw bands + LZ4) or fundamentally different architecture (pipeline frames, offload).
 
 
 ## ffmpeg techniques applied / available
