@@ -121,15 +121,22 @@ int main(int argc, char **argv) {
         unsigned char *out = NULL; size_t out_sz = 0;
         gpr_encode_fused_frame(enc, (unsigned char *)raw, in_sz, &out, &out_sz);
         double t1 = now_ms();
-        int dw, dh;
-        /* First call to discover output dims (decoder writes nothing safe if
-           the output is smaller than the buffer with a too-wide pitch). */
-        int drc = gpr_decode_fused(out, out_sz, dec, (size_t)W * 2, &dw, &dh);
-        if (drc == 0 && (dw != W || dh != H)) {
-            /* Re-decode with tight pitch matching the actual output dims. */
-            memset(dec, 0, in_sz);
-            drc = gpr_decode_fused(out, out_sz, dec, (size_t)dw * 2, &dw, &dh);
+        /* Compute output dims from the encoded header so we can pick the right
+           pitch up front and run decode exactly once. The header is the first
+           bytes of the encoded buffer (see FUSED_HEADER in fused_encode.h). */
+        int dw = W, dh = H;
+        if (out_sz >= 13 * 4) {
+            uint32_t hdr_width    = ((uint32_t)out[ 8]) | ((uint32_t)out[ 9]<<8)
+                                   | ((uint32_t)out[10]<<16) | ((uint32_t)out[11]<<24);
+            uint32_t hdr_height   = ((uint32_t)out[12]) | ((uint32_t)out[13]<<8)
+                                   | ((uint32_t)out[14]<<16) | ((uint32_t)out[15]<<24);
+            uint32_t hdr_decimate = ((uint32_t)out[48]) | ((uint32_t)out[49]<<8)
+                                   | ((uint32_t)out[50]<<16) | ((uint32_t)out[51]<<24);
+            int dec_factor = (hdr_decimate < 2) ? 1 : (int)hdr_decimate;
+            dw = (int)(hdr_width  / dec_factor);
+            dh = (int)(hdr_height / dec_factor);
         }
+        int drc = gpr_decode_fused(out, out_sz, dec, (size_t)dw * 2, &dw, &dh);
         double t2 = now_ms();
         if (drc != 0) { fprintf(stderr, "frame %d DECODE rc=%d\n", i, drc); continue; }
 
