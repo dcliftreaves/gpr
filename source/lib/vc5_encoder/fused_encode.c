@@ -629,6 +629,13 @@ static void unpack_channel_row(
     const int32x4_t vmid2 = vdupq_n_s32(mid2);
     const uint16x8_t v_log_max = vdupq_n_u16((uint16_t)log_max);
 
+    /* Prefetch the LAST cache line of row1/row2 to warm L1 against the
+       HW prefetcher's startup latency. The body of the loop reads
+       sequentially so the stride prefetcher catches up quickly, but the
+       first iter sees a cold front. PLDL1KEEP locality hint = stay in L1. */
+    __builtin_prefetch(&row1[ch_width * 2 - 32], 0, 3);
+    __builtin_prefetch(&row2[ch_width * 2 - 32], 0, 3);
+
     /* 8-wide path: load + branchless clip via NEON; LUT gather stays scalar
        (ARM has no arbitrary u16 gather). Outputs are emitted in two 4-wide
        NEON chunks so the downstream arithmetic stays identical to the
