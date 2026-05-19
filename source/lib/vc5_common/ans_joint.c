@@ -97,6 +97,31 @@ static int class_to_run(int cls, int residual) {
 static const int mag_class_min[JANS_MAG_CLASSES] = {0,1,2,3,4,5,6,7,8,16,32,64,128,256,512,1024};
 static const int mag_class_bits[JANS_MAG_CLASSES] = {0,0,0,0,0,0,0,0,3,4,5,6,7,8,9,10};
 
+/* Per-symbol bit lengths for the inline-tokenize merged-write step:
+   sym_run_bits[sym] = run_class_bits[sym / JANS_MAG_CLASSES]
+   sym_total_bits[sym] = run_class_bits[rc] + mag_class_bits[mc] + 1
+   (the +1 is the sign bit, always present for mc>0 = nonzero coef).
+   For sym with mc==0 (pure run, no value), total = run_class_bits[rc] only,
+   but those are only used in the zero-run flushes which call bitbuf_write
+   with run_class_bits[rc] directly — not via these tables. */
+static uint8_t sym_run_bits[JANS_NUM_SYMBOLS + 1];
+static uint8_t sym_total_bits[JANS_NUM_SYMBOLS + 1];
+static int sym_bits_initialized = 0;
+
+static void init_sym_bits(void) {
+    if (sym_bits_initialized) return;
+    for (int rc = 0; rc < JANS_RUN_CLASSES; rc++) {
+        for (int mc = 0; mc < JANS_MAG_CLASSES; mc++) {
+            int sym = rc * JANS_MAG_CLASSES + mc;
+            int rb = run_class_bits[rc];
+            int mb = mag_class_bits[mc];
+            sym_run_bits[sym] = (uint8_t)rb;
+            sym_total_bits[sym] = (uint8_t)(rb + mb + 1);
+        }
+    }
+    sym_bits_initialized = 1;
+}
+
 /* Fast LUT-based mag_to_class: O(1) for magnitudes 0-2047, O(N) fallback for larger */
 static uint8_t mag_class_lut[2048];
 static uint16_t mag_resid_lut[2048];
@@ -402,7 +427,7 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
     if (pixels > (size_t)(INT32_MAX / 2)) return -1;
 
     init_run_lut();
-    init_mag_lut();
+    init_mag_lut(); init_sym_bits();
 
     /* Single allocation for all encode buffers (embedded-friendly).
        tokens: max_tokens × 2 bytes, resid: pixels × 2, rans: pixels × 2 + 4K */
@@ -665,7 +690,7 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
 
     /* Initialize classification LUTs (once) */
     init_run_lut();
-    init_mag_lut();
+    init_mag_lut(); init_sym_bits();
 
     /* Single allocation for all encode buffers (embedded-friendly) */
     size_t max_tokens = pixels + height + 16;
@@ -929,7 +954,7 @@ JANS_INLINE_STATE *jans_inline_create(size_t max_coeffs) {
     JANS_INLINE_STATE *s = (JANS_INLINE_STATE *)calloc(1, sizeof(*s));
     if (!s) return NULL;
     init_run_lut();
-    init_mag_lut();
+    init_mag_lut(); init_sym_bits();
     /* Worst-case sizing for a SINGLE band (stripe-mode shrinks this in reset). */
     s->token_cap = max_coeffs + 4096;
     s->resid_cap = max_coeffs * 2 + 4096;
@@ -1150,12 +1175,15 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
         freq[sym]++;
         tokens[token_count++] = (uint16_t)sym;
         {
-            int rb = run_class_bits[rc];
+            /* Pre-baked: sym_run_bits[sym] = rb, sym_total_bits[sym] = rb+mb+1.
+               Saves one int load (mag_class_bits[mc]) + one add per nonzero. */
+            int rb = sym_run_bits[sym];
+            int tb = sym_total_bits[sym];
             int mb = mag_class_bits[mc];
             uint32_t merged = (uint32_t)run_resid;
             merged |= ((uint32_t)mag_resid << rb);
             merged |= ((val < 0) ? 1u : 0u) << (rb + mb);
-            bitbuf_write(bb, merged, rb + mb + 1);
+            bitbuf_write(bb, merged, tb);
         }
         run = 0;
     }
