@@ -873,6 +873,12 @@ static void pass1_run_channel(
 {
     int ch_width = width / 2;
     int ch_height = height / 2;
+    /* GPR_ROW_DECIMATE=2: skip alternate Bayer row pairs. Each "channel row"
+       is now produced from input rows row*4 and row*4+1 instead of row*2/2+1.
+       ch_height is halved; downstream band sizes match setup_channel_state. */
+    const char *_dec_env = getenv("GPR_ROW_DECIMATE");
+    int row_stride_pairs = (_dec_env && *_dec_env == '2') ? 4 : 2;
+    if (row_stride_pairs == 4) ch_height /= 2;
     const uint16_t *bayer = (const uint16_t *)raw_bayer;
     int bayer_pitch = width;
 
@@ -908,7 +914,7 @@ static void pass1_run_channel(
         int buf_idx = cs->buf_row % FUSED_ROW_BUFS;
 
         if (row < ch_height) {
-            const uint16_t *row1 = bayer + (row * 2) * bayer_pitch;
+            const uint16_t *row1 = bayer + (row * row_stride_pairs) * bayer_pitch;
             const uint16_t *row2 = row1 + bayer_pitch;
 
 #ifdef FUSED_TIMING_DETAIL
@@ -999,11 +1005,24 @@ static void pass1_run_channel(
 #endif
 
             /* Inline-mode: tokenize each highpass band's row immediately while
-               it's still hot in L1. Pass 2 will only do rANS encode. */
+               it's still hot in L1. Pass 2 will only do rANS encode.
+
+               GPR_DROP_HIGHPASS=1 skips highpass tokenization entirely —
+               for measuring "wavelet-as-downsample" budget. Output is NOT a
+               valid GPR file in this mode (decoder will see empty highpass
+               bands), but the timing tells us if dropping HL/LH/HH bands
+               is sufficient to hit 24 fps on 50 MP input. */
             if (inline_mode) {
-                jans_inline_row(cs->inline_state[1], lh_row, bw);
-                jans_inline_row(cs->inline_state[2], hl_row, bw);
-                jans_inline_row(cs->inline_state[3], hh_row, bw);
+                static int drop_hp = -1;
+                if (drop_hp < 0) {
+                    const char *e = getenv("GPR_DROP_HIGHPASS");
+                    drop_hp = (e && *e == '1') ? 1 : 0;
+                }
+                if (!drop_hp) {
+                    jans_inline_row(cs->inline_state[1], lh_row, bw);
+                    jans_inline_row(cs->inline_state[2], hl_row, bw);
+                    jans_inline_row(cs->inline_state[3], hh_row, bw);
+                }
             }
 
             /* Multi-level streaming: cascade the fresh LL1 row through
@@ -1027,12 +1046,19 @@ static void pass1_run_channel(
        stay bit-identical: emit zero-row tokens for the missing rows. */
     if (cs->inline_state[1] != NULL) {
         int bw = cs->band_width;
+        static int drop_hp_tail = -1;
+        if (drop_hp_tail < 0) {
+            const char *e = getenv("GPR_DROP_HIGHPASS");
+            drop_hp_tail = (e && *e == '1') ? 1 : 0;
+        }
         PIXEL *zero_row = (PIXEL *)calloc(bw, sizeof(PIXEL));
         if (zero_row) {
             while (cs->band_out_row < cs->band_height) {
-                jans_inline_row(cs->inline_state[1], zero_row, bw);
-                jans_inline_row(cs->inline_state[2], zero_row, bw);
-                jans_inline_row(cs->inline_state[3], zero_row, bw);
+                if (!drop_hp_tail) {
+                    jans_inline_row(cs->inline_state[1], zero_row, bw);
+                    jans_inline_row(cs->inline_state[2], zero_row, bw);
+                    jans_inline_row(cs->inline_state[3], zero_row, bw);
+                }
                 cs->band_out_row++;
             }
             free(zero_row);
@@ -1346,9 +1372,16 @@ static void pass1_run_channel_consumer(
 #endif
 
             if (inline_mode) {
-                jans_inline_row(cs->inline_state[1], lh_row, bw);
-                jans_inline_row(cs->inline_state[2], hl_row, bw);
-                jans_inline_row(cs->inline_state[3], hh_row, bw);
+                static int drop_hp = -1;
+                if (drop_hp < 0) {
+                    const char *e = getenv("GPR_DROP_HIGHPASS");
+                    drop_hp = (e && *e == '1') ? 1 : 0;
+                }
+                if (!drop_hp) {
+                    jans_inline_row(cs->inline_state[1], lh_row, bw);
+                    jans_inline_row(cs->inline_state[2], hl_row, bw);
+                    jans_inline_row(cs->inline_state[3], hh_row, bw);
+                }
             }
 
             if (streaming) {
@@ -1382,12 +1415,19 @@ advance_consumer:
     /* Same bottom-of-band zero-row flush as the per-channel path. */
     if (cs->inline_state[1] != NULL) {
         int bw = cs->band_width;
+        static int drop_hp_tail = -1;
+        if (drop_hp_tail < 0) {
+            const char *e = getenv("GPR_DROP_HIGHPASS");
+            drop_hp_tail = (e && *e == '1') ? 1 : 0;
+        }
         PIXEL *zero_row = (PIXEL *)calloc(bw, sizeof(PIXEL));
         if (zero_row) {
             while (cs->band_out_row < cs->band_height) {
-                jans_inline_row(cs->inline_state[1], zero_row, bw);
-                jans_inline_row(cs->inline_state[2], zero_row, bw);
-                jans_inline_row(cs->inline_state[3], zero_row, bw);
+                if (!drop_hp_tail) {
+                    jans_inline_row(cs->inline_state[1], zero_row, bw);
+                    jans_inline_row(cs->inline_state[2], zero_row, bw);
+                    jans_inline_row(cs->inline_state[3], zero_row, bw);
+                }
                 cs->band_out_row++;
             }
             free(zero_row);
@@ -1435,6 +1475,12 @@ static int setup_channel_state(
 {
     int ch_width = width / 2;
     int ch_height = height / 2;
+    /* GPR_ROW_DECIMATE=2 — halve ch_height; encoder skips alternate Bayer
+       row pairs in pass1_run_channel. Combined with GPR_DROP_HIGHPASS this
+       targets ~24 fps on 50 MP input. */
+    const char *_dec_env = getenv("GPR_ROW_DECIMATE");
+    int _dec = (_dec_env && *_dec_env == '2') ? 2 : 1;
+    if (_dec == 2) ch_height /= 2;
     const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
 
     for (int ch = 0; ch < 4; ch++) {
