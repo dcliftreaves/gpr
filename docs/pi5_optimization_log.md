@@ -198,9 +198,21 @@ Wins (each measured 30-iter median, real content, fixed encoder, decodable outpu
   Straight-line 16-load unroll + NEON pair-add reduce. −16 ms / +27%.
 - **`42e51bc`** — default ROW+COL decimate to fast row-skip (wavelet does the
   vertical LP anyway). −6 ms / +11%.
-- Combined (a4880e3 + 42e51bc + LL-only drop highpass): 74 → 34 ms median
-  (2.2× throughput). Byte-identical to the AA path for the LL+HP case;
+- **`53e4cae`** — prefetch end-of-row at start of `unpack_channel_row`. The
+  HW stride prefetcher doesn't traverse cleanly across `row_stride_pairs=4`
+  row-skips, so the first iter sees a cold front. Two PLDL1KEEP hints fix
+  that. −3 ms / +5%.
+- **`5f6fa35`** — also tried prefetching next-iter rows 4 bayer rows ahead
+  → regressed +2 ms (LSU dispatch contention). Doc-only update so the
+  next person doesn't redo it.
+- Combined (all wins above + LL-only drop highpass): 74 → 32.8 ms median
+  (2.3× throughput). Byte-identical to the AA path for the LL+HP case;
   LL-only is a quality/size tradeoff with a clean LP output.
+
+Current state of valid-decodable paths (30-iter median, real Z8 content):
+- baseline 50 MP no decimate: 132 ms / 7.6 fps
+- LL+HP 4K-equivalent (full detail): 50.6 ms / 19.8 fps
+- LL-only 4K-equivalent (smoothed):  32.8 ms / 30.5 fps ✓ 24 fps target HIT
 
 Tools added (commit `8ff6377`):
 - `source/app/test_multi_frame.c` — N-frame stream test
