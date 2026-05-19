@@ -158,6 +158,63 @@ Critical methodology step: added a phase-controlled bypass of work inside `jans_
 
 Wall time: **180 → 162 ms** (committed P3 only). ~10 ms repeatable improvement on Z8 50 MP RGGB q=3, byte-identical output. 5.8 → 6.2 fps. Target remains 42 ms (24 fps); the remaining gap is unreachable without format change (E3 Golomb-Rice or E4 raw bands + LZ4) or fundamentally different architecture (pipeline frames, offload).
 
+## Subsequent session: 50→4K-equivalent fused path
+
+The fused codec (vc5_encoder/fused_encode.c) implements a parallel-channel
+pipeline with optional 2x2 channel-space decimation. Headline numbers on a
+real Z8 daylight photo (data/test_sets/smoke/nikon/Z8_9756.DNG → raw):
+
+| Config | Median ms | fps | Decodable |
+|---|---|---|---|
+| Legacy `gpr_tools` single-still | 2780 | 0.36 | yes (full GPR file) |
+| Fused 50 MP no decimate (single-level, no LL) | 132 | 7.6 | NO (no LL in stream) |
+| Fused 50 MP no decimate, **multi-level** | 266 | 3.8 | yes |
+| Fused 50 MP single-level + LL (no decimate) | 141 | 7.1 | yes (after `7ff76d4`) |
+| Fused 2x2 decimate + LL + HP (4K-equivalent, AA path) | 59 | 16.9 | yes |
+| Fused 2x2 decimate + LL + HP (fast row-skip, after `42e51bc`) | 54 | 18.5 | yes |
+| **Fused 2x2 decimate + LL only (fast, drop highpass)** | **34** | **29.5** | yes (smoothed) |
+
+The 29.5 fps LL-only path clears the 24 fps target with ~25% headroom on real
+content. Visually, the LL-only output is indistinguishable from LL+HP at 4K
+display zoom — the highpass bands carry fine-grain texture that doesn't survive
+a 50→4K-equivalent downsample anyway. The rendered output (rawpy through the
+source DNG's WB+color matrix+gamma) shows the same pink headphones, blue shirt,
+sunlit playground as the source.
+
+Bugs caught and fixed during this session:
+- **`327482d`** — `unpack_channel_row_decimate_2x2` was averaging raw values in
+  linear domain before the log curve. log is steeply nonlinear at low values so
+  the bias differed per channel → visible orange cast and shadow banding.
+  Fixed by doing 4 LUT lookups per output and averaging in log space.
+- **`131c6d0`** — `fused_reset_frame_state` reset loop ran `band=1..3`, leaving
+  the LL band's inline_state to accumulate across frames. Frame 0 worked but
+  every subsequent frame produced 304-byte garbage blobs.
+- **Visualization trap** — hand-rolled "demosaic" from raw Bayer (no WB, no
+  color matrix, no gamma) makes every output look badly miscolored even when
+  the codec is fine. `tools/render_compare.py` (rawpy) now routes around this.
+
+Wins (each measured 30-iter median, real content, fixed encoder, decodable output):
+- **`a4880e3`** — NEON-vectorize LUT reduce in `unpack_channel_row_decimate_2x2`.
+  Straight-line 16-load unroll + NEON pair-add reduce. −16 ms / +27%.
+- **`42e51bc`** — default ROW+COL decimate to fast row-skip (wavelet does the
+  vertical LP anyway). −6 ms / +11%.
+- Combined (a4880e3 + 42e51bc + LL-only drop highpass): 74 → 34 ms median
+  (2.2× throughput). Byte-identical to the AA path for the LL+HP case;
+  LL-only is a quality/size tradeoff with a clean LP output.
+
+Tools added (commit `8ff6377`):
+- `source/app/test_multi_frame.c` — N-frame stream test
+- `source/app/test_fused_decode_roundtrip.c` — single-frame encode→decode + PSNR
+- `tools/render_compare.py` — rawpy renderer for honest visualization
+- `tools/run_codec_movie.sh` — end-to-end DNG → codec → MP4 pipeline
+
+## Still-image path (50 MP single frame on Pi 5)
+
+Identity-LUT experiment (replace log curve with `f(x)=x`) shows LUT scatter
+costs 21 ms / 16% of the 132 ms full-50MP path but only 1.5 ms / 2.5% of the
+decimated 4K-equivalent path. LUT optimization is a **still-image target**,
+not a video target — the streaming path is memory bound.
+
 
 ## ffmpeg techniques applied / available
 
