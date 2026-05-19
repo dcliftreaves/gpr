@@ -209,10 +209,15 @@ Wins (each measured 30-iter median, real content, fixed encoder, decodable outpu
   (2.3× throughput). Byte-identical to the AA path for the LL+HP case;
   LL-only is a quality/size tradeoff with a clean LP output.
 
-Current state of valid-decodable paths (30-iter median, real Z8 content):
+Current state of valid-decodable paths (30-iter median, real Z8 content,
+realistic range across multiple back-to-back runs):
 - baseline 50 MP no decimate: 132 ms / 7.6 fps
-- LL+HP 4K-equivalent (full detail): 50.6 ms / 19.8 fps
-- LL-only 4K-equivalent (smoothed):  32.8 ms / 30.5 fps ✓ 24 fps target HIT
+- LL+HP 4K-equivalent (full detail): 52-54 ms / 18.5-19 fps
+- LL-only 4K-equivalent (smoothed):  33 ms / 30 fps ✓ 24 fps target HIT
+
+The earlier 50.6 ms / 19.8 fps LL+HP number was a cool-Pi outlier; stable
+median across three back-to-back runs is 52-54 ms. The 24 fps target is
+achievable in the LL-only configuration; LL+HP is currently ~22% short.
 
 Tools added (commit `8ff6377`):
 - `source/app/test_multi_frame.c` — N-frame stream test
