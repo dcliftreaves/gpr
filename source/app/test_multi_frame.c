@@ -130,8 +130,11 @@ int main(int argc, char **argv) {
                                    | ((uint32_t)out[10]<<16) | ((uint32_t)out[11]<<24);
             uint32_t hdr_height   = ((uint32_t)out[12]) | ((uint32_t)out[13]<<8)
                                    | ((uint32_t)out[14]<<16) | ((uint32_t)out[15]<<24);
-            uint32_t hdr_decimate = ((uint32_t)out[48]) | ((uint32_t)out[49]<<8)
-                                   | ((uint32_t)out[50]<<16) | ((uint32_t)out[51]<<24);
+            /* FUSED_HEADER field offsets: magic=0 version=4 width=8 height=12
+               pixel_format=16 quality=20 is_rggb=24 log_bits=28 prescale=32
+               multi_level=36 num_bands=40 decimate=44. */
+            uint32_t hdr_decimate = ((uint32_t)out[44]) | ((uint32_t)out[45]<<8)
+                                   | ((uint32_t)out[46]<<16) | ((uint32_t)out[47]<<24);
             int dec_factor = (hdr_decimate < 2) ? 1 : (int)hdr_decimate;
             dw = (int)(hdr_width  / dec_factor);
             dh = (int)(hdr_height / dec_factor);
