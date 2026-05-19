@@ -126,11 +126,29 @@ The decoder was single-threaded at ~220 ms total. Added two threading
 points to `decode_fused_single_level_ll`:
 - 4 channel threads each rANS-decoding their 4 bands sequentially
 - 4 channel threads each running `InvertSpatialQuantDescale16s`
+- 4 row-strip threads for inverse color transform
 
 Result: ~170 ms total decode (-25%). Modest gain — the rANS decode has
 a tight inner state-update loop that doesn't benefit much beyond core
 count, and per-frame malloc contention partly cancels the parallel win.
 16-thread per-band was tested and gave NO additional improvement.
+
+**Decode stage breakdown** (measured via `GPR_DECODE_TIMING=1`, warm):
+- band_decode: 71 ms (rANS for 16 bands × 4 channels parallel)
+- wavelet_inv: 39 ms (4 channels parallel, NEON-vectorized inner)
+- color_xform: 26 ms (4 row-strips parallel)
+- TOTAL:       170 ms wall
+
+**Thread overhead microbench**: 12-thread create+join batch = 0.28 ms on
+Pi 5. Pooling threads would save <1 ms; not worth the complexity.
+
+**Decoder is already well-tuned**: inner rANS loop uses branch-free renorm
+with 2-byte fast path, batch 64-bit residual extraction (one memcpy per
+4 tokens), prefetched state slots, branchless `has_value` mux, and
+thread-local scratch buffers (no per-band malloc). DequantizeBandRow16s
+is NEON-vectorized. Remaining headroom is in the rANS state serial dep
+chain itself, which would require widening interleave (4→8+ states) and
+a bitstream format change.
 
 For end-to-end pipeline on Pi (encode+decode same machine):
 - LL+HP path: 52 + 170 = 222 ms ≈ 4.5 fps E2E
