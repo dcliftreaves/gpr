@@ -2287,6 +2287,7 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
                 const char *e_global = getenv("FUSED_STRIPE_ROWS");
                 if (e_global) { int v = atoi(e_global); if (v > 0) rows = v; }
                 const char *band_env = NULL;
+                if (band == 0) band_env = getenv("FUSED_STRIPE_ROWS_LL");
                 if (band == 1) band_env = getenv("FUSED_STRIPE_ROWS_LH");
                 if (band == 2) band_env = getenv("FUSED_STRIPE_ROWS_HL");
                 if (band == 3) band_env = getenv("FUSED_STRIPE_ROWS_HH");
