@@ -49,6 +49,7 @@ coder for LL band, or wavelet-domain ROI) to close that gap on Pi 5.
 | Mask-removal in BB_WRITE_FAST | within noise | Reverted (output not byte-identical to old reference, turned out to be stale ref) |
 | NEON polynomial log curve | Abandoned | Best deg-7 fit had 1458-pixel max error — too inaccurate |
 | Piecewise linear log curve | Abandoned | Best 64-segment fit had 201-pixel max error — too inaccurate |
+| NEON float-domain log10 (SLEEF-style bitcast+poly, deg-7 Horner) | -62 ms regression projected, breaks byte-identity | Microbenchmarked on Pi 5: 7.82 cyc/elem vs scalar LUT 1.98 cyc/elem (4× slower). Accuracy: 307/16384 mismatches at ±1 LSB even with deg-7 polynomial. The LUT at L1 hit is genuinely fast — float ops have latency the LUT doesn't. |
 | Per-channel CPU affinity via pthread_setaffinity_np | -7 ms regression | Pinning channel threads to cores 0-3 made everything worse and more variable (stddev 6 ms vs 0.4). OS scheduler was already doing better than hardcoded pin. Reverted. |
 | LL stripe-rows tuning sweep | within noise | Default 128 already optimal; 64-690 explored. `FUSED_STRIPE_ROWS_LL` env knob committed for future tuning. |
 
@@ -80,9 +81,12 @@ Things I think can still help but didn't get to:
    The curve `y = M * log10(1 + 112x/M) / log10(113)` is steep at x=0
    (slope ~24) and flat at x=16383 (slope ~0.3) — needs hundreds of
    segments to keep error under ~16 pixels, but vqtbl1q only operates
-   on 16-byte tables. Float-domain `vlogq_f32` via bitcast-exp-mantissa
-   would be 5 cycles/pixel — slower than the current ~3 cycles/pixel
-   scalar LUT (L1 cache hit). The LUT is the right answer here.
+   on 16-byte tables. **Microbenchmark confirms** float-domain `vlogq_f32`
+   via bitcast-exp-mantissa + deg-7 Horner polynomial is **7.82 cyc/elem
+   on Pi 5** vs scalar LUT at **1.98 cyc/elem** — 4× slower, AND breaks
+   byte-identity (307/16384 mismatches at ±1 LSB). The scalar LUT at L1
+   hit is genuinely fast — float ops have latency the LUT doesn't. The
+   LUT is the right answer here.
    
    To actually reduce the 21 ms LUT cost on still: need to read less
    raw data (impossible for full-res), or process fewer pixels per
