@@ -67,11 +67,24 @@ Pass 1 — it costs ~2 ms wall after Pass 1 ends.
 
 Things I think can still help but didn't get to:
 
-1. **NEON piecewise polynomial log curve** — for the STILL path (132 ms
-   single-still), 21 ms of LUT scatter cost is a real target. A
-   piecewise-linear approximation with `vqtbl1q` lookup of segment
-   slope/intercept might hit it under <10 cycles per pixel. Worth a
-   day of experimentation. Not useful for streaming (only 1.5 ms there).
+1. **NEON piecewise log curve** — for the STILL path (132 ms single-still),
+   21 ms of LUT scatter cost is a real target. **Tonight I prototyped this
+   and abandoned it**: best fit options have unacceptable error:
+     - 16 log-spaced linear segments: max_err = 201 pixels, rms = 140
+     - 64 log-spaced linear segments: same error (limited by widest segment)
+     - 11 log-spaced quadratic: 2213 pixels (segment 0 too small for fit)
+     - 7th-degree global polynomial: 1458 pixels max
+   The curve `y = M * log10(1 + 112x/M) / log10(113)` is steep at x=0
+   (slope ~24) and flat at x=16383 (slope ~0.3) — needs hundreds of
+   segments to keep error under ~16 pixels, but vqtbl1q only operates
+   on 16-byte tables. Float-domain `vlogq_f32` via bitcast-exp-mantissa
+   would be 5 cycles/pixel — slower than the current ~3 cycles/pixel
+   scalar LUT (L1 cache hit). The LUT is the right answer here.
+   
+   To actually reduce the 21 ms LUT cost on still: need to read less
+   raw data (impossible for full-res), or process fewer pixels per
+   second (not the goal). The 21 ms is essentially the memory floor
+   for the 87 MB raw read plus LUT-lookup latency-bound.
 2. **LL-band-specific tokenizer** — LL data is dense, run-length
    encoding wastes effort. A specialized tokenize for LL (no RLE, just
    class+residual emit) might save 5-10 ms tokenize time, closing the
