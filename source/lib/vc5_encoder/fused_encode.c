@@ -1096,11 +1096,14 @@ static void pass1_run_channel(
 
     PIXEL *unpack_row = (PIXEL *)malloc(ch_width * sizeof(PIXEL));
     if (!unpack_row) return;
-    /* Full-width scratch for the post-unpack column-average fallback path
-       (used only when col_decimate is set but row_decimate isn't — the
-        fused decimate function takes both at once and never touches this). */
+    /* Full-width scratch for the post-unpack column-average path. Needed
+       whenever col_decimate=2, since either:
+         - the fused 4-row AA function is OFF (default: GPR_DECIMATE_AA unset)
+           → fast row-skip path calls regular unpack at full ch_width into
+             unpack_full, then NEON pair-averages to half-width unpack_row
+         - col_decimate alone (no row_decimate) → same fallback path. */
     PIXEL *unpack_full = NULL;
-    if (col_decimate == 2 && row_stride_pairs != 4) {
+    if (col_decimate == 2) {
         unpack_full = (PIXEL *)malloc(ch_width_full * sizeof(PIXEL));
         if (!unpack_full) { free(unpack_row); return; }
     }
@@ -1137,8 +1140,19 @@ static void pass1_run_channel(
             _td = _fused_ms();
 #endif
 
-            if (col_decimate == 2 && row_stride_pairs == 4) {
-                /* Fused row+col decimate: average raw values BEFORE log curve. */
+            /* Default ROW+COL decimate is the FAST path: only read the
+               first row pair, decimate vertically by row-skip (the wavelet
+               handles vertical LP filtering downstream). To opt into the
+               slower properly-anti-aliased fused 4-row averager, set
+               GPR_DECIMATE_AA=1. The fast path reads ~50% of the bayer
+               area for ROW+COL decimate vs the AA path's 100%. */
+            static int decimate_aa = -1;
+            if (decimate_aa < 0) {
+                const char *e = getenv("GPR_DECIMATE_AA");
+                decimate_aa = (e && *e == '1') ? 1 : 0;
+            }
+            if (col_decimate == 2 && row_stride_pairs == 4 && decimate_aa) {
+                /* Slow / quality: average across two row pairs in log space. */
                 const uint16_t *row1b = row1 + 2 * bayer_pitch;
                 const uint16_t *row2b = row2 + 2 * bayer_pitch;
                 unpack_channel_row_decimate_2x2(channel, is_rggb,
@@ -2201,6 +2215,18 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     }
 
     SetupEncoderLogCurve();
+    /* GPR_BYPASS_LOGCURVE=1 — overwrite log table with identity for the
+       duration of this process. EXPERIMENT ONLY (output won't match the
+       decoder, but isolates LUT cost from memory cost). */
+    {
+        const char *e = getenv("GPR_BYPASS_LOGCURVE");
+        if (e && *e == '1') {
+            extern uint16_t EncoderLogCurve14[];
+            extern uint16_t EncoderLogCurve16[];
+            for (int i = 0; i < 16384; i++) EncoderLogCurve14[i] = (uint16_t)i;
+            for (int i = 0; i < 65536; i++) EncoderLogCurve16[i] = (uint16_t)i;
+        }
+    }
 
     int dummy_is_rggb, dummy_log_bits;
     if (setup_channel_state(ctx->ch_state, width, height, quality,
