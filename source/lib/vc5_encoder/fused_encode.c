@@ -2100,7 +2100,7 @@ static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
         cs->band_out_row_l3 = 0;
         memset(cs->freq, 0, sizeof(cs->freq));
         memset(cs->run_state, 0, sizeof(cs->run_state));
-        for (int band = 1; band < 4; band++) {
+        for (int band = 0; band < 4; band++) {
             if (cs->inline_state[band]) jans_inline_reset(cs->inline_state[band]);
         }
     }
