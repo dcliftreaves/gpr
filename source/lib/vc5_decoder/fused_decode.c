@@ -71,6 +71,68 @@ typedef struct {
     CODEC_ERROR err;
 } FUSED_INV_TASK;
 
+/* Per-strip color transform task. Each thread handles a contiguous slice
+   of channel rows and writes the corresponding Bayer rows. */
+typedef struct {
+    int y_start, y_end;             /* channel row range [y_start, y_end) */
+    int ch_w, ch_h;
+    int log_max, midpoint, shift, is_rggb;
+    const uint16_t *log_table;
+    const PIXEL *gs_row, *rg_row, *bg_row, *gd_row;  /* base of channels */
+    uint8_t *bayer_out;
+    size_t bayer_pitch_bytes;
+} FUSED_COLOR_TASK;
+
+static void *fused_color_runner(void *arg) {
+    FUSED_COLOR_TASK *t = (FUSED_COLOR_TASK *)arg;
+    int log_max = t->log_max, midpoint = t->midpoint, shift = t->shift;
+    const uint16_t *log_table = t->log_table;
+    int ch_w = t->ch_w;
+    for (int y = t->y_start; y < t->y_end; y++) {
+        const PIXEL *gs_row = t->gs_row + (size_t)y * ch_w;
+        const PIXEL *rg_row = t->rg_row + (size_t)y * ch_w;
+        const PIXEL *bg_row = t->bg_row + (size_t)y * ch_w;
+        const PIXEL *gd_row = t->gd_row + (size_t)y * ch_w;
+        uint8_t *r1b = t->bayer_out + (size_t)(2*y) * t->bayer_pitch_bytes;
+        uint8_t *r2b = t->bayer_out + (size_t)(2*y + 1) * t->bayer_pitch_bytes;
+        uint16_t *bayer_row1 = (uint16_t *)r1b;
+        uint16_t *bayer_row2 = (uint16_t *)r2b;
+
+        for (int x = 0; x < ch_w; x++) {
+            int gs = gs_row[x], rg = rg_row[x], bg = bg_row[x], gd = gd_row[x];
+            if (gs < 0) gs = 0; if (gs > log_max) gs = log_max;
+            if (rg < 0) rg = 0; if (rg > log_max) rg = log_max;
+            if (bg < 0) bg = 0; if (bg > log_max) bg = log_max;
+            if (gd < 0) gd = 0; if (gd > log_max) gd = log_max;
+            rg -= midpoint; bg -= midpoint; gd -= midpoint;
+            int r  = (rg << 1) + gs;
+            int b  = (bg << 1) + gs;
+            int g1 = gs + gd;
+            int g2 = gs - gd;
+            if (r  < 0) r  = 0; if (r  > log_max) r  = log_max;
+            if (g1 < 0) g1 = 0; if (g1 > log_max) g1 = log_max;
+            if (g2 < 0) g2 = 0; if (g2 > log_max) g2 = log_max;
+            if (b  < 0) b  = 0; if (b  > log_max) b  = log_max;
+            int r_lin  = log_table[r]  >> shift;
+            int g1_lin = log_table[g1] >> shift;
+            int g2_lin = log_table[g2] >> shift;
+            int b_lin  = log_table[b]  >> shift;
+            if (t->is_rggb) {
+                bayer_row1[2*x]   = (uint16_t)r_lin;
+                bayer_row1[2*x+1] = (uint16_t)g1_lin;
+                bayer_row2[2*x]   = (uint16_t)g2_lin;
+                bayer_row2[2*x+1] = (uint16_t)b_lin;
+            } else {
+                bayer_row1[2*x]   = (uint16_t)g1_lin;
+                bayer_row1[2*x+1] = (uint16_t)b_lin;
+                bayer_row2[2*x]   = (uint16_t)r_lin;
+                bayer_row2[2*x+1] = (uint16_t)g2_lin;
+            }
+        }
+    }
+    return NULL;
+}
+
 /* Per-channel band decode task. 4 of these — each decodes a channel's
    4 bands sequentially in one thread. 16-thread per-band variant was
    tested: did NOT help (rANS decode has memory bandwidth + libc malloc
@@ -529,8 +591,8 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
         for (int s = 0; s < 4; s++)
             if (bands[ch][s]) free(bands[ch][s]);
 
-    /* Color transform inverse + log curve → Bayer output (same as the
-       multi-level path; could factor out but the body is short). */
+    /* Parallel color transform: split channel rows across 4 threads. Each
+       row is independent — output Bayer rows for row y are at 2y, 2y+1. */
     if (rc == 0) {
         int log_max  = (1 << (int)hdr->log_bits) - 1;
         int midpoint = 1 << ((int)hdr->log_bits - 1);
@@ -540,47 +602,30 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
         int shift = 16 - output_bit_depth;
         int is_rggb = (int)hdr->is_rggb;
 
-        for (int y = 0; y < ch_h; y++) {
-            const PIXEL *gs_row = channels[0] + (size_t)y * ch_w;
-            const PIXEL *rg_row = channels[1] + (size_t)y * ch_w;
-            const PIXEL *bg_row = channels[2] + (size_t)y * ch_w;
-            const PIXEL *gd_row = channels[3] + (size_t)y * ch_w;
-            uint8_t *r1_bytes = (uint8_t *)bayer_out + (size_t)(2*y)     * bayer_pitch_bytes;
-            uint8_t *r2_bytes = (uint8_t *)bayer_out + (size_t)(2*y + 1) * bayer_pitch_bytes;
-            uint16_t *bayer_row1 = (uint16_t *)r1_bytes;
-            uint16_t *bayer_row2 = (uint16_t *)r2_bytes;
-
-            for (int x = 0; x < ch_w; x++) {
-                int gs = gs_row[x], rg = rg_row[x], bg = bg_row[x], gd = gd_row[x];
-                if (gs < 0) gs = 0; if (gs > log_max) gs = log_max;
-                if (rg < 0) rg = 0; if (rg > log_max) rg = log_max;
-                if (bg < 0) bg = 0; if (bg > log_max) bg = log_max;
-                if (gd < 0) gd = 0; if (gd > log_max) gd = log_max;
-                rg -= midpoint; bg -= midpoint; gd -= midpoint;
-                int r  = (rg << 1) + gs;
-                int b  = (bg << 1) + gs;
-                int g1 = gs + gd;
-                int g2 = gs - gd;
-                if (r  < 0) r  = 0; if (r  > log_max) r  = log_max;
-                if (g1 < 0) g1 = 0; if (g1 > log_max) g1 = log_max;
-                if (g2 < 0) g2 = 0; if (g2 > log_max) g2 = log_max;
-                if (b  < 0) b  = 0; if (b  > log_max) b  = log_max;
-                int r_lin  = log_table[r]  >> shift;
-                int g1_lin = log_table[g1] >> shift;
-                int g2_lin = log_table[g2] >> shift;
-                int b_lin  = log_table[b]  >> shift;
-                if (is_rggb) {
-                    bayer_row1[2*x]   = (uint16_t)r_lin;
-                    bayer_row1[2*x+1] = (uint16_t)g1_lin;
-                    bayer_row2[2*x]   = (uint16_t)g2_lin;
-                    bayer_row2[2*x+1] = (uint16_t)b_lin;
-                } else {
-                    bayer_row1[2*x]   = (uint16_t)g1_lin;
-                    bayer_row1[2*x+1] = (uint16_t)b_lin;
-                    bayer_row2[2*x]   = (uint16_t)r_lin;
-                    bayer_row2[2*x+1] = (uint16_t)g2_lin;
-                }
-            }
+        FUSED_COLOR_TASK ct[4];
+        pthread_t cth[4]; int ccr[4] = {0};
+        for (int i = 0; i < 4; i++) {
+            ct[i].y_start = (ch_h * i) / 4;
+            ct[i].y_end   = (ch_h * (i + 1)) / 4;
+            ct[i].ch_w = ch_w;
+            ct[i].ch_h = ch_h;
+            ct[i].log_max = log_max;
+            ct[i].midpoint = midpoint;
+            ct[i].shift = shift;
+            ct[i].is_rggb = is_rggb;
+            ct[i].log_table = log_table;
+            ct[i].gs_row = channels[0];
+            ct[i].rg_row = channels[1];
+            ct[i].bg_row = channels[2];
+            ct[i].gd_row = channels[3];
+            ct[i].bayer_out = (uint8_t *)bayer_out;
+            ct[i].bayer_pitch_bytes = bayer_pitch_bytes;
+            ccr[i] = (pthread_create(&cth[i], NULL,
+                                     fused_color_runner, &ct[i]) == 0);
+            if (!ccr[i]) fused_color_runner(&ct[i]);
+        }
+        for (int i = 0; i < 4; i++) {
+            if (ccr[i]) pthread_join(cth[i], NULL);
         }
     }
 
