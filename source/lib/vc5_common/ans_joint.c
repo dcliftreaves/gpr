@@ -1156,6 +1156,34 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
     uint16_t *freq = s->table.freq;
     BITBUF *bb = &s->bb;
 
+    /* Pull bitbuf fields into locals across the whole row. Otherwise every
+       bitbuf_write call must reload accum/accum_bits from memory (forced
+       by the bb pointer) and write them back, creating a serial dep chain
+       of ~5 cycles per nonzero. With locals the compiler keeps these in
+       registers across all calls in this row, breaking the chain.
+       Writeback at end of row preserves correctness across rows. */
+    uint64_t bbacc = bb->accum;
+    int bbbits = bb->accum_bits;
+    size_t bbpos = bb->byte_pos;
+    uint8_t * const bbbuf = bb->buf;
+    const size_t bbcap = bb->capacity;
+
+#define BB_WRITE_FAST(val32, nbits) do {                                   \
+        uint32_t _v = (val32);                                             \
+        int _b = (nbits);                                                  \
+        /* nbits ranges 1..25 in hot path, never 0 and never >=32 */       \
+        uint32_t _m = ((uint32_t)1 << _b) - 1u;                            \
+        bbacc |= ((uint64_t)(_v & _m)) << bbbits;                          \
+        bbbits += _b;                                                      \
+        if (bbbits >= 32 && bbpos + 4 <= bbcap) {                          \
+            uint32_t _w = (uint32_t)bbacc;                                 \
+            memcpy(bbbuf + bbpos, &_w, 4);                                 \
+            bbpos += 4;                                                    \
+            bbacc >>= 32;                                                  \
+            bbbits -= 32;                                                  \
+        }                                                                  \
+    } while (0)
+
     for (int col = 0; col < width; col++) {
         int32_t val = row[col];
         if (val == 0) { run++; continue; }
@@ -1165,7 +1193,7 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
             int sym = rc * JANS_MAG_CLASSES + 0;
             freq[sym]++;
             tokens[token_count++] = (uint16_t)sym;
-            bitbuf_write(bb, rr, run_class_bits[rc]);
+            BB_WRITE_FAST(rr, run_class_bits[rc]);
             run -= 255;
         }
         int run_resid, mag_resid;
@@ -1175,15 +1203,13 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
         freq[sym]++;
         tokens[token_count++] = (uint16_t)sym;
         {
-            /* Pre-baked: sym_run_bits[sym] = rb, sym_total_bits[sym] = rb+mb+1.
-               Saves one int load (mag_class_bits[mc]) + one add per nonzero. */
             int rb = sym_run_bits[sym];
             int tb = sym_total_bits[sym];
             int mb = mag_class_bits[mc];
             uint32_t merged = (uint32_t)run_resid;
             merged |= ((uint32_t)mag_resid << rb);
             merged |= ((val < 0) ? 1u : 0u) << (rb + mb);
-            bitbuf_write(bb, merged, tb);
+            BB_WRITE_FAST(merged, tb);
         }
         run = 0;
     }
@@ -1194,9 +1220,15 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
         int sym = rc * JANS_MAG_CLASSES + 0;
         freq[sym]++;
         tokens[token_count++] = (uint16_t)sym;
-        bitbuf_write(bb, rr, run_class_bits[rc]);
+        BB_WRITE_FAST(rr, run_class_bits[rc]);
         run -= actual;
     }
+    /* Writeback bitbuf locals to struct so emit_blob sees them. */
+    bb->accum = bbacc;
+    bb->accum_bits = bbbits;
+    bb->byte_pos = bbpos;
+#undef BB_WRITE_FAST
+
     s->token_count = token_count;
     s->rows_in_stripe++;
 
