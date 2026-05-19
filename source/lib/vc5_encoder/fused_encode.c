@@ -1096,10 +1096,11 @@ static void pass1_run_channel(
 
     PIXEL *unpack_row = (PIXEL *)malloc(ch_width * sizeof(PIXEL));
     if (!unpack_row) return;
-    /* Full-width scratch for col-decimate: unpack here at ch_width_full,
-       then average pairs into unpack_row. Allocated only when needed. */
+    /* Full-width scratch for the post-unpack column-average fallback path
+       (used only when col_decimate is set but row_decimate isn't — the
+        fused decimate function takes both at once and never touches this). */
     PIXEL *unpack_full = NULL;
-    if (col_decimate == 2) {
+    if (col_decimate == 2 && row_stride_pairs != 4) {
         unpack_full = (PIXEL *)malloc(ch_width_full * sizeof(PIXEL));
         if (!unpack_full) { free(unpack_row); return; }
     }
