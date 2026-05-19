@@ -632,7 +632,10 @@ static void unpack_channel_row(
     /* Prefetch the LAST cache line of row1/row2 to warm L1 against the
        HW prefetcher's startup latency. The body of the loop reads
        sequentially so the stride prefetcher catches up quickly, but the
-       first iter sees a cold front. PLDL1KEEP locality hint = stay in L1. */
+       first iter sees a cold front. PLDL1KEEP locality hint = stay in L1.
+       Tried also prefetching next-iter rows 4 bayer rows ahead — regressed
+       (+2 ms) because the extra prefetch hints competed with the actual
+       reads for LSU dispatch. */
     __builtin_prefetch(&row1[ch_width * 2 - 32], 0, 3);
     __builtin_prefetch(&row2[ch_width * 2 - 32], 0, 3);
 
