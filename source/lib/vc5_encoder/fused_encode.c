@@ -755,6 +755,142 @@ static void unpack_channel_row(
     }
 }
 
+/* Fused unpack + 2x2 channel-space decimation.
+   Reads 4 Bayer rows (2 RGGB pairs) and produces 1 channel output row at
+   ch_width_out = ch_width/2 (half the post-unpack channel width).
+
+   Critical optimization: averages 4 same-color raw values in linear domain
+   BEFORE the log_tbl lookup, then ONE lookup per output sample per color.
+   The naive path (call unpack twice + post-average) does 4 lookups per
+   output per color — 4× the LUT work. The log curve is monotonic, so
+   linear-then-log differs from log-then-linear only by sub-quantization
+   error at smooth gradients — acceptable for a downsampled output. */
+static void unpack_channel_row_decimate_2x2(
+    int channel, int is_rggb,
+    const uint16_t *log_tbl, int log_max, int32_t mid2,
+    const uint16_t *row1a, const uint16_t *row2a,  /* first RGGB pair */
+    const uint16_t *row1b, const uint16_t *row2b,  /* second RGGB pair */
+    PIXEL *output, int ch_width_out)
+{
+    int o = 0;
+    const uint16_t lm = (uint16_t)log_max;
+
+#if ENABLED(NEON)
+    const int o_m4 = (ch_width_out / 4) * 4;
+    const uint16x8_t v_log_max = vdupq_n_u16(lm);
+    const int32x4_t vmid2 = vdupq_n_s32(mid2);
+
+    /* Per iter: 4 output samples; reads 16 Bayer cols from each of 4 rows. */
+    for (; o < o_m4; o += 4) {
+        int bc = o * 4;  /* starting Bayer column */
+
+        /* Load 8 deinterleaved pairs from each row.
+           Even-row layout (RGGB): R G1 R G1 ... → val[0]=R[0..7], val[1]=G1[0..7]
+           Even-row layout (GBRG): G1 B G1 B ... → val[0]=G1[0..7], val[1]=B[0..7]
+           Odd-row swaps R↔G2 and G1↔B. */
+        uint16x8x2_t e_a = vld2q_u16(&row1a[bc]);
+        uint16x8x2_t o_a = vld2q_u16(&row2a[bc]);
+        uint16x8x2_t e_b = vld2q_u16(&row1b[bc]);
+        uint16x8x2_t o_b = vld2q_u16(&row2b[bc]);
+
+        uint16x8_t vR, vG1, vG2, vB;
+        if (is_rggb) {
+            /* Sum two row-pairs (vertical 2× decimation, no clip yet). */
+            vR  = vhaddq_u16(e_a.val[0], e_b.val[0]);  /* (R_a + R_b) / 2 */
+            vG1 = vhaddq_u16(e_a.val[1], e_b.val[1]);
+            vG2 = vhaddq_u16(o_a.val[0], o_b.val[0]);
+            vB  = vhaddq_u16(o_a.val[1], o_b.val[1]);
+        } else {
+            vG1 = vhaddq_u16(e_a.val[0], e_b.val[0]);
+            vB  = vhaddq_u16(e_a.val[1], e_b.val[1]);
+            vR  = vhaddq_u16(o_a.val[0], o_b.val[0]);
+            vG2 = vhaddq_u16(o_a.val[1], o_b.val[1]);
+        }
+        /* Pair-average horizontally: 8 pairs → 4 single values per color. */
+        vR  = vpaddq_u16(vR,  vR);   /* low 4 valid */
+        vG1 = vpaddq_u16(vG1, vG1);
+        vG2 = vpaddq_u16(vG2, vG2);
+        vB  = vpaddq_u16(vB,  vB);
+        /* /2 to complete pair-average (vhaddq already did /2 on rows). */
+        vR  = vshrq_n_u16(vR,  1);
+        vG1 = vshrq_n_u16(vG1, 1);
+        vG2 = vshrq_n_u16(vG2, 1);
+        vB  = vshrq_n_u16(vB,  1);
+        /* Clip to log_max. */
+        vR  = vminq_u16(vR,  v_log_max);
+        vG1 = vminq_u16(vG1, v_log_max);
+        vG2 = vminq_u16(vG2, v_log_max);
+        vB  = vminq_u16(vB,  v_log_max);
+
+        uint16_t Rs[8], G1s[8], G2s[8], Bs[8];
+        if (channel == 1) vst1q_u16(Rs, vR);
+        if (channel == 2) vst1q_u16(Bs, vB);
+        vst1q_u16(G1s, vG1);
+        vst1q_u16(G2s, vG2);
+
+        /* 4 LUT lookups per color = 4 outputs. (Naive path: 16 per color.) */
+        int32_t g1a[4], g2a[4];
+        for (int k = 0; k < 4; k++) {
+            g1a[k] = log_tbl[G1s[k]];
+            g2a[k] = log_tbl[G2s[k]];
+        }
+        int32x4_t vg1 = vld1q_s32(g1a);
+        int32x4_t vg2 = vld1q_s32(g2a);
+
+        int32x4_t result;
+        if (channel == 0) {
+            result = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+        } else if (channel == 3) {
+            result = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+        } else {
+            int32_t xa[4];
+            if (channel == 1) {
+                for (int k = 0; k < 4; k++) xa[k] = log_tbl[Rs[k]];
+            } else {
+                for (int k = 0; k < 4; k++) xa[k] = log_tbl[Bs[k]];
+            }
+            int32x4_t vx = vld1q_s32(xa);
+            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            result = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
+        }
+        vst1q_s32(&output[o], result);
+    }
+#endif
+    /* Scalar tail. */
+    for (; o < ch_width_out; o++) {
+        int bc = o * 4;
+        uint16_t R, G1, G2, B;
+        if (is_rggb) {
+            R  = ((uint32_t)row1a[bc]   + row1a[bc+2] + row1b[bc]   + row1b[bc+2] + 2) >> 2;
+            G1 = ((uint32_t)row1a[bc+1] + row1a[bc+3] + row1b[bc+1] + row1b[bc+3] + 2) >> 2;
+            G2 = ((uint32_t)row2a[bc]   + row2a[bc+2] + row2b[bc]   + row2b[bc+2] + 2) >> 2;
+            B  = ((uint32_t)row2a[bc+1] + row2a[bc+3] + row2b[bc+1] + row2b[bc+3] + 2) >> 2;
+        } else {
+            G1 = ((uint32_t)row1a[bc]   + row1a[bc+2] + row1b[bc]   + row1b[bc+2] + 2) >> 2;
+            B  = ((uint32_t)row1a[bc+1] + row1a[bc+3] + row1b[bc+1] + row1b[bc+3] + 2) >> 2;
+            R  = ((uint32_t)row2a[bc]   + row2a[bc+2] + row2b[bc]   + row2b[bc+2] + 2) >> 2;
+            G2 = ((uint32_t)row2a[bc+1] + row2a[bc+3] + row2b[bc+1] + row2b[bc+3] + 2) >> 2;
+        }
+        if (R  > lm) R  = lm;
+        if (G1 > lm) G1 = lm;
+        if (G2 > lm) G2 = lm;
+        if (B  > lm) B  = lm;
+        int32_t g1 = log_tbl[G1], g2 = log_tbl[G2];
+        switch (channel) {
+            case 0: output[o] = (g1 + g2) >> 1; break;
+            case 1: {
+                int32_t r = log_tbl[R], gs = (g1 + g2) >> 1;
+                output[o] = ((r - gs) + mid2) >> 1;
+            } break;
+            case 2: {
+                int32_t b = log_tbl[B], gs = (g1 + g2) >> 1;
+                output[o] = ((b - gs) + mid2) >> 1;
+            } break;
+            case 3: output[o] = ((g1 - g2) + mid2) >> 1; break;
+        }
+    }
+}
+
 /* Streaming cascade: feed one newly-produced LL1 row into level-2's
    horizontal filter, then (if enough rows are queued) run level-2's
    vertical filter, then cascade the LL2 row into level-3's horizontal
@@ -934,7 +1070,14 @@ static void pass1_run_channel(
             _td = _fused_ms();
 #endif
 
-            if (col_decimate == 2) {
+            if (col_decimate == 2 && row_stride_pairs == 4) {
+                /* Fused row+col decimate: average raw values BEFORE log curve. */
+                const uint16_t *row1b = row1 + 2 * bayer_pitch;
+                const uint16_t *row2b = row2 + 2 * bayer_pitch;
+                unpack_channel_row_decimate_2x2(channel, is_rggb,
+                    log_tbl, log_max, mid2,
+                    row1, row2, row1b, row2b, unpack_row, ch_width);
+            } else if (col_decimate == 2) {
                 /* Unpack full-width then pair-average to halve. NEON vrhaddq
                    reads 8 lanes and averages with rounding; we use it on
                    adjacent pairs by uzp-extracting evens/odds. */
