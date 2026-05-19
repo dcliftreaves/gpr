@@ -92,12 +92,16 @@ Things I think can still help but didn't get to:
    encoding wastes effort. A specialized tokenize for LL (no RLE, just
    class+residual emit) might save 5-10 ms tokenize time, closing the
    LL+HP path toward 24 fps. Requires bitstream format addition.
-3. **Decoder parallelization** — the reference decoder is single-threaded
-   at ~110 ms/frame for 4K-equivalent. Per-channel parallel decode would
-   land near 30 ms. Independent from encoder fps but needed for real
-   streaming pipelines.
+3. ~~Decoder parallelization~~ **DONE** — commits 33318d3 (band + wavelet)
+   and 7c6e086 (color transform). Total decode 220→170 ms wall, byte-
+   identical output. 16-thread per-band variant was tested and gave NO
+   additional speedup beyond 4 threads (rANS decode bound by malloc and
+   memory bandwidth, not core count).
 4. **Integration of fused encoder into gpr_tools** — drops 50 MP single-
    still from 2.78 s to 132 ms. Pure plumbing work, no codec changes.
+5. **Within-channel parallelism** (split a channel's wavelet/tokenize
+   across multiple cores) — not viable on Pi 5: all 4 cores already used
+   by 4-channel parallelism, no SMT.
 
 ## Decoder threading (overnight continuation)
 
@@ -141,6 +145,9 @@ Additional commits during the overnight continuation:
 ```
 1b361eb docs: more failed-attempts entries (affinity, piecewise log, stripe sweep)
 33318d3 fused_decode: parallelize per-channel band rANS + inverse wavelet
+d8da0bf docs: add decoder threading section + commit log update
+6ad128e fused_encode: remove GPR_BYPASS_LOGCURVE debug knob
+7c6e086 fused_decode: parallelize color transform inverse across row strips
 ```
 
 ## To reproduce the headline number
