@@ -1199,6 +1199,11 @@ static void pass1_run_channel(
                     const char *e = getenv("GPR_DROP_HIGHPASS");
                     drop_hp = (e && *e == '1') ? 1 : 0;
                 }
+                /* Tokenize LL if inline_state[0] is allocated
+                   (GPR_INCLUDE_LL=1 in fused_choose). */
+                if (cs->inline_state[0]) {
+                    jans_inline_row(cs->inline_state[0], ll_row, bw);
+                }
                 if (!drop_hp) {
                     jans_inline_row(cs->inline_state[1], lh_row, bw);
                     jans_inline_row(cs->inline_state[2], hl_row, bw);
@@ -1235,6 +1240,9 @@ static void pass1_run_channel(
         PIXEL *zero_row = (PIXEL *)calloc(bw, sizeof(PIXEL));
         if (zero_row) {
             while (cs->band_out_row < cs->band_height) {
+                if (cs->inline_state[0]) {
+                    jans_inline_row(cs->inline_state[0], zero_row, bw);
+                }
                 if (!drop_hp_tail) {
                     jans_inline_row(cs->inline_state[1], zero_row, bw);
                     jans_inline_row(cs->inline_state[2], zero_row, bw);
@@ -1559,6 +1567,9 @@ static void pass1_run_channel_consumer(
                     const char *e = getenv("GPR_DROP_HIGHPASS");
                     drop_hp = (e && *e == '1') ? 1 : 0;
                 }
+                if (cs->inline_state[0]) {
+                    jans_inline_row(cs->inline_state[0], ll_row, bw);
+                }
                 if (!drop_hp) {
                     jans_inline_row(cs->inline_state[1], lh_row, bw);
                     jans_inline_row(cs->inline_state[2], hl_row, bw);
@@ -1605,6 +1616,9 @@ advance_consumer:
         PIXEL *zero_row = (PIXEL *)calloc(bw, sizeof(PIXEL));
         if (zero_row) {
             while (cs->band_out_row < cs->band_height) {
+                if (cs->inline_state[0]) {
+                    jans_inline_row(cs->inline_state[0], zero_row, bw);
+                }
                 if (!drop_hp_tail) {
                     jans_inline_row(cs->inline_state[1], zero_row, bw);
                     jans_inline_row(cs->inline_state[2], zero_row, bw);
@@ -1975,6 +1989,9 @@ struct FUSED_ENCODER {
                           0 = split-pass (band_data buffer + Pass 2 tokenize) */
     int multi_level;  /* 1 = 3-level wavelet decomposition (10 bands × 4 ch);
                           0 = single-level (3 bands × 4 ch, legacy) */
+    int include_ll;   /* 1 = single-level + LL (16 bands total, decodable);
+                          0 = highpass-only (12 bands, undecodable except via
+                          multi_level path). GPR_INCLUDE_LL=1 to enable. */
     int streaming;    /* When multi_level=1: 1 = stream level-2/3 inline with
                           level-1 (no LL1/LL2 band buffers, embedded-friendly);
                           0 = sequential (full LL1/LL2 buffers, simpler). */
@@ -1982,8 +1999,8 @@ struct FUSED_ENCODER {
     FUSED_CHANNEL_STATE ch_state[4];
 
     /* Persistent Pass 2 enc buffers (one per band) */
-    uint8_t *enc_bufs[12];
-    size_t   enc_caps[12];
+    uint8_t *enc_bufs[16];   /* 16 = 4 channels × 4 bands (with optional LL) */
+    size_t   enc_caps[16];
 
     /* Multi-level: persistent Pass 2 enc buffers for all 40 bands
        (4 channels × {3 L1 highpass + 3 L2 + 3 L3 + LL3}) and the
@@ -2113,11 +2130,21 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     }
 
     /* Pre-allocate persistent enc buffers + (if inline) inline-tokenize state */
+    /* GPR_INCLUDE_LL=1 — also allocate inline_state[0] for the LL band in
+       single-level inline mode. Without this the encoder produces only the
+       3 highpass bands per channel and the fused decoder can't reconstruct
+       the image (see fused_decode.c return -5). */
+    {
+        const char *e = getenv("GPR_INCLUDE_LL");
+        ctx->include_ll = (e && *e == '1') ? 1 : 0;
+    }
+    int band_start = ctx->include_ll ? 0 : 1;
+
     int p2_idx = 0;
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         size_t band_coeffs = (size_t)cs->band_width * cs->band_height;
-        for (int band = 1; band < 4; band++) {
+        for (int band = band_start; band < 4; band++) {
             size_t cap = band_coeffs * 4 + 8192;
             ctx->enc_caps[p2_idx] = cap;
             ctx->enc_bufs[p2_idx] = (uint8_t *)malloc(cap);
@@ -2317,7 +2344,7 @@ void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
         free(ctx->unpack_ring);
         ctx->unpack_ring = NULL;
     }
-    for (int i = 0; i < 12; i++) if (ctx->enc_bufs[i]) free(ctx->enc_bufs[i]);
+    for (int i = 0; i < 16; i++) if (ctx->enc_bufs[i]) free(ctx->enc_bufs[i]);
     for (int i = 0; i < 40; i++) if (ctx->enc_bufs_ml[i]) free(ctx->enc_bufs_ml[i]);
     if (ctx->stream_buf) free(ctx->stream_buf);
     for (int ch = 0; ch < 4; ch++) {
@@ -2358,10 +2385,10 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
         return gpr_encode_fused_frame_multilevel(ctx, raw_bayer, vc5_out, vc5_size);
     }
     int rc = 0;
-    PASS2_BAND_TASK p2_tasks[12];
+    PASS2_BAND_TASK p2_tasks[16];   /* 12 (no LL) or 16 (with LL) */
     memset(p2_tasks, 0, sizeof(p2_tasks));
-    pthread_t p2_threads[12];
-    int p2_created[12] = {0};
+    pthread_t p2_threads[16];
+    int p2_created[16] = {0};
     pthread_t p1_threads[4];
     int p1_created[4] = {0};
 
@@ -2438,9 +2465,10 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     }
 
     int p2_count = 0;
+    int band_start = ctx->include_ll ? 0 : 1;
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
-        for (int band = 1; band < 4; band++) {
+        for (int band = band_start; band < 4; band++) {
             PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
             pt->channel = ch;
             pt->band_data    = cs->band_data[band];     /* NULL in inline mode */
@@ -2483,7 +2511,7 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     fprintf(stderr, "  FUSED Pass1 (parallel, signals P2):      %.1fms\n", t1 - t0);
 #endif
 
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < p2_count; i++) {
         if (p2_created[i]) pthread_join(p2_threads[i], NULL);
     }
 
@@ -2496,7 +2524,7 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     pthread_cond_destroy(&sync.cv);
 
     /* Emit header + band manifest + band data into stream_buf. */
-    const int num_bands = 12;
+    const int num_bands = p2_count;  /* 12 (highpass only) or 16 (with LL) */
     FUSED_HEADER hdr;
     hdr.magic = FUSED_MAGIC;
     hdr.version = FUSED_VERSION;
