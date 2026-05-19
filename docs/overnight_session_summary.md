@@ -99,6 +99,24 @@ Things I think can still help but didn't get to:
 4. **Integration of fused encoder into gpr_tools** — drops 50 MP single-
    still from 2.78 s to 132 ms. Pure plumbing work, no codec changes.
 
+## Decoder threading (overnight continuation)
+
+The decoder was single-threaded at ~220 ms total. Added two threading
+points to `decode_fused_single_level_ll`:
+- 4 channel threads each rANS-decoding their 4 bands sequentially
+- 4 channel threads each running `InvertSpatialQuantDescale16s`
+
+Result: ~170 ms total decode (-25%). Modest gain — the rANS decode has
+a tight inner state-update loop that doesn't benefit much beyond core
+count, and per-frame malloc contention partly cancels the parallel win.
+16-thread per-band was tested and gave NO additional improvement.
+
+For end-to-end pipeline on Pi (encode+decode same machine):
+- LL+HP path: 52 + 170 = 222 ms ≈ 4.5 fps E2E
+- LL-only path: 33 + 170 = 203 ms ≈ 4.9 fps E2E
+
+For STREAMING (encode on Pi, decode elsewhere): 30 fps encode is achievable.
+
 ## Commits this session (in chronological order)
 
 ```
@@ -117,6 +135,12 @@ Plus earlier this week:
 327482d fused_encode: log-space averaging (orange-cast bug fix)
 131c6d0 fused_encode: reset inline_state[0] (LL) too
 7ff76d4 fused codec: 16-band single-level-with-LL roundtrip
+```
+
+Additional commits during the overnight continuation:
+```
+1b361eb docs: more failed-attempts entries (affinity, piecewise log, stripe sweep)
+33318d3 fused_decode: parallelize per-channel band rANS + inverse wavelet
 ```
 
 ## To reproduce the headline number
