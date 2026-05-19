@@ -52,6 +52,7 @@ coder for LL band, or wavelet-domain ROI) to close that gap on Pi 5.
 | NEON float-domain log10 (SLEEF-style bitcast+poly, deg-7 Horner) | -62 ms regression projected, breaks byte-identity | Microbenchmarked on Pi 5: 7.82 cyc/elem vs scalar LUT 1.98 cyc/elem (4× slower). Accuracy: 307/16384 mismatches at ±1 LSB even with deg-7 polynomial. The LUT at L1 hit is genuinely fast — float ops have latency the LUT doesn't. |
 | Per-channel CPU affinity via pthread_setaffinity_np | -7 ms regression | Pinning channel threads to cores 0-3 made everything worse and more variable (stddev 6 ms vs 0.4). OS scheduler was already doing better than hardcoded pin. Reverted. |
 | LL stripe-rows tuning sweep | within noise | Default 128 already optimal; 64-690 explored. `FUSED_STRIPE_ROWS_LL` env knob committed for future tuning. |
+| Defer `freq[sym]++` to post-row sweep | +2 ms regression | OoO was already hiding the freq increment latency in the bbbits dep chain. Moving it to a separate pass created its own load-modify-store hot spot on the same array. The actual bottleneck is the bbbits serial chain in BB_WRITE_FAST, not freq. Reverted. |
 
 ## Where the time goes now (per channel, decimated path)
 
@@ -96,6 +97,18 @@ Things I think can still help but didn't get to:
    encoding wastes effort. A specialized tokenize for LL (no RLE, just
    class+residual emit) might save 5-10 ms tokenize time, closing the
    LL+HP path toward 24 fps. Requires bitstream format addition.
+
+   Profiling (this session) showed the real bottleneck in `jans_inline_row`
+   is the **bbbits serial dep chain** in BB_WRITE_FAST: `bbacc |= v<<bbbits;
+   bbbits += b;` makes each emit depend on the previous, blocking OoO from
+   pipelining across emits. Deferring `freq[sym]++` confirmed freq is NOT
+   on the critical path (deferral regressed +2 ms). To break the bbbits
+   chain, one would need to either (a) batch N emits with prefix-sum
+   merging into a wider accumulator, or (b) use interleaved bitbufs
+   merged at stripe boundary. Both are non-trivial code changes with
+   careful byte-identity work. Per-channel tokenize breakdown for the
+   LL+HP decimate path: ch0=28ms, ch1=27ms, ch2=23ms, ch3=25ms — ch0 (GS)
+   has the most signal content → highest emit rate → dominates the wall.
 3. ~~Decoder parallelization~~ **DONE** — commits 33318d3 (band + wavelet)
    and 7c6e086 (color transform). Total decode 220→170 ms wall, byte-
    identical output. 16-thread per-band variant was tested and gave NO
