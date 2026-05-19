@@ -2225,18 +2225,6 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     }
 
     SetupEncoderLogCurve();
-    /* GPR_BYPASS_LOGCURVE=1 — overwrite log table with identity for the
-       duration of this process. EXPERIMENT ONLY (output won't match the
-       decoder, but isolates LUT cost from memory cost). */
-    {
-        const char *e = getenv("GPR_BYPASS_LOGCURVE");
-        if (e && *e == '1') {
-            extern uint16_t EncoderLogCurve14[];
-            extern uint16_t EncoderLogCurve16[];
-            for (int i = 0; i < 16384; i++) EncoderLogCurve14[i] = (uint16_t)i;
-            for (int i = 0; i < 65536; i++) EncoderLogCurve16[i] = (uint16_t)i;
-        }
-    }
 
     int dummy_is_rggb, dummy_log_bits;
     if (setup_channel_state(ctx->ch_state, width, height, quality,
