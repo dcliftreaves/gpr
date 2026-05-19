@@ -48,6 +48,9 @@ coder for LL band, or wavelet-domain ROI) to close that gap on Pi 5.
 | 8-wide inner loop unroll | +23 ms regression | Register pressure → stack spills; reverted |
 | Mask-removal in BB_WRITE_FAST | within noise | Reverted (output not byte-identical to old reference, turned out to be stale ref) |
 | NEON polynomial log curve | Abandoned | Best deg-7 fit had 1458-pixel max error — too inaccurate |
+| Piecewise linear log curve | Abandoned | Best 64-segment fit had 201-pixel max error — too inaccurate |
+| Per-channel CPU affinity via pthread_setaffinity_np | -7 ms regression | Pinning channel threads to cores 0-3 made everything worse and more variable (stddev 6 ms vs 0.4). OS scheduler was already doing better than hardcoded pin. Reverted. |
+| LL stripe-rows tuning sweep | within noise | Default 128 already optimal; 64-690 explored. `FUSED_STRIPE_ROWS_LL` env knob committed for future tuning. |
 
 ## Where the time goes now (per channel, decimated path)
 
