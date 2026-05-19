@@ -1127,6 +1127,9 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
     uint16_t *tokens = s->tokens;
     int token_count = s->token_count;
     int run = 0;
+    /* Hoist freq + bb pointer out of the struct access. */
+    uint16_t *freq = s->table.freq;
+    BITBUF *bb = &s->bb;
 
     for (int col = 0; col < width; col++) {
         int32_t val = row[col];
@@ -1135,16 +1138,16 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
         while (run >= 256) {
             int rr; int rc = run_to_class(255, &rr);
             int sym = rc * JANS_MAG_CLASSES + 0;
-            s->table.freq[sym]++;
+            freq[sym]++;
             tokens[token_count++] = (uint16_t)sym;
-            bitbuf_write(&s->bb, rr, run_class_bits[rc]);
+            bitbuf_write(bb, rr, run_class_bits[rc]);
             run -= 255;
         }
         int run_resid, mag_resid;
         int rc = run_to_class(run, &run_resid);
         int mc = mag_to_class(mag, &mag_resid);
         int sym = rc * JANS_MAG_CLASSES + mc;
-        s->table.freq[sym]++;
+        freq[sym]++;
         tokens[token_count++] = (uint16_t)sym;
         {
             int rb = run_class_bits[rc];
@@ -1152,7 +1155,7 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
             uint32_t merged = (uint32_t)run_resid;
             merged |= ((uint32_t)mag_resid << rb);
             merged |= ((val < 0) ? 1u : 0u) << (rb + mb);
-            bitbuf_write(&s->bb, merged, rb + mb + 1);
+            bitbuf_write(bb, merged, rb + mb + 1);
         }
         run = 0;
     }
@@ -1161,9 +1164,9 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
         int actual = (run > 255) ? 255 : run;
         int rr; int rc = run_to_class(actual, &rr);
         int sym = rc * JANS_MAG_CLASSES + 0;
-        s->table.freq[sym]++;
+        freq[sym]++;
         tokens[token_count++] = (uint16_t)sym;
-        bitbuf_write(&s->bb, rr, run_class_bits[rc]);
+        bitbuf_write(bb, rr, run_class_bits[rc]);
         run -= actual;
     }
     s->token_count = token_count;
