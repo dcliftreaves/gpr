@@ -759,12 +759,17 @@ static void unpack_channel_row(
    Reads 4 Bayer rows (2 RGGB pairs) and produces 1 channel output row at
    ch_width_out = ch_width/2 (half the post-unpack channel width).
 
-   Critical optimization: averages 4 same-color raw values in linear domain
-   BEFORE the log_tbl lookup, then ONE lookup per output sample per color.
-   The naive path (call unpack twice + post-average) does 4 lookups per
-   output per color — 4× the LUT work. The log curve is monotonic, so
-   linear-then-log differs from log-then-linear only by sub-quantization
-   error at smooth gradients — acceptable for a downsampled output. */
+   Per output sample, averages 4 same-color values IN LOG SPACE — i.e. apply
+   the log curve to each of the 4 raw values then average. Averaging raw
+   values BEFORE the log curve is *wrong* because the log curve is steeply
+   nonlinear (especially at low values): e.g. log((2+8)/2)=log(5)≈2.3 but
+   (log(2)+log(8))/2 = (1+3)/2 = 2. That ~15% bias differed per channel and
+   produced a visible orange cast + banding in shadows. Correct math now.
+
+   Cost: 4 LUT lookups per output per color (vs 1 if we could average raw),
+   but still saves vs the naive "unpack at full width + NEON pair-average"
+   path because we do half as many output rows (row decimation absorbs the
+   would-be-skipped Bayer pairs as the second pair to average with). */
 static void unpack_channel_row_decimate_2x2(
     int channel, int is_rggb,
     const uint16_t *log_tbl, int log_max, int32_t mid2,
@@ -784,71 +789,72 @@ static void unpack_channel_row_decimate_2x2(
     for (; o < o_m4; o += 4) {
         int bc = o * 4;  /* starting Bayer column */
 
-        /* Load 8 deinterleaved pairs from each row.
-           Even-row layout (RGGB): R G1 R G1 ... → val[0]=R[0..7], val[1]=G1[0..7]
-           Even-row layout (GBRG): G1 B G1 B ... → val[0]=G1[0..7], val[1]=B[0..7]
-           Odd-row swaps R↔G2 and G1↔B. */
+        /* Load 8 deinterleaved pairs from each row. */
         uint16x8x2_t e_a = vld2q_u16(&row1a[bc]);
         uint16x8x2_t o_a = vld2q_u16(&row2a[bc]);
         uint16x8x2_t e_b = vld2q_u16(&row1b[bc]);
         uint16x8x2_t o_b = vld2q_u16(&row2b[bc]);
 
-        uint16x8_t vR, vG1, vG2, vB;
+        /* Identify which deinterleaved lane carries which color. */
+        uint16x8_t vR_a, vR_b, vG1_a, vG1_b, vG2_a, vG2_b, vB_a, vB_b;
         if (is_rggb) {
-            /* Sum two row-pairs (vertical 2× decimation, no clip yet). */
-            vR  = vhaddq_u16(e_a.val[0], e_b.val[0]);  /* (R_a + R_b) / 2 */
-            vG1 = vhaddq_u16(e_a.val[1], e_b.val[1]);
-            vG2 = vhaddq_u16(o_a.val[0], o_b.val[0]);
-            vB  = vhaddq_u16(o_a.val[1], o_b.val[1]);
+            vR_a  = vminq_u16(e_a.val[0], v_log_max);
+            vG1_a = vminq_u16(e_a.val[1], v_log_max);
+            vG2_a = vminq_u16(o_a.val[0], v_log_max);
+            vB_a  = vminq_u16(o_a.val[1], v_log_max);
+            vR_b  = vminq_u16(e_b.val[0], v_log_max);
+            vG1_b = vminq_u16(e_b.val[1], v_log_max);
+            vG2_b = vminq_u16(o_b.val[0], v_log_max);
+            vB_b  = vminq_u16(o_b.val[1], v_log_max);
         } else {
-            vG1 = vhaddq_u16(e_a.val[0], e_b.val[0]);
-            vB  = vhaddq_u16(e_a.val[1], e_b.val[1]);
-            vR  = vhaddq_u16(o_a.val[0], o_b.val[0]);
-            vG2 = vhaddq_u16(o_a.val[1], o_b.val[1]);
+            vG1_a = vminq_u16(e_a.val[0], v_log_max);
+            vB_a  = vminq_u16(e_a.val[1], v_log_max);
+            vR_a  = vminq_u16(o_a.val[0], v_log_max);
+            vG2_a = vminq_u16(o_a.val[1], v_log_max);
+            vG1_b = vminq_u16(e_b.val[0], v_log_max);
+            vB_b  = vminq_u16(e_b.val[1], v_log_max);
+            vR_b  = vminq_u16(o_b.val[0], v_log_max);
+            vG2_b = vminq_u16(o_b.val[1], v_log_max);
         }
-        /* Pair-average horizontally: 8 pairs → 4 single values per color. */
-        vR  = vpaddq_u16(vR,  vR);   /* low 4 valid */
-        vG1 = vpaddq_u16(vG1, vG1);
-        vG2 = vpaddq_u16(vG2, vG2);
-        vB  = vpaddq_u16(vB,  vB);
-        /* /2 to complete pair-average (vhaddq already did /2 on rows). */
-        vR  = vshrq_n_u16(vR,  1);
-        vG1 = vshrq_n_u16(vG1, 1);
-        vG2 = vshrq_n_u16(vG2, 1);
-        vB  = vshrq_n_u16(vB,  1);
-        /* Clip to log_max. */
-        vR  = vminq_u16(vR,  v_log_max);
-        vG1 = vminq_u16(vG1, v_log_max);
-        vG2 = vminq_u16(vG2, v_log_max);
-        vB  = vminq_u16(vB,  v_log_max);
 
-        uint16_t Rs[8], G1s[8], G2s[8], Bs[8];
-        if (channel == 1) vst1q_u16(Rs, vR);
-        if (channel == 2) vst1q_u16(Bs, vB);
-        vst1q_u16(G1s, vG1);
-        vst1q_u16(G2s, vG2);
+        /* For output k (k=0..3), the 4 same-color source values are at
+           lanes (2k, 2k+1) of both row_a and row_b. Spill all 8 lanes per
+           color to scalar, do 4 LUT lookups per channel per output, sum
+           the 4 log-space values, divide by 4. */
+        uint16_t R_a[8], R_b[8], G1_a[8], G1_b[8], G2_a[8], G2_b[8], B_a[8], B_b[8];
+        vst1q_u16(G1_a, vG1_a); vst1q_u16(G1_b, vG1_b);
+        vst1q_u16(G2_a, vG2_a); vst1q_u16(G2_b, vG2_b);
+        if (channel == 1) { vst1q_u16(R_a, vR_a); vst1q_u16(R_b, vR_b); }
+        if (channel == 2) { vst1q_u16(B_a, vB_a); vst1q_u16(B_b, vB_b); }
 
-        /* 4 LUT lookups per color = 4 outputs. (Naive path: 16 per color.) */
-        int32_t g1a[4], g2a[4];
+        int32_t g1a[4], g2a[4], xa[4];
         for (int k = 0; k < 4; k++) {
-            g1a[k] = log_tbl[G1s[k]];
-            g2a[k] = log_tbl[G2s[k]];
+            int i0 = 2*k, i1 = 2*k + 1;
+            int32_t g1_sum = (int32_t)log_tbl[G1_a[i0]] + (int32_t)log_tbl[G1_a[i1]]
+                           + (int32_t)log_tbl[G1_b[i0]] + (int32_t)log_tbl[G1_b[i1]];
+            int32_t g2_sum = (int32_t)log_tbl[G2_a[i0]] + (int32_t)log_tbl[G2_a[i1]]
+                           + (int32_t)log_tbl[G2_b[i0]] + (int32_t)log_tbl[G2_b[i1]];
+            g1a[k] = (g1_sum + 2) >> 2;
+            g2a[k] = (g2_sum + 2) >> 2;
+            if (channel == 1) {
+                int32_t s = (int32_t)log_tbl[R_a[i0]] + (int32_t)log_tbl[R_a[i1]]
+                          + (int32_t)log_tbl[R_b[i0]] + (int32_t)log_tbl[R_b[i1]];
+                xa[k] = (s + 2) >> 2;
+            } else if (channel == 2) {
+                int32_t s = (int32_t)log_tbl[B_a[i0]] + (int32_t)log_tbl[B_a[i1]]
+                          + (int32_t)log_tbl[B_b[i0]] + (int32_t)log_tbl[B_b[i1]];
+                xa[k] = (s + 2) >> 2;
+            }
         }
+
         int32x4_t vg1 = vld1q_s32(g1a);
         int32x4_t vg2 = vld1q_s32(g2a);
-
         int32x4_t result;
         if (channel == 0) {
             result = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
         } else if (channel == 3) {
             result = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
         } else {
-            int32_t xa[4];
-            if (channel == 1) {
-                for (int k = 0; k < 4; k++) xa[k] = log_tbl[Rs[k]];
-            } else {
-                for (int k = 0; k < 4; k++) xa[k] = log_tbl[Bs[k]];
-            }
             int32x4_t vx = vld1q_s32(xa);
             int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
             result = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
@@ -856,34 +862,38 @@ static void unpack_channel_row_decimate_2x2(
         vst1q_s32(&output[o], result);
     }
 #endif
-    /* Scalar tail. */
+    /* Scalar tail, same log-space averaging semantics. */
     for (; o < ch_width_out; o++) {
         int bc = o * 4;
-        uint16_t R, G1, G2, B;
+        /* Pull raw values per color from the 4 rows, 2 cols each. */
+        uint16_t R0,R1,R2,R3, G10,G11,G12,G13, G20,G21,G22,G23, B0,B1,B2,B3;
         if (is_rggb) {
-            R  = ((uint32_t)row1a[bc]   + row1a[bc+2] + row1b[bc]   + row1b[bc+2] + 2) >> 2;
-            G1 = ((uint32_t)row1a[bc+1] + row1a[bc+3] + row1b[bc+1] + row1b[bc+3] + 2) >> 2;
-            G2 = ((uint32_t)row2a[bc]   + row2a[bc+2] + row2b[bc]   + row2b[bc+2] + 2) >> 2;
-            B  = ((uint32_t)row2a[bc+1] + row2a[bc+3] + row2b[bc+1] + row2b[bc+3] + 2) >> 2;
+            R0=row1a[bc];   R1=row1a[bc+2]; R2=row1b[bc];   R3=row1b[bc+2];
+            G10=row1a[bc+1];G11=row1a[bc+3];G12=row1b[bc+1];G13=row1b[bc+3];
+            G20=row2a[bc];  G21=row2a[bc+2];G22=row2b[bc];  G23=row2b[bc+2];
+            B0=row2a[bc+1]; B1=row2a[bc+3]; B2=row2b[bc+1]; B3=row2b[bc+3];
         } else {
-            G1 = ((uint32_t)row1a[bc]   + row1a[bc+2] + row1b[bc]   + row1b[bc+2] + 2) >> 2;
-            B  = ((uint32_t)row1a[bc+1] + row1a[bc+3] + row1b[bc+1] + row1b[bc+3] + 2) >> 2;
-            R  = ((uint32_t)row2a[bc]   + row2a[bc+2] + row2b[bc]   + row2b[bc+2] + 2) >> 2;
-            G2 = ((uint32_t)row2a[bc+1] + row2a[bc+3] + row2b[bc+1] + row2b[bc+3] + 2) >> 2;
+            G10=row1a[bc];  G11=row1a[bc+2];G12=row1b[bc];  G13=row1b[bc+2];
+            B0=row1a[bc+1]; B1=row1a[bc+3]; B2=row1b[bc+1]; B3=row1b[bc+3];
+            R0=row2a[bc];   R1=row2a[bc+2]; R2=row2b[bc];   R3=row2b[bc+2];
+            G20=row2a[bc+1];G21=row2a[bc+3];G22=row2b[bc+1];G23=row2b[bc+3];
         }
-        if (R  > lm) R  = lm;
-        if (G1 > lm) G1 = lm;
-        if (G2 > lm) G2 = lm;
-        if (B  > lm) B  = lm;
-        int32_t g1 = log_tbl[G1], g2 = log_tbl[G2];
+        if (R0  > lm) R0  = lm; if (R1  > lm) R1  = lm; if (R2  > lm) R2  = lm; if (R3  > lm) R3  = lm;
+        if (G10 > lm) G10 = lm; if (G11 > lm) G11 = lm; if (G12 > lm) G12 = lm; if (G13 > lm) G13 = lm;
+        if (G20 > lm) G20 = lm; if (G21 > lm) G21 = lm; if (G22 > lm) G22 = lm; if (G23 > lm) G23 = lm;
+        if (B0  > lm) B0  = lm; if (B1  > lm) B1  = lm; if (B2  > lm) B2  = lm; if (B3  > lm) B3  = lm;
+        int32_t g1 = ((int32_t)log_tbl[G10] + log_tbl[G11] + log_tbl[G12] + log_tbl[G13] + 2) >> 2;
+        int32_t g2 = ((int32_t)log_tbl[G20] + log_tbl[G21] + log_tbl[G22] + log_tbl[G23] + 2) >> 2;
         switch (channel) {
             case 0: output[o] = (g1 + g2) >> 1; break;
             case 1: {
-                int32_t r = log_tbl[R], gs = (g1 + g2) >> 1;
+                int32_t r = ((int32_t)log_tbl[R0] + log_tbl[R1] + log_tbl[R2] + log_tbl[R3] + 2) >> 2;
+                int32_t gs = (g1 + g2) >> 1;
                 output[o] = ((r - gs) + mid2) >> 1;
             } break;
             case 2: {
-                int32_t b = log_tbl[B], gs = (g1 + g2) >> 1;
+                int32_t b = ((int32_t)log_tbl[B0] + log_tbl[B1] + log_tbl[B2] + log_tbl[B3] + 2) >> 2;
+                int32_t gs = (g1 + g2) >> 1;
                 output[o] = ((b - gs) + mid2) >> 1;
             } break;
             case 3: output[o] = ((g1 - g2) + mid2) >> 1; break;
