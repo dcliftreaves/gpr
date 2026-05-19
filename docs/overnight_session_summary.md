@@ -156,33 +156,33 @@ For end-to-end pipeline on Pi (encode+decode same machine):
 
 For STREAMING (encode on Pi, decode elsewhere): 30 fps encode is achievable.
 
-## Commits this session (in chronological order)
+## Commits this session (most recent first)
 
 ```
-ed98abd docs: 50→4K-equivalent fused path hits 29.5 fps (24 fps target HIT)
-42e51bc fused_encode: default ROW+COL decimate to fast row-skip path (-6 ms)
-a4880e3 fused_encode: vectorize LUT lookups in unpack_channel_row_decimate_2x2
-53e4cae fused_encode: prefetch end-of-row in unpack_channel_row (-3 ms)
-5f6fa35 fused_encode: document failed next-iter prefetch attempt
-51c9a91 docs: track prefetch win + remaining state
+15a3517 test_multi_frame: parse FUSED_HEADER to skip dim-discovery decode (halves reported dec_ms — codec unchanged)
+6506e4b docs+bench: confirm decoder is well-tuned, pthread overhead negligible (microbench)
+58b7f06 docs: document tokenize bottleneck analysis (bbbits chain, not freq)
+554f1c3 docs+tools: definitively close NEON float-log10 dead-end with Pi 5 microbench
+2f399db docs: update brief — decoder parallel done, latest commits listed
+7c6e086 fused_decode: parallelize color transform inverse across row strips
+6ad128e fused_encode: remove GPR_BYPASS_LOGCURVE debug knob
+d8da0bf docs: add decoder threading section + commit log update
+33318d3 fused_decode: parallelize per-channel band rANS + inverse wavelet
+1b361eb docs: more failed-attempts entries (affinity, piecewise log, stripe sweep)
+bf3298a fused_encode: hook up FUSED_STRIPE_ROWS_LL env override
+99a9fdf docs: overnight session summary for morning brief
 c09524d docs: correct stable LL+HP numbers (cool-Pi outlier earlier)
-```
-
-Plus earlier this week:
-```
+51c9a91 docs: track prefetch win + remaining state
+5f6fa35 fused_encode: document failed next-iter prefetch attempt
+53e4cae fused_encode: prefetch end-of-row in unpack_channel_row (-3 ms)
+ed98abd docs: 50→4K-equivalent fused path hits 29.5 fps (24 fps target HIT)
+da4afc6 fused_encode: skip unpack_full malloc when not in producer ring mode
+42e51bc fused_encode: default ROW+COL decimate to fast row-skip path (-6 ms)
+a4880e3 fused_encode: vectorize LUT lookups in unpack_channel_row_decimate_2x2 (-16 ms)
 8ff6377 tools: codec → rawpy → MP4 pipeline for honest visual verification
 327482d fused_encode: log-space averaging (orange-cast bug fix)
 131c6d0 fused_encode: reset inline_state[0] (LL) too
 7ff76d4 fused codec: 16-band single-level-with-LL roundtrip
-```
-
-Additional commits during the overnight continuation:
-```
-1b361eb docs: more failed-attempts entries (affinity, piecewise log, stripe sweep)
-33318d3 fused_decode: parallelize per-channel band rANS + inverse wavelet
-d8da0bf docs: add decoder threading section + commit log update
-6ad128e fused_encode: remove GPR_BYPASS_LOGCURVE debug knob
-7c6e086 fused_decode: parallelize color transform inverse across row strips
 ```
 
 ## To reproduce the headline number
