@@ -1678,6 +1678,13 @@ static int setup_channel_state(
     if (_rdec_env && *_rdec_env == '2') ch_height /= 2;
     const char *_cdec_env = getenv("GPR_COL_DECIMATE");
     if (_cdec_env && *_cdec_env == '2') ch_width /= 2;
+    /* GPR_INCLUDE_LL: in single-level mode, the LL band IS the final lowpass
+       output (not a cascade intermediate). Its magnitude after the 5/3 wavelet
+       can reach ~16k for 14-bit input, which overflows the rANS class-15
+       ceiling of 2047. We need the same extra divisor trick the multi-level
+       LL3 path uses to keep LL bounded. */
+    const char *_ll_env = getenv("GPR_INCLUDE_LL");
+    int single_level_include_ll = (_ll_env && *_ll_env == '1') ? 1 : 0;
     const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
 
     for (int ch = 0; ch < 4; ch++) {
@@ -1688,8 +1695,15 @@ static int setup_channel_state(
         if (multi_level) {
             q_ll1 = 0; q_lh1 = 7; q_hl1 = 8; q_hh1 = 9;
         }
-        ch_state[ch].midpoint[0] = get_midpoint(qt[q_ll1]);
-        ch_state[ch].multiplier[0] = get_multiplier(qt[q_ll1]);
+        /* When emitting LL in single-level (multi_level=0), divide LL by
+           the same 16× factor multi-level uses for LL3. Otherwise LL1 mag
+           exceeds the rANS class-15 ceiling and gets clipped at ±2047. */
+        int q_ll1_eff = qt[q_ll1];
+        if (!multi_level && single_level_include_ll) {
+            q_ll1_eff = qt[q_ll1] * 16;  /* matches multi-level FUSED_LL3_EXTRA_DIVISOR */
+        }
+        ch_state[ch].midpoint[0] = get_midpoint(q_ll1_eff);
+        ch_state[ch].multiplier[0] = get_multiplier(q_ll1_eff);
         ch_state[ch].midpoint[1] = get_midpoint(qt[q_lh1]);
         ch_state[ch].multiplier[1] = get_multiplier(qt[q_lh1]);
         ch_state[ch].midpoint[2] = get_midpoint(qt[q_hl1]);
@@ -2537,7 +2551,16 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     hdr.prescale = ctx->prescale;
     hdr.multi_level = 0;
     hdr.num_bands = num_bands;
-    hdr.reserved = 0;
+    /* If row/col decimate were applied during encode, the bands and the
+       output Bayer are at half dims. Tell the decoder via this field;
+       decoder treats the file as a hdr.width/dec × hdr.height/dec image. */
+    {
+        const char *r = getenv("GPR_ROW_DECIMATE");
+        const char *c = getenv("GPR_COL_DECIMATE");
+        int rd = (r && *r == '2') ? 1 : 0;
+        int cd = (c && *c == '2') ? 1 : 0;
+        hdr.decimate = (rd && cd) ? 2 : 0;
+    }
 
     size_t pos = 0;
     memcpy(ctx->stream_buf + pos, &hdr, sizeof(hdr)); pos += sizeof(hdr);
@@ -2796,7 +2819,7 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
     hdr.prescale = ctx->prescale;
     hdr.multi_level = 1;
     hdr.num_bands = p2_tasks_total;
-    hdr.reserved = 0;
+    hdr.decimate = 0;  /* multi-level doesn't currently support decimation */
 
     size_t pos = 0;
     memcpy(ctx->stream_buf + pos, &hdr, sizeof(hdr)); pos += sizeof(hdr);

@@ -74,8 +74,13 @@ typedef struct {
     uint32_t log_bits;       /* 14 for 12/14-bit input, 16 for 16-bit */
     uint32_t prescale;       /* level-1 prescale (typically 2) */
     uint32_t multi_level;    /* 1 = 3-level wavelet, 0 = single-level */
-    uint32_t num_bands;      /* 12 (single-level) or 40 (multi-level) */
-    uint32_t reserved;       /* padding to 12 u32's */
+    uint32_t num_bands;      /* 12 (single-level no LL), 16 (single-level + LL),
+                                40 (multi-level) */
+    uint32_t decimate;       /* Channel-space decimation factor.
+                                0 or 1 = none. 2 = 2x2 channel-space
+                                decimation (bands and output Bayer are
+                                effectively at hdr.width/decimate ×
+                                hdr.height/decimate). */
 } FUSED_HEADER;
 
 /*!

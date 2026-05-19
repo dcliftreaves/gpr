@@ -49,6 +49,22 @@ static const QUANT FUSED_QUALITY_TABLES[9][10] = {
 static void *fd_alloc(size_t n) { return malloc(n); }
 static void  fd_free(void *p)   { free(p); }
 
+/* Single-level + LL decode path (hdr.num_bands == 16, hdr.multi_level == 0).
+   Band layout per channel (4 slots):
+     0 = LL1   (bw × bh)
+     1 = LH1   (bw × bh)
+     2 = HL1   (bw × bh)
+     3 = HH1   (bw × bh)
+   Channels: GS=0, RG=1, BG=2, GD=3.
+
+   Handles optional channel-space decimation via hdr.decimate: when set
+   to 2, the encoded bands represent a (hdr.width/2 × hdr.height/2) Bayer
+   image. Output bayer dims are adjusted accordingly. */
+static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
+                                        const uint8_t *enc, size_t enc_size,
+                                        uint16_t *bayer_out, size_t bayer_pitch_bytes,
+                                        int *out_width, int *out_height);
+
 int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
                      uint16_t *bayer_out, size_t bayer_pitch_bytes,
                      int *out_width, int *out_height)
@@ -60,7 +76,13 @@ int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
     memcpy(&hdr, enc, sizeof(hdr));
     if (hdr.magic != FUSED_MAGIC) return -3;
     if (hdr.version != FUSED_VERSION) return -4;
-    if (!hdr.multi_level) return -5;  /* single-level can't be reconstructed (no LL) */
+    /* Route single-level-with-LL files to the 16-band path. */
+    if (!hdr.multi_level && hdr.num_bands == 16) {
+        return decode_fused_single_level_ll(&hdr, enc, enc_size,
+                                            bayer_out, bayer_pitch_bytes,
+                                            out_width, out_height);
+    }
+    if (!hdr.multi_level) return -5;  /* single-level-without-LL: not decodable */
     if (hdr.num_bands != 40) return -6;
     if (hdr.quality >= 9) return -7;
 
@@ -264,6 +286,191 @@ int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
                     bayer_row2[2*x+1] = (uint16_t)b_lin;
                 } else {
                     /* GBRG */
+                    bayer_row1[2*x]   = (uint16_t)g1_lin;
+                    bayer_row1[2*x+1] = (uint16_t)b_lin;
+                    bayer_row2[2*x]   = (uint16_t)r_lin;
+                    bayer_row2[2*x+1] = (uint16_t)g2_lin;
+                }
+            }
+        }
+    }
+
+    for (int ch = 0; ch < 4; ch++)
+        if (channels[ch]) free(channels[ch]);
+
+    return rc;
+}
+
+/* ============================================================
+   Single-level + LL decode path
+   ============================================================ */
+static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
+                                        const uint8_t *enc, size_t enc_size,
+                                        uint16_t *bayer_out, size_t bayer_pitch_bytes,
+                                        int *out_width, int *out_height)
+{
+    if (hdr->quality >= 9) return -7;
+
+    /* When channel-space decimation was applied, the encoded bands
+       represent a (hdr.width/dec × hdr.height/dec) Bayer-equivalent image.
+       The output Bayer is at those reduced dims. */
+    int dec = (hdr->decimate == 2) ? 2 : 1;
+    int bayer_w = (int)hdr->width  / dec;
+    int bayer_h = (int)hdr->height / dec;
+    int ch_w = bayer_w / 2;
+    int ch_h = bayer_h / 2;
+    int bw = ch_w / 2;
+    int bh = ch_h / 2;
+
+    if (out_width)  *out_width  = bayer_w;
+    if (out_height) *out_height = bayer_h;
+
+    SetupDecoderLogCurve();
+
+    size_t off = sizeof(FUSED_HEADER);
+    if (off + 16 * sizeof(uint32_t) > enc_size) return -8;
+    uint32_t band_sizes[16];
+    memcpy(band_sizes, enc + off, sizeof(band_sizes));
+    off += sizeof(band_sizes);
+
+    /* Decode all 16 bands: 4 channels × {LL, LH, HL, HH}. */
+    PIXEL *bands[4][4];
+    for (int ch = 0; ch < 4; ch++)
+        for (int s = 0; s < 4; s++)
+            bands[ch][s] = NULL;
+
+    int rc = 0;
+    int band_idx = 0;
+    for (int ch = 0; ch < 4 && rc == 0; ch++) {
+        for (int s = 0; s < 4 && rc == 0; s++) {
+            uint32_t sz = band_sizes[band_idx];
+            if (off + sz > enc_size) { rc = -10; break; }
+            bands[ch][s] = (PIXEL *)malloc((size_t)bw * bh * sizeof(PIXEL));
+            if (!bands[ch][s]) { rc = -11; break; }
+            /* Empty band (e.g., GPR_DROP_HIGHPASS=1 emits an empty rANS
+               blob): decode produces all zeros. jans_decode_band_x4 handles
+               this if sz is large enough to contain just the header; for
+               truly empty band data we must clear ourselves. */
+            if (sz < 64) {
+                memset(bands[ch][s], 0, (size_t)bw * bh * sizeof(PIXEL));
+            } else {
+                int drc = jans_decode_band_x4(enc + off, sz,
+                                              bands[ch][s], bw, bh,
+                                              bw * (int)sizeof(PIXEL));
+                if (drc != 0) {
+                    /* Treat decode failure as an empty band rather than
+                       aborting — likely GPR_DROP_HIGHPASS produced a stub. */
+                    memset(bands[ch][s], 0, (size_t)bw * bh * sizeof(PIXEL));
+                }
+            }
+            off += sz;
+            band_idx++;
+        }
+    }
+
+    gpr_allocator alloc = { fd_alloc, fd_free };
+    PIXEL *channels[4] = { NULL, NULL, NULL, NULL };
+
+    if (rc == 0) {
+        const QUANT *qt = FUSED_QUALITY_TABLES[hdr->quality];
+        QUANT q_l1[4] = { -qt[0], -qt[1], -qt[2], -qt[3] };
+
+        /* The encoder divides single-level LL by 16× the natural quant to
+           keep magnitudes under the rANS class-15 ceiling (matches the
+           multi-level LL3 trick). Pre-multiply LL bands to undo that. */
+        const int ll_extra = 16;
+        const int ll_dequant = qt[0] * ll_extra;
+        for (int ch = 0; ch < 4; ch++) {
+            PIXEL *p = bands[ch][0];
+            if (!p) continue;
+            size_t n = (size_t)bw * bh;
+            for (size_t i = 0; i < n; i++) p[i] *= ll_dequant;
+        }
+
+        for (int ch = 0; ch < 4 && rc == 0; ch++) {
+            /* Debug: log band stats once per channel */
+            const char *dbg = getenv("FUSED_DECODE_DEBUG");
+            if (dbg && *dbg == '1') {
+                for (int s = 0; s < 4; s++) {
+                    PIXEL *p = bands[ch][s];
+                    long mn = 1<<30, mx = -(1<<30); long long sum = 0;
+                    long n = (long)bw * bh;
+                    for (long i = 0; i < n; i++) {
+                        if (p[i] < mn) mn = p[i];
+                        if (p[i] > mx) mx = p[i];
+                        sum += p[i];
+                    }
+                    fprintf(stderr, "  ch%d band%d (%s): min=%ld max=%ld mean=%.1f\n",
+                            ch, s, s==0?"LL":s==1?"LH":s==2?"HL":"HH",
+                            mn, mx, (double)sum/n);
+                }
+            }
+
+            channels[ch] = (PIXEL *)malloc((size_t)ch_w * ch_h * sizeof(PIXEL));
+            if (!channels[ch]) { rc = -24; break; }
+            CODEC_ERROR e = InvertSpatialQuantDescale16s(&alloc,
+                bands[ch][0], bw * (int)sizeof(PIXEL),    /* LL */
+                bands[ch][1], bw * (int)sizeof(PIXEL),    /* LH */
+                bands[ch][2], bw * (int)sizeof(PIXEL),    /* HL */
+                bands[ch][3], bw * (int)sizeof(PIXEL),    /* HH */
+                channels[ch], ch_w * (int)sizeof(PIXEL),
+                (DIMENSION)bw, (DIMENSION)bh,
+                (DIMENSION)ch_w, (DIMENSION)ch_h,
+                /*descale=*/2, q_l1);
+            if (e != CODEC_ERROR_OKAY) { rc = -25; break; }
+        }
+    }
+
+    for (int ch = 0; ch < 4; ch++)
+        for (int s = 0; s < 4; s++)
+            if (bands[ch][s]) free(bands[ch][s]);
+
+    /* Color transform inverse + log curve → Bayer output (same as the
+       multi-level path; could factor out but the body is short). */
+    if (rc == 0) {
+        int log_max  = (1 << (int)hdr->log_bits) - 1;
+        int midpoint = 1 << ((int)hdr->log_bits - 1);
+        const uint16_t *log_table =
+            (hdr->log_bits <= 14) ? DecoderLogCurve14 : DecoderLogCurve16;
+        int output_bit_depth = (int)hdr->log_bits;
+        int shift = 16 - output_bit_depth;
+        int is_rggb = (int)hdr->is_rggb;
+
+        for (int y = 0; y < ch_h; y++) {
+            const PIXEL *gs_row = channels[0] + (size_t)y * ch_w;
+            const PIXEL *rg_row = channels[1] + (size_t)y * ch_w;
+            const PIXEL *bg_row = channels[2] + (size_t)y * ch_w;
+            const PIXEL *gd_row = channels[3] + (size_t)y * ch_w;
+            uint8_t *r1_bytes = (uint8_t *)bayer_out + (size_t)(2*y)     * bayer_pitch_bytes;
+            uint8_t *r2_bytes = (uint8_t *)bayer_out + (size_t)(2*y + 1) * bayer_pitch_bytes;
+            uint16_t *bayer_row1 = (uint16_t *)r1_bytes;
+            uint16_t *bayer_row2 = (uint16_t *)r2_bytes;
+
+            for (int x = 0; x < ch_w; x++) {
+                int gs = gs_row[x], rg = rg_row[x], bg = bg_row[x], gd = gd_row[x];
+                if (gs < 0) gs = 0; if (gs > log_max) gs = log_max;
+                if (rg < 0) rg = 0; if (rg > log_max) rg = log_max;
+                if (bg < 0) bg = 0; if (bg > log_max) bg = log_max;
+                if (gd < 0) gd = 0; if (gd > log_max) gd = log_max;
+                rg -= midpoint; bg -= midpoint; gd -= midpoint;
+                int r  = (rg << 1) + gs;
+                int b  = (bg << 1) + gs;
+                int g1 = gs + gd;
+                int g2 = gs - gd;
+                if (r  < 0) r  = 0; if (r  > log_max) r  = log_max;
+                if (g1 < 0) g1 = 0; if (g1 > log_max) g1 = log_max;
+                if (g2 < 0) g2 = 0; if (g2 > log_max) g2 = log_max;
+                if (b  < 0) b  = 0; if (b  > log_max) b  = log_max;
+                int r_lin  = log_table[r]  >> shift;
+                int g1_lin = log_table[g1] >> shift;
+                int g2_lin = log_table[g2] >> shift;
+                int b_lin  = log_table[b]  >> shift;
+                if (is_rggb) {
+                    bayer_row1[2*x]   = (uint16_t)r_lin;
+                    bayer_row1[2*x+1] = (uint16_t)g1_lin;
+                    bayer_row2[2*x]   = (uint16_t)g2_lin;
+                    bayer_row2[2*x+1] = (uint16_t)b_lin;
+                } else {
                     bayer_row1[2*x]   = (uint16_t)g1_lin;
                     bayer_row1[2*x+1] = (uint16_t)b_lin;
                     bayer_row2[2*x]   = (uint16_t)r_lin;
