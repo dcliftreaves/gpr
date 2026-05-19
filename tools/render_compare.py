@@ -12,23 +12,51 @@ import sys
 import array
 import numpy as np
 import rawpy
+import cv2
 from PIL import Image
 
 def upsample_bayer_2x(bayer_bytes, sw, sh, tw, th):
-    """Bayer-aware 2x upsample: replicate each 2x2 Bayer cell into 4 copies
-    (4x4 in the output), preserving RGGB layout. Visualization-only — quality
-    of the upsample doesn't reflect the codec, just lets us reuse the source
-    DNG's metadata in the rawpy pipeline."""
+    """Bayer-aware 2x upsample. Deinterleaves the source Bayer into 4 color
+    planes (R, G1, G2, B) at half-resolution, bicubic-upsamples each plane
+    by 2x independently, then reinterleaves into a 2x-sized Bayer pattern.
+
+    Bicubic-per-plane avoids the cross-color smearing that a naive bicubic
+    on the Bayer mosaic would produce (which would mix R into G samples
+    etc.). The previous nearest-neighbor 2x tile produced visible 2-pixel
+    block artifacts at native zoom; bicubic-per-plane is the right
+    smooth-upsample for visualization since rawpy still wants a valid
+    Bayer mosaic to demosaic.
+
+    Visualization-only — the codec actually outputs at (sh, sw); upscaling
+    to (th, tw) lets us reuse the source DNG's WB/color matrix pipeline,
+    but it does NOT add detail the codec discarded."""
     if sw * 2 != tw or sh * 2 != th:
         raise ValueError(f"dims mismatch: {sw}x{sh} -> {tw}x{th}")
     arr = np.frombuffer(bayer_bytes, dtype=np.uint16).reshape(sh, sw)
-    sh2, sw2 = sh // 2, sw // 2
-    # Reshape into 2x2 Bayer cells: (sh2, sw2, 2, 2)
-    cells = arr.reshape(sh2, 2, sw2, 2).transpose(0, 2, 1, 3)
-    # Tile each cell 2x2 times → (sh2, sw2, 4, 4) where each 4x4 is 2x2 cell repeated
-    tiled = np.tile(cells, (1, 1, 2, 2))  # (sh2, sw2, 4, 4)
-    # Reshape back: (sh2, sw2, 4, 4) → (sh2*4, sw2*4)
-    out = tiled.transpose(0, 2, 1, 3).reshape(th, tw)
+    # Deinterleave into 4 planes at (sh/2, sw/2). For RGGB:
+    #   plane R  = arr[0::2, 0::2]
+    #   plane G1 = arr[0::2, 1::2]
+    #   plane G2 = arr[1::2, 0::2]
+    #   plane B  = arr[1::2, 1::2]
+    planes = [
+        arr[0::2, 0::2],
+        arr[0::2, 1::2],
+        arr[1::2, 0::2],
+        arr[1::2, 1::2],
+    ]
+    # Bicubic-upsample each plane from (sh/2, sw/2) to (sh, sw). cv2.resize
+    # takes (width, height) and is uint16-native with INTER_CUBIC.
+    target_w, target_h = sw, sh   # each upsampled plane is the size of one
+                                   # cell-grid in the target Bayer (tw/2, th/2),
+                                   # which equals (sw, sh) since tw=2sw, th=2sh.
+    up = [cv2.resize(p, (target_w, target_h), interpolation=cv2.INTER_CUBIC)
+          for p in planes]
+    # Reinterleave into the target Bayer (th, tw).
+    out = np.empty((th, tw), dtype=np.uint16)
+    out[0::2, 0::2] = up[0]
+    out[0::2, 1::2] = up[1]
+    out[1::2, 0::2] = up[2]
+    out[1::2, 1::2] = up[3]
     return out
 
 
