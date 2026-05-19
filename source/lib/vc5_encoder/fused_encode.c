@@ -873,12 +873,18 @@ static void pass1_run_channel(
 {
     int ch_width = width / 2;
     int ch_height = height / 2;
-    /* GPR_ROW_DECIMATE=2: skip alternate Bayer row pairs. Each "channel row"
-       is now produced from input rows row*4 and row*4+1 instead of row*2/2+1.
-       ch_height is halved; downstream band sizes match setup_channel_state. */
-    const char *_dec_env = getenv("GPR_ROW_DECIMATE");
-    int row_stride_pairs = (_dec_env && *_dec_env == '2') ? 4 : 2;
+    /* GPR_ROW_DECIMATE=2: skip alternate Bayer row pairs.
+       GPR_COL_DECIMATE=2: average pairs of channel columns post-unpack.
+       Combined, these give 2x2 channel-space decimation (1/4 area) for the
+       50 MP→ ~5.7 MP-equivalent encode path. ch_width and ch_height are
+       halved; downstream band sizes match setup_channel_state. */
+    const char *_rdec_env = getenv("GPR_ROW_DECIMATE");
+    int row_stride_pairs = (_rdec_env && *_rdec_env == '2') ? 4 : 2;
     if (row_stride_pairs == 4) ch_height /= 2;
+    const char *_cdec_env = getenv("GPR_COL_DECIMATE");
+    int col_decimate = (_cdec_env && *_cdec_env == '2') ? 2 : 1;
+    int ch_width_full = ch_width;          /* width of intermediate unpack */
+    if (col_decimate == 2) ch_width /= 2;  /* output to horiz */
     const uint16_t *bayer = (const uint16_t *)raw_bayer;
     int bayer_pitch = width;
 
@@ -888,6 +894,13 @@ static void pass1_run_channel(
 
     PIXEL *unpack_row = (PIXEL *)malloc(ch_width * sizeof(PIXEL));
     if (!unpack_row) return;
+    /* Full-width scratch for col-decimate: unpack here at ch_width_full,
+       then average pairs into unpack_row. Allocated only when needed. */
+    PIXEL *unpack_full = NULL;
+    if (col_decimate == 2) {
+        unpack_full = (PIXEL *)malloc(ch_width_full * sizeof(PIXEL));
+        if (!unpack_full) { free(unpack_row); return; }
+    }
 
 #ifdef FUSED_TIMING_DETAIL
     double t_unpack = 0, t_horiz = 0, t_vert = 0, t_freq = 0;
@@ -921,8 +934,33 @@ static void pass1_run_channel(
             _td = _fused_ms();
 #endif
 
-            unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
-                               row1, row2, unpack_row, ch_width);
+            if (col_decimate == 2) {
+                /* Unpack full-width then pair-average to halve. NEON vrhaddq
+                   reads 8 lanes and averages with rounding; we use it on
+                   adjacent pairs by uzp-extracting evens/odds. */
+                unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
+                                   row1, row2, unpack_full, ch_width_full);
+#if ENABLED(NEON)
+                int o = 0;
+                int o_m4 = (ch_width / 4) * 4;
+                for (; o < o_m4; o += 4) {
+                    int32x4_t a = vld1q_s32(&unpack_full[2 * o]);
+                    int32x4_t b = vld1q_s32(&unpack_full[2 * o + 4]);
+                    int32x4_t e = vuzp1q_s32(a, b);  /* evens: x0 x2 x4 x6 */
+                    int32x4_t d = vuzp2q_s32(a, b);  /* odds:  x1 x3 x5 x7 */
+                    int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
+                    vst1q_s32(&unpack_row[o], avg);
+                }
+                for (; o < ch_width; o++)
+                    unpack_row[o] = (unpack_full[2*o] + unpack_full[2*o + 1]) >> 1;
+#else
+                for (int o = 0; o < ch_width; o++)
+                    unpack_row[o] = (unpack_full[2*o] + unpack_full[2*o + 1]) >> 1;
+#endif
+            } else {
+                unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
+                                   row1, row2, unpack_row, ch_width);
+            }
 
 #ifdef FUSED_TIMING_DETAIL
             t_unpack += _fused_ms() - _td; _td = _fused_ms();
@@ -1074,6 +1112,7 @@ static void pass1_run_channel(
 #endif
 
     free(unpack_row);
+    if (unpack_full) free(unpack_full);
 }
 
 /* Sync structure: shared between Pass 1 and Pass 2 threads to overlap them.
@@ -1475,12 +1514,13 @@ static int setup_channel_state(
 {
     int ch_width = width / 2;
     int ch_height = height / 2;
-    /* GPR_ROW_DECIMATE=2 — halve ch_height; encoder skips alternate Bayer
-       row pairs in pass1_run_channel. Combined with GPR_DROP_HIGHPASS this
-       targets ~24 fps on 50 MP input. */
-    const char *_dec_env = getenv("GPR_ROW_DECIMATE");
-    int _dec = (_dec_env && *_dec_env == '2') ? 2 : 1;
-    if (_dec == 2) ch_height /= 2;
+    /* GPR_ROW_DECIMATE=2 — halve ch_height (row skip).
+       GPR_COL_DECIMATE=2 — halve ch_width (post-unpack pair average).
+       Combined: 2x2 channel-space decimation; bands/buffers shrink to match. */
+    const char *_rdec_env = getenv("GPR_ROW_DECIMATE");
+    if (_rdec_env && *_rdec_env == '2') ch_height /= 2;
+    const char *_cdec_env = getenv("GPR_COL_DECIMATE");
+    if (_cdec_env && *_cdec_env == '2') ch_width /= 2;
     const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
 
     for (int ch = 0; ch < 4; ch++) {
