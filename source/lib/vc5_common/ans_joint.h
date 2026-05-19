@@ -65,10 +65,20 @@ typedef struct {
     uint16_t mag_min;     /* Minimum magnitude for this class */
 } JANS_DECODE_INFO;
 
+/*! Packed per-symbol encode entry. 8 bytes — one cacheline-fitted load
+    pulls all 3 values rans_enc_put needs per symbol (was 3 loads from 3
+    separate arrays scattered across the table). */
+typedef struct {
+    uint16_t freq;
+    uint16_t cum_freq;
+    uint32_t rcp_freq;
+} JANS_ENC_ENTRY;
+
 typedef struct {
     uint16_t freq[JANS_NUM_SYMBOLS + 1];
     uint16_t cum_freq[JANS_NUM_SYMBOLS + 1];
     uint32_t rcp_freq[JANS_NUM_SYMBOLS + 1];  /* Reciprocal: ceil(2^32 / freq) for division-free encode */
+    JANS_ENC_ENTRY enc[JANS_NUM_SYMBOLS + 1]; /* Packed encode-side {freq,cum_freq,rcp_freq} for tight rANS inner loop */
     uint16_t decode_sym[JANS_TABLE_SIZE];
     JANS_DECODE_ENTRY decode_fast[JANS_TABLE_SIZE]; /* Packed for fast decode */
     JANS_DECODE_INFO decode_info[JANS_TABLE_SIZE]; /* Ultra-packed: all per-token info */

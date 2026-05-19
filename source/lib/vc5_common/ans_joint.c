@@ -331,12 +331,20 @@ static void build_encode_tables(JANS_TABLE *t, int n) {
     t->cum_freq[0] = 0;
     for (int i = 1; i < n; i++) t->cum_freq[i] = t->cum_freq[i-1] + t->freq[i-1];
     for (int i = 0; i < n; i++) {
+        uint32_t rcp;
         if (t->freq[i] > 1)
-            t->rcp_freq[i] = (uint32_t)(((uint64_t)1 << 32) / t->freq[i]);
+            rcp = (uint32_t)(((uint64_t)1 << 32) / t->freq[i]);
         else if (t->freq[i] == 1)
-            t->rcp_freq[i] = 0xFFFFFFFFu;
+            rcp = 0xFFFFFFFFu;
         else
-            t->rcp_freq[i] = 0;
+            rcp = 0;
+        t->rcp_freq[i] = rcp;
+        /* Packed encode entry: rans_enc_put can do 1 cacheline-load per
+           symbol instead of 3 scattered loads (Pi A76 perf showed those
+           4 × per-stream loads at ~10% each in jans_inline_emit_blob). */
+        t->enc[i].freq = t->freq[i];
+        t->enc[i].cum_freq = t->cum_freq[i];
+        t->enc[i].rcp_freq = rcp;
     }
 }
 
@@ -790,34 +798,35 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
        optional renormalize as 4 disjoint chains.
        Stream assignment matches the original `i % 4` mapping for bit-identical
        output: tokens[i] -> states[i % 4]. */
+    const JANS_ENC_ENTRY *enc = table.enc;
     int i = token_count - 1;
     /* Align so that the unrolled chunk processes [i, i-1, i-2, i-3] where
        (i % 4) == 3 — then each call below uses a constant stream index.
        Pass rans_ptr by value to keep it in a register across calls. */
     while (i >= 0 && (i & 3) != 3) {
-        int sym = tokens[i];
+        JANS_ENC_ENTRY e = enc[tokens[i]];
         rans_ptr = rans_enc_put(&states[i & 3], rans_ptr,
-                     table.cum_freq[sym], table.freq[sym], table.rcp_freq[sym]);
+                     e.cum_freq, e.freq, e.rcp_freq);
         i--;
     }
     for (; i >= 3; i -= 4) {
-        int sym3 = tokens[i];      /* stream 3 */
-        int sym2 = tokens[i - 1];  /* stream 2 */
-        int sym1 = tokens[i - 2];  /* stream 1 */
-        int sym0 = tokens[i - 3];  /* stream 0 */
+        JANS_ENC_ENTRY e3 = enc[tokens[i]];
+        JANS_ENC_ENTRY e2 = enc[tokens[i - 1]];
+        JANS_ENC_ENTRY e1 = enc[tokens[i - 2]];
+        JANS_ENC_ENTRY e0 = enc[tokens[i - 3]];
         rans_ptr = rans_enc_put(&states[3], rans_ptr,
-                     table.cum_freq[sym3], table.freq[sym3], table.rcp_freq[sym3]);
+                     e3.cum_freq, e3.freq, e3.rcp_freq);
         rans_ptr = rans_enc_put(&states[2], rans_ptr,
-                     table.cum_freq[sym2], table.freq[sym2], table.rcp_freq[sym2]);
+                     e2.cum_freq, e2.freq, e2.rcp_freq);
         rans_ptr = rans_enc_put(&states[1], rans_ptr,
-                     table.cum_freq[sym1], table.freq[sym1], table.rcp_freq[sym1]);
+                     e1.cum_freq, e1.freq, e1.rcp_freq);
         rans_ptr = rans_enc_put(&states[0], rans_ptr,
-                     table.cum_freq[sym0], table.freq[sym0], table.rcp_freq[sym0]);
+                     e0.cum_freq, e0.freq, e0.rcp_freq);
     }
     while (i >= 0) {
-        int sym = tokens[i];
+        JANS_ENC_ENTRY e = enc[tokens[i]];
         rans_ptr = rans_enc_put(&states[i & 3], rans_ptr,
-                     table.cum_freq[sym], table.freq[sym], table.rcp_freq[sym]);
+                     e.cum_freq, e.freq, e.rcp_freq);
         i--;
     }
 
@@ -974,32 +983,35 @@ static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
     uint32_t states[JANS_INTERLEAVE];
     for (int j = 0; j < JANS_INTERLEAVE; j++) states[j] = RANS_BYTE_L;
 
-    /* 4-way unrolled rANS encode (matches jans_encode_band_x4) */
+    /* 4-way unrolled rANS encode (matches jans_encode_band_x4) — uses
+       packed table.enc[sym] so each symbol fetch is one 8-byte load
+       instead of 3 scattered loads from freq[]/cum_freq[]/rcp_freq[]. */
+    const JANS_ENC_ENTRY *enc = s->table.enc;
     int i = s->token_count - 1;
     while (i >= 0 && (i & 3) != 3) {
-        int sym = s->tokens[i];
+        JANS_ENC_ENTRY e = enc[s->tokens[i]];
         rans_ptr = rans_enc_put(&states[i & 3], rans_ptr,
-                     s->table.cum_freq[sym], s->table.freq[sym], s->table.rcp_freq[sym]);
+                     e.cum_freq, e.freq, e.rcp_freq);
         i--;
     }
     for (; i >= 3; i -= 4) {
-        int sym3 = s->tokens[i];
-        int sym2 = s->tokens[i - 1];
-        int sym1 = s->tokens[i - 2];
-        int sym0 = s->tokens[i - 3];
+        JANS_ENC_ENTRY e3 = enc[s->tokens[i]];
+        JANS_ENC_ENTRY e2 = enc[s->tokens[i - 1]];
+        JANS_ENC_ENTRY e1 = enc[s->tokens[i - 2]];
+        JANS_ENC_ENTRY e0 = enc[s->tokens[i - 3]];
         rans_ptr = rans_enc_put(&states[3], rans_ptr,
-                     s->table.cum_freq[sym3], s->table.freq[sym3], s->table.rcp_freq[sym3]);
+                     e3.cum_freq, e3.freq, e3.rcp_freq);
         rans_ptr = rans_enc_put(&states[2], rans_ptr,
-                     s->table.cum_freq[sym2], s->table.freq[sym2], s->table.rcp_freq[sym2]);
+                     e2.cum_freq, e2.freq, e2.rcp_freq);
         rans_ptr = rans_enc_put(&states[1], rans_ptr,
-                     s->table.cum_freq[sym1], s->table.freq[sym1], s->table.rcp_freq[sym1]);
+                     e1.cum_freq, e1.freq, e1.rcp_freq);
         rans_ptr = rans_enc_put(&states[0], rans_ptr,
-                     s->table.cum_freq[sym0], s->table.freq[sym0], s->table.rcp_freq[sym0]);
+                     e0.cum_freq, e0.freq, e0.rcp_freq);
     }
     while (i >= 0) {
-        int sym = s->tokens[i];
+        JANS_ENC_ENTRY e = enc[s->tokens[i]];
         rans_ptr = rans_enc_put(&states[i & 3], rans_ptr,
-                     s->table.cum_freq[sym], s->table.freq[sym], s->table.rcp_freq[sym]);
+                     e.cum_freq, e.freq, e.rcp_freq);
         i--;
     }
     for (int j = JANS_INTERLEAVE - 1; j >= 0; j--) {
