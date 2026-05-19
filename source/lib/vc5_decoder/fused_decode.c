@@ -20,6 +20,10 @@
  *       pattern.
  */
 
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* needed for CLOCK_MONOTONIC on Pi gcc */
+#endif
+
 #include "headers.h"
 #include "ans_joint.h"
 #include "fused_decode.h"
@@ -29,6 +33,14 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
+#include <time.h>
+
+/* GPR_DECODE_TIMING=1 prints per-stage decoder timing. */
+static double _decode_ms(void) {
+    struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1.0e6;
+}
 
 /* Mirror of the encoder's quality_tables (private to fused_encode.c).
    Keep these in sync if they change. */
@@ -48,6 +60,59 @@ static const QUANT FUSED_QUALITY_TABLES[9][10] = {
    gpr_allocator* — provide one backed by libc malloc. */
 static void *fd_alloc(size_t n) { return malloc(n); }
 static void  fd_free(void *p)   { free(p); }
+
+/* Worker for parallel per-channel inverse wavelet in the single-level+LL
+   decode path. Each task owns its 4 bands + output channel buffer. */
+typedef struct {
+    PIXEL *ll, *lh, *hl, *hh;
+    PIXEL *out_channel;
+    int bw, bh, ch_w, ch_h;
+    QUANT *q;
+    CODEC_ERROR err;
+} FUSED_INV_TASK;
+
+/* Per-channel band decode task. 4 of these — each decodes a channel's
+   4 bands sequentially in one thread. 16-thread per-band variant was
+   tested: did NOT help (rANS decode has memory bandwidth + libc malloc
+   contention; more threads beyond core count = diminishing returns). */
+typedef struct {
+    const uint8_t *enc_start;
+    const uint32_t *band_sizes;     /* 4 sizes */
+    PIXEL *out[4];
+    int bw, bh;
+} FUSED_BAND_TASK;
+
+static void *fused_band_decode_runner(void *arg) {
+    FUSED_BAND_TASK *t = (FUSED_BAND_TASK *)arg;
+    size_t off = 0;
+    for (int s = 0; s < 4; s++) {
+        uint32_t sz = t->band_sizes[s];
+        if (sz < 64) {
+            memset(t->out[s], 0, (size_t)t->bw * t->bh * sizeof(PIXEL));
+        } else {
+            int drc = jans_decode_band_x4(t->enc_start + off, sz, t->out[s],
+                                          t->bw, t->bh, t->bw * (int)sizeof(PIXEL));
+            if (drc != 0) memset(t->out[s], 0, (size_t)t->bw * t->bh * sizeof(PIXEL));
+        }
+        off += sz;
+    }
+    return NULL;
+}
+
+static void *fused_inv_wavelet_runner(void *arg) {
+    FUSED_INV_TASK *t = (FUSED_INV_TASK *)arg;
+    gpr_allocator alloc = { fd_alloc, fd_free };
+    t->err = InvertSpatialQuantDescale16s(&alloc,
+        t->ll, t->bw * (int)sizeof(PIXEL),
+        t->lh, t->bw * (int)sizeof(PIXEL),
+        t->hl, t->bw * (int)sizeof(PIXEL),
+        t->hh, t->bw * (int)sizeof(PIXEL),
+        t->out_channel, t->ch_w * (int)sizeof(PIXEL),
+        (DIMENSION)t->bw, (DIMENSION)t->bh,
+        (DIMENSION)t->ch_w, (DIMENSION)t->ch_h,
+        /*descale=*/2, t->q);
+    return NULL;
+}
 
 /* Single-level + LL decode path (hdr.num_bands == 16, hdr.multi_level == 0).
    Band layout per channel (4 slots):
@@ -341,34 +406,48 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
 
     int rc = 0;
     int band_idx = 0;
+    int dbg_timing = 0;
+    {
+        const char *e = getenv("GPR_DECODE_TIMING");
+        if (e && *e == '1') dbg_timing = 1;
+    }
+    double dt0 = _decode_ms();
+    /* Pre-allocate buffers + compute per-channel offsets, then dispatch
+       4 threads (one per channel × 4 bands each). */
+    FUSED_BAND_TASK bt[4];
+    size_t band_off = off;
     for (int ch = 0; ch < 4 && rc == 0; ch++) {
-        for (int s = 0; s < 4 && rc == 0; s++) {
-            uint32_t sz = band_sizes[band_idx];
-            if (off + sz > enc_size) { rc = -10; break; }
+        bt[ch].enc_start = enc + band_off;
+        bt[ch].band_sizes = &band_sizes[ch * 4];
+        bt[ch].bw = bw;
+        bt[ch].bh = bh;
+        for (int s = 0; s < 4; s++) {
             bands[ch][s] = (PIXEL *)malloc((size_t)bw * bh * sizeof(PIXEL));
             if (!bands[ch][s]) { rc = -11; break; }
-            /* Empty band (e.g., GPR_DROP_HIGHPASS=1 emits an empty rANS
-               blob): decode produces all zeros. jans_decode_band_x4 handles
-               this if sz is large enough to contain just the header; for
-               truly empty band data we must clear ourselves. */
-            if (sz < 64) {
-                memset(bands[ch][s], 0, (size_t)bw * bh * sizeof(PIXEL));
-            } else {
-                int drc = jans_decode_band_x4(enc + off, sz,
-                                              bands[ch][s], bw, bh,
-                                              bw * (int)sizeof(PIXEL));
-                if (drc != 0) {
-                    /* Treat decode failure as an empty band rather than
-                       aborting — likely GPR_DROP_HIGHPASS produced a stub. */
-                    memset(bands[ch][s], 0, (size_t)bw * bh * sizeof(PIXEL));
-                }
-            }
-            off += sz;
-            band_idx++;
+            bt[ch].out[s] = bands[ch][s];
+            uint32_t sz = band_sizes[ch * 4 + s];
+            if (band_off + sz > enc_size) { rc = -10; break; }
+            band_off += sz;
         }
     }
+    if (rc == 0) {
+        pthread_t bth[4]; int bcr[4] = {0};
+        for (int ch = 0; ch < 4; ch++) {
+            bcr[ch] = (pthread_create(&bth[ch], NULL,
+                       fused_band_decode_runner, &bt[ch]) == 0);
+            if (!bcr[ch]) fused_band_decode_runner(&bt[ch]);
+        }
+        for (int ch = 0; ch < 4; ch++) {
+            if (bcr[ch]) pthread_join(bth[ch], NULL);
+        }
+    }
+    off = band_off;
+    (void)band_idx;
 
-    gpr_allocator alloc = { fd_alloc, fd_free };
+    double dt_band = _decode_ms() - dt0;
+    if (dbg_timing) fprintf(stderr, "  decode band_decode: %.1f ms\n", dt_band);
+    double dt_wav0 = _decode_ms();
+
     PIXEL *channels[4] = { NULL, NULL, NULL, NULL };
 
     if (rc == 0) {
@@ -387,10 +466,9 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
             for (size_t i = 0; i < n; i++) p[i] *= ll_dequant;
         }
 
-        for (int ch = 0; ch < 4 && rc == 0; ch++) {
-            /* Debug: log band stats once per channel */
-            const char *dbg = getenv("FUSED_DECODE_DEBUG");
-            if (dbg && *dbg == '1') {
+        const char *dbg = getenv("FUSED_DECODE_DEBUG");
+        if (dbg && *dbg == '1') {
+            for (int ch = 0; ch < 4; ch++) {
                 for (int s = 0; s < 4; s++) {
                     PIXEL *p = bands[ch][s];
                     long mn = 1<<30, mx = -(1<<30); long long sum = 0;
@@ -405,21 +483,47 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
                             mn, mx, (double)sum/n);
                 }
             }
+        }
 
+        /* Parallel inverse wavelet: 4 channels, 4 threads on Pi 5's 4 cores.
+           Each channel's inverse is independent — own band buffers, own
+           output channel. InvertSpatialQuantDescale16s uses the allocator
+           which wraps libc malloc (thread-safe). Expected ~3-4× wall
+           reduction on this stage. */
+        FUSED_INV_TASK tasks[4];
+        pthread_t threads[4];
+        int created[4] = {0};
+        for (int ch = 0; ch < 4 && rc == 0; ch++) {
             channels[ch] = (PIXEL *)malloc((size_t)ch_w * ch_h * sizeof(PIXEL));
             if (!channels[ch]) { rc = -24; break; }
-            CODEC_ERROR e = InvertSpatialQuantDescale16s(&alloc,
-                bands[ch][0], bw * (int)sizeof(PIXEL),    /* LL */
-                bands[ch][1], bw * (int)sizeof(PIXEL),    /* LH */
-                bands[ch][2], bw * (int)sizeof(PIXEL),    /* HL */
-                bands[ch][3], bw * (int)sizeof(PIXEL),    /* HH */
-                channels[ch], ch_w * (int)sizeof(PIXEL),
-                (DIMENSION)bw, (DIMENSION)bh,
-                (DIMENSION)ch_w, (DIMENSION)ch_h,
-                /*descale=*/2, q_l1);
-            if (e != CODEC_ERROR_OKAY) { rc = -25; break; }
+            tasks[ch].ll = bands[ch][0];
+            tasks[ch].lh = bands[ch][1];
+            tasks[ch].hl = bands[ch][2];
+            tasks[ch].hh = bands[ch][3];
+            tasks[ch].out_channel = channels[ch];
+            tasks[ch].bw = bw;
+            tasks[ch].bh = bh;
+            tasks[ch].ch_w = ch_w;
+            tasks[ch].ch_h = ch_h;
+            tasks[ch].q = q_l1;
+            tasks[ch].err = CODEC_ERROR_OKAY;
+        }
+        if (rc == 0) {
+            for (int ch = 0; ch < 4; ch++) {
+                created[ch] = (pthread_create(&threads[ch], NULL,
+                    fused_inv_wavelet_runner, &tasks[ch]) == 0);
+                if (!created[ch]) fused_inv_wavelet_runner(&tasks[ch]);
+            }
+            for (int ch = 0; ch < 4; ch++) {
+                if (created[ch]) pthread_join(threads[ch], NULL);
+                if (tasks[ch].err != CODEC_ERROR_OKAY) rc = -25;
+            }
         }
     }
+
+    double dt_wav = _decode_ms() - dt_wav0;
+    if (dbg_timing) fprintf(stderr, "  decode wavelet inv: %.1f ms\n", dt_wav);
+    double dt_color0_sl = _decode_ms();
 
     for (int ch = 0; ch < 4; ch++)
         for (int s = 0; s < 4; s++)
@@ -483,5 +587,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
     for (int ch = 0; ch < 4; ch++)
         if (channels[ch]) free(channels[ch]);
 
+    if (dbg_timing) fprintf(stderr, "  decode color_xform: %.1f ms\n",
+                            _decode_ms() - dt_color0_sl);
     return rc;
 }
