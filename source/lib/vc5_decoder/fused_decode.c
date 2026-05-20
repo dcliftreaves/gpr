@@ -300,6 +300,16 @@ static void *hp_synth_runner(void *arg) {
     return NULL;
 }
 
+/* Implemented in fused_stream_decode.c. Replaces the wavelet_inv +
+   color_xform stages with N-strip parallel pipeline. Caller has already
+   done band_decode + optional HP-synth + LL pre-multiply by qt[0]*16. */
+extern int gpr_decode_fused_stream(PIXEL *bands[4][4],
+                                   int bw, int bh, int ch_w, int ch_h,
+                                   const QUANT qt[4],
+                                   int log_max, int midpoint, int shift, int is_rggb,
+                                   const uint16_t *log_table,
+                                   uint8_t *bayer_out, size_t bayer_pitch_bytes);
+
 static void *fused_band_decode_runner(void *arg) {
     FUSED_BAND_TASK *t = (FUSED_BAND_TASK *)arg;
     size_t off = 0;
@@ -1150,6 +1160,38 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
                             mn, mx, (double)sum/n);
                 }
             }
+        }
+
+        /* Opt-in: GPR_DECODE_FUSED_STREAM=1 routes through the row-strip
+           parallel pipeline (band → wavelet → color in one pass per
+           strip). Replaces the wavelet + color stages of the existing
+           path. The existing whole-channel path stays as the default. */
+        int use_fused_stream = 0;
+        {
+            const char *e = getenv("GPR_DECODE_FUSED_STREAM");
+            if (e && *e == '1') use_fused_stream = 1;
+        }
+        if (use_fused_stream) {
+            int log_max  = (1 << (int)hdr->log_bits) - 1;
+            int midpoint = 1 << ((int)hdr->log_bits - 1);
+            const uint16_t *log_table =
+                (hdr->log_bits <= 14) ? DecoderLogCurve14 : DecoderLogCurve16;
+            int output_bit_depth = (int)hdr->log_bits;
+            int shift = 16 - output_bit_depth;
+            int is_rggb = (int)hdr->is_rggb;
+
+            double dt_fs0 = _decode_ms();
+            int frc = gpr_decode_fused_stream(bands, bw, bh, ch_w, ch_h,
+                                               qt,
+                                               log_max, midpoint, shift, is_rggb,
+                                               log_table,
+                                               (uint8_t *)bayer_out, bayer_pitch_bytes);
+            if (frc != 0) rc = -30;
+            if (dbg_timing) fprintf(stderr, "  decode fused_stream: %.1f ms\n",
+                                    _decode_ms() - dt_fs0);
+            /* Bypass legacy wavelet/color stages — fused stream already
+               wrote the Bayer output. */
+            return rc;
         }
 
         /* Parallel inverse wavelet: 4 channels, 4 threads on Pi 5's 4 cores.
