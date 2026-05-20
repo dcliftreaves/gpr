@@ -23,6 +23,10 @@ extern FUSED_ENCODER *gpr_encode_fused_create(int w, int h, int pf, int q);
 extern int gpr_encode_fused_frame(FUSED_ENCODER *ctx, const unsigned char *raw,
                                    size_t sz, unsigned char **out, size_t *out_sz);
 extern void gpr_encode_fused_destroy(FUSED_ENCODER *ctx);
+extern void gpr_encode_fused_set_denoise(FUSED_ENCODER *ctx,
+                                         double noise_scale,
+                                         double noise_offset,
+                                         double strength);
 
 static double now_ms(void) {
     struct timespec ts;
@@ -47,6 +51,24 @@ int main(int argc, char **argv) {
 
     FUSED_ENCODER *enc = gpr_encode_fused_create(w, h, /*pf=*/1, /*q=*/3);
     if (!enc) { fprintf(stderr, "create fail\n"); return 1; }
+
+    /* Optional BayesShrink wavelet-domain denoise — set GPR_BENCH_DENOISE=<strength>
+       (typically 0.5–1.0). Requires FUSED_INLINE_TOKENIZE=0 (split mode) — the
+       encoder rejects the call otherwise. Set GPR_BENCH_NOISE_SCALE / OFFSET
+       to pass calibrated NoiseProfile (default 0 = use MAD estimate). */
+    {
+        const char *e = getenv("GPR_BENCH_DENOISE");
+        if (e && *e) {
+            double strength = atof(e);
+            const char *ns_env = getenv("GPR_BENCH_NOISE_SCALE");
+            const char *no_env = getenv("GPR_BENCH_NOISE_OFFSET");
+            double ns = ns_env ? atof(ns_env) : 0.0;
+            double no = no_env ? atof(no_env) : 0.0;
+            fprintf(stderr, "# denoise: strength=%.2f scale=%g offset=%g\n",
+                    strength, ns, no);
+            gpr_encode_fused_set_denoise(enc, ns, no, strength);
+        }
+    }
 
     /* 2 warm-up frames not counted */
     for (int i = 0; i < 2; i++) {

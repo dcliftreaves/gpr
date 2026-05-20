@@ -233,6 +233,48 @@ static inline int32x4_t quantize_neon4(int32x4_t values, int32_t midpoint, int32
 }
 #endif
 
+/* Inline-mode BayesShrink-style soft-threshold for a quantized band row.
+ *
+ * Standard soft-thresholding: x_out = sign(x_in) * max(|x_in| - T, 0)
+ *
+ * T is the BayesShrink threshold in QUANTIZED coefficient units (caller has
+ * already divided continuous T by the band's quantization step).
+ *
+ * Intentionally placed BETWEEN vertical_filter_quantize_row and
+ * jans_inline_row — those are the only two places the inline path touches
+ * each band row, so the band is still hot in L1 here. Per-row cost on
+ * Pi 5 NEON is ~width/4 ops + a few setup ops → trivial relative to
+ * tokenize cost. */
+static inline void soft_threshold_row(PIXEL *row, int width, int32_t T)
+{
+    if (T <= 0) return;
+    int i = 0;
+#if ENABLED(NEON)
+    const int32x4_t vT    = vdupq_n_s32(T);
+    const int32x4_t vNegT = vdupq_n_s32(-T);
+    const int32x4_t vZero = vdupq_n_s32(0);
+    int w_m4 = (width / 4) * 4;
+    for (; i < w_m4; i += 4) {
+        int32x4_t v   = vld1q_s32(&row[i]);
+        /* positive branch: max(v - T, 0)
+           negative branch: min(v + T, 0) */
+        int32x4_t vp  = vmaxq_s32(vsubq_s32(v, vT),    vZero);
+        int32x4_t vn  = vminq_s32(vaddq_s32(v, vT),    vZero);
+        /* pos mask: v > 0 → use vp; otherwise use vn (handles both
+           negative AND in-deadzone cases since vn collapses to 0 then too). */
+        uint32x4_t pos = vcgtq_s32(v, vZero);
+        int32x4_t res = vbslq_s32(pos, vp, vn);
+        vst1q_s32(&row[i], res);
+    }
+#endif
+    for (; i < width; i++) {
+        PIXEL v = row[i];
+        if      (v >  T) row[i] = v - T;
+        else if (v < -T) row[i] = v + T;
+        else             row[i] = 0;
+    }
+}
+
 static void vertical_filter_quantize_row(
     PIXEL *rows[6],
     int width,
@@ -496,6 +538,12 @@ typedef struct {
     int band_out_row_l3;
 
     int streaming_active;  /* 1 = run cascade in pass1; 0 = sequential post-pass */
+
+    /* Inline-mode BayesShrink threshold per band, in QUANTIZED coefficient
+       units. 0 = no thresholding. Bands [LL=0, LH=1, HL=2, HH=3]. LL is left
+       at 0 (DC content shouldn't be soft-thresholded). Per-channel because
+       different Bayer color planes have different noise characteristics. */
+    int32_t inline_denoise_T[FUSED_MAX_BANDS];
 } FUSED_CHANNEL_STATE;
 
 /* ================================================================
@@ -1296,6 +1344,16 @@ static void pass1_run_channel(
                     jans_inline_row(cs->inline_state[0], ll_row, bw);
                 }
                 if (!drop_hp) {
+                    /* Inline-mode BayesShrink-style soft-threshold on highpass
+                       bands. Applied here while bands are still hot in L1, before
+                       the tokenize loop reads them. LL is intentionally NOT
+                       thresholded — it carries DC content. */
+                    int32_t T_lh = cs->inline_denoise_T[1];
+                    int32_t T_hl = cs->inline_denoise_T[2];
+                    int32_t T_hh = cs->inline_denoise_T[3];
+                    if (T_lh > 0) soft_threshold_row(lh_row, bw, T_lh);
+                    if (T_hl > 0) soft_threshold_row(hl_row, bw, T_hl);
+                    if (T_hh > 0) soft_threshold_row(hh_row, bw, T_hh);
                     jans_inline_row(cs->inline_state[1], lh_row, bw);
                     jans_inline_row(cs->inline_state[2], hl_row, bw);
                     jans_inline_row(cs->inline_state[3], hh_row, bw);
@@ -2181,6 +2239,16 @@ static int fused_choose_streaming(void) {
    inline-tokenize state). Band buffers / row scratch are overwritten as work
    progresses so no per-frame zeroing needed. */
 static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
+    /* Inline-mode BayesShrink threshold (single global value applied to LH/HL/HH
+       bands across all channels). Env knob GPR_INLINE_DENOISE_T sets the
+       threshold in quantized coefficient units. 0 (default) = no thresholding.
+       Typical useful range: 1-8 for noisy high-ISO content, 0 for clean. */
+    static int denoise_T_cached = -1;
+    if (denoise_T_cached < 0) {
+        const char *e = getenv("GPR_INLINE_DENOISE_T");
+        denoise_T_cached = e ? atoi(e) : 0;
+        if (denoise_T_cached < 0) denoise_T_cached = 0;
+    }
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         cs->band_out_row = 0;
@@ -2194,6 +2262,13 @@ static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
         for (int band = 0; band < 4; band++) {
             if (cs->inline_state[band]) jans_inline_reset(cs->inline_state[band]);
         }
+        /* LL band intentionally NOT thresholded (band 0). HP bands get the
+           global threshold. Per-channel storage retained so a future BayesShrink
+           estimator can set them independently. */
+        cs->inline_denoise_T[0] = 0;
+        cs->inline_denoise_T[1] = denoise_T_cached;
+        cs->inline_denoise_T[2] = denoise_T_cached;
+        cs->inline_denoise_T[3] = denoise_T_cached;
     }
     if (ctx->unpack_ring) {
         for (int s = 0; s < UNPACK_RING_SIZE; s++) {
