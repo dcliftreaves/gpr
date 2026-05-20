@@ -320,10 +320,7 @@ static void synthesize_hp_bandpass_band(const PIXEL *LL,
         return;
     }
 
-    /* ===== 1) Sobel gradient magnitude (scalar — NEON int32 path was
-       producing speckle artifacts; revisit later with a more careful
-       NEON impl. Algorithmic wins (histogram percentile, running-sum
-       variance) deliver the 5× speedup; NEON gradient is incremental. */
+    /* ===== 1) Sobel gradient magnitude with NEON int32 inner loop ===== */
     for (int y = 0; y < bh; y++) {
         int ym = y > 0 ? y - 1 : 0;
         int yp = y < bh - 1 ? y + 1 : bh - 1;
@@ -331,15 +328,61 @@ static void synthesize_hp_bandpass_band(const PIXEL *LL,
         const PIXEL *r1 = LL + y  * bw;
         const PIXEL *r2 = LL + yp * bw;
         float *out = grad + y * bw;
-        for (int x = 0; x < bw; x++) {
-            int xm = x > 0 ? x - 1 : 0;
-            int xp = x < bw - 1 ? x + 1 : bw - 1;
-            float gx = (float)(r0[xp] - r0[xm])
-                    + 2.0f * (r1[xp] - r1[xm])
-                    +        (r2[xp] - r2[xm]);
-            float gy = (float)(r2[xm] - r0[xm])
-                    + 2.0f * (r2[x]  - r0[x])
+
+        /* x=0 boundary scalar (xm clamps to 0) */
+        {
+            int xp = bw > 1 ? 1 : 0;
+            float gx = (float)(r0[xp] - r0[0])
+                    + 2.0f * (r1[xp] - r1[0])
+                    +        (r2[xp] - r2[0]);
+            float gy = (float)(r2[0]  - r0[0])
+                    + 2.0f * (r2[0]  - r0[0])
                     +        (r2[xp] - r0[xp]);
+            out[0] = sqrtf(gx * gx + gy * gy);
+        }
+
+        int x = 1;
+#if defined(__ARM_NEON)
+        /* PIXEL is int32_t; use vld1q_s32 to load 4 wide. Interior pixels
+           only: x in [1, bw-1), processing 4 at a time with neighbors at
+           x-1 and x+1. The same load address for r0+x-1 etc. gives the
+           4 neighbor values for output lanes x, x+1, x+2, x+3. */
+        for (; x + 4 <= bw - 1; x += 4) {
+            int32x4_t r0m = vld1q_s32((const int32_t *)(r0 + x - 1));
+            int32x4_t r0c = vld1q_s32((const int32_t *)(r0 + x));
+            int32x4_t r0p = vld1q_s32((const int32_t *)(r0 + x + 1));
+            int32x4_t r1m = vld1q_s32((const int32_t *)(r1 + x - 1));
+            int32x4_t r1p = vld1q_s32((const int32_t *)(r1 + x + 1));
+            int32x4_t r2m = vld1q_s32((const int32_t *)(r2 + x - 1));
+            int32x4_t r2c = vld1q_s32((const int32_t *)(r2 + x));
+            int32x4_t r2p = vld1q_s32((const int32_t *)(r2 + x + 1));
+
+            /* gx = (r0p - r0m) + 2*(r1p - r1m) + (r2p - r2m) */
+            int32x4_t dx0 = vsubq_s32(r0p, r0m);
+            int32x4_t dx1 = vsubq_s32(r1p, r1m);
+            int32x4_t dx2 = vsubq_s32(r2p, r2m);
+            int32x4_t gx = vaddq_s32(vaddq_s32(dx0, dx2),
+                                     vshlq_n_s32(dx1, 1));
+            /* gy = (r2m + 2*r2c + r2p) - (r0m + 2*r0c + r0p) */
+            int32x4_t top = vaddq_s32(vaddq_s32(r0m, r0p), vshlq_n_s32(r0c, 1));
+            int32x4_t bot = vaddq_s32(vaddq_s32(r2m, r2p), vshlq_n_s32(r2c, 1));
+            int32x4_t gy = vsubq_s32(bot, top);
+
+            float32x4_t fgx = vcvtq_f32_s32(gx);
+            float32x4_t fgy = vcvtq_f32_s32(gy);
+            float32x4_t mag = vsqrtq_f32(vmlaq_f32(vmulq_f32(fgx, fgx), fgy, fgy));
+            vst1q_f32(out + x, mag);
+        }
+#endif
+        /* Scalar tail (rightmost pixels including x=bw-1 boundary) */
+        for (; x < bw; x++) {
+            int xp = x < bw - 1 ? x + 1 : bw - 1;
+            float gx = (float)(r0[xp] - r0[x - 1])
+                    + 2.0f * (r1[xp] - r1[x - 1])
+                    +        (r2[xp] - r2[x - 1]);
+            float gy = (float)(r2[x - 1] - r0[x - 1])
+                    + 2.0f * (r2[x]     - r0[x])
+                    +        (r2[xp]    - r0[xp]);
             out[x] = sqrtf(gx * gx + gy * gy);
         }
     }
@@ -876,7 +919,22 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
         }
         if (hpsynth_scale > 0.0) {
             double dt_hp = _decode_ms();
+            /* Per-channel parallel: launch 4 pthread tasks. Each task
+               processes one channel's LL→LH/HL/HH synthesis independently
+               (no shared writes). On Pi 5's 4 cores this gives ~4× wall
+               speedup over the serial loop. */
+            typedef struct {
+                const PIXEL *LL;
+                PIXEL *LH, *HL, *HH;
+                int bw, bh;
+                double scale;
+                double dq_lh, dq_hl, dq_hh;
+                uint32_t seed;
+                int do_synth;  /* 0 = skip, 1 = run */
+            } HP_TASK;
+            HP_TASK tasks[4];
             for (int ch = 0; ch < 4; ch++) {
+                tasks[ch].do_synth = 0;
                 if (!bands[ch][0]) continue;
                 /* Only synthesize when HP bands are missing (LL-only mode).
                    When HP is real, leave them alone — refining real HP is
@@ -885,25 +943,43 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
                 PIXEL *hl = bands[ch][2];
                 PIXEL *hh = bands[ch][3];
                 if (!lh || !hl || !hh) continue;
-                /* Skip if HP already non-trivial (real data, not zeros). */
                 size_t n = (size_t)bw * bh;
                 size_t nonzero = 0;
                 for (size_t i = 0; i < n && nonzero < 64; i++) {
                     if (lh[i] || hl[i] || hh[i]) nonzero++;
                 }
-                if (nonzero >= 64) continue;   /* HP has real data, skip */
-                synthesize_hp_bandpass_band(bands[ch][0], bw, bh, lh, hl, hh,
-                                            hpsynth_scale, /*peak_pct=*/45.0,
-                                            /*sigma_pct=*/15.0,
-                                            /*seed=*/0xDEADBEEFu,
-                                            /* HP band quant divisors so
-                                               synth values land in
-                                               quantized space; inverse
-                                               wavelet's dequant brings them
-                                               back to natural scale. */
-                                            (double)qt[1], (double)qt[2],
-                                            (double)qt[3]);
+                if (nonzero >= 64) continue;
+                tasks[ch].LL = bands[ch][0];
+                tasks[ch].LH = lh; tasks[ch].HL = hl; tasks[ch].HH = hh;
+                tasks[ch].bw = bw; tasks[ch].bh = bh;
+                tasks[ch].scale = hpsynth_scale;
+                tasks[ch].dq_lh = (double)qt[1];
+                tasks[ch].dq_hl = (double)qt[2];
+                tasks[ch].dq_hh = (double)qt[3];
+                tasks[ch].seed = 0xDEADBEEFu;  /* same across channels →
+                                                  correlated noise → no
+                                                  chroma fringing */
+                tasks[ch].do_synth = 1;
             }
+            /* Pthread runner — closure over the task. */
+            void *hp_runner(void *arg) {
+                HP_TASK *t = (HP_TASK *)arg;
+                if (t->do_synth) {
+                    synthesize_hp_bandpass_band(t->LL, t->bw, t->bh,
+                                                t->LH, t->HL, t->HH,
+                                                t->scale, 45.0, 15.0,
+                                                t->seed,
+                                                t->dq_lh, t->dq_hl, t->dq_hh);
+                }
+                return NULL;
+            }
+            pthread_t th[4]; int cr[4] = {0};
+            for (int ch = 0; ch < 4; ch++) {
+                cr[ch] = (pthread_create(&th[ch], NULL, hp_runner, &tasks[ch]) == 0);
+                if (!cr[ch]) hp_runner(&tasks[ch]);
+            }
+            for (int ch = 0; ch < 4; ch++)
+                if (cr[ch]) pthread_join(th[ch], NULL);
             if (dbg_timing)
                 fprintf(stderr, "  decode hp_synth: %.1f ms\n", _decode_ms() - dt_hp);
         }
