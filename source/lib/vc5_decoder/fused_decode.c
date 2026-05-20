@@ -473,9 +473,23 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
         const char *e = getenv("GPR_DECODE_TIMING");
         if (e && *e == '1') dbg_timing = 1;
     }
+    /* GPR_DECODE_LL_ONLY=1: discard HP bands at decode (treat as zero),
+       producing the same output as encoding with GPR_DROP_HIGHPASS=1, but
+       from a full LL+HP-encoded stream. This lets a single archived stream
+       serve two consumers: a fast streaming decoder that drops HP for
+       speed, and a quality decoder that consumes the HP for full fidelity
+       (with optional CNN polish layered on the LL-only output). */
+    int ll_only_decode = 0;
+    {
+        const char *e = getenv("GPR_DECODE_LL_ONLY");
+        if (e && *e == '1') ll_only_decode = 1;
+    }
     double dt0 = _decode_ms();
     /* Pre-allocate buffers + compute per-channel offsets, then dispatch
-       4 threads (one per channel × 4 bands each). */
+       4 threads (one per channel × 4 bands each). When ll_only_decode is
+       set, we still allocate HP band buffers but zero them and skip the
+       rANS decode for the HP slots (their offsets are still consumed
+       so the byte cursor walks past them). */
     FUSED_BAND_TASK bt[4];
     size_t band_off = off;
     for (int ch = 0; ch < 4 && rc == 0; ch++) {
@@ -490,6 +504,23 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
             uint32_t sz = band_sizes[ch * 4 + s];
             if (band_off + sz > enc_size) { rc = -10; break; }
             band_off += sz;
+            /* When ll_only_decode is set, zero the HP band buffers and
+               trigger the existing "sz < 64 → memset" fast path in the
+               band runner by zeroing the size locally. We do this AFTER
+               offset accumulation so the byte cursor walks the real
+               sizes correctly. */
+        }
+    }
+    /* If LL-only decode requested, point the runner at a zeroed-size
+       table per channel so HP bands are memset to zero, not rANS-decoded. */
+    static uint32_t zero_sizes[4][4];
+    if (ll_only_decode && rc == 0) {
+        for (int ch = 0; ch < 4; ch++) {
+            zero_sizes[ch][0] = band_sizes[ch * 4 + 0];  /* keep LL */
+            zero_sizes[ch][1] = 0;   /* triggers memset fast path */
+            zero_sizes[ch][2] = 0;
+            zero_sizes[ch][3] = 0;
+            bt[ch].band_sizes = zero_sizes[ch];
         }
     }
     if (rc == 0) {
