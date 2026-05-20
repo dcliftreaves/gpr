@@ -266,6 +266,40 @@ typedef struct {
     int bw, bh;
 } FUSED_BAND_TASK;
 
+/* HP-synth per-channel task. Hoisted to file scope (was a GCC nested
+   function inside decode_fused_single_level_ll — clang doesn't support
+   the nested-fn extension, so the file failed to build on macOS). */
+typedef struct {
+    const PIXEL *LL;
+    PIXEL *LH, *HL, *HH;
+    int bw, bh;
+    double scale;
+    double dq_lh, dq_hl, dq_hh;
+    uint32_t seed;
+    int do_synth;  /* 0 = skip, 1 = run */
+} HP_SYNTH_TASK;
+
+static void synthesize_hp_bandpass_band(const PIXEL *LL,
+                                        int bw, int bh,
+                                        PIXEL *LH, PIXEL *HL, PIXEL *HH,
+                                        double scale,
+                                        double peak_pct,
+                                        double sigma_pct,
+                                        uint32_t seed,
+                                        double dq_lh, double dq_hl, double dq_hh);
+
+static void *hp_synth_runner(void *arg) {
+    HP_SYNTH_TASK *t = (HP_SYNTH_TASK *)arg;
+    if (t->do_synth) {
+        synthesize_hp_bandpass_band(t->LL, t->bw, t->bh,
+                                    t->LH, t->HL, t->HH,
+                                    t->scale, 45.0, 15.0,
+                                    t->seed,
+                                    t->dq_lh, t->dq_hl, t->dq_hh);
+    }
+    return NULL;
+}
+
 static void *fused_band_decode_runner(void *arg) {
     FUSED_BAND_TASK *t = (FUSED_BAND_TASK *)arg;
     size_t off = 0;
@@ -1047,16 +1081,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
                processes one channel's LL→LH/HL/HH synthesis independently
                (no shared writes). On Pi 5's 4 cores this gives ~4× wall
                speedup over the serial loop. */
-            typedef struct {
-                const PIXEL *LL;
-                PIXEL *LH, *HL, *HH;
-                int bw, bh;
-                double scale;
-                double dq_lh, dq_hl, dq_hh;
-                uint32_t seed;
-                int do_synth;  /* 0 = skip, 1 = run */
-            } HP_TASK;
-            HP_TASK tasks[4];
+            HP_SYNTH_TASK tasks[4];
             for (int ch = 0; ch < 4; ch++) {
                 tasks[ch].do_synth = 0;
                 if (!bands[ch][0]) continue;
@@ -1085,22 +1110,10 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
                                                   chroma fringing */
                 tasks[ch].do_synth = 1;
             }
-            /* Pthread runner — closure over the task. */
-            void *hp_runner(void *arg) {
-                HP_TASK *t = (HP_TASK *)arg;
-                if (t->do_synth) {
-                    synthesize_hp_bandpass_band(t->LL, t->bw, t->bh,
-                                                t->LH, t->HL, t->HH,
-                                                t->scale, 45.0, 15.0,
-                                                t->seed,
-                                                t->dq_lh, t->dq_hl, t->dq_hh);
-                }
-                return NULL;
-            }
             pthread_t th[4]; int cr[4] = {0};
             for (int ch = 0; ch < 4; ch++) {
-                cr[ch] = (pthread_create(&th[ch], NULL, hp_runner, &tasks[ch]) == 0);
-                if (!cr[ch]) hp_runner(&tasks[ch]);
+                cr[ch] = (pthread_create(&th[ch], NULL, hp_synth_runner, &tasks[ch]) == 0);
+                if (!cr[ch]) hp_synth_runner(&tasks[ch]);
             }
             for (int ch = 0; ch < 4; ch++)
                 if (cr[ch]) pthread_join(th[ch], NULL);
