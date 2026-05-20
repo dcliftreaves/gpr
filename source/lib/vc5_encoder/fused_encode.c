@@ -436,37 +436,45 @@ static void wavelet_decompose_buffer(
                           in_width, /*prescale=*/2);
         buf_filled++;
 
-        /* Emit one output row every 2 input rows once we have 6 rows queued. */
+        /* The biorthogonal 5/3 forward needs two outputs from the first 6-row
+           window: out_row=0 (top-boundary, LP = r0+r1, content from inputs
+           {0,1}) AND out_row=1 (interior, LP = r2+r3, content from inputs
+           {2,3}). Subsequent windows slide by 2 and emit one row each.
+           Matches the reference encoder (encoder.c:1296-1336). */
         if (buf_filled >= 6 && (buf_filled % 2) == 0) {
-            if (out_row >= out_height) break;
             int base = (row + 1 - 6) % FUSED_ROW_BUFS;
+            if (base < 0) base += FUSED_ROW_BUFS;
             PIXEL *lprefs[6], *hprefs[6];
             for (int r = 0; r < 6; r++) {
                 int idx = (base + r) % FUSED_ROW_BUFS;
-                if (idx < 0) idx += FUSED_ROW_BUFS;
                 lprefs[r] = lp_rows[idx];
                 hprefs[r] = hp_rows[idx];
             }
-            int is_top = (out_row == 0);
-            int is_bottom = (out_row == out_height - 1);
+            int n_emits = (out_row == 0) ? 2 : 1;
+            for (int e = 0; e < n_emits; e++) {
+                if (out_row >= out_height) break;
+                int is_top = (out_row == 0);
+                int is_bottom = (out_row == out_height - 1);
 
-            vertical_filter_quantize_row(lprefs, out_width,
-                mid[0], mul[0],  mid[1], mul[1],
-                0,0, 0,0,
-                out_ll + out_row * out_width,
-                out_lh + out_row * out_width,
-                NULL, NULL,
-                is_top, is_bottom);
+                vertical_filter_quantize_row(lprefs, out_width,
+                    mid[0], mul[0],  mid[1], mul[1],
+                    0,0, 0,0,
+                    out_ll + out_row * out_width,
+                    out_lh + out_row * out_width,
+                    NULL, NULL,
+                    is_top, is_bottom);
 
-            vertical_filter_quantize_row(hprefs, out_width,
-                mid[2], mul[2],  mid[3], mul[3],
-                0,0, 0,0,
-                out_hl + out_row * out_width,
-                out_hh + out_row * out_width,
-                NULL, NULL,
-                is_top, is_bottom);
+                vertical_filter_quantize_row(hprefs, out_width,
+                    mid[2], mul[2],  mid[3], mul[3],
+                    0,0, 0,0,
+                    out_hl + out_row * out_width,
+                    out_hh + out_row * out_width,
+                    NULL, NULL,
+                    is_top, is_bottom);
 
-            out_row++;
+                out_row++;
+            }
+            if (out_row >= out_height) break;
         }
     }
 
@@ -1035,90 +1043,95 @@ static void stream_cascade_higher_levels(FUSED_CHANNEL_STATE *cs,
                       cs->band_width, /*prescale=*/2);
     cs->buf_row_l2++;
 
-    /* ---- Level 2 vertical filter (emit one output row every 2 inputs after row 6) ---- */
+    /* ---- Level 2 vertical filter ----
+       First trigger emits TWO L2 rows from the same 6-row window (top
+       boundary + first interior); subsequent triggers emit one row each.
+       Each L2 row cascades into the L3 horizontal+vertical pipeline. */
     if (cs->buf_row_l2 >= 6 && (cs->buf_row_l2 % 2) == 0) {
-        int out_row_l2 = cs->band_out_row_l2;
-        /* Allow writing up to band_height_l2 + 4 (extra scratch rows in
-           band_data_l2) so the cascade can still drive level-3 even after
-           the "real" band is full. */
-        if (out_row_l2 >= cs->band_height_l2 + 4) return;
-
-        PIXEL *lp_rows[6], *hp_rows[6];
+        int n_emits_l2 = (cs->band_out_row_l2 == 0) ? 2 : 1;
         int base = (cs->buf_row_l2 - 6) % FUSED_ROW_BUFS;
+        if (base < 0) base += FUSED_ROW_BUFS;
+        PIXEL *lp_rows[6], *hp_rows[6];
         for (int r = 0; r < 6; r++) {
             int idx = (base + r) % FUSED_ROW_BUFS;
-            if (idx < 0) idx += FUSED_ROW_BUFS;
             lp_rows[r] = cs->lp_buf_l2[idx];
             hp_rows[r] = cs->hp_buf_l2[idx];
         }
-        int is_top = (out_row_l2 == 0);
-        int is_bottom = (out_row_l2 == cs->band_height_l2 - 1);
 
-        PIXEL *ll2 = cs->ll2_row_scratch;  /* fed to level 3 below */
-        PIXEL *lh2 = cs->band_data_l2[1] + out_row_l2 * bw_l2;
-        PIXEL *hl2 = cs->band_data_l2[2] + out_row_l2 * bw_l2;
-        PIXEL *hh2 = cs->band_data_l2[3] + out_row_l2 * bw_l2;
+        for (int e2 = 0; e2 < n_emits_l2; e2++) {
+            int out_row_l2 = cs->band_out_row_l2;
+            /* Allow writing up to band_height_l2 + 4 (extra scratch rows). */
+            if (out_row_l2 >= cs->band_height_l2 + 4) break;
+            int is_top = (out_row_l2 == 0);
+            int is_bottom = (out_row_l2 == cs->band_height_l2 - 1);
 
-        vertical_filter_quantize_row(lp_rows, bw_l2,
-            cs->midpoint_l2[0], cs->multiplier_l2[0],
-            cs->midpoint_l2[1], cs->multiplier_l2[1],
-            0,0, 0,0,
-            ll2, lh2, NULL, NULL,
-            is_top, is_bottom);
+            PIXEL *ll2 = cs->ll2_row_scratch;  /* fed to level 3 below */
+            PIXEL *lh2 = cs->band_data_l2[1] + out_row_l2 * bw_l2;
+            PIXEL *hl2 = cs->band_data_l2[2] + out_row_l2 * bw_l2;
+            PIXEL *hh2 = cs->band_data_l2[3] + out_row_l2 * bw_l2;
 
-        vertical_filter_quantize_row(hp_rows, bw_l2,
-            cs->midpoint_l2[2], cs->multiplier_l2[2],
-            cs->midpoint_l2[3], cs->multiplier_l2[3],
-            0,0, 0,0,
-            hl2, hh2, NULL, NULL,
-            is_top, is_bottom);
+            vertical_filter_quantize_row(lp_rows, bw_l2,
+                cs->midpoint_l2[0], cs->multiplier_l2[0],
+                cs->midpoint_l2[1], cs->multiplier_l2[1],
+                0,0, 0,0,
+                ll2, lh2, NULL, NULL,
+                is_top, is_bottom);
 
-        cs->band_out_row_l2++;
+            vertical_filter_quantize_row(hp_rows, bw_l2,
+                cs->midpoint_l2[2], cs->multiplier_l2[2],
+                cs->midpoint_l2[3], cs->multiplier_l2[3],
+                0,0, 0,0,
+                hl2, hh2, NULL, NULL,
+                is_top, is_bottom);
 
-        /* ---- Cascade the LL2 row into level 3 ---- */
-        int slot3 = cs->buf_row_l3 % FUSED_ROW_BUFS;
-        horizontal_filter(ll2,
-                          cs->lp_buf_l3[slot3], cs->hp_buf_l3[slot3],
-                          bw_l2, /*prescale=*/2);
-        cs->buf_row_l3++;
+            cs->band_out_row_l2++;
 
-        /* ---- Level 3 vertical filter ---- */
-        if (cs->buf_row_l3 >= 6 && (cs->buf_row_l3 % 2) == 0) {
-            int out_row_l3 = cs->band_out_row_l3;
-            /* Allow writing into the +4 scratch rows of band_data_l3. */
-            if (out_row_l3 >= cs->band_height_l3 + 4) return;
+            /* ---- Cascade the LL2 row into level 3 ---- */
+            int slot3 = cs->buf_row_l3 % FUSED_ROW_BUFS;
+            horizontal_filter(ll2,
+                              cs->lp_buf_l3[slot3], cs->hp_buf_l3[slot3],
+                              bw_l2, /*prescale=*/2);
+            cs->buf_row_l3++;
 
-            PIXEL *lp_rows3[6], *hp_rows3[6];
-            int base3 = (cs->buf_row_l3 - 6) % FUSED_ROW_BUFS;
-            for (int r = 0; r < 6; r++) {
-                int idx = (base3 + r) % FUSED_ROW_BUFS;
-                if (idx < 0) idx += FUSED_ROW_BUFS;
-                lp_rows3[r] = cs->lp_buf_l3[idx];
-                hp_rows3[r] = cs->hp_buf_l3[idx];
+            /* ---- Level 3 vertical filter (same dual-emit-on-first pattern) ---- */
+            if (cs->buf_row_l3 >= 6 && (cs->buf_row_l3 % 2) == 0) {
+                int n_emits_l3 = (cs->band_out_row_l3 == 0) ? 2 : 1;
+                int base3 = (cs->buf_row_l3 - 6) % FUSED_ROW_BUFS;
+                if (base3 < 0) base3 += FUSED_ROW_BUFS;
+                PIXEL *lp_rows3[6], *hp_rows3[6];
+                for (int r = 0; r < 6; r++) {
+                    int idx = (base3 + r) % FUSED_ROW_BUFS;
+                    lp_rows3[r] = cs->lp_buf_l3[idx];
+                    hp_rows3[r] = cs->hp_buf_l3[idx];
+                }
+                for (int e3 = 0; e3 < n_emits_l3; e3++) {
+                    int out_row_l3 = cs->band_out_row_l3;
+                    if (out_row_l3 >= cs->band_height_l3 + 4) break;
+                    int is_top3 = (out_row_l3 == 0);
+                    int is_bottom3 = (out_row_l3 == cs->band_height_l3 - 1);
+
+                    PIXEL *ll3 = cs->band_data_l3[0] + out_row_l3 * bw_l3;
+                    PIXEL *lh3 = cs->band_data_l3[1] + out_row_l3 * bw_l3;
+                    PIXEL *hl3 = cs->band_data_l3[2] + out_row_l3 * bw_l3;
+                    PIXEL *hh3 = cs->band_data_l3[3] + out_row_l3 * bw_l3;
+
+                    vertical_filter_quantize_row(lp_rows3, bw_l3,
+                        cs->midpoint_l3[0], cs->multiplier_l3[0],
+                        cs->midpoint_l3[1], cs->multiplier_l3[1],
+                        0,0, 0,0,
+                        ll3, lh3, NULL, NULL,
+                        is_top3, is_bottom3);
+
+                    vertical_filter_quantize_row(hp_rows3, bw_l3,
+                        cs->midpoint_l3[2], cs->multiplier_l3[2],
+                        cs->midpoint_l3[3], cs->multiplier_l3[3],
+                        0,0, 0,0,
+                        hl3, hh3, NULL, NULL,
+                        is_top3, is_bottom3);
+
+                    cs->band_out_row_l3++;
+                }
             }
-            int is_top3 = (out_row_l3 == 0);
-            int is_bottom3 = (out_row_l3 == cs->band_height_l3 - 1);
-
-            PIXEL *ll3 = cs->band_data_l3[0] + out_row_l3 * bw_l3;
-            PIXEL *lh3 = cs->band_data_l3[1] + out_row_l3 * bw_l3;
-            PIXEL *hl3 = cs->band_data_l3[2] + out_row_l3 * bw_l3;
-            PIXEL *hh3 = cs->band_data_l3[3] + out_row_l3 * bw_l3;
-
-            vertical_filter_quantize_row(lp_rows3, bw_l3,
-                cs->midpoint_l3[0], cs->multiplier_l3[0],
-                cs->midpoint_l3[1], cs->multiplier_l3[1],
-                0,0, 0,0,
-                ll3, lh3, NULL, NULL,
-                is_top3, is_bottom3);
-
-            vertical_filter_quantize_row(hp_rows3, bw_l3,
-                cs->midpoint_l3[2], cs->multiplier_l3[2],
-                cs->midpoint_l3[3], cs->multiplier_l3[3],
-                0,0, 0,0,
-                hl3, hh3, NULL, NULL,
-                is_top3, is_bottom3);
-
-            cs->band_out_row_l3++;
         }
     }
 }
@@ -1269,108 +1282,109 @@ static void pass1_run_channel(
 #endif
 
         if (cs->buf_row >= 6 && (cs->buf_row % 2) == 0) {
-            int out_row = cs->band_out_row;
-            /* Allow the tail to write into the +12 scratch rows so the
-               streaming cascade can drive level 3 all the way to
-               band_height_l3. */
-            if (out_row >= cs->band_height + 12) continue;
-
-            PIXEL *lp_rows[6], *hp_rows[6];
+            /* The biorthogonal 5/3 forward emits TWO outputs from the first
+               6-row window: out_row=0 (top boundary, LP=r0+r1) and out_row=1
+               (interior, LP=r2+r3). Subsequent windows slide by 2 and emit
+               one row each. Matches encoder.c:1296-1336 reference. */
+            int n_emits = (cs->band_out_row == 0) ? 2 : 1;
             int base = (cs->buf_row - 6) % FUSED_ROW_BUFS;
+            if (base < 0) base += FUSED_ROW_BUFS;
+            PIXEL *lp_rows[6], *hp_rows[6];
             for (int r = 0; r < 6; r++) {
                 int idx = (base + r) % FUSED_ROW_BUFS;
                 lp_rows[r] = cs->lowpass_buf[idx];
                 hp_rows[r] = cs->highpass_buf[idx];
             }
-
-            int is_top = (out_row == 0);
-            int is_bottom = (out_row == cs->band_height - 1);
-            int bw = cs->band_width;
-
-            /* Output destinations:
-               - single-level inline tokenize: per-row scratch (band rows are
-                 immediately tokenized, no full band buffer needed)
-               - multi-level streaming: LL1 goes to row_scratch[0] (consumed
-                 immediately by the streaming cascade); LH1/HL1/HH1 go to
-                 their full band buffers (Pass 2 input)
-               - everything else (split mode): full band buffers */
             const int inline_mode = (cs->inline_state[1] != NULL);
             const int streaming = cs->streaming_active;
-            PIXEL *ll_row = inline_mode    ? cs->row_scratch[0]
-                          : streaming      ? cs->row_scratch[0]
-                                           : (cs->band_data[0] + out_row * cs->band_pitch);
-            PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
-                                        : (cs->band_data[1] + out_row * cs->band_pitch);
-            PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
-                                        : (cs->band_data[2] + out_row * cs->band_pitch);
-            PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
-                                        : (cs->band_data[3] + out_row * cs->band_pitch);
+            int bw = cs->band_width;
 
-            vertical_filter_quantize_row(lp_rows, bw,
-                cs->midpoint[0], cs->multiplier[0],
-                cs->midpoint[1], cs->multiplier[1],
-                0, 0, 0, 0,
-                ll_row, lh_row, NULL, NULL,
-                is_top, is_bottom);
+            for (int e = 0; e < n_emits; e++) {
+                int out_row = cs->band_out_row;
+                /* Allow the tail to write into the +12 scratch rows so the
+                   streaming cascade can drive level 3 all the way to
+                   band_height_l3. */
+                if (out_row >= cs->band_height + 12) break;
 
-            vertical_filter_quantize_row(hp_rows, bw,
-                cs->midpoint[2], cs->multiplier[2],
-                cs->midpoint[3], cs->multiplier[3],
-                0, 0, 0, 0,
-                hl_row, hh_row, NULL, NULL,
-                is_top, is_bottom);
+                int is_top = (out_row == 0);
+                int is_bottom = (out_row == cs->band_height - 1);
 
-#ifdef FUSED_TIMING_DETAIL
-            t_vert += _fused_ms() - _td; _td = _fused_ms();
-#endif
+                /* Output destinations: per-row scratch for inline/streaming,
+                   full band buffers for split mode. */
+                PIXEL *ll_row = inline_mode    ? cs->row_scratch[0]
+                              : streaming      ? cs->row_scratch[0]
+                                               : (cs->band_data[0] + out_row * cs->band_pitch);
+                PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
+                                            : (cs->band_data[1] + out_row * cs->band_pitch);
+                PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
+                                            : (cs->band_data[2] + out_row * cs->band_pitch);
+                PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
+                                            : (cs->band_data[3] + out_row * cs->band_pitch);
 
-            /* Inline-mode: tokenize each highpass band's row immediately while
-               it's still hot in L1. Pass 2 will only do rANS encode.
+                vertical_filter_quantize_row(lp_rows, bw,
+                    cs->midpoint[0], cs->multiplier[0],
+                    cs->midpoint[1], cs->multiplier[1],
+                    0, 0, 0, 0,
+                    ll_row, lh_row, NULL, NULL,
+                    is_top, is_bottom);
 
-               GPR_DROP_HIGHPASS=1 skips highpass tokenization entirely —
-               for measuring "wavelet-as-downsample" budget. Output is NOT a
-               valid GPR file in this mode (decoder will see empty highpass
-               bands), but the timing tells us if dropping HL/LH/HH bands
-               is sufficient to hit 24 fps on 50 MP input. */
-            if (inline_mode) {
-                static int drop_hp = -1;
-                if (drop_hp < 0) {
-                    const char *e = getenv("GPR_DROP_HIGHPASS");
-                    drop_hp = (e && *e == '1') ? 1 : 0;
-                }
-                /* Tokenize LL if inline_state[0] is allocated
-                   (GPR_INCLUDE_LL=1 in fused_choose). */
-                if (cs->inline_state[0]) {
-                    jans_inline_row(cs->inline_state[0], ll_row, bw);
-                }
-                if (!drop_hp) {
-                    /* Inline-mode BayesShrink-style soft-threshold on highpass
-                       bands. Applied here while bands are still hot in L1, before
-                       the tokenize loop reads them. LL is intentionally NOT
-                       thresholded — it carries DC content. */
-                    int32_t T_lh = cs->inline_denoise_T[1];
-                    int32_t T_hl = cs->inline_denoise_T[2];
-                    int32_t T_hh = cs->inline_denoise_T[3];
-                    if (T_lh > 0) soft_threshold_row(lh_row, bw, T_lh);
-                    if (T_hl > 0) soft_threshold_row(hl_row, bw, T_hl);
-                    if (T_hh > 0) soft_threshold_row(hh_row, bw, T_hh);
-                    jans_inline_row(cs->inline_state[1], lh_row, bw);
-                    jans_inline_row(cs->inline_state[2], hl_row, bw);
-                    jans_inline_row(cs->inline_state[3], hh_row, bw);
-                }
-            }
-
-            /* Multi-level streaming: cascade the fresh LL1 row through
-               level-2 and level-3 wavelets while it's hot in cache. */
-            if (streaming) {
-                stream_cascade_higher_levels(cs, ll_row);
-            }
+                vertical_filter_quantize_row(hp_rows, bw,
+                    cs->midpoint[2], cs->multiplier[2],
+                    cs->midpoint[3], cs->multiplier[3],
+                    0, 0, 0, 0,
+                    hl_row, hh_row, NULL, NULL,
+                    is_top, is_bottom);
 
 #ifdef FUSED_TIMING_DETAIL
-            t_freq += _fused_ms() - _td;
+                t_vert += _fused_ms() - _td; _td = _fused_ms();
 #endif
 
-            cs->band_out_row++;
+                /* Inline-mode: tokenize each highpass band's row immediately while
+                   it's still hot in L1. Pass 2 will only do rANS encode.
+
+                   GPR_DROP_HIGHPASS=1 skips highpass tokenization entirely —
+                   for measuring "wavelet-as-downsample" budget. Output is NOT a
+                   valid GPR file in this mode (decoder will see empty highpass
+                   bands), but the timing tells us if dropping HL/LH/HH bands
+                   is sufficient to hit 24 fps on 50 MP input. */
+                if (inline_mode) {
+                    static int drop_hp = -1;
+                    if (drop_hp < 0) {
+                        const char *e = getenv("GPR_DROP_HIGHPASS");
+                        drop_hp = (e && *e == '1') ? 1 : 0;
+                    }
+                    if (cs->inline_state[0]) {
+                        jans_inline_row(cs->inline_state[0], ll_row, bw);
+                    }
+                    if (!drop_hp) {
+                        /* Inline-mode BayesShrink-style soft-threshold on
+                           highpass bands. Applied while bands are still hot
+                           in L1, before the tokenize loop reads them. LL is
+                           intentionally NOT thresholded — it carries DC. */
+                        int32_t T_lh = cs->inline_denoise_T[1];
+                        int32_t T_hl = cs->inline_denoise_T[2];
+                        int32_t T_hh = cs->inline_denoise_T[3];
+                        if (T_lh > 0) soft_threshold_row(lh_row, bw, T_lh);
+                        if (T_hl > 0) soft_threshold_row(hl_row, bw, T_hl);
+                        if (T_hh > 0) soft_threshold_row(hh_row, bw, T_hh);
+                        jans_inline_row(cs->inline_state[1], lh_row, bw);
+                        jans_inline_row(cs->inline_state[2], hl_row, bw);
+                        jans_inline_row(cs->inline_state[3], hh_row, bw);
+                    }
+                }
+
+                /* Multi-level streaming: cascade the fresh LL1 row through
+                   level-2 and level-3 wavelets while it's hot in cache. */
+                if (streaming) {
+                    stream_cascade_higher_levels(cs, ll_row);
+                }
+
+#ifdef FUSED_TIMING_DETAIL
+                t_freq += _fused_ms() - _td;
+#endif
+
+                cs->band_out_row++;
+            }
         }
     }
 
@@ -1665,76 +1679,82 @@ static void pass1_run_channel_consumer(
 #endif
 
         if (cs->buf_row >= 6 && (cs->buf_row % 2) == 0) {
-            int out_row = cs->band_out_row;
-            if (out_row >= cs->band_height + 12) goto advance_consumer;
-
-            PIXEL *lp_rows[6], *hp_rows[6];
+            /* Two emits on first trigger (top boundary + first interior),
+               single emit thereafter. See line ~1271 for the rationale. */
+            int n_emits = (cs->band_out_row == 0) ? 2 : 1;
             int base = (cs->buf_row - 6) % FUSED_ROW_BUFS;
+            if (base < 0) base += FUSED_ROW_BUFS;
+            PIXEL *lp_rows[6], *hp_rows[6];
             for (int r = 0; r < 6; r++) {
                 int idx = (base + r) % FUSED_ROW_BUFS;
                 lp_rows[r] = cs->lowpass_buf[idx];
                 hp_rows[r] = cs->highpass_buf[idx];
             }
-
-            int is_top = (out_row == 0);
-            int is_bottom = (out_row == cs->band_height - 1);
-            int bw = cs->band_width;
-
             const int inline_mode = (cs->inline_state[1] != NULL);
             const int streaming = cs->streaming_active;
-            PIXEL *ll_row = inline_mode    ? cs->row_scratch[0]
-                          : streaming      ? cs->row_scratch[0]
-                                           : (cs->band_data[0] + out_row * cs->band_pitch);
-            PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
-                                        : (cs->band_data[1] + out_row * cs->band_pitch);
-            PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
-                                        : (cs->band_data[2] + out_row * cs->band_pitch);
-            PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
-                                        : (cs->band_data[3] + out_row * cs->band_pitch);
+            int bw = cs->band_width;
 
-            vertical_filter_quantize_row(lp_rows, bw,
-                cs->midpoint[0], cs->multiplier[0],
-                cs->midpoint[1], cs->multiplier[1],
-                0, 0, 0, 0,
-                ll_row, lh_row, NULL, NULL,
-                is_top, is_bottom);
+            for (int e = 0; e < n_emits; e++) {
+                int out_row = cs->band_out_row;
+                if (out_row >= cs->band_height + 12) break;
 
-            vertical_filter_quantize_row(hp_rows, bw,
-                cs->midpoint[2], cs->multiplier[2],
-                cs->midpoint[3], cs->multiplier[3],
-                0, 0, 0, 0,
-                hl_row, hh_row, NULL, NULL,
-                is_top, is_bottom);
+                int is_top = (out_row == 0);
+                int is_bottom = (out_row == cs->band_height - 1);
 
-#ifdef FUSED_TIMING_DETAIL
-            t_vert += _fused_ms() - _td; _td = _fused_ms();
-#endif
+                PIXEL *ll_row = inline_mode    ? cs->row_scratch[0]
+                              : streaming      ? cs->row_scratch[0]
+                                               : (cs->band_data[0] + out_row * cs->band_pitch);
+                PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
+                                            : (cs->band_data[1] + out_row * cs->band_pitch);
+                PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
+                                            : (cs->band_data[2] + out_row * cs->band_pitch);
+                PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
+                                            : (cs->band_data[3] + out_row * cs->band_pitch);
 
-            if (inline_mode) {
-                static int drop_hp = -1;
-                if (drop_hp < 0) {
-                    const char *e = getenv("GPR_DROP_HIGHPASS");
-                    drop_hp = (e && *e == '1') ? 1 : 0;
-                }
-                if (cs->inline_state[0]) {
-                    jans_inline_row(cs->inline_state[0], ll_row, bw);
-                }
-                if (!drop_hp) {
-                    jans_inline_row(cs->inline_state[1], lh_row, bw);
-                    jans_inline_row(cs->inline_state[2], hl_row, bw);
-                    jans_inline_row(cs->inline_state[3], hh_row, bw);
-                }
-            }
+                vertical_filter_quantize_row(lp_rows, bw,
+                    cs->midpoint[0], cs->multiplier[0],
+                    cs->midpoint[1], cs->multiplier[1],
+                    0, 0, 0, 0,
+                    ll_row, lh_row, NULL, NULL,
+                    is_top, is_bottom);
 
-            if (streaming) {
-                stream_cascade_higher_levels(cs, ll_row);
-            }
+                vertical_filter_quantize_row(hp_rows, bw,
+                    cs->midpoint[2], cs->multiplier[2],
+                    cs->midpoint[3], cs->multiplier[3],
+                    0, 0, 0, 0,
+                    hl_row, hh_row, NULL, NULL,
+                    is_top, is_bottom);
 
 #ifdef FUSED_TIMING_DETAIL
-            t_freq += _fused_ms() - _td;
+                t_vert += _fused_ms() - _td; _td = _fused_ms();
 #endif
 
-            cs->band_out_row++;
+                if (inline_mode) {
+                    static int drop_hp = -1;
+                    if (drop_hp < 0) {
+                        const char *e = getenv("GPR_DROP_HIGHPASS");
+                        drop_hp = (e && *e == '1') ? 1 : 0;
+                    }
+                    if (cs->inline_state[0]) {
+                        jans_inline_row(cs->inline_state[0], ll_row, bw);
+                    }
+                    if (!drop_hp) {
+                        jans_inline_row(cs->inline_state[1], lh_row, bw);
+                        jans_inline_row(cs->inline_state[2], hl_row, bw);
+                        jans_inline_row(cs->inline_state[3], hh_row, bw);
+                    }
+                }
+
+                if (streaming) {
+                    stream_cascade_higher_levels(cs, ll_row);
+                }
+
+#ifdef FUSED_TIMING_DETAIL
+                t_freq += _fused_ms() - _td;
+#endif
+
+                cs->band_out_row++;
+            }
         }
 
 advance_consumer:
