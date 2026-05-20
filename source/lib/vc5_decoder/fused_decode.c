@@ -65,6 +65,45 @@ static const QUANT FUSED_QUALITY_TABLES[9][10] = {
 static void *fd_alloc(size_t n) { return malloc(n); }
 static void  fd_free(void *p)   { free(p); }
 
+/* Per-decode-call arena for reused buffers. Eliminates the per-frame
+   malloc/free churn that was hidden in the decode timeline:
+   - 16 band buffers (4 channels × {LL, LH, HL, HH}, each bw*bh*4 bytes)
+   - 4 channel scratch buffers (ch_w*ch_h*4 each)
+   At 50 MP / 2x2 decimate: bw=1035 bh=690 → ~2.8 MB per band × 16 = 45 MB;
+   ch_w=2070 ch_h=1380 → ~11 MB per channel × 4 = 45 MB. ~90 MB total per
+   frame previously alloc/freed; now reused via a TLS arena. */
+typedef struct {
+    PIXEL *band[4][4];   /* per-channel band buffers, size band_cap bytes each */
+    size_t band_cap;
+    PIXEL *chan[4];      /* per-channel scratch, size chan_cap bytes each */
+    size_t chan_cap;
+} FUSED_DECODE_ARENA;
+
+static _Thread_local FUSED_DECODE_ARENA fd_arena;
+
+static int arena_ensure(size_t need_band_bytes, size_t need_chan_bytes)
+{
+    if (need_band_bytes > fd_arena.band_cap) {
+        for (int ch = 0; ch < 4; ch++) {
+            for (int s = 0; s < 4; s++) {
+                if (fd_arena.band[ch][s]) free(fd_arena.band[ch][s]);
+                fd_arena.band[ch][s] = (PIXEL *)malloc(need_band_bytes);
+                if (!fd_arena.band[ch][s]) { fd_arena.band_cap = 0; return -1; }
+            }
+        }
+        fd_arena.band_cap = need_band_bytes;
+    }
+    if (need_chan_bytes > fd_arena.chan_cap) {
+        for (int ch = 0; ch < 4; ch++) {
+            if (fd_arena.chan[ch]) free(fd_arena.chan[ch]);
+            fd_arena.chan[ch] = (PIXEL *)malloc(need_chan_bytes);
+            if (!fd_arena.chan[ch]) { fd_arena.chan_cap = 0; return -1; }
+        }
+        fd_arena.chan_cap = need_chan_bytes;
+    }
+    return 0;
+}
+
 /* Worker for parallel per-channel inverse wavelet in the single-level+LL
    decode path. Each task owns its 4 bands + output channel buffer. */
 typedef struct {
@@ -918,6 +957,13 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
        set, we still allocate HP band buffers but zero them and skip the
        rANS decode for the HP slots (their offsets are still consumed
        so the byte cursor walks past them). */
+    /* Use the TLS arena instead of per-frame malloc. ~5-10 ms saved at
+       50 MP, plus better cache locality across frames. */
+    size_t band_bytes = (size_t)bw * bh * sizeof(PIXEL);
+    size_t chan_bytes = (size_t)ch_w * ch_h * sizeof(PIXEL);
+    if (arena_ensure(band_bytes, chan_bytes) != 0) {
+        rc = -11;
+    }
     FUSED_BAND_TASK bt[4];
     size_t band_off = off;
     for (int ch = 0; ch < 4 && rc == 0; ch++) {
@@ -926,8 +972,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
         bt[ch].bw = bw;
         bt[ch].bh = bh;
         for (int s = 0; s < 4; s++) {
-            bands[ch][s] = (PIXEL *)malloc((size_t)bw * bh * sizeof(PIXEL));
-            if (!bands[ch][s]) { rc = -11; break; }
+            bands[ch][s] = fd_arena.band[ch][s];   /* reused from TLS arena */
             bt[ch].out[s] = bands[ch][s];
             uint32_t sz = band_sizes[ch * 4 + s];
             if (band_off + sz > enc_size) { rc = -10; break; }
@@ -1103,7 +1148,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
         pthread_t threads[4];
         int created[4] = {0};
         for (int ch = 0; ch < 4 && rc == 0; ch++) {
-            channels[ch] = (PIXEL *)malloc((size_t)ch_w * ch_h * sizeof(PIXEL));
+            channels[ch] = fd_arena.chan[ch];   /* reused from TLS arena */
             if (!channels[ch]) { rc = -24; break; }
             tasks[ch].ll = bands[ch][0];
             tasks[ch].lh = bands[ch][1];
@@ -1134,9 +1179,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
     if (dbg_timing) fprintf(stderr, "  decode wavelet inv: %.1f ms\n", dt_wav);
     double dt_color0_sl = _decode_ms();
 
-    for (int ch = 0; ch < 4; ch++)
-        for (int s = 0; s < 4; s++)
-            if (bands[ch][s]) free(bands[ch][s]);
+    /* Bands stay in the TLS arena for reuse; no per-frame free. */
 
     /* Parallel color transform: split channel rows across 4 threads. Each
        row is independent — output Bayer rows for row y are at 2y, 2y+1. */
@@ -1176,8 +1219,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
         }
     }
 
-    for (int ch = 0; ch < 4; ch++)
-        if (channels[ch]) free(channels[ch]);
+    /* Channels stay in the TLS arena for reuse; no per-frame free. */
 
     if (dbg_timing) fprintf(stderr, "  decode color_xform: %.1f ms\n",
                             _decode_ms() - dt_color0_sl);
