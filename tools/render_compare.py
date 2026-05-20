@@ -92,7 +92,15 @@ if __name__ == "__main__":
     ap.add_argument("--codec-h", type=int, help="codec raw height")
     ap.add_argument("--out-source", default="source.png")
     ap.add_argument("--out-codec", default="codec.png")
+    ap.add_argument("--codec-shift-rows", type=int, default=6,
+                    help="rows to roll codec Bayer DOWN before rendering, to "
+                         "align with source. 0 = off. Default 6 source rows = "
+                         "3 codec-output pixels at 4K = compensates the "
+                         "encoder's 'fast row-skip' top-aligned 2x2 decimation "
+                         "(fused_encode.c:1153-1170). Even integers only (must "
+                         "preserve Bayer parity).")
     args = ap.parse_args()
+    assert args.codec_shift_rows % 2 == 0, "shift must be even to preserve Bayer parity"
 
     # Render source DNG as-is for baseline.
     rgb_src = render_dng(args.dng, out_path=args.out_source, label="source")
@@ -115,7 +123,20 @@ if __name__ == "__main__":
             decoded_up = upsample_bayer_2x(decoded.tobytes(), args.codec_w,
                                             args.codec_h, tgt_w, tgt_h)
         else:
-            decoded_up = decoded
+            decoded_up = decoded.copy()
+
+        # Encoder alignment compensation. The fused encoder's default
+        # "fast row-skip" path (fused_encode.c, GPR_DECIMATE_AA=0) samples the
+        # TOP row pair of each 4-row block and skips the bottom pair. That
+        # produces a top-aligned 2x2 decimation rather than a centered one,
+        # leaving codec output spatially offset relative to the source by
+        # ~3 codec pixels at 4K dims = ~6 source-Bayer rows. Compensate by
+        # rolling the upsampled Bayer DOWN by that many rows (even, to keep
+        # Bayer parity intact). Set --codec-shift-rows=0 to disable.
+        if args.codec_shift_rows != 0:
+            decoded_up = np.roll(decoded_up, shift=args.codec_shift_rows, axis=0)
+            print(f"applied codec_shift_rows = {args.codec_shift_rows} "
+                  f"(compensates encoder fast-row-skip alignment)")
 
         rgb_codec = render_dng(args.dng, raw_replacement=decoded_up,
                                 out_path=args.out_codec, label="codec")
