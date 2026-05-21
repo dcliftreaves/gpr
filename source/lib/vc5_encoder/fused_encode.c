@@ -1413,7 +1413,11 @@ static void pass1_run_channel(
                 lp_rows[r] = cs->lowpass_buf[idx];
                 hp_rows[r] = cs->highpass_buf[idx];
             }
-            const int inline_mode = (cs->inline_state[1] != NULL);
+            /* inline_state[1] may be NULL when GPR_DROP_HIGHPASS=1 (HP bands
+               are unused). Fall back to state[0] (LL band, allocated when
+               GPR_INCLUDE_LL=1) to distinguish inline vs split mode. */
+            const int inline_mode = (cs->inline_state[0] != NULL ||
+                                     cs->inline_state[1] != NULL);
             const int streaming = cs->streaming_active;
             int bw = cs->band_width;
 
@@ -1527,7 +1531,9 @@ static void pass1_run_channel(
        jans_encode_band_x4 still tokenizes the full band (those untouched
        trailing rows are calloc'd zero), so inline mode must do the same to
        stay bit-identical: emit zero-row tokens for the missing rows. */
-    if (cs->inline_state[1] != NULL) {
+    /* Inline-mode detection: state[1] may be NULL when GPR_DROP_HIGHPASS=1,
+       but state[0] is still set when GPR_INCLUDE_LL=1. Take either. */
+    if (cs->inline_state[0] != NULL || cs->inline_state[1] != NULL) {
         int bw = cs->band_width;
         static int drop_hp_tail = -1;
         if (drop_hp_tail < 0) {
@@ -1540,7 +1546,7 @@ static void pass1_run_channel(
                 if (cs->inline_state[0]) {
                     jans_inline_row(cs->inline_state[0], zero_row, bw);
                 }
-                if (!drop_hp_tail) {
+                if (!drop_hp_tail && cs->inline_state[1]) {
                     jans_inline_row(cs->inline_state[1], zero_row, bw);
                     jans_inline_row(cs->inline_state[2], zero_row, bw);
                     jans_inline_row(cs->inline_state[3], zero_row, bw);
@@ -1845,7 +1851,11 @@ static void pass1_run_channel_consumer(
                 lp_rows[r] = cs->lowpass_buf[idx];
                 hp_rows[r] = cs->highpass_buf[idx];
             }
-            const int inline_mode = (cs->inline_state[1] != NULL);
+            /* inline_state[1] may be NULL when GPR_DROP_HIGHPASS=1 (HP bands
+               are unused). Fall back to state[0] (LL band, allocated when
+               GPR_INCLUDE_LL=1) to distinguish inline vs split mode. */
+            const int inline_mode = (cs->inline_state[0] != NULL ||
+                                     cs->inline_state[1] != NULL);
             const int streaming = cs->streaming_active;
             int bw = cs->band_width;
 
@@ -1942,7 +1952,9 @@ advance_consumer:
     }
 
     /* Same bottom-of-band zero-row flush as the per-channel path. */
-    if (cs->inline_state[1] != NULL) {
+    /* Inline-mode detection: state[1] may be NULL when GPR_DROP_HIGHPASS=1,
+       but state[0] is still set when GPR_INCLUDE_LL=1. Take either. */
+    if (cs->inline_state[0] != NULL || cs->inline_state[1] != NULL) {
         int bw = cs->band_width;
         static int drop_hp_tail = -1;
         if (drop_hp_tail < 0) {
@@ -1955,7 +1967,7 @@ advance_consumer:
                 if (cs->inline_state[0]) {
                     jans_inline_row(cs->inline_state[0], zero_row, bw);
                 }
-                if (!drop_hp_tail) {
+                if (!drop_hp_tail && cs->inline_state[1]) {
                     jans_inline_row(cs->inline_state[1], zero_row, bw);
                     jans_inline_row(cs->inline_state[2], zero_row, bw);
                     jans_inline_row(cs->inline_state[3], zero_row, bw);
@@ -2342,6 +2354,12 @@ struct FUSED_ENCODER {
     int include_ll;   /* 1 = single-level + LL (16 bands total, decodable);
                           0 = highpass-only (12 bands, undecodable except via
                           multi_level path). GPR_INCLUDE_LL=1 to enable. */
+    int drop_hp;      /* 1 = GPR_DROP_HIGHPASS=1 at create time. Skips
+                          inline_state[1..3] allocation and the Pass-2
+                          finalize dispatch for HP bands, since none of them
+                          get any rows written in Pass 1 anyway. Saves
+                          allocation + thread-create + finalize call per
+                          frame; decoder treats size-0 bands as zeros. */
     int streaming;    /* When multi_level=1: 1 = stream level-2/3 inline with
                           level-1 (no LL1/LL2 band buffers, embedded-friendly);
                           0 = sequential (full LL1/LL2 buffers, simpler). */
@@ -2505,6 +2523,10 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
         const char *e = getenv("GPR_INCLUDE_LL");
         ctx->include_ll = (e && *e == '1') ? 1 : 0;
     }
+    {
+        const char *e = getenv("GPR_DROP_HIGHPASS");
+        ctx->drop_hp = (e && *e == '1') ? 1 : 0;
+    }
     int band_start = ctx->include_ll ? 0 : 1;
 
     int p2_idx = 0;
@@ -2519,7 +2541,10 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
                 gpr_encode_fused_destroy(ctx);
                 return NULL;
             }
-            if (ctx->inline_mode) {
+            /* GPR_DROP_HIGHPASS=1: bands 1..3 (LH/HL/HH) receive no rows in
+               Pass 1, so skip their inline_state allocation. Band 0 (LL) is
+               still needed when GPR_INCLUDE_LL=1. */
+            if (ctx->inline_mode && !(ctx->drop_hp && band > 0)) {
                 /* Stripe encoding: adaptive default based on band height,
                    overridable via env vars.
 
@@ -2851,6 +2876,16 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
             pt->denoise_strength = ctx->denoise_strength;
             pt->noise_scale = ctx->noise_scale;
             pt->noise_offset = ctx->noise_offset;
+            /* GPR_DROP_HIGHPASS=1: skip Pass-2 dispatch for HP bands (1..3).
+               Their inline_state is NULL (3a-style skip in create); enc_size
+               stays 0 and the band-size manifest records 0 → decoder fills
+               that band with zeros (see fused_band_decode_runner: sz<64 →
+               memset). LL band (0) still runs. */
+            if (ctx->drop_hp && band > 0) {
+                p2_created[p2_count] = 0;
+                p2_count++;
+                continue;
+            }
             if (run_serial) {
                 pass2_band_thread(pt);
                 p2_created[p2_count] = 0;
