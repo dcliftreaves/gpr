@@ -1332,6 +1332,114 @@ static void unpack_channel_row_col_decimate_2x1(
     }
 }
 
+/* T14: fused col-decimate variant of unpack_channel_row for LUMA (ch 0=GS, 3=GD).
+   Reads 2 Bayer rows, produces ch_width=ch_width_full/2 outputs (each = average
+   of two adjacent same-channel samples after the per-pixel GS/GD arithmetic).
+   This replaces the unpack_channel_row → unpack_full → NEON pair-avg → unpack_row
+   two-pass dance for the luma channels when col_decimate=2 (no row_decimate).
+   Cuts ~32 KB/row of intermediate buffer traffic per luma channel, ~24 MB/frame
+   per channel × 2 luma channels = ~48 MB/frame of L1/L2 evictions saved on the
+   LL-only-fast path. Bit-exact with the two-pass path. */
+static void unpack_luma_row_col_decimate_2x1(
+    int channel, int is_rggb,
+    const uint16_t *log_tbl, int log_max, int32_t mid2,
+    const uint16_t *row1, const uint16_t *row2,
+    PIXEL *output, int ch_width_out)
+{
+    int o = 0;
+    const uint16_t lm = (uint16_t)log_max;
+
+#if ENABLED(NEON)
+    const int o_m4 = (ch_width_out / 4) * 4;
+    const uint16x8_t v_log_max = vdupq_n_u16(lm);
+    const int32x4_t vmid2 = vdupq_n_s32(mid2);
+
+    /* Per iter: 4 output samples = 8 same-color samples (G1 + G2) from 2 Bayer rows.
+       Each Bayer row supplies 16 u16s (8 R + 8 G1 from row1, 8 G2 + 8 B from row2). */
+    for (; o < o_m4; o += 4) {
+        int bc = o * 2;  /* starting Bayer column */
+
+        uint16x8x2_t r1d = vld2q_u16(&row1[2 * bc]);
+        uint16x8x2_t r2d = vld2q_u16(&row2[2 * bc]);
+
+        uint16x8_t vG1, vG2;
+        if (is_rggb) {
+            /* row1 = R G1 R G1 ... ; row2 = G2 B G2 B ... */
+            vG1 = vminq_u16(r1d.val[1], v_log_max);
+            vG2 = vminq_u16(r2d.val[0], v_log_max);
+        } else {
+            /* row1 = G1 B G1 B ... ; row2 = R G2 R G2 ... */
+            vG1 = vminq_u16(r1d.val[0], v_log_max);
+            vG2 = vminq_u16(r2d.val[1], v_log_max);
+        }
+
+        /* Luma only needs G1, G2 log lookups. 8 entries each, then NEON
+           arithmetic produces 8 per-column intermediates which we pair-avg
+           into 4 outputs. */
+        uint16_t G1s[8], G2s[8];
+        vst1q_u16(G1s, vG1);
+        vst1q_u16(G2s, vG2);
+
+        int32_t G1v[8], G2v[8];
+        for (int k = 0; k < 8; k++) {
+            G1v[k] = log_tbl[G1s[k]];
+            G2v[k] = log_tbl[G2s[k]];
+        }
+
+        /* Two 4-wide NEON arithmetic chunks. For each ch_width_full column c,
+           val(c) is either (g1+g2)>>1 (ch 0) or ((g1-g2)+mid2)>>1 (ch 3).
+           Then pair-avg adjacent (val(2k), val(2k+1)) → output[o+k]. */
+        for (int half = 0; half < 2; half++) {
+            int32x4_t vg1 = vld1q_s32(&G1v[half * 4]);
+            int32x4_t vg2 = vld1q_s32(&G2v[half * 4]);
+            int32x4_t val;
+            if (channel == 0) {
+                val = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            } else {  /* channel == 3 */
+                val = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+            }
+            if (half == 0) {
+                /* Stash half-0's val for the cross-half pair-avg below. */
+                vst1q_s32(&G1v[0], val);  /* reuse buffer */
+            } else {
+                int32x4_t lo = vld1q_s32(&G1v[0]);
+                int32x4_t hi = val;
+                int32x4_t e = vuzp1q_s32(lo, hi);
+                int32x4_t d = vuzp2q_s32(lo, hi);
+                int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
+                vst1q_s32(&output[o], avg);
+            }
+        }
+    }
+#endif
+
+    /* Scalar tail. */
+    for (; o < ch_width_out; o++) {
+        int bc = o * 2;
+        int32_t s0 = 0, s1 = 0;
+        for (int p = 0; p < 2; p++) {
+            int c = bc + p;
+            uint16_t G1v, G2v;
+            if (is_rggb) {
+                G1v = row1[2*c+1];
+                G2v = row2[2*c];
+            } else {
+                G1v = row1[2*c];
+                G2v = row2[2*c+1];
+            }
+            if (G1v > lm) G1v = lm;
+            if (G2v > lm) G2v = lm;
+            int32_t g1 = log_tbl[G1v];
+            int32_t g2 = log_tbl[G2v];
+            int32_t val;
+            if (channel == 0) val = (g1 + g2) >> 1;
+            else              val = ((g1 - g2) + mid2) >> 1;
+            if (p == 0) s0 = val; else s1 = val;
+        }
+        output[o] = (s0 + s1) >> 1;
+    }
+}
+
 /* Streaming cascade: feed one newly-produced LL1 row into level-2's
    horizontal filter, then (if enough rows are queued) run level-2's
    vertical filter, then cascade the LL2 row into level-3's horizontal
@@ -1556,17 +1664,29 @@ static void pass1_run_channel(
                     log_tbl, log_max, mid2,
                     row1, row2, row1b, row2b, unpack_row, ch_width);
             } else if (unpack_mode == 1) {
-                /* T13b: fused col-decimate for chroma (channel 1, 2). Combines
-                   the per-channel unpack + col-pair-average into one pass,
-                   avoiding the intermediate unpack_full read/write. Luma
-                   (ch 0, 3) falls back to the two-pass path for now since its
-                   GS/GD arithmetic differs. */
+                /* T13b (chroma): fused col-decimate for channel 1, 2.
+                   T14 (luma):    fused col-decimate for channel 0, 3.
+                   Both combine the per-channel unpack + col-pair-average into
+                   one pass, avoiding the intermediate unpack_full read/write
+                   (~32 KB/row per channel saved). The luma fallback to the
+                   two-pass path is gated by FUSED_LUMA_FUSED_OFF=1 in case
+                   the new path needs to be A/B'd against a regression. */
+                static int luma_fused_off = -1;
+                if (luma_fused_off < 0) {
+                    const char *e = getenv("FUSED_LUMA_FUSED_OFF");
+                    luma_fused_off = (e && *e == '1') ? 1 : 0;
+                }
                 if (channel == 1 || channel == 2) {
                     unpack_channel_row_col_decimate_2x1(channel, is_rggb,
                         log_tbl, log_max, mid2,
                         row1, row2, unpack_row, ch_width);
+                } else if (!luma_fused_off) {
+                    /* T14: luma fused col-decimate. */
+                    unpack_luma_row_col_decimate_2x1(channel, is_rggb,
+                        log_tbl, log_max, mid2,
+                        row1, row2, unpack_row, ch_width);
                 } else {
-                    /* Luma: full-width unpack + post-pair-avg (legacy path). */
+                    /* Luma legacy: full-width unpack + post-pair-avg. */
                     unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
                                        row1, row2, unpack_full, ch_width_full);
 #if ENABLED(NEON)

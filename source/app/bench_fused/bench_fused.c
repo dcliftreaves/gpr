@@ -76,6 +76,9 @@ int main(int argc, char **argv) {
         gpr_encode_fused_frame(enc, raw, sz, &out, &out_sz);
     }
 
+    /* Optional output dump for byte-identity testing: write the first frame's
+       encoded bytes to GPR_BENCH_DUMP path, then continue benchmarking. */
+    const char *dump_path = getenv("GPR_BENCH_DUMP");
     double *times = malloc((size_t)n * sizeof(double));
     for (int i = 0; i < n; i++) {
         double t0 = now_ms();
@@ -83,6 +86,11 @@ int main(int argc, char **argv) {
         gpr_encode_fused_frame(enc, raw, sz, &out, &out_sz);
         double t1 = now_ms();
         times[i] = t1 - t0;
+        if (i == 0 && dump_path && out && out_sz > 0) {
+            FILE *df = fopen(dump_path, "wb");
+            if (df) { fwrite(out, 1, out_sz, df); fclose(df); }
+            fprintf(stderr, "# dumped frame 0 (%zu bytes) to %s\n", out_sz, dump_path);
+        }
     }
     printf("# frame_ms\n");
     for (int i = 0; i < n; i++) printf("%.2f\n", times[i]);
