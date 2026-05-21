@@ -1541,15 +1541,8 @@ static void pass1_run_channel(
                                             : (cs->band_data[3] + out_row * cs->band_pitch);
 
                 /* GPR_DROP_HIGHPASS=1 → skip LH/HL/HH wavelet arithmetic entirely.
-                   The first call uses the LL-only variant (no LH writes).
-                   The second call (HP rows → HL+HH) is skipped. */
-                static int vf_drop_hp = -1;
-                if (vf_drop_hp < 0) {
-                    const char *e = getenv("GPR_DROP_HIGHPASS");
-                    vf_drop_hp = (e && *e == '1') ? 1 : 0;
-                }
-
-                if (vf_drop_hp) {
+                   Reuse the hoisted hf_drop_hp from outside the row loop. */
+                if (hf_drop_hp) {
                     vertical_filter_quantize_row_lo_only(lp_rows, bw,
                         cs->midpoint[0], cs->multiplier[0],
                         ll_row,
@@ -1911,6 +1904,13 @@ static void pass1_run_channel_consumer(
     }
     int total_rows = ch_height + tail_extras;
 
+    /* Hoist env-driven flag out of the row loop. */
+    static int hf_drop_hp_c = -1;
+    if (hf_drop_hp_c < 0) {
+        const char *e = getenv("GPR_DROP_HIGHPASS");
+        hf_drop_hp_c = (e && *e == '1') ? 1 : 0;
+    }
+
     for (int row = 0; row < total_rows; row++) {
         int buf_idx = cs->buf_row % FUSED_ROW_BUFS;
 
@@ -1941,13 +1941,8 @@ static void pass1_run_channel_consumer(
 
             PIXEL *unpack_row = ring->rows[slot][channel];
 
-            /* HP-skip fast path when GPR_DROP_HIGHPASS=1. */
-            static int hf_drop_hp2 = -1;
-            if (hf_drop_hp2 < 0) {
-                const char *e = getenv("GPR_DROP_HIGHPASS");
-                hf_drop_hp2 = (e && *e == '1') ? 1 : 0;
-            }
-            if (hf_drop_hp2) {
+            /* HP-skip fast path when GPR_DROP_HIGHPASS=1; hoisted above. */
+            if (hf_drop_hp_c) {
                 horizontal_filter_lp_only(unpack_row,
                                           cs->lowpass_buf[buf_idx],
                                           ch_width, prescale);
@@ -2010,12 +2005,7 @@ static void pass1_run_channel_consumer(
                 PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
                                             : (cs->band_data[3] + out_row * cs->band_pitch);
 
-                static int vf_drop_hp2 = -1;
-                if (vf_drop_hp2 < 0) {
-                    const char *e = getenv("GPR_DROP_HIGHPASS");
-                    vf_drop_hp2 = (e && *e == '1') ? 1 : 0;
-                }
-                if (vf_drop_hp2) {
+                if (hf_drop_hp_c) {
                     vertical_filter_quantize_row_lo_only(lp_rows, bw,
                         cs->midpoint[0], cs->multiplier[0],
                         ll_row,
