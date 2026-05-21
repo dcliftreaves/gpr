@@ -68,6 +68,39 @@ static double _fused_ms(void) {
 #define FUSED_MAX_BANDS    4
 #define FUSED_ROW_BUFS     6
 
+/* Cache-line size: 64 B on Cortex-A76 (Pi 5), Apple M1 firestorm/icestorm,
+   and most modern ARMv8 / x86_64. 128 B exists on some Apple cores' L2
+   prefetch granule but L1 line is 64 B everywhere we care about. */
+#define CACHE_LINE_SIZE 64
+
+/* aligned_alloc()/posix_memalign() wrapper. Always returns either NULL or
+   a pointer aligned to CACHE_LINE_SIZE. Used for hot-path scratch
+   (per-row band buffers, ring slot buffers, per-channel row workspaces)
+   where the C plain malloc's 16-byte alignment can split NEON loads
+   across cache lines. Modeled on FFTW's fftw_malloc(). */
+static inline void *fused_aligned_alloc(size_t bytes) {
+    if (bytes == 0) return NULL;
+    /* posix_memalign requires size be any multiple, alignment ≥ sizeof(void*)
+       and a power of two. aligned_alloc requires size be a multiple of
+       alignment. Round up the size for portability. */
+    size_t rounded = (bytes + CACHE_LINE_SIZE - 1) & ~((size_t)(CACHE_LINE_SIZE - 1));
+    void *p = NULL;
+#if defined(_ISOC11_SOURCE) || (__STDC_VERSION__ >= 201112L)
+    p = aligned_alloc(CACHE_LINE_SIZE, rounded);
+#else
+    if (posix_memalign(&p, CACHE_LINE_SIZE, rounded) != 0) p = NULL;
+#endif
+    return p;
+}
+
+/* As above but zero-initialised, replacement for calloc() at hot-path sites. */
+static inline void *fused_aligned_calloc(size_t nelt, size_t eltsz) {
+    size_t bytes = nelt * eltsz;
+    void *p = fused_aligned_alloc(bytes);
+    if (p) memset(p, 0, bytes);
+    return p;
+}
+
 /* Quality presets: quant divisors per subband [LL, LH, HL, HH for each level] */
 static const QUANT quality_tables[9][10] = {
     {1, 24, 24, 12, 64, 64, 48, 512, 512, 768},  /* 0: Low */
@@ -518,8 +551,8 @@ static void wavelet_decompose_buffer(
     PIXEL *lp_rows[FUSED_ROW_BUFS];
     PIXEL *hp_rows[FUSED_ROW_BUFS];
     for (int r = 0; r < FUSED_ROW_BUFS; r++) {
-        lp_rows[r] = (PIXEL *)malloc(out_width * sizeof(PIXEL));
-        hp_rows[r] = (PIXEL *)malloc(out_width * sizeof(PIXEL));
+        lp_rows[r] = (PIXEL *)fused_aligned_alloc(out_width * sizeof(PIXEL));
+        hp_rows[r] = (PIXEL *)fused_aligned_alloc(out_width * sizeof(PIXEL));
         if (!lp_rows[r] || !hp_rows[r]) {
             for (int q = 0; q <= r; q++) {
                 if (lp_rows[q]) free(lp_rows[q]);
@@ -1291,7 +1324,7 @@ static void pass1_run_channel(
     uint16_t *log_tbl = (log_bits <= 14) ? EncoderLogCurve14 : EncoderLogCurve16;
     int log_max = (log_bits <= 14) ? 16383 : 65535;
 
-    PIXEL *unpack_row = (PIXEL *)malloc(ch_width * sizeof(PIXEL));
+    PIXEL *unpack_row = (PIXEL *)fused_aligned_alloc(ch_width * sizeof(PIXEL));
     if (!unpack_row) return;
     /* Full-width scratch for the post-unpack column-average path. Needed
        whenever col_decimate=2, since either:
@@ -1301,7 +1334,7 @@ static void pass1_run_channel(
          - col_decimate alone (no row_decimate) → same fallback path. */
     PIXEL *unpack_full = NULL;
     if (col_decimate == 2) {
-        unpack_full = (PIXEL *)malloc(ch_width_full * sizeof(PIXEL));
+        unpack_full = (PIXEL *)fused_aligned_alloc(ch_width_full * sizeof(PIXEL));
         if (!unpack_full) { free(unpack_row); return; }
     }
 
@@ -1632,6 +1665,25 @@ typedef struct {
 #define UNPACK_PRODUCERS  4
 #endif
 
+/* Cache-line-padded counter. Each producer/consumer writes its own
+   per-row position into one of these; padding ensures the line owned
+   by thread A is never the line read+written by thread B.
+
+   Pre-padding analysis (4-byte ints in flat arrays):
+     - prod_max_row[4] = 16 B on one 64 B line. All 4 producers wrote every
+       row → 4-way exclusive-line ping-pong on every row pair.
+     - consumed[4]      = 16 B on one 64 B line. All 4 consumers wrote
+       every row → 4-way exclusive-line ping-pong + producer reads in wait
+       loop (lines 1269-1272) → extra L2 traffic.
+     - slot_row[8]      = 32 B on one 64 B line. 4 producers wrote
+       interleaved slots → cross-thread cache-line bouncing.
+   Promoting each to its own 64 B line removes the contention. The cost
+   is +(4-1)*64*3 = 576 B in the ring struct (negligible vs ring slots). */
+typedef struct {
+    volatile int v;
+    char _pad[CACHE_LINE_SIZE - sizeof(int)];
+} PADDED_INT;
+
 typedef struct {
     PIXEL *rows[UNPACK_RING_SIZE][4];  /* row buf per slot per channel */
     int ch_width;
@@ -1639,14 +1691,22 @@ typedef struct {
 
     /* slot_row[s] = row number currently occupying slot s (or s - N_RING
        initially). When producer finishes writing row r to slot s, it sets
-       slot_row[s] = r. Consumers read slot s for row r once slot_row[s] >= r. */
-    volatile int slot_row[UNPACK_RING_SIZE];
+       slot_row[s] = r. Consumers read slot s for row r once slot_row[s] >= r.
+       Cache-line-padded: each slot's row-number tag is on its own line so the
+       interleaved producer writes (each producer p touches rows where
+       row % UNPACK_PRODUCERS == p, and slot = row % UNPACK_RING_SIZE)
+       don't false-share. */
+    PADDED_INT slot_row[UNPACK_RING_SIZE];
 
-    /* Per-producer position (rows produced so far in this producer's stride). */
-    volatile int prod_max_row[UNPACK_PRODUCERS];
+    /* Per-producer position (rows produced so far in this producer's stride).
+       Each producer writes its own [pid] every row; padding removes the
+       canonical 4-way false-share. */
+    PADDED_INT prod_max_row[UNPACK_PRODUCERS];
 
-    /* Per-consumer position (rows consumed so far, monotonic). */
-    volatile int consumed[4];
+    /* Per-consumer position (rows consumed so far, monotonic). Each consumer
+       writes its own [ch] every row; producers read all 4 in the
+       full-ring-wait loop. Padding eliminates the consumer/producer ping-pong. */
+    PADDED_INT consumed[4];
 
     pthread_mutex_t lock;
     pthread_cond_t  prod_cv;   /* producers wait when ring is full */
@@ -1659,10 +1719,14 @@ static int unpack_ring_init(UNPACK_RING *ring, int ch_width, int total_rows) {
     ring->total_rows = total_rows;
     for (int s = 0; s < UNPACK_RING_SIZE; s++) {
         for (int c = 0; c < 4; c++) {
-            ring->rows[s][c] = (PIXEL *)malloc(ch_width * sizeof(PIXEL));
+            /* 64-B aligned: ring slot row buffers are touched by 4
+               producers + 4 consumers, with NEON ld1q/st1q in the inner
+               loops. Misaligned bases caused every NEON access to risk
+               a 32-B/64-B straddle. */
+            ring->rows[s][c] = (PIXEL *)fused_aligned_alloc(ch_width * sizeof(PIXEL));
             if (!ring->rows[s][c]) return -1;
         }
-        ring->slot_row[s] = s - UNPACK_RING_SIZE;  /* "before-start" sentinel */
+        ring->slot_row[s].v = s - UNPACK_RING_SIZE;  /* "before-start" sentinel */
     }
     pthread_mutex_init(&ring->lock, NULL);
     pthread_cond_init(&ring->prod_cv, NULL);
@@ -1723,10 +1787,10 @@ static void *unpack_producer_thread(void *arg) {
             pthread_mutex_lock(&ring->lock);
             pthread_cond_broadcast(&ring->cons_cv);
             for (;;) {
-                int min_cons = ring->consumed[0];
-                if (ring->consumed[1] < min_cons) min_cons = ring->consumed[1];
-                if (ring->consumed[2] < min_cons) min_cons = ring->consumed[2];
-                if (ring->consumed[3] < min_cons) min_cons = ring->consumed[3];
+                int min_cons = ring->consumed[0].v;
+                if (ring->consumed[1].v < min_cons) min_cons = ring->consumed[1].v;
+                if (ring->consumed[2].v < min_cons) min_cons = ring->consumed[2].v;
+                if (ring->consumed[3].v < min_cons) min_cons = ring->consumed[3].v;
                 if (min_cons > row - UNPACK_RING_SIZE) break;
                 pthread_cond_wait(&ring->prod_cv, &ring->lock);
             }
@@ -1746,8 +1810,8 @@ static void *unpack_producer_thread(void *arg) {
            knows when slot s contains row r (slot_row[s] == r).
            Periodic mutex broadcast wakes the consumer; in between, the plain
            volatile stores are picked up by the consumer's spin-then-wait. */
-        ring->slot_row[slot] = row;
-        ring->prod_max_row[pid] = row;
+        ring->slot_row[slot].v = row;
+        ring->prod_max_row[pid].v = row;
         batch_counter++;
         if (batch_counter >= UNPACK_RING_BATCH || row + UNPACK_PRODUCERS >= total_rows) {
             pthread_mutex_lock(&ring->lock);
@@ -1817,14 +1881,14 @@ static void pass1_run_channel_consumer(
             /* Wait for SOME producer to have published this row. slot_row[slot]
                starts negative and only grows in increments of UNPACK_RING_SIZE;
                we want slot_row[slot] == row. */
-            if (ring->slot_row[slot] < row) {
+            if (ring->slot_row[slot].v < row) {
                 /* Brief spin in case the producer is about to publish. */
                 for (int spin = 0; spin < 1024; spin++) {
-                    if (ring->slot_row[slot] >= row) break;
+                    if (ring->slot_row[slot].v >= row) break;
                 }
-                if (ring->slot_row[slot] < row) {
+                if (ring->slot_row[slot].v < row) {
                     pthread_mutex_lock(&ring->lock);
-                    while (ring->slot_row[slot] < row) {
+                    while (ring->slot_row[slot].v < row) {
                         pthread_cond_wait(&ring->cons_cv, &ring->lock);
                     }
                     pthread_mutex_unlock(&ring->lock);
@@ -1982,11 +2046,11 @@ advance_consumer:
             if (sig_period < 1) sig_period = 1;
             if ((new_cons % sig_period) == 0 || new_cons == ch_height) {
                 pthread_mutex_lock(&ring->lock);
-                ring->consumed[channel] = new_cons;
+                ring->consumed[channel].v = new_cons;
                 pthread_cond_broadcast(&ring->prod_cv);
                 pthread_mutex_unlock(&ring->lock);
             } else {
-                ring->consumed[channel] = new_cons;
+                ring->consumed[channel].v = new_cons;
             }
         }
     }
@@ -2113,29 +2177,37 @@ static int setup_channel_state(
             if (inline_mode && !multi_level) {
                 /* Need only a small row scratch instead of the full band */
                 ch_state[ch].band_data[band] = NULL;
-                ch_state[ch].row_scratch[band] = (PIXEL *)calloc(bw, sizeof(PIXEL));
+                ch_state[ch].row_scratch[band] = (PIXEL *)fused_aligned_calloc(bw, sizeof(PIXEL));
                 if (!ch_state[ch].row_scratch[band]) return -1;
             } else if (multi_level && streaming && band == 0) {
                 /* Streaming multi-level: LL1 is consumed inline as it's
                    produced — no need to buffer the full band. Use a 1-row
                    scratch instead. */
                 ch_state[ch].band_data[band] = NULL;
-                ch_state[ch].row_scratch[band] = (PIXEL *)calloc(bw, sizeof(PIXEL));
+                ch_state[ch].row_scratch[band] = (PIXEL *)fused_aligned_calloc(bw, sizeof(PIXEL));
                 if (!ch_state[ch].row_scratch[band]) return -1;
             } else {
                 /* +12 extra rows for the bottom-edge tail handler.
                    Derivation: each cascade level under-runs by 2 outputs;
                    to fill 2 extra L3 outputs we need 4 extra L2 outputs
                    (= 8 extra L1 outputs). Plus L1's own under-run = 12
-                   extras. Pass 2 still only encodes band_height rows. */
-                ch_state[ch].band_data[band] = (PIXEL *)calloc((size_t)bw * (bh + 12), sizeof(PIXEL));
+                   extras. Pass 2 still only encodes band_height rows.
+                   64-B aligned so per-band-row pointers (band_data + row*pitch
+                   stays line-aligned when pitch is a multiple of 16 PIXELs)
+                   stay aligned for NEON quantize stores. */
+                ch_state[ch].band_data[band] = (PIXEL *)fused_aligned_calloc((size_t)bw * (bh + 12), sizeof(PIXEL));
                 ch_state[ch].row_scratch[band] = NULL;
                 if (!ch_state[ch].band_data[band]) return -1;
             }
         }
         for (int r = 0; r < FUSED_ROW_BUFS; r++) {
-            ch_state[ch].lowpass_buf[r] = (PIXEL *)calloc(ch_width / 2, sizeof(PIXEL));
-            ch_state[ch].highpass_buf[r] = (PIXEL *)calloc(ch_width / 2, sizeof(PIXEL));
+            /* Per-channel circular row buffers — the level-1 horizontal-filter
+               output, then read by vertical_filter on the very next row pair.
+               Hottest scratch in the encoder (one read + one write per pixel
+               per row). 64-B aligned to keep NEON int32 loads/stores from
+               splitting on every cache line. */
+            ch_state[ch].lowpass_buf[r] = (PIXEL *)fused_aligned_calloc(ch_width / 2, sizeof(PIXEL));
+            ch_state[ch].highpass_buf[r] = (PIXEL *)fused_aligned_calloc(ch_width / 2, sizeof(PIXEL));
             if (!ch_state[ch].lowpass_buf[r] || !ch_state[ch].highpass_buf[r]) return -1;
         }
 
@@ -2155,28 +2227,30 @@ static int setup_channel_state(
                 if (need_l2) {
                     /* +4 extra rows so the bottom-edge tail cascade can
                        write past band_height without overflowing. */
-                    ch_state[ch].band_data_l2[band] = (PIXEL *)calloc(
+                    ch_state[ch].band_data_l2[band] = (PIXEL *)fused_aligned_calloc(
                         (size_t)bw2 * (bh2 + 4), sizeof(PIXEL));
                     if (!ch_state[ch].band_data_l2[band]) return -1;
                 } else {
                     ch_state[ch].band_data_l2[band] = NULL;
                 }
-                ch_state[ch].band_data_l3[band] = (PIXEL *)calloc(
+                ch_state[ch].band_data_l3[band] = (PIXEL *)fused_aligned_calloc(
                     (size_t)bw3 * (bh3 + 4), sizeof(PIXEL));
                 if (!ch_state[ch].band_data_l3[band]) return -1;
             }
             /* Streaming buffers — only in streaming mode */
             if (streaming) {
                 for (int r = 0; r < FUSED_ROW_BUFS; r++) {
-                    ch_state[ch].lp_buf_l2[r] = (PIXEL *)calloc(bw2, sizeof(PIXEL));
-                    ch_state[ch].hp_buf_l2[r] = (PIXEL *)calloc(bw2, sizeof(PIXEL));
-                    ch_state[ch].lp_buf_l3[r] = (PIXEL *)calloc(bw3, sizeof(PIXEL));
-                    ch_state[ch].hp_buf_l3[r] = (PIXEL *)calloc(bw3, sizeof(PIXEL));
+                    /* Per-level streaming row buffers (same role as
+                       lowpass_buf/highpass_buf above, for L2 + L3). */
+                    ch_state[ch].lp_buf_l2[r] = (PIXEL *)fused_aligned_calloc(bw2, sizeof(PIXEL));
+                    ch_state[ch].hp_buf_l2[r] = (PIXEL *)fused_aligned_calloc(bw2, sizeof(PIXEL));
+                    ch_state[ch].lp_buf_l3[r] = (PIXEL *)fused_aligned_calloc(bw3, sizeof(PIXEL));
+                    ch_state[ch].hp_buf_l3[r] = (PIXEL *)fused_aligned_calloc(bw3, sizeof(PIXEL));
                     if (!ch_state[ch].lp_buf_l2[r] || !ch_state[ch].hp_buf_l2[r] ||
                         !ch_state[ch].lp_buf_l3[r] || !ch_state[ch].hp_buf_l3[r])
                         return -1;
                 }
-                ch_state[ch].ll2_row_scratch = (PIXEL *)calloc(bw2, sizeof(PIXEL));
+                ch_state[ch].ll2_row_scratch = (PIXEL *)fused_aligned_calloc(bw2, sizeof(PIXEL));
                 if (!ch_state[ch].ll2_row_scratch) return -1;
                 ch_state[ch].buf_row_l2 = 0;
                 ch_state[ch].band_out_row_l2 = 0;
@@ -2517,12 +2591,12 @@ static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
     }
     if (ctx->unpack_ring) {
         for (int s = 0; s < UNPACK_RING_SIZE; s++) {
-            ctx->unpack_ring->slot_row[s] = s - UNPACK_RING_SIZE;
+            ctx->unpack_ring->slot_row[s].v = s - UNPACK_RING_SIZE;
         }
         for (int p = 0; p < UNPACK_PRODUCERS; p++) {
-            ctx->unpack_ring->prod_max_row[p] = -1;
+            ctx->unpack_ring->prod_max_row[p].v = -1;
         }
-        for (int c = 0; c < 4; c++) ctx->unpack_ring->consumed[c] = 0;
+        for (int c = 0; c < 4; c++) ctx->unpack_ring->consumed[c].v = 0;
     }
 }
 
