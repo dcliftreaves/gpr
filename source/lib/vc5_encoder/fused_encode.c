@@ -39,15 +39,21 @@
 #include <sched.h>
 #endif
 
-/* FUSED_PIN_AFFINITY: pin producer thread N and channel thread N to core N
-   (modulo nproc). Set at runtime via GPR_PIN_AFFINITY=1. Default OFF
-   because it measured neutral on Pi 5; kept available for systems where
-   the kernel scheduler migrates worker threads excessively. */
+/* FUSED_PIN / GPR_PIN_AFFINITY: pin channel thread N to core N (modulo nproc).
+   Set at runtime via FUSED_PIN=1 or GPR_PIN_AFFINITY=1. Default OFF.
+
+   Pi 5 measurement (Aug 2026): the kernel scheduler exhibits bimodal
+   placement of the 4 channel threads — sometimes lands them on separate
+   cores (median 46 ms), sometimes 2 share a core (median 64 ms). Pinning
+   each channel thread to its own core eliminates the bimodal — gates p90
+   down. Producers (when FUSED_PRODUCER_UNPACK=1) intentionally NOT pinned
+   so they can ride whichever core is idle. */
 #if defined(__linux__)
 static int _fused_pin_enabled(void) {
     static int cached = -1;
     if (cached >= 0) return cached;
-    const char *e = getenv("GPR_PIN_AFFINITY");
+    const char *e = getenv("FUSED_PIN");
+    if (!e) e = getenv("GPR_PIN_AFFINITY");
     cached = (e && *e == '1') ? 1 : 0;
     return cached;
 }
@@ -2371,6 +2377,10 @@ advance_consumer:
 
 static void *pass1_channel_thread(void *arg) {
     PASS1_CHANNEL_TASK *t = (PASS1_CHANNEL_TASK *)arg;
+    /* Pin to channel-index core (FUSED_PIN=1). Prevents kernel migration
+       between cores during the row loop, eliminating the bimodal slowdown
+       where 2 channel threads end up sharing a core. */
+    _fused_pin_self(t->channel);
     if (t->ring) {
         pass1_run_channel_consumer(t->channel, t->width, t->height,
                                     t->prescale, t->cs, t->ring);
