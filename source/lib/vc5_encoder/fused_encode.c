@@ -1391,6 +1391,33 @@ static void pass1_run_channel(
     }
     int total_rows = ch_height + tail_extras;
 
+    /* Hoist env-driven decisions OUT of the row loop. Each env lookup uses
+       a function-static cache, but the per-row `do_aa = (...)` expression
+       and the conditional dispatch still cost branches. Compute the per-
+       channel mode once. */
+    static int decimate_aa = -1;
+    if (decimate_aa < 0) {
+        const char *e = getenv("GPR_DECIMATE_AA");
+        decimate_aa = (e && *e == '1') ? 1 : 0;
+    }
+    static int aa_luma_only = -1;
+    if (aa_luma_only < 0) {
+        const char *e = getenv("GPR_AA_LUMA_ONLY");
+        aa_luma_only = (e && *e == '1') ? 1 : 0;
+    }
+    static int hf_drop_hp = -1;
+    if (hf_drop_hp < 0) {
+        const char *e = getenv("GPR_DROP_HIGHPASS");
+        hf_drop_hp = (e && *e == '1') ? 1 : 0;
+    }
+    int do_aa_ch = (col_decimate == 2 && row_stride_pairs == 4 && decimate_aa);
+    if (do_aa_ch && aa_luma_only && (channel == 1 || channel == 2)) {
+        do_aa_ch = 0;
+    }
+    /* Per-row dispatch mode: 0 = AA-2x2, 1 = full-width unpack + pair-avg,
+       2 = direct unpack to ch_width. */
+    int unpack_mode = do_aa_ch ? 0 : ((col_decimate == 2) ? 1 : 2);
+
     for (int row = 0; row < total_rows; row++) {
         int buf_idx = cs->buf_row % FUSED_ROW_BUFS;
 
@@ -1402,38 +1429,15 @@ static void pass1_run_channel(
             _td = _fused_ms();
 #endif
 
-            /* Default ROW+COL decimate is the FAST path: only read the
-               first row pair, decimate vertically by row-skip (the wavelet
-               handles vertical LP filtering downstream). To opt into the
-               slower properly-anti-aliased fused 4-row averager, set
-               GPR_DECIMATE_AA=1. The fast path reads ~50% of the bayer
-               area for ROW+COL decimate vs the AA path's 100%. */
-            static int decimate_aa = -1;
-            if (decimate_aa < 0) {
-                const char *e = getenv("GPR_DECIMATE_AA");
-                decimate_aa = (e && *e == '1') ? 1 : 0;
-            }
-            /* GPR_AA_LUMA_ONLY=1: full 2x2 AA only on luma channels (GS=0, GD=3).
-               Chroma channels (RG=1, BG=2) use the fast path. Saves the
-               extra row-pair read on the chroma half. Lossy in chroma.
-               Default OFF — opt-in via env to preserve byte identity. */
-            static int aa_luma_only = -1;
-            if (aa_luma_only < 0) {
-                const char *e = getenv("GPR_AA_LUMA_ONLY");
-                aa_luma_only = (e && *e == '1') ? 1 : 0;
-            }
-            int do_aa = (col_decimate == 2 && row_stride_pairs == 4 && decimate_aa);
-            if (do_aa && aa_luma_only && (channel == 1 || channel == 2)) {
-                do_aa = 0;
-            }
-            if (do_aa) {
+            /* unpack_mode dispatch hoisted out of the row loop. See above. */
+            if (unpack_mode == 0) {
                 /* Slow / quality: average across two row pairs in log space. */
                 const uint16_t *row1b = row1 + 2 * bayer_pitch;
                 const uint16_t *row2b = row2 + 2 * bayer_pitch;
                 unpack_channel_row_decimate_2x2(channel, is_rggb,
                     log_tbl, log_max, mid2,
                     row1, row2, row1b, row2b, unpack_row, ch_width);
-            } else if (col_decimate == 2) {
+            } else if (unpack_mode == 1) {
                 /* Unpack full-width then pair-average to halve. NEON vrhaddq
                    reads 8 lanes and averages with rounding; we use it on
                    adjacent pairs by uzp-extracting evens/odds. */
@@ -1465,15 +1469,7 @@ static void pass1_run_channel(
             t_unpack += _fused_ms() - _td; _td = _fused_ms();
 #endif
 
-            /* When GPR_DROP_HIGHPASS=1, the HP side of the wavelet is
-               discarded — skip the HP arithmetic in horizontal_filter
-               (and the LH/HL/HH vertical-filter work later in this loop).
-               Saves ~30-40% of encode time on the LL-only-fast path. */
-            static int hf_drop_hp = -1;
-            if (hf_drop_hp < 0) {
-                const char *e = getenv("GPR_DROP_HIGHPASS");
-                hf_drop_hp = (e && *e == '1') ? 1 : 0;
-            }
+            /* hf_drop_hp hoisted; saves ~30-40% on LL-only-fast path. */
             if (hf_drop_hp) {
                 horizontal_filter_lp_only(unpack_row,
                                           cs->lowpass_buf[buf_idx],

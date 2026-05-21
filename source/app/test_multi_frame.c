@@ -99,6 +99,10 @@ int main(int argc, char **argv) {
     uint16_t *raw = malloc(in_sz);
     uint16_t *dec = calloc(1, in_sz);  /* worst case full res */
 
+    /* B4/B5 (mlockall / MADV_HUGEPAGE) measured to regress on Pi 5;
+       mlockall+MCL_CURRENT alone gave +5 ms median + higher variance,
+       MADV_HUGEPAGE gave +60 ms (THP first-touch zeroing). Not adopted. */
+
     /* Warm-up using first frame */
     {
         FILE *f = fopen(argv[4], "rb");
@@ -108,14 +112,31 @@ int main(int argc, char **argv) {
         gpr_encode_fused_frame(enc, (unsigned char *)raw, in_sz, &out, &out_sz);
     }
 
+    int skip_decode = 0;
+    {
+        const char *e = getenv("MULTI_FRAME_SKIP_DECODE");
+        if (e && *e == '1') skip_decode = 1;
+    }
+    int skip_writes = 0;
+    {
+        const char *e = getenv("MULTI_FRAME_SKIP_WRITES");
+        if (e && *e == '1') skip_writes = 1;
+    }
+    int reuse_raw = 0;
+    {
+        const char *e = getenv("MULTI_FRAME_REUSE_RAW");
+        if (e && *e == '1') reuse_raw = 1;
+    }
     fprintf(stderr, "# frame  src                   enc_ms  dec_ms  bytes      dw x dh\n");
     for (int i = 0; i < nframes; i++) {
         const char *src_path = argv[4 + i];
-        FILE *f = fopen(src_path, "rb");
-        if (!f || fread(raw, 1, in_sz, f) != in_sz) {
-            fprintf(stderr, "skip %s\n", src_path); continue;
+        if (!(reuse_raw && i > 0)) {
+            FILE *f = fopen(src_path, "rb");
+            if (!f || fread(raw, 1, in_sz, f) != in_sz) {
+                fprintf(stderr, "skip %s\n", src_path); continue;
+            }
+            fclose(f);
         }
-        fclose(f);
 
         double t0 = now_ms();
         unsigned char *out = NULL; size_t out_sz = 0;
@@ -151,21 +172,26 @@ int main(int argc, char **argv) {
             }
         }
 
-        int drc = gpr_decode_fused(out, out_sz, dec, (size_t)dw * 2, &dw, &dh);
-        double t2 = now_ms();
-        if (drc != 0) { fprintf(stderr, "frame %d DECODE rc=%d\n", i, drc); continue; }
+        double t2 = t1;
+        if (!skip_decode) {
+            int drc = gpr_decode_fused(out, out_sz, dec, (size_t)dw * 2, &dw, &dh);
+            t2 = now_ms();
+            if (drc != 0) { fprintf(stderr, "frame %d DECODE rc=%d\n", i, drc); continue; }
+        }
 
         const char *name = strrchr(src_path, '/'); name = name ? name + 1 : src_path;
         fprintf(stderr, "# %3d    %-22s %6.1f  %6.1f  %-9zu  %4d x %4d\n",
                 i, name, t1 - t0, t2 - t1, out_sz, dw, dh);
 
-        /* Write decoded raw (LE u16) and demosaiced PPM */
-        char path[512];
-        snprintf(path, sizeof(path), "%s_%03d.raw", prefix, i);
-        FILE *g = fopen(path, "wb");
-        if (g) { fwrite(dec, 2, (size_t)dw * dh, g); fclose(g); }
-        snprintf(path, sizeof(path), "%s_%03d.ppm", prefix, i);
-        demosaic_to_ppm(dec, dw, dh, 4, path);
+        if (!skip_writes && !skip_decode) {
+            /* Write decoded raw (LE u16) and demosaiced PPM */
+            char path[512];
+            snprintf(path, sizeof(path), "%s_%03d.raw", prefix, i);
+            FILE *g = fopen(path, "wb");
+            if (g) { fwrite(dec, 2, (size_t)dw * dh, g); fclose(g); }
+            snprintf(path, sizeof(path), "%s_%03d.ppm", prefix, i);
+            demosaic_to_ppm(dec, dw, dh, 4, path);
+        }
     }
 
     gpr_encode_fused_destroy(enc);
