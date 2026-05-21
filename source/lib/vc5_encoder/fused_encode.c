@@ -1588,7 +1588,16 @@ typedef struct {
    Producers wait for min_consumer > r - N_RING before writing slot s.
    N_RING = 64 -> ~4.5 MB at 50 MP. Signalling batched every
    RING_BATCH rows to keep mutex traffic low. */
-#define UNPACK_RING_SIZE  64
+/* Ring depth reduced from 64 to 8 (Pi 5 hardware-aware sizing).
+   At 50 MP each slot is ~33 KB (4 channels × ch_width × 4 B for PIXEL).
+   64 slots × 33 KB = 2.1 MB exceeds Pi 5 L3 (2 MB shared) — producer-
+   written rows evict before consumers read them.
+   8 slots × 33 KB = 264 KB fits in L3 and partially in per-core L2
+   (512 KB), keeping the producer/consumer hand-off in cache.
+   On A76 this should save ~3-5 ms on the producer-unpack path; on
+   the default per-channel path it just shrinks calloc/free of the
+   ring struct, which is negligible. */
+#define UNPACK_RING_SIZE  8
 #define UNPACK_RING_BATCH 16
 #ifndef UNPACK_PRODUCERS
 #define UNPACK_PRODUCERS  4
