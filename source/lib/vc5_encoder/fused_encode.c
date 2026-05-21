@@ -1007,15 +1007,15 @@ static void unpack_channel_row_decimate_2x2(
         }
 
         /* For each output k, we want the avg of the 4 same-color samples
-           at flat indices {2k, 2k+1, 8+2k, 8+2k+1}. Lay out 16 lookups in
-           an order where output-k samples are at positions {k, k+4, k+8,
-           k+12} after a small permutation — easier: do 16 sequential
-           lookups, then NEON-pair-add. */
-        int32_t G1log[16], G2log[16], Xlog[16];
-        /* Unrolled to make each lookup an independent load — compiler
-           reorders these freely; A76 has 2 LSU ports so up to 2 loads /
-           cycle, latency 4 cycles. With 16 independent loads, we hit
-           ~8 cycles to retire all (or hide them behind subsequent ops). */
+           at flat indices {2k, 2k+1, 8+2k, 8+2k+1}. We store the 16 LUT
+           outputs as u16 (the encoder log curve fits in 14 or 16 bits) and
+           pair-add via vpaddlq_u16 (u16 lanes → u32 lanes in 1 op).
+           Compared to the prior i32 scratch: half the store/load bandwidth,
+           no STLF size-mismatch (u16 store ↔ u16 load forwards on A76),
+           and 1 fewer ALU op per color (vpaddlq does pair-add + widen in
+           one instruction). 4-way sum max value = 4 × 16383 = 65532 (fits
+           in u16 sum after pair-add gives u32, so no overflow). */
+        uint16_t G1log[16], G2log[16], Xlog[16];
         G1log[ 0] = log_tbl[G1_idx[ 0]]; G1log[ 1] = log_tbl[G1_idx[ 1]];
         G1log[ 2] = log_tbl[G1_idx[ 2]]; G1log[ 3] = log_tbl[G1_idx[ 3]];
         G1log[ 4] = log_tbl[G1_idx[ 4]]; G1log[ 5] = log_tbl[G1_idx[ 5]];
@@ -1044,24 +1044,18 @@ static void unpack_channel_row_decimate_2x2(
             Xlog[14] = log_tbl[idx[14]]; Xlog[15] = log_tbl[idx[15]];
         }
 
-        /* NEON reduce: for output k, sum = log[2k] + log[2k+1] + log[8+2k] + log[8+2k+1]
-           That's (pair-add of low 8) + (pair-add of high 8). */
-        int32x4_t g1_lo0 = vld1q_s32(&G1log[ 0]);
-        int32x4_t g1_lo1 = vld1q_s32(&G1log[ 4]);
-        int32x4_t g1_hi0 = vld1q_s32(&G1log[ 8]);
-        int32x4_t g1_hi1 = vld1q_s32(&G1log[12]);
-        int32x4_t g2_lo0 = vld1q_s32(&G2log[ 0]);
-        int32x4_t g2_lo1 = vld1q_s32(&G2log[ 4]);
-        int32x4_t g2_hi0 = vld1q_s32(&G2log[ 8]);
-        int32x4_t g2_hi1 = vld1q_s32(&G2log[12]);
-        /* vpaddq pairs adjacent lanes: result[0..3] = a[0..1], a[2..3], b[0..1], b[2..3].
-           Applied to (lo0, lo1): gives 4 pair-sums covering positions 0..7. */
-        int32x4_t g1_lopair = vpaddq_s32(g1_lo0, g1_lo1);  /* sums positions 0+1, 2+3, 4+5, 6+7 of row_a */
-        int32x4_t g1_hipair = vpaddq_s32(g1_hi0, g1_hi1);  /* sums positions 0+1, 2+3, 4+5, 6+7 of row_b */
-        int32x4_t g1_sum4   = vaddq_s32(g1_lopair, g1_hipair);
-        int32x4_t g2_lopair = vpaddq_s32(g2_lo0, g2_lo1);
-        int32x4_t g2_hipair = vpaddq_s32(g2_hi0, g2_hi1);
-        int32x4_t g2_sum4   = vaddq_s32(g2_lopair, g2_hipair);
+        /* NEON reduce: vpaddlq_u16 pair-adds adjacent u16 lanes within one
+           q-vector, widening result to u32. For each 8-lane row-half:
+             [a0..a7] → [a0+a1, a2+a3, a4+a5, a6+a7] (4 × u32)
+           Sum the two row-halves (row_a + row_b) lane-wise → 4-way avg. */
+        uint16x8_t g1_a16 = vld1q_u16(&G1log[ 0]);
+        uint16x8_t g1_b16 = vld1q_u16(&G1log[ 8]);
+        uint16x8_t g2_a16 = vld1q_u16(&G2log[ 0]);
+        uint16x8_t g2_b16 = vld1q_u16(&G2log[ 8]);
+        uint32x4_t g1_sum4u = vaddq_u32(vpaddlq_u16(g1_a16), vpaddlq_u16(g1_b16));
+        uint32x4_t g2_sum4u = vaddq_u32(vpaddlq_u16(g2_a16), vpaddlq_u16(g2_b16));
+        int32x4_t  g1_sum4  = vreinterpretq_s32_u32(g1_sum4u);
+        int32x4_t  g2_sum4  = vreinterpretq_s32_u32(g2_sum4u);
         /* (sum + 2) >> 2 = average of 4 */
         int32x4_t two = vdupq_n_s32(2);
         int32x4_t vg1 = vshrq_n_s32(vaddq_s32(g1_sum4, two), 2);
@@ -1073,13 +1067,10 @@ static void unpack_channel_row_decimate_2x2(
         } else if (channel == 3) {
             result = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
         } else {
-            int32x4_t x_lo0 = vld1q_s32(&Xlog[ 0]);
-            int32x4_t x_lo1 = vld1q_s32(&Xlog[ 4]);
-            int32x4_t x_hi0 = vld1q_s32(&Xlog[ 8]);
-            int32x4_t x_hi1 = vld1q_s32(&Xlog[12]);
-            int32x4_t x_lopair = vpaddq_s32(x_lo0, x_lo1);
-            int32x4_t x_hipair = vpaddq_s32(x_hi0, x_hi1);
-            int32x4_t x_sum4   = vaddq_s32(x_lopair, x_hipair);
+            uint16x8_t x_a16 = vld1q_u16(&Xlog[ 0]);
+            uint16x8_t x_b16 = vld1q_u16(&Xlog[ 8]);
+            uint32x4_t x_sum4u = vaddq_u32(vpaddlq_u16(x_a16), vpaddlq_u16(x_b16));
+            int32x4_t  x_sum4  = vreinterpretq_s32_u32(x_sum4u);
             int32x4_t vx = vshrq_n_s32(vaddq_s32(x_sum4, two), 2);
             int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
             result = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
