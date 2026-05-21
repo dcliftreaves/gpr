@@ -1690,9 +1690,15 @@ static void *unpack_producer_thread(void *arg) {
         int slot = row % UNPACK_RING_SIZE;
 
         /* Wait until all consumers have advanced past row - UNPACK_RING_SIZE
-           so the slot is free to overwrite. */
+           so the slot is free to overwrite.
+           Before sleeping, broadcast cons_cv so any consumer that's blocked
+           on an as-yet-unbatched slot wakes up and drains. Without this,
+           4 producers each fill 2 slots (RING_SIZE=8 ÷ 4 producers) before
+           filling the ring, which is < UNPACK_RING_BATCH=16 → consumer never
+           gets the normal end-of-batch broadcast → deadlock. */
         if (row >= UNPACK_RING_SIZE) {
             pthread_mutex_lock(&ring->lock);
+            pthread_cond_broadcast(&ring->cons_cv);
             for (;;) {
                 int min_cons = ring->consumed[0];
                 if (ring->consumed[1] < min_cons) min_cons = ring->consumed[1];
@@ -1937,13 +1943,24 @@ static void pass1_run_channel_consumer(
 advance_consumer:
         /* Release the slot once we've consumed it. Only data rows are tracked
            in the ring; tail rows don't read from the ring. Batch signaling
-           so the producer isn't woken per row. */
+           so the producer isn't woken per row.
+           Two pre-existing deadlock conditions fixed here:
+             1. Signal cadence must be < UNPACK_RING_SIZE/UNPACK_PRODUCERS so
+                producers can advance before the ring fills. With RING=8 and
+                4 producers we use sig_period=UNPACK_RING_SIZE/2 = 4.
+             2. Use broadcast (not signal) since up to 4 producers are
+                blocked on prod_cv and they may each need a different
+                consumed[ch] threshold. pthread_cond_signal wakes only one;
+                that one may go right back to sleep, leaving the others
+                stranded with no further wake source. */
         if (row < ch_height) {
             int new_cons = row + 1;
-            if ((new_cons % UNPACK_RING_BATCH) == 0 || new_cons == ch_height) {
+            int sig_period = UNPACK_RING_SIZE / 2;
+            if (sig_period < 1) sig_period = 1;
+            if ((new_cons % sig_period) == 0 || new_cons == ch_height) {
                 pthread_mutex_lock(&ring->lock);
                 ring->consumed[channel] = new_cons;
-                pthread_cond_signal(&ring->prod_cv);
+                pthread_cond_broadcast(&ring->prod_cv);
                 pthread_mutex_unlock(&ring->lock);
             } else {
                 ring->consumed[channel] = new_cons;
