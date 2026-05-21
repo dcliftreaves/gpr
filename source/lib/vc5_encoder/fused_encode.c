@@ -2667,12 +2667,16 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
                        4.39 MB at 64 — 0.7% better)
                      50 MP MISSION 1 (band_height=1450): 64 wins (9.50 MB vs
                        10.55 MB at 128 — 10% better)
+                     50 MP X2D (band_height=1536) on Pi 5 A76: 32 wins on
+                       sustained throughput (52.9 → 51.9 ms median over
+                       50 frames) AND 2.3% smaller files vs 64. Tighter
+                       per-stripe freq fit improves at high-MP sources.
                    Larger bands benefit from more stripes (tighter local
                    freq fit per stripe outweighs per-stripe table overhead).
 
-                   Heuristic: 128 below 1200 rows, 64 above.
-                   Env overrides take precedence. */
-                int rows = (cs->band_height < 1200) ? 128 : 64;
+                   Heuristic: 128 below 1200 rows, 32 above. Env overrides
+                   take precedence. */
+                int rows = (cs->band_height < 1200) ? 128 : 32;
                 const char *e_global = getenv("FUSED_STRIPE_ROWS");
                 if (e_global) { int v = atoi(e_global); if (v > 0) rows = v; }
                 const char *band_env = NULL;
