@@ -1405,6 +1405,134 @@ static void unpack_channel_row_decimate_2x2_fused_lp(
     }
 }
 
+/* T16: chroma col-decimate + fused horizontal-LP. Combines T13b with the
+   prescale=2 pair-sum from T15: walks 2 Bayer rows, produces ch_width/2
+   prescaled+pair-summed LP outputs directly to lp_out, skipping the
+   unpack_row intermediate buffer entirely.
+
+   Saves ~12 MB/frame across 2 chroma channels on the AA_LUMA_ONLY=1 +
+   DROP_HIGHPASS path. Bit-exact with chroma T13b + horizontal_filter_lp_only.
+*/
+static void unpack_channel_row_col_decimate_2x1_fused_lp(
+    int channel, int is_rggb,
+    const uint16_t *log_tbl, int log_max, int32_t mid2,
+    const uint16_t *row1, const uint16_t *row2,
+    PIXEL *lp_out, int ch_width_out)
+{
+    int o = 0;
+    const uint16_t lm = (uint16_t)log_max;
+    const int half = ch_width_out / 2;
+    const int half_m2 = (half / 2) * 2;
+
+#if ENABLED(NEON)
+    const uint16x8_t v_log_max = vdupq_n_u16(lm);
+    const int32x4_t vmid2 = vdupq_n_s32(mid2);
+    const int32x4_t vthree = vdupq_n_s32(3);
+
+    /* Each iter handles 4 unpack outputs from 8 same-color samples
+       (col_decimate=2 means 2 unpack outputs per 4 Bayer cols of same color).
+       That produces 2 LP outputs (i, i+1). half_m2 must be a multiple of 2 — half
+       is rarely odd, but we use even-aligned bound and let scalar tail clean up. */
+    for (int i = 0; i < half_m2; i += 2) {
+        int u = i * 2;       /* 4 unpack outputs starting at u */
+        int bc = u * 2;       /* Bayer col base; col_decimate=2 → 8 cols per 4 outputs */
+
+        uint16x8x2_t r1d = vld2q_u16(&row1[2 * bc]);
+        uint16x8x2_t r2d = vld2q_u16(&row2[2 * bc]);
+
+        uint16x8_t vR, vG1, vG2, vB;
+        if (is_rggb) {
+            vR  = vminq_u16(r1d.val[0], v_log_max);
+            vG1 = vminq_u16(r1d.val[1], v_log_max);
+            vG2 = vminq_u16(r2d.val[0], v_log_max);
+            vB  = vminq_u16(r2d.val[1], v_log_max);
+        } else {
+            vG1 = vminq_u16(r1d.val[0], v_log_max);
+            vB  = vminq_u16(r1d.val[1], v_log_max);
+            vR  = vminq_u16(r2d.val[0], v_log_max);
+            vG2 = vminq_u16(r2d.val[1], v_log_max);
+        }
+
+        uint16_t Xs[8], G1s[8], G2s[8];
+        vst1q_u16(G1s, vG1);
+        vst1q_u16(G2s, vG2);
+        if (channel == 1) vst1q_u16(Xs, vR);
+        else              vst1q_u16(Xs, vB);
+
+        int32_t Xv[8], G1v[8], G2v[8];
+        for (int k = 0; k < 8; k++) {
+            Xv[k]  = log_tbl[Xs[k]];
+            G1v[k] = log_tbl[G1s[k]];
+            G2v[k] = log_tbl[G2s[k]];
+        }
+
+        /* Two 4-wide tiles → 8 intermediates → pair-avg + prescale + pair-sum
+           gives 2 LP outs. The intra-tile pair-avg uses vuzp1q/vuzp2q like T13b. */
+        int32x4_t val_lo, val_hi;
+        {
+            int32x4_t vx  = vld1q_s32(&Xv[0]);
+            int32x4_t vg1 = vld1q_s32(&G1v[0]);
+            int32x4_t vg2 = vld1q_s32(&G2v[0]);
+            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            val_lo = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
+        }
+        {
+            int32x4_t vx  = vld1q_s32(&Xv[4]);
+            int32x4_t vg1 = vld1q_s32(&G1v[4]);
+            int32x4_t vg2 = vld1q_s32(&G2v[4]);
+            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            val_hi = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
+        }
+        /* Pair-avg across val_lo/val_hi → 4 unpack outputs in `avg`. */
+        int32x4_t e = vuzp1q_s32(val_lo, val_hi);
+        int32x4_t d = vuzp2q_s32(val_lo, val_hi);
+        int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
+        /* Prescale + pair-sum → 2 LP outputs in low half. */
+        int32x4_t ps = vshrq_n_s32(vaddq_s32(avg, vthree), 2);
+        int32x4_t pairs = vpaddq_s32(ps, ps);
+        vst1_s32(&lp_out[i], vget_low_s32(pairs));
+        (void)o;
+    }
+    o = half_m2 * 2;
+#endif
+
+    /* Scalar tail. */
+    for (int i = half_m2; i < half; i++) {
+        int u_base = i * 2;
+        int32_t ps_pair[2];
+        for (int p = 0; p < 2; p++) {
+            int u = u_base + p;
+            /* Each u reads 2 Bayer pair-cols (= 4 same-color samples). */
+            int32_t s0 = 0, s1 = 0;
+            for (int pp = 0; pp < 2; pp++) {
+                int c = u * 2 + pp;
+                uint16_t Rv, G1v, G2v, Bv;
+                if (is_rggb) {
+                    Rv = row1[2*c];   G1v = row1[2*c+1];
+                    G2v = row2[2*c];  Bv  = row2[2*c+1];
+                } else {
+                    G1v = row1[2*c];  Bv  = row1[2*c+1];
+                    Rv  = row2[2*c];  G2v = row2[2*c+1];
+                }
+                if (Rv > lm) Rv = lm; if (G1v > lm) G1v = lm;
+                if (G2v > lm) G2v = lm; if (Bv > lm) Bv = lm;
+                int32_t r  = log_tbl[Rv];
+                int32_t g1 = log_tbl[G1v];
+                int32_t g2 = log_tbl[G2v];
+                int32_t b  = log_tbl[Bv];
+                int32_t gs = (g1 + g2) >> 1;
+                int32_t val;
+                if (channel == 1) val = ((r - gs) + mid2) >> 1;
+                else              val = ((b - gs) + mid2) >> 1;
+                if (pp == 0) s0 = val; else s1 = val;
+            }
+            int32_t unpack_val = (s0 + s1) >> 1;
+            ps_pair[p] = (unpack_val + 3) >> 2;
+        }
+        lp_out[i] = ps_pair[0] + ps_pair[1];
+    }
+}
+
 /* T13b: fused col-decimate variant of unpack_channel_row for chroma. Reads
    2 Bayer rows, produces ch_width=ch_width_full/2 outputs (each = average of
    two adjacent same-channel samples). This replaces the unpack_channel_row →
@@ -1520,6 +1648,105 @@ static void unpack_channel_row_col_decimate_2x1(
             if (p == 0) s0 = val; else s1 = val;
         }
         output[o] = (s0 + s1) >> 1;
+    }
+}
+
+/* T16-luma: luma col-decimate + fused horizontal-LP. Like T14 but writes
+   directly to lp_out (prescale=2 + pair-sum applied to pair-averaged outputs). */
+static void unpack_luma_row_col_decimate_2x1_fused_lp(
+    int channel, int is_rggb,
+    const uint16_t *log_tbl, int log_max, int32_t mid2,
+    const uint16_t *row1, const uint16_t *row2,
+    PIXEL *lp_out, int ch_width_out)
+{
+    int o = 0;
+    const uint16_t lm = (uint16_t)log_max;
+    const int half = ch_width_out / 2;
+    const int half_m2 = (half / 2) * 2;
+
+#if ENABLED(NEON)
+    const uint16x8_t v_log_max = vdupq_n_u16(lm);
+    const int32x4_t vmid2 = vdupq_n_s32(mid2);
+    const int32x4_t vthree = vdupq_n_s32(3);
+
+    for (int i = 0; i < half_m2; i += 2) {
+        int u = i * 2;
+        int bc = u * 2;
+
+        uint16x8x2_t r1d = vld2q_u16(&row1[2 * bc]);
+        uint16x8x2_t r2d = vld2q_u16(&row2[2 * bc]);
+
+        uint16x8_t vG1, vG2;
+        if (is_rggb) {
+            vG1 = vminq_u16(r1d.val[1], v_log_max);
+            vG2 = vminq_u16(r2d.val[0], v_log_max);
+        } else {
+            vG1 = vminq_u16(r1d.val[0], v_log_max);
+            vG2 = vminq_u16(r2d.val[1], v_log_max);
+        }
+
+        uint16_t G1s[8], G2s[8];
+        vst1q_u16(G1s, vG1);
+        vst1q_u16(G2s, vG2);
+        int32_t G1v[8], G2v[8];
+        for (int k = 0; k < 8; k++) {
+            G1v[k] = log_tbl[G1s[k]];
+            G2v[k] = log_tbl[G2s[k]];
+        }
+
+        int32x4_t val_lo, val_hi;
+        {
+            int32x4_t vg1 = vld1q_s32(&G1v[0]);
+            int32x4_t vg2 = vld1q_s32(&G2v[0]);
+            if (channel == 0) val_lo = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            else               val_lo = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+        }
+        {
+            int32x4_t vg1 = vld1q_s32(&G1v[4]);
+            int32x4_t vg2 = vld1q_s32(&G2v[4]);
+            if (channel == 0) val_hi = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            else               val_hi = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+        }
+        int32x4_t e = vuzp1q_s32(val_lo, val_hi);
+        int32x4_t d = vuzp2q_s32(val_lo, val_hi);
+        int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
+        int32x4_t ps = vshrq_n_s32(vaddq_s32(avg, vthree), 2);
+        int32x4_t pairs = vpaddq_s32(ps, ps);
+        vst1_s32(&lp_out[i], vget_low_s32(pairs));
+        (void)o;
+    }
+    o = half_m2 * 2;
+#endif
+
+    for (int i = half_m2; i < half; i++) {
+        int u_base = i * 2;
+        int32_t ps_pair[2];
+        for (int p = 0; p < 2; p++) {
+            int u = u_base + p;
+            int32_t s0 = 0, s1 = 0;
+            for (int pp = 0; pp < 2; pp++) {
+                int c = u * 2 + pp;
+                uint16_t G1v, G2v;
+                if (is_rggb) {
+                    G1v = row1[2*c+1];
+                    G2v = row2[2*c];
+                } else {
+                    G1v = row1[2*c];
+                    G2v = row2[2*c+1];
+                }
+                if (G1v > lm) G1v = lm;
+                if (G2v > lm) G2v = lm;
+                int32_t g1 = log_tbl[G1v];
+                int32_t g2 = log_tbl[G2v];
+                int32_t val;
+                if (channel == 0) val = (g1 + g2) >> 1;
+                else              val = ((g1 - g2) + mid2) >> 1;
+                if (pp == 0) s0 = val; else s1 = val;
+            }
+            int32_t unpack_val = (s0 + s1) >> 1;
+            ps_pair[p] = (unpack_val + 3) >> 2;
+        }
+        lp_out[i] = ps_pair[0] + ps_pair[1];
     }
 }
 
@@ -1875,25 +2102,41 @@ static void pass1_run_channel(
             } else if (unpack_mode == 1) {
                 /* T13b (chroma): fused col-decimate for channel 1, 2.
                    T14 (luma):    fused col-decimate for channel 0, 3.
-                   Both combine the per-channel unpack + col-pair-average into
-                   one pass, avoiding the intermediate unpack_full read/write
-                   (~32 KB/row per channel saved). The luma fallback to the
-                   two-pass path is gated by FUSED_LUMA_FUSED_OFF=1 in case
-                   the new path needs to be A/B'd against a regression. */
+                   T16:           further fused with horizontal-LP when
+                                  hf_drop_hp+prescale==2; writes directly to
+                                  cs->lowpass_buf, skipping unpack_row.
+                   Gated by FUSED_LUMA_FUSED_OFF=1 / FUSED_FUSE_LP_OFF=1. */
                 static int luma_fused_off = -1;
                 if (luma_fused_off < 0) {
                     const char *e = getenv("FUSED_LUMA_FUSED_OFF");
                     luma_fused_off = (e && *e == '1') ? 1 : 0;
                 }
+                static int mode1_fuse_lp_off = -1;
+                if (mode1_fuse_lp_off < 0) {
+                    const char *e = getenv("FUSED_FUSE_LP_OFF");
+                    mode1_fuse_lp_off = (e && *e == '1') ? 1 : 0;
+                }
+                int use_fused_lp = (hf_drop_hp && prescale == 2 && !mode1_fuse_lp_off);
                 if (channel == 1 || channel == 2) {
-                    unpack_channel_row_col_decimate_2x1(channel, is_rggb,
-                        log_tbl, log_max, mid2,
-                        row1, row2, unpack_row, ch_width);
+                    if (use_fused_lp) {
+                        unpack_channel_row_col_decimate_2x1_fused_lp(channel, is_rggb,
+                            log_tbl, log_max, mid2,
+                            row1, row2, cs->lowpass_buf[buf_idx], ch_width);
+                    } else {
+                        unpack_channel_row_col_decimate_2x1(channel, is_rggb,
+                            log_tbl, log_max, mid2,
+                            row1, row2, unpack_row, ch_width);
+                    }
                 } else if (!luma_fused_off) {
-                    /* T14: luma fused col-decimate. */
-                    unpack_luma_row_col_decimate_2x1(channel, is_rggb,
-                        log_tbl, log_max, mid2,
-                        row1, row2, unpack_row, ch_width);
+                    if (use_fused_lp) {
+                        unpack_luma_row_col_decimate_2x1_fused_lp(channel, is_rggb,
+                            log_tbl, log_max, mid2,
+                            row1, row2, cs->lowpass_buf[buf_idx], ch_width);
+                    } else {
+                        unpack_luma_row_col_decimate_2x1(channel, is_rggb,
+                            log_tbl, log_max, mid2,
+                            row1, row2, unpack_row, ch_width);
+                    }
                 } else {
                     /* Luma legacy: full-width unpack + post-pair-avg. */
                     unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
@@ -1927,15 +2170,31 @@ static void pass1_run_channel(
 
             /* hf_drop_hp hoisted; saves ~30-40% on LL-only-fast path.
                T15: when unpack_mode==0 + hf_drop_hp, the fused-LP path
-               wrote directly to lowpass_buf and skipped unpack_row; we
-               skip the horizontal_filter call here. fuse_lp_off mirrors
-               the dispatch above. */
+               wrote directly to lowpass_buf and skipped unpack_row.
+               T16: mode 1 (col-decimate) also fuses with LP — both chroma
+               and luma paths support it. Skip the separate horizontal_filter
+               call when any fused-LP path was taken. */
             static int hf_fuse_lp_off = -1;
             if (hf_fuse_lp_off < 0) {
                 const char *e = getenv("FUSED_FUSE_LP_OFF");
                 hf_fuse_lp_off = (e && *e == '1') ? 1 : 0;
             }
-            int skip_h = (unpack_mode == 0 && hf_drop_hp && prescale == 2 && !hf_fuse_lp_off);
+            static int hf_luma_fused_off = -1;
+            if (hf_luma_fused_off < 0) {
+                const char *e = getenv("FUSED_LUMA_FUSED_OFF");
+                hf_luma_fused_off = (e && *e == '1') ? 1 : 0;
+            }
+            int skip_h = 0;
+            if (hf_drop_hp && prescale == 2 && !hf_fuse_lp_off) {
+                if (unpack_mode == 0) skip_h = 1;
+                else if (unpack_mode == 1) {
+                    /* mode 1 fused-LP is only used when the channel's
+                       fused-col-decimate path was taken (chroma always; luma
+                       unless FUSED_LUMA_FUSED_OFF). */
+                    if (channel == 1 || channel == 2) skip_h = 1;
+                    else if (!hf_luma_fused_off)      skip_h = 1;
+                }
+            }
             if (skip_h) {
                 /* LP already in cs->lowpass_buf[buf_idx]; nothing to do. */
             } else if (hf_drop_hp) {
