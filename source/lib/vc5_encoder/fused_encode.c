@@ -1214,6 +1214,124 @@ _asm_done:;
     }
 }
 
+/* T13b: fused col-decimate variant of unpack_channel_row for chroma. Reads
+   2 Bayer rows, produces ch_width=ch_width_full/2 outputs (each = average of
+   two adjacent same-channel samples). This replaces the unpack_channel_row →
+   unpack_full → pair-avg → unpack_row two-pass dance in mode-1, eliminating
+   ~64 KB/row of intermediate buffer traffic. Bit-exact with the two-pass
+   path (same arithmetic semantics: log lookup → arithmetic → pair-avg).
+   Only used for chroma (channel 1, 2) since luma has the AA-2x2 path. */
+static void unpack_channel_row_col_decimate_2x1(
+    int channel, int is_rggb,
+    const uint16_t *log_tbl, int log_max, int32_t mid2,
+    const uint16_t *row1, const uint16_t *row2,
+    PIXEL *output, int ch_width_out)
+{
+    int o = 0;
+    const uint16_t lm = (uint16_t)log_max;
+
+#if ENABLED(NEON)
+    const int o_m4 = (ch_width_out / 4) * 4;
+    const uint16x8_t v_log_max = vdupq_n_u16(lm);
+    const int32x4_t vmid2 = vdupq_n_s32(mid2);
+
+    /* Per iter: 4 output samples = 8 same-color samples from 2 Bayer rows.
+       Each Bayer row supplies 16 u16s (8 R + 8 G1 from row1, etc).
+       After log lookup and color arithmetic, pair-avg adjacent samples. */
+    for (; o < o_m4; o += 4) {
+        int bc = o * 2;  /* starting Bayer column (col_decimate=2 means 8 Bayer cols per 4 outs) */
+
+        /* Load 16 u16s from each row → deinterleaved into 8 R + 8 G1 (or G2/B). */
+        uint16x8x2_t r1d = vld2q_u16(&row1[2 * bc]);
+        uint16x8x2_t r2d = vld2q_u16(&row2[2 * bc]);
+
+        uint16x8_t vR, vG1, vG2, vB;
+        if (is_rggb) {
+            vR  = vminq_u16(r1d.val[0], v_log_max);
+            vG1 = vminq_u16(r1d.val[1], v_log_max);
+            vG2 = vminq_u16(r2d.val[0], v_log_max);
+            vB  = vminq_u16(r2d.val[1], v_log_max);
+        } else {
+            vG1 = vminq_u16(r1d.val[0], v_log_max);
+            vB  = vminq_u16(r1d.val[1], v_log_max);
+            vR  = vminq_u16(r2d.val[0], v_log_max);
+            vG2 = vminq_u16(r2d.val[1], v_log_max);
+        }
+
+        /* For chroma (ch 1: RG, ch 2: BG): need R or B and G1+G2.
+           Spill, lookup, recombine. */
+        uint16_t Xs[8], G1s[8], G2s[8];
+        vst1q_u16(G1s, vG1);
+        vst1q_u16(G2s, vG2);
+        if (channel == 1) vst1q_u16(Xs, vR);
+        else              vst1q_u16(Xs, vB);
+
+        /* 8 LUT lookups each for X/G1/G2; result is 8 same-channel log values
+           (per chroma channel). We then need to compute 8 intermediate values
+           and pair-avg into 4 outputs. */
+        int32_t Xv[8], G1v[8], G2v[8];
+        for (int k = 0; k < 8; k++) {
+            Xv[k]  = log_tbl[Xs[k]];
+            G1v[k] = log_tbl[G1s[k]];
+            G2v[k] = log_tbl[G2s[k]];
+        }
+
+        /* Two 4-wide NEON arithmetic chunks, but we want the pair-averaged
+           output: out[o+k] = (val[2k] + val[2k+1]) >> 1 for k=0..3. */
+        for (int half = 0; half < 2; half++) {
+            int32x4_t vx  = vld1q_s32(&Xv[half * 4]);
+            int32x4_t vg1 = vld1q_s32(&G1v[half * 4]);
+            int32x4_t vg2 = vld1q_s32(&G2v[half * 4]);
+            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            /* val = ((X - GS) + mid2) >> 1   for chroma */
+            int32x4_t val = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
+            /* Pair-avg consecutive lanes within val. We have two halves and
+               want 2 outputs per half. Combine the two halves' outputs later. */
+            if (half == 0) {
+                /* Stash for cross-half uzp. */
+                vst1q_s32(&G1v[0], val);  /* reuse buffer */
+            } else {
+                int32x4_t lo = vld1q_s32(&G1v[0]);
+                int32x4_t hi = val;
+                int32x4_t e = vuzp1q_s32(lo, hi);
+                int32x4_t d = vuzp2q_s32(lo, hi);
+                int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
+                vst1q_s32(&output[o], avg);
+            }
+        }
+    }
+#endif
+
+    /* Scalar tail. */
+    for (; o < ch_width_out; o++) {
+        int bc = o * 2;  /* 2 input pairs per output */
+        int32_t s0 = 0, s1 = 0;
+        for (int p = 0; p < 2; p++) {
+            int c = bc + p;
+            uint16_t Rv, G1v, G2v, Bv;
+            if (is_rggb) {
+                Rv = row1[2*c];   G1v = row1[2*c+1];
+                G2v = row2[2*c];  Bv  = row2[2*c+1];
+            } else {
+                G1v = row1[2*c];  Bv  = row1[2*c+1];
+                Rv  = row2[2*c];  G2v = row2[2*c+1];
+            }
+            if (Rv > lm) Rv = lm; if (G1v > lm) G1v = lm;
+            if (G2v > lm) G2v = lm; if (Bv > lm) Bv = lm;
+            int32_t r  = log_tbl[Rv];
+            int32_t g1 = log_tbl[G1v];
+            int32_t g2 = log_tbl[G2v];
+            int32_t b  = log_tbl[Bv];
+            int32_t gs = (g1 + g2) >> 1;
+            int32_t val;
+            if (channel == 1) val = ((r - gs) + mid2) >> 1;
+            else              val = ((b - gs) + mid2) >> 1;
+            if (p == 0) s0 = val; else s1 = val;
+        }
+        output[o] = (s0 + s1) >> 1;
+    }
+}
+
 /* Streaming cascade: feed one newly-produced LL1 row into level-2's
    horizontal filter, then (if enough rows are queued) run level-2's
    vertical filter, then cascade the LL2 row into level-3's horizontal
@@ -1438,28 +1556,37 @@ static void pass1_run_channel(
                     log_tbl, log_max, mid2,
                     row1, row2, row1b, row2b, unpack_row, ch_width);
             } else if (unpack_mode == 1) {
-                /* Unpack full-width then pair-average to halve. NEON vrhaddq
-                   reads 8 lanes and averages with rounding; we use it on
-                   adjacent pairs by uzp-extracting evens/odds. */
-                unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
-                                   row1, row2, unpack_full, ch_width_full);
+                /* T13b: fused col-decimate for chroma (channel 1, 2). Combines
+                   the per-channel unpack + col-pair-average into one pass,
+                   avoiding the intermediate unpack_full read/write. Luma
+                   (ch 0, 3) falls back to the two-pass path for now since its
+                   GS/GD arithmetic differs. */
+                if (channel == 1 || channel == 2) {
+                    unpack_channel_row_col_decimate_2x1(channel, is_rggb,
+                        log_tbl, log_max, mid2,
+                        row1, row2, unpack_row, ch_width);
+                } else {
+                    /* Luma: full-width unpack + post-pair-avg (legacy path). */
+                    unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
+                                       row1, row2, unpack_full, ch_width_full);
 #if ENABLED(NEON)
-                int o = 0;
-                int o_m4 = (ch_width / 4) * 4;
-                for (; o < o_m4; o += 4) {
-                    int32x4_t a = vld1q_s32(&unpack_full[2 * o]);
-                    int32x4_t b = vld1q_s32(&unpack_full[2 * o + 4]);
-                    int32x4_t e = vuzp1q_s32(a, b);  /* evens: x0 x2 x4 x6 */
-                    int32x4_t d = vuzp2q_s32(a, b);  /* odds:  x1 x3 x5 x7 */
-                    int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
-                    vst1q_s32(&unpack_row[o], avg);
-                }
-                for (; o < ch_width; o++)
-                    unpack_row[o] = (unpack_full[2*o] + unpack_full[2*o + 1]) >> 1;
+                    int o = 0;
+                    int o_m4 = (ch_width / 4) * 4;
+                    for (; o < o_m4; o += 4) {
+                        int32x4_t a = vld1q_s32(&unpack_full[2 * o]);
+                        int32x4_t b = vld1q_s32(&unpack_full[2 * o + 4]);
+                        int32x4_t e = vuzp1q_s32(a, b);
+                        int32x4_t d = vuzp2q_s32(a, b);
+                        int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
+                        vst1q_s32(&unpack_row[o], avg);
+                    }
+                    for (; o < ch_width; o++)
+                        unpack_row[o] = (unpack_full[2*o] + unpack_full[2*o + 1]) >> 1;
 #else
-                for (int o = 0; o < ch_width; o++)
-                    unpack_row[o] = (unpack_full[2*o] + unpack_full[2*o + 1]) >> 1;
+                    for (int o = 0; o < ch_width; o++)
+                        unpack_row[o] = (unpack_full[2*o] + unpack_full[2*o + 1]) >> 1;
 #endif
+                }
             } else {
                 unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
                                    row1, row2, unpack_row, ch_width);
