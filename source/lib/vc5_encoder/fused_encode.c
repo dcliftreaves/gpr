@@ -212,6 +212,52 @@ void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpass,
     #undef PS
 }
 
+/* LP-only variant: produces only the lowpass output, skips all HP arithmetic.
+   Used when GPR_DROP_HIGHPASS=1 (HP bands are discarded anyway, no point
+   computing them). Removes ~half the per-row horizontal-filter work. */
+static void horizontal_filter_lp_only(const PIXEL *input, PIXEL *lowpass,
+                                       int width, int prescale)
+{
+    int prescale_rounding = (1 << prescale) - 1;
+    int half = width / 2;
+    #define PS(v) (((v) + prescale_rounding) >> prescale)
+
+    lowpass[0] = PS(input[0]) + PS(input[1]);
+
+    {
+        int i = 1;
+#if ENABLED(NEON)
+        const int32x4_t vround = vdupq_n_s32(prescale_rounding);
+        const int32x4_t neg_ps = vdupq_n_s32(-prescale);
+        for (; i + 3 < half - 1; i += 4) {
+            int idx = 2 * i;
+            /* Need inputs [2i .. 2i+7] for 4 LP outputs (no halo). */
+            int32x4_t in_lo = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx + 0]), vround), neg_ps);
+            int32x4_t in_hi = vshlq_s32(vaddq_s32(vld1q_s32(&input[idx + 4]), vround), neg_ps);
+            /* vuzpq splits into evens/odds: evens=[2i,2i+2,2i+4,2i+6], odds=[2i+1,2i+3,2i+5,2i+7] */
+            int32x4x2_t u = vuzpq_s32(in_lo, in_hi);
+            vst1q_s32(&lowpass[i], vaddq_s32(u.val[0], u.val[1]));
+        }
+#endif
+        for (; i < half - 1; i++) {
+            int idx = 2 * i;
+            lowpass[i] = PS(input[idx]) + PS(input[idx + 1]);
+        }
+    }
+
+    {
+        int idx = 2 * (half - 1);
+        lowpass[half - 1] = PS(input[idx]) + PS(input[idx + 1]);
+    }
+
+    if (width & 1) {
+        int idx = width - 1;
+        PIXEL last = PS(input[idx]);
+        lowpass[half] = last + last;
+    }
+    #undef PS
+}
+
 /* ================================================================
    Vertical filter + quantize (simplified from forward.c)
    ================================================================ */
@@ -368,6 +414,63 @@ static void vertical_filter_quantize_row(
         high = ((r4 + r5 - r0 - r1 + 4) >> 3) + (r2 - r3);
         out_lo[col] = quantize_scalar(low, mid_lo, mul_lo);
         out_hi[col] = quantize_scalar(high, mid_hi, mul_hi);
+    }
+}
+
+
+/* LL-only variant: produces only the LP output, skips HP arithmetic.
+   Used in GPR_DROP_HIGHPASS=1 mode to skip the LH-row computation when
+   processing LP-input rows. Saves ~50% of the per-row vertical filter work
+   for the LP-side call (only the lo side computes; hi side is skipped).
+   Note: this is for the FIRST vertical_filter_quantize_row call (LP rows
+   → LL + LH). The SECOND call (HP rows → HL + HH) gets skipped entirely
+   at the caller. */
+static void vertical_filter_quantize_row_lo_only(
+    PIXEL *rows[6],
+    int width,
+    int32_t mid_lo, int32_t mul_lo,
+    PIXEL *out_lo,
+    int is_top, int is_bottom)
+{
+    int col = 0;
+
+#if ENABLED(NEON)
+    if (!is_top && !is_bottom) {
+        const int width_m8 = (width / 8) * 8;
+        const int width_m4 = (width / 4) * 4;
+        const PIXEL *__restrict__ p2 = rows[2];
+        const PIXEL *__restrict__ p3 = rows[3];
+        PIXEL *__restrict__ qlo = out_lo;
+
+        for (int c = 0; c < width_m8; c += 8) {
+            int32x4_t r2a = vld1q_s32(p2); p2 += 4;
+            int32x4_t r2b = vld1q_s32(p2); p2 += 4;
+            int32x4_t r3a = vld1q_s32(p3); p3 += 4;
+            int32x4_t r3b = vld1q_s32(p3); p3 += 4;
+            int32x4_t low_a = vaddq_s32(r2a, r3a);
+            int32x4_t low_b = vaddq_s32(r2b, r3b);
+            vst1q_s32(qlo, quantize_neon4(low_a, mid_lo, mul_lo)); qlo += 4;
+            vst1q_s32(qlo, quantize_neon4(low_b, mid_lo, mul_lo)); qlo += 4;
+        }
+        for (int c = width_m8; c < width_m4; c += 4) {
+            int32x4_t r2 = vld1q_s32(p2); p2 += 4;
+            int32x4_t r3 = vld1q_s32(p3); p3 += 4;
+            int32x4_t low = vaddq_s32(r2, r3);
+            vst1q_s32(qlo, quantize_neon4(low, mid_lo, mul_lo)); qlo += 4;
+        }
+        col = width_m4;
+    }
+#endif
+
+    for (; col < width; col++) {
+        int32_t r0 = rows[0][col], r1 = rows[1][col];
+        int32_t r2 = rows[2][col], r3 = rows[3][col];
+        int32_t r4 = rows[4][col], r5 = rows[5][col];
+        int32_t low;
+        if (is_top) { low = r0 + r1; }
+        else if (is_bottom) { low = r4 + r5; }
+        else { low = r2 + r3; }
+        out_lo[col] = quantize_scalar(low, mid_lo, mul_lo);
     }
 }
 
@@ -1261,10 +1364,25 @@ static void pass1_run_channel(
             t_unpack += _fused_ms() - _td; _td = _fused_ms();
 #endif
 
-            horizontal_filter(unpack_row,
-                              cs->lowpass_buf[buf_idx],
-                              cs->highpass_buf[buf_idx],
-                              ch_width, prescale);
+            /* When GPR_DROP_HIGHPASS=1, the HP side of the wavelet is
+               discarded — skip the HP arithmetic in horizontal_filter
+               (and the LH/HL/HH vertical-filter work later in this loop).
+               Saves ~30-40% of encode time on the LL-only-fast path. */
+            static int hf_drop_hp = -1;
+            if (hf_drop_hp < 0) {
+                const char *e = getenv("GPR_DROP_HIGHPASS");
+                hf_drop_hp = (e && *e == '1') ? 1 : 0;
+            }
+            if (hf_drop_hp) {
+                horizontal_filter_lp_only(unpack_row,
+                                          cs->lowpass_buf[buf_idx],
+                                          ch_width, prescale);
+            } else {
+                horizontal_filter(unpack_row,
+                                  cs->lowpass_buf[buf_idx],
+                                  cs->highpass_buf[buf_idx],
+                                  ch_width, prescale);
+            }
         } else {
             /* Tail: replicate the previous slot's lp/hp. */
             int prev = (cs->buf_row - 1) % FUSED_ROW_BUFS;
@@ -1321,19 +1439,35 @@ static void pass1_run_channel(
                 PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
                                             : (cs->band_data[3] + out_row * cs->band_pitch);
 
-                vertical_filter_quantize_row(lp_rows, bw,
-                    cs->midpoint[0], cs->multiplier[0],
-                    cs->midpoint[1], cs->multiplier[1],
-                    0, 0, 0, 0,
-                    ll_row, lh_row, NULL, NULL,
-                    is_top, is_bottom);
+                /* GPR_DROP_HIGHPASS=1 → skip LH/HL/HH wavelet arithmetic entirely.
+                   The first call uses the LL-only variant (no LH writes).
+                   The second call (HP rows → HL+HH) is skipped. */
+                static int vf_drop_hp = -1;
+                if (vf_drop_hp < 0) {
+                    const char *e = getenv("GPR_DROP_HIGHPASS");
+                    vf_drop_hp = (e && *e == '1') ? 1 : 0;
+                }
 
-                vertical_filter_quantize_row(hp_rows, bw,
-                    cs->midpoint[2], cs->multiplier[2],
-                    cs->midpoint[3], cs->multiplier[3],
-                    0, 0, 0, 0,
-                    hl_row, hh_row, NULL, NULL,
-                    is_top, is_bottom);
+                if (vf_drop_hp) {
+                    vertical_filter_quantize_row_lo_only(lp_rows, bw,
+                        cs->midpoint[0], cs->multiplier[0],
+                        ll_row,
+                        is_top, is_bottom);
+                } else {
+                    vertical_filter_quantize_row(lp_rows, bw,
+                        cs->midpoint[0], cs->multiplier[0],
+                        cs->midpoint[1], cs->multiplier[1],
+                        0, 0, 0, 0,
+                        ll_row, lh_row, NULL, NULL,
+                        is_top, is_bottom);
+
+                    vertical_filter_quantize_row(hp_rows, bw,
+                        cs->midpoint[2], cs->multiplier[2],
+                        cs->midpoint[3], cs->multiplier[3],
+                        0, 0, 0, 0,
+                        hl_row, hh_row, NULL, NULL,
+                        is_top, is_bottom);
+                }
 
 #ifdef FUSED_TIMING_DETAIL
                 t_vert += _fused_ms() - _td; _td = _fused_ms();
@@ -1658,10 +1792,22 @@ static void pass1_run_channel_consumer(
 
             PIXEL *unpack_row = ring->rows[slot][channel];
 
-            horizontal_filter(unpack_row,
-                              cs->lowpass_buf[buf_idx],
-                              cs->highpass_buf[buf_idx],
-                              ch_width, prescale);
+            /* HP-skip fast path when GPR_DROP_HIGHPASS=1. */
+            static int hf_drop_hp2 = -1;
+            if (hf_drop_hp2 < 0) {
+                const char *e = getenv("GPR_DROP_HIGHPASS");
+                hf_drop_hp2 = (e && *e == '1') ? 1 : 0;
+            }
+            if (hf_drop_hp2) {
+                horizontal_filter_lp_only(unpack_row,
+                                          cs->lowpass_buf[buf_idx],
+                                          ch_width, prescale);
+            } else {
+                horizontal_filter(unpack_row,
+                                  cs->lowpass_buf[buf_idx],
+                                  cs->highpass_buf[buf_idx],
+                                  ch_width, prescale);
+            }
         } else {
             /* Tail: replicate the previous slot's lp/hp (no ring read). */
             int prev = (cs->buf_row - 1) % FUSED_ROW_BUFS;
@@ -1711,19 +1857,31 @@ static void pass1_run_channel_consumer(
                 PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
                                             : (cs->band_data[3] + out_row * cs->band_pitch);
 
-                vertical_filter_quantize_row(lp_rows, bw,
-                    cs->midpoint[0], cs->multiplier[0],
-                    cs->midpoint[1], cs->multiplier[1],
-                    0, 0, 0, 0,
-                    ll_row, lh_row, NULL, NULL,
-                    is_top, is_bottom);
+                static int vf_drop_hp2 = -1;
+                if (vf_drop_hp2 < 0) {
+                    const char *e = getenv("GPR_DROP_HIGHPASS");
+                    vf_drop_hp2 = (e && *e == '1') ? 1 : 0;
+                }
+                if (vf_drop_hp2) {
+                    vertical_filter_quantize_row_lo_only(lp_rows, bw,
+                        cs->midpoint[0], cs->multiplier[0],
+                        ll_row,
+                        is_top, is_bottom);
+                } else {
+                    vertical_filter_quantize_row(lp_rows, bw,
+                        cs->midpoint[0], cs->multiplier[0],
+                        cs->midpoint[1], cs->multiplier[1],
+                        0, 0, 0, 0,
+                        ll_row, lh_row, NULL, NULL,
+                        is_top, is_bottom);
 
-                vertical_filter_quantize_row(hp_rows, bw,
-                    cs->midpoint[2], cs->multiplier[2],
-                    cs->midpoint[3], cs->multiplier[3],
-                    0, 0, 0, 0,
-                    hl_row, hh_row, NULL, NULL,
-                    is_top, is_bottom);
+                    vertical_filter_quantize_row(hp_rows, bw,
+                        cs->midpoint[2], cs->multiplier[2],
+                        cs->midpoint[3], cs->multiplier[3],
+                        0, 0, 0, 0,
+                        hl_row, hh_row, NULL, NULL,
+                        is_top, is_bottom);
+                }
 
 #ifdef FUSED_TIMING_DETAIL
                 t_vert += _fused_ms() - _td; _td = _fused_ms();
