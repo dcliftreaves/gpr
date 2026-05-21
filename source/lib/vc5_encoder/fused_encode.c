@@ -954,6 +954,35 @@ static void unpack_channel_row_decimate_2x2(
     const uint16x8_t v_log_max = vdupq_n_u16(lm);
     const int32x4_t vmid2 = vdupq_n_s32(mid2);
 
+#if defined(__aarch64__) && !defined(FUSED_DISABLE_ASM)
+    /* Hand-tuned ARM64 NEON path. Bit-exact with the C intrinsics
+       body below — verified via SHA256 of encoded .gpr output on Pi 5.
+       Runtime-gated via FUSED_USE_ASM=1 (DEFAULT OFF: measured slower
+       than the C path on Cortex-A76, see commit message for details).
+       Kept here as scaffolding for future architecture-specific tuning
+       (e.g. A78 / X1 where NEON-GPR move throughput is higher). */
+    extern int fused_unpack_dec2x2_neon_asm(
+        int channel, int is_rggb,
+        const uint16_t *log_tbl, int log_max, int32_t mid2,
+        const uint16_t *row1a, const uint16_t *row2a,
+        const uint16_t *row1b, const uint16_t *row2b,
+        int32_t *output, int count4);
+    static int asm_on = -1;
+    if (asm_on < 0) {
+        const char *e = getenv("FUSED_USE_ASM");
+        asm_on = (e && *e == '1') ? 1 : 0;
+    }
+    if (asm_on && o_m4 > 0) {
+        if (fused_unpack_dec2x2_neon_asm(channel, is_rggb,
+                                          log_tbl, log_max, mid2,
+                                          row1a, row2a, row1b, row2b,
+                                          output, o_m4) == 0) {
+            o = o_m4;
+            goto _asm_done;
+        }
+    }
+#endif
+
     /* Per iter: 4 output samples; reads 16 Bayer cols from each of 4 rows. */
     for (; o < o_m4; o += 4) {
         int bc = o * 4;  /* starting Bayer column */
@@ -1077,6 +1106,9 @@ static void unpack_channel_row_decimate_2x2(
         }
         vst1q_s32(&output[o], result);
     }
+#if defined(__aarch64__) && !defined(FUSED_DISABLE_ASM)
+_asm_done:;
+#endif
 #endif
     /* Scalar tail, same log-space averaging semantics. */
     for (; o < ch_width_out; o++) {

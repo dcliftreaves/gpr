@@ -139,6 +139,18 @@ int main(int argc, char **argv) {
             dw = (int)(hdr_width  / dec_factor);
             dh = (int)(hdr_height / dec_factor);
         }
+        /* MULTI_FRAME_DUMP_ENCODED=1: dump the encoded buffer for byte-identity
+           checks against assembly/scalar paths. Filename: <prefix>_<i>.gpr. */
+        {
+            const char *dump_env = getenv("MULTI_FRAME_DUMP_ENCODED");
+            if (dump_env && *dump_env == '1') {
+                char dump_path[512];
+                snprintf(dump_path, sizeof(dump_path), "%s_%03d.gpr", prefix, i);
+                FILE *df = fopen(dump_path, "wb");
+                if (df) { fwrite(out, 1, out_sz, df); fclose(df); }
+            }
+        }
+
         int drc = gpr_decode_fused(out, out_sz, dec, (size_t)dw * 2, &dw, &dh);
         double t2 = now_ms();
         if (drc != 0) { fprintf(stderr, "frame %d DECODE rc=%d\n", i, drc); continue; }
