@@ -24,6 +24,9 @@
 #  ifndef _POSIX_C_SOURCE
 #  define _POSIX_C_SOURCE 199309L
 #  endif
+#  ifndef _GNU_SOURCE
+#  define _GNU_SOURCE 1   /* for pthread_setaffinity_np on glibc */
+#  endif
 #endif
 
 #include "headers.h"
@@ -32,6 +35,35 @@
 #include "denoise.h"
 #include <pthread.h>
 #include <unistd.h>  /* for sysconf */
+#if defined(__linux__)
+#include <sched.h>
+#endif
+
+/* FUSED_PIN_AFFINITY: pin producer thread N and channel thread N to core N
+   (modulo nproc). Set at runtime via GPR_PIN_AFFINITY=1. Default OFF
+   because it measured neutral on Pi 5; kept available for systems where
+   the kernel scheduler migrates worker threads excessively. */
+#if defined(__linux__)
+static int _fused_pin_enabled(void) {
+    static int cached = -1;
+    if (cached >= 0) return cached;
+    const char *e = getenv("GPR_PIN_AFFINITY");
+    cached = (e && *e == '1') ? 1 : 0;
+    return cached;
+}
+static void _fused_pin_self(int core) {
+    if (!_fused_pin_enabled()) return;
+    int n = (int)sysconf(_SC_NPROCESSORS_ONLN);
+    if (n <= 0) n = 4;
+    int target = core % n;
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    CPU_SET(target, &mask);
+    (void)pthread_setaffinity_np(pthread_self(), sizeof(mask), &mask);
+}
+#else
+static void _fused_pin_self(int core) { (void)core; }
+#endif
 
 /* Per-frame timing prints. Comment out for clean micro-benchmarks. */
 /* #define FUSED_TIMING */
@@ -1381,7 +1413,20 @@ static void pass1_run_channel(
                 const char *e = getenv("GPR_DECIMATE_AA");
                 decimate_aa = (e && *e == '1') ? 1 : 0;
             }
-            if (col_decimate == 2 && row_stride_pairs == 4 && decimate_aa) {
+            /* GPR_AA_LUMA_ONLY=1: full 2x2 AA only on luma channels (GS=0, GD=3).
+               Chroma channels (RG=1, BG=2) use the fast path. Saves the
+               extra row-pair read on the chroma half. Lossy in chroma.
+               Default OFF — opt-in via env to preserve byte identity. */
+            static int aa_luma_only = -1;
+            if (aa_luma_only < 0) {
+                const char *e = getenv("GPR_AA_LUMA_ONLY");
+                aa_luma_only = (e && *e == '1') ? 1 : 0;
+            }
+            int do_aa = (col_decimate == 2 && row_stride_pairs == 4 && decimate_aa);
+            if (do_aa && aa_luma_only && (channel == 1 || channel == 2)) {
+                do_aa = 0;
+            }
+            if (do_aa) {
                 /* Slow / quality: average across two row pairs in log space. */
                 const uint16_t *row1b = row1 + 2 * bayer_pitch;
                 const uint16_t *row2b = row2 + 2 * bayer_pitch;
