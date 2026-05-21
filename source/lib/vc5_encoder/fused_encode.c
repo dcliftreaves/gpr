@@ -1220,6 +1220,191 @@ _asm_done:;
     }
 }
 
+/* T15: Fully-fused unpack_row + horizontal_filter_lp_only for the AA-2x2
+   decimate path. Reads 4 Bayer rows (2 RGGB pairs), produces ch_width/2
+   prescaled+pair-summed LP-only outputs directly to lp_out, completely
+   bypassing the intermediate unpack_row buffer.
+
+   On the Pi 5 LL-only-fast hot path the existing AA-2x2 unpack writes
+   ~8 KB/row to unpack_row, then horizontal_filter_lp_only reads it and
+   writes ~4 KB to lp_out. This fused path saves ~16 KB/row of L1 cache
+   traffic per channel = ~24 MB/frame across 4 channels at 50 MP.
+
+   Only used when prescale==2 (hard-coded into the pair-sum/PS path) and
+   GPR_DROP_HIGHPASS=1 (no HP band needed). Bit-exact with the two-pass
+   path: same arithmetic, same operation ordering.
+
+   Arithmetic per output (i):
+     For each of the 2 unpack positions (col=2i, col=2i+1):
+       g1 = avg-of-4 G1 log values (row1a,2a,1b,2b at col)
+       g2 = avg-of-4 G2 log values
+       val = (g1+g2)>>1 (ch 0), or ((g1-g2)+mid2)>>1 (ch 3), or
+             ((x-gs)+mid2)>>1 for chroma where x=R/B avg, gs=(g1+g2)>>1
+       PS(val) = (val + 3) >> 2
+     lp_out[i] = PS(unpack[2i]) + PS(unpack[2i+1])
+*/
+static void unpack_channel_row_decimate_2x2_fused_lp(
+    int channel, int is_rggb,
+    const uint16_t *log_tbl, int log_max, int32_t mid2,
+    const uint16_t *row1a, const uint16_t *row2a,
+    const uint16_t *row1b, const uint16_t *row2b,
+    PIXEL *lp_out, int ch_width_out)
+{
+    /* lp_out length = ch_width_out / 2.  ch_width_out is the original
+       unpack width (multiple of 4 enforced by upstream layout). */
+    int o = 0;
+    const uint16_t lm = (uint16_t)log_max;
+    const int half = ch_width_out / 2;
+    const int half_m2 = (half / 2) * 2;  /* even half so we can emit 2 LP per iter */
+
+#if ENABLED(NEON)
+    /* Each "iter" handles 4 unpack values → 2 LP outputs. Outer i steps by 2
+       LP outputs per iter (= 4 unpack outputs = 16 Bayer columns per row). */
+    const uint16x8_t v_log_max = vdupq_n_u16(lm);
+    const int32x4_t vmid2 = vdupq_n_s32(mid2);
+    const int32x4_t vthree = vdupq_n_s32(3);
+
+    for (int i = 0; i < half_m2; i += 2) {
+        int u = i * 2;       /* unpack col base (4 unpack outputs from u..u+3) */
+        int bc = u * 4;       /* Bayer col base = 16 cols per iter */
+
+        uint16x8x2_t e_a = vld2q_u16(&row1a[bc]);
+        uint16x8x2_t o_a = vld2q_u16(&row2a[bc]);
+        uint16x8x2_t e_b = vld2q_u16(&row1b[bc]);
+        uint16x8x2_t o_b = vld2q_u16(&row2b[bc]);
+
+        uint16x8_t vR_a, vR_b, vG1_a, vG1_b, vG2_a, vG2_b, vB_a, vB_b;
+        if (is_rggb) {
+            vR_a  = vminq_u16(e_a.val[0], v_log_max);
+            vG1_a = vminq_u16(e_a.val[1], v_log_max);
+            vG2_a = vminq_u16(o_a.val[0], v_log_max);
+            vB_a  = vminq_u16(o_a.val[1], v_log_max);
+            vR_b  = vminq_u16(e_b.val[0], v_log_max);
+            vG1_b = vminq_u16(e_b.val[1], v_log_max);
+            vG2_b = vminq_u16(o_b.val[0], v_log_max);
+            vB_b  = vminq_u16(o_b.val[1], v_log_max);
+        } else {
+            vG1_a = vminq_u16(e_a.val[0], v_log_max);
+            vB_a  = vminq_u16(e_a.val[1], v_log_max);
+            vR_a  = vminq_u16(o_a.val[0], v_log_max);
+            vG2_a = vminq_u16(o_a.val[1], v_log_max);
+            vG1_b = vminq_u16(e_b.val[0], v_log_max);
+            vB_b  = vminq_u16(e_b.val[1], v_log_max);
+            vR_b  = vminq_u16(o_b.val[0], v_log_max);
+            vG2_b = vminq_u16(o_b.val[1], v_log_max);
+        }
+
+        uint16_t G1_idx[16], G2_idx[16], R_idx[16], B_idx[16];
+        vst1q_u16(&G1_idx[0], vG1_a);
+        vst1q_u16(&G1_idx[8], vG1_b);
+        vst1q_u16(&G2_idx[0], vG2_a);
+        vst1q_u16(&G2_idx[8], vG2_b);
+        if (channel == 1) {
+            vst1q_u16(&R_idx[0], vR_a);
+            vst1q_u16(&R_idx[8], vR_b);
+        }
+        if (channel == 2) {
+            vst1q_u16(&B_idx[0], vB_a);
+            vst1q_u16(&B_idx[8], vB_b);
+        }
+
+        uint16_t G1log[16], G2log[16], Xlog[16];
+        for (int k = 0; k < 16; k++) {
+            G1log[k] = log_tbl[G1_idx[k]];
+            G2log[k] = log_tbl[G2_idx[k]];
+        }
+        if (channel == 1 || channel == 2) {
+            const uint16_t *idx = (channel == 1) ? R_idx : B_idx;
+            for (int k = 0; k < 16; k++) Xlog[k] = log_tbl[idx[k]];
+        }
+
+        uint16x8_t g1_a16 = vld1q_u16(&G1log[ 0]);
+        uint16x8_t g1_b16 = vld1q_u16(&G1log[ 8]);
+        uint16x8_t g2_a16 = vld1q_u16(&G2log[ 0]);
+        uint16x8_t g2_b16 = vld1q_u16(&G2log[ 8]);
+        uint32x4_t g1_sum4u = vaddq_u32(vpaddlq_u16(g1_a16), vpaddlq_u16(g1_b16));
+        uint32x4_t g2_sum4u = vaddq_u32(vpaddlq_u16(g2_a16), vpaddlq_u16(g2_b16));
+        int32x4_t  g1_sum4  = vreinterpretq_s32_u32(g1_sum4u);
+        int32x4_t  g2_sum4  = vreinterpretq_s32_u32(g2_sum4u);
+        int32x4_t two = vdupq_n_s32(2);
+        int32x4_t vg1 = vshrq_n_s32(vaddq_s32(g1_sum4, two), 2);
+        int32x4_t vg2 = vshrq_n_s32(vaddq_s32(g2_sum4, two), 2);
+
+        int32x4_t result;
+        if (channel == 0) {
+            result = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+        } else if (channel == 3) {
+            result = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+        } else {
+            uint16x8_t x_a16 = vld1q_u16(&Xlog[ 0]);
+            uint16x8_t x_b16 = vld1q_u16(&Xlog[ 8]);
+            uint32x4_t x_sum4u = vaddq_u32(vpaddlq_u16(x_a16), vpaddlq_u16(x_b16));
+            int32x4_t  x_sum4  = vreinterpretq_s32_u32(x_sum4u);
+            int32x4_t vx = vshrq_n_s32(vaddq_s32(x_sum4, two), 2);
+            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            result = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
+        }
+
+        /* Fused horizontal_filter_lp_only(prescale=2):
+             PS(v) = (v + 3) >> 2
+             lp_out[i+k] = PS(result[2k]) + PS(result[2k+1])  for k=0,1
+           NEON: 4 PS-values → vpaddq_s32 → 2 lp outputs in low half. */
+        int32x4_t ps = vshrq_n_s32(vaddq_s32(result, vthree), 2);
+        int32x4_t pairs = vpaddq_s32(ps, ps);  /* lanes 0,1 hold lp[i], lp[i+1] */
+        vst1_s32(&lp_out[i], vget_low_s32(pairs));
+        (void)o;
+    }
+    o = half_m2 * 2;  /* tail starts at unpack col = remaining LPs * 2 */
+#endif
+
+    /* Scalar tail for any remaining LP outputs (covers half-half_m2 LPs, each
+       reading 2 unpack columns, each unpack col reading 4 same-color samples
+       from the 2 RGGB pairs). */
+    for (int i = (half_m2); i < half; i++) {
+        int u_base = i * 2;
+        int32_t ps_pair[2];
+        for (int p = 0; p < 2; p++) {
+            int u = u_base + p;
+            int bc = u * 4;
+            uint16_t R0,R1,R2,R3, G10,G11,G12,G13, G20,G21,G22,G23, B0,B1,B2,B3;
+            if (is_rggb) {
+                R0=row1a[bc];   R1=row1a[bc+2]; R2=row1b[bc];   R3=row1b[bc+2];
+                G10=row1a[bc+1];G11=row1a[bc+3];G12=row1b[bc+1];G13=row1b[bc+3];
+                G20=row2a[bc];  G21=row2a[bc+2];G22=row2b[bc];  G23=row2b[bc+2];
+                B0=row2a[bc+1]; B1=row2a[bc+3]; B2=row2b[bc+1]; B3=row2b[bc+3];
+            } else {
+                G10=row1a[bc];  G11=row1a[bc+2];G12=row1b[bc];  G13=row1b[bc+2];
+                B0=row1a[bc+1]; B1=row1a[bc+3]; B2=row1b[bc+1]; B3=row1b[bc+3];
+                R0=row2a[bc];   R1=row2a[bc+2]; R2=row2b[bc];   R3=row2b[bc+2];
+                G20=row2a[bc+1];G21=row2a[bc+3];G22=row2b[bc+1];G23=row2b[bc+3];
+            }
+            if (R0  > lm) R0  = lm; if (R1  > lm) R1  = lm; if (R2  > lm) R2  = lm; if (R3  > lm) R3  = lm;
+            if (G10 > lm) G10 = lm; if (G11 > lm) G11 = lm; if (G12 > lm) G12 = lm; if (G13 > lm) G13 = lm;
+            if (G20 > lm) G20 = lm; if (G21 > lm) G21 = lm; if (G22 > lm) G22 = lm; if (G23 > lm) G23 = lm;
+            if (B0  > lm) B0  = lm; if (B1  > lm) B1  = lm; if (B2  > lm) B2  = lm; if (B3  > lm) B3  = lm;
+            int32_t g1 = ((int32_t)log_tbl[G10] + log_tbl[G11] + log_tbl[G12] + log_tbl[G13] + 2) >> 2;
+            int32_t g2 = ((int32_t)log_tbl[G20] + log_tbl[G21] + log_tbl[G22] + log_tbl[G23] + 2) >> 2;
+            int32_t val;
+            switch (channel) {
+                case 0: val = (g1 + g2) >> 1; break;
+                case 1: {
+                    int32_t r = ((int32_t)log_tbl[R0] + log_tbl[R1] + log_tbl[R2] + log_tbl[R3] + 2) >> 2;
+                    int32_t gs = (g1 + g2) >> 1;
+                    val = ((r - gs) + mid2) >> 1;
+                } break;
+                case 2: {
+                    int32_t b = ((int32_t)log_tbl[B0] + log_tbl[B1] + log_tbl[B2] + log_tbl[B3] + 2) >> 2;
+                    int32_t gs = (g1 + g2) >> 1;
+                    val = ((b - gs) + mid2) >> 1;
+                } break;
+                default: val = ((g1 - g2) + mid2) >> 1; break;  /* ch 3 */
+            }
+            ps_pair[p] = (val + 3) >> 2;
+        }
+        lp_out[i] = ps_pair[0] + ps_pair[1];
+    }
+}
+
 /* T13b: fused col-decimate variant of unpack_channel_row for chroma. Reads
    2 Bayer rows, produces ch_width=ch_width_full/2 outputs (each = average of
    two adjacent same-channel samples). This replaces the unpack_channel_row →
@@ -1666,9 +1851,27 @@ static void pass1_run_channel(
                 /* Slow / quality: average across two row pairs in log space. */
                 const uint16_t *row1b = row1 + 2 * bayer_pitch;
                 const uint16_t *row2b = row2 + 2 * bayer_pitch;
-                unpack_channel_row_decimate_2x2(channel, is_rggb,
-                    log_tbl, log_max, mid2,
-                    row1, row2, row1b, row2b, unpack_row, ch_width);
+                /* T15: fully fused AA-2x2 unpack + horizontal_filter_lp_only.
+                   Active when GPR_DROP_HIGHPASS=1 AND prescale==2 (level 1
+                   wavelet input prescale, the only callsite). Writes
+                   directly to lowpass_buf, skipping the 8 KB unpack_row
+                   intermediate. Gated by FUSED_FUSE_LP_OFF=1 in case
+                   regression. */
+                static int fuse_lp_off = -1;
+                if (fuse_lp_off < 0) {
+                    const char *e = getenv("FUSED_FUSE_LP_OFF");
+                    fuse_lp_off = (e && *e == '1') ? 1 : 0;
+                }
+                if (hf_drop_hp && prescale == 2 && !fuse_lp_off) {
+                    unpack_channel_row_decimate_2x2_fused_lp(channel, is_rggb,
+                        log_tbl, log_max, mid2,
+                        row1, row2, row1b, row2b,
+                        cs->lowpass_buf[buf_idx], ch_width);
+                } else {
+                    unpack_channel_row_decimate_2x2(channel, is_rggb,
+                        log_tbl, log_max, mid2,
+                        row1, row2, row1b, row2b, unpack_row, ch_width);
+                }
             } else if (unpack_mode == 1) {
                 /* T13b (chroma): fused col-decimate for channel 1, 2.
                    T14 (luma):    fused col-decimate for channel 0, 3.
@@ -1722,8 +1925,20 @@ static void pass1_run_channel(
             t_unpack += _fused_ms() - _td; _td = _fused_ms();
 #endif
 
-            /* hf_drop_hp hoisted; saves ~30-40% on LL-only-fast path. */
-            if (hf_drop_hp) {
+            /* hf_drop_hp hoisted; saves ~30-40% on LL-only-fast path.
+               T15: when unpack_mode==0 + hf_drop_hp, the fused-LP path
+               wrote directly to lowpass_buf and skipped unpack_row; we
+               skip the horizontal_filter call here. fuse_lp_off mirrors
+               the dispatch above. */
+            static int hf_fuse_lp_off = -1;
+            if (hf_fuse_lp_off < 0) {
+                const char *e = getenv("FUSED_FUSE_LP_OFF");
+                hf_fuse_lp_off = (e && *e == '1') ? 1 : 0;
+            }
+            int skip_h = (unpack_mode == 0 && hf_drop_hp && prescale == 2 && !hf_fuse_lp_off);
+            if (skip_h) {
+                /* LP already in cs->lowpass_buf[buf_idx]; nothing to do. */
+            } else if (hf_drop_hp) {
                 horizontal_filter_lp_only(unpack_row,
                                           cs->lowpass_buf[buf_idx],
                                           ch_width, prescale);
