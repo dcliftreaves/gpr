@@ -1137,6 +1137,9 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     _inBuf       = [_device newBufferWithLength:in_n  * sizeof(uint16_t) options:MTLResourceStorageModeShared];
     _outBuf      = [_device newBufferWithLength:out_n * sizeof(uint16_t) options:MTLResourceStorageModeShared];
     _baselineBuf = [_device newBufferWithLength:out_n * sizeof(uint16_t) options:MTLResourceStorageModeShared];
+    // Zero the planes buffer ONCE so its padded region stays zero across calls.
+    // The unpack kernel only writes the valid (Wp_in_native, Hp_in_native) region.
+    memset(_inBuf.contents, 0, in_n * sizeof(uint16_t));
 
     // Bayer in/out buffers: sized generously. The exact frame size is
     // (codec_W * codec_H * 2) for input and (native_W * native_H * 2) for output.
@@ -1278,9 +1281,10 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         return -1;
     }
     memcpy(_inBayer.contents, inBayer, inBayerBytes);
-    // Zero the planes buffer so the padded region (>=Wp_in_native) is 0.
-    size_t in_n = (size_t)Hpp * Wpp * 4;
-    memset(_inBuf.contents, 0, in_n * sizeof(uint16_t));
+    // NOTE: the planes buffer's padded region (>=Wp_in_native, >=Hp_in_native)
+    // is zeroed ONCE at init / warmup time. The unpack kernel only writes the
+    // valid region (Wp_in_native × Hp_in_native), so the padding stays zero
+    // across calls — no per-frame memset needed.
     double tp1 = now_ms_local();
 
     // Build a fused MPSCommandBuffer (wraps an MTLCommandBuffer).
