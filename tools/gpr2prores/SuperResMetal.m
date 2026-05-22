@@ -265,6 +265,7 @@ static uint16_t *transpose_dw_pytorch_to_hwio_f16(const uint16_t *src_oihw_2c,
     id<MTLComputePipelineState> _psoUnpack;
     id<MTLComputePipelineState> _psoBicubic;
     id<MTLComputePipelineState> _psoCombine;
+    id<MTLComputePipelineState> _psoBicubicCombine;  // fused bicubic+combine+rebayer
 
     // -- Hybrid path state (only used when _backend == Hybrid) --
     // 7 sub-graphs with feed placeholders and result tensors.
@@ -1182,6 +1183,13 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         _psoCombine = [_device newComputePipelineStateWithFunction:fn error:&e];
         if (!_psoCombine) { fprintf(stderr, "SuperResMetal: pso combine: %s\n", [e.localizedDescription UTF8String]); return nil; }
     }
+    {
+        id<MTLFunction> fn = [lib newFunctionWithName:@"bicubic_combine_rebayer"];
+        if (!fn) { fprintf(stderr, "SuperResMetal: missing kernel bicubic_combine_rebayer\n"); return nil; }
+        NSError *e = nil;
+        _psoBicubicCombine = [_device newComputePipelineStateWithFunction:fn error:&e];
+        if (!_psoBicubicCombine) { fprintf(stderr, "SuperResMetal: pso bicubic_combine: %s\n", [e.localizedDescription UTF8String]); return nil; }
+    }
 
     // Hybrid: build NAFBlock PSOs + intermediate buffers.
     if (_backend == SuperResMetalBackendHybrid) {
@@ -1413,11 +1421,14 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     // can advance internally). Re-fetch it before appending kernels.
     id<MTLCommandBuffer> rawCb2 = cb.commandBuffer;
 
-    // -- Stage C: bicubic baseline (NHWC fp16) --
-    {
+    // -- Stage C+D fused: bicubic + combine + clamp + rebayer in one kernel.
+    // Reads _inBuf (padded planes) and _outBuf (CNN residual) directly into
+    // _outBayer; the baseline buffer is no longer materialized.
+    if (getenv("SUPERRES_NOFUSE_POST")) {
+        // Legacy two-kernel path (kept for A/B comparison).
         id<MTLComputeCommandEncoder> enc = [rawCb2 computeCommandEncoder];
         [enc setComputePipelineState:_psoBicubic];
-        [enc setBuffer:_inBuf      offset:0 atIndex:0];
+        [enc setBuffer:_inBuf       offset:0 atIndex:0];
         [enc setBuffer:_baselineBuf offset:0 atIndex:1];
         uint32_t Wp_u = Wpp;
         uint32_t Hp_u = Hpp;
@@ -1427,11 +1438,8 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         MTLSize grid = MTLSizeMake(out_Wpp, out_Hpp, 1);
         [enc dispatchThreads:grid threadsPerThreadgroup:tg];
         [enc endEncoding];
-    }
 
-    // -- Stage D: combine + clamp + rebayer -> _outBayer --
-    {
-        id<MTLComputeCommandEncoder> enc = [rawCb2 computeCommandEncoder];
+        enc = [rawCb2 computeCommandEncoder];
         [enc setComputePipelineState:_psoCombine];
         [enc setBuffer:_baselineBuf offset:0 atIndex:0];
         [enc setBuffer:_outBuf      offset:0 atIndex:1];
@@ -1442,6 +1450,25 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         [enc setBytes:&outHpp_u length:sizeof(uint32_t) atIndex:4];
         [enc setBytes:&outW_u  length:sizeof(uint32_t) atIndex:5];
         [enc setBytes:&outH_u  length:sizeof(uint32_t) atIndex:6];
+        MTLSize tg2 = MTLSizeMake(16, 16, 1);
+        MTLSize grid2 = MTLSizeMake(outW / 2, outH / 2, 1);
+        [enc dispatchThreads:grid2 threadsPerThreadgroup:tg2];
+        [enc endEncoding];
+    } else {
+        id<MTLComputeCommandEncoder> enc = [rawCb2 computeCommandEncoder];
+        [enc setComputePipelineState:_psoBicubicCombine];
+        [enc setBuffer:_inBuf    offset:0 atIndex:0];
+        [enc setBuffer:_outBuf   offset:0 atIndex:1];
+        [enc setBuffer:_outBayer offset:0 atIndex:2];
+        uint32_t Wpp_u = Wpp, Hpp_u = Hpp;
+        uint32_t outWpp_u = out_Wpp, outHpp_u = out_Hpp;
+        uint32_t outW_u = outW, outH_u = outH;
+        [enc setBytes:&Wpp_u    length:sizeof(uint32_t) atIndex:3];
+        [enc setBytes:&Hpp_u    length:sizeof(uint32_t) atIndex:4];
+        [enc setBytes:&outWpp_u length:sizeof(uint32_t) atIndex:5];
+        [enc setBytes:&outHpp_u length:sizeof(uint32_t) atIndex:6];
+        [enc setBytes:&outW_u   length:sizeof(uint32_t) atIndex:7];
+        [enc setBytes:&outH_u   length:sizeof(uint32_t) atIndex:8];
         MTLSize tg = MTLSizeMake(16, 16, 1);
         MTLSize grid = MTLSizeMake(outW / 2, outH / 2, 1);
         [enc dispatchThreads:grid threadsPerThreadgroup:tg];
