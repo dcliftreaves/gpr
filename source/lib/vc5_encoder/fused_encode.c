@@ -2415,31 +2415,9 @@ static void pass1_run_channel(
                 PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
                                             : (cs->band_data[3] + out_row * cs->band_pitch);
 
-                /* T17: LL-only-fast fused vert+quant+tokenize. When
-                   GPR_DROP_HIGHPASS=1 and GPR_INCLUDE_LL=1 with no
-                   streaming cascade reader, both the vert+quant write
-                   to row_scratch[0] AND the subsequent
-                   jans_inline_row(state[0], ll_row, bw) read can be
-                   fused into a single pass — quantized coefs flow from
-                   NEON registers directly into the tokenizer's bb
-                   accumulator without round-tripping the ~9 KB row
-                   buffer. Interior rows only (boundary rows fall
-                   through to the split path). */
-                int fused_lp_tok =
-                    hf_drop_hp &&
-                    inline_mode &&
-                    cs->inline_state[0] != NULL &&
-                    !streaming &&
-                    !is_top && !is_bottom;
-
-                if (fused_lp_tok) {
-                    jans_inline_lp_quant_tokenize_row_mid(
-                        cs->inline_state[0],
-                        lp_rows[2], lp_rows[3],
-                        bw,
-                        cs->midpoint[0], cs->multiplier[0]);
-                } else if (hf_drop_hp) {
-                    /* GPR_DROP_HIGHPASS=1 → skip LH/HL/HH arithmetic. */
+                /* GPR_DROP_HIGHPASS=1 → skip LH/HL/HH wavelet arithmetic entirely.
+                   Reuse the hoisted hf_drop_hp from outside the row loop. */
+                if (hf_drop_hp) {
                     vertical_filter_quantize_row_lo_only(lp_rows, bw,
                         cs->midpoint[0], cs->multiplier[0],
                         ll_row,
@@ -2472,7 +2450,7 @@ static void pass1_run_channel(
                    valid GPR file in this mode (decoder will see empty highpass
                    bands), but the timing tells us if dropping HL/LH/HH bands
                    is sufficient to hit 24 fps on 50 MP input. */
-                if (inline_mode && !fused_lp_tok) {
+                if (inline_mode) {
                     static int drop_hp = -1;
                     if (drop_hp < 0) {
                         const char *e = getenv("GPR_DROP_HIGHPASS");
@@ -2902,22 +2880,7 @@ static void pass1_run_channel_consumer(
                 PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
                                             : (cs->band_data[3] + out_row * cs->band_pitch);
 
-                /* T17: LL-only-fast fused vert+quant+tokenize. See the
-                   matching block in the luma path for rationale. */
-                int fused_lp_tok_c =
-                    hf_drop_hp_c &&
-                    inline_mode &&
-                    cs->inline_state[0] != NULL &&
-                    !streaming &&
-                    !is_top && !is_bottom;
-
-                if (fused_lp_tok_c) {
-                    jans_inline_lp_quant_tokenize_row_mid(
-                        cs->inline_state[0],
-                        lp_rows[2], lp_rows[3],
-                        bw,
-                        cs->midpoint[0], cs->multiplier[0]);
-                } else if (hf_drop_hp_c) {
+                if (hf_drop_hp_c) {
                     vertical_filter_quantize_row_lo_only(lp_rows, bw,
                         cs->midpoint[0], cs->multiplier[0],
                         ll_row,
@@ -2942,7 +2905,7 @@ static void pass1_run_channel_consumer(
                 t_vert += _fused_ms() - _td; _td = _fused_ms();
 #endif
 
-                if (inline_mode && !fused_lp_tok_c) {
+                if (inline_mode) {
                     static int drop_hp = -1;
                     if (drop_hp < 0) {
                         const char *e = getenv("GPR_DROP_HIGHPASS");
