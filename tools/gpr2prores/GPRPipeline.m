@@ -21,6 +21,8 @@
 #import "DNGReader.h"
 #import "GPRFileReader.h"
 #import "Demosaic.h"
+#import "Downscale.h"
+#import "CIRawDemosaic.h"
 #import "ProResWriter.h"
 #import "GPRCodec.h"
 #import "SuperResCNN.h"
@@ -98,14 +100,30 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     BOOL _timing;
     BOOL _gprInput;
     NSString *_cnnBackend;
+    NSString *_demosaicMode;
+    NSString *_outResolution;
+    NSString *_metaDngPath;
 
     DNGInfo _info;
     DNGInfo _codecInfo;
     DNGInfo _cnnInfo;
 
+    // Output (ProRes) dims.
+    uint32_t _outW;
+    uint32_t _outH;
+    // Demosaic intermediate dims (== full demosaic res before optional downscale).
+    uint32_t _demoW;
+    uint32_t _demoH;
+
     id<MTLDevice> _device;
     id<MTLCommandQueue> _queue;
     Demosaic *_demosaic;
+    Downscale *_downscale;
+    // Intermediate pool for the demosaic→downscale path. nil when downscale is
+    // not needed (target == demo dims) and Demosaic writes straight into the
+    // ProResWriter's pixel buffer.
+    CVPixelBufferPoolRef _interPool;
+    CIRawDemosaic *_ciDemosaic;
     ProResWriter *_writer;
     GPRCodec *_codec;
     SuperResCNN *_cnn;
@@ -115,10 +133,66 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     NSMutableDictionary<NSNumber *, FrameJob *> *_writePending;
     int _nextWriteIdx;
     NSLock *_writeLock;
+
+    BOOL _skipErrors;
+    atomic_int _errorCount;
+    NSLock *_errAbortLock;
+    BOOL _aborted;
 }
 @end
 
 @implementation GPRPipeline
+
+- (void)setSkipErrors:(BOOL)skip { _skipErrors = skip; }
+
+// Record a failure. In skip-errors mode, just bumps the counter and logs.
+// In strict mode, sets _aborted on first failure; running stages should
+// short-circuit on _aborted.
+- (void)reportError:(NSString *)msg frame:(int)idx {
+    atomic_fetch_add(&_errorCount, 1);
+    fprintf(stderr, "  frame %d ERROR: %s\n", idx, [msg UTF8String]);
+    if (!_skipErrors) {
+        [_errAbortLock lock];
+        _aborted = YES;
+        [_errAbortLock unlock];
+    }
+}
+
+- (BOOL)isAborted {
+    [_errAbortLock lock];
+    BOOL a = _aborted;
+    [_errAbortLock unlock];
+    return a;
+}
+
+// Resolve the output dims for a preset string. Preserves source aspect from
+// (demoW, demoH). Heights are rounded to even (ProRes prefers even dims).
+static void resolveOutputDims(NSString *preset,
+                              uint32_t demoW, uint32_t demoH,
+                              uint32_t *outW, uint32_t *outH)
+{
+    NSString *p = [preset lowercaseString];
+    uint32_t targetW = 0;
+    if      ([p isEqualToString:@"2k"])  targetW = 2048;
+    else if ([p isEqualToString:@"uhd"]) targetW = 3840;
+    else if ([p isEqualToString:@"4k"])  targetW = 4096;
+    else if ([p isEqualToString:@"6k"])  targetW = 6144;
+    else /* 8k / native */               targetW = 0;
+
+    if (targetW == 0 || targetW >= demoW) {
+        // Native (no downscale).
+        *outW = demoW;
+        *outH = demoH;
+        return;
+    }
+    // Preserve aspect.
+    uint32_t targetH = (uint32_t)((uint64_t)demoH * targetW / demoW);
+    // Round to even.
+    targetH &= ~1u;
+    if ((targetW & 1u) != 0) targetW &= ~1u;
+    *outW = targetW;
+    *outH = targetH;
+}
 
 - (nullable instancetype)initWithFirstFrame:(NSString *)firstFrame
                                 metaDngPath:(nullable NSString *)metaDngPath
@@ -130,6 +204,8 @@ static StageInbox *make_inbox(const char *label, int capacity) {
                                     noCodec:(BOOL)noCodec
                                      timing:(BOOL)timing
                                  cnnBackend:(NSString *)cnnBackend
+                                demosaicMode:(NSString *)demosaicMode
+                              outResolution:(NSString *)outResolution
 {
     self = [super init];
     if (!self) return nil;
@@ -142,6 +218,11 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     _timing = timing;
     _gprInput = pathIsGPR(firstFrame);
     _cnnBackend = cnnBackend ?: @"coreml";
+    _demosaicMode = demosaicMode ?: @"metal-bilinear";
+    _outResolution = outResolution ?: @"8k";
+    // For CIRAWFilter we need the source-DNG's color matrices. For .dng input
+    // mode the first frame itself is the template; for .gpr it's metaDngPath.
+    _metaDngPath = metaDngPath ? metaDngPath : (pathIsGPR(firstFrame) ? nil : firstFrame);
 
     if (_gprInput) {
         if (!metaDngPath) {
@@ -197,21 +278,76 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     if (!_device) { fprintf(stderr, "no Metal device\n"); return nil; }
     _queue = [_device newCommandQueue];
 
-    _demosaic = [[Demosaic alloc] initWithDevice:_device
-                                    width:demoW
-                                   height:demoH
-                              cfaPattern:_info.cfaPattern
-                              blackLevel:_info.blackLevel
-                              whiteLevel:_info.whiteLevel
-                                     wbR:_info.wbR
-                                     wbG:_info.wbG
-                                     wbB:_info.wbB
-                                  rgbCam:_info.rgb_cam];
-    if (!_demosaic) { fprintf(stderr, "demosaic init failed\n"); return nil; }
+    // Resolve target output dims from preset, preserving source aspect from
+    // (demoW, demoH). 8k = native demoW×demoH (no scale).
+    uint32_t outW = demoW, outH = demoH;
+    resolveOutputDims(_outResolution, demoW, demoH, &outW, &outH);
+    _demoW = demoW; _demoH = demoH;
+    _outW = outW;   _outH = outH;
+    BOOL needDownscale = (outW != demoW || outH != demoH);
+
+    if ([_demosaicMode isEqualToString:@"core-image"]) {
+        // CIRAWFilter handles demosaic + scale + crop in one CIContext render.
+        // We just pass the target dims and let it do the work — no downscale
+        // post-pass is needed for this backend.
+        _ciDemosaic = [[CIRawDemosaic alloc] initWithDevice:_device
+                                                sensorWidth:demoW
+                                               sensorHeight:demoH
+                                                   outWidth:outW
+                                                  outHeight:outH
+                                                       info:&_info
+                                            templateDngPath:_metaDngPath];
+        if (!_ciDemosaic) { fprintf(stderr, "ciraw demosaic init failed\n"); return nil; }
+    } else {
+        _demosaic = [[Demosaic alloc] initWithDevice:_device
+                                        width:demoW
+                                       height:demoH
+                                  cfaPattern:_info.cfaPattern
+                                  blackLevel:_info.blackLevel
+                                  whiteLevel:_info.whiteLevel
+                                         wbR:_info.wbR
+                                         wbG:_info.wbG
+                                         wbB:_info.wbB
+                                      rgbCam:_info.rgb_cam];
+        if (!_demosaic) { fprintf(stderr, "demosaic init failed\n"); return nil; }
+
+        // For the Metal-bilinear path, when target dims differ from demosaic
+        // dims, we render into an intermediate BGRA8 CVPixelBuffer at demo dims
+        // and run a separate downscale pass into the writer's target-dim pb.
+        if (needDownscale) {
+            _downscale = [[Downscale alloc] initWithDevice:_device
+                                                   inWidth:demoW
+                                                  inHeight:demoH
+                                                  outWidth:outW
+                                                 outHeight:outH];
+            if (!_downscale) { fprintf(stderr, "downscale init failed\n"); return nil; }
+
+            // Build a CVPixelBufferPool for the intermediate full-res BGRA8
+            // image. Match the writer's IOSurface-backed Metal-compatible
+            // attributes so the Demosaic kernel can write into it.
+            NSDictionary *poolAttrs = @{};
+            NSDictionary *pixelAttrs = @{
+                (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA),
+                (NSString *)kCVPixelBufferWidthKey: @(demoW),
+                (NSString *)kCVPixelBufferHeightKey: @(demoH),
+                (NSString *)kCVPixelBufferMetalCompatibilityKey: @YES,
+                (NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{},
+            };
+            CVReturn r = CVPixelBufferPoolCreate(
+                NULL,
+                (__bridge CFDictionaryRef)poolAttrs,
+                (__bridge CFDictionaryRef)pixelAttrs,
+                &_interPool);
+            if (r != kCVReturnSuccess || !_interPool) {
+                fprintf(stderr, "GPRPipeline: intermediate pool create failed (r=%d)\n", r);
+                return nil;
+            }
+        }
+    }
 
     _writer = [[ProResWriter alloc] initWithPath:_outPath
-                                            width:demoW
-                                           height:demoH
+                                            width:outW
+                                           height:outH
                                               fps:_fps
                                            device:_device];
     if (!_writer) { fprintf(stderr, "writer init failed\n"); return nil; }
@@ -275,6 +411,10 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     _writePending = [NSMutableDictionary dictionary];
     _nextWriteIdx = 0;
     _writeLock = [[NSLock alloc] init];
+    _errAbortLock = [[NSLock alloc] init];
+    atomic_init(&_errorCount, 0);
+    _aborted = NO;
+    _skipErrors = NO;
 
     fprintf(stderr, "  pipeline: %s%ux%u → ",
             _gprInput ? "GPR " : "",
@@ -282,8 +422,18 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     if (_gprInput)        fprintf(stderr, "decode→%ux%u → ", _codecInfo.width, _codecInfo.height);
     else if (!_noCodec)   fprintf(stderr, "codec→%ux%u → ", _codecInfo.width, _codecInfo.height);
     if (!_noCNN)          fprintf(stderr, "CNN→%ux%u → ", _info.width, _info.height);
-    fprintf(stderr, "demosaic→ProRes(%ux%u@%dfps) [pipelined 4-deep]\n", demoW, demoH, _fps);
+    if (_downscale)
+        fprintf(stderr, "demosaic[%s]→%ux%u → downscale→ProRes(%ux%u@%dfps) [%s]\n",
+                [_demosaicMode UTF8String], _demoW, _demoH, outW, outH, _fps,
+                "pipelined 4-deep");
+    else
+        fprintf(stderr, "demosaic[%s]→ProRes(%ux%u@%dfps) [pipelined 4-deep]\n",
+                [_demosaicMode UTF8String], outW, outH, _fps);
     return self;
+}
+
+- (void)dealloc {
+    if (_interPool) { CVPixelBufferPoolRelease(_interPool); _interPool = NULL; }
 }
 
 // ============================================================================
@@ -337,10 +487,40 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     }
     // Retain across the inbox handoff (writer queue releases).
     CVPixelBufferRetain(pb);
-    id<MTLCommandBuffer> cb = [_queue commandBuffer];
-    [_demosaic encode:cb bayer:job.bayer width:job.bayerW height:job.bayerH outPixelBuffer:pb];
-    [cb commit];
-    [cb waitUntilCompleted];
+    if (_ciDemosaic) {
+        // CIRAWFilter path: CIContext drives its own Metal submissions;
+        // -encode: returns once submission is in flight, but we still need
+        // a hard sync so the writer sees a complete frame. CIContext.render
+        // is synchronous on macOS, so no extra wait is needed.
+        [_ciDemosaic encode:nil
+                      bayer:job.bayer
+                      width:job.bayerW
+                     height:job.bayerH
+             outPixelBuffer:pb];
+    } else if (_downscale && _interPool) {
+        // Two-stage Metal path: demosaic to full-res intermediate, then
+        // downscale into the writer's target-dim pb.
+        CVPixelBufferRef inter = NULL;
+        CVReturn r = CVPixelBufferPoolCreatePixelBuffer(NULL, _interPool, &inter);
+        if (r != kCVReturnSuccess || !inter) {
+            fprintf(stderr, "intermediate pool alloc r=%d (frame %d)\n", r, job.idx);
+            CVPixelBufferRelease(pb);
+            return -1;
+        }
+        id<MTLCommandBuffer> cb = [_queue commandBuffer];
+        [_demosaic encode:cb bayer:job.bayer width:job.bayerW height:job.bayerH outPixelBuffer:inter];
+        [_downscale encode:cb inPixelBuffer:inter outPixelBuffer:pb];
+        [cb commit];
+        [cb waitUntilCompleted];
+        CVPixelBufferRelease(inter);
+    } else {
+        // Single-pass Metal demosaic straight into the writer's pb (target ==
+        // demo dims, no downscale needed).
+        id<MTLCommandBuffer> cb = [_queue commandBuffer];
+        [_demosaic encode:cb bayer:job.bayer width:job.bayerW height:job.bayerH outPixelBuffer:pb];
+        [cb commit];
+        [cb waitUntilCompleted];
+    }
 
     // Bayer is no longer needed.
     if (job.bayerOwned && job.bayer) { free(job.bayer); job.bayer = NULL; }
@@ -417,6 +597,13 @@ static StageInbox *make_inbox(const char *label, int capacity) {
         // get too far ahead of the CNN).
         dispatch_semaphore_wait(cnnInbox.slots, DISPATCH_TIME_FOREVER);
         dispatch_async(readerQueue, ^{
+            if ([self isAborted]) {
+                dispatch_semaphore_signal(cnnInbox.slots);
+                if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
+                    dispatch_semaphore_signal(allDone);
+                }
+                return;
+            }
             double t0 = now_ms();
             GPRFileInfo gi = {0};
             NSData *encData = [GPRFileReader readEncodedFromPath:path info:&gi];
@@ -426,7 +613,17 @@ static StageInbox *make_inbox(const char *label, int capacity) {
             double t1 = now_ms();
             job.t_read = t1 - t0;
             if (!encData) {
-                fprintf(stderr, "skip frame %d (read fail)\n", job.idx);
+                [self reportError:[NSString stringWithFormat:@"read fail: %@", path] frame:job.idx];
+                dispatch_semaphore_signal(cnnInbox.slots);
+                if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
+                    dispatch_semaphore_signal(allDone);
+                }
+                return;
+            }
+            // Header sanity (truncated mid-decode? bad fields?).
+            if (gi.decWidth == 0 || gi.decHeight == 0 || gi.decWidth > 16384 || gi.decHeight > 16384) {
+                [self reportError:[NSString stringWithFormat:@"bad header (decW=%u decH=%u) in %@",
+                                   gi.decWidth, gi.decHeight, path] frame:job.idx];
                 dispatch_semaphore_signal(cnnInbox.slots);
                 if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
                     dispatch_semaphore_signal(allDone);
@@ -437,6 +634,14 @@ static StageInbox *make_inbox(const char *label, int capacity) {
             // Decode in place on a per-job-allocated buffer.
             size_t dec_buf_sz = (size_t)gi.decWidth * gi.decHeight * 2;
             uint16_t *decBuf = malloc(dec_buf_sz);
+            if (!decBuf) {
+                [self reportError:[NSString stringWithFormat:@"malloc %zu failed", dec_buf_sz] frame:job.idx];
+                dispatch_semaphore_signal(cnnInbox.slots);
+                if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
+                    dispatch_semaphore_signal(allDone);
+                }
+                return;
+            }
             int dw = 0, dh = 0;
             int drc = [self->_codec decode:encData.bytes size:encData.length
                                   outBayer:decBuf
@@ -445,7 +650,7 @@ static StageInbox *make_inbox(const char *label, int capacity) {
             double t2 = now_ms();
             job.t_decode = t2 - t1;
             if (drc != 0) {
-                fprintf(stderr, "decode rc=%d (frame %d)\n", drc, job.idx);
+                [self reportError:[NSString stringWithFormat:@"codec decode rc=%d (possibly truncated)", drc] frame:job.idx];
                 free(decBuf);
                 dispatch_semaphore_signal(cnnInbox.slots);
                 if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
@@ -466,11 +671,19 @@ static StageInbox *make_inbox(const char *label, int capacity) {
                 // in the cnn stage (the slot tracks "frames awaiting CNN start").
                 dispatch_semaphore_signal(cnnInbox.slots);
 
+                if ([self isAborted]) {
+                    dispatch_semaphore_signal(demosaicInbox.slots);
+                    if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
+                        dispatch_semaphore_signal(allDone);
+                    }
+                    return;
+                }
                 double tc0 = now_ms();
                 int rc = [self runCNNStage:job];
                 double tc1 = now_ms();
                 job.t_cnn = tc1 - tc0;
                 if (rc != 0) {
+                    [self reportError:[NSString stringWithFormat:@"CNN rc=%d", rc] frame:job.idx];
                     dispatch_semaphore_signal(demosaicInbox.slots);
                     if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
                         dispatch_semaphore_signal(allDone);
@@ -483,11 +696,19 @@ static StageInbox *make_inbox(const char *label, int capacity) {
                 dispatch_async(demosaicInbox.queue, ^{
                     dispatch_semaphore_signal(demosaicInbox.slots);
 
+                    if ([self isAborted]) {
+                        dispatch_semaphore_signal(writerInbox.slots);
+                        if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
+                            dispatch_semaphore_signal(allDone);
+                        }
+                        return;
+                    }
                     double td0 = now_ms();
                     int rc2 = [self runDemosaicStage:job];
                     double td1 = now_ms();
                     job.t_demosaic = td1 - td0;
                     if (rc2 != 0) {
+                        [self reportError:[NSString stringWithFormat:@"demosaic rc=%d", rc2] frame:job.idx];
                         dispatch_semaphore_signal(writerInbox.slots);
                         if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
                             dispatch_semaphore_signal(allDone);
@@ -513,9 +734,14 @@ static StageInbox *make_inbox(const char *label, int capacity) {
 
     [_writer finish];
     double t_total = now_ms() - t_total_start;
-    fprintf(stderr, "DONE  total=%.1fs  output=%s  effective fps=%.2f\n",
+    int errs = atomic_load(&_errorCount);
+    fprintf(stderr, "DONE  total=%.1fs  output=%s  effective fps=%.2f  errors=%d\n",
             t_total / 1000.0, [_outPath UTF8String],
-            framePaths.count / (t_total / 1000.0));
+            framePaths.count / (t_total / 1000.0), errs);
+    if (errs > 0 && !_skipErrors) return 2;
+    if (errs > 0 && _skipErrors) {
+        fprintf(stderr, "  (continued past %d failed frames; use without --skip-errors for strict mode)\n", errs);
+    }
     return 0;
 }
 
@@ -545,13 +771,20 @@ static StageInbox *make_inbox(const char *label, int capacity) {
 
         dispatch_semaphore_wait(cnnInbox.slots, DISPATCH_TIME_FOREVER);
         dispatch_async(readerQueue, ^{
+            if ([self isAborted]) {
+                dispatch_semaphore_signal(cnnInbox.slots);
+                if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
+                    dispatch_semaphore_signal(allDone);
+                }
+                return;
+            }
             double t0 = now_ms();
             DNGInfo info_local;
             uint16_t *bayer = [DNGReader readBayerFromPath:path info:&info_local];
             double t1 = now_ms();
             job.t_read = t1 - t0;
             if (!bayer) {
-                fprintf(stderr, "skip %s (read fail)\n", [path UTF8String]);
+                [self reportError:[NSString stringWithFormat:@"DNG read fail: %@", path] frame:job.idx];
                 dispatch_semaphore_signal(cnnInbox.slots);
                 if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
                     dispatch_semaphore_signal(allDone);
@@ -571,7 +804,7 @@ static StageInbox *make_inbox(const char *label, int capacity) {
                                               vc5Out:&vc5
                                              vc5Size:&vc5_size];
                 if (erc != 0) {
-                    fprintf(stderr, "encode rc=%d (frame %d)\n", erc, job.idx);
+                    [self reportError:[NSString stringWithFormat:@"codec encode rc=%d", erc] frame:job.idx];
                     free(bayer);
                     dispatch_semaphore_signal(cnnInbox.slots);
                     if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
@@ -580,13 +813,22 @@ static StageInbox *make_inbox(const char *label, int capacity) {
                     return;
                 }
                 uint16_t *codecBuf = malloc((size_t)self->_codecInfo.width * self->_codecInfo.height * 2);
+                if (!codecBuf) {
+                    [self reportError:@"codecBuf malloc failed" frame:job.idx];
+                    free(bayer);
+                    dispatch_semaphore_signal(cnnInbox.slots);
+                    if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
+                        dispatch_semaphore_signal(allDone);
+                    }
+                    return;
+                }
                 int dw = 0, dh = 0;
                 int drc = [self->_codec decode:vc5 size:vc5_size
                                        outBayer:codecBuf
                                       outPitch:(size_t)self->_codecInfo.width * 2
                                        outWidth:&dw outHeight:&dh];
                 if (drc != 0) {
-                    fprintf(stderr, "decode rc=%d (frame %d)\n", drc, job.idx);
+                    [self reportError:[NSString stringWithFormat:@"codec decode rc=%d", drc] frame:job.idx];
                     free(codecBuf);
                     free(bayer);
                     dispatch_semaphore_signal(cnnInbox.slots);
@@ -613,11 +855,19 @@ static StageInbox *make_inbox(const char *label, int capacity) {
             dispatch_semaphore_wait(demosaicInbox.slots, DISPATCH_TIME_FOREVER);
             dispatch_async(cnnInbox.queue, ^{
                 dispatch_semaphore_signal(cnnInbox.slots);
+                if ([self isAborted]) {
+                    dispatch_semaphore_signal(demosaicInbox.slots);
+                    if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
+                        dispatch_semaphore_signal(allDone);
+                    }
+                    return;
+                }
                 double tc0 = now_ms();
                 int rc = [self runCNNStage:job];
                 double tc1 = now_ms();
                 job.t_cnn = tc1 - tc0;
                 if (rc != 0) {
+                    [self reportError:[NSString stringWithFormat:@"CNN rc=%d", rc] frame:job.idx];
                     dispatch_semaphore_signal(demosaicInbox.slots);
                     if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
                         dispatch_semaphore_signal(allDone);
@@ -628,11 +878,19 @@ static StageInbox *make_inbox(const char *label, int capacity) {
                 dispatch_semaphore_wait(writerInbox.slots, DISPATCH_TIME_FOREVER);
                 dispatch_async(demosaicInbox.queue, ^{
                     dispatch_semaphore_signal(demosaicInbox.slots);
+                    if ([self isAborted]) {
+                        dispatch_semaphore_signal(writerInbox.slots);
+                        if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
+                            dispatch_semaphore_signal(allDone);
+                        }
+                        return;
+                    }
                     double td0 = now_ms();
                     int rc2 = [self runDemosaicStage:job];
                     double td1 = now_ms();
                     job.t_demosaic = td1 - td0;
                     if (rc2 != 0) {
+                        [self reportError:[NSString stringWithFormat:@"demosaic rc=%d", rc2] frame:job.idx];
                         dispatch_semaphore_signal(writerInbox.slots);
                         if (atomic_fetch_add(&writtenCount, 1) + 1 == totalN) {
                             dispatch_semaphore_signal(allDone);
@@ -656,9 +914,14 @@ static StageInbox *make_inbox(const char *label, int capacity) {
 
     [_writer finish];
     double t_total = now_ms() - t_total_start;
-    fprintf(stderr, "DONE  total=%.1fs  output=%s  effective fps=%.2f\n",
+    int errs = atomic_load(&_errorCount);
+    fprintf(stderr, "DONE  total=%.1fs  output=%s  effective fps=%.2f  errors=%d\n",
             t_total / 1000.0, [_outPath UTF8String],
-            framePaths.count / (t_total / 1000.0));
+            framePaths.count / (t_total / 1000.0), errs);
+    if (errs > 0 && !_skipErrors) return 2;
+    if (errs > 0 && _skipErrors) {
+        fprintf(stderr, "  (continued past %d failed frames; use without --skip-errors for strict mode)\n", errs);
+    }
     return 0;
 }
 
