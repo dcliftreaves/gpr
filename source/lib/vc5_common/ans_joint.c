@@ -922,6 +922,20 @@ void jans_encode_band_x4_report_timing(void) {
    value; real images never approach 0xFFFFFFFF tokens, so this is safe. */
 #define JANS_STRIPE_MARKER 0xFFFFFFFFu
 
+/* Deferred-rANS bookkeeping: one record per stripe, captured at the moment
+   of a stripe boundary in Pass 1. Carries everything emit_blob needs to
+   re-build that stripe's blob later (Pass 2): a snapshot of the freq table,
+   pointers/lengths into the growing tokens[] and resid_buf[] arenas, and
+   the row_count for the stripe header. */
+typedef struct {
+    size_t   token_off;     /* tokens[token_off .. token_off+token_count) */
+    int      token_count;
+    size_t   resid_off;     /* resid_buf[resid_off .. resid_off+resid_size) */
+    size_t   resid_size;
+    int      rows_in_stripe;
+    uint16_t freq[JANS_NUM_SYMBOLS + 1];
+} JANS_PENDING_STRIPE;
+
 struct JANS_INLINE_STATE {
     /* Per-stripe state (or full-band if stripe_rows == 0) */
     uint16_t *tokens;
@@ -948,6 +962,19 @@ struct JANS_INLINE_STATE {
        next frame. */
     uint8_t  *rans_scratch;
     size_t    rans_scratch_cap;
+
+    /* Deferred-rANS mode. When defer_rans != 0, jans_inline_flush_stripe
+       snapshots the per-stripe state into pending[] and lets the tokens
+       and resid arenas grow across stripes. jans_inline_finalize then
+       walks pending[] and runs the rANS encode for each stripe in one
+       shot (band-parallel via the existing Pass 2 thread). */
+    int                  defer_rans;
+    /* Token / resid arenas don't reset between stripes in defer mode. */
+    size_t               tokens_base;  /* offset in tokens[] where current stripe begins */
+    size_t               resid_base;   /* offset in resid_buf[] where current stripe begins */
+    JANS_PENDING_STRIPE *pending;
+    int                  pending_count;
+    int                  pending_cap;
 };
 
 JANS_INLINE_STATE *jans_inline_create(size_t max_coeffs) {
@@ -955,9 +982,12 @@ JANS_INLINE_STATE *jans_inline_create(size_t max_coeffs) {
     if (!s) return NULL;
     init_run_lut();
     init_mag_lut(); init_sym_bits();
-    /* Worst-case sizing for a SINGLE band (stripe-mode shrinks this in reset). */
-    s->token_cap = max_coeffs + 4096;
-    s->resid_cap = max_coeffs * 2 + 4096;
+    /* Worst-case sizing per stripe (legacy) or per full band (defer).
+       In defer mode each coefficient can emit ~25 bits of resid; per token
+       we need <= 4 bytes of bitbuf headroom. + slack for run-256 splitting
+       producing extra tokens (~width/256 per all-zero row). */
+    s->token_cap = max_coeffs + (max_coeffs / 32) + 4096;
+    s->resid_cap = max_coeffs * 4 + 4096;
     s->tokens    = (uint16_t *)malloc(s->token_cap * sizeof(uint16_t));
     s->resid_buf = (uint8_t  *)malloc(s->resid_cap);
     if (!s->tokens || !s->resid_buf) { jans_inline_destroy(s); return NULL; }
@@ -975,28 +1005,43 @@ void jans_inline_set_stripe_rows(JANS_INLINE_STATE *s, int stripe_rows) {
     s->stripe_rows = stripe_rows;
 }
 
+void jans_inline_set_defer_rans(JANS_INLINE_STATE *s, int defer) {
+    if (!s) return;
+    s->defer_rans = defer ? 1 : 0;
+}
+
 void jans_inline_reset(JANS_INLINE_STATE *s) {
     if (!s) return;
     s->token_count = 0;
     s->rows_in_stripe = 0;
     s->num_stripes = 0;
     s->stripe_acc_pos = 0;
+    s->tokens_base = 0;
+    s->resid_base = 0;
+    s->pending_count = 0;
     bitbuf_init(&s->bb, s->resid_buf, s->resid_cap);
     memset(&s->table, 0, sizeof(s->table));
 }
 
-/* Build a single-blob (legacy format) from the state's current tokens / bitbuf
-   / freq. Output is the same byte layout as jans_encode_band_x4 produces.
-   Used both by jans_inline_finalize (single-blob mode) and by the stripe
-   flush helper. Returns bytes written, or -1 on error. */
-static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
-                                 JANS_INLINE_STATE *s)
-{
-    size_t resid_size = bitbuf_size(&s->bb);
-    normalize_freq(s->table.freq, JANS_NUM_SYMBOLS);
-    build_encode_tables(&s->table, JANS_NUM_SYMBOLS);
+/* Build a single-blob (legacy format) from explicit token/resid/freq inputs.
+   Output is the same byte layout as jans_encode_band_x4 produces.
+   Used both by jans_inline_finalize (single-blob mode), by the stripe
+   flush helper, and by the deferred-rANS finalize path. Returns bytes
+   written, or -1 on error.
 
-    size_t rans_cap = (size_t)s->token_count * 4 + 4096;
+   The caller supplies a JANS_TABLE workspace whose `freq[]` has been
+   filled with the per-stripe symbol counts. emit_blob normalizes and
+   builds the encode tables in-place, then runs rANS. */
+static int jans_inline_emit_blob_ex(uint8_t *out_buf, size_t out_capacity,
+                                    JANS_INLINE_STATE *s,
+                                    JANS_TABLE *table,
+                                    const uint16_t *tokens, int token_count,
+                                    const uint8_t *resid, size_t resid_size)
+{
+    normalize_freq(table->freq, JANS_NUM_SYMBOLS);
+    build_encode_tables(table, JANS_NUM_SYMBOLS);
+
+    size_t rans_cap = (size_t)token_count * 4 + 4096;
     if (rans_cap > s->rans_scratch_cap) {
         uint8_t *nb = (uint8_t *)realloc(s->rans_scratch, rans_cap);
         if (!nb) return -1;
@@ -1011,19 +1056,19 @@ static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
     /* 4-way unrolled rANS encode (matches jans_encode_band_x4) — uses
        packed table.enc[sym] so each symbol fetch is one 8-byte load
        instead of 3 scattered loads from freq[]/cum_freq[]/rcp_freq[]. */
-    const JANS_ENC_ENTRY *enc = s->table.enc;
-    int i = s->token_count - 1;
+    const JANS_ENC_ENTRY *enc = table->enc;
+    int i = token_count - 1;
     while (i >= 0 && (i & 3) != 3) {
-        JANS_ENC_ENTRY e = enc[s->tokens[i]];
+        JANS_ENC_ENTRY e = enc[tokens[i]];
         rans_ptr = rans_enc_put(&states[i & 3], rans_ptr,
                      e.cum_freq, e.freq, e.rcp_freq);
         i--;
     }
     for (; i >= 3; i -= 4) {
-        JANS_ENC_ENTRY e3 = enc[s->tokens[i]];
-        JANS_ENC_ENTRY e2 = enc[s->tokens[i - 1]];
-        JANS_ENC_ENTRY e1 = enc[s->tokens[i - 2]];
-        JANS_ENC_ENTRY e0 = enc[s->tokens[i - 3]];
+        JANS_ENC_ENTRY e3 = enc[tokens[i]];
+        JANS_ENC_ENTRY e2 = enc[tokens[i - 1]];
+        JANS_ENC_ENTRY e1 = enc[tokens[i - 2]];
+        JANS_ENC_ENTRY e0 = enc[tokens[i - 3]];
         rans_ptr = rans_enc_put(&states[3], rans_ptr,
                      e3.cum_freq, e3.freq, e3.rcp_freq);
         rans_ptr = rans_enc_put(&states[2], rans_ptr,
@@ -1034,7 +1079,7 @@ static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
                      e0.cum_freq, e0.freq, e0.rcp_freq);
     }
     while (i >= 0) {
-        JANS_ENC_ENTRY e = enc[s->tokens[i]];
+        JANS_ENC_ENTRY e = enc[tokens[i]];
         rans_ptr = rans_enc_put(&states[i & 3], rans_ptr,
                      e.cum_freq, e.freq, e.rcp_freq);
         i--;
@@ -1080,15 +1125,15 @@ static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
 
     uint8_t freq_buf[JANS_NUM_SYMBOLS * 2];
     for (int j = 0; j < JANS_NUM_SYMBOLS; j++) {
-        freq_buf[j*2]   = (uint8_t)(s->table.freq[j] >> 8);
-        freq_buf[j*2+1] = (uint8_t)(s->table.freq[j]);
+        freq_buf[j*2]   = (uint8_t)(table->freq[j] >> 8);
+        freq_buf[j*2+1] = (uint8_t)(table->freq[j]);
     }
     int freq_size = JANS_NUM_SYMBOLS * 2;
     size_t total = 16 + freq_size + rans_size + resid_size;
-    if (total > out_capacity) { free(rans_buf); return -1; }
+    if (total > out_capacity) return -1;
 
     uint8_t *op = out_buf;
-    int tc = s->token_count;
+    int tc = token_count;
     *op++ = (tc>>24)&0xFF; *op++ = (tc>>16)&0xFF; *op++ = (tc>>8)&0xFF; *op++ = tc&0xFF;
     *op++ = (freq_size>>24)&0xFF; *op++ = (freq_size>>16)&0xFF;
     *op++ = (freq_size>>8)&0xFF;  *op++ = freq_size&0xFF;
@@ -1098,16 +1143,88 @@ static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
     *op++ = (resid_size>>8)&0xFF;  *op++ = resid_size&0xFF;
     memcpy(op, freq_buf, freq_size); op += freq_size;
     memcpy(op, rans_buf, rans_size); op += rans_size;
-    memcpy(op, s->resid_buf, resid_size);
+    memcpy(op, resid, resid_size);
 
     return (int)total;
 }
 
+/* Legacy entry: builds blob from s->tokens / s->bb / s->table. Wrapper around
+   the parameterized emit. */
+static int jans_inline_emit_blob(uint8_t *out_buf, size_t out_capacity,
+                                 JANS_INLINE_STATE *s)
+{
+    size_t resid_size = bitbuf_size(&s->bb);
+    return jans_inline_emit_blob_ex(out_buf, out_capacity, s, &s->table,
+                                    s->tokens, s->token_count,
+                                    s->resid_buf, resid_size);
+}
+
+/* Snapshot the current stripe's tokens/resid/freq into pending[], then
+   advance the stripe baseline so subsequent rows keep growing the same
+   tokens[] and resid_buf[] arenas. Called from flush_stripe when
+   defer_rans is enabled.
+
+   We need to capture resid_size BEFORE re-initing the bitbuf for the next
+   stripe; that requires flushing the bitbuf's partial-byte tail so emit
+   later sees the same byte boundary as the immediate path would have. */
+static int jans_inline_defer_snapshot(JANS_INLINE_STATE *s) {
+    if (s->pending_count >= s->pending_cap) {
+        int new_cap = s->pending_cap ? s->pending_cap * 2 : 16;
+        JANS_PENDING_STRIPE *nb = (JANS_PENDING_STRIPE *)realloc(
+            s->pending, (size_t)new_cap * sizeof(JANS_PENDING_STRIPE));
+        if (!nb) return -1;
+        s->pending = nb;
+        s->pending_cap = new_cap;
+    }
+
+    /* Flush trailing partial byte into resid_buf so the stripe is byte-aligned.
+       bitbuf_size returns byte_pos relative to bb->buf (which has been slid
+       forward to resid_buf + resid_base on previous snapshots), so the
+       per-stripe size is bytes_in_this_bb, and the absolute end in the
+       resid arena is resid_base + bytes_in_this_bb. */
+    size_t stripe_resid_size = bitbuf_size(&s->bb);
+    size_t resid_end_abs = s->resid_base + stripe_resid_size;
+
+    JANS_PENDING_STRIPE *p = &s->pending[s->pending_count++];
+    p->token_off       = s->tokens_base;
+    p->token_count     = s->token_count;
+    p->resid_off       = s->resid_base;
+    p->resid_size      = stripe_resid_size;
+    p->rows_in_stripe  = s->rows_in_stripe;
+    memcpy(p->freq, s->table.freq, sizeof(p->freq));
+
+    /* Advance baselines; next stripe writes after these in the same arenas. */
+    s->tokens_base = s->tokens_base + (size_t)s->token_count;
+    s->resid_base  = resid_end_abs;
+
+    /* Reset per-stripe counters but keep growing the arenas. Slide the
+       bitbuf window forward so the next stripe's writes land contiguously
+       after this stripe's in the same resid_buf. */
+    s->token_count    = 0;
+    s->rows_in_stripe = 0;
+    if (resid_end_abs <= s->resid_cap) {
+        bitbuf_init(&s->bb, s->resid_buf + resid_end_abs,
+                    s->resid_cap - resid_end_abs);
+    } else {
+        /* Capacity exhausted — this should not happen with proper sizing. */
+        bitbuf_init(&s->bb, s->resid_buf + s->resid_cap, 0);
+    }
+    memset(&s->table, 0, sizeof(s->table));
+    return 0;
+}
+
 /* Encode the currently accumulated tokens as a stripe blob; append to the
    stripe accumulator with row_count + size headers. Reset per-stripe state
-   for the next stripe. */
+   for the next stripe.
+
+   In deferred-rANS mode this just snapshots into pending[] — the rANS
+   work moves to jans_inline_finalize. */
 static int jans_inline_flush_stripe(JANS_INLINE_STATE *s) {
     if (s->token_count == 0 && s->rows_in_stripe == 0) return 0;
+
+    if (s->defer_rans) {
+        return jans_inline_defer_snapshot(s);
+    }
 
     /* Worst case: stripe blob is roughly 16 + 256 + (tokens*4) + resid bytes. */
     size_t blob_max = 16 + JANS_NUM_SYMBOLS * 2
@@ -1149,7 +1266,9 @@ static int jans_inline_flush_stripe(JANS_INLINE_STATE *s) {
 
 void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
     if (!s) return;
-    uint16_t *tokens = s->tokens;
+    /* In defer mode tokens grow forward across stripes; offset by tokens_base
+       so this stripe's writes land contiguously after the prior stripe's. */
+    uint16_t *tokens = s->tokens + (s->defer_rans ? s->tokens_base : 0);
     int token_count = s->token_count;
     int run = 0;
     /* Hoist freq + bb pointer out of the struct access. */
@@ -1252,6 +1371,47 @@ int jans_inline_finalize(uint8_t *out_buf, size_t out_capacity, JANS_INLINE_STAT
         if (jans_inline_flush_stripe(s) != 0) return -1;
     }
 
+    /* Deferred-rANS mode: run the rANS encode for each pending stripe here
+       (Pass 2), then emit the stripe container. This is the heavy lifting
+       moved out of Pass 1's critical path. */
+    if (s->defer_rans) {
+        /* Emit directly into out_buf to avoid one memcpy through stripe_acc. */
+        if (16 > out_capacity) return -1;
+        uint8_t *op = out_buf;
+        op[0] = 0xFF; op[1] = 0xFF; op[2] = 0xFF; op[3] = 0xFF; op += 4;
+        int ns = s->pending_count;
+        op[0] = (ns>>24)&0xFF; op[1] = (ns>>16)&0xFF;
+        op[2] = (ns>>8)&0xFF;  op[3] = ns&0xFF; op += 4;
+        memset(op, 0, 8); op += 8;
+
+        size_t pos = 16;
+        JANS_TABLE tbl_ws;
+        for (int k = 0; k < s->pending_count; k++) {
+            const JANS_PENDING_STRIPE *p = &s->pending[k];
+            if (pos + 8 > out_capacity) return -1;
+            uint8_t *hdr = out_buf + pos;
+            uint8_t *blob_dst = hdr + 8;
+            size_t blob_cap = (out_capacity > pos + 8) ? (out_capacity - pos - 8) : 0;
+
+            memset(&tbl_ws, 0, sizeof(tbl_ws));
+            memcpy(tbl_ws.freq, p->freq, sizeof(tbl_ws.freq));
+
+            int blob_size = jans_inline_emit_blob_ex(
+                blob_dst, blob_cap, s, &tbl_ws,
+                s->tokens + p->token_off, p->token_count,
+                s->resid_buf + p->resid_off, p->resid_size);
+            if (blob_size < 0) return -1;
+
+            int rc = p->rows_in_stripe;
+            hdr[0] = (rc>>24)&0xFF; hdr[1] = (rc>>16)&0xFF;
+            hdr[2] = (rc>>8)&0xFF;  hdr[3] = rc&0xFF;
+            hdr[4] = (blob_size>>24)&0xFF; hdr[5] = (blob_size>>16)&0xFF;
+            hdr[6] = (blob_size>>8)&0xFF;  hdr[7] = blob_size&0xFF;
+            pos += 8 + (size_t)blob_size;
+        }
+        return (int)pos;
+    }
+
     size_t total = 16 + s->stripe_acc_pos;
     if (total > out_capacity) return -1;
 
@@ -1277,6 +1437,7 @@ void jans_inline_destroy(JANS_INLINE_STATE *s) {
     if (s->resid_buf)     free(s->resid_buf);
     if (s->stripe_acc)    free(s->stripe_acc);
     if (s->rans_scratch)  free(s->rans_scratch);
+    if (s->pending)       free(s->pending);
     free(s);
 }
 

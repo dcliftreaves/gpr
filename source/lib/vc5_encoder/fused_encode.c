@@ -3596,14 +3596,29 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
                 if (band == 3) band_env = getenv("FUSED_STRIPE_ROWS_HH");
                 if (band_env) { int v = atoi(band_env); if (v > 0) rows = v; }
 
-                size_t stripe_coeffs = (size_t)cs->band_width * (size_t)rows;
-                if (stripe_coeffs > band_coeffs) stripe_coeffs = band_coeffs;
-                cs->inline_state[band] = jans_inline_create(stripe_coeffs);
+                /* FUSED_DEFER_RANS=1 moves the rANS encode out of Pass 1's
+                   stripe-flush path and into Pass 2's finalize. In defer mode
+                   the tokens[] and resid_buf[] arenas must hold the full
+                   band, not just a single stripe. */
+                const char *_defer_env = getenv("FUSED_DEFER_RANS");
+                int defer_rans = (_defer_env && *_defer_env == '1') ? 1 : 0;
+
+                size_t alloc_coeffs;
+                if (defer_rans) {
+                    alloc_coeffs = band_coeffs;
+                } else {
+                    alloc_coeffs = (size_t)cs->band_width * (size_t)rows;
+                    if (alloc_coeffs > band_coeffs) alloc_coeffs = band_coeffs;
+                }
+                cs->inline_state[band] = jans_inline_create(alloc_coeffs);
                 if (!cs->inline_state[band]) {
                     gpr_encode_fused_destroy(ctx);
                     return NULL;
                 }
                 jans_inline_set_stripe_rows(cs->inline_state[band], rows);
+                if (defer_rans) {
+                    jans_inline_set_defer_rans(cs->inline_state[band], 1);
+                }
             }
             p2_idx++;
         }

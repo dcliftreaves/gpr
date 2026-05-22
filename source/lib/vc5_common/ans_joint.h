@@ -153,6 +153,16 @@ JANS_INLINE_STATE *jans_inline_create(size_t max_coeffs);
     compatible with the old format). */
 void jans_inline_set_stripe_rows(JANS_INLINE_STATE *s, int stripe_rows);
 
+/*! Enable deferred-rANS mode (only meaningful when stripe_rows > 0).
+    When enabled, jans_inline_row stops running the rANS encode at stripe
+    boundaries; instead it snapshots the per-stripe (tokens, freqs,
+    resid-bits) and lets jans_inline_finalize do the rANS work in one shot.
+    This shifts ~6-12 ms of rANS work out of the Pass 1 critical path and
+    into Pass 2 (where the band-parallel thread already handles finalize).
+
+    The encoded output bytes are bit-identical to the non-deferred path. */
+void jans_inline_set_defer_rans(JANS_INLINE_STATE *s, int defer);
+
 void jans_inline_reset(JANS_INLINE_STATE *s);
 void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width);
 int  jans_inline_finalize(uint8_t *out_buf, size_t out_cap, JANS_INLINE_STATE *s);
