@@ -302,13 +302,19 @@ static void *hp_synth_runner(void *arg) {
 
 /* Implemented in fused_stream_decode.c. Replaces the wavelet_inv +
    color_xform stages with N-strip parallel pipeline. Caller has already
-   done band_decode + optional HP-synth + LL pre-multiply by qt[0]*16. */
+   done band_decode + optional HP-synth + LL pre-multiply by qt[0]*16.
+   hp_zero: when non-zero, signals that LH/HL/HH bands are entirely zero
+   (LL-only-fast mode). The strip workers skip per-row HP dequant and
+   use a simplified vertical/horizontal filter that omits HP terms,
+   typically saving ~30% on the wavelet stage. Set hp_zero=0 for the
+   general case to use the full HP-aware path. */
 extern int gpr_decode_fused_stream(PIXEL *bands[4][4],
                                    int bw, int bh, int ch_w, int ch_h,
                                    const QUANT qt[4],
                                    int log_max, int midpoint, int shift, int is_rggb,
                                    const uint16_t *log_table,
-                                   uint8_t *bayer_out, size_t bayer_pitch_bytes);
+                                   uint8_t *bayer_out, size_t bayer_pitch_bytes,
+                                   int hp_zero);
 
 static void *fused_band_decode_runner(void *arg) {
     FUSED_BAND_TASK *t = (FUSED_BAND_TASK *)arg;
@@ -1162,14 +1168,18 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
             }
         }
 
-        /* Opt-in: GPR_DECODE_FUSED_STREAM=1 routes through the row-strip
-           parallel pipeline (band → wavelet → color in one pass per
-           strip). Replaces the wavelet + color stages of the existing
-           path. The existing whole-channel path stays as the default. */
-        int use_fused_stream = 0;
+        /* Fused row-strip pipeline (band → wavelet → color in one pass per
+           strip) is the default for the LL-only-fast path. Set
+           GPR_DECODE_FUSED_STREAM=0 to opt out and use the legacy
+           per-channel whole-buffer pipeline (kept for A/B verification).
+           Default ON measured Pi 5: wavelet(45)+color(31)=76ms → ~max(stage)
+           ≈ 45ms wall time (per fused_stream_decode.c file header note),
+           and now with NEON'd inverse wavelet in fused_stream the gap is
+           even tighter. M1 measured byte-identical. */
+        int use_fused_stream = 1;
         {
             const char *e = getenv("GPR_DECODE_FUSED_STREAM");
-            if (e && *e == '1') use_fused_stream = 1;
+            if (e && *e == '0') use_fused_stream = 0;
         }
         if (use_fused_stream) {
             int log_max  = (1 << (int)hdr->log_bits) - 1;
@@ -1180,12 +1190,29 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
             int shift = 16 - output_bit_depth;
             int is_rggb = (int)hdr->is_rggb;
 
+            /* Detect HP-zero: when all HP band sizes from the encoded
+               stream are below the rANS "small-band memset" threshold
+               (<64 bytes), or when caller set GPR_DECODE_LL_ONLY=1, the
+               LH/HL/HH bands are guaranteed zero post-band_decode. The
+               LL-only-fast encoder writes 0-byte HP sizes, so this is the
+               common case for the streaming playback path. Detecting it
+               lets fused_stream skip per-row HP dequant entirely. */
+            int hp_zero = 1;
+            for (int ch = 0; ch < 4 && hp_zero; ch++) {
+                for (int s = 1; s <= 3; s++) {
+                    if (band_sizes[ch * 4 + s] >= 64) { hp_zero = 0; break; }
+                }
+            }
+            /* When HP-synth was actually applied (scale > 0), HP is NOT
+               zero — the synth wrote into the band buffers. */
+            if (hpsynth_scale > 0.0) hp_zero = 0;
             double dt_fs0 = _decode_ms();
             int frc = gpr_decode_fused_stream(bands, bw, bh, ch_w, ch_h,
                                                qt,
                                                log_max, midpoint, shift, is_rggb,
                                                log_table,
-                                               (uint8_t *)bayer_out, bayer_pitch_bytes);
+                                               (uint8_t *)bayer_out, bayer_pitch_bytes,
+                                               hp_zero);
             if (frc != 0) rc = -30;
             if (dbg_timing) fprintf(stderr, "  decode fused_stream: %.1f ms\n",
                                     _decode_ms() - dt_fs0);

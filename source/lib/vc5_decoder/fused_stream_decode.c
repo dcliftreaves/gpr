@@ -136,9 +136,14 @@ static inline void dequant_band_row(PIXEL *in, PIXEL *out, int width, QUANT q)
    we will NEON it once correctness is proven (TODO 7).
    -------------------------------------------------------------------- */
 static const int32_t INV_ROUNDING = 4;
-static const int INV_DESCALE_SHIFT = 1;   /* descale=2 → shift left by 1 */
+/* INV_DESCALE_SHIFT must be a true constant (used by vshlq_n_s32 immediate).
+   descale=2 → shift left by 1. */
+#define INV_DESCALE_SHIFT 1
 
-/* Inline horizontal inverse with descale, matching InvertHorizontalDescale16s. */
+/* Inline horizontal inverse with descale, matching InvertHorizontalDescale16s.
+   NEON 4-wide on interior columns (column ∈ [1, last_column-3]); scalar
+   borders + scalar tail. Constant descale_shift=1 lets us use vshlq_n_s32
+   instead of a variable-shift vector, saving one register and a load. */
 static inline void invert_horizontal_descale_row(
     const PIXEL *lp, const PIXEL *hp, PIXEL *out,
     int input_width, int output_width)
@@ -160,7 +165,36 @@ static inline void invert_horizontal_descale_row(
     out[1] = (PIXEL)odd;
     column = 1;
 
-    /* Middle columns */
+#if defined(__ARM_NEON)
+    {
+        const int32x4_t four = vdupq_n_s32(INV_ROUNDING);
+        /* 4-wide interior. Match InvertHorizontalDescale16s NEON path,
+           but with constant descale_shift=1. */
+        for (; column + 3 < last_column; column += 4) {
+            int32x4_t lp_left   = vld1q_s32(&lp[column - 1]);
+            int32x4_t lp_center = vld1q_s32(&lp[column]);
+            int32x4_t lp_right  = vld1q_s32(&lp[column + 1]);
+            int32x4_t hp_center = vld1q_s32(&hp[column]);
+
+            int32x4_t diff_e = vsubq_s32(lp_left, lp_right);
+            diff_e = vaddq_s32(diff_e, four);
+            diff_e = vshrq_n_s32(diff_e, 3);
+            int32x4_t even_v = vaddq_s32(vaddq_s32(diff_e, lp_center), hp_center);
+            even_v = vshlq_n_s32(even_v, INV_DESCALE_SHIFT);
+
+            int32x4_t diff_o = vsubq_s32(lp_right, lp_left);
+            diff_o = vaddq_s32(diff_o, four);
+            diff_o = vshrq_n_s32(diff_o, 3);
+            int32x4_t odd_v = vsubq_s32(vaddq_s32(diff_o, lp_center), hp_center);
+            odd_v = vshlq_n_s32(odd_v, INV_DESCALE_SHIFT);
+
+            int32x4x2_t interleaved = { .val = { even_v, odd_v } };
+            vst2q_s32(&out[2 * column], interleaved);
+        }
+    }
+#endif
+
+    /* Scalar middle columns (tail) */
     for (; column < last_column; column++) {
         even = lp[column - 1] - lp[column + 1] + 4;
         even >>= 3;
@@ -203,7 +237,53 @@ static inline void inv_vert_top(
     PIXEL *even_lp, PIXEL *odd_lp, PIXEL *even_hp, PIXEL *odd_hp,
     int bw)
 {
-    for (int x = 0; x < bw; x++) {
+    int x = 0;
+#if defined(__ARM_NEON)
+    const int32x4_t four = vdupq_n_s32(INV_ROUNDING);
+    const int bw_m4 = (bw / 4) * 4;
+    for (; x < bw_m4; x += 4) {
+        int32x4_t a0 = vld1q_s32(&ll0[x]);
+        int32x4_t a1 = vld1q_s32(&ll1[x]);
+        int32x4_t a2 = vld1q_s32(&ll2[x]);
+        int32x4_t b0 = vld1q_s32(&lh0[x]);
+        int32x4_t b1 = vld1q_s32(&lh1[x]);
+        int32x4_t b2 = vld1q_s32(&lh2[x]);
+        int32x4_t hl = vld1q_s32(&hl_dq[x]);
+        int32x4_t hh = vld1q_s32(&hh_dq[x]);
+
+        /* LL: even = (11*a0 - 4*a1 + a2 + 4) >> 3 + hl, then >>1
+              odd  = (5*a0  + 4*a1 - a2 + 4) >> 3 - hl, then >>1 */
+        int32x4_t e_acc = vmlaq_n_s32(a2, a0, 11);   /* a0*11 + a2 */
+        e_acc = vmlsq_n_s32(e_acc, a1, 4);            /* - a1*4 */
+        e_acc = vaddq_s32(e_acc, four);
+        e_acc = vshrq_n_s32(e_acc, 3);
+        int32x4_t e_lp = vshrq_n_s32(vaddq_s32(e_acc, hl), 1);
+        vst1q_s32(&even_lp[x], e_lp);
+
+        int32x4_t o_acc = vmlaq_n_s32(vmulq_n_s32(a0, 5), a1, 4); /* 5*a0 + 4*a1 */
+        o_acc = vsubq_s32(o_acc, a2);
+        o_acc = vaddq_s32(o_acc, four);
+        o_acc = vshrq_n_s32(o_acc, 3);
+        int32x4_t o_lp = vshrq_n_s32(vsubq_s32(o_acc, hl), 1);
+        vst1q_s32(&odd_lp[x], o_lp);
+
+        /* LH side, same shape with b's and hh */
+        int32x4_t e_acc2 = vmlaq_n_s32(b2, b0, 11);
+        e_acc2 = vmlsq_n_s32(e_acc2, b1, 4);
+        e_acc2 = vaddq_s32(e_acc2, four);
+        e_acc2 = vshrq_n_s32(e_acc2, 3);
+        int32x4_t e_hp = vshrq_n_s32(vaddq_s32(e_acc2, hh), 1);
+        vst1q_s32(&even_hp[x], e_hp);
+
+        int32x4_t o_acc2 = vmlaq_n_s32(vmulq_n_s32(b0, 5), b1, 4);
+        o_acc2 = vsubq_s32(o_acc2, b2);
+        o_acc2 = vaddq_s32(o_acc2, four);
+        o_acc2 = vshrq_n_s32(o_acc2, 3);
+        int32x4_t o_hp = vshrq_n_s32(vsubq_s32(o_acc2, hh), 1);
+        vst1q_s32(&odd_hp[x], o_hp);
+    }
+#endif
+    for (; x < bw; x++) {
         int32_t even, odd;
 
         /* Left bands (LL + HL) — top border */
@@ -234,7 +314,11 @@ static inline void inv_vert_top(
     }
 }
 
-/* Middle (interior): by ∈ [1, bh-2]. 3-row window centered at by. */
+/* Middle (interior): by ∈ [1, bh-2]. 3-row window centered at by.
+   NEON 4-wide; mirrors InvertVerticalMiddle4Descale_NEON in inverse.c but
+   processes the LL-side and LH-side together (8 vector ops per pixel pair).
+   Hot path: bh-2 ≈ 688 rows of interior per channel × 4 channels × bw=1035
+   = ~2.85 M pixel-ops per frame. */
 static inline void inv_vert_mid(
     const PIXEL *ll_m1, const PIXEL *ll_0, const PIXEL *ll_p1,
     const PIXEL *lh_m1, const PIXEL *lh_0, const PIXEL *lh_p1,
@@ -242,7 +326,40 @@ static inline void inv_vert_mid(
     PIXEL *even_lp, PIXEL *odd_lp, PIXEL *even_hp, PIXEL *odd_hp,
     int bw)
 {
-    for (int x = 0; x < bw; x++) {
+    int x = 0;
+#if defined(__ARM_NEON)
+    const int32x4_t four = vdupq_n_s32(4);
+    const int bw_m4 = (bw / 4) * 4;
+    for (; x < bw_m4; x += 4) {
+        /* Load 3-row window of LL and LH plus HL/HH dequant rows */
+        int32x4_t llm = vld1q_s32(&ll_m1[x]);
+        int32x4_t ll0 = vld1q_s32(&ll_0[x]);
+        int32x4_t llp = vld1q_s32(&ll_p1[x]);
+        int32x4_t lhm = vld1q_s32(&lh_m1[x]);
+        int32x4_t lh0 = vld1q_s32(&lh_0[x]);
+        int32x4_t lhp = vld1q_s32(&lh_p1[x]);
+        int32x4_t hl  = vld1q_s32(&hl_dq[x]);
+        int32x4_t hh  = vld1q_s32(&hh_dq[x]);
+
+        /* LL even/odd */
+        int32x4_t diff_e = vshrq_n_s32(vaddq_s32(vsubq_s32(llm, llp), four), 3);
+        int32x4_t e_lp = vshrq_n_s32(vaddq_s32(vaddq_s32(diff_e, ll0), hl), 1);
+        int32x4_t diff_o = vshrq_n_s32(vaddq_s32(vsubq_s32(llp, llm), four), 3);
+        int32x4_t o_lp = vshrq_n_s32(vsubq_s32(vaddq_s32(diff_o, ll0), hl), 1);
+        vst1q_s32(&even_lp[x], e_lp);
+        vst1q_s32(&odd_lp[x],  o_lp);
+
+        /* LH even/odd */
+        int32x4_t diff_e2 = vshrq_n_s32(vaddq_s32(vsubq_s32(lhm, lhp), four), 3);
+        int32x4_t e_hp = vshrq_n_s32(vaddq_s32(vaddq_s32(diff_e2, lh0), hh), 1);
+        int32x4_t diff_o2 = vshrq_n_s32(vaddq_s32(vsubq_s32(lhp, lhm), four), 3);
+        int32x4_t o_hp = vshrq_n_s32(vsubq_s32(vaddq_s32(diff_o2, lh0), hh), 1);
+        vst1q_s32(&even_hp[x], e_hp);
+        vst1q_s32(&odd_hp[x],  o_hp);
+    }
+#endif
+    /* Scalar tail */
+    for (; x < bw; x++) {
         int32_t even, odd;
 
         /* Left bands (LL + HL) — middle row */
@@ -289,7 +406,53 @@ static inline void inv_vert_bot(
     PIXEL *even_lp, PIXEL *odd_lp, PIXEL *even_hp, PIXEL *odd_hp,
     int bw)
 {
-    for (int x = 0; x < bw; x++) {
+    int x = 0;
+#if defined(__ARM_NEON)
+    const int32x4_t four = vdupq_n_s32(INV_ROUNDING);
+    const int bw_m4 = (bw / 4) * 4;
+    for (; x < bw_m4; x += 4) {
+        int32x4_t a0 = vld1q_s32(&ll_m2[x]);
+        int32x4_t a1 = vld1q_s32(&ll_m1[x]);
+        int32x4_t a2 = vld1q_s32(&ll_0[x]);
+        int32x4_t b0 = vld1q_s32(&lh_m2[x]);
+        int32x4_t b1 = vld1q_s32(&lh_m1[x]);
+        int32x4_t b2 = vld1q_s32(&lh_0[x]);
+        int32x4_t hl = vld1q_s32(&hl_dq[x]);
+        int32x4_t hh = vld1q_s32(&hh_dq[x]);
+
+        /* LL: even = (5*a2 + 4*a1 - a0 + 4) >> 3 + hl, then >>1
+              odd  = (11*a2 - 4*a1 + a0 + 4) >> 3 - hl, then >>1 */
+        int32x4_t e_acc = vmlaq_n_s32(vmulq_n_s32(a2, 5), a1, 4);
+        e_acc = vsubq_s32(e_acc, a0);
+        e_acc = vaddq_s32(e_acc, four);
+        e_acc = vshrq_n_s32(e_acc, 3);
+        int32x4_t e_lp = vshrq_n_s32(vaddq_s32(e_acc, hl), 1);
+        vst1q_s32(&even_lp[x], e_lp);
+
+        int32x4_t o_acc = vmlaq_n_s32(a0, a2, 11);
+        o_acc = vmlsq_n_s32(o_acc, a1, 4);
+        o_acc = vaddq_s32(o_acc, four);
+        o_acc = vshrq_n_s32(o_acc, 3);
+        int32x4_t o_lp = vshrq_n_s32(vsubq_s32(o_acc, hl), 1);
+        vst1q_s32(&odd_lp[x], o_lp);
+
+        /* LH side */
+        int32x4_t e_acc2 = vmlaq_n_s32(vmulq_n_s32(b2, 5), b1, 4);
+        e_acc2 = vsubq_s32(e_acc2, b0);
+        e_acc2 = vaddq_s32(e_acc2, four);
+        e_acc2 = vshrq_n_s32(e_acc2, 3);
+        int32x4_t e_hp = vshrq_n_s32(vaddq_s32(e_acc2, hh), 1);
+        vst1q_s32(&even_hp[x], e_hp);
+
+        int32x4_t o_acc2 = vmlaq_n_s32(b0, b2, 11);
+        o_acc2 = vmlsq_n_s32(o_acc2, b1, 4);
+        o_acc2 = vaddq_s32(o_acc2, four);
+        o_acc2 = vshrq_n_s32(o_acc2, 3);
+        int32x4_t o_hp = vshrq_n_s32(vsubq_s32(o_acc2, hh), 1);
+        vst1q_s32(&odd_hp[x], o_hp);
+    }
+#endif
+    for (; x < bw; x++) {
         int32_t even, odd;
 
         /* Left bands (LL + HL) — bottom border */
@@ -321,6 +484,214 @@ static inline void inv_vert_bot(
 }
 
 
+/* ----- HP-zero fast-path variants -----
+   When LH/HL/HH bands are all-zero, the inverse wavelet math collapses:
+     even_lp = ((ll_m1 - ll_p1 + 4) >> 3 + ll_0) >> 1   // no HL
+     odd_lp  = ((ll_p1 - ll_m1 + 4) >> 3 + ll_0) >> 1
+     even_hp = ((lh_m1 - lh_p1 + 4) >> 3 + lh_0) >> 1 = 0   (since lh = 0)
+     odd_hp  = 0
+   So even_hp/odd_hp are 0 throughout, and the horizontal pass becomes
+     out[2*col]   = (((lp[col-1] - lp[col+1] + 4) >> 3) + lp[col]) << 1
+     out[2*col+1] = (((lp[col+1] - lp[col-1] + 4) >> 3) + lp[col]) << 1
+   (with appropriate border handling) — i.e. an LP-only 2x upsample.
+   We can also skip writing even_hp/odd_hp entirely. */
+
+static inline void inv_vert_mid_hpzero(
+    const PIXEL *ll_m1, const PIXEL *ll_0, const PIXEL *ll_p1,
+    PIXEL *even_lp, PIXEL *odd_lp,
+    int bw)
+{
+    int x = 0;
+#if defined(__ARM_NEON)
+    const int32x4_t four = vdupq_n_s32(4);
+    const int bw_m4 = (bw / 4) * 4;
+    for (; x < bw_m4; x += 4) {
+        int32x4_t llm = vld1q_s32(&ll_m1[x]);
+        int32x4_t ll0 = vld1q_s32(&ll_0[x]);
+        int32x4_t llp = vld1q_s32(&ll_p1[x]);
+
+        int32x4_t diff_e = vshrq_n_s32(vaddq_s32(vsubq_s32(llm, llp), four), 3);
+        int32x4_t e_lp = vshrq_n_s32(vaddq_s32(diff_e, ll0), 1);
+        int32x4_t diff_o = vshrq_n_s32(vaddq_s32(vsubq_s32(llp, llm), four), 3);
+        int32x4_t o_lp = vshrq_n_s32(vaddq_s32(diff_o, ll0), 1);
+        vst1q_s32(&even_lp[x], e_lp);
+        vst1q_s32(&odd_lp[x],  o_lp);
+    }
+#endif
+    for (; x < bw; x++) {
+        int32_t even, odd;
+        even = ll_m1[x] - ll_p1[x] + 4;
+        even >>= 3;
+        even += ll_0[x];
+        even = even >> 1;
+        even_lp[x] = (PIXEL)even;
+
+        odd = ll_p1[x] - ll_m1[x] + 4;
+        odd >>= 3;
+        odd += ll_0[x];
+        odd = odd >> 1;
+        odd_lp[x] = (PIXEL)odd;
+    }
+}
+
+static inline void inv_vert_top_hpzero(
+    const PIXEL *ll0, const PIXEL *ll1, const PIXEL *ll2,
+    PIXEL *even_lp, PIXEL *odd_lp,
+    int bw)
+{
+    int x = 0;
+#if defined(__ARM_NEON)
+    const int32x4_t four = vdupq_n_s32(INV_ROUNDING);
+    const int bw_m4 = (bw / 4) * 4;
+    for (; x < bw_m4; x += 4) {
+        int32x4_t a0 = vld1q_s32(&ll0[x]);
+        int32x4_t a1 = vld1q_s32(&ll1[x]);
+        int32x4_t a2 = vld1q_s32(&ll2[x]);
+        int32x4_t e_acc = vmlaq_n_s32(a2, a0, 11);
+        e_acc = vmlsq_n_s32(e_acc, a1, 4);
+        e_acc = vaddq_s32(e_acc, four);
+        e_acc = vshrq_n_s32(e_acc, 3);
+        int32x4_t e_lp = vshrq_n_s32(e_acc, 1);
+        vst1q_s32(&even_lp[x], e_lp);
+
+        int32x4_t o_acc = vmlaq_n_s32(vmulq_n_s32(a0, 5), a1, 4);
+        o_acc = vsubq_s32(o_acc, a2);
+        o_acc = vaddq_s32(o_acc, four);
+        o_acc = vshrq_n_s32(o_acc, 3);
+        int32x4_t o_lp = vshrq_n_s32(o_acc, 1);
+        vst1q_s32(&odd_lp[x], o_lp);
+    }
+#endif
+    for (; x < bw; x++) {
+        int32_t even, odd;
+        even = 11 * ll0[x] - 4 * ll1[x] + ll2[x] + INV_ROUNDING;
+        even = even >> 3;
+        even = even >> 1;
+        even_lp[x] = (PIXEL)even;
+
+        odd = 5 * ll0[x] + 4 * ll1[x] - ll2[x] + INV_ROUNDING;
+        odd = odd >> 3;
+        odd = odd >> 1;
+        odd_lp[x] = (PIXEL)odd;
+    }
+}
+
+static inline void inv_vert_bot_hpzero(
+    const PIXEL *ll_m2, const PIXEL *ll_m1, const PIXEL *ll_0,
+    PIXEL *even_lp, PIXEL *odd_lp,
+    int bw)
+{
+    int x = 0;
+#if defined(__ARM_NEON)
+    const int32x4_t four = vdupq_n_s32(INV_ROUNDING);
+    const int bw_m4 = (bw / 4) * 4;
+    for (; x < bw_m4; x += 4) {
+        int32x4_t a0 = vld1q_s32(&ll_m2[x]);
+        int32x4_t a1 = vld1q_s32(&ll_m1[x]);
+        int32x4_t a2 = vld1q_s32(&ll_0[x]);
+
+        int32x4_t e_acc = vmlaq_n_s32(vmulq_n_s32(a2, 5), a1, 4);
+        e_acc = vsubq_s32(e_acc, a0);
+        e_acc = vaddq_s32(e_acc, four);
+        e_acc = vshrq_n_s32(e_acc, 3);
+        int32x4_t e_lp = vshrq_n_s32(e_acc, 1);
+        vst1q_s32(&even_lp[x], e_lp);
+
+        int32x4_t o_acc = vmlaq_n_s32(a0, a2, 11);
+        o_acc = vmlsq_n_s32(o_acc, a1, 4);
+        o_acc = vaddq_s32(o_acc, four);
+        o_acc = vshrq_n_s32(o_acc, 3);
+        int32x4_t o_lp = vshrq_n_s32(o_acc, 1);
+        vst1q_s32(&odd_lp[x], o_lp);
+    }
+#endif
+    for (; x < bw; x++) {
+        int32_t even, odd;
+        even = 5 * ll_0[x] + 4 * ll_m1[x] - ll_m2[x] + INV_ROUNDING;
+        even = even >> 3;
+        even = even >> 1;
+        even_lp[x] = (PIXEL)even;
+
+        odd = 11 * ll_0[x] - 4 * ll_m1[x] + ll_m2[x] + INV_ROUNDING;
+        odd = odd >> 3;
+        odd = odd >> 1;
+        odd_lp[x] = (PIXEL)odd;
+    }
+}
+
+/* HP-zero horizontal: omit the (lp + hp) terms entirely since hp == 0. */
+static inline void invert_horizontal_descale_row_hpzero(
+    const PIXEL *lp, PIXEL *out,
+    int input_width, int output_width)
+{
+    const int last_column = input_width - 1;
+    int column = 0;
+    int32_t even, odd;
+
+    even = 11 * lp[0] - 4 * lp[1] + lp[2] + INV_ROUNDING;
+    even = even >> 3;
+    even = even << INV_DESCALE_SHIFT;
+
+    odd = 5 * lp[0] + 4 * lp[1] - lp[2] + INV_ROUNDING;
+    odd = odd >> 3;
+    odd = odd << INV_DESCALE_SHIFT;
+
+    out[0] = (PIXEL)even;
+    out[1] = (PIXEL)odd;
+    column = 1;
+
+#if defined(__ARM_NEON)
+    {
+        const int32x4_t four = vdupq_n_s32(INV_ROUNDING);
+        for (; column + 3 < last_column; column += 4) {
+            int32x4_t lp_left   = vld1q_s32(&lp[column - 1]);
+            int32x4_t lp_center = vld1q_s32(&lp[column]);
+            int32x4_t lp_right  = vld1q_s32(&lp[column + 1]);
+
+            int32x4_t diff_e = vsubq_s32(lp_left, lp_right);
+            diff_e = vaddq_s32(diff_e, four);
+            diff_e = vshrq_n_s32(diff_e, 3);
+            int32x4_t even_v = vshlq_n_s32(vaddq_s32(diff_e, lp_center), INV_DESCALE_SHIFT);
+
+            int32x4_t diff_o = vsubq_s32(lp_right, lp_left);
+            diff_o = vaddq_s32(diff_o, four);
+            diff_o = vshrq_n_s32(diff_o, 3);
+            int32x4_t odd_v = vshlq_n_s32(vaddq_s32(diff_o, lp_center), INV_DESCALE_SHIFT);
+
+            int32x4x2_t interleaved = { .val = { even_v, odd_v } };
+            vst2q_s32(&out[2 * column], interleaved);
+        }
+    }
+#endif
+
+    for (; column < last_column; column++) {
+        even = lp[column - 1] - lp[column + 1] + 4;
+        even >>= 3;
+        even += lp[column];
+        even = even << INV_DESCALE_SHIFT;
+        out[2 * column] = (PIXEL)even;
+
+        odd = -lp[column - 1] + lp[column + 1] + 4;
+        odd >>= 3;
+        odd += lp[column];
+        odd = odd << INV_DESCALE_SHIFT;
+        out[2 * column + 1] = (PIXEL)odd;
+    }
+
+    even = 5 * lp[column] + 4 * lp[column - 1] - lp[column - 2] + INV_ROUNDING;
+    even = even >> 3;
+    even = even << INV_DESCALE_SHIFT;
+    out[2 * column] = (PIXEL)even;
+
+    if (2 * column + 1 < output_width) {
+        odd = 11 * lp[column] - 4 * lp[column - 1] + lp[column - 2] + INV_ROUNDING;
+        odd = odd >> 3;
+        odd = odd << INV_DESCALE_SHIFT;
+        out[2 * column + 1] = (PIXEL)odd;
+    }
+}
+
+
 /* Per-strip task descriptor. Each of N worker threads owns one of these. */
 typedef struct {
     int by_start, by_end;       /* band-row range owned [by_start, by_end) */
@@ -335,6 +706,14 @@ typedef struct {
        dequantized into raw scale by the caller (multiplied by
        qt[0] * 16). So we only need LH/HL/HH quants here. */
     QUANT q[4];   /* {LL=1 marker, LH=-qt[1], HL=-qt[2], HH=-qt[3]} */
+
+    /* When non-zero, LH/HL/HH bands are known to be all-zero. Strip
+       worker skips all HP dequant + uses HP-zero fast paths for the
+       vertical and horizontal inverse wavelet (omits HP terms entirely).
+       Net effect on Pi 5 in measured LL-only-fast streaming: wavelet
+       work roughly halves because we don't touch 3 of the 4 band
+       buffers and the inner loops shrink to LL-only math. */
+    int hp_zero;
 
     /* Per-strip scratch (caller-allocated, sized for one row pair × 4
        channels). Layout per channel:
@@ -511,29 +890,35 @@ static void *fused_stream_runner(void *arg)
         odd_out[ch]  = p;          p += ch_w;
     }
 
+    const int hp_zero = t->hp_zero;
+
     /* Init LH cache for strip start. Cache holds dequantized LH rows
        {by_start-1, by_start, by_start+1}. Top-of-image strip uses
        replicate at by=-1 (= row 0). Internal strips read the real
        by_start-1 row from the bands array. Similarly for by_start+1
-       being past the bottom (only matters when strip is a single row). */
-    for (int ch = 0; ch < 4; ch++) {
-        QUANT lhq = t->q[1];
-        PIXEL *lh_band = t->bands[ch][1];
+       being past the bottom (only matters when strip is a single row).
+       HP-zero fast path: skip the LH cache prime entirely (cache is
+       unused in that mode). */
+    if (!hp_zero) {
+        for (int ch = 0; ch < 4; ch++) {
+            QUANT lhq = t->q[1];
+            PIXEL *lh_band = t->bands[ch][1];
 
-        /* Row at by_start-1 (or replicate to 0 if at top of image) */
-        int rm1 = t->by_start - 1;
-        if (rm1 < 0) rm1 = 0;
-        dequant_band_row(lh_band + (size_t)rm1 * bw, lh_dq[ch][0], bw, lhq);
+            /* Row at by_start-1 (or replicate to 0 if at top of image) */
+            int rm1 = t->by_start - 1;
+            if (rm1 < 0) rm1 = 0;
+            dequant_band_row(lh_band + (size_t)rm1 * bw, lh_dq[ch][0], bw, lhq);
 
-        /* Row at by_start (or replicate to bh-1 if past bottom) */
-        int r0 = t->by_start;
-        if (r0 > last_by) r0 = last_by;
-        dequant_band_row(lh_band + (size_t)r0 * bw, lh_dq[ch][1], bw, lhq);
+            /* Row at by_start (or replicate to bh-1 if past bottom) */
+            int r0 = t->by_start;
+            if (r0 > last_by) r0 = last_by;
+            dequant_band_row(lh_band + (size_t)r0 * bw, lh_dq[ch][1], bw, lhq);
 
-        /* Row at by_start+1 (replicate at bottom edge) */
-        int rp1 = t->by_start + 1;
-        if (rp1 > last_by) rp1 = last_by;
-        dequant_band_row(lh_band + (size_t)rp1 * bw, lh_dq[ch][2], bw, lhq);
+            /* Row at by_start+1 (replicate at bottom edge) */
+            int rp1 = t->by_start + 1;
+            if (rp1 > last_by) rp1 = last_by;
+            dequant_band_row(lh_band + (size_t)rp1 * bw, lh_dq[ch][2], bw, lhq);
+        }
     }
 
     /* Walk band rows. Each band row → 1 row of channel rows × 2 (even, odd)
@@ -541,15 +926,7 @@ static void *fused_stream_runner(void *arg)
     for (int by = t->by_start; by < t->by_end; by++) {
         /* For each channel, vertical pass + horizontal pass. */
         for (int ch = 0; ch < 4; ch++) {
-            QUANT hlq = t->q[2];
-            QUANT hhq = t->q[3];
             PIXEL *ll_band = t->bands[ch][0];
-            PIXEL *hl_band = t->bands[ch][2];
-            PIXEL *hh_band = t->bands[ch][3];
-
-            /* Dequantize HL and HH at current row by (raw mode). */
-            dequant_band_row(hl_band + (size_t)by * bw, hl_dq[ch], bw, hlq);
-            dequant_band_row(hh_band + (size_t)by * bw, hh_dq[ch], bw, hhq);
 
             /* LL rows (raw, no dequant — the caller pre-scaled the LL
                band by ll_dequant). The 3-row window. */
@@ -557,6 +934,46 @@ static void *fused_stream_runner(void *arg)
             int rp1 = by + 1;
             int top    = (by == 0);
             int bottom = (by == last_by);
+
+            /* ---- HP-zero fast path ---- */
+            if (hp_zero) {
+                if (top) {
+                    const PIXEL *ll0 = ll_band + 0 * bw;
+                    const PIXEL *ll1 = ll_band + 1 * bw;
+                    const PIXEL *ll2 = ll_band + (bh > 2 ? 2 : last_by) * bw;
+                    inv_vert_top_hpzero(ll0, ll1, ll2,
+                                         even_lp[ch], odd_lp[ch], bw);
+                } else if (bottom) {
+                    int m2 = last_by - 2; if (m2 < 0) m2 = 0;
+                    int m1 = last_by - 1; if (m1 < 0) m1 = 0;
+                    const PIXEL *ll_m2 = ll_band + (size_t)m2 * bw;
+                    const PIXEL *ll_m1 = ll_band + (size_t)m1 * bw;
+                    const PIXEL *ll_0  = ll_band + (size_t)last_by * bw;
+                    inv_vert_bot_hpzero(ll_m2, ll_m1, ll_0,
+                                         even_lp[ch], odd_lp[ch], bw);
+                } else {
+                    const PIXEL *ll_m1p = ll_band + (size_t)rm1 * bw;
+                    const PIXEL *ll_0   = ll_band + (size_t)by  * bw;
+                    const PIXEL *ll_p1p = ll_band + (size_t)rp1 * bw;
+                    inv_vert_mid_hpzero(ll_m1p, ll_0, ll_p1p,
+                                         even_lp[ch], odd_lp[ch], bw);
+                }
+                invert_horizontal_descale_row_hpzero(even_lp[ch],
+                                                     even_out[ch], bw, ch_w);
+                invert_horizontal_descale_row_hpzero(odd_lp[ch],
+                                                     odd_out[ch],  bw, ch_w);
+                continue;
+            }
+
+            /* ---- Full HP path ---- */
+            QUANT hlq = t->q[2];
+            QUANT hhq = t->q[3];
+            PIXEL *hl_band = t->bands[ch][2];
+            PIXEL *hh_band = t->bands[ch][3];
+
+            /* Dequantize HL and HH at current row by (raw mode). */
+            dequant_band_row(hl_band + (size_t)by * bw, hl_dq[ch], bw, hlq);
+            dequant_band_row(hh_band + (size_t)by * bw, hh_dq[ch], bw, hhq);
 
             if (top) {
                 /* {ll0, ll1, ll2} = LL rows {0, 1, 2} */
@@ -670,7 +1087,7 @@ static void *fused_stream_runner(void *arg)
            will rebuild the cache, so the (now-stale) {0,1,2} state is
            harmless. */
         int next_by = by + 1;
-        if (by >= 1 && next_by <= last_by - 1) {
+        if (!hp_zero && by >= 1 && next_by <= last_by - 1) {
             for (int ch = 0; ch < 4; ch++) {
                 /* Rotate: 0←1, 1←2, 2←new */
                 PIXEL *tmp = lh_dq[ch][0];
@@ -715,7 +1132,8 @@ int gpr_decode_fused_stream(PIXEL *bands[4][4],
                             const QUANT qt[4],
                             int log_max, int midpoint, int shift, int is_rggb,
                             const uint16_t *log_table,
-                            uint8_t *bayer_out, size_t bayer_pitch_bytes)
+                            uint8_t *bayer_out, size_t bayer_pitch_bytes,
+                            int hp_zero)
 {
     /* Pick number of strips: 1, 2, or 4. Default 4. Allow override via
        GPR_DECODE_FUSED_STREAM_STRIPS=N for tuning. */
@@ -734,9 +1152,16 @@ int gpr_decode_fused_stream(PIXEL *bands[4][4],
     QUANT q[4] = { -qt[0], -qt[1], -qt[2], -qt[3] };
     (void)q;
 
-    /* Allocate strip scratches. Per strip: 4 channels * (9*bw + 2*ch_w). */
+    /* Allocate strip scratches. Per strip: 4 channels * (9*bw + 2*ch_w).
+       Per-frame malloc/free of 4 × ~250 KB was measurable on Pi 5.
+       Promote to a process-wide cache (one persistent buffer per strip
+       slot, grown as needed). Threads use distinct slots so no locking
+       is needed. 64-byte aligned to match cache lines and avoid false
+       sharing across strip workers. */
     const size_t per_ch = (size_t)(9 * bw + 2 * ch_w);
     const size_t per_strip_bytes = per_ch * 4 * sizeof(PIXEL);
+    static PIXEL *scratch_cache[4] = {0};
+    static size_t scratch_cache_bytes[4] = {0};
 
     FUSED_STREAM_TASK tasks[4];
     pthread_t threads[4];
@@ -745,8 +1170,19 @@ int gpr_decode_fused_stream(PIXEL *bands[4][4],
 
     int rc = 0;
     for (int i = 0; i < n_strips; i++) {
-        scratches[i] = (PIXEL *)malloc(per_strip_bytes);
-        if (!scratches[i]) { rc = -60; break; }
+        if (scratch_cache_bytes[i] < per_strip_bytes) {
+            if (scratch_cache[i]) free(scratch_cache[i]);
+            /* posix_memalign needs <stdlib.h> already included; use it for
+               64-B alignment so the per-channel scratch slices land on
+               cache-line boundaries. */
+            void *p = NULL;
+            if (posix_memalign(&p, 64, per_strip_bytes) != 0 || !p) {
+                rc = -60; break;
+            }
+            scratch_cache[i] = (PIXEL *)p;
+            scratch_cache_bytes[i] = per_strip_bytes;
+        }
+        scratches[i] = scratch_cache[i];
     }
     if (rc == 0) {
         for (int i = 0; i < n_strips; i++) {
@@ -770,6 +1206,7 @@ int gpr_decode_fused_stream(PIXEL *bands[4][4],
             tasks[i].log_table = log_table;
             tasks[i].bayer_out = bayer_out;
             tasks[i].bayer_pitch_bytes = bayer_pitch_bytes;
+            tasks[i].hp_zero = hp_zero;
             tasks[i].err = 0;
         }
         for (int i = 0; i < n_strips; i++) {
@@ -783,8 +1220,7 @@ int gpr_decode_fused_stream(PIXEL *bands[4][4],
         }
     }
 
-    for (int i = 0; i < n_strips; i++)
-        if (scratches[i]) free(scratches[i]);
+    /* Scratches live in the process-wide cache; do not free per-frame. */
 
     return rc;
 }
