@@ -45,13 +45,23 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)" AND
 endif()
 
 # FUSED_LOG_POLYNOMIAL: replace the fused encoder's LUT-based 14-bit log
-# curve with a NEON polynomial approximation. Default ON — measured
-# ~1.7 ms faster on Pi 5 (Cortex-A76) at 50 MP × LL-only-fast (52.2 vs
-# 53.9 ms median over 50 frames). The 5-deep FMA chain is shorter than
-# the load-use latency of 4 scalar LUT gathers when chained, and the
-# polynomial path has no L1d footprint vs the LUT's 32 KB. Older sweep
-# data on the same M1 hardware found polynomial slower; A76 inverts.
-option(FUSED_LOG_POLYNOMIAL "Use NEON polynomial log-curve in fused encoder" ON)
+# curve with a NEON polynomial approximation. Default OFF.
+#
+# History: enabled at 58577fe when it saved ~1.7 ms on Pi 5 (A76) on the
+# THEN-CURRENT mode-1 unpack path that had a chained 4-deep scalar gather
+# (load-use bound on A76 LSU). Subsequent T13b/T14/T15/T16 work
+# (8fd3218..bb37c76) refactored the hot path to 16-independent-load
+# scratch arrays that pipeline through both LSU ports — the LUT gather
+# is no longer the long pole. Re-bench on Pi 5 50 MP × LL-only-fast
+# (2026-05-21): polynomial median 128 ms vs LUT 44 ms. The polynomial
+# was ~3x SLOWER on this configuration.
+#
+# Kept as an opt-in because:
+#   1. Hardware variants exist where the LUT thrashes L1d (A53/A55
+#      small caches, custom SoCs).
+#   2. The mode-2 (no col-decimate) `unpack_channel_row` retains its
+#      original 4-deep scalar dep chain and may still benefit.
+option(FUSED_LOG_POLYNOMIAL "Use NEON polynomial log-curve in fused encoder" OFF)
 if(FUSED_LOG_POLYNOMIAL)
   if(NOT NEON)
     message(FATAL_ERROR "FUSED_LOG_POLYNOMIAL requires NEON")
