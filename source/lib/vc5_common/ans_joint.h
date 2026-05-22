@@ -168,29 +168,6 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width);
 int  jans_inline_finalize(uint8_t *out_buf, size_t out_cap, JANS_INLINE_STATE *s);
 void jans_inline_destroy(JANS_INLINE_STATE *s);
 
-/*! Fused vertical-LP (LL-only, interior-row formula low = r2 + r3) +
-    quantize + inline-tokenize, all in a single pass. Used by the fused
-    encoder's GPR_DROP_HIGHPASS=1 / GPR_INCLUDE_LL=1 path to skip the
-    row_scratch[0] write+reload round-trip.
-
-    rows[2] and rows[3] are the source 6-row LP window's middle two rows
-    (the only two needed for the interior LL formula). width is the band
-    width. mid/mul are the LL quantizer parameters.
-
-    Output bytes are identical to:
-        vertical_filter_quantize_row_lo_only(rows, width, mid, mul,
-                                              tmp, 0, 0);
-        jans_inline_row(s, tmp, width);
-
-    Only handles the interior (is_top==0, is_bottom==0) case. Callers must
-    fall back to the split path for boundary rows. */
-void jans_inline_lp_quant_tokenize_row_mid(JANS_INLINE_STATE *s,
-                                           const int32_t *r2,
-                                           const int32_t *r3,
-                                           int width,
-                                           int32_t midpoint,
-                                           int32_t multiplier);
-
 /*!
     @brief Decode 4-way interleaved rANS band.
     @return 0 on success, -1 on error.
