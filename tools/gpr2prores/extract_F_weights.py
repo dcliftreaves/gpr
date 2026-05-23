@@ -22,14 +22,20 @@ The Metal/MPSGraph host code consumes:
   middle.0.*    NAFBlock at C=128
   ups.k.0.weight  (2*C_in, C_in, 1, 1)      conv1x1 no bias -> [2*Cin, Cin]
   decoders.k.0.*  NAFBlock at C=64/32/16
-  subpixel.0.weight (16, 16, 3, 3)
-  subpixel.0.bias   (16,)
+  subpixel.0.weight (16, 16, 3, 3)        [variant F only]
+  subpixel.0.bias   (16,)                  [variant F only]
+  outro.weight      (4, 16, 3, 3)          [variant F_no_sr only — BIBO_1x]
+  outro.bias        (4,)                   [variant F_no_sr only — BIBO_1x]
 
 Output convention:
   fp16 little-endian raw bytes. Files named to match the host loader.
   All matrices/tensors are flattened in PyTorch's native (row-major) order.
 
 The full directory is small (~2 MB total).
+
+Variant dispatch is based on the checkpoint's `variant` field:
+  - "F"       → 2× super-res. Emits subpixel_weight.bin/subpixel_bias.bin.
+  - "F_no_sr" → 1× (no super-res). Emits outro_weight.bin/outro_bias.bin.
 """
 import argparse
 import os
@@ -135,13 +141,25 @@ def main():
     for k, C in enumerate(dec_widths):
         total += extract_naf(f"decoders.{k}.0", C, sd, args.out, f"dec{k}")
 
-    # subpixel head
-    sw = sd["subpixel.0.weight"].detach().cpu().numpy()  # [16, 16, 3, 3]
-    sb = sd["subpixel.0.bias"].detach().cpu().numpy()    # [16]
-    assert sw.shape == (16, 16, 3, 3), f"subpixel.0.weight: {sw.shape}"
-    assert sb.shape == (16,), f"subpixel.0.bias: {sb.shape}"
-    total += f16_save(sw, os.path.join(args.out, "subpixel_weight.bin"))
-    total += f16_save(sb, os.path.join(args.out, "subpixel_bias.bin"))
+    # Head: variant-dependent.
+    #   F       → subpixel head (16, 16, 3, 3) + PixelShuffle(2) → 4 channels @ 2x
+    #   F_no_sr → outro head    (4, 16, 3, 3)  → 4 channels @ 1x
+    variant = str(ckpt.get("variant", "F"))
+    if variant == "F_no_sr":
+        ow = sd["outro.weight"].detach().cpu().numpy()  # [4, 16, 3, 3]
+        ob = sd["outro.bias"].detach().cpu().numpy()    # [4]
+        assert ow.shape == (4, 16, 3, 3), f"outro.weight: {ow.shape}"
+        assert ob.shape == (4,), f"outro.bias: {ob.shape}"
+        total += f16_save(ow, os.path.join(args.out, "outro_weight.bin"))
+        total += f16_save(ob, os.path.join(args.out, "outro_bias.bin"))
+    else:
+        # Default: "F" variant (subpixel 2× SR head).
+        sw = sd["subpixel.0.weight"].detach().cpu().numpy()  # [16, 16, 3, 3]
+        sb = sd["subpixel.0.bias"].detach().cpu().numpy()    # [16]
+        assert sw.shape == (16, 16, 3, 3), f"subpixel.0.weight: {sw.shape}"
+        assert sb.shape == (16,), f"subpixel.0.bias: {sb.shape}"
+        total += f16_save(sw, os.path.join(args.out, "subpixel_weight.bin"))
+        total += f16_save(sb, os.path.join(args.out, "subpixel_bias.bin"))
 
     # Write a tiny manifest for sanity at load time
     with open(os.path.join(args.out, "MANIFEST.txt"), "w") as f:

@@ -51,6 +51,9 @@ static void print_usage(FILE *out) {
         "  --cnn-backend B     coreml (default), mpsgraph, or metal\n"
         "                      mpsgraph/metal use --ckpt as a directory of fp16\n"
         "                      .bin weights (see extract_F_weights.py)\n"
+        "  --cnn-scale S       2x (default — F super-res CNN, 2× upscale) or\n"
+        "                      1x (F_no_sr / BIBO_1x — clean Bayer at codec dims;\n"
+        "                          CIRAWFilter does the upscale to --out-resolution)\n"
         "  --demosaic M        metal-bilinear (default) or core-image\n"
         "                      core-image routes through CIRAWFilter\n"
         "  --out-resolution R  Output resolution. One of: 2k,uhd,4k,6k,8k (default 8k).\n"
@@ -115,6 +118,7 @@ int main(int argc, const char *argv[]) {
         NSString *cnnBackend = @"coreml";
         NSString *demosaicMode = @"metal-bilinear";
         NSString *outResolution = @"8k";
+        NSString *cnnScale = @"2x";
         int fps = 24;
         int maxFrames = INT_MAX;
         BOOL aaOn = YES;
@@ -168,6 +172,15 @@ int main(int argc, const char *argv[]) {
                             [demosaicMode UTF8String]);
                     return 1;
                 }
+            } else if (!strcmp(a, "--cnn-scale") && i + 1 < argc) {
+                cnnScale = @(argv[++i]);
+                NSString *cs = [cnnScale lowercaseString];
+                if (![cs isEqualToString:@"1x"] && ![cs isEqualToString:@"2x"]) {
+                    fprintf(stderr, "error: --cnn-scale expects 1x|2x (got '%s')\n",
+                            [cnnScale UTF8String]);
+                    return 1;
+                }
+                cnnScale = cs;
             } else if (!strcmp(a, "--out-resolution") && i + 1 < argc) {
                 outResolution = @(argv[++i]);
                 NSString *r = [outResolution lowercaseString];
@@ -367,7 +380,8 @@ int main(int argc, const char *argv[]) {
                                                           timing:timing
                                                        cnnBackend:cnnBackend
                                                       demosaicMode:demosaicMode
-                                                     outResolution:outResolution];
+                                                     outResolution:outResolution
+                                                          cnnScale:cnnScale];
         if (!pipe) {
             fprintf(stderr, "error: pipeline init failed (see messages above)\n");
             return 1;

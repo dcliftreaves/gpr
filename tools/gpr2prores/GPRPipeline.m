@@ -103,6 +103,8 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     NSString *_demosaicMode;
     NSString *_outResolution;
     NSString *_metaDngPath;
+    NSString *_cnnScale;        // "2x" (default) or "1x" (BIBO_1x — output @ codec dims)
+    BOOL _cnnScale1x;           // YES if _cnnScale == "1x"
 
     DNGInfo _info;
     DNGInfo _codecInfo;
@@ -206,6 +208,7 @@ static void resolveOutputDims(NSString *preset,
                                  cnnBackend:(NSString *)cnnBackend
                                 demosaicMode:(NSString *)demosaicMode
                               outResolution:(NSString *)outResolution
+                                   cnnScale:(NSString *)cnnScale
 {
     self = [super init];
     if (!self) return nil;
@@ -220,6 +223,8 @@ static void resolveOutputDims(NSString *preset,
     _cnnBackend = cnnBackend ?: @"coreml";
     _demosaicMode = demosaicMode ?: @"metal-bilinear";
     _outResolution = outResolution ?: @"8k";
+    _cnnScale = cnnScale ?: @"2x";
+    _cnnScale1x = [[_cnnScale lowercaseString] isEqualToString:@"1x"];
     // For CIRAWFilter we need the source-DNG's color matrices. For .dng input
     // mode the first frame itself is the template; for .gpr it's metaDngPath.
     _metaDngPath = metaDngPath ? metaDngPath : (pathIsGPR(firstFrame) ? nil : firstFrame);
@@ -264,11 +269,18 @@ static void resolveOutputDims(NSString *preset,
 
     uint32_t demoW = _info.width, demoH = _info.height;
     if (_gprInput) {
-        if (_noCNN) { demoW = _codecInfo.width; demoH = _codecInfo.height; }
-        else        { demoW = _info.width;      demoH = _info.height; }
+        if (_noCNN)         { demoW = _codecInfo.width; demoH = _codecInfo.height; }
+        else if (_cnnScale1x) { demoW = _codecInfo.width; demoH = _codecInfo.height; }
+        else                { demoW = _info.width;      demoH = _info.height; }
     } else if (_noCodec || !_noCNN) {
-        demoW = _info.width;
-        demoH = _info.height;
+        if (_cnnScale1x && !_noCNN) {
+            // 1× CNN output is at codec dims (or _info dims if --no-codec).
+            demoW = _noCodec ? _info.width  : _codecInfo.width;
+            demoH = _noCodec ? _info.height : _codecInfo.height;
+        } else {
+            demoW = _info.width;
+            demoH = _info.height;
+        }
     } else {
         demoW = _codecInfo.width;
         demoH = _codecInfo.height;
@@ -390,11 +402,13 @@ static void resolveOutputDims(NSString *preset,
             uint32_t Hpp = (Hp + 7) & ~7u;
             SuperResMetalBackend be = [_cnnBackend isEqualToString:@"metal"]
                 ? SuperResMetalBackendHybrid : SuperResMetalBackendMPSGraph;
+            BOOL useSubpixel = !_cnnScale1x;
             _cnnMetal = [[SuperResMetal alloc] initWithWeightsDir:_ckptPath
                                                             device:_device
                                                           inPlaneH:Hpp
                                                           inPlaneW:Wpp
-                                                            backend:be];
+                                                            backend:be
+                                                   useSubpixelHead:useSubpixel];
             if (!_cnnMetal) { fprintf(stderr, "CNN(metal) init failed\n"); return nil; }
 #else
             fprintf(stderr, "warning: --cnn-backend=%s requested but SuperResMetal not in this build; falling back to CoreML\n",
@@ -421,7 +435,12 @@ static void resolveOutputDims(NSString *preset,
             _info.width, _info.height);
     if (_gprInput)        fprintf(stderr, "decode→%ux%u → ", _codecInfo.width, _codecInfo.height);
     else if (!_noCodec)   fprintf(stderr, "codec→%ux%u → ", _codecInfo.width, _codecInfo.height);
-    if (!_noCNN)          fprintf(stderr, "CNN→%ux%u → ", _info.width, _info.height);
+    if (!_noCNN) {
+        uint32_t cnnW = _cnnScale1x ? _codecInfo.width  : _info.width;
+        uint32_t cnnH = _cnnScale1x ? _codecInfo.height : _info.height;
+        fprintf(stderr, "CNN[%s]→%ux%u → ",
+                _cnnScale1x ? "1x" : "2x", cnnW, cnnH);
+    }
     if (_downscale)
         fprintf(stderr, "demosaic[%s]→%ux%u → downscale→ProRes(%ux%u@%dfps) [%s]\n",
                 [_demosaicMode UTF8String], _demoW, _demoH, outW, outH, _fps,
@@ -440,26 +459,31 @@ static void resolveOutputDims(NSString *preset,
 // Pipelined stage implementations (shared by GPR + DNG runners)
 // ============================================================================
 
-// CNN stage: run the CNN super-res on job.bayer (decoded codec dims) and
-// replace job.bayer with the upsampled native-dim Bayer.
+// CNN stage: run the CNN on job.bayer (decoded codec dims) and replace
+// job.bayer with the CNN output Bayer.
+//   - 2× super-res (cnnScale=2x, default): output at native (_info) dims.
+//   - 1× clean-bayer (cnnScale=1x, BIBO_1x): output at the same dims as input.
 - (int)runCNNStage:(FrameJob *)job {
     if (_noCNN) return 0;
-    uint16_t *cnnBuf = malloc((size_t)_info.width * _info.height * 2);
+    // CNN output dims depend on mode.
+    uint32_t cnnOutW = _cnnScale1x ? job.bayerW : _info.width;
+    uint32_t cnnOutH = _cnnScale1x ? job.bayerH : _info.height;
+    uint16_t *cnnBuf = malloc((size_t)cnnOutW * cnnOutH * 2);
     int crc;
     if (_cnnMetal) {
         crc = [_cnnMetal runOnBayer:job.bayer
                               width:job.bayerW height:job.bayerH
                            outBayer:cnnBuf
-                           outWidth:_info.width
-                          outHeight:_info.height
+                           outWidth:cnnOutW
+                          outHeight:cnnOutH
                          blackLevel:_info.blackLevel
                          whiteLevel:_info.whiteLevel];
     } else {
         crc = [_cnn runOnBayer:job.bayer
                          width:job.bayerW height:job.bayerH
                       outBayer:cnnBuf
-                      outWidth:_info.width
-                     outHeight:_info.height
+                      outWidth:cnnOutW
+                     outHeight:cnnOutH
                     blackLevel:_info.blackLevel
                     whiteLevel:_info.whiteLevel];
     }
@@ -471,8 +495,8 @@ static void resolveOutputDims(NSString *preset,
     if (job.bayerOwned && job.bayer) free(job.bayer);
     job.bayer = cnnBuf;
     job.bayerOwned = YES;
-    job.bayerW = _info.width;
-    job.bayerH = _info.height;
+    job.bayerW = cnnOutW;
+    job.bayerH = cnnOutH;
     return 0;
 }
 

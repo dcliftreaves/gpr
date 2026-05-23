@@ -23,6 +23,8 @@ NS_ASSUME_NONNULL_BEGIN
 // outResolution: "2k", "uhd", "4k", "6k", "8k" (default "8k"). Picks a fixed
 // output width; output height preserves source aspect ratio (rounded to even).
 // "8k" means "native source dims, no scale".
+// cnnScale: "2x" (default — F variant, super-res) or "1x" (F_no_sr / BIBO_1x —
+// clean bayer at codec dims; CIRAWFilter handles the upscale to outResolution).
 - (nullable instancetype)initWithFirstFrame:(NSString *)firstFrame
                                 metaDngPath:(nullable NSString *)metaDngPath
                                    ckptPath:(NSString *)ckptPath
@@ -34,7 +36,8 @@ NS_ASSUME_NONNULL_BEGIN
                                      timing:(BOOL)timing
                                  cnnBackend:(NSString *)cnnBackend
                                 demosaicMode:(NSString *)demosaicMode
-                              outResolution:(NSString *)outResolution;
+                              outResolution:(NSString *)outResolution
+                                   cnnScale:(NSString *)cnnScale;
 
 // Continue past per-frame errors (read/decode/CNN/demosaic failures). The
 // failing frame's index is logged to stderr; subsequent frames continue. The

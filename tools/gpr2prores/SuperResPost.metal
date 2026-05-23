@@ -220,6 +220,49 @@ kernel void bicubic_combine_rebayer(
     bayer[by1 * outW + bx1] = (ushort)(b  * WHITE);
 }
 
+// ---- Kernel 2c (FUSED, 1x mode): combine input + residual + rebayer ----
+// For the BIBO_1x (F_no_sr) variant: no bicubic baseline, no PixelShuffle SR
+// head. The CNN outputs cleaned planes at the SAME dims as the input planes.
+// We just add `RES_SCALE * residual` to the input, clamp, and rebayer.
+//
+// Input planes:  (Hpp, Wpp, 4) fp16 — same buffer that fed the CNN
+// Residual:      (Hpp, Wpp, 4) fp16 — CNN output (1x mode)
+// Output bayer:  (outH, outW) uint16; outH=2*outH_pl, outW=2*outW_pl.
+// Each thread writes a 2x2 Bayer cell from one plane coord (x_pl, y_pl).
+kernel void combine_rebayer_1x(
+    device const half * __restrict__ in        [[buffer(0)]],   // [Hpp, Wpp, 4]
+    device const half * __restrict__ residual  [[buffer(1)]],   // [Hpp, Wpp, 4]
+    device       ushort * __restrict__ bayer   [[buffer(2)]],   // [outH, outW] uint16
+    constant uint &Wpp                          [[buffer(3)]],   // padded plane W
+    constant uint &Hpp                          [[buffer(4)]],   // padded plane H
+    constant uint &outW                         [[buffer(5)]],
+    constant uint &outH                         [[buffer(6)]],
+    uint2 gid                                   [[thread_position_in_grid]])
+{
+    uint x = gid.x, y = gid.y;
+    uint outW_pl = outW / 2;
+    uint outH_pl = outH / 2;
+    if (x >= outW_pl || y >= outH_pl) return;
+    if (x >= Hpp || y >= Wpp) {} // suppress unused-warn for Hpp
+    uint idx = (y * Wpp + x) * 4u;
+    float r  = (float)in[idx+0] + RES_SCALE * (float)residual[idx+0];
+    float g1 = (float)in[idx+1] + RES_SCALE * (float)residual[idx+1];
+    float g2 = (float)in[idx+2] + RES_SCALE * (float)residual[idx+2];
+    float b  = (float)in[idx+3] + RES_SCALE * (float)residual[idx+3];
+    r  = clamp(r,  0.0f, 1.0f);
+    g1 = clamp(g1, 0.0f, 1.0f);
+    g2 = clamp(g2, 0.0f, 1.0f);
+    b  = clamp(b,  0.0f, 1.0f);
+    uint by0 = 2u * y;
+    uint by1 = by0 + 1u;
+    uint bx0 = 2u * x;
+    uint bx1 = bx0 + 1u;
+    bayer[by0 * outW + bx0] = (ushort)(r  * WHITE);
+    bayer[by0 * outW + bx1] = (ushort)(g1 * WHITE);
+    bayer[by1 * outW + bx0] = (ushort)(g2 * WHITE);
+    bayer[by1 * outW + bx1] = (ushort)(b  * WHITE);
+}
+
 // ---- Kernel 3: pack Bayer uint16 -> NHWC fp16 (4-plane, normalized [0,1]) ----
 // gid = (x_pl, y_pl). plane coords; reads 2x2 bayer pixels per thread.
 // Writes [Hp, Wp, 4] fp16, where Hp = inH/2, Wp = inW/2, and the result is

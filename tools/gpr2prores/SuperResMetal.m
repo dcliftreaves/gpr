@@ -250,6 +250,7 @@ static uint16_t *transpose_dw_pytorch_to_hwio_f16(const uint16_t *src_oihw_2c,
     MPSGraphTensor *_residualTensor; // (1, 2Hp, 2Wp, 4) fp16 SR head output
     SuperResMetalWeights *_W;
     SuperResMetalBackend _backend;
+    BOOL _useSubpixelHead;  // YES = F (2× SR); NO = F_no_sr (1× outro head)
 
     // Persistent buffers.
     id<MTLBuffer> _inBayer;       // input Bayer uint16, sized for max codec output
@@ -265,7 +266,8 @@ static uint16_t *transpose_dw_pytorch_to_hwio_f16(const uint16_t *src_oihw_2c,
     id<MTLComputePipelineState> _psoUnpack;
     id<MTLComputePipelineState> _psoBicubic;
     id<MTLComputePipelineState> _psoCombine;
-    id<MTLComputePipelineState> _psoBicubicCombine;  // fused bicubic+combine+rebayer
+    id<MTLComputePipelineState> _psoBicubicCombine;  // fused bicubic+combine+rebayer (2× mode)
+    id<MTLComputePipelineState> _psoCombine1x;       // combine+rebayer (1× mode, no bicubic)
 
     // -- Hybrid path state (only used when _backend == Hybrid) --
     // 7 sub-graphs with feed placeholders and result tensors.
@@ -715,11 +717,20 @@ typedef struct {
               fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_mlp2_bias.bin"]]]) return NO;
     }
 
-    // subpixel head
-    NSString *subW = [dir stringByAppendingPathComponent:@"subpixel_weight.bin"];
-    NSString *subB = [dir stringByAppendingPathComponent:@"subpixel_bias.bin"];
-    if (![W loadConv4D:@"subpixel_weight" fromPath:subW Cout:16 Cin:16 kH:3 kW:3]) return NO;
-    if (![W loadRaw:@"subpixel_bias" fromPath:subB]) return NO;
+    // Head: variant-dependent.
+    //   _useSubpixelHead=YES (F)       → subpixel head (16, 16, 3, 3) + PS(2)
+    //   _useSubpixelHead=NO  (F_no_sr) → outro head    (4, 16, 3, 3)  at 1× dims
+    if (_useSubpixelHead) {
+        NSString *subW = [dir stringByAppendingPathComponent:@"subpixel_weight.bin"];
+        NSString *subB = [dir stringByAppendingPathComponent:@"subpixel_bias.bin"];
+        if (![W loadConv4D:@"subpixel_weight" fromPath:subW Cout:16 Cin:16 kH:3 kW:3]) return NO;
+        if (![W loadRaw:@"subpixel_bias" fromPath:subB]) return NO;
+    } else {
+        NSString *outroW = [dir stringByAppendingPathComponent:@"outro_weight.bin"];
+        NSString *outroB = [dir stringByAppendingPathComponent:@"outro_bias.bin"];
+        if (![W loadConv4D:@"outro_weight" fromPath:outroW Cout:4 Cin:16 kH:3 kW:3]) return NO;
+        if (![W loadRaw:@"outro_bias" fromPath:outroB]) return NO;
+    }
 
     _W = W;
     return YES;
@@ -790,14 +801,22 @@ typedef struct {
     y = [g additionWithPrimaryTensor:y secondaryTensor:skip0 name:@"skip0_add"];
     y = [self nafblockNamed:@"dec2" C:16 input:y];
 
-    // ---- SR head: Conv3x3 16->16, PixelShuffle(2) -> 4 channels at 2x ----
-    MPSGraphTensor *subW = constTensorHWIO(g, _W.buffers[@"subpixel_weight"], 3, 3, 16, 16);
-    MPSGraphTensor *subB = constTensor1D(g, _W.buffers[@"subpixel_bias"], 16);
-    y = conv2d_NHWC(g, y, subW, subB, 1, 1, @"subpixel");
-    y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
-                usePixelShuffleOrder:YES name:@"subpixel_ps"];
-
-    _residualTensor = y;  // (1, 2Hp, 2Wp, 4) fp16
+    // ---- Head: variant-dependent ----
+    if (_useSubpixelHead) {
+        // F: Conv3x3 16->16, PixelShuffle(2) -> 4 channels at 2x.
+        MPSGraphTensor *subW = constTensorHWIO(g, _W.buffers[@"subpixel_weight"], 3, 3, 16, 16);
+        MPSGraphTensor *subB = constTensor1D(g, _W.buffers[@"subpixel_bias"], 16);
+        y = conv2d_NHWC(g, y, subW, subB, 1, 1, @"subpixel");
+        y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
+                    usePixelShuffleOrder:YES name:@"subpixel_ps"];
+        _residualTensor = y;  // (1, 2Hp, 2Wp, 4) fp16
+    } else {
+        // F_no_sr: Conv3x3 16->4 (outro). Output at same plane dims as input.
+        MPSGraphTensor *outW_ = constTensorHWIO(g, _W.buffers[@"outro_weight"], 3, 3, 16, 4);
+        MPSGraphTensor *outB_ = constTensor1D(g, _W.buffers[@"outro_bias"], 4);
+        y = conv2d_NHWC(g, y, outW_, outB_, 1, 1, @"outro");
+        _residualTensor = y;  // (1, Hp, Wp, 4) fp16
+    }
 }
 
 // ============================================================================
@@ -901,17 +920,26 @@ typedef struct {
         _gUp2Out = y;
     }
 
-    // ----- G7: SR head (16ch Hp×Wp → 4ch 2Hp×2Wp) -----
+    // ----- G7: Head — variant-dependent
+    //          F:       16ch Hp×Wp → 4ch 2Hp×2Wp (subpixel + PS)
+    //          F_no_sr: 16ch Hp×Wp → 4ch Hp×Wp   (outro Conv3x3 16→4)
     {
         MPSGraph *g = [[MPSGraph alloc] init];
         _gHead = g;
         _gHeadIn = [g placeholderWithShape:@[@1, @(_Hp), @(_Wp), @16]
                                   dataType:MPSDataTypeFloat16 name:@"dec2_out"];
-        MPSGraphTensor *subW = constTensorHWIO(g, _W.buffers[@"subpixel_weight"], 3, 3, 16, 16);
-        MPSGraphTensor *subB = constTensor1D(g, _W.buffers[@"subpixel_bias"], 16);
-        MPSGraphTensor *y = conv2d_NHWC(g, _gHeadIn, subW, subB, 1, 1, @"subpixel");
-        y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
-                    usePixelShuffleOrder:YES name:@"subpixel_ps"];
+        MPSGraphTensor *y;
+        if (_useSubpixelHead) {
+            MPSGraphTensor *subW = constTensorHWIO(g, _W.buffers[@"subpixel_weight"], 3, 3, 16, 16);
+            MPSGraphTensor *subB = constTensor1D(g, _W.buffers[@"subpixel_bias"], 16);
+            y = conv2d_NHWC(g, _gHeadIn, subW, subB, 1, 1, @"subpixel");
+            y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
+                        usePixelShuffleOrder:YES name:@"subpixel_ps"];
+        } else {
+            MPSGraphTensor *outW_ = constTensorHWIO(g, _W.buffers[@"outro_weight"], 3, 3, 16, 4);
+            MPSGraphTensor *outB_ = constTensor1D(g, _W.buffers[@"outro_bias"], 4);
+            y = conv2d_NHWC(g, _gHeadIn, outW_, outB_, 1, 1, @"outro");
+        }
         _gHeadOut = y;
     }
 }
@@ -1097,6 +1125,20 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                                   inPlaneW:(uint32_t)inPlaneW
                                     backend:(SuperResMetalBackend)backend
 {
+    // Default: F variant (2× subpixel head) — backward-compatible.
+    return [self initWithWeightsDir:weightsDir device:device
+                           inPlaneH:inPlaneH inPlaneW:inPlaneW
+                            backend:backend
+                    useSubpixelHead:YES];
+}
+
+- (nullable instancetype)initWithWeightsDir:(NSString *)weightsDir
+                                     device:(id<MTLDevice>)device
+                                  inPlaneH:(uint32_t)inPlaneH
+                                  inPlaneW:(uint32_t)inPlaneW
+                                    backend:(SuperResMetalBackend)backend
+                            useSubpixelHead:(BOOL)useSubpixelHead
+{
     self = [super init];
     if (!self) return nil;
     _device = device;
@@ -1105,6 +1147,7 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     _Hp = inPlaneH;
     _Wp = inPlaneW;
     _backend = backend;
+    _useSubpixelHead = useSubpixelHead;
 
     if (inPlaneH % 8 != 0 || inPlaneW % 8 != 0) {
         fprintf(stderr, "SuperResMetal: plane dims %ux%u not multiples of 8\n",
@@ -1131,31 +1174,36 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     fprintf(stderr, "SuperResMetal: graph built in %.1f ms (input %ux%u planes, backend=%ld)\n",
             t2 - t1, _Wp, _Hp, (long)_backend);
 
-    // I/O buffers (fp16, NHWC) — also baseline buffer for the fused path.
+    // I/O buffers (fp16, NHWC) — also baseline buffer for the 2× fused path.
+    //
+    // 2× mode: planes (Hp, Wp, 4); residual & baseline at (2Hp, 2Wp, 4); output
+    //          Bayer (4Hp × 4Wp) uint16 cells.
+    // 1× mode: planes (Hp, Wp, 4); residual at (Hp, Wp, 4); output Bayer
+    //          (2Hp × 2Wp) uint16 cells (same as input Bayer).
     size_t in_n  = (size_t)_Hp * _Wp * 4;
-    size_t out_n = (size_t)(2 * _Hp) * (2 * _Wp) * 4;
+    size_t out_n = _useSubpixelHead
+                       ? (size_t)(2 * _Hp) * (2 * _Wp) * 4
+                       : (size_t)_Hp * _Wp * 4;
     _inBuf       = [_device newBufferWithLength:in_n  * sizeof(uint16_t) options:MTLResourceStorageModeShared];
     _outBuf      = [_device newBufferWithLength:out_n * sizeof(uint16_t) options:MTLResourceStorageModeShared];
-    _baselineBuf = [_device newBufferWithLength:out_n * sizeof(uint16_t) options:MTLResourceStorageModeShared];
+    if (_useSubpixelHead) {
+        _baselineBuf = [_device newBufferWithLength:out_n * sizeof(uint16_t)
+                                            options:MTLResourceStorageModeShared];
+    }
     // Zero the planes buffer ONCE so its padded region stays zero across calls.
     // The unpack kernel only writes the valid (Wp_in_native, Hp_in_native) region.
     memset(_inBuf.contents, 0, in_n * sizeof(uint16_t));
 
-    // Bayer in/out buffers: sized generously. The exact frame size is
-    // (codec_W * codec_H * 2) for input and (native_W * native_H * 2) for output.
-    // We allocate to max plane dims * 4 (input has 2x more cells per plane).
-    _inBayerCap  = (size_t)(2*_Hp) * (2*_Wp) * sizeof(uint16_t);   // == out_n bytes / 2 (Bayer cells per plane = 4)
-    _outBayerCap = (size_t)(2*_Hp)*2 * (2*_Wp)*2 * sizeof(uint16_t); // 4x plane area
-    // Actually: input Bayer dims = (2*Hp) cells = (inH for native-Bayer). For codec input
-    // that's the codec-decimated bayer (e.g. 4140x2760). For our padded plane (2072x1384)
-    // the input Bayer would be (2*1384 x 2*2072) = 2768 x 4144. Allocate that.
+    // Bayer in/out buffers: sized generously.
+    //   Input Bayer is (2*Hp × 2*Wp) uint16 (the unpack kernel only writes the
+    //   valid sub-region; padding stays zero).
+    //   Output Bayer dims depend on mode:
+    //     2× mode: (4*Hp × 4*Wp) uint16 cells.
+    //     1× mode: (2*Hp × 2*Wp) uint16 cells (== input dims).
     _inBayerCap  = (size_t)(2*_Hp) * (2*_Wp) * sizeof(uint16_t);
-    // Output bayer is the same dims as the residual: (2*Hp_padded) x (2*Wp_padded) cells
-    // — but Hp/Wp are PLANE dims, so output bayer is (4*Hp x 4*Wp) cells... no wait.
-    // Plane (Hp, Wp) fp16 means input bayer is (2*Hp x 2*Wp) uint16. SR head doubles
-    // each plane axis -> (2*Hp, 2*Wp, 4) which means OUTPUT bayer = (2*(2*Hp), 2*(2*Wp))
-    // = (4*Hp, 4*Wp) uint16 cells. Yes.
-    _outBayerCap = (size_t)(4*_Hp) * (4*_Wp) * sizeof(uint16_t);
+    _outBayerCap = _useSubpixelHead
+                       ? (size_t)(4*_Hp) * (4*_Wp) * sizeof(uint16_t)
+                       : (size_t)(2*_Hp) * (2*_Wp) * sizeof(uint16_t);
     _inBayer  = [_device newBufferWithLength:_inBayerCap  options:MTLResourceStorageModeShared];
     _outBayer = [_device newBufferWithLength:_outBayerCap options:MTLResourceStorageModeShared];
 
@@ -1193,6 +1241,13 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         _psoBicubicCombine = [_device newComputePipelineStateWithFunction:fn error:&e];
         if (!_psoBicubicCombine) { fprintf(stderr, "SuperResMetal: pso bicubic_combine: %s\n", [e.localizedDescription UTF8String]); return nil; }
     }
+    {
+        id<MTLFunction> fn = [lib newFunctionWithName:@"combine_rebayer_1x"];
+        if (!fn) { fprintf(stderr, "SuperResMetal: missing kernel combine_rebayer_1x\n"); return nil; }
+        NSError *e = nil;
+        _psoCombine1x = [_device newComputePipelineStateWithFunction:fn error:&e];
+        if (!_psoCombine1x) { fprintf(stderr, "SuperResMetal: pso combine_rebayer_1x: %s\n", [e.localizedDescription UTF8String]); return nil; }
+    }
 
     // Hybrid: build NAFBlock PSOs + intermediate buffers.
     if (_backend == SuperResMetalBackendHybrid) {
@@ -1210,9 +1265,12 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
             initWithMTLBuffer:_inBuf
                         shape:@[@1, @(_Hp), @(_Wp), @4]
                      dataType:MPSDataTypeFloat16];
+        NSArray<NSNumber *> *outShape = _useSubpixelHead
+            ? @[@1, @(2*_Hp), @(2*_Wp), @4]
+            : @[@1, @(_Hp),   @(_Wp),   @4];
         MPSGraphTensorData *outData = [[MPSGraphTensorData alloc]
             initWithMTLBuffer:_outBuf
-                        shape:@[@1, @(2*_Hp), @(2*_Wp), @4]
+                        shape:outShape
                      dataType:MPSDataTypeFloat16];
         double tw0 = now_ms_local();
         [_graph runWithMTLCommandQueue:_queue
@@ -1229,8 +1287,10 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         double tw0 = now_ms_local();
         uint16_t *zeroBayer = calloc(_inBayerCap / 2, sizeof(uint16_t));
         uint16_t *outBayer = calloc(_outBayerCap / 2, sizeof(uint16_t));
+        uint32_t warmOutW = _useSubpixelHead ? (4*_Wp) : (2*_Wp);
+        uint32_t warmOutH = _useSubpixelHead ? (4*_Hp) : (2*_Hp);
         [self runOnBayer:zeroBayer width:2*_Wp height:2*_Hp
-                outBayer:outBayer outWidth:4*_Wp outHeight:4*_Hp
+                outBayer:outBayer outWidth:warmOutW outHeight:warmOutH
               blackLevel:0 whiteLevel:16383];
         free(zeroBayer); free(outBayer);
         double tw1 = now_ms_local();
@@ -1268,8 +1328,9 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     }
     uint32_t Hpp = _Hp;
     uint32_t Wpp = _Wp;
-    uint32_t out_Hpp = 2u * Hpp;
-    uint32_t out_Wpp = 2u * Wpp;
+    // In 1× mode the residual buffer is at plane dims; in 2× it's doubled.
+    uint32_t out_Hpp = _useSubpixelHead ? (2u * Hpp) : Hpp;
+    uint32_t out_Wpp = _useSubpixelHead ? (2u * Wpp) : Wpp;
     (void)blackLevel; (void)whiteLevel;
     (void)Hp_in_native;
 
@@ -1330,9 +1391,12 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
             initWithMTLBuffer:_inBuf
                         shape:@[@1, @(_Hp), @(_Wp), @4]
                      dataType:MPSDataTypeFloat16];
+        NSArray<NSNumber *> *outShape = _useSubpixelHead
+            ? @[@1, @(2*_Hp), @(2*_Wp), @4]
+            : @[@1, @(_Hp),   @(_Wp),   @4];
         MPSGraphTensorData *outData = [[MPSGraphTensorData alloc]
             initWithMTLBuffer:_outBuf
-                        shape:@[@1, @(2*_Hp), @(2*_Wp), @4]
+                        shape:outShape
                      dataType:MPSDataTypeFloat16];
         [_graph encodeToCommandBuffer:cb
                                 feeds:@{_inputTensor: inData}
@@ -1425,11 +1489,14 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         [self encodeNAFBlock:rcb level:0 scratchIdx:5 prefix:@"dec2"
                        inBuf:_bDec2In outBuf:_bDec2Out];
 
-        // G7: SR head → _outBuf
+        // G7: Head → _outBuf. Output shape depends on mode.
+        NSArray<NSNumber *> *headOutShape = _useSubpixelHead
+            ? @[@1, @(2*_Hp), @(2*_Wp), @4]
+            : @[@1, @(_Hp),   @(_Wp),   @4];
         [_gHead encodeToCommandBuffer:cb
                                 feeds:@{_gHeadIn: td(_bDec2Out, @[@1, @(_Hp), @(_Wp), @16])}
                      targetOperations:nil
-                    resultsDictionary:@{_gHeadOut: td(_outBuf, @[@1, @(2*_Hp), @(2*_Wp), @4])}
+                    resultsDictionary:@{_gHeadOut: td(_outBuf, headOutShape)}
                   executionDescriptor:nil];
     }
 
@@ -1437,10 +1504,28 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     // can advance internally). Re-fetch it before appending kernels.
     id<MTLCommandBuffer> rawCb2 = cb.commandBuffer;
 
-    // -- Stage C+D fused: bicubic + combine + clamp + rebayer in one kernel.
-    // Reads _inBuf (padded planes) and _outBuf (CNN residual) directly into
-    // _outBayer; the baseline buffer is no longer materialized.
-    if (getenv("SUPERRES_NOFUSE_POST")) {
+    // -- Stage C+D fused: post-processing into _outBayer.
+    //   2× mode: bicubic + combine + clamp + rebayer (input planes + residual
+    //            -> 4*Hp × 4*Wp output bayer).
+    //   1× mode: combine + clamp + rebayer (input planes + residual at same
+    //            plane dims -> 2*Hp × 2*Wp output bayer; no bicubic baseline).
+    if (!_useSubpixelHead) {
+        id<MTLComputeCommandEncoder> enc = [rawCb2 computeCommandEncoder];
+        [enc setComputePipelineState:_psoCombine1x];
+        [enc setBuffer:_inBuf    offset:0 atIndex:0];
+        [enc setBuffer:_outBuf   offset:0 atIndex:1];
+        [enc setBuffer:_outBayer offset:0 atIndex:2];
+        uint32_t Wpp_u = Wpp, Hpp_u = Hpp;
+        uint32_t outW_u = outW, outH_u = outH;
+        [enc setBytes:&Wpp_u  length:sizeof(uint32_t) atIndex:3];
+        [enc setBytes:&Hpp_u  length:sizeof(uint32_t) atIndex:4];
+        [enc setBytes:&outW_u length:sizeof(uint32_t) atIndex:5];
+        [enc setBytes:&outH_u length:sizeof(uint32_t) atIndex:6];
+        MTLSize tg = MTLSizeMake(16, 16, 1);
+        MTLSize grid = MTLSizeMake(outW / 2, outH / 2, 1);
+        [enc dispatchThreads:grid threadsPerThreadgroup:tg];
+        [enc endEncoding];
+    } else if (getenv("SUPERRES_NOFUSE_POST")) {
         // Legacy two-kernel path (kept for A/B comparison).
         id<MTLComputeCommandEncoder> enc = [rawCb2 computeCommandEncoder];
         [enc setComputePipelineState:_psoBicubic];
