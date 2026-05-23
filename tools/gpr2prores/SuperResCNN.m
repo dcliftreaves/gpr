@@ -32,7 +32,18 @@
     }
 
     MLModelConfiguration *cfg = [[MLModelConfiguration alloc] init];
-    cfg.computeUnits = MLComputeUnitsCPUAndGPU;
+    // ALL enables Apple Neural Engine (ANE). Override via env if a specific
+    // unit is needed for A/B benchmarking.
+    cfg.computeUnits = MLComputeUnitsAll;
+    const char *cu_env = getenv("CNN_COREML_UNITS");
+    if (cu_env) {
+        if (!strcmp(cu_env, "cpu"))      cfg.computeUnits = MLComputeUnitsCPUOnly;
+        else if (!strcmp(cu_env, "gpu")) cfg.computeUnits = MLComputeUnitsCPUAndGPU;
+        else if (!strcmp(cu_env, "ane")) cfg.computeUnits = MLComputeUnitsCPUAndNeuralEngine;
+        else if (!strcmp(cu_env, "all")) cfg.computeUnits = MLComputeUnitsAll;
+    }
+    fprintf(stderr, "SuperResCNN: computeUnits = %ld (0=cpu 1=cpuGpu 2=all 3=cpuAne)\n",
+            (long)cfg.computeUnits);
     _model = [MLModel modelWithContentsOfURL:compiled configuration:cfg error:&err];
     if (!_model) {
         fprintf(stderr, "SuperResCNN: load failed: %s\n",
