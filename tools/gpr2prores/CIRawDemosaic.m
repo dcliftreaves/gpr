@@ -202,6 +202,63 @@ static NSDictionary *buildFilterProperties(const DNGInfo *info,
     }
 }
 
+// Common back half: take a filled bayer CVPixelBuffer and render through
+// CIRAWFilter into the caller's destination CVPixelBuffer. Used by both the
+// legacy `encode:bayer:...` path (which fills bayerPB via memcpy) and the
+// new `encodeFromBayerPixelBuffer:` zero-copy path.
+- (void)_renderFromBayerPB:(CVPixelBufferRef)bayerPB outPixelBuffer:(CVPixelBufferRef)pb {
+    // Hand to CIRAWFilter. No DNG construction, no DNG parse.
+    CIRAWFilter *raw = [CIRAWFilter filterWithCVPixelBuffer:bayerPB
+                                                 properties:_filterProperties];
+    if (!raw) {
+        fprintf(stderr, "CIRawDemosaic: filterWithCVPixelBuffer returned nil\n");
+        return;
+    }
+
+    // Fast-path settings: draft mode, no denoise/sharpen/etc.
+    CGFloat scale = (CGFloat)_outW / (CGFloat)_sensorW;
+    if (scale <= 0 || scale > 1.0) scale = 1.0;  // CIRAWFilter clamps to (0,1]
+    raw.scaleFactor = (float)scale;
+    raw.draftModeEnabled = YES;
+    raw.luminanceNoiseReductionAmount = 0.0f;
+    raw.colorNoiseReductionAmount = 0.0f;
+    raw.sharpnessAmount = 0.0f;
+    raw.detailAmount = 0.0f;
+    raw.moireReductionAmount = 0.0f;
+    raw.localToneMapAmount = 0.0f;
+
+    CIImage *image = raw.outputImage;
+    if (!image) {
+        fprintf(stderr, "CIRawDemosaic: outputImage nil\n");
+        return;
+    }
+
+    // Translate to origin, then scale-to-fit + center-crop to (outW, outH).
+    CGRect extent = image.extent;
+    CGAffineTransform xform = CGAffineTransformMakeTranslation(-extent.origin.x, -extent.origin.y);
+    CIImage *moved = [image imageByApplyingTransform:xform];
+
+    CGRect movedExtent = moved.extent;
+    CGFloat sx = (CGFloat)_outW / movedExtent.size.width;
+    CGFloat sy = (CGFloat)_outH / movedExtent.size.height;
+    CGFloat finalScale = MAX(sx, sy);
+    CIImage *scaled = moved;
+    if (fabs(finalScale - 1.0) > 1e-4) {
+        scaled = [moved imageByApplyingTransform:CGAffineTransformMakeScale(finalScale, finalScale)];
+    }
+    CGRect scaledExtent = scaled.extent;
+    CGFloat cropX = (scaledExtent.size.width  - (CGFloat)_outW) * 0.5;
+    CGFloat cropY = (scaledExtent.size.height - (CGFloat)_outH) * 0.5;
+    CIImage *cropped = [scaled imageByApplyingTransform:CGAffineTransformMakeTranslation(-cropX, -cropY)];
+    cropped = [cropped imageByCroppingToRect:CGRectMake(0, 0, _outW, _outH)];
+
+    // Render directly into the caller's CVPixelBuffer (IOSurface-backed).
+    [_ciContext render:cropped
+        toCVPixelBuffer:pb
+                 bounds:CGRectMake(0, 0, _outW, _outH)
+             colorSpace:_outCS];
+}
+
 - (void)encode:(nullable id<MTLCommandBuffer>)cb
          bayer:(const uint16_t *)bayer
          width:(uint32_t)w
@@ -250,60 +307,25 @@ outPixelBuffer:(CVPixelBufferRef)pb
     }
     CVPixelBufferUnlockBaseAddress(bayerPB, 0);
 
-    // 3) Hand to CIRAWFilter. No DNG construction, no DNG parse.
-    CIRAWFilter *raw = [CIRAWFilter filterWithCVPixelBuffer:bayerPB
-                                                 properties:_filterProperties];
-    if (!raw) {
-        fprintf(stderr, "CIRawDemosaic: filterWithCVPixelBuffer returned nil\n");
-        CVPixelBufferRelease(bayerPB);
-        return;
-    }
-
-    // Fast-path settings: draft mode, no denoise/sharpen/etc.
-    CGFloat scale = (CGFloat)_outW / (CGFloat)w;
-    if (scale <= 0 || scale > 1.0) scale = 1.0;  // CIRAWFilter clamps to (0,1]
-    raw.scaleFactor = (float)scale;
-    raw.draftModeEnabled = YES;
-    raw.luminanceNoiseReductionAmount = 0.0f;
-    raw.colorNoiseReductionAmount = 0.0f;
-    raw.sharpnessAmount = 0.0f;
-    raw.detailAmount = 0.0f;
-    raw.moireReductionAmount = 0.0f;
-    raw.localToneMapAmount = 0.0f;
-
-    CIImage *image = raw.outputImage;
-    if (!image) {
-        fprintf(stderr, "CIRawDemosaic: outputImage nil\n");
-        CVPixelBufferRelease(bayerPB);
-        return;
-    }
-
-    // 4) Translate to origin, then scale-to-fit + center-crop to (outW, outH).
-    CGRect extent = image.extent;
-    CGAffineTransform xform = CGAffineTransformMakeTranslation(-extent.origin.x, -extent.origin.y);
-    CIImage *moved = [image imageByApplyingTransform:xform];
-
-    CGRect movedExtent = moved.extent;
-    CGFloat sx = (CGFloat)_outW / movedExtent.size.width;
-    CGFloat sy = (CGFloat)_outH / movedExtent.size.height;
-    CGFloat finalScale = MAX(sx, sy);
-    CIImage *scaled = moved;
-    if (fabs(finalScale - 1.0) > 1e-4) {
-        scaled = [moved imageByApplyingTransform:CGAffineTransformMakeScale(finalScale, finalScale)];
-    }
-    CGRect scaledExtent = scaled.extent;
-    CGFloat cropX = (scaledExtent.size.width  - (CGFloat)_outW) * 0.5;
-    CGFloat cropY = (scaledExtent.size.height - (CGFloat)_outH) * 0.5;
-    CIImage *cropped = [scaled imageByApplyingTransform:CGAffineTransformMakeTranslation(-cropX, -cropY)];
-    cropped = [cropped imageByCroppingToRect:CGRectMake(0, 0, _outW, _outH)];
-
-    // 5) Render directly into the caller's CVPixelBuffer (IOSurface-backed).
-    [_ciContext render:cropped
-        toCVPixelBuffer:pb
-                 bounds:CGRectMake(0, 0, _outW, _outH)
-             colorSpace:_outCS];
-
+    [self _renderFromBayerPB:bayerPB outPixelBuffer:pb];
     CVPixelBufferRelease(bayerPB);
+}
+
+- (void)encodeFromBayerPixelBuffer:(CVPixelBufferRef)bayerPB
+                    outPixelBuffer:(CVPixelBufferRef)pb
+{
+    if (!bayerPB || !pb) {
+        fprintf(stderr, "CIRawDemosaic: encodeFromBayerPixelBuffer: nil arg\n");
+        return;
+    }
+    size_t w = CVPixelBufferGetWidth(bayerPB);
+    size_t h = CVPixelBufferGetHeight(bayerPB);
+    if (w != _sensorW || h != _sensorH) {
+        fprintf(stderr, "CIRawDemosaic: bayerPB dims %zux%zu differ from configured %ux%u\n",
+                w, h, _sensorW, _sensorH);
+        return;
+    }
+    [self _renderFromBayerPB:bayerPB outPixelBuffer:pb];
 }
 
 @end

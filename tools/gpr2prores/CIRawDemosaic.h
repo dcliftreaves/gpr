@@ -36,6 +36,20 @@ NS_ASSUME_NONNULL_BEGIN
         height:(uint32_t)h
 outPixelBuffer:(CVPixelBufferRef)pb;
 
+// Zero-copy entry point: the caller has already filled `bayerPB` with the
+// 14Bayer<CFA> Bayer plane (typically written into the IOSurface backing
+// memory by an upstream Metal kernel). This skips the internal pool +
+// memcpy entirely and hands `bayerPB` straight to CIRAWFilter.
+//
+// The CVPixelBuffer's format must be one of the kCVPixelFormatType_14Bayer_*
+// CFA constants matching the DNGInfo->cfaPattern passed at init. Its dims
+// must match the configured sensor dims.
+//
+// The pixel buffer must not be CPU-locked while this is called: CIRAWFilter
+// needs the IOSurface in a consumable state.
+- (void)encodeFromBayerPixelBuffer:(CVPixelBufferRef)bayerPB
+                    outPixelBuffer:(CVPixelBufferRef)pb;
+
 @end
 
 NS_ASSUME_NONNULL_END

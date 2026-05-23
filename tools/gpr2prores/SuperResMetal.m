@@ -1305,14 +1305,17 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
 //   2) MPSGraph residual
 //   3) GPU bicubic baseline (NHWC)
 //   4) GPU combine + clamp + re-bayer
-// Output Bayer is copied to caller's buffer at the end.
-- (int)runOnBayer:(const uint16_t *)inBayer
-            width:(uint32_t)inW height:(uint32_t)inH
-         outBayer:(uint16_t *)outBayer
-         outWidth:(uint32_t)outW
-        outHeight:(uint32_t)outH
-       blackLevel:(uint32_t)blackLevel
-       whiteLevel:(uint32_t)whiteLevel
+//
+// Implementation note: both runOnBayer:... outBayer: and the new zero-copy
+// runOnBayer:... outMTLBuffer: dispatch into this same core. The destination
+// MTLBuffer is either the persistent _outBayer (legacy CPU-copy path) or a
+// caller-supplied IOSurface-backed buffer (zero-copy path). `outStridePix`
+// selects how the rebayer kernel addresses rows.
+- (int)_runCoreInBayer:(const uint16_t *)inBayer
+                 inW:(uint32_t)inW inH:(uint32_t)inH
+       destMTLBuffer:(id<MTLBuffer>)destMtlBuf
+        destStridePix:(uint32_t)destStridePix
+                outW:(uint32_t)outW outH:(uint32_t)outH
 {
     int Hp_in_native = (int)inH / 2;
     int Wp_in_native = (int)inW / 2;
@@ -1326,7 +1329,6 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     // In 1× mode the residual buffer is at plane dims; in 2× it's doubled.
     uint32_t out_Hpp = _useSubpixelHead ? (2u * Hpp) : Hpp;
     uint32_t out_Wpp = _useSubpixelHead ? (2u * Wpp) : Wpp;
-    (void)blackLevel; (void)whiteLevel;
     (void)Hp_in_native;
 
     double tp0 = now_ms_local();
@@ -1547,13 +1549,15 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         [enc setComputePipelineState:_psoCombine1x];
         [enc setBuffer:_inBuf    offset:0 atIndex:0];
         [enc setBuffer:_outBuf   offset:0 atIndex:1];
-        [enc setBuffer:_outBayer offset:0 atIndex:2];
+        [enc setBuffer:destMtlBuf offset:0 atIndex:2];
         uint32_t Wpp_u = Wpp, Hpp_u = Hpp;
         uint32_t outW_u = outW, outH_u = outH;
+        uint32_t outStridePix_u = destStridePix;
         [enc setBytes:&Wpp_u  length:sizeof(uint32_t) atIndex:3];
         [enc setBytes:&Hpp_u  length:sizeof(uint32_t) atIndex:4];
         [enc setBytes:&outW_u length:sizeof(uint32_t) atIndex:5];
         [enc setBytes:&outH_u length:sizeof(uint32_t) atIndex:6];
+        [enc setBytes:&outStridePix_u length:sizeof(uint32_t) atIndex:7];
         MTLSize tg = MTLSizeMake(16, 16, 1);
         MTLSize grid = MTLSizeMake(outW / 2, outH / 2, 1);
         [enc dispatchThreads:grid threadsPerThreadgroup:tg];
@@ -1577,13 +1581,15 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         [enc setComputePipelineState:_psoCombine];
         [enc setBuffer:_baselineBuf offset:0 atIndex:0];
         [enc setBuffer:_outBuf      offset:0 atIndex:1];
-        [enc setBuffer:_outBayer    offset:0 atIndex:2];
+        [enc setBuffer:destMtlBuf   offset:0 atIndex:2];
         uint32_t outW_u = outW, outH_u = outH;
         uint32_t outWpp_u = out_Wpp, outHpp_u = out_Hpp;
+        uint32_t outStridePix_u = destStridePix;
         [enc setBytes:&outWpp_u length:sizeof(uint32_t) atIndex:3];
         [enc setBytes:&outHpp_u length:sizeof(uint32_t) atIndex:4];
         [enc setBytes:&outW_u  length:sizeof(uint32_t) atIndex:5];
         [enc setBytes:&outH_u  length:sizeof(uint32_t) atIndex:6];
+        [enc setBytes:&outStridePix_u length:sizeof(uint32_t) atIndex:7];
         MTLSize tg2 = MTLSizeMake(16, 16, 1);
         MTLSize grid2 = MTLSizeMake(outW / 2, outH / 2, 1);
         [enc dispatchThreads:grid2 threadsPerThreadgroup:tg2];
@@ -1593,16 +1599,18 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         [enc setComputePipelineState:_psoBicubicCombine];
         [enc setBuffer:_inBuf    offset:0 atIndex:0];
         [enc setBuffer:_outBuf   offset:0 atIndex:1];
-        [enc setBuffer:_outBayer offset:0 atIndex:2];
+        [enc setBuffer:destMtlBuf offset:0 atIndex:2];
         uint32_t Wpp_u = Wpp, Hpp_u = Hpp;
         uint32_t outWpp_u = out_Wpp, outHpp_u = out_Hpp;
         uint32_t outW_u = outW, outH_u = outH;
+        uint32_t outStridePix_u = destStridePix;
         [enc setBytes:&Wpp_u    length:sizeof(uint32_t) atIndex:3];
         [enc setBytes:&Hpp_u    length:sizeof(uint32_t) atIndex:4];
         [enc setBytes:&outWpp_u length:sizeof(uint32_t) atIndex:5];
         [enc setBytes:&outHpp_u length:sizeof(uint32_t) atIndex:6];
         [enc setBytes:&outW_u   length:sizeof(uint32_t) atIndex:7];
         [enc setBytes:&outH_u   length:sizeof(uint32_t) atIndex:8];
+        [enc setBytes:&outStridePix_u length:sizeof(uint32_t) atIndex:9];
         MTLSize tg = MTLSizeMake(16, 16, 1);
         MTLSize grid = MTLSizeMake(outW / 2, outH / 2, 1);
         [enc dispatchThreads:grid threadsPerThreadgroup:tg];
@@ -1612,15 +1620,40 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     [cb waitUntilCompleted];
     double tp2 = now_ms_local();
 
-    // Copy output Bayer back to caller's buffer.
-    // Single-thread memcpy on a 91 MB buffer is ~6 ms on Apple Silicon (CPU
-    // bandwidth bound at ~25 GB/s). Split into chunks across N GCD workers
-    // to push closer to the unified-memory bandwidth ceiling (~400 GB/s).
+    static int _smcnt = 0;
+    if (getenv("SUPERRES_METAL_TIMING")) {
+        fprintf(stderr, "    SuperResMetal #%d  host=%.1f  gpu=%.1f\n",
+                _smcnt++, tp1-tp0, tp2-tp1);
+    }
+    return 0;
+}
+
+// Legacy CPU-output entry point. Routes to the core then copies the persistent
+// _outBayer into the caller's CPU buffer (with parallel memcpy across 4 GCD
+// workers). Kept for callers (tests, no-CNN, etc.) that haven't moved to the
+// IOSurface zero-copy path.
+- (int)runOnBayer:(const uint16_t *)inBayer
+            width:(uint32_t)inW height:(uint32_t)inH
+         outBayer:(uint16_t *)outBayer
+         outWidth:(uint32_t)outW
+        outHeight:(uint32_t)outH
+       blackLevel:(uint32_t)blackLevel
+       whiteLevel:(uint32_t)whiteLevel
+{
+    (void)blackLevel; (void)whiteLevel;
     size_t outBayerBytes = (size_t)outW * outH * sizeof(uint16_t);
     if (outBayerBytes > _outBayerCap) {
         fprintf(stderr, "SuperResMetal: outBayer %zu > cap %zu\n", outBayerBytes, _outBayerCap);
         return -1;
     }
+    int rc = [self _runCoreInBayer:inBayer inW:inW inH:inH
+                      destMTLBuffer:_outBayer
+                       destStridePix:outW
+                              outW:outW outH:outH];
+    if (rc != 0) return rc;
+
+    // Copy output Bayer back to caller's CPU buffer. Parallel 4-way memcpy.
+    double tp2 = now_ms_local();
     {
         const size_t NCHUNKS = 4;
         const size_t chunk = (outBayerBytes + NCHUNKS - 1) / NCHUNKS;
@@ -1633,13 +1666,48 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
         });
     }
     double tp3 = now_ms_local();
-
-    static int _smcnt = 0;
     if (getenv("SUPERRES_METAL_TIMING")) {
-        fprintf(stderr, "    SuperResMetal #%d  host=%.1f  gpu=%.1f  copyOut=%.1f\n",
-                _smcnt++, tp1-tp0, tp2-tp1, tp3-tp2);
+        fprintf(stderr, "    SuperResMetal copyOut=%.1f\n", tp3 - tp2);
     }
     return 0;
+}
+
+// Zero-copy entry point: writes the final Bayer directly into the supplied
+// MTLBuffer (typically IOSurface-backed). No CPU memcpy of the output Bayer.
+- (int)runOnBayer:(const uint16_t *)inBayer
+            width:(uint32_t)inW height:(uint32_t)inH
+     outMTLBuffer:(id<MTLBuffer>)outMTLBuffer
+   outStrideBytes:(size_t)outStrideBytes
+         outWidth:(uint32_t)outW
+        outHeight:(uint32_t)outH
+       blackLevel:(uint32_t)blackLevel
+       whiteLevel:(uint32_t)whiteLevel
+{
+    (void)blackLevel; (void)whiteLevel;
+    if (!outMTLBuffer) {
+        fprintf(stderr, "SuperResMetal: outMTLBuffer is nil\n");
+        return -1;
+    }
+    if ((outStrideBytes & 1u) != 0) {
+        fprintf(stderr, "SuperResMetal: outStrideBytes %zu must be even\n", outStrideBytes);
+        return -1;
+    }
+    if (outStrideBytes < (size_t)outW * sizeof(uint16_t)) {
+        fprintf(stderr, "SuperResMetal: outStrideBytes %zu < outW*2 %zu\n",
+                outStrideBytes, (size_t)outW * sizeof(uint16_t));
+        return -1;
+    }
+    size_t neededBytes = (size_t)outH * outStrideBytes;
+    if (neededBytes > outMTLBuffer.length) {
+        fprintf(stderr, "SuperResMetal: outMTLBuffer.length %zu < needed %zu\n",
+                (size_t)outMTLBuffer.length, neededBytes);
+        return -1;
+    }
+    uint32_t destStridePix = (uint32_t)(outStrideBytes / sizeof(uint16_t));
+    return [self _runCoreInBayer:inBayer inW:inW inH:inH
+                    destMTLBuffer:outMTLBuffer
+                     destStridePix:destStridePix
+                            outW:outW outH:outH];
 }
 
 @end

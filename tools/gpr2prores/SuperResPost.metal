@@ -93,14 +93,19 @@ kernel void bicubic_2x_4chan(
 // gid = (x_planes, y_planes) in plane coordinates (each thread writes 2x2 Bayer).
 // outW_pl, outH_pl are crop dims in plane units (outW/2, outH/2).
 // (out_Wpp, out_Hpp) are bicubic/residual buffer dims = 2*Wp x 2*Hp.
+// outStridePix is the destination Bayer row stride in pixels (uint16 units).
+// For tightly packed buffers this == outW; for IOSurface-backed CVPixelBuffers
+// the row stride is padded to >=64-byte alignment by CoreVideo so it may
+// exceed outW. We honor whatever stride the caller passes.
 kernel void combine_rebayer(
     device const half * __restrict__ baseline  [[buffer(0)]],   // [out_Hpp, out_Wpp, 4]
     device const half * __restrict__ residual  [[buffer(1)]],   // [out_Hpp, out_Wpp, 4]
-    device       ushort * __restrict__ bayer   [[buffer(2)]],   // [outH, outW] uint16
+    device       ushort * __restrict__ bayer   [[buffer(2)]],   // [outH, outStridePix] uint16
     constant uint &out_Wpp                       [[buffer(3)]],
     constant uint &out_Hpp                       [[buffer(4)]],
     constant uint &outW                          [[buffer(5)]],
     constant uint &outH                          [[buffer(6)]],
+    constant uint &outStridePix                  [[buffer(7)]],
     uint2 gid                                    [[thread_position_in_grid]])
 {
     uint x = gid.x, y = gid.y;
@@ -120,10 +125,10 @@ kernel void combine_rebayer(
     uint by1 = by0 + 1u;
     uint bx0 = 2u * x;
     uint bx1 = bx0 + 1u;
-    bayer[by0 * outW + bx0] = (ushort)(r  * WHITE);
-    bayer[by0 * outW + bx1] = (ushort)(g1 * WHITE);
-    bayer[by1 * outW + bx0] = (ushort)(g2 * WHITE);
-    bayer[by1 * outW + bx1] = (ushort)(b  * WHITE);
+    bayer[by0 * outStridePix + bx0] = (ushort)(r  * WHITE);
+    bayer[by0 * outStridePix + bx1] = (ushort)(g1 * WHITE);
+    bayer[by1 * outStridePix + bx0] = (ushort)(g2 * WHITE);
+    bayer[by1 * outStridePix + bx1] = (ushort)(b  * WHITE);
 }
 
 // ---- Kernel 2b (FUSED): bicubic + combine + clamp + rebayer in one pass ----
@@ -144,13 +149,14 @@ kernel void combine_rebayer(
 kernel void bicubic_combine_rebayer(
     device const half * __restrict__ in        [[buffer(0)]],   // [Hpp, Wpp, 4]
     device const half * __restrict__ residual  [[buffer(1)]],   // [out_Hpp, out_Wpp, 4]
-    device       ushort * __restrict__ bayer   [[buffer(2)]],   // [outH, outW] uint16
+    device       ushort * __restrict__ bayer   [[buffer(2)]],   // [outH, outStridePix] uint16
     constant uint &Wpp                          [[buffer(3)]],   // padded plane W
     constant uint &Hpp                          [[buffer(4)]],   // padded plane H
     constant uint &out_Wpp                      [[buffer(5)]],
     constant uint &out_Hpp                      [[buffer(6)]],
     constant uint &outW                         [[buffer(7)]],
     constant uint &outH                         [[buffer(8)]],
+    constant uint &outStridePix                 [[buffer(9)]],
     uint2 gid                                   [[thread_position_in_grid]])
 {
     uint x = gid.x, y = gid.y;
@@ -214,10 +220,10 @@ kernel void bicubic_combine_rebayer(
     uint by1 = by0 + 1u;
     uint bx0 = 2u * x;
     uint bx1 = bx0 + 1u;
-    bayer[by0 * outW + bx0] = (ushort)(r  * WHITE);
-    bayer[by0 * outW + bx1] = (ushort)(g1 * WHITE);
-    bayer[by1 * outW + bx0] = (ushort)(g2 * WHITE);
-    bayer[by1 * outW + bx1] = (ushort)(b  * WHITE);
+    bayer[by0 * outStridePix + bx0] = (ushort)(r  * WHITE);
+    bayer[by0 * outStridePix + bx1] = (ushort)(g1 * WHITE);
+    bayer[by1 * outStridePix + bx0] = (ushort)(g2 * WHITE);
+    bayer[by1 * outStridePix + bx1] = (ushort)(b  * WHITE);
 }
 
 // ---- Kernel 2c (FUSED, 1x mode): combine input + residual + rebayer ----
@@ -232,11 +238,12 @@ kernel void bicubic_combine_rebayer(
 kernel void combine_rebayer_1x(
     device const half * __restrict__ in        [[buffer(0)]],   // [Hpp, Wpp, 4]
     device const half * __restrict__ residual  [[buffer(1)]],   // [Hpp, Wpp, 4]
-    device       ushort * __restrict__ bayer   [[buffer(2)]],   // [outH, outW] uint16
+    device       ushort * __restrict__ bayer   [[buffer(2)]],   // [outH, outStridePix] uint16
     constant uint &Wpp                          [[buffer(3)]],   // padded plane W
     constant uint &Hpp                          [[buffer(4)]],   // padded plane H
     constant uint &outW                         [[buffer(5)]],
     constant uint &outH                         [[buffer(6)]],
+    constant uint &outStridePix                 [[buffer(7)]],
     uint2 gid                                   [[thread_position_in_grid]])
 {
     uint x = gid.x, y = gid.y;
@@ -257,10 +264,10 @@ kernel void combine_rebayer_1x(
     uint by1 = by0 + 1u;
     uint bx0 = 2u * x;
     uint bx1 = bx0 + 1u;
-    bayer[by0 * outW + bx0] = (ushort)(r  * WHITE);
-    bayer[by0 * outW + bx1] = (ushort)(g1 * WHITE);
-    bayer[by1 * outW + bx0] = (ushort)(g2 * WHITE);
-    bayer[by1 * outW + bx1] = (ushort)(b  * WHITE);
+    bayer[by0 * outStridePix + bx0] = (ushort)(r  * WHITE);
+    bayer[by0 * outStridePix + bx1] = (ushort)(g1 * WHITE);
+    bayer[by1 * outStridePix + bx0] = (ushort)(g2 * WHITE);
+    bayer[by1 * outStridePix + bx1] = (ushort)(b  * WHITE);
 }
 
 // ---- Kernel 3: pack Bayer uint16 -> NHWC fp16 (4-plane, normalized [0,1]) ----

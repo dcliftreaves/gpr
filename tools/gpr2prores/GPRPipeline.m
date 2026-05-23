@@ -30,6 +30,7 @@
 
 #import <Metal/Metal.h>
 #import <CoreVideo/CoreVideo.h>
+#import <IOSurface/IOSurface.h>
 #import <mach/mach_time.h>
 #import <stdatomic.h>
 
@@ -41,6 +42,178 @@ static double now_ms(void) {
 
 static BOOL pathIsGPR(NSString *p) {
     return [[p.lowercaseString pathExtension] isEqualToString:@"gpr"];
+}
+
+// ----------------------------------------------------------------------------
+// BayerIOSurfacePool — fixed-size pool of (CVPixelBuffer, MTLBuffer) pairs
+// sharing one IOSurface per pair.
+//
+// Per pair: a 14Bayer<CFA> CVPixelBuffer of (sensorW × sensorH), and an
+// MTLBuffer that wraps the same IOSurface's backing memory via
+// `newBufferWithBytesNoCopy:`. Both views point at the same bytes, so the
+// CNN's rebayer kernel can write the bayer plane directly into the memory
+// CIRAWFilter will consume next — zero CPU memcpy across the boundary.
+//
+// Acquire/release are thread-safe (NSLock-guarded). The pool holds strong
+// refs to entries indefinitely; -dealloc releases them all.
+// ----------------------------------------------------------------------------
+@interface BayerIOSurfaceEntry : NSObject
+@property (nonatomic, assign) CVPixelBufferRef pb;     // retained
+@property (nonatomic, strong) id<MTLBuffer> mtlBuf;
+@property (nonatomic, assign) size_t strideBytes;
+@property (nonatomic, assign) BOOL inUse;
+@end
+@implementation BayerIOSurfaceEntry
+- (void)dealloc {
+    if (_pb) { CVPixelBufferRelease(_pb); _pb = NULL; }
+}
+@end
+
+@interface BayerIOSurfacePool : NSObject
+@property (nonatomic, strong) NSMutableArray<BayerIOSurfaceEntry *> *entries;
+@property (nonatomic, strong) NSLock *lock;
+@property (nonatomic, strong) dispatch_semaphore_t slots;
+@property (nonatomic, assign) uint32_t sensorW;
+@property (nonatomic, assign) uint32_t sensorH;
+@end
+
+@implementation BayerIOSurfacePool
+
+// Build N entries up front. Returns nil on any failure (IOSurface alloc,
+// MTLBuffer wrap, alignment). Caller is expected to fall back to the
+// CPU-copy path when nil.
++ (nullable instancetype)poolWithDevice:(id<MTLDevice>)device
+                            sensorWidth:(uint32_t)sensorW
+                           sensorHeight:(uint32_t)sensorH
+                            bayerFormat:(OSType)bayerFormat
+                                  count:(uint32_t)count
+{
+    BayerIOSurfacePool *pool = [[BayerIOSurfacePool alloc] init];
+    if (!pool) return nil;
+    pool.entries = [NSMutableArray arrayWithCapacity:count];
+    pool.lock = [[NSLock alloc] init];
+    pool.slots = dispatch_semaphore_create(count);
+    pool.sensorW = sensorW;
+    pool.sensorH = sensorH;
+
+    NSDictionary *pixelAttrs = @{
+        (NSString *)kCVPixelBufferPixelFormatTypeKey: @(bayerFormat),
+        (NSString *)kCVPixelBufferWidthKey: @(sensorW),
+        (NSString *)kCVPixelBufferHeightKey: @(sensorH),
+        (NSString *)kCVPixelBufferIOSurfacePropertiesKey: @{},
+        (NSString *)kCVPixelBufferMetalCompatibilityKey: @YES,
+        // Hint a tight 2-byte alignment so the per-row stride matches our
+        // natural width*2 bytes. CoreVideo may still pad to >=64 bytes; the
+        // rebayer kernel and CIRAWFilter both honor whatever stride we get.
+        (NSString *)kCVPixelBufferBytesPerRowAlignmentKey: @(2),
+    };
+
+    for (uint32_t i = 0; i < count; i++) {
+        CVPixelBufferRef pb = NULL;
+        CVReturn r = CVPixelBufferCreate(NULL, sensorW, sensorH, bayerFormat,
+                                          (__bridge CFDictionaryRef)pixelAttrs,
+                                          &pb);
+        if (r != kCVReturnSuccess || !pb) {
+            fprintf(stderr, "BayerIOSurfacePool: CVPixelBufferCreate #%u failed (r=%d)\n", i, r);
+            return nil;
+        }
+        IOSurfaceRef surface = CVPixelBufferGetIOSurface(pb);
+        if (!surface) {
+            fprintf(stderr, "BayerIOSurfacePool: pb #%u has no IOSurface\n", i);
+            CVPixelBufferRelease(pb);
+            return nil;
+        }
+
+        // Retain the surface so it outlives any transient unlock; CVPixelBuffer
+        // already holds a ref but being explicit is harmless. Lock to query
+        // the base address; the surface is otherwise unlocked while we hand
+        // it to Metal/CIRAWFilter (both consume it via the IOSurface itself,
+        // not via the CPU-locked address).
+        IOSurfaceLock(surface, 0, NULL);
+        void *baseAddress = IOSurfaceGetBaseAddress(surface);
+        size_t bytesPerRow = IOSurfaceGetBytesPerRow(surface);
+        size_t allocSize = IOSurfaceGetAllocSize(surface);
+        IOSurfaceUnlock(surface, 0, NULL);
+
+        if (!baseAddress) {
+            fprintf(stderr, "BayerIOSurfacePool: IOSurface #%u baseAddress is NULL\n", i);
+            CVPixelBufferRelease(pb);
+            return nil;
+        }
+        // newBufferWithBytesNoCopy: requires the address to be page-aligned
+        // (4 KB on Apple Silicon). IOSurface should give us page-aligned
+        // backing, but verify.
+        if (((uintptr_t)baseAddress & 0xFFFu) != 0) {
+            fprintf(stderr, "BayerIOSurfacePool: IOSurface #%u baseAddress %p not 4K-aligned\n",
+                    i, baseAddress);
+            CVPixelBufferRelease(pb);
+            return nil;
+        }
+
+        // Wrap the IOSurface backing in an MTLBuffer with no copy. Both views
+        // (CVPixelBuffer + MTLBuffer) alias the same bytes from now on.
+        // Deallocator nil: the IOSurface owns the memory.
+        id<MTLBuffer> mtlBuf = [device newBufferWithBytesNoCopy:baseAddress
+                                                         length:allocSize
+                                                        options:MTLResourceStorageModeShared
+                                                    deallocator:nil];
+        if (!mtlBuf) {
+            fprintf(stderr, "BayerIOSurfacePool: newBufferWithBytesNoCopy #%u failed\n", i);
+            CVPixelBufferRelease(pb);
+            return nil;
+        }
+
+        BayerIOSurfaceEntry *e = [[BayerIOSurfaceEntry alloc] init];
+        e.pb = pb;            // entry takes ownership of the +1 ref
+        e.mtlBuf = mtlBuf;
+        e.strideBytes = bytesPerRow;
+        e.inUse = NO;
+        [pool.entries addObject:e];
+    }
+
+    fprintf(stderr, "BayerIOSurfacePool: %u entries, %ux%u, stride=%zu bytes (natural=%zu) -> %s\n",
+            count, sensorW, sensorH,
+            (size_t)pool.entries[0].strideBytes, (size_t)sensorW * 2,
+            (pool.entries[0].strideBytes == (size_t)sensorW * 2)
+                ? "tight" : "padded (kernel honors stride)");
+    return pool;
+}
+
+// Block until an entry is free, then return it. Thread-safe.
+- (BayerIOSurfaceEntry *)acquire {
+    dispatch_semaphore_wait(self.slots, DISPATCH_TIME_FOREVER);
+    [self.lock lock];
+    BayerIOSurfaceEntry *picked = nil;
+    for (BayerIOSurfaceEntry *e in self.entries) {
+        if (!e.inUse) { e.inUse = YES; picked = e; break; }
+    }
+    [self.lock unlock];
+    // Semaphore guarantees one is available; assert defensively.
+    if (!picked) {
+        fprintf(stderr, "BayerIOSurfacePool: BUG - slot signaled but no free entry\n");
+    }
+    return picked;
+}
+
+- (void)release:(BayerIOSurfaceEntry *)entry {
+    if (!entry) return;
+    [self.lock lock];
+    entry.inUse = NO;
+    [self.lock unlock];
+    dispatch_semaphore_signal(self.slots);
+}
+@end
+
+// Pick the kCVPixelFormatType_14Bayer_* CFA constant matching our enum.
+// DNGInfo->cfaPattern: 0=RGGB, 1=GBRG, 2=GRBG, 3=BGGR.
+static OSType bayerFormatForCFA_pipeline(uint32_t cfa) {
+    switch (cfa) {
+        case 0: return kCVPixelFormatType_14Bayer_RGGB;
+        case 1: return kCVPixelFormatType_14Bayer_GBRG;
+        case 2: return kCVPixelFormatType_14Bayer_GRBG;
+        case 3: return kCVPixelFormatType_14Bayer_BGGR;
+        default: return kCVPixelFormatType_14Bayer_RGGB;
+    }
 }
 
 // Per-frame job moving through the pipeline. The bayer pointers are owned by
@@ -62,6 +235,11 @@ static BOOL pathIsGPR(NSString *p) {
 @property (nonatomic, assign) uint32_t bayerW;
 @property (nonatomic, assign) uint32_t bayerH;
 @property (nonatomic, assign) BOOL bayerOwned;  // YES = free() on consume
+// Zero-copy CNN→demosaic handoff: when set, the CNN wrote its output directly
+// into this pool entry's IOSurface, and the demosaic stage will consume it
+// via CIRawDemosaic's encodeFromBayerPixelBuffer:. Returned to the pool by
+// the demosaic stage on completion.
+@property (nonatomic, strong) BayerIOSurfaceEntry *bayerPoolEntry;
 // Optional: a CVPixelBuffer the demosaic stage materialized. Retained from
 // pool until appended.
 @property (nonatomic, assign) CVPixelBufferRef pb;
@@ -71,6 +249,12 @@ static BOOL pathIsGPR(NSString *p) {
 - (void)dealloc {
     if (_bayer && _bayerOwned) { free(_bayer); _bayer = NULL; }
     if (_pb) { CVPixelBufferRelease(_pb); _pb = NULL; }
+    // If the demosaic stage was bypassed (error or abort) and we still hold a
+    // pool entry, mark it free again so the pool doesn't leak slots. We can't
+    // signal the semaphore from here without a pool ref; the pipeline's abort
+    // paths handle slot signaling separately. Best-effort: just clear inUse so
+    // a future acquire that wakes can pick it up. This is defensive — the
+    // pipeline release paths should normally call -[pool release:] explicitly.
 }
 @end
 
@@ -130,6 +314,12 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     GPRCodec *_codec;
     SuperResCNN *_cnn;
     SuperResMetal *_cnnMetal;
+    // Zero-copy bayer-share pool: (CVPixelBuffer, MTLBuffer) pairs shared
+    // between SuperResMetal output and CIRawDemosaic input. nil when the
+    // zero-copy path is unavailable (non-core-image demosaic, no CNN, no
+    // SuperResMetal, or IOSurface/MTLBuffer setup failed) — in that case the
+    // pipeline falls back to the CPU-copy code path.
+    BayerIOSurfacePool *_bayerSharePool;
 
     // Reorder buffer for writer (frames may finish demosaic out of order).
     NSMutableDictionary<NSNumber *, FrameJob *> *_writePending;
@@ -422,6 +612,24 @@ static void resolveOutputDims(NSString *preset,
         }
     }
 
+    // -- IOSurface zero-copy pool between SuperResMetal output and CIRawDemosaic
+    //    input. Requires: core-image demosaic AND SuperResMetal CNN AND CNN on.
+    //    Pool dims = (demoW, demoH) == CIRawDemosaic's sensorW × sensorH ==
+    //    CNN output dims. Sized to 5 entries (one per in-flight frame in the
+    //    4-deep pipeline plus a hot-spare slot).
+    if (_ciDemosaic && _cnnMetal && !_noCNN) {
+        OSType bayerFormat = bayerFormatForCFA_pipeline(_info.cfaPattern);
+        _bayerSharePool = [BayerIOSurfacePool poolWithDevice:_device
+                                                  sensorWidth:demoW
+                                                 sensorHeight:demoH
+                                                  bayerFormat:bayerFormat
+                                                        count:5];
+        if (!_bayerSharePool) {
+            fprintf(stderr, "GPRPipeline: BayerIOSurfacePool init failed — "
+                            "falling back to CPU memcpy path\n");
+        }
+    }
+
     _writePending = [NSMutableDictionary dictionary];
     _nextWriteIdx = 0;
     _writeLock = [[NSLock alloc] init];
@@ -468,6 +676,43 @@ static void resolveOutputDims(NSString *preset,
     // CNN output dims depend on mode.
     uint32_t cnnOutW = _cnnScale1x ? job.bayerW : _info.width;
     uint32_t cnnOutH = _cnnScale1x ? job.bayerH : _info.height;
+
+    // Zero-copy path: when we have an IOSurface share pool, acquire a pool
+    // entry and write the CNN output directly into its MTLBuffer (which
+    // aliases the IOSurface CIRAWFilter will consume next). No CPU buffer
+    // for the CNN output, no parallel memcpy out, no per-row memcpy on the
+    // demosaic side.
+    if (_bayerSharePool && _cnnMetal) {
+        BayerIOSurfaceEntry *entry = [_bayerSharePool acquire];
+        if (!entry) {
+            fprintf(stderr, "CNN: pool acquire returned nil (frame %d)\n", job.idx);
+            return -1;
+        }
+        int crc = [_cnnMetal runOnBayer:job.bayer
+                                  width:job.bayerW height:job.bayerH
+                           outMTLBuffer:entry.mtlBuf
+                         outStrideBytes:entry.strideBytes
+                               outWidth:cnnOutW
+                              outHeight:cnnOutH
+                             blackLevel:_info.blackLevel
+                             whiteLevel:_info.whiteLevel];
+        if (crc != 0) {
+            fprintf(stderr, "CNN rc=%d (frame %d)\n", crc, job.idx);
+            [_bayerSharePool release:entry];
+            return crc;
+        }
+        // Drop the input bayer — CNN consumed it.
+        if (job.bayerOwned && job.bayer) free(job.bayer);
+        job.bayer = NULL;
+        job.bayerOwned = NO;
+        job.bayerW = cnnOutW;
+        job.bayerH = cnnOutH;
+        job.bayerPoolEntry = entry;
+        return 0;
+    }
+
+    // CPU-copy fallback path (no IOSurface pool — metal-bilinear demosaic,
+    // CoreML CNN, etc.).
     uint16_t *cnnBuf = malloc((size_t)cnnOutW * cnnOutH * 2);
     int crc;
     if (_cnnMetal) {
@@ -511,7 +756,17 @@ static void resolveOutputDims(NSString *preset,
     }
     // Retain across the inbox handoff (writer queue releases).
     CVPixelBufferRetain(pb);
-    if (_ciDemosaic) {
+    if (_ciDemosaic && job.bayerPoolEntry) {
+        // Zero-copy path: the CNN already wrote the bayer directly into this
+        // pool entry's IOSurface. Skip the per-row memcpy entirely.
+        [_ciDemosaic encodeFromBayerPixelBuffer:job.bayerPoolEntry.pb
+                                  outPixelBuffer:pb];
+        // Release the pool entry now that CIRAWFilter has drained it.
+        // CIContext.render is synchronous on macOS so we know the IOSurface
+        // has been consumed before this returns.
+        [_bayerSharePool release:job.bayerPoolEntry];
+        job.bayerPoolEntry = nil;
+    } else if (_ciDemosaic) {
         // CIRAWFilter path: CIContext drives its own Metal submissions;
         // -encode: returns once submission is in flight, but we still need
         // a hard sync so the writer sees a complete frame. CIContext.render

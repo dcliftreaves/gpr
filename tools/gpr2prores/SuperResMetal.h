@@ -76,6 +76,29 @@ typedef NS_ENUM(NSInteger, SuperResMetalBackend) {
        blackLevel:(uint32_t)blackLevel
        whiteLevel:(uint32_t)whiteLevel;
 
+// Zero-copy variant: writes the final Bayer directly into `outMTLBuffer`
+// (typically an IOSurface-backed MTLBuffer shared with a CVPixelBuffer that
+// CIRAWFilter will consume next). `outStrideBytes` is the destination row
+// stride in bytes — must be even and >= outW * 2. The output is written
+// honoring that stride (CoreVideo pads bytes-per-row to 64-byte alignment
+// regardless of hints, so for typical 4140-pixel rows this is 8320 vs the
+// natural 8280).
+//
+// The buffer must be at least (outH * outStrideBytes) bytes. No CPU memcpy
+// is performed — the rebayer kernel writes directly into the IOSurface
+// backing memory. The CPU returns once GPU work has been committed AND
+// waited on (same sync semantics as the legacy runOnBayer:).
+//
+// Returns 0 on success.
+- (int)runOnBayer:(const uint16_t *)inBayer
+            width:(uint32_t)inW height:(uint32_t)inH
+     outMTLBuffer:(id<MTLBuffer>)outMTLBuffer
+   outStrideBytes:(size_t)outStrideBytes
+         outWidth:(uint32_t)outW
+        outHeight:(uint32_t)outH
+       blackLevel:(uint32_t)blackLevel
+       whiteLevel:(uint32_t)whiteLevel;
+
 @end
 
 NS_ASSUME_NONNULL_END

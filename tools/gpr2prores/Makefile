@@ -26,6 +26,7 @@ LDFLAGS = -L/opt/homebrew/lib -lraw -lc++ \
           -framework MetalPerformanceShadersGraph \
           -framework CoreImage \
           -framework CoreVideo \
+          -framework IOSurface \
           -framework CoreMedia \
           -framework VideoToolbox \
           -framework AVFoundation \
