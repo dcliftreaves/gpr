@@ -28,12 +28,24 @@
  * roughly equal — the realistic embedded scenario.
  */
 
+/* POSIX feature test must precede system headers for clock_gettime/
+   CLOCK_MONOTONIC on Linux. */
+#if !defined(__APPLE__)
+#  ifndef _POSIX_C_SOURCE
+#  define _POSIX_C_SOURCE 199309L
+#  endif
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
+#if defined(__APPLE__)
 #include <mach/mach_time.h>
+#else
+#include <time.h>
+#endif
 
 typedef struct FUSED_ENCODER FUSED_ENCODER;
 extern FUSED_ENCODER *gpr_encode_fused_create(int w, int h, int pf, int q);
@@ -41,10 +53,16 @@ extern int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     const unsigned char *raw, size_t sz, unsigned char **out, size_t *out_sz);
 extern void gpr_encode_fused_destroy(FUSED_ENCODER *ctx);
 
-static double _s = 0;
 static double now_ms(void) {
+#if defined(__APPLE__)
+    static double _s = 0;
     if (!_s) { mach_timebase_info_data_t i; mach_timebase_info(&i); _s=(double)i.numer/i.denom/1e6; }
     return mach_absolute_time() * _s;
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1.0e6;
+#endif
 }
 
 /* Busy-wait the specified ms (avoids OS scheduler dithering at small intervals). */

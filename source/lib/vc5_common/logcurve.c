@@ -32,13 +32,22 @@ void vc5_logcurve_set_bypass(int bypass)
     _logcurve_bypass = bypass;
 }
 
-uint16_t EncoderLogCurve12[LOG_CURVE_TABLE_LENGTH_12];
-uint16_t EncoderLogCurve14[LOG_CURVE_TABLE_LENGTH_14];
-uint16_t EncoderLogCurve16[LOG_CURVE_TABLE_LENGTH_16];
+/* Encoder log curves are touched per Bayer pixel in the fused encoder's
+ * scalar gather (one load per channel per output). Page-aligning the
+ * tables (4 KB) keeps each table on a contiguous span of TLB entries
+ * (8 pages for the 32 KB 14-bit table, 32 pages for the 128 KB 16-bit
+ * table) — the alignment doesn't change the page count but removes
+ * arbitrary linker-driven offsets so consecutive pages map cleanly into
+ * L1d's 4-way associativity without conflicting with adjacent allocations.
+ * Decoder tables get the same treatment for symmetry. Cost: ~7 KB of
+ * BSS slack on average across the 6 tables. */
+uint16_t EncoderLogCurve12[LOG_CURVE_TABLE_LENGTH_12] __attribute__((aligned(4096)));
+uint16_t EncoderLogCurve14[LOG_CURVE_TABLE_LENGTH_14] __attribute__((aligned(4096)));
+uint16_t EncoderLogCurve16[LOG_CURVE_TABLE_LENGTH_16] __attribute__((aligned(4096)));
 
-uint16_t DecoderLogCurve12[LOG_CURVE_TABLE_LENGTH_12];
-uint16_t DecoderLogCurve14[LOG_CURVE_TABLE_LENGTH_14];
-uint16_t DecoderLogCurve16[LOG_CURVE_TABLE_LENGTH_16];
+uint16_t DecoderLogCurve12[LOG_CURVE_TABLE_LENGTH_12] __attribute__((aligned(4096)));
+uint16_t DecoderLogCurve14[LOG_CURVE_TABLE_LENGTH_14] __attribute__((aligned(4096)));
+uint16_t DecoderLogCurve16[LOG_CURVE_TABLE_LENGTH_16] __attribute__((aligned(4096)));
 
 static void SetupDecoderCurve(uint16_t *table, int bits)
 {

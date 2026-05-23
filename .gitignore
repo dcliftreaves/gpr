@@ -35,4 +35,23 @@ scripts/*.pyc
 *.out
 *.app
 build-win/
+build-*/
+
+# Tooling build artifacts
+*.air
+*.metallib
+*.dSYM/
+tools/gpr2prores/gpr2prores
+tools/gpr2prores/gpr_mov_tool
+tools/gpraw/gpraw_pack
+tools/gpraw/gpraw_unpack
+tools/gpraw/build/
+tools/gpraw_codec/test_roundtrip
+
+# Claude worktrees
+.claude/
+
+# Local test data
+data/test_sets/
+source.png
 
