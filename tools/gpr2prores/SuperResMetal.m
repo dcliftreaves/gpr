@@ -1063,58 +1063,53 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     id<MTLBuffer> P2W = Wb.buffers[[prefix stringByAppendingString:@"_mlp2_weight_raw"]];
     id<MTLBuffer> P2B = Wb.buffers[[prefix stringByAppendingString:@"_mlp2_bias"]];
 
+    // All 4 NAFBlock sub-kernels share ONE compute encoder. Serial dispatch
+    // (the default) provides implicit memory barriers between dispatches, so
+    // each sub-kernel sees the previous one's writes. Saves ~3 encoder
+    // create/teardown cycles per NAFBlock — 6 blocks × 3 = 18 dispatches less.
+    id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
+
     // Stage 1: LN1 + Conv1 (C -> 2C). Buffers: in, gamma, beta, W1, B1, out(z1).
-    {
-        id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
-        [enc setComputePipelineState:_psoLN[lv]];
-        [enc setBuffer:inBuf offset:0 atIndex:0];
-        [enc setBuffer:g1    offset:0 atIndex:1];
-        [enc setBuffer:b1    offset:0 atIndex:2];
-        [enc setBuffer:W1    offset:0 atIndex:3];
-        [enc setBuffer:B1    offset:0 atIndex:4];
-        [enc setBuffer:z1    offset:0 atIndex:5];
-        [enc dispatchThreads:grid threadsPerThreadgroup:tg];
-        [enc endEncoding];
-    }
+    [enc setComputePipelineState:_psoLN[lv]];
+    [enc setBuffer:inBuf offset:0 atIndex:0];
+    [enc setBuffer:g1    offset:0 atIndex:1];
+    [enc setBuffer:b1    offset:0 atIndex:2];
+    [enc setBuffer:W1    offset:0 atIndex:3];
+    [enc setBuffer:B1    offset:0 atIndex:4];
+    [enc setBuffer:z1    offset:0 atIndex:5];
+    [enc dispatchThreads:grid threadsPerThreadgroup:tg];
+
     // Stage 2: DW + Gate + Proj + Residual. Buffers: z1, xres(inBuf), dw_w, dw_b, pj_w, pj_b, m.
-    {
-        id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
-        [enc setComputePipelineState:_psoDGR[lv]];
-        [enc setBuffer:z1    offset:0 atIndex:0];
-        [enc setBuffer:inBuf offset:0 atIndex:1];
-        [enc setBuffer:DW    offset:0 atIndex:2];
-        [enc setBuffer:DB    offset:0 atIndex:3];
-        [enc setBuffer:P1W   offset:0 atIndex:4];
-        [enc setBuffer:P1B   offset:0 atIndex:5];
-        [enc setBuffer:m     offset:0 atIndex:6];
-        [enc dispatchThreads:grid threadsPerThreadgroup:tg];
-        [enc endEncoding];
-    }
+    [enc setComputePipelineState:_psoDGR[lv]];
+    [enc setBuffer:z1    offset:0 atIndex:0];
+    [enc setBuffer:inBuf offset:0 atIndex:1];
+    [enc setBuffer:DW    offset:0 atIndex:2];
+    [enc setBuffer:DB    offset:0 atIndex:3];
+    [enc setBuffer:P1W   offset:0 atIndex:4];
+    [enc setBuffer:P1B   offset:0 atIndex:5];
+    [enc setBuffer:m     offset:0 atIndex:6];
+    [enc dispatchThreads:grid threadsPerThreadgroup:tg];
+
     // Stage 3: LN2 + mlp1 (C -> 2C). Buffers: m, gamma2, beta2, W2, B2, out(z2).
-    {
-        id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
-        [enc setComputePipelineState:_psoLN[lv]];
-        [enc setBuffer:m     offset:0 atIndex:0];
-        [enc setBuffer:g2b   offset:0 atIndex:1];
-        [enc setBuffer:b2b   offset:0 atIndex:2];
-        [enc setBuffer:W2    offset:0 atIndex:3];
-        [enc setBuffer:B2    offset:0 atIndex:4];
-        [enc setBuffer:z2    offset:0 atIndex:5];
-        [enc dispatchThreads:grid threadsPerThreadgroup:tg];
-        [enc endEncoding];
-    }
+    [enc setComputePipelineState:_psoLN[lv]];
+    [enc setBuffer:m     offset:0 atIndex:0];
+    [enc setBuffer:g2b   offset:0 atIndex:1];
+    [enc setBuffer:b2b   offset:0 atIndex:2];
+    [enc setBuffer:W2    offset:0 atIndex:3];
+    [enc setBuffer:B2    offset:0 atIndex:4];
+    [enc setBuffer:z2    offset:0 atIndex:5];
+    [enc dispatchThreads:grid threadsPerThreadgroup:tg];
+
     // Stage 4: Gate + Proj + Residual. Buffers: z2, xres(m), pj_w, pj_b, outBuf.
-    {
-        id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
-        [enc setComputePipelineState:_psoGPR[lv]];
-        [enc setBuffer:z2    offset:0 atIndex:0];
-        [enc setBuffer:m     offset:0 atIndex:1];
-        [enc setBuffer:P2W   offset:0 atIndex:2];
-        [enc setBuffer:P2B   offset:0 atIndex:3];
-        [enc setBuffer:outBuf offset:0 atIndex:4];
-        [enc dispatchThreads:grid threadsPerThreadgroup:tg];
-        [enc endEncoding];
-    }
+    [enc setComputePipelineState:_psoGPR[lv]];
+    [enc setBuffer:z2    offset:0 atIndex:0];
+    [enc setBuffer:m     offset:0 atIndex:1];
+    [enc setBuffer:P2W   offset:0 atIndex:2];
+    [enc setBuffer:P2B   offset:0 atIndex:3];
+    [enc setBuffer:outBuf offset:0 atIndex:4];
+    [enc dispatchThreads:grid threadsPerThreadgroup:tg];
+
+    [enc endEncoding];
 }
 
 // ---------- Init ----------
@@ -1360,9 +1355,33 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     // across calls — no per-frame memset needed.
     double tp1 = now_ms_local();
 
+    // Optional per-stage profiling. SUPERRES_PROFILE=1 inserts commit+wait
+    // between every encode and prints GPU time per stage. Breaks pipelining.
+    static int profile_stages = -1;
+    if (profile_stages < 0) {
+        const char *e = getenv("SUPERRES_PROFILE");
+        profile_stages = (e && e[0] == '1') ? 1 : 0;
+    }
+    static int profile_frame = 0;
+    profile_frame++;
+    // Skip first 3 frames (warmup); only print frame 4.
+    int do_profile = (profile_stages && profile_frame == 4);
+
     // Build a fused MPSCommandBuffer (wraps an MTLCommandBuffer).
     MPSCommandBuffer *cb = [MPSCommandBuffer commandBufferFromCommandQueue:_queue];
     id<MTLCommandBuffer> rawCb = cb.commandBuffer;
+
+    // Helper that commits the current MPSCommandBuffer, waits, prints GPU
+    // time, then makes a fresh one. Used only when do_profile.
+    #define PROFILE_STAGE(_label) do {                                         \
+        if (do_profile) {                                                      \
+            [cb commit]; [cb waitUntilCompleted];                              \
+            double gpu_ms = (cb.GPUEndTime - cb.GPUStartTime) * 1000.0;        \
+            fprintf(stderr, "    [profile] %-20s %6.2f ms GPU\n", _label, gpu_ms); \
+            cb = [MPSCommandBuffer commandBufferFromCommandQueue:_queue];      \
+            rawCb = cb.commandBuffer;                                          \
+        }                                                                      \
+    } while (0)
 
     // -- Stage A: GPU unpack Bayer -> NHWC fp16 planes (only valid region) --
     {
@@ -1413,18 +1432,21 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                                                             dataType:MPSDataTypeFloat16];
         };
 
+        PROFILE_STAGE("unpack(A)");
         // G1: intro → _bEnc0In
         [_gIntro encodeToCommandBuffer:cb
                                  feeds:@{_gIntroIn: td(_inBuf,    @[@1, @(_Hp),     @(_Wp),     @4])}
                       targetOperations:nil
                      resultsDictionary:@{_gIntroOut: td(_bEnc0In, @[@1, @(_Hp),     @(_Wp),     @16])}
                    executionDescriptor:nil];
+        PROFILE_STAGE("G1 intro");
 
         id<MTLCommandBuffer> rcb;
         // NAF enc0 (C=16) — full plane
         rcb = cb.commandBuffer;
         [self encodeNAFBlock:rcb level:0 scratchIdx:0 prefix:@"enc0"
                        inBuf:_bEnc0In outBuf:_bEnc0Out];
+        PROFILE_STAGE("NAF enc0 C=16");
 
         // G2: down0 → _bEnc1In
         [_gDown0 encodeToCommandBuffer:cb
@@ -1432,11 +1454,13 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                       targetOperations:nil
                      resultsDictionary:@{_gDown0Out: td(_bEnc1In, @[@1, @(_Hp/2),   @(_Wp/2),   @32])}
                    executionDescriptor:nil];
+        PROFILE_STAGE("G2 down0");
 
         // NAF enc1 (C=32) — half plane
         rcb = cb.commandBuffer;
         [self encodeNAFBlock:rcb level:1 scratchIdx:1 prefix:@"enc1"
                        inBuf:_bEnc1In outBuf:_bEnc1Out];
+        PROFILE_STAGE("NAF enc1 C=32");
 
         // G3: down1 → _bEnc2In
         [_gDown1 encodeToCommandBuffer:cb
@@ -1444,11 +1468,13 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                       targetOperations:nil
                      resultsDictionary:@{_gDown1Out: td(_bEnc2In, @[@1, @(_Hp/4),   @(_Wp/4),   @64])}
                    executionDescriptor:nil];
+        PROFILE_STAGE("G3 down1");
 
         // NAF enc2 (C=64) — quarter plane
         rcb = cb.commandBuffer;
         [self encodeNAFBlock:rcb level:2 scratchIdx:2 prefix:@"enc2"
                        inBuf:_bEnc2In outBuf:_bEnc2Out];
+        PROFILE_STAGE("NAF enc2 C=64");
 
         // G4: down2 + middle(C=128) + up0 + skip2_add → _bDec0In
         [_gMid encodeToCommandBuffer:cb
@@ -1457,11 +1483,13 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                     targetOperations:nil
                    resultsDictionary:@{_gMidOutDec0In: td(_bDec0In, @[@1, @(_Hp/4), @(_Wp/4), @64])}
                  executionDescriptor:nil];
+        PROFILE_STAGE("G4 mid (MPS C=128)");
 
         // NAF dec0 (C=64)
         rcb = cb.commandBuffer;
         [self encodeNAFBlock:rcb level:2 scratchIdx:3 prefix:@"dec0"
                        inBuf:_bDec0In outBuf:_bDec0Out];
+        PROFILE_STAGE("NAF dec0 C=64");
 
         // G5: up1 + skip1_add → _bDec1In
         [_gUp1 encodeToCommandBuffer:cb
@@ -1470,11 +1498,13 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                     targetOperations:nil
                    resultsDictionary:@{_gUp1Out: td(_bDec1In, @[@1, @(_Hp/2), @(_Wp/2), @32])}
                  executionDescriptor:nil];
+        PROFILE_STAGE("G5 up1");
 
         // NAF dec1 (C=32)
         rcb = cb.commandBuffer;
         [self encodeNAFBlock:rcb level:1 scratchIdx:4 prefix:@"dec1"
                        inBuf:_bDec1In outBuf:_bDec1Out];
+        PROFILE_STAGE("NAF dec1 C=32");
 
         // G6: up2 + skip0_add → _bDec2In
         [_gUp2 encodeToCommandBuffer:cb
@@ -1483,11 +1513,13 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                     targetOperations:nil
                    resultsDictionary:@{_gUp2Out: td(_bDec2In, @[@1, @(_Hp), @(_Wp), @16])}
                  executionDescriptor:nil];
+        PROFILE_STAGE("G6 up2");
 
         // NAF dec2 (C=16)
         rcb = cb.commandBuffer;
         [self encodeNAFBlock:rcb level:0 scratchIdx:5 prefix:@"dec2"
                        inBuf:_bDec2In outBuf:_bDec2Out];
+        PROFILE_STAGE("NAF dec2 C=16");
 
         // G7: Head → _outBuf. Output shape depends on mode.
         NSArray<NSNumber *> *headOutShape = _useSubpixelHead
@@ -1498,6 +1530,7 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                      targetOperations:nil
                     resultsDictionary:@{_gHeadOut: td(_outBuf, headOutShape)}
                   executionDescriptor:nil];
+        PROFILE_STAGE("G7 head");
     }
 
     // After MPSGraph encode, cb.commandBuffer may have changed (MPSCommandBuffer
