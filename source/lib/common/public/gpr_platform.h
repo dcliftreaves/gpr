@@ -21,11 +21,6 @@
 #ifndef GPR_PLATFORM_H
 #define GPR_PLATFORM_H
 
-#include <stdint.h>
-#ifndef __cplusplus
-#include <stdbool.h>  /* gpr_sdk public headers use bare `bool` */
-#endif
-
 // =================================================================================================
 // Timing output. Define to:
 // 0 for applications (disabled all timing code)
