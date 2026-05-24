@@ -3421,6 +3421,11 @@ struct FUSED_ENCODER {
        When NULL, falls back to the legacy per-channel unpack inside each
        P1 thread. Enabled via FUSED_PRODUCER_UNPACK=1 (default OFF). */
     UNPACK_RING *unpack_ring;
+
+    /* Rate-controller scale on level-1 quant divisors. 1.0 = identity.
+       Updated by gpr_encode_fused_set_quant_scale(); read-only no-ops
+       when the new value equals the cached one. */
+    double quant_scale;
 };
 
 /* Decide which mode to use. Default: inline mode when CPU count is ≤6
@@ -3520,6 +3525,7 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     ctx->is_rggb = (pixel_format == 1 || pixel_format == 0 || pixel_format == 4);
     ctx->log_bits = (pixel_format >= 4) ? 16 : 14;
     ctx->prescale = 2;
+    ctx->quant_scale = 1.0;
     ctx->inline_mode = fused_choose_inline_mode();
     ctx->multi_level = fused_choose_multi_level();
     ctx->streaming = ctx->multi_level ? fused_choose_streaming() : 0;
@@ -3714,6 +3720,40 @@ void gpr_encode_fused_set_denoise(FUSED_ENCODER *ctx,
     ctx->noise_scale = noise_scale;
     ctx->noise_offset = noise_offset;
     ctx->denoise_strength = strength;
+}
+
+void gpr_encode_fused_set_quant_scale(FUSED_ENCODER *ctx, double scale)
+{
+    if (!ctx) return;
+    if (scale < 0.25) scale = 0.25;
+    if (scale > 16.0) scale = 16.0;
+    if (scale == ctx->quant_scale) return;   /* no-op */
+    ctx->quant_scale = scale;
+
+    /* Reproduce the level-1 quant init from setup_channel_state(), then
+       apply `scale` to the per-band divisor before computing midpoint/
+       multiplier. Matches the legacy encoder's per-frame rate-controller hook. */
+    const int quality = ctx->quality;
+    const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
+    int q_ll1 = 0, q_lh1 = 1, q_hl1 = 2, q_hh1 = 3;
+    if (ctx->multi_level) {
+        q_ll1 = 0; q_lh1 = 7; q_hl1 = 8; q_hh1 = 9;
+    }
+    int q_ll1_base = qt[q_ll1];
+    if (!ctx->multi_level && ctx->include_ll) {
+        q_ll1_base *= 16;   /* matches multi-level FUSED_LL3_EXTRA_DIVISOR */
+    }
+    int divs[4] = { q_ll1_base, qt[q_lh1], qt[q_hl1], qt[q_hh1] };
+
+    for (int ch = 0; ch < 4; ch++) {
+        FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
+        for (int band = 0; band < 4; band++) {
+            int eff = (int)((double)divs[band] * scale + 0.5);
+            if (eff < 1) eff = 1;
+            cs->midpoint[band]   = get_midpoint(eff);
+            cs->multiplier[band] = get_multiplier(eff);
+        }
+    }
 }
 
 /* Per-band BayesShrink denoise: estimate noise sigma from this band (MAD on
