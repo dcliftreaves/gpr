@@ -61,6 +61,15 @@ jobs:
           brew install coreutils
           echo "$(brew --prefix coreutils)/libexec/gnubin" >> "$GITHUB_PATH"
 
+      - name: Install Python dependencies
+        # numpy: synthesize test fixtures and compute PSNR.
+        # rawpy : open DNG files produced by gpr_tools and read raw_image.
+        # Used by both the fixture generator below and the
+        # still-quality CI step at the bottom of this job.
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install numpy rawpy
+
       - name: Configure
         run: |
           mkdir -p build
@@ -234,3 +243,13 @@ jobs:
         # model-bearing run requires shipping a .mlpackage which we don't
         # do in-repo today; the full apply path is exercised locally.
         run: timeout 30 /tmp/gpr-tests/test_gpr_polish
+
+      - name: Run still-image quality regression (DNG roundtrip PSNR)
+        # Synthetic radial-gradient fixtures at canonical sizes/bit-depths,
+        # designed to push 3-level wavelet LL coefficients past 32767 so
+        # decoder int16/uint16 sign-extension bugs surface as catastrophic
+        # PSNR drops. Catches the class of regression that previously broke
+        # 14-bit Z8 decode (PSNR 14 dB) while leaving 16-bit X2D bit-exact.
+        env:
+          BUILD_DIR: build
+        run: timeout 240 source/app/test_still_quality_corpus.sh
