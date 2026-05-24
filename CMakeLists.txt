@@ -128,6 +128,12 @@ else(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
   MESSAGE( STATUS "Could not find source/lib/tiny_jpeg - disabling jpeg writing and setting GPR_JPEG_AVAILABLE=0" )
 endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/tiny_jpeg")
 
+# gpr_polish — optional CoreML-backed Bayer polish. Objective-C++; Apple only.
+if(APPLE AND EXISTS "${CMAKE_SOURCE_DIR}/source/lib/gpr_polish")
+  MESSAGE( STATUS "Found source/lib/gpr_polish - enabling CoreML polish" )
+  add_subdirectory( "source/lib/gpr_polish" )
+endif()
+
 add_subdirectory( "source/app/common/cJSON" )
 add_subdirectory( "source/app/common/argument_parser" )
 add_subdirectory( "source/app/gpr_tools" )
