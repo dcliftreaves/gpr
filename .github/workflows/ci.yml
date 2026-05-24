@@ -266,6 +266,19 @@ jobs:
           BUILD_DIR: build
         run: timeout 480 tools/test/test_still_matrix.sh
 
+      - name: Run capability regression (locked criteria — MET/EXCEEDED/FAILED)
+        # Walks every claimed capability, measures encode_ms, decode_ms,
+        # compression ratio, and roundtrip PSNR per cell, and asserts each
+        # one against its stated criterion. Writes docs/CAPABILITIES.md
+        # as the canonical capability×measurement table. Fails CI if any
+        # cell breaks its criterion (FAILED). On Linux runners FAST=1 skips
+        # the 23/50/100 MP cells to keep wall-clock under 2 min.
+        env:
+          BUILD_DIR: build
+          FAST: ${{ runner.os == 'Linux' && '1' || '0' }}
+          ARTIFACT_DIR: /tmp/gpr-capabilities
+        run: timeout 600 python3 tools/test/test_capabilities.py
+
       - name: Run CNN regression (macOS only, dev-host deps)
         if: runner.os == 'macOS'
         # Skips gracefully when torch / rawpy / cv2 / the dering_proto_v2
