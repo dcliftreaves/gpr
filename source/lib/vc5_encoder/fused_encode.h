@@ -9,28 +9,23 @@
  *
  *  Designed for GoPro ARM (Cortex-A78), testable on Mac ARM64.
  *
- *  ## Wavelet levels
+ *  ## Known limitation: single-level wavelet only
  *
- *  The encoder applies a 2-level wavelet transform by default
- *  (FUSED_WAVELET_LEVELS=2). The bitstream per channel is (7 bands):
- *    [0..3] LL1, LH1, HL1, HH1   (level-1 bands, 1/16 of channel pixels each)
- *    [4..6] LH0, HL0, HH0        (level-0 highpass, 1/4 each)
- *  LL0 is computed without quantization as an intermediate buffer and is NOT
- *  emitted — the four level-1 bands together represent the level-0 lowpass.
+ *  This encoder applies ONLY the level-0 wavelet decomposition. The
+ *  production GPR encoder (encoder.c) applies 3 levels (LL → LL2 → LL3)
+ *  which removes more inter-band correlation. As a result, the fused
+ *  encoder produces ~2× larger compressed output than the standard
+ *  GPR encoder on the same input — about 24 % of raw vs. 12 % for the
+ *  same quality preset.
  *
- *  Set FUSED_WAVELET_LEVELS=1 for the original single-level layout
- *  (LL0, LH0, HL0, HH0 per channel) — best fidelity, largest files.
+ *  Trade-off: the fused encoder is much faster and uses far less RAM,
+ *  so it's the right choice for:
+ *    - Live preview / monitoring streams
+ *    - Embedded targets that can't afford the 3-level memory cost
+ *    - Burst photography where throughput beats minimum size
  *
- *  Only 1 and 2 levels are supported. A 3-level cascade was prototyped but
- *  produced visible inverse-wavelet ringing inherent to the biorthogonal
- *  5/3 basis (not fixable by quantization, prescale, or lossless-LL
- *  tuning), so it was removed.
- *
- *  Production GPR uses 3 levels with a fixed-width LL encoding (separate
- *  from rANS, lossless). The 2-level fused encoder gets within ~30-50 %
- *  of production's compression at substantially higher throughput and
- *  lower peak RAM. PSNR vs raw Bayer at quality 3 is ~45 dB on real
- *  images, vs ~48 dB for single-level (which trades size for fidelity).
+ *  For archival or "best compression" workflows, the production encoder
+ *  is still preferred.
  *
  *  Measured at quality 3 (Filmscan-1):
  *
@@ -52,6 +47,41 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Fused-codec self-describing wrapper format. Output starts with this
+   fixed header followed by a per-band length table and the band data.
+   This is NOT a VC5 bitstream — it's a private format used by the fused
+   encoder/decoder pair until the encoder learns to emit standard VC5.
+
+   Layout:
+     FUSED_HEADER  header
+     uint32_t      band_size[num_bands]    -- byte length of each band
+     uint8_t       band_data[band_size[0]]
+     uint8_t       band_data[band_size[1]]
+     ...
+*/
+#define FUSED_MAGIC    0x44535546u   /* 'FUSD' little-endian */
+#define FUSED_VERSION  1
+
+typedef struct {
+    uint32_t magic;          /* FUSED_MAGIC */
+    uint32_t version;        /* FUSED_VERSION */
+    uint32_t width;          /* pixel width  (Bayer pattern width)  */
+    uint32_t height;         /* pixel height (Bayer pattern height) */
+    uint32_t pixel_format;   /* same encoding as gpr_encode_fused()  */
+    uint32_t quality;        /* 0..8 */
+    uint32_t is_rggb;        /* 1 = RGGB, 0 = GBRG */
+    uint32_t log_bits;       /* 14 for 12/14-bit input, 16 for 16-bit */
+    uint32_t prescale;       /* level-1 prescale (typically 2) */
+    uint32_t multi_level;    /* 1 = 3-level wavelet, 0 = single-level */
+    uint32_t num_bands;      /* 12 (single-level no LL), 16 (single-level + LL),
+                                40 (multi-level) */
+    uint32_t decimate;       /* Channel-space decimation factor.
+                                0 or 1 = none. 2 = 2x2 channel-space
+                                decimation (bands and output Bayer are
+                                effectively at hdr.width/decimate ×
+                                hdr.height/decimate). */
+} FUSED_HEADER;
 
 /*!
     @brief Fused encode: raw Bayer pixels → VC5 bitstream.
@@ -145,22 +175,15 @@ void gpr_encode_fused_set_denoise(FUSED_ENCODER *ctx,
                                   double noise_offset,
                                   double strength);
 
-/*!
-    @brief Per-frame quantization scale knob for rate control.
+/*  Multiplicative scale on level-1 quant divisors. The video encoder's
+    rate controller in gpr_video.c calls this each frame to track a
+    bitrate target. 1.0 = preset's nominal divisors. Higher = more
+    aggressive quantization (smaller, lower quality). Lower = less
+    aggressive. Clamped to [0.25, 16.0].
 
-    Multiplies the base quality preset's divisors by @p scale. Larger
-    scale → coarser quantization → smaller output. Clamped to a sane
-    range; the encoder won't crash on extreme values, just produce
-    very bad output.
-
-    Intended for use by a rate controller (e.g. gpr_video_encoder)
-    between frames to hit a target bitrate independent of scene
-    content. Safe to call at any time but only takes effect on the
-    next frame's encode.
-
-    @param scale   1.0 = base quality preset, 2.0 = double the divisor
-                   (≈ one quality preset coarser), 0.5 = halve the
-                   divisor (≈ one preset finer). Clamped to [0.25, 16].
+    Only level-1 (LL/LH/HL/HH) quants are adjusted, matching the legacy
+    encoder's behavior. In multi-level mode the L2/L3 quants stay at
+    their preset values regardless of RC scale.
 */
 void gpr_encode_fused_set_quant_scale(FUSED_ENCODER *ctx, double scale);
 
