@@ -65,6 +65,7 @@
 #include <inttypes.h>
 
 #include "../lib/vc5_encoder/gpr_video.h"
+#include "../lib/vc5_encoder/fused_encode.h"  /* FUSED_HEADER, FUSED_MAGIC */
 
 /* -- External symbols from libvc5_common -- */
 extern int  jans_decode_band_x4(const uint8_t *in_buf, size_t in_size,
@@ -715,16 +716,52 @@ static int decode_frame_bands(const uint8_t *vc5, size_t size,
                                int bw, int bh,
                                int32_t *band_buffers[4][BANDS_PER_CHANNEL])
 {
-    size_t pos = 0;
+    /* The fused encoder wraps its output in FUSED_HEADER + uint32_t
+       band_size[num_bands] + band[0]..band[num_bands-1]. Skip past the
+       header + manifest to find the bands. */
+    if (size < sizeof(FUSED_HEADER)) {
+        fprintf(stderr, "    payload < FUSED_HEADER (%zu < %zu)\n",
+                size, sizeof(FUSED_HEADER));
+        return 0;
+    }
+    FUSED_HEADER hdr;
+    memcpy(&hdr, vc5, sizeof(hdr));
+    if (hdr.magic != FUSED_MAGIC) {
+        fprintf(stderr, "    bad FUSED magic 0x%08x (want 0x%08x)\n",
+                hdr.magic, FUSED_MAGIC);
+        return 0;
+    }
+    if (hdr.num_bands != BANDS_PER_FRAME) {
+        fprintf(stderr, "    num_bands=%u, test expects %d — "
+                        "skipping (e.g. multi-level or HP-only encoder mode)\n",
+                hdr.num_bands, BANDS_PER_FRAME);
+        return 0;
+    }
+    size_t manifest_bytes = (size_t)hdr.num_bands * sizeof(uint32_t);
+    if (sizeof(FUSED_HEADER) + manifest_bytes > size) {
+        fprintf(stderr, "    band manifest overruns payload\n");
+        return 0;
+    }
+    const uint32_t *band_sizes = (const uint32_t *)(vc5 + sizeof(FUSED_HEADER));
+    size_t pos = sizeof(FUSED_HEADER) + manifest_bytes;
+
     int bands_ok = 0;
+    int manifest_idx = 0;
     for (int ch = 0; ch < 4; ch++) {
         for (int band = 0; band < BANDS_PER_CHANNEL; band++) {
             int this_w = bw, this_h = bh;
 #if FUSED_WAVELET_LEVELS == 2
             if (band < 4) { this_w = bw / 2; this_h = bh / 2; }
 #endif
-            size_t band_bytes = 0;
-            if (probe_band_bytes(vc5 + pos, size - pos, &band_bytes) != 0) {
+            size_t band_bytes = band_sizes[manifest_idx++];
+            if (pos + band_bytes > size) {
+                fprintf(stderr, "    band size at ch=%d band=%d overruns payload\n",
+                        ch, band);
+                return bands_ok;
+            }
+            /* Self-check: legacy header probe should agree with the manifest size. */
+            size_t consumed = 0;
+            if (probe_band_bytes(vc5 + pos, band_bytes, &consumed) != 0) {
                 fprintf(stderr, "    band-probe failed at ch=%d band=%d pos=%zu\n",
                         ch, band, pos);
                 return bands_ok;
