@@ -60,6 +60,11 @@ endif(EXISTS "${CMAKE_SOURCE_DIR}/source/lib/vc5_encoder")
 
 target_link_libraries( ${EXE_NAME} vc5_common common md5_lib expat_lib cJSON argument_parser )
 
+if(GPR_POLISH)
+  include_directories( "../../lib/gpr_polish" )
+  target_link_libraries( ${EXE_NAME} gpr_polish )
+endif()
+
 # In order to use Carbon API, define qEnableCarbon in gpr_platform.h and uncomment code below 
 # if (APPLE)
 #	target_link_libraries( ${EXE_NAME} "-framework Carbon" )
