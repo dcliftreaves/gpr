@@ -194,6 +194,15 @@ jobs:
 
       - name: Run test_video_roundtrip
         # Uses /tmp/Z8_ISO64.raw and /tmp/Z8_ISO22800.raw generated above.
+        # FUSED_INLINE_TOKENIZE=0 forces split-pass mode. The encoder's
+        # default chooses inline mode on ≤6-core hosts (the typical CI
+        # runner) — inline-mode bands are not currently bit-compatible
+        # with jans_decode_band_x4's standalone decode path used by this
+        # test. Split-pass produces the legacy per-band header format
+        # the test exercises. Encoder→decoder coverage of inline mode
+        # is the job of test_fused_decode_roundtrip.
+        env:
+          FUSED_INLINE_TOKENIZE: "0"
         run: timeout 180 /tmp/gpr-tests/test_video_roundtrip
 
       - name: Run test_video_full_roundtrip
