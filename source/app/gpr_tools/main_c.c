@@ -43,45 +43,6 @@
 #include "jpeg.h"
 #endif
 
-#if defined(GPR_POLISH_ENABLED)
-#include "gpr_polish.h"
-
-/* Apply the CoreML polish CNN to a decoded Bayer plane in-place.
-   Returns 0 on success, negative on failure. Stride is in bytes. */
-static int apply_polish(const char *model_path, int quality,
-                        uint16_t *bayer, int width, int height, int stride_bytes)
-{
-    if (!gpr_polish_available()) {
-        fprintf(stderr, "  --Polish: runtime unavailable on this build\n");
-        return -1;
-    }
-    if (!model_path || model_path[0] == '\0') {
-        fprintf(stderr, "  --Polish: model path missing (use --PolishModel <path>)\n");
-        return -2;
-    }
-    /* CNN was trained on q ∈ {0,1,2,3}. For inputs outside that range
-       (q=-1 unspecified, or legacy q=4..8) fall back to q=3 (FS1, the
-       video default and most-trained-on bucket) with a warning. */
-    int q = quality;
-    if (q < 0 || q > 3) {
-        fprintf(stderr, "  --Polish: source quality=%d outside trained range [0,3], using q=3\n", q);
-        q = 3;
-    }
-    gpr_polish_t *p = gpr_polish_create(model_path);
-    if (!p) {
-        fprintf(stderr, "  --Polish: failed to load model: %s\n", model_path);
-        return -3;
-    }
-    int rc = gpr_polish_apply(p, bayer, width, height, stride_bytes, q);
-    gpr_polish_destroy(p);
-    if (rc != 0) {
-        fprintf(stderr, "  --Polish: apply failed rc=%d\n", rc);
-        return -4;
-    }
-    return 0;
-}
-#endif
-
 #define MAX_FILE_PATH 256
 
 typedef enum
@@ -145,19 +106,10 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
                      const char*  output_file_path, const char*  metadata_file_path, const char* gpmf_file_path, const char* rgb_file_resolution, int rgb_file_bits,
                      const char*  jpg_preview_file_path, int jpg_preview_file_width, int jpg_preview_file_height, int quality,
                      bool denoise_enabled, bool denoise_auto, double denoise_strength, bool variance_stabilize, bool denoise_output,
-                     bool noise_replace, const char* fpn_calibration_path, bool ans_enabled, bool embedded_mode,
-                     bool polish_enabled, const char* polish_model_path )
+                     bool noise_replace, const char* fpn_calibration_path, bool ans_enabled, bool embedded_mode )
 {
     bool success;
     bool write_buffer_to_file = true;
-
-#if !defined(GPR_POLISH_ENABLED)
-    if (polish_enabled) {
-        fprintf(stderr, "  --Polish: not supported on this build (Apple/CoreML only)\n");
-        return -1;
-    }
-    (void)polish_model_path;
-#endif
     
     FILE_TYPE input_file_type  = GetFileType( input_file_path );
     FILE_TYPE output_file_type = GetFileType( output_file_path );
@@ -455,33 +407,7 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( input_file_type == FILE_TYPE_GPR && output_file_type == FILE_TYPE_DNG )
     {
-#if defined(GPR_POLISH_ENABLED)
-        if (polish_enabled) {
-            /* Roundtrip: GPR → RAW (decode) → polish → DNG (re-encode with
-               metadata parsed from the input GPR). Slower than the direct
-               GPR→DNG path but gives us a place to mutate the Bayer. */
-            gpr_buffer raw_buf = { NULL, 0 };
-            bool dec_ok = gpr_convert_gpr_to_raw( &allocator, &input_buffer, &raw_buf );
-            if (!dec_ok) {
-                printf("Conversion failed (gpr→raw for polish) \n");
-                return -1;
-            }
-            int w = (int)params.input_width;
-            int h = (int)params.input_height;
-            int stride = w * 2;
-            if (apply_polish(polish_model_path, params.quality,
-                             (uint16_t *)raw_buf.buffer, w, h, stride) != 0) {
-                allocator.Free(raw_buf.buffer);
-                return -1;
-            }
-            success = gpr_convert_raw_to_dng( &allocator, &params, &raw_buf, &output_buffer );
-            allocator.Free(raw_buf.buffer);
-        } else {
-            success = gpr_convert_gpr_to_dng( &allocator, &params, &input_buffer, &output_buffer );
-        }
-#else
         success = gpr_convert_gpr_to_dng( &allocator, &params, &input_buffer, &output_buffer );
-#endif
     }
     else if( input_file_type == FILE_TYPE_GPR && output_file_type == FILE_TYPE_RAW )
     {
@@ -508,21 +434,6 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
                     success = gpr_convert_gpr_to_raw( &allocator, &input_buffer, &output_buffer );
             }
         }
-
-#if defined(GPR_POLISH_ENABLED)
-        if (success && polish_enabled) {
-            /* Output is RGGB Bayer at params.input_width x input_height,
-               16-bit packed (little-endian uint16, 14-bit values). Polish
-               operates in-place. */
-            int w = (int)params.input_width;
-            int h = (int)params.input_height;
-            int stride = w * 2; /* bytes */
-            if (apply_polish(polish_model_path, params.quality,
-                             (uint16_t *)output_buffer.buffer, w, h, stride) != 0) {
-                success = 0;
-            }
-        }
-#endif
     }
 #endif
     else

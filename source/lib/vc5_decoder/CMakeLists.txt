@@ -11,16 +11,13 @@ file( GLOB INC_FILES "*.h" )
 include_directories( "../vc5_common" )
 include_directories( "../common/private" )
 include_directories( "../common/public" )
+# fused_decode.c includes ../vc5_encoder/fused_encode.h for the wrapper
+# header definition (FUSED_HEADER, FUSED_MAGIC).
+include_directories( "../vc5_encoder" )
 
 
 # library
 add_library( ${LIB_NAME} STATIC ${SRC_FILES} ${INC_FILES} )
-
-target_include_directories( ${LIB_NAME}
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include>
-)
 
 if(NOT WIN32)
   find_package( Threads REQUIRED )
