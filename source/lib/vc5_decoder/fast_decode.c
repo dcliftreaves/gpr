@@ -174,8 +174,16 @@ static void fast_decode_lowpass(const uint8_t *data, size_t data_size,
         for (int row = 0; row < height; row++) {
             PIXEL *row_ptr = output + row * pitch_pixels;
             for (int col = 0; col < width; col++) {
-                /* Big-endian 16-bit signed → int32_t PIXEL */
-                row_ptr[col] = (COEFFICIENT)((int16_t)((uint16_t)(src[0] << 8) | src[1]));
+                /* Big-endian 16-bit UNSIGNED → int32_t PIXEL.
+                   The encoder writes the lowpass coefficient clamped to
+                   [0, UINT16_MAX] (see EncodeLowpassBand in encoder.c),
+                   so it must be read as unsigned. A previous (int16_t)
+                   cast here sign-extended values >= 32768 into negative
+                   numbers, which corrupted reconstruction of midpoint-
+                   centered channels (GS, RG, BG, GD) whose deepest LL
+                   coefficients commonly sit above 32767 due to the
+                   cumulative 8× gain of the 3-level wavelet sum-of-sums. */
+                row_ptr[col] = (COEFFICIENT)((uint16_t)(src[0] << 8) | src[1]);
                 src += 2;
             }
         }
