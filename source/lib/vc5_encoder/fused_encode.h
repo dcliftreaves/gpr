@@ -175,6 +175,18 @@ void gpr_encode_fused_set_denoise(FUSED_ENCODER *ctx,
                                   double noise_offset,
                                   double strength);
 
+/*  Multiplicative scale on level-1 quant divisors. The video encoder's
+    rate controller in gpr_video.c calls this each frame to track a
+    bitrate target. 1.0 = preset's nominal divisors. Higher = more
+    aggressive quantization (smaller, lower quality). Lower = less
+    aggressive. Clamped to [0.25, 16.0].
+
+    Only level-1 (LL/LH/HL/HH) quants are adjusted, matching the legacy
+    encoder's behavior. In multi-level mode the L2/L3 quants stay at
+    their preset values regardless of RC scale.
+*/
+void gpr_encode_fused_set_quant_scale(FUSED_ENCODER *ctx, double scale);
+
 #ifdef __cplusplus
 }
 #endif
