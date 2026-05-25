@@ -1,6 +1,8 @@
 .DS_Store
 build/
 scripts/*.pyc
+__pycache__/
+*.pyc
 
 # Prerequisites
 *.d
