@@ -95,9 +95,46 @@ re-validation on single-level.
   hook to allow experimental descale sweeps without rebuild. No-op at
   defaults.
 
+## Root-cause finding (post-investigation)
+
+The multi-level regression has TWO interacting causes:
+
+**1. Nyquist aliasing through the cascade.** Reproducible with horizontal
+stripes:
+
+```
+period   8 px: SL=44.4 dB  ML=21.2 dB  (-23 dB)
+period  16 px: SL=32.5 dB  ML=20.8 dB  (-12 dB)
+period  32 px: SL=35.6 dB  ML=29.8 dB  (-6 dB)
+period  64 px: SL=38.7 dB  ML=30.1 dB  (-9 dB)
+period 256 px: SL=45.1 dB  ML=36.7 dB  (-8 dB)
+```
+
+Any frequency content that lands near L2 or L3 Nyquist degrades.
+
+**2. Double-rounding in `horizontal_filter`.** The FUSED `horizontal_filter`
+prescale pattern differs from legacy `FilterHorizontalRow`:
+
+- legacy: `lowpass[i] = (input[2i] + input[2i+1] + rounding) >> prescale`  (single divide)
+- FUSED:  `lowpass[i] = PS(input[2i]) + PS(input[2i+1])`  (two divides)
+
+For prescale=2: legacy adds 0.75 ADU bias to `(e+o)`; FUSED adds 1.5 ADU.
+The bias compounds across the 3-level cascade. The NEON SIMD path also
+uses the suboptimal pattern. Single-level only invokes one wavelet level
+so the bias is small (1.5 ADU vs source magnitude in thousands).
+
+**Fix approach** (not done in this run — substantial change):
+- Rewrite `horizontal_filter` to use `sum-then-prescale` (matches legacy
+  `FilterHorizontalRow`).
+- Update both scalar and NEON paths in fused_encode.c.
+- Verify single-level PSNR doesn't regress.
+- Potentially also pre-filter LL1 with anti-aliasing before L2 forward to
+  address the Nyquist issue separately.
+
 ## What's pending
 
-- Task #172: fix the multi-level inverse cascade bug.
+- Task #172: fix the multi-level inverse cascade bug (root cause now
+  identified; fix pending separate PR).
 - Task #170: integrate visual metrics into test_capabilities.py CI.
 - Walk back the cranked-quant claims in SHIP_DECISION.md and
   methodology_cnn_aware_quant.md (this file is the holding pen).
