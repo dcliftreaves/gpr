@@ -39,6 +39,22 @@ void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_paramet
     encoding_parameters->noise_offset     = 0.0;
     encoding_parameters->variance_stabilize = false;
     encoding_parameters->ans_enabled      = false;
+
+    /* Output fields — must be zeroed so callers that test noise_seed != 0
+       (see write_dng in gpr_sdk) don't read uninitialized memory when
+       denoise_enabled is false. Without this, Linux glibc malloc (which
+       does not zero pages by default) can hand back stack-residue
+       garbage where noise_seed is nonzero and noise_sigma_out holds huge
+       doubles like 1.73e+185. The downstream dng_xmp::Set_real64 then
+       formats that into a 64-byte stack buffer with sprintf("%0.6f", x)
+       and blows the stack canary on Linux (macOS happens to land in
+       zero-initialized pages and skips the if-noise_seed-nonzero block,
+       which is why this only reproduces on Linux). */
+    encoding_parameters->noise_seed = 0;
+    encoding_parameters->noise_sigma_out[0] = 0.0;
+    encoding_parameters->noise_sigma_out[1] = 0.0;
+    encoding_parameters->noise_sigma_out[2] = 0.0;
+    encoding_parameters->noise_sigma_out[3] = 0.0;
 }
 
 CODEC_ERROR vc5_encoder_process(vc5_encoder_parameters*         encoding_parameters,    /* vc5 encoding parameters */
