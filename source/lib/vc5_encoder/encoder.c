@@ -2511,6 +2511,32 @@ const int quant_table_length = sizeof(parameters->quant_table)/sizeof(parameters
             }
         }
 
+        /* Task #159: enforce a per-band minimum quant so the post-quantization
+           magnitude stays within the VLC codebook's representable range
+           (1023, set by ComputeCubicTable and FillMagnitudeEncodingTable).
+           Without this floor, deepest-level highpass bands (slots 1/2/3 =
+           LH3/HL3/HH3) at quality presets q=7/q=8 (raw quant 6/4/2) produce
+           coefficient magnitudes >1023 on real photographic content. The
+           encoder clamps them to 1023 in EncodeHighpassBandRowRuns, the
+           decoder dequantizes 1023*quant instead of the true value, and
+           PSNR collapses (q=7: 64.7 dB, q=8: 58.5 dB on Z8 50MP vs 72.5 dB
+           at q=6). The min divisor is bounded by the level-3 highpass
+           filter gain (~2 for HH, ~sqrt(2) for LH/HL) against the
+           cumulative prescale (2 levels of >>2 → /16) and the input range:
+             14-bit max coeff ≈ (1<<14) × 2 / 16 = 2048
+             → quant ≥ 2048/1023 ≈ 2  ←  insufficient in practice (filter
+                                          peaks higher than analytic bound)
+           Empirically observed max=2175 at q=8 LH3, so we floor at 8 to
+           leave headroom on textured/high-DR scenes. */
+        if (quant_table_length >= 4)
+        {
+            for (int subband = 1; subband <= 3; ++subband) /* LH3/HL3/HH3 */
+            {
+                if (scaled_table[subband] < 8)
+                    scaled_table[subband] = 8;
+            }
+        }
+
         encoder->midpoint_prequant = (bits >= 15) ? 3 : 2;
 		SetTransformQuantTable(encoder, channel_number, scaled_table, quant_table_length);
 	}
