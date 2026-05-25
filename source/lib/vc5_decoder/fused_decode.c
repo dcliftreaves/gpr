@@ -60,6 +60,41 @@ static const QUANT FUSED_QUALITY_TABLES[9][10] = {
     {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},
 };
 
+/* Apply GPR_QUANT_OVERRIDE to a dequant table copy (task #158).
+   Mirror of fused_encode.c::apply_quant_override — same parser, same
+   semantics. Decoder MUST run with the same env var the encoder used. */
+static void apply_quant_override(QUANT *qt /* size 10 */)
+{
+    const char *spec = getenv("GPR_QUANT_OVERRIDE");
+    if (!spec || !*spec) return;
+    const char *p = spec;
+    while (*p) {
+        int slot = -1, value = -1;
+        char *end = NULL;
+        slot = (int)strtol(p, &end, 10);
+        if (end == p || *end != ':') break;
+        p = end + 1;
+        value = (int)strtol(p, &end, 10);
+        if (end == p) break;
+        if (slot >= 0 && slot < 10 && value > 0) qt[slot] = (QUANT)value;
+        p = end;
+        if (*p == ',') p++;
+        else break;
+    }
+}
+
+/* Resolve the per-channel quant table for hdr.quality, honoring the override
+   env var. Returns a pointer to a thread-local buffer; valid until the next
+   call from the same thread. */
+static const QUANT *get_quant_table(int quality)
+{
+    static _Thread_local QUANT qt[10];
+    memcpy(qt, FUSED_QUALITY_TABLES[(quality >= 0 && quality < 9) ? quality : 3],
+           sizeof(qt));
+    apply_quant_override(qt);
+    return qt;
+}
+
 /* Allocator wrapper for the decoder primitives. They expect a
    gpr_allocator* — provide one backed by libc malloc. */
 static void *fd_alloc(size_t n) { return malloc(n); }
@@ -795,7 +830,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
     PIXEL *channels[4] = { NULL, NULL, NULL, NULL };
 
     if (rc == 0) {
-        const QUANT *qt = FUSED_QUALITY_TABLES[hdr.quality];
+        const QUANT *qt = get_quant_table(hdr.quality);
         /* The decoder's DequantizeBandRow16s interprets a positive QUANT as
            "VC5 companded + quantized" (apply UncompandedValueFast then
            multiply by quant). The fused encoder doesn't compand, so we use
@@ -1108,7 +1143,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
     PIXEL *channels[4] = { NULL, NULL, NULL, NULL };
 
     if (rc == 0) {
-        const QUANT *qt = FUSED_QUALITY_TABLES[hdr->quality];
+        const QUANT *qt = get_quant_table(hdr->quality);
         QUANT q_l1[4] = { -qt[0], -qt[1], -qt[2], -qt[3] };
 
         /* HP-synth deblock polish (C port of tools/hp_synth_polish.py).

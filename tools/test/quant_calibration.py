@@ -40,6 +40,8 @@ import tempfile
 import time
 from pathlib import Path
 
+import numpy as np
+
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -190,14 +192,259 @@ def cnn_render_psnr(gpr2prores: Path, gpr_in: Path, meta_dng: Path,
     return float(20 * np.log10(255.0 / np.sqrt(mse)))
 
 
+# Single-level + LL quant table slot semantics for the FUSED encoder. The
+# per-subband sweep targets these slots; slot 0 (LL) stays at 1 (no quant).
+SINGLE_LEVEL_SLOTS = {
+    1: "LH1",   # horizontal-detail level 1 (vertical edges)
+    2: "HL1",   # vertical-detail level 1 (horizontal edges)
+    3: "HH1",   # diagonal-detail level 1
+}
+SINGLE_LEVEL_DEFAULT_Q3 = {0: 1, 1: 24, 2: 24, 3: 12}  # quality_tables[3][0..3]
+
+
+def encode_fused(bench: Path, raw_in: Path, w: int, h: int, gpr_out: Path,
+                 override: str | None = None, n_frames: int = 2) -> int:
+    """Run bench_fused in half-res single-level+LL mode, dumping the first
+    frame to gpr_out. Returns the file size in bytes."""
+    env = os.environ.copy()
+    env["GPR_INCLUDE_LL"] = "1"
+    env["GPR_COL_DECIMATE"] = "2"
+    env["GPR_ROW_DECIMATE"] = "2"
+    env["GPR_BENCH_DUMP"] = str(gpr_out)
+    if override:
+        env["GPR_QUANT_OVERRIDE"] = override
+    subprocess.run([str(bench), str(raw_in), str(w), str(h), str(n_frames)],
+                   env=env, check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return gpr_out.stat().st_size
+
+
+def render_via_gpr2prores(gpr2prores: Path, gpr_in: Path, meta_dng: Path,
+                          out_mov: Path, cnn_ckpt: Path | None,
+                          override: str | None = None) -> Path | None:
+    """Play a single .gpr through gpr2prores with optional CNN. Returns the
+    path to a frame-0 PNG extracted via ffmpeg, or None on failure."""
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        (td_path / "frame_0000.gpr").symlink_to(gpr_in.resolve())
+        env = os.environ.copy()
+        if override:
+            env["GPR_QUANT_OVERRIDE"] = override
+        cmd = [str(gpr2prores), "--meta-dng", str(meta_dng)]
+        if cnn_ckpt:
+            cmd += ["--cnn-backend", "mpsgraph", "--ckpt", str(cnn_ckpt),
+                    "--cnn-scale", "1x"]
+        else:
+            cmd += ["--no-cnn"]
+        cmd += ["--demosaic", "metal-bilinear", "--out-resolution", "uhd",
+                str(td_path), str(out_mov)]
+        rc = subprocess.run(cmd, env=env, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL)
+        if rc.returncode != 0:
+            return None
+    png = out_mov.with_suffix(".png")
+    subprocess.run(["ffmpeg", "-y", "-i", str(out_mov), "-frames:v", "1",
+                    "-pix_fmt", "rgb48", str(png)],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                   check=False)
+    return png if png.exists() else None
+
+
+def rgb_psnr_against_dng(rgb_path: Path, meta_dng: Path) -> float | None:
+    """Brightness-matched masked Y-PSNR of an extracted UHD ProRes frame
+    against rawpy-AHD render of the source DNG (downscaled to the frame's
+    dims). Mirror of test_cnn_regression.py methodology."""
+    try:
+        import cv2
+        import numpy as np
+        from PIL import Image
+        import rawpy
+    except ImportError:
+        return None
+    test = np.asarray(Image.open(rgb_path)).astype(np.float64)
+    raw = rawpy.imread(str(meta_dng))
+    src = raw.postprocess(use_camera_wb=True, no_auto_bright=True, output_bps=16,
+                          gamma=(2.222, 4.5), output_color=rawpy.ColorSpace.sRGB,
+                          demosaic_algorithm=rawpy.DemosaicAlgorithm.AHD)
+    raw.close()
+    if src.shape[:2] != test.shape[:2]:
+        src = cv2.resize(src.astype(np.float32),
+                          (test.shape[1], test.shape[0]),
+                          interpolation=cv2.INTER_AREA).astype(np.float64)
+    test_bm = test.copy()
+    for c in range(3):
+        test_bm[..., c] = np.clip(test[..., c] + (src[..., c].mean()
+                                                    - test[..., c].mean()),
+                                   0, 65535)
+    rs = src / 256.0
+    ts = test_bm / 256.0
+    ry = 0.299 * rs[..., 0] + 0.587 * rs[..., 1] + 0.114 * rs[..., 2]
+    ty = 0.299 * ts[..., 0] + 0.587 * ts[..., 1] + 0.114 * ts[..., 2]
+    mask = (ry > 10) & (ry < 250)
+    mse = ((ry[mask] - ty[mask]) ** 2).mean()
+    if mse <= 0:
+        return float("inf")
+    return float(20 * np.log10(255.0 / np.sqrt(mse)))
+
+
+def encode_decode_fused(roundtrip: Path, raw_in: Path, w: int, h: int,
+                         dec_out: Path, override: str | None = None) -> tuple[int, int, int]:
+    """Run the test_fused_roundtrip tool in half-res single-level+LL mode and
+    return (encoded_bytes, dec_w, dec_h). Decoded bayer lands at dec_out."""
+    env = os.environ.copy()
+    env["GPR_INCLUDE_LL"] = "1"
+    env["GPR_COL_DECIMATE"] = "2"
+    env["GPR_ROW_DECIMATE"] = "2"
+    if override:
+        env["GPR_QUANT_OVERRIDE"] = override
+    res = subprocess.run([str(roundtrip), str(raw_in), str(w), str(h), str(dec_out)],
+                          env=env, check=True, capture_output=True, text=True)
+    # test_fused_decode_roundtrip writes progress lines to stderr; parse both.
+    enc_bytes = 0
+    dw, dh = 0, 0
+    for line in (res.stdout + "\n" + res.stderr).splitlines():
+        if line.startswith("ENCODE:"):
+            enc_bytes = int(line.split()[1])
+        elif line.startswith("DECODE:") and "x" in line:
+            wh = line.split()[1]
+            try:
+                dw, dh = (int(x) for x in wh.split("x"))
+            except ValueError:
+                pass
+    if not dw:
+        # If decode didn't print dims, fall back to file size / row stride
+        # (decimate=2 → 4140×2760 for 8280×5520 input, 2 bytes/px).
+        dw, dh = w // 2, h // 2
+    return enc_bytes, dw, dh
+
+
+def bayer_array_psnr(ref_raw: Path, test_raw: Path, w: int, h: int,
+                      peak: int = 16383) -> float:
+    """PSNR between two raw bayer files of the same dims (uint16 LE)."""
+    ref = np.fromfile(ref_raw, dtype=np.uint16).reshape(h, w).astype(np.float64)
+    tst = np.fromfile(test_raw, dtype=np.uint16).reshape(h, w).astype(np.float64)
+    mse = ((ref - tst) ** 2).mean()
+    if mse <= 0:
+        return float("inf")
+    return float(10 * np.log10(peak * peak / mse))
+
+
+def run_per_subband_sweep(args, build_dir: Path, images: list[Path]):
+    """Sweep per-subband quant multipliers in single-level + LL half-res mode.
+
+    PSNR is bayer-domain against the production-default encode of the SAME
+    image (mult=1.0, no override) — that's the reference everyone uses today.
+    The point of the sweep is: for each subband, how many bits do I save by
+    moving up the multiplier ladder, and how many dB do I sacrifice. The CNN
+    "free recovery" question becomes: how much of the per-mult dB cost can a
+    CNN trained on (codec_at_mult_x, codec_at_mult_1.0) close.
+    """
+    roundtrip = build_dir / "bin/test_fused_roundtrip"
+    if not roundtrip.exists():
+        raise SystemExit(f"need test_fused_roundtrip at {roundtrip} — "
+                          "build with: clang -O2 source/app/test_fused_decode_roundtrip.c "
+                          "<libs> -o build-local/bin/test_fused_roundtrip")
+
+    multipliers = [float(m) for m in args.multipliers.split(",")]
+    slots = [int(s) for s in args.slots.split(",")]
+    rows = []
+    print(f"== Per-subband sweep (bayer-domain PSNR vs default encode) ==")
+    print(f"  images={len(images)}  slots={slots}  multipliers={multipliers}")
+    print()
+
+    for dng in images:
+        # Extract bayer once
+        raw_in = Path(f"/tmp/_qcal_{dng.stem}.raw")
+        w, h, _peak = extract_bayer(dng, raw_in)
+        print(f"  {dng.name} ({w}×{h})")
+
+        # Reference: production default encode (no override → uses q=3 table)
+        ref_dec = args.out_dir / f"{dng.stem}_ref.raw"
+        ref_bytes, dw, dh = encode_decode_fused(roundtrip, raw_in, w, h, ref_dec)
+        print(f"    REF (mult=1.0, all default)  {ref_bytes/1024:8.0f}KB  → {dw}×{dh}")
+
+        for slot in slots:
+            default_q = SINGLE_LEVEL_DEFAULT_Q3.get(slot)
+            if default_q is None:
+                print(f"    slot {slot}: unsupported (not in single-level LL slots)")
+                continue
+            for mult in multipliers:
+                value = max(1, round(default_q * mult))
+                override = f"{slot}:{value}"
+                dec_out = args.out_dir / f"{dng.stem}_s{slot}m{mult:.1f}.raw"
+                bytes_, ddw, ddh = encode_decode_fused(roundtrip, raw_in, w, h,
+                                                       dec_out, override)
+                psnr = (bayer_array_psnr(ref_dec, dec_out, ddw, ddh)
+                         if (ddw, ddh) == (dw, dh) else float("nan"))
+                row = dict(image=dng.name, slot=slot,
+                            slot_name=SINGLE_LEVEL_SLOTS[slot],
+                            multiplier=mult, quant_value=value,
+                            gpr_bytes=bytes_, gpr_bytes_ref=ref_bytes,
+                            bytes_saved=ref_bytes - bytes_,
+                            ratio_to_ref=bytes_ / ref_bytes if ref_bytes else 0,
+                            bayer_psnr_vs_ref=psnr)
+                rows.append(row)
+                gap = "*" if mult > 1.0 else " "
+                print(f"    {gap} slot={slot}({SINGLE_LEVEL_SLOTS[slot]:<3s}) "
+                      f"mult={mult:.1f} q={value:3d}  "
+                      f"{bytes_/1024:8.0f}KB ({100*bytes_/ref_bytes:5.1f}% of ref)  "
+                      f"PSNR_vs_ref={psnr:6.2f}dB")
+        try:
+            raw_in.unlink()
+            ref_dec.unlink(missing_ok=True)
+        except FileNotFoundError:
+            pass
+
+    csv_path = args.out_dir / "per_subband_sweep.csv"
+    with csv_path.open("w", newline="") as f:
+        if rows:
+            w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+            w.writeheader()
+            for r in rows:
+                w.writerow(r)
+    print(f"\nWrote {csv_path}")
+
+    # Aggregate: mean bytes saved + mean PSNR drop per (slot, multiplier).
+    # AccelIR's "bits-saved per dB lost" metric is the per-subband signal: high
+    # value = a subband worth dropping bits in (small distortion impact for big
+    # rate savings). The CNN sweep is the follow-on — when we have a candidate
+    # subband to crank, train the CNN on (codec_at_mult_x, codec_at_default)
+    # pairs and re-measure with CNN PSNR.
+    if rows:
+        agg = {}
+        for r in rows:
+            k = (r["slot"], r["slot_name"], r["multiplier"], r["quant_value"])
+            agg.setdefault(k, []).append(r)
+        print("\n== Summary (mean across corpus) — bayer-domain vs production-default ==")
+        print(f"{'slot':6s} {'mult':>5s} {'q':>3s} {'KB/frame':>10s} "
+              f"{'%saved':>8s} {'PSNR_vs_ref':>13s}")
+        for (slot, name, mult, q), rs in sorted(agg.items()):
+            mean_kb = sum(r["gpr_bytes"] for r in rs) / len(rs) / 1024
+            mean_pct = sum(r["ratio_to_ref"] for r in rs) / len(rs) * 100
+            psnrs = [r["bayer_psnr_vs_ref"] for r in rs
+                     if r["bayer_psnr_vs_ref"] == r["bayer_psnr_vs_ref"]]  # filter nan
+            mean_psnr = sum(psnrs) / len(psnrs) if psnrs else float("nan")
+            saved_pct = 100 - mean_pct if mult > 1.0 else 0.0
+            print(f"{name:6s} {mult:>5.1f} {q:>3d} {mean_kb:>10.1f} "
+                  f"{saved_pct:>7.1f}% {mean_psnr:>10.2f}dB")
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--mode", choices=["presets", "per-subband"],
+                    default="presets",
+                    help="presets = sweep q=0..8; per-subband = sweep GPR_QUANT_OVERRIDE slots")
     ap.add_argument("--corpus", required=True, type=Path,
                     help="directory of source DNGs to sweep")
     ap.add_argument("--max-images", type=int, default=4,
                     help="limit number of corpus images (deterministic)")
     ap.add_argument("--qualities", default="0,1,2,3,4,5,6,7,8",
-                    help="comma-separated quality presets to sweep")
+                    help="(presets mode) comma-separated quality presets to sweep")
+    ap.add_argument("--slots", default="1,2,3",
+                    help="(per-subband mode) comma-separated slot indices to sweep "
+                         "(1=LH1, 2=HL1, 3=HH1 in single-level+LL path)")
+    ap.add_argument("--multipliers", default="1.0,1.5,2.0,3.0,4.0",
+                    help="(per-subband mode) multipliers to apply to default quant")
     ap.add_argument("--build-dir", type=Path, default=Path("build-local"))
     ap.add_argument("--out-dir", type=Path,
                     default=Path("/Volumes/OWC_8TB/gpr_artifacts/quant_calibration"))
@@ -210,12 +457,18 @@ def main():
     args.out_dir.mkdir(parents=True, exist_ok=True)
     build_dir = (args.build_dir if args.build_dir.is_absolute()
                  else REPO / args.build_dir)
-    gtools = find_tool(build_dir, "gpr_tools")
-    gpr2prores = find_tool(build_dir, "gpr2prores") if args.with_cnn else None
 
     images = sorted(args.corpus.glob("*.dng"))[: args.max_images]
     if not images:
         raise SystemExit(f"no DNGs under {args.corpus}")
+
+    if args.mode == "per-subband":
+        run_per_subband_sweep(args, build_dir, images)
+        return
+
+    # --- presets mode (default) ---
+    gtools = find_tool(build_dir, "gpr_tools")
+    gpr2prores = find_tool(build_dir, "gpr2prores") if args.with_cnn else None
     qualities = [int(q) for q in args.qualities.split(",")]
 
     rows = []
