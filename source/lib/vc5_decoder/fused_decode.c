@@ -773,8 +773,15 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
     if (hdr.num_bands != 40) return -6;
     if (hdr.quality >= 9) return -7;
 
-    if (out_width)  *out_width  = half_res ? (int)(hdr.width  / 2) : (int)hdr.width;
-    if (out_height) *out_height = half_res ? (int)(hdr.height / 2) : (int)hdr.height;
+    /* Apply hdr.decimate from the bitstream: when set to 2, the encoded
+       bands represent a (hdr.width/2 × hdr.height/2) Bayer-equivalent image
+       (the encoder applied channel-space decimation). Bayer output dims
+       and per-level band dims all shrink by `dec` accordingly. */
+    int dec = (hdr.decimate == 2) ? 2 : 1;
+    int bayer_w = (int)hdr.width  / dec;
+    int bayer_h = (int)hdr.height / dec;
+    if (out_width)  *out_width  = half_res ? bayer_w  / 2 : bayer_w;
+    if (out_height) *out_height = half_res ? bayer_h / 2 : bayer_h;
 
     SetupDecoderLogCurve();
 
@@ -787,8 +794,8 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
     /* Dimensions per level — ceil at each step to match the encoder's
        odd-width handling (otherwise odd intermediate widths drop the
        last column on the way down the pyramid). */
-    int ch_w = (int)hdr.width  / 2;
-    int ch_h = (int)hdr.height / 2;
+    int ch_w = bayer_w / 2;
+    int ch_h = bayer_h / 2;
     int bw1  = ch_w / 2, bh1 = ch_h / 2;
     int bw2  = (bw1 + 1) / 2, bh2 = (bh1 + 1) / 2;
     int bw3  = (bw2 + 1) / 2, bh3 = (bh2 + 1) / 2;
