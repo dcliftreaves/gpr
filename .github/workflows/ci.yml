@@ -66,9 +66,13 @@ jobs:
         # rawpy : open DNG files produced by gpr_tools and read raw_image.
         # Used by both the fixture generator below and the
         # still-quality CI step at the bottom of this job.
+        # --break-system-packages is needed on macOS-14 runners (PEP 668
+        # marks the system Python as externally-managed; pip refuses to
+        # install into it without the flag). It's a no-op on Linux where
+        # the runner Python is already user-writeable.
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install numpy rawpy
+          python3 -m pip install --upgrade pip --break-system-packages
+          python3 -m pip install numpy rawpy --break-system-packages
 
       - name: Configure
         run: |
@@ -273,10 +277,13 @@ jobs:
         # as the canonical capability×measurement table. Fails CI if any
         # cell breaks its criterion (FAILED). On Linux runners FAST=1 skips
         # the 23/50/100 MP cells to keep wall-clock under 2 min.
+        # GPR_TIMING_TOLERANCE relaxes ms criteria for Debug builds (which
+        # are 2-3x slower than Release); quality criteria stay strict.
         env:
           BUILD_DIR: build
           FAST: ${{ runner.os == 'Linux' && '1' || '0' }}
           ARTIFACT_DIR: /tmp/gpr-capabilities
+          GPR_TIMING_TOLERANCE: ${{ matrix.build_type == 'Debug' && '3.0' || '1.0' }}
         run: timeout 600 python3 tools/test/test_capabilities.py
 
       - name: Run CNN regression (macOS only, dev-host deps)

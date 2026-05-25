@@ -48,6 +48,13 @@ if not BUILD_DIR.is_absolute():
     BUILD_DIR = REPO / BUILD_DIR
 GTOOLS = Path(os.environ.get("GTOOLS", BUILD_DIR / "source/app/gpr_tools/gpr_tools"))
 
+# Timing-ceiling multiplier. Debug builds run ~2-3x slower than Release, so a
+# single set of locked ceilings can't gate both. Default 1.0 (Release ceilings).
+# CI's Debug job sets GPR_TIMING_TOLERANCE=3.0 so a Debug ms reading that's
+# within 3x of the Release ceiling still passes. Quality criteria (PSNR,
+# compression ratio) ignore this — they're build-type independent.
+TIMING_TOLERANCE = float(os.environ.get("GPR_TIMING_TOLERANCE", "1.0"))
+
 DEFAULT_ART = "/Volumes/OWC_8TB/gpr_artifacts/capabilities"
 if not Path("/Volumes/OWC_8TB/gpr_artifacts").exists():
     DEFAULT_ART = "/tmp/gpr-capabilities"
@@ -300,7 +307,16 @@ def check_cap(cap: dict, m: Dict[str, float]) -> Tuple[str, list]:
     for mid, *_ in METRIC_ORDER:
         if mid not in crits:
             continue
-        v, c = classify(m[mid], crits[mid])
+        # Apply timing tolerance only to ms-based metrics; quality/size criteria
+        # are build-type independent and stay strict.
+        crit = crits[mid]
+        if mid in ("encode_ms", "decode_ms") and TIMING_TOLERANCE != 1.0:
+            crit = dict(crit)
+            if "max" in crit:
+                crit["max"] = crit["max"] * TIMING_TOLERANCE
+            if "exceed_below" in crit and crit["exceed_below"] is not None:
+                crit["exceed_below"] = crit["exceed_below"] * TIMING_TOLERANCE
+        v, c = classify(m[mid], crit)
         rows.append((mid, m[mid], v, c))
         if v == "FAILED":
             overall = "FAILED"
