@@ -67,26 +67,75 @@ default) to 36 (3× mult), saving ~10% of bitstream size with <2 dB
 local PSNR cost. Even bigger savings are likely available once we
 measure CNN recovery (see below).
 
-## What's still pending in this thread
+### Per-subband sweep with CNN in the loop (4-image corpus)
 
-- **CNN-recovery sweep**. The current per-subband PSNR is bayer-domain,
-  no CNN. The AccelIR question is "of the dB lost per subband bump, how
-  much does a CNN trained on (codec_at_mult_x, codec_at_default) pairs
-  give back". If HH1 4× loses ~3 dB but the CNN restores 2 dB, it's
-  effectively free; if it restores 0 dB, the 10.9% is the real ceiling.
-  The harness's `render_via_gpr2prores` path was inconclusive at first
-  pass (PSNR floored at 26.77 dB due to demosaic-mismatch noise dominating).
-  Next: apply the PyTorch BIBO_1x model directly to the half-res decoded
-  bayer and compare bayer-domain, matching `test_cnn_regression.py`'s
-  methodology.
+Same harness with `--with-cnn` — applies `BayInBayOut_1x_AAon_w16_ANE.pt`
+to both the test bayer and the reference bayer, then PSNRs them. This is
+the AccelIR question: how much of the per-subband distortion does the
+existing CNN close?
 
-- **Train a CNN on the more-aggressive HH1 quant.** Existing BIBO_1x was
-  trained against the q=3 default codec output. To recover the additional
-  HH1 loss, retrain on pairs from the modified-quant codec.
+| Subband | mult | bits saved | PSNR no-CNN | PSNR + CNN | CNN gain |
+|---|---|---|---|---|---|
+| **LH1** | **1.5×** | **2.9%** | 70.37 | **73.96** | **+3.59 dB** |
+| LH1 | 2.0× | 4.1% | 69.33 | 72.55 | +3.22 dB |
+| LH1 | 3.0× | 4.7% | 69.38 | 72.23 | +2.85 dB |
+| LH1 | 4.0× | 4.9% | 68.37 | 70.85 | +2.48 dB |
+| **HL1** | **1.5×** | **2.8%** | 70.56 | **74.11** | **+3.55 dB** |
+| HL1 | 2.0× | 4.0% | 69.54 | 72.70 | +3.16 dB |
+| HL1 | 3.0× | 4.5% | 69.55 | 72.38 | +2.82 dB |
+| HL1 | 4.0× | 4.7% | 68.60 | 71.04 | +2.43 dB |
+| HH1 | 1.5× | 4.5% | 73.51 | 74.19 | +0.68 dB |
+| HH1 | 2.0× | 7.0% | 71.52 | 72.20 | +0.68 dB |
+| HH1 | 3.0× | 9.8% | 71.54 | 72.09 | +0.55 dB |
+| HH1 | 4.0× | 10.9% | 70.45 | 70.98 | +0.53 dB |
 
-- **Sweep the other subbands** (LL2/HL2/HH2 = level 2, slots 4/5/6).
-  Those slots aren't used in single-level + LL mode — need multi-level
-  FUSED encoder which currently hardcodes `decimate=0` (see #157 follow-up).
+### The flip — CNN recovers axis-aligned highpass, not diagonal
+
+Looking at the no-CNN numbers alone, HH1 is the obvious "drop more bits"
+target — best %-saved-per-dB-lost. With the CNN in the loop, that
+inverts:
+
+- **LH1 / HL1** (vertical / horizontal edges): CNN closes most of the
+  per-multiplier loss. At 4× the no-CNN cost is ~1.5 dB; the CNN brings
+  the effective cost down to **≤ 0.5 dB** for **~4.7% bits saved each**.
+- **HH1** (diagonal): CNN barely helps. At 4× the no-CNN cost is ~3 dB;
+  CNN brings it to ~2.5 dB. The 10.9% bit savings are real but the
+  quality is gone permanently from the existing BIBO_1x's perspective.
+
+Why: the existing BIBO_1x was trained on (codec_at_default, ground_truth)
+pairs. The default quants are already aggressive on level-1 LH/HL (=24),
+so the CNN learned to synthesize edge-like structure from a noisy LH/HL
+input — bumping it further still lives in-distribution. The default HH1
+quant is much lower (=12), so the CNN never learned to deal with heavy
+HH1 quantization.
+
+### Production recommendations (no retraining)
+
+Two cheap wins available immediately:
+
+1. **Raise LH1 + HL1 quant 2-3× from defaults.** Saves ~8% file size with
+   the existing CNN absorbing the cost to <0.5 dB. Pure ship-it.
+2. **For users running without the CNN**, raise HH1 instead — it's the
+   right call when no neural recovery is available.
+
+### Production recommendations (with retraining)
+
+Train a new BIBO_1x checkpoint on pairs from the modified-quant codec,
+specifically on HH1 4× (or higher). The CNN that learns the new
+out-of-distribution would likely recover most of the 3 dB loss → a
+genuine **10.9% file size reduction for free**.
+
+## What's still pending
+
+- **Multi-level (slots 4..9)** sweep — currently can only override level-1
+  slots in single-level + LL mode. Multi-level FUSED still hardcodes
+  `hdr.decimate=0`; bigger CNN-aware codec design opens up if/when that
+  becomes a runtime choice.
+- **Content diversity** — barn_sky is mostly landscape/sky. Repeat on
+  portrait/product/text content; the LH/HL/HH balance shifts with content.
+- **Retrain BIBO_1x** on the proposed new quant defaults (HH1=36 or
+  LH1=HL1=72) to claim the additional dB the existing CNN leaves on
+  the table.
 
 ## Build prerequisite
 

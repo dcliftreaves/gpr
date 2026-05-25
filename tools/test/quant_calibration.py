@@ -329,6 +329,65 @@ def bayer_array_psnr(ref_raw: Path, test_raw: Path, w: int, h: int,
     return float(10 * np.log10(peak * peak / mse))
 
 
+_CNN_CACHE: dict = {}
+
+
+def cnn_apply_bayer(bayer_raw: Path, w: int, h: int,
+                    out_raw: Path, ckpt_path: Path = None) -> bool:
+    """Apply BIBO_1x to a half-res bayer, write corrected bayer.
+    Mirror of test_cnn_regression.py::run_inference (sr2x=False path).
+
+    Returns True on success. Loads model once into _CNN_CACHE keyed by ckpt path.
+    """
+    try:
+        import torch
+        import torch.nn.functional as F
+    except ImportError:
+        return False
+    sys.path.insert(0, "/Users/dcliftreaves/dering_proto_v2")
+    try:
+        from model_F_ane import build as build_ane
+    except ImportError:
+        return False
+
+    if ckpt_path is None:
+        ckpt_path = Path("/Users/dcliftreaves/dering_proto_v2/checkpoints/"
+                         "BayInBayOut_1x_AAon_w16_ANE.pt")
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    if str(ckpt_path) not in _CNN_CACHE:
+        ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
+        variant = ck.get("variant", "F_ane")
+        m = build_ane(variant)
+        m.load_state_dict(ck["backbone_state"])
+        m.to(device).eval()
+        _CNN_CACHE[str(ckpt_path)] = m
+    model = _CNN_CACHE[str(ckpt_path)]
+
+    bayer = np.fromfile(bayer_raw, dtype=np.uint16).reshape(h, w)
+    R = bayer[0::2, 0::2]; G1 = bayer[0::2, 1::2]
+    G2 = bayer[1::2, 0::2]; B = bayer[1::2, 1::2]
+    pl = np.stack([R, G1, G2, B], 0).astype(np.float32) / 16383.0
+    x = torch.from_numpy(pl).unsqueeze(0).to(device)
+    H, W = x.shape[-2:]
+    pad_h = (16 - H % 16) % 16
+    pad_w = (16 - W % 16) % 16
+    if pad_h or pad_w:
+        x = F.pad(x, (0, pad_w, 0, pad_h), mode='reflect')
+    RESIDUAL_SCALE = 0.01
+    with torch.no_grad():
+        y = (x + RESIDUAL_SCALE * model(x)).clamp(0, 1)
+    y = y[..., :H, :W]
+    yn = y.squeeze(0).cpu().numpy()
+
+    out = np.empty(bayer.shape, dtype=np.uint16)
+    out[0::2, 0::2] = np.clip(yn[0] * 16383, 0, 16383).astype(np.uint16)
+    out[0::2, 1::2] = np.clip(yn[1] * 16383, 0, 16383).astype(np.uint16)
+    out[1::2, 0::2] = np.clip(yn[2] * 16383, 0, 16383).astype(np.uint16)
+    out[1::2, 1::2] = np.clip(yn[3] * 16383, 0, 16383).astype(np.uint16)
+    out.tofile(out_raw)
+    return True
+
+
 def run_per_subband_sweep(args, build_dir: Path, images: list[Path]):
     """Sweep per-subband quant multipliers in single-level + LL half-res mode.
 
@@ -363,6 +422,16 @@ def run_per_subband_sweep(args, build_dir: Path, images: list[Path]):
         ref_bytes, dw, dh = encode_decode_fused(roundtrip, raw_in, w, h, ref_dec)
         print(f"    REF (mult=1.0, all default)  {ref_bytes/1024:8.0f}KB  → {dw}×{dh}")
 
+        # CNN-corrected reference: run BIBO_1x on the default-encode decode.
+        # All test outputs are CNN-corrected too and compared to this same ref —
+        # so the CNN's own bias washes out and what we measure is the codec
+        # delta the CNN can or can't close.
+        ref_cnn_dec = args.out_dir / f"{dng.stem}_ref_cnn.raw"
+        cnn_available = False
+        if args.with_cnn:
+            cnn_available = cnn_apply_bayer(ref_dec, dw, dh, ref_cnn_dec,
+                                              ckpt_path=args.cnn_ckpt_pt)
+
         for slot in slots:
             default_q = SINGLE_LEVEL_DEFAULT_Q3.get(slot)
             if default_q is None:
@@ -376,19 +445,29 @@ def run_per_subband_sweep(args, build_dir: Path, images: list[Path]):
                                                        dec_out, override)
                 psnr = (bayer_array_psnr(ref_dec, dec_out, ddw, ddh)
                          if (ddw, ddh) == (dw, dh) else float("nan"))
+                # CNN-corrected PSNR vs the SAME-image CNN-corrected reference.
+                psnr_cnn = float("nan")
+                if cnn_available:
+                    cnn_dec_out = args.out_dir / f"{dng.stem}_s{slot}m{mult:.1f}_cnn.raw"
+                    if cnn_apply_bayer(dec_out, ddw, ddh, cnn_dec_out,
+                                         ckpt_path=args.cnn_ckpt_pt):
+                        psnr_cnn = bayer_array_psnr(ref_cnn_dec, cnn_dec_out, ddw, ddh)
                 row = dict(image=dng.name, slot=slot,
                             slot_name=SINGLE_LEVEL_SLOTS[slot],
                             multiplier=mult, quant_value=value,
                             gpr_bytes=bytes_, gpr_bytes_ref=ref_bytes,
                             bytes_saved=ref_bytes - bytes_,
                             ratio_to_ref=bytes_ / ref_bytes if ref_bytes else 0,
-                            bayer_psnr_vs_ref=psnr)
+                            bayer_psnr_vs_ref=psnr,
+                            bayer_psnr_vs_ref_cnn=psnr_cnn)
                 rows.append(row)
                 gap = "*" if mult > 1.0 else " "
+                cnn_str = (f"  cnn={psnr_cnn:6.2f}dB"
+                            if psnr_cnn == psnr_cnn else "")
                 print(f"    {gap} slot={slot}({SINGLE_LEVEL_SLOTS[slot]:<3s}) "
                       f"mult={mult:.1f} q={value:3d}  "
                       f"{bytes_/1024:8.0f}KB ({100*bytes_/ref_bytes:5.1f}% of ref)  "
-                      f"PSNR_vs_ref={psnr:6.2f}dB")
+                      f"PSNR_vs_ref={psnr:6.2f}dB{cnn_str}")
         try:
             raw_in.unlink()
             ref_dec.unlink(missing_ok=True)
@@ -416,17 +495,34 @@ def run_per_subband_sweep(args, build_dir: Path, images: list[Path]):
             k = (r["slot"], r["slot_name"], r["multiplier"], r["quant_value"])
             agg.setdefault(k, []).append(r)
         print("\n== Summary (mean across corpus) — bayer-domain vs production-default ==")
-        print(f"{'slot':6s} {'mult':>5s} {'q':>3s} {'KB/frame':>10s} "
-              f"{'%saved':>8s} {'PSNR_vs_ref':>13s}")
+        has_cnn = any("bayer_psnr_vs_ref_cnn" in r and r["bayer_psnr_vs_ref_cnn"]
+                      == r["bayer_psnr_vs_ref_cnn"] for r in rows)
+        if has_cnn:
+            print(f"{'slot':6s} {'mult':>5s} {'q':>3s} {'KB/frame':>10s} "
+                  f"{'%saved':>8s} {'PSNR_nocnn':>12s} {'PSNR_cnn':>10s} {'CNN_gain':>10s}")
+        else:
+            print(f"{'slot':6s} {'mult':>5s} {'q':>3s} {'KB/frame':>10s} "
+                  f"{'%saved':>8s} {'PSNR_vs_ref':>13s}")
         for (slot, name, mult, q), rs in sorted(agg.items()):
             mean_kb = sum(r["gpr_bytes"] for r in rs) / len(rs) / 1024
             mean_pct = sum(r["ratio_to_ref"] for r in rs) / len(rs) * 100
             psnrs = [r["bayer_psnr_vs_ref"] for r in rs
-                     if r["bayer_psnr_vs_ref"] == r["bayer_psnr_vs_ref"]]  # filter nan
+                     if r["bayer_psnr_vs_ref"] == r["bayer_psnr_vs_ref"]]
             mean_psnr = sum(psnrs) / len(psnrs) if psnrs else float("nan")
             saved_pct = 100 - mean_pct if mult > 1.0 else 0.0
-            print(f"{name:6s} {mult:>5.1f} {q:>3d} {mean_kb:>10.1f} "
-                  f"{saved_pct:>7.1f}% {mean_psnr:>10.2f}dB")
+            if has_cnn:
+                cnn_psnrs = [r["bayer_psnr_vs_ref_cnn"] for r in rs
+                              if r.get("bayer_psnr_vs_ref_cnn") ==
+                                  r.get("bayer_psnr_vs_ref_cnn")]
+                mean_cnn = sum(cnn_psnrs) / len(cnn_psnrs) if cnn_psnrs else float("nan")
+                gain = mean_cnn - mean_psnr if (mean_cnn == mean_cnn
+                                                 and mean_psnr == mean_psnr) else float("nan")
+                print(f"{name:6s} {mult:>5.1f} {q:>3d} {mean_kb:>10.1f} "
+                      f"{saved_pct:>7.1f}% {mean_psnr:>9.2f}dB {mean_cnn:>7.2f}dB "
+                      f"{gain:>+7.2f}dB")
+            else:
+                print(f"{name:6s} {mult:>5.1f} {q:>3d} {mean_kb:>10.1f} "
+                      f"{saved_pct:>7.1f}% {mean_psnr:>10.2f}dB")
 
 
 def main():
@@ -451,7 +547,12 @@ def main():
     ap.add_argument("--with-cnn", action="store_true",
                     help="also measure CNN-corrected PSNR (much slower)")
     ap.add_argument("--cnn-ckpt", type=Path,
-                    default=Path("/Volumes/OWC_8TB/gpr_artifacts/weights/F_ane_1x_weights_metal"))
+                    default=Path("/Volumes/OWC_8TB/gpr_artifacts/weights/F_ane_1x_weights_metal"),
+                    help="Metal weights dir (gpr2prores render path)")
+    ap.add_argument("--cnn-ckpt-pt", type=Path,
+                    default=Path("/Users/dcliftreaves/dering_proto_v2/checkpoints/"
+                                  "BayInBayOut_1x_AAon_w16_ANE.pt"),
+                    help="PyTorch checkpoint (per-subband bayer-domain CNN PSNR path)")
     args = ap.parse_args()
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
