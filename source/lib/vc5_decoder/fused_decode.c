@@ -48,16 +48,19 @@ static double _decode_ms(void) {
 
 /* Mirror of the encoder's quality_tables (private to fused_encode.c).
    Keep these in sync if they change. */
-static const QUANT FUSED_QUALITY_TABLES[9][10] = {
-    {1, 24, 24, 12, 64, 64, 48, 512, 512, 768},
-    {1, 24, 24, 12, 48, 48, 32, 256, 256, 384},
-    {1, 24, 24, 12, 32, 32, 24, 128, 128, 192},
-    {1, 24, 24, 12, 24, 24, 12,  96,  96, 144},  /* default FS1 */
-    {1, 24, 24, 12, 24, 24, 12,  64,  64,  96},
-    {1, 24, 24, 12, 24, 24, 12,  32,  32,  48},
-    {1, 12, 12,  6, 12, 12,  6,  16,  16,  24},
-    {1,  6,  6,  4, 12, 12,  6,  16,  16,  24},
-    {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},
+static const QUANT FUSED_QUALITY_TABLES[12][10] = {
+    {1, 24, 24, 12, 64, 64, 48, 512, 512, 768},  /* 0 Low */
+    {1, 24, 24, 12, 48, 48, 32, 256, 256, 384},  /* 1 Medium */
+    {1, 24, 24, 12, 32, 32, 24, 128, 128, 192},  /* 2 High */
+    {1, 24, 24, 12, 24, 24, 12,  96,  96, 144},  /* 3 FS1 default */
+    {1, 24, 24, 12, 24, 24, 12,  64,  64,  96},  /* 4 FSX */
+    {1, 24, 24, 12, 24, 24, 12,  32,  32,  48},  /* 5 FS2 (peak on real content) */
+    {1, 12, 12,  6, 12, 12,  6,  16,  16,  24},  /* 6 FS3 */
+    {1,  6,  6,  4, 12, 12,  6,  16,  16,  24},  /* 7 FS4 */
+    {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 8 FS5 */
+    {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 9 Reserved (mirrors FS5) */
+    {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 10 Reserved (mirrors FS5) */
+    {1, 24, 24, 12, 24, 24, 12, 192, 192, 576},  /* 11 CNN-aware */
 };
 
 /* Apply GPR_QUANT_OVERRIDE to a dequant table copy (task #158).
@@ -89,7 +92,7 @@ static void apply_quant_override(QUANT *qt /* size 10 */)
 static const QUANT *get_quant_table(int quality)
 {
     static _Thread_local QUANT qt[10];
-    memcpy(qt, FUSED_QUALITY_TABLES[(quality >= 0 && quality < 9) ? quality : 3],
+    memcpy(qt, FUSED_QUALITY_TABLES[(quality >= 0 && quality < 12) ? quality : 3],
            sizeof(qt));
     apply_quant_override(qt);
     return qt;
@@ -771,7 +774,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
     }
     if (!hdr.multi_level) return -5;  /* single-level-without-LL: not decodable */
     if (hdr.num_bands != 40) return -6;
-    if (hdr.quality >= 9) return -7;
+    if (hdr.quality >= 12) return -7;
 
     /* Apply hdr.decimate from the bitstream: when set to 2, the encoded
        bands represent a (hdr.width/2 × hdr.height/2) Bayer-equivalent image
@@ -1036,7 +1039,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
                                         uint16_t *bayer_out, size_t bayer_pitch_bytes,
                                         int *out_width, int *out_height)
 {
-    if (hdr->quality >= 9) return -7;
+    if (hdr->quality >= 12) return -7;
 
     /* When channel-space decimation was applied, the encoded bands
        represent a (hdr.width/dec × hdr.height/dec) Bayer-equivalent image.

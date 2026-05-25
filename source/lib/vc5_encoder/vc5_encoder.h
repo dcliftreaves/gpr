@@ -68,8 +68,14 @@
         VC5_ENCODER_QUALITY_SETTING_FS3         = 6,		// Film Scan 3 (Edit-Safe)
         VC5_ENCODER_QUALITY_SETTING_FS4         = 7,		// Film Scan 4 (Near-Lossless)
         VC5_ENCODER_QUALITY_SETTING_FS5         = 8,		// Film Scan 5 (Virtually Lossless)
+        VC5_ENCODER_QUALITY_SETTING_RESERVED_9  = 9,		// Reserved (mirrors FS5)
+        VC5_ENCODER_QUALITY_SETTING_RESERVED_10 = 10,		// Reserved (mirrors FS5)
+        VC5_ENCODER_QUALITY_SETTING_CNN_AWARE   = 11,		// CNN-aware (turn it up to 11):
+                                                                // cranked L1 highpass quants paired
+                                                                // with a CNN trained on the cranked
+                                                                // distribution (see docs/quant_calibration_findings.md)
 
-        VC5_ENCODER_QUALITY_SETTING_COUNT       = 9,
+        VC5_ENCODER_QUALITY_SETTING_COUNT       = 12,
 
         VC5_ENCODER_QUALITY_SETTING_DEFAULT     = VC5_ENCODER_QUALITY_SETTING_FSX,
         
