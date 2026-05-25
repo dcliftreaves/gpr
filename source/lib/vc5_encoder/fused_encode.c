@@ -725,11 +725,17 @@ static void wavelet_decompose_buffer(
     int out_row = 0;
     int buf_filled = 0;
 
+    /* Per the FUSED_L2_L3_PRESCALE env hook, allow swapping the L2/L3
+       wavelet prescale. Default=2 (current code); experimental 0 matches
+       the inverse decoder's documented "no descale" for L2/L3. */
+    const char *_l23ps = getenv("FUSED_L2_L3_PRESCALE");
+    int l23_prescale = (_l23ps && *_l23ps) ? atoi(_l23ps) : 2;
+
     for (int row = 0; row < in_height; row++) {
         int slot = row % FUSED_ROW_BUFS;
         horizontal_filter(input + row * in_width,
                           lp_rows[slot], hp_rows[slot],
-                          in_width, /*prescale=*/2);
+                          in_width, l23_prescale);
         buf_filled++;
 
         /* The biorthogonal 5/3 forward needs two outputs from the first 6-row
