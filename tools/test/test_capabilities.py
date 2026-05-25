@@ -136,6 +136,22 @@ CAPABILITIES = [
              decode_ms={"max": 60, "exceed_below": 35},
              compress_ratio={"max": 0.25, "exceed_below": 0.205},
              psnr_db={"min": 60.5, "exceed_above": 63.0})),
+    dict(id="still_rggb14_1024_q11",
+         display="Stills · rggb14 · 1024² · q=11 (CNN-aware)",
+         kind="still_roundtrip",
+         W=1024, H=1024, pf="rggb14", peak=16383, quality=11,
+         # q=11 is the CNN-aware preset (PR #21): cranked L1 highpass
+         # designed to pair with a CNN trained on the cranked distribution.
+         # On the synthetic radial-gradient fixture (small, smooth content
+         # with little L1 highpass energy) the bayer-domain PSNR is similar
+         # to q=3 — the real win is on photographic content via the
+         # retrained CNN. Locking the synth fixture's numbers here so the
+         # codec change isn't quietly broken.
+         criteria=dict(
+             encode_ms={"max": 50, "exceed_below": 25},
+             decode_ms={"max": 50, "exceed_below": 25},
+             compress_ratio={"max": 0.06, "exceed_below": 0.045},
+             psnr_db={"min": 51.5, "exceed_above": 54.0})),
     dict(id="still_rggb16_1024_q3",
          display="Stills · rggb16 · 1024² · q=3",
          kind="still_roundtrip",
