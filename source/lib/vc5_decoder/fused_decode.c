@@ -867,9 +867,17 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
         }
 
         for (int ch = 0; ch < 4 && rc == 0; ch++) {
-            /* Every level used the encoder's prescale=2, so every inverse
-               level uses descale=2 (which the primitive maps to an internal
-               <<1 on horizontal output to restore magnitude). */
+            /* Per-level descale values default to descale=2 everywhere
+               (mirroring the encoder's prescale=2 at every level). Override
+               via FUSED_INVERSE_DESCALE="l1,l2,l3" for experimentation. */
+            const char *_dsenv = getenv("FUSED_INVERSE_DESCALE");
+            int ds_l1 = 2, ds_l2 = 2, ds_l3 = 2;
+            if (_dsenv && *_dsenv) {
+                int a = 0, b = 0, c = 0;
+                if (sscanf(_dsenv, "%d,%d,%d", &a, &b, &c) == 3) {
+                    ds_l1 = a; ds_l2 = b; ds_l3 = c;
+                }
+            }
 
             /* Level 3 inverse: bands[ch][9] = LL3, [6/7/8] = LH3/HL3/HH3 → LL2 */
             PIXEL *ll2 = (PIXEL *)malloc((size_t)bw2 * bh2 * sizeof(PIXEL));
@@ -882,7 +890,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
                 ll2, bw2 * (int)sizeof(PIXEL),
                 (DIMENSION)bw3, (DIMENSION)bh3,
                 (DIMENSION)bw2, (DIMENSION)bh2,
-                /*descale=*/2, q_l3);
+                /*descale=*/ds_l3, q_l3);
             if (e != CODEC_ERROR_OKAY) { free(ll2); rc = -21; break; }
 
             /* Level 2 inverse: ll2 + LH2/HL2/HH2 → LL1 */
@@ -896,7 +904,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
                 ll1, bw1 * (int)sizeof(PIXEL),
                 (DIMENSION)bw2, (DIMENSION)bh2,
                 (DIMENSION)bw1, (DIMENSION)bh1,
-                /*descale=*/2, q_l2);
+                /*descale=*/ds_l2, q_l2);
             free(ll2);
             if (e != CODEC_ERROR_OKAY) { free(ll1); rc = -23; break; }
 
@@ -919,7 +927,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
                     channels[ch], ch_w * (int)sizeof(PIXEL),
                     (DIMENSION)bw1, (DIMENSION)bh1,
                     (DIMENSION)ch_w, (DIMENSION)ch_h,
-                    /*descale=*/2, q_l1);
+                    /*descale=*/ds_l1, q_l1);
                 free(ll1);
                 if (e != CODEC_ERROR_OKAY) { rc = -25; break; }
             }
