@@ -119,7 +119,14 @@ r.close()
 PYEOF
     H=$("$PY" -c "import rawpy; r = rawpy.imread('$dng'); print(r.raw_image.shape[0]); r.close()")
     W=$("$PY" -c "import rawpy; r = rawpy.imread('$dng'); print(r.raw_image.shape[1]); r.close()")
-    GPR_INCLUDE_LL=1 GPR_BENCH_DUMP="$GPR_DIR/$(printf 'frame_%04d.gpr' $i)" \
+    # Half-res encode (channel-space decimate=2) to restore the pre-FUSED
+    # GPRCodec topology that fed the CNN at codec-half-res. Without this the
+    # decoder produces full-res bayer (8K-class) and the CNN runs at 8K too,
+    # which collapses sustained playback fps from ~15 to ~3.6 (task #157).
+    # The decoder reads hdr.decimate=2 (set automatically by these env vars
+    # in single-level + LL mode) and produces (W/2 × H/2) output.
+    GPR_INCLUDE_LL=1 GPR_COL_DECIMATE=2 GPR_ROW_DECIMATE=2 \
+        GPR_BENCH_DUMP="$GPR_DIR/$(printf 'frame_%04d.gpr' $i)" \
         "$BENCH" "$raw" "$W" "$H" 2 >/dev/null 2>&1
     rm -f "$raw"
     i=$((i+1))

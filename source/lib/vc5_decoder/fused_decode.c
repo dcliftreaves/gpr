@@ -709,9 +709,15 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
                                         uint16_t *bayer_out, size_t bayer_pitch_bytes,
                                         int *out_width, int *out_height);
 
-int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
-                     uint16_t *bayer_out, size_t bayer_pitch_bytes,
-                     int *out_width, int *out_height)
+/* Internal worker for the multi-level decode. half_res=0 returns full-resolution
+   bayer (hdr.width × hdr.height); half_res=1 stops one wavelet level early and
+   returns a half-resolution bayer (hdr.width/2 × hdr.height/2). The half-res
+   path is the playback-pipeline default for FUSED video (matches the legacy
+   GPRCodec topology that fed the CNN at codec-half-res). */
+static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
+                                  uint16_t *bayer_out, size_t bayer_pitch_bytes,
+                                  int *out_width, int *out_height,
+                                  int half_res)
 {
     if (!enc || !bayer_out) return -1;
     if (enc_size < sizeof(FUSED_HEADER)) return -2;
@@ -720,7 +726,9 @@ int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
     memcpy(&hdr, enc, sizeof(hdr));
     if (hdr.magic != FUSED_MAGIC) return -3;
     if (hdr.version != FUSED_VERSION) return -4;
-    /* Route single-level-with-LL files to the 16-band path. */
+    /* Route single-level-with-LL files to the 16-band path. half_res isn't
+       defined for single-level streams (only one wavelet level exists), so we
+       just decode at native dims. */
     if (!hdr.multi_level && hdr.num_bands == 16) {
         return decode_fused_single_level_ll(&hdr, enc, enc_size,
                                             bayer_out, bayer_pitch_bytes,
@@ -730,8 +738,8 @@ int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
     if (hdr.num_bands != 40) return -6;
     if (hdr.quality >= 9) return -7;
 
-    if (out_width)  *out_width  = (int)hdr.width;
-    if (out_height) *out_height = (int)hdr.height;
+    if (out_width)  *out_width  = half_res ? (int)(hdr.width  / 2) : (int)hdr.width;
+    if (out_height) *out_height = half_res ? (int)(hdr.height / 2) : (int)hdr.height;
 
     SetupDecoderLogCurve();
 
@@ -847,20 +855,29 @@ int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
             free(ll2);
             if (e != CODEC_ERROR_OKAY) { free(ll1); rc = -23; break; }
 
-            /* Level 1 inverse: ll1 + LH1/HL1/HH1 → channel */
-            channels[ch] = (PIXEL *)malloc((size_t)ch_w * ch_h * sizeof(PIXEL));
-            if (!channels[ch]) { free(ll1); rc = -24; break; }
-            e = InvertSpatialQuantDescale16s(&alloc,
-                ll1,          bw1 * (int)sizeof(PIXEL),
-                bands[ch][0], bw1 * (int)sizeof(PIXEL),
-                bands[ch][1], bw1 * (int)sizeof(PIXEL),
-                bands[ch][2], bw1 * (int)sizeof(PIXEL),
-                channels[ch], ch_w * (int)sizeof(PIXEL),
-                (DIMENSION)bw1, (DIMENSION)bh1,
-                (DIMENSION)ch_w, (DIMENSION)ch_h,
-                /*descale=*/2, q_l1);
-            free(ll1);
-            if (e != CODEC_ERROR_OKAY) { rc = -25; break; }
+            if (half_res) {
+                /* Half-res output: LL1 is the channel. Skip level-1 inverse,
+                   color-untransform at LL1 dims below. The level-1 highpass
+                   bands (LH1/HL1/HH1) are left in the bitstream — they cost
+                   bits but aren't reconstructed here. (Bitrate optimization
+                   waits on the encoder-side decimate work; see task #158.) */
+                channels[ch] = ll1;
+            } else {
+                /* Level 1 inverse: ll1 + LH1/HL1/HH1 → channel */
+                channels[ch] = (PIXEL *)malloc((size_t)ch_w * ch_h * sizeof(PIXEL));
+                if (!channels[ch]) { free(ll1); rc = -24; break; }
+                e = InvertSpatialQuantDescale16s(&alloc,
+                    ll1,          bw1 * (int)sizeof(PIXEL),
+                    bands[ch][0], bw1 * (int)sizeof(PIXEL),
+                    bands[ch][1], bw1 * (int)sizeof(PIXEL),
+                    bands[ch][2], bw1 * (int)sizeof(PIXEL),
+                    channels[ch], ch_w * (int)sizeof(PIXEL),
+                    (DIMENSION)bw1, (DIMENSION)bh1,
+                    (DIMENSION)ch_w, (DIMENSION)ch_h,
+                    /*descale=*/2, q_l1);
+                free(ll1);
+                if (e != CODEC_ERROR_OKAY) { rc = -25; break; }
+            }
         }
     }
 
@@ -870,7 +887,11 @@ int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
             if (bands[ch][s]) free(bands[ch][s]);
 
     /* Reverse the GS/RG/BG/GD color transform and apply the inverse
-       log curve. Output bit-depth: match log_bits (12, 14, or 16). */
+       log curve. Output bit-depth: match log_bits (12, 14, or 16).
+       Channel dimensions depend on half_res: full-res uses ch_w × ch_h,
+       half-res uses bw1 × bh1 (LL1 was kept as the channel buffer). */
+    int chan_w = half_res ? bw1 : ch_w;
+    int chan_h = half_res ? bh1 : ch_h;
     if (rc == 0) {
         int log_max  = (1 << (int)hdr.log_bits) - 1;
         int midpoint = 1 << ((int)hdr.log_bits - 1);
@@ -880,17 +901,17 @@ int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
         int shift = 16 - output_bit_depth;
         int is_rggb = (int)hdr.is_rggb;
 
-        for (int y = 0; y < ch_h; y++) {
-            const PIXEL *gs_row = channels[0] + (size_t)y * ch_w;
-            const PIXEL *rg_row = channels[1] + (size_t)y * ch_w;
-            const PIXEL *bg_row = channels[2] + (size_t)y * ch_w;
-            const PIXEL *gd_row = channels[3] + (size_t)y * ch_w;
+        for (int y = 0; y < chan_h; y++) {
+            const PIXEL *gs_row = channels[0] + (size_t)y * chan_w;
+            const PIXEL *rg_row = channels[1] + (size_t)y * chan_w;
+            const PIXEL *bg_row = channels[2] + (size_t)y * chan_w;
+            const PIXEL *gd_row = channels[3] + (size_t)y * chan_w;
             uint8_t *r1_bytes = (uint8_t *)bayer_out + (size_t)(2*y)     * bayer_pitch_bytes;
             uint8_t *r2_bytes = (uint8_t *)bayer_out + (size_t)(2*y + 1) * bayer_pitch_bytes;
             uint16_t *bayer_row1 = (uint16_t *)r1_bytes;
             uint16_t *bayer_row2 = (uint16_t *)r2_bytes;
 
-            for (int x = 0; x < ch_w; x++) {
+            for (int x = 0; x < chan_w; x++) {
                 int gs = gs_row[x];
                 int rg = rg_row[x];
                 int bg = bg_row[x];
@@ -943,6 +964,26 @@ int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
         if (channels[ch]) free(channels[ch]);
 
     return rc;
+}
+
+/* Public entry point — full-resolution decode. */
+int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
+                     uint16_t *bayer_out, size_t bayer_pitch_bytes,
+                     int *out_width, int *out_height)
+{
+    return gpr_decode_fused_impl(enc, enc_size, bayer_out, bayer_pitch_bytes,
+                                 out_width, out_height, /*half_res=*/0);
+}
+
+/* Public entry point — half-resolution decode for playback. Skips the level-1
+   inverse wavelet, outputs bayer at hdr.width/2 × hdr.height/2. Matches the
+   pre-FUSED GPRCodec topology that fed the CNN at codec-half-res. */
+int gpr_decode_fused_halfres(const uint8_t *enc, size_t enc_size,
+                             uint16_t *bayer_out, size_t bayer_pitch_bytes,
+                             int *out_width, int *out_height)
+{
+    return gpr_decode_fused_impl(enc, enc_size, bayer_out, bayer_pitch_bytes,
+                                 out_width, out_height, /*half_res=*/1);
 }
 
 /* ============================================================
