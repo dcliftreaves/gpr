@@ -138,9 +138,50 @@ Branch: `fix/multilevel-cascade-regression`
 - `feedback_visual_metric_stack.md`
 - `feedback_self_check_outputs.md`
 
+## Good news: the SHIPPED tools are not affected
+
+I verified the default behaviors:
+
+- **`FUSED encoder` defaults to single-level** (`fused_choose_multi_level()`
+  returns 0 unless `FUSED_MULTI_LEVEL=1` is set). The shipped
+  `gpr_video_encoder_create` therefore runs single-level by default.
+- **`gpr_tools` DNG→GPR uses the LEGACY encoder, not FUSED.** Default
+  output is a clean 10.9 MB GPR file per 50 MP Z8 DNG.
+- The multi-level path is only invoked by:
+  - `tools/test/test_capabilities.py` CNN cells (regression cells with
+    locked-in PSNR floors against the broken path)
+  - `tools/test/make_gpraw_fixture.sh` (sets `FUSED_MULTI_LEVEL=1
+    GPR_COL_DECIMATE=2 GPR_ROW_DECIMATE=2`)
+  - Any script that explicitly sets `FUSED_MULTI_LEVEL=1`
+
+So **stills-via-gpr_tools and FUSED single-level video encode are both
+fine.** The bug only surfaces in the cranked-quant test infrastructure
+and any pipeline that opted into multi-level for compression density.
+
+## Performance numbers — single vs multi level
+
+| src | mode | encode ms | file kB |
+|---|---|---:|---:|
+| Z8Z_0001 | single | 65.4 | 21,512 |
+| Z8Z_0001 | multi  | 49.2 |  3,652 |
+| Z8Z_0067 | single | 59.8 | 18,101 |
+| Z8Z_0067 | multi  | 43.4 |  1,268 |
+| Z8Z_5323 | single | 81.1 | 35,473 |
+| Z8Z_5323 | multi  | 83.2 | 12,748 |
+
+Multi-level is faster AND smaller (when working). For the 24 fps video
+target (41.7 ms/frame budget), single-level is borderline; multi-level
+fits with headroom. Another reason to land the multi-level fix.
+
 ## One concrete recommendation
 
 If you want to ship anything from this thread short-term: take the metric
 stack (`tools/test/metrics.py`) and gate the next codec-touching PR on
 it. Even rough thresholds (Y-PSNR > 30, LPIPS < 0.2 on the 4-image test
 set) would have caught the multi-level regression months ago.
+
+## Branch + PR
+
+- Branch: `fix/multilevel-cascade-regression`
+- PR: https://github.com/dcliftreaves/gpr/pull/32
+- Tripwire test: `python3 tools/test/test_multilevel_regression.py`
