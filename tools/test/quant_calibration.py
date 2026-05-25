@@ -57,26 +57,31 @@ def find_tool(build_dir: Path, name: str) -> Path:
     raise SystemExit(f"can't find {name} under {build_dir} or repo")
 
 
-def extract_bayer(dng_path: Path, out_raw: Path) -> tuple[int, int, int]:
-    """Return (width, height, peak) of the DNG bayer plane.
-    peak = (1 << bit_depth) - 1 derived from rawpy's white level.
+def infer_peak(white_level: int) -> int:
+    """Map rawpy's reported white_level to the codec's encoded bit-depth peak.
+
+    Sensors report a saturation white_level slightly below 2^bits-1 (Z8
+    reports 15892 for 14-bit, X2D reports ~60000 for 16-bit). PSNR vs source
+    must use the encoded peak (16383 for 14-bit, 65535 for 16-bit), not the
+    sensor's saturation level.
     """
+    if white_level >= 32768:
+        return 65535          # 16-bit
+    if white_level >= 8192:
+        return 16383          # 14-bit (Z8 ~15892 fits here, well above 8192)
+    if white_level >= 2048:
+        return 4095           # 12-bit
+    return white_level
+
+
+def extract_bayer(dng_path: Path, out_raw: Path) -> tuple[int, int, int]:
+    """Return (width, height, peak) of the DNG bayer plane."""
     import rawpy
-    import numpy as np
 
     r = rawpy.imread(str(dng_path))
     bayer = r.raw_image.copy().astype("<u2")
     h, w = bayer.shape
-    # Best-effort bit-depth guess from white_level
-    white = int(r.white_level)
-    if white >= 65000:
-        peak = 65535
-    elif white >= 16000:
-        peak = 16383
-    elif white >= 4000:
-        peak = 4095
-    else:
-        peak = white
+    peak = infer_peak(int(r.white_level))
     r.close()
     bayer.tofile(out_raw)
     return w, h, peak
@@ -242,10 +247,8 @@ def main():
             # Read the DNG to get peak
             import rawpy
             r = rawpy.imread(str(dng))
-            white = int(r.white_level)
+            peak = infer_peak(int(r.white_level))
             r.close()
-            peak = 65535 if white >= 65000 else (16383 if white >= 16000
-                                                  else (4095 if white >= 4000 else white))
 
             psnr_bayer = bayer_psnr(dng, dec_dng, peak)
 
