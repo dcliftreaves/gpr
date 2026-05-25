@@ -23,8 +23,26 @@ through 2028+.
 | #21 | **q=11 CNN-aware preset + ENV_VAR_CLEANUP.md** | New shipping preset + future-cleanup map |
 | #22 | q=11 capability cell | Locked q=11 in the regression matrix |
 | #23 | docs/methodology_cnn_aware_quant.md | AccelIR-style methodology writeup |
+| #24 | docs/session_2026-05-25_progress.md (this doc) | End-of-day roll-up |
+| #25 | docs/SHIP_DECISION.md | Three-option decision artifact |
+| #26 | **docs/SPEC.md** | **Formal bitstream format documentation (5707 words, 898 lines)** |
 
-13 PRs merged. 0 reverts. CI green on every merged change.
+16 PRs merged. 0 reverts. CI green on every merged change.
+
+## Major documentation artifacts produced
+
+- `docs/quant_calibration_findings.md` — empirical rate-distortion data
+- `docs/methodology_cnn_aware_quant.md` — AccelIR-style methodology writeup
+- `docs/SPEC.md` — formal bitstream format specification (the GoPro
+  contribution artifact). Headlines: FUSED_HEADER is 48 bytes (not 52);
+  rANS class-15 ceiling is 2047 (not 1023 — that's the VLC limit);
+  12-bit input uses 14-bit log curve internally; multi-level
+  bitstream-slot-order vs quant-table-index-order divergence is
+  documented in two tables.
+- `docs/SHIP_DECISION.md` — three ship options with empirical data
+- `docs/ENV_VAR_CLEANUP.md` — durable env-var inventory + future
+  cleanup plan
+- `docs/session_2026-05-25_progress.md` — this doc
 
 ## Key empirical findings
 
