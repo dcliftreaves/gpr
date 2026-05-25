@@ -192,14 +192,29 @@ def cnn_render_psnr(gpr2prores: Path, gpr_in: Path, meta_dng: Path,
     return float(20 * np.log10(255.0 / np.sqrt(mse)))
 
 
-# Single-level + LL quant table slot semantics for the FUSED encoder. The
-# per-subband sweep targets these slots; slot 0 (LL) stays at 1 (no quant).
+# FUSED quant table slot semantics.
+# Single-level + LL: slots 0..3 are { LL, LH1, HL1, HH1 } (only level 1 exists).
+# Multi-level: slots 0..9 are { LL3, LH3, HL3, HH3, LH2, HL2, HH2, LH1, HL1, HH1 }.
+# Quality preset (q=3 default): {1, 24, 24, 12, 24, 24, 12, 96, 96, 144}.
 SINGLE_LEVEL_SLOTS = {
-    1: "LH1",   # horizontal-detail level 1 (vertical edges)
-    2: "HL1",   # vertical-detail level 1 (horizontal edges)
-    3: "HH1",   # diagonal-detail level 1
+    1: "LH1",
+    2: "HL1",
+    3: "HH1",
 }
-SINGLE_LEVEL_DEFAULT_Q3 = {0: 1, 1: 24, 2: 24, 3: 12}  # quality_tables[3][0..3]
+MULTI_LEVEL_SLOTS = {
+    1: "LH3", 2: "HL3", 3: "HH3",   # level 3 — coarsest highpass (smallest)
+    4: "LH2", 5: "HL2", 6: "HH2",   # level 2
+    7: "LH1", 8: "HL1", 9: "HH1",   # level 1 — finest highpass (largest bands)
+}
+QUALITY_3_TABLE = [1, 24, 24, 12, 24, 24, 12, 96, 96, 144]  # quality_tables[3]
+
+
+def slot_map_for_mode(mode: str) -> dict:
+    return MULTI_LEVEL_SLOTS if mode == "multi-level" else SINGLE_LEVEL_SLOTS
+
+
+def default_quant_for_slot(slot: int) -> int:
+    return QUALITY_3_TABLE[slot] if 0 <= slot < len(QUALITY_3_TABLE) else 1
 
 
 def encode_fused(bench: Path, raw_in: Path, w: int, h: int, gpr_out: Path,
@@ -288,13 +303,24 @@ def rgb_psnr_against_dng(rgb_path: Path, meta_dng: Path) -> float | None:
 
 
 def encode_decode_fused(roundtrip: Path, raw_in: Path, w: int, h: int,
-                         dec_out: Path, override: str | None = None) -> tuple[int, int, int]:
-    """Run the test_fused_roundtrip tool in half-res single-level+LL mode and
-    return (encoded_bytes, dec_w, dec_h). Decoded bayer lands at dec_out."""
+                         dec_out: Path, override: str | None = None,
+                         encoder_mode: str = "single-ll") -> tuple[int, int, int]:
+    """Run test_fused_roundtrip in the chosen encoder topology, half-res
+    decimated. Returns (encoded_bytes, dec_w, dec_h). Decoded bayer at dec_out.
+
+    encoder_mode:
+      "single-ll" : single-level + LL (GPR_INCLUDE_LL=1) — slots 0..3 only
+      "multi-level": multi-level (FUSED_MULTI_LEVEL=1) — slots 0..9 available
+    """
     env = os.environ.copy()
-    env["GPR_INCLUDE_LL"] = "1"
     env["GPR_COL_DECIMATE"] = "2"
     env["GPR_ROW_DECIMATE"] = "2"
+    if encoder_mode == "multi-level":
+        env["FUSED_MULTI_LEVEL"] = "1"
+        env.pop("GPR_INCLUDE_LL", None)
+    else:
+        env["GPR_INCLUDE_LL"] = "1"
+        env.pop("FUSED_MULTI_LEVEL", None)
     if override:
         env["GPR_QUANT_OVERRIDE"] = override
     res = subprocess.run([str(roundtrip), str(raw_in), str(w), str(h), str(dec_out)],
@@ -406,9 +432,10 @@ def run_per_subband_sweep(args, build_dir: Path, images: list[Path]):
 
     multipliers = [float(m) for m in args.multipliers.split(",")]
     slots = [int(s) for s in args.slots.split(",")]
+    slot_names = slot_map_for_mode(args.encoder_mode)
     rows = []
     print(f"== Per-subband sweep (bayer-domain PSNR vs default encode) ==")
-    print(f"  images={len(images)}  slots={slots}  multipliers={multipliers}")
+    print(f"  encoder={args.encoder_mode}  images={len(images)}  slots={slots}  multipliers={multipliers}")
     print()
 
     for dng in images:
@@ -418,9 +445,10 @@ def run_per_subband_sweep(args, build_dir: Path, images: list[Path]):
         print(f"  {dng.name} ({w}×{h})")
 
         # Reference: production default encode (no override → uses q=3 table)
-        ref_dec = args.out_dir / f"{dng.stem}_ref.raw"
-        ref_bytes, dw, dh = encode_decode_fused(roundtrip, raw_in, w, h, ref_dec)
-        print(f"    REF (mult=1.0, all default)  {ref_bytes/1024:8.0f}KB  → {dw}×{dh}")
+        ref_dec = args.out_dir / f"{dng.stem}_ref_{args.encoder_mode}.raw"
+        ref_bytes, dw, dh = encode_decode_fused(roundtrip, raw_in, w, h, ref_dec,
+                                                  encoder_mode=args.encoder_mode)
+        print(f"    REF (mult=1.0, {args.encoder_mode})  {ref_bytes/1024:8.0f}KB  → {dw}×{dh}")
 
         # CNN-corrected reference: run BIBO_1x on the default-encode decode.
         # All test outputs are CNN-corrected too and compared to this same ref —
@@ -433,27 +461,28 @@ def run_per_subband_sweep(args, build_dir: Path, images: list[Path]):
                                               ckpt_path=args.cnn_ckpt_pt)
 
         for slot in slots:
-            default_q = SINGLE_LEVEL_DEFAULT_Q3.get(slot)
-            if default_q is None:
-                print(f"    slot {slot}: unsupported (not in single-level LL slots)")
+            if slot not in slot_names:
+                print(f"    slot {slot}: unsupported in {args.encoder_mode} mode")
                 continue
+            default_q = default_quant_for_slot(slot)
             for mult in multipliers:
                 value = max(1, round(default_q * mult))
                 override = f"{slot}:{value}"
-                dec_out = args.out_dir / f"{dng.stem}_s{slot}m{mult:.1f}.raw"
+                dec_out = args.out_dir / f"{dng.stem}_s{slot}m{mult:.1f}_{args.encoder_mode}.raw"
                 bytes_, ddw, ddh = encode_decode_fused(roundtrip, raw_in, w, h,
-                                                       dec_out, override)
+                                                       dec_out, override,
+                                                       encoder_mode=args.encoder_mode)
                 psnr = (bayer_array_psnr(ref_dec, dec_out, ddw, ddh)
                          if (ddw, ddh) == (dw, dh) else float("nan"))
                 # CNN-corrected PSNR vs the SAME-image CNN-corrected reference.
                 psnr_cnn = float("nan")
                 if cnn_available:
-                    cnn_dec_out = args.out_dir / f"{dng.stem}_s{slot}m{mult:.1f}_cnn.raw"
+                    cnn_dec_out = args.out_dir / f"{dng.stem}_s{slot}m{mult:.1f}_{args.encoder_mode}_cnn.raw"
                     if cnn_apply_bayer(dec_out, ddw, ddh, cnn_dec_out,
                                          ckpt_path=args.cnn_ckpt_pt):
                         psnr_cnn = bayer_array_psnr(ref_cnn_dec, cnn_dec_out, ddw, ddh)
                 row = dict(image=dng.name, slot=slot,
-                            slot_name=SINGLE_LEVEL_SLOTS[slot],
+                            slot_name=slot_names[slot],
                             multiplier=mult, quant_value=value,
                             gpr_bytes=bytes_, gpr_bytes_ref=ref_bytes,
                             bytes_saved=ref_bytes - bytes_,
@@ -464,7 +493,7 @@ def run_per_subband_sweep(args, build_dir: Path, images: list[Path]):
                 gap = "*" if mult > 1.0 else " "
                 cnn_str = (f"  cnn={psnr_cnn:6.2f}dB"
                             if psnr_cnn == psnr_cnn else "")
-                print(f"    {gap} slot={slot}({SINGLE_LEVEL_SLOTS[slot]:<3s}) "
+                print(f"    {gap} slot={slot}({slot_names[slot]:<4s}) "
                       f"mult={mult:.1f} q={value:3d}  "
                       f"{bytes_/1024:8.0f}KB ({100*bytes_/ref_bytes:5.1f}% of ref)  "
                       f"PSNR_vs_ref={psnr:6.2f}dB{cnn_str}")
@@ -536,9 +565,15 @@ def main():
                     help="limit number of corpus images (deterministic)")
     ap.add_argument("--qualities", default="0,1,2,3,4,5,6,7,8",
                     help="(presets mode) comma-separated quality presets to sweep")
+    ap.add_argument("--encoder-mode", choices=["single-ll", "multi-level"],
+                    default="single-ll",
+                    help="(per-subband mode) which FUSED topology to encode under. "
+                         "single-ll: 4 quant slots (LL+LH1+HL1+HH1). "
+                         "multi-level: 10 slots (LL3 + 9 highpass across 3 levels)")
     ap.add_argument("--slots", default="1,2,3",
-                    help="(per-subband mode) comma-separated slot indices to sweep "
-                         "(1=LH1, 2=HL1, 3=HH1 in single-level+LL path)")
+                    help="(per-subband mode) comma-separated slot indices to sweep. "
+                         "single-ll: 1=LH1, 2=HL1, 3=HH1. "
+                         "multi-level: 1..3=L3 highpass, 4..6=L2, 7..9=L1.")
     ap.add_argument("--multipliers", default="1.0,1.5,2.0,3.0,4.0",
                     help="(per-subband mode) multipliers to apply to default quant")
     ap.add_argument("--build-dir", type=Path, default=Path("build-local"))
