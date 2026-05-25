@@ -1,6 +1,16 @@
 # Ship-decision artifact — CNN-aware quant + retrained CNN
 
-## TL;DR
+> **⚠ 2026-05-25 evening update — much of this doc is wrong.** All the
+> empirical numbers below were measured on the FUSED multi-level path,
+> which has been since shown to have a ~10 dB visual-quality regression
+> vs single-level (see `docs/REGRESSION_2026-05-25.md`). The "22%
+> savings" figure for q=12 was buying broken reconstruction. Re-measured
+> on single-level, the equivalent crank pattern saves ~16%, and the CNN
+> trained on multi-level outputs is not directly applicable. **Do not
+> ship any of the recommendations below until the multi-level cascade
+> bug is fixed (task #172).** Read REGRESSION_2026-05-25.md first.
+
+## TL;DR (ORIGINAL — see warning above)
 
 We have empirical evidence that **a retrained BIBO_1x CNN + cranked
 default quants** ships 5-22% smaller files at the same CNN-corrected

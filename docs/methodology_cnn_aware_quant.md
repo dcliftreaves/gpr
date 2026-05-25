@@ -1,5 +1,18 @@
 # CNN-aware per-subband quantization calibration for the GPR codec
 
+> **⚠ Walk-back 2026-05-25 evening:** the numbers in this paper were all
+> measured on the FUSED multi-level wavelet path. Multi-level was later
+> shown to have a ~10 dB visual-quality regression vs single-level on
+> the same input. The methodology described here is sound; the specific
+> empirical figures (the +5.61 dB CNN gain, the 10–17% file-size savings)
+> were measured against a baseline that itself had a 10 dB visual
+> regression hiding underneath bayer-PSNR. The retrained CNN checkpoint
+> (`BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt`) is calibrated to multi-level
+> artifact distribution and is not directly applicable to the single-
+> level codec path that should ship until task #172 is closed.
+>
+> Read `docs/REGRESSION_2026-05-25.md` first.
+
 David Clift-Reaves — 2026-05-25
 Branch: `docs/methodology-cnn-aware-quant`
 Companion data: [`docs/quant_calibration_findings.md`](quant_calibration_findings.md)

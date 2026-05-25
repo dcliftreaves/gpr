@@ -1,5 +1,12 @@
 # Quant calibration — rate-distortion findings
 
+> **⚠ Walk-back 2026-05-25 evening:** all numbers below were measured
+> on the FUSED multi-level wavelet path, which was later shown to have
+> a ~10 dB visual-quality regression vs single-level. Bayer-PSNR
+> reported here is technically correct for the bayer channel but the
+> visual quality it implied was not real. See
+> `docs/REGRESSION_2026-05-25.md`.
+
 Empirical measurement for task #158 (CNN-aware per-subband quant
 calibration, AccelIR style). Two complementary sweeps:
 
