@@ -5,6 +5,19 @@ PREFIX    ?= /usr/local
 BINDIR    = $(PREFIX)/bin
 LIBDIR    = $(PREFIX)/lib/gpr2prores
 
+# Sanity check: $(GPR_BUILD) MUST be configured Release (or RelWithDebInfo),
+# otherwise the decoder links against an -O0 libvc5_decoder.a and decode
+# runs ~6× slower (63 ms vs 10 ms on M3 Max for half-res UHD), capping
+# playback at ~15 fps instead of ~27 fps. The root CMakeLists.txt now
+# defaults to Release when no build type is given, but an old
+# CMakeCache.txt with CMAKE_BUILD_TYPE="" survives reconfigures, so we
+# check explicitly here. To fix: `cmake -B $(GPR_BUILD) -DCMAKE_BUILD_TYPE=Release`.
+BUILD_TYPE := $(shell grep '^CMAKE_BUILD_TYPE:' $(GPR_BUILD)/CMakeCache.txt 2>/dev/null | cut -d'=' -f2)
+ifeq ($(BUILD_TYPE),)
+    $(warning $(GPR_BUILD)/CMakeCache.txt has empty CMAKE_BUILD_TYPE — libs likely built at -O0)
+    $(warning Reconfigure with: cmake -B $(GPR_BUILD) -DCMAKE_BUILD_TYPE=Release && cmake --build $(GPR_BUILD) -j8)
+endif
+
 CC      = clang
 CFLAGS  = -O2 -g -Wall -Wno-deprecated-declarations -fobjc-arc \
           -I$(GPR_BUILD)/../source/lib/vc5_encoder \
