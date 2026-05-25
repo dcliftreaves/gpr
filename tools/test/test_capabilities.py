@@ -114,6 +114,19 @@ CAPABILITIES = [
              decode_ms={"max": 40, "exceed_below": 22},
              compress_ratio={"max": 0.05, "exceed_below": 0.035},
              psnr_db={"min": 51.5, "exceed_above": 54.0})),
+    dict(id="still_rggb14_1024_q5",
+         display="Stills · rggb14 · 1024² · q=5 (Filmscan-2, quality peak)",
+         kind="still_roundtrip",
+         W=1024, H=1024, pf="rggb14", peak=16383, quality=5,
+         # q=5 is the empirical PSNR peak across the 9 quality presets on
+         # real Z8 50 MP photographic content (see docs/quant_calibration_findings.md).
+         # q=6/7/8 regress (task #159). Locking q=5 here so future codec
+         # changes can't quietly break the actual quality peak.
+         criteria=dict(
+             encode_ms={"max": 50, "exceed_below": 25},
+             decode_ms={"max": 50, "exceed_below": 25},
+             compress_ratio={"max": 0.14, "exceed_below": 0.095},
+             psnr_db={"min": 55.0, "exceed_above": 58.0})),
     dict(id="still_rggb14_1024_q8",
          display="Stills · rggb14 · 1024² · q=8 (Filmscan-5)",
          kind="still_roundtrip",

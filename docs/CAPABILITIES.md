@@ -14,27 +14,28 @@ capability = adding one row to that script with its criteria.
 
 ## Summary
 
-- **11** EXCEEDED
+- **12** EXCEEDED
 - **0** MET
 - **0** FAILED
-- last run: 2026-05-24 15:54:49
+- last run: 2026-05-25 04:53:43
 - build dir: `build-local`
 
 ## Stills · encode → decode → PSNR roundtrip
 
 | Capability | Encode | Decode | Compressed size | Roundtrip PSNR | Overall |
 |---|---|---|---|---|---|
-| Stills · rggb12 · 1024² · q=3 (Filmscan-1) | 23.6 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 20.1 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 5.13%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.27 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb12p (packed) · 1024² · q=3 | 22.3 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 19.6 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 5.11%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.27 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb14 · 1024² · q=3 | 24.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 24.1 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 7.16%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.77 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb14 · 1024² · q=0 (Low) | 22.6 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 20.8 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 3.07%<br/>_≤ 0.05_<br/>✨ EXCEEDED | 53.07 dB<br/>_≥ 51.5 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb14 · 1024² · q=8 (Filmscan-5) | 34.9 ms<br/>_≤ 60 ms_<br/>✨ EXCEEDED | 35.1 ms<br/>_≤ 60 ms_<br/>✅ MET | 19.62%<br/>_≤ 0.25_<br/>✨ EXCEEDED | 62.06 dB<br/>_≥ 60.5 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb16 · 1024² · q=3 | 24.8 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 26.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 5.37%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.44 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · gbrg16 (alt Bayer) · 1024² · q=3 | 24.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 25.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 5.35%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.44 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb12 · 12 MP (4032×3024) · q=3 | 169.3 ms<br/>_≤ 300 ms_<br/>✨ EXCEEDED | 152.7 ms<br/>_≤ 250 ms_<br/>✨ EXCEEDED | 4.72%<br/>_≤ 0.07_<br/>✨ EXCEEDED | 43.31 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb14 · 23 MP HERO10 (5568×4176) · q=3 | 354.5 ms<br/>_≤ 600 ms_<br/>✨ EXCEEDED | 364.3 ms<br/>_≤ 600 ms_<br/>✨ EXCEEDED | 6.75%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.82 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb14 · 50 MP Z8 (8280×5520) · q=3 | 699.7 ms<br/>_≤ 1100 ms_<br/>✨ EXCEEDED | 711.0 ms<br/>_≤ 1100 ms_<br/>✨ EXCEEDED | 6.78%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.86 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb16 · 100 MP X2D (11664×8750) · q=3 | 1568.6 ms<br/>_≤ 2500 ms_<br/>✨ EXCEEDED | 1714.6 ms<br/>_≤ 2500 ms_<br/>✨ EXCEEDED | 4.89%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.52 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb12 · 1024² · q=3 (Filmscan-1) | 8.2 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 9.8 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 5.12%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.27 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb12p (packed) · 1024² · q=3 | 8.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 8.7 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 5.12%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.27 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 1024² · q=3 | 8.4 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 9.1 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 7.16%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.76 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 1024² · q=0 (Low) | 7.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 7.0 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 3.07%<br/>_≤ 0.05_<br/>✨ EXCEEDED | 53.08 dB<br/>_≥ 51.5 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 1024² · q=5 (Filmscan-2, quality peak) | 11.3 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 13.9 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 13.48%<br/>_≤ 0.14_<br/>✅ MET | 57.06 dB<br/>_≥ 55 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 1024² · q=8 (Filmscan-5) | 12.5 ms<br/>_≤ 60 ms_<br/>✨ EXCEEDED | 14.5 ms<br/>_≤ 60 ms_<br/>✨ EXCEEDED | 19.65%<br/>_≤ 0.25_<br/>✨ EXCEEDED | 62.06 dB<br/>_≥ 60.5 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb16 · 1024² · q=3 | 8.5 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 9.6 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 5.37%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.44 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · gbrg16 (alt Bayer) · 1024² · q=3 | 9.7 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 10.5 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 5.37%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.43 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb12 · 12 MP (4032×3024) · q=3 | 47.8 ms<br/>_≤ 300 ms_<br/>✨ EXCEEDED | 54.3 ms<br/>_≤ 250 ms_<br/>✨ EXCEEDED | 4.72%<br/>_≤ 0.07_<br/>✨ EXCEEDED | 43.31 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 23 MP HERO10 (5568×4176) · q=3 | 92.1 ms<br/>_≤ 600 ms_<br/>✨ EXCEEDED | 129.5 ms<br/>_≤ 600 ms_<br/>✨ EXCEEDED | 6.75%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.82 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 50 MP Z8 (8280×5520) · q=3 | 192.4 ms<br/>_≤ 1100 ms_<br/>✨ EXCEEDED | 258.0 ms<br/>_≤ 1100 ms_<br/>✨ EXCEEDED | 6.78%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.86 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb16 · 100 MP X2D (11664×8750) · q=3 | 361.8 ms<br/>_≤ 2500 ms_<br/>✨ EXCEEDED | 453.1 ms<br/>_≤ 2500 ms_<br/>✨ EXCEEDED | 4.89%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.52 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
 
 ## Metric definitions
 
