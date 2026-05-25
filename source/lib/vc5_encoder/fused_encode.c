@@ -4322,7 +4322,17 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
     hdr.prescale = ctx->prescale;
     hdr.multi_level = 1;
     hdr.num_bands = p2_tasks_total;
-    hdr.decimate = 0;  /* multi-level doesn't currently support decimation */
+    /* Decimate flag mirrors the single-level path: when GPR_ROW_DECIMATE=2 AND
+       GPR_COL_DECIMATE=2 are set, setup_channel_state has already halved
+       ch_width/ch_height, every band is at the smaller dims, and the decoder
+       needs hdr.decimate=2 to size buffers correctly. */
+    {
+        const char *r = getenv("GPR_ROW_DECIMATE");
+        const char *c = getenv("GPR_COL_DECIMATE");
+        int rd = (r && *r == '2') ? 1 : 0;
+        int cd = (c && *c == '2') ? 1 : 0;
+        hdr.decimate = (rd && cd) ? 2 : 0;
+    }
 
     size_t pos = 0;
     memcpy(ctx->stream_buf + pos, &hdr, sizeof(hdr)); pos += sizeof(hdr);
