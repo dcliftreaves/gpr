@@ -177,6 +177,27 @@ Combined with `LH1 ×2 + HL1 ×2` (slots 7, 8) from the single-level sweep
 (no measurement yet in multi-level mode but expected similar), you'd
 likely see ~13–15% total bit savings.
 
+### End-to-end ship test (24-frame barn_sky × UHD)
+
+Re-encoded the full 24-frame fixture with multi-level + decimate=2 +
+HH2 ×2 (`GPR_QUANT_OVERRIDE="6:24"`), then ran sustained playback through
+gpr2prores with BIBO_1x and metal-bilinear at UHD output:
+
+| Config | KB/frame | Per-frame decode | Per-frame total | Sustained fps |
+|---|---|---|---|---|
+| pre-PR #10 (full-res, decimate=0) | ~14 000 | 266 ms | 942 ms | 3.62 |
+| single-level + LL + dec=2 (PR #10) | 4 522 | 9 ms | 138 ms | 26.89 |
+| **multi-level + dec=2 + HH2 ×2 (#11 + #12)** | **386** | **26 ms** | **141 ms** | **26.24** |
+
+The multi-level decode is slower per-frame (3 inverse wavelet levels vs 1
+for single-level + LL), but the 4-deep pipeline hides it: the CNN at 35
+ms still gates sustained fps, leaving decode-time headroom unused. Net:
+**12× smaller bitstream at essentially the same playback fps**.
+
+At 24 fps × 386 KB/frame: **~74 Mbps for 50 MP raw video with CNN-corrected
+output that's 2.74 dB higher PSNR than the previous default**. This fits
+trivially on any storage class — UHS-I microSD can sustain this.
+
 ## What's still pending
 
 - **Confirm HH2 result on bigger / more diverse corpus.** Two frames is
