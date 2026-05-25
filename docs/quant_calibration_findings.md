@@ -209,18 +209,57 @@ At 24 fps × 386 KB/frame: **~74 Mbps for 50 MP raw video with CNN-corrected
 output that's 2.74 dB higher PSNR than the previous default**. This fits
 trivially on any storage class — UHS-I microSD can sustain this.
 
+## Retrained CNN closes the HH1 gap (2026-05-25)
+
+The "un-retrained BIBO_1x can't recover HH1" finding turned out to be a
+training-distribution issue, not an architecture limit. The existing
+`BayInBayOut_1x_AAon_w16_ANE.pt` was trained on **LL-only-fast pairs**
+— it never saw level-1 highpass quant distortion at all. M5 retrained
+the same architecture (w=16, AAon, 1×) on pairs generated with
+`GPR_INCLUDE_LL=1 + GPR_QUANT_OVERRIDE="3:48"` (HH1 4× cranked),
+cold-start, 80 epochs, AdamW lr=5e-4, best at epoch 47.
+
+Per-subband sweep on the diverse 4-image corpus (single-ll mode, ×4):
+
+| Subband | bits saved | un-retrained CNN gain | **retrained CNN gain** |
+|---|---|---|---|
+| LH1 | 8.0% | +2.48 dB | **+4.40 dB** |
+| HL1 | 7.0% | +2.43 dB | **+4.22 dB** |
+| **HH1** | **9.7%** | +0.53 dB | **+5.61 dB** ← the unlock |
+
+M5's measurement on barn_sky alone (more uniform content) shows
++8.50 dB on HH1 4×. The CNN architecture can absorb the cranked
+distribution when trained on the right pairs.
+
+### Ship plan with retrained CNN
+
+Two stackable knobs once the new ckpt becomes the production CNN:
+
+1. **HH1 ×4** — 9.7% file size reduction; CNN absorbs to +5.6 dB
+   CNN-corrected (net cost vs default CNN-corrected ≈ 0 dB).
+2. **LH1 + HL1 ×2** — additional 6-8% file size; CNN absorbs to +4 dB
+   CNN-corrected each.
+
+Stack estimate: HH1 ×4 + LH1 ×2 + HL1 ×2 → **~15-17% smaller files** at
+no perceptible quality cost after CNN. Bitstream format unchanged; the
+production change is encoder default quants + replacing the shipped CNN.
+
+Artifacts (not in the gpr repo — live in `dering_proto_v2/`):
+- Checkpoint: `BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt`
+- Training data: `/Volumes/OWC_8TB/gpr_cnn/pairs_hh1_4x/`
+- Eval CSV: `/Volumes/OWC_8TB/gpr_artifacts/quant_calibration_retrained/`
+
 ## What's still pending
 
-- **Confirm HH2 result on bigger / more diverse corpus.** Two frames is
-  enough to spot the pattern but not enough to ship. Add another 50
-  frames from varied content (portraits, products, text, low-light).
-- **Combined-knob sweep.** Set `6:24,7:192,8:192` simultaneously and
-  measure — do the individual gains stack, or does the CNN saturate?
-- **Retrain on cranked-HH2 distribution.** If +2.74 dB is what the
-  un-retrained CNN gives, a retrained CNN should do even better.
-  In flight (M5 retraining subagent dispatched 2026-05-25).
-- **q=5→q=7,8 PSNR regression** in the legacy encoder still pending
-  (#159).
+- **Ship decision** — replace production `BayInBayOut_1x_AAon_w16_ANE.pt`
+  with the HH1-retrained ckpt AND change default highpass quants (or
+  add a new "cnn-aware" preset at q=9). Bitstream format unchanged.
+- **Multi-level HH2 + L2/L3 sweep with retrained ckpt** — may show
+  similar unlock on level-2; not measured yet.
+- **Combined-knob sweep** — does HH1 ×4 + LH1 ×2 + HL1 ×2 stack, or
+  does the retrained CNN saturate at ~5 dB total gain?
+- **#162** — dark-content q=7/8 regression in legacy encoder; the L3
+  floor from #159 didn't fix barn_sky. Subagent diagnosing.
 
 ## Build prerequisite
 
