@@ -119,15 +119,28 @@ r.close()
 PYEOF
     H=$("$PY" -c "import rawpy; r = rawpy.imread('$dng'); print(r.raw_image.shape[0]); r.close()")
     W=$("$PY" -c "import rawpy; r = rawpy.imread('$dng'); print(r.raw_image.shape[1]); r.close()")
-    # Half-res encode (channel-space decimate=2) to restore the pre-FUSED
-    # GPRCodec topology that fed the CNN at codec-half-res. Without this the
-    # decoder produces full-res bayer (8K-class) and the CNN runs at 8K too,
-    # which collapses sustained playback fps from ~15 to ~3.6 (task #157).
-    # The decoder reads hdr.decimate=2 (set automatically by these env vars
-    # in single-level + LL mode) and produces (W/2 × H/2) output.
-    GPR_INCLUDE_LL=1 GPR_COL_DECIMATE=2 GPR_ROW_DECIMATE=2 \
-        GPR_BENCH_DUMP="$GPR_DIR/$(printf 'frame_%04d.gpr' $i)" \
-        "$BENCH" "$raw" "$W" "$H" 2 >/dev/null 2>&1
+    # Multi-level + channel-space decimate=2: the half-res topology the
+    # CNN expects (avoids decoding into an 8K codec dim → collapses fps,
+    # see task #157), PLUS multi-level wavelet compression which produces
+    # ~11x smaller bitstreams than single-level + LL at the same content
+    # (see PR #11 + PR #13).
+    #
+    # On Z8 50 MP × q=3, this path produces ~386 KB/frame (vs 4.5 MB for
+    # the older single-level + LL path) and decodes at 26 ms / frame on M3
+    # Max, sustained 26.24 fps × UHD with BIBO_1x CNN in the loop.
+    #
+    # Override: pass GPR_FIXTURE_LEGACY=1 to fall back to the older
+    # single-level + LL + decimate path if a fixture needs to match an
+    # older measurement.
+    if [ "${GPR_FIXTURE_LEGACY:-0}" = "1" ]; then
+        GPR_INCLUDE_LL=1 GPR_COL_DECIMATE=2 GPR_ROW_DECIMATE=2 \
+            GPR_BENCH_DUMP="$GPR_DIR/$(printf 'frame_%04d.gpr' $i)" \
+            "$BENCH" "$raw" "$W" "$H" 2 >/dev/null 2>&1
+    else
+        FUSED_MULTI_LEVEL=1 GPR_COL_DECIMATE=2 GPR_ROW_DECIMATE=2 \
+            GPR_BENCH_DUMP="$GPR_DIR/$(printf 'frame_%04d.gpr' $i)" \
+            "$BENCH" "$raw" "$W" "$H" 2 >/dev/null 2>&1
+    fi
     rm -f "$raw"
     i=$((i+1))
 done
