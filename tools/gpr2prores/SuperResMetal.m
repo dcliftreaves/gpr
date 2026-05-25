@@ -248,6 +248,11 @@ static uint16_t *transpose_dw_pytorch_to_hwio_f16(const uint16_t *src_oihw_2c,
     MPSGraph *_graph;
     MPSGraphTensor *_inputTensor;    // (1, Hp, Wp, 4) fp16 placeholder
     MPSGraphTensor *_residualTensor; // (1, 2Hp, 2Wp, 4) fp16 SR head output
+    // Pre-compiled executable for the MPSGraph backend. Built once at init
+    // (or lazily on first frame) to avoid per-frame compile/specialization
+    // work that the encodeToCommandBuffer: feeds: path may otherwise repeat.
+    MPSGraphExecutable *_graphExec;
+    MPSGraphExecutableExecutionDescriptor *_graphExecDesc;
     SuperResMetalWeights *_W;
     SuperResMetalBackend _backend;
     BOOL _useSubpixelHead;  // YES = F (2× SR); NO = F_no_sr (1× outro head)
@@ -1578,6 +1583,40 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     fprintf(stderr, "SuperResMetal: graph built in %.1f ms (input %ux%u planes, backend=%ld)\n",
             t2 - t1, _Wp, _Hp, (long)_backend);
 
+    // ---- Pre-compile MPSGraph to MPSGraphExecutable (MPSGraph backend only).
+    // Compiling once at init lets MPSGraph specialize the kernel selection
+    // ahead of time so per-frame encodeToCommandBuffer: is just an encode.
+    // The plain MPSGraph encode path was observed to take ~34.5 ms / frame
+    // (steady state); we expect this to drop with executable encode.
+    // Opt out with GPR2PRORES_NO_EXEC_COMPILE=1 for A/B measurement.
+    if (_backend == SuperResMetalBackendMPSGraph &&
+        !getenv("GPR2PRORES_NO_EXEC_COMPILE")) {
+        double tce0 = now_ms_local();
+        MPSGraphCompilationDescriptor *cd =
+            [[MPSGraphCompilationDescriptor alloc] init];
+        cd.optimizationLevel = MPSGraphOptimizationLevel1;
+        // Shape is fully static at this point (placeholder is fixed-shape) so
+        // the executable should specialize without runtime shape inference.
+        MPSGraphShapedType *inType = [[MPSGraphShapedType alloc]
+            initWithShape:_inputTensor.shape
+                 dataType:MPSDataTypeFloat16];
+        _graphExec = [_graph compileWithDevice:_mpsDevice
+                                         feeds:@{_inputTensor: inType}
+                                  targetTensors:@[_residualTensor]
+                               targetOperations:nil
+                          compilationDescriptor:cd];
+        if (!_graphExec) {
+            fprintf(stderr, "SuperResMetal: compileWithDevice returned nil; "
+                            "falling back to MPSGraph encode\n");
+        } else {
+            _graphExecDesc = [[MPSGraphExecutableExecutionDescriptor alloc] init];
+            _graphExecDesc.waitUntilCompleted = NO;
+            double tce1 = now_ms_local();
+            fprintf(stderr, "SuperResMetal: graph compiled to executable in %.1f ms\n",
+                    tce1 - tce0);
+        }
+    }
+
     // I/O buffers (fp16, NHWC) — also baseline buffer for the 2× fused path.
     //
     // 2× mode: planes (Hp, Wp, 4); residual & baseline at (2Hp, 2Wp, 4); output
@@ -1680,12 +1719,20 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                         shape:outShape
                      dataType:MPSDataTypeFloat16];
         double tw0 = now_ms_local();
-        [_graph runWithMTLCommandQueue:_queue
-                                 feeds:@{_inputTensor: inData}
-                      targetOperations:nil
-                     resultsDictionary:@{_residualTensor: outData}];
+        if (_graphExec) {
+            [_graphExec runWithMTLCommandQueue:_queue
+                                   inputsArray:@[inData]
+                                  resultsArray:@[outData]
+                            executionDescriptor:nil];
+        } else {
+            [_graph runWithMTLCommandQueue:_queue
+                                     feeds:@{_inputTensor: inData}
+                          targetOperations:nil
+                         resultsDictionary:@{_residualTensor: outData}];
+        }
         double tw1 = now_ms_local();
-        fprintf(stderr, "SuperResMetal: warmup run %.1f ms\n", tw1 - tw0);
+        fprintf(stderr, "SuperResMetal: warmup run %.1f ms (exec=%s)\n",
+                tw1 - tw0, _graphExec ? "yes" : "no");
     } else {
         // Hybrid warmup: run the inference path once with zero input to
         // trigger graph compilation for all 7 sub-graphs + Metal kernels.
@@ -1831,11 +1878,18 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
             initWithMTLBuffer:_outBuf
                         shape:outShape
                      dataType:MPSDataTypeFloat16];
-        [_graph encodeToCommandBuffer:cb
-                                feeds:@{_inputTensor: inData}
-                     targetOperations:nil
-                    resultsDictionary:@{_residualTensor: outData}
-                  executionDescriptor:nil];
+        if (_graphExec) {
+            [_graphExec encodeToCommandBuffer:cb
+                                  inputsArray:@[inData]
+                                 resultsArray:@[outData]
+                          executionDescriptor:_graphExecDesc];
+        } else {
+            [_graph encodeToCommandBuffer:cb
+                                    feeds:@{_inputTensor: inData}
+                         targetOperations:nil
+                        resultsDictionary:@{_residualTensor: outData}
+                      executionDescriptor:nil];
+        }
     } else {
         // ---- Hybrid: G1(intro) → enc0 → G2(down0) → enc1 → G3(down1) → enc2
         //              → G4(down2+mid+up0+skip2) → dec0 → G5(up1+skip1) → dec1
