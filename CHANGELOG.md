@@ -4,6 +4,44 @@ All notable changes to GPR are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — branch `fix/multilevel-cascade-regression`
+
+### Added
+
+- `tools/test/metrics.py` — visual metric stack (Y-PSNR, MS-SSIM,
+  LPIPS-AlexNet, ΔE2000) computed on demosaiced RGB. Replaces bayer-PSNR
+  as the primary quality metric.
+- `tools/test/test_multilevel_regression.py` — tripwire that fails until
+  the FUSED multi-level cascade bug is fixed.
+- `tools/test/reproduce_regression.sh` — self-contained shell repro of
+  the multi-level regression.
+- `docs/REGRESSION_2026-05-25.md` — read-this-first artifact documenting
+  the multi-level regression, root cause, and corrected file-size numbers.
+- `docs/SESSION_SUMMARY_2026-05-25_evening.md` — comprehensive session
+  summary.
+- `FUSED_INVERSE_DESCALE` env var in `fused_decode.c` — per-level descale
+  override for cascade debugging.
+- `FUSED_L2_L3_PRESCALE` env var in `fused_encode.c` —
+  `wavelet_decompose_buffer` prescale override.
+
+### Walked back
+
+- The "5-22% file-size savings from CNN-aware cranked quants" claim
+  (PRs #16, #20, #21, #23, #25). The original numbers were measured
+  against the broken multi-level FUSED path. Re-measured on
+  single-level: equivalent cranks save 8.8% (HH×4) to 26.2%
+  (LH/HL/HH×8).
+- The "+5.61 dB CNN gain" and "+7.80 dB L1+L2 retrained CNN gain"
+  numbers — measured against the broken multi-level baseline.
+
+### Known issues
+
+- **FUSED multi-level wavelet cascade has a ~10 dB PSNR regression vs
+  single-level on natural images.** Root cause: Nyquist aliasing through
+  the 3-level 5/3 wavelet cascade, compounded by double-rounding in
+  `horizontal_filter`. Fix pending (task #172). Shipped tools
+  (`gpr_tools`, default FUSED single-level) are not affected.
+
 ## [2.0.0] — 2026-05-12
 
 GPR 2.0 turns the original stills-only VC-5 codec into a production raw-video
