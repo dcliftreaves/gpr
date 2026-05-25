@@ -2528,12 +2528,47 @@ const int quant_table_length = sizeof(parameters->quant_table)/sizeof(parameters
                                           peaks higher than analytic bound)
            Empirically observed max=2175 at q=8 LH3, so we floor at 8 to
            leave headroom on textured/high-DR scenes. */
+        /* Task #162 follow-up: extend the per-band quant floor to cover the
+           "dark, low-noise" regression that survived #159 (which only floored
+           LH3/HL3/HH3 at 8). On dark images (mean raw ~1000 LSB at 14 bits,
+           e.g. Z8Z_1330.dng) the GS (luminance) channel produces large
+           wavelet coefficients in LH3/HL3 (deepest level) and HL2 (mid level)
+           with pre-quant magnitudes up to ~13K LSB. At q=7/q=8 the
+           default-table divisors (post-bit-depth-scale: ~5 for LH3/HL3, ~9
+           for HL2) leave post-quant magnitudes well above the 1023-entry
+           VLC codebook ceiling — the encoder clamps to 1023, the decoder
+           dequantizes to 1023*quant instead of the true magnitude, and PSNR
+           collapses (q=5 → 69.3 dB, q=7 → 62.5 dB on Z8Z_1330).
+
+           Per-band floors chosen so that for any 14-bit input the worst
+           observed post-quant magnitude stays under 1023 with headroom:
+             slots 1,2 (LH3, HL3):  observed pre-quant max ≈ 13.2K → floor 14
+                                    (14*1023 = 14322, ~8% headroom)
+             slot 3   (HH3):        observed max ≈ 5.4K → floor 8 unchanged
+             slot 5   (HL2):        observed pre-quant max ≈ 10.5K → floor 11
+                                    (11*1023 = 11253)
+             slots 4,6,7,8,9: pre-quant maxes are well within the existing
+                              scaled defaults (≥10) at all q presets.
+
+           Empirical effect:
+             Z8Z_1330  (dark, p99.9=1920):  q=5→6→7→8: 72.58→76.38→76.38→76.40
+                                            (was 72.58→67.28→62.80→62.78)
+             Z8_ISO64  (highlights, p99.9=8102):
+                                            q=5→6→7→8: 68.15→72.09→72.09→72.09
+                                            (was   68.15→72.57→72.70→72.70 — tiny
+                                            <0.7 dB regression on highlights,
+                                            still well above the 66 dB target)
+           Bitstream format is unchanged; only the quantization divisors
+           selected at encode time differ. */
         if (quant_table_length >= 4)
         {
-            for (int subband = 1; subband <= 3; ++subband) /* LH3/HL3/HH3 */
+            /* {LL, LH3, HL3, HH3, LH2, HL2, HH2, LH1, HL1, HH1} */
+            static const QUANT min_quant[10] = { 0, 14, 14, 8, 1, 11, 1, 1, 1, 1 };
+            int last = quant_table_length < 10 ? quant_table_length : 10;
+            for (int subband = 1; subband < last; ++subband)
             {
-                if (scaled_table[subband] < 8)
-                    scaled_table[subband] = 8;
+                if (scaled_table[subband] < min_quant[subband])
+                    scaled_table[subband] = min_quant[subband];
             }
         }
 
