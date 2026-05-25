@@ -314,3 +314,21 @@ jobs:
           else
             echo "SKIP — gpr2prores binary not built in this CI workflow"
           fi
+
+      - name: Run sustained-fps regression (macOS only)
+        # Protects the 26+ fps × UHD playback win from PR #10 + #11 + #13.
+        # Builds a 24-frame synth fixture and asserts:
+        #   with BIBO_1x CNN: ≥ 20 fps; without CNN: ≥ 22 fps.
+        # Skips cleanly on Linux (gpr2prores is macOS-only) and on macOS
+        # when the BIBO_1x metal weights dir isn't present (stock GH
+        # Actions runners don't ship the dering_proto_v2 weights).
+        # See tools/test/test_sustained_playback.sh for env knobs.
+        if: runner.os == 'macOS'
+        env:
+          BUILD_DIR: build
+        run: |
+          if [ -x tools/gpr2prores/gpr2prores ]; then
+            timeout 240 tools/test/test_sustained_playback.sh
+          else
+            echo "SKIP — gpr2prores binary not built in this CI workflow"
+          fi
