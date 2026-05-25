@@ -852,9 +852,20 @@ static void resolveOutputDims(NSString *preset,
 
     // Inbox capacities tuned for ~4 frames in flight total. Reader can stay
     // 2 ahead of CNN; CNN 2 ahead of demosaic; demosaic 4 ahead of writer.
-    StageInbox *cnnInbox      = make_inbox("gpr2prores.cnn",      _noCNN ? 4 : 2);
-    StageInbox *demosaicInbox = make_inbox("gpr2prores.demosaic", 2);
-    StageInbox *writerInbox   = make_inbox("gpr2prores.writer",   4);
+    // GPR2PRORES_CNN_INBOX / GPR2PRORES_DEMOSAIC_INBOX env vars allow tuning
+    // for perf measurement.
+    int cnn_cap = _noCNN ? 4 : 2;
+    int demo_cap = 2;
+    int write_cap = 4;
+    {
+        const char *e;
+        if ((e = getenv("GPR2PRORES_CNN_INBOX"))      && atoi(e) > 0) cnn_cap   = atoi(e);
+        if ((e = getenv("GPR2PRORES_DEMOSAIC_INBOX")) && atoi(e) > 0) demo_cap  = atoi(e);
+        if ((e = getenv("GPR2PRORES_WRITER_INBOX"))   && atoi(e) > 0) write_cap = atoi(e);
+    }
+    StageInbox *cnnInbox      = make_inbox("gpr2prores.cnn",      cnn_cap);
+    StageInbox *demosaicInbox = make_inbox("gpr2prores.demosaic", demo_cap);
+    StageInbox *writerInbox   = make_inbox("gpr2prores.writer",   write_cap);
 
     // Reader is its own queue (concurrent reads if filesystem allows; serial
     // is fine since mmap+decode is fast). Keep serial so the GPRCodec decode
