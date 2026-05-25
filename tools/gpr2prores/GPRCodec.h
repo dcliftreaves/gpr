@@ -27,6 +27,18 @@ NS_ASSUME_NONNULL_BEGIN
      outWidth:(int *)outWidth
     outHeight:(int *)outHeight;
 
+// Half-resolution decode — same args as -decode:, but the output is at
+// (header.width / 2) × (header.height / 2). For FUSED multi-level streams,
+// this skips the level-1 inverse wavelet so it's ~1.5–2× faster than the
+// full-res path. This is the playback default: the CNN consumes the
+// half-res bayer directly, mirroring the pre-FUSED GPRCodec topology.
+- (int)decodeHalfRes:(const uint8_t *)enc
+                size:(size_t)size
+            outBayer:(uint16_t *)outBayer
+            outPitch:(size_t)outPitch
+            outWidth:(int *)outWidth
+           outHeight:(int *)outHeight;
+
 @end
 
 NS_ASSUME_NONNULL_END

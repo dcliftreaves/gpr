@@ -230,6 +230,33 @@ static const QUANT quality_tables[9][10] = {
     {1,  4,  4,  2, 10, 10,  6, 16, 16, 24},     /* 8: Filmscan-5 */
 };
 
+/* Apply GPR_QUANT_OVERRIDE env var to a quant table copy (task #158).
+   Format: "slot:value,slot:value,..." e.g. "7:144,8:144,9:216" sets slots
+   7/8/9 (LH1/HL1/HH1, the level-1 highpass). Used by the per-subband quant
+   calibration sweep to explore rate-distortion tradeoffs that the 9 fixed
+   presets can't reach. The decoder reads the SAME env var so encode and
+   decode must run in the same environment; mismatches produce garbage.
+   No-op when env var is unset (the normal path). */
+static void apply_quant_override(QUANT *qt /* size 10 */)
+{
+    const char *spec = getenv("GPR_QUANT_OVERRIDE");
+    if (!spec || !*spec) return;
+    const char *p = spec;
+    while (*p) {
+        int slot = -1, value = -1;
+        char *end = NULL;
+        slot = (int)strtol(p, &end, 10);
+        if (end == p || *end != ':') break;
+        p = end + 1;
+        value = (int)strtol(p, &end, 10);
+        if (end == p) break;
+        if (slot >= 0 && slot < 10 && value > 0) qt[slot] = (QUANT)value;
+        p = end;
+        if (*p == ',') p++;
+        else break;
+    }
+}
+
 /* ================================================================
    Quantization helpers (same math as forward.c QuantizeValue)
    ================================================================ */
@@ -3047,7 +3074,11 @@ static int setup_channel_state(
        LL3 path uses to keep LL bounded. */
     const char *_ll_env = getenv("GPR_INCLUDE_LL");
     int single_level_include_ll = (_ll_env && *_ll_env == '1') ? 1 : 0;
-    const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
+    QUANT qt_buf[10];
+    memcpy(qt_buf, quality_tables[(quality >= 0 && quality < 9) ? quality : 3],
+           sizeof(qt_buf));
+    apply_quant_override(qt_buf);
+    const QUANT *qt = qt_buf;
 
     for (int ch = 0; ch < 4; ch++) {
         /* Level-1 quant: qt[0]=LL1 (effectively no-op divisor=1),
