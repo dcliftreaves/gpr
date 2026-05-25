@@ -11,6 +11,9 @@ extern void gpr_encode_fused_destroy(FUSED_ENCODER *ctx);
 extern int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
                              uint16_t *bayer_out, size_t bayer_pitch_bytes,
                              int *out_width, int *out_height);
+extern int gpr_decode_fused_halfres(const uint8_t *enc, size_t enc_size,
+                                     uint16_t *bayer_out, size_t bayer_pitch_bytes,
+                                     int *out_width, int *out_height);
 
 @implementation GPRCodec {
     FUSED_ENCODER *_ctx;
@@ -52,6 +55,16 @@ extern int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
     outHeight:(int *)outHeight
 {
     return gpr_decode_fused(enc, size, outBayer, outPitch, outWidth, outHeight);
+}
+
+- (int)decodeHalfRes:(const uint8_t *)enc
+                size:(size_t)size
+            outBayer:(uint16_t *)outBayer
+            outPitch:(size_t)outPitch
+            outWidth:(int *)outWidth
+           outHeight:(int *)outHeight
+{
+    return gpr_decode_fused_halfres(enc, size, outBayer, outPitch, outWidth, outHeight);
 }
 
 @end

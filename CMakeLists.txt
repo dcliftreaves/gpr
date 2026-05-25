@@ -3,6 +3,20 @@ cmake_minimum_required( VERSION 3.5 FATAL_ERROR )
 
 set(CMAKE_SUPPRESS_REGENERATION true)
 
+# Default to Release if no build type was specified — otherwise the libs
+# compile at -O0 and decode runs ~6× slower. Discovered when a stale
+# `build-local` (reconfigured without -DCMAKE_BUILD_TYPE=Release) made
+# decode 63 ms per frame on M3 Max instead of ~10 ms, capping playback at
+# ~15 fps instead of ~27 fps. The gpr2prores Makefile links against
+# build-local unconditionally, so a misconfigured build-local silently
+# degrades the whole playback pipeline. Setting Release here is the
+# safety net.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING
+        "Build type (Release, Debug, RelWithDebInfo, MinSizeRel)" FORCE)
+    message(STATUS "CMAKE_BUILD_TYPE not set; defaulting to Release")
+endif()
+
 set(CMAKE_C_FLAGS "-std=c99")
 
 # project name
