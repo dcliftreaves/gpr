@@ -390,8 +390,14 @@ def cnn_apply_bayer(bayer_raw: Path, w: int, h: int,
     model = _CNN_CACHE[str(ckpt_path)]
 
     bayer = np.fromfile(bayer_raw, dtype=np.uint16).reshape(h, w)
-    R = bayer[0::2, 0::2]; G1 = bayer[0::2, 1::2]
-    G2 = bayer[1::2, 0::2]; B = bayer[1::2, 1::2]
+    # Force even dims so the 4-plane split produces equal-sized arrays. Odd
+    # dimensions (e.g. X2D 5832×4375 codec-domain output) would otherwise
+    # break the np.stack.
+    even_h = h - (h & 1)
+    even_w = w - (w & 1)
+    bayer_even = bayer[:even_h, :even_w]
+    R = bayer_even[0::2, 0::2]; G1 = bayer_even[0::2, 1::2]
+    G2 = bayer_even[1::2, 0::2]; B = bayer_even[1::2, 1::2]
     pl = np.stack([R, G1, G2, B], 0).astype(np.float32) / 16383.0
     x = torch.from_numpy(pl).unsqueeze(0).to(device)
     H, W = x.shape[-2:]
@@ -405,11 +411,14 @@ def cnn_apply_bayer(bayer_raw: Path, w: int, h: int,
     y = y[..., :H, :W]
     yn = y.squeeze(0).cpu().numpy()
 
-    out = np.empty(bayer.shape, dtype=np.uint16)
-    out[0::2, 0::2] = np.clip(yn[0] * 16383, 0, 16383).astype(np.uint16)
-    out[0::2, 1::2] = np.clip(yn[1] * 16383, 0, 16383).astype(np.uint16)
-    out[1::2, 0::2] = np.clip(yn[2] * 16383, 0, 16383).astype(np.uint16)
-    out[1::2, 1::2] = np.clip(yn[3] * 16383, 0, 16383).astype(np.uint16)
+    # Write the CNN-corrected even region back; trailing odd row/column (if
+    # any) stays as the pre-CNN bayer value — these are codec-edge pixels
+    # never visible at displayed resolution.
+    out = bayer.copy()
+    out[:even_h:2, :even_w:2] = np.clip(yn[0] * 16383, 0, 16383).astype(np.uint16)
+    out[:even_h:2, 1:even_w:2] = np.clip(yn[1] * 16383, 0, 16383).astype(np.uint16)
+    out[1:even_h:2, :even_w:2] = np.clip(yn[2] * 16383, 0, 16383).astype(np.uint16)
+    out[1:even_h:2, 1:even_w:2] = np.clip(yn[3] * 16383, 0, 16383).astype(np.uint16)
     out.tofile(out_raw)
     return True
 

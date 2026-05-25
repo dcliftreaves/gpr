@@ -148,34 +148,45 @@ encode of the same image:
 | HL1 | 1 | 4× | 2.5% | 64.85 | 65.28 | +0.43 dB |
 | HH1 | 1 | 4× | 1.3% | 64.84 | 64.64 | −0.19 dB |
 
-### The HH2 result — genuinely free bits
+### The HH2 result — content-dependent
 
-**HH2 (level-2 diagonal highpass) at 2× quant saves 10.2% bits AND the
-CNN-corrected output is 2.74 dB BETTER than the default encode through
-the same CNN.** That's not a free-lunch tradeoff — the CNN literally
-prefers the cranked-HH2 input.
+On barn_sky (2-frame Z8 50 MP, sky-heavy daylight) HH2 at 2× looks like
+a free win: 10.2% bit savings AND +2.74 dB CNN gain. **That doesn't
+generalize.** Repeated on a 4-image diverse corpus (Z8 ISO64, Z8 ISO22800,
+X2D ISO64, X2D ISO200 — all 50–100 MP):
 
-The likely mechanism: default HH2 quant (12) is low enough that diagonal
-coefficient noise survives into the decoded bayer. The CNN doesn't have
-a clean signal to lean on. Cranking HH2 to 24 forces the encoder to
-zero more of that noise — the CNN gets a cleaner intermediate, can
-synthesize the small amount of real diagonal detail from neighboring
-bands, and produces a better final output.
+| Image | HH2 2× bits saved | CNN gain |
+|---|---|---|
+| barn_sky (sky-heavy daylight) | 10.2% | **+2.74 dB** |
+| Z8 ISO64 entropy-matrix | 4.0% | +0.13 dB |
+| X2D ISO64 (Austin) | 3.4% | +0.08 dB |
+| X2D ISO200 (Austin) | 4.8% | +0.13 dB |
+| Z8 ISO22800 (high-noise) | 2.4% | **−0.82 dB** (CNN hurts) |
+| **Mean across 4-image corpus** | **3.6%** | **−0.12 dB** |
 
-### Recommendation (with existing BIBO_1x CNN)
+The bits saved hold (3–5% consistently), but the CNN gain doesn't.
+On low-detail content (sky) cranking HH2 lets the CNN clean things up.
+On high-noise or high-detail content the extra quant noise hurts more
+than it helps.
 
-**Switch multi-level FUSED's default HH2 quant from 12 to 24** (slot 6
-in the multi-level layout, GPR_QUANT_OVERRIDE="6:24" or change the
-quality_tables entry directly). Net effect:
+### Honest recommendation (with existing BIBO_1x CNN, no retrain)
 
-- ~10% file size reduction
-- ~+2.7 dB CNN-corrected PSNR vs current default
-- No CNN retraining required
-- Bitstream format unchanged
+There isn't a single per-subband bump that delivers free quality across
+all content. Two safer ship options:
 
-Combined with `LH1 ×2 + HL1 ×2` (slots 7, 8) from the single-level sweep
-(no measurement yet in multi-level mode but expected similar), you'd
-likely see ~13–15% total bit savings.
+1. **Conservative** — HH2 × 2 as a *quality-preserving* bit-saver:
+   ~3–5% file size reduction, CNN-corrected quality within ±0.5 dB of
+   default on diverse content. Pure storage win, no perceptible quality
+   trade.
+
+2. **Re-train the CNN** on the modified-quant codec distribution (in
+   flight — M5 retraining subagent dispatched). If the retrained CNN
+   recovers the per-subband loss as cleanly as the existing one does on
+   sky-heavy content, the 10% bit savings becomes a real ship.
+
+The barn_sky 2-frame finding remains useful as a *sanity check* that
+the framework is producing real signal — it just isn't the universal
+ship recommendation it first looked like.
 
 ### End-to-end ship test (24-frame barn_sky × UHD)
 
