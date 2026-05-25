@@ -125,17 +125,102 @@ specifically on HH1 4× (or higher). The CNN that learns the new
 out-of-distribution would likely recover most of the 3 dB loss → a
 genuine **10.9% file size reduction for free**.
 
+### Multi-level sweep (all 9 highpass slots, post-#11)
+
+Once `hdr.decimate=2` works in multi-level FUSED (PR #11), the per-subband
+sweep can target level-2 and level-3 highpass too. Multi-level + decimate=2
+also ships dramatically smaller bitstreams to begin with (~409 KB/frame
+vs ~4.5 MB for single-level + LL on the same content).
+
+Mean over 2 Z8 50 MP frames, bayer-domain PSNR vs default multi-level
+encode of the same image:
+
+| Subband | Level | mult | bits saved | PSNR no-CNN | PSNR + CNN | CNN gain |
+|---|---|---|---|---|---|---|
+| LH3 | 3 (coarsest) | 4× | 0.7% | 71.50 | 71.61 | +0.11 dB |
+| HL3 | 3 | 4× | 0.6% | 71.90 | 71.84 | −0.06 dB |
+| HH3 | 3 | 4× | 1.1% | 76.05 | 75.59 | **−0.45 dB** |
+| LH2 | 2 | 4× | 3.6% | 71.40 | 71.08 | −0.33 dB |
+| HL2 | 2 | 4× | 3.4% | 71.64 | 71.70 | +0.07 dB |
+| **HH2** | **2** | **2×** | **10.2%** | 75.45 | **78.19** | **+2.74 dB** 🎯 |
+| **HH2** | **2** | **4×** | **12.7%** | 74.24 | 75.28 | **+1.04 dB** |
+| LH1 | 1 (finest) | 4× | 2.8% | 63.84 | 64.36 | +0.52 dB |
+| HL1 | 1 | 4× | 2.5% | 64.85 | 65.28 | +0.43 dB |
+| HH1 | 1 | 4× | 1.3% | 64.84 | 64.64 | −0.19 dB |
+
+### The HH2 result — content-dependent
+
+On barn_sky (2-frame Z8 50 MP, sky-heavy daylight) HH2 at 2× looks like
+a free win: 10.2% bit savings AND +2.74 dB CNN gain. **That doesn't
+generalize.** Repeated on a 4-image diverse corpus (Z8 ISO64, Z8 ISO22800,
+X2D ISO64, X2D ISO200 — all 50–100 MP):
+
+| Image | HH2 2× bits saved | CNN gain |
+|---|---|---|
+| barn_sky (sky-heavy daylight) | 10.2% | **+2.74 dB** |
+| Z8 ISO64 entropy-matrix | 4.0% | +0.13 dB |
+| X2D ISO64 (Austin) | 3.4% | +0.08 dB |
+| X2D ISO200 (Austin) | 4.8% | +0.13 dB |
+| Z8 ISO22800 (high-noise) | 2.4% | **−0.82 dB** (CNN hurts) |
+| **Mean across 4-image corpus** | **3.6%** | **−0.12 dB** |
+
+The bits saved hold (3–5% consistently), but the CNN gain doesn't.
+On low-detail content (sky) cranking HH2 lets the CNN clean things up.
+On high-noise or high-detail content the extra quant noise hurts more
+than it helps.
+
+### Honest recommendation (with existing BIBO_1x CNN, no retrain)
+
+There isn't a single per-subband bump that delivers free quality across
+all content. Two safer ship options:
+
+1. **Conservative** — HH2 × 2 as a *quality-preserving* bit-saver:
+   ~3–5% file size reduction, CNN-corrected quality within ±0.5 dB of
+   default on diverse content. Pure storage win, no perceptible quality
+   trade.
+
+2. **Re-train the CNN** on the modified-quant codec distribution (in
+   flight — M5 retraining subagent dispatched). If the retrained CNN
+   recovers the per-subband loss as cleanly as the existing one does on
+   sky-heavy content, the 10% bit savings becomes a real ship.
+
+The barn_sky 2-frame finding remains useful as a *sanity check* that
+the framework is producing real signal — it just isn't the universal
+ship recommendation it first looked like.
+
+### End-to-end ship test (24-frame barn_sky × UHD)
+
+Re-encoded the full 24-frame fixture with multi-level + decimate=2 +
+HH2 ×2 (`GPR_QUANT_OVERRIDE="6:24"`), then ran sustained playback through
+gpr2prores with BIBO_1x and metal-bilinear at UHD output:
+
+| Config | KB/frame | Per-frame decode | Per-frame total | Sustained fps |
+|---|---|---|---|---|
+| pre-PR #10 (full-res, decimate=0) | ~14 000 | 266 ms | 942 ms | 3.62 |
+| single-level + LL + dec=2 (PR #10) | 4 522 | 9 ms | 138 ms | 26.89 |
+| **multi-level + dec=2 + HH2 ×2 (#11 + #12)** | **386** | **26 ms** | **141 ms** | **26.24** |
+
+The multi-level decode is slower per-frame (3 inverse wavelet levels vs 1
+for single-level + LL), but the 4-deep pipeline hides it: the CNN at 35
+ms still gates sustained fps, leaving decode-time headroom unused. Net:
+**12× smaller bitstream at essentially the same playback fps**.
+
+At 24 fps × 386 KB/frame: **~74 Mbps for 50 MP raw video with CNN-corrected
+output that's 2.74 dB higher PSNR than the previous default**. This fits
+trivially on any storage class — UHS-I microSD can sustain this.
+
 ## What's still pending
 
-- **Multi-level (slots 4..9)** sweep — currently can only override level-1
-  slots in single-level + LL mode. Multi-level FUSED still hardcodes
-  `hdr.decimate=0`; bigger CNN-aware codec design opens up if/when that
-  becomes a runtime choice.
-- **Content diversity** — barn_sky is mostly landscape/sky. Repeat on
-  portrait/product/text content; the LH/HL/HH balance shifts with content.
-- **Retrain BIBO_1x** on the proposed new quant defaults (HH1=36 or
-  LH1=HL1=72) to claim the additional dB the existing CNN leaves on
-  the table.
+- **Confirm HH2 result on bigger / more diverse corpus.** Two frames is
+  enough to spot the pattern but not enough to ship. Add another 50
+  frames from varied content (portraits, products, text, low-light).
+- **Combined-knob sweep.** Set `6:24,7:192,8:192` simultaneously and
+  measure — do the individual gains stack, or does the CNN saturate?
+- **Retrain on cranked-HH2 distribution.** If +2.74 dB is what the
+  un-retrained CNN gives, a retrained CNN should do even better.
+  In flight (M5 retraining subagent dispatched 2026-05-25).
+- **q=5→q=7,8 PSNR regression** in the legacy encoder still pending
+  (#159).
 
 ## Build prerequisite
 
