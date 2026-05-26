@@ -150,3 +150,41 @@ so the bias is small (1.5 ADU vs source magnitude in thousands).
 `/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525_metrics/index.html`
 shows the side-by-side with metric tables. Single-level vs multi-level
 vs cranked variants on 4 source DNGs.
+
+## Critical update — CNN works great at single-level
+
+Tested baseline BIBO_1x CNN against single-level codec output:
+
+| image | codec-only bayer-PSNR | +CNN bayer-PSNR | CNN gain |
+|---|---:|---:|---:|
+| Z8Z_0001 | 46.75 | 61.86 | +15.11 dB |
+| Z8Z_0067 | 61.43 | 65.64 | +4.21 dB |
+| Z8Z_5323 | 43.27 | 60.54 | +17.27 dB |
+| Z8Z_6693 | 39.80 | 57.29 | +17.49 dB |
+
+For comparison, the same CNN on multi-level output gave only +0.3 to
++4.6 dB. **The CNN works fine — multi-level was killing it.**
+
+Single-level + CNN visual metrics (vs REF):
+
+| image | Y-PSNR | MS-SSIM | LPIPS | ΔE2000 |
+|---|---:|---:|---:|---:|
+| Z8Z_0001 | 47.87 | 0.9975 | 0.0147 | 0.57 |
+| Z8Z_0067 | 50.54 | 0.9970 | 0.0319 | 0.51 |
+| Z8Z_5323 | 45.98 | 0.9973 | 0.0114 | 0.89 |
+| Z8Z_6693 | 42.82 | 0.9968 | 0.0140 | 1.06 |
+
+Perceptually identical to REF. **This is the "amazing q=3 CNN" output.**
+
+Cranked variants + CNN also work well:
+
+| crank | Y-PSNR (vs REF) | LPIPS | file-size savings |
+|---|---:|---:|---:|
+| no crank | 47-50 | 0.01-0.03 | 0 |
+| HH×4 + CNN | 45-49 | 0.02-0.09 | 8.8% |
+| LH/HL/HH×4 + CNN | 42-49 | 0.02-0.16 | 16.4% |
+
+Cranked-quant savings hold at single-level. The methodology is sound.
+
+Final visual rig: `/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525_final/index.html`
+
