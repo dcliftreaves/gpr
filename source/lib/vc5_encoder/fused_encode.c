@@ -236,15 +236,19 @@ static const QUANT quality_tables[12][10] = {
     {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 8: Filmscan-5 */
     {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 9: Reserved (mirrors FS5) */
     {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 10: Reserved (mirrors FS5) */
-    /* 11: CNN-aware. Turn it up to 11. Crank L1 highpass (slots 7/8/9)
-       2-4× over q=3 baseline. Pairs with a CNN trained on the cranked
-       distribution (BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt or successor).
-       Slots 0-6 unchanged from q=3 → L2/L3 wavelet quality preserved.
-       Saves ~10-17% file size with no perceptible quality cost after CNN.
-       Single-ll mode reads slots 1/2/3 here (q=3 defaults) and sees no
-       benefit at q=11; single-ll users wanting CNN-aware should use
-       GPR_QUANT_OVERRIDE during development. */
-    {1, 24, 24, 12, 24, 24, 12, 192, 192, 576},  /* 11: CNN-aware */
+    /* 11: CNN-aware. Turn it up to 11.
+       Cranks BOTH the multi-level L1 highpass (slots 7/8/9) AND the
+       single-level highpass (slots 1/2/3). This way q=11 produces
+       file-size savings under both codec modes. Pairs with a CNN trained
+       on the cranked distribution (baseline BIBO_1x already gives huge
+       gain on single-level outputs).
+       Slot mapping:
+         single-level mode reads slots 1/2/3 (LH/HL/HH) — cranked 4× from
+                       q=3's {24,24,12} to {48,48,48}
+         multi-level mode reads slots 7/8/9 (LH1/HL1/HH1) — cranked from
+                       q=3's {96,96,144} to {192,192,576}
+       Slots 4-6 (L2 highpass) unchanged from q=3 in both modes. */
+    {1, 48, 48, 48, 24, 24, 12, 192, 192, 576},  /* 11: CNN-aware */
 };
 
 /* Apply GPR_QUANT_OVERRIDE env var to a quant table copy (task #158).

@@ -60,7 +60,7 @@ static const QUANT FUSED_QUALITY_TABLES[12][10] = {
     {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 8 FS5 */
     {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 9 Reserved (mirrors FS5) */
     {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 10 Reserved (mirrors FS5) */
-    {1, 24, 24, 12, 24, 24, 12, 192, 192, 576},  /* 11 CNN-aware */
+    {1, 48, 48, 48, 24, 24, 12, 192, 192, 576},  /* 11 CNN-aware (single+multi cranked) */
 };
 
 /* Apply GPR_QUANT_OVERRIDE to a dequant table copy (task #158).

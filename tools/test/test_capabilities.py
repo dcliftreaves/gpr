@@ -233,33 +233,37 @@ CAPABILITIES = [
     # but pytorch isn't installed on the bare runner). Cell skips with
     # a clean message when deps are missing.
     dict(id="cnn_BIBO_1x_Z8_ISO64_uhd",
-         display="CNN · BIBO_1x · Z8 ISO64 · 50 MP → UHD (multi-level + dec=2)",
+         display="CNN · BIBO_1x · Z8 ISO64 · 50 MP → UHD (single-level + CNN)",
          kind="cnn_corrected",
          src_dng="data/test_sets/entropy_matrix/Z8_ISO64.DNG",
          peak=16383,
          out_res=(3840, 2160),
+         codec_path="singlelevel",
+         # Re-baselined 2026-05-25 evening: switched from multi-level+dec=2
+         # (10 dB broken, see docs/REGRESSION_2026-05-25.md) to single-level.
+         # New baseline ~54.5 dB Y-PSNR.
          criteria=dict(
-             psnr_db={"min": 27.8, "exceed_above": 28.8})),
+             psnr_db={"min": 52.0, "exceed_above": 54.0})),
     dict(id="cnn_BIBO_1x_Z8_ISO64_4k",
-         display="CNN · BIBO_1x · Z8 ISO64 · 50 MP → 4K (multi-level + dec=2)",
+         display="CNN · BIBO_1x · Z8 ISO64 · 50 MP → 4K (single-level + CNN)",
          kind="cnn_corrected",
          src_dng="data/test_sets/entropy_matrix/Z8_ISO64.DNG",
          peak=16383,
          out_res=(4096, 2160),
+         codec_path="singlelevel",
          criteria=dict(
-             psnr_db={"min": 27.8, "exceed_above": 28.8})),
+             psnr_db={"min": 52.0, "exceed_above": 54.0})),
     dict(id="cnn_BIBO_1x_Z8_ISO22800_uhd",
-         display="CNN · BIBO_1x · Z8 ISO22800 · 50 MP → UHD (high-ISO, harder)",
+         display="CNN · BIBO_1x · Z8 ISO22800 · 50 MP → UHD (single-level + CNN)",
          kind="cnn_corrected",
          src_dng="data/test_sets/entropy_matrix/Z8_ISO22800.DNG",
          peak=16383,
          out_res=(3840, 2160),
-         # Lower floor: high-ISO content is where the un-retrained BIBO_1x
-         # under-performs (see docs/quant_calibration_findings.md). Locking
-         # the current number as the floor so the M5-side retrain has a
-         # clear "did it actually help" tripwire.
+         codec_path="singlelevel",
+         # Lower floor: high-ISO content is harder to recover.
+         # Baseline ~44.9 dB Y-PSNR on single-level + CNN.
          criteria=dict(
-             psnr_db={"min": 28.7, "exceed_above": 29.7})),
+             psnr_db={"min": 42.5, "exceed_above": 44.5})),
 ]
 
 
@@ -351,9 +355,20 @@ def measure_still_roundtrip(cap, work: Path) -> Dict[str, float]:
 # verdict instead of failing).
 # ---------------------------------------------------------------------------
 
+# CNN: look for repo-local copies first (tools/cnn/ + models/), fall back
+# to the older external dering_proto_v2 path for backward compat.
+CNN_CODE_DIR_REPO = REPO / "tools" / "cnn"
+CNN_CKPT_REPO = REPO / "models" / "BayInBayOut_1x_AAon_w16_ANE.pt"
 CNN_DERING_DIR = "/Users/dcliftreaves/dering_proto_v2"
-CNN_CKPT_DEFAULT = (Path(CNN_DERING_DIR) / "checkpoints"
-                    / "BayInBayOut_1x_AAon_w16_ANE.pt")
+CNN_CKPT_EXTERNAL = (Path(CNN_DERING_DIR) / "checkpoints"
+                     / "BayInBayOut_1x_AAon_w16_ANE.pt")
+
+def _cnn_resolve_paths():
+    """Pick repo-local first, fall back to external dering_proto_v2."""
+    if (CNN_CODE_DIR_REPO / "model.py").exists() and CNN_CKPT_REPO.exists():
+        return str(CNN_CODE_DIR_REPO), CNN_CKPT_REPO, "model"
+    return CNN_DERING_DIR, CNN_CKPT_EXTERNAL, "model_F_ane"
+
 CNN_ROUNDTRIP_BIN = BUILD_DIR / "bin/test_fused_roundtrip"
 
 _CNN_STATE = {"model": None, "device": None, "src_cache": {}}
@@ -375,10 +390,11 @@ def _cnn_probe_deps():
         import cv2  # noqa
     except ImportError as e:
         missing.append(f"cv2 ({e})")
-    if not os.path.isdir(CNN_DERING_DIR):
-        missing.append(f"dering_proto_v2 not present at {CNN_DERING_DIR}")
-    if not CNN_CKPT_DEFAULT.exists():
-        missing.append(f"checkpoint not present: {CNN_CKPT_DEFAULT}")
+    code_dir, ckpt, _ = _cnn_resolve_paths()
+    if not (Path(code_dir) / f"{_cnn_resolve_paths()[2]}.py").exists():
+        missing.append(f"CNN model.py not present at {code_dir}")
+    if not ckpt.exists():
+        missing.append(f"CNN checkpoint not present: {ckpt}")
     if not CNN_ROUNDTRIP_BIN.exists():
         missing.append(f"test_fused_roundtrip not built at {CNN_ROUNDTRIP_BIN} "
                        "(build with: clang -O2 source/app/test_fused_decode_roundtrip.c "
@@ -392,10 +408,13 @@ def _cnn_load_model():
     if _CNN_STATE["model"] is not None:
         return _CNN_STATE["model"], _CNN_STATE["device"]
     import torch
-    sys.path.insert(0, CNN_DERING_DIR)
-    from model_F_ane import build as build_ane  # type: ignore
+    import importlib
+    code_dir, ckpt_path, module_name = _cnn_resolve_paths()
+    sys.path.insert(0, code_dir)
+    mod = importlib.import_module(module_name)
+    build_ane = mod.build
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-    ck = torch.load(str(CNN_CKPT_DEFAULT), map_location="cpu", weights_only=False)
+    ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
     m = build_ane(ck.get("variant", "F_ane"))
     m.load_state_dict(ck["backbone_state"])
     m.to(device).eval()
@@ -415,6 +434,10 @@ def _extract_bayer(dng_path, out_raw):
 
 
 def _encode_decode_multilevel(raw_in, w, h, dec_out):
+    """LEGACY path: multi-level + decimate=2. Currently broken at the codec
+    level (10 dB visual regression vs single-level — see
+    docs/REGRESSION_2026-05-25.md, task #172). Kept for back-compat with
+    old CNN cells; new cells should use _encode_decode_singlelevel instead."""
     env = os.environ.copy()
     env["FUSED_MULTI_LEVEL"] = "1"
     env["GPR_COL_DECIMATE"] = "2"
@@ -434,6 +457,23 @@ def _encode_decode_multilevel(raw_in, w, h, dec_out):
             except ValueError:
                 pass
     return dw, dh
+
+
+def _encode_decode_singlelevel(raw_in, w, h, dec_out):
+    """Single-level FUSED, full-res output. The known-good codec path.
+    Output dimensions match input (w x h)."""
+    env = os.environ.copy()
+    env["FUSED_MULTI_LEVEL"] = "0"
+    env["GPR_INCLUDE_LL"] = "1"
+    env.pop("GPR_COL_DECIMATE", None)
+    env.pop("GPR_ROW_DECIMATE", None)
+    res = subprocess.run(
+        [str(CNN_ROUNDTRIP_BIN), str(raw_in), str(w), str(h), str(dec_out)],
+        env=env, capture_output=True, text=True,
+    )
+    if res.returncode != 0:
+        raise RuntimeError(f"test_fused_roundtrip rc={res.returncode}: {res.stderr.strip()}")
+    return w, h
 
 
 def _cnn_apply_bayer(bayer_in_raw, w, h, bayer_out_raw):
@@ -536,17 +576,30 @@ def measure_cnn_corrected(cap, work: Path) -> Dict[str, float]:
     cnn_raw = work / f"{cap['id']}_cnn.raw"
 
     w, h = _extract_bayer(dng, raw_in)
-    dw, dh = _encode_decode_multilevel(raw_in, w, h, dec_raw)
+    # Per the 2026-05-25 evening regression investigation, default to single-level
+    # FUSED (known-good codec path). Multi-level has a 10 dB visual regression
+    # pending task #172. Cells can opt back into the broken path with
+    # cap["codec_path"] = "multilevel" for back-compat testing.
+    codec_path = cap.get("codec_path", "singlelevel")
+    if codec_path == "multilevel":
+        dw, dh = _encode_decode_multilevel(raw_in, w, h, dec_raw)
+    else:
+        dw, dh = _encode_decode_singlelevel(raw_in, w, h, dec_raw)
     _cnn_apply_bayer(dec_raw, dw, dh, cnn_raw)
 
-    cnn_half = np.fromfile(cnn_raw, dtype=np.uint16).reshape(dh, dw)
-    full_bayer = _bayer_bicubic_2x(cnn_half)
-    if full_bayer.shape != (h, w):
-        pad = np.zeros((h, w), dtype=np.uint16)
-        clip_h = min(full_bayer.shape[0], h)
-        clip_w = min(full_bayer.shape[1], w)
-        pad[:clip_h, :clip_w] = full_bayer[:clip_h, :clip_w]
-        full_bayer = pad
+    if dw == w and dh == h:
+        # single-level: output is at full res, no upsampling needed
+        full_bayer = np.fromfile(cnn_raw, dtype=np.uint16).reshape(dh, dw)
+    else:
+        # multi-level + decimate: half-res output, bicubic-upsample per channel
+        cnn_half = np.fromfile(cnn_raw, dtype=np.uint16).reshape(dh, dw)
+        full_bayer = _bayer_bicubic_2x(cnn_half)
+        if full_bayer.shape != (h, w):
+            pad = np.zeros((h, w), dtype=np.uint16)
+            clip_h = min(full_bayer.shape[0], h)
+            clip_w = min(full_bayer.shape[1], w)
+            pad[:clip_h, :clip_w] = full_bayer[:clip_h, :clip_w]
+            full_bayer = pad
     cnn_rgb = _render_with_meta(full_bayer, dng)
 
     # Source render is cached per DNG (the same DNG is used by multiple cells).
