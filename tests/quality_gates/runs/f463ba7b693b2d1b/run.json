@@ -1,0 +1,121 @@
+{
+  "pipeline": "codec=ml3_q3+cnn=none+demosaic=sips_via_gpr_tools",
+  "ship_class": "VIDEO_FREEZE",
+  "run_hash": "f463ba7b693b2d1b",
+  "gates_sha": "df5bbfc89be3bcce",
+  "started_at": "2026-05-26T08:47:38-0500",
+  "images": {
+    "Z8Z_0001": {
+      "y_psnr": 24.288467729545168,
+      "ms_ssim": 0.8814488053321838,
+      "lpips": 0.29815179109573364,
+      "dE2000_mean": 3.6410839557647705,
+      "bayer_psnr_codec": 36.238178406650015,
+      "bayer_psnr_final": 36.238178406650015,
+      "enc_bytes": 3623014,
+      "enc_ms": 23.0,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/f463ba7b693b2d1b/Z8Z_0001_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/f463ba7b693b2d1b/Z8Z_0001_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.2982 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.8814 < 0.98"
+        },
+        {
+          "metric": "y_psnr",
+          "reason": "24.2885 < 32.0"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "3.6411 > 2.0"
+        }
+      ]
+    },
+    "Z8Z_0067": {
+      "y_psnr": 38.33428485232022,
+      "ms_ssim": 0.9857632517814636,
+      "lpips": 0.06937172263860703,
+      "dE2000_mean": 1.045243501663208,
+      "bayer_psnr_codec": 49.05585959412478,
+      "bayer_psnr_final": 49.05585959412478,
+      "enc_bytes": 1419906,
+      "enc_ms": 20.1,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/f463ba7b693b2d1b/Z8Z_0067_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/f463ba7b693b2d1b/Z8Z_0067_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_5323": {
+      "y_psnr": 32.44008539087577,
+      "ms_ssim": 0.9201226234436035,
+      "lpips": 0.1811884641647339,
+      "dE2000_mean": 1.9053279161453247,
+      "bayer_psnr_codec": 40.8988191138738,
+      "bayer_psnr_final": 40.8988191138738,
+      "enc_bytes": 11369033,
+      "enc_ms": 41.6,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/f463ba7b693b2d1b/Z8Z_5323_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/f463ba7b693b2d1b/Z8Z_5323_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.1812 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9201 < 0.98"
+        }
+      ]
+    },
+    "Z8Z_6693": {
+      "y_psnr": 30.71162940231044,
+      "ms_ssim": 0.8872387409210205,
+      "lpips": 0.1525661200284958,
+      "dE2000_mean": 2.370884418487549,
+      "bayer_psnr_codec": 38.14642661395561,
+      "bayer_psnr_final": 38.14642661395561,
+      "enc_bytes": 15332403,
+      "enc_ms": 44.0,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/f463ba7b693b2d1b/Z8Z_6693_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/f463ba7b693b2d1b/Z8Z_6693_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.1526 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.8872 < 0.98"
+        },
+        {
+          "metric": "y_psnr",
+          "reason": "30.7116 < 32.0"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "2.3709 > 2.0"
+        }
+      ]
+    }
+  },
+  "worst_first": [
+    "Z8Z_0001",
+    "Z8Z_5323",
+    "Z8Z_6693",
+    "Z8Z_0067"
+  ],
+  "worst_image": {
+    "id": "Z8Z_0001",
+    "visual_diff_png": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/f463ba7b693b2d1b/WORST_Z8Z_0001_visual_diff.png",
+    "lpips": 0.29815179109573364
+  },
+  "verdict": "FAIL",
+  "finished_at": "2026-05-26T08:49:13-0500"
+}

@@ -25,7 +25,7 @@ from torch.utils.data import Dataset, DataLoader
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from model_F_ane import build as build_variant, build_lk, count_params
+from model import build as build_variant, build_lk, count_params
 
 RESIDUAL_SCALE = 0.01
 RAW_NORM = 16383.0
@@ -82,7 +82,7 @@ class FANE(nn.Module):
 def load_data(npz_path, target_val_src_name="Z8_ISO64", subsample_rate=1):
     print(f"  loading {npz_path} (subsample 1/{subsample_rate}) ...", flush=True)
     t0 = time.time()
-    npz = np.load(npz_path, mmap_mode="r")
+    npz = np.load(npz_path, mmap_mode="r", allow_pickle=True)
     src = np.asarray(npz["src"])
     lookup = np.asarray(npz["src_lookup_names"])
     names = [s.decode() if isinstance(s, bytes) else s for s in lookup.tolist()]
@@ -153,8 +153,14 @@ class TileDS(Dataset):
                 torch.from_numpy(np.ascontiguousarray(tgt)).float())
 
 
-def downsample_tgt_to_codec_dims(tgt):
-    """For 1x training: tile targets are 2x codec dims; downsample to match."""
+def downsample_tgt_to_codec_dims(tgt, ref=None):
+    """For 1x training: legacy NPZs store tgt at 2x codec dims (super-res
+    tile layout), so the 1x model trains against an averaged-down target.
+    For new native-1x NPZs (ML-2 q=3 retrain), codec and tgt are at the
+    same dims; skip the downsample if shapes already match the model
+    output `ref`."""
+    if ref is not None and tgt.shape[-1] == ref.shape[-1]:
+        return tgt
     return F.interpolate(tgt, scale_factor=0.5, mode="area")
 
 
@@ -173,7 +179,8 @@ def train(args):
     print(f"Device: {DEVICE}  CKPT_DIR: {CKPT_DIR}  NPZ: {NPZ}")
     os.makedirs(CKPT_DIR, exist_ok=True)
 
-    d = load_data(NPZ, target_val_src_name="Z8_ISO64",
+    val_src = os.environ.get("VAL_SRC_NAME", "Z8_ISO64")
+    d = load_data(NPZ, target_val_src_name=val_src,
                   subsample_rate=args.subsample)
     N = len(d["src"]); src = d["src"]
     val_src = {d["_val_src_id"]}
@@ -206,7 +213,7 @@ def train(args):
                 else:
                     base = inp.clamp(0, 1)
                     cleaned = model(inp)
-                    tgt_use = downsample_tgt_to_codec_dims(tgt)
+                    tgt_use = downsample_tgt_to_codec_dims(tgt, ref=cleaned)
                 mse_b = ((base - tgt_use) ** 2).mean(dim=[1, 2, 3])
                 mse_a = ((cleaned - tgt_use) ** 2).mean(dim=[1, 2, 3])
                 tot_b += (-10 * torch.log10(mse_b.clamp_min(1e-12))).sum().item()
@@ -228,7 +235,7 @@ def train(args):
             if model.sr2x:
                 pred = model(inp); tgt_use = tgt
             else:
-                pred = model(inp); tgt_use = downsample_tgt_to_codec_dims(tgt)
+                pred = model(inp); tgt_use = downsample_tgt_to_codec_dims(tgt, ref=pred)
             l = multiscale_l1(pred, tgt_use)
             opt.zero_grad(set_to_none=True); l.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)

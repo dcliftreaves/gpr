@@ -2128,10 +2128,9 @@ static void unpack_luma_row_col_decimate_2x1(
    before the L2 wavelet sees it. Values:
      0 (default)  — off
      3 (h-only)   — 3-tap [1,2,1]/4 horizontal LP
-     33 (hv)      — same 3-tap LP in both X and Y directions
+     33 (hv)      — 3-tap LP in both X and Y directions
    The vertical LP needs a 2-row history per channel; storage allocated
-   on demand. Off-default since this is lossy by design.
-*/
+   on demand. Off-default since this is lossy by design. */
 #define FUSED_L2_PREFILTER_MAX_W 8192
 static int fused_l2_prefilter_taps(void) {
     static int cached = -1;

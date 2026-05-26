@@ -1,0 +1,117 @@
+{
+  "pipeline": "codec=ml2_q3_prefilter3hv+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools",
+  "ship_class": "VIDEO_FREEZE",
+  "run_hash": "aaeead184e48c2e4",
+  "gates_sha": "df5bbfc89be3bcce",
+  "started_at": "2026-05-26T09:14:28-0500",
+  "images": {
+    "Z8Z_0001": {
+      "y_psnr": 26.74338696770249,
+      "ms_ssim": 0.9285967350006104,
+      "lpips": 0.256234347820282,
+      "dE2000_mean": 2.6086442470550537,
+      "bayer_psnr_codec": 38.13827073966539,
+      "bayer_psnr_final": 38.788870244305734,
+      "enc_bytes": 5165181,
+      "enc_ms": 22.9,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/aaeead184e48c2e4/Z8Z_0001_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/aaeead184e48c2e4/Z8Z_0001_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.2562 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9286 < 0.98"
+        },
+        {
+          "metric": "y_psnr",
+          "reason": "26.7434 < 32.0"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "2.6086 > 2.0"
+        }
+      ]
+    },
+    "Z8Z_0067": {
+      "y_psnr": 39.940583407812134,
+      "ms_ssim": 0.9918794631958008,
+      "lpips": 0.06471146643161774,
+      "dE2000_mean": 0.7615118622779846,
+      "bayer_psnr_codec": 51.204096934681914,
+      "bayer_psnr_final": 52.027248676062214,
+      "enc_bytes": 3878557,
+      "enc_ms": 22.0,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/aaeead184e48c2e4/Z8Z_0067_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/aaeead184e48c2e4/Z8Z_0067_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_5323": {
+      "y_psnr": 35.46737280665722,
+      "ms_ssim": 0.9560300707817078,
+      "lpips": 0.13152578473091125,
+      "dE2000_mean": 1.7815974950790405,
+      "bayer_psnr_codec": 41.409869496386605,
+      "bayer_psnr_final": 45.593954236928546,
+      "enc_bytes": 10843479,
+      "enc_ms": 38.6,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/aaeead184e48c2e4/Z8Z_5323_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/aaeead184e48c2e4/Z8Z_5323_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.1315 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9560 < 0.98"
+        }
+      ]
+    },
+    "Z8Z_6693": {
+      "y_psnr": 34.352915742654865,
+      "ms_ssim": 0.9462106227874756,
+      "lpips": 0.17923954129219055,
+      "dE2000_mean": 2.0380373001098633,
+      "bayer_psnr_codec": 38.498101808911755,
+      "bayer_psnr_final": 43.812518947030725,
+      "enc_bytes": 14473445,
+      "enc_ms": 42.0,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/aaeead184e48c2e4/Z8Z_6693_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/aaeead184e48c2e4/Z8Z_6693_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.1792 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9462 < 0.98"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "2.0380 > 2.0"
+        }
+      ]
+    }
+  },
+  "worst_first": [
+    "Z8Z_0001",
+    "Z8Z_6693",
+    "Z8Z_5323",
+    "Z8Z_0067"
+  ],
+  "worst_image": {
+    "id": "Z8Z_0001",
+    "visual_diff_png": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/aaeead184e48c2e4/WORST_Z8Z_0001_visual_diff.png",
+    "lpips": 0.256234347820282
+  },
+  "verdict": "FAIL",
+  "finished_at": "2026-05-26T09:16:10-0500"
+}
