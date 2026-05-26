@@ -85,40 +85,75 @@
   },
   "pipelines": {
     "$doc": "The actual {codec, cnn, demosaicer} triples. Each one is a ship-target with a declared ship_class.",
-    "codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
-      "codec": "sl_q3",
-      "cnn": "bibo1x_ane_sl_q3",
-      "demosaic": "sips_via_gpr_tools",
-      "ship_class": "STILL",
-      "$last_known_status": "Believed to clear STILL. Run the gate to confirm."
-    },
     "codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q3",
       "cnn": "none",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$last_known_status": "Unknown without CNN — gate will tell."
+      "$role": "baseline-sl"
+    },
+    "codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "production-still"
+    },
+    "codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q11",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "cranked-still"
     },
     "codec=ml2_q3+cnn=none+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3",
       "cnn": "none",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
-      "$last_known_status": "FAILS VIDEO_FREEZE on Z8Z_0001 (LPIPS 0.231 vs gate 0.08). Documented in claims_log.md."
+      "$role": "ml2-baseline"
     },
     "codec=ml2_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3",
       "cnn": "bibo1x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
-      "$last_known_status": "FAILS VIDEO_FREEZE. CNN is SL-trained, not paired with ML-2 artifacts. Mismatched pipeline."
+      "$role": "ml2-with-mismatched-sl-cnn"
+    },
+    "codec=ml2_q3+cnn=bibo1x_ane_l1l2x4+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3",
+      "cnn": "bibo1x_ane_l1l2x4",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "ml2-with-l1l2x4-cnn"
+    },
+    "codec=ml2_q3+cnn=bibo1x_ane_hh1x4+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3",
+      "cnn": "bibo1x_ane_hh1x4",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "ml2-with-hh1x4-cnn"
+    },
+    "codec=ml2_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q11",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "ml2-cranked"
+    },
+    "codec=ml3_q3+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml3_q3",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "ml3-baseline-broken"
     },
     "codec=ml3_q12_l1l2x4_legacy+cnn=bibo1x_ane_l1l2x4+demosaic=sips_via_gpr_tools": {
       "codec": "ml3_q12_l1l2x4_legacy",
       "cnn": "bibo1x_ane_l1l2x4",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
-      "$last_known_status": "Historical 'much better' pipeline. NOT yet re-tested under the new gate."
+      "$role": "historical-much-better-claim"
     }
   }
 }
