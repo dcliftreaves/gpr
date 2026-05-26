@@ -773,7 +773,17 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
                                             out_width, out_height);
     }
     if (!hdr.multi_level) return -5;  /* single-level-without-LL: not decodable */
-    if (hdr.num_bands != 40) return -6;
+    /* hdr.multi_level encodes the wavelet depth (2 or 3 in the new format;
+       legacy bool=1 streams equal 3-level via num_bands==40 check). */
+    int levels = (int)hdr.multi_level;
+    if (levels == 1) levels = 3;  /* legacy bool=1 means 3-level */
+    if (levels == 2) {
+        if (hdr.num_bands != 28) return -6;
+    } else if (levels == 3) {
+        if (hdr.num_bands != 40) return -6;
+    } else {
+        return -6;
+    }
     if (hdr.quality >= 12) return -7;
 
     /* Apply hdr.decimate from the bitstream: when set to 2, the encoded
@@ -791,8 +801,8 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
     /* Band-size table */
     size_t off = sizeof(FUSED_HEADER);
     uint32_t band_sizes[40];
-    memcpy(band_sizes, enc + off, sizeof(band_sizes));
-    off += sizeof(band_sizes);
+    memcpy(band_sizes, enc + off, sizeof(uint32_t) * hdr.num_bands);
+    off += sizeof(uint32_t) * hdr.num_bands;
 
     /* Dimensions per level — ceil at each step to match the encoder's
        odd-width handling (otherwise odd intermediate widths drop the
@@ -804,14 +814,34 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
     int bw3  = (bw2 + 1) / 2, bh3 = (bh2 + 1) / 2;
 
     /* Slot widths/heights — matches encoder write order:
-         0..2 = LH1/HL1/HH1   (bw1×bh1)
-         3..5 = LH2/HL2/HH2   (bw2×bh2)
-         6..8 = LH3/HL3/HH3   (bw3×bh3)
-         9    = LL3           (bw3×bh3)  */
-    const int slot_w[10] = { bw1, bw1, bw1, bw2, bw2, bw2, bw3, bw3, bw3, bw3 };
-    const int slot_h[10] = { bh1, bh1, bh1, bh2, bh2, bh2, bh3, bh3, bh3, bh3 };
+         levels==3 (10 slots):
+           0..2 = LH1/HL1/HH1   (bw1×bh1)
+           3..5 = LH2/HL2/HH2   (bw2×bh2)
+           6..8 = LH3/HL3/HH3   (bw3×bh3)
+           9    = LL3           (bw3×bh3)
+         levels==2 (7 slots):
+           0..2 = LH1/HL1/HH1   (bw1×bh1)
+           3..5 = LH2/HL2/HH2   (bw2×bh2)
+           6    = LL2           (bw2×bh2) */
+    int slot_w[10], slot_h[10];
+    int n_slots = (levels == 2) ? 7 : 10;
+    if (levels == 2) {
+        slot_w[0]=bw1; slot_w[1]=bw1; slot_w[2]=bw1;
+        slot_w[3]=bw2; slot_w[4]=bw2; slot_w[5]=bw2;
+        slot_w[6]=bw2;
+        slot_h[0]=bh1; slot_h[1]=bh1; slot_h[2]=bh1;
+        slot_h[3]=bh2; slot_h[4]=bh2; slot_h[5]=bh2;
+        slot_h[6]=bh2;
+    } else {
+        slot_w[0]=bw1; slot_w[1]=bw1; slot_w[2]=bw1;
+        slot_w[3]=bw2; slot_w[4]=bw2; slot_w[5]=bw2;
+        slot_w[6]=bw3; slot_w[7]=bw3; slot_w[8]=bw3; slot_w[9]=bw3;
+        slot_h[0]=bh1; slot_h[1]=bh1; slot_h[2]=bh1;
+        slot_h[3]=bh2; slot_h[4]=bh2; slot_h[5]=bh2;
+        slot_h[6]=bh3; slot_h[7]=bh3; slot_h[8]=bh3; slot_h[9]=bh3;
+    }
 
-    /* Decode all 40 bands into per-channel, per-slot int32 buffers. */
+    /* Decode all bands into per-channel, per-slot int32 buffers. */
     PIXEL *bands[4][10];
     for (int ch = 0; ch < 4; ch++)
         for (int s = 0; s < 10; s++)
@@ -820,7 +850,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
     int band_idx = 0;
     int rc = 0;
     for (int ch = 0; ch < 4 && rc == 0; ch++) {
-        for (int s = 0; s < 10 && rc == 0; s++) {
+        for (int s = 0; s < n_slots && rc == 0; s++) {
             int bw = slot_w[s], bh = slot_h[s];
             uint32_t sz = band_sizes[band_idx];
             if (off + sz > enc_size) { rc = -10; break; }
@@ -853,17 +883,22 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
         /* Level-1 quant: {LL=1 (intermediate), LH1=qt[7], HL1=qt[8], HH1=qt[9]} */
         QUANT q_l1[4] = { -1, -qt[7], -qt[8], -qt[9] };
 
-        /* Manually dequantize LL3 (the inverse function only dequantizes
-           LH/HL/HH; LL gets passed straight through). Encoder used
-           qt[0] * FUSED_LL3_EXTRA_DIVISOR to keep LL3 mag under rANS's
-           class-15 ceiling. */
-        #define FUSED_LL3_EXTRA_DIVISOR 16
-        int ll3_dequant = qt[0] * FUSED_LL3_EXTRA_DIVISOR;
+        /* Manually dequantize the deepest LL band (the inverse function
+           only dequantizes LH/HL/HH; LL gets passed straight through).
+           Encoder used qt[0] * EXTRA_DIVISOR to keep deepest-LL mag under
+           rANS class-15 ceiling. Same factor (16) for LL2 (2-level) and
+           LL3 (3-level). */
+        #define FUSED_LL_EXTRA_DIVISOR 16
+        #define FUSED_LL3_EXTRA_DIVISOR 16  /* kept for back-compat string */
+        int ll_dequant = qt[0] * FUSED_LL_EXTRA_DIVISOR;
+        int deepest_slot = (levels == 2) ? 6 : 9;
+        int deepest_bw = (levels == 2) ? bw2 : bw3;
+        int deepest_bh = (levels == 2) ? bh2 : bh3;
         for (int ch = 0; ch < 4; ch++) {
-            PIXEL *p = bands[ch][9];
+            PIXEL *p = bands[ch][deepest_slot];
             if (!p) continue;
-            size_t n = (size_t)bw3 * bh3;
-            for (size_t i = 0; i < n; i++) p[i] *= ll3_dequant;
+            size_t n = (size_t)deepest_bw * deepest_bh;
+            for (size_t i = 0; i < n; i++) p[i] *= ll_dequant;
         }
 
         for (int ch = 0; ch < 4 && rc == 0; ch++) {
@@ -879,19 +914,31 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
                 }
             }
 
-            /* Level 3 inverse: bands[ch][9] = LL3, [6/7/8] = LH3/HL3/HH3 → LL2 */
-            PIXEL *ll2 = (PIXEL *)malloc((size_t)bw2 * bh2 * sizeof(PIXEL));
-            if (!ll2) { rc = -20; break; }
-            CODEC_ERROR e = InvertSpatialQuantDescale16s(&alloc,
-                bands[ch][9], bw3 * (int)sizeof(PIXEL),
-                bands[ch][6], bw3 * (int)sizeof(PIXEL),
-                bands[ch][7], bw3 * (int)sizeof(PIXEL),
-                bands[ch][8], bw3 * (int)sizeof(PIXEL),
-                ll2, bw2 * (int)sizeof(PIXEL),
-                (DIMENSION)bw3, (DIMENSION)bh3,
-                (DIMENSION)bw2, (DIMENSION)bh2,
-                /*descale=*/ds_l3, q_l3);
-            if (e != CODEC_ERROR_OKAY) { free(ll2); rc = -21; break; }
+            PIXEL *ll2;
+            CODEC_ERROR e;
+            if (levels == 3) {
+                /* Level 3 inverse: bands[ch][9] = LL3, [6/7/8] = LH3/HL3/HH3 → LL2 */
+                ll2 = (PIXEL *)malloc((size_t)bw2 * bh2 * sizeof(PIXEL));
+                if (!ll2) { rc = -20; break; }
+                e = InvertSpatialQuantDescale16s(&alloc,
+                    bands[ch][9], bw3 * (int)sizeof(PIXEL),
+                    bands[ch][6], bw3 * (int)sizeof(PIXEL),
+                    bands[ch][7], bw3 * (int)sizeof(PIXEL),
+                    bands[ch][8], bw3 * (int)sizeof(PIXEL),
+                    ll2, bw2 * (int)sizeof(PIXEL),
+                    (DIMENSION)bw3, (DIMENSION)bh3,
+                    (DIMENSION)bw2, (DIMENSION)bh2,
+                    /*descale=*/ds_l3, q_l3);
+                if (e != CODEC_ERROR_OKAY) { free(ll2); rc = -21; break; }
+            } else {
+                /* 2-level: LL2 is read directly from bands[ch][6]. We need
+                   to PASS THROUGH that pointer as-is, but the function
+                   below frees ll2 at the end of L2 inverse. So make a copy
+                   we can free safely. */
+                ll2 = (PIXEL *)malloc((size_t)bw2 * bh2 * sizeof(PIXEL));
+                if (!ll2) { rc = -20; break; }
+                memcpy(ll2, bands[ch][6], (size_t)bw2 * bh2 * sizeof(PIXEL));
+            }
 
             /* Level 2 inverse: ll2 + LH2/HL2/HH2 → LL1 */
             PIXEL *ll1 = (PIXEL *)malloc((size_t)bw1 * bh1 * sizeof(PIXEL));
