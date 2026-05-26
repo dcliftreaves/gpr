@@ -58,8 +58,10 @@ int main(int argc, char **argv) {
     if (!f || fread(raw, 1, sz, f) != sz) { fprintf(stderr, "read fail\n"); return 1; }
     fclose(f);
 
-    /* Encode */
-    FUSED_ENCODER *enc = gpr_encode_fused_create(w, h, 1, 3);
+    /* Encode (FUSED_QUALITY env overrides default q=3) */
+    const char *q_env = getenv("FUSED_QUALITY");
+    int q = (q_env && *q_env) ? atoi(q_env) : 3;
+    FUSED_ENCODER *enc = gpr_encode_fused_create(w, h, 1, q);
     if (!enc) { fprintf(stderr, "create fail\n"); return 1; }
     double t0 = now_ms();
     unsigned char *out = NULL; size_t out_sz = 0;

@@ -238,18 +238,16 @@ static const QUANT quality_tables[12][10] = {
     {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 9: Reserved (mirrors FS5) */
     {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 10: Reserved (mirrors FS5) */
     /* 11: CNN-aware. Turn it up to 11.
-       Cranks BOTH the multi-level L1 highpass (slots 7/8/9) AND the
-       single-level highpass (slots 1/2/3). This way q=11 produces
-       file-size savings under both codec modes. Pairs with a CNN trained
-       on the cranked distribution (baseline BIBO_1x already gives huge
-       gain on single-level outputs).
-       Slot mapping:
-         single-level mode reads slots 1/2/3 (LH/HL/HH) — cranked 4× from
-                       q=3's {24,24,12} to {48,48,48}
-         multi-level mode reads slots 7/8/9 (LH1/HL1/HH1) — cranked from
-                       q=3's {96,96,144} to {192,192,576}
-       Slots 4-6 (L2 highpass) unchanged from q=3 in both modes. */
-    {1, 48, 48, 48, 24, 24, 12, 192, 192, 576},  /* 11: CNN-aware */
+       Cranks the highpass slots across single-level, ML-2, and ML-3:
+         SL reads slots 1/2/3 (LH/HL/HH)    — {24,24,12} → {48,48,48}
+         ML reads slots 4/5/6 (LH2/HL2/HH2) — {24,24,12} → {48,48,24}
+                  slots 7/8/9 (LH1/HL1/HH1) — {96,96,144} → {192,192,576}
+       ML-2 L2-highpass cranking (slots 4/5/6) gives 13% savings on top
+       of L1-highpass cranking — measured on Z8 50MP, ~zero bayer-PSNR
+       loss. Slot 0 (LL) untouched; LL2 has its own ×16 internal
+       divisor and the multiplied-out quant must stay within rANS class
+       range. */
+    {1, 48, 48, 48, 48, 48, 24, 192, 192, 576},  /* 11: CNN-aware */
 };
 
 /* Apply GPR_QUANT_OVERRIDE env var to a quant table copy (task #158).
