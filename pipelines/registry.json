@@ -262,7 +262,7 @@
       "trained_against_codec": "ml2_q3",
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "2b2a4d8d1c2bee65e024faa9b85e96f61288f12bd25dddd37ae858cdd961e1b5"
+      "ckpt_sha256": "9e68045038a858fd4b5056c1fd93abc94b8dcdc17daf7d2b2395bb32669967ac"
     }
   },
   "pipelines": {
