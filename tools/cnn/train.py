@@ -173,6 +173,30 @@ def multiscale_l1(pred, tgt, weights=(1.0, 0.5, 0.25)):
     return sum(losses)
 
 
+_msssim_module = {"fn": None}
+def _get_msssim():
+    if _msssim_module["fn"] is None:
+        from pytorch_msssim import ms_ssim as _ms
+        _msssim_module["fn"] = _ms
+    return _msssim_module["fn"]
+
+
+def training_loss(pred, tgt):
+    """Composite loss. MSSSIM_LOSS_WEIGHT env (default 0) blends in a
+    (1 - MS-SSIM) term to directly optimize the metric the gate uses.
+    Tiles are 128x128 — MS-SSIM needs ≥88 px on the smallest scale, so
+    we use win_size=7 (covers up to 4 scales)."""
+    l1 = multiscale_l1(pred, tgt)
+    w = float(os.environ.get("MSSSIM_LOSS_WEIGHT", "0"))
+    if w <= 0.0:
+        return l1
+    # 4-plane bayer; compute MS-SSIM per channel and average. pytorch_msssim
+    # expects [B, C, H, W] with values in [0, 1].
+    ms = _get_msssim()
+    ssim_val = ms(pred.clamp(0, 1), tgt.clamp(0, 1), data_range=1.0, win_size=7)
+    return (1.0 - w) * l1 + w * (1.0 - ssim_val)
+
+
 def train(args):
     NPZ = default_npz()
     print(f"=== Training {args.variant} (ANE-friendly F) — AA-ON ===")
@@ -236,7 +260,7 @@ def train(args):
                 pred = model(inp); tgt_use = tgt
             else:
                 pred = model(inp); tgt_use = downsample_tgt_to_codec_dims(tgt, ref=pred)
-            l = multiscale_l1(pred, tgt_use)
+            l = training_loss(pred, tgt_use)
             opt.zero_grad(set_to_none=True); l.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step(); loss_sum += l.item(); nb += 1
