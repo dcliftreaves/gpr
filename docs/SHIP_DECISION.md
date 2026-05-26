@@ -8,17 +8,20 @@ Re-measured against single-level with the new visual-metric stack:
 
 | metric | q=3 alone | q=3 + CNN | q=11 + CNN |
 |---|---:|---:|---:|
-| bayer-PSNR | 40–61 dB | 57–66 dB (+4 to +17 dB CNN gain) | similar |
-| Y-PSNR (Z8 50MP → UHD) | 30–47 dB | 45–51 dB | comparable |
-| MS-SSIM | 0.89–0.99 | 0.997+ | 0.995+ |
-| LPIPS (AlexNet) | 0.04–0.28 | 0.01–0.03 | 0.01–0.09 |
+| bayer-PSNR (4-img mean) | 40–61 dB | 57–66 dB | 54–63 dB (~-2 dB vs q=3+CNN) |
+| Y-PSNR (Z8 50MP → UHD) | 30–47 dB | 45–51 dB | 42–48 dB |
+| MS-SSIM | 0.89–0.99 | 0.997+ | 0.993+ |
+| LPIPS (AlexNet) | 0.04–0.28 | 0.01–0.03 | 0.02–0.16 |
 | ΔE2000 (Lab) | 0.5–2.3 | 0.5–1.1 | 0.5–1.2 |
-| file size vs q=3 | — | — | -18% |
+| file size vs q=3 | — | — | -12% to -19% (avg ~17%) |
 
-Single-level + baseline CNN is perceptually indistinguishable from REF
-on the 4-image Z8 test set. q=11 (which now cranks single-level slots
-1/2/3 as well as multi-level slots 7/8/9) saves ~18% with no visible
-quality loss after CNN.
+Single-level q=3 + baseline CNN is perceptually indistinguishable from
+REF on the 4-image Z8 test set (LPIPS 0.01–0.03).
+
+q=11 (which now cranks single-level slots 1/2/3 as well as multi-level
+slots 7/8/9) saves 12–19% (avg ~17%) at the cost of ~2 dB bayer-PSNR and
+a small but measurable LPIPS bump (still well under "visibly different"
+threshold of ~0.15 on most content).
 
 ## Pre-release exploration framing applies
 
