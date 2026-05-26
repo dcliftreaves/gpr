@@ -5,6 +5,32 @@ or any of the cranked-quant docs from the PR #16..#28 window.** Those
 documents were written against the broken codec path and overstate the
 file-size savings while understating the visual cost.
 
+## Update 2026-05-25 (late evening) — 2-level wavelet restored
+
+The original 3-level cascade regression is real and intrinsic (Nyquist
+aliasing through L3 at small scales). The fix landed not as "make 3-level
+match single-level" but as **restore the 2-level wavelet path** (`fa9f328`
+production code, was removed in `5045828`). 2-level avoids the deepest
+cascade.
+
+| mode | Z8 50MP file | Z8 50MP bayer-PSNR | Δ vs SL |
+|---|---:|---:|---:|
+| single-level q=3 | 23.9 MB | 46.73 | — |
+| **ML-2 q=3** | **5.6 MB** | **43.28** | **-3.45** |
+| ML-3 q=3 (still broken) | 3.0 MB | 40.55 | -6.18 |
+
+ML-2 q=11 actually improves bayer-PSNR by +0.81 dB on Z8 (quantization
+acts as a denoiser) at 4.4 MB. See commits `5e1e7ae`, `56a96ae` on
+`fix/multilevel-cascade-regression` for the full restoration.
+
+**Shipping plan (revised):**
+- Stills: single-level FUSED q=3 (default)
+- Video: ML-2 (`FUSED_WAVELET_LEVELS=2`)
+- ML-3: not shipping; cascade regression remains
+
+The "10 dB regression" applies specifically to ML-3 vs SL. ML-2 vs SL
+is -3 to -4 dB, and ML-2 vs ML-3 is +2 to +5 dB (always better).
+
 ## TL;DR
 
 - **FUSED multi-level wavelet has a ~10 dB PSNR regression vs single-level
