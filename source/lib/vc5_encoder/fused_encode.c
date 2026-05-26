@@ -596,15 +596,33 @@ static void vertical_filter_quantize_row(
     }
 #endif
 
-    /* Scalar fallback (boundaries + cleanup) */
+    /* Scalar fallback (boundaries + cleanup).
+
+       Legacy production code (forward.c:FilterVerticalTopBottom_1x) uses
+       BOUNDARY-SPECIFIC 6-tap filters at top/bottom rows, NOT the middle-row
+       formula. Without this, every wavelet level's boundary rows are
+       reconstructed with the wrong filter, and in a 3-level cascade the
+       boundary errors propagate up through the inverse cascade — this is
+       a major contributor to the multi-level regression (task #172).
+
+       legacy top filter coefficients:    {  5, -11,  4,  4, -1, -1 } / 8
+       legacy bottom filter coefficients: {  1,   1, -4, -4, 11, -5 } / 8
+       middle filter equivalent:          { -1,  -1,  8, -8,  1,  1 } / 8
+                                         (after expanding ((X+4)>>3)+(r2-r3)) */
     for (; col < width; col++) {
         int32_t r0 = rows[0][col], r1 = rows[1][col], r2 = rows[2][col];
         int32_t r3 = rows[3][col], r4 = rows[4][col], r5 = rows[5][col];
         int32_t low, high;
-        if (is_top) { low = r0 + r1; }
-        else if (is_bottom) { low = r4 + r5; }
-        else { low = r2 + r3; }
-        high = ((r4 + r5 - r0 - r1 + 4) >> 3) + (r2 - r3);
+        if (is_top) {
+            low = r0 + r1;
+            high = (5*r0 - 11*r1 + 4*r2 + 4*r3 - r4 - r5 + 4) >> 3;
+        } else if (is_bottom) {
+            low = r4 + r5;
+            high = (r0 + r1 - 4*r2 - 4*r3 + 11*r4 - 5*r5 + 4) >> 3;
+        } else {
+            low = r2 + r3;
+            high = ((r4 + r5 - r0 - r1 + 4) >> 3) + (r2 - r3);
+        }
         out_lo[col] = quantize_scalar(low, mid_lo, mul_lo);
         out_hi[col] = quantize_scalar(high, mid_hi, mul_hi);
     }
