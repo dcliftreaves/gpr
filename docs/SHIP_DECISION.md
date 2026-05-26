@@ -1,8 +1,22 @@
 # Ship-decision artifact — corrected after 2026-05-25 evening
+(amended 2026-05-25 late evening: 2-level wavelet restored)
 
-## TL;DR (updated)
+## TL;DR (updated again)
 
-The shipping pipeline is **single-level FUSED q=3 + baseline BIBO_1x CNN.**
+**Two shipping pipelines, both viable:**
+
+1. **Single-level FUSED q=3 + baseline BIBO_1x CNN** — highest quality,
+   46-47 dB PSNR on Z8 50 MP, 23-24 MB per still. This is the stills
+   pipeline.
+
+2. **2-level FUSED (`FUSED_WAVELET_LEVELS=2`) q=3** — 4.3× smaller files
+   (5.6 MB on Z8), 1.7× faster encode (22 ms on M1), 3.5 dB lower
+   bayer-PSNR. This is the video pipeline, where size and throughput
+   matter more than peak fidelity.
+
+3-level cascade (the original "multi-level") is still broken — Nyquist
+aliasing through L3 is intrinsic; -8 to -11 dB on stripe patterns vs
+single-level. Avoid; not a shipping configuration.
 
 Re-measured against single-level with the new visual-metric stack:
 
