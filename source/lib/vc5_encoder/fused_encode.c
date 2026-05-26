@@ -902,6 +902,14 @@ typedef struct {
     int levels;            /* Wavelet depth: 1 = single, 2 = 2-level (LL2 emitted),
                               3 = 3-level (LL3 emitted via cascade). */
 
+    /* Anti-alias prefilter history for L2 input. When FUSED_L2_PREFILTER=3,
+       stream_cascade_higher_levels keeps the last 2 ll1 rows here so it can
+       compute a 3-tap [1,2,1]/4 vertical LP on the LL1 stream before the
+       L2 wavelet sees it. NULL when the prefilter is off. */
+    PIXEL *ll1_prev1;
+    PIXEL *ll1_prev2;
+    int ll1_history_count;
+
     /* Inline-mode BayesShrink threshold per band, in QUANTIZED coefficient
        units. 0 = no thresholding. Bands [LL=0, LH=1, HL=2, HH=3]. LL is left
        at 0 (DC content shouldn't be soft-thresholded). Per-channel because
@@ -2116,15 +2124,80 @@ static void unpack_luma_row_col_decimate_2x1(
 
    This eliminates the LL1 and LL2 full-image buffers (saves ~57 MB at
    50 MP), keeping only the small 6-row horizontal buffers per level. */
+/* Env: FUSED_L2_PREFILTER selects an anti-alias LP on the LL1 stream
+   before the L2 wavelet sees it. Values:
+     0 (default)  — off
+     3 (h-only)   — 3-tap [1,2,1]/4 horizontal LP
+     33 (hv)      — same 3-tap LP in both X and Y directions
+   The vertical LP needs a 2-row history per channel; storage allocated
+   on demand. Off-default since this is lossy by design.
+*/
+#define FUSED_L2_PREFILTER_MAX_W 8192
+static int fused_l2_prefilter_taps(void) {
+    static int cached = -1;
+    if (cached >= 0) return cached;
+    const char *e = getenv("FUSED_L2_PREFILTER");
+    if (!e || !*e) { cached = 0; return 0; }
+    int v = atoi(e);
+    cached = (v == 3 || v == 33) ? v : 0;
+    return cached;
+}
+
 static void stream_cascade_higher_levels(FUSED_CHANNEL_STATE *cs,
                                          const PIXEL *ll1_row)
 {
     int bw_l2 = cs->band_width_l2;
     int bw_l3 = cs->band_width_l3;
 
+    int prefilter_mode = fused_l2_prefilter_taps();
+    PIXEL prefilter_scratch[FUSED_L2_PREFILTER_MAX_W];
+    PIXEL vfilter_scratch[FUSED_L2_PREFILTER_MAX_W];
+    const PIXEL *l2_input = ll1_row;
+    int bw = cs->band_width;
+
+    if (prefilter_mode != 0 && bw <= FUSED_L2_PREFILTER_MAX_W && bw >= 3) {
+        const PIXEL *vfilt = ll1_row;
+        /* Vertical 3-tap [1,2,1]/4 LP on the LL1 row stream. */
+        if (prefilter_mode == 33) {
+            if (cs->ll1_prev1 == NULL) {
+                cs->ll1_prev1 = (PIXEL *)fused_aligned_calloc(bw, sizeof(PIXEL));
+                cs->ll1_prev2 = (PIXEL *)fused_aligned_calloc(bw, sizeof(PIXEL));
+                cs->ll1_history_count = 0;
+            }
+            if (cs->ll1_history_count >= 2) {
+                /* Compute LP on (prev2, prev1, current). Output corresponds to
+                   the prev1 row's time index — i.e. we emit a 1-row-delayed
+                   smoothed value. The L2 cascade sees fewer rows by 1; the
+                   bottom-edge tail handler picks up the missing rows. */
+                for (int i = 0; i < bw; i++) {
+                    vfilter_scratch[i] = (PIXEL)((cs->ll1_prev2[i]
+                                                  + 2 * cs->ll1_prev1[i]
+                                                  + ll1_row[i] + 2) >> 2);
+                }
+                vfilt = vfilter_scratch;
+            } else {
+                /* Warm-up: not enough history yet — pass through unfiltered. */
+                vfilt = ll1_row;
+            }
+            /* Shift history */
+            if (cs->ll1_history_count >= 1) {
+                memcpy(cs->ll1_prev2, cs->ll1_prev1, bw * sizeof(PIXEL));
+            }
+            memcpy(cs->ll1_prev1, ll1_row, bw * sizeof(PIXEL));
+            if (cs->ll1_history_count < 2) cs->ll1_history_count++;
+        }
+        /* Horizontal 3-tap LP on whichever row we'll feed the L2 horizontal_filter. */
+        prefilter_scratch[0] = vfilt[0];
+        for (int i = 1; i < bw - 1; i++) {
+            prefilter_scratch[i] = (PIXEL)((vfilt[i-1] + 2*vfilt[i] + vfilt[i+1] + 2) >> 2);
+        }
+        prefilter_scratch[bw-1] = vfilt[bw-1];
+        l2_input = prefilter_scratch;
+    }
+
     /* ---- Level 2 horizontal filter ---- */
     int slot2 = cs->buf_row_l2 % FUSED_ROW_BUFS;
-    horizontal_filter(ll1_row,
+    horizontal_filter(l2_input,
                       cs->lp_buf_l2[slot2], cs->hp_buf_l2[slot2],
                       cs->band_width, /*prescale=*/2);
     cs->buf_row_l2++;
@@ -3310,8 +3383,18 @@ static int setup_channel_state(
                levels==3: qt[0]=LL2 (no-op divisor=1; LL2 is intermediate)
                levels==2: qt[0] × LL2_EXTRA_DIVISOR (16) to keep LL2 mag
                           under the rANS class-15 ceiling — LL2 IS encoded. */
-            #define FUSED_LL2_EXTRA_DIVISOR 16
-            int ll2_div = (levels == 2) ? (qt[0] * FUSED_LL2_EXTRA_DIVISOR) : qt[0];
+            #define FUSED_LL2_EXTRA_DIVISOR_DEFAULT 16
+            /* Env override for the LL2 extra divisor. Experiment-controlled.
+               Lower values preserve more LL2 fidelity at file-size cost.
+               Must stay high enough to keep LL2 magnitudes < rANS class-15
+               ceiling (2047) for typical content. */
+            int ll2_extra = FUSED_LL2_EXTRA_DIVISOR_DEFAULT;
+            const char *_ll2_env = getenv("FUSED_LL2_DIVISOR");
+            if (_ll2_env && *_ll2_env) {
+                int v = atoi(_ll2_env);
+                if (v >= 1 && v <= 64) ll2_extra = v;
+            }
+            int ll2_div = (levels == 2) ? (qt[0] * ll2_extra) : qt[0];
             ch_state[ch].midpoint_l2[0] = get_midpoint(ll2_div);
             ch_state[ch].multiplier_l2[0] = get_multiplier(ll2_div);
             ch_state[ch].midpoint_l2[1] = get_midpoint(qt[4]);
@@ -4008,6 +4091,8 @@ void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
             if (cs->hp_buf_l3[r])    free(cs->hp_buf_l3[r]);
         }
         if (cs->ll2_row_scratch) free(cs->ll2_row_scratch);
+        if (cs->ll1_prev1) free(cs->ll1_prev1);
+        if (cs->ll1_prev2) free(cs->ll1_prev2);
     }
     free(ctx);
 }

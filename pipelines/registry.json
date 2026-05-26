@@ -49,6 +49,86 @@
               "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:384,8:384,9:576"},
       "quality": 3,
       "$note": "Reproduces the cranked-highpass distribution the L1L2x4 CNN was trained against."
+    },
+    "ml2_q3_l1soft": {
+      "$doc": "Experiment E1: ML-2 with L1 highpass quant halved. Tests if visible blockiness is dominated by L1 highpass loss.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "GPR_QUANT_OVERRIDE": "7:48,8:48,9:72"},
+      "quality": 3
+    },
+    "ml2_q3_l2soft": {
+      "$doc": "Experiment E2: ML-2 with L2 highpass quant halved. Tests if L2 highpass aliasing causes the blockiness.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6"},
+      "quality": 3
+    },
+    "ml2_q3_bothsoft": {
+      "$doc": "Experiment E3: ML-2 with BOTH L1 and L2 highpass quant halved.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6,7:48,8:48,9:72"},
+      "quality": 3
+    },
+    "ml2_q3_nohighpassquant": {
+      "$doc": "Experiment E4: ML-2 with ALL highpass set to quant=1 (effectively no quant). Upper bound on what the ML-2 wavelet can produce. If THIS fails, the wavelet itself is the issue.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "GPR_QUANT_OVERRIDE": "4:1,5:1,6:1,7:1,8:1,9:1"},
+      "quality": 3
+    },
+    "ml2_q3_ll2div8": {
+      "$doc": "Experiment E5: LL2 extra divisor reduced from 16 to 8 — more LL2 fidelity.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "FUSED_LL2_DIVISOR": "8"},
+      "quality": 3
+    },
+    "ml2_q3_ll2div4": {
+      "$doc": "Experiment E5b: LL2 extra divisor = 4. May exceed rANS class-15 ceiling for some content; gate will tell.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "FUSED_LL2_DIVISOR": "4"},
+      "quality": 3
+    },
+    "ml2_q3_combo": {
+      "$doc": "Experiment E6: lighter L1+L2 highpass + lighter LL2 divisor combined.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "FUSED_LL2_DIVISOR": "8",
+              "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6,7:48,8:48,9:72"},
+      "quality": 3
+    },
+    "ml2_q3_prefilter3h": {
+      "$doc": "Experiment E7: 3-tap horizontal LP prefilter on LL1 before L2 cascade. Attacks horizontal-direction Nyquist aliasing in the L2 wavelet.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "FUSED_L2_PREFILTER": "3"},
+      "quality": 3
+    },
+    "ml2_q3_prefilter3h_softq": {
+      "$doc": "Experiment E7b: prefilter + lighter highpass quant. Stacked best-known mitigations.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "FUSED_L2_PREFILTER": "3",
+              "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6,7:48,8:48,9:72"},
+      "quality": 3
+    },
+    "ml2_q3_prefilter3hv": {
+      "$doc": "Experiment E12: 3-tap LP prefilter in BOTH X and Y on LL1 → L2. Strongest anti-alias.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "FUSED_L2_PREFILTER": "33"},
+      "quality": 3
+    },
+    "ml2_q3_prefilter3hv_softq": {
+      "$doc": "Experiment E13: H+V prefilter + lighter highpass quant.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2",
+              "FUSED_L2_PREFILTER": "33",
+              "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6,7:48,8:48,9:72"},
+      "quality": 3
     }
   },
   "cnns": {
@@ -81,6 +161,24 @@
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
       "ckpt_sha256": "567146861893096b1ab312990a8d2ba222f69552685f9abf8a3ca4b7a14e97c0"
+    },
+    "bibo1x_ane_sl_q3_strong5": {
+      "$doc": "Same checkpoint as bibo1x_ane_sl_q3 but applied with 5x residual_scale (0.05). Tests whether the CNN's correction direction is right but undershoot.",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "sl_q3",
+      "residual_scale": 0.05,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "44987fc967ec7a7ba7e1369f292e88df8a6114774382b2bdccd4def0021a3e6a"
+    },
+    "bibo1x_ane_sl_q3_strong10": {
+      "$doc": "Same checkpoint with residual_scale 0.10 (10x default).",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "sl_q3",
+      "residual_scale": 0.10,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "44987fc967ec7a7ba7e1369f292e88df8a6114774382b2bdccd4def0021a3e6a"
     }
   },
   "pipelines": {
@@ -154,6 +252,66 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "historical-much-better-claim"
+    },
+    "codec=ml2_q3_l1soft+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l1soft", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E1-L1-soft"
+    },
+    "codec=ml2_q3_l2soft+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2soft", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E2-L2-soft"
+    },
+    "codec=ml2_q3_bothsoft+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_bothsoft", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E3-both-soft"
+    },
+    "codec=ml2_q3_nohighpassquant+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_nohighpassquant", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E4-no-hp-quant-upper-bound"
+    },
+    "codec=ml2_q3_ll2div8+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_ll2div8", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E5-LL2-div8"
+    },
+    "codec=ml2_q3_ll2div4+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_ll2div4", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E5b-LL2-div4"
+    },
+    "codec=ml2_q3_combo+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_combo", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E6-quant+LL2-combo"
+    },
+    "codec=ml2_q3+cnn=bibo1x_ane_sl_q3_strong5+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3", "cnn": "bibo1x_ane_sl_q3_strong5", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E7-cnn-strong-5x"
+    },
+    "codec=ml2_q3+cnn=bibo1x_ane_sl_q3_strong10+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3", "cnn": "bibo1x_ane_sl_q3_strong10", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E8-cnn-strong-10x"
+    },
+    "codec=ml2_q3_prefilter3h+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_prefilter3h", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E9-prefilter-h"
+    },
+    "codec=ml2_q3_prefilter3h_softq+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_prefilter3h_softq", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E10-prefilter+softq"
+    },
+    "codec=ml2_q3_prefilter3h+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_prefilter3h", "cnn": "bibo1x_ane_sl_q3", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E11-prefilter+cnn"
+    },
+    "codec=ml2_q3_prefilter3hv+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_prefilter3hv", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E12-prefilter-hv"
+    },
+    "codec=ml2_q3_prefilter3hv+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_prefilter3hv", "cnn": "bibo1x_ane_sl_q3", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E12b-prefilter-hv+cnn"
+    },
+    "codec=ml2_q3_prefilter3hv_softq+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_prefilter3hv_softq", "cnn": "none", "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE", "$role": "exp-E13-prefilter-hv+softq"
     }
   }
 }
