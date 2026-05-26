@@ -803,9 +803,39 @@ static void wavelet_decompose_buffer(
     }
 
     /* Bottom-edge handling: the 6-tap vertical filter under-runs by 2 rows.
-       Production code clamps the last two output rows with is_bottom=true.
-       For multi-level we accept the under-run (rows stay zero); the lost
-       rows are 2 of out_height = ~0.1% of coefficients for 1380-row band. */
+       Emit the missing last rows by re-running the filter with is_bottom=true
+       to clamp the bottom boundary. Without this, the last 2 rows stay zero,
+       which contributes to the multi-level regression (task #172) — for
+       period-N stripes the 2 zero rows are conspicuous, and the inverse
+       cascade propagates the loss to L2 → L1 reconstruction. */
+    while (out_row < out_height) {
+        /* Use the last 6 rows we have buffered. Pad by reusing the last
+           row when buf_filled < 6 (only happens for tiny inputs). */
+        int last_input_row = in_height - 1;
+        int base = (last_input_row + 1 - 6) % FUSED_ROW_BUFS;
+        if (base < 0) base += FUSED_ROW_BUFS;
+        PIXEL *lprefs[6], *hprefs[6];
+        for (int r = 0; r < 6; r++) {
+            int idx = (base + r) % FUSED_ROW_BUFS;
+            lprefs[r] = lp_rows[idx];
+            hprefs[r] = hp_rows[idx];
+        }
+        vertical_filter_quantize_row(lprefs, out_width,
+            mid[0], mul[0],  mid[1], mul[1],
+            0,0, 0,0,
+            out_ll + out_row * out_width,
+            out_lh + out_row * out_width,
+            NULL, NULL,
+            /*is_top=*/0, /*is_bottom=*/1);
+        vertical_filter_quantize_row(hprefs, out_width,
+            mid[2], mul[2],  mid[3], mul[3],
+            0,0, 0,0,
+            out_hl + out_row * out_width,
+            out_hh + out_row * out_width,
+            NULL, NULL,
+            /*is_top=*/0, /*is_bottom=*/1);
+        out_row++;
+    }
 
     for (int r = 0; r < FUSED_ROW_BUFS; r++) {
         free(lp_rows[r]);
