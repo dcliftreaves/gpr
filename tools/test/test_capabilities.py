@@ -239,11 +239,16 @@ CAPABILITIES = [
          peak=16383,
          out_res=(3840, 2160),
          codec_path="singlelevel",
-         # Re-baselined 2026-05-25 evening: switched from multi-level+dec=2
-         # (10 dB broken, see docs/REGRESSION_2026-05-25.md) to single-level.
-         # New baseline ~54.5 dB Y-PSNR.
+         visual_metrics=True,
+         # Re-baselined 2026-05-25 evening (single-level): psnr_db is the
+         # render-domain bayer-PSNR; y_psnr_db / ms_ssim / lpips / dE2000
+         # are the new viewed-side metric stack (see tools/test/metrics.py).
+         # Floors set ~10% below measured baseline for headroom.
          criteria=dict(
-             psnr_db={"min": 52.0, "exceed_above": 54.0})),
+             psnr_db={"min": 52.0, "exceed_above": 54.0},
+             ms_ssim={"min": 0.985, "exceed_above": 0.995},
+             lpips={"max":   0.10,  "exceed_below": 0.05},
+             dE2000={"max":   2.0,  "exceed_below": 1.0})),
     dict(id="cnn_BIBO_1x_Z8_ISO64_4k",
          display="CNN · BIBO_1x · Z8 ISO64 · 50 MP → 4K (single-level + CNN)",
          kind="cnn_corrected",
@@ -251,8 +256,12 @@ CAPABILITIES = [
          peak=16383,
          out_res=(4096, 2160),
          codec_path="singlelevel",
+         visual_metrics=True,
          criteria=dict(
-             psnr_db={"min": 52.0, "exceed_above": 54.0})),
+             psnr_db={"min": 52.0, "exceed_above": 54.0},
+             ms_ssim={"min": 0.985, "exceed_above": 0.995},
+             lpips={"max":   0.10,  "exceed_below": 0.05},
+             dE2000={"max":   2.0,  "exceed_below": 1.0})),
     dict(id="cnn_BIBO_1x_Z8_ISO22800_uhd",
          display="CNN · BIBO_1x · Z8 ISO22800 · 50 MP → UHD (single-level + CNN)",
          kind="cnn_corrected",
@@ -260,10 +269,13 @@ CAPABILITIES = [
          peak=16383,
          out_res=(3840, 2160),
          codec_path="singlelevel",
-         # Lower floor: high-ISO content is harder to recover.
-         # Baseline ~44.9 dB Y-PSNR on single-level + CNN.
+         visual_metrics=True,
+         # Lower floors: high-ISO content is harder to recover.
          criteria=dict(
-             psnr_db={"min": 42.5, "exceed_above": 44.5})),
+             psnr_db={"min": 42.5, "exceed_above": 44.5},
+             ms_ssim={"min": 0.970, "exceed_above": 0.985},
+             lpips={"max":   0.15,  "exceed_below": 0.08},
+             dE2000={"max":   3.0,  "exceed_below": 1.5})),
 ]
 
 
@@ -612,7 +624,24 @@ def measure_cnn_corrected(cap, work: Path) -> Dict[str, float]:
     src_resized = _resize_to_target(src_rgb, target_w, target_h)
     cnn_resized = _resize_to_target(cnn_rgb, target_w, target_h)
     psnr = _psnr_masked_y(src_resized, cnn_resized)
-    return dict(psnr_db=psnr)
+    metrics = dict(psnr_db=psnr)
+    # If the cell opts in to the full visual metric stack (lpips/ms_ssim/dE),
+    # compute the perceptual metrics too. Requires tools/test/metrics.py.
+    if cap.get("visual_metrics", False):
+        try:
+            sys.path.insert(0, str(REPO / "tools" / "test"))
+            from metrics import compute_visual_metrics
+            # metrics module expects uint8 RGB; resized arrays are uint16.
+            src8 = (src_resized.astype(np.float32) / 256.0).clip(0, 255).astype(np.uint8)
+            cnn8 = (cnn_resized.astype(np.float32) / 256.0).clip(0, 255).astype(np.uint8)
+            vm = compute_visual_metrics(src8, cnn8)
+            metrics["y_psnr_db"] = vm["y_psnr"]
+            metrics["ms_ssim"]   = vm["ms_ssim"]
+            metrics["lpips"]     = vm["lpips"]
+            metrics["dE2000"]    = vm["dE2000_mean"]
+        except Exception as e:
+            metrics["_visual_metrics_error"] = str(e)[:120]
+    return metrics
 
 
 # ---------------------------------------------------------------------------
@@ -650,6 +679,14 @@ METRIC_ORDER = [
     ("decode_ms",      "Decode",        "ms",  "{:.1f}"),
     ("compress_ratio", "Size vs raw",   "%",   "{:.2%}"),
     ("psnr_db",        "Roundtrip PSNR","dB",  "{:.2f}"),
+    # Visual metric stack (opt-in per cell via cap["visual_metrics"]=True).
+    # See tools/test/metrics.py for definitions. These cover the criteria
+    # the user requested ("multiple measures of visual correctness" +
+    # "bayer AND viewed") — bayer-side is psnr_db, viewed-side is below.
+    ("y_psnr_db",      "Y-PSNR (RGB)",  "dB",  "{:.2f}"),
+    ("ms_ssim",        "MS-SSIM",       "",    "{:.4f}"),
+    ("lpips",          "LPIPS-Alex",    "",    "{:.4f}"),
+    ("dE2000",         "ΔE2000",        "",    "{:.2f}"),
 ]
 
 
@@ -881,13 +918,21 @@ def main():
         overall, mr = check_cap(cap, m)
         if overall == "FAILED":
             any_failed = True
-        # Display: still_roundtrip has 4 metrics; cnn_corrected has only PSNR.
+        # Display: still_roundtrip has 4 metrics; cnn_corrected has only PSNR
+        # plus optional visual stack (Y-PSNR / MS-SSIM / LPIPS / ΔE2000).
         if cap["kind"] == "still_roundtrip":
             print(f"  {cap['display']:<55s} {m['encode_ms']:>8.1f} {m['decode_ms']:>8.1f}  "
                   f"{m['compress_ratio']*100:>6.2f}% {m['psnr_db']:>8.2f}  {overall}")
         else:
+            extras = ""
+            if cap.get("visual_metrics", False):
+                yp = m.get("y_psnr_db");  ms = m.get("ms_ssim")
+                lp = m.get("lpips");      de = m.get("dE2000")
+                if yp is not None:
+                    extras = (f"  Y-PSNR={yp:.2f} MS-SSIM={ms:.4f} "
+                              f"LPIPS={lp:.4f} ΔE={de:.2f}")
             print(f"  {cap['display']:<55s} {'-':>8s} {'-':>8s}  {'-':>6s}  "
-                  f"{m.get('psnr_db', 0.0):>8.2f}  {overall}")
+                  f"{m.get('psnr_db', 0.0):>8.2f}  {overall}{extras}")
         rows.append((cap, m, overall, mr))
 
     docs = REPO / "docs/CAPABILITIES.md"
