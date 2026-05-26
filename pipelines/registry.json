@@ -1,0 +1,124 @@
+{
+  "$doc": "Pipeline registry. The ONLY place where {codec, cnn, demosaicer} triples are named. Run-gate refuses to test a pipeline that isn't here. Use the full name in artifact paths, PR descriptions, and claims_log.md — never an ad-hoc short form like 'ML2_q3_CNN' (the short form was the failure mode this scaffolding exists to fix).",
+  "$naming": "codec=<codec_id>+cnn=<cnn_id>+demosaic=<demosaic_id>. Hyphens within an id are fine; '+' separates the triple. If a field is absent (e.g. no CNN), use 'none' (codec=sl_q3+cnn=none+demosaic=sips).",
+  "$rules": [
+    "Adding a pipeline: required fields populated, no ad-hoc 'TODO' fields.",
+    "Renaming a pipeline: forbidden in same PR as an artifact run. Rename + re-run in separate PRs.",
+    "If you can't fill `cnn_ckpt_sha256`, you can't register the pipeline. Run `sha256sum` on the .pt file."
+  ],
+  "demosaicers": {
+    "sips_via_gpr_tools": {
+      "$doc": "Bayer plane → DNG via gpr_tools (Adobe DNG SDK preserves color matrix from source DNG params) → PNG via macOS sips (Apple's CIRawFilter). Gold standard for color science. Requires source DNG for color matrix.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "needs_source_dng": true
+    }
+  },
+  "codecs": {
+    "sl_q3": {
+      "$doc": "Single-level FUSED q=3. The shipping stills codec.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1"},
+      "quality": 3
+    },
+    "sl_q11": {
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_QUALITY": "11"},
+      "quality": 11
+    },
+    "ml2_q3": {
+      "$doc": "2-level FUSED q=3. Restored 2026-05-25. NOT yet shipping for any class.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2"},
+      "quality": 3
+    },
+    "ml2_q11": {
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "2", "FUSED_QUALITY": "11"},
+      "quality": 11
+    },
+    "ml3_q3": {
+      "$doc": "3-level FUSED q=3. NOT shipping; documented Nyquist regression.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "3"},
+      "quality": 3
+    },
+    "ml3_q12_l1l2x4_legacy": {
+      "$doc": "Historical pipeline that produced the 'looked much better' results in /Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/. ml3 codec with L1+L2 highpass cranked 4x. Paired with cnn=bibo1x_ane_l1l2x4. The historical q=12 quality table no longer exists; we approximate via GPR_QUANT_OVERRIDE.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {"GPR_INCLUDE_LL": "1", "FUSED_MULTI_LEVEL": "1", "FUSED_WAVELET_LEVELS": "3",
+              "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:384,8:384,9:576"},
+      "quality": 3,
+      "$note": "Reproduces the cranked-highpass distribution the L1L2x4 CNN was trained against."
+    }
+  },
+  "cnns": {
+    "none": {
+      "$doc": "No CNN — codec output is the final result."
+    },
+    "bibo1x_ane_sl_q3": {
+      "$doc": "BIBO_1x_AAon_w16 trained on SL q=3 codec outputs. The shipped repo checkpoint.",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "sl_q3",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "44987fc967ec7a7ba7e1369f292e88df8a6114774382b2bdccd4def0021a3e6a"
+    },
+    "bibo1x_ane_l1l2x4": {
+      "$doc": "Trained against multi-level codec with L1+L2 highpass cranked 4x. Historical 'looked much better' pipeline.",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_L1L2x4.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "ml3_q12_l1l2x4_legacy",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "f04310e14dd429e0b2f2720cb1011dc17552755d2e716e40fde40d75cbb3cbde"
+    },
+    "bibo1x_ane_hh1x4": {
+      "$doc": "Trained against codec with HH1 cranked 4x. trained_against_codec TBD — check training script's data manifest.",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "TBD_check_training_config",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "567146861893096b1ab312990a8d2ba222f69552685f9abf8a3ca4b7a14e97c0"
+    }
+  },
+  "pipelines": {
+    "$doc": "The actual {codec, cnn, demosaicer} triples. Each one is a ship-target with a declared ship_class.",
+    "codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$last_known_status": "Believed to clear STILL. Run the gate to confirm."
+    },
+    "codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$last_known_status": "Unknown without CNN — gate will tell."
+    },
+    "codec=ml2_q3+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$last_known_status": "FAILS VIDEO_FREEZE on Z8Z_0001 (LPIPS 0.231 vs gate 0.08). Documented in claims_log.md."
+    },
+    "codec=ml2_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$last_known_status": "FAILS VIDEO_FREEZE. CNN is SL-trained, not paired with ML-2 artifacts. Mismatched pipeline."
+    },
+    "codec=ml3_q12_l1l2x4_legacy+cnn=bibo1x_ane_l1l2x4+demosaic=sips_via_gpr_tools": {
+      "codec": "ml3_q12_l1l2x4_legacy",
+      "cnn": "bibo1x_ane_l1l2x4",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$last_known_status": "Historical 'much better' pipeline. NOT yet re-tested under the new gate."
+    }
+  }
+}

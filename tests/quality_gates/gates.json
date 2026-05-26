@@ -1,0 +1,53 @@
+{
+  "$schema": "gates.schema.json (not yet written)",
+  "$doc": "Per-metric thresholds for the ship-gate. Owned by david@happy.ai. Edit ONLY in PRs that touch nothing else. The runner refuses to issue a PASS verdict if any image is over any per-image threshold.",
+  "$rules": [
+    "Per-image thresholds, NOT aggregate. The worst image governs.",
+    "Tightening a threshold is welcome; loosening requires written justification in the PR description.",
+    "Never add a 'just for this pipeline' threshold override. If a pipeline can't meet the gate, the gate hasn't moved.",
+    "If a gate value is null, that metric is informational only (logged, not enforced). Use sparingly."
+  ],
+  "ship_classes": {
+    "$doc": "Three ship classes. Pipelines declare which one they're trying to clear; the gate enforces the named class.",
+    "STILL": {
+      "$doc": "Stills bar: perceptually identical to REF. Tight thresholds; this is the pipeline a user sees on a printed page or full-res zoom.",
+      "per_image": {
+        "lpips":       {"max": 0.05,  "$doc": "AlexNet LPIPS on 4K-downsample sRGB. <0.05 = imperceptible per LPIPS paper conventions."},
+        "ms_ssim":     {"min": 0.99},
+        "y_psnr":      {"min": 35.0, "$doc": "BT.709 luma PSNR, dB."},
+        "dE2000_mean": {"max": 1.5}
+      }
+    },
+    "VIDEO_FREEZE": {
+      "$doc": "Video bar at freeze-frame. Looser than stills because motion masks artifacts in playback, but freeze-frame is the inspection mode that surfaces them. We grade pipelines here; we don't grade at 'looks fine while playing back'.",
+      "per_image": {
+        "lpips":       {"max": 0.08},
+        "ms_ssim":     {"min": 0.98},
+        "y_psnr":      {"min": 32.0},
+        "dE2000_mean": {"max": 2.0}
+      }
+    },
+    "PREVIEW": {
+      "$doc": "Preview-only bar — lowest quality acceptable for an on-camera proxy or a scrubbing preview. NEVER use for production output.",
+      "per_image": {
+        "lpips":       {"max": 0.15},
+        "ms_ssim":     {"min": 0.95},
+        "y_psnr":      {"min": 28.0},
+        "dE2000_mean": {"max": 3.0}
+      }
+    }
+  },
+  "anti_gaming": {
+    "$doc": "Hard rules the runner enforces. Adding a rule is welcome; removing one requires written justification.",
+    "require_visual_diff": true,
+    "$visual_diff_doc": "Runner writes a side-by-side PNG of REF / pipeline / worst-image-crop to the run dir. If the file isn't produced, verdict is INDETERMINATE, not PASS.",
+    "require_worst_first_report": true,
+    "$worst_first_doc": "JSON output sorts images by LPIPS descending. The runner's stdout MUST quote the worst image first.",
+    "forbid_aggregate_only": true,
+    "$forbid_agg_doc": "Reports that contain only aggregates without per-image rows are invalid. Schema enforces this.",
+    "require_run_hash": true,
+    "$run_hash_doc": "Every run gets a hash of (pipeline_id, codec_env_canonical, cnn_ckpt_sha256, source_shas, gate_version). Same inputs = same hash = same run dir.",
+    "require_inspection_sentence": true,
+    "$inspection_doc": "Any ship claim must reference a claims_log.md entry whose 'visual_description' field is at least 6 words and contains at least one concrete noun (rocks, sky, edge, blockiness, haze, etc.). The runner checks this on --claim invocation."
+  }
+}
