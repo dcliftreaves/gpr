@@ -3547,10 +3547,7 @@ static int fused_choose_inline_mode(void) {
     return (ncpu > 0 && ncpu <= 6) ? 1 : 0;
 }
 
-/* Multi-level mode is off by default while it stabilizes; opt in via env.
-   When on, the encoder produces 10 bands/channel (40 total) instead of 3,
-   giving ~2× tighter compression at the cost of extra memory (LL1 + LL2 +
-   LL3 buffers) and serial post-Pass-1 work. */
+/* Multi-level mode is off by default; opt in via FUSED_MULTI_LEVEL=1. */
 static int fused_choose_multi_level(void) {
     const char *env = getenv("FUSED_MULTI_LEVEL");
     if (env) {
@@ -3558,6 +3555,22 @@ static int fused_choose_multi_level(void) {
         if (env[0] == '1') return 1;
     }
     return 0;
+}
+
+/* When multi_level is on, choose 2 or 3 wavelet levels.
+   Default = 3 (current behavior, kept for compatibility).
+   Set FUSED_WAVELET_LEVELS=2 for the production-validated 2-level path
+   that ships 24 fps × 50 MP × UHS-II V90 microSD without cascade ringing
+   (task #172 — see docs/REGRESSION_2026-05-25.md). */
+static int fused_choose_levels(int multi_level) {
+    if (!multi_level) return 1;
+    const char *env = getenv("FUSED_WAVELET_LEVELS");
+    if (env) {
+        int v = atoi(env);
+        if (v == 2) return 2;
+        if (v == 3) return 3;
+    }
+    return 3;
 }
 
 /* Multi-level streaming: when set (and multi_level=1), runs levels 2 and 3
