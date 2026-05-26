@@ -44,16 +44,45 @@ restricted-rights window in mind.
 4. **Visual metric stack** at `tools/test/metrics.py` for any future
    ship/no-ship call.
 
+## Aggressive single-level cranks
+
+How far can single-level alone get on file size? Tested with Z8Z_5323
+(high-detail scene, hardest to compress):
+
+| crank | KB | savings | quality risk |
+|---|---:|---:|---|
+| q=3 baseline | 35,910 | — | reference |
+| HH×4 (= q=11) | 28,915 | 19.5% | imperceptible w/ CNN |
+| HH×8 | 24,749 | 31.1% | small visible degradation |
+| HH×16 | 18,828 | 47.6% | visible artifacts, CNN may not fully recover |
+| HH×32 | 15,843 | 55.9% | clearly degraded |
+
+The CNN was trained on HH×4 distribution; HH×16+ is out-of-distribution
+and the CNN won't help much. A retrained CNN at HH×16 would change this.
+
 ## What does NOT ship yet (blocked on task #172)
 
 1. **Multi-level wavelet path**, including the file-size-density benefits
    it was buying for the video codec. Files at single-level are 3.3×
-   bigger than broken-multi-level was producing — Pi 5 sustained
-   24 fps × 50 MP target is on hold until the cascade fix lands.
+   bigger than broken-multi-level was producing.
 2. **q=12 / cranked-L1+L2 preset.** Was measured on multi-level. Re-do
    on fixed multi-level once available.
 3. **Retrained CNN checkpoints** (HH1×4, L1L2×4). Trained on multi-level
    outputs, calibrated to the broken artifact distribution.
+
+## Pi 5 24 fps × 50 MP video viability
+
+- **Storage budget at single-level + q=11**: ~14.8 MB/frame avg.
+  - UHS-I microSD (~33 MB/s sustained): 2 fps. Not enough.
+  - UHS-II V90 (~90 MB/s): 6 fps. Not enough.
+  - USB-C SATA SSD (~400 MB/s): 27 fps. **PLAUSIBLE.**
+  - USB-C NVMe (~800 MB/s): 54 fps. Comfortable.
+- **Encoder throughput at single-level**: ~60-80 ms/frame on M1, likely
+  ~120-240 ms/frame on Pi 5 (NEON A78). Need ≤41.7 ms/frame. **Off by
+  3-6×.** Multi-level on M1 was 43-83 ms/frame (less data to entropy-code).
+- **Bottom line**: single-level + USB SSD might hit ~6-8 fps on Pi 5,
+  not 24 fps. Multi-level fix unblocks both halves (smaller files +
+  faster encode).
 
 ## What changed in the codec from "as originally intended"
 
