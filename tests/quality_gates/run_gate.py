@@ -201,7 +201,13 @@ def apply_cnn(bayer: np.ndarray, cnn: dict) -> np.ndarray:
 
 
 def demosaic_to_png(bayer: np.ndarray, dms: dict, src_dng: Path,
-                    workdir: Path, out_png: Path) -> None:
+                    workdir: Path, out_png: Path,
+                    upscale_to: tuple[int, int] | None = None) -> None:
+    """Demosaic a bayer plane to a PNG via gpr_tools + sips. The PNG
+    natural dims = bayer dims. If `upscale_to` is given, the PNG is
+    bicubic-resized to those (width, height) — used for half-res
+    pipelines so crop coords and metric comparisons match the source-DNG
+    reference space."""
     binary = REPO / dms["binary"]
     if not binary.exists():
         die(2, f"demosaic binary not built: {binary}")
@@ -233,6 +239,15 @@ def demosaic_to_png(bayer: np.ndarray, dms: dict, src_dng: Path,
                        capture_output=True, text=True)
     if r.returncode != 0:
         die(2, f"sips render failed: {r.stderr[-200:]}")
+    # Bicubic-upscale the rendered PNG to reference dims so crops in
+    # test_set.json coords are content-aligned across all pipelines,
+    # regardless of whether the codec decimated. Without this step a
+    # half-res pipeline's PNG is at half-source-dims and the gate's
+    # crop coords point at completely different content from the REF.
+    if upscale_to is not None:
+        img = Image.open(out_png).convert("RGB")
+        if img.size != upscale_to:
+            img.resize(upscale_to, Image.BICUBIC).save(out_png)
 
 
 def downsample_for_metrics(png_path: Path, target_w: int) -> np.ndarray:
@@ -373,12 +388,16 @@ def evaluate_pipeline(pipeline_name: str) -> dict:
             bp_final = bayer_psnr(bayer_for_codec_metric, post)
         else:
             bp_final = None  # CNN scaled to neither expected size
-        # 3. demosaic both REF and pipeline output to PNG
+        # 3. demosaic both REF and pipeline output to PNG. Pipeline PNG
+        #    is normalized to source dims (full bayer dims) so crop coords
+        #    in test_set.json are content-aligned across all pipelines,
+        #    including ones whose codec decimated to half-res output.
         ref_png = run_dir / f"{im['id']}_REF.png"
         pipe_png = run_dir / f"{im['id']}_PIPELINE.png"
         if not ref_png.exists():
             demosaic_to_png(bayer, dms, src_dng, img_work, ref_png)
-        demosaic_to_png(post, dms, src_dng, img_work, pipe_png)
+        demosaic_to_png(post, dms, src_dng, img_work, pipe_png,
+                        upscale_to=(w, h))
         # 4. crop A_detail (the canonical hard case) for visual diff
         ref_crop_path = run_dir / f"{im['id']}_REF_crop_A_detail.png"
         pipe_crop_path = run_dir / f"{im['id']}_PIPELINE_crop_A_detail.png"
