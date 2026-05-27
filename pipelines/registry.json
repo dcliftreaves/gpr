@@ -509,6 +509,15 @@
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
       "ckpt_sha256": "TBD-pending-training"
+    },
+    "bido_4x_ane_ml2_q3_dec2_lpips": {
+      "$doc": "BIDO_4x fine-tuned from wider checkpoint with LPIPS-alex loss (Phase A of BIDO_DISTILLATION_PLAN). 30 epochs at \u03bb=0.1 with 5-epoch warmup. Best val LPIPS dropped from 0.5072 (init) \u2192 0.1525 at ep 18 \u2014 70% reduction. Saved on lowest val LPIPS (the multi-image val averaged over 4 sources).",
+      "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w16_ANE_lpips.pt",
+      "cnn_arch_variant": "bido_4x",
+      "trained_against_codec": "ml2_q3_dec2",
+      "residual_scale": 0.0,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "151bce4c72aa32394bc3acbb61db45dc4ab2f58a88bce04b0784b2f8bd516b1d"
     }
   },
   "pipelines": {
@@ -991,6 +1000,13 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "cnnaware-ml2-l2x2_l1x3-matched-cnn"
+    },
+    "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_lpips+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "bido_4x_ane_ml2_q3_dec2_lpips",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "embedded-preview-bido-lpips-finetune"
     }
   }
 }
