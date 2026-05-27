@@ -217,6 +217,12 @@
         "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6,7:48,8:48,9:72"
       },
       "quality": 3
+    },
+    "gpr_tools_legacy": {
+      "$doc": "Legacy single-level VC5 encoder invoked via the gpr_tools production CLI. Different bitstream from FUSED sl_q3. NOT exercised by run_gate.py \u2014 has its own runner: tests/quality_gates/run_gate_gpr_tools.py",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "env": {},
+      "quality": null
     }
   },
   "cnns": {
@@ -546,6 +552,13 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "ship-embedded-matched-superres-cnn"
+    },
+    "codec=gpr_tools_legacy+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_legacy",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "production-stills-gpr_tools"
     }
   }
 }

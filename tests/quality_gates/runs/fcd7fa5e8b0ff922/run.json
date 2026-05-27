@@ -1,0 +1,121 @@
+{
+  "pipeline": "codec=gpr_tools_legacy+cnn=none+demosaic=sips_via_gpr_tools",
+  "ship_class": "STILL",
+  "run_hash": "fcd7fa5e8b0ff922",
+  "gates_sha": "821c6d5ac969bbe3",
+  "started_at": "2026-05-26T22:24:01-0500",
+  "images": {
+    "Z8Z_0001": {
+      "y_psnr": 38.249808694020906,
+      "ms_ssim": 0.9902701377868652,
+      "lpips": 0.02256467007100582,
+      "dE2000_mean": 1.1077110767364502,
+      "bayer_psnr_codec": 63.00726227147132,
+      "bayer_psnr_final": 63.00726227147132,
+      "enc_bytes": 11441466,
+      "enc_ms": 909.1448783874512,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/fcd7fa5e8b0ff922/Z8Z_0001_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/fcd7fa5e8b0ff922/Z8Z_0001_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_0067": {
+      "y_psnr": 34.863660605944915,
+      "ms_ssim": 0.9803726077079773,
+      "lpips": 0.03182916343212128,
+      "dE2000_mean": 1.438246726989746,
+      "bayer_psnr_codec": 64.09984505096763,
+      "bayer_psnr_final": 64.09984505096763,
+      "enc_bytes": 7805538,
+      "enc_ms": 933.2752227783203,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/fcd7fa5e8b0ff922/Z8Z_0067_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/fcd7fa5e8b0ff922/Z8Z_0067_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9804 < 0.99"
+        },
+        {
+          "metric": "y_psnr",
+          "reason": "34.8637 < 35.0"
+        }
+      ]
+    },
+    "Z8Z_5323": {
+      "y_psnr": 29.732330525526848,
+      "ms_ssim": 0.9752631187438965,
+      "lpips": 0.12759089469909668,
+      "dE2000_mean": 2.8546063899993896,
+      "bayer_psnr_codec": 56.17560384480007,
+      "bayer_psnr_final": 56.17560384480007,
+      "enc_bytes": 19540576,
+      "enc_ms": 1157.4740409851074,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/fcd7fa5e8b0ff922/Z8Z_5323_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/fcd7fa5e8b0ff922/Z8Z_5323_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.1276 > 0.05"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9753 < 0.99"
+        },
+        {
+          "metric": "y_psnr",
+          "reason": "29.7323 < 35.0"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "2.8546 > 1.5"
+        }
+      ]
+    },
+    "Z8Z_6693": {
+      "y_psnr": 28.25149190737259,
+      "ms_ssim": 0.9653141498565674,
+      "lpips": 0.25830012559890747,
+      "dE2000_mean": 3.3627095222473145,
+      "bayer_psnr_codec": 53.57401591268008,
+      "bayer_psnr_final": 53.57401591268008,
+      "enc_bytes": 21431448,
+      "enc_ms": 1168.888807296753,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/fcd7fa5e8b0ff922/Z8Z_6693_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/fcd7fa5e8b0ff922/Z8Z_6693_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.2583 > 0.05"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9653 < 0.99"
+        },
+        {
+          "metric": "y_psnr",
+          "reason": "28.2515 < 35.0"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "3.3627 > 1.5"
+        }
+      ]
+    }
+  },
+  "worst_first": [
+    "Z8Z_6693",
+    "Z8Z_5323",
+    "Z8Z_0067",
+    "Z8Z_0001"
+  ],
+  "worst_image": {
+    "id": "Z8Z_6693",
+    "visual_diff_png": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/fcd7fa5e8b0ff922/WORST_Z8Z_6693_visual_diff.png",
+    "lpips": 0.25830012559890747
+  },
+  "verdict": "FAIL",
+  "finished_at": "2026-05-26T22:25:38-0500"
+}
