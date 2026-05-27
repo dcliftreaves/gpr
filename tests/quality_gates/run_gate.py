@@ -138,14 +138,17 @@ def encode_decode(codec: dict, bayer: np.ndarray, w: int, h: int,
     return dec, enc_bytes, enc_ms_reported
 
 
-def apply_cnn(bayer: np.ndarray, cnn: dict) -> np.ndarray:
-    """Apply a CNN to a bayer plane. Supports two architectures:
+def apply_cnn(bayer: np.ndarray, cnn: dict):
+    """Apply a CNN to a bayer plane. Supports three architectures:
       - 1x denoise (variant F_ane_no_sr): output dims = input dims.
-        Result = input + residual_scale * CNN(input).
+        Result = input + residual_scale * CNN(input). Returns bayer (np.uint16).
       - 2x super-res (variant F_ane): output dims = 2*input dims.
-        Result = bicubic(input, 2x) + residual_scale * CNN(input).
+        Result = bicubic(input, 2x) + residual_scale * CNN(input). Returns bayer.
+      - Joint demosaic+super-res (variant F_ane_dm_sr): output is 4×spatial RGB,
+        not bayer. Returns ("rgb", H×W×3 uint8 image).
     The variant is read from the checkpoint metadata; the registry's
-    cnn_arch_variant is a fallback."""
+    cnn_arch_variant is a fallback. The "rgb" return tag signals downstream
+    code to skip demosaic_to_png and use the RGB result directly."""
     if cnn.get("ckpt_path") is None:
         return bayer
     import torch
@@ -158,7 +161,8 @@ def apply_cnn(bayer: np.ndarray, cnn: dict) -> np.ndarray:
                f"Migrate the checkpoint with proper metadata before testing.")
     ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
     variant = ck.get("variant", cnn["cnn_arch_variant"])
-    is_sr2x = "no_sr" not in variant  # F_ane = super-res, F_ane_no_sr = 1x
+    is_dm_sr = "dm_sr" in variant  # joint demosaic + super-res
+    is_sr2x = (not is_dm_sr) and "no_sr" not in variant
     m = build_variant(variant)
     m.load_state_dict(ck["backbone_state"])
     dev = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -176,6 +180,15 @@ def apply_cnn(bayer: np.ndarray, cnn: dict) -> np.ndarray:
     if ph or pw:
         x = F.pad(x, (0, pw, 0, ph), mode="reflect")
     with torch.no_grad():
+        if is_dm_sr:
+            # Joint demosaic + super-res: output is 3ch RGB at 4× spatial.
+            # No baseline-plus-residual — the model produces RGB directly.
+            y = m(x).clamp(0, 1)
+            # Output dims: (B, 3, 4H, 4W). Convert to (H', W', 3) uint8 for PNG.
+            y = y[..., :4*H, :4*W].squeeze(0).cpu().numpy()       # (3, 4H, 4W)
+            y = np.transpose(y, (1, 2, 0))                          # (4H, 4W, 3)
+            rgb_u8 = np.clip(y * 255.0, 0, 255).astype(np.uint8)
+            return ("rgb", rgb_u8)
         if is_sr2x:
             base = F.interpolate(x, scale_factor=2, mode="bicubic", align_corners=False).clamp(0, 1)
             cnn_out = m(x)
@@ -379,25 +392,42 @@ def evaluate_pipeline(pipeline_name: str) -> dict:
         else:
             bayer_for_codec_metric = bayer
         bp_codec = bayer_psnr(bayer_for_codec_metric, dec)
-        # 2. apply CNN (no-op if cnn=none). 2x super-res CNN restores dims
-        #    to match the full-res source.
+        # 2. apply CNN (no-op if cnn=none).
+        #    Variants return bayer (uint16); joint-demosaic-super-res variants
+        #    return ("rgb", H×W×3 uint8) — the dm_sr path skips downstream
+        #    demosaic_to_png and writes the PNG directly from the RGB.
         post = apply_cnn(dec, cnn)
-        if post.shape == bayer.shape:
-            bp_final = bayer_psnr(bayer, post)
-        elif post.shape == bayer_for_codec_metric.shape:
-            bp_final = bayer_psnr(bayer_for_codec_metric, post)
+        is_rgb_output = isinstance(post, tuple) and post[0] == "rgb"
+        if is_rgb_output:
+            post_rgb = post[1]                  # (H', W', 3) uint8
+            post_bayer = None
+            bp_final = None                     # bayer-PSNR not meaningful for RGB
         else:
-            bp_final = None  # CNN scaled to neither expected size
+            post_bayer = post
+            post_rgb = None
+            if post.shape == bayer.shape:
+                bp_final = bayer_psnr(bayer, post)
+            elif post.shape == bayer_for_codec_metric.shape:
+                bp_final = bayer_psnr(bayer_for_codec_metric, post)
+            else:
+                bp_final = None  # CNN scaled to neither expected size
         # 3. demosaic both REF and pipeline output to PNG. Pipeline PNG
         #    is normalized to source dims (full bayer dims) so crop coords
-        #    in test_set.json are content-aligned across all pipelines,
-        #    including ones whose codec decimated to half-res output.
+        #    in test_set.json are content-aligned across all pipelines.
+        #    For dm_sr-variant pipelines, post_rgb is already a rendered RGB
+        #    array — write it directly and upscale to source dims if needed.
         ref_png = run_dir / f"{im['id']}_REF.png"
         pipe_png = run_dir / f"{im['id']}_PIPELINE.png"
         if not ref_png.exists():
             demosaic_to_png(bayer, dms, src_dng, img_work, ref_png)
-        demosaic_to_png(post, dms, src_dng, img_work, pipe_png,
-                        upscale_to=(w, h))
+        if is_rgb_output:
+            img = Image.fromarray(post_rgb)
+            if img.size != (w, h):
+                img = img.resize((w, h), Image.BICUBIC)
+            img.save(pipe_png)
+        else:
+            demosaic_to_png(post_bayer, dms, src_dng, img_work, pipe_png,
+                            upscale_to=(w, h))
         # 4. crop A_detail (the canonical hard case) for visual diff
         ref_crop_path = run_dir / f"{im['id']}_REF_crop_A_detail.png"
         pipe_crop_path = run_dir / f"{im['id']}_PIPELINE_crop_A_detail.png"
