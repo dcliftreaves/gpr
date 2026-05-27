@@ -13,7 +13,8 @@ here doesn't match the latest run logs, the run logs win.
 | VIDEO_FREEZE | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | **PASS** | Full-res video, matched-CNN |
 | PREVIEW | `codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools` | 0.100 | **PASS** | Full-res codec, no post-CNN. Embedded-friendly path |
 | STILL | `codec=gpr_tools_legacy+cnn=none+demosaic=sips_via_gpr_tools` | 0.258 | **FAIL** | Production stills CLI — DCP profile-tag plumbing landed; residual on Z8Z_5323/6693 is codec-inherent at q=3 (not metadata), closed as not-a-bug |
-| PREVIEW | `codec=ml2_q3_dec2+cnn=bibo2x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.253 | **FAIL** | Pi-capture half-res + bayer-plane super-res; bayer-plane upscale over-smooths OOD; F_ane_dm_sr (joint demosaic+SR) training in progress (#196) |
+| PREVIEW | `codec=ml2_q3_dec2+cnn=bibo2x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.253 | **FAIL** | Pi-capture half-res + bayer-plane super-res; bayer-plane upscale over-smooths OOD |
+| VIDEO_FREEZE | `codec=ml2_q3_dec2+cnn=bibo_dmsr_ane_ml2_q3_dec2+demosaic=sips_via_gpr_tools` | 0.634 | **FAIL** | Joint demosaic+SR (F_ane_dm_sr) trained against gate-aligned targets; one image (Z8Z_0067) passes PREVIEW (LPIPS 0.091) but others fail; architecture too small (325k params) — over-smooths skin texture |
 
 Four pipelines pass — STILL × 2, VIDEO_FREEZE × 1, PREVIEW × 1. The
 embedded half-res capture path has an in-flight CNN architecture fix.
