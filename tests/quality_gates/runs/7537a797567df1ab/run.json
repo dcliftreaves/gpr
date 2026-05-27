@@ -1,0 +1,117 @@
+{
+  "pipeline": "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse_resthird+demosaic=sips_via_gpr_tools",
+  "ship_class": "VIDEO_FREEZE",
+  "run_hash": "7537a797567df1ab",
+  "gates_sha": "821c6d5ac969bbe3",
+  "started_at": "2026-05-26T22:36:54-0500",
+  "images": {
+    "Z8Z_0001": {
+      "y_psnr": 26.73317172553317,
+      "ms_ssim": 0.9250803589820862,
+      "lpips": 0.24592146277427673,
+      "dE2000_mean": 2.8511548042297363,
+      "bayer_psnr_codec": 31.947133815389748,
+      "bayer_psnr_final": 39.01671776586424,
+      "enc_bytes": 1751835,
+      "enc_ms": 9.0,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/7537a797567df1ab/Z8Z_0001_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/7537a797567df1ab/Z8Z_0001_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.2459 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9251 < 0.97"
+        },
+        {
+          "metric": "y_psnr",
+          "reason": "26.7332 < 32.0"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "2.8512 > 2.0"
+        }
+      ]
+    },
+    "Z8Z_0067": {
+      "y_psnr": 40.349293117546864,
+      "ms_ssim": 0.9899096488952637,
+      "lpips": 0.07167748361825943,
+      "dE2000_mean": 0.8326681852340698,
+      "bayer_psnr_codec": 35.72428288782006,
+      "bayer_psnr_final": 51.70779836103858,
+      "enc_bytes": 1020716,
+      "enc_ms": 7.8,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/7537a797567df1ab/Z8Z_0067_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/7537a797567df1ab/Z8Z_0067_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_5323": {
+      "y_psnr": 34.0658653661789,
+      "ms_ssim": 0.9356138110160828,
+      "lpips": 0.2730364501476288,
+      "dE2000_mean": 1.5915534496307373,
+      "bayer_psnr_codec": 35.75877718750448,
+      "bayer_psnr_final": 42.49064293090257,
+      "enc_bytes": 2658567,
+      "enc_ms": 11.6,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/7537a797567df1ab/Z8Z_5323_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/7537a797567df1ab/Z8Z_5323_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.2730 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9356 < 0.97"
+        }
+      ]
+    },
+    "Z8Z_6693": {
+      "y_psnr": 32.0617424265472,
+      "ms_ssim": 0.9013417363166809,
+      "lpips": 0.4156675338745117,
+      "dE2000_mean": 2.1055498123168945,
+      "bayer_psnr_codec": 36.80619907878511,
+      "bayer_psnr_final": 39.44228391923991,
+      "enc_bytes": 3374869,
+      "enc_ms": 12.2,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/7537a797567df1ab/Z8Z_6693_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/7537a797567df1ab/Z8Z_6693_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.4157 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9013 < 0.97"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "2.1055 > 2.0"
+        }
+      ]
+    }
+  },
+  "worst_first": [
+    "Z8Z_6693",
+    "Z8Z_5323",
+    "Z8Z_0001",
+    "Z8Z_0067"
+  ],
+  "worst_image": {
+    "id": "Z8Z_6693",
+    "visual_diff_png": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/7537a797567df1ab/WORST_Z8Z_6693_visual_diff.png",
+    "lpips": 0.4156675338745117
+  },
+  "verdict": "FAIL",
+  "finished_at": "2026-05-26T22:38:34-0500"
+}
