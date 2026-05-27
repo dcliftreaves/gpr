@@ -29,7 +29,11 @@ DEFAULT_NPZ = os.environ.get(
 )
 CKPT_DIR = os.environ.get("CKPT_DIR",
                           "/Users/dcliftreaves/Documents/Github/gpr/models")
-VAL_SRC_NAME = os.environ.get("VAL_SRC_NAME", "Z8Z_0067")
+# Comma-separated list of source-image names to use as validation. Multiple
+# entries means early-stop tracks the AVERAGE val PSNR across all of them,
+# so the saved checkpoint generalizes instead of overfitting one image.
+VAL_SRC_NAMES = os.environ.get("VAL_SRC_NAMES",
+                                os.environ.get("VAL_SRC_NAME", "Z8Z_0067"))
 
 
 def bayer_4plane_to_rgb(planes: torch.Tensor) -> torch.Tensor:
@@ -71,21 +75,27 @@ def bayer_4plane_to_rgb(planes: torch.Tensor) -> torch.Tensor:
     return torch.cat([R, G, Bc], dim=1)
 
 
-def load_data(npz_path, val_src_name, subsample_rate=1):
+def load_data(npz_path, val_src_names, subsample_rate=1):
     print(f"  loading {npz_path}...", flush=True)
     t0 = time.time()
     npz = np.load(npz_path, mmap_mode="r", allow_pickle=True)
     src = np.asarray(npz["src"])
     lookup = np.asarray(npz["src_lookup_names"])
     names = [s.decode() if isinstance(s, bytes) else s for s in lookup.tolist()]
-    val_match = [i for i, n in enumerate(names) if n == val_src_name]
-    if not val_match:
-        raise RuntimeError(f"VAL_SRC_NAME '{val_src_name}' not in NPZ; got {names[:5]}")
-    val_src_id = val_match[0]
+    if isinstance(val_src_names, str):
+        val_src_names = [n.strip() for n in val_src_names.split(",") if n.strip()]
+    val_src_ids = []
+    for vname in val_src_names:
+        m = [i for i, n in enumerate(names) if n == vname]
+        if not m:
+            raise RuntimeError(f"VAL_SRC_NAME '{vname}' not in NPZ; got {names[:5]}")
+        val_src_ids.append(m[0])
+    print(f"  val src ids: {dict(zip(val_src_names, val_src_ids))}", flush=True)
     rng = np.random.RandomState(0)
     keep_mask = np.zeros(len(src), dtype=bool)
+    val_set = set(val_src_ids)
     for i in range(len(src)):
-        if src[i] == val_src_id or rng.rand() < (1.0 / subsample_rate):
+        if src[i] in val_set or rng.rand() < (1.0 / subsample_rate):
             keep_mask[i] = True
     print(f"  keeping {keep_mask.sum()} of {len(src)} tiles", flush=True)
     out = {}
@@ -106,7 +116,7 @@ def load_data(npz_path, val_src_name, subsample_rate=1):
         print(f"  using LEGACY tgt_bayer (bilinear-demosaic; WRONG color space)",
               flush=True)
     out["src"] = src[keep_mask]
-    out["_val_src_id"] = val_src_id
+    out["_val_src_ids"] = val_src_ids
     print(f"  loaded in {time.time() - t0:.1f}s", flush=True)
     return out
 
@@ -163,8 +173,8 @@ def train(args):
     print(f"=== Training F_ane_dm_sr (joint demosaic + super-res) ===")
     print(f"Device: {DEVICE}  CKPT_DIR: {CKPT_DIR}  NPZ: {DEFAULT_NPZ}")
     os.makedirs(CKPT_DIR, exist_ok=True)
-    d = load_data(DEFAULT_NPZ, VAL_SRC_NAME, subsample_rate=args.subsample)
-    src = d["src"]; val_src = {d["_val_src_id"]}
+    d = load_data(DEFAULT_NPZ, VAL_SRC_NAMES, subsample_rate=args.subsample)
+    src = d["src"]; val_src = set(d["_val_src_ids"])
     N = len(src)
     train_idx = [i for i in range(N) if src[i] not in val_src]
     val_idx   = [i for i in range(N) if src[i] in val_src]
