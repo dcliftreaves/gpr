@@ -1,0 +1,126 @@
+{
+  "pipeline": "codec=ml2_q3_dec2+cnn=bibo_dmsr_ane_ml2_q3_dec2+demosaic=sips_via_gpr_tools",
+  "ship_class": "VIDEO_FREEZE",
+  "run_hash": "d1d71dfbeeb0b4fd",
+  "gates_sha": "821c6d5ac969bbe3",
+  "started_at": "2026-05-27T04:14:29-0500",
+  "images": {
+    "Z8Z_0001": {
+      "y_psnr": 29.65092517932439,
+      "ms_ssim": 0.940896213054657,
+      "lpips": 0.26305198669433594,
+      "dE2000_mean": 6.535579204559326,
+      "bayer_psnr_codec": 31.947133815389748,
+      "bayer_psnr_final": null,
+      "enc_bytes": 1751835,
+      "enc_ms": 8.9,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/d1d71dfbeeb0b4fd/Z8Z_0001_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/d1d71dfbeeb0b4fd/Z8Z_0001_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.2631 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9409 < 0.97"
+        },
+        {
+          "metric": "y_psnr",
+          "reason": "29.6509 < 32.0"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "6.5356 > 2.0"
+        }
+      ]
+    },
+    "Z8Z_0067": {
+      "y_psnr": 41.389602324988346,
+      "ms_ssim": 0.988208532333374,
+      "lpips": 0.09125912189483643,
+      "dE2000_mean": 1.2403316497802734,
+      "bayer_psnr_codec": 35.72428288782006,
+      "bayer_psnr_final": null,
+      "enc_bytes": 1020716,
+      "enc_ms": 7.9,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/d1d71dfbeeb0b4fd/Z8Z_0067_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/d1d71dfbeeb0b4fd/Z8Z_0067_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.0913 > 0.08"
+        }
+      ]
+    },
+    "Z8Z_5323": {
+      "y_psnr": 35.3282716461417,
+      "ms_ssim": 0.9408367276191711,
+      "lpips": 0.49396833777427673,
+      "dE2000_mean": 6.521550178527832,
+      "bayer_psnr_codec": 35.75877718750448,
+      "bayer_psnr_final": null,
+      "enc_bytes": 2658567,
+      "enc_ms": 11.2,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/d1d71dfbeeb0b4fd/Z8Z_5323_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/d1d71dfbeeb0b4fd/Z8Z_5323_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.4940 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9408 < 0.97"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "6.5216 > 2.0"
+        }
+      ]
+    },
+    "Z8Z_6693": {
+      "y_psnr": 33.16864489645445,
+      "ms_ssim": 0.9308958053588867,
+      "lpips": 0.6341743469238281,
+      "dE2000_mean": 4.301222324371338,
+      "bayer_psnr_codec": 36.80619907878511,
+      "bayer_psnr_final": null,
+      "enc_bytes": 3374869,
+      "enc_ms": 12.8,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/d1d71dfbeeb0b4fd/Z8Z_6693_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/d1d71dfbeeb0b4fd/Z8Z_6693_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.6342 > 0.08"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9309 < 0.97"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "4.3012 > 2.0"
+        }
+      ]
+    }
+  },
+  "worst_first": [
+    "Z8Z_6693",
+    "Z8Z_5323",
+    "Z8Z_0001",
+    "Z8Z_0067"
+  ],
+  "worst_image": {
+    "id": "Z8Z_6693",
+    "visual_diff_png": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/d1d71dfbeeb0b4fd/WORST_Z8Z_6693_visual_diff.png",
+    "lpips": 0.6341743469238281
+  },
+  "verdict": "FAIL",
+  "finished_at": "2026-05-27T04:15:43-0500"
+}

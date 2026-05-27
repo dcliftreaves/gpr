@@ -347,13 +347,13 @@
       "ckpt_sha256": "bd3636d2c026639e3d8c9636de491c662fe05e67bdaa4451061901b47b37659b"
     },
     "bibo_dmsr_ane_ml2_q3_dec2": {
-      "$doc": "F_ane_dm_sr joint demosaic+super-res CNN matched to ml2_q3_dec2. 4ch half-res bayer in, 3ch full-res RGB out. Replaces the BIBO_2x F_ane bayer-plane super-res path that over-smoothed OOD content. Trained on M5 against tiles_ml2_q3_dec2_combined.npz (498 images, 19920 tiles).",
+      "$doc": "F_ane_dm_sr joint demosaic+super-res CNN matched to ml2_q3_dec2. 4ch half-res bayer in, 3ch full-res RGB out. Trained against gate-aligned targets (sips-of-gpr_tools-wrap-of-source-bayer) — the first dmsr training used direct sips(source.dng) targets which had ~22 levels mean offset from the gate REF and scored 19 dB gate Y-PSNR despite +18 dB val gain. With corrected targets: ep 55 best, +24.90 dB val gain, 42.10 dB on Z8Z_0067 tiles.",
       "ckpt_path": "models/BayInBayOut_DMSR_AAon_w16_ANE.pt",
       "cnn_arch_variant": "F_ane_dm_sr",
       "trained_against_codec": "ml2_q3_dec2",
       "residual_scale": 0.0,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "febc12ee157758a08a76cd86a00d99cb5c0adb0434ef9d56c5eaedae996a6667"
+      "ckpt_sha256": "d6bbf3e648427f513045070161b63b7c48d2d5bb8e2146602e408de509218c5c"
     }
   },
   "pipelines": {
