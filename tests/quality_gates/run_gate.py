@@ -32,7 +32,9 @@ Exit codes:
 """
 from __future__ import annotations
 import argparse
+import concurrent.futures as _cf
 import hashlib
+import io
 import json
 import os
 import shutil
@@ -40,6 +42,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 
 import numpy as np
@@ -306,6 +309,132 @@ def build_visual_diff(ref_crop: Path, test_crop: Path, last_best_crop: Path | No
     diff.save(out_path)
 
 
+# --------------------------------------------------------------------- per-image worker
+
+
+def _process_one_image(
+    im: dict,
+    codec: dict,
+    cnn: dict,
+    dms: dict,
+    gate_thresholds: dict,
+    crops: dict,
+    target_w: int,
+    run_dir_str: str,
+    workdir_str: str,
+) -> tuple[str, dict, str]:
+    """Run the complete per-image pipeline.
+
+    Returns (image_id, result_dict, captured_stdout_text). Designed to be
+    invoked via ProcessPoolExecutor — all args are picklable, the function
+    is module-level, and stdout is captured per-image so the parent can
+    re-emit it in the original (sequential) image order for deterministic
+    log output.
+
+    The output is bit-identical to the sequential path: same numpy ops,
+    same metric inputs, same PNG bytes, same crop coords. The metrics
+    library's LPIPS model is loaded inside this process (it lives in a
+    module-level cache so it persists across images in the same worker,
+    but each worker process loads it independently)."""
+    run_dir = Path(run_dir_str)
+    workdir = Path(workdir_str)
+    src_dng = Path(im["path"])
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        print(f"\n  -- {im['id']} ({im['character']})")
+        bayer, w, h = read_source_bayer(im["path"])
+        img_work = workdir / im["id"]
+        img_work.mkdir(exist_ok=True)
+        # 1. encode/decode through codec
+        dec, enc_bytes, enc_ms = encode_decode(codec, bayer, w, h, img_work)
+        # bayer_psnr requires matched dims. If the codec decimated, downsample
+        # the source bayer by 2x2 box average to compare in codec-output space.
+        if dec.shape != bayer.shape:
+            assert dec.shape[0] * 2 == bayer.shape[0] and dec.shape[1] * 2 == bayer.shape[1]
+            bayer_for_codec_metric = (
+                bayer[0::2, 0::2].astype(np.int32)
+                + bayer[0::2, 1::2].astype(np.int32)
+                + bayer[1::2, 0::2].astype(np.int32)
+                + bayer[1::2, 1::2].astype(np.int32)
+            ) // 4
+            bayer_for_codec_metric = bayer_for_codec_metric.astype(np.uint16)
+        else:
+            bayer_for_codec_metric = bayer
+        bp_codec = bayer_psnr(bayer_for_codec_metric, dec)
+        # 2. apply CNN (no-op if cnn=none).
+        post = apply_cnn(dec, cnn)
+        is_rgb_output = isinstance(post, tuple) and post[0] == "rgb"
+        if is_rgb_output:
+            post_rgb = post[1]
+            post_bayer = None
+            bp_final = None
+        else:
+            post_bayer = post
+            post_rgb = None
+            if post.shape == bayer.shape:
+                bp_final = bayer_psnr(bayer, post)
+            elif post.shape == bayer_for_codec_metric.shape:
+                bp_final = bayer_psnr(bayer_for_codec_metric, post)
+            else:
+                bp_final = None
+        # 3. demosaic both REF and pipeline output to PNG.
+        ref_png = run_dir / f"{im['id']}_REF.png"
+        pipe_png = run_dir / f"{im['id']}_PIPELINE.png"
+        if not ref_png.exists():
+            demosaic_to_png(bayer, dms, src_dng, img_work, ref_png)
+        if is_rgb_output:
+            img = Image.fromarray(post_rgb)
+            if img.size != (w, h):
+                img = img.resize((w, h), Image.BICUBIC)
+            img.save(pipe_png)
+        else:
+            demosaic_to_png(post_bayer, dms, src_dng, img_work, pipe_png,
+                            upscale_to=(w, h))
+        # 4. crop A_detail
+        ref_crop_path = run_dir / f"{im['id']}_REF_crop_A_detail.png"
+        pipe_crop_path = run_dir / f"{im['id']}_PIPELINE_crop_A_detail.png"
+        crop_at(ref_png, crops["A_detail"], ref_crop_path)
+        crop_at(pipe_png, crops["A_detail"], pipe_crop_path)
+        # 5. downsample to target_w for metric computation
+        ref = downsample_for_metrics(ref_png, target_w)
+        test = downsample_for_metrics(pipe_png, target_w)
+        if test.shape != ref.shape:
+            hh = min(ref.shape[0], test.shape[0])
+            ww = min(ref.shape[1], test.shape[1])
+            ref, test = ref[:hh, :ww], test[:hh, :ww]
+        m = compute_visual_metrics(ref, test)
+        # 6. evaluate per-metric thresholds
+        fails = []
+        for key, rule in gate_thresholds.items():
+            v = m.get(key)
+            if v is None:
+                fails.append((key, "missing"))
+                continue
+            if "max" in rule and v > rule["max"]:
+                fails.append((key, f"{v:.4f} > {rule['max']}"))
+            if "min" in rule and v < rule["min"]:
+                fails.append((key, f"{v:.4f} < {rule['min']}"))
+        verdict = "PASS" if not fails else "FAIL"
+        row = {
+            **m,
+            "bayer_psnr_codec": bp_codec,
+            "bayer_psnr_final": bp_final,
+            "enc_bytes": enc_bytes,
+            "enc_ms": enc_ms,
+            "ref_crop": str(ref_crop_path),
+            "pipeline_crop": str(pipe_crop_path),
+            "verdict": verdict,
+            "fails": [{"metric": k, "reason": r} for k, r in fails],
+        }
+        print(f"     LPIPS={m.get('lpips'):.4f}  Y-PSNR={m.get('y_psnr'):.2f}  "
+              f"MS-SSIM={m.get('ms_ssim'):.4f}  ΔE={m.get('dE2000_mean'):.2f}  "
+              f"=> {verdict}")
+        if fails:
+            for k, r in fails:
+                print(f"        FAIL {k}: {r}")
+    return im["id"], row, buf.getvalue()
+
+
 # --------------------------------------------------------------------- runner
 
 
@@ -372,106 +501,61 @@ def evaluate_pipeline(pipeline_name: str) -> dict:
         "images": {},
     }
 
-    for im in images:
-        src_dng = Path(im["path"])
-        print(f"\n  -- {im['id']} ({im['character']})")
-        bayer, w, h = read_source_bayer(im["path"])
-        img_work = workdir / im["id"]
-        img_work.mkdir()
-        # 1. encode/decode through codec
-        dec, enc_bytes, enc_ms = encode_decode(codec, bayer, w, h, img_work)
-        # bayer_psnr requires matched dims. If the codec decimated, downsample
-        # the source bayer by 2x2 box average to compare in codec-output space.
-        if dec.shape != bayer.shape:
-            assert dec.shape[0] * 2 == bayer.shape[0] and dec.shape[1] * 2 == bayer.shape[1]
-            bayer_for_codec_metric = (
-                bayer[0::2, 0::2].astype(np.int32)
-                + bayer[0::2, 1::2].astype(np.int32)
-                + bayer[1::2, 0::2].astype(np.int32)
-                + bayer[1::2, 1::2].astype(np.int32)
-            ) // 4
-            bayer_for_codec_metric = bayer_for_codec_metric.astype(np.uint16)
+    # Per-image work is independent (each image has its own tempdir; the
+    # codec/CNN/demosaic/sips/metrics chain only reads the source DNG and
+    # writes into run_dir/img_work). Run images in parallel via
+    # ProcessPoolExecutor — workers are subprocess-heavy (codec binary,
+    # gpr_tools, sips) AND own a per-process PyTorch/LPIPS state, so process
+    # parallelism gives the speedup without thread/GIL contention.
+    #
+    # Set GATE_MAX_WORKERS=1 to force sequential execution (debugging /
+    # numerical-diff verification).
+    max_workers = int(os.environ.get("GATE_MAX_WORKERS", str(min(4, len(images)))))
+    max_workers = max(1, min(max_workers, len(images)))
+
+    image_logs: dict[str, str] = {}
+    try:
+        if max_workers == 1:
+            for im in images:
+                im_id, row, log = _process_one_image(
+                    im, codec, cnn, dms, gate_thresholds, crops,
+                    target_w, str(run_dir), str(workdir),
+                )
+                results["images"][im_id] = row
+                image_logs[im_id] = log
+                # Stream log immediately in the sequential path so behavior
+                # matches the pre-parallel runner when debugging.
+                sys.stdout.write(log)
+                sys.stdout.flush()
         else:
-            bayer_for_codec_metric = bayer
-        bp_codec = bayer_psnr(bayer_for_codec_metric, dec)
-        # 2. apply CNN (no-op if cnn=none).
-        #    Variants return bayer (uint16); joint-demosaic-super-res variants
-        #    return ("rgb", H×W×3 uint8) — the dm_sr path skips downstream
-        #    demosaic_to_png and writes the PNG directly from the RGB.
-        post = apply_cnn(dec, cnn)
-        is_rgb_output = isinstance(post, tuple) and post[0] == "rgb"
-        if is_rgb_output:
-            post_rgb = post[1]                  # (H', W', 3) uint8
-            post_bayer = None
-            bp_final = None                     # bayer-PSNR not meaningful for RGB
-        else:
-            post_bayer = post
-            post_rgb = None
-            if post.shape == bayer.shape:
-                bp_final = bayer_psnr(bayer, post)
-            elif post.shape == bayer_for_codec_metric.shape:
-                bp_final = bayer_psnr(bayer_for_codec_metric, post)
-            else:
-                bp_final = None  # CNN scaled to neither expected size
-        # 3. demosaic both REF and pipeline output to PNG. Pipeline PNG
-        #    is normalized to source dims (full bayer dims) so crop coords
-        #    in test_set.json are content-aligned across all pipelines.
-        #    For dm_sr-variant pipelines, post_rgb is already a rendered RGB
-        #    array — write it directly and upscale to source dims if needed.
-        ref_png = run_dir / f"{im['id']}_REF.png"
-        pipe_png = run_dir / f"{im['id']}_PIPELINE.png"
-        if not ref_png.exists():
-            demosaic_to_png(bayer, dms, src_dng, img_work, ref_png)
-        if is_rgb_output:
-            img = Image.fromarray(post_rgb)
-            if img.size != (w, h):
-                img = img.resize((w, h), Image.BICUBIC)
-            img.save(pipe_png)
-        else:
-            demosaic_to_png(post_bayer, dms, src_dng, img_work, pipe_png,
-                            upscale_to=(w, h))
-        # 4. crop A_detail (the canonical hard case) for visual diff
-        ref_crop_path = run_dir / f"{im['id']}_REF_crop_A_detail.png"
-        pipe_crop_path = run_dir / f"{im['id']}_PIPELINE_crop_A_detail.png"
-        crop_at(ref_png, crops["A_detail"], ref_crop_path)
-        crop_at(pipe_png, crops["A_detail"], pipe_crop_path)
-        # 5. downsample to target_w for metric computation
-        ref = downsample_for_metrics(ref_png, target_w)
-        test = downsample_for_metrics(pipe_png, target_w)
-        if test.shape != ref.shape:
-            hh = min(ref.shape[0], test.shape[0])
-            ww = min(ref.shape[1], test.shape[1])
-            ref, test = ref[:hh, :ww], test[:hh, :ww]
-        m = compute_visual_metrics(ref, test)
-        # 6. evaluate per-metric thresholds
-        fails = []
-        for key, rule in gate_thresholds.items():
-            v = m.get(key)
-            if v is None:
-                fails.append((key, "missing"))
-                continue
-            if "max" in rule and v > rule["max"]:
-                fails.append((key, f"{v:.4f} > {rule['max']}"))
-            if "min" in rule and v < rule["min"]:
-                fails.append((key, f"{v:.4f} < {rule['min']}"))
-        verdict = "PASS" if not fails else "FAIL"
-        results["images"][im["id"]] = {
-            **m,
-            "bayer_psnr_codec": bp_codec,
-            "bayer_psnr_final": bp_final,
-            "enc_bytes": enc_bytes,
-            "enc_ms": enc_ms,
-            "ref_crop": str(ref_crop_path),
-            "pipeline_crop": str(pipe_crop_path),
-            "verdict": verdict,
-            "fails": [{"metric": k, "reason": r} for k, r in fails],
-        }
-        print(f"     LPIPS={m.get('lpips'):.4f}  Y-PSNR={m.get('y_psnr'):.2f}  "
-              f"MS-SSIM={m.get('ms_ssim'):.4f}  ΔE={m.get('dE2000_mean'):.2f}  "
-              f"=> {verdict}")
-        if fails:
-            for k, r in fails:
-                print(f"        FAIL {k}: {r}")
+            with _cf.ProcessPoolExecutor(max_workers=max_workers) as ex:
+                futures = {
+                    ex.submit(
+                        _process_one_image, im, codec, cnn, dms,
+                        gate_thresholds, crops, target_w,
+                        str(run_dir), str(workdir),
+                    ): im["id"]
+                    for im in images
+                }
+                for fut in _cf.as_completed(futures):
+                    im_id, row, log = fut.result()
+                    results["images"][im_id] = row
+                    image_logs[im_id] = log
+            # Emit per-image logs in the original (registry) image order
+            # so stdout is deterministic regardless of completion order.
+            for im in images:
+                log = image_logs.get(im["id"], "")
+                if log:
+                    sys.stdout.write(log)
+            sys.stdout.flush()
+            # Reinsert results in registry order so json.dumps writes them
+            # in the same order as the sequential runner — keeps run.json
+            # byte-identical for any consumer that diffs it textually.
+            ordered = {im["id"]: results["images"][im["id"]] for im in images
+                       if im["id"] in results["images"]}
+            results["images"] = ordered
+    finally:
+        pass
 
     # 7. sort worst-first by LPIPS (mandatory)
     ranked = sorted(
