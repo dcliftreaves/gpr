@@ -217,18 +217,62 @@ static inline void *fused_aligned_calloc(size_t nelt, size_t eltsz) {
     return p;
 }
 
-/* Quality presets: quant divisors per subband [LL, LH, HL, HH for each level] */
-static const QUANT quality_tables[9][10] = {
+/* Quality presets: quant divisors per subband [LL, LH, HL, HH for each level]
+   Slot mapping:
+     0     = LL3 (always 1 — never quantize the deepest lowpass)
+     1,2,3 = LH3, HL3, HH3 (level-3 highpass) — also LH1/HL1/HH1 in single-ll mode
+     4,5,6 = LH2, HL2, HH2 (level-2 highpass)
+     7,8,9 = LH1, HL1, HH1 (level-1 highpass) in multi-level mode
+   See docs/quant_calibration_findings.md for the per-subband sweep data. */
+static const QUANT quality_tables[12][10] = {
     {1, 24, 24, 12, 64, 64, 48, 512, 512, 768},  /* 0: Low */
     {1, 24, 24, 12, 48, 48, 32, 256, 256, 384},  /* 1: Medium */
     {1, 24, 24, 12, 32, 32, 24, 128, 128, 192},  /* 2: High */
-    {1, 24, 24, 12, 24, 24, 12, 96, 96, 144},    /* 3: Filmscan-1 */
-    {1, 24, 24, 12, 24, 24, 12, 64, 64, 96},     /* 4: Filmscan-X */
-    {1, 24, 24, 12, 24, 24, 12, 32, 32, 48},     /* 5: Filmscan-2 */
-    {1, 12, 12,  6, 12, 12,  6, 16, 16, 24},     /* 6: Filmscan-3 */
-    {1,  6,  6,  4, 12, 12,  6, 16, 16, 24},     /* 7: Filmscan-4 */
-    {1,  4,  4,  2, 10, 10,  6, 16, 16, 24},     /* 8: Filmscan-5 */
+    {1, 24, 24, 12, 24, 24, 12,  96,  96, 144},  /* 3: Filmscan-1 (default) */
+    {1, 24, 24, 12, 24, 24, 12,  64,  64,  96},  /* 4: Filmscan-X */
+    {1, 24, 24, 12, 24, 24, 12,  32,  32,  48},  /* 5: Filmscan-2 (empirical peak on real content) */
+    {1, 12, 12,  6, 12, 12,  6,  16,  16,  24},  /* 6: Filmscan-3 */
+    {1,  6,  6,  4, 12, 12,  6,  16,  16,  24},  /* 7: Filmscan-4 */
+    {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 8: Filmscan-5 */
+    {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 9: Reserved (mirrors FS5) */
+    {1,  4,  4,  2, 10, 10,  6,  16,  16,  24},  /* 10: Reserved (mirrors FS5) */
+    /* 11: CNN-aware. Turn it up to 11. Crank L1 highpass (slots 7/8/9)
+       2-4× over q=3 baseline. Pairs with a CNN trained on the cranked
+       distribution (BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt or successor).
+       Slots 0-6 unchanged from q=3 → L2/L3 wavelet quality preserved.
+       Saves ~10-17% file size with no perceptible quality cost after CNN.
+       Single-ll mode reads slots 1/2/3 here (q=3 defaults) and sees no
+       benefit at q=11; single-ll users wanting CNN-aware should use
+       GPR_QUANT_OVERRIDE during development. */
+    {1, 24, 24, 12, 24, 24, 12, 192, 192, 576},  /* 11: CNN-aware */
 };
+
+/* Apply GPR_QUANT_OVERRIDE env var to a quant table copy (task #158).
+   Format: "slot:value,slot:value,..." e.g. "7:144,8:144,9:216" sets slots
+   7/8/9 (LH1/HL1/HH1, the level-1 highpass). Used by the per-subband quant
+   calibration sweep to explore rate-distortion tradeoffs that the 9 fixed
+   presets can't reach. The decoder reads the SAME env var so encode and
+   decode must run in the same environment; mismatches produce garbage.
+   No-op when env var is unset (the normal path). */
+static void apply_quant_override(QUANT *qt /* size 10 */)
+{
+    const char *spec = getenv("GPR_QUANT_OVERRIDE");
+    if (!spec || !*spec) return;
+    const char *p = spec;
+    while (*p) {
+        int slot = -1, value = -1;
+        char *end = NULL;
+        slot = (int)strtol(p, &end, 10);
+        if (end == p || *end != ':') break;
+        p = end + 1;
+        value = (int)strtol(p, &end, 10);
+        if (end == p) break;
+        if (slot >= 0 && slot < 10 && value > 0) qt[slot] = (QUANT)value;
+        p = end;
+        if (*p == ',') p++;
+        else break;
+    }
+}
 
 /* ================================================================
    Quantization helpers (same math as forward.c QuantizeValue)
@@ -3047,7 +3091,11 @@ static int setup_channel_state(
        LL3 path uses to keep LL bounded. */
     const char *_ll_env = getenv("GPR_INCLUDE_LL");
     int single_level_include_ll = (_ll_env && *_ll_env == '1') ? 1 : 0;
-    const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
+    QUANT qt_buf[10];
+    memcpy(qt_buf, quality_tables[(quality >= 0 && quality < 12) ? quality : 3],
+           sizeof(qt_buf));
+    apply_quant_override(qt_buf);
+    const QUANT *qt = qt_buf;
 
     for (int ch = 0; ch < 4; ch++) {
         /* Level-1 quant: qt[0]=LL1 (effectively no-op divisor=1),
@@ -3734,7 +3782,7 @@ void gpr_encode_fused_set_quant_scale(FUSED_ENCODER *ctx, double scale)
        apply `scale` to the per-band divisor before computing midpoint/
        multiplier. Matches the legacy encoder's per-frame rate-controller hook. */
     const int quality = ctx->quality;
-    const QUANT *qt = quality_tables[(quality >= 0 && quality < 9) ? quality : 3];
+    const QUANT *qt = quality_tables[(quality >= 0 && quality < 12) ? quality : 3];
     int q_ll1 = 0, q_lh1 = 1, q_hl1 = 2, q_hh1 = 3;
     if (ctx->multi_level) {
         q_ll1 = 0; q_lh1 = 7; q_hl1 = 8; q_hh1 = 9;
@@ -4291,7 +4339,17 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
     hdr.prescale = ctx->prescale;
     hdr.multi_level = 1;
     hdr.num_bands = p2_tasks_total;
-    hdr.decimate = 0;  /* multi-level doesn't currently support decimation */
+    /* Decimate flag mirrors the single-level path: when GPR_ROW_DECIMATE=2 AND
+       GPR_COL_DECIMATE=2 are set, setup_channel_state has already halved
+       ch_width/ch_height, every band is at the smaller dims, and the decoder
+       needs hdr.decimate=2 to size buffers correctly. */
+    {
+        const char *r = getenv("GPR_ROW_DECIMATE");
+        const char *c = getenv("GPR_COL_DECIMATE");
+        int rd = (r && *r == '2') ? 1 : 0;
+        int cd = (c && *c == '2') ? 1 : 0;
+        hdr.decimate = (rd && cd) ? 2 : 0;
+    }
 
     size_t pos = 0;
     memcpy(ctx->stream_buf + pos, &hdr, sizeof(hdr)); pos += sizeof(hdr);

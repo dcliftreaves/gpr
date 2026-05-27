@@ -248,9 +248,22 @@ static uint16_t *transpose_dw_pytorch_to_hwio_f16(const uint16_t *src_oihw_2c,
     MPSGraph *_graph;
     MPSGraphTensor *_inputTensor;    // (1, Hp, Wp, 4) fp16 placeholder
     MPSGraphTensor *_residualTensor; // (1, 2Hp, 2Wp, 4) fp16 SR head output
+    // Pre-compiled executable for the MPSGraph backend. Built once at init
+    // (or lazily on first frame) to avoid per-frame compile/specialization
+    // work that the encodeToCommandBuffer: feeds: path may otherwise repeat.
+    MPSGraphExecutable *_graphExec;
+    MPSGraphExecutableExecutionDescriptor *_graphExecDesc;
     SuperResMetalWeights *_W;
     SuperResMetalBackend _backend;
     BOOL _useSubpixelHead;  // YES = F (2× SR); NO = F_no_sr (1× outro head)
+    BOOL _isAneModel;       // YES = F_ane (BN-folded into Conv1x1, SiLU). NO = legacy F (LN+SimpleGate)
+    uint32_t _dwKernel;     // 3 or 7. For F_ane only; legacy F is always 3.
+    uint32_t _modelWidth;   // Detected from intro_weight.bin file size (16, 24, 32 …).
+                            // All layer widths in this codebase scale as
+                            // {width, 2*width, 4*width} for enc/dec and 8*width
+                            // for the middle. The Metal-hybrid backend only
+                            // supports width=16 because the kernels' v[128]
+                            // register array can't fit C_PJ_IN > 128.
 
     // Persistent buffers.
     id<MTLBuffer> _inBayer;       // input Bayer uint16, sized for max codec output
@@ -315,6 +328,15 @@ static uint16_t *transpose_dw_pytorch_to_hwio_f16(const uint16_t *src_oihw_2c,
     id<MTLComputePipelineState> _psoLN[3];     // [0]=C16, [1]=C32, [2]=C64
     id<MTLComputePipelineState> _psoDGR[3];
     id<MTLComputePipelineState> _psoGPR[3];
+
+    // F_ane PSOs (parallel to LN/DGR/GPR, used when _isAneModel == YES).
+    //   stage1: fused_ane_conv1x1 (C -> 2C)             -- BN1+conv1 folded
+    //   stage2: fused_ane_dw_silu_proj_res              -- DW(k×k)+SiLU+proj+res
+    //   stage3: fused_ane_conv1x1 (C -> 2C)             -- BN2+mlp1 folded, reuse pso
+    //   stage4: fused_ane_silu_proj_res                 -- SiLU+proj+res
+    id<MTLComputePipelineState> _psoAneConv1x1[3];
+    id<MTLComputePipelineState> _psoAneDSPR[3];
+    id<MTLComputePipelineState> _psoAneSPR[3];
 
     // Spatial dims per level (in_plane H/W >> level).
     uint32_t _levelH[3], _levelW[3];
@@ -398,6 +420,37 @@ static MPSGraphTensor *dwconv_NHWC(MPSGraph *g, MPSGraphTensor *x, MPSGraphTenso
         y = [g additionWithPrimaryTensor:y secondaryTensor:brc name:[name stringByAppendingString:@"_dwbias_add"]];
     }
     return y;
+}
+
+// Depthwise conv 2D NHWC stride 1, arbitrary kernel size (pad = k/2).
+static MPSGraphTensor *dwconvK_NHWC(MPSGraph *g, MPSGraphTensor *x, MPSGraphTensor *w,
+                                    MPSGraphTensor *_Nullable b, NSUInteger k, NSString *name) {
+    NSUInteger pad = k / 2;
+    MPSGraphDepthwiseConvolution2DOpDescriptor *desc =
+        [MPSGraphDepthwiseConvolution2DOpDescriptor
+            descriptorWithDataLayout:MPSGraphTensorNamedDataLayoutNHWC
+                      weightsLayout:MPSGraphTensorNamedDataLayoutHWIO];
+    desc.strideInX = 1;
+    desc.strideInY = 1;
+    desc.paddingLeft = pad;
+    desc.paddingRight = pad;
+    desc.paddingTop = pad;
+    desc.paddingBottom = pad;
+    desc.paddingStyle = MPSGraphPaddingStyleExplicit;
+    MPSGraphTensor *y = [g depthwiseConvolution2DWithSourceTensor:x weightsTensor:w descriptor:desc name:[name stringByAppendingString:@"_dw"]];
+    if (b) {
+        MPSGraphTensor *brc = [g reshapeTensor:b withShape:@[@1, @1, @1, b.shape.lastObject]
+                                          name:[name stringByAppendingString:@"_dwbias_rs"]];
+        y = [g additionWithPrimaryTensor:y secondaryTensor:brc name:[name stringByAppendingString:@"_dwbias_add"]];
+    }
+    return y;
+}
+
+// SiLU activation: x * sigmoid(x). NHWC.
+static MPSGraphTensor *silu_NHWC(MPSGraph *g, MPSGraphTensor *x, NSString *name) {
+    MPSGraphTensor *s = [g sigmoidWithTensor:x name:[name stringByAppendingString:@"_sig"]];
+    return [g multiplicationWithPrimaryTensor:x secondaryTensor:s
+                                          name:[name stringByAppendingString:@"_silu"]];
 }
 
 // LayerNorm2d over the channel axis (axis=-1 in NHWC). Affine.
@@ -487,6 +540,7 @@ typedef struct {
 
 // Helper: NAFBlock with a name prefix (enc0/enc1/enc2/middle/dec0/dec1/dec2).
 - (MPSGraphTensor *)nafblockNamed:(NSString *)prefix C:(NSUInteger)C input:(MPSGraphTensor *)x {
+    if (_isAneModel) return [self nafblockNamedANE:prefix C:C input:x];
     NAFBlockNames n = {
         .gamma1 = [NSString stringWithFormat:@"%@_norm1_weight", prefix],
         .beta1  = [NSString stringWithFormat:@"%@_norm1_bias",   prefix],
@@ -506,19 +560,104 @@ typedef struct {
     return [self buildNAFBlock:x C:C names:n basename:prefix];
 }
 
+// F_ane variant: BN folded into Conv1x1, SiLU, proj1/mlp2 are [C, 2C].
+- (MPSGraphTensor *)nafblockNamedANE:(NSString *)prefix C:(NSUInteger)C input:(MPSGraphTensor *)x {
+    MPSGraph *g = _graph;
+    NSUInteger k = (NSUInteger)_dwKernel;
+
+    // Attention branch: conv1(c→2c) → dw(k×k) → SiLU → proj1(2c→c) → +x
+    MPSGraphTensor *W1   = constTensorHWIO(g, _W.buffers[[prefix stringByAppendingString:@"_conv1_weight"]], 1, 1, C, 2*C);
+    MPSGraphTensor *B1   = constTensor1D(g, _W.buffers[[prefix stringByAppendingString:@"_conv1_bias"]], 2*C);
+    MPSGraphTensor *DWw  = constTensorDW_HWIO(g, _W.buffers[[prefix stringByAppendingString:@"_dw_weight"]], k, k, 2*C);
+    MPSGraphTensor *DWb  = constTensor1D(g, _W.buffers[[prefix stringByAppendingString:@"_dw_bias"]], 2*C);
+    MPSGraphTensor *Pj1w = constTensorHWIO(g, _W.buffers[[prefix stringByAppendingString:@"_proj1_weight"]], 1, 1, 2*C, C);
+    MPSGraphTensor *Pj1b = constTensor1D(g, _W.buffers[[prefix stringByAppendingString:@"_proj1_bias"]], C);
+
+    MPSGraphTensor *y = conv2d_NHWC(g, x, W1, B1, 1, 0, [prefix stringByAppendingString:@"_ane_conv1"]);
+    y = dwconvK_NHWC(g, y, DWw, DWb, k, [prefix stringByAppendingString:@"_ane_dw"]);
+    y = silu_NHWC(g, y, [prefix stringByAppendingString:@"_ane_silu1"]);
+    y = conv2d_NHWC(g, y, Pj1w, Pj1b, 1, 0, [prefix stringByAppendingString:@"_ane_proj1"]);
+    x = [g additionWithPrimaryTensor:x secondaryTensor:y name:[prefix stringByAppendingString:@"_ane_res1"]];
+
+    // MLP branch: mlp1(c→2c) → SiLU → mlp2(2c→c) → +x
+    MPSGraphTensor *W2   = constTensorHWIO(g, _W.buffers[[prefix stringByAppendingString:@"_mlp1_weight"]], 1, 1, C, 2*C);
+    MPSGraphTensor *B2   = constTensor1D(g, _W.buffers[[prefix stringByAppendingString:@"_mlp1_bias"]], 2*C);
+    MPSGraphTensor *Pj2w = constTensorHWIO(g, _W.buffers[[prefix stringByAppendingString:@"_mlp2_weight"]], 1, 1, 2*C, C);
+    MPSGraphTensor *Pj2b = constTensor1D(g, _W.buffers[[prefix stringByAppendingString:@"_mlp2_bias"]], C);
+
+    y = conv2d_NHWC(g, x, W2, B2, 1, 0, [prefix stringByAppendingString:@"_ane_mlp1"]);
+    y = silu_NHWC(g, y, [prefix stringByAppendingString:@"_ane_silu2"]);
+    y = conv2d_NHWC(g, y, Pj2w, Pj2b, 1, 0, [prefix stringByAppendingString:@"_ane_mlp2"]);
+    return [g additionWithPrimaryTensor:x secondaryTensor:y name:[prefix stringByAppendingString:@"_ane_res2"]];
+}
+
+// Parse MANIFEST.txt: sets _isAneModel and _dwKernel.
+// Legacy F weights have no manifest → _isAneModel=NO, _dwKernel=3.
+// _modelWidth is detected from the intro_weight.bin file size regardless of
+// manifest presence — works for both legacy F and F_ane checkpoints.
+- (void)parseManifest:(NSString *)dir {
+    _isAneModel = NO;
+    _dwKernel = 3;
+    _modelWidth = 16;   // default, overridden by intro-size detection below
+    NSString *manifestPath = [dir stringByAppendingPathComponent:@"MANIFEST.txt"];
+    NSError *err = nil;
+    NSString *contents = [NSString stringWithContentsOfFile:manifestPath
+                                                    encoding:NSUTF8StringEncoding error:&err];
+    if (contents) {
+        for (NSString *raw in [contents componentsSeparatedByString:@"\n"]) {
+            NSString *line = [raw stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+            if ([line hasPrefix:@"bn_folded=true"]) _isAneModel = YES;
+            if ([line hasPrefix:@"dw_kernel="]) {
+                _dwKernel = (uint32_t)[[line substringFromIndex:10] intValue];
+            }
+            if ([line hasPrefix:@"width="]) {
+                _modelWidth = (uint32_t)[[line substringFromIndex:6] intValue];
+            }
+        }
+    }
+    /* Cross-check (and source-of-truth for legacy weights with no manifest):
+       intro_weight.bin layout is (Cout=width, Cin=4, kH=3, kW=3) fp16 →
+       width * 4 * 9 * 2 bytes. */
+    NSString *introPath = [dir stringByAppendingPathComponent:@"intro_weight.bin"];
+    NSError *attrErr = nil;
+    NSDictionary *attrs = [[NSFileManager defaultManager] attributesOfItemAtPath:introPath
+                                                                            error:&attrErr];
+    if (attrs) {
+        unsigned long long sz = [attrs[NSFileSize] unsignedLongLongValue];
+        uint32_t detected = (uint32_t)(sz / 72);   // 4*3*3*2 = 72 bytes per output channel
+        if (detected >= 8 && detected <= 128) {
+            if (contents && _modelWidth != detected) {
+                fprintf(stderr, "SuperResMetal: manifest width=%u disagrees with intro_weight.bin (%u); using intro\n",
+                        _modelWidth, detected);
+            }
+            _modelWidth = detected;
+        }
+    }
+    if (_isAneModel) {
+        fprintf(stderr, "SuperResMetal: F_ane backend detected (BN-folded, dw=%ux%u, width=%u)\n",
+                _dwKernel, _dwKernel, _modelWidth);
+    } else {
+        fprintf(stderr, "SuperResMetal: legacy F backend (width=%u)\n", _modelWidth);
+    }
+}
+
 // ---------- Weight load ----------
 - (BOOL)loadWeights:(NSString *)dir {
-    SuperResMetalWeights *W = [[SuperResMetalWeights alloc] initWithDevice:_device];
+    [self parseManifest:dir];
+    if (_isAneModel) return [self loadWeightsANE:dir];
 
-    // intro: Conv3x3 4 -> 16
+    SuperResMetalWeights *W = [[SuperResMetalWeights alloc] initWithDevice:_device];
+    const uint32_t w = _modelWidth;
+
+    // intro: Conv3x3 4 -> width
     NSString *introW = [dir stringByAppendingPathComponent:@"intro_weight.bin"];
     NSString *introB = [dir stringByAppendingPathComponent:@"intro_bias.bin"];
-    if (![W loadConv4D:@"intro_weight" fromPath:introW Cout:16 Cin:4 kH:3 kW:3]) return NO;
+    if (![W loadConv4D:@"intro_weight" fromPath:introW Cout:w Cin:4 kH:3 kW:3]) return NO;
     if (![W loadRaw:@"intro_bias" fromPath:introB]) return NO;
 
     // encoders
     BOOL keepRaw = (_backend == SuperResMetalBackendHybrid);
-    uint32_t enc_C[3] = {16, 32, 64};
+    uint32_t enc_C[3] = {w, 2*w, 4*w};
     for (int k = 0; k < 3; k++) {
         uint32_t C = enc_C[k];
         NSString *p = [NSString stringWithFormat:@"enc%d", k];
@@ -587,8 +726,8 @@ typedef struct {
               fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_mlp2_bias.bin"]]]) return NO;
     }
 
-    // downs: Conv 2x2 stride 2
-    uint32_t down_pairs[3][2] = {{16,32}, {32,64}, {64,128}};
+    // downs: Conv 2x2 stride 2 (width, 2w, 4w → 2w, 4w, 8w)
+    uint32_t down_pairs[3][2] = {{w, 2*w}, {2*w, 4*w}, {4*w, 8*w}};
     for (int k = 0; k < 3; k++) {
         NSString *p = [NSString stringWithFormat:@"down%d", k];
         if (![W loadConv4D:[p stringByAppendingString:@"_weight"]
@@ -598,9 +737,9 @@ typedef struct {
               fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_bias.bin"]]]) return NO;
     }
 
-    // middle NAFBlock at C=128
+    // middle NAFBlock at C = 8 * width
     {
-        uint32_t C = 128;
+        uint32_t C = 8 * w;
         NSString *p = @"middle";
         if (![W loadRaw:[p stringByAppendingString:@"_norm1_weight"]
               fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_norm1_weight.bin"]]]) return NO;
@@ -637,8 +776,8 @@ typedef struct {
               fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_mlp2_bias.bin"]]]) return NO;
     }
 
-    // ups: Conv 1x1 (c_in -> 2*c_in), no bias
-    uint32_t up_widths[3] = {128, 64, 32};
+    // ups: Conv 1x1 (c_in -> 2*c_in), no bias (8w, 4w, 2w → 16w, 8w, 4w)
+    uint32_t up_widths[3] = {8*w, 4*w, 2*w};
     for (int k = 0; k < 3; k++) {
         uint32_t cin = up_widths[k];
         NSString *p = [NSString stringWithFormat:@"up%d", k];
@@ -647,8 +786,8 @@ typedef struct {
                       Cout:2*cin Cin:cin kH:1 kW:1]) return NO;
     }
 
-    // decoders at C=64,32,16
-    uint32_t dec_C[3] = {64, 32, 16};
+    // decoders at C = 4w, 2w, w
+    uint32_t dec_C[3] = {4*w, 2*w, w};
     for (int k = 0; k < 3; k++) {
         uint32_t C = dec_C[k];
         NSString *p = [NSString stringWithFormat:@"dec%d", k];
@@ -718,18 +857,152 @@ typedef struct {
     }
 
     // Head: variant-dependent.
-    //   _useSubpixelHead=YES (F)       → subpixel head (16, 16, 3, 3) + PS(2)
-    //   _useSubpixelHead=NO  (F_no_sr) → outro head    (4, 16, 3, 3)  at 1× dims
+    //   _useSubpixelHead=YES (F)       → subpixel head (16, width, 3, 3) + PS(2)
+    //   _useSubpixelHead=NO  (F_no_sr) → outro head    ( 4, width, 3, 3)  at 1× dims
     if (_useSubpixelHead) {
         NSString *subW = [dir stringByAppendingPathComponent:@"subpixel_weight.bin"];
         NSString *subB = [dir stringByAppendingPathComponent:@"subpixel_bias.bin"];
-        if (![W loadConv4D:@"subpixel_weight" fromPath:subW Cout:16 Cin:16 kH:3 kW:3]) return NO;
+        if (![W loadConv4D:@"subpixel_weight" fromPath:subW Cout:16 Cin:w kH:3 kW:3]) return NO;
         if (![W loadRaw:@"subpixel_bias" fromPath:subB]) return NO;
     } else {
         NSString *outroW = [dir stringByAppendingPathComponent:@"outro_weight.bin"];
         NSString *outroB = [dir stringByAppendingPathComponent:@"outro_bias.bin"];
-        if (![W loadConv4D:@"outro_weight" fromPath:outroW Cout:4 Cin:16 kH:3 kW:3]) return NO;
+        if (![W loadConv4D:@"outro_weight" fromPath:outroW Cout:4 Cin:w kH:3 kW:3]) return NO;
         if (![W loadRaw:@"outro_bias" fromPath:outroB]) return NO;
+    }
+
+    _W = W;
+    return YES;
+}
+
+// ---------- F_ane weight loader ----------
+// F_ane: BN folded into following Conv1x1, SiLU instead of SimpleGate,
+// proj1/mlp2 shape [C, 2C] (was [C, C] in legacy), dw kernel may be 3 or 7.
+// No norm1/norm2 blobs. Same buffer-key naming as legacy for everything else.
+- (BOOL)loadWeightsANE:(NSString *)dir {
+    SuperResMetalWeights *W = [[SuperResMetalWeights alloc] initWithDevice:_device];
+    BOOL keepRaw = (_backend == SuperResMetalBackendHybrid);
+    const uint32_t k = _dwKernel;
+    const uint32_t w = _modelWidth;
+
+    // intro: Conv3x3 4 -> width
+    if (![W loadConv4D:@"intro_weight"
+              fromPath:[dir stringByAppendingPathComponent:@"intro_weight.bin"]
+                  Cout:w Cin:4 kH:3 kW:3]) return NO;
+    if (![W loadRaw:@"intro_bias"
+          fromPath:[dir stringByAppendingPathComponent:@"intro_bias.bin"]]) return NO;
+
+    // One block loader: handles enc/middle/dec uniformly.
+    BOOL (^loadBlock)(NSString *, uint32_t, BOOL) = ^BOOL(NSString *p, uint32_t C, BOOL needRaw) {
+        // conv1 (BN-folded): [2C, C]
+        if (needRaw) {
+            if (![W loadConv4DBoth:[p stringByAppendingString:@"_conv1_weight"]
+                          fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_conv1_weight.bin"]]
+                              Cout:2*C Cin:C kH:1 kW:1]) return NO;
+        } else {
+            if (![W loadConv4D:[p stringByAppendingString:@"_conv1_weight"]
+                      fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_conv1_weight.bin"]]
+                          Cout:2*C Cin:C kH:1 kW:1]) return NO;
+        }
+        if (![W loadRaw:[p stringByAppendingString:@"_conv1_bias"]
+              fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_conv1_bias.bin"]]]) return NO;
+        // dw: [2C, k*k]
+        if (needRaw) {
+            if (![W loadDWBoth:[p stringByAppendingString:@"_dw_weight"]
+                      fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_dw_weight.bin"]]
+                          Cout:2*C kH:k kW:k]) return NO;
+        } else {
+            if (![W loadDW:[p stringByAppendingString:@"_dw_weight"]
+                  fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_dw_weight.bin"]]
+                      Cout:2*C kH:k kW:k]) return NO;
+        }
+        if (![W loadRaw:[p stringByAppendingString:@"_dw_bias"]
+              fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_dw_bias.bin"]]]) return NO;
+        // proj1: [C, 2C]   (NB: was [C, C] in legacy)
+        if (needRaw) {
+            if (![W loadConv4DBoth:[p stringByAppendingString:@"_proj1_weight"]
+                          fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_proj1_weight.bin"]]
+                              Cout:C Cin:2*C kH:1 kW:1]) return NO;
+        } else {
+            if (![W loadConv4D:[p stringByAppendingString:@"_proj1_weight"]
+                      fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_proj1_weight.bin"]]
+                          Cout:C Cin:2*C kH:1 kW:1]) return NO;
+        }
+        if (![W loadRaw:[p stringByAppendingString:@"_proj1_bias"]
+              fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_proj1_bias.bin"]]]) return NO;
+        // mlp1 (BN-folded): [2C, C]
+        if (needRaw) {
+            if (![W loadConv4DBoth:[p stringByAppendingString:@"_mlp1_weight"]
+                          fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_mlp1_weight.bin"]]
+                              Cout:2*C Cin:C kH:1 kW:1]) return NO;
+        } else {
+            if (![W loadConv4D:[p stringByAppendingString:@"_mlp1_weight"]
+                      fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_mlp1_weight.bin"]]
+                          Cout:2*C Cin:C kH:1 kW:1]) return NO;
+        }
+        if (![W loadRaw:[p stringByAppendingString:@"_mlp1_bias"]
+              fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_mlp1_bias.bin"]]]) return NO;
+        // mlp2: [C, 2C]   (NB: was [C, C] in legacy)
+        if (needRaw) {
+            if (![W loadConv4DBoth:[p stringByAppendingString:@"_mlp2_weight"]
+                          fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_mlp2_weight.bin"]]
+                              Cout:C Cin:2*C kH:1 kW:1]) return NO;
+        } else {
+            if (![W loadConv4D:[p stringByAppendingString:@"_mlp2_weight"]
+                      fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_mlp2_weight.bin"]]
+                          Cout:C Cin:2*C kH:1 kW:1]) return NO;
+        }
+        if (![W loadRaw:[p stringByAppendingString:@"_mlp2_bias"]
+              fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_mlp2_bias.bin"]]]) return NO;
+        return YES;
+    };
+
+    // Encoders + downs
+    uint32_t enc_C[3] = {w, 2*w, 4*w};
+    for (int k = 0; k < 3; k++) {
+        if (!loadBlock([NSString stringWithFormat:@"enc%d", k], enc_C[k], keepRaw)) return NO;
+    }
+    uint32_t down_pairs[3][2] = {{w, 2*w}, {2*w, 4*w}, {4*w, 8*w}};
+    for (int k = 0; k < 3; k++) {
+        NSString *p = [NSString stringWithFormat:@"down%d", k];
+        if (![W loadConv4D:[p stringByAppendingString:@"_weight"]
+                  fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_weight.bin"]]
+                      Cout:down_pairs[k][1] Cin:down_pairs[k][0] kH:2 kW:2]) return NO;
+        if (![W loadRaw:[p stringByAppendingString:@"_bias"]
+              fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_bias.bin"]]]) return NO;
+    }
+
+    // Middle at C = 8*width — always MPSGraph (Metal kernels v[128] array doesn't fit 2*8*width).
+    if (!loadBlock(@"middle", 8*w, NO)) return NO;
+
+    // Ups + decoders
+    uint32_t up_Cin[3] = {8*w, 4*w, 2*w};
+    for (int k = 0; k < 3; k++) {
+        NSString *p = [NSString stringWithFormat:@"up%d", k];
+        if (![W loadConv4D:[p stringByAppendingString:@"_weight"]
+                  fromPath:[dir stringByAppendingPathComponent:[p stringByAppendingString:@"_weight.bin"]]
+                      Cout:2*up_Cin[k] Cin:up_Cin[k] kH:1 kW:1]) return NO;
+    }
+    uint32_t dec_C[3] = {4*w, 2*w, w};
+    for (int k = 0; k < 3; k++) {
+        if (!loadBlock([NSString stringWithFormat:@"dec%d", k], dec_C[k], keepRaw)) return NO;
+    }
+
+    // Head (ANE)
+    if (_useSubpixelHead) {
+        /* subpixel: Conv3x3(width → 4*out_c), followed by PixelShuffle(2) → out_c. */
+        if (![W loadConv4D:@"subpixel_weight"
+                  fromPath:[dir stringByAppendingPathComponent:@"subpixel_weight.bin"]
+                      Cout:16 Cin:w kH:3 kW:3]) return NO;
+        if (![W loadRaw:@"subpixel_bias"
+              fromPath:[dir stringByAppendingPathComponent:@"subpixel_bias.bin"]]) return NO;
+    } else {
+        /* outro: Conv3x3(width → 4). */
+        if (![W loadConv4D:@"outro_weight"
+                  fromPath:[dir stringByAppendingPathComponent:@"outro_weight.bin"]
+                      Cout:4 Cin:w kH:3 kW:3]) return NO;
+        if (![W loadRaw:@"outro_bias"
+              fromPath:[dir stringByAppendingPathComponent:@"outro_bias.bin"]]) return NO;
     }
 
     _W = W;
@@ -745,74 +1018,76 @@ typedef struct {
     _inputTensor = [g placeholderWithShape:@[@1, @(_Hp), @(_Wp), @4]
                                   dataType:MPSDataTypeFloat16 name:@"input"];
 
-    // ---- intro Conv3x3 4->16 ----
-    MPSGraphTensor *introW = constTensorHWIO(g, _W.buffers[@"intro_weight"], 3, 3, 4, 16);
-    MPSGraphTensor *introB = constTensor1D(g, _W.buffers[@"intro_bias"], 16);
+    const NSUInteger w = _modelWidth;
+
+    // ---- intro Conv3x3 4 -> width ----
+    MPSGraphTensor *introW = constTensorHWIO(g, _W.buffers[@"intro_weight"], 3, 3, 4, w);
+    MPSGraphTensor *introB = constTensor1D(g, _W.buffers[@"intro_bias"], w);
     MPSGraphTensor *y = conv2d_NHWC(g, _inputTensor, introW, introB, 1, 1, @"intro");
 
-    // ---- enc0 (C=16) + skip + down0 ----
-    y = [self nafblockNamed:@"enc0" C:16 input:y];
+    // ---- enc0 (C=w) + skip + down0 ----
+    y = [self nafblockNamed:@"enc0" C:w input:y];
     MPSGraphTensor *skip0 = y;
-    MPSGraphTensor *down0W = constTensorHWIO(g, _W.buffers[@"down0_weight"], 2, 2, 16, 32);
-    MPSGraphTensor *down0B = constTensor1D(g, _W.buffers[@"down0_bias"], 32);
+    MPSGraphTensor *down0W = constTensorHWIO(g, _W.buffers[@"down0_weight"], 2, 2, w, 2*w);
+    MPSGraphTensor *down0B = constTensor1D(g, _W.buffers[@"down0_bias"], 2*w);
     y = conv2d_NHWC(g, y, down0W, down0B, 2, 0, @"down0");
 
-    // ---- enc1 (C=32) + skip + down1 ----
-    y = [self nafblockNamed:@"enc1" C:32 input:y];
+    // ---- enc1 (C=2w) + skip + down1 ----
+    y = [self nafblockNamed:@"enc1" C:2*w input:y];
     MPSGraphTensor *skip1 = y;
-    MPSGraphTensor *down1W = constTensorHWIO(g, _W.buffers[@"down1_weight"], 2, 2, 32, 64);
-    MPSGraphTensor *down1B = constTensor1D(g, _W.buffers[@"down1_bias"], 64);
+    MPSGraphTensor *down1W = constTensorHWIO(g, _W.buffers[@"down1_weight"], 2, 2, 2*w, 4*w);
+    MPSGraphTensor *down1B = constTensor1D(g, _W.buffers[@"down1_bias"], 4*w);
     y = conv2d_NHWC(g, y, down1W, down1B, 2, 0, @"down1");
 
-    // ---- enc2 (C=64) + skip + down2 ----
-    y = [self nafblockNamed:@"enc2" C:64 input:y];
+    // ---- enc2 (C=4w) + skip + down2 ----
+    y = [self nafblockNamed:@"enc2" C:4*w input:y];
     MPSGraphTensor *skip2 = y;
-    MPSGraphTensor *down2W = constTensorHWIO(g, _W.buffers[@"down2_weight"], 2, 2, 64, 128);
-    MPSGraphTensor *down2B = constTensor1D(g, _W.buffers[@"down2_bias"], 128);
+    MPSGraphTensor *down2W = constTensorHWIO(g, _W.buffers[@"down2_weight"], 2, 2, 4*w, 8*w);
+    MPSGraphTensor *down2B = constTensor1D(g, _W.buffers[@"down2_bias"], 8*w);
     y = conv2d_NHWC(g, y, down2W, down2B, 2, 0, @"down2");
 
-    // ---- middle (C=128) ----
-    y = [self nafblockNamed:@"middle" C:128 input:y];
+    // ---- middle (C=8w) ----
+    y = [self nafblockNamed:@"middle" C:8*w input:y];
 
-    // ---- up0 (c_in=128 -> 64 via PS(2)) ----
-    MPSGraphTensor *up0W = constTensorHWIO(g, _W.buffers[@"up0_weight"], 1, 1, 128, 256);
+    // ---- up0 (c_in=8w -> 4w via PS(2)) ----
+    MPSGraphTensor *up0W = constTensorHWIO(g, _W.buffers[@"up0_weight"], 1, 1, 8*w, 16*w);
     y = conv2d_NHWC(g, y, up0W, nil, 1, 0, @"up0_conv");
     // PixelShuffle(2): NHWC depthToSpace with axes width=2, height=1, depth=3.
     y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
                 usePixelShuffleOrder:YES name:@"up0_ps"];
-    // skip add (skip2 at C=64)
+    // skip add (skip2 at C=4w)
     y = [g additionWithPrimaryTensor:y secondaryTensor:skip2 name:@"skip2_add"];
-    // dec0 (C=64)
-    y = [self nafblockNamed:@"dec0" C:64 input:y];
+    // dec0 (C=4w)
+    y = [self nafblockNamed:@"dec0" C:4*w input:y];
 
-    // ---- up1 (c_in=64 -> 32 via PS(2)) ----
-    MPSGraphTensor *up1W = constTensorHWIO(g, _W.buffers[@"up1_weight"], 1, 1, 64, 128);
+    // ---- up1 (c_in=4w -> 2w via PS(2)) ----
+    MPSGraphTensor *up1W = constTensorHWIO(g, _W.buffers[@"up1_weight"], 1, 1, 4*w, 8*w);
     y = conv2d_NHWC(g, y, up1W, nil, 1, 0, @"up1_conv");
     y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
                 usePixelShuffleOrder:YES name:@"up1_ps"];
     y = [g additionWithPrimaryTensor:y secondaryTensor:skip1 name:@"skip1_add"];
-    y = [self nafblockNamed:@"dec1" C:32 input:y];
+    y = [self nafblockNamed:@"dec1" C:2*w input:y];
 
-    // ---- up2 (c_in=32 -> 16 via PS(2)) ----
-    MPSGraphTensor *up2W = constTensorHWIO(g, _W.buffers[@"up2_weight"], 1, 1, 32, 64);
+    // ---- up2 (c_in=2w -> w via PS(2)) ----
+    MPSGraphTensor *up2W = constTensorHWIO(g, _W.buffers[@"up2_weight"], 1, 1, 2*w, 4*w);
     y = conv2d_NHWC(g, y, up2W, nil, 1, 0, @"up2_conv");
     y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
                 usePixelShuffleOrder:YES name:@"up2_ps"];
     y = [g additionWithPrimaryTensor:y secondaryTensor:skip0 name:@"skip0_add"];
-    y = [self nafblockNamed:@"dec2" C:16 input:y];
+    y = [self nafblockNamed:@"dec2" C:w input:y];
 
     // ---- Head: variant-dependent ----
     if (_useSubpixelHead) {
-        // F: Conv3x3 16->16, PixelShuffle(2) -> 4 channels at 2x.
-        MPSGraphTensor *subW = constTensorHWIO(g, _W.buffers[@"subpixel_weight"], 3, 3, 16, 16);
+        // F: Conv3x3 w->16, PixelShuffle(2) -> 4 channels at 2x.
+        MPSGraphTensor *subW = constTensorHWIO(g, _W.buffers[@"subpixel_weight"], 3, 3, w, 16);
         MPSGraphTensor *subB = constTensor1D(g, _W.buffers[@"subpixel_bias"], 16);
         y = conv2d_NHWC(g, y, subW, subB, 1, 1, @"subpixel");
         y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
                     usePixelShuffleOrder:YES name:@"subpixel_ps"];
         _residualTensor = y;  // (1, 2Hp, 2Wp, 4) fp16
     } else {
-        // F_no_sr: Conv3x3 16->4 (outro). Output at same plane dims as input.
-        MPSGraphTensor *outW_ = constTensorHWIO(g, _W.buffers[@"outro_weight"], 3, 3, 16, 4);
+        // F_no_sr: Conv3x3 w->4 (outro). Output at same plane dims as input.
+        MPSGraphTensor *outW_ = constTensorHWIO(g, _W.buffers[@"outro_weight"], 3, 3, w, 4);
         MPSGraphTensor *outB_ = constTensor1D(g, _W.buffers[@"outro_bias"], 4);
         y = conv2d_NHWC(g, y, outW_, outB_, 1, 1, @"outro");
         _residualTensor = y;  // (1, Hp, Wp, 4) fp16
@@ -842,45 +1117,47 @@ typedef struct {
         _gIntroOut = conv2d_NHWC(g, _gIntroIn, introW, introB, 1, 1, @"intro");
     }
 
-    // ----- G2: down0 (16ch Hp×Wp → 32ch Hp/2×Wp/2) -----
+    const NSUInteger w = _modelWidth;
+
+    // ----- G2: down0 (w ch Hp×Wp → 2w ch Hp/2×Wp/2) -----
     {
         MPSGraph *g = [[MPSGraph alloc] init];
         _gDown0 = g;
-        _gDown0In = [g placeholderWithShape:@[@1, @(_Hp), @(_Wp), @16]
+        _gDown0In = [g placeholderWithShape:@[@1, @(_Hp), @(_Wp), @(w)]
                                    dataType:MPSDataTypeFloat16 name:@"enc0_out"];
-        MPSGraphTensor *down0W = constTensorHWIO(g, _W.buffers[@"down0_weight"], 2, 2, 16, 32);
-        MPSGraphTensor *down0B = constTensor1D(g, _W.buffers[@"down0_bias"], 32);
+        MPSGraphTensor *down0W = constTensorHWIO(g, _W.buffers[@"down0_weight"], 2, 2, w, 2*w);
+        MPSGraphTensor *down0B = constTensor1D(g, _W.buffers[@"down0_bias"], 2*w);
         _gDown0Out = conv2d_NHWC(g, _gDown0In, down0W, down0B, 2, 0, @"down0");
     }
 
-    // ----- G3: down1 (32ch Hp/2×Wp/2 → 64ch Hp/4×Wp/4) -----
+    // ----- G3: down1 (2w ch Hp/2×Wp/2 → 4w ch Hp/4×Wp/4) -----
     {
         MPSGraph *g = [[MPSGraph alloc] init];
         _gDown1 = g;
-        _gDown1In = [g placeholderWithShape:@[@1, @(_Hp / 2), @(_Wp / 2), @32]
+        _gDown1In = [g placeholderWithShape:@[@1, @(_Hp / 2), @(_Wp / 2), @(2*w)]
                                    dataType:MPSDataTypeFloat16 name:@"enc1_out"];
-        MPSGraphTensor *down1W = constTensorHWIO(g, _W.buffers[@"down1_weight"], 2, 2, 32, 64);
-        MPSGraphTensor *down1B = constTensor1D(g, _W.buffers[@"down1_bias"], 64);
+        MPSGraphTensor *down1W = constTensorHWIO(g, _W.buffers[@"down1_weight"], 2, 2, 2*w, 4*w);
+        MPSGraphTensor *down1B = constTensor1D(g, _W.buffers[@"down1_bias"], 4*w);
         _gDown1Out = conv2d_NHWC(g, _gDown1In, down1W, down1B, 2, 0, @"down1");
     }
 
-    // ----- G4: down2 + middle NAFBlock C=128 + up0(PS) + skip2_add -----
+    // ----- G4: down2 + middle NAFBlock C=8w + up0(PS) + skip2_add -----
     {
         MPSGraph *g = [[MPSGraph alloc] init];
         _gMid = g;
-        _gMidIn = [g placeholderWithShape:@[@1, @(_Hp / 4), @(_Wp / 4), @64]
+        _gMidIn = [g placeholderWithShape:@[@1, @(_Hp / 4), @(_Wp / 4), @(4*w)]
                                  dataType:MPSDataTypeFloat16 name:@"enc2_out"];
-        _gMidSkip2 = [g placeholderWithShape:@[@1, @(_Hp / 4), @(_Wp / 4), @64]
+        _gMidSkip2 = [g placeholderWithShape:@[@1, @(_Hp / 4), @(_Wp / 4), @(4*w)]
                                     dataType:MPSDataTypeFloat16 name:@"skip2"];
-        MPSGraphTensor *down2W = constTensorHWIO(g, _W.buffers[@"down2_weight"], 2, 2, 64, 128);
-        MPSGraphTensor *down2B = constTensor1D(g, _W.buffers[@"down2_bias"], 128);
+        MPSGraphTensor *down2W = constTensorHWIO(g, _W.buffers[@"down2_weight"], 2, 2, 4*w, 8*w);
+        MPSGraphTensor *down2B = constTensor1D(g, _W.buffers[@"down2_bias"], 8*w);
         MPSGraphTensor *y = conv2d_NHWC(g, _gMidIn, down2W, down2B, 2, 0, @"down2");
-        // middle NAFBlock at C=128
+        // middle NAFBlock at C=8w
         MPSGraph *savedGraph = _graph; _graph = g;
-        y = [self nafblockNamed:@"middle" C:128 input:y];
+        y = [self nafblockNamed:@"middle" C:8*w input:y];
         _graph = savedGraph;
-        // up0: conv 1x1 (128→256) then PS(2) → 64ch at Hp/4×Wp/4
-        MPSGraphTensor *up0W = constTensorHWIO(g, _W.buffers[@"up0_weight"], 1, 1, 128, 256);
+        // up0: conv 1x1 (8w→16w) then PS(2) → 4w ch at Hp/4×Wp/4
+        MPSGraphTensor *up0W = constTensorHWIO(g, _W.buffers[@"up0_weight"], 1, 1, 8*w, 16*w);
         y = conv2d_NHWC(g, y, up0W, nil, 1, 0, @"up0_conv");
         y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
                     usePixelShuffleOrder:YES name:@"up0_ps"];
@@ -888,15 +1165,15 @@ typedef struct {
         _gMidOutDec0In = y;
     }
 
-    // ----- G5: up1 + skip1_add (64ch Hp/4×Wp/4 → 32ch Hp/2×Wp/2) -----
+    // ----- G5: up1 + skip1_add (4w ch Hp/4×Wp/4 → 2w ch Hp/2×Wp/2) -----
     {
         MPSGraph *g = [[MPSGraph alloc] init];
         _gUp1 = g;
-        _gUp1In = [g placeholderWithShape:@[@1, @(_Hp / 4), @(_Wp / 4), @64]
+        _gUp1In = [g placeholderWithShape:@[@1, @(_Hp / 4), @(_Wp / 4), @(4*w)]
                                  dataType:MPSDataTypeFloat16 name:@"dec0_out"];
-        _gUp1Skip1 = [g placeholderWithShape:@[@1, @(_Hp / 2), @(_Wp / 2), @32]
+        _gUp1Skip1 = [g placeholderWithShape:@[@1, @(_Hp / 2), @(_Wp / 2), @(2*w)]
                                     dataType:MPSDataTypeFloat16 name:@"skip1"];
-        MPSGraphTensor *up1W = constTensorHWIO(g, _W.buffers[@"up1_weight"], 1, 1, 64, 128);
+        MPSGraphTensor *up1W = constTensorHWIO(g, _W.buffers[@"up1_weight"], 1, 1, 4*w, 8*w);
         MPSGraphTensor *y = conv2d_NHWC(g, _gUp1In, up1W, nil, 1, 0, @"up1_conv");
         y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
                     usePixelShuffleOrder:YES name:@"up1_ps"];
@@ -904,15 +1181,15 @@ typedef struct {
         _gUp1Out = y;
     }
 
-    // ----- G6: up2 + skip0_add (32ch Hp/2×Wp/2 → 16ch Hp×Wp) -----
+    // ----- G6: up2 + skip0_add (2w ch Hp/2×Wp/2 → w ch Hp×Wp) -----
     {
         MPSGraph *g = [[MPSGraph alloc] init];
         _gUp2 = g;
-        _gUp2In = [g placeholderWithShape:@[@1, @(_Hp / 2), @(_Wp / 2), @32]
+        _gUp2In = [g placeholderWithShape:@[@1, @(_Hp / 2), @(_Wp / 2), @(2*w)]
                                  dataType:MPSDataTypeFloat16 name:@"dec1_out"];
-        _gUp2Skip0 = [g placeholderWithShape:@[@1, @(_Hp), @(_Wp), @16]
+        _gUp2Skip0 = [g placeholderWithShape:@[@1, @(_Hp), @(_Wp), @(w)]
                                     dataType:MPSDataTypeFloat16 name:@"skip0"];
-        MPSGraphTensor *up2W = constTensorHWIO(g, _W.buffers[@"up2_weight"], 1, 1, 32, 64);
+        MPSGraphTensor *up2W = constTensorHWIO(g, _W.buffers[@"up2_weight"], 1, 1, 2*w, 4*w);
         MPSGraphTensor *y = conv2d_NHWC(g, _gUp2In, up2W, nil, 1, 0, @"up2_conv");
         y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
                     usePixelShuffleOrder:YES name:@"up2_ps"];
@@ -921,22 +1198,22 @@ typedef struct {
     }
 
     // ----- G7: Head — variant-dependent
-    //          F:       16ch Hp×Wp → 4ch 2Hp×2Wp (subpixel + PS)
-    //          F_no_sr: 16ch Hp×Wp → 4ch Hp×Wp   (outro Conv3x3 16→4)
+    //          F:       w ch Hp×Wp → 4ch 2Hp×2Wp (subpixel + PS)
+    //          F_no_sr: w ch Hp×Wp → 4ch Hp×Wp   (outro Conv3x3 w→4)
     {
         MPSGraph *g = [[MPSGraph alloc] init];
         _gHead = g;
-        _gHeadIn = [g placeholderWithShape:@[@1, @(_Hp), @(_Wp), @16]
+        _gHeadIn = [g placeholderWithShape:@[@1, @(_Hp), @(_Wp), @(w)]
                                   dataType:MPSDataTypeFloat16 name:@"dec2_out"];
         MPSGraphTensor *y;
         if (_useSubpixelHead) {
-            MPSGraphTensor *subW = constTensorHWIO(g, _W.buffers[@"subpixel_weight"], 3, 3, 16, 16);
+            MPSGraphTensor *subW = constTensorHWIO(g, _W.buffers[@"subpixel_weight"], 3, 3, w, 16);
             MPSGraphTensor *subB = constTensor1D(g, _W.buffers[@"subpixel_bias"], 16);
             y = conv2d_NHWC(g, _gHeadIn, subW, subB, 1, 1, @"subpixel");
             y = [g depthToSpace2DTensor:y widthAxis:2 heightAxis:1 depthAxis:3 blockSize:2
                         usePixelShuffleOrder:YES name:@"subpixel_ps"];
         } else {
-            MPSGraphTensor *outW_ = constTensorHWIO(g, _W.buffers[@"outro_weight"], 3, 3, 16, 4);
+            MPSGraphTensor *outW_ = constTensorHWIO(g, _W.buffers[@"outro_weight"], 3, 3, w, 4);
             MPSGraphTensor *outB_ = constTensor1D(g, _W.buffers[@"outro_bias"], 4);
             y = conv2d_NHWC(g, _gHeadIn, outW_, outB_, 1, 1, @"outro");
         }
@@ -947,6 +1224,33 @@ typedef struct {
 // ---------- Hybrid: PSO + intermediate buffer setup ----------
 
 // Helper to build a PSO for a kernel with function-constant specialization.
+static id<MTLComputePipelineState> makeNAFPSO5(id<MTLDevice> dev, id<MTLLibrary> lib,
+                                               NSString *fname,
+                                               uint32_t c0, uint32_t c1, uint32_t c2, uint32_t c3,
+                                               uint32_t c4, int nconst)
+{
+    MTLFunctionConstantValues *fc = [[MTLFunctionConstantValues alloc] init];
+    [fc setConstantValue:&c0 type:MTLDataTypeUInt atIndex:0];
+    [fc setConstantValue:&c1 type:MTLDataTypeUInt atIndex:1];
+    [fc setConstantValue:&c2 type:MTLDataTypeUInt atIndex:2];
+    if (nconst >= 4) [fc setConstantValue:&c3 type:MTLDataTypeUInt atIndex:3];
+    if (nconst >= 5) [fc setConstantValue:&c4 type:MTLDataTypeUInt atIndex:4];
+    NSError *err = nil;
+    id<MTLFunction> fn = [lib newFunctionWithName:fname constantValues:fc error:&err];
+    if (!fn) {
+        fprintf(stderr, "SuperResMetal: can't load %s: %s\n",
+                [fname UTF8String], [[err localizedDescription] UTF8String]);
+        return nil;
+    }
+    id<MTLComputePipelineState> pso = [dev newComputePipelineStateWithFunction:fn error:&err];
+    if (!pso) {
+        fprintf(stderr, "SuperResMetal: can't make pso %s: %s\n",
+                [fname UTF8String], [[err localizedDescription] UTF8String]);
+        return nil;
+    }
+    return pso;
+}
+
 static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> lib,
                                               NSString *fname,
                                               uint32_t c0, uint32_t c1, uint32_t c2, uint32_t c3,
@@ -974,29 +1278,52 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
 }
 
 - (BOOL)setupHybridResources:(id<MTLLibrary>)lib {
+    /* The Metal-hybrid kernels use a thread-local float v[128] register array
+       to hold the 2C-channel intermediate. That caps 2C at 128, i.e. C ≤ 64,
+       i.e. _modelWidth ≤ 16. For wider models the hybrid backend can't safely
+       run — bail out and force MPSGraph instead. The caller (initWith… switch)
+       handles the fallback. */
+    if (_modelWidth > 16) {
+        fprintf(stderr, "SuperResMetal: width=%u > 16 — hybrid kernels unsupported; "
+                        "force MPSGraph backend\n", _modelWidth);
+        return NO;
+    }
+    const uint32_t w = _modelWidth;
     // Spatial dims per level
     _levelH[0] = _Hp;       _levelW[0] = _Wp;
     _levelH[1] = _Hp / 2;   _levelW[1] = _Wp / 2;
     _levelH[2] = _Hp / 4;   _levelW[2] = _Wp / 4;
-    uint32_t levelC[3] = {16, 32, 64};
+    uint32_t levelC[3] = {w, 2*w, 4*w};
 
     for (int lv = 0; lv < 3; lv++) {
         uint32_t C = levelC[lv], H = _levelH[lv], W = _levelW[lv];
-        // LN+Conv1x1 (C -> 2C): function constants (C_IN, C_OUT, W_DIM, H_DIM)
-        _psoLN[lv] = makeNAFPSO(_device, lib, @"fused_ln_conv1x1", C, 2*C, W, H, 4);
-        if (!_psoLN[lv]) return NO;
-        // DW + Gate + Proj + Residual: function constants (C, W_DIM, H_DIM)
-        _psoDGR[lv] = makeNAFPSO(_device, lib, @"fused_dw_gate_proj_res", C, W, H, 0, 3);
-        if (!_psoDGR[lv]) return NO;
-        // Gate + Proj + Residual: function constants (C, W_DIM, H_DIM)
-        _psoGPR[lv] = makeNAFPSO(_device, lib, @"fused_gate_proj_res", C, W, H, 0, 3);
-        if (!_psoGPR[lv]) return NO;
+        if (_isAneModel) {
+            // F_ane PSOs.
+            //   fused_ane_conv1x1: (C_IN=C, C_OUT=2C, W_DIM, H_DIM)
+            _psoAneConv1x1[lv] = makeNAFPSO(_device, lib, @"fused_ane_conv1x1", C, 2*C, W, H, 4);
+            if (!_psoAneConv1x1[lv]) return NO;
+            //   fused_ane_dw_silu_proj_res: (C_PJ_IN=2C, C_OUT=C, W, H, DW_K)
+            _psoAneDSPR[lv] = makeNAFPSO5(_device, lib, @"fused_ane_dw_silu_proj_res",
+                                           2*C, C, W, H, _dwKernel, 5);
+            if (!_psoAneDSPR[lv]) return NO;
+            //   fused_ane_silu_proj_res: (C_PJ_IN=2C, C_OUT=C, W, H)
+            _psoAneSPR[lv] = makeNAFPSO(_device, lib, @"fused_ane_silu_proj_res", 2*C, C, W, H, 4);
+            if (!_psoAneSPR[lv]) return NO;
+        } else {
+            // Legacy F (LN+SG) PSOs.
+            _psoLN[lv] = makeNAFPSO(_device, lib, @"fused_ln_conv1x1", C, 2*C, W, H, 4);
+            if (!_psoLN[lv]) return NO;
+            _psoDGR[lv] = makeNAFPSO(_device, lib, @"fused_dw_gate_proj_res", C, W, H, 0, 3);
+            if (!_psoDGR[lv]) return NO;
+            _psoGPR[lv] = makeNAFPSO(_device, lib, @"fused_gate_proj_res", C, W, H, 0, 3);
+            if (!_psoGPR[lv]) return NO;
+        }
     }
 
     // Intermediate buffers between graph segments and NAFBlocks.
-    size_t b_l0 = (size_t)_levelH[0] * _levelW[0] * 16 * sizeof(uint16_t);  // 16ch full
-    size_t b_l1 = (size_t)_levelH[1] * _levelW[1] * 32 * sizeof(uint16_t);  // 32ch /2
-    size_t b_l2 = (size_t)_levelH[2] * _levelW[2] * 64 * sizeof(uint16_t);  // 64ch /4
+    size_t b_l0 = (size_t)_levelH[0] * _levelW[0] * w     * sizeof(uint16_t);  // w ch full
+    size_t b_l1 = (size_t)_levelH[1] * _levelW[1] * 2 * w * sizeof(uint16_t);  // 2w ch /2
+    size_t b_l2 = (size_t)_levelH[2] * _levelW[2] * 4 * w * sizeof(uint16_t);  // 4w ch /4
     _bEnc0In  = [_device newBufferWithLength:b_l0 options:MTLResourceStorageModeShared];
     _bEnc0Out = [_device newBufferWithLength:b_l0 options:MTLResourceStorageModeShared];
     _bEnc1In  = [_device newBufferWithLength:b_l1 options:MTLResourceStorageModeShared];
@@ -1012,7 +1339,7 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
 
     // Per-NAFBlock scratch z1 (2C HW), m (C HW), z2 (2C HW).
     // Indexing: 0=enc0, 1=enc1, 2=enc2, 3=dec0, 4=dec1, 5=dec2.
-    uint32_t blockC[6] = {16, 32, 64, 64, 32, 16};
+    uint32_t blockC[6] = {w, 2*w, 4*w, 4*w, 2*w, w};
     uint32_t blockH[6] = {_levelH[0], _levelH[1], _levelH[2], _levelH[2], _levelH[1], _levelH[0]};
     uint32_t blockW[6] = {_levelW[0], _levelW[1], _levelW[2], _levelW[2], _levelW[1], _levelW[0]};
     for (int i = 0; i < 6; i++) {
@@ -1039,6 +1366,11 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                 inBuf:(id<MTLBuffer>)inBuf
                outBuf:(id<MTLBuffer>)outBuf
 {
+    if (_isAneModel) {
+        [self encodeNAFBlockANE:cb level:lv scratchIdx:si prefix:prefix
+                          inBuf:inBuf outBuf:outBuf];
+        return;
+    }
     uint32_t W = _levelW[lv], H = _levelH[lv];
     MTLSize tg = MTLSizeMake(32, 8, 1);
     MTLSize grid = MTLSizeMake(W, H, 1);
@@ -1112,6 +1444,79 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     [enc endEncoding];
 }
 
+// F_ane variant of encodeNAFBlock. BN folded into Conv1x1, SiLU, dw_kernel k∈{3,7}.
+- (void)encodeNAFBlockANE:(id<MTLCommandBuffer>)cb
+                     level:(int)lv
+                scratchIdx:(int)si
+                    prefix:(NSString *)prefix
+                     inBuf:(id<MTLBuffer>)inBuf
+                    outBuf:(id<MTLBuffer>)outBuf
+{
+    uint32_t W = _levelW[lv], H = _levelH[lv];
+    MTLSize tg = MTLSizeMake(32, 8, 1);
+    MTLSize grid = MTLSizeMake(W, H, 1);
+    SuperResMetalWeights *Wb = _W;
+
+    id<MTLBuffer> z1 = _scratchZ1[si];
+    id<MTLBuffer> m  = _scratchM[si];
+    id<MTLBuffer> z2 = _scratchZ2[si];
+
+    // No norm buffers — BN folded into conv1 and mlp1.
+    id<MTLBuffer> W1  = Wb.buffers[[prefix stringByAppendingString:@"_conv1_weight_raw"]];
+    id<MTLBuffer> B1  = Wb.buffers[[prefix stringByAppendingString:@"_conv1_bias"]];
+    id<MTLBuffer> DW  = Wb.buffers[[prefix stringByAppendingString:@"_dw_weight_raw"]];
+    id<MTLBuffer> DB  = Wb.buffers[[prefix stringByAppendingString:@"_dw_bias"]];
+    id<MTLBuffer> P1W = Wb.buffers[[prefix stringByAppendingString:@"_proj1_weight_raw"]];
+    id<MTLBuffer> P1B = Wb.buffers[[prefix stringByAppendingString:@"_proj1_bias"]];
+    id<MTLBuffer> W2  = Wb.buffers[[prefix stringByAppendingString:@"_mlp1_weight_raw"]];
+    id<MTLBuffer> B2  = Wb.buffers[[prefix stringByAppendingString:@"_mlp1_bias"]];
+    id<MTLBuffer> P2W = Wb.buffers[[prefix stringByAppendingString:@"_mlp2_weight_raw"]];
+    id<MTLBuffer> P2B = Wb.buffers[[prefix stringByAppendingString:@"_mlp2_bias"]];
+
+    id<MTLComputeCommandEncoder> enc = [cb computeCommandEncoder];
+
+    // Stage 1: BN1+Conv1 folded → Conv1x1 (C → 2C).
+    //   buffers: in, wmat, bias, out(z1).
+    [enc setComputePipelineState:_psoAneConv1x1[lv]];
+    [enc setBuffer:inBuf offset:0 atIndex:0];
+    [enc setBuffer:W1    offset:0 atIndex:1];
+    [enc setBuffer:B1    offset:0 atIndex:2];
+    [enc setBuffer:z1    offset:0 atIndex:3];
+    [enc dispatchThreads:grid threadsPerThreadgroup:tg];
+
+    // Stage 2: DW(k×k)+SiLU+proj1(2C→C)+Residual.
+    //   buffers: in_2c(z1), dw_w, dw_b, pj_w, pj_b, res_in(inBuf), out(m).
+    [enc setComputePipelineState:_psoAneDSPR[lv]];
+    [enc setBuffer:z1    offset:0 atIndex:0];
+    [enc setBuffer:DW    offset:0 atIndex:1];
+    [enc setBuffer:DB    offset:0 atIndex:2];
+    [enc setBuffer:P1W   offset:0 atIndex:3];
+    [enc setBuffer:P1B   offset:0 atIndex:4];
+    [enc setBuffer:inBuf offset:0 atIndex:5];
+    [enc setBuffer:m     offset:0 atIndex:6];
+    [enc dispatchThreads:grid threadsPerThreadgroup:tg];
+
+    // Stage 3: BN2+mlp1 folded → Conv1x1 (C → 2C).
+    [enc setComputePipelineState:_psoAneConv1x1[lv]];
+    [enc setBuffer:m     offset:0 atIndex:0];
+    [enc setBuffer:W2    offset:0 atIndex:1];
+    [enc setBuffer:B2    offset:0 atIndex:2];
+    [enc setBuffer:z2    offset:0 atIndex:3];
+    [enc dispatchThreads:grid threadsPerThreadgroup:tg];
+
+    // Stage 4: SiLU+mlp2(2C→C)+Residual.
+    //   buffers: in_2c(z2), pj_w, pj_b, res_in(m), out(outBuf).
+    [enc setComputePipelineState:_psoAneSPR[lv]];
+    [enc setBuffer:z2     offset:0 atIndex:0];
+    [enc setBuffer:P2W    offset:0 atIndex:1];
+    [enc setBuffer:P2B    offset:0 atIndex:2];
+    [enc setBuffer:m      offset:0 atIndex:3];
+    [enc setBuffer:outBuf offset:0 atIndex:4];
+    [enc dispatchThreads:grid threadsPerThreadgroup:tg];
+
+    [enc endEncoding];
+}
+
 // ---------- Init ----------
 
 - (nullable instancetype)initWithWeightsDir:(NSString *)weightsDir
@@ -1160,6 +1565,15 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     fprintf(stderr, "SuperResMetal: weights loaded in %.1f ms (%lu buffers)\n",
             t1 - t0, (unsigned long)_W.buffers.count);
 
+    /* Hybrid requires width ≤ 16 (Metal kernels' v[128] register array).
+       Quietly downgrade to MPSGraph before we build the wrong graph shape. */
+    if (backend == SuperResMetalBackendHybrid && _modelWidth > 16) {
+        fprintf(stderr, "SuperResMetal: width=%u > 16 — hybrid backend unsupported; "
+                        "using MPSGraph\n", _modelWidth);
+        _backend = SuperResMetalBackendMPSGraph;
+        backend  = SuperResMetalBackendMPSGraph;
+    }
+
     if (backend == SuperResMetalBackendHybrid) {
         [self buildHybridGraphs];
     } else {
@@ -1168,6 +1582,40 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     double t2 = now_ms_local();
     fprintf(stderr, "SuperResMetal: graph built in %.1f ms (input %ux%u planes, backend=%ld)\n",
             t2 - t1, _Wp, _Hp, (long)_backend);
+
+    // ---- Pre-compile MPSGraph to MPSGraphExecutable (MPSGraph backend only).
+    // Compiling once at init lets MPSGraph specialize the kernel selection
+    // ahead of time so per-frame encodeToCommandBuffer: is just an encode.
+    // The plain MPSGraph encode path was observed to take ~34.5 ms / frame
+    // (steady state); we expect this to drop with executable encode.
+    // Opt out with GPR2PRORES_NO_EXEC_COMPILE=1 for A/B measurement.
+    if (_backend == SuperResMetalBackendMPSGraph &&
+        !getenv("GPR2PRORES_NO_EXEC_COMPILE")) {
+        double tce0 = now_ms_local();
+        MPSGraphCompilationDescriptor *cd =
+            [[MPSGraphCompilationDescriptor alloc] init];
+        cd.optimizationLevel = MPSGraphOptimizationLevel1;
+        // Shape is fully static at this point (placeholder is fixed-shape) so
+        // the executable should specialize without runtime shape inference.
+        MPSGraphShapedType *inType = [[MPSGraphShapedType alloc]
+            initWithShape:_inputTensor.shape
+                 dataType:MPSDataTypeFloat16];
+        _graphExec = [_graph compileWithDevice:_mpsDevice
+                                         feeds:@{_inputTensor: inType}
+                                  targetTensors:@[_residualTensor]
+                               targetOperations:nil
+                          compilationDescriptor:cd];
+        if (!_graphExec) {
+            fprintf(stderr, "SuperResMetal: compileWithDevice returned nil; "
+                            "falling back to MPSGraph encode\n");
+        } else {
+            _graphExecDesc = [[MPSGraphExecutableExecutionDescriptor alloc] init];
+            _graphExecDesc.waitUntilCompleted = NO;
+            double tce1 = now_ms_local();
+            fprintf(stderr, "SuperResMetal: graph compiled to executable in %.1f ms\n",
+                    tce1 - tce0);
+        }
+    }
 
     // I/O buffers (fp16, NHWC) — also baseline buffer for the 2× fused path.
     //
@@ -1247,8 +1695,11 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
     // Hybrid: build NAFBlock PSOs + intermediate buffers.
     if (_backend == SuperResMetalBackendHybrid) {
         if (![self setupHybridResources:lib]) {
-            fprintf(stderr, "SuperResMetal: hybrid PSO/buffer setup failed\n");
-            return nil;
+            /* Hybrid requires width ≤ 16. For wider models we fall back
+               cleanly to MPSGraph — the graphs have already been built
+               above and are width-parameterized. */
+            fprintf(stderr, "SuperResMetal: hybrid setup declined; falling back to MPSGraph\n");
+            _backend = SuperResMetalBackendMPSGraph;
         }
     }
 
@@ -1268,12 +1719,20 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
                         shape:outShape
                      dataType:MPSDataTypeFloat16];
         double tw0 = now_ms_local();
-        [_graph runWithMTLCommandQueue:_queue
-                                 feeds:@{_inputTensor: inData}
-                      targetOperations:nil
-                     resultsDictionary:@{_residualTensor: outData}];
+        if (_graphExec) {
+            [_graphExec runWithMTLCommandQueue:_queue
+                                   inputsArray:@[inData]
+                                  resultsArray:@[outData]
+                            executionDescriptor:nil];
+        } else {
+            [_graph runWithMTLCommandQueue:_queue
+                                     feeds:@{_inputTensor: inData}
+                          targetOperations:nil
+                         resultsDictionary:@{_residualTensor: outData}];
+        }
         double tw1 = now_ms_local();
-        fprintf(stderr, "SuperResMetal: warmup run %.1f ms\n", tw1 - tw0);
+        fprintf(stderr, "SuperResMetal: warmup run %.1f ms (exec=%s)\n",
+                tw1 - tw0, _graphExec ? "yes" : "no");
     } else {
         // Hybrid warmup: run the inference path once with zero input to
         // trigger graph compilation for all 7 sub-graphs + Metal kernels.
@@ -1419,11 +1878,18 @@ static id<MTLComputePipelineState> makeNAFPSO(id<MTLDevice> dev, id<MTLLibrary> 
             initWithMTLBuffer:_outBuf
                         shape:outShape
                      dataType:MPSDataTypeFloat16];
-        [_graph encodeToCommandBuffer:cb
-                                feeds:@{_inputTensor: inData}
-                     targetOperations:nil
-                    resultsDictionary:@{_residualTensor: outData}
-                  executionDescriptor:nil];
+        if (_graphExec) {
+            [_graphExec encodeToCommandBuffer:cb
+                                  inputsArray:@[inData]
+                                 resultsArray:@[outData]
+                          executionDescriptor:_graphExecDesc];
+        } else {
+            [_graph encodeToCommandBuffer:cb
+                                    feeds:@{_inputTensor: inData}
+                         targetOperations:nil
+                        resultsDictionary:@{_residualTensor: outData}
+                      executionDescriptor:nil];
+        }
     } else {
         // ---- Hybrid: G1(intro) → enc0 → G2(down0) → enc1 → G3(down1) → enc2
         //              → G4(down2+mid+up0+skip2) → dec0 → G5(up1+skip1) → dec1

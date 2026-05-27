@@ -66,9 +66,13 @@ jobs:
         # rawpy : open DNG files produced by gpr_tools and read raw_image.
         # Used by both the fixture generator below and the
         # still-quality CI step at the bottom of this job.
+        # --break-system-packages is needed on macOS-14 runners (PEP 668
+        # marks the system Python as externally-managed; pip refuses to
+        # install into it without the flag). It's a no-op on Linux where
+        # the runner Python is already user-writeable.
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install numpy rawpy
+          python3 -m pip install --upgrade pip --break-system-packages
+          python3 -m pip install numpy rawpy --break-system-packages
 
       - name: Configure
         run: |
@@ -253,3 +257,78 @@ jobs:
         env:
           BUILD_DIR: build
         run: timeout 240 source/app/test_still_quality_corpus.sh
+
+      - name: Run still-image quality matrix (15-cell)
+        # Extends the 5-case corpus above with full coverage of:
+        #   bit depths     (rggb12, rggb12p, rggb14, rggb16, gbrg16)
+        #   quality presets (0 = Low, 3 = FS1, 8 = FS5)
+        #   resolutions    (1024², 12 MP, 23 MP HERO10, 50 MP Z8, 100 MP X2D)
+        # Each cell's baseline PSNR is locked from a clean run and checked
+        # with ~2 dB tolerance below that baseline. Pure synthesis — no
+        # committed media. Runs on both Linux and macOS.
+        env:
+          BUILD_DIR: build
+        run: timeout 480 tools/test/test_still_matrix.sh
+
+      - name: Run capability regression (locked criteria — MET/EXCEEDED/FAILED)
+        # Walks every claimed capability, measures encode_ms, decode_ms,
+        # compression ratio, and roundtrip PSNR per cell, and asserts each
+        # one against its stated criterion. Writes docs/CAPABILITIES.md
+        # as the canonical capability×measurement table. Fails CI if any
+        # cell breaks its criterion (FAILED). On Linux runners FAST=1 skips
+        # the 23/50/100 MP cells to keep wall-clock under 2 min.
+        # GPR_TIMING_TOLERANCE relaxes ms criteria for Debug builds (which
+        # are 2-3x slower than Release); quality criteria stay strict.
+        env:
+          BUILD_DIR: build
+          FAST: ${{ runner.os == 'Linux' && '1' || '0' }}
+          ARTIFACT_DIR: /tmp/gpr-capabilities
+          GPR_TIMING_TOLERANCE: ${{ matrix.build_type == 'Debug' && '3.0' || '1.0' }}
+        run: timeout 600 python3 tools/test/test_capabilities.py
+
+      - name: Run CNN regression (macOS only, dev-host deps)
+        if: runner.os == 'macOS'
+        # Skips gracefully when torch / rawpy / cv2 / the dering_proto_v2
+        # checkpoints directory are not present on the runner. Stock GH
+        # Actions macOS runners do not ship these, so on the public CI
+        # this is effectively a no-op smoke until a self-hosted dev-box
+        # runner is wired up. The script's prerequisite check produces a
+        # clean "SKIP" exit-0 in that case.
+        run: timeout 300 python3 tools/test/test_cnn_regression.py
+
+      - name: Run video pipeline matrix (macOS only)
+        if: runner.os == 'macOS'
+        # Exercises gpr2prores playback across (CNN variant × out
+        # resolution × demosaic backend). Cells whose weight directory is
+        # missing are reported SKIP, so on stock GH Actions runners (no
+        # dering_proto_v2 weights) most cells will skip. Cells that do
+        # run must exit 0 — no fps threshold yet. The gpr2prores binary
+        # is not built by this workflow today; the step short-circuits if
+        # it's not present so the rest of the job still passes.
+        env:
+          BUILD_DIR: build
+          FAST: "1"
+        run: |
+          if [ -x tools/gpr2prores/gpr2prores ]; then
+            timeout 300 tools/test/test_video_pipeline.sh
+          else
+            echo "SKIP — gpr2prores binary not built in this CI workflow"
+          fi
+
+      - name: Run sustained-fps regression (macOS only)
+        # Protects the 26+ fps × UHD playback win from PR #10 + #11 + #13.
+        # Builds a 24-frame synth fixture and asserts:
+        #   with BIBO_1x CNN: ≥ 20 fps; without CNN: ≥ 22 fps.
+        # Skips cleanly on Linux (gpr2prores is macOS-only) and on macOS
+        # when the BIBO_1x metal weights dir isn't present (stock GH
+        # Actions runners don't ship the dering_proto_v2 weights).
+        # See tools/test/test_sustained_playback.sh for env knobs.
+        if: runner.os == 'macOS'
+        env:
+          BUILD_DIR: build
+        run: |
+          if [ -x tools/gpr2prores/gpr2prores ]; then
+            timeout 240 tools/test/test_sustained_playback.sh
+          else
+            echo "SKIP — gpr2prores binary not built in this CI workflow"
+          fi
