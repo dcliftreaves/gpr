@@ -10,6 +10,12 @@ to `fix/multilevel-cascade-regression`.
 0.076 vs 0.08 ceiling). No CNN retrain required — the matched CNN already
 generalizes to the L1×2 cranked distribution.
 
+**New STILL size champion**: `codec=sl_q3_l1x4_hh1x8+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` —
+**25.8% smaller files** than the sl_q3 baseline (and 11.9% smaller than the prior
+smallest-STILL sl_q11) at worst LPIPS 0.028 (under STILL's 0.05 ceiling). The
+SL sweep paralleled the ML-2 methodology; same finding — the matched CNN
+generalizes well to adjacent cranks.
+
 **STILL coverage extended** to q=0/3/5/8/11 (all PASS with matched CNN).
 WITHOUT CNN, all single-level q-levels land at PREVIEW (LPIPS 0.100,
 identical across q=0/3/5 — they produce byte-identical bitstreams in
@@ -95,15 +101,21 @@ l1x2 (×2 on all three L1 slots) beats hh1x2 (which only touches HH1).
 
 ## What didn't happen (deliberate)
 
-- **No SL fine-grained sweep**: secondary track per the plan. The SL champion
-  `sl_q11+CNN` is already at LPIPS 0.024 with 15.8% savings; the headroom is
-  smaller (STILL ceiling is 0.05 vs VIDEO_FREEZE's 0.08).
 - **No BIDO Phase B** (Restormer distillation): Phase A gave measurable but
   insufficient improvement. Phase B is 6+ hours and the user signaled "expect
   no input 8 hours" — keeping the next iteration as a follow-up rather than
   burning the entire budget on one bet.
 - **No 3-level wavelet revival**: still parked per the multi-level Nyquist
   regression characterization.
+
+## What didn't happen (infrastructure)
+
+- **Cranked-CNN retrain stalled**: M5 went unreachable mid-training (~ep 32 of
+  80, last save at +1.75 dB val gain). Whether the training process kept running
+  while network was down is unknown until M5 comes back. The orchestrator and
+  artifacts are intact; on M5 recovery the steps are: SSH, check
+  `/tmp/train_cranked.log` tail, pull the ckpt, gate-test. If the training
+  process died, restart it (~90 min). If it survived, just gate.
 
 ## Pending follow-ups
 
