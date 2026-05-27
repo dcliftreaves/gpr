@@ -125,14 +125,30 @@ l1x2 (×2 on all three L1 slots) beats hh1x2 (which only touches HH1).
 - **No 3-level wavelet revival**: still parked per the multi-level Nyquist
   regression characterization.
 
-## What didn't happen (infrastructure)
+## Infrastructure note: M5 reboot mid-session
 
-- **Cranked-CNN retrain stalled**: M5 went unreachable mid-training (~ep 32 of
-  80, last save at +1.75 dB val gain). Whether the training process kept running
-  while network was down is unknown until M5 comes back. The orchestrator and
-  artifacts are intact; on M5 recovery the steps are: SSH, check
-  `/tmp/train_cranked.log` tail, pull the ckpt, gate-test. If the training
-  process died, restart it (~90 min). If it survived, just gate.
+M5 rebooted ~3 hours into the session (cleared `/tmp`, killed training) and
+came back on a new DHCP IP (192.168.1.162 vs .177). Same host key, just new
+IP. The partial cranked-retrain checkpoint at `/Users/dcliftreaves/gpr/models/`
+survived. Recovered and gate-tested it (see "Cranked-retrain finding" below).
+
+## Cranked-CNN retrain finding (post-recovery)
+
+The in-distribution matched CNN retrain for `ml2_q3_l2x2_l1x4` (partial — ep
+32 of 80) is **not a win**. The retrain HELPS in-distribution but HURTS OOD:
+
+| image | unmatched ml2_q3 CNN | matched ep-32 retrain |
+|---|---:|---:|
+| Z8Z_0001 | 0.039 | 0.038 (same) |
+| Z8Z_0067 (in val) | 0.100 | 0.046 (big improvement) |
+| Z8Z_5323 (oob) | (?) | 0.090 (FAIL by 0.010) |
+| Z8Z_6693 (oob) | 0.100 | 0.143 (worse by 0.043) |
+
+Conclusion: the broader-corpus champion CNN `bibo1x_ane_ml2_q3` generalizes
+better than the in-distribution retrain at this checkpoint. The 45.6%-smaller
+target either isn't reachable with our current 200-image corpus, or it needs
+a much broader retrain (e.g. the 498-image diverse corpus we used for BIDO).
+That's a future iteration; not a session-end win.
 
 ## Pending follow-ups
 
