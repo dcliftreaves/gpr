@@ -562,7 +562,7 @@
       "trained_against_codec": "ml2_q3_l2x2_l1x4",
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "TBD-pending-training"
+      "ckpt_sha256": "758d96c719d90c780b4c93695e725dfd3bfd75af0704b903085eb31ce0b3708b"
     },
     "bido_4x_ane_ml2_q3_dec2_lpips": {
       "$doc": "BIDO_4x fine-tuned from wider checkpoint with LPIPS-alex loss (Phase A of BIDO_DISTILLATION_PLAN). 30 epochs at \u03bb=0.1 with 5-epoch warmup. Best val LPIPS dropped from 0.5072 (init) \u2192 0.1525 at ep 18 \u2014 70% reduction. Saved on lowest val LPIPS (the multi-image val averaged over 4 sources).",
