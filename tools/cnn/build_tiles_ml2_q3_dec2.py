@@ -24,7 +24,11 @@ import zipfile
 import shutil
 import numpy as np
 
-PAIRS_DIR = os.environ.get("PAIRS_DIR", "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2")
+PAIRS_DIRS_ENV = os.environ.get("PAIRS_DIRS",
+                                os.environ.get("PAIRS_DIR",
+                                              "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2"))
+PAIRS_DIRS = [d.strip() for d in PAIRS_DIRS_ENV.split(":") if d.strip()]
+PAIRS_DIR = PAIRS_DIRS[0]  # legacy compat
 OUT_NPZ = os.environ.get("TILES_OUT", "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2.npz")
 TILE_CODEC = 128
 TILE_TGT = 256
@@ -43,28 +47,34 @@ def deinterleave(bayer_u16):
 
 
 def main():
+    # bases is a list of (resolved_dir, base) — multi-dir aware so we can
+    # combine the original barnsky pairs with a separate diverse-content corpus.
     bases = []
-    for f in sorted(os.listdir(PAIRS_DIR)):
-        if not f.endswith("_codec.raw"):
+    for pdir in PAIRS_DIRS:
+        if not os.path.isdir(pdir):
+            print(f"  skip dir (missing): {pdir}")
             continue
-        cp = os.path.join(PAIRS_DIR, f)
-        tp = os.path.join(PAIRS_DIR, f[:-len("_codec.raw")] + "_target.raw")
-        if os.path.getsize(cp) != CODEC_BYTES or os.path.getsize(tp) != TARGET_BYTES:
-            print(f"  skip {f}: size mismatch")
-            continue
-        bases.append(f[:-len("_codec.raw")])
-    print(f"pairs to tile: {len(bases)}", flush=True)
+        for f in sorted(os.listdir(pdir)):
+            if not f.endswith("_codec.raw"):
+                continue
+            cp = os.path.join(pdir, f)
+            tp = os.path.join(pdir, f[:-len("_codec.raw")] + "_target.raw")
+            if os.path.getsize(cp) != CODEC_BYTES or os.path.getsize(tp) != TARGET_BYTES:
+                print(f"  skip {pdir}/{f}: size mismatch")
+                continue
+            bases.append((pdir, f[:-len("_codec.raw")]))
+    print(f"pairs to tile from {len(PAIRS_DIRS)} dir(s): {len(bases)}", flush=True)
 
     accum = {k: [] for k in ["codec_R", "codec_G1", "codec_G2", "codec_B",
                              "tgt_R",   "tgt_G1",   "tgt_G2",   "tgt_B"]}
     src_ids = []
     src_names = []
     t0 = time.time()
-    for sid, base in enumerate(bases):
+    for sid, (pdir, base) in enumerate(bases):
         src_names.append(base)
-        codec = np.fromfile(os.path.join(PAIRS_DIR, f"{base}_codec.raw"),
+        codec = np.fromfile(os.path.join(pdir, f"{base}_codec.raw"),
                             dtype=np.uint16).reshape(CODEC_DIMS)
-        tgt   = np.fromfile(os.path.join(PAIRS_DIR, f"{base}_target.raw"),
+        tgt   = np.fromfile(os.path.join(pdir, f"{base}_target.raw"),
                             dtype=np.uint16).reshape(TARGET_DIMS)
         c_planes = deinterleave(codec)   # each (1380, 2070)
         t_planes = deinterleave(tgt)     # each (2760, 4140)
