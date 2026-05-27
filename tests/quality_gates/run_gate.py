@@ -438,6 +438,45 @@ def _process_one_image(
 # --------------------------------------------------------------------- runner
 
 
+def _cleanup_fullres_pngs(run_dir: Path) -> tuple[int, int]:
+    """Delete the inspection-only full-res REF/PIPELINE PNGs from `run_dir`,
+    leaving run.json + WORST_*_visual_diff.png + per-image crop PNGs intact.
+
+    A single REF/PIPELINE pair at 50 MP is ~150 MB each; an 8-image run
+    leaks ~1.2 GB of intermediate PNGs that the gate doesn't archive. The
+    crops and the worst-image visual diff are the durable evidence the
+    runner produces — full-res PNGs only matter for ad-hoc inspection
+    (which is opt-in via --keep-fullres-pngs or GATE_KEEP_FULLRES=1).
+
+    Matches files of the form `<id>_REF.png` and `<id>_PIPELINE.png` at
+    the run_dir root. Crops `<id>_REF_crop_*.png` /
+    `<id>_PIPELINE_crop_*.png` are explicitly preserved because their
+    filenames contain `_crop_` (which we filter on), and `WORST_*` files
+    are preserved because they don't end in `_REF.png` /
+    `_PIPELINE.png` (the WORST is `WORST_<id>_visual_diff.png`).
+
+    Returns (files_deleted, bytes_freed)."""
+    n = 0
+    freed = 0
+    for p in run_dir.iterdir():
+        if not p.is_file():
+            continue
+        name = p.name
+        # Crops have `_crop_` in the filename — never delete those.
+        if "_crop_" in name:
+            continue
+        # Only target the two specific full-res filenames.
+        if name.endswith("_REF.png") or name.endswith("_PIPELINE.png"):
+            try:
+                sz = p.stat().st_size
+                p.unlink()
+                n += 1
+                freed += sz
+            except OSError:
+                pass
+    return n, freed
+
+
 def pipeline_run_hash(pipeline_id: str, codec: dict, cnn: dict,
                        dms: dict, image_shas: list[str], gates_sha: str) -> str:
     payload = json.dumps({
@@ -452,7 +491,7 @@ def pipeline_run_hash(pipeline_id: str, codec: dict, cnn: dict,
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
-def evaluate_pipeline(pipeline_name: str) -> dict:
+def evaluate_pipeline(pipeline_name: str, keep_fullres: bool = False) -> dict:
     gates = load_json(GATES_PATH)
     test_set = load_json(TEST_SET_PATH)
     registry = load_json(REGISTRY_PATH)
@@ -590,6 +629,20 @@ def evaluate_pipeline(pipeline_name: str) -> dict:
     # 10. write the run log
     (run_dir / "run.json").write_text(json.dumps(results, indent=2, default=str))
 
+    # 10b. clean up the full-res REF/PIPELINE PNGs unless the caller asked
+    # us to keep them. These are ~150 MB each (8 per run = ~1.2 GB) and
+    # only useful for ad-hoc visual inspection — the crops and the WORST
+    # diff are the durable artifacts. We only reach this point with a
+    # PASS/FAIL verdict; INDETERMINATE paths exit earlier via die(), and
+    # an exception in the per-image work would also bypass this — so on
+    # any abnormal exit, everything is preserved for debugging.
+    if not keep_fullres:
+        deleted, freed = _cleanup_fullres_pngs(run_dir)
+        if deleted:
+            print(f"\n=== Cleaned up {deleted} full-res PNG(s), "
+                  f"freed {freed / (1024*1024):.1f} MB "
+                  f"(--keep-fullres-pngs / GATE_KEEP_FULLRES=1 to retain)")
+
     # 11. print worst-first summary (mandatory format)
     print(f"\n=== VERDICT: {results['verdict']}")
     print(f"=== Worst-first by LPIPS:")
@@ -611,9 +664,17 @@ def main():
     p.add_argument("pipeline", help="Full pipeline name from registry.json")
     p.add_argument("--claim", action="store_true",
                    help="After PASS, prompt for inspection-sentence to append to claims_log.md")
+    p.add_argument("--keep-fullres-pngs", action="store_true",
+                   help="Keep the full-res REF/PIPELINE PNGs (~150 MB each, ~1.2 GB/run). "
+                        "Default is to delete them after the verdict is computed; the run.json, "
+                        "WORST_*_visual_diff.png, and per-image crops are always kept. "
+                        "GATE_KEEP_FULLRES=1 in the environment has the same effect.")
     args = p.parse_args()
 
-    res = evaluate_pipeline(args.pipeline)
+    # Env-var override is OR'd with the flag — either one keeps the PNGs.
+    keep_fullres = args.keep_fullres_pngs or os.environ.get("GATE_KEEP_FULLRES", "") not in ("", "0")
+
+    res = evaluate_pipeline(args.pipeline, keep_fullres=keep_fullres)
 
     if args.claim:
         if res["verdict"] != "PASS":
