@@ -69,5 +69,19 @@ void gpr_profile_info_set_defaults(gpr_profile_info* x)
     x->hue_sat_map_data1 = NULL;
     x->hue_sat_map_data2 = NULL;
     x->hue_sat_map_encoding = 0;
+
+    x->look_table_dims[0] = 0;
+    x->look_table_dims[1] = 0;
+    x->look_table_dims[2] = 0;
+    x->look_table_data = NULL;
+    x->look_table_encoding = 0;
+
+    x->tone_curve_count = 0;
+    x->tone_curve_data = NULL;
+    x->baseline_exposure_offset = 0.0;
+    x->default_black_render = 0;
+    x->has_tone_curve = false;
+    x->has_baseline_exposure_offset = false;
+    x->has_default_black_render = false;
 }
 

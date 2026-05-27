@@ -62,6 +62,29 @@
         float       *hue_sat_map_data2;     /* illuminant 2 (may be NULL) */
         uint32_t    hue_sat_map_encoding;
 
+        /* ProfileLookTableData — 3D tone-and-color look LUT (the "camera look").
+           Adobe-converted Z8/Nikon DNGs ship a ~24×24×40 HSV-delta map here
+           that defines the rendered tone curve. Without it, raw decoders
+           fall back to a neutral rendering — saturation/hue land in the
+           wrong place (Y-PSNR ~17 dB on the gate's smooth-gradient test).
+           Plumbed in/out alongside HueSatMap so gpr_tools roundtrips preserve
+           the source DNG's color look. */
+        uint32_t    look_table_dims[3];     /* [hue, sat, val] divisions */
+        float       *look_table_data;       /* dims[0]*dims[1]*dims[2]*3 floats; NULL if absent */
+        uint32_t    look_table_encoding;
+
+        /* Tone-rendering metadata. Without these the decoded DNG renders
+           ~2× brighter than the source: sips falls back to a generic curve
+           and the gate's Y-PSNR collapses to ~17 dB on smooth gradients
+           even though the bayer round-trip is 61 dB. */
+        uint32_t    tone_curve_count;       /* number of (x,y) pairs */
+        float       *tone_curve_data;       /* count * 2 floats; NULL if absent */
+        double      baseline_exposure_offset;
+        uint32_t    default_black_render;   /* dng_default_black_render_None=0 or Auto=1 */
+        bool        has_tone_curve;
+        bool        has_baseline_exposure_offset;
+        bool        has_default_black_render;
+
     } gpr_profile_info;
 
     void gpr_profile_info_set_defaults(gpr_profile_info* x);
