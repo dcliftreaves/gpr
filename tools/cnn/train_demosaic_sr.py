@@ -185,6 +185,26 @@ def train(args):
                     shuffle=False, num_workers=0)
     model = build_variant("F_ane_dm_sr").to(DEVICE)
     print(f"  Params (backbone): {count_params(model):,}", flush=True)
+
+    # Optional: warm-start from an existing checkpoint (Phase A fine-tune).
+    if args.init_ckpt:
+        if not os.path.exists(args.init_ckpt):
+            raise FileNotFoundError(f"--init-ckpt not found: {args.init_ckpt}")
+        ck = torch.load(args.init_ckpt, map_location=DEVICE, weights_only=False)
+        model.load_state_dict(ck["backbone_state"])
+        print(f"  warm-started from {args.init_ckpt}", flush=True)
+
+    # Optional: LPIPS-aware loss term (Phase A fine-tune).
+    lpips_net = None
+    if args.lpips_weight > 0:
+        import lpips as lpips_lib
+        lpips_net = lpips_lib.LPIPS(net="alex").to(DEVICE)
+        for p in lpips_net.parameters():
+            p.requires_grad_(False)
+        lpips_net.eval()
+        print(f"  LPIPS (alex) loaded, weight={args.lpips_weight} "
+              f"warmup={args.lpips_warmup_epochs} epochs", flush=True)
+
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
 
@@ -220,15 +240,33 @@ def train(args):
     print(f"  Initial  base PSNR={pb:.3f}  model PSNR={pa:.3f}  gain={pa-pb:+.3f} dB",
           flush=True)
     for ep in range(args.epochs):
-        model.train(); t0 = time.time(); loss_sum = 0.0; nb = 0
+        # Cosine warmup of LPIPS weight (0 → full over `lpips_warmup_epochs`).
+        if lpips_net is not None:
+            if args.lpips_warmup_epochs > 0 and ep < args.lpips_warmup_epochs:
+                # Cosine ramp from 0 to lpips_weight
+                phase = (ep + 1) / args.lpips_warmup_epochs   # 1/W .. 1
+                lpips_w_curr = args.lpips_weight * (1 - np.cos(phase * np.pi / 2))
+            else:
+                lpips_w_curr = args.lpips_weight
+        else:
+            lpips_w_curr = 0.0
+        model.train(); t0 = time.time(); loss_sum = 0.0; loss_l1 = 0.0; loss_lp = 0.0; nb = 0
         for inp, tgt in tr:
             inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
             tgt_rgb = tgt.clamp(0, 1) if has_rgb else bayer_4plane_to_rgb(tgt).clamp(0, 1)
             pred = model(inp).clamp(0, 1)
-            l = multiscale_l1(pred, tgt_rgb)
+            l_ms = multiscale_l1(pred, tgt_rgb)
+            if lpips_net is not None and lpips_w_curr > 0:
+                # LPIPS expects [-1, 1] range
+                l_lpips = lpips_net(pred * 2 - 1, tgt_rgb * 2 - 1).mean()
+                l = l_ms + lpips_w_curr * l_lpips
+                loss_lp += float(l_lpips.item())
+            else:
+                l = l_ms
             opt.zero_grad(set_to_none=True); l.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            opt.step(); loss_sum += l.item(); nb += 1
+            opt.step()
+            loss_sum += l.item(); loss_l1 += l_ms.item(); nb += 1
         sched.step()
         pb, pa = evaluate()
         gain = pa - pb
@@ -247,9 +285,15 @@ def train(args):
             marker = "  [SAVED]"
         else:
             epochs_since_best += 1
-        print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}  "
-              f"base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
-              f"t={time.time()-t0:.1f}s{marker}", flush=True)
+        if lpips_net is not None:
+            print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}  "
+                  f"l1={loss_l1/nb:.5f}  lpips={loss_lp/nb:.5f}  lp_w={lpips_w_curr:.4f}  "
+                  f"base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
+                  f"t={time.time()-t0:.1f}s{marker}", flush=True)
+        else:
+            print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}  "
+                  f"base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
+                  f"t={time.time()-t0:.1f}s{marker}", flush=True)
         if epochs_since_best >= args.patience and ep + 1 >= 40:
             print(f"  Early stop: no improvement in {args.patience} epochs", flush=True)
             break
@@ -267,6 +311,13 @@ def main():
     ap.add_argument("--subsample", type=int, default=1)
     ap.add_argument("--ckpt-name", type=str,
                     default="BayInDemosaicOut_4x_AAon_w16_ANE.pt")
+    # Phase A fine-tune (BIDO_DISTILLATION_PLAN.md):
+    ap.add_argument("--init-ckpt", type=str, default=None,
+                    help="Path to existing .pt to warm-start from (fine-tune).")
+    ap.add_argument("--lpips-weight", type=float, default=0.0,
+                    help="If >0, add λ·LPIPS-alex to the loss (frozen network).")
+    ap.add_argument("--lpips-warmup-epochs", type=int, default=0,
+                    help="Cosine ramp the LPIPS weight from 0 to λ over N epochs.")
     args = ap.parse_args()
     train(args)
 
