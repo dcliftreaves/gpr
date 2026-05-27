@@ -362,8 +362,9 @@
       "codec": "sl_q3",
       "cnn": "none",
       "demosaic": "sips_via_gpr_tools",
-      "ship_class": "STILL",
-      "$role": "baseline-sl"
+      "ship_class": "PREVIEW",
+      "$role": "embedded-preview-no-cnn",
+      "$doc": "Full-res single-level q=3 codec, no post-CNN. Ships PREVIEW (4-image gate worst LPIPS 0.100 < 0.15, Y-PSNR 33.34 > 28, MS-SSIM 0.958 > 0.95). Add +cnn=bibo1x_ane_sl_q3 to promote to STILL."
     },
     "codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q3",
