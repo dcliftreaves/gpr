@@ -316,6 +316,50 @@
         "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:384,8:384,9:576"
       },
       "quality": 3
+    },
+    "ml2_q3_l1x3": {
+      "$doc": "ml2_q3 with L1 highpass \u00d73 (LH1/HL1: 96\u2192288, HH1: 144\u2192432). Between l1x2 (PASS) and l1x4 (FAIL).",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "7:288,8:288,9:432"
+      },
+      "quality": 3
+    },
+    "ml2_q3_hh1x8": {
+      "$doc": "HH1 \u00d78 alone (144\u21921152). HH is the most-CNN-stubborn highpass.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "9:1152"
+      },
+      "quality": 3
+    },
+    "ml2_q3_l1x2_hh1x4": {
+      "$doc": "Stack: l1x2 \u00d72 PLUS HH1 cranked 4\u00d7 (LH1/HL1: 192, HH1: 576).",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "7:192,8:192,9:576"
+      },
+      "quality": 3
+    },
+    "ml2_q3_l2x2_l1x3": {
+      "$doc": "Between l2x2_l1x2 (PASS) and l2x2_l1x4 (FAIL).",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:288,8:288,9:432"
+      },
+      "quality": 3
     }
   },
   "cnns": {
@@ -456,6 +500,15 @@
       "residual_scale": 0.0,
       "raw_norm": 16383.0,
       "ckpt_sha256": "cf01f33e025b0ba9ae42190be9999d14b6ae494279ff7f82bfef28890950d94d"
+    },
+    "bibo1x_ane_ml2_q3_l2x2_l1x4": {
+      "$doc": "BIBO_1x (F_ane_no_sr) CNN matched to ml2_q3_l2x2_l1x4 cranked codec (L2 \u00d72 + L1 \u00d74 highpass quants). Target: clear the 0.020 LPIPS gap of the unmatched bibo1x_ane_ml2_q3 against this distribution. If passes, unlocks 45.6%-smaller-than-champion VIDEO_FREEZE bitstream.",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_ML2_q3_l2x2_l1x4.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "ml2_q3_l2x2_l1x4",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "TBD-pending-training"
     }
   },
   "pipelines": {
@@ -903,6 +956,41 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "cnnaware-ml2-crank-l2x2_l1x4-with-matched-cnn"
+    },
+    "codec=ml2_q3_l2x2_l1x4+cnn=bibo1x_ane_ml2_q3_l2x2_l1x4+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2x2_l1x4",
+      "cnn": "bibo1x_ane_ml2_q3_l2x2_l1x4",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-l2x2-l1x4-matched-retrain"
+    },
+    "codec=ml2_q3_l1x3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l1x3",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-l1x3-matched-cnn"
+    },
+    "codec=ml2_q3_hh1x8+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_hh1x8",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-hh1x8-matched-cnn"
+    },
+    "codec=ml2_q3_l1x2_hh1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l1x2_hh1x4",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-l1x2_hh1x4-matched-cnn"
+    },
+    "codec=ml2_q3_l2x2_l1x3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2x2_l1x3",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-l2x2_l1x3-matched-cnn"
     }
   }
 }
