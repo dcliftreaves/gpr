@@ -58,11 +58,21 @@ class NAFUNetANE(nn.Module):
     """3-level U-Net of NAFBlockANE — drop-in compute replacement for the F
     architecture (width=16, enc=[1,1,1], dec=[1,1,1], mid=1) with ANE-friendly
     ops. `sr` toggles between 2× super-res (subpixel head) and 1× clean (outro
-    Conv3x3) — same conditional as F's NAFUNet."""
+    Conv3x3) — same conditional as F's NAFUNet.
+
+    `sr4x` mode: output is 4× per spatial dim instead of 2×. Used by the
+    demosaic+super-res variant (BIBO_DEMOSAIC_SR4x): input is half-res
+    bayer (4ch), output is full-res RGB (3ch) at 2× super-res across the
+    bayer-pixel dimension, which is 4× across the codec-channel spatial
+    dimension. Combines demosaic and super-res into one network — avoids
+    the per-channel bayer-plane bicubic upscale that the 2× super-res
+    head applies, which is what produces the over-smoothing artifacts on
+    out-of-distribution content (see SHIP_DECISION.md 2026-05-26)."""
     def __init__(self, width=16, enc_blocks=(1, 1, 1), dec_blocks=(1, 1, 1),
-                 mid_blocks=1, sr=True, in_c=4, out_c=4):
+                 mid_blocks=1, sr=True, sr4x=False, in_c=4, out_c=4):
         super().__init__()
         self.sr = sr
+        self.sr4x = sr4x
         self.intro = nn.Conv2d(in_c, width, 3, padding=1)
 
         self.encoders = nn.ModuleList()
@@ -83,7 +93,16 @@ class NAFUNetANE(nn.Module):
             c //= 2
             self.decoders.append(nn.Sequential(*[NAFBlockANE(c) for _ in range(nb)]))
 
-        if sr:
+        if sr4x:
+            # 4× per dim via two PixelShuffle(2) stages: total spatial scale 4×.
+            # For demosaic+super-res: input 128×128 4ch → output 512×512 3ch.
+            self.subpixel = nn.Sequential(
+                nn.Conv2d(c, 4*c, 3, padding=1),
+                nn.PixelShuffle(2),
+                nn.Conv2d(c, 4*out_c, 3, padding=1),
+                nn.PixelShuffle(2),
+            )
+        elif sr:
             self.subpixel = nn.Sequential(
                 nn.Conv2d(c, 4*out_c, 3, padding=1),
                 nn.PixelShuffle(2),
@@ -101,7 +120,7 @@ class NAFUNetANE(nn.Module):
             x = up(x)
             x = x + sk
             x = dec(x)
-        if self.sr:
+        if self.sr or self.sr4x:
             return self.subpixel(x)
         return self.outro(x)
 
@@ -109,6 +128,9 @@ class NAFUNetANE(nn.Module):
 VARIANTS = {
     "F_ane":       dict(width=16, enc=[1, 1, 1], dec=[1, 1, 1], mid=1, sr=True),
     "F_ane_no_sr": dict(width=16, enc=[1, 1, 1], dec=[1, 1, 1], mid=1, sr=False),
+    # Demosaic + super-res joint head: 4ch bayer in, 3ch RGB out at 4× spatial.
+    "F_ane_dm_sr": dict(width=16, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
+                        sr=False, sr4x=True, in_c=4, out_c=3),
 }
 
 
@@ -116,7 +138,8 @@ def build(tag):
     cfg = VARIANTS[tag]
     return NAFUNetANE(width=cfg["width"], enc_blocks=cfg["enc"],
                       dec_blocks=cfg["dec"], mid_blocks=cfg["mid"],
-                      sr=cfg["sr"])
+                      sr=cfg.get("sr", False), sr4x=cfg.get("sr4x", False),
+                      in_c=cfg.get("in_c", 4), out_c=cfg.get("out_c", 4))
 
 
 if __name__ == "__main__":
