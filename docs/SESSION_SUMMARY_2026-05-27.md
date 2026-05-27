@@ -3,6 +3,23 @@
 Session ran while user was AFK ~8 hours. All work committed and pushed
 to `fix/multilevel-cascade-regression`.
 
+## When you return — first checks
+
+1. **Open the dashboard**: `tests/quality_gates/runs/dashboard/index.html`
+   shows all the new champions + the full sweep landscape.
+2. **Check M5 status**: it went unreachable ~30 min before the session
+   ended while the cranked-CNN retrain was mid-training (ep 32 of 80).
+   Run `ssh gpr-m5 'tail -10 /tmp/train_cranked.log; ps -ef | grep train.py | grep -v grep'`
+   to see if training survived or needs restart.
+3. **Headline outcomes**: two new ship-class champions.
+   - VIDEO_FREEZE: ml2_q3_l1x2 + matched CNN at LPIPS 0.076 / 7.81 MB
+     (23.9% smaller than the prior champion). No CNN retrain needed.
+   - STILL (size): sl_q3_l1x4_hh1x8 + sl_q3 CNN at LPIPS 0.028 / 19.73 MB
+     (25.8% smaller than sl_q3, 11.9% smaller than sl_q11).
+4. **Run gate's `--claim` flow** on the new champions when you have a moment
+   to log inspection sentences — the runner refuses non-interactive claims
+   by design.
+
 ## Headline outcomes
 
 **New VIDEO_FREEZE champion**: `codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` —
