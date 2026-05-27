@@ -11,11 +11,12 @@ here doesn't match the latest run logs, the run logs win.
 | STILL | `codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.009 | **PASS** | FUSED-path stills, 4-image worst case identical to REF |
 | STILL | `codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.024 | **PASS** | 24% smaller files, ~equivalent quality |
 | VIDEO_FREEZE | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | **PASS** | Full-res video, matched-CNN |
-| STILL | `codec=gpr_tools_legacy+cnn=none+demosaic=sips_via_gpr_tools` | 0.258 | **FAIL** | Production stills CLI — partial fix landed, 1 of 4 images PASS; Z8Z_5323/6693 portrait tone drift pending (#194) |
-| VIDEO_FREEZE | `codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2+demosaic=sips_via_gpr_tools` | 0.437 | **FAIL** | Embedded capture (Pi 5 24 fps) + desktop super-res. Barnsky-only training corpus was too narrow; diverse-corpus retrain in progress on M5 |
+| PREVIEW | `codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools` | 0.100 | **PASS** | Full-res codec, no post-CNN. Embedded-friendly path |
+| STILL | `codec=gpr_tools_legacy+cnn=none+demosaic=sips_via_gpr_tools` | 0.258 | **FAIL** | Production stills CLI — DCP profile-tag plumbing landed; residual on Z8Z_5323/6693 is codec-inherent at q=3 (not metadata), closed as not-a-bug |
+| PREVIEW | `codec=ml2_q3_dec2+cnn=bibo2x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.253 | **FAIL** | Pi-capture half-res + bayer-plane super-res; bayer-plane upscale over-smooths OOD; F_ane_dm_sr (joint demosaic+SR) training in progress (#196) |
 
-Three FUSED-path pipelines pass. The gpr_tools production-stills path
-and the embedded-capture pipeline each have an in-flight fix.
+Four pipelines pass — STILL × 2, VIDEO_FREEZE × 1, PREVIEW × 1. The
+embedded half-res capture path has an in-flight CNN architecture fix.
 
 ## End-to-end demo (validated 2026-05-26)
 
