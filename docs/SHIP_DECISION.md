@@ -9,7 +9,8 @@ here doesn't match the latest run logs, the run logs win.
 | ship class | pipeline | worst LPIPS | verdict | notes |
 |---|---|---:|---|---|
 | STILL | `codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.009 | **PASS** | FUSED-path stills, 4-image worst case identical to REF |
-| STILL | `codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.024 | **PASS** | 24% smaller files, ~equivalent quality |
+| STILL | `codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.024 | **PASS** | 15.8% smaller files than sl_q3 |
+| STILL | `codec=sl_q3_l1x4_hh1x8+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.028 | **PASS** | **NEW SIZE CHAMPION** 25.8% smaller than sl_q3, 11.9% smaller than sl_q11 |
 | VIDEO_FREEZE | `codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.076 | **PASS** | **NEW CHAMPION** Full-res video, matched-CNN, L1 highpass ×2 cranked → 23.9% smaller files (7.81 vs 10.26 MB) |
 | VIDEO_FREEZE | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | **PASS** | Baseline ML-2 video, matched-CNN. Smaller LPIPS but bigger files than l1x2 |
 | VIDEO_FREEZE | `codec=ml2_q3_hh1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.072 | **PASS** | HH1×4 cranked alone → 10.2% smaller files |
