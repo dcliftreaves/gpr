@@ -788,6 +788,13 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "cnnaware-ml2-prefilter3hv_softq-with-matched-cnn"
+    },
+    "codec=ml2_q11+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q11",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-q11-with-matched-cnn"
     }
   }
 }
