@@ -125,13 +125,23 @@ class NAFUNetANE(nn.Module):
         return self.outro(x)
 
 
+# Naming convention (referenced in docs and checkpoint filenames):
+#   BIBO = Bayer In, Bayer Out — codec-domain CNN (in_c=4, out_c=4, no rendering)
+#   BIDO = Bayer In, Demosaic-Out — joint demosaic CNN (in_c=4, out_c=3 RGB)
+# Scale suffix: 1x = same res, 2x = 2x spatial, 4x = 4x spatial.
 VARIANTS = {
-    "F_ane":       dict(width=16, enc=[1, 1, 1], dec=[1, 1, 1], mid=1, sr=True),
-    "F_ane_no_sr": dict(width=16, enc=[1, 1, 1], dec=[1, 1, 1], mid=1, sr=False),
-    # Demosaic + super-res joint head: 4ch bayer in, 3ch RGB out at 4× spatial.
+    # BIBO variants (bayer in, bayer out)
+    "F_ane":       dict(width=16, enc=[1, 1, 1], dec=[1, 1, 1], mid=1, sr=True),    # BIBO 2x
+    "F_ane_no_sr": dict(width=16, enc=[1, 1, 1], dec=[1, 1, 1], mid=1, sr=False),   # BIBO 1x
+    # BIDO variant (bayer in, RGB out, 4x spatial — joint demosaic+super-res)
     "F_ane_dm_sr": dict(width=16, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
                         sr=False, sr4x=True, in_c=4, out_c=3),
 }
+# Future-naming aliases — same configs under BIBO/BIDO names. Use these in new
+# checkpoint filenames going forward (e.g. BayInDemosaicOut_4x_AAon_w16_ANE.pt).
+VARIANTS["bibo_2x"]   = VARIANTS["F_ane"]
+VARIANTS["bibo_1x"]   = VARIANTS["F_ane_no_sr"]
+VARIANTS["bido_4x"]   = VARIANTS["F_ane_dm_sr"]
 
 
 def build(tag):

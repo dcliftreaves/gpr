@@ -161,7 +161,9 @@ def apply_cnn(bayer: np.ndarray, cnn: dict):
                f"Migrate the checkpoint with proper metadata before testing.")
     ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
     variant = ck.get("variant", cnn["cnn_arch_variant"])
-    is_dm_sr = "dm_sr" in variant  # joint demosaic + super-res
+    # BIDO = Bayer In, Demosaic Out (joint demosaic + super-res). Legacy
+    # variant name "dm_sr" still recognized.
+    is_dm_sr = "dm_sr" in variant or "bido" in variant.lower()
     is_sr2x = (not is_dm_sr) and "no_sr" not in variant
     m = build_variant(variant)
     m.load_state_dict(ck["backbone_state"])

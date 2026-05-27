@@ -266,7 +266,7 @@ def main():
     ap.add_argument("--patience", type=int, default=25)
     ap.add_argument("--subsample", type=int, default=1)
     ap.add_argument("--ckpt-name", type=str,
-                    default="BayInBayOut_DMSR_AAon_w16_ANE.pt")
+                    default="BayInDemosaicOut_4x_AAon_w16_ANE.pt")
     args = ap.parse_args()
     train(args)
 
