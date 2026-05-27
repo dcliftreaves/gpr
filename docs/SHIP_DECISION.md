@@ -8,14 +8,31 @@ here doesn't match the latest run logs, the run logs win.
 
 | ship class | pipeline | worst LPIPS | verdict | notes |
 |---|---|---:|---|---|
-| STILL | `codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.009 | **PASS** | Production stills |
+| STILL | `codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.009 | **PASS** | FUSED-path stills, 4-image worst case identical to REF |
 | STILL | `codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.024 | **PASS** | 24% smaller files, ~equivalent quality |
 | VIDEO_FREEZE | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | **PASS** | Full-res video, matched-CNN |
-| VIDEO_FREEZE | `codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2+demosaic=sips_via_gpr_tools` | TBD | pending | Embedded capture (Pi 5 24 fps) + desktop super-res — matched CNN retraining in progress on M5 |
+| STILL | `codec=gpr_tools_legacy+cnn=none+demosaic=sips_via_gpr_tools` | 0.258 | **FAIL** | Production stills CLI — partial fix landed, 1 of 4 images PASS; Z8Z_5323/6693 portrait tone drift pending (#194) |
+| VIDEO_FREEZE | `codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2+demosaic=sips_via_gpr_tools` | 0.437 | **FAIL** | Embedded capture (Pi 5 24 fps) + desktop super-res. Barnsky-only training corpus was too narrow; diverse-corpus retrain in progress on M5 |
 
-Three pipelines are shippable. Everything else in
-`tests/quality_gates/runs/` is documented in the dashboard but failed
-its declared class.
+Three FUSED-path pipelines pass. The gpr_tools production-stills path
+and the embedded-capture pipeline each have an in-flight fix.
+
+## End-to-end demo (validated 2026-05-26)
+
+Pi 5 → desktop pipeline run as a unit (task #195, commit 076c56c):
+
+  1. Pi 5 (USB SSD, ethernet) captures 3 frames of Z8 50MP via
+     `bench_fused` with `ml2_q3_dec2` (decimate=2) at **22.5 fps median**,
+     **1.3 MB/frame**.
+  2. rsync .gpr files to Mac.
+  3. Mac decodes each via `fused_decode_cli` in **~22 ms/frame**
+     (output: half-res 4140×2760 bayer).
+  4. Mac applies `BIBO_2x` super-res CNN in **~6 ms/frame** steady-state
+     (output: full-res 8280×5520 bayer).
+  5. Mac wraps in DNG via `gpr_tools` and renders to PNG via sips.
+
+Visual diff: PIPE crop matches REF content. Will tighten once the
+diverse-corpus matched CNN lands.
 
 ## Gate (`tests/quality_gates/gates.json`)
 
