@@ -892,6 +892,25 @@ static bool read_dng(const gpr_allocator*       allocator,
                     (uint32)cam_profile.DefaultBlackRender();
                 convert_params->profile_info.has_default_black_render = true;
 
+                /* Negative-level render hints: BaselineNoise, BaselineSharpness,
+                   BayerGreenSplit. The original gpr_sdk hardcoded the first two
+                   to 1.0 on output and never read GreenSplit at all — sips uses
+                   these to choose noise/sharpness rendering, and the diff
+                   contributes to the ~10% brightness drift on portraits. */
+                convert_params->profile_info.baseline_noise =
+                    negative->BaselineNoise();
+                convert_params->profile_info.has_baseline_noise = true;
+                convert_params->profile_info.baseline_sharpness =
+                    negative->BaselineSharpness();
+                convert_params->profile_info.has_baseline_sharpness = true;
+                const dng_mosaic_info *mi = negative->GetMosaicInfo();
+                if (mi != NULL)
+                {
+                    convert_params->profile_info.bayer_green_split =
+                        mi->fBayerGreenSplit;
+                    convert_params->profile_info.has_bayer_green_split = true;
+                }
+
                 /* ProfileLookTableData — the camera "look" 3D LUT. Adobe-
                    converted Z8 DNGs carry this; preserving it across the
                    gpr_tools roundtrip is necessary for Y-PSNR/ΔE to land
@@ -1591,8 +1610,12 @@ static void write_dng(const gpr_allocator*          allocator,
     }
     
     negative->SetBaselineExposure(profile_info->baseline_exposure);
-    negative->SetBaselineNoise(1.0);
-    negative->SetBaselineSharpness(1.0);
+    negative->SetBaselineNoise(profile_info->has_baseline_noise ? profile_info->baseline_noise : 1.0);
+    negative->SetBaselineSharpness(profile_info->has_baseline_sharpness ? profile_info->baseline_sharpness : 1.0);
+    if (profile_info->has_bayer_green_split)
+    {
+        negative->SetGreenSplit(profile_info->bayer_green_split);
+    }
 
     negative->SetAntiAliasStrength(dng_urational(100, 100));
     negative->SetLinearResponseLimit(1.0);

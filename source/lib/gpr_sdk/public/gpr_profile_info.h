@@ -85,6 +85,17 @@
         bool        has_baseline_exposure_offset;
         bool        has_default_black_render;
 
+        /* Negative-level render hints. The original gpr_sdk hardcoded
+           BaselineNoise=1 and BaselineSharpness=1 on output, and never
+           read BayerGreenSplit at all. Plumbing them from source so
+           sips' rendering doesn't drift on portrait-content DNGs. */
+        double      baseline_noise;
+        double      baseline_sharpness;
+        uint32_t    bayer_green_split;
+        bool        has_baseline_noise;
+        bool        has_baseline_sharpness;
+        bool        has_bayer_green_split;
+
     } gpr_profile_info;
 
     void gpr_profile_info_set_defaults(gpr_profile_info* x);

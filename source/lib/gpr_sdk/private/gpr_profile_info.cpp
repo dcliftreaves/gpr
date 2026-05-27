@@ -83,5 +83,12 @@ void gpr_profile_info_set_defaults(gpr_profile_info* x)
     x->has_tone_curve = false;
     x->has_baseline_exposure_offset = false;
     x->has_default_black_render = false;
+
+    x->baseline_noise = 1.0;
+    x->baseline_sharpness = 1.0;
+    x->bayer_green_split = 0;
+    x->has_baseline_noise = false;
+    x->has_baseline_sharpness = false;
+    x->has_bayer_green_split = false;
 }
 
