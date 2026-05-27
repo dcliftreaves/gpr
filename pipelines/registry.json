@@ -250,6 +250,72 @@
       "binary": "build-local/source/app/gpr_tools/gpr_tools",
       "env": {},
       "quality": null
+    },
+    "ml2_q3_hh1x2": {
+      "$doc": "ml2_q3 with HH1 quant doubled (144\u2192288). Drops just the diagonal high-freq band; matched CNN should restore.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "9:288"
+      },
+      "quality": 3
+    },
+    "ml2_q3_hh1x4": {
+      "$doc": "ml2_q3 with HH1 cranked 4\u00d7 (144\u2192576). q=11 ships HH1=576; this isolates the HH1 contribution.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "9:576"
+      },
+      "quality": 3
+    },
+    "ml2_q3_l1x2": {
+      "$doc": "ml2_q3 with all L1 highpass doubled (LH1/HL1: 96\u2192192, HH1: 144\u2192288).",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "7:192,8:192,9:288"
+      },
+      "quality": 3
+    },
+    "ml2_q3_l1x4": {
+      "$doc": "ml2_q3 with all L1 highpass 4\u00d7 (LH1/HL1: 96\u2192384, HH1: 144\u2192576). Same as q=11 single-side except not changing L2.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "7:384,8:384,9:576"
+      },
+      "quality": 3
+    },
+    "ml2_q3_l2x2_l1x2": {
+      "$doc": "Both L2 and L1 doubled: 4/5: 24\u219248, 6: 12\u219224, 7/8: 96\u2192192, 9: 144\u2192288.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:192,8:192,9:288"
+      },
+      "quality": 3
+    },
+    "ml2_q3_l2x2_l1x4": {
+      "$doc": "L2 doubled, L1 4\u00d7. Roughly q=11-equivalent in L1, q=3 + 2\u00d7 L2.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:384,8:384,9:576"
+      },
+      "quality": 3
     }
   },
   "cnns": {
@@ -795,6 +861,48 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "cnnaware-ml2-q11-with-matched-cnn"
+    },
+    "codec=ml2_q3_hh1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_hh1x2",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-crank-hh1x2-with-matched-cnn"
+    },
+    "codec=ml2_q3_hh1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_hh1x4",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-crank-hh1x4-with-matched-cnn"
+    },
+    "codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l1x2",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-crank-l1x2-with-matched-cnn"
+    },
+    "codec=ml2_q3_l1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l1x4",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-crank-l1x4-with-matched-cnn"
+    },
+    "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2x2_l1x2",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-crank-l2x2_l1x2-with-matched-cnn"
+    },
+    "codec=ml2_q3_l2x2_l1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2x2_l1x4",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-crank-l2x2_l1x4-with-matched-cnn"
     }
   }
 }
