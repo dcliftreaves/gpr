@@ -210,8 +210,10 @@ def train(args):
 
     has_rgb = d.get("_has_rgb_target", False)
     def evaluate():
+        """Returns (base_psnr, model_psnr, model_lpips_mean).
+        model_lpips_mean is None when LPIPS net not loaded."""
         model.eval()
-        tot_b, tot_a, n = 0.0, 0.0, 0
+        tot_b, tot_a, tot_lp, n = 0.0, 0.0, 0.0, 0
         with torch.no_grad():
             for inp, tgt in va:
                 inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
@@ -219,9 +221,6 @@ def train(args):
                     tgt_rgb = tgt.clamp(0, 1)              # already RGB in [0, 1]
                 else:
                     tgt_rgb = bayer_4plane_to_rgb(tgt).clamp(0, 1)
-                # Baseline: bilinear-demosaic the codec bayer + bicubic 2x.
-                # Same path the gate's cnn=none variant uses (modulo Apple's
-                # demosaic flavor); useful for "is the CNN doing real work".
                 codec_rgb_lo = bayer_4plane_to_rgb(inp).clamp(0, 1)
                 base = F.interpolate(codec_rgb_lo, scale_factor=2, mode="bicubic",
                                      align_corners=False).clamp(0, 1)
@@ -230,15 +229,26 @@ def train(args):
                 mse_a = ((pred - tgt_rgb) ** 2).mean(dim=[1, 2, 3])
                 tot_b += (-10 * torch.log10(mse_b.clamp_min(1e-12))).sum().item()
                 tot_a += (-10 * torch.log10(mse_a.clamp_min(1e-12))).sum().item()
+                if lpips_net is not None:
+                    lp = lpips_net(pred * 2 - 1, tgt_rgb * 2 - 1).flatten()
+                    tot_lp += lp.sum().item()
                 n += inp.shape[0]
-        return tot_b / n, tot_a / n
+        lpm = (tot_lp / n) if (lpips_net is not None and n > 0) else None
+        return tot_b / n, tot_a / n, lpm
 
-    best_gain = -1e9; best_after = -1e9; best_epoch = -1
+    best_gain = -1e9; best_after = -1e9; best_lpips = 1e9; best_epoch = -1
     epochs_since_best = 0
     ckpt_path = os.path.join(CKPT_DIR, args.ckpt_name)
-    pb, pa = evaluate()
-    print(f"  Initial  base PSNR={pb:.3f}  model PSNR={pa:.3f}  gain={pa-pb:+.3f} dB",
-          flush=True)
+    pb, pa, vlp = evaluate()
+    # When LPIPS net is loaded, track best by LOWER val-LPIPS (perceptual focus).
+    # Without LPIPS net, track best by val-PSNR gain as before.
+    use_lpips_metric = lpips_net is not None
+    if use_lpips_metric:
+        print(f"  Initial  base PSNR={pb:.3f}  model PSNR={pa:.3f}  "
+              f"gain={pa-pb:+.3f} dB  val LPIPS={vlp:.4f}", flush=True)
+    else:
+        print(f"  Initial  base PSNR={pb:.3f}  model PSNR={pa:.3f}  gain={pa-pb:+.3f} dB",
+              flush=True)
     for ep in range(args.epochs):
         # Cosine warmup of LPIPS weight (0 → full over `lpips_warmup_epochs`).
         if lpips_net is not None:
@@ -268,10 +278,13 @@ def train(args):
             opt.step()
             loss_sum += l.item(); loss_l1 += l_ms.item(); nb += 1
         sched.step()
-        pb, pa = evaluate()
+        pb, pa, vlp = evaluate()
         gain = pa - pb
         marker = ""
-        if gain > best_gain:
+        # Save criterion: lower val LPIPS when LPIPS net loaded; higher val PSNR otherwise.
+        improved = (vlp < best_lpips) if use_lpips_metric else (gain > best_gain)
+        if improved:
+            if use_lpips_metric: best_lpips = vlp
             best_gain = gain; best_after = pa; best_epoch = ep + 1
             epochs_since_best = 0
             torch.save({
@@ -280,6 +293,7 @@ def train(args):
                 "width": 16, "depth": 3, "raw_norm": RAW_NORM, "residual_scale": 0.0,
                 "kind": "demosaic_sr", "epoch": ep + 1,
                 "val_psnr_base": pb, "val_psnr_model": pa,
+                "val_lpips": vlp,
                 "params": count_params(model),
             }, ckpt_path)
             marker = "  [SAVED]"
@@ -289,7 +303,7 @@ def train(args):
             print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}  "
                   f"l1={loss_l1/nb:.5f}  lpips={loss_lp/nb:.5f}  lp_w={lpips_w_curr:.4f}  "
                   f"base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
-                  f"t={time.time()-t0:.1f}s{marker}", flush=True)
+                  f"val_lpips={vlp:.4f}  t={time.time()-t0:.1f}s{marker}", flush=True)
         else:
             print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}  "
                   f"base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
@@ -297,8 +311,12 @@ def train(args):
         if epochs_since_best >= args.patience and ep + 1 >= 40:
             print(f"  Early stop: no improvement in {args.patience} epochs", flush=True)
             break
-    print(f"\n  Best val PSNR gain: {best_gain:+.3f} dB at epoch {best_epoch}")
-    print(f"  Best val PSNR (model): {best_after:.3f} dB")
+    if use_lpips_metric:
+        print(f"\n  Best val LPIPS: {best_lpips:.4f} at epoch {best_epoch}")
+        print(f"  (val PSNR at best: {best_after:.3f} dB, gain {best_gain:+.3f} dB)")
+    else:
+        print(f"\n  Best val PSNR gain: {best_gain:+.3f} dB at epoch {best_epoch}")
+        print(f"  Best val PSNR (model): {best_after:.3f} dB")
     print(f"  Checkpoint: {ckpt_path}")
 
 
