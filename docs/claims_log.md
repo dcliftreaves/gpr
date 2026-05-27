@@ -14,3 +14,7 @@ Failed gate runs are NOT logged here — they live in their `runs/<hash>/run.jso
 ## History
 
 (no entries yet — scaffolding initialized 2026-05-26)
+
+## 2026-05-26
+
+- 2026-05-26 19:02  pipeline=`codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools`  run=5e0b4c751d7a26eb  worst_lpips=0.0683  worst_image=Z8Z_6693  visual_description="Z8Z_6693 skin-tone gradient: pipeline matches REF with no visible blockiness or color shift, only subtle texture difference."
