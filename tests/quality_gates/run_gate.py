@@ -95,6 +95,11 @@ def read_source_bayer(dng_path: str) -> tuple[np.ndarray, int, int]:
 
 def encode_decode(codec: dict, bayer: np.ndarray, w: int, h: int,
                   workdir: Path) -> tuple[np.ndarray, int, float]:
+    """Returns (decoded_bayer, enc_bytes, enc_ms). Decoded dims may be
+    half of (w, h) when GPR_ROW_DECIMATE=2 and GPR_COL_DECIMATE=2 are set
+    in the codec env — the codec emits a half-res bayer. Caller is
+    expected to detect this and apply a super-res CNN to restore to
+    (w, h) before metric comparison against the full-res REF."""
     binary = REPO / codec["binary"]
     if not binary.exists():
         die(2, f"codec binary not built: {binary}")
@@ -119,11 +124,28 @@ def encode_decode(codec: dict, bayer: np.ndarray, w: int, h: int,
     enc_bytes = int(m.group(1)) if m else 0
     me = re.search(r"ENCODE.*in ([\d.]+) ms", r.stderr)
     enc_ms_reported = float(me.group(1)) if me else enc_ms
-    dec = np.fromfile(out_raw, dtype=np.uint16).reshape(h, w)
+    # Detect actual decoded dims from the output file size — the codec
+    # halves (w, h) when decimation is on. Reading at the wrong dims
+    # yields a misshaped numpy array which is obvious to catch.
+    nbytes = os.path.getsize(out_raw)
+    dec_w, dec_h = w, h
+    if nbytes == (w // 2) * (h // 2) * 2:
+        dec_w, dec_h = w // 2, h // 2
+    elif nbytes != w * h * 2:
+        die(2, f"decoded bayer size {nbytes} bytes doesn't match either "
+               f"full ({w}x{h}={w*h*2}) or half ({w//2}x{h//2}={(w//2)*(h//2)*2})")
+    dec = np.fromfile(out_raw, dtype=np.uint16).reshape(dec_h, dec_w)
     return dec, enc_bytes, enc_ms_reported
 
 
 def apply_cnn(bayer: np.ndarray, cnn: dict) -> np.ndarray:
+    """Apply a CNN to a bayer plane. Supports two architectures:
+      - 1x denoise (variant F_ane_no_sr): output dims = input dims.
+        Result = input + residual_scale * CNN(input).
+      - 2x super-res (variant F_ane): output dims = 2*input dims.
+        Result = bicubic(input, 2x) + residual_scale * CNN(input).
+    The variant is read from the checkpoint metadata; the registry's
+    cnn_arch_variant is a fallback."""
     if cnn.get("ckpt_path") is None:
         return bayer
     import torch
@@ -135,7 +157,9 @@ def apply_cnn(bayer: np.ndarray, cnn: dict) -> np.ndarray:
         die(2, f"CNN checkpoint not in repo: {ckpt_path}. "
                f"Migrate the checkpoint with proper metadata before testing.")
     ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
-    m = build_variant(ck.get("variant", cnn["cnn_arch_variant"]))
+    variant = ck.get("variant", cnn["cnn_arch_variant"])
+    is_sr2x = "no_sr" not in variant  # F_ane = super-res, F_ane_no_sr = 1x
+    m = build_variant(variant)
     m.load_state_dict(ck["backbone_state"])
     dev = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     m.to(dev).eval()
@@ -152,14 +176,28 @@ def apply_cnn(bayer: np.ndarray, cnn: dict) -> np.ndarray:
     if ph or pw:
         x = F.pad(x, (0, pw, 0, ph), mode="reflect")
     with torch.no_grad():
-        y = (x + res_scale * m(x)).clamp(0, 1)
-    y = y[..., :H, :W].squeeze(0).cpu().numpy()
-    out = bayer.copy()
-    out[:eh:2, :ew:2] = np.clip(y[0] * raw_norm, 0, raw_norm).astype(np.uint16)
-    out[:eh:2, 1:ew:2] = np.clip(y[1] * raw_norm, 0, raw_norm).astype(np.uint16)
-    out[1:eh:2, :ew:2] = np.clip(y[2] * raw_norm, 0, raw_norm).astype(np.uint16)
-    out[1:eh:2, 1:ew:2] = np.clip(y[3] * raw_norm, 0, raw_norm).astype(np.uint16)
-    return out
+        if is_sr2x:
+            base = F.interpolate(x, scale_factor=2, mode="bicubic", align_corners=False).clamp(0, 1)
+            cnn_out = m(x)
+            y = (base + res_scale * cnn_out).clamp(0, 1)
+            y = y[..., :2 * H, :2 * W].squeeze(0).cpu().numpy()
+            # Output is 2x in plane dims → 2x in bayer dims
+            out_eh, out_ew = 2 * eh, 2 * ew
+            out = np.zeros((out_eh, out_ew), dtype=np.uint16)
+            out[0::2, 0::2] = np.clip(y[0] * raw_norm, 0, raw_norm).astype(np.uint16)
+            out[0::2, 1::2] = np.clip(y[1] * raw_norm, 0, raw_norm).astype(np.uint16)
+            out[1::2, 0::2] = np.clip(y[2] * raw_norm, 0, raw_norm).astype(np.uint16)
+            out[1::2, 1::2] = np.clip(y[3] * raw_norm, 0, raw_norm).astype(np.uint16)
+            return out
+        else:
+            y = (x + res_scale * m(x)).clamp(0, 1)
+            y = y[..., :H, :W].squeeze(0).cpu().numpy()
+            out = bayer.copy()
+            out[:eh:2, :ew:2] = np.clip(y[0] * raw_norm, 0, raw_norm).astype(np.uint16)
+            out[:eh:2, 1:ew:2] = np.clip(y[1] * raw_norm, 0, raw_norm).astype(np.uint16)
+            out[1:eh:2, :ew:2] = np.clip(y[2] * raw_norm, 0, raw_norm).astype(np.uint16)
+            out[1:eh:2, 1:ew:2] = np.clip(y[3] * raw_norm, 0, raw_norm).astype(np.uint16)
+            return out
 
 
 def demosaic_to_png(bayer: np.ndarray, dms: dict, src_dng: Path,
@@ -312,10 +350,29 @@ def evaluate_pipeline(pipeline_name: str) -> dict:
         img_work.mkdir()
         # 1. encode/decode through codec
         dec, enc_bytes, enc_ms = encode_decode(codec, bayer, w, h, img_work)
-        bp_codec = bayer_psnr(bayer, dec)
-        # 2. apply CNN (no-op if cnn=none)
+        # bayer_psnr requires matched dims. If the codec decimated, downsample
+        # the source bayer by 2x2 box average to compare in codec-output space.
+        if dec.shape != bayer.shape:
+            assert dec.shape[0] * 2 == bayer.shape[0] and dec.shape[1] * 2 == bayer.shape[1]
+            bayer_for_codec_metric = (
+                bayer[0::2, 0::2].astype(np.int32)
+                + bayer[0::2, 1::2].astype(np.int32)
+                + bayer[1::2, 0::2].astype(np.int32)
+                + bayer[1::2, 1::2].astype(np.int32)
+            ) // 4
+            bayer_for_codec_metric = bayer_for_codec_metric.astype(np.uint16)
+        else:
+            bayer_for_codec_metric = bayer
+        bp_codec = bayer_psnr(bayer_for_codec_metric, dec)
+        # 2. apply CNN (no-op if cnn=none). 2x super-res CNN restores dims
+        #    to match the full-res source.
         post = apply_cnn(dec, cnn)
-        bp_final = bayer_psnr(bayer, post)
+        if post.shape == bayer.shape:
+            bp_final = bayer_psnr(bayer, post)
+        elif post.shape == bayer_for_codec_metric.shape:
+            bp_final = bayer_psnr(bayer_for_codec_metric, post)
+        else:
+            bp_final = None  # CNN scaled to neither expected size
         # 3. demosaic both REF and pipeline output to PNG
         ref_png = run_dir / f"{im['id']}_REF.png"
         pipe_png = run_dir / f"{im['id']}_PIPELINE.png"
