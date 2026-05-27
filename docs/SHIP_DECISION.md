@@ -10,7 +10,10 @@ here doesn't match the latest run logs, the run logs win.
 |---|---|---:|---|---|
 | STILL | `codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.009 | **PASS** | FUSED-path stills, 4-image worst case identical to REF |
 | STILL | `codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.024 | **PASS** | 24% smaller files, ~equivalent quality |
-| VIDEO_FREEZE | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | **PASS** | Full-res video, matched-CNN |
+| VIDEO_FREEZE | `codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.076 | **PASS** | **NEW CHAMPION** Full-res video, matched-CNN, L1 highpass ×2 cranked → 23.9% smaller files (7.81 vs 10.26 MB) |
+| VIDEO_FREEZE | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | **PASS** | Baseline ML-2 video, matched-CNN. Smaller LPIPS but bigger files than l1x2 |
+| VIDEO_FREEZE | `codec=ml2_q3_hh1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.072 | **PASS** | HH1×4 cranked alone → 10.2% smaller files |
+| VIDEO_FREEZE | `codec=ml2_q3_hh1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.070 | **PASS** | HH1×2 cranked alone → 6.9% smaller files |
 | PREVIEW | `codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools` | 0.100 | **PASS** | Full-res codec, no post-CNN. Embedded-friendly path |
 | STILL | `codec=gpr_tools_legacy+cnn=none+demosaic=sips_via_gpr_tools` | 0.258 | **FAIL** | Production stills CLI — DCP profile-tag plumbing landed; residual on Z8Z_5323/6693 is codec-inherent at q=3 (not metadata), closed as not-a-bug |
 | PREVIEW | `codec=ml2_q3_dec2+cnn=bibo2x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.253 | **FAIL** | Pi-capture half-res + bayer-plane super-res; bayer-plane upscale over-smooths OOD |
@@ -175,3 +178,29 @@ the PNG-level bicubic baseline used by the `cnn=none` path.
 
 Codec-side: Pi 5 captures correctly (24.93 fps median, 1.3 MB/frame at
 ml2_q3_dec2). The codec is not the bottleneck.
+
+## CNN-aware compression revival — findings (2026-05-27)
+
+Per-subband sweep on ML-2 codec paired with the matched CNN
+(`bibo1x_ane_ml2_q3`) found 3 PASS variants smaller than the prior
+champion + 4 near-miss variants (FAIL only because LPIPS slightly over
+0.08 ceiling). The matched CNN trained against `ml2_q3` standard output
+generalizes well enough that doubling the L1 highpass quant (l1x2)
+clears the gate with 23.9% fewer bytes — no CNN retrain required.
+
+| codec | bytes (MB) | LPIPS worst | Δ vs champion |
+|---|---:|---:|---|
+| ml2_q3_l2x2_l1x4 (FAIL) | 5.58 | 0.100 | 45.6% smaller |
+| ml2_q3_l1x4 (FAIL) | 6.28 | 0.098 | 38.8% smaller |
+| ml2_q11 (FAIL) | 6.77 | 0.087 | 34.0% smaller |
+| ml2_q3_l2x2_l1x2 (FAIL) | 7.11 | 0.079 | 30.7% smaller |
+| **ml2_q3_l1x2 (PASS)** | **7.81** | **0.076** | **23.9% smaller** ← new champion |
+| ml2_q3_hh1x4 (PASS) | 9.21 | 0.072 | 10.2% smaller |
+| ml2_q3_hh1x2 (PASS) | 9.55 | 0.070 | 6.9% smaller |
+| ml2_q3 (CHAMPION baseline) | 10.26 | 0.068 | — |
+
+The near-miss FAILs are candidates for **matched-CNN retrain** against
+the cranked codec output. Best target: `ml2_q3_l2x2_l1x4` at 45.6%
+smaller — only 0.020 LPIPS over the ceiling, a small gap an in-distribution
+retrain should close.
+
