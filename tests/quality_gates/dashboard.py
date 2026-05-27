@@ -134,22 +134,31 @@ def main():
     # NOTE: we do NOT copy full 8K REF/PIPELINE PNGs into the dashboard
     # (~180 MB each, no value when the dashboard is already showing crops).
 
-    # Build per-pipeline summary rows
-    rows = []
+    # Build per-pipeline summary rows. Dedupe by pipeline name — keep only
+    # the latest run for each pipeline (most-recent run.json timestamp).
+    # Older intermediate-checkpoint runs for the same pipeline are still on
+    # disk for audit but the dashboard shows the current state per pipeline.
+    latest_per_pipe = {}
     for r in runs:
         j = r["json"]
-        pipeline = j["pipeline"]
-        meta = pipeline_meta.get(pipeline, {"role": "", "ship_class": j["ship_class"]})
-        worst_id = j["worst_image"]["id"]
-        worst_lpips = j["worst_image"]["lpips"]
+        pipe = j["pipeline"]
+        finished_at = j.get("finished_at", "")
+        prev = latest_per_pipe.get(pipe)
+        if prev is None or finished_at > prev["json"].get("finished_at", ""):
+            latest_per_pipe[pipe] = r
+
+    rows = []
+    for pipe, r in latest_per_pipe.items():
+        j = r["json"]
+        meta = pipeline_meta.get(pipe, {"role": "", "ship_class": j["ship_class"]})
         rows.append({
-            "pipeline": pipeline,
+            "pipeline": pipe,
             "role": meta["role"],
             "ship_class": j["ship_class"],
             "verdict": j["verdict"],
             "run_hash": j["run_hash"],
-            "worst_id": worst_id,
-            "worst_lpips": worst_lpips,
+            "worst_id": j["worst_image"]["id"],
+            "worst_lpips": j["worst_image"]["lpips"],
             "images": j["images"],
             "worst_first": j["worst_first"],
         })
