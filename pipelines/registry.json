@@ -374,7 +374,7 @@
       "ckpt_sha256": "bd3636d2c026639e3d8c9636de491c662fe05e67bdaa4451061901b47b37659b"
     },
     "bido_4x_ane_ml2_q3_dec2": {
-      "$doc": "BIDO (Bayer-In, Demosaic-Out) 4x joint demosaic+super-res CNN matched to ml2_q3_dec2. Single-image val (Z8Z_0067) — overfits one image, fails OOD gate images. Architecture variant F_ane_dm_sr (alias bido_4x).",
+      "$doc": "BIDO (Bayer-In, Demosaic-Out) 4x joint demosaic+super-res CNN matched to ml2_q3_dec2. Single-image val (Z8Z_0067) \u2014 overfits one image, fails OOD gate images. Architecture variant F_ane_dm_sr (alias bido_4x).",
       "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w16_ANE.pt",
       "cnn_arch_variant": "F_ane_dm_sr",
       "trained_against_codec": "ml2_q3_dec2",
@@ -422,7 +422,7 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
       "$role": "still-quality-coverage-q5-noCNN",
-      "$doc": "q=5 without CNN — PASSes PREVIEW (LPIPS 0.100), not STILL. STILL requires the CNN."
+      "$doc": "q=5 without CNN \u2014 PASSes PREVIEW (LPIPS 0.100), not STILL. STILL requires the CNN."
     },
     "codec=sl_q5+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q5",
@@ -437,7 +437,7 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
       "$role": "still-quality-coverage-q8-noCNN",
-      "$doc": "q=8 without CNN — PASSes PREVIEW (LPIPS 0.101), not STILL. STILL requires the CNN."
+      "$doc": "q=8 without CNN \u2014 PASSes PREVIEW (LPIPS 0.101), not STILL. STILL requires the CNN."
     },
     "codec=sl_q8+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q8",
@@ -711,6 +711,83 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
       "$role": "ship-embedded-joint-dmsr-wider-val"
+    },
+    "codec=ml2_q3_l1soft+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l1soft",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-l1soft-with-matched-cnn"
+    },
+    "codec=ml2_q3_l2soft+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2soft",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-l2soft-with-matched-cnn"
+    },
+    "codec=ml2_q3_bothsoft+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_bothsoft",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-bothsoft-with-matched-cnn"
+    },
+    "codec=ml2_q3_nohighpassquant+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_nohighpassquant",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-nohighpassquant-with-matched-cnn"
+    },
+    "codec=ml2_q3_ll2div8+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_ll2div8",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-ll2div8-with-matched-cnn"
+    },
+    "codec=ml2_q3_ll2div4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_ll2div4",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-ll2div4-with-matched-cnn"
+    },
+    "codec=ml2_q3_combo+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_combo",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-combo-with-matched-cnn"
+    },
+    "codec=ml2_q3_prefilter3h+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_prefilter3h",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-prefilter3h-with-matched-cnn"
+    },
+    "codec=ml2_q3_prefilter3h_softq+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_prefilter3h_softq",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-prefilter3h_softq-with-matched-cnn"
+    },
+    "codec=ml2_q3_prefilter3hv+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_prefilter3hv",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-prefilter3hv-with-matched-cnn"
+    },
+    "codec=ml2_q3_prefilter3hv_softq+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_prefilter3hv_softq",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "cnnaware-ml2-prefilter3hv_softq-with-matched-cnn"
     }
   }
 }
