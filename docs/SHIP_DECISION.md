@@ -134,3 +134,42 @@ this; USB SSD has 17× headroom.
 The full-res video pipeline writes 3.6 MB / frame = 87 MB/s at 24 fps
 target, but **Pi 5 can't hit 24 fps on the full-res encode anyway**
 (measured 7 fps). Full-res video is a desktop-only flow.
+
+
+## Embedded video path — architectural limit found 2026-05-26
+
+The Pi 5 → desktop super-res pipeline does NOT clear VIDEO_FREEZE with
+the current `BIBO_2x` (F_ane) architecture, even after a diverse-corpus
+matched retrain (498 images / 19,920 tiles / 80 epochs on M5).
+
+**The structural issue:** `F_ane` super-res applies bicubic 2× on
+4-channel deinterleaved bayer planes (R, G1, G2, B independently) then
+adds a learned residual. Per-channel bayer upscale before demosaic
+introduces color-interpolation artifacts that PNG-level upscale (after
+demosaic) doesn't. On out-of-distribution content (Z8Z_6693 skin tones),
+the artifacts dominate.
+
+Confirmed by sweeping `residual_scale` (CNN contribution weight):
+worse, not better, as the CNN's correction is dialed back. Convergence
+goal is the bayer-plane-bicubic baseline, which is strictly worse than
+the PNG-level bicubic baseline used by the `cnn=none` path.
+
+| pipeline | worst LPIPS | best LPIPS | gate (VIDEO_FREEZE) |
+|---|---:|---:|---|
+| codec=ml2_q3_dec2 + cnn=none | 0.312 | 0.034 | FAIL |
+| + matched bibo2x (barnsky-only) | 0.437 | 0.025 | FAIL |
+| + matched bibo2x (diverse) | 0.343 | 0.064 | FAIL |
+| + diverse @ res 0.005 | 0.411 | 0.068 | FAIL |
+| + diverse @ res 0.003 | 0.416 | 0.072 | FAIL |
+
+**Fix candidates (in flight 2026-05-26 night):**
+- Joint demosaic + super-res CNN: input = 4ch half-res bayer, output =
+  3ch full-res RGB. The CNN learns the FULL pipeline (CFA-aware
+  demosaic + super-res), avoiding the bayer-plane-upscale step that
+  produces the artifacts.
+- Per-content gating: ship `cnn=none` for portrait-class content,
+  matched CNN for in-distribution content. Requires a content
+  detector.
+
+Codec-side: Pi 5 captures correctly (24.93 fps median, 1.3 MB/frame at
+ml2_q3_dec2). The codec is not the bottleneck.
