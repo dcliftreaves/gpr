@@ -48,6 +48,13 @@ if not BUILD_DIR.is_absolute():
     BUILD_DIR = REPO / BUILD_DIR
 GTOOLS = Path(os.environ.get("GTOOLS", BUILD_DIR / "source/app/gpr_tools/gpr_tools"))
 
+# Timing-ceiling multiplier. Debug builds run ~2-3x slower than Release, so a
+# single set of locked ceilings can't gate both. Default 1.0 (Release ceilings).
+# CI's Debug job sets GPR_TIMING_TOLERANCE=3.0 so a Debug ms reading that's
+# within 3x of the Release ceiling still passes. Quality criteria (PSNR,
+# compression ratio) ignore this — they're build-type independent.
+TIMING_TOLERANCE = float(os.environ.get("GPR_TIMING_TOLERANCE", "1.0"))
+
 DEFAULT_ART = "/Volumes/OWC_8TB/gpr_artifacts/capabilities"
 if not Path("/Volumes/OWC_8TB/gpr_artifacts").exists():
     DEFAULT_ART = "/tmp/gpr-capabilities"
@@ -107,6 +114,19 @@ CAPABILITIES = [
              decode_ms={"max": 40, "exceed_below": 22},
              compress_ratio={"max": 0.05, "exceed_below": 0.035},
              psnr_db={"min": 51.5, "exceed_above": 54.0})),
+    dict(id="still_rggb14_1024_q5",
+         display="Stills · rggb14 · 1024² · q=5 (Filmscan-2, quality peak)",
+         kind="still_roundtrip",
+         W=1024, H=1024, pf="rggb14", peak=16383, quality=5,
+         # q=5 is the empirical PSNR peak across the 9 quality presets on
+         # real Z8 50 MP photographic content (see docs/quant_calibration_findings.md).
+         # q=6/7/8 regress (task #159). Locking q=5 here so future codec
+         # changes can't quietly break the actual quality peak.
+         criteria=dict(
+             encode_ms={"max": 50, "exceed_below": 25},
+             decode_ms={"max": 50, "exceed_below": 25},
+             compress_ratio={"max": 0.14, "exceed_below": 0.095},
+             psnr_db={"min": 55.0, "exceed_above": 58.0})),
     dict(id="still_rggb14_1024_q8",
          display="Stills · rggb14 · 1024² · q=8 (Filmscan-5)",
          kind="still_roundtrip",
@@ -116,6 +136,22 @@ CAPABILITIES = [
              decode_ms={"max": 60, "exceed_below": 35},
              compress_ratio={"max": 0.25, "exceed_below": 0.205},
              psnr_db={"min": 60.5, "exceed_above": 63.0})),
+    dict(id="still_rggb14_1024_q11",
+         display="Stills · rggb14 · 1024² · q=11 (CNN-aware)",
+         kind="still_roundtrip",
+         W=1024, H=1024, pf="rggb14", peak=16383, quality=11,
+         # q=11 is the CNN-aware preset (PR #21): cranked L1 highpass
+         # designed to pair with a CNN trained on the cranked distribution.
+         # On the synthetic radial-gradient fixture (small, smooth content
+         # with little L1 highpass energy) the bayer-domain PSNR is similar
+         # to q=3 — the real win is on photographic content via the
+         # retrained CNN. Locking the synth fixture's numbers here so the
+         # codec change isn't quietly broken.
+         criteria=dict(
+             encode_ms={"max": 50, "exceed_below": 25},
+             decode_ms={"max": 50, "exceed_below": 25},
+             compress_ratio={"max": 0.06, "exceed_below": 0.045},
+             psnr_db={"min": 51.5, "exceed_above": 54.0})),
     dict(id="still_rggb16_1024_q3",
          display="Stills · rggb16 · 1024² · q=3",
          kind="still_roundtrip",
@@ -174,6 +210,56 @@ CAPABILITIES = [
              compress_ratio={"max": 0.08, "exceed_below": 0.055},
              psnr_db={"min": 52.0, "exceed_above": 54.5}),
          fast_skip=True),
+
+    # ---- CNN-corrected render-domain PSNR ------------------------------
+    #
+    # These cells exercise the full playback path the production app uses:
+    #   real DNG  → multi-level + decimate=2 FUSED encode/decode (half-res)
+    #             → BIBO_1x CNN (BayInBayOut_1x_AAon_w16_ANE.pt) on bayer
+    #             → bayer_bicubic_2x back to full size
+    #             → rawpy AHD render
+    #             → masked Y-PSNR vs the source-DNG AHD render
+    # That's the chain PR #10/#11/#13/#15 made the new default. PSNR is
+    # measured at the stated output resolution (UHD or 4K) so a future
+    # regression that breaks the half-res topology or the CNN integration
+    # shows up here, not just in microbenchmarks.
+    #
+    # Baselines locked from a clean 2026-05-25 M3 Max run (reproducible to
+    # 4 decimal places across re-runs because the encode is deterministic
+    # and MPS gives stable results on this graph). Criteria leave ~1.5 dB
+    # of margin below measured.
+    #
+    # macOS-only (BIBO_1x uses torch+MPS; rawpy AHD on Linux CI is fine
+    # but pytorch isn't installed on the bare runner). Cell skips with
+    # a clean message when deps are missing.
+    dict(id="cnn_BIBO_1x_Z8_ISO64_uhd",
+         display="CNN · BIBO_1x · Z8 ISO64 · 50 MP → UHD (multi-level + dec=2)",
+         kind="cnn_corrected",
+         src_dng="data/test_sets/entropy_matrix/Z8_ISO64.DNG",
+         peak=16383,
+         out_res=(3840, 2160),
+         criteria=dict(
+             psnr_db={"min": 27.8, "exceed_above": 28.8})),
+    dict(id="cnn_BIBO_1x_Z8_ISO64_4k",
+         display="CNN · BIBO_1x · Z8 ISO64 · 50 MP → 4K (multi-level + dec=2)",
+         kind="cnn_corrected",
+         src_dng="data/test_sets/entropy_matrix/Z8_ISO64.DNG",
+         peak=16383,
+         out_res=(4096, 2160),
+         criteria=dict(
+             psnr_db={"min": 27.8, "exceed_above": 28.8})),
+    dict(id="cnn_BIBO_1x_Z8_ISO22800_uhd",
+         display="CNN · BIBO_1x · Z8 ISO22800 · 50 MP → UHD (high-ISO, harder)",
+         kind="cnn_corrected",
+         src_dng="data/test_sets/entropy_matrix/Z8_ISO22800.DNG",
+         peak=16383,
+         out_res=(3840, 2160),
+         # Lower floor: high-ISO content is where the un-retrained BIBO_1x
+         # under-performs (see docs/quant_calibration_findings.md). Locking
+         # the current number as the floor so the M5-side retrain has a
+         # clear "did it actually help" tripwire.
+         criteria=dict(
+             psnr_db={"min": 28.7, "exceed_above": 29.7})),
 ]
 
 
@@ -254,6 +340,229 @@ def measure_still_roundtrip(cap, work: Path) -> Dict[str, float]:
 
 
 # ---------------------------------------------------------------------------
+# CNN-corrected render-domain PSNR
+#
+# Exercises the full playback chain: real DNG → multi-level + decimate=2
+# FUSED encode/decode → BIBO_1x CNN → bayer_bicubic_2x → rawpy AHD render
+# → masked Y-PSNR vs source AHD render at the target output resolution.
+#
+# Deps probed lazily inside measure_cnn_corrected so the harness still
+# runs on a Linux CI box without torch/rawpy/cv2 (cell returns "SKIP"
+# verdict instead of failing).
+# ---------------------------------------------------------------------------
+
+CNN_DERING_DIR = "/Users/dcliftreaves/dering_proto_v2"
+CNN_CKPT_DEFAULT = (Path(CNN_DERING_DIR) / "checkpoints"
+                    / "BayInBayOut_1x_AAon_w16_ANE.pt")
+CNN_ROUNDTRIP_BIN = BUILD_DIR / "bin/test_fused_roundtrip"
+
+_CNN_STATE = {"model": None, "device": None, "src_cache": {}}
+
+
+def _cnn_probe_deps():
+    """Return (ok, reason). Mirrors test_cnn_regression.py prereq probe."""
+    missing = []
+    try:
+        import torch  # noqa
+        import torch.nn.functional as _F  # noqa
+    except ImportError as e:
+        missing.append(f"torch ({e})")
+    try:
+        import rawpy  # noqa
+    except ImportError as e:
+        missing.append(f"rawpy ({e})")
+    try:
+        import cv2  # noqa
+    except ImportError as e:
+        missing.append(f"cv2 ({e})")
+    if not os.path.isdir(CNN_DERING_DIR):
+        missing.append(f"dering_proto_v2 not present at {CNN_DERING_DIR}")
+    if not CNN_CKPT_DEFAULT.exists():
+        missing.append(f"checkpoint not present: {CNN_CKPT_DEFAULT}")
+    if not CNN_ROUNDTRIP_BIN.exists():
+        missing.append(f"test_fused_roundtrip not built at {CNN_ROUNDTRIP_BIN} "
+                       "(build with: clang -O2 source/app/test_fused_decode_roundtrip.c "
+                       "<libs> -o build-local/bin/test_fused_roundtrip)")
+    if missing:
+        return False, "; ".join(missing)
+    return True, "ok"
+
+
+def _cnn_load_model():
+    if _CNN_STATE["model"] is not None:
+        return _CNN_STATE["model"], _CNN_STATE["device"]
+    import torch
+    sys.path.insert(0, CNN_DERING_DIR)
+    from model_F_ane import build as build_ane  # type: ignore
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    ck = torch.load(str(CNN_CKPT_DEFAULT), map_location="cpu", weights_only=False)
+    m = build_ane(ck.get("variant", "F_ane"))
+    m.load_state_dict(ck["backbone_state"])
+    m.to(device).eval()
+    _CNN_STATE["model"] = m
+    _CNN_STATE["device"] = device
+    return m, device
+
+
+def _extract_bayer(dng_path, out_raw):
+    import rawpy
+    r = rawpy.imread(str(dng_path))
+    b = r.raw_image.copy().astype("<u2")
+    h, w = b.shape
+    r.close()
+    b.tofile(out_raw)
+    return w, h
+
+
+def _encode_decode_multilevel(raw_in, w, h, dec_out):
+    env = os.environ.copy()
+    env["FUSED_MULTI_LEVEL"] = "1"
+    env["GPR_COL_DECIMATE"] = "2"
+    env["GPR_ROW_DECIMATE"] = "2"
+    env.pop("GPR_INCLUDE_LL", None)
+    res = subprocess.run(
+        [str(CNN_ROUNDTRIP_BIN), str(raw_in), str(w), str(h), str(dec_out)],
+        env=env, capture_output=True, text=True,
+    )
+    if res.returncode != 0:
+        raise RuntimeError(f"test_fused_roundtrip rc={res.returncode}: {res.stderr.strip()}")
+    dw, dh = w // 2, h // 2
+    for line in (res.stdout + "\n" + res.stderr).splitlines():
+        if line.startswith("DECODE:") and "x" in line:
+            try:
+                dw, dh = (int(x) for x in line.split()[1].split("x"))
+            except ValueError:
+                pass
+    return dw, dh
+
+
+def _cnn_apply_bayer(bayer_in_raw, w, h, bayer_out_raw):
+    """Run BIBO_1x on a half-res bayer (uint16 le) and write corrected bayer."""
+    import torch
+    import torch.nn.functional as F
+    model, device = _cnn_load_model()
+    b = np.fromfile(bayer_in_raw, dtype=np.uint16).reshape(h, w)
+    eh = h - (h & 1)
+    ew = w - (w & 1)
+    be = b[:eh, :ew]
+    R = be[0::2, 0::2]; G1 = be[0::2, 1::2]
+    G2 = be[1::2, 0::2]; B = be[1::2, 1::2]
+    pl = np.stack([R, G1, G2, B], 0).astype(np.float32) / 16383.0
+    x = torch.from_numpy(pl).unsqueeze(0).to(device)
+    H_, W_ = x.shape[-2:]
+    pad_h = (16 - H_ % 16) % 16
+    pad_w = (16 - W_ % 16) % 16
+    if pad_h or pad_w:
+        x = F.pad(x, (0, pad_w, 0, pad_h), mode='reflect')
+    with torch.no_grad():
+        y = (x + 0.01 * model(x)).clamp(0, 1)
+    y = y[..., :H_, :W_]
+    yn = y.squeeze(0).cpu().numpy()
+    out = b.copy()
+    out[:eh:2, :ew:2]   = np.clip(yn[0] * 16383, 0, 16383).astype(np.uint16)
+    out[:eh:2, 1:ew:2]  = np.clip(yn[1] * 16383, 0, 16383).astype(np.uint16)
+    out[1:eh:2, :ew:2]  = np.clip(yn[2] * 16383, 0, 16383).astype(np.uint16)
+    out[1:eh:2, 1:ew:2] = np.clip(yn[3] * 16383, 0, 16383).astype(np.uint16)
+    out.tofile(bayer_out_raw)
+
+
+def _bayer_bicubic_2x(b):
+    import cv2
+    R = b[0::2, 0::2]; G1 = b[0::2, 1::2]
+    G2 = b[1::2, 0::2]; B = b[1::2, 1::2]
+    sh, sw = R.shape
+    o = np.empty((sh * 4, sw * 4), dtype=np.uint16)
+    for plane, dst in zip([R, G1, G2, B], [(0, 0), (0, 1), (1, 0), (1, 1)]):
+        up = cv2.resize(plane, (sw * 2, sh * 2), cv2.INTER_CUBIC).astype(np.uint16)
+        o[dst[0]::2, dst[1]::2] = up
+    return o
+
+
+def _render_with_meta(bayer, meta_dng):
+    import rawpy
+    r = rawpy.imread(str(meta_dng))
+    r.raw_image[:] = bayer
+    rgb = r.postprocess(use_camera_wb=True, no_auto_bright=True, output_bps=16,
+                        gamma=(2.222, 4.5), output_color=rawpy.ColorSpace.sRGB,
+                        demosaic_algorithm=rawpy.DemosaicAlgorithm.AHD)
+    r.close()
+    return rgb
+
+
+def _resize_to_target(rgb, target_w, target_h):
+    import cv2
+    sh, sw = rgb.shape[:2]
+    # rawpy AHD render is portrait for Z8 sensor data — preserve orientation
+    # by matching long edge to long edge.
+    if sh > sw:
+        out_w, out_h = min(target_w, target_h), max(target_w, target_h)
+    else:
+        out_w, out_h = max(target_w, target_h), min(target_w, target_h)
+    return cv2.resize(rgb.astype(np.float32), (out_w, out_h),
+                      interpolation=cv2.INTER_AREA).astype(np.uint16)
+
+
+def _psnr_masked_y(ref_rgb16, test_rgb16, dark=10, bright=250):
+    rs = (ref_rgb16 / 256.0).astype(np.float32)
+    ts = (test_rgb16 / 256.0).astype(np.float32)
+    # brightness match channel means before Y
+    tsm = ts.copy()
+    for c in range(3):
+        tsm[..., c] = np.clip(ts[..., c] + (rs[..., c].mean() - ts[..., c].mean()), 0, 255)
+    def Y(im): return 0.299 * im[..., 0] + 0.587 * im[..., 1] + 0.114 * im[..., 2]
+    ry = Y(rs); ty = Y(tsm)
+    mask = (ry > dark) & (ry < bright)
+    mse = ((ry[mask] - ty[mask]) ** 2).mean()
+    return float(20 * np.log10(255.0 / np.sqrt(max(mse, 1e-12))))
+
+
+def measure_cnn_corrected(cap, work: Path) -> Dict[str, float]:
+    """Full CNN-corrected playback measurement. Caller catches RuntimeError
+    raised when prereqs aren't available — for missing-deps we raise
+    RuntimeError('SKIP: ...') so main() can mark the row SKIPPED rather
+    than FAILED."""
+    ok, reason = _cnn_probe_deps()
+    if not ok:
+        raise RuntimeError(f"SKIP: {reason}")
+
+    dng_rel = cap["src_dng"]
+    dng = REPO / dng_rel if not Path(dng_rel).is_absolute() else Path(dng_rel)
+    if not dng.exists():
+        raise RuntimeError(f"SKIP: source DNG missing: {dng}")
+    target_w, target_h = cap["out_res"]
+
+    raw_in = work / f"{cap['id']}_src.raw"
+    dec_raw = work / f"{cap['id']}_dec.raw"
+    cnn_raw = work / f"{cap['id']}_cnn.raw"
+
+    w, h = _extract_bayer(dng, raw_in)
+    dw, dh = _encode_decode_multilevel(raw_in, w, h, dec_raw)
+    _cnn_apply_bayer(dec_raw, dw, dh, cnn_raw)
+
+    cnn_half = np.fromfile(cnn_raw, dtype=np.uint16).reshape(dh, dw)
+    full_bayer = _bayer_bicubic_2x(cnn_half)
+    if full_bayer.shape != (h, w):
+        pad = np.zeros((h, w), dtype=np.uint16)
+        clip_h = min(full_bayer.shape[0], h)
+        clip_w = min(full_bayer.shape[1], w)
+        pad[:clip_h, :clip_w] = full_bayer[:clip_h, :clip_w]
+        full_bayer = pad
+    cnn_rgb = _render_with_meta(full_bayer, dng)
+
+    # Source render is cached per DNG (the same DNG is used by multiple cells).
+    src_cache = _CNN_STATE["src_cache"]
+    if str(dng) not in src_cache:
+        src_bayer = np.fromfile(raw_in, dtype=np.uint16).reshape(h, w)
+        src_cache[str(dng)] = _render_with_meta(src_bayer, dng)
+    src_rgb = src_cache[str(dng)]
+
+    src_resized = _resize_to_target(src_rgb, target_w, target_h)
+    cnn_resized = _resize_to_target(cnn_rgb, target_w, target_h)
+    psnr = _psnr_masked_y(src_resized, cnn_resized)
+    return dict(psnr_db=psnr)
+
+
+# ---------------------------------------------------------------------------
 # Criterion classification: MET / EXCEEDED / FAILED
 # ---------------------------------------------------------------------------
 
@@ -300,7 +609,16 @@ def check_cap(cap: dict, m: Dict[str, float]) -> Tuple[str, list]:
     for mid, *_ in METRIC_ORDER:
         if mid not in crits:
             continue
-        v, c = classify(m[mid], crits[mid])
+        # Apply timing tolerance only to ms-based metrics; quality/size criteria
+        # are build-type independent and stay strict.
+        crit = crits[mid]
+        if mid in ("encode_ms", "decode_ms") and TIMING_TOLERANCE != 1.0:
+            crit = dict(crit)
+            if "max" in crit:
+                crit["max"] = crit["max"] * TIMING_TOLERANCE
+            if "exceed_below" in crit and crit["exceed_below"] is not None:
+                crit["exceed_below"] = crit["exceed_below"] * TIMING_TOLERANCE
+        v, c = classify(m[mid], crit)
         rows.append((mid, m[mid], v, c))
         if v == "FAILED":
             overall = "FAILED"
@@ -316,7 +634,8 @@ def check_cap(cap: dict, m: Dict[str, float]) -> Tuple[str, list]:
 # Markdown emission
 # ---------------------------------------------------------------------------
 
-VERDICT_ICONS = {"MET": "✅ MET", "EXCEEDED": "✨ EXCEEDED", "FAILED": "❌ FAILED"}
+VERDICT_ICONS = {"MET": "✅ MET", "EXCEEDED": "✨ EXCEEDED",
+                 "FAILED": "❌ FAILED", "SKIPPED": "⊘ SKIPPED"}
 
 
 def emit_markdown(rows: list, out_path: Path):
@@ -342,10 +661,12 @@ def emit_markdown(rows: list, out_path: Path):
     n_met  = sum(1 for _, _, v, _ in rows if v == "MET")
     n_exc  = sum(1 for _, _, v, _ in rows if v == "EXCEEDED")
     n_fail = sum(1 for _, _, v, _ in rows if v == "FAILED")
+    n_skip = sum(1 for _, _, v, _ in rows if v == "SKIPPED")
     lines += [
         f"- **{n_exc}** EXCEEDED",
         f"- **{n_met}** MET",
         f"- **{n_fail}** FAILED",
+        f"- **{n_skip}** SKIPPED (missing optional deps)",
         f"- last run: {time.strftime('%Y-%m-%d %H:%M:%S')}",
         f"- build dir: `{BUILD_DIR.relative_to(REPO) if str(BUILD_DIR).startswith(str(REPO)) else BUILD_DIR}`",
         "",
@@ -371,6 +692,36 @@ def emit_markdown(rows: list, out_path: Path):
             cells.append(f"{v_str}<br/>_{crit_str}_<br/>{VERDICT_ICONS[verdict]}")
         lines.append(f"| {cap['display']} | {' | '.join(cells)} | **{VERDICT_ICONS[overall]}** |")
 
+    # CNN-corrected render-domain PSNR section. Only emit if at least one
+    # cnn_corrected cell is present in the result set.
+    cnn_rows = [(c, m, o, mr) for (c, m, o, mr) in rows if c["kind"] == "cnn_corrected"]
+    if cnn_rows:
+        lines += [
+            "",
+            "## CNN-corrected · multi-level + dec=2 FUSED → BIBO_1x → AHD render PSNR",
+            "",
+            "Real-DNG playback chain protected by these cells: multi-level + decimate=2",
+            "FUSED encode/decode (half-res topology from PR #10/#11/#13) → BIBO_1x CNN",
+            "(`BayInBayOut_1x_AAon_w16_ANE.pt`) on the half-res bayer → bayer-bicubic-2x",
+            "back to full size → rawpy AHD render → masked Y-PSNR vs the source-DNG AHD",
+            "render at the stated output resolution. macOS-only (torch + MPS); Linux CI",
+            "reports SKIPPED for these rows.",
+            "",
+            "| Capability | CNN-corrected PSNR | Overall |",
+            "|---|---|---|",
+        ]
+        for cap, m, overall, metric_rows in cnn_rows:
+            psnr_cell = "—"
+            for mid, val, verdict, crit_text in metric_rows:
+                if mid == "psnr_db":
+                    if verdict == "SKIPPED":
+                        psnr_cell = f"_n/a_<br/>{VERDICT_ICONS[verdict]}"
+                    else:
+                        psnr_cell = (f"{val:.2f} dB<br/>"
+                                     f"_{crit_text} dB_<br/>{VERDICT_ICONS[verdict]}")
+                    break
+            lines.append(f"| {cap['display']} | {psnr_cell} | **{VERDICT_ICONS[overall]}** |")
+
     lines += [
         "",
         "## Metric definitions",
@@ -379,6 +730,9 @@ def emit_markdown(rows: list, out_path: Path):
         "- **Decode ms** — wall-clock time for `gpr_tools gpr→dng`.",
         "- **Compressed size** — output GPR bytes ÷ raw bayer bytes (W·H·2). Lower = more compression.",
         "- **Roundtrip PSNR** — bayer-domain PSNR (decoded vs original synth raw), peak set per bit depth.",
+        "- **CNN-corrected PSNR** — render-domain masked Y-PSNR (channel-brightness matched) for the",
+        "  full multi-level + dec=2 FUSED → BIBO_1x → AHD-render chain vs the source-DNG AHD render",
+        "  at the stated output resolution. Dark/bright masked (Y∈(10,250) on 8-bit scale).",
         "",
         "## Test methodology",
         "",
@@ -439,19 +793,48 @@ def main():
         try:
             if cap["kind"] == "still_roundtrip":
                 m = measure_still_roundtrip(cap, work)
+            elif cap["kind"] == "cnn_corrected":
+                m = measure_cnn_corrected(cap, work)
             else:
                 continue
+        except RuntimeError as e:
+            msg = str(e)
+            if msg.startswith("SKIP:"):
+                # Missing optional deps — record as SKIPPED, do NOT fail.
+                print(f"  {cap['display']:<53s} ... {msg}")
+                empty = {mid: 0.0 for mid, *_ in METRIC_ORDER}
+                rows.append((cap, empty, "SKIPPED",
+                            [(mid, 0.0, "SKIPPED", "n/a")
+                             for mid, *_ in METRIC_ORDER
+                             if mid in cap.get("criteria", {})]))
+                continue
+            print(f"  {cap['display']:<53s} ... ERROR: {e}")
+            empty = {mid: 0.0 for mid, *_ in METRIC_ORDER}
+            rows.append((cap, empty, "FAILED",
+                        [(mid, 0.0, "FAILED", "n/a")
+                         for mid, *_ in METRIC_ORDER
+                         if mid in cap.get("criteria", {})]))
+            any_failed = True
+            continue
         except Exception as e:
             print(f"  {cap['display']:<53s} ... ERROR: {e}")
-            rows.append((cap, dict(encode_ms=0, decode_ms=0, compress_ratio=0, psnr_db=0),
-                        "FAILED", [(mid, 0.0, "FAILED", "n/a") for mid, *_ in METRIC_ORDER]))
+            empty = {mid: 0.0 for mid, *_ in METRIC_ORDER}
+            rows.append((cap, empty, "FAILED",
+                        [(mid, 0.0, "FAILED", "n/a")
+                         for mid, *_ in METRIC_ORDER
+                         if mid in cap.get("criteria", {})]))
             any_failed = True
             continue
         overall, mr = check_cap(cap, m)
         if overall == "FAILED":
             any_failed = True
-        print(f"  {cap['display']:<55s} {m['encode_ms']:>8.1f} {m['decode_ms']:>8.1f}  "
-              f"{m['compress_ratio']*100:>6.2f}% {m['psnr_db']:>8.2f}  {overall}")
+        # Display: still_roundtrip has 4 metrics; cnn_corrected has only PSNR.
+        if cap["kind"] == "still_roundtrip":
+            print(f"  {cap['display']:<55s} {m['encode_ms']:>8.1f} {m['decode_ms']:>8.1f}  "
+                  f"{m['compress_ratio']*100:>6.2f}% {m['psnr_db']:>8.2f}  {overall}")
+        else:
+            print(f"  {cap['display']:<55s} {'-':>8s} {'-':>8s}  {'-':>6s}  "
+                  f"{m.get('psnr_db', 0.0):>8.2f}  {overall}")
         rows.append((cap, m, overall, mr))
 
     docs = REPO / "docs/CAPABILITIES.md"
@@ -484,7 +867,9 @@ def main():
         return 1
     n_exc = sum(1 for _, _, v, _ in rows if v == "EXCEEDED")
     n_met = sum(1 for _, _, v, _ in rows if v == "MET")
-    print(f"✅ {n_exc} EXCEEDED, {n_met} MET ({len(rows)} total)")
+    n_skip = sum(1 for _, _, v, _ in rows if v == "SKIPPED")
+    skip_note = f", {n_skip} SKIPPED (missing optional deps)" if n_skip else ""
+    print(f"✅ {n_exc} EXCEEDED, {n_met} MET{skip_note} ({len(rows)} total)")
     return 0
 
 

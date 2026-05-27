@@ -11,7 +11,7 @@
  *
  * Companion to tools/pi_benchmark.sh (which sweeps env flags).
  */
-#define _POSIX_C_SOURCE 199309L
+#define _POSIX_C_SOURCE 200809L  /* snprintf, etc. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -77,13 +77,43 @@ int main(int argc, char **argv) {
     }
 
     /* Optional output dump for byte-identity testing: write the first frame's
-       encoded bytes to GPR_BENCH_DUMP path, then continue benchmarking. */
+       encoded bytes to GPR_BENCH_DUMP path, then continue benchmarking.
+
+       Optional sustained-write benchmarking: set GPR_BENCH_WRITE_ALL=<dir>
+       to write every encoded frame as frame_NNNN.gpr inside <dir>. Frame
+       times then include the fwrite, which is the right measurement for
+       "can this hardware actually capture at 24 fps to this storage?"
+       Use a path that bypasses tmpfs (e.g. /mnt/ssd, not /tmp) and run
+       n ≥ 10 × fps_target so the kernel page cache is exhausted (see
+       feedback_honest_capture_bench: short runs are misleading).
+
+       If both env vars are set, GPR_BENCH_DUMP still gets the first
+       frame for byte-identity tests; GPR_BENCH_WRITE_ALL writes ALL
+       frames including the first to its own directory. */
     const char *dump_path = getenv("GPR_BENCH_DUMP");
+    const char *write_all_dir = getenv("GPR_BENCH_WRITE_ALL");
+    if (write_all_dir && *write_all_dir) {
+        /* mkdir -p best effort; ignore errors (caller is responsible) */
+        char mkdir_cmd[1024];
+        snprintf(mkdir_cmd, sizeof(mkdir_cmd), "mkdir -p '%s'", write_all_dir);
+        (void)!system(mkdir_cmd);
+        fprintf(stderr, "# GPR_BENCH_WRITE_ALL=%s — frame times will include fwrite\n",
+                write_all_dir);
+    }
     double *times = malloc((size_t)n * sizeof(double));
     for (int i = 0; i < n; i++) {
         double t0 = now_ms();
         unsigned char *out = NULL; size_t out_sz = 0;
         gpr_encode_fused_frame(enc, raw, sz, &out, &out_sz);
+        if (write_all_dir && *write_all_dir && out && out_sz > 0) {
+            char path[1280];
+            snprintf(path, sizeof(path), "%s/frame_%04d.gpr", write_all_dir, i);
+            FILE *wf = fopen(path, "wb");
+            if (wf) {
+                fwrite(out, 1, out_sz, wf);
+                fclose(wf);
+            }
+        }
         double t1 = now_ms();
         times[i] = t1 - t0;
         if (i == 0 && dump_path && out && out_sz > 0) {

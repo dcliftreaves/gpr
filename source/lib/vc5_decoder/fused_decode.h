@@ -34,6 +34,22 @@ int gpr_decode_fused(const uint8_t *enc, size_t enc_size,
                      uint16_t *bayer_out, size_t bayer_pitch_bytes,
                      int *out_width, int *out_height);
 
+/* Half-resolution decode. Skips the level-1 inverse wavelet step, producing
+   a bayer plane at (header.width / 2) × (header.height / 2). The level-1
+   highpass bands stay in the bitstream — this path doesn't reconstruct them,
+   so it's roughly 1.5–2× faster than full-resolution decode and produces
+   output sized to feed a downstream CNN at codec-half-res (the pre-FUSED
+   GPRCodec topology). bayer_out must be large enough for the half-res output;
+   bayer_pitch_bytes is typically (header.width / 2) * 2. Returns 0 on
+   success, negative on failure.
+
+   Used by the gpr2prores playback pipeline. Only the multi-level path
+   supports half_res; single-level + LL streams ignore the flag and decode
+   at native dims. */
+int gpr_decode_fused_halfres(const uint8_t *enc, size_t enc_size,
+                             uint16_t *bayer_out, size_t bayer_pitch_bytes,
+                             int *out_width, int *out_height);
+
 #ifdef __cplusplus
 }
 #endif

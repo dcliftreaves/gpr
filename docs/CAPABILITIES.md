@@ -14,27 +14,45 @@ capability = adding one row to that script with its criteria.
 
 ## Summary
 
-- **11** EXCEEDED
+- **16** EXCEEDED
 - **0** MET
 - **0** FAILED
-- last run: 2026-05-24 15:54:49
+- **0** SKIPPED (missing optional deps)
+- last run: 2026-05-25 07:38:16
 - build dir: `build-local`
 
 ## Stills · encode → decode → PSNR roundtrip
 
 | Capability | Encode | Decode | Compressed size | Roundtrip PSNR | Overall |
 |---|---|---|---|---|---|
-| Stills · rggb12 · 1024² · q=3 (Filmscan-1) | 23.6 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 20.1 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 5.13%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.27 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb12p (packed) · 1024² · q=3 | 22.3 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 19.6 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 5.11%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.27 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb14 · 1024² · q=3 | 24.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 24.1 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 7.16%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.77 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb14 · 1024² · q=0 (Low) | 22.6 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 20.8 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 3.07%<br/>_≤ 0.05_<br/>✨ EXCEEDED | 53.07 dB<br/>_≥ 51.5 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb14 · 1024² · q=8 (Filmscan-5) | 34.9 ms<br/>_≤ 60 ms_<br/>✨ EXCEEDED | 35.1 ms<br/>_≤ 60 ms_<br/>✅ MET | 19.62%<br/>_≤ 0.25_<br/>✨ EXCEEDED | 62.06 dB<br/>_≥ 60.5 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb16 · 1024² · q=3 | 24.8 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 26.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 5.37%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.44 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · gbrg16 (alt Bayer) · 1024² · q=3 | 24.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 25.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 5.35%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.44 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb12 · 12 MP (4032×3024) · q=3 | 169.3 ms<br/>_≤ 300 ms_<br/>✨ EXCEEDED | 152.7 ms<br/>_≤ 250 ms_<br/>✨ EXCEEDED | 4.72%<br/>_≤ 0.07_<br/>✨ EXCEEDED | 43.31 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb14 · 23 MP HERO10 (5568×4176) · q=3 | 354.5 ms<br/>_≤ 600 ms_<br/>✨ EXCEEDED | 364.3 ms<br/>_≤ 600 ms_<br/>✨ EXCEEDED | 6.75%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.82 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb14 · 50 MP Z8 (8280×5520) · q=3 | 699.7 ms<br/>_≤ 1100 ms_<br/>✨ EXCEEDED | 711.0 ms<br/>_≤ 1100 ms_<br/>✨ EXCEEDED | 6.78%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.86 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
-| Stills · rggb16 · 100 MP X2D (11664×8750) · q=3 | 1568.6 ms<br/>_≤ 2500 ms_<br/>✨ EXCEEDED | 1714.6 ms<br/>_≤ 2500 ms_<br/>✨ EXCEEDED | 4.89%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.52 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb12 · 1024² · q=3 (Filmscan-1) | 8.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 9.0 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 5.13%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.27 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb12p (packed) · 1024² · q=3 | 11.5 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 8.6 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 5.11%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.27 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 1024² · q=3 | 10.0 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 10.9 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 7.16%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.76 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 1024² · q=0 (Low) | 8.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 9.2 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 3.06%<br/>_≤ 0.05_<br/>✨ EXCEEDED | 53.07 dB<br/>_≥ 51.5 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 1024² · q=5 (Filmscan-2, quality peak) | 12.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 14.3 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 13.49%<br/>_≤ 0.14_<br/>✅ MET | 57.06 dB<br/>_≥ 55 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 1024² · q=8 (Filmscan-5) | 13.9 ms<br/>_≤ 60 ms_<br/>✨ EXCEEDED | 16.1 ms<br/>_≤ 60 ms_<br/>✨ EXCEEDED | 19.02%<br/>_≤ 0.25_<br/>✨ EXCEEDED | 61.20 dB<br/>_≥ 60.5 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 1024² · q=11 (CNN-aware) | 10.9 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 11.8 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 4.98%<br/>_≤ 0.06_<br/>✅ MET | 53.52 dB<br/>_≥ 51.5 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb16 · 1024² · q=3 | 11.0 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 12.3 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 5.36%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.44 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · gbrg16 (alt Bayer) · 1024² · q=3 | 11.0 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 11.7 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 5.37%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.44 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb12 · 12 MP (4032×3024) · q=3 | 49.5 ms<br/>_≤ 300 ms_<br/>✨ EXCEEDED | 60.3 ms<br/>_≤ 250 ms_<br/>✨ EXCEEDED | 4.72%<br/>_≤ 0.07_<br/>✨ EXCEEDED | 43.31 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 23 MP HERO10 (5568×4176) · q=3 | 114.9 ms<br/>_≤ 600 ms_<br/>✨ EXCEEDED | 143.0 ms<br/>_≤ 600 ms_<br/>✨ EXCEEDED | 6.75%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.82 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb14 · 50 MP Z8 (8280×5520) · q=3 | 217.8 ms<br/>_≤ 1100 ms_<br/>✨ EXCEEDED | 274.1 ms<br/>_≤ 1100 ms_<br/>✨ EXCEEDED | 6.78%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.85 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb16 · 100 MP X2D (11664×8750) · q=3 | 423.8 ms<br/>_≤ 2500 ms_<br/>✨ EXCEEDED | 503.9 ms<br/>_≤ 2500 ms_<br/>✨ EXCEEDED | 4.89%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 53.52 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
+
+## CNN-corrected · multi-level + dec=2 FUSED → BIBO_1x → AHD render PSNR
+
+Real-DNG playback chain protected by these cells: multi-level + decimate=2
+FUSED encode/decode (half-res topology from PR #10/#11/#13) → BIBO_1x CNN
+(`BayInBayOut_1x_AAon_w16_ANE.pt`) on the half-res bayer → bayer-bicubic-2x
+back to full size → rawpy AHD render → masked Y-PSNR vs the source-DNG AHD
+render at the stated output resolution. macOS-only (torch + MPS); Linux CI
+reports SKIPPED for these rows.
+
+| Capability | CNN-corrected PSNR | Overall |
+|---|---|---|
+| CNN · BIBO_1x · Z8 ISO64 · 50 MP → UHD (multi-level + dec=2) | 29.33 dB<br/>_≥ 27.8 dB_<br/>✨ EXCEEDED | **✨ EXCEEDED** |
+| CNN · BIBO_1x · Z8 ISO64 · 50 MP → 4K (multi-level + dec=2) | 29.31 dB<br/>_≥ 27.8 dB_<br/>✨ EXCEEDED | **✨ EXCEEDED** |
+| CNN · BIBO_1x · Z8 ISO22800 · 50 MP → UHD (high-ISO, harder) | 30.21 dB<br/>_≥ 28.7 dB_<br/>✨ EXCEEDED | **✨ EXCEEDED** |
 
 ## Metric definitions
 
@@ -42,6 +60,9 @@ capability = adding one row to that script with its criteria.
 - **Decode ms** — wall-clock time for `gpr_tools gpr→dng`.
 - **Compressed size** — output GPR bytes ÷ raw bayer bytes (W·H·2). Lower = more compression.
 - **Roundtrip PSNR** — bayer-domain PSNR (decoded vs original synth raw), peak set per bit depth.
+- **CNN-corrected PSNR** — render-domain masked Y-PSNR (channel-brightness matched) for the
+  full multi-level + dec=2 FUSED → BIBO_1x → AHD-render chain vs the source-DNG AHD render
+  at the stated output resolution. Dark/bright masked (Y∈(10,250) on 8-bit scale).
 
 ## Test methodology
 

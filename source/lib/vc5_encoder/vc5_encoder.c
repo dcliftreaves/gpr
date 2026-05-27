@@ -39,6 +39,22 @@ void vc5_encoder_parameters_set_default(vc5_encoder_parameters* encoding_paramet
     encoding_parameters->noise_offset     = 0.0;
     encoding_parameters->variance_stabilize = false;
     encoding_parameters->ans_enabled      = false;
+
+    /* Output fields — must be zeroed so callers that test noise_seed != 0
+       (see write_dng in gpr_sdk) don't read uninitialized memory when
+       denoise_enabled is false. Without this, Linux glibc malloc (which
+       does not zero pages by default) can hand back stack-residue
+       garbage where noise_seed is nonzero and noise_sigma_out holds huge
+       doubles like 1.73e+185. The downstream dng_xmp::Set_real64 then
+       formats that into a 64-byte stack buffer with sprintf("%0.6f", x)
+       and blows the stack canary on Linux (macOS happens to land in
+       zero-initialized pages and skips the if-noise_seed-nonzero block,
+       which is why this only reproduces on Linux). */
+    encoding_parameters->noise_seed = 0;
+    encoding_parameters->noise_sigma_out[0] = 0.0;
+    encoding_parameters->noise_sigma_out[1] = 0.0;
+    encoding_parameters->noise_sigma_out[2] = 0.0;
+    encoding_parameters->noise_sigma_out[3] = 0.0;
 }
 
 CODEC_ERROR vc5_encoder_process(vc5_encoder_parameters*         encoding_parameters,    /* vc5 encoding parameters */
@@ -66,15 +82,27 @@ const size_t max_vc5_buffer_size = base_size + (base_size >> 1) + (1 << 20);
     
     {
         QUANT quant_table[VC5_ENCODER_QUALITY_SETTING_COUNT][sizeof(parameters.quant_table) / sizeof(parameters.quant_table[0])] = {
-            {1, 24, 24, 12, 64, 64, 48, 512, 512, 768}, // CineForm Low
-            {1, 24, 24, 12, 48, 48, 32, 256, 256, 384}, // CineForm Medium
-            {1, 24, 24, 12, 32, 32, 24, 128, 128, 192}, // CineForm High
-            {1, 24, 24, 12, 24, 24, 12, 96, 96, 144},   // CineForm Filmscan-1
-            {1, 24, 24, 12, 24, 24, 12, 64, 64, 96},    // CineForm Filmscan-X
-            {1, 24, 24, 12, 24, 24, 12, 32, 32, 48},    // CineForm Filmscan-2
-            {1, 12, 12,  6, 12, 12,  6, 16, 16, 24},    // CineForm Filmscan-3 (Edit-Safe)
-            {1,  6,  6,  4, 12, 12,  6, 16, 16, 24},    // CineForm Filmscan-4 (Near-Lossless)
-            {1,  4,  4,  2, 10, 10,  6, 16, 16, 24}     // CineForm Filmscan-5 (Virtually Lossless)
+            {1, 24, 24, 12, 64, 64, 48, 512, 512, 768}, // 0  CineForm Low
+            {1, 24, 24, 12, 48, 48, 32, 256, 256, 384}, // 1  CineForm Medium
+            {1, 24, 24, 12, 32, 32, 24, 128, 128, 192}, // 2  CineForm High
+            {1, 24, 24, 12, 24, 24, 12,  96,  96, 144}, // 3  CineForm Filmscan-1
+            {1, 24, 24, 12, 24, 24, 12,  64,  64,  96}, // 4  CineForm Filmscan-X
+            {1, 24, 24, 12, 24, 24, 12,  32,  32,  48}, // 5  CineForm Filmscan-2
+            {1, 12, 12,  6, 12, 12,  6,  16,  16,  24}, // 6  CineForm Filmscan-3 (Edit-Safe)
+            {1,  6,  6,  4, 12, 12,  6,  16,  16,  24}, // 7  CineForm Filmscan-4 (Near-Lossless)
+            {1,  4,  4,  2, 10, 10,  6,  16,  16,  24}, // 8  CineForm Filmscan-5 (Virtually Lossless)
+            {1,  4,  4,  2, 10, 10,  6,  16,  16,  24}, // 9  Reserved (mirrors FS5)
+            {1,  4,  4,  2, 10, 10,  6,  16,  16,  24}, // 10 Reserved (mirrors FS5)
+            /* 11 CNN-aware ("turn it up to 11"). Crank slots 7/8/9 (multi-level
+               L1 highpass: LH1/HL1/HH1) so the encoder produces ~10-17% smaller
+               files. Designed to pair with a CNN trained on the cranked
+               distribution (e.g. BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt) — see
+               docs/quant_calibration_findings.md. Slots 0-6 unchanged from
+               q=3 default so L2/L3 wavelet quality is preserved; single-ll
+               mode reads slots 1/2/3 here (unchanged) and sees no benefit at
+               q=11 — single-ll users wanting CNN-aware should crank slot 3
+               directly via GPR_QUANT_OVERRIDE during development. */
+            {1, 24, 24, 12, 24, 24, 12, 192, 192, 576}, // 11 CNN-aware
         };
         
         int quality = encoding_parameters->quality_setting;
