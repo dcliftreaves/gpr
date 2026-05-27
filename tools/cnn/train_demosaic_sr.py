@@ -89,39 +89,65 @@ def load_data(npz_path, val_src_name, subsample_rate=1):
             keep_mask[i] = True
     print(f"  keeping {keep_mask.sum()} of {len(src)} tiles", flush=True)
     out = {}
-    for k in ["codec_R", "codec_G1", "codec_G2", "codec_B",
-              "tgt_R", "tgt_G1", "tgt_G2", "tgt_B"]:
+    for k in ["codec_R", "codec_G1", "codec_G2", "codec_B"]:
         out[k] = np.asarray(npz[k][keep_mask])
+    # Two NPZ schemas supported:
+    #   1) New dmsr schema: tgt_rgb (N, 512, 512, 3) uint8 — sips-rendered RGB
+    #   2) Old super-res schema: tgt_R/G1/G2/B 4-channel bayer (we bilinear-
+    #      demosaic at dataloader time, sensor RGB — wrong target color space)
+    if "tgt_rgb" in npz.files:
+        out["tgt_rgb"] = np.asarray(npz["tgt_rgb"][keep_mask])
+        out["_has_rgb_target"] = True
+        print(f"  using NEW tgt_rgb (sips-rendered targets)", flush=True)
+    else:
+        for k in ["tgt_R", "tgt_G1", "tgt_G2", "tgt_B"]:
+            out[k] = np.asarray(npz[k][keep_mask])
+        out["_has_rgb_target"] = False
+        print(f"  using LEGACY tgt_bayer (bilinear-demosaic; WRONG color space)",
+              flush=True)
     out["src"] = src[keep_mask]
     out["_val_src_id"] = val_src_id
     print(f"  loaded in {time.time() - t0:.1f}s", flush=True)
     return out
 
 
-def planes_from_mem(d, idx):
+def codec_planes_from_mem(d, idx):
     codec = np.stack([d["codec_R"][idx], d["codec_G1"][idx],
                       d["codec_G2"][idx], d["codec_B"][idx]], 0)
-    tgt   = np.stack([d["tgt_R"][idx],   d["tgt_G1"][idx],
-                      d["tgt_G2"][idx],  d["tgt_B"][idx]], 0)
-    return codec.astype(np.float32) / RAW_NORM, tgt.astype(np.float32) / RAW_NORM
+    return codec.astype(np.float32) / RAW_NORM
+
+
+def tgt_rgb_from_mem(d, idx):
+    """Returns (3, H, W) float32 RGB in [0, 1]."""
+    if d.get("_has_rgb_target", False):
+        rgb = d["tgt_rgb"][idx]                                  # (H, W, 3) uint8
+        return np.transpose(rgb, (2, 0, 1)).astype(np.float32) / 255.0
+    # Legacy: bilinear-demosaic from target bayer planes (sensor RGB).
+    tgt = np.stack([d["tgt_R"][idx], d["tgt_G1"][idx],
+                    d["tgt_G2"][idx], d["tgt_B"][idx]], 0).astype(np.float32) / RAW_NORM
+    return tgt  # caller does bayer_4plane_to_rgb if legacy
 
 
 class TileDS(Dataset):
     def __init__(self, mem, indices, augment=True):
         self.mem = mem; self.indices = indices; self.augment = augment
+        self.has_rgb = mem.get("_has_rgb_target", False)
     def __len__(self): return len(self.indices)
     def __getitem__(self, i):
         idx = self.indices[i]
-        codec, tgt_planes = planes_from_mem(self.mem, idx)
+        codec = codec_planes_from_mem(self.mem, idx)
+        tgt = tgt_rgb_from_mem(self.mem, idx)
         if self.augment:
             if np.random.rand() < 0.5:
-                codec = codec[:, :, ::-1].copy(); tgt_planes = tgt_planes[:, :, ::-1].copy()
-                codec = codec[[1, 0, 3, 2]]; tgt_planes = tgt_planes[[1, 0, 3, 2]]
+                codec = codec[:, :, ::-1].copy(); tgt = tgt[:, :, ::-1].copy()
+                # Codec channel swap on horizontal flip: R↔G1, G2↔B
+                codec = codec[[1, 0, 3, 2]]
+                # RGB target: horizontal flip is just spatial; channel order unchanged
             if np.random.rand() < 0.5:
-                codec = codec[:, ::-1, :].copy(); tgt_planes = tgt_planes[:, ::-1, :].copy()
-                codec = codec[[2, 3, 0, 1]]; tgt_planes = tgt_planes[[2, 3, 0, 1]]
+                codec = codec[:, ::-1, :].copy(); tgt = tgt[:, ::-1, :].copy()
+                codec = codec[[2, 3, 0, 1]]
         return torch.from_numpy(np.ascontiguousarray(codec)).float(), \
-               torch.from_numpy(np.ascontiguousarray(tgt_planes)).float()
+               torch.from_numpy(np.ascontiguousarray(tgt)).float()
 
 
 def multiscale_l1(pred, tgt, weights=(1.0, 0.5, 0.25)):
@@ -152,15 +178,20 @@ def train(args):
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
 
+    has_rgb = d.get("_has_rgb_target", False)
     def evaluate():
         model.eval()
         tot_b, tot_a, n = 0.0, 0.0, 0
         with torch.no_grad():
-            for inp, tgt_planes in va:
-                inp = inp.to(DEVICE); tgt_planes = tgt_planes.to(DEVICE)
-                # Build the RGB target from target bayer planes (bilinear demosaic).
-                tgt_rgb = bayer_4plane_to_rgb(tgt_planes).clamp(0, 1)
-                # Baseline: bilinear-demosaic the codec bayer, then bicubic 2x.
+            for inp, tgt in va:
+                inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
+                if has_rgb:
+                    tgt_rgb = tgt.clamp(0, 1)              # already RGB in [0, 1]
+                else:
+                    tgt_rgb = bayer_4plane_to_rgb(tgt).clamp(0, 1)
+                # Baseline: bilinear-demosaic the codec bayer + bicubic 2x.
+                # Same path the gate's cnn=none variant uses (modulo Apple's
+                # demosaic flavor); useful for "is the CNN doing real work".
                 codec_rgb_lo = bayer_4plane_to_rgb(inp).clamp(0, 1)
                 base = F.interpolate(codec_rgb_lo, scale_factor=2, mode="bicubic",
                                      align_corners=False).clamp(0, 1)
@@ -180,9 +211,9 @@ def train(args):
           flush=True)
     for ep in range(args.epochs):
         model.train(); t0 = time.time(); loss_sum = 0.0; nb = 0
-        for inp, tgt_planes in tr:
-            inp = inp.to(DEVICE); tgt_planes = tgt_planes.to(DEVICE)
-            tgt_rgb = bayer_4plane_to_rgb(tgt_planes).clamp(0, 1)
+        for inp, tgt in tr:
+            inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
+            tgt_rgb = tgt.clamp(0, 1) if has_rgb else bayer_4plane_to_rgb(tgt).clamp(0, 1)
             pred = model(inp).clamp(0, 1)
             l = multiscale_l1(pred, tgt_rgb)
             opt.zero_grad(set_to_none=True); l.backward()
