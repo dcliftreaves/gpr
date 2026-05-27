@@ -360,6 +360,60 @@
         "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:288,8:288,9:432"
       },
       "quality": 3
+    },
+    "sl_q3_hh1x2": {
+      "$doc": "SL q=3 with HH \u00d72 (12\u219224)",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "GPR_QUANT_OVERRIDE": "3:24"
+      },
+      "quality": 3
+    },
+    "sl_q3_hh1x4": {
+      "$doc": "SL q=3 with HH \u00d74 (12\u219248). Matches q=11's HH.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "GPR_QUANT_OVERRIDE": "3:48"
+      },
+      "quality": 3
+    },
+    "sl_q3_hh1x8": {
+      "$doc": "SL q=3 with HH \u00d78 (12\u219296). Push beyond q=11.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "GPR_QUANT_OVERRIDE": "3:96"
+      },
+      "quality": 3
+    },
+    "sl_q3_l1x2": {
+      "$doc": "SL q=3 with all L1 \u00d72 (LH/HL: 24\u219248, HH: 12\u219224).",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "GPR_QUANT_OVERRIDE": "1:48,2:48,3:24"
+      },
+      "quality": 3
+    },
+    "sl_q3_l1x4": {
+      "$doc": "SL q=3 with all L1 \u00d74 (LH/HL: 96, HH: 48). Roughly q=11.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "GPR_QUANT_OVERRIDE": "1:96,2:96,3:48"
+      },
+      "quality": 3
+    },
+    "sl_q3_l1x4_hh1x8": {
+      "$doc": "SL with LH/HL \u00d74 + HH \u00d78 (push HH harder than q=11)",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "GPR_QUANT_OVERRIDE": "1:96,2:96,3:96"
+      },
+      "quality": 3
     }
   },
   "cnns": {
@@ -1007,6 +1061,48 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
       "$role": "embedded-preview-bido-lpips-finetune"
+    },
+    "codec=sl_q3_hh1x2+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3_hh1x2",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "cnnaware-sl-hh1x2-with-matched-cnn"
+    },
+    "codec=sl_q3_hh1x4+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3_hh1x4",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "cnnaware-sl-hh1x4-with-matched-cnn"
+    },
+    "codec=sl_q3_hh1x8+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3_hh1x8",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "cnnaware-sl-hh1x8-with-matched-cnn"
+    },
+    "codec=sl_q3_l1x2+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3_l1x2",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "cnnaware-sl-l1x2-with-matched-cnn"
+    },
+    "codec=sl_q3_l1x4+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3_l1x4",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "cnnaware-sl-l1x4-with-matched-cnn"
+    },
+    "codec=sl_q3_l1x4_hh1x8+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3_l1x4_hh1x8",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "cnnaware-sl-l1x4_hh1x8-with-matched-cnn"
     }
   }
 }
