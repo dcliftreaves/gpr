@@ -30,6 +30,33 @@
       },
       "quality": 11
     },
+    "sl_q0": {
+      "$doc": "Single-level FUSED q=0 (Low). Smallest files; covers low-bitrate-stills regression.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_QUALITY": "0"
+      },
+      "quality": 0
+    },
+    "sl_q5": {
+      "$doc": "Single-level FUSED q=5 (Filmscan-2 / quality peak). Higher fidelity than q=3.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_QUALITY": "5"
+      },
+      "quality": 5
+    },
+    "sl_q8": {
+      "$doc": "Single-level FUSED q=8 (Filmscan-5 / archival). Largest files among shipping presets.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_QUALITY": "8"
+      },
+      "quality": 8
+    },
     "ml2_q3": {
       "$doc": "2-level FUSED q=3. Restored 2026-05-25. NOT yet shipping for any class.",
       "binary": "build-local/bin/test_fused_roundtrip",
@@ -374,6 +401,50 @@
       "ship_class": "PREVIEW",
       "$role": "embedded-preview-no-cnn",
       "$doc": "Full-res single-level q=3 codec, no post-CNN. Ships PREVIEW (4-image gate worst LPIPS 0.100 < 0.15, Y-PSNR 33.34 > 28, MS-SSIM 0.958 > 0.95). Add +cnn=bibo1x_ane_sl_q3 to promote to STILL."
+    },
+    "codec=sl_q0+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q0",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "still-quality-coverage-q0-noCNN"
+    },
+    "codec=sl_q0+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q0",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "still-quality-coverage-q0-CNN"
+    },
+    "codec=sl_q5+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q5",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "still-quality-coverage-q5-noCNN",
+      "$doc": "q=5 without CNN — PASSes PREVIEW (LPIPS 0.100), not STILL. STILL requires the CNN."
+    },
+    "codec=sl_q5+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q5",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "still-quality-coverage-q5-CNN"
+    },
+    "codec=sl_q8+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q8",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "still-quality-coverage-q8-noCNN",
+      "$doc": "q=8 without CNN — PASSes PREVIEW (LPIPS 0.101), not STILL. STILL requires the CNN."
+    },
+    "codec=sl_q8+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q8",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "still-quality-coverage-q8-CNN"
     },
     "codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q3",
