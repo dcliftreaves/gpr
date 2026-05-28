@@ -469,6 +469,30 @@
       "encoder_kind": "legacy_gpr_tools",
       "env": {},
       "use_for": "still"
+    },
+    "gpr_tools_q0": {
+      "$doc": "Legacy CineForm VC5 at q=0. Smaller files than q=3 (3.2 MB vs 7.8 MB on Z8 50MP). Used to test whether the q=3-matched CNN generalizes downward.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 0,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
+    },
+    "gpr_tools_q1": {
+      "$doc": "Legacy CineForm VC5 at q=1. Smaller files than q=3 (3.8 MB vs 7.8 MB on Z8 50MP). Used to test whether the q=3-matched CNN generalizes downward.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 1,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
+    },
+    "gpr_tools_q2": {
+      "$doc": "Legacy CineForm VC5 at q=2. Smaller files than q=3 (5.9 MB vs 7.8 MB on Z8 50MP). Used to test whether the q=3-matched CNN generalizes downward.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 2,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
     }
   },
   "cnns": {
@@ -1212,6 +1236,27 @@
       "ship_class": "STILL",
       "$role": "ship-still-archival-no-cnn",
       "$doc": "STILL archival ship \u2014 legacy CineForm q=8 ('Filmscan-5'). 27.17 MB mean (16-41 MB per-image, content-adaptive). Worst LPIPS 0.0035 \u2014 4\u00d7 tighter than q=3+CNN primary. No CNN needed: the legacy encoder at q=8 is already visual-lossless on the gate's 4-image test set. Use when storage isn't constrained AND you want maximum fidelity."
+    },
+    "codec=gpr_tools_q0+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q0",
+      "cnn": "bibo1x_ane_gpr_tools_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "experiment-still-q0-with-q3-trained-cnn"
+    },
+    "codec=gpr_tools_q1+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q1",
+      "cnn": "bibo1x_ane_gpr_tools_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "experiment-still-q1-with-q3-trained-cnn"
+    },
+    "codec=gpr_tools_q2+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q2",
+      "cnn": "bibo1x_ane_gpr_tools_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "experiment-still-q2-with-q3-trained-cnn"
     }
   },
   "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28."
