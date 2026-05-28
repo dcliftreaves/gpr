@@ -3,9 +3,18 @@
 All entries from `pipelines/registry.json` × `tests/quality_gates/runs/`.
 Sorted within each mode by mean MB (smaller first).
 
+## How to read the columns
+
+- **mean MB** = `.gpr` file size on disk (the **codec output**, decided by codec only — CNN doesn't change this).
+- **LPIPS / MS-SSIM / Y-PSNR** = **end-to-end visual quality** after full pipeline (codec roundtrip → CNN → sips render) vs the reference sips-of-source-DNG render. Worst-of-4-images per row (gate convention).
+- The CNN is decode-only — a fixed 1.3 MB checkpoint on the decoder; same checkpoint serves all q-levels in the legacy stills path. The CNN affects the visual metrics, NOT the file size.
+- **verdict** = whether all per-image metrics clear the ship-class thresholds (per-image, worst governs).
+
+So the comparison "what does +CNN buy at this q?" is: same `.gpr` file size, dramatically different LPIPS. Example at q=3: with matched CNN LPIPS 0.016, without CNN LPIPS 0.26 — both 15 MB on disk.
+
 ## STILLS (legacy CineForm VC5 + matched CNN)
 
-| q | codec | CNN | mean MB | worst LPIPS | worst MS-SSIM | worst Y-PSNR | verdict | ship role |
+| q | codec | CNN | mean MB (codec) | worst LPIPS (end-to-end) | worst MS-SSIM | worst Y-PSNR | verdict | ship role |
 |---:|---|---|---:|---:|---:|---:|---|---|
 | 0 | `gpr_tools_q0` | matched-q3 | 9.80 | 0.0314 | 0.9915 | 40.59 | **PASS** | experiment-still-q0-with-q3-trained-cnn |
 | 1 | `gpr_tools_q1` | matched-q3 | 12.12 | 0.0183 | 0.9953 | 43.62 | **PASS** | experiment-still-q1-with-q3-trained-cnn |
@@ -51,19 +60,18 @@ VIDEO_FREEZE ceiling (relaxed 2026-05-27): LPIPS ≤ 0.085, MS-SSIM ≥ 0.965, Y
 
 PREVIEW ceiling: LPIPS ≤ 0.15, MS-SSIM ≥ 0.95, Y-PSNR ≥ 28, ΔE ≤ 3.0
 
-## Pi 5 encode timing (legacy gpr_tools, single-thread, Z8Z_0067 50MP, best of 3)
+## Pi 5 encode timing (legacy gpr_tools, Z8Z_0067 50MP, best of 3)
+
+Post-parallel-DNG-read (commits 79403fb + ec1cb2c, 2026-05-28). Multi-threaded
+Adobe DNG SDK tile decode (4 cores) + skipped redundant metadata pre-parse.
+Per-q numbers; multi-DNG verification in `STILLS_PI5_TIMING.md`.
 
 | q | encode ms | bytes (MB) | single-frame fps |
 |---:|---:|---:|---:|
-| 0 | 1639 | 3.22 | 0.61 |
-| 1 | 1661 | 3.75 | 0.60 |
-| 2 | 1706 | 5.88 | 0.59 |
-| 3 | 1756 | 7.81 | 0.57 |
-| 4 | 1822 | 9.79 | 0.55 |
-| 5 | 1929 | 13.35 | 0.52 |
-| 6 | 1980 | 16.15 | 0.51 |
-| 7 | 1973 | 16.15 | 0.51 |
-| 8 | 1972 | 16.18 | 0.51 |
+| 0 |  581 |  3.22 | 1.72 |
+| 3 |  544 |  7.81 | **1.84** |
+| 5 |  692 | 13.35 | 1.45 |
+| 8 |  704 | 16.18 | 1.42 |
 
 ## Embedded video capture (Pi 5 sustained)
 
