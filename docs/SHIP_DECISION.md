@@ -20,8 +20,11 @@ to prevent mode confusion. See `tests/quality_gates/check_registry_consistency.p
 | ship | pipeline | worst LPIPS | mean MB | verdict |
 |---|---|---:|---:|---|
 | **STILL primary** | `codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools` | **0.016** | **15.05** | **PASS** |
+| STILL archival (no CNN needed) | `codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools` | **0.004** | **27.17** | **PASS** |
 
-The legacy encoder is **content-adaptive**: 7.8 MB on sky (Z8Z_0067), 21 MB on busy portrait (Z8Z_6693). 4-image mean 15 MB.
+The legacy encoder is **content-adaptive**: 7.8 MB on sky (Z8Z_0067), 21 MB on busy portrait (Z8Z_6693) at q=3. 4-image mean 15 MB.
+
+Notable finding 2026-05-28: legacy q=8 alone (no CNN) reaches LPIPS 0.0035 — 4× tighter than q=3+CNN. The codec at archival quality is already visual-lossless on this test set; CNN restoration adds no perceptual value above q=6.
 
 ## TL;DR — Video (multi-level FUSED encoder)
 
