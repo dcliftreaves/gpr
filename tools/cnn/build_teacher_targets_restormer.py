@@ -109,6 +109,11 @@ def main():
                          "bilinear-demosaiced + bicubic-2x codec output "
                          "(plan §3 literal wording; produces dark "
                          "linear-raw teacher output).")
+    ap.add_argument("--stride", type=int, default=1,
+                    help="Process every Nth tile (e.g. --stride 4 = ~4980 of "
+                         "19920). Output NPZ contains only the kept tiles "
+                         "(all fields subsampled identically). Use when "
+                         "teacher precompute is the bottleneck.")
     args = ap.parse_args()
 
     t_start = time.time()
@@ -126,8 +131,13 @@ def main():
 
     print(f"[teacher-precompute] mmapping NPZ: {IN_NPZ}", flush=True)
     npz = np.load(IN_NPZ, mmap_mode="r", allow_pickle=True)
-    n_tiles = npz["codec_R"].shape[0]
-    print(f"[teacher-precompute] n_tiles={n_tiles}", flush=True)
+    n_full = npz["codec_R"].shape[0]
+    stride = max(1, args.stride)
+    # Stride-subsample keeps tiles 0, stride, 2*stride, ...
+    keep_indices = np.arange(0, n_full, stride, dtype=np.int64)
+    n_tiles = len(keep_indices)
+    print(f"[teacher-precompute] n_full={n_full} stride={stride} "
+          f"n_tiles_kept={n_tiles}", flush=True)
 
     teacher_shape = (n_tiles, 512, 512, 3)
     teacher_bytes = int(np.prod(teacher_shape))
@@ -163,18 +173,18 @@ def main():
     while completed < n_tiles:
         i0 = completed
         i1 = min(i0 + BATCH, n_tiles)
+        # Map subset indices [i0:i1] back to full-NPZ indices for the slice
+        src_idx = keep_indices[i0:i1]
+        # Fancy indexing on memmap is fine for small batches
         if args.input_mode == "tgt-rgb":
-            # Feed Restormer the clean sips-rendered gate target.
-            # tgt_rgb shape (b, 512, 512, 3) uint8 -> (b, 3, 512, 512) float
-            tgt_np = np.asarray(npz["tgt_rgb"][i0:i1]).astype(np.float32) / 255.0
+            tgt_np = np.asarray(npz["tgt_rgb"][src_idx]).astype(np.float32) / 255.0
             rgb512 = torch.from_numpy(np.transpose(tgt_np, (0, 3, 1, 2))).to(device)
         else:
-            # Plan §3 literal: codec-degraded bilinear-demosaic + bicubic 2x.
             planes_np = np.stack([
-                np.asarray(npz["codec_R"][i0:i1]),
-                np.asarray(npz["codec_G1"][i0:i1]),
-                np.asarray(npz["codec_G2"][i0:i1]),
-                np.asarray(npz["codec_B"][i0:i1]),
+                np.asarray(npz["codec_R"][src_idx]),
+                np.asarray(npz["codec_G1"][src_idx]),
+                np.asarray(npz["codec_G2"][src_idx]),
+                np.asarray(npz["codec_B"][src_idx]),
             ], axis=1).astype(np.float32) / RAW_NORM
             planes = torch.from_numpy(planes_np).to(device)
             with torch.no_grad():
@@ -225,15 +235,17 @@ def main():
           f"{time.time()-t_start:.1f}s", flush=True)
 
     print(f"[teacher-precompute] assembling NPZ -> {OUT_NPZ}", flush=True)
+    # All non-teacher fields are stride-subsampled by keep_indices, so they
+    # line up positionally with the teacher field.
     np.savez(
         OUT_NPZ,
-        codec_R=np.asarray(npz["codec_R"]),
-        codec_G1=np.asarray(npz["codec_G1"]),
-        codec_G2=np.asarray(npz["codec_G2"]),
-        codec_B=np.asarray(npz["codec_B"]),
-        src=np.asarray(npz["src"]),
+        codec_R=np.asarray(npz["codec_R"][keep_indices]),
+        codec_G1=np.asarray(npz["codec_G1"][keep_indices]),
+        codec_G2=np.asarray(npz["codec_G2"][keep_indices]),
+        codec_B=np.asarray(npz["codec_B"][keep_indices]),
+        src=np.asarray(npz["src"][keep_indices]),
         src_lookup_names=np.asarray(npz["src_lookup_names"]),
-        tgt_rgb=np.asarray(npz["tgt_rgb"]),
+        tgt_rgb=np.asarray(npz["tgt_rgb"][keep_indices]),
         tgt_rgb_teacher=np.asarray(teacher),
     )
     print(f"[teacher-precompute] DONE. wall={time.time()-t_start:.1f}s",

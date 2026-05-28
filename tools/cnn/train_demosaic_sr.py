@@ -208,6 +208,21 @@ def train(args):
                     shuffle=True,  num_workers=0)
     va = DataLoader(TileDS(d, val_idx,   augment=False), batch_size=args.batch,
                     shuffle=False, num_workers=0)
+    # Per-source val DataLoaders: enables Phase B per-image LPIPS tracking
+    # (Z8Z_0067 non-regression bound is per-image, not mean).
+    src_id_to_name = {}
+    if isinstance(VAL_SRC_NAMES, str):
+        _names = [n.strip() for n in VAL_SRC_NAMES.split(",") if n.strip()]
+    else:
+        _names = list(VAL_SRC_NAMES)
+    for sid, sname in zip(d["_val_src_ids"], _names):
+        src_id_to_name[sid] = sname
+    val_idx_by_src = {sid: [i for i in val_idx if src[i] == sid]
+                      for sid in d["_val_src_ids"]}
+    va_per_src = {sid: DataLoader(TileDS(d, idxs, augment=False),
+                                  batch_size=args.batch, shuffle=False,
+                                  num_workers=0)
+                  for sid, idxs in val_idx_by_src.items() if idxs}
     model = build_variant("F_ane_dm_sr").to(DEVICE)
     print(f"  Params (backbone): {count_params(model):,}", flush=True)
 
@@ -241,17 +256,16 @@ def train(args):
             return batch[0], batch[1], batch[2]
         return batch[0], batch[1], None
 
-    def evaluate():
-        """Returns (base_psnr, model_psnr, model_lpips_mean).
-        model_lpips_mean is None when LPIPS net not loaded."""
-        model.eval()
+    def _eval_loader(loader):
+        """Returns (base_psnr_sum, model_psnr_sum, lpips_sum, n) for a loader.
+        lpips_sum is None if LPIPS net unavailable."""
         tot_b, tot_a, tot_lp, n = 0.0, 0.0, 0.0, 0
         with torch.no_grad():
-            for batch in va:
+            for batch in loader:
                 inp, tgt, _ = _unpack(batch)
                 inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
                 if has_rgb:
-                    tgt_rgb = tgt.clamp(0, 1)              # already RGB in [0, 1]
+                    tgt_rgb = tgt.clamp(0, 1)
                 else:
                     tgt_rgb = bayer_4plane_to_rgb(tgt).clamp(0, 1)
                 codec_rgb_lo = bayer_4plane_to_rgb(inp).clamp(0, 1)
@@ -266,19 +280,41 @@ def train(args):
                     lp = lpips_net(pred * 2 - 1, tgt_rgb * 2 - 1).flatten()
                     tot_lp += lp.sum().item()
                 n += inp.shape[0]
+        lpm = tot_lp if lpips_net is not None else None
+        return tot_b, tot_a, lpm, n
+
+    def evaluate():
+        """Returns (base_psnr, model_psnr, model_lpips_mean, per_src_lpips_dict).
+        model_lpips_mean and per_src dict are None when LPIPS not loaded."""
+        model.eval()
+        tot_b, tot_a, tot_lp, n = _eval_loader(va)
         lpm = (tot_lp / n) if (lpips_net is not None and n > 0) else None
-        return tot_b / n, tot_a / n, lpm
+        per_src = None
+        if lpips_net is not None:
+            per_src = {}
+            for sid, loader in va_per_src.items():
+                _, _, lpsum, npr = _eval_loader(loader)
+                if npr > 0 and lpsum is not None:
+                    per_src[src_id_to_name.get(sid, str(sid))] = lpsum / npr
+        return tot_b / n, tot_a / n, lpm, per_src
 
     best_gain = -1e9; best_after = -1e9; best_lpips = 1e9; best_epoch = -1
     epochs_since_best = 0
     ckpt_path = os.path.join(CKPT_DIR, args.ckpt_name)
-    pb, pa, vlp = evaluate()
+    pb, pa, vlp, vlp_per_src = evaluate()
     # When LPIPS net is loaded, track best by LOWER val-LPIPS (perceptual focus).
     # Without LPIPS net, track best by val-PSNR gain as before.
     use_lpips_metric = lpips_net is not None
+
+    def _fmt_per_src(d):
+        if not d:
+            return ""
+        return "  per-src LPIPS: " + " ".join(f"{k}={v:.4f}" for k, v in d.items())
+
     if use_lpips_metric:
         print(f"  Initial  base PSNR={pb:.3f}  model PSNR={pa:.3f}  "
-              f"gain={pa-pb:+.3f} dB  val LPIPS={vlp:.4f}", flush=True)
+              f"gain={pa-pb:+.3f} dB  val LPIPS={vlp:.4f}"
+              f"{_fmt_per_src(vlp_per_src)}", flush=True)
     else:
         print(f"  Initial  base PSNR={pb:.3f}  model PSNR={pa:.3f}  gain={pa-pb:+.3f} dB",
               flush=True)
@@ -318,7 +354,7 @@ def train(args):
             opt.step()
             loss_sum += l.item(); loss_l1 += l_ms.item(); nb += 1
         sched.step()
-        pb, pa, vlp = evaluate()
+        pb, pa, vlp, vlp_per_src = evaluate()
         gain = pa - pb
         marker = ""
         # Save criterion: lower val LPIPS when LPIPS net loaded; higher val PSNR otherwise.
@@ -334,6 +370,7 @@ def train(args):
                 "kind": "demosaic_sr", "epoch": ep + 1,
                 "val_psnr_base": pb, "val_psnr_model": pa,
                 "val_lpips": vlp,
+                "val_lpips_per_src": vlp_per_src,
                 "params": count_params(model),
             }, ckpt_path)
             marker = "  [SAVED]"
@@ -345,7 +382,8 @@ def train(args):
             print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}  "
                   f"l1={loss_l1/nb:.5f}  lpips={loss_lp/nb:.5f}  lp_w={lpips_w_curr:.4f}"
                   f"{teacher_str}  base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
-                  f"val_lpips={vlp:.4f}  t={time.time()-t0:.1f}s{marker}", flush=True)
+                  f"val_lpips={vlp:.4f}{_fmt_per_src(vlp_per_src)}  "
+                  f"t={time.time()-t0:.1f}s{marker}", flush=True)
         else:
             print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}"
                   f"{teacher_str}  base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
