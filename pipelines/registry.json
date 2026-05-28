@@ -1131,6 +1131,13 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
       "$role": "ship-still-legacy-encoder-with-matched-cnn"
+    },
+    "codec=gpr_tools_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q3",
+      "cnn": "bibo1x_ane_sl_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "cross-pair-cheap-probe-legacy-codec-fused-trained-cnn"
     }
   }
 }

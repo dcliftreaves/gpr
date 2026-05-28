@@ -99,29 +99,18 @@ def read_source_bayer(dng_path: str) -> tuple[np.ndarray, int, int]:
 def _encode_decode_legacy_gpr_tools(codec: dict, bayer: np.ndarray,
                                     w: int, h: int, workdir: Path,
                                     src_dng: str) -> tuple[np.ndarray, int, float]:
-    """Encode via legacy gpr_tools. Different CLI than test_fused_roundtrip:
-    gpr_tools needs DNG params from a source DNG. We extract params,
-    wrap the bayer as a DNG, encode at q, decode, extract bayer back."""
+    """Encode via legacy gpr_tools. Different CLI than test_fused_roundtrip
+    AND different encode mode: gpr_tools' raw-input path produces .gpr files
+    that the decoder can't always reconstruct (missing tags). Instead we
+    encode the source DNG directly (matches build_dataset_gpr_tools_q3.py).
+    Bayer argument is unused — we go from src_dng to .gpr to bayer."""
     binary = REPO / codec["binary"]
     if not binary.exists():
         die(2, f"codec binary not built: {binary}")
     quality = codec.get("quality", 3)
-    params_path = workdir / "params.json"
-    cp = subprocess.run([str(binary), "-i", str(src_dng), "-d", "1"],
-                        capture_output=True, text=True)
-    if cp.returncode != 0:
-        die(2, f"gpr_tools params dump failed: {cp.stderr[-200:]}")
-    lines = [l for l in cp.stdout.splitlines() if not l.startswith("[")]
-    params_path.write_text("\n".join(lines))
-    p = json.loads(params_path.read_text())
-    p["input_width"] = w; p["input_height"] = h; p["input_pitch"] = w * 2
-    params_path.write_text(json.dumps(p))
-    in_raw = workdir / "in.raw"
-    bayer.tofile(in_raw)
     gpr_path = workdir / "encoded.gpr"
     t0 = time.time()
-    r = subprocess.run([str(binary), "-i", str(in_raw), "-w", str(w), "-h", str(h),
-                        "-x", "rggb14", "-a", str(params_path), "-q", str(quality),
+    r = subprocess.run([str(binary), "-i", str(src_dng), "-q", str(quality),
                         "-o", str(gpr_path)], capture_output=True, text=True, timeout=300)
     if r.returncode != 0:
         die(2, f"legacy encode failed: {r.stderr[-200:]}")
