@@ -587,7 +587,7 @@
       "trained_against_codec": "gpr_tools_q3",
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "TBD-pending-training"
+      "ckpt_sha256": "df22af432710bddabd223047c2db2d0edf2808dd17c4341694a974e045ec87cd"
     }
   },
   "pipelines": {
@@ -649,16 +649,16 @@
       "cnn": "bibo1x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "ship-still-highest-quality",
-      "$doc": "STILL highest-quality ship. Worst LPIPS 0.009 \u2014 visually indistinguishable from REF at any inspection. 26.60 MB mean. Use when storage isn't constrained."
+      "$role": "ship-still-fused-highest-fidelity",
+      "$doc": "FUSED-path alternate. Tightest LPIPS (0.0086) but 26.6 MB (1.77\u00d7 larger than legacy ship). Use only if maximum perceptual fidelity required AND storage isn't constrained."
     },
     "codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q11",
       "cnn": "bibo1x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "ship-still-balanced",
-      "$doc": "STILL balanced ship. 15.8% smaller than sl_q3 baseline (22.39 MB), worst LPIPS 0.024 \u2014 well under 0.05 ceiling. Was the smallest STILL until sl_q3_l1x4_hh1x8 was promoted 2026-05-27. Use when files matter but you want headroom."
+      "$role": "ship-still-fused-balanced",
+      "$doc": "FUSED-path alternate at q=11 cranked. 22.4 MB (1.49\u00d7 larger than legacy ship)."
     },
     "codec=ml2_q3+cnn=none+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3",
@@ -1122,15 +1122,16 @@
       "cnn": "bibo1x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "ship-still-smallest",
-      "$doc": "STILL smallest ship (promoted 2026-05-27). LH/HL \u00d74 + HH \u00d78 cranked highpass. 25.8% smaller than sl_q3+CNN baseline (19.73 vs 26.60 MB), 11.9% smaller than sl_q11+CNN. Worst LPIPS 0.028 (under STILL's 0.05 ceiling). Visual diff on Z8Z_0067 sky gradient indistinguishable from REF. Same matched CNN as sl_q3 \u2014 no retrain needed."
+      "$role": "ship-still-fused-smallest",
+      "$doc": "FUSED-path alternate. Was previously called the smallest STILL ship; superseded by legacy gpr_tools_q3 path 2026-05-28."
     },
     "codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
       "codec": "gpr_tools_q3",
       "cnn": "bibo1x_ane_gpr_tools_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "ship-still-legacy-encoder-with-matched-cnn"
+      "$role": "ship-still-primary",
+      "$doc": "STILL primary ship (promoted 2026-05-28). Legacy gpr_tools q=3 codec + matched BIBO_1x CNN. 15.05 MB mean (7.8-21.4 MB per-image, content-adaptive) \u2014 43.4% smaller than the FUSED sl_q3+CNN ship (26.6 MB). Worst LPIPS 0.0155 across the 4-image gate, well under STILL's 0.05 ceiling. Matches the user's original design goal: q=3 codec + CNN restoration \u2192 STILL quality at small file sizes."
     },
     "codec=gpr_tools_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "gpr_tools_q3",

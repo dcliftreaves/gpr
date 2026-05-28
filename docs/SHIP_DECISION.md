@@ -8,9 +8,10 @@ here doesn't match the latest run logs, the run logs win.
 
 | ship class | pipeline | worst LPIPS | verdict | notes |
 |---|---|---:|---|---|
-| STILL (highest quality) | `codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.009 | **PASS** | Best perceptual fidelity — visually identical to REF |
-| STILL (balanced) | `codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.024 | **PASS** | 15.8% smaller than sl_q3, 0.026 LPIPS headroom under ceiling |
-| STILL (smallest) | `codec=sl_q3_l1x4_hh1x8+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.028 | **PASS** | **CHAMPION smallest** (promoted 2026-05-27). 25.8% smaller than sl_q3, 11.9% smaller than sl_q11 |
+| **STILL (primary)** | `codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools` | **0.016** | **PASS** | **CHAMPION** (promoted 2026-05-28). Legacy CineForm q=3 + matched CNN. **15.05 MB mean** (43% smaller than FUSED sl_q3+CNN). Matches the original design goal: small codec + CNN restoration |
+| STILL (FUSED alternate, highest fidelity) | `codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.009 | **PASS** | FUSED-path; tightest LPIPS but 26.6 MB (1.77× legacy ship) |
+| STILL (FUSED alternate, balanced) | `codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.024 | **PASS** | FUSED-path; 22.4 MB |
+| STILL (FUSED alternate, smallest) | `codec=sl_q3_l1x4_hh1x8+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.028 | **PASS** | FUSED-path; was smallest until legacy ship promoted 2026-05-28. 19.7 MB |
 | VIDEO_FREEZE | `codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.076 | **PASS** | **CHAMPION** (promoted 2026-05-27). L1 highpass ×2 cranked → 23.9% smaller files (7.81 vs 10.26 MB) at same matched CNN |
 | VIDEO_FREEZE | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | **PASS** | Alternate — tighter LPIPS but bigger files than l1x2. Was primary champion until 2026-05-27 |
 | VIDEO_FREEZE | `codec=ml2_q3_hh1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.072 | **PASS** | HH1×4 cranked alone → 10.2% smaller files |
