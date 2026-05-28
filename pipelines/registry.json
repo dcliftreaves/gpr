@@ -461,6 +461,14 @@
       "encoder_kind": "legacy_gpr_tools",
       "env": {},
       "use_for": "still"
+    },
+    "gpr_tools_q8": {
+      "$doc": "Legacy CineForm VC5 encoder at q=8 (Filmscan-5, archival quality). Larger files (~16 MB on Z8 50MP) than q=3 (7.8 MB) but higher fidelity. Designed for the 'highest quality STILL alternate' ship class. Pi 5 encode: ~1972 ms (best of 3).",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 8,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
     }
   },
   "cnns": {
@@ -628,6 +636,15 @@
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
       "ckpt_sha256": "df22af432710bddabd223047c2db2d0edf2808dd17c4341694a974e045ec87cd"
+    },
+    "bibo1x_ane_gpr_tools_q8": {
+      "$doc": "BIBO_1x matched to legacy gpr_tools q=8 codec output. Target: 'archival STILL' ship \u2014 higher fidelity alternate to the q=3 primary.",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q8.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "gpr_tools_q8",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "TBD-pending-training"
     }
   },
   "pipelines": {
@@ -1179,6 +1196,13 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
       "$role": "cross-pair-cheap-probe-legacy-codec-fused-trained-cnn"
+    },
+    "codec=gpr_tools_q8+cnn=bibo1x_ane_gpr_tools_q8+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q8",
+      "cnn": "bibo1x_ane_gpr_tools_q8",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "ship-still-archival-highest-fidelity"
     }
   },
   "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28."
