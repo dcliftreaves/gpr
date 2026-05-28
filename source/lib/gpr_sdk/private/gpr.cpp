@@ -21,6 +21,21 @@
 
 #include "gpr.h"
 
+#ifdef GPR_PI_PROFILE
+#include <time.h>
+#include <cstdio>
+static inline double pi_prof_now_ms_cpp(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1e6;
+}
+#define PI_PROF_TICK(var) double var = pi_prof_now_ms_cpp()
+#define PI_PROF_LOG(label, var) std::fprintf(stderr, "[PI_PROF]   %-26s %8.2f ms\n", label, pi_prof_now_ms_cpp() - var)
+#else
+#define PI_PROF_TICK(var) ((void)0)
+#define PI_PROF_LOG(label, var) ((void)0)
+#endif
+
 #include "dng_camera_profile.h"
 #include "dng_color_space.h"
 #include "dng_date_time.h"
@@ -2181,6 +2196,7 @@ bool gpr_convert_dng_to_gpr(const gpr_allocator*    allocator,
                                   gpr_buffer*       out_gpr_buffer)
 {
     TIMESTAMP("[BEG]", 1)
+    PI_PROF_TICK(t_stream_in);
 
     gpr_buffer_auto raw_buffer(allocator->Alloc, allocator->Free);
 
@@ -2191,23 +2207,32 @@ bool gpr_convert_dng_to_gpr(const gpr_allocator*    allocator,
     // Extract metadata from input DNG into a mutable copy of parameters
     gpr_parameters params_with_meta;
     gpr_parameters_construct_copy( parameters, &params_with_meta, allocator->Alloc );
+    PI_PROF_LOG("stream-in + params copy", t_stream_in);
 
+    PI_PROF_TICK(t_read_dng);
     if( read_dng( allocator, &inp_dng_stream, &raw_buffer, NULL, &params_with_meta ) == false )
     {
         gpr_parameters_destroy( &params_with_meta, allocator->Free );
         assert(0); return false;
     }
+    PI_PROF_LOG("read_dng (LJ92 decode)", t_read_dng);
 
+    PI_PROF_TICK(t_denoise);
     apply_denoise_auto(&params_with_meta);
     apply_noise_replace(&params_with_meta, raw_buffer.get_buffer());
+    PI_PROF_LOG("denoise auto/replace", t_denoise);
 
     dng_memory_stream out_gpr_stream( gDefaultDNGMemoryAllocator );
 
+    PI_PROF_TICK(t_encode);
     write_dng( allocator, &out_gpr_stream, &raw_buffer, true, NULL, &params_with_meta );
+    PI_PROF_LOG("write_dng (encoder)", t_encode);
 
+    PI_PROF_TICK(t_stream_out);
     write_dngstream_to_buffer( &out_gpr_stream, out_gpr_buffer, allocator->Alloc, allocator->Free );
 
     gpr_parameters_destroy( &params_with_meta, allocator->Free );
+    PI_PROF_LOG("stream-out copy", t_stream_out);
 
     TIMESTAMP("[END]", 1)
 

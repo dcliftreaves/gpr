@@ -29,6 +29,20 @@
 
 #include "gpr.h"
 
+#ifdef GPR_PI_PROFILE
+#include <time.h>
+static inline double pi_prof_now_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1e6;
+}
+#define PI_PROF_TICK(var) double var = pi_prof_now_ms()
+#define PI_PROF_LOG(label, var) fprintf(stderr, "[PI_PROF] %-28s %8.2f ms\n", label, pi_prof_now_ms() - var)
+#else
+#define PI_PROF_TICK(var) ((void)0)
+#define PI_PROF_LOG(label, var) ((void)0)
+#endif
+
 #if defined __GNUC__
 #define stricmp strcasecmp
 #elif defined _WIN32
@@ -126,10 +140,13 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
         return -1;
     }
 
+    PI_PROF_TICK(t_total);
+    PI_PROF_TICK(t_setup);
+
     gpr_allocator allocator;
     allocator.Alloc = malloc;
     allocator.Free = free;
-    
+
     gpr_parameters params;
     gpr_parameters_set_defaults(&params);
     params.quality = quality;
@@ -182,7 +199,9 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
             return -1;
         }
     }
-  
+    PI_PROF_LOG("read input", t_setup);
+    PI_PROF_TICK(t_meta);
+
     if( metadata_file_path && strcmp(metadata_file_path, "") )
     {
         if( gpr_parameters_parse( &params, metadata_file_path ) != 0 )
@@ -326,7 +345,10 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
 #if GPR_WRITING
     else if( input_file_type == FILE_TYPE_DNG && output_file_type == FILE_TYPE_GPR )
     {
+        PI_PROF_LOG("setup (metadata+params)", t_meta);
+        PI_PROF_TICK(t_conv);
         success = gpr_convert_dng_to_gpr( &allocator, &params, &input_buffer, &output_buffer );
+        PI_PROF_LOG("gpr_convert_dng_to_gpr", t_conv);
     }
     else if( input_file_type == FILE_TYPE_RAW && output_file_type == FILE_TYPE_GPR )
     {
@@ -460,8 +482,11 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( write_buffer_to_file )
     {
+        PI_PROF_TICK(t_write);
         write_to_file( &output_buffer, output_file_path );
+        PI_PROF_LOG("write output", t_write);
     }
+    PI_PROF_LOG("TOTAL", t_total);
     
     if( input_skip_rows > 0 )
     {
