@@ -706,7 +706,7 @@
       "cnn": "bibo1x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "ship-still-fused-highest-fidelity",
+      "$role": "alternate-still-fused-highest-fidelity",
       "$doc": "FUSED-path alternate. Tightest LPIPS (0.0086) but 26.6 MB (1.77\u00d7 larger than legacy ship). Use only if maximum perceptual fidelity required AND storage isn't constrained."
     },
     "codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
@@ -714,7 +714,7 @@
       "cnn": "bibo1x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "ship-still-fused-balanced",
+      "$role": "alternate-still-fused-balanced",
       "$doc": "FUSED-path alternate at q=11 cranked. 22.4 MB (1.49\u00d7 larger than legacy ship)."
     },
     "codec=ml2_q3+cnn=none+demosaic=sips_via_gpr_tools": {
@@ -912,7 +912,7 @@
       "cnn": "bibo2x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
-      "$role": "ship-ml2-halfres-plus-superres-cnn"
+      "$role": "alternate-embedded-bibo2x-cross"
     },
     "codec=ml2_q3_dec2+cnn=bibo2x_ane_hh1x4+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
@@ -926,7 +926,7 @@
       "cnn": "bibo2x_ane_ml2_q3_dec2",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
-      "$role": "ship-embedded-matched-superres-cnn"
+      "$role": "alternate-embedded-bibo2x-matched-narrow"
     },
     "codec=gpr_tools_legacy+cnn=none+demosaic=sips_via_gpr_tools": {
       "codec": "gpr_tools_legacy",
@@ -940,7 +940,7 @@
       "cnn": "bibo2x_ane_ml2_q3_dec2_diverse",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
-      "$role": "ship-embedded-diverse-matched-cnn"
+      "$role": "alternate-embedded-bibo2x-matched-diverse"
     },
     "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse_reshalf+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
@@ -961,14 +961,14 @@
       "cnn": "bido_4x_ane_ml2_q3_dec2",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
-      "$role": "ship-embedded-joint-dmsr"
+      "$role": "experiment-embedded-bido-original"
     },
     "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_wider+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
       "cnn": "bido_4x_ane_ml2_q3_dec2_wider",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
-      "$role": "ship-embedded-joint-dmsr-wider-val"
+      "$role": "experiment-embedded-bido-wider"
     },
     "codec=ml2_q3_l1soft+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_l1soft",
@@ -1179,7 +1179,7 @@
       "cnn": "bibo1x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "ship-still-fused-smallest",
+      "$role": "alternate-still-fused-smallest",
       "$doc": "FUSED-path alternate. Was previously called the smallest STILL ship; superseded by legacy gpr_tools_q3 path 2026-05-28."
     },
     "codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
