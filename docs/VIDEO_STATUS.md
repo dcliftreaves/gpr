@@ -32,7 +32,7 @@ embedded-capture ship — Pi 5 can't encode this fast.
 |---|---|
 | codec | `ml2_q3_dec2` (multi-level FUSED, decimate=2 → half-res) |
 | restoration CNN | `bido_4x_ane_ml2_q3_dec2_*` (joint demosaic+SR, 4× spatial) |
-| Pi 5 capture fps | **24.93 fps median** (verified 2026-05-26, 100-frame bench, USB SSD writes, page cache defeated) |
+| Pi 5 capture fps | **24.93 fps median** (verified 2026-05-26). Post commit `c1eabc6` (2026-05-28 Pass 2 worker-pool dispatch on ≤4-core hosts) per-frame encode dropped from 40.89 → 38.20 ms median (6.6% faster). Sustained capture not re-measured but headroom over 24 fps grew. |
 | per-frame size | **1.30 MB** at half-res |
 | at 24 fps sustained | **31 MB/s** — well within USB SSD capability |
 | gate verdict for restoration | **FAIL** — worst LPIPS 0.45 on OOD images (the BIDO CNN doesn't yet restore well enough for visual-lossless playback) |
@@ -84,11 +84,15 @@ For video you need either:
 
 1. **BIDO Phase B (Restormer distillation)** — close the OOD gap on the
    embedded preview path. Plan exists. ~6 hours on M5.
-2. **Codec perf** — 2026-05-28 landed a 2.89× Pi 5 speedup, but the
-   win was in DNG SDK input decode, not the VC5 codec itself. The
-   in-flight alignment subagent targets the VC5 codec hot path
-   (cache-line aligned scratch, FFTW/FFmpeg-style). Re-measure full-res
-   Pi 5 video encode when that lands.
+2. **Codec perf** — 2026-05-28 landed three Pi 5 wins:
+   (a) parallel DNG SDK input decode (2.89× on legacy stills, commits
+   `79403fb` + `ec1cb2c`);
+   (b) FUSED Pass 2 worker-pool dispatch on narrow hosts (6.6% on Pi 5
+   half-res video capture, 17% on Pass 2 alone, commit `c1eabc6`).
+   Encoder cache-line alignment attack (proposed for hot scratch) was
+   measured at ≤2% delta on both Pi 5 and Mac — below ship bar, did
+   not land. The Pi 5 stills encoder hot path now needs wavelet /
+   quantizer inner-loop work to win further (not plumbing).
 3. **Legacy gpr_tools for video** (open question) — if the legacy
    encoder is more efficient than FUSED for stills, the same question
    applies for video. Would need a video-domain matched CNN retrain.
