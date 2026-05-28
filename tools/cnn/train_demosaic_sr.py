@@ -115,6 +115,14 @@ def load_data(npz_path, val_src_names, subsample_rate=1):
         out["_has_rgb_target"] = False
         print(f"  using LEGACY tgt_bayer (bilinear-demosaic; WRONG color space)",
               flush=True)
+    # Phase B distillation target (optional): Restormer-cleaned RGB
+    if "tgt_rgb_teacher" in npz.files:
+        out["tgt_rgb_teacher"] = np.asarray(npz["tgt_rgb_teacher"][keep_mask])
+        out["_has_teacher_target"] = True
+        print(f"  using tgt_rgb_teacher (Restormer distillation target)",
+              flush=True)
+    else:
+        out["_has_teacher_target"] = False
     out["src"] = src[keep_mask]
     out["_val_src_ids"] = val_src_ids
     print(f"  loaded in {time.time() - t0:.1f}s", flush=True)
@@ -138,26 +146,43 @@ def tgt_rgb_from_mem(d, idx):
     return tgt  # caller does bayer_4plane_to_rgb if legacy
 
 
+def tgt_rgb_teacher_from_mem(d, idx):
+    """Returns (3, H, W) float32 RGB in [0, 1] from teacher field (uint8)."""
+    rgb = d["tgt_rgb_teacher"][idx]                              # (H, W, 3) uint8
+    return np.transpose(rgb, (2, 0, 1)).astype(np.float32) / 255.0
+
+
 class TileDS(Dataset):
     def __init__(self, mem, indices, augment=True):
         self.mem = mem; self.indices = indices; self.augment = augment
         self.has_rgb = mem.get("_has_rgb_target", False)
+        self.has_teacher = mem.get("_has_teacher_target", False)
     def __len__(self): return len(self.indices)
     def __getitem__(self, i):
         idx = self.indices[i]
         codec = codec_planes_from_mem(self.mem, idx)
         tgt = tgt_rgb_from_mem(self.mem, idx)
+        tgt_teacher = tgt_rgb_teacher_from_mem(self.mem, idx) \
+            if self.has_teacher else None
         if self.augment:
             if np.random.rand() < 0.5:
                 codec = codec[:, :, ::-1].copy(); tgt = tgt[:, :, ::-1].copy()
                 # Codec channel swap on horizontal flip: R↔G1, G2↔B
                 codec = codec[[1, 0, 3, 2]]
                 # RGB target: horizontal flip is just spatial; channel order unchanged
+                if tgt_teacher is not None:
+                    tgt_teacher = tgt_teacher[:, :, ::-1].copy()
             if np.random.rand() < 0.5:
                 codec = codec[:, ::-1, :].copy(); tgt = tgt[:, ::-1, :].copy()
                 codec = codec[[2, 3, 0, 1]]
-        return torch.from_numpy(np.ascontiguousarray(codec)).float(), \
-               torch.from_numpy(np.ascontiguousarray(tgt)).float()
+                if tgt_teacher is not None:
+                    tgt_teacher = tgt_teacher[:, ::-1, :].copy()
+        codec_t = torch.from_numpy(np.ascontiguousarray(codec)).float()
+        tgt_t = torch.from_numpy(np.ascontiguousarray(tgt)).float()
+        if tgt_teacher is not None:
+            teacher_t = torch.from_numpy(np.ascontiguousarray(tgt_teacher)).float()
+            return codec_t, tgt_t, teacher_t
+        return codec_t, tgt_t
 
 
 def multiscale_l1(pred, tgt, weights=(1.0, 0.5, 0.25)):
@@ -209,13 +234,21 @@ def train(args):
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
 
     has_rgb = d.get("_has_rgb_target", False)
+    has_teacher = d.get("_has_teacher_target", False)
+
+    def _unpack(batch):
+        if has_teacher:
+            return batch[0], batch[1], batch[2]
+        return batch[0], batch[1], None
+
     def evaluate():
         """Returns (base_psnr, model_psnr, model_lpips_mean).
         model_lpips_mean is None when LPIPS net not loaded."""
         model.eval()
         tot_b, tot_a, tot_lp, n = 0.0, 0.0, 0.0, 0
         with torch.no_grad():
-            for inp, tgt in va:
+            for batch in va:
+                inp, tgt, _ = _unpack(batch)
                 inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
                 if has_rgb:
                     tgt_rgb = tgt.clamp(0, 1)              # already RGB in [0, 1]
@@ -260,19 +293,26 @@ def train(args):
                 lpips_w_curr = args.lpips_weight
         else:
             lpips_w_curr = 0.0
-        model.train(); t0 = time.time(); loss_sum = 0.0; loss_l1 = 0.0; loss_lp = 0.0; nb = 0
-        for inp, tgt in tr:
+        model.train(); t0 = time.time(); loss_sum = 0.0; loss_l1 = 0.0; loss_lp = 0.0
+        loss_teach = 0.0; nb = 0
+        use_teacher = has_teacher and args.teacher_weight > 0
+        for batch in tr:
+            inp, tgt, tgt_teacher = _unpack(batch)
             inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
             tgt_rgb = tgt.clamp(0, 1) if has_rgb else bayer_4plane_to_rgb(tgt).clamp(0, 1)
             pred = model(inp).clamp(0, 1)
             l_ms = multiscale_l1(pred, tgt_rgb)
+            l = args.task_weight * l_ms
+            if use_teacher:
+                tgt_teacher = tgt_teacher.to(DEVICE).clamp(0, 1)
+                l_teach = multiscale_l1(pred, tgt_teacher)
+                l = l + args.teacher_weight * l_teach
+                loss_teach += float(l_teach.item())
             if lpips_net is not None and lpips_w_curr > 0:
                 # LPIPS expects [-1, 1] range
                 l_lpips = lpips_net(pred * 2 - 1, tgt_rgb * 2 - 1).mean()
-                l = l_ms + lpips_w_curr * l_lpips
+                l = l + lpips_w_curr * l_lpips
                 loss_lp += float(l_lpips.item())
-            else:
-                l = l_ms
             opt.zero_grad(set_to_none=True); l.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
@@ -299,14 +339,16 @@ def train(args):
             marker = "  [SAVED]"
         else:
             epochs_since_best += 1
+        teacher_str = (f"  teach={loss_teach/nb:.5f} tw={args.teacher_weight:.3f}"
+                       if use_teacher else "")
         if lpips_net is not None:
             print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}  "
-                  f"l1={loss_l1/nb:.5f}  lpips={loss_lp/nb:.5f}  lp_w={lpips_w_curr:.4f}  "
-                  f"base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
+                  f"l1={loss_l1/nb:.5f}  lpips={loss_lp/nb:.5f}  lp_w={lpips_w_curr:.4f}"
+                  f"{teacher_str}  base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
                   f"val_lpips={vlp:.4f}  t={time.time()-t0:.1f}s{marker}", flush=True)
         else:
-            print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}  "
-                  f"base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
+            print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}"
+                  f"{teacher_str}  base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
                   f"t={time.time()-t0:.1f}s{marker}", flush=True)
         if epochs_since_best >= args.patience and ep + 1 >= 40:
             print(f"  Early stop: no improvement in {args.patience} epochs", flush=True)
@@ -336,6 +378,12 @@ def main():
                     help="If >0, add λ·LPIPS-alex to the loss (frozen network).")
     ap.add_argument("--lpips-warmup-epochs", type=int, default=0,
                     help="Cosine ramp the LPIPS weight from 0 to λ over N epochs.")
+    # Phase B distillation:
+    ap.add_argument("--task-weight", type=float, default=1.0,
+                    help="α: weight on msL1(pred, tgt_rgb). Default 1.0.")
+    ap.add_argument("--teacher-weight", type=float, default=0.0,
+                    help="β: weight on msL1(pred, tgt_rgb_teacher). Requires NPZ "
+                         "with tgt_rgb_teacher field. 0 disables distillation.")
     args = ap.parse_args()
     train(args)
 
