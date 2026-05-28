@@ -11,6 +11,7 @@ Where to look for what. Last refreshed 2026-05-28.
 | how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
 | open work items + priorities | `CHECKLIST_2026-05-28.md` |
 | Pi 5 encode timing at each q level | `STILLS_PI5_TIMING.md` |
+| full codec × CNN × verdict matrix | `FULL_PIPELINE_MATRIX.md` |
 | GoPro/Nikon spec contribution framing | `architecture.md`, `format-spec-v2.md`, SPEC.md |
 
 ## Plans and methodology (read before executing)

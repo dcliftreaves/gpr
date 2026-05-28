@@ -16,29 +16,41 @@ within each section.
 - [x] Drop the FUSED single-level *pipelines* from SHIP_DECISION
 - [x] Wire the consistency check into CI
 
-## (2) Stills q-level table — APPROVED
+## (2) Stills q-level table — **DONE**
 
-For the user-facing trade-off table on legacy gpr_tools encoder:
+Built and shipped 2026-05-28. See `STILLS_PI5_TIMING.md` and
+`FULL_PIPELINE_MATRIX.md`. Key finding: q=8 codec-alone PASSes STILL
+without CNN; the matched-q3 CNN generalizes down to q=0; codec saturates
+above q=6. Three-tier ship possible (q=0/q=3/q=8) spanning 3.4× storage.
 
-- [ ] Build training pairs for legacy q=8 (Filmscan-5, highest quality preset)
-- [ ] Train matched CNN at q=8 on M5 (~90 min)
-- [ ] Gate-test `codec=gpr_tools_q8+cnn=bibo1x_ane_gpr_tools_q8+demosaic=sips_via_gpr_tools`
-- [ ] Pi 5 encode timing at q=0/3/5/8 on real DNG (~10 min/q × 4 = 40 min)
-- [ ] Compile the final table: q × bytes × LPIPS × Y-PSNR × Pi5 ms × MS-SSIM
+- [x] q=8 gate-tested; PASSes STILL without CNN (LPIPS 0.0035, archival
+      alternate added to ship matrix)
+- [x] Matched-CNN retrain confirmed to generalize across q=0..3
+- [x] Pi 5 encode timing at q=0/3/5/8 captured (in STILLS_PI5_TIMING.md)
+- [x] Full table compiled with codec MB × end-to-end LPIPS × MS-SSIM ×
+      Y-PSNR × Pi 5 ms
 
-Optional follow-ups in this track:
-- [ ] q=5 matched CNN retrain (~2 hr more)
-- [ ] q=1 / q=2 matched CNN retrain (push the smallest end)
+## (3) Legacy encoder perf work — **DONE** (3 commits 2026-05-28)
 
-## (3) Legacy encoder perf work — IN FLIGHT (subagent)
+Three Pi 5 perf passes landed today:
 
-- [-] Profile current encoder on the 4 gate images
-- [-] Memory alignment audit
-- [-] NEON intrinsics where scalar today
-- [-] Cache-friendly tiling
-- [-] Multi-threading on color-plane / row-stripe boundaries
-- [-] Verify bitstream byte-identical after every change
-- [-] Report speedup achieved
+- [x] Pass 1 (commit 79403fb): skip redundant DNG metadata pre-parse —
+      38% off baseline (1577 → 966 ms at q=3 on Z8Z_0067)
+- [x] Pass 2 (commit ec1cb2c): parallel DNG tile read on POSIX +
+      `qDNGThreadSafe` Linux bugfix — 43% off that, 65% off original
+      baseline (966 → 544 ms at q=3). Bitstream-identical, 10/10
+      deterministic.
+- [x] Profile harness (commit 4fbd0cc): GPR_PI_PROFILE-gated phase
+      timing in main_c.c + gpr.cpp for future perf passes
+- [-] Pass 3 (in-flight subagent, branch `worktree-agent-a5350dea*`):
+      FFTW/FFmpeg-style cache-line alignment of VC5 encoder hot path
+      (`vc5_encoder/encoder.c`, `vc5_common/wavelet.c`, `image.c`)
+- [-] Video-path Pi 5 profiling (in-flight subagent, branch
+      `worktree-agent-abe488be*`): profile FUSED encoder, find biggest
+      parallelizable chunk
+
+Net so far on Z8Z_0067 q=3: 1577 → 544 ms (**2.89×**). Mac 819 → 212 ms
+(**3.86×**).
 
 ## (4) Methodology / testing audit — partial done
 

@@ -2,6 +2,14 @@
 
 **Author:** planning pass, 2026-05-27 (extended same day with ML-2 primary track)
 **Status:** plan only — no code changes proposed in this doc
+
+> **2026-05-28 update — SL track is obsolete.** The "Secondary: SL" track
+> below targeted STILL via FUSED single-level (`sl_q3`). On 2026-05-28
+> stills moved to the legacy CineForm VC5 encoder (`gpr_tools`) per
+> `SHIP_DECISION.md`; the FUSED single-level codecs are now
+> `use_for: deprecated` in the registry. The ML-2 (PRIMARY) track is
+> still active for VIDEO_FREEZE. Disregard the SL parts of this plan.
+
 **Companion docs (read first):**
 
 - [docs/REGRESSION_2026-05-25.md](REGRESSION_2026-05-25.md) — what changed about multi-level (cascade fix, 2-level restored)

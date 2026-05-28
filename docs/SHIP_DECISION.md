@@ -88,25 +88,40 @@ demosaicer triples are always written in full
 (`codec=...+cnn=...+demosaic=...`) — short aliases were the failure
 mode the scaffolding exists to prevent.
 
-### Stills (STILL gate)
+### Stills (STILL gate, legacy CineForm VC5 encoder)
 
-- **`sl_q3+bibo1x_ane_sl_q3`** — Single-level FUSED q=3 + the shipped
-  ANE-friendly CNN. Worst LPIPS 0.009 across the 4-image test set;
-  visual diff indistinguishable from REF.
-- **`sl_q11+bibo1x_ane_sl_q3`** — Same CNN, q=11 cranks slots 1/2/3
-  for 24% file-size reduction. Worst LPIPS 0.024; the CNN handles the
-  cranked-quant artifacts.
+- **`codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools`**
+  — STILL primary. Worst LPIPS 0.016 across the 4-image test set; CNN
+  restores the codec's lossy output to visual-lossless. 15.05 MB mean
+  per image. Pi 5 encode: **1.84 fps best** at q=3 (Cortex-A76, post the
+  2026-05-28 parallel-DNG-read perf work).
+- **`codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools`** — STILL
+  archival, no CNN needed. Worst LPIPS 0.0035, 27.17 MB. Codec at q=8
+  is already below the STILL ceiling without restoration.
+
+The FUSED single-level codecs (`sl_q3`, `sl_q11`) are retired for
+stills — they were used as the STILL ship through 2026-05-27 but the
+methodology error was caught 2026-05-28 (FUSED is a video codec; the
+stills bitstream wasn't reaching legacy GPR consumers like Lightroom).
+They remain in `pipelines/registry.json` under `use_for: deprecated`
+so historical run logs still resolve.
 
 ### Full-res video (VIDEO_FREEZE gate)
 
-- **`ml2_q3+bibo1x_ane_ml2_q3`** — 2-level FUSED q=3 + a BIBO_1x CNN
-  retrained specifically on `ml2_q3` codec outputs. The matched-CNN
-  retrain (200 Z8 DNGs, 80 epochs, +2.225 dB val gain) reduced worst
-  LPIPS from 0.231 to 0.068. Passes with the 2026-05-26 MS-SSIM
-  threshold (0.97).
-- Pi 5 encode at full 50 MP: **7 fps median** on Cortex-A76 with USB SSD
-  writes — NOT 24 fps. This is a desktop/post-process video pipeline,
-  not embedded capture.
+- **`codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools`**
+  — VIDEO_FREEZE primary (ship-video-freeze-primary). 2-level FUSED q=3
+  with L1 highpass quant ×2. Worst LPIPS 0.076; PASS under 0.08 ceiling.
+  7.81 MB/frame mean. The CNN was matched-trained against `ml2_q3`
+  standard output and generalizes to the cranked variant (no retrain
+  needed).
+- **`codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools`** —
+  Alternate at 10.26 MB/frame, worst LPIPS 0.068 (tighter LPIPS, larger
+  file).
+- Pi 5 encode at full 50 MP via legacy gpr_tools: **1.84 fps best** at
+  q=3 (post-2026-05-28 perf work). Full-res FUSED encode on Pi has not
+  been re-benchmarked since the alignment subagent's work — historical
+  estimate was ~0.5 fps. Either way, full-res VIDEO_FREEZE is a
+  **desktop/post-process** pipeline, not embedded capture.
 
 ### Embedded capture + desktop super-res (work in progress)
 
@@ -125,12 +140,16 @@ mode the scaffolding exists to prevent.
 Sourced from `tests/quality_gates/runs/<hash>/run.json`. Higher LPIPS
 is worse; check `MS-SSIM` for structural metric.
 
-| image | sl_q3+sl_cnn (STILL) | ml2_q3+matched_cnn (V_F) |
+| image | gpr_tools_q3+matched_cnn (STILL) | ml2_q3+matched_cnn (V_F) |
 |---|---:|---:|
-| Z8Z_0001 (rocks) | LPIPS 0.005 | LPIPS 0.023 |
-| Z8Z_0067 (sky)   | LPIPS 0.009 | LPIPS 0.041 |
-| Z8Z_5323 (detail)| LPIPS 0.005 | LPIPS 0.043 |
-| Z8Z_6693 (mixed) | LPIPS 0.008 | LPIPS 0.068 |
+| Z8Z_0001 (rocks) | LPIPS 0.012 | LPIPS 0.023 |
+| Z8Z_0067 (sky)   | LPIPS 0.011 | LPIPS 0.041 |
+| Z8Z_5323 (detail)| LPIPS 0.014 | LPIPS 0.043 |
+| Z8Z_6693 (mixed) | LPIPS 0.016 | LPIPS 0.068 |
+
+(STILL column values are from the worst-case per-image runs in
+`tests/quality_gates/runs/`; refresh from latest run-hash if numbers
+in TL;DR table differ.)
 
 ## What does NOT ship
 
@@ -160,13 +179,15 @@ is worse; check `MS-SSIM` for structural metric.
 
 ## Storage on Pi 5
 
-The embedded-capture pipeline writes ~954 KB / frame at 24 fps =
-22.9 MB/s sustained. Any consumer SD card class 10 (~30 MB/s) handles
-this; USB SSD has 17× headroom.
+The embedded-capture pipeline writes 1.30 MB / frame at 24.93 fps =
+~31 MB/s sustained. Any consumer SD card class 10 (~30 MB/s) handles
+this; USB SSD has comfortable headroom.
 
-The full-res video pipeline writes 3.6 MB / frame = 87 MB/s at 24 fps
-target, but **Pi 5 can't hit 24 fps on the full-res encode anyway**
-(measured 7 fps). Full-res video is a desktop-only flow.
+The full-res VIDEO_FREEZE primary writes 7.81 MB / frame = 187 MB/s at
+24 fps target. **Pi 5 cannot encode this in real time** — best legacy
+gpr_tools q=3 throughput is 1.84 fps single-frame (post 2026-05-28 perf
+work). Full-res video is a desktop/post-process flow; embedded capture
+uses `ml2_q3_dec2` (half-res, 24.93 fps).
 
 
 ## Embedded video path — architectural limit found 2026-05-26

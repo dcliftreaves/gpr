@@ -19,7 +19,7 @@ Two parts: **24 fps capture** (encode side, Pi 5 constrained) and
 | gate verdict | **PASS** (worst LPIPS 0.076 < 0.08 ceiling) |
 | per-frame size | **7.81 MB** |
 | at 24 fps | **187 MB/s sustained** |
-| Pi 5 encode | **~0.5 fps** at full 50MP — NOT 24 fps capable |
+| Pi 5 encode (legacy gpr_tools, post 2026-05-28 perf work) | **1.84 fps best** at q=3 full 50MP, **0.57 fps** pre-perf-work — NOT 24 fps capable either way |
 | use case | desktop post-processing of full-res video |
 
 This is the pipeline that PASSes the perceptual gate. It's the
@@ -45,17 +45,24 @@ plan to close that.
 ## Pi 5 encode characteristics (real measurements)
 
 From `docs/STILLS_PI5_TIMING.md` — single-image full-res 50MP encode
-times (legacy gpr_tools q-levels, comparable to FUSED order of
-magnitude):
+times (legacy gpr_tools q-levels, post 2026-05-28 parallel-DNG-read
+perf work; comparable to FUSED order of magnitude):
 
 | q | encode ms | fps single-image |
 |---:|---:|---:|
-| 3 | 1756 | 0.57 |
-| 8 | 1972 | 0.51 |
+| 3 |  544 | **1.84** |
+| 8 |  704 | 1.42 |
+
+(Pre-perf-work baseline was 1.76 s / 0.57 fps at q=3 — 2.89× speedup
+from commits 79403fb + ec1cb2c, which targeted the Adobe DNG SDK input
+decode rather than the VC5 codec itself.)
 
 For video you need either:
 - Half-res capture (achieves 24.93 fps, you have this), or
-- A faster encoder (the perf-subagent work in progress targets this)
+- A faster encoder. The parallel-DNG-read win above doesn't help the
+  pure-encode hot path; further encoder speedup would have to come from
+  cache-line alignment / NEON / multi-threading wins on the VC5 codec
+  itself. The 2026-05-28 alignment subagent work targets exactly this.
 
 ## Decision framework
 
@@ -77,9 +84,11 @@ For video you need either:
 
 1. **BIDO Phase B (Restormer distillation)** — close the OOD gap on the
    embedded preview path. Plan exists. ~6 hours on M5.
-2. **Codec perf** — the perf subagent is working on legacy encoder
-   speedup; if it produces a 2-3× win, Pi 5 might be able to hit
-   higher resolutions / fps. Re-measure when that lands.
+2. **Codec perf** — 2026-05-28 landed a 2.89× Pi 5 speedup, but the
+   win was in DNG SDK input decode, not the VC5 codec itself. The
+   in-flight alignment subagent targets the VC5 codec hot path
+   (cache-line aligned scratch, FFTW/FFmpeg-style). Re-measure full-res
+   Pi 5 video encode when that lands.
 3. **Legacy gpr_tools for video** (open question) — if the legacy
    encoder is more efficient than FUSED for stills, the same question
    applies for video. Would need a video-domain matched CNN retrain.
