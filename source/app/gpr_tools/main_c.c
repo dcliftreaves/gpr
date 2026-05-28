@@ -190,10 +190,21 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
     }
     else if( input_file_type == FILE_TYPE_GPR || input_file_type == FILE_TYPE_DNG )
     {
-        /* Skip expensive DNG metadata parsing for GPR→RAW fast path
-           (gpr_parse_metadata calls into DNG SDK, ~40ms overhead).
-           Only parse when we actually need the metadata. */
-        if (output_file_type != FILE_TYPE_RAW)
+        /* Skip expensive DNG metadata parsing in two cases:
+         * (1) GPR/DNG → RAW: no metadata needed for the raw output.
+         * (2) DNG → GPR with input_skip_rows == 0: gpr_convert_dng_to_gpr
+         *     internally calls read_dng which extracts the same metadata
+         *     into its own params_with_meta copy. The outer params is
+         *     only used between this call and the convert when
+         *     input_skip_rows > 0 (which reads params.input_pitch) or
+         *     when an external preview/gpmf is supplied. On Pi 5
+         *     Cortex-A76 the redundant read_dng is ~600 ms for a 50 MP
+         *     image (38% of total wall-time on a q=3 encode). */
+        const int is_dng_to_gpr = (input_file_type == FILE_TYPE_DNG) &&
+                                  (output_file_type == FILE_TYPE_GPR);
+        const int skip_md = (output_file_type == FILE_TYPE_RAW) ||
+                            (is_dng_to_gpr && input_skip_rows == 0);
+        if (!skip_md)
             gpr_parse_metadata( &allocator, &input_buffer, &params );
     }
     else
