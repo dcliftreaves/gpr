@@ -633,14 +633,16 @@
       "cnn": "bibo1x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "production-still"
+      "$role": "ship-still-highest-quality",
+      "$doc": "STILL highest-quality ship. Worst LPIPS 0.009 \u2014 visually indistinguishable from REF at any inspection. 26.60 MB mean. Use when storage isn't constrained."
     },
     "codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q11",
       "cnn": "bibo1x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "cranked-still"
+      "$role": "ship-still-balanced",
+      "$doc": "STILL balanced ship. 15.8% smaller than sl_q3 baseline (22.39 MB), worst LPIPS 0.024 \u2014 well under 0.05 ceiling. Was the smallest STILL until sl_q3_l1x4_hh1x8 was promoted 2026-05-27. Use when files matter but you want headroom."
     },
     "codec=ml2_q3+cnn=none+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3",
@@ -1104,7 +1106,8 @@
       "cnn": "bibo1x_ane_sl_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "cnnaware-sl-l1x4_hh1x8-with-matched-cnn"
+      "$role": "ship-still-smallest",
+      "$doc": "STILL smallest ship (promoted 2026-05-27). LH/HL \u00d74 + HH \u00d78 cranked highpass. 25.8% smaller than sl_q3+CNN baseline (19.73 vs 26.60 MB), 11.9% smaller than sl_q11+CNN. Worst LPIPS 0.028 (under STILL's 0.05 ceiling). Visual diff on Z8Z_0067 sky gradient indistinguishable from REF. Same matched CNN as sl_q3 \u2014 no retrain needed."
     }
   }
 }
