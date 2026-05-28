@@ -4,25 +4,48 @@
 This file summarizes what the gate has actually verified. If something
 here doesn't match the latest run logs, the run logs win.
 
-## TL;DR
+GPR has **two production modes** with two different encoders:
 
-| ship class | pipeline | worst LPIPS | verdict | notes |
-|---|---|---:|---|---|
-| **STILL (primary)** | `codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools` | **0.016** | **PASS** | **CHAMPION** (promoted 2026-05-28). Legacy CineForm q=3 + matched CNN. **15.05 MB mean** (43% smaller than FUSED sl_q3+CNN). Matches the original design goal: small codec + CNN restoration |
-| STILL (FUSED alternate, highest fidelity) | `codec=sl_q3+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.009 | **PASS** | FUSED-path; tightest LPIPS but 26.6 MB (1.77× legacy ship) |
-| STILL (FUSED alternate, balanced) | `codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.024 | **PASS** | FUSED-path; 22.4 MB |
-| STILL (FUSED alternate, smallest) | `codec=sl_q3_l1x4_hh1x8+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.028 | **PASS** | FUSED-path; was smallest until legacy ship promoted 2026-05-28. 19.7 MB |
-| VIDEO_FREEZE | `codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.076 | **PASS** | **CHAMPION** (promoted 2026-05-27). L1 highpass ×2 cranked → 23.9% smaller files (7.81 vs 10.26 MB) at same matched CNN |
-| VIDEO_FREEZE | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | **PASS** | Alternate — tighter LPIPS but bigger files than l1x2. Was primary champion until 2026-05-27 |
-| VIDEO_FREEZE | `codec=ml2_q3_hh1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.072 | **PASS** | HH1×4 cranked alone → 10.2% smaller files |
-| VIDEO_FREEZE | `codec=ml2_q3_hh1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.070 | **PASS** | HH1×2 cranked alone → 6.9% smaller files |
-| PREVIEW | `codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools` | 0.100 | **PASS** | Full-res codec, no post-CNN. Embedded-friendly path |
-| STILL | `codec=gpr_tools_legacy+cnn=none+demosaic=sips_via_gpr_tools` | 0.258 | **FAIL** | Production stills CLI — DCP profile-tag plumbing landed; residual on Z8Z_5323/6693 is codec-inherent at q=3 (not metadata), closed as not-a-bug |
-| PREVIEW | `codec=ml2_q3_dec2+cnn=bibo2x_ane_sl_q3+demosaic=sips_via_gpr_tools` | 0.253 | **FAIL** | Pi-capture half-res + bayer-plane super-res; bayer-plane upscale over-smooths OOD |
-| VIDEO_FREEZE | `codec=ml2_q3_dec2+cnn=bibo_dmsr_ane_ml2_q3_dec2+demosaic=sips_via_gpr_tools` | 0.634 | **FAIL** | Joint demosaic+SR (F_ane_dm_sr) trained against gate-aligned targets; one image (Z8Z_0067) passes PREVIEW (LPIPS 0.091) but others fail; architecture too small (325k params) — over-smooths skin texture |
+- **Stills** → legacy CineForm VC5 encoder via `gpr_tools` + matched BIBO_1x CNN.
+- **Video** → multi-level FUSED encoder + matched BIBO_1x CNN.
 
-Four pipelines pass — STILL × 2, VIDEO_FREEZE × 1, PREVIEW × 1. The
-embedded half-res capture path has an in-flight CNN architecture fix.
+The FUSED encoder was designed for video; **using it for stills was a methodology
+error caught 2026-05-28** and the FUSED-stills pipelines are now retired (kept in
+registry under `use_for: deprecated` so historical run logs still resolve).
+Every codec entry in `pipelines/registry.json` now carries a `use_for` field
+to prevent mode confusion. See `tests/quality_gates/check_registry_consistency.py`.
+
+## TL;DR — Stills (legacy CineForm VC5 encoder)
+
+| ship | pipeline | worst LPIPS | mean MB | verdict |
+|---|---|---:|---:|---|
+| **STILL primary** | `codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools` | **0.016** | **15.05** | **PASS** |
+
+The legacy encoder is **content-adaptive**: 7.8 MB on sky (Z8Z_0067), 21 MB on busy portrait (Z8Z_6693). 4-image mean 15 MB.
+
+## TL;DR — Video (multi-level FUSED encoder)
+
+| ship class | pipeline | worst LPIPS | mean MB/frame | verdict |
+|---|---|---:|---:|---|
+| **VIDEO_FREEZE primary** (full-res desktop path) | `codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | **0.076** | **7.81** | **PASS** |
+| VIDEO_FREEZE alternate | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | 10.26 | PASS |
+| VIDEO_FREEZE alternate (threshold-relaxed 2026-05-27) | `codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.079 | 7.11 | PASS |
+| VIDEO_FREEZE alternate (threshold-relaxed 2026-05-27) | `codec=ml2_q3_l1x2_hh1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.077 | 7.47 | PASS |
+| PREVIEW (Pi-capture half-res path) | `codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_*` | **0.45** | 1.30 | **FAIL** (CNN restoration insufficient) |
+
+At 24 fps the VIDEO_FREEZE primary writes **187 MB/s** — fine for desktop
+post-processing, NOT for Pi 5 capture (Pi caps ~7 fps at full-res). The
+half-res Pi-capture path captures at 24.93 fps median but the BIDO_4x
+restoration CNN doesn't yet PASS the PREVIEW gate.
+
+## TL;DR — Preview (codec only, no CNN)
+
+| ship | pipeline | worst LPIPS | verdict |
+|---|---|---:|---|
+| PREVIEW | `codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools` | 0.100 | PASS |
+
+Note: this uses FUSED single-level (deprecated for stills) as a no-CNN
+fallback. Will move to legacy gpr_tools no-CNN at next iteration.
 
 ## End-to-end demo (validated 2026-05-26)
 

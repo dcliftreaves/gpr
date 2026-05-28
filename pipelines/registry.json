@@ -20,7 +20,8 @@
       "env": {
         "GPR_INCLUDE_LL": "1"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "deprecated"
     },
     "sl_q11": {
       "binary": "build-local/bin/test_fused_roundtrip",
@@ -28,7 +29,8 @@
         "GPR_INCLUDE_LL": "1",
         "FUSED_QUALITY": "11"
       },
-      "quality": 11
+      "quality": 11,
+      "use_for": "deprecated"
     },
     "sl_q0": {
       "$doc": "Single-level FUSED q=0 (Low). Smallest files; covers low-bitrate-stills regression.",
@@ -37,7 +39,8 @@
         "GPR_INCLUDE_LL": "1",
         "FUSED_QUALITY": "0"
       },
-      "quality": 0
+      "quality": 0,
+      "use_for": "deprecated"
     },
     "sl_q5": {
       "$doc": "Single-level FUSED q=5 (Filmscan-2 / quality peak). Higher fidelity than q=3.",
@@ -46,7 +49,8 @@
         "GPR_INCLUDE_LL": "1",
         "FUSED_QUALITY": "5"
       },
-      "quality": 5
+      "quality": 5,
+      "use_for": "deprecated"
     },
     "sl_q8": {
       "$doc": "Single-level FUSED q=8 (Filmscan-5 / archival). Largest files among shipping presets.",
@@ -55,7 +59,8 @@
         "GPR_INCLUDE_LL": "1",
         "FUSED_QUALITY": "8"
       },
-      "quality": 8
+      "quality": 8,
+      "use_for": "deprecated"
     },
     "ml2_q3": {
       "$doc": "2-level FUSED q=3. Restored 2026-05-25. NOT yet shipping for any class.",
@@ -65,7 +70,8 @@
         "FUSED_MULTI_LEVEL": "1",
         "FUSED_WAVELET_LEVELS": "2"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "video"
     },
     "ml2_q11": {
       "binary": "build-local/bin/test_fused_roundtrip",
@@ -75,7 +81,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "FUSED_QUALITY": "11"
       },
-      "quality": 11
+      "quality": 11,
+      "use_for": "video"
     },
     "ml3_q3": {
       "$doc": "3-level FUSED q=3. NOT shipping; documented Nyquist regression.",
@@ -85,7 +92,8 @@
         "FUSED_MULTI_LEVEL": "1",
         "FUSED_WAVELET_LEVELS": "3"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml3_q12_l1l2x4_legacy": {
       "$doc": "Historical pipeline that produced the 'looked much better' results in /Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/. ml3 codec with L1+L2 highpass cranked 4x. Paired with cnn=bibo1x_ane_l1l2x4. The historical q=12 quality table no longer exists; we approximate via GPR_QUANT_OVERRIDE.",
@@ -97,7 +105,8 @@
         "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:384,8:384,9:576"
       },
       "quality": 3,
-      "$note": "Reproduces the cranked-highpass distribution the L1L2x4 CNN was trained against."
+      "$note": "Reproduces the cranked-highpass distribution the L1L2x4 CNN was trained against.",
+      "use_for": "experiment"
     },
     "ml2_q3_l1soft": {
       "$doc": "Experiment E1: ML-2 with L1 highpass quant halved. Tests if visible blockiness is dominated by L1 highpass loss.",
@@ -108,7 +117,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "7:48,8:48,9:72"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_l2soft": {
       "$doc": "Experiment E2: ML-2 with L2 highpass quant halved. Tests if L2 highpass aliasing causes the blockiness.",
@@ -119,7 +129,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_bothsoft": {
       "$doc": "Experiment E3: ML-2 with BOTH L1 and L2 highpass quant halved.",
@@ -130,7 +141,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6,7:48,8:48,9:72"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_nohighpassquant": {
       "$doc": "Experiment E4: ML-2 with ALL highpass set to quant=1 (effectively no quant). Upper bound on what the ML-2 wavelet can produce. If THIS fails, the wavelet itself is the issue.",
@@ -141,7 +153,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "4:1,5:1,6:1,7:1,8:1,9:1"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_ll2div8": {
       "$doc": "Experiment E5: LL2 extra divisor reduced from 16 to 8 \u2014 more LL2 fidelity.",
@@ -152,7 +165,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "FUSED_LL2_DIVISOR": "8"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_ll2div4": {
       "$doc": "Experiment E5b: LL2 extra divisor = 4. May exceed rANS class-15 ceiling for some content; gate will tell.",
@@ -163,7 +177,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "FUSED_LL2_DIVISOR": "4"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_combo": {
       "$doc": "Experiment E6: lighter L1+L2 highpass + lighter LL2 divisor combined.",
@@ -175,7 +190,8 @@
         "FUSED_LL2_DIVISOR": "8",
         "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6,7:48,8:48,9:72"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_prefilter3h": {
       "$doc": "Experiment E7: 3-tap horizontal LP prefilter on LL1 before L2 cascade. Attacks horizontal-direction Nyquist aliasing in the L2 wavelet.",
@@ -186,7 +202,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "FUSED_L2_PREFILTER": "3"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_prefilter3h_softq": {
       "$doc": "Experiment E7b: prefilter + lighter highpass quant. Stacked best-known mitigations.",
@@ -198,7 +215,8 @@
         "FUSED_L2_PREFILTER": "3",
         "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6,7:48,8:48,9:72"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_prefilter3hv": {
       "$doc": "Experiment E12: 3-tap LP prefilter in BOTH X and Y on LL1 \u2192 L2. Strongest anti-alias.",
@@ -209,7 +227,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "FUSED_L2_PREFILTER": "33"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "sl_q3_dec2": {
       "$doc": "Single-level FUSED q=3 with 2x2 decimation \u2014 half-res capture. Output is 1/4 the pixels. Designed for embedded capture; pair with a 2x super-res CNN on the desktop to restore full resolution.",
@@ -219,7 +238,8 @@
         "GPR_COL_DECIMATE": "2",
         "GPR_ROW_DECIMATE": "2"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_dec2": {
       "$doc": "2-level FUSED q=3 with 2x2 decimation. Half-res capture, 1/4 pixels. The Pi 5 sustained-24-fps capture mode (24.93 fps median measured 2026-05-26). Pair with a 2x super-res CNN on the desktop.",
@@ -231,7 +251,8 @@
         "GPR_COL_DECIMATE": "2",
         "GPR_ROW_DECIMATE": "2"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "video"
     },
     "ml2_q3_prefilter3hv_softq": {
       "$doc": "Experiment E13: H+V prefilter + lighter highpass quant.",
@@ -243,13 +264,15 @@
         "FUSED_L2_PREFILTER": "33",
         "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6,7:48,8:48,9:72"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "gpr_tools_legacy": {
       "$doc": "Legacy single-level VC5 encoder invoked via the gpr_tools production CLI. Different bitstream from FUSED sl_q3. NOT exercised by run_gate.py \u2014 has its own runner: tests/quality_gates/run_gate_gpr_tools.py",
       "binary": "build-local/source/app/gpr_tools/gpr_tools",
       "env": {},
-      "quality": null
+      "quality": null,
+      "use_for": "still"
     },
     "ml2_q3_hh1x2": {
       "$doc": "ml2_q3 with HH1 quant doubled (144\u2192288). Drops just the diagonal high-freq band; matched CNN should restore.",
@@ -260,7 +283,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "9:288"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "video"
     },
     "ml2_q3_hh1x4": {
       "$doc": "ml2_q3 with HH1 cranked 4\u00d7 (144\u2192576). q=11 ships HH1=576; this isolates the HH1 contribution.",
@@ -271,7 +295,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "9:576"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "video"
     },
     "ml2_q3_l1x2": {
       "$doc": "ml2_q3 with all L1 highpass doubled (LH1/HL1: 96\u2192192, HH1: 144\u2192288).",
@@ -282,7 +307,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "7:192,8:192,9:288"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "video"
     },
     "ml2_q3_l1x4": {
       "$doc": "ml2_q3 with all L1 highpass 4\u00d7 (LH1/HL1: 96\u2192384, HH1: 144\u2192576). Same as q=11 single-side except not changing L2.",
@@ -293,7 +319,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "7:384,8:384,9:576"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_l2x2_l1x2": {
       "$doc": "Both L2 and L1 doubled: 4/5: 24\u219248, 6: 12\u219224, 7/8: 96\u2192192, 9: 144\u2192288.",
@@ -304,7 +331,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:192,8:192,9:288"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "video"
     },
     "ml2_q3_l2x2_l1x4": {
       "$doc": "L2 doubled, L1 4\u00d7. Roughly q=11-equivalent in L1, q=3 + 2\u00d7 L2.",
@@ -315,7 +343,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:384,8:384,9:576"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_l1x3": {
       "$doc": "ml2_q3 with L1 highpass \u00d73 (LH1/HL1: 96\u2192288, HH1: 144\u2192432). Between l1x2 (PASS) and l1x4 (FAIL).",
@@ -326,7 +355,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "7:288,8:288,9:432"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "ml2_q3_hh1x8": {
       "$doc": "HH1 \u00d78 alone (144\u21921152). HH is the most-CNN-stubborn highpass.",
@@ -337,7 +367,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "9:1152"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "video"
     },
     "ml2_q3_l1x2_hh1x4": {
       "$doc": "Stack: l1x2 \u00d72 PLUS HH1 cranked 4\u00d7 (LH1/HL1: 192, HH1: 576).",
@@ -348,7 +379,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "7:192,8:192,9:576"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "video"
     },
     "ml2_q3_l2x2_l1x3": {
       "$doc": "Between l2x2_l1x2 (PASS) and l2x2_l1x4 (FAIL).",
@@ -359,7 +391,8 @@
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:288,8:288,9:432"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "experiment"
     },
     "sl_q3_hh1x2": {
       "$doc": "SL q=3 with HH \u00d72 (12\u219224)",
@@ -368,7 +401,8 @@
         "GPR_INCLUDE_LL": "1",
         "GPR_QUANT_OVERRIDE": "3:24"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "deprecated"
     },
     "sl_q3_hh1x4": {
       "$doc": "SL q=3 with HH \u00d74 (12\u219248). Matches q=11's HH.",
@@ -377,7 +411,8 @@
         "GPR_INCLUDE_LL": "1",
         "GPR_QUANT_OVERRIDE": "3:48"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "deprecated"
     },
     "sl_q3_hh1x8": {
       "$doc": "SL q=3 with HH \u00d78 (12\u219296). Push beyond q=11.",
@@ -386,7 +421,8 @@
         "GPR_INCLUDE_LL": "1",
         "GPR_QUANT_OVERRIDE": "3:96"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "deprecated"
     },
     "sl_q3_l1x2": {
       "$doc": "SL q=3 with all L1 \u00d72 (LH/HL: 24\u219248, HH: 12\u219224).",
@@ -395,7 +431,8 @@
         "GPR_INCLUDE_LL": "1",
         "GPR_QUANT_OVERRIDE": "1:48,2:48,3:24"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "deprecated"
     },
     "sl_q3_l1x4": {
       "$doc": "SL q=3 with all L1 \u00d74 (LH/HL: 96, HH: 48). Roughly q=11.",
@@ -404,7 +441,8 @@
         "GPR_INCLUDE_LL": "1",
         "GPR_QUANT_OVERRIDE": "1:96,2:96,3:48"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "deprecated"
     },
     "sl_q3_l1x4_hh1x8": {
       "$doc": "SL with LH/HL \u00d74 + HH \u00d78 (push HH harder than q=11)",
@@ -413,14 +451,16 @@
         "GPR_INCLUDE_LL": "1",
         "GPR_QUANT_OVERRIDE": "1:96,2:96,3:96"
       },
-      "quality": 3
+      "quality": 3,
+      "use_for": "deprecated"
     },
     "gpr_tools_q3": {
       "$doc": "Legacy CineForm VC5 encoder via gpr_tools CLI, explicit q=3. The codec that ALL CineForm GPR files use (CineForm Filmscan-1 default). Different bitstream from FUSED sl_q3 \u2014 uses CineForm's efficient LL coding rather than the FUSED GPR_INCLUDE_LL=1 byte-stuff. Empirically 7.8 MB on Z8 50MP vs FUSED's 17.8 MB at same q.",
       "binary": "build-local/source/app/gpr_tools/gpr_tools",
       "quality": 3,
       "encoder_kind": "legacy_gpr_tools",
-      "env": {}
+      "env": {},
+      "use_for": "still"
     }
   },
   "cnns": {
@@ -1140,5 +1180,6 @@
       "ship_class": "STILL",
       "$role": "cross-pair-cheap-probe-legacy-codec-fused-trained-cnn"
     }
-  }
+  },
+  "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28."
 }
