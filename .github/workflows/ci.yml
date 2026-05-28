@@ -286,6 +286,11 @@ jobs:
           GPR_TIMING_TOLERANCE: ${{ matrix.build_type == 'Debug' && '3.0' || '1.0' }}
         run: timeout 600 python3 tools/test/test_capabilities.py
 
+      - name: Registry consistency check
+        # Surfaces still/video mode mismatches and use_for misclassifications
+        # in pipelines/registry.json. Fast (no I/O beyond reading the JSON).
+        run: python3 tests/quality_gates/check_registry_consistency.py
+
       - name: Run CNN regression (macOS only, dev-host deps)
         if: runner.os == 'macOS'
         # Skips gracefully when torch / rawpy / cv2 / the dering_proto_v2
