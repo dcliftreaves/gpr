@@ -96,13 +96,79 @@ def read_source_bayer(dng_path: str) -> tuple[np.ndarray, int, int]:
     return raw.astype("<u2"), w, h
 
 
+def _encode_decode_legacy_gpr_tools(codec: dict, bayer: np.ndarray,
+                                    w: int, h: int, workdir: Path,
+                                    src_dng: str) -> tuple[np.ndarray, int, float]:
+    """Encode via legacy gpr_tools. Different CLI than test_fused_roundtrip:
+    gpr_tools needs DNG params from a source DNG. We extract params,
+    wrap the bayer as a DNG, encode at q, decode, extract bayer back."""
+    binary = REPO / codec["binary"]
+    if not binary.exists():
+        die(2, f"codec binary not built: {binary}")
+    quality = codec.get("quality", 3)
+    params_path = workdir / "params.json"
+    cp = subprocess.run([str(binary), "-i", str(src_dng), "-d", "1"],
+                        capture_output=True, text=True)
+    if cp.returncode != 0:
+        die(2, f"gpr_tools params dump failed: {cp.stderr[-200:]}")
+    lines = [l for l in cp.stdout.splitlines() if not l.startswith("[")]
+    params_path.write_text("\n".join(lines))
+    p = json.loads(params_path.read_text())
+    p["input_width"] = w; p["input_height"] = h; p["input_pitch"] = w * 2
+    params_path.write_text(json.dumps(p))
+    in_raw = workdir / "in.raw"
+    bayer.tofile(in_raw)
+    gpr_path = workdir / "encoded.gpr"
+    t0 = time.time()
+    r = subprocess.run([str(binary), "-i", str(in_raw), "-w", str(w), "-h", str(h),
+                        "-x", "rggb14", "-a", str(params_path), "-q", str(quality),
+                        "-o", str(gpr_path)], capture_output=True, text=True, timeout=300)
+    if r.returncode != 0:
+        die(2, f"legacy encode failed: {r.stderr[-200:]}")
+    enc_bytes = gpr_path.stat().st_size
+    dec_dng = workdir / "decoded.dng"
+    r = subprocess.run([str(binary), "-i", str(gpr_path), "-o", str(dec_dng)],
+                       capture_output=True, text=True, timeout=300)
+    if r.returncode != 0:
+        die(2, f"legacy decode failed: {r.stderr[-200:]}")
+    enc_ms = (time.time() - t0) * 1000.0
+    import tifffile
+    def _find_bayer(pages):
+        best = None; best_size = 0
+        for pg in pages:
+            try:
+                sh = pg.shape
+                if len(sh) == 2 and sh[0]*sh[1] > best_size:
+                    best, best_size = pg, sh[0]*sh[1]
+            except Exception: pass
+            try:
+                for sp in getattr(pg, "pages", None) or []:
+                    try:
+                        sh = sp.shape
+                        if len(sh) == 2 and sh[0]*sh[1] > best_size:
+                            best, best_size = sp, sh[0]*sh[1]
+                    except Exception: pass
+            except Exception: pass
+        return best
+    with tifffile.TiffFile(dec_dng) as tf:
+        page = _find_bayer(tf.pages)
+        if page is None:
+            die(2, "legacy decode: no bayer page")
+        dec_bayer = page.asarray().astype("<u2")
+    return dec_bayer, enc_bytes, enc_ms
+
+
 def encode_decode(codec: dict, bayer: np.ndarray, w: int, h: int,
-                  workdir: Path) -> tuple[np.ndarray, int, float]:
+                  workdir: Path, src_dng: str = None) -> tuple[np.ndarray, int, float]:
     """Returns (decoded_bayer, enc_bytes, enc_ms). Decoded dims may be
     half of (w, h) when GPR_ROW_DECIMATE=2 and GPR_COL_DECIMATE=2 are set
     in the codec env — the codec emits a half-res bayer. Caller is
     expected to detect this and apply a super-res CNN to restore to
     (w, h) before metric comparison against the full-res REF."""
+    if codec.get("encoder_kind") == "legacy_gpr_tools":
+        if src_dng is None:
+            die(3, "legacy_gpr_tools codec requires src_dng to be passed to encode_decode")
+        return _encode_decode_legacy_gpr_tools(codec, bayer, w, h, workdir, src_dng)
     binary = REPO / codec["binary"]
     if not binary.exists():
         die(2, f"codec binary not built: {binary}")
@@ -346,7 +412,8 @@ def _process_one_image(
         img_work = workdir / im["id"]
         img_work.mkdir(exist_ok=True)
         # 1. encode/decode through codec
-        dec, enc_bytes, enc_ms = encode_decode(codec, bayer, w, h, img_work)
+        dec, enc_bytes, enc_ms = encode_decode(codec, bayer, w, h, img_work,
+                                                src_dng=im["path"])
         # bayer_psnr requires matched dims. If the codec decimated, downsample
         # the source bayer by 2x2 box average to compare in codec-output space.
         if dec.shape != bayer.shape:
