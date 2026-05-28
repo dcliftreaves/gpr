@@ -115,12 +115,25 @@ def load_data(npz_path, val_src_names, subsample_rate=1):
         out["_has_rgb_target"] = False
         print(f"  using LEGACY tgt_bayer (bilinear-demosaic; WRONG color space)",
               flush=True)
-    # Phase B distillation target (optional): Restormer-cleaned RGB
+    # Phase B distillation target (optional): Restormer-cleaned RGB.
+    # Optionally accompanied by tgt_rgb_teacher_mask (1 = computed teacher,
+    # 0 = fallback to tgt_rgb): for stride-subsampled teacher precomputes,
+    # this lets the trainer apply the β loss only on the kept subset.
     if "tgt_rgb_teacher" in npz.files:
         out["tgt_rgb_teacher"] = np.asarray(npz["tgt_rgb_teacher"][keep_mask])
         out["_has_teacher_target"] = True
-        print(f"  using tgt_rgb_teacher (Restormer distillation target)",
-              flush=True)
+        if "tgt_rgb_teacher_mask" in npz.files:
+            out["tgt_rgb_teacher_mask"] = np.asarray(
+                npz["tgt_rgb_teacher_mask"][keep_mask])
+            valid = int(out["tgt_rgb_teacher_mask"].sum())
+            print(f"  using tgt_rgb_teacher (Restormer distillation target, "
+                  f"{valid}/{len(out['tgt_rgb_teacher_mask'])} valid)",
+                  flush=True)
+        else:
+            out["tgt_rgb_teacher_mask"] = np.ones(
+                (len(out["tgt_rgb_teacher"]),), dtype=np.uint8)
+            print(f"  using tgt_rgb_teacher (no mask, assuming all valid)",
+                  flush=True)
     else:
         out["_has_teacher_target"] = False
     out["src"] = src[keep_mask]
@@ -164,6 +177,8 @@ class TileDS(Dataset):
         tgt = tgt_rgb_from_mem(self.mem, idx)
         tgt_teacher = tgt_rgb_teacher_from_mem(self.mem, idx) \
             if self.has_teacher else None
+        teacher_mask = (int(self.mem["tgt_rgb_teacher_mask"][idx])
+                        if self.has_teacher else 0)
         if self.augment:
             if np.random.rand() < 0.5:
                 codec = codec[:, :, ::-1].copy(); tgt = tgt[:, :, ::-1].copy()
@@ -181,7 +196,8 @@ class TileDS(Dataset):
         tgt_t = torch.from_numpy(np.ascontiguousarray(tgt)).float()
         if tgt_teacher is not None:
             teacher_t = torch.from_numpy(np.ascontiguousarray(tgt_teacher)).float()
-            return codec_t, tgt_t, teacher_t
+            mask_t = torch.tensor(float(teacher_mask), dtype=torch.float32)
+            return codec_t, tgt_t, teacher_t, mask_t
         return codec_t, tgt_t
 
 
@@ -252,9 +268,11 @@ def train(args):
     has_teacher = d.get("_has_teacher_target", False)
 
     def _unpack(batch):
+        # Dataloader returns (codec, tgt) when no teacher,
+        # else (codec, tgt, teacher, teacher_valid_mask_scalar).
         if has_teacher:
-            return batch[0], batch[1], batch[2]
-        return batch[0], batch[1], None
+            return batch[0], batch[1], batch[2], batch[3]
+        return batch[0], batch[1], None, None
 
     def _eval_loader(loader):
         """Returns (base_psnr_sum, model_psnr_sum, lpips_sum, n) for a loader.
@@ -262,7 +280,7 @@ def train(args):
         tot_b, tot_a, tot_lp, n = 0.0, 0.0, 0.0, 0
         with torch.no_grad():
             for batch in loader:
-                inp, tgt, _ = _unpack(batch)
+                inp, tgt, _, _ = _unpack(batch)
                 inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
                 if has_rgb:
                     tgt_rgb = tgt.clamp(0, 1)
@@ -333,15 +351,29 @@ def train(args):
         loss_teach = 0.0; nb = 0
         use_teacher = has_teacher and args.teacher_weight > 0
         for batch in tr:
-            inp, tgt, tgt_teacher = _unpack(batch)
+            inp, tgt, tgt_teacher, teacher_mask = _unpack(batch)
             inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
             tgt_rgb = tgt.clamp(0, 1) if has_rgb else bayer_4plane_to_rgb(tgt).clamp(0, 1)
             pred = model(inp).clamp(0, 1)
             l_ms = multiscale_l1(pred, tgt_rgb)
             l = args.task_weight * l_ms
-            if use_teacher:
+            if use_teacher and teacher_mask is not None and teacher_mask.sum() > 0:
                 tgt_teacher = tgt_teacher.to(DEVICE).clamp(0, 1)
-                l_teach = multiscale_l1(pred, tgt_teacher)
+                teacher_mask_dev = teacher_mask.to(DEVICE)
+                # Per-sample mask: l_teach contributes only on tiles where mask=1.
+                # Use reduction='none' and weight by mask.
+                diff = (pred - tgt_teacher).abs().mean(dim=[1, 2, 3])  # (B,)
+                # Multi-scale weighted L1 with mask
+                p, t = pred, tgt_teacher
+                ms_per_sample = diff.clone()
+                ws = [0.5, 0.25]
+                for w in ws:
+                    p = F.avg_pool2d(p, 2); t = F.avg_pool2d(t, 2)
+                    d_s = (p - t).abs().mean(dim=[1, 2, 3])
+                    ms_per_sample = ms_per_sample + w * d_s
+                masked = (ms_per_sample * teacher_mask_dev).sum() \
+                    / teacher_mask_dev.sum().clamp_min(1)
+                l_teach = masked
                 l = l + args.teacher_weight * l_teach
                 loss_teach += float(l_teach.item())
             if lpips_net is not None and lpips_w_curr > 0:

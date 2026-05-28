@@ -235,18 +235,35 @@ def main():
           f"{time.time()-t_start:.1f}s", flush=True)
 
     print(f"[teacher-precompute] assembling NPZ -> {OUT_NPZ}", flush=True)
-    # All non-teacher fields are stride-subsampled by keep_indices, so they
-    # line up positionally with the teacher field.
+    # Build a full-size (n_full) teacher array, copying tgt_rgb for non-computed
+    # tiles + a parallel uint8 mask (1 = teacher valid, 0 = fallback to tgt_rgb).
+    # This lets the trainer use the full NPZ and apply the β loss term only on
+    # the stride-subsampled subset (so the student trains on all 19920 tiles
+    # with extra signal on ~4980 of them).
+    print(f"[teacher-precompute] assembling full-size teacher array "
+          f"(n_full={n_full})", flush=True)
+    teacher_full = np.empty((n_full, 512, 512, 3), dtype=np.uint8)
+    teacher_mask = np.zeros((n_full,), dtype=np.uint8)
+    # Stream-copy tgt_rgb in chunks to fall back when teacher unavailable.
+    chunk = 256
+    for i in range(0, n_full, chunk):
+        j = min(i + chunk, n_full)
+        teacher_full[i:j] = np.asarray(npz["tgt_rgb"][i:j])
+    # Overwrite kept indices with computed teacher tiles
+    for k, src_i in enumerate(keep_indices):
+        teacher_full[int(src_i)] = teacher[k]
+        teacher_mask[int(src_i)] = 1
     np.savez(
         OUT_NPZ,
-        codec_R=np.asarray(npz["codec_R"][keep_indices]),
-        codec_G1=np.asarray(npz["codec_G1"][keep_indices]),
-        codec_G2=np.asarray(npz["codec_G2"][keep_indices]),
-        codec_B=np.asarray(npz["codec_B"][keep_indices]),
-        src=np.asarray(npz["src"][keep_indices]),
+        codec_R=np.asarray(npz["codec_R"]),
+        codec_G1=np.asarray(npz["codec_G1"]),
+        codec_G2=np.asarray(npz["codec_G2"]),
+        codec_B=np.asarray(npz["codec_B"]),
+        src=np.asarray(npz["src"]),
         src_lookup_names=np.asarray(npz["src_lookup_names"]),
-        tgt_rgb=np.asarray(npz["tgt_rgb"][keep_indices]),
-        tgt_rgb_teacher=np.asarray(teacher),
+        tgt_rgb=np.asarray(npz["tgt_rgb"]),
+        tgt_rgb_teacher=teacher_full,
+        tgt_rgb_teacher_mask=teacher_mask,
     )
     print(f"[teacher-precompute] DONE. wall={time.time()-t_start:.1f}s",
           flush=True)
