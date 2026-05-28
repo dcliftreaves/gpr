@@ -3,20 +3,18 @@
 Everything we discussed, organized for execution. Items in priority order
 within each section.
 
-## (1) Codify stills vs video — APPROVED
+## (1) Codify stills vs video — APPROVED — **DONE** (commits 541134c, ecf9822)
 
-- [ ] Add `use_for` field to every codec entry in `pipelines/registry.json`:
-      `still` | `video` | `experiment` | `deprecated`
-- [ ] Mark FUSED single-level codecs (`sl_q3`, `sl_q11`, `sl_q3_l1x4_hh1x8`,
-      `sl_q3_hh1x{2,4,8}`, `sl_q3_l1x{2,3,4}`) as `deprecated` (keep entries so
-      existing run.json files resolve, but they don't appear in ship table)
-- [ ] Mark legacy `gpr_tools_q3` as `still`
-- [ ] Mark `ml2_q3*` and `sl_q3_dec2*` and `ml3_*` as `video` or `experiment`
-- [ ] Update SHIP_DECISION.md to show only two cleanly separated modes
-- [ ] Add a registry consistency check (warn when still codec paired with
-      video CNN or vice-versa)
-- [ ] Drop the FUSED single-level *pipelines* from SHIP_DECISION (keep
-      codec entries in registry)
+- [x] Add `use_for` field to every codec entry in `pipelines/registry.json`
+- [x] Mark FUSED single-level codecs as `deprecated`
+- [x] Mark legacy `gpr_tools_q3` and `gpr_tools_legacy` as `still`
+- [x] Mark `ml2_q3*` codecs as `video`, `ml3_*` and experimental sweep
+      codecs as `experiment`
+- [x] Update SHIP_DECISION.md to show two cleanly separated modes
+- [x] Add a registry consistency check
+      (`tests/quality_gates/check_registry_consistency.py`)
+- [x] Drop the FUSED single-level *pipelines* from SHIP_DECISION
+- [x] Wire the consistency check into CI
 
 ## (2) Stills q-level table — APPROVED
 
@@ -42,31 +40,33 @@ Optional follow-ups in this track:
 - [-] Verify bitstream byte-identical after every change
 - [-] Report speedup achieved
 
-## (4) Methodology / testing audit
+## (4) Methodology / testing audit — partial done
 
-- [ ] `test_capabilities.py`: currently benchmarks legacy encoder bare; add
-      a CNN-corrected row that actually exercises the ship pipeline
+- [x] Document three test layers explicitly
+      (`docs/TESTING_METHODOLOGY.md`)
+- [x] Add registry consistency check to CI
+- [ ] `test_capabilities.py`: add CNN-corrected rows for the legacy
+      stills ship (Layer 1+2 unified)
 - [ ] Add per-pipeline gate-run reference to SHIP_DECISION (run-hash per row)
 - [ ] CI: add the perceptual gate as a CI cell for the ship pipelines, not
-      just test_capabilities
+      just test_capabilities (needs MPS-capable macOS runner)
 - [ ] Verify every shipping pipeline has at least one passing gate run
       checked into `tests/quality_gates/runs/`
 - [ ] Consider splitting `test_capabilities.py` into `test_stills.py` and
       `test_video.py` to mirror the codified split
 
-## (5) Video side
+## (5) Video side — status documented
 
-Honest status check first:
-- [ ] Confirm the full-res VIDEO_FREEZE ship `ml2_q3_l1x2+CNN` is intended
-      for desktop post-processing, not embedded capture (24 fps on Pi 5
-      not achievable at full-res)
-- [ ] Confirm the Pi-capture path is `ml2_q3_dec2` (half-res), captures at
-      24.93 fps median — but the restoration CNN (BIDO_4x) doesn't yet
-      PASS PREVIEW gate
+- [x] Document the two video paths and which one ships for what
+      (`docs/VIDEO_STATUS.md`)
+- [x] Confirmed full-res VIDEO_FREEZE ship is desktop-only
+      (Pi 5 ~0.5 fps full-res, not 24-capable)
+- [x] Confirmed Pi capture path is half-res ml2_q3_dec2 (24.93 fps)
+      but the restoration CNN doesn't yet PASS PREVIEW
 
-Possible next steps:
+Open follow-ups:
 - [ ] BIDO Phase B (Restormer-teacher distillation) — close the
-      embedded-preview gap. ~6 hours on M5. Plan in `docs/BIDO_DISTILLATION_PLAN.md`.
+      embedded-preview gap. ~6 hours on M5.
 - [ ] Try the legacy-encoder methodology for video too (legacy gpr_tools
       at q=3, matched ML-2-style CNN). Could be smaller per-frame than
       FUSED ml2_q3. ~3 hours.
