@@ -414,6 +414,13 @@
         "GPR_QUANT_OVERRIDE": "1:96,2:96,3:96"
       },
       "quality": 3
+    },
+    "gpr_tools_q3": {
+      "$doc": "Legacy CineForm VC5 encoder via gpr_tools CLI, explicit q=3. The codec that ALL CineForm GPR files use (CineForm Filmscan-1 default). Different bitstream from FUSED sl_q3 \u2014 uses CineForm's efficient LL coding rather than the FUSED GPR_INCLUDE_LL=1 byte-stuff. Empirically 7.8 MB on Z8 50MP vs FUSED's 17.8 MB at same q.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 3,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {}
     }
   },
   "cnns": {
@@ -572,6 +579,15 @@
       "residual_scale": 0.0,
       "raw_norm": 16383.0,
       "ckpt_sha256": "151bce4c72aa32394bc3acbb61db45dc4ab2f58a88bce04b0784b2f8bd516b1d"
+    },
+    "bibo1x_ane_gpr_tools_q3": {
+      "$doc": "BIBO_1x (F_ane_no_sr) CNN matched to legacy gpr_tools q=3 codec output. Target: restore legacy q=3 (7.8 MB / 64.1 dB) to legacy q=8 quality (72.7 dB) perceptually, giving us ~3\u00d7 file-size win over FUSED+CNN current ship.",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q3.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "gpr_tools_q3",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "TBD-pending-training"
     }
   },
   "pipelines": {
@@ -1108,6 +1124,13 @@
       "ship_class": "STILL",
       "$role": "ship-still-smallest",
       "$doc": "STILL smallest ship (promoted 2026-05-27). LH/HL \u00d74 + HH \u00d78 cranked highpass. 25.8% smaller than sl_q3+CNN baseline (19.73 vs 26.60 MB), 11.9% smaller than sl_q11+CNN. Worst LPIPS 0.028 (under STILL's 0.05 ceiling). Visual diff on Z8Z_0067 sky gradient indistinguishable from REF. Same matched CNN as sl_q3 \u2014 no retrain needed."
+    },
+    "codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q3",
+      "cnn": "bibo1x_ane_gpr_tools_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "ship-still-legacy-encoder-with-matched-cnn"
     }
   }
 }
