@@ -193,7 +193,16 @@
 /// 1 if target platform has thread support and threadsafe libraries, 0 otherwise.
 
 #ifndef qDNGThreadSafe
+/* The vendored Adobe default excluded Linux. The pthread-backed mutex
+   layer (dng_mutex.cpp, dng_pthread.cpp) is fully functional on Linux,
+   and the multi-threaded tile-read path in dng_read_image.cpp relies on
+   a real mutex protecting fNextTileIndex. Treat any pthread-capable
+   POSIX target the same as macOS. */
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
+#define qDNGThreadSafe 1
+#else
 #define qDNGThreadSafe (qMacOS || qWinOS)
+#endif
 #endif
 
 /*****************************************************************************/

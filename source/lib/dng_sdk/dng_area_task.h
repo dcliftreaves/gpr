@@ -92,6 +92,18 @@ class dng_area_task
 			return fMaxTileSize;
 			}
 
+		/// Opt-in flag: returns true iff Process() is safe to call concurrently
+		/// from multiple worker threads on disjoint sub-areas. Tasks that rely
+		/// on shared mutable state (e.g. opcodes that mutate the negative,
+		/// linearization tables, raw-image opcodes) must leave this at the
+		/// default of false. Tasks that own a mutex-protected work queue +
+		/// per-thread temporaries (e.g. dng_read_tiles_task) override to true.
+
+		virtual bool MultiThreadSafe () const
+			{
+			return false;
+			}
+
 		/// Getter for RepeatingTile1.
 		/// RepeatingTile1, RepeatingTile2, and RepeatingTile3 are used to establish a set of 0 to 3 tile patterns for which
 		/// the resulting partitions that the final Process method is called on will not cross tile boundaries in any of the

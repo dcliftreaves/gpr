@@ -2582,14 +2582,19 @@ class dng_read_tiles_task : public dng_area_task
 			fMinTaskArea = 16 * 16;
 			fUnitCell    = dng_point (16, 16);
 			fMaxTileSize = dng_point (16, 16);
-			
+
+			}
+
+		virtual bool MultiThreadSafe () const override
+			{
+			return true;
 			}
 	
 		void Process (uint32 /* threadIndex */,
 					  const dng_rect & /* tile */,
 					  dng_abort_sniffer *sniffer)
 			{
-			
+
 			AutoPtr<dng_memory_block> compressedBuffer;
 			AutoPtr<dng_memory_block> uncompressedBuffer;
 			AutoPtr<dng_memory_block> subTileBlockBuffer;
@@ -2620,7 +2625,7 @@ class dng_read_tiles_task : public dng_area_task
 						}
 						
 					tileIndex = fNextTileIndex++;
-					
+
 					TempStreamSniffer noSniffer (fStream, NULL);
 
 					fStream.SetReadPosition (fTileOffset [tileIndex]);
