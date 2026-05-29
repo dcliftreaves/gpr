@@ -142,6 +142,7 @@ VARIANTS = {
 VARIANTS["bibo_2x"]   = VARIANTS["F_ane"]
 VARIANTS["bibo_1x"]   = VARIANTS["F_ane_no_sr"]
 VARIANTS["bido_4x"]   = VARIANTS["F_ane_dm_sr"]
+# Capacity-scaled BIDO variants are added below in the research-variants section.
 
 
 def build(tag):
@@ -239,7 +240,14 @@ VARIANTS.update({
     "F_ane_w24_no_sr": dict(width=24, enc=[1, 1, 1], dec=[1, 1, 1], mid=1, sr=False),
     "F_ane_w32":       dict(width=32, enc=[1, 1, 1], dec=[1, 1, 1], mid=1, sr=True),
     "F_ane_w32_no_sr": dict(width=32, enc=[1, 1, 1], dec=[1, 1, 1], mid=1, sr=False),
+    "F_ane_dm_sr_w24": dict(width=24, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
+                            sr=False, sr4x=True, in_c=4, out_c=3),
+    "F_ane_dm_sr_w32": dict(width=32, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
+                            sr=False, sr4x=True, in_c=4, out_c=3),
 })
+# Aliases for capacity-scaled BIDO variants.
+VARIANTS["bido_4x_w24"] = VARIANTS["F_ane_dm_sr_w24"]
+VARIANTS["bido_4x_w32"] = VARIANTS["F_ane_dm_sr_w32"]
 
 
 def build_lk(tag, dw_kernel=7):

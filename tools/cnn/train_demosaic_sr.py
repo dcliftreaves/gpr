@@ -20,7 +20,7 @@ from torch.utils.data import Dataset, DataLoader
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from model import build as build_variant, count_params
+from model import build as build_variant, count_params, VARIANTS
 
 RAW_NORM = 16383.0
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -239,7 +239,8 @@ def train(args):
                                   batch_size=args.batch, shuffle=False,
                                   num_workers=0)
                   for sid, idxs in val_idx_by_src.items() if idxs}
-    model = build_variant("F_ane_dm_sr").to(DEVICE)
+    model = build_variant(args.variant).to(DEVICE)
+    print(f"  Variant: {args.variant}", flush=True)
     print(f"  Params (backbone): {count_params(model):,}", flush=True)
 
     # Optional: warm-start from an existing checkpoint (Phase A fine-tune).
@@ -397,8 +398,9 @@ def train(args):
             epochs_since_best = 0
             torch.save({
                 "backbone_state": model.state_dict(),
-                "variant": "F_ane_dm_sr",
-                "width": 16, "depth": 3, "raw_norm": RAW_NORM, "residual_scale": 0.0,
+                "variant": args.variant,
+                "width": VARIANTS[args.variant]["width"], "depth": 3,
+                "raw_norm": RAW_NORM, "residual_scale": 0.0,
                 "kind": "demosaic_sr", "epoch": ep + 1,
                 "val_psnr_base": pb, "val_psnr_model": pa,
                 "val_lpips": vlp,
@@ -434,6 +436,10 @@ def train(args):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--variant", type=str, default="F_ane_dm_sr",
+                    choices=["F_ane_dm_sr", "F_ane_dm_sr_w24", "F_ane_dm_sr_w32",
+                             "bido_4x", "bido_4x_w24", "bido_4x_w32"],
+                    help="BIDO variant (width=16 default, or w24/w32 capacity test).")
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--batch", type=int, default=4)   # smaller batch since outputs are 4× bigger
     ap.add_argument("--lr", type=float, default=5e-4)
