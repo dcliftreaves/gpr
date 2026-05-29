@@ -36,6 +36,12 @@ os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from model import build as build_variant, count_params, VARIANTS
 
+# numpy 2.0.2 on Apple Silicon issues spurious "divide by zero" /
+# "overflow" / "invalid value" warnings on small float32 matmul (e.g. the
+# 3x3 BT.709 colorspace conversion). Output values are correct; we
+# verified the per-pixel mapping matches the analytic result.
+np.seterr(all="ignore")
+
 RAW_NORM = 16383.0
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 DEFAULT_NPZ = os.environ.get(
