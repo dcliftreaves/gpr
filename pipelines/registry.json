@@ -675,6 +675,15 @@
       "raw_norm": 16383.0,
       "ckpt_sha256": "758d96c719d90c780b4c93695e725dfd3bfd75af0704b903085eb31ce0b3708b"
     },
+    "bibo1x_ane_ml2_q3_l2x2_l1x4_diverse": {
+      "$doc": "BIBO_1x (F_ane_no_sr) CNN matched to ml2_q3_l2x2_l1x4 cranked codec, retrained on a 913-pair broader corpus (diverse_dngs + barnsky + source_dngs_expanded, with gate test images excluded). Best val PSNR gain +1.435 dB at ep 75 (vs +1.749 dB for the original 200-pair narrow training). Lower peak val but 4.5\u00d7 more source variety \u2014 testing the corpus-breadth hypothesis from the 2026-05-28 CHECKLIST item.",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_ML2_q3_l2x2_l1x4_diverse.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "ml2_q3_l2x2_l1x4",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "9dc0ba3b33ee3abd4266277de681b496b38ef83751f7000a1e37817191370b3e"
+    },
     "bido_4x_ane_ml2_q3_dec2_lpips": {
       "$doc": "BIDO_4x fine-tuned from wider checkpoint with LPIPS-alex loss (Phase A of BIDO_DISTILLATION_PLAN). 30 epochs at \u03bb=0.1 with 5-epoch warmup. Best val LPIPS dropped from 0.5072 (init) \u2192 0.1525 at ep 18 \u2014 70% reduction. Saved on lowest val LPIPS (the multi-image val averaged over 4 sources).",
       "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w16_ANE_lpips.pt",
@@ -1168,6 +1177,13 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "cnnaware-ml2-l2x2-l1x4-matched-retrain"
+    },
+    "codec=ml2_q3_l2x2_l1x4+cnn=bibo1x_ane_ml2_q3_l2x2_l1x4_diverse+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2x2_l1x4",
+      "cnn": "bibo1x_ane_ml2_q3_l2x2_l1x4_diverse",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "experiment-ml2-l2x2-l1x4-matched-diverse-corpus"
     },
     "codec=ml2_q3_l1x3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_l1x3",
