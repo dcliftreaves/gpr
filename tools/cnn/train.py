@@ -303,7 +303,7 @@ def train(args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--variant", choices=["F_ane", "F_ane_no_sr", "F_ane_w24", "F_ane_w24_no_sr", "F_ane_w32", "F_ane_w32_no_sr"], required=True)
+    ap.add_argument("--variant", choices=["F_ane", "F_ane_no_sr", "F_ane_w24", "F_ane_w24_no_sr", "F_ane_no_sr_w24", "F_ane_w32", "F_ane_w32_no_sr", "F_ane_no_sr_w32"], required=True)
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--lr", type=float, default=5e-4)

@@ -358,6 +358,30 @@
       "quality": 3,
       "use_for": "experiment"
     },
+    "ml2_q3_l2x2_l1x2_hh1x4": {
+      "$doc": "ml2_q3_l2x2_l1x2 with HH1 (slot 9) cranked another 4\u00d7 from baseline (144\u21921152). Builds on the smallest-current tier; intended only for the heavy-decoder (Restormer-class) experiment branch.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:192,8:192,9:1152"
+      },
+      "quality": 3,
+      "use_for": "experiment"
+    },
+    "ml2_q3_l2x2_l1x4_hh1x4": {
+      "$doc": "Most-aggressive desktop-only target: l2x2_l1x4 plus HH1 4\u00d7 (576\u21921152 in slot 9). Hypothesis: only a Restormer-class post-RGB filter can recover this; in-distribution BIBO_1x has been shown to fail on the lighter l2x2_l1x4 variant.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:384,8:384,9:1152"
+      },
+      "quality": 3,
+      "use_for": "experiment"
+    },
     "ml2_q3_l1x3": {
       "$doc": "ml2_q3 with L1 highpass \u00d73 (LH1/HL1: 96\u2192288, HH1: 144\u2192432). Between l1x2 (PASS) and l1x4 (FAIL).",
       "binary": "build-local/bin/test_fused_roundtrip",
@@ -606,6 +630,15 @@
       "raw_norm": 16383.0,
       "ckpt_sha256": "cfaa41b6f7d374e641b0f077973653a8de652dfdf4f2183560fd66b3a596f7a5"
     },
+    "bibo1x_ane_ml2_q3_mu_law": {
+      "$doc": "BIBO_1x retrained on ML-2 q=3 with --loss-domain mu_law (Hanji et al. SIGGRAPH Asia 2024, arxiv 2312.03640). msL1 applied to mu_law(pred) vs mu_law(target) with mu=5000. Tests T2 of overnight plan 2026-05-28: does perceptual-domain L1 beat linear L1 on our regime? Training halted at ep 3 (gain +1.607 dB, plateaued) to free MPS for T1 (higher-EV BIDO-with-OOD test).",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_ML2_q3_mu_law.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "ml2_q3",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "732ee6057fdda4fc3d246f47db4c26a765dd7fd19724cae47443bb37fbe21267"
+    },
     "bibo2x_ane_sl_q3": {
       "$doc": "BIBO_2x super-res: half-res bayer in, full-res bayer out. Architecture: F_ane (sr2x=True). Pair with a half-res codec like ml2_q3_dec2 \u2014 this is the historical 'embedded capture + desktop super-res' pipeline.",
       "ckpt_path": "models/BayInBayOut_2x_AAon_w16_ANE.pt",
@@ -731,6 +764,14 @@
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
       "ckpt_sha256": "TBD-pending-training"
+    },
+    "restormer_real_denoising_post": {
+      "$doc": "Restormer (Apache-2.0, Zamir et al. CVPR 2022) trained for real noise denoising, applied as a post-decode RGB filter. 26.1M params (~83\u00d7 a BIBO_1x_w16). Tiled inference at 512px; ~15s/frame on M3 Max MPS at 4K. Desktop-only: too slow for in-camera or video real-time use. Off-repo checkpoint lives at /Volumes/OWC_8TB/external/restormer_real_denoising.pth (rsynced from Restormer GitHub release v1.0). The arch module lives at tools/cnn/restormer_arch.py.",
+      "ckpt_path": "/Volumes/OWC_8TB/external/restormer_real_denoising.pth",
+      "cnn_arch_variant": "restormer_post_rgb",
+      "raw_norm": null,
+      "trained_against_codec": "any",
+      "ckpt_sha256": "4cae18bed8a291b9a5deeeab48756bbe6f61fcf7f31a4cca0969b24608601387"
     }
   },
   "pipelines": {
@@ -971,6 +1012,13 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "exp-E15-retrain-msssim-aware"
+    },
+    "codec=ml2_q3+cnn=bibo1x_ane_ml2_q3_mu_law+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3",
+      "cnn": "bibo1x_ane_ml2_q3_mu_law",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "exp-T2-mu-law-loss-domain"
     },
     "codec=sl_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q3_dec2",
@@ -1371,6 +1419,30 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
       "$role": "experiment-still-q7-no-cnn"
+    },
+    "codec=ml2_q3_l2x2_l1x4+cnn=restormer_real_denoising_post+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2x2_l1x4",
+      "cnn": "restormer_real_denoising_post",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "experiment-heavy-decoder-restormer-l2x2_l1x4",
+      "$doc": "Desktop-only heavy-decoder experiment: cranked l2x2_l1x4 codec restored by Restormer real-denoising as a post-RGB filter. Tests whether a 26M-param transformer trained on real photographic noise can recover what the matched 315K-param BIBO_1x has failed to recover (both narrow + diverse training on this same codec FAILed PREVIEW)."
+    },
+    "codec=ml2_q3_l2x2_l1x2_hh1x4+cnn=restormer_real_denoising_post+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2x2_l1x2_hh1x4",
+      "cnn": "restormer_real_denoising_post",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "experiment-heavy-decoder-restormer-l2x2_l1x2_hh1x4",
+      "$doc": "Desktop-only heavy-decoder experiment: l2x2_l1x2 with HH1 4× crank (more aggressive than the currently-shipped l2x2_l1x2_hh1x2). Tested with Restormer post-RGB."
+    },
+    "codec=ml2_q3_l2x2_l1x4_hh1x4+cnn=restormer_real_denoising_post+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2x2_l1x4_hh1x4",
+      "cnn": "restormer_real_denoising_post",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "experiment-heavy-decoder-restormer-l2x2_l1x4_hh1x4",
+      "$doc": "Most-aggressive desktop-only heavy-decoder experiment: l2x2_l1x4 plus HH1 4× crank. Hypothesis: minimum bitstream achievable while still recoverable by a Restormer-class CNN."
     }
   },
   "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28."

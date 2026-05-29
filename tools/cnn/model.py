@@ -248,6 +248,10 @@ VARIANTS.update({
 # Aliases for capacity-scaled BIDO variants.
 VARIANTS["bido_4x_w24"] = VARIANTS["F_ane_dm_sr_w24"]
 VARIANTS["bido_4x_w32"] = VARIANTS["F_ane_dm_sr_w32"]
+# Aliases preserving the "F_ane_<no_sr>_<width>" naming used by the
+# 2026-05-28 heavy-decoder branch — same arch, different name order.
+VARIANTS["F_ane_no_sr_w24"] = VARIANTS["F_ane_w24_no_sr"]
+VARIANTS["F_ane_no_sr_w32"] = VARIANTS["F_ane_w32_no_sr"]
 
 
 def build_lk(tag, dw_kernel=7):
