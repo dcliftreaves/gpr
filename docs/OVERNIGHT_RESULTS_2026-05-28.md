@@ -98,6 +98,22 @@ it on the diverse-content gate images, which suggests the OOD corpus is
 biasing the model away from the broader distribution rather than enriching
 it.
 
+### Root cause: OOD corpus brightness mismatch
+
+Post-hoc per-channel analysis of `tgt_rgb` in the OOD-augmented NPZ:
+
+  - OOD tile mean RGB: R=138.3 G=138.9 B=135.0  (n=2,840 tiles from 71 OOD DNGs)
+  - non-OOD tile mean RGB: R=23.6 G=29.2 B=39.0 (n=50 sampled from 20,160 base tiles)
+
+The OOD source DNGs are ~6× brighter on average than the existing
+training corpus. Adding them shifted the model's output prior toward
+"average looks like ~138" while the gate test images sample the darker
+distribution (~23). The shift exactly matches the Z8Z_0067 visual diff:
+darker more-saturated output than the bluer-greyer reference. The
+corpus-axis fix is not "add more representative OOD" but "add a
+brightness-balanced corpus" — likely a much larger and more thoroughly
+sampled dataset, which is a future-session data-acquisition task.
+
 ## T2 — μ-law / log-domain L1 retrain
 
 ### What was built
