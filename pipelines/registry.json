@@ -756,6 +756,15 @@
       "raw_norm": 16383.0,
       "ckpt_sha256": "8e0b15ea9602635342003cdefd5d72c77a8c5b367857baa5196f87c92a41a30d"
     },
+    "bido_4x_ane_ml2_q3_dec2_w24": {
+      "$doc": "BIDO_4x at WIDTH 24 (722K params, 2.2x bigger than w16=325K). Capacity test from random init \u2014 tests whether the BIDO w16 architecture-ceiling is the bottleneck on the embedded PREVIEW gap. M5 training run task #4, 80 ep at batch 4 with msL1 + LPIPS \u03bb=0.10 + 5-ep warmup. Val on Z8Z_0067 + Z8Z_0100 + Z8Z_0150 + Z8Z_0200 (none of these are gate-test images except Z8Z_0067). Best ckpt at ep 41: val_lpips=0.0317 (much lower than w16's wider 0.0606).",
+      "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w24_ANE.pt",
+      "cnn_arch_variant": "F_ane_dm_sr_w24",
+      "trained_against_codec": "ml2_q3_dec2",
+      "residual_scale": 0.0,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "28933a347456f7b06cf4a76185528d4a1e4e2adf50952438245a35f27ea8c384"
+    },
     "bibo1x_ane_gpr_tools_q3": {
       "$doc": "BIBO_1x (F_ane_no_sr) CNN matched to legacy gpr_tools q=3 codec output. Target: restore legacy q=3 (7.8 MB / 64.1 dB) to legacy q=8 quality (72.7 dB) perceptually, giving us ~3\u00d7 file-size win over FUSED+CNN current ship.",
       "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q3.pt",
@@ -1311,6 +1320,13 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
       "$role": "exp-T1-bido-ood-corpus-retrain"
+    },
+    "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_w24+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "bido_4x_ane_ml2_q3_dec2_w24",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "exp-bido-w24-capacity-test"
     },
     "codec=sl_q3_hh1x2+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q3_hh1x2",

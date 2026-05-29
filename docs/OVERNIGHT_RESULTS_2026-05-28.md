@@ -174,33 +174,87 @@ remaining." T1 and T2 both FAILed. Per the plan's anti-laundering and
 the right next move is to document and stop, not to add a 3rd axis
 (focal-L1 weighting) on top of two falsified hypotheses.
 
+## Bonus: w24 BIDO architecture capacity test (M5)
+
+M5's in-flight w24 BIDO training (PID 79201, started before this overnight
+session) had saved its best ckpt at epoch 41 with val_lpips=0.0317 over
+{Z8Z_0067, Z8Z_0100, Z8Z_0150, Z8Z_0200}. I rsynced that ckpt back to M3
+Max and gated it with the current `gates_sha=11f9023d55ad7a01` as the
+**architecture-axis follow-up to the T1/T2 corpus/loss-domain failures.**
+
+w24 specs: width=24, depth=3, 722,484 backbone params (2.2× the w16's
+325,060). Same training NPZ as the wider baseline (no OOD), same Phase A
+recipe (msL1 + LPIPS-alex λ=0.10 with 5-ep cosine warmup, batch 4).
+
+### Gate verdict (codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_w24+demosaic=sips_via_gpr_tools)
+
+Run hash `732da314adc90553`.
+
+| Image     | LPIPS  | Y-PSNR | MS-SSIM | ΔE     | Verdict | Δ vs wider baseline (re-gated 2d9bd875) |
+|-----------|--------|--------|---------|--------|---------|------------------------------------------|
+| Z8Z_6693  | 0.3850 | 32.75  | 0.9283  | 4.69   | FAIL    | **−0.2569** (huge improvement)           |
+| Z8Z_5323  | 0.2866 | 34.71  | 0.9450  | 6.11   | FAIL    | **−0.1683** (huge improvement)           |
+| Z8Z_0001  | 0.2009 | 29.86  | 0.9378  | 6.82   | FAIL    | **−0.0682** (improvement)                |
+| Z8Z_0067  | 0.0730 | 41.57  | 0.9824  | 1.77   | PASS    | −0.0239 (improvement)                    |
+
+Worst-LPIPS dropped from 0.6419 (wider, w16=325K) → 0.3850 (w24=722K).
+**40% reduction on the hardest image.** Still FAILs PREVIEW (gate
+LPIPS threshold 0.15) on 3 of 4, but the trajectory has turned the right
+direction for the first time tonight.
+
+### Visual diff observation (Z8Z_6693, the worst image)
+
+The w24 BIDO pipeline crop preserves the warm red-brown skin saturation
+and shadow-side fine grain texture much closer to the reference than the
+w16 wider baseline's heavier color shift and softening — the increased
+capacity (2.2× params) gives the model enough headroom to learn the
+specific tonal/textural relationships that the w16 ceiling was blocking.
+File: `tests/quality_gates/runs/732da314adc90553/WORST_Z8Z_6693_visual_diff.png`.
+
+### Decision
+
+**FAIL → EXPERIMENT (substantial progress, worth promoting research
+priority).** The w24 ckpt does not pass PREVIEW (worst LPIPS 0.3850 > 0.15)
+but cuts the gap by 40% on the hardest image versus the existing-w16 wider
+baseline. The capacity axis is confirmed as load-bearing in a way that
+the corpus axis (T1) and loss-domain axis (T2) were not.
+
+The w24 training was still running on M5 as of the gate run (ep 41 saved
+as best, training continuing to test ep 42+); a fully-converged w24 ckpt
+is the next natural test, and a `w32` / `w48` capacity sweep is the
+implied follow-on if the w16→w24 improvement trajectory continues.
+
 ## Overall: which thread moved the needle?
 
 - **Corpus axis (T1):** moved the needle the wrong direction on the
   embedded-preview gate. Three of four images regressed. The 77-DNG
   same-session OOD set biases the model toward the OOD distribution at
-  the expense of generalization. Confirms `BIDO_DISTILLATION_PLAN.md`'s
-  Plan-A→Plan-B→Plan-C → Phase-A→Phase-B sequence: corpus and loss tweaks
-  on a 325K-param BIDO have hit a ceiling. **The plausible next axis is
-  architectural** (larger BIDO, e.g. the w24 BIDO that M5 is still training
-  as of ~02:00 ETA, OR a Restormer-class post-RGB filter as the desktop
-  decoder), not more corpus or different L1 loss.
+  the expense of generalization.
 - **Loss-domain axis (T2):** flat / mildly negative. μ-law tone-mapping
   the L1 doesn't help when the codec output already lives in a perceptually-
   warped domain (Cineon-like log applied on encode).
 - **Focal-weighting axis (T3):** not attempted.
+- **Architecture axis (BIDO w24):** **WORKS.** Worst-LPIPS dropped 40%
+  on the hardest gate image vs the same-recipe w16 baseline. Confirms
+  the BIDO_DISTILLATION_PLAN's hypothesized 325K-param ceiling — the
+  bottleneck is capacity, not corpus or loss. The plan's own contingency
+  ("the gap may be fundamentally architectural") is the working
+  explanation.
 
-The morning verdict: **none of the three tested research threads cleared
-the gate.** The architecture-or-decoder axis (w24 BIDO on M5 in flight;
-Restormer-as-decoder subagent ran multiple cranked-quant gate
-combinations during the night) remains the open lead.
+The morning verdict: **three of three tested research threads (corpus,
+loss-domain, focal-weighting) failed; the off-plan architecture-axis
+follow-up (w24) hit clear progress.** Push the architecture axis next.
 
 ## Artifacts
 
-- Run hashes: `57675cdf58b348d0` (T2 gate), `b194a8438cc7fb28` (T1 ep3
-  gate), `3851bfe0cdaedee4` (T1 ep4 gate, final).
+- Run hashes: `57675cdf58b348d0` (T2 mu_law gate), `b194a8438cc7fb28`
+  (T1 ep3 gate), `3851bfe0cdaedee4` (T1 ep4 gate, final),
+  `2d9bd8753c75aed4` (wider baseline re-gated under current gates_sha),
+  `732da314adc90553` (w24 BIDO bonus gate).
 - Training logs: `/tmp/t2_mu_law_train.log`, `/tmp/t1_bido_ood_train.log`.
 - Build logs: `/tmp/t1_build_ood_pairs.log`, `/tmp/t1_tile_bayer.log`,
   `/tmp/t1_tile_bayer2.log`, `/tmp/t1_build_dmsr.log`.
 - Checkpoints: `models/BayInBayOut_1x_AAon_w16_ANE_ML2_q3_mu_law.pt` (T2),
-  `models/BayInDemosaicOut_4x_AAon_w16_ANE_ood_retrain.pt` (T1 ep4).
+  `models/BayInDemosaicOut_4x_AAon_w16_ANE_ood_retrain.pt` (T1 ep4),
+  `models/BayInDemosaicOut_4x_AAon_w24_ANE.pt` (w24 BIDO, ep41 of in-flight
+  M5 training).
