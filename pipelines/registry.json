@@ -1290,7 +1290,8 @@
       "cnn": "bibo1x_ane_gpr_tools_q3",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
-      "$role": "experiment-still-q0-with-q3-trained-cnn"
+      "$role": "ship-still-smallest",
+      "$doc": "STILL smallest ship — legacy CineForm q=0 + matched-q3 CNN. 9.80 MB mean (35% smaller than the q=3 primary tier). Worst LPIPS 0.0314 (vs 0.05 ceiling). The matched-q3 CNN generalizes down to q=0 with no retrain required. Use when storage is the constraint and visible quality holds (verified 2026-05-28 via the q-level decision dashboard)."
     },
     "codec=gpr_tools_q1+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
       "codec": "gpr_tools_q1",

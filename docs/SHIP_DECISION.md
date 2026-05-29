@@ -17,10 +17,18 @@ to prevent mode confusion. See `tests/quality_gates/check_registry_consistency.p
 
 ## TL;DR — Stills (legacy CineForm VC5 encoder)
 
+Three-tier ship (decision logged 2026-05-28):
+
 | ship | pipeline | worst LPIPS | mean MB | verdict |
 |---|---|---:|---:|---|
+| **STILL smallest** | `codec=gpr_tools_q0+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools` | **0.031** | **9.80** | **PASS** |
 | **STILL primary** | `codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools` | **0.016** | **15.05** | **PASS** |
-| STILL archival (no CNN needed) | `codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools` | **0.004** | **27.17** | **PASS** |
+| **STILL archival** (no CNN) | `codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools` | **0.004** | **27.17** | **PASS** |
+
+2.8× storage span across the three tiers, all PASS STILL. The matched-q3
+CNN trained for the primary tier generalizes down to q=0 (no retrain
+required), which is what makes the smallest tier work — same CNN
+checkpoint serves both q=0 and q=3 on the decoder.
 
 The legacy encoder is **content-adaptive**: 7.8 MB on sky (Z8Z_0067), 21 MB on busy portrait (Z8Z_6693) at q=3. 4-image mean 15 MB.
 
@@ -90,11 +98,17 @@ mode the scaffolding exists to prevent.
 
 ### Stills (STILL gate, legacy CineForm VC5 encoder)
 
+- **`codec=gpr_tools_q0+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools`**
+  — STILL smallest. Worst LPIPS 0.031 (still well under the 0.05
+  ceiling). 9.80 MB mean — 35% smaller than the primary tier. Uses the
+  same matched-q3 CNN checkpoint as the primary; no separate retrain.
+  Pi 5 encode: 1.72 fps best (slightly faster than q=3 since the codec
+  side does less wavelet work at q=0).
 - **`codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools`**
-  — STILL primary. Worst LPIPS 0.016 across the 4-image test set; CNN
-  restores the codec's lossy output to visual-lossless. 15.05 MB mean
-  per image. Pi 5 encode: **1.84 fps best** at q=3 (Cortex-A76, post the
-  2026-05-28 parallel-DNG-read perf work).
+  — STILL primary. Worst LPIPS 0.016, 15.05 MB mean. The canonical
+  "general-purpose" tier: CNN restores the codec's lossy output to
+  visual-lossless. Pi 5 encode: **1.84 fps best** at q=3 (Cortex-A76,
+  post the 2026-05-28 parallel-DNG-read perf work).
 - **`codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools`** — STILL
   archival, no CNN needed. Worst LPIPS 0.0035, 27.17 MB. Codec at q=8
   is already below the STILL ceiling without restoration.
