@@ -1,56 +1,88 @@
-# GPR 2.0 — General Purpose Raw, now for video
+# GPR — wavelet raw codec, contributed back
 
-GPR is a wavelet-based raw image codec built on SMPTE ST 2073 (VC-5) and originally
-released by GoPro for compressed Bayer stills inside a DNG-compatible container. **GPR 2.0
-extends that codec into a production raw-video pipeline**: a fused single-pass encoder,
-a three-thread submit→encode→write pipeline with adaptive bitrate, a simple frame
-container, and enough ARM64 NEON to sustain 24 fps × 45 MP onto consumer UHS-II V90
-microSD cards. The stills path, CLI, and on-disk GPR format are unchanged and remain
-fully compatible with Adobe Camera Raw, Lightroom, and Photoshop.
+> **Open-source visually-lossless raw codec for stills and 24 fps × 50 MP video.**
+> Built on SMPTE ST 2073 (VC-5), descended from GoPro's CineForm, retargeted at
+> Apple Silicon and Cortex-A76 (Raspberry Pi 5) with a matched-CNN restoration
+> path that holds visual quality below 10 MB per 50 MP frame.
 
-## What's new in 2.0
+![GPR wavelet decomposition](data/readmegfx/level3-640.png)
 
-- **Fused encoder** — Bayer unpack → 2-level wavelet → quantize → frequency count in
-  one streaming pass with no full-frame intermediate arrays. ~22 ms per 45 MP frame
-  on an M1 at q=3, including NEON color conversion, NEON vertical/horizontal filters,
-  and NEON-vectorized frequency counting.
-- **Pipelined video API** — `gpr_video_encoder_create()` in
-  `source/lib/vc5_encoder/gpr_video.h`. Caller, encoder, and writer run on
-  separate threads with two SPSC ring buffers; submit() applies natural
-  backpressure to the caller.
-- **Adaptive bitrate** — proportional rate controller modulates per-frame
-  quantization toward a target MB/s, smoothing the 3-4× content swing between
-  clean ISO 64 and noisy ISO 22800 down to within 7%.
-- **Dual-encoder ping-pong** — opt-in `gpr_video_encoder_create_dual(..., 2, ...)`
-  runs two fused-encoder contexts in parallel, dispatched by frame tag.
-  +40% throughput on M1 in the encoder-bound regime.
-- **Container format** — `gpr_video_format.h` defines a self-describing
-  32-byte clip header + 16-byte per-frame headers. Decoders can seek and
-  reject incompatible versions without parsing bitstream content.
-- **Wavelet-domain BayesShrink denoise** — auto-enabled on DNG inputs that
-  carry a `NoiseProfile`. 3-38% size win at SSIM 0.9998.
-- **Production-ready signaling** — writer callback can return `<0` for fatal
-  I/O errors (encoder aborts, drops pending frames, unblocks destroy);
-  `gpr_video_encoder_cancel()` provides force-cancel from any thread.
-- **ARM64 NEON paths** auto-enabled on ARM64 builds. Optional polynomial-log
-  curve (`FUSED_LOG_POLYNOMIAL=ON`) tuned for smaller L1d caches typical of
-  Cortex-A76 (Pi 5) and Cortex-A78 (future embedded targets).
-- **Six test binaries** covering band-level roundtrip, full PSNR, edge sizes,
-  pipeline simulation with throttled storage, force-cancel/abort, and full-chain
-  integration.
+---
+
+## What ships today
+
+### Stills — three-tier ship, all visual-lossless on the gate
+
+| tier        | mean MB / 50 MP | worst LPIPS | what it is |
+|---          |---:             |---:         |---|
+| smallest    | **9.80**        | 0.031       | `gpr_tools -q 0` + matched-q3 CNN |
+| primary     | **15.05**       | 0.016       | `gpr_tools -q 3` + matched-q3 CNN |
+| archival    | **27.17**       | 0.004       | `gpr_tools -q 8`, no CNN needed   |
+
+All three clear the perceptual gate (LPIPS ≤ 0.05, MS-SSIM ≥ 0.99, Y-PSNR ≥
+35 dB, ΔE2000 ≤ 1.5). **2.8× storage span across the tiers; one CNN
+checkpoint serves the two CNN-using tiers** — the matched-q3 model
+generalizes down to q=0 with no retrain. See
+[`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md).
+
+### Video — 24 fps × 50 MP raw on Pi 5
+
+| pipeline                          | fps (Pi 5) | per-frame MB | sustained MB/s |
+|---                                |---:        |---:          |---:            |
+| `ml2_q3_dec2` (half-res capture)  | **24.93**  | 1.30         | 31             |
+| `ml2_q3_l1x2`  (full-res desktop) | n/a*       | 7.81         | 187 @ 24 fps   |
+
+\* Pi 5 maxes ~1.84 fps at full 50 MP — full-res is a desktop/post-process
+ship, not embedded capture. Sustained 24.93 fps embedded capture verified
+on Pi 5 USB-SSD writes with page cache exhausted (`docs/pi5_bench_2026-05-26.md`).
+
+---
+
+## Today's headline numbers (2026-05-28 perf pass)
+
+Two consecutive perf wins on the Raspberry Pi 5 capture target landed today:
+
+```
+                                Z8Z_0067 q=3, best of 3 wall clock
+  baseline (pre-2026-05-28):          1577 ms     0.57 fps
+   + metadata-skip plumbing:           966 ms     1.04 fps     (38% off)
+   + parallel DNG SDK tile read:       544 ms     1.84 fps     (43% more)
+                                       ──────
+                                  2.89× speedup, bitstream byte-identical
+```
+
+The big win was discovering and fixing a **latent Adobe DNG SDK bug**: its
+vendored `qDNGThreadSafe` macro excluded Linux entirely, making the
+SDK's mutex layer a silent no-op. The SDK was *architected* for
+multi-threaded tile decode (`dng_read_tiles_task` ships with a
+mutex-protected work queue and per-thread buffers) — it was just never
+wired up. Three commits later, the embedded video target nearly tripled
+its throughput, bit-exact identical to the serial output, deterministic
+across 10/10 runs. See
+[`docs/STILLS_PI5_TIMING.md`](docs/STILLS_PI5_TIMING.md).
+
+Mac M3 Max gets the same fix: Z8 50 MP q=3 dropped **819 → 212 ms (3.86×)**.
+
+---
 
 ## 30-second quick start
 
 ```bash
-git clone https://github.com/gopro/gpr
-cd gpr
-mkdir build && cd build
-cmake .. && make
-# stills:
-./source/app/gpr_tools/gpr_tools -i ../data/samples/input.DNG -o output.GPR
-# video round-trip test:
-./source/app/test_video_full_roundtrip
+git clone https://github.com/dcliftreaves/gpr
+cd gpr && mkdir build && cd build && cmake .. && make
+
+# stills — encode a DNG to GPR, decode back
+./source/app/gpr_tools/gpr_tools -i ../data/samples/input.DNG -o out.GPR
+./source/app/gpr_tools/gpr_tools -i out.GPR -o roundtrip.DNG
+
+# video — full-chain integration test
+./source/app/test_video_full_chain
 ```
+
+The output `.GPR` is a DNG-compatible container — Adobe Camera Raw,
+Lightroom, and Photoshop open it directly without GPR-specific software.
+
+---
 
 ## Encode a video frame in 10 lines of C
 
@@ -72,8 +104,14 @@ gpr_video_encoder_destroy(enc);   /* flushes + joins */
 fclose(out);
 ```
 
-For the dual-encoder variant, swap in `gpr_video_encoder_create_dual(..., 2, ...)`
-on machines with ≥4 cores.
+Caller → encoder → writer run on three threads with two SPSC ring buffers.
+`submit()` applies natural back-pressure to the caller; the encoder
+back-pressures on slow storage. The inner fused encoder already saturates
+4 cores via channel-parallel wavelet + band-parallel encode; dual-encoder
+ping-pong (`gpr_video_encoder_create_dual(..., 2, ...)`) adds a second
+context for wider hosts.
+
+---
 
 ## Architecture
 
@@ -81,88 +119,108 @@ on machines with ≥4 cores.
 Caller thread       Encoder thread          Writer thread
 ─────────────       ──────────────          ─────────────
     submit() ─→  input ring ─→  encode  ─→  output ring  ─→  writer_fn()
+
+                 channel-parallel
+                 wavelet + NEON
+                 band-parallel
+                 entropy encode
 ```
 
-Two SPSC ring buffers. The encoder thread owns one fused-encoder context
-that internally uses 4 worker threads (channel-parallel Pass 1, band-parallel
-Pass 2). One encoder thread is enough because the inner fused encoder already
-saturates 4 cores; `encoder_count=2` ping-pong mode adds a second context for
-high-core machines.
+### Stills path
+Legacy CineForm VC5 encoder + matched BIBO_1x CNN restoration. The CNN
+runs decoder-side only; the `.GPR` on disk is unchanged. The matched-q3
+CNN learns the codec's quantization distribution, generalizes across q
+levels, and recovers visual-lossless quality from heavy quantization.
 
-`submit()` blocks when the input ring is full — natural backpressure to the
-caller. The encoder blocks when the output ring is full — natural backpressure
-on slow storage (microSD GC pauses, etc.).
+### Video path
+FUSED multi-level wavelet (2-level, Bayer in → Bayer out → quantize →
+frequency-count → entropy code, single streaming pass with no
+full-frame intermediate). Adaptive bitrate target via proportional rate
+control. Pi 5 capture goes through the half-resolution path
+(`ml2_q3_dec2`) which decimates at the codec's input.
 
-See `source/lib/vc5_encoder/gpr_video.h` for the full API contract and
-`docs/operating-envelope.md` for measured numbers.
+### Wavelet decomposition
 
-## Documentation
+![GPR wavelet decomposition — 1 level](data/readmegfx/level1-640.png)
 
-**Read-this-first artifacts (current state, 2026-05-28):**
+After one forward wavelet transform: low-low band (top-left), and three
+detail bands containing the high frequencies. The codec quantizes the
+detail bands aggressively; the matched CNN learns to invert that
+quantization on decode.
 
-- **`docs/README.md`** — docs index. What to read for what.
-- **`docs/SHIP_DECISION.md`** — what ships today by ship class (STILL,
-  VIDEO_FREEZE, PREVIEW). Two production modes:
-  stills via legacy CineForm VC5 encoder, video via multi-level FUSED.
-- **`docs/VIDEO_STATUS.md`** — current state of the video pipeline,
-  Pi 5 capture path, and the BIDO restoration gap.
-- **`docs/TESTING_METHODOLOGY.md`** — three test layers (codec
-  regression, perceptual gate, capture-side bench) and how they
-  compose.
-- **`docs/STILLS_PI5_TIMING.md`** — Pi 5 stills encode timing across q
-  levels, including the 2026-05-28 perf wins (parallel DNG SDK read,
-  metadata-skip).
-- **`docs/SPEC.md`** — formal bitstream format specification (the OEM-
-  contributable artifact).
-- **`docs/CAPABILITIES.md`** — capability matrix (auto-generated by
-  `tools/test/test_capabilities.py`).
+---
 
-**Historical (kept for audit trail; don't use as current state):**
+## Honest engineering posture
 
-- `docs/REGRESSION_2026-05-25.md` — the multi-level cascade regression
-  that prompted the codification of single-level-default and the
-  walk-back of the cranked-quant numbers.
-- `docs/AUTONOMOUS_RUN_2026-05-25.md`, `docs/SESSION_SUMMARY_*.md` —
-  dated session summaries. Decay quickly; `git log` is the live history.
-- `docs/methodology_cnn_aware_quant.md`, `docs/quant_calibration_findings.md`
-  — empirical findings from the multi-level era; some figures need
-  re-validation against the current single-level + matched-CNN ship.
-- `docs/perf_findings_20260525.md` — earlier playback pipeline profile.
+We measure, we name what failed, we don't ship language without an
+operator signature on a passing gate. Concrete examples from this
+week:
 
-**Background:**
+- **Three Pi 5 perf passes landed (2.89× total).** One was a 1-line
+  plumbing skip; one parallelized the DNG SDK and exposed a vendored
+  bug; one rewired the video Pass-2 fanout to a worker pool on narrow
+  hosts. All bitstream-identical to the pre-perf serial output.
+- **One Pi 5 perf attack returned null.** FFTW/FFmpeg-style cache-line
+  alignment of the legacy encoder's scratch buffers measured ≤2% on
+  both Pi 5 and Mac M3 Max. Below the ship bar, no commits landed.
+  Documented in the commit log; not hidden.
+- **BIDO Phase B distillation failed PREVIEW gate.** Restormer-as-teacher
+  introduced a color-space mismatch the documented plan didn't anticipate;
+  the pivot to feeding the gate target instead reduced the teacher signal
+  to near-zero. Worst-image LPIPS regressed 0.45 → 0.49 on the hard image.
+  Logged as a FAIL run; diagnosis written up
+  ([`docs/CORPUS_EXPANSION_PLAN.md`](docs/CORPUS_EXPANSION_PLAN.md));
+  fix is data acquisition, not loss engineering.
 
-- `docs/operating-envelope.md` — measured fps, file sizes, PSNR, and storage-class fit
-- `docs/v2-migration-guide.md` — upgrade notes from the original stills-only GPR
-- `docs/followups.md` — known follow-ups and parking lot
-- `docs/architecture.md` — original VC-5 / GPR codec architecture notes
-- `docs/format-spec-v2.md` — bitstream and container specifications (predates `docs/SPEC.md`)
-- `CHANGELOG.md` — what changed in 2.0
+The full quality gate is in `tests/quality_gates/`:
 
-Example test binaries (built from `source/app/test_video_*.c`) double as
-example code. They cover band-level decode verification, full PSNR
-measurement, pipeline simulation under throttled storage, and abort/force-cancel
-flows.
+```bash
+python3 tests/quality_gates/run_gate.py codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools
+python3 tests/quality_gates/audit_ship_pipelines.py
+```
 
-## Build requirements
+Every ship-claim is per-image worst-case (no aggregate hides a regression)
+and routed through an operator inspection sentence into
+[`docs/claims_log.md`](docs/claims_log.md) before any "PASS" is published.
 
-- **CMake ≥ 3.5.1** (per the existing GPR build)
+---
+
+## Documentation map
+
+| if you want to know… | read |
+|---|---|
+| what ships today, by class | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) |
+| stills vs video — two production modes | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) |
+| how testing layers compose | [`docs/TESTING_METHODOLOGY.md`](docs/TESTING_METHODOLOGY.md) |
+| Pi 5 encode timing per q | [`docs/STILLS_PI5_TIMING.md`](docs/STILLS_PI5_TIMING.md) |
+| full codec × CNN × verdict matrix | [`docs/FULL_PIPELINE_MATRIX.md`](docs/FULL_PIPELINE_MATRIX.md) |
+| OEM-contributable bitstream spec | [`docs/SPEC.md`](docs/SPEC.md) |
+| auto-generated capability matrix | [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) |
+
+Full index: [`docs/README.md`](docs/README.md).
+
+---
+
+## Build
+
+- **CMake ≥ 3.5.1**
 - **C99 + C++11** toolchain
 - **pthreads** (POSIX or Windows)
-- **ARM64 NEON** is auto-enabled on ARM64 builds (M1, M2, Cortex-A76+ / A78)
-  and is the path that meets the 24 fps × 45 MP envelope. The codec also
-  builds on x86_64 with the scalar paths.
-- No new external dependencies beyond what GPR 1.x already required.
+- **ARM64 NEON** auto-enabled on ARM64 (Apple Silicon, Cortex-A76+ / A78).
+  Also builds on x86_64 with scalar paths.
 
-Tested on:
-- macOS 14 / Apple Silicon with Xcode 15
-- Linux x86_64 with gcc 9+
-- Windows 10/11 with Visual Studio 2019/2022 (see `.github/workflows/`)
+Tested on macOS 14+ / Apple Silicon (Xcode 15), Linux x86_64 (gcc 9+),
+Raspberry Pi 5 (Cortex-A76, Debian Bookworm), Windows 10/11 (VS 2019/2022).
+
+No new external dependencies beyond what GPR 1.x already required.
+
+---
 
 ## License
 
-GPR 2.0 is dual-licensed under Apache-2.0 or MIT at your option, identical to
-the original GPR release.
+GPR is dual-licensed under Apache-2.0 or MIT at your option, identical to
+the original GoPro release.
 
-- `LICENSE-APACHE` — Apache License, Version 2.0
-- `LICENSE-MIT` — MIT License
+- [`LICENSE-APACHE`](LICENSE-APACHE)
+- [`LICENSE-MIT`](LICENSE-MIT)
 
