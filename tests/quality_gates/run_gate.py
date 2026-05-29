@@ -213,11 +213,31 @@ def apply_cnn(bayer: np.ndarray, cnn: dict):
     The variant is read from the checkpoint metadata; the registry's
     cnn_arch_variant is a fallback. The "rgb" return tag signals downstream
     code to skip demosaic_to_png and use the RGB result directly."""
-    if cnn.get("ckpt_path") is None:
+    if cnn.get("ckpt_path") is None and cnn.get("cnn_arch_variant") != "ycbcr_decomp":
         return bayer
     if cnn.get("cnn_arch_variant") == "restormer_post_rgb":
         # Bayer path is a no-op; the post-RGB stage runs after demosaic.
         return bayer
+    if cnn.get("cnn_arch_variant") == "ycbcr_decomp":
+        # Per-channel decomposition (PREVIEW_CHANNEL_DECOMP_PLAN Variant A).
+        # Three CNNs in YCbCr space, recombined via inverse BT.709. The CNN
+        # entry must carry ckpt_y / ckpt_cb / ckpt_cr fields with relative
+        # paths inside the repo (under models/).
+        sys.path.insert(0, str(REPO / "tools/cnn"))
+        from run_ycbcr_decomp import run_ycbcr_decomp
+        ckpts = {}
+        for k in ("ckpt_y", "ckpt_cb", "ckpt_cr"):
+            p = cnn.get(k)
+            if p is None:
+                die(2, f"ycbcr_decomp CNN entry missing field '{k}'")
+            cp = REPO / p
+            if not cp.exists():
+                die(2, f"ycbcr_decomp checkpoint missing: {cp}")
+            ckpts[k] = str(cp)
+        raw_norm = cnn.get("raw_norm", 16383.0)
+        rgb_u8 = run_ycbcr_decomp(bayer, ckpts["ckpt_y"], ckpts["ckpt_cb"],
+                                  ckpts["ckpt_cr"], raw_norm=raw_norm)
+        return ("rgb", rgb_u8)
     import torch
     import torch.nn.functional as F
     sys.path.insert(0, str(REPO / "tools/cnn"))

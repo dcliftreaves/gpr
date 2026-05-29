@@ -253,6 +253,19 @@ VARIANTS["bido_4x_w32"] = VARIANTS["F_ane_dm_sr_w32"]
 VARIANTS["F_ane_no_sr_w24"] = VARIANTS["F_ane_w24_no_sr"]
 VARIANTS["F_ane_no_sr_w32"] = VARIANTS["F_ane_w32_no_sr"]
 
+# --- YCbCr per-channel decomposition variants (PREVIEW_CHANNEL_DECOMP_PLAN
+# Variant A). Bayer in (4ch half-res), single-channel out (Y or Cb or Cr) at
+# 4× spatial scale to match the BIDO output dims. Reuses the sr4x output head
+# (two PixelShuffle stages) so the spatial scaling is identical to BIDO; only
+# the final out_c=1 differs. The narrower w8 variant is for the chroma
+# channels which carry less high-frequency content.
+VARIANTS.update({
+    "F_ane_no_sr_w16_y": dict(width=16, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
+                              sr=False, sr4x=True, in_c=4, out_c=1),
+    "F_ane_no_sr_w8_chroma": dict(width=8, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
+                                  sr=False, sr4x=True, in_c=4, out_c=1),
+})
+
 
 def build_lk(tag, dw_kernel=7):
     """Build a large-kernel variant. tag is one of the standard F_ane variants;
