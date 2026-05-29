@@ -166,10 +166,21 @@ def tgt_rgb_teacher_from_mem(d, idx):
 
 
 class TileDS(Dataset):
-    def __init__(self, mem, indices, augment=True):
+    def __init__(self, mem, indices, augment=True,
+                 exposure_aug_prob=0.0, exposure_aug_range=4.0):
         self.mem = mem; self.indices = indices; self.augment = augment
         self.has_rgb = mem.get("_has_rgb_target", False)
         self.has_teacher = mem.get("_has_teacher_target", False)
+        # Random-exposure augmentation. With probability `exposure_aug_prob`,
+        # multiply BOTH input (codec planes) AND target (tgt_rgb, optional
+        # teacher) by a log-uniform factor f ∈ [1/R, R]. This teaches the
+        # model brightness invariance — works around a brightness-skewed
+        # corpus without needing to rebalance the dataset (Real-ESRGAN
+        # degradation-pipeline pattern; Hanji 2024 sec 4.2). Symmetric
+        # application preserves the codec→clean mapping; only the absolute
+        # operating brightness shifts. Disabled by default (prob=0).
+        self.exposure_aug_prob = float(exposure_aug_prob)
+        self.exposure_aug_log_range = float(np.log2(max(exposure_aug_range, 1.0)))
     def __len__(self): return len(self.indices)
     def __getitem__(self, i):
         idx = self.indices[i]
@@ -192,6 +203,23 @@ class TileDS(Dataset):
                 codec = codec[[2, 3, 0, 1]]
                 if tgt_teacher is not None:
                     tgt_teacher = tgt_teacher[:, ::-1, :].copy()
+            # Random-exposure augmentation (after flips so flips are
+            # exposure-independent; symmetric on input + targets so the
+            # codec→clean relationship is preserved).
+            if (self.exposure_aug_prob > 0.0
+                    and np.random.rand() < self.exposure_aug_prob):
+                log_f = np.random.uniform(-self.exposure_aug_log_range,
+                                          self.exposure_aug_log_range)
+                f = float(2.0 ** log_f)
+                # Both codec and tgt_rgb live in [0, 1] (codec divided by
+                # RAW_NORM=16383; tgt_rgb divided by 255). Multiplying by
+                # f then clipping to [0, 1] is equivalent to "clip to
+                # sensor max" in the sensor-domain framing.
+                codec = np.clip(codec * f, 0.0, 1.0).astype(codec.dtype)
+                tgt = np.clip(tgt * f, 0.0, 1.0).astype(tgt.dtype)
+                if tgt_teacher is not None:
+                    tgt_teacher = np.clip(tgt_teacher * f, 0.0, 1.0).astype(
+                        tgt_teacher.dtype)
         codec_t = torch.from_numpy(np.ascontiguousarray(codec)).float()
         tgt_t = torch.from_numpy(np.ascontiguousarray(tgt)).float()
         if tgt_teacher is not None:
@@ -220,7 +248,10 @@ def train(args):
     train_idx = [i for i in range(N) if src[i] not in val_src]
     val_idx   = [i for i in range(N) if src[i] in val_src]
     print(f"  train tiles: {len(train_idx)}  val tiles: {len(val_idx)}", flush=True)
-    tr = DataLoader(TileDS(d, train_idx, augment=True),  batch_size=args.batch,
+    tr = DataLoader(TileDS(d, train_idx, augment=True,
+                           exposure_aug_prob=args.exposure_aug_prob,
+                           exposure_aug_range=args.exposure_aug_range),
+                    batch_size=args.batch,
                     shuffle=True,  num_workers=0)
     va = DataLoader(TileDS(d, val_idx,   augment=False), batch_size=args.batch,
                     shuffle=False, num_workers=0)
@@ -460,6 +491,14 @@ def main():
     ap.add_argument("--teacher-weight", type=float, default=0.0,
                     help="β: weight on msL1(pred, tgt_rgb_teacher). Requires NPZ "
                          "with tgt_rgb_teacher field. 0 disables distillation.")
+    # Random-exposure augmentation (Real-ESRGAN / Hanji 2024 style).
+    # Disabled by default so legacy training runs are unaffected.
+    ap.add_argument("--exposure-aug-prob", type=float, default=0.0,
+                    help="Per-tile probability of applying a random-exposure "
+                         "multiplier to BOTH input and target. 0 disables.")
+    ap.add_argument("--exposure-aug-range", type=float, default=4.0,
+                    help="Exposure factor sampled log-uniformly in "
+                         "[1/range, range]. Default 4.0 -> [-2, +2] stops.")
     args = ap.parse_args()
     train(args)
 
