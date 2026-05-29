@@ -493,6 +493,38 @@
       "encoder_kind": "legacy_gpr_tools",
       "env": {},
       "use_for": "still"
+    },
+    "gpr_tools_q4": {
+      "$doc": "Legacy CineForm VC5 at q=4.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 4,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
+    },
+    "gpr_tools_q5": {
+      "$doc": "Legacy CineForm VC5 at q=5.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 5,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
+    },
+    "gpr_tools_q6": {
+      "$doc": "Legacy CineForm VC5 at q=6.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 6,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
+    },
+    "gpr_tools_q7": {
+      "$doc": "Legacy CineForm VC5 at q=7.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 7,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
     }
   },
   "cnns": {
@@ -651,6 +683,15 @@
       "residual_scale": 0.0,
       "raw_norm": 16383.0,
       "ckpt_sha256": "151bce4c72aa32394bc3acbb61db45dc4ab2f58a88bce04b0784b2f8bd516b1d"
+    },
+    "bido_4x_ane_ml2_q3_dec2_distill": {
+      "$doc": "BIDO_4x Phase B distillation (Restormer teacher, \u03b2=1.0). Fine-tuned from _lpips.pt with loss = msL1(pred, tgt_rgb) + 1.0*msL1(pred, tgt_rgb_teacher_masked) + 0.1*LPIPS_alex(pred, tgt_rgb). Teacher is Restormer real_denoising.pth applied to tgt_rgb (sips-rendered clean) on stride-4 subsample of 4980/19920 training tiles. Trained 25/40 epochs (stopped early; best val LPIPS at ep 21 = 0.0293, vs Phase A init 0.0360 \u2014 19% tile-domain improvement). \u03b2-ablation \u03b2 \u2208 {0.25, 0.5, 1.0}: \u03b2=1.0 won (least tile-val regression). Co-design memory: feedback_no_eval_laundering applies \u2014 tile-domain val \u2260 gate metric.",
+      "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w16_ANE_distill.pt",
+      "cnn_arch_variant": "bido_4x",
+      "trained_against_codec": "ml2_q3_dec2",
+      "residual_scale": 0.0,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "a0264f96c32610bdcc50d046d6d6699db728ab43e212ceef2650fc7b4293aa1d"
     },
     "bibo1x_ane_gpr_tools_q3": {
       "$doc": "BIBO_1x (F_ane_no_sr) CNN matched to legacy gpr_tools q=3 codec output. Target: restore legacy q=3 (7.8 MB / 64.1 dB) to legacy q=8 quality (72.7 dB) perceptually, giving us ~3\u00d7 file-size win over FUSED+CNN current ship.",
@@ -1163,6 +1204,13 @@
       "ship_class": "PREVIEW",
       "$role": "embedded-preview-bido-lpips-finetune"
     },
+    "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_distill+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "bido_4x_ane_ml2_q3_dec2_distill",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "embedded-preview-bido-restormer-distill"
+    },
     "codec=sl_q3_hh1x2+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q3_hh1x2",
       "cnn": "bibo1x_ane_sl_q3",
@@ -1257,6 +1305,34 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
       "$role": "experiment-still-q2-with-q3-trained-cnn"
+    },
+    "codec=gpr_tools_q4+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q4",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "experiment-still-q4-no-cnn"
+    },
+    "codec=gpr_tools_q5+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q5",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "experiment-still-q5-no-cnn"
+    },
+    "codec=gpr_tools_q6+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q6",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "experiment-still-q6-no-cnn"
+    },
+    "codec=gpr_tools_q7+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q7",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "experiment-still-q7-no-cnn"
     }
   },
   "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28."
