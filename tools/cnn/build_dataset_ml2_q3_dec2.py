@@ -18,11 +18,17 @@ import rawpy
 REPO = "/Users/dcliftreaves/Documents/Github/gpr"
 ROUNDTRIP = f"{REPO}/build-local/bin/test_fused_roundtrip"
 OUT_DIR = os.environ.get("OUT_DIR", "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2")
-DNG_DIRS = [
+_DEFAULT_DNG_DIRS = [
     "/Volumes/OWC_8TB/barnsky_full_dngs",
     "/Volumes/OWC_8TB/gpr_cnn/source_dngs_expanded",
     "/Users/dcliftreaves/dering_proto_v2/source_dngs",
 ]
+# Allow override via DNG_DIRS=dir1:dir2:dir3 — used to build pair sets that
+# target only a specific corpus subset (e.g. just the 78 OOD DNGs for the
+# corpus-axis BIDO retrain) without touching the historical pair dirs.
+_env_dng_dirs = os.environ.get("DNG_DIRS", "").strip()
+DNG_DIRS = ([d for d in _env_dng_dirs.split(":") if d]
+            if _env_dng_dirs else _DEFAULT_DNG_DIRS)
 MAX_PAIRS = int(os.environ.get("MAX_PAIRS", "200"))
 
 

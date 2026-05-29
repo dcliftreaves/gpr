@@ -164,12 +164,34 @@ def downsample_tgt_to_codec_dims(tgt, ref=None):
     return F.interpolate(tgt, scale_factor=0.5, mode="area")
 
 
-def multiscale_l1(pred, tgt, weights=(1.0, 0.5, 0.25)):
-    losses = [F.l1_loss(pred, tgt) * weights[0]]
+# μ-law (Hanji et al. SIGGRAPH Asia 2024, arxiv 2312.03640): tone-mapped
+# domain L1 outperforms linear L1 by 2-9 dB on RAW restoration. τ(x) =
+# sign(x) · log(1 + μ·|x|) / log(1 + μ) with μ=5000. Differentiable;
+# autograd handles the inverse implicitly because we apply τ symmetrically
+# to pred and target.
+_MU = 5000.0
+
+
+def mu_law(x):
+    return torch.sign(x) * torch.log1p(_MU * x.abs()) / float(np.log1p(_MU))
+
+
+def _apply_loss_domain(pred, tgt, domain):
+    if domain == "linear":
+        return pred, tgt
+    if domain == "mu_law":
+        return mu_law(pred), mu_law(tgt)
+    raise ValueError(f"unknown loss_domain: {domain}")
+
+
+def multiscale_l1(pred, tgt, weights=(1.0, 0.5, 0.25), domain="linear"):
+    p_d, t_d = _apply_loss_domain(pred, tgt, domain)
+    losses = [F.l1_loss(p_d, t_d) * weights[0]]
     p = pred; t = tgt
     for w in weights[1:]:
         p = F.avg_pool2d(p, 2); t = F.avg_pool2d(t, 2)
-        losses.append(F.l1_loss(p, t) * w)
+        p_d, t_d = _apply_loss_domain(p, t, domain)
+        losses.append(F.l1_loss(p_d, t_d) * w)
     return sum(losses)
 
 
@@ -181,12 +203,17 @@ def _get_msssim():
     return _msssim_module["fn"]
 
 
-def training_loss(pred, tgt):
+def training_loss(pred, tgt, loss_domain="linear"):
     """Composite loss. MSSSIM_LOSS_WEIGHT env (default 0) blends in a
     (1 - MS-SSIM) term to directly optimize the metric the gate uses.
     Tiles are 128x128 — MS-SSIM needs ≥88 px on the smallest scale, so
-    we use win_size=7 (covers up to 4 scales)."""
-    l1 = multiscale_l1(pred, tgt)
+    we use win_size=7 (covers up to 4 scales).
+
+    loss_domain="mu_law" applies the Hanji 2024 μ-law tone-map to BOTH
+    pred and target before the L1; MS-SSIM is unaffected (operates on
+    the clamped linear pixels because the metric is calibrated to that
+    space)."""
+    l1 = multiscale_l1(pred, tgt, domain=loss_domain)
     w = float(os.environ.get("MSSSIM_LOSS_WEIGHT", "0"))
     if w <= 0.0:
         return l1
@@ -260,7 +287,7 @@ def train(args):
                 pred = model(inp); tgt_use = tgt
             else:
                 pred = model(inp); tgt_use = downsample_tgt_to_codec_dims(tgt, ref=pred)
-            l = training_loss(pred, tgt_use)
+            l = training_loss(pred, tgt_use, loss_domain=args.loss_domain)
             opt.zero_grad(set_to_none=True); l.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step(); loss_sum += l.item(); nb += 1
@@ -312,6 +339,9 @@ def main():
     ap.add_argument("--ckpt-name", type=str, default=None)
     ap.add_argument("--dw-kernel", type=int, default=3,
                     help="dw kernel size for NAFBlock (3=default; 7 uses large-kernel variant)")
+    ap.add_argument("--loss-domain", choices=["linear", "mu_law"], default="linear",
+                    help="Apply tone-map to pred+target before L1. "
+                         "mu_law = Hanji et al. SIGGRAPH Asia 2024 (μ=5000).")
     args = ap.parse_args()
     if args.ckpt_name is None:
         args.ckpt_name = (

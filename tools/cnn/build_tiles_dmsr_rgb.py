@@ -27,15 +27,21 @@ import numpy as np
 from PIL import Image
 
 REPO = "/Users/dcliftreaves/Documents/Github/gpr"
-IN_NPZ = "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_combined.npz"
-OUT_NPZ = "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr.npz"
+IN_NPZ = os.environ.get(
+    "IN_NPZ", "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_combined.npz")
+OUT_NPZ = os.environ.get(
+    "OUT_NPZ", "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr.npz")
 RENDER_CACHE = Path("/Volumes/OWC_8TB/gpr_cnn/render_cache")
 RENDER_CACHE.mkdir(exist_ok=True)
 
-# Map base name → source DNG path
+# Map base name → source DNG path. SOURCE_DIRS env (colon-separated) appends
+# extra DNG locations on top of the default {barnsky, diverse_dngs} pair so
+# new corpora (e.g. ood_dngs_2025-04-20) can be referenced without a code edit.
+_default_dirs = ["/Volumes/OWC_8TB/barnsky_full_dngs",
+                 "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs"]
+_extra = [d for d in os.environ.get("SOURCE_DIRS", "").split(":") if d]
 SOURCE_PATHS = {}
-for d in ["/Volumes/OWC_8TB/barnsky_full_dngs",
-          "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs"]:
+for d in _default_dirs + _extra:
     if not os.path.isdir(d): continue
     for f in os.listdir(d):
         if f.lower().endswith('.dng'):
