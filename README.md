@@ -50,9 +50,33 @@ through each ship pipeline:
 
 ![Three STILL tiers, fine-detail crop](docs/img/still_three_tiers.png)
 
+Animated cycle through the three tiers on the same crop (1.5 s per
+frame) — the visible texture stays consistent across a 2.8× storage
+reduction:
+
+![Three STILL tiers animated](docs/img/q_levels_animated.gif)
+
 The 9.80 MB tier holds visible quality on sharp edges and shadow
 texture; differences vs the 27 MB archival tier are sub-perceptual on
 this content.
+
+### How GPR compares to JPEG / PNG / raw on a 50 MP Z8 frame
+
+Real numbers, hardest test image (Z8Z_6693, hair / saturated texture):
+
+```mermaid
+xychart-beta
+    title "File size, MB — Z8Z_6693, 50 MP, hardest gate image"
+    x-axis ["PNG 8-bit", "DNG raw", "JPEG q95", "GPR q=8", "JPEG q85", "GPR q=3+CNN", "GPR q=0+CNN"]
+    y-axis "MB" 0 --> 120
+    bar [108.30, 57.91, 33.80, 41.04, 18.97, 21.43, 16.61]
+```
+
+GPR at smallest tier (q=0 + CNN) lands **below JPEG quality 85** while
+remaining a fully-recoverable raw Bayer file: full bit depth, no
+demosaic baked in, CNN-restorable to visual-lossless on decode. JPEG
+discards bit depth and bakes in a one-shot demosaic; PNG triples the
+file size to preserve a lossy color render.
 
 ### Video — 24 fps × 50 MP raw on Pi 5
 
@@ -71,14 +95,15 @@ on Pi 5 USB-SSD writes with page cache exhausted (`docs/pi5_bench_2026-05-26.md`
 
 Two consecutive perf wins on the Raspberry Pi 5 capture target landed today:
 
+```mermaid
+xychart-beta
+    title "Pi 5 single-frame encode, ms — Z8Z_0067 q=3, best of 3"
+    x-axis ["pre-2026-05-28", "+metadata-skip", "+parallel DNG read"]
+    y-axis "ms" 0 --> 1800
+    bar [1577, 966, 544]
 ```
-                                Z8Z_0067 q=3, best of 3 wall clock
-  baseline (pre-2026-05-28):          1577 ms     0.57 fps
-   + metadata-skip plumbing:           966 ms     1.04 fps     (38% off)
-   + parallel DNG SDK tile read:       544 ms     1.84 fps     (43% more)
-                                       ──────
-                                  2.89× speedup, bitstream byte-identical
-```
+
+**1577 → 544 ms = 2.89× speedup, bitstream byte-identical at every q level.**
 
 The big win was discovering and fixing a **latent Adobe DNG SDK bug**: its
 vendored `qDNGThreadSafe` macro excluded Linux entirely, making the
