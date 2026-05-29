@@ -1,11 +1,30 @@
 # GPR — wavelet raw codec, contributed back
 
+[![CI](https://img.shields.io/github/actions/workflow/status/dcliftreaves/gpr/ci.yml?branch=fix/multilevel-cascade-regression&label=CI&style=flat-square)](https://github.com/dcliftreaves/gpr/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue?style=flat-square)](#license)
+[![STILL smallest](https://img.shields.io/badge/STILL%20smallest-9.80%20MB%20%2F%2050%20MP-2576c4?style=flat-square)](docs/SHIP_DECISION.md)
+[![Pi 5 q=3](https://img.shields.io/badge/Pi%205%20q%3D3-544%20ms%20%C2%B7%201.84%20fps-2ecc71?style=flat-square)](docs/STILLS_PI5_TIMING.md)
+[![Video](https://img.shields.io/badge/Pi%205%20video-24.93%20fps%20%C2%B7%2050%20MP-1a5fb4?style=flat-square)](docs/VIDEO_STATUS.md)
+[![Spec](https://img.shields.io/badge/built%20on-SMPTE%20ST%202073%20(VC--5)-555?style=flat-square)](docs/SPEC.md)
+
 > **Open-source visually-lossless raw codec for stills and 24 fps × 50 MP video.**
 > Built on SMPTE ST 2073 (VC-5), descended from GoPro's CineForm, retargeted at
 > Apple Silicon and Cortex-A76 (Raspberry Pi 5) with a matched-CNN restoration
 > path that holds visual quality below 10 MB per 50 MP frame.
 
 ![GPR wavelet decomposition](data/readmegfx/level3-640.png)
+
+## Contents
+- [What ships today](#what-ships-today)
+- [Today's headline numbers](#todays-headline-numbers-2026-05-28-perf-pass)
+- [30-second quick start](#30-second-quick-start)
+- [Encode a video frame in 10 lines of C](#encode-a-video-frame-in-10-lines-of-c)
+- [Architecture](#architecture)
+- [Honest engineering posture](#honest-engineering-posture)
+- [Documentation map](#documentation-map)
+- [Build](#build)
+- [License](#license)
+- [Trademarks](#trademarks)
 
 ---
 
@@ -24,6 +43,16 @@ All three clear the perceptual gate (LPIPS ≤ 0.05, MS-SSIM ≥ 0.99, Y-PSNR �
 checkpoint serves the two CNN-using tiers** — the matched-q3 model
 generalizes down to q=0 with no retrain. See
 [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md).
+
+The fine-detail crop below (rocks under a train car, the canonical
+hard case for compression artifacts) at all three tiers, sips-rendered
+through each ship pipeline:
+
+![Three STILL tiers, fine-detail crop](docs/img/still_three_tiers.png)
+
+The 9.80 MB tier holds visible quality on sharp edges and shadow
+texture; differences vs the 27 MB archival tier are sub-perceptual on
+this content.
 
 ### Video — 24 fps × 50 MP raw on Pi 5
 
@@ -115,15 +144,25 @@ context for wider hosts.
 
 ## Architecture
 
-```
-Caller thread       Encoder thread          Writer thread
-─────────────       ──────────────          ─────────────
-    submit() ─→  input ring ─→  encode  ─→  output ring  ─→  writer_fn()
-
-                 channel-parallel
-                 wavelet + NEON
-                 band-parallel
-                 entropy encode
+```mermaid
+flowchart LR
+    caller["Caller thread<br/>submit()"]
+    ring1[("input ring<br/>SPSC")]
+    encoder["Encoder thread<br/>channel-parallel<br/>wavelet + NEON<br/>band-parallel entropy"]
+    ring2[("output ring<br/>SPSC")]
+    writer["Writer thread<br/>writer_fn()"]
+    storage[("storage<br/>SD card / SSD")]
+    caller -->|bayer frame| ring1
+    ring1 -->|natural backpressure| encoder
+    encoder -->|VC-5 bitstream| ring2
+    ring2 -->|natural backpressure| writer
+    writer -->|.gvid frames| storage
+    classDef threads fill:#dbeafe,stroke:#1e40af,color:#1e3a8a
+    classDef rings fill:#fef3c7,stroke:#a16207,color:#713f12
+    classDef sinks fill:#dcfce7,stroke:#166534,color:#14532d
+    class caller,encoder,writer threads
+    class ring1,ring2 rings
+    class storage sinks
 ```
 
 ### Stills path
