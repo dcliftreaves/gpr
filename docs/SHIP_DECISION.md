@@ -36,13 +36,24 @@ Notable finding 2026-05-28: legacy q=8 alone (no CNN) reaches LPIPS 0.0035 — 4
 
 ## TL;DR — Video (multi-level FUSED encoder)
 
+Four-tier ship for desktop / post-process video (decision finalized
+2026-05-28):
+
 | ship class | pipeline | worst LPIPS | mean MB/frame | verdict |
 |---|---|---:|---:|---|
-| **VIDEO_FREEZE primary** (full-res desktop path) | `codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | **0.076** | **7.81** | **PASS** |
-| VIDEO_FREEZE alternate | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | 10.26 | PASS |
-| VIDEO_FREEZE alternate (threshold-relaxed 2026-05-27) | `codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.079 | 7.11 | PASS |
-| VIDEO_FREEZE alternate (threshold-relaxed 2026-05-27) | `codec=ml2_q3_l1x2_hh1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.077 | 7.47 | PASS |
+| **VIDEO_FREEZE smallest** | `codec=ml2_q3_l2x2_l1x2_hh1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | **0.081** | **6.77** | **PASS** |
+| VIDEO_FREEZE smallest-conservative | `codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.079 | 7.11 | PASS (more LPIPS headroom) |
+| **VIDEO_FREEZE primary** | `codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.076 | 7.81 | PASS |
+| VIDEO_FREEZE alternate (tighter LPIPS) | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | 10.26 | PASS |
 | PREVIEW (Pi-capture half-res path) | `codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_*` | **0.45** | 1.30 | **FAIL** (CNN restoration insufficient) |
+
+**Key finding driving this matrix**: the matched-CNN-against-cranked-codec
+hypothesis was falsified on 2026-05-28 (broader-corpus retrain still
+underperformed the unmatched cross-pair). The four cranked tiers all
+use the same `bibo1x_ane_ml2_q3` CNN — the broader training distribution
+generalizes across cranked variants better than any cranked-specific
+retrain we've produced. 1.52× storage span (6.77 → 10.26 MB) on a single
+CNN checkpoint.
 
 At 24 fps the VIDEO_FREEZE primary writes **187 MB/s** — fine for desktop
 post-processing, NOT for Pi 5 capture (Pi caps ~7 fps at full-res). The
