@@ -1,0 +1,298 @@
+{
+  "Z8Z_0001": {
+    "BIDO_w24 alone": {
+      "lpips": 0.203086718916893,
+      "ms_ssim": 0.9369230270385742,
+      "y_psnr": 29.535359650988852,
+      "dE_mean": 6.867734432220459,
+      "dE_p95": 17.543201446533203,
+      "preview_pass": false
+    },
+    "cnn=none alone": {
+      "lpips": 0.32026708126068115,
+      "ms_ssim": 0.877501904964447,
+      "y_psnr": 23.964685452548263,
+      "dE_mean": 3.606924295425415,
+      "dE_p95": 13.744994163513184,
+      "preview_pass": false
+    },
+    "Variant A raw": {
+      "lpips": 0.22314372658729553,
+      "ms_ssim": 0.9393150806427002,
+      "y_psnr": 30.461968740198184,
+      "dE_mean": 7.34124755859375,
+      "dE_p95": 19.177358627319336,
+      "preview_pass": false
+    },
+    "Prior SOTA (BIDO Y + NONE ab guided r=8)": {
+      "lpips": 0.13048283755779266,
+      "ms_ssim": 0.9611660838127136,
+      "y_psnr": 29.667284472314037,
+      "dE_mean": 2.8998682498931885,
+      "dE_p95": 7.48197078704834,
+      "preview_pass": false
+    },
+    "A: VA Y + NONE Cb/Cr (LAB swap, no guided)": {
+      "lpips": 0.12309204787015915,
+      "ms_ssim": 0.961385190486908,
+      "y_psnr": 30.600155364096366,
+      "dE_mean": 3.1115968227386475,
+      "dE_p95": 8.383044242858887,
+      "preview_pass": false
+    },
+    "B: VA Y + NONE Cb/Cr + guided r=8": {
+      "lpips": 0.11242599785327911,
+      "ms_ssim": 0.9671708941459656,
+      "y_psnr": 30.606985894052073,
+      "dE_mean": 2.686359167098999,
+      "dE_p95": 6.979130744934082,
+      "preview_pass": false
+    },
+    "C: VA Y + NONE Cb/Cr + guided r=16": {
+      "lpips": 0.12588700652122498,
+      "ms_ssim": 0.9663932919502258,
+      "y_psnr": 30.605411029773517,
+      "dE_mean": 2.7226593494415283,
+      "dE_p95": 7.113428592681885,
+      "preview_pass": false
+    },
+    "D: VA Y + NONE Cb/Cr + guided r=32": {
+      "lpips": 0.13781222701072693,
+      "ms_ssim": 0.9641247391700745,
+      "y_psnr": 30.59907954933758,
+      "dE_mean": 2.8460159301757812,
+      "dE_p95": 7.48399543762207,
+      "preview_pass": false
+    },
+    "E: VA Y + avg(NONE,BIBO) Cb/Cr + guided": {
+      "lpips": 0.11099769175052643,
+      "ms_ssim": 0.9675908088684082,
+      "y_psnr": 30.605136307271188,
+      "dE_mean": 2.69282603263855,
+      "dE_p95": 6.890336990356445,
+      "preview_pass": false
+    }
+  },
+  "Z8Z_0067": {
+    "BIDO_w24 alone": {
+      "lpips": 0.08144742995500565,
+      "ms_ssim": 0.9812393188476562,
+      "y_psnr": 40.62958717659795,
+      "dE_mean": 1.8254287242889404,
+      "dE_p95": 3.784372329711914,
+      "preview_pass": false
+    },
+    "cnn=none alone": {
+      "lpips": 0.10466694086790085,
+      "ms_ssim": 0.9858381748199463,
+      "y_psnr": 37.69302786617003,
+      "dE_mean": 0.9448345899581909,
+      "dE_p95": 1.971986174583435,
+      "preview_pass": true
+    },
+    "Variant A raw": {
+      "lpips": 0.08031763881444931,
+      "ms_ssim": 0.984244167804718,
+      "y_psnr": 40.75331362129476,
+      "dE_mean": 1.5058447122573853,
+      "dE_p95": 3.144139289855957,
+      "preview_pass": false
+    },
+    "Prior SOTA (BIDO Y + NONE ab guided r=8)": {
+      "lpips": 0.06618526577949524,
+      "ms_ssim": 0.9875437617301941,
+      "y_psnr": 40.622808077794126,
+      "dE_mean": 1.1078404188156128,
+      "dE_p95": 2.3736443519592285,
+      "preview_pass": true
+    },
+    "A: VA Y + NONE Cb/Cr (LAB swap, no guided)": {
+      "lpips": 0.05192466825246811,
+      "ms_ssim": 0.9861931204795837,
+      "y_psnr": 40.758772470833485,
+      "dE_mean": 1.1447956562042236,
+      "dE_p95": 2.444026470184326,
+      "preview_pass": true
+    },
+    "B: VA Y + NONE Cb/Cr + guided r=8": {
+      "lpips": 0.05267516151070595,
+      "ms_ssim": 0.9891712665557861,
+      "y_psnr": 40.77088434250334,
+      "dE_mean": 1.0894602537155151,
+      "dE_p95": 2.365494728088379,
+      "preview_pass": true
+    },
+    "C: VA Y + NONE Cb/Cr + guided r=16": {
+      "lpips": 0.061438821256160736,
+      "ms_ssim": 0.9896534085273743,
+      "y_psnr": 40.77217385824503,
+      "dE_mean": 1.095244288444519,
+      "dE_p95": 2.371333599090576,
+      "preview_pass": true
+    },
+    "D: VA Y + NONE Cb/Cr + guided r=32": {
+      "lpips": 0.06824282556772232,
+      "ms_ssim": 0.9898824095726013,
+      "y_psnr": 40.77380094412263,
+      "dE_mean": 1.0977580547332764,
+      "dE_p95": 2.3653147220611572,
+      "preview_pass": true
+    },
+    "E: VA Y + avg(NONE,BIBO) Cb/Cr + guided": {
+      "lpips": 0.05449638143181801,
+      "ms_ssim": 0.9893693923950195,
+      "y_psnr": 40.773512849195875,
+      "dE_mean": 1.137691855430603,
+      "dE_p95": 2.4805800914764404,
+      "preview_pass": true
+    }
+  },
+  "Z8Z_5323": {
+    "BIDO_w24 alone": {
+      "lpips": 0.29299089312553406,
+      "ms_ssim": 0.9280393719673157,
+      "y_psnr": 31.969105489511396,
+      "dE_mean": 6.29807710647583,
+      "dE_p95": 13.543356895446777,
+      "preview_pass": false
+    },
+    "cnn=none alone": {
+      "lpips": 0.2501714527606964,
+      "ms_ssim": 0.8941468596458435,
+      "y_psnr": 30.699660101586623,
+      "dE_mean": 2.2260870933532715,
+      "dE_p95": 5.3508992195129395,
+      "preview_pass": false
+    },
+    "Variant A raw": {
+      "lpips": 0.3118835389614105,
+      "ms_ssim": 0.9262840151786804,
+      "y_psnr": 32.363431558599515,
+      "dE_mean": 6.171444416046143,
+      "dE_p95": 12.512044906616211,
+      "preview_pass": false
+    },
+    "Prior SOTA (BIDO Y + NONE ab guided r=8)": {
+      "lpips": 0.21793197095394135,
+      "ms_ssim": 0.9398255944252014,
+      "y_psnr": 31.966706152145342,
+      "dE_mean": 2.2076237201690674,
+      "dE_p95": 4.674919128417969,
+      "preview_pass": false
+    },
+    "A: VA Y + NONE Cb/Cr (LAB swap, no guided)": {
+      "lpips": 0.187593013048172,
+      "ms_ssim": 0.9402102828025818,
+      "y_psnr": 32.36404714069081,
+      "dE_mean": 2.1745712757110596,
+      "dE_p95": 4.661755084991455,
+      "preview_pass": false
+    },
+    "B: VA Y + NONE Cb/Cr + guided r=8": {
+      "lpips": 0.2056601196527481,
+      "ms_ssim": 0.9417485594749451,
+      "y_psnr": 32.36475503622786,
+      "dE_mean": 2.138801336288452,
+      "dE_p95": 4.580546855926514,
+      "preview_pass": false
+    },
+    "C: VA Y + NONE Cb/Cr + guided r=16": {
+      "lpips": 0.21161101758480072,
+      "ms_ssim": 0.9415166974067688,
+      "y_psnr": 32.364070413337465,
+      "dE_mean": 2.1557273864746094,
+      "dE_p95": 4.613641738891602,
+      "preview_pass": false
+    },
+    "D: VA Y + NONE Cb/Cr + guided r=32": {
+      "lpips": 0.215326726436615,
+      "ms_ssim": 0.9406318664550781,
+      "y_psnr": 32.363330579853915,
+      "dE_mean": 2.2099950313568115,
+      "dE_p95": 4.745011329650879,
+      "preview_pass": false
+    },
+    "E: VA Y + avg(NONE,BIBO) Cb/Cr + guided": {
+      "lpips": 0.2050386369228363,
+      "ms_ssim": 0.9422937035560608,
+      "y_psnr": 32.365007131110104,
+      "dE_mean": 2.120368480682373,
+      "dE_p95": 4.535531044006348,
+      "preview_pass": false
+    }
+  },
+  "Z8Z_6693": {
+    "BIDO_w24 alone": {
+      "lpips": 0.381450891494751,
+      "ms_ssim": 0.8971063494682312,
+      "y_psnr": 29.623197278398816,
+      "dE_mean": 5.112489223480225,
+      "dE_p95": 9.946390151977539,
+      "preview_pass": false
+    },
+    "cnn=none alone": {
+      "lpips": 0.27152514457702637,
+      "ms_ssim": 0.8396553993225098,
+      "y_psnr": 28.415806743396566,
+      "dE_mean": 2.9624557495117188,
+      "dE_p95": 6.897104263305664,
+      "preview_pass": false
+    },
+    "Variant A raw": {
+      "lpips": 0.37025028467178345,
+      "ms_ssim": 0.8972685933113098,
+      "y_psnr": 29.591151541157426,
+      "dE_mean": 5.40122127532959,
+      "dE_p95": 9.765986442565918,
+      "preview_pass": false
+    },
+    "Prior SOTA (BIDO Y + NONE ab guided r=8)": {
+      "lpips": 0.36020100116729736,
+      "ms_ssim": 0.9022352695465088,
+      "y_psnr": 29.621255513327792,
+      "dE_mean": 2.8710694313049316,
+      "dE_p95": 6.106750965118408,
+      "preview_pass": false
+    },
+    "A: VA Y + NONE Cb/Cr (LAB swap, no guided)": {
+      "lpips": 0.31121477484703064,
+      "ms_ssim": 0.9016478657722473,
+      "y_psnr": 29.5896459183546,
+      "dE_mean": 2.7977278232574463,
+      "dE_p95": 6.1427154541015625,
+      "preview_pass": false
+    },
+    "B: VA Y + NONE Cb/Cr + guided r=8": {
+      "lpips": 0.3255493640899658,
+      "ms_ssim": 0.9024683833122253,
+      "y_psnr": 29.591043946233356,
+      "dE_mean": 2.873452663421631,
+      "dE_p95": 6.142165660858154,
+      "preview_pass": false
+    },
+    "C: VA Y + NONE Cb/Cr + guided r=16": {
+      "lpips": 0.3293344974517822,
+      "ms_ssim": 0.902468204498291,
+      "y_psnr": 29.59102261307369,
+      "dE_mean": 2.8767244815826416,
+      "dE_p95": 6.148403644561768,
+      "preview_pass": false
+    },
+    "D: VA Y + NONE Cb/Cr + guided r=32": {
+      "lpips": 0.3316691815853119,
+      "ms_ssim": 0.9021756052970886,
+      "y_psnr": 29.59084082170356,
+      "dE_mean": 2.903451919555664,
+      "dE_p95": 6.193120002746582,
+      "preview_pass": false
+    },
+    "E: VA Y + avg(NONE,BIBO) Cb/Cr + guided": {
+      "lpips": 0.32697731256484985,
+      "ms_ssim": 0.902845561504364,
+      "y_psnr": 29.591177512745368,
+      "dE_mean": 2.848236083984375,
+      "dE_p95": 6.1088104248046875,
+      "preview_pass": false
+    }
+  }
+}
