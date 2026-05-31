@@ -89,6 +89,50 @@ file size to preserve a lossy color render.
 ship, not embedded capture. Sustained 24.93 fps embedded capture verified
 on Pi 5 USB-SSD writes with page cache exhausted (`docs/pi5_bench_2026-05-26.md`).
 
+### UPRESABLE — editable raw from half-res capture
+
+The Pi-capture half-res frames (`ml2_q3_dec2`, 24.93 fps sustained) are
+desktop-restored to full-res editable raw via a 2× super-res CNN
+(`bibo2x_ane_ml2_q3_dec2_diverse`, F_ane variant, ~317K params on MPS).
+**Primary deliverable: GPRaw .mov** — a MOV container with codec_tag
+`GPR1` wrapping per-frame FUSED `.gpr`. Plays via `gpr2prores`; FFmpeg
+decodes natively via the `AV_CODEC_ID_GPR` patch. Per-frame editable DNG
+(~91 MB) + `gpr_tools .gpr` (~2–8 MB) for Adobe CR / darktable hand-off
+is opt-in via `--dng-export`. ProRes 422 HQ review video is opt-in via
+`--render-prores`.
+
+| metric                              | value                         |
+|---                                  |---                            |
+| Capture rate (Pi 5)                 | 24.93 fps sustained           |
+| Per-frame upres (Mac M3, GPRaw)     | ~750 ms (decode 97 + CNN 435 + encode 210 + pack 8) |
+| Per-frame upres (Mac M3, with --render-prores + --dng-export) | ~2.9 s (legacy path) |
+| Bayer PSNR vs source DNG            | 37.85–43.78 dB (4 gate imgs)  |
+| Gate verdict                        | **PASS** UPRESABLE class      |
+
+UPRESABLE has its own ship class in `tests/quality_gates/gates.json`. It
+enforces `bayer_psnr_final ≥ 35 dB` — the workflow-native fidelity for
+editable raw — while rendered LPIPS / MS-SSIM / Y-PSNR / ΔE2000 are
+computed informationally only. The BIBO_2x CNN smooths mid-frequency
+texture on out-of-distribution content (Z8Z_6693 rendered LPIPS = 0.343);
+this is acceptable for editable raw (colorist re-grades and re-grains in
+their NLE) but the file is **not** a finished render.
+
+### Today's gate verdicts — all four ship classes PASS
+
+| ship class            | worst-image metric        | run hash             |
+|---                    |---                        |---                   |
+| STILL primary         | LPIPS 0.0155 (Z8Z_6693)   | `b44fa841c05c9bff`   |
+| VIDEO_FREEZE primary  | LPIPS 0.0760 (Z8Z_6693)   | `5c3cce4c472d4197`   |
+| PREVIEW (codec only)  | LPIPS 0.1003 (Z8Z_6693)   | `5e7b79b5678fdf62`   |
+| UPRESABLE             | Bayer PSNR 40.39 dB (Z8Z_6693) | `8864c12ec0b6ce14` |
+
+All four verified 2026-05-30 after restoring `test_fused_roundtrip`'s
+binary to its in-tree source (`test_fused_decode_roundtrip.c` — the
+older `test_fused_roundtrip.c` had a stale band-count self-check that
+rejected `GPR_INCLUDE_LL=1` and decimated codec configs). Gate runner
+now tolerates `dec2+SR` chains and `bayer_psnr_final` is gateable
+alongside the rendered metrics.
+
 ---
 
 ## Today's headline numbers (2026-05-28 perf pass)

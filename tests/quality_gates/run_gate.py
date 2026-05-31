@@ -604,10 +604,22 @@ def _process_one_image(
             ww = min(ref.shape[1], test.shape[1])
             ref, test = ref[:hh, :ww], test[:hh, :ww]
         m = compute_visual_metrics(ref, test)
-        # 6. evaluate per-metric thresholds
+        # 6. evaluate per-metric thresholds. bayer_psnr_codec and bayer_psnr_final
+        # are gateable alongside the rendered-image metrics — UPRESABLE-class
+        # pipelines output editable raw and care primarily about raw-domain
+        # fidelity, with rendered comparison informational.
+        metrics_for_check = dict(m)
+        if bp_codec is not None:
+            metrics_for_check["bayer_psnr_codec"] = bp_codec
+        if bp_final is not None:
+            metrics_for_check["bayer_psnr_final"] = bp_final
         fails = []
         for key, rule in gate_thresholds.items():
-            v = m.get(key)
+            if rule is None or key.startswith("$"):
+                # null threshold = informational only (per gates.json $rules);
+                # $-prefixed keys are doc fields, not gates.
+                continue
+            v = metrics_for_check.get(key)
             if v is None:
                 fails.append((key, "missing"))
                 continue
@@ -615,7 +627,10 @@ def _process_one_image(
                 fails.append((key, f"{v:.4f} > {rule['max']}"))
             if "min" in rule and v < rule["min"]:
                 fails.append((key, f"{v:.4f} < {rule['min']}"))
-        verdict = "PASS" if not fails else "FAIL"
+        if not gate_thresholds:
+            verdict = "INDETERMINATE"
+        else:
+            verdict = "PASS" if not fails else "FAIL"
         row = {
             **m,
             "bayer_psnr_codec": bp_codec,
@@ -704,7 +719,16 @@ def evaluate_pipeline(pipeline_name: str, keep_fullres: bool = False) -> dict:
     cnn = registry["cnns"][pipe["cnn"]]
     dms = registry["demosaicers"][pipe["demosaic"]]
     ship_class = pipe["ship_class"]
-    gate_thresholds = gates["ship_classes"][ship_class]["per_image"]
+    if ship_class not in gates["ship_classes"]:
+        print(f"WARN: ship_class {ship_class!r} has no entry in gates.json — "
+              f"running in INFORMATIONAL mode (metrics computed, no thresholds "
+              f"enforced, verdict INDETERMINATE). Propose thresholds and add "
+              f"them to gates.json in a standalone PR.")
+        gate_thresholds = {}
+        informational_only = True
+    else:
+        gate_thresholds = gates["ship_classes"][ship_class]["per_image"]
+        informational_only = False
 
     target_w = test_set["metric_eval_dims"]["width"]
     images = test_set["images"]
@@ -822,9 +846,14 @@ def evaluate_pipeline(pipeline_name: str, keep_fullres: bool = False) -> dict:
         "lpips": worst_row.get("lpips"),
     }
 
-    # 9. overall verdict: any image FAIL -> FAIL
-    any_fail = any(r["verdict"] == "FAIL" for r in results["images"].values())
-    results["verdict"] = "FAIL" if any_fail else "PASS"
+    # 9. overall verdict: any image FAIL -> FAIL; any INDETERMINATE w/o FAIL -> INDETERMINATE
+    verdicts = [r["verdict"] for r in results["images"].values()]
+    if any(v == "FAIL" for v in verdicts):
+        results["verdict"] = "FAIL"
+    elif any(v == "INDETERMINATE" for v in verdicts):
+        results["verdict"] = "INDETERMINATE"
+    else:
+        results["verdict"] = "PASS"
     results["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
 
     # 10. write the run log

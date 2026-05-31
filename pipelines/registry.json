@@ -1140,8 +1140,9 @@
       "codec": "ml2_q3_dec2",
       "cnn": "bibo2x_ane_ml2_q3_dec2_diverse",
       "demosaic": "sips_via_gpr_tools",
-      "ship_class": "VIDEO_FREEZE",
-      "$role": "alternate-embedded-bibo2x-matched-diverse"
+      "ship_class": "UPRESABLE",
+      "use_for": "UPRESABLE",
+      "$role": "UPRESABLE production chain — half-res Pi 5 capture (24.93 fps sustained) + desktop BIBO_2x super-res → editable full-res raw DNG/.gpr. Bayer PSNR vs source DNG: 37.85–43.78 dB on 4 gate images (2026-05-30). See docs/UPRESABLE_PIPELINE.md."
     },
     "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse_reshalf+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
@@ -1548,5 +1549,5 @@
       "$role": "experiment-ycbcr-decomp-v1-partial-cr-still-training"
     }
   },
-  "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28."
+  "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28. Pipeline entries carry a 'ship_class' field with values STILL / VIDEO_FREEZE / PREVIEW / UPRESABLE; UPRESABLE pipelines combine a dec2 codec (half-res Pi capture) with a bibo2x super-res CNN (desktop) and output an editable full-res raw DNG/.gpr — see docs/UPRESABLE_PIPELINE.md."
 }

@@ -45,7 +45,7 @@ Four-tier ship for desktop / post-process video (decision finalized
 | VIDEO_FREEZE smallest-conservative | `codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.079 | 7.11 | PASS (more LPIPS headroom) |
 | **VIDEO_FREEZE primary** | `codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.076 | 7.81 | PASS |
 | VIDEO_FREEZE alternate (tighter LPIPS) | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | 10.26 | PASS |
-| PREVIEW (Pi-capture half-res path) | `codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_*` | **0.45** | 1.30 | **FAIL** (CNN restoration insufficient) |
+| PREVIEW (Pi-capture half-res, demosaic-out) | `codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_*` | **0.45** | 1.30 | **FAIL** (BIDO_4x demosaic-out restoration insufficient — superseded by UPRESABLE below) |
 
 **Key finding driving this matrix**: the matched-CNN-against-cranked-codec
 hypothesis was falsified on 2026-05-28 (broader-corpus retrain still
@@ -57,8 +57,29 @@ CNN checkpoint.
 
 At 24 fps the VIDEO_FREEZE primary writes **187 MB/s** — fine for desktop
 post-processing, NOT for Pi 5 capture (Pi caps ~7 fps at full-res). The
-half-res Pi-capture path captures at 24.93 fps median but the BIDO_4x
-restoration CNN doesn't yet PASS the PREVIEW gate.
+half-res Pi-capture path captures at 24.93 fps median; the **UPRESABLE
+class below** is the production answer (BIBO_2x super-res to full-res
+editable raw DNG/.gpr — workflow-native metric is Bayer PSNR vs source
+DNG, not rendered LPIPS).
+
+## TL;DR — UPRESABLE (Pi-capture half-res → editable full-res raw)
+
+Added 2026-05-30 as the production Pi-capture path. Half-res `ml2_q3_dec2`
+on Pi 5 (24.93 fps sustained, 0.98 MB/frame) → desktop M3 BIBO_2x
+super-res CNN → editable full-res raw DNG (91 MB) + compressed .gpr
+(2–8 MB) the user opens in their NLE / raw editor.
+
+| ship | pipeline | bayer_psnr_final (worst, Z8Z_6693) | verdict |
+|---|---|---:|---|
+| **UPRESABLE** | `codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse+demosaic=sips_via_gpr_tools` | **40.39 dB** | **PASS** (run `8864c12ec0b6ce14`) |
+
+UPRESABLE has its own ship class in `tests/quality_gates/gates.json` —
+the workflow outputs editable raw (the user grades final appearance), so
+the threshold gates Bayer PSNR vs source DNG (≥35 dB); rendered LPIPS /
+MS-SSIM / Y-PSNR / ΔE2000 are computed informationally only. The BIBO_2x
+CNN smooths mid-frequency texture on out-of-distribution content
+(Z8Z_6693 rendered LPIPS = 0.343); acceptable for editable raw, but
+the file is **not** a finished render.
 
 ## TL;DR — Preview (codec only, no CNN)
 

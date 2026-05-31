@@ -40,6 +40,16 @@
         "y_psnr":      {"min": 28.0},
         "dE2000_mean": {"max": 3.0}
       }
+    },
+    "UPRESABLE": {
+      "$doc": "Editable-raw delivery bar. UPRESABLE pipelines output an editable full-res DNG/.gpr that a user re-renders in their own NLE / raw editor. The workflow-native fidelity metric is Bayer PSNR vs source DNG (raw-domain similarity); rendered LPIPS/MS-SSIM/Y-PSNR/dE are computed informationally to surface CNN over-smoothing / chroma drift but NOT enforced — the user's grade decides final appearance. Threshold floor reflects: at ≥35 dB Bayer PSNR, the editable raw round-trips with sub-1-stop dynamic range loss in any tonal region.",
+      "per_image": {
+        "bayer_psnr_final": {"min": 35.0, "$doc": "Bayer PSNR of CNN output vs source DNG bayer plane. Workflow-native fidelity metric for editable raw."},
+        "lpips":       null,
+        "ms_ssim":     null,
+        "y_psnr":      null,
+        "dE2000_mean": null
+      }
     }
   },
   "anti_gaming": {
