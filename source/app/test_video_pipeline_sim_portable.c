@@ -19,13 +19,14 @@
  *
  *  bw_MBps = 0 means "unlimited" (best-case storage).
  */
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
-/* portable: use clock_gettime */
-#include <unistd.h>
+#include <time.h>
 
 #include "../lib/vc5_encoder/gpr_video.h"
 #include "../lib/vc5_encoder/gpr_video_format.h"
@@ -34,6 +35,14 @@ static double now_ms(void) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * 1000.0 + ts.tv_nsec / 1e6;
+}
+
+static void sleep_ms(double ms) {
+    if (ms <= 0.0) return;
+    struct timespec ts;
+    ts.tv_sec = (time_t)(ms / 1000.0);
+    ts.tv_nsec = (long)((ms - (double)ts.tv_sec * 1000.0) * 1000000.0);
+    nanosleep(&ts, NULL);
 }
 
 typedef struct {
@@ -98,7 +107,7 @@ static int throttled_writer(void *user_data, const uint8_t *vc5, size_t size,
         double actual_elapsed_ms = t_enter - ws->start_ms;
         double need_stall_ms = ideal_elapsed_ms - actual_elapsed_ms;
         if (need_stall_ms > 0) {
-            usleep((useconds_t)(need_stall_ms * 1000.0));    /* ms → us */
+            sleep_ms(need_stall_ms);
             ws->total_stall_ms += need_stall_ms;
         }
     }
@@ -107,7 +116,7 @@ static int throttled_writer(void *user_data, const uint8_t *vc5, size_t size,
     if (ws->gc_stall_ms > 0 && ws->gc_period_s > 0) {
         double since_last = now_ms() - ws->last_gc_ms;
         if (since_last > ws->gc_period_s * 1000.0) {
-            usleep((useconds_t)(ws->gc_stall_ms * 1000.0));
+            sleep_ms(ws->gc_stall_ms);
             ws->total_gc_ms += ws->gc_stall_ms;
             ws->last_gc_ms = now_ms();
             fprintf(stderr, "  [GC stall at frame %llu]\n",
@@ -229,7 +238,7 @@ int main(int argc, char **argv) {
         double scheduled = sim_start + i * frame_interval_ms;
         double now = now_ms();
         if (now < scheduled) {
-            usleep((useconds_t)((scheduled - now) * 1000.0));
+            sleep_ms(scheduled - now);
         }
         double t0 = now_ms();
         gpr_video_encoder_submit(enc, raw, expected, (uint64_t)i);

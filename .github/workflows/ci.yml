@@ -71,7 +71,6 @@ jobs:
         # install into it without the flag). It's a no-op on Linux where
         # the runner Python is already user-writeable.
         run: |
-          python3 -m pip install --upgrade pip --break-system-packages
           python3 -m pip install numpy rawpy --break-system-packages
 
       - name: Configure
