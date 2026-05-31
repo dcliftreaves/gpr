@@ -213,7 +213,8 @@ def apply_cnn(bayer: np.ndarray, cnn: dict):
     The variant is read from the checkpoint metadata; the registry's
     cnn_arch_variant is a fallback. The "rgb" return tag signals downstream
     code to skip demosaic_to_png and use the RGB result directly."""
-    if cnn.get("ckpt_path") is None and cnn.get("cnn_arch_variant") != "ycbcr_decomp":
+    if (cnn.get("ckpt_path") is None
+            and cnn.get("cnn_arch_variant") not in ("ycbcr_decomp", "lab_chroma_corrector")):
         return bayer
     if cnn.get("cnn_arch_variant") == "restormer_post_rgb":
         # Bayer path is a no-op; the post-RGB stage runs after demosaic.
@@ -237,6 +238,28 @@ def apply_cnn(bayer: np.ndarray, cnn: dict):
         raw_norm = cnn.get("raw_norm", 16383.0)
         rgb_u8 = run_ycbcr_decomp(bayer, ckpts["ckpt_y"], ckpts["ckpt_cb"],
                                   ckpts["ckpt_cr"], raw_norm=raw_norm)
+        return ("rgb", rgb_u8)
+    if cnn.get("cnn_arch_variant") == "lab_chroma_corrector":
+        sys.path.insert(0, str(REPO / "tools/cnn"))
+        from run_lab_chroma_corrector import run_lab_chroma_corrector
+        y_path = cnn.get("ckpt_y")
+        chroma_path = cnn.get("ckpt_chroma") or cnn.get("ckpt_path")
+        if y_path is None:
+            die(2, "lab_chroma_corrector CNN entry missing field 'ckpt_y'")
+        if chroma_path is None:
+            die(2, "lab_chroma_corrector CNN entry missing field 'ckpt_chroma'")
+        y_cp = REPO / y_path
+        c_cp = Path(chroma_path)
+        if not c_cp.is_absolute():
+            c_cp = REPO / c_cp
+        if not y_cp.exists():
+            die(2, f"lab_chroma_corrector Y checkpoint missing: {y_cp}")
+        if not c_cp.exists():
+            die(2, f"lab_chroma_corrector chroma checkpoint missing: {c_cp}")
+        raw_norm = cnn.get("raw_norm", 16383.0)
+        rgb_u8 = run_lab_chroma_corrector(
+            bayer, str(y_cp), str(c_cp), raw_norm=raw_norm,
+        )
         return ("rgb", rgb_u8)
     import torch
     import torch.nn.functional as F
