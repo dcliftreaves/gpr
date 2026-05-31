@@ -290,6 +290,11 @@ jobs:
         # misclassifications, and checkpoint-hash drift in pipelines/registry.json.
         run: python3 tests/quality_gates/check_registry_consistency.py
 
+      - name: Ship pipeline receipt audit
+        # Verifies every registry role tagged ship-* has an exact committed
+        # PASS run receipt. Release prep runs the same script with --strict.
+        run: python3 tests/quality_gates/audit_ship_pipelines.py
+
       - name: Run CNN regression (macOS only, dev-host deps)
         if: runner.os == 'macOS'
         # Skips gracefully when torch / rawpy / cv2 / the dering_proto_v2

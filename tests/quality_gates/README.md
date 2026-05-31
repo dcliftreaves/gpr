@@ -21,6 +21,8 @@ tests/quality_gates/
   run_gate.py        the runner — only source of truth
   check_registry_consistency.py
                      registry/schema/artifact metadata check
+  audit_ship_pipelines.py
+                     verifies ship-* roles have committed PASS receipts
   dashboard.py       quality-gate run index
   build_ops_dashboard.py
                      size/timing/FPS/storage/chroma operations dashboard
@@ -41,6 +43,7 @@ Before claiming a production pipeline, run:
 
 ```
 python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts
+python3 tests/quality_gates/audit_ship_pipelines.py
 ```
 
 CI runs the same checker without `--strict-artifacts` so structural registry
@@ -48,6 +51,17 @@ breakage fails fast while known historical artifact gaps stay visible as
 warnings. Strict mode is the release cleanup list: missing checkpoints,
 unresolved checkpoint hashes, and unresolved training provenance must be
 fixed or deliberately removed from the registry before a ship claim.
+
+`audit_ship_pipelines.py` ignores untracked local runs by default. It only
+counts committed `run.json` receipts, so a fresh checkout can verify every
+`ship-*` role. Release preparation should also run:
+
+```
+python3 tests/quality_gates/audit_ship_pipelines.py --strict
+```
+
+Strict ship audit additionally requires the current `gates.json` hash and a
+matching `docs/claims_log.md` receipt.
 
 ## Dashboards and diagnostics
 
