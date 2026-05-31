@@ -586,10 +586,10 @@
       "ckpt_sha256": "f04310e14dd429e0b2f2720cb1011dc17552755d2e716e40fde40d75cbb3cbde"
     },
     "bibo1x_ane_hh1x4": {
-      "$doc": "Trained against codec with HH1 cranked 4x. trained_against_codec TBD \u2014 check training script's data manifest.",
+      "$doc": "Trained against sl_q3_hh1x4: single-level q=3 with HH1 cranked 4x via GPR_INCLUDE_LL=1 + GPR_QUANT_OVERRIDE=3:48.",
       "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt",
       "cnn_arch_variant": "F_ane_no_sr",
-      "trained_against_codec": "TBD_check_training_config",
+      "trained_against_codec": "sl_q3_hh1x4",
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
       "ckpt_sha256": "567146861893096b1ab312990a8d2ba222f69552685f9abf8a3ca4b7a14e97c0"
@@ -647,15 +647,6 @@
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
       "ckpt_sha256": "404f42fe60af224f7a0b1902fbafe329cc12695141d421734cbfcbd8f1cc9488"
-    },
-    "bibo2x_ane_hh1x4": {
-      "$doc": "BIBO_2x super-res trained on HH1\u00d74 cranked-quant distribution. Half-res in, full-res out.",
-      "ckpt_path": "models/BayInBayOut_2x_AAon_w16_ANE_HH1x4.pt",
-      "cnn_arch_variant": "F_ane",
-      "trained_against_codec": "TBD_check_training_config",
-      "residual_scale": 0.01,
-      "raw_norm": 16383.0,
-      "ckpt_sha256": "755b80ada74cec02d6cfd0f6751f429bfecca70f20048118f3ac521014f518c6"
     },
     "bibo2x_ane_ml2_q3_dec2": {
       "$doc": "BIBO_2x super-res CNN trained on matched ml2_q3_dec2 codec outputs. Half-res bayer in, full-res out. Trained on M5 (200 Z8 DNGs \u2192 8000 tiles, val=Z8Z_0067, 80 epochs, best at ep73 +2.076 dB).",
@@ -791,15 +782,6 @@
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
       "ckpt_sha256": "df22af432710bddabd223047c2db2d0edf2808dd17c4341694a974e045ec87cd"
-    },
-    "bibo1x_ane_gpr_tools_q8": {
-      "$doc": "BIBO_1x matched to legacy gpr_tools q=8 codec output. Target: 'archival STILL' ship \u2014 higher fidelity alternate to the q=3 primary.",
-      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q8.pt",
-      "cnn_arch_variant": "F_ane_no_sr",
-      "trained_against_codec": "gpr_tools_q8",
-      "residual_scale": 0.01,
-      "raw_norm": 16383.0,
-      "ckpt_sha256": "TBD-pending-training"
     },
     "restormer_real_denoising_post": {
       "$doc": "Restormer (Apache-2.0, Zamir et al. CVPR 2022) trained for real noise denoising, applied as a post-decode RGB filter. 26.1M params (~83\u00d7 a BIBO_1x_w16). Tiled inference at 512px; ~15s/frame on M3 Max MPS at 4K. Desktop-only: too slow for in-camera or video real-time use. Off-repo checkpoint lives at /Volumes/OWC_8TB/external/restormer_real_denoising.pth (rsynced from Restormer GitHub release v1.0). The arch module lives at tools/cnn/restormer_arch.py.",
@@ -1123,13 +1105,6 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "VIDEO_FREEZE",
       "$role": "alternate-embedded-bibo2x-cross"
-    },
-    "codec=ml2_q3_dec2+cnn=bibo2x_ane_hh1x4+demosaic=sips_via_gpr_tools": {
-      "codec": "ml2_q3_dec2",
-      "cnn": "bibo2x_ane_hh1x4",
-      "demosaic": "sips_via_gpr_tools",
-      "ship_class": "VIDEO_FREEZE",
-      "$role": "ml2-halfres-plus-cranked-superres-cnn"
     },
     "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
@@ -1467,14 +1442,6 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
       "$role": "cross-pair-cheap-probe-legacy-codec-fused-trained-cnn"
-    },
-    "codec=gpr_tools_q8+cnn=bibo1x_ane_gpr_tools_q8+demosaic=sips_via_gpr_tools": {
-      "codec": "gpr_tools_q8",
-      "cnn": "bibo1x_ane_gpr_tools_q8",
-      "demosaic": "sips_via_gpr_tools",
-      "ship_class": "STILL",
-      "$role": "experiment-still-q8-matched-cnn-redundant",
-      "$doc": "CNN training started 2026-05-28 but abandoned \u2014 discovered q=8 alone PASSes STILL at LPIPS 0.0035 so a matched CNN at q=8 adds ~no perceptual value. Pipeline kept for registry-history reference."
     },
     "codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools": {
       "codec": "gpr_tools_q8",
