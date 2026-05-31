@@ -19,6 +19,13 @@ tests/quality_gates/
   gates.json         ship-class thresholds (STILL / VIDEO_FREEZE / PREVIEW)
   test_set.json      4 frozen source DNGs + crop positions + eval dims
   run_gate.py        the runner — only source of truth
+  check_registry_consistency.py
+                     registry/schema/artifact metadata check
+  dashboard.py       quality-gate run index
+  build_ops_dashboard.py
+                     size/timing/FPS/storage/chroma operations dashboard
+  diagnose_chroma_signal.py
+                     Lab/YCbCr chroma drift diagnostic for gate runs
   golden/            REF crops (committed, frozen)
   runs/              per-run artifacts, hashed by inputs
 ```
@@ -30,14 +37,45 @@ are named. The full name is the key — `codec=...+cnn=...+demosaic=...`.
 Short aliases are forbidden (this is the failure mode the scaffolding
 exists to fix).
 
+Before claiming a production pipeline, run:
+
+```
+python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts
+```
+
+CI runs the same checker without `--strict-artifacts` so structural registry
+breakage fails fast while known historical artifact gaps stay visible as
+warnings. Strict mode is the release cleanup list: missing checkpoints,
+unresolved checkpoint hashes, and unresolved training provenance must be
+fixed or deliberately removed from the registry before a ship claim.
+
+## Dashboards and diagnostics
+
+The dashboards are generated artifacts under `tests/quality_gates/runs/dashboard/`.
+Regenerate them from committed run logs instead of hand-editing HTML.
+
+```
+python3 tests/quality_gates/dashboard.py
+python3 tests/quality_gates/build_ops_dashboard.py
+python3 tests/quality_gates/diagnose_chroma_signal.py RUN_HASH [RUN_HASH...]
+```
+
+`dashboard.py` is the gate-result index. `build_ops_dashboard.py` is the
+operations matrix: encoded size, bpp, compression ratio, encode/decode timing,
+FPS, Pi-to-Mac transfer throughput, UPRESABLE artifact accounting, and chroma
+diagnostics. `diagnose_chroma_signal.py` is for root-causing color failures; it
+reports Lab lightness/chroma error, a/b bias and correlation, hue error, and
+chroma high-frequency retention for one or more quality-gate runs.
+
 ## Adding a new pipeline
 
 1. Add an entry to `pipelines/registry.json`. All required fields filled.
 2. CNN checkpoint goes in `models/` with sha256 in the registry.
 3. Document `trained_against_codec` honestly.
-4. Run `run_gate.py PIPELINE_NAME` and inspect the worst-image visual
+4. Run `check_registry_consistency.py --strict-artifacts`.
+5. Run `run_gate.py PIPELINE_NAME` and inspect the worst-image visual
    diff via the Read tool.
-5. If PASS, log via `run_gate.py PIPELINE_NAME --claim`.
+6. If PASS, log via `run_gate.py PIPELINE_NAME --claim`.
 
 ## Adjusting gates
 

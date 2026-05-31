@@ -628,7 +628,7 @@
       "trained_against_codec": "ml2_q3",
       "residual_scale": 0.01,
       "raw_norm": 16383.0,
-      "ckpt_sha256": "cfaa41b6f7d374e641b0f077973653a8de652dfdf4f2183560fd66b3a596f7a5"
+      "ckpt_sha256": "d98bdc86bf0d5c119998218a33fbedae7fe07dd5c1f8efc4f1e214da8a054ce4"
     },
     "bibo1x_ane_ml2_q3_mu_law": {
       "$doc": "BIBO_1x retrained on ML-2 q=3 with --loss-domain mu_law (Hanji et al. SIGGRAPH Asia 2024, arxiv 2312.03640). msL1 applied to mu_law(pred) vs mu_law(target) with mu=5000. Tests T2 of overnight plan 2026-05-28: does perceptual-domain L1 beat linear L1 on our regime? Training halted at ep 3 (gain +1.607 dB, plateaued) to free MPS for T1 (higher-EV BIDO-with-OOD test).",
@@ -1557,13 +1557,6 @@
       "ship_class": "VIDEO_FREEZE",
       "$role": "experiment-heavy-decoder-restormer-l2x2_l1x4_hh1x4",
       "$doc": "Most-aggressive desktop-only heavy-decoder experiment: l2x2_l1x4 plus HH1 4\u00d7 crank. Hypothesis: minimum bitstream achievable while still recoverable by a Restormer-class CNN."
-    },
-    "codec=ml2_q3_dec2+cnn=ycbcr_decomp_v1_partial+demosaic=sips_via_gpr_tools": {
-      "codec": "ml2_q3_dec2",
-      "cnn": "ycbcr_decomp_v1_partial",
-      "demosaic": "sips_via_gpr_tools",
-      "ship_class": "PREVIEW",
-      "$role": "experiment-ycbcr-decomp-v1-partial-cr-still-training"
     }
   },
   "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28. Pipeline entries carry a 'ship_class' field with values STILL / VIDEO_FREEZE / PREVIEW / UPRESABLE; UPRESABLE pipelines combine a dec2 codec (half-res Pi capture) with a bibo2x super-res CNN (desktop) and output an editable full-res raw DNG/.gpr — see docs/UPRESABLE_PIPELINE.md."
