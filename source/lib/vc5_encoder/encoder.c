@@ -37,7 +37,11 @@
 #include <arm_neon.h>
 #endif
 #ifdef FAST_ENCODE_TIMING
+#ifdef __APPLE__
 #include <mach/mach_time.h>
+#else
+#include <time.h>
+#endif
 #endif
 #ifndef _WIN32
 #include <pthread.h>
@@ -387,8 +391,10 @@ CODEC_ERROR EncodeImage(IMAGE *image, STREAM *stream, RGB_IMAGE *rgb_image, ENCO
 		return error;
 	}
 
+	TIMESTAMP("[ZZZ-ei-encoding-BEG]", 1)
 	// Encode the component arrays into the bitstream
 	error = EncodingProcess(&encoder, &unpacked_image, &bitstream, parameters);
+	TIMESTAMP("[ZZZ-ei-encoding-END]", 1)
 	if (error != CODEC_ERROR_OKAY) {
 		return error;
 	}
@@ -1732,11 +1738,19 @@ CODEC_ERROR EncodeMultipleChannels(ENCODER *encoder, const UNPACKED_IMAGE *image
 	CODEC_STATE *codec = &encoder->codec;
 
 #ifdef FAST_ENCODE_TIMING
+#ifdef __APPLE__
 #include <mach/mach_time.h>
 	static double _enc_scale = 0;
 	if (!_enc_scale) { mach_timebase_info_data_t info; mach_timebase_info(&info); _enc_scale = (double)info.numer/info.denom/1e6; }
 	double _enc_t0 = mach_absolute_time() * _enc_scale, _enc_t1;
 #define ENC_T() do { _enc_t1 = mach_absolute_time() * _enc_scale; fprintf(stderr, "  ENC %-20s %.1fms\n", _enc_phase, _enc_t1 - _enc_t0); _enc_t0 = _enc_t1; } while(0)
+#else
+#include <time.h>
+	struct timespec _enc_ts;
+	clock_gettime(CLOCK_MONOTONIC, &_enc_ts);
+	double _enc_t0 = _enc_ts.tv_sec*1000.0 + _enc_ts.tv_nsec/1e6, _enc_t1;
+#define ENC_T() do { struct timespec _ts; clock_gettime(CLOCK_MONOTONIC, &_ts); _enc_t1 = _ts.tv_sec*1000.0 + _ts.tv_nsec/1e6; fprintf(stderr, "  ENC %-20s %.1fms\n", _enc_phase, _enc_t1 - _enc_t0); _enc_t0 = _enc_t1; } while(0)
+#endif
 	const char *_enc_phase = "init";
 #else
 #define ENC_T() ((void)0)

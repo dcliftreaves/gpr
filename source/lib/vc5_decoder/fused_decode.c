@@ -901,6 +901,59 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
             for (size_t i = 0; i < n; i++) p[i] *= ll_dequant;
         }
 
+        /* Coefficient I/O hooks for codec-anchored refinement experiments
+           (task #233). Compile-guarded so production builds get zero code
+           and zero overhead. At this point bands[ch][s] holds:
+             - quantized int32 coefficients for s=0..(deepest_slot-1)
+             - dequantized LL for s=deepest_slot
+           Zero in the quantized HF buffers means "quantized away" — a
+           trustable signal for the data-consistency projection idea.
+           Build with -DGPR_DEBUG_COEFF_IO to enable. */
+#ifdef GPR_DEBUG_COEFF_IO
+        {
+            const char *_dump_dir = getenv("GPR_DUMP_COEFFS");
+            const char *_load_dir = getenv("GPR_LOAD_COEFFS");
+            if (_dump_dir && *_dump_dir) {
+                for (int ch = 0; ch < 4; ch++) {
+                    for (int s = 0; s <= deepest_slot; s++) {
+                        if (!bands[ch][s]) continue;
+                        char path[1024];
+                        snprintf(path, sizeof(path), "%s/ch%d_s%d_w%d_h%d.s32",
+                                 _dump_dir, ch, s, slot_w[s], slot_h[s]);
+                        FILE *f = fopen(path, "wb");
+                        if (f) {
+                            size_t n = (size_t)slot_w[s] * slot_h[s];
+                            fwrite(bands[ch][s], sizeof(PIXEL), n, f);
+                            fclose(f);
+                        }
+                    }
+                }
+            }
+            if (_load_dir && *_load_dir) {
+                for (int ch = 0; ch < 4; ch++) {
+                    for (int s = 0; s <= deepest_slot; s++) {
+                        if (!bands[ch][s]) continue;
+                        char path[1024];
+                        snprintf(path, sizeof(path), "%s/ch%d_s%d_w%d_h%d.s32",
+                                 _load_dir, ch, s, slot_w[s], slot_h[s]);
+                        FILE *f = fopen(path, "rb");
+                        if (f) {
+                            size_t n = (size_t)slot_w[s] * slot_h[s];
+                            size_t r = fread(bands[ch][s], sizeof(PIXEL), n, f);
+                            fclose(f);
+                            if (r != n) {
+                                fprintf(stderr,
+                                    "GPR_LOAD_COEFFS: short read for %s (got %zu, want %zu)\n",
+                                    path, r, n);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+#endif /* GPR_DEBUG_COEFF_IO */
+
+
         for (int ch = 0; ch < 4 && rc == 0; ch++) {
             /* Per-level descale values default to descale=2 everywhere
                (mirroring the encoder's prescale=2 at every level). Override
