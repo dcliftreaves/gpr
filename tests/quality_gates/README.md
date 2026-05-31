@@ -23,6 +23,8 @@ tests/quality_gates/
                      registry/schema/artifact metadata check
   audit_ship_pipelines.py
                      verifies ship-* roles have committed PASS receipts
+  audit_production_readiness.py
+                     output-family readiness checklist
   dashboard.py       quality-gate run index
   build_ops_dashboard.py
                      size/timing/FPS/storage/chroma operations dashboard
@@ -62,6 +64,15 @@ python3 tests/quality_gates/audit_ship_pipelines.py --strict
 
 Strict ship audit additionally requires the current `gates.json` hash and a
 matching `docs/claims_log.md` receipt.
+
+For a broader stills/video/container/UPRESABLE/Pi-target checklist, run:
+
+```
+python3 tests/quality_gates/audit_production_readiness.py
+```
+
+It exits 0 by default so it can be used during burn-down. Use `--strict` when
+the readiness matrix is expected to be completely green.
 
 ## Dashboards and diagnostics
 
