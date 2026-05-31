@@ -18,7 +18,7 @@ Design constraints (don't undo these without reading docs/quality_gates.md):
     that failed. No silent failures.
 
 Usage:
-  python3 tests/quality_gates/run_gate.py PIPELINE_NAME [--update-baseline]
+  python3 tests/quality_gates/run_gate.py PIPELINE_NAME [--claim]
 
 Example:
   python3 tests/quality_gates/run_gate.py \
@@ -894,6 +894,9 @@ def main():
     p.add_argument("pipeline", help="Full pipeline name from registry.json")
     p.add_argument("--claim", action="store_true",
                    help="After PASS, prompt for inspection-sentence to append to claims_log.md")
+    p.add_argument("--claim-sentence",
+                   help="Non-interactive inspection sentence for --claim. Must pass the same validation "
+                        "as the interactive prompt.")
     p.add_argument("--keep-fullres-pngs", action="store_true",
                    help="Keep the full-res REF/PIPELINE PNGs (~150 MB each, ~1.2 GB/run). "
                         "Default is to delete them after the verdict is computed; the run.json, "
@@ -906,16 +909,19 @@ def main():
 
     res = evaluate_pipeline(args.pipeline, keep_fullres=keep_fullres)
 
-    if args.claim:
+    if args.claim or args.claim_sentence:
         if res["verdict"] != "PASS":
             print("\n--claim requested but verdict is FAIL. Refusing to log.", file=sys.stderr)
             sys.exit(1)
-        if not sys.stdin.isatty():
+        if args.claim_sentence:
+            sentence = args.claim_sentence.strip()
+        elif not sys.stdin.isatty():
             print("\n--claim requires interactive stdin for the inspection sentence.",
                   file=sys.stderr)
             sys.exit(2)
-        print(f"\nReview the visual diff at: {res['worst_image']['visual_diff_png']}")
-        sentence = input("Inspection sentence (>=6 words, must include a concrete noun): ").strip()
+        else:
+            print(f"\nReview the visual diff at: {res['worst_image']['visual_diff_png']}")
+            sentence = input("Inspection sentence (>=6 words, must include a concrete noun): ").strip()
         nouns = ["rocks", "sky", "edge", "blockiness", "haze", "noise",
                  "detail", "texture", "shadow", "highlight", "crosshatch",
                  "smooth", "ringing", "color"]

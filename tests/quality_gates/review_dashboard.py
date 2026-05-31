@@ -18,58 +18,59 @@ OUT = RUNS / "dashboard" / "review.html"
 # Cherry-picked runs that the user should actually look at, with the
 # call-to-action for each. Run-hashes are stable per (pipeline, gates_sha).
 REVIEWS = [
-    # ---- Champions worth promoting ----
+    # ---- Current gate-pass ships that need claim/audit trail ----
     {
-        "title": "VIDEO_FREEZE — proposed new champion",
+        "title": "STILL — current primary ship, claim needed",
+        "pipeline": "codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools",
+        "decision": "PASS for STILL at 15.05 MB mean. This is the current primary "
+                    "stills ship: much smaller than q8/no-CNN while staying well "
+                    "inside the STILL gate. Next action is a visual-inspection "
+                    "claim, not another sweep.",
+        "vs": "codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools",
+        "vs_label": "archival q8/no-CNN",
+    },
+    {
+        "title": "VIDEO_FREEZE — current primary ship, claim needed",
         "pipeline": "codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools",
-        "decision": "Promote this as VIDEO_FREEZE champion? It's 23.9% smaller "
-                    "than the prior ml2_q3 baseline at PASS quality (LPIPS 0.076 "
-                    "vs 0.08 ceiling). No CNN retrain needed.",
+        "decision": "PASS for VIDEO_FREEZE at 7.81 MB mean. This remains the "
+                    "best size/quality balance among full-res ML2 options. Next "
+                    "action is a visual-inspection claim.",
         "vs": "codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools",
-        "vs_label": "current champion (ml2_q3)",
+        "vs_label": "larger tighter-LPIPS alternate",
     },
     {
-        "title": "STILL — proposed new size champion",
-        "pipeline": "codec=sl_q3_l1x4_hh1x8+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools",
-        "decision": "Promote this as the smallest STILL ship? 25.8% smaller "
-                    "than sl_q3+CNN, 11.9% smaller than sl_q11+CNN. LPIPS 0.028 "
-                    "(well under STILL's 0.05 ceiling). Visual diff on the "
-                    "worst image (sky gradient) is indistinguishable from REF.",
-        "vs": "codec=sl_q11+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools",
-        "vs_label": "current smallest-STILL (sl_q11)",
+        "title": "PREVIEW — only current gate-pass baseline",
+        "pipeline": "codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools",
+        "decision": "PASS for PREVIEW, but at 26.60 MB mean it is not the "
+                    "embedded-preview answer. Treat this as the visual floor / "
+                    "claimable fallback while the ml2_q3_dec2 chroma path is "
+                    "still under repair.",
+        "vs": "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools",
+        "vs_label": "embedded-size codec/no-CNN fail",
     },
-    # ---- Near-misses worth a manual call ----
+    # ---- New M5 result ----
     {
-        "title": "VIDEO_FREEZE near-miss (would be 30.7% smaller, FAIL by 0.0014)",
-        "pipeline": "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools",
-        "decision": "FAIL by 0.0014 LPIPS — essentially noise. If gate "
-                    "tolerance moved 0.0014, this is a 30.7%-smaller VIDEO_FREEZE "
-                    "ship. Inspect the worst image; if you can't perceive the "
-                    "delta, that's a signal the gate threshold has slack.",
-        "vs": "codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools",
-        "vs_label": "current ml2_q3 champion",
+        "title": "UPRESABLE — M5 gateclean retrain vs current alternate",
+        "pipeline": "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_msssim_gateclean+demosaic=sips_via_gpr_tools",
+        "decision": "PASS for UPRESABLE and slightly improves Z8Z_6693 rendered "
+                    "LPIPS versus the diverse checkpoint (0.325 vs 0.343), but "
+                    "the inspected worst diff still has smoother texture than "
+                    "REF. Keep as an alternate unless we want to promote a small "
+                    "metric win; the next real render-quality work is texture/"
+                    "grain restoration, not another retrain on this axis.",
+        "vs": "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse+demosaic=sips_via_gpr_tools",
+        "vs_label": "current UPRESABLE alternate",
     },
+    # ---- Active blocker ----
     {
-        "title": "Embedded half-res — BIDO Phase A LPIPS fine-tune (improved but FAIL)",
-        "pipeline": "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_lpips+demosaic=sips_via_gpr_tools",
-        "decision": "Worst-image LPIPS dropped 30% (0.642 → 0.452) from the "
-                    "wider-val baseline. Z8Z_0067 PASSes PREVIEW. The 3 OOD "
-                    "images still fail. Review whether to push to Phase B "
-                    "(Restormer-teacher distillation, ~6h) or accept that "
-                    "the embedded path needs a different architecture.",
-        "vs": "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_wider+demosaic=sips_via_gpr_tools",
-        "vs_label": "wider-val baseline (pre-Phase A)",
-    },
-    {
-        "title": "Cranked-CNN retrain — confirms broader-corpus wins over in-dist",
-        "pipeline": "codec=ml2_q3_l2x2_l1x4+cnn=bibo1x_ane_ml2_q3_l2x2_l1x4+demosaic=sips_via_gpr_tools",
-        "decision": "Partial retrain (ep 32 of 80) helped Z8Z_0067 (0.100→0.046) "
-                    "but hurt OOD (Z8Z_6693 0.100→0.143). Finding: broader-corpus "
-                    "generalization beats narrow in-distribution training at our "
-                    "test set size. Decision: stick with the unmatched champion "
-                    "CNN, or revisit with the 498-image diverse corpus from BIDO.",
-        "vs": "codec=ml2_q3_l2x2_l1x4+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools",
-        "vs_label": "same codec, unmatched (broader-corpus) CNN",
+        "title": "PREVIEW embedded blocker — chroma/decomp path still fails",
+        "pipeline": "codec=ml2_q3_dec2+cnn=ycbcr_decomp_y_w16_cb_w8_cr_w8+demosaic=sips_via_gpr_tools",
+        "decision": "FAIL for PREVIEW at embedded size. This is why the next "
+                    "work item is the Lab chroma-corrector sidecar/trainer: "
+                    "the codec size is right, but the current decomp/chroma "
+                    "render path misses visual gates.",
+        "vs": "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools",
+        "vs_label": "embedded-size no-CNN baseline",
     },
 ]
 
@@ -100,20 +101,25 @@ def format_metrics(data):
         lp = m.get("lpips", 0)
         y = m.get("y_psnr", 0)
         ms = m.get("ms_ssim", 0)
-        dE = m.get("dE2000", 0)
+        dE = m.get("dE2000_mean", m.get("dE2000", 0))
+        bp = m.get("bayer_psnr_final")
+        bp_txt = f"{bp:.2f}" if isinstance(bp, (int, float)) else "-"
         rows.append(
             f"<tr><td>{name}</td><td>{lp:.4f}</td><td>{y:.2f}</td>"
             f"<td>{ms:.4f}</td><td>{dE:.2f}</td>"
+            f"<td>{bp_txt}</td>"
             f"<td>{m.get('verdict','?')}</td></tr>"
         )
     bytes_list = [m.get("enc_bytes", 0) for m in data.get("images", {}).values()]
     mean_mb = sum(bytes_list) / len(bytes_list) / 1e6 if bytes_list else 0
     return (
-        f"<p><b>Verdict:</b> {data.get('verdict','?')} "
+        f"<p><b>Run:</b> {data.get('run_hash','?')} "
+        f"&nbsp;<b>Verdict:</b> {data.get('verdict','?')} "
         f"({data.get('ship_class','?')}) "
         f"&nbsp;<b>Mean bytes:</b> {mean_mb:.2f} MB</p>"
         f"<table class=metrics><tr><th>image</th><th>LPIPS</th>"
-        f"<th>Y-PSNR</th><th>MS-SSIM</th><th>ΔE2000</th><th>verdict</th></tr>"
+        f"<th>Y-PSNR</th><th>MS-SSIM</th><th>ΔE2000</th>"
+        f"<th>Bayer PSNR</th><th>verdict</th></tr>"
         + "".join(rows) + "</table>"
     )
 
