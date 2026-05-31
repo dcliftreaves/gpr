@@ -20,6 +20,8 @@
  *   GPR_COL_DECIMATE, GPR_ROW_DECIMATE,
  *   GPR_INCLUDE_LL, GPR_DUMP_COEFFS, GPR_LOAD_COEFFS.
  */
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
