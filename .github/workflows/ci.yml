@@ -286,8 +286,8 @@ jobs:
         run: timeout 600 python3 tools/test/test_capabilities.py
 
       - name: Registry consistency check
-        # Surfaces still/video mode mismatches and use_for misclassifications
-        # in pipelines/registry.json. Fast (no I/O beyond reading the JSON).
+        # Surfaces unknown refs, still/video mode mismatches, use_for
+        # misclassifications, and checkpoint-hash drift in pipelines/registry.json.
         run: python3 tests/quality_gates/check_registry_consistency.py
 
       - name: Run CNN regression (macOS only, dev-host deps)
