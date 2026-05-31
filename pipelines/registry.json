@@ -675,6 +675,15 @@
       "raw_norm": 16383.0,
       "ckpt_sha256": "bd3636d2c026639e3d8c9636de491c662fe05e67bdaa4451061901b47b37659b"
     },
+    "bibo2x_ane_ml2_q3_dec2_msssim_gateclean": {
+      "$doc": "BIBO_2x super-res CNN retrained on the gate-clean combined corpus (22960 tiles, 574 sources, Z8Z_0067 leak removed) with L1 + 0.5*(1-MS-SSIM) loss to reduce mid-frequency smoothing on OOD textures. Trained on M5, 80 epochs, best at ep 79 +1.703 dB.",
+      "ckpt_path": "models/BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_msssim_gateclean.pt",
+      "cnn_arch_variant": "F_ane",
+      "trained_against_codec": "ml2_q3_dec2",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "8feeebd6dd7b5d1851fdebd4ecdda33b98bc27a37e029d1e05b8e7aea7ad28df"
+    },
     "bibo2x_ane_ml2_q3_dec2_diverse_reshalf": {
       "$doc": "Same checkpoint as bibo2x_ane_ml2_q3_dec2_diverse but applied with residual_scale=0.005 (vs default 0.01). Reduces CNN over-smoothing on out-of-distribution textures.",
       "ckpt_path": "models/BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt",
@@ -1143,6 +1152,14 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE",
       "$role": "UPRESABLE production chain — half-res Pi 5 capture (24.93 fps sustained) + desktop BIBO_2x super-res → editable full-res raw DNG/.gpr. Bayer PSNR vs source DNG: 37.85–43.78 dB on 4 gate images (2026-05-30). See docs/UPRESABLE_PIPELINE.md."
+    },
+    "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_msssim_gateclean+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "bibo2x_ane_ml2_q3_dec2_msssim_gateclean",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "UPRESABLE",
+      "use_for": "UPRESABLE",
+      "$role": "candidate UPRESABLE retrain to reduce rendered OOD texture smoothing on Z8Z_6693"
     },
     "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse_reshalf+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
