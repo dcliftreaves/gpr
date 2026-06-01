@@ -716,13 +716,25 @@ def _cleanup_fullres_pngs(run_dir: Path) -> tuple[int, int]:
     return n, freed
 
 
+def cnn_hash_fingerprint(cnn: dict) -> str:
+    if cnn.get("ckpt_sha256"):
+        return str(cnn["ckpt_sha256"])
+    parts = []
+    for key in ("ckpt_y_sha256", "ckpt_cb_sha256", "ckpt_cr_sha256", "ckpt_chroma_sha256"):
+        if cnn.get(key):
+            parts.append(f"{key}={cnn[key]}")
+    if parts:
+        return "|".join(parts)
+    return "none"
+
+
 def pipeline_run_hash(pipeline_id: str, codec: dict, cnn: dict,
                        dms: dict, image_shas: list[str], gates_sha: str) -> str:
     payload = json.dumps({
         "pipeline_id": pipeline_id,
         "codec_env_canonical": canonical_env({**codec.get("env", {}),
                                               "QUALITY": codec.get("quality")}),
-        "cnn_ckpt_sha256": cnn.get("ckpt_sha256", "none"),
+        "cnn_ckpt_sha256": cnn_hash_fingerprint(cnn),
         "demosaicer": dms.get("binary", ""),
         "image_shas": sorted(image_shas),
         "gates_sha": gates_sha,
