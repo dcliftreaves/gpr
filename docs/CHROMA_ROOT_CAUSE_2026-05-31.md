@@ -71,6 +71,38 @@ uses an insufficient runtime chroma hint:
 
 Do not promote `lab_chroma_corrector_w12_ep5`.
 
+Follow-up residual experiment:
+
+- Checkpoint:
+  `/Volumes/OWC_8TB/gpr_cnn/F_ane_chroma_corrector_w12_residual_ab8_sub10.pt`
+- Checkpoint sha256:
+  `f4bc680e3d47cdb4c5cd4d9047c5a8c676a816105a796b436b175153b0ea5253`
+- Training mode: codec Lab a/b baseline plus bounded `+/-8` Lab-unit residual
+- Validation sources: `Z8Z_0067`, `div_Z8Z_5271`, `div_Z8Z_6477`,
+  `div_Z8Z_7424`
+- Best tile validation: epoch 17, `val_dE_proxy=8.467`
+- Full-gate run: `0c8974e88d94e710`
+- Full-gate verdict: FAIL
+
+| image | LPIPS | MS-SSIM | Y-PSNR | dE2000 mean | verdict |
+|---|---:|---:|---:|---:|---|
+| Z8Z_0001 | 0.1647 | 0.9521 | 30.61 | 6.08 | FAIL |
+| Z8Z_0067 | 0.0812 | 0.9837 | 41.50 | 3.04 | FAIL |
+| Z8Z_5323 | 0.2980 | 0.9437 | 35.12 | 6.10 | FAIL |
+| Z8Z_6693 | 0.5755 | 0.9138 | 32.68 | 6.22 | FAIL |
+
+The residual model partially fixes the absolute model's worst `Z8Z_6693`
+b-channel inversion (`abCorr_b` improved from `-0.494` to `+0.210`), but it
+still destroys safe codec chroma in too many places. On `Z8Z_0067`, dE mean
+regressed from `2.53` with the absolute Lab model to `3.04`; on `Z8Z_6693`,
+ab MAE improved from `4.23` to `2.55`, but LPIPS and dE still fail badly.
+
+This narrows the root cause further: a residual connection is necessary but
+not sufficient while the baseline hint is still the codec-only Lab estimate.
+The model needs the actual display-space codec/sips chroma baseline or a
+runtime guard that can preserve the existing `cnn=none` chroma when the learned
+residual lowers channel correlation.
+
 The next chroma experiment should be constrained so it cannot destroy safe
 codec chroma:
 

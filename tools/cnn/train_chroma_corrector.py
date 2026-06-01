@@ -7,9 +7,10 @@ Inputs:
 Target:
   full-resolution Lab a/b from tgt_rgb
 
-The model predicts normalized Lab a/b directly, with no residual connection
-to the naive chroma hint. Checkpoints are compatible with model.py variant
-F_ane_chroma_corrector_w12.
+By default the model predicts normalized Lab a/b directly for compatibility
+with the original checkpoints. Use ``--target-mode residual`` for the safer
+production candidate: the runtime upsamples the codec chroma hint and applies
+only the model-predicted residual.
 """
 from __future__ import annotations
 
@@ -178,7 +179,29 @@ def windowed_hue_loss(pred_ab, tgt_ab, sat_mask, kernel: int = 8):
     return (sat_mask * (1.0 - cos_h)).mean()
 
 
-def chroma_loss(pred_norm, tgt_norm, h_weight: float, de_weight: float):
+def model_output_to_ab_norm(
+    model_out: torch.Tensor,
+    inp: torch.Tensor,
+    target_mode: str,
+    residual_limit_ab: float,
+) -> torch.Tensor:
+    if target_mode == "absolute":
+        return model_out
+    baseline = F.interpolate(inp[:, 5:7], scale_factor=4, mode="bilinear", align_corners=False)
+    residual = model_out
+    if residual_limit_ab > 0:
+        residual = residual.clamp(-residual_limit_ab / AB_NORM, residual_limit_ab / AB_NORM)
+    return (baseline + residual).clamp(-1.0, 1.0)
+
+
+def chroma_loss(
+    pred_norm,
+    tgt_norm,
+    h_weight: float,
+    de_weight: float,
+    residual_norm: torch.Tensor | None = None,
+    residual_weight: float = 0.0,
+):
     pred = pred_norm * AB_NORM
     tgt = tgt_norm * AB_NORM
     chroma = torch.sqrt((tgt * tgt).sum(dim=1, keepdim=True).clamp_min(1e-8))
@@ -188,10 +211,15 @@ def chroma_loss(pred_norm, tgt_norm, h_weight: float, de_weight: float):
     loss_de = (weight * torch.sqrt(diff2 + 1e-6)).mean()
     sat_mask = (chroma / 30.0).clamp(0, 1)
     loss_h = windowed_hue_loss(pred, tgt, sat_mask)
-    return loss_l2 + h_weight * loss_h + de_weight * loss_de, {
+    loss_residual = torch.tensor(0.0, device=pred_norm.device)
+    if residual_norm is not None and residual_weight > 0:
+        loss_residual = torch.sqrt((residual_norm * AB_NORM) ** 2 + 1e-6).mean()
+
+    return loss_l2 + h_weight * loss_h + de_weight * loss_de + residual_weight * loss_residual, {
         "l2": float(loss_l2.detach().cpu()),
         "hue": float(loss_h.detach().cpu()),
         "de": float(loss_de.detach().cpu()),
+        "residual": float(loss_residual.detach().cpu()),
     }
 
 
@@ -227,8 +255,15 @@ def train(args):
             for inp, tgt in va:
                 inp = inp.to(DEVICE)
                 tgt = tgt.to(DEVICE)
-                pred = model(inp)
-                loss, _ = chroma_loss(pred, tgt, args.loss_h_weight, args.loss_dE_weight)
+                raw_pred = model(inp)
+                pred = model_output_to_ab_norm(
+                    raw_pred, inp, args.target_mode, args.residual_limit_ab
+                )
+                residual_norm = raw_pred if args.target_mode == "residual" else None
+                loss, _ = chroma_loss(
+                    pred, tgt, args.loss_h_weight, args.loss_dE_weight,
+                    residual_norm, args.loss_residual_weight,
+                )
                 diff = (pred - tgt) * AB_NORM
                 totals["loss"] += float(loss.item()) * inp.shape[0]
                 totals["mae_ab"] += float(diff.abs().mean().item()) * inp.shape[0]
@@ -251,12 +286,19 @@ def train(args):
         t0 = time.time()
         loss_sum = 0.0
         nb = 0
-        parts = {"l2": 0.0, "hue": 0.0, "de": 0.0}
+        parts = {"l2": 0.0, "hue": 0.0, "de": 0.0, "residual": 0.0}
         for inp, tgt in tr:
             inp = inp.to(DEVICE)
             tgt = tgt.to(DEVICE)
-            pred = model(inp)
-            loss, p = chroma_loss(pred, tgt, args.loss_h_weight, args.loss_dE_weight)
+            raw_pred = model(inp)
+            pred = model_output_to_ab_norm(
+                raw_pred, inp, args.target_mode, args.residual_limit_ab
+            )
+            residual_norm = raw_pred if args.target_mode == "residual" else None
+            loss, p = chroma_loss(
+                pred, tgt, args.loss_h_weight, args.loss_dE_weight,
+                residual_norm, args.loss_residual_weight,
+            )
             opt.zero_grad(set_to_none=True)
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -278,6 +320,9 @@ def train(args):
                 "backbone_state": model.state_dict(),
                 "variant": args.variant,
                 "kind": "lab_chroma_corrector",
+                "target_mode": args.target_mode,
+                "residual_limit_ab": args.residual_limit_ab,
+                "loss_residual_weight": args.loss_residual_weight,
                 "trained_against_codec": "ml2_q3_dec2",
                 "raw_norm": RAW_NORM,
                 "ab_norm": AB_NORM,
@@ -298,7 +343,7 @@ def train(args):
         print(
             f"  ep {ep+1:3d}/{args.epochs} loss={loss_sum/max(1, nb):.4f} "
             f"l2={parts['l2']/max(1, nb):.3f} hue={parts['hue']/max(1, nb):.4f} "
-            f"de={parts['de']/max(1, nb):.3f} "
+            f"de={parts['de']/max(1, nb):.3f} residual={parts['residual']/max(1, nb):.3f} "
             f"val_loss={val['loss']:.4f} val_mae_ab={val['mae_ab']:.3f} "
             f"val_dE_proxy={val['de_proxy']:.3f} t={time.time()-t0:.1f}s{marker}",
             flush=True,
@@ -328,6 +373,14 @@ def main():
     ap.add_argument("--sat-pct", type=float, default=30.0)
     ap.add_argument("--loss-h-weight", type=float, default=0.3)
     ap.add_argument("--loss-dE-weight", type=float, default=0.5)
+    ap.add_argument("--loss-residual-weight", type=float, default=0.0)
+    ap.add_argument("--target-mode", choices=["absolute", "residual"], default="absolute")
+    ap.add_argument(
+        "--residual-limit-ab",
+        type=float,
+        default=0.0,
+        help="Clamp residual-mode predictions to +/- this many Lab a/b units; 0 disables.",
+    )
     args = ap.parse_args()
     train(args)
 

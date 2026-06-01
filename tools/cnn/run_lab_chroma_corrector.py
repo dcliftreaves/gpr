@@ -2,8 +2,10 @@
 
 This is the gate/runtime counterpart to train_chroma_corrector.py. It takes
 codec-output Bayer, runs the existing VA-Y CNN for luma, builds the same
-7-channel input used by the chroma trainer, predicts Lab a/b directly, then
-assembles RGB via Lab.
+7-channel input used by the chroma trainer, then assembles RGB via Lab.
+
+Absolute checkpoints predict Lab a/b directly. Residual checkpoints keep the
+codec chroma hint as the baseline and apply only a bounded learned correction.
 """
 from __future__ import annotations
 
@@ -60,6 +62,21 @@ def _codec_planes_to_naive_ab_half(planes_chw: np.ndarray) -> tuple[np.ndarray, 
     return lab[..., 1].astype(np.float32), lab[..., 2].astype(np.float32)
 
 
+def _resolve_ab_prediction(raw_ab_t, a_t, b_t, ck, ab_norm: float):
+    target_mode = ck.get("target_mode", "absolute")
+    if target_mode == "absolute":
+        return raw_ab_t
+    if target_mode != "residual":
+        raise RuntimeError(f"Unsupported Lab chroma target_mode {target_mode!r}")
+
+    baseline = F.interpolate(torch.cat([a_t, b_t], dim=1), scale_factor=4, mode="bilinear", align_corners=False)
+    limit = float(ck.get("residual_limit_ab", 0.0))
+    residual = raw_ab_t
+    if limit > 0:
+        residual = residual.clamp(-limit / ab_norm, limit / ab_norm)
+    return (baseline + residual).clamp(-1.0, 1.0)
+
+
 def run_lab_chroma_corrector(
     bayer_u16,
     y_ckpt,
@@ -85,7 +102,8 @@ def run_lab_chroma_corrector(
         a_t = torch.from_numpy(a_half[None, None] / ab_norm).to(device)
         b_t = torch.from_numpy(b_half[None, None] / ab_norm).to(device)
         inp = torch.cat([x, y_half_t, a_t, b_t], dim=1)
-        ab_t = chroma_model(_pad16(inp))[..., :4 * h, :4 * w]
+        raw_ab_t = chroma_model(_pad16(inp))[..., :4 * h, :4 * w]
+        ab_t = _resolve_ab_prediction(raw_ab_t, a_t, b_t, ck, ab_norm)
 
     y_full = y_full_t.squeeze(0).squeeze(0).cpu().numpy()
     ab = ab_t.squeeze(0).cpu().numpy() * ab_norm
