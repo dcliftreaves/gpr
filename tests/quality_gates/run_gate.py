@@ -91,7 +91,28 @@ def load_json(p: Path) -> dict:
 def read_source_bayer(dng_path: str) -> tuple[np.ndarray, int, int]:
     import tifffile
     with tifffile.TiffFile(dng_path) as tf:
-        raw = tf.pages[0].pages[0].asarray()
+        best = None
+        best_size = 0
+        for page in tf.pages:
+            candidates = [page]
+            try:
+                candidates.extend(list(getattr(page, "pages", None) or []))
+            except Exception:
+                pass
+            for candidate in candidates:
+                try:
+                    shape = candidate.shape
+                except Exception:
+                    continue
+                if len(shape) != 2:
+                    continue
+                size = int(shape[0]) * int(shape[1])
+                if size > best_size:
+                    best = candidate
+                    best_size = size
+        if best is None:
+            die(2, f"source DNG has no 2D bayer page: {dng_path}")
+        raw = best.asarray()
     h, w = raw.shape
     return raw.astype("<u2"), w, h
 
@@ -755,8 +776,9 @@ def cnn_hash_fingerprint(cnn: dict) -> str:
 
 
 def pipeline_run_hash(pipeline_id: str, codec: dict, cnn: dict,
-                       dms: dict, image_shas: list[str], gates_sha: str) -> str:
-    payload = json.dumps({
+                       dms: dict, image_shas: list[str], gates_sha: str,
+                       eval_set_sha: str | None = None) -> str:
+    payload_data = {
         "pipeline_id": pipeline_id,
         "codec_env_canonical": canonical_env({**codec.get("env", {}),
                                               "QUALITY": codec.get("quality")}),
@@ -764,13 +786,24 @@ def pipeline_run_hash(pipeline_id: str, codec: dict, cnn: dict,
         "demosaicer": dms.get("binary", ""),
         "image_shas": sorted(image_shas),
         "gates_sha": gates_sha,
-    }, sort_keys=True)
+    }
+    # Preserve historical ship-gate run hashes. Alternate evaluation sets are
+    # informational and need their manifest hash in the run identity because
+    # crop/eval dimensions can differ while source images stay the same.
+    if eval_set_sha:
+        payload_data["eval_set_sha"] = eval_set_sha
+    payload = json.dumps(payload_data, sort_keys=True)
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
-def evaluate_pipeline(pipeline_name: str, keep_fullres: bool = False) -> dict:
+def evaluate_pipeline(
+    pipeline_name: str,
+    keep_fullres: bool = False,
+    test_set_path: Path = TEST_SET_PATH,
+) -> dict:
     gates = load_json(GATES_PATH)
-    test_set = load_json(TEST_SET_PATH)
+    test_set_path = test_set_path.resolve()
+    test_set = load_json(test_set_path)
     registry = load_json(REGISTRY_PATH)
     if pipeline_name not in registry["pipelines"]:
         die(3, f"unknown pipeline: {pipeline_name}. "
@@ -808,13 +841,28 @@ def evaluate_pipeline(pipeline_name: str, keep_fullres: bool = False) -> dict:
         image_shas.append(f"{im['id']}:{p.stat().st_size}:{int(p.stat().st_mtime)}")
 
     gates_sha = hashlib.sha256(GATES_PATH.read_bytes()).hexdigest()[:16]
-    run_hash = pipeline_run_hash(pipeline_name, codec, cnn, dms, image_shas, gates_sha)
+    eval_set_sha = None
+    is_ship_gate = test_set_path == TEST_SET_PATH.resolve()
+    if not is_ship_gate:
+        eval_set_sha = hashlib.sha256(test_set_path.read_bytes()).hexdigest()[:16]
+    run_hash = pipeline_run_hash(
+        pipeline_name,
+        codec,
+        cnn,
+        dms,
+        image_shas,
+        gates_sha,
+        eval_set_sha=eval_set_sha,
+    )
     run_dir = RUNS_DIR / f"{run_hash}"
     run_dir.mkdir(parents=True, exist_ok=True)
     workdir = Path(tempfile.mkdtemp(prefix=f"gate_{run_hash}_"))
 
     print(f"\n=== pipeline: {pipeline_name}")
     print(f"=== run_hash: {run_hash}  ship_class: {ship_class}")
+    print(f"=== test_set:  {test_set_path}")
+    if not is_ship_gate:
+        print("=== authority: informational holdout eval, not a ship PASS/FAIL claim")
     print(f"=== run_dir:  {run_dir}")
 
     results = {
@@ -822,6 +870,10 @@ def evaluate_pipeline(pipeline_name: str, keep_fullres: bool = False) -> dict:
         "ship_class": ship_class,
         "run_hash": run_hash,
         "gates_sha": gates_sha,
+        "test_set": str(test_set_path),
+        "test_set_sha": eval_set_sha or hashlib.sha256(TEST_SET_PATH.read_bytes()).hexdigest()[:16],
+        "is_ship_gate": is_ship_gate,
+        "verdict_authority": "ship_gate" if is_ship_gate else "informational_holdout",
         "started_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "images": {},
     }
@@ -963,14 +1015,22 @@ def main():
                         "Default is to delete them after the verdict is computed; the run.json, "
                         "WORST_*_visual_diff.png, and per-image crops are always kept. "
                         "GATE_KEEP_FULLRES=1 in the environment has the same effect.")
+    p.add_argument("--test-set", type=Path, default=TEST_SET_PATH,
+                   help="Evaluation manifest to run. Defaults to the frozen ship gate. "
+                        "Any alternate manifest is informational only and cannot be used with --claim.")
     args = p.parse_args()
 
     # Env-var override is OR'd with the flag — either one keeps the PNGs.
     keep_fullres = args.keep_fullres_pngs or os.environ.get("GATE_KEEP_FULLRES", "") not in ("", "0")
 
-    res = evaluate_pipeline(args.pipeline, keep_fullres=keep_fullres)
+    res = evaluate_pipeline(args.pipeline, keep_fullres=keep_fullres,
+                            test_set_path=args.test_set)
 
     if args.claim or args.claim_sentence:
+        if not res.get("is_ship_gate", False):
+            print("\n--claim is only allowed on the frozen ship gate test_set.json.",
+                  file=sys.stderr)
+            sys.exit(2)
         if res["verdict"] != "PASS":
             print("\n--claim requested but verdict is FAIL. Refusing to log.", file=sys.stderr)
             sys.exit(1)

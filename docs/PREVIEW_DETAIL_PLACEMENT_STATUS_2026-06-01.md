@@ -90,3 +90,23 @@ Stop spending time on local Lab-L residual post-processes. The next credible
 candidate needs either a larger teacher/detail target with full-image context,
 or a codec-side/detail-aware path that prevents the `Z8Z_6693` texture aliasing
 before the preview model sees it.
+
+## Holdout Evaluation Policy
+
+The four-image `tests/quality_gates/test_set.json` remains the ship gate:
+per-image thresholds, worst image governs, and no averaging can convert a
+frozen-gate failure into a ship claim.
+
+For candidate ranking, use the 28-image informational PREVIEW breadth set:
+
+```bash
+python3 tests/quality_gates/run_gate.py PIPELINE_NAME \
+  --test-set tests/quality_gates/preview_holdout_set.json
+python3 tests/quality_gates/summarize_preview_holdout.py RUN_HASH [RUN_HASH...]
+```
+
+The holdout summary reports median, p95/p05 tails, worst image, and
+per-stratum failures across smooth gradients, high-detail edges,
+foliage/organic texture, saturated color, shadows, and same-session OOD
+examples near the `Z8Z_6693` blocker. A production candidate should improve the
+frozen blocker and should not trade it for a wider p95 tail on the holdout.

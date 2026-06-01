@@ -18,7 +18,11 @@ See `CLAUDE.md` at the repo root for the load-bearing rules.
 tests/quality_gates/
   gates.json         ship-class thresholds (STILL / VIDEO_FREEZE / PREVIEW)
   test_set.json      4 frozen source DNGs + crop positions + eval dims
+  preview_holdout_set.json
+                     28-image informational PREVIEW breadth set
   run_gate.py        the runner — only source of truth
+  summarize_preview_holdout.py
+                     worst/p95/median/per-stratum summary for holdout receipts
   check_registry_consistency.py
                      registry/schema/artifact metadata check
   audit_ship_pipelines.py
@@ -91,6 +95,30 @@ FPS, Pi-to-Mac transfer throughput, UPRESABLE artifact accounting, and chroma
 diagnostics. `diagnose_chroma_signal.py` is for root-causing color failures; it
 reports Lab lightness/chroma error, a/b bias and correlation, hue error, and
 chroma high-frequency retention for one or more quality-gate runs.
+
+## PREVIEW holdout eval
+
+`preview_holdout_set.json` is a broader 28-image informational set for ranking
+PREVIEW candidates after the frozen four-image gate has exposed a blocker. It
+does not replace `test_set.json`, and `run_gate.py --claim` is refused for any
+alternate manifest.
+
+Run a candidate on the holdout:
+
+```
+python3 tests/quality_gates/run_gate.py PIPELINE_NAME \
+  --test-set tests/quality_gates/preview_holdout_set.json
+```
+
+Summarize one or more holdout receipts:
+
+```
+python3 tests/quality_gates/summarize_preview_holdout.py RUN_HASH [RUN_HASH...]
+```
+
+The summary reports worst image, LPIPS/dE p95 tails, MS-SSIM/Y-PSNR p05 tails,
+medians, and per-stratum failures. Use it to compare candidate breadth, not to
+average away a frozen-gate failure.
 
 ## Adding a new pipeline
 

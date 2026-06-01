@@ -252,6 +252,10 @@ def main() -> int:
         "Lab Chroma SIPS full PREVIEW gate",
         lab_sips_pipeline,
     ))
+    checks.extend([
+        check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
+        check_file("preview_holdout", "holdout summary dashboard tool", "tests/quality_gates/summarize_preview_holdout.py"),
+    ])
     checks.append(check_pipeline(
         "upresable",
         "production UPRESABLE",
