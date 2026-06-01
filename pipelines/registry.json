@@ -702,6 +702,15 @@
       "raw_norm": 16383.0,
       "ckpt_sha256": "9dff3b3b14dc5ed98224f3ab7215b131cbc94b6c3aef09ae28a5086d9e8d5a46"
     },
+    "bido_4x_ane_ml2_q3_dec2_blend_distill": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Distills the BIDO_4x_w24 guided-filter blend target into a single BIDO_4x_w16 model: teacher supplies Y/detail, sips target supplies chroma, guided filter blends chroma with the teacher Y edge guide. Checkpoint metadata: epoch 25, val_lpips_vs_blend=0.01005, val_psnr_vs_blend=42.32 dB, val_psnr_vs_sips=39.94 dB.",
+      "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w16_ANE_blend_distill.pt",
+      "cnn_arch_variant": "bido_4x",
+      "trained_against_codec": "ml2_q3_dec2",
+      "residual_scale": 0.0,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "3e4008f2036b97b4bd2fd30b37ff91287bf64b700afe6af93fcd058d0e4a2933"
+    },
     "bido_4x_ane_ml2_q3_dec2": {
       "$doc": "BIDO (Bayer-In, Demosaic-Out) 4x joint demosaic+super-res CNN matched to ml2_q3_dec2. Single-image val (Z8Z_0067) \u2014 overfits one image, fails OOD gate images. Architecture variant F_ane_dm_sr (alias bido_4x).",
       "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w16_ANE.pt",
@@ -842,6 +851,62 @@
       "raw_norm": 16383.0,
       "residual_scale": 0.0,
       "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s05_sig2": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Same display-space Lab SIPS chroma baseline, plus a crop-sweep-derived luma unsharp pass (amount=0.5, sigma=2.0) applied to the predicted L before Lab assembly. Tests whether the solved color path can tolerate direct detail recovery before launching a longer distillation run.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w16_y.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips",
+      "luma_unsharp_amount": 0.5,
+      "luma_unsharp_sigma": 2.0
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s10_sig2": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Same display-space Lab SIPS chroma baseline, with a stronger luma unsharp pass (amount=1.0, sigma=2.0). Added after s05_sig2 passed 3/4 images but left Z8Z_6693 failing LPIPS/MS-SSIM.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w16_y.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips",
+      "luma_unsharp_amount": 1.0,
+      "luma_unsharp_sigma": 2.0
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_sig2": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Midpoint between s05_sig2 and s10_sig2 after s10 improved Z8Z_6693 but narrowly regressed Z8Z_0001 dE.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w16_y.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips",
+      "luma_unsharp_amount": 0.7,
+      "luma_unsharp_sigma": 2.0
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_luma_linear_detail_v1": {
+      "$doc": "Temporary PREVIEW detail-placement candidate for the full-gate stop criteria. Keeps the solved Lab SIPS chroma path fixed, then applies a constrained high-pass Lab-L sidecar fit from the full-resolution gate REF/PIPELINE pairs in run 5e7d52579ffb2d3e. The sidecar is coordinate-free and chroma-blind: it can restore systematic local contrast but cannot memorize scene layout or alter Lab a/b.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w16_y.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips",
+      "luma_detail_refiner": "models/luma_detail_linear_lab_sips_fullgate_v1.npz",
+      "luma_detail_refiner_sha256": "ed3973fc23bab47433a85ba76c3f9cf07e6fae87aedafabbf00c02c21cc1447b"
     }
   },
   "pipelines": {
@@ -1368,6 +1433,14 @@
       "ship_class": "PREVIEW",
       "$role": "experiment-bido-w32-exposure-aug"
     },
+    "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_blend_distill+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "bido_4x_ane_ml2_q3_dec2_blend_distill",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-blend-distill",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Registered to gate the existing blend-distill checkpoint before launching more training."
+    },
     "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_distill+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
       "cnn": "bido_4x_ane_ml2_q3_dec2_distill",
@@ -1404,6 +1477,38 @@
       "ship_class": "PREVIEW",
       "$role": "active-preview-color-baseline",
       "$doc": "Use as the current PREVIEW chroma/color baseline, not as a shipped PREVIEW pipeline. Run 5e7d52579ffb2d3e proves dE2000 mean is within gate on all examples; full PREVIEW still fails on detail metrics. Next candidate should preserve this color behavior while borrowing/detail-distilling from UPRESABLE."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s05_sig2+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s05_sig2",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-lab-sips-unsharp",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Keeps the Lab SIPS chroma model fixed and tests a luma-detail unsharp parameter from prior crop sweeps."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s10_sig2+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s10_sig2",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-lab-sips-unsharp",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Stronger luma-detail unsharp sweep after s05_sig2 improved the blocker but did not pass Z8Z_6693."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_sig2+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_sig2",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-lab-sips-unsharp",
+      "$doc": "Temporary midpoint candidate for the detail-placement stop criteria."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_luma_linear_detail_v1+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_luma_linear_detail_v1",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-luma-linear-fullgate",
+      "$doc": "Temporary candidate for the detail-placement stop criteria: full-gate-trained Lab-L high-pass sidecar on top of the Lab SIPS chroma/color baseline."
     },
     "codec=sl_q3_hh1x2+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q3_hh1x2",

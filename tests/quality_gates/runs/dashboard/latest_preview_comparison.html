@@ -1,0 +1,778 @@
+<!doctype html><html><head><meta charset='utf-8'>
+<title>Latest PREVIEW comparison</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; margin: 24px; background: #f7f7f4; color: #222; }
+h1 { font-size: 24px; margin: 0 0 4px; }
+h2 { font-size: 18px; margin-top: 28px; }
+.sub { color: #555; max-width: 1100px; line-height: 1.45; }
+.cards { display: grid; grid-template-columns: repeat(5, minmax(190px, 1fr)); gap: 10px; margin: 18px 0; }
+.card { background: white; border: 1px solid #ddd; border-radius: 6px; padding: 12px; }
+.card h3 { margin: 0 0 8px; font-size: 14px; }
+.small { font-size: 12px; color: #666; line-height: 1.35; }
+.pill { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 12px; border: 1px solid #ccc; background: #f4f4f4; }
+.pass { color: #0a6f2a; font-weight: 650; }
+.fail { color: #a31621; font-weight: 650; }
+.warn { color: #9a5a00; font-weight: 650; }
+table { border-collapse: collapse; width: 100%; font-size: 12px; background: white; }
+th, td { border: 1px solid #ddd; padding: 6px 7px; text-align: right; vertical-align: top; }
+th { background: #ecece8; position: sticky; top: 0; z-index: 1; }
+td.left, th.left { text-align: left; }
+.visual { display: grid; grid-template-columns: 110px repeat(5, minmax(160px, 1fr)); gap: 8px; align-items: start; margin: 14px 0 26px; }
+.label { background: white; border: 1px solid #ddd; border-radius: 6px; padding: 9px; font-weight: 700; font-size: 13px; }
+figure { background: white; border: 1px solid #ddd; border-radius: 6px; margin: 0; padding: 8px; }
+figure img { width: 100%; display: block; border: 1px solid #ccc; }
+figcaption { font-size: 11px; color: #555; margin-top: 6px; text-align: center; line-height: 1.3; }
+.callout { background: #fff; border-left: 4px solid #4b6f9f; padding: 12px 14px; max-width: 1120px; line-height: 1.45; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; }
+</style></head><body>
+<h1>Latest PREVIEW Comparison: Chroma vs Detail</h1>
+<div class='sub'>Compares the newest relevant local gate runs on all four gate examples. Gate thresholds: LPIPS <= 0.15, MS-SSIM >= 0.95, Y-PSNR >= 28, dE2000 mean <= 3. Crop diagnostics are computed from each run's saved <code>crop_A_detail</code> REF/PIPELINE images.</div>
+<div class='cards'>
+
+<div class="card">
+  <h3>No CNN</h3>
+  <div class="small"><code>2362fb8cb863f4c5</code></div>
+  <div class="small">ml2_q3_dec2 + bicubic. Honest embedded preview floor.</div>
+  <p class="small">verdict: <span class="fail">FAIL</span></p>
+  <p class="small">worst LPIPS: <b>Z8Z_0001</b> 0.312</p>
+  <p class="small">worst dE: <b>Z8Z_0001</b> 3.56</p>
+  <p class="small">worst MS-SSIM: <b>Z8Z_6693</b> 0.862</p>
+  <p><span class="pill">color + detail, detail, passes</span></p>
+</div>
+
+<div class="card">
+  <h3>Matched BIDO</h3>
+  <div class="small"><code>732da314adc90553</code></div>
+  <div class="small">Matched 4x CNN. Sharper intent, but color drifts badly.</div>
+  <p class="small">verdict: <span class="fail">FAIL</span></p>
+  <p class="small">worst LPIPS: <b>Z8Z_6693</b> 0.385</p>
+  <p class="small">worst dE: <b>Z8Z_0001</b> 6.82</p>
+  <p class="small">worst MS-SSIM: <b>Z8Z_6693</b> 0.928</p>
+  <p><span class="pill">color + detail, passes</span></p>
+</div>
+
+<div class="card">
+  <h3>Lab Chroma SIPS</h3>
+  <div class="small"><code>5e7d52579ffb2d3e</code></div>
+  <div class="small">Latest display-space residual Lab chroma run. dE mean passes; detail metrics still fail.</div>
+  <p class="small">verdict: <span class="fail">FAIL</span></p>
+  <p class="small">worst LPIPS: <b>Z8Z_6693</b> 0.310</p>
+  <p class="small">worst dE: <b>Z8Z_0001</b> 2.97</p>
+  <p class="small">worst MS-SSIM: <b>Z8Z_6693</b> 0.935</p>
+  <p><span class="pill">detail, passes</span></p>
+</div>
+
+<div class="card">
+  <h3>Lab SIPS + Unsharp s07</h3>
+  <div class="small"><code>1f1ef2ee138c51c3</code></div>
+  <div class="small">Best registered luma-unsharp candidate so far. Passes 3/4 images; Z8Z_6693 remains detail-bound.</div>
+  <p class="small">verdict: <span class="fail">FAIL</span></p>
+  <p class="small">worst LPIPS: <b>Z8Z_6693</b> 0.224</p>
+  <p class="small">worst dE: <b>Z8Z_0001</b> 2.98</p>
+  <p class="small">worst MS-SSIM: <b>Z8Z_6693</b> 0.930</p>
+  <p><span class="pill">detail, passes</span></p>
+</div>
+
+<div class="card">
+  <h3>Full-Gate Linear Detail</h3>
+  <div class="small"><code>387888dda9016edf</code></div>
+  <div class="small">Constrained Lab-L high-pass sidecar fit on full-gate REF/PIPELINE pairs. Improves Y-PSNR but regresses LPIPS.</div>
+  <p class="small">verdict: <span class="fail">FAIL</span></p>
+  <p class="small">worst LPIPS: <b>Z8Z_6693</b> 0.476</p>
+  <p class="small">worst dE: <b>Z8Z_0001</b> 2.95</p>
+  <p class="small">worst MS-SSIM: <b>Z8Z_6693</b> 0.937</p>
+  <p><span class="pill">detail, passes</span></p>
+</div>
+
+<div class="card">
+  <h3>Blend Distill</h3>
+  <div class="small"><code>8d4f8aa3eb81a99d</code></div>
+  <div class="small">Older BIDO blend-distill checkpoint. Reject: regresses both detail placement and dE guardrail.</div>
+  <p class="small">verdict: <span class="fail">FAIL</span></p>
+  <p class="small">worst LPIPS: <b>Z8Z_6693</b> 0.450</p>
+  <p class="small">worst dE: <b>Z8Z_0001</b> 6.31</p>
+  <p class="small">worst MS-SSIM: <b>Z8Z_6693</b> 0.926</p>
+  <p><span class="pill">color + detail, passes</span></p>
+</div>
+
+<div class="card">
+  <h3>UPRESABLE Ref Path</h3>
+  <div class="small"><code>8864c12ec0b6ce14</code></div>
+  <div class="small">Offline BIBO_2x editable-raw path. Not a PREVIEW gate, but useful detail-placement reference.</div>
+  <p class="small">verdict: <span class="pass">PASS</span></p>
+  <p class="small">worst LPIPS: <b>Z8Z_6693</b> 0.343</p>
+  <p class="small">worst dE: <b>Z8Z_6693</b> 1.78</p>
+  <p class="small">worst MS-SSIM: <b>Z8Z_6693</b> 0.945</p>
+  <p><span class="pill">detail, passes</span></p>
+</div>
+</div>
+
+<div class="callout">
+  <b>Read this first:</b> the latest display-space Lab chroma run keeps dE mean under the gate on all four examples,
+  so it is not failing as a global chroma-direction problem. It still fails LPIPS/MS-SSIM on the hard texture images.
+  The later Y/detail checkpoint did not fix that; it worsened LPIPS and pushes one image back over the dE threshold.
+  This does not prove chroma is finished, but it shows the next experiment needs to preserve full-image texture/detail
+  while treating dE as a guardrail.
+</div>
+<h2>Per-Image Metrics</h2>
+<table><thead><tr><th class='left'>image</th><th class='left'>variant</th><th class='left'>diagnosis</th><th>LPIPS</th><th>MS-SSIM</th><th>Y-PSNR</th><th>dE mean</th><th>crop L-SSIM</th><th>crop L-PSNR</th><th>HP ratio</th><th>HP corr</th><th>crop |ab| MAE</th><th>crop |ab| p95</th></tr></thead><tbody>
+
+<tr>
+  <td class="left">Z8Z_0001</td>
+  <td class="left">No CNN</td>
+  <td class="left">color + detail</td>
+  <td class="fail">0.3119</td>
+  <td class="fail">0.8780</td>
+  <td class="fail">24.04</td>
+  <td class="fail">3.56</td>
+  <td>0.5871</td>
+  <td>26.02</td>
+  <td>1.400</td>
+  <td>0.050</td>
+  <td>1.21</td>
+  <td>3.53</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0067</td>
+  <td class="left">No CNN</td>
+  <td class="left">passes</td>
+  <td class="pass">0.0786</td>
+  <td class="pass">0.9866</td>
+  <td class="pass">38.04</td>
+  <td class="pass">0.91</td>
+  <td>0.9755</td>
+  <td>46.09</td>
+  <td>0.134</td>
+  <td>0.006</td>
+  <td>0.45</td>
+  <td>1.17</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_5323</td>
+  <td class="left">No CNN</td>
+  <td class="left">detail</td>
+  <td class="fail">0.2358</td>
+  <td class="fail">0.9063</td>
+  <td class="pass">32.21</td>
+  <td class="pass">1.92</td>
+  <td>0.5369</td>
+  <td>29.93</td>
+  <td>0.403</td>
+  <td>0.030</td>
+  <td>0.78</td>
+  <td>2.25</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_6693</td>
+  <td class="left">No CNN</td>
+  <td class="left">detail</td>
+  <td class="fail">0.2362</td>
+  <td class="fail">0.8617</td>
+  <td class="pass">30.39</td>
+  <td class="pass">2.46</td>
+  <td>0.3905</td>
+  <td>26.90</td>
+  <td>0.396</td>
+  <td>0.039</td>
+  <td>0.93</td>
+  <td>2.80</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0001</td>
+  <td class="left">Matched BIDO</td>
+  <td class="left">color + detail</td>
+  <td class="fail">0.2009</td>
+  <td class="fail">0.9378</td>
+  <td class="pass">29.86</td>
+  <td class="fail">6.82</td>
+  <td>0.8248</td>
+  <td>33.33</td>
+  <td>0.565</td>
+  <td>0.294</td>
+  <td>1.66</td>
+  <td>4.75</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0067</td>
+  <td class="left">Matched BIDO</td>
+  <td class="left">passes</td>
+  <td class="pass">0.0730</td>
+  <td class="pass">0.9824</td>
+  <td class="pass">41.57</td>
+  <td class="pass">1.77</td>
+  <td>0.9689</td>
+  <td>44.06</td>
+  <td>0.567</td>
+  <td>-0.009</td>
+  <td>2.40</td>
+  <td>5.34</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_5323</td>
+  <td class="left">Matched BIDO</td>
+  <td class="left">color + detail</td>
+  <td class="fail">0.2866</td>
+  <td class="fail">0.9450</td>
+  <td class="pass">34.71</td>
+  <td class="fail">6.11</td>
+  <td>0.5874</td>
+  <td>31.35</td>
+  <td>0.403</td>
+  <td>0.013</td>
+  <td>3.62</td>
+  <td>6.02</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_6693</td>
+  <td class="left">Matched BIDO</td>
+  <td class="left">color + detail</td>
+  <td class="fail">0.3850</td>
+  <td class="fail">0.9283</td>
+  <td class="pass">32.75</td>
+  <td class="fail">4.69</td>
+  <td>0.4384</td>
+  <td>28.36</td>
+  <td>0.353</td>
+  <td>0.016</td>
+  <td>2.45</td>
+  <td>5.72</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0001</td>
+  <td class="left">Lab Chroma SIPS</td>
+  <td class="left">passes</td>
+  <td class="pass">0.1159</td>
+  <td class="pass">0.9627</td>
+  <td class="pass">30.35</td>
+  <td class="pass">2.97</td>
+  <td>0.8387</td>
+  <td>33.99</td>
+  <td>0.669</td>
+  <td>0.320</td>
+  <td>1.02</td>
+  <td>2.89</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0067</td>
+  <td class="left">Lab Chroma SIPS</td>
+  <td class="left">passes</td>
+  <td class="pass">0.0499</td>
+  <td class="pass">0.9888</td>
+  <td class="pass">41.02</td>
+  <td class="pass">1.01</td>
+  <td>0.9681</td>
+  <td>41.12</td>
+  <td>0.615</td>
+  <td>0.004</td>
+  <td>0.51</td>
+  <td>1.23</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_5323</td>
+  <td class="left">Lab Chroma SIPS</td>
+  <td class="left">detail</td>
+  <td class="fail">0.1806</td>
+  <td class="pass">0.9594</td>
+  <td class="pass">35.06</td>
+  <td class="pass">1.58</td>
+  <td>0.5826</td>
+  <td>30.85</td>
+  <td>0.438</td>
+  <td>0.011</td>
+  <td>0.66</td>
+  <td>1.92</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_6693</td>
+  <td class="left">Lab Chroma SIPS</td>
+  <td class="left">detail</td>
+  <td class="fail">0.3096</td>
+  <td class="fail">0.9348</td>
+  <td class="pass">32.74</td>
+  <td class="pass">2.09</td>
+  <td>0.4370</td>
+  <td>28.03</td>
+  <td>0.401</td>
+  <td>0.018</td>
+  <td>0.88</td>
+  <td>2.53</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0001</td>
+  <td class="left">Lab SIPS + Unsharp s07</td>
+  <td class="left">passes</td>
+  <td class="pass">0.1029</td>
+  <td class="pass">0.9635</td>
+  <td class="pass">30.28</td>
+  <td class="pass">2.98</td>
+  <td>0.8222</td>
+  <td>33.60</td>
+  <td>1.014</td>
+  <td>0.280</td>
+  <td>1.01</td>
+  <td>2.88</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0067</td>
+  <td class="left">Lab SIPS + Unsharp s07</td>
+  <td class="left">passes</td>
+  <td class="pass">0.0345</td>
+  <td class="pass">0.9884</td>
+  <td class="pass">40.81</td>
+  <td class="pass">1.02</td>
+  <td>0.9552</td>
+  <td>40.47</td>
+  <td>1.001</td>
+  <td>0.004</td>
+  <td>0.51</td>
+  <td>1.22</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_5323</td>
+  <td class="left">Lab SIPS + Unsharp s07</td>
+  <td class="left">passes</td>
+  <td class="pass">0.1271</td>
+  <td class="pass">0.9560</td>
+  <td class="pass">34.35</td>
+  <td class="pass">1.67</td>
+  <td>0.5251</td>
+  <td>29.92</td>
+  <td>0.735</td>
+  <td>0.009</td>
+  <td>0.66</td>
+  <td>1.92</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_6693</td>
+  <td class="left">Lab SIPS + Unsharp s07</td>
+  <td class="left">detail</td>
+  <td class="fail">0.2242</td>
+  <td class="fail">0.9295</td>
+  <td class="pass">32.03</td>
+  <td class="pass">2.20</td>
+  <td>0.3928</td>
+  <td>27.24</td>
+  <td>0.671</td>
+  <td>0.017</td>
+  <td>0.89</td>
+  <td>2.55</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0001</td>
+  <td class="left">Full-Gate Linear Detail</td>
+  <td class="left">passes</td>
+  <td class="pass">0.1412</td>
+  <td class="pass">0.9647</td>
+  <td class="pass">30.55</td>
+  <td class="pass">2.95</td>
+  <td>0.8558</td>
+  <td>34.51</td>
+  <td>0.449</td>
+  <td>0.466</td>
+  <td>1.01</td>
+  <td>2.88</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0067</td>
+  <td class="left">Full-Gate Linear Detail</td>
+  <td class="left">passes</td>
+  <td class="pass">0.0625</td>
+  <td class="pass">0.9889</td>
+  <td class="pass">41.16</td>
+  <td class="pass">1.00</td>
+  <td>0.9750</td>
+  <td>41.48</td>
+  <td>0.177</td>
+  <td>-0.002</td>
+  <td>0.51</td>
+  <td>1.23</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_5323</td>
+  <td class="left">Full-Gate Linear Detail</td>
+  <td class="left">detail</td>
+  <td class="fail">0.2984</td>
+  <td class="pass">0.9618</td>
+  <td class="pass">35.50</td>
+  <td class="pass">1.53</td>
+  <td>0.6202</td>
+  <td>31.42</td>
+  <td>0.091</td>
+  <td>0.038</td>
+  <td>0.66</td>
+  <td>1.92</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_6693</td>
+  <td class="left">Full-Gate Linear Detail</td>
+  <td class="left">detail</td>
+  <td class="fail">0.4757</td>
+  <td class="fail">0.9373</td>
+  <td class="pass">33.12</td>
+  <td class="pass">2.03</td>
+  <td>0.4665</td>
+  <td>28.49</td>
+  <td>0.087</td>
+  <td>0.045</td>
+  <td>0.88</td>
+  <td>2.53</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0001</td>
+  <td class="left">Blend Distill</td>
+  <td class="left">color + detail</td>
+  <td class="fail">0.2305</td>
+  <td class="fail">0.9373</td>
+  <td class="pass">29.18</td>
+  <td class="fail">6.31</td>
+  <td>0.8018</td>
+  <td>32.45</td>
+  <td>0.521</td>
+  <td>0.259</td>
+  <td>1.38</td>
+  <td>4.03</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0067</td>
+  <td class="left">Blend Distill</td>
+  <td class="left">passes</td>
+  <td class="pass">0.0839</td>
+  <td class="pass">0.9851</td>
+  <td class="pass">40.43</td>
+  <td class="pass">1.32</td>
+  <td>0.9675</td>
+  <td>44.42</td>
+  <td>0.626</td>
+  <td>-0.012</td>
+  <td>0.93</td>
+  <td>2.11</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_5323</td>
+  <td class="left">Blend Distill</td>
+  <td class="left">color + detail</td>
+  <td class="fail">0.3221</td>
+  <td class="fail">0.9410</td>
+  <td class="pass">33.89</td>
+  <td class="fail">5.74</td>
+  <td>0.5836</td>
+  <td>31.31</td>
+  <td>0.403</td>
+  <td>0.009</td>
+  <td>4.30</td>
+  <td>8.80</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_6693</td>
+  <td class="left">Blend Distill</td>
+  <td class="left">color + detail</td>
+  <td class="fail">0.4500</td>
+  <td class="fail">0.9264</td>
+  <td class="pass">32.63</td>
+  <td class="fail">4.36</td>
+  <td>0.4405</td>
+  <td>28.41</td>
+  <td>0.320</td>
+  <td>0.015</td>
+  <td>3.03</td>
+  <td>6.65</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0001</td>
+  <td class="left">UPRESABLE Ref Path</td>
+  <td class="left">passes</td>
+  <td class="pass">0.1027</td>
+  <td class="pass">0.9842</td>
+  <td class="pass">33.37</td>
+  <td class="pass">1.70</td>
+  <td>0.8784</td>
+  <td>35.04</td>
+  <td>0.570</td>
+  <td>0.378</td>
+  <td>0.83</td>
+  <td>2.32</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0067</td>
+  <td class="left">UPRESABLE Ref Path</td>
+  <td class="left">passes</td>
+  <td class="pass">0.0642</td>
+  <td class="pass">0.9949</td>
+  <td class="pass">45.23</td>
+  <td class="pass">0.69</td>
+  <td>0.9758</td>
+  <td>46.24</td>
+  <td>0.129</td>
+  <td>0.003</td>
+  <td>0.39</td>
+  <td>0.98</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_5323</td>
+  <td class="left">UPRESABLE Ref Path</td>
+  <td class="left">detail</td>
+  <td class="fail">0.2027</td>
+  <td class="pass">0.9685</td>
+  <td class="pass">36.60</td>
+  <td class="pass">1.30</td>
+  <td>0.6396</td>
+  <td>32.11</td>
+  <td>0.213</td>
+  <td>0.154</td>
+  <td>0.55</td>
+  <td>1.63</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_6693</td>
+  <td class="left">UPRESABLE Ref Path</td>
+  <td class="left">detail</td>
+  <td class="fail">0.3433</td>
+  <td class="fail">0.9445</td>
+  <td class="pass">33.79</td>
+  <td class="pass">1.78</td>
+  <td>0.4999</td>
+  <td>29.14</td>
+  <td>0.206</td>
+  <td>0.166</td>
+  <td>0.73</td>
+  <td>2.15</td>
+</tr>
+</tbody></table>
+<h2>Visual Crops</h2>
+<div class='sub'>Each cell shows REF crop on top and PIPELINE crop below. This is intentionally repetitive: it makes it easier to decide whether the visible miss is color, detail, or both.</div>
+<div class='visual'>
+<div class='label'>Z8Z_0001</div>
+
+<figure>
+  <img src="../2362fb8cb863f4c5/Z8Z_0001_REF_crop_A_detail.png" alt="Z8Z_0001 REF">
+  <figcaption>REF</figcaption>
+  <img src="../2362fb8cb863f4c5/Z8Z_0001_PIPELINE_crop_A_detail.png" alt="Z8Z_0001 No CNN" style="margin-top:6px">
+  <figcaption>No CNN<br>LPIPS 0.312 · dE 3.56</figcaption>
+</figure>
+
+<figure>
+  <img src="../732da314adc90553/Z8Z_0001_REF_crop_A_detail.png" alt="Z8Z_0001 REF">
+  <figcaption>REF</figcaption>
+  <img src="../732da314adc90553/Z8Z_0001_PIPELINE_crop_A_detail.png" alt="Z8Z_0001 Matched BIDO" style="margin-top:6px">
+  <figcaption>Matched BIDO<br>LPIPS 0.201 · dE 6.82</figcaption>
+</figure>
+
+<figure>
+  <img src="../5e7d52579ffb2d3e/Z8Z_0001_REF_crop_A_detail.png" alt="Z8Z_0001 REF">
+  <figcaption>REF</figcaption>
+  <img src="../5e7d52579ffb2d3e/Z8Z_0001_PIPELINE_crop_A_detail.png" alt="Z8Z_0001 Lab Chroma SIPS" style="margin-top:6px">
+  <figcaption>Lab Chroma SIPS<br>LPIPS 0.116 · dE 2.97</figcaption>
+</figure>
+
+<figure>
+  <img src="../1f1ef2ee138c51c3/Z8Z_0001_REF_crop_A_detail.png" alt="Z8Z_0001 REF">
+  <figcaption>REF</figcaption>
+  <img src="../1f1ef2ee138c51c3/Z8Z_0001_PIPELINE_crop_A_detail.png" alt="Z8Z_0001 Lab SIPS + Unsharp s07" style="margin-top:6px">
+  <figcaption>Lab SIPS + Unsharp s07<br>LPIPS 0.103 · dE 2.98</figcaption>
+</figure>
+
+<figure>
+  <img src="../387888dda9016edf/Z8Z_0001_REF_crop_A_detail.png" alt="Z8Z_0001 REF">
+  <figcaption>REF</figcaption>
+  <img src="../387888dda9016edf/Z8Z_0001_PIPELINE_crop_A_detail.png" alt="Z8Z_0001 Full-Gate Linear Detail" style="margin-top:6px">
+  <figcaption>Full-Gate Linear Detail<br>LPIPS 0.141 · dE 2.95</figcaption>
+</figure>
+
+<figure>
+  <img src="../8d4f8aa3eb81a99d/Z8Z_0001_REF_crop_A_detail.png" alt="Z8Z_0001 REF">
+  <figcaption>REF</figcaption>
+  <img src="../8d4f8aa3eb81a99d/Z8Z_0001_PIPELINE_crop_A_detail.png" alt="Z8Z_0001 Blend Distill" style="margin-top:6px">
+  <figcaption>Blend Distill<br>LPIPS 0.230 · dE 6.31</figcaption>
+</figure>
+
+<figure>
+  <img src="../8864c12ec0b6ce14/Z8Z_0001_REF_crop_A_detail.png" alt="Z8Z_0001 REF">
+  <figcaption>REF</figcaption>
+  <img src="../8864c12ec0b6ce14/Z8Z_0001_PIPELINE_crop_A_detail.png" alt="Z8Z_0001 UPRESABLE Ref Path" style="margin-top:6px">
+  <figcaption>UPRESABLE Ref Path<br>LPIPS 0.103 · dE 1.70</figcaption>
+</figure>
+</div>
+<div class='visual'>
+<div class='label'>Z8Z_0067</div>
+
+<figure>
+  <img src="../2362fb8cb863f4c5/Z8Z_0067_REF_crop_A_detail.png" alt="Z8Z_0067 REF">
+  <figcaption>REF</figcaption>
+  <img src="../2362fb8cb863f4c5/Z8Z_0067_PIPELINE_crop_A_detail.png" alt="Z8Z_0067 No CNN" style="margin-top:6px">
+  <figcaption>No CNN<br>LPIPS 0.079 · dE 0.91</figcaption>
+</figure>
+
+<figure>
+  <img src="../732da314adc90553/Z8Z_0067_REF_crop_A_detail.png" alt="Z8Z_0067 REF">
+  <figcaption>REF</figcaption>
+  <img src="../732da314adc90553/Z8Z_0067_PIPELINE_crop_A_detail.png" alt="Z8Z_0067 Matched BIDO" style="margin-top:6px">
+  <figcaption>Matched BIDO<br>LPIPS 0.073 · dE 1.77</figcaption>
+</figure>
+
+<figure>
+  <img src="../5e7d52579ffb2d3e/Z8Z_0067_REF_crop_A_detail.png" alt="Z8Z_0067 REF">
+  <figcaption>REF</figcaption>
+  <img src="../5e7d52579ffb2d3e/Z8Z_0067_PIPELINE_crop_A_detail.png" alt="Z8Z_0067 Lab Chroma SIPS" style="margin-top:6px">
+  <figcaption>Lab Chroma SIPS<br>LPIPS 0.050 · dE 1.01</figcaption>
+</figure>
+
+<figure>
+  <img src="../1f1ef2ee138c51c3/Z8Z_0067_REF_crop_A_detail.png" alt="Z8Z_0067 REF">
+  <figcaption>REF</figcaption>
+  <img src="../1f1ef2ee138c51c3/Z8Z_0067_PIPELINE_crop_A_detail.png" alt="Z8Z_0067 Lab SIPS + Unsharp s07" style="margin-top:6px">
+  <figcaption>Lab SIPS + Unsharp s07<br>LPIPS 0.034 · dE 1.02</figcaption>
+</figure>
+
+<figure>
+  <img src="../387888dda9016edf/Z8Z_0067_REF_crop_A_detail.png" alt="Z8Z_0067 REF">
+  <figcaption>REF</figcaption>
+  <img src="../387888dda9016edf/Z8Z_0067_PIPELINE_crop_A_detail.png" alt="Z8Z_0067 Full-Gate Linear Detail" style="margin-top:6px">
+  <figcaption>Full-Gate Linear Detail<br>LPIPS 0.062 · dE 1.00</figcaption>
+</figure>
+
+<figure>
+  <img src="../8d4f8aa3eb81a99d/Z8Z_0067_REF_crop_A_detail.png" alt="Z8Z_0067 REF">
+  <figcaption>REF</figcaption>
+  <img src="../8d4f8aa3eb81a99d/Z8Z_0067_PIPELINE_crop_A_detail.png" alt="Z8Z_0067 Blend Distill" style="margin-top:6px">
+  <figcaption>Blend Distill<br>LPIPS 0.084 · dE 1.32</figcaption>
+</figure>
+
+<figure>
+  <img src="../8864c12ec0b6ce14/Z8Z_0067_REF_crop_A_detail.png" alt="Z8Z_0067 REF">
+  <figcaption>REF</figcaption>
+  <img src="../8864c12ec0b6ce14/Z8Z_0067_PIPELINE_crop_A_detail.png" alt="Z8Z_0067 UPRESABLE Ref Path" style="margin-top:6px">
+  <figcaption>UPRESABLE Ref Path<br>LPIPS 0.064 · dE 0.69</figcaption>
+</figure>
+</div>
+<div class='visual'>
+<div class='label'>Z8Z_5323</div>
+
+<figure>
+  <img src="../2362fb8cb863f4c5/Z8Z_5323_REF_crop_A_detail.png" alt="Z8Z_5323 REF">
+  <figcaption>REF</figcaption>
+  <img src="../2362fb8cb863f4c5/Z8Z_5323_PIPELINE_crop_A_detail.png" alt="Z8Z_5323 No CNN" style="margin-top:6px">
+  <figcaption>No CNN<br>LPIPS 0.236 · dE 1.92</figcaption>
+</figure>
+
+<figure>
+  <img src="../732da314adc90553/Z8Z_5323_REF_crop_A_detail.png" alt="Z8Z_5323 REF">
+  <figcaption>REF</figcaption>
+  <img src="../732da314adc90553/Z8Z_5323_PIPELINE_crop_A_detail.png" alt="Z8Z_5323 Matched BIDO" style="margin-top:6px">
+  <figcaption>Matched BIDO<br>LPIPS 0.287 · dE 6.11</figcaption>
+</figure>
+
+<figure>
+  <img src="../5e7d52579ffb2d3e/Z8Z_5323_REF_crop_A_detail.png" alt="Z8Z_5323 REF">
+  <figcaption>REF</figcaption>
+  <img src="../5e7d52579ffb2d3e/Z8Z_5323_PIPELINE_crop_A_detail.png" alt="Z8Z_5323 Lab Chroma SIPS" style="margin-top:6px">
+  <figcaption>Lab Chroma SIPS<br>LPIPS 0.181 · dE 1.58</figcaption>
+</figure>
+
+<figure>
+  <img src="../1f1ef2ee138c51c3/Z8Z_5323_REF_crop_A_detail.png" alt="Z8Z_5323 REF">
+  <figcaption>REF</figcaption>
+  <img src="../1f1ef2ee138c51c3/Z8Z_5323_PIPELINE_crop_A_detail.png" alt="Z8Z_5323 Lab SIPS + Unsharp s07" style="margin-top:6px">
+  <figcaption>Lab SIPS + Unsharp s07<br>LPIPS 0.127 · dE 1.67</figcaption>
+</figure>
+
+<figure>
+  <img src="../387888dda9016edf/Z8Z_5323_REF_crop_A_detail.png" alt="Z8Z_5323 REF">
+  <figcaption>REF</figcaption>
+  <img src="../387888dda9016edf/Z8Z_5323_PIPELINE_crop_A_detail.png" alt="Z8Z_5323 Full-Gate Linear Detail" style="margin-top:6px">
+  <figcaption>Full-Gate Linear Detail<br>LPIPS 0.298 · dE 1.53</figcaption>
+</figure>
+
+<figure>
+  <img src="../8d4f8aa3eb81a99d/Z8Z_5323_REF_crop_A_detail.png" alt="Z8Z_5323 REF">
+  <figcaption>REF</figcaption>
+  <img src="../8d4f8aa3eb81a99d/Z8Z_5323_PIPELINE_crop_A_detail.png" alt="Z8Z_5323 Blend Distill" style="margin-top:6px">
+  <figcaption>Blend Distill<br>LPIPS 0.322 · dE 5.74</figcaption>
+</figure>
+
+<figure>
+  <img src="../8864c12ec0b6ce14/Z8Z_5323_REF_crop_A_detail.png" alt="Z8Z_5323 REF">
+  <figcaption>REF</figcaption>
+  <img src="../8864c12ec0b6ce14/Z8Z_5323_PIPELINE_crop_A_detail.png" alt="Z8Z_5323 UPRESABLE Ref Path" style="margin-top:6px">
+  <figcaption>UPRESABLE Ref Path<br>LPIPS 0.203 · dE 1.30</figcaption>
+</figure>
+</div>
+<div class='visual'>
+<div class='label'>Z8Z_6693</div>
+
+<figure>
+  <img src="../2362fb8cb863f4c5/Z8Z_6693_REF_crop_A_detail.png" alt="Z8Z_6693 REF">
+  <figcaption>REF</figcaption>
+  <img src="../2362fb8cb863f4c5/Z8Z_6693_PIPELINE_crop_A_detail.png" alt="Z8Z_6693 No CNN" style="margin-top:6px">
+  <figcaption>No CNN<br>LPIPS 0.236 · dE 2.46</figcaption>
+</figure>
+
+<figure>
+  <img src="../732da314adc90553/Z8Z_6693_REF_crop_A_detail.png" alt="Z8Z_6693 REF">
+  <figcaption>REF</figcaption>
+  <img src="../732da314adc90553/Z8Z_6693_PIPELINE_crop_A_detail.png" alt="Z8Z_6693 Matched BIDO" style="margin-top:6px">
+  <figcaption>Matched BIDO<br>LPIPS 0.385 · dE 4.69</figcaption>
+</figure>
+
+<figure>
+  <img src="../5e7d52579ffb2d3e/Z8Z_6693_REF_crop_A_detail.png" alt="Z8Z_6693 REF">
+  <figcaption>REF</figcaption>
+  <img src="../5e7d52579ffb2d3e/Z8Z_6693_PIPELINE_crop_A_detail.png" alt="Z8Z_6693 Lab Chroma SIPS" style="margin-top:6px">
+  <figcaption>Lab Chroma SIPS<br>LPIPS 0.310 · dE 2.09</figcaption>
+</figure>
+
+<figure>
+  <img src="../1f1ef2ee138c51c3/Z8Z_6693_REF_crop_A_detail.png" alt="Z8Z_6693 REF">
+  <figcaption>REF</figcaption>
+  <img src="../1f1ef2ee138c51c3/Z8Z_6693_PIPELINE_crop_A_detail.png" alt="Z8Z_6693 Lab SIPS + Unsharp s07" style="margin-top:6px">
+  <figcaption>Lab SIPS + Unsharp s07<br>LPIPS 0.224 · dE 2.20</figcaption>
+</figure>
+
+<figure>
+  <img src="../387888dda9016edf/Z8Z_6693_REF_crop_A_detail.png" alt="Z8Z_6693 REF">
+  <figcaption>REF</figcaption>
+  <img src="../387888dda9016edf/Z8Z_6693_PIPELINE_crop_A_detail.png" alt="Z8Z_6693 Full-Gate Linear Detail" style="margin-top:6px">
+  <figcaption>Full-Gate Linear Detail<br>LPIPS 0.476 · dE 2.03</figcaption>
+</figure>
+
+<figure>
+  <img src="../8d4f8aa3eb81a99d/Z8Z_6693_REF_crop_A_detail.png" alt="Z8Z_6693 REF">
+  <figcaption>REF</figcaption>
+  <img src="../8d4f8aa3eb81a99d/Z8Z_6693_PIPELINE_crop_A_detail.png" alt="Z8Z_6693 Blend Distill" style="margin-top:6px">
+  <figcaption>Blend Distill<br>LPIPS 0.450 · dE 4.36</figcaption>
+</figure>
+
+<figure>
+  <img src="../8864c12ec0b6ce14/Z8Z_6693_REF_crop_A_detail.png" alt="Z8Z_6693 REF">
+  <figcaption>REF</figcaption>
+  <img src="../8864c12ec0b6ce14/Z8Z_6693_PIPELINE_crop_A_detail.png" alt="Z8Z_6693 UPRESABLE Ref Path" style="margin-top:6px">
+  <figcaption>UPRESABLE Ref Path<br>LPIPS 0.343 · dE 1.78</figcaption>
+</figure>
+</div>
+</body></html>

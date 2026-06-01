@@ -275,6 +275,12 @@ def apply_cnn(
             baseline_rgb = np.asarray(Image.open(baseline_png).convert("RGB"))
         rgb_u8 = run_lab_chroma_corrector(
             bayer, str(y_cp), str(c_cp), baseline_rgb_u8=baseline_rgb, raw_norm=raw_norm,
+            luma_unsharp_amount=cnn.get("luma_unsharp_amount", 0.0),
+            luma_unsharp_sigma=cnn.get("luma_unsharp_sigma", 2.0),
+            luma_detail_refiner_path=(
+                str(REPO / cnn["luma_detail_refiner"])
+                if cnn.get("luma_detail_refiner") else None
+            ),
         )
         return ("rgb", rgb_u8)
     import torch

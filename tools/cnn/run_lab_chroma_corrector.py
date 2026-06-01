@@ -11,11 +11,13 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from skimage import color
+from skimage.filters import gaussian
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
@@ -84,6 +86,39 @@ def _resolve_ab_prediction(raw_ab_t, a_t, b_t, ck, ab_norm: float):
     return (baseline + residual).clamp(-1.0, 1.0)
 
 
+def _unsharp_luma(y: np.ndarray, amount: float, sigma: float) -> np.ndarray:
+    if amount <= 0.0:
+        return y
+    blur = gaussian(y.astype(np.float32), sigma=sigma, preserve_range=True)
+    return np.clip(y + amount * (y - blur.astype(np.float32)), 0.0, 1.0)
+
+
+def _linear_detail_features(l_norm: np.ndarray, sigmas: np.ndarray) -> np.ndarray:
+    feats = []
+    lf = l_norm.astype(np.float32)
+    for sigma in sigmas:
+        blur = gaussian(lf, sigma=float(sigma), preserve_range=True)
+        hp = lf - blur.astype(np.float32)
+        feats.append(hp)
+        feats.append(hp * np.abs(hp))
+    return np.stack(feats, axis=0)
+
+
+def _apply_linear_detail_luma(l_chan: np.ndarray, refiner_path: str | None) -> np.ndarray:
+    if not refiner_path:
+        return l_chan
+    data = np.load(str(refiner_path), allow_pickle=False)
+    coeffs = data["coeffs"].astype(np.float32)
+    sigmas = data["sigmas"].astype(np.float32)
+    strength = float(data["strength"]) if "strength" in data.files else 1.0
+    limit = float(data["residual_limit"]) if "residual_limit" in data.files else 0.10
+    l_norm = np.clip(l_chan.astype(np.float32) / 100.0, 0.0, 1.0)
+    feats = _linear_detail_features(l_norm, sigmas)
+    residual = np.tensordot(coeffs, feats, axes=(0, 0)).astype(np.float32)
+    residual = np.clip(residual * strength, -limit, limit)
+    return np.clip((l_norm + residual) * 100.0, 0.0, 100.0).astype(np.float32)
+
+
 def run_lab_chroma_corrector(
     bayer_u16,
     y_ckpt,
@@ -91,6 +126,9 @@ def run_lab_chroma_corrector(
     baseline_rgb_u8=None,
     device=None,
     raw_norm=16383.0,
+    luma_unsharp_amount=0.0,
+    luma_unsharp_sigma=2.0,
+    luma_detail_refiner_path=None,
 ):
     """Return a full-resolution RGB uint8 image."""
     if device is None:
@@ -117,12 +155,15 @@ def run_lab_chroma_corrector(
         ab_t = _resolve_ab_prediction(raw_ab_t, a_t, b_t, ck, ab_norm)
 
     y_full = y_full_t.squeeze(0).squeeze(0).cpu().numpy()
+    y_full = _unsharp_luma(y_full, float(luma_unsharp_amount), float(luma_unsharp_sigma))
     ab = ab_t.squeeze(0).cpu().numpy() * ab_norm
 
     # Convert grayscale luma prediction to Lab L. This keeps the luminance
     # transform consistent with skimage's Lab conversion used by the trainer.
     y_rgb = np.repeat(y_full[..., None], 3, axis=2)
     l_chan = color.rgb2lab(np.clip(y_rgb, 0.0, 1.0))[..., 0]
+    if luma_detail_refiner_path:
+        l_chan = _apply_linear_detail_luma(l_chan, str(Path(luma_detail_refiner_path)))
     lab = np.empty((y_full.shape[0], y_full.shape[1], 3), dtype=np.float32)
     lab[..., 0] = l_chan
     lab[..., 1] = ab[0]

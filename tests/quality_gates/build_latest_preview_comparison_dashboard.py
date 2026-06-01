@@ -49,9 +49,19 @@ VARIANTS = [
         "note": "Latest display-space residual Lab chroma run. dE mean passes; detail metrics still fail.",
     },
     {
-        "label": "Y Detail Attempt",
-        "run": "b48ddb16e0c6af19",
-        "note": "Follow-up luma/detail checkpoint. It regresses both detail and worst dE.",
+        "label": "Lab SIPS + Unsharp s07",
+        "run": "1f1ef2ee138c51c3",
+        "note": "Best registered luma-unsharp candidate so far. Passes 3/4 images; Z8Z_6693 remains detail-bound.",
+    },
+    {
+        "label": "Full-Gate Linear Detail",
+        "run": "387888dda9016edf",
+        "note": "Constrained Lab-L high-pass sidecar fit on full-gate REF/PIPELINE pairs. Improves Y-PSNR but regresses LPIPS.",
+    },
+    {
+        "label": "Blend Distill",
+        "run": "8d4f8aa3eb81a99d",
+        "note": "Older BIDO blend-distill checkpoint. Reject: regresses both detail placement and dE guardrail.",
     },
     {
         "label": "UPRESABLE Ref Path",

@@ -89,11 +89,18 @@ def checkpoint_specs(cnn):
     specs = []
     if "ckpt_path" in cnn:
         specs.append(("ckpt_path", cnn.get("ckpt_path"), "ckpt_sha256", cnn.get("ckpt_sha256")))
-    for suffix in ("y", "cb", "cr", "chroma"):
+    for suffix in ("y", "cb", "cr", "chroma", "detail"):
         path_key = f"ckpt_{suffix}"
         if path_key in cnn:
             sha_key = f"{path_key}_sha256"
             specs.append((path_key, cnn.get(path_key), sha_key, cnn.get(sha_key)))
+    if "luma_detail_refiner" in cnn:
+        specs.append((
+            "luma_detail_refiner",
+            cnn.get("luma_detail_refiner"),
+            "luma_detail_refiner_sha256",
+            cnn.get("luma_detail_refiner_sha256"),
+        ))
     return specs
 
 
