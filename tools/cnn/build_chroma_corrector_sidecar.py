@@ -300,7 +300,7 @@ def main() -> None:
     staging = out_npz.with_suffix(out_npz.suffix + ".staging")
     if staging.exists() and not args.resume:
         shutil.rmtree(staging)
-    staging.mkdir(parents=True)
+    staging.mkdir(parents=True, exist_ok=True)
 
     def _open_or_create(name: str, dtype, shape):
         p = staging / name
