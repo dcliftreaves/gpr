@@ -62,6 +62,13 @@ def _codec_planes_to_naive_ab_half(planes_chw: np.ndarray) -> tuple[np.ndarray, 
     return lab[..., 1].astype(np.float32), lab[..., 2].astype(np.float32)
 
 
+def _display_baseline_to_ab_half(baseline_rgb_u8: np.ndarray, h: int, w: int) -> tuple[np.ndarray, np.ndarray]:
+    lab = color.rgb2lab(baseline_rgb_u8.astype(np.float32) / 255.0)
+    ab = torch.from_numpy(np.transpose(lab[..., 1:3].astype(np.float32), (2, 0, 1))[None])
+    ab_half = F.interpolate(ab, size=(h, w), mode="area").squeeze(0).numpy()
+    return ab_half[0].astype(np.float32), ab_half[1].astype(np.float32)
+
+
 def _resolve_ab_prediction(raw_ab_t, a_t, b_t, ck, ab_norm: float):
     target_mode = ck.get("target_mode", "absolute")
     if target_mode == "absolute":
@@ -81,6 +88,7 @@ def run_lab_chroma_corrector(
     bayer_u16,
     y_ckpt,
     chroma_ckpt,
+    baseline_rgb_u8=None,
     device=None,
     raw_norm=16383.0,
 ):
@@ -98,7 +106,10 @@ def run_lab_chroma_corrector(
         y_full_t = y_model(_pad16(x)).clamp(0, 1)[..., :4 * h, :4 * w]
         y_half_t = F.avg_pool2d(y_full_t, kernel_size=4, stride=4)
 
-        a_half, b_half = _codec_planes_to_naive_ab_half(planes)
+        if baseline_rgb_u8 is None:
+            a_half, b_half = _codec_planes_to_naive_ab_half(planes)
+        else:
+            a_half, b_half = _display_baseline_to_ab_half(baseline_rgb_u8, h, w)
         a_t = torch.from_numpy(a_half[None, None] / ab_norm).to(device)
         b_t = torch.from_numpy(b_half[None, None] / ab_norm).to(device)
         inp = torch.cat([x, y_half_t, a_t, b_t], dim=1)

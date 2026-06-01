@@ -196,7 +196,14 @@ def encode_decode(codec: dict, bayer: np.ndarray, w: int, h: int,
     return dec, enc_bytes, enc_ms_reported
 
 
-def apply_cnn(bayer: np.ndarray, cnn: dict):
+def apply_cnn(
+    bayer: np.ndarray,
+    cnn: dict,
+    dms: dict | None = None,
+    src_dng: Path | None = None,
+    workdir: Path | None = None,
+    full_size: tuple[int, int] | None = None,
+):
     """Apply a CNN to a bayer plane. Supports four architectures:
       - 1x denoise (variant F_ane_no_sr): output dims = input dims.
         Result = input + residual_scale * CNN(input). Returns bayer (np.uint16).
@@ -257,8 +264,15 @@ def apply_cnn(bayer: np.ndarray, cnn: dict):
         if not c_cp.exists():
             die(2, f"lab_chroma_corrector chroma checkpoint missing: {c_cp}")
         raw_norm = cnn.get("raw_norm", 16383.0)
+        baseline_rgb = None
+        if cnn.get("chroma_baseline") == "demosaic_sips":
+            if dms is None or src_dng is None or workdir is None or full_size is None:
+                die(2, "lab_chroma_corrector demosaic_sips baseline requires dms/src_dng/workdir/full_size")
+            baseline_png = workdir / "lab_chroma_baseline.png"
+            demosaic_to_png(bayer, dms, src_dng, workdir, baseline_png, upscale_to=full_size)
+            baseline_rgb = np.asarray(Image.open(baseline_png).convert("RGB"))
         rgb_u8 = run_lab_chroma_corrector(
-            bayer, str(y_cp), str(c_cp), raw_norm=raw_norm,
+            bayer, str(y_cp), str(c_cp), baseline_rgb_u8=baseline_rgb, raw_norm=raw_norm,
         )
         return ("rgb", rgb_u8)
     import torch
@@ -579,7 +593,7 @@ def _process_one_image(
             bayer_for_codec_metric = bayer
         bp_codec = bayer_psnr(bayer_for_codec_metric, dec)
         # 2. apply CNN (no-op if cnn=none).
-        post = apply_cnn(dec, cnn)
+        post = apply_cnn(dec, cnn, dms=dms, src_dng=src_dng, workdir=img_work, full_size=(w, h))
         is_rgb_output = isinstance(post, tuple) and post[0] == "rgb"
         if is_rgb_output:
             post_rgb = post[1]

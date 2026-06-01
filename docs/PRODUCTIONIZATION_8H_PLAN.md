@@ -75,6 +75,19 @@ is to use the actual display-space `cnn=none`/sips chroma as the residual
 baseline or to add a runtime guard that preserves that baseline when learned
 residuals lower a/b correlation.
 
+Implementation status for that next fix:
+
+- `build_chroma_corrector_sidecar.py` now supports
+  `--baseline-mode demosaic_sips`. It renders each full decoded codec raw
+  through `gpr_tools` + `sips` with source DNG metadata, upscales to source
+  dimensions, then samples the existing tile grid into Lab a/b baseline hints.
+- `run_lab_chroma_corrector.py` now accepts a display-space baseline RGB image
+  and derives the model's a/b hint from that baseline instead of codec-only Lab.
+- `run_gate.py` can pass the display-space baseline to Lab chroma checkpoints
+  when a registry CNN entry declares `"chroma_baseline": "demosaic_sips"`.
+- Smoke check completed on `Z8Z_0067`: the demosaic/sips baseline rendered and
+  a small runtime tensor executed through the residual checkpoint.
+
 Dashboard status:
 
 - Reproducible operations dashboard command:
@@ -93,15 +106,15 @@ protects CI; strict audit is the production release checklist.
 
 ## Next burn-down items
 
-1. Build a display-space chroma sidecar: generate the `cnn=none`/sips RGB for
-   training tiles, convert to Lab, and train residual a/b around that baseline
-   instead of the codec-only Lab hint.
-2. Gate the display-space residual candidate only through a temporary registry
+1. Run the full display-space sidecar build with:
+   `python3 tools/cnn/build_chroma_corrector_sidecar.py --baseline-mode demosaic_sips --in-npz /Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate.npz --y-ckpt models/F_ane_no_sr_w16_y.pt --out-npz /Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma_sips.npz --batch 64`
+2. Train residual a/b against that sidecar with multi-source validation.
+3. Gate the display-space residual candidate only through a temporary registry
    entry; promote it only after full gate PASS plus worst-diff inspection.
-3. Re-run `audit_production_readiness.py`; `preview_chroma` must change from
+4. Re-run `audit_production_readiness.py`; `preview_chroma` must change from
    FAIL to PASS or remain the only documented blocker.
-4. For release, run `audit_ship_pipelines.py --strict`, refresh stale receipts
+5. For release, run `audit_ship_pipelines.py --strict`, refresh stale receipts
    or claims, and record accepted outputs in `docs/claims_log.md`.
-5. On the Pi 5 Mission 1 target, run `tools/test/configure_pi_sd.sh`, build,
+6. On the Pi 5 Mission 1 target, run `tools/test/configure_pi_sd.sh`, build,
    run `tools/test/test_pi_encoder.sh`, then run the Pi-to-Mac UPRESABLE bench
    against the target hardware and archive the log.

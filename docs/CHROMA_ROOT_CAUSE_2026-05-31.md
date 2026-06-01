@@ -103,6 +103,17 @@ The model needs the actual display-space codec/sips chroma baseline or a
 runtime guard that can preserve the existing `cnn=none` chroma when the learned
 residual lowers channel correlation.
 
+Follow-up implementation status:
+
+- Sidecar builder support for display-space baseline exists behind
+  `build_chroma_corrector_sidecar.py --baseline-mode demosaic_sips`.
+- Gate/runtime support exists behind registry CNN field
+  `"chroma_baseline": "demosaic_sips"`.
+- Smoke check rendered the `Z8Z_0067` baseline from full codec raw plus source
+  DNG metadata and executed a small residual-checkpoint inference with a
+  display-space baseline input.
+- No display-space residual checkpoint has passed the full gate yet.
+
 The next chroma experiment should be constrained so it cannot destroy safe
 codec chroma:
 
