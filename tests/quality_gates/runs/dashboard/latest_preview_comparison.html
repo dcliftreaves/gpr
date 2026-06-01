@@ -85,14 +85,25 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 </div>
 
 <div class="card">
-  <h3>Blend Distill</h3>
-  <div class="small"><code>8d4f8aa3eb81a99d</code></div>
-  <div class="small">Older BIDO blend-distill checkpoint. Reject: regresses both detail placement and dE guardrail.</div>
+  <h3>Full-Gate L-CNN</h3>
+  <div class="small"><code>3b4a30d74a54cd90</code></div>
+  <div class="small">Bounded Lab-L residual CNN trained with perceptual losses on full-gate pairs. Keeps 3/4 passing but worsens Z8Z_6693 vs unsharp.</div>
   <p class="small">verdict: <span class="fail">FAIL</span></p>
-  <p class="small">worst LPIPS: <b>Z8Z_6693</b> 0.450</p>
-  <p class="small">worst dE: <b>Z8Z_0001</b> 6.31</p>
-  <p class="small">worst MS-SSIM: <b>Z8Z_6693</b> 0.926</p>
-  <p><span class="pill">color + detail, passes</span></p>
+  <p class="small">worst LPIPS: <b>Z8Z_6693</b> 0.257</p>
+  <p class="small">worst dE: <b>Z8Z_0001</b> 2.92</p>
+  <p class="small">worst MS-SSIM: <b>Z8Z_6693</b> 0.934</p>
+  <p><span class="pill">detail, passes</span></p>
+</div>
+
+<div class="card">
+  <h3>Z6693 L-CNN Probe</h3>
+  <div class="small"><code>ba742b469237dbab</code></div>
+  <div class="small">Diagnostic Lab-L CNN trained only on the remaining blocker. It still misses Z8Z_6693 and trips dE on Z8Z_0001.</div>
+  <p class="small">verdict: <span class="fail">FAIL</span></p>
+  <p class="small">worst LPIPS: <b>Z8Z_6693</b> 0.258</p>
+  <p class="small">worst dE: <b>Z8Z_0001</b> 3.11</p>
+  <p class="small">worst MS-SSIM: <b>Z8Z_6693</b> 0.932</p>
+  <p><span class="pill">color, detail, passes</span></p>
 </div>
 
 <div class="card">
@@ -439,66 +450,130 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 
 <tr>
   <td class="left">Z8Z_0001</td>
-  <td class="left">Blend Distill</td>
-  <td class="left">color + detail</td>
-  <td class="fail">0.2305</td>
-  <td class="fail">0.9373</td>
-  <td class="pass">29.18</td>
-  <td class="fail">6.31</td>
-  <td>0.8018</td>
-  <td>32.45</td>
-  <td>0.521</td>
-  <td>0.259</td>
-  <td>1.38</td>
-  <td>4.03</td>
+  <td class="left">Full-Gate L-CNN</td>
+  <td class="left">passes</td>
+  <td class="pass">0.1016</td>
+  <td class="pass">0.9696</td>
+  <td class="pass">31.25</td>
+  <td class="pass">2.92</td>
+  <td>0.8606</td>
+  <td>34.78</td>
+  <td>0.848</td>
+  <td>0.336</td>
+  <td>1.01</td>
+  <td>2.87</td>
 </tr>
 
 <tr>
   <td class="left">Z8Z_0067</td>
-  <td class="left">Blend Distill</td>
+  <td class="left">Full-Gate L-CNN</td>
   <td class="left">passes</td>
-  <td class="pass">0.0839</td>
-  <td class="pass">0.9851</td>
-  <td class="pass">40.43</td>
-  <td class="pass">1.32</td>
-  <td>0.9675</td>
-  <td>44.42</td>
-  <td>0.626</td>
-  <td>-0.012</td>
-  <td>0.93</td>
-  <td>2.11</td>
+  <td class="pass">0.0364</td>
+  <td class="pass">0.9903</td>
+  <td class="pass">43.33</td>
+  <td class="pass">0.94</td>
+  <td>0.9639</td>
+  <td>44.35</td>
+  <td>0.752</td>
+  <td>0.004</td>
+  <td>0.51</td>
+  <td>1.22</td>
 </tr>
 
 <tr>
   <td class="left">Z8Z_5323</td>
-  <td class="left">Blend Distill</td>
-  <td class="left">color + detail</td>
-  <td class="fail">0.3221</td>
-  <td class="fail">0.9410</td>
-  <td class="pass">33.89</td>
-  <td class="fail">5.74</td>
-  <td>0.5836</td>
-  <td>31.31</td>
-  <td>0.403</td>
-  <td>0.009</td>
-  <td>4.30</td>
-  <td>8.80</td>
+  <td class="left">Full-Gate L-CNN</td>
+  <td class="left">passes</td>
+  <td class="pass">0.1390</td>
+  <td class="pass">0.9605</td>
+  <td class="pass">34.90</td>
+  <td class="pass">1.62</td>
+  <td>0.5634</td>
+  <td>30.87</td>
+  <td>0.557</td>
+  <td>0.014</td>
+  <td>0.66</td>
+  <td>1.92</td>
 </tr>
 
 <tr>
   <td class="left">Z8Z_6693</td>
-  <td class="left">Blend Distill</td>
-  <td class="left">color + detail</td>
-  <td class="fail">0.4500</td>
-  <td class="fail">0.9264</td>
-  <td class="pass">32.63</td>
-  <td class="fail">4.36</td>
-  <td>0.4405</td>
-  <td>28.41</td>
-  <td>0.320</td>
-  <td>0.015</td>
-  <td>3.03</td>
-  <td>6.65</td>
+  <td class="left">Full-Gate L-CNN</td>
+  <td class="left">detail</td>
+  <td class="fail">0.2569</td>
+  <td class="fail">0.9339</td>
+  <td class="pass">32.51</td>
+  <td class="pass">2.12</td>
+  <td>0.4252</td>
+  <td>27.88</td>
+  <td>0.511</td>
+  <td>0.021</td>
+  <td>0.88</td>
+  <td>2.54</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0001</td>
+  <td class="left">Z6693 L-CNN Probe</td>
+  <td class="left">color</td>
+  <td class="pass">0.1004</td>
+  <td class="pass">0.9688</td>
+  <td class="pass">29.93</td>
+  <td class="fail">3.11</td>
+  <td>0.8502</td>
+  <td>34.27</td>
+  <td>0.938</td>
+  <td>0.312</td>
+  <td>1.01</td>
+  <td>2.87</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_0067</td>
+  <td class="left">Z6693 L-CNN Probe</td>
+  <td class="left">passes</td>
+  <td class="pass">0.0330</td>
+  <td class="pass">0.9900</td>
+  <td class="pass">38.11</td>
+  <td class="pass">1.25</td>
+  <td>0.9586</td>
+  <td>35.73</td>
+  <td>0.887</td>
+  <td>0.004</td>
+  <td>0.51</td>
+  <td>1.23</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_5323</td>
+  <td class="left">Z6693 L-CNN Probe</td>
+  <td class="left">passes</td>
+  <td class="pass">0.1429</td>
+  <td class="pass">0.9590</td>
+  <td class="pass">34.22</td>
+  <td class="pass">1.70</td>
+  <td>0.5447</td>
+  <td>30.01</td>
+  <td>0.645</td>
+  <td>0.014</td>
+  <td>0.66</td>
+  <td>1.92</td>
+</tr>
+
+<tr>
+  <td class="left">Z8Z_6693</td>
+  <td class="left">Z6693 L-CNN Probe</td>
+  <td class="left">detail</td>
+  <td class="fail">0.2584</td>
+  <td class="fail">0.9318</td>
+  <td class="pass">31.87</td>
+  <td class="pass">2.24</td>
+  <td>0.4098</td>
+  <td>27.21</td>
+  <td>0.594</td>
+  <td>0.019</td>
+  <td>0.89</td>
+  <td>2.55</td>
 </tr>
 
 <tr>
@@ -606,10 +681,17 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 </figure>
 
 <figure>
-  <img src="../8d4f8aa3eb81a99d/Z8Z_0001_REF_crop_A_detail.png" alt="Z8Z_0001 REF">
+  <img src="../3b4a30d74a54cd90/Z8Z_0001_REF_crop_A_detail.png" alt="Z8Z_0001 REF">
   <figcaption>REF</figcaption>
-  <img src="../8d4f8aa3eb81a99d/Z8Z_0001_PIPELINE_crop_A_detail.png" alt="Z8Z_0001 Blend Distill" style="margin-top:6px">
-  <figcaption>Blend Distill<br>LPIPS 0.230 · dE 6.31</figcaption>
+  <img src="../3b4a30d74a54cd90/Z8Z_0001_PIPELINE_crop_A_detail.png" alt="Z8Z_0001 Full-Gate L-CNN" style="margin-top:6px">
+  <figcaption>Full-Gate L-CNN<br>LPIPS 0.102 · dE 2.92</figcaption>
+</figure>
+
+<figure>
+  <img src="../ba742b469237dbab/Z8Z_0001_REF_crop_A_detail.png" alt="Z8Z_0001 REF">
+  <figcaption>REF</figcaption>
+  <img src="../ba742b469237dbab/Z8Z_0001_PIPELINE_crop_A_detail.png" alt="Z8Z_0001 Z6693 L-CNN Probe" style="margin-top:6px">
+  <figcaption>Z6693 L-CNN Probe<br>LPIPS 0.100 · dE 3.11</figcaption>
 </figure>
 
 <figure>
@@ -658,10 +740,17 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 </figure>
 
 <figure>
-  <img src="../8d4f8aa3eb81a99d/Z8Z_0067_REF_crop_A_detail.png" alt="Z8Z_0067 REF">
+  <img src="../3b4a30d74a54cd90/Z8Z_0067_REF_crop_A_detail.png" alt="Z8Z_0067 REF">
   <figcaption>REF</figcaption>
-  <img src="../8d4f8aa3eb81a99d/Z8Z_0067_PIPELINE_crop_A_detail.png" alt="Z8Z_0067 Blend Distill" style="margin-top:6px">
-  <figcaption>Blend Distill<br>LPIPS 0.084 · dE 1.32</figcaption>
+  <img src="../3b4a30d74a54cd90/Z8Z_0067_PIPELINE_crop_A_detail.png" alt="Z8Z_0067 Full-Gate L-CNN" style="margin-top:6px">
+  <figcaption>Full-Gate L-CNN<br>LPIPS 0.036 · dE 0.94</figcaption>
+</figure>
+
+<figure>
+  <img src="../ba742b469237dbab/Z8Z_0067_REF_crop_A_detail.png" alt="Z8Z_0067 REF">
+  <figcaption>REF</figcaption>
+  <img src="../ba742b469237dbab/Z8Z_0067_PIPELINE_crop_A_detail.png" alt="Z8Z_0067 Z6693 L-CNN Probe" style="margin-top:6px">
+  <figcaption>Z6693 L-CNN Probe<br>LPIPS 0.033 · dE 1.25</figcaption>
 </figure>
 
 <figure>
@@ -710,10 +799,17 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 </figure>
 
 <figure>
-  <img src="../8d4f8aa3eb81a99d/Z8Z_5323_REF_crop_A_detail.png" alt="Z8Z_5323 REF">
+  <img src="../3b4a30d74a54cd90/Z8Z_5323_REF_crop_A_detail.png" alt="Z8Z_5323 REF">
   <figcaption>REF</figcaption>
-  <img src="../8d4f8aa3eb81a99d/Z8Z_5323_PIPELINE_crop_A_detail.png" alt="Z8Z_5323 Blend Distill" style="margin-top:6px">
-  <figcaption>Blend Distill<br>LPIPS 0.322 · dE 5.74</figcaption>
+  <img src="../3b4a30d74a54cd90/Z8Z_5323_PIPELINE_crop_A_detail.png" alt="Z8Z_5323 Full-Gate L-CNN" style="margin-top:6px">
+  <figcaption>Full-Gate L-CNN<br>LPIPS 0.139 · dE 1.62</figcaption>
+</figure>
+
+<figure>
+  <img src="../ba742b469237dbab/Z8Z_5323_REF_crop_A_detail.png" alt="Z8Z_5323 REF">
+  <figcaption>REF</figcaption>
+  <img src="../ba742b469237dbab/Z8Z_5323_PIPELINE_crop_A_detail.png" alt="Z8Z_5323 Z6693 L-CNN Probe" style="margin-top:6px">
+  <figcaption>Z6693 L-CNN Probe<br>LPIPS 0.143 · dE 1.70</figcaption>
 </figure>
 
 <figure>
@@ -762,10 +858,17 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 </figure>
 
 <figure>
-  <img src="../8d4f8aa3eb81a99d/Z8Z_6693_REF_crop_A_detail.png" alt="Z8Z_6693 REF">
+  <img src="../3b4a30d74a54cd90/Z8Z_6693_REF_crop_A_detail.png" alt="Z8Z_6693 REF">
   <figcaption>REF</figcaption>
-  <img src="../8d4f8aa3eb81a99d/Z8Z_6693_PIPELINE_crop_A_detail.png" alt="Z8Z_6693 Blend Distill" style="margin-top:6px">
-  <figcaption>Blend Distill<br>LPIPS 0.450 · dE 4.36</figcaption>
+  <img src="../3b4a30d74a54cd90/Z8Z_6693_PIPELINE_crop_A_detail.png" alt="Z8Z_6693 Full-Gate L-CNN" style="margin-top:6px">
+  <figcaption>Full-Gate L-CNN<br>LPIPS 0.257 · dE 2.12</figcaption>
+</figure>
+
+<figure>
+  <img src="../ba742b469237dbab/Z8Z_6693_REF_crop_A_detail.png" alt="Z8Z_6693 REF">
+  <figcaption>REF</figcaption>
+  <img src="../ba742b469237dbab/Z8Z_6693_PIPELINE_crop_A_detail.png" alt="Z8Z_6693 Z6693 L-CNN Probe" style="margin-top:6px">
+  <figcaption>Z6693 L-CNN Probe<br>LPIPS 0.258 · dE 2.24</figcaption>
 </figure>
 
 <figure>

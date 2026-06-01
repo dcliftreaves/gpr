@@ -281,6 +281,10 @@ def apply_cnn(
                 str(REPO / cnn["luma_detail_refiner"])
                 if cnn.get("luma_detail_refiner") else None
             ),
+            luma_detail_cnn_path=(
+                str(REPO / cnn["ckpt_detail"])
+                if cnn.get("ckpt_detail") else None
+            ),
         )
         return ("rgb", rgb_u8)
     import torch

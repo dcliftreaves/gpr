@@ -1,0 +1,19 @@
+{
+  "kind": "lab_luma_detail_cnn",
+  "checkpoint": "models/luma_detail_cnn_lab_sips_unsharp_s07_z6693_lpips_final_v1.pt",
+  "train_run": "tests/quality_gates/runs/1f1ef2ee138c51c3",
+  "train_images": [
+    "Z8Z_6693"
+  ],
+  "width": 16,
+  "residual_limit": 0.08,
+  "steps": 2000,
+  "best_step": 2000,
+  "best_score": 0.19181585311889648,
+  "loss": {
+    "l1_weight": 0.25,
+    "msssim_weight": 0.5,
+    "lpips_weight": 0.5,
+    "lpips_warmup": 100
+  }
+}

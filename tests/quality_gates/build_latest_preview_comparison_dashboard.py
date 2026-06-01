@@ -59,9 +59,14 @@ VARIANTS = [
         "note": "Constrained Lab-L high-pass sidecar fit on full-gate REF/PIPELINE pairs. Improves Y-PSNR but regresses LPIPS.",
     },
     {
-        "label": "Blend Distill",
-        "run": "8d4f8aa3eb81a99d",
-        "note": "Older BIDO blend-distill checkpoint. Reject: regresses both detail placement and dE guardrail.",
+        "label": "Full-Gate L-CNN",
+        "run": "3b4a30d74a54cd90",
+        "note": "Bounded Lab-L residual CNN trained with perceptual losses on full-gate pairs. Keeps 3/4 passing but worsens Z8Z_6693 vs unsharp.",
+    },
+    {
+        "label": "Z6693 L-CNN Probe",
+        "run": "ba742b469237dbab",
+        "note": "Diagnostic Lab-L CNN trained only on the remaining blocker. It still misses Z8Z_6693 and trips dE on Z8Z_0001.",
     },
     {
         "label": "UPRESABLE Ref Path",

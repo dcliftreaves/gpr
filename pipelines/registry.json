@@ -907,6 +907,52 @@
       "chroma_baseline": "demosaic_sips",
       "luma_detail_refiner": "models/luma_detail_linear_lab_sips_fullgate_v1.npz",
       "luma_detail_refiner_sha256": "ed3973fc23bab47433a85ba76c3f9cf07e6fae87aedafabbf00c02c21cc1447b"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_luma_detail_cnn_v1": {
+      "$doc": "Temporary PREVIEW detail-placement candidate for the full-gate stop criteria. Keeps the solved Lab SIPS chroma path fixed, then applies a bounded Lab-L residual CNN trained from full-resolution gate REF/PIPELINE pairs with Charbonnier + MS-SSIM + LPIPS loss. The refiner sees only Lab L and is tiled at inference.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w16_y.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_detail": "models/luma_detail_cnn_lab_sips_fullgate_lpips_v1.pt",
+      "ckpt_y_sha256": "44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "ckpt_detail_sha256": "352089837222bba6f5d09a1c35fe3952428097061a3b870686723b1cbd12166c",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_luma_detail_cnn_v1": {
+      "$doc": "Temporary PREVIEW detail-placement candidate for the full-gate stop criteria. Starts from the best simple detail baseline (Lab SIPS + luma unsharp amount=0.7/sigma=2.0), then applies a bounded Lab-L residual CNN trained from that full-resolution gate output to REF with Charbonnier + MS-SSIM + LPIPS loss.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w16_y.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_detail": "models/luma_detail_cnn_lab_sips_unsharp_s07_fullgate_lpips_v1.pt",
+      "ckpt_y_sha256": "44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "ckpt_detail_sha256": "4863a03a046aebf045bd6bd277df29bd563b73abd25d482ce5818e8a4fc216e9",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips",
+      "luma_unsharp_amount": 0.7,
+      "luma_unsharp_sigma": 2.0
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_luma_detail_cnn_z6693_v1": {
+      "$doc": "Temporary PREVIEW detail-placement diagnostic candidate. Starts from Lab SIPS + s07 unsharp and applies a wider bounded Lab-L residual CNN trained only on the remaining blocker image Z8Z_6693 with LPIPS-heavy loss. This tests whether the miss can be solved with local L-only capacity when target mismatch/generalization pressure is removed.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w16_y.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_detail": "models/luma_detail_cnn_lab_sips_unsharp_s07_z6693_lpips_final_v1.pt",
+      "ckpt_y_sha256": "44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "ckpt_detail_sha256": "d2c50bb8c391b4e7735425e8ee1dea59525e54321eedff17591ed0961a1c08f1",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips",
+      "luma_unsharp_amount": 0.7,
+      "luma_unsharp_sigma": 2.0
     }
   },
   "pipelines": {
@@ -1509,6 +1555,30 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-luma-linear-fullgate",
       "$doc": "Temporary candidate for the detail-placement stop criteria: full-gate-trained Lab-L high-pass sidecar on top of the Lab SIPS chroma/color baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_luma_detail_cnn_v1+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_luma_detail_cnn_v1",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-luma-cnn-fullgate",
+      "$doc": "Temporary candidate for the detail-placement stop criteria: bounded Lab-L residual CNN trained with perceptual losses on full-gate REF/PIPELINE pairs."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_luma_detail_cnn_v1+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_luma_detail_cnn_v1",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-luma-cnn-fullgate",
+      "$doc": "Temporary candidate for the detail-placement stop criteria: bounded Lab-L residual CNN trained on the strongest currently registered Lab SIPS unsharp baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_luma_detail_cnn_z6693_v1+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_luma_detail_cnn_z6693_v1",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-luma-cnn-z6693-diagnostic",
+      "$doc": "Diagnostic candidate for the detail-placement stop criteria: bounded Lab-L residual CNN trained only on the remaining blocker image."
     },
     "codec=sl_q3_hh1x2+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q3_hh1x2",
