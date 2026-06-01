@@ -255,7 +255,9 @@ def apply_cnn(
             die(2, "lab_chroma_corrector CNN entry missing field 'ckpt_y'")
         if chroma_path is None:
             die(2, "lab_chroma_corrector CNN entry missing field 'ckpt_chroma'")
-        y_cp = REPO / y_path
+        y_cp = Path(y_path)
+        if not y_cp.is_absolute():
+            y_cp = REPO / y_cp
         c_cp = Path(chroma_path)
         if not c_cp.is_absolute():
             c_cp = REPO / c_cp

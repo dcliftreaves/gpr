@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -114,6 +115,81 @@ def check_file(area: str, name: str, rel_path: str, require_tracked: bool = True
     return Check(area, name, "PASS", rel_path)
 
 
+def check_capabilities_doc() -> Check:
+    path = REPO / "docs/CAPABILITIES.md"
+    if not path.exists():
+        return Check("platform_perf", "capability matrix receipt", "FAIL", "missing docs/CAPABILITIES.md")
+    text = path.read_text(errors="ignore")
+    if "FAILED" not in text:
+        return Check("platform_perf", "capability matrix receipt", "FAIL", "unparseable docs/CAPABILITIES.md")
+    m = re.search(r"- \*\*(\d+)\*\* FAILED", text)
+    if not m:
+        return Check("platform_perf", "capability matrix receipt", "FAIL", "missing FAILED summary")
+    failed = int(m.group(1))
+    return Check(
+        "platform_perf",
+        "capability matrix receipt",
+        "PASS" if failed == 0 else "FAIL",
+        f"docs/CAPABILITIES.md failed={failed}",
+    )
+
+
+def check_pi5_capture_receipt() -> Check:
+    path = REPO / "docs/pi5_bench_2026-05-26.md"
+    if not path.exists():
+        return Check("platform_perf", "Pi 5 half-res capture fps receipt", "FAIL", "missing docs/pi5_bench_2026-05-26.md")
+    text = path.read_text(errors="ignore")
+    m = re.search(r"Half-res.*?fps_median=([0-9.]+)", text, re.S)
+    if not m:
+        return Check("platform_perf", "Pi 5 half-res capture fps receipt", "FAIL", "missing half-res fps_median")
+    fps = float(m.group(1))
+    return Check(
+        "platform_perf",
+        "Pi 5 half-res capture fps receipt",
+        "PASS" if fps >= 24.0 else "FAIL",
+        f"fps_median={fps:.2f} target>=24.00",
+    )
+
+
+def check_script_contains(area: str, name: str, rel_path: str, patterns: list[str]) -> Check:
+    base = check_file(area, name, rel_path)
+    if base.status != "PASS":
+        return base
+    text = (REPO / rel_path).read_text(errors="ignore")
+    missing = [p for p in patterns if p not in text]
+    if missing:
+        return Check(area, name, "FAIL", f"{rel_path} missing {missing}")
+    return Check(area, name, "PASS", rel_path)
+
+
+def check_upresable_bench_receipt() -> list[Check]:
+    log = Path("/Volumes/OWC_8TB/gpr_artifacts/upresable/pi_mac_bench/run.log")
+    if not log.exists():
+        return [Check("platform_perf", "UPRESABLE Pi-to-Mac bench receipt", "FAIL", f"missing {log}")]
+    text = log.read_text(errors="ignore")
+    checks = []
+    rows = {}
+    for line in text.splitlines():
+        m = re.match(r"^(A\.|B\.|C\.|D\.)\s+(.+?)\s+([0-9.]+)\s+([0-9.]+)(?:\s+([0-9.]+|-))?$", line.strip())
+        if m:
+            rows[m.group(1)] = float(m.group(4))
+    stage_targets = {
+        "A.": ("Pi encode loop", 0.0),
+        "B.": ("USB transfer", 0.0),
+        "C.": ("Mac upres offline", 0.0),
+        "D.": ("GPRaw pack", 24.0),
+    }
+    for key, (name, min_fps) in stage_targets.items():
+        fps = rows.get(key)
+        if fps is None:
+            checks.append(Check("platform_perf", name, "FAIL", "missing stage row in UPRESABLE bench log"))
+            continue
+        status = "PASS" if fps >= min_fps else "FAIL"
+        target = f" target>={min_fps:.2f}" if min_fps > 0 else " receipt-only"
+        checks.append(Check("platform_perf", name, status, f"fps={fps:.2f}{target}"))
+    return checks
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--strict", action="store_true", help="exit non-zero when any check fails")
@@ -148,6 +224,24 @@ def main() -> int:
         check_file("pi5_mission1", "Pi-to-Mac UPRESABLE bench", "tools/test/bench_pi_to_mac_upresable.sh"),
         check_file("pi5_mission1", "Pi SD first-boot config", "tools/test/configure_pi_sd.sh"),
     ])
+
+    checks.extend([
+        check_capabilities_doc(),
+        check_pi5_capture_receipt(),
+        check_script_contains(
+            "platform_perf",
+            "Pi encoder regression covers 50MP decimate=2",
+            "tools/test/test_pi_encoder.sh",
+            ["50MP_DEC2", "[50MP_DEC2]=24"],
+        ),
+        check_script_contains(
+            "platform_perf",
+            "Mac sustained playback production threshold",
+            "tools/test/test_sustained_playback.sh",
+            ['FPS_WITH_CNN_MIN="${FPS_WITH_CNN_MIN:-24}"', 'FPS_NO_CNN_MIN="${FPS_NO_CNN_MIN:-24}"'],
+        ),
+    ])
+    checks.extend(check_upresable_bench_receipt())
 
     print("=== production readiness audit ===")
     fail_count = 0

@@ -168,6 +168,24 @@ def charbonnier(pred, tgt, eps=1e-3):
     return torch.sqrt((pred - tgt) ** 2 + eps * eps).mean()
 
 
+def _blur5(x):
+    return F.avg_pool2d(x, kernel_size=5, stride=1, padding=2)
+
+
+def highpass_l1(pred, tgt):
+    return F.l1_loss(pred - _blur5(pred), tgt - _blur5(tgt))
+
+
+def gradient_l1(pred, tgt):
+    # Forward differences avoid fixed-kernel device/dtype plumbing and are
+    # enough to penalize misplaced Y edges/textures.
+    px = pred[..., :, 1:] - pred[..., :, :-1]
+    tx = tgt[..., :, 1:] - tgt[..., :, :-1]
+    py = pred[..., 1:, :] - pred[..., :-1, :]
+    ty = tgt[..., 1:, :] - tgt[..., :-1, :]
+    return F.l1_loss(px, tx) + F.l1_loss(py, ty)
+
+
 def train(args):
     channel_idx = CHANNEL_IDX[args.channel]
     print(f"=== Training {args.variant} for channel {args.channel} (idx={channel_idx}) ===")
@@ -257,6 +275,10 @@ def train(args):
             pred = model(inp).clamp(0, 1)
             if args.channel == "Y":
                 l_task = multiscale_l1(pred, tgt)
+                if args.hf_weight > 0:
+                    l_task = l_task + args.hf_weight * highpass_l1(pred, tgt)
+                if args.grad_weight > 0:
+                    l_task = l_task + args.grad_weight * gradient_l1(pred, tgt)
             else:
                 # Chroma: L1 + 0.10 * Charbonnier (robust on outliers, smooth
                 # gradient at the origin so optimizer doesn't oscillate).
@@ -298,6 +320,8 @@ def train(args):
                 "raw_norm": RAW_NORM,
                 "residual_scale": 0.0,
                 "kind": f"ycbcr_decomp_{args.channel.lower()}",
+                "hf_weight": args.hf_weight if args.channel == "Y" else 0.0,
+                "grad_weight": args.grad_weight if args.channel == "Y" else 0.0,
                 "epoch": ep + 1,
                 "val_l1": l1,
                 "val_psnr": psnr,
@@ -341,6 +365,10 @@ def main():
     ap.add_argument("--ckpt-name", type=str, required=True)
     ap.add_argument("--lpips-weight", type=float, default=0.10,
                     help="LPIPS-alex weight for Y channel; ignored for chroma.")
+    ap.add_argument("--hf-weight", type=float, default=0.0,
+                    help="High-pass L1 weight for Y channel; ignored for chroma.")
+    ap.add_argument("--grad-weight", type=float, default=0.0,
+                    help="Gradient L1 weight for Y channel; ignored for chroma.")
     args = ap.parse_args()
     train(args)
 

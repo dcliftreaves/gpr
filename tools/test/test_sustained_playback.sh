@@ -28,8 +28,8 @@
 #
 # Env knobs:
 #   BUILD_DIR=build-local       cmake build root
-#   FPS_WITH_CNN_MIN=20         lower bound for CNN run
-#   FPS_NO_CNN_MIN=22           lower bound for no-CNN run
+#   FPS_WITH_CNN_MIN=24         production lower bound for CNN run
+#   FPS_NO_CNN_MIN=24           production lower bound for no-CNN run
 #   FRAMES=24                   number of frames in the fixture
 #   PY=...                      python interpreter (must have rawpy)
 
@@ -87,8 +87,8 @@ if [ ! -d "$CKPT_W1X" ]; then
 fi
 
 FRAMES="${FRAMES:-24}"
-FPS_WITH_CNN_MIN="${FPS_WITH_CNN_MIN:-20}"
-FPS_NO_CNN_MIN="${FPS_NO_CNN_MIN:-22}"
+FPS_WITH_CNN_MIN="${FPS_WITH_CNN_MIN:-24}"
+FPS_NO_CNN_MIN="${FPS_NO_CNN_MIN:-24}"
 
 # ---- workspace --------------------------------------------------------------
 

@@ -186,6 +186,48 @@ high-pass magnitude but meaningfully higher high-pass correlation, which is why
 the next PREVIEW fix should preserve/borrow detail placement rather than simply
 increase sharpening gain.
 
+## Y/detail retrain result
+
+A detail-aware Y checkpoint was trained to test whether the remaining preview
+blocker could be fixed by replacing only the Lab-corrector Y model:
+
+- Checkpoint:
+  `/Volumes/OWC_8TB/gpr_cnn/F_ane_no_sr_w16_y_multival_hf05_grad02_sub4.pt`
+- Checkpoint sha256:
+  `e7f5add8b7a3b4ed04f87417f7026b3d5a01ccfc0ee3eb403e4f8ced3eab661e`
+- Training: `F_ane_no_sr_w16_y`, multi-source validation
+  (`Z8Z_0067`, `div_Z8Z_5271`, `div_Z8Z_6477`, `div_Z8Z_7424`), subsample 4,
+  LPIPS weight `0.10`, high-pass L1 weight `0.50`, gradient L1 weight `0.20`
+- Best saved epoch: 34
+- Best tile validation: `val_lpips=0.0817`, `val_psnr=35.66`
+- Full-gate run: `b48ddb16e0c6af19`
+- Full-gate verdict: FAIL
+
+| image | LPIPS | MS-SSIM | Y-PSNR | dE2000 mean | verdict |
+|---|---:|---:|---:|---:|---|
+| Z8Z_0001 | 0.1884 | 0.9338 | 27.03 | 3.38 | FAIL |
+| Z8Z_0067 | 0.0604 | 0.9742 | 34.15 | 1.57 | PASS |
+| Z8Z_5323 | 0.2203 | 0.9388 | 32.07 | 1.96 | FAIL |
+| Z8Z_6693 | 0.3830 | 0.9193 | 31.53 | 2.29 | FAIL |
+
+This regressed the previous display-space residual candidate
+(`5e7d52579ffb2d3e`) on every gate metric except dE on a subset of images. The
+luma/detail diagnostic shows high-pass correlation dropped further on the hard
+crops:
+
+| image | run | LPIPS | MS-SSIM | crop L-SSIM | L-PSNR | high-pass ratio | high-pass corr |
+|---|---|---:|---:|---:|---:|---:|---:|
+| Z8Z_5323 | Y detail candidate | 0.2203 | 0.9388 | 0.5813 | 30.45 | 0.338 | 0.006 |
+| Z8Z_6693 | Y detail candidate | 0.3830 | 0.9193 | 0.4284 | 27.83 | 0.290 | 0.007 |
+| Z8Z_5323 | Lab sips residual | 0.1806 | 0.9594 | 0.5826 | 30.85 | 0.438 | 0.011 |
+| Z8Z_6693 | Lab sips residual | 0.3096 | 0.9348 | 0.4370 | 28.03 | 0.401 | 0.018 |
+
+Conclusion: tile-domain LPIPS plus high-pass/gradient loss still does not
+predict full-gate texture placement. The next Y/detail attempt should use
+full-image or larger-crop validation directly, or distill from the UPRESABLE
+render where high-pass correlation is better, rather than adding more
+tile-domain edge penalties.
+
 ## Implementation status
 
 - Sidecar builder support for display-space baseline exists behind
@@ -209,8 +251,9 @@ detail loss:
    chroma work.
 2. Use `diagnose_luma_detail.py` as the regression harness for `Z8Z_5323` and
    `Z8Z_6693` while developing the next preview detail path.
-3. Prototype a guarded blend that preserves baseline luma/detail in high-risk
-   textured regions while using the learned model only where it improves dE
-   without lowering LPIPS/MS-SSIM.
-4. Gate before registry promotion; only copy a checkpoint into `models/` after
+3. Avoid promoting the `hf05_grad02` Y/detail checkpoint; it regresses the
+   full gate despite better multi-source tile validation.
+4. Prototype the next detail path against full-gate crops/full images, with
+   UPRESABLE or a larger teacher as the detail-placement target.
+5. Gate before registry promotion; only copy a checkpoint into `models/` after
    a full gate pass and worst-diff inspection.
