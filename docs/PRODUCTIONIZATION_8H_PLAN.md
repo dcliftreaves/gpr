@@ -107,6 +107,24 @@ Dashboard status:
   via run receipts, bpp, raw compression ratio, encode ms, encode FPS, worst
   LPIPS, MS-SSIM, Y-PSNR, dE, Bayer PSNR, Pi-to-Mac stage FPS/MB/s, UPRESABLE
   artifact sizes, and chroma signal diagnostics.
+- Reproducible luma/detail diagnostic command:
+  `python3 tests/quality_gates/diagnose_luma_detail.py`
+- Output:
+  `tests/quality_gates/runs/dashboard/luma_detail_diagnostic.html`
+- Dimensions covered: per-image LPIPS, MS-SSIM, Y-PSNR, dE mean, crop L-SSIM,
+  L-PSNR, high-pass RMS ratio, high-pass correlation, gradient ratio, and
+  luma-error frequency-band split.
+
+Luma/detail diagnostic status:
+
+- The display-space residual chroma candidate passes dE on all gate images but
+  still fails perceptual metrics on `Z8Z_5323` and `Z8Z_6693`.
+- On those two crops, high-pass luma correlation is near zero (`0.011` and
+  `0.018`) despite acceptable dE. The failure is detail placement/texture
+  preservation, not just insufficient sharpening.
+- UPRESABLE has lower high-pass magnitude but higher high-pass correlation
+  (`0.154` and `0.166`), so the next PREVIEW fix should preserve or borrow
+  correctly placed detail instead of globally increasing luma gain.
 
 Strict ship audit is still expected to fail for older ship receipts whose
 `gates_sha` predates the current `gates.json`, and for ship roles that have not
@@ -115,17 +133,14 @@ protects CI; strict audit is the production release checklist.
 
 ## Next burn-down items
 
-1. Build a luma/detail diagnostic for `Z8Z_5323` and `Z8Z_6693` comparing
-   `cnn=none`, display-space residual, and UPRESABLE crops for high-frequency
-   energy, local contrast, LPIPS, and MS-SSIM.
-2. Prototype a guarded PREVIEW blend that keeps display-space baseline chroma
+1. Prototype a guarded PREVIEW blend that keeps display-space baseline chroma
    and preserves baseline luma/detail in high-risk textured regions.
-3. Gate the guarded candidate only through a temporary registry entry; promote
+2. Gate the guarded candidate only through a temporary registry entry; promote
    it only after full gate PASS plus worst-diff inspection.
-4. Re-run `audit_production_readiness.py`; `preview_chroma` must change from
+3. Re-run `audit_production_readiness.py`; `preview_chroma` must change from
    FAIL to PASS or remain the only documented blocker.
-5. For release, run `audit_ship_pipelines.py --strict`, refresh stale receipts
+4. For release, run `audit_ship_pipelines.py --strict`, refresh stale receipts
    or claims, and record accepted outputs in `docs/claims_log.md`.
-6. On the Pi 5 Mission 1 target, run `tools/test/configure_pi_sd.sh`, build,
+5. On the Pi 5 Mission 1 target, run `tools/test/configure_pi_sd.sh`, build,
    run `tools/test/test_pi_encoder.sh`, then run the Pi-to-Mac UPRESABLE bench
    against the target hardware and archive the log.

@@ -163,6 +163,29 @@ Root cause is now narrowed:
    preservation: `Z8Z_5323` fails only LPIPS, and `Z8Z_6693` fails LPIPS plus
    MS-SSIM while dE passes.
 
+## Luma/detail diagnostic
+
+`tests/quality_gates/diagnose_luma_detail.py` compares saved gate detail crops
+for the remaining hard images. It writes:
+`tests/quality_gates/runs/dashboard/luma_detail_diagnostic.html`.
+
+| image | run | LPIPS | MS-SSIM | crop L-SSIM | L-PSNR | high-pass ratio | high-pass corr | gradient ratio |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| Z8Z_5323 | Lab sips residual | 0.1806 | 0.9594 | 0.5826 | 30.85 | 0.438 | 0.011 | 0.445 |
+| Z8Z_6693 | Lab sips residual | 0.3096 | 0.9348 | 0.4370 | 28.03 | 0.401 | 0.018 | 0.414 |
+| Z8Z_5323 | ml2_dec2 no CNN | 0.2358 | 0.9063 | 0.5369 | 29.93 | 0.403 | 0.030 | 0.550 |
+| Z8Z_6693 | ml2_dec2 no CNN | 0.2362 | 0.8617 | 0.3905 | 26.90 | 0.396 | 0.039 | 0.542 |
+| Z8Z_5323 | UPRESABLE BIBO2x | 0.2027 | 0.9685 | 0.6396 | 32.11 | 0.213 | 0.154 | 0.249 |
+| Z8Z_6693 | UPRESABLE BIBO2x | 0.3433 | 0.9445 | 0.4999 | 29.14 | 0.206 | 0.166 | 0.248 |
+
+The display-space residual candidate improves dE and luma PSNR versus
+`cnn=none`, but the crop high-pass correlation remains nearly zero. That means
+the candidate is not just low-pass smoothing; it is synthesizing or relocating
+texture differently enough to hurt perceptual metrics. UPRESABLE has lower
+high-pass magnitude but meaningfully higher high-pass correlation, which is why
+the next PREVIEW fix should preserve/borrow detail placement rather than simply
+increase sharpening gain.
+
 ## Implementation status
 
 - Sidecar builder support for display-space baseline exists behind
@@ -184,9 +207,8 @@ detail loss:
 
 1. Keep display-space `demosaic_sips` chroma as the baseline for any PREVIEW
    chroma work.
-2. Investigate the Y/detail path on `Z8Z_5323` and `Z8Z_6693`: compare
-   `cnn=none`, display-space residual, and UPRESABLE crops for luma texture,
-   local contrast, and high-frequency energy.
+2. Use `diagnose_luma_detail.py` as the regression harness for `Z8Z_5323` and
+   `Z8Z_6693` while developing the next preview detail path.
 3. Prototype a guarded blend that preserves baseline luma/detail in high-risk
    textured regions while using the learned model only where it improves dE
    without lowering LPIPS/MS-SSIM.
