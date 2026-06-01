@@ -48,15 +48,60 @@ Chroma is done when one of these is true:
 | 6:15-7:15 | Dashboard production pass: verify ops matrix generation, document local-only artifact inputs, add placeholder smoke checks. | Dashboard is reproducible and auditable. |
 | 7:15-8:00 | Final validation and handoff: run local audits, commit/push, monitor CI, list only remaining blockers with exact commands. | Green branch plus residual-risk list. |
 
-## Current strict burn-down
+## Current burn-down status
 
-As of this plan, strict ship audit is expected to fail for older ship receipts
-whose `gates_sha` predates the current `gates.json`, and for ship roles that
-have not been logged through `run_gate.py --claim`. That is intentional: default
-audit protects CI; strict audit is the production release checklist.
+Updated: 2026-05-31
 
-The chroma-corrector checkpoint is not currently present in the repo or in
-`/Users/dcliftreaves/gpr_data`. The source tile NPZ is present at
-`/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate.npz`; the next action is
-to rebuild the sidecar and retrain or recover the Lab chroma checkpoint before
-any registry entry is added.
+Local production readiness is green for STILL, VIDEO_FREEZE, baseline PREVIEW,
+UPRESABLE, `.gvid`, `.gpraw.mov`, and Pi 5 / Mission 1 scripting. The only
+readiness failure is `preview_chroma`: no chroma-corrected PREVIEW pipeline has
+a committed PASS receipt.
+
+Chroma root-cause status:
+
+- Sidecar rebuilt:
+  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma.npz`
+- Absolute Lab checkpoint trained and gated: full gate FAIL, run
+  `c9bbe8390032412a`
+- Residual Lab checkpoint trained and gated: full gate FAIL, run
+  `0c8974e88d94e710`
+- Detailed evidence lives in `docs/CHROMA_ROOT_CAUSE_2026-05-31.md`
+
+Current conclusion: the failure is not a simple color-matrix or sign bug.
+Absolute Lab prediction overfits the easy validation image and can invert OOD
+`b` correlation. Residual prediction around the codec-only Lab hint reduces the
+worst inversion but still damages safe chroma, so the remaining production fix
+is to use the actual display-space `cnn=none`/sips chroma as the residual
+baseline or to add a runtime guard that preserves that baseline when learned
+residuals lower a/b correlation.
+
+Dashboard status:
+
+- Reproducible operations dashboard command:
+  `python3 tests/quality_gates/build_ops_dashboard.py`
+- Output:
+  `tests/quality_gates/runs/dashboard/ops_matrix.html`
+- Dimensions covered: gate verdicts, ship class, pipeline, mean/min/max size
+  via run receipts, bpp, raw compression ratio, encode ms, encode FPS, worst
+  LPIPS, MS-SSIM, Y-PSNR, dE, Bayer PSNR, Pi-to-Mac stage FPS/MB/s, UPRESABLE
+  artifact sizes, and chroma signal diagnostics.
+
+Strict ship audit is still expected to fail for older ship receipts whose
+`gates_sha` predates the current `gates.json`, and for ship roles that have not
+been logged through `run_gate.py --claim`. That is intentional: default audit
+protects CI; strict audit is the production release checklist.
+
+## Next burn-down items
+
+1. Build a display-space chroma sidecar: generate the `cnn=none`/sips RGB for
+   training tiles, convert to Lab, and train residual a/b around that baseline
+   instead of the codec-only Lab hint.
+2. Gate the display-space residual candidate only through a temporary registry
+   entry; promote it only after full gate PASS plus worst-diff inspection.
+3. Re-run `audit_production_readiness.py`; `preview_chroma` must change from
+   FAIL to PASS or remain the only documented blocker.
+4. For release, run `audit_ship_pipelines.py --strict`, refresh stale receipts
+   or claims, and record accepted outputs in `docs/claims_log.md`.
+5. On the Pi 5 Mission 1 target, run `tools/test/configure_pi_sd.sh`, build,
+   run `tools/test/test_pi_encoder.sh`, then run the Pi-to-Mac UPRESABLE bench
+   against the target hardware and archive the log.
