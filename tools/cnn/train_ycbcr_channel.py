@@ -208,6 +208,12 @@ def train(args):
     model = build_variant(args.variant).to(DEVICE)
     print(f"  Variant: {args.variant}", flush=True)
     print(f"  Params (backbone): {count_params(model):,}", flush=True)
+    if args.init_ckpt:
+        if not os.path.exists(args.init_ckpt):
+            raise FileNotFoundError(f"--init-ckpt not found: {args.init_ckpt}")
+        ck = torch.load(args.init_ckpt, map_location=DEVICE, weights_only=False)
+        model.load_state_dict(ck["backbone_state"])
+        print(f"  warm-started from {args.init_ckpt}", flush=True)
 
     # LPIPS only for Y channel (no perceptual color signal in alex; plan §A).
     lpips_net = None
@@ -255,6 +261,7 @@ def train(args):
     best_epoch = -1
     epochs_since_best = 0
     ckpt_path = os.path.join(CKPT_DIR, args.ckpt_name)
+    last_ckpt_path = os.path.join(CKPT_DIR, args.save_last_name or args.ckpt_name)
 
     use_lpips_metric = (args.channel == "Y" and lpips_net is not None)
 
@@ -342,6 +349,27 @@ def train(args):
         if epochs_since_best >= args.patience and ep + 1 >= 40:
             print(f"  Early stop: no improvement in {args.patience} epochs", flush=True)
             break
+    if args.save_last:
+        torch.save({
+            "backbone_state": model.state_dict(),
+            "variant": args.variant,
+            "channel": args.channel,
+            "channel_idx": channel_idx,
+            "matrix": "BT709",
+            "width": VARIANTS[args.variant]["width"],
+            "raw_norm": RAW_NORM,
+            "residual_scale": 0.0,
+            "kind": f"ycbcr_decomp_{args.channel.lower()}",
+            "hf_weight": args.hf_weight if args.channel == "Y" else 0.0,
+            "grad_weight": args.grad_weight if args.channel == "Y" else 0.0,
+            "epoch": ep + 1,
+            "val_l1": l1,
+            "val_psnr": psnr,
+            "val_lpips": lp,
+            "params": count_params(model),
+            "save_policy": "last",
+        }, last_ckpt_path)
+        print(f"  Last checkpoint: {last_ckpt_path}")
 
     print(f"\n  Best at epoch {best_epoch}:")
     print(f"    val_l1={best_l1:.5f}  val_psnr={best_psnr:.3f}", end="")
@@ -363,6 +391,12 @@ def main():
     ap.add_argument("--patience", type=int, default=30)
     ap.add_argument("--subsample", type=int, default=1)
     ap.add_argument("--ckpt-name", type=str, required=True)
+    ap.add_argument("--init-ckpt", type=str, default=None,
+                    help="Optional checkpoint to warm-start from.")
+    ap.add_argument("--save-last", action="store_true",
+                    help="Also write the final epoch checkpoint.")
+    ap.add_argument("--save-last-name", type=str, default=None,
+                    help="Filename for --save-last. Defaults to --ckpt-name.")
     ap.add_argument("--lpips-weight", type=float, default=0.10,
                     help="LPIPS-alex weight for Y channel; ignored for chroma.")
     ap.add_argument("--hf-weight", type=float, default=0.0,

@@ -32,7 +32,6 @@ DEFAULT_IMAGE_IDS = ("Z8Z_0001", "Z8Z_0067", "Z8Z_5323", "Z8Z_6693")
 
 TILE_CODEC = 128
 TILE_RGB = 512
-STRIDE = 256
 SCALE_TO_SOURCE = 4
 
 
@@ -70,15 +69,15 @@ def _codec_planes(decoded_bayer: np.ndarray) -> np.ndarray:
     )
 
 
-def _tile_image(planes: np.ndarray, ref_rgb: np.ndarray,
+def _tile_image(planes: np.ndarray, ref_rgb: np.ndarray, stride: int,
                 src_id: int) -> tuple[list[np.ndarray], list[np.ndarray], list[int], list[tuple[int, int]]]:
     _, hp, wp = planes.shape
     codec_tiles: list[np.ndarray] = []
     rgb_tiles: list[np.ndarray] = []
     src_ids: list[int] = []
     coords: list[tuple[int, int]] = []
-    for yc in range(0, hp - TILE_CODEC + 1, STRIDE):
-        for xc in range(0, wp - TILE_CODEC + 1, STRIDE):
+    for yc in range(0, hp - TILE_CODEC + 1, stride):
+        for xc in range(0, wp - TILE_CODEC + 1, stride):
             y = yc * SCALE_TO_SOURCE
             x = xc * SCALE_TO_SOURCE
             if y + TILE_RGB > ref_rgb.shape[0] or x + TILE_RGB > ref_rgb.shape[1]:
@@ -125,7 +124,7 @@ def build(args: argparse.Namespace) -> None:
         planes = _codec_planes(dec)
         ref_png = _render_ref_cached(image_id, bayer, dms, src_dng, args.render_cache)
         ref_rgb = np.asarray(Image.open(ref_png).convert("RGB"))
-        c_tiles, r_tiles, s_ids, coords = _tile_image(planes, ref_rgb, src_id)
+        c_tiles, r_tiles, s_ids, coords = _tile_image(planes, ref_rgb, args.stride, src_id)
         codec_tiles.extend(c_tiles)
         rgb_tiles.extend(r_tiles)
         src.extend(s_ids)
@@ -152,6 +151,7 @@ def build(args: argparse.Namespace) -> None:
         src=src_arr,
         src_lookup_names=names_arr,
         tile_yx=tile_yx_arr,
+        tile_stride=np.asarray([args.stride], dtype=np.int32),
     )
     print(
         f"DONE {args.out}  tiles={len(src_arr)}  "
@@ -168,6 +168,9 @@ def main() -> None:
     ap.add_argument("--codec", default="ml2_q3_dec2")
     ap.add_argument("--demosaic", default="sips_via_gpr_tools")
     ap.add_argument("--images", nargs="+", default=list(DEFAULT_IMAGE_IDS))
+    ap.add_argument("--stride", type=int, default=256,
+                    help="Stride in codec-plane pixels. 256 reproduces the "
+                         "original sparse corpus; 128 gives denser overlap.")
     build(ap.parse_args())
 
 

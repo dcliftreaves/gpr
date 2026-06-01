@@ -242,6 +242,26 @@ Luma/detail diagnostic status:
   coverage and likely a stronger/larger-context detail objective or model; the
   current failure is narrowed to dataset coverage plus architecture/loss, not
   chroma.
+- Dense hard-tail Y-only diagnostic completed. The hard-tail tile builder now
+  supports `--stride`; stride `128` produced
+  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128.npz`
+  (`640` tiles, `sha256=2e6d16204702de3adda0e07596791428683b3b77326413e6e291d5cc0d437205`).
+  `train_ycbcr_channel.py` now supports warm-start and final-checkpoint saving.
+  The existing Y checkpoint was fine-tuned with high-pass/gradient losses while
+  keeping the solved Lab/SIPS chroma path fixed. Artifacts:
+  `models/F_ane_no_sr_w16_y_hardtail_s128_best.pt`
+  (`sha256=424d2bcc07498b636087126f096456df405cb9e0584c202a63f4cf98f4da5392`,
+  epoch 8) and `models/F_ane_no_sr_w16_y_hardtail_s128_last.pt`
+  (`sha256=9c0bdbc6445849e72e26ac509fa9108d1cf624cab1ff1957c3decbc27e91f99d`,
+  epoch 40). Gate run `fa18e24ea2f9267e` (best) keeps dE passing and passes
+  `Z8Z_0001`/`Z8Z_0067`, but still fails `Z8Z_5323` (`LPIPS=0.1882`) and
+  `Z8Z_6693` (`LPIPS=0.3285`, `MS-SSIM=0.9360`), slightly worse than the
+  active Lab/SIPS baseline on both blockers. Gate run `6b499511ba636dc4`
+  (last) regresses further (`Z8Z_6693 LPIPS=0.4153`) and pushes `Z8Z_0001`
+  over the LPIPS/MS-SSIM thresholds. Conclusion: denser local Y tile coverage
+  with the existing w16 Y architecture is also a closed branch. The remaining
+  PREVIEW detail blocker now points at model/context/objective capacity or
+  irrecoverable codec/detail aliasing, not sparse tile count alone.
 
 28-image PREVIEW holdout status:
 
@@ -264,10 +284,10 @@ Luma/detail diagnostic status:
 
 ## Next burn-down items
 
-1. Build a denser full-gate/full-image detail dataset for the hard tail
-   (at least stride-128, preferably overlap/full-frame context) and train a
-   stronger detail/L candidate that preserves Lab/SIPS chroma. Sparse stride-256
-   hard-tail BIDO is now disproven.
+1. Move beyond local tile fine-tuning for PREVIEW detail: test a larger-context
+   Y/detail model or full-frame/overlap-aware objective against REF L while
+   preserving Lab/SIPS chroma. Sparse stride-256 BIDO and dense stride-128 w16
+   Y fine-tunes are now disproven.
 2. Gate any candidate only through a temporary registry entry; promote
    it only after full gate PASS plus worst-diff inspection.
 3. Re-run `audit_production_readiness.py`; `preview_detail` must change from
