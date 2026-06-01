@@ -85,6 +85,27 @@ direction and makes all four gate images pass dE2000 mean, but it still fails
 LPIPS/MS-SSIM on textured OOD content. The remaining PREVIEW blocker is now
 luma/detail preservation, not primary chroma direction.
 
+Decision update (2026-06-01): keep the current UPRESABLE path
+(`bibo2x_ane_ml2_q3_dec2_diverse`) as the production high-quality editable-raw
+path. Use `lab_chroma_corrector_w12_sips_residual_ab8_sub10` as the active
+PREVIEW color baseline: it is not a shipped PREVIEW pipeline, but it is the
+baseline any new PREVIEW detail experiment must preserve. Discard
+`lab_chroma_corrector_w12_sips_y_detail_hf05_grad02` as a direction; run
+`b48ddb16e0c6af19` regressed LPIPS/MS-SSIM and pushed `Z8Z_0001` back over the
+dE threshold.
+
+Fast crop probe:
+
+- Command:
+  `python3 tests/quality_gates/probe_preview_guarded_blend.py --write-images --html-out tests/quality_gates/runs/dashboard/upresable_lab_blend_probe.html`
+- Output:
+  `tests/quality_gates/runs/dashboard/upresable_lab_blend_probe.html`
+- Result: simply splicing UPRESABLE L/detail into Lab SIPS a/b does not beat
+  the Lab SIPS crop on the hardest image (`Z8Z_6693`: Lab SIPS LPIPS 0.2125 on
+  the saved crop; guarded UPRES L variants ~0.2130+). UPRESABLE remains the
+  right teacher/reference path, but the PREVIEW fix needs training/distillation
+  against the desired behavior rather than a direct Lab-channel graft.
+
 Implementation status for that next fix:
 
 - `build_chroma_corrector_sidecar.py` now supports

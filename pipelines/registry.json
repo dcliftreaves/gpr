@@ -830,6 +830,18 @@
       "trained_against_codec": "ml2_q3_dec2",
       "raw_norm": 16383.0,
       "residual_scale": 0.0
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10": {
+      "$doc": "Active PREVIEW color baseline as of 2026-06-01. Runs the VA-Y model for luma and applies a bounded residual Lab a/b corrector around the actual display-space gpr_tools+sips baseline. Gate run 5e7d52579ffb2d3e keeps dE2000 mean under the PREVIEW threshold on all four gate images; remaining failures are LPIPS/MS-SSIM detail placement on Z8Z_5323/Z8Z_6693.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w16_y.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
     }
   },
   "pipelines": {
@@ -1384,6 +1396,14 @@
       "ship_class": "PREVIEW",
       "$role": "experiment-ycbcr-decomp",
       "$doc": "PREVIEW_CHANNEL_DECOMP_PLAN Variant A: three small per-channel CNNs (Y, Cb, Cr) in BT.709 space recombined to RGB. Paired with ml2_q3_dec2 half-res capture codec. The composite CNN bypasses the gpr_tools demosaicer (CNN directly outputs 4x-spatial RGB)."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "active-preview-color-baseline",
+      "$doc": "Use as the current PREVIEW chroma/color baseline, not as a shipped PREVIEW pipeline. Run 5e7d52579ffb2d3e proves dE2000 mean is within gate on all examples; full PREVIEW still fails on detail metrics. Next candidate should preserve this color behavior while borrowing/detail-distilling from UPRESABLE."
     },
     "codec=sl_q3_hh1x2+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q3_hh1x2",

@@ -72,6 +72,20 @@ def latest_pass_for_pipeline(pipeline: str) -> dict | None:
     return sorted(matches)[-1][2]
 
 
+def latest_run_for_pipeline(pipeline: str) -> dict | None:
+    matches = []
+    for path in tracked_run_jsons():
+        try:
+            run = json.loads(path.read_text())
+        except Exception:
+            continue
+        if run.get("pipeline") == pipeline:
+            matches.append((run.get("finished_at") or "", path.parent.name, run))
+    if not matches:
+        return None
+    return sorted(matches)[-1][2]
+
+
 def ship_pipelines(prefix: str) -> list[tuple[str, dict]]:
     out = []
     for name, pipe in REG.get("pipelines", {}).items():
@@ -104,6 +118,34 @@ def check_ship_group(area: str, prefix: str) -> list[Check]:
 def check_pipeline(area: str, name: str, pipeline: str) -> Check:
     run = latest_pass_for_pipeline(pipeline)
     return Check(area, name, "PASS" if run else "FAIL", run_summary(run))
+
+
+def check_preview_color_guard(pipeline: str) -> Check:
+    run = latest_run_for_pipeline(pipeline)
+    if not run:
+        return Check("preview_color", "Lab Chroma SIPS dE guardrail", "FAIL", "no committed run")
+    bad = []
+    for image_id, metrics in (run.get("images") or {}).items():
+        de = metrics.get("dE2000_mean")
+        if de is None or de > 3.0:
+            bad.append(f"{image_id} dE={de}")
+    if bad:
+        return Check(
+            "preview_color",
+            "Lab Chroma SIPS dE guardrail",
+            "FAIL",
+            f"run={run.get('run_hash')} " + "; ".join(bad),
+        )
+    worst_lpips = max(
+        (float(m.get("lpips", 0.0)) for m in (run.get("images") or {}).values()),
+        default=0.0,
+    )
+    return Check(
+        "preview_color",
+        "Lab Chroma SIPS dE guardrail",
+        "PASS",
+        f"run={run.get('run_hash')} verdict={run.get('verdict')} dE<=3 all images; worst_lpips={worst_lpips:.4f}",
+    )
 
 
 def check_file(area: str, name: str, rel_path: str, require_tracked: bool = True) -> Check:
@@ -177,7 +219,7 @@ def check_upresable_bench_receipt() -> list[Check]:
         "A.": ("Pi encode loop", 0.0),
         "B.": ("USB transfer", 0.0),
         "C.": ("Mac upres offline", 0.0),
-        "D.": ("GPRaw pack", 24.0),
+        "D.": ("GVID pack", 24.0),
     }
     for key, (name, min_fps) in stage_targets.items():
         fps = rows.get(key)
@@ -203,10 +245,12 @@ def main() -> int:
         "baseline PREVIEW",
         "codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools",
     ))
+    lab_sips_pipeline = "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools"
+    checks.append(check_preview_color_guard(lab_sips_pipeline))
     checks.append(check_pipeline(
-        "preview_chroma",
-        "YCbCr decomp chroma candidate",
-        "codec=ml2_q3_dec2+cnn=ycbcr_decomp_y_w16_cb_w8_cr_w8+demosaic=sips_via_gpr_tools",
+        "preview_detail",
+        "Lab Chroma SIPS full PREVIEW gate",
+        lab_sips_pipeline,
     ))
     checks.append(check_pipeline(
         "upresable",
@@ -218,8 +262,10 @@ def main() -> int:
         check_file("container_gvid", "wire format header", "source/lib/vc5_encoder/gpr_video_format.h"),
         check_file("container_gvid", "wire format implementation", "source/lib/vc5_encoder/gpr_video_format.c"),
         check_file("container_gvid", "CI format smoke", "source/app/test_video_format.c"),
-        check_file("container_gpraw", "GPRaw pack tool", "tools/gpr2prores/gpr_mov_tool", require_tracked=False),
-        check_file("container_gpraw", "GPRaw fixture recipe", "tools/test/make_gpraw_fixture.sh"),
+        check_file("container_gvid", "GVID pack tool", "tools/gvid_pack.py"),
+        check_file("container_gvid", "GVID pack smoke", "tools/test/test_gvid_pack.sh"),
+        check_file("container_mov", "MOV compatibility pack tool", "tools/gpr2prores/gpr_mov_tool", require_tracked=False),
+        check_file("container_mov", "MOV compatibility fixture recipe", "tools/test/make_gpraw_fixture.sh"),
         check_file("pi5_mission1", "Pi encoder benchmark", "tools/test/test_pi_encoder.sh"),
         check_file("pi5_mission1", "Pi-to-Mac UPRESABLE bench", "tools/test/bench_pi_to_mac_upresable.sh"),
         check_file("pi5_mission1", "Pi SD first-boot config", "tools/test/configure_pi_sd.sh"),
