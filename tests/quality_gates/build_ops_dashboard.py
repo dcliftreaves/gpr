@@ -30,6 +30,7 @@ PRODUCTION_RUNS = {
 }
 
 CHROMA_RUNS = {
+    "Lab sips residual": "5e7d52579ffb2d3e",
     "YCbCr decomp": "03045a1c44ffa38d",
     "Lab absolute ep5": "c9bbe8390032412a",
     "Lab residual ab8": "0c8974e88d94e710",

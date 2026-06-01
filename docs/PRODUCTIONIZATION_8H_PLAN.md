@@ -50,7 +50,7 @@ Chroma is done when one of these is true:
 
 ## Current burn-down status
 
-Updated: 2026-05-31
+Updated: 2026-06-01
 
 Local production readiness is green for STILL, VIDEO_FREEZE, baseline PREVIEW,
 UPRESABLE, `.gvid`, `.gpraw.mov`, and Pi 5 / Mission 1 scripting. The only
@@ -65,15 +65,18 @@ Chroma root-cause status:
   `c9bbe8390032412a`
 - Residual Lab checkpoint trained and gated: full gate FAIL, run
   `0c8974e88d94e710`
+- Display-space residual Lab checkpoint trained and gated: full gate FAIL, run
+  `5e7d52579ffb2d3e`
 - Detailed evidence lives in `docs/CHROMA_ROOT_CAUSE_2026-05-31.md`
 
-Current conclusion: the failure is not a simple color-matrix or sign bug.
-Absolute Lab prediction overfits the easy validation image and can invert OOD
-`b` correlation. Residual prediction around the codec-only Lab hint reduces the
-worst inversion but still damages safe chroma, so the remaining production fix
-is to use the actual display-space `cnn=none`/sips chroma as the residual
-baseline or to add a runtime guard that preserves that baseline when learned
-residuals lower a/b correlation.
+Current conclusion: the original chroma failure is not a simple color-matrix or
+sign bug. Absolute Lab prediction overfits the easy validation image and can
+invert OOD `b` correlation. Residual prediction around the codec-only Lab hint
+reduces the worst inversion but still damages safe chroma. Residual prediction
+around the actual display-space `gpr_tools`/`sips` baseline fixes the color
+direction and makes all four gate images pass dE2000 mean, but it still fails
+LPIPS/MS-SSIM on textured OOD content. The remaining PREVIEW blocker is now
+luma/detail preservation, not primary chroma direction.
 
 Implementation status for that next fix:
 
@@ -87,6 +90,12 @@ Implementation status for that next fix:
   when a registry CNN entry declares `"chroma_baseline": "demosaic_sips"`.
 - Smoke check completed on `Z8Z_0067`: the demosaic/sips baseline rendered and
   a small runtime tensor executed through the residual checkpoint.
+- Full sidecar build completed for `498/498` sources:
+  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma_sips.npz`
+- Display-space residual checkpoint:
+  `/Volumes/OWC_8TB/gpr_cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt`
+- Gate result `5e7d52579ffb2d3e`: dE2000 mean passes on every image; `Z8Z_5323`
+  fails LPIPS only, and `Z8Z_6693` fails LPIPS plus MS-SSIM.
 
 Dashboard status:
 
@@ -106,11 +115,13 @@ protects CI; strict audit is the production release checklist.
 
 ## Next burn-down items
 
-1. Run the full display-space sidecar build with:
-   `python3 tools/cnn/build_chroma_corrector_sidecar.py --baseline-mode demosaic_sips --in-npz /Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate.npz --y-ckpt models/F_ane_no_sr_w16_y.pt --out-npz /Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma_sips.npz --batch 64`
-2. Train residual a/b against that sidecar with multi-source validation.
-3. Gate the display-space residual candidate only through a temporary registry
-   entry; promote it only after full gate PASS plus worst-diff inspection.
+1. Build a luma/detail diagnostic for `Z8Z_5323` and `Z8Z_6693` comparing
+   `cnn=none`, display-space residual, and UPRESABLE crops for high-frequency
+   energy, local contrast, LPIPS, and MS-SSIM.
+2. Prototype a guarded PREVIEW blend that keeps display-space baseline chroma
+   and preserves baseline luma/detail in high-risk textured regions.
+3. Gate the guarded candidate only through a temporary registry entry; promote
+   it only after full gate PASS plus worst-diff inspection.
 4. Re-run `audit_production_readiness.py`; `preview_chroma` must change from
    FAIL to PASS or remain the only documented blocker.
 5. For release, run `audit_ship_pipelines.py --strict`, refresh stale receipts

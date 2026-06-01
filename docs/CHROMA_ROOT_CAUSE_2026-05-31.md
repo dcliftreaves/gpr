@@ -67,11 +67,12 @@ uses an insufficient runtime chroma hint:
 3. The model predicts absolute Lab a/b. When it misses, it can invert the
    b-channel relationship instead of falling back to the safer codec chroma.
 
-## Next fix path
+## Residual codec-baseline follow-up
 
 Do not promote `lab_chroma_corrector_w12_ep5`.
 
-Follow-up residual experiment:
+The first follow-up residual experiment used the codec-only Lab a/b estimate as
+the residual baseline:
 
 - Checkpoint:
   `/Volumes/OWC_8TB/gpr_cnn/F_ane_chroma_corrector_w12_residual_ab8_sub10.pt`
@@ -103,7 +104,66 @@ The model needs the actual display-space codec/sips chroma baseline or a
 runtime guard that can preserve the existing `cnn=none` chroma when the learned
 residual lowers channel correlation.
 
-Follow-up implementation status:
+## Display-space baseline result
+
+The next experiment used the actual decoded codec raw rendered through
+`gpr_tools` + `sips` as the Lab a/b residual baseline. This tests the original
+root-cause hypothesis directly: the learned model was anchored to the wrong
+runtime chroma hint.
+
+- Sidecar:
+  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma_sips.npz`
+- Sidecar build coverage: `498/498` sources rendered and filled
+- Sidecar size: `1556.4 MiB`
+- Checkpoint:
+  `/Volumes/OWC_8TB/gpr_cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt`
+- Checkpoint sha256:
+  `cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677`
+- Y checkpoint sha256:
+  `44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45`
+- Training mode: display-space `demosaic_sips` Lab a/b baseline plus bounded
+  `+/-8` Lab-unit residual
+- Validation sources: `Z8Z_0067`, `div_Z8Z_5271`, `div_Z8Z_6477`,
+  `div_Z8Z_7424`
+- Best tile validation: epoch 10, `val_dE_proxy=2.511`
+- Full-gate run: `5e7d52579ffb2d3e`
+- Full-gate verdict: FAIL
+
+| image | LPIPS | MS-SSIM | Y-PSNR | dE2000 mean | verdict |
+|---|---:|---:|---:|---:|---|
+| Z8Z_0001 | 0.1159 | 0.9627 | 30.35 | 2.97 | PASS |
+| Z8Z_0067 | 0.0499 | 0.9888 | 41.02 | 1.01 | PASS |
+| Z8Z_5323 | 0.1806 | 0.9594 | 35.06 | 1.58 | FAIL |
+| Z8Z_6693 | 0.3096 | 0.9348 | 32.74 | 2.09 | FAIL |
+
+The important change is that dE2000 mean now passes for every gate image. The
+worst-diff inspection for `Z8Z_6693` no longer shows the prior purple/yellow
+OOD chroma inversion; the visible failure is fabric/texture smoothing and
+detail loss.
+
+Worst OOD image `Z8Z_6693`, display-space residual versus prior candidates:
+
+| run | dE95 | L MAE | ab MAE | ab95 | hue95 | ab bias | ab corr | chrHF |
+|---|---:|---:|---:|---:|---:|---|---|---:|
+| Lab sips residual | 6.38 | 3.12 | 0.88 | 3.50 | 6.3 | +0.04, +0.48 | +0.971, +0.932 | 0.10 |
+| Lab corrector ep5 | 10.81 | 3.12 | 4.23 | 12.66 | 69.7 | -0.01, -5.26 | +0.907, -0.494 | 0.56 |
+| Codec-only residual | 8.62 | 3.12 | 2.55 | 8.53 | 16.5 | +0.46, +0.42 | +0.837, +0.210 | 0.80 |
+| YCbCr decomp | 9.70 | 3.08 | 4.08 | 9.16 | 31.9 | +0.48, -5.82 | +0.782, +0.886 | 0.30 |
+| codec none | 7.42 | 3.50 | 0.93 | 3.88 | 7.7 | +0.24, -0.24 | +0.965, +0.914 | 0.20 |
+| UPRESABLE BIBO2x | 5.75 | 2.70 | 0.73 | 2.97 | 5.1 | +0.01, -0.02 | +0.978, +0.947 | 0.11 |
+
+Root cause is now narrowed:
+
+1. The original chroma inversion was caused by anchoring the learned a/b model
+   to a codec-only Bayer Lab hint that did not match runtime display-space
+   chroma.
+2. The display-space baseline fixes the color direction and lowers ab error to
+   roughly the safe codec/UPRESABLE range.
+3. The remaining PREVIEW failure is not primarily chroma. It is luma/detail
+   preservation: `Z8Z_5323` fails only LPIPS, and `Z8Z_6693` fails LPIPS plus
+   MS-SSIM while dE passes.
+
+## Implementation status
 
 - Sidecar builder support for display-space baseline exists behind
   `build_chroma_corrector_sidecar.py --baseline-mode demosaic_sips`.
@@ -112,17 +172,23 @@ Follow-up implementation status:
 - Smoke check rendered the `Z8Z_0067` baseline from full codec raw plus source
   DNG metadata and executed a small residual-checkpoint inference with a
   display-space baseline input.
-- No display-space residual checkpoint has passed the full gate yet.
+- Full display-space sidecar build, training, and full gate are complete. The
+  candidate is intentionally not registered for promotion because the gate
+  still fails on LPIPS/MS-SSIM.
 
-The next chroma experiment should be constrained so it cannot destroy safe
-codec chroma:
+## Next fix path
 
-1. Train a residual Lab a/b corrector around the codec/sips chroma baseline,
-   not absolute a/b from a weak codec-only hint.
-2. Use multi-image validation that includes OOD gate-like sources, not only
-   `Z8Z_0067`.
-3. Add a fallback clamp or blend: if predicted ab correlation/energy diverges
-   from codec chroma, preserve codec chroma and only use the learned residual
-   in low-risk regions.
+Do not promote any Lab chroma checkpoint yet. The next production fix should
+preserve the display-space chroma baseline and attack the remaining preview
+detail loss:
+
+1. Keep display-space `demosaic_sips` chroma as the baseline for any PREVIEW
+   chroma work.
+2. Investigate the Y/detail path on `Z8Z_5323` and `Z8Z_6693`: compare
+   `cnn=none`, display-space residual, and UPRESABLE crops for luma texture,
+   local contrast, and high-frequency energy.
+3. Prototype a guarded blend that preserves baseline luma/detail in high-risk
+   textured regions while using the learned model only where it improves dE
+   without lowering LPIPS/MS-SSIM.
 4. Gate before registry promotion; only copy a checkpoint into `models/` after
    a full gate pass and worst-diff inspection.
