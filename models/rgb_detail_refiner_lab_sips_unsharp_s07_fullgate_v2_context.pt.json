@@ -1,0 +1,29 @@
+{
+  "kind": "rgb_detail_refiner",
+  "checkpoint": "models/rgb_detail_refiner_lab_sips_unsharp_s07_fullgate_v2_context.pt",
+  "train_run": "tests/quality_gates/runs/1f1ef2ee138c51c3",
+  "train_images": [
+    "Z8Z_0001",
+    "Z8Z_0067",
+    "Z8Z_5323",
+    "Z8Z_6693"
+  ],
+  "width": 32,
+  "dilations": [
+    1,
+    2,
+    4,
+    2,
+    1
+  ],
+  "residual_limit": 0.08,
+  "steps": 900,
+  "best_step": 900,
+  "best_score": 0.09965892167141041,
+  "loss": {
+    "l1_weight": 1.0,
+    "msssim_weight": 0.35,
+    "lpips_weight": 0.15,
+    "lpips_warmup": 120
+  }
+}

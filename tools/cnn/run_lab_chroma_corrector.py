@@ -43,15 +43,20 @@ class LumaDetailCNN(torch.nn.Module):
 
 
 class RGBDetailCNN(torch.nn.Module):
-    def __init__(self, width: int = 16):
+    def __init__(self, width: int = 16, dilations: tuple[int, ...] = (1, 1)):
         super().__init__()
-        self.net = torch.nn.Sequential(
-            torch.nn.Conv2d(3, width, 3, padding=1),
+        layers: list[torch.nn.Module] = [
+            torch.nn.Conv2d(3, width, 3, padding=int(dilations[0]), dilation=int(dilations[0])),
             torch.nn.SiLU(),
-            torch.nn.Conv2d(width, width, 3, padding=1),
-            torch.nn.SiLU(),
-            torch.nn.Conv2d(width, 3, 3, padding=1),
-        )
+        ]
+        for dilation in dilations[1:]:
+            d = int(dilation)
+            layers.extend([
+                torch.nn.Conv2d(width, width, 3, padding=d, dilation=d),
+                torch.nn.SiLU(),
+            ])
+        layers.append(torch.nn.Conv2d(width, 3, 3, padding=1))
+        self.net = torch.nn.Sequential(*layers)
 
     def forward(self, x):
         return self.net(x)
@@ -203,8 +208,9 @@ def _apply_cnn_detail_rgb(
         return rgb
     ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
     width = int(ck.get("width", 16))
+    dilations = tuple(int(v) for v in ck.get("dilations", (1, 1)))
     limit = float(ck.get("residual_limit", 0.06))
-    model = RGBDetailCNN(width=width)
+    model = RGBDetailCNN(width=width, dilations=dilations)
     model.load_state_dict(ck["state_dict"])
     model.to(device).eval()
 

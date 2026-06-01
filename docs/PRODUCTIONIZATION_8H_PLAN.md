@@ -189,6 +189,20 @@ Luma/detail diagnostic status:
   but still cannot place the hard-tail texture; the next candidate must change
   the upstream detail source/model capacity or use a larger-context teacher,
   not another small local residual head.
+- A larger-context RGB residual refiner v2 was trained with width `32` and
+  dilations `1/2/4/2/1` to test whether v1 failed only because its receptive
+  field was too small. Artifact:
+  `models/rgb_detail_refiner_lab_sips_unsharp_s07_fullgate_v2_context.pt`
+  (`sha256=aa090e1f72f7545dd6a2a3f553a310af670cdf5273655d1195fcaeef6eae1887`).
+  Gate run `23032f1e038407de` also FAILs PREVIEW: `Z8Z_5323` passes
+  (`LPIPS=0.1454`, `MS-SSIM=0.9618`), but `Z8Z_6693` remains essentially
+  unchanged (`LPIPS=0.2653`, `MS-SSIM=0.9354`, `dE=2.13`). Diagnostic output:
+  `tests/quality_gates/runs/dashboard/luma_detail_rgb_refiner_v2.html`.
+  Conclusion: local post-assembly RGB residuals are exhausted for this blocker.
+  The next credible path is upstream: a model that predicts the RGB/detail
+  render directly from the captured Bayer with a larger teacher/context, or a
+  capture/codec mode that preserves more of the hard-tail texture before
+  demosaic/render.
 
 28-image PREVIEW holdout status:
 

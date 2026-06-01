@@ -969,6 +969,22 @@
       "chroma_baseline": "demosaic_sips",
       "luma_unsharp_amount": 0.7,
       "luma_unsharp_sigma": 2.0
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_rgb_detail_cnn_v2_context": {
+      "$doc": "Temporary PREVIEW detail-placement candidate for the full-gate stop criteria. Larger-context bounded RGB residual CNN (width=32, dilations=1/2/4/2/1) trained from full-resolution gate REF/PIPELINE pairs to test whether the v1 failure was local receptive-field capacity.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w16_y.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_rgb_detail": "models/rgb_detail_refiner_lab_sips_unsharp_s07_fullgate_v2_context.pt",
+      "ckpt_y_sha256": "44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "ckpt_rgb_detail_sha256": "aa090e1f72f7545dd6a2a3f553a310af670cdf5273655d1195fcaeef6eae1887",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips",
+      "luma_unsharp_amount": 0.7,
+      "luma_unsharp_sigma": 2.0
     }
   },
   "pipelines": {
@@ -1603,6 +1619,14 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-rgb-cnn-fullgate",
       "$doc": "Temporary candidate for the detail-placement stop criteria: bounded RGB residual CNN trained on full-gate full-frame Lab SIPS + s07 outputs."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_rgb_detail_cnn_v2_context+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_rgb_detail_cnn_v2_context",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-rgb-cnn-context-fullgate",
+      "$doc": "Temporary candidate for the detail-placement stop criteria: larger-context bounded RGB residual CNN trained on full-gate full-frame Lab SIPS + s07 outputs."
     },
     "codec=sl_q3_hh1x2+cnn=bibo1x_ane_sl_q3+demosaic=sips_via_gpr_tools": {
       "codec": "sl_q3_hh1x2",
