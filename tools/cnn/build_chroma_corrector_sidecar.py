@@ -197,16 +197,23 @@ def _fill_demosaic_sips_ab(
     if not gpr_tools.exists():
         raise FileNotFoundError(gpr_tools)
 
+    missing = []
+    for src_name in names:
+        base = _base_name(src_name)
+        source_dng = sources.get(base)
+        codec_raw = codecs.get(src_name) or codecs.get(base)
+        if source_dng is None or codec_raw is None:
+            missing.append(f"{src_name}: source_dng={source_dng} codec_raw={codec_raw}")
+    if missing:
+        preview = "\n  ".join(missing[:20])
+        extra = "" if len(missing) <= 20 else f"\n  ... {len(missing) - 20} more"
+        raise RuntimeError(f"missing demosaic_sips inputs:\n  {preview}{extra}")
+
     t0 = time.time()
     for sid, src_name in enumerate(names):
         base = _base_name(src_name)
         source_dng = sources.get(base)
         codec_raw = codecs.get(src_name) or codecs.get(base)
-        if source_dng is None or codec_raw is None:
-            raise RuntimeError(
-                f"missing demosaic_sips inputs for {src_name}: "
-                f"source_dng={source_dng} codec_raw={codec_raw}"
-            )
         png = _render_demosaic_sips_baseline(src_name, source_dng, codec_raw, gpr_tools, cache_dir)
         lab = color.rgb2lab(np.asarray(Image.open(png).convert("RGB"), dtype=np.float32) / 255.0)
         tile_indices = np.where(src == sid)[0]
@@ -248,7 +255,12 @@ def main() -> None:
     ap.add_argument("--baseline-mode", choices=["codec_lab", "demosaic_sips"], default="codec_lab")
     ap.add_argument(
         "--pairs-dirs",
-        default=os.environ.get("PAIRS_DIRS", "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2"),
+        default=os.environ.get(
+            "PAIRS_DIRS",
+            "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2:"
+            "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2_diverse:"
+            "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2_ood",
+        ),
     )
     ap.add_argument(
         "--source-dirs",
@@ -259,6 +271,7 @@ def main() -> None:
     )
     ap.add_argument("--gpr-tools", default=str(Path.cwd() / "build-local/source/app/gpr_tools/gpr_tools"))
     ap.add_argument("--render-cache", default="/Volumes/OWC_8TB/gpr_cnn/render_cache_chroma_baseline")
+    ap.add_argument("--resume", action="store_true", help="Reuse existing staging .npy files when shapes match.")
     args = ap.parse_args()
 
     in_npz = Path(args.in_npz)
@@ -285,42 +298,56 @@ def main() -> None:
     print(f"tiles: {n}  codec plane: {h}x{w}  device={device}", flush=True)
 
     staging = out_npz.with_suffix(out_npz.suffix + ".staging")
-    if staging.exists():
+    if staging.exists() and not args.resume:
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
 
-    y_mm = np.lib.format.open_memmap(staging / "y_half.npy", mode="w+", dtype=np.uint8, shape=(n, h, w))
-    a_mm = np.lib.format.open_memmap(staging / "a_naive_half.npy", mode="w+", dtype=np.float16, shape=(n, h, w))
-    b_mm = np.lib.format.open_memmap(staging / "b_naive_half.npy", mode="w+", dtype=np.float16, shape=(n, h, w))
-    sat = np.lib.format.open_memmap(staging / "tile_sat_score.npy", mode="w+", dtype=np.float32, shape=(n,))
+    def _open_or_create(name: str, dtype, shape):
+        p = staging / name
+        if args.resume and p.exists():
+            arr = np.load(p, mmap_mode="r+")
+            if arr.shape == shape and arr.dtype == np.dtype(dtype):
+                return arr, True
+        return np.lib.format.open_memmap(p, mode="w+", dtype=dtype, shape=shape), False
+
+    y_mm, y_resumed = _open_or_create("y_half.npy", np.uint8, (n, h, w))
+    a_mm, a_resumed = _open_or_create("a_naive_half.npy", np.float16, (n, h, w))
+    b_mm, b_resumed = _open_or_create("b_naive_half.npy", np.float16, (n, h, w))
+    sat, sat_resumed = _open_or_create("tile_sat_score.npy", np.float32, (n,))
 
     y_model = _load_y_model(y_ckpt, device)
     t0 = time.time()
-    for start in range(0, n, args.batch):
-        end = min(n, start + args.batch)
-        idx = np.arange(start, end)
-        x = _codec_batch(npz, idx, args.raw_norm).to(device)
-        with torch.no_grad():
-            y_full = y_model(x).clamp(0, 1)
-            y_half = F.avg_pool2d(y_full, kernel_size=4, stride=4)
-        y_mm[start:end] = np.clip(
-            y_half.squeeze(1).cpu().numpy() * 255.0 + 0.5, 0, 255
-        ).astype(np.uint8)
+    skip_tile_phase = args.resume and y_resumed and sat_resumed and (
+        args.baseline_mode == "demosaic_sips" or (a_resumed and b_resumed)
+    )
+    if skip_tile_phase:
+        print("  resuming from existing tile sidecar arrays", flush=True)
+    else:
+        for start in range(0, n, args.batch):
+            end = min(n, start + args.batch)
+            idx = np.arange(start, end)
+            x = _codec_batch(npz, idx, args.raw_norm).to(device)
+            with torch.no_grad():
+                y_full = y_model(x).clamp(0, 1)
+                y_half = F.avg_pool2d(y_full, kernel_size=4, stride=4)
+            y_mm[start:end] = np.clip(
+                y_half.squeeze(1).cpu().numpy() * 255.0 + 0.5, 0, 255
+            ).astype(np.uint8)
 
-        if args.baseline_mode == "codec_lab":
-            a, b = _codec_planes_to_naive_lab_half(
-                np.asarray(npz["codec_R"][start:end]),
-                np.asarray(npz["codec_G1"][start:end]),
-                np.asarray(npz["codec_G2"][start:end]),
-                np.asarray(npz["codec_B"][start:end]),
-                args.raw_norm,
-            )
-            a_mm[start:end] = a
-            b_mm[start:end] = b
-        sat[start:end] = _tile_sat_score(np.asarray(npz["tgt_rgb"][start:end]))
+            if args.baseline_mode == "codec_lab":
+                a, b = _codec_planes_to_naive_lab_half(
+                    np.asarray(npz["codec_R"][start:end]),
+                    np.asarray(npz["codec_G1"][start:end]),
+                    np.asarray(npz["codec_G2"][start:end]),
+                    np.asarray(npz["codec_B"][start:end]),
+                    args.raw_norm,
+                )
+                a_mm[start:end] = a
+                b_mm[start:end] = b
+            sat[start:end] = _tile_sat_score(np.asarray(npz["tgt_rgb"][start:end]))
 
-        if start == 0 or end == n or (start // args.batch) % 25 == 0:
-            print(f"  {end}/{n} tiles  t={time.time() - t0:.1f}s", flush=True)
+            if start == 0 or end == n or (start // args.batch) % 25 == 0:
+                print(f"  {end}/{n} tiles  t={time.time() - t0:.1f}s", flush=True)
 
     if args.baseline_mode == "demosaic_sips":
         print("building demosaic_sips display-space chroma baseline", flush=True)
