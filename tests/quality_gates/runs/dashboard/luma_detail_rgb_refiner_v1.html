@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GPR luma/detail diagnostic</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; color: #1f2933; background: #f7f8fa; }
+h1 { margin: 0 0 8px; font-size: 28px; }
+p { max-width: 1080px; line-height: 1.45; color: #52606d; }
+table { border-collapse: collapse; width: 100%; background: white; border: 1px solid #dde3ea; font-size: 13px; }
+th, td { border-bottom: 1px solid #edf1f5; padding: 7px 9px; vertical-align: top; }
+th { background: #eef2f6; text-align: left; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+code { font-size: 12px; background: #edf1f5; padding: 1px 4px; border-radius: 4px; }
+.pass { color: #167a3a; font-weight: 650; }
+.fail { color: #b42318; font-weight: 650; }
+</style>
+</head>
+<body>
+<h1>GPR luma/detail diagnostic</h1>
+<p>
+Generated from saved quality-gate detail crops. <code>hp ratio</code> compares
+pipeline high-pass luma RMS to REF; values below 1 indicate smoothing.
+<code>hp corr</code> measures whether high-frequency detail is in the right
+places, and <code>err low/mid/high</code> splits luma-error energy by FFT band.
+</p>
+<table>
+<tr><th>Image</th><th>Pipeline</th><th>Run</th><th>Verdict</th><th class="num">LPIPS</th><th class="num">MS-SSIM</th><th class="num">Y-PSNR</th><th class="num">dE mean</th><th class="num">crop L-SSIM</th><th class="num">L-PSNR</th><th class="num">L MAE</th><th class="num">hp ratio</th><th class="num">hp corr</th><th class="num">hp err</th><th class="num">grad ratio</th><th class="num">HF ratio</th><th class="num">err low/mid/high</th></tr>
+
+<tr>
+  <td>Z8Z_5323</td>
+  <td>lab</td>
+  <td><code>5e7d52579ffb2d3e</code></td>
+  <td class="fail">FAIL</td>
+  <td class="num">0.1806</td>
+  <td class="num">0.9594</td>
+  <td class="num">35.06</td>
+  <td class="num">1.58</td>
+  <td class="num">0.5826</td>
+  <td class="num">30.85</td>
+  <td class="num">2.25</td>
+  <td class="num">0.438</td>
+  <td class="num">0.011</td>
+  <td class="num">2.11</td>
+  <td class="num">0.445</td>
+  <td class="num">0.267</td>
+  <td class="num">0.05/0.23/0.71</td>
+</tr>
+<tr>
+  <td>Z8Z_6693</td>
+  <td>lab</td>
+  <td><code>5e7d52579ffb2d3e</code></td>
+  <td class="fail">FAIL</td>
+  <td class="num">0.3096</td>
+  <td class="num">0.9348</td>
+  <td class="num">32.74</td>
+  <td class="num">2.09</td>
+  <td class="num">0.4370</td>
+  <td class="num">28.03</td>
+  <td class="num">3.12</td>
+  <td class="num">0.401</td>
+  <td class="num">0.018</td>
+  <td class="num">2.92</td>
+  <td class="num">0.414</td>
+  <td class="num">0.235</td>
+  <td class="num">0.05/0.25/0.71</td>
+</tr>
+<tr>
+  <td>Z8Z_5323</td>
+  <td>s07</td>
+  <td><code>1f1ef2ee138c51c3</code></td>
+  <td class="fail">FAIL</td>
+  <td class="num">0.1271</td>
+  <td class="num">0.9560</td>
+  <td class="num">34.35</td>
+  <td class="num">1.67</td>
+  <td class="num">0.5251</td>
+  <td class="num">29.92</td>
+  <td class="num">2.49</td>
+  <td class="num">0.735</td>
+  <td class="num">0.009</td>
+  <td class="num">2.40</td>
+  <td class="num">0.730</td>
+  <td class="num">0.637</td>
+  <td class="num">0.04/0.22/0.74</td>
+</tr>
+<tr>
+  <td>Z8Z_6693</td>
+  <td>s07</td>
+  <td><code>1f1ef2ee138c51c3</code></td>
+  <td class="fail">FAIL</td>
+  <td class="num">0.2242</td>
+  <td class="num">0.9295</td>
+  <td class="num">32.03</td>
+  <td class="num">2.20</td>
+  <td class="num">0.3928</td>
+  <td class="num">27.24</td>
+  <td class="num">3.40</td>
+  <td class="num">0.671</td>
+  <td class="num">0.017</td>
+  <td class="num">3.25</td>
+  <td class="num">0.669</td>
+  <td class="num">0.521</td>
+  <td class="num">0.04/0.23/0.73</td>
+</tr>
+<tr>
+  <td>Z8Z_5323</td>
+  <td>rgb</td>
+  <td><code>140cbad20b168c76</code></td>
+  <td class="fail">FAIL</td>
+  <td class="num">0.1436</td>
+  <td class="num">0.9615</td>
+  <td class="num">35.10</td>
+  <td class="num">1.67</td>
+  <td class="num">0.5633</td>
+  <td class="num">30.77</td>
+  <td class="num">2.26</td>
+  <td class="num">0.558</td>
+  <td class="num">0.014</td>
+  <td class="num">2.21</td>
+  <td class="num">0.578</td>
+  <td class="num">0.393</td>
+  <td class="num">0.04/0.24/0.72</td>
+</tr>
+<tr>
+  <td>Z8Z_6693</td>
+  <td>rgb</td>
+  <td><code>140cbad20b168c76</code></td>
+  <td class="fail">FAIL</td>
+  <td class="num">0.2634</td>
+  <td class="num">0.9351</td>
+  <td class="num">32.67</td>
+  <td class="num">2.15</td>
+  <td class="num">0.4265</td>
+  <td class="num">28.04</td>
+  <td class="num">3.09</td>
+  <td class="num">0.511</td>
+  <td class="num">0.022</td>
+  <td class="num">3.03</td>
+  <td class="num">0.535</td>
+  <td class="num">0.326</td>
+  <td class="num">0.04/0.25/0.71</td>
+</tr>
+</table>
+</body>
+</html>

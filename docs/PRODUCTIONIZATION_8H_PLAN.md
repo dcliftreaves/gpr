@@ -174,6 +174,21 @@ Luma/detail diagnostic status:
   losses reached tile `val_lpips=0.0817`, but full gate `b48ddb16e0c6af19`
   regressed versus `5e7d52579ffb2d3e`: worst LPIPS `0.3830`, worst MS-SSIM
   `0.9193`, and `Z8Z_0001` no longer passes. Do not promote it.
+- A bounded RGB residual refiner was trained on full-frame Lab SIPS + s07 gate
+  outputs to test whether post-assembly RGB freedom can fix the remaining
+  coupled detail/tone/color error. Artifact:
+  `models/rgb_detail_refiner_lab_sips_unsharp_s07_fullgate_v1.pt`
+  (`sha256=d452717e0cf8d8f2bec76cebcf6af7fcdf7f37115210f13fa37684a4923bfa94`),
+  sidecar `.pt.json`, temporary registry entry
+  `lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_rgb_detail_cnn_v1`.
+  Gate run `140cbad20b168c76` still FAILs PREVIEW: `Z8Z_5323` now passes
+  (`LPIPS=0.1436`, `MS-SSIM=0.9615`), but `Z8Z_6693` remains the blocker
+  (`LPIPS=0.2634`, `MS-SSIM=0.9351`, `dE=2.15`). Diagnostic output:
+  `tests/quality_gates/runs/dashboard/luma_detail_rgb_refiner_v1.html`.
+  Conclusion: a small local post-RGB residual can improve one high-detail image
+  but still cannot place the hard-tail texture; the next candidate must change
+  the upstream detail source/model capacity or use a larger-context teacher,
+  not another small local residual head.
 
 28-image PREVIEW holdout status:
 

@@ -306,6 +306,10 @@ def apply_cnn(
                 str(REPO / cnn["ckpt_detail"])
                 if cnn.get("ckpt_detail") else None
             ),
+            rgb_detail_cnn_path=(
+                str(REPO / cnn["ckpt_rgb_detail"])
+                if cnn.get("ckpt_rgb_detail") else None
+            ),
         )
         return ("rgb", rgb_u8)
     import torch
@@ -767,8 +771,25 @@ def cnn_hash_fingerprint(cnn: dict) -> str:
     if cnn.get("ckpt_sha256"):
         return str(cnn["ckpt_sha256"])
     parts = []
-    for key in ("ckpt_y_sha256", "ckpt_cb_sha256", "ckpt_cr_sha256", "ckpt_chroma_sha256"):
+    for key in (
+        "ckpt_y_sha256",
+        "ckpt_cb_sha256",
+        "ckpt_cr_sha256",
+        "ckpt_chroma_sha256",
+        "ckpt_detail_sha256",
+        "ckpt_rgb_detail_sha256",
+        "luma_detail_refiner_sha256",
+    ):
         if cnn.get(key):
+            parts.append(f"{key}={cnn[key]}")
+    for key in (
+        "chroma_baseline",
+        "luma_unsharp_amount",
+        "luma_unsharp_sigma",
+        "raw_norm",
+        "residual_scale",
+    ):
+        if key in cnn:
             parts.append(f"{key}={cnn[key]}")
     if parts:
         return "|".join(parts)

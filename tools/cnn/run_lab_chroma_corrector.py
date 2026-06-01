@@ -42,6 +42,21 @@ class LumaDetailCNN(torch.nn.Module):
         return self.net(x)
 
 
+class RGBDetailCNN(torch.nn.Module):
+    def __init__(self, width: int = 16):
+        super().__init__()
+        self.net = torch.nn.Sequential(
+            torch.nn.Conv2d(3, width, 3, padding=1),
+            torch.nn.SiLU(),
+            torch.nn.Conv2d(width, width, 3, padding=1),
+            torch.nn.SiLU(),
+            torch.nn.Conv2d(width, 3, 3, padding=1),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
 def _load_model(ckpt_path, device):
     ck = torch.load(ckpt_path, map_location=device, weights_only=False)
     variant = ck.get("variant")
@@ -177,6 +192,50 @@ def _apply_cnn_detail_luma(
     return np.clip((l_norm + residual) * 100.0, 0.0, 100.0).astype(np.float32)
 
 
+def _apply_cnn_detail_rgb(
+    rgb: np.ndarray,
+    ckpt_path: str | None,
+    device,
+    tile: int = 768,
+    overlap: int = 32,
+) -> np.ndarray:
+    if not ckpt_path:
+        return rgb
+    ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
+    width = int(ck.get("width", 16))
+    limit = float(ck.get("residual_limit", 0.06))
+    model = RGBDetailCNN(width=width)
+    model.load_state_dict(ck["state_dict"])
+    model.to(device).eval()
+
+    rgb_f = np.clip(rgb.astype(np.float32), 0.0, 1.0)
+    h, w, _ = rgb_f.shape
+    out = np.zeros((h, w, 3), dtype=np.float32)
+    weight = np.zeros((h, w, 1), dtype=np.float32)
+    step = max(1, tile - 2 * overlap)
+    with torch.no_grad():
+        for y0 in range(0, h, step):
+            for x0 in range(0, w, step):
+                y1 = min(h, y0 + tile)
+                x1 = min(w, x0 + tile)
+                yy0 = max(0, y0 - overlap)
+                xx0 = max(0, x0 - overlap)
+                yy1 = min(h, y1 + overlap)
+                xx1 = min(w, x1 + overlap)
+                patch = rgb_f[yy0:yy1, xx0:xx1]
+                x = torch.from_numpy(np.transpose(patch, (2, 0, 1))[None]).to(device)
+                residual = model(x).clamp(-limit, limit).squeeze(0).cpu().numpy()
+                residual = np.transpose(residual, (1, 2, 0))
+                cy0 = y0 - yy0
+                cx0 = x0 - xx0
+                cy1 = cy0 + (y1 - y0)
+                cx1 = cx0 + (x1 - x0)
+                out[y0:y1, x0:x1] += residual[cy0:cy1, cx0:cx1]
+                weight[y0:y1, x0:x1] += 1.0
+    residual = out / np.maximum(weight, 1.0)
+    return np.clip(rgb_f + residual, 0.0, 1.0).astype(np.float32)
+
+
 def run_lab_chroma_corrector(
     bayer_u16,
     y_ckpt,
@@ -188,6 +247,7 @@ def run_lab_chroma_corrector(
     luma_unsharp_sigma=2.0,
     luma_detail_refiner_path=None,
     luma_detail_cnn_path=None,
+    rgb_detail_cnn_path=None,
 ):
     """Return a full-resolution RGB uint8 image."""
     if device is None:
@@ -230,4 +290,6 @@ def run_lab_chroma_corrector(
     lab[..., 1] = ab[0]
     lab[..., 2] = ab[1]
     rgb = color.lab2rgb(lab)
+    if rgb_detail_cnn_path:
+        rgb = _apply_cnn_detail_rgb(rgb, str(Path(rgb_detail_cnn_path)), device)
     return np.clip(rgb * 255.0, 0, 255).astype(np.uint8)

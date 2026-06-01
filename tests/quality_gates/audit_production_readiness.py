@@ -72,12 +72,14 @@ def latest_pass_for_pipeline(pipeline: str) -> dict | None:
     return sorted(matches)[-1][2]
 
 
-def latest_run_for_pipeline(pipeline: str) -> dict | None:
+def latest_run_for_pipeline(pipeline: str, ship_gate_only: bool = False) -> dict | None:
     matches = []
     for path in tracked_run_jsons():
         try:
             run = json.loads(path.read_text())
         except Exception:
+            continue
+        if ship_gate_only and run.get("is_ship_gate") is False:
             continue
         if run.get("pipeline") == pipeline:
             matches.append((run.get("finished_at") or "", path.parent.name, run))
@@ -121,7 +123,7 @@ def check_pipeline(area: str, name: str, pipeline: str) -> Check:
 
 
 def check_preview_color_guard(pipeline: str) -> Check:
-    run = latest_run_for_pipeline(pipeline)
+    run = latest_run_for_pipeline(pipeline, ship_gate_only=True)
     if not run:
         return Check("preview_color", "Lab Chroma SIPS dE guardrail", "FAIL", "no committed run")
     bad = []
