@@ -31,6 +31,8 @@ PRODUCTION_RUNS = {
 
 CHROMA_RUNS = {
     "YCbCr decomp": "03045a1c44ffa38d",
+    "Lab absolute ep5": "c9bbe8390032412a",
+    "Lab residual ab8": "0c8974e88d94e710",
     "UPRESABLE BIBO2x": "8864c12ec0b6ce14",
     "ml2_dec2 no CNN": "44d95b0985ac01c4",
     "legacy GPR q3": "b44fa841c05c9bff",
