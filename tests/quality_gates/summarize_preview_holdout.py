@@ -80,6 +80,29 @@ def fmt(val: object, digits: int = 4) -> str:
     return f"{float(val):.{digits}f}"
 
 
+def repo_rel(value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    try:
+        path = Path(value)
+    except TypeError:
+        return value
+    if not path.is_absolute():
+        return value
+    try:
+        return str(path.relative_to(REPO))
+    except ValueError:
+        return value
+
+
+def normalize_paths(obj: object) -> object:
+    if isinstance(obj, dict):
+        return {key: normalize_paths(value) for key, value in obj.items()}
+    if isinstance(obj, list):
+        return [normalize_paths(value) for value in obj]
+    return repo_rel(obj)
+
+
 def summarize_group(rows: list[dict], thresholds: dict) -> dict:
     out: dict[str, object] = {
         "count": len(rows),
@@ -144,7 +167,7 @@ def summarize_run(run_hash: str, run_path: Path, run: dict, manifest: dict,
     failures = [r for r in worst_first if r["fails"]]
     return {
         "run_hash": run_hash,
-        "run_path": str(run_path),
+        "run_path": repo_rel(str(run_path.resolve())),
         "pipeline": run.get("pipeline"),
         "ship_class": run.get("ship_class"),
         "run_verdict": run.get("verdict"),
@@ -153,8 +176,8 @@ def summarize_run(run_hash: str, run_path: Path, run: dict, manifest: dict,
         "image_count": len(rows),
         "missing_manifest_images": missing,
         "summary": summarize_group(rows, thresholds),
-        "worst_first": worst_first,
-        "failures": failures,
+        "worst_first": normalize_paths(worst_first),
+        "failures": normalize_paths(failures),
         "strata": {
             stratum: summarize_group(group_rows, thresholds)
             for stratum, group_rows in sorted(strata_rows.items())
@@ -294,7 +317,7 @@ def main() -> int:
         summaries.append(summarize_run(run_hash, run_path, run, manifest, thresholds))
 
     result = {
-        "manifest": str(args.manifest.resolve()),
+        "manifest": repo_rel(str(args.manifest.resolve())),
         "ship_class": args.ship_class,
         "image_count": len(manifest["images"]),
         "runs": summaries,

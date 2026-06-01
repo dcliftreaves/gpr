@@ -61,8 +61,9 @@ Updated: 2026-06-01
 
 Local production readiness is green for STILL, VIDEO_FREEZE, baseline PREVIEW,
 UPRESABLE, `.gvid`, `.gpraw.mov`, and Pi 5 / Mission 1 scripting. The only
-readiness failure is `preview_chroma`: no chroma-corrected PREVIEW pipeline has
-a committed PASS receipt.
+readiness failure is `preview_detail`: no detail-preserving embedded PREVIEW
+pipeline has a committed full-gate PASS receipt while preserving the solved
+Lab/SIPS color direction.
 
 Chroma root-cause status:
 
@@ -151,7 +152,9 @@ Production audit status:
   `50MP_DEC2` must clear `24 fps`.
 - `tools/test/test_sustained_playback.sh` now defaults to production playback
   thresholds: `>=24 fps` with and without CNN.
-- Current audit still fails only on `preview_chroma`; all platform/performance
+- Strict ship audit is green as of 2026-06-01 after refreshing the ship STILL
+  and VIDEO_FREEZE receipts/claims against current `gates.json`.
+- Current audit still fails only on `preview_detail`; all platform/performance
   receipt rows pass locally.
 
 Luma/detail diagnostic status:
@@ -172,10 +175,24 @@ Luma/detail diagnostic status:
   regressed versus `5e7d52579ffb2d3e`: worst LPIPS `0.3830`, worst MS-SSIM
   `0.9193`, and `Z8Z_0001` no longer passes. Do not promote it.
 
-Strict ship audit is still expected to fail for older ship receipts whose
-`gates_sha` predates the current `gates.json`, and for ship roles that have not
-been logged through `run_gate.py --claim`. That is intentional: default audit
-protects CI; strict audit is the production release checklist.
+28-image PREVIEW holdout status:
+
+- The informational holdout is not a ship gate, but it now provides breadth
+  evidence for the remaining embedded PREVIEW blocker.
+- Baseline Lab Chroma SIPS holdout run `7427b659327c3c6c`: `24/28` pass,
+  worst LPIPS `0.3563`, p95 LPIPS `0.1993`.
+- Unsharp `s05` holdout run `737bf1dae511fadb`: `25/28` pass, worst LPIPS
+  `0.2491`, p95 LPIPS `0.1634`.
+- Unsharp `s07` holdout run `8857486b2033384e`: `25/28` pass, worst LPIPS
+  `0.2247`, p95 LPIPS `0.1590`.
+- Unsharp `s10` holdout run `ffe11bee6c8315fb`: `25/28` pass, worst LPIPS
+  `0.2016`, p95 LPIPS `0.1579`.
+- No-CNN embedded holdout run `bd3bebf9ff14432f`: `20/28` pass, worst LPIPS
+  `0.4471`, p95 LPIPS `0.4131`.
+- Conclusion: global unsharp improves LPIPS on some images but does not repair
+  structural MS-SSIM/Y/dE on the hard tail, and no-CNN luma is worse on the
+  diverse set. The next candidate must be full-context/detail-placement aware;
+  more global sharpening or simple no-CNN luma blending is a closed branch.
 
 ## Next burn-down items
 
@@ -184,7 +201,7 @@ protects CI; strict audit is the production release checklist.
    detail-placement targets.
 2. Gate any candidate only through a temporary registry entry; promote
    it only after full gate PASS plus worst-diff inspection.
-3. Re-run `audit_production_readiness.py`; `preview_chroma` must change from
+3. Re-run `audit_production_readiness.py`; `preview_detail` must change from
    FAIL to PASS or remain the only documented blocker.
 4. For release, run `audit_ship_pipelines.py --strict`, refresh stale receipts
    or claims, and record accepted outputs in `docs/claims_log.md`.
