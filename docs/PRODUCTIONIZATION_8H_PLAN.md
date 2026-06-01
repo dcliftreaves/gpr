@@ -203,6 +203,20 @@ Luma/detail diagnostic status:
   render directly from the captured Bayer with a larger teacher/context, or a
   capture/codec mode that preserves more of the hard-tail texture before
   demosaic/render.
+- Full-gate L/detail donor oracle completed with gate-equivalent metrics:
+  `tests/quality_gates/probe_preview_detail_oracle.py`,
+  `tests/quality_gates/runs/dashboard/preview_detail_oracle.json`, and
+  `tests/quality_gates/runs/dashboard/preview_detail_oracle.html`.
+  Lab/SIPS a/b chroma was fixed while Lab L came from candidate donors. On
+  `Z8Z_6693`, existing donors all fail: Lab SIPS `LPIPS=0.3096`, s07
+  `0.2237`, UPRESABLE L `0.3393`, BIDO w24 L `0.3356`, BIBO cross L
+  `0.2480`. REF L oracle passes all images and gives `Z8Z_6693 LPIPS=0.0145`,
+  `MS-SSIM=0.9967`, `dE=1.16`. This proves the solved chroma path can pass
+  if the L/detail target is correct, but the current UPRESABLE/BIDO/BIBO
+  detail donors are not suitable PREVIEW teachers for the hard-tail image.
+  Next candidate should train a direct larger-context Bayer-to-render/detail
+  model against REF/full-frame teacher data instead of distilling from the
+  existing UPRESABLE or BIDO rendered outputs.
 
 28-image PREVIEW holdout status:
 

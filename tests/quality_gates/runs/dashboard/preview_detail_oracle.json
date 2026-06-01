@@ -1,0 +1,218 @@
+[
+  {
+    "image_id": "Z8Z_0001",
+    "label": "lab_sips",
+    "y_psnr": 30.35225990367156,
+    "ms_ssim": 0.9626876711845398,
+    "lpips": 0.11585988104343414,
+    "dE2000_mean": 2.9677257537841797,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0001",
+    "label": "s07",
+    "y_psnr": 30.127014759481657,
+    "ms_ssim": 0.9635882377624512,
+    "lpips": 0.10277228057384491,
+    "dE2000_mean": 3.0293664932250977,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_0001",
+    "label": "upresable_L",
+    "y_psnr": 33.32939387420706,
+    "ms_ssim": 0.9717617630958557,
+    "lpips": 0.12408266961574554,
+    "dE2000_mean": 2.6185123920440674,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0001",
+    "label": "bido_w24_L",
+    "y_psnr": 29.362688360732314,
+    "ms_ssim": 0.9563990235328674,
+    "lpips": 0.13453328609466553,
+    "dE2000_mean": 3.210603713989258,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_0001",
+    "label": "bibo_cross_L",
+    "y_psnr": 25.633281295388773,
+    "ms_ssim": 0.8956944346427917,
+    "lpips": 0.23628871142864227,
+    "dE2000_mean": 3.498117208480835,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_0001",
+    "label": "ref_L_oracle",
+    "y_psnr": 52.52806437457997,
+    "ms_ssim": 0.9834802150726318,
+    "lpips": 0.04022521525621414,
+    "dE2000_mean": 2.2338221073150635,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0067",
+    "label": "lab_sips",
+    "y_psnr": 41.01685680177977,
+    "ms_ssim": 0.9887717366218567,
+    "lpips": 0.049915678799152374,
+    "dE2000_mean": 1.013885736465454,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0067",
+    "label": "s07",
+    "y_psnr": 40.13345665654888,
+    "ms_ssim": 0.9889516830444336,
+    "lpips": 0.03395302593708038,
+    "dE2000_mean": 1.1133091449737549,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0067",
+    "label": "upresable_L",
+    "y_psnr": 44.62009731844796,
+    "ms_ssim": 0.992958128452301,
+    "lpips": 0.058127261698246,
+    "dE2000_mean": 0.8836677074432373,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0067",
+    "label": "bido_w24_L",
+    "y_psnr": 42.03904528069087,
+    "ms_ssim": 0.9881135821342468,
+    "lpips": 0.05498277768492699,
+    "dE2000_mean": 0.923256516456604,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0067",
+    "label": "bibo_cross_L",
+    "y_psnr": 39.23079731383437,
+    "ms_ssim": 0.9887078404426575,
+    "lpips": 0.0620335191488266,
+    "dE2000_mean": 0.9289790987968445,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0067",
+    "label": "ref_L_oracle",
+    "y_psnr": 52.77872960541906,
+    "ms_ssim": 0.9952390789985657,
+    "lpips": 0.01306423731148243,
+    "dE2000_mean": 0.8434444069862366,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_5323",
+    "label": "lab_sips",
+    "y_psnr": 35.06369429654414,
+    "ms_ssim": 0.9594228863716125,
+    "lpips": 0.18063142895698547,
+    "dE2000_mean": 1.5837196111679077,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_5323",
+    "label": "s07",
+    "y_psnr": 34.366782587522295,
+    "ms_ssim": 0.9562749862670898,
+    "lpips": 0.1266767531633377,
+    "dE2000_mean": 1.6814721822738647,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_5323",
+    "label": "upresable_L",
+    "y_psnr": 36.535950685688206,
+    "ms_ssim": 0.9662609696388245,
+    "lpips": 0.20865027606487274,
+    "dE2000_mean": 1.4604257345199585,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_5323",
+    "label": "bido_w24_L",
+    "y_psnr": 34.76811002726149,
+    "ms_ssim": 0.9567568898200989,
+    "lpips": 0.19009053707122803,
+    "dE2000_mean": 1.6049364805221558,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_5323",
+    "label": "bibo_cross_L",
+    "y_psnr": 33.26221342438909,
+    "ms_ssim": 0.9253458976745605,
+    "lpips": 0.21788692474365234,
+    "dE2000_mean": 1.7579994201660156,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_5323",
+    "label": "ref_L_oracle",
+    "y_psnr": 52.406517162318195,
+    "ms_ssim": 0.9957658648490906,
+    "lpips": 0.015444370917975903,
+    "dE2000_mean": 0.9824952483177185,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_6693",
+    "label": "lab_sips",
+    "y_psnr": 32.73585847710636,
+    "ms_ssim": 0.9347602725028992,
+    "lpips": 0.3095981478691101,
+    "dE2000_mean": 2.0897974967956543,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_6693",
+    "label": "s07",
+    "y_psnr": 31.927055853157324,
+    "ms_ssim": 0.9295654296875,
+    "lpips": 0.22366946935653687,
+    "dE2000_mean": 2.235783576965332,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_6693",
+    "label": "upresable_L",
+    "y_psnr": 33.75273517304537,
+    "ms_ssim": 0.9430298805236816,
+    "lpips": 0.339286744594574,
+    "dE2000_mean": 1.9507873058319092,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_6693",
+    "label": "bido_w24_L",
+    "y_psnr": 32.69688869743176,
+    "ms_ssim": 0.9331438541412354,
+    "lpips": 0.3355954885482788,
+    "dE2000_mean": 2.096593141555786,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_6693",
+    "label": "bibo_cross_L",
+    "y_psnr": 31.583751854870783,
+    "ms_ssim": 0.8955590724945068,
+    "lpips": 0.2480144500732422,
+    "dE2000_mean": 2.2657506465911865,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_6693",
+    "label": "ref_L_oracle",
+    "y_psnr": 52.39966052955181,
+    "ms_ssim": 0.9966568350791931,
+    "lpips": 0.014467582106590271,
+    "dE2000_mean": 1.1566630601882935,
+    "preview_pass": true
+  }
+]
