@@ -217,6 +217,31 @@ Luma/detail diagnostic status:
   Next candidate should train a direct larger-context Bayer-to-render/detail
   model against REF/full-frame teacher data instead of distilling from the
   existing UPRESABLE or BIDO rendered outputs.
+- Hard-tail direct BIDO diagnostic completed. Added
+  `tools/cnn/build_gate_hardtail_dmsr_tiles.py` and built
+  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail.npz`
+  (`160` tiles, four gate images, gate REF RGB targets). A width-32 BIDO model
+  was warm-started from `BayInDemosaicOut_4x_AAon_w32_ANE_exposure_aug.pt` and
+  fine-tuned on `Z8Z_0001`, `Z8Z_5323`, and `Z8Z_6693` with `Z8Z_0067` as the
+  validation guardrail. Artifacts:
+  `models/BayInDemosaicOut_4x_AAon_w32_ANE_hardtail_best.pt`
+  (`sha256=cd500a5e02c6811aed43a241f40f8ac5e86ccba8b04e2dc059eaea67b02123f2`,
+  epoch 3) and `models/BayInDemosaicOut_4x_AAon_w32_ANE_hardtail_last.pt`
+  (`sha256=ced74845dd30f0b593ffa75f0097e568996a563c1736d460f08ce804ea7f3691`,
+  epoch 40). Both registered as temporary PREVIEW candidates. Gate run
+  `e2eb43a3b76be729` (best) fails all four images, worst `Z8Z_6693 LPIPS=0.4717`,
+  `MS-SSIM=0.9137`, `dE=4.67`; run `c4ed3bfb91e572b3` (last) also fails all
+  four images, worst `Z8Z_6693 LPIPS=0.4556`, `MS-SSIM=0.9154`, `dE=4.31`.
+  Lab-L isolation dashboard
+  `tests/quality_gates/runs/dashboard/preview_detail_oracle_hardtail.html`
+  shows the hard-tail BIDO L donors are worse than Lab/SIPS L on the actual
+  blockers when solved Lab/SIPS chroma is held fixed (`Z8Z_6693`: Lab/SIPS
+  `LPIPS=0.3096`, hardtail-best L `0.4146`, hardtail-last L `0.3964`, REF-L
+  oracle `0.0145`). Conclusion: sparse hard-tail direct RGB fine-tuning is a
+  closed branch. The next PREVIEW attempt needs denser/full-image target
+  coverage and likely a stronger/larger-context detail objective or model; the
+  current failure is narrowed to dataset coverage plus architecture/loss, not
+  chroma.
 
 28-image PREVIEW holdout status:
 
@@ -239,9 +264,10 @@ Luma/detail diagnostic status:
 
 ## Next burn-down items
 
-1. Prototype the next PREVIEW detail path against full-gate crops/full images,
-   not tile-domain validation alone. Use UPRESABLE or a larger teacher for
-   detail-placement targets.
+1. Build a denser full-gate/full-image detail dataset for the hard tail
+   (at least stride-128, preferably overlap/full-frame context) and train a
+   stronger detail/L candidate that preserves Lab/SIPS chroma. Sparse stride-256
+   hard-tail BIDO is now disproven.
 2. Gate any candidate only through a temporary registry entry; promote
    it only after full gate PASS plus worst-diff inspection.
 3. Re-run `audit_production_readiness.py`; `preview_detail` must change from

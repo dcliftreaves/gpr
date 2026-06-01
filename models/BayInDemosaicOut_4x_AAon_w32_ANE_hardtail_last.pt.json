@@ -1,0 +1,33 @@
+{
+  "artifact": "models/BayInDemosaicOut_4x_AAon_w32_ANE_hardtail_last.pt",
+  "sha256": "ced74845dd30f0b593ffa75f0097e568996a563c1736d460f08ce804ea7f3691",
+  "kind": "demosaic_sr",
+  "variant": "F_ane_dm_sr_w32",
+  "source_checkpoint": {
+    "path": "models/BayInDemosaicOut_4x_AAon_w32_ANE_exposure_aug.pt",
+    "sha256": "9dff3b3b14dc5ed98224f3ab7215b131cbc94b6c3aef09ae28a5086d9e8d5a46"
+  },
+  "dataset": {
+    "path": "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail.npz",
+    "sha256": "a02ddf45604d300deed3e28a2dc1ce7ab042bc27ed27e7d142c07de670c560ea",
+    "tiles": 160,
+    "train_images": ["Z8Z_0001", "Z8Z_5323", "Z8Z_6693"],
+    "validation_images": ["Z8Z_0067"]
+  },
+  "training_command": "SUPERRES_NPZ=/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail.npz VAL_SRC_NAMES=Z8Z_0067 CKPT_DIR=models PYTORCH_ENABLE_MPS_FALLBACK=1 python3 tools/cnn/train_demosaic_sr.py --variant F_ane_dm_sr_w32 --epochs 60 --batch 2 --lr 1e-4 --patience 20 --init-ckpt models/BayInDemosaicOut_4x_AAon_w32_ANE_exposure_aug.pt --lpips-weight 0.05 --lpips-warmup-epochs 5 --ckpt-name BayInDemosaicOut_4x_AAon_w32_ANE_hardtail_best.pt --save-last --save-last-name BayInDemosaicOut_4x_AAon_w32_ANE_hardtail_last.pt",
+  "saved_epoch": 40,
+  "save_policy": "last_epoch_at_early_stop",
+  "validation": {
+    "val_lpips": 0.16988087967038154,
+    "val_psnr_model": 25.364164352416992,
+    "val_psnr_base": 17.19821925163269
+  },
+  "gate": {
+    "pipeline": "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_w32_hardtail_last+demosaic=sips_via_gpr_tools",
+    "run_hash": "c4ed3bfb91e572b3",
+    "verdict": "FAIL",
+    "worst_image": "Z8Z_6693",
+    "worst_lpips": 0.45559003949165344
+  },
+  "conclusion": "Failed PREVIEW and regressed the Z8Z_0067 guardrail; use as evidence that more sparse hard-tail fitting does not recover production detail placement."
+}

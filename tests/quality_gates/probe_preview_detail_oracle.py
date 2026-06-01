@@ -131,12 +131,24 @@ def build_rows(args: argparse.Namespace) -> list[dict]:
     rows = []
     png_dir = DASH / "preview_detail_oracle"
     png_dir.mkdir(parents=True, exist_ok=True)
-    donors = [
+    extra_donors = []
+    for item in args.extra_donor:
+        if "=" not in item:
+            raise ValueError(f"--extra-donor must be label=run_hash, got {item!r}")
+        label, run_hash = item.split("=", 1)
+        extra_donors.append((label.strip(), run_hash.strip()))
+    default_donors = [
         ("lab_sips", args.lab_run),
         ("s07", args.s07_run),
         ("upresable_L", args.upres_run),
         ("bido_w24_L", args.bido_run),
         ("bibo_cross_L", args.bibo_run),
+    ]
+    if args.skip_default_donors:
+        default_donors = [("lab_sips", args.lab_run)]
+    donors = [
+        *default_donors,
+        *extra_donors,
         ("ref_L_oracle", None),
     ]
     for image_id in args.images:
@@ -158,7 +170,7 @@ def build_rows(args: argparse.Namespace) -> list[dict]:
             }
             if args.write_images:
                 row["png"] = f"preview_detail_oracle/{out_name}"
-            row["preview_pass"] = pass_preview(row)
+            row["preview_pass"] = bool(pass_preview(row))
             rows.append(row)
     return rows
 
@@ -229,6 +241,10 @@ def main() -> int:
     ap.add_argument("--upres-run", default="8864c12ec0b6ce14")
     ap.add_argument("--bido-run", default="732da314adc90553")
     ap.add_argument("--bibo-run", default="73aae2672bdb19ab")
+    ap.add_argument("--extra-donor", action="append", default=[],
+                    help="Additional Lab-L donor as label=run_hash. May be repeated.")
+    ap.add_argument("--skip-default-donors", action="store_true",
+                    help="Only score lab_sips, --extra-donor entries, and ref_L_oracle.")
     ap.add_argument("--images", nargs="+", default=list(DEFAULT_IMAGES))
     ap.add_argument("--target-width", type=int, default=3840)
     ap.add_argument("--write-images", action="store_true")

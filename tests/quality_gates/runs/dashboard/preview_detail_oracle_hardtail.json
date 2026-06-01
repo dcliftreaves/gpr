@@ -1,0 +1,146 @@
+[
+  {
+    "image_id": "Z8Z_0001",
+    "label": "lab_sips",
+    "y_psnr": 30.35225990367156,
+    "ms_ssim": 0.9626876711845398,
+    "lpips": 0.11585988104343414,
+    "dE2000_mean": 2.9677257537841797,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0001",
+    "label": "hardtail_best_L",
+    "y_psnr": 27.28202970490193,
+    "ms_ssim": 0.9362180233001709,
+    "lpips": 0.19235070049762726,
+    "dE2000_mean": 3.9047164916992188,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_0001",
+    "label": "hardtail_last_L",
+    "y_psnr": 26.503633456723804,
+    "ms_ssim": 0.9108592867851257,
+    "lpips": 0.20605918765068054,
+    "dE2000_mean": 3.876708984375,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_0001",
+    "label": "ref_L_oracle",
+    "y_psnr": 52.52806437457997,
+    "ms_ssim": 0.9834802150726318,
+    "lpips": 0.04022521525621414,
+    "dE2000_mean": 2.2338221073150635,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0067",
+    "label": "lab_sips",
+    "y_psnr": 41.01685680177977,
+    "ms_ssim": 0.9887717366218567,
+    "lpips": 0.049915678799152374,
+    "dE2000_mean": 1.013885736465454,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_0067",
+    "label": "hardtail_best_L",
+    "y_psnr": 27.81722462892056,
+    "ms_ssim": 0.9722151160240173,
+    "lpips": 0.07933705300092697,
+    "dE2000_mean": 3.1646933555603027,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_0067",
+    "label": "hardtail_last_L",
+    "y_psnr": 26.79121723195234,
+    "ms_ssim": 0.9500026702880859,
+    "lpips": 0.09731364250183105,
+    "dE2000_mean": 2.989655017852783,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_0067",
+    "label": "ref_L_oracle",
+    "y_psnr": 52.77872960541906,
+    "ms_ssim": 0.9952390789985657,
+    "lpips": 0.01306423731148243,
+    "dE2000_mean": 0.8434444069862366,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_5323",
+    "label": "lab_sips",
+    "y_psnr": 35.06369429654414,
+    "ms_ssim": 0.9594228863716125,
+    "lpips": 0.18063142895698547,
+    "dE2000_mean": 1.5837196111679077,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_5323",
+    "label": "hardtail_best_L",
+    "y_psnr": 33.21544404121545,
+    "ms_ssim": 0.9416514039039612,
+    "lpips": 0.25870636105537415,
+    "dE2000_mean": 1.8182854652404785,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_5323",
+    "label": "hardtail_last_L",
+    "y_psnr": 30.306806603587408,
+    "ms_ssim": 0.9303948283195496,
+    "lpips": 0.25187021493911743,
+    "dE2000_mean": 2.080937147140503,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_5323",
+    "label": "ref_L_oracle",
+    "y_psnr": 52.406517162318195,
+    "ms_ssim": 0.9957658648490906,
+    "lpips": 0.015444370917975903,
+    "dE2000_mean": 0.9824952483177185,
+    "preview_pass": true
+  },
+  {
+    "image_id": "Z8Z_6693",
+    "label": "lab_sips",
+    "y_psnr": 32.73585847710636,
+    "ms_ssim": 0.9347602725028992,
+    "lpips": 0.3095981478691101,
+    "dE2000_mean": 2.0897974967956543,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_6693",
+    "label": "hardtail_best_L",
+    "y_psnr": 29.636938524435795,
+    "ms_ssim": 0.9168057441711426,
+    "lpips": 0.4146428406238556,
+    "dE2000_mean": 2.714465379714966,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_6693",
+    "label": "hardtail_last_L",
+    "y_psnr": 30.461864737754297,
+    "ms_ssim": 0.9171755909919739,
+    "lpips": 0.3963801860809326,
+    "dE2000_mean": 2.480867862701416,
+    "preview_pass": false
+  },
+  {
+    "image_id": "Z8Z_6693",
+    "label": "ref_L_oracle",
+    "y_psnr": 52.39966052955181,
+    "ms_ssim": 0.9966568350791931,
+    "lpips": 0.014467582106590271,
+    "dE2000_mean": 1.1566630601882935,
+    "preview_pass": true
+  }
+]

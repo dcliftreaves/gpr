@@ -351,6 +351,7 @@ def train(args):
     best_gain = -1e9; best_after = -1e9; best_lpips = 1e9; best_epoch = -1
     epochs_since_best = 0
     ckpt_path = os.path.join(CKPT_DIR, args.ckpt_name)
+    last_ckpt_path = os.path.join(CKPT_DIR, args.save_last_name or args.ckpt_name)
     pb, pa, vlp, vlp_per_src = evaluate()
     # When LPIPS net is loaded, track best by LOWER val-LPIPS (perceptual focus).
     # Without LPIPS net, track best by val-PSNR gain as before.
@@ -456,6 +457,20 @@ def train(args):
         if epochs_since_best >= args.patience and ep + 1 >= 40:
             print(f"  Early stop: no improvement in {args.patience} epochs", flush=True)
             break
+    if args.save_last:
+        torch.save({
+            "backbone_state": model.state_dict(),
+            "variant": args.variant,
+            "width": VARIANTS[args.variant]["width"], "depth": 3,
+            "raw_norm": RAW_NORM, "residual_scale": 0.0,
+            "kind": "demosaic_sr", "epoch": ep + 1,
+            "val_psnr_base": pb, "val_psnr_model": pa,
+            "val_lpips": vlp,
+            "val_lpips_per_src": vlp_per_src,
+            "params": count_params(model),
+            "save_policy": "last",
+        }, last_ckpt_path)
+        print(f"  Last checkpoint: {last_ckpt_path}")
     if use_lpips_metric:
         print(f"\n  Best val LPIPS: {best_lpips:.4f} at epoch {best_epoch}")
         print(f"  (val PSNR at best: {best_after:.3f} dB, gain {best_gain:+.3f} dB)")
@@ -478,6 +493,12 @@ def main():
     ap.add_argument("--subsample", type=int, default=1)
     ap.add_argument("--ckpt-name", type=str,
                     default="BayInDemosaicOut_4x_AAon_w16_ANE.pt")
+    ap.add_argument("--save-last", action="store_true",
+                    help="Also write the final epoch checkpoint. Useful when "
+                         "validation is a guardrail and the candidate artifact "
+                         "must represent the completed fine-tune.")
+    ap.add_argument("--save-last-name", type=str, default=None,
+                    help="Filename for --save-last. Defaults to --ckpt-name.")
     # Phase A fine-tune (BIDO_DISTILLATION_PLAN.md):
     ap.add_argument("--init-ckpt", type=str, default=None,
                     help="Path to existing .pt to warm-start from (fine-tune).")
