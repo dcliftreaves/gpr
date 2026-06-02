@@ -1021,6 +1021,18 @@
       "residual_scale": 0.0,
       "chroma_baseline": "demosaic_sips"
     },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_z6693_select_best": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Warm-started from the best mosaic-input low-pass-x2 Y model, then fine-tuned with high-pass/gradient loss while saving by Z8Z_6693 tile LPIPS instead of the smooth Z8Z_0067 guardrail. Tests whether the previous full-gate miss was caused by checkpoint selection on the wrong source image.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_mosaic_w32_y_hardtail_s128_lx2_z6693_select_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "2a1c9566c3d4baf2540cf4f2ff74c62bb6888e58ddb9896b2575d3b4ae6870bf",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_rgb_detail_context_v1": {
       "$doc": "Temporary PREVIEW detail-placement candidate. Adds a bounded larger-context RGB residual CNN trained on full-gate REF/PIPELINE pairs from the best mosaic-input Y + Lab/SIPS chroma candidate. Tests whether full-frame supervised residual detail placement can close the remaining Z8Z_6693 LPIPS/MS-SSIM gap without regressing dE.",
       "cnn_arch_variant": "lab_chroma_corrector",
@@ -1974,6 +1986,14 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-y-mosaic-w32-hardtail-s128-lx2",
       "$doc": "Temporary candidate for the detail-placement stop criteria. Width-32 Y checkpoint trained against 2x bandwidth-limited reference Lab L from single-channel decoded Bayer mosaic input plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_z6693_select_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_z6693_select_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-mosaic-z6693-selected",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Best mosaic-input Y checkpoint fine-tuned and selected by Z8Z_6693 tile LPIPS plus active Lab/SIPS chroma baseline."
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_rgb_detail_context_v1+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

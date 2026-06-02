@@ -24,6 +24,7 @@ target:
 | baseline `sl_q3+cnn=none` | `5e7b79b5678fdf62` | PASS | `Z8Z_6693` | 0.1003 | 0.9580 | 33.34 | 1.71 |
 | packed planes, low-pass x2 target | `974222c6a6d490e5` | FAIL | `Z8Z_6693` | 0.2566 | 0.9354 | 31.51 | 2.33 |
 | mosaic, low-pass x2 target, best | `46bf8050492744e2` | FAIL | `Z8Z_6693` | 0.1760 | 0.9419 | 30.71 | 2.51 |
+| mosaic, low-pass x2 target, Z8Z_6693-selected | `ebcfdf3a6ff3ba23` | FAIL | `Z8Z_6693` | 0.1638 | 0.9442 | 31.06 | 2.45 |
 | mosaic + full-gate RGB residual context v1 | `ac606b54716374b2` | FAIL | `Z8Z_6693` | 0.1775 | 0.9404 | 30.64 | 2.52 |
 | mosaic + full-gate Lab-L residual v1 | `5d3cf75bf1b1f44b` | FAIL | `Z8Z_6693` | 0.1532 | 0.9423 | 33.21 | 2.01 |
 | mosaic + dilated Lab-L residual v2 | `9b1d4c8e7320de40` | FAIL | `Z8Z_6693` | 0.1910 | 0.9436 | 33.54 | 1.97 |
@@ -61,6 +62,11 @@ training of this local tiled architecture are not sufficient.
 
 The full-gate residual refiners narrow the failure further:
 
+- Selecting the primary mosaic-Y checkpoint by `Z8Z_6693` tile LPIPS instead
+  of `Z8Z_0067` validation LPIPS improves the blocker from LPIPS 0.1760 to
+  0.1638 and MS-SSIM from 0.9419 to 0.9442, with dE still safe. That confirms
+  selection pressure matters, but it is not enough to pass the full-image gate
+  and it does not beat the simpler Lab-L residual near-miss.
 - The RGB residual context refiner did not improve the hard-tail blocker and
   regressed the color guardrail on `Z8Z_0001` (`dE2000_mean=3.40`).
 - The Lab-L residual v1 is the best residual result so far. It improves
@@ -74,7 +80,9 @@ solution. It can restore some local luma energy, but it does not place
 full-image structure well enough to pass MS-SSIM before LPIPS regresses. The
 remaining blocker is now specifically the detail-placement target/model path,
 not chroma, not lack of full-gate residual training data, and not a simple
-increase in residual context or strength.
+increase in residual context or strength. It is also not only checkpoint
+selection on the wrong smooth validation image: Z8Z_6693-selected primary-Y
+training helps but still misses both LPIPS and MS-SSIM thresholds.
 
 ## Next Candidate
 
@@ -86,7 +94,8 @@ candidate should change one of:
 - target teacher: distill from the passing `ref_L_lowpass_x2` oracle or a
   larger full-gate teacher directly, not just tile-level RGB targets;
 - selection metric: checkpoint selection should include the mixed-contrast
-  blocker, not only `Z8Z_0067`.
+  blocker, not only `Z8Z_0067`; this has now been tested and should be paired
+  with a stronger target/model rather than repeated alone.
 - architecture: move detail placement into the primary Y/upres model or a
   stronger teacher/student with explicit full-image context; bounded residual
   postprocessing has now failed both RGB and Lab-L variants.

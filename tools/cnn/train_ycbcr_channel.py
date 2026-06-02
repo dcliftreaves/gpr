@@ -121,6 +121,7 @@ def load_data(npz_path, val_src_names, subsample_rate=1, input_mode="planes4x"):
         raise RuntimeError("NPZ is missing tgt_rgb — this trainer needs RGB targets.")
     out["tgt_rgb"] = np.asarray(npz["tgt_rgb"][keep_mask])
     out["src"] = src[keep_mask]
+    out["src_lookup_names"] = lookup
     out["_val_src_ids"] = val_src_ids
     print(f"  loaded in {time.time() - t0:.1f}s", flush=True)
     return out
@@ -226,12 +227,36 @@ def train(args):
     val_idx = [i for i in range(N) if src[i] in val_src]
     print(f"  train tiles: {len(train_idx)}  val tiles: {len(val_idx)}", flush=True)
 
+    select_idx = []
+    select_src_names = [n.strip() for n in args.select_src_names.split(",") if n.strip()]
+    select_src_ids = []
+    if select_src_names:
+        names = [s.decode() if isinstance(s, bytes) else s
+                 for s in np.asarray(d["src_lookup_names"]).tolist()]
+        for sname in select_src_names:
+            matches = [i for i, n in enumerate(names) if n == sname]
+            if not matches:
+                raise RuntimeError(f"--select-src-names '{sname}' not in NPZ; got {names[:5]}")
+            select_src_ids.append(matches[0])
+        select_set = set(select_src_ids)
+        select_idx = [i for i in range(N) if src[i] in select_set]
+        print(
+            f"  selection src ids: {dict(zip(select_src_names, select_src_ids))} "
+            f"tiles={len(select_idx)} metric={args.select_metric}",
+            flush=True,
+        )
+
     tr = DataLoader(TileDS(d, train_idx, channel_idx, augment=True,
                            input_mode=args.input_mode),
                     batch_size=args.batch, shuffle=True, num_workers=0)
     va = DataLoader(TileDS(d, val_idx, channel_idx, augment=False,
                            input_mode=args.input_mode),
                     batch_size=args.batch, shuffle=False, num_workers=0)
+    sel = None
+    if select_idx:
+        sel = DataLoader(TileDS(d, select_idx, channel_idx, augment=False,
+                                input_mode=args.input_mode),
+                         batch_size=args.batch, shuffle=False, num_workers=0)
 
     model = build_variant(args.variant).to(DEVICE)
     print(f"  Variant: {args.variant}", flush=True)
@@ -256,14 +281,14 @@ def train(args):
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
 
-    def evaluate():
+    def evaluate_loader(loader):
         model.eval()
         tot_l1 = 0.0
         tot_psnr = 0.0
         tot_lp = 0.0
         n = 0
         with torch.no_grad():
-            for inp, tgt in va:
+            for inp, tgt in loader:
                 inp = inp.to(DEVICE)
                 tgt = tgt.to(DEVICE)
                 pred = model(inp).clamp(0, 1)
@@ -283,9 +308,16 @@ def train(args):
             tot_lp / n if (lpips_net is not None and n > 0) else None
         )
 
+    def evaluate():
+        return evaluate_loader(va)
+
     best_l1 = 1e9
     best_lpips = 1e9
     best_psnr = -1e9
+    best_select_score = 1e9
+    best_select_l1 = 1e9
+    best_select_psnr = -1e9
+    best_select_lpips = None
     best_epoch = -1
     epochs_since_best = 0
     ckpt_path = os.path.join(CKPT_DIR, args.ckpt_name)
@@ -333,7 +365,25 @@ def train(args):
         sched.step()
 
         l1, psnr, lp = evaluate()
-        if use_lpips_metric:
+        select_l1 = select_psnr = select_lp = None
+        select_score = None
+        if sel is not None:
+            select_l1, select_psnr, select_lp = evaluate_loader(sel)
+            if args.select_metric == "lpips":
+                if select_lp is None:
+                    raise RuntimeError("--select-metric lpips requires LPIPS to be enabled")
+                select_score = select_lp
+            elif args.select_metric == "l1":
+                select_score = select_l1
+            elif args.select_metric == "lpips_plus_ms_l1":
+                if select_lp is None:
+                    raise RuntimeError("--select-metric lpips_plus_ms_l1 requires LPIPS to be enabled")
+                select_score = select_lp + select_l1
+            else:
+                raise RuntimeError(f"unsupported --select-metric {args.select_metric}")
+        if select_score is not None:
+            improved = select_score < best_select_score
+        elif use_lpips_metric:
             improved = lp is not None and lp < best_lpips
         else:
             improved = l1 < best_l1
@@ -343,6 +393,11 @@ def train(args):
             best_psnr = psnr
             if lp is not None:
                 best_lpips = lp
+            if select_score is not None:
+                best_select_score = select_score
+                best_select_l1 = select_l1
+                best_select_psnr = select_psnr
+                best_select_lpips = select_lp
             best_epoch = ep + 1
             epochs_since_best = 0
             torch.save({
@@ -362,6 +417,12 @@ def train(args):
                 "val_l1": l1,
                 "val_psnr": psnr,
                 "val_lpips": lp,
+                "select_src_names": select_src_names,
+                "select_metric": args.select_metric if select_src_names else None,
+                "select_score": select_score,
+                "select_l1": select_l1,
+                "select_psnr": select_psnr,
+                "select_lpips": select_lp,
                 "params": count_params(model),
             }, ckpt_path)
             marker = "  [SAVED]"
@@ -372,6 +433,10 @@ def train(args):
                 f"val_l1={l1:.5f}  val_psnr={psnr:.3f}")
         if lp is not None:
             line += f"  val_lpips={lp:.4f}"
+        if select_score is not None:
+            line += f"  select_{args.select_metric}={select_score:.4f}"
+            if select_lp is not None:
+                line += f"  select_lpips={select_lp:.4f}"
         line += f"  t={time.time()-t0:.1f}s{marker}"
         print(line, flush=True)
 
@@ -396,6 +461,12 @@ def train(args):
             "val_l1": l1,
             "val_psnr": psnr,
             "val_lpips": lp,
+            "select_src_names": select_src_names,
+            "select_metric": args.select_metric if select_src_names else None,
+            "select_score": select_score,
+            "select_l1": select_l1,
+            "select_psnr": select_psnr,
+            "select_lpips": select_lp,
             "params": count_params(model),
             "save_policy": "last",
         }, last_ckpt_path)
@@ -407,6 +478,16 @@ def train(args):
         print(f"  val_lpips={best_lpips:.4f}")
     else:
         print()
+    if select_src_names:
+        print(
+            f"    select_{args.select_metric}={best_select_score:.4f}  "
+            f"select_l1={best_select_l1:.5f}  select_psnr={best_select_psnr:.3f}",
+            end="",
+        )
+        if best_select_lpips is not None:
+            print(f"  select_lpips={best_select_lpips:.4f}")
+        else:
+            print()
     print(f"  Checkpoint: {ckpt_path}")
 
 
@@ -439,6 +520,13 @@ def main():
                     help="High-pass L1 weight for Y channel; ignored for chroma.")
     ap.add_argument("--grad-weight", type=float, default=0.0,
                     help="Gradient L1 weight for Y channel; ignored for chroma.")
+    ap.add_argument("--select-src-names", type=str, default="",
+                    help="Optional comma-separated source names used only for "
+                         "checkpoint selection. These tiles are evaluated even "
+                         "if they are part of the training split.")
+    ap.add_argument("--select-metric", choices=["lpips", "l1", "lpips_plus_ms_l1"],
+                    default="lpips",
+                    help="Metric used with --select-src-names.")
     args = ap.parse_args()
     train(args)
 
