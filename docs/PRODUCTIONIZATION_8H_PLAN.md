@@ -313,6 +313,19 @@ Luma/detail diagnostic status:
   but not a ship candidate; its encoded payloads are also much larger than
   `ml2_q3_dec2` (`4.1-7.9 MB` on the four gate images), so any continuation
   must include size/FPS tradeoffs, not just quality.
+- A full-image Lab-L donor/blend oracle was added in
+  `tests/quality_gates/probe_preview_luma_blend_oracle.py` and run at
+  1920-wide exploratory resolution because full-width scoring is too slow for
+  iteration. Dashboard/receipt:
+  `tests/quality_gates/runs/dashboard/preview_luma_blend_oracle_1920.html` and
+  `.json`. No fixed donor or pairwise donor blend passes all four images. The
+  strongest global candidates borrow `bibo_cross` L, but they fail easy-image
+  guardrails (`Z8Z_0001` LPIPS `0.1657`, Y-PSNR `27.36`, dE `3.25`) or still
+  leave `Z8Z_6693` with low MS-SSIM (`0.9099`). Per-image, `Z8Z_6693` can get
+  LPIPS as low as `0.1316` from `bibo_cross`, but MS-SSIM remains `0.8981`.
+  Conclusion: simple available-donor L blending is exhausted; the next credible
+  path is a learned upstream/detail-placement model or a better teacher/source,
+  not a fixed blend of current runs.
 
 28-image PREVIEW holdout status:
 
@@ -341,7 +354,8 @@ Luma/detail diagnostic status:
    stride-256 BIDO, dense stride-128 w16 Y, dense stride-128 w32 Y, and the
    dec2 highpass-quant/prefilter probe family are now disproven as standalone
    fixes. Single-level dec2 matched Y is the best current diagnostic branch, but
-   still fails and carries a large size cost.
+   still fails and carries a large size cost. Full-image donor blending is also
+   disproven as a standalone fix at exploratory resolution.
 2. Gate any candidate only through a temporary registry entry; promote
    it only after full gate PASS plus worst-diff inspection.
 3. Re-run `audit_production_readiness.py`; `preview_detail` must change from

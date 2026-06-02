@@ -29,6 +29,7 @@ four gate images. The remaining failures are detail metrics:
 | Full-gate linear Lab-L detail sidecar | `387888dda9016edf` | Reject; improves Y-PSNR but badly regresses LPIPS. |
 | Full-gate Lab-L residual CNN | `3b4a30d74a54cd90` | Trained with Charbonnier + MS-SSIM + LPIPS; 3/4 pass, but `Z8Z_6693` regresses vs unsharp s07. |
 | Z8Z_6693-only Lab-L residual CNN | `ba742b469237dbab` | Diagnostic: even when trained only on the blocker, local L-only residuals do not clear `Z8Z_6693` and dE regresses on `Z8Z_0001`. |
+| Full-image L donor/blend oracle | `preview_luma_blend_oracle_1920` | Exploratory 1920-wide sweep; no fixed donor or pairwise blend passes all four images. |
 
 ## Root Cause Narrowing
 
@@ -60,6 +61,20 @@ from small local L-only capacity and toward one of:
 - loss objective still not aligned with the gate's LPIPS/MS-SSIM behavior, or
 - codec/detail aliasing that the local L-only post-process cannot infer.
 
+A full-image Lab-L donor/blend oracle now rules out simple donor selection as
+well. `tests/quality_gates/probe_preview_luma_blend_oracle.py` keeps the solved
+Lab/SIPS a/b chroma path fixed and sweeps available L donors (`lab_sips`,
+`s07`, `upresable`, `sl_dec2_y`, `bibo_cross`) plus pairwise blends. The
+exploratory 1920-wide run
+`tests/quality_gates/runs/dashboard/preview_luma_blend_oracle_1920.json`
+produced no all-image PASS. The best global row,
+`blend:sl_dec2_y:bibo_cross:a=0.25`, fails `Z8Z_0001` (`LPIPS=0.1657`,
+`Y-PSNR=27.36`, `dE=3.25`). The strongest `Z8Z_6693` single-image donor is
+`bibo_cross` (`LPIPS=0.1316`), but its MS-SSIM is only `0.8981`. That means the
+missing blocker is not solved by choosing or blending existing L donors; it
+needs a learned upstream/full-context detail-placement model or a better
+teacher/detail source.
+
 ## Artifacts
 
 - Full-gate linear detail sidecar:
@@ -81,6 +96,7 @@ from small local L-only capacity and toward one of:
 - Diagnostic dashboard:
   `tests/quality_gates/runs/dashboard/detail_candidate_linear_v1.html`
   `tests/quality_gates/runs/dashboard/detail_candidate_luma_cnn_v1.html`
+  `tests/quality_gates/runs/dashboard/preview_luma_blend_oracle_1920.html`
 - Latest comparison dashboard:
   `tests/quality_gates/runs/dashboard/latest_preview_comparison.html`
 
