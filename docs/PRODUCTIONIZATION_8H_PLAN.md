@@ -326,6 +326,21 @@ Luma/detail diagnostic status:
   Conclusion: simple available-donor L blending is exhausted; the next credible
   path is a learned upstream/detail-placement model or a better teacher/source,
   not a fixed blend of current runs.
+- A full-width signal-processing recoverability probe was added in
+  `tests/quality_gates/probe_preview_texture_recoverability.py` with dashboard
+  receipts `tests/quality_gates/runs/dashboard/preview_texture_recoverability.json`
+  and `.html`. Fixed Lab/SIPS chroma was held constant while Lab L came from
+  current donors, full reference, and low-pass reference bands. Result:
+  `ref_L_oracle` passes all images, and `ref_L_lowpass_x2` also passes all
+  images (`worst=Z8Z_6693`, `LPIPS=0.0983`, `MS-SSIM=0.9704`). But
+  `ref_L_lowpass_x4` fails the hard tail (`Z8Z_6693 LPIPS=0.5376`) and so do
+  all current donors (`lab_sips`, `sl_dec2_y`, `upresable`, `bibo_cross`).
+  Conclusion: the missing detail is within the half-res Bayer sample grid, but
+  not in a naive packed-plane low-pass representation. The next PREVIEW
+  candidate should be phase-aware/full-context over decoded Bayer, or train
+  against a 2x bandwidth-limited REF L target, while preserving the solved
+  Lab/SIPS chroma guardrail. More local single-channel Y tile heads or fixed
+  donor blends are closed branches.
 
 28-image PREVIEW holdout status:
 
@@ -349,8 +364,9 @@ Luma/detail diagnostic status:
 ## Next burn-down items
 
 1. Move beyond local tile fine-tuning for PREVIEW detail: test a full-frame or
-   overlap-aware objective against REF L while preserving Lab/SIPS chroma, or
-   test a genuinely different half-res downsample/capture strategy. Sparse
+   overlap-aware objective against 2x bandwidth-limited REF L while preserving
+   Lab/SIPS chroma, or test a genuinely different decoded-Bayer phase-aware
+   detail path. Sparse
    stride-256 BIDO, dense stride-128 w16 Y, dense stride-128 w32 Y, and the
    dec2 highpass-quant/prefilter probe family are now disproven as standalone
    fixes. Single-level dec2 matched Y is the best current diagnostic branch, but
