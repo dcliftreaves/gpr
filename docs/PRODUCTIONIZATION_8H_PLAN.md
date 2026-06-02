@@ -292,6 +292,27 @@ Luma/detail diagnostic status:
   existing L2 prefilter under half-res capture. The next codec-side branch
   would need a different decimation/downsample strategy, not this wavelet
   mitigation family.
+- Single-level decimated capture was tested as that different substrate. Fixed
+  Lab/SIPS chroma on `sl_q3_dec2` without a matched Y retrain failed run
+  `f21dcf9069869855` (`Z8Z_6693 LPIPS=0.3454`, `Z8Z_5323 LPIPS=0.2387`,
+  `Z8Z_0001 LPIPS=0.2213`). A matched width-32 Y model trained from scratch on
+  `/Volumes/OWC_8TB/gpr_cnn/tiles_sl_q3_dec2_dmsr_gate_hardtail_s128.npz`
+  (640 tiles, dataset SHA
+  `c5a1243d3a4b2c652889ecc758ef03b8778fcf3bafd748ec821aded49ec70376`) produced
+  `models/F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_best.pt` (SHA
+  `9993cdaf7626ff185fa0f81516a66bada838a8c0cf9d7f652928cf02c4c51b17`, epoch
+  78) and
+  `models/F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_last.pt` (SHA
+  `2095f3aedfc62e6c1d9d3172637f5f76d0b370a246fe3ebc43753b91d1eb5dba`, epoch
+  80). Best checkpoint run `105573235badb6f2` is the strongest half-res signal
+  so far: `Z8Z_0001` and `Z8Z_0067` pass, `Z8Z_5323` misses only LPIPS
+  (`0.1661 > 0.15`), and `Z8Z_6693` improves versus active Lab/SIPS
+  (`0.2822` vs `0.3096`) but still fails LPIPS/MS-SSIM (`0.2822`/`0.9373`).
+  Final checkpoint run `016aa7d1e156eb77` regresses guardrails and fails color
+  on `Z8Z_0001`/`Z8Z_6693`. Conclusion: single-level dec2 is useful evidence
+  but not a ship candidate; its encoded payloads are also much larger than
+  `ml2_q3_dec2` (`4.1-7.9 MB` on the four gate images), so any continuation
+  must include size/FPS tradeoffs, not just quality.
 
 28-image PREVIEW holdout status:
 
@@ -319,7 +340,8 @@ Luma/detail diagnostic status:
    test a genuinely different half-res downsample/capture strategy. Sparse
    stride-256 BIDO, dense stride-128 w16 Y, dense stride-128 w32 Y, and the
    dec2 highpass-quant/prefilter probe family are now disproven as standalone
-   fixes.
+   fixes. Single-level dec2 matched Y is the best current diagnostic branch, but
+   still fails and carries a large size cost.
 2. Gate any candidate only through a temporary registry entry; promote
    it only after full gate PASS plus worst-diff inspection.
 3. Re-run `audit_production_readiness.py`; `preview_detail` must change from

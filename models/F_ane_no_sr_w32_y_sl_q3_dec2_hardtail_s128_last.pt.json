@@ -1,0 +1,32 @@
+{
+  "artifact": "models/F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_last.pt",
+  "sha256": "2095f3aedfc62e6c1d9d3172637f5f76d0b370a246fe3ebc43753b91d1eb5dba",
+  "kind": "ycbcr_decomp_y",
+  "variant": "F_ane_no_sr_w32_y",
+  "dataset": {
+    "path": "/Volumes/OWC_8TB/gpr_cnn/tiles_sl_q3_dec2_dmsr_gate_hardtail_s128.npz",
+    "sha256": "c5a1243d3a4b2c652889ecc758ef03b8778fcf3bafd748ec821aded49ec70376",
+    "tiles": 640,
+    "tile_stride": 128,
+    "train_images": ["Z8Z_0001", "Z8Z_5323", "Z8Z_6693"],
+    "validation_images": ["Z8Z_0067"],
+    "codec": "sl_q3_dec2"
+  },
+  "training_command": "SUPERRES_NPZ=/Volumes/OWC_8TB/gpr_cnn/tiles_sl_q3_dec2_dmsr_gate_hardtail_s128.npz VAL_SRC_NAMES=Z8Z_0067 CKPT_DIR=models PYTORCH_ENABLE_MPS_FALLBACK=1 python3 tools/cnn/train_ycbcr_channel.py --variant F_ane_no_sr_w32_y --channel Y --epochs 80 --batch 4 --lr 5e-4 --patience 25 --lpips-weight 0.05 --hf-weight 0.20 --grad-weight 0.05 --ckpt-name F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_best.pt --save-last --save-last-name F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_last.pt",
+  "saved_epoch": 80,
+  "save_policy": "final_epoch",
+  "validation": {
+    "val_l1": 0.03573949170531705,
+    "val_psnr": 30.005438566207886,
+    "val_lpips": 0.06947633996605873
+  },
+  "gate": {
+    "pipeline": "codec=sl_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_sl_q3_dec2_hardtail_s128_last+demosaic=sips_via_gpr_tools",
+    "run_hash": "016aa7d1e156eb77",
+    "verdict": "FAIL",
+    "worst_image": "Z8Z_6693",
+    "worst_lpips": 0.33393070101737976,
+    "notes": "Final epoch regresses easy-image guardrails and color. Z8Z_0001 fails MS-SSIM/Y-PSNR/dE2000; Z8Z_0067 fails Y-PSNR."
+  },
+  "conclusion": "Failed PREVIEW and is worse than the best-validation checkpoint. Continued hard-tail fitting past the validation optimum degrades guardrail stability and does not solve Z8Z_6693."
+}

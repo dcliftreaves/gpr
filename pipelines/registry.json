@@ -961,6 +961,30 @@
       "residual_scale": 0.0,
       "chroma_baseline": "demosaic_sips"
     },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_sl_q3_dec2_hardtail_s128_best": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Fixed Lab/SIPS chroma corrector with a width-32 Y-only model trained from scratch on single-level q3 dec2 stride-128 hard-tail tiles. Saved at epoch 78 by lowest Z8Z_0067 LPIPS (0.0532). Tests whether matched single-level decimated capture is a better PREVIEW detail substrate than ml2_q3_dec2.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "9993cdaf7626ff185fa0f81516a66bada838a8c0cf9d7f652928cf02c4c51b17",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "sl_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_sl_q3_dec2_hardtail_s128_last": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Same matched single-level q3 dec2 width-32 Y run as y_w32_sl_q3_dec2_hardtail_s128_best, but saved at final epoch 80. Z8Z_0067 guardrail LPIPS at save time was 0.0695.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_last.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "2095f3aedfc62e6c1d9d3172637f5f76d0b370a246fe3ebc43753b91d1eb5dba",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "sl_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s05_sig2": {
       "$doc": "Temporary PREVIEW detail-placement candidate. Same display-space Lab SIPS chroma baseline, plus a crop-sweep-derived luma unsharp pass (amount=0.5, sigma=2.0) applied to the predicted L before Lab assembly. Tests whether the solved color path can tolerate direct detail recovery before launching a longer distillation run.",
       "cnn_arch_variant": "lab_chroma_corrector",
@@ -1355,6 +1379,30 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "STILL",
       "$role": "historical-sl-halfres-plus-superres"
+    },
+    "codec=sl_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-single-level-dec2-probe",
+      "$doc": "Diagnostic only: tests whether single-level decimated capture gives the fixed Lab/SIPS chroma path a better detail substrate than ml2_q3_dec2. The Lab model is trained on ml2_q3_dec2, so this is evidence, not a ship candidate unless retrained/matched."
+    },
+    "codec=sl_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_sl_q3_dec2_hardtail_s128_best+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_sl_q3_dec2_hardtail_s128_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-single-level-dec2-matched-y",
+      "$doc": "Diagnostic only: matched single-level dec2 width-32 Y checkpoint with fixed Lab/SIPS chroma."
+    },
+    "codec=sl_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_sl_q3_dec2_hardtail_s128_last+demosaic=sips_via_gpr_tools": {
+      "codec": "sl_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_sl_q3_dec2_hardtail_s128_last",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-single-level-dec2-matched-y",
+      "$doc": "Diagnostic only: final matched single-level dec2 width-32 Y checkpoint with fixed Lab/SIPS chroma."
     },
     "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

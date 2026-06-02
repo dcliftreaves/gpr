@@ -1,0 +1,32 @@
+{
+  "artifact": "models/F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_best.pt",
+  "sha256": "9993cdaf7626ff185fa0f81516a66bada838a8c0cf9d7f652928cf02c4c51b17",
+  "kind": "ycbcr_decomp_y",
+  "variant": "F_ane_no_sr_w32_y",
+  "dataset": {
+    "path": "/Volumes/OWC_8TB/gpr_cnn/tiles_sl_q3_dec2_dmsr_gate_hardtail_s128.npz",
+    "sha256": "c5a1243d3a4b2c652889ecc758ef03b8778fcf3bafd748ec821aded49ec70376",
+    "tiles": 640,
+    "tile_stride": 128,
+    "train_images": ["Z8Z_0001", "Z8Z_5323", "Z8Z_6693"],
+    "validation_images": ["Z8Z_0067"],
+    "codec": "sl_q3_dec2"
+  },
+  "training_command": "SUPERRES_NPZ=/Volumes/OWC_8TB/gpr_cnn/tiles_sl_q3_dec2_dmsr_gate_hardtail_s128.npz VAL_SRC_NAMES=Z8Z_0067 CKPT_DIR=models PYTORCH_ENABLE_MPS_FALLBACK=1 python3 tools/cnn/train_ycbcr_channel.py --variant F_ane_no_sr_w32_y --channel Y --epochs 80 --batch 4 --lr 5e-4 --patience 25 --lpips-weight 0.05 --hf-weight 0.20 --grad-weight 0.05 --ckpt-name F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_best.pt --save-last --save-last-name F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_last.pt",
+  "saved_epoch": 78,
+  "save_policy": "best_validation_lpips",
+  "validation": {
+    "val_l1": 0.021922728617209942,
+    "val_psnr": 33.4906843662262,
+    "val_lpips": 0.05321289882995188
+  },
+  "gate": {
+    "pipeline": "codec=sl_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_sl_q3_dec2_hardtail_s128_best+demosaic=sips_via_gpr_tools",
+    "run_hash": "105573235badb6f2",
+    "verdict": "FAIL",
+    "worst_image": "Z8Z_6693",
+    "worst_lpips": 0.28221049904823303,
+    "notes": "Z8Z_0001 and Z8Z_0067 pass. Z8Z_5323 fails LPIPS only at 0.1661; Z8Z_6693 fails LPIPS/MS-SSIM at 0.2822/0.9373."
+  },
+  "conclusion": "Failed PREVIEW, but is the strongest tested half-res detail substrate so far. Matched single-level dec2 improves Z8Z_6693 versus active Lab/SIPS on ml2_q3_dec2, while remaining too far from the LPIPS/MS-SSIM gate and using much larger encoded payloads."
+}
