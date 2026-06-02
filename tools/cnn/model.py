@@ -262,6 +262,10 @@ VARIANTS["F_ane_no_sr_w32"] = VARIANTS["F_ane_w32_no_sr"]
 VARIANTS.update({
     "F_ane_no_sr_w16_y": dict(width=16, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
                               sr=False, sr4x=True, in_c=4, out_c=1),
+    "F_ane_no_sr_w24_y": dict(width=24, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
+                              sr=False, sr4x=True, in_c=4, out_c=1),
+    "F_ane_no_sr_w32_y": dict(width=32, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
+                              sr=False, sr4x=True, in_c=4, out_c=1),
     "F_ane_no_sr_w8_chroma": dict(width=8, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
                                   sr=False, sr4x=True, in_c=4, out_c=1),
     "F_ane_chroma_corrector_w12": dict(width=12, enc=[1, 1, 1], dec=[1, 1, 1],

@@ -894,6 +894,30 @@
       "residual_scale": 0.0,
       "chroma_baseline": "demosaic_sips"
     },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_best": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Keeps the solved display-space Lab SIPS chroma corrector, but uses a width-32 Y-only model trained from scratch on the dense stride-128 hard-tail NPZ. Saved at epoch 74 by lowest Z8Z_0067 LPIPS (0.0519). Tests whether Y model capacity is the remaining detail blocker.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w32_y_hardtail_s128_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "23bec30602699a57f3d7658a5fd6d0f4f224f7416bdc1adda4e59179da100250",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_last": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Same width-32 dense hard-tail Y run as y_w32_hardtail_s128_best, but saved at final epoch 80. Z8Z_0067 guardrail LPIPS at save time was 0.0635.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w32_y_hardtail_s128_last.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "5c16e3235daf18557161a85d710814419f4c9f1baf78065638f02fe753624da2",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s05_sig2": {
       "$doc": "Temporary PREVIEW detail-placement candidate. Same display-space Lab SIPS chroma baseline, plus a crop-sweep-derived luma unsharp pass (amount=0.5, sigma=2.0) applied to the predicted L before Lab assembly. Tests whether the solved color path can tolerate direct detail recovery before launching a longer distillation run.",
       "cnn_arch_variant": "lab_chroma_corrector",
@@ -1629,6 +1653,22 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-y-hardtail-s128",
       "$doc": "Temporary candidate for the detail-placement stop criteria. Completed dense stride-128 hard-tail Y checkpoint plus the active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-w32-hardtail-s128",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Width-32 dense hard-tail Y checkpoint plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_last+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_last",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-w32-hardtail-s128",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Final width-32 dense hard-tail Y checkpoint plus active Lab/SIPS chroma baseline."
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s05_sig2+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

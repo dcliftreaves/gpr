@@ -262,6 +262,22 @@ Luma/detail diagnostic status:
   with the existing w16 Y architecture is also a closed branch. The remaining
   PREVIEW detail blocker now points at model/context/objective capacity or
   irrecoverable codec/detail aliasing, not sparse tile count alone.
+- Width-32 dense hard-tail Y capacity diagnostic completed. Added
+  `F_ane_no_sr_w24_y` and `F_ane_no_sr_w32_y` variants for Y-only 4x models.
+  The width-32 model (`1.27M` params) was trained from scratch on the same
+  stride-128 hard-tail NPZ with fixed Lab/SIPS chroma at inference. Best
+  artifact `models/F_ane_no_sr_w32_y_hardtail_s128_best.pt`
+  (`sha256=23bec30602699a57f3d7658a5fd6d0f4f224f7416bdc1adda4e59179da100250`,
+  epoch 74) improved the worst hard image slightly versus the active Lab/SIPS
+  baseline (`Z8Z_6693 LPIPS=0.2963` vs `0.3096`) but still failed LPIPS and
+  MS-SSIM there, failed `Z8Z_5323` (`LPIPS=0.1904`), and regressed `Z8Z_0001`
+  above the LPIPS threshold (`0.1586`). Final artifact
+  `models/F_ane_no_sr_w32_y_hardtail_s128_last.pt`
+  (`sha256=5c16e3235daf18557161a85d710814419f4c9f1baf78065638f02fe753624da2`,
+  epoch 80) was worse (`Z8Z_6693 LPIPS=0.3265`). Conclusion: additional Y
+  capacity can move the hard-tail metric, but the current dense tile objective
+  does not produce a gate-safe global solution. The next branch should target
+  objective/context or codec aliasing, not just width.
 
 28-image PREVIEW holdout status:
 
@@ -284,10 +300,11 @@ Luma/detail diagnostic status:
 
 ## Next burn-down items
 
-1. Move beyond local tile fine-tuning for PREVIEW detail: test a larger-context
-   Y/detail model or full-frame/overlap-aware objective against REF L while
-   preserving Lab/SIPS chroma. Sparse stride-256 BIDO and dense stride-128 w16
-   Y fine-tunes are now disproven.
+1. Move beyond local tile fine-tuning for PREVIEW detail: test a full-frame or
+   overlap-aware objective against REF L while preserving Lab/SIPS chroma, or
+   isolate codec/detail aliasing with a less destructive capture mode. Sparse
+   stride-256 BIDO, dense stride-128 w16 Y, and dense stride-128 w32 Y are now
+   disproven as standalone fixes.
 2. Gate any candidate only through a temporary registry entry; promote
    it only after full gate PASS plus worst-diff inspection.
 3. Re-run `audit_production_readiness.py`; `preview_detail` must change from
