@@ -24,6 +24,9 @@ target:
 | baseline `sl_q3+cnn=none` | `5e7b79b5678fdf62` | PASS | `Z8Z_6693` | 0.1003 | 0.9580 | 33.34 | 1.71 |
 | packed planes, low-pass x2 target | `974222c6a6d490e5` | FAIL | `Z8Z_6693` | 0.2566 | 0.9354 | 31.51 | 2.33 |
 | mosaic, low-pass x2 target, best | `46bf8050492744e2` | FAIL | `Z8Z_6693` | 0.1760 | 0.9419 | 30.71 | 2.51 |
+| mosaic + full-gate RGB residual context v1 | `ac606b54716374b2` | FAIL | `Z8Z_6693` | 0.1775 | 0.9404 | 30.64 | 2.52 |
+| mosaic + full-gate Lab-L residual v1 | `5d3cf75bf1b1f44b` | FAIL | `Z8Z_6693` | 0.1532 | 0.9423 | 33.21 | 2.01 |
+| mosaic + dilated Lab-L residual v2 | `9b1d4c8e7320de40` | FAIL | `Z8Z_6693` | 0.1910 | 0.9436 | 33.54 | 1.97 |
 | mosaic, low-pass x2 target, width 48 | `f7a42b76c1f549ae` | FAIL | `Z8Z_6693` | 0.1809 | 0.9434 | 29.25 | 2.93 |
 | mosaic, full REF target, best | `4ae4d3cfb39632ab` | FAIL | `Z8Z_6693` | 0.1995 | 0.9392 | 29.21 | 2.94 |
 | mosaic, low-pass x2 target, last | `077761916aa85fb6` | FAIL | `Z8Z_6693` | 0.2275 | 0.9383 | 26.91 | 3.76 |
@@ -56,6 +59,23 @@ The width-48 final checkpoint regressed all four gate images, so the issue is
 not just selecting a later training epoch. Simple capacity scaling and longer
 training of this local tiled architecture are not sufficient.
 
+The full-gate residual refiners narrow the failure further:
+
+- The RGB residual context refiner did not improve the hard-tail blocker and
+  regressed the color guardrail on `Z8Z_0001` (`dE2000_mean=3.40`).
+- The Lab-L residual v1 is the best residual result so far. It improves
+  `Z8Z_6693` LPIPS from 0.1760 to 0.1532 and keeps dE safe, but MS-SSIM stays
+  nearly flat at 0.9423, below the 0.95 PREVIEW threshold.
+- The wider/dilated Lab-L residual v2 improves Y-PSNR and slightly improves
+  MS-SSIM to 0.9436, but perceptual artifacts push LPIPS backward to 0.1910.
+
+That makes the residual-postprocess path an evidenced near-miss rather than a
+solution. It can restore some local luma energy, but it does not place
+full-image structure well enough to pass MS-SSIM before LPIPS regresses. The
+remaining blocker is now specifically the detail-placement target/model path,
+not chroma, not lack of full-gate residual training data, and not a simple
+increase in residual context or strength.
+
 ## Next Candidate
 
 Do not continue with the full-REF warm-start recipe as-is. The next useful
@@ -67,6 +87,9 @@ candidate should change one of:
   larger full-gate teacher directly, not just tile-level RGB targets;
 - selection metric: checkpoint selection should include the mixed-contrast
   blocker, not only `Z8Z_0067`.
+- architecture: move detail placement into the primary Y/upres model or a
+  stronger teacher/student with explicit full-image context; bounded residual
+  postprocessing has now failed both RGB and Lab-L variants.
 
 The objective remains a PREVIEW-detail PASS run or an evidenced failure tied
 to one of those causes.

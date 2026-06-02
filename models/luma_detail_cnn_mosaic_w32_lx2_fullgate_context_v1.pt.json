@@ -1,0 +1,22 @@
+{
+  "kind": "lab_luma_detail_cnn",
+  "checkpoint": "models/luma_detail_cnn_mosaic_w32_lx2_fullgate_context_v1.pt",
+  "train_run": "tests/quality_gates/runs/46bf8050492744e2",
+  "train_images": [
+    "Z8Z_0001",
+    "Z8Z_0067",
+    "Z8Z_5323",
+    "Z8Z_6693"
+  ],
+  "width": 16,
+  "residual_limit": 0.04,
+  "steps": 1200,
+  "best_step": 500,
+  "best_score": 0.09706607030238955,
+  "loss": {
+    "l1_weight": 0.5,
+    "msssim_weight": 0.6,
+    "lpips_weight": 0.1,
+    "lpips_warmup": 100
+  }
+}

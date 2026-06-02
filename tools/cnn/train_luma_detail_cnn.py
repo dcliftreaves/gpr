@@ -111,11 +111,14 @@ def eval_fixed(
 
 def train(args: argparse.Namespace) -> None:
     image_ids = [s.strip() for s in args.images.split(",") if s.strip()]
+    dilations = tuple(int(s.strip()) for s in args.dilations.split(",") if s.strip())
+    if not dilations:
+        raise ValueError("--dilations must contain at least one integer")
     pairs = load_pairs(args.run_dir, image_ids)
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
 
-    model = LumaDetailCNN(width=args.width).to(DEVICE)
+    model = LumaDetailCNN(width=args.width, dilations=dilations).to(DEVICE)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     lpips_net = None
     if args.lpips_weight > 0:
@@ -158,6 +161,7 @@ def train(args: argparse.Namespace) -> None:
                     "kind": "lab_luma_detail_cnn",
                     "state_dict": model.state_dict(),
                     "width": args.width,
+                    "dilations": list(dilations),
                     "residual_limit": args.residual_limit,
                     "train_run": str(args.run_dir),
                     "train_images": image_ids,
@@ -191,6 +195,7 @@ def train(args: argparse.Namespace) -> None:
             "kind": "lab_luma_detail_cnn",
             "state_dict": model.state_dict(),
             "width": args.width,
+            "dilations": list(dilations),
             "residual_limit": args.residual_limit,
             "train_run": str(args.run_dir),
             "train_images": image_ids,
@@ -208,6 +213,7 @@ def train(args: argparse.Namespace) -> None:
         "train_run": str(args.run_dir),
         "train_images": image_ids,
         "width": args.width,
+        "dilations": list(dilations),
         "residual_limit": args.residual_limit,
         "steps": args.steps,
         "best_step": best_step,
@@ -233,6 +239,8 @@ def main() -> None:
     ap.add_argument("--crop", type=int, default=384)
     ap.add_argument("--eval-crop", type=int, default=384)
     ap.add_argument("--width", type=int, default=8)
+    ap.add_argument("--dilations", default="1,1",
+                    help="Comma-separated dilation schedule for hidden Lab-L residual convolutions.")
     ap.add_argument("--residual-limit", type=float, default=0.08)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--weight-decay", type=float, default=1e-4)
