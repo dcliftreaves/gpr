@@ -169,7 +169,7 @@ def collect(args: argparse.Namespace) -> list[dict]:
                 "signal_only": signal_rgb,
                 "exact_ref_hf_added": exact_rgb,
             }
-            Image.fromarray(signal_rgb).save(out_dir / f"{image_id}_{label}_signal_lf.png")
+            Image.fromarray(signal_rgb).save(out_dir / f"{image_id}_{label}_signal_only.png")
             Image.fromarray(exact_rgb).save(out_dir / f"{image_id}_{label}_exact_ref_hf_added.png")
 
             ref_variants = {
