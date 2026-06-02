@@ -278,6 +278,20 @@ Luma/detail diagnostic status:
   capacity can move the hard-tail metric, but the current dense tile objective
   does not produce a gate-safe global solution. The next branch should target
   objective/context or codec aliasing, not just width.
+- Decimated codec aliasing probes completed with fixed Lab/SIPS chroma. Three
+  diagnostic codecs were registered to keep `2x2` decimation but alter the
+  wavelet damage profile: `ml2_q3_dec2_nohighpassquant`,
+  `ml2_q3_dec2_prefilter3hv`, and `ml2_q3_dec2_prefilter3hv_softq`. All failed
+  the PREVIEW gate and all were worse than the active Lab/SIPS baseline on the
+  hard blockers. Runs: `2f75d9e68d75af32` no-highpass-quant (`Z8Z_6693
+  LPIPS=0.3329`, `Z8Z_5323 LPIPS=0.2026`), `2fc3f3bc3bcd8957` H+V prefilter
+  (`Z8Z_6693 LPIPS=0.3376`, `Z8Z_0001 LPIPS=0.2711`), and
+  `2159e6a3089e4a70` prefilter+softq (`Z8Z_6693 LPIPS=0.3498`,
+  `Z8Z_0001 LPIPS=0.2718`). Conclusion: the remaining PREVIEW blocker is not
+  solved by simply softening/removing highpass quantization or adding the
+  existing L2 prefilter under half-res capture. The next codec-side branch
+  would need a different decimation/downsample strategy, not this wavelet
+  mitigation family.
 
 28-image PREVIEW holdout status:
 
@@ -302,9 +316,10 @@ Luma/detail diagnostic status:
 
 1. Move beyond local tile fine-tuning for PREVIEW detail: test a full-frame or
    overlap-aware objective against REF L while preserving Lab/SIPS chroma, or
-   isolate codec/detail aliasing with a less destructive capture mode. Sparse
-   stride-256 BIDO, dense stride-128 w16 Y, and dense stride-128 w32 Y are now
-   disproven as standalone fixes.
+   test a genuinely different half-res downsample/capture strategy. Sparse
+   stride-256 BIDO, dense stride-128 w16 Y, dense stride-128 w32 Y, and the
+   dec2 highpass-quant/prefilter probe family are now disproven as standalone
+   fixes.
 2. Gate any candidate only through a temporary registry entry; promote
    it only after full gate PASS plus worst-diff inspection.
 3. Re-run `audit_production_readiness.py`; `preview_detail` must change from

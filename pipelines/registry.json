@@ -254,6 +254,49 @@
       "quality": 3,
       "use_for": "video"
     },
+    "ml2_q3_dec2_nohighpassquant": {
+      "$doc": "Diagnostic PREVIEW aliasing probe: ml2_q3_dec2 with all L1/L2 highpass quant set to 1. Tests whether the remaining hard-tail detail blocker is caused by highpass quantization before/after decimation. Not a ship codec until size/perf is measured.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_COL_DECIMATE": "2",
+        "GPR_ROW_DECIMATE": "2",
+        "GPR_QUANT_OVERRIDE": "4:1,5:1,6:1,7:1,8:1,9:1"
+      },
+      "quality": 3,
+      "use_for": "experiment"
+    },
+    "ml2_q3_dec2_prefilter3hv": {
+      "$doc": "Diagnostic PREVIEW aliasing probe: ml2_q3_dec2 with H+V prefilter before the second wavelet level. Tests whether decimated PREVIEW detail failure is driven by L2 aliasing.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_COL_DECIMATE": "2",
+        "GPR_ROW_DECIMATE": "2",
+        "FUSED_L2_PREFILTER": "33"
+      },
+      "quality": 3,
+      "use_for": "experiment"
+    },
+    "ml2_q3_dec2_prefilter3hv_softq": {
+      "$doc": "Diagnostic PREVIEW aliasing probe: ml2_q3_dec2 with H+V prefilter plus lighter highpass quant. Tests stacked aliasing/quantization mitigation under half-res capture.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_COL_DECIMATE": "2",
+        "GPR_ROW_DECIMATE": "2",
+        "FUSED_L2_PREFILTER": "33",
+        "GPR_QUANT_OVERRIDE": "4:12,5:12,6:6,7:48,8:48,9:72"
+      },
+      "quality": 3,
+      "use_for": "experiment"
+    },
     "ml2_q3_prefilter3hv_softq": {
       "$doc": "Experiment E13: H+V prefilter + lighter highpass quant.",
       "binary": "build-local/bin/test_fused_roundtrip",
@@ -1637,6 +1680,30 @@
       "ship_class": "PREVIEW",
       "$role": "active-preview-color-baseline",
       "$doc": "Use as the current PREVIEW chroma/color baseline, not as a shipped PREVIEW pipeline. Run 5e7d52579ffb2d3e proves dE2000 mean is within gate on all examples; full PREVIEW still fails on detail metrics. Next candidate should preserve this color behavior while borrowing/detail-distilling from UPRESABLE."
+    },
+    "codec=ml2_q3_dec2_nohighpassquant+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2_nohighpassquant",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-codec-aliasing-probe",
+      "$doc": "Diagnostic only: tests whether dec2 highpass quantization is the remaining PREVIEW detail blocker while keeping Lab/SIPS chroma fixed."
+    },
+    "codec=ml2_q3_dec2_prefilter3hv+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2_prefilter3hv",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-codec-aliasing-probe",
+      "$doc": "Diagnostic only: tests whether L2 H+V prefiltering reduces dec2 hard-tail aliasing while keeping Lab/SIPS chroma fixed."
+    },
+    "codec=ml2_q3_dec2_prefilter3hv_softq+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2_prefilter3hv_softq",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-codec-aliasing-probe",
+      "$doc": "Diagnostic only: tests stacked L2 prefilter plus softer quant under dec2 while keeping Lab/SIPS chroma fixed."
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_hardtail_s128_best+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
