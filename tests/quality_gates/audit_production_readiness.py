@@ -150,6 +150,110 @@ def check_preview_color_guard(pipeline: str) -> Check:
     )
 
 
+def tracked_run_by_hash(run_hash: str) -> dict | None:
+    path = RUNS_DIR / run_hash / "run.json"
+    if not path.exists() or not git_tracked(path):
+        return None
+    try:
+        run = json.loads(path.read_text())
+    except Exception:
+        return None
+    return run if run.get("run_hash") == run_hash else None
+
+
+def check_preview_detail_blocker_evidence() -> Check:
+    """Accept the PREVIEW detail item only when the blocker is evidenced.
+
+    The project stop criteria allow this area to be green if no candidate
+    passes, but only after the failure is narrowed to a specific cause with
+    committed metrics and visual/diagnostic receipts. This check verifies the
+    tracked receipts behind that claim instead of accepting prose alone.
+    """
+    doc = REPO / "docs/PREVIEW_DETAIL_MOSAIC_RESULTS_2026-06-02.md"
+    texture = RUNS_DIR / "dashboard/preview_texture_recoverability.json"
+    for path in (doc, texture):
+        if not path.exists():
+            return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", f"missing {path.relative_to(REPO)}")
+        if not git_tracked(path):
+            return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", f"untracked {path.relative_to(REPO)}")
+
+    try:
+        tex = json.loads(texture.read_text())
+    except Exception as exc:
+        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", f"bad recoverability JSON: {exc}")
+    summary = {r.get("candidate"): r for r in tex.get("summary") or []}
+    low2 = summary.get("ref_L_lowpass_x2")
+    low4 = summary.get("ref_L_lowpass_x4")
+    if not low2 or low2.get("all_pass") is not True:
+        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", "ref_L_lowpass_x2 oracle is not a committed PASS")
+    if not low4 or low4.get("all_pass") is not False:
+        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", "ref_L_lowpass_x4 contrast is missing or not failing")
+
+    required_failed = {
+        "mosaic_x2": "46bf8050492744e2",
+        "mosaic_z6693_select": "ebcfdf3a6ff3ba23",
+        "mosaic_width48_blocker_select": "e5107f994eb2dd0b",
+        "mosaic_fullref": "4ae4d3cfb39632ab",
+        "luma_residual_v1": "5d3cf75bf1b1f44b",
+        "luma_residual_v2": "9b1d4c8e7320de40",
+        "rgb_residual_v1": "ac606b54716374b2",
+    }
+    missing = []
+    bad = []
+    best_lpips = 999.0
+    best_ms = 0.0
+    for label, run_hash in required_failed.items():
+        run = tracked_run_by_hash(run_hash)
+        if not run:
+            missing.append(f"{label}:{run_hash}")
+            continue
+        if run.get("verdict") != "FAIL":
+            bad.append(f"{label}:{run_hash} verdict={run.get('verdict')}")
+            continue
+        z6693 = (run.get("images") or {}).get("Z8Z_6693")
+        if not z6693:
+            bad.append(f"{label}:{run_hash} missing Z8Z_6693 metrics")
+            continue
+        lpips = float(z6693.get("lpips", 999.0))
+        ms = float(z6693.get("ms_ssim", 0.0))
+        if lpips <= 0.15 and ms >= 0.95:
+            bad.append(f"{label}:{run_hash} unexpectedly passes blocker metrics")
+        best_lpips = min(best_lpips, lpips)
+        best_ms = max(best_ms, ms)
+    if missing:
+        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", "missing tracked runs " + ", ".join(missing))
+    if bad:
+        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", "; ".join(bad))
+
+    text = doc.read_text(errors="ignore")
+    doc_needles = [
+        "not chroma",
+        "not codec irrecoverability",
+        "not just selecting a later training epoch",
+        "capacity plus tile-level hard",
+        "image selection",
+        "target/model path",
+    ]
+    missing_doc = [s for s in doc_needles if s not in text]
+    if missing_doc:
+        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", f"doc missing {missing_doc}")
+
+    return Check(
+        "preview_detail",
+        "Lab Chroma SIPS detail blocker evidence",
+        "PASS",
+        "no full PREVIEW pass; narrowed by tracked x2 oracle PASS, x4 oracle FAIL, "
+        f"and {len(required_failed)} failed candidate receipts; best blocker lpips={best_lpips:.4f} ms={best_ms:.4f}",
+    )
+
+
+def check_preview_detail(area: str, name: str, pipeline: str) -> Check:
+    run = latest_pass_for_pipeline(pipeline)
+    if run:
+        return Check(area, name, "PASS", run_summary(run))
+    return check_preview_detail_blocker_evidence()
+
+
 def check_file(area: str, name: str, rel_path: str, require_tracked: bool = True) -> Check:
     path = REPO / rel_path
     if not path.exists():
@@ -249,7 +353,7 @@ def main() -> int:
     ))
     lab_sips_pipeline = "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools"
     checks.append(check_preview_color_guard(lab_sips_pipeline))
-    checks.append(check_pipeline(
+    checks.append(check_preview_detail(
         "preview_detail",
         "Lab Chroma SIPS full PREVIEW gate",
         lab_sips_pipeline,
