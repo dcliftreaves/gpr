@@ -310,6 +310,11 @@ def apply_cnn(
                 str(REPO / cnn["ckpt_rgb_detail"])
                 if cnn.get("ckpt_rgb_detail") else None
             ),
+            luma_wavelet_hf_gain=cnn.get("luma_wavelet_hf_gain", 1.0),
+            luma_wavelet_hf_wavelet=cnn.get("luma_wavelet_hf_wavelet", "sym4"),
+            luma_wavelet_hf_levels=cnn.get("luma_wavelet_hf_levels", 3),
+            luma_wavelet_hf_hf_levels=cnn.get("luma_wavelet_hf_hf_levels", 1),
+            luma_wavelet_hf_max_delta=cnn.get("luma_wavelet_hf_max_delta", 2.0),
         )
         return ("rgb", rgb_u8)
     import torch
@@ -786,6 +791,11 @@ def cnn_hash_fingerprint(cnn: dict) -> str:
         "chroma_baseline",
         "luma_unsharp_amount",
         "luma_unsharp_sigma",
+        "luma_wavelet_hf_gain",
+        "luma_wavelet_hf_wavelet",
+        "luma_wavelet_hf_levels",
+        "luma_wavelet_hf_hf_levels",
+        "luma_wavelet_hf_max_delta",
         "raw_norm",
         "residual_scale",
     ):

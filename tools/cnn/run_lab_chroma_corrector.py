@@ -19,6 +19,11 @@ import torch.nn.functional as F
 from skimage import color
 from skimage.filters import gaussian
 
+try:
+    import pywt
+except Exception:  # pragma: no cover - optional until wavelet-HF is enabled
+    pywt = None
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 from model import build as build_variant  # noqa: E402
@@ -210,6 +215,41 @@ def _apply_cnn_detail_luma(
     return np.clip((l_norm + residual) * 100.0, 0.0, 100.0).astype(np.float32)
 
 
+def _apply_wavelet_hf_luma(
+    l_chan: np.ndarray,
+    gain: float = 1.0,
+    wavelet: str = "sym4",
+    levels: int = 3,
+    hf_levels: int = 1,
+    max_delta: float = 2.0,
+) -> np.ndarray:
+    if float(gain) == 1.0:
+        return l_chan
+    if pywt is None:
+        raise RuntimeError("pywt is required for luma_wavelet_hf_gain")
+    levels = int(levels)
+    hf_levels = int(hf_levels)
+    if levels < 1:
+        raise RuntimeError(f"luma_wavelet_hf_levels must be >= 1, got {levels}")
+    if hf_levels < 1:
+        raise RuntimeError(f"luma_wavelet_hf_hf_levels must be >= 1, got {hf_levels}")
+    l_f = l_chan.astype(np.float32)
+    coeffs = pywt.wavedec2(l_f, wavelet, level=levels)
+    detail_only = [np.zeros_like(coeffs[0])]
+    first_selected = max(1, len(coeffs) - hf_levels)
+    for idx, detail in enumerate(coeffs[1:], start=1):
+        if idx >= first_selected:
+            detail_only.append(detail)
+        else:
+            detail_only.append(tuple(np.zeros_like(c) for c in detail))
+    hf = pywt.waverec2(detail_only, wavelet).astype(np.float32)
+    hf = hf[: l_f.shape[0], : l_f.shape[1]]
+    delta = (float(gain) - 1.0) * hf
+    if float(max_delta) > 0.0:
+        delta = np.clip(delta, -float(max_delta), float(max_delta))
+    return np.clip(l_f + delta, 0.0, 100.0).astype(np.float32)
+
+
 def _apply_cnn_detail_rgb(
     rgb: np.ndarray,
     ckpt_path: str | None,
@@ -267,6 +307,11 @@ def run_lab_chroma_corrector(
     luma_detail_refiner_path=None,
     luma_detail_cnn_path=None,
     rgb_detail_cnn_path=None,
+    luma_wavelet_hf_gain=1.0,
+    luma_wavelet_hf_wavelet="sym4",
+    luma_wavelet_hf_levels=3,
+    luma_wavelet_hf_hf_levels=1,
+    luma_wavelet_hf_max_delta=2.0,
 ):
     """Return a full-resolution RGB uint8 image."""
     if device is None:
@@ -311,6 +356,14 @@ def run_lab_chroma_corrector(
         l_chan = _apply_linear_detail_luma(l_chan, str(Path(luma_detail_refiner_path)))
     if luma_detail_cnn_path:
         l_chan = _apply_cnn_detail_luma(l_chan, str(Path(luma_detail_cnn_path)), device)
+    l_chan = _apply_wavelet_hf_luma(
+        l_chan,
+        gain=float(luma_wavelet_hf_gain),
+        wavelet=str(luma_wavelet_hf_wavelet),
+        levels=int(luma_wavelet_hf_levels),
+        hf_levels=int(luma_wavelet_hf_hf_levels),
+        max_delta=float(luma_wavelet_hf_max_delta),
+    )
     lab = np.empty((y_full.shape[0], y_full.shape[1], 3), dtype=np.float32)
     lab[..., 0] = l_chan
     lab[..., 1] = ab[0]

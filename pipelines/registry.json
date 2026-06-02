@@ -1061,6 +1061,25 @@
       "residual_scale": 0.0,
       "chroma_baseline": "demosaic_sips"
     },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_luma_detail_context_v1_wavelet_hf1_g120": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Applies a bounded shippable Lab-L wavelet-HF gain after the full-gate Lab-L residual v1 model. Crop screening showed LPIPS movement on blockers; this full gate tests whether that local HF synthesis survives full-image metrics without chroma regression.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_mosaic_w32_y_hardtail_s128_lx2_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_detail": "models/luma_detail_cnn_mosaic_w32_lx2_fullgate_context_v1.pt",
+      "ckpt_y_sha256": "b9f9e0577a8d682276737db6548921734faf1b36cff9a39b5584f88d30dc2b90",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "ckpt_detail_sha256": "aca864976b8d07ffa436b751be79a635c7bf4455e933739c353eacc7ad7c85e6",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips",
+      "luma_wavelet_hf_gain": 1.2,
+      "luma_wavelet_hf_wavelet": "sym4",
+      "luma_wavelet_hf_levels": 3,
+      "luma_wavelet_hf_hf_levels": 1,
+      "luma_wavelet_hf_max_delta": 2.0
+    },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_luma_detail_context_v2": {
       "$doc": "Temporary PREVIEW detail-placement candidate. Wider dilated Lab-L residual CNN trained on full-gate REF/PIPELINE pairs from the best mosaic-input Y + Lab/SIPS chroma candidate with stronger MS-SSIM pressure. Tests whether larger luma context can close the remaining Z8Z_6693 structure gap while keeping the solved chroma direction fixed.",
       "cnn_arch_variant": "lab_chroma_corrector",
@@ -2034,6 +2053,14 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-mosaic-luma-cnn-context-fullgate",
       "$doc": "Temporary candidate for the detail-placement stop criteria. Best mosaic-input Y checkpoint plus bounded Lab-L residual CNN trained on full-gate full-frame pairs from that candidate."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_luma_detail_context_v1_wavelet_hf1_g120+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_luma_detail_context_v1_wavelet_hf1_g120",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-wavelet-hf-synthesis-fullgate",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Tests bounded shippable Lab-L wavelet-HF synthesis on top of the current best Lab-L residual v1 path."
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_luma_detail_context_v2+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

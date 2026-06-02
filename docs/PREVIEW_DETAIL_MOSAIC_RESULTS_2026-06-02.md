@@ -20,6 +20,10 @@ target:
   against a REF Lab-L target with the finest two `sym4` wavelet detail levels
   removed. This tests whether non-learnable REF luminance HF/noise was
   contaminating the learned detail target.
+- `lab_l_residual_v1_wavelet_hf1_g120`: the best Lab-L residual v1 path with a
+  shippable bounded Lab-L wavelet-HF synthesis hook. This tests whether the
+  REF-HF oracle insight can be approximated by amplifying the candidate's own
+  finest wavelet detail band instead of importing exact REF noise.
 
 ## Receipts
 
@@ -31,6 +35,7 @@ target:
 | mosaic, low-pass x2 target, Z8Z_6693-selected | `ebcfdf3a6ff3ba23` | FAIL | `Z8Z_6693` | 0.1638 | 0.9442 | 31.06 | 2.45 |
 | mosaic + full-gate RGB residual context v1 | `ac606b54716374b2` | FAIL | `Z8Z_6693` | 0.1775 | 0.9404 | 30.64 | 2.52 |
 | mosaic + full-gate Lab-L residual v1 | `5d3cf75bf1b1f44b` | FAIL | `Z8Z_6693` | 0.1532 | 0.9423 | 33.21 | 2.01 |
+| mosaic + Lab-L residual v1 + wavelet HF synthesis | `b3b767e5d4d2f717` | FAIL | `Z8Z_6693` | 0.1511 | 0.9422 | 33.19 | 2.02 |
 | mosaic + dilated Lab-L residual v2 | `9b1d4c8e7320de40` | FAIL | `Z8Z_6693` | 0.1910 | 0.9436 | 33.54 | 1.97 |
 | mosaic, low-pass x2 target, width 48 | `f7a42b76c1f549ae` | FAIL | `Z8Z_6693` | 0.1809 | 0.9434 | 29.25 | 2.93 |
 | mosaic, low-pass x2 target, width 48, blocker-selected | `e5107f994eb2dd0b` | FAIL | `Z8Z_6693` | 0.1637 | 0.9458 | 31.56 | 2.34 |
@@ -92,6 +97,12 @@ The full-gate residual refiners narrow the failure further:
 - The Lab-L residual v1 is the best residual result so far. It improves
   `Z8Z_6693` LPIPS from 0.1760 to 0.1532 and keeps dE safe, but MS-SSIM stays
   nearly flat at 0.9423, below the 0.95 PREVIEW threshold.
+- The bounded wavelet-HF synthesis hook on top of Lab-L residual v1 moves the
+  blocker closer on LPIPS (`0.1532` to `0.1511`) and keeps color safe
+  (`dE2000_mean=2.02`), but MS-SSIM remains flat (`0.9422`). This rejects
+  "add more of the candidate's own finest HF energy" as a complete production
+  fix. The remaining error is structural/mid-frequency placement, not just
+  scalar HF amplitude.
 - The wider/dilated Lab-L residual v2 improves Y-PSNR and slightly improves
   MS-SSIM to 0.9436, but perceptual artifacts push LPIPS backward to 0.1910.
 
@@ -114,6 +125,13 @@ wavelet-trained candidate shows the same split: original crop worst LPIPS
 threshold in those rows, so the unresolved issue is now more precise: learn or
 synthesize the right mid/high-frequency structure placement separately from
 REF noise matching.
+
+A shippable self-HF crop probe (`wavelet_hf_synthesis_current`) confirmed the
+same direction before the full gate. On 100% crops, the best variants reduce
+worst-crop LPIPS by roughly 0.02-0.04 on the current near-miss candidates, but
+MS-SSIM is flat or slightly worse. The full gate then reproduced that pattern:
+LPIPS moved to within 0.0012 of threshold, while MS-SSIM stayed 0.0078 below
+threshold.
 
 ## Next Candidate
 

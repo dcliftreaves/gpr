@@ -196,6 +196,7 @@ def check_preview_detail_blocker_evidence() -> Check:
         "mosaic_width48_wavelet_lhf2": "6d7ed7f5b62f7732",
         "mosaic_fullref": "4ae4d3cfb39632ab",
         "luma_residual_v1": "5d3cf75bf1b1f44b",
+        "luma_residual_v1_wavelet_hf": "b3b767e5d4d2f717",
         "luma_residual_v2": "9b1d4c8e7320de40",
         "rgb_residual_v1": "ac606b54716374b2",
     }
@@ -234,6 +235,7 @@ def check_preview_detail_blocker_evidence() -> Check:
         "capacity plus tile-level hard",
         "image selection",
         "wavelet target-cleanup",
+        "wavelet-HF synthesis",
         "target/model path",
     ]
     missing_doc = [s for s in doc_needles if s not in text]
