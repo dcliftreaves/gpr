@@ -93,7 +93,7 @@ see "In flight when you read this" below.
 The retrained ckpt is at
 `/Users/dcliftreaves/dering_proto_v2/checkpoints/BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt`.
 The shipping path uses
-`/Volumes/OWC_8TB/gpr_artifacts/weights/F_ane_1x_weights_metal/` —
+`/Volumes/OWC_8TB/gpr_work/artifacts/weights/F_ane_1x_weights_metal/` —
 which still has the LL-only-fast-trained baseline. Swapping in the
 retrained ckpt: 30 min of work, would change the production CNN
 behavior. Not done autonomously because it's a behavioral change

@@ -22,7 +22,7 @@
 #
 # Skips cleanly on:
 #   - Linux (gpr2prores depends on Metal/MPS/AVFoundation)
-#   - missing BIBO_1x metal weights dir (/Volumes/OWC_8TB/gpr_artifacts/
+#   - missing BIBO_1x metal weights dir (/Volumes/OWC_8TB/gpr_work/artifacts/
 #     weights/F_ane_1x_weights_metal or /tmp/F_ane_1x_weights_metal)
 #   - missing gpr2prores / bench_fused / gpr_mov_tool binaries
 #
@@ -53,7 +53,7 @@ MOV="${MOV:-$REPO/tools/gpr2prores/gpr_mov_tool}"
 PY="${PY:-/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3}"
 
 # CNN weights — try OWC then /tmp symlink fallback (matches CNN_CAPABILITIES doc).
-CKPT_W1X="${CKPT_W1X:-/Volumes/OWC_8TB/gpr_artifacts/weights/F_ane_1x_weights_metal}"
+CKPT_W1X="${CKPT_W1X:-/Volumes/OWC_8TB/gpr_work/artifacts/weights/F_ane_1x_weights_metal}"
 if [ ! -d "$CKPT_W1X" ]; then
     CKPT_W1X="/tmp/F_ane_1x_weights_metal"
 fi

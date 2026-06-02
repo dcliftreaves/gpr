@@ -1,0 +1,29 @@
+{
+  "artifact": "models/F_ane_mosaic_w32_y_hardtail_s128_fullref_best.pt",
+  "sha256": "89dd8017493f4c66f1dab28f52ceccffb4748440c9110dd5526f3bd001d533f7",
+  "kind": "ycbcr_decomp_y",
+  "variant": "F_ane_mosaic_w32_y",
+  "input_mode": "mosaic2x",
+  "params": 1235460,
+  "trained_against_codec": "ml2_q3_dec2",
+  "dataset": "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128.npz",
+  "dataset_sha256": "2e6d16204702de3adda0e07596791428683b3b77326413e6e291d5cc0d437205",
+  "target": "full REF RGB converted to BT.709 Y at training time",
+  "input": "single-channel decoded half-res Bayer mosaic tile reconstructed from packed 2x2 phase planes",
+  "train_images": ["Z8Z_0001", "Z8Z_5323", "Z8Z_6693"],
+  "validation_images": ["Z8Z_0067"],
+  "tile_stride": 128,
+  "epoch": 5,
+  "val_l1": 0.023206087142170873,
+  "val_psnr": 33.28631694316864,
+  "val_lpips": 0.0462830785283586,
+  "loss": {
+    "multiscale_l1": true,
+    "lpips_weight": 0.12,
+    "hf_weight": 0.05,
+    "grad_weight": 0.02
+  },
+  "init_ckpt": "models/F_ane_mosaic_w32_y_hardtail_s128_lx2_best.pt",
+  "init_ckpt_sha256": "b9f9e0577a8d682276737db6548921734faf1b36cff9a39b5584f88d30dc2b90",
+  "status": "temporary PREVIEW detail-placement candidate; must pass full gate before promotion"
+}

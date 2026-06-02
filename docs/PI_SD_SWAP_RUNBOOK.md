@@ -26,7 +26,7 @@ origin** — a fresh clone gets you everything plus a cleaner state.
 
 ## Preserved artifacts (already pulled)
 
-Saved to `/Volumes/OWC_8TB/pi-pre-wipe-2026-05-29/`:
+Saved to `/Volumes/OWC_8TB/gpr_work/pi-pre-wipe-2026-05-29/`:
 - `pi_authorized_keys` (101 B) — your ssh pubkey (mostly redundant; Pi
   Imager has a UI for setting ssh keys at flash time)
 - `Z8Z_0001.dng`, `Z8Z_0067.dng`, `Z8Z_5323.dng`, `Z8Z_6693.dng` (~190 MB
@@ -100,7 +100,7 @@ ssh gpr-pi 'ln -s /mnt/ssd/work/gpr ~/gpr'
 ssh gpr-pi 'cd ~/gpr && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4'
 
 # 8. Push test DNGs to the SSD + symlink from $HOME
-rsync -avP /Volumes/OWC_8TB/pi-pre-wipe-2026-05-29/Z8Z_*.dng gpr-pi:/mnt/ssd/work/
+rsync -avP /Volumes/OWC_8TB/gpr_work/pi-pre-wipe-2026-05-29/Z8Z_*.dng gpr-pi:/mnt/ssd/work/
 ssh gpr-pi 'for d in /mnt/ssd/work/Z8Z_*.dng; do ln -sf "$d" ~/; done'
 
 # 9. Smoke test

@@ -94,17 +94,17 @@ on Pi 5 USB-SSD writes with page cache exhausted (`docs/pi5_bench_2026-05-26.md`
 The Pi-capture half-res frames (`ml2_q3_dec2`, 24.93 fps sustained) are
 desktop-restored to full-res editable raw via a 2× super-res CNN
 (`bibo2x_ane_ml2_q3_dec2_diverse`, F_ane variant, ~317K params on MPS).
-**Primary deliverable: GPRaw .mov** — a MOV container with codec_tag
-`GPR1` wrapping per-frame FUSED `.gpr`. Plays via `gpr2prores`; FFmpeg
-decodes natively via the `AV_CODEC_ID_GPR` patch. Per-frame editable DNG
-(~91 MB) + `gpr_tools .gpr` (~2–8 MB) for Adobe CR / darktable hand-off
-is opt-in via `--dng-export`. ProRes 422 HQ review video is opt-in via
-`--render-prores`.
+**Primary deliverable: `.gvid`** — the neutral GVID stream container wrapping
+per-frame FUSED `.gpr` payloads. A GPR1/GPRr MOV wrapper remains available as
+a compatibility/export artifact for `gpr2prores` and patched FFmpeg. Per-frame
+editable DNG (~91 MB) + `gpr_tools .gpr` (~2–8 MB) for Adobe CR / darktable
+hand-off is opt-in via `--dng-export`. ProRes 422 HQ review video is opt-in
+via `--render-prores`.
 
 | metric                              | value                         |
 |---                                  |---                            |
 | Capture rate (Pi 5)                 | 24.93 fps sustained           |
-| Per-frame upres (Mac M3, GPRaw)     | ~750 ms (decode 97 + CNN 435 + encode 210 + pack 8) |
+| Per-frame upres (Mac M3, GVID)      | ~750 ms (decode 97 + CNN 435 + encode 210 + pack 8) |
 | Per-frame upres (Mac M3, with --render-prores + --dng-export) | ~2.9 s (legacy path) |
 | Bayer PSNR vs source DNG            | 37.85–43.78 dB (4 gate imgs)  |
 | Gate verdict                        | **PASS** UPRESABLE class      |

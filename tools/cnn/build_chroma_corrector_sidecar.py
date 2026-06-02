@@ -257,20 +257,20 @@ def main() -> None:
         "--pairs-dirs",
         default=os.environ.get(
             "PAIRS_DIRS",
-            "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2:"
-            "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2_diverse:"
-            "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2_ood",
+            "/Volumes/OWC_8TB/gpr_work/cnn/pairs_ml2_q3_dec2:"
+            "/Volumes/OWC_8TB/gpr_work/cnn/pairs_ml2_q3_dec2_diverse:"
+            "/Volumes/OWC_8TB/gpr_work/cnn/pairs_ml2_q3_dec2_ood",
         ),
     )
     ap.add_argument(
         "--source-dirs",
         default=os.environ.get(
             "SOURCE_DIRS",
-            "/Volumes/OWC_8TB/barnsky_full_dngs:/Volumes/OWC_8TB/gpr_cnn/diverse_dngs",
+            "/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs:/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs",
         ),
     )
     ap.add_argument("--gpr-tools", default=str(Path.cwd() / "build-local/source/app/gpr_tools/gpr_tools"))
-    ap.add_argument("--render-cache", default="/Volumes/OWC_8TB/gpr_cnn/render_cache_chroma_baseline")
+    ap.add_argument("--render-cache", default="/Volumes/OWC_8TB/gpr_work/cnn/render_cache_chroma_baseline")
     ap.add_argument("--resume", action="store_true", help="Reuse existing staging .npy files when shapes match.")
     args = ap.parse_args()
 

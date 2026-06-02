@@ -96,12 +96,12 @@ Branch: `fix/multilevel-cascade-regression`
 
 ### Visual rigs (browsable)
 
-1. `/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525_metrics/`
+1. `/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525_metrics/`
    — REF + single + multi + cranked variants × 4 source DNGs, with
    metric tables per image and JSON export.
-2. `/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525_singlelevel/`
+2. `/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525_singlelevel/`
    — earlier single-level rig (no metrics in HTML).
-3. `/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525_real/`
+3. `/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525_real/`
    — half-res rig with the old multi-level + dec=2 pipeline (kept for
    reference; this is what looked blocky).
 

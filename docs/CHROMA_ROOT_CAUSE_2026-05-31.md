@@ -7,9 +7,9 @@ Lab-corrector experiment confirms the failure is model/input-distribution
 generalization:
 
 - Training sidecar rebuilt successfully:
-  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma.npz`
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma.npz`
 - Lab chroma checkpoint trained from that sidecar:
-  `/Volumes/OWC_8TB/gpr_cnn/F_ane_chroma_corrector_w12.pt`
+  `/Volumes/OWC_8TB/gpr_work/cnn/F_ane_chroma_corrector_w12.pt`
 - Best saved epoch: 5
 - Checkpoint sha256:
   `cab3cebf7753d8e27fef4c476003d5f7526bb0f6aae62717804571a3391508b2`
@@ -75,7 +75,7 @@ The first follow-up residual experiment used the codec-only Lab a/b estimate as
 the residual baseline:
 
 - Checkpoint:
-  `/Volumes/OWC_8TB/gpr_cnn/F_ane_chroma_corrector_w12_residual_ab8_sub10.pt`
+  `/Volumes/OWC_8TB/gpr_work/cnn/F_ane_chroma_corrector_w12_residual_ab8_sub10.pt`
 - Checkpoint sha256:
   `f4bc680e3d47cdb4c5cd4d9047c5a8c676a816105a796b436b175153b0ea5253`
 - Training mode: codec Lab a/b baseline plus bounded `+/-8` Lab-unit residual
@@ -112,11 +112,11 @@ root-cause hypothesis directly: the learned model was anchored to the wrong
 runtime chroma hint.
 
 - Sidecar:
-  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma_sips.npz`
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma_sips.npz`
 - Sidecar build coverage: `498/498` sources rendered and filled
 - Sidecar size: `1556.4 MiB`
 - Checkpoint:
-  `/Volumes/OWC_8TB/gpr_cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt`
+  `/Volumes/OWC_8TB/gpr_work/cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt`
 - Checkpoint sha256:
   `cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677`
 - Y checkpoint sha256:
@@ -192,7 +192,7 @@ A detail-aware Y checkpoint was trained to test whether the remaining preview
 blocker could be fixed by replacing only the Lab-corrector Y model:
 
 - Checkpoint:
-  `/Volumes/OWC_8TB/gpr_cnn/F_ane_no_sr_w16_y_multival_hf05_grad02_sub4.pt`
+  `/Volumes/OWC_8TB/gpr_work/cnn/F_ane_no_sr_w16_y_multival_hf05_grad02_sub4.pt`
 - Checkpoint sha256:
   `e7f5add8b7a3b4ed04f87417f7026b3d5a01ccfc0ee3eb403e4f8ced3eab661e`
 - Training: `F_ane_no_sr_w16_y`, multi-source validation

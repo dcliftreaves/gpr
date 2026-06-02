@@ -8,7 +8,7 @@ train_superres_F_no_sr_aa_on.py. The only thing that differs is the model
 class (uses model_F_ane.NAFUNetANE with BN + SiLU in place of LN + SimpleGate).
 
 Tile data:
-  /Volumes/OWC_8TB/gpr_cnn/tiles_superres_dense.npz  (M3 path)
+  /Volumes/OWC_8TB/gpr_work/cnn/tiles_superres_dense.npz  (M3 path)
   /Users/dcliftreaves/gpr_data/gpr_cnn/tiles_superres_dense.npz  (M5 path, after rsync)
 
 Held-out val: Z8_ISO64 (single source) — kept consistent with the F/BIBO trainers
@@ -35,7 +35,7 @@ DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 def default_npz():
     candidates = [
         os.environ.get("SUPERRES_NPZ"),
-        "/Volumes/OWC_8TB/gpr_cnn/tiles_superres_dense.npz",
+        "/Volumes/OWC_8TB/gpr_work/cnn/tiles_superres_dense.npz",
         "/Users/dcliftreaves/gpr_data/gpr_cnn/tiles_superres_dense.npz",
     ]
     for c in candidates:

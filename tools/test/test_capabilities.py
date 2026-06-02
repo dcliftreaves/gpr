@@ -30,7 +30,7 @@ Run from the repo root:
 
 Env:
     BUILD_DIR=build-local
-    ARTIFACT_DIR=/Volumes/OWC_8TB/gpr_artifacts/capabilities
+    ARTIFACT_DIR=/Volumes/OWC_8TB/gpr_work/artifacts/capabilities
     FAST=1  → skip ≥23 MP cells for quick CI
 """
 
@@ -55,8 +55,8 @@ GTOOLS = Path(os.environ.get("GTOOLS", BUILD_DIR / "source/app/gpr_tools/gpr_too
 # compression ratio) ignore this — they're build-type independent.
 TIMING_TOLERANCE = float(os.environ.get("GPR_TIMING_TOLERANCE", "1.0"))
 
-DEFAULT_ART = "/Volumes/OWC_8TB/gpr_artifacts/capabilities"
-if not Path("/Volumes/OWC_8TB/gpr_artifacts").exists():
+DEFAULT_ART = "/Volumes/OWC_8TB/gpr_work/artifacts/capabilities"
+if not Path("/Volumes/OWC_8TB/gpr_work/artifacts").exists():
     DEFAULT_ART = "/tmp/gpr-capabilities"
 ART_DIR = Path(os.environ.get("ARTIFACT_DIR", DEFAULT_ART))
 FAST = os.environ.get("FAST", "0") == "1"

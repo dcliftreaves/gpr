@@ -22,7 +22,7 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
 
 REPO = Path("/Users/dcliftreaves/Documents/Github/gpr")
-UPRES = Path("/Volumes/OWC_8TB/gpr_artifacts/upresable")
+UPRES = Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable")
 DASHBOARD = UPRES / "dashboard"
 DASHBOARD.mkdir(parents=True, exist_ok=True)
 ASSETS = DASHBOARD / "assets"
@@ -228,9 +228,9 @@ def build_html():
     <div class="sub">Bayer PSNR vs source DNG (4 gate images)</div>
   </div>
   <div class="card">
-    <h4>End-to-end Pi → Mac (GPRaw delivery)</h4>
+    <h4>End-to-end Pi → Mac (GVID delivery)</h4>
     <div class="v">1.79 fps</div>
-    <div class="sub">M3 Max bottleneck on Stage C (decode + BIBO_2x + encode = 546 ms median). Pi encode 6 fps via SSH-per-frame (24.93 fps in-process). USB rsync 501 MB/s. GPRaw pack 8 ms/frame. Per <code>tools/test/bench_pi_to_mac_upresable.sh</code> 2026-05-30.</div>
+    <div class="sub">M3 Max bottleneck on Stage C (decode + BIBO_2x + encode = 546 ms median). Pi encode 6 fps via SSH-per-frame (24.93 fps in-process). USB rsync 501 MB/s. GVID pack ~8 ms/frame. Per <code>tools/test/bench_pi_to_mac_upresable.sh</code> 2026-05-30.</div>
   </div>
   <div class="card">
     <h4>Banding fix</h4>
@@ -278,10 +278,11 @@ sensor → ml2_q3_dec2  →  halfres/&lt;frame&gt;.gpr  →   decode (97 ms via 
          (49 ms encode,       (~1–3 MB/frame)    → BIBO_2x CNN on MPS (~435 ms batched)
           0.98 MB/frame,                         → full-res Bayer (8280×5520, uint16)
           24.93 fps sustained)                   → FUSED encode (~210 ms) → fullres/&lt;frame&gt;.gpr
-                                                 → gpr_mov_tool pack (~8 ms/frame amortized)
-                                                 →&nbsp;&nbsp;upresable.gpraw.mov  ← PRIMARY DELIVERABLE
-                                                       (codec_tag GPR1, plays through gpr2prores,
-                                                        ffmpeg via AV_CODEC_ID_GPR, in-NLE)
+                                                 → gvid_pack (~8 ms/frame amortized)
+                                                 →&nbsp;&nbsp;upresable.gvid  ← PRIMARY DELIVERABLE
+                                                       (neutral GVID stream container)
+                                                 → optional GPR1/GPRr MOV wrapper
+                                                       (gpr2prores / patched FFmpeg compatibility)
 
 OPT-IN (correctness / hand-off):
   --render-prores: assemble 16-bit TIFF render → ProRes 422 HQ review (+1500 ms/frame)
@@ -348,11 +349,13 @@ OPT-IN (correctness / hand-off):
 
 <h3>Timelapse stats (median of {timelapse.get('n_frames', 0)} barnsky frames)</h3>
 <p style="color:#666; font-size:13.5px; line-height:1.5; max-width:900px;">
-  <b>Primary deliverable: GPRaw .mov</b> (per-frame FUSED .gpr + GPR1 codec_tag, MOV-wrapped).
+  <b>Primary deliverable: .gvid</b> (per-frame FUSED .gpr in the neutral GVID stream container).
+  The GPR1/GPRr MOV wrapper is a compatibility/export artifact for <code>gpr2prores</code>
+  and patched FFmpeg.
   Render (DNG wrap + gpr_tools .gpr + 16-bit TIFF) is opt-in via
   <code>--render-prores</code> / <code>--dng-export</code> — those are correctness or hand-off
   artifacts, not the perf path. The 2216 ms/frame "render" line below is the path
-  the 720-frame timelapse measured; the GPRaw fast path skips it entirely.
+  the 720-frame timelapse measured; the GVID fast path skips it entirely.
 </p>
 <table>
 <tr><th>Per-frame metric</th><th>Median</th></tr>
@@ -361,8 +364,8 @@ OPT-IN (correctness / hand-off):
 <tr><td>halfres .gpr decode (fused_decode_cli)</td><td class="num">~97 ms</td></tr>
 <tr><td>BIBO_2x CNN (MPS, batched-32)</td><td class="num">{timelapse.get('bibo2x_ms_median', 0):.0f} ms</td></tr>
 <tr><td>full-res encode</td><td class="num">{timelapse.get('encode_full_ms_median', 0):.0f} ms</td></tr>
-<tr><td>gpr_mov_tool pack → GPRaw .mov (amortized)</td><td class="num">~8 ms</td></tr>
-<tr><td><b>Total per frame — GPRaw delivery</b></td><td class="num"><b>~{int(timelapse.get('bibo2x_ms_median', 0) + timelapse.get('encode_full_ms_median', 0) + 97 + 8)} ms</b></td></tr>
+<tr><td>gvid_pack → .gvid (amortized)</td><td class="num">~8 ms</td></tr>
+<tr><td><b>Total per frame — GVID delivery</b></td><td class="num"><b>~{int(timelapse.get('bibo2x_ms_median', 0) + timelapse.get('encode_full_ms_median', 0) + 97 + 8)} ms</b></td></tr>
 <tr><td>render (DNG wrap + gpr_tools .gpr + 16-bit TIFF) — opt-in</td><td class="num">{timelapse.get('render_ms_median', 0):.0f} ms</td></tr>
 <tr><td>Total per frame — with --render-prores + --dng-export</td><td class="num">{timelapse.get('total_ms_median', 0):.0f} ms</td></tr>
 </table>
@@ -428,10 +431,10 @@ OPT-IN (correctness / hand-off):
 
 <h2>Reproduction</h2>
 <pre style="background:white; padding:14px; border-radius:6px; border:1px solid #ddd; overflow-x:auto;">
-# DEFAULT: GPRaw delivery (fast — ~750 ms/frame on Mac M3)
+# DEFAULT: GVID delivery (fast — ~750 ms/frame on Mac M3)
 python3 tools/cnn/upresable_pipeline.py --mode timelapse --n-frames 240 --workers 4
-# → /Volumes/OWC_8TB/gpr_artifacts/upresable/upresable_timelapse.gpraw.mov
-# Plays via gpr2prores; ffmpeg via AV_CODEC_ID_GPR (libavcodec patch).
+# → /Volumes/OWC_8TB/gpr_work/artifacts/upresable/upresable_timelapse.gvid
+# Optional GPR1/GPRr MOV wrapper is emitted for gpr2prores / patched FFmpeg.
 
 # Regression only — 4 gate images, includes DNG export for correctness check
 python3 tools/cnn/upresable_pipeline.py --mode regression --workers 4
@@ -444,7 +447,7 @@ python3 tools/cnn/upresable_pipeline.py --mode timelapse --n-frames 240 --worker
 python3 tools/cnn/upresable_pipeline.py --mode timelapse --n-frames 240 --workers 4 \
     --dng-export
 
-# Pi-to-Mac end-to-end bench (uses GPRaw as deliverable)
+# Pi-to-Mac end-to-end bench (uses GVID as deliverable)
 bash tools/test/bench_pi_to_mac_upresable.sh 120
 
 # --eight-bit opts into legacy 8-bit (causes sky banding; not recommended)

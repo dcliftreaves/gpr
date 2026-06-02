@@ -12,7 +12,7 @@
  *  Wire format (little-endian, packed):
  *
  *      Clip header (32 bytes, written once at stream start):
- *          [0..3]   magic     = 'GVID' (0x44, 0x49, 0x56, 0x47 on disk)
+ *          [0..3]   magic     = 'GVID' (0x47, 0x56, 0x49, 0x44 on disk)
  *          [4]      version   = 1
  *          [5]      flags     bit 0 = rate_control_enabled
  *                             bit 1 = denoise_enabled

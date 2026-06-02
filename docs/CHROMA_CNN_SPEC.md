@@ -98,8 +98,8 @@ Weights chosen so that at init (random) `loss_L2` and `loss_dE_proxy` are within
 
 Reuse what already exists. No new tile builds required:
 
-- **Source pairs**: `/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2/` (400 barnsky pairs, 200 unique source DNGs) + `/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2_diverse/` (596 pairs across 298 NEFs from 10 dates Jan–Oct 2025).
-- **NPZ used for VA Y/Cb/Cr**: `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate.npz` — has codec_R/G1/G2/B (uint16, 128×128) + tgt_rgb (uint8, 512×512) + src/src_lookup_names. **Exactly what we need.**
+- **Source pairs**: `/Volumes/OWC_8TB/gpr_work/cnn/pairs_ml2_q3_dec2/` (400 barnsky pairs, 200 unique source DNGs) + `/Volumes/OWC_8TB/gpr_work/cnn/pairs_ml2_q3_dec2_diverse/` (596 pairs across 298 NEFs from 10 dates Jan–Oct 2025).
+- **NPZ used for VA Y/Cb/Cr**: `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate.npz` — has codec_R/G1/G2/B (uint16, 128×128) + tgt_rgb (uint8, 512×512) + src/src_lookup_names. **Exactly what we need.**
 - **Gate test exclusion**: already excluded by the `tiles_ml2_q3_dec2_dmsr_gate.npz` build path (see `build_tiles_dmsr_gate_aligned.py`); val uses `Z8Z_0067` only by convention. The trainer keeps `VAL_SRC_NAMES=Z8Z_0067` so the four gate images (Z8Z_0001, Z8Z_5323, Z8Z_6693, Z8Z_0067) are all out of train. Z8Z_0067 stays as val anchor; the other three stay completely held out.
 
 **Additional inputs the dataset doesn't yet have** (needed at train time):
@@ -165,17 +165,17 @@ This piggybacks on the eval helpers in `codec_anchored_proper.py:212-247` — sh
 # Builds y_half / a_naive_half / b_naive_half / tile_sat_score into a sidecar.
 KMP_DUPLICATE_LIB_OK=TRUE \
   python3 /Users/dcliftreaves/Documents/Github/gpr/tools/cnn/build_chroma_corrector_sidecar.py \
-    --in-npz /Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate.npz \
+    --in-npz /Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate.npz \
     --y-ckpt /Users/dcliftreaves/gpr_data/F_ane_no_sr_w16_y.pt \
-    --out-npz /Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma.npz
+    --out-npz /Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma.npz
 ```
 
 Then rsync both NPZs to M5:
 
 ```
-rsync -avP /Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate.npz \
+rsync -avP /Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate.npz \
            gpr-m5:/Users/dcliftreaves/gpr_data/
-rsync -avP /Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma.npz \
+rsync -avP /Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma.npz \
            gpr-m5:/Users/dcliftreaves/gpr_data/
 ```
 
@@ -214,11 +214,11 @@ After training completes:
 
 ```
 scp gpr-m5:/Users/dcliftreaves/gpr_data/F_ane_chroma_corrector_w12.pt \
-    /Volumes/OWC_8TB/gpr_artifacts/chroma_corrector/F_ane_chroma_corrector_w12.pt
+    /Volumes/OWC_8TB/gpr_work/artifacts/chroma_corrector/F_ane_chroma_corrector_w12.pt
 
 # Also commit a copy to models/ as the registry entry expects, OR add a
 # disk-resident entry. Final artifact path on SSD:
-#   /Volumes/OWC_8TB/gpr_artifacts/chroma_corrector/F_ane_chroma_corrector_w12.pt
+#   /Volumes/OWC_8TB/gpr_work/artifacts/chroma_corrector/F_ane_chroma_corrector_w12.pt
 ```
 
 Add to `pipelines/registry.json` under cnns:
@@ -226,7 +226,7 @@ Add to `pipelines/registry.json` under cnns:
 ```
 "chroma_corrector_w12": {
   "$doc": "...",
-  "ckpt_path": "/Volumes/OWC_8TB/gpr_artifacts/chroma_corrector/F_ane_chroma_corrector_w12.pt",
+  "ckpt_path": "/Volumes/OWC_8TB/gpr_work/artifacts/chroma_corrector/F_ane_chroma_corrector_w12.pt",
   "cnn_arch_variant": "F_ane_chroma_corrector_w12",
   "depends_on_cnn": "ycbcr_decomp_y_w16_cb_w8_cr_w8"
 }

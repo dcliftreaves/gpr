@@ -21,7 +21,7 @@
   "images": [
     {
       "id": "Z8Z_0026",
-      "path": "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs/Z8Z_0026.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs/Z8Z_0026.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "diverse-early-corpus",
@@ -30,7 +30,7 @@
     },
     {
       "id": "Z8Z_0705",
-      "path": "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs/Z8Z_0705.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs/Z8Z_0705.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "diverse-mid-corpus",
@@ -39,7 +39,7 @@
     },
     {
       "id": "Z8Z_1586",
-      "path": "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs/Z8Z_1586.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs/Z8Z_1586.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "diverse-high-index",
@@ -48,7 +48,7 @@
     },
     {
       "id": "Z8Z_5284",
-      "path": "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs/Z8Z_5284.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs/Z8Z_5284.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "diverse-detail",
@@ -57,7 +57,7 @@
     },
     {
       "id": "Z8Z_5937",
-      "path": "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs/Z8Z_5937.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs/Z8Z_5937.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "diverse-color",
@@ -66,7 +66,7 @@
     },
     {
       "id": "Z8Z_6680",
-      "path": "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs/Z8Z_6680.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs/Z8Z_6680.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "same-session-ood",
@@ -75,7 +75,7 @@
     },
     {
       "id": "Z8Z_7480",
-      "path": "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs/Z8Z_7480.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs/Z8Z_7480.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "diverse-late-corpus",
@@ -84,7 +84,7 @@
     },
     {
       "id": "Z8Z_7955",
-      "path": "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs/Z8Z_7955.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs/Z8Z_7955.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "diverse-late-corpus",
@@ -93,7 +93,7 @@
     },
     {
       "id": "Z8Z_0040",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0040.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0040.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-early",
@@ -102,7 +102,7 @@
     },
     {
       "id": "Z8Z_0080",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0080.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0080.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-early",
@@ -111,7 +111,7 @@
     },
     {
       "id": "Z8Z_0120",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0120.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0120.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-early-mid",
@@ -120,7 +120,7 @@
     },
     {
       "id": "Z8Z_0181",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0181.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0181.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid",
@@ -129,7 +129,7 @@
     },
     {
       "id": "Z8Z_0240",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0240.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0240.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid",
@@ -138,7 +138,7 @@
     },
     {
       "id": "Z8Z_0252",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0252.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0252.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid",
@@ -147,7 +147,7 @@
     },
     {
       "id": "Z8Z_0284",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0284.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0284.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid",
@@ -156,7 +156,7 @@
     },
     {
       "id": "Z8Z_0290",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0290.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0290.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid",
@@ -165,7 +165,7 @@
     },
     {
       "id": "Z8Z_0320",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0320.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0320.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid",
@@ -174,7 +174,7 @@
     },
     {
       "id": "Z8Z_0333",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0333.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0333.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid",
@@ -183,7 +183,7 @@
     },
     {
       "id": "Z8Z_0383",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0383.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0383.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid-late",
@@ -192,7 +192,7 @@
     },
     {
       "id": "Z8Z_0455",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0455.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0455.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid-late",
@@ -201,7 +201,7 @@
     },
     {
       "id": "Z8Z_0440",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0440.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0440.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid-late",
@@ -210,7 +210,7 @@
     },
     {
       "id": "Z8Z_0480",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0480.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0480.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-mid-late",
@@ -219,7 +219,7 @@
     },
     {
       "id": "Z8Z_0520",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0520.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0520.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-late",
@@ -228,7 +228,7 @@
     },
     {
       "id": "Z8Z_0535",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0535.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0535.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-late",
@@ -237,7 +237,7 @@
     },
     {
       "id": "Z8Z_0640",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0640.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0640.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-late",
@@ -246,7 +246,7 @@
     },
     {
       "id": "Z8Z_0680",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0680.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0680.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "same-session-ood",
@@ -255,7 +255,7 @@
     },
     {
       "id": "Z8Z_0694",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0694.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0694.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "same-session-ood",
@@ -264,7 +264,7 @@
     },
     {
       "id": "Z8Z_0718",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/upresable/editable_dng/Z8Z_0718.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0718.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "sequence-late",

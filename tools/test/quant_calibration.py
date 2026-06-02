@@ -19,10 +19,10 @@ slots, not whole presets.
 
 Usage:
   python3 tools/test/quant_calibration.py \\
-      --corpus /Volumes/OWC_8TB/gpr_artifacts/fixtures/barn_sky_dngs \\
+      --corpus /Volumes/OWC_8TB/gpr_work/artifacts/fixtures/barn_sky_dngs \\
       --max-images 4 \\
       --qualities 0,1,2,3,4,5,6,7,8 \\
-      --out-dir /Volumes/OWC_8TB/gpr_artifacts/quant_calibration
+      --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/quant_calibration
 
 Optional:
   --with-cnn           also measure CNN-corrected PSNR (slower)
@@ -587,11 +587,11 @@ def main():
                     help="(per-subband mode) multipliers to apply to default quant")
     ap.add_argument("--build-dir", type=Path, default=Path("build-local"))
     ap.add_argument("--out-dir", type=Path,
-                    default=Path("/Volumes/OWC_8TB/gpr_artifacts/quant_calibration"))
+                    default=Path("/Volumes/OWC_8TB/gpr_work/artifacts/quant_calibration"))
     ap.add_argument("--with-cnn", action="store_true",
                     help="also measure CNN-corrected PSNR (much slower)")
     ap.add_argument("--cnn-ckpt", type=Path,
-                    default=Path("/Volumes/OWC_8TB/gpr_artifacts/weights/F_ane_1x_weights_metal"),
+                    default=Path("/Volumes/OWC_8TB/gpr_work/artifacts/weights/F_ane_1x_weights_metal"),
                     help="Metal weights dir (gpr2prores render path)")
     ap.add_argument("--cnn-ckpt-pt", type=Path,
                     default=Path("/Users/dcliftreaves/dering_proto_v2/checkpoints/"

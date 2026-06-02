@@ -165,17 +165,17 @@ the PSNR.
 ```
 # Quality-preset baseline (gpr_tools legacy encoder)
 python3 tools/test/quant_calibration.py --mode presets \
-    --corpus /Volumes/OWC_8TB/gpr_artifacts/fixtures/barn_sky_dngs \
+    --corpus /Volumes/OWC_8TB/gpr_work/artifacts/fixtures/barn_sky_dngs \
     --max-images 4 --qualities 0,1,2,3,4,5,6,7,8 \
-    --out-dir /Volumes/OWC_8TB/gpr_artifacts/quant_calibration
+    --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/quant_calibration
 
 # Per-subband sweep with CNN-corrected PSNR
 python3 tools/test/quant_calibration.py --mode per-subband \
-    --corpus /Volumes/OWC_8TB/gpr_artifacts/fixtures/diverse_4 \
+    --corpus /Volumes/OWC_8TB/gpr_work/artifacts/fixtures/diverse_4 \
     --max-images 4 --slots 1,2,3 --multipliers 1.0,2.0,4.0 \
     --encoder-mode single-ll --with-cnn \
     --cnn-ckpt-pt /Users/dcliftreaves/dering_proto_v2/checkpoints/BayInBayOut_1x_AAon_w16_ANE.pt \
-    --out-dir /Volumes/OWC_8TB/gpr_artifacts/quant_calibration
+    --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/quant_calibration
 ```
 
 A `Release` (`-O2`) build is required — a `-O0` build measures roughly
@@ -314,7 +314,7 @@ epoch 47.
 Per-subband sweep on the diverse 4-image corpus (`single-ll` mode):
 
 (Source:
-`/Volumes/OWC_8TB/gpr_artifacts/quant_calibration_retrained/per_subband_sweep.csv`
+`/Volumes/OWC_8TB/gpr_work/artifacts/quant_calibration_retrained/per_subband_sweep.csv`
 — means re-computed from the raw CSV.)
 
 | Subband | mult | bits saved | PSNR no-CNN | PSNR + retrained-CNN | retrained CNN gain |
@@ -418,7 +418,7 @@ quality. Soft upgrade.
 * Harness:
   [`tools/test/quant_calibration.py`](../tools/test/quant_calibration.py).
 * Raw retrained-CNN sweep data:
-  `/Volumes/OWC_8TB/gpr_artifacts/quant_calibration_retrained/per_subband_sweep.csv`.
+  `/Volumes/OWC_8TB/gpr_work/artifacts/quant_calibration_retrained/per_subband_sweep.csv`.
 
 ### Pull requests landed in support of this work
 

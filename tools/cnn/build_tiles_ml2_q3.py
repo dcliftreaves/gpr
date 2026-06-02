@@ -21,8 +21,8 @@ import sys
 import time
 import numpy as np
 
-PAIRS_DIR = os.environ.get("PAIRS_DIR", "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3")
-OUT_NPZ = os.environ.get("TILES_OUT", "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3.npz")
+PAIRS_DIR = os.environ.get("PAIRS_DIR", "/Volumes/OWC_8TB/gpr_work/cnn/pairs_ml2_q3")
+OUT_NPZ = os.environ.get("TILES_OUT", "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3.npz")
 TILE = 128
 # Default stride=256 keeps total tile count around 33K — matches the historical
 # super-res NPZ size that the trainer is tuned for, and avoids OOM during stacking.

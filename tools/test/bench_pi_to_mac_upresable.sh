@@ -7,7 +7,8 @@
 #   A. Pi encodes halfres .gpr via ml2_q3_dec2 → /mnt/ssd/work/bench_pi2mac/
 #   B. rsync over USB-tethered SSH from Pi → Mac /Volumes/OWC_8TB/.../bench
 #   C. Mac decodes + BIBO_2x super-res + encodes full-res .gpr
-#   D. gpr_mov_tool pack full-res .gpr sequence → GPRaw .mov (deliverable)
+#   D. gvid_pack full-res .gpr sequence → .gvid (primary deliverable)
+#   E. gpr_mov_tool pack full-res .gpr sequence → GPR1 MOV (compatibility)
 #
 # Per-frame DNG wrap is NOT in the perf path; it's a one-time correctness
 # export and lives in upresable_pipeline.py --dng-export.
@@ -25,7 +26,7 @@ N="${1:-120}"
 PI=gpr-pi
 SRC_DNGS=(Z8Z_0001.dng Z8Z_0067.dng Z8Z_5323.dng Z8Z_6693.dng)
 
-MAC_OUT=/Volumes/OWC_8TB/gpr_artifacts/upresable/pi_mac_bench
+MAC_OUT=/Volumes/OWC_8TB/gpr_work/artifacts/upresable/pi_mac_bench
 PI_OUT=/mnt/ssd/work/bench_pi2mac
 LOG=$MAC_OUT/run.log
 REPORT=/tmp/pi_mac_bench_report.txt
@@ -47,8 +48,8 @@ RAW_DIR=$MAC_OUT/raws
 mkdir -p "$RAW_DIR"
 for name in Z8Z_0001 Z8Z_0067 Z8Z_5323 Z8Z_6693; do
   if [ ! -f "$RAW_DIR/$name.raw" ]; then
-    DNG=/Volumes/OWC_8TB/barnsky_full_dngs/$name.dng
-    [ -f "$DNG" ] || DNG=/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/source_dngs/$name.dng
+    DNG=/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs/$name.dng
+    [ -f "$DNG" ] || DNG=/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/$name.dng
     DNG_PATH="$DNG" RAW_PATH="$RAW_DIR/$name.raw" \
     /Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3 -c "
 import os, tifffile, numpy as np
@@ -214,17 +215,31 @@ C_FPS=$(echo "$N / $C_DUR" | bc -l)
 echo "  Stage C: ${C_DUR}s for $N frames → $(printf '%.2f' $C_FPS) fps"
 echo
 
-# --- Stage D: pack GPRaw .mov (deliverable) ---
-echo "--- Stage D: pack full-res .gpr → GPRaw .mov ---"
-GPRAW=$MAC_OUT/processed/upresable.gpraw.mov
+# --- Stage D: pack primary .gvid ---
+echo "--- Stage D: pack full-res .gpr → .gvid ---"
+GVID=$MAC_OUT/processed/upresable.gvid
 D_T0=$(date +%s.%N)
-/Users/dcliftreaves/Documents/Github/gpr/tools/gpr2prores/gpr_mov_tool pack \
-  "$MAC_OUT/processed/fullres" "$GPRAW" --fps 24 2>&1 | tail -2
+python3 /Users/dcliftreaves/Documents/Github/gpr/tools/gvid_pack.py \
+  "$MAC_OUT/processed/fullres" "$GVID" \
+  --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4
 D_T1=$(date +%s.%N)
 D_DUR=$(echo "$D_T1 - $D_T0" | bc -l)
 D_FPS=$(echo "$N / $D_DUR" | bc -l)
-GPRAW_MB=$(ls -la "$GPRAW" | awk '{print $5 / 1024 / 1024}')
-echo "  Stage D: ${D_DUR}s for $N frames → $(printf '%.2f' $D_FPS) fps  (GPRaw size: $(printf '%.1f' $GPRAW_MB) MB)"
+GVID_MB=$(ls -la "$GVID" | awk '{print $5 / 1024 / 1024}')
+echo "  Stage D: ${D_DUR}s for $N frames → $(printf '%.2f' $D_FPS) fps  (.gvid size: $(printf '%.1f' $GVID_MB) MB)"
+echo
+
+# --- Stage E: pack MOV compatibility wrapper ---
+echo "--- Stage E: pack full-res .gpr → GPR1 MOV compatibility wrapper ---"
+MOV_COMPAT=$MAC_OUT/processed/upresable.gpr1.mov
+E_T0=$(date +%s.%N)
+/Users/dcliftreaves/Documents/Github/gpr/tools/gpr2prores/gpr_mov_tool pack \
+  "$MAC_OUT/processed/fullres" "$MOV_COMPAT" --fps 24 2>&1 | tail -2
+E_T1=$(date +%s.%N)
+E_DUR=$(echo "$E_T1 - $E_T0" | bc -l)
+E_FPS=$(echo "$N / $E_DUR" | bc -l)
+MOV_MB=$(ls -la "$MOV_COMPAT" | awk '{print $5 / 1024 / 1024}')
+echo "  Stage E: ${E_DUR}s for $N frames → $(printf '%.2f' $E_FPS) fps  (MOV wrapper size: $(printf '%.1f' $MOV_MB) MB)"
 echo
 
 # --- Report ---
@@ -232,22 +247,25 @@ echo "=== Report ==="
 {
   echo "bench_pi_to_mac_upresable — $(date)"
   echo "frames: $N"
-  echo "deliverable: GPRaw .mov ($(printf '%.1f' $GPRAW_MB) MB)"
+  echo "deliverable: .gvid ($(printf '%.1f' $GVID_MB) MB)"
+  echo "compatibility: GPR1 MOV ($(printf '%.1f' $MOV_MB) MB)"
   echo ""
   printf "%-40s %12s %12s %12s\n" "stage" "duration_s" "fps" "MB/s"
   printf "%-40s %12s %12s %12s\n" "----" "----------" "---" "----"
   printf "%-40s %12.2f %12.2f %12s\n" "A. Pi encode (ml2_q3_dec2)" "$A_DUR" "$A_FPS" "-"
   printf "%-40s %12.2f %12.2f %12.2f\n" "B. rsync Pi → Mac (USB)" "$B_DUR" "$B_FPS" "$MBS"
   printf "%-40s %12.2f %12.2f %12s\n" "C. Mac decode + BIBO_2x + encode" "$C_DUR" "$C_FPS" "-"
-  printf "%-40s %12.2f %12.2f %12s\n" "D. gpr_mov_tool pack → GPRaw .mov" "$D_DUR" "$D_FPS" "-"
+  printf "%-40s %12.2f %12.2f %12s\n" "D. gvid_pack → .gvid" "$D_DUR" "$D_FPS" "-"
+  printf "%-40s %12.2f %12.2f %12s\n" "E. gpr_mov_tool pack → GPR1 MOV" "$E_DUR" "$E_FPS" "-"
   echo ""
   printf "Bottleneck: "
   python3 -c "
 fps = [$A_FPS, $B_FPS, $C_FPS, $D_FPS]
-stages = ['A: Pi encode', 'B: USB rsync', 'C: Mac decode+CNN+encode', 'D: GPRaw pack']
+stages = ['A: Pi encode', 'B: USB rsync', 'C: Mac decode+CNN+encode', 'D: .gvid pack']
 m = min(fps); i = fps.index(m)
 print(f'{stages[i]} at {m:.2f} fps')
-print(f'Streaming sustained throughput = min(A,B,C,D) = {m:.2f} fps')
+print(f'Primary .gvid sustained throughput = min(A,B,C,D) = {m:.2f} fps')
+print(f'MOV compatibility pack = {float("$E_FPS"):.2f} fps')
 "
 } | tee "$REPORT"
 echo

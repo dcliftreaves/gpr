@@ -20,14 +20,14 @@ import rawpy
 
 REPO = "/Users/dcliftreaves/Documents/Github/gpr"
 ROUNDTRIP = f"{REPO}/build-local/bin/test_fused_roundtrip"
-OUT_DIR = os.environ.get("OUT_DIR", "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_l2x2_l1x4")
+OUT_DIR = os.environ.get("OUT_DIR", "/Volumes/OWC_8TB/gpr_work/cnn/pairs_ml2_q3_l2x2_l1x4")
 # diverse_dngs FIRST so the broadened-corpus contribution always lands in the
 # build even at modest MAX_PAIRS (barnsky has thousands of bases and would
 # otherwise saturate the cap on its own).
 DNG_DIRS = [
-    "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs",
-    "/Volumes/OWC_8TB/barnsky_full_dngs",
-    "/Volumes/OWC_8TB/gpr_cnn/source_dngs_expanded",
+    "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs",
+    "/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs",
+    "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded",
     "/Users/dcliftreaves/dering_proto_v2/source_dngs",
 ]
 MAX_PAIRS = int(os.environ.get("MAX_PAIRS", "500"))

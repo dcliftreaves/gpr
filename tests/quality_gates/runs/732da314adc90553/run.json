@@ -3,7 +3,7 @@
   "ship_class": "PREVIEW",
   "run_hash": "732da314adc90553",
   "gates_sha": "11f9023d55ad7a01",
-  "started_at": "2026-05-29T00:39:06-0500",
+  "started_at": "2026-05-29T13:08:06-0500",
   "images": {
     "Z8Z_0001": {
       "y_psnr": 29.856571056595072,
@@ -13,7 +13,7 @@
       "bayer_psnr_codec": 31.947133815389748,
       "bayer_psnr_final": null,
       "enc_bytes": 1751835,
-      "enc_ms": 8.4,
+      "enc_ms": 10.5,
       "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/732da314adc90553/Z8Z_0001_REF_crop_A_detail.png",
       "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/732da314adc90553/Z8Z_0001_PIPELINE_crop_A_detail.png",
       "verdict": "FAIL",
@@ -40,7 +40,7 @@
       "bayer_psnr_codec": 35.72428288782006,
       "bayer_psnr_final": null,
       "enc_bytes": 1020716,
-      "enc_ms": 7.6,
+      "enc_ms": 8.8,
       "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/732da314adc90553/Z8Z_0067_REF_crop_A_detail.png",
       "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/732da314adc90553/Z8Z_0067_PIPELINE_crop_A_detail.png",
       "verdict": "PASS",
@@ -54,7 +54,7 @@
       "bayer_psnr_codec": 35.75877718750448,
       "bayer_psnr_final": null,
       "enc_bytes": 2658567,
-      "enc_ms": 10.7,
+      "enc_ms": 15.4,
       "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/732da314adc90553/Z8Z_5323_REF_crop_A_detail.png",
       "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/732da314adc90553/Z8Z_5323_PIPELINE_crop_A_detail.png",
       "verdict": "FAIL",
@@ -81,7 +81,7 @@
       "bayer_psnr_codec": 36.80619907878511,
       "bayer_psnr_final": null,
       "enc_bytes": 3374869,
-      "enc_ms": 12.7,
+      "enc_ms": 17.9,
       "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/732da314adc90553/Z8Z_6693_REF_crop_A_detail.png",
       "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/732da314adc90553/Z8Z_6693_PIPELINE_crop_A_detail.png",
       "verdict": "FAIL",
@@ -113,5 +113,5 @@
     "lpips": 0.3849794566631317
   },
   "verdict": "FAIL",
-  "finished_at": "2026-05-29T00:40:21-0500"
+  "finished_at": "2026-05-29T13:08:35-0500"
 }

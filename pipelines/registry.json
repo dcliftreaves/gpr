@@ -96,7 +96,7 @@
       "use_for": "experiment"
     },
     "ml3_q12_l1l2x4_legacy": {
-      "$doc": "Historical pipeline that produced the 'looked much better' results in /Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/. ml3 codec with L1+L2 highpass cranked 4x. Paired with cnn=bibo1x_ane_l1l2x4. The historical q=12 quality table no longer exists; we approximate via GPR_QUANT_OVERRIDE.",
+      "$doc": "Historical pipeline that produced the 'looked much better' results in /Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/. ml3 codec with L1+L2 highpass cranked 4x. Paired with cnn=bibo1x_ane_l1l2x4. The historical q=12 quality table no longer exists; we approximate via GPR_QUANT_OVERRIDE.",
       "binary": "build-local/bin/test_fused_roundtrip",
       "env": {
         "GPR_INCLUDE_LL": "1",
@@ -746,7 +746,7 @@
       "ckpt_sha256": "9dff3b3b14dc5ed98224f3ab7215b131cbc94b6c3aef09ae28a5086d9e8d5a46"
     },
     "bido_4x_ane_ml2_q3_dec2_w32_hardtail_best": {
-      "$doc": "Temporary PREVIEW detail-placement candidate. Warm-started from bido_4x_ane_ml2_q3_dec2_w32_exposure_aug and fine-tuned on the full-gate hard-tail tile NPZ /Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail.npz. Train images: Z8Z_0001, Z8Z_5323, Z8Z_6693; validation guardrail: Z8Z_0067. Saved at epoch 3 by lowest Z8Z_0067 LPIPS (0.0754). Training command used train_demosaic_sr.py --variant F_ane_dm_sr_w32 --epochs 60 --batch 2 --lr 1e-4 --lpips-weight 0.05 --lpips-warmup-epochs 5.",
+      "$doc": "Temporary PREVIEW detail-placement candidate. Warm-started from bido_4x_ane_ml2_q3_dec2_w32_exposure_aug and fine-tuned on the full-gate hard-tail tile NPZ /Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail.npz. Train images: Z8Z_0001, Z8Z_5323, Z8Z_6693; validation guardrail: Z8Z_0067. Saved at epoch 3 by lowest Z8Z_0067 LPIPS (0.0754). Training command used train_demosaic_sr.py --variant F_ane_dm_sr_w32 --epochs 60 --batch 2 --lr 1e-4 --lpips-weight 0.05 --lpips-warmup-epochs 5.",
       "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w32_ANE_hardtail_best.pt",
       "cnn_arch_variant": "F_ane_dm_sr_w32",
       "trained_against_codec": "ml2_q3_dec2",
@@ -854,8 +854,8 @@
       "ckpt_sha256": "df22af432710bddabd223047c2db2d0edf2808dd17c4341694a974e045ec87cd"
     },
     "restormer_real_denoising_post": {
-      "$doc": "Restormer (Apache-2.0, Zamir et al. CVPR 2022) trained for real noise denoising, applied as a post-decode RGB filter. 26.1M params (~83\u00d7 a BIBO_1x_w16). Tiled inference at 512px; ~15s/frame on M3 Max MPS at 4K. Desktop-only: too slow for in-camera or video real-time use. Off-repo checkpoint lives at /Volumes/OWC_8TB/external/restormer_real_denoising.pth (rsynced from Restormer GitHub release v1.0). The arch module lives at tools/cnn/restormer_arch.py.",
-      "ckpt_path": "/Volumes/OWC_8TB/external/restormer_real_denoising.pth",
+      "$doc": "Restormer (Apache-2.0, Zamir et al. CVPR 2022) trained for real noise denoising, applied as a post-decode RGB filter. 26.1M params (~83\u00d7 a BIBO_1x_w16). Tiled inference at 512px; ~15s/frame on M3 Max MPS at 4K. Desktop-only: too slow for in-camera or video real-time use. Off-repo checkpoint lives at /Volumes/OWC_8TB/gpr_work/external/restormer_real_denoising.pth (rsynced from Restormer GitHub release v1.0). The arch module lives at tools/cnn/restormer_arch.py.",
+      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/external/restormer_real_denoising.pth",
       "cnn_arch_variant": "restormer_post_rgb",
       "raw_norm": null,
       "trained_against_codec": "any",
@@ -1003,6 +1003,66 @@
       "ckpt_y": "models/F_ane_no_sr_w32_y_lk7_hardtail_s128_lx2_last.pt",
       "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
       "ckpt_y_sha256": "a8dcb377aa0de376e0930e1f2dc1c6ce464ddbecb1b4f4e2dfe08d7c968b994f",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_best": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Keeps solved display-space Lab/SIPS chroma, but uses a width-32 Y-only model that consumes the decoded half-res Bayer as a single spatial mosaic instead of four packed phase planes. Trained on stride-128 hard-tail tiles with 2x bandwidth-limited reference Lab L target. Saved at epoch 30 by lowest Z8Z_0067 LPIPS (0.0349). Tests whether Bayer phase adjacency/detail placement is the remaining blocker.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_mosaic_w32_y_hardtail_s128_lx2_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "b9f9e0577a8d682276737db6548921734faf1b36cff9a39b5584f88d30dc2b90",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_last": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Same mosaic-input 2x-low-pass target Y run as y_mosaic_w32_hardtail_s128_lx2_best, but saved at early-stop epoch 60. Z8Z_0067 guardrail LPIPS at save time was 0.0360.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_mosaic_w32_y_hardtail_s128_lx2_last.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "57d20835be41bd469acaaf34c241721283fc4ab28ed89eb1e8186cad80a9848c",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_fullref_best": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Warm-started from y_mosaic_w32_hardtail_s128_lx2_best, then fine-tuned on the full-REF stride-128 hard-tail Y target with LPIPS plus high-pass/gradient loss. Tests whether the prior remaining Z8Z_6693 texture failure was caused by the low-pass training target being too conservative.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_mosaic_w32_y_hardtail_s128_fullref_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "89dd8017493f4c66f1dab28f52ceccffb4748440c9110dd5526f3bd001d533f7",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_lx2_best": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Width-48 version of the mosaic-input low-pass x2 Y model. Tests whether the remaining Z8Z_6693 texture failure is caused by insufficient Y/detail model capacity rather than Bayer phase packing or chroma.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_mosaic_w48_y_hardtail_s128_lx2_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "2bab749610b094276794202f584184b7157ecc72b96b9d282cf8cdd922643236",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_lx2_last": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Final epoch from the width-48 mosaic-input low-pass x2 Y run. Gated to test whether Z8Z_0067 validation LPIPS is selecting the wrong checkpoint for the mixed-contrast hard tail.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_mosaic_w48_y_hardtail_s128_lx2_last.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "b573d34496fe73c7d94701c7f26a801546a09a525050ab5d0a56b3d94abc2646",
       "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
       "trained_against_codec": "ml2_q3_dec2",
       "raw_norm": 16383.0,
@@ -1864,6 +1924,46 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-y-w32-lk7-hardtail-s128-lx2",
       "$doc": "Temporary candidate for the detail-placement stop criteria. Final large-kernel width-32 Y checkpoint trained against 2x bandwidth-limited reference Lab L plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-mosaic-w32-hardtail-s128-lx2",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Width-32 Y checkpoint trained against 2x bandwidth-limited reference Lab L from single-channel decoded Bayer mosaic input plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_last+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_lx2_last",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-mosaic-w32-hardtail-s128-lx2",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Final mosaic-input width-32 Y checkpoint trained against 2x bandwidth-limited reference Lab L plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_fullref_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w32_hardtail_s128_fullref_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-mosaic-w32-hardtail-s128-fullref",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Mosaic-input width-32 Y checkpoint warm-started from the low-pass target run and fine-tuned against full REF Y texture plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_lx2_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_lx2_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-mosaic-w48-hardtail-s128-lx2",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Width-48 mosaic-input Y checkpoint trained against 2x bandwidth-limited reference Lab L plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_lx2_last+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_lx2_last",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-mosaic-w48-hardtail-s128-lx2",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Final checkpoint from the width-48 mosaic-input Y run, used to test checkpoint-selection mismatch."
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s05_sig2+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

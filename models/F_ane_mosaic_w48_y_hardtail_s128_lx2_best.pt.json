@@ -1,0 +1,27 @@
+{
+  "artifact": "models/F_ane_mosaic_w48_y_hardtail_s128_lx2_best.pt",
+  "sha256": "2bab749610b094276794202f584184b7157ecc72b96b9d282cf8cdd922643236",
+  "kind": "ycbcr_decomp_y",
+  "variant": "F_ane_mosaic_w48_y",
+  "input_mode": "mosaic2x",
+  "params": 2762500,
+  "trained_against_codec": "ml2_q3_dec2",
+  "dataset": "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128_lx2_mosaic.npz",
+  "dataset_sha256": "d5e97d539859405f70481c43f64b8464026b2a3c2764d7a0abb89ae570c4e253",
+  "target": "neutral grayscale RGB whose Lab L is REF Lab L low-passed by factor 2",
+  "input": "single-channel decoded half-res Bayer mosaic tile, 256x256, preserving 2x2 Bayer phase adjacency",
+  "train_images": ["Z8Z_0001", "Z8Z_5323", "Z8Z_6693"],
+  "validation_images": ["Z8Z_0067"],
+  "tile_stride": 128,
+  "epoch": 68,
+  "val_l1": 0.02113036731898319,
+  "val_psnr": 34.85213000774384,
+  "val_lpips": 0.028008192917332052,
+  "loss": {
+    "multiscale_l1": true,
+    "lpips_weight": 0.10,
+    "hf_weight": 0.01,
+    "grad_weight": 0.01
+  },
+  "status": "temporary PREVIEW detail-placement capacity candidate; must pass full gate before promotion"
+}

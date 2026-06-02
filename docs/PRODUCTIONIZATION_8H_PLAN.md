@@ -68,7 +68,7 @@ Lab/SIPS color direction.
 Chroma root-cause status:
 
 - Sidecar rebuilt:
-  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma.npz`
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma.npz`
 - Absolute Lab checkpoint trained and gated: full gate FAIL, run
   `c9bbe8390032412a`
 - Residual Lab checkpoint trained and gated: full gate FAIL, run
@@ -120,9 +120,9 @@ Implementation status for that next fix:
 - Smoke check completed on `Z8Z_0067`: the demosaic/sips baseline rendered and
   a small runtime tensor executed through the residual checkpoint.
 - Full sidecar build completed for `498/498` sources:
-  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma_sips.npz`
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_chroma_sips.npz`
 - Display-space residual checkpoint:
-  `/Volumes/OWC_8TB/gpr_cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt`
+  `/Volumes/OWC_8TB/gpr_work/cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt`
 - Gate result `5e7d52579ffb2d3e`: dE2000 mean passes on every image; `Z8Z_5323`
   fails LPIPS only, and `Z8Z_6693` fails LPIPS plus MS-SSIM.
 
@@ -219,7 +219,7 @@ Luma/detail diagnostic status:
   existing UPRESABLE or BIDO rendered outputs.
 - Hard-tail direct BIDO diagnostic completed. Added
   `tools/cnn/build_gate_hardtail_dmsr_tiles.py` and built
-  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail.npz`
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail.npz`
   (`160` tiles, four gate images, gate REF RGB targets). A width-32 BIDO model
   was warm-started from `BayInDemosaicOut_4x_AAon_w32_ANE_exposure_aug.pt` and
   fine-tuned on `Z8Z_0001`, `Z8Z_5323`, and `Z8Z_6693` with `Z8Z_0067` as the
@@ -244,7 +244,7 @@ Luma/detail diagnostic status:
   chroma.
 - Dense hard-tail Y-only diagnostic completed. The hard-tail tile builder now
   supports `--stride`; stride `128` produced
-  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128.npz`
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128.npz`
   (`640` tiles, `sha256=2e6d16204702de3adda0e07596791428683b3b77326413e6e291d5cc0d437205`).
   `train_ycbcr_channel.py` now supports warm-start and final-checkpoint saving.
   The existing Y checkpoint was fine-tuned with high-pass/gradient losses while
@@ -296,7 +296,7 @@ Luma/detail diagnostic status:
   Lab/SIPS chroma on `sl_q3_dec2` without a matched Y retrain failed run
   `f21dcf9069869855` (`Z8Z_6693 LPIPS=0.3454`, `Z8Z_5323 LPIPS=0.2387`,
   `Z8Z_0001 LPIPS=0.2213`). A matched width-32 Y model trained from scratch on
-  `/Volumes/OWC_8TB/gpr_cnn/tiles_sl_q3_dec2_dmsr_gate_hardtail_s128.npz`
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_sl_q3_dec2_dmsr_gate_hardtail_s128.npz`
   (640 tiles, dataset SHA
   `c5a1243d3a4b2c652889ecc758ef03b8778fcf3bafd748ec821aded49ec70376`) produced
   `models/F_ane_no_sr_w32_y_sl_q3_dec2_hardtail_s128_best.pt` (SHA
@@ -344,7 +344,7 @@ Luma/detail diagnostic status:
 - A 2x-bandwidth target Y diagnostic was trained from that recoverability
   result. `tools/cnn/build_gate_hardtail_dmsr_tiles.py` now supports
   `--target-l-lowpass-factor`; factor `2` produced
-  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128_lx2.npz`
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128_lx2.npz`
   (`640` tiles, `sha256=693a138bd5ab8ddc3c60e70d7acc26b0dda5d20812a15b7e997abaf4480a40b3`).
   A width-32 Y model trained against the neutral grayscale Lab-L low-pass
   target produced

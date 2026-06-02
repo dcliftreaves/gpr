@@ -114,7 +114,7 @@ For comparison:
 - 35 dB: barely perceptible
 - 40+ dB: indistinguishable in practice
 
-The output `.gpr` files at `/Volumes/OWC_8TB/gpr_artifacts/upresable/fullres/`
+The output `.gpr` files at `/Volumes/OWC_8TB/gpr_work/artifacts/upresable/fullres/`
 can be opened by any GPR-aware tool (`gpr_tools` to convert to DNG, then any
 raw editor) and exhibit proper raw editing latitude. The `.gpraw.mov`
 container at `upresable_timelapse.gpraw.mov` packs the full sequence with
@@ -173,7 +173,7 @@ python3 tools/cnn/upresable_pipeline.py --mode both --n-frames 60 --workers 4
 ```
 
 Outputs:
-- `/Volumes/OWC_8TB/gpr_artifacts/upresable/halfres/*.gpr` — capture files
-- `/Volumes/OWC_8TB/gpr_artifacts/upresable/fullres/*.gpr` — editable raw output
-- `/Volumes/OWC_8TB/gpr_artifacts/upresable/upresable_timelapse.mov` — ProRes preview
-- `/Volumes/OWC_8TB/gpr_artifacts/upresable/summary.json` — metrics
+- `/Volumes/OWC_8TB/gpr_work/artifacts/upresable/halfres/*.gpr` — capture files
+- `/Volumes/OWC_8TB/gpr_work/artifacts/upresable/fullres/*.gpr` — editable raw output
+- `/Volumes/OWC_8TB/gpr_work/artifacts/upresable/upresable_timelapse.mov` — ProRes preview
+- `/Volumes/OWC_8TB/gpr_work/artifacts/upresable/summary.json` — metrics

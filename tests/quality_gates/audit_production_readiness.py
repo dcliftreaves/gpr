@@ -207,7 +207,7 @@ def check_script_contains(area: str, name: str, rel_path: str, patterns: list[st
 
 
 def check_upresable_bench_receipt() -> list[Check]:
-    log = Path("/Volumes/OWC_8TB/gpr_artifacts/upresable/pi_mac_bench/run.log")
+    log = Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable/pi_mac_bench/run.log")
     if not log.exists():
         return [Check("platform_perf", "UPRESABLE Pi-to-Mac bench receipt", "FAIL", f"missing {log}")]
     text = log.read_text(errors="ignore")

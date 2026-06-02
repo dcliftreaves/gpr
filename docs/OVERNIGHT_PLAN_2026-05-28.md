@@ -19,7 +19,7 @@ From the three research docs, the highest-EV un-tried experiments are:
 
 ### T1 — BIBO retrain WITH the 78-DNG OOD corpus (highest EV)
 
-The 78 same-session DNGs at `/Volumes/OWC_8TB/gpr_cnn/ood_dngs_2025-04-20/`
+The 78 same-session DNGs at `/Volumes/OWC_8TB/gpr_work/cnn/ood_dngs_2025-04-20/`
 are converted but **never used in any training**. Per `BIDO_DISTILLATION_PLAN.md`
 §8: *"adding representative texture (hair, saturated regions) is the next
 move — a data acquisition project, not a CNN architecture project."* We did

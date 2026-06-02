@@ -75,7 +75,7 @@ def rgb_to_ycbcr_chw(rgb_chw: np.ndarray) -> np.ndarray:
     return ycc.T.reshape(3, rgb_chw.shape[1], rgb_chw.shape[2]).astype(np.float32)
 
 
-def load_data(npz_path, val_src_names, subsample_rate=1):
+def load_data(npz_path, val_src_names, subsample_rate=1, input_mode="planes4x"):
     print(f"  loading {npz_path}...", flush=True)
     t0 = time.time()
     npz = np.load(npz_path, mmap_mode="r", allow_pickle=True)
@@ -101,6 +101,22 @@ def load_data(npz_path, val_src_names, subsample_rate=1):
     out = {}
     for k in ["codec_R", "codec_G1", "codec_G2", "codec_B"]:
         out[k] = np.asarray(npz[k][keep_mask])
+    if input_mode == "mosaic2x":
+        if "codec_mosaic" in npz.files:
+            out["codec_mosaic"] = np.asarray(npz["codec_mosaic"][keep_mask])
+        else:
+            # Backward-compatible reconstruction for older sidecars.
+            r = out["codec_R"]
+            g1 = out["codec_G1"]
+            g2 = out["codec_G2"]
+            b = out["codec_B"]
+            n, h, w = r.shape
+            mosaic = np.empty((n, h * 2, w * 2), dtype=r.dtype)
+            mosaic[:, 0::2, 0::2] = r
+            mosaic[:, 0::2, 1::2] = g1
+            mosaic[:, 1::2, 0::2] = g2
+            mosaic[:, 1::2, 1::2] = b
+            out["codec_mosaic"] = mosaic
     if "tgt_rgb" not in npz.files:
         raise RuntimeError("NPZ is missing tgt_rgb — this trainer needs RGB targets.")
     out["tgt_rgb"] = np.asarray(npz["tgt_rgb"][keep_mask])
@@ -116,6 +132,10 @@ def codec_planes_from_mem(d, idx):
     return codec.astype(np.float32) / RAW_NORM
 
 
+def codec_mosaic_from_mem(d, idx):
+    return d["codec_mosaic"][idx][None].astype(np.float32) / RAW_NORM
+
+
 def tgt_channel_from_mem(d, idx, channel_idx):
     """Returns (1, H, W) float32 single YCbCr channel in [0, 1]."""
     rgb = d["tgt_rgb"][idx]  # (H, W, 3) uint8
@@ -125,20 +145,24 @@ def tgt_channel_from_mem(d, idx, channel_idx):
 
 
 class TileDS(Dataset):
-    def __init__(self, mem, indices, channel_idx, augment=True):
+    def __init__(self, mem, indices, channel_idx, augment=True, input_mode="planes4x"):
         self.mem = mem
         self.indices = indices
         self.channel_idx = channel_idx
         self.augment = augment
+        self.input_mode = input_mode
 
     def __len__(self):
         return len(self.indices)
 
     def __getitem__(self, i):
         idx = self.indices[i]
-        codec = codec_planes_from_mem(self.mem, idx)
+        if self.input_mode == "mosaic2x":
+            codec = codec_mosaic_from_mem(self.mem, idx)
+        else:
+            codec = codec_planes_from_mem(self.mem, idx)
         tgt = tgt_channel_from_mem(self.mem, idx, self.channel_idx)
-        if self.augment:
+        if self.augment and self.input_mode == "planes4x":
             if np.random.rand() < 0.5:
                 codec = codec[:, :, ::-1].copy()
                 tgt = tgt[:, :, ::-1].copy()
@@ -189,10 +213,12 @@ def gradient_l1(pred, tgt):
 def train(args):
     channel_idx = CHANNEL_IDX[args.channel]
     print(f"=== Training {args.variant} for channel {args.channel} (idx={channel_idx}) ===")
+    print(f"Input mode: {args.input_mode}")
     print(f"Device: {DEVICE}  CKPT_DIR: {CKPT_DIR}  NPZ: {DEFAULT_NPZ}")
     os.makedirs(CKPT_DIR, exist_ok=True)
 
-    d = load_data(DEFAULT_NPZ, VAL_SRC_NAMES, subsample_rate=args.subsample)
+    d = load_data(DEFAULT_NPZ, VAL_SRC_NAMES, subsample_rate=args.subsample,
+                  input_mode=args.input_mode)
     src = d["src"]
     val_src = set(d["_val_src_ids"])
     N = len(src)
@@ -200,9 +226,11 @@ def train(args):
     val_idx = [i for i in range(N) if src[i] in val_src]
     print(f"  train tiles: {len(train_idx)}  val tiles: {len(val_idx)}", flush=True)
 
-    tr = DataLoader(TileDS(d, train_idx, channel_idx, augment=True),
+    tr = DataLoader(TileDS(d, train_idx, channel_idx, augment=True,
+                           input_mode=args.input_mode),
                     batch_size=args.batch, shuffle=True, num_workers=0)
-    va = DataLoader(TileDS(d, val_idx, channel_idx, augment=False),
+    va = DataLoader(TileDS(d, val_idx, channel_idx, augment=False,
+                           input_mode=args.input_mode),
                     batch_size=args.batch, shuffle=False, num_workers=0)
 
     model = build_variant(args.variant).to(DEVICE)
@@ -327,6 +355,7 @@ def train(args):
                 "raw_norm": RAW_NORM,
                 "residual_scale": 0.0,
                 "kind": f"ycbcr_decomp_{args.channel.lower()}",
+                "input_mode": args.input_mode,
                 "hf_weight": args.hf_weight if args.channel == "Y" else 0.0,
                 "grad_weight": args.grad_weight if args.channel == "Y" else 0.0,
                 "epoch": ep + 1,
@@ -360,6 +389,7 @@ def train(args):
             "raw_norm": RAW_NORM,
             "residual_scale": 0.0,
             "kind": f"ycbcr_decomp_{args.channel.lower()}",
+            "input_mode": args.input_mode,
             "hf_weight": args.hf_weight if args.channel == "Y" else 0.0,
             "grad_weight": args.grad_weight if args.channel == "Y" else 0.0,
             "epoch": ep + 1,
@@ -385,6 +415,7 @@ def main():
     ap.add_argument("--variant", required=True,
                     choices=["F_ane_no_sr_w16_y", "F_ane_no_sr_w24_y",
                              "F_ane_no_sr_w32_y", "F_ane_no_sr_w32_y_lk7",
+                             "F_ane_mosaic_w32_y", "F_ane_mosaic_w48_y",
                              "F_ane_no_sr_w8_chroma"])
     ap.add_argument("--channel", required=True, choices=["Y", "Cb", "Cr"])
     ap.add_argument("--epochs", type=int, default=80)
@@ -392,6 +423,9 @@ def main():
     ap.add_argument("--lr", type=float, default=5e-4)
     ap.add_argument("--patience", type=int, default=30)
     ap.add_argument("--subsample", type=int, default=1)
+    ap.add_argument("--input-mode", choices=["planes4x", "mosaic2x"], default="planes4x",
+                    help="planes4x uses 4 packed Bayer phase planes and a 4x Y head; "
+                         "mosaic2x uses one decoded Bayer mosaic channel and a 2x Y head.")
     ap.add_argument("--ckpt-name", type=str, required=True)
     ap.add_argument("--init-ckpt", type=str, default=None,
                     help="Optional checkpoint to warm-start from.")

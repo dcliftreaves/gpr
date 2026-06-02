@@ -17,10 +17,10 @@ import rawpy
 
 REPO = "/Users/dcliftreaves/Documents/Github/gpr"
 ROUNDTRIP = f"{REPO}/build-local/bin/test_fused_roundtrip"
-OUT_DIR = os.environ.get("OUT_DIR", "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2")
+OUT_DIR = os.environ.get("OUT_DIR", "/Volumes/OWC_8TB/gpr_work/cnn/pairs_ml2_q3_dec2")
 _DEFAULT_DNG_DIRS = [
-    "/Volumes/OWC_8TB/barnsky_full_dngs",
-    "/Volumes/OWC_8TB/gpr_cnn/source_dngs_expanded",
+    "/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs",
+    "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded",
     "/Users/dcliftreaves/dering_proto_v2/source_dngs",
 ]
 # Allow override via DNG_DIRS=dir1:dir2:dir3 — used to build pair sets that

@@ -3,7 +3,7 @@
   "ship_class": "VIDEO_FREEZE",
   "run_hash": "5c3cce4c472d4197",
   "gates_sha": "0d77521faa7c4eee",
-  "started_at": "2026-05-30T20:58:11-0500",
+  "started_at": "2026-05-31T07:42:58-0500",
   "images": {
     "Z8Z_0001": {
       "y_psnr": 41.77042868914888,
@@ -13,7 +13,7 @@
       "bayer_psnr_codec": 40.28984640845623,
       "bayer_psnr_final": 52.620839817287894,
       "enc_bytes": 5529379,
-      "enc_ms": 46.9,
+      "enc_ms": 41.1,
       "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5c3cce4c472d4197/Z8Z_0001_REF_crop_A_detail.png",
       "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5c3cce4c472d4197/Z8Z_0001_PIPELINE_crop_A_detail.png",
       "verdict": "PASS",
@@ -27,7 +27,7 @@
       "bayer_psnr_codec": 53.0610333387651,
       "bayer_psnr_final": 61.221042011809715,
       "enc_bytes": 4056911,
-      "enc_ms": 47.4,
+      "enc_ms": 41.4,
       "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5c3cce4c472d4197/Z8Z_0067_REF_crop_A_detail.png",
       "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5c3cce4c472d4197/Z8Z_0067_PIPELINE_crop_A_detail.png",
       "verdict": "PASS",
@@ -41,7 +41,7 @@
       "bayer_psnr_codec": 40.78209142921624,
       "bayer_psnr_final": 45.51713289900087,
       "enc_bytes": 9311780,
-      "enc_ms": 48.1,
+      "enc_ms": 49.8,
       "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5c3cce4c472d4197/Z8Z_5323_REF_crop_A_detail.png",
       "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5c3cce4c472d4197/Z8Z_5323_PIPELINE_crop_A_detail.png",
       "verdict": "PASS",
@@ -55,7 +55,7 @@
       "bayer_psnr_codec": 37.668261099461574,
       "bayer_psnr_final": 43.21276349073199,
       "enc_bytes": 12326291,
-      "enc_ms": 55.3,
+      "enc_ms": 53.3,
       "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5c3cce4c472d4197/Z8Z_6693_REF_crop_A_detail.png",
       "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5c3cce4c472d4197/Z8Z_6693_PIPELINE_crop_A_detail.png",
       "verdict": "PASS",
@@ -74,5 +74,5 @@
     "lpips": 0.07598492503166199
   },
   "verdict": "PASS",
-  "finished_at": "2026-05-30T20:58:57-0500"
+  "finished_at": "2026-05-31T07:43:39-0500"
 }

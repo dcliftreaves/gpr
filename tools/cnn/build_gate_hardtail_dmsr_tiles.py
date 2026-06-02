@@ -7,7 +7,8 @@ tests/quality_gates/run_gate.py:
   source Bayer -> gpr_tools wrap -> sips REF RGB
 
 The output schema matches tiles_ml2_q3_dec2_dmsr_gate.npz:
-codec_R/G1/G2/B, tgt_rgb, src, src_lookup_names.
+codec_R/G1/G2/B, tgt_rgb, src, src_lookup_names. It also stores
+codec_mosaic: the decoded half-res Bayer tile before 2x2 phase packing.
 """
 from __future__ import annotations
 
@@ -28,8 +29,8 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tests/quality_gates"))
 import run_gate  # noqa: E402
 
-DEFAULT_OUT = Path("/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail.npz")
-DEFAULT_RENDER_CACHE = Path("/Volumes/OWC_8TB/gpr_cnn/render_cache_gate_hardtail")
+DEFAULT_OUT = Path("/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail.npz")
+DEFAULT_RENDER_CACHE = Path("/Volumes/OWC_8TB/gpr_work/cnn/render_cache_gate_hardtail")
 DEFAULT_IMAGE_IDS = ("Z8Z_0001", "Z8Z_0067", "Z8Z_5323", "Z8Z_6693")
 
 TILE_CODEC = 128
@@ -71,10 +72,12 @@ def _codec_planes(decoded_bayer: np.ndarray) -> np.ndarray:
     )
 
 
-def _tile_image(planes: np.ndarray, ref_rgb: np.ndarray, stride: int,
-                src_id: int) -> tuple[list[np.ndarray], list[np.ndarray], list[int], list[tuple[int, int]]]:
+def _tile_image(planes: np.ndarray, mosaic: np.ndarray, ref_rgb: np.ndarray, stride: int,
+                src_id: int) -> tuple[list[np.ndarray], list[np.ndarray], list[np.ndarray],
+                                      list[int], list[tuple[int, int]]]:
     _, hp, wp = planes.shape
     codec_tiles: list[np.ndarray] = []
+    mosaic_tiles: list[np.ndarray] = []
     rgb_tiles: list[np.ndarray] = []
     src_ids: list[int] = []
     coords: list[tuple[int, int]] = []
@@ -85,10 +88,12 @@ def _tile_image(planes: np.ndarray, ref_rgb: np.ndarray, stride: int,
             if y + TILE_RGB > ref_rgb.shape[0] or x + TILE_RGB > ref_rgb.shape[1]:
                 continue
             codec_tiles.append(planes[:, yc:yc + TILE_CODEC, xc:xc + TILE_CODEC])
+            mosaic_tiles.append(mosaic[yc * 2:(yc + TILE_CODEC) * 2,
+                                       xc * 2:(xc + TILE_CODEC) * 2])
             rgb_tiles.append(ref_rgb[y:y + TILE_RGB, x:x + TILE_RGB, :])
             src_ids.append(src_id)
             coords.append((yc, xc))
-    return codec_tiles, rgb_tiles, src_ids, coords
+    return codec_tiles, mosaic_tiles, rgb_tiles, src_ids, coords
 
 
 def _lowpass_luma_target(ref_rgb: np.ndarray, factor: int) -> np.ndarray:
@@ -118,6 +123,7 @@ def build(args: argparse.Namespace) -> None:
     images = _load_gate_images(args.images)
 
     codec_tiles: list[np.ndarray] = []
+    mosaic_tiles: list[np.ndarray] = []
     rgb_tiles: list[np.ndarray] = []
     src: list[int] = []
     tile_yx: list[tuple[int, int]] = []
@@ -147,8 +153,9 @@ def build(args: argparse.Namespace) -> None:
         ref_png = _render_ref_cached(image_id, bayer, dms, src_dng, args.render_cache)
         ref_rgb = np.asarray(Image.open(ref_png).convert("RGB"))
         target_rgb = _lowpass_luma_target(ref_rgb, args.target_l_lowpass_factor)
-        c_tiles, r_tiles, s_ids, coords = _tile_image(planes, target_rgb, args.stride, src_id)
+        c_tiles, m_tiles, r_tiles, s_ids, coords = _tile_image(planes, dec, target_rgb, args.stride, src_id)
         codec_tiles.extend(c_tiles)
+        mosaic_tiles.extend(m_tiles)
         rgb_tiles.extend(r_tiles)
         src.extend(s_ids)
         tile_yx.extend(coords)
@@ -158,6 +165,7 @@ def build(args: argparse.Namespace) -> None:
         raise SystemExit("no tiles produced")
 
     codec_arr = np.stack(codec_tiles, axis=0).astype(np.uint16)
+    mosaic_arr = np.stack(mosaic_tiles, axis=0).astype(np.uint16)
     tgt_rgb = np.stack(rgb_tiles, axis=0).astype(np.uint8)
     src_arr = np.asarray(src, dtype=np.int32)
     tile_yx_arr = np.asarray(tile_yx, dtype=np.int32)
@@ -170,6 +178,7 @@ def build(args: argparse.Namespace) -> None:
         codec_G1=codec_arr[:, 1],
         codec_G2=codec_arr[:, 2],
         codec_B=codec_arr[:, 3],
+        codec_mosaic=mosaic_arr,
         tgt_rgb=tgt_rgb,
         src=src_arr,
         src_lookup_names=names_arr,

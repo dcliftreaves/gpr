@@ -877,7 +877,11 @@ def evaluate_pipeline(
     )
     run_dir = RUNS_DIR / f"{run_hash}"
     run_dir.mkdir(parents=True, exist_ok=True)
-    workdir = Path(tempfile.mkdtemp(prefix=f"gate_{run_hash}_"))
+    gate_tmpdir = os.environ.get("GATE_TMPDIR")
+    gate_tmpdir_path = Path(gate_tmpdir).expanduser() if gate_tmpdir else None
+    if gate_tmpdir_path is not None:
+        gate_tmpdir_path.mkdir(parents=True, exist_ok=True)
+    workdir = Path(tempfile.mkdtemp(prefix=f"gate_{run_hash}_", dir=gate_tmpdir_path))
 
     print(f"\n=== pipeline: {pipeline_name}")
     print(f"=== run_hash: {run_hash}  ship_class: {ship_class}")
@@ -885,6 +889,7 @@ def evaluate_pipeline(
     if not is_ship_gate:
         print("=== authority: informational holdout eval, not a ship PASS/FAIL claim")
     print(f"=== run_dir:  {run_dir}")
+    print(f"=== workdir:  {workdir}")
 
     results = {
         "pipeline": pipeline_name,

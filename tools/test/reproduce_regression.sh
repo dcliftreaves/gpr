@@ -25,7 +25,7 @@ fi
 echo "=== 1. Synthetic-pattern regression tripwire ==="
 python3 "${REPO}/tools/test/test_multilevel_regression.py" "${BUILD_DIR}" || true
 
-SRC=/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/source_dngs/Z8Z_0067.dng
+SRC=/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/Z8Z_0067.dng
 if [ ! -f "$SRC" ]; then
     echo
     echo "=== 2. Z8 DNG render comparison ==="

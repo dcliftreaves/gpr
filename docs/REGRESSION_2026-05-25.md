@@ -173,7 +173,7 @@ so the bias is small (1.5 ADU vs source magnitude in thousands).
 
 ## Visual rig
 
-`/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525_metrics/index.html`
+`/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525_metrics/index.html`
 shows the side-by-side with metric tables. Single-level vs multi-level
 vs cranked variants on 4 source DNGs.
 
@@ -212,5 +212,5 @@ Cranked variants + CNN also work well:
 
 Cranked-quant savings hold at single-level. The methodology is sound.
 
-Final visual rig: `/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525_final/index.html`
+Final visual rig: `/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525_final/index.html`
 

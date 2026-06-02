@@ -4,14 +4,14 @@
   "kind": "ycbcr_decomp_y",
   "variant": "F_ane_no_sr_w32_y",
   "dataset": {
-    "path": "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128.npz",
+    "path": "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128.npz",
     "sha256": "2e6d16204702de3adda0e07596791428683b3b77326413e6e291d5cc0d437205",
     "tiles": 640,
     "tile_stride": 128,
     "train_images": ["Z8Z_0001", "Z8Z_5323", "Z8Z_6693"],
     "validation_images": ["Z8Z_0067"]
   },
-  "training_command": "SUPERRES_NPZ=/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128.npz VAL_SRC_NAMES=Z8Z_0067 CKPT_DIR=models PYTORCH_ENABLE_MPS_FALLBACK=1 python3 tools/cnn/train_ycbcr_channel.py --variant F_ane_no_sr_w32_y --channel Y --epochs 80 --batch 4 --lr 5e-4 --patience 25 --lpips-weight 0.05 --hf-weight 0.20 --grad-weight 0.05 --ckpt-name F_ane_no_sr_w32_y_hardtail_s128_best.pt --save-last --save-last-name F_ane_no_sr_w32_y_hardtail_s128_last.pt",
+  "training_command": "SUPERRES_NPZ=/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128.npz VAL_SRC_NAMES=Z8Z_0067 CKPT_DIR=models PYTORCH_ENABLE_MPS_FALLBACK=1 python3 tools/cnn/train_ycbcr_channel.py --variant F_ane_no_sr_w32_y --channel Y --epochs 80 --batch 4 --lr 5e-4 --patience 25 --lpips-weight 0.05 --hf-weight 0.20 --grad-weight 0.05 --ckpt-name F_ane_no_sr_w32_y_hardtail_s128_best.pt --save-last --save-last-name F_ane_no_sr_w32_y_hardtail_s128_last.pt",
   "saved_epoch": 80,
   "save_policy": "last_epoch",
   "validation": {

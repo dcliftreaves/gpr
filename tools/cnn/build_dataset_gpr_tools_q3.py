@@ -22,10 +22,10 @@ import tifffile
 
 REPO = "/Users/dcliftreaves/Documents/Github/gpr"
 GTOOLS = f"{REPO}/build-local/source/app/gpr_tools/gpr_tools"
-OUT_DIR = os.environ.get("OUT_DIR", "/Volumes/OWC_8TB/gpr_cnn/pairs_gpr_tools_q3")
+OUT_DIR = os.environ.get("OUT_DIR", "/Volumes/OWC_8TB/gpr_work/cnn/pairs_gpr_tools_q3")
 DNG_DIRS = [
-    "/Volumes/OWC_8TB/barnsky_full_dngs",
-    "/Volumes/OWC_8TB/gpr_cnn/source_dngs_expanded",
+    "/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs",
+    "/Volumes/OWC_8TB/gpr_work/cnn/source_dngs_expanded",
     "/Users/dcliftreaves/dering_proto_v2/source_dngs",
 ]
 MAX_PAIRS = int(os.environ.get("MAX_PAIRS", "200"))

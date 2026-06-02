@@ -25,7 +25,7 @@ from model import build as build_variant, count_params, VARIANTS
 RAW_NORM = 16383.0
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 DEFAULT_NPZ = os.environ.get(
-    "SUPERRES_NPZ", "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_combined.npz"
+    "SUPERRES_NPZ", "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_combined.npz"
 )
 CKPT_DIR = os.environ.get("CKPT_DIR",
                           "/Users/dcliftreaves/Documents/Github/gpr/models")

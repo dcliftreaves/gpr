@@ -26,10 +26,10 @@ import numpy as np
 
 PAIRS_DIRS_ENV = os.environ.get("PAIRS_DIRS",
                                 os.environ.get("PAIRS_DIR",
-                                              "/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2"))
+                                              "/Volumes/OWC_8TB/gpr_work/cnn/pairs_ml2_q3_dec2"))
 PAIRS_DIRS = [d.strip() for d in PAIRS_DIRS_ENV.split(":") if d.strip()]
 PAIRS_DIR = PAIRS_DIRS[0]  # legacy compat
-OUT_NPZ = os.environ.get("TILES_OUT", "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2.npz")
+OUT_NPZ = os.environ.get("TILES_OUT", "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2.npz")
 TILE_CODEC = 128
 TILE_TGT = 256
 STRIDE_CODEC = int(os.environ.get("TILES_STRIDE", "128"))  # 128 codec ≡ 256 tgt

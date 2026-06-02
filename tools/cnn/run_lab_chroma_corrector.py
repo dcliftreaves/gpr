@@ -83,6 +83,13 @@ def _bayer_to_4plane_tensor(bayer_u16: np.ndarray, raw_norm: float, device):
     return torch.from_numpy(planes).unsqueeze(0).to(device), planes, (eh, ew)
 
 
+def _bayer_to_mosaic_tensor(bayer_u16: np.ndarray, raw_norm: float, device):
+    h, w = bayer_u16.shape
+    eh, ew = h - (h & 1), w - (w & 1)
+    mosaic = bayer_u16[:eh, :ew].astype(np.float32) / raw_norm
+    return torch.from_numpy(mosaic[None, None]).to(device), (eh, ew)
+
+
 def _pad16(x):
     h, w = x.shape[-2:]
     ph = (16 - h % 16) % 16
@@ -259,14 +266,21 @@ def run_lab_chroma_corrector(
     if device is None:
         device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
-    y_model, _ = _load_model(y_ckpt, device)
+    y_model, y_ck = _load_model(y_ckpt, device)
     chroma_model, ck = _load_model(chroma_ckpt, device)
     ab_norm = float(ck.get("ab_norm", AB_NORM))
 
     x, planes, _ = _bayer_to_4plane_tensor(bayer_u16, raw_norm, device)
     h, w = x.shape[-2:]
+    input_mode = y_ck.get("input_mode", "planes4x")
     with torch.no_grad():
-        y_full_t = y_model(_pad16(x)).clamp(0, 1)[..., :4 * h, :4 * w]
+        if input_mode == "mosaic2x":
+            xm, (eh, ew) = _bayer_to_mosaic_tensor(bayer_u16, raw_norm, device)
+            y_full_t = y_model(_pad16(xm)).clamp(0, 1)[..., :2 * eh, :2 * ew]
+        elif input_mode == "planes4x":
+            y_full_t = y_model(_pad16(x)).clamp(0, 1)[..., :4 * h, :4 * w]
+        else:
+            raise RuntimeError(f"Unsupported Y checkpoint input_mode {input_mode!r}")
         y_half_t = F.avg_pool2d(y_full_t, kernel_size=4, stride=4)
 
         if baseline_rgb_u8 is None:

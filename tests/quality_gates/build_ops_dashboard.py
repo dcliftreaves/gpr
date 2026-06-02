@@ -19,7 +19,7 @@ REPO = Path(__file__).resolve().parents[2]
 RUNS_DIR = REPO / "tests/quality_gates/runs"
 DASH_DIR = RUNS_DIR / "dashboard"
 OUT = DASH_DIR / "ops_matrix.html"
-UPRES = Path("/Volumes/OWC_8TB/gpr_artifacts/upresable")
+UPRES = Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable")
 RAW_FULL_BYTES = 8280 * 5520 * 2
 
 PRODUCTION_RUNS = {
@@ -309,8 +309,8 @@ code {{ font-size: 12px; background: #edf1f5; padding: 1px 4px; border-radius: 4
 <h1>GPR operations matrix</h1>
 <p>
 Generated from <code>tests/quality_gates/runs/*/run.json</code>,
-<code>/Volumes/OWC_8TB/gpr_artifacts/upresable/summary.json</code>, and
-<code>/Volumes/OWC_8TB/gpr_artifacts/upresable/pi_mac_bench/run.log</code>.
+<code>/Volumes/OWC_8TB/gpr_work/artifacts/upresable/summary.json</code>, and
+<code>/Volumes/OWC_8TB/gpr_work/artifacts/upresable/pi_mac_bench/run.log</code>.
 The table keeps quality, encoded size, compression ratio, encode timing, and
 pipeline throughput in one place.
 </p>

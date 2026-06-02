@@ -158,7 +158,7 @@ Cache per source DNG.
 ## 4. Training data
 
 **Existing data is sufficient for Phase A.** The current NPZ at
-`/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate.npz` has 498
+`/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate.npz` has 498
 source DNGs and ~19920 tiles, with `tgt_rgb` already rendered through
 the gate-aligned path (gpr_tools wrap + sips). Phase A uses this as-is.
 
@@ -242,7 +242,7 @@ Execute in order. Each step has a gate. Stop and reassess if any gate fails.
    - `pip install lpips` (if not present)
    - Confirm `models/BayInDemosaicOut_4x_AAon_w16_ANE_wider.pt` is the
      starting checkpoint (the wider 4-image-val one).
-   - Confirm `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate.npz`
+   - Confirm `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate.npz`
      exists and loads.
 
 2. **Add LPIPS loss to training script.** Edit
@@ -318,13 +318,13 @@ Execute in order. Each step has a gate. Stop and reassess if any gate fails.
 11. **Teacher precompute.** Write
     `tools/cnn/build_teacher_targets_restormer.py`:
     - Iterate over the 498 source DNGs in
-      `/Volumes/OWC_8TB/barnsky_full_dngs` and
-      `/Volumes/OWC_8TB/gpr_cnn/diverse_dngs`.
+      `/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs` and
+      `/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs`.
     - For each: load codec-encoded NPZ tiles for that source, stitch
       into full-res codec output, demosaic to RGB, bicubic 2×, run
       Restormer with tiled inference (256×256 + 16 px overlap), save
       full-res teacher RGB as PNG in
-      `/Volumes/OWC_8TB/gpr_cnn/render_cache_teacher/<src>.png`.
+      `/Volumes/OWC_8TB/gpr_work/cnn/render_cache_teacher/<src>.png`.
     - Gate: visual inspection of 3 cached teacher PNGs via Read tool
       — should look sharper than the gate REF, not over-smoothed
       and not over-sharpened to ringing.
@@ -333,7 +333,7 @@ Execute in order. Each step has a gate. Stop and reassess if any gate fails.
     `render_cache_teacher/<src>.png` and the existing NPZ's tile
     indices, writes a new field `tgt_rgb_teacher` (same shape as
     `tgt_rgb`). Output:
-    `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_distill.npz`.
+    `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_distill.npz`.
 
 13. **Add distillation loss to training script.**
     - Add `--teacher-weight` (β) and `--task-weight` (α) CLI flags.
@@ -422,7 +422,7 @@ plan.
    - Pretrained weight for real-denoising (closest task): the
      `real_denoising.pth` file from the project's release page.
    - Approx 100 MB. Store outside the gpr tree
-     (e.g. `/Volumes/OWC_8TB/external/Restormer`).
+     (e.g. `/Volumes/OWC_8TB/gpr_work/external/Restormer`).
 3. **(Phase B only, optional fallback) Real-ESRGAN** (BSD-3-Clause).
    - Code: `https://github.com/xinntao/Real-ESRGAN`
    - Weight: `RealESRGAN_x4plus.pth` (~64 MB).

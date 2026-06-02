@@ -21,7 +21,7 @@
   "images": [
     {
       "id": "Z8Z_0001",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/source_dngs/Z8Z_0001.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/Z8Z_0001.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "hard-detail-shadow",
@@ -29,7 +29,7 @@
     },
     {
       "id": "Z8Z_0067",
-      "path": "/Volumes/OWC_8TB/barnsky_full_dngs/Z8Z_0067.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs/Z8Z_0067.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "smooth-gradient",
@@ -37,7 +37,7 @@
     },
     {
       "id": "Z8Z_5323",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/source_dngs/Z8Z_5323.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/Z8Z_5323.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "high-detail-studio",
@@ -45,7 +45,7 @@
     },
     {
       "id": "Z8Z_6693",
-      "path": "/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/source_dngs/Z8Z_6693.dng",
+      "path": "/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/Z8Z_6693.dng",
       "sensor_dims": [8280, 5520],
       "bit_depth": 14,
       "character": "mixed-contrast",

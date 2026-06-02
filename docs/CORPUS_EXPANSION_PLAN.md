@@ -44,7 +44,7 @@ batch we can construct.
 Converted and staged via Adobe DNG Converter at:
 
 ```
-/Volumes/OWC_8TB/gpr_cnn/ood_dngs_2025-04-20/
+/Volumes/OWC_8TB/gpr_work/cnn/ood_dngs_2025-04-20/
 ```
 
 (78 DNGs, ~4 GB total. Adobe DNG Converter `-c` for compressed.)
@@ -93,9 +93,9 @@ corpus:
 1. Edit `tools/cnn/build_dataset_<codec>.py` to add the new DNG dir:
    ```python
    DNG_DIRS = [
-       "/Volumes/OWC_8TB/barnsky_full_dngs",
-       "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs",
-       "/Volumes/OWC_8TB/gpr_cnn/ood_dngs_2025-04-20",   # ← new
+       "/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs",
+       "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs",
+       "/Volumes/OWC_8TB/gpr_work/cnn/ood_dngs_2025-04-20",   # ← new
    ]
    ```
 2. Rebuild the codec-pair set + tile NPZ.

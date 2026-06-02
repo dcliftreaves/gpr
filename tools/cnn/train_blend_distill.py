@@ -54,7 +54,7 @@ from train_demosaic_sr import (
 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 DEFAULT_NPZ = os.environ.get(
-    "SUPERRES_NPZ", "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate.npz"
+    "SUPERRES_NPZ", "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate.npz"
 )
 CKPT_DIR = os.environ.get("CKPT_DIR",
                           "/Users/dcliftreaves/Documents/Github/gpr/models")

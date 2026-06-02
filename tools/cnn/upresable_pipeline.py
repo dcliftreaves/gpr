@@ -5,16 +5,18 @@
       → BIBO_2x CNN on MPS → full-res Bayer (editable raw)
       → ml2_q3 encode → full-res .gpr (the editable raw output file)
       → decode (validate) → full-res Bayer
-      → demosaic via gpr_tools + sips → RGB
-      → 4K UHD for ProRes
+      → pack full-res .gpr sequence → .gvid primary video container
+      → optional demosaic via gpr_tools + sips → 4K UHD ProRes review
 
 Outputs per frame:
-  /Volumes/OWC_8TB/gpr_artifacts/upresable/halfres/<name>.gpr   (capture file)
-  /Volumes/OWC_8TB/gpr_artifacts/upresable/fullres/<name>.gpr   (editable raw, post-upres)
-  /Volumes/OWC_8TB/gpr_artifacts/upresable/frames/<name>.png    (4K UHD RGB for ProRes)
+  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/halfres/<name>.gpr   (capture file)
+  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/fullres/<name>.gpr   (editable raw, post-upres)
+  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/frames/<name>.tiff   (optional 4K UHD RGB for ProRes)
 
 Final:
-  /Volumes/OWC_8TB/gpr_artifacts/upresable/upresable_timelapse.mov  (ProRes 422 HQ)
+  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/upresable_timelapse.gvid (primary)
+  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/upresable_timelapse.gpr1.mov (MOV compatibility)
+  /Volumes/OWC_8TB/gpr_work/artifacts/upresable/upresable_timelapse.mov  (optional ProRes 422 HQ)
 
 Also: runs on the 4 gate images for regression-style verification of
 quality (bayer PSNR, Y-PSNR, etc.) of the full-res .gpr vs source DNG.
@@ -42,7 +44,7 @@ CODEC = REPO / "build-local/bin/coeff_io_tool"
 GPR_TOOLS = REPO / "build-local/source/app/gpr_tools/gpr_tools"
 BIBO2X_CKPT = REPO / "models/BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt"
 
-OUT = Path("/Volumes/OWC_8TB/gpr_artifacts/upresable")
+OUT = Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable")
 OUT.mkdir(parents=True, exist_ok=True)
 (OUT / "halfres").mkdir(parents=True, exist_ok=True)
 (OUT / "fullres").mkdir(parents=True, exist_ok=True)           # FUSED bitstream (codec native)
@@ -52,6 +54,8 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 TARGET_W = 3840
 TARGET_H = 2160
+FULLRES_W = 8280
+FULLRES_H = 5520
 FPS = 24
 RAW_NORM = 16383.0
 TILE = 128
@@ -297,8 +301,8 @@ def main():
                          "Default is 16-bit TIFF.")
     ap.add_argument("--dng-export", action="store_true",
                     help="Also write per-frame editable DNG + gpr_tools .gpr "
-                         "(legacy; ~70%% of per-frame time). Default off: GPRaw "
-                         ".mov is the primary deliverable, DNG is an optional "
+                         "(legacy; ~70%% of per-frame time). Default off: .gvid "
+                         "is the primary deliverable, DNG is an optional "
                          "correctness check / hand-off to Adobe / darktable.")
     ap.add_argument("--render-prores", action="store_true",
                     help="Also assemble a 16-bit ProRes 422 HQ review file by "
@@ -344,10 +348,10 @@ def main():
     if args.mode in ("regression", "both"):
         print("\n=== REGRESSION: full pipeline on 4 gate images ===")
         gate_dngs = [
-            "/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/source_dngs/Z8Z_0001.dng",
-            "/Volumes/OWC_8TB/barnsky_full_dngs/Z8Z_0067.dng",
-            "/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/source_dngs/Z8Z_5323.dng",
-            "/Volumes/OWC_8TB/gpr_artifacts/visual_compare_20260525/source_dngs/Z8Z_6693.dng",
+            "/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/Z8Z_0001.dng",
+            "/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs/Z8Z_0067.dng",
+            "/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/Z8Z_5323.dng",
+            "/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/Z8Z_6693.dng",
         ]
         for i, dng_path in enumerate(gate_dngs):
             t0 = time.time()
@@ -422,7 +426,7 @@ def main():
     # === TIMELAPSE on N barnsky frames ===
     if args.mode in ("timelapse", "both"):
         print(f"\n=== TIMELAPSE: {args.n_frames} barnsky frames ===")
-        all_dngs = sorted(Path("/Volumes/OWC_8TB/barnsky_full_dngs").glob("*.dng"))
+        all_dngs = sorted(Path("/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs").glob("*.dng"))
         selected = all_dngs[:args.n_frames]
 
         # File-based ffmpeg assembly (NO stdin pipe — avoids deadlocks under
@@ -434,7 +438,8 @@ def main():
                 shutil.rmtree(ffmpeg_seq_dir)
             ffmpeg_seq_dir.mkdir(parents=True)
             print(f"frames staged in: {ffmpeg_seq_dir}")
-        print(f"output container: GPRaw .mov (per-frame .gpr + GPR1 codec_tag)")
+        print(f"output container: .gvid (neutral per-frame FUSED .gpr video)")
+        print(f"MOV compatibility: GPR1/GPRr wrapper for gpr2prores/FFmpeg hand-off")
         if args.render_prores:
             print(f"ProRes review:     {mov} ({FRAME_EXT[1:].upper()} source, "
                   f"{'8-bit' if EIGHT_BIT else '16-bit'})")
@@ -466,7 +471,7 @@ def main():
                 stats["fullres_gpr_bytes"].append(fullres_gpr.stat().st_size)
                 decoded = np.fromfile(full_out, dtype=np.uint16).reshape(
                     full_bayer.shape[0], full_bayer.shape[1])
-                # Render path is opt-in. GPRaw is the deliverable; the per-frame
+                # Render path is opt-in. GVID is the deliverable; the per-frame
                 # DNG wrap + TIFF render exists only for human review or DNG export.
                 if args.render_prores or args.dng_export:
                     t_render = time.time()
@@ -500,9 +505,30 @@ def main():
                     print(f"  {completed}/{args.n_frames}  rate={rate:.2f} f/s  rem={rem:.0f}s  "
                           f"(last: cnn={cnn_ms:.0f}ms)")
 
-        # Primary deliverable: GPRaw .mov of the full-res .gpr sequence.
-        gpraw_mov = OUT / "upresable_timelapse.gpraw.mov"
-        print(f"\nPacking GPRaw .mov from {args.n_frames} full-res .gpr frames...")
+        # Primary deliverable: neutral .gvid of the full-res .gpr sequence.
+        gvid = OUT / "upresable_timelapse.gvid"
+        print(f"\nPacking .gvid from {args.n_frames} full-res .gpr frames...")
+        t_gvid = time.time()
+        gvid_cmd = [
+            sys.executable, str(REPO / "tools/gvid_pack.py"),
+            str(OUT / "fullres"), str(gvid),
+            "--width", str(FULLRES_W),
+            "--height", str(FULLRES_H),
+            "--fps", str(FPS),
+            "--quality", "3",
+            "--pixel-format", "4",
+        ]
+        r = subprocess.run(gvid_cmd, capture_output=True, text=True)
+        if r.returncode != 0:
+            print(f"gvid_pack FAILED:\n{r.stderr[-400:]}")
+        else:
+            gvid_s = time.time() - t_gvid
+            print(f"GVID assembled: {gvid.stat().st_size / 1024 / 1024:.1f} MB "
+                  f"in {gvid_s:.1f}s ({gvid_s*1000/args.n_frames:.1f} ms/frame amortized)")
+
+        # Compatibility artifact: MOV wrapper for gpr2prores / patched FFmpeg.
+        gpraw_mov = OUT / "upresable_timelapse.gpr1.mov"
+        print(f"\nPacking MOV compatibility wrapper from {args.n_frames} full-res .gpr frames...")
         t_pack = time.time()
         gpr_mov_tool = REPO / "tools/gpr2prores/gpr_mov_tool"
         cmd = [str(gpr_mov_tool), "pack", str(OUT / "fullres"),
@@ -512,7 +538,7 @@ def main():
             print(f"gpr_mov_tool pack FAILED:\n{r.stderr[-400:]}")
         else:
             pack_s = time.time() - t_pack
-            print(f"GPRaw assembled: {gpraw_mov.stat().st_size / 1024 / 1024:.1f} MB "
+            print(f"MOV wrapper assembled: {gpraw_mov.stat().st_size / 1024 / 1024:.1f} MB "
                   f"in {pack_s:.1f}s ({pack_s*1000/args.n_frames:.1f} ms/frame amortized)")
 
         # Optional ProRes review (off by default; opt-in via --render-prores).
@@ -566,13 +592,16 @@ def main():
                                           stats['bibo2x_ms'], stats['encode_full_ms'],
                                           stats['render_ms'] or [0]*len(stats['bibo2x_ms']))])) if stats['bibo2x_ms'] else None,
             "n_frames": len(stats['halfres_gpr_bytes']),
-            "deliverable":           "gpraw" if not args.render_prores else "gpraw+prores",
+            "deliverable":           "gvid" if not args.render_prores else "gvid+prores",
+            "mov_compatibility":     True,
             "dng_exported":          bool(args.dng_export),
         },
     }, indent=2, default=lambda o: float(o) if hasattr(o, "item") else str(o)))
     shutil.rmtree(work_root, ignore_errors=True)
     print(f"\nsummary saved: {summary_file}")
-    print(f"ProRes: {OUT / 'upresable_timelapse.mov'}")
+    print(f"GVID: {OUT / 'upresable_timelapse.gvid'}")
+    print(f"MOV compatibility: {OUT / 'upresable_timelapse.gpr1.mov'}")
+    print(f"ProRes review: {OUT / 'upresable_timelapse.mov'}")
 
 
 if __name__ == "__main__":

@@ -20,12 +20,12 @@ Files modified:
   against a different bayer NPZ and an additional source-DNG directory.
 
 Files created:
-- `/Volumes/OWC_8TB/gpr_cnn/pairs_ml2_q3_dec2_ood/` — 77 codec/target
+- `/Volumes/OWC_8TB/gpr_work/cnn/pairs_ml2_q3_dec2_ood/` — 77 codec/target
   pair files from the OOD corpus. **Z8Z_6693 was excluded** (it is in the
   gate test set, would constitute test-set leakage).
-- `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_combined_with_ood.npz` —
+- `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_combined_with_ood.npz` —
   23,000 bayer tiles from 575 sources (498 existing + 77 OOD-minus-Z8Z_6693).
-- `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_with_ood.npz` — same
+- `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_with_ood.npz` — same
   23,000 tiles, with sips-rendered RGB targets at 512×512.
 
 Registry entries added:

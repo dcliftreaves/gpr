@@ -23,15 +23,15 @@ import numpy as np
 from PIL import Image
 
 REPO = "/Users/dcliftreaves/Documents/Github/gpr"
-IN_NPZ = "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_combined.npz"
-OUT_NPZ = "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate.npz"
-RENDER_CACHE = Path("/Volumes/OWC_8TB/gpr_cnn/render_cache_gate")
+IN_NPZ = "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_combined.npz"
+OUT_NPZ = "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate.npz"
+RENDER_CACHE = Path("/Volumes/OWC_8TB/gpr_work/cnn/render_cache_gate")
 RENDER_CACHE.mkdir(exist_ok=True)
 GPR_TOOLS = f"{REPO}/build-local/source/app/gpr_tools/gpr_tools"
 
 SOURCE_PATHS = {}
-for d in ["/Volumes/OWC_8TB/barnsky_full_dngs",
-          "/Volumes/OWC_8TB/gpr_cnn/diverse_dngs"]:
+for d in ["/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs",
+          "/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs"]:
     if not os.path.isdir(d): continue
     for f in os.listdir(d):
         if f.lower().endswith('.dng'):
