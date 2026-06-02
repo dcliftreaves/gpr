@@ -147,6 +147,12 @@ VARIANTS["bido_4x"]   = VARIANTS["F_ane_dm_sr"]
 
 def build(tag):
     cfg = VARIANTS[tag]
+    if "dw_kernel" in cfg:
+        return NAFUNetANE_LK(width=cfg["width"], enc_blocks=cfg["enc"],
+                             dec_blocks=cfg["dec"], mid_blocks=cfg["mid"],
+                             sr=cfg.get("sr", False), sr4x=cfg.get("sr4x", False),
+                             in_c=cfg.get("in_c", 4), out_c=cfg.get("out_c", 4),
+                             dw_kernel=cfg["dw_kernel"])
     return NAFUNetANE(width=cfg["width"], enc_blocks=cfg["enc"],
                       dec_blocks=cfg["dec"], mid_blocks=cfg["mid"],
                       sr=cfg.get("sr", False), sr4x=cfg.get("sr4x", False),
@@ -217,10 +223,11 @@ class NAFBlockANE_LK(_nn.Module):
 class NAFUNetANE_LK(NAFUNetANE):
     """U-Net with large-kernel NAFBlockANE_LK at every level."""
     def __init__(self, width=16, enc_blocks=(1, 1, 1), dec_blocks=(1, 1, 1),
-                 mid_blocks=1, sr=True, in_c=4, out_c=4, dw_kernel=7):
+                 mid_blocks=1, sr=True, sr4x=False, in_c=4, out_c=4, dw_kernel=7):
         # Initialize NAFUNetANE first so all the layers exist, then swap blocks
         super().__init__(width=width, enc_blocks=enc_blocks, dec_blocks=dec_blocks,
-                         mid_blocks=mid_blocks, sr=sr, in_c=in_c, out_c=out_c)
+                         mid_blocks=mid_blocks, sr=sr, sr4x=sr4x,
+                         in_c=in_c, out_c=out_c)
         # Replace every NAFBlockANE with NAFBlockANE_LK(dw_kernel=dw_kernel)
         def _channel_of(seq):
             return seq[0].bn1.weight.shape[0]
@@ -268,6 +275,9 @@ VARIANTS.update({
                               sr=False, sr4x=True, in_c=4, out_c=1),
     "F_ane_no_sr_w8_chroma": dict(width=8, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
                                   sr=False, sr4x=True, in_c=4, out_c=1),
+    "F_ane_no_sr_w32_y_lk7": dict(width=32, enc=[1, 1, 1], dec=[1, 1, 1], mid=1,
+                                  sr=False, sr4x=True, in_c=4, out_c=1,
+                                  dw_kernel=7),
     "F_ane_chroma_corrector_w12": dict(width=12, enc=[1, 1, 1], dec=[1, 1, 1],
                                        mid=1, sr=False, sr4x=True, in_c=7,
                                        out_c=2),

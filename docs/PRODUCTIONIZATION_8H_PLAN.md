@@ -364,6 +364,21 @@ Luma/detail diagnostic status:
   width-32 Y architecture still cannot place the Z6693 structure. The next
   branch should change context/architecture or inference blending over the
   decoded Bayer phase grid, not only the target bandwidth.
+- A large-kernel Y architecture diagnostic tested whether the remaining
+  failure was simply local receptive field. `tools/cnn/model.py` now includes
+  `F_ane_no_sr_w32_y_lk7`, a width-32 Y model with 7x7 depthwise kernels,
+  exposed through `train_ycbcr_channel.py`. It trained on the same 2x low-pass
+  hard-tail NPZ and produced
+  `models/F_ane_no_sr_w32_y_lk7_hardtail_s128_lx2_best.pt`
+  (`sha256=5aa7a4037c58c2ee19d2b6d2058cb039ff020141cb6518722ac6e6d81df8c075`,
+  epoch 72, guardrail `val_lpips=0.0422`) plus a final checkpoint
+  (`sha256=a8dcb377aa0de376e0930e1f2dc1c6ce464ddbecb1b4f4e2dfe08d7c968b994f`).
+  Best gate run `90c87c7b9211c7af` still FAILs and is worse than the standard
+  width-32 low-pass model: `Z8Z_5323 LPIPS=0.1766`, `Z8Z_6693 LPIPS=0.2781`,
+  `MS-SSIM=0.9328`. Conclusion: larger local kernels/receptive field alone are
+  not the missing piece. The next branch needs a different phase-aware/full-
+  image training or inference strategy over decoded Bayer, not just a larger
+  local Y architecture.
 
 28-image PREVIEW holdout status:
 
@@ -390,7 +405,8 @@ Luma/detail diagnostic status:
    overlap-aware objective against 2x bandwidth-limited REF L while preserving
    Lab/SIPS chroma, or test a genuinely different decoded-Bayer phase-aware
    detail path. The 2x low-pass target improves the near-miss blocker but does
-   not solve Z6693 with the current tile-local width-32 Y architecture. Sparse
+   not solve Z6693 with the current tile-local width-32 Y architecture, and a
+   7x7 large-kernel variant regresses the blockers. Sparse
    stride-256 BIDO, dense stride-128 w16 Y, dense stride-128 w32 Y, and the
    dec2 highpass-quant/prefilter probe family are now disproven as standalone
    fixes. Single-level dec2 matched Y is the best current diagnostic branch, but

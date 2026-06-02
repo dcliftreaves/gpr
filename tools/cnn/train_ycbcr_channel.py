@@ -384,7 +384,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--variant", required=True,
                     choices=["F_ane_no_sr_w16_y", "F_ane_no_sr_w24_y",
-                             "F_ane_no_sr_w32_y", "F_ane_no_sr_w8_chroma"])
+                             "F_ane_no_sr_w32_y", "F_ane_no_sr_w32_y_lk7",
+                             "F_ane_no_sr_w8_chroma"])
     ap.add_argument("--channel", required=True, choices=["Y", "Cb", "Cr"])
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--batch", type=int, default=4)
