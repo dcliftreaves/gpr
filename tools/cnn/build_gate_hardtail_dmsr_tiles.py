@@ -25,6 +25,11 @@ import numpy as np
 from PIL import Image
 from skimage import color
 
+try:
+    import pywt
+except Exception:  # pragma: no cover - optional target-filter dependency
+    pywt = None
+
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tests/quality_gates"))
 import run_gate  # noqa: E402
@@ -96,21 +101,67 @@ def _tile_image(planes: np.ndarray, mosaic: np.ndarray, ref_rgb: np.ndarray, str
     return codec_tiles, mosaic_tiles, rgb_tiles, src_ids, coords
 
 
-def _lowpass_luma_target(ref_rgb: np.ndarray, factor: int) -> np.ndarray:
+def _resize_lowpass_luma(l_chan: np.ndarray, factor: int) -> np.ndarray:
     if factor <= 1:
-        return ref_rgb
-    lab = color.rgb2lab(ref_rgb.astype(np.float32) / 255.0).astype(np.float32)
-    h, w = lab.shape[:2]
+        return l_chan.astype(np.float32)
+    h, w = l_chan.shape
     small = cv2.resize(
-        lab[..., 0],
+        l_chan,
         (max(1, w // factor), max(1, h // factor)),
         interpolation=cv2.INTER_AREA,
     )
-    l_full = cv2.resize(
-        small,
-        (w, h),
-        interpolation=cv2.INTER_LANCZOS4,
-    ).astype(np.float32)
+    return cv2.resize(small, (w, h), interpolation=cv2.INTER_LANCZOS4).astype(np.float32)
+
+
+def _wavelet_lowpass_luma(
+    l_chan: np.ndarray,
+    wavelet: str,
+    levels: int,
+    remove_hf_levels: int,
+) -> np.ndarray:
+    if pywt is None:
+        raise RuntimeError("pywt is required for --target-l-filter wavelet")
+    if remove_hf_levels <= 0:
+        return l_chan.astype(np.float32)
+    coeffs = pywt.wavedec2(l_chan.astype(np.float32), wavelet, level=levels)
+    first_removed = max(1, len(coeffs) - remove_hf_levels)
+    out = [coeffs[0]]
+    for idx, detail in enumerate(coeffs[1:], start=1):
+        if idx >= first_removed:
+            out.append(tuple(np.zeros_like(c) for c in detail))
+        else:
+            out.append(detail)
+    rec = pywt.waverec2(out, wavelet).astype(np.float32)
+    return rec[: l_chan.shape[0], : l_chan.shape[1]]
+
+
+def _gaussian_lowpass_luma(l_chan: np.ndarray, sigma: float) -> np.ndarray:
+    if sigma <= 0:
+        return l_chan.astype(np.float32)
+    return cv2.GaussianBlur(l_chan.astype(np.float32), (0, 0), sigma).astype(np.float32)
+
+
+def _filtered_luma_target(ref_rgb: np.ndarray, args: argparse.Namespace) -> np.ndarray:
+    lab = color.rgb2lab(ref_rgb.astype(np.float32) / 255.0).astype(np.float32)
+    l_chan = lab[..., 0]
+    target_filter = args.target_l_filter
+    if target_filter == "auto":
+        target_filter = "resize" if args.target_l_lowpass_factor > 1 else "none"
+    if target_filter == "none":
+        return ref_rgb
+    if target_filter == "resize":
+        l_full = _resize_lowpass_luma(l_chan, args.target_l_lowpass_factor)
+    elif target_filter == "wavelet":
+        l_full = _wavelet_lowpass_luma(
+            l_chan,
+            args.target_l_wavelet,
+            args.target_l_wavelet_levels,
+            args.target_l_remove_hf_levels,
+        )
+    elif target_filter == "gaussian":
+        l_full = _gaussian_lowpass_luma(l_chan, args.target_l_gaussian_sigma)
+    else:
+        raise RuntimeError(f"unsupported target_l_filter {target_filter!r}")
     neutral_lab = np.zeros_like(lab)
     neutral_lab[..., 0] = np.clip(l_full, 0.0, 100.0)
     return np.clip(color.lab2rgb(neutral_lab) * 255.0, 0, 255).astype(np.uint8)
@@ -152,7 +203,7 @@ def build(args: argparse.Namespace) -> None:
         planes = _codec_planes(dec)
         ref_png = _render_ref_cached(image_id, bayer, dms, src_dng, args.render_cache)
         ref_rgb = np.asarray(Image.open(ref_png).convert("RGB"))
-        target_rgb = _lowpass_luma_target(ref_rgb, args.target_l_lowpass_factor)
+        target_rgb = _filtered_luma_target(ref_rgb, args)
         c_tiles, m_tiles, r_tiles, s_ids, coords = _tile_image(planes, dec, target_rgb, args.stride, src_id)
         codec_tiles.extend(c_tiles)
         mosaic_tiles.extend(m_tiles)
@@ -185,6 +236,11 @@ def build(args: argparse.Namespace) -> None:
         tile_yx=tile_yx_arr,
         tile_stride=np.asarray([args.stride], dtype=np.int32),
         target_l_lowpass_factor=np.asarray([args.target_l_lowpass_factor], dtype=np.int32),
+        target_l_filter=np.asarray([args.target_l_filter], dtype=object),
+        target_l_wavelet=np.asarray([args.target_l_wavelet], dtype=object),
+        target_l_wavelet_levels=np.asarray([args.target_l_wavelet_levels], dtype=np.int32),
+        target_l_remove_hf_levels=np.asarray([args.target_l_remove_hf_levels], dtype=np.int32),
+        target_l_gaussian_sigma=np.asarray([args.target_l_gaussian_sigma], dtype=np.float32),
     )
     print(
         f"DONE {args.out}  tiles={len(src_arr)}  "
@@ -208,6 +264,18 @@ def main() -> None:
                     help="If >1, replace target RGB with neutral grayscale "
                          "whose Lab L is REF Lab L low-passed by this factor. "
                          "Use factor=2 for the recoverable PREVIEW detail target.")
+    ap.add_argument("--target-l-filter", choices=["auto", "none", "resize", "wavelet", "gaussian"],
+                    default="auto",
+                    help="Lab-L target filter. 'auto' preserves the legacy "
+                         "--target-l-lowpass-factor behavior.")
+    ap.add_argument("--target-l-wavelet", default="sym4",
+                    help="Wavelet used when --target-l-filter wavelet.")
+    ap.add_argument("--target-l-wavelet-levels", type=int, default=3,
+                    help="Wavelet decomposition levels for Lab-L target filtering.")
+    ap.add_argument("--target-l-remove-hf-levels", type=int, default=2,
+                    help="Number of finest wavelet detail levels removed from REF Lab-L.")
+    ap.add_argument("--target-l-gaussian-sigma", type=float, default=1.2,
+                    help="Gaussian sigma for --target-l-filter gaussian.")
     build(ap.parse_args())
 
 

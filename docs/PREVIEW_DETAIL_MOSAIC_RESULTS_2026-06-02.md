@@ -16,6 +16,10 @@ target:
   candidate.
 - `mosaic_w48_lx2_last`: final checkpoint from the width-48 run, gated to
   test whether smooth-image validation selected the wrong epoch.
+- `mosaic_w48_wavelet_lhf2`: width-48 blocker-selected checkpoint fine-tuned
+  against a REF Lab-L target with the finest two `sym4` wavelet detail levels
+  removed. This tests whether non-learnable REF luminance HF/noise was
+  contaminating the learned detail target.
 
 ## Receipts
 
@@ -30,6 +34,7 @@ target:
 | mosaic + dilated Lab-L residual v2 | `9b1d4c8e7320de40` | FAIL | `Z8Z_6693` | 0.1910 | 0.9436 | 33.54 | 1.97 |
 | mosaic, low-pass x2 target, width 48 | `f7a42b76c1f549ae` | FAIL | `Z8Z_6693` | 0.1809 | 0.9434 | 29.25 | 2.93 |
 | mosaic, low-pass x2 target, width 48, blocker-selected | `e5107f994eb2dd0b` | FAIL | `Z8Z_6693` | 0.1637 | 0.9458 | 31.56 | 2.34 |
+| mosaic, wavelet-denoised L target, width 48, blocker-selected | `6d7ed7f5b62f7732` | FAIL | `Z8Z_6693` | 0.3235 | 0.9415 | 30.66 | 2.54 |
 | mosaic, full REF target, best | `4ae4d3cfb39632ab` | FAIL | `Z8Z_6693` | 0.1995 | 0.9392 | 29.21 | 2.94 |
 | mosaic, low-pass x2 target, last | `077761916aa85fb6` | FAIL | `Z8Z_6693` | 0.2275 | 0.9383 | 26.91 | 3.76 |
 | mosaic, low-pass x2 target, width 48 last | `f5b7383a00663858` | FAIL | `Z8Z_6693` | 0.2614 | 0.9300 | 24.71 | 4.71 |
@@ -75,6 +80,13 @@ The full-gate residual refiners narrow the failure further:
   the Lab-L residual near-miss. That rules out "capacity plus tile-level hard
   image selection" as the missing production step for this local mosaic-Y
   architecture.
+- The wavelet target-cleanup run improved the tile-training selection metric
+  (`Z8Z_5323,Z8Z_6693` LPIPS 0.0656 vs 0.0695 for the previous width-48
+  blocker-selected checkpoint), but failed the full-image gate badly:
+  `Z8Z_5323` LPIPS 0.1864 and `Z8Z_6693` LPIPS 0.3235 / MS-SSIM 0.9415. The
+  failure is not a color regression (`Z8Z_6693` dE2000 mean 2.54). This rules
+  out "remove REF HF/noise from the target, then keep the same local Y model"
+  as a sufficient production step.
 - The RGB residual context refiner did not improve the hard-tail blocker and
   regressed the color guardrail on `Z8Z_0001` (`dE2000_mean=3.40`).
 - The Lab-L residual v1 is the best residual result so far. It improves
@@ -92,6 +104,17 @@ increase in residual context or strength. It is also not only checkpoint
 selection on the wrong smooth validation image: Z8Z_6693-selected primary-Y
 training helps but still misses both LPIPS and MS-SSIM thresholds.
 
+The REF-HF transfer diagnostic (`ref_hf_noise_transfer_l2`) supports the
+original noise hypothesis as an analysis tool, but not as a complete learned
+pipeline fix. On 100% crops, the previous width-48 blocker-selected run drops
+from worst LPIPS 0.4992 to 0.1686 when comparing only low-frequency Lab-L
+signal, and to 0.1424 when exact REF HF is added back as an oracle. The new
+wavelet-trained candidate shows the same split: original crop worst LPIPS
+0.6445, signal-only 0.1342, exact REF-HF oracle 0.1268. MS-SSIM remains below
+threshold in those rows, so the unresolved issue is now more precise: learn or
+synthesize the right mid/high-frequency structure placement separately from
+REF noise matching.
+
 ## Next Candidate
 
 Do not continue with the full-REF warm-start recipe as-is. The next useful
@@ -101,6 +124,10 @@ candidate should change one of:
   selecting only on tile-level validation LPIPS;
 - target teacher: distill from the passing `ref_L_lowpass_x2` oracle or a
   larger full-gate teacher directly, not just tile-level RGB targets;
+- target/noise split: train the signal path against denoised or oracle
+  low-frequency/full-gate targets, but treat visual-equivalent HF/noise as a
+  separate synthesis/injection model rather than asking the local Y model to
+  memorize exact REF HF;
 - selection metric: checkpoint selection should include the mixed-contrast
   blocker, not only `Z8Z_0067`; this has now been tested and should be paired
   with a stronger target/model rather than repeated alone.

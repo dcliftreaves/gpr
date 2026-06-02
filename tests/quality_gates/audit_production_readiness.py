@@ -193,6 +193,7 @@ def check_preview_detail_blocker_evidence() -> Check:
         "mosaic_x2": "46bf8050492744e2",
         "mosaic_z6693_select": "ebcfdf3a6ff3ba23",
         "mosaic_width48_blocker_select": "e5107f994eb2dd0b",
+        "mosaic_width48_wavelet_lhf2": "6d7ed7f5b62f7732",
         "mosaic_fullref": "4ae4d3cfb39632ab",
         "luma_residual_v1": "5d3cf75bf1b1f44b",
         "luma_residual_v2": "9b1d4c8e7320de40",
@@ -232,6 +233,7 @@ def check_preview_detail_blocker_evidence() -> Check:
         "not just selecting a later training epoch",
         "capacity plus tile-level hard",
         "image selection",
+        "wavelet target-cleanup",
         "target/model path",
     ]
     missing_doc = [s for s in doc_needles if s not in text]

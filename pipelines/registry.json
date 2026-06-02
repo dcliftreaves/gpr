@@ -1123,6 +1123,18 @@
       "residual_scale": 0.0,
       "chroma_baseline": "demosaic_sips"
     },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_wavelet_lhf2_blocker_select_best": {
+      "$doc": "Temporary PREVIEW detail-placement target-cleanup candidate. Warm-started from the width-48 mosaic-input blocker-selected Y model, then fine-tuned against a REF Lab-L target with the finest two sym4 wavelet detail levels removed. Tests whether non-learnable REF luminance HF/noise was contaminating the learned full-image texture/detail objective while preserving the solved Lab/SIPS chroma path.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_mosaic_w48_y_hardtail_s128_wavelet_lhf2_blocker_select_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "89dbfb1638929379ded24e0ac5471b238c99357a2a815bf25b8e6669d2560579",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_lx2_last": {
       "$doc": "Temporary PREVIEW detail-placement candidate. Final epoch from the width-48 mosaic-input low-pass x2 Y run. Gated to test whether Z8Z_0067 validation LPIPS is selecting the wrong checkpoint for the mixed-contrast hard tail.",
       "cnn_arch_variant": "lab_chroma_corrector",
@@ -2062,6 +2074,14 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-y-mosaic-w48-hardtail-s128-lx2-blocker-select",
       "$doc": "Temporary candidate for the detail-placement stop criteria. Width-48 mosaic-input Y checkpoint selected by the actual hard-tail blockers Z8Z_5323 and Z8Z_6693, paired with the active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_wavelet_lhf2_blocker_select_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_wavelet_lhf2_blocker_select_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-mosaic-w48-hardtail-s128-wavelet-lhf2-blocker-select",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Width-48 mosaic-input Y checkpoint trained against a wavelet-denoised REF Lab-L target and selected by the actual hard-tail blockers Z8Z_5323 and Z8Z_6693, paired with the active Lab/SIPS chroma baseline."
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_lx2_last+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
