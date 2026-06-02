@@ -29,6 +29,7 @@ target:
 | mosaic + full-gate Lab-L residual v1 | `5d3cf75bf1b1f44b` | FAIL | `Z8Z_6693` | 0.1532 | 0.9423 | 33.21 | 2.01 |
 | mosaic + dilated Lab-L residual v2 | `9b1d4c8e7320de40` | FAIL | `Z8Z_6693` | 0.1910 | 0.9436 | 33.54 | 1.97 |
 | mosaic, low-pass x2 target, width 48 | `f7a42b76c1f549ae` | FAIL | `Z8Z_6693` | 0.1809 | 0.9434 | 29.25 | 2.93 |
+| mosaic, low-pass x2 target, width 48, blocker-selected | `e5107f994eb2dd0b` | FAIL | `Z8Z_6693` | 0.1637 | 0.9458 | 31.56 | 2.34 |
 | mosaic, full REF target, best | `4ae4d3cfb39632ab` | FAIL | `Z8Z_6693` | 0.1995 | 0.9392 | 29.21 | 2.94 |
 | mosaic, low-pass x2 target, last | `077761916aa85fb6` | FAIL | `Z8Z_6693` | 0.2275 | 0.9383 | 26.91 | 3.76 |
 | mosaic, low-pass x2 target, width 48 last | `f5b7383a00663858` | FAIL | `Z8Z_6693` | 0.2614 | 0.9300 | 24.71 | 4.71 |
@@ -67,6 +68,13 @@ The full-gate residual refiners narrow the failure further:
   0.1638 and MS-SSIM from 0.9419 to 0.9442, with dE still safe. That confirms
   selection pressure matters, but it is not enough to pass the full-image gate
   and it does not beat the simpler Lab-L residual near-miss.
+- Combining the wider width-48 mosaic Y model with blocker-aware selection on
+  `Z8Z_5323` and `Z8Z_6693` reaches essentially the same full-image blocker
+  result as width-32 blocker selection: `Z8Z_6693` LPIPS 0.1637 and MS-SSIM
+  0.9458. It keeps dE safe and passes `Z8Z_5323`, but does not improve over
+  the Lab-L residual near-miss. That rules out "capacity plus tile-level hard
+  image selection" as the missing production step for this local mosaic-Y
+  architecture.
 - The RGB residual context refiner did not improve the hard-tail blocker and
   regressed the color guardrail on `Z8Z_0001` (`dE2000_mean=3.40`).
 - The Lab-L residual v1 is the best residual result so far. It improves
