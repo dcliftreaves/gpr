@@ -23,6 +23,7 @@ import html
 import json
 import math
 import sys
+from html.parser import HTMLParser
 from pathlib import Path
 
 import cv2
@@ -322,6 +323,36 @@ img { display: block; width: 512px; height: 512px; max-width: none; border: 1px 
     )
 
 
+class _ImageSrcParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.srcs: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag != "img":
+            return
+        attr_map = dict(attrs)
+        src = attr_map.get("src")
+        if src:
+            self.srcs.append(src)
+
+
+def validate_html_images(html_path: Path) -> None:
+    parser = _ImageSrcParser()
+    parser.feed(html_path.read_text())
+    missing = []
+    for src in parser.srcs:
+        if not (html_path.parent / src).resolve().exists():
+            missing.append(src)
+    if missing:
+        preview = ", ".join(missing[:8])
+        extra = "" if len(missing) <= 8 else f", ... +{len(missing) - 8} more"
+        raise RuntimeError(
+            f"{html_path} references {len(missing)} missing image(s): "
+            f"{preview}{extra}"
+        )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--ref-run", default="5e7b79b5678fdf62")
@@ -359,6 +390,7 @@ def main() -> int:
         "rows": rows,
     }, indent=2))
     write_html(rows, summary, args)
+    validate_html_images(args.output_html)
     for row in summary:
         print(
             f"{row['candidate']:<24} {row['variant']:<18} "
