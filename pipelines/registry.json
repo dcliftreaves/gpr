@@ -961,6 +961,30 @@
       "residual_scale": 0.0,
       "chroma_baseline": "demosaic_sips"
     },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_lx2_best": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Keeps solved display-space Lab/SIPS chroma, but uses a width-32 Y-only model trained on stride-128 hard-tail tiles whose target is neutral grayscale Lab L low-passed by factor 2. Saved at epoch 69 by lowest Z8Z_0067 LPIPS (0.0386). Tests the recoverability finding that 2x bandwidth-limited reference L passes while 4x low-pass and current donors fail.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w32_y_hardtail_s128_lx2_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "a174d271ffec80c243e270f3d8c7a526a1ff79a19b7a5743daa966d04f1680ab",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_lx2_last": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Same 2x-low-pass target width-32 Y run as y_w32_hardtail_s128_lx2_best, but saved at final epoch 80. Z8Z_0067 guardrail LPIPS at save time was 0.0520.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w32_y_hardtail_s128_lx2_last.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "c2bb6571698fb2de85ef516907e93475a145ebac277f19347f15ee39e34aff45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_sl_q3_dec2_hardtail_s128_best": {
       "$doc": "Temporary PREVIEW detail-placement candidate. Fixed Lab/SIPS chroma corrector with a width-32 Y-only model trained from scratch on single-level q3 dec2 stride-128 hard-tail tiles. Saved at epoch 78 by lowest Z8Z_0067 LPIPS (0.0532). Tests whether matched single-level decimated capture is a better PREVIEW detail substrate than ml2_q3_dec2.",
       "cnn_arch_variant": "lab_chroma_corrector",
@@ -1784,6 +1808,22 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-y-w32-hardtail-s128",
       "$doc": "Temporary candidate for the detail-placement stop criteria. Final width-32 dense hard-tail Y checkpoint plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_lx2_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_lx2_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-w32-hardtail-s128-lx2",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Width-32 dense hard-tail Y checkpoint trained against 2x bandwidth-limited reference Lab L plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_lx2_last+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_s128_lx2_last",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-w32-hardtail-s128-lx2",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Final width-32 dense hard-tail Y checkpoint trained against 2x bandwidth-limited reference Lab L plus active Lab/SIPS chroma baseline."
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s05_sig2+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

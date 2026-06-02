@@ -1,0 +1,25 @@
+{
+  "artifact": "models/F_ane_no_sr_w32_y_hardtail_s128_lx2_last.pt",
+  "sha256": "c2bb6571698fb2de85ef516907e93475a145ebac277f19347f15ee39e34aff45",
+  "kind": "ycbcr_decomp_y",
+  "variant": "F_ane_no_sr_w32_y",
+  "params": 1273316,
+  "trained_against_codec": "ml2_q3_dec2",
+  "dataset": "/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128_lx2.npz",
+  "dataset_sha256": "693a138bd5ab8ddc3c60e70d7acc26b0dda5d20812a15b7e997abaf4480a40b3",
+  "target": "neutral grayscale RGB whose Lab L is REF Lab L low-passed by factor 2",
+  "train_images": ["Z8Z_0001", "Z8Z_5323", "Z8Z_6693"],
+  "validation_images": ["Z8Z_0067"],
+  "tile_stride": 128,
+  "epoch": 80,
+  "val_l1": 0.02367,
+  "val_psnr": 33.015,
+  "val_lpips": 0.0520,
+  "loss": {
+    "multiscale_l1": true,
+    "lpips_weight": 0.10,
+    "hf_weight": 0.05,
+    "grad_weight": 0.02
+  },
+  "status": "temporary PREVIEW detail-placement candidate; must pass full gate before promotion"
+}

@@ -19,8 +19,10 @@ import tempfile
 import time
 from pathlib import Path
 
+import cv2
 import numpy as np
 from PIL import Image
+from skimage import color
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tests/quality_gates"))
@@ -89,6 +91,26 @@ def _tile_image(planes: np.ndarray, ref_rgb: np.ndarray, stride: int,
     return codec_tiles, rgb_tiles, src_ids, coords
 
 
+def _lowpass_luma_target(ref_rgb: np.ndarray, factor: int) -> np.ndarray:
+    if factor <= 1:
+        return ref_rgb
+    lab = color.rgb2lab(ref_rgb.astype(np.float32) / 255.0).astype(np.float32)
+    h, w = lab.shape[:2]
+    small = cv2.resize(
+        lab[..., 0],
+        (max(1, w // factor), max(1, h // factor)),
+        interpolation=cv2.INTER_AREA,
+    )
+    l_full = cv2.resize(
+        small,
+        (w, h),
+        interpolation=cv2.INTER_LANCZOS4,
+    ).astype(np.float32)
+    neutral_lab = np.zeros_like(lab)
+    neutral_lab[..., 0] = np.clip(l_full, 0.0, 100.0)
+    return np.clip(color.lab2rgb(neutral_lab) * 255.0, 0, 255).astype(np.uint8)
+
+
 def build(args: argparse.Namespace) -> None:
     registry = json.loads((REPO / "pipelines/registry.json").read_text())
     codec = registry["codecs"][args.codec]
@@ -124,7 +146,8 @@ def build(args: argparse.Namespace) -> None:
         planes = _codec_planes(dec)
         ref_png = _render_ref_cached(image_id, bayer, dms, src_dng, args.render_cache)
         ref_rgb = np.asarray(Image.open(ref_png).convert("RGB"))
-        c_tiles, r_tiles, s_ids, coords = _tile_image(planes, ref_rgb, args.stride, src_id)
+        target_rgb = _lowpass_luma_target(ref_rgb, args.target_l_lowpass_factor)
+        c_tiles, r_tiles, s_ids, coords = _tile_image(planes, target_rgb, args.stride, src_id)
         codec_tiles.extend(c_tiles)
         rgb_tiles.extend(r_tiles)
         src.extend(s_ids)
@@ -152,6 +175,7 @@ def build(args: argparse.Namespace) -> None:
         src_lookup_names=names_arr,
         tile_yx=tile_yx_arr,
         tile_stride=np.asarray([args.stride], dtype=np.int32),
+        target_l_lowpass_factor=np.asarray([args.target_l_lowpass_factor], dtype=np.int32),
     )
     print(
         f"DONE {args.out}  tiles={len(src_arr)}  "
@@ -171,6 +195,10 @@ def main() -> None:
     ap.add_argument("--stride", type=int, default=256,
                     help="Stride in codec-plane pixels. 256 reproduces the "
                          "original sparse corpus; 128 gives denser overlap.")
+    ap.add_argument("--target-l-lowpass-factor", type=int, default=0,
+                    help="If >1, replace target RGB with neutral grayscale "
+                         "whose Lab L is REF Lab L low-passed by this factor. "
+                         "Use factor=2 for the recoverable PREVIEW detail target.")
     build(ap.parse_args())
 
 

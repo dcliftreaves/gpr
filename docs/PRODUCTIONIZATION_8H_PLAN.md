@@ -341,6 +341,29 @@ Luma/detail diagnostic status:
   against a 2x bandwidth-limited REF L target, while preserving the solved
   Lab/SIPS chroma guardrail. More local single-channel Y tile heads or fixed
   donor blends are closed branches.
+- A 2x-bandwidth target Y diagnostic was trained from that recoverability
+  result. `tools/cnn/build_gate_hardtail_dmsr_tiles.py` now supports
+  `--target-l-lowpass-factor`; factor `2` produced
+  `/Volumes/OWC_8TB/gpr_cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128_lx2.npz`
+  (`640` tiles, `sha256=693a138bd5ab8ddc3c60e70d7acc26b0dda5d20812a15b7e997abaf4480a40b3`).
+  A width-32 Y model trained against the neutral grayscale Lab-L low-pass
+  target produced
+  `models/F_ane_no_sr_w32_y_hardtail_s128_lx2_best.pt`
+  (`sha256=a174d271ffec80c243e270f3d8c7a526a1ff79a19b7a5743daa966d04f1680ab`,
+  epoch 69, guardrail `val_lpips=0.0386`) and
+  `models/F_ane_no_sr_w32_y_hardtail_s128_lx2_last.pt`
+  (`sha256=c2bb6571698fb2de85ef516907e93475a145ebac277f19347f15ee39e34aff45`,
+  epoch 80). Both are registered as temporary PREVIEW candidates with sidecars.
+  Best gate run `974222c6a6d490e5` still FAILs PREVIEW, but improves the
+  near-miss blocker: `Z8Z_0001`/`Z8Z_0067` pass, `Z8Z_5323` misses only LPIPS
+  (`0.1579`), and `Z8Z_6693` remains the blocker (`LPIPS=0.2566`,
+  `MS-SSIM=0.9354`, `dE=2.33`). Last run `6544ed3dec9f3a90` regresses
+  guardrails (`Z8Z_0001 LPIPS=0.1505`) and is worse on `Z8Z_5323` while
+  leaving `Z8Z_6693` unchanged. Conclusion: the 2x target was the right
+  objective correction and materially helps, but the current tile-local
+  width-32 Y architecture still cannot place the Z6693 structure. The next
+  branch should change context/architecture or inference blending over the
+  decoded Bayer phase grid, not only the target bandwidth.
 
 28-image PREVIEW holdout status:
 
@@ -366,7 +389,8 @@ Luma/detail diagnostic status:
 1. Move beyond local tile fine-tuning for PREVIEW detail: test a full-frame or
    overlap-aware objective against 2x bandwidth-limited REF L while preserving
    Lab/SIPS chroma, or test a genuinely different decoded-Bayer phase-aware
-   detail path. Sparse
+   detail path. The 2x low-pass target improves the near-miss blocker but does
+   not solve Z6693 with the current tile-local width-32 Y architecture. Sparse
    stride-256 BIDO, dense stride-128 w16 Y, dense stride-128 w32 Y, and the
    dec2 highpass-quant/prefilter probe family are now disproven as standalone
    fixes. Single-level dec2 matched Y is the best current diagnostic branch, but
