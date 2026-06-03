@@ -763,6 +763,24 @@
       "raw_norm": 16383.0,
       "ckpt_sha256": "ced74845dd30f0b593ffa75f0097e568996a563c1736d460f08ce804ea7f3691"
     },
+    "bido_4x_ane_ml2_q3_dec2_w32_hardtail_t192_s96_fullref_best": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Warm-started from bido_4x_ane_ml2_q3_dec2_w32_exposure_aug and fine-tuned on /Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_t192_s96_fullref.npz: 192-codec-pixel / 768-output hard-tail tiles, stride 96, full REF/SIPS RGB target, no low-pass or wavelet denoising. Train images: Z8Z_0001, Z8Z_5323, Z8Z_6693; validation guardrail: Z8Z_0067. Saved at epoch 23 by best Z8Z_0067 PSNR after fine-tune (31.188 dB).",
+      "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w32_ANE_hardtail_t192_s96_fullref_best.pt",
+      "cnn_arch_variant": "F_ane_dm_sr_w32",
+      "trained_against_codec": "ml2_q3_dec2",
+      "residual_scale": 0.0,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "19b7a786190fe5fbf7f4496a0d8dec3ef366f54cf927588df5e269fcf8177007"
+    },
+    "bido_4x_ane_ml2_q3_dec2_w32_hardtail_t192_s96_fullref_last": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Same corrected larger-context full-REF target run as bido_4x_ane_ml2_q3_dec2_w32_hardtail_t192_s96_fullref_best, but saved at completed epoch 40. Z8Z_0067 guardrail PSNR at save time was 30.148 dB, so this artifact explicitly tests whether completed blocker fitting helps the hard images despite a weaker guardrail than the warm start.",
+      "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w32_ANE_hardtail_t192_s96_fullref_last.pt",
+      "cnn_arch_variant": "F_ane_dm_sr_w32",
+      "trained_against_codec": "ml2_q3_dec2",
+      "residual_scale": 0.0,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "611724ec62306180746bf3ebc29687b6c3c8d5e4104bb4fc6e470f10d9122c61"
+    },
     "bido_4x_ane_ml2_q3_dec2_blend_distill": {
       "$doc": "Temporary PREVIEW detail-placement candidate. Distills the BIDO_4x_w24 guided-filter blend target into a single BIDO_4x_w16 model: teacher supplies Y/detail, sips target supplies chroma, guided filter blends chroma with the teacher Y edge guide. Checkpoint metadata: epoch 25, val_lpips_vs_blend=0.01005, val_psnr_vs_blend=42.32 dB, val_psnr_vs_sips=39.94 dB.",
       "ckpt_path": "models/BayInDemosaicOut_4x_AAon_w16_ANE_blend_distill.pt",
@@ -1950,6 +1968,22 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-hardtail-last",
       "$doc": "Temporary candidate for full-gate hard-tail detail placement. Completed epoch-40 hard-tail adaptation checkpoint."
+    },
+    "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_w32_hardtail_t192_s96_fullref_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "bido_4x_ane_ml2_q3_dec2_w32_hardtail_t192_s96_fullref_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-hardtail-large-context-fullref-best",
+      "$doc": "Temporary candidate for full-gate hard-tail detail placement. Corrected larger-context full-REF target, best Z8Z_0067 guardrail checkpoint."
+    },
+    "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_w32_hardtail_t192_s96_fullref_last+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "bido_4x_ane_ml2_q3_dec2_w32_hardtail_t192_s96_fullref_last",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-hardtail-large-context-fullref-last",
+      "$doc": "Temporary candidate for full-gate hard-tail detail placement. Corrected larger-context full-REF target, completed epoch-40 checkpoint."
     },
     "codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_blend_distill+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

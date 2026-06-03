@@ -408,6 +408,17 @@ Luma/detail diagnostic status:
   `0.0027` and `0.0020` by removing effectively no blocker HF energy. Treat
   chroma as solved and noise as a guardrail; the next PREVIEW candidate should
   preserve/train coherent full-image texture/detail, not denoise it away.
+- Corrected direct-BIDO full-REF larger-context test completed on M5 and
+  failed. Dataset
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_t192_s96_fullref.npz`
+  uses 192-codec-pixel / 768px full REF/SIPS RGB targets with
+  `target_l_filter=none`. Best gate run `179da2ba81367e40` failed with
+  `Z8Z_6693 LPIPS=0.7934`, worst MS-SSIM `0.8515`, and worst dE `15.04`.
+  Last gate run `bc846f4542402011` also failed (`Z8Z_6693 LPIPS=0.6757`,
+  worst dE `16.59`). The visual diff is smoothed and hue-shifted, so direct
+  RGB BIDO full-REF fine-tuning is not a production path unless color is
+  explicitly constrained. Keep the Lab/SIPS chroma solution fixed in the next
+  PREVIEW detail candidate.
 
 ## Next burn-down items
 

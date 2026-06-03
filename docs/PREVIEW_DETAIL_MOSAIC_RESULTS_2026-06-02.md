@@ -196,6 +196,25 @@ purposes, not removable stochastic noise. Do not launch another CNN run whose
 target removes the full finest wavelet band or low-passes REF-L; use this
 classifier as a guard before any future denoised-target recipe.
 
+The corrected larger-context direct-BIDO full-REF test also failed and closes a
+different branch. Dataset:
+`/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_t192_s96_fullref.npz`
+(`1040` tiles, 192-codec-pixel input, 768px full REF/SIPS RGB targets,
+`target_l_filter=none`). The M5 w32 run warm-started from
+`bido_4x_ane_ml2_q3_dec2_w32_exposure_aug`, used `Z8Z_0067` as guardrail, and
+saved best epoch 23 plus final epoch 40. Full gates:
+
+| direct-BIDO full-REF candidate | run | verdict | worst image | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: |
+| t192/s96 full REF, best | `179da2ba81367e40` | FAIL | `Z8Z_6693` | 0.7934 | 0.8515 | 25.26 | 15.04 |
+| t192/s96 full REF, last | `bc846f4542402011` | FAIL | `Z8Z_6693` | 0.6757 | 0.8354 | 25.84 | 16.59 |
+
+The worst visual diff is visibly smoothed and hue-shifted. This does not
+contradict the noise/signal guard; it says the full-REF detail is signal, but
+direct RGB BIDO fine-tuning does not preserve the solved Lab/SIPS color path.
+Future PREVIEW work should keep Lab/SIPS chroma constrained and alter only the
+L/detail model or use a color-constrained teacher/student objective.
+
 ## Next Candidate
 
 Do not continue with the full-REF warm-start recipe as-is. The next useful
