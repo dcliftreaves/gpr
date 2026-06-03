@@ -398,6 +398,16 @@ Luma/detail diagnostic status:
   structural MS-SSIM/Y/dE on the hard tail, and no-CNN luma is worse on the
   diverse set. The next candidate must be full-context/detail-placement aware;
   more global sharpening or simple no-CNN luma blending is a closed branch.
+- Noise/signal target guard added:
+  `tests/quality_gates/probe_noise_signal_classifier.py`,
+  `tests/quality_gates/runs/dashboard/noise_signal_classifier.html`, and
+  `tests/quality_gates/runs/dashboard/noise_signal_classifier.json`.
+  The guard rejects blanket finest-wavelet removal on the PREVIEW blockers:
+  REF self LPIPS jumps to `0.2303` on `Z8Z_5323` and `0.2364` on `Z8Z_6693`.
+  The structure-gated classifier keeps those REF self LPIPS values at
+  `0.0027` and `0.0020` by removing effectively no blocker HF energy. Treat
+  chroma as solved and noise as a guardrail; the next PREVIEW candidate should
+  preserve/train coherent full-image texture/detail, not denoise it away.
 
 ## Next burn-down items
 

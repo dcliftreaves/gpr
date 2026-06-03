@@ -183,6 +183,19 @@ MS-SSIM is flat or slightly worse. The full gate then reproduced that pattern:
 LPIPS moved to within 0.0012 of threshold, while MS-SSIM stayed 0.0078 below
 threshold.
 
+The noise/signal classifier guard (`noise_signal_classifier`) now makes the
+target-cleanup decision explicit. It classifies finest-scale Lab-L wavelet
+energy using edge support, cross-scale wavelet support, signed local coherence,
+local energy, and candidate support. On the blocker crops, blindly removing the
+whole finest wavelet band is destructive (`Z8Z_5323` REF self LPIPS 0.2303,
+`Z8Z_6693` 0.2364), while the structure-gated removal keeps REF self LPIPS low
+(`Z8Z_5323` 0.0027, `Z8Z_6693` 0.0020) by removing effectively no blocker HF
+energy (`0.00029` and `0.00039` respectively). That means the apparent
+high-frequency content on the blockers is coherent signal/texture for training
+purposes, not removable stochastic noise. Do not launch another CNN run whose
+target removes the full finest wavelet band or low-passes REF-L; use this
+classifier as a guard before any future denoised-target recipe.
+
 ## Next Candidate
 
 Do not continue with the full-REF warm-start recipe as-is. The next useful
