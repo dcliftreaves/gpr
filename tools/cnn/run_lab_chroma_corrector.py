@@ -52,6 +52,61 @@ class LumaDetailCNN(torch.nn.Module):
         return self.net(x)
 
 
+class LumaDetailUNet(torch.nn.Module):
+    """Small multi-scale Lab-L residual refiner for full-context crops."""
+
+    def __init__(self, width: int = 24):
+        super().__init__()
+        self.stem = torch.nn.Sequential(
+            torch.nn.Conv2d(1, width, 3, padding=1),
+            torch.nn.SiLU(),
+            torch.nn.Conv2d(width, width, 3, padding=1),
+            torch.nn.SiLU(),
+        )
+        self.down1 = torch.nn.Sequential(
+            torch.nn.Conv2d(width, width * 2, 3, stride=2, padding=1),
+            torch.nn.SiLU(),
+            torch.nn.Conv2d(width * 2, width * 2, 3, padding=1),
+            torch.nn.SiLU(),
+        )
+        self.down2 = torch.nn.Sequential(
+            torch.nn.Conv2d(width * 2, width * 4, 3, stride=2, padding=1),
+            torch.nn.SiLU(),
+            torch.nn.Conv2d(width * 4, width * 4, 3, padding=1),
+            torch.nn.SiLU(),
+        )
+        self.mid = torch.nn.Sequential(
+            torch.nn.Conv2d(width * 4, width * 4, 3, padding=2, dilation=2),
+            torch.nn.SiLU(),
+            torch.nn.Conv2d(width * 4, width * 4, 3, padding=4, dilation=4),
+            torch.nn.SiLU(),
+        )
+        self.up1 = torch.nn.Sequential(
+            torch.nn.Conv2d(width * 6, width * 2, 3, padding=1),
+            torch.nn.SiLU(),
+            torch.nn.Conv2d(width * 2, width * 2, 3, padding=1),
+            torch.nn.SiLU(),
+        )
+        self.up0 = torch.nn.Sequential(
+            torch.nn.Conv2d(width * 3, width, 3, padding=1),
+            torch.nn.SiLU(),
+            torch.nn.Conv2d(width, width, 3, padding=1),
+            torch.nn.SiLU(),
+        )
+        self.out = torch.nn.Conv2d(width, 1, 3, padding=1)
+
+    def forward(self, x):
+        h, w = x.shape[-2:]
+        s0 = self.stem(x)
+        s1 = self.down1(s0)
+        z = self.mid(self.down2(s1))
+        z = F.interpolate(z, size=s1.shape[-2:], mode="bilinear", align_corners=False)
+        z = self.up1(torch.cat([z, s1], dim=1))
+        z = F.interpolate(z, size=s0.shape[-2:], mode="bilinear", align_corners=False)
+        z = self.up0(torch.cat([z, s0], dim=1))
+        return self.out(z)[..., :h, :w]
+
+
 class RGBDetailCNN(torch.nn.Module):
     def __init__(self, width: int = 16, dilations: tuple[int, ...] = (1, 1)):
         super().__init__()
@@ -194,9 +249,15 @@ def _apply_cnn_detail_luma(
         return l_chan
     ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
     width = int(ck.get("width", 8))
-    dilations = tuple(int(v) for v in ck.get("dilations", (1, 1)))
     limit = float(ck.get("residual_limit", 0.08))
-    model = LumaDetailCNN(width=width, dilations=dilations)
+    arch = ck.get("arch", "cnn")
+    if arch == "unet":
+        model = LumaDetailUNet(width=width)
+    elif arch == "cnn":
+        dilations = tuple(int(v) for v in ck.get("dilations", (1, 1)))
+        model = LumaDetailCNN(width=width, dilations=dilations)
+    else:
+        raise RuntimeError(f"Unsupported luma detail arch {arch!r} in {ckpt_path}")
     model.load_state_dict(ck["state_dict"])
     model.to(device).eval()
 

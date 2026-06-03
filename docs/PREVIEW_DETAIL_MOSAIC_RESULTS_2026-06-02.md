@@ -32,6 +32,10 @@ target:
 - `mosaic_coord_w32_lx2`: width-32 decoded-Bayer mosaic Y candidates with
   absolute y/x coordinate channels. This tests whether the local mosaic model
   was missing full-image placement cues rather than Bayer phase adjacency.
+- `luma_detail_unet_signal_v1`: multi-scale full-context Lab-L residual
+  refiner trained on full-resolution REF/PIPELINE pairs, with a lightly
+  low-pass REF-L signal target. This tests whether removing non-learnable
+  REF HF/noise from the target while increasing context fixes the blocker.
 
 ## Receipts
 
@@ -49,6 +53,7 @@ target:
 | mosaic + full-gate Lab-L residual v1 | `5d3cf75bf1b1f44b` | FAIL | `Z8Z_6693` | 0.1532 | 0.9423 | 33.21 | 2.01 |
 | mosaic + Lab-L residual v1 + wavelet HF synthesis | `b3b767e5d4d2f717` | FAIL | `Z8Z_6693` | 0.1511 | 0.9422 | 33.19 | 2.02 |
 | mosaic + dilated Lab-L residual v2 | `9b1d4c8e7320de40` | FAIL | `Z8Z_6693` | 0.1910 | 0.9436 | 33.54 | 1.97 |
+| Lab-L U-Net residual, full-context low-pass signal target | `5b0b0588f497a0cf` | FAIL | `Z8Z_6693` | 0.4631 | 0.9389 | 33.20 | 2.01 |
 | mosaic, low-pass x2 target, width 48 | `f7a42b76c1f549ae` | FAIL | `Z8Z_6693` | 0.1809 | 0.9434 | 29.25 | 2.93 |
 | mosaic, low-pass x2 target, width 48, blocker-selected | `e5107f994eb2dd0b` | FAIL | `Z8Z_6693` | 0.1637 | 0.9458 | 31.56 | 2.34 |
 | mosaic, wavelet-denoised L target, width 48, blocker-selected | `6d7ed7f5b62f7732` | FAIL | `Z8Z_6693` | 0.3235 | 0.9415 | 30.66 | 2.54 |
@@ -141,6 +146,15 @@ The full-gate residual refiners narrow the failure further:
   scalar HF amplitude.
 - The wider/dilated Lab-L residual v2 improves Y-PSNR and slightly improves
   MS-SSIM to 0.9436, but perceptual artifacts push LPIPS backward to 0.1910.
+- The full-context Lab-L U-Net signal-target refiner was trained on M5 from
+  full-resolution gate pairs in run `5e7d52579ffb2d3e` with 1024px crops and a
+  lightly low-pass REF-L target (`target_lowpass_sigma=0.35`). The best fixed
+  crop checkpoint at step 300 gated as run `5b0b0588f497a0cf` and failed worse
+  than the baseline: `Z8Z_5323` LPIPS 0.2871 and `Z8Z_6693` LPIPS 0.4631 /
+  MS-SSIM 0.9389. The worst visual diff shows the pipeline side heavily
+  smoothed relative to REF texture while color remains safe (`Z8Z_6693` dE2000
+  mean 2.01). This rules out this specific "remove HF/noise by low-passing the
+  Lab-L target, then fit a larger full-context Lab-L residual" recipe.
 
 That makes the residual-postprocess path an evidenced near-miss rather than a
 solution. It can restore some local luma energy, but it does not place

@@ -1,0 +1,34 @@
+{
+  "kind": "lab_luma_detail_cnn",
+  "arch": "unet",
+  "checkpoint": "models/luma_detail_unet_lab_sips_fullgate_signal_v1_step300.pt",
+  "sha256": "0be390ff610d47af62fe97787d7cb9f61db99cba6163a67bcd296b1110c0218a",
+  "train_host": "gpr-m5",
+  "train_run": "tests/quality_gates/runs/5e7d52579ffb2d3e",
+  "train_images": [
+    "Z8Z_0001",
+    "Z8Z_0067",
+    "Z8Z_5323",
+    "Z8Z_6693"
+  ],
+  "target_lowpass_sigma": 0.35,
+  "width": 24,
+  "residual_limit": 0.06,
+  "crop": 1024,
+  "eval_crop": 1024,
+  "step": 300,
+  "score": 0.09893116805081567,
+  "loss": {
+    "l1_weight": 1.0,
+    "msssim_weight": 0.7,
+    "lpips_weight": 0.1,
+    "lpips_warmup": 300
+  },
+  "metrics_at_save": {
+    "loss": 0.1544211208820343,
+    "l1": 0.028065219521522522,
+    "ms_ssim_loss": 0.18050843477249146,
+    "lpips_loss": 0.0
+  },
+  "status": "temporary PREVIEW detail-placement candidate; full-context Lab-L signal-target refiner"
+}

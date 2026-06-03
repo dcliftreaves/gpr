@@ -1,0 +1,96 @@
+{
+  "pipeline": "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_luma_detail_unet_signal_v1_step300+demosaic=sips_via_gpr_tools",
+  "ship_class": "PREVIEW",
+  "run_hash": "5b0b0588f497a0cf",
+  "gates_sha": "0d77521faa7c4eee",
+  "test_set": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/test_set.json",
+  "test_set_sha": "5728aca59ef884ff",
+  "is_ship_gate": true,
+  "verdict_authority": "ship_gate",
+  "started_at": "2026-06-03T00:09:00-0500",
+  "images": {
+    "Z8Z_0001": {
+      "y_psnr": 31.628182037806884,
+      "ms_ssim": 0.9684200286865234,
+      "lpips": 0.14771877229213715,
+      "dE2000_mean": 2.800098180770874,
+      "bayer_psnr_codec": 31.947133815389748,
+      "bayer_psnr_final": null,
+      "enc_bytes": 1751835,
+      "enc_ms": 15.2,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5b0b0588f497a0cf/Z8Z_0001_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5b0b0588f497a0cf/Z8Z_0001_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_0067": {
+      "y_psnr": 42.07639705723704,
+      "ms_ssim": 0.9873234629631042,
+      "lpips": 0.06310354918241501,
+      "dE2000_mean": 0.9118083715438843,
+      "bayer_psnr_codec": 35.72428288782006,
+      "bayer_psnr_final": null,
+      "enc_bytes": 1020716,
+      "enc_ms": 8.6,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5b0b0588f497a0cf/Z8Z_0067_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5b0b0588f497a0cf/Z8Z_0067_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_5323": {
+      "y_psnr": 35.36523485911029,
+      "ms_ssim": 0.9636815190315247,
+      "lpips": 0.28714385628700256,
+      "dE2000_mean": 1.5485984086990356,
+      "bayer_psnr_codec": 35.75877718750448,
+      "bayer_psnr_final": null,
+      "enc_bytes": 2658567,
+      "enc_ms": 17.9,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5b0b0588f497a0cf/Z8Z_5323_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5b0b0588f497a0cf/Z8Z_5323_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.2871 > 0.15"
+        }
+      ]
+    },
+    "Z8Z_6693": {
+      "y_psnr": 33.198458238482,
+      "ms_ssim": 0.9388734698295593,
+      "lpips": 0.4631028175354004,
+      "dE2000_mean": 2.0144498348236084,
+      "bayer_psnr_codec": 36.80619907878511,
+      "bayer_psnr_final": null,
+      "enc_bytes": 3374869,
+      "enc_ms": 20.1,
+      "ref_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5b0b0588f497a0cf/Z8Z_6693_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5b0b0588f497a0cf/Z8Z_6693_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.4631 > 0.15"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9389 < 0.95"
+        }
+      ]
+    }
+  },
+  "worst_first": [
+    "Z8Z_6693",
+    "Z8Z_5323",
+    "Z8Z_0001",
+    "Z8Z_0067"
+  ],
+  "worst_image": {
+    "id": "Z8Z_6693",
+    "visual_diff_png": "/Users/dcliftreaves/Documents/Github/gpr/tests/quality_gates/runs/5b0b0588f497a0cf/WORST_Z8Z_6693_visual_diff.png",
+    "lpips": 0.4631028175354004
+  },
+  "verdict": "FAIL",
+  "finished_at": "2026-06-03T00:09:44-0500"
+}

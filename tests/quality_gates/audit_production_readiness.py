@@ -202,6 +202,7 @@ def check_preview_detail_blocker_evidence() -> Check:
         "luma_residual_v1": "5d3cf75bf1b1f44b",
         "luma_residual_v1_wavelet_hf": "b3b767e5d4d2f717",
         "luma_residual_v2": "9b1d4c8e7320de40",
+        "luma_unet_signal_lowpass": "5b0b0588f497a0cf",
         "rgb_residual_v1": "ac606b54716374b2",
     }
     missing = []
@@ -242,6 +243,7 @@ def check_preview_detail_blocker_evidence() -> Check:
         "coordinate channels",
         "wavelet target-cleanup",
         "wavelet-HF synthesis",
+        "full-context Lab-L U-Net",
         "target/model path",
     ]
     missing_doc = [s for s in doc_needles if s not in text]

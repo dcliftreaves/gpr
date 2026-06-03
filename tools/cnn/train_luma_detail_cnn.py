@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 from skimage import color
+from skimage.filters import gaussian
 
 import torch
 import torch.nn.functional as F
@@ -21,7 +22,7 @@ try:
 except Exception:
     lpips = None
 
-from run_lab_chroma_corrector import LumaDetailCNN
+from run_lab_chroma_corrector import LumaDetailCNN, LumaDetailUNet
 
 
 Image.MAX_IMAGE_PIXELS = None
@@ -35,7 +36,17 @@ def lab_l_norm(path: Path) -> np.ndarray:
     return np.clip(color.rgb2lab(rgb)[..., 0] / 100.0, 0.0, 1.0).astype(np.float32)
 
 
-def load_pairs(run_dir: Path, image_ids: list[str]) -> list[tuple[str, np.ndarray, np.ndarray]]:
+def signal_target(l_norm: np.ndarray, sigma: float) -> np.ndarray:
+    if sigma <= 0.0:
+        return l_norm
+    return gaussian(l_norm, sigma=sigma, preserve_range=True).astype(np.float32)
+
+
+def load_pairs(
+    run_dir: Path,
+    image_ids: list[str],
+    target_lowpass_sigma: float,
+) -> list[tuple[str, np.ndarray, np.ndarray]]:
     out = []
     for image_id in image_ids:
         ref = run_dir / f"{image_id}_REF.png"
@@ -50,8 +61,16 @@ def load_pairs(run_dir: Path, image_ids: list[str]) -> list[tuple[str, np.ndarra
         pipe_l = lab_l_norm(pipe)
         h = min(ref_l.shape[0], pipe_l.shape[0])
         w = min(ref_l.shape[1], pipe_l.shape[1])
-        out.append((image_id, pipe_l[:h, :w], ref_l[:h, :w]))
+        out.append((image_id, pipe_l[:h, :w], signal_target(ref_l[:h, :w], target_lowpass_sigma)))
     return out
+
+
+def build_luma_model(arch: str, width: int, dilations: tuple[int, ...]) -> torch.nn.Module:
+    if arch == "cnn":
+        return LumaDetailCNN(width=width, dilations=dilations)
+    if arch == "unet":
+        return LumaDetailUNet(width=width)
+    raise ValueError(f"unsupported --arch {arch!r}")
 
 
 def to_gray_rgb(x: torch.Tensor) -> torch.Tensor:
@@ -114,11 +133,11 @@ def train(args: argparse.Namespace) -> None:
     dilations = tuple(int(s.strip()) for s in args.dilations.split(",") if s.strip())
     if not dilations:
         raise ValueError("--dilations must contain at least one integer")
-    pairs = load_pairs(args.run_dir, image_ids)
+    pairs = load_pairs(args.run_dir, image_ids, args.target_lowpass_sigma)
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
 
-    model = LumaDetailCNN(width=args.width, dilations=dilations).to(DEVICE)
+    model = build_luma_model(args.arch, args.width, dilations).to(DEVICE)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     lpips_net = None
     if args.lpips_weight > 0:
@@ -159,12 +178,14 @@ def train(args: argparse.Namespace) -> None:
                 args.out.parent.mkdir(parents=True, exist_ok=True)
                 torch.save({
                     "kind": "lab_luma_detail_cnn",
+                    "arch": args.arch,
                     "state_dict": model.state_dict(),
                     "width": args.width,
                     "dilations": list(dilations),
                     "residual_limit": args.residual_limit,
                     "train_run": str(args.run_dir),
                     "train_images": image_ids,
+                    "target_lowpass_sigma": args.target_lowpass_sigma,
                     "step": step,
                     "score": score,
                     "loss": float(loss.item()),
@@ -193,12 +214,14 @@ def train(args: argparse.Namespace) -> None:
     if args.save_final:
         torch.save({
             "kind": "lab_luma_detail_cnn",
+            "arch": args.arch,
             "state_dict": model.state_dict(),
             "width": args.width,
             "dilations": list(dilations),
             "residual_limit": args.residual_limit,
             "train_run": str(args.run_dir),
             "train_images": image_ids,
+            "target_lowpass_sigma": args.target_lowpass_sigma,
             "step": args.steps,
             "score": None,
             **last_stats,
@@ -209,9 +232,11 @@ def train(args: argparse.Namespace) -> None:
     sidecar = args.out.with_suffix(args.out.suffix + ".json")
     sidecar.write_text(json.dumps({
         "kind": "lab_luma_detail_cnn",
+        "arch": args.arch,
         "checkpoint": str(args.out),
         "train_run": str(args.run_dir),
         "train_images": image_ids,
+        "target_lowpass_sigma": args.target_lowpass_sigma,
         "width": args.width,
         "dilations": list(dilations),
         "residual_limit": args.residual_limit,
@@ -239,9 +264,13 @@ def main() -> None:
     ap.add_argument("--crop", type=int, default=384)
     ap.add_argument("--eval-crop", type=int, default=384)
     ap.add_argument("--width", type=int, default=8)
+    ap.add_argument("--arch", choices=("cnn", "unet"), default="cnn",
+                    help="Refiner architecture. 'unet' is the full-context candidate.")
     ap.add_argument("--dilations", default="1,1",
                     help="Comma-separated dilation schedule for hidden Lab-L residual convolutions.")
     ap.add_argument("--residual-limit", type=float, default=0.08)
+    ap.add_argument("--target-lowpass-sigma", type=float, default=0.0,
+                    help="Gaussian sigma applied to REF Lab-L before training, to remove non-learnable HF/noise from the signal target.")
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--weight-decay", type=float, default=1e-4)
     ap.add_argument("--l1-weight", type=float, default=1.0)
