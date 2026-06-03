@@ -1,0 +1,44 @@
+{
+  "kind": "lab_luma_detail_cnn",
+  "arch": "unet",
+  "checkpoint": "/Users/dcliftreaves/gpr_data/models/luma_detail_unet_lab_sips_fullgate_structure_gated_v2.pt",
+  "train_run": "/Users/dcliftreaves/gpr_data/runs/5e7d52579ffb2d3e",
+  "train_images": [
+    "Z8Z_0001",
+    "Z8Z_0067",
+    "Z8Z_5323",
+    "Z8Z_6693"
+  ],
+  "target_lowpass_sigma": 0.0,
+  "target_noise_mode": "structure_gated",
+  "target_noise": {
+    "mode": "structure_gated",
+    "wavelet": "sym4",
+    "levels": 3,
+    "signal_cutoff": 0.35,
+    "activity_sigma": 2.5,
+    "noise_power": 2.0,
+    "mask_blur": 0.8,
+    "max_weight": 0.85,
+    "edge_weight": 1.0,
+    "cross_weight": 1.0,
+    "coherence_weight": 1.0,
+    "local_weight": 0.75,
+    "candidate_weight": 0.75
+  },
+  "width": 16,
+  "dilations": [
+    1,
+    1
+  ],
+  "residual_limit": 0.05,
+  "steps": 800,
+  "best_step": 750,
+  "best_score": 0.10586787573993207,
+  "loss": {
+    "l1_weight": 1.0,
+    "msssim_weight": 0.5,
+    "lpips_weight": 0.05,
+    "lpips_warmup": 100
+  }
+}

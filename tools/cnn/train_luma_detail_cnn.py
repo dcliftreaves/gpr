@@ -13,6 +13,16 @@ from PIL import Image
 from skimage import color
 from skimage.filters import gaussian
 
+try:
+    import cv2
+except Exception:  # pragma: no cover - optional for structure-gated targets
+    cv2 = None
+
+try:
+    import pywt
+except Exception:  # pragma: no cover - optional for structure-gated targets
+    pywt = None
+
 import torch
 import torch.nn.functional as F
 from pytorch_msssim import ms_ssim
@@ -42,12 +52,139 @@ def signal_target(l_norm: np.ndarray, sigma: float) -> np.ndarray:
     return gaussian(l_norm, sigma=sigma, preserve_range=True).astype(np.float32)
 
 
+def selected_hf(l_chan: np.ndarray, wavelet: str, levels: int, hf_levels: int) -> np.ndarray:
+    if pywt is None:
+        raise RuntimeError("PyWavelets is required for --target-noise-mode structure_gated")
+    coeffs = pywt.wavedec2(l_chan.astype(np.float32), wavelet, level=levels)
+    out: list[object] = [np.zeros_like(coeffs[0])]
+    first_selected = max(1, len(coeffs) - hf_levels)
+    for idx, detail in enumerate(coeffs[1:], start=1):
+        if idx >= first_selected:
+            out.append(detail)
+        else:
+            out.append(tuple(np.zeros_like(c) for c in detail))
+    rec = pywt.waverec2(out, wavelet).astype(np.float32)
+    return rec[: l_chan.shape[0], : l_chan.shape[1]]
+
+
+def blur(x: np.ndarray, sigma: float) -> np.ndarray:
+    if cv2 is None:
+        raise RuntimeError("opencv-python is required for --target-noise-mode structure_gated")
+    return cv2.GaussianBlur(x.astype(np.float32), (0, 0), sigma).astype(np.float32)
+
+
+def norm_support(x: np.ndarray, percentile: float = 95.0) -> np.ndarray:
+    x = np.maximum(x.astype(np.float32), 0.0)
+    scale = float(np.percentile(x, percentile))
+    if scale <= 1e-8:
+        return np.zeros_like(x, dtype=np.float32)
+    return np.clip(x / scale, 0.0, 1.0).astype(np.float32)
+
+
+def robust_sigma(x: np.ndarray) -> float:
+    med_abs = float(np.median(np.abs(x.astype(np.float32))))
+    return max(med_abs / 0.67448975, 1e-6)
+
+
+def gradient_support(l_chan: np.ndarray) -> np.ndarray:
+    lx = cv2.Sobel(l_chan.astype(np.float32), cv2.CV_32F, 1, 0, ksize=3)
+    ly = cv2.Sobel(l_chan.astype(np.float32), cv2.CV_32F, 0, 1, ksize=3)
+    return norm_support(blur(np.sqrt(lx * lx + ly * ly), 1.0))
+
+
+def signed_local_coherence(hf: np.ndarray, sigma: float = 1.0) -> np.ndarray:
+    numerator = np.abs(blur(hf, sigma))
+    denominator = blur(np.abs(hf), sigma) + 1e-6
+    return np.clip(numerator / denominator, 0.0, 1.0).astype(np.float32)
+
+
+def structure_gated_signal_target(
+    ref_l: np.ndarray,
+    candidate_l: np.ndarray,
+    args: argparse.Namespace,
+) -> tuple[np.ndarray, dict[str, float]]:
+    finest_hf = selected_hf(ref_l, args.target_noise_wavelet, args.target_noise_levels, 1)
+    two_level_hf = selected_hf(
+        ref_l, args.target_noise_wavelet, args.target_noise_levels,
+        min(2, args.target_noise_levels),
+    )
+    coarser_hf = two_level_hf - finest_hf
+    ref_lf = ref_l - finest_hf
+
+    edge = gradient_support(ref_lf)
+    cross = norm_support(blur(np.abs(coarser_hf), 1.2))
+    signed = signed_local_coherence(finest_hf, 1.0)
+    local_energy = norm_support(blur(np.abs(finest_hf), 1.0))
+
+    cand_hf = selected_hf(candidate_l, args.target_noise_wavelet, args.target_noise_levels, 1)
+    ref_scale = float(np.percentile(np.abs(finest_hf), 95)) + 1e-6
+    cand_mag = np.clip(np.abs(cand_hf) / ref_scale, 0.0, 1.0)
+    cand_sign = (np.sign(cand_hf) == np.sign(finest_hf)).astype(np.float32)
+    cand = cand_mag * (0.35 + 0.65 * cand_sign)
+
+    signal_score = (
+        args.target_noise_edge_weight * edge
+        + args.target_noise_cross_weight * cross
+        + args.target_noise_coherence_weight * signed
+        + args.target_noise_local_weight * local_energy
+        + args.target_noise_candidate_weight * cand
+    )
+    weight_sum = (
+        args.target_noise_edge_weight
+        + args.target_noise_cross_weight
+        + args.target_noise_coherence_weight
+        + args.target_noise_local_weight
+        + args.target_noise_candidate_weight
+    )
+    signal_score = np.clip(signal_score / max(weight_sum, 1e-6), 0.0, 1.0).astype(np.float32)
+
+    sigma = robust_sigma(finest_hf)
+    activity = np.clip(
+        np.abs(finest_hf) / (sigma * args.target_noise_activity_sigma),
+        0.0,
+        1.0,
+    )
+    structure_gate = np.clip(
+        (args.target_noise_signal_cutoff - signal_score)
+        / max(args.target_noise_signal_cutoff, 1e-6),
+        0.0,
+        1.0,
+    )
+    noise_weight = activity * np.power(
+        1.0 - signal_score, args.target_noise_power) * structure_gate
+    noise_weight = np.clip(
+        blur(noise_weight, args.target_noise_mask_blur),
+        0.0,
+        args.target_noise_max_weight,
+    ).astype(np.float32)
+
+    predicted_noise = finest_hf * noise_weight
+    hf_energy = float(np.sum(finest_hf * finest_hf) + 1e-9)
+    removed_energy = float(np.sum(predicted_noise * predicted_noise))
+    removed_signal_risk = float(
+        np.sum((predicted_noise * predicted_noise) * signal_score) / (removed_energy + 1e-9)
+    )
+    return (ref_l - predicted_noise).astype(np.float32), {
+        "hf_sigma": sigma,
+        "hf_rms": float(np.sqrt(np.mean(finest_hf * finest_hf))),
+        "predicted_noise_rms": float(np.sqrt(np.mean(predicted_noise * predicted_noise))),
+        "removed_energy_frac": removed_energy / hf_energy,
+        "removed_signal_risk": removed_signal_risk,
+        "mean_signal_score": float(np.mean(signal_score)),
+        "mean_noise_weight": float(np.mean(noise_weight)),
+    }
+
+
 def load_pairs(
     run_dir: Path,
     image_ids: list[str],
     target_lowpass_sigma: float,
+    target_noise_mode: str,
+    args: argparse.Namespace,
 ) -> list[tuple[str, np.ndarray, np.ndarray]]:
     out = []
+    if target_noise_mode != "none" and target_lowpass_sigma > 0.0:
+        raise ValueError("--target-noise-mode and --target-lowpass-sigma are mutually exclusive")
     for image_id in image_ids:
         ref = run_dir / f"{image_id}_REF.png"
         pipe = run_dir / f"{image_id}_PIPELINE.png"
@@ -61,7 +198,21 @@ def load_pairs(
         pipe_l = lab_l_norm(pipe)
         h = min(ref_l.shape[0], pipe_l.shape[0])
         w = min(ref_l.shape[1], pipe_l.shape[1])
-        out.append((image_id, pipe_l[:h, :w], signal_target(ref_l[:h, :w], target_lowpass_sigma)))
+        pipe_l = pipe_l[:h, :w]
+        ref_l = ref_l[:h, :w]
+        if target_noise_mode == "none":
+            target_l = signal_target(ref_l, target_lowpass_sigma)
+        elif target_noise_mode == "structure_gated":
+            target_l, stats = structure_gated_signal_target(ref_l, pipe_l, args)
+            print(
+                f"  target noise gate {image_id}: removed_energy={stats['removed_energy_frac']:.6f} "
+                f"risk={stats['removed_signal_risk']:.6f} mean_signal={stats['mean_signal_score']:.4f} "
+                f"noise_rms={stats['predicted_noise_rms']:.6f}",
+                flush=True,
+            )
+        else:
+            raise ValueError(f"unsupported target_noise_mode {target_noise_mode!r}")
+        out.append((image_id, pipe_l, np.clip(target_l, 0.0, 1.0).astype(np.float32)))
     return out
 
 
@@ -133,7 +284,7 @@ def train(args: argparse.Namespace) -> None:
     dilations = tuple(int(s.strip()) for s in args.dilations.split(",") if s.strip())
     if not dilations:
         raise ValueError("--dilations must contain at least one integer")
-    pairs = load_pairs(args.run_dir, image_ids, args.target_lowpass_sigma)
+    pairs = load_pairs(args.run_dir, image_ids, args.target_lowpass_sigma, args.target_noise_mode, args)
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
 
@@ -186,6 +337,8 @@ def train(args: argparse.Namespace) -> None:
                     "train_run": str(args.run_dir),
                     "train_images": image_ids,
                     "target_lowpass_sigma": args.target_lowpass_sigma,
+                    "target_noise_mode": args.target_noise_mode,
+                    "target_noise": target_noise_metadata(args),
                     "step": step,
                     "score": score,
                     "loss": float(loss.item()),
@@ -222,6 +375,8 @@ def train(args: argparse.Namespace) -> None:
             "train_run": str(args.run_dir),
             "train_images": image_ids,
             "target_lowpass_sigma": args.target_lowpass_sigma,
+            "target_noise_mode": args.target_noise_mode,
+            "target_noise": target_noise_metadata(args),
             "step": args.steps,
             "score": None,
             **last_stats,
@@ -237,6 +392,8 @@ def train(args: argparse.Namespace) -> None:
         "train_run": str(args.run_dir),
         "train_images": image_ids,
         "target_lowpass_sigma": args.target_lowpass_sigma,
+        "target_noise_mode": args.target_noise_mode,
+        "target_noise": target_noise_metadata(args),
         "width": args.width,
         "dilations": list(dilations),
         "residual_limit": args.residual_limit,
@@ -252,6 +409,24 @@ def train(args: argparse.Namespace) -> None:
     }, indent=2))
     print(f"wrote {args.out}", flush=True)
     print(f"wrote {sidecar}", flush=True)
+
+
+def target_noise_metadata(args: argparse.Namespace) -> dict[str, float | int | str]:
+    return {
+        "mode": args.target_noise_mode,
+        "wavelet": args.target_noise_wavelet,
+        "levels": args.target_noise_levels,
+        "signal_cutoff": args.target_noise_signal_cutoff,
+        "activity_sigma": args.target_noise_activity_sigma,
+        "noise_power": args.target_noise_power,
+        "mask_blur": args.target_noise_mask_blur,
+        "max_weight": args.target_noise_max_weight,
+        "edge_weight": args.target_noise_edge_weight,
+        "cross_weight": args.target_noise_cross_weight,
+        "coherence_weight": args.target_noise_coherence_weight,
+        "local_weight": args.target_noise_local_weight,
+        "candidate_weight": args.target_noise_candidate_weight,
+    }
 
 
 def main() -> None:
@@ -271,6 +446,20 @@ def main() -> None:
     ap.add_argument("--residual-limit", type=float, default=0.08)
     ap.add_argument("--target-lowpass-sigma", type=float, default=0.0,
                     help="Gaussian sigma applied to REF Lab-L before training, to remove non-learnable HF/noise from the signal target.")
+    ap.add_argument("--target-noise-mode", choices=("none", "structure_gated"), default="none",
+                    help="Optional structure-gated finest-wavelet cleanup. Removes only HF that lacks edge, cross-scale, coherence, energy, and candidate support.")
+    ap.add_argument("--target-noise-wavelet", default="sym4")
+    ap.add_argument("--target-noise-levels", type=int, default=3)
+    ap.add_argument("--target-noise-signal-cutoff", type=float, default=0.35)
+    ap.add_argument("--target-noise-activity-sigma", type=float, default=2.5)
+    ap.add_argument("--target-noise-power", type=float, default=2.0)
+    ap.add_argument("--target-noise-mask-blur", type=float, default=0.8)
+    ap.add_argument("--target-noise-max-weight", type=float, default=0.85)
+    ap.add_argument("--target-noise-edge-weight", type=float, default=1.0)
+    ap.add_argument("--target-noise-cross-weight", type=float, default=1.0)
+    ap.add_argument("--target-noise-coherence-weight", type=float, default=1.0)
+    ap.add_argument("--target-noise-local-weight", type=float, default=0.75)
+    ap.add_argument("--target-noise-candidate-weight", type=float, default=0.75)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--weight-decay", type=float, default=1e-4)
     ap.add_argument("--l1-weight", type=float, default=1.0)

@@ -306,6 +306,7 @@ def apply_cnn(
                 str(REPO / cnn["ckpt_detail"])
                 if cnn.get("ckpt_detail") else None
             ),
+            luma_detail_cnn_strength=cnn.get("luma_detail_cnn_strength", 1.0),
             rgb_detail_cnn_path=(
                 str(REPO / cnn["ckpt_rgb_detail"])
                 if cnn.get("ckpt_rgb_detail") else None
@@ -789,6 +790,7 @@ def cnn_hash_fingerprint(cnn: dict) -> str:
             parts.append(f"{key}={cnn[key]}")
     for key in (
         "chroma_baseline",
+        "luma_detail_cnn_strength",
         "luma_unsharp_amount",
         "luma_unsharp_sigma",
         "luma_wavelet_hf_gain",

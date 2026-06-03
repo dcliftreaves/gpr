@@ -244,6 +244,7 @@ def _apply_cnn_detail_luma(
     device,
     tile: int = 768,
     overlap: int = 32,
+    strength: float = 1.0,
 ) -> np.ndarray:
     if not ckpt_path:
         return l_chan
@@ -284,7 +285,7 @@ def _apply_cnn_detail_luma(
                 cx1 = cx0 + (x1 - x0)
                 out[y0:y1, x0:x1] += residual[cy0:cy1, cx0:cx1]
                 weight[y0:y1, x0:x1] += 1.0
-    residual = out / np.maximum(weight, 1.0)
+    residual = (out / np.maximum(weight, 1.0)) * float(strength)
     return np.clip((l_norm + residual) * 100.0, 0.0, 100.0).astype(np.float32)
 
 
@@ -379,6 +380,7 @@ def run_lab_chroma_corrector(
     luma_unsharp_sigma=2.0,
     luma_detail_refiner_path=None,
     luma_detail_cnn_path=None,
+    luma_detail_cnn_strength=1.0,
     rgb_detail_cnn_path=None,
     luma_wavelet_hf_gain=1.0,
     luma_wavelet_hf_wavelet="sym4",
@@ -431,7 +433,10 @@ def run_lab_chroma_corrector(
     if luma_detail_refiner_path:
         l_chan = _apply_linear_detail_luma(l_chan, str(Path(luma_detail_refiner_path)))
     if luma_detail_cnn_path:
-        l_chan = _apply_cnn_detail_luma(l_chan, str(Path(luma_detail_cnn_path)), device)
+        l_chan = _apply_cnn_detail_luma(
+            l_chan, str(Path(luma_detail_cnn_path)), device,
+            strength=float(luma_detail_cnn_strength),
+        )
     l_chan = _apply_wavelet_hf_luma(
         l_chan,
         gain=float(luma_wavelet_hf_gain),

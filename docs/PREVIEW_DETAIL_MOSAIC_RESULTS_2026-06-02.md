@@ -215,6 +215,27 @@ direct RGB BIDO fine-tuning does not preserve the solved Lab/SIPS color path.
 Future PREVIEW work should keep Lab/SIPS chroma constrained and alter only the
 L/detail model or use a color-constrained teacher/student objective.
 
+The structure-gated Lab-L U-Net residual test then kept the solved Lab/SIPS
+color path and trained from the full-resolution `5e7d52579ffb2d3e` REF/PIPELINE
+pairs with no low-pass target (`target_lowpass_sigma=0.0`). The target cleanup
+used the noise/signal classifier logic at training time. Removed finest-band
+energy was conservative: `Z8Z_0001=0.004855`, `Z8Z_0067=0.000120`,
+`Z8Z_5323=0.000096`, `Z8Z_6693=0.000046`. That confirms the hard-image HF was
+preserved as signal before CNN training.
+
+| structure-gated Lab-L U-Net candidate | run | strength | verdict | worst image | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE |
+| --- | --- | ---: | --- | --- | ---: | ---: | ---: | ---: |
+| full strength | `9f302838a3849414` | 1.00 | FAIL | `Z8Z_6693` | 0.2999 | 0.9360 | 30.95 | 3.00 |
+| residual strength sweep | `7e070506de411bd8` | 0.25 | FAIL | `Z8Z_6693` | 0.3070 | 0.9353 | 30.57 | 2.97 |
+
+The full-strength run moved `Z8Z_6693` LPIPS only slightly versus the active
+Lab/SIPS baseline (`0.3096` to `0.2999`) and did not fix MS-SSIM. The 25%
+inference-strength run reverted toward the baseline and was not better on the
+blockers. The worst diff remains visibly flattened/smoothed. This closes
+"full-frame Lab-L residual U-Net with structure-gated target cleanup" as a
+production path: the target is no longer removing signal, but the residual
+model still does not place the missing texture/detail.
+
 ## Next Candidate
 
 Do not continue with the full-REF warm-start recipe as-is. The next useful

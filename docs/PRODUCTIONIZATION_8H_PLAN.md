@@ -419,6 +419,17 @@ Luma/detail diagnostic status:
   RGB BIDO full-REF fine-tuning is not a production path unless color is
   explicitly constrained. Keep the Lab/SIPS chroma solution fixed in the next
   PREVIEW detail candidate.
+- Structure-gated Lab-L U-Net residual test completed on M5 and failed. The
+  trainer now supports `--target-noise-mode structure_gated`, which removes
+  only unsupported finest-wavelet HF and rejects combining that mode with
+  low-pass REF-L targets. Gate run `9f302838a3849414` at full residual strength
+  failed with `Z8Z_6693 LPIPS=0.2999`, MS-SSIM `0.9360`; `Z8Z_5323` still
+  failed LPIPS `0.1734`. A 25% inference-strength sweep
+  (`7e070506de411bd8`) also failed (`Z8Z_6693 LPIPS=0.3070`, MS-SSIM
+  `0.9353`). The target guard preserved hard-image HF as signal, so this
+  closes "full-frame bounded Lab-L residual U-Net" as a production path: the
+  residual model direction itself smooths/does not place texture, even when the
+  target is not denoised.
 
 ## Next burn-down items
 
