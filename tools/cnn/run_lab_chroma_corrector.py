@@ -100,6 +100,18 @@ def _bayer_to_mosaic_tensor(bayer_u16: np.ndarray, raw_norm: float, device):
     return torch.from_numpy(mosaic[None, None]).to(device), (eh, ew)
 
 
+def _bayer_to_mosaic_coord_tensor(bayer_u16: np.ndarray, raw_norm: float, device):
+    h, w = bayer_u16.shape
+    eh, ew = h - (h & 1), w - (w & 1)
+    mosaic = bayer_u16[:eh, :ew].astype(np.float32) / raw_norm
+    yy = np.arange(eh, dtype=np.float32) / float(max(1, eh))
+    xx = np.arange(ew, dtype=np.float32) / float(max(1, ew))
+    y_grid = np.broadcast_to(yy[:, None], (eh, ew))
+    x_grid = np.broadcast_to(xx[None, :], (eh, ew))
+    arr = np.stack([mosaic, y_grid, x_grid], axis=0)
+    return torch.from_numpy(arr[None]).to(device), (eh, ew)
+
+
 def _pad16(x):
     h, w = x.shape[-2:]
     ph = (16 - h % 16) % 16
@@ -327,6 +339,9 @@ def run_lab_chroma_corrector(
     with torch.no_grad():
         if input_mode == "mosaic2x":
             xm, (eh, ew) = _bayer_to_mosaic_tensor(bayer_u16, raw_norm, device)
+            y_full_t = y_model(_pad16(xm)).clamp(0, 1)[..., :2 * eh, :2 * ew]
+        elif input_mode == "mosaic2x_coord":
+            xm, (eh, ew) = _bayer_to_mosaic_coord_tensor(bayer_u16, raw_norm, device)
             y_full_t = y_model(_pad16(xm)).clamp(0, 1)[..., :2 * eh, :2 * ew]
         elif input_mode == "planes4x":
             y_full_t = y_model(_pad16(x)).clamp(0, 1)[..., :4 * h, :4 * w]

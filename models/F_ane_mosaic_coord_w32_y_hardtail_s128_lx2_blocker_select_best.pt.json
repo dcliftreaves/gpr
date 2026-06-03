@@ -1,0 +1,31 @@
+{
+  "artifact": "models/F_ane_mosaic_coord_w32_y_hardtail_s128_lx2_blocker_select_best.pt",
+  "sha256": "bcdb646787f0426c98d4ebbc60b922adcd211cdae8387cca84c5c3c4559768b0",
+  "kind": "preview_detail_y_mosaic_coord",
+  "variant": "F_ane_mosaic_coord_w32_y",
+  "input_mode": "mosaic2x_coord",
+  "dataset": "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128_lx2_mosaic.npz",
+  "dataset_sha256": "d5e97d539859405f70481c43f64b8464026b2a3c2764d7a0abb89ae570c4e253",
+  "target": "REF Lab L low-pass factor 2, neutral Lab RGB",
+  "train_images": ["Z8Z_0001", "Z8Z_5323", "Z8Z_6693"],
+  "validation_images": ["Z8Z_0067"],
+  "selection_images": ["Z8Z_5323", "Z8Z_6693"],
+  "selection_metric": "lpips_plus_ms_l1",
+  "epoch": 69,
+  "epochs_requested": 80,
+  "val_l1": 0.011203218143782579,
+  "val_psnr": 38.98103427886963,
+  "val_lpips": 0.03479162802104838,
+  "select_score": 0.09876024824334309,
+  "select_l1": 0.01564271542010829,
+  "select_psnr": 34.25685601234436,
+  "select_lpips": 0.0831175328232348,
+  "loss": {
+    "lr": 0.0005,
+    "batch": 4,
+    "lpips_weight": 0.1,
+    "hf_weight": 0.0,
+    "grad_weight": 0.0
+  },
+  "notes": "Tests whether absolute decoded-Bayer mosaic coordinates help full-image PREVIEW detail placement while preserving the solved Lab/SIPS chroma path."
+}

@@ -29,6 +29,9 @@ target:
   checkpoint selection on the 512px center region. This tests whether the
   previous failure was caused by too little tile context or edge-biased tile
   training.
+- `mosaic_coord_w32_lx2`: width-32 decoded-Bayer mosaic Y candidates with
+  absolute y/x coordinate channels. This tests whether the local mosaic model
+  was missing full-image placement cues rather than Bayer phase adjacency.
 
 ## Receipts
 
@@ -40,6 +43,8 @@ target:
 | packed planes, low-pass x2 target, t192 center-valid conservative | `9a30acc832b00c94` | FAIL | `Z8Z_6693` | 0.3255 | 0.9289 | 29.75 | 2.74 |
 | mosaic, low-pass x2 target, best | `46bf8050492744e2` | FAIL | `Z8Z_6693` | 0.1760 | 0.9419 | 30.71 | 2.51 |
 | mosaic, low-pass x2 target, Z8Z_6693-selected | `ebcfdf3a6ff3ba23` | FAIL | `Z8Z_6693` | 0.1638 | 0.9442 | 31.06 | 2.45 |
+| mosaic + coordinates, low-pass x2 target, blocker-selected | `6315162afa5ed4d2` | FAIL | `Z8Z_6693` | 0.2010 | 0.9431 | 32.33 | 2.18 |
+| mosaic + coordinates, low-pass x2 target, last | `f20c7651c73ea654` | FAIL | `Z8Z_6693` | 0.2437 | 0.9365 | 28.72 | 3.06 |
 | mosaic + full-gate RGB residual context v1 | `ac606b54716374b2` | FAIL | `Z8Z_6693` | 0.1775 | 0.9404 | 30.64 | 2.52 |
 | mosaic + full-gate Lab-L residual v1 | `5d3cf75bf1b1f44b` | FAIL | `Z8Z_6693` | 0.1532 | 0.9423 | 33.21 | 2.01 |
 | mosaic + Lab-L residual v1 + wavelet HF synthesis | `b3b767e5d4d2f717` | FAIL | `Z8Z_6693` | 0.1511 | 0.9422 | 33.19 | 2.02 |
@@ -104,6 +109,18 @@ The full-gate residual refiners narrow the failure further:
   `Z8Z_6693` still regressed to LPIPS 0.3255 / MS-SSIM 0.9289 and all four
   images failed at least one metric. This rules out "larger local tile context
   plus center-valid loss/selection" for the current phase-plane Y architecture.
+- Adding absolute coordinate channels to the mosaic Y model improved the
+  blocker tile-selection objective but did not transfer to the full-image gate.
+  The dataset was the existing external
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128_lx2_mosaic.npz`
+  (`sha256=d5e97d539859405f70481c43f64b8464026b2a3c2764d7a0abb89ae570c4e253`).
+  The blocker-selected checkpoint saved at epoch 69 with tile `select_lpips`
+  `0.0831`, but full-gate run `6315162afa5ed4d2` still failed `Z8Z_6693`
+  (`LPIPS=0.2010`, `MS-SSIM=0.9431`) while passing the other three gate images.
+  The final epoch-80 checkpoint regressed further in run `f20c7651c73ea654`
+  (`Z8Z_6693 LPIPS=0.2437`, `MS-SSIM=0.9365`, `dE=3.06`). This rules out
+  "absolute position cues plus the same local mosaic-Y architecture" as the
+  missing production step.
 - The wavelet target-cleanup run improved the tile-training selection metric
   (`Z8Z_5323,Z8Z_6693` LPIPS 0.0656 vs 0.0695 for the previous width-48
   blocker-selected checkpoint), but failed the full-image gate badly:

@@ -101,7 +101,7 @@ def load_data(npz_path, val_src_names, subsample_rate=1, input_mode="planes4x"):
     out = {}
     for k in ["codec_R", "codec_G1", "codec_G2", "codec_B"]:
         out[k] = np.asarray(npz[k][keep_mask])
-    if input_mode == "mosaic2x":
+    if input_mode in ("mosaic2x", "mosaic2x_coord"):
         if "codec_mosaic" in npz.files:
             out["codec_mosaic"] = np.asarray(npz["codec_mosaic"][keep_mask])
         else:
@@ -117,6 +117,21 @@ def load_data(npz_path, val_src_names, subsample_rate=1, input_mode="planes4x"):
             mosaic[:, 1::2, 0::2] = g2
             mosaic[:, 1::2, 1::2] = b
             out["codec_mosaic"] = mosaic
+        if input_mode == "mosaic2x_coord":
+            if "tile_yx" not in npz.files:
+                raise RuntimeError("mosaic2x_coord input mode requires tile_yx in the NPZ")
+            out["tile_yx"] = np.asarray(npz["tile_yx"][keep_mask])
+            tile_codec = int(np.asarray(npz["tile_codec"])[0]) if "tile_codec" in npz.files else out["codec_R"].shape[-1]
+            out["_tile_codec"] = tile_codec
+            src_all = src[keep_mask]
+            y_max: dict[int, int] = {}
+            x_max: dict[int, int] = {}
+            for src_id, (yc, xc) in zip(src_all.tolist(), out["tile_yx"].tolist()):
+                y_max[src_id] = max(y_max.get(src_id, 0), int(yc) + tile_codec)
+                x_max[src_id] = max(x_max.get(src_id, 0), int(xc) + tile_codec)
+            out["_src_plane_hw"] = {
+                int(src_id): (int(y_max[src_id]), int(x_max[src_id])) for src_id in y_max
+            }
     if "tgt_rgb" not in npz.files:
         raise RuntimeError("NPZ is missing tgt_rgb — this trainer needs RGB targets.")
     out["tgt_rgb"] = np.asarray(npz["tgt_rgb"][keep_mask])
@@ -135,6 +150,22 @@ def codec_planes_from_mem(d, idx):
 
 def codec_mosaic_from_mem(d, idx):
     return d["codec_mosaic"][idx][None].astype(np.float32) / RAW_NORM
+
+
+def codec_mosaic_coord_from_mem(d, idx):
+    mosaic = d["codec_mosaic"][idx].astype(np.float32) / RAW_NORM
+    src_id = int(d["src"][idx])
+    yc, xc = (int(v) for v in d["tile_yx"][idx])
+    tile_h, tile_w = mosaic.shape
+    plane_h, plane_w = d["_src_plane_hw"][src_id]
+    # tile_yx is in packed-plane pixels; mosaic coordinates are twice that.
+    src_h = max(1, plane_h * 2)
+    src_w = max(1, plane_w * 2)
+    yy = (np.arange(tile_h, dtype=np.float32) + yc * 2.0) / float(src_h)
+    xx = (np.arange(tile_w, dtype=np.float32) + xc * 2.0) / float(src_w)
+    y_grid = np.broadcast_to(yy[:, None], (tile_h, tile_w))
+    x_grid = np.broadcast_to(xx[None, :], (tile_h, tile_w))
+    return np.stack([mosaic, y_grid, x_grid], axis=0).astype(np.float32)
 
 
 def tgt_channel_from_mem(d, idx, channel_idx):
@@ -160,6 +191,8 @@ class TileDS(Dataset):
         idx = self.indices[i]
         if self.input_mode == "mosaic2x":
             codec = codec_mosaic_from_mem(self.mem, idx)
+        elif self.input_mode == "mosaic2x_coord":
+            codec = codec_mosaic_coord_from_mem(self.mem, idx)
         else:
             codec = codec_planes_from_mem(self.mem, idx)
         tgt = tgt_channel_from_mem(self.mem, idx, self.channel_idx)
@@ -511,7 +544,8 @@ def main():
     ap.add_argument("--variant", required=True,
                     choices=["F_ane_no_sr_w16_y", "F_ane_no_sr_w24_y",
                              "F_ane_no_sr_w32_y", "F_ane_no_sr_w32_y_lk7",
-                             "F_ane_mosaic_w32_y", "F_ane_mosaic_w48_y",
+                             "F_ane_mosaic_w32_y", "F_ane_mosaic_coord_w32_y",
+                             "F_ane_mosaic_w48_y",
                              "F_ane_no_sr_w8_chroma"])
     ap.add_argument("--channel", required=True, choices=["Y", "Cb", "Cr"])
     ap.add_argument("--epochs", type=int, default=80)
@@ -519,9 +553,10 @@ def main():
     ap.add_argument("--lr", type=float, default=5e-4)
     ap.add_argument("--patience", type=int, default=30)
     ap.add_argument("--subsample", type=int, default=1)
-    ap.add_argument("--input-mode", choices=["planes4x", "mosaic2x"], default="planes4x",
+    ap.add_argument("--input-mode", choices=["planes4x", "mosaic2x", "mosaic2x_coord"], default="planes4x",
                     help="planes4x uses 4 packed Bayer phase planes and a 4x Y head; "
-                         "mosaic2x uses one decoded Bayer mosaic channel and a 2x Y head.")
+                         "mosaic2x uses one decoded Bayer mosaic channel and a 2x Y head; "
+                         "mosaic2x_coord appends absolute y/x coordinate channels.")
     ap.add_argument("--ckpt-name", type=str, required=True)
     ap.add_argument("--init-ckpt", type=str, default=None,
                     help="Optional checkpoint to warm-start from.")

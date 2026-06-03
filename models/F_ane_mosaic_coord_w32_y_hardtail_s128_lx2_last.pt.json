@@ -1,0 +1,31 @@
+{
+  "artifact": "models/F_ane_mosaic_coord_w32_y_hardtail_s128_lx2_last.pt",
+  "sha256": "f6ea11d50b1b2418ee625760b42c9f9c8f5d72b1468f330980305c8423909ab4",
+  "kind": "preview_detail_y_mosaic_coord",
+  "variant": "F_ane_mosaic_coord_w32_y",
+  "input_mode": "mosaic2x_coord",
+  "dataset": "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_s128_lx2_mosaic.npz",
+  "dataset_sha256": "d5e97d539859405f70481c43f64b8464026b2a3c2764d7a0abb89ae570c4e253",
+  "target": "REF Lab L low-pass factor 2, neutral Lab RGB",
+  "train_images": ["Z8Z_0001", "Z8Z_5323", "Z8Z_6693"],
+  "validation_images": ["Z8Z_0067"],
+  "selection_images": ["Z8Z_5323", "Z8Z_6693"],
+  "selection_metric": "lpips_plus_ms_l1",
+  "epoch": 80,
+  "epochs_requested": 80,
+  "val_l1": 0.031415357522200794,
+  "val_psnr": 30.874326276779176,
+  "val_lpips": 0.04814222203567624,
+  "select_score": 0.13023061469430106,
+  "select_l1": 0.02636995060602203,
+  "select_psnr": 30.469433307647705,
+  "select_lpips": 0.10386066408827901,
+  "loss": {
+    "lr": 0.0005,
+    "batch": 4,
+    "lpips_weight": 0.1,
+    "hf_weight": 0.0,
+    "grad_weight": 0.0
+  },
+  "notes": "Final epoch contrast for the coordinate-aware mosaic Y run; tile selection regressed from the epoch-69 best."
+}
