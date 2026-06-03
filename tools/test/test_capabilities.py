@@ -55,6 +55,8 @@ GTOOLS = Path(os.environ.get("GTOOLS", BUILD_DIR / "source/app/gpr_tools/gpr_too
 # compression ratio) ignore this — they're build-type independent.
 TIMING_TOLERANCE = float(os.environ.get("GPR_TIMING_TOLERANCE", "1.0"))
 TIMING_SAMPLES = int(os.environ.get("GPR_TIMING_SAMPLES", "3"))
+TIMING_SAMPLE_MAX_PIXELS = int(os.environ.get(
+    "GPR_TIMING_SAMPLE_MAX_PIXELS", str(4032 * 3024)))
 
 DEFAULT_ART = "/Volumes/OWC_8TB/gpr_work/artifacts/capabilities"
 if not Path("/Volumes/OWC_8TB/gpr_work/artifacts").exists():
@@ -335,11 +337,11 @@ def measure_still_roundtrip(cap, work: Path) -> Dict[str, float]:
                        "-x", pf, "-o", str(dng)])
     if rc != 0:
         raise RuntimeError("raw→dng failed")
-    # Small 1024² timing cells are vulnerable to one-off hosted-runner noise
+    # CI-sized still timing cells are vulnerable to one-off hosted-runner noise
     # (process launch, filesystem hiccups, background runner work). Sample
-    # them a few times and keep the best codec wall time. Larger cells already
-    # dominate process overhead and would make CI unnecessarily slow.
-    samples = max(1, TIMING_SAMPLES if W * H <= 1024 * 1024 else 1)
+    # them a few times and keep the best codec wall time. The 23/50/100 MP
+    # rows stay single-shot by default so full macOS coverage remains bounded.
+    samples = max(1, TIMING_SAMPLES if W * H <= TIMING_SAMPLE_MAX_PIXELS else 1)
     encode_ms = float("inf")
     decode_ms = float("inf")
     for _ in range(samples):
@@ -842,7 +844,7 @@ def emit_markdown(rows: list, out_path: Path):
         "The fixture is designed so 3-level wavelet LL coefficients exceed 32767,",
         "exercising the sign-extension path that has historically been a regression",
         "hotspot. Timing measurements are wall-clock subprocess invocations. For",
-        "1024² still cells the harness records the best of a small number of",
+        "CI-sized still cells the harness records the best of a small number of",
         "invocations to suppress hosted-runner cold-start noise; larger cells run",
         "once because codec work dominates launch overhead.",
         "",
@@ -880,7 +882,7 @@ def main():
     print(f"GTOOLS    : {GTOOLS}")
     print(f"ARTIFACT  : {ART_DIR}")
     print(f"FAST      : {FAST}")
-    print(f"timing samples (1024² stills): {max(1, TIMING_SAMPLES)}")
+    print(f"timing samples (≤{TIMING_SAMPLE_MAX_PIXELS} px stills): {max(1, TIMING_SAMPLES)}")
     print(f"refresh   : {args.refresh}")
     print()
 
