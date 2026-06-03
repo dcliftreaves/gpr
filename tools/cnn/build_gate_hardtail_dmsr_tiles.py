@@ -38,8 +38,6 @@ DEFAULT_OUT = Path("/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_ha
 DEFAULT_RENDER_CACHE = Path("/Volumes/OWC_8TB/gpr_work/cnn/render_cache_gate_hardtail")
 DEFAULT_IMAGE_IDS = ("Z8Z_0001", "Z8Z_0067", "Z8Z_5323", "Z8Z_6693")
 
-TILE_CODEC = 128
-TILE_RGB = 512
 SCALE_TO_SOURCE = 4
 
 
@@ -77,25 +75,32 @@ def _codec_planes(decoded_bayer: np.ndarray) -> np.ndarray:
     )
 
 
-def _tile_image(planes: np.ndarray, mosaic: np.ndarray, ref_rgb: np.ndarray, stride: int,
-                src_id: int) -> tuple[list[np.ndarray], list[np.ndarray], list[np.ndarray],
-                                      list[int], list[tuple[int, int]]]:
+def _tile_image(
+    planes: np.ndarray,
+    mosaic: np.ndarray,
+    ref_rgb: np.ndarray,
+    stride: int,
+    tile_codec: int,
+    src_id: int,
+) -> tuple[list[np.ndarray], list[np.ndarray], list[np.ndarray],
+           list[int], list[tuple[int, int]]]:
     _, hp, wp = planes.shape
+    tile_rgb = tile_codec * SCALE_TO_SOURCE
     codec_tiles: list[np.ndarray] = []
     mosaic_tiles: list[np.ndarray] = []
     rgb_tiles: list[np.ndarray] = []
     src_ids: list[int] = []
     coords: list[tuple[int, int]] = []
-    for yc in range(0, hp - TILE_CODEC + 1, stride):
-        for xc in range(0, wp - TILE_CODEC + 1, stride):
+    for yc in range(0, hp - tile_codec + 1, stride):
+        for xc in range(0, wp - tile_codec + 1, stride):
             y = yc * SCALE_TO_SOURCE
             x = xc * SCALE_TO_SOURCE
-            if y + TILE_RGB > ref_rgb.shape[0] or x + TILE_RGB > ref_rgb.shape[1]:
+            if y + tile_rgb > ref_rgb.shape[0] or x + tile_rgb > ref_rgb.shape[1]:
                 continue
-            codec_tiles.append(planes[:, yc:yc + TILE_CODEC, xc:xc + TILE_CODEC])
-            mosaic_tiles.append(mosaic[yc * 2:(yc + TILE_CODEC) * 2,
-                                       xc * 2:(xc + TILE_CODEC) * 2])
-            rgb_tiles.append(ref_rgb[y:y + TILE_RGB, x:x + TILE_RGB, :])
+            codec_tiles.append(planes[:, yc:yc + tile_codec, xc:xc + tile_codec])
+            mosaic_tiles.append(mosaic[yc * 2:(yc + tile_codec) * 2,
+                                       xc * 2:(xc + tile_codec) * 2])
+            rgb_tiles.append(ref_rgb[y:y + tile_rgb, x:x + tile_rgb, :])
             src_ids.append(src_id)
             coords.append((yc, xc))
     return codec_tiles, mosaic_tiles, rgb_tiles, src_ids, coords
@@ -204,7 +209,9 @@ def build(args: argparse.Namespace) -> None:
         ref_png = _render_ref_cached(image_id, bayer, dms, src_dng, args.render_cache)
         ref_rgb = np.asarray(Image.open(ref_png).convert("RGB"))
         target_rgb = _filtered_luma_target(ref_rgb, args)
-        c_tiles, m_tiles, r_tiles, s_ids, coords = _tile_image(planes, dec, target_rgb, args.stride, src_id)
+        c_tiles, m_tiles, r_tiles, s_ids, coords = _tile_image(
+            planes, dec, target_rgb, args.stride, args.tile_codec, src_id
+        )
         codec_tiles.extend(c_tiles)
         mosaic_tiles.extend(m_tiles)
         rgb_tiles.extend(r_tiles)
@@ -235,6 +242,8 @@ def build(args: argparse.Namespace) -> None:
         src_lookup_names=names_arr,
         tile_yx=tile_yx_arr,
         tile_stride=np.asarray([args.stride], dtype=np.int32),
+        tile_codec=np.asarray([args.tile_codec], dtype=np.int32),
+        tile_rgb=np.asarray([args.tile_codec * SCALE_TO_SOURCE], dtype=np.int32),
         target_l_lowpass_factor=np.asarray([args.target_l_lowpass_factor], dtype=np.int32),
         target_l_filter=np.asarray([args.target_l_filter], dtype=object),
         target_l_wavelet=np.asarray([args.target_l_wavelet], dtype=object),
@@ -260,6 +269,9 @@ def main() -> None:
     ap.add_argument("--stride", type=int, default=256,
                     help="Stride in codec-plane pixels. 256 reproduces the "
                          "original sparse corpus; 128 gives denser overlap.")
+    ap.add_argument("--tile-codec", type=int, default=128,
+                    help="Tile size in codec-plane pixels. 128 yields 512px "
+                         "RGB targets; larger values train with more context.")
     ap.add_argument("--target-l-lowpass-factor", type=int, default=0,
                     help="If >1, replace target RGB with neutral grayscale "
                          "whose Lab L is REF Lab L low-passed by this factor. "

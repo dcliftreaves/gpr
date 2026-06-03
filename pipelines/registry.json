@@ -985,6 +985,30 @@
       "residual_scale": 0.0,
       "chroma_baseline": "demosaic_sips"
     },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_t192_s96_lx2_center512_blocker_select_best": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Warm-started from the width-32 2x-low-pass Y checkpoint, then fine-tuned on larger 192-codec-pixel / 768-output hard-tail tiles while applying loss/eval only to the 512px center region. Checkpoint selected by Z8Z_5323,Z8Z_6693 LPIPS+center-L1. Tests whether wider decoded-Bayer context plus center-valid training fixes structure placement without moving Lab/SIPS chroma.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w32_y_hardtail_t192_s96_lx2_center512_blocker_select_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "a9d17031244c6a7e576b19d4fc7d28f7178d9341fa8c6785aaa0c14a319c9813",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_t192_s96_lx2_center512_conservative_best": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Conservative version of the larger-context center-valid Y fine-tune: warm-started from the width-32 2x-low-pass checkpoint, trained at lr=2e-5 with no high-pass/gradient pressure and selected by Z8Z_5323,Z8Z_6693 LPIPS+center-L1 after one epoch. Tests whether gentle center-valid adaptation improves blockers without the aggressive recipe's full-gate regression.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w32_y_hardtail_t192_s96_lx2_center512_conservative_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "61afb52472d8b00ba4854b1514477402f632a44c1cd195f0a1f321151cf8f884",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_lk7_hardtail_s128_lx2_best": {
       "$doc": "Temporary PREVIEW detail-placement candidate. Same 2x-low-pass hard-tail target as y_w32_hardtail_s128_lx2_best, but with 7x7 depthwise kernels in the Y model to test whether receptive-field/context is the remaining detail blocker. Saved at epoch 72 by lowest Z8Z_0067 LPIPS (0.0422).",
       "cnn_arch_variant": "lab_chroma_corrector",
@@ -2005,6 +2029,22 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-y-w32-hardtail-s128-lx2",
       "$doc": "Temporary candidate for the detail-placement stop criteria. Final width-32 dense hard-tail Y checkpoint trained against 2x bandwidth-limited reference Lab L plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_t192_s96_lx2_center512_blocker_select_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_t192_s96_lx2_center512_blocker_select_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-w32-hardtail-large-context-center-valid",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Width-32 Y checkpoint trained on larger 192-codec-pixel tiles with center-valid 512px loss against 2x bandwidth-limited reference Lab L plus active Lab/SIPS chroma baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_t192_s96_lx2_center512_conservative_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_hardtail_t192_s96_lx2_center512_conservative_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-y-w32-hardtail-large-context-center-valid-conservative",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Conservative larger-context center-valid width-32 Y checkpoint against 2x bandwidth-limited reference Lab L plus active Lab/SIPS chroma baseline."
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_w32_lk7_hardtail_s128_lx2_best+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

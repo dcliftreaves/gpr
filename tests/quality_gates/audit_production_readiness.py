@@ -191,6 +191,8 @@ def check_preview_detail_blocker_evidence() -> Check:
 
     required_failed = {
         "mosaic_x2": "46bf8050492744e2",
+        "phase_plane_center_valid_aggressive": "abd069326b906a72",
+        "phase_plane_center_valid_conservative": "9a30acc832b00c94",
         "mosaic_z6693_select": "ebcfdf3a6ff3ba23",
         "mosaic_width48_blocker_select": "e5107f994eb2dd0b",
         "mosaic_width48_wavelet_lhf2": "6d7ed7f5b62f7732",
@@ -234,6 +236,7 @@ def check_preview_detail_blocker_evidence() -> Check:
         "not just selecting a later training epoch",
         "capacity plus tile-level hard",
         "image selection",
+        "center-valid",
         "wavelet target-cleanup",
         "wavelet-HF synthesis",
         "target/model path",

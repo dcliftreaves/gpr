@@ -1,0 +1,36 @@
+{
+  "kind": "ycbcr_decomp_y",
+  "checkpoint": "models/F_ane_no_sr_w32_y_hardtail_t192_s96_lx2_center512_conservative_best.pt",
+  "checkpoint_sha256": "61afb52472d8b00ba4854b1514477402f632a44c1cd195f0a1f321151cf8f884",
+  "dataset": "/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_t192_s96_lx2.npz",
+  "dataset_sha256": "650a41efb1c8fa60ae407da3de38cb6139ab44a8a7030db4818dde230c8d995f",
+  "source_checkpoint": "models/F_ane_no_sr_w32_y_hardtail_s128_lx2_best.pt",
+  "variant": "F_ane_no_sr_w32_y",
+  "input_mode": "planes4x",
+  "tile_codec": 192,
+  "tile_rgb": 768,
+  "tile_stride": 96,
+  "target": "neutral grayscale from REF Lab L lowpass x2",
+  "loss_center_margin": 128,
+  "center_loss_window": 512,
+  "epochs_requested": 20,
+  "stopped_after_epoch": 3,
+  "selected_epoch": 1,
+  "selection": {
+    "src_names": ["Z8Z_5323", "Z8Z_6693"],
+    "metric": "lpips_plus_ms_l1",
+    "score": 0.1612484648787918,
+    "lpips": 0.13767604945370784,
+    "center_l1": 0.023572415425083957,
+    "psnr": 31.08877858015207
+  },
+  "loss": {
+    "lr": 0.00002,
+    "lpips_weight": 0.05,
+    "hf_weight": 0.0,
+    "grad_weight": 0.0,
+    "batch": 1
+  },
+  "gate_run": "9a30acc832b00c94",
+  "gate_verdict": "FAIL"
+}

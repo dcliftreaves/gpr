@@ -24,6 +24,11 @@ target:
   shippable bounded Lab-L wavelet-HF synthesis hook. This tests whether the
   REF-HF oracle insight can be approximated by amplifying the candidate's own
   finest wavelet detail band instead of importing exact REF noise.
+- `y_w32_t192_center512`: width-32 decoded-Bayer phase-plane Y candidates
+  fine-tuned on larger 192-codec-pixel / 768-output tiles with loss and
+  checkpoint selection on the 512px center region. This tests whether the
+  previous failure was caused by too little tile context or edge-biased tile
+  training.
 
 ## Receipts
 
@@ -31,6 +36,8 @@ target:
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: |
 | baseline `sl_q3+cnn=none` | `5e7b79b5678fdf62` | PASS | `Z8Z_6693` | 0.1003 | 0.9580 | 33.34 | 1.71 |
 | packed planes, low-pass x2 target | `974222c6a6d490e5` | FAIL | `Z8Z_6693` | 0.2566 | 0.9354 | 31.51 | 2.33 |
+| packed planes, low-pass x2 target, t192 center-valid aggressive | `abd069326b906a72` | FAIL | `Z8Z_6693` | 0.3988 | 0.9183 | 28.91 | 2.97 |
+| packed planes, low-pass x2 target, t192 center-valid conservative | `9a30acc832b00c94` | FAIL | `Z8Z_6693` | 0.3255 | 0.9289 | 29.75 | 2.74 |
 | mosaic, low-pass x2 target, best | `46bf8050492744e2` | FAIL | `Z8Z_6693` | 0.1760 | 0.9419 | 30.71 | 2.51 |
 | mosaic, low-pass x2 target, Z8Z_6693-selected | `ebcfdf3a6ff3ba23` | FAIL | `Z8Z_6693` | 0.1638 | 0.9442 | 31.06 | 2.45 |
 | mosaic + full-gate RGB residual context v1 | `ac606b54716374b2` | FAIL | `Z8Z_6693` | 0.1775 | 0.9404 | 30.64 | 2.52 |
@@ -85,6 +92,18 @@ The full-gate residual refiners narrow the failure further:
   the Lab-L residual near-miss. That rules out "capacity plus tile-level hard
   image selection" as the missing production step for this local mosaic-Y
   architecture.
+- Larger-context center-valid phase-plane training also fails as a standalone
+  fix. The 192-codec-pixel / 768-output dataset was built on the external
+  drive as
+  `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_t192_s96_lx2.npz`
+  (`sha256=650a41efb1c8fa60ae407da3de38cb6139ab44a8a7030db4818dde230c8d995f`).
+  The aggressive checkpoint improved blocker tile selection enough to save at
+  epoch 2, but full-gate `Z8Z_6693` regressed to LPIPS 0.3988 / MS-SSIM
+  0.9183 and also broke `Z8Z_0001` dE/Y. A conservative lr=2e-5 variant saved
+  at epoch 1 with better blocker tile LPIPS (0.1377), but full-gate
+  `Z8Z_6693` still regressed to LPIPS 0.3255 / MS-SSIM 0.9289 and all four
+  images failed at least one metric. This rules out "larger local tile context
+  plus center-valid loss/selection" for the current phase-plane Y architecture.
 - The wavelet target-cleanup run improved the tile-training selection metric
   (`Z8Z_5323,Z8Z_6693` LPIPS 0.0656 vs 0.0695 for the previous width-48
   blocker-selected checkpoint), but failed the full-image gate badly:

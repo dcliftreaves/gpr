@@ -211,6 +211,17 @@ def gradient_l1(pred, tgt):
     return F.l1_loss(px, tx) + F.l1_loss(py, ty)
 
 
+def center_crop_pair(pred: torch.Tensor, tgt: torch.Tensor, margin: int) -> tuple[torch.Tensor, torch.Tensor]:
+    if margin <= 0:
+        return pred, tgt
+    h, w = pred.shape[-2:]
+    if h != tgt.shape[-2] or w != tgt.shape[-1]:
+        raise RuntimeError(f"pred/tgt shape mismatch before center crop: {pred.shape} vs {tgt.shape}")
+    if 2 * margin >= h or 2 * margin >= w:
+        raise RuntimeError(f"--loss-center-margin {margin} too large for output {h}x{w}")
+    return pred[..., margin:h - margin, margin:w - margin], tgt[..., margin:h - margin, margin:w - margin]
+
+
 def train(args):
     channel_idx = CHANNEL_IDX[args.channel]
     print(f"=== Training {args.variant} for channel {args.channel} (idx={channel_idx}) ===")
@@ -292,15 +303,16 @@ def train(args):
                 inp = inp.to(DEVICE)
                 tgt = tgt.to(DEVICE)
                 pred = model(inp).clamp(0, 1)
-                tot_l1 += F.l1_loss(pred, tgt, reduction="sum").item() / (
-                    pred.shape[1] * pred.shape[2] * pred.shape[3]
+                pred_eval, tgt_eval = center_crop_pair(pred, tgt, args.loss_center_margin)
+                tot_l1 += F.l1_loss(pred_eval, tgt_eval, reduction="sum").item() / (
+                    pred_eval.shape[1] * pred_eval.shape[2] * pred_eval.shape[3]
                 )
-                mse = ((pred - tgt) ** 2).mean(dim=[1, 2, 3])
+                mse = ((pred_eval - tgt_eval) ** 2).mean(dim=[1, 2, 3])
                 tot_psnr += (-10 * torch.log10(mse.clamp_min(1e-12))).sum().item()
                 if lpips_net is not None:
                     # Broadcast single-channel to 3ch RGB for LPIPS-alex.
-                    pred_3 = pred.repeat(1, 3, 1, 1)
-                    tgt_3 = tgt.repeat(1, 3, 1, 1)
+                    pred_3 = pred_eval.repeat(1, 3, 1, 1)
+                    tgt_3 = tgt_eval.repeat(1, 3, 1, 1)
                     lp = lpips_net(pred_3 * 2 - 1, tgt_3 * 2 - 1).flatten()
                     tot_lp += lp.sum().item()
                 n += inp.shape[0]
@@ -340,20 +352,21 @@ def train(args):
             inp = inp.to(DEVICE)
             tgt = tgt.to(DEVICE)
             pred = model(inp).clamp(0, 1)
+            pred_loss, tgt_loss = center_crop_pair(pred, tgt, args.loss_center_margin)
             if args.channel == "Y":
-                l_task = multiscale_l1(pred, tgt)
+                l_task = multiscale_l1(pred_loss, tgt_loss)
                 if args.hf_weight > 0:
-                    l_task = l_task + args.hf_weight * highpass_l1(pred, tgt)
+                    l_task = l_task + args.hf_weight * highpass_l1(pred_loss, tgt_loss)
                 if args.grad_weight > 0:
-                    l_task = l_task + args.grad_weight * gradient_l1(pred, tgt)
+                    l_task = l_task + args.grad_weight * gradient_l1(pred_loss, tgt_loss)
             else:
                 # Chroma: L1 + 0.10 * Charbonnier (robust on outliers, smooth
                 # gradient at the origin so optimizer doesn't oscillate).
-                l_task = F.l1_loss(pred, tgt) + 0.10 * charbonnier(pred, tgt)
+                l_task = F.l1_loss(pred_loss, tgt_loss) + 0.10 * charbonnier(pred_loss, tgt_loss)
             l = l_task
             if lpips_net is not None and args.lpips_weight > 0:
-                pred_3 = pred.repeat(1, 3, 1, 1)
-                tgt_3 = tgt.repeat(1, 3, 1, 1)
+                pred_3 = pred_loss.repeat(1, 3, 1, 1)
+                tgt_3 = tgt_loss.repeat(1, 3, 1, 1)
                 l_lpips = lpips_net(pred_3 * 2 - 1, tgt_3 * 2 - 1).mean()
                 l = l + args.lpips_weight * l_lpips
             opt.zero_grad(set_to_none=True)
@@ -413,6 +426,7 @@ def train(args):
                 "input_mode": args.input_mode,
                 "hf_weight": args.hf_weight if args.channel == "Y" else 0.0,
                 "grad_weight": args.grad_weight if args.channel == "Y" else 0.0,
+                "loss_center_margin": args.loss_center_margin,
                 "epoch": ep + 1,
                 "val_l1": l1,
                 "val_psnr": psnr,
@@ -457,6 +471,7 @@ def train(args):
             "input_mode": args.input_mode,
             "hf_weight": args.hf_weight if args.channel == "Y" else 0.0,
             "grad_weight": args.grad_weight if args.channel == "Y" else 0.0,
+            "loss_center_margin": args.loss_center_margin,
             "epoch": ep + 1,
             "val_l1": l1,
             "val_psnr": psnr,
@@ -520,6 +535,11 @@ def main():
                     help="High-pass L1 weight for Y channel; ignored for chroma.")
     ap.add_argument("--grad-weight", type=float, default=0.0,
                     help="Gradient L1 weight for Y channel; ignored for chroma.")
+    ap.add_argument("--loss-center-margin", type=int, default=0,
+                    help="Ignore this many output pixels at every tile edge for "
+                         "loss, validation, LPIPS, and checkpoint selection. "
+                         "Use with larger training tiles to make the model see "
+                         "context while optimizing the center-valid region.")
     ap.add_argument("--select-src-names", type=str, default="",
                     help="Optional comma-separated source names used only for "
                          "checkpoint selection. These tiles are evaluated even "
