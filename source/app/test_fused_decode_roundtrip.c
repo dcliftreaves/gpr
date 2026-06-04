@@ -58,8 +58,10 @@ int main(int argc, char **argv) {
     if (!f || fread(raw, 1, sz, f) != sz) { fprintf(stderr, "read fail\n"); return 1; }
     fclose(f);
 
-    /* Encode */
-    FUSED_ENCODER *enc = gpr_encode_fused_create(w, h, 1, 3);
+    /* Encode (FUSED_QUALITY env overrides default q=3) */
+    const char *q_env = getenv("FUSED_QUALITY");
+    int q = (q_env && *q_env) ? atoi(q_env) : 3;
+    FUSED_ENCODER *enc = gpr_encode_fused_create(w, h, 1, q);
     if (!enc) { fprintf(stderr, "create fail\n"); return 1; }
     double t0 = now_ms();
     unsigned char *out = NULL; size_t out_sz = 0;
@@ -67,6 +69,29 @@ int main(int argc, char **argv) {
     double t_enc = now_ms() - t0;
     if (rc != 0) { fprintf(stderr, "encode rc=%d\n", rc); return 2; }
     fprintf(stderr, "ENCODE: %zu bytes in %.1f ms\n", out_sz, t_enc);
+
+    /* Optionally save the encoded bitstream (the real .gpr) — set
+       GPR_SAVE_ENC_TO=<path> when the caller wants the encoder output
+       itself, not the roundtrip decoded bayer at argv[4]. Used by the
+       Pi-to-Mac UPRESABLE bench. */
+    const char *enc_save = getenv("GPR_SAVE_ENC_TO");
+    if (enc_save && *enc_save) {
+        FILE *eg = fopen(enc_save, "wb");
+        if (eg) {
+            fwrite(out, 1, out_sz, eg);
+            fclose(eg);
+        }
+    }
+
+    /* Skip the decode pass when caller only wants encoded output and
+       hasn't asked for a decoded raw — saves ~75% of per-frame time
+       on the Pi capture-only path. */
+    const char *skip_dec = getenv("GPR_SKIP_DECODE");
+    if (skip_dec && skip_dec[0] == '1' && argc < 5) {
+        gpr_encode_fused_destroy(enc);
+        free(raw);
+        return 0;
+    }
 
     /* Decode */
     int dw = 0, dh = 0;

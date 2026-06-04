@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # prepare_gpr_corpus.sh — extract Bayer from N source DNGs, encode each with
 # /tmp/mf_local using the playback-config env, drop the resulting .gpr files in
-# /Volumes/OWC_8TB/gpr_test/.
+# /Volumes/OWC_8TB/gpr_work/test/.
 #
 # usage: prepare_gpr_corpus.sh <dng_dir> <count> <out_dir> [name_prefix]
 

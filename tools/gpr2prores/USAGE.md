@@ -5,13 +5,13 @@ Real-time playback tool: reads GPR / DNG / GPRaw raw video, runs a CNN, demosaic
 ## Quick start
 
 ```bash
-# Decode a .gpraw container at UHD with the production CNN
+# Decode a .gvid container at UHD with the production CNN
 gpr2prores \
   --meta-dng /path/to/sample.dng \
   --ckpt /path/to/weights_metal_dir \
   --cnn-backend metal --cnn-scale 1x \
   --demosaic core-image --out-resolution uhd \
-  /path/to/clip.gpraw /path/to/out.mov
+  /path/to/clip.gvid /path/to/out.mov
 ```
 
 ## Input formats
@@ -21,9 +21,11 @@ gpr2prores \
 | `.gpr` | Single-frame GPR file |
 | Directory of `.gpr` | Frame sequence (sorted lexicographically) |
 | `.dng` / directory of `.dng` | Encode + decode roundtrip in one pass (for validation) |
+| `.gvid` | Neutral raw-video stream of per-frame `.gpr` payloads; auto-unpacked to temp dir |
 | `.mov` / `.gpraw` / `.gprv` | GPRaw container (auto-unpacked to temp dir) |
 
-`--meta-dng` is required for `.gpr` input (color/wb metadata source). For `.dng` input it's auto-discovered.
+`--meta-dng` is required for `.gpr`, `.gvid`, and GPRaw/MOV input
+(color/wb metadata source). For `.dng` input it's auto-discovered.
 
 ## CNN modes (`--cnn-scale`)
 
@@ -64,12 +66,18 @@ Width-fixed, height preserves source aspect:
 - `--timing` — per-frame, per-stage breakdown to stderr
 - `--max-frames N` — process at most N frames
 - `--skip-errors` — continue past per-frame decode/CNN failures
+- `--gvid-dispatch PATH` — validate a `gvid_runtime_dispatch.v1` plan for
+  `.gvid` playback and print raw-clean policy counts. This is a strict
+  handoff check; per-tile raw-clean model invocation is not wired into
+  `GPRPipeline` yet.
 
 ## Environment variables
 
 - `SUPERRES_PROFILE=1` — per-NAFBlock GPU timing (commits between stages, breaks pipelining)
 - `CNN_COREML_UNITS={cpu,gpu,ane,all}` — override CoreML compute units (default `all`)
 - `SUPERRES_NOFUSE_POST=1` — use the legacy 2-kernel post-processing path (for A/B)
+- `TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp` — place auto-unpacked `.gvid` /
+  GPRaw frame directories on the external work drive.
 
 ## Examples
 
@@ -78,13 +86,14 @@ Width-fixed, height preserves source aspect:
 gpr2prores --meta-dng src.dng --ckpt /tmp/F_aa_on_weights_metal \
   --cnn-backend metal --cnn-scale 2x \
   --demosaic core-image --out-resolution 8k \
-  clip.gpraw master_8k.mov
+  clip.gvid master_8k.mov
 
 # Fast UHD daily via BIBO_1x
 gpr2prores --meta-dng src.dng --ckpt /tmp/BIBO_1x_AAon_w16_weights_metal \
   --cnn-backend metal --cnn-scale 1x \
+  --gvid-dispatch clip.gvid.dispatch.json \
   --demosaic core-image --out-resolution uhd \
-  clip.gpraw daily.mov
+  clip.gvid daily.mov
 
 # Validation roundtrip on a DNG sequence (no codec, no CNN, just demosaic)
 gpr2prores --no-codec --no-cnn \
@@ -96,7 +105,7 @@ SUPERRES_PROFILE=1 gpr2prores --max-frames 8 --timing \
   --meta-dng src.dng --ckpt /tmp/BIBO_1x_AAon_w16_weights_metal \
   --cnn-backend metal --cnn-scale 1x \
   --demosaic core-image --out-resolution uhd \
-  clip.gpraw /tmp/profile.mov 2>&1 | grep profile
+  clip.gvid /tmp/profile.mov 2>&1 | grep profile
 ```
 
 ## Companion tool: gpr_mov_tool

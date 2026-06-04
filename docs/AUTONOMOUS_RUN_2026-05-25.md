@@ -1,5 +1,16 @@
 # Autonomous run 2026-05-25 — what happened while you were away
 
+> **⚠ Evening update (same day):** the morning run's "headline" results
+> were measured against a broken codec path (FUSED multi-level has a
+> ~10 dB visual-quality regression vs single-level). Read
+> `docs/REGRESSION_2026-05-25.md` for the corrected picture.
+> Specifically: the +5.6 dB CNN gain (PR #19), the +7.80 dB L1+L2 number
+> (in-flight when this doc was written), and the 22% file-size savings
+> from q=12 are all numbers measured on multi-level. On single-level
+> the equivalent cranks give 8.8% (HH×4) to 26.2% (LH/HL/HH ×8).
+> The retrained CNN checkpoints were trained on multi-level outputs
+> and won't help (may hurt) on single-level codec output.
+
 Read-this-first artifact. Single doc that ties together everything that
 shipped, what's pending, and what decisions are waiting on you.
 
@@ -82,7 +93,7 @@ see "In flight when you read this" below.
 The retrained ckpt is at
 `/Users/dcliftreaves/dering_proto_v2/checkpoints/BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt`.
 The shipping path uses
-`/Volumes/OWC_8TB/gpr_artifacts/weights/F_ane_1x_weights_metal/` —
+`/Volumes/OWC_8TB/gpr_work/artifacts/weights/F_ane_1x_weights_metal/` —
 which still has the LL-only-fast-trained baseline. Swapping in the
 retrained ckpt: 30 min of work, would change the production CNN
 behavior. Not done autonomously because it's a behavioral change

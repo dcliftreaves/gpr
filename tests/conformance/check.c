@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
     snprintf(inputs_dir, sizeof(inputs_dir), "%s/inputs", base);
     snprintf(golden_dir, sizeof(golden_dir), "%s/golden", base);
 
-    setenv("FUSED_THREADS", "1", 1);
+    configure_encoder_for_conformance();
 
     fprintf(stderr, "Conformance check  (wavelet levels = %d)\n",
             FUSED_WAVELET_LEVELS);

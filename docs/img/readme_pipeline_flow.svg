@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="420" viewBox="0 0 1180 420" role="img" aria-labelledby="title desc">
+  <title id="title">GPR still and video pipeline flow</title>
+  <desc id="desc">Diagram showing still DNG to GPR, Pi 5 raw video capture to GVID, and desktop restore to ProRes or editable raw.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.2; }
+      .codec { fill: #eff6ff; stroke: #2563eb; stroke-width: 1.4; }
+      .model { fill: #f0fdf4; stroke: #16a34a; stroke-width: 1.4; }
+      .out { fill: #fff7ed; stroke: #d97706; stroke-width: 1.4; }
+      .title { font: 700 26px system-ui, -apple-system, Segoe UI, sans-serif; fill: #0f172a; }
+      .label { font: 800 15px system-ui, -apple-system, Segoe UI, sans-serif; fill: #0f172a; }
+      .small { font: 500 13px system-ui, -apple-system, Segoe UI, sans-serif; fill: #475569; }
+      .arrow { stroke: #64748b; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .lane { font: 800 13px system-ui, -apple-system, Segoe UI, sans-serif; fill: #334155; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1180" height="420"/>
+  <text class="title" x="40" y="48">GPR/GVID Pipeline Map</text>
+
+  <text class="lane" x="40" y="96">STILLS</text>
+  <rect class="box" x="40" y="112" width="170" height="72" rx="8"/>
+  <text class="label" x="62" y="142">Source DNG</text>
+  <text class="small" x="62" y="164">50 MP Bayer raw</text>
+  <path class="arrow" d="M210 148 H270"/>
+  <rect class="codec" x="270" y="112" width="220" height="72" rx="8"/>
+  <text class="label" x="292" y="142">Legacy GPR encoder</text>
+  <text class="small" x="292" y="164">Adobe-compatible stills</text>
+  <path class="arrow" d="M490 148 H550"/>
+  <rect class="model" x="550" y="112" width="220" height="72" rx="8"/>
+  <text class="label" x="572" y="142">Matched BIBO 1x CNN</text>
+  <text class="small" x="572" y="164">decoder-side restoration</text>
+  <path class="arrow" d="M770 148 H830"/>
+  <rect class="out" x="830" y="112" width="260" height="72" rx="8"/>
+  <text class="label" x="852" y="142">Visual-lossless still</text>
+  <text class="small" x="852" y="164">15.05 MB primary tier</text>
+
+  <text class="lane" x="40" y="236">RAW VIDEO</text>
+  <rect class="box" x="40" y="252" width="170" height="72" rx="8"/>
+  <text class="label" x="62" y="282">Pi 5 sensor frames</text>
+  <text class="small" x="62" y="304">24 fps capture target</text>
+  <path class="arrow" d="M210 288 H270"/>
+  <rect class="codec" x="270" y="252" width="220" height="72" rx="8"/>
+  <text class="label" x="292" y="282">ML-2 q3 dec2</text>
+  <text class="small" x="292" y="304">1.30 MB/frame, 24.93 fps</text>
+  <path class="arrow" d="M490 288 H550"/>
+  <rect class="out" x="550" y="252" width="220" height="72" rx="8"/>
+  <text class="label" x="572" y="282">GVID stream</text>
+  <text class="small" x="572" y="304">sidecar metadata + dispatch</text>
+  <path class="arrow" d="M770 288 H830"/>
+  <rect class="model" x="830" y="252" width="260" height="72" rx="8"/>
+  <text class="label" x="852" y="282">Desktop restore/export</text>
+  <text class="small" x="852" y="304">ProRes review or editable raw</text>
+
+  <path class="arrow" d="M660 324 V358 H960 V336"/>
+  <text class="small" x="690" y="376">Raw-clean dispatch is validated; per-tile model application is the next runtime hook.</text>
+</svg>

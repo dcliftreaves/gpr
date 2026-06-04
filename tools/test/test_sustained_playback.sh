@@ -22,14 +22,14 @@
 #
 # Skips cleanly on:
 #   - Linux (gpr2prores depends on Metal/MPS/AVFoundation)
-#   - missing BIBO_1x metal weights dir (/Volumes/OWC_8TB/gpr_artifacts/
+#   - missing BIBO_1x metal weights dir (/Volumes/OWC_8TB/gpr_work/artifacts/
 #     weights/F_ane_1x_weights_metal or /tmp/F_ane_1x_weights_metal)
 #   - missing gpr2prores / bench_fused / gpr_mov_tool binaries
 #
 # Env knobs:
 #   BUILD_DIR=build-local       cmake build root
-#   FPS_WITH_CNN_MIN=20         lower bound for CNN run
-#   FPS_NO_CNN_MIN=22           lower bound for no-CNN run
+#   FPS_WITH_CNN_MIN=24         production lower bound for CNN run
+#   FPS_NO_CNN_MIN=24           production lower bound for no-CNN run
 #   FRAMES=24                   number of frames in the fixture
 #   PY=...                      python interpreter (must have rawpy)
 
@@ -53,7 +53,7 @@ MOV="${MOV:-$REPO/tools/gpr2prores/gpr_mov_tool}"
 PY="${PY:-/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3}"
 
 # CNN weights — try OWC then /tmp symlink fallback (matches CNN_CAPABILITIES doc).
-CKPT_W1X="${CKPT_W1X:-/Volumes/OWC_8TB/gpr_artifacts/weights/F_ane_1x_weights_metal}"
+CKPT_W1X="${CKPT_W1X:-/Volumes/OWC_8TB/gpr_work/artifacts/weights/F_ane_1x_weights_metal}"
 if [ ! -d "$CKPT_W1X" ]; then
     CKPT_W1X="/tmp/F_ane_1x_weights_metal"
 fi
@@ -87,8 +87,8 @@ if [ ! -d "$CKPT_W1X" ]; then
 fi
 
 FRAMES="${FRAMES:-24}"
-FPS_WITH_CNN_MIN="${FPS_WITH_CNN_MIN:-20}"
-FPS_NO_CNN_MIN="${FPS_NO_CNN_MIN:-22}"
+FPS_WITH_CNN_MIN="${FPS_WITH_CNN_MIN:-24}"
+FPS_NO_CNN_MIN="${FPS_NO_CNN_MIN:-24}"
 
 # ---- workspace --------------------------------------------------------------
 

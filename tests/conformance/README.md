@@ -35,7 +35,7 @@ inputs — 24 golden files per run.
 ### Run the conformance check (regression detection)
 
 ```
-./tests/conformance/build.sh
+./tests/conformance/build.sh          # set BUILD_DIR=... to override build-local
 /tmp/conformance_check_L1   # exits 0 on match, 1 on diff
 /tmp/conformance_check_L2
 ```
@@ -57,16 +57,16 @@ that downstream decoders need to be aware of.
 
 ## Implementation notes
 
-- **Wavelet levels are compile-time.** `FUSED_WAVELET_LEVELS` is a macro
-  inside `fused_encode.c`, not a runtime flag. We compile two variants of
-  each binary (`_L1` and `_L2`) by re-including `fused_encode.c` directly
-  in the link with `-DFUSED_WAVELET_LEVELS={1,2}`. The fresh `.o` overrides
-  the matching symbols in the prebuilt `libvc5_encoder.a`; all other
-  encoder symbols still resolve from the archive.
+- **Wavelet levels are pinned by the conformance binary.** The current
+  encoder selects multi-level mode at runtime through `FUSED_MULTI_LEVEL`
+  and `FUSED_WAVELET_LEVELS`. The `_L1` binary forces single-level mode;
+  `_L2` forces `FUSED_MULTI_LEVEL=1` and `FUSED_WAVELET_LEVELS=2`.
+  `fused_encode.c` is still re-included directly so conformance runs
+  against the current source rather than a stale archive object.
 - **Threads pinned.** Both binaries set `FUSED_THREADS=1` so the serial
   encode path is exercised. The parallel path is also deterministic in
   practice today, but pinning serial removes any future threading surprise.
 - **Pixel format is RGGB14** (`pixel_format=1`) for all four inputs. The
   pattern generators emit 14-bit values directly.
-- **Build prereq:** the top-level CMake build must be populated at `build/`
-  before running `build.sh`.
+- **Build prereq:** the top-level CMake build must be populated at
+  `build-local/` before running `build.sh`, or pass `BUILD_DIR=...`.

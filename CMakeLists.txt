@@ -155,6 +155,59 @@ add_subdirectory( "source/app/compare_quality" )
 add_subdirectory( "source/app/ans_test" )
 add_subdirectory( "source/app/bench_fused" )
 
+# Standalone codec/dev tools used by regression scripts and quality gates.
+# Keep these in CMake so build-local/bin does not depend on stale manual
+# clang invocations.
+set(GPR_TOOL_BIN_DIR "${CMAKE_BINARY_DIR}/bin")
+
+add_executable(test_fused_roundtrip source/app/test_fused_decode_roundtrip.c)
+target_include_directories(test_fused_roundtrip PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_decoder source/lib/vc5_common)
+target_link_libraries(test_fused_roundtrip vc5_decoder vc5_encoder vc5_common common m)
+set_target_properties(test_fused_roundtrip PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(test_fused_band_roundtrip source/app/test_fused_roundtrip.c)
+target_include_directories(test_fused_band_roundtrip PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_decoder source/lib/vc5_common)
+target_link_libraries(test_fused_band_roundtrip vc5_decoder vc5_encoder vc5_common common m)
+set_target_properties(test_fused_band_roundtrip PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(fused_decode_cli source/app/fused_decode_cli.c)
+target_include_directories(fused_decode_cli PRIVATE
+  source/lib/vc5_decoder source/lib/vc5_common)
+target_link_libraries(fused_decode_cli vc5_decoder vc5_common common m)
+set_target_properties(fused_decode_cli PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(test_video_pipeline_sim_portable
+  source/app/test_video_pipeline_sim_portable.c)
+target_include_directories(test_video_pipeline_sim_portable PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_common)
+target_link_libraries(test_video_pipeline_sim_portable
+  vc5_encoder vc5_common common m)
+set_target_properties(test_video_pipeline_sim_portable PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+# Debug-only coefficient I/O tool. The decoder library remains production
+# clean; this target compiles a private fused_decode.c object with the
+# coefficient hooks enabled and links that object before libvc5_decoder.
+add_library(fused_decode_coeff_io_obj OBJECT source/lib/vc5_decoder/fused_decode.c)
+target_compile_definitions(fused_decode_coeff_io_obj PRIVATE GPR_DEBUG_COEFF_IO=1)
+target_include_directories(fused_decode_coeff_io_obj PRIVATE
+  source/lib/vc5_decoder source/lib/vc5_encoder source/lib/vc5_common
+  source/lib/common/private source/lib/common/public)
+
+add_executable(coeff_io_tool
+  source/app/coeff_io_tool.c
+  $<TARGET_OBJECTS:fused_decode_coeff_io_obj>)
+target_include_directories(coeff_io_tool PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_decoder source/lib/vc5_common)
+target_link_libraries(coeff_io_tool vc5_decoder vc5_encoder vc5_common common m)
+set_target_properties(coeff_io_tool PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
 # Fix byte order detection for Linux ARM64 (from gopro/gpr#53 by mckfarm)
 include(TestBigEndian)
 test_big_endian(IS_BIG_ENDIAN)
