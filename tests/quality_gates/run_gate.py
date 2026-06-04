@@ -85,6 +85,47 @@ def load_json(p: Path) -> dict:
     return json.loads(p.read_text())
 
 
+def parse_source_path_map(raw: str | None) -> list[tuple[str, str]]:
+    """Parse FROM=TO mappings for running the frozen gate on another host.
+
+    Example:
+      GATE_SOURCE_PATH_MAP='/Volumes/OWC_8TB/gpr_work=/Users/me/gpr_data/gpr_work'
+
+    Multiple mappings are separated by semicolons. Longest source prefix wins.
+    """
+    if not raw:
+        return []
+    mappings: list[tuple[str, str]] = []
+    for item in raw.split(";"):
+        item = item.strip()
+        if not item:
+            continue
+        if "=" not in item:
+            die(3, f"invalid GATE_SOURCE_PATH_MAP entry {item!r}; expected FROM=TO")
+        src, dst = item.split("=", 1)
+        src = src.rstrip("/")
+        dst = dst.rstrip("/")
+        if not src or not dst:
+            die(3, f"invalid GATE_SOURCE_PATH_MAP entry {item!r}; FROM and TO are required")
+        mappings.append((src, dst))
+    mappings.sort(key=lambda pair: len(pair[0]), reverse=True)
+    return mappings
+
+
+def apply_source_path_map(test_set: dict, mappings: list[tuple[str, str]]) -> list[dict]:
+    images = [dict(im) for im in test_set["images"]]
+    if not mappings:
+        return images
+    for im in images:
+        original = str(im["path"])
+        for src, dst in mappings:
+            if original == src or original.startswith(src + "/"):
+                im["path_original"] = original
+                im["path"] = dst + original[len(src):]
+                break
+    return images
+
+
 def _path_is_system_tmp(path: Path) -> bool:
     try:
         resolved = path.expanduser().resolve()
@@ -940,7 +981,8 @@ def evaluate_pipeline(
         informational_only = False
 
     target_w = test_set["metric_eval_dims"]["width"]
-    images = test_set["images"]
+    source_path_map = parse_source_path_map(os.environ.get("GATE_SOURCE_PATH_MAP"))
+    images = apply_source_path_map(test_set, source_path_map)
     crops = test_set["crops"]
 
     # Verify source DNGs exist before any work.
@@ -984,6 +1026,10 @@ def evaluate_pipeline(
     print(f"=== test_set:  {test_set_path}")
     if not is_ship_gate:
         print("=== authority: informational holdout eval, not a ship PASS/FAIL claim")
+    if source_path_map:
+        print("=== source_path_map:")
+        for src, dst in source_path_map:
+            print(f"    {src} => {dst}")
     print(f"=== run_dir:  {run_dir}")
     print(f"=== workdir:  {workdir}")
 
@@ -996,6 +1042,7 @@ def evaluate_pipeline(
         "test_set_sha": eval_set_sha or hashlib.sha256(TEST_SET_PATH.read_bytes()).hexdigest()[:16],
         "is_ship_gate": is_ship_gate,
         "verdict_authority": "ship_gate" if is_ship_gate else "informational_holdout",
+        "source_path_map": [{"from": src, "to": dst} for src, dst in source_path_map],
         "started_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "images": {},
     }

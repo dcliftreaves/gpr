@@ -39,9 +39,8 @@ target:
 - `mosaic_w48_t192_center512`: width-48 decoded-Bayer mosaic Y checkpoint
   warm-started from the blocker-selected 2x-low-pass model, then trained on
   larger 192-codec-pixel / 768-output hard-tail tiles with center-valid 512px
-  loss. This was run on M5 after the local reboot, with the same four gate
-  DNGs copied to M5 and an M5-local manifest path, so the receipt is
-  informational rather than a ship-gate claim.
+  loss. This was run on M5 after the local reboot via `GATE_SOURCE_PATH_MAP`,
+  with the frozen gate manifest unchanged and the same four DNGs copied to M5.
 
 ## Receipts
 
@@ -66,7 +65,7 @@ target:
 | mosaic, full REF target, best | `4ae4d3cfb39632ab` | FAIL | `Z8Z_6693` | 0.1995 | 0.9392 | 29.21 | 2.94 |
 | mosaic, low-pass x2 target, last | `077761916aa85fb6` | FAIL | `Z8Z_6693` | 0.2275 | 0.9383 | 26.91 | 3.76 |
 | mosaic, low-pass x2 target, width 48 last | `f5b7383a00663858` | FAIL | `Z8Z_6693` | 0.2614 | 0.9300 | 24.71 | 4.71 |
-| mosaic, low-pass x2 target, width 48, t192 center-valid, M5 informational | `2f921366f55bb229` | FAIL | `Z8Z_6693` | 0.2069 | 0.9407 | 28.56 | 3.13 |
+| mosaic, low-pass x2 target, width 48, t192 center-valid, M5 remapped frozen gate | `b6245123abfefd36` | FAIL | `Z8Z_6693` | 0.2069 | 0.9407 | 28.56 | 3.13 |
 
 The mosaic low-pass candidate is the best learned detail candidate so far:
 it turns `Z8Z_5323` from failing to passing and improves the hard-tail
@@ -146,7 +145,7 @@ The full-gate residual refiners narrow the failure further:
   `Z8Z_6693` LPIPS from 0.1760 to 0.1532 and keeps dE safe, but MS-SSIM stays
   nearly flat at 0.9423, below the 0.95 PREVIEW threshold.
 - The width-48 mosaic t192/s96 center-valid M5 run also fails the blocker.
-  Run `2f921366f55bb229` passes `Z8Z_0001`, `Z8Z_0067`, and `Z8Z_5323`, but
+  Run `b6245123abfefd36` passes `Z8Z_0001`, `Z8Z_0067`, and `Z8Z_5323`, but
   `Z8Z_6693` fails LPIPS (`0.2069`), MS-SSIM (`0.9407`), and dE2000 mean
   (`3.13`). This closes "larger local mosaic context plus center-valid loss"
   for the current width-48 Y architecture; it improves the studio detail case
