@@ -4,6 +4,10 @@ torch>=2.0
 numpy>=1.20
 rawpy>=0.18
 # Tile building / data prep:
+# Raw DNG noise-target tools also require the external exiftool binary.
 pillow>=9.0
+opencv-python>=4.8
+PyWavelets>=1.5
+tifffile>=2024.0
 # Training-only:
 tqdm>=4.60
