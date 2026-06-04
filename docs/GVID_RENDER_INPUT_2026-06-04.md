@@ -21,6 +21,10 @@ then reuses the existing playback pipeline.
   `/Volumes/OWC_8TB/gpr_work/tmp`.
 - GPRaw/MOV auto-unpack now uses the same `TMPDIR` helper instead of a
   hard-coded `/tmp` path.
+- `--gvid-dispatch <plan.json>` validates a `gvid_runtime_dispatch.v1`
+  plan against the frames being rendered and prints per-policy tile counts.
+  This is a strict handoff check; per-tile raw-clean model invocation is not
+  wired into `GPRPipeline` yet.
 
 ## Local Smoke
 
@@ -38,6 +42,7 @@ Phase-0 proof:
 TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke/tmp \
   tools/gpr2prores/gpr2prores \
   --phase0 --no-cnn \
+  --gvid-dispatch /Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke/oneframe.gvid.dispatch.json \
   --meta-dng /Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0258.dng \
   /Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke/oneframe.gvid \
   /Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke/out.mov
@@ -46,6 +51,8 @@ TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke/tmp \
 Result:
 
 - `.gvid` unpacked under the external `TMPDIR`.
+- Dispatch plan validated with one `accepted_only_raw_clean` tile and one
+  `all_targets_raw_clean` tile.
 - Phase 0 saw a valid FUSED frame:
   `magic=0x44535546`, `w=8280`, `h=5520`, `decimate=2`.
 
@@ -56,6 +63,7 @@ TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke/tmp \
   tools/gpr2prores/gpr2prores \
   --max-frames 1 --no-cnn \
   --demosaic core-image --out-resolution 2k \
+  --gvid-dispatch /Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke/oneframe.gvid.dispatch.json \
   --meta-dng /Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0258.dng \
   /Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke/oneframe.gvid \
   /Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke/out_2k.mov
@@ -82,6 +90,7 @@ bash tools/test/test_gpr2prores_gvid_input.sh
 
 ## Remaining Production Handoff
 
-This makes the container renderable. It does not yet apply
-`gvid_runtime_dispatch.v1` per-tile raw-clean model selection inside
-`GPRPipeline`; that remains the next renderer integration point.
+This makes the container renderable and validates the runtime dispatch handoff.
+It does not yet apply `gvid_runtime_dispatch.v1` per-tile raw-clean model
+selection inside `GPRPipeline`; that remains the next renderer integration
+point.

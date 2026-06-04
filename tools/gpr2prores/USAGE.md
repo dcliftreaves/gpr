@@ -66,6 +66,10 @@ Width-fixed, height preserves source aspect:
 - `--timing` — per-frame, per-stage breakdown to stderr
 - `--max-frames N` — process at most N frames
 - `--skip-errors` — continue past per-frame decode/CNN failures
+- `--gvid-dispatch PATH` — validate a `gvid_runtime_dispatch.v1` plan for
+  `.gvid` playback and print raw-clean policy counts. This is a strict
+  handoff check; per-tile raw-clean model invocation is not wired into
+  `GPRPipeline` yet.
 
 ## Environment variables
 
@@ -87,6 +91,7 @@ gpr2prores --meta-dng src.dng --ckpt /tmp/F_aa_on_weights_metal \
 # Fast UHD daily via BIBO_1x
 gpr2prores --meta-dng src.dng --ckpt /tmp/BIBO_1x_AAon_w16_weights_metal \
   --cnn-backend metal --cnn-scale 1x \
+  --gvid-dispatch clip.gvid.dispatch.json \
   --demosaic core-image --out-resolution uhd \
   clip.gvid daily.mov
 

@@ -29,15 +29,103 @@ cp "$SRC_GPR" "$WORK/frames/frame_0000.gpr"
 
 python3 "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/oneframe.gvid" \
   --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4
+python3 - "$WORK/oneframe.gvid" "$WORK/oneframe.gvid.dispatch.json" <<'PY'
+import json
+import struct
+import sys
+from pathlib import Path
+
+data = Path(sys.argv[1]).read_bytes()
+magic, payload_size, frame_tag = struct.unpack("<IIQ", data[32:48])
+assert magic == 0x004D5246
+
+Path(sys.argv[2]).write_text(json.dumps({
+    "schema": "gvid_runtime_dispatch.v1",
+    "gvid": "oneframe.gvid",
+    "metadata": None,
+    "frame_count": 1,
+    "tile_count": 2,
+    "accepted_tile_count": 1,
+    "frames": [
+        {
+            "frame_index": 0,
+            "frame_tag": frame_tag,
+            "payload_offset": 48,
+            "payload_size": payload_size,
+            "source_id": "Z8Z_0258",
+            "source_path": "Z8Z_0258.dng",
+            "iso": 64,
+            "raw_clean_tiles": [
+                {
+                    "crop": "A",
+                    "source_xywh": [0, 0, 64, 64],
+                    "accepted": True,
+                    "policy": "accepted_only_raw_clean",
+                    "reject_reasons": [],
+                    "sigma_rms_counts": 1.0,
+                },
+                {
+                    "crop": "B",
+                    "source_xywh": [64, 0, 64, 64],
+                    "accepted": False,
+                    "policy": "all_targets_raw_clean",
+                    "reject_reasons": ["smoke"],
+                    "sigma_rms_counts": 1.0,
+                },
+            ],
+        }
+    ],
+}, indent=2) + "\n")
+PY
 
 TMPDIR="$WORK/tmp" "$GPR2PRORES" \
   --phase0 --no-cnn \
+  --gvid-dispatch "$WORK/oneframe.gvid.dispatch.json" \
   --meta-dng "$META_DNG" \
   "$WORK/oneframe.gvid" "$WORK/out.mov" \
   2>&1 | tee "$WORK/phase0.log"
 
 grep -q "magic=0x44535546" "$WORK/phase0.log"
 grep -q "$WORK/tmp/gpr2prores_gvid_.*/frame_000000.gpr" "$WORK/phase0.log"
+grep -q "accepted_only=1 all_targets=1" "$WORK/phase0.log"
+
+python3 - "$WORK/oneframe.gvid.dispatch.json" "$WORK/bad_policy.dispatch.json" <<'PY'
+import sys
+from pathlib import Path
+
+src = Path(sys.argv[1]).read_text()
+Path(sys.argv[2]).write_text(src.replace("accepted_only_raw_clean", "unknown_policy", 1))
+PY
+if TMPDIR="$WORK/tmp" "$GPR2PRORES" \
+  --phase0 --no-cnn \
+  --gvid-dispatch "$WORK/bad_policy.dispatch.json" \
+  --meta-dng "$META_DNG" \
+  "$WORK/oneframe.gvid" "$WORK/bad_policy.mov" \
+  >"$WORK/bad_policy.log" 2>&1; then
+  echo "expected invalid dispatch policy failure" >&2
+  exit 1
+fi
+grep -q "unknown policy" "$WORK/bad_policy.log"
+
+python3 - "$WORK/oneframe.gvid.dispatch.json" "$WORK/bad_payload.dispatch.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+plan = json.loads(Path(sys.argv[1]).read_text())
+plan["frames"][0]["payload_size"] += 1
+Path(sys.argv[2]).write_text(json.dumps(plan, indent=2) + "\n")
+PY
+if TMPDIR="$WORK/tmp" "$GPR2PRORES" \
+  --phase0 --no-cnn \
+  --gvid-dispatch "$WORK/bad_payload.dispatch.json" \
+  --meta-dng "$META_DNG" \
+  "$WORK/oneframe.gvid" "$WORK/bad_payload.mov" \
+  >"$WORK/bad_payload.log" 2>&1; then
+  echo "expected dispatch stream-header mismatch failure" >&2
+  exit 1
+fi
+grep -q "does not match GVID stream header" "$WORK/bad_payload.log"
 
 mkdir -p "$WORK/order_frames"
 cp "$SRC_GPR" "$WORK/order_frames/frame_0000.gpr"
@@ -81,6 +169,7 @@ grep -q "magic=0x44535546" "$WORK/order.log"
 TMPDIR="$WORK/tmp" "$GPR2PRORES" \
   --max-frames 1 --no-cnn \
   --demosaic core-image --out-resolution 2k \
+  --gvid-dispatch "$WORK/oneframe.gvid.dispatch.json" \
   --meta-dng "$META_DNG" \
   "$WORK/oneframe.gvid" "$WORK/out_2k.mov" \
   2>&1 | tee "$WORK/render.log"
