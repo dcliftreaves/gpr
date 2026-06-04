@@ -85,6 +85,88 @@ def load_json(p: Path) -> dict:
     return json.loads(p.read_text())
 
 
+def _path_is_system_tmp(path: Path) -> bool:
+    try:
+        resolved = path.expanduser().resolve()
+    except OSError:
+        resolved = path.expanduser().absolute()
+    system_roots = (
+        Path("/tmp"),
+        Path("/private/tmp"),
+        Path("/var/tmp"),
+        Path("/private/var/folders"),
+    )
+    return any(resolved == root or root in resolved.parents for root in system_roots)
+
+
+def enforce_large_gate_scratch_policy(images: list[dict], gate_tmpdir: str | None) -> None:
+    """Keep full-image quality gates from accidentally using the boot disk.
+
+    The ship gate renders 50MP REF/PIPELINE PNGs and may load PyTorch/LPIPS
+    inside multiple worker processes. Losing an interrupted run to local tmp is
+    recoverable; exhausting the boot volume is not. Small synthetic tests are
+    unaffected, but large real-image gates must opt into an explicit scratch
+    location or set GATE_ALLOW_LOCAL_TMP=1.
+    """
+    if os.environ.get("GATE_ALLOW_LOCAL_TMP", "") not in ("", "0"):
+        return
+
+    max_pixels = 0
+    total_pixels = 0
+    for im in images:
+        try:
+            import tifffile
+            with tifffile.TiffFile(im["path"]) as tf:
+                page_pixels = 0
+                for page in tf.pages:
+                    candidates = [page]
+                    try:
+                        candidates.extend(list(getattr(page, "pages", None) or []))
+                    except Exception:
+                        pass
+                    for candidate in candidates:
+                        shape = getattr(candidate, "shape", None)
+                        if shape is not None and len(shape) == 2:
+                            page_pixels = max(page_pixels, int(shape[0]) * int(shape[1]))
+        except Exception:
+            continue
+        max_pixels = max(max_pixels, page_pixels)
+        total_pixels += page_pixels
+
+    # Z8 gate images are ~46MP each. This threshold keeps tiny fixtures and
+    # quick unit-style runs frictionless while protecting production gates.
+    if max_pixels < 20_000_000 and total_pixels < 80_000_000:
+        return
+
+    if not gate_tmpdir:
+        die(
+            3,
+            "large quality gate requires GATE_TMPDIR on external scratch. "
+            "Use: tools/dev/external_drive_env.sh python3 tests/quality_gates/run_gate.py ... "
+            "or set GATE_ALLOW_LOCAL_TMP=1 intentionally.",
+        )
+
+    scratch = Path(gate_tmpdir).expanduser()
+    if _path_is_system_tmp(scratch):
+        die(
+            3,
+            f"large quality gate refuses system temp scratch: {scratch}. "
+            "Point GATE_TMPDIR at /Volumes/OWC_8TB/gpr_work/gate_tmp or set "
+            "GATE_ALLOW_LOCAL_TMP=1 intentionally.",
+        )
+
+    scratch.mkdir(parents=True, exist_ok=True)
+    min_free_gb = float(os.environ.get("GATE_MIN_FREE_GB", "25"))
+    free_gb = shutil.disk_usage(scratch).free / (1024 ** 3)
+    if free_gb < min_free_gb:
+        die(
+            3,
+            f"large quality gate scratch has only {free_gb:.1f} GiB free at {scratch}; "
+            f"requires at least {min_free_gb:.1f} GiB. Override with GATE_MIN_FREE_GB "
+            "only after cleaning space.",
+        )
+
+
 # --------------------------------------------------------------------- core
 
 
@@ -887,9 +969,11 @@ def evaluate_pipeline(
         gates_sha,
         eval_set_sha=eval_set_sha,
     )
+    gate_tmpdir = os.environ.get("GATE_TMPDIR")
+    enforce_large_gate_scratch_policy(images, gate_tmpdir)
+
     run_dir = RUNS_DIR / f"{run_hash}"
     run_dir.mkdir(parents=True, exist_ok=True)
-    gate_tmpdir = os.environ.get("GATE_TMPDIR")
     gate_tmpdir_path = Path(gate_tmpdir).expanduser() if gate_tmpdir else None
     if gate_tmpdir_path is not None:
         gate_tmpdir_path.mkdir(parents=True, exist_ok=True)
