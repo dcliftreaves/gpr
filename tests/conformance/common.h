@@ -8,7 +8,8 @@
  *
  * Each input is uint16 RGGB14 (or constant flat) stored little-endian as
  * raw bytes. Encoder is called via gpr_encode_fused() with pixel_format=1
- * (RGGB14). The wavelet level is implicit in the compiled binary (-DFUSED_WAVELET_LEVELS).
+ * (RGGB14). The conformance binary's FUSED_WAVELET_LEVELS macro selects
+ * the runtime encoder mode it pins before every encode.
  */
 
 #ifndef CONFORMANCE_COMMON_H
@@ -28,11 +29,24 @@ extern int gpr_encode_fused(const unsigned char *raw, size_t sz,
                             int w, int h, int pf, int q,
                             unsigned char **out, size_t *out_sz);
 
-/* Compile-time wavelet levels. Default 2 (matches the encoder default);
-   pass -DFUSED_WAVELET_LEVELS=1 to compile the level-1 variant. */
+/* Conformance mode selector. Default 2 (production multi-level path);
+   pass -DFUSED_WAVELET_LEVELS=1 to exercise the single-level path. */
 #ifndef FUSED_WAVELET_LEVELS
 #define FUSED_WAVELET_LEVELS 2
 #endif
+
+static void configure_encoder_for_conformance(void) {
+    setenv("FUSED_THREADS", "1", 1);
+    if (FUSED_WAVELET_LEVELS == 1) {
+        setenv("FUSED_MULTI_LEVEL", "0", 1);
+        unsetenv("FUSED_WAVELET_LEVELS");
+    } else {
+        setenv("FUSED_MULTI_LEVEL", "1", 1);
+        char levels[8];
+        snprintf(levels, sizeof(levels), "%d", FUSED_WAVELET_LEVELS);
+        setenv("FUSED_WAVELET_LEVELS", levels, 1);
+    }
+}
 
 /* Corpus: 4 inputs × 3 qualities × 2 levels handled per-binary. */
 typedef struct {

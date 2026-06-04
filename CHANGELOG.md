@@ -4,6 +4,128 @@ All notable changes to GPR are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] — 2026-05-30
+
+The 2.2 release adds a fourth ship class — **UPRESABLE** — that turns the
+Pi 5's 24.93 fps half-res capture into editable full-res raw via a desktop
+BIBO_2x super-res CNN. All four ship classes (STILL / VIDEO_FREEZE /
+PREVIEW / UPRESABLE) pass their gate thresholds on the test set. Follows
+v2.1.0-fused (FUSED real-time video codec, NEON Pi 5 optimizations,
+gpr2prores, GPRaw container, FFmpeg patch).
+
+### Added
+
+- **UPRESABLE ship class** (`tests/quality_gates/gates.json`,
+  `pipelines/registry.json`). Workflow: Pi 5 captures half-res
+  `ml2_q3_dec2` (24.93 fps sustained, 0.98 MB/frame); desktop M3 decodes,
+  runs `bibo2x_ane_ml2_q3_dec2_diverse` super-res CNN on MPS, wraps as
+  editable DNG (91 MB) + compressed `.gpr` (2–8 MB), and renders
+  ProRes 422 HQ for review. Bayer PSNR vs source DNG: 37.85–43.78 dB
+  on the 4 gate images. Threshold gates the workflow-native
+  `bayer_psnr_final ≥ 35 dB`; rendered LPIPS / MS-SSIM / Y-PSNR /
+  ΔE2000 are computed informationally but not enforced (the user grades
+  the file in their NLE, so rendered comparison overconstrains).
+- `tools/cnn/upresable_pipeline.py` — end-to-end Mac post-processing
+  pipeline. CLI `--mode {regression,timelapse,both} --n-frames N
+  --workers N`. 16-bit TIFF master frames default; `--eight-bit` flag
+  opts into the legacy 8-bit path (kept for diagnostic comparison only;
+  causes sky banding).
+- `tests/quality_gates/build_production_dashboard.py` — HTML dashboard
+  at `dashboard/index.html` aggregating ProRes timelapse, sample
+  frame + 100% sky crop, full perf tables (Pi 5 + Mac M3), regression
+  with run-hashes, and file-link inventory.
+- 16-bit ProRes path: `sips` → 16-bit TIFF, `cv2.IMREAD_UNCHANGED`
+  preserves uint16, `ffmpeg` reads `rgb48le` with `-sws_dither auto`.
+  Sky patch unique levels per channel: ~5000× the previous 8-bit
+  pipeline (1063–4150 vs ~25).
+- `GPR_GATE_MODE`-style decode path in `test_fused_decode_roundtrip.c`
+  already supported encoded + decoded sizes for the gate runner; the
+  binary at `build-local/bin/test_fused_roundtrip` was rebuilt from
+  that source (the older sibling `test_fused_roundtrip.c` had a stale
+  band-count self-check that rejected `GPR_INCLUDE_LL=1` configs).
+- `bayer_psnr_final` is now a gateable metric in `run_gate.py` —
+  threshold rules in `gates.json` can reference it alongside the
+  rendered-image metrics.
+- Gate runner handles missing ship-class entries by issuing
+  `INDETERMINATE` and logging raw metrics (instead of crashing). Null
+  threshold values mean "informational only" per `$rules`.
+- `tools/cnn/preview_timelapse_fast.py` and
+  `tools/cnn/preview_timelapse_fast_sota.py` default to 16-bit;
+  `--eight-bit` opts into the legacy path.
+
+### Fixed
+
+- 8-bit ProRes sky banding (root cause: `sips` rendered 8-bit PNG by
+  default; PIL / imageio silently downconvert 16-bit input to uint8;
+  only `cv2.IMREAD_UNCHANGED` preserves uint16). Now end-to-end 16-bit
+  with dithering on 16→10-bit ProRes quantization.
+- ProRes assembly hang: parallel workers + ffmpeg-stdin-pipe deadlocked
+  on the moov atom. Switched to file-based ffmpeg assembly using
+  symlinks into a sequence directory.
+- Numpy `float32` → `json.dumps` crash at end of
+  `tools/cnn/upresable_pipeline.py` (`default=lambda` handles
+  numpy types).
+- Gate runner now treats `bayer_psnr_codec` and `bayer_psnr_final` as
+  gateable alongside rendered metrics, and skips `null`-value
+  thresholds (informational mode).
+
+### Performance
+
+- Pi 5 storage-bound capture analysis: NEON-tuned encoder hot paths
+  hit 25.9 fps × 50 MP in-memory; sustained capture is now
+  storage-bound on USB-SSD (see `docs/VIDEO_STATUS.md`).
+- **GPRaw is the UPRESABLE primary deliverable** — wraps the full-res
+  `.gpr` sequence in a MOV container with codec_tag `GPR1` (`gpr_mov_tool
+  pack`, amortized 8 ms/frame). Per-frame DNG wrap is opt-in via
+  `--dng-export` (legacy hand-off to Adobe CR / darktable). ProRes 422 HQ
+  review file is opt-in via `--render-prores`.
+- Per-frame UPRESABLE on Mac M3: **~750 ms GPRaw delivery** (decode 97 +
+  BIBO_2x 435 + encode 210 + pack 8). With `--render-prores --dng-export`:
+  2.9 s (the legacy path the 720-frame timelapse measured). **3.8× speedup**
+  by skipping per-frame DNG wrap.
+- Pi-to-Mac end-to-end UPRESABLE bench at `tools/test/bench_pi_to_mac_upresable.sh`.
+  Stages: Pi encode (`ml2_q3_dec2`), USB rsync, Mac decode+CNN+encode,
+  `gpr_mov_tool pack`. Bottleneck on first 120-frame run was Mac
+  decode+CNN at 2.06 fps; USB at 524 MB/s is not a bottleneck.
+
+## [Unreleased] — branch `fix/multilevel-cascade-regression` (pre-2.2)
+
+### Added
+
+- `tools/test/metrics.py` — visual metric stack (Y-PSNR, MS-SSIM,
+  LPIPS-AlexNet, ΔE2000) computed on demosaiced RGB. Replaces bayer-PSNR
+  as the primary quality metric.
+- `tools/test/test_multilevel_regression.py` — tripwire that fails until
+  the FUSED multi-level cascade bug is fixed.
+- `tools/test/reproduce_regression.sh` — self-contained shell repro of
+  the multi-level regression.
+- `docs/REGRESSION_2026-05-25.md` — read-this-first artifact documenting
+  the multi-level regression, root cause, and corrected file-size numbers.
+- `docs/SESSION_SUMMARY_2026-05-25_evening.md` — comprehensive session
+  summary.
+- `FUSED_INVERSE_DESCALE` env var in `fused_decode.c` — per-level descale
+  override for cascade debugging.
+- `FUSED_L2_L3_PRESCALE` env var in `fused_encode.c` —
+  `wavelet_decompose_buffer` prescale override.
+
+### Walked back
+
+- The "5-22% file-size savings from CNN-aware cranked quants" claim
+  (PRs #16, #20, #21, #23, #25). The original numbers were measured
+  against the broken multi-level FUSED path. Re-measured on
+  single-level: equivalent cranks save 8.8% (HH×4) to 26.2%
+  (LH/HL/HH×8).
+- The "+5.61 dB CNN gain" and "+7.80 dB L1+L2 retrained CNN gain"
+  numbers — measured against the broken multi-level baseline.
+
+### Known issues
+
+- **FUSED multi-level wavelet cascade has a ~10 dB PSNR regression vs
+  single-level on natural images.** Root cause: Nyquist aliasing through
+  the 3-level 5/3 wavelet cascade, compounded by double-rounding in
+  `horizontal_filter`. Fix pending (task #172). Shipped tools
+  (`gpr_tools`, default FUSED single-level) are not affected.
+
 ## [2.0.0] — 2026-05-12
 
 GPR 2.0 turns the original stills-only VC-5 codec into a production raw-video

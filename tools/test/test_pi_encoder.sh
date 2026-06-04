@@ -31,10 +31,10 @@ NFRAMES="${NFRAMES:-30}"
 # Margin: assert ≥ 0.8 × measured baseline so jitter doesn't trip the test.
 # `_FPS` is the locked baseline; `_THR` is the threshold (80% of baseline).
 declare -A FPS_BASELINE=(
-    [2K]=290       [UHD]=85     [4K]=80     [13MP]=55   [50MP]=16
+    [2K]=290       [UHD]=85     [4K]=80     [13MP]=55   [50MP]=16   [50MP_DEC2]=24.93
 )
 declare -A FPS_THRESHOLD=(
-    [2K]=232       [UHD]=68     [4K]=64     [13MP]=44   [50MP]=12
+    [2K]=232       [UHD]=68     [4K]=64     [13MP]=44   [50MP]=12   [50MP_DEC2]=24
 )
 
 say()  { printf '\n\033[1;36m==>\033[0m %s\n' "$*"; }
@@ -72,7 +72,7 @@ note "Temp:     $(vcgencmd measure_temp 2>/dev/null | tr -d "'\"")"
 say "Ensuring test fixtures present in $FIXTURE_DIR"
 declare -A FIXTURES=(
     [2K]="2048 1080"    [UHD]="3840 2160"   [4K]="4096 2160"
-    [13MP]="4656 2792"  [50MP]="8280 5520"
+    [13MP]="4656 2792"  [50MP]="8280 5520"  [50MP_DEC2]="8280 5520"
 )
 for label in "${!FIXTURES[@]}"; do
     read -r W H <<< "${FIXTURES[$label]}"
@@ -105,10 +105,14 @@ printf '  %-6s %4s × %-4s  %12s  %10s  %10s  %s\n' \
 printf '  %s\n' "---------------------------------------------------------------------"
 
 FAILS=0
-for label in 2K UHD 4K 13MP 50MP; do
+for label in 2K UHD 4K 13MP 50MP 50MP_DEC2; do
     read -r W H <<< "${FIXTURES[$label]}"
     path="$FIXTURE_DIR/test_${label,,}.raw"
-    times=$("$BENCH" "$path" "$W" "$H" "$NFRAMES" 2>&1 | grep -E '^[0-9]+\.[0-9]+$' | sort -n)
+    if [ "$label" = "50MP_DEC2" ]; then
+        times=$(GPR_COL_DECIMATE=2 GPR_ROW_DECIMATE=2 "$BENCH" "$path" "$W" "$H" "$NFRAMES" 2>&1 | grep -E '^[0-9]+\.[0-9]+$' | sort -n)
+    else
+        times=$("$BENCH" "$path" "$W" "$H" "$NFRAMES" 2>&1 | grep -E '^[0-9]+\.[0-9]+$' | sort -n)
+    fi
     n=$(printf '%s\n' "$times" | wc -l | tr -d ' ')
     if [ "$n" -lt 10 ]; then
         printf '  %-6s %4d × %-4d  %12s  %10s  %10s  %s\n' \

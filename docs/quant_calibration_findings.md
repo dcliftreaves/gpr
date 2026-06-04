@@ -1,5 +1,12 @@
 # Quant calibration — rate-distortion findings
 
+> **⚠ Walk-back 2026-05-25 evening:** all numbers below were measured
+> on the FUSED multi-level wavelet path, which was later shown to have
+> a ~10 dB visual-quality regression vs single-level. Bayer-PSNR
+> reported here is technically correct for the bayer channel but the
+> visual quality it implied was not real. See
+> `docs/REGRESSION_2026-05-25.md`.
+
 Empirical measurement for task #158 (CNN-aware per-subband quant
 calibration, AccelIR style). Two complementary sweeps:
 
@@ -246,8 +253,8 @@ production change is encoder default quants + replacing the shipped CNN.
 
 Artifacts (not in the gpr repo — live in `dering_proto_v2/`):
 - Checkpoint: `BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt`
-- Training data: `/Volumes/OWC_8TB/gpr_cnn/pairs_hh1_4x/`
-- Eval CSV: `/Volumes/OWC_8TB/gpr_artifacts/quant_calibration_retrained/`
+- Training data: `/Volumes/OWC_8TB/gpr_work/cnn/pairs_hh1_4x/`
+- Eval CSV: `/Volumes/OWC_8TB/gpr_work/artifacts/quant_calibration_retrained/`
 
 ## What's still pending
 
@@ -286,15 +293,15 @@ Then run the sweep:
 ```
 # Quality-preset baseline (gpr_tools legacy encoder)
 python3 tools/test/quant_calibration.py --mode presets \
-    --corpus /Volumes/OWC_8TB/gpr_artifacts/fixtures/barn_sky_dngs \
+    --corpus /Volumes/OWC_8TB/gpr_work/artifacts/fixtures/barn_sky_dngs \
     --max-images 4 --qualities 0,1,2,3,4,5,6,7,8 \
-    --out-dir /Volumes/OWC_8TB/gpr_artifacts/quant_calibration
+    --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/quant_calibration
 
 # Per-subband sweep (FUSED encoder + half-res + GPR_QUANT_OVERRIDE)
 python3 tools/test/quant_calibration.py --mode per-subband \
-    --corpus /Volumes/OWC_8TB/gpr_artifacts/fixtures/barn_sky_dngs \
+    --corpus /Volumes/OWC_8TB/gpr_work/artifacts/fixtures/barn_sky_dngs \
     --max-images 4 --slots 1,2,3 --multipliers 1.0,1.5,2.0,3.0,4.0 \
-    --out-dir /Volumes/OWC_8TB/gpr_artifacts/quant_calibration
+    --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/quant_calibration
 ```
 
 CSV outputs are written to `<out-dir>/calibration.csv` and

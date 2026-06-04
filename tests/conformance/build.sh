@@ -21,14 +21,16 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT"
 
-VC5_ENC_LIB=build/source/lib/vc5_encoder/libvc5_encoder.a
-VC5_COMMON_LIB=build/source/lib/vc5_common/libvc5_common.a
-MD5_LIB=build/source/lib/md5_lib/libmd5_lib.a
+BUILD_DIR=${BUILD_DIR:-build-local}
+
+VC5_ENC_LIB=$BUILD_DIR/source/lib/vc5_encoder/libvc5_encoder.a
+VC5_COMMON_LIB=$BUILD_DIR/source/lib/vc5_common/libvc5_common.a
+MD5_LIB=$BUILD_DIR/source/lib/md5_lib/libmd5_lib.a
 
 for f in "$VC5_ENC_LIB" "$VC5_COMMON_LIB" "$MD5_LIB"; do
   if [ ! -f "$f" ]; then
     echo "missing prebuilt library: $f"
-    echo "build the top-level cmake project first  (cmake -S . -B build && cmake --build build)"
+    echo "build the top-level cmake project first  (cmake -S . -B $BUILD_DIR && cmake --build $BUILD_DIR)"
     exit 1
   fi
 done

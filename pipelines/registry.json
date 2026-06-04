@@ -1,0 +1,209 @@
+{
+  "$doc": "Pipeline registry. The ONLY place where {codec, cnn, demosaicer} triples are named. Run-gate refuses to test a pipeline that isn't here. Use the full name in artifact paths, PR descriptions, and claims_log.md \u2014 never an ad-hoc short form like 'ML2_q3_CNN' (the short form was the failure mode this scaffolding exists to fix).",
+  "$naming": "codec=<codec_id>+cnn=<cnn_id>+demosaic=<demosaic_id>. Hyphens within an id are fine; '+' separates the triple. If a field is absent (e.g. no CNN), use 'none' (codec=sl_q3+cnn=none+demosaic=sips).",
+  "$rules": [
+    "Adding a pipeline: required fields populated, no ad-hoc 'TODO' fields.",
+    "Renaming a pipeline: forbidden in same PR as an artifact run. Rename + re-run in separate PRs.",
+    "If you can't fill `cnn_ckpt_sha256`, you can't register the pipeline. Run `sha256sum` on the .pt file."
+  ],
+  "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28. Pipeline entries carry a 'ship_class' field with values STILL / VIDEO_FREEZE / PREVIEW / UPRESABLE; UPRESABLE pipelines combine a dec2 codec (half-res Pi capture) with a bibo2x super-res CNN (desktop) and output an editable full-res raw DNG/.gpr \u2014 see docs/UPRESABLE_PIPELINE.md.",
+  "demosaicers": {
+    "sips_via_gpr_tools": {
+      "$doc": "Bayer plane \u2192 DNG via gpr_tools (Adobe DNG SDK preserves color matrix from source DNG params) \u2192 PNG via macOS sips (Apple's CIRawFilter). Gold standard for color science. Requires source DNG for color matrix.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "needs_source_dng": true
+    }
+  },
+  "codecs": {
+    "gpr_tools_q0": {
+      "$doc": "Legacy CineForm VC5 at q=0. Smaller files than q=3 (3.2 MB vs 7.8 MB on Z8 50MP). Used to test whether the q=3-matched CNN generalizes downward.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 0,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
+    },
+    "gpr_tools_q3": {
+      "$doc": "Legacy CineForm VC5 encoder via gpr_tools CLI, explicit q=3. The codec that ALL CineForm GPR files use (CineForm Filmscan-1 default). Different bitstream from FUSED sl_q3 \u2014 uses CineForm's efficient LL coding rather than the FUSED GPR_INCLUDE_LL=1 byte-stuff. Empirically 7.8 MB on Z8 50MP vs FUSED's 17.8 MB at same q.",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 3,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
+    },
+    "gpr_tools_q8": {
+      "$doc": "Legacy CineForm VC5 encoder at q=8 (Filmscan-5, archival quality). Larger files (~16 MB on Z8 50MP) than q=3 (7.8 MB) but higher fidelity. Designed for the 'highest quality STILL alternate' ship class. Pi 5 encode: ~1972 ms (best of 3).",
+      "binary": "build-local/source/app/gpr_tools/gpr_tools",
+      "quality": 8,
+      "encoder_kind": "legacy_gpr_tools",
+      "env": {},
+      "use_for": "still"
+    },
+    "ml2_q3": {
+      "$doc": "2-level FUSED q=3. Restored 2026-05-25. NOT yet shipping for any class.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2"
+      },
+      "quality": 3,
+      "use_for": "video"
+    },
+    "ml2_q3_dec2": {
+      "$doc": "2-level FUSED q=3 with 2x2 decimation. Half-res capture, 1/4 pixels. The Pi 5 sustained-24-fps capture mode (24.93 fps median measured 2026-05-26). Pair with a 2x super-res CNN on the desktop.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_COL_DECIMATE": "2",
+        "GPR_ROW_DECIMATE": "2"
+      },
+      "quality": 3,
+      "use_for": "video"
+    },
+    "ml2_q3_l1x2": {
+      "$doc": "ml2_q3 with all L1 highpass doubled (LH1/HL1: 96\u2192192, HH1: 144\u2192288).",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "7:192,8:192,9:288"
+      },
+      "quality": 3,
+      "use_for": "video"
+    },
+    "ml2_q3_l2x2_l1x2": {
+      "$doc": "Both L2 and L1 doubled: 4/5: 24\u219248, 6: 12\u219224, 7/8: 96\u2192192, 9: 144\u2192288.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:192,8:192,9:288"
+      },
+      "quality": 3,
+      "use_for": "video"
+    },
+    "ml2_q3_l2x2_l1x2_hh1x2": {
+      "$doc": "ml2_q3_l2x2_l1x2 with an additional 2\u00d7 crank on the L1 HH band (the highest-frequency slot). Hypothesis: HH is the most quantization-tolerant band when paired with the unmatched ml2_q3 CNN; cranking it on top of the proven smallest tier (l2x2_l1x2) should land near 6.5 MB. Slots: 4/5: 48, 6: 24, 7/8: 192, 9: 576.",
+      "binary": "build-local/bin/test_fused_roundtrip",
+      "env": {
+        "GPR_INCLUDE_LL": "1",
+        "FUSED_MULTI_LEVEL": "1",
+        "FUSED_WAVELET_LEVELS": "2",
+        "GPR_QUANT_OVERRIDE": "4:48,5:48,6:24,7:192,8:192,9:576"
+      },
+      "quality": 3,
+      "use_for": "experiment"
+    }
+  },
+  "cnns": {
+    "bibo1x_ane_gpr_tools_q3": {
+      "$doc": "BIBO_1x (F_ane_no_sr) CNN matched to legacy gpr_tools q=3 codec output. Target: restore legacy q=3 (7.8 MB / 64.1 dB) to legacy q=8 quality (72.7 dB) perceptually, giving us ~3\u00d7 file-size win over FUSED+CNN current ship.",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q3.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "gpr_tools_q3",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "df22af432710bddabd223047c2db2d0edf2808dd17c4341694a974e045ec87cd"
+    },
+    "bibo1x_ane_ml2_q3": {
+      "$doc": "BIBO_1x retrained on ML-2 q=3 codec output pairs. Awaiting training; ckpt_path will land once train finishes. trained_against_codec: ml2_q3.",
+      "ckpt_path": "models/BayInBayOut_1x_AAon_w16_ANE_ML2_q3.pt",
+      "cnn_arch_variant": "F_ane_no_sr",
+      "trained_against_codec": "ml2_q3",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "7fac7c28f13830c716fede8c9caf129fc7d949151508b70530449f13151fade9"
+    },
+    "bibo2x_ane_ml2_q3_dec2_diverse": {
+      "$doc": "BIBO_2x super-res CNN retrained on a 498-image diverse corpus (200 barnsky + 298 NEFs across 10 dates: Jan\u2013Oct 2025). Adobe DNG-converted from /Volumes/photos/DavidsPics/2025. 19920 tiles. Trained on M5, 80 epochs, best at ep 64 +1.776 dB. Test images filtered out.",
+      "ckpt_path": "models/BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt",
+      "cnn_arch_variant": "F_ane",
+      "trained_against_codec": "ml2_q3_dec2",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "bd3636d2c026639e3d8c9636de491c662fe05e67bdaa4451061901b47b37659b"
+    },
+    "none": {
+      "$doc": "No CNN \u2014 codec output is the final result."
+    }
+  },
+  "pipelines": {
+    "codec=ml2_q3_l2x2_l1x2_hh1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2x2_l1x2_hh1x2",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "ship-video-freeze-smallest",
+      "$doc": "VIDEO_FREEZE smallest ship \u2014 ml2_q3 with both L1+L2 highpass doubled and an additional 2\u00d7 crank on the L1 HH band (the highest-frequency slot, most quantization-tolerant). 6.77 MB mean per 50 MP frame, 13% smaller than primary (ml2_q3_l1x2 at 7.81 MB). Decoded via the standard unmatched ml2_q3 CNN \u2014 the matched-CNN-against-cranked-codec hypothesis was falsified on 2026-05-28 (the cross-pair wins). Worst LPIPS 0.0809 on Z8Z_6693, PASS under the 2026-05-27 relaxed 0.085 ceiling (4.8% margin \u2014 slimmer than the conservative alternate at 7.11 MB but smaller). Audit run f392aeb7b123c111."
+    },
+    "codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l1x2",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "ship-video-freeze-primary",
+      "$doc": "VIDEO_FREEZE primary ship (promoted 2026-05-27). 23.9% smaller files than the prior ml2_q3 baseline at PASS quality (worst LPIPS 0.076 vs 0.08 ceiling). Same matched CNN as ml2_q3 \u2014 no retrain needed. Crank pattern: L1 highpass quants \u00d72 (GPR_QUANT_OVERRIDE=7:192,8:192,9:288)."
+    },
+    "codec=gpr_tools_q0+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q0",
+      "cnn": "bibo1x_ane_gpr_tools_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "ship-still-smallest",
+      "$doc": "STILL smallest ship \u2014 legacy CineForm q=0 + matched-q3 CNN. 9.80 MB mean (35% smaller than the q=3 primary tier). Worst LPIPS 0.0314 (vs 0.05 ceiling). The matched-q3 CNN generalizes down to q=0 with no retrain required. Use when storage is the constraint and visible quality holds (verified 2026-05-28 via the q-level decision dashboard)."
+    },
+    "codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q8",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "ship-still-archival-no-cnn",
+      "$doc": "STILL archival ship \u2014 legacy CineForm q=8 ('Filmscan-5'). 27.17 MB mean (16-41 MB per-image, content-adaptive). Worst LPIPS 0.0035 \u2014 4\u00d7 tighter than q=3+CNN primary. No CNN needed: the legacy encoder at q=8 is already visual-lossless on the gate's 4-image test set. Use when storage isn't constrained AND you want maximum fidelity."
+    },
+    "codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "gpr_tools_q3",
+      "cnn": "bibo1x_ane_gpr_tools_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "$role": "ship-still-primary",
+      "$doc": "STILL primary ship (promoted 2026-05-28). Legacy gpr_tools q=3 codec + matched BIBO_1x CNN. 15.05 MB mean (7.8-21.4 MB per-image, content-adaptive) \u2014 43.4% smaller than the FUSED sl_q3+CNN ship (26.6 MB). Worst LPIPS 0.0155 across the 4-image gate, well under STILL's 0.05 ceiling. Matches the user's original design goal: q=3 codec + CNN restoration \u2192 STILL quality at small file sizes."
+    },
+    "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "none",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "embedded-preview-ml2-no-cnn"
+    },
+    "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "bibo2x_ane_ml2_q3_dec2_diverse",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "UPRESABLE",
+      "use_for": "UPRESABLE",
+      "$role": "UPRESABLE production chain \u2014 half-res Pi 5 capture (24.93 fps sustained) + desktop BIBO_2x super-res \u2192 editable full-res raw DNG/.gpr. Bayer PSNR vs source DNG: 37.85\u201343.78 dB on 4 gate images (2026-05-30). See docs/UPRESABLE_PIPELINE.md."
+    },
+    "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_l2x2_l1x2",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "ship-video-freeze-smallest-conservative",
+      "$doc": "VIDEO_FREEZE conservative-margin smallest alternate \u2014 ml2_q3 with L1+L2 highpass doubled. 7.11 MB mean (9% smaller than primary), worst LPIPS 0.0794 (6.6% margin under the 0.085 ceiling). Larger and looser than ship-video-freeze-smallest (l2x2_l1x2_hh1x2 @ 6.77 MB / LPIPS 0.0809, 4.8% margin) but with more headroom. Use when LPIPS margin matters more than size. Audit run 063d8276aa8e735e."
+    },
+    "codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3",
+      "cnn": "bibo1x_ane_ml2_q3",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "$role": "ship-video-freeze-alternate-tighter-lpips",
+      "$doc": "VIDEO_FREEZE alternate. Larger files (10.26 MB mean) but tighter LPIPS (0.068 vs 0.076). Was the primary ship until ml2_q3_l1x2 was promoted 2026-05-27."
+    }
+  },
+  "$archive_note": "Experimental codecs, CNNs, and pipeline candidates omitted from this slim registry are preserved on archive/multilevel-cascade-experiments-20260604; see docs/EXPERIMENT_ARCHIVE_2026-06-04.md."
+}

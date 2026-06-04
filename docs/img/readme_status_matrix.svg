@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="520" viewBox="0 0 1180 520" role="img" aria-labelledby="title desc">
+  <title id="title">GPR production status matrix</title>
+  <desc id="desc">Dashboard-style summary of stills, video, preview, GVID, raw clean dispatch, and platform performance status.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; }
+      .title { font: 700 28px system-ui, -apple-system, Segoe UI, sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 14px system-ui, -apple-system, Segoe UI, sans-serif; fill: #475569; }
+      .label { font: 700 15px system-ui, -apple-system, Segoe UI, sans-serif; fill: #0f172a; }
+      .small { font: 500 13px system-ui, -apple-system, Segoe UI, sans-serif; fill: #475569; }
+      .num { font: 800 25px system-ui, -apple-system, Segoe UI, sans-serif; fill: #0f172a; }
+      .pass { fill: #15803d; }
+      .warn { fill: #b45309; }
+      .track { fill: #e2e8f0; }
+      .blue { fill: #2563eb; }
+      .green { fill: #16a34a; }
+      .amber { fill: #d97706; }
+      .ink { fill: #0f172a; }
+      .badgeText { font: 800 12px system-ui, -apple-system, Segoe UI, sans-serif; fill: #ffffff; }
+    </style>
+  </defs>
+  <rect class="bg" width="1180" height="520"/>
+  <text class="title" x="40" y="50">GPR/GVID Production Status</text>
+  <text class="subtitle" x="40" y="76">Slim integration branch: production code, quality gates, container path, and platform receipts only</text>
+
+  <rect class="panel" x="40" y="110" width="250" height="150" rx="8"/>
+  <rect class="green" x="62" y="132" width="54" height="24" rx="12"/>
+  <text class="badgeText" x="75" y="149">PASS</text>
+  <text class="label" x="62" y="182">Stills</text>
+  <text class="num" x="62" y="218">15.05 MB</text>
+  <text class="small" x="62" y="241">primary, worst LPIPS 0.016</text>
+
+  <rect class="panel" x="320" y="110" width="250" height="150" rx="8"/>
+  <rect class="green" x="342" y="132" width="54" height="24" rx="12"/>
+  <text class="badgeText" x="355" y="149">PASS</text>
+  <text class="label" x="342" y="182">Video freeze-frame</text>
+  <text class="num" x="342" y="218">7.81 MB</text>
+  <text class="small" x="342" y="241">ML-2 q3 l1x2, worst LPIPS 0.076</text>
+
+  <rect class="panel" x="600" y="110" width="250" height="150" rx="8"/>
+  <rect class="green" x="622" y="132" width="54" height="24" rx="12"/>
+  <text class="badgeText" x="635" y="149">PASS</text>
+  <text class="label" x="622" y="182">Preview capture</text>
+  <text class="num" x="622" y="218">24.93 fps</text>
+  <text class="small" x="622" y="241">Pi 5, ml2_q3_dec2, 1.30 MB/frame</text>
+
+  <rect class="panel" x="880" y="110" width="250" height="150" rx="8"/>
+  <rect class="green" x="902" y="132" width="54" height="24" rx="12"/>
+  <text class="badgeText" x="915" y="149">PASS</text>
+  <text class="label" x="902" y="182">GVID container</text>
+  <text class="num" x="902" y="218">renderable</text>
+  <text class="small" x="902" y="241">metadata + dispatch validation</text>
+
+  <rect class="panel" x="40" y="300" width="530" height="160" rx="8"/>
+  <text class="label" x="62" y="332">Quality gate coverage</text>
+  <text class="small" x="62" y="356">Committed gate tooling; generated run artifacts stay off main</text>
+  <rect class="track" x="62" y="384" width="430" height="18" rx="9"/>
+  <rect class="blue" x="62" y="384" width="410" height="18" rx="9"/>
+  <text class="small" x="505" y="399">4 ship classes</text>
+  <rect class="track" x="62" y="420" width="430" height="18" rx="9"/>
+  <rect class="green" x="62" y="420" width="342" height="18" rx="9"/>
+  <text class="small" x="417" y="435">CI + audits</text>
+
+  <rect class="panel" x="600" y="300" width="530" height="160" rx="8"/>
+  <text class="label" x="622" y="332">Remaining production handoff</text>
+  <text class="small" x="622" y="356">Raw-clean model dispatch is validated at the renderer boundary</text>
+  <rect class="track" x="622" y="384" width="430" height="18" rx="9"/>
+  <rect class="amber" x="622" y="384" width="265" height="18" rx="9"/>
+  <text class="small" x="900" y="399">model apply pending</text>
+  <text class="small" x="622" y="435">Next: per-tile raw-clean runner plus per-frame noise metadata.</text>
+</svg>
