@@ -64,10 +64,20 @@ WORK=/Volumes/OWC_8TB/gpr_work/tmp/gvid_metadata_smoke \
 
 All focused checks passed.
 
+Runtime dispatch plan smoke:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/gvid_runtime_dispatch_20260604/full_gate_synthetic.gvid.dispatch.json`
+
+- synthetic `.gvid`: 4 frames, matching full-gate metadata frame tags;
+- dispatch plan: 4 frames, 12 tiles, 6 accepted tiles;
+- each plan row carries stream payload offset/size plus per-tile
+  `accepted_only_raw_clean` or `all_targets_raw_clean` policy.
+
 ## Next Production Step
 
-The decode/restoration runtime should consume `<stream>.gvid.meta.json`, match
-each decoded frame by `frame_tag` or frame index into the sidecar, then dispatch
-per tile/crop from that frame's `raw_clean_tiles`. The dashboard now proves the
-metadata policy contract; runtime integration is the remaining handoff from
-evaluation to the actual decoder path.
+The remaining handoff is to thread `gvid_runtime_dispatch.v1` into the actual
+decode/restoration renderer: for each decoded frame, use the plan's `frame_tag`
+and payload offsets to find the frame, then apply the per-tile raw-clean policy
+before final render/encode. The dashboard and runtime plan now prove the
+metadata policy contract; model invocation inside the renderer is the next
+integration point.

@@ -48,11 +48,26 @@ Both sidecars validate with:
 python3 tools/gvid_metadata.py validate <sidecar>
 ```
 
+Runtime dispatch plans are generated with:
+
+```bash
+python3 tools/gvid_metadata.py runtime-dispatch <sidecar> \
+  --gvid <stream.gvid> \
+  --output <stream.gvid.dispatch.json>
+```
+
+The dispatch plan scans actual `.gvid` frame headers, matches each decoded frame
+by `frame_tag`, carries payload offset/size for readers, and emits per-tile
+policy values:
+
+- `accepted_only_raw_clean` for accepted source tiles;
+- `all_targets_raw_clean` for rejected/no-op source tiles.
+
 ## Compatibility
 
 This does not change `.gvid` v1 binary layout. Existing `.gvid` readers can
 ignore the sidecar. Decode-time restoration that wants raw-clean dispatch can
-load the sidecar and select:
+load the runtime dispatch plan and select:
 
 - all-target model for rejected/no-op tiles;
 - accepted-only high-ISO model for accepted tiles.

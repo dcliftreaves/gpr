@@ -66,6 +66,50 @@ JSON
 python3 "$REPO/tools/gvid_metadata.py" validate "$WORK/clip.gvid.meta.json" \
   --gvid "$WORK/clip.gvid"
 
+python3 "$REPO/tools/gvid_metadata.py" runtime-dispatch "$WORK/clip.gvid.meta.json" \
+  --gvid "$WORK/clip.gvid" \
+  --output "$WORK/clip.gvid.dispatch.json"
+python3 - "$WORK/clip.gvid.dispatch.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+dispatch = json.loads(Path(sys.argv[1]).read_text())
+assert dispatch["schema"] == "gvid_runtime_dispatch.v1"
+assert dispatch["frame_count"] == 2
+assert dispatch["tile_count"] == 2
+assert dispatch["accepted_tile_count"] == 1
+assert dispatch["frames"][0]["frame_tag"] == 0
+assert dispatch["frames"][0]["payload_size"] > 0
+assert dispatch["frames"][0]["raw_clean_tiles"][0]["policy"] == "all_targets_raw_clean"
+assert dispatch["frames"][1]["raw_clean_tiles"][0]["policy"] == "accepted_only_raw_clean"
+PY
+
+python3 - "$WORK/clip.gvid" "$WORK/dup_tag.gvid" <<'PY'
+import struct
+import sys
+from pathlib import Path
+
+src = Path(sys.argv[1])
+dst = Path(sys.argv[2])
+data = bytearray(src.read_bytes())
+pos = 32
+magic, size, tag = struct.unpack("<IIQ", data[pos:pos + 16])
+assert tag == 0
+pos += 16 + size
+magic, size, tag = struct.unpack("<IIQ", data[pos:pos + 16])
+assert tag == 1
+data[pos + 8:pos + 16] = struct.pack("<Q", 0)
+dst.write_bytes(data)
+PY
+
+if python3 "$REPO/tools/gvid_metadata.py" runtime-dispatch "$WORK/clip.gvid.meta.json" \
+  --gvid "$WORK/dup_tag.gvid" \
+  --output "$WORK/dup_tag.gvid.dispatch.json"; then
+  echo "expected duplicate stream frame tags to fail runtime dispatch" >&2
+  exit 1
+fi
+
 python3 - "$WORK/clip.gvid.meta.json" "$WORK/bad_tags.gvid.meta.json" <<'PY'
 import json
 import sys

@@ -18,7 +18,7 @@ GVID_VERSION = 1
 SCHEMA = "gvid_source_metadata.v1"
 
 
-def read_gvid_frame_tags(path: Path) -> list[int]:
+def read_gvid_frames(path: Path) -> list[dict[str, int]]:
     data = path.read_bytes()
     if len(data) < 32:
         raise ValueError(f"{path} is too small to be a .gvid stream")
@@ -28,7 +28,7 @@ def read_gvid_frame_tags(path: Path) -> list[int]:
     if header[1] != GVID_VERSION:
         raise ValueError(f"{path} has unsupported GVID version {header[1]}")
     frame_count_hint = int(header[10])
-    tags: list[int] = []
+    frames: list[dict[str, int]] = []
     pos = 32
     while pos < len(data):
         if pos + 16 > len(data):
@@ -39,10 +39,21 @@ def read_gvid_frame_tags(path: Path) -> list[int]:
         pos += 16
         if pos + payload_size > len(data):
             raise ValueError(f"{path} has a truncated frame payload at byte {pos}")
-        tags.append(int(frame_tag))
+        frames.append({
+            "frame_index": len(frames),
+            "frame_tag": int(frame_tag),
+            "payload_offset": pos,
+            "payload_size": int(payload_size),
+        })
         pos += int(payload_size)
-    if frame_count_hint not in (0, len(tags)):
-        raise ValueError(f"{path} frame_count_hint={frame_count_hint} but stream has {len(tags)} frames")
+    if frame_count_hint not in (0, len(frames)):
+        raise ValueError(f"{path} frame_count_hint={frame_count_hint} but stream has {len(frames)} frames")
+    return frames
+
+
+def read_gvid_frame_tags(path: Path) -> list[int]:
+    frames = read_gvid_frames(path)
+    tags = [frame["frame_tag"] for frame in frames]
     return tags
 
 
@@ -53,6 +64,58 @@ def validate_against_gvid(meta: dict[str, Any], gvid: Path) -> None:
         raise ValueError(f"{gvid} has {len(tags)} frames but metadata has {len(meta_tags)} frames")
     if tags != meta_tags:
         raise ValueError(f"{gvid} frame tags {tags} do not match metadata frame tags {meta_tags}")
+
+
+def build_runtime_dispatch(meta: dict[str, Any], gvid: Path) -> dict[str, Any]:
+    validate_metadata(meta)
+    stream_frames = read_gvid_frames(gvid)
+    if len(stream_frames) != len(meta["frames"]):
+        raise ValueError(f"{gvid} has {len(stream_frames)} frames but metadata has {len(meta['frames'])} frames")
+    stream_tags = [int(frame["frame_tag"]) for frame in stream_frames]
+    if len(stream_tags) != len(set(stream_tags)):
+        raise ValueError(f"{gvid} has duplicate frame tags {stream_tags}")
+    meta_by_tag = {int(frame["frame_tag"]): frame for frame in meta["frames"]}
+    if len(meta_by_tag) != len(meta["frames"]):
+        raise ValueError("metadata has duplicate frame tags")
+    missing = [frame["frame_tag"] for frame in stream_frames if frame["frame_tag"] not in meta_by_tag]
+    extra = sorted(set(meta_by_tag) - {frame["frame_tag"] for frame in stream_frames})
+    if missing or extra:
+        raise ValueError(f"runtime dispatch frame-tag mismatch missing={missing} extra={extra}")
+
+    frames = []
+    accepted_tiles = 0
+    total_tiles = 0
+    for stream_frame in stream_frames:
+        meta_frame = meta_by_tag[stream_frame["frame_tag"]]
+        tiles = []
+        for tile in meta_frame["raw_clean_tiles"]:
+            accepted = bool(tile["accepted"])
+            accepted_tiles += int(accepted)
+            total_tiles += 1
+            tiles.append({
+                "crop": tile["crop"],
+                "source_xywh": tile["source_xywh"],
+                "accepted": accepted,
+                "policy": "accepted_only_raw_clean" if accepted else "all_targets_raw_clean",
+                "reject_reasons": tile["reject_reasons"],
+                "sigma_rms_counts": tile["sigma_rms_counts"],
+            })
+        frames.append({
+            **stream_frame,
+            "source_id": meta_frame["source_id"],
+            "source_path": meta_frame["source_path"],
+            "iso": meta_frame["iso"],
+            "raw_clean_tiles": tiles,
+        })
+    return {
+        "schema": "gvid_runtime_dispatch.v1",
+        "gvid": str(gvid),
+        "metadata": meta.get("gvid"),
+        "frame_count": len(frames),
+        "tile_count": total_tiles,
+        "accepted_tile_count": accepted_tiles,
+        "frames": frames,
+    }
 
 
 def load_crop_xywh(npz_path: Path) -> list[int]:
@@ -179,6 +242,24 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_runtime_dispatch(args: argparse.Namespace) -> int:
+    meta = json.loads(args.metadata.read_text())
+    dispatch = build_runtime_dispatch(meta, args.gvid)
+    text = json.dumps(dispatch, indent=2) + "\n"
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text)
+        print(args.output)
+    else:
+        print(text, end="")
+    print(
+        f"frames={dispatch['frame_count']} tiles={dispatch['tile_count']} "
+        f"accepted_tiles={dispatch['accepted_tile_count']}",
+        file=sys.stderr,
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Build and validate .gvid source metadata sidecars.")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -193,6 +274,12 @@ def main(argv: list[str] | None = None) -> int:
     validate.add_argument("metadata", type=Path)
     validate.add_argument("--gvid", type=Path)
     validate.set_defaults(func=cmd_validate)
+
+    runtime = sub.add_parser("runtime-dispatch")
+    runtime.add_argument("metadata", type=Path)
+    runtime.add_argument("--gvid", type=Path, required=True)
+    runtime.add_argument("--output", type=Path)
+    runtime.set_defaults(func=cmd_runtime_dispatch)
 
     args = ap.parse_args(argv)
     try:
