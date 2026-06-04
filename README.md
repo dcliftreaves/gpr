@@ -101,6 +101,9 @@ editable DNG (~91 MB) + `gpr_tools .gpr` (~2–8 MB) for Adobe CR / darktable
 hand-off is opt-in via `--dng-export`. ProRes 422 HQ review video is opt-in
 via `--render-prores`.
 
+Latest preview review bundle and SOTA-v2 ProRes evidence:
+`docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md`.
+
 | metric                              | value                         |
 |---                                  |---                            |
 | Capture rate (Pi 5)                 | 24.93 fps sustained           |

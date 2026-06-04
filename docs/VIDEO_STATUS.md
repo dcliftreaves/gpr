@@ -10,6 +10,12 @@ Two parts: **24 fps capture** (encode side, Pi 5 constrained) and
 
 ## Current video pipelines
 
+For the latest preview-video review bundle and SOTA-v2 ProRes evidence, see
+`docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md`. That document records the
+2026-06-04 dashboard, ProRes review outputs, and the current distinction
+between the raw 24 fps capture deliverable (`.gvid` carrying
+`ml2_q3_dec2` frame payloads) and rendered preview outputs.
+
 ### A) Full-res VIDEO_FREEZE ship (desktop processing, not Pi capture)
 
 | field | value |
