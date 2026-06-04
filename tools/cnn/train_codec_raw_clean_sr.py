@@ -156,6 +156,7 @@ def main() -> int:
     dataset = PairDataset(args.pairs, include_rejected=not args.accepted_only)
     model = CodecRawCleanSR(args.width).to(DEVICE)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    score_metric = "accepted_mean_clean_rmse_counts" if args.accepted_only else "mean_clean_rmse_counts"
     best = float("inf")
     best_eval: dict[str, Any] | None = None
     t0 = time.time()
@@ -169,7 +170,7 @@ def main() -> int:
         opt.step()
         if step == 1 or step % args.log_every == 0 or step == args.steps:
             metrics = evaluate(model, dataset)
-            score = metrics["accepted_mean_clean_rmse_counts"] or metrics["mean_clean_rmse_counts"]
+            score = metrics[score_metric] or metrics["mean_clean_rmse_counts"]
             marker = ""
             if score < best:
                 best = float(score)
@@ -182,6 +183,7 @@ def main() -> int:
                     "raw_scale": RAW_SCALE,
                     "pairs": str(args.pairs),
                     "accepted_only": args.accepted_only,
+                    "score_metric": score_metric,
                     "step": step,
                     "score": best,
                 }, args.out)
@@ -203,6 +205,7 @@ def main() -> int:
         "crop": args.crop,
         "width": args.width,
         "accepted_only": args.accepted_only,
+        "score_metric": score_metric,
         "best_score": best,
         "best_eval": best_eval,
     }, indent=2))
