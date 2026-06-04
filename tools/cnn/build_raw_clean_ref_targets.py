@@ -34,7 +34,8 @@ from analyze_dng_noise_profile import (
 )
 
 
-DEFAULT_OUT = Path("/Volumes/OWC_8TB/gpr_work/artifacts/raw_clean_ref_targets_20260604")
+DEFAULT_OUT = Path("/Volumes/OWC_8TB/gpr_work/artifacts/raw_clean_ref_targets_fullgate_20260604")
+DEFAULT_IMAGES = ["Z8Z_0001", "Z8Z_0067", "Z8Z_5323", "Z8Z_6693"]
 
 
 def norm_support(x: np.ndarray, percentile: float) -> np.ndarray:
@@ -89,6 +90,31 @@ def residual_lag_max_abs(removed_ch: dict[str, np.ndarray]) -> float:
             denom = float(np.sqrt(np.sum(a * a) * np.sum(b * b)))
             values.append(0.0 if denom <= 1e-9 else float(np.sum(a * b) / denom))
     return float(np.max(np.abs(values))) if values else 0.0
+
+
+def contract_failure_reasons(
+    residual_ch: dict[str, np.ndarray],
+    sigma_ch: dict[str, np.ndarray],
+    validation: dict[str, Any],
+    residual_to_sigma_rms: float,
+    args: argparse.Namespace,
+) -> list[str]:
+    max_residual_sigma = 0.0
+    for ch_name, residual in residual_ch.items():
+        max_residual_sigma = max(
+            max_residual_sigma,
+            float(np.max(np.abs(residual) / np.maximum(sigma_ch[ch_name], 1e-6))),
+        )
+    reasons: list[str] = []
+    if max_residual_sigma > args.contract_max_residual_sigma + 1e-5:
+        reasons.append("max_residual_sigma")
+    if residual_to_sigma_rms > args.contract_max_rms_residual_sigma:
+        reasons.append("rms_residual_sigma")
+    if residual_lag_max_abs(residual_ch) > args.contract_max_lag_abs:
+        reasons.append("lag")
+    if validation["edge_removed_energy_ratio"] > args.contract_max_edge_ratio:
+        reasons.append("edge_ratio")
+    return reasons
 
 
 def clean_plane(
@@ -199,6 +225,27 @@ def build_crop(
     residual_crop = interleave(residual_ch, raw_crop.shape)
     mask_crop = interleave(mask_ch, raw_crop.shape)
     validation = plane_validation_stats(raw_ch, sigma_ch, residual_ch, wavelet=args.wavelet)
+    residual_energy = float(np.mean(residual_crop * residual_crop))
+    sigma_rms = float(np.sqrt(np.mean(sigma_crop * sigma_crop)))
+    residual_to_sigma_rms = float(math.sqrt(residual_energy) / max(sigma_rms, 1e-9))
+    reject_reasons = contract_failure_reasons(
+        residual_ch,
+        sigma_ch,
+        validation,
+        residual_to_sigma_rms,
+        args,
+    )
+    accepted = not reject_reasons
+    if args.enforce_contract and reject_reasons:
+        clean_ch = {ch: plane.copy() for ch, plane in raw_ch.items()}
+        residual_ch = {ch: np.zeros_like(plane, dtype=np.float32) for ch, plane in raw_ch.items()}
+        mask_ch = {ch: np.zeros_like(plane, dtype=np.float32) for ch, plane in raw_ch.items()}
+        clean_crop = interleave(clean_ch, raw_crop.shape)
+        residual_crop = interleave(residual_ch, raw_crop.shape)
+        mask_crop = interleave(mask_ch, raw_crop.shape)
+        validation = plane_validation_stats(raw_ch, sigma_ch, residual_ch, wavelet=args.wavelet)
+        residual_energy = float(np.mean(residual_crop * residual_crop))
+        residual_to_sigma_rms = 0.0
 
     crop_dir = out_dir / image_id
     crop_dir.mkdir(parents=True, exist_ok=True)
@@ -224,7 +271,6 @@ def build_crop(
     save_u8(crop_dir / f"{base}_sigma.png", sigma_crop, lo=0.0, hi=np.percentile(sigma_crop, 99.5))
     save_u8(crop_dir / f"{base}_mask.png", mask_crop, lo=0.0, hi=1.0)
 
-    residual_energy = float(np.mean(residual_crop * residual_crop))
     candidate_energy = float(np.mean([
         plane_rows[ch]["candidate_residual_rms"] ** 2 for ch in plane_rows
     ]))
@@ -234,9 +280,12 @@ def build_crop(
         "iso": meta.iso,
         "path": str(meta.path),
         "npz": str(npz_path),
-        "sigma_rms_counts": float(np.sqrt(np.mean(sigma_crop * sigma_crop))),
+        "accepted": accepted,
+        "reject_reasons": reject_reasons,
+        "contract_enforced": bool(args.enforce_contract and reject_reasons),
+        "sigma_rms_counts": sigma_rms,
         "exact_residual_rms_counts": float(math.sqrt(residual_energy)),
-        "exact_residual_to_sigma_rms": float(math.sqrt(residual_energy) / max(float(np.sqrt(np.mean(sigma_crop * sigma_crop))), 1e-9)),
+        "exact_residual_to_sigma_rms": residual_to_sigma_rms,
         "candidate_residual_rms_counts": float(math.sqrt(candidate_energy)),
         "kept_candidate_energy_frac": float(residual_energy / max(candidate_energy, 1e-9)),
         "mean_mask": float(np.mean(mask_crop)),
@@ -273,7 +322,7 @@ def build_html(rows: list[dict[str, Any]], out: Path) -> None:
         "<p>Conservative raw-domain clean targets. Residual images are exact addback sidecars, amplified for display.</p>",
         "<table><thead><tr><th>Image</th><th>Crop</th><th>ISO</th><th>sigma rms</th><th>residual rms</th>"
         "<th>residual/sigma</th><th>flat residual/sigma</th><th>kept candidate energy</th><th>mean mask</th>"
-        "<th>lag max abs</th><th>edge energy ratio</th></tr></thead><tbody>",
+        "<th>lag max abs</th><th>edge energy ratio</th><th>Status</th></tr></thead><tbody>",
     ]
     for row in rows:
         html.append("<tr>" + "".join(
@@ -289,6 +338,7 @@ def build_html(rows: list[dict[str, Any]], out: Path) -> None:
                 row["mean_mask"],
                 row["lag_max_abs"],
                 row["edge_removed_energy_ratio"],
+                "accepted" if row["accepted"] else "rejected: " + ",".join(row["reject_reasons"]),
             ]
         ) + "</tr>")
     html.append("</tbody></table><div class='grid'>")
@@ -306,7 +356,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--test-set", type=Path, default=DEFAULT_TEST_SET)
     ap.add_argument("--out-dir", type=Path, default=DEFAULT_OUT)
-    ap.add_argument("--images", nargs="*", default=["Z8Z_5323", "Z8Z_6693"])
+    ap.add_argument("--images", nargs="*", default=DEFAULT_IMAGES)
     ap.add_argument("--crops", nargs="*", default=["A_detail", "B_center", "C_lowerleft"])
     ap.add_argument("--wavelet", default="sym4")
     ap.add_argument("--levels", type=int, default=2)
@@ -323,6 +373,11 @@ def main() -> int:
     ap.add_argument("--mask-blur", type=float, default=0.65)
     ap.add_argument("--max-mask-weight", type=float, default=1.0)
     ap.add_argument("--output-sigma-clip", type=float, default=1.0)
+    ap.add_argument("--enforce-contract", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--contract-max-residual-sigma", type=float, default=1.0)
+    ap.add_argument("--contract-max-rms-residual-sigma", type=float, default=0.35)
+    ap.add_argument("--contract-max-lag-abs", type=float, default=0.20)
+    ap.add_argument("--contract-max-edge-ratio", type=float, default=1.0)
     ap.add_argument("--residual-gain", type=float, default=8.0)
     args = ap.parse_args()
 
