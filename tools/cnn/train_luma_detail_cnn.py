@@ -52,6 +52,20 @@ def signal_target(l_norm: np.ndarray, sigma: float) -> np.ndarray:
     return gaussian(l_norm, sigma=sigma, preserve_range=True).astype(np.float32)
 
 
+def bandwidth_lowpass_target(l_norm: np.ndarray, factor: int) -> np.ndarray:
+    if factor <= 1:
+        return l_norm
+    if cv2 is None:
+        raise RuntimeError("opencv-python is required for --target-lowpass-factor > 1")
+    h, w = l_norm.shape
+    small = cv2.resize(
+        l_norm.astype(np.float32),
+        (max(1, w // factor), max(1, h // factor)),
+        interpolation=cv2.INTER_AREA,
+    )
+    return cv2.resize(small, (w, h), interpolation=cv2.INTER_LANCZOS4).astype(np.float32)
+
+
 def selected_hf(l_chan: np.ndarray, wavelet: str, levels: int, hf_levels: int) -> np.ndarray:
     if pywt is None:
         raise RuntimeError("PyWavelets is required for --target-noise-mode structure_gated")
@@ -179,12 +193,17 @@ def load_pairs(
     run_dir: Path,
     image_ids: list[str],
     target_lowpass_sigma: float,
+    target_lowpass_factor: int,
     target_noise_mode: str,
     args: argparse.Namespace,
 ) -> list[tuple[str, np.ndarray, np.ndarray]]:
     out = []
-    if target_noise_mode != "none" and target_lowpass_sigma > 0.0:
-        raise ValueError("--target-noise-mode and --target-lowpass-sigma are mutually exclusive")
+    active_targets = int(target_lowpass_sigma > 0.0) + int(target_lowpass_factor > 1) + int(target_noise_mode != "none")
+    if active_targets > 1:
+        raise ValueError(
+            "--target-lowpass-sigma, --target-lowpass-factor, and --target-noise-mode "
+            "are mutually exclusive"
+        )
     for image_id in image_ids:
         ref = run_dir / f"{image_id}_REF.png"
         pipe = run_dir / f"{image_id}_PIPELINE.png"
@@ -201,7 +220,10 @@ def load_pairs(
         pipe_l = pipe_l[:h, :w]
         ref_l = ref_l[:h, :w]
         if target_noise_mode == "none":
-            target_l = signal_target(ref_l, target_lowpass_sigma)
+            if target_lowpass_factor > 1:
+                target_l = bandwidth_lowpass_target(ref_l, target_lowpass_factor)
+            else:
+                target_l = signal_target(ref_l, target_lowpass_sigma)
         elif target_noise_mode == "structure_gated":
             target_l, stats = structure_gated_signal_target(ref_l, pipe_l, args)
             print(
@@ -284,7 +306,14 @@ def train(args: argparse.Namespace) -> None:
     dilations = tuple(int(s.strip()) for s in args.dilations.split(",") if s.strip())
     if not dilations:
         raise ValueError("--dilations must contain at least one integer")
-    pairs = load_pairs(args.run_dir, image_ids, args.target_lowpass_sigma, args.target_noise_mode, args)
+    pairs = load_pairs(
+        args.run_dir,
+        image_ids,
+        args.target_lowpass_sigma,
+        args.target_lowpass_factor,
+        args.target_noise_mode,
+        args,
+    )
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
 
@@ -337,6 +366,7 @@ def train(args: argparse.Namespace) -> None:
                     "train_run": str(args.run_dir),
                     "train_images": image_ids,
                     "target_lowpass_sigma": args.target_lowpass_sigma,
+                    "target_lowpass_factor": args.target_lowpass_factor,
                     "target_noise_mode": args.target_noise_mode,
                     "target_noise": target_noise_metadata(args),
                     "step": step,
@@ -375,6 +405,7 @@ def train(args: argparse.Namespace) -> None:
             "train_run": str(args.run_dir),
             "train_images": image_ids,
             "target_lowpass_sigma": args.target_lowpass_sigma,
+            "target_lowpass_factor": args.target_lowpass_factor,
             "target_noise_mode": args.target_noise_mode,
             "target_noise": target_noise_metadata(args),
             "step": args.steps,
@@ -392,6 +423,7 @@ def train(args: argparse.Namespace) -> None:
         "train_run": str(args.run_dir),
         "train_images": image_ids,
         "target_lowpass_sigma": args.target_lowpass_sigma,
+        "target_lowpass_factor": args.target_lowpass_factor,
         "target_noise_mode": args.target_noise_mode,
         "target_noise": target_noise_metadata(args),
         "width": args.width,
@@ -446,6 +478,8 @@ def main() -> None:
     ap.add_argument("--residual-limit", type=float, default=0.08)
     ap.add_argument("--target-lowpass-sigma", type=float, default=0.0,
                     help="Gaussian sigma applied to REF Lab-L before training, to remove non-learnable HF/noise from the signal target.")
+    ap.add_argument("--target-lowpass-factor", type=int, default=1,
+                    help="Bandwidth-limited REF Lab-L target: area downsample by this factor, then Lanczos-upsample back. Factor 2 matches the passing ref_L_lowpass_x2 recoverability oracle.")
     ap.add_argument("--target-noise-mode", choices=("none", "structure_gated"), default="none",
                     help="Optional structure-gated finest-wavelet cleanup. Removes only HF that lacks edge, cross-scale, coherence, energy, and candidate support.")
     ap.add_argument("--target-noise-wavelet", default="sym4")

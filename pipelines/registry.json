@@ -1381,6 +1381,20 @@
       "chroma_baseline": "demosaic_sips",
       "luma_detail_cnn_strength": 0.25
     },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_luma_detail_unet_x2_oracle_w24_c768": {
+      "$doc": "Temporary PREVIEW detail-placement candidate. Keeps the solved Lab/SIPS chroma path and active VA-Y luma baseline, then applies a bounded full-gate Lab-L U-Net residual trained on M5 against the exact ref_L_lowpass_x2 recoverability-oracle target: area downsample REF Lab-L by 2, Lanczos-upsample, and train on 768px crops. Tests whether the passing x2 bandwidth-limited oracle can be distilled into a full-context Lab-L residual model.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_no_sr_w16_y.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_detail": "models/luma_detail_unet_lab_sips_x2_oracle_w24_c768.pt",
+      "ckpt_y_sha256": "44caeef760bd3c4ff00e017c3dca24bef694928199035e3284f6cd742fb19b45",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "ckpt_detail_sha256": "48e3c270e9ce86cf9cf59d2fa50a2ff23f61953e1cc049f2d46b97128e975959",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_luma_detail_cnn_v1": {
       "$doc": "Temporary PREVIEW detail-placement candidate for the full-gate stop criteria. Starts from the best simple detail baseline (Lab SIPS + luma unsharp amount=0.7/sigma=2.0), then applies a bounded Lab-L residual CNN trained from that full-resolution gate output to REF with Charbonnier + MS-SSIM + LPIPS loss.",
       "cnn_arch_variant": "lab_chroma_corrector",
@@ -2358,6 +2372,14 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-detail-luma-unet-structure-gated-fullgate-strength-sweep",
       "$doc": "Temporary candidate for the detail-placement stop criteria: same structure-gated Lab-L U-Net residual checkpoint applied at 25% strength."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_luma_detail_unet_x2_oracle_w24_c768+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_luma_detail_unet_x2_oracle_w24_c768",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-detail-lab-l-unet-x2-oracle-w24-c768",
+      "$doc": "Temporary candidate for the detail-placement stop criteria. Full-gate Lab-L U-Net residual trained against the exact ref_L_lowpass_x2 recoverability-oracle target on M5, preserving the Lab/SIPS chroma guardrail."
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_unsharp_s07_luma_detail_cnn_v1+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

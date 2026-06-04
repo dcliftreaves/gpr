@@ -23,6 +23,7 @@ M5_GATE_DNG_DIR="${M5_GATE_DNG_DIR:-/Users/dcliftreaves/gpr_data/gate_dngs}"
 M5_GATE_TMPDIR="${M5_GATE_TMPDIR:-/Users/dcliftreaves/gpr_data/gate_tmp}"
 GATE_MAX_WORKERS="${GATE_MAX_WORKERS:-1}"
 GATE_MIN_FREE_GB="${GATE_MIN_FREE_GB:-25}"
+GATE_KEEP_FULLRES="${GATE_KEEP_FULLRES:-0}"
 
 SOURCE_MAP="/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs=$M5_GATE_DNG_DIR;/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs=$M5_GATE_DNG_DIR"
 
@@ -43,6 +44,6 @@ ssh "$M5_HOST" "
   GATE_TMPDIR=$(printf '%q' "$M5_GATE_TMPDIR") \
   GATE_MAX_WORKERS=$(printf '%q' "$GATE_MAX_WORKERS") \
   GATE_MIN_FREE_GB=$(printf '%q' "$GATE_MIN_FREE_GB") \
-  GATE_KEEP_FULLRES=0 \
+  GATE_KEEP_FULLRES=$(printf '%q' "$GATE_KEEP_FULLRES") \
   python3 tests/quality_gates/run_gate.py ${quoted_args[*]}
 "
