@@ -117,7 +117,7 @@ def read_bayer(path: Path) -> np.ndarray:
         for page in tf.pages:
             if len(page.shape) == 2 and np.issubdtype(page.dtype, np.integer):
                 candidates.append(page)
-            for subpage in getattr(page, "pages", []):
+            for subpage in getattr(page, "pages", None) or []:
                 if len(subpage.shape) == 2 and np.issubdtype(subpage.dtype, np.integer):
                     candidates.append(subpage)
         if not candidates:
@@ -128,8 +128,21 @@ def read_bayer(path: Path) -> np.ndarray:
 
 def noise_sigma_map(raw: np.ndarray, meta: DngMeta) -> np.ndarray:
     """Return per-pixel DNG NoiseProfile sigma in raw counts."""
-    if len(meta.noise_profile) < 6:
-        raise RuntimeError(f"expected 6 NoiseProfile values, got {meta.noise_profile}")
+    if len(meta.noise_profile) == 2:
+        pairs = {
+            "R": meta.noise_profile,
+            "G": meta.noise_profile,
+            "B": meta.noise_profile,
+        }
+    elif len(meta.noise_profile) >= 6:
+        # DNG may store three (scale, offset) variance pairs for R, G, B.
+        pairs = {
+            "R": meta.noise_profile[0:2],
+            "G": meta.noise_profile[2:4],
+            "B": meta.noise_profile[4:6],
+        }
+    else:
+        raise RuntimeError(f"expected 2 or 6 NoiseProfile values, got {meta.noise_profile}")
     black = np.full_like(raw, meta.black, dtype=np.float32)
     if len(meta.black_levels) == 4:
         black[0::2, 0::2] = meta.black_levels[0]
@@ -149,13 +162,6 @@ def noise_sigma_map(raw: np.ndarray, meta: DngMeta) -> np.ndarray:
     raw_range = white - black
     norm = np.clip((raw - black) / np.maximum(raw_range, 1.0), 0.0, 1.0)
     out = np.zeros_like(norm, dtype=np.float32)
-    # DNG stores three (scale, offset) variance pairs for R, G, B.
-    pairs = {
-        "R": meta.noise_profile[0:2],
-        "G": meta.noise_profile[2:4],
-        "B": meta.noise_profile[4:6],
-    }
-
     def fill(view: np.ndarray, pair: list[float]) -> np.ndarray:
         a, b = pair
         return np.sqrt(np.maximum(a * view + b, 0.0))
