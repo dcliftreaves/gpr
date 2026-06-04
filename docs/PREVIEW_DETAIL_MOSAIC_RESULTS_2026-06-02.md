@@ -65,6 +65,7 @@ target:
 | mosaic + dilated Lab-L residual v2 | `9b1d4c8e7320de40` | FAIL | `Z8Z_6693` | 0.1910 | 0.9436 | 33.54 | 1.97 |
 | Lab-L U-Net residual, full-context low-pass signal target | `5b0b0588f497a0cf` | FAIL | `Z8Z_6693` | 0.4631 | 0.9389 | 33.20 | 2.01 |
 | Lab-L U-Net residual, exact x2-oracle target | `42882c4ca661b539` | FAIL | `Z8Z_6693` | 0.3227 | 0.9376 | 33.02 | 2.04 |
+| Lab-L U-Net residual, exact x2-oracle target, 25% strength | `e66bb956fdaa3f8d` | FAIL | `Z8Z_6693` | 0.3172 | 0.9361 | 32.92 | 2.06 |
 | mosaic, low-pass x2 target, width 48 | `f7a42b76c1f549ae` | FAIL | `Z8Z_6693` | 0.1809 | 0.9434 | 29.25 | 2.93 |
 | mosaic, low-pass x2 target, width 48, blocker-selected | `e5107f994eb2dd0b` | FAIL | `Z8Z_6693` | 0.1637 | 0.9458 | 31.56 | 2.34 |
 | mosaic, wavelet-denoised L target, width 48, blocker-selected | `6d7ed7f5b62f7732` | FAIL | `Z8Z_6693` | 0.3235 | 0.9415 | 30.66 | 2.54 |
@@ -183,6 +184,14 @@ The full-gate residual refiners narrow the failure further:
   bounded post-Lab-L residual architecture against the exact passing x2 oracle"
   as a complete fix. The x2 signal exists, but this residual model does not
   place it correctly.
+- Reducing that same exact x2-oracle residual checkpoint to 25% inference
+  strength does not rescue the direction. M5 remapped frozen-gate run
+  `e66bb956fdaa3f8d` passes `Z8Z_0001` and `Z8Z_0067`, but still fails
+  `Z8Z_5323` (`LPIPS=0.1851`) and `Z8Z_6693` (`LPIPS=0.3172`,
+  `MS-SSIM=0.9361`). Color remains safe (`Z8Z_6693` dE2000 mean `2.06`), so
+  the failure is not chroma and not simply over-application of an otherwise
+  useful Lab-L residual. This closes the current post-Lab-L U-Net residual
+  family for the PREVIEW detail blocker.
 
 That makes the residual-postprocess path an evidenced near-miss rather than a
 solution. It can restore some local luma energy, but it does not place
@@ -280,9 +289,10 @@ candidate should change one of:
 - selection metric: checkpoint selection should include the mixed-contrast
   blocker, not only `Z8Z_0067`; this has now been tested and should be paired
   with a stronger target/model rather than repeated alone.
-- architecture: move detail placement into the primary Y/upres model or a
-  stronger teacher/student with explicit full-image context; bounded residual
-  postprocessing has now failed both RGB and Lab-L variants.
+- architecture: move detail placement into the primary decoded-Bayer/Y/upres
+  model, or a stronger teacher/student with explicit full-image context;
+  bounded residual postprocessing has now failed RGB, Lab-L, structure-gated,
+  and exact x2-oracle variants.
 
 The objective remains a PREVIEW-detail PASS run or an evidenced failure tied
 to one of those causes.
