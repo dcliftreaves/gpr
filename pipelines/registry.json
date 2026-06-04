@@ -1220,6 +1220,18 @@
       "residual_scale": 0.0,
       "chroma_baseline": "demosaic_sips"
     },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_t256_s128_lx2_center768_blocker_select_best": {
+      "$doc": "Closed PREVIEW detail-placement candidate. Warm-started from the width-48 mosaic-input 2x-low-pass blocker-selected checkpoint, then trained on M5 with larger 256-codec-pixel / 1024-output hard-tail tiles, center-valid 768px loss, and Z8Z_5323/Z8Z_6693 blocker selection. M5 remapped frozen-gate run 9d6dba741fdb6972 passes three images but fails Z8Z_6693 LPIPS/MS-SSIM/dE.",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "ckpt_y": "models/F_ane_mosaic_w48_y_hardtail_t256_s128_lx2_center768_blocker_select_best.pt",
+      "ckpt_chroma": "models/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_y_sha256": "4ceecd1b99b7b76d309188c49919ee4894c9d3a0d4ab06b1ba5592a09c1083bf",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "residual_scale": 0.0,
+      "chroma_baseline": "demosaic_sips"
+    },
     "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_wavelet_lhf2_blocker_select_best": {
       "$doc": "Temporary PREVIEW detail-placement target-cleanup candidate. Warm-started from the width-48 mosaic-input blocker-selected Y model, then fine-tuned against a REF Lab-L target with the finest two sym4 wavelet detail levels removed. Tests whether non-learnable REF luminance HF/noise was contaminating the learned full-image texture/detail objective while preserving the solved Lab/SIPS chroma path.",
       "cnn_arch_variant": "lab_chroma_corrector",
@@ -2307,6 +2319,14 @@
       "ship_class": "PREVIEW",
       "$role": "closed-preview-detail-y-mosaic-w48-large-context-center-valid",
       "$doc": "Closed candidate for the detail-placement stop criteria. Width-48 mosaic-input Y checkpoint trained on larger t192/s96 x2-low-pass tiles with center-valid loss and blocker-aware selection. M5 remapped frozen-gate run b6245123abfefd36 fails Z8Z_6693."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_t256_s128_lx2_center768_blocker_select_best+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_t256_s128_lx2_center768_blocker_select_best",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "closed-preview-detail-y-mosaic-w48-t256-center768-blocker-select",
+      "$doc": "Closed candidate for the detail-placement stop criteria. Width-48 mosaic-input Y checkpoint trained on M5 with larger t256/s128 x2-low-pass tiles, center-valid 768px loss, and blocker-aware selection. M5 remapped frozen-gate run 9d6dba741fdb6972 fails Z8Z_6693."
     },
     "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_wavelet_lhf2_blocker_select_best+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

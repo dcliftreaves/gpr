@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -39,6 +40,37 @@ DEFAULT_RENDER_CACHE = Path("/Volumes/OWC_8TB/gpr_work/cnn/render_cache_gate_har
 DEFAULT_IMAGE_IDS = ("Z8Z_0001", "Z8Z_0067", "Z8Z_5323", "Z8Z_6693")
 
 SCALE_TO_SOURCE = 4
+
+
+def _parse_source_path_map(raw: str | None) -> list[tuple[str, str]]:
+    if not raw:
+        return []
+    mappings: list[tuple[str, str]] = []
+    for item in raw.split(";"):
+        item = item.strip()
+        if not item:
+            continue
+        if "=" not in item:
+            raise SystemExit(
+                f"invalid GATE_SOURCE_PATH_MAP entry {item!r}; expected FROM=TO"
+            )
+        src, dst = item.split("=", 1)
+        src = src.rstrip("/")
+        dst = dst.rstrip("/")
+        if not src or not dst:
+            raise SystemExit(
+                f"invalid GATE_SOURCE_PATH_MAP entry {item!r}; FROM and TO are required"
+            )
+        mappings.append((src, dst))
+    mappings.sort(key=lambda pair: len(pair[0]), reverse=True)
+    return mappings
+
+
+def _apply_source_path_map(path: str, mappings: list[tuple[str, str]]) -> str:
+    for src, dst in mappings:
+        if path == src or path.startswith(src + "/"):
+            return dst + path[len(src):]
+    return path
 
 
 def _load_gate_images(ids: list[str]) -> list[dict]:
@@ -177,6 +209,11 @@ def build(args: argparse.Namespace) -> None:
     codec = registry["codecs"][args.codec]
     dms = registry["demosaicers"][args.demosaic]
     images = _load_gate_images(args.images)
+    source_path_map = _parse_source_path_map(os.environ.get("GATE_SOURCE_PATH_MAP"))
+    if source_path_map:
+        print("source path map:", flush=True)
+        for src, dst in source_path_map:
+            print(f"  {src} => {dst}", flush=True)
 
     codec_tiles: list[np.ndarray] = []
     mosaic_tiles: list[np.ndarray] = []
@@ -188,7 +225,8 @@ def build(args: argparse.Namespace) -> None:
     for src_id, im in enumerate(images):
         image_id = im["id"]
         names.append(image_id)
-        src_dng = Path(im["path"])
+        src_path = _apply_source_path_map(str(im["path"]), source_path_map)
+        src_dng = Path(src_path)
         if not src_dng.exists():
             raise SystemExit(f"missing source DNG for {image_id}: {src_dng}")
         print(f"[{src_id + 1}/{len(images)}] {image_id}", flush=True)

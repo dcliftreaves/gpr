@@ -198,11 +198,17 @@ def check_preview_detail_blocker_evidence() -> Check:
         "mosaic_z6693_select": "ebcfdf3a6ff3ba23",
         "mosaic_width48_blocker_select": "e5107f994eb2dd0b",
         "mosaic_width48_wavelet_lhf2": "6d7ed7f5b62f7732",
+        "mosaic_width48_t192_center512": "b6245123abfefd36",
+        "mosaic_width48_t256_center768": "9d6dba741fdb6972",
         "mosaic_fullref": "4ae4d3cfb39632ab",
         "luma_residual_v1": "5d3cf75bf1b1f44b",
         "luma_residual_v1_wavelet_hf": "b3b767e5d4d2f717",
         "luma_residual_v2": "9b1d4c8e7320de40",
         "luma_unet_signal_lowpass": "5b0b0588f497a0cf",
+        "luma_unet_structure_gated": "9f302838a3849414",
+        "luma_unet_structure_gated_s25": "7e070506de411bd8",
+        "luma_unet_x2_oracle": "42882c4ca661b539",
+        "luma_unet_x2_oracle_s25": "e66bb956fdaa3f8d",
         "rgb_residual_v1": "ac606b54716374b2",
     }
     missing = []

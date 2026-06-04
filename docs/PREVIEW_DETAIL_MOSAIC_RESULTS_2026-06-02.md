@@ -73,6 +73,7 @@ target:
 | mosaic, low-pass x2 target, last | `077761916aa85fb6` | FAIL | `Z8Z_6693` | 0.2275 | 0.9383 | 26.91 | 3.76 |
 | mosaic, low-pass x2 target, width 48 last | `f5b7383a00663858` | FAIL | `Z8Z_6693` | 0.2614 | 0.9300 | 24.71 | 4.71 |
 | mosaic, low-pass x2 target, width 48, t192 center-valid, M5 remapped frozen gate | `b6245123abfefd36` | FAIL | `Z8Z_6693` | 0.2069 | 0.9407 | 28.56 | 3.13 |
+| mosaic, low-pass x2 target, width 48, t256 center-valid, M5 remapped frozen gate | `9d6dba741fdb6972` | FAIL | `Z8Z_6693` | 0.1986 | 0.9438 | 28.51 | 3.18 |
 
 The mosaic low-pass candidate is the best learned detail candidate so far:
 it turns `Z8Z_5323` from failing to passing and improves the hard-tail
@@ -158,6 +159,17 @@ The full-gate residual refiners narrow the failure further:
   for the current width-48 Y architecture; it improves the studio detail case
   but still cannot place the mixed-contrast texture and now also nudges color
   past the guardrail on the binding image.
+- The wider t256/s128 center-valid M5 run confirms that result at a larger
+  context scale. Dataset build used 256-codec-pixel / 1024-output tiles with
+  the exact x2 Lab-L target and a 768px center-valid loss region; training
+  stopped after the epoch-8 blocker-selected checkpoint because later epochs
+  degraded. Gate run `9d6dba741fdb6972` passes `Z8Z_0001`, `Z8Z_0067`, and
+  `Z8Z_5323` (`LPIPS=0.1189`, `MS-SSIM=0.9651`), but still fails `Z8Z_6693`
+  (`LPIPS=0.1986`, `MS-SSIM=0.9438`, `dE2000 mean=3.18`). This closes
+  "increase primary mosaic-Y context and select on blockers" as a sufficient
+  production fix for this architecture. The model is learning scene-dependent
+  contrast that helps the studio detail case but misplaces mixed-contrast
+  structure and pushes the color guardrail on the binding image.
 - The bounded wavelet-HF synthesis hook on top of Lab-L residual v1 moves the
   blocker closer on LPIPS (`0.1532` to `0.1511`) and keeps color safe
   (`dE2000_mean=2.02`), but MS-SSIM remains flat (`0.9422`). This rejects
@@ -278,8 +290,8 @@ model still does not place the missing texture/detail.
 Do not continue with the full-REF warm-start recipe as-is. The next useful
 candidate should change one of:
 
-- model context: full-image/overlap-aware Y teacher/student rather than
-  selecting only on tile-level validation LPIPS;
+- model context: full-image/overlap-aware Y teacher/student with a different
+  objective, not another local mosaic-Y context/selection scale-up;
 - target teacher: distill from the passing `ref_L_lowpass_x2` oracle or a
   larger full-gate teacher directly, not just tile-level RGB targets;
 - target/noise split: train the signal path against denoised or oracle
