@@ -3,10 +3,9 @@ name: Sanitizers
 # AddressSanitizer / UndefinedBehaviorSanitizer / ThreadSanitizer runs.
 #
 # These are noticeably slower (5-30x) than the standard CI matrix, so we don't
-# gate every PR on them. Instead we run on:
-#   - master push  (catch issues right after they land)
+# gate every PR or every merge on them. Instead we run on:
 #   - daily 06:00 UTC schedule
-#   - manual dispatch
+#   - manual dispatch before risky releases or concurrency-heavy merges
 #
 # Linux-only for two reasons:
 #   1. clang sanitizers on darwin-arm64 have spotty support for some NEON
@@ -19,9 +18,6 @@ name: Sanitizers
 # previously caught real data races in this code.
 
 on:
-  push:
-    branches:
-      - master
   schedule:
     # Daily at 06:00 UTC.
     - cron: '0 6 * * *'
