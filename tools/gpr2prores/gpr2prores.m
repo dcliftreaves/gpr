@@ -12,6 +12,7 @@
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
+#import <limits.h>
 #import <sys/statvfs.h>
 #import "DNGReader.h"
 #import "GPRPipeline.h"
@@ -33,6 +34,7 @@ static void print_usage(FILE *out) {
         "INPUT:\n"
         "  .gpr file or directory of .gpr files (playback mode)\n"
         "  .dng file or directory of .dng files (encode+playback)\n"
+        "  .gvid container (neutral raw-video stream; auto-unpacked)\n"
         "  .mov / .gpraw / .gprv container (GPR1-tagged MOV; auto-unpacked)\n"
         "\n"
         "REQUIRED OPTIONS:\n"
@@ -73,6 +75,9 @@ static void print_usage(FILE *out) {
         "  # Acquisition-time validation: encode+decode roundtrip on DNG\n"
         "  gpr2prores --aa on /clip/dng/ /tmp/out.mov\n"
         "\n"
+        "  # Run on neutral GVID container (auto-unpacks)\n"
+        "  gpr2prores --meta-dng src.dng clip.gvid /tmp/out.mov\n"
+        "\n"
         "  # Run on packed GPRaw container (auto-unpacks)\n"
         "  gpr2prores --meta-dng src.dng clip.gpraw /tmp/out.mov\n",
         GPR2PRORES_VERSION);
@@ -107,6 +112,122 @@ static int64_t freeBytesForPath(NSString *path) {
     struct statvfs s;
     if (statvfs([probe UTF8String], &s) != 0) return -1;
     return (int64_t)s.f_bavail * (int64_t)s.f_frsize;
+}
+
+static uint32_t le32_gpr2prores(const uint8_t *p) {
+    return  (uint32_t)p[0]
+         | ((uint32_t)p[1] << 8)
+         | ((uint32_t)p[2] << 16)
+         | ((uint32_t)p[3] << 24);
+}
+
+static uint64_t le64_gpr2prores(const uint8_t *p) {
+    return  (uint64_t)p[0]
+         | ((uint64_t)p[1] << 8)
+         | ((uint64_t)p[2] << 16)
+         | ((uint64_t)p[3] << 24)
+         | ((uint64_t)p[4] << 32)
+         | ((uint64_t)p[5] << 40)
+         | ((uint64_t)p[6] << 48)
+         | ((uint64_t)p[7] << 56);
+}
+
+static NSString *makeTempDir(NSString *prefix) {
+    const char *tmpEnv = getenv("TMPDIR");
+    NSString *base = (tmpEnv && tmpEnv[0])
+        ? [NSString stringWithUTF8String:tmpEnv]
+        : NSTemporaryDirectory();
+    char tmpl[PATH_MAX];
+    snprintf(tmpl, sizeof(tmpl), "%s/%s_XXXXXX", [base fileSystemRepresentation], [prefix UTF8String]);
+    char *resolved = mkdtemp(tmpl);
+    return resolved ? [NSString stringWithUTF8String:resolved] : nil;
+}
+
+static BOOL unpackGVID(NSString *inputPath, NSString *outDir, int maxFrames) {
+    NSFileHandle *fh = [NSFileHandle fileHandleForReadingAtPath:inputPath];
+    if (!fh) {
+        fprintf(stderr, "error: cannot open GVID input: %s\n", [inputPath UTF8String]);
+        return NO;
+    }
+    @try {
+        NSData *clipHeader = [fh readDataOfLength:32];
+        if (clipHeader.length != 32) {
+            fprintf(stderr, "error: GVID input is too small: %s\n", [inputPath UTF8String]);
+            [fh closeFile];
+            return NO;
+        }
+        const uint8_t *h = clipHeader.bytes;
+        uint32_t magic = le32_gpr2prores(h);
+        uint8_t version = h[4];
+        uint32_t frameCountHint = le32_gpr2prores(h + 28);
+        if (magic != 0x44495647u || version != 1) {
+            fprintf(stderr, "error: bad GVID header in %s (magic=0x%08x version=%u)\n",
+                    [inputPath UTF8String], magic, version);
+            [fh closeFile];
+            return NO;
+        }
+
+        uint32_t framesWritten = 0;
+        NSMutableSet<NSNumber *> *seenTags = [NSMutableSet set];
+        while (true) {
+            NSData *frameHeader = [fh readDataOfLength:16];
+            if (frameHeader.length == 0) break;
+            if (frameHeader.length != 16) {
+                fprintf(stderr, "error: truncated GVID frame header after %u frames\n", framesWritten);
+                [fh closeFile];
+                return NO;
+            }
+            const uint8_t *fhdr = frameHeader.bytes;
+            uint32_t frameMagic = le32_gpr2prores(fhdr);
+            uint32_t payloadSize = le32_gpr2prores(fhdr + 4);
+            uint64_t frameTag = le64_gpr2prores(fhdr + 8);
+            if (frameMagic != 0x004D5246u) {
+                fprintf(stderr, "error: bad GVID frame magic after %u frames (0x%08x)\n",
+                        framesWritten, frameMagic);
+                [fh closeFile];
+                return NO;
+            }
+            NSNumber *tagNumber = @((unsigned long long)frameTag);
+            if ([seenTags containsObject:tagNumber]) {
+                fprintf(stderr, "error: duplicate GVID frame tag %llu\n",
+                        (unsigned long long)frameTag);
+                [fh closeFile];
+                return NO;
+            }
+            [seenTags addObject:tagNumber];
+            NSData *payload = [fh readDataOfLength:payloadSize];
+            if (payload.length != payloadSize) {
+                fprintf(stderr, "error: truncated GVID payload for frame tag %llu\n",
+                        (unsigned long long)frameTag);
+                [fh closeFile];
+                return NO;
+            }
+            if ((int)framesWritten < maxFrames) {
+                NSString *name = [NSString stringWithFormat:@"frame_%06u.gpr", framesWritten];
+                NSString *dst = [outDir stringByAppendingPathComponent:name];
+                if (![payload writeToFile:dst atomically:NO]) {
+                    fprintf(stderr, "error: failed to write unpacked GVID frame: %s\n", [dst UTF8String]);
+                    [fh closeFile];
+                    return NO;
+                }
+            }
+            framesWritten++;
+        }
+        if (frameCountHint != 0 && frameCountHint != framesWritten) {
+            fprintf(stderr, "error: GVID frame_count_hint=%u but stream has %u frames\n",
+                    frameCountHint, framesWritten);
+            [fh closeFile];
+            return NO;
+        }
+        [fh closeFile];
+        fprintf(stderr, "GVID input: unpacked %u frames to %s\n", framesWritten, [outDir UTF8String]);
+        return YES;
+    } @catch (NSException *ex) {
+        fprintf(stderr, "error: exception while unpacking GVID %s: %s\n",
+                [inputPath UTF8String], [[ex reason] UTF8String]);
+        [fh closeFile];
+        return NO;
+    }
 }
 
 int main(int argc, const char *argv[]) {
@@ -222,6 +343,31 @@ int main(int argc, const char *argv[]) {
         }
         probe = nil;
 
+        // GVID input: neutral stream of per-frame .gpr payloads. Unpack to a
+        // temp dir and reuse the existing .gpr playback path.
+        NSString *inputExt = [inputPath.lowercaseString pathExtension];
+        BOOL isGVIDContainer = [inputExt isEqualToString:@"gvid"];
+        NSString *gvidUnpackDir = nil;
+        if (isGVIDContainer) {
+            if (![[NSFileManager defaultManager] fileExistsAtPath:inputPath]) {
+                fprintf(stderr, "error: input not found: %s\n", [inputPath UTF8String]);
+                return 1;
+            }
+            gvidUnpackDir = makeTempDir(@"gpr2prores_gvid");
+            if (!gvidUnpackDir) {
+                fprintf(stderr, "error: mkdtemp failed for GVID unpack (errno %d)\n", errno);
+                return 1;
+            }
+            if (!unpackGVID(inputPath, gvidUnpackDir, maxFrames)) {
+                return 1;
+            }
+            NSString *sidecar = [inputPath stringByAppendingString:@".meta.json"];
+            if ([[NSFileManager defaultManager] fileExistsAtPath:sidecar]) {
+                fprintf(stderr, "GVID input: found metadata sidecar %s\n", [sidecar UTF8String]);
+            }
+            inputPath = gvidUnpackDir;
+        }
+
         // MOV container input: .mov / .gpraw / .gprv are all aliases for a MOV
         // file with a GPR1-tagged track. Unpack to a temp dir up front (fast —
         // mostly memcpy from the mmap'd MOV) and treat as a .gpr dir from there.
@@ -235,13 +381,11 @@ int main(int argc, const char *argv[]) {
                 fprintf(stderr, "error: input not found: %s\n", [inputPath UTF8String]);
                 return 1;
             }
-            char tmpl[] = "/tmp/gpr2prores_mov_XXXXXX";
-            char *resolved = mkdtemp(tmpl);
-            if (!resolved) {
+            movUnpackDir = makeTempDir(@"gpr2prores_mov");
+            if (!movUnpackDir) {
                 fprintf(stderr, "error: mkdtemp failed (errno %d)\n", errno);
                 return 1;
             }
-            movUnpackDir = @(resolved);
             NSString *exeDir = [[NSString stringWithUTF8String:argv[0]] stringByDeletingLastPathComponent];
             if (exeDir.length == 0) exeDir = @".";
             NSString *movTool = [exeDir stringByAppendingPathComponent:@"gpr_mov_tool"];

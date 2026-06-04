@@ -101,6 +101,11 @@ Use this product split:
 | ProRes 422 HQ MOV | rendered review/export, not raw |
 | H.264/H.265 MP4 | browser/proxy review, not raw |
 
+`gpr2prores` now accepts `.gvid` directly. It auto-unpacks the stream to a
+temporary `.gpr` frame directory and reuses the existing playback renderer.
+Set `TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp` before invoking it to keep unpack
+scratch on the external work drive.
+
 ## Next production risk
 
 The remaining image-quality risk is not the container or 24 fps encode path.
