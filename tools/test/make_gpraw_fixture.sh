@@ -62,8 +62,8 @@ done
 # Default working dir: prefer /Volumes/OWC_8TB if mounted (this user's
 # 8 TB external for capture artifacts), else /tmp. Override with $WORK.
 DEFAULT_WORK=/tmp/gpraw_fixture_$$
-if [ -d /Volumes/OWC_8TB/gpr_artifacts ]; then
-    DEFAULT_WORK="/Volumes/OWC_8TB/gpr_artifacts/intermediate/fixture_$$"
+if [ -d /Volumes/OWC_8TB/gpr_work/artifacts ]; then
+    DEFAULT_WORK="/Volumes/OWC_8TB/gpr_work/artifacts/intermediate/fixture_$$"
 fi
 WORK="${WORK:-$DEFAULT_WORK}"
 mkdir -p "$WORK"

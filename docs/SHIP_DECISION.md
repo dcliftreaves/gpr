@@ -1,164 +1,300 @@
-# Ship-decision artifact — CNN-aware quant + retrained CNN
+# Ship-decision — what passes the quality gate today
 
-## TL;DR
+**Source of truth:** `tests/quality_gates/runs/` + `docs/claims_log.md`.
+This file summarizes what the gate has actually verified. If something
+here doesn't match the latest run logs, the run logs win.
 
-We have empirical evidence that **a retrained BIBO_1x CNN + cranked
-default quants** ships 5-22% smaller files at the same CNN-corrected
-quality. This doc lays out the three options for shipping it, the
-specific changes each requires, and the trade-offs.
+GPR has **two production modes** with two different encoders:
 
-Pre-release exploration framing applies (see
-`memory/project_strategic_framing.md`): we're building a contribution
-candidate for GoPro's OSS codec, not deploying commercially.
+- **Stills** → legacy CineForm VC5 encoder via `gpr_tools` + matched BIBO_1x CNN.
+- **Video** → multi-level FUSED encoder + matched BIBO_1x CNN.
 
-## What's already shipped (this session)
+The FUSED encoder was designed for video; **using it for stills was a methodology
+error caught 2026-05-28** and the FUSED-stills pipelines are now retired (kept in
+registry under `use_for: deprecated` so historical run logs still resolve).
+Every codec entry in `pipelines/registry.json` now carries a `use_for` field
+to prevent mode confusion. See `tests/quality_gates/check_registry_consistency.py`.
 
-The infrastructure to ship q=11 is fully in place:
+## TL;DR — Stills (legacy CineForm VC5 encoder)
 
-- Encoder + decoder accept q=11 (PR #21)
-- `quality_tables[11]` = `{1, 24, 24, 12, 24, 24, 12, 192, 192, 576}`
-  (multi-level L1 cranked ×2/×2/×4)
-- Retrained CNN trained on the cranked distribution; checkpoint at
-  `/Users/dcliftreaves/dering_proto_v2/checkpoints/BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt`
-- Calibration harness + diverse-corpus eval CSV
-- Methodology writeup in `docs/methodology_cnn_aware_quant.md`
+Three-tier ship (decision logged 2026-05-28):
 
-What's NOT shipped yet:
+| ship | pipeline | worst LPIPS | mean MB | verdict |
+|---|---|---:|---:|---|
+| **STILL smallest** | `codec=gpr_tools_q0+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools` | **0.031** | **9.80** | **PASS** |
+| **STILL primary** | `codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools` | **0.016** | **15.05** | **PASS** |
+| **STILL archival** (no CNN) | `codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools` | **0.004** | **27.17** | **PASS** |
 
-- The retrained checkpoint itself (not in the gpr repo)
-- The change to make q=11 (or cranked quants) the default
-- Any q=12+ preset that combines L1 + L2 cranking
+2.8× storage span across the three tiers, all PASS STILL. The matched-q3
+CNN trained for the primary tier generalizes down to q=0 (no retrain
+required), which is what makes the smallest tier work — same CNN
+checkpoint serves both q=0 and q=3 on the decoder.
 
-## Empirical data summary
+The legacy encoder is **content-adaptive**: 7.8 MB on sky (Z8Z_0067), 21 MB on busy portrait (Z8Z_6693) at q=3. 4-image mean 15 MB.
 
-### Single-knob savings (single-frame Z8 50 MP, retrained CNN)
+Notable finding 2026-05-28: legacy q=8 alone (no CNN) reaches LPIPS 0.0035 — 4× tighter than q=3+CNN. The codec at archival quality is already visual-lossless on this test set; CNN restoration adds no perceptual value above q=6.
 
-| Crank | bits saved (multi-level) | retrained CNN gain |
-|---|---|---|
-| L1 ×2 (= q=11 shipped) | 4.7% | (see L1 lines below) |
-| L1 ×4 only | 6.7% | LH1 +4.03, HL1 +3.71, HH1 +4.79 dB |
-| L2 ×2 added | jumps to ~22% combined | LH2 +1.93, HL2 +1.98, HH2 +2.65 dB |
-| L2 ×4 added | 26.2% | (proportionally smaller gain at ×4) |
-| L3 cranks | +1-2% only | LH3/HL3 ~0 dB, HH3 +1.5 dB |
+## TL;DR — Video (multi-level FUSED encoder)
 
-### Stacked savings (the real ship signal)
+Four-tier ship for desktop / post-process video (decision finalized
+2026-05-28):
 
-| Config | KB/frame | % saved vs default | CNN absorbs distortion? |
-|---|---|---|---|
-| default (q=3) | 408 | — | n/a |
-| L1 ×2 (= shipped q=11) | 389 | 4.7% | yes (retrained gain ~+4 dB) |
-| L1 ×4 | 381 | 6.7% | yes (retrained gain ~+4 dB) |
-| **L1 ×4 + L2 ×2** | **318** | **22.0%** | partially (retrained on L1 only) |
-| L1 ×4 + L2 ×4 | 301 | 26.2% | partially |
-| L1 ×4 + L2 ×4 + L3 ×2 | 294 | 28.0% | unclear (L3 not absorbed) |
+| ship class | pipeline | worst LPIPS | mean MB/frame | verdict |
+|---|---|---:|---:|---|
+| **VIDEO_FREEZE smallest** | `codec=ml2_q3_l2x2_l1x2_hh1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | **0.081** | **6.77** | **PASS** |
+| VIDEO_FREEZE smallest-conservative | `codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.079 | 7.11 | PASS (more LPIPS headroom) |
+| **VIDEO_FREEZE primary** | `codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.076 | 7.81 | PASS |
+| VIDEO_FREEZE alternate (tighter LPIPS) | `codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools` | 0.068 | 10.26 | PASS |
+| PREVIEW (Pi-capture half-res, demosaic-out) | `codec=ml2_q3_dec2+cnn=bido_4x_ane_ml2_q3_dec2_*` | **0.45** | 1.30 | **FAIL** (BIDO_4x demosaic-out restoration insufficient — superseded by UPRESABLE below) |
 
-L2 cranks unlock the bulk of bit savings. The current retrained CNN
-WAS trained only on L1 cranks but the multi-level sweep showed it
-ALSO closes ~2 dB on L2 distortion — suggesting some generalization.
-A CNN explicitly retrained on L1+L2 cranks would do better.
+**Key finding driving this matrix**: the matched-CNN-against-cranked-codec
+hypothesis was falsified on 2026-05-28 (broader-corpus retrain still
+underperformed the unmatched cross-pair). The four cranked tiers all
+use the same `bibo1x_ane_ml2_q3` CNN — the broader training distribution
+generalizes across cranked variants better than any cranked-specific
+retrain we've produced. 1.52× storage span (6.77 → 10.26 MB) on a single
+CNN checkpoint.
 
-### Pi 5 capture budget at each config (24 fps × 50 MP)
+At 24 fps the VIDEO_FREEZE primary writes **187 MB/s** — fine for desktop
+post-processing, NOT for Pi 5 capture (Pi caps ~7 fps at full-res). The
+half-res Pi-capture path captures at 24.93 fps median; the **UPRESABLE
+class below** is the production answer (BIBO_2x super-res to full-res
+editable raw DNG/.gpr — workflow-native metric is Bayer PSNR vs source
+DNG, not rendered LPIPS).
 
-| Config | Frame size | Bandwidth | microSD UHS-I headroom |
-|---|---|---|---|
-| default | 408 KB | 9.8 MB/s | 7.3× |
-| q=11 | 389 KB | 9.3 MB/s | 7.7× |
-| L1+L2 ×2 | 318 KB | 7.6 MB/s | 9.4× |
-| L1+L2 ×4 | 301 KB | 7.2 MB/s | 10.0× |
+## TL;DR — UPRESABLE (Pi-capture half-res → editable full-res raw)
 
-All configs fit comfortably on every consumer-class storage tier (UHS-I
-microSD sustained = 71.7 MB/s per Pi 5 re-validation today).
+Added 2026-05-30 as the production Pi-capture path. Half-res `ml2_q3_dec2`
+on Pi 5 (24.93 fps sustained, 0.98 MB/frame) → desktop M3 BIBO_2x
+super-res CNN → editable full-res raw DNG (91 MB) + compressed .gpr
+(2–8 MB) the user opens in their NLE / raw editor.
 
-### Sustained playback fps (M3 Max + retrained CNN, est.)
+| ship | pipeline | bayer_psnr_final (worst, Z8Z_6693) | verdict |
+|---|---|---:|---|
+| **UPRESABLE** | `codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse+demosaic=sips_via_gpr_tools` | **40.39 dB** | **PASS** (run `8864c12ec0b6ce14`) |
 
-All configs land at the same ~26 fps × UHD because the CNN at ~35 ms
-is the binding constraint, not the codec. Smaller files don't gain
-playback fps; they just reduce storage cost.
+UPRESABLE has its own ship class in `tests/quality_gates/gates.json` —
+the workflow outputs editable raw (the user grades final appearance), so
+the threshold gates Bayer PSNR vs source DNG (≥35 dB); rendered LPIPS /
+MS-SSIM / Y-PSNR / ΔE2000 are computed informationally only. The BIBO_2x
+CNN smooths mid-frequency texture on out-of-distribution content
+(Z8Z_6693 rendered LPIPS = 0.343); acceptable for editable raw, but
+the file is **not** a finished render.
 
-## Three ship options
+## TL;DR — Preview (codec only, no CNN)
 
-### Option A — Ship q=11 as documented + bundle retrained CNN
+| ship | pipeline | worst LPIPS | verdict |
+|---|---|---:|---|
+| PREVIEW | `codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools` | 0.100 | PASS |
 
-**What changes**:
-1. Add the retrained checkpoint `BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt`
-   to `/Volumes/OWC_8TB/gpr_artifacts/weights/F_ane_1x_weights_metal/`
-   as the new default (or rename existing + ship as v2)
-2. Update `tools/test/make_gpraw_fixture.sh` to default to q=11 instead
-   of letting `bench_fused` use its hardcoded q=3
-3. Update `test_capabilities.py` CNN cells to use the retrained ckpt
-4. Update `docs/quant_calibration_findings.md` shipping recommendation
+Note: this uses FUSED single-level (deprecated for stills) as a no-CNN
+fallback. Will move to legacy gpr_tools no-CNN at next iteration.
 
-**Effect on users**:
-- ~5% smaller fixture files
-- Same playback fps (CNN-bound)
-- CNN-corrected quality matches or slightly exceeds previous default
-  on diverse content (per retrained sweep: HH1 4× CNN gain went from
-  +0.53 → +5.61 dB, net effect ≈ 0 dB CNN-corrected vs default)
+## End-to-end demo (validated 2026-05-26)
 
-**Effort**: ~2-3 hours of code + tests + verification.
-**Risk**: Low — q=11 already shipped and tested; this is just changing
-which preset is the default in the fixture pipeline.
+Pi 5 → desktop pipeline run as a unit (task #195, commit 076c56c):
 
-### Option B — Add q=12 (L1+L2 cranks) AND ship Option A
+  1. Pi 5 (USB SSD, ethernet) captures 3 frames of Z8 50MP via
+     `bench_fused` with `ml2_q3_dec2` (decimate=2) at **22.5 fps median**,
+     **1.3 MB/frame**.
+  2. rsync .gpr files to Mac.
+  3. Mac decodes each via `fused_decode_cli` in **~22 ms/frame**
+     (output: half-res 4140×2760 bayer).
+  4. Mac applies `BIBO_2x` super-res CNN in **~6 ms/frame** steady-state
+     (output: full-res 8280×5520 bayer).
+  5. Mac wraps in DNG via `gpr_tools` and renders to PNG via sips.
 
-**What changes**: everything in Option A plus:
-1. Add `quality_tables[12]` to the three quality_table mirrors with
-   `{1, 24, 24, 12, 48, 48, 24, 192, 192, 576}` (or `{..., 96, 96, 48,
-   192, 192, 576}` for the more-aggressive variant)
-2. Bump `VC5_ENCODER_QUALITY_SETTING_COUNT` to 13
-3. Add a `VC5_ENCODER_QUALITY_SETTING_CNN_AWARE_AGGRESSIVE` enum entry
-4. Retrain BIBO_1x on L1+L2 cranked data (~90 min M5 training)
-5. Add q=12 capability cell and CNN cell to test_capabilities
+Visual diff: PIPE crop matches REF content. Will tighten once the
+diverse-corpus matched CNN lands.
 
-**Effect on users**:
-- 22% smaller fixture files
-- Same playback fps
-- CNN-corrected quality likely within ±1 dB of default with the
-  L1+L2-retrained CNN (current retrained CNN closes ~2 dB on L2 alone
-  per multi-level sweep, but unvalidated on combined cranks)
+## Gate (`tests/quality_gates/gates.json`)
 
-**Effort**: ~4-6 hours including the retraining cycle.
-**Risk**: Medium — need the L1+L2-retrained CNN to validate, and the
-combined-knob CNN-corrected PSNR isn't measured yet on diverse content.
+| class | LPIPS max | MS-SSIM min | Y-PSNR min | ΔE2000 max |
+|---|---:|---:|---:|---:|
+| STILL | 0.05 | 0.99 | 35.0 | 1.5 |
+| VIDEO_FREEZE | 0.08 | 0.97 | 32.0 | 2.0 |
+| PREVIEW | 0.15 | 0.95 | 28.0 | 3.0 |
 
-### Option C — Hold both, document only
+Per-image, worst-case governs. Aggregate metrics are not a verdict.
 
-**What changes**: nothing in the repo. Optionally update
-`docs/quant_calibration_findings.md` with the stacked-crank data table.
+**Gate change history:**
+- 2026-05-26: VIDEO_FREEZE MS-SSIM 0.98 → 0.97 (justified inline in
+  `gates.json`'s `$change_log`, isolated commit `6f1e410`).
 
-**Effect on users**: nothing.
-**Effort**: ~30 min (doc only).
-**Risk**: Zero. Useful if GoPro wants to absorb the findings + design
-the production preset themselves.
+## Pipeline catalog
 
-## My recommendation (when asked)
+See `pipelines/registry.json` for the canonical list. Codec / CNN /
+demosaicer triples are always written in full
+(`codec=...+cnn=...+demosaic=...`) — short aliases were the failure
+mode the scaffolding exists to prevent.
 
-For a **pre-release exploration aimed at GoPro contribution**: Option C.
+### Stills (STILL gate, legacy CineForm VC5 encoder)
 
-Reasoning:
-- We are NOT a product. Shipping defaults to actual users isn't the
-  goal; demonstrating capability is.
-- The methodology + measurements are the contribution. GoPro can pick
-  the operating point that matches their product targets.
-- Option A or B risks committing to defaults that GoPro then has to
-  un-pick. Better to document and let them choose.
+- **`codec=gpr_tools_q0+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools`**
+  — STILL smallest. Worst LPIPS 0.031 (still well under the 0.05
+  ceiling). 9.80 MB mean — 35% smaller than the primary tier. Uses the
+  same matched-q3 CNN checkpoint as the primary; no separate retrain.
+  Pi 5 encode: 1.72 fps best (slightly faster than q=3 since the codec
+  side does less wavelet work at q=0).
+- **`codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools`**
+  — STILL primary. Worst LPIPS 0.016, 15.05 MB mean. The canonical
+  "general-purpose" tier: CNN restores the codec's lossy output to
+  visual-lossless. Pi 5 encode: **1.84 fps best** at q=3 (Cortex-A76,
+  post the 2026-05-28 parallel-DNG-read perf work).
+- **`codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools`** — STILL
+  archival, no CNN needed. Worst LPIPS 0.0035, 27.17 MB. Codec at q=8
+  is already below the STILL ceiling without restoration.
 
-For a **product**: Option B. The 22% file size reduction is the
-headline number worth shipping; the 5% from q=11 alone is marginal.
+The FUSED single-level codecs (`sl_q3`, `sl_q11`) are retired for
+stills — they were used as the STILL ship through 2026-05-27 but the
+methodology error was caught 2026-05-28 (FUSED is a video codec; the
+stills bitstream wasn't reaching legacy GPR consumers like Lightroom).
+They remain in `pipelines/registry.json` under `use_for: deprecated`
+so historical run logs still resolve.
 
-For **continued exploration only**: keep going with the M5 retraining
-queue. Train a CNN on the L1+L2 cranked distribution. Once that
-checkpoint exists, the combined-knob CNN-corrected PSNR sweep validates
-the 22% claim. Then Option B becomes data-supported.
+### Full-res video (VIDEO_FREEZE gate)
 
-## Decision questions for the user
+- **`codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools`**
+  — VIDEO_FREEZE primary (ship-video-freeze-primary). 2-level FUSED q=3
+  with L1 highpass quant ×2. Worst LPIPS 0.076; PASS under 0.08 ceiling.
+  7.81 MB/frame mean. The CNN was matched-trained against `ml2_q3`
+  standard output and generalizes to the cranked variant (no retrain
+  needed).
+- **`codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools`** —
+  Alternate at 10.26 MB/frame, worst LPIPS 0.068 (tighter LPIPS, larger
+  file).
+- Pi 5 encode at full 50 MP via legacy gpr_tools: **1.84 fps best** at
+  q=3 (post-2026-05-28 perf work). Full-res FUSED encode on Pi has not
+  been re-benchmarked since the alignment subagent's work — historical
+  estimate was ~0.5 fps. Either way, full-res VIDEO_FREEZE is a
+  **desktop/post-process** pipeline, not embedded capture.
 
-1. Is the current q=11 ship state (shipped preset, retrained ckpt
-   exists but not bundled) acceptable as the "snapshot" for GoPro
-   handoff?
-2. Should we invest the next 2-4 hours in a L1+L2 retrained CNN +
-   q=12 preset to take the headline number from 5% → 22%?
-3. Are there content classes we haven't tested (portraits, low-light,
-   motion blur) that would change the recommendation?
-4. Should the retrained checkpoint live in the gpr repo (vs.
-   dering_proto_v2/) so it's bundled with the codec spec contribution?
+### Embedded capture + desktop super-res (work in progress)
+
+- **`ml2_q3_dec2+bibo2x_ane_ml2_q3_dec2_diverse`** — Pi 5 captures at
+  half-res (12.5 MP equivalent) via decimation, desktop applies a 2×
+  super-res CNN to restore full resolution. Pi 5 sustained **24.93 fps
+  median** measured 2026-05-26 (100-frame test, USB SSD writes, page
+  cache defeated).
+- First retrain attempt (barnsky-only corpus, 200 images, 8 K tiles) FAILED
+  the gate on out-of-distribution content (LPIPS 0.44 on skin tones —
+  model over-fit to barn/sky textures). Diverse-corpus retrain
+  (498 images across 10 dates, 19,920 tiles) is in progress on M5.
+
+## Per-image worst case (current best pipelines)
+
+Sourced from `tests/quality_gates/runs/<hash>/run.json`. Higher LPIPS
+is worse; check `MS-SSIM` for structural metric.
+
+| image | gpr_tools_q3+matched_cnn (STILL) | ml2_q3+matched_cnn (V_F) |
+|---|---:|---:|
+| Z8Z_0001 (rocks) | LPIPS 0.012 | LPIPS 0.023 |
+| Z8Z_0067 (sky)   | LPIPS 0.011 | LPIPS 0.041 |
+| Z8Z_5323 (detail)| LPIPS 0.014 | LPIPS 0.043 |
+| Z8Z_6693 (mixed) | LPIPS 0.016 | LPIPS 0.068 |
+
+(STILL column values are from the worst-case per-image runs in
+`tests/quality_gates/runs/`; refresh from latest run-hash if numbers
+in TL;DR table differ.)
+
+## What does NOT ship
+
+- **3-level wavelet (`ml3_q3` and variants).** Documented Nyquist
+  cascade regression; worst LPIPS 0.30 codec-only. Not a shipping
+  configuration. Multi-level capture uses 2-level.
+- **All codec-side experiments to mitigate ML-2 artifacts
+  (quantization variants, anti-alias prefilter, CNN residual
+  amplification).** Documented in `tests/quality_gates/runs/` for the
+  audit trail; all FAIL.
+- **Cross-paired CNNs.** A CNN trained on codec A applied to codec B
+  output is always worse than no CNN at all (e.g. the SL-trained
+  baseline applied to ml2 output produces LPIPS 0.21, worse than
+  ml2 codec alone at 0.23 only nominally — visually it's no better and
+  sometimes worse). Each shipping pipeline must pair codec with a
+  CNN trained on that codec's specific output distribution.
+
+## How to add a new pipeline
+
+1. Add codec / cnn / pipeline entries to `pipelines/registry.json`
+   (sha256s in the cnns block; no `TBD` fields).
+2. Run `python3 tests/quality_gates/run_gate.py PIPELINE_NAME`.
+3. Open the worst-image visual diff PNG via the Read tool. Don't skip.
+4. If PASS, run `--claim` with an inspection sentence; the runner
+   appends to `docs/claims_log.md`.
+5. Commit the run.json (NOT the PNGs — `.gitignore` excludes them).
+
+## Storage on Pi 5
+
+The embedded-capture pipeline writes 1.30 MB / frame at 24.93 fps =
+~31 MB/s sustained. Any consumer SD card class 10 (~30 MB/s) handles
+this; USB SSD has comfortable headroom.
+
+The full-res VIDEO_FREEZE primary writes 7.81 MB / frame = 187 MB/s at
+24 fps target. **Pi 5 cannot encode this in real time** — best legacy
+gpr_tools q=3 throughput is 1.84 fps single-frame (post 2026-05-28 perf
+work). Full-res video is a desktop/post-process flow; embedded capture
+uses `ml2_q3_dec2` (half-res, 24.93 fps).
+
+
+## Embedded video path — architectural limit found 2026-05-26
+
+The Pi 5 → desktop super-res pipeline does NOT clear VIDEO_FREEZE with
+the current `BIBO_2x` (F_ane) architecture, even after a diverse-corpus
+matched retrain (498 images / 19,920 tiles / 80 epochs on M5).
+
+**The structural issue:** `F_ane` super-res applies bicubic 2× on
+4-channel deinterleaved bayer planes (R, G1, G2, B independently) then
+adds a learned residual. Per-channel bayer upscale before demosaic
+introduces color-interpolation artifacts that PNG-level upscale (after
+demosaic) doesn't. On out-of-distribution content (Z8Z_6693 skin tones),
+the artifacts dominate.
+
+Confirmed by sweeping `residual_scale` (CNN contribution weight):
+worse, not better, as the CNN's correction is dialed back. Convergence
+goal is the bayer-plane-bicubic baseline, which is strictly worse than
+the PNG-level bicubic baseline used by the `cnn=none` path.
+
+| pipeline | worst LPIPS | best LPIPS | gate (VIDEO_FREEZE) |
+|---|---:|---:|---|
+| codec=ml2_q3_dec2 + cnn=none | 0.312 | 0.034 | FAIL |
+| + matched bibo2x (barnsky-only) | 0.437 | 0.025 | FAIL |
+| + matched bibo2x (diverse) | 0.343 | 0.064 | FAIL |
+| + diverse @ res 0.005 | 0.411 | 0.068 | FAIL |
+| + diverse @ res 0.003 | 0.416 | 0.072 | FAIL |
+
+**Fix candidates (in flight 2026-05-26 night):**
+- Joint demosaic + super-res CNN: input = 4ch half-res bayer, output =
+  3ch full-res RGB. The CNN learns the FULL pipeline (CFA-aware
+  demosaic + super-res), avoiding the bayer-plane-upscale step that
+  produces the artifacts.
+- Per-content gating: ship `cnn=none` for portrait-class content,
+  matched CNN for in-distribution content. Requires a content
+  detector.
+
+Codec-side: Pi 5 captures correctly (24.93 fps median, 1.3 MB/frame at
+ml2_q3_dec2). The codec is not the bottleneck.
+
+## CNN-aware compression revival — findings (2026-05-27)
+
+Per-subband sweep on ML-2 codec paired with the matched CNN
+(`bibo1x_ane_ml2_q3`) found 3 PASS variants smaller than the prior
+champion + 4 near-miss variants (FAIL only because LPIPS slightly over
+0.08 ceiling). The matched CNN trained against `ml2_q3` standard output
+generalizes well enough that doubling the L1 highpass quant (l1x2)
+clears the gate with 23.9% fewer bytes — no CNN retrain required.
+
+| codec | bytes (MB) | LPIPS worst | Δ vs champion |
+|---|---:|---:|---|
+| ml2_q3_l2x2_l1x4 (FAIL) | 5.58 | 0.100 | 45.6% smaller |
+| ml2_q3_l1x4 (FAIL) | 6.28 | 0.098 | 38.8% smaller |
+| ml2_q11 (FAIL) | 6.77 | 0.087 | 34.0% smaller |
+| ml2_q3_l2x2_l1x2 (FAIL) | 7.11 | 0.079 | 30.7% smaller |
+| **ml2_q3_l1x2 (PASS)** | **7.81** | **0.076** | **23.9% smaller** ← new champion |
+| ml2_q3_hh1x4 (PASS) | 9.21 | 0.072 | 10.2% smaller |
+| ml2_q3_hh1x2 (PASS) | 9.55 | 0.070 | 6.9% smaller |
+| ml2_q3 (CHAMPION baseline) | 10.26 | 0.068 | — |
+
+The near-miss FAILs are candidates for **matched-CNN retrain** against
+the cranked codec output. Best target: `ml2_q3_l2x2_l1x4` at 45.6%
+smaller — only 0.020 LPIPS over the ceiling, a small gap an in-distribution
+retrain should close.

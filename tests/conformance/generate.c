@@ -56,8 +56,7 @@ int main(int argc, char **argv) {
     snprintf(inputs_dir, sizeof(inputs_dir), "%s/inputs", base);
     snprintf(golden_dir, sizeof(golden_dir), "%s/golden", base);
 
-    /* Pin serial mode for determinism. */
-    setenv("FUSED_THREADS", "1", 1);
+    configure_encoder_for_conformance();
 
     fprintf(stderr, "Generating conformance corpus  (wavelet levels = %d)\n",
             FUSED_WAVELET_LEVELS);

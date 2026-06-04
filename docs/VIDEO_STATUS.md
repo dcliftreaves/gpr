@@ -1,0 +1,105 @@
+# Video pipeline status — 2026-05-28
+
+## Your design intent (restated)
+
+> "For video I wanted to take a quality level that allowed us to hit
+> 24 fps and could use a CNN to recover visual quality on the decoder side."
+
+Two parts: **24 fps capture** (encode side, Pi 5 constrained) and
+**CNN-restored quality on decode** (Mac desktop side).
+
+## Current video pipelines
+
+For the latest preview-video review bundle and SOTA-v2 ProRes evidence, see
+`docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md`. That document records the
+2026-06-04 dashboard, ProRes review outputs, and the current distinction
+between the raw 24 fps capture deliverable (`.gvid` carrying
+`ml2_q3_dec2` frame payloads) and rendered preview outputs.
+
+### A) Full-res VIDEO_FREEZE ship (desktop processing, not Pi capture)
+
+| field | value |
+|---|---|
+| codec | `ml2_q3_l1x2` (multi-level FUSED, L1 ×2 cranked) |
+| CNN | `bibo1x_ane_ml2_q3` (matched) |
+| gate verdict | **PASS** (worst LPIPS 0.076 < 0.08 ceiling) |
+| per-frame size | **7.81 MB** |
+| at 24 fps | **187 MB/s sustained** |
+| Pi 5 encode (legacy gpr_tools, post 2026-05-28 perf work) | **1.84 fps best** at q=3 full 50MP, **0.57 fps** pre-perf-work — NOT 24 fps capable either way |
+| use case | desktop post-processing of full-res video |
+
+This is the pipeline that PASSes the perceptual gate. It's the
+correct ship for post-processed video on a Mac. It is **NOT** the
+embedded-capture ship — Pi 5 can't encode this fast.
+
+### B) Embedded half-res Pi-capture path (24 fps capable, restoration gap)
+
+| field | value |
+|---|---|
+| codec | `ml2_q3_dec2` (multi-level FUSED, decimate=2 → half-res) |
+| restoration CNN | `bido_4x_ane_ml2_q3_dec2_*` (joint demosaic+SR, 4× spatial) |
+| Pi 5 capture fps | **24.93 fps median** (verified 2026-05-26). Post commit `c1eabc6` (2026-05-28 Pass 2 worker-pool dispatch on ≤4-core hosts) per-frame encode dropped from 40.89 → 38.20 ms median (6.6% faster). Sustained capture not re-measured but headroom over 24 fps grew. |
+| per-frame size | **1.30 MB** at half-res |
+| at 24 fps sustained | **31 MB/s** — well within USB SSD capability |
+| gate verdict for restoration | **FAIL** — worst LPIPS 0.45 on OOD images (the BIDO CNN doesn't yet restore well enough for visual-lossless playback) |
+
+**This is the actual 24 fps capture pipeline you asked for.** The
+encode side works. The CNN-restoration side is the open gap. Phase B
+of `BIDO_DISTILLATION_PLAN.md` (Restormer-teacher distillation) is the
+plan to close that.
+
+## Pi 5 encode characteristics (real measurements)
+
+From `docs/STILLS_PI5_TIMING.md` — single-image full-res 50MP encode
+times (legacy gpr_tools q-levels, post 2026-05-28 parallel-DNG-read
+perf work; comparable to FUSED order of magnitude):
+
+| q | encode ms | fps single-image |
+|---:|---:|---:|
+| 3 |  544 | **1.84** |
+| 8 |  704 | 1.42 |
+
+(Pre-perf-work baseline was 1.76 s / 0.57 fps at q=3 — 2.89× speedup
+from commits 79403fb + ec1cb2c, which targeted the Adobe DNG SDK input
+decode rather than the VC5 codec itself.)
+
+For video you need either:
+- Half-res capture (achieves 24.93 fps, you have this), or
+- A faster encoder. The parallel-DNG-read win above doesn't help the
+  pure-encode hot path; further encoder speedup would have to come from
+  cache-line alignment / NEON / multi-threading wins on the VC5 codec
+  itself. The 2026-05-28 alignment subagent work targets exactly this.
+
+## Decision framework
+
+| What you want | Which pipeline |
+|---|---|
+| Highest-quality video at any size, desktop | **A** (full-res VIDEO_FREEZE) |
+| Embedded Pi-camera capture at 24 fps | **B** (half-res, CNN still needs work) |
+| Desktop preview from B's captures | **B** with BIDO Phase B (planned, not yet shipped) |
+
+## Per-frame numbers on Z8 50MP — for budgeting
+
+| pipeline | per-frame MB | per-second-at-24fps MB |
+|---|---:|---:|
+| A: ml2_q3_l1x2 + matched CNN | 7.81 | 187 |
+| A: ml2_q3 + matched CNN (alternate) | 10.26 | 246 |
+| B: ml2_q3_dec2 (Pi capture) | 1.30 | **31** |
+
+## Open work for video
+
+1. **BIDO Phase B (Restormer distillation)** — close the OOD gap on the
+   embedded preview path. Plan exists. ~6 hours on M5.
+2. **Codec perf** — 2026-05-28 landed three Pi 5 wins:
+   (a) parallel DNG SDK input decode (2.89× on legacy stills, commits
+   `79403fb` + `ec1cb2c`);
+   (b) FUSED Pass 2 worker-pool dispatch on narrow hosts (6.6% on Pi 5
+   half-res video capture, 17% on Pass 2 alone, commit `c1eabc6`).
+   Encoder cache-line alignment attack (proposed for hot scratch) was
+   measured at ≤2% delta on both Pi 5 and Mac — below ship bar, did
+   not land. The Pi 5 stills encoder hot path now needs wavelet /
+   quantizer inner-loop work to win further (not plumbing).
+3. **Legacy gpr_tools for video** (open question) — if the legacy
+   encoder is more efficient than FUSED for stills, the same question
+   applies for video. Would need a video-domain matched CNN retrain.
+   Comparable to today's stills work.

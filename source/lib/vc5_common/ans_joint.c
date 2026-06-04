@@ -326,6 +326,21 @@ static void arena_free(JANS_ARENA *a) {
     a->offset = 0;
 }
 
+/* Saturating freq increment.
+
+   table.freq[] is uint16_t (max 65535). When a single class-mag symbol
+   dominates a band — e.g. a 2-level LL2 of a flat low-noise input where
+   all coefficients fall in the same class — incrementing past 65535 wraps
+   to 0. normalize_freq then sees freq=0, treats the symbol as
+   never-seen, and rans_enc_put divides by 0, corrupting state and
+   writing past the rans_buf.
+
+   Saturating at 65535 preserves correct relative frequencies: the
+   dominant symbol's normalized share becomes 65535*4096/total (slightly
+   under-allocated), then normalize_freq's max-symbol diff-correction
+   bumps it back to the right value. */
+#define JANS_FREQ_INC(f) do { if ((f) != 0xFFFFu) (f)++; } while (0)
+
 /* --- Normalize and build tables --- */
 
 static void normalize_freq(uint16_t *freq, int n) {
@@ -462,7 +477,7 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
             while (run >= 256) {
                 int rr; int rc = run_to_class(255, &rr);
                 int sym = rc * JANS_MAG_CLASSES + 0;
-                table.freq[sym]++;
+                JANS_FREQ_INC(table.freq[sym]);
                 tokens[token_count++] = (uint16_t)sym;
                 bitbuf_write(&bb, rr, run_class_bits[rc]);
                 run -= 255;
@@ -473,7 +488,7 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
             int mc = mag_to_class(mag, &mag_resid);
 
             int sym = rc * JANS_MAG_CLASSES + mc;
-            table.freq[sym]++;
+            JANS_FREQ_INC(table.freq[sym]);
             tokens[token_count++] = (uint16_t)sym;
 
             /* Merged residual write: run_resid + mag_resid + sign in one call */
@@ -497,7 +512,7 @@ int jans_encode_band(uint8_t *out_buf, size_t out_capacity,
                 int actual = (run > 255) ? 255 : run;
                 int rr; int rc = run_to_class(actual, &rr);
                 int sym = rc * JANS_MAG_CLASSES + 0;
-                table.freq[sym]++;
+                JANS_FREQ_INC(table.freq[sym]);
                 tokens[token_count++] = (uint16_t)sym;
                 bitbuf_write(&bb, rr, run_class_bits[rc]);
                 run -= actual;
@@ -758,7 +773,7 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
             while (run >= 256) {
                 int rr; int rc = run_to_class(255, &rr);
                 int sym = rc * JANS_MAG_CLASSES + 0;
-                table.freq[sym]++;
+                JANS_FREQ_INC(table.freq[sym]);
                 tokens[token_count++] = (uint16_t)sym;
                 BB_WRITE_LOCAL(rr, run_class_bits[rc]);
                 run -= 255;
@@ -767,7 +782,7 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
             int rc = run_to_class(run, &run_resid);
             int mc = mag_to_class(mag, &mag_resid);
             int sym = rc * JANS_MAG_CLASSES + mc;
-            table.freq[sym]++;
+            JANS_FREQ_INC(table.freq[sym]);
             tokens[token_count++] = (uint16_t)sym;
             /* val != 0 here (checked above) -> mag >= 1 -> mc >= 1, so the
                (mc > 0) check that wrapped this block in the original code
@@ -787,7 +802,7 @@ int jans_encode_band_x4(uint8_t *out_buf, size_t out_capacity,
                 int actual = (run > 255) ? 255 : run;
                 int rr; int rc = run_to_class(actual, &rr);
                 int sym = rc * JANS_MAG_CLASSES + 0;
-                table.freq[sym]++;
+                JANS_FREQ_INC(table.freq[sym]);
                 tokens[token_count++] = (uint16_t)sym;
                 BB_WRITE_LOCAL(rr, run_class_bits[rc]);
                 run -= actual;

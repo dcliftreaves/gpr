@@ -12,6 +12,7 @@
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
+#import <limits.h>
 #import <sys/statvfs.h>
 #import "DNGReader.h"
 #import "GPRPipeline.h"
@@ -33,6 +34,7 @@ static void print_usage(FILE *out) {
         "INPUT:\n"
         "  .gpr file or directory of .gpr files (playback mode)\n"
         "  .dng file or directory of .dng files (encode+playback)\n"
+        "  .gvid container (neutral raw-video stream; auto-unpacked)\n"
         "  .mov / .gpraw / .gprv container (GPR1-tagged MOV; auto-unpacked)\n"
         "\n"
         "REQUIRED OPTIONS:\n"
@@ -61,6 +63,7 @@ static void print_usage(FILE *out) {
         "                        2k=2048  uhd=3840  4k=4096  6k=6144  8k=native (no scale)\n"
         "  --skip-errors       skip frames that fail to decode and continue (errors\n"
         "                      logged to stderr); without this, first error aborts run\n"
+        "  --gvid-dispatch P   validate gvid_runtime_dispatch.v1 plan for .gvid playback\n"
         "  --timing            print per-stage timing per frame\n"
         "  --phase0            phase 0: dump input info and exit\n"
         "  --help              show this message\n"
@@ -72,6 +75,9 @@ static void print_usage(FILE *out) {
         "\n"
         "  # Acquisition-time validation: encode+decode roundtrip on DNG\n"
         "  gpr2prores --aa on /clip/dng/ /tmp/out.mov\n"
+        "\n"
+        "  # Run on neutral GVID container (auto-unpacks)\n"
+        "  gpr2prores --meta-dng src.dng clip.gvid /tmp/out.mov\n"
         "\n"
         "  # Run on packed GPRaw container (auto-unpacks)\n"
         "  gpr2prores --meta-dng src.dng clip.gpraw /tmp/out.mov\n",
@@ -109,6 +115,241 @@ static int64_t freeBytesForPath(NSString *path) {
     return (int64_t)s.f_bavail * (int64_t)s.f_frsize;
 }
 
+static uint32_t le32_gpr2prores(const uint8_t *p) {
+    return  (uint32_t)p[0]
+         | ((uint32_t)p[1] << 8)
+         | ((uint32_t)p[2] << 16)
+         | ((uint32_t)p[3] << 24);
+}
+
+static uint64_t le64_gpr2prores(const uint8_t *p) {
+    return  (uint64_t)p[0]
+         | ((uint64_t)p[1] << 8)
+         | ((uint64_t)p[2] << 16)
+         | ((uint64_t)p[3] << 24)
+         | ((uint64_t)p[4] << 32)
+         | ((uint64_t)p[5] << 40)
+         | ((uint64_t)p[6] << 48)
+         | ((uint64_t)p[7] << 56);
+}
+
+static NSString *makeTempDir(NSString *prefix) {
+    const char *tmpEnv = getenv("TMPDIR");
+    NSString *base = (tmpEnv && tmpEnv[0])
+        ? [NSString stringWithUTF8String:tmpEnv]
+        : NSTemporaryDirectory();
+    char tmpl[PATH_MAX];
+    snprintf(tmpl, sizeof(tmpl), "%s/%s_XXXXXX", [base fileSystemRepresentation], [prefix UTF8String]);
+    char *resolved = mkdtemp(tmpl);
+    return resolved ? [NSString stringWithUTF8String:resolved] : nil;
+}
+
+static BOOL unpackGVID(NSString *inputPath, NSString *outDir, int maxFrames,
+                       NSMutableArray<NSDictionary *> *frameHeaders) {
+    NSFileHandle *fh = [NSFileHandle fileHandleForReadingAtPath:inputPath];
+    if (!fh) {
+        fprintf(stderr, "error: cannot open GVID input: %s\n", [inputPath UTF8String]);
+        return NO;
+    }
+    @try {
+        NSData *clipHeader = [fh readDataOfLength:32];
+        if (clipHeader.length != 32) {
+            fprintf(stderr, "error: GVID input is too small: %s\n", [inputPath UTF8String]);
+            [fh closeFile];
+            return NO;
+        }
+        const uint8_t *h = clipHeader.bytes;
+        uint32_t magic = le32_gpr2prores(h);
+        uint8_t version = h[4];
+        uint32_t frameCountHint = le32_gpr2prores(h + 28);
+        if (magic != 0x44495647u || version != 1) {
+            fprintf(stderr, "error: bad GVID header in %s (magic=0x%08x version=%u)\n",
+                    [inputPath UTF8String], magic, version);
+            [fh closeFile];
+            return NO;
+        }
+
+        uint32_t framesWritten = 0;
+        uint64_t streamOffset = 32;
+        NSMutableSet<NSNumber *> *seenTags = [NSMutableSet set];
+        while (true) {
+            NSData *frameHeader = [fh readDataOfLength:16];
+            if (frameHeader.length == 0) break;
+            if (frameHeader.length != 16) {
+                fprintf(stderr, "error: truncated GVID frame header after %u frames\n", framesWritten);
+                [fh closeFile];
+                return NO;
+            }
+            const uint8_t *fhdr = frameHeader.bytes;
+            uint32_t frameMagic = le32_gpr2prores(fhdr);
+            uint32_t payloadSize = le32_gpr2prores(fhdr + 4);
+            uint64_t frameTag = le64_gpr2prores(fhdr + 8);
+            uint64_t payloadOffset = streamOffset + 16;
+            if (frameMagic != 0x004D5246u) {
+                fprintf(stderr, "error: bad GVID frame magic after %u frames (0x%08x)\n",
+                        framesWritten, frameMagic);
+                [fh closeFile];
+                return NO;
+            }
+            NSNumber *tagNumber = @((unsigned long long)frameTag);
+            if ([seenTags containsObject:tagNumber]) {
+                fprintf(stderr, "error: duplicate GVID frame tag %llu\n",
+                        (unsigned long long)frameTag);
+                [fh closeFile];
+                return NO;
+            }
+            [seenTags addObject:tagNumber];
+            NSData *payload = [fh readDataOfLength:payloadSize];
+            if (payload.length != payloadSize) {
+                fprintf(stderr, "error: truncated GVID payload for frame tag %llu\n",
+                        (unsigned long long)frameTag);
+                [fh closeFile];
+                return NO;
+            }
+            if ((int)framesWritten < maxFrames) {
+                NSString *name = [NSString stringWithFormat:@"frame_%06u.gpr", framesWritten];
+                NSString *dst = [outDir stringByAppendingPathComponent:name];
+                if (![payload writeToFile:dst atomically:NO]) {
+                    fprintf(stderr, "error: failed to write unpacked GVID frame: %s\n", [dst UTF8String]);
+                    [fh closeFile];
+                    return NO;
+                }
+                if (frameHeaders) {
+                    [frameHeaders addObject:@{
+                        @"frame_index": @(framesWritten),
+                        @"frame_tag": @((unsigned long long)frameTag),
+                        @"payload_offset": @((unsigned long long)payloadOffset),
+                        @"payload_size": @(payloadSize),
+                    }];
+                }
+            }
+            framesWritten++;
+            streamOffset = payloadOffset + payloadSize;
+        }
+        if (frameCountHint != 0 && frameCountHint != framesWritten) {
+            fprintf(stderr, "error: GVID frame_count_hint=%u but stream has %u frames\n",
+                    frameCountHint, framesWritten);
+            [fh closeFile];
+            return NO;
+        }
+        [fh closeFile];
+        fprintf(stderr, "GVID input: unpacked %u frames to %s\n", framesWritten, [outDir UTF8String]);
+        return YES;
+    } @catch (NSException *ex) {
+        fprintf(stderr, "error: exception while unpacking GVID %s: %s\n",
+                [inputPath UTF8String], [[ex reason] UTF8String]);
+        [fh closeFile];
+        return NO;
+    }
+}
+
+static BOOL validateGVIDDispatchPlan(NSString *dispatchPath, NSArray<NSDictionary *> *actualFrameHeaders) {
+    NSUInteger frameCount = actualFrameHeaders.count;
+    NSData *data = [NSData dataWithContentsOfFile:dispatchPath];
+    if (!data) {
+        fprintf(stderr, "error: cannot read --gvid-dispatch %s\n", [dispatchPath UTF8String]);
+        return NO;
+    }
+    NSError *err = nil;
+    id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&err];
+    if (![json isKindOfClass:[NSDictionary class]]) {
+        fprintf(stderr, "error: --gvid-dispatch is not a JSON object: %s\n", [dispatchPath UTF8String]);
+        return NO;
+    }
+    NSDictionary *root = (NSDictionary *)json;
+    if (![root[@"schema"] isEqual:@"gvid_runtime_dispatch.v1"]) {
+        fprintf(stderr, "error: unsupported --gvid-dispatch schema in %s\n", [dispatchPath UTF8String]);
+        return NO;
+    }
+    NSArray *frames = root[@"frames"];
+    if (![frames isKindOfClass:[NSArray class]]) {
+        fprintf(stderr, "error: --gvid-dispatch frames must be an array\n");
+        return NO;
+    }
+    if (frames.count < frameCount) {
+        fprintf(stderr, "error: --gvid-dispatch has %lu frames but render needs %lu\n",
+                (unsigned long)frames.count, (unsigned long)frameCount);
+        return NO;
+    }
+    NSNumber *declaredFrameCount = root[@"frame_count"];
+    if (declaredFrameCount &&
+        (![declaredFrameCount isKindOfClass:[NSNumber class]] ||
+         declaredFrameCount.unsignedIntegerValue < frameCount)) {
+        fprintf(stderr, "error: --gvid-dispatch frame_count cannot cover %lu rendered frames\n",
+                (unsigned long)frameCount);
+        return NO;
+    }
+
+    NSUInteger accepted = 0;
+    NSUInteger allTargets = 0;
+    NSUInteger tiles = 0;
+    for (NSUInteger i = 0; i < frameCount; i++) {
+        NSDictionary *frame = frames[i];
+        if (![frame isKindOfClass:[NSDictionary class]]) {
+            fprintf(stderr, "error: --gvid-dispatch frame %lu is not an object\n", (unsigned long)i);
+            return NO;
+        }
+        NSNumber *frameIndex = frame[@"frame_index"];
+        if (![frameIndex isKindOfClass:[NSNumber class]] || frameIndex.unsignedIntegerValue != i) {
+            fprintf(stderr, "error: --gvid-dispatch frame %lu has frame_index=%s\n",
+                    (unsigned long)i,
+                    frameIndex ? [[frameIndex stringValue] UTF8String] : "<missing>");
+            return NO;
+        }
+        NSDictionary *actual = actualFrameHeaders[i];
+        NSNumber *frameTag = frame[@"frame_tag"];
+        NSNumber *payloadOffset = frame[@"payload_offset"];
+        NSNumber *payloadSize = frame[@"payload_size"];
+        if (![frameTag isKindOfClass:[NSNumber class]] ||
+            ![payloadOffset isKindOfClass:[NSNumber class]] ||
+            ![payloadSize isKindOfClass:[NSNumber class]] ||
+            payloadSize.unsignedLongLongValue == 0) {
+            fprintf(stderr, "error: --gvid-dispatch frame %lu missing valid frame_tag/payload_offset/payload_size\n",
+                    (unsigned long)i);
+            return NO;
+        }
+        if (frameTag.unsignedLongLongValue != [actual[@"frame_tag"] unsignedLongLongValue] ||
+            payloadOffset.unsignedLongLongValue != [actual[@"payload_offset"] unsignedLongLongValue] ||
+            payloadSize.unsignedLongLongValue != [actual[@"payload_size"] unsignedLongLongValue]) {
+            fprintf(stderr, "error: --gvid-dispatch frame %lu does not match GVID stream header\n",
+                    (unsigned long)i);
+            return NO;
+        }
+        NSArray *rawCleanTiles = frame[@"raw_clean_tiles"];
+        if (![rawCleanTiles isKindOfClass:[NSArray class]]) {
+            fprintf(stderr, "error: --gvid-dispatch frame %lu raw_clean_tiles must be an array\n",
+                    (unsigned long)i);
+            return NO;
+        }
+        for (NSDictionary *tile in rawCleanTiles) {
+            if (![tile isKindOfClass:[NSDictionary class]]) {
+                fprintf(stderr, "error: --gvid-dispatch frame %lu has non-object tile\n", (unsigned long)i);
+                return NO;
+            }
+            NSString *policy = tile[@"policy"];
+            if (![policy isKindOfClass:[NSString class]]) {
+                fprintf(stderr, "error: --gvid-dispatch frame %lu tile missing policy\n", (unsigned long)i);
+                return NO;
+            }
+            if ([policy isEqualToString:@"accepted_only_raw_clean"]) accepted++;
+            else if ([policy isEqualToString:@"all_targets_raw_clean"]) allTargets++;
+            else {
+                fprintf(stderr, "error: --gvid-dispatch frame %lu tile has unknown policy %s\n",
+                        (unsigned long)i, [policy UTF8String]);
+                return NO;
+            }
+            tiles++;
+        }
+    }
+    fprintf(stderr, "GVID dispatch: %s frames=%lu tiles=%lu accepted_only=%lu all_targets=%lu\n",
+            [dispatchPath UTF8String],
+            (unsigned long)frameCount,
+            (unsigned long)tiles,
+            (unsigned long)accepted,
+            (unsigned long)allTargets);
+    return YES;
+}
+
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
         NSString *inputPath = nil;
@@ -119,6 +360,7 @@ int main(int argc, const char *argv[]) {
         NSString *demosaicMode = @"metal-bilinear";
         NSString *outResolution = @"8k";
         NSString *cnnScale = @"2x";
+        NSString *gvidDispatchPath = nil;
         int fps = 24;
         int maxFrames = INT_MAX;
         BOOL aaOn = YES;
@@ -192,6 +434,8 @@ int main(int argc, const char *argv[]) {
                     return 1;
                 }
                 outResolution = r;
+            } else if (!strcmp(a, "--gvid-dispatch") && i + 1 < argc) {
+                gvidDispatchPath = @(argv[++i]);
             } else if (!strcmp(a, "--no-cnn")) noCNN = YES;
             else if (!strcmp(a, "--no-codec")) noCodec = YES;
             else if (!strcmp(a, "--skip-errors")) skipErrors = YES;
@@ -222,6 +466,40 @@ int main(int argc, const char *argv[]) {
         }
         probe = nil;
 
+        // GVID input: neutral stream of per-frame .gpr payloads. Unpack to a
+        // temp dir and reuse the existing .gpr playback path.
+        NSString *inputExt = [inputPath.lowercaseString pathExtension];
+        BOOL isGVIDContainer = [inputExt isEqualToString:@"gvid"];
+        NSString *gvidUnpackDir = nil;
+        NSString *originalGvidPath = nil;
+        NSMutableArray<NSDictionary *> *gvidFrameHeaders = [NSMutableArray array];
+        if (isGVIDContainer) {
+            if (![[NSFileManager defaultManager] fileExistsAtPath:inputPath]) {
+                fprintf(stderr, "error: input not found: %s\n", [inputPath UTF8String]);
+                return 1;
+            }
+            originalGvidPath = inputPath;
+            gvidUnpackDir = makeTempDir(@"gpr2prores_gvid");
+            if (!gvidUnpackDir) {
+                fprintf(stderr, "error: mkdtemp failed for GVID unpack (errno %d)\n", errno);
+                return 1;
+            }
+            if (!unpackGVID(inputPath, gvidUnpackDir, maxFrames, gvidFrameHeaders)) {
+                return 1;
+            }
+            NSString *sidecar = [inputPath stringByAppendingString:@".meta.json"];
+            if ([[NSFileManager defaultManager] fileExistsAtPath:sidecar]) {
+                fprintf(stderr, "GVID input: found metadata sidecar %s\n", [sidecar UTF8String]);
+            }
+            if (!gvidDispatchPath) {
+                NSString *autoDispatch = [inputPath stringByAppendingString:@".dispatch.json"];
+                if ([[NSFileManager defaultManager] fileExistsAtPath:autoDispatch]) {
+                    gvidDispatchPath = autoDispatch;
+                }
+            }
+            inputPath = gvidUnpackDir;
+        }
+
         // MOV container input: .mov / .gpraw / .gprv are all aliases for a MOV
         // file with a GPR1-tagged track. Unpack to a temp dir up front (fast —
         // mostly memcpy from the mmap'd MOV) and treat as a .gpr dir from there.
@@ -235,13 +513,11 @@ int main(int argc, const char *argv[]) {
                 fprintf(stderr, "error: input not found: %s\n", [inputPath UTF8String]);
                 return 1;
             }
-            char tmpl[] = "/tmp/gpr2prores_mov_XXXXXX";
-            char *resolved = mkdtemp(tmpl);
-            if (!resolved) {
+            movUnpackDir = makeTempDir(@"gpr2prores_mov");
+            if (!movUnpackDir) {
                 fprintf(stderr, "error: mkdtemp failed (errno %d)\n", errno);
                 return 1;
             }
-            movUnpackDir = @(resolved);
             NSString *exeDir = [[NSString stringWithUTF8String:argv[0]] stringByDeletingLastPathComponent];
             if (exeDir.length == 0) exeDir = @".";
             NSString *movTool = [exeDir stringByAppendingPathComponent:@"gpr_mov_tool"];
@@ -297,6 +573,16 @@ int main(int argc, const char *argv[]) {
             [frames removeObjectsInRange:NSMakeRange(maxFrames, frames.count - maxFrames)];
         }
         if (frames.count == 0) { fprintf(stderr, "error: no input frames found in %s\n", [inputPath UTF8String]); return 1; }
+        if (gvidDispatchPath) {
+            if (!originalGvidPath && !isGVIDContainer) {
+                fprintf(stderr, "error: --gvid-dispatch is only valid with .gvid input\n");
+                return 1;
+            }
+            if (!validateGVIDDispatchPlan(gvidDispatchPath, gvidFrameHeaders)) {
+                return 1;
+            }
+            fprintf(stderr, "GVID dispatch: policy validated; raw-clean model application is not wired in this renderer yet\n");
+        }
 
         BOOL gprMode = pathHasExt(frames[0], @"gpr");
 
