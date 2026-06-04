@@ -1,0 +1,106 @@
+{
+  "pipeline": "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10_y_mosaic_w48_hardtail_s128_lx2_msssim_blocker_select_best+demosaic=sips_via_gpr_tools",
+  "ship_class": "PREVIEW",
+  "run_hash": "824275e674aa8e9f",
+  "gates_sha": "0d77521faa7c4eee",
+  "test_set": "/Users/dcliftreaves/gpr_codex_gate/tests/quality_gates/test_set.json",
+  "test_set_sha": "5728aca59ef884ff",
+  "is_ship_gate": true,
+  "verdict_authority": "ship_gate",
+  "source_path_map": [
+    {
+      "from": "/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs",
+      "to": "/Users/dcliftreaves/gpr_data/gate_dngs"
+    },
+    {
+      "from": "/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs",
+      "to": "/Users/dcliftreaves/gpr_data/gate_dngs"
+    }
+  ],
+  "started_at": "2026-06-03T23:25:16-0500",
+  "images": {
+    "Z8Z_0001": {
+      "y_psnr": 33.631573661716885,
+      "ms_ssim": 0.9799515604972839,
+      "lpips": 0.08348312228918076,
+      "dE2000_mean": 2.3206348419189453,
+      "bayer_psnr_codec": 31.947133815389748,
+      "bayer_psnr_final": null,
+      "enc_bytes": 1751835,
+      "enc_ms": 6.8,
+      "ref_crop": "/Users/dcliftreaves/gpr_codex_gate/tests/quality_gates/runs/824275e674aa8e9f/Z8Z_0001_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/gpr_codex_gate/tests/quality_gates/runs/824275e674aa8e9f/Z8Z_0001_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_0067": {
+      "y_psnr": 32.34507339433702,
+      "ms_ssim": 0.9909019470214844,
+      "lpips": 0.05836319178342819,
+      "dE2000_mean": 2.0644640922546387,
+      "bayer_psnr_codec": 35.72428288782006,
+      "bayer_psnr_final": null,
+      "enc_bytes": 1020716,
+      "enc_ms": 7.5,
+      "ref_crop": "/Users/dcliftreaves/gpr_codex_gate/tests/quality_gates/runs/824275e674aa8e9f/Z8Z_0067_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/gpr_codex_gate/tests/quality_gates/runs/824275e674aa8e9f/Z8Z_0067_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_5323": {
+      "y_psnr": 33.695964946572296,
+      "ms_ssim": 0.9687322974205017,
+      "lpips": 0.15225476026535034,
+      "dE2000_mean": 1.8353863954544067,
+      "bayer_psnr_codec": 35.75877718750448,
+      "bayer_psnr_final": null,
+      "enc_bytes": 2658567,
+      "enc_ms": 8.6,
+      "ref_crop": "/Users/dcliftreaves/gpr_codex_gate/tests/quality_gates/runs/824275e674aa8e9f/Z8Z_5323_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/gpr_codex_gate/tests/quality_gates/runs/824275e674aa8e9f/Z8Z_5323_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.1523 > 0.15"
+        }
+      ]
+    },
+    "Z8Z_6693": {
+      "y_psnr": 30.58750655600679,
+      "ms_ssim": 0.9472346901893616,
+      "lpips": 0.226960226893425,
+      "dE2000_mean": 2.5780622959136963,
+      "bayer_psnr_codec": 36.80619907878511,
+      "bayer_psnr_final": null,
+      "enc_bytes": 3374869,
+      "enc_ms": 9.8,
+      "ref_crop": "/Users/dcliftreaves/gpr_codex_gate/tests/quality_gates/runs/824275e674aa8e9f/Z8Z_6693_REF_crop_A_detail.png",
+      "pipeline_crop": "/Users/dcliftreaves/gpr_codex_gate/tests/quality_gates/runs/824275e674aa8e9f/Z8Z_6693_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.2270 > 0.15"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9472 < 0.95"
+        }
+      ]
+    }
+  },
+  "worst_first": [
+    "Z8Z_6693",
+    "Z8Z_5323",
+    "Z8Z_0001",
+    "Z8Z_0067"
+  ],
+  "worst_image": {
+    "id": "Z8Z_6693",
+    "visual_diff_png": "/Users/dcliftreaves/gpr_codex_gate/tests/quality_gates/runs/824275e674aa8e9f/WORST_Z8Z_6693_visual_diff.png",
+    "lpips": 0.226960226893425
+  },
+  "verdict": "FAIL",
+  "finished_at": "2026-06-03T23:26:50-0500"
+}

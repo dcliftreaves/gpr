@@ -322,6 +322,16 @@ def train(args):
         lpips_net.eval()
         print(f"  LPIPS (alex) loaded, weight={args.lpips_weight}", flush=True)
 
+    msssim_fn = None
+    use_msssim_metric = (
+        args.channel == "Y"
+        and (args.msssim_weight > 0 or "msssim" in args.select_metric)
+    )
+    if use_msssim_metric:
+        from pytorch_msssim import ms_ssim
+        msssim_fn = ms_ssim
+        print(f"  MS-SSIM enabled, loss weight={args.msssim_weight}", flush=True)
+
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
 
@@ -330,6 +340,7 @@ def train(args):
         tot_l1 = 0.0
         tot_psnr = 0.0
         tot_lp = 0.0
+        tot_ms = 0.0
         n = 0
         with torch.no_grad():
             for inp, tgt in loader:
@@ -348,9 +359,20 @@ def train(args):
                     tgt_3 = tgt_eval.repeat(1, 3, 1, 1)
                     lp = lpips_net(pred_3 * 2 - 1, tgt_3 * 2 - 1).flatten()
                     tot_lp += lp.sum().item()
+                if msssim_fn is not None:
+                    ms = msssim_fn(
+                        pred_eval,
+                        tgt_eval,
+                        data_range=1.0,
+                        size_average=False,
+                    ).flatten()
+                    tot_ms += ms.sum().item()
                 n += inp.shape[0]
-        return tot_l1 / max(1, n), tot_psnr / max(1, n), (
-            tot_lp / n if (lpips_net is not None and n > 0) else None
+        return (
+            tot_l1 / max(1, n),
+            tot_psnr / max(1, n),
+            tot_lp / n if (lpips_net is not None and n > 0) else None,
+            tot_ms / n if (msssim_fn is not None and n > 0) else None,
         )
 
     def evaluate():
@@ -363,6 +385,7 @@ def train(args):
     best_select_l1 = 1e9
     best_select_psnr = -1e9
     best_select_lpips = None
+    best_select_msssim = None
     best_epoch = -1
     epochs_since_best = 0
     ckpt_path = os.path.join(CKPT_DIR, args.ckpt_name)
@@ -370,10 +393,12 @@ def train(args):
 
     use_lpips_metric = (args.channel == "Y" and lpips_net is not None)
 
-    l1_init, psnr_init, lp_init = evaluate()
+    l1_init, psnr_init, lp_init, ms_init = evaluate()
     init_msg = f"  Initial  val_l1={l1_init:.5f}  val_psnr={psnr_init:.3f} dB"
     if lp_init is not None:
         init_msg += f"  val_lpips={lp_init:.4f}"
+    if ms_init is not None:
+        init_msg += f"  val_msssim={ms_init:.4f}"
     print(init_msg, flush=True)
 
     for ep in range(args.epochs):
@@ -392,6 +417,14 @@ def train(args):
                     l_task = l_task + args.hf_weight * highpass_l1(pred_loss, tgt_loss)
                 if args.grad_weight > 0:
                     l_task = l_task + args.grad_weight * gradient_l1(pred_loss, tgt_loss)
+                if msssim_fn is not None and args.msssim_weight > 0:
+                    l_ms = 1.0 - msssim_fn(
+                        pred_loss,
+                        tgt_loss,
+                        data_range=1.0,
+                        size_average=True,
+                    )
+                    l_task = l_task + args.msssim_weight * l_ms
             else:
                 # Chroma: L1 + 0.10 * Charbonnier (robust on outliers, smooth
                 # gradient at the origin so optimizer doesn't oscillate).
@@ -410,21 +443,29 @@ def train(args):
             nb += 1
         sched.step()
 
-        l1, psnr, lp = evaluate()
-        select_l1 = select_psnr = select_lp = None
+        l1, psnr, lp, ms = evaluate()
+        select_l1 = select_psnr = select_lp = select_ms = None
         select_score = None
         if sel is not None:
-            select_l1, select_psnr, select_lp = evaluate_loader(sel)
+            select_l1, select_psnr, select_lp, select_ms = evaluate_loader(sel)
             if args.select_metric == "lpips":
                 if select_lp is None:
                     raise RuntimeError("--select-metric lpips requires LPIPS to be enabled")
                 select_score = select_lp
             elif args.select_metric == "l1":
                 select_score = select_l1
+            elif args.select_metric == "msssim_gap":
+                if select_ms is None:
+                    raise RuntimeError("--select-metric msssim_gap requires MS-SSIM to be enabled")
+                select_score = 1.0 - select_ms
             elif args.select_metric == "lpips_plus_ms_l1":
                 if select_lp is None:
                     raise RuntimeError("--select-metric lpips_plus_ms_l1 requires LPIPS to be enabled")
                 select_score = select_lp + select_l1
+            elif args.select_metric == "lpips_plus_msssim_gap":
+                if select_lp is None or select_ms is None:
+                    raise RuntimeError("--select-metric lpips_plus_msssim_gap requires LPIPS and MS-SSIM")
+                select_score = select_lp + (1.0 - select_ms)
             else:
                 raise RuntimeError(f"unsupported --select-metric {args.select_metric}")
         if select_score is not None:
@@ -444,6 +485,7 @@ def train(args):
                 best_select_l1 = select_l1
                 best_select_psnr = select_psnr
                 best_select_lpips = select_lp
+                best_select_msssim = select_ms
             best_epoch = ep + 1
             epochs_since_best = 0
             torch.save({
@@ -464,12 +506,15 @@ def train(args):
                 "val_l1": l1,
                 "val_psnr": psnr,
                 "val_lpips": lp,
+                "val_msssim": ms,
                 "select_src_names": select_src_names,
                 "select_metric": args.select_metric if select_src_names else None,
                 "select_score": select_score,
                 "select_l1": select_l1,
                 "select_psnr": select_psnr,
                 "select_lpips": select_lp,
+                "select_msssim": select_ms,
+                "msssim_weight": args.msssim_weight if args.channel == "Y" else 0.0,
                 "params": count_params(model),
             }, ckpt_path)
             marker = "  [SAVED]"
@@ -480,10 +525,14 @@ def train(args):
                 f"val_l1={l1:.5f}  val_psnr={psnr:.3f}")
         if lp is not None:
             line += f"  val_lpips={lp:.4f}"
+        if ms is not None:
+            line += f"  val_msssim={ms:.4f}"
         if select_score is not None:
             line += f"  select_{args.select_metric}={select_score:.4f}"
             if select_lp is not None:
                 line += f"  select_lpips={select_lp:.4f}"
+            if select_ms is not None:
+                line += f"  select_msssim={select_ms:.4f}"
         line += f"  t={time.time()-t0:.1f}s{marker}"
         print(line, flush=True)
 
@@ -509,12 +558,15 @@ def train(args):
             "val_l1": l1,
             "val_psnr": psnr,
             "val_lpips": lp,
+            "val_msssim": ms,
             "select_src_names": select_src_names,
             "select_metric": args.select_metric if select_src_names else None,
             "select_score": select_score,
             "select_l1": select_l1,
             "select_psnr": select_psnr,
             "select_lpips": select_lp,
+            "select_msssim": select_ms,
+            "msssim_weight": args.msssim_weight if args.channel == "Y" else 0.0,
             "params": count_params(model),
             "save_policy": "last",
         }, last_ckpt_path)
@@ -533,7 +585,13 @@ def train(args):
             end="",
         )
         if best_select_lpips is not None:
-            print(f"  select_lpips={best_select_lpips:.4f}")
+            print(f"  select_lpips={best_select_lpips:.4f}", end="")
+            if best_select_msssim is not None:
+                print(f"  select_msssim={best_select_msssim:.4f}")
+            else:
+                print()
+        elif best_select_msssim is not None:
+            print(f"  select_msssim={best_select_msssim:.4f}")
         else:
             print()
     print(f"  Checkpoint: {ckpt_path}")
@@ -566,6 +624,8 @@ def main():
                     help="Filename for --save-last. Defaults to --ckpt-name.")
     ap.add_argument("--lpips-weight", type=float, default=0.10,
                     help="LPIPS-alex weight for Y channel; ignored for chroma.")
+    ap.add_argument("--msssim-weight", type=float, default=0.0,
+                    help="MS-SSIM loss weight for Y channel; ignored for chroma.")
     ap.add_argument("--hf-weight", type=float, default=0.0,
                     help="High-pass L1 weight for Y channel; ignored for chroma.")
     ap.add_argument("--grad-weight", type=float, default=0.0,
@@ -579,7 +639,9 @@ def main():
                     help="Optional comma-separated source names used only for "
                          "checkpoint selection. These tiles are evaluated even "
                          "if they are part of the training split.")
-    ap.add_argument("--select-metric", choices=["lpips", "l1", "lpips_plus_ms_l1"],
+    ap.add_argument("--select-metric",
+                    choices=["lpips", "l1", "msssim_gap", "lpips_plus_ms_l1",
+                             "lpips_plus_msssim_gap"],
                     default="lpips",
                     help="Metric used with --select-src-names.")
     args = ap.parse_args()

@@ -69,6 +69,7 @@ target:
 | mosaic, low-pass x2 target, width 48 | `f7a42b76c1f549ae` | FAIL | `Z8Z_6693` | 0.1809 | 0.9434 | 29.25 | 2.93 |
 | mosaic, low-pass x2 target, width 48, blocker-selected | `e5107f994eb2dd0b` | FAIL | `Z8Z_6693` | 0.1637 | 0.9458 | 31.56 | 2.34 |
 | mosaic, wavelet-denoised L target, width 48, blocker-selected | `6d7ed7f5b62f7732` | FAIL | `Z8Z_6693` | 0.3235 | 0.9415 | 30.66 | 2.54 |
+| mosaic, x2 target, width 48, explicit MS-SSIM loss, blocker-selected | `824275e674aa8e9f` | FAIL | `Z8Z_6693` | 0.2270 | 0.9472 | 30.59 | 2.58 |
 | mosaic, full REF target, best | `4ae4d3cfb39632ab` | FAIL | `Z8Z_6693` | 0.1995 | 0.9392 | 29.21 | 2.94 |
 | mosaic, low-pass x2 target, last | `077761916aa85fb6` | FAIL | `Z8Z_6693` | 0.2275 | 0.9383 | 26.91 | 3.76 |
 | mosaic, low-pass x2 target, width 48 last | `f5b7383a00663858` | FAIL | `Z8Z_6693` | 0.2614 | 0.9300 | 24.71 | 4.71 |
@@ -170,6 +171,16 @@ The full-gate residual refiners narrow the failure further:
   production fix for this architecture. The model is learning scene-dependent
   contrast that helps the studio detail case but misplaces mixed-contrast
   structure and pushes the color guardrail on the binding image.
+- Directly optimizing the binding structure metric helps MS-SSIM but breaks the
+  LPIPS/detail tradeoff. The width-48 mosaic MS-SSIM run used a smaller
+  t128/s128 x2 target dataset, explicit Y MS-SSIM loss (`0.50` weight), and
+  blocker selection by `LPIPS + (1 - MS-SSIM)`. Gate run `824275e674aa8e9f`
+  passes the easy images, and improves `Z8Z_6693` MS-SSIM to `0.9472`, the
+  best learned ML2 PREVIEW result so far on that metric. It still fails
+  `Z8Z_5323` LPIPS (`0.1523`) and regresses `Z8Z_6693` LPIPS to `0.2270`.
+  This closes "optimize local mosaic-Y directly for MS-SSIM" as a complete
+  fix. The next objective must constrain LPIPS/perceptual placement while
+  lifting MS-SSIM; metric pressure by itself shifts texture/tone the wrong way.
 - The bounded wavelet-HF synthesis hook on top of Lab-L residual v1 moves the
   blocker closer on LPIPS (`0.1532` to `0.1511`) and keeps color safe
   (`dE2000_mean=2.02`), but MS-SSIM remains flat (`0.9422`). This rejects
@@ -300,7 +311,9 @@ candidate should change one of:
   memorize exact REF HF;
 - selection metric: checkpoint selection should include the mixed-contrast
   blocker, not only `Z8Z_0067`; this has now been tested and should be paired
-  with a stronger target/model rather than repeated alone.
+  with a stronger target/model rather than repeated alone. Explicit MS-SSIM
+  selection/loss also needs an LPIPS-preserving constraint; it improved
+  structure score while regressing perceptual placement.
 - architecture: move detail placement into the primary decoded-Bayer/Y/upres
   model, or a stronger teacher/student with explicit full-image context;
   bounded residual postprocessing has now failed RGB, Lab-L, structure-gated,

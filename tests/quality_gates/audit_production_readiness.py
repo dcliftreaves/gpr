@@ -200,6 +200,7 @@ def check_preview_detail_blocker_evidence() -> Check:
         "mosaic_width48_wavelet_lhf2": "6d7ed7f5b62f7732",
         "mosaic_width48_t192_center512": "b6245123abfefd36",
         "mosaic_width48_t256_center768": "9d6dba741fdb6972",
+        "mosaic_width48_msssim": "824275e674aa8e9f",
         "mosaic_fullref": "4ae4d3cfb39632ab",
         "luma_residual_v1": "5d3cf75bf1b1f44b",
         "luma_residual_v1_wavelet_hf": "b3b767e5d4d2f717",
