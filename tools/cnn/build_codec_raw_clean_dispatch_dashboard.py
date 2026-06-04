@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from html import escape
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from gvid_metadata import validate_metadata  # noqa: E402
 
 
 DEFAULT_ACCEPTED = Path(
@@ -34,6 +38,20 @@ def load_rows(path: Path) -> dict[tuple[str, str], dict[str, Any]]:
             raise ValueError(f"duplicate dashboard row {key} in {path}")
         rows[key] = row
     return rows
+
+
+def load_metadata_acceptance(path: Path) -> dict[tuple[str, str], bool]:
+    meta = json.loads(path.read_text())
+    validate_metadata(meta)
+    accepted_by_key: dict[tuple[str, str], bool] = {}
+    for frame in meta["frames"]:
+        source_id = str(frame["source_id"])
+        for tile in frame["raw_clean_tiles"]:
+            key = (source_id, str(tile["crop"]))
+            if key in accepted_by_key:
+                raise ValueError(f"duplicate metadata tile {key} in {path}")
+            accepted_by_key[key] = bool(tile["accepted"])
+    return accepted_by_key
 
 
 def mean(rows: list[dict[str, Any]], key: str) -> float | None:
@@ -72,20 +90,36 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         missing_a = sorted(set(all_rows) - set(accepted_rows))
         missing_b = sorted(set(accepted_rows) - set(all_rows))
         raise ValueError(f"dashboard key mismatch accepted_missing={missing_a} all_missing={missing_b}")
+    metadata_acceptance = load_metadata_acceptance(args.metadata) if args.metadata else None
+    if metadata_acceptance is not None and set(metadata_acceptance) != set(accepted_rows):
+        missing_meta = sorted(set(accepted_rows) - set(metadata_acceptance))
+        extra_meta = sorted(set(metadata_acceptance) - set(accepted_rows))
+        raise ValueError(f"metadata key mismatch metadata_missing={missing_meta} metadata_extra={extra_meta}")
 
     rows = []
+    label_mismatches = []
     for key in sorted(accepted_rows):
         a = accepted_rows[key]
         b = all_rows[key]
         if bool(a["accepted"]) != bool(b["accepted"]):
             raise ValueError(f"accepted flag mismatch for {key}")
-        selected = a if a["accepted"] else b
-        selected_name = "accepted_only" if a["accepted"] else "all_targets"
+        dashboard_accepted = bool(a["accepted"])
+        accepted = metadata_acceptance[key] if metadata_acceptance is not None else dashboard_accepted
+        if metadata_acceptance is not None and accepted != dashboard_accepted:
+            label_mismatches.append({
+                "image_id": a["image_id"],
+                "crop": a["crop"],
+                "dashboard_accepted": dashboard_accepted,
+                "metadata_accepted": accepted,
+            })
+        selected = a if accepted else b
+        selected_name = "accepted_only" if accepted else "all_targets"
         rows.append({
             "image_id": a["image_id"],
             "crop": a["crop"],
             "iso": a["iso"],
-            "accepted": bool(a["accepted"]),
+            "accepted": accepted,
+            "dashboard_accepted": dashboard_accepted,
             "selected": selected_name,
             "accepted_only_clean_rmse_counts": a["clean_rmse_counts"],
             "all_targets_clean_rmse_counts": b["clean_rmse_counts"],
@@ -118,7 +152,14 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     summary = {
         "accepted_only_dashboard": str(args.accepted_only),
         "all_targets_dashboard": str(args.all_targets),
-        "policy": "oracle_sidecar_acceptance: accepted crops use accepted-only model; rejected crops use all-target model",
+        "metadata": str(args.metadata) if args.metadata else None,
+        "label_source": "gvid_source_metadata" if args.metadata else "dashboard_oracle",
+        "policy": (
+            "gvid_source_metadata_acceptance: accepted tiles use accepted-only model; rejected tiles use all-target model"
+            if args.metadata else
+            "oracle_dashboard_acceptance: accepted crops use accepted-only model; rejected crops use all-target model"
+        ),
+        "label_mismatches": label_mismatches,
         "accepted_only": stats(accepted_eval),
         "all_targets": stats(all_eval),
         "dispatch": stats(dispatch_eval),
@@ -146,9 +187,16 @@ def build_html(summary: dict[str, Any], out: Path) -> None:
         ".card{border:1px solid #d8dee6;border-radius:8px;padding:10px;background:white}img{width:100%;height:auto;background:#111}"
         ".warn{background:#fff8dc;border:1px solid #dfc46d;padding:10px}</style>",
         "<h1>Codec Raw Clean Dispatch Comparison</h1>",
-        "<p class='warn'>This is an oracle dispatch based on sidecar acceptance labels, not a runtime classifier.</p>",
-        "<table><thead><tr><th>Candidate</th><th>All mean</th><th>Accepted mean</th><th>Rejected mean</th><th>Worst RMSE</th><th>Worst row</th></tr></thead><tbody>",
+        f"<p class='warn'>Policy: {escape(summary['policy'])}</p>",
     ]
+    if summary["metadata"]:
+        html.append(f"<p>Metadata: {escape(summary['metadata'])}</p>")
+    if summary["label_mismatches"]:
+        html.append(
+            f"<p class='warn'>Dashboard label mismatches: {len(summary['label_mismatches'])}. "
+            "Dispatch selection used metadata labels.</p>"
+        )
+    html.append("<table><thead><tr><th>Candidate</th><th>All mean</th><th>Accepted mean</th><th>Rejected mean</th><th>Worst RMSE</th><th>Worst row</th></tr></thead><tbody>")
     for name in ("accepted_only", "all_targets", "dispatch"):
         s = summary[name]
         worst = s["worst_row"]
@@ -162,13 +210,14 @@ def build_html(summary: dict[str, Any], out: Path) -> None:
             worst_label,
         ]) + "</tr>")
     html.append("</tbody></table>")
-    html.append("<table><thead><tr><th>Image</th><th>Crop</th><th>ISO</th><th>Accepted</th><th>Selected</th><th>Accepted-only RMSE</th><th>All-target RMSE</th><th>Dispatch RMSE</th></tr></thead><tbody>")
+    html.append("<table><thead><tr><th>Image</th><th>Crop</th><th>ISO</th><th>Accepted</th><th>Dashboard accepted</th><th>Selected</th><th>Accepted-only RMSE</th><th>All-target RMSE</th><th>Dispatch RMSE</th></tr></thead><tbody>")
     for row in summary["rows"]:
         html.append("<tr>" + "".join(f"<td>{fmt(v)}</td>" for v in [
             row["image_id"],
             row["crop"],
             row["iso"],
             row["accepted"],
+            row["dashboard_accepted"],
             row["selected"],
             row["accepted_only_clean_rmse_counts"],
             row["all_targets_clean_rmse_counts"],
@@ -200,6 +249,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--accepted-only", type=Path, default=DEFAULT_ACCEPTED)
     ap.add_argument("--all-targets", type=Path, default=DEFAULT_ALL)
+    ap.add_argument("--metadata", type=Path, help="gvid_source_metadata.v1 sidecar; selects dispatch policy by source_id/crop")
     ap.add_argument("--out-dir", type=Path, default=DEFAULT_OUT)
     args = ap.parse_args()
     summary = build(args)

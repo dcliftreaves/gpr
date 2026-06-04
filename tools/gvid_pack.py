@@ -4,9 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import struct
 import sys
+import tempfile
 from pathlib import Path
+
+from gvid_metadata import validate_against_gvid, validate_metadata
 
 
 GVID_MAGIC = 0x44495647
@@ -81,6 +86,29 @@ def pack_gvid(
     return len(frames)
 
 
+def metadata_gvid_path(final_gvid: Path, sidecar: Path) -> str:
+    try:
+        return str(final_gvid.resolve().relative_to(sidecar.parent.resolve()))
+    except ValueError:
+        return str(final_gvid)
+
+
+def write_attached_metadata(
+    metadata: Path,
+    validation_gvid: Path,
+    final_gvid: Path,
+    metadata_output: Path | None,
+) -> Path:
+    meta = json.loads(metadata.read_text())
+    validate_metadata(meta)
+    validate_against_gvid(meta, validation_gvid)
+    dst = metadata_output if metadata_output else final_gvid.with_name(final_gvid.name + ".meta.json")
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    meta["gvid"] = metadata_gvid_path(final_gvid, dst)
+    dst.write_text(json.dumps(meta, indent=2) + "\n")
+    return dst
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description="Pack a directory of .gpr frame payloads into a .gvid video container."
@@ -94,12 +122,29 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--quality", type=int, default=3)
     ap.add_argument("--target-mbps", type=float, default=0.0)
     ap.add_argument("--denoise", action="store_true")
+    ap.add_argument("--metadata", type=Path, help="validate and attach a gvid_source_metadata.v1 sidecar")
+    ap.add_argument("--metadata-output", type=Path, help="sidecar output path; default is <output>.meta.json")
     args = ap.parse_args(argv)
 
     try:
+        if args.metadata_output and not args.metadata:
+            raise ValueError("--metadata-output requires --metadata")
+        output = args.output
+        temp_output = None
+        if args.metadata:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            fd, temp_name = tempfile.mkstemp(
+                prefix=f".{output.name}.",
+                suffix=".tmp",
+                dir=output.parent,
+            )
+            os.close(fd)
+            temp_output = Path(temp_name)
+            temp_output.unlink()
+            output = temp_output
         count = pack_gvid(
             args.frame_dir,
-            args.output,
+            output,
             width=args.width,
             height=args.height,
             fps=args.fps,
@@ -108,11 +153,20 @@ def main(argv: list[str] | None = None) -> int:
             target_mbps=args.target_mbps,
             denoise=args.denoise,
         )
+        metadata_output = None
+        if args.metadata:
+            assert temp_output is not None
+            metadata_output = write_attached_metadata(args.metadata, temp_output, args.output, args.metadata_output)
+            os.replace(temp_output, args.output)
     except Exception as exc:
+        if "temp_output" in locals() and temp_output is not None:
+            temp_output.unlink(missing_ok=True)
         print(f"gvid_pack: {exc}", file=sys.stderr)
         return 1
 
     print(f"gvid_pack: wrote {args.output} ({count} frames)")
+    if metadata_output:
+        print(f"gvid_pack: attached metadata {metadata_output}")
     return 0
 
 
