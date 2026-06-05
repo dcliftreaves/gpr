@@ -92,8 +92,6 @@ Gate-image raw-domain averages:
 | `Z8Z_5323` | 23.49 | 119.57 | model all crops |
 | `Z8Z_6693` | 33.51 | 172.22 | model all crops |
 
-## Remaining Work
-
 ## Registered Gate Run
 
 Temporary registered pipeline:
@@ -123,6 +121,36 @@ UPRESABLE gates enforce Bayer PSNR final; rendered metrics are informational
 for editable raw, but they are listed here to make color/detail regressions
 visible.
 
+## Runtime
+
+The 2026-06-05 rerun of `1bd6fcf9583a44fa` records per-image stage timings
+in `run.json`. Measurements were taken on the local Apple Silicon gate host
+with `GATE_MAX_WORKERS=1`; scratch was on `/Volumes/OWC_8TB/gpr_work/gate_tmp`.
+
+| metric | mean | min | max |
+| --- | ---: | ---: | ---: |
+| codec encode/decode | 10.45 ms | 7.60 ms | 13.90 ms |
+| raw-signal CNN apply | 1614.21 ms | 993.71 ms | 2199.74 ms |
+| codec + CNN restore | 1624.66 ms | 1001.31 ms | 2209.04 ms |
+| model inference only | 512.67 ms | 166.50 ms | 675.14 ms |
+| demosaic/render | 13905.78 ms | 12079.64 ms | 15113.63 ms |
+| metrics | 3971.57 ms | 3733.54 ms | 4517.58 ms |
+| full gate image path | 25538.89 ms | 22129.59 ms | 26989.18 ms |
+
+Dispatch statistics over the four gate images:
+
+| metric | mean | min | max |
+| --- | ---: | ---: | ---: |
+| tiles total | 187.00 | 187 | 187 |
+| tiles using model | 134.75 | 32 | 187 |
+| tiles bypassed | 52.25 | 0 | 155 |
+
+Interpretation: the codec stage remains preview-speed, but the current Python
+tiled PyTorch raw-signal CNN restore path is an offline/desktop candidate only.
+The full gate path additionally includes validation-only render and metric
+work. Promotion to a live/preview path requires a compiled restore backend and a
+separate target benchmark on that backend.
+
 ## Remaining Work
 
 This is a registered raw-domain candidate, but it is not production-ready until:
@@ -131,5 +159,7 @@ This is a registered raw-domain candidate, but it is not production-ready until:
   baseline;
 - LPIPS, MS-SSIM, luma/detail, crop-level texture placement, and worst-image
   visual inspection are compared;
-- decode + model + encode timing is measured on the intended preview path;
-- the checkpoint hash and sidecar config are recorded as production artifacts.
+- the raw-signal CNN is compiled or otherwise optimized, then decode + model +
+  encode timing is remeasured on the intended preview path;
+- the checkpoint hash, sidecar config, gate receipt, and timing receipt are kept
+  with the candidate artifacts.
