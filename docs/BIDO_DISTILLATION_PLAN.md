@@ -55,9 +55,26 @@ Smoke results:
   can retain color cast. `tools/cnn/train.py` therefore supports
   `--teacher-loss luma_hf`, which supervises high-frequency luminance only
   while `tgt_rgb` remains the color/task anchor.
+- Luma-HF beta ablation on the hardtail set used `Z8Z_6693` as validation and
+  trained on the other three hardtail images for 5 epochs:
 
-Next implementation step: run the beta ablation with `--teacher-loss luma_hf`
-against the four blocker images before attempting the full 498-source cache.
+  | beta | best epoch | Z8Z_6693 LPIPS | Z8Z_6693 PSNR | Checkpoint SHA-256 |
+  |---:|---:|---:|---:|---|
+  | 0.25 | 5 | 0.5803 | 22.241 dB | `7cf34bac440a8adb96cce86188f3bb46e78ddc47ef2ebe9a8af080e2ee244cbb` |
+  | 0.50 | 3 | 0.5580 | 21.821 dB | `e0ad65cbb589252195c0bfcf8faf5a07dcc34219a1717537f56d50948a08cc15` |
+  | 1.00 | 3 | 0.5647 | 23.195 dB | `829cb516baece15d9cd93d999af1473f8adcd826dcc53c4bdd6160263aba233e` |
+
+  Beta 0.50 is the best short-run candidate, but the result is still far from
+  passing. A 20-epoch continuation from beta 0.50 at LR 5e-5 regressed for the
+  first three epochs (LPIPS 0.5839, 0.6403, 0.5917) and was stopped. This
+  narrows the current failure away from "not enough epochs" and toward teacher
+  target mismatch/objective weakness.
+
+Next implementation step: do not scale this teacher cache to the 498-source
+set yet. First fix the teacher target mismatch/objective weakness: either
+color-normalize the codec-up teacher input before Restormer, distill only a
+better-localized detail residual, or move to a larger/full-context teacher that
+places structures closer to `tgt_rgb`.
 
 ## 1. Problem statement
 
