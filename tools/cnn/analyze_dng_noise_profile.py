@@ -144,7 +144,12 @@ def noise_sigma_map(raw: np.ndarray, meta: DngMeta) -> np.ndarray:
     else:
         raise RuntimeError(f"expected 2 or 6 NoiseProfile values, got {meta.noise_profile}")
     black = np.full_like(raw, meta.black, dtype=np.float32)
-    if len(meta.black_levels) == 4:
+    if len(meta.black_levels) == 3:
+        black[0::2, 0::2] = meta.black_levels[0]
+        black[0::2, 1::2] = meta.black_levels[1]
+        black[1::2, 0::2] = meta.black_levels[1]
+        black[1::2, 1::2] = meta.black_levels[2]
+    elif len(meta.black_levels) == 4:
         black[0::2, 0::2] = meta.black_levels[0]
         black[0::2, 1::2] = meta.black_levels[1]
         black[1::2, 0::2] = meta.black_levels[2]
