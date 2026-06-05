@@ -32,8 +32,8 @@ extract_F_weights.py but ALL bn* parameters folded into adjacent convs.
 
 Run:
   python3 extract_F_ane_weights.py \\
-      --ckpt /Users/dcliftreaves/dering_proto_v2/checkpoints/BayInBayOut_2x_AAon_w16_ANE.pt \\
-      --out /tmp/F_ane_weights_metal \\
+      --ckpt "$GPR_CHECKPOINT_ROOT/BayInBayOut_2x_AAon_w16_ANE.pt" \\
+      --out "$GPR_ARTIFACT_ROOT/weights/F_ane_weights_metal" \\
       --dw-kernel 3
 """
 import argparse

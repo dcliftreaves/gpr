@@ -16,9 +16,9 @@
 #
 # Required CNN weight directories (produced by extract_F_ane_weights.py /
 # extract_F_weights.py in the dering_proto_v2/ tree):
-#   /tmp/F_ane_1x_weights_metal       — F_ane (w=16) 1×
-#   /tmp/F_ane_w32_1x_weights         — F_ane_w32 1× (heavy still-recovery)
-#   /tmp/F_legacy_weights_metal       — F_legacy 2× SR
+#   $GPR_ARTIFACT_ROOT/weights/F_ane_1x_weights_metal       — F_ane (w=16) 1×
+#   $GPR_ARTIFACT_ROOT/weights/F_ane_w32_1x_weights         — F_ane_w32 1×
+#   $GPR_ARTIFACT_ROOT/weights/F_legacy_weights_metal       — F_legacy 2× SR
 #
 # Cells that need missing weight dirs are reported SKIP, not FAIL — this
 # keeps the test runnable on a clean checkout, where weight extraction
@@ -28,7 +28,7 @@
 #   BUILD_DIR=build-local         (cmake build root; only used to find gpr_tools)
 #   GTOOLS=...                    (override gpr_tools path)
 #   GPR2PRORES=...                (override gpr2prores path)
-#   WORK_DIR=/tmp/gpr-vidmtx      (where the synthesized DNG lands)
+#   WORK_DIR=$GPR_EXTERNAL_ROOT/tmp/gpr-vidmtx      (where the synthesized DNG lands)
 #   FAST=1                        (only test 2k + uhd output sizes)
 
 set -euo pipefail
@@ -41,7 +41,16 @@ fi
 BUILD_DIR="${BUILD_DIR:-build}"
 GTOOLS="${GTOOLS:-$BUILD_DIR/source/app/gpr_tools/gpr_tools}"
 GPR2PRORES="${GPR2PRORES:-tools/gpr2prores/gpr2prores}"
-WORK="${WORK_DIR:-/tmp/gpr-vidmtx}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+    else
+        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+    fi
+fi
+GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+WORK="${WORK_DIR:-$GPR_TMPDIR/gpr-vidmtx}"
 FAST="${FAST:-0}"
 
 # Resolve to absolutes so the script works regardless of cwd.
@@ -94,9 +103,9 @@ PY
 # CNN variants: name | scale | weights_dir
 #   (skip cells whose weight dir is missing — friendlier on clean checkouts)
 cnn_variants=(
-    "F_ane_w16_1x|1x|/tmp/F_ane_1x_weights_metal"
-    "F_ane_w32_1x|1x|/tmp/F_ane_w32_1x_weights"
-    "F_legacy_2x|2x|/tmp/F_legacy_weights_metal"
+    "F_ane_w16_1x|1x|$GPR_ARTIFACT_ROOT/weights/F_ane_1x_weights_metal"
+    "F_ane_w32_1x|1x|$GPR_ARTIFACT_ROOT/weights/F_ane_w32_1x_weights"
+    "F_legacy_2x|2x|$GPR_ARTIFACT_ROOT/weights/F_legacy_weights_metal"
 )
 
 if [ "$FAST" == "1" ]; then

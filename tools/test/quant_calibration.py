@@ -44,6 +44,18 @@ import numpy as np
 
 
 REPO = Path(__file__).resolve().parents[2]
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
+ARTIFACT_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
+CHECKPOINT_ROOT = Path(os.environ.get("GPR_CHECKPOINT_ROOT", EXTERNAL_ROOT / "checkpoints"))
+DERING_DIR = Path(os.environ.get("GPR_DERING_DIR", EXTERNAL_ROOT / "external" / "dering_proto_v2"))
+TMPDIR = Path(os.environ.get("TMPDIR", EXTERNAL_ROOT / "tmp"))
 
 
 def find_tool(build_dir: Path, name: str) -> Path:
@@ -370,15 +382,14 @@ def cnn_apply_bayer(bayer_raw: Path, w: int, h: int,
         import torch.nn.functional as F
     except ImportError:
         return False
-    sys.path.insert(0, "/Users/dcliftreaves/dering_proto_v2")
+    sys.path.insert(0, str(DERING_DIR))
     try:
         from model_F_ane import build as build_ane
     except ImportError:
         return False
 
     if ckpt_path is None:
-        ckpt_path = Path("/Users/dcliftreaves/dering_proto_v2/checkpoints/"
-                         "BayInBayOut_1x_AAon_w16_ANE.pt")
+        ckpt_path = CHECKPOINT_ROOT / "BayInBayOut_1x_AAon_w16_ANE.pt"
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     if str(ckpt_path) not in _CNN_CACHE:
         ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
@@ -449,7 +460,8 @@ def run_per_subband_sweep(args, build_dir: Path, images: list[Path]):
 
     for dng in images:
         # Extract bayer once
-        raw_in = Path(f"/tmp/_qcal_{dng.stem}.raw")
+        TMPDIR.mkdir(parents=True, exist_ok=True)
+        raw_in = TMPDIR / f"_qcal_{dng.stem}.raw"
         w, h, _peak = extract_bayer(dng, raw_in)
         print(f"  {dng.name} ({w}×{h})")
 
@@ -587,15 +599,14 @@ def main():
                     help="(per-subband mode) multipliers to apply to default quant")
     ap.add_argument("--build-dir", type=Path, default=Path("build-local"))
     ap.add_argument("--out-dir", type=Path,
-                    default=Path("/Volumes/OWC_8TB/gpr_work/artifacts/quant_calibration"))
+                    default=ARTIFACT_ROOT / "quant_calibration")
     ap.add_argument("--with-cnn", action="store_true",
                     help="also measure CNN-corrected PSNR (much slower)")
     ap.add_argument("--cnn-ckpt", type=Path,
-                    default=Path("/Volumes/OWC_8TB/gpr_work/artifacts/weights/F_ane_1x_weights_metal"),
+                    default=ARTIFACT_ROOT / "weights/F_ane_1x_weights_metal",
                     help="Metal weights dir (gpr2prores render path)")
     ap.add_argument("--cnn-ckpt-pt", type=Path,
-                    default=Path("/Users/dcliftreaves/dering_proto_v2/checkpoints/"
-                                  "BayInBayOut_1x_AAon_w16_ANE.pt"),
+                    default=CHECKPOINT_ROOT / "BayInBayOut_1x_AAon_w16_ANE.pt",
                     help="PyTorch checkpoint (per-subband bayer-domain CNN PSNR path)")
     args = ap.parse_args()
 

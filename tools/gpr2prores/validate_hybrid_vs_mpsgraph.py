@@ -4,10 +4,22 @@ Decodes the same 3-frame .mov clips made with --cnn-backend mpsgraph vs metal
 and computes per-frame max/mean abs difference.
 
 Usage:
-  python3 validate_hybrid_vs_mpsgraph.py /tmp/mpsgraph_test.mov /tmp/hybrid_test.mov
+  python3 validate_hybrid_vs_mpsgraph.py "$TMPDIR/mpsgraph_test.mov" "$TMPDIR/hybrid_test.mov"
 """
-import sys, subprocess, os, json
+import sys, subprocess, os, json, tempfile
+from pathlib import Path
 import numpy as np
+
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+TMPDIR = Path(os.environ.get(
+    "TMPDIR", Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root())) / "tmp"))
+TMPDIR.mkdir(parents=True, exist_ok=True)
 
 mov_a = sys.argv[1]
 mov_b = sys.argv[2]
@@ -16,7 +28,7 @@ print(f"compare: {mov_a}  vs  {mov_b}")
 def decode_mov_to_raw(mov):
     """Use ffmpeg to decode mov to raw YUV/RGB; we'll grab the Y channel."""
     # Use ffmpeg to dump raw frames (each frame as 16-bit big endian RGB).
-    out = f"/tmp/_decode_{os.path.basename(mov)}.raw"
+    out = str(TMPDIR / f"_decode_{os.path.basename(mov)}.raw")
     cmd = ["ffmpeg", "-y", "-i", mov,
            "-pix_fmt", "rgb48le",
            "-f", "rawvideo", out]

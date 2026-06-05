@@ -10,7 +10,7 @@ copy (for the Metal kernels) and an HWIO copy (for MPSGraph segments).
 
 Run identically to extract_F_weights.py:
 
-    python3 extract_F_weights_metal.py --ckpt /path/to/F_aa_off.pt --out /tmp/F_weights_metal
+    python3 extract_F_weights_metal.py --ckpt /path/to/F_aa_off.pt --out "$GPR_ARTIFACT_ROOT/weights/F_weights_metal"
 """
 import runpy
 import os

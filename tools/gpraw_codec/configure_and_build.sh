@@ -10,7 +10,8 @@
 
 set -euo pipefail
 
-GPR_ROOT="${GPR_ROOT:-/Users/dcliftreaves/Documents/Github/gpr}"
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GPR_ROOT="${GPR_ROOT:-$(cd "$SELF_DIR/../.." && pwd)}"
 PREFIX="${PREFIX:-$(pwd)/install-gpr}"
 
 GPR_INC="$GPR_ROOT/source/lib/vc5_decoder"

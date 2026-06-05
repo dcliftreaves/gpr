@@ -2,9 +2,16 @@
 # Build & run the round-trip validator.
 set -euo pipefail
 
-GPR_ROOT="${GPR_ROOT:-/Users/dcliftreaves/Documents/Github/gpr}"
-FF_ROOT="${FF_ROOT:-/tmp/ffmpeg_gpr}"
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GPR_ROOT="${GPR_ROOT:-$(cd "$SELF_DIR/../.." && pwd)}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+    else
+        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+    fi
+fi
+FF_ROOT="${FF_ROOT:-$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr}"
 
 OUT="$SELF_DIR/test_roundtrip"
 
@@ -29,4 +36,7 @@ clang -O2 -g -Wall -Wno-unused-parameter \
 echo "built: $OUT"
 # Multi-level encoding is required for the fused decoder to reconstruct.
 # Single-level streams (the default) drop the lowpass and are not decodable.
-FUSED_MULTI_LEVEL=1 "$OUT" "${1:-/tmp/gpraw_roundtrip.gpraw}"
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+TMP_BASE="$GPR_TMPDIR"
+mkdir -p "$TMP_BASE"
+FUSED_MULTI_LEVEL=1 "$OUT" "${1:-$TMP_BASE/gpraw_roundtrip.gpraw}"

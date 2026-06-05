@@ -21,21 +21,25 @@ ProRes intermediate, no transcode.
 
 ```bash
 # 1. Make sure libvc5_decoder, libvc5_common, libcommon are built:
-cd /Users/dcliftreaves/Documents/Github/gpr/build-local
+cd "$GPR_ROOT/build-local"
 make -j
 
 # 2. Clone FFmpeg (n8.0):
-git clone --depth=1 --branch=n8.0 https://github.com/FFmpeg/FFmpeg.git /tmp/ffmpeg_gpr
+export GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+git clone --depth=1 --branch=n8.0 https://github.com/FFmpeg/FFmpeg.git \
+  "$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr"
 
 # 3. Apply patches:
-tools/gpraw_codec/install_patch.sh /tmp/ffmpeg_gpr
+"$GPR_ROOT/tools/gpraw_codec/install_patch.sh" \
+  "$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr"
 
 # 4. Configure + build:
-cd /tmp/ffmpeg_gpr
-/path/to/gpr/tools/gpraw_codec/configure_and_build.sh
+cd "$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr"
+"$GPR_ROOT/tools/gpraw_codec/configure_and_build.sh"
 ```
 
-This produces `/tmp/ffmpeg_gpr/ffmpeg` and `/tmp/ffmpeg_gpr/ffplay`.
+This produces `$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr/ffmpeg` and
+`$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr/ffplay`.
 `ffmpeg -decoders | grep gpr` should list `V....D gpr  GoPro RAW (fused VC-5)`.
 
 ## Validate
@@ -52,16 +56,16 @@ and asserts byte-identical output.
 
 ```bash
 # Probe:
-/tmp/ffmpeg_gpr/ffmpeg -i input.gpraw
+"$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr/ffmpeg" -i input.gpraw
 
 # Convert to PNGs (demosaic via swscale's bayer pixel format support):
-/tmp/ffmpeg_gpr/ffmpeg -i input.gpraw -pix_fmt rgb24 -frames:v 100 frame_%04d.png
+"$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr/ffmpeg" -i input.gpraw -pix_fmt rgb24 -frames:v 100 frame_%04d.png
 
 # Transcode to ProRes (when prores_ks encoder is enabled):
-/tmp/ffmpeg_gpr/ffmpeg -i input.gpraw -c:v prores_ks -profile:v 3 out.mov
+"$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr/ffmpeg" -i input.gpraw -c:v prores_ks -profile:v 3 out.mov
 
 # Benchmark decode throughput:
-/tmp/ffmpeg_gpr/ffmpeg -benchmark -i input.gpraw -pix_fmt bayer_rggb16le -f md5 /tmp/out.md5
+"$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr/ffmpeg" -benchmark -i input.gpraw -pix_fmt bayer_rggb16le -f md5 "$TMPDIR/out.md5"
 ```
 
 ## Constraints / known limitations

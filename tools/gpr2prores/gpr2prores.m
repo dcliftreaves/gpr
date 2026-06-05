@@ -46,7 +46,7 @@ static void print_usage(FILE *out) {
         "  --max-frames N      process at most N frames\n"
         "  --fps N             output framerate (default 24)\n"
         "  --ckpt PATH         super-res mlpackage or weights dir\n"
-        "                      (default /tmp/super_res.mlpackage)\n"
+        "                      (default $GPR_MODEL_ROOT/super_res.mlpackage)\n"
         "  --aa {on,off}       GPR codec AA filter, DNG mode only (default on)\n"
         "  --no-cnn            skip CNN (decode + demosaic + ProRes only)\n"
         "  --no-codec          skip codec, DNG mode only (direct demosaic + ProRes)\n"
@@ -71,16 +71,16 @@ static void print_usage(FILE *out) {
         "\n"
         "EXAMPLES:\n"
         "  # Playback a GPR directory to ProRes 4444\n"
-        "  gpr2prores --meta-dng src.dng /clip/gpr/ /tmp/out.mov\n"
+        "  gpr2prores --meta-dng src.dng /clip/gpr/ $TMPDIR/out.mov\n"
         "\n"
         "  # Acquisition-time validation: encode+decode roundtrip on DNG\n"
-        "  gpr2prores --aa on /clip/dng/ /tmp/out.mov\n"
+        "  gpr2prores --aa on /clip/dng/ $TMPDIR/out.mov\n"
         "\n"
         "  # Run on neutral GVID container (auto-unpacks)\n"
-        "  gpr2prores --meta-dng src.dng clip.gvid /tmp/out.mov\n"
+        "  gpr2prores --meta-dng src.dng clip.gvid $TMPDIR/out.mov\n"
         "\n"
         "  # Run on packed GPRaw container (auto-unpacks)\n"
-        "  gpr2prores --meta-dng src.dng clip.gpraw /tmp/out.mov\n",
+        "  gpr2prores --meta-dng src.dng clip.gpraw $TMPDIR/out.mov\n",
         GPR2PRORES_VERSION);
 }
 
@@ -355,7 +355,19 @@ int main(int argc, const char *argv[]) {
         NSString *inputPath = nil;
         NSString *outputPath = nil;
         NSString *metaDngPath = nil;
-        NSString *ckptPath = @"/tmp/super_res.mlpackage";
+        NSString *modelRoot = [[[NSProcessInfo processInfo] environment]
+            objectForKey:@"GPR_MODEL_ROOT"];
+        if (modelRoot.length == 0) {
+            NSString *externalRoot = [[[NSProcessInfo processInfo] environment]
+                objectForKey:@"GPR_EXTERNAL_ROOT"];
+            if (externalRoot.length == 0) externalRoot = @"/Volumes/OWC_8TB/gpr_work";
+            modelRoot = [externalRoot stringByAppendingPathComponent:@"models"];
+        }
+        NSString *ckptPath = [[[NSProcessInfo processInfo] environment]
+            objectForKey:@"GPR_SUPER_RES_MLPACKAGE"];
+        if (ckptPath.length == 0) {
+            ckptPath = [modelRoot stringByAppendingPathComponent:@"super_res.mlpackage"];
+        }
         NSString *cnnBackend = @"coreml";
         NSString *demosaicMode = @"metal-bilinear";
         NSString *outResolution = @"8k";

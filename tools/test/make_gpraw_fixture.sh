@@ -52,19 +52,25 @@ REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 GTOOLS="$REPO/build-local/source/app/gpr_tools/gpr_tools"
 BENCH="$REPO/build-local/source/app/bench_fused/bench_fused"
 MOV="$REPO/tools/gpr2prores/gpr_mov_tool"
-PY="${PY:-/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3}"
+PY="${PY:-$(command -v python3 || true)}"
 DNGC="${DNGC:-/Applications/Adobe DNG Converter.app/Contents/MacOS/Adobe DNG Converter}"
 
 for tool in "$GTOOLS" "$BENCH" "$MOV"; do
     [ -x "$tool" ] || { echo "ERROR: $tool not built" >&2; exit 2; }
 done
 
-# Default working dir: prefer /Volumes/OWC_8TB if mounted (this user's
-# 8 TB external for capture artifacts), else /tmp. Override with $WORK.
-DEFAULT_WORK=/tmp/gpraw_fixture_$$
-if [ -d /Volumes/OWC_8TB/gpr_work/artifacts ]; then
-    DEFAULT_WORK="/Volumes/OWC_8TB/gpr_work/artifacts/intermediate/fixture_$$"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+    else
+        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+    fi
 fi
+GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+TMPDIR="$GPR_TMPDIR"
+# Override with $WORK when a fixture should persist at a specific path.
+DEFAULT_WORK="$GPR_ARTIFACT_ROOT/intermediate/fixture_$$"
 WORK="${WORK:-$DEFAULT_WORK}"
 mkdir -p "$WORK"
 trap 'rm -rf "$WORK"' EXIT
@@ -155,8 +161,8 @@ echo "  output: $OUT ($SIZE)"
 
 say "Done"
 echo "    To smoke-test playback:"
-echo "    tools/gpr2prores/gpr2prores --ckpt /tmp/F_ane_1x_weights_metal \\"
+echo "    tools/gpr2prores/gpr2prores --ckpt \$GPR_ARTIFACT_ROOT/weights/F_ane_1x_weights_metal \\"
 echo "        --cnn-backend mpsgraph --cnn-scale 1x \\"
 echo "        --demosaic metal-bilinear --out-resolution uhd \\"
 echo "        --meta-dng <one of the source DNGs> \\"
-echo "        $OUT /tmp/playback_out.mov"
+echo "        $OUT \$TMPDIR/playback_out.mov"

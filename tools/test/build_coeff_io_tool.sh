@@ -15,8 +15,8 @@
 #   bash tools/test/build_coeff_io_tool.sh
 set -euo pipefail
 
-REPO=/Users/dcliftreaves/Documents/Github/gpr
-BUILD=$REPO/build-local
+REPO="${GPR_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+BUILD="${BUILD:-$REPO/build-local}"
 
 if [ ! -d "$BUILD" ]; then
   echo "build-local/ not found — run cmake configure + build first"

@@ -35,7 +35,7 @@ Env:
 """
 
 from __future__ import annotations
-import argparse, os, subprocess, sys, time, shutil
+import argparse, os, subprocess, sys, time, shutil, tempfile
 from pathlib import Path
 from typing import Dict, Any, Tuple
 
@@ -58,9 +58,19 @@ TIMING_SAMPLES = int(os.environ.get("GPR_TIMING_SAMPLES", "3"))
 TIMING_SAMPLE_MAX_PIXELS = int(os.environ.get(
     "GPR_TIMING_SAMPLE_MAX_PIXELS", str(4032 * 3024)))
 
-DEFAULT_ART = "/Volumes/OWC_8TB/gpr_work/artifacts/capabilities"
-if not Path("/Volumes/OWC_8TB/gpr_work/artifacts").exists():
-    DEFAULT_ART = "/tmp/gpr-capabilities"
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
+ARTIFACT_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
+DEFAULT_ART = (str(ARTIFACT_ROOT / "capabilities")
+               if EXTERNAL_ROOT.exists()
+               else str(Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir()))
+                        / "gpr-capabilities"))
 ART_DIR = Path(os.environ.get("ARTIFACT_DIR", DEFAULT_ART))
 FAST = os.environ.get("FAST", "0") == "1"
 
@@ -384,7 +394,8 @@ def measure_still_roundtrip(cap, work: Path) -> Dict[str, float]:
 # to the older external dering_proto_v2 path for backward compat.
 CNN_CODE_DIR_REPO = REPO / "tools" / "cnn"
 CNN_CKPT_REPO = REPO / "models" / "BayInBayOut_1x_AAon_w16_ANE.pt"
-CNN_DERING_DIR = "/Users/dcliftreaves/dering_proto_v2"
+CNN_DERING_DIR = str(Path(os.environ.get(
+    "GPR_DERING_DIR", EXTERNAL_ROOT / "external" / "dering_proto_v2")))
 CNN_CKPT_EXTERNAL = (Path(CNN_DERING_DIR) / "checkpoints"
                      / "BayInBayOut_1x_AAon_w16_ANE.pt")
 

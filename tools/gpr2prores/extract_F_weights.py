@@ -40,6 +40,8 @@ Variant dispatch is based on the checkpoint's `variant` field:
 import argparse
 import os
 import sys
+import tempfile
+from pathlib import Path
 import numpy as np
 import torch
 
@@ -86,10 +88,20 @@ def extract_naf(sd_prefix: str, C: int, sd: dict, out_dir: str, name: str) -> in
     return total
 
 
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
 def main():
+    external_root = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
+    ckpt_root = Path(os.environ.get("GPR_CHECKPOINT_ROOT", external_root / "checkpoints"))
+    tmp_root = Path(os.environ.get("TMPDIR", external_root / "tmp"))
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ckpt", default="/Users/dcliftreaves/Documents/dering_proto_v2/checkpoints/F_aa_off.pt")
-    ap.add_argument("--out", default="/tmp/F_weights")
+    ap.add_argument("--ckpt", default=str(ckpt_root / "F_aa_off.pt"))
+    ap.add_argument("--out", default=str(tmp_root / "F_weights"))
     args = ap.parse_args()
 
     os.makedirs(args.out, exist_ok=True)

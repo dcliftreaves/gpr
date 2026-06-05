@@ -83,13 +83,13 @@ Width-fixed, height preserves source aspect:
 
 ```bash
 # Native 8K master via F super-res
-gpr2prores --meta-dng src.dng --ckpt /tmp/F_aa_on_weights_metal \
+gpr2prores --meta-dng src.dng --ckpt "$GPR_ARTIFACT_ROOT/weights/F_aa_on_weights_metal" \
   --cnn-backend metal --cnn-scale 2x \
   --demosaic core-image --out-resolution 8k \
   clip.gvid master_8k.mov
 
 # Fast UHD daily via BIBO_1x
-gpr2prores --meta-dng src.dng --ckpt /tmp/BIBO_1x_AAon_w16_weights_metal \
+gpr2prores --meta-dng src.dng --ckpt "$GPR_ARTIFACT_ROOT/weights/BIBO_1x_AAon_w16_weights_metal" \
   --cnn-backend metal --cnn-scale 1x \
   --gvid-dispatch clip.gvid.dispatch.json \
   --demosaic core-image --out-resolution uhd \
@@ -102,10 +102,10 @@ gpr2prores --no-codec --no-cnn \
 
 # Per-stage GPU profile (debug only)
 SUPERRES_PROFILE=1 gpr2prores --max-frames 8 --timing \
-  --meta-dng src.dng --ckpt /tmp/BIBO_1x_AAon_w16_weights_metal \
+  --meta-dng src.dng --ckpt "$GPR_ARTIFACT_ROOT/weights/BIBO_1x_AAon_w16_weights_metal" \
   --cnn-backend metal --cnn-scale 1x \
   --demosaic core-image --out-resolution uhd \
-  clip.gvid /tmp/profile.mov 2>&1 | grep profile
+  clip.gvid "$TMPDIR/profile.mov" 2>&1 | grep profile
 ```
 
 ## Companion tool: gpr_mov_tool

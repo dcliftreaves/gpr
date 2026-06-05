@@ -44,7 +44,7 @@
 # Env knobs:
 #   BUILD_DIR=build-local         (cmake build root)
 #   GTOOLS=/path/to/gpr_tools     (override binary path entirely)
-#   WORK_DIR=/tmp/gpr-matrix      (where fixtures land)
+#   WORK_DIR=$GPR_EXTERNAL_ROOT/tmp/gpr-matrix      (where fixtures land)
 #   FAST=1                        (skip ≥23 MP cells for quick CI)
 #   MATRIX_TOLERANCE_DB=2.0       (override per-cell tolerance)
 
@@ -52,7 +52,15 @@ set -euo pipefail
 
 BUILD_DIR="${BUILD_DIR:-build}"
 GTOOLS="${GTOOLS:-$BUILD_DIR/source/app/gpr_tools/gpr_tools}"
-WORK="${WORK_DIR:-/tmp/gpr-matrix}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+    else
+        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-/tmp}/gpr_work"
+    fi
+fi
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+WORK="${WORK_DIR:-$GPR_TMPDIR/gpr-matrix}"
 TOL="${MATRIX_TOLERANCE_DB:-2.0}"
 FAST="${FAST:-0}"
 

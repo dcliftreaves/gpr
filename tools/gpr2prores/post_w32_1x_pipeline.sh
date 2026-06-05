@@ -3,7 +3,7 @@
 # training completes on M5.
 #
 # Pulls the checkpoint, extracts BN-folded Metal weights, runs eval_all_arch.py
-# for the rendered Y-PSNR number, and writes a summary to /tmp/w32_1x_results.txt.
+# for the rendered Y-PSNR number, and writes a summary to the external-drive tmp root.
 #
 # Notes:
 #   - F_ane_w32 has width=32; SuperResMetal's loader currently hardcodes
@@ -13,12 +13,26 @@
 
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
-RESULT_FILE=/tmp/w32_1x_results.txt
+GPR_ROOT="${GPR_ROOT:-$(cd "$HERE/../.." && pwd)}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+    else
+        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+    fi
+fi
+GPR_CHECKPOINT_ROOT="${GPR_CHECKPOINT_ROOT:-$GPR_EXTERNAL_ROOT/checkpoints}"
+GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
+GPR_DERING_DIR="${GPR_DERING_DIR:-$GPR_EXTERNAL_ROOT/external/dering_proto_v2}"
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+TMPDIR="$GPR_TMPDIR"
+mkdir -p "$TMPDIR" "$GPR_CHECKPOINT_ROOT" "$GPR_ARTIFACT_ROOT/weights"
+RESULT_FILE="${RESULT_FILE:-$TMPDIR/w32_1x_results.txt}"
 CKPT_NAME=BayInBayOut_1x_AAon_w32_ANE.pt
-M5_CKPT=/Users/dcliftreaves/dering_proto_v2/checkpoints/$CKPT_NAME
-LOCAL_CKPT=/Users/dcliftreaves/dering_proto_v2/checkpoints/$CKPT_NAME
-WEIGHTS_DIR=/tmp/F_ane_w32_1x_weights
-PY=/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3
+M5_CKPT="${M5_CKPT:-/Users/dcliftreaves/dering_proto_v2/checkpoints/$CKPT_NAME}"
+LOCAL_CKPT="$GPR_CHECKPOINT_ROOT/$CKPT_NAME"
+WEIGHTS_DIR="$GPR_ARTIFACT_ROOT/weights/F_ane_w32_1x_weights"
+PY="${PY:-$(command -v python3 || true)}"
 
 echo "post_w32_1x_pipeline starting: $(date)" | tee $RESULT_FILE
 echo "================================================" | tee -a $RESULT_FILE
@@ -43,7 +57,8 @@ echo "[4/4] PyTorch rendered Y-PSNR via eval_all_arch.py ..." | tee -a $RESULT_F
 # Add the w32 1× entry to eval_all_arch.py if not already there
 $PY <<'PYEOF' | tee -a $RESULT_FILE
 import os, sys
-eval_script = "/Users/dcliftreaves/dering_proto_v2/eval_all_arch.py"
+eval_script = os.environ.get("GPR_EVAL_ALL_ARCH",
+                             "/Volumes/OWC_8TB/gpr_work/external/dering_proto_v2/eval_all_arch.py")
 with open(eval_script) as f:
     contents = f.read()
 if "BayInBayOut_1x_AAon_w32_ANE.pt" not in contents:
@@ -59,7 +74,7 @@ else:
     print("Already present in eval_all_arch.py.")
 PYEOF
 
-KMP_DUPLICATE_LIB_OK=TRUE $PY /Users/dcliftreaves/dering_proto_v2/eval_all_arch.py 2>&1 | \
+KMP_DUPLICATE_LIB_OK=TRUE $PY "$GPR_DERING_DIR/eval_all_arch.py" 2>&1 | \
     grep -E "F_ane_w32 1×|F_ane_w32 \(|F_ane \(w=16|F_ane_no_sr|codec baseline|F_ane LK7 1×" | tee -a $RESULT_FILE
 
 echo "" | tee -a $RESULT_FILE

@@ -36,15 +36,42 @@ from PIL import Image
 import cv2
 import tifffile
 import torch
-sys.path.insert(0, str(Path("/Users/dcliftreaves/Documents/Github/gpr/tools/cnn")))
+
+REPO = Path(__file__).resolve().parents[2]
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
+MODEL_ROOT = Path(os.environ.get("GPR_MODEL_ROOT", EXTERNAL_ROOT / "models"))
+sys.path.insert(0, str(REPO / "tools" / "cnn"))
 from model import build
 
-REPO = Path("/Users/dcliftreaves/Documents/Github/gpr")
-CODEC = REPO / "build-local/bin/coeff_io_tool"
-GPR_TOOLS = REPO / "build-local/source/app/gpr_tools/gpr_tools"
-BIBO2X_CKPT = REPO / "models/BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt"
+CODEC = Path(os.environ.get("GPR_COEFF_IO_TOOL", REPO / "build-local/bin/coeff_io_tool"))
+GPR_TOOLS = Path(os.environ.get(
+    "GPR_TOOLS", REPO / "build-local/source/app/gpr_tools/gpr_tools"))
 
-OUT = Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable")
+
+def _model_artifact(env_name: str, filename: str) -> Path:
+    candidates = [
+        os.environ.get(env_name),
+        REPO / "models" / filename,
+        MODEL_ROOT / filename,
+        EXTERNAL_ROOT / "models" / filename,
+    ]
+    for c in candidates:
+        if c and Path(c).exists():
+            return Path(c)
+    return Path(candidates[1])
+
+
+BIBO2X_CKPT = _model_artifact(
+    "GPR_BIBO2X_CKPT", "BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt")
+
+OUT = Path(os.environ.get("GPR_UPRESABLE_OUT", EXTERNAL_ROOT / "artifacts" / "upresable"))
 OUT.mkdir(parents=True, exist_ok=True)
 (OUT / "halfres").mkdir(parents=True, exist_ok=True)
 (OUT / "fullres").mkdir(parents=True, exist_ok=True)           # FUSED bitstream (codec native)
