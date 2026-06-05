@@ -36,10 +36,19 @@ Smoke results:
 - `tools/cnn/smoke_restormer_teacher.py --tile 128 --device auto` ran on MPS
   and wrote smoke PNGs under
   `/Volumes/OWC_8TB/gpr_work/artifacts/restormer_teacher_smoke_20260605`.
+- `tools/cnn/build_restormer_teacher_targets.py` now builds Restormer teacher
+  targets as a memmapped `.npy` sidecar plus manifest, avoiding a duplicate
+  copy of the full training NPZ. `tools/cnn/train.py` accepts that sidecar via
+  `--teacher-npz` and adds `--teacher-weight` / `--task-weight` for BIDO
+  distillation.
+- A one-tile teacher sidecar smoke ran from `/Volumes/OWC_8TB/gpr_work/tmp`,
+  followed by a one-epoch `bido_4x` training smoke with `--teacher-weight 0.25`.
+  The smoke verified the sidecar and loss path end to end; temporary artifacts
+  were deleted after validation.
 
 Next implementation step: build cached teacher targets from codec-degraded RGB
-tiles, starting with the hardtail set before attempting the full 498-source
-cache.
+tiles for the full hardtail set, then run the beta ablation against the four
+blocker images before attempting the full 498-source cache.
 
 ## 1. Problem statement
 
@@ -189,9 +198,9 @@ teacher output represents an *achievable* upper bound the student can
 target. Running the teacher on clean source bayer would create an
 unreachable target and the student would silently regress.
 
-Concretely: pre-render the teacher target from `bilinear_demosaic
-(codec_output_4ch) → bicubic_up_2x → teacher_forward → 512×512 RGB`.
-Cache per source DNG.
+Concretely: pre-render the teacher target from `codec_output_4ch ->
+bicubic_up_to_rgb_tile -> teacher_forward -> RGB teacher tile`. Cache it
+as a sidecar tensor aligned to the base NPZ tile order.
 
 ## 4. Training data
 
@@ -200,19 +209,18 @@ Cache per source DNG.
 source DNGs and ~19920 tiles, with `tgt_rgb` already rendered through
 the gate-aligned path (gpr_tools wrap + sips). Phase A uses this as-is.
 
-**Phase B additionally needs `tgt_rgb_teacher`.** Plan: extend the
-NPZ with a new field, populated by a one-shot teacher inference pass
-over all 498 source DNGs.
+**Phase B additionally needs teacher RGB targets.** The active path writes
+those targets as a sidecar `.npy` tensor aligned to the base NPZ tile order.
+This avoids duplicating the full 2.3 GB hardtail NPZ or the larger 498-source
+NPZ during iteration.
 
 Step-by-step for the teacher render:
 1. For each source DNG, compute the codec-degraded 4-channel bayer
    tile (already in NPZ under `codec_R/G1/G2/B`).
-2. Reassemble the full source-resolution codec bayer mosaic (1380×2070
-   codec → 5520×8280 implied bayer at 4× via bilinear demosaic + 2x
-   bicubic upscale, matching the gate's `cnn=none` baseline RGB).
-3. Run Restormer forward on the full-res RGB image (chunked to fit M5
-   memory — Restormer's tiling helper handles this).
-4. Tile the resulting RGB at the same 512×512 strides as the existing
+2. Convert the codec tile to RGB and bicubic-upsample it to the target tile
+   shape.
+3. Run Restormer forward with tiled inference to control memory.
+4. Write the resulting RGB at the same tile index as the existing
    `tgt_rgb` tiles, write to NPZ field `tgt_rgb_teacher` (uint8,
    shape `(N, 512, 512, 3)` matching `tgt_rgb`).
 
@@ -353,25 +361,20 @@ Execute in order. Each step has a gate. Stop and reassess if any gate fails.
     - If still failing, run on CPU. Confirm one full-res image
       forward completes in < 10 min.
 
-11. **Teacher precompute.** Write
-    `tools/cnn/build_teacher_targets_restormer.py`:
-    - Iterate over the 498 source DNGs in
-      `/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs` and
-      `/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs`.
-    - For each: load codec-encoded NPZ tiles for that source, stitch
-      into full-res codec output, demosaic to RGB, bicubic 2×, run
-      Restormer with tiled inference (256×256 + 16 px overlap), save
-      full-res teacher RGB as PNG in
-      `/Volumes/OWC_8TB/gpr_work/cnn/render_cache_teacher/<src>.png`.
-    - Gate: visual inspection of 3 cached teacher PNGs via Read tool
-      — should look sharper than the gate REF, not over-smoothed
-      and not over-sharpened to ringing.
+11. **Teacher sidecar cache.** Run
+    `tools/cnn/build_restormer_teacher_targets.py` against the hardtail NPZ:
+    - Iterate over the base NPZ tile order.
+    - Convert each codec-degraded tile to RGB, bicubic-upsample to the target
+      tile shape, and run Restormer with tiled inference.
+    - Write `/Volumes/OWC_8TB/gpr_work/cnn/teacher_restormer_hardtail_t192_s96_fullref.npy`
+      plus its manifest and generated-mask sidecars.
+    - Gate: visual inspection of sampled teacher tiles should show stronger
+      detail placement without smoothing away target structure or adding
+      ringing.
 
-12. **Tile teacher RGB to NPZ.** Write a small script that, given
-    `render_cache_teacher/<src>.png` and the existing NPZ's tile
-    indices, writes a new field `tgt_rgb_teacher` (same shape as
-    `tgt_rgb`). Output:
-    `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_distill.npz`.
+12. **Load teacher sidecar in training.** Pass
+    `--teacher-npz /Volumes/OWC_8TB/gpr_work/cnn/teacher_restormer_hardtail_t192_s96_fullref.npy`
+    so the dataloader returns both `tgt_rgb` and the sidecar teacher target.
 
 13. **Add distillation loss to training script.**
     - Add `--teacher-weight` (β) and `--task-weight` (α) CLI flags.
