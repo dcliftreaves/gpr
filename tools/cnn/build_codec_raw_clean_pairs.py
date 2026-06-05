@@ -20,8 +20,8 @@ import run_gate  # noqa: E402
 from train_raw_clean_ref_cnn import deinterleave
 
 
-DEFAULT_TARGETS = Path("/Volumes/OWC_8TB/gpr_work/artifacts/raw_clean_ref_targets_fullgate_20260604/raw_clean_ref_targets.json")
-DEFAULT_OUT = Path("/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_clean_pairs_20260604/ml2_q3_dec2_raw_clean_pairs.npz")
+DEFAULT_TARGETS = Path("/Volumes/OWC_8TB/gpr_work/artifacts/raw_clean_ref_targets_noise_only_20260605/raw_clean_ref_targets.json")
+DEFAULT_OUT = Path("/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_pairs_20260605/ml2_q3_dec2_raw_signal_pairs.npz")
 
 
 def load_registry_codec(name: str) -> dict[str, Any]:
@@ -124,6 +124,11 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "targets": str(args.targets),
         "codec": args.codec,
         "decimation": args.decimation,
+        "target_semantics": (
+            "target_raw_planes are the source Bayer signal/detail target; "
+            "target_clean_planes are retained for clean-target experiments; "
+            "exact_residual_planes are an evaluation/addback sidecar, not a training objective by default"
+        ),
         "count": len(names),
         "codec_shape": list(codec_planes[0].shape),
         "target_shape": list(target_clean_planes[0].shape),
