@@ -27,6 +27,7 @@ PRODUCTION_RUNS = {
     "VIDEO_FREEZE": "5c3cce4c472d4197",
     "PREVIEW": "5e7b79b5678fdf62",
     "UPRESABLE": "8864c12ec0b6ce14",
+    "UPRESABLE_RAW_SIGNAL_CANDIDATE": "1bd6fcf9583a44fa",
 }
 
 CHROMA_RUNS = {
@@ -80,10 +81,17 @@ def summarize_run(run_hash: str) -> dict | None:
     rows = list((data.get("images") or {}).values())
     enc_bytes = [r.get("enc_bytes") for r in rows]
     enc_ms = [r.get("enc_ms") for r in rows]
+    cnn_ms = [r.get("cnn_ms") for r in rows]
+    total_ms = [r.get("total_ms") for r in rows]
     worst_id = (data.get("worst_first") or [""])[0]
     worst = (data.get("images") or {}).get(worst_id, {})
     mean_bytes = mean(enc_bytes)
     mean_ms = mean(enc_ms)
+    mean_cnn_ms = mean(cnn_ms)
+    mean_total_ms = mean(total_ms)
+    mean_restore_ms = None
+    if mean_ms is not None:
+        mean_restore_ms = mean_ms + (mean_cnn_ms or 0.0)
     return {
         "run_hash": run_hash,
         "pipeline": data.get("pipeline", ""),
@@ -96,6 +104,12 @@ def summarize_run(run_hash: str) -> dict | None:
         "raw_ratio": None if mean_bytes is None else RAW_FULL_BYTES / mean_bytes,
         "enc_ms": mean_ms,
         "enc_fps": None if not mean_ms else 1000.0 / mean_ms,
+        "cnn_ms": mean_cnn_ms,
+        "cnn_fps": None if not mean_cnn_ms else 1000.0 / mean_cnn_ms,
+        "restore_ms": mean_restore_ms,
+        "restore_fps": None if not mean_restore_ms else 1000.0 / mean_restore_ms,
+        "total_ms": mean_total_ms,
+        "total_fps": None if not mean_total_ms else 1000.0 / mean_total_ms,
         "worst_id": worst_id,
         "worst_lpips": worst.get("lpips"),
         "min_ms_ssim": minv([r.get("ms_ssim") for r in rows]),
@@ -175,6 +189,12 @@ def table_quality(rows: list[dict]) -> str:
   <td class="num">{fmt(r['raw_ratio'], 1)}x</td>
   <td class="num">{fmt(r['enc_ms'], 1)}</td>
   <td class="num">{fmt(r['enc_fps'], 2)}</td>
+  <td class="num">{fmt(r['cnn_ms'], 1)}</td>
+  <td class="num">{fmt(r['cnn_fps'], 2)}</td>
+  <td class="num">{fmt(r['restore_ms'], 1)}</td>
+  <td class="num">{fmt(r['restore_fps'], 2)}</td>
+  <td class="num">{fmt(r['total_ms'], 1)}</td>
+  <td class="num">{fmt(r['total_fps'], 2)}</td>
   <td>{html.escape(r['worst_id'])}</td>
   <td class="num">{fmt(r['worst_lpips'], 4)}</td>
   <td class="num">{fmt(r['min_ms_ssim'], 4)}</td>
@@ -312,14 +332,15 @@ Generated from <code>tests/quality_gates/runs/*/run.json</code>,
 <code>/Volumes/OWC_8TB/gpr_work/artifacts/upresable/summary.json</code>, and
 <code>/Volumes/OWC_8TB/gpr_work/artifacts/upresable/pi_mac_bench/run.log</code>.
 The table keeps quality, encoded size, compression ratio, encode timing, and
-pipeline throughput in one place.
+gate-stage timing in one place. <code>restore ms</code> is codec plus CNN time;
+<code>gate total ms</code> includes gate-only rendering, crop, and metric work.
 </p>
 
 <div class="cards">{card_html}</div>
 
 <h2>Production run rollup</h2>
 <table>
-<tr><th>Run</th><th>Verdict</th><th>Class</th><th>Pipeline</th><th class="num">mean MB</th><th class="num">bpp</th><th class="num">raw ratio</th><th class="num">enc ms</th><th class="num">enc fps</th><th>worst</th><th class="num">LPIPS</th><th class="num">MS-SSIM min</th><th class="num">Y-PSNR min</th><th class="num">dE max</th><th class="num">Bayer codec min</th><th class="num">Bayer final min</th></tr>
+<tr><th>Run</th><th>Verdict</th><th>Class</th><th>Pipeline</th><th class="num">mean MB</th><th class="num">bpp</th><th class="num">raw ratio</th><th class="num">enc ms</th><th class="num">enc fps</th><th class="num">cnn ms</th><th class="num">cnn fps</th><th class="num">restore ms</th><th class="num">restore fps</th><th class="num">gate total ms</th><th class="num">gate total fps</th><th>worst</th><th class="num">LPIPS</th><th class="num">MS-SSIM min</th><th class="num">Y-PSNR min</th><th class="num">dE max</th><th class="num">Bayer codec min</th><th class="num">Bayer final min</th></tr>
 {table_quality(prod)}
 </table>
 
@@ -349,7 +370,7 @@ the color problem is not just luma/detail loss.
 <h2>All gate runs</h2>
 <div class="scroll">
 <table>
-<tr><th>Run</th><th>Verdict</th><th>Class</th><th>Pipeline</th><th class="num">mean MB</th><th class="num">bpp</th><th class="num">raw ratio</th><th class="num">enc ms</th><th class="num">enc fps</th><th>worst</th><th class="num">LPIPS</th><th class="num">MS-SSIM min</th><th class="num">Y-PSNR min</th><th class="num">dE max</th><th class="num">Bayer codec min</th><th class="num">Bayer final min</th></tr>
+<tr><th>Run</th><th>Verdict</th><th>Class</th><th>Pipeline</th><th class="num">mean MB</th><th class="num">bpp</th><th class="num">raw ratio</th><th class="num">enc ms</th><th class="num">enc fps</th><th class="num">cnn ms</th><th class="num">cnn fps</th><th class="num">restore ms</th><th class="num">restore fps</th><th class="num">gate total ms</th><th class="num">gate total fps</th><th>worst</th><th class="num">LPIPS</th><th class="num">MS-SSIM min</th><th class="num">Y-PSNR min</th><th class="num">dE max</th><th class="num">Bayer codec min</th><th class="num">Bayer final min</th></tr>
 {table_quality(all_rows)}
 </table>
 </div>
