@@ -576,11 +576,15 @@ def _codec_hf_rms_counts(planes_counts: np.ndarray) -> float:
     return float(np.sqrt(np.mean((planes_counts - mean4) ** 2)))
 
 
+_RAW_SIGNAL_SR_MODEL_CACHE = {}
+
+
 def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None):
     """Apply the experimental codec raw-signal SR checkpoint with tiled inference."""
     if src_dng is None:
         die(2, "codec_raw_signal_sr requires source DNG metadata")
 
+    t_start = time.perf_counter()
     import torch
     import torch.nn.functional as F
     sys.path.insert(0, str(REPO / "tools/cnn"))
@@ -588,12 +592,20 @@ def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None
     from train_codec_raw_clean_sr import CodecRawCleanSR
 
     ckpt_path = resolve_artifact_path(cnn["ckpt_path"], "codec_raw_signal_sr checkpoint")
-    ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
-    raw_norm = float(cnn.get("raw_norm", ck.get("raw_scale", 16383.0)))
-    model = CodecRawCleanSR(int(ck["width"]), in_channels=int(ck.get("in_channels", 10)))
-    model.load_state_dict(ck["state_dict"])
     dev = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-    model.to(dev).eval()
+    cache_key = (str(ckpt_path), str(dev))
+    model_load_ms = 0.0
+    if cache_key in _RAW_SIGNAL_SR_MODEL_CACHE:
+        ck, model = _RAW_SIGNAL_SR_MODEL_CACHE[cache_key]
+    else:
+        t_load = time.perf_counter()
+        ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
+        model = CodecRawCleanSR(int(ck["width"]), in_channels=int(ck.get("in_channels", 10)))
+        model.load_state_dict(ck["state_dict"])
+        model.to(dev).eval()
+        _RAW_SIGNAL_SR_MODEL_CACHE[cache_key] = (ck, model)
+        model_load_ms = (time.perf_counter() - t_load) * 1000.0
+    raw_norm = float(cnn.get("raw_norm", ck.get("raw_scale", 16383.0)))
 
     meta = read_dng_meta(src_dng.stem, src_dng)
     source_raw = read_bayer(src_dng)
@@ -615,6 +627,10 @@ def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None
     tile = int(cnn.get("tile", 256))
     overlap = int(cnn.get("overlap", 24))
     out = np.empty_like(codec_up, dtype=np.float32)
+    tiles_total = 0
+    tiles_model = 0
+    tiles_bypass = 0
+    inference_ms = 0.0
 
     with torch.no_grad():
         for y0 in range(0, target_h, tile):
@@ -627,9 +643,12 @@ def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None
                 xc1 = min(target_w, x1 + overlap)
                 core_counts = codec_up[:, y0:y1, x0:x1] * raw_norm
                 use_model = meta.iso >= iso_threshold or _codec_hf_rms_counts(core_counts) >= hf_threshold
+                tiles_total += 1
                 if not use_model:
+                    tiles_bypass += 1
                     out[:, y0:y1, x0:x1] = codec_up[:, y0:y1, x0:x1]
                     continue
+                tiles_model += 1
                 x_parts = [
                     codec_up[:, yc0:yc1, xc0:xc1],
                     sigma_planes[:, yc0:yc1, xc0:xc1],
@@ -641,14 +660,27 @@ def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None
                     x_parts.append(np.full((1, hh, ww), iso_norm, dtype=np.float32))
                     x_parts.append(np.full((1, hh, ww), sigma_rms, dtype=np.float32))
                 x_np = np.concatenate(x_parts, axis=0)[None].astype(np.float32)
+                t_infer = time.perf_counter()
                 pred = model(torch.from_numpy(x_np).to(dev)).cpu().numpy()[0]
+                inference_ms += (time.perf_counter() - t_infer) * 1000.0
                 yy0 = y0 - yc0
                 yy1 = yy0 + (y1 - y0)
                 xx0 = x0 - xc0
                 xx1 = xx0 + (x1 - x0)
                 out[:, y0:y1, x0:x1] = pred[:, yy0:yy1, xx0:xx1]
 
-    return _interleave_bayer_planes(out, (target_h * 2, target_w * 2), raw_norm)
+    stats = {
+        "cnn_model_load_ms": model_load_ms,
+        "cnn_inference_ms": inference_ms,
+        "cnn_total_apply_ms": (time.perf_counter() - t_start) * 1000.0,
+        "cnn_tiles_total": tiles_total,
+        "cnn_tiles_model": tiles_model,
+        "cnn_tiles_bypass": tiles_bypass,
+        "cnn_device": str(dev),
+        "dispatch_iso_threshold": iso_threshold,
+        "dispatch_hf_threshold": hf_threshold,
+    }
+    return ("bayer_stats", _interleave_bayer_planes(out, (target_h * 2, target_w * 2), raw_norm), stats)
 
 
 _RESTORMER_MODEL_CACHE = {}
@@ -882,8 +914,11 @@ def _process_one_image(
     src_dng = Path(im["path"])
     buf = io.StringIO()
     with redirect_stdout(buf):
+        total_t0 = time.perf_counter()
         print(f"\n  -- {im['id']} ({im['character']})")
+        read_t0 = time.perf_counter()
         bayer, w, h = read_source_bayer(im["path"])
+        read_ms = (time.perf_counter() - read_t0) * 1000.0
         img_work = workdir / im["id"]
         img_work.mkdir(exist_ok=True)
         # 1. encode/decode through codec
@@ -904,7 +939,12 @@ def _process_one_image(
             bayer_for_codec_metric = bayer
         bp_codec = bayer_psnr(bayer_for_codec_metric, dec)
         # 2. apply CNN (no-op if cnn=none).
+        cnn_t0 = time.perf_counter()
         post = apply_cnn(dec, cnn, dms=dms, src_dng=src_dng, workdir=img_work, full_size=(w, h))
+        cnn_ms = (time.perf_counter() - cnn_t0) * 1000.0
+        cnn_stats = {}
+        if isinstance(post, tuple) and post[0] == "bayer_stats":
+            post, cnn_stats = post[1], post[2]
         is_rgb_output = isinstance(post, tuple) and post[0] == "rgb"
         if is_rgb_output:
             post_rgb = post[1]
@@ -920,6 +960,7 @@ def _process_one_image(
             else:
                 bp_final = None
         # 3. demosaic both REF and pipeline output to PNG.
+        demosaic_t0 = time.perf_counter()
         ref_png = run_dir / f"{im['id']}_REF.png"
         pipe_png = run_dir / f"{im['id']}_PIPELINE.png"
         if not ref_png.exists():
@@ -932,13 +973,17 @@ def _process_one_image(
         else:
             demosaic_to_png(post_bayer, dms, src_dng, img_work, pipe_png,
                             upscale_to=(w, h))
+        demosaic_ms = (time.perf_counter() - demosaic_t0) * 1000.0
+        post_rgb_cnn_ms = None
         # Post-RGB CNN stage (Restormer-class): runs over the demosaiced PNG.
         # Detected by the CNN's cnn_arch_variant field — the bayer pass
         # (apply_cnn above) was a no-op for these CNNs.
         if cnn.get("cnn_arch_variant") == "restormer_post_rgb":
             t_rgb0 = time.time()
             apply_post_rgb_cnn(pipe_png, cnn)
-            print(f"     restormer post-RGB: {time.time()-t_rgb0:.1f}s")
+            post_rgb_cnn_ms = (time.time() - t_rgb0) * 1000.0
+            cnn_ms += post_rgb_cnn_ms
+            print(f"     restormer post-RGB: {post_rgb_cnn_ms/1000.0:.1f}s")
         # 4. crop A_detail
         ref_crop_path = run_dir / f"{im['id']}_REF_crop_A_detail.png"
         pipe_crop_path = run_dir / f"{im['id']}_PIPELINE_crop_A_detail.png"
@@ -951,7 +996,9 @@ def _process_one_image(
             hh = min(ref.shape[0], test.shape[0])
             ww = min(ref.shape[1], test.shape[1])
             ref, test = ref[:hh, :ww], test[:hh, :ww]
+        metrics_t0 = time.perf_counter()
         m = compute_visual_metrics(ref, test)
+        metrics_ms = (time.perf_counter() - metrics_t0) * 1000.0
         # 6. evaluate per-metric thresholds. bayer_psnr_codec and bayer_psnr_final
         # are gateable alongside the rendered-image metrics — UPRESABLE-class
         # pipelines output editable raw and care primarily about raw-domain
@@ -985,13 +1032,22 @@ def _process_one_image(
             "bayer_psnr_final": bp_final,
             "enc_bytes": enc_bytes,
             "enc_ms": enc_ms,
+            "read_ms": read_ms,
+            "cnn_ms": cnn_ms,
+            "demosaic_ms": demosaic_ms,
+            "metrics_ms": metrics_ms,
+            "total_ms": (time.perf_counter() - total_t0) * 1000.0,
             "ref_crop": str(ref_crop_path),
             "pipeline_crop": str(pipe_crop_path),
             "verdict": verdict,
             "fails": [{"metric": k, "reason": r} for k, r in fails],
         }
+        if post_rgb_cnn_ms is not None:
+            row["post_rgb_cnn_ms"] = post_rgb_cnn_ms
+        row.update(cnn_stats)
         print(f"     LPIPS={m.get('lpips'):.4f}  Y-PSNR={m.get('y_psnr'):.2f}  "
               f"MS-SSIM={m.get('ms_ssim'):.4f}  ΔE={m.get('dE2000_mean'):.2f}  "
+              f"codec={enc_ms:.1f}ms cnn={cnn_ms:.1f}ms total={row['total_ms']:.1f}ms "
               f"=> {verdict}")
         if fails:
             for k, r in fails:

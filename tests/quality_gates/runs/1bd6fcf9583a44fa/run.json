@@ -8,7 +8,7 @@
   "is_ship_gate": true,
   "verdict_authority": "ship_gate",
   "source_path_map": [],
-  "started_at": "2026-06-05T08:29:37-0500",
+  "started_at": "2026-06-05T08:40:18-0500",
   "images": {
     "Z8Z_0001": {
       "y_psnr": 37.82926830951969,
@@ -18,11 +18,25 @@
       "bayer_psnr_codec": 31.947133815389748,
       "bayer_psnr_final": 47.43717045830377,
       "enc_bytes": 1751835,
-      "enc_ms": 8.8,
+      "enc_ms": 9.3,
+      "read_ms": 82.18733299872838,
+      "cnn_ms": 2199.742333992617,
+      "demosaic_ms": 13364.368709007977,
+      "metrics_ms": 4517.583374981768,
+      "total_ms": 26203.400208003586,
       "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_0001_REF_crop_A_detail.png",
       "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_0001_PIPELINE_crop_A_detail.png",
       "verdict": "PASS",
-      "fails": []
+      "fails": [],
+      "cnn_model_load_ms": 15.58874998590909,
+      "cnn_inference_ms": 567.4358298419975,
+      "cnn_total_apply_ms": 2133.6112919962034,
+      "cnn_tiles_total": 187,
+      "cnn_tiles_model": 133,
+      "cnn_tiles_bypass": 54,
+      "cnn_device": "mps",
+      "dispatch_iso_threshold": 100,
+      "dispatch_hf_threshold": 1.7410857677459717
     },
     "Z8Z_0067": {
       "y_psnr": 47.423197527227885,
@@ -32,11 +46,25 @@
       "bayer_psnr_codec": 35.72428288782006,
       "bayer_psnr_final": 58.42543470149983,
       "enc_bytes": 1020716,
-      "enc_ms": 7.8,
+      "enc_ms": 7.6,
+      "read_ms": 78.16224999260157,
+      "cnn_ms": 993.7083749973681,
+      "demosaic_ms": 12079.635208006948,
+      "metrics_ms": 3733.5357919801027,
+      "total_ms": 22129.588165989844,
       "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_0067_REF_crop_A_detail.png",
       "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_0067_PIPELINE_crop_A_detail.png",
       "verdict": "PASS",
-      "fails": []
+      "fails": [],
+      "cnn_model_load_ms": 0.0,
+      "cnn_inference_ms": 166.49874500581063,
+      "cnn_total_apply_ms": 916.3514579995535,
+      "cnn_tiles_total": 187,
+      "cnn_tiles_model": 32,
+      "cnn_tiles_bypass": 155,
+      "cnn_device": "mps",
+      "dispatch_iso_threshold": 100,
+      "dispatch_hf_threshold": 1.7410857677459717
     },
     "Z8Z_5323": {
       "y_psnr": 47.15804470819581,
@@ -46,11 +74,25 @@
       "bayer_psnr_codec": 35.75877718750448,
       "bayer_psnr_final": 58.036203176285426,
       "enc_bytes": 2658567,
-      "enc_ms": 11.3,
+      "enc_ms": 11.0,
+      "read_ms": 83.09804199961945,
+      "cnn_ms": 1657.0172499923501,
+      "demosaic_ms": 15113.625082973158,
+      "metrics_ms": 3746.77441699896,
+      "total_ms": 26833.390707994113,
       "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_5323_REF_crop_A_detail.png",
       "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_5323_PIPELINE_crop_A_detail.png",
       "verdict": "PASS",
-      "fails": []
+      "fails": [],
+      "cnn_model_load_ms": 0.0,
+      "cnn_inference_ms": 675.1411680015735,
+      "cnn_total_apply_ms": 1582.867958000861,
+      "cnn_tiles_total": 187,
+      "cnn_tiles_model": 187,
+      "cnn_tiles_bypass": 0,
+      "cnn_device": "mps",
+      "dispatch_iso_threshold": 100,
+      "dispatch_hf_threshold": 1.7410857677459717
     },
     "Z8Z_6693": {
       "y_psnr": 45.23015929789917,
@@ -60,11 +102,25 @@
       "bayer_psnr_codec": 36.80619907878511,
       "bayer_psnr_final": 55.27344009210487,
       "enc_bytes": 3374869,
-      "enc_ms": 13.3,
+      "enc_ms": 13.9,
+      "read_ms": 93.62312499433756,
+      "cnn_ms": 1606.3874580140691,
+      "demosaic_ms": 15065.478458011057,
+      "metrics_ms": 3888.383666984737,
+      "total_ms": 26989.179666998098,
       "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_6693_REF_crop_A_detail.png",
       "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_6693_PIPELINE_crop_A_detail.png",
       "verdict": "PASS",
-      "fails": []
+      "fails": [],
+      "cnn_model_load_ms": 0.0,
+      "cnn_inference_ms": 641.6112881561276,
+      "cnn_total_apply_ms": 1529.923082998721,
+      "cnn_tiles_total": 187,
+      "cnn_tiles_model": 187,
+      "cnn_tiles_bypass": 0,
+      "cnn_device": "mps",
+      "dispatch_iso_threshold": 100,
+      "dispatch_hf_threshold": 1.7410857677459717
     }
   },
   "worst_first": [
@@ -79,5 +135,5 @@
     "lpips": 0.07608824968338013
   },
   "verdict": "PASS",
-  "finished_at": "2026-06-05T08:31:20-0500"
+  "finished_at": "2026-06-05T08:42:00-0500"
 }
