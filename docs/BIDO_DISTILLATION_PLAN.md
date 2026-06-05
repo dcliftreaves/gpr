@@ -1,7 +1,45 @@
 # BIDO_4× distillation plan — closing the OOD / texture gap
 
-Status: PLAN (no code changes yet). Target pipeline:
+Status: IN PROGRESS. Target pipeline:
 `codec=ml2_q3_dec2+cnn=bibo_dmsr_ane_ml2_q3_dec2+demosaic=sips_via_gpr_tools`.
+
+## 2026-06-05 Execution Notes
+
+The plan's original `tools/cnn/train_demosaic_sr.py` name was stale. The
+active trainer is `tools/cnn/train.py`; it now supports BIDO/RGB `tgt_rgb`
+tiles, multiple validation source names, optional checkpoint initialization,
+LPIPS-alex loss, and LPIPS validation scoring.
+
+The named starting checkpoints (`BayInDemosaicOut_4x_AAon_w16_ANE*.pt`) were
+not present after the 8 TB consolidation. The prior LPIPS fine-tune is still
+documented in `docs/FULL_PIPELINE_MATRIX.md` as a failed candidate
+(worst LPIPS 0.4516), so Phase A should be treated as already directionally
+tested unless the missing checkpoint is recovered.
+
+Dataset reality:
+
+- `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate.npz` contains
+  the large 498-source RGB target set, but only `Z8Z_0067` from the current
+  four-image gate.
+- `/Volumes/OWC_8TB/gpr_work/cnn/tiles_ml2_q3_dec2_dmsr_gate_hardtail_t192_s96_fullref.npz`
+  contains all four gate blockers with 260 tiles per image and is the right
+  small set for blocker-focused smoke tests.
+
+Smoke results:
+
+- BIDO RGB/LPIPS sanity command completed on the hardtail set with
+  `Z8Z_6693` held out:
+  `/Volumes/OWC_8TB/gpr_work/checkpoints/bido_phase_a_20260605/BayInDemosaicOut_4x_AAon_w16_ANE_lpips_sanity.pt`
+- Restormer teacher weights and code were verified outside the repo:
+  `/Volumes/OWC_8TB/gpr_work/external/Restormer` and
+  `/Volumes/OWC_8TB/gpr_work/external/restormer_real_denoising.pth`
+- `tools/cnn/smoke_restormer_teacher.py --tile 128 --device auto` ran on MPS
+  and wrote smoke PNGs under
+  `/Volumes/OWC_8TB/gpr_work/artifacts/restormer_teacher_smoke_20260605`.
+
+Next implementation step: build cached teacher targets from codec-degraded RGB
+tiles, starting with the hardtail set before attempting the full 498-source
+cache.
 
 ## 1. Problem statement
 
