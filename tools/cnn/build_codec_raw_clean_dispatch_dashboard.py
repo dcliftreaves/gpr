@@ -60,6 +60,10 @@ def mean(rows: list[dict[str, Any]], key: str) -> float | None:
     return float(np.mean([float(row[key]) for row in rows]))
 
 
+def metric(row: dict[str, Any]) -> float:
+    return float(row.get("target_rmse_counts", row["clean_rmse_counts"]))
+
+
 def stats(rows: list[dict[str, Any]]) -> dict[str, Any]:
     accepted = [row for row in rows if row["accepted"]]
     rejected = [row for row in rows if not row["accepted"]]
@@ -67,11 +71,11 @@ def stats(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "count": len(rows),
         "accepted_count": len(accepted),
         "rejected_count": len(rejected),
-        "mean_clean_rmse_counts": mean(rows, "clean_rmse_counts"),
-        "accepted_mean_clean_rmse_counts": mean(accepted, "clean_rmse_counts"),
-        "rejected_mean_clean_rmse_counts": mean(rejected, "clean_rmse_counts"),
-        "max_clean_rmse_counts": max((float(row["clean_rmse_counts"]) for row in rows), default=None),
-        "worst_row": max(rows, key=lambda row: float(row["clean_rmse_counts"])) if rows else None,
+        "mean_clean_rmse_counts": float(np.mean([metric(row) for row in rows])) if rows else None,
+        "accepted_mean_clean_rmse_counts": float(np.mean([metric(row) for row in accepted])) if accepted else None,
+        "rejected_mean_clean_rmse_counts": float(np.mean([metric(row) for row in rejected])) if rejected else None,
+        "max_clean_rmse_counts": max((metric(row) for row in rows), default=None),
+        "worst_row": max(rows, key=metric) if rows else None,
     }
 
 
@@ -81,6 +85,13 @@ def rel(path: str, out_file: Path) -> str:
         return str(p.relative_to(out_file.parent))
     except ValueError:
         return path
+
+
+def artifact_path(artifacts: dict[str, str], *labels: str) -> str | None:
+    for label in labels:
+        if label in artifacts:
+            return artifacts[label]
+    return None
 
 
 def build(args: argparse.Namespace) -> dict[str, Any]:
@@ -121,9 +132,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "accepted": accepted,
             "dashboard_accepted": dashboard_accepted,
             "selected": selected_name,
-            "accepted_only_clean_rmse_counts": a["clean_rmse_counts"],
-            "all_targets_clean_rmse_counts": b["clean_rmse_counts"],
-            "dispatch_clean_rmse_counts": selected["clean_rmse_counts"],
+            "accepted_only_clean_rmse_counts": metric(a),
+            "all_targets_clean_rmse_counts": metric(b),
+            "dispatch_clean_rmse_counts": metric(selected),
             "accepted_only_artifacts": a["artifacts"],
             "all_targets_artifacts": b["artifacts"],
         })
@@ -237,9 +248,13 @@ def build_html(summary: dict[str, Any], out: Path) -> None:
             ("all_targets", row["all_targets_artifacts"]),
         ):
             html.append(f"<h4>{escape(name)}</h4>")
-            for label in ("model_clean", "clean_error_x16"):
-                path = artifacts[label]
-                html.append(f"<p>{escape(label)}</p><img src='{escape(rel(path, out))}'>")
+            for label, aliases in (
+                ("model", ("model", "model_clean")),
+                ("error_x16", ("target_error_x16", "clean_error_x16")),
+            ):
+                path = artifact_path(artifacts, *aliases)
+                if path is not None:
+                    html.append(f"<p>{escape(label)}</p><img src='{escape(rel(path, out))}'>")
         html.append("</div>")
     html.append("</div>")
     out.write_text("\n".join(html))
