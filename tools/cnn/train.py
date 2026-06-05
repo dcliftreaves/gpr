@@ -343,6 +343,10 @@ def train(args):
     is_dm_sr = "dm_sr" in args.variant or "bido" in args.variant.lower()
     target_kind = "rgb" if is_dm_sr else "bayer"
     use_teacher = target_kind == "rgb" and args.teacher_weight > 0.0
+    if args.task_weight <= 0.0 and args.teacher_weight <= 0.0:
+        raise RuntimeError("at least one of --task-weight or --teacher-weight must be positive")
+    if args.teacher_weight > 0.0 and target_kind != "rgb":
+        raise RuntimeError("--teacher-weight is only supported for RGB/BIDO targets")
     val_src_names = args.val_src_names or os.environ.get("VAL_SRC_NAMES") or os.environ.get("VAL_SRC_NAME", "Z8_ISO64")
     d = load_data(NPZ, target_val_src_names=_split_names(val_src_names),
                   subsample_rate=args.subsample, target_kind=target_kind,
