@@ -297,7 +297,15 @@ def _get_lpips():
     return _lpips_module["fn"]
 
 
-def training_loss(pred, tgt, loss_domain="linear", lpips_weight=0.0):
+def training_loss(
+    pred,
+    tgt,
+    loss_domain="linear",
+    lpips_weight=0.0,
+    detail_weight=0.0,
+    detail_loss="luma_hf",
+    detail_hf_kernel=31,
+):
     """Composite loss. MSSSIM_LOSS_WEIGHT env (default 0) blends in a
     (1 - MS-SSIM) term to directly optimize the metric the gate uses.
     Tiles are 128x128 — MS-SSIM needs ≥88 px on the smallest scale, so
@@ -313,6 +321,10 @@ def training_loss(pred, tgt, loss_domain="linear", lpips_weight=0.0):
             raise ValueError("LPIPS loss requires RGB 3-channel predictions and targets")
         lp = _get_lpips()(pred.clamp(0, 1) * 2.0 - 1.0, tgt.clamp(0, 1) * 2.0 - 1.0).mean()
         l1 = l1 + lpips_weight * lp
+    if detail_weight > 0.0:
+        l1 = l1 + detail_weight * target_detail_loss(
+            pred, tgt, mode=detail_loss, loss_domain=loss_domain,
+            hf_kernel=detail_hf_kernel)
     w = float(os.environ.get("MSSSIM_LOSS_WEIGHT", "0"))
     if w <= 0.0:
         return l1
@@ -338,13 +350,40 @@ def rgb_luma(x):
     return (x * weights).sum(dim=1, keepdim=True)
 
 
-def highpass_luma(x, kernel):
+def highpass(x, kernel):
     if kernel < 3 or kernel % 2 == 0:
-        raise ValueError("--teacher-hf-kernel must be an odd integer >= 3")
-    y = rgb_luma(x)
+        raise ValueError("highpass kernel must be an odd integer >= 3")
     pad = kernel // 2
-    low = F.avg_pool2d(F.pad(y, (pad, pad, pad, pad), mode="reflect"), kernel_size=kernel, stride=1)
-    return y - low
+    low = F.avg_pool2d(F.pad(x, (pad, pad, pad, pad), mode="reflect"), kernel_size=kernel, stride=1)
+    return x - low
+
+
+def highpass_luma(x, kernel):
+    if x.shape[1] != 3:
+        raise ValueError("luma highpass requires RGB 3-channel tensors")
+    return highpass(rgb_luma(x), kernel)
+
+
+def target_detail_loss(pred, tgt, mode="luma_hf", loss_domain="linear", hf_kernel=31):
+    if mode == "luma_hf":
+        pred_detail = highpass_luma(pred, hf_kernel)
+        tgt_detail = highpass_luma(tgt, hf_kernel)
+    elif mode == "rgb_hf":
+        pred_detail = highpass(pred, hf_kernel)
+        tgt_detail = highpass(tgt, hf_kernel)
+    elif mode == "luma_grad":
+        pred_l = rgb_luma(pred)
+        tgt_l = rgb_luma(tgt)
+        pred_dx = F.pad(pred_l[:, :, :, 1:] - pred_l[:, :, :, :-1], (0, 1, 0, 0))
+        pred_dy = F.pad(pred_l[:, :, 1:, :] - pred_l[:, :, :-1, :], (0, 0, 0, 1))
+        tgt_dx = F.pad(tgt_l[:, :, :, 1:] - tgt_l[:, :, :, :-1], (0, 1, 0, 0))
+        tgt_dy = F.pad(tgt_l[:, :, 1:, :] - tgt_l[:, :, :-1, :], (0, 0, 0, 1))
+        pred_detail = torch.cat([pred_dx, pred_dy], dim=1)
+        tgt_detail = torch.cat([tgt_dx, tgt_dy], dim=1)
+    else:
+        raise ValueError(f"unknown detail loss mode: {mode}")
+    pred_d, tgt_d = _apply_loss_domain(pred_detail, tgt_detail, loss_domain)
+    return F.l1_loss(pred_d, tgt_d)
 
 
 def teacher_distill_loss(pred, teacher, mode="rgb_l1", loss_domain="linear", hf_kernel=31):
@@ -374,6 +413,10 @@ def train(args):
         raise RuntimeError("--teacher-weight is only supported for RGB/BIDO targets")
     if args.teacher_loss == "luma_hf" and (args.teacher_hf_kernel < 3 or args.teacher_hf_kernel % 2 == 0):
         raise RuntimeError("--teacher-hf-kernel must be an odd integer >= 3")
+    if args.detail_weight > 0.0 and target_kind != "rgb":
+        raise RuntimeError("--detail-weight is only supported for RGB/BIDO targets")
+    if args.detail_weight > 0.0 and (args.detail_hf_kernel < 3 or args.detail_hf_kernel % 2 == 0):
+        raise RuntimeError("--detail-hf-kernel must be an odd integer >= 3")
     val_src_names = args.val_src_names or os.environ.get("VAL_SRC_NAMES") or os.environ.get("VAL_SRC_NAME", "Z8_ISO64")
     d = load_data(NPZ, target_val_src_names=_split_names(val_src_names),
                   subsample_rate=args.subsample, target_kind=target_kind,
@@ -443,7 +486,48 @@ def train(args):
     best_lpips = 1e9
     epochs_since_best = 0
     ckpt_path = os.path.join(ckpt_dir, args.ckpt_name)
+
+    def save_checkpoint(epoch, pb, pa, lp_b, lp_a, lpips_weight, source):
+        torch.save({
+            "backbone_state": model.backbone.state_dict(),
+            "variant": args.variant,
+            "width": 16,
+            "depth": 3,
+            "residual_scale": RESIDUAL_SCALE,
+            "raw_norm": RAW_NORM,
+            "kind": "demosaic_sr" if is_dm_sr else ("superres" if model.sr2x else "denoise"),
+            "epoch": epoch,
+            "checkpoint_source": source,
+            "val_psnr_base": pb,
+            "val_psnr_model": pa,
+            "val_lpips_base": lp_b,
+            "val_lpips_model": lp_a,
+            "target_kind": target_kind,
+            "npz": NPZ,
+            "val_src_names": d["_val_src_names"],
+            "lpips_weight": args.lpips_weight,
+            "lpips_weight_current": lpips_weight,
+            "detail_weight": args.detail_weight,
+            "detail_loss": args.detail_loss if args.detail_weight > 0.0 else None,
+            "detail_hf_kernel": args.detail_hf_kernel if args.detail_weight > 0.0 else None,
+            "task_weight": args.task_weight,
+            "teacher_weight": args.teacher_weight,
+            "teacher_loss": args.teacher_loss,
+            "teacher_hf_kernel": args.teacher_hf_kernel,
+            "teacher_target_key": args.teacher_target_key if use_teacher else None,
+            "teacher_npz": args.teacher_npz if use_teacher else None,
+            "loss_domain": args.loss_domain,
+            "params": count_params(model.backbone),
+        }, ckpt_path)
+
     pb, pa, lp_b, lp_a = evaluate()
+    if args.init_ckpt:
+        best_gain = pa - pb
+        best_after = pa
+        best_epoch = 0
+        if lp_a is not None:
+            best_lpips = lp_a
+        save_checkpoint(0, pb, pa, lp_b, lp_a, 0.0, "init_ckpt")
     lp_msg = f"  base LPIPS={lp_b:.4f}  model LPIPS={lp_a:.4f}" if lp_a is not None else ""
     print(f"  Initial  base PSNR={pb:.3f}  model PSNR={pa:.3f}  gain={pa-pb:+.3f} dB{lp_msg}",
           flush=True)
@@ -472,7 +556,10 @@ def train(args):
             if args.task_weight > 0.0:
                 l = l + args.task_weight * training_loss(
                     pred, tgt_use, loss_domain=args.loss_domain,
-                    lpips_weight=lpips_weight)
+                    lpips_weight=lpips_weight,
+                    detail_weight=args.detail_weight,
+                    detail_loss=args.detail_loss,
+                    detail_hf_kernel=args.detail_hf_kernel)
             if args.teacher_weight > 0.0:
                 if teacher_use is None:
                     raise RuntimeError("--teacher-weight requires an RGB teacher target")
@@ -496,33 +583,7 @@ def train(args):
             if lp_a is not None:
                 best_lpips = lp_a
             epochs_since_best = 0
-            torch.save({
-                "backbone_state": model.backbone.state_dict(),
-                "variant": args.variant,
-                "width": 16,
-                "depth": 3,
-                "residual_scale": RESIDUAL_SCALE,
-                "raw_norm": RAW_NORM,
-                "kind": "demosaic_sr" if is_dm_sr else ("superres" if model.sr2x else "denoise"),
-                "epoch": ep + 1,
-                "val_psnr_base": pb,
-                "val_psnr_model": pa,
-                "val_lpips_base": lp_b,
-                "val_lpips_model": lp_a,
-                "target_kind": target_kind,
-                "npz": NPZ,
-                "val_src_names": d["_val_src_names"],
-                "lpips_weight": args.lpips_weight,
-                "lpips_weight_current": lpips_weight,
-                "task_weight": args.task_weight,
-                "teacher_weight": args.teacher_weight,
-                "teacher_loss": args.teacher_loss,
-                "teacher_hf_kernel": args.teacher_hf_kernel,
-                "teacher_target_key": args.teacher_target_key if use_teacher else None,
-                "teacher_npz": args.teacher_npz if use_teacher else None,
-                "loss_domain": args.loss_domain,
-                "params": count_params(model.backbone),
-            }, ckpt_path)
+            save_checkpoint(ep + 1, pb, pa, lp_b, lp_a, lpips_weight, "epoch")
             marker = "  [SAVED]"
         else:
             epochs_since_best += 1
@@ -568,6 +629,12 @@ def main():
                     help="linearly ramp LPIPS weight over this many epochs")
     ap.add_argument("--eval-lpips", action="store_true",
                     help="compute validation LPIPS for RGB/BIDO targets")
+    ap.add_argument("--detail-weight", type=float, default=0.0,
+                    help="target-derived high-frequency detail loss weight for RGB/BIDO targets")
+    ap.add_argument("--detail-loss", choices=["luma_hf", "rgb_hf", "luma_grad"], default="luma_hf",
+                    help="detail objective used when --detail-weight is positive")
+    ap.add_argument("--detail-hf-kernel", type=int, default=31,
+                    help="odd blur kernel for luma_hf/rgb_hf detail losses")
     ap.add_argument("--score-metric", choices=["psnr_gain", "lpips"], default=None,
                     help="checkpoint selection metric; defaults to lpips when LPIPS eval/loss is enabled")
     ap.add_argument("--teacher-target-key", type=str, default="tgt_rgb_teacher",
@@ -584,7 +651,8 @@ def main():
                     help="multiscale/LPIPS task loss weight against tgt_rgb or Bayer target")
     args = ap.parse_args()
     if args.score_metric is None:
-        args.score_metric = "lpips" if args.eval_lpips and args.lpips_weight > 0 else "psnr_gain"
+        perceptual_objective = args.lpips_weight > 0 or args.detail_weight > 0
+        args.score_metric = "lpips" if args.eval_lpips and perceptual_objective else "psnr_gain"
     if args.ckpt_name is None:
         args.ckpt_name = (
             "BayInBayOut_2x_AAon_w16_ANE.pt" if args.variant == "F_ane"

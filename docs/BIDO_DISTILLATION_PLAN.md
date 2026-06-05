@@ -89,13 +89,43 @@ Smoke results:
   The control beating both teacher variants means the current Restormer teacher
   path is not adding useful supervision. Color matching fixed the color target
   mismatch, but structure/detail placement remains mismatched.
+- A target-derived detail pass was tried next so the supervision came from the
+  actual `tgt_rgb` target instead of the Restormer sidecar. `tools/cnn/train.py`
+  now supports `--detail-weight`, `--detail-loss`, and `--detail-hf-kernel`,
+  and continuation checkpoints now seed the initial checkpoint as the saved
+  best so a resumed run cannot overwrite the output with a worse first epoch.
 
-Next implementation step: do not scale this teacher cache to the 498-source
-set yet. Do not spend more compute on this Restormer sidecar objective unless
-the teacher is changed. The next useful path is either a larger/full-context
-teacher that places structures closer to `tgt_rgb`, or a detail-residual target
-derived directly from `tgt_rgb`/UPRESABLE rather than from codec-up Restormer
-outputs.
+  Hardtail training results with `Z8Z_6693` held out:
+
+  | objective | epochs | Z8Z_6693 LPIPS | Z8Z_6693 PSNR | Checkpoint SHA-256 |
+  |---|---:|---:|---:|---|
+  | task-only control (`lpips_weight=0.05`) | baseline | 0.5523 | 22.047 dB | `74d749b3e37ec3863715c5d63b43005225b52d7586f5728b57969a27765270fd` |
+  | luma-HF detail only (`detail_weight=0.25`) | 1 | 0.5887 | 23.239 dB | `0b08cf9ba6eacff68030b1101f8b9d5e051ac8288b8f6c5f1d27addcdc5a7be5` |
+  | LPIPS + luma-gradient detail (`detail_weight=0.01`) | 2 | 0.5439 | 22.113 dB | `e538ad8d3d2f464beeb311484a84caebc1e4ec6c754bd94027b5a5933f861132` |
+  | LPIPS + luma-gradient detail (`detail_weight=0.005`) | 3 | 0.5523 | 22.047 dB | `b53a3e0f9ac8c5e6a7cb43fe75652e1dcf4c6f5d5ccefe50cff3b3946dbbe75d` |
+
+  The small luma-gradient detail term is a real tile-validation improvement,
+  but the full rendered gate still fails badly:
+
+  | run | worst image | worst LPIPS | MS-SSIM | Y-PSNR | dE2000 mean | verdict |
+  |---|---|---:|---:|---:|---:|---|
+  | `bceef509911501a0` | Z8Z_6693 | 0.6261 | 0.8695 | 23.46 dB | 9.07 | FAIL |
+
+  Local artifact receipt:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bido_target_detail_gate_20260605/bceef509911501a0`.
+
+  This narrows the failure: target-derived local detail helps the tile metric
+  slightly, but it does not solve full-image rendered structure/color. The next
+  BIDO move should not be more local HF matching. It should either train with
+  larger/full-image context or use the existing UPRESABLE raw path as the
+  detail source and keep BIDO as an optional preview-only branch.
+
+Next implementation step: do not scale the Restormer sidecar or the local
+target-detail objective to the 498-source set. Both paths now have short-run
+evidence and neither survives the full rendered gate. The next useful path is
+larger/full-image context, or a BIBO/UPRESABLE-first design where the raw
+UPRESABLE output supplies detail and BIDO remains a preview-only branch until
+it can solve rendered color and structure placement.
 
 ## 1. Problem statement
 
