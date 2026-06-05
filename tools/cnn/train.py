@@ -101,7 +101,9 @@ def _split_names(value):
     return [str(v) for v in value]
 
 
-def load_data(npz_path, target_val_src_names=("Z8_ISO64",), subsample_rate=1, target_kind="bayer"):
+def load_data(npz_path, target_val_src_names=("Z8_ISO64",), subsample_rate=1,
+              target_kind="bayer", teacher_target_key="tgt_rgb_teacher",
+              teacher_npz_path=None, require_teacher=False):
     print(f"  loading {npz_path} (subsample 1/{subsample_rate}) ...", flush=True)
     t0 = time.time()
     npz = np.load(npz_path, mmap_mode="r", allow_pickle=True)
@@ -131,6 +133,25 @@ def load_data(npz_path, target_val_src_names=("Z8_ISO64",), subsample_rate=1, ta
         if "tgt_rgb" not in npz:
             raise RuntimeError(f"{npz_path} does not contain tgt_rgb")
         out["tgt_rgb"] = np.asarray(npz["tgt_rgb"][keep_mask])
+        if teacher_npz_path:
+            teacher_data = np.load(teacher_npz_path, mmap_mode="r", allow_pickle=True)
+            if isinstance(teacher_data, np.lib.npyio.NpzFile):
+                if teacher_target_key not in teacher_data:
+                    raise RuntimeError(f"{teacher_npz_path} does not contain {teacher_target_key}")
+                teacher_arr = teacher_data[teacher_target_key]
+            else:
+                teacher_arr = teacher_data
+            if len(teacher_arr) != len(src):
+                raise RuntimeError(
+                    f"{teacher_npz_path} has {len(teacher_arr)} teacher tiles; "
+                    f"expected {len(src)} to match {npz_path}")
+            out[teacher_target_key] = np.asarray(teacher_arr[keep_mask])
+        elif teacher_target_key in npz:
+            out[teacher_target_key] = np.asarray(npz[teacher_target_key][keep_mask])
+        elif require_teacher:
+            raise RuntimeError(
+                f"{npz_path} does not contain required teacher target {teacher_target_key}; "
+                "pass --teacher-npz to load a sidecar")
     else:
         for k in ["tgt_R", "tgt_G1", "tgt_G2", "tgt_B"]:
             v = np.asarray(npz[k][keep_mask])
@@ -142,17 +163,21 @@ def load_data(npz_path, target_val_src_names=("Z8_ISO64",), subsample_rate=1, ta
     return out
 
 
-def planes_from_mem(d, idx, target_kind="bayer"):
+def planes_from_mem(d, idx, target_kind="bayer", teacher_target_key=None):
     codec = np.stack([
         d["codec_R"][idx], d["codec_G1"][idx],
         d["codec_G2"][idx], d["codec_B"][idx]], axis=0).astype(np.float32) / RAW_NORM
     if target_kind == "rgb":
         tgt = np.transpose(d["tgt_rgb"][idx], (2, 0, 1)).astype(np.float32) / 255.0
+        teacher = None
+        if teacher_target_key and teacher_target_key in d:
+            teacher = np.transpose(d[teacher_target_key][idx], (2, 0, 1)).astype(np.float32) / 255.0
     else:
         tgt = np.stack([
             d["tgt_R"][idx], d["tgt_G1"][idx],
             d["tgt_G2"][idx], d["tgt_B"][idx]], axis=0).astype(np.float32) / RAW_NORM
-    return codec, tgt
+        teacher = None
+    return codec, tgt, teacher
 
 
 def rot90_4plane(arr, k):
@@ -163,26 +188,33 @@ def rot90_4plane(arr, k):
 
 
 class TileDS(Dataset):
-    def __init__(self, mem, indices, augment=True, target_kind="bayer"):
+    def __init__(self, mem, indices, augment=True, target_kind="bayer", teacher_target_key=None):
         self.mem = mem; self.indices = indices; self.augment = augment
         self.target_kind = target_kind
+        self.teacher_target_key = teacher_target_key
 
     def __len__(self):
         return len(self.indices)
 
     def __getitem__(self, i):
         idx = self.indices[i]
-        codec, tgt = planes_from_mem(self.mem, idx, target_kind=self.target_kind)
+        codec, tgt, teacher = planes_from_mem(
+            self.mem, idx, target_kind=self.target_kind,
+            teacher_target_key=self.teacher_target_key)
         if self.augment:
             if np.random.rand() < 0.5:
                 codec = codec[:, :, ::-1].copy()
                 tgt = tgt[:, :, ::-1].copy()
+                if teacher is not None:
+                    teacher = teacher[:, :, ::-1].copy()
                 codec = codec[[1, 0, 3, 2], :, :]
                 if self.target_kind != "rgb":
                     tgt = tgt[[1, 0, 3, 2], :, :]
             if np.random.rand() < 0.5:
                 codec = codec[:, ::-1, :].copy()
                 tgt = tgt[:, ::-1, :].copy()
+                if teacher is not None:
+                    teacher = teacher[:, ::-1, :].copy()
                 codec = codec[[2, 3, 0, 1], :, :]
                 if self.target_kind != "rgb":
                     tgt = tgt[[2, 3, 0, 1], :, :]
@@ -191,10 +223,17 @@ class TileDS(Dataset):
                 codec = rot90_4plane(codec, k)
                 if self.target_kind == "rgb":
                     tgt = np.rot90(tgt, k=k, axes=(-2, -1)).copy()
+                    if teacher is not None:
+                        teacher = np.rot90(teacher, k=k, axes=(-2, -1)).copy()
                 else:
                     tgt = rot90_4plane(tgt, k)
-        return (torch.from_numpy(np.ascontiguousarray(codec)).float(),
-                torch.from_numpy(np.ascontiguousarray(tgt)).float())
+        out = [
+            torch.from_numpy(np.ascontiguousarray(codec)).float(),
+            torch.from_numpy(np.ascontiguousarray(tgt)).float(),
+        ]
+        if teacher is not None:
+            out.append(torch.from_numpy(np.ascontiguousarray(teacher)).float())
+        return tuple(out)
 
 
 def downsample_tgt_to_codec_dims(tgt, ref=None):
@@ -284,6 +323,41 @@ def training_loss(pred, tgt, loss_domain="linear", lpips_weight=0.0):
     return (1.0 - w) * l1 + w * (1.0 - ssim_val)
 
 
+def unpack_batch(batch):
+    if len(batch) == 2:
+        inp, tgt = batch
+        return inp, tgt, None
+    if len(batch) == 3:
+        inp, tgt, teacher = batch
+        return inp, tgt, teacher
+    raise RuntimeError(f"unexpected batch shape: {len(batch)} tensors")
+
+
+def rgb_luma(x):
+    weights = torch.tensor([0.2126, 0.7152, 0.0722], device=x.device, dtype=x.dtype).view(1, 3, 1, 1)
+    return (x * weights).sum(dim=1, keepdim=True)
+
+
+def highpass_luma(x, kernel):
+    if kernel < 3 or kernel % 2 == 0:
+        raise ValueError("--teacher-hf-kernel must be an odd integer >= 3")
+    y = rgb_luma(x)
+    pad = kernel // 2
+    low = F.avg_pool2d(F.pad(y, (pad, pad, pad, pad), mode="reflect"), kernel_size=kernel, stride=1)
+    return y - low
+
+
+def teacher_distill_loss(pred, teacher, mode="rgb_l1", loss_domain="linear", hf_kernel=31):
+    if mode == "rgb_l1":
+        return multiscale_l1(pred, teacher, domain=loss_domain)
+    if mode == "luma_hf":
+        pred_hf = highpass_luma(pred, hf_kernel)
+        teacher_hf = highpass_luma(teacher, hf_kernel)
+        pred_hf_d, teacher_hf_d = _apply_loss_domain(pred_hf, teacher_hf, loss_domain)
+        return F.l1_loss(pred_hf_d, teacher_hf_d)
+    raise ValueError(f"unknown teacher loss mode: {mode}")
+
+
 def train(args):
     NPZ = args.npz or default_npz()
     print(f"=== Training {args.variant} (ANE-friendly F) — AA-ON ===")
@@ -293,9 +367,19 @@ def train(args):
 
     is_dm_sr = "dm_sr" in args.variant or "bido" in args.variant.lower()
     target_kind = "rgb" if is_dm_sr else "bayer"
+    use_teacher = target_kind == "rgb" and args.teacher_weight > 0.0
+    if args.task_weight <= 0.0 and args.teacher_weight <= 0.0:
+        raise RuntimeError("at least one of --task-weight or --teacher-weight must be positive")
+    if args.teacher_weight > 0.0 and target_kind != "rgb":
+        raise RuntimeError("--teacher-weight is only supported for RGB/BIDO targets")
+    if args.teacher_loss == "luma_hf" and (args.teacher_hf_kernel < 3 or args.teacher_hf_kernel % 2 == 0):
+        raise RuntimeError("--teacher-hf-kernel must be an odd integer >= 3")
     val_src_names = args.val_src_names or os.environ.get("VAL_SRC_NAMES") or os.environ.get("VAL_SRC_NAME", "Z8_ISO64")
     d = load_data(NPZ, target_val_src_names=_split_names(val_src_names),
-                  subsample_rate=args.subsample, target_kind=target_kind)
+                  subsample_rate=args.subsample, target_kind=target_kind,
+                  teacher_target_key=args.teacher_target_key,
+                  teacher_npz_path=args.teacher_npz,
+                  require_teacher=use_teacher)
     N = len(d["src"]); src = d["src"]
     val_src_ids = d["_val_src_ids"]
     train_idx = [i for i in range(N) if src[i] not in val_src_ids]
@@ -304,9 +388,12 @@ def train(args):
     print(f"  val src names: {', '.join(d['_val_src_names'])}")
     print(f"  train tiles: {len(train_idx)}  val tiles: {len(val_idx)}")
 
-    tr = DataLoader(TileDS(d, train_idx, augment=True, target_kind=target_kind), batch_size=args.batch,
+    teacher_key = args.teacher_target_key if use_teacher else None
+    tr = DataLoader(TileDS(d, train_idx, augment=True, target_kind=target_kind,
+                           teacher_target_key=teacher_key), batch_size=args.batch,
                     shuffle=True, num_workers=0, drop_last=True)
-    va = DataLoader(TileDS(d, val_idx, augment=False, target_kind=target_kind), batch_size=args.batch,
+    va = DataLoader(TileDS(d, val_idx, augment=False, target_kind=target_kind,
+                           teacher_target_key=teacher_key), batch_size=args.batch,
                     shuffle=False, num_workers=0)
 
     model = FANE(variant=args.variant, dw_kernel=args.dw_kernel).to(DEVICE)
@@ -322,7 +409,8 @@ def train(args):
         model.eval()
         tot_b = 0.0; tot_a = 0.0; tot_lp_b = 0.0; tot_lp_a = 0.0; n = 0
         with torch.no_grad():
-            for inp, tgt in va:
+            for batch in va:
+                inp, tgt, _teacher = unpack_batch(batch)
                 inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
                 if is_dm_sr:
                     base = F.interpolate(inp, size=tgt.shape[-2:], mode="bicubic",
@@ -366,15 +454,33 @@ def train(args):
             lpips_weight = args.lpips_weight * min(1.0, max(0.0, (ep + 1) / args.lpips_warmup_epochs))
         else:
             lpips_weight = args.lpips_weight
-        for inp, tgt in tr:
+        for batch in tr:
+            inp, tgt, teacher = unpack_batch(batch)
             inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
+            if teacher is not None:
+                teacher = teacher.to(DEVICE)
             if is_dm_sr:
                 pred = model(inp).clamp(0, 1); tgt_use = tgt
+                teacher_use = teacher
             elif model.sr2x:
                 pred = model(inp); tgt_use = tgt
+                teacher_use = None
             else:
                 pred = model(inp); tgt_use = downsample_tgt_to_codec_dims(tgt, ref=pred)
-            l = training_loss(pred, tgt_use, loss_domain=args.loss_domain, lpips_weight=lpips_weight)
+                teacher_use = None
+            l = torch.zeros((), device=DEVICE)
+            if args.task_weight > 0.0:
+                l = l + args.task_weight * training_loss(
+                    pred, tgt_use, loss_domain=args.loss_domain,
+                    lpips_weight=lpips_weight)
+            if args.teacher_weight > 0.0:
+                if teacher_use is None:
+                    raise RuntimeError("--teacher-weight requires an RGB teacher target")
+                if teacher_use.shape != pred.shape:
+                    raise RuntimeError(f"teacher target shape {teacher_use.shape} != pred shape {pred.shape}")
+                l = l + args.teacher_weight * teacher_distill_loss(
+                    pred, teacher_use, mode=args.teacher_loss,
+                    loss_domain=args.loss_domain, hf_kernel=args.teacher_hf_kernel)
             opt.zero_grad(set_to_none=True); l.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step(); loss_sum += l.item(); nb += 1
@@ -408,6 +514,12 @@ def train(args):
                 "val_src_names": d["_val_src_names"],
                 "lpips_weight": args.lpips_weight,
                 "lpips_weight_current": lpips_weight,
+                "task_weight": args.task_weight,
+                "teacher_weight": args.teacher_weight,
+                "teacher_loss": args.teacher_loss,
+                "teacher_hf_kernel": args.teacher_hf_kernel,
+                "teacher_target_key": args.teacher_target_key if use_teacher else None,
+                "teacher_npz": args.teacher_npz if use_teacher else None,
                 "loss_domain": args.loss_domain,
                 "params": count_params(model.backbone),
             }, ckpt_path)
@@ -458,6 +570,18 @@ def main():
                     help="compute validation LPIPS for RGB/BIDO targets")
     ap.add_argument("--score-metric", choices=["psnr_gain", "lpips"], default=None,
                     help="checkpoint selection metric; defaults to lpips when LPIPS eval/loss is enabled")
+    ap.add_argument("--teacher-target-key", type=str, default="tgt_rgb_teacher",
+                    help="NPZ field containing RGB teacher targets for BIDO distillation")
+    ap.add_argument("--teacher-npz", type=str, default=None,
+                    help="optional sidecar .npy/.npz containing teacher targets in base NPZ tile order")
+    ap.add_argument("--teacher-weight", type=float, default=0.0,
+                    help="multiscale L1 weight against --teacher-target-key")
+    ap.add_argument("--teacher-loss", choices=["rgb_l1", "luma_hf"], default="rgb_l1",
+                    help="teacher loss mode; luma_hf uses high-frequency luminance only")
+    ap.add_argument("--teacher-hf-kernel", type=int, default=31,
+                    help="odd blur kernel for --teacher-loss luma_hf")
+    ap.add_argument("--task-weight", type=float, default=1.0,
+                    help="multiscale/LPIPS task loss weight against tgt_rgb or Bayer target")
     args = ap.parse_args()
     if args.score_metric is None:
         args.score_metric = "lpips" if args.eval_lpips and args.lpips_weight > 0 else "psnr_gain"
