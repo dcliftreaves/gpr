@@ -92,7 +92,7 @@ Gate-image raw-domain averages:
 | `Z8Z_5323` | 23.49 | 119.57 | model all crops |
 | `Z8Z_6693` | 33.51 | 172.22 | model all crops |
 
-## Registered Gate Run
+## Registered Source-Sigma Gate Run
 
 Temporary registered pipeline:
 
@@ -120,6 +120,44 @@ Per-image gate metrics:
 UPRESABLE gates enforce Bayer PSNR final; rendered metrics are informational
 for editable raw, but they are listed here to make color/detail regressions
 visible.
+
+This receipt is an analysis result, not a deployable production path: the model
+conditions on a sigma map derived from the source DNG raw signal. A decoder does
+not have that source raw; it has codec output plus DNG metadata.
+
+## Runtime-Sigma Probe
+
+Production-valid sigma conditioning was tested with a separate registered probe:
+
+```text
+codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded_runtime_sigma_probe+demosaic=sips_via_gpr_tools
+```
+
+The probe computes the DNG NoiseProfile sigma map from decoded/upscaled codec
+raw instead of source raw.
+
+Frozen gate run:
+
+```text
+run_hash=aa32c2c5d52eb753
+ship_class=UPRESABLE
+verdict=PASS
+```
+
+The raw Bayer gate still passes, but the rendered blockers regress sharply:
+
+| image | source-sigma LPIPS | runtime-sigma LPIPS | source MS-SSIM | runtime MS-SSIM | source Bayer PSNR | runtime Bayer PSNR |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `Z8Z_0001` | 0.0761 | 0.2814 | 0.9877 | 0.8849 | 47.44 | 37.64 |
+| `Z8Z_0067` | 0.0618 | 0.0832 | 0.9922 | 0.9867 | 58.43 | 50.66 |
+| `Z8Z_5323` | 0.0174 | 0.3333 | 0.9960 | 0.9229 | 58.04 | 42.42 |
+| `Z8Z_6693` | 0.0244 | 0.4417 | 0.9943 | 0.8916 | 55.27 | 39.47 |
+
+Conclusion: the current checkpoint is not production-ready. The failure is now
+narrowed to a conditioning mismatch: training used source-derived sigma, while
+deployment must use codec-derived or metadata-only sigma. The next candidate
+must be retrained or distilled with runtime-available sigma conditioning, or the
+sigma channels must be removed.
 
 ## Runtime
 
@@ -149,7 +187,8 @@ Interpretation: the codec stage remains preview-speed, but the current Python
 tiled PyTorch raw-signal CNN restore path is an offline/desktop candidate only.
 The full gate path additionally includes validation-only render and metric
 work. Promotion to a live/preview path requires a compiled restore backend and a
-separate target benchmark on that backend.
+separate target benchmark on that backend. The runtime-sigma probe shows that
+performance optimization is secondary until the conditioning mismatch is fixed.
 
 ## Remaining Work
 
@@ -159,6 +198,8 @@ This is a registered raw-domain candidate, but it is not production-ready until:
   baseline;
 - LPIPS, MS-SSIM, luma/detail, crop-level texture placement, and worst-image
   visual inspection are compared;
+- the candidate is retrained or distilled with runtime-available sigma
+  conditioning, or with sigma channels removed;
 - the raw-signal CNN is compiled or otherwise optimized, then decode + model +
   encode timing is remeasured on the intended preview path;
 - the checkpoint hash, sidecar config, gate receipt, and timing receipt are kept
