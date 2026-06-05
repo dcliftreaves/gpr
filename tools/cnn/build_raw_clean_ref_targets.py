@@ -488,7 +488,8 @@ def main() -> int:
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
     rows: list[dict[str, Any]] = []
-    for image_id in args.images:
+    image_ids = [row["id"] for row in test_set["images"]] if args.images == ["ALL"] else args.images
+    for image_id in image_ids:
         image = image_map[image_id]
         path = Path(image["path"])
         meta = read_dng_meta(image_id, path)
