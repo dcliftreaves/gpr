@@ -26,7 +26,7 @@ from torch.utils.data import Dataset, DataLoader
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from model import build as build_variant, build_lk, count_params
+from model import VARIANTS, build as build_variant, build_lk, count_params
 
 RESIDUAL_SCALE = 0.01
 RAW_NORM = 16383.0
@@ -80,9 +80,12 @@ class FANE(nn.Module):
         else:
             self.backbone = build_variant(variant)
         self.sr2x = self.backbone.sr
+        self.sr4x = getattr(self.backbone, "sr4x", False)
         self.residual_scale = RESIDUAL_SCALE
 
     def forward(self, x):
+        if self.sr4x:
+            return self.backbone(x).clamp(0, 1)
         if self.sr2x:
             baseline = F.interpolate(x, scale_factor=2, mode="bicubic", align_corners=False)
             residual = self.backbone(x)
@@ -92,45 +95,63 @@ class FANE(nn.Module):
             return (x + self.residual_scale * residual).clamp(0, 1)
 
 
-def load_data(npz_path, target_val_src_name="Z8_ISO64", subsample_rate=1):
+def _split_names(value):
+    if isinstance(value, str):
+        return [v.strip() for v in value.split(",") if v.strip()]
+    return [str(v) for v in value]
+
+
+def load_data(npz_path, target_val_src_names=("Z8_ISO64",), subsample_rate=1, target_kind="bayer"):
     print(f"  loading {npz_path} (subsample 1/{subsample_rate}) ...", flush=True)
     t0 = time.time()
     npz = np.load(npz_path, mmap_mode="r", allow_pickle=True)
     src = np.asarray(npz["src"])
     lookup = np.asarray(npz["src_lookup_names"])
     names = [s.decode() if isinstance(s, bytes) else s for s in lookup.tolist()]
-    val_match = [i for i, n in enumerate(names) if n == target_val_src_name]
+    wanted = set(_split_names(target_val_src_names))
+    val_match = [i for i, n in enumerate(names) if n in wanted]
     if not val_match:
-        raise RuntimeError(f"Held-out '{target_val_src_name}' not in names; got {names[:5]}")
-    val_src_id = val_match[0]
+        raise RuntimeError(f"Held-out {sorted(wanted)!r} not in names; got {names[:5]}")
+    val_src_ids = set(val_match)
 
     rng = np.random.RandomState(0)
     keep_mask = np.zeros(len(src), dtype=bool)
     for i in range(len(src)):
-        if src[i] == val_src_id:
+        if src[i] in val_src_ids:
             keep_mask[i] = True
         elif rng.rand() < (1.0 / subsample_rate):
             keep_mask[i] = True
     print(f"  keeping {keep_mask.sum()} of {len(src)} tiles", flush=True)
 
     out = {}
-    for k in ["codec_R", "codec_G1", "codec_G2", "codec_B",
-              "tgt_R", "tgt_G1", "tgt_G2", "tgt_B"]:
+    for k in ["codec_R", "codec_G1", "codec_G2", "codec_B"]:
         v = np.asarray(npz[k][keep_mask])
         out[k] = v
+    if target_kind == "rgb":
+        if "tgt_rgb" not in npz:
+            raise RuntimeError(f"{npz_path} does not contain tgt_rgb")
+        out["tgt_rgb"] = np.asarray(npz["tgt_rgb"][keep_mask])
+    else:
+        for k in ["tgt_R", "tgt_G1", "tgt_G2", "tgt_B"]:
+            v = np.asarray(npz[k][keep_mask])
+            out[k] = v
     out["src"] = src[keep_mask]
-    out["_val_src_id"] = val_src_id
+    out["_val_src_ids"] = val_src_ids
+    out["_val_src_names"] = sorted(wanted)
     print(f"  loaded in {time.time()-t0:.1f}s", flush=True)
     return out
 
 
-def planes_from_mem(d, idx):
+def planes_from_mem(d, idx, target_kind="bayer"):
     codec = np.stack([
         d["codec_R"][idx], d["codec_G1"][idx],
         d["codec_G2"][idx], d["codec_B"][idx]], axis=0).astype(np.float32) / RAW_NORM
-    tgt = np.stack([
-        d["tgt_R"][idx], d["tgt_G1"][idx],
-        d["tgt_G2"][idx], d["tgt_B"][idx]], axis=0).astype(np.float32) / RAW_NORM
+    if target_kind == "rgb":
+        tgt = np.transpose(d["tgt_rgb"][idx], (2, 0, 1)).astype(np.float32) / 255.0
+    else:
+        tgt = np.stack([
+            d["tgt_R"][idx], d["tgt_G1"][idx],
+            d["tgt_G2"][idx], d["tgt_B"][idx]], axis=0).astype(np.float32) / RAW_NORM
     return codec, tgt
 
 
@@ -142,26 +163,36 @@ def rot90_4plane(arr, k):
 
 
 class TileDS(Dataset):
-    def __init__(self, mem, indices, augment=True):
+    def __init__(self, mem, indices, augment=True, target_kind="bayer"):
         self.mem = mem; self.indices = indices; self.augment = augment
+        self.target_kind = target_kind
 
     def __len__(self):
         return len(self.indices)
 
     def __getitem__(self, i):
         idx = self.indices[i]
-        codec, tgt = planes_from_mem(self.mem, idx)
+        codec, tgt = planes_from_mem(self.mem, idx, target_kind=self.target_kind)
         if self.augment:
             if np.random.rand() < 0.5:
-                codec = codec[:, :, ::-1].copy(); tgt = tgt[:, :, ::-1].copy()
-                codec = codec[[1, 0, 3, 2], :, :]; tgt = tgt[[1, 0, 3, 2], :, :]
+                codec = codec[:, :, ::-1].copy()
+                tgt = tgt[:, :, ::-1].copy()
+                codec = codec[[1, 0, 3, 2], :, :]
+                if self.target_kind != "rgb":
+                    tgt = tgt[[1, 0, 3, 2], :, :]
             if np.random.rand() < 0.5:
-                codec = codec[:, ::-1, :].copy(); tgt = tgt[:, ::-1, :].copy()
-                codec = codec[[2, 3, 0, 1], :, :]; tgt = tgt[[2, 3, 0, 1], :, :]
+                codec = codec[:, ::-1, :].copy()
+                tgt = tgt[:, ::-1, :].copy()
+                codec = codec[[2, 3, 0, 1], :, :]
+                if self.target_kind != "rgb":
+                    tgt = tgt[[2, 3, 0, 1], :, :]
             k = int(np.random.randint(0, 4))
             if k != 0:
                 codec = rot90_4plane(codec, k)
-                tgt = rot90_4plane(tgt, k)
+                if self.target_kind == "rgb":
+                    tgt = np.rot90(tgt, k=k, axes=(-2, -1)).copy()
+                else:
+                    tgt = rot90_4plane(tgt, k)
         return (torch.from_numpy(np.ascontiguousarray(codec)).float(),
                 torch.from_numpy(np.ascontiguousarray(tgt)).float())
 
@@ -216,7 +247,18 @@ def _get_msssim():
     return _msssim_module["fn"]
 
 
-def training_loss(pred, tgt, loss_domain="linear"):
+_lpips_module = {"fn": None}
+def _get_lpips():
+    if _lpips_module["fn"] is None:
+        import lpips
+        net = lpips.LPIPS(net="alex").to(DEVICE).eval()
+        for p in net.parameters():
+            p.requires_grad_(False)
+        _lpips_module["fn"] = net
+    return _lpips_module["fn"]
+
+
+def training_loss(pred, tgt, loss_domain="linear", lpips_weight=0.0):
     """Composite loss. MSSSIM_LOSS_WEIGHT env (default 0) blends in a
     (1 - MS-SSIM) term to directly optimize the metric the gate uses.
     Tiles are 128x128 — MS-SSIM needs ≥88 px on the smallest scale, so
@@ -227,6 +269,11 @@ def training_loss(pred, tgt, loss_domain="linear"):
     the clamped linear pixels because the metric is calibrated to that
     space)."""
     l1 = multiscale_l1(pred, tgt, domain=loss_domain)
+    if lpips_weight > 0.0:
+        if pred.shape[1] != 3 or tgt.shape[1] != 3:
+            raise ValueError("LPIPS loss requires RGB 3-channel predictions and targets")
+        lp = _get_lpips()(pred.clamp(0, 1) * 2.0 - 1.0, tgt.clamp(0, 1) * 2.0 - 1.0).mean()
+        l1 = l1 + lpips_weight * lp
     w = float(os.environ.get("MSSSIM_LOSS_WEIGHT", "0"))
     if w <= 0.0:
         return l1
@@ -238,38 +285,51 @@ def training_loss(pred, tgt, loss_domain="linear"):
 
 
 def train(args):
-    NPZ = default_npz()
+    NPZ = args.npz or default_npz()
     print(f"=== Training {args.variant} (ANE-friendly F) — AA-ON ===")
     print(f"Device: {DEVICE}  CKPT_DIR: {CKPT_DIR}  NPZ: {NPZ}")
-    os.makedirs(CKPT_DIR, exist_ok=True)
+    ckpt_dir = args.ckpt_dir or CKPT_DIR
+    os.makedirs(ckpt_dir, exist_ok=True)
 
-    val_src = os.environ.get("VAL_SRC_NAME", "Z8_ISO64")
-    d = load_data(NPZ, target_val_src_name=val_src,
-                  subsample_rate=args.subsample)
+    is_dm_sr = "dm_sr" in args.variant or "bido" in args.variant.lower()
+    target_kind = "rgb" if is_dm_sr else "bayer"
+    val_src_names = args.val_src_names or os.environ.get("VAL_SRC_NAMES") or os.environ.get("VAL_SRC_NAME", "Z8_ISO64")
+    d = load_data(NPZ, target_val_src_names=_split_names(val_src_names),
+                  subsample_rate=args.subsample, target_kind=target_kind)
     N = len(d["src"]); src = d["src"]
-    val_src = {d["_val_src_id"]}
-    train_idx = [i for i in range(N) if src[i] not in val_src]
-    val_idx = [i for i in range(N) if src[i] in val_src]
+    val_src_ids = d["_val_src_ids"]
+    train_idx = [i for i in range(N) if src[i] not in val_src_ids]
+    val_idx = [i for i in range(N) if src[i] in val_src_ids]
     print(f"  unique src ids: {len(set(src.tolist()))}")
+    print(f"  val src names: {', '.join(d['_val_src_names'])}")
     print(f"  train tiles: {len(train_idx)}  val tiles: {len(val_idx)}")
 
-    tr = DataLoader(TileDS(d, train_idx, augment=True), batch_size=args.batch,
+    tr = DataLoader(TileDS(d, train_idx, augment=True, target_kind=target_kind), batch_size=args.batch,
                     shuffle=True, num_workers=0, drop_last=True)
-    va = DataLoader(TileDS(d, val_idx, augment=False), batch_size=args.batch,
+    va = DataLoader(TileDS(d, val_idx, augment=False, target_kind=target_kind), batch_size=args.batch,
                     shuffle=False, num_workers=0)
 
     model = FANE(variant=args.variant, dw_kernel=args.dw_kernel).to(DEVICE)
     print(f"  Params (backbone): {count_params(model.backbone):,}")
+    if args.init_ckpt:
+        print(f"  Loading init checkpoint: {args.init_ckpt}", flush=True)
+        ck = torch.load(args.init_ckpt, map_location="cpu", weights_only=False)
+        model.backbone.load_state_dict(ck["backbone_state"])
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=args.epochs)
 
     def evaluate():
         model.eval()
-        tot_b = 0.0; tot_a = 0.0; n = 0
+        tot_b = 0.0; tot_a = 0.0; tot_lp_b = 0.0; tot_lp_a = 0.0; n = 0
         with torch.no_grad():
             for inp, tgt in va:
                 inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
-                if model.sr2x:
+                if is_dm_sr:
+                    base = F.interpolate(inp, size=tgt.shape[-2:], mode="bicubic",
+                                         align_corners=False).mean(dim=1, keepdim=True).repeat(1, 3, 1, 1).clamp(0, 1)
+                    cleaned = model(inp).clamp(0, 1)
+                    tgt_use = tgt
+                elif model.sr2x:
                     base = F.interpolate(inp, scale_factor=2, mode="bicubic",
                                          align_corners=False).clamp(0, 1)
                     cleaned = model(inp)
@@ -282,34 +342,53 @@ def train(args):
                 mse_a = ((cleaned - tgt_use) ** 2).mean(dim=[1, 2, 3])
                 tot_b += (-10 * torch.log10(mse_b.clamp_min(1e-12))).sum().item()
                 tot_a += (-10 * torch.log10(mse_a.clamp_min(1e-12))).sum().item()
+                if is_dm_sr and args.eval_lpips:
+                    lp = _get_lpips()
+                    tot_lp_b += lp(base * 2.0 - 1.0, tgt_use * 2.0 - 1.0).sum().item()
+                    tot_lp_a += lp(cleaned * 2.0 - 1.0, tgt_use * 2.0 - 1.0).sum().item()
                 n += inp.shape[0]
-        return tot_b / n, tot_a / n
+        lp_b = (tot_lp_b / n) if is_dm_sr and args.eval_lpips else None
+        lp_a = (tot_lp_a / n) if is_dm_sr and args.eval_lpips else None
+        return tot_b / n, tot_a / n, lp_b, lp_a
 
     best_gain = -1e9; best_after = -1e9; best_epoch = -1
+    best_lpips = 1e9
     epochs_since_best = 0
-    ckpt_path = os.path.join(CKPT_DIR, args.ckpt_name)
-    pb, pa = evaluate()
-    print(f"  Initial  base PSNR={pb:.3f}  model PSNR={pa:.3f}  gain={pa-pb:+.3f} dB",
+    ckpt_path = os.path.join(ckpt_dir, args.ckpt_name)
+    pb, pa, lp_b, lp_a = evaluate()
+    lp_msg = f"  base LPIPS={lp_b:.4f}  model LPIPS={lp_a:.4f}" if lp_a is not None else ""
+    print(f"  Initial  base PSNR={pb:.3f}  model PSNR={pa:.3f}  gain={pa-pb:+.3f} dB{lp_msg}",
           flush=True)
 
     for ep in range(args.epochs):
         model.train(); t0 = time.time(); loss_sum = 0.0; nb = 0
+        if args.lpips_warmup_epochs > 0:
+            lpips_weight = args.lpips_weight * min(1.0, max(0.0, (ep + 1) / args.lpips_warmup_epochs))
+        else:
+            lpips_weight = args.lpips_weight
         for inp, tgt in tr:
             inp = inp.to(DEVICE); tgt = tgt.to(DEVICE)
-            if model.sr2x:
+            if is_dm_sr:
+                pred = model(inp).clamp(0, 1); tgt_use = tgt
+            elif model.sr2x:
                 pred = model(inp); tgt_use = tgt
             else:
                 pred = model(inp); tgt_use = downsample_tgt_to_codec_dims(tgt, ref=pred)
-            l = training_loss(pred, tgt_use, loss_domain=args.loss_domain)
+            l = training_loss(pred, tgt_use, loss_domain=args.loss_domain, lpips_weight=lpips_weight)
             opt.zero_grad(set_to_none=True); l.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step(); loss_sum += l.item(); nb += 1
         sched.step()
-        pb, pa = evaluate()
+        pb, pa, lp_b, lp_a = evaluate()
         gain = pa - pb
         marker = ""
-        if gain > best_gain:
+        if args.score_metric == "lpips" and lp_a is None:
+            raise RuntimeError("--score-metric lpips requires --eval-lpips and an RGB/BIDO target")
+        score_improved = lp_a < best_lpips if args.score_metric == "lpips" else gain > best_gain
+        if score_improved:
             best_gain = gain; best_after = pa; best_epoch = ep + 1
+            if lp_a is not None:
+                best_lpips = lp_a
             epochs_since_best = 0
             torch.save({
                 "backbone_state": model.backbone.state_dict(),
@@ -318,19 +397,28 @@ def train(args):
                 "depth": 3,
                 "residual_scale": RESIDUAL_SCALE,
                 "raw_norm": RAW_NORM,
-                "kind": "superres" if model.sr2x else "denoise",
+                "kind": "demosaic_sr" if is_dm_sr else ("superres" if model.sr2x else "denoise"),
                 "epoch": ep + 1,
                 "val_psnr_base": pb,
                 "val_psnr_model": pa,
+                "val_lpips_base": lp_b,
+                "val_lpips_model": lp_a,
+                "target_kind": target_kind,
+                "npz": NPZ,
+                "val_src_names": d["_val_src_names"],
+                "lpips_weight": args.lpips_weight,
+                "lpips_weight_current": lpips_weight,
+                "loss_domain": args.loss_domain,
                 "params": count_params(model.backbone),
             }, ckpt_path)
             marker = "  [SAVED]"
         else:
             epochs_since_best += 1
 
+        lp_msg = f"  lpips={lp_a:.4f}" if lp_a is not None else ""
         print(f"  ep {ep+1:3d}/{args.epochs}  loss={loss_sum/nb:.5f}  "
-              f"base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB  "
-              f"t={time.time()-t0:.1f}s{marker}", flush=True)
+              f"base={pb:.3f}  model={pa:.3f}  gain={gain:+.3f} dB{lp_msg}  "
+              f"lp_w={lpips_weight:.4f}  t={time.time()-t0:.1f}s{marker}", flush=True)
 
         if epochs_since_best >= args.patience and ep + 1 >= 40:
             print(f"  Early stop: no improvement in {args.patience} epochs", flush=True)
@@ -338,12 +426,16 @@ def train(args):
 
     print(f"\n  Best val PSNR gain: {best_gain:+.3f} dB at epoch {best_epoch}")
     print(f"  Best val PSNR (model): {best_after:.3f} dB")
+    if best_lpips < 1e9:
+        print(f"  Best val LPIPS (model): {best_lpips:.4f}")
     print(f"  Checkpoint: {ckpt_path}")
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--variant", choices=["F_ane", "F_ane_no_sr", "F_ane_w24", "F_ane_w24_no_sr", "F_ane_no_sr_w24", "F_ane_w32", "F_ane_w32_no_sr", "F_ane_no_sr_w32"], required=True)
+    ap.add_argument("--variant", choices=sorted(VARIANTS.keys()), required=True)
+    ap.add_argument("--npz", type=str, default=None, help="training tile NPZ; defaults to SUPERRES_NPZ/env search")
+    ap.add_argument("--ckpt-dir", type=str, default=None, help="checkpoint output directory; defaults to CKPT_DIR/env search")
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--lr", type=float, default=5e-4)
@@ -355,10 +447,24 @@ def main():
     ap.add_argument("--loss-domain", choices=["linear", "mu_law"], default="linear",
                     help="Apply tone-map to pred+target before L1. "
                          "mu_law = Hanji et al. SIGGRAPH Asia 2024 (μ=5000).")
+    ap.add_argument("--init-ckpt", type=str, default=None, help="optional checkpoint to initialize backbone weights")
+    ap.add_argument("--val-src-names", type=str, default=None,
+                    help="comma-separated held-out source names; overrides VAL_SRC_NAMES/VAL_SRC_NAME")
+    ap.add_argument("--lpips-weight", type=float, default=0.0,
+                    help="LPIPS-alex loss weight for RGB/BIDO targets")
+    ap.add_argument("--lpips-warmup-epochs", type=int, default=0,
+                    help="linearly ramp LPIPS weight over this many epochs")
+    ap.add_argument("--eval-lpips", action="store_true",
+                    help="compute validation LPIPS for RGB/BIDO targets")
+    ap.add_argument("--score-metric", choices=["psnr_gain", "lpips"], default=None,
+                    help="checkpoint selection metric; defaults to lpips when LPIPS eval/loss is enabled")
     args = ap.parse_args()
+    if args.score_metric is None:
+        args.score_metric = "lpips" if args.eval_lpips and args.lpips_weight > 0 else "psnr_gain"
     if args.ckpt_name is None:
         args.ckpt_name = (
             "BayInBayOut_2x_AAon_w16_ANE.pt" if args.variant == "F_ane"
+            else "BayInDemosaicOut_4x_AAon_w16_ANE.pt" if ("dm_sr" in args.variant or "bido" in args.variant.lower())
             else "BayInBayOut_1x_AAon_w16_ANE.pt"
         )
     train(args)
