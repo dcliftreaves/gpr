@@ -18,11 +18,9 @@ on:
   push:
     branches:
       - master
-      - 'feature/*'
   pull_request:
     branches:
       - master
-      - 'feature/*'
 
 # Cancel in-progress runs for the same branch / PR when a new commit lands.
 concurrency:
