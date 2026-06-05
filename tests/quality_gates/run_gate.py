@@ -630,20 +630,24 @@ def apply_codec_raw_signal_sr(
             align_corners=False,
         ).numpy()[0].astype(np.float32)
 
-    sigma_source = str(cnn.get("sigma_source", "source_raw"))
-    if sigma_source == "source_raw":
-        if source_raw is None:
-            source_raw = read_bayer(src_dng)
-        sigma_raw = source_raw
-    elif sigma_source == "codec_up":
-        sigma_raw = _interleave_bayer_planes(codec_up, (target_h * 2, target_w * 2), raw_norm)
-    else:
-        die(2, f"unsupported codec_raw_signal_sr sigma_source={sigma_source!r}")
-    sigma_planes = _deinterleave_bayer(noise_sigma_map(sigma_raw, meta)) / raw_norm
-
     iso_threshold = int(cnn.get("dispatch_iso_threshold", 100))
     hf_threshold = float(cnn.get("dispatch_hf_threshold", 1.7410857677459717))
     conditioning = str(cnn.get("conditioning", ck.get("conditioning", "iso")))
+    if conditioning not in {"sigma", "iso", "iso_only"}:
+        die(2, f"unsupported codec_raw_signal_sr conditioning={conditioning!r}")
+    needs_sigma = conditioning in {"sigma", "iso"}
+    sigma_source = str(cnn.get("sigma_source", "source_raw")) if needs_sigma else "unused"
+    sigma_planes = None
+    if needs_sigma:
+        if sigma_source == "source_raw":
+            if source_raw is None:
+                source_raw = read_bayer(src_dng)
+            sigma_raw = source_raw
+        elif sigma_source == "codec_up":
+            sigma_raw = _interleave_bayer_planes(codec_up, (target_h * 2, target_w * 2), raw_norm)
+        else:
+            die(2, f"unsupported codec_raw_signal_sr sigma_source={sigma_source!r}")
+        sigma_planes = _deinterleave_bayer(noise_sigma_map(sigma_raw, meta)) / raw_norm
     tile = int(cnn.get("tile", 256))
     overlap = int(cnn.get("overlap", 24))
     inference_batch = max(1, int(cnn.get("inference_batch", 1)))
@@ -683,16 +687,21 @@ def apply_codec_raw_signal_sr(
                     out[:, y0:y1, x0:x1] = codec_up[:, y0:y1, x0:x1]
                     continue
                 tiles_model += 1
-                x_parts = [
-                    codec_up[:, yc0:yc1, xc0:xc1],
-                    sigma_planes[:, yc0:yc1, xc0:xc1],
-                ]
+                x_parts = [codec_up[:, yc0:yc1, xc0:xc1]]
+                if needs_sigma:
+                    assert sigma_planes is not None
+                    x_parts.append(sigma_planes[:, yc0:yc1, xc0:xc1])
                 if conditioning == "iso":
                     hh, ww = yc1 - yc0, xc1 - xc0
                     iso_norm = np.clip(np.log2(max(float(meta.iso), 1.0) / 64.0) / 8.0, 0.0, 1.0)
+                    assert sigma_planes is not None
                     sigma_rms = float(np.sqrt(np.mean(sigma_planes[:, yc0:yc1, xc0:xc1] ** 2)))
                     x_parts.append(np.full((1, hh, ww), iso_norm, dtype=np.float32))
                     x_parts.append(np.full((1, hh, ww), sigma_rms, dtype=np.float32))
+                elif conditioning == "iso_only":
+                    hh, ww = yc1 - yc0, xc1 - xc0
+                    iso_norm = np.clip(np.log2(max(float(meta.iso), 1.0) / 64.0) / 8.0, 0.0, 1.0)
+                    x_parts.append(np.full((1, hh, ww), iso_norm, dtype=np.float32))
                 x_np = np.concatenate(x_parts, axis=0)[None].astype(np.float32)
                 yy0 = y0 - yc0
                 yy1 = yy0 + (y1 - y0)

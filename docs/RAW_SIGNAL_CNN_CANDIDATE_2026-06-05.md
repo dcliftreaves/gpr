@@ -206,6 +206,53 @@ solve full-image texture/detail placement. The next candidate should either
 remove sigma channels entirely or use a larger/full-context teacher objective;
 the current architecture/input contract should not be promoted.
 
+## No-Sigma Retrain
+
+A follow-up retrain removed sigma maps from the model input entirely. The
+candidate uses only decoded/upscaled codec raw plus one ISO conditioning plane,
+so it has no dependency on source-derived or codec-derived sigma maps.
+
+- Checkpoint:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_iso_only_20260605/codec_raw_signal_sr_w64_iso_only_84crops.pt`
+- Checkpoint SHA-256:
+  `7de6e691813e39ae2d9d3ce1a0ed1682a90b2d702c0cb3ac6af2d01f1e9445cf`
+- Model dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_iso_only_20260605/dashboard_w64_iso_only_84crops/codec_raw_clean_dashboard.html`
+- Dispatch dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_iso_only_20260605/dispatch_policy_w64_iso_only_84crops/raw_signal_dispatch_policy.html`
+
+Training summary on the expanded 84-crop pair set:
+
+| mode | mean raw target RMSE | accepted raw target RMSE | note |
+| --- | ---: | ---: | --- |
+| bilinear bypass | 218.05 counts | 225.28 counts | baseline |
+| no-sigma model | 190.84 counts | 204.76 counts | weak crop gain |
+| dispatch policy | 190.84 counts | n/a | ISO >= 100 or HF RMS >= 1.741; 1 regression |
+
+Registered no-sigma gate run:
+
+```text
+pipeline=codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_only_84crops+demosaic=sips_via_gpr_tools
+run_hash=4f8231e47309d668
+ship_class=UPRESABLE
+verdict=PASS
+```
+
+The raw Bayer gate still passes, but rendered quality is essentially unchanged
+from the runtime-sigma retrain:
+
+| image | source-sigma LPIPS | runtime-sigma retrain LPIPS | no-sigma LPIPS | no-sigma MS-SSIM | no-sigma Bayer PSNR |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `Z8Z_0001` | 0.0761 | 0.3015 | 0.3062 | 0.9131 | 38.78 |
+| `Z8Z_0067` | 0.0618 | 0.0881 | 0.0887 | 0.9888 | 51.68 |
+| `Z8Z_5323` | 0.0174 | 0.4251 | 0.4246 | 0.9424 | 43.10 |
+| `Z8Z_6693` | 0.0244 | 0.6393 | 0.6503 | 0.9199 | 40.04 |
+
+Conclusion: removing sigma channels does not solve the blocker. The failure is
+now narrowed away from sigma conditioning alone. The next candidate should stop
+retraining this small crop-RMSE model and move to a larger/full-context or
+teacher-distilled objective that directly optimizes full-image detail placement.
+
 ## Runtime
 
 The 2026-06-05 rerun of `1bd6fcf9583a44fa` records per-image stage timings
@@ -234,8 +281,9 @@ Interpretation: the codec stage remains preview-speed, but the current Python
 tiled PyTorch raw-signal CNN restore path is an offline/desktop candidate only.
 The full gate path additionally includes validation-only render and metric
 work. Promotion to a live/preview path requires a compiled restore backend and a
-separate target benchmark on that backend. The runtime-sigma probe shows that
-performance optimization is secondary until the conditioning mismatch is fixed.
+separate target benchmark on that backend. The runtime-sigma and no-sigma
+retries show that performance optimization is secondary until the full-image
+detail-placement objective is fixed.
 
 ## Remaining Work
 
@@ -245,9 +293,9 @@ This is a registered raw-domain candidate, but it is not production-ready until:
   baseline;
 - LPIPS, MS-SSIM, luma/detail, crop-level texture placement, and worst-image
   visual inspection are compared;
-- the candidate is retrained or distilled with runtime-available sigma
-  conditioning, or with sigma channels removed; the first runtime-sigma retrain
-  failed this requirement;
+- the candidate is retrained or distilled with a larger/full-context objective;
+  both runtime-available sigma conditioning and no-sigma conditioning failed
+  this requirement with the current small crop model;
 - the raw-signal CNN is compiled or otherwise optimized, then decode + model +
   encode timing is remeasured on the intended preview path;
 - the checkpoint hash, sidecar config, gate receipt, and timing receipt are kept

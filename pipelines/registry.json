@@ -171,6 +171,20 @@
       "raw_norm": 16383.0,
       "ckpt_sha256": "fb6e37a1e15ed297d47878b6144bebcbf5ed0ee675bfe5a141da401e5c497aeb"
     },
+    "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_only_84crops": {
+      "$doc": "No-sigma raw-signal SR retrain from the 2026-06-05 expanded 84-crop pass. Uses only decoded/upscaled codec raw plus ISO conditioning, removing dependence on source/raw-derived sigma maps.",
+      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_iso_only_20260605/codec_raw_signal_sr_w64_iso_only_84crops.pt",
+      "cnn_arch_variant": "codec_raw_signal_sr",
+      "trained_against_codec": "ml2_q3_dec2",
+      "conditioning": "iso_only",
+      "dispatch_iso_threshold": 100,
+      "dispatch_hf_threshold": 1.7410857677459717,
+      "inference_batch": 16,
+      "tile": 256,
+      "overlap": 24,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "7de6e691813e39ae2d9d3ce1a0ed1682a90b2d702c0cb3ac6af2d01f1e9445cf"
+    },
     "none": {
       "$doc": "No CNN \u2014 codec output is the final result."
     }
@@ -255,6 +269,14 @@
       "ship_class": "UPRESABLE",
       "$role": "temp-runtime-sigma-retrain-20260605",
       "$doc": "Runtime-sigma retrain candidate. Not a ship pipeline until full-image gate/render metrics beat the source-sigma analysis receipt and current UPRESABLE baseline."
+    },
+    "codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_only_84crops+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_only_84crops",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "UPRESABLE",
+      "$role": "temp-iso-only-raw-signal-sr-20260605",
+      "$doc": "No-sigma retrain candidate. Registered to test whether removing sigma conditioning fixes the runtime mismatch before moving to larger/full-context targets."
     },
     "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_l2x2_l1x2",
