@@ -159,6 +159,53 @@ deployment must use codec-derived or metadata-only sigma. The next candidate
 must be retrained or distilled with runtime-available sigma conditioning, or the
 sigma channels must be removed.
 
+## Runtime-Sigma Retrain
+
+A follow-up retrain used the same expanded 84-crop set but rebuilt the pair
+sigma channels from decoded/upscaled codec raw:
+
+- Runtime-sigma pairs:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_pairs_runtime_sigma_20260605/ml2_q3_dec2_raw_signal_pairs_runtime_sigma_84crops.npz`
+- Checkpoint:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_runtime_sigma_20260605/codec_raw_signal_sr_w64_iso_runtime_sigma_84crops.pt`
+- Checkpoint SHA-256:
+  `fb6e37a1e15ed297d47878b6144bebcbf5ed0ee675bfe5a141da401e5c497aeb`
+- Model dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_runtime_sigma_20260605/dashboard_w64_iso_runtime_sigma_84crops/codec_raw_clean_dashboard.html`
+- Dispatch dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_runtime_sigma_20260605/dispatch_policy_w64_iso_runtime_sigma_84crops/raw_signal_dispatch_policy.html`
+
+Training summary on the 84-crop pair set:
+
+| mode | mean raw target RMSE | accepted raw target RMSE | note |
+| --- | ---: | ---: | --- |
+| bilinear bypass | 218.05 counts | 225.28 counts | baseline |
+| runtime-sigma model | 191.36 counts | 204.87 counts | weak gain |
+| dispatch policy | 191.32 counts | n/a | ISO >= 100 or HF RMS >= 1.741; 1 regression |
+
+Registered retrain gate run:
+
+```text
+pipeline=codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_runtime_sigma_84crops+demosaic=sips_via_gpr_tools
+run_hash=042cc4bdcf4dfe35
+ship_class=UPRESABLE
+verdict=PASS
+```
+
+The raw Bayer gate still passes, but rendered quality remains unusable:
+
+| image | source-sigma LPIPS | runtime-sigma probe LPIPS | runtime-sigma retrain LPIPS | retrain MS-SSIM | retrain Bayer PSNR |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `Z8Z_0001` | 0.0761 | 0.2814 | 0.3015 | 0.9136 | 38.80 |
+| `Z8Z_0067` | 0.0618 | 0.0832 | 0.0881 | 0.9887 | 51.63 |
+| `Z8Z_5323` | 0.0174 | 0.3333 | 0.4251 | 0.9400 | 43.62 |
+| `Z8Z_6693` | 0.0244 | 0.4417 | 0.6393 | 0.9170 | 39.46 |
+
+Conclusion: retraining the same small crop model with runtime sigma does not
+solve full-image texture/detail placement. The next candidate should either
+remove sigma channels entirely or use a larger/full-context teacher objective;
+the current architecture/input contract should not be promoted.
+
 ## Runtime
 
 The 2026-06-05 rerun of `1bd6fcf9583a44fa` records per-image stage timings
@@ -199,7 +246,8 @@ This is a registered raw-domain candidate, but it is not production-ready until:
 - LPIPS, MS-SSIM, luma/detail, crop-level texture placement, and worst-image
   visual inspection are compared;
 - the candidate is retrained or distilled with runtime-available sigma
-  conditioning, or with sigma channels removed;
+  conditioning, or with sigma channels removed; the first runtime-sigma retrain
+  failed this requirement;
 - the raw-signal CNN is compiled or otherwise optimized, then decode + model +
   encode timing is remeasured on the intended preview path;
 - the checkpoint hash, sidecar config, gate receipt, and timing receipt are kept

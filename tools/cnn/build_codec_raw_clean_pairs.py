@@ -17,7 +17,9 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tests/quality_gates"))
 import run_gate  # noqa: E402
 
-from train_raw_clean_ref_cnn import deinterleave
+from analyze_dng_noise_profile import noise_sigma_map, read_dng_meta
+from train_codec_raw_clean_sr import upsample_codec
+from train_raw_clean_ref_cnn import deinterleave, interleave
 
 
 DEFAULT_TARGETS = Path("/Volumes/OWC_8TB/gpr_work/artifacts/raw_clean_ref_targets_noise_only_20260605/raw_clean_ref_targets.json")
@@ -68,6 +70,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     source_xywh: list[np.ndarray] = []
     encoded_bytes: dict[str, int] = {}
     encoded_ms: dict[str, float] = {}
+    meta_by_image: dict[str, Any] = {}
 
     scratch = args.work_dir
     scratch.mkdir(parents=True, exist_ok=True)
@@ -88,15 +91,26 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             encoded_bytes[image_id] = int(enc_bytes)
             encoded_ms[image_id] = float(enc_ms)
             print(f"  decoded {decoded.shape[1]}x{decoded.shape[0]} bytes={enc_bytes} enc_ms={enc_ms:.2f}", flush=True)
+            if args.sigma_source == "codec_up":
+                meta_by_image[image_id] = read_dng_meta(image_id, source_path)
             for row in rows:
                 z = np.load(row["npz"])
                 crop_xywh = z["crop_xywh"].astype(np.int32)
                 codec_crop = decoded_crop_for_target(decoded, crop_xywh, args.decimation)
-                codec_planes.append(deinterleave(codec_crop))
+                codec_crop_planes = deinterleave(codec_crop)
+                raw_planes = deinterleave(z["raw"].astype(np.float32))
+                codec_planes.append(codec_crop_planes)
                 target_clean_planes.append(deinterleave(z["clean"].astype(np.float32)))
-                target_raw_planes.append(deinterleave(z["raw"].astype(np.float32)))
+                target_raw_planes.append(raw_planes)
                 exact_residual_planes.append(deinterleave(z["exact_residual"].astype(np.float32)))
-                sigma_planes.append(deinterleave(z["sigma"].astype(np.float32)))
+                if args.sigma_source == "source":
+                    sigma = z["sigma"].astype(np.float32)
+                elif args.sigma_source == "codec_up":
+                    codec_up = upsample_codec(codec_crop_planes, raw_planes.shape[1:])
+                    sigma = noise_sigma_map(interleave(codec_up), meta_by_image[image_id])
+                else:
+                    raise RuntimeError(f"unsupported sigma source {args.sigma_source}")
+                sigma_planes.append(deinterleave(sigma.astype(np.float32)))
                 names.append(row["image_id"])
                 crops.append(row["crop"])
                 accepted.append(bool(row.get("accepted", True)))
@@ -124,6 +138,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "targets": str(args.targets),
         "codec": args.codec,
         "decimation": args.decimation,
+        "sigma_source": args.sigma_source,
         "target_semantics": (
             "target_raw_planes are the source Bayer signal/detail target; "
             "target_clean_planes are retained for clean-target experiments; "
@@ -145,6 +160,7 @@ def main() -> int:
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     ap.add_argument("--codec", default="ml2_q3_dec2")
     ap.add_argument("--decimation", type=int, default=2)
+    ap.add_argument("--sigma-source", choices=("source", "codec_up"), default="source")
     ap.add_argument("--work-dir", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work/tmp/codec_raw_clean_pairs"))
     args = ap.parse_args()
     receipt = build(args)
