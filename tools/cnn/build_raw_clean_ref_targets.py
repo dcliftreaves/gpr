@@ -78,6 +78,76 @@ def signed_local_coherence(hf: np.ndarray) -> np.ndarray:
     return np.clip(numerator / denominator, 0.0, 1.0).astype(np.float32)
 
 
+def decorrelate_residual(
+    residual: np.ndarray,
+    plane: np.ndarray,
+    sigma: np.ndarray,
+    edge: np.ndarray,
+    finest: np.ndarray,
+    coarser: np.ndarray,
+    args: argparse.Namespace,
+) -> tuple[np.ndarray, dict[str, float]]:
+    """Remove linear signal-correlated components from whitened residual.
+
+    True stochastic sensor noise may be heteroscedastic, but after dividing by
+    the DNG sigma map it should not carry a predictable component from local
+    signal level or edge support. This projection is deliberately simple and
+    auditable: fit z=residual/sigma against normalized lowpass intensity and
+    gradient support, subtract that fit, then convert back to raw counts.
+    """
+    if not args.decorrelate_residual:
+        return residual.astype(np.float32), {
+            "decorrelation_beta_offset": 0.0,
+            "decorrelation_beta_signal": 0.0,
+            "decorrelation_beta_gradient": 0.0,
+            "decorrelation_beta_finest": 0.0,
+            "decorrelation_beta_coarser": 0.0,
+            "decorrelation_removed_rms": 0.0,
+        }
+
+    sigma_safe = np.maximum(sigma.astype(np.float32), 1e-6)
+    z = residual.astype(np.float32) / sigma_safe
+    signal = blur(plane, args.decorrelate_signal_blur)
+    signal = (signal - float(np.mean(signal))) / max(float(np.std(signal)), 1e-6)
+    grad = (edge.astype(np.float32) - float(np.mean(edge))) / max(float(np.std(edge)), 1e-6)
+
+    predictors = [np.ones_like(z, dtype=np.float32), signal.astype(np.float32)]
+    if args.decorrelate_gradient:
+        predictors.append(grad.astype(np.float32))
+    if args.decorrelate_highpass:
+        finest_z = finest.astype(np.float32) / sigma_safe
+        finest_z = (finest_z - float(np.mean(finest_z))) / max(float(np.std(finest_z)), 1e-6)
+        coarser_z = coarser.astype(np.float32) / sigma_safe
+        coarser_z = (coarser_z - float(np.mean(coarser_z))) / max(float(np.std(coarser_z)), 1e-6)
+        predictors.extend([finest_z.astype(np.float32), coarser_z.astype(np.float32)])
+    x = np.stack([p.ravel() for p in predictors], axis=1).astype(np.float64)
+    y = z.ravel().astype(np.float64)
+    xtx = x.T @ x
+    xtx += np.eye(xtx.shape[0], dtype=np.float64) * args.decorrelate_ridge
+    beta = np.linalg.solve(xtx, x.T @ y)
+    fitted = (x @ beta).reshape(z.shape).astype(np.float32)
+    z_out = z - fitted
+    out = z_out * sigma_safe
+    idx = 2
+    beta_gradient = 0.0
+    if args.decorrelate_gradient:
+        beta_gradient = float(beta[idx])
+        idx += 1
+    beta_finest = 0.0
+    beta_coarser = 0.0
+    if args.decorrelate_highpass:
+        beta_finest = float(beta[idx])
+        beta_coarser = float(beta[idx + 1])
+    return out.astype(np.float32), {
+        "decorrelation_beta_offset": float(beta[0]),
+        "decorrelation_beta_signal": float(beta[1]) if len(beta) > 1 else 0.0,
+        "decorrelation_beta_gradient": beta_gradient,
+        "decorrelation_beta_finest": beta_finest,
+        "decorrelation_beta_coarser": beta_coarser,
+        "decorrelation_removed_rms": float(np.sqrt(np.mean((fitted * sigma_safe) ** 2))),
+    }
+
+
 def residual_lag_max_abs(removed_ch: dict[str, np.ndarray]) -> float:
     values: list[float] = []
     for plane in removed_ch.values():
@@ -166,6 +236,27 @@ def clean_plane(
     mask = np.clip(mask, 0.0, args.max_mask_weight).astype(np.float32)
 
     residual = candidate_residual * mask
+    residual, decorrelation_stats = decorrelate_residual(
+        residual,
+        plane,
+        sigma_safe,
+        edge,
+        finest,
+        coarser,
+        args,
+    )
+    if args.post_edge_suppress:
+        post_gate = np.power(
+            np.clip(
+                (args.post_edge_cutoff - edge) / max(args.post_edge_cutoff, 1e-6),
+                0.0,
+                1.0,
+            ),
+            args.post_edge_power,
+        ).astype(np.float32)
+        residual = residual * post_gate
+    else:
+        post_gate = np.ones_like(residual, dtype=np.float32)
     residual = np.clip(
         residual,
         -args.output_sigma_clip * sigma_safe,
@@ -187,7 +278,9 @@ def clean_plane(
         "mean_cross_support": float(np.mean(cross)),
         "mean_coherence": float(np.mean(coherence)),
         "mean_structure_support": float(np.mean(structure_support)),
-    }
+        "post_edge_mean_gate": float(np.mean(post_gate)),
+        "post_edge_p90_gate": float(np.percentile(post_gate, 90)),
+    } | decorrelation_stats
 
 
 def build_crop(
@@ -372,6 +465,14 @@ def main() -> int:
     ap.add_argument("--structure-power", type=float, default=0.5)
     ap.add_argument("--mask-blur", type=float, default=0.65)
     ap.add_argument("--max-mask-weight", type=float, default=1.0)
+    ap.add_argument("--decorrelate-residual", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--decorrelate-gradient", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--decorrelate-highpass", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--decorrelate-signal-blur", type=float, default=2.0)
+    ap.add_argument("--decorrelate-ridge", type=float, default=1e-6)
+    ap.add_argument("--post-edge-suppress", action=argparse.BooleanOptionalAction, default=True)
+    ap.add_argument("--post-edge-cutoff", type=float, default=0.35)
+    ap.add_argument("--post-edge-power", type=float, default=1.5)
     ap.add_argument("--output-sigma-clip", type=float, default=1.0)
     ap.add_argument("--enforce-contract", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--contract-max-residual-sigma", type=float, default=1.0)
