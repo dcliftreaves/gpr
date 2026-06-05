@@ -45,10 +45,19 @@ Smoke results:
   followed by a one-epoch `bido_4x` training smoke with `--teacher-weight 0.25`.
   The smoke verified the sidecar and loss path end to end; temporary artifacts
   were deleted after validation.
+- The full hardtail Restormer sidecar was generated at
+  `/Volumes/OWC_8TB/gpr_work/cnn/teacher_restormer_hardtail_t192_s96_fullref.npy`.
+  Shape is `(1040, 768, 768, 3)`, all 1040 tiles are generated, SHA-256 is
+  `af25ad1a4f02ce596e786f25f9b597f921290cabd3dddfc0fa193398f3001b4e`,
+  and generation took 1953.99 seconds with 256 px tiles / 32 px overlap.
+- Visual samples showed the Restormer teacher is useful as a structure/detail
+  target but not as a full RGB target because the codec-up teacher input path
+  can retain color cast. `tools/cnn/train.py` therefore supports
+  `--teacher-loss luma_hf`, which supervises high-frequency luminance only
+  while `tgt_rgb` remains the color/task anchor.
 
-Next implementation step: build cached teacher targets from codec-degraded RGB
-tiles for the full hardtail set, then run the beta ablation against the four
-blocker images before attempting the full 498-source cache.
+Next implementation step: run the beta ablation with `--teacher-loss luma_hf`
+against the four blocker images before attempting the full 498-source cache.
 
 ## 1. Problem statement
 
@@ -379,8 +388,11 @@ Execute in order. Each step has a gate. Stop and reassess if any gate fails.
 13. **Add distillation loss to training script.**
     - Add `--teacher-weight` (β) and `--task-weight` (α) CLI flags.
     - Dataloader returns both `tgt_rgb` and `tgt_rgb_teacher`.
-    - Loss is α·msL1(pred, tgt_sips) + β·msL1(pred, tgt_teacher)
-      + γ·LPIPS(pred, tgt_sips).
+    - First pass loss is α·msL1(pred, tgt_sips) +
+      β·L1(HF_luma(pred), HF_luma(tgt_teacher)) +
+      γ·LPIPS(pred, tgt_sips). Full RGB teacher L1 remains available for
+      controlled ablation, but it should not be the default because visual
+      samples show the teacher path can carry color cast.
 
 14. **β ablation (gate 5)** — 3 × 5-epoch sweep, β ∈ {0.25, 0.5, 1.0},
     α=1.0, γ = Phase A's chosen λ_lpips.

@@ -333,6 +333,31 @@ def unpack_batch(batch):
     raise RuntimeError(f"unexpected batch shape: {len(batch)} tensors")
 
 
+def rgb_luma(x):
+    weights = torch.tensor([0.2126, 0.7152, 0.0722], device=x.device, dtype=x.dtype).view(1, 3, 1, 1)
+    return (x * weights).sum(dim=1, keepdim=True)
+
+
+def highpass_luma(x, kernel):
+    if kernel < 3 or kernel % 2 == 0:
+        raise ValueError("--teacher-hf-kernel must be an odd integer >= 3")
+    y = rgb_luma(x)
+    pad = kernel // 2
+    low = F.avg_pool2d(F.pad(y, (pad, pad, pad, pad), mode="reflect"), kernel_size=kernel, stride=1)
+    return y - low
+
+
+def teacher_distill_loss(pred, teacher, mode="rgb_l1", loss_domain="linear", hf_kernel=31):
+    if mode == "rgb_l1":
+        return multiscale_l1(pred, teacher, domain=loss_domain)
+    if mode == "luma_hf":
+        pred_hf = highpass_luma(pred, hf_kernel)
+        teacher_hf = highpass_luma(teacher, hf_kernel)
+        pred_hf_d, teacher_hf_d = _apply_loss_domain(pred_hf, teacher_hf, loss_domain)
+        return F.l1_loss(pred_hf_d, teacher_hf_d)
+    raise ValueError(f"unknown teacher loss mode: {mode}")
+
+
 def train(args):
     NPZ = args.npz or default_npz()
     print(f"=== Training {args.variant} (ANE-friendly F) — AA-ON ===")
@@ -347,6 +372,8 @@ def train(args):
         raise RuntimeError("at least one of --task-weight or --teacher-weight must be positive")
     if args.teacher_weight > 0.0 and target_kind != "rgb":
         raise RuntimeError("--teacher-weight is only supported for RGB/BIDO targets")
+    if args.teacher_loss == "luma_hf" and (args.teacher_hf_kernel < 3 or args.teacher_hf_kernel % 2 == 0):
+        raise RuntimeError("--teacher-hf-kernel must be an odd integer >= 3")
     val_src_names = args.val_src_names or os.environ.get("VAL_SRC_NAMES") or os.environ.get("VAL_SRC_NAME", "Z8_ISO64")
     d = load_data(NPZ, target_val_src_names=_split_names(val_src_names),
                   subsample_rate=args.subsample, target_kind=target_kind,
@@ -451,8 +478,9 @@ def train(args):
                     raise RuntimeError("--teacher-weight requires an RGB teacher target")
                 if teacher_use.shape != pred.shape:
                     raise RuntimeError(f"teacher target shape {teacher_use.shape} != pred shape {pred.shape}")
-                l = l + args.teacher_weight * multiscale_l1(
-                    pred, teacher_use, domain=args.loss_domain)
+                l = l + args.teacher_weight * teacher_distill_loss(
+                    pred, teacher_use, mode=args.teacher_loss,
+                    loss_domain=args.loss_domain, hf_kernel=args.teacher_hf_kernel)
             opt.zero_grad(set_to_none=True); l.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step(); loss_sum += l.item(); nb += 1
@@ -488,6 +516,8 @@ def train(args):
                 "lpips_weight_current": lpips_weight,
                 "task_weight": args.task_weight,
                 "teacher_weight": args.teacher_weight,
+                "teacher_loss": args.teacher_loss,
+                "teacher_hf_kernel": args.teacher_hf_kernel,
                 "teacher_target_key": args.teacher_target_key if use_teacher else None,
                 "teacher_npz": args.teacher_npz if use_teacher else None,
                 "loss_domain": args.loss_domain,
@@ -546,6 +576,10 @@ def main():
                     help="optional sidecar .npy/.npz containing teacher targets in base NPZ tile order")
     ap.add_argument("--teacher-weight", type=float, default=0.0,
                     help="multiscale L1 weight against --teacher-target-key")
+    ap.add_argument("--teacher-loss", choices=["rgb_l1", "luma_hf"], default="rgb_l1",
+                    help="teacher loss mode; luma_hf uses high-frequency luminance only")
+    ap.add_argument("--teacher-hf-kernel", type=int, default=31,
+                    help="odd blur kernel for --teacher-loss luma_hf")
     ap.add_argument("--task-weight", type=float, default=1.0,
                     help="multiscale/LPIPS task loss weight against tgt_rgb or Bayer target")
     args = ap.parse_args()
