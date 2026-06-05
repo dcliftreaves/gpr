@@ -316,6 +316,7 @@ and routed through an operator inspection sentence into
 | full codec × CNN × verdict matrix | [`docs/FULL_PIPELINE_MATRIX.md`](docs/FULL_PIPELINE_MATRIX.md) |
 | OEM-contributable bitstream spec | [`docs/SPEC.md`](docs/SPEC.md) |
 | auto-generated capability matrix | [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) |
+| production checkpoints and artifact roots | [`docs/PRODUCTION_ARTIFACTS.md`](docs/PRODUCTION_ARTIFACTS.md) |
 | omitted experiments and generated artifacts | [`docs/EXPERIMENT_ARCHIVE_2026-06-04.md`](docs/EXPERIMENT_ARCHIVE_2026-06-04.md) |
 
 Full index: [`docs/README.md`](docs/README.md).
@@ -344,4 +345,3 @@ the original GoPro release.
 
 - [`LICENSE-APACHE`](LICENSE-APACHE)
 - [`LICENSE-MIT`](LICENSE-MIT)
-

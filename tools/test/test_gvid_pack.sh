@@ -3,17 +3,26 @@
 set -euo pipefail
 
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-WORK=${WORK:-/tmp/gvid_pack_smoke}
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+  if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+    GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+  else
+    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+  fi
+fi
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+WORK=${WORK:-$GPR_TMPDIR/gvid_pack_smoke}
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 rm -rf "$WORK"
 mkdir -p "$WORK/frames"
 printf 'frame-0000-payload' > "$WORK/frames/frame_0000.gpr"
 printf 'frame-0001-payload-longer' > "$WORK/frames/frame_0001.gpr"
 
-python3 "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip.gvid" \
+"$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip.gvid" \
   --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4
 
-python3 - "$WORK/clip.gvid" <<'PY'
+"$PYTHON_BIN" - "$WORK/clip.gvid" <<'PY'
 import struct
 import sys
 from pathlib import Path
@@ -89,14 +98,14 @@ cat > "$WORK/clip.gvid.meta.json" <<'JSON'
 }
 JSON
 
-python3 "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip_with_meta.gvid" \
+"$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip_with_meta.gvid" \
   --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4 \
   --metadata "$WORK/clip.gvid.meta.json"
 
 test -f "$WORK/clip_with_meta.gvid.meta.json"
-python3 "$REPO/tools/gvid_metadata.py" validate "$WORK/clip_with_meta.gvid.meta.json" \
+"$PYTHON_BIN" "$REPO/tools/gvid_metadata.py" validate "$WORK/clip_with_meta.gvid.meta.json" \
   --gvid "$WORK/clip_with_meta.gvid"
-python3 - "$WORK/clip_with_meta.gvid.meta.json" <<'PY'
+"$PYTHON_BIN" - "$WORK/clip_with_meta.gvid.meta.json" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -105,7 +114,7 @@ meta = json.loads(Path(sys.argv[1]).read_text())
 assert meta["gvid"] == "clip_with_meta.gvid", meta["gvid"]
 PY
 
-python3 - "$WORK/clip.gvid.meta.json" "$WORK/bad_attach.gvid.meta.json" <<'PY'
+"$PYTHON_BIN" - "$WORK/clip.gvid.meta.json" "$WORK/bad_attach.gvid.meta.json" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -117,7 +126,7 @@ meta["frames"][0]["frame_tag"], meta["frames"][1]["frame_tag"] = 1, 0
 dst.write_text(json.dumps(meta, indent=2))
 PY
 
-if python3 "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/bad_attach.gvid" \
+if "$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/bad_attach.gvid" \
   --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4 \
   --metadata "$WORK/bad_attach.gvid.meta.json"; then
   echo "expected bad metadata attach to fail" >&2

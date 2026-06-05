@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bench_pi_to_mac_upresable.sh — sustained Pi capture → USB transfer → Mac
 # super-res-and-package UPRESABLE pipeline. Three stages timed independently,
-# bottleneck identified. Output to logs + /tmp/pi_mac_bench_report.txt.
+# bottleneck identified. Output to logs + external-drive report.
 #
 # Stages (all on the 4 gate-image DNGs, cycled N times):
 #   A. Pi encodes halfres .gpr via ml2_q3_dec2 → /mnt/ssd/work/bench_pi2mac/
@@ -23,15 +23,29 @@
 set -euo pipefail
 
 N="${1:-120}"
-PI=gpr-pi
+PI="${PI:-gpr-pi}"
 SRC_DNGS=(Z8Z_0001.dng Z8Z_0067.dng Z8Z_5323.dng Z8Z_6693.dng)
 
-MAC_OUT=/Volumes/OWC_8TB/gpr_work/artifacts/upresable/pi_mac_bench
-PI_OUT=/mnt/ssd/work/bench_pi2mac
-LOG=$MAC_OUT/run.log
-REPORT=/tmp/pi_mac_bench_report.txt
+GPR_ROOT="${GPR_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+  if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+    GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+  else
+    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+  fi
+fi
+GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
+GPR_MODEL_ROOT="${GPR_MODEL_ROOT:-$GPR_EXTERNAL_ROOT/models}"
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+TMPDIR="$GPR_TMPDIR"
+PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || true)}"
 
-mkdir -p "$MAC_OUT"
+MAC_OUT="${MAC_OUT:-$GPR_ARTIFACT_ROOT/upresable/pi_mac_bench}"
+PI_OUT="${PI_OUT:-/mnt/ssd/work/bench_pi2mac}"
+LOG=$MAC_OUT/run.log
+REPORT="${REPORT:-$TMPDIR/pi_mac_bench_report.txt}"
+
+mkdir -p "$MAC_OUT" "$TMPDIR"
 rm -f "$LOG"
 exec > >(tee -a "$LOG") 2>&1
 
@@ -48,10 +62,10 @@ RAW_DIR=$MAC_OUT/raws
 mkdir -p "$RAW_DIR"
 for name in Z8Z_0001 Z8Z_0067 Z8Z_5323 Z8Z_6693; do
   if [ ! -f "$RAW_DIR/$name.raw" ]; then
-    DNG=/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs/$name.dng
-    [ -f "$DNG" ] || DNG=/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525/source_dngs/$name.dng
+    DNG="$GPR_EXTERNAL_ROOT/barnsky_full_dngs/$name.dng"
+    [ -f "$DNG" ] || DNG="$GPR_ARTIFACT_ROOT/visual_compare_20260525/source_dngs/$name.dng"
     DNG_PATH="$DNG" RAW_PATH="$RAW_DIR/$name.raw" \
-    /Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3 -c "
+    "$PYTHON_BIN" -c "
 import os, tifffile, numpy as np
 with tifffile.TiffFile(os.environ['DNG_PATH']) as tf:
     bayer = None
@@ -104,7 +118,7 @@ echo
 # --- Stage B: rsync ---
 echo "--- Stage B: rsync Pi → Mac ---"
 B_T0=$(date +%s.%N)
-rsync -a --info=stats2 "$PI:$PI_OUT/" "$MAC_OUT/halfres_gpr/" > /tmp/rsync_stats.txt
+rsync -a --info=stats2 "$PI:$PI_OUT/" "$MAC_OUT/halfres_gpr/" > "$TMPDIR/rsync_stats.txt"
 B_T1=$(date +%s.%N)
 B_DUR=$(echo "$B_T1 - $B_T0" | bc -l)
 B_FPS=$(echo "$N / $B_DUR" | bc -l)
@@ -119,23 +133,25 @@ echo "--- Stage C: Mac BIBO_2x + DNG wrap + .gpr encode ---"
 # then run in a one-off mode that processes existing GPRs (we don't have
 # a CLI flag for that yet, so we use a small inline Python harness).
 C_T0=$(date +%s.%N)
-PYTHONPATH=/Users/dcliftreaves/Documents/Github/gpr/tools/cnn \
-/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3 - <<PYEOF
+PYTHONPATH="$GPR_ROOT/tools/cnn" \
+"$PYTHON_BIN" - <<PYEOF
 import sys, time, os, subprocess
 from pathlib import Path
 import numpy as np
 import torch
 
-sys.path.insert(0, '/Users/dcliftreaves/Documents/Github/gpr/tools/cnn')
+sys.path.insert(0, '$GPR_ROOT/tools/cnn')
 import importlib.util
-spec = importlib.util.spec_from_file_location("up", "/Users/dcliftreaves/Documents/Github/gpr/tools/cnn/upresable_pipeline.py")
+spec = importlib.util.spec_from_file_location("up", "$GPR_ROOT/tools/cnn/upresable_pipeline.py")
 up = importlib.util.module_from_spec(spec); spec.loader.exec_module(up)
 
 GPRS = sorted(Path("$MAC_OUT/halfres_gpr").glob("*.gpr"))
 print(f"  found {len(GPRS)} halfres GPRs to process", flush=True)
 
 device = torch.device('mps')
-ckpt = '/Users/dcliftreaves/Documents/Github/gpr/models/BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt'
+ckpt = os.environ.get(
+    'GPR_BIBO2X_CKPT',
+    '$GPR_MODEL_ROOT/BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt')
 ck = torch.load(ckpt, map_location='cpu', weights_only=False)
 from model import build
 variant = ck.get('variant', 'F_ane')
@@ -152,7 +168,7 @@ src_names = ['Z8Z_0001','Z8Z_0067','Z8Z_5323','Z8Z_6693']
 
 def read_fused_gpr_to_bayer(gpr_path):
     raw_out = work / (gpr_path.stem + ".raw")
-    cmd = ['/Users/dcliftreaves/Documents/Github/gpr/build-local/bin/fused_decode_cli',
+    cmd = ['$GPR_ROOT/build-local/bin/fused_decode_cli',
            str(gpr_path), '8280', '5520', str(raw_out)]
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
@@ -169,7 +185,7 @@ def encode_fullres_gpr(bayer_full, out_path, idx):
     GPR_SAVE_ENC_TO + GPR_SKIP_DECODE so we get just the encoded bitstream."""
     raw_in = work / f"full_in_{idx}.raw"
     bayer_full.tofile(raw_in)
-    bin_path = '/Users/dcliftreaves/Documents/Github/gpr/build-local/bin/test_fused_roundtrip'
+    bin_path = '$GPR_ROOT/build-local/bin/test_fused_roundtrip'
     env = os.environ.copy()
     env.update({
         'GPR_INCLUDE_LL': '1', 'FUSED_MULTI_LEVEL': '1',
@@ -219,7 +235,7 @@ echo
 echo "--- Stage D: pack full-res .gpr → .gvid ---"
 GVID=$MAC_OUT/processed/upresable.gvid
 D_T0=$(date +%s.%N)
-python3 /Users/dcliftreaves/Documents/Github/gpr/tools/gvid_pack.py \
+"$PYTHON_BIN" "$GPR_ROOT/tools/gvid_pack.py" \
   "$MAC_OUT/processed/fullres" "$GVID" \
   --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4
 D_T1=$(date +%s.%N)
@@ -233,7 +249,7 @@ echo
 echo "--- Stage E: pack full-res .gpr → GPR1 MOV compatibility wrapper ---"
 MOV_COMPAT=$MAC_OUT/processed/upresable.gpr1.mov
 E_T0=$(date +%s.%N)
-/Users/dcliftreaves/Documents/Github/gpr/tools/gpr2prores/gpr_mov_tool pack \
+"$GPR_ROOT/tools/gpr2prores/gpr_mov_tool" pack \
   "$MAC_OUT/processed/fullres" "$MOV_COMPAT" --fps 24 2>&1 | tail -2
 E_T1=$(date +%s.%N)
 E_DUR=$(echo "$E_T1 - $E_T0" | bc -l)

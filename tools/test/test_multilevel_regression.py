@@ -11,11 +11,20 @@ Usage:
     python3 tools/test/test_multilevel_regression.py [BUILD_DIR]
 """
 from __future__ import annotations
-import sys, os, subprocess
+import sys, os, subprocess, tempfile
 from pathlib import Path
 import numpy as np
 
 REPO = Path(__file__).resolve().parents[2]
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
+TMPDIR = Path(os.environ.get("TMPDIR", EXTERNAL_ROOT / "tmp"))
 BUILD_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / "build-local"
 BIN = BUILD_DIR / "bin/test_fused_roundtrip"
 
@@ -56,8 +65,9 @@ def main() -> int:
         return 2
 
     W, H = 1024, 768
-    src_raw = Path("/tmp/multilevel_regression_src.raw")
-    dec_raw = Path("/tmp/multilevel_regression_dec.raw")
+    TMPDIR.mkdir(parents=True, exist_ok=True)
+    src_raw = TMPDIR / "multilevel_regression_src.raw"
+    dec_raw = TMPDIR / "multilevel_regression_dec.raw"
 
     print(f"Multi-level regression tripwire — {W}×{H} synthetic patterns")
     print(f"{'pattern':22s}  {'SL PSNR':>8s}  {'ML PSNR':>8s}  {'delta':>8s}  result")
