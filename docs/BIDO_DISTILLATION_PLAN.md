@@ -69,12 +69,33 @@ Smoke results:
   first three epochs (LPIPS 0.5839, 0.6403, 0.5917) and was stopped. This
   narrows the current failure away from "not enough epochs" and toward teacher
   target mismatch/objective weakness.
+- `target_mean_std` color normalization was then added to the Restormer
+  sidecar builder and tried on the hardtail set. Visual samples showed the
+  expected improvement: the teacher no longer carried the strong codec-up color
+  cast. The full sidecar is
+  `/Volumes/OWC_8TB/gpr_work/cnn/teacher_restormer_hardtail_t192_s96_fullref_target_meanstd.npy`,
+  SHA-256
+  `a285abb177c011a6ff19d4ff51eb8d676f1c0ee86342ba3420d0aa4aad432e2e`,
+  all 1040 tiles generated, 1980.38 seconds, 256 px tiles / 32 px overlap.
+
+  Follow-up training did not improve the blocker:
+
+  | target | loss | weight | best epoch | Z8Z_6693 LPIPS | Z8Z_6693 PSNR | Checkpoint SHA-256 |
+  |---|---|---:|---:|---:|---:|---|
+  | color-matched teacher | luma_hf | 0.50 | 3 | 0.5804 | 20.941 dB | `20cd13c8840b07c95c8e1b70de6b3a78ffdfa32153c286b768a0ed7fe676299c` |
+  | color-matched teacher | rgb_l1 | 0.10 | 1 | 0.5673 | 22.202 dB | `8500e3ab7f248f4bbed133cc220ed8d25d0fd34d840cdf63f9e96fe02bbfb099` |
+  | task-only control | none | 0.00 | 5 | 0.5523 | 22.047 dB | `74d749b3e37ec3863715c5d63b43005225b52d7586f5728b57969a27765270fd` |
+
+  The control beating both teacher variants means the current Restormer teacher
+  path is not adding useful supervision. Color matching fixed the color target
+  mismatch, but structure/detail placement remains mismatched.
 
 Next implementation step: do not scale this teacher cache to the 498-source
-set yet. First fix the teacher target mismatch/objective weakness: either
-color-normalize the codec-up teacher input before Restormer, distill only a
-better-localized detail residual, or move to a larger/full-context teacher that
-places structures closer to `tgt_rgb`.
+set yet. Do not spend more compute on this Restormer sidecar objective unless
+the teacher is changed. The next useful path is either a larger/full-context
+teacher that places structures closer to `tgt_rgb`, or a detail-residual target
+derived directly from `tgt_rgb`/UPRESABLE rather than from codec-up Restormer
+outputs.
 
 ## 1. Problem statement
 

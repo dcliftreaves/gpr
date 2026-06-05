@@ -62,6 +62,26 @@ def infer_tiled(model: torch.nn.Module, chw: np.ndarray, device: torch.device,
     return acc / np.maximum(weight, 1.0)
 
 
+def target_to_chw(target: np.ndarray) -> np.ndarray:
+    return np.transpose(target.astype(np.float32) / 255.0, (2, 0, 1))
+
+
+def match_color_stats(chw: np.ndarray, target_chw: np.ndarray, mode: str) -> np.ndarray:
+    if mode == "none":
+        return chw
+    axes = (1, 2)
+    src_mean = chw.mean(axis=axes, keepdims=True)
+    dst_mean = target_chw.mean(axis=axes, keepdims=True)
+    if mode == "target_mean":
+        return np.clip(chw - src_mean + dst_mean, 0.0, 1.0)
+    if mode == "target_mean_std":
+        src_std = chw.std(axis=axes, keepdims=True)
+        dst_std = target_chw.std(axis=axes, keepdims=True)
+        out = (chw - src_mean) * (dst_std / np.maximum(src_std, 1e-4)) + dst_mean
+        return np.clip(out, 0.0, 1.0)
+    raise ValueError(f"unknown color match mode: {mode}")
+
+
 def parse_indices(value: str | None, n: int) -> list[int]:
     if not value:
         return list(range(n))
@@ -92,6 +112,9 @@ def main() -> int:
                     help="limit generated tiles after --indices filtering; 0 means no limit")
     ap.add_argument("--fill-missing", choices=("target", "zero"), default="target",
                     help="value for tiles not generated in limited smoke runs")
+    ap.add_argument("--color-match", choices=("none", "target_mean", "target_mean_std"),
+                    default="none",
+                    help="offline teacher-input color normalization before Restormer")
     ap.add_argument("--overwrite", action="store_true")
     args = ap.parse_args()
 
@@ -132,6 +155,7 @@ def main() -> int:
     for pos, idx in enumerate(selected, 1):
         out_hw = tuple(int(v) for v in target[idx].shape[:2])
         degraded = codec_tile_to_rgb(z, idx, out_hw)
+        degraded = match_color_stats(degraded, target_to_chw(target[idx]), args.color_match)
         pred = infer_tiled(model, degraded, device, tile=args.tile, overlap=args.overlap)
         arr = np.transpose(np.clip(pred, 0.0, 1.0), (1, 2, 0))
         teacher[idx] = (arr * 255.0 + 0.5).astype(np.uint8)
@@ -158,6 +182,7 @@ def main() -> int:
         "indices": selected,
         "tile": args.tile,
         "overlap": args.overlap,
+        "color_match": args.color_match,
         "device": str(device),
         "restormer_root": str(args.restormer_root),
         "weights": str(args.weights),
