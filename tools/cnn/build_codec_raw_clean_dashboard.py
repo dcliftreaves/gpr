@@ -169,7 +169,7 @@ def main() -> int:
     ap.add_argument("--out-dir", type=Path, required=True)
     ap.add_argument("--error-gain", type=float, default=16.0)
     ap.add_argument("--target-mode", choices=("raw_signal", "clean"), help="override checkpoint target mode")
-    ap.add_argument("--conditioning", choices=("sigma", "iso"), help="override checkpoint conditioning")
+    ap.add_argument("--conditioning", choices=("sigma", "iso", "iso_only"), help="override checkpoint conditioning")
     args = ap.parse_args()
     summary = build(args)
     print(args.out_dir / "codec_raw_clean_dashboard.json")
