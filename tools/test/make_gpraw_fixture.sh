@@ -61,7 +61,8 @@ done
 
 GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
 GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
-TMPDIR="${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+TMPDIR="$GPR_TMPDIR"
 # Override with $WORK when a fixture should persist at a specific path.
 DEFAULT_WORK="$GPR_ARTIFACT_ROOT/intermediate/fixture_$$"
 WORK="${WORK:-$DEFAULT_WORK}"

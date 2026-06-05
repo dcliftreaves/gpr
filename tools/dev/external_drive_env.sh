@@ -29,9 +29,10 @@ export GPR_CNN_ROOT="${GPR_CNN_ROOT:-$ROOT/cnn}"
 export GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$ROOT/artifacts}"
 export GPR_MODEL_ROOT="${GPR_MODEL_ROOT:-$ROOT/models}"
 export GPR_CHECKPOINT_ROOT="${GPR_CHECKPOINT_ROOT:-$ROOT/checkpoints}"
+export GPR_TMPDIR="${GPR_TMPDIR:-$ROOT/tmp}"
 
 # tempfile uses TMPDIR; run_gate.py also honors GATE_TMPDIR explicitly.
-export TMPDIR="$ROOT/tmp/"
+export TMPDIR="$GPR_TMPDIR/"
 export TEMP="$TMPDIR"
 export TMP="$TMPDIR"
 export GATE_TMPDIR="$ROOT/gate_tmp"
@@ -55,6 +56,7 @@ cat <<EOF
 External-drive GPR environment active:
   GPR_EXTERNAL_ROOT=$GPR_EXTERNAL_ROOT
   TMPDIR=$TMPDIR
+  GPR_TMPDIR=$GPR_TMPDIR
   GATE_TMPDIR=$GATE_TMPDIR
   CKPT_DIR=$CKPT_DIR
   GPR_CNN_ROOT=$GPR_CNN_ROOT

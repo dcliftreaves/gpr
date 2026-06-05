@@ -4,7 +4,8 @@ set -euo pipefail
 
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
-WORK=${WORK:-${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}/gvid_metadata_smoke}
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+WORK=${WORK:-$GPR_TMPDIR/gvid_metadata_smoke}
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 rm -rf "$WORK"

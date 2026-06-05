@@ -52,8 +52,15 @@ set -euo pipefail
 
 BUILD_DIR="${BUILD_DIR:-build}"
 GTOOLS="${GTOOLS:-$BUILD_DIR/source/app/gpr_tools/gpr_tools}"
-GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
-WORK="${WORK_DIR:-${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}/gpr-matrix}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+    else
+        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-/tmp}/gpr_work"
+    fi
+fi
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+WORK="${WORK_DIR:-$GPR_TMPDIR/gpr-matrix}"
 TOL="${MATRIX_TOLERANCE_DB:-2.0}"
 FAST="${FAST:-0}"
 

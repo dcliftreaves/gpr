@@ -43,7 +43,8 @@ GTOOLS="${GTOOLS:-$BUILD_DIR/source/app/gpr_tools/gpr_tools}"
 GPR2PRORES="${GPR2PRORES:-tools/gpr2prores/gpr2prores}"
 GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
 GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
-WORK="${WORK_DIR:-${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}/gpr-vidmtx}"
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+WORK="${WORK_DIR:-$GPR_TMPDIR/gpr-vidmtx}"
 FAST="${FAST:-0}"
 
 # Resolve to absolutes so the script works regardless of cwd.

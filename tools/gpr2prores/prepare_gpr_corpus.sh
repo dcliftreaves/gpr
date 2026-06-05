@@ -12,7 +12,8 @@ OUT_DIR=${3:?out_dir}
 PREFIX=${4:-frame}
 
 GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
-TMPDIR="${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+TMPDIR="$GPR_TMPDIR"
 MF_LOCAL="${MF_LOCAL:-$GPR_EXTERNAL_ROOT/tools/mf_local}"
 mkdir -p "$TMPDIR"
 WORK=$(mktemp -d "$TMPDIR/prepare_gpr_corpus-XXXXXX")

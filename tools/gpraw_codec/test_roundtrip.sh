@@ -30,6 +30,7 @@ clang -O2 -g -Wall -Wno-unused-parameter \
 echo "built: $OUT"
 # Multi-level encoding is required for the fused decoder to reconstruct.
 # Single-level streams (the default) drop the lowpass and are not decodable.
-TMP_BASE="${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+TMP_BASE="$GPR_TMPDIR"
 mkdir -p "$TMP_BASE"
 FUSED_MULTI_LEVEL=1 "$OUT" "${1:-$TMP_BASE/gpraw_roundtrip.gpraw}"
