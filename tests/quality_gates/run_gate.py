@@ -486,6 +486,8 @@ def apply_cnn(
             luma_wavelet_hf_max_delta=cnn.get("luma_wavelet_hf_max_delta", 2.0),
         )
         return ("rgb", rgb_u8)
+    if cnn.get("cnn_arch_variant") == "codec_raw_signal_sr":
+        return apply_codec_raw_signal_sr(bayer, cnn, src_dng)
     import torch
     import torch.nn.functional as F
     sys.path.insert(0, str(REPO / "tools/cnn"))
@@ -545,6 +547,108 @@ def apply_cnn(
             out[1:eh:2, :ew:2] = np.clip(y[2] * raw_norm, 0, raw_norm).astype(np.uint16)
             out[1:eh:2, 1:ew:2] = np.clip(y[3] * raw_norm, 0, raw_norm).astype(np.uint16)
             return out
+
+
+def _deinterleave_bayer(arr: np.ndarray) -> np.ndarray:
+    return np.stack(
+        [arr[0::2, 0::2], arr[0::2, 1::2], arr[1::2, 0::2], arr[1::2, 1::2]],
+        axis=0,
+    ).astype(np.float32)
+
+
+def _interleave_bayer_planes(planes: np.ndarray, shape: tuple[int, int], raw_norm: float) -> np.ndarray:
+    out = np.zeros(shape, dtype=np.uint16)
+    out[0::2, 0::2] = np.clip(planes[0] * raw_norm, 0, raw_norm).astype(np.uint16)
+    out[0::2, 1::2] = np.clip(planes[1] * raw_norm, 0, raw_norm).astype(np.uint16)
+    out[1::2, 0::2] = np.clip(planes[2] * raw_norm, 0, raw_norm).astype(np.uint16)
+    out[1::2, 1::2] = np.clip(planes[3] * raw_norm, 0, raw_norm).astype(np.uint16)
+    return out
+
+
+def _codec_hf_rms_counts(planes_counts: np.ndarray) -> float:
+    pad = np.pad(planes_counts, ((0, 0), (1, 1), (1, 1)), mode="edge")
+    mean4 = (
+        pad[:, 1:-1, :-2]
+        + pad[:, 1:-1, 2:]
+        + pad[:, :-2, 1:-1]
+        + pad[:, 2:, 1:-1]
+    ) * 0.25
+    return float(np.sqrt(np.mean((planes_counts - mean4) ** 2)))
+
+
+def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None):
+    """Apply the experimental codec raw-signal SR checkpoint with tiled inference."""
+    if src_dng is None:
+        die(2, "codec_raw_signal_sr requires source DNG metadata")
+
+    import torch
+    import torch.nn.functional as F
+    sys.path.insert(0, str(REPO / "tools/cnn"))
+    from analyze_dng_noise_profile import noise_sigma_map, read_bayer, read_dng_meta
+    from train_codec_raw_clean_sr import CodecRawCleanSR
+
+    ckpt_path = resolve_artifact_path(cnn["ckpt_path"], "codec_raw_signal_sr checkpoint")
+    ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
+    raw_norm = float(cnn.get("raw_norm", ck.get("raw_scale", 16383.0)))
+    model = CodecRawCleanSR(int(ck["width"]), in_channels=int(ck.get("in_channels", 10)))
+    model.load_state_dict(ck["state_dict"])
+    dev = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    model.to(dev).eval()
+
+    meta = read_dng_meta(src_dng.stem, src_dng)
+    source_raw = read_bayer(src_dng)
+    sigma_planes = _deinterleave_bayer(noise_sigma_map(source_raw, meta)) / raw_norm
+    target_h, target_w = sigma_planes.shape[1:]
+
+    codec_planes = _deinterleave_bayer(bayer)
+    with torch.no_grad():
+        codec_up = F.interpolate(
+            torch.from_numpy(codec_planes[None] / raw_norm),
+            size=(target_h, target_w),
+            mode="bilinear",
+            align_corners=False,
+        ).numpy()[0].astype(np.float32)
+
+    iso_threshold = int(cnn.get("dispatch_iso_threshold", 100))
+    hf_threshold = float(cnn.get("dispatch_hf_threshold", 1.7410857677459717))
+    conditioning = str(cnn.get("conditioning", ck.get("conditioning", "iso")))
+    tile = int(cnn.get("tile", 256))
+    overlap = int(cnn.get("overlap", 24))
+    out = np.empty_like(codec_up, dtype=np.float32)
+
+    with torch.no_grad():
+        for y0 in range(0, target_h, tile):
+            y1 = min(target_h, y0 + tile)
+            yc0 = max(0, y0 - overlap)
+            yc1 = min(target_h, y1 + overlap)
+            for x0 in range(0, target_w, tile):
+                x1 = min(target_w, x0 + tile)
+                xc0 = max(0, x0 - overlap)
+                xc1 = min(target_w, x1 + overlap)
+                core_counts = codec_up[:, y0:y1, x0:x1] * raw_norm
+                use_model = meta.iso >= iso_threshold or _codec_hf_rms_counts(core_counts) >= hf_threshold
+                if not use_model:
+                    out[:, y0:y1, x0:x1] = codec_up[:, y0:y1, x0:x1]
+                    continue
+                x_parts = [
+                    codec_up[:, yc0:yc1, xc0:xc1],
+                    sigma_planes[:, yc0:yc1, xc0:xc1],
+                ]
+                if conditioning == "iso":
+                    hh, ww = yc1 - yc0, xc1 - xc0
+                    iso_norm = np.clip(np.log2(max(float(meta.iso), 1.0) / 64.0) / 8.0, 0.0, 1.0)
+                    sigma_rms = float(np.sqrt(np.mean(sigma_planes[:, yc0:yc1, xc0:xc1] ** 2)))
+                    x_parts.append(np.full((1, hh, ww), iso_norm, dtype=np.float32))
+                    x_parts.append(np.full((1, hh, ww), sigma_rms, dtype=np.float32))
+                x_np = np.concatenate(x_parts, axis=0)[None].astype(np.float32)
+                pred = model(torch.from_numpy(x_np).to(dev)).cpu().numpy()[0]
+                yy0 = y0 - yc0
+                yy1 = yy0 + (y1 - y0)
+                xx0 = x0 - xc0
+                xx1 = xx0 + (x1 - x0)
+                out[:, y0:y1, x0:x1] = pred[:, yy0:yy1, xx0:xx1]
+
+    return _interleave_bayer_planes(out, (target_h * 2, target_w * 2), raw_norm)
 
 
 _RESTORMER_MODEL_CACHE = {}
@@ -939,7 +1043,21 @@ def _cleanup_fullres_pngs(run_dir: Path) -> tuple[int, int]:
 
 def cnn_hash_fingerprint(cnn: dict) -> str:
     if cnn.get("ckpt_sha256"):
-        return str(cnn["ckpt_sha256"])
+        base = str(cnn["ckpt_sha256"])
+        if cnn.get("cnn_arch_variant") == "codec_raw_signal_sr":
+            parts = [base]
+            for key in (
+                "conditioning",
+                "dispatch_iso_threshold",
+                "dispatch_hf_threshold",
+                "tile",
+                "overlap",
+                "raw_norm",
+            ):
+                if key in cnn:
+                    parts.append(f"{key}={cnn[key]}")
+            return "|".join(parts)
+        return base
     parts = []
     for key in (
         "ckpt_y_sha256",

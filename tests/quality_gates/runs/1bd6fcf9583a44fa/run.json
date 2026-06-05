@@ -1,0 +1,83 @@
+{
+  "pipeline": "codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded+demosaic=sips_via_gpr_tools",
+  "ship_class": "UPRESABLE",
+  "run_hash": "1bd6fcf9583a44fa",
+  "gates_sha": "0d77521faa7c4eee",
+  "test_set": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/test_set.json",
+  "test_set_sha": "5728aca59ef884ff",
+  "is_ship_gate": true,
+  "verdict_authority": "ship_gate",
+  "source_path_map": [],
+  "started_at": "2026-06-05T08:29:37-0500",
+  "images": {
+    "Z8Z_0001": {
+      "y_psnr": 37.82926830951969,
+      "ms_ssim": 0.9876587390899658,
+      "lpips": 0.07608824968338013,
+      "dE2000_mean": 1.801787257194519,
+      "bayer_psnr_codec": 31.947133815389748,
+      "bayer_psnr_final": 47.43717045830377,
+      "enc_bytes": 1751835,
+      "enc_ms": 8.8,
+      "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_0001_REF_crop_A_detail.png",
+      "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_0001_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_0067": {
+      "y_psnr": 47.423197527227885,
+      "ms_ssim": 0.9922451972961426,
+      "lpips": 0.061783041805028915,
+      "dE2000_mean": 0.8300939202308655,
+      "bayer_psnr_codec": 35.72428288782006,
+      "bayer_psnr_final": 58.42543470149983,
+      "enc_bytes": 1020716,
+      "enc_ms": 7.8,
+      "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_0067_REF_crop_A_detail.png",
+      "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_0067_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_5323": {
+      "y_psnr": 47.15804470819581,
+      "ms_ssim": 0.996013343334198,
+      "lpips": 0.017393935471773148,
+      "dE2000_mean": 0.8581046462059021,
+      "bayer_psnr_codec": 35.75877718750448,
+      "bayer_psnr_final": 58.036203176285426,
+      "enc_bytes": 2658567,
+      "enc_ms": 11.3,
+      "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_5323_REF_crop_A_detail.png",
+      "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_5323_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_6693": {
+      "y_psnr": 45.23015929789917,
+      "ms_ssim": 0.9943029284477234,
+      "lpips": 0.02444024756550789,
+      "dE2000_mean": 1.1095889806747437,
+      "bayer_psnr_codec": 36.80619907878511,
+      "bayer_psnr_final": 55.27344009210487,
+      "enc_bytes": 3374869,
+      "enc_ms": 13.3,
+      "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_6693_REF_crop_A_detail.png",
+      "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/Z8Z_6693_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    }
+  },
+  "worst_first": [
+    "Z8Z_0001",
+    "Z8Z_0067",
+    "Z8Z_6693",
+    "Z8Z_5323"
+  ],
+  "worst_image": {
+    "id": "Z8Z_0001",
+    "visual_diff_png": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/WORST_Z8Z_0001_visual_diff.png",
+    "lpips": 0.07608824968338013
+  },
+  "verdict": "PASS",
+  "finished_at": "2026-06-05T08:31:20-0500"
+}
