@@ -28,6 +28,8 @@ separate render/evaluation layer.
   `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_expanded_20260605/dashboard_w64_iso_expanded_84crops/codec_raw_clean_dashboard.html`
 - Dispatch dashboard:
   `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_expanded_20260605/dispatch_policy_w64_iso_expanded_84crops/raw_signal_dispatch_policy.html`
+- Registered gate run:
+  `/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/1bd6fcf9583a44fa/run.json`
 
 ## Data
 
@@ -92,9 +94,39 @@ Gate-image raw-domain averages:
 
 ## Remaining Work
 
-This is a strong raw-domain candidate, but it is not production-ready until:
+## Registered Gate Run
 
-- the dispatch policy is wired into a temporary registered pipeline;
+Temporary registered pipeline:
+
+```text
+codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded+demosaic=sips_via_gpr_tools
+```
+
+Frozen gate run:
+
+```text
+run_hash=1bd6fcf9583a44fa
+ship_class=UPRESABLE
+verdict=PASS
+```
+
+Per-image gate metrics:
+
+| image | Bayer PSNR final | LPIPS | MS-SSIM | Y-PSNR | dE2000 mean |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `Z8Z_0001` | 47.44 | 0.0761 | 0.9877 | 37.83 | 1.80 |
+| `Z8Z_0067` | 58.43 | 0.0618 | 0.9922 | 47.42 | 0.83 |
+| `Z8Z_5323` | 58.04 | 0.0174 | 0.9960 | 47.16 | 0.86 |
+| `Z8Z_6693` | 55.27 | 0.0244 | 0.9943 | 45.23 | 1.11 |
+
+UPRESABLE gates enforce Bayer PSNR final; rendered metrics are informational
+for editable raw, but they are listed here to make color/detail regressions
+visible.
+
+## Remaining Work
+
+This is a registered raw-domain candidate, but it is not production-ready until:
+
 - full rendered quality gates are run against the current display-space
   baseline;
 - LPIPS, MS-SSIM, luma/detail, crop-level texture placement, and worst-image

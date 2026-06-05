@@ -128,6 +128,19 @@
       "raw_norm": 16383.0,
       "ckpt_sha256": "bd3636d2c026639e3d8c9636de491c662fe05e67bdaa4451061901b47b37659b"
     },
+    "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded": {
+      "$doc": "Temporary raw-signal SR candidate from the 2026-06-05 expanded 28-image / 84-crop pass. Uses source Bayer signal as the target, not denoised REF residuals. Dispatch bypasses low-ISO low-texture tiles to bilinear codec upsample.",
+      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt",
+      "cnn_arch_variant": "codec_raw_signal_sr",
+      "trained_against_codec": "ml2_q3_dec2",
+      "conditioning": "iso",
+      "dispatch_iso_threshold": 100,
+      "dispatch_hf_threshold": 1.7410857677459717,
+      "tile": 256,
+      "overlap": 24,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "376f1fa52989c62076684ffa39fedbf7a469b8bf7ab3e934a9260100d5dc328c"
+    },
     "none": {
       "$doc": "No CNN \u2014 codec output is the final result."
     }
@@ -187,6 +200,15 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE",
       "$role": "UPRESABLE production chain \u2014 half-res Pi 5 capture (24.93 fps sustained) + desktop BIBO_2x super-res \u2192 editable full-res raw DNG/.gpr. Bayer PSNR vs source DNG: 37.85\u201343.78 dB on 4 gate images (2026-05-30). See docs/UPRESABLE_PIPELINE.md."
+    },
+    "codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "UPRESABLE",
+      "use_for": "UPRESABLE",
+      "$role": "temp-raw-signal-sr-expanded-20260605",
+      "$doc": "Temporary registered candidate for full gate/render comparison. Not a ship pipeline until rendered metrics, worst-image inspection, and decode+model+encode timing are recorded."
     },
     "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_l2x2_l1x2",
