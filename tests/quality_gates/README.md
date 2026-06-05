@@ -123,9 +123,11 @@ average away a frozen-gate failure.
 ## Adding a new pipeline
 
 1. Add an entry to `pipelines/registry.json`. All required fields filled.
-2. CNN checkpoint goes in `models/` with sha256 in the registry.
+2. CNN checkpoint goes under `$GPR_MODEL_ROOT` (or a developer-local `models/`)
+   with sha256 in the registry.
 3. Document `trained_against_codec` honestly.
-4. Run `check_registry_consistency.py --strict-artifacts`.
+4. Run `tools/verify_production_artifacts.py --strict` and
+   `check_registry_consistency.py --strict-artifacts`.
 5. Run `run_gate.py PIPELINE_NAME` and inspect the worst-image visual
    diff via the Read tool.
 6. If PASS, log via `run_gate.py PIPELINE_NAME --claim`.

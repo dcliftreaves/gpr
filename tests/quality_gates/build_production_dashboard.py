@@ -21,8 +21,11 @@ from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = None
 
-REPO = Path("/Users/dcliftreaves/Documents/Github/gpr")
-UPRES = Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable")
+REPO = Path(__file__).resolve().parents[2]
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+ARTIFACT_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
+TMPDIR = Path(os.environ.get("GATE_TMPDIR", os.environ.get("TMPDIR", EXTERNAL_ROOT / "tmp")))
+UPRES = Path(os.environ.get("GPR_UPRESABLE_OUT", ARTIFACT_ROOT / "upresable"))
 DASHBOARD = UPRES / "dashboard"
 DASHBOARD.mkdir(parents=True, exist_ok=True)
 ASSETS = DASHBOARD / "assets"
@@ -73,7 +76,8 @@ def measure_banding(mov_path: Path, ts_sec: float = 5.0) -> dict:
     """Extract a sky patch and measure unique levels per channel — proves bit depth."""
     if not mov_path.exists():
         return {}
-    tmp = Path("/tmp/banding_measure.tiff")
+    TMPDIR.mkdir(parents=True, exist_ok=True)
+    tmp = TMPDIR / "banding_measure.tiff"
     cmd = ["ffmpeg", "-y", "-ss", str(ts_sec), "-i", str(mov_path),
            "-vframes", "1", "-pix_fmt", "rgb48le", str(tmp)]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -125,6 +129,8 @@ def build_html():
     }
 
     mov_size = mov.stat().st_size if mov.exists() else 0
+    def doc_uri(name: str) -> str:
+        return (REPO / "docs" / name).resolve().as_uri()
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -422,11 +428,11 @@ OPT-IN (correctness / hand-off):
 
 <h2>Documentation</h2>
 <div class="links">
-  <a href="../../../../Documents/Github/gpr/docs/UPRESABLE_PIPELINE.md">UPRESABLE_PIPELINE.md — architecture + workflow</a>
-  <a href="../../../../Documents/Github/gpr/docs/COMPREHENSIVE_PIPELINE_TABLE.md">COMPREHENSIVE_PIPELINE_TABLE.md — full perf + size table</a>
-  <a href="../../../../Documents/Github/gpr/docs/pi5_bench_2026-05-26.md">pi5_bench_2026-05-26.md — Pi 5 sustained bench</a>
-  <a href="../../../../Documents/Github/gpr/docs/CHROMA_CNN_SPEC.md">CHROMA_CNN_SPEC.md — chroma corrector design (deferred)</a>
-  <a href="../../../../Documents/Github/gpr/docs/CODEC_ANCHORED_REFINEMENT.md">CODEC_ANCHORED_REFINEMENT.md — codec-anchored experiment infrastructure</a>
+  <a href="{doc_uri('UPRESABLE_PIPELINE.md')}">UPRESABLE_PIPELINE.md — architecture + workflow</a>
+  <a href="{doc_uri('COMPREHENSIVE_PIPELINE_TABLE.md')}">COMPREHENSIVE_PIPELINE_TABLE.md — full perf + size table</a>
+  <a href="{doc_uri('pi5_bench_2026-05-26.md')}">pi5_bench_2026-05-26.md — Pi 5 sustained bench</a>
+  <a href="{doc_uri('CHROMA_CNN_SPEC.md')}">CHROMA_CNN_SPEC.md — chroma corrector design (deferred)</a>
+  <a href="{doc_uri('CODEC_ANCHORED_REFINEMENT.md')}">CODEC_ANCHORED_REFINEMENT.md — codec-anchored experiment infrastructure</a>
 </div>
 
 <h2>Reproduction</h2>

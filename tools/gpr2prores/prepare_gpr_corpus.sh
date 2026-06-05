@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # prepare_gpr_corpus.sh — extract Bayer from N source DNGs, encode each with
-# /tmp/mf_local using the playback-config env, drop the resulting .gpr files in
-# /Volumes/OWC_8TB/gpr_work/test/.
+# $MF_LOCAL using the playback-config env, drop the resulting .gpr files in
+# the requested output directory.
 #
 # usage: prepare_gpr_corpus.sh <dng_dir> <count> <out_dir> [name_prefix]
 
@@ -11,7 +11,11 @@ COUNT=${2:?count}
 OUT_DIR=${3:?out_dir}
 PREFIX=${4:-frame}
 
-WORK=$(mktemp -d)
+GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+TMPDIR="${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+MF_LOCAL="${MF_LOCAL:-$GPR_EXTERNAL_ROOT/tools/mf_local}"
+mkdir -p "$TMPDIR"
+WORK=$(mktemp -d "$TMPDIR/prepare_gpr_corpus-XXXXXX")
 mkdir -p "$OUT_DIR"
 echo "work dir: $WORK"
 
@@ -49,13 +53,13 @@ OUT_PREFIX="$OUT_DIR/$PREFIX"
 # Clean any old .gpr in out dir matching the prefix
 rm -f "$OUT_PREFIX"_*.gpr "$OUT_PREFIX"_*.raw "$OUT_PREFIX"_*.ppm 2>/dev/null || true
 
-echo "encoding via /tmp/mf_local ..."
+echo "encoding via $MF_LOCAL ..."
 GPR_INCLUDE_LL=1 GPR_ROW_DECIMATE=2 GPR_COL_DECIMATE=2 \
 GPR_DROP_HIGHPASS=1 GPR_DECIMATE_AA=1 \
 MULTI_FRAME_DUMP_ENCODED=1 \
 MULTI_FRAME_SKIP_DECODE=1 \
 MULTI_FRAME_SKIP_WRITES=1 \
-/tmp/mf_local $W $H "$OUT_PREFIX" "${RAW_LIST[@]}" 2> "$WORK/encode.log"
+"$MF_LOCAL" $W $H "$OUT_PREFIX" "${RAW_LIST[@]}" 2> "$WORK/encode.log"
 
 echo "encode timings:"
 grep -E "^# " "$WORK/encode.log" | head -5

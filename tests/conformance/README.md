@@ -36,8 +36,8 @@ inputs — 24 golden files per run.
 
 ```
 ./tests/conformance/build.sh          # set BUILD_DIR=... to override build-local
-/tmp/conformance_check_L1   # exits 0 on match, 1 on diff
-/tmp/conformance_check_L2
+$TMPDIR/conformance/conformance_check_L1   # exits 0 on match, 1 on diff
+$TMPDIR/conformance/conformance_check_L2
 ```
 
 Hook this into CI / the pre-PR check: any encoder change that wasn't intended
@@ -47,8 +47,8 @@ to alter the bitstream surfaces here.
 
 ```
 ./tests/conformance/build.sh
-/tmp/conformance_generate_L1
-/tmp/conformance_generate_L2
+$TMPDIR/conformance/conformance_generate_L1
+$TMPDIR/conformance/conformance_generate_L2
 git diff tests/conformance/golden/
 ```
 

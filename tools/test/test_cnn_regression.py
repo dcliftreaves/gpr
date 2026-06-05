@@ -5,7 +5,7 @@ computes brightness-matched masked-middle Y-PSNR against the source DNG
 render, and asserts the gain over the codec baseline matches the locked
 per-checkpoint number within ±0.1 dB.
 
-Methodology mirrors /Users/dcliftreaves/dering_proto_v2/eval_all_arch.py
+Methodology mirrors eval_all_arch.py in the external dering workspace
 exactly. Same model loaders, same inference scaling (RESIDUAL_SCALE=0.01),
 same rawpy postprocess flags, same psnr() mask (dark<10, bright<250).
 This is the production eval reduced to an assertable form.
@@ -28,6 +28,7 @@ Skips gracefully when torch / rawpy / cv2 / dering_proto_v2/ are missing
 """
 import os
 import sys
+from pathlib import Path
 
 # ---- Dependency probe: import everything, skip cleanly if any fail. ----
 
@@ -50,10 +51,15 @@ try:
 except ImportError as e:
     MISSING.append(f"cv2/opencv-python ({e})")
 
-DERING_DIR = "/Users/dcliftreaves/dering_proto_v2"
-CKPT_DIR = os.path.join(DERING_DIR, "checkpoints")
-REF_DNG = "/Users/dcliftreaves/Documents/Github/gpr/data/test_sets/entropy_matrix/Z8_ISO64.DNG"
-CODEC_RAW = "/Users/dcliftreaves/Documents/dering_proto_v2/pairs/Z8_ISO64_codec.raw"
+REPO = Path(__file__).resolve().parents[2]
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+DERING_DIR = str(Path(os.environ.get(
+    "GPR_DERING_DIR", EXTERNAL_ROOT / "external" / "dering_proto_v2")))
+CKPT_DIR = str(Path(os.environ.get("GPR_CHECKPOINT_ROOT", EXTERNAL_ROOT / "checkpoints")))
+REF_DNG = str(Path(os.environ.get(
+    "GPR_CNN_REF_DNG", REPO / "data/test_sets/entropy_matrix/Z8_ISO64.DNG")))
+CODEC_RAW = str(Path(os.environ.get(
+    "GPR_CNN_CODEC_RAW", EXTERNAL_ROOT / "external/dering_proto_v2/pairs/Z8_ISO64_codec.raw")))
 
 if not MISSING and not os.path.isdir(CKPT_DIR):
     MISSING.append(f"checkpoints directory not present: {CKPT_DIR}")
@@ -74,7 +80,7 @@ if MISSING:
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 sys.path.insert(0, DERING_DIR)
 # Optional reconstructed-legacy-model dir; tolerated if missing.
-sys.path.insert(0, "/tmp/cnn_sweep")
+sys.path.insert(0, str(EXTERNAL_ROOT / "tmp" / "cnn_sweep"))
 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 RAW_NORM = 16383.0

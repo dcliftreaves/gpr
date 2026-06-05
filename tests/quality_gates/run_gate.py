@@ -75,6 +75,56 @@ def sha256_file(p: Path) -> str:
     return h.hexdigest()
 
 
+def artifact_candidates(path_value: str) -> list[Path]:
+    """Candidate locations for checkpoint/model artifacts.
+
+    Registry paths stay portable (`models/foo.pt`), while production binaries
+    live off-main under the external drive. Environment roots may contain
+    os.pathsep-separated entries for staging/release testing.
+    """
+    path = Path(path_value)
+    if path.is_absolute():
+        return [path]
+
+    roots = [REPO]
+    for key in ("GPR_MODEL_ROOT", "GPR_CHECKPOINT_ROOT"):
+        for item in os.environ.get(key, "").split(os.pathsep):
+            if item:
+                roots.append(Path(item))
+    external_root = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+    roots.extend([
+        external_root,
+        external_root / "models",
+        external_root / "checkpoints",
+        Path("/Volumes/OWC_8TB/gpr_work/models"),
+        Path("/Volumes/OWC_8TB/gpr_work/checkpoints"),
+    ])
+
+    candidates: list[Path] = []
+    for root in roots:
+        candidates.append(root / path)
+        if path.parts and path.parts[0] in {"models", "checkpoints"}:
+            candidates.append(root / Path(*path.parts[1:]))
+
+    unique = []
+    seen = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            seen.add(key)
+            unique.append(candidate)
+    return unique
+
+
+def resolve_artifact_path(path_value: str, label: str = "artifact") -> Path:
+    candidates = artifact_candidates(path_value)
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    searched = ", ".join(str(p) for p in candidates[:6])
+    die(2, f"{label} missing: {path_value}. Searched: {searched}")
+
+
 def canonical_env(env: dict) -> str:
     return ";".join(f"{k}={env[k]}" for k in sorted(env))
 
@@ -373,8 +423,7 @@ def apply_cnn(
     if cnn.get("cnn_arch_variant") == "ycbcr_decomp":
         # Per-channel decomposition (PREVIEW_CHANNEL_DECOMP_PLAN Variant A).
         # Three CNNs in YCbCr space, recombined via inverse BT.709. The CNN
-        # entry must carry ckpt_y / ckpt_cb / ckpt_cr fields with relative
-        # paths inside the repo (under models/).
+        # entry must carry ckpt_y / ckpt_cb / ckpt_cr fields.
         sys.path.insert(0, str(REPO / "tools/cnn"))
         from run_ycbcr_decomp import run_ycbcr_decomp
         ckpts = {}
@@ -382,10 +431,7 @@ def apply_cnn(
             p = cnn.get(k)
             if p is None:
                 die(2, f"ycbcr_decomp CNN entry missing field '{k}'")
-            cp = REPO / p
-            if not cp.exists():
-                die(2, f"ycbcr_decomp checkpoint missing: {cp}")
-            ckpts[k] = str(cp)
+            ckpts[k] = str(resolve_artifact_path(p, f"ycbcr_decomp {k} checkpoint"))
         raw_norm = cnn.get("raw_norm", 16383.0)
         rgb_u8 = run_ycbcr_decomp(bayer, ckpts["ckpt_y"], ckpts["ckpt_cb"],
                                   ckpts["ckpt_cr"], raw_norm=raw_norm)
@@ -399,16 +445,8 @@ def apply_cnn(
             die(2, "lab_chroma_corrector CNN entry missing field 'ckpt_y'")
         if chroma_path is None:
             die(2, "lab_chroma_corrector CNN entry missing field 'ckpt_chroma'")
-        y_cp = Path(y_path)
-        if not y_cp.is_absolute():
-            y_cp = REPO / y_cp
-        c_cp = Path(chroma_path)
-        if not c_cp.is_absolute():
-            c_cp = REPO / c_cp
-        if not y_cp.exists():
-            die(2, f"lab_chroma_corrector Y checkpoint missing: {y_cp}")
-        if not c_cp.exists():
-            die(2, f"lab_chroma_corrector chroma checkpoint missing: {c_cp}")
+        y_cp = resolve_artifact_path(y_path, "lab_chroma_corrector Y checkpoint")
+        c_cp = resolve_artifact_path(chroma_path, "lab_chroma_corrector chroma checkpoint")
         raw_norm = cnn.get("raw_norm", 16383.0)
         baseline_rgb = None
         if cnn.get("chroma_baseline") == "demosaic_sips":
@@ -422,16 +460,16 @@ def apply_cnn(
             luma_unsharp_amount=cnn.get("luma_unsharp_amount", 0.0),
             luma_unsharp_sigma=cnn.get("luma_unsharp_sigma", 2.0),
             luma_detail_refiner_path=(
-                str(REPO / cnn["luma_detail_refiner"])
+                str(resolve_artifact_path(cnn["luma_detail_refiner"], "luma detail refiner checkpoint"))
                 if cnn.get("luma_detail_refiner") else None
             ),
             luma_detail_cnn_path=(
-                str(REPO / cnn["ckpt_detail"])
+                str(resolve_artifact_path(cnn["ckpt_detail"], "luma detail CNN checkpoint"))
                 if cnn.get("ckpt_detail") else None
             ),
             luma_detail_cnn_strength=cnn.get("luma_detail_cnn_strength", 1.0),
             rgb_detail_cnn_path=(
-                str(REPO / cnn["ckpt_rgb_detail"])
+                str(resolve_artifact_path(cnn["ckpt_rgb_detail"], "RGB detail CNN checkpoint"))
                 if cnn.get("ckpt_rgb_detail") else None
             ),
             luma_wavelet_hf_gain=cnn.get("luma_wavelet_hf_gain", 1.0),
@@ -445,10 +483,7 @@ def apply_cnn(
     import torch.nn.functional as F
     sys.path.insert(0, str(REPO / "tools/cnn"))
     from model import build as build_variant
-    ckpt_path = REPO / cnn["ckpt_path"]
-    if not ckpt_path.exists():
-        die(2, f"CNN checkpoint not in repo: {ckpt_path}. "
-               f"Migrate the checkpoint with proper metadata before testing.")
+    ckpt_path = resolve_artifact_path(cnn["ckpt_path"], "CNN checkpoint")
     ck = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
     variant = ck.get("variant", cnn["cnn_arch_variant"])
     # BIDO = Bayer In, Demosaic Out (joint demosaic + super-res). Legacy
@@ -557,8 +592,7 @@ def apply_post_rgb_cnn(png_path: Path, cnn: dict, tile: int = 512,
     import torch.nn.functional as F
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     ckpt_raw = cnn["ckpt_path"]
-    # Allow absolute paths (the Restormer weight lives off-repo on OWC drive).
-    ckpt_path = ckpt_raw if Path(ckpt_raw).is_absolute() else str(REPO / ckpt_raw)
+    ckpt_path = str(resolve_artifact_path(ckpt_raw, "Restormer checkpoint"))
     model = _load_restormer(ckpt_path, device)
 
     img = Image.open(png_path).convert("RGB")

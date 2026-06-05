@@ -21,7 +21,7 @@
 # Inputs / environment:
 #   PI=<ssh-host>     remote that has /tmp/multi_frame built (default: gpr-pi)
 #   HOLD=<seconds>    seconds to hold each codec frame in MP4 (default 1)
-#   OUT=<dir>         output dir (default: /tmp/gpr_visuals)
+#   OUT=<dir>         output dir (default: $GPR_ARTIFACT_ROOT/gpr_visuals)
 #   FPS=<int>         MP4 framerate (default 24)
 #
 # Pre-reqs on the encoding host:
@@ -43,7 +43,9 @@ set -e
 HOLD=${1:-${HOLD:-1}}
 FPS=${FPS:-24}
 PI=${PI:-gpr-pi}
-OUT=${OUT:-/tmp/gpr_visuals}
+GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
+OUT=${OUT:-$GPR_ARTIFACT_ROOT/gpr_visuals}
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 
 mkdir -p "$OUT"/{src_raw,codec_raw,renders,mp4_frames}

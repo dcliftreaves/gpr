@@ -12,6 +12,7 @@ Run from CI or manually:
 import argparse
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -31,13 +32,48 @@ def is_tbd(value):
     return isinstance(value, str) and "TBD" in value.upper()
 
 
-def repo_path(path_value):
+def artifact_candidates(path_value):
     if not isinstance(path_value, str):
-        return None
+        return []
     path = Path(path_value)
     if path.is_absolute():
-        return path
-    return REPO / path
+        return [path]
+
+    roots = [REPO]
+    for key in ("GPR_MODEL_ROOT", "GPR_CHECKPOINT_ROOT"):
+        for item in os.environ.get(key, "").split(os.pathsep):
+            if item:
+                roots.append(Path(item))
+    external_root = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+    roots.extend([
+        external_root,
+        external_root / "models",
+        external_root / "checkpoints",
+        Path("/Volumes/OWC_8TB/gpr_work/models"),
+        Path("/Volumes/OWC_8TB/gpr_work/checkpoints"),
+    ])
+
+    candidates = []
+    for root in roots:
+        candidates.append(root / path)
+        if path.parts and path.parts[0] in {"models", "checkpoints"}:
+            candidates.append(root / Path(*path.parts[1:]))
+    unique = []
+    seen = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            seen.add(key)
+            unique.append(candidate)
+    return unique
+
+
+def resolve_artifact_path(path_value):
+    candidates = artifact_candidates(path_value)
+    for path in candidates:
+        if path.exists():
+            return path
+    return candidates[0] if candidates else None
 
 
 def sha256_file(path):
@@ -145,14 +181,16 @@ for name, cnn in REG.get("cnns", {}).items():
         errors.append(f"cnn {name!r}: missing ckpt_path")
 
     for path_field, path_value, sha_field, expected_sha in checkpoint_specs(cnn):
-        path = repo_path(path_value)
+        path = resolve_artifact_path(path_value)
         if path is None:
             errors.append(f"cnn {name!r}: {path_field} must be a string")
             continue
 
         if not path.exists():
+            searched = artifact_candidates(path_value)[:4]
+            suffix = f" (searched first: {', '.join(str(p) for p in searched)})" if searched else ""
             artifact_issue(
-                f"cnn {name!r}: {path_field} does not exist: {path_value}",
+                f"cnn {name!r}: {path_field} does not exist: {path_value}{suffix}",
                 args.strict_artifacts,
             )
             continue

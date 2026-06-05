@@ -15,17 +15,20 @@ ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
 mkdir -p \
   "$ROOT/tmp" \
   "$ROOT/gate_tmp" \
+  "$ROOT/models" \
   "$ROOT/checkpoints" \
   "$ROOT/pycache" \
   "$ROOT/torch" \
   "$ROOT/xdg_cache" \
   "$ROOT/matplotlib" \
-  /Volumes/OWC_8TB/gpr_work/cnn \
-  /Volumes/OWC_8TB/gpr_work/artifacts
+  "$ROOT/cnn" \
+  "$ROOT/artifacts"
 
 export GPR_EXTERNAL_ROOT="$ROOT"
-export GPR_CNN_ROOT="${GPR_CNN_ROOT:-/Volumes/OWC_8TB/gpr_work/cnn}"
-export GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-/Volumes/OWC_8TB/gpr_work/artifacts}"
+export GPR_CNN_ROOT="${GPR_CNN_ROOT:-$ROOT/cnn}"
+export GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$ROOT/artifacts}"
+export GPR_MODEL_ROOT="${GPR_MODEL_ROOT:-$ROOT/models}"
+export GPR_CHECKPOINT_ROOT="${GPR_CHECKPOINT_ROOT:-$ROOT/checkpoints}"
 
 # tempfile uses TMPDIR; run_gate.py also honors GATE_TMPDIR explicitly.
 export TMPDIR="$ROOT/tmp/"
@@ -34,9 +37,9 @@ export TMP="$TMPDIR"
 export GATE_TMPDIR="$ROOT/gate_tmp"
 export GATE_KEEP_FULLRES="${GATE_KEEP_FULLRES:-0}"
 
-# Training/checkpoint defaults. Override CKPT_DIR per command when the final
-# artifact must land in repo-local models/ for registration.
-export CKPT_DIR="${CKPT_DIR:-$ROOT/checkpoints}"
+# Training/checkpoint defaults. Production registry artifacts resolve from
+# GPR_MODEL_ROOT; transient training checkpoints resolve from GPR_CHECKPOINT_ROOT.
+export CKPT_DIR="${CKPT_DIR:-$GPR_CHECKPOINT_ROOT}"
 
 # Keep language/runtime caches off the internal disk.
 export PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-$ROOT/pycache}"
@@ -56,4 +59,6 @@ External-drive GPR environment active:
   CKPT_DIR=$CKPT_DIR
   GPR_CNN_ROOT=$GPR_CNN_ROOT
   GPR_ARTIFACT_ROOT=$GPR_ARTIFACT_ROOT
+  GPR_MODEL_ROOT=$GPR_MODEL_ROOT
+  GPR_CHECKPOINT_ROOT=$GPR_CHECKPOINT_ROOT
 EOF

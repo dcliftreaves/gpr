@@ -9,12 +9,13 @@ class (uses model_F_ane.NAFUNetANE with BN + SiLU in place of LN + SimpleGate).
 
 Tile data:
   /Volumes/OWC_8TB/gpr_work/cnn/tiles_superres_dense.npz  (M3 path)
-  /Users/dcliftreaves/gpr_data/gpr_cnn/tiles_superres_dense.npz  (M5 path, after rsync)
+  $GPR_EXTERNAL_ROOT/gpr_cnn/tiles_superres_dense.npz  (M5 path, after rsync)
 
 Held-out val: Z8_ISO64 (single source) — kept consistent with the F/BIBO trainers
 so val PSNR is directly comparable to those reference numbers.
 """
 import os, sys, time, argparse
+from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
@@ -36,7 +37,8 @@ def default_npz():
     candidates = [
         os.environ.get("SUPERRES_NPZ"),
         "/Volumes/OWC_8TB/gpr_work/cnn/tiles_superres_dense.npz",
-        "/Users/dcliftreaves/gpr_data/gpr_cnn/tiles_superres_dense.npz",
+        str(Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+            / "gpr_cnn" / "tiles_superres_dense.npz"),
     ]
     for c in candidates:
         if c and os.path.exists(c):
@@ -45,7 +47,10 @@ def default_npz():
 
 CKPT_DIR = os.environ.get(
     "CKPT_DIR",
-    "/Users/dcliftreaves/dering_proto_v2/checkpoints"
+    str(Path(os.environ.get(
+        "GPR_CHECKPOINT_ROOT",
+        Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+        / "checkpoints")))
 )
 
 

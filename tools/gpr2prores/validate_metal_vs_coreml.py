@@ -17,12 +17,17 @@ import argparse
 import os
 import subprocess
 import sys
+from pathlib import Path
 import numpy as np
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+TMPDIR = Path(os.environ.get("TMPDIR", EXTERNAL_ROOT / "tmp"))
 
 
 def run(backend, ckpt, dng, raw_out):
     # Use a known-bad output .mov that the tool overwrites
-    out_mov = "/tmp/validate_dummy.mov"
+    TMPDIR.mkdir(parents=True, exist_ok=True)
+    out_mov = str(TMPDIR / "validate_dummy.mov")
     env = os.environ.copy()
     env["SUPERRES_DUMP_BAYER"] = raw_out
     args = [
@@ -41,15 +46,18 @@ def run(backend, ckpt, dng, raw_out):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dng", default="/Users/dcliftreaves/Documents/dering_proto_v2/source_dngs/Z8Z_1579.dng")
-    ap.add_argument("--coreml-ckpt", default="/tmp/super_res_F_aa_off_ep8.mlpackage")
-    ap.add_argument("--metal-ckpt", default="/tmp/F_weights")
+    artifact_root = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
+    model_root = Path(os.environ.get("GPR_MODEL_ROOT", EXTERNAL_ROOT / "models"))
+    ap.add_argument("--dng", default=str(EXTERNAL_ROOT / "external/dering_proto_v2/source_dngs/Z8Z_1579.dng"))
+    ap.add_argument("--coreml-ckpt", default=str(model_root / "super_res_F_aa_off_ep8.mlpackage"))
+    ap.add_argument("--metal-ckpt", default=str(artifact_root / "weights/F_weights"))
     ap.add_argument("--w", type=int, default=8280)
     ap.add_argument("--h", type=int, default=5520)
     args = ap.parse_args()
 
-    coreml_raw = "/tmp/bayer_coreml.raw"
-    metal_raw  = "/tmp/bayer_metal.raw"
+    TMPDIR.mkdir(parents=True, exist_ok=True)
+    coreml_raw = str(TMPDIR / "bayer_coreml.raw")
+    metal_raw = str(TMPDIR / "bayer_metal.raw")
     run("coreml",   args.coreml_ckpt, args.dng, coreml_raw)
     run("mpsgraph", args.metal_ckpt,  args.dng, metal_raw)
 

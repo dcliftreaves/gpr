@@ -10,15 +10,24 @@ If (b) and (c) match (a) within fp16 noise, the new wiring is correct.
 
 Quick test, intended to be run after the wiring changes.
 """
+from pathlib import Path
 import os, sys, subprocess
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 import numpy as np
 import cv2
 
-GPR2PRORES = "/Users/dcliftreaves/Documents/Github/gpr/tools/gpr2prores/gpr2prores"
-INPUT_DNG = "/Users/dcliftreaves/Documents/Github/gpr/data/test_sets/entropy_matrix/Z8_ISO64.DNG"
-WEIGHTS_DIR = "/tmp/F_ane_w16_weights_metal"   # produced by extract_F_ane_weights.py
+REPO = Path(__file__).resolve().parents[2]
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+ARTIFACT_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
+TMPDIR = Path(os.environ.get("TMPDIR", EXTERNAL_ROOT / "tmp"))
+
+GPR2PRORES = str(Path(os.environ.get(
+    "GPR2PRORES", REPO / "tools/gpr2prores/gpr2prores")))
+INPUT_DNG = str(Path(os.environ.get(
+    "INPUT_DNG", REPO / "data/test_sets/entropy_matrix/Z8_ISO64.DNG")))
+WEIGHTS_DIR = str(Path(os.environ.get(
+    "WEIGHTS_DIR", ARTIFACT_ROOT / "weights/F_ane_w16_weights_metal")))
 
 
 def render(backend, out_mov):
@@ -57,11 +66,14 @@ def ssim_y(a, b):
 
 
 def main():
-    render("mpsgraph", "/tmp/_vfm_mpsgraph.mov")
-    render("metal",    "/tmp/_vfm_metal.mov")
+    TMPDIR.mkdir(parents=True, exist_ok=True)
+    mpsgraph_mov = str(TMPDIR / "_vfm_mpsgraph.mov")
+    metal_mov = str(TMPDIR / "_vfm_metal.mov")
+    render("mpsgraph", mpsgraph_mov)
+    render("metal", metal_mov)
 
-    a = first_frame("/tmp/_vfm_mpsgraph.mov")
-    b = first_frame("/tmp/_vfm_metal.mov")
+    a = first_frame(mpsgraph_mov)
+    b = first_frame(metal_mov)
 
     print(f"MPSGraph frame shape: {a.shape}")
     print(f"Metal    frame shape: {b.shape}")

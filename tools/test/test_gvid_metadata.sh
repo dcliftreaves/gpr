@@ -3,14 +3,16 @@
 set -euo pipefail
 
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-WORK=${WORK:-/tmp/gvid_metadata_smoke}
+GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+WORK=${WORK:-${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}/gvid_metadata_smoke}
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 rm -rf "$WORK"
 mkdir -p "$WORK/frames"
 printf 'frame-0000-payload' > "$WORK/frames/frame_0000.gpr"
 printf 'frame-0001-payload' > "$WORK/frames/frame_0001.gpr"
 
-python3 "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip.gvid" \
+"$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip.gvid" \
   --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4
 
 cat > "$WORK/clip.gvid.meta.json" <<'JSON'
@@ -63,13 +65,13 @@ cat > "$WORK/clip.gvid.meta.json" <<'JSON'
 }
 JSON
 
-python3 "$REPO/tools/gvid_metadata.py" validate "$WORK/clip.gvid.meta.json" \
+"$PYTHON_BIN" "$REPO/tools/gvid_metadata.py" validate "$WORK/clip.gvid.meta.json" \
   --gvid "$WORK/clip.gvid"
 
-python3 "$REPO/tools/gvid_metadata.py" runtime-dispatch "$WORK/clip.gvid.meta.json" \
+"$PYTHON_BIN" "$REPO/tools/gvid_metadata.py" runtime-dispatch "$WORK/clip.gvid.meta.json" \
   --gvid "$WORK/clip.gvid" \
   --output "$WORK/clip.gvid.dispatch.json"
-python3 - "$WORK/clip.gvid.dispatch.json" <<'PY'
+"$PYTHON_BIN" - "$WORK/clip.gvid.dispatch.json" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -85,7 +87,7 @@ assert dispatch["frames"][0]["raw_clean_tiles"][0]["policy"] == "all_targets_raw
 assert dispatch["frames"][1]["raw_clean_tiles"][0]["policy"] == "accepted_only_raw_clean"
 PY
 
-python3 - "$WORK/clip.gvid" "$WORK/dup_tag.gvid" <<'PY'
+"$PYTHON_BIN" - "$WORK/clip.gvid" "$WORK/dup_tag.gvid" <<'PY'
 import struct
 import sys
 from pathlib import Path
@@ -103,14 +105,14 @@ data[pos + 8:pos + 16] = struct.pack("<Q", 0)
 dst.write_bytes(data)
 PY
 
-if python3 "$REPO/tools/gvid_metadata.py" runtime-dispatch "$WORK/clip.gvid.meta.json" \
+if "$PYTHON_BIN" "$REPO/tools/gvid_metadata.py" runtime-dispatch "$WORK/clip.gvid.meta.json" \
   --gvid "$WORK/dup_tag.gvid" \
   --output "$WORK/dup_tag.gvid.dispatch.json"; then
   echo "expected duplicate stream frame tags to fail runtime dispatch" >&2
   exit 1
 fi
 
-python3 - "$WORK/clip.gvid.meta.json" "$WORK/bad_tags.gvid.meta.json" <<'PY'
+"$PYTHON_BIN" - "$WORK/clip.gvid.meta.json" "$WORK/bad_tags.gvid.meta.json" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -122,7 +124,7 @@ meta["frames"][0]["frame_tag"], meta["frames"][1]["frame_tag"] = 1, 0
 dst.write_text(json.dumps(meta, indent=2))
 PY
 
-if python3 "$REPO/tools/gvid_metadata.py" validate "$WORK/bad_tags.gvid.meta.json" \
+if "$PYTHON_BIN" "$REPO/tools/gvid_metadata.py" validate "$WORK/bad_tags.gvid.meta.json" \
   --gvid "$WORK/clip.gvid"; then
   echo "expected swapped frame tags to fail validation" >&2
   exit 1

@@ -8,7 +8,8 @@
 
 set -euo pipefail
 
-FFROOT="${1:-/tmp/ffmpeg_gpr}"
+GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+FFROOT="${1:-$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr}"
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 [ -d "$FFROOT/libavcodec" ] || { echo "not an FFmpeg tree: $FFROOT" >&2; exit 1; }

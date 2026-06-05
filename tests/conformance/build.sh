@@ -1,9 +1,9 @@
 #!/bin/sh
 # tests/conformance/build.sh — compile the conformance generate + check binaries.
 #
-# Produces four binaries under /tmp:
-#   /tmp/conformance_generate_L1   /tmp/conformance_generate_L2
-#   /tmp/conformance_check_L1      /tmp/conformance_check_L2
+# Produces four binaries under $TMPDIR/conformance:
+#   conformance_generate_L1   conformance_generate_L2
+#   conformance_check_L1      conformance_check_L2
 #
 # The wavelet level is a compile-time switch (-DFUSED_WAVELET_LEVELS=N) so each
 # level needs its own binary. The fused_encode.c sources are pulled in directly
@@ -22,6 +22,10 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT"
 
 BUILD_DIR=${BUILD_DIR:-build-local}
+GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+TMPDIR="${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+OUT_DIR="${CONFORMANCE_BIN_DIR:-$TMPDIR/conformance}"
+mkdir -p "$OUT_DIR"
 
 VC5_ENC_LIB=$BUILD_DIR/source/lib/vc5_encoder/libvc5_encoder.a
 VC5_COMMON_LIB=$BUILD_DIR/source/lib/vc5_common/libvc5_common.a
@@ -48,7 +52,7 @@ SRC_FUSED=source/lib/vc5_encoder/fused_encode.c
 build_one() {
   out_name="$1"; src="$2"; levels="$3"
   cmd="clang $CFLAGS -DFUSED_WAVELET_LEVELS=$levels \
-       -o /tmp/${out_name}_L${levels} \
+       -o \"$OUT_DIR/${out_name}_L${levels}\" \
        $src $SRC_FUSED $LIBS"
   echo "  $out_name L=$levels"
   eval $cmd
@@ -61,5 +65,5 @@ for levels in 1 2; do
 done
 
 echo "done."
-echo "  /tmp/conformance_generate_L1   /tmp/conformance_generate_L2"
-echo "  /tmp/conformance_check_L1      /tmp/conformance_check_L2"
+echo "  $OUT_DIR/conformance_generate_L1   $OUT_DIR/conformance_generate_L2"
+echo "  $OUT_DIR/conformance_check_L1      $OUT_DIR/conformance_check_L2"

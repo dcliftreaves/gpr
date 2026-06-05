@@ -4,7 +4,7 @@
   "$rules": [
     "Adding a pipeline: required fields populated, no ad-hoc 'TODO' fields.",
     "Renaming a pipeline: forbidden in same PR as an artifact run. Rename + re-run in separate PRs.",
-    "If you can't fill `cnn_ckpt_sha256`, you can't register the pipeline. Run `sha256sum` on the .pt file."
+    "If you can't fill `ckpt_sha256`, you can't register the pipeline. Run `sha256sum` on the .pt file."
   ],
   "$use_for_doc": "Each codec carries a 'use_for' field: 'still' (production stills encoder = legacy gpr_tools), 'video' (production video encoder = multi-level FUSED), 'experiment' (diagnostic variants used for sweeps, not ship targets), 'deprecated' (codecs no longer in any ship pipeline; kept so historical run.json files still resolve). FUSED was designed for video; using it for stills was a methodology error caught 2026-05-28. Pipeline entries carry a 'ship_class' field with values STILL / VIDEO_FREEZE / PREVIEW / UPRESABLE; UPRESABLE pipelines combine a dec2 codec (half-res Pi capture) with a bibo2x super-res CNN (desktop) and output an editable full-res raw DNG/.gpr \u2014 see docs/UPRESABLE_PIPELINE.md.",
   "demosaicers": {

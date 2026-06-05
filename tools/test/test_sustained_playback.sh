@@ -22,8 +22,7 @@
 #
 # Skips cleanly on:
 #   - Linux (gpr2prores depends on Metal/MPS/AVFoundation)
-#   - missing BIBO_1x metal weights dir (/Volumes/OWC_8TB/gpr_work/artifacts/
-#     weights/F_ane_1x_weights_metal or /tmp/F_ane_1x_weights_metal)
+#   - missing BIBO_1x metal weights dir ($GPR_ARTIFACT_ROOT/weights/F_ane_1x_weights_metal)
 #   - missing gpr2prores / bench_fused / gpr_mov_tool binaries
 #
 # Env knobs:
@@ -43,6 +42,9 @@ if [ "$(uname -s)" != "Darwin" ]; then
 fi
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
+TMPDIR="${TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
 BUILD_DIR="${BUILD_DIR:-build-local}"
 [[ "$BUILD_DIR" = /* ]] || BUILD_DIR="$REPO/$BUILD_DIR"
 
@@ -50,13 +52,9 @@ GTOOLS="${GTOOLS:-$BUILD_DIR/source/app/gpr_tools/gpr_tools}"
 BENCH="${BENCH:-$BUILD_DIR/source/app/bench_fused/bench_fused}"
 GPR2PRORES="${GPR2PRORES:-$REPO/tools/gpr2prores/gpr2prores}"
 MOV="${MOV:-$REPO/tools/gpr2prores/gpr_mov_tool}"
-PY="${PY:-/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3}"
+PY="${PY:-$(command -v python3 || true)}"
 
-# CNN weights — try OWC then /tmp symlink fallback (matches CNN_CAPABILITIES doc).
-CKPT_W1X="${CKPT_W1X:-/Volumes/OWC_8TB/gpr_work/artifacts/weights/F_ane_1x_weights_metal}"
-if [ ! -d "$CKPT_W1X" ]; then
-    CKPT_W1X="/tmp/F_ane_1x_weights_metal"
-fi
+CKPT_W1X="${CKPT_W1X:-$GPR_ARTIFACT_ROOT/weights/F_ane_1x_weights_metal}"
 
 for t in "$GTOOLS" "$BENCH" "$GPR2PRORES" "$MOV"; do
     if [ ! -x "$t" ]; then
@@ -92,7 +90,8 @@ FPS_NO_CNN_MIN="${FPS_NO_CNN_MIN:-24}"
 
 # ---- workspace --------------------------------------------------------------
 
-WORK="$(mktemp -d -t gpr-sustained-XXXXXX)"
+mkdir -p "$TMPDIR"
+WORK="$(mktemp -d "$TMPDIR/gpr-sustained-XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 
 DNG_DIR="$WORK/dngs"
