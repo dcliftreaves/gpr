@@ -19,7 +19,7 @@ DEFAULT_PAIRS = Path("/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_pairs
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 RAW_SCALE = 16383.0
 TARGET_MODES = ("raw_signal", "clean")
-CONDITIONING_MODES = ("sigma", "iso")
+CONDITIONING_MODES = ("sigma", "iso", "iso_only")
 
 
 class PairDataset:
@@ -55,7 +55,12 @@ class PairDataset:
             for idx, codec in enumerate(self.codec)
         ])
         self.targets = self.raw if target_mode == "raw_signal" else self.clean
-        self.in_channels = 8 if conditioning == "sigma" else 10
+        if conditioning == "sigma":
+            self.in_channels = 8
+        elif conditioning == "iso_only":
+            self.in_channels = 5
+        else:
+            self.in_channels = 10
 
     def make_input(self, idx: int) -> np.ndarray:
         codec_up = self.codec_up[idx]
@@ -64,8 +69,10 @@ class PairDataset:
             return np.concatenate([codec_up, sigma], axis=0)
         _, h, w = codec_up.shape
         iso_norm = np.clip(np.log2(max(float(self.iso[idx]), 1.0) / 64.0) / 8.0, 0.0, 1.0)
-        sigma_rms = float(np.sqrt(np.mean(sigma * sigma)))
         iso_plane = np.full((1, h, w), iso_norm, dtype=np.float32)
+        if self.conditioning == "iso_only":
+            return np.concatenate([codec_up, iso_plane], axis=0)
+        sigma_rms = float(np.sqrt(np.mean(sigma * sigma)))
         sigma_rms_plane = np.full((1, h, w), sigma_rms, dtype=np.float32)
         return np.concatenate([codec_up, sigma, iso_plane, sigma_rms_plane], axis=0)
 
