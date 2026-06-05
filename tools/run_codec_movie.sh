@@ -43,7 +43,13 @@ set -e
 HOLD=${1:-${HOLD:-1}}
 FPS=${FPS:-24}
 PI=${PI:-gpr-pi}
-GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+    else
+        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+    fi
+fi
 GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
 OUT=${OUT:-$GPR_ARTIFACT_ROOT/gpr_visuals}
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)

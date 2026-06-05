@@ -58,7 +58,14 @@ TIMING_SAMPLES = int(os.environ.get("GPR_TIMING_SAMPLES", "3"))
 TIMING_SAMPLE_MAX_PIXELS = int(os.environ.get(
     "GPR_TIMING_SAMPLE_MAX_PIXELS", str(4032 * 3024)))
 
-EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
 ARTIFACT_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
 DEFAULT_ART = (str(ARTIFACT_ROOT / "capabilities")
                if EXTERNAL_ROOT.exists()

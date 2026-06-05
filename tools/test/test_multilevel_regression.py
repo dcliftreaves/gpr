@@ -11,12 +11,19 @@ Usage:
     python3 tools/test/test_multilevel_regression.py [BUILD_DIR]
 """
 from __future__ import annotations
-import sys, os, subprocess
+import sys, os, subprocess, tempfile
 from pathlib import Path
 import numpy as np
 
 REPO = Path(__file__).resolve().parents[2]
-EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
 TMPDIR = Path(os.environ.get("TMPDIR", EXTERNAL_ROOT / "tmp"))
 BUILD_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / "build-local"
 BIN = BUILD_DIR / "bin/test_fused_roundtrip"

@@ -4,7 +4,13 @@ set -euo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GPR_ROOT="${GPR_ROOT:-$(cd "$SELF_DIR/../.." && pwd)}"
-GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+    else
+        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+    fi
+fi
 FF_ROOT="${FF_ROOT:-$GPR_EXTERNAL_ROOT/external/ffmpeg_gpr}"
 
 OUT="$SELF_DIR/test_roundtrip"

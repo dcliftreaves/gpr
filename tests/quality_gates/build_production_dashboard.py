@@ -14,6 +14,7 @@ import json
 import os
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 import numpy as np
 import cv2
@@ -22,7 +23,14 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
 
 REPO = Path(__file__).resolve().parents[2]
-EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
 ARTIFACT_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
 TMPDIR = Path(os.environ.get("GATE_TMPDIR", os.environ.get("TMPDIR", EXTERNAL_ROOT / "tmp")))
 UPRES = Path(os.environ.get("GPR_UPRESABLE_OUT", ARTIFACT_ROOT / "upresable"))

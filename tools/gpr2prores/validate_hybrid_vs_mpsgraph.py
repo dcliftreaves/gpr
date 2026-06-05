@@ -6,12 +6,19 @@ and computes per-frame max/mean abs difference.
 Usage:
   python3 validate_hybrid_vs_mpsgraph.py "$TMPDIR/mpsgraph_test.mov" "$TMPDIR/hybrid_test.mov"
 """
-import sys, subprocess, os, json
+import sys, subprocess, os, json, tempfile
 from pathlib import Path
 import numpy as np
 
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
 TMPDIR = Path(os.environ.get(
-    "TMPDIR", Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work")) / "tmp"))
+    "TMPDIR", Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root())) / "tmp"))
 TMPDIR.mkdir(parents=True, exist_ok=True)
 
 mov_a = sys.argv[1]

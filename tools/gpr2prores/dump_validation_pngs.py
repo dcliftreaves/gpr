@@ -2,11 +2,19 @@
 import numpy as np
 from PIL import Image
 import os
+import tempfile
 from pathlib import Path
 
 W, H = 8280, 5520
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
 TMPDIR = Path(os.environ.get(
-    "TMPDIR", Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work")) / "tmp"))
+    "TMPDIR", Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root())) / "tmp"))
 TMPDIR.mkdir(parents=True, exist_ok=True)
 
 for name, path in [("coreml", TMPDIR / "bayer_coreml.raw"), ("metal", TMPDIR / "bayer_metal.raw")]:

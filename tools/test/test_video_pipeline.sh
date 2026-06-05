@@ -41,7 +41,13 @@ fi
 BUILD_DIR="${BUILD_DIR:-build}"
 GTOOLS="${GTOOLS:-$BUILD_DIR/source/app/gpr_tools/gpr_tools}"
 GPR2PRORES="${GPR2PRORES:-tools/gpr2prores/gpr2prores}"
-GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+    if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+        GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+    else
+        GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+    fi
+fi
 GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
 GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
 WORK="${WORK_DIR:-$GPR_TMPDIR/gpr-vidmtx}"

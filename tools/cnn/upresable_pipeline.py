@@ -38,7 +38,14 @@ import tifffile
 import torch
 
 REPO = Path(__file__).resolve().parents[2]
-EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
 MODEL_ROOT = Path(os.environ.get("GPR_MODEL_ROOT", EXTERNAL_ROOT / "models"))
 sys.path.insert(0, str(REPO / "tools" / "cnn"))
 from model import build
@@ -51,9 +58,9 @@ GPR_TOOLS = Path(os.environ.get(
 def _model_artifact(env_name: str, filename: str) -> Path:
     candidates = [
         os.environ.get(env_name),
+        REPO / "models" / filename,
         MODEL_ROOT / filename,
         EXTERNAL_ROOT / "models" / filename,
-        REPO / "models" / filename,
     ]
     for c in candidates:
         if c and Path(c).exists():

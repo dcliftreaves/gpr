@@ -44,7 +44,14 @@ import numpy as np
 
 
 REPO = Path(__file__).resolve().parents[2]
-EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
 ARTIFACT_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
 CHECKPOINT_ROOT = Path(os.environ.get("GPR_CHECKPOINT_ROOT", EXTERNAL_ROOT / "checkpoints"))
 DERING_DIR = Path(os.environ.get("GPR_DERING_DIR", EXTERNAL_ROOT / "external" / "dering_proto_v2"))

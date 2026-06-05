@@ -1,10 +1,18 @@
 """Where exactly do the Metal vs CoreML bayer outputs differ?"""
 import numpy as np
 import os
+import tempfile
 from pathlib import Path
 W, H = 8280, 5520
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
 TMPDIR = Path(os.environ.get(
-    "TMPDIR", Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work")) / "tmp"))
+    "TMPDIR", Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root())) / "tmp"))
 a = np.fromfile(TMPDIR / "bayer_coreml.raw", dtype=np.uint16).reshape(H, W)
 b = np.fromfile(TMPDIR / "bayer_metal.raw", dtype=np.uint16).reshape(H, W)
 diff = np.abs(a.astype(np.int32) - b.astype(np.int32))

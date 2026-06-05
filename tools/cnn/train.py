@@ -14,7 +14,7 @@ Tile data:
 Held-out val: Z8_ISO64 (single source) — kept consistent with the F/BIBO trainers
 so val PSNR is directly comparable to those reference numbers.
 """
-import os, sys, time, argparse
+import os, sys, time, argparse, tempfile
 from pathlib import Path
 import numpy as np
 import torch
@@ -32,13 +32,22 @@ RESIDUAL_SCALE = 0.01
 RAW_NORM = 16383.0
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
+
+
 # Allow override via env. Default to whichever path exists.
 def default_npz():
     candidates = [
         os.environ.get("SUPERRES_NPZ"),
         "/Volumes/OWC_8TB/gpr_work/cnn/tiles_superres_dense.npz",
-        str(Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
-            / "gpr_cnn" / "tiles_superres_dense.npz"),
+        str(EXTERNAL_ROOT / "gpr_cnn" / "tiles_superres_dense.npz"),
     ]
     for c in candidates:
         if c and os.path.exists(c):
@@ -49,8 +58,7 @@ CKPT_DIR = os.environ.get(
     "CKPT_DIR",
     str(Path(os.environ.get(
         "GPR_CHECKPOINT_ROOT",
-        Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
-        / "checkpoints")))
+        EXTERNAL_ROOT / "checkpoints")))
 )
 
 

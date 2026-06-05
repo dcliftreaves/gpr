@@ -27,7 +27,13 @@ PI="${PI:-gpr-pi}"
 SRC_DNGS=(Z8Z_0001.dng Z8Z_0067.dng Z8Z_5323.dng Z8Z_6693.dng)
 
 GPR_ROOT="${GPR_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
-GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+  if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+    GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+  else
+    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+  fi
+fi
 GPR_ARTIFACT_ROOT="${GPR_ARTIFACT_ROOT:-$GPR_EXTERNAL_ROOT/artifacts}"
 GPR_MODEL_ROOT="${GPR_MODEL_ROOT:-$GPR_EXTERNAL_ROOT/models}"
 GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"

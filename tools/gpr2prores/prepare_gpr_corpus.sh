@@ -11,7 +11,13 @@ COUNT=${2:?count}
 OUT_DIR=${3:?out_dir}
 PREFIX=${4:-frame}
 
-GPR_EXTERNAL_ROOT="${GPR_EXTERNAL_ROOT:-/Volumes/OWC_8TB/gpr_work}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+  if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+    GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+  else
+    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+  fi
+fi
 GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
 TMPDIR="$GPR_TMPDIR"
 MF_LOCAL="${MF_LOCAL:-$GPR_EXTERNAL_ROOT/tools/mf_local}"

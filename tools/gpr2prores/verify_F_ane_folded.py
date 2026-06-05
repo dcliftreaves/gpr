@@ -23,11 +23,19 @@ Usage:
 import argparse
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 REPO = Path(__file__).resolve().parents[2]
-EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
 DERING_DIR = Path(os.environ.get("GPR_DERING_DIR", EXTERNAL_ROOT / "external" / "dering_proto_v2"))
 sys.path.insert(0, str(DERING_DIR))
 sys.path.insert(0, str(REPO / "tools" / "cnn"))

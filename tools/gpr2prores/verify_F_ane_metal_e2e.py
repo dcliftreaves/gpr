@@ -11,14 +11,21 @@ If (b) and (c) match (a) within fp16 noise, the new wiring is correct.
 Quick test, intended to be run after the wiring changes.
 """
 from pathlib import Path
-import os, sys, subprocess
+import os, sys, subprocess, tempfile
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 import numpy as np
 import cv2
 
 REPO = Path(__file__).resolve().parents[2]
-EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
 ARTIFACT_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
 TMPDIR = Path(os.environ.get("TMPDIR", EXTERNAL_ROOT / "tmp"))
 

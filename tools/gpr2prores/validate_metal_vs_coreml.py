@@ -17,10 +17,18 @@ import argparse
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 import numpy as np
 
-EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
 TMPDIR = Path(os.environ.get("TMPDIR", EXTERNAL_ROOT / "tmp"))
 
 
