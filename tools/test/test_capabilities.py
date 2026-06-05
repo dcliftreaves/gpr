@@ -35,7 +35,7 @@ Env:
 """
 
 from __future__ import annotations
-import argparse, os, subprocess, sys, time, shutil
+import argparse, os, subprocess, sys, time, shutil, tempfile
 from pathlib import Path
 from typing import Dict, Any, Tuple
 
@@ -61,7 +61,9 @@ TIMING_SAMPLE_MAX_PIXELS = int(os.environ.get(
 EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
 ARTIFACT_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
 DEFAULT_ART = (str(ARTIFACT_ROOT / "capabilities")
-               if EXTERNAL_ROOT.exists() else str(REPO / ".artifacts" / "capabilities"))
+               if EXTERNAL_ROOT.exists()
+               else str(Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir()))
+                        / "gpr-capabilities"))
 ART_DIR = Path(os.environ.get("ARTIFACT_DIR", DEFAULT_ART))
 FAST = os.environ.get("FAST", "0") == "1"
 

@@ -39,30 +39,30 @@ def candidates(path_value: str) -> list[Path]:
     if path.is_absolute():
         return [path]
 
-    roots = [REPO]
+    roots: list[tuple[Path, bool]] = [(REPO, False)]
     for key in ("GPR_MODEL_ROOT", "GPR_CHECKPOINT_ROOT"):
         for item in os.environ.get(key, "").split(os.pathsep):
             if item:
-                roots.append(Path(item))
+                roots.append((Path(item), True))
     external_root = Path(os.environ.get("GPR_EXTERNAL_ROOT", "/Volumes/OWC_8TB/gpr_work"))
     roots.extend([
-        external_root,
-        external_root / "models",
-        external_root / "checkpoints",
-        Path("/Volumes/OWC_8TB/gpr_work/models"),
-        Path("/Volumes/OWC_8TB/gpr_work/checkpoints"),
+        (external_root, False),
+        (external_root / "models", True),
+        (external_root / "checkpoints", True),
+        (Path("/Volumes/OWC_8TB/gpr_work/models"), True),
+        (Path("/Volumes/OWC_8TB/gpr_work/checkpoints"), True),
     ])
 
     out: list[Path] = []
     seen = set()
-    for root in roots:
-        for candidate in (root / path,):
-            key = str(candidate)
-            if key not in seen:
-                seen.add(key)
-                out.append(candidate)
+    for root, prefer_stripped in roots:
+        root_path = root / path
+        stripped = None
         if path.parts and path.parts[0] in {"models", "checkpoints"}:
-            candidate = root / Path(*path.parts[1:])
+            stripped = root / Path(*path.parts[1:])
+        ordered = ([stripped, root_path] if prefer_stripped and stripped is not None
+                   else [root_path] + ([stripped] if stripped is not None else []))
+        for candidate in ordered:
             key = str(candidate)
             if key not in seen:
                 seen.add(key)
