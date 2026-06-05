@@ -487,7 +487,7 @@ def apply_cnn(
         )
         return ("rgb", rgb_u8)
     if cnn.get("cnn_arch_variant") == "codec_raw_signal_sr":
-        return apply_codec_raw_signal_sr(bayer, cnn, src_dng)
+        return apply_codec_raw_signal_sr(bayer, cnn, src_dng, full_size=full_size)
     import torch
     import torch.nn.functional as F
     sys.path.insert(0, str(REPO / "tools/cnn"))
@@ -579,7 +579,12 @@ def _codec_hf_rms_counts(planes_counts: np.ndarray) -> float:
 _RAW_SIGNAL_SR_MODEL_CACHE = {}
 
 
-def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None):
+def apply_codec_raw_signal_sr(
+    bayer: np.ndarray,
+    cnn: dict,
+    src_dng: Path | None,
+    full_size: tuple[int, int] | None = None,
+):
     """Apply the experimental codec raw-signal SR checkpoint with tiled inference."""
     if src_dng is None:
         die(2, "codec_raw_signal_sr requires source DNG metadata")
@@ -608,9 +613,13 @@ def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None
     raw_norm = float(cnn.get("raw_norm", ck.get("raw_scale", 16383.0)))
 
     meta = read_dng_meta(src_dng.stem, src_dng)
-    source_raw = read_bayer(src_dng)
-    sigma_planes = _deinterleave_bayer(noise_sigma_map(source_raw, meta)) / raw_norm
-    target_h, target_w = sigma_planes.shape[1:]
+    source_raw = None
+    if full_size is None:
+        source_raw = read_bayer(src_dng)
+        target_h, target_w = source_raw.shape[0] // 2, source_raw.shape[1] // 2
+    else:
+        full_w, full_h = full_size
+        target_h, target_w = full_h // 2, full_w // 2
 
     codec_planes = _deinterleave_bayer(bayer)
     with torch.no_grad():
@@ -621,16 +630,41 @@ def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None
             align_corners=False,
         ).numpy()[0].astype(np.float32)
 
+    sigma_source = str(cnn.get("sigma_source", "source_raw"))
+    if sigma_source == "source_raw":
+        if source_raw is None:
+            source_raw = read_bayer(src_dng)
+        sigma_raw = source_raw
+    elif sigma_source == "codec_up":
+        sigma_raw = _interleave_bayer_planes(codec_up, (target_h * 2, target_w * 2), raw_norm)
+    else:
+        die(2, f"unsupported codec_raw_signal_sr sigma_source={sigma_source!r}")
+    sigma_planes = _deinterleave_bayer(noise_sigma_map(sigma_raw, meta)) / raw_norm
+
     iso_threshold = int(cnn.get("dispatch_iso_threshold", 100))
     hf_threshold = float(cnn.get("dispatch_hf_threshold", 1.7410857677459717))
     conditioning = str(cnn.get("conditioning", ck.get("conditioning", "iso")))
     tile = int(cnn.get("tile", 256))
     overlap = int(cnn.get("overlap", 24))
+    inference_batch = max(1, int(cnn.get("inference_batch", 1)))
     out = np.empty_like(codec_up, dtype=np.float32)
     tiles_total = 0
     tiles_model = 0
     tiles_bypass = 0
     inference_ms = 0.0
+    pending_jobs = {}
+
+    def flush_jobs(jobs):
+        nonlocal inference_ms
+        if not jobs:
+            return
+        x_np = np.concatenate([job[0] for job in jobs], axis=0)
+        t_infer = time.perf_counter()
+        preds = model(torch.from_numpy(x_np).to(dev)).cpu().numpy()
+        inference_ms += (time.perf_counter() - t_infer) * 1000.0
+        for pred, job in zip(preds, jobs):
+            _, y0, y1, x0, x1, yy0, yy1, xx0, xx1 = job
+            out[:, y0:y1, x0:x1] = pred[:, yy0:yy1, xx0:xx1]
 
     with torch.no_grad():
         for y0 in range(0, target_h, tile):
@@ -660,14 +694,18 @@ def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None
                     x_parts.append(np.full((1, hh, ww), iso_norm, dtype=np.float32))
                     x_parts.append(np.full((1, hh, ww), sigma_rms, dtype=np.float32))
                 x_np = np.concatenate(x_parts, axis=0)[None].astype(np.float32)
-                t_infer = time.perf_counter()
-                pred = model(torch.from_numpy(x_np).to(dev)).cpu().numpy()[0]
-                inference_ms += (time.perf_counter() - t_infer) * 1000.0
                 yy0 = y0 - yc0
                 yy1 = yy0 + (y1 - y0)
                 xx0 = x0 - xc0
                 xx1 = xx0 + (x1 - x0)
-                out[:, y0:y1, x0:x1] = pred[:, yy0:yy1, xx0:xx1]
+                key = x_np.shape
+                jobs = pending_jobs.setdefault(key, [])
+                jobs.append((x_np, y0, y1, x0, x1, yy0, yy1, xx0, xx1))
+                if len(jobs) >= inference_batch:
+                    flush_jobs(jobs)
+                    jobs.clear()
+        for jobs in pending_jobs.values():
+            flush_jobs(jobs)
 
     stats = {
         "cnn_model_load_ms": model_load_ms,
@@ -679,6 +717,8 @@ def apply_codec_raw_signal_sr(bayer: np.ndarray, cnn: dict, src_dng: Path | None
         "cnn_device": str(dev),
         "dispatch_iso_threshold": iso_threshold,
         "dispatch_hf_threshold": hf_threshold,
+        "inference_batch": inference_batch,
+        "sigma_source": sigma_source,
     }
     return ("bayer_stats", _interleave_bayer_planes(out, (target_h * 2, target_w * 2), raw_norm), stats)
 
@@ -1106,6 +1146,8 @@ def cnn_hash_fingerprint(cnn: dict) -> str:
                 "conditioning",
                 "dispatch_iso_threshold",
                 "dispatch_hf_threshold",
+                "inference_batch",
+                "sigma_source",
                 "tile",
                 "overlap",
                 "raw_norm",
