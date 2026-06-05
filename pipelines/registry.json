@@ -128,6 +128,15 @@
       "raw_norm": 16383.0,
       "ckpt_sha256": "bd3636d2c026639e3d8c9636de491c662fe05e67bdaa4451061901b47b37659b"
     },
+    "bido4x_ane_ml2_q3_dec2_lpips_detail_lumagrad_w001": {
+      "$doc": "Temporary BIDO_4x target-detail candidate from the 2026-06-05 hardtail pass. Starts from the LPIPS task-only control and adds a small target-derived luma-gradient detail loss; retained for full gate comparison, not a ship checkpoint.",
+      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/checkpoints/bido_target_detail_20260605/bido_4x_lpips005_detail_lumagrad_w001.pt",
+      "cnn_arch_variant": "bido_4x",
+      "trained_against_codec": "ml2_q3_dec2",
+      "residual_scale": 0.01,
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "e538ad8d3d2f464beeb311484a84caebc1e4ec6c754bd94027b5a5933f861132"
+    },
     "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded": {
       "$doc": "Temporary raw-signal SR candidate from the 2026-06-05 expanded 28-image / 84-crop pass. Uses source Bayer signal as the target, not denoised REF residuals. Dispatch bypasses low-ISO low-texture tiles to bilinear codec upsample.",
       "ckpt_path": "/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt",
@@ -244,6 +253,14 @@
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE",
       "$role": "UPRESABLE production chain \u2014 half-res Pi 5 capture (24.93 fps sustained) + desktop BIBO_2x super-res \u2192 editable full-res raw DNG/.gpr. Bayer PSNR vs source DNG: 37.85\u201343.78 dB on 4 gate images (2026-05-30). See docs/UPRESABLE_PIPELINE.md."
+    },
+    "codec=ml2_q3_dec2+cnn=bido4x_ane_ml2_q3_dec2_lpips_detail_lumagrad_w001+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "bido4x_ane_ml2_q3_dec2_lpips_detail_lumagrad_w001",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-bido-target-detail-20260605",
+      "$doc": "Temporary BIDO target-detail candidate for full rendered gate comparison. Not a ship pipeline until it beats the current PREVIEW/UPRESABLE blockers and has timing receipts."
     },
     "codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
