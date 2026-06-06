@@ -236,6 +236,54 @@ ablation to confirm that the same bounded improvement survives the actual gate
 images. It is not production-ready until it beats the current display-space
 baseline on worst-case LPIPS/MS-SSIM and keeps the Lab color guardrail.
 
+### 2026-06-06 display refiner and exact-HF ceiling
+
+The next pass tested whether the prior 3/16 result was caused by too narrow a
+luma-HF target. Two additional diagnostic trainers were added:
+
+- `tools/cnn/train_display_lab_refiner.py` trains a bounded Lab L/a/b residual
+  from candidate display crops.
+- `tools/cnn/probe_display_exact_hf_addback.py` adds exact REF Lab-L
+  high-frequency detail to a candidate/refiner output as an oracle ceiling.
+
+Lab and RGB residual refiners improved color/luma in some crops, but still
+failed the dashboard when evaluated without exact high-frequency addback:
+
+| candidate | pass count | pass rate | worst LPIPS | median LPIPS | worst dE |
+|---|---:|---:|---:|---:|---:|
+| SOTA baseline | 0/16 | 0.0% | 0.3805 | 0.2354 | 9.51 |
+| Lab refiner, best strength sweep | 5/16 | 31.2% | 0.4369 | 0.1786 | 6.38 |
+| RGB refiner blend, best sweep | 6/16 | 37.5% | 0.4245 | 0.1723 | 6.33 |
+
+Exact REF-HF addback to the RGB refiner low-frequency/color result clears the
+requested dashboard pass-rate stop condition:
+
+| variant | pass count | pass rate | worst LPIPS | median LPIPS | worst MS-SSIM | worst dE |
+|---|---:|---:|---:|---:|---:|---:|
+| exact REF-HF addback | 14/16 | 87.5% | 0.0794 | 0.0486 | 0.9659 | 4.01 |
+
+Artifacts:
+
+- RGB refiner checkpoint:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/display_rgb_refiner_20260606/rgb_refiner_probe.pt`
+- RGB checkpoint SHA-256:
+  `7b5c567606635e72dc1c11e5967c52f85a4dd1ec1ab496c07fc48a807365bbc4`
+- exact-HF dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/display_rgb_refiner_20260606/exact_hf_dashboard.html`
+- exact-HF JSON SHA-256:
+  `a4330604e00d52a9e3720c59d167a7c5c8a794fe0a22b3322f5ff617345a4754`
+- Lab 512-focus checkpoint:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/display_lab_refiner_20260606/display_lab_refiner_w64_sota_512focus.pt`
+- Lab 512-focus checkpoint SHA-256:
+  `9e8efcaa4717ed51340ded4b3ef961da0b11663e077c83ae72d18bf58974a8a8`
+
+Interpretation: the >70% pass-rate result is an oracle ceiling, not a
+production candidate. It proves that the remaining preview blocker is the
+exact high-frequency/noise-detail layer. The production next step is not more
+low-frequency/color refiner training; it is a deployable HF synthesis/addback
+model that can match REF high-frequency statistics and phase well enough
+without REF access.
+
 The plan's original `tools/cnn/train_demosaic_sr.py` name was stale. The
 active trainer is `tools/cnn/train.py`; it now supports BIDO/RGB `tgt_rgb`
 tiles, multiple validation source names, optional checkpoint initialization,
