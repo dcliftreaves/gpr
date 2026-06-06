@@ -166,8 +166,11 @@ jobs:
           env ${{ matrix.run_env }} timeout 300 /tmp/gpr-tests/test_video_full_chain
 
       - name: Run test_video_roundtrip
+        # Keep this aligned with ci.yml: this structure test probes the
+        # split-pass per-band format with jans_decode_band_x4. Inline mode is
+        # covered by encoder->decoder tests, not this standalone band walker.
         run: |
-          env ${{ matrix.run_env }} timeout 600 /tmp/gpr-tests/test_video_roundtrip
+          env ${{ matrix.run_env }} FUSED_INLINE_TOKENIZE=0 timeout 600 /tmp/gpr-tests/test_video_roundtrip
 
       - name: Run test_video_full_roundtrip
         run: |
