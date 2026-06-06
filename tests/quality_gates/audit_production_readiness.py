@@ -363,6 +363,23 @@ def check_capabilities_doc() -> Check:
     )
 
 
+def check_capability_memory_receipt() -> Check:
+    path = REPO / "docs/CAPABILITIES.md"
+    if not path.exists():
+        return Check("platform_perf", "capability memory receipt", "FAIL", "missing docs/CAPABILITIES.md")
+    text = path.read_text(errors="ignore")
+    required = ["| Capability | Encode | Decode | Peak RSS |", "- **Peak RSS**"]
+    missing = [s for s in required if s not in text]
+    if missing:
+        return Check("platform_perf", "capability memory receipt", "FAIL", f"missing {missing}")
+    return Check(
+        "platform_perf",
+        "capability memory receipt",
+        "PASS",
+        "Peak RSS measured with explicit criteria in docs/CAPABILITIES.md",
+    )
+
+
 def check_pi5_capture_receipt() -> Check:
     path = REPO / "docs/pi5_bench_2026-05-26.md"
     if not path.exists():
@@ -519,6 +536,7 @@ def main() -> int:
 
     checks.extend([
         check_capabilities_doc(),
+        check_capability_memory_receipt(),
         check_pi5_capture_receipt(),
         check_script_contains(
             "platform_perf",

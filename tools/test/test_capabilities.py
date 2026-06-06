@@ -9,11 +9,13 @@ Each capability row carries:
   - explicit pass criterion for every metric, with direction:
       encode_ms ≤ ceiling
       decode_ms ≤ ceiling
+      peak_rss_mb ≤ ceiling
       compress_ratio ≤ ceiling   (smaller = more compression = better)
       psnr_db ≥ floor
 
 The test:
-  1. measures live encode_ms, decode_ms, compress_ratio, psnr_db per cell
+  1. measures live encode_ms, decode_ms, peak_rss_mb, compress_ratio,
+     psnr_db per cell
   2. compares against the stated criterion for each metric, classifying:
        MET       — passes criterion within margin
        EXCEEDED  — passes by a comfortable margin (≥ 10 % better)
@@ -36,6 +38,7 @@ Env:
 
 from __future__ import annotations
 import argparse, os, subprocess, sys, time, shutil, tempfile
+import resource
 from pathlib import Path
 from typing import Dict, Any, Tuple
 
@@ -292,6 +295,30 @@ CAPABILITIES = [
 ]
 
 
+def _install_default_memory_criteria() -> None:
+    """Attach conservative peak-RSS gates to every still capability.
+
+    This turns memory into a measured production contract without pretending
+    the current ceilings are tuned platform limits. The max is sized from the
+    raw bayer payload with a fixed floor for small CI fixtures.
+    """
+    for cap in CAPABILITIES:
+        if cap.get("kind") != "still_roundtrip":
+            continue
+        crit = cap.setdefault("criteria", {})
+        if "peak_rss_mb" in crit:
+            continue
+        raw_mb = (cap["W"] * cap["H"] * 2) / (1024.0 * 1024.0)
+        max_mb = max(512.0, raw_mb * 24.0)
+        crit["peak_rss_mb"] = {
+            "max": round(max_mb, 0),
+            "exceed_below": round(max_mb * 0.70, 0),
+        }
+
+
+_install_default_memory_criteria()
+
+
 # ---------------------------------------------------------------------------
 # Measurement
 # ---------------------------------------------------------------------------
@@ -327,10 +354,23 @@ def synth_bayer(W, H, pf, peak, seed, packed, out: Path):
         img.astype("<u2").tofile(out)
 
 
+def _rss_to_mb(ru_maxrss: int) -> float:
+    """Normalize wait4 ru_maxrss to MiB: Linux reports KiB, Darwin bytes."""
+    if sys.platform == "darwin":
+        return ru_maxrss / (1024.0 * 1024.0)
+    return ru_maxrss / 1024.0
+
+
 def _run_timed(args):
     t0 = time.perf_counter()
-    r = subprocess.run(args, capture_output=True, text=True)
-    return r.returncode, (time.perf_counter() - t0) * 1000.0
+    with tempfile.TemporaryFile(mode="w+t") as stdout, tempfile.TemporaryFile(mode="w+t") as stderr:
+        p = subprocess.Popen(args, stdout=stdout, stderr=stderr, text=True)
+        _pid, status, usage = os.wait4(p.pid, 0)
+    try:
+        rc = os.waitstatus_to_exitcode(status)
+    except AttributeError:
+        rc = status >> 8
+    return rc, (time.perf_counter() - t0) * 1000.0, _rss_to_mb(usage.ru_maxrss)
 
 
 def measure_still_roundtrip(cap, work: Path) -> Dict[str, float]:
@@ -343,8 +383,8 @@ def measure_still_roundtrip(cap, work: Path) -> Dict[str, float]:
     out = work / f"{cap['id']}_dec.dng"
 
     synth_bayer(W, H, pf, peak, seed, packed, raw)
-    rc, _ = _run_timed([str(GTOOLS), "-i", str(raw), "-w", str(W), "-h", str(H),
-                       "-x", pf, "-o", str(dng)])
+    rc, _, _ = _run_timed([str(GTOOLS), "-i", str(raw), "-w", str(W), "-h", str(H),
+                          "-x", pf, "-o", str(dng)])
     if rc != 0:
         raise RuntimeError("raw→dng failed")
     # CI-sized still timing cells are vulnerable to one-off hosted-runner noise
@@ -354,15 +394,18 @@ def measure_still_roundtrip(cap, work: Path) -> Dict[str, float]:
     samples = max(1, TIMING_SAMPLES if W * H <= TIMING_SAMPLE_MAX_PIXELS else 1)
     encode_ms = float("inf")
     decode_ms = float("inf")
+    peak_rss_mb = 0.0
     for _ in range(samples):
-        rc, enc = _run_timed([str(GTOOLS), "-i", str(dng), "-q", str(q), "-o", str(gpr)])
+        rc, enc, enc_rss = _run_timed([str(GTOOLS), "-i", str(dng), "-q", str(q), "-o", str(gpr)])
         if rc != 0:
             raise RuntimeError("dng→gpr failed")
         encode_ms = min(encode_ms, enc)
-        rc, dec = _run_timed([str(GTOOLS), "-i", str(gpr), "-o", str(out)])
+        peak_rss_mb = max(peak_rss_mb, enc_rss)
+        rc, dec, dec_rss = _run_timed([str(GTOOLS), "-i", str(gpr), "-o", str(out)])
         if rc != 0:
             raise RuntimeError("gpr→dng failed")
         decode_ms = min(decode_ms, dec)
+        peak_rss_mb = max(peak_rss_mb, dec_rss)
     gpr_bytes = gpr.stat().st_size
 
     import rawpy
@@ -374,6 +417,7 @@ def measure_still_roundtrip(cap, work: Path) -> Dict[str, float]:
     psnr = 10 * np.log10(peak * peak / mse) if mse > 0 else float("inf")
     raw_equiv = W * H * 2
     return dict(encode_ms=encode_ms, decode_ms=decode_ms,
+                peak_rss_mb=peak_rss_mb,
                 compress_ratio=gpr_bytes / raw_equiv, psnr_db=psnr,
                 gpr_bytes=gpr_bytes, raw_bytes=raw_equiv)
 
@@ -701,6 +745,7 @@ def classify(value: float, crit: Dict[str, Any]) -> Tuple[str, str]:
 STILL_METRIC_ORDER = [
     ("encode_ms",      "Encode",        "ms",  "{:.1f}"),
     ("decode_ms",      "Decode",        "ms",  "{:.1f}"),
+    ("peak_rss_mb",    "Peak RSS",      "MiB", "{:.0f}"),
     ("compress_ratio", "Size vs raw",   "%",   "{:.2%}"),
     ("psnr_db",        "Roundtrip PSNR","dB",  "{:.2f}"),
 ]
@@ -762,13 +807,13 @@ def emit_markdown(rows: list, out_path: Path):
     lines = [
         "# Capabilities — measured, criteria-stated, regression-tested",
         "",
-        "Each row is one capability we claim. The four metric columns show the",
+        "Each row is one capability we claim. The metric columns show the",
         "**measured value** alongside the **explicit criterion** the test asserts,",
         "and the verdict — MET, EXCEEDED, or FAILED.",
         "",
         "- **MET**     — measured value passes the stated criterion.",
         "- **EXCEEDED** — measured value comfortably beats the criterion",
-        "  (≥ 10 % better on time/size metrics, ≥ 2 dB better on PSNR).",
+        "  by the metric-specific margin.",
         "- **FAILED**  — measured value breaks the criterion.",
         "",
         "Regenerated on every run of `tools/test/test_capabilities.py`. Adding a",
@@ -791,8 +836,8 @@ def emit_markdown(rows: list, out_path: Path):
         "",
         "## Stills · encode → decode → PSNR roundtrip",
         "",
-        "| Capability | Encode | Decode | Compressed size | Roundtrip PSNR | Overall |",
-        "|---|---|---|---|---|---|",
+        "| Capability | Encode | Decode | Peak RSS | Compressed size | Roundtrip PSNR | Overall |",
+        "|---|---|---|---|---|---|---|",
     ]
     for cap, m, overall, metric_rows in rows:
         if cap["kind"] != "still_roundtrip":
@@ -847,6 +892,7 @@ def emit_markdown(rows: list, out_path: Path):
         "",
         "- **Encode ms** — wall-clock time for `gpr_tools dng→gpr` at the stated quality.",
         "- **Decode ms** — wall-clock time for `gpr_tools gpr→dng`.",
+        "- **Peak RSS** — max resident memory observed for the encode/decode subprocesses.",
         "- **Compressed size** — output GPR bytes ÷ raw bayer bytes (W·H·2). Lower = more compression.",
         "- **Roundtrip PSNR** — bayer-domain PSNR (decoded vs original synth raw), peak set per bit depth.",
         "- **CNN-corrected PSNR** — render-domain masked Y-PSNR (channel-brightness matched) for the",
@@ -904,8 +950,8 @@ def main():
 
     rows = []
     any_failed = False
-    print(f"{'Capability':<55s} {'enc(ms)':>9s} {'dec(ms)':>9s} {'ratio':>7s} {'PSNR(dB)':>9s}  overall")
-    print("-" * 110)
+    print(f"{'Capability':<55s} {'enc(ms)':>9s} {'dec(ms)':>9s} {'rss(MiB)':>9s} {'ratio':>7s} {'PSNR(dB)':>9s}  overall")
+    print("-" * 122)
     for cap in CAPABILITIES:
         if args.filter and args.filter not in cap["id"]:
             continue
@@ -953,7 +999,8 @@ def main():
         # Display: still_roundtrip has 4 metrics; cnn_corrected has only PSNR
         # plus optional visual stack (Y-PSNR / MS-SSIM / LPIPS / ΔE2000).
         if cap["kind"] == "still_roundtrip":
-            print(f"  {cap['display']:<55s} {m['encode_ms']:>8.1f} {m['decode_ms']:>8.1f}  "
+            print(f"  {cap['display']:<55s} {m['encode_ms']:>8.1f} {m['decode_ms']:>8.1f} "
+                  f"{m['peak_rss_mb']:>8.0f}  "
                   f"{m['compress_ratio']*100:>6.2f}% {m['psnr_db']:>8.2f}  {overall}")
         else:
             extras = ""
@@ -968,10 +1015,14 @@ def main():
         rows.append((cap, m, overall, mr))
 
     docs = REPO / "docs/CAPABILITIES.md"
-    docs.parent.mkdir(exist_ok=True)
-    emit_markdown(rows, docs)
-    print()
-    print(f"=== docs/CAPABILITIES.md written ({len(rows)} rows) ===")
+    if args.filter:
+        print()
+        print("=== docs/CAPABILITIES.md not rewritten for filtered run ===")
+    else:
+        docs.parent.mkdir(exist_ok=True)
+        emit_markdown(rows, docs)
+        print()
+        print(f"=== docs/CAPABILITIES.md written ({len(rows)} rows) ===")
 
     if args.refresh:
         print()
