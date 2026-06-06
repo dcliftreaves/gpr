@@ -254,9 +254,18 @@ def check_nonref_preview_candidate() -> list[Check]:
     dashboard = artifact_dir / "rgb_direct_lpips_nonref_dashboard.json"
     checkpoint = artifact_dir / "display_rgb_direct_lpips_nonref.pt"
     tool = REPO / "tools/cnn/train_display_rgb_direct_nonref.py"
+    runtime_tool = REPO / "tools/cnn/evaluate_preview_runtime_policy.py"
+    runtime_dashboard = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260606"
+        / "runtime_refiner_priority_zero_cont_colorlight_timing"
+        / "preview_runtime_policy.json"
+    )
     expected_sha = "da1cb051daa696e4dafcb34395704081686e67f101bb5d86f0fb97fd163d4591"
     checks = [
         check_file("preview_nonref", "direct RGB non-REF tool", "tools/cnn/train_display_rgb_direct_nonref.py"),
+        check_file("preview_nonref", "runtime PREVIEW policy evaluator", "tools/cnn/evaluate_preview_runtime_policy.py"),
+        check_file("preview_nonref", "runtime-shaped PREVIEW trainer", "tools/cnn/train_preview_runtime_refiner.py"),
     ]
 
     if not dashboard.exists():
@@ -302,9 +311,9 @@ def check_nonref_preview_candidate() -> list[Check]:
     )
     checks.append(Check(
         "preview_nonref",
-        "render-time no-REF >70 dashboard",
+        "dashboard-shaped no-REF >70 diagnostic",
         "PASS" if pass_rate > 0.70 and count >= 16 and pass_count >= 12 else "FAIL",
-        detail,
+        detail + " (diagnostic only; runtime policy checked separately)",
     ))
     checks.append(Check(
         "preview_nonref",
@@ -326,11 +335,77 @@ def check_nonref_preview_candidate() -> list[Check]:
     ))
     checks.append(Check(
         "preview_nonref",
-        "render contract documented",
+        "dashboard diagnostic contract documented",
         "PASS" if note_ok and tool_contract_ok else "FAIL",
-        "dashboard note and tool docstring restrict REF to training/scoring"
+        "dashboard note and tool docstring restrict REF to training/scoring, but not runtime source/key selection"
         if note_ok and tool_contract_ok
         else f"note_ok={note_ok} tool_contract_ok={tool_contract_ok}",
+    ))
+
+    if not runtime_dashboard.exists():
+        checks.append(Check(
+            "preview_nonref",
+            "deterministic runtime policy receipt",
+            "FAIL",
+            f"missing {runtime_dashboard}",
+        ))
+        return checks
+
+    try:
+        runtime = json.loads(runtime_dashboard.read_text())
+    except Exception as exc:
+        checks.append(Check("preview_nonref", "deterministic runtime policy receipt", "FAIL", f"bad JSON: {exc}"))
+        return checks
+
+    contract = runtime.get("runtime_contract") or {}
+    runtime_summary = (runtime.get("summary") or {}).get("preview_runtime_policy") or {}
+    timing = runtime.get("timing") or {}
+    memory = runtime.get("memory") or {}
+    runtime_rows = runtime.get("rows") or []
+    runtime_pass_rate = float(runtime_summary.get("pass_rate", 0.0))
+    runtime_pass_count = int(runtime_summary.get("pass_count", 0))
+    runtime_count = int(runtime_summary.get("count", len(runtime_rows)))
+    forbidden = set(contract.get("forbidden_inputs") or [])
+    forbidden_ok = {
+        "REF image content",
+        "REF HF/LF fields",
+        "winner JSON",
+        "sample index",
+        "crop identity key planes",
+    }.issubset(forbidden)
+    deterministic_ok = contract.get("source_policy") == "runtime_priority_v1" and contract.get("conditioning") == "zero"
+    timing_ok = float(timing.get("model_ms_per_crop_median", 0.0)) > 0.0 and float(timing.get("model_ms_per_crop_p95", 0.0)) > 0.0
+    memory_ok = float(memory.get("max_rss_mb", 0.0)) > 0.0
+    runtime_detail = (
+        f"{runtime_pass_count}/{runtime_count} pass ({runtime_pass_rate * 100:.1f}%), "
+        f"worst_lpips={float(runtime_summary.get('worst_lpips', 999.0)):.4f}, "
+        f"model_ms_median={float(timing.get('model_ms_per_crop_median', 0.0)):.2f}, "
+        f"rss={float(memory.get('max_rss_mb', 0.0)):.1f} MB, dashboard={runtime_dashboard}"
+    )
+    checks.append(Check(
+        "preview_nonref",
+        "deterministic runtime policy >70",
+        "PASS" if runtime_pass_rate > 0.70 and runtime_count >= 16 and runtime_pass_count >= 12 else "FAIL",
+        runtime_detail,
+    ))
+    checks.append(Check(
+        "preview_nonref",
+        "runtime policy forbids dashboard inputs",
+        "PASS" if deterministic_ok and forbidden_ok else "FAIL",
+        f"source_policy={contract.get('source_policy')} conditioning={contract.get('conditioning')} forbidden_ok={forbidden_ok}",
+    ))
+    checks.append(Check(
+        "preview_nonref",
+        "runtime timing and memory receipt",
+        "PASS" if timing_ok and memory_ok else "FAIL",
+        f"timing_ok={timing_ok} memory_ok={memory_ok} receipt={runtime_dashboard}",
+    ))
+    runtime_tool_text = runtime_tool.read_text(errors="ignore") if runtime_tool.exists() else ""
+    checks.append(Check(
+        "preview_nonref",
+        "full-image capable runtime entrypoint",
+        "PASS" if "runner accepts arbitrary source dimensions" in runtime_tool_text else "FAIL",
+        "tool accepts arbitrary source RGB dimensions; current receipt uses crop proxies because full-image display sources are not present",
     ))
     return checks
 
