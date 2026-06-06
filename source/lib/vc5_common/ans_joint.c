@@ -1568,21 +1568,31 @@ static int jans_decode_band_x4_single(const uint8_t *in_buf, size_t in_size,
     uint8_t *alloc_buf;
     int alloc_is_tls = 0;
 
-    if (alloc_size <= tls_size && tls_buf) {
+    int no_tls_cache = (getenv("JANS_DECODE_NO_TLS_CACHE") &&
+                        getenv("JANS_DECODE_NO_TLS_CACHE")[0] == '1');
+
+    if (!no_tls_cache && alloc_size <= tls_size && tls_buf) {
         alloc_buf = tls_buf;
         alloc_is_tls = 1;
     } else {
         alloc_buf = (uint8_t *)malloc(alloc_size);
         if (!alloc_buf) return -1;
-        /* Update TLS cache for future reuse */
-        if (tls_buf) free(tls_buf);
-        tls_buf = alloc_buf;
-        tls_size = alloc_size;
-        alloc_is_tls = 1;
+        if (!no_tls_cache) {
+            /* Update TLS cache for future reuse */
+            if (tls_buf) free(tls_buf);
+            tls_buf = alloc_buf;
+            tls_size = alloc_size;
+            alloc_is_tls = 1;
+        }
     }
 
     uint16_t *runs = (uint16_t *)alloc_buf;
     int32_t *values = (int32_t *)(alloc_buf + runs_bytes);
+
+    #define JANS_DECODE_RETURN(rc) do { \
+        if (!alloc_is_tls) free(alloc_buf); \
+        return (rc); \
+    } while (0)
 
     /* ============================================================
        PASS 1: Decode all rANS tokens into flat SoA arrays.
@@ -1636,7 +1646,7 @@ static int jans_decode_band_x4_single(const uint8_t *in_buf, size_t in_size,
 
         /* Bounds check post-hoc — typically not crossed; one branch per
            4-token batch instead of one per state. */
-        if (__builtin_expect(rptr > rans_end, 0)) return -1;
+        if (__builtin_expect(rptr > rans_end, 0)) JANS_DECODE_RETURN(-1);
 
         __builtin_prefetch(&table.decode_info[states[0] & (JANS_TABLE_SIZE - 1)], 0, 3);
         __builtin_prefetch(&table.decode_info[states[1] & (JANS_TABLE_SIZE - 1)], 0, 3);
@@ -1713,7 +1723,7 @@ static int jans_decode_band_x4_single(const uint8_t *in_buf, size_t in_size,
         const JANS_DECODE_INFO *di = &table.decode_info[slot];
         states[s] = di->freq * (states[s] >> JANS_TABLE_BITS) + slot - di->cum_freq;
         while (states[s] < RANS_BYTE_L) {
-            if (rptr >= rans_end) { return -1; }
+            if (rptr >= rans_end) { JANS_DECODE_RETURN(-1); }
             states[s] = (states[s] << 8) | *rptr++;
         }
 
@@ -1775,8 +1785,9 @@ static int jans_decode_band_x4_single(const uint8_t *in_buf, size_t in_size,
         }
     }
 
-    /* TLS buffer is reused across calls — don't free */
-    return 0;
+    /* TLS buffer is reused across calls unless disabled for sanitizer runs. */
+    JANS_DECODE_RETURN(0);
+    #undef JANS_DECODE_RETURN
 }
 
 /* ================================================================

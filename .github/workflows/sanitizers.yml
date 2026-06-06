@@ -171,6 +171,7 @@ jobs:
         # memory-safety signal for full Bayer reconstruction.
         run: |
           env ${{ matrix.run_env }} GPR_INCLUDE_LL=1 FUSED_INLINE_TOKENIZE=0 \
+            JANS_DECODE_NO_TLS_CACHE=1 \
             timeout 600 build/bin/test_fused_roundtrip /tmp/Z8_ISO64.raw 8280 5520
 
       - name: Run test_video_roundtrip
