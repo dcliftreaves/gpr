@@ -297,6 +297,7 @@ The full quality gate is in `tests/quality_gates/`:
 ```bash
 python3 tests/quality_gates/run_gate.py codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools
 python3 tests/quality_gates/audit_ship_pipelines.py
+python3 tests/quality_gates/audit_production_readiness.py --strict
 ```
 
 Every ship-claim is per-image worst-case (no aggregate hides a regression)

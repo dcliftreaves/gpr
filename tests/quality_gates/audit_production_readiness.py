@@ -13,8 +13,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,6 +24,17 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 RUNS_DIR = REPO / "tests/quality_gates/runs"
 REG = json.loads((REPO / "pipelines/registry.json").read_text())
+
+
+def default_external_root() -> Path:
+    mounted = Path("/Volumes/OWC_8TB/gpr_work")
+    if mounted.exists():
+        return mounted
+    return Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir())) / "gpr_work"
+
+
+EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT", default_external_root()))
+ARTIFACT_ROOT = Path(os.environ.get("GPR_ARTIFACT_ROOT", EXTERNAL_ROOT / "artifacts"))
 
 
 @dataclass
@@ -236,6 +249,92 @@ def check_preview_detail(area: str, name: str, pipeline: str) -> Check:
     return check_preview_detail_blocker_evidence()
 
 
+def check_nonref_preview_candidate() -> list[Check]:
+    artifact_dir = ARTIFACT_ROOT / "display_rgb_direct_lpips_nonref_20260606"
+    dashboard = artifact_dir / "rgb_direct_lpips_nonref_dashboard.json"
+    checkpoint = artifact_dir / "display_rgb_direct_lpips_nonref.pt"
+    tool = REPO / "tools/cnn/train_display_rgb_direct_nonref.py"
+    expected_sha = "da1cb051daa696e4dafcb34395704081686e67f101bb5d86f0fb97fd163d4591"
+    checks = [
+        check_file("preview_nonref", "direct RGB non-REF tool", "tools/cnn/train_display_rgb_direct_nonref.py"),
+    ]
+
+    if not dashboard.exists():
+        checks.append(Check("preview_nonref", "direct RGB dashboard receipt", "FAIL", f"missing {dashboard}"))
+        return checks
+    if not checkpoint.exists():
+        checks.append(Check("preview_nonref", "direct RGB checkpoint receipt", "FAIL", f"missing {checkpoint}"))
+        return checks
+
+    try:
+        data = json.loads(dashboard.read_text())
+    except Exception as exc:
+        checks.append(Check("preview_nonref", "direct RGB dashboard receipt", "FAIL", f"bad JSON: {exc}"))
+        return checks
+
+    summary = (data.get("summary") or {}).get("rgb_direct_lpips_nonref") or {}
+    rows = data.get("rows") or []
+    training = data.get("training") or {}
+    pass_rate = float(summary.get("pass_rate", 0.0))
+    pass_count = int(summary.get("pass_count", 0))
+    count = int(summary.get("count", len(rows)))
+    bad_color = [
+        f"{r.get('image_id')}:{r.get('crop')} dE={r.get('dE2000_mean')}"
+        for r in rows
+        if float(r.get("dE2000_mean", 999.0)) > 3.0
+    ]
+    bad_ref_variants = [
+        str(r.get("variant"))
+        for r in rows
+        if re.search(r"\bREF\b|\[REF\]", str(r.get("variant", "")))
+    ]
+    sha_ok = training.get("checkpoint_sha256") == expected_sha
+    render_note = str(training.get("note", ""))
+    note_ok = "render uses non-REF source crop + checkpoint only" in render_note
+    tool_text = tool.read_text(errors="ignore") if tool.exists() else ""
+    tool_contract_ok = "REF is used only as the training target" in tool_text
+
+    detail = (
+        f"{pass_count}/{count} pass ({pass_rate * 100:.1f}%), "
+        f"worst_lpips={float(summary.get('worst_lpips', 999.0)):.4f}, "
+        f"worst_dE={float(summary.get('worst_dE2000_mean', 999.0)):.2f}, "
+        f"dashboard={dashboard}"
+    )
+    checks.append(Check(
+        "preview_nonref",
+        "render-time no-REF >70 dashboard",
+        "PASS" if pass_rate > 0.70 and count >= 16 and pass_count >= 12 else "FAIL",
+        detail,
+    ))
+    checks.append(Check(
+        "preview_nonref",
+        "color guardrail on no-REF candidate",
+        "PASS" if rows and not bad_color else "FAIL",
+        "dE2000<=3.0 all dashboard rows" if not bad_color else "; ".join(bad_color[:4]),
+    ))
+    checks.append(Check(
+        "preview_nonref",
+        "no REF source labels in render rows",
+        "PASS" if rows and not bad_ref_variants else "FAIL",
+        "all variants are non-REF render sources" if not bad_ref_variants else "; ".join(bad_ref_variants[:4]),
+    ))
+    checks.append(Check(
+        "preview_nonref",
+        "checkpoint hash receipt",
+        "PASS" if sha_ok else "FAIL",
+        f"sha256={training.get('checkpoint_sha256')} expected={expected_sha}",
+    ))
+    checks.append(Check(
+        "preview_nonref",
+        "render contract documented",
+        "PASS" if note_ok and tool_contract_ok else "FAIL",
+        "dashboard note and tool docstring restrict REF to training/scoring"
+        if note_ok and tool_contract_ok
+        else f"note_ok={note_ok} tool_contract_ok={tool_contract_ok}",
+    ))
+    return checks
+
+
 def check_file(area: str, name: str, rel_path: str, require_tracked: bool = True) -> Check:
     path = REPO / rel_path
     if not path.exists():
@@ -381,13 +480,8 @@ def main() -> int:
     checks: list[Check] = []
     checks.extend(check_ship_group("stills", "ship-still"))
     checks.extend(check_ship_group("video_quality", "ship-video-freeze"))
-    checks.append(check_pipeline(
-        "preview",
-        "baseline PREVIEW",
-        "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools",
-    ))
+    checks.extend(check_nonref_preview_candidate())
     lab_sips_pipeline = "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools"
-    checks.append(check_preview_color_guard(lab_sips_pipeline))
     checks.append(check_preview_detail(
         "preview_detail",
         "Lab Chroma SIPS full PREVIEW gate",

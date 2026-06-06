@@ -66,7 +66,15 @@ Release mode:
 python3 tools/verify_production_artifacts.py --strict
 python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts
 python3 tests/quality_gates/audit_ship_pipelines.py --strict
+python3 tests/quality_gates/audit_production_readiness.py --strict
 ```
+
+`audit_ship_pipelines.py` is the narrow committed-run check for registry roles
+tagged `ship-*`. `audit_production_readiness.py --strict` is the broader
+release checklist: stills, video quality, PREVIEW/non-REF receipts, noise/signal
+guards, UPRESABLE, `.gvid`, MOV compatibility, Pi 5 / Mission 1 setup, and
+platform speed receipts. It expects external receipts under `GPR_ARTIFACT_ROOT`,
+including the current direct-RGB non-REF PREVIEW dashboard and checkpoint hash.
 
 ## Runtime resolution
 
