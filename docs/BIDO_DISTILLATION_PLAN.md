@@ -857,10 +857,32 @@ Earlier narrowing results:
 | direct RGB LPIPS non-REF | 87.5% | First render-time checkpoint over 70% without reading REF content. |
 | LF content CNN 256 + MS-SSIM | 31.3% | LF-only losses still do not align well enough with LPIPS. |
 
-Next production step: promote the direct RGB checkpoint into a temporary
-registry entry only after its source selection can be expressed without
-dashboard-oracle knowledge, then evaluate on full-image crops and capture
-decode + model + encode timing.
+Runtime-policy follow-up on 2026-06-06 showed that the direct RGB checkpoint
+does not survive promotion. Once source-winner JSON, sample-index planes, and
+crop-key planes are removed, the deterministic policy receipts fall to 0/16
+for `runtime_priority_v1` and 3/16 for the fixed learned-atlas control.
+
+Receipt:
+
+- `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/runtime_priority_v1_zero/preview_runtime_policy.html`
+- `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/runtime_priority_v1_zero/preview_runtime_policy.json`
+
+Current production step: retrain or distill a runtime-shaped PREVIEW model with
+the source policy fixed before training, no sample-index/crop-key conditioning,
+and full-frame or full-gate-crop render inputs. The direct RGB result remains a
+diagnostic ceiling, not a temporary registry candidate.
+
+The first runtime-shaped retrains narrowed the production-source blocker:
+
+| Candidate | Source policy | Pass | Worst LPIPS | Worst dE2000 | Interpretation |
+|---|---|---:|---:|---:|---|
+| w40 runtime refiner | upresable-first | 10/16 | 0.0969 | 5.19 | no forbidden inputs, but misses color/structure guardrails |
+| w40 low-LR + light color continuation | upresable-first | 11/16 | 0.0587 | 4.56 | LPIPS solved; dE/MS-SSIM remain |
+| w64 runtime refiner | upresable-first | 11/16 | 0.1362 | 5.23 | more capacity did not clear the blocker |
+| w40 runtime refiner | fixed learned-atlas | 16/16 | 0.0199 | 1.64 | disqualified ceiling; learned-atlas source is REF-derived |
+
+This points the next iteration at production-source LF/color prediction, not
+more detail placement or row-keyed crop training.
 
 - Architecture changes (width sweep w24/w32, large-kernel variants).
   These are tracked separately.
