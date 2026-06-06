@@ -185,6 +185,57 @@ next candidate should train a small conditioned HF/detail generator around the
 UPRESABLE low-frequency path, with the exact REF-HF oracle used only as a
 ceiling and the stochastic probe retained as a guardrail.
 
+### 2026-06-06 display-HF detail CNN probe
+
+A first conditioned HF/detail generator was trained on the external
+`preview_multi_env` corpus using 100% display crops. This is a diagnostic, not
+a ship claim, because it is trained and evaluated on the SOTA display review
+frames rather than registered through the full quality gate.
+
+Artifacts:
+
+- trainer/evaluator: `tools/cnn/train_display_hf_detail.py`
+- crop cache:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/display_hf_detail_20260606/display_hf_detail_pairs_delta_192x768.npz`
+- checkpoint:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/display_hf_detail_20260606/display_hf_delta_w32_preview_multi_env_sota.pt`
+- checkpoint SHA-256:
+  `0c06092934fc00885f0ad3cc8fb625a9cd91b415feced51abf2041e497091be9`
+- guarded dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/display_hf_detail_20260606/display_hf_delta_guarded_s025_hf25_dashboard.html`
+- dashboard JSON SHA-256:
+  `dfa7ccb12862c19ccd7f78aef90f43c20d234145363d3d11553effebf502b3ef`
+
+Training setup:
+
+```text
+inputs: candidate Lab L, candidate Lab-L lowpass, candidate Lab-L HF, Lab a/b,
+        and lowpass gradient magnitude
+target: REF_HF - candidate_HF
+split: wavelet=sym4, levels=3, hf_levels=3
+held out: Z8Z_6680, Z8Z_7955
+detail strength: 0.25
+runtime guard: apply only when candidate_hf_rms <= 2.5
+```
+
+Results on 16 deterministic 512 px 100% crops:
+
+| variant | pass count | worst LPIPS | median LPIPS | worst MS-SSIM | worst dE |
+|---|---:|---:|---:|---:|---:|
+| candidate SOTA | 0/16 | 0.3805 | 0.2354 | 0.4887 | 9.46 |
+| full predicted delta | 3/16 | 0.4294 | 0.1936 | 0.4983 | 9.36 |
+| guarded predicted delta | 3/16 | 0.3805 | 0.1948 | 0.4887 | 9.46 |
+
+Interpretation: the learned delta can improve low-to-moderate-HF crops, but
+unconditional application regresses the worst case. A simple candidate-HF RMS
+guard preserves the candidate worst case while improving median LPIPS, but the
+worst image remains far outside PREVIEW. This narrows the next work item:
+either make the HF generator context/texture-aware enough to handle high-HF
+crops, or wire the guarded sidecar into a temporary gate pipeline only as an
+ablation to confirm that the same bounded improvement survives the actual gate
+images. It is not production-ready until it beats the current display-space
+baseline on worst-case LPIPS/MS-SSIM and keeps the Lab color guardrail.
+
 The plan's original `tools/cnn/train_demosaic_sr.py` name was stale. The
 active trainer is `tools/cnn/train.py`; it now supports BIDO/RGB `tgt_rgb`
 tiles, multiple validation source names, optional checkpoint initialization,
