@@ -207,6 +207,17 @@ jobs:
       - name: Run test_video_full_chain
         run: timeout 120 /tmp/gpr-tests/test_video_full_chain
 
+      - name: Run fused full Bayer encode/decode roundtrip
+        # Public decoder coverage for the current full-image path. The older
+        # test_video_full_roundtrip step below uses a private wavelet oracle
+        # that no longer matches the current fused layout; this step verifies
+        # the production contract directly: encode with LL present, decode
+        # with gpr_decode_fused(), and assert full-res PSNR.
+        env:
+          GPR_INCLUDE_LL: "1"
+          FUSED_INLINE_TOKENIZE: "0"
+        run: timeout 180 build/bin/test_fused_roundtrip /tmp/Z8_ISO64.raw 8280 5520
+
       - name: Run test_video_roundtrip
         # Uses /tmp/Z8_ISO64.raw and /tmp/Z8_ISO22800.raw generated above.
         # FUSED_INLINE_TOKENIZE=0 forces split-pass mode. The encoder's

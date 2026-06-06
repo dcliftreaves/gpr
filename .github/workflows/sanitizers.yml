@@ -165,6 +165,14 @@ jobs:
         run: |
           env ${{ matrix.run_env }} timeout 300 /tmp/gpr-tests/test_video_full_chain
 
+      - name: Run fused full Bayer encode/decode roundtrip
+        # Sanitized public decoder coverage for the current full-image path.
+        # This replaces the stale private-oracle full_roundtrip test as the
+        # memory-safety signal for full Bayer reconstruction.
+        run: |
+          env ${{ matrix.run_env }} GPR_INCLUDE_LL=1 FUSED_INLINE_TOKENIZE=0 \
+            timeout 600 build/bin/test_fused_roundtrip /tmp/Z8_ISO64.raw 8280 5520
+
       - name: Run test_video_roundtrip
         # Keep this aligned with ci.yml: this structure test probes the
         # split-pass per-band format with jans_decode_band_x4. Inline mode is
