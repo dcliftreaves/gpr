@@ -1,0 +1,138 @@
+{
+  "pipeline": "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools",
+  "ship_class": "PREVIEW",
+  "run_hash": "6d1bb3ea97fcfbc7",
+  "gates_sha": "0d77521faa7c4eee",
+  "test_set": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/test_set.json",
+  "test_set_sha": "5728aca59ef884ff",
+  "is_ship_gate": true,
+  "verdict_authority": "ship_gate",
+  "source_path_map": [],
+  "started_at": "2026-06-05T21:19:00-0500",
+  "images": {
+    "Z8Z_0001": {
+      "y_psnr": 26.83375441340045,
+      "ms_ssim": 0.9317644238471985,
+      "lpips": 0.19897139072418213,
+      "dE2000_mean": 3.3950583934783936,
+      "bayer_psnr_codec": 31.947133815389748,
+      "bayer_psnr_final": null,
+      "enc_bytes": 1751835,
+      "enc_ms": 9.8,
+      "read_ms": 161.2335839890875,
+      "cnn_ms": 18751.24883299577,
+      "demosaic_ms": 9770.123833004618,
+      "metrics_ms": 6635.823083022842,
+      "total_ms": 40324.7989579977,
+      "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/6d1bb3ea97fcfbc7/Z8Z_0001_REF_crop_A_detail.png",
+      "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/6d1bb3ea97fcfbc7/Z8Z_0001_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.1990 > 0.15"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9318 < 0.95"
+        },
+        {
+          "metric": "y_psnr",
+          "reason": "26.8338 < 28.0"
+        },
+        {
+          "metric": "dE2000_mean",
+          "reason": "3.3951 > 3.0"
+        }
+      ]
+    },
+    "Z8Z_0067": {
+      "y_psnr": 33.61449093782325,
+      "ms_ssim": 0.9719378352165222,
+      "lpips": 0.07326532155275345,
+      "dE2000_mean": 1.6005303859710693,
+      "bayer_psnr_codec": 35.72428288782006,
+      "bayer_psnr_final": null,
+      "enc_bytes": 1020716,
+      "enc_ms": 8.8,
+      "read_ms": 170.367292012088,
+      "cnn_ms": 15718.251665995922,
+      "demosaic_ms": 9684.965332999127,
+      "metrics_ms": 5758.025542018004,
+      "total_ms": 35443.22987500345,
+      "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/6d1bb3ea97fcfbc7/Z8Z_0067_REF_crop_A_detail.png",
+      "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/6d1bb3ea97fcfbc7/Z8Z_0067_PIPELINE_crop_A_detail.png",
+      "verdict": "PASS",
+      "fails": []
+    },
+    "Z8Z_5323": {
+      "y_psnr": 31.084729617012247,
+      "ms_ssim": 0.9370582699775696,
+      "lpips": 0.2305268943309784,
+      "dE2000_mean": 2.007718324661255,
+      "bayer_psnr_codec": 35.75877718750448,
+      "bayer_psnr_final": null,
+      "enc_bytes": 2658567,
+      "enc_ms": 15.6,
+      "read_ms": 163.14408401376568,
+      "cnn_ms": 19627.538125001593,
+      "demosaic_ms": 10335.123249999015,
+      "metrics_ms": 6511.283542000456,
+      "total_ms": 41822.640624974156,
+      "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/6d1bb3ea97fcfbc7/Z8Z_5323_REF_crop_A_detail.png",
+      "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/6d1bb3ea97fcfbc7/Z8Z_5323_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.2305 > 0.15"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9371 < 0.95"
+        }
+      ]
+    },
+    "Z8Z_6693": {
+      "y_psnr": 30.20564315071241,
+      "ms_ssim": 0.9176308512687683,
+      "lpips": 0.39091140031814575,
+      "dE2000_mean": 2.3631606101989746,
+      "bayer_psnr_codec": 36.80619907878511,
+      "bayer_psnr_final": null,
+      "enc_bytes": 3374869,
+      "enc_ms": 17.1,
+      "read_ms": 167.69033297896385,
+      "cnn_ms": 20326.89870800823,
+      "demosaic_ms": 10349.2830839823,
+      "metrics_ms": 6272.740457992768,
+      "total_ms": 42201.71387499431,
+      "ref_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/6d1bb3ea97fcfbc7/Z8Z_6693_REF_crop_A_detail.png",
+      "pipeline_crop": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/6d1bb3ea97fcfbc7/Z8Z_6693_PIPELINE_crop_A_detail.png",
+      "verdict": "FAIL",
+      "fails": [
+        {
+          "metric": "lpips",
+          "reason": "0.3909 > 0.15"
+        },
+        {
+          "metric": "ms_ssim",
+          "reason": "0.9176 < 0.95"
+        }
+      ]
+    }
+  },
+  "worst_first": [
+    "Z8Z_6693",
+    "Z8Z_5323",
+    "Z8Z_0001",
+    "Z8Z_0067"
+  ],
+  "worst_image": {
+    "id": "Z8Z_6693",
+    "visual_diff_png": "/Volumes/OWC_8TB/gpr_work/worktrees/gpr_clean_sanitized_20260604/tests/quality_gates/runs/6d1bb3ea97fcfbc7/WORST_Z8Z_6693_visual_diff.png",
+    "lpips": 0.39091140031814575
+  },
+  "verdict": "FAIL",
+  "finished_at": "2026-06-05T21:19:43-0500"
+}

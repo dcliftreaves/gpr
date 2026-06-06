@@ -137,6 +137,14 @@
       "raw_norm": 16383.0,
       "ckpt_sha256": "e538ad8d3d2f464beeb311484a84caebc1e4ec6c754bd94027b5a5933f861132"
     },
+    "bido4x_w32_ml2_q3_dec2_hardtail_t192_lpips005_lumagrad0005": {
+      "$doc": "Temporary wider/full-context BIDO candidate trained on the hardtail t192/s96 fullref set with Z8Z_6693 held out. M5 run stopped after epoch 19; best checkpoint selected by validation LPIPS at epoch 9.",
+      "ckpt_path": "/Volumes/OWC_8TB/gpr_work/checkpoints/bido_full_context_20260605/bido_4x_w32_hardtail_t192_lpips005_lumagrad0005_z6693holdout.pt",
+      "cnn_arch_variant": "bido_4x_w32",
+      "trained_against_codec": "ml2_q3_dec2",
+      "raw_norm": 16383.0,
+      "ckpt_sha256": "8fa6d260a0e2bb8b03e98fa8b09496811e1d297cbb3443d621f514ec8060cc6f"
+    },
     "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded": {
       "$doc": "Temporary raw-signal SR candidate from the 2026-06-05 expanded 28-image / 84-crop pass. Uses source Bayer signal as the target, not denoised REF residuals. Dispatch bypasses low-ISO low-texture tiles to bilinear codec upsample.",
       "ckpt_path": "/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt",
@@ -193,6 +201,17 @@
       "overlap": 24,
       "raw_norm": 16383.0,
       "ckpt_sha256": "7de6e691813e39ae2d9d3ce1a0ed1682a90b2d702c0cb3ac6af2d01f1e9445cf"
+    },
+    "lab_chroma_corrector_w12_sips_residual_ab8_sub10": {
+      "$doc": "Display-space Lab chroma guardrail for PREVIEW. Uses raw-predicted luma plus a bounded Lab a/b residual on top of the sips demosaic baseline.",
+      "ckpt_y": "/Volumes/OWC_8TB/gpr_work/cnn/F_ane_no_sr_w16_y_multival_hf05_grad02_sub4.pt",
+      "ckpt_y_sha256": "e7f5add8b7a3b4ed04f87417f7026b3d5a01ccfc0ee3eb403e4f8ced3eab661e",
+      "ckpt_chroma": "/Volumes/OWC_8TB/gpr_work/cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt",
+      "ckpt_chroma_sha256": "cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677",
+      "cnn_arch_variant": "lab_chroma_corrector",
+      "trained_against_codec": "ml2_q3_dec2",
+      "chroma_baseline": "demosaic_sips",
+      "raw_norm": 16383.0
     },
     "none": {
       "$doc": "No CNN \u2014 codec output is the final result."
@@ -262,6 +281,14 @@
       "$role": "temp-bido-target-detail-20260605",
       "$doc": "Temporary BIDO target-detail candidate for full rendered gate comparison. Not a ship pipeline until it beats the current PREVIEW/UPRESABLE blockers and has timing receipts."
     },
+    "codec=ml2_q3_dec2+cnn=bido4x_w32_ml2_q3_dec2_hardtail_t192_lpips005_lumagrad0005+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "bido4x_w32_ml2_q3_dec2_hardtail_t192_lpips005_lumagrad0005",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-bido-full-context-w32-20260605",
+      "$doc": "Temporary wider/full-context BIDO candidate. Registered for full gate comparison after the Z8Z_6693 holdout validation LPIPS improved from 0.5439 to 0.3790."
+    },
     "codec=ml2_q3_dec2+cnn=codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
       "cnn": "codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded",
@@ -294,6 +321,14 @@
       "ship_class": "UPRESABLE",
       "$role": "temp-iso-only-raw-signal-sr-20260605",
       "$doc": "No-sigma retrain candidate. Registered to test whether removing sigma conditioning fixes the runtime mismatch before moving to larger/full-context targets."
+    },
+    "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "lab_chroma_corrector_w12_sips_residual_ab8_sub10",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "preview-color-guard-lab-sips",
+      "$doc": "PREVIEW color guardrail pipeline. This is registered to preserve the solved dE/color direction while the remaining full-image detail-placement blocker is handled separately."
     },
     "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_l2x2_l1x2",

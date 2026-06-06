@@ -5,6 +5,134 @@ Status: IN PROGRESS. Target pipeline:
 
 ## 2026-06-05 Execution Notes
 
+### 2026-06-05 late production pass
+
+The missing Lab chroma runtime source was restored as
+`tools/cnn/run_lab_chroma_corrector.py`, and the SIPS-residual checkpoint was
+registered as:
+
+```text
+codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools
+```
+
+Gate receipt:
+
+```text
+run_hash=6d1bb3ea97fcfbc7
+verdict=FAIL
+```
+
+The failure is not an a/b color-sign regression. Chroma diagnostics on
+`crop_A_detail` show low a/b error and L/detail-dominated misses:
+
+| image | L MAE | a/b MAE | dE2000 mean | LPIPS |
+|---|---:|---:|---:|---:|
+| `Z8Z_0001` | 2.68 | 1.03 | 3.40 | 0.1990 |
+| `Z8Z_0067` | 2.12 | 0.50 | 1.60 | 0.0733 |
+| `Z8Z_5323` | 2.38 | 0.66 | 2.01 | 0.2305 |
+| `Z8Z_6693` | 3.22 | 0.88 | 2.36 | 0.3909 |
+
+This keeps the Lab SIPS path useful as a color guardrail but confirms that the
+next production blocker remains full-image luma/detail placement.
+
+The next candidate was launched on M5 outside the dirty M5 checkout, in an
+isolated run directory:
+
+```text
+/Users/dcliftreaves/gpr_runs/full_context_20260605
+```
+
+Candidate definition:
+
+- model: `bido_4x_w32`
+- data:
+  `/Users/dcliftreaves/gpr_runs/full_context_20260605/data/tiles_ml2_q3_dec2_dmsr_gate_hardtail_t192_s96_fullref.npz`
+- validation holdout: `Z8Z_6693`
+- objective: task loss + LPIPS 0.05 with 5-epoch warmup + luma-gradient detail
+  weight 0.005
+- score metric: validation LPIPS
+- checkpoint:
+  `/Users/dcliftreaves/gpr_runs/full_context_20260605/checkpoints/bido_4x_w32_hardtail_t192_lpips005_lumagrad0005_z6693holdout.pt`
+
+Launch command:
+
+```bash
+cd /Users/dcliftreaves/gpr_runs/full_context_20260605/code
+python train.py \
+  --variant bido_4x_w32 \
+  --npz /Users/dcliftreaves/gpr_runs/full_context_20260605/data/tiles_ml2_q3_dec2_dmsr_gate_hardtail_t192_s96_fullref.npz \
+  --ckpt-dir /Users/dcliftreaves/gpr_runs/full_context_20260605/checkpoints \
+  --ckpt-name bido_4x_w32_hardtail_t192_lpips005_lumagrad0005_z6693holdout.pt \
+  --epochs 60 --batch 1 --lr 2e-4 \
+  --val-src-names Z8Z_6693 \
+  --lpips-weight 0.05 --lpips-warmup-epochs 5 \
+  --detail-weight 0.005 --detail-loss luma_grad \
+  --eval-lpips --score-metric lpips
+```
+
+The run is intended as the first wider/full-context test after the small local
+HF and raw-sigma lines failed. Stop it early if validation LPIPS moves in the
+wrong direction for several epochs; gate it immediately if it materially beats
+the prior hardtail best (`Z8Z_6693` tile LPIPS 0.5439).
+
+Result:
+
+```text
+best_epoch=9
+Z8Z_6693_holdout_tile_LPIPS=0.3790
+checkpoint_sha256=8fa6d260a0e2bb8b03e98fa8b09496811e1d297cbb3443d621f514ec8060cc6f
+registered_gate_run=ed2ba659d1272376
+verdict=FAIL
+```
+
+Full gate metrics:
+
+| image | LPIPS | MS-SSIM | Y-PSNR | dE2000 mean |
+|---|---:|---:|---:|---:|
+| `Z8Z_0001` | 0.4261 | 0.8800 | 24.77 | 9.87 |
+| `Z8Z_0067` | 0.2656 | 0.9724 | 35.48 | 9.34 |
+| `Z8Z_5323` | 0.3629 | 0.9224 | 28.91 | 6.88 |
+| `Z8Z_6693` | 0.5219 | 0.9057 | 27.71 | 6.87 |
+
+This is a real improvement over the previous BIDO target-detail full gate on
+the worst image (`Z8Z_6693` LPIPS 0.6261 -> 0.5219), but it is still far from
+PREVIEW. The chroma diagnostic shows direct RGB BIDO is introducing large a/b
+error and chroma high-frequency artifacts, not merely missing luma texture:
+
+| image | L MAE | a/b MAE | a/b corr a | a/b corr b |
+|---|---:|---:|---:|---:|
+| `Z8Z_0001` | 2.59 | 2.98 | -0.029 | 0.053 |
+| `Z8Z_0067` | 1.25 | 8.20 | -0.020 | 0.007 |
+| `Z8Z_5323` | 4.79 | 7.95 | 0.074 | 0.081 |
+| `Z8Z_6693` | 4.59 | 4.59 | -0.129 | 0.707 |
+
+Conclusion: wider/full-context BIDO moved the hardtail tile LPIPS, but the
+full-image gate still fails because direct RGB prediction breaks color/chroma
+structure. The next production path should not be another plain RGB BIDO
+variant. Use the raw UPRESABLE/BIBO path for detail, or compose candidate luma
+with the Lab SIPS chroma guardrail before spending more training time.
+
+Lab-L composition oracle:
+
+- Dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bido_full_context_20260605/lab_l_blend_oracle.html`
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bido_full_context_20260605/lab_l_blend_oracle.json`
+
+The oracle tested Lab SIPS a/b with either Lab SIPS L, BIDO-w32 L, or pairwise
+blends. It also failed:
+
+| L donor | worst image | worst LPIPS | worst MS-SSIM | worst dE |
+|---|---|---:|---:|---:|
+| Lab SIPS L | `Z8Z_6693` | 0.4208 | 0.8884 | 3.51 |
+| BIDO-w32 L | `Z8Z_6693` | 0.4370 | 0.8799 | 4.36 |
+| best blend (`a=0.85`) | `Z8Z_6693` | 0.4431 | 0.8907 | 3.52 |
+
+Conclusion: BIDO-w32's luma/detail is not a useful donor even when Lab SIPS
+chroma is held fixed. This closes the immediate BIDO/Lab-composition branch.
+The next candidate needs a better raw/detail source, not more blending of this
+RGB BIDO checkpoint.
+
 The plan's original `tools/cnn/train_demosaic_sr.py` name was stale. The
 active trainer is `tools/cnn/train.py`; it now supports BIDO/RGB `tgt_rgb`
 tiles, multiple validation source names, optional checkpoint initialization,
