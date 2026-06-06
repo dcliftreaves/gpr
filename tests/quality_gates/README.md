@@ -76,7 +76,12 @@ python3 tests/quality_gates/audit_production_readiness.py
 ```
 
 It exits 0 by default so it can be used during burn-down. Use `--strict` when
-the readiness matrix is expected to be completely green.
+the readiness matrix is expected to be completely green. Strict production
+readiness uses committed source plus external receipts under `GPR_ARTIFACT_ROOT`;
+for example, the current PREVIEW check validates the direct-RGB non-REF
+dashboard, checkpoint hash, >70% pass rate, dE guardrail, and no-REF render
+contract without committing the heavyweight checkpoint or generated dashboard
+payloads to main.
 
 ## Dashboards and diagnostics
 
