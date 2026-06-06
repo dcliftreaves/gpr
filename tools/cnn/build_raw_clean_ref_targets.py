@@ -162,7 +162,35 @@ def residual_lag_max_abs(removed_ch: dict[str, np.ndarray]) -> float:
     return float(np.max(np.abs(values))) if values else 0.0
 
 
+def corr(a: np.ndarray, b: np.ndarray) -> float:
+    aa = a.astype(np.float64).ravel()
+    bb = b.astype(np.float64).ravel()
+    aa -= float(np.mean(aa))
+    bb -= float(np.mean(bb))
+    denom = math.sqrt(float(np.dot(aa, aa)) * float(np.dot(bb, bb)))
+    if denom <= 1e-12:
+        return 0.0
+    return float(np.dot(aa, bb) / denom)
+
+
+def absres_gradient_corr_max(
+    raw_ch: dict[str, np.ndarray],
+    residual_ch: dict[str, np.ndarray],
+) -> float:
+    values: list[float] = []
+    for ch_name, plane in raw_ch.items():
+        low = cv2.GaussianBlur(plane.astype(np.float32), (0, 0), 1.0)
+        gx = cv2.Sobel(low, cv2.CV_32F, 1, 0, ksize=3)
+        gy = cv2.Sobel(low, cv2.CV_32F, 0, 1, ksize=3)
+        grad = np.sqrt(gx * gx + gy * gy).astype(np.float32)
+        scale = float(np.percentile(grad, 95.0))
+        grad_norm = grad / max(scale, 1e-6)
+        values.append(abs(corr(np.abs(residual_ch[ch_name]), grad_norm)))
+    return float(max(values)) if values else 0.0
+
+
 def contract_failure_reasons(
+    raw_ch: dict[str, np.ndarray],
     residual_ch: dict[str, np.ndarray],
     sigma_ch: dict[str, np.ndarray],
     validation: dict[str, Any],
@@ -184,6 +212,8 @@ def contract_failure_reasons(
         reasons.append("lag")
     if validation["edge_removed_energy_ratio"] > args.contract_max_edge_ratio:
         reasons.append("edge_ratio")
+    if absres_gradient_corr_max(raw_ch, residual_ch) > args.contract_max_abs_gradient_corr:
+        reasons.append("gradient_corr")
     return reasons
 
 
@@ -302,13 +332,39 @@ def build_crop(
     sigma_crop = sigma[y:y + h, x:x + w]
     raw_ch = deinterleave(raw_crop)
     sigma_ch = deinterleave(sigma_crop)
+    force_noop = meta.iso < args.min_noise_iso
 
     clean_ch: dict[str, np.ndarray] = {}
     residual_ch: dict[str, np.ndarray] = {}
     mask_ch: dict[str, np.ndarray] = {}
     plane_rows: dict[str, dict[str, float]] = {}
     for ch_name, plane in raw_ch.items():
-        clean, residual, mask, stats = clean_plane(plane, sigma_ch[ch_name], args)
+        if force_noop:
+            clean = plane.astype(np.float32)
+            residual = np.zeros_like(plane, dtype=np.float32)
+            mask = np.zeros_like(plane, dtype=np.float32)
+            stats = {
+                "candidate_residual_rms": 0.0,
+                "residual_rms": 0.0,
+                "residual_to_sigma_rms": 0.0,
+                "candidate_to_sigma_rms": 0.0,
+                "mean_mask": 0.0,
+                "p90_mask": 0.0,
+                "mean_edge_support": 0.0,
+                "mean_cross_support": 0.0,
+                "mean_coherence": 0.0,
+                "mean_structure_support": 0.0,
+                "post_edge_mean_gate": 0.0,
+                "post_edge_p90_gate": 0.0,
+                "decorrelation_beta_offset": 0.0,
+                "decorrelation_beta_signal": 0.0,
+                "decorrelation_beta_gradient": 0.0,
+                "decorrelation_beta_finest": 0.0,
+                "decorrelation_beta_coarser": 0.0,
+                "decorrelation_removed_rms": 0.0,
+            }
+        else:
+            clean, residual, mask, stats = clean_plane(plane, sigma_ch[ch_name], args)
         clean_ch[ch_name] = clean
         residual_ch[ch_name] = residual
         mask_ch[ch_name] = mask
@@ -322,6 +378,7 @@ def build_crop(
     sigma_rms = float(np.sqrt(np.mean(sigma_crop * sigma_crop)))
     residual_to_sigma_rms = float(math.sqrt(residual_energy) / max(sigma_rms, 1e-9))
     reject_reasons = contract_failure_reasons(
+        raw_ch,
         residual_ch,
         sigma_ch,
         validation,
@@ -329,7 +386,9 @@ def build_crop(
         args,
     )
     accepted = not reject_reasons
-    if args.enforce_contract and reject_reasons:
+    if force_noop:
+        accepted = True
+    if args.enforce_contract and reject_reasons and not force_noop:
         clean_ch = {ch: plane.copy() for ch, plane in raw_ch.items()}
         residual_ch = {ch: np.zeros_like(plane, dtype=np.float32) for ch, plane in raw_ch.items()}
         mask_ch = {ch: np.zeros_like(plane, dtype=np.float32) for ch, plane in raw_ch.items()}
@@ -355,6 +414,8 @@ def build_crop(
         image_id=np.asarray(image_id),
         crop=np.asarray(crop_name),
         iso=np.asarray([meta.iso], dtype=np.int32),
+        min_noise_iso=np.asarray([args.min_noise_iso], dtype=np.int32),
+        force_noop=np.asarray([force_noop], dtype=np.bool_),
     )
 
     hi = float(np.percentile(raw_crop, 99.5))
@@ -374,6 +435,7 @@ def build_crop(
         "path": str(meta.path),
         "npz": str(npz_path),
         "accepted": accepted,
+        "force_noop": force_noop,
         "reject_reasons": reject_reasons,
         "contract_enforced": bool(args.enforce_contract and reject_reasons),
         "sigma_rms_counts": sigma_rms,
@@ -431,7 +493,9 @@ def build_html(rows: list[dict[str, Any]], out: Path) -> None:
                 row["mean_mask"],
                 row["lag_max_abs"],
                 row["edge_removed_energy_ratio"],
-                "accepted" if row["accepted"] else "rejected: " + ",".join(row["reject_reasons"]),
+                "forced no-op" if row.get("force_noop") else (
+                    "accepted" if row["accepted"] else "rejected: " + ",".join(row["reject_reasons"])
+                ),
             ]
         ) + "</tr>")
     html.append("</tbody></table><div class='grid'>")
@@ -474,11 +538,14 @@ def main() -> int:
     ap.add_argument("--post-edge-cutoff", type=float, default=0.35)
     ap.add_argument("--post-edge-power", type=float, default=1.5)
     ap.add_argument("--output-sigma-clip", type=float, default=1.0)
+    ap.add_argument("--min-noise-iso", type=int, default=0,
+                    help="Force exact raw-preserving controls below this ISO.")
     ap.add_argument("--enforce-contract", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--contract-max-residual-sigma", type=float, default=1.0)
     ap.add_argument("--contract-max-rms-residual-sigma", type=float, default=0.35)
     ap.add_argument("--contract-max-lag-abs", type=float, default=0.20)
     ap.add_argument("--contract-max-edge-ratio", type=float, default=1.0)
+    ap.add_argument("--contract-max-abs-gradient-corr", type=float, default=0.15)
     ap.add_argument("--residual-gain", type=float, default=8.0)
     args = ap.parse_args()
 
