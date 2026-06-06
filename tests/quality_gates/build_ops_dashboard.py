@@ -240,7 +240,10 @@ def chroma_metrics(run_hash: str, image_id: str = "Z8Z_6693") -> dict | None:
     if spec is None or spec.loader is None:
         return None
     mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    try:
+        spec.loader.exec_module(mod)
+    except ModuleNotFoundError:
+        return None
     run_dir = RUNS_DIR / run_hash
     ref = run_dir / f"{image_id}_REF_crop_A_detail.png"
     pipe = run_dir / f"{image_id}_PIPELINE_crop_A_detail.png"
@@ -271,6 +274,13 @@ def table_chroma() -> str:
   <td class="num">{fmt(m['ab_corr_a'], 3)}, {fmt(m['ab_corr_b'], 3)}</td>
   <td class="num">{fmt(m['chroma_hf_ratio'], 2)}</td>
 </tr>""")
+    if not rows:
+        return (
+            "<tr><td colspan='12'>Chroma crop diagnostics are unavailable in "
+            "this Python environment or the referenced crop assets are absent. "
+            "Install the quality-gate Python dependencies and regenerate the "
+            "gate dashboards to populate this table.</td></tr>"
+        )
     return "\n".join(rows)
 
 
