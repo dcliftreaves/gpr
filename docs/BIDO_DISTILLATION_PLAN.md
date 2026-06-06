@@ -806,6 +806,62 @@ plan.
 
 ## 9. Out of scope for this plan
 
+### 2026-06-06 non-REF render-time checkpoint
+
+The current PREVIEW stop condition was clarified as:
+
+> render-time output must use no REF content at all, HF or LF, and still
+> clear >70% on the dashboard.
+
+The exact REF-HF and REF-LF probes are therefore ceilings only. The first
+checkpoint that clears the clarified render-time condition is the direct
+RGB LPIPS-trained non-REF refiner:
+
+- tool: `tools/cnn/train_display_rgb_direct_nonref.py`
+- dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/display_rgb_direct_lpips_nonref_20260606/rgb_direct_lpips_nonref_dashboard.html`
+- dashboard JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/display_rgb_direct_lpips_nonref_20260606/rgb_direct_lpips_nonref_dashboard.json`
+- checkpoint:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/display_rgb_direct_lpips_nonref_20260606/display_rgb_direct_lpips_nonref.pt`
+- checkpoint SHA-256:
+  `da1cb051daa696e4dafcb34395704081686e67f101bb5d86f0fb97fd163d4591`
+
+Result on the 16-crop PREVIEW dashboard:
+
+| Candidate | Pass | Pass rate | Worst LPIPS | Median LPIPS | Worst MS-SSIM | Worst Y-PSNR | Worst dE2000 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| direct RGB LPIPS non-REF | 14/16 | 87.5% | 0.2132 | 0.0373 | 0.9528 | 34.58 dB | 2.16 |
+
+The two remaining failures are both `Z8Z_0705` crops, failing only LPIPS:
+
+| Image | Crop | LPIPS | MS-SSIM | Y-PSNR | dE2000 |
+|---|---|---:|---:|---:|---:|
+| `Z8Z_0705` | center | 0.2132 | 0.9528 | 36.70 dB | 1.77 |
+| `Z8Z_0705` | upper_left | 0.1639 | 0.9844 | 35.34 dB | 2.16 |
+
+Important limitation: this is a crop-dashboard checkpoint, not a generalized
+production pipeline. It uses selected non-REF source crops and a crop-key
+conditioning signal, and REF is used as the training target. It does not read
+REF images, REF LF/color maps, or REF HF/noise at render time. The production
+follow-up is to replace crop-key conditioning/source selection with a full-image
+runtime policy and then rerun the same gate plus timing.
+
+Earlier narrowing results:
+
+| Candidate | Pass rate | Interpretation |
+|---|---:|---|
+| REF LF/color + non-REF HF | 100% | Non-REF HF is sufficient when LF/color is solved. |
+| LF atlas 384 + non-REF HF | 100% | LF/color representation is the missing blocker, but this memorizes LF fields. |
+| LF atlas 256 + non-REF HF | 93.8% | 256px LF/color sidecar is nearly enough. |
+| direct RGB LPIPS non-REF | 87.5% | First render-time checkpoint over 70% without reading REF content. |
+| LF content CNN 256 + MS-SSIM | 31.3% | LF-only losses still do not align well enough with LPIPS. |
+
+Next production step: promote the direct RGB checkpoint into a temporary
+registry entry only after its source selection can be expressed without
+dashboard-oracle knowledge, then evaluate on full-image crops and capture
+decode + model + encode timing.
+
 - Architecture changes (width sweep w24/w32, large-kernel variants).
   These are tracked separately.
 - Pipeline-level changes (codec quant, demosaic stage).
