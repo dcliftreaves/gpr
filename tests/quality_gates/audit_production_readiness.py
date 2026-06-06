@@ -102,7 +102,9 @@ def run_summary(run: dict | None) -> str:
     if not run:
         return "no committed PASS run"
     worst = run.get("worst_image") or {}
-    return f"run={run.get('run_hash')} gates={run.get('gates_sha')} worst={worst.get('id')} lpips={worst.get('lpips'):.4f}"
+    lpips = worst.get("lpips")
+    lpips_s = f"{lpips:.4f}" if isinstance(lpips, (int, float)) else "n/a"
+    return f"run={run.get('run_hash')} gates={run.get('gates_sha')} worst={worst.get('id')} lpips={lpips_s}"
 
 
 def check_ship_group(area: str, prefix: str) -> list[Check]:
@@ -119,7 +121,12 @@ def check_ship_group(area: str, prefix: str) -> list[Check]:
 
 def check_pipeline(area: str, name: str, pipeline: str) -> Check:
     run = latest_pass_for_pipeline(pipeline)
-    return Check(area, name, "PASS" if run else "FAIL", run_summary(run))
+    if run:
+        return Check(area, name, "PASS", run_summary(run))
+    latest = latest_run_for_pipeline(pipeline)
+    if latest:
+        return Check(area, name, "FAIL", f"latest committed verdict={latest.get('verdict')} {run_summary(latest)}")
+    return Check(area, name, "FAIL", "no committed PASS run")
 
 
 def check_preview_color_guard(pipeline: str) -> Check:
@@ -162,67 +169,28 @@ def tracked_run_by_hash(run_hash: str) -> dict | None:
 
 
 def check_preview_detail_blocker_evidence() -> Check:
-    """Accept the PREVIEW detail item only when the blocker is evidenced.
+    """Accept the detail item only when the current blocker is evidenced."""
+    doc = REPO / "docs/RAW_SIGNAL_CNN_CANDIDATE_2026-06-05.md"
+    if not doc.exists():
+        return Check("preview_detail", "raw-signal detail blocker evidence", "FAIL", f"missing {doc.relative_to(REPO)}")
+    if not git_tracked(doc):
+        return Check("preview_detail", "raw-signal detail blocker evidence", "FAIL", f"untracked {doc.relative_to(REPO)}")
 
-    The project stop criteria allow this area to be green if no candidate
-    passes, but only after the failure is narrowed to a specific cause with
-    committed metrics and visual/diagnostic receipts. This check verifies the
-    tracked receipts behind that claim instead of accepting prose alone.
-    """
-    doc = REPO / "docs/PREVIEW_DETAIL_MOSAIC_RESULTS_2026-06-02.md"
-    texture = RUNS_DIR / "dashboard/preview_texture_recoverability.json"
-    for path in (doc, texture):
-        if not path.exists():
-            return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", f"missing {path.relative_to(REPO)}")
-        if not git_tracked(path):
-            return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", f"untracked {path.relative_to(REPO)}")
-
-    try:
-        tex = json.loads(texture.read_text())
-    except Exception as exc:
-        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", f"bad recoverability JSON: {exc}")
-    summary = {r.get("candidate"): r for r in tex.get("summary") or []}
-    low2 = summary.get("ref_L_lowpass_x2")
-    low4 = summary.get("ref_L_lowpass_x4")
-    if not low2 or low2.get("all_pass") is not True:
-        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", "ref_L_lowpass_x2 oracle is not a committed PASS")
-    if not low4 or low4.get("all_pass") is not False:
-        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", "ref_L_lowpass_x4 contrast is missing or not failing")
-
-    required_failed = {
-        "mosaic_x2": "46bf8050492744e2",
-        "phase_plane_center_valid_aggressive": "abd069326b906a72",
-        "phase_plane_center_valid_conservative": "9a30acc832b00c94",
-        "mosaic_coord_blocker_select": "6315162afa5ed4d2",
-        "mosaic_coord_last": "f20c7651c73ea654",
-        "mosaic_z6693_select": "ebcfdf3a6ff3ba23",
-        "mosaic_width48_blocker_select": "e5107f994eb2dd0b",
-        "mosaic_width48_wavelet_lhf2": "6d7ed7f5b62f7732",
-        "mosaic_width48_t192_center512": "b6245123abfefd36",
-        "mosaic_width48_t256_center768": "9d6dba741fdb6972",
-        "mosaic_width48_msssim": "824275e674aa8e9f",
-        "mosaic_fullref": "4ae4d3cfb39632ab",
-        "luma_residual_v1": "5d3cf75bf1b1f44b",
-        "luma_residual_v1_wavelet_hf": "b3b767e5d4d2f717",
-        "luma_residual_v2": "9b1d4c8e7320de40",
-        "luma_unet_signal_lowpass": "5b0b0588f497a0cf",
-        "luma_unet_structure_gated": "9f302838a3849414",
-        "luma_unet_structure_gated_s25": "7e070506de411bd8",
-        "luma_unet_x2_oracle": "42882c4ca661b539",
-        "luma_unet_x2_oracle_s25": "e66bb956fdaa3f8d",
-        "rgb_residual_v1": "ac606b54716374b2",
+    required = {
+        "source_sigma_analysis": ("1bd6fcf9583a44fa", True),
+        "runtime_sigma_retrain": ("042cc4bdcf4dfe35", False),
+        "iso_only_retrain": ("4f8231e47309d668", False),
     }
     missing = []
     bad = []
-    best_lpips = 999.0
-    best_ms = 0.0
-    for label, run_hash in required_failed.items():
+    deployable_worst_lpips: list[float] = []
+    for label, (run_hash, allow_preview_pass) in required.items():
         run = tracked_run_by_hash(run_hash)
         if not run:
             missing.append(f"{label}:{run_hash}")
             continue
-        if run.get("verdict") != "FAIL":
-            bad.append(f"{label}:{run_hash} verdict={run.get('verdict')}")
+        if run.get("verdict") != "PASS" or run.get("ship_class") != "UPRESABLE":
+            bad.append(f"{label}:{run_hash} verdict={run.get('verdict')} class={run.get('ship_class')}")
             continue
         z6693 = (run.get("images") or {}).get("Z8Z_6693")
         if not z6693:
@@ -230,39 +198,34 @@ def check_preview_detail_blocker_evidence() -> Check:
             continue
         lpips = float(z6693.get("lpips", 999.0))
         ms = float(z6693.get("ms_ssim", 0.0))
-        if lpips <= 0.15 and ms >= 0.95:
-            bad.append(f"{label}:{run_hash} unexpectedly passes blocker metrics")
-        best_lpips = min(best_lpips, lpips)
-        best_ms = max(best_ms, ms)
+        if not allow_preview_pass:
+            deployable_worst_lpips.append(lpips)
+            if lpips <= 0.15 and ms >= 0.95:
+                bad.append(f"{label}:{run_hash} unexpectedly clears PREVIEW detail metrics")
     if missing:
-        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", "missing tracked runs " + ", ".join(missing))
+        return Check("preview_detail", "raw-signal detail blocker evidence", "FAIL", "missing tracked runs " + ", ".join(missing))
     if bad:
-        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", "; ".join(bad))
+        return Check("preview_detail", "raw-signal detail blocker evidence", "FAIL", "; ".join(bad))
 
     text = doc.read_text(errors="ignore")
     doc_needles = [
-        "not chroma",
-        "not codec irrecoverability",
-        "not just selecting a later training epoch",
-        "capacity plus tile-level hard",
-        "image selection",
-        "center-valid",
-        "coordinate channels",
-        "wavelet target-cleanup",
-        "wavelet-HF synthesis",
-        "full-context Lab-L U-Net",
-        "target/model path",
+        "conditioning mismatch",
+        "rendered quality remains unusable",
+        "removing sigma channels does not solve the blocker",
+        "larger/full-context",
+        "teacher-distilled objective",
+        "not production-ready",
     ]
     missing_doc = [s for s in doc_needles if s not in text]
     if missing_doc:
-        return Check("preview_detail", "Lab Chroma SIPS detail blocker evidence", "FAIL", f"doc missing {missing_doc}")
+        return Check("preview_detail", "raw-signal detail blocker evidence", "FAIL", f"doc missing {missing_doc}")
 
     return Check(
         "preview_detail",
-        "Lab Chroma SIPS detail blocker evidence",
+        "raw-signal detail blocker evidence",
         "PASS",
-        "no full PREVIEW pass; narrowed by tracked x2 oracle PASS, x4 oracle FAIL, "
-        f"and {len(required_failed)} failed candidate receipts; best blocker lpips={best_lpips:.4f} ms={best_ms:.4f}",
+        "no deployable full PREVIEW pass; source-sigma analysis passes but is not runtime-valid, "
+        f"runtime-valid retries fail rendered detail with max Z8Z_6693 LPIPS={max(deployable_worst_lpips):.4f}",
     )
 
 
@@ -357,6 +320,59 @@ def check_upresable_bench_receipt() -> list[Check]:
     return checks
 
 
+def check_x2d_noise_receipts() -> list[Check]:
+    base = Path("/Volumes/OWC_8TB/gpr_work/artifacts/x2d_focus_20260605")
+    selection = base / "x2d_iso_stratified_21_fff_selection.json"
+    manifest = base / "x2d_iso_stratified_21_test_set.json"
+    targets = base / "raw_clean_targets_iso_stratified_21_min800/raw_clean_ref_targets.json"
+    audit = base / "raw_noise_signal_audit_iso_stratified_21_min800/raw_noise_signal_audit.json"
+    missing = [p for p in (selection, manifest, targets, audit) if not p.exists()]
+    if missing:
+        return [Check("noise_signal", "X2D ISO-stratified receipts", "FAIL", "missing " + ", ".join(str(p) for p in missing))]
+
+    try:
+        manifest_data = json.loads(manifest.read_text())
+        target_data = json.loads(targets.read_text())
+        audit_data = json.loads(audit.read_text())
+    except Exception as exc:
+        return [Check("noise_signal", "X2D ISO-stratified receipts", "FAIL", f"bad JSON: {exc}")]
+
+    images = manifest_data.get("images") or []
+    target_rows = target_data.get("rows") or []
+    audit_rows = audit_data.get("rows") or []
+    checks = [
+        Check(
+            "noise_signal",
+            "X2D ISO-stratified corpus",
+            "PASS" if len(images) >= 21 and len(target_rows) >= 63 else "FAIL",
+            f"images={len(images)} target_crops={len(target_rows)} manifest={manifest}",
+        )
+    ]
+
+    low_iso = [r for r in target_rows if int(r.get("iso", 0)) < 800]
+    low_nonzero = [
+        r for r in low_iso
+        if not r.get("force_noop") or float(r.get("exact_residual_rms_counts", 0.0)) > 1e-6
+    ]
+    checks.append(Check(
+        "noise_signal",
+        "low-ISO no-op controls",
+        "PASS" if low_iso and not low_nonzero else "FAIL",
+        f"low_iso_crops={len(low_iso)} nonzero_or_unforced={len(low_nonzero)}",
+    ))
+
+    fail_count = int(audit_data.get("fail_count", -1))
+    pass_count = int(audit_data.get("pass_count", 0))
+    no_op_count = int(audit_data.get("no_op_count", 0))
+    checks.append(Check(
+        "noise_signal",
+        "strict noise/signal audit",
+        "PASS" if fail_count == 0 and pass_count == len(audit_rows) else "FAIL",
+        f"pass={pass_count} fail={fail_count} no_op={no_op_count} audit={audit}",
+    ))
+    return checks
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--strict", action="store_true", help="exit non-zero when any check fails")
@@ -368,7 +384,7 @@ def main() -> int:
     checks.append(check_pipeline(
         "preview",
         "baseline PREVIEW",
-        "codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools",
+        "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools",
     ))
     lab_sips_pipeline = "codec=ml2_q3_dec2+cnn=lab_chroma_corrector_w12_sips_residual_ab8_sub10+demosaic=sips_via_gpr_tools"
     checks.append(check_preview_color_guard(lab_sips_pipeline))
@@ -381,6 +397,7 @@ def main() -> int:
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
         check_file("preview_holdout", "holdout summary dashboard tool", "tests/quality_gates/summarize_preview_holdout.py"),
     ])
+    checks.extend(check_x2d_noise_receipts())
     checks.append(check_pipeline(
         "upresable",
         "production UPRESABLE",
@@ -393,7 +410,13 @@ def main() -> int:
         check_file("container_gvid", "CI format smoke", "source/app/test_video_format.c"),
         check_file("container_gvid", "GVID pack tool", "tools/gvid_pack.py"),
         check_file("container_gvid", "GVID pack smoke", "tools/test/test_gvid_pack.sh"),
-        check_file("container_mov", "MOV compatibility pack tool", "tools/gpr2prores/gpr_mov_tool", require_tracked=False),
+        check_file("container_mov", "MOV compatibility pack tool source", "tools/gpr2prores/gpr_mov_tool.m"),
+        check_script_contains(
+            "container_mov",
+            "MOV compatibility build recipe",
+            "tools/gpr2prores/Makefile",
+            ["gpr_mov_tool:", "install -m 0755 gpr_mov_tool"],
+        ),
         check_file("container_mov", "MOV compatibility fixture recipe", "tools/test/make_gpraw_fixture.sh"),
         check_file("pi5_mission1", "Pi encoder benchmark", "tools/test/test_pi_encoder.sh"),
         check_file("pi5_mission1", "Pi-to-Mac UPRESABLE bench", "tools/test/bench_pi_to_mac_upresable.sh"),

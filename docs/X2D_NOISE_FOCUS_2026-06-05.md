@@ -117,10 +117,50 @@ correlation checks, because those sidecars become CNN training targets.
 
 ## Next Work
 
-1. Extend `build_raw_clean_ref_targets.py` to accept an X2D darkframe
-   calibration sidecar and use ISO-aware thresholds.
-2. Build X2D raw-clean targets only for ISO 800+ first; treat ISO 64/200 as
-   raw-preserving controls.
-3. Run the noise/signal audit on the X2D matched-ISO set before training.
-4. Train or distill the next candidate on signal targets, with ISO/noise metadata
-   as conditioning and calibrated noise addback as a separate output step.
+## Expanded ISO-Stratified Pass
+
+Follow-up artifacts:
+
+- Selection manifest:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_focus_20260605/x2d_iso_stratified_21_fff_selection.json`
+- Converted DNG manifest:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_focus_20260605/x2d_iso_stratified_21_test_set.json`
+- Target dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_focus_20260605/raw_clean_targets_iso_stratified_21_min800/raw_clean_ref_targets.html`
+- Audit dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_focus_20260605/raw_noise_signal_audit_iso_stratified_21_min800/raw_noise_signal_audit.html`
+
+The expanded pass uses 21 X2D scenes: three each at ISO 200, 400, 800, 1600,
+3200, 6400, and 12800. Each scene contributes three 1024x1024 crops.
+
+Result:
+
+| ISO | Crops | Forced controls | Contract no-op | Nonzero targets | Audit |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 200 | 9 | 9 | 0 | 0 | pass |
+| 400 | 9 | 9 | 0 | 0 | pass |
+| 800 | 9 | 0 | 8 | 1 | pass |
+| 1600 | 9 | 0 | 9 | 0 | pass |
+| 3200 | 9 | 0 | 5 | 4 | pass |
+| 6400 | 9 | 0 | 8 | 1 | pass |
+| 12800 | 9 | 0 | 7 | 2 | pass |
+
+All 63 audit rows pass. Every low-ISO control is an exact no-op. The surviving
+high-ISO residuals are tiny, with max residual/sigma RMS below 0.004. This is
+the intended production-safe behavior: remove only residuals that are strongly
+noise-like, preserve signal by default, and keep exact residual sidecars only
+for analysis/addback.
+
+## Next Work
+
+1. Use the expanded X2D pass as the noise/signal guardrail, not as the main CNN
+   objective. The production target should still learn raw signal/detail
+   placement.
+2. Train or distill the next candidate with larger/full-image context or a
+   teacher objective; the small crop-RMSE model has already failed rendered
+   detail placement.
+3. Add synthetic ISO-aware noise rendering as a separate output layer after the
+   signal model. Exact residual addback remains an evaluation receipt, not a
+   training target.
+4. Re-run full gates and timing only after the detail-placement candidate
+   improves rendered LPIPS/MS-SSIM and crop-level texture placement.
