@@ -78,6 +78,43 @@ Interpretation:
   from the scene target, then add camera noise back as a rendering layer rather
   than asking the CNN to synthesize exact sensor noise.
 
+## ISO 200+ Control Pass
+
+Follow-up artifacts:
+
+- ISO 200+ target dashboard with `--min-noise-iso 800`:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_focus_20260605/raw_clean_targets_iso200plus_min800_v2/raw_clean_ref_targets.html`
+- ISO 200+ audit dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_focus_20260605/raw_noise_signal_audit_iso200plus_min800_v2/raw_noise_signal_audit.html`
+- ISO 1600/3200 diagnostic dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_focus_20260605/noise_profile_analysis_iso1600_3200_focus/noise_profile_analysis.html`
+
+Policy:
+
+- ISO 200 and 400 are exact raw-preserving controls.
+- ISO 800 and above may generate a nonzero residual, but only if the residual
+  passes the full noise/signal audit.
+- If a residual is too correlated with image gradients, it is forced to an
+  exact no-op sidecar before training.
+
+Result:
+
+| ISO | Crops | Forced controls | Contract no-op | Nonzero targets | Audit |
+| ---: | ---: | ---: | ---: | ---: | --- |
+| 200 | 3 | 3 | 0 | 0 | pass |
+| 400 | 3 | 3 | 0 | 0 | pass |
+| 800 | 3 | 0 | 3 | 0 | pass |
+| 1600 | 3 | 0 | 2 | 1 | pass |
+| 3200 | 3 | 0 | 3 | 0 | pass |
+| 6400 | 3 | 0 | 3 | 0 | pass |
+| 12800 | 3 | 0 | 2 | 1 | pass |
+
+The ISO 1600/3200 diagnostic dashboard is the right place to visually inspect
+why noise removal matters. It shows about 0.5-0.8 sigma of removable
+high-frequency content in the less-destructive analyzer. The production target
+builder is stricter: it keeps only residuals that pass lag, edge, and gradient
+correlation checks, because those sidecars become CNN training targets.
+
 ## Next Work
 
 1. Extend `build_raw_clean_ref_targets.py` to accept an X2D darkframe
