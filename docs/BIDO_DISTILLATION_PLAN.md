@@ -133,6 +133,58 @@ chroma is held fixed. This closes the immediate BIDO/Lab-composition branch.
 The next candidate needs a better raw/detail source, not more blending of this
 RGB BIDO checkpoint.
 
+### 2026-06-06 UPRESABLE HF oracle
+
+The next branch tested whether the production UPRESABLE raw path is a better
+detail source than BIDO. Lab SIPS a/b was held fixed and only Lab-L donors were
+changed:
+
+- L-donor oracle dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/upresable_luma_oracle_20260606/lab_sips_upresable_luma_oracle.html`
+- HF oracle/synthesis dashboards:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/upresable_hf_oracle_20260606/`
+
+Lab SIPS a/b plus UPRESABLE L did not clear PREVIEW:
+
+| L donor | worst image | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE |
+|---|---|---:|---:|---:|---:|
+| Lab SIPS L | `Z8Z_6693` | 0.4208 | 0.8884 | 26.70 | 3.51 |
+| UPRESABLE L | `Z8Z_6693` | 0.4459 | 0.9173 | 30.45 | 2.54 |
+| best blend | `Z8Z_6693` | 0.4465 | 0.8968 | 27.69 | 3.23 |
+
+Interpretation: UPRESABLE L improves structure/color guardrails but does not
+solve the LPIPS/detail blocker by itself.
+
+The exact REF-HF oracle was then run on 100% crops using the UPRESABLE render.
+With a broad enough high-frequency split, the low-frequency UPRESABLE signal
+passes and exact REF HF addback passes:
+
+| split | variant | pass count | worst image | worst LPIPS | worst MS-SSIM |
+|---|---|---:|---|---:|---:|
+| wavelet hf-levels=1 | exact REF HF added | 1/4 | `Z8Z_6693` | 0.2849 | 0.8778 |
+| wavelet hf-levels=2 | exact REF HF added | 2/4 | `Z8Z_0001` | 0.1651 | 0.9435 |
+| wavelet hf-levels=3 | signal only | 4/4 | `Z8Z_6693` | 0.1264 | 0.9709 |
+| wavelet hf-levels=3 | exact REF HF added | 4/4 | `Z8Z_6693` | 0.0502 | 0.9787 |
+| gaussian sigma=3 | signal only | 4/4 | `Z8Z_6693` | 0.0905 | 0.9818 |
+| gaussian sigma=3 | exact REF HF added | 4/4 | `Z8Z_0001` | 0.0532 | 0.9866 |
+
+This is the key narrowing result: UPRESABLE low-frequency signal/detail is good
+enough when REF high-frequency content is handled separately.
+
+The shippable follow-up was tested with candidate-only wavelet HF scaling and a
+new stochastic Lab-L HF synthesis probe:
+
+| method | best variant | pass count | worst image | worst LPIPS | conclusion |
+|---|---|---:|---|---:|---|
+| candidate wavelet HF scaling | `hf2_gain110` | 1/4 | `Z8Z_6693` | 0.5216 | not enough |
+| stochastic white/laplace HF | `ref_laplace_s0.5` | 1/4 | `Z8Z_0001` | 0.5345 | not visually equivalent |
+
+Conclusion: the missing layer is not random display-space noise and not simple
+candidate-HF gain. It is structure-correlated high-frequency texture/noise. The
+next candidate should train a small conditioned HF/detail generator around the
+UPRESABLE low-frequency path, with the exact REF-HF oracle used only as a
+ceiling and the stochastic probe retained as a guardrail.
+
 The plan's original `tools/cnn/train_demosaic_sr.py` name was stale. The
 active trainer is `tools/cnn/train.py`; it now supports BIDO/RGB `tgt_rgb`
 tiles, multiple validation source names, optional checkpoint initialization,
