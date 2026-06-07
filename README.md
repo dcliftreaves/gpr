@@ -146,11 +146,11 @@ alongside the rendered metrics.
 The current production PREVIEW ship claim remains the codec-only gate above.
 The newer no-REF display refiner work is a candidate path, not a shipped
 pipeline. The dashboard-shaped checkpoint clears 14/16 crop rows, but when the
-same work is forced through deterministic runtime inputs — no REF content, no
-winner JSON, no sample index, and no crop-key planes — the single-refiner
-production-source candidate tops out at **11/16 (68.75%)**. A first hard-routed
-scene/degradation ensemble improves that to **12/16 (75.0%)**, clearing the
-temporary >70% runtime dashboard bar.
+same work is forced through deterministic runtime inputs - no REF content, no
+winner JSON, no sample index, and no crop-key planes - the single-refiner
+production-source candidate tops out at **11/16 (68.75%)**. The current best
+hard-routed scene/degradation diagnostic reaches **82/84 (97.6%)** on the
+28-image full-image source holdout.
 
 The current temporary registered candidate is:
 
@@ -159,23 +159,25 @@ codec=ml2_q3_dec2+cnn=preview_scene_routed_k5_l1color_v1+demosaic=sips_via_gpr_t
 ```
 
 It uses a frozen nearest-center router sidecar computed from runtime
-source-image features and preloaded expert checkpoints. The full-image
-28-image holdout now has 84/84 source rows and the v5 routed receipt clears
-the temporary no-REF runtime target at **61/84 (72.6%)**.
+source-image features and preloaded expert checkpoints. The latest v28
+diagnostic layers a frozen K16 override router for the Z8Z_7480 structure
+clusters. It is not registered as production PREVIEW.
 
-The routed v5 receipt is:
+The routed v28 diagnostic receipt is:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v5_28img_combined_l1color/preview_scene_routed_holdout.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v28_k16_c10v3_c15_override/preview_scene_routed_holdout.json
 ```
 
-Median model time on the Mac/MPS holdout receipt is **13.48 ms/crop** with peak
-RSS **1478 MB**. This is still not a ship claim: worst LPIPS is **1.0348**,
-worst dE2000 is **37.01**, and clusters 2/4 fail badly on the newly covered
-hard images. See
+Median model time on the Mac/MPS holdout receipt is **13.28 ms/crop** with peak
+RSS **1514 MB**. This is still not a ship claim: two rows miss the committed
+PREVIEW gate (`Z8Z_0026 B_center` on dE, `Z8Z_6680 C_lowerleft` on Y-PSNR and
+dE). Worst LPIPS is **0.0498**, worst Y-PSNR is **27.41**, and worst dE2000 is
+**4.03**. See
 [`docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md`](docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md)
 [`docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md),
-and [`docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md).
+[`docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md),
+and [`docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md`](docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md).
 
 ---
 

@@ -75,12 +75,12 @@ release checklist: stills, video quality, PREVIEW/non-REF receipts, noise/signal
 guards, UPRESABLE, `.gvid`, MOV compatibility, Pi 5 / Mission 1 setup, and
 platform speed receipts. It expects external receipts under `GPR_ARTIFACT_ROOT`,
 including the direct-RGB non-REF PREVIEW diagnostic dashboard, checkpoint hash,
-and the deterministic runtime PREVIEW policy receipt. As of 2026-06-06, the
-temporary scene-routed PREVIEW candidate clears the full-image 28-image holdout
-target at 61/84 rows, with frozen router sidecar, expert checkpoint hashes,
-timing/memory receipts, and `.gvid`/ProRes evidence. It is not a ship claim
-because worst-row failures remain severe; see
-`docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md`.
+and the deterministic runtime PREVIEW policy receipt. As of 2026-06-07, the
+best scene-routed PREVIEW diagnostic clears 82/84 rows on the full-image
+28-image holdout, with frozen router sidecars, expert checkpoint hashes, and
+timing/memory receipts. It is not a ship claim because two rows still miss the
+committed PREVIEW gate on dE/Y-PSNR; see
+`docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md`.
 
 ## Runtime resolution
 
