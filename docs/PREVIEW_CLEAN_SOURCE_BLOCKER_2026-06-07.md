@@ -381,6 +381,36 @@ worst Y-PSNR 19.72, and worst dE2000 6.96. Matching the nominal crop size is
 therefore insufficient; the failure is arbitrary tile placement/context plus
 tile-level route selection.
 
+Follow-up full-frame diagnostics narrowed this further:
+
+- Exact manifest-crop full-frame mode passes 3/3 on `Z8Z_6680`, proving the
+  DNG render, crop extraction, checkpoints, and scoring path are consistent:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_manifest_crops_v32_z8z6680/preview_scene_routed_fullframe.json`
+- High-overlap v32 tiling still fails 0/3, so overlap alone is not the fix:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_smoke_z8z6680_t1024_o768/preview_scene_routed_fullframe.json`
+- A reproducible 336-row full-frame tile receipt across the 28-image holdout
+  shows the source/REF tile gap is hard before the CNN: raw UPRESABLE source
+  tiles pass only 80/336, and the hard diverse images pass 0/12 each before
+  refinement:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_train_holdout28_intersect_t512/tile_train_receipt.json`
+- A broad global-coordinate tile refiner improves the tile receipt to 272/336
+  but still leaves severe cluster-2/cluster-4 failures:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_holdout28_globalcoord_v1/preview_runtime_refiner.json`
+- A wider `Z8Z_6680` specialist proves the texture component is learnable on
+  the hardest tiles, but LF/luma/color consistency remains the blocker. The
+  LF-polished specialist reaches 8/12 on isolated `Z8Z_6680` tiles, then only
+  1/3 on stitched full-frame crops:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_globalcoord_w80_lfpolish_v2/preview_runtime_refiner.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_globalcoord_w80_lfpolish_v2_t512/preview_scene_routed_fullframe.json`
+
+The evidenced blocker is now specific: the current local-tile CNN family can
+learn detail placement on isolated hard tiles, but it does not maintain
+low-frequency luma/color consistency across arbitrary stitched full-frame tiles
+from the current UPRESABLE source. The next production candidate should use a
+full-frame or larger-context objective, a stronger model with explicit
+low-frequency/global color handling, or an upstream source policy that reduces
+the source/REF tile mismatch before PREVIEW refinement.
+
 Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
 cluster-35 polish specialists as production PREVIEW until the full-frame/tiled
 runtime path has equivalent evidence.

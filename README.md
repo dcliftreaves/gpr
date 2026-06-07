@@ -186,6 +186,15 @@ The current full-frame/tiled smoke is the active PREVIEW blocker: on
 runtime tiles. That narrows the remaining work to tile/context-safe routing and
 training, not another crop-aligned color pass.
 
+The latest full-frame follow-up narrows that blocker further. Exact
+manifest-crop full-frame evaluation passes 3/3, but arbitrary tiling fails even
+with high overlap. A 336-row full-frame tile receipt shows raw UPRESABLE source
+tiles pass only 80/336 before the CNN; the broad global-coordinate tile refiner
+reaches 272/336, and a wider `Z8Z_6680` specialist reaches 8/12 isolated hard
+tiles but only 1/3 stitched full-frame crops. LPIPS/detail can be learned; the
+remaining production blocker is low-frequency luma/color consistency across
+stitched arbitrary full-frame tiles from the current source policy.
+
 ---
 
 ## Today's headline numbers (2026-05-28 perf pass)
