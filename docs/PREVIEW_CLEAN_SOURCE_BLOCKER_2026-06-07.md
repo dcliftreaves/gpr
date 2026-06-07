@@ -362,10 +362,24 @@ The 84-row no-REF crop/full-gate holdout is now clear under v32. The remaining
 blocker is deployment proof, not another crop-level color pass:
 
 - run the same stacked-router policy through the full-frame/tiled render path;
-- verify tile boundaries and full-image context do not change the selected
-  route or introduce local artifacts;
+- fix arbitrary tile context/routing; the first full-frame tiled smoke fails
+  0/3 on `Z8Z_6680`;
 - capture encode/decode/model timing and memory for the actual render path;
 - only then consider registry promotion.
+
+Full-frame/tiled smoke receipts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_smoke_z8z6680/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_smoke_z8z6680_t512/preview_scene_routed_fullframe.json
+```
+
+The 768/128-overlap tiled run scores 0/3 on `Z8Z_6680`: worst LPIPS 0.4103,
+worst MS-SSIM 0.7062, worst Y-PSNR 19.04, and worst dE2000 8.05. The
+512/no-overlap run also scores 0/3: worst LPIPS 0.3612, worst MS-SSIM 0.7958,
+worst Y-PSNR 19.72, and worst dE2000 6.96. Matching the nominal crop size is
+therefore insufficient; the failure is arbitrary tile placement/context plus
+tile-level route selection.
 
 Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
 cluster-35 polish specialists as production PREVIEW until the full-frame/tiled

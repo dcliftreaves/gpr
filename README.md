@@ -181,6 +181,11 @@ holdout now passes **84/84**. Worst LPIPS is **0.0500**, worst MS-SSIM is
 [`docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md),
 and [`docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md`](docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md).
 
+The current full-frame/tiled smoke is the active PREVIEW blocker: on
+`Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
+runtime tiles. That narrows the remaining work to tile/context-safe routing and
+training, not another crop-aligned color pass.
+
 ---
 
 ## Today's headline numbers (2026-05-28 perf pass)
