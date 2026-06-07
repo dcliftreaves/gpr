@@ -87,6 +87,18 @@ def load_model(path: Path) -> DirectRGBRefiner:
     return model
 
 
+def load_model_with_receipt(path: Path) -> tuple[DirectRGBRefiner, dict[str, Any]]:
+    ckpt = torch.load(str(path), map_location="cpu", weights_only=False)
+    model = build_rgb_refiner(
+        str(ckpt.get("architecture", "direct")),
+        width=int(ckpt.get("width", 40)),
+        residual_scale=float(ckpt.get("residual_scale", 0.5)),
+    ).to(DEVICE)
+    model.load_state_dict(ckpt["state_dict"])
+    model.eval()
+    return model, ckpt
+
+
 def tile_origins(length: int, tile: int, stride: int) -> list[int]:
     if length <= tile:
         return [0]
@@ -160,6 +172,71 @@ def build_tile_input(
         raise ValueError(f"unsupported conditioning {conditioning!r}")
     arr = np.concatenate([source, np.stack([xx, yy], axis=0), key_planes], axis=0)
     return torch.from_numpy(arr[None].copy()).to(DEVICE).contiguous()
+
+
+def global_rgb_stats(rgb: np.ndarray) -> dict[str, float]:
+    normalized = rgb.astype(np.float32) / 255.0
+    return {
+        "r_mean": float(normalized[:, :, 0].mean()),
+        "g_mean": float(normalized[:, :, 1].mean()),
+        "b_mean": float(normalized[:, :, 2].mean()),
+        "gray_std": float(normalized.mean(axis=2).std()),
+    }
+
+
+def apply_post_refiner(
+    *,
+    image_rgb: np.ndarray,
+    model: DirectRGBRefiner,
+    conditioning: str,
+    coordinate_mode: str,
+    tile_size: int,
+    overlap: int,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    height, width = image_rgb.shape[:2]
+    stride = max(1, tile_size - overlap)
+    stats = global_rgb_stats(image_rgb)
+    out_acc = np.zeros((height, width, 3), dtype=np.float32)
+    weight_acc = np.zeros((height, width, 1), dtype=np.float32)
+    input_ms: list[float] = []
+    model_ms: list[float] = []
+    tile_count = 0
+    for y0 in tile_origins(height, tile_size, stride):
+        for x0 in tile_origins(width, tile_size, stride):
+            y1 = min(height, y0 + tile_size)
+            x1 = min(width, x0 + tile_size)
+            tile_rgb = image_rgb[y0:y1, x0:x1]
+            t0 = time.perf_counter()
+            x = build_tile_input(
+                tile_rgb,
+                conditioning,
+                coordinate_mode,
+                (x0, y0, x1 - x0, y1 - y0),
+                (width, height),
+                stats,
+            )
+            t1 = time.perf_counter()
+            with torch.no_grad():
+                pred = model(x).detach().cpu().numpy()[0]
+            t2 = time.perf_counter()
+            pred_rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255.0, 0, 255).astype(np.uint8)
+            w = tile_weight(pred_rgb.shape[0], pred_rgb.shape[1])
+            out_acc[y0:y1, x0:x1] += pred_rgb.astype(np.float32) * w
+            weight_acc[y0:y1, x0:x1] += w
+            input_ms.append((t1 - t0) * 1000.0)
+            model_ms.append((t2 - t1) * 1000.0)
+            tile_count += 1
+    refined = np.clip(out_acc / np.maximum(weight_acc, 1e-6), 0, 255).astype(np.uint8)
+    return refined, {
+        "tile_count": tile_count,
+        "tile_size": tile_size,
+        "overlap": overlap,
+        "conditioning": conditioning,
+        "coordinate_mode": coordinate_mode,
+        "input_ms_median": float(statistics.median(input_ms)) if input_ms else 0.0,
+        "model_ms_median": float(statistics.median(model_ms)) if model_ms else 0.0,
+        "model_ms_total": float(sum(model_ms)),
+    }
 
 
 def select_model(
@@ -236,12 +313,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     source_rgb = load_rgb(source_tiff)
     ref_rgb = load_rgb(ref_tiff)
     height, width = source_rgb.shape[:2]
-    source_global_stats = {
-        "r_mean": float((source_rgb[:, :, 0].astype(np.float32) / 255.0).mean()),
-        "g_mean": float((source_rgb[:, :, 1].astype(np.float32) / 255.0).mean()),
-        "b_mean": float((source_rgb[:, :, 2].astype(np.float32) / 255.0).mean()),
-        "gray_std": float((source_rgb.astype(np.float32).mean(axis=2) / 255.0).std()),
-    }
+    source_global_stats = global_rgb_stats(source_rgb)
     tile = int(args.tile_size)
     stride = max(1, tile - int(args.overlap))
     out_acc = np.zeros((height, width, 3), dtype=np.float32)
@@ -265,10 +337,17 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             for x0 in tile_origins(width, tile, stride)
         ]
     for x0, y0, x1, y1, tile_label in tile_specs:
+            pad = max(0, int(args.model_context_padding))
+            cx0 = max(0, x0 - pad)
+            cy0 = max(0, y0 - pad)
+            cx1 = min(width, x1 + pad)
+            cy1 = min(height, y1 + pad)
             tile_rgb = source_rgb[y0:y1, x0:x1]
+            context_rgb = source_rgb[cy0:cy1, cx0:cx1]
             tile_path = work / f"{image_id}_tile_{x0}_{y0}.png"
+            route_rgb = context_rgb if pad > 0 else tile_rgb
             t0 = time.perf_counter()
-            Image.fromarray(tile_rgb).save(tile_path)
+            Image.fromarray(route_rgb).save(tile_path)
             save_tile_ms.append((time.perf_counter() - t0) * 1000.0)
             t0 = time.perf_counter()
             if args.force_model_key:
@@ -288,10 +367,10 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             route_ms.append((time.perf_counter() - t0) * 1000.0)
             t0 = time.perf_counter()
             x = build_tile_input(
-                tile_rgb,
+                context_rgb,
                 conditioning,
                 args.coordinate_mode,
-                (x0, y0, x1 - x0, y1 - y0),
+                (cx0, cy0, cx1 - cx0, cy1 - cy0),
                 (width, height),
                 source_global_stats,
             )
@@ -299,7 +378,10 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             with torch.no_grad():
                 pred = models[model_key](x).detach().cpu().numpy()[0]
             t2 = time.perf_counter()
-            pred_rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255.0, 0, 255).astype(np.uint8)
+            pred_context_rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255.0, 0, 255).astype(np.uint8)
+            ox0 = x0 - cx0
+            oy0 = y0 - cy0
+            pred_rgb = pred_context_rgb[oy0:oy0 + (y1 - y0), ox0:ox0 + (x1 - x0)]
             w = tile_weight(pred_rgb.shape[0], pred_rgb.shape[1])
             y1 = y0 + pred_rgb.shape[0]
             x1 = x0 + pred_rgb.shape[1]
@@ -310,6 +392,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             tile_rows.append(
                 {
                     "xywh": [x0, y0, pred_rgb.shape[1], pred_rgb.shape[0]],
+                    "context_xywh": [cx0, cy0, cx1 - cx0, cy1 - cy0],
                     "tile_label": tile_label,
                     "cluster": cluster,
                     "override_cluster": override_cluster,
@@ -322,12 +405,26 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     args.output_dir.mkdir(parents=True, exist_ok=True)
     stitched_path = args.output_dir / f"{image_id}_scene_routed_fullframe.png"
     Image.fromarray(stitched).save(stitched_path)
+    scored_image = stitched
+    post_refiner_receipt = None
+    if args.post_checkpoint is not None:
+        scored_image, post_refiner_receipt = apply_post_refiner(
+            image_rgb=stitched,
+            model=models["post_refiner"],
+            conditioning=args.post_conditioning,
+            coordinate_mode=args.post_coordinate_mode,
+            tile_size=int(args.post_tile_size),
+            overlap=int(args.post_overlap),
+        )
+        post_path = args.output_dir / f"{image_id}_scene_routed_fullframe_post_refined.png"
+        Image.fromarray(scored_image).save(post_path)
+        post_refiner_receipt["png"] = post_path.name
     crop_rows: list[dict[str, Any]] = []
     for crop_name, crop in manifest["crops"].items():
         if crop_name.startswith("$"):
             continue
         ref_crop = crop_metric_image(ref_rgb, crop, image["sensor_dims"])
-        out_crop = crop_metric_image(stitched, crop, image["sensor_dims"])
+        out_crop = crop_metric_image(scored_image, crop, image["sensor_dims"])
         crop_png = args.output_dir / f"{image_id}_{crop_name}_scene_routed_fullframe.png"
         Image.fromarray(out_crop).save(crop_png)
         metrics = compute_visual_metrics(ref_crop, out_crop)
@@ -351,6 +448,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
         "tile_count": len(tile_rows),
         "tile_size": tile,
         "overlap": int(args.overlap),
+        "model_context_padding": int(args.model_context_padding),
         "timing": {
             "source_render_ms": source_render_ms,
             "ref_render_ms": ref_render_ms,
@@ -360,6 +458,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             "model_ms_median": float(statistics.median(model_ms)) if model_ms else 0.0,
             "model_ms_total": float(sum(model_ms)),
         },
+        "post_refiner": post_refiner_receipt,
         "tile_roles": {
             role: sum(1 for row in tile_rows if row["checkpoint_role"] == role)
             for role in sorted({row["checkpoint_role"] for row in tile_rows})
@@ -442,9 +541,15 @@ def main() -> int:
     ap.add_argument("--coordinate-mode", choices=["local", "global_tile"], default="local")
     ap.add_argument("--tile-size", type=int, default=768)
     ap.add_argument("--overlap", type=int, default=128)
+    ap.add_argument("--model-context-padding", type=int, default=0, help="Run/route each output tile with this many source pixels of surrounding context, then crop back to the tile.")
     ap.add_argument("--tile-mode", choices=["full_grid", "manifest_crops"], default="full_grid")
     ap.add_argument("--force-model-key", help="Diagnostic: bypass routing and run one loaded model key on every tile.")
     ap.add_argument("--force-conditioning", choices=["zero", "content_stats", "color_stats", "global_color_stats"], default="zero")
+    ap.add_argument("--post-checkpoint", type=Path, help="Optional no-REF post-refiner applied to the stitched full-frame RGB before scoring.")
+    ap.add_argument("--post-conditioning", choices=["zero", "content_stats", "color_stats", "global_color_stats"], default="global_color_stats")
+    ap.add_argument("--post-coordinate-mode", choices=["local", "global_tile"], default="global_tile")
+    ap.add_argument("--post-tile-size", type=int, default=512)
+    ap.add_argument("--post-overlap", type=int, default=128)
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
@@ -466,12 +571,24 @@ def main() -> int:
         },
     }
     models = {key: load_model(path) for key, path in all_ckpts.items()}
+    if args.post_checkpoint is not None:
+        models["post_refiner"], post_ckpt = load_model_with_receipt(args.post_checkpoint)
+    else:
+        post_ckpt = None
     if args.force_model_key and args.force_model_key not in models:
         raise ValueError(f"--force-model-key must be one of {sorted(models)}, got {args.force_model_key!r}")
     checkpoint_receipts = {
         key: {"path": str(path), "sha256": sha256_file(path), "bytes": path.stat().st_size}
         for key, path in all_ckpts.items()
     }
+    if args.post_checkpoint is not None:
+        checkpoint_receipts["post_refiner"] = {
+            "path": str(args.post_checkpoint),
+            "sha256": sha256_file(args.post_checkpoint),
+            "bytes": args.post_checkpoint.stat().st_size,
+            "architecture": str(post_ckpt.get("architecture", "direct")) if post_ckpt else "unknown",
+            "source_policy": str(post_ckpt.get("source_policy", "unknown")) if post_ckpt else "unknown",
+        }
     routing = {
         "base_sidecar": json.loads(args.router_sidecar.read_text()),
         "override_sidecars": [(path, json.loads(path.read_text())) for path in args.override_router_sidecar],
@@ -510,6 +627,14 @@ def main() -> int:
             "tile_size": args.tile_size,
             "overlap": args.overlap,
             "coordinate_mode": args.coordinate_mode,
+            "post_refiner": {
+                "enabled": args.post_checkpoint is not None,
+                "conditioning": args.post_conditioning if args.post_checkpoint is not None else None,
+                "coordinate_mode": args.post_coordinate_mode if args.post_checkpoint is not None else None,
+                "tile_size": args.post_tile_size if args.post_checkpoint is not None else None,
+                "overlap": args.post_overlap if args.post_checkpoint is not None else None,
+                "render_inputs": ["stitched RGB full frame", "normalized pixel coordinates", "checkpoint"] if args.post_checkpoint is not None else [],
+            },
             "device": str(DEVICE),
         },
         "router_sidecar_sha256": sha256_file(args.router_sidecar),

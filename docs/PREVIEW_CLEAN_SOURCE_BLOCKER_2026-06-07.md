@@ -436,11 +436,32 @@ Additional follow-up diagnostics ruled out several simpler fixes:
   all-12 `Z8Z_6680` tile set from 8/12 to 4/12. Local failure polishing is not
   stable enough to use as a production recipe:
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_w80_failure_polish_v3_eval12/preview_runtime_refiner.json`
+- A stitched-output post-refiner trained on the actual failed full-frame crop
+  outputs improves isolated crop LPIPS/MS-SSIM, but still passes only 1/3 on
+  the training crops and transfers to 0/3 when applied over the full stitched
+  frame. Training the same post-refiner on 12 arbitrary stitched full-frame
+  tiles also fails 0/12 isolated tiles. This rules out a small post-correction
+  CNN as the immediate fix for the current v32 full-grid path:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_post_refiner_z8z6680_v1/preview_runtime_refiner.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_post_refiner_z8z6680_v1_t512/preview_scene_routed_fullframe.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_post_tile_refiner_z8z6680_t512_v1/preview_runtime_refiner.json`
+- Padded-context inference, where each 512px output tile is routed and run
+  with 256px of surrounding source context and then cropped back to the tile,
+  also fails 0/3 and regresses worst LPIPS to 0.4586. Larger local context by
+  itself is not enough:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_contextpad256_z8z6680_t512/preview_scene_routed_fullframe.json`
+
+The route audit on `Z8Z_6680` now separates two causes. `A_detail` and
+`B_center` pass in crop mode but receive mixed experts when covered by
+arbitrary full-frame tiles. `C_lowerleft` receives the expected K40 cluster-35
+expert in all four intersecting tiles but still fails, which means the blocker
+is both route stability and model/source mismatch under arbitrary tile context.
 
 The next candidate should not be another scalar-conditioning or local-polish
-variant. It should train against the assembled full-frame crop behavior itself
-or use a two-branch model with an explicit low-frequency/spatial field branch
-that is supervised at full-frame crop scale.
+variant. It needs either a deterministic region/context router that produces
+crop-equivalent expert selection for full-frame tiles, or a stronger full-image
+model with an explicit low-frequency/spatial field branch supervised on
+assembled full-frame crops and arbitrary full-frame tiles.
 
 Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
 cluster-35 polish specialists as production PREVIEW until the full-frame/tiled
