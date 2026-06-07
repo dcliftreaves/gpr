@@ -241,7 +241,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     model = build_rgb_refiner(args.architecture, width=args.width, residual_scale=args.residual_scale).to(DEVICE)
     if args.init_checkpoint is not None:
         init = torch.load(str(args.init_checkpoint), map_location="cpu", weights_only=False)
-        model.load_state_dict(init["state_dict"])
+        try:
+            model.load_state_dict(init["state_dict"])
+        except RuntimeError:
+            local = getattr(model, "local", None)
+            if local is None:
+                raise
+            local.load_state_dict(init["state_dict"])
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     lpips_net = lpips.LPIPS(net="alex").to(DEVICE).eval() if args.lpips_weight > 0.0 else None
     if lpips_net is not None:
@@ -433,7 +439,7 @@ def main() -> int:
     ap.add_argument("--include-cluster", type=int, action="append", default=[])
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--batch-size", type=int, default=0, help="Use stochastic mini-batches when positive; default keeps legacy full-batch training.")
-    ap.add_argument("--architecture", choices=["direct", "dilated_context"], default="direct")
+    ap.add_argument("--architecture", choices=["direct", "dilated_context", "lowfreq_spatial"], default="direct")
     ap.add_argument("--width", type=int, default=40)
     ap.add_argument("--residual-scale", type=float, default=0.5)
     ap.add_argument("--lr", type=float, default=8e-4)
