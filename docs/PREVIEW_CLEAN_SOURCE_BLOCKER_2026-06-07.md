@@ -162,16 +162,38 @@ the v22 pass count, improves worst MS-SSIM from 0.8945 to 0.9159, and improves
 worst dE2000 from 4.05 to 4.03. It still fails the PREVIEW gate and must not
 be registered as production.
 
+### v26: Hierarchical K12 Override
+
+Path:
+
+`scene_routed_holdout_v26_k12_c11_override/preview_scene_routed_holdout.json`
+
+Summary:
+
+- pass: 80/84
+- pass rate: 95.24%
+- worst LPIPS: 0.0595
+- median LPIPS: 0.0068
+- worst MS-SSIM: 0.9159
+- worst Y-PSNR: 27.41 dB
+- worst dE2000 mean: 4.03
+
+This pass kept the K5/v24 route intact and added a secondary K12 source-feature
+router only as an explicit override for K12 cluster 11. That cluster contains
+only `Z8Z_7480 B_center`; its specialist cleared the row with LPIPS 0.0296,
+MS-SSIM 0.9642, Y-PSNR 33.31 dB, and dE2000 1.81. This is still diagnostic:
+the override is too narrow to register as production without a broader
+generalization check.
+
 ## Remaining Failures
 
-v24 failures:
+v26 failures:
 
 | image | crop | cluster | conditioning | LPIPS | MS-SSIM | Y-PSNR | dE2000 |
 |---|---|---:|---|---:|---:|---:|---:|
 | Z8Z_0026 | B_center | 4 | content_stats | 0.0234 | 0.9781 | 29.53 | 3.66 |
 | Z8Z_6680 | C_lowerleft | 4 | content_stats | 0.0183 | 0.9763 | 27.41 | 4.03 |
 | Z8Z_7480 | A_detail | 1 | zero | 0.0595 | 0.9159 | 30.28 | 2.77 |
-| Z8Z_7480 | B_center | 4 | content_stats | 0.0354 | 0.9485 | 32.52 | 1.98 |
 | Z8Z_7480 | C_lowerleft | 4 | content_stats | 0.0341 | 0.9421 | 31.62 | 2.36 |
 
 ## Ruled Out
@@ -204,6 +226,13 @@ v24 failures:
   cleared one cluster-4 row, but did not solve the remaining dE/Y/MS rows.
 - Lab loss fixed cluster 2 completely, but repeated Lab/Y and MS-SSIM passes
   on cluster 4 are still stuck at 5/9 isolated pass rate.
+- A full K12 route regressed to 72/84 because mixed K12 clusters forced one
+  checkpoint where the previous K5 route used different experts.
+- A hierarchical K12 cluster-11 override cleared `Z8Z_7480 B_center` and raised
+  the route to 80/84 without regressions.
+- K8/K12 cluster-10 style specialists for `Z8Z_0026`/`Z8Z_6680` high-texture
+  rows regressed `Z8Z_6680 B_center`, which already passes under the cluster-2
+  polished expert.
 
 ## Current Blocker
 
@@ -223,5 +252,5 @@ Most likely next causes to test:
 - a stronger teacher/full-image target is needed for `Z8Z_0026`, `Z8Z_6680`,
   and `Z8Z_7480`.
 
-Do not register v11 through v24 as production PREVIEW. They are diagnostic
+Do not register v11 through v26 as production PREVIEW. They are diagnostic
 candidates only.

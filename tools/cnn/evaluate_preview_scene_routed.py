@@ -172,15 +172,23 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--router-audit", type=Path, required=True)
     ap.add_argument("--router-sidecar", type=Path)
+    ap.add_argument("--override-router-sidecar", type=Path)
     ap.add_argument("--source-root", type=Path, action="append", required=True)
     ap.add_argument("--default-checkpoint", type=Path, required=True)
     ap.add_argument("--cluster-checkpoint", action="append", default=[], help="CLUSTER=PATH")
+    ap.add_argument("--override-cluster-checkpoint", action="append", default=[], help="CLUSTER=PATH")
     ap.add_argument("--bypass-cluster", action="append", default=[], help="Cluster id or comma-list to pass source through unchanged")
     ap.add_argument(
         "--cluster-conditioning",
         action="append",
         default=[],
         help="Optional CLUSTER=MODE override. MODE is zero or content_stats.",
+    )
+    ap.add_argument(
+        "--override-cluster-conditioning",
+        action="append",
+        default=[],
+        help="Optional override-router CLUSTER=MODE override. MODE is zero or content_stats.",
     )
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--dashboard-json", type=Path, required=True)
@@ -202,11 +210,18 @@ def main() -> int:
 
     audit = json.loads(args.router_audit.read_text())
     sidecar = json.loads(args.router_sidecar.read_text()) if args.router_sidecar else None
+    override_sidecar = json.loads(args.override_router_sidecar.read_text()) if args.override_router_sidecar else None
     source_map = discover_sources(args.source_root)
     cluster_ckpts = parse_cluster_checkpoint(args.cluster_checkpoint)
+    override_cluster_ckpts = parse_cluster_checkpoint(args.override_cluster_checkpoint)
     cluster_conditioning = parse_cluster_conditioning(args.cluster_conditioning)
+    override_cluster_conditioning = parse_cluster_conditioning(args.override_cluster_conditioning)
     bypass_clusters = parse_int_list(args.bypass_cluster)
-    all_ckpts = {"default": args.default_checkpoint, **{f"cluster_{k}": v for k, v in cluster_ckpts.items()}}
+    all_ckpts = {
+        "default": args.default_checkpoint,
+        **{f"cluster_{k}": v for k, v in cluster_ckpts.items()},
+        **{f"override_cluster_{k}": v for k, v in override_cluster_ckpts.items()},
+    }
     models: dict[str, DirectRGBRefiner] = {}
     checkpoint_receipts: dict[str, dict[str, Any]] = {}
     model_load_ms: list[float] = []
@@ -234,8 +249,16 @@ def main() -> int:
         else:
             cluster = int(row["cluster"])
             route = {"route_source": "router_audit_row_cluster"}
+        override_cluster = None
         ckpt_path = cluster_ckpts.get(cluster, args.default_checkpoint)
         model_key = f"cluster_{cluster}" if cluster in cluster_ckpts else "default"
+        if override_sidecar is not None:
+            override_cluster, override_route = route_from_sidecar(source_path, override_sidecar)
+            route["override_route_source"] = override_route["route_source"]
+            route["override_route_distance"] = override_route["route_distance"]
+            if override_cluster in override_cluster_ckpts:
+                ckpt_path = override_cluster_ckpts[override_cluster]
+                model_key = f"override_cluster_{override_cluster}"
         ref_path = resolve_ref(row, source_map)
         source = load_rgb(source_path)
         ref = load_rgb(ref_path)
@@ -250,7 +273,13 @@ def main() -> int:
             sample_model_ms.append(0.0)
         else:
             model = models[model_key]
-            sample_conditioning = cluster_conditioning.get(cluster, args.conditioning)
+            if override_cluster is not None and override_cluster in override_cluster_ckpts:
+                sample_conditioning = override_cluster_conditioning.get(
+                    override_cluster,
+                    cluster_conditioning.get(cluster, args.conditioning),
+                )
+            else:
+                sample_conditioning = cluster_conditioning.get(cluster, args.conditioning)
             for _ in range(max(1, args.timing_iters)):
                 t0 = time.perf_counter()
                 x = build_input(source, sample_conditioning)
@@ -279,6 +308,7 @@ def main() -> int:
                 "image_id": row["image_id"],
                 "crop": row["crop"],
                 "cluster": cluster,
+                "override_cluster": override_cluster,
                 **route,
                 "checkpoint_role": model_key,
                 "checkpoint": str(ckpt_path) if ckpt_path else None,
@@ -306,11 +336,14 @@ def main() -> int:
             "source_policy": "scene_router_kmeans_runtime_features",
             "conditioning": args.conditioning,
             "cluster_conditioning": {str(k): v for k, v in sorted(cluster_conditioning.items())},
+            "override_cluster_conditioning": {str(k): v for k, v in sorted(override_cluster_conditioning.items())},
             "forbidden_inputs": ["REF image content", "REF HF/LF fields", "winner JSON", "sample index", "crop identity key planes", "gate metrics"],
             "render_inputs": ["source RGB frame/crop", "runtime feature cluster", "selected checkpoint"],
             "device": str(DEVICE),
             "router_sidecar": str(args.router_sidecar) if args.router_sidecar else None,
+            "override_router_sidecar": str(args.override_router_sidecar) if args.override_router_sidecar else None,
             "router_assignment": "frozen_sidecar_nearest_center" if args.router_sidecar else "router_audit_row_cluster",
+            "override_router_assignment": "frozen_sidecar_nearest_center" if args.override_router_sidecar else None,
             "bypass_clusters": sorted(bypass_clusters),
             "model_loading_policy": "preload_all_configured_experts",
             "metric_center_size": args.metric_center_size,
