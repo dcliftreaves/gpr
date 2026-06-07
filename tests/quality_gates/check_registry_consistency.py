@@ -144,6 +144,21 @@ def checkpoint_specs(cnn):
             "luma_detail_refiner_sha256",
             cnn.get("luma_detail_refiner_sha256"),
         ))
+    if "router_sidecar_path" in cnn:
+        specs.append((
+            "router_sidecar_path",
+            cnn.get("router_sidecar_path"),
+            "router_sidecar_sha256",
+            cnn.get("router_sidecar_sha256"),
+        ))
+    for role, expert in sorted((cnn.get("expert_checkpoints") or {}).items()):
+        if isinstance(expert, dict):
+            specs.append((
+                f"expert_checkpoints.{role}.path",
+                expert.get("path"),
+                f"expert_checkpoints.{role}.sha256",
+                expert.get("sha256"),
+            ))
     return specs
 
 
@@ -184,7 +199,7 @@ for name, cnn in REG.get("cnns", {}).items():
             errors.append(f"cnn {name!r}: lab_chroma_corrector missing ckpt_y")
         if "ckpt_chroma" not in cnn and "ckpt_path" not in cnn:
             errors.append(f"cnn {name!r}: lab_chroma_corrector missing ckpt_chroma or ckpt_path")
-    elif "ckpt_path" not in cnn:
+    elif "ckpt_path" not in cnn and "expert_checkpoints" not in cnn:
         errors.append(f"cnn {name!r}: missing ckpt_path")
 
     for path_field, path_value, sha_field, expected_sha in checkpoint_specs(cnn):

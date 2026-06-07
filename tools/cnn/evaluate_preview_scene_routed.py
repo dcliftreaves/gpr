@@ -70,6 +70,16 @@ def parse_cluster_checkpoint(values: list[str]) -> dict[int, Path]:
     return out
 
 
+def parse_int_list(values: list[str]) -> set[int]:
+    out: set[int] = set()
+    for value in values:
+        for part in value.split(","):
+            part = part.strip()
+            if part:
+                out.add(int(part))
+    return out
+
+
 def load_model(path: Path) -> DirectRGBRefiner:
     ckpt = torch.load(str(path), map_location="cpu", weights_only=False)
     model = DirectRGBRefiner(width=int(ckpt.get("width", 40))).to(DEVICE)
@@ -139,6 +149,7 @@ def main() -> int:
     ap.add_argument("--source-root", type=Path, action="append", required=True)
     ap.add_argument("--default-checkpoint", type=Path, required=True)
     ap.add_argument("--cluster-checkpoint", action="append", default=[], help="CLUSTER=PATH")
+    ap.add_argument("--bypass-cluster", action="append", default=[], help="Cluster id or comma-list to pass source through unchanged")
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
@@ -154,10 +165,22 @@ def main() -> int:
     sidecar = json.loads(args.router_sidecar.read_text()) if args.router_sidecar else None
     source_map = discover_sources(args.source_root)
     cluster_ckpts = parse_cluster_checkpoint(args.cluster_checkpoint)
+    bypass_clusters = parse_int_list(args.bypass_cluster)
     all_ckpts = {"default": args.default_checkpoint, **{f"cluster_{k}": v for k, v in cluster_ckpts.items()}}
     models: dict[str, DirectRGBRefiner] = {}
+    checkpoint_receipts: dict[str, dict[str, Any]] = {}
+    model_load_ms: list[float] = []
     for key, path in all_ckpts.items():
+        t0 = time.perf_counter()
         models[key] = load_model(path)
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        model_load_ms.append(elapsed_ms)
+        checkpoint_receipts[key] = {
+            "path": str(path),
+            "sha256": sha256_file(path),
+            "bytes": path.stat().st_size,
+            "load_ms": elapsed_ms,
+        }
 
     rows: list[dict[str, Any]] = []
     input_ms: list[float] = []
@@ -173,23 +196,30 @@ def main() -> int:
             route = {"route_source": "router_audit_row_cluster"}
         ckpt_path = cluster_ckpts.get(cluster, args.default_checkpoint)
         model_key = f"cluster_{cluster}" if cluster in cluster_ckpts else "default"
-        model = models[model_key]
         ref_path = resolve_ref(row, source_map)
         source = load_rgb(source_path)
         ref = load_rgb(ref_path)
         rgb = None
         sample_input_ms: list[float] = []
         sample_model_ms: list[float] = []
-        for _ in range(max(1, args.timing_iters)):
-            t0 = time.perf_counter()
-            x = build_input(source, args.conditioning)
-            t1 = time.perf_counter()
-            with torch.no_grad():
-                pred = model(x).detach().cpu().numpy()[0]
-            t2 = time.perf_counter()
-            rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255, 0, 255).astype(np.uint8)
-            sample_input_ms.append((t1 - t0) * 1000.0)
-            sample_model_ms.append((t2 - t1) * 1000.0)
+        if cluster in bypass_clusters:
+            model_key = "bypass_source"
+            ckpt_path = Path("")
+            rgb = source.copy()
+            sample_input_ms.append(0.0)
+            sample_model_ms.append(0.0)
+        else:
+            model = models[model_key]
+            for _ in range(max(1, args.timing_iters)):
+                t0 = time.perf_counter()
+                x = build_input(source, args.conditioning)
+                t1 = time.perf_counter()
+                with torch.no_grad():
+                    pred = model(x).detach().cpu().numpy()[0]
+                t2 = time.perf_counter()
+                rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255, 0, 255).astype(np.uint8)
+                sample_input_ms.append((t1 - t0) * 1000.0)
+                sample_model_ms.append((t2 - t1) * 1000.0)
         assert rgb is not None
         png = args.output_dir / f"{row['image_id']}_{row['crop']}_scene_routed.png"
         t0 = time.perf_counter()
@@ -208,7 +238,7 @@ def main() -> int:
                 "cluster": cluster,
                 **route,
                 "checkpoint_role": model_key,
-                "checkpoint": str(ckpt_path),
+                "checkpoint": str(ckpt_path) if ckpt_path else None,
                 "source_label": row["source_label"],
                 "source_png": str(source_path),
                 "ref_png": str(ref_path),
@@ -236,15 +266,16 @@ def main() -> int:
             "device": str(DEVICE),
             "router_sidecar": str(args.router_sidecar) if args.router_sidecar else None,
             "router_assignment": "frozen_sidecar_nearest_center" if args.router_sidecar else "router_audit_row_cluster",
+            "bypass_clusters": sorted(bypass_clusters),
+            "model_loading_policy": "preload_all_configured_experts",
         },
         "router_sidecar_sha256": sha256_file(args.router_sidecar) if args.router_sidecar else None,
-        "checkpoints": {
-            role: {"path": str(path), "sha256": sha256_file(path)}
-            for role, path in all_ckpts.items()
-        },
+        "checkpoints": checkpoint_receipts,
         "checkpoint_sha256": "multiple",
         "summary": {"preview_runtime_policy": summarize(rows)},
         "timing": {
+            "model_load_ms_total": float(sum(model_load_ms)),
+            "model_load_ms_max": float(max(model_load_ms) if model_load_ms else 0.0),
             "timing_iters_per_crop": max(1, args.timing_iters),
             "input_ms_per_crop_median": float(statistics.median(input_ms)),
             "input_ms_per_crop_p95": float(np.percentile(input_ms, 95)),

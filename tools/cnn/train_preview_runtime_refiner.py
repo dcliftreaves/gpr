@@ -11,6 +11,7 @@ import argparse
 import json
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,7 @@ sys.path.insert(0, str(REPO / "tools/test"))
 sys.path.insert(0, str(REPO / "tools/cnn"))
 
 from evaluate_preview_runtime_policy import build_input, build_samples, load_rgb, sha256_file, summarize, write_html  # noqa: E402
+from evaluate_preview_scene_routed import route_from_sidecar  # noqa: E402
 from metrics import compute_visual_metrics  # noqa: E402
 from train_display_rgb_direct_nonref import DirectRGBRefiner, grad_loss, pass_preview  # noqa: E402
 
@@ -34,8 +36,49 @@ from train_display_rgb_direct_nonref import DirectRGBRefiner, grad_loss, pass_pr
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 
+@dataclass(frozen=True)
+class ReceiptSample:
+    image_id: str
+    crop: str
+    ref_path: Path
+    source_path: Path
+    source_label: str
+    cluster: int | None = None
+
+
+def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
+    sidecar = json.loads(args.router_sidecar.read_text()) if args.router_sidecar else None
+    wanted_clusters = {int(c) for c in args.include_cluster}
+    out: list[ReceiptSample] = []
+    for receipt_path in args.sample_receipt or []:
+        receipt = json.loads(receipt_path.read_text())
+        for row in receipt.get("rows") or []:
+            source_path = Path(str(row.get("source_png_resolved") or row.get("source_png") or ""))
+            ref_path = Path(str(row.get("ref_png") or ""))
+            if not source_path.exists() or not ref_path.exists():
+                continue
+            cluster = int(row["cluster"]) if row.get("cluster") is not None else None
+            if sidecar is not None:
+                cluster, _route = route_from_sidecar(source_path, sidecar)
+            if wanted_clusters and cluster not in wanted_clusters:
+                continue
+            out.append(
+                ReceiptSample(
+                    image_id=str(row["image_id"]),
+                    crop=str(row["crop"]),
+                    ref_path=ref_path,
+                    source_path=source_path,
+                    source_label=str(row.get("source_label", "receipt:source")),
+                    cluster=cluster,
+                )
+            )
+    if not out:
+        raise RuntimeError("sample receipts produced no training samples")
+    return out
+
+
 def build_tensors(args: argparse.Namespace) -> tuple[list[Any], torch.Tensor, torch.Tensor]:
-    samples = build_samples(args)
+    samples = build_receipt_samples(args) if args.sample_receipt else build_samples(args)
     if args.cluster_audit is not None:
         audit = json.loads(args.cluster_audit.read_text())
         wanted_clusters = {int(c) for c in args.include_cluster}
@@ -85,9 +128,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         init = torch.load(str(args.init_checkpoint), map_location="cpu", weights_only=False)
         model.load_state_dict(init["state_dict"])
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    lpips_net = lpips.LPIPS(net="alex").to(DEVICE).eval()
-    for param in lpips_net.parameters():
-        param.requires_grad_(False)
+    lpips_net = lpips.LPIPS(net="alex").to(DEVICE).eval() if args.lpips_weight > 0.0 else None
+    if lpips_net is not None:
+        for param in lpips_net.parameters():
+            param.requires_grad_(False)
 
     best = float("inf")
     best_state: dict[str, torch.Tensor] | None = None
@@ -95,9 +139,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     for step in range(1, args.steps + 1):
         pred = model(xt).contiguous()
         l1 = charbonnier(pred, yt)
-        lms = 1.0 - ms_ssim(pred, yt, data_range=1.0, win_size=7)
+        lms = 1.0 - ms_ssim(pred, yt, data_range=1.0, win_size=7) if args.ms_weight > 0.0 else pred.new_tensor(0.0)
         lg = grad_loss(pred, yt)
-        llp = lpips_net(pred * 2 - 1, yt * 2 - 1).mean()
+        llp = lpips_net(pred * 2 - 1, yt * 2 - 1).mean() if lpips_net is not None else pred.new_tensor(0.0)
         lcolor = lowfreq_color_loss(pred, yt)
         loss = (
             l1
@@ -114,8 +158,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             with torch.no_grad():
                 pred_eval = model(xt).contiguous()
                 l1_eval = (pred_eval - yt).abs().mean().item()
-                ms_eval = ms_ssim(pred_eval, yt, data_range=1.0, win_size=7).item()
-                lp_eval = lpips_net(pred_eval * 2 - 1, yt * 2 - 1).mean().item()
+                ms_eval = ms_ssim(pred_eval, yt, data_range=1.0, win_size=7).item() if args.ms_weight > 0.0 else 0.0
+                lp_eval = lpips_net(pred_eval * 2 - 1, yt * 2 - 1).mean().item() if lpips_net is not None else 0.0
             score = l1_eval + 0.1 * (1.0 - ms_eval) + 0.2 * lp_eval
             if score < best:
                 best = score
@@ -146,6 +190,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     "image_id": s.image_id,
                     "crop": s.crop,
                     "source_label": s.source_label,
+                    "cluster": getattr(s, "cluster", None),
                 }
                 for s in samples
             ],
@@ -165,7 +210,9 @@ def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, An
     model = DirectRGBRefiner(width=int(ckpt.get("width", args.width))).to(DEVICE)
     model.load_state_dict(ckpt["state_dict"])
     model.eval()
-    samples = training.get("samples") or build_samples(args)
+    samples = training.get("samples")
+    if not samples:
+        samples = build_receipt_samples(args) if args.sample_receipt else build_samples(args)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, Any]] = []
     with torch.no_grad():
@@ -226,6 +273,8 @@ def main() -> int:
     ap.add_argument("--conditioning", choices=["zero", "content_stats"], default="zero")
     ap.add_argument("--image-id", action="append")
     ap.add_argument("--cluster-audit", type=Path)
+    ap.add_argument("--sample-receipt", type=Path, action="append")
+    ap.add_argument("--router-sidecar", type=Path)
     ap.add_argument("--include-cluster", type=int, action="append", default=[])
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--width", type=int, default=40)

@@ -76,10 +76,11 @@ guards, UPRESABLE, `.gvid`, MOV compatibility, Pi 5 / Mission 1 setup, and
 platform speed receipts. It expects external receipts under `GPR_ARTIFACT_ROOT`,
 including the direct-RGB non-REF PREVIEW diagnostic dashboard, checkpoint hash,
 and the deterministic runtime PREVIEW policy receipt. As of 2026-06-06, the
-first hard-routed scene/degradation ensemble clears the temporary runtime
-PREVIEW >70 crop-dashboard target, but it remains a candidate until larger
-holdout, full-image/source-path validation, and model-loading policy receipts
-are added.
+temporary scene-routed PREVIEW candidate clears the full-image 28-image holdout
+target at 61/84 rows, with frozen router sidecar, expert checkpoint hashes,
+timing/memory receipts, and `.gvid`/ProRes evidence. It is not a ship claim
+because worst-row failures remain severe; see
+`docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md`.
 
 ## Runtime resolution
 
