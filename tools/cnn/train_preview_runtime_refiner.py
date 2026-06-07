@@ -47,6 +47,7 @@ class ReceiptSample:
     tile_xywh: tuple[int, int, int, int] | None = None
     source_render_size: tuple[int, int] | None = None
     source_global_stats: dict[str, float] | None = None
+    intersects_crops: tuple[str, ...] = ()
 
 
 def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
@@ -78,6 +79,7 @@ def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
                     tile_xywh=tuple(int(v) for v in row["tile_xywh"]) if row.get("tile_xywh") else None,
                     source_render_size=tuple(int(v) for v in row["source_render_size"]) if row.get("source_render_size") else None,
                     source_global_stats={k: float(v) for k, v in row["source_global_stats"].items()} if row.get("source_global_stats") else None,
+                    intersects_crops=tuple(str(v) for v in row.get("intersects_crops", [])),
                 )
             )
     if not out:
@@ -233,6 +235,17 @@ def lab_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     )
 
 
+def sample_weight(sample: ReceiptSample, args: argparse.Namespace) -> float:
+    weight = 1.0
+    for crop in args.focus_intersect_crop:
+        if crop in sample.intersects_crops:
+            weight *= args.focus_weight
+    for pattern in args.focus_crop:
+        if pattern in sample.crop:
+            weight *= args.focus_weight
+    return float(weight)
+
+
 def train(args: argparse.Namespace) -> dict[str, Any]:
     samples, x, y = build_tensors(args)
     xt = x.to(DEVICE).contiguous()
@@ -253,13 +266,18 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     if lpips_net is not None:
         for param in lpips_net.parameters():
             param.requires_grad_(False)
+    sample_weights = torch.tensor([sample_weight(sample, args) for sample in samples], dtype=torch.float32, device=DEVICE)
+    weighted_sampling = bool(args.focus_intersect_crop or args.focus_crop)
 
     best = float("inf")
     best_state: dict[str, torch.Tensor] | None = None
     t0 = time.time()
     for step in range(1, args.steps + 1):
         if args.batch_size and args.batch_size < sample_count:
-            idx = torch.randint(0, sample_count, (args.batch_size,), device=DEVICE)
+            if weighted_sampling:
+                idx = torch.multinomial(sample_weights, args.batch_size, replacement=True)
+            else:
+                idx = torch.randint(0, sample_count, (args.batch_size,), device=DEVICE)
             xb = xt.index_select(0, idx)
             yb = yt.index_select(0, idx)
         else:
@@ -339,6 +357,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "score_y_weight": args.score_y_weight,
             "score_opponent_weight": args.score_opponent_weight,
             "score_lab_weight": args.score_lab_weight,
+            "focus_intersect_crop": args.focus_intersect_crop,
+            "focus_crop": args.focus_crop,
+            "focus_weight": args.focus_weight,
             "forbidden_inputs": ["winner JSON", "sample index", "crop identity key planes"],
             "samples": [
                 {
@@ -346,6 +367,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     "crop": s.crop,
                     "source_label": s.source_label,
                     "cluster": getattr(s, "cluster", None),
+                    "intersects_crops": list(getattr(s, "intersects_crops", ())),
+                    "sample_weight": sample_weight(s, args),
                 }
                 for s in samples
             ],
@@ -437,6 +460,9 @@ def main() -> int:
     ap.add_argument("--sample-receipt", type=Path, action="append")
     ap.add_argument("--router-sidecar", type=Path)
     ap.add_argument("--include-cluster", type=int, action="append", default=[])
+    ap.add_argument("--focus-intersect-crop", action="append", default=[], help="Oversample receipt rows whose intersects_crops contains this crop name.")
+    ap.add_argument("--focus-crop", action="append", default=[], help="Oversample receipt rows whose crop id contains this substring.")
+    ap.add_argument("--focus-weight", type=float, default=4.0)
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--batch-size", type=int, default=0, help="Use stochastic mini-batches when positive; default keeps legacy full-batch training.")
     ap.add_argument("--architecture", choices=["direct", "dilated_context", "lowfreq_spatial"], default="direct")
