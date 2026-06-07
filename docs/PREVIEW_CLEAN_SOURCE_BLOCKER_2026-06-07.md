@@ -201,7 +201,7 @@ Summary:
 - worst Y-PSNR: 27.41 dB
 - worst dE2000 mean: 4.03
 
-This is the current best diagnostic route. It keeps the K5 route intact and
+At this stage, this was the best diagnostic route. It keeps the K5 route intact and
 uses a K16 source-feature override for two narrow structure cases:
 
 - K16 cluster 10 uses `scene_expert_k16_cluster10_ms_content_v3`, which
@@ -216,7 +216,7 @@ LPIPS or structure.
 
 ## Remaining Failures
 
-v28 current best full routed diagnostic failures:
+v28 full routed diagnostic failures before the v32 stacked route:
 
 | image | crop | cluster | conditioning | LPIPS | MS-SSIM | Y-PSNR | dE2000 |
 |---|---|---:|---|---:|---:|---:|---:|
@@ -246,6 +246,33 @@ Artifact receipts:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v29_c4_lfy_lab_score_84/preview_scene_routed_holdout.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_expert_k40_cluster35_lab_polish_v5/preview_runtime_refiner.json
 ```
+
+### v32: Stacked K16/K40 Runtime Route
+
+Path:
+
+`scene_routed_holdout_v32_k16_k40_namespaced_84/preview_scene_routed_holdout.json`
+
+Summary:
+
+- pass: 84/84
+- pass rate: 100.0%
+- worst LPIPS: 0.0500
+- median LPIPS: 0.0068
+- worst MS-SSIM: 0.9642
+- worst Y-PSNR: 28.86 dB
+- worst dE2000 mean: 2.96
+
+This pass added `color_stats` conditioning, trained a K40 cluster-35
+low-frequency color specialist, and fixed the routed evaluator so multiple
+override sidecars are namespaced by sidecar index. The namespacing matters:
+without it, K40 cluster IDs collided with K16 cluster IDs and incorrectly
+selected the wrong checkpoint on passing rows.
+
+v32 is the first broad no-REF PREVIEW holdout where every row passes the
+committed PREVIEW gates. Runtime inputs remain source RGB, frozen source
+feature routers, and selected checkpoints. REF is used only for training and
+scoring.
 
 ### Channel Oracle
 
@@ -331,23 +358,15 @@ constant cluster offset and not another texture/detail pass.
 
 ## Current Blocker
 
-The remaining failures are not caused by REF leakage, stale source files,
-router granularity, source pass-through, or a simple fixed color transform.
-They are concentrated in hard source/target rows where the clean UPRESABLE
-source starts far outside the PREVIEW gate and the current crop-local expert
-improves LPIPS/MS-SSIM substantially but under-corrects low-frequency
-luma/color.
+The 84-row no-REF crop/full-gate holdout is now clear under v32. The remaining
+blocker is deployment proof, not another crop-level color pass:
 
-Most likely next causes to test:
+- run the same stacked-router policy through the full-frame/tiled render path;
+- verify tile boundaries and full-image context do not change the selected
+  route or introduce local artifacts;
+- capture encode/decode/model timing and memory for the actual render path;
+- only then consider registry promotion.
 
-- full-image context may still be required, but it likely needs a real
-  full-frame/tiled render path rather than naive 768-crop retraining;
-- the UPRESABLE source target is not aligned enough with REF for these scenes;
-- the current model can improve gate-space luma/color but cannot finish the
-  remaining dE/Y correction from source RGB features alone;
-- a stronger teacher/full-image target is needed for `Z8Z_0026` and
-  `Z8Z_6680`.
-
-Do not register v11 through v29, the K16 cluster-7 specialists, or the K40
-cluster-35 polish specialists as production PREVIEW. They are diagnostic
-candidates only.
+Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
+cluster-35 polish specialists as production PREVIEW until the full-frame/tiled
+runtime path has equivalent evidence.

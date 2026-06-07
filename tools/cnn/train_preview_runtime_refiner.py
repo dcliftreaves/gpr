@@ -355,7 +355,7 @@ def main() -> int:
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
     ap.add_argument("--policy", choices=["runtime_priority_v1", "fixed_upresable", "fixed_learned_atlas"], default="runtime_priority_v1")
-    ap.add_argument("--conditioning", choices=["zero", "content_stats"], default="zero")
+    ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats"], default="zero")
     ap.add_argument("--image-id", action="append")
     ap.add_argument("--cluster-audit", type=Path)
     ap.add_argument("--sample-receipt", type=Path, action="append")

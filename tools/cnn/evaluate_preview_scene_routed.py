@@ -70,15 +70,47 @@ def parse_cluster_checkpoint(values: list[str]) -> dict[int, Path]:
     return out
 
 
+def parse_override_checkpoint(values: list[str]) -> dict[tuple[int | None, int], Path]:
+    out: dict[tuple[int | None, int], Path] = {}
+    for value in values:
+        if "=" not in value:
+            raise ValueError(f"--override-cluster-checkpoint must be [INDEX:]CLUSTER=PATH, got {value!r}")
+        left, right = value.split("=", 1)
+        if ":" in left:
+            index, cluster = left.split(":", 1)
+            key = (int(index), int(cluster))
+        else:
+            key = (None, int(left))
+        out[key] = Path(right)
+    return out
+
+
 def parse_cluster_conditioning(values: list[str]) -> dict[int, str]:
     out: dict[int, str] = {}
     for value in values:
         if "=" not in value:
             raise ValueError(f"--cluster-conditioning must be CLUSTER=MODE, got {value!r}")
         left, right = value.split("=", 1)
-        if right not in {"zero", "content_stats"}:
+        if right not in {"zero", "content_stats", "color_stats"}:
             raise ValueError(f"unsupported conditioning mode for cluster {left}: {right!r}")
         out[int(left)] = right
+    return out
+
+
+def parse_override_conditioning(values: list[str]) -> dict[tuple[int | None, int], str]:
+    out: dict[tuple[int | None, int], str] = {}
+    for value in values:
+        if "=" not in value:
+            raise ValueError(f"--override-cluster-conditioning must be [INDEX:]CLUSTER=MODE, got {value!r}")
+        left, right = value.split("=", 1)
+        if right not in {"zero", "content_stats", "color_stats"}:
+            raise ValueError(f"unsupported override conditioning mode for cluster {left}: {right!r}")
+        if ":" in left:
+            index, cluster = left.split(":", 1)
+            key = (int(index), int(cluster))
+        else:
+            key = (None, int(left))
+        out[key] = right
     return out
 
 
@@ -172,28 +204,28 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--router-audit", type=Path, required=True)
     ap.add_argument("--router-sidecar", type=Path)
-    ap.add_argument("--override-router-sidecar", type=Path)
+    ap.add_argument("--override-router-sidecar", type=Path, action="append", default=[])
     ap.add_argument("--source-root", type=Path, action="append", required=True)
     ap.add_argument("--default-checkpoint", type=Path, required=True)
     ap.add_argument("--cluster-checkpoint", action="append", default=[], help="CLUSTER=PATH")
-    ap.add_argument("--override-cluster-checkpoint", action="append", default=[], help="CLUSTER=PATH")
+    ap.add_argument("--override-cluster-checkpoint", action="append", default=[], help="[INDEX:]CLUSTER=PATH")
     ap.add_argument("--bypass-cluster", action="append", default=[], help="Cluster id or comma-list to pass source through unchanged")
     ap.add_argument(
         "--cluster-conditioning",
         action="append",
         default=[],
-        help="Optional CLUSTER=MODE override. MODE is zero or content_stats.",
+        help="Optional CLUSTER=MODE override. MODE is zero, content_stats, or color_stats.",
     )
     ap.add_argument(
         "--override-cluster-conditioning",
         action="append",
         default=[],
-        help="Optional override-router CLUSTER=MODE override. MODE is zero or content_stats.",
+        help="Optional override-router [INDEX:]CLUSTER=MODE override. MODE is zero, content_stats, or color_stats.",
     )
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
-    ap.add_argument("--conditioning", choices=["zero", "content_stats"], default="zero")
+    ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats"], default="zero")
     ap.add_argument("--timing-iters", type=int, default=5)
     ap.add_argument(
         "--metric-center-size",
@@ -210,17 +242,23 @@ def main() -> int:
 
     audit = json.loads(args.router_audit.read_text())
     sidecar = json.loads(args.router_sidecar.read_text()) if args.router_sidecar else None
-    override_sidecar = json.loads(args.override_router_sidecar.read_text()) if args.override_router_sidecar else None
+    override_sidecars = [
+        (path, json.loads(path.read_text()))
+        for path in (args.override_router_sidecar or [])
+    ]
     source_map = discover_sources(args.source_root)
     cluster_ckpts = parse_cluster_checkpoint(args.cluster_checkpoint)
-    override_cluster_ckpts = parse_cluster_checkpoint(args.override_cluster_checkpoint)
+    override_cluster_ckpts = parse_override_checkpoint(args.override_cluster_checkpoint)
     cluster_conditioning = parse_cluster_conditioning(args.cluster_conditioning)
-    override_cluster_conditioning = parse_cluster_conditioning(args.override_cluster_conditioning)
+    override_cluster_conditioning = parse_override_conditioning(args.override_cluster_conditioning)
     bypass_clusters = parse_int_list(args.bypass_cluster)
     all_ckpts = {
         "default": args.default_checkpoint,
         **{f"cluster_{k}": v for k, v in cluster_ckpts.items()},
-        **{f"override_cluster_{k}": v for k, v in override_cluster_ckpts.items()},
+        **{
+            f"override_{idx}_cluster_{cluster}" if idx is not None else f"override_cluster_{cluster}": v
+            for (idx, cluster), v in override_cluster_ckpts.items()
+        },
     }
     models: dict[str, DirectRGBRefiner] = {}
     checkpoint_receipts: dict[str, dict[str, Any]] = {}
@@ -252,13 +290,37 @@ def main() -> int:
         override_cluster = None
         ckpt_path = cluster_ckpts.get(cluster, args.default_checkpoint)
         model_key = f"cluster_{cluster}" if cluster in cluster_ckpts else "default"
-        if override_sidecar is not None:
-            override_cluster, override_route = route_from_sidecar(source_path, override_sidecar)
-            route["override_route_source"] = override_route["route_source"]
-            route["override_route_distance"] = override_route["route_distance"]
-            if override_cluster in override_cluster_ckpts:
-                ckpt_path = override_cluster_ckpts[override_cluster]
-                model_key = f"override_cluster_{override_cluster}"
+        if override_sidecars:
+            override_trace = []
+            for override_index, (_override_path, override_sidecar) in enumerate(override_sidecars):
+                routed_cluster, override_route = route_from_sidecar(source_path, override_sidecar)
+                override_trace.append(
+                    {
+                        "index": override_index,
+                        "cluster": routed_cluster,
+                        "route_source": override_route["route_source"],
+                        "route_distance": override_route["route_distance"],
+                    }
+                )
+                override_key = (override_index, routed_cluster)
+                legacy_key = (None, routed_cluster)
+                matched_key = override_key if override_key in override_cluster_ckpts else legacy_key
+                if matched_key in override_cluster_ckpts:
+                    override_cluster = routed_cluster
+                    route["override_route_source"] = override_route["route_source"]
+                    route["override_route_distance"] = override_route["route_distance"]
+                    route["override_router_index"] = override_index
+                    ckpt_path = override_cluster_ckpts[matched_key]
+                    model_key = (
+                        f"override_{override_index}_cluster_{override_cluster}"
+                        if override_key in override_cluster_ckpts
+                        else f"override_cluster_{override_cluster}"
+                    )
+                    break
+            route["override_trace"] = override_trace
+            if "override_route_source" not in route and override_trace:
+                route["override_route_source"] = override_trace[-1]["route_source"]
+                route["override_route_distance"] = override_trace[-1]["route_distance"]
         ref_path = resolve_ref(row, source_map)
         source = load_rgb(source_path)
         ref = load_rgb(ref_path)
@@ -268,14 +330,28 @@ def main() -> int:
         if cluster in bypass_clusters:
             model_key = "bypass_source"
             ckpt_path = Path("")
+            sample_conditioning = cluster_conditioning.get(cluster, args.conditioning)
             rgb = source.copy()
             sample_input_ms.append(0.0)
             sample_model_ms.append(0.0)
         else:
             model = models[model_key]
-            if override_cluster is not None and override_cluster in override_cluster_ckpts:
+            override_key = (
+                (int(route["override_router_index"]), override_cluster)
+                if override_cluster is not None and "override_router_index" in route
+                else (None, override_cluster)
+            )
+            if override_cluster is not None and override_key in override_cluster_ckpts:
                 sample_conditioning = override_cluster_conditioning.get(
-                    override_cluster,
+                    override_key,
+                    override_cluster_conditioning.get(
+                        (None, override_cluster),
+                        cluster_conditioning.get(cluster, args.conditioning),
+                    ),
+                )
+            elif override_cluster is not None and (None, override_cluster) in override_cluster_ckpts:
+                sample_conditioning = override_cluster_conditioning.get(
+                    (None, override_cluster),
                     cluster_conditioning.get(cluster, args.conditioning),
                 )
             else:
@@ -312,7 +388,7 @@ def main() -> int:
                 **route,
                 "checkpoint_role": model_key,
                 "checkpoint": str(ckpt_path) if ckpt_path else None,
-                "conditioning": cluster_conditioning.get(cluster, args.conditioning),
+                "conditioning": sample_conditioning,
                 "source_label": row["source_label"],
                 "source_png": str(source_path),
                 "ref_png": str(ref_path),
@@ -336,19 +412,23 @@ def main() -> int:
             "source_policy": "scene_router_kmeans_runtime_features",
             "conditioning": args.conditioning,
             "cluster_conditioning": {str(k): v for k, v in sorted(cluster_conditioning.items())},
-            "override_cluster_conditioning": {str(k): v for k, v in sorted(override_cluster_conditioning.items())},
+            "override_cluster_conditioning": {
+                (f"{idx}:{cluster}" if idx is not None else str(cluster)): v
+                for (idx, cluster), v in sorted(override_cluster_conditioning.items())
+            },
             "forbidden_inputs": ["REF image content", "REF HF/LF fields", "winner JSON", "sample index", "crop identity key planes", "gate metrics"],
             "render_inputs": ["source RGB frame/crop", "runtime feature cluster", "selected checkpoint"],
             "device": str(DEVICE),
             "router_sidecar": str(args.router_sidecar) if args.router_sidecar else None,
-            "override_router_sidecar": str(args.override_router_sidecar) if args.override_router_sidecar else None,
+            "override_router_sidecar": [str(path) for path, _sidecar in override_sidecars],
             "router_assignment": "frozen_sidecar_nearest_center" if args.router_sidecar else "router_audit_row_cluster",
-            "override_router_assignment": "frozen_sidecar_nearest_center" if args.override_router_sidecar else None,
+            "override_router_assignment": "frozen_sidecar_nearest_center" if override_sidecars else None,
             "bypass_clusters": sorted(bypass_clusters),
             "model_loading_policy": "preload_all_configured_experts",
             "metric_center_size": args.metric_center_size,
         },
         "router_sidecar_sha256": sha256_file(args.router_sidecar) if args.router_sidecar else None,
+        "override_router_sidecar_sha256": [sha256_file(path) for path, _sidecar in override_sidecars],
         "checkpoints": checkpoint_receipts,
         "checkpoint_sha256": "multiple",
         "summary": {"preview_runtime_policy": summarize(rows)},

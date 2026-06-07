@@ -137,6 +137,12 @@ def build_input(source_rgb: np.ndarray, conditioning: str) -> torch.Tensor:
         key_planes[0].fill(float(gray.mean()))
         key_planes[1].fill(float(gray.std()))
         key_planes[2].fill(float(np.percentile(gray, 95) - np.percentile(gray, 5)))
+    elif conditioning == "color_stats":
+        gray = source.mean(axis=0)
+        key_planes[0].fill(float(source[0].mean()))
+        key_planes[1].fill(float(source[1].mean()))
+        key_planes[2].fill(float(source[2].mean()))
+        key_planes[3].fill(float(gray.std()))
     else:
         raise ValueError(f"unsupported conditioning {conditioning!r}")
     arr = np.concatenate([source, np.stack([xx, yy], axis=0), key_planes], axis=0)
@@ -252,7 +258,7 @@ def main() -> int:
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
     ap.add_argument("--policy", choices=["runtime_priority_v1", "fixed_upresable", "fixed_learned_atlas"], default="runtime_priority_v1")
-    ap.add_argument("--conditioning", choices=["zero", "content_stats"], default="zero")
+    ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats"], default="zero")
     ap.add_argument("--image-id", action="append", help="optional image id filter")
     ap.add_argument("--timing-iters", type=int, default=5)
     args = ap.parse_args()
