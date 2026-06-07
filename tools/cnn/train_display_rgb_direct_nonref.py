@@ -137,6 +137,36 @@ class DilatedContextRGBRefiner(nn.Module):
         return torch.clamp(source + self.residual_scale * torch.tanh(self.o(h + skip)), 0.0, 1.0)
 
 
+class LowFreqSpatialRGBRefiner(nn.Module):
+    def __init__(self, width: int = 48, in_channels: int = 9, residual_scale: float = 0.5) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        self.local = DirectRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+        lf_width = max(16, width // 2)
+        self.lf = nn.Sequential(
+            nn.Conv2d(in_channels, lf_width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(lf_width),
+            nn.Conv2d(lf_width, lf_width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(lf_width),
+            nn.Conv2d(lf_width, 3, 3, padding=1),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        source = x[:, :3]
+        local = self.local(x)
+        pooled_size = (
+            min(48, max(8, int(x.shape[-2]))),
+            min(48, max(8, int(x.shape[-1]))),
+        )
+        low_input = F.interpolate(x, size=pooled_size, mode="bilinear", align_corners=False)
+        low = torch.tanh(self.lf(low_input))
+        low = F.interpolate(low, size=source.shape[-2:], mode="bilinear", align_corners=False)
+        detail_delta = local - source
+        return torch.clamp(source + detail_delta + self.residual_scale * 0.5 * low, 0.0, 1.0)
+
+
 def build_rgb_refiner(
     architecture: str = "direct",
     *,
@@ -148,6 +178,8 @@ def build_rgb_refiner(
         return DirectRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     if architecture == "dilated_context":
         return DilatedContextRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+    if architecture == "lowfreq_spatial":
+        return LowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     raise ValueError(f"unsupported RGB refiner architecture {architecture!r}")
 
 

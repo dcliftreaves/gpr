@@ -480,6 +480,52 @@ next candidate should be a stronger full-image model with an explicit
 low-frequency/spatial field branch supervised on assembled full-frame crops and
 arbitrary full-frame tiles.
 
+The first low-frequency/spatial branch pass was implemented as
+`lowfreq_spatial`: the previous direct local refiner plus a coarse RGB residual
+field predicted from downsampled source/coordinate/stat planes. A cold-start v1
+reached only 5/12 isolated `Z8Z_6680` tiles. Initializing the local branch from
+the prior W80 LF-polished direct specialist and training full-batch with stronger
+Y/Lab losses produced the best isolated hard-tile result so far:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_lf_spatial_fullbatch_v3/preview_runtime_refiner.json
+```
+
+v3 tile summary:
+
+- pass: 9/12
+- worst LPIPS: 0.0941
+- worst MS-SSIM: 0.9602
+- worst Y-PSNR: 26.15
+- worst dE2000: 3.82
+
+The stitched full-frame result still passes only 1/3:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lf_spatial_fullbatch_v3_t512/preview_scene_routed_fullframe.json
+```
+
+v3 stitched summary:
+
+- pass: 1/3
+- worst LPIPS: 0.1099
+- worst MS-SSIM: 0.9422
+- worst Y-PSNR: 24.84
+- worst dE2000: 4.27
+
+Dense 512/256 overlap with the same v3 model regresses to worst LPIPS 0.1375,
+worst MS-SSIM 0.9192, worst Y-PSNR 23.90, and worst dE2000 4.67:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lf_spatial_fullbatch_v3_t512_o256/preview_scene_routed_fullframe.json
+```
+
+The narrowed blocker is now concentrated in lower-left luma/color consistency.
+`B_center` is close on dE but misses Y-PSNR, while `C_lowerleft` remains below
+the gate on MS-SSIM, Y-PSNR, and dE. The next experiment should weight the
+remaining lower-left/Y-dE failures explicitly or train the LF branch against
+assembled crop losses, not add more overlap or local route padding.
+
 Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
 cluster-35 polish specialists as production PREVIEW until the full-frame/tiled
 runtime path has equivalent evidence.

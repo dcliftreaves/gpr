@@ -202,9 +202,11 @@ that passes in crop mode, and one crop still fails even when its intersecting
 tiles select the expected K40 expert. Dense 512px sliding windows with 256px
 overlap improve the smoke but still fail 0/3 and cost about 14.0 s of model
 time for one full frame; overlap-save and route-context-only variants regress.
-The next PREVIEW candidate needs a stronger full-image model with an explicit
-low-frequency spatial branch; none of these diagnostics are registered as
-production.
+The first explicit low-frequency spatial branch improves the hard `Z8Z_6680`
+tile receipt to 9/12 isolated passes, but stitched full-frame output remains
+1/3 with remaining Y/dE failures in the lower-left region. The next PREVIEW
+candidate needs worst-row-weighted LF/crop supervision; none of these
+diagnostics are registered as production.
 
 ---
 
