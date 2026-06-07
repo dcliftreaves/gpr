@@ -36,6 +36,17 @@ DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 def build_tensors(args: argparse.Namespace) -> tuple[list[Any], torch.Tensor, torch.Tensor]:
     samples = build_samples(args)
+    if args.cluster_audit is not None:
+        audit = json.loads(args.cluster_audit.read_text())
+        wanted_clusters = {int(c) for c in args.include_cluster}
+        wanted_rows = {
+            (row["image_id"], row["crop"])
+            for row in audit.get("rows", [])
+            if int(row.get("cluster", -1)) in wanted_clusters
+        }
+        samples = [s for s in samples if (s.image_id, s.crop) in wanted_rows]
+        if not samples:
+            raise RuntimeError(f"cluster filter {sorted(wanted_clusters)} produced no samples")
     xs: list[torch.Tensor] = []
     ys: list[np.ndarray] = []
     for sample in samples:
@@ -214,6 +225,8 @@ def main() -> int:
     ap.add_argument("--policy", choices=["runtime_priority_v1", "fixed_upresable", "fixed_learned_atlas"], default="runtime_priority_v1")
     ap.add_argument("--conditioning", choices=["zero", "content_stats"], default="zero")
     ap.add_argument("--image-id", action="append")
+    ap.add_argument("--cluster-audit", type=Path)
+    ap.add_argument("--include-cluster", type=int, action="append", default=[])
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--width", type=int, default=40)
     ap.add_argument("--lr", type=float, default=8e-4)

@@ -25,6 +25,7 @@
 - [Encode a video frame in 10 lines of C](#encode-a-video-frame-in-10-lines-of-c)
 - [Architecture](#architecture)
 - [Honest engineering posture](#honest-engineering-posture)
+- [PREVIEW runtime research status](#preview-runtime-research-status)
 - [Documentation map](#documentation-map)
 - [Build](#build)
 - [License](#license)
@@ -139,6 +140,30 @@ older `test_fused_roundtrip.c` had a stale band-count self-check that
 rejected `GPR_INCLUDE_LL=1` and decimated codec configs). Gate runner
 now tolerates `dec2+SR` chains and `bayer_psnr_final` is gateable
 alongside the rendered metrics.
+
+### PREVIEW runtime research status — not promoted
+
+The current production PREVIEW ship claim remains the codec-only gate above.
+The newer no-REF display refiner work is a candidate path, not a shipped
+pipeline. The dashboard-shaped checkpoint clears 14/16 crop rows, but when the
+same work is forced through deterministic runtime inputs — no REF content, no
+winner JSON, no sample index, and no crop-key planes — the single-refiner
+production-source candidate tops out at **11/16 (68.75%)**. A first hard-routed
+scene/degradation ensemble improves that to **12/16 (75.0%)**, clearing the
+temporary >70% runtime dashboard bar.
+
+The routed receipt is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_k5_v1/preview_scene_routed.json
+```
+
+Median model time on the M5/MPS crop receipt is **9.21 ms/crop** with peak RSS
+**913.3 MB**. LPIPS is no longer the main miss; the remaining failures are
+LF/color and structure guardrails. This still needs larger holdout and
+full-image validation before it can be promoted as a ship pipeline. See
+[`docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md`](docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md)
+and [`docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md).
 
 ---
 
@@ -318,6 +343,7 @@ and routed through an operator inspection sentence into
 | OEM-contributable bitstream spec | [`docs/SPEC.md`](docs/SPEC.md) |
 | auto-generated capability matrix | [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) |
 | production checkpoints and artifact roots | [`docs/PRODUCTION_ARTIFACTS.md`](docs/PRODUCTION_ARTIFACTS.md) |
+| PREVIEW runtime no-REF burn-down | [`docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md`](docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md) |
 | omitted experiments and generated artifacts | [`docs/EXPERIMENT_ARCHIVE_2026-06-04.md`](docs/EXPERIMENT_ARCHIVE_2026-06-04.md) |
 
 Full index: [`docs/README.md`](docs/README.md).
