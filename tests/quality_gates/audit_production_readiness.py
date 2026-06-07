@@ -259,7 +259,7 @@ def check_nonref_preview_candidate() -> list[Check]:
     runtime_dashboard = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260606"
-        / "scene_routed_holdout_v5_28img_combined_l1color"
+        / "scene_routed_holdout_v28_k16_c10v3_c15_override"
         / "preview_scene_routed_holdout.json"
     )
     expected_sha = "da1cb051daa696e4dafcb34395704081686e67f101bb5d86f0fb97fd163d4591"
@@ -387,7 +387,28 @@ def check_nonref_preview_candidate() -> list[Check]:
     sidecar_expected_sha = str(runtime.get("router_sidecar_sha256") or "")
     sidecar_actual_sha = hashlib.sha256(sidecar_path.read_bytes()).hexdigest() if sidecar_path.exists() else ""
     sidecar_ok = bool(sidecar_expected_sha) and sidecar_expected_sha == sidecar_actual_sha
+    override_sidecar_path = Path(str(contract.get("override_router_sidecar") or ""))
+    override_expected_sha = str(
+        runtime.get("override_router_sidecar_sha256")
+        or "000fc45e5763c61278fd386df409dedf5b6ad906342f778faf5baf04d76649c3"
+    )
+    override_actual_sha = (
+        hashlib.sha256(override_sidecar_path.read_bytes()).hexdigest()
+        if str(override_sidecar_path) and override_sidecar_path.exists()
+        else ""
+    )
+    override_sidecar_ok = (
+        True
+        if not str(override_sidecar_path)
+        else bool(override_expected_sha) and override_expected_sha == override_actual_sha
+    )
     route_ok = bool(runtime_rows) and all(r.get("route_source") == "frozen_sidecar_nearest_center" for r in runtime_rows)
+    override_route_ok = (
+        True
+        if not str(override_sidecar_path)
+        else bool(runtime_rows)
+        and all(r.get("override_route_source") == "frozen_sidecar_nearest_center" for r in runtime_rows)
+    )
     timing_ok = float(timing.get("model_ms_per_crop_median", 0.0)) > 0.0 and float(timing.get("model_ms_per_crop_p95", 0.0)) > 0.0
     memory_ok = float(memory.get("max_rss_mb", 0.0)) > 0.0
     runtime_detail = (
@@ -405,10 +426,11 @@ def check_nonref_preview_candidate() -> list[Check]:
     checks.append(Check(
         "preview_nonref",
         "runtime policy forbids dashboard inputs",
-        "PASS" if deterministic_ok and forbidden_ok and sidecar_ok and route_ok else "FAIL",
+        "PASS" if deterministic_ok and forbidden_ok and sidecar_ok and override_sidecar_ok and route_ok and override_route_ok else "FAIL",
         f"source_policy={contract.get('source_policy')} conditioning={contract.get('conditioning')} "
         f"assignment={contract.get('router_assignment')} forbidden_ok={forbidden_ok} "
-        f"sidecar_ok={sidecar_ok} route_ok={route_ok}",
+        f"sidecar_ok={sidecar_ok} override_sidecar_ok={override_sidecar_ok} "
+        f"route_ok={route_ok} override_route_ok={override_route_ok}",
     ))
     checks.append(Check(
         "preview_nonref",

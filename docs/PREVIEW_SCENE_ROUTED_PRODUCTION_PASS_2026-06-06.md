@@ -12,8 +12,9 @@ This is a no-REF render path. Runtime inputs are source RGB crop/frame,
 runtime source-feature routing, the frozen router sidecar, and selected
 preloaded expert checkpoints. REF is used only for scoring.
 
-It clears the temporary full-image holdout target, but it is not a ship claim:
-the worst failures remain visually and metrically severe.
+The original v5 receipt cleared the temporary full-image holdout target. The
+latest v28 diagnostic is substantially better, but it is still not a ship
+claim because two rows miss the committed PREVIEW dE/Y-PSNR gates.
 
 This registry entry is external-receipt-only for now. The standard
 `run_gate.py` Bayer pipeline does not execute this display-space multi-expert
@@ -28,16 +29,16 @@ Full-image source/crop holdout:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/holdout_runtime_crops_v4_28img/preview_holdout_runtime_source_receipt.json
 ```
 
-Routed candidate dashboard:
+Latest routed diagnostic dashboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v5_28img_combined_l1color/preview_scene_routed_holdout.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v28_k16_c10v3_c15_override/preview_scene_routed_holdout.html
 ```
 
-Routed candidate receipt:
+Latest routed diagnostic receipt:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v5_28img_combined_l1color/preview_scene_routed_holdout.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v28_k16_c10v3_c15_override/preview_scene_routed_holdout.json
 ```
 
 Video/container receipt:
@@ -50,10 +51,11 @@ Video/container receipt:
 
 | receipt | rows | pass | pass rate | median LPIPS | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
+| latest full-image holdout v28 | 84 | 82 | 97.6% | 0.0068 | 0.0498 | 0.9642 | 27.41 | 4.03 |
 | full-image holdout v5 | 84 | 61 | 72.6% | 0.0582 | 1.0348 | 0.1643 | 8.48 | 37.01 |
 | old 16-row crop proxy with v4 experts | 16 | 6 | 37.5% | 0.2387 | 0.9662 | 0.3520 | 16.51 | 21.43 |
 
-Per-cluster full-image holdout:
+Original v5 per-cluster full-image holdout:
 
 | cluster | rows | pass | pass rate | worst LPIPS | worst MS-SSIM | worst dE2000 |
 |---:|---:|---:|---:|---:|---:|---:|
@@ -63,19 +65,28 @@ Per-cluster full-image holdout:
 | 3 | 8 | 6 | 75.0% | 0.8714 | 0.6515 | 28.16 |
 | 4 | 6 | 0 | 0.0% | 0.6551 | 0.2800 | 13.31 |
 
+Latest v28 remaining misses:
+
+| image | crop | cluster | override cluster | LPIPS | MS-SSIM | Y-PSNR | dE2000 |
+|---|---|---:|---:|---:|---:|---:|---:|
+| Z8Z_0026 | B_center | 4 | 7 | 0.0234 | 0.9781 | 29.53 | 3.66 |
+| Z8Z_6680 | C_lowerleft | 4 | 7 | 0.0183 | 0.9763 | 27.41 | 4.03 |
+
 ## Timing And Memory
 
-Routed v5 holdout receipt:
+Latest v28 holdout receipt:
 
 | metric | value |
 |---|---:|
-| model load total | 146.1 ms |
-| model load max | 44.8 ms |
-| input median | 2.45 ms/crop |
-| model median | 13.48 ms/crop |
-| model p95 | 24.41 ms/crop |
-| peak RSS | 1478.0 MB |
-| MPS driver allocation | 1098.8 MB |
+| model load total | 211.1 ms |
+| model load max | 35.9 ms |
+| input median | 2.69 ms/crop |
+| input p95 | 5.91 ms/crop |
+| model median | 13.28 ms/crop |
+| model p95 | 14.12 ms/crop |
+| peak RSS | 1514.4 MB |
+| MPS allocated | 51.5 MB |
+| MPS driver allocation | 1090.8 MB |
 
 Model loading policy is `preload_all_configured_experts`.
 

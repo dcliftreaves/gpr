@@ -82,26 +82,26 @@ Full-image holdout source coverage is 28/28 images and 84/84 crop rows:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/holdout_runtime_crops_v4_28img/preview_holdout_runtime_source_receipt.json
 ```
 
-Routed v5 result:
+Current best routed diagnostic:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v5_28img_combined_l1color/preview_scene_routed_holdout.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v28_k16_c10v3_c15_override/preview_scene_routed_holdout.json
 ```
 
-Result: 61/84 pass, 72.6%. This clears the temporary >70 no-REF runtime target
-with frozen sidecar routing, expert checkpoint hashes, model-loading timing,
-memory receipts, and full-image source renders. It is still not a ship claim:
-worst LPIPS is 1.0348, worst dE2000 is 37.01, and clusters 2/4 fail badly on
-the newly covered hard images. The old 16-row crop proxy also regresses to 6/16
-with these specialists, confirming that the proxy source domain is not a
-reliable promotion gate for the corrected full-image path.
+Result: 82/84 pass, 97.6%. This uses frozen sidecar routing, a frozen K16
+override router for the Z8Z_7480 structure clusters, expert checkpoint hashes,
+model-loading timing, memory receipts, and full-image source renders. It is
+still not a ship claim: `Z8Z_0026 B_center` misses dE, and
+`Z8Z_6680 C_lowerleft` misses Y-PSNR and dE. Worst LPIPS is 0.0498, worst
+Y-PSNR is 27.41, and worst dE2000 is 4.03.
 
 ## Next Step
 
 Next hardening steps for the scene-routed candidate:
 
-- train clusters 2 and 4 using the regenerated full-image source artifacts;
-- reduce the worst-row LPIPS/dE failures, not only the aggregate pass rate;
+- train or distill a stronger low-frequency color/luma target for the two
+  remaining high-texture rows;
+- reduce the worst-row dE/Y-PSNR failures, not only the aggregate pass rate;
 - decide whether the old crop proxy should be retired or converted to the same
   full-image source/render path;
 - keep dE2000 mean <= 3.0 as the color guardrail for every row.
