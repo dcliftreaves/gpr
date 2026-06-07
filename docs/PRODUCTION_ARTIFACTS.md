@@ -74,7 +74,12 @@ tagged `ship-*`. `audit_production_readiness.py --strict` is the broader
 release checklist: stills, video quality, PREVIEW/non-REF receipts, noise/signal
 guards, UPRESABLE, `.gvid`, MOV compatibility, Pi 5 / Mission 1 setup, and
 platform speed receipts. It expects external receipts under `GPR_ARTIFACT_ROOT`,
-including the current direct-RGB non-REF PREVIEW dashboard and checkpoint hash.
+including the direct-RGB non-REF PREVIEW diagnostic dashboard, checkpoint hash,
+and the deterministic runtime PREVIEW policy receipt. As of 2026-06-06, the
+first hard-routed scene/degradation ensemble clears the temporary runtime
+PREVIEW >70 crop-dashboard target, but it remains a candidate until larger
+holdout, full-image/source-path validation, and model-loading policy receipts
+are added.
 
 ## Runtime resolution
 

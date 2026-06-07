@@ -34,6 +34,7 @@ coordinates, and the checkpoint.
 | runtime refiner w40 + light color continuation | zero | 11/16 | 0.0587 | 4.56 | 9.12 ms/crop | 911.9 MB |
 | runtime refiner w64, upresable source | zero | 11/16 | 0.1362 | 5.23 | n/a | n/a |
 | runtime refiner w40, fixed learned-atlas source | zero | 16/16 | 0.0199 | 1.64 | 9.11 ms/crop | 912.1 MB |
+| scene-routed k=5 experts, upresable source | zero | 12/16 | 0.0511 | 4.17 | 9.21 ms/crop | 913.3 MB |
 
 Conclusion: the previous 14/16 dashboard result is a useful diagnostic ceiling,
 not a deployable PREVIEW render path. Once the source-winner and row-key inputs
@@ -50,17 +51,31 @@ production because `display_learned_atlas_20260606:learned_atlas` is a
 per-sample REF-derived residual atlas. It is a ceiling that proves LF/color
 representation is the blocker, not a deployable render source.
 
+The first hard-routed scene/degradation ensemble clears the temporary >70%
+runtime dashboard target:
+
+- router audit:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_router_audit_k5/preview_scene_router_audit.json`
+- routed dashboard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_k5_v1/preview_scene_routed.json`
+- result: 12/16 pass, 75.0%, with router and expert selection based on runtime
+  source features only.
+
+This is production-shaped but not fully promoted: it still needs larger holdout
+coverage, full-image/source-path validation, and a model-loading policy before
+it becomes a ship pipeline.
+
 ## Next Step
 
-Retrain or distill a runtime-shaped PREVIEW model:
+Next hardening steps for the scene-routed candidate:
 
-- source policy fixed before training, preferably `runtime_priority_v1`;
-- no sample-index, crop-key, or winner-derived conditioning;
-- training and evaluation on full-frame or full-gate crops from the same
-  render-available source path;
-- quality target: >70% pass rate with dE2000 mean <= 3.0 on every row;
-- receipts: checkpoint hash, sidecar config, runtime-policy dashboard, timing,
-  memory, and full-image source/render evidence.
+- freeze the router feature schema and cluster centers as a sidecar;
+- rerun on the larger holdout set and report per-cluster pass/fail;
+- train specialists from more rows per cluster, not only the current 16-crop
+  dashboard;
+- validate full-image source/render behavior;
+- define model-loading policy: preload all experts, or lazy-load per scene;
+- keep dE2000 mean <= 3.0 as the color guardrail for every row.
 
 The next technical lever should be a production-source LF/color model, not more
 high-frequency/detail work. The learned-atlas ceiling shows that if LF/color is
