@@ -12,6 +12,7 @@ list down. Use --strict to make any FAIL row exit non-zero.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -258,7 +259,7 @@ def check_nonref_preview_candidate() -> list[Check]:
     runtime_dashboard = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260606"
-        / "scene_routed_k5_v1"
+        / "scene_routed_k5_v2"
         / "preview_scene_routed.json"
     )
     expected_sha = "da1cb051daa696e4dafcb34395704081686e67f101bb5d86f0fb97fd163d4591"
@@ -378,7 +379,14 @@ def check_nonref_preview_candidate() -> list[Check]:
     deterministic_ok = (
         contract.get("source_policy") in {"runtime_priority_v1", "scene_router_kmeans_runtime_features"}
         and contract.get("conditioning") == "zero"
+        and contract.get("router_assignment") == "frozen_sidecar_nearest_center"
+        and bool(contract.get("router_sidecar"))
     )
+    sidecar_path = Path(str(contract.get("router_sidecar") or ""))
+    sidecar_expected_sha = str(runtime.get("router_sidecar_sha256") or "")
+    sidecar_actual_sha = hashlib.sha256(sidecar_path.read_bytes()).hexdigest() if sidecar_path.exists() else ""
+    sidecar_ok = bool(sidecar_expected_sha) and sidecar_expected_sha == sidecar_actual_sha
+    route_ok = bool(runtime_rows) and all(r.get("route_source") == "frozen_sidecar_nearest_center" for r in runtime_rows)
     timing_ok = float(timing.get("model_ms_per_crop_median", 0.0)) > 0.0 and float(timing.get("model_ms_per_crop_p95", 0.0)) > 0.0
     memory_ok = float(memory.get("max_rss_mb", 0.0)) > 0.0
     runtime_detail = (
@@ -396,8 +404,10 @@ def check_nonref_preview_candidate() -> list[Check]:
     checks.append(Check(
         "preview_nonref",
         "runtime policy forbids dashboard inputs",
-        "PASS" if deterministic_ok and forbidden_ok else "FAIL",
-        f"source_policy={contract.get('source_policy')} conditioning={contract.get('conditioning')} forbidden_ok={forbidden_ok}",
+        "PASS" if deterministic_ok and forbidden_ok and sidecar_ok and route_ok else "FAIL",
+        f"source_policy={contract.get('source_policy')} conditioning={contract.get('conditioning')} "
+        f"assignment={contract.get('router_assignment')} forbidden_ok={forbidden_ok} "
+        f"sidecar_ok={sidecar_ok} route_ok={route_ok}",
     ))
     checks.append(Check(
         "preview_nonref",

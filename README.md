@@ -150,16 +150,18 @@ same work is forced through deterministic runtime inputs — no REF content, no
 winner JSON, no sample index, and no crop-key planes — the single-refiner
 production-source candidate tops out at **11/16 (68.75%)**. A first hard-routed
 scene/degradation ensemble improves that to **12/16 (75.0%)**, clearing the
-temporary >70% runtime dashboard bar.
+temporary >70% runtime dashboard bar. The current v2 receipt routes from a
+frozen nearest-center sidecar computed from runtime source-image features; it
+does not read the audit row's preassigned cluster at render/evaluation time.
 
 The routed receipt is:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_k5_v1/preview_scene_routed.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_k5_v2/preview_scene_routed.json
 ```
 
-Median model time on the M5/MPS crop receipt is **9.21 ms/crop** with peak RSS
-**913.3 MB**. LPIPS is no longer the main miss; the remaining failures are
+Median model time on the M5/MPS crop receipt is **9.24 ms/crop** with peak RSS
+**912.4 MB**. LPIPS is no longer the main miss; the remaining failures are
 LF/color and structure guardrails. This still needs larger holdout and
 full-image validation before it can be promoted as a ship pipeline. See
 [`docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md`](docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md)

@@ -34,7 +34,7 @@ coordinates, and the checkpoint.
 | runtime refiner w40 + light color continuation | zero | 11/16 | 0.0587 | 4.56 | 9.12 ms/crop | 911.9 MB |
 | runtime refiner w64, upresable source | zero | 11/16 | 0.1362 | 5.23 | n/a | n/a |
 | runtime refiner w40, fixed learned-atlas source | zero | 16/16 | 0.0199 | 1.64 | 9.11 ms/crop | 912.1 MB |
-| scene-routed k=5 experts, upresable source | zero | 12/16 | 0.0511 | 4.17 | 9.21 ms/crop | 913.3 MB |
+| scene-routed k=5 experts, upresable source, frozen sidecar | zero | 12/16 | 0.0511 | 4.17 | 9.24 ms/crop | 912.4 MB |
 
 Conclusion: the previous 14/16 dashboard result is a useful diagnostic ceiling,
 not a deployable PREVIEW render path. Once the source-winner and row-key inputs
@@ -56,10 +56,14 @@ runtime dashboard target:
 
 - router audit:
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_router_audit_k5/preview_scene_router_audit.json`
+- router sidecar:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_router_audit_k5/preview_scene_router_sidecar.json`
 - routed dashboard:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_k5_v1/preview_scene_routed.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_k5_v2/preview_scene_routed.json`
 - result: 12/16 pass, 75.0%, with router and expert selection based on runtime
   source features only.
+- receipt contract: `router_assignment=frozen_sidecar_nearest_center`; every row
+  records `route_source=frozen_sidecar_nearest_center`.
 
 This is production-shaped but not fully promoted: it still needs larger holdout
 coverage, full-image/source-path validation, and a model-loading policy before
@@ -69,7 +73,6 @@ it becomes a ship pipeline.
 
 Next hardening steps for the scene-routed candidate:
 
-- freeze the router feature schema and cluster centers as a sidecar;
 - rerun on the larger holdout set and report per-cluster pass/fail;
 - train specialists from more rows per cluster, not only the current 16-crop
   dashboard;
