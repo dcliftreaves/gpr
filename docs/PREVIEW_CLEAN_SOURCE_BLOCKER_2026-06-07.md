@@ -556,6 +556,75 @@ should train against assembled full-frame/crop losses or change the runtime
 source/model formulation so the LF branch sees the same spatial problem that is
 scored after stitching.
 
+## Assembled-Crop Loss Follow-Up
+
+The next trainer revision adds an optional assembled-crop loss. For each
+manifest crop, it groups the intersecting full-frame receipt tiles, predicts the
+tiles, assembles them into their full-frame positions, crops the manifest window,
+and applies the same LF/perceptual losses to that stitched crop. This keeps REF
+as training/scoring target only and uses runtime-valid source tiles,
+coordinates, and source global stats as inputs.
+
+The first assembled pass, v5, starts from v4 and supervises `B_center` and
+`C_lowerleft`:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_lf_spatial_assembled_v5/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lf_spatial_assembled_v5_t512/preview_scene_routed_fullframe.json
+```
+
+v5 isolated tile summary:
+
+- pass: 10/12
+- worst LPIPS: 0.0820
+- worst MS-SSIM: 0.9663
+- worst Y-PSNR: 26.95
+- worst dE2000: 3.50
+
+v5 stitched summary:
+
+- pass: 2/3
+- worst LPIPS: 0.0835
+- worst MS-SSIM: 0.9555
+- worst Y-PSNR: 25.90
+- worst dE2000: 3.90
+
+v5 is the first full-frame/tiled diagnostic to pass `B_center`; the remaining
+failure is `C_lowerleft`, where LPIPS and MS-SSIM pass but Y-PSNR and dE2000
+miss.
+
+C-focused v6 and v7 runs add assembled-aware checkpoint selection and heavier
+`C_lowerleft` luma/Lab pressure:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lf_spatial_assembled_cfocus_v6_t512/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lf_spatial_assembled_cfocus_v7_t512/preview_scene_routed_fullframe.json
+```
+
+v6 stitched summary:
+
+- pass: 2/3
+- worst LPIPS: 0.0865
+- worst MS-SSIM: 0.9624
+- worst Y-PSNR: 26.53
+- worst dE2000: 3.69
+
+v7 stitched summary:
+
+- pass: 2/3
+- worst LPIPS: 0.0955
+- worst MS-SSIM: 0.9640
+- worst Y-PSNR: 26.72
+- worst dE2000: 3.63
+
+These runs narrow the lower-left color/luma miss but do not reach the PREVIEW
+gate. The failure is now specific: the current low-frequency spatial model can
+learn enough full-frame context to pass `B_center`, but cannot push
+`C_lowerleft` to Y-PSNR >= 28.0 and dE2000 <= 3.0 without trading away local
+quality. The next candidate should change the runtime source/model formulation,
+for example a stronger low-frequency field, larger-context/full-frame branch,
+or source-side normalization for lower-left luma/color bias.
+
 Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
 cluster-35 polish specialists as production PREVIEW until the full-frame/tiled
 runtime path has equivalent evidence.

@@ -207,10 +207,14 @@ tile receipt to 9/12 isolated passes, but stitched full-frame output remains
 1/3 with remaining Y/dE failures in the lower-left region. A follow-up
 worst-row-weighted pass focused on `B_center`/`C_lowerleft` also reached 9/12
 isolated passes and 1/3 stitched full-frame crops; it improved some luma/color
-numbers but did not clear the full-frame gate. The next PREVIEW candidate needs
-assembled full-frame/crop loss or a stronger runtime source/model formulation,
-not just heavier sampling of the same arbitrary tiles. None of these diagnostics
-are registered as production.
+numbers but did not clear the full-frame gate. Adding an assembled-crop loss
+that stitches predicted receipt tiles before scoring the manifest crops improves
+the hard `Z8Z_6680` smoke to 2/3: `A_detail` and `B_center` pass, while
+`C_lowerleft` still misses on low-frequency Y/dE. Follow-up C-focused passes
+narrow that miss but do not clear it. The next PREVIEW candidate needs a
+stronger runtime source/model formulation for lower-left luma/color consistency,
+not just heavier sampling or loss weighting on the same arbitrary tiles. None of
+these diagnostics are registered as production.
 
 ---
 
