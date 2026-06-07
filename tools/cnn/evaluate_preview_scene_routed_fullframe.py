@@ -39,7 +39,7 @@ from evaluate_preview_scene_routed import (  # noqa: E402
     sha256_file,
 )
 from metrics import compute_visual_metrics  # noqa: E402
-from train_display_rgb_direct_nonref import DirectRGBRefiner, pass_preview  # noqa: E402
+from train_display_rgb_direct_nonref import DirectRGBRefiner, build_rgb_refiner, pass_preview  # noqa: E402
 
 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -77,7 +77,8 @@ def render_dng_to_tiff(dng_path: Path, tiff_path: Path) -> float:
 
 def load_model(path: Path) -> DirectRGBRefiner:
     ckpt = torch.load(str(path), map_location="cpu", weights_only=False)
-    model = DirectRGBRefiner(
+    model = build_rgb_refiner(
+        str(ckpt.get("architecture", "direct")),
         width=int(ckpt.get("width", 40)),
         residual_scale=float(ckpt.get("residual_scale", 0.5)),
     ).to(DEVICE)
@@ -113,6 +114,7 @@ def build_tile_input(
     coordinate_mode: str,
     xywh: tuple[int, int, int, int],
     full_size: tuple[int, int],
+    global_stats: dict[str, float] | None = None,
 ) -> torch.Tensor:
     if coordinate_mode == "local":
         return build_input(source_rgb, conditioning)
@@ -141,6 +143,19 @@ def build_tile_input(
         key_planes[1].fill(float(source[1].mean()))
         key_planes[2].fill(float(source[2].mean()))
         key_planes[3].fill(float(gray.std()))
+    elif conditioning == "global_color_stats":
+        if global_stats is None:
+            gray = source.mean(axis=0)
+            global_stats = {
+                "r_mean": float(source[0].mean()),
+                "g_mean": float(source[1].mean()),
+                "b_mean": float(source[2].mean()),
+                "gray_std": float(gray.std()),
+            }
+        key_planes[0].fill(float(global_stats["r_mean"]))
+        key_planes[1].fill(float(global_stats["g_mean"]))
+        key_planes[2].fill(float(global_stats["b_mean"]))
+        key_planes[3].fill(float(global_stats["gray_std"]))
     else:
         raise ValueError(f"unsupported conditioning {conditioning!r}")
     arr = np.concatenate([source, np.stack([xx, yy], axis=0), key_planes], axis=0)
@@ -221,6 +236,12 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     source_rgb = load_rgb(source_tiff)
     ref_rgb = load_rgb(ref_tiff)
     height, width = source_rgb.shape[:2]
+    source_global_stats = {
+        "r_mean": float((source_rgb[:, :, 0].astype(np.float32) / 255.0).mean()),
+        "g_mean": float((source_rgb[:, :, 1].astype(np.float32) / 255.0).mean()),
+        "b_mean": float((source_rgb[:, :, 2].astype(np.float32) / 255.0).mean()),
+        "gray_std": float((source_rgb.astype(np.float32).mean(axis=2) / 255.0).std()),
+    }
     tile = int(args.tile_size)
     stride = max(1, tile - int(args.overlap))
     out_acc = np.zeros((height, width, 3), dtype=np.float32)
@@ -272,6 +293,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
                 args.coordinate_mode,
                 (x0, y0, x1 - x0, y1 - y0),
                 (width, height),
+                source_global_stats,
             )
             t1 = time.perf_counter()
             with torch.no_grad():
@@ -416,13 +438,13 @@ def main() -> int:
     ap.add_argument("--override-cluster-checkpoint", action="append", default=[])
     ap.add_argument("--cluster-conditioning", action="append", default=[])
     ap.add_argument("--override-cluster-conditioning", action="append", default=[])
-    ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats"], default="zero")
+    ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats", "global_color_stats"], default="zero")
     ap.add_argument("--coordinate-mode", choices=["local", "global_tile"], default="local")
     ap.add_argument("--tile-size", type=int, default=768)
     ap.add_argument("--overlap", type=int, default=128)
     ap.add_argument("--tile-mode", choices=["full_grid", "manifest_crops"], default="full_grid")
     ap.add_argument("--force-model-key", help="Diagnostic: bypass routing and run one loaded model key on every tile.")
-    ap.add_argument("--force-conditioning", choices=["zero", "content_stats", "color_stats"], default="zero")
+    ap.add_argument("--force-conditioning", choices=["zero", "content_stats", "color_stats", "global_color_stats"], default="zero")
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)

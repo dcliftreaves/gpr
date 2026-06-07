@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from PIL import Image
+import numpy as np
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -128,6 +129,17 @@ def save_tile_pair(
     ref_tile.save(out_ref)
 
 
+def image_stats(image: Image.Image) -> dict[str, float]:
+    rgb = np.asarray(image, dtype=np.float32) / 255.0
+    gray = rgb.mean(axis=2)
+    return {
+        "r_mean": float(rgb[:, :, 0].mean()),
+        "g_mean": float(rgb[:, :, 1].mean()),
+        "b_mean": float(rgb[:, :, 2].mean()),
+        "gray_std": float(gray.std()),
+    }
+
+
 def build(args: argparse.Namespace) -> dict[str, Any]:
     manifest = json.loads(args.manifest.read_text())
     sidecar = json.loads(args.router_sidecar.read_text()) if args.router_sidecar else None
@@ -162,6 +174,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             with Image.open(source_tiff) as source_image_raw, Image.open(ref_tiff) as ref_image_raw:
                 source_image = source_image_raw.convert("RGB")
                 ref_image = ref_image_raw.convert("RGB")
+                source_global_stats = image_stats(source_image)
                 crop_boxes = {
                     name: scaled_box(crop, image["sensor_dims"], source_image.size)
                     for name, crop in manifest["crops"].items()
@@ -203,6 +216,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                             "source_dng_sha256": source_sha,
                             "source_render_size": list(source_image.size),
                             "ref_render_size": list(ref_image.size),
+                            "source_global_stats": source_global_stats,
                             "tile_xywh": [x0, y0, x1 - x0, y1 - y0],
                             "intersects_crops": crop_hits,
                             "cluster": cluster,
