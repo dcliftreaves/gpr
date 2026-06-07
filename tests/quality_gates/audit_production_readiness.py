@@ -260,7 +260,7 @@ def check_nonref_preview_candidate() -> list[Check]:
     runtime_dashboard = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260606"
-        / "scene_routed_holdout_v28_k16_c10v3_c15_override"
+        / "scene_routed_holdout_v32_k16_k40_namespaced_84"
         / "preview_scene_routed_holdout.json"
     )
     expected_sha = "da1cb051daa696e4dafcb34395704081686e67f101bb5d86f0fb97fd163d4591"
@@ -388,25 +388,29 @@ def check_nonref_preview_candidate() -> list[Check]:
     sidecar_expected_sha = str(runtime.get("router_sidecar_sha256") or "")
     sidecar_actual_sha = hashlib.sha256(sidecar_path.read_bytes()).hexdigest() if sidecar_path.exists() else ""
     sidecar_ok = bool(sidecar_expected_sha) and sidecar_expected_sha == sidecar_actual_sha
-    override_sidecar_path = Path(str(contract.get("override_router_sidecar") or ""))
-    override_expected_sha = str(
-        runtime.get("override_router_sidecar_sha256")
-        or "000fc45e5763c61278fd386df409dedf5b6ad906342f778faf5baf04d76649c3"
-    )
-    override_actual_sha = (
-        hashlib.sha256(override_sidecar_path.read_bytes()).hexdigest()
-        if str(override_sidecar_path) and override_sidecar_path.exists()
-        else ""
-    )
+    override_sidecar_value = contract.get("override_router_sidecar") or []
+    if isinstance(override_sidecar_value, str):
+        override_sidecar_paths = [Path(override_sidecar_value)] if override_sidecar_value else []
+    else:
+        override_sidecar_paths = [Path(str(path)) for path in override_sidecar_value]
+    override_expected_value = runtime.get("override_router_sidecar_sha256") or []
+    if isinstance(override_expected_value, str):
+        override_expected_shas = [override_expected_value] if override_expected_value else []
+    else:
+        override_expected_shas = [str(sha) for sha in override_expected_value]
+    override_actual_shas = [
+        hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in override_sidecar_paths
+        if path.exists()
+    ]
     override_sidecar_ok = (
-        True
-        if not str(override_sidecar_path)
-        else bool(override_expected_sha) and override_expected_sha == override_actual_sha
+        len(override_sidecar_paths) == len(override_expected_shas) == len(override_actual_shas)
+        and override_expected_shas == override_actual_shas
     )
     route_ok = bool(runtime_rows) and all(r.get("route_source") == "frozen_sidecar_nearest_center" for r in runtime_rows)
     override_route_ok = (
         True
-        if not str(override_sidecar_path)
+        if not override_sidecar_paths
         else bool(runtime_rows)
         and all(r.get("override_route_source") == "frozen_sidecar_nearest_center" for r in runtime_rows)
     )
@@ -420,8 +424,8 @@ def check_nonref_preview_candidate() -> list[Check]:
     )
     checks.append(Check(
         "preview_nonref",
-        "deterministic runtime policy >70",
-        "PASS" if runtime_pass_rate > 0.70 and runtime_count >= 84 and runtime_pass_count >= 59 else "FAIL",
+        "deterministic runtime policy full holdout",
+        "PASS" if runtime_count >= 84 and runtime_pass_count == runtime_count else "FAIL",
         runtime_detail,
     ))
     checks.append(Check(

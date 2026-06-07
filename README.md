@@ -149,7 +149,7 @@ pipeline. The dashboard-shaped checkpoint clears 14/16 crop rows, but when the
 same work is forced through deterministic runtime inputs - no REF content, no
 winner JSON, no sample index, and no crop-key planes - the single-refiner
 production-source candidate tops out at **11/16 (68.75%)**. The current best
-hard-routed scene/degradation diagnostic reaches **82/84 (97.6%)** on the
+hard-routed scene/degradation diagnostic reaches **84/84 (100.0%)** on the
 28-image full-image source holdout.
 
 The current temporary registered candidate is:
@@ -159,21 +159,23 @@ codec=ml2_q3_dec2+cnn=preview_scene_routed_k5_l1color_v1+demosaic=sips_via_gpr_t
 ```
 
 It uses a frozen nearest-center router sidecar computed from runtime
-source-image features and preloaded expert checkpoints. The latest v28
-diagnostic layers a frozen K16 override router for the Z8Z_7480 structure
-clusters. It is not registered as production PREVIEW.
+source-image features and preloaded expert checkpoints. The latest v32
+diagnostic stacks frozen K16 and K40 override routers with namespaced expert
+selection: K16 handles the Z8Z_7480 structure clusters, and K40 cluster 35
+handles the remaining low-frequency color rows with `color_stats`
+conditioning. It is not registered as production PREVIEW.
 
-The routed v28 diagnostic receipt is:
+The routed v32 diagnostic receipt is:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v28_k16_c10v3_c15_override/preview_scene_routed_holdout.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v32_k16_k40_namespaced_84/preview_scene_routed_holdout.json
 ```
 
 Median model time on the Mac/MPS holdout receipt is **13.28 ms/crop** with peak
-RSS **1514 MB**. This is still not a ship claim: two rows miss the committed
-PREVIEW gate (`Z8Z_0026 B_center` on dE, `Z8Z_6680 C_lowerleft` on Y-PSNR and
-dE). Worst LPIPS is **0.0498**, worst Y-PSNR is **27.41**, and worst dE2000 is
-**4.03**. See
+RSS **1453 MB**. This is still not a ship claim until the same policy is
+validated through the full-frame/tiled render path, but the 84-row no-REF
+holdout now passes **84/84**. Worst LPIPS is **0.0500**, worst MS-SSIM is
+**0.9642**, worst Y-PSNR is **28.86**, and worst dE2000 is **2.96**. See
 [`docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md`](docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md)
 [`docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md),
 [`docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md),
