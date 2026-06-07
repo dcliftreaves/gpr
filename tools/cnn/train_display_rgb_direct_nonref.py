@@ -61,8 +61,9 @@ class ResBlock(nn.Module):
 
 
 class DirectRGBRefiner(nn.Module):
-    def __init__(self, width: int = 40, in_channels: int = 9) -> None:
+    def __init__(self, width: int = 40, in_channels: int = 9, residual_scale: float = 0.5) -> None:
         super().__init__()
+        self.residual_scale = float(residual_scale)
         self.i = nn.Conv2d(in_channels, width, 3, padding=1)
         self.r0 = ResBlock(width)
         self.d1 = nn.Conv2d(width, width, 3, stride=2, padding=1)
@@ -84,7 +85,7 @@ class DirectRGBRefiner(nn.Module):
         h = F.gelu(self.u(h))
         h = self.r3(h)
         h = F.interpolate(h, scale_factor=2, mode="bilinear", align_corners=False)
-        return torch.clamp(source + 0.5 * torch.tanh(self.o(h + skip)), 0.0, 1.0)
+        return torch.clamp(source + self.residual_scale * torch.tanh(self.o(h + skip)), 0.0, 1.0)
 
 
 def load_rgb(path: Path) -> np.ndarray:

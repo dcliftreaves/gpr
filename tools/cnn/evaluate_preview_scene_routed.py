@@ -94,7 +94,10 @@ def parse_int_list(values: list[str]) -> set[int]:
 
 def load_model(path: Path) -> DirectRGBRefiner:
     ckpt = torch.load(str(path), map_location="cpu", weights_only=False)
-    model = DirectRGBRefiner(width=int(ckpt.get("width", 40))).to(DEVICE)
+    model = DirectRGBRefiner(
+        width=int(ckpt.get("width", 40)),
+        residual_scale=float(ckpt.get("residual_scale", 0.5)),
+    ).to(DEVICE)
     model.load_state_dict(ckpt["state_dict"])
     model.eval()
     return model

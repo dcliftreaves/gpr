@@ -102,20 +102,77 @@ runtime PREVIEW trainer and selected checkpoints using those gate-space
 proxies. It improved the failure rows again, but did not clear additional
 rows.
 
+### v20: Lab-Tuned Clusters 2/4 + Structure-Tuned Cluster 1
+
+Path:
+
+`scene_routed_holdout_v20_c1struct_c2c4lab/preview_scene_routed_holdout.json`
+
+Summary:
+
+- pass: 78/84
+- pass rate: 92.86%
+- worst LPIPS: 0.0567
+- median LPIPS: 0.0068
+- worst MS-SSIM: 0.8945
+- worst Y-PSNR: 27.02 dB
+- worst dE2000 mean: 4.23
+
+This pass added differentiable Lab loss to the runtime PREVIEW trainer.
+Cluster 2 improved from 7/9 to 8/9 and cluster 4 improved dE/Y headroom, but
+the cluster-4 `Z8Z_7480` rows remained MS-SSIM limited.
+
+### v22: Cluster 2 Lab Polish
+
+Path:
+
+`scene_routed_holdout_v22_c2polish_c4laby/preview_scene_routed_holdout.json`
+
+Summary:
+
+- pass: 79/84
+- pass rate: 94.05%
+- worst LPIPS: 0.0567
+- median LPIPS: 0.0068
+- worst MS-SSIM: 0.8945
+- worst Y-PSNR: 27.32 dB
+- worst dE2000 mean: 4.05
+
+This pass polished cluster 2 with stronger Lab/Y scoring. Cluster 2 reached
+9/9 isolated pass rate, clearing `Z8Z_6680 B_center` with dE2000 2.96.
+
+### v24: Cluster 1/4 MS Polish
+
+Path:
+
+`scene_routed_holdout_v24_c1ms_c2polish_c4ms/preview_scene_routed_holdout.json`
+
+Summary:
+
+- pass: 79/84
+- pass rate: 94.05%
+- worst LPIPS: 0.0595
+- median LPIPS: 0.0068
+- worst MS-SSIM: 0.9159
+- worst Y-PSNR: 27.41 dB
+- worst dE2000 mean: 4.03
+
+This is the current best diagnostic route by severe-failure profile. It keeps
+the v22 pass count, improves worst MS-SSIM from 0.8945 to 0.9159, and improves
+worst dE2000 from 4.05 to 4.03. It still fails the PREVIEW gate and must not
+be registered as production.
+
 ## Remaining Failures
 
-v13 failures:
+v24 failures:
 
 | image | crop | cluster | conditioning | LPIPS | MS-SSIM | Y-PSNR | dE2000 |
 |---|---|---:|---|---:|---:|---:|---:|
-| Z8Z_0026 | A_detail | 2 | content_stats | 0.0583 | 0.9640 | 29.40 | 3.18 |
-| Z8Z_0026 | B_center | 4 | content_stats | 0.0879 | 0.9683 | 28.56 | 4.21 |
-| Z8Z_0026 | C_lowerleft | 4 | content_stats | 0.0837 | 0.9643 | 31.63 | 3.04 |
-| Z8Z_6680 | B_center | 2 | content_stats | 0.0482 | 0.9821 | 27.93 | 3.58 |
-| Z8Z_6680 | C_lowerleft | 4 | content_stats | 0.0616 | 0.9619 | 26.17 | 4.78 |
-| Z8Z_7480 | A_detail | 1 | zero | 0.1645 | 0.8437 | 29.71 | 2.86 |
-| Z8Z_7480 | B_center | 4 | content_stats | 0.1141 | 0.9338 | 32.40 | 2.06 |
-| Z8Z_7480 | C_lowerleft | 4 | content_stats | 0.1040 | 0.9163 | 31.33 | 2.51 |
+| Z8Z_0026 | B_center | 4 | content_stats | 0.0234 | 0.9781 | 29.53 | 3.66 |
+| Z8Z_6680 | C_lowerleft | 4 | content_stats | 0.0183 | 0.9763 | 27.41 | 4.03 |
+| Z8Z_7480 | A_detail | 1 | zero | 0.0595 | 0.9159 | 30.28 | 2.77 |
+| Z8Z_7480 | B_center | 4 | content_stats | 0.0354 | 0.9485 | 32.52 | 1.98 |
+| Z8Z_7480 | C_lowerleft | 4 | content_stats | 0.0341 | 0.9421 | 31.62 | 2.36 |
 
 ## Ruled Out
 
@@ -125,8 +182,14 @@ v13 failures:
   rate; it stayed at 76/84.
 - Content-stat conditioning for clusters 2 and 4 improved some Y/dE values
   but did not change pass rate.
+- Running the v13 ensemble on 768-pixel context crops and scoring the center
+  512 region regressed to 73/84 with row clusters fixed and 72/84 with
+  sidecar rerouting; the current crop-trained experts do not tolerate larger
+  context windows.
+- Source pass-through for clusters 1/2/4 regressed badly; the clean
+  UPRESABLE source alone is far outside the PREVIEW gate for these clusters.
 - A width-80 cluster-4 expert trained from scratch remained far worse than
-  the width-40 expert by step 300 and was stopped.
+  the width-40 expert by step 200 and was stopped.
 - Gate-space luma/opponent loss improved the same hard rows but held pass
   rate at 76/84.
 - A stronger color/luma-weighted cluster-4 pass worsened LPIPS headroom and
@@ -134,6 +197,13 @@ v13 failures:
 - A 768-pixel context-crop cluster-4 expert remained far behind the 512-crop
   expert by step 300 and was stopped; simple larger-context retraining did
   not solve the blocker.
+- Fixed per-cluster RGB affine and per-row RGB affine oracles did not clear
+  the remaining rows. Per-row affine reached only 77/84, so the gap is not a
+  simple global color transform.
+- Structure-heavy fine-tunes improved worst LPIPS from 0.1645 to 0.0567 and
+  cleared one cluster-4 row, but did not solve the remaining dE/Y/MS rows.
+- Lab loss fixed cluster 2 completely, but repeated Lab/Y and MS-SSIM passes
+  on cluster 4 are still stuck at 5/9 isolated pass rate.
 
 ## Current Blocker
 
@@ -153,5 +223,5 @@ Most likely next causes to test:
 - a stronger teacher/full-image target is needed for `Z8Z_0026`, `Z8Z_6680`,
   and `Z8Z_7480`.
 
-Do not register v11, v12, or v13 as production PREVIEW. They are diagnostic
+Do not register v11 through v24 as production PREVIEW. They are diagnostic
 candidates only.

@@ -148,11 +148,40 @@ def opponent_color_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tenso
     )
 
 
+def rgb_to_lab(rgb: torch.Tensor) -> torch.Tensor:
+    rgb = torch.clamp(rgb, 0.0, 1.0)
+    linear = torch.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055).pow(2.4))
+    r, g, b = linear[:, 0:1], linear[:, 1:2], linear[:, 2:3]
+    x = (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047
+    y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
+    z = (0.0193339 * r + 0.1191920 * g + 0.9503041 * b) / 1.08883
+    xyz = torch.cat([x, y, z], dim=1)
+    eps = 0.008856
+    f = torch.where(xyz > eps, torch.clamp(xyz, min=1e-8).pow(1.0 / 3.0), xyz / 0.12841854934601665 + 0.14081893333333334)
+    fx, fy, fz = f[:, 0:1], f[:, 1:2], f[:, 2:3]
+    l = (116.0 * fy - 16.0) / 100.0
+    a = (500.0 * (fx - fy)) / 100.0
+    b_lab = (200.0 * (fy - fz)) / 100.0
+    return torch.cat([l, a, b_lab], dim=1)
+
+
+def lab_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    pred_lab = rgb_to_lab(pred)
+    target_lab = rgb_to_lab(target)
+    return (
+        charbonnier(pred_lab, target_lab)
+        + charbonnier(
+            F.interpolate(pred_lab, size=(64, 64), mode="area"),
+            F.interpolate(target_lab, size=(64, 64), mode="area"),
+        )
+    )
+
+
 def train(args: argparse.Namespace) -> dict[str, Any]:
     samples, x, y = build_tensors(args)
     xt = x.to(DEVICE).contiguous()
     yt = y.to(DEVICE).contiguous()
-    model = DirectRGBRefiner(width=args.width).to(DEVICE)
+    model = DirectRGBRefiner(width=args.width, residual_scale=args.residual_scale).to(DEVICE)
     if args.init_checkpoint is not None:
         init = torch.load(str(args.init_checkpoint), map_location="cpu", weights_only=False)
         model.load_state_dict(init["state_dict"])
@@ -174,6 +203,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         lcolor = lowfreq_color_loss(pred, yt)
         ly = gate_luma_loss(pred, yt)
         lopp = opponent_color_loss(pred, yt)
+        llab = lab_loss(pred, yt)
         loss = (
             l1
             + args.grad_weight * lg
@@ -182,6 +212,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             + args.color_weight * lcolor
             + args.y_weight * ly
             + args.opponent_weight * lopp
+            + args.lab_weight * llab
         )
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -195,12 +226,14 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 lp_eval = lpips_net(pred_eval * 2 - 1, yt * 2 - 1).mean().item() if lpips_net is not None else 0.0
                 y_eval = gate_luma_loss(pred_eval, yt).item()
                 opp_eval = opponent_color_loss(pred_eval, yt).item()
+                lab_eval = lab_loss(pred_eval, yt).item()
             score = (
                 l1_eval
                 + 0.1 * (1.0 - ms_eval)
                 + 0.2 * lp_eval
                 + args.score_y_weight * y_eval
                 + args.score_opponent_weight * opp_eval
+                + args.score_lab_weight * lab_eval
             )
             if score < best:
                 best = score
@@ -208,7 +241,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             print(
                 f"step {step}/{args.steps} loss={loss.item():.6f} "
                 f"l1={l1_eval:.5f} ms={ms_eval:.5f} lp={lp_eval:.4f} "
-                f"color={lcolor.item():.5f} y={y_eval:.5f} opp={opp_eval:.5f} "
+                f"color={lcolor.item():.5f} y={y_eval:.5f} opp={opp_eval:.5f} lab={lab_eval:.5f} "
                 f"best={best:.6f} t={time.time() - t0:.1f}s",
                 flush=True,
             )
@@ -221,6 +254,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "kind": "preview_runtime_refiner",
             "state_dict": best_state,
             "width": args.width,
+            "residual_scale": args.residual_scale,
             "steps": args.steps,
             "best_score": best,
             "source_policy": args.policy,
@@ -228,8 +262,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "color_weight": args.color_weight,
             "y_weight": args.y_weight,
             "opponent_weight": args.opponent_weight,
+            "lab_weight": args.lab_weight,
             "score_y_weight": args.score_y_weight,
             "score_opponent_weight": args.score_opponent_weight,
+            "score_lab_weight": args.score_lab_weight,
             "forbidden_inputs": ["winner JSON", "sample index", "crop identity key planes"],
             "samples": [
                 {
@@ -253,7 +289,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
 
 def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, Any]:
     ckpt = torch.load(str(args.checkpoint), map_location="cpu", weights_only=False)
-    model = DirectRGBRefiner(width=int(ckpt.get("width", args.width))).to(DEVICE)
+    model = DirectRGBRefiner(
+        width=int(ckpt.get("width", args.width)),
+        residual_scale=float(ckpt.get("residual_scale", 0.5)),
+    ).to(DEVICE)
     model.load_state_dict(ckpt["state_dict"])
     model.eval()
     samples = training.get("samples")
@@ -324,6 +363,7 @@ def main() -> int:
     ap.add_argument("--include-cluster", type=int, action="append", default=[])
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--width", type=int, default=40)
+    ap.add_argument("--residual-scale", type=float, default=0.5)
     ap.add_argument("--lr", type=float, default=8e-4)
     ap.add_argument("--weight-decay", type=float, default=1e-5)
     ap.add_argument("--grad-weight", type=float, default=0.08)
@@ -332,8 +372,10 @@ def main() -> int:
     ap.add_argument("--color-weight", type=float, default=0.0)
     ap.add_argument("--y-weight", type=float, default=0.0)
     ap.add_argument("--opponent-weight", type=float, default=0.0)
+    ap.add_argument("--lab-weight", type=float, default=0.0)
     ap.add_argument("--score-y-weight", type=float, default=0.0)
     ap.add_argument("--score-opponent-weight", type=float, default=0.0)
+    ap.add_argument("--score-lab-weight", type=float, default=0.0)
     ap.add_argument("--log-every", type=int, default=100)
     ap.add_argument("--eval-only", action="store_true")
     args = ap.parse_args()
