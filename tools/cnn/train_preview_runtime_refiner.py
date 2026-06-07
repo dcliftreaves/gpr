@@ -50,6 +50,16 @@ class ReceiptSample:
     intersects_crops: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class AssembledCropGroup:
+    image_id: str
+    crop: str
+    sample_indices: tuple[int, ...]
+    paste_xywh: tuple[tuple[int, int, int, int], ...]
+    crop_xywh: tuple[int, int, int, int]
+    canvas_size: tuple[int, int]
+
+
 def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
     sidecar = json.loads(args.router_sidecar.read_text()) if args.router_sidecar else None
     wanted_clusters = {int(c) for c in args.include_cluster}
@@ -85,6 +95,74 @@ def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
     if not out:
         raise RuntimeError("sample receipts produced no training samples")
     return out
+
+
+def scaled_box(crop: dict[str, int], sensor_dims: list[int], render_size: tuple[int, int]) -> tuple[int, int, int, int]:
+    sensor_w, sensor_h = int(sensor_dims[0]), int(sensor_dims[1])
+    render_w, render_h = int(render_size[0]), int(render_size[1])
+    x0 = int(round(int(crop["x"]) * render_w / sensor_w))
+    y0 = int(round(int(crop["y"]) * render_h / sensor_h))
+    x1 = int(round((int(crop["x"]) + int(crop["w"])) * render_w / sensor_w))
+    y1 = int(round((int(crop["y"]) + int(crop["h"])) * render_h / sensor_h))
+    x0 = min(max(0, x0), render_w - 1)
+    y0 = min(max(0, y0), render_h - 1)
+    x1 = min(max(x0 + 1, x1), render_w)
+    y1 = min(max(y0 + 1, y1), render_h)
+    return x0, y0, x1, y1
+
+
+def build_assembled_crop_groups(samples: list[Any], args: argparse.Namespace) -> list[AssembledCropGroup]:
+    if args.assembled_crop_weight <= 0.0 or args.assembled_manifest is None:
+        return []
+    manifest = json.loads(args.assembled_manifest.read_text())
+    images = {str(image["id"]): image for image in manifest.get("images", [])}
+    crops = {
+        str(name): crop
+        for name, crop in manifest.get("crops", {}).items()
+        if not str(name).startswith("$")
+    }
+    focus = set(args.assembled_focus_crop)
+    groups: list[AssembledCropGroup] = []
+    for image_id, image in images.items():
+        image_indices = [idx for idx, sample in enumerate(samples) if sample.image_id == image_id]
+        if not image_indices:
+            continue
+        render_size = samples[image_indices[0]].source_render_size
+        if render_size is None:
+            continue
+        for crop_name, crop in crops.items():
+            if focus and crop_name not in focus:
+                continue
+            selected = [
+                idx
+                for idx in image_indices
+                if crop_name in getattr(samples[idx], "intersects_crops", ())
+                and getattr(samples[idx], "tile_xywh", None) is not None
+            ]
+            if not selected:
+                continue
+            boxes = [samples[idx].tile_xywh for idx in selected]
+            if any(box is None for box in boxes):
+                continue
+            boxes_i = [(int(x), int(y), int(w), int(h)) for x, y, w, h in boxes if x is not None]
+            min_x = min(x for x, _y, _w, _h in boxes_i)
+            min_y = min(y for _x, y, _w, _h in boxes_i)
+            max_x = max(x + w for x, _y, w, _h in boxes_i)
+            max_y = max(y + h for _x, y, _w, h in boxes_i)
+            crop_box = scaled_box(crop, image["sensor_dims"], render_size)
+            if not (min_x <= crop_box[0] < crop_box[2] <= max_x and min_y <= crop_box[1] < crop_box[3] <= max_y):
+                continue
+            groups.append(
+                AssembledCropGroup(
+                    image_id=image_id,
+                    crop=crop_name,
+                    sample_indices=tuple(selected),
+                    paste_xywh=tuple((x - min_x, y - min_y, w, h) for x, y, w, h in boxes_i),
+                    crop_xywh=(crop_box[0] - min_x, crop_box[1] - min_y, crop_box[2] - crop_box[0], crop_box[3] - crop_box[1]),
+                    canvas_size=(max_x - min_x, max_y - min_y),
+                )
+            )
+    return groups
 
 
 def build_input_for_sample(source_rgb: np.ndarray, conditioning: str, coordinate_mode: str, sample: ReceiptSample) -> torch.Tensor:
@@ -246,8 +324,77 @@ def sample_weight(sample: ReceiptSample, args: argparse.Namespace) -> float:
     return float(weight)
 
 
+def assemble_group_crop(pred_tiles: torch.Tensor, target_tiles: torch.Tensor, group: AssembledCropGroup) -> tuple[torch.Tensor, torch.Tensor]:
+    canvas_w, canvas_h = group.canvas_size
+    pred_canvas = pred_tiles.new_zeros((3, canvas_h, canvas_w))
+    target_canvas = target_tiles.new_zeros((3, canvas_h, canvas_w))
+    for row, (x0, y0, width, height) in enumerate(group.paste_xywh):
+        pred_canvas[:, y0:y0 + height, x0:x0 + width] = pred_tiles[row, :, :height, :width]
+        target_canvas[:, y0:y0 + height, x0:x0 + width] = target_tiles[row, :, :height, :width]
+    cx, cy, cw, ch = group.crop_xywh
+    pred_crop = pred_canvas[:, cy:cy + ch, cx:cx + cw].unsqueeze(0)
+    target_crop = target_canvas[:, cy:cy + ch, cx:cx + cw].unsqueeze(0)
+    if pred_crop.shape[-2:] != (512, 512):
+        pred_crop = F.interpolate(pred_crop, size=(512, 512), mode="bilinear", align_corners=False)
+        target_crop = F.interpolate(target_crop, size=(512, 512), mode="bilinear", align_corners=False)
+    return pred_crop.contiguous(), target_crop.contiguous()
+
+
+def assembled_crop_loss(
+    *,
+    model: torch.nn.Module,
+    xt: torch.Tensor,
+    yt: torch.Tensor,
+    groups: list[AssembledCropGroup],
+    args: argparse.Namespace,
+    lpips_net: torch.nn.Module | None,
+    step: int,
+) -> tuple[torch.Tensor, dict[str, float]]:
+    if not groups or args.assembled_crop_weight <= 0.0:
+        zero = xt.new_tensor(0.0)
+        return zero, {"assembled": 0.0, "assembled_luma": 0.0, "assembled_lab": 0.0}
+    count = min(max(1, int(args.assembled_crop_count)), len(groups))
+    if count >= len(groups):
+        selected = groups
+    else:
+        start = (step - 1) % len(groups)
+        selected = [groups[(start + offset) % len(groups)] for offset in range(count)]
+    losses = []
+    luma_values = []
+    lab_values = []
+    for group in selected:
+        idx = torch.tensor(group.sample_indices, dtype=torch.long, device=xt.device)
+        pred_tiles = model(xt.index_select(0, idx)).contiguous()
+        target_tiles = yt.index_select(0, idx).contiguous()
+        pred_crop, target_crop = assemble_group_crop(pred_tiles, target_tiles, group)
+        l1 = charbonnier(pred_crop, target_crop)
+        lms = 1.0 - ms_ssim(pred_crop, target_crop, data_range=1.0, win_size=7) if args.assembled_ms_weight > 0.0 else pred_crop.new_tensor(0.0)
+        llp = lpips_net(pred_crop * 2 - 1, target_crop * 2 - 1).mean() if lpips_net is not None and args.assembled_lpips_weight > 0.0 else pred_crop.new_tensor(0.0)
+        ly = gate_luma_loss(pred_crop, target_crop)
+        llab = lab_loss(pred_crop, target_crop)
+        loss = (
+            l1
+            + args.assembled_ms_weight * lms
+            + args.assembled_lpips_weight * llp
+            + args.assembled_y_weight * ly
+            + args.assembled_lab_weight * llab
+        )
+        losses.append(loss)
+        luma_values.append(float(ly.detach().cpu()))
+        lab_values.append(float(llab.detach().cpu()))
+    merged = torch.stack(losses).mean()
+    return args.assembled_crop_weight * merged, {
+        "assembled": float(merged.detach().cpu()),
+        "assembled_luma": float(sum(luma_values) / len(luma_values)),
+        "assembled_lab": float(sum(lab_values) / len(lab_values)),
+    }
+
+
 def train(args: argparse.Namespace) -> dict[str, Any]:
     samples, x, y = build_tensors(args)
+    assembled_groups = build_assembled_crop_groups(samples, args)
+    if args.assembled_crop_weight > 0.0 and not assembled_groups:
+        raise RuntimeError("assembled crop loss was requested, but no assembled crop groups were built")
     xt = x.to(DEVICE).contiguous()
     yt = y.to(DEVICE).contiguous()
     sample_count = int(xt.shape[0])
@@ -262,7 +409,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 raise
             local.load_state_dict(init["state_dict"])
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    lpips_net = lpips.LPIPS(net="alex").to(DEVICE).eval() if args.lpips_weight > 0.0 else None
+    needs_lpips = args.lpips_weight > 0.0 or (args.assembled_crop_weight > 0.0 and args.assembled_lpips_weight > 0.0)
+    lpips_net = lpips.LPIPS(net="alex").to(DEVICE).eval() if needs_lpips else None
     if lpips_net is not None:
         for param in lpips_net.parameters():
             param.requires_grad_(False)
@@ -302,6 +450,16 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             + args.opponent_weight * lopp
             + args.lab_weight * llab
         )
+        lasm, asm_stats = assembled_crop_loss(
+            model=model,
+            xt=xt,
+            yt=yt,
+            groups=assembled_groups,
+            args=args,
+            lpips_net=lpips_net,
+            step=step,
+        )
+        loss = loss + lasm
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -315,6 +473,15 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 y_eval = gate_luma_loss(pred_eval, yb).item()
                 opp_eval = opponent_color_loss(pred_eval, yb).item()
                 lab_eval = lab_loss(pred_eval, yb).item()
+                _asm_eval_loss, asm_eval_stats = assembled_crop_loss(
+                    model=model,
+                    xt=xt,
+                    yt=yt,
+                    groups=assembled_groups,
+                    args=args,
+                    lpips_net=lpips_net,
+                    step=step,
+                )
             score = (
                 l1_eval
                 + 0.1 * (1.0 - ms_eval)
@@ -322,6 +489,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 + args.score_y_weight * y_eval
                 + args.score_opponent_weight * opp_eval
                 + args.score_lab_weight * lab_eval
+                + args.score_assembled_weight * asm_eval_stats["assembled"]
             )
             if score < best:
                 best = score
@@ -330,6 +498,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 f"step {step}/{args.steps} loss={loss.item():.6f} "
                 f"l1={l1_eval:.5f} ms={ms_eval:.5f} lp={lp_eval:.4f} "
                 f"color={lcolor.item():.5f} y={y_eval:.5f} opp={opp_eval:.5f} lab={lab_eval:.5f} "
+                f"asm={asm_eval_stats['assembled']:.5f} asm_y={asm_eval_stats['assembled_luma']:.5f} "
                 f"best={best:.6f} t={time.time() - t0:.1f}s",
                 flush=True,
             )
@@ -357,9 +526,28 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "score_y_weight": args.score_y_weight,
             "score_opponent_weight": args.score_opponent_weight,
             "score_lab_weight": args.score_lab_weight,
+            "score_assembled_weight": args.score_assembled_weight,
             "focus_intersect_crop": args.focus_intersect_crop,
             "focus_crop": args.focus_crop,
             "focus_weight": args.focus_weight,
+            "assembled_crop_weight": args.assembled_crop_weight,
+            "assembled_manifest": str(args.assembled_manifest) if args.assembled_manifest else None,
+            "assembled_focus_crop": args.assembled_focus_crop,
+            "assembled_crop_count": args.assembled_crop_count,
+            "assembled_ms_weight": args.assembled_ms_weight,
+            "assembled_lpips_weight": args.assembled_lpips_weight,
+            "assembled_y_weight": args.assembled_y_weight,
+            "assembled_lab_weight": args.assembled_lab_weight,
+            "assembled_groups": [
+                {
+                    "image_id": group.image_id,
+                    "crop": group.crop,
+                    "sample_indices": list(group.sample_indices),
+                    "canvas_size": list(group.canvas_size),
+                    "crop_xywh": list(group.crop_xywh),
+                }
+                for group in assembled_groups
+            ],
             "forbidden_inputs": ["winner JSON", "sample index", "crop identity key planes"],
             "samples": [
                 {
@@ -463,6 +651,14 @@ def main() -> int:
     ap.add_argument("--focus-intersect-crop", action="append", default=[], help="Oversample receipt rows whose intersects_crops contains this crop name.")
     ap.add_argument("--focus-crop", action="append", default=[], help="Oversample receipt rows whose crop id contains this substring.")
     ap.add_argument("--focus-weight", type=float, default=4.0)
+    ap.add_argument("--assembled-crop-weight", type=float, default=0.0, help="Add differentiable loss on manifest crops assembled from predicted receipt tiles.")
+    ap.add_argument("--assembled-manifest", type=Path, default=REPO / "tests/quality_gates/preview_holdout_set.json")
+    ap.add_argument("--assembled-focus-crop", action="append", default=[], help="Limit assembled-crop loss to this manifest crop name.")
+    ap.add_argument("--assembled-crop-count", type=int, default=1, help="Number of assembled crop groups to score per step.")
+    ap.add_argument("--assembled-ms-weight", type=float, default=0.20)
+    ap.add_argument("--assembled-lpips-weight", type=float, default=0.10)
+    ap.add_argument("--assembled-y-weight", type=float, default=4.0)
+    ap.add_argument("--assembled-lab-weight", type=float, default=2.0)
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--batch-size", type=int, default=0, help="Use stochastic mini-batches when positive; default keeps legacy full-batch training.")
     ap.add_argument("--architecture", choices=["direct", "dilated_context", "lowfreq_spatial"], default="direct")
@@ -480,6 +676,7 @@ def main() -> int:
     ap.add_argument("--score-y-weight", type=float, default=0.0)
     ap.add_argument("--score-opponent-weight", type=float, default=0.0)
     ap.add_argument("--score-lab-weight", type=float, default=0.0)
+    ap.add_argument("--score-assembled-weight", type=float, default=0.0)
     ap.add_argument("--log-every", type=int, default=100)
     ap.add_argument("--eval-only", action="store_true")
     args = ap.parse_args()
