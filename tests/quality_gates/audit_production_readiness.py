@@ -452,6 +452,34 @@ def check_nonref_preview_candidate() -> list[Check]:
         "PASS" if "Build PREVIEW holdout RGB crop pairs for runtime routed evaluation" in holdout_tool_text else "FAIL",
         "holdout source builder renders full images before cropping for metric rows",
     ))
+    fullframe_tool = REPO / "tools/cnn/evaluate_preview_scene_routed_fullframe.py"
+    fullframe_dashboard = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260606"
+        / "fullframe_tiled_v32_smoke_z8z6680_t512"
+        / "preview_scene_routed_fullframe.json"
+    )
+    if not fullframe_tool.exists():
+        checks.append(Check("preview_nonref", "full-frame tiled PREVIEW evaluator", "FAIL", "missing full-frame tiled evaluator"))
+    elif not fullframe_dashboard.exists():
+        checks.append(Check("preview_nonref", "full-frame tiled blocker receipt", "FAIL", f"missing {fullframe_dashboard}"))
+    else:
+        try:
+            fullframe = json.loads(fullframe_dashboard.read_text())
+            fullframe_summary = (fullframe.get("summary") or {}).get("preview_runtime_policy") or {}
+            fullframe_pass = int(fullframe_summary.get("pass_count", 0))
+            fullframe_count = int(fullframe_summary.get("count", 0))
+            checks.append(Check(
+                "preview_nonref",
+                "full-frame tiled blocker receipt",
+                "PASS" if fullframe_count >= 3 and fullframe_pass < fullframe_count else "FAIL",
+                f"{fullframe_pass}/{fullframe_count} pass; "
+                f"worst_lpips={float(fullframe_summary.get('worst_lpips', 999.0)):.4f}, "
+                f"worst_dE={float(fullframe_summary.get('worst_dE2000_mean', 999.0)):.2f}, "
+                f"receipt={fullframe_dashboard}",
+            ))
+        except Exception as exc:
+            checks.append(Check("preview_nonref", "full-frame tiled blocker receipt", "FAIL", f"bad JSON: {exc}"))
     return checks
 
 
