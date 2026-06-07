@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import re
+import struct
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -459,6 +460,86 @@ def check_file(area: str, name: str, rel_path: str, require_tracked: bool = True
     return Check(area, name, "PASS", rel_path)
 
 
+def check_external_file(area: str, name: str, path: Path, *, min_bytes: int = 1) -> Check:
+    if not path.exists():
+        return Check(area, name, "FAIL", f"missing {path}")
+    size = path.stat().st_size
+    return Check(
+        area,
+        name,
+        "PASS" if size >= min_bytes else "FAIL",
+        f"{path} size={size}",
+    )
+
+
+def ffprobe_video(path: Path) -> dict | None:
+    try:
+        out = subprocess.check_output(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "stream=codec_name,profile,width,height,avg_frame_rate,nb_frames",
+                "-of",
+                "json",
+                str(path),
+            ],
+            text=True,
+            stderr=subprocess.STDOUT,
+        )
+        data = json.loads(out)
+    except (FileNotFoundError, subprocess.CalledProcessError, json.JSONDecodeError):
+        return None
+    streams = data.get("streams") or []
+    return streams[0] if streams else None
+
+
+def check_prores_receipt(area: str, name: str, path: Path, *, min_frames: int = 1) -> Check:
+    base = check_external_file(area, name, path, min_bytes=1_000_000)
+    if base.status != "PASS":
+        return base
+    stream = ffprobe_video(path)
+    if stream is None:
+        return Check(area, name, "PASS", f"{path} exists; ffprobe unavailable")
+    codec = stream.get("codec_name")
+    frames = int(stream.get("nb_frames") or 0)
+    ok = codec == "prores" and frames >= min_frames
+    return Check(
+        area,
+        name,
+        "PASS" if ok else "FAIL",
+        f"{path} codec={codec} frames={frames} dims={stream.get('width')}x{stream.get('height')}",
+    )
+
+
+def check_gvid_receipt(area: str, name: str, path: Path, *, min_frames: int = 1) -> Check:
+    base = check_external_file(area, name, path, min_bytes=1_000_000)
+    if base.status != "PASS":
+        return base
+    try:
+        data = path.read_bytes()
+        header = struct.unpack("<IBBHHHIIIII", data[:32])
+    except Exception as exc:
+        return Check(area, name, "FAIL", f"bad .gvid header: {exc}")
+    magic, version, _flags, pixel_format, quality, _reserved, width, height, fps_x1000, _target_kbps, frame_count = header
+    ok = (
+        magic == 0x44495647
+        and version == 1
+        and width > 0
+        and height > 0
+        and fps_x1000 >= 24_000
+        and frame_count >= min_frames
+    )
+    return Check(
+        area,
+        name,
+        "PASS" if ok else "FAIL",
+        f"{path} frames={frame_count} {width}x{height}@{fps_x1000 / 1000:.2f} "
+        f"pixel_format={pixel_format} q={quality}",
+    )
+
+
 def check_capabilities_doc() -> Check:
     path = REPO / "docs/CAPABILITIES.md"
     if not path.exists():
@@ -604,6 +685,67 @@ def check_x2d_noise_receipts() -> list[Check]:
     return checks
 
 
+def check_upresable_media_receipts() -> list[Check]:
+    base = ARTIFACT_ROOT / "upresable_missing_hard_20260606"
+    summary = base / "summary.json"
+    checks = [
+        check_external_file("media_receipts", "hard-tail UPRESABLE summary", summary, min_bytes=128),
+        check_gvid_receipt("media_receipts", "hard-tail .gvid deliverable", base / "upresable_timelapse.gvid", min_frames=6),
+        check_external_file("media_receipts", "GPR1 MOV compatibility wrapper", base / "upresable_timelapse.gpr1.mov", min_bytes=1_000_000),
+        check_prores_receipt("media_receipts", "hard-tail ProRes review MOV", base / "upresable_timelapse.mov", min_frames=6),
+    ]
+    dngs = sorted((base / "editable_dng").glob("*.dng"))
+    gprs = sorted((base / "editable_gpr").glob("*.gpr"))
+    checks.append(Check(
+        "media_receipts",
+        "editable DNG exports",
+        "PASS" if len(dngs) >= 6 and all(p.stat().st_size > 10_000_000 for p in dngs) else "FAIL",
+        f"count={len(dngs)} dir={base / 'editable_dng'}",
+    ))
+    checks.append(Check(
+        "media_receipts",
+        "editable GPR exports",
+        "PASS" if len(gprs) >= 6 and all(p.stat().st_size > 1_000_000 for p in gprs) else "FAIL",
+        f"count={len(gprs)} dir={base / 'editable_gpr'}",
+    ))
+    if summary.exists():
+        try:
+            data = json.loads(summary.read_text())
+            stats = data.get("timelapse_stats") or {}
+            ok = (
+                stats.get("deliverable") == "gvid+prores"
+                and bool(stats.get("mov_compatibility"))
+                and bool(stats.get("dng_exported"))
+                and int(stats.get("n_frames", 0)) >= 6
+            )
+            checks.append(Check(
+                "media_receipts",
+                "hard-tail media summary contract",
+                "PASS" if ok else "FAIL",
+                f"deliverable={stats.get('deliverable')} mov={stats.get('mov_compatibility')} "
+                f"dng={stats.get('dng_exported')} frames={stats.get('n_frames')}",
+            ))
+        except Exception as exc:
+            checks.append(Check("media_receipts", "hard-tail media summary contract", "FAIL", f"bad JSON: {exc}"))
+    return checks
+
+
+def check_preview_review_media_receipts() -> list[Check]:
+    base = ARTIFACT_ROOT / "preview_review_20260604"
+    expected = [
+        ("codec-only ProRes review", "barnsky_codec_only_120f_4k_prores_hq.mov", 120),
+        ("SOTA-v2 ProRes review", "barnsky_sota_v2_120f_4k_prores_hq.mov", 120),
+        ("codec-vs-SOTA ProRes review", "barnsky_codec_vs_sota_v2_120f_3840x1080_prores_hq.mov", 120),
+        ("UPRESABLE ProRes review", "upresable_720f_4k_prores_hq.mov", 720),
+    ]
+    checks = [
+        check_external_file("media_receipts", "preview review dashboard", base / "preview_review_dashboard.html", min_bytes=1_000),
+    ]
+    for name, filename, frames in expected:
+        checks.append(check_prores_receipt("media_receipts", name, base / filename, min_frames=frames))
+    return checks
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--strict", action="store_true", help="exit non-zero when any check fails")
@@ -629,6 +771,8 @@ def main() -> int:
         "production UPRESABLE",
         "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse+demosaic=sips_via_gpr_tools",
     ))
+    checks.extend(check_upresable_media_receipts())
+    checks.extend(check_preview_review_media_receipts())
 
     checks.extend([
         check_file("container_gvid", "wire format header", "source/lib/vc5_encoder/gpr_video_format.h"),
