@@ -450,6 +450,22 @@ Additional follow-up diagnostics ruled out several simpler fixes:
   also fails 0/3 and regresses worst LPIPS to 0.4586. Larger local context by
   itself is not enough:
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_contextpad256_z8z6680_t512/preview_scene_routed_fullframe.json`
+- Dense 512px sliding-window tiling with 256px overlap improves the smoke but
+  still fails 0/3. Worst LPIPS improves from 0.3612 to 0.2713, worst MS-SSIM
+  from 0.7958 to 0.8884, worst Y-PSNR from 19.72 to 21.49, and worst dE2000
+  from 6.96 to 5.54. It also raises model time from 3.74 s/frame to 14.01
+  s/frame on the Mac/MPS diagnostic path:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_dense512_o256_z8z6680/preview_scene_routed_fullframe.json`
+- Overlap-save stitching with the same dense 512/256 geometry and a 128px
+  valid margin regresses the dense result to worst LPIPS 0.2895, worst MS-SSIM
+  0.8660, worst Y-PSNR 20.65, and worst dE2000 6.10. Discarding tile borders is
+  not the missing production fix:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_dense512_o256_valid128_z8z6680/preview_scene_routed_fullframe.json`
+- Route-context-only inference, where each tile is routed using a 256px padded
+  source window but the CNN still receives the original 512px tile, also
+  regresses to worst LPIPS 0.4001. Local route padding is not a stable way to
+  recover crop-equivalent routing:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_dense512_o256_routepad256_z8z6680/preview_scene_routed_fullframe.json`
 
 The route audit on `Z8Z_6680` now separates two causes. `A_detail` and
 `B_center` pass in crop mode but receive mixed experts when covered by
@@ -458,10 +474,11 @@ expert in all four intersecting tiles but still fails, which means the blocker
 is both route stability and model/source mismatch under arbitrary tile context.
 
 The next candidate should not be another scalar-conditioning or local-polish
-variant. It needs either a deterministic region/context router that produces
-crop-equivalent expert selection for full-frame tiles, or a stronger full-image
-model with an explicit low-frequency/spatial field branch supervised on
-assembled full-frame crops and arbitrary full-frame tiles.
+variant. Dense tiling helps but remains far outside the gate and too expensive
+for production, while overlap-save and route-context-only variants regress. The
+next candidate should be a stronger full-image model with an explicit
+low-frequency/spatial field branch supervised on assembled full-frame crops and
+arbitrary full-frame tiles.
 
 Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
 cluster-35 polish specialists as production PREVIEW until the full-frame/tiled
