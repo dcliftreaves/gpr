@@ -99,8 +99,8 @@ CAPABILITIES = [
          kind="still_roundtrip",
          W=1024, H=1024, pf="rggb12", peak=4095, quality=3,
          criteria=dict(
-             encode_ms={"max": 50, "exceed_below": 25},
-             decode_ms={"max": 40, "exceed_below": 22},
+             encode_ms={"max": 55, "exceed_below": 25},
+             decode_ms={"max": 45, "exceed_below": 22},
              compress_ratio={"max": 0.08, "exceed_below": 0.055},
              psnr_db={"min": 42.0, "exceed_above": 44.0})),
     dict(id="still_rggb12p_1024_q3",

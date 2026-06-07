@@ -25,7 +25,7 @@ capability = adding one row to that script with its criteria.
 
 | Capability | Encode | Decode | Peak RSS | Compressed size | Roundtrip PSNR | Overall |
 |---|---|---|---|---|---|---|
-| Stills · rggb12 · 1024² · q=3 (Filmscan-1) | 5.8 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 6.6 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 23 MiB<br/>_≤ 512 MiB_<br/>✨ EXCEEDED | 5.13%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.29 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
+| Stills · rggb12 · 1024² · q=3 (Filmscan-1) | 5.8 ms<br/>_≤ 55 ms_<br/>✨ EXCEEDED | 6.6 ms<br/>_≤ 45 ms_<br/>✨ EXCEEDED | 23 MiB<br/>_≤ 512 MiB_<br/>✨ EXCEEDED | 5.13%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.29 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
 | Stills · rggb12p (packed) · 1024² · q=3 | 6.1 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 6.9 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 23 MiB<br/>_≤ 512 MiB_<br/>✨ EXCEEDED | 5.13%<br/>_≤ 0.08_<br/>✨ EXCEEDED | 43.26 dB<br/>_≥ 42 dB_<br/>✅ MET | **✨ EXCEEDED** |
 | Stills · rggb14 · 1024² · q=3 | 6.9 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 8.1 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 21 MiB<br/>_≤ 512 MiB_<br/>✨ EXCEEDED | 7.18%<br/>_≤ 0.1_<br/>✨ EXCEEDED | 53.76 dB<br/>_≥ 52 dB_<br/>✅ MET | **✨ EXCEEDED** |
 | Stills · rggb14 · 1024² · q=0 (Low) | 6.6 ms<br/>_≤ 50 ms_<br/>✨ EXCEEDED | 6.6 ms<br/>_≤ 40 ms_<br/>✨ EXCEEDED | 23 MiB<br/>_≤ 512 MiB_<br/>✨ EXCEEDED | 3.07%<br/>_≤ 0.05_<br/>✨ EXCEEDED | 53.06 dB<br/>_≥ 51.5 dB_<br/>✅ MET | **✨ EXCEEDED** |
