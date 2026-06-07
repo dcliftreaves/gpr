@@ -200,6 +200,43 @@ def fmt(value: Any, digits: int = 3) -> str:
     return html.escape(str(value))
 
 
+def sidecar_payload(
+    *,
+    source_receipt: Path,
+    clusters: list[dict[str, Any]],
+    mean: np.ndarray,
+    std: np.ndarray,
+    centers_z: np.ndarray,
+    centers: np.ndarray,
+) -> dict[str, Any]:
+    return {
+        "schema": "preview_scene_router_sidecar.v1",
+        "source_receipt": str(source_receipt),
+        "router": {
+            "type": "zscore_nearest_center",
+            "feature_names": FEATURE_NAMES,
+            "feature_mean": {name: float(mean[idx]) for idx, name in enumerate(FEATURE_NAMES)},
+            "feature_std": {name: float(std[idx]) for idx, name in enumerate(FEATURE_NAMES)},
+            "centers_z": [
+                {name: float(centers_z[row, idx]) for idx, name in enumerate(FEATURE_NAMES)}
+                for row in range(centers_z.shape[0])
+            ],
+            "centers": [
+                {name: float(centers[row, idx]) for idx, name in enumerate(FEATURE_NAMES)}
+                for row in range(centers.shape[0])
+            ],
+        },
+        "cluster_roles": {
+            str(cluster["cluster"]): cluster["suggested_expert"]
+            for cluster in clusters
+        },
+        "router_inputs": {
+            "allowed": ["source RGB crop/frame", "runtime metadata"],
+            "forbidden": ["REF content", "REF-derived fields", "gate metrics", "image id", "crop id", "winner JSON"],
+        },
+    }
+
+
 def build(args: argparse.Namespace) -> dict[str, Any]:
     receipt = json.loads(args.receipt.read_text())
     rows = resolve_rows(receipt, args.source_root)
@@ -240,6 +277,14 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 "failures": [f"{r['image_id']}:{r['crop']}" for r in failures],
             }
         )
+    sidecar = sidecar_payload(
+        source_receipt=args.receipt,
+        clusters=clusters,
+        mean=mean,
+        std=std,
+        centers_z=centers_z,
+        centers=centers,
+    )
     return {
         "schema": "preview_scene_router_audit.v1",
         "receipt": str(args.receipt),
@@ -247,6 +292,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "allowed": ["source RGB crop/frame", "runtime metadata"],
             "forbidden": ["REF content", "REF-derived fields", "gate metrics", "image id", "crop id", "winner JSON"],
         },
+        "router_sidecar": sidecar,
         "clusters": clusters,
         "rows": out_rows,
     }
@@ -302,14 +348,20 @@ def main() -> int:
     ap.add_argument("--clusters", type=int, default=5)
     ap.add_argument("--out-json", type=Path, required=True)
     ap.add_argument("--out-html", type=Path, required=True)
+    ap.add_argument("--out-sidecar", type=Path)
     args = ap.parse_args()
     args.out_json.parent.mkdir(parents=True, exist_ok=True)
     args.out_html.parent.mkdir(parents=True, exist_ok=True)
     payload = build(args)
     args.out_json.write_text(json.dumps(payload, indent=2))
+    if args.out_sidecar:
+        args.out_sidecar.parent.mkdir(parents=True, exist_ok=True)
+        args.out_sidecar.write_text(json.dumps(payload["router_sidecar"], indent=2))
     write_html(payload, args.out_html)
     print(json.dumps({"clusters": payload["clusters"]}, indent=2))
     print(args.out_json)
+    if args.out_sidecar:
+        print(args.out_sidecar)
     print(args.out_html)
     return 0
 

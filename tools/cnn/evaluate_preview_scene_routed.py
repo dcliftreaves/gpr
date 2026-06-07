@@ -25,7 +25,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools/test"))
 sys.path.insert(0, str(REPO / "tools/cnn"))
 
-from build_preview_scene_router_audit import discover_sources  # noqa: E402
+from build_preview_scene_router_audit import FEATURE_NAMES, discover_sources, feature_vector  # noqa: E402
 from evaluate_preview_runtime_policy import build_input, load_rgb, summarize, write_html  # noqa: E402
 from metrics import compute_visual_metrics  # noqa: E402
 from train_display_rgb_direct_nonref import DirectRGBRefiner, pass_preview  # noqa: E402
@@ -102,9 +102,40 @@ def resolve_ref(row: dict[str, Any], source_map: dict[tuple[str, str, str], Path
     return path
 
 
+def route_from_sidecar(source_path: Path, sidecar: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+    router = sidecar.get("router") or {}
+    if router.get("type") != "zscore_nearest_center":
+        raise ValueError(f"unsupported router sidecar type: {router.get('type')!r}")
+    names = router.get("feature_names") or []
+    if names != FEATURE_NAMES:
+        raise ValueError("router sidecar feature_names do not match evaluator feature extractor")
+    mean = np.array([float((router.get("feature_mean") or {})[name]) for name in FEATURE_NAMES], dtype=np.float64)
+    std = np.array([float((router.get("feature_std") or {})[name]) for name in FEATURE_NAMES], dtype=np.float64)
+    centers_z = np.array(
+        [
+            [float(center[name]) for name in FEATURE_NAMES]
+            for center in (router.get("centers_z") or [])
+        ],
+        dtype=np.float64,
+    )
+    if centers_z.ndim != 2 or centers_z.shape[0] == 0 or centers_z.shape[1] != len(FEATURE_NAMES):
+        raise ValueError("router sidecar has invalid centers_z")
+    std = np.where(std < 1e-6, 1.0, std)
+    features = feature_vector(source_path)
+    z = (features - mean) / std
+    distances = ((centers_z - z[None, :]) ** 2).sum(axis=1)
+    cluster = int(distances.argmin())
+    return cluster, {
+        "route_source": "frozen_sidecar_nearest_center",
+        "route_distance": float(distances[cluster]),
+        "features": {name: float(features[idx]) for idx, name in enumerate(FEATURE_NAMES)},
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--router-audit", type=Path, required=True)
+    ap.add_argument("--router-sidecar", type=Path)
     ap.add_argument("--source-root", type=Path, action="append", required=True)
     ap.add_argument("--default-checkpoint", type=Path, required=True)
     ap.add_argument("--cluster-checkpoint", action="append", default=[], help="CLUSTER=PATH")
@@ -120,6 +151,7 @@ def main() -> int:
     args.dashboard_html.parent.mkdir(parents=True, exist_ok=True)
 
     audit = json.loads(args.router_audit.read_text())
+    sidecar = json.loads(args.router_sidecar.read_text()) if args.router_sidecar else None
     source_map = discover_sources(args.source_root)
     cluster_ckpts = parse_cluster_checkpoint(args.cluster_checkpoint)
     all_ckpts = {"default": args.default_checkpoint, **{f"cluster_{k}": v for k, v in cluster_ckpts.items()}}
@@ -133,11 +165,15 @@ def main() -> int:
     save_ms: list[float] = []
     metric_ms: list[float] = []
     for row in audit.get("rows") or []:
-        cluster = int(row["cluster"])
+        source_path = resolve_source(row, source_map)
+        if sidecar:
+            cluster, route = route_from_sidecar(source_path, sidecar)
+        else:
+            cluster = int(row["cluster"])
+            route = {"route_source": "router_audit_row_cluster"}
         ckpt_path = cluster_ckpts.get(cluster, args.default_checkpoint)
         model_key = f"cluster_{cluster}" if cluster in cluster_ckpts else "default"
         model = models[model_key]
-        source_path = resolve_source(row, source_map)
         ref_path = resolve_ref(row, source_map)
         source = load_rgb(source_path)
         ref = load_rgb(ref_path)
@@ -170,6 +206,7 @@ def main() -> int:
                 "image_id": row["image_id"],
                 "crop": row["crop"],
                 "cluster": cluster,
+                **route,
                 "checkpoint_role": model_key,
                 "checkpoint": str(ckpt_path),
                 "source_label": row["source_label"],
@@ -197,7 +234,10 @@ def main() -> int:
             "forbidden_inputs": ["REF image content", "REF HF/LF fields", "winner JSON", "sample index", "crop identity key planes", "gate metrics"],
             "render_inputs": ["source RGB frame/crop", "runtime feature cluster", "selected checkpoint"],
             "device": str(DEVICE),
+            "router_sidecar": str(args.router_sidecar) if args.router_sidecar else None,
+            "router_assignment": "frozen_sidecar_nearest_center" if args.router_sidecar else "router_audit_row_cluster",
         },
+        "router_sidecar_sha256": sha256_file(args.router_sidecar) if args.router_sidecar else None,
         "checkpoints": {
             role: {"path": str(path), "sha256": sha256_file(path)}
             for role, path in all_ckpts.items()

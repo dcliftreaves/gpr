@@ -125,6 +125,16 @@ Receipt:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_k5_v1/preview_scene_routed.json
 ```
 
+The v1 receipt used the audit row's cluster assignment. The production-shaped
+v2 receipt freezes the router feature schema, z-score statistics, and cluster
+centers in a sidecar, then reassigns each row by nearest center from the source
+RGB crop:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_router_audit_k5/preview_scene_router_sidecar.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_k5_v2/preview_scene_routed.json
+```
+
 Experts:
 
 - default: `runtime_refiner_priority_zero_cont_colorlight`;
@@ -138,6 +148,7 @@ Result:
 |---|---:|---:|---:|---:|---:|---:|---:|
 | single runtime refiner | 11/16 | 0.0587 | 0.8706 | 27.49 | 4.56 | 9.12 ms/crop | 911.9 MB |
 | scene-routed k=5 v1 | 12/16 | 0.0511 | 0.9115 | 28.61 | 4.17 | 9.21 ms/crop | 913.3 MB |
+| scene-routed k=5 v2 sidecar | 12/16 | 0.0511 | 0.9115 | 28.61 | 4.17 | 9.24 ms/crop | 912.4 MB |
 
 The routed ensemble clears the temporary >70% runtime dashboard target. The
 remaining four failures are:
@@ -148,5 +159,5 @@ remaining four failures are:
 - `Z8Z_7480:upper_left`: MS-SSIM still low.
 
 This validates the multi-expert direction enough to continue, but it is not a
-ship pipeline until the router sidecar, larger holdout, full-image path, and
-model-loading policy are hardened.
+ship pipeline until larger holdout coverage, full-image source/render behavior,
+and model-loading policy are hardened.
