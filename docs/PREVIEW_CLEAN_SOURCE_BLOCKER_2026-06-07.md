@@ -185,16 +185,43 @@ MS-SSIM 0.9642, Y-PSNR 33.31 dB, and dE2000 1.81. This is still diagnostic:
 the override is too narrow to register as production without a broader
 generalization check.
 
+### v28: K16 Structure Override
+
+Path:
+
+`scene_routed_holdout_v28_k16_c10v3_c15_override/preview_scene_routed_holdout.json`
+
+Summary:
+
+- pass: 82/84
+- pass rate: 97.62%
+- worst LPIPS: 0.0498
+- median LPIPS: 0.0068
+- worst MS-SSIM: 0.9642
+- worst Y-PSNR: 27.41 dB
+- worst dE2000 mean: 4.03
+
+This is the current best diagnostic route. It keeps the K5 route intact and
+uses a K16 source-feature override for two narrow structure cases:
+
+- K16 cluster 10 uses `scene_expert_k16_cluster10_ms_content_v3`, which
+  cleared `Z8Z_7480 A_detail` and `Z8Z_7480 C_lowerleft` while preserving
+  its two passing neighbors.
+- K16 cluster 15 maps the prior `Z8Z_7480 B_center` specialist through the
+  same K16 sidecar.
+
+The route is still not production PREVIEW. It fails two high-texture
+cluster-4 color/luma rows, and the remaining miss is now dE/Y rather than
+LPIPS or structure.
+
 ## Remaining Failures
 
-v26 failures:
+v28 failures:
 
 | image | crop | cluster | conditioning | LPIPS | MS-SSIM | Y-PSNR | dE2000 |
 |---|---|---:|---|---:|---:|---:|---:|
 | Z8Z_0026 | B_center | 4 | content_stats | 0.0234 | 0.9781 | 29.53 | 3.66 |
 | Z8Z_6680 | C_lowerleft | 4 | content_stats | 0.0183 | 0.9763 | 27.41 | 4.03 |
-| Z8Z_7480 | A_detail | 1 | zero | 0.0595 | 0.9159 | 30.28 | 2.77 |
-| Z8Z_7480 | C_lowerleft | 4 | content_stats | 0.0341 | 0.9421 | 31.62 | 2.36 |
 
 ## Ruled Out
 
@@ -233,24 +260,32 @@ v26 failures:
 - K8/K12 cluster-10 style specialists for `Z8Z_0026`/`Z8Z_6680` high-texture
   rows regressed `Z8Z_6680 B_center`, which already passes under the cluster-2
   polished expert.
+- A K16 cluster-10 MS/content-stat specialist cleared the remaining
+  `Z8Z_7480` structure rows and raised the route to 82/84, but does not touch
+  the two cluster-4 color/luma failures.
+- K16 cluster 7, K24 cluster 21, and K40 cluster 35 color/luma specialists all
+  failed isolated checks for the remaining `Z8Z_0026`/`Z8Z_6680` rows. The
+  best K40 diagnostic still left dE2000 at 3.35 and 3.61 against a 3.0 PREVIEW
+  ceiling.
 
 ## Current Blocker
 
-The remaining failures are not caused by REF leakage, stale source files, or
-a simple fixed color transform. They are concentrated in hard source/target
-rows where the clean UPRESABLE source starts far outside the PREVIEW gate and
-the current crop-local expert improves LPIPS substantially but under-corrects
-low-frequency luma/color and local structure.
+The remaining failures are not caused by REF leakage, stale source files,
+router granularity, source pass-through, or a simple fixed color transform.
+They are concentrated in hard source/target rows where the clean UPRESABLE
+source starts far outside the PREVIEW gate and the current crop-local expert
+improves LPIPS/MS-SSIM substantially but under-corrects low-frequency
+luma/color.
 
 Most likely next causes to test:
 
 - full-image context may still be required, but it likely needs a real
   full-frame/tiled render path rather than naive 768-crop retraining;
 - the UPRESABLE source target is not aligned enough with REF for these scenes;
-- the current model can improve gate-space luma/color but lacks enough
-  structure/detail correction for the remaining rows;
-- a stronger teacher/full-image target is needed for `Z8Z_0026`, `Z8Z_6680`,
-  and `Z8Z_7480`.
+- the current model can improve gate-space luma/color but cannot finish the
+  remaining dE/Y correction from source RGB features alone;
+- a stronger teacher/full-image target is needed for `Z8Z_0026` and
+  `Z8Z_6680`.
 
-Do not register v11 through v26 as production PREVIEW. They are diagnostic
+Do not register v11 through v28 as production PREVIEW. They are diagnostic
 candidates only.
