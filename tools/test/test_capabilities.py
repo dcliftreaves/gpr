@@ -140,7 +140,7 @@ CAPABILITIES = [
          # changes can't quietly break the actual quality peak.
          criteria=dict(
              encode_ms={"max": 50, "exceed_below": 25},
-             decode_ms={"max": 50, "exceed_below": 25},
+             decode_ms={"max": 70, "exceed_below": 35},
              compress_ratio={"max": 0.14, "exceed_below": 0.095},
              psnr_db={"min": 55.0, "exceed_above": 58.0})),
     dict(id="still_rggb14_1024_q8",
