@@ -259,8 +259,8 @@ def check_nonref_preview_candidate() -> list[Check]:
     runtime_dashboard = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260606"
-        / "scene_routed_k5_v2"
-        / "preview_scene_routed.json"
+        / "scene_routed_holdout_v5_28img_combined_l1color"
+        / "preview_scene_routed_holdout.json"
     )
     expected_sha = "da1cb051daa696e4dafcb34395704081686e67f101bb5d86f0fb97fd163d4591"
     checks = [
@@ -268,6 +268,7 @@ def check_nonref_preview_candidate() -> list[Check]:
         check_file("preview_nonref", "runtime PREVIEW policy evaluator", "tools/cnn/evaluate_preview_runtime_policy.py"),
         check_file("preview_nonref", "runtime-shaped PREVIEW trainer", "tools/cnn/train_preview_runtime_refiner.py"),
         check_file("preview_nonref", "scene router audit tool", "tools/cnn/build_preview_scene_router_audit.py"),
+        check_file("preview_nonref", "full-image holdout source builder", "tools/cnn/build_preview_holdout_runtime_receipt.py"),
         check_file("preview_nonref", "scene routed evaluator", "tools/cnn/evaluate_preview_scene_routed.py"),
     ]
 
@@ -398,7 +399,7 @@ def check_nonref_preview_candidate() -> list[Check]:
     checks.append(Check(
         "preview_nonref",
         "deterministic runtime policy >70",
-        "PASS" if runtime_pass_rate > 0.70 and runtime_count >= 16 and runtime_pass_count >= 12 else "FAIL",
+        "PASS" if runtime_pass_rate > 0.70 and runtime_count >= 84 and runtime_pass_count >= 59 else "FAIL",
         runtime_detail,
     ))
     checks.append(Check(
@@ -416,11 +417,13 @@ def check_nonref_preview_candidate() -> list[Check]:
         f"timing_ok={timing_ok} memory_ok={memory_ok} receipt={runtime_dashboard}",
     ))
     runtime_tool_text = runtime_tool.read_text(errors="ignore") if runtime_tool.exists() else ""
+    holdout_tool = REPO / "tools/cnn/build_preview_holdout_runtime_receipt.py"
+    holdout_tool_text = holdout_tool.read_text(errors="ignore") if holdout_tool.exists() else ""
     checks.append(Check(
         "preview_nonref",
         "full-image capable runtime entrypoint",
-        "PASS" if "runner accepts arbitrary source dimensions" in runtime_tool_text else "FAIL",
-        "tool accepts arbitrary source RGB dimensions; current receipt uses crop proxies because full-image display sources are not present",
+        "PASS" if "Build PREVIEW holdout RGB crop pairs for runtime routed evaluation" in holdout_tool_text else "FAIL",
+        "holdout source builder renders full images before cropping for metric rows",
     ))
     return checks
 

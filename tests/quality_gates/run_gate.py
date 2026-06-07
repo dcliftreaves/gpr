@@ -421,6 +421,12 @@ def apply_cnn(
     The variant is read from the checkpoint metadata; the registry's
     cnn_arch_variant is a fallback. The "rgb" return tag signals downstream
     code to skip demosaic_to_png and use the RGB result directly."""
+    if cnn.get("cnn_arch_variant") == "preview_scene_routed_rgb_refiner":
+        die(
+            2,
+            "preview_scene_routed_rgb_refiner is an external-receipt PREVIEW "
+            "candidate; evaluate it with tools/cnn/evaluate_preview_scene_routed.py",
+        )
     if (cnn.get("ckpt_path") is None
             and cnn.get("cnn_arch_variant") not in ("ycbcr_decomp", "lab_chroma_corrector")):
         return bayer

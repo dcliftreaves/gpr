@@ -213,6 +213,42 @@
       "chroma_baseline": "demosaic_sips",
       "raw_norm": 16383.0
     },
+    "preview_scene_routed_k5_l1color_v1": {
+      "$doc": "Temporary no-REF display PREVIEW routed RGB candidate. Frozen k=5 runtime source-feature router selects preloaded RGB refiner experts. Full-image 28-image holdout receipt clears the temporary >70% target at 61/84, but severe failures remain on Z8Z_0026, Z8Z_0705, and several newly covered hard images; not a ship claim.",
+      "cnn_arch_variant": "preview_scene_routed_rgb_refiner",
+      "trained_against_codec": "ml2_q3_dec2",
+      "conditioning": "zero",
+      "router_assignment": "frozen_sidecar_nearest_center",
+      "model_loading_policy": "preload_all_configured_experts",
+      "external_receipt_only": true,
+      "router_sidecar_path": "artifacts/preview_runtime_policy_20260606/scene_router_audit_k5/preview_scene_router_sidecar.json",
+      "router_sidecar_sha256": "279473e92798dac82d818584a5f84f7edb73495faa53c0933473149987eee932",
+      "expert_checkpoints": {
+        "default": {
+          "path": "artifacts/preview_runtime_policy_20260606/runtime_refiner_priority_zero_cont_colorlight/preview_runtime_refiner.pt",
+          "sha256": "fc3d22aa980537e6f7a9b54af3ce7c618693e3fe8c7ba2cde557be2a74b76344"
+        },
+        "cluster_0": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_cluster0_combined_l1color_v1/preview_runtime_refiner.pt",
+          "sha256": "5d1c5ff40b495b2df3b3e7550db48dac98b391d62bcfb4d840696f5e8abd1cc4"
+        },
+        "cluster_1": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_cluster1_combined_l1color_v1/preview_runtime_refiner.pt",
+          "sha256": "14fefd44c3df5ddbe9b609f82e64ff1da3acbd7747155ca05aed6dca6495eea2"
+        },
+        "cluster_3": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_cluster3_combined_l1color_v1/preview_runtime_refiner.pt",
+          "sha256": "1de563b8cb15d1c5275f544fce2ca3d16afef9d1576f0f87985b60083b02d395"
+        },
+        "cluster_4": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_cluster4_lf_color/preview_runtime_refiner.pt",
+          "sha256": "64e7d084115cf839c6e4684037b6f431d7b7db4805b3c370ae77072f6d0c8fc4"
+        }
+      },
+      "holdout_receipt": "artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v5_28img_combined_l1color/preview_scene_routed_holdout.json",
+      "video_receipt": "artifacts/upresable_missing_hard_20260606/summary.json",
+      "raw_norm": 255.0
+    },
     "none": {
       "$doc": "No CNN \u2014 codec output is the final result."
     }
@@ -329,6 +365,14 @@
       "ship_class": "PREVIEW",
       "$role": "preview-color-guard-lab-sips",
       "$doc": "PREVIEW color guardrail pipeline. This is registered to preserve the solved dE/color direction while the remaining full-image detail-placement blocker is handled separately."
+    },
+    "codec=ml2_q3_dec2+cnn=preview_scene_routed_k5_l1color_v1+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "preview_scene_routed_k5_l1color_v1",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-scene-routed-k5-l1color-20260606",
+      "$doc": "Temporary no-REF routed PREVIEW candidate. Registered after full-image 28-image holdout coverage reached 61/84 pass with frozen sidecar routing, checkpoint hashes, timing/memory receipts, and .gvid/ProRes review output. Not a ship claim because worst failures remain severe and the old crop-proxy dashboard regresses."
     },
     "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_l2x2_l1x2",

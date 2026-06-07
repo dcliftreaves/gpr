@@ -65,19 +65,45 @@ runtime dashboard target:
 - receipt contract: `router_assignment=frozen_sidecar_nearest_center`; every row
   records `route_source=frozen_sidecar_nearest_center`.
 
-This is production-shaped but not fully promoted: it still needs larger holdout
-coverage, full-image/source-path validation, and a model-loading policy before
-it becomes a ship pipeline.
+The first hard-routed receipt was production-shaped but not fully promoted:
+larger holdout coverage and full-image source-path validation were still
+missing.
+
+The follow-up routed candidate is now registered as a temporary PREVIEW
+pipeline:
+
+```text
+codec=ml2_q3_dec2+cnn=preview_scene_routed_k5_l1color_v1+demosaic=sips_via_gpr_tools
+```
+
+Full-image holdout source coverage is 28/28 images and 84/84 crop rows:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/holdout_runtime_crops_v4_28img/preview_holdout_runtime_source_receipt.json
+```
+
+Routed v5 result:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v5_28img_combined_l1color/preview_scene_routed_holdout.json
+```
+
+Result: 61/84 pass, 72.6%. This clears the temporary >70 no-REF runtime target
+with frozen sidecar routing, expert checkpoint hashes, model-loading timing,
+memory receipts, and full-image source renders. It is still not a ship claim:
+worst LPIPS is 1.0348, worst dE2000 is 37.01, and clusters 2/4 fail badly on
+the newly covered hard images. The old 16-row crop proxy also regresses to 6/16
+with these specialists, confirming that the proxy source domain is not a
+reliable promotion gate for the corrected full-image path.
 
 ## Next Step
 
 Next hardening steps for the scene-routed candidate:
 
-- rerun on the larger holdout set and report per-cluster pass/fail;
-- train specialists from more rows per cluster, not only the current 16-crop
-  dashboard;
-- validate full-image source/render behavior;
-- define model-loading policy: preload all experts, or lazy-load per scene;
+- train clusters 2 and 4 using the regenerated full-image source artifacts;
+- reduce the worst-row LPIPS/dE failures, not only the aggregate pass rate;
+- decide whether the old crop proxy should be retired or converted to the same
+  full-image source/render path;
 - keep dE2000 mean <= 3.0 as the color guardrail for every row.
 
 The next technical lever should be a production-source LF/color model, not more

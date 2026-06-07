@@ -246,16 +246,14 @@ def render_dng_to_tiff16(dng_path: Path, out_tiff: Path, target_dims=None):
     if r.returncode != 0:
         raise RuntimeError(f"sips failed: {r.stderr[-200:]}")
     if target_dims is not None:
-        arr = cv2.imread(str(out_tiff), cv2.IMREAD_UNCHANGED)
-        if arr is None:
-            raise RuntimeError(f"cv2 couldn't read TIFF {out_tiff}")
+        arr = tifffile.imread(out_tiff)
         if arr.dtype != np.uint16:
             # Coerce — should not happen but guard
             arr = arr.astype(np.uint16) * 257 if arr.dtype == np.uint8 else arr.astype(np.uint16)
         H, W = arr.shape[:2]
         if (W, H) != target_dims:
             arr = cv2.resize(arr, target_dims, interpolation=cv2.INTER_LANCZOS4)
-        cv2.imwrite(str(out_tiff), arr)
+        tifffile.imwrite(out_tiff, arr)
 
 
 def render_dng_to_png_8bit(dng_path: Path, out_png: Path, target_dims=None):
@@ -331,6 +329,11 @@ def main():
                          "(legacy; ~70%% of per-frame time). Default off: .gvid "
                          "is the primary deliverable, DNG is an optional "
                          "correctness check / hand-off to Adobe / darktable.")
+    ap.add_argument("--src-dir", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs"),
+                    help="Directory of source DNG frames for timelapse mode.")
+    ap.add_argument("--image-id", action="append",
+                    help="Specific source DNG stem to include in timelapse mode. "
+                         "May be passed multiple times.")
     ap.add_argument("--render-prores", action="store_true",
                     help="Also assemble a 16-bit ProRes 422 HQ review file by "
                          "demosaicing every frame through sips. Useful for "
@@ -452,9 +455,18 @@ def main():
 
     # === TIMELAPSE on N barnsky frames ===
     if args.mode in ("timelapse", "both"):
-        print(f"\n=== TIMELAPSE: {args.n_frames} barnsky frames ===")
-        all_dngs = sorted(Path("/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs").glob("*.dng"))
-        selected = all_dngs[:args.n_frames]
+        print(f"\n=== TIMELAPSE: source frames from {args.src_dir} ===")
+        if args.image_id:
+            selected = [args.src_dir / f"{image_id}.dng" for image_id in args.image_id]
+            missing = [str(path) for path in selected if not path.exists()]
+            if missing:
+                raise FileNotFoundError(f"missing requested source DNGs: {missing}")
+        else:
+            all_dngs = sorted(args.src_dir.glob("*.dng"))
+            selected = all_dngs[:args.n_frames]
+        if not selected:
+            raise RuntimeError(f"no source DNG frames selected from {args.src_dir}")
+        args.n_frames = len(selected)
 
         # File-based ffmpeg assembly (NO stdin pipe — avoids deadlocks under
         # parallel load; workers write TIFFs/PNGs to disk, ffmpeg reads at end).

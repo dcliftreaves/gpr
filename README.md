@@ -141,7 +141,7 @@ rejected `GPR_INCLUDE_LL=1` and decimated codec configs). Gate runner
 now tolerates `dec2+SR` chains and `bayer_psnr_final` is gateable
 alongside the rendered metrics.
 
-### PREVIEW runtime research status — not promoted
+### PREVIEW runtime research status — temporary candidate
 
 The current production PREVIEW ship claim remains the codec-only gate above.
 The newer no-REF display refiner work is a candidate path, not a shipped
@@ -150,21 +150,31 @@ same work is forced through deterministic runtime inputs — no REF content, no
 winner JSON, no sample index, and no crop-key planes — the single-refiner
 production-source candidate tops out at **11/16 (68.75%)**. A first hard-routed
 scene/degradation ensemble improves that to **12/16 (75.0%)**, clearing the
-temporary >70% runtime dashboard bar. The current v2 receipt routes from a
-frozen nearest-center sidecar computed from runtime source-image features; it
-does not read the audit row's preassigned cluster at render/evaluation time.
+temporary >70% runtime dashboard bar.
 
-The routed receipt is:
+The current temporary registered candidate is:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_k5_v2/preview_scene_routed.json
+codec=ml2_q3_dec2+cnn=preview_scene_routed_k5_l1color_v1+demosaic=sips_via_gpr_tools
 ```
 
-Median model time on the M5/MPS crop receipt is **9.24 ms/crop** with peak RSS
-**912.4 MB**. LPIPS is no longer the main miss; the remaining failures are
-LF/color and structure guardrails. This still needs larger holdout and
-full-image validation before it can be promoted as a ship pipeline. See
+It uses a frozen nearest-center router sidecar computed from runtime
+source-image features and preloaded expert checkpoints. The full-image
+28-image holdout now has 84/84 source rows and the v5 routed receipt clears
+the temporary no-REF runtime target at **61/84 (72.6%)**.
+
+The routed v5 receipt is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v5_28img_combined_l1color/preview_scene_routed_holdout.json
+```
+
+Median model time on the Mac/MPS holdout receipt is **13.48 ms/crop** with peak
+RSS **1478 MB**. This is still not a ship claim: worst LPIPS is **1.0348**,
+worst dE2000 is **37.01**, and clusters 2/4 fail badly on the newly covered
+hard images. See
 [`docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md`](docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md)
+[`docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md),
 and [`docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md).
 
 ---
