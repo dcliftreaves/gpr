@@ -338,14 +338,19 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
         ]
     for x0, y0, x1, y1, tile_label in tile_specs:
             pad = max(0, int(args.model_context_padding))
+            route_pad = max(pad, int(args.route_context_padding))
             cx0 = max(0, x0 - pad)
             cy0 = max(0, y0 - pad)
             cx1 = min(width, x1 + pad)
             cy1 = min(height, y1 + pad)
+            rx0 = max(0, x0 - route_pad)
+            ry0 = max(0, y0 - route_pad)
+            rx1 = min(width, x1 + route_pad)
+            ry1 = min(height, y1 + route_pad)
             tile_rgb = source_rgb[y0:y1, x0:x1]
             context_rgb = source_rgb[cy0:cy1, cx0:cx1]
+            route_rgb = source_rgb[ry0:ry1, rx0:rx1]
             tile_path = work / f"{image_id}_tile_{x0}_{y0}.png"
-            route_rgb = context_rgb if pad > 0 else tile_rgb
             t0 = time.perf_counter()
             Image.fromarray(route_rgb).save(tile_path)
             save_tile_ms.append((time.perf_counter() - t0) * 1000.0)
@@ -382,17 +387,27 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             ox0 = x0 - cx0
             oy0 = y0 - cy0
             pred_rgb = pred_context_rgb[oy0:oy0 + (y1 - y0), ox0:ox0 + (x1 - x0)]
-            w = tile_weight(pred_rgb.shape[0], pred_rgb.shape[1])
-            y1 = y0 + pred_rgb.shape[0]
-            x1 = x0 + pred_rgb.shape[1]
-            out_acc[y0:y1, x0:x1] += pred_rgb.astype(np.float32) * w
-            weight_acc[y0:y1, x0:x1] += w
+            valid_margin = max(0, int(args.valid_margin))
+            local_x0 = 0 if x0 == 0 else min(valid_margin, max(0, pred_rgb.shape[1] - 1))
+            local_y0 = 0 if y0 == 0 else min(valid_margin, max(0, pred_rgb.shape[0] - 1))
+            local_x1 = pred_rgb.shape[1] if x1 >= width else max(local_x0 + 1, pred_rgb.shape[1] - valid_margin)
+            local_y1 = pred_rgb.shape[0] if y1 >= height else max(local_y0 + 1, pred_rgb.shape[0] - valid_margin)
+            valid_rgb = pred_rgb[local_y0:local_y1, local_x0:local_x1]
+            w = tile_weight(valid_rgb.shape[0], valid_rgb.shape[1])
+            out_y0 = y0 + local_y0
+            out_x0 = x0 + local_x0
+            out_y1 = out_y0 + valid_rgb.shape[0]
+            out_x1 = out_x0 + valid_rgb.shape[1]
+            out_acc[out_y0:out_y1, out_x0:out_x1] += valid_rgb.astype(np.float32) * w
+            weight_acc[out_y0:out_y1, out_x0:out_x1] += w
             input_ms.append((t1 - t0) * 1000.0)
             model_ms.append((t2 - t1) * 1000.0)
             tile_rows.append(
                 {
                     "xywh": [x0, y0, pred_rgb.shape[1], pred_rgb.shape[0]],
+                    "route_context_xywh": [rx0, ry0, rx1 - rx0, ry1 - ry0],
                     "context_xywh": [cx0, cy0, cx1 - cx0, cy1 - cy0],
+                    "written_xywh": [out_x0, out_y0, valid_rgb.shape[1], valid_rgb.shape[0]],
                     "tile_label": tile_label,
                     "cluster": cluster,
                     "override_cluster": override_cluster,
@@ -448,6 +463,8 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
         "tile_count": len(tile_rows),
         "tile_size": tile,
         "overlap": int(args.overlap),
+        "valid_margin": int(args.valid_margin),
+        "route_context_padding": int(args.route_context_padding),
         "model_context_padding": int(args.model_context_padding),
         "timing": {
             "source_render_ms": source_render_ms,
@@ -541,6 +558,8 @@ def main() -> int:
     ap.add_argument("--coordinate-mode", choices=["local", "global_tile"], default="local")
     ap.add_argument("--tile-size", type=int, default=768)
     ap.add_argument("--overlap", type=int, default=128)
+    ap.add_argument("--valid-margin", type=int, default=0, help="Overlap-save mode: discard this many non-border pixels from each output tile before stitching.")
+    ap.add_argument("--route-context-padding", type=int, default=0, help="Route each output tile using this many surrounding source pixels while keeping model input unchanged unless model context is also set.")
     ap.add_argument("--model-context-padding", type=int, default=0, help="Run/route each output tile with this many source pixels of surrounding context, then crop back to the tile.")
     ap.add_argument("--tile-mode", choices=["full_grid", "manifest_crops"], default="full_grid")
     ap.add_argument("--force-model-key", help="Diagnostic: bypass routing and run one loaded model key on every tile.")
@@ -626,6 +645,8 @@ def main() -> int:
             "override_router_sidecar": [str(path) for path in args.override_router_sidecar],
             "tile_size": args.tile_size,
             "overlap": args.overlap,
+            "valid_margin": args.valid_margin,
+            "route_context_padding": args.route_context_padding,
             "coordinate_mode": args.coordinate_mode,
             "post_refiner": {
                 "enabled": args.post_checkpoint is not None,

@@ -199,10 +199,12 @@ tile, failure-only polish, stitched-output post-refinement, and 256px
 padded-context inference diagnostics did not clear that blocker. The route audit
 now shows two causes: arbitrary tiles can select different experts inside a crop
 that passes in crop mode, and one crop still fails even when its intersecting
-tiles select the expected K40 expert. The next PREVIEW candidate needs
-crop-equivalent region/context routing or a stronger full-image model with an
-explicit low-frequency spatial branch; none of these diagnostics are registered
-as production.
+tiles select the expected K40 expert. Dense 512px sliding windows with 256px
+overlap improve the smoke but still fail 0/3 and cost about 14.0 s of model
+time for one full frame; overlap-save and route-context-only variants regress.
+The next PREVIEW candidate needs a stronger full-image model with an explicit
+low-frequency spatial branch; none of these diagnostics are registered as
+production.
 
 ---
 
