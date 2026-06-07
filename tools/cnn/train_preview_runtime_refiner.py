@@ -44,6 +44,8 @@ class ReceiptSample:
     source_path: Path
     source_label: str
     cluster: int | None = None
+    tile_xywh: tuple[int, int, int, int] | None = None
+    source_render_size: tuple[int, int] | None = None
 
 
 def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
@@ -53,6 +55,8 @@ def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
     for receipt_path in args.sample_receipt or []:
         receipt = json.loads(receipt_path.read_text())
         for row in receipt.get("rows") or []:
+            if args.image_id and str(row.get("image_id")) not in set(args.image_id):
+                continue
             source_path = Path(str(row.get("source_png_resolved") or row.get("source_png") or ""))
             ref_path = Path(str(row.get("ref_png") or ""))
             if not source_path.exists() or not ref_path.exists():
@@ -70,11 +74,47 @@ def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
                     source_path=source_path,
                     source_label=str(row.get("source_label", "receipt:source")),
                     cluster=cluster,
+                    tile_xywh=tuple(int(v) for v in row["tile_xywh"]) if row.get("tile_xywh") else None,
+                    source_render_size=tuple(int(v) for v in row["source_render_size"]) if row.get("source_render_size") else None,
                 )
             )
     if not out:
         raise RuntimeError("sample receipts produced no training samples")
     return out
+
+
+def build_input_for_sample(source_rgb: np.ndarray, conditioning: str, coordinate_mode: str, sample: ReceiptSample) -> torch.Tensor:
+    if coordinate_mode == "local" or sample.tile_xywh is None or sample.source_render_size is None:
+        return build_input(source_rgb, conditioning)
+    if coordinate_mode != "global_tile":
+        raise ValueError(f"unsupported coordinate mode {coordinate_mode!r}")
+    height, width = source_rgb.shape[:2]
+    x0, y0, _tile_w, _tile_h = sample.tile_xywh
+    full_w, full_h = sample.source_render_size
+    yy, xx = np.meshgrid(
+        (np.arange(height, dtype=np.float32) + float(y0)) / max(1.0, float(full_h - 1)),
+        (np.arange(width, dtype=np.float32) + float(x0)) / max(1.0, float(full_w - 1)),
+        indexing="ij",
+    )
+    source = np.transpose(source_rgb.astype(np.float32) / 255.0, (2, 0, 1))
+    key_planes = np.zeros((4, height, width), dtype=np.float32)
+    if conditioning == "zero":
+        pass
+    elif conditioning == "content_stats":
+        gray = source.mean(axis=0)
+        key_planes[0].fill(float(gray.mean()))
+        key_planes[1].fill(float(gray.std()))
+        key_planes[2].fill(float(np.percentile(gray, 95) - np.percentile(gray, 5)))
+    elif conditioning == "color_stats":
+        gray = source.mean(axis=0)
+        key_planes[0].fill(float(source[0].mean()))
+        key_planes[1].fill(float(source[1].mean()))
+        key_planes[2].fill(float(source[2].mean()))
+        key_planes[3].fill(float(gray.std()))
+    else:
+        raise ValueError(f"unsupported conditioning {conditioning!r}")
+    arr = np.concatenate([source, np.stack([xx, yy], axis=0), key_planes], axis=0)
+    return torch.from_numpy(arr[None].copy()).to(DEVICE).contiguous()
 
 
 def build_tensors(args: argparse.Namespace) -> tuple[list[Any], torch.Tensor, torch.Tensor]:
@@ -95,7 +135,7 @@ def build_tensors(args: argparse.Namespace) -> tuple[list[Any], torch.Tensor, to
     for sample in samples:
         source = load_rgb(sample.source_path)
         ref = load_rgb(sample.ref_path)
-        xs.append(build_input(source, args.conditioning).cpu()[0])
+        xs.append(build_input_for_sample(source, args.conditioning, args.coordinate_mode, sample).cpu()[0])
         ys.append(np.transpose(ref.astype(np.float32) / 255.0, (2, 0, 1)))
     return samples, torch.stack(xs).contiguous(), torch.from_numpy(np.stack(ys).copy()).contiguous()
 
@@ -181,6 +221,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     samples, x, y = build_tensors(args)
     xt = x.to(DEVICE).contiguous()
     yt = y.to(DEVICE).contiguous()
+    sample_count = int(xt.shape[0])
     model = DirectRGBRefiner(width=args.width, residual_scale=args.residual_scale).to(DEVICE)
     if args.init_checkpoint is not None:
         init = torch.load(str(args.init_checkpoint), map_location="cpu", weights_only=False)
@@ -195,15 +236,22 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     best_state: dict[str, torch.Tensor] | None = None
     t0 = time.time()
     for step in range(1, args.steps + 1):
-        pred = model(xt).contiguous()
-        l1 = charbonnier(pred, yt)
-        lms = 1.0 - ms_ssim(pred, yt, data_range=1.0, win_size=7) if args.ms_weight > 0.0 else pred.new_tensor(0.0)
-        lg = grad_loss(pred, yt)
-        llp = lpips_net(pred * 2 - 1, yt * 2 - 1).mean() if lpips_net is not None else pred.new_tensor(0.0)
-        lcolor = lowfreq_color_loss(pred, yt)
-        ly = gate_luma_loss(pred, yt)
-        lopp = opponent_color_loss(pred, yt)
-        llab = lab_loss(pred, yt)
+        if args.batch_size and args.batch_size < sample_count:
+            idx = torch.randint(0, sample_count, (args.batch_size,), device=DEVICE)
+            xb = xt.index_select(0, idx)
+            yb = yt.index_select(0, idx)
+        else:
+            xb = xt
+            yb = yt
+        pred = model(xb).contiguous()
+        l1 = charbonnier(pred, yb)
+        lms = 1.0 - ms_ssim(pred, yb, data_range=1.0, win_size=7) if args.ms_weight > 0.0 else pred.new_tensor(0.0)
+        lg = grad_loss(pred, yb)
+        llp = lpips_net(pred * 2 - 1, yb * 2 - 1).mean() if lpips_net is not None else pred.new_tensor(0.0)
+        lcolor = lowfreq_color_loss(pred, yb)
+        ly = gate_luma_loss(pred, yb)
+        lopp = opponent_color_loss(pred, yb)
+        llab = lab_loss(pred, yb)
         loss = (
             l1
             + args.grad_weight * lg
@@ -220,13 +268,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         opt.step()
         if step == 1 or step % args.log_every == 0 or step == args.steps:
             with torch.no_grad():
-                pred_eval = model(xt).contiguous()
-                l1_eval = (pred_eval - yt).abs().mean().item()
-                ms_eval = ms_ssim(pred_eval, yt, data_range=1.0, win_size=7).item() if args.ms_weight > 0.0 else 0.0
-                lp_eval = lpips_net(pred_eval * 2 - 1, yt * 2 - 1).mean().item() if lpips_net is not None else 0.0
-                y_eval = gate_luma_loss(pred_eval, yt).item()
-                opp_eval = opponent_color_loss(pred_eval, yt).item()
-                lab_eval = lab_loss(pred_eval, yt).item()
+                pred_eval = model(xb).contiguous()
+                l1_eval = (pred_eval - yb).abs().mean().item()
+                ms_eval = ms_ssim(pred_eval, yb, data_range=1.0, win_size=7).item() if args.ms_weight > 0.0 else 0.0
+                lp_eval = lpips_net(pred_eval * 2 - 1, yb * 2 - 1).mean().item() if lpips_net is not None else 0.0
+                y_eval = gate_luma_loss(pred_eval, yb).item()
+                opp_eval = opponent_color_loss(pred_eval, yb).item()
+                lab_eval = lab_loss(pred_eval, yb).item()
             score = (
                 l1_eval
                 + 0.1 * (1.0 - ms_eval)
@@ -256,9 +304,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "width": args.width,
             "residual_scale": args.residual_scale,
             "steps": args.steps,
+            "batch_size": args.batch_size,
             "best_score": best,
             "source_policy": args.policy,
             "conditioning": args.conditioning,
+            "coordinate_mode": args.coordinate_mode,
             "color_weight": args.color_weight,
             "y_weight": args.y_weight,
             "opponent_weight": args.opponent_weight,
@@ -304,7 +354,7 @@ def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, An
         for sample in samples:
             source = load_rgb(sample.source_path)
             ref = load_rgb(sample.ref_path)
-            pred = model(build_input(source, args.conditioning)).detach().cpu().numpy()[0]
+            pred = model(build_input_for_sample(source, args.conditioning, args.coordinate_mode, sample)).detach().cpu().numpy()[0]
             rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255, 0, 255).astype(np.uint8)
             png = args.output_dir / f"{sample.image_id}_{sample.crop}_{args.policy}_{args.conditioning}_runtime_refiner.png"
             Image.fromarray(rgb).save(png)
@@ -329,6 +379,7 @@ def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, An
         "runtime_contract": {
             "source_policy": args.policy,
             "conditioning": args.conditioning,
+            "coordinate_mode": args.coordinate_mode,
             "forbidden_inputs": ["REF image content", "REF HF/LF fields", "winner JSON", "sample index", "crop identity key planes"],
             "render_inputs": ["source RGB frame/crop", "normalized pixel coordinates", "checkpoint"],
             "device": str(DEVICE),
@@ -356,12 +407,14 @@ def main() -> int:
     ap.add_argument("--dashboard-html", type=Path, required=True)
     ap.add_argument("--policy", choices=["runtime_priority_v1", "fixed_upresable", "fixed_learned_atlas"], default="runtime_priority_v1")
     ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats"], default="zero")
+    ap.add_argument("--coordinate-mode", choices=["local", "global_tile"], default="local")
     ap.add_argument("--image-id", action="append")
     ap.add_argument("--cluster-audit", type=Path)
     ap.add_argument("--sample-receipt", type=Path, action="append")
     ap.add_argument("--router-sidecar", type=Path)
     ap.add_argument("--include-cluster", type=int, action="append", default=[])
     ap.add_argument("--steps", type=int, default=1000)
+    ap.add_argument("--batch-size", type=int, default=0, help="Use stochastic mini-batches when positive; default keeps legacy full-batch training.")
     ap.add_argument("--width", type=int, default=40)
     ap.add_argument("--residual-scale", type=float, default=0.5)
     ap.add_argument("--lr", type=float, default=8e-4)

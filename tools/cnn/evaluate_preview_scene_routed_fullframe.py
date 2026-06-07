@@ -107,6 +107,46 @@ def tile_weight(height: int, width: int) -> np.ndarray:
     return weight[..., None]
 
 
+def build_tile_input(
+    source_rgb: np.ndarray,
+    conditioning: str,
+    coordinate_mode: str,
+    xywh: tuple[int, int, int, int],
+    full_size: tuple[int, int],
+) -> torch.Tensor:
+    if coordinate_mode == "local":
+        return build_input(source_rgb, conditioning)
+    if coordinate_mode != "global_tile":
+        raise ValueError(f"unsupported coordinate mode {coordinate_mode!r}")
+    height, width = source_rgb.shape[:2]
+    x0, y0, _w, _h = xywh
+    full_w, full_h = full_size
+    yy, xx = np.meshgrid(
+        (np.arange(height, dtype=np.float32) + float(y0)) / max(1.0, float(full_h - 1)),
+        (np.arange(width, dtype=np.float32) + float(x0)) / max(1.0, float(full_w - 1)),
+        indexing="ij",
+    )
+    source = np.transpose(source_rgb.astype(np.float32) / 255.0, (2, 0, 1))
+    key_planes = np.zeros((4, height, width), dtype=np.float32)
+    if conditioning == "zero":
+        pass
+    elif conditioning == "content_stats":
+        gray = source.mean(axis=0)
+        key_planes[0].fill(float(gray.mean()))
+        key_planes[1].fill(float(gray.std()))
+        key_planes[2].fill(float(np.percentile(gray, 95) - np.percentile(gray, 5)))
+    elif conditioning == "color_stats":
+        gray = source.mean(axis=0)
+        key_planes[0].fill(float(source[0].mean()))
+        key_planes[1].fill(float(source[1].mean()))
+        key_planes[2].fill(float(source[2].mean()))
+        key_planes[3].fill(float(gray.std()))
+    else:
+        raise ValueError(f"unsupported conditioning {conditioning!r}")
+    arr = np.concatenate([source, np.stack([xx, yy], axis=0), key_planes], axis=0)
+    return torch.from_numpy(arr[None].copy()).to(DEVICE).contiguous()
+
+
 def select_model(
     *,
     source_path: Path,
@@ -169,6 +209,7 @@ def crop_metric_image(image: np.ndarray, crop: dict[str, int], sensor_dims: list
 
 def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Path, models: dict[str, DirectRGBRefiner], routing: dict[str, Any]) -> dict[str, Any]:
     image_id = str(image["id"])
+    manifest = json.loads(args.manifest.read_text())
     ref_dng = resolve_ref(image, args.ref_root)
     source_dng = resolve_source(image_id, args.source_root)
     if source_dng is None:
@@ -189,21 +230,49 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     input_ms: list[float] = []
     route_ms: list[float] = []
     save_tile_ms: list[float] = []
-    for y0 in tile_origins(height, tile, stride):
-        for x0 in tile_origins(width, tile, stride):
-            tile_rgb = source_rgb[y0:min(height, y0 + tile), x0:min(width, x0 + tile)]
+    if args.tile_mode == "manifest_crops":
+        tile_specs = []
+        for crop_name, crop in manifest["crops"].items():
+            if crop_name.startswith("$"):
+                continue
+            x0, y0, x1, y1 = scaled_box(crop, image["sensor_dims"], (width, height))
+            tile_specs.append((x0, y0, x1, y1, crop_name))
+    else:
+        tile_specs = [
+            (x0, y0, min(width, x0 + tile), min(height, y0 + tile), "grid")
+            for y0 in tile_origins(height, tile, stride)
+            for x0 in tile_origins(width, tile, stride)
+        ]
+    for x0, y0, x1, y1, tile_label in tile_specs:
+            tile_rgb = source_rgb[y0:y1, x0:x1]
             tile_path = work / f"{image_id}_tile_{x0}_{y0}.png"
             t0 = time.perf_counter()
             Image.fromarray(tile_rgb).save(tile_path)
             save_tile_ms.append((time.perf_counter() - t0) * 1000.0)
             t0 = time.perf_counter()
-            cluster, override_cluster, model_key, _ckpt, conditioning, route = select_model(
-                source_path=tile_path,
-                **routing,
-            )
+            if args.force_model_key:
+                cluster = -1
+                override_cluster = None
+                model_key = args.force_model_key
+                conditioning = args.force_conditioning
+                route = {
+                    "route_source": "forced_diagnostic_model_key",
+                    "route_distance": 0.0,
+                }
+            else:
+                cluster, override_cluster, model_key, _ckpt, conditioning, route = select_model(
+                    source_path=tile_path,
+                    **routing,
+                )
             route_ms.append((time.perf_counter() - t0) * 1000.0)
             t0 = time.perf_counter()
-            x = build_input(tile_rgb, conditioning)
+            x = build_tile_input(
+                tile_rgb,
+                conditioning,
+                args.coordinate_mode,
+                (x0, y0, x1 - x0, y1 - y0),
+                (width, height),
+            )
             t1 = time.perf_counter()
             with torch.no_grad():
                 pred = models[model_key](x).detach().cpu().numpy()[0]
@@ -219,6 +288,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             tile_rows.append(
                 {
                     "xywh": [x0, y0, pred_rgb.shape[1], pred_rgb.shape[0]],
+                    "tile_label": tile_label,
                     "cluster": cluster,
                     "override_cluster": override_cluster,
                     "checkpoint_role": model_key,
@@ -231,7 +301,6 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     stitched_path = args.output_dir / f"{image_id}_scene_routed_fullframe.png"
     Image.fromarray(stitched).save(stitched_path)
     crop_rows: list[dict[str, Any]] = []
-    manifest = json.loads(args.manifest.read_text())
     for crop_name, crop in manifest["crops"].items():
         if crop_name.startswith("$"):
             continue
@@ -348,8 +417,12 @@ def main() -> int:
     ap.add_argument("--cluster-conditioning", action="append", default=[])
     ap.add_argument("--override-cluster-conditioning", action="append", default=[])
     ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats"], default="zero")
+    ap.add_argument("--coordinate-mode", choices=["local", "global_tile"], default="local")
     ap.add_argument("--tile-size", type=int, default=768)
     ap.add_argument("--overlap", type=int, default=128)
+    ap.add_argument("--tile-mode", choices=["full_grid", "manifest_crops"], default="full_grid")
+    ap.add_argument("--force-model-key", help="Diagnostic: bypass routing and run one loaded model key on every tile.")
+    ap.add_argument("--force-conditioning", choices=["zero", "content_stats", "color_stats"], default="zero")
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
@@ -371,6 +444,8 @@ def main() -> int:
         },
     }
     models = {key: load_model(path) for key, path in all_ckpts.items()}
+    if args.force_model_key and args.force_model_key not in models:
+        raise ValueError(f"--force-model-key must be one of {sorted(models)}, got {args.force_model_key!r}")
     checkpoint_receipts = {
         key: {"path": str(path), "sha256": sha256_file(path), "bytes": path.stat().st_size}
         for key, path in all_ckpts.items()
@@ -412,6 +487,7 @@ def main() -> int:
             "override_router_sidecar": [str(path) for path in args.override_router_sidecar],
             "tile_size": args.tile_size,
             "overlap": args.overlap,
+            "coordinate_mode": args.coordinate_mode,
             "device": str(DEVICE),
         },
         "router_sidecar_sha256": sha256_file(args.router_sidecar),
