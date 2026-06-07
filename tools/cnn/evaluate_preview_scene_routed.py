@@ -154,6 +154,17 @@ def route_from_sidecar(source_path: Path, sidecar: dict[str, Any]) -> tuple[int,
     }
 
 
+def center_crop(arr: np.ndarray, size: int) -> np.ndarray:
+    if size <= 0:
+        return arr
+    height, width = arr.shape[:2]
+    if size > height or size > width:
+        raise ValueError(f"center crop {size} exceeds image shape {arr.shape}")
+    y0 = (height - size) // 2
+    x0 = (width - size) // 2
+    return arr[y0:y0 + size, x0:x0 + size]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--router-audit", type=Path, required=True)
@@ -173,6 +184,13 @@ def main() -> int:
     ap.add_argument("--dashboard-html", type=Path, required=True)
     ap.add_argument("--conditioning", choices=["zero", "content_stats"], default="zero")
     ap.add_argument("--timing-iters", type=int, default=5)
+    ap.add_argument(
+        "--metric-center-size",
+        type=int,
+        default=0,
+        help="If set, compute metrics on the centered square of this size. "
+             "Used for larger-context diagnostic renders.",
+    )
     args = ap.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -246,7 +264,9 @@ def main() -> int:
         Image.fromarray(rgb).save(png)
         save_ms.append((time.perf_counter() - t0) * 1000.0)
         t0 = time.perf_counter()
-        metrics = compute_visual_metrics(ref, rgb)
+        metric_ref = center_crop(ref, args.metric_center_size)
+        metric_rgb = center_crop(rgb, args.metric_center_size)
+        metrics = compute_visual_metrics(metric_ref, metric_rgb)
         metric_ms.append((time.perf_counter() - t0) * 1000.0)
         metrics["preview_pass"] = pass_preview(metrics)
         input_ms.extend(sample_input_ms)
@@ -290,6 +310,7 @@ def main() -> int:
             "router_assignment": "frozen_sidecar_nearest_center" if args.router_sidecar else "router_audit_row_cluster",
             "bypass_clusters": sorted(bypass_clusters),
             "model_loading_policy": "preload_all_configured_experts",
+            "metric_center_size": args.metric_center_size,
         },
         "router_sidecar_sha256": sha256_file(args.router_sidecar) if args.router_sidecar else None,
         "checkpoints": checkpoint_receipts,

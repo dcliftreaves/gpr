@@ -81,20 +81,41 @@ Summary:
 The mixed-conditioning path improved some Y/dE values but did not improve
 aggregate pass rate.
 
+### v13: Gate-Space Luma/Opponent Loss
+
+Path:
+
+`scene_routed_holdout_v13_gate_luma_c1c2c4/preview_scene_routed_holdout.json`
+
+Summary:
+
+- pass: 76/84
+- pass rate: 90.48%
+- worst LPIPS: 0.1645
+- median LPIPS: 0.0082
+- worst MS-SSIM: 0.8437
+- worst Y-PSNR: 26.17 dB
+- worst dE2000 mean: 4.78
+
+This pass added differentiable BT.709 luma and RGB-opponent losses to the
+runtime PREVIEW trainer and selected checkpoints using those gate-space
+proxies. It improved the failure rows again, but did not clear additional
+rows.
+
 ## Remaining Failures
 
-v12 failures:
+v13 failures:
 
 | image | crop | cluster | conditioning | LPIPS | MS-SSIM | Y-PSNR | dE2000 |
 |---|---|---:|---|---:|---:|---:|---:|
-| Z8Z_0026 | A_detail | 2 | content_stats | 0.0473 | 0.9537 | 28.07 | 3.67 |
-| Z8Z_0026 | B_center | 4 | content_stats | 0.0677 | 0.9601 | 27.34 | 4.77 |
-| Z8Z_0026 | C_lowerleft | 4 | content_stats | 0.0645 | 0.9569 | 30.52 | 3.43 |
-| Z8Z_6680 | B_center | 2 | content_stats | 0.0411 | 0.9778 | 26.81 | 4.12 |
-| Z8Z_6680 | C_lowerleft | 4 | content_stats | 0.0475 | 0.9527 | 25.01 | 5.51 |
-| Z8Z_7480 | A_detail | 1 | zero | 0.1725 | 0.8168 | 29.08 | 3.23 |
-| Z8Z_7480 | B_center | 4 | content_stats | 0.0750 | 0.9243 | 31.66 | 2.29 |
-| Z8Z_7480 | C_lowerleft | 4 | content_stats | 0.0709 | 0.9031 | 30.55 | 2.83 |
+| Z8Z_0026 | A_detail | 2 | content_stats | 0.0583 | 0.9640 | 29.40 | 3.18 |
+| Z8Z_0026 | B_center | 4 | content_stats | 0.0879 | 0.9683 | 28.56 | 4.21 |
+| Z8Z_0026 | C_lowerleft | 4 | content_stats | 0.0837 | 0.9643 | 31.63 | 3.04 |
+| Z8Z_6680 | B_center | 2 | content_stats | 0.0482 | 0.9821 | 27.93 | 3.58 |
+| Z8Z_6680 | C_lowerleft | 4 | content_stats | 0.0616 | 0.9619 | 26.17 | 4.78 |
+| Z8Z_7480 | A_detail | 1 | zero | 0.1645 | 0.8437 | 29.71 | 2.86 |
+| Z8Z_7480 | B_center | 4 | content_stats | 0.1141 | 0.9338 | 32.40 | 2.06 |
+| Z8Z_7480 | C_lowerleft | 4 | content_stats | 0.1040 | 0.9163 | 31.33 | 2.51 |
 
 ## Ruled Out
 
@@ -106,6 +127,13 @@ v12 failures:
   but did not change pass rate.
 - A width-80 cluster-4 expert trained from scratch remained far worse than
   the width-40 expert by step 300 and was stopped.
+- Gate-space luma/opponent loss improved the same hard rows but held pass
+  rate at 76/84.
+- A stronger color/luma-weighted cluster-4 pass worsened LPIPS headroom and
+  still held pass rate at 4/9 for that cluster.
+- A 768-pixel context-crop cluster-4 expert remained far behind the 512-crop
+  expert by step 300 and was stopped; simple larger-context retraining did
+  not solve the blocker.
 
 ## Current Blocker
 
@@ -117,12 +145,13 @@ low-frequency luma/color and local structure.
 
 Most likely next causes to test:
 
-- full-image context is required for the remaining crop placement/structure;
+- full-image context may still be required, but it likely needs a real
+  full-frame/tiled render path rather than naive 768-crop retraining;
 - the UPRESABLE source target is not aligned enough with REF for these scenes;
-- the current loss needs an explicit luma/color objective measured in the gate
-  space;
+- the current model can improve gate-space luma/color but lacks enough
+  structure/detail correction for the remaining rows;
 - a stronger teacher/full-image target is needed for `Z8Z_0026`, `Z8Z_6680`,
   and `Z8Z_7480`.
 
-Do not register v11 or v12 as production PREVIEW. They are diagnostic
+Do not register v11, v12, or v13 as production PREVIEW. They are diagnostic
 candidates only.

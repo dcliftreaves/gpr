@@ -119,6 +119,35 @@ def lowfreq_color_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor
     )
 
 
+def gate_luma_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    weights = pred.new_tensor([0.2126, 0.7152, 0.0722]).view(1, 3, 1, 1)
+    pred_y = (pred * weights).sum(dim=1, keepdim=True)
+    target_y = (target * weights).sum(dim=1, keepdim=True)
+    return (
+        charbonnier(pred_y, target_y)
+        + charbonnier(
+            F.interpolate(pred_y, size=(64, 64), mode="area"),
+            F.interpolate(target_y, size=(64, 64), mode="area"),
+        )
+    )
+
+
+def opponent_color_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    pred_rg = pred[:, 0:1] - pred[:, 1:2]
+    pred_by = pred[:, 2:3] - 0.5 * (pred[:, 0:1] + pred[:, 1:2])
+    target_rg = target[:, 0:1] - target[:, 1:2]
+    target_by = target[:, 2:3] - 0.5 * (target[:, 0:1] + target[:, 1:2])
+    pred_opp = torch.cat([pred_rg, pred_by], dim=1)
+    target_opp = torch.cat([target_rg, target_by], dim=1)
+    return (
+        charbonnier(pred_opp, target_opp)
+        + charbonnier(
+            F.interpolate(pred_opp, size=(64, 64), mode="area"),
+            F.interpolate(target_opp, size=(64, 64), mode="area"),
+        )
+    )
+
+
 def train(args: argparse.Namespace) -> dict[str, Any]:
     samples, x, y = build_tensors(args)
     xt = x.to(DEVICE).contiguous()
@@ -143,12 +172,16 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         lg = grad_loss(pred, yt)
         llp = lpips_net(pred * 2 - 1, yt * 2 - 1).mean() if lpips_net is not None else pred.new_tensor(0.0)
         lcolor = lowfreq_color_loss(pred, yt)
+        ly = gate_luma_loss(pred, yt)
+        lopp = opponent_color_loss(pred, yt)
         loss = (
             l1
             + args.grad_weight * lg
             + args.ms_weight * lms
             + args.lpips_weight * llp
             + args.color_weight * lcolor
+            + args.y_weight * ly
+            + args.opponent_weight * lopp
         )
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -160,13 +193,22 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 l1_eval = (pred_eval - yt).abs().mean().item()
                 ms_eval = ms_ssim(pred_eval, yt, data_range=1.0, win_size=7).item() if args.ms_weight > 0.0 else 0.0
                 lp_eval = lpips_net(pred_eval * 2 - 1, yt * 2 - 1).mean().item() if lpips_net is not None else 0.0
-            score = l1_eval + 0.1 * (1.0 - ms_eval) + 0.2 * lp_eval
+                y_eval = gate_luma_loss(pred_eval, yt).item()
+                opp_eval = opponent_color_loss(pred_eval, yt).item()
+            score = (
+                l1_eval
+                + 0.1 * (1.0 - ms_eval)
+                + 0.2 * lp_eval
+                + args.score_y_weight * y_eval
+                + args.score_opponent_weight * opp_eval
+            )
             if score < best:
                 best = score
                 best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
             print(
                 f"step {step}/{args.steps} loss={loss.item():.6f} "
-                f"l1={l1_eval:.5f} ms={ms_eval:.5f} lp={lp_eval:.4f} color={lcolor.item():.5f} "
+                f"l1={l1_eval:.5f} ms={ms_eval:.5f} lp={lp_eval:.4f} "
+                f"color={lcolor.item():.5f} y={y_eval:.5f} opp={opp_eval:.5f} "
                 f"best={best:.6f} t={time.time() - t0:.1f}s",
                 flush=True,
             )
@@ -184,6 +226,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "source_policy": args.policy,
             "conditioning": args.conditioning,
             "color_weight": args.color_weight,
+            "y_weight": args.y_weight,
+            "opponent_weight": args.opponent_weight,
+            "score_y_weight": args.score_y_weight,
+            "score_opponent_weight": args.score_opponent_weight,
             "forbidden_inputs": ["winner JSON", "sample index", "crop identity key planes"],
             "samples": [
                 {
@@ -284,6 +330,10 @@ def main() -> int:
     ap.add_argument("--ms-weight", type=float, default=0.40)
     ap.add_argument("--lpips-weight", type=float, default=0.25)
     ap.add_argument("--color-weight", type=float, default=0.0)
+    ap.add_argument("--y-weight", type=float, default=0.0)
+    ap.add_argument("--opponent-weight", type=float, default=0.0)
+    ap.add_argument("--score-y-weight", type=float, default=0.0)
+    ap.add_argument("--score-opponent-weight", type=float, default=0.0)
     ap.add_argument("--log-every", type=int, default=100)
     ap.add_argument("--eval-only", action="store_true")
     args = ap.parse_args()
