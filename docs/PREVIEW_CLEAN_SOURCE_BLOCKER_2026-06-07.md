@@ -520,11 +520,41 @@ worst MS-SSIM 0.9192, worst Y-PSNR 23.90, and worst dE2000 4.67:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lf_spatial_fullbatch_v3_t512_o256/preview_scene_routed_fullframe.json
 ```
 
-The narrowed blocker is now concentrated in lower-left luma/color consistency.
-`B_center` is close on dE but misses Y-PSNR, while `C_lowerleft` remains below
-the gate on MS-SSIM, Y-PSNR, and dE. The next experiment should weight the
-remaining lower-left/Y-dE failures explicitly or train the LF branch against
-assembled crop losses, not add more overlap or local route padding.
+A focused v4 pass added weighted sampling of tiles intersecting `B_center` and
+`C_lowerleft`:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_lf_spatial_focus_v4/preview_runtime_refiner.json
+```
+
+v4 isolated tile summary:
+
+- pass: 9/12
+- worst LPIPS: 0.1064
+- worst MS-SSIM: 0.9619
+- worst Y-PSNR: 26.52
+- worst dE2000: 3.68
+
+The stitched v4 full-frame result remains 1/3:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lf_spatial_focus_v4_t512/preview_scene_routed_fullframe.json
+```
+
+v4 stitched summary:
+
+- pass: 1/3
+- worst LPIPS: 0.1171
+- worst MS-SSIM: 0.9503
+- worst Y-PSNR: 25.41
+- worst dE2000: 4.05
+
+Compared with v3 stitched output, v4 improves center/lower-left dE and Y-PSNR
+slightly, but worsens lower-left LPIPS/MS-SSIM and does not clear the gate. The
+narrowed blocker is therefore not just sample weighting. The next experiment
+should train against assembled full-frame/crop losses or change the runtime
+source/model formulation so the LF branch sees the same spatial problem that is
+scored after stitching.
 
 Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
 cluster-35 polish specialists as production PREVIEW until the full-frame/tiled
