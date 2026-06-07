@@ -216,12 +216,36 @@ LPIPS or structure.
 
 ## Remaining Failures
 
-v28 failures:
+v28 current best full routed diagnostic failures:
 
 | image | crop | cluster | conditioning | LPIPS | MS-SSIM | Y-PSNR | dE2000 |
 |---|---|---:|---|---:|---:|---:|---:|
 | Z8Z_0026 | B_center | 4 | content_stats | 0.0234 | 0.9781 | 29.53 | 3.66 |
 | Z8Z_6680 | C_lowerleft | 4 | content_stats | 0.0183 | 0.9763 | 27.41 | 4.03 |
+
+v29 cluster-4 LF/Y/Lab fine-tune, evaluated on the same 84-row holdout, stayed
+at 82/84. It improved the remaining rows but did not clear them:
+
+| image | crop | route | LPIPS | MS-SSIM | Y-PSNR | dE2000 |
+|---|---|---|---:|---:|---:|---:|
+| Z8Z_0026 | B_center | K5 cluster 4 | 0.0390 | 0.9774 | 29.89 | 3.47 |
+| Z8Z_6680 | C_lowerleft | K5 cluster 4 | 0.0280 | 0.9750 | 27.80 | 3.85 |
+
+The best tighter K40 cluster-35 Lab polish isolated the remaining problem to
+one dE miss:
+
+| image | crop | route | LPIPS | MS-SSIM | Y-PSNR | dE2000 | PREVIEW |
+|---|---|---|---:|---:|---:|---:|---|
+| Z8Z_0026 | B_center | K40 cluster 35 | 0.0793 | 0.9814 | 30.72 | 2.87 | pass |
+| Z8Z_0026 | C_lowerleft | K40 cluster 35 | 0.0761 | 0.9799 | 33.88 | 2.07 | pass |
+| Z8Z_6680 | C_lowerleft | K40 cluster 35 | 0.0512 | 0.9807 | 28.88 | 3.13 | fail |
+
+Artifact receipts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v29_c4_lfy_lab_score_84/preview_scene_routed_holdout.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_expert_k40_cluster35_lab_polish_v5/preview_runtime_refiner.json
+```
 
 ## Ruled Out
 
@@ -265,8 +289,8 @@ v28 failures:
   the two cluster-4 color/luma failures.
 - K16 cluster 7, K24 cluster 21, and K40 cluster 35 color/luma specialists all
   failed isolated checks for the remaining `Z8Z_0026`/`Z8Z_6680` rows. The
-  best K40 diagnostic still left dE2000 at 3.35 and 3.61 against a 3.0 PREVIEW
-  ceiling.
+  newer K40 cluster-35 Lab polish cleared `Z8Z_0026 B_center` but still left
+  `Z8Z_6680 C_lowerleft` at dE2000 3.13 against a 3.0 PREVIEW ceiling.
 
 ## Current Blocker
 
@@ -287,5 +311,6 @@ Most likely next causes to test:
 - a stronger teacher/full-image target is needed for `Z8Z_0026` and
   `Z8Z_6680`.
 
-Do not register v11 through v28 as production PREVIEW. They are diagnostic
+Do not register v11 through v29, the K16 cluster-7 specialists, or the K40
+cluster-35 polish specialists as production PREVIEW. They are diagnostic
 candidates only.
