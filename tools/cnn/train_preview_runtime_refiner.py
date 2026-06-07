@@ -30,7 +30,7 @@ sys.path.insert(0, str(REPO / "tools/cnn"))
 from evaluate_preview_runtime_policy import build_input, build_samples, load_rgb, sha256_file, summarize, write_html  # noqa: E402
 from evaluate_preview_scene_routed import route_from_sidecar  # noqa: E402
 from metrics import compute_visual_metrics  # noqa: E402
-from train_display_rgb_direct_nonref import DirectRGBRefiner, grad_loss, pass_preview  # noqa: E402
+from train_display_rgb_direct_nonref import build_rgb_refiner, grad_loss, pass_preview  # noqa: E402
 
 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -46,6 +46,7 @@ class ReceiptSample:
     cluster: int | None = None
     tile_xywh: tuple[int, int, int, int] | None = None
     source_render_size: tuple[int, int] | None = None
+    source_global_stats: dict[str, float] | None = None
 
 
 def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
@@ -76,6 +77,7 @@ def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
                     cluster=cluster,
                     tile_xywh=tuple(int(v) for v in row["tile_xywh"]) if row.get("tile_xywh") else None,
                     source_render_size=tuple(int(v) for v in row["source_render_size"]) if row.get("source_render_size") else None,
+                    source_global_stats={k: float(v) for k, v in row["source_global_stats"].items()} if row.get("source_global_stats") else None,
                 )
             )
     if not out:
@@ -111,6 +113,20 @@ def build_input_for_sample(source_rgb: np.ndarray, conditioning: str, coordinate
         key_planes[1].fill(float(source[1].mean()))
         key_planes[2].fill(float(source[2].mean()))
         key_planes[3].fill(float(gray.std()))
+    elif conditioning == "global_color_stats":
+        stats = sample.source_global_stats
+        if stats is None:
+            gray = source.mean(axis=0)
+            stats = {
+                "r_mean": float(source[0].mean()),
+                "g_mean": float(source[1].mean()),
+                "b_mean": float(source[2].mean()),
+                "gray_std": float(gray.std()),
+            }
+        key_planes[0].fill(float(stats["r_mean"]))
+        key_planes[1].fill(float(stats["g_mean"]))
+        key_planes[2].fill(float(stats["b_mean"]))
+        key_planes[3].fill(float(stats["gray_std"]))
     else:
         raise ValueError(f"unsupported conditioning {conditioning!r}")
     arr = np.concatenate([source, np.stack([xx, yy], axis=0), key_planes], axis=0)
@@ -222,7 +238,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     xt = x.to(DEVICE).contiguous()
     yt = y.to(DEVICE).contiguous()
     sample_count = int(xt.shape[0])
-    model = DirectRGBRefiner(width=args.width, residual_scale=args.residual_scale).to(DEVICE)
+    model = build_rgb_refiner(args.architecture, width=args.width, residual_scale=args.residual_scale).to(DEVICE)
     if args.init_checkpoint is not None:
         init = torch.load(str(args.init_checkpoint), map_location="cpu", weights_only=False)
         model.load_state_dict(init["state_dict"])
@@ -300,6 +316,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     torch.save(
         {
             "kind": "preview_runtime_refiner",
+            "architecture": args.architecture,
             "state_dict": best_state,
             "width": args.width,
             "residual_scale": args.residual_scale,
@@ -339,7 +356,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
 
 def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, Any]:
     ckpt = torch.load(str(args.checkpoint), map_location="cpu", weights_only=False)
-    model = DirectRGBRefiner(
+    model = build_rgb_refiner(
+        str(ckpt.get("architecture", "direct")),
         width=int(ckpt.get("width", args.width)),
         residual_scale=float(ckpt.get("residual_scale", 0.5)),
     ).to(DEVICE)
@@ -406,7 +424,7 @@ def main() -> int:
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
     ap.add_argument("--policy", choices=["runtime_priority_v1", "fixed_upresable", "fixed_learned_atlas"], default="runtime_priority_v1")
-    ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats"], default="zero")
+    ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats", "global_color_stats"], default="zero")
     ap.add_argument("--coordinate-mode", choices=["local", "global_tile"], default="local")
     ap.add_argument("--image-id", action="append")
     ap.add_argument("--cluster-audit", type=Path)
@@ -415,6 +433,7 @@ def main() -> int:
     ap.add_argument("--include-cluster", type=int, action="append", default=[])
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--batch-size", type=int, default=0, help="Use stochastic mini-batches when positive; default keeps legacy full-batch training.")
+    ap.add_argument("--architecture", choices=["direct", "dilated_context"], default="direct")
     ap.add_argument("--width", type=int, default=40)
     ap.add_argument("--residual-scale", type=float, default=0.5)
     ap.add_argument("--lr", type=float, default=8e-4)

@@ -411,6 +411,37 @@ full-frame or larger-context objective, a stronger model with explicit
 low-frequency/global color handling, or an upstream source policy that reduces
 the source/REF tile mismatch before PREVIEW refinement.
 
+Additional follow-up diagnostics ruled out several simpler fixes:
+
+- `global_color_stats` conditioning, using only full-frame source RGB stats at
+  render time, reaches 271/336 on the 28-image tile receipt and 0/3 on the
+  stitched `Z8Z_6680` full-frame crop receipt. Full-frame scalar color context
+  alone is not enough:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_holdout28_globalcolor_v1/preview_runtime_refiner.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_holdout28_globalcolor_v1_z8z6680_t512/preview_scene_routed_fullframe.json`
+- A REF-fit LF affine oracle on the best W80 LF-polished stitched output stays
+  at 1/3, even with per-crop affine fits. The remaining misses are not a simple
+  RGB gain/bias problem:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/lf_affine_oracle_z8z6680_w80_lfpolish_v2/lf_affine_oracle.json`
+- An opt-in dilated-context refiner trained on the hard `Z8Z_6680` 512px tiles
+  reaches only 2/12 isolated tiles and 0/3 stitched crops, worse than the
+  direct W80 specialist:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_dilated_context_v1/preview_runtime_refiner.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_dilated_context_v1_t512/preview_scene_routed_fullframe.json`
+- Training directly on 1024px source/REF tiles with 512px stride also fails
+  0/26 on isolated `Z8Z_6680` tiles, so simply increasing tile size without a
+  better objective is not enough:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_direct_t1024_o512_v1/preview_runtime_refiner.json`
+- A four-row failure-only LF polish fixes one targeted tile but regresses the
+  all-12 `Z8Z_6680` tile set from 8/12 to 4/12. Local failure polishing is not
+  stable enough to use as a production recipe:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_w80_failure_polish_v3_eval12/preview_runtime_refiner.json`
+
+The next candidate should not be another scalar-conditioning or local-polish
+variant. It should train against the assembled full-frame crop behavior itself
+or use a two-branch model with an explicit low-frequency/spatial field branch
+that is supervised at full-frame crop scale.
+
 Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
 cluster-35 polish specialists as production PREVIEW until the full-frame/tiled
 runtime path has equivalent evidence.

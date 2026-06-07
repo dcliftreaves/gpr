@@ -194,6 +194,11 @@ reaches 272/336, and a wider `Z8Z_6680` specialist reaches 8/12 isolated hard
 tiles but only 1/3 stitched full-frame crops. LPIPS/detail can be learned; the
 remaining production blocker is low-frequency luma/color consistency across
 stitched arbitrary full-frame tiles from the current source policy.
+Follow-up global-color conditioning, LF affine-oracle, dilated-context, 1024px
+tile, and failure-only polish diagnostics did not clear that blocker. The next
+PREVIEW candidate needs to train against assembled full-frame crop behavior or
+add an explicit low-frequency spatial branch; none of those diagnostics are
+registered as production.
 
 ---
 

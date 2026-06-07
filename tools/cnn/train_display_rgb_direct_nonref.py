@@ -60,6 +60,18 @@ class ResBlock(nn.Module):
         return F.gelu(x + self.b(y))
 
 
+class DilatedResBlock(nn.Module):
+    def __init__(self, width: int, dilation: int) -> None:
+        super().__init__()
+        self.a = nn.Conv2d(width, width, 3, padding=dilation, dilation=dilation)
+        self.b = nn.Conv2d(width, width, 3, padding=dilation, dilation=dilation)
+        self.n = nn.GroupNorm(8, width)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = F.gelu(self.n(self.a(x)))
+        return F.gelu(x + self.b(y))
+
+
 class DirectRGBRefiner(nn.Module):
     def __init__(self, width: int = 40, in_channels: int = 9, residual_scale: float = 0.5) -> None:
         super().__init__()
@@ -86,6 +98,57 @@ class DirectRGBRefiner(nn.Module):
         h = self.r3(h)
         h = F.interpolate(h, scale_factor=2, mode="bilinear", align_corners=False)
         return torch.clamp(source + self.residual_scale * torch.tanh(self.o(h + skip)), 0.0, 1.0)
+
+
+class DilatedContextRGBRefiner(nn.Module):
+    def __init__(self, width: int = 48, in_channels: int = 9, residual_scale: float = 0.5) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        self.i = nn.Conv2d(in_channels, width, 3, padding=1)
+        self.r0 = ResBlock(width)
+        self.d1 = nn.Conv2d(width, width, 3, stride=2, padding=1)
+        self.r1 = nn.Sequential(ResBlock(width), DilatedResBlock(width, 2))
+        self.d2 = nn.Conv2d(width, width * 2, 3, stride=2, padding=1)
+        self.r2 = nn.Sequential(
+            DilatedResBlock(width * 2, 1),
+            DilatedResBlock(width * 2, 2),
+            DilatedResBlock(width * 2, 4),
+            DilatedResBlock(width * 2, 8),
+            DilatedResBlock(width * 2, 16),
+            DilatedResBlock(width * 2, 8),
+            DilatedResBlock(width * 2, 4),
+            DilatedResBlock(width * 2, 2),
+        )
+        self.u = nn.Conv2d(width * 2, width, 3, padding=1)
+        self.r3 = nn.Sequential(DilatedResBlock(width, 2), ResBlock(width))
+        self.o = nn.Conv2d(width, 3, 3, padding=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        source = x[:, :3]
+        skip = self.r0(F.gelu(self.i(x)))
+        h = F.gelu(self.d1(skip))
+        h = self.r1(h)
+        h = F.gelu(self.d2(h))
+        h = self.r2(h)
+        h = F.interpolate(h, scale_factor=2, mode="bilinear", align_corners=False)
+        h = F.gelu(self.u(h))
+        h = self.r3(h)
+        h = F.interpolate(h, scale_factor=2, mode="bilinear", align_corners=False)
+        return torch.clamp(source + self.residual_scale * torch.tanh(self.o(h + skip)), 0.0, 1.0)
+
+
+def build_rgb_refiner(
+    architecture: str = "direct",
+    *,
+    width: int = 40,
+    in_channels: int = 9,
+    residual_scale: float = 0.5,
+) -> nn.Module:
+    if architecture == "direct":
+        return DirectRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+    if architecture == "dilated_context":
+        return DilatedContextRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+    raise ValueError(f"unsupported RGB refiner architecture {architecture!r}")
 
 
 def load_rgb(path: Path) -> np.ndarray:
