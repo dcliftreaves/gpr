@@ -195,10 +195,14 @@ tiles but only 1/3 stitched full-frame crops. LPIPS/detail can be learned; the
 remaining production blocker is low-frequency luma/color consistency across
 stitched arbitrary full-frame tiles from the current source policy.
 Follow-up global-color conditioning, LF affine-oracle, dilated-context, 1024px
-tile, and failure-only polish diagnostics did not clear that blocker. The next
-PREVIEW candidate needs to train against assembled full-frame crop behavior or
-add an explicit low-frequency spatial branch; none of those diagnostics are
-registered as production.
+tile, failure-only polish, stitched-output post-refinement, and 256px
+padded-context inference diagnostics did not clear that blocker. The route audit
+now shows two causes: arbitrary tiles can select different experts inside a crop
+that passes in crop mode, and one crop still fails even when its intersecting
+tiles select the expected K40 expert. The next PREVIEW candidate needs
+crop-equivalent region/context routing or a stronger full-image model with an
+explicit low-frequency spatial branch; none of these diagnostics are registered
+as production.
 
 ---
 
