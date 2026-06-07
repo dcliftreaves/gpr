@@ -247,6 +247,41 @@ Artifact receipts:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_expert_k40_cluster35_lab_polish_v5/preview_runtime_refiner.json
 ```
 
+### Channel Oracle
+
+After CI was restored on `master`, a repeatable channel oracle was added at:
+
+`tests/quality_gates/probe_preview_channel_oracle.py`
+
+It was run on the current hard cluster-35 rows:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/preview_channel_oracle_v1/preview_channel_oracle.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/preview_channel_oracle_v1/preview_channel_oracle.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/preview_channel_oracle_v1/k40_cluster35_lab_offset_oracle.json
+```
+
+Key findings:
+
+- For `Z8Z_6680 C_lowerleft`, K40-v5 has enough structure and Y headroom:
+  LPIPS 0.0512, MS-SSIM 0.9807, Y-PSNR 28.88, but dE2000 3.13 fails the
+  3.0 PREVIEW ceiling.
+- Replacing only K40-v5 Lab a/b with REF a/b clears that row:
+  LPIPS 0.0475, MS-SSIM 0.9825, Y-PSNR 28.84, dE2000 2.04. This is oracle
+  evidence only; REF channels are not allowed at render time.
+- Replacing only K40-v5 Lab L with REF L also clears it:
+  LPIPS 0.0082, MS-SSIM 0.9979, Y-PSNR 52.88, dE2000 1.99. This confirms the
+  remaining gap is not texture placement.
+- Replacing K40-v5 Lab L with the clean UPRESABLE source L fails badly:
+  LPIPS 0.5527, MS-SSIM 0.2998, Y-PSNR 17.00, dE2000 9.33.
+- A fixed Lab a/b offset does not clear the K40 cluster. The best coarse
+  offsets still leave `Z8Z_6680 C_lowerleft` above the dE ceiling and begin
+  to consume `Z8Z_0026 B_center` headroom.
+
+This narrows the next experiment further: a deployable fix needs a runtime
+source/teacher that predicts scene-specific low-frequency Lab color, not a
+constant cluster offset and not another texture/detail pass.
+
 ## Ruled Out
 
 - Stale source identity was a real blocker and is fixed by the v8 clean
@@ -273,6 +308,8 @@ Artifact receipts:
 - Fixed per-cluster RGB affine and per-row RGB affine oracles did not clear
   the remaining rows. Per-row affine reached only 77/84, so the gap is not a
   simple global color transform.
+- A fixed Lab a/b offset oracle on the K40 cluster-35 polish does not clear
+  the remaining `Z8Z_6680 C_lowerleft` dE miss.
 - Structure-heavy fine-tunes improved worst LPIPS from 0.1645 to 0.0567 and
   cleared one cluster-4 row, but did not solve the remaining dE/Y/MS rows.
 - Lab loss fixed cluster 2 completely, but repeated Lab/Y and MS-SSIM passes
