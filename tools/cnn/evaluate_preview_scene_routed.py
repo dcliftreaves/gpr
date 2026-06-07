@@ -70,6 +70,18 @@ def parse_cluster_checkpoint(values: list[str]) -> dict[int, Path]:
     return out
 
 
+def parse_cluster_conditioning(values: list[str]) -> dict[int, str]:
+    out: dict[int, str] = {}
+    for value in values:
+        if "=" not in value:
+            raise ValueError(f"--cluster-conditioning must be CLUSTER=MODE, got {value!r}")
+        left, right = value.split("=", 1)
+        if right not in {"zero", "content_stats"}:
+            raise ValueError(f"unsupported conditioning mode for cluster {left}: {right!r}")
+        out[int(left)] = right
+    return out
+
+
 def parse_int_list(values: list[str]) -> set[int]:
     out: set[int] = set()
     for value in values:
@@ -150,6 +162,12 @@ def main() -> int:
     ap.add_argument("--default-checkpoint", type=Path, required=True)
     ap.add_argument("--cluster-checkpoint", action="append", default=[], help="CLUSTER=PATH")
     ap.add_argument("--bypass-cluster", action="append", default=[], help="Cluster id or comma-list to pass source through unchanged")
+    ap.add_argument(
+        "--cluster-conditioning",
+        action="append",
+        default=[],
+        help="Optional CLUSTER=MODE override. MODE is zero or content_stats.",
+    )
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
@@ -165,6 +183,7 @@ def main() -> int:
     sidecar = json.loads(args.router_sidecar.read_text()) if args.router_sidecar else None
     source_map = discover_sources(args.source_root)
     cluster_ckpts = parse_cluster_checkpoint(args.cluster_checkpoint)
+    cluster_conditioning = parse_cluster_conditioning(args.cluster_conditioning)
     bypass_clusters = parse_int_list(args.bypass_cluster)
     all_ckpts = {"default": args.default_checkpoint, **{f"cluster_{k}": v for k, v in cluster_ckpts.items()}}
     models: dict[str, DirectRGBRefiner] = {}
@@ -210,9 +229,10 @@ def main() -> int:
             sample_model_ms.append(0.0)
         else:
             model = models[model_key]
+            sample_conditioning = cluster_conditioning.get(cluster, args.conditioning)
             for _ in range(max(1, args.timing_iters)):
                 t0 = time.perf_counter()
-                x = build_input(source, args.conditioning)
+                x = build_input(source, sample_conditioning)
                 t1 = time.perf_counter()
                 with torch.no_grad():
                     pred = model(x).detach().cpu().numpy()[0]
@@ -239,6 +259,7 @@ def main() -> int:
                 **route,
                 "checkpoint_role": model_key,
                 "checkpoint": str(ckpt_path) if ckpt_path else None,
+                "conditioning": cluster_conditioning.get(cluster, args.conditioning),
                 "source_label": row["source_label"],
                 "source_png": str(source_path),
                 "ref_png": str(ref_path),
@@ -261,6 +282,7 @@ def main() -> int:
             "router": "hard cluster route from runtime source features",
             "source_policy": "scene_router_kmeans_runtime_features",
             "conditioning": args.conditioning,
+            "cluster_conditioning": {str(k): v for k, v in sorted(cluster_conditioning.items())},
             "forbidden_inputs": ["REF image content", "REF HF/LF fields", "winner JSON", "sample index", "crop identity key planes", "gate metrics"],
             "render_inputs": ["source RGB frame/crop", "runtime feature cluster", "selected checkpoint"],
             "device": str(DEVICE),

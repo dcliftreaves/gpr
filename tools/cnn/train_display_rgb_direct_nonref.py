@@ -104,7 +104,7 @@ def parse_crop_png(path: Path) -> tuple[str, str, str] | None:
 
 
 def pass_preview(metrics: dict[str, float]) -> bool:
-    return (
+    return bool(
         metrics["lpips"] <= PREVIEW["lpips"]
         and metrics["ms_ssim"] >= PREVIEW["ms_ssim"]
         and metrics["y_psnr"] >= PREVIEW["y_psnr"]
