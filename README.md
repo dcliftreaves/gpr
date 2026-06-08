@@ -294,7 +294,9 @@ current editable-DNG source roots, and a shallow stitched post stage as the
 production fix. A full-frame variant oracle across the existing baseline,
 spatial, and scene-gated arbitrary-tiled 28-image receipts also stays at 63/84
 with 21 unsolved rows, so a scene-level selector over the current variants is
-not enough either.
+not enough either. Comparing exact manifest-crop output against arbitrary
+tiled output on the hard-eight rows gives an exact-crop teacher ceiling of
+16/24, leaving eight rows unsolved even before runtime generalization.
 The evaluator now records true per-frame wall timing: a `Z8Z_0026` smoke
 receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
 with only 3.67 s spent in model inference, so Python routing/save/stitch

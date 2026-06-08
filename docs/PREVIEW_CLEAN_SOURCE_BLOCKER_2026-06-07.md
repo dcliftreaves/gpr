@@ -1355,6 +1355,33 @@ include severe LPIPS/dE failures such as `Z8Z_0705 A_detail`,
 `Z8Z_6680 B_center/C_lowerleft`. The next candidate needs new model/target
 work, not just routing among these variants.
 
+### Exact-Crop Teacher Oracle
+
+The exact manifest-crop path is source-only at render time, so it is a plausible
+teacher for distilling arbitrary tiled outputs. A second oracle compares exact
+manifest-crop output against the arbitrary tiled scene-gated output on the
+hard-eight rows:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_exact_teacher_oracle_hard8_v1/preview_exact_teacher_oracle.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_exact_teacher_oracle_hard8_v1/preview_exact_teacher_oracle.html
+```
+
+Result:
+
+- exact manifest-crop teacher ceiling: 16/24
+- exact-pass/tiled-fail rows that are potentially distillable: 13/24
+- rows unsolved even by exact-crop output: 8/24
+- worst remaining exact-teacher LPIPS: 0.2898
+- worst remaining exact-teacher dE2000: 3.66
+
+This means exact-crop distillation can be a partial route/tile-transfer
+diagnostic, but it cannot be the complete production fix. The unresolved rows
+include `Z8Z_7480` all three crops, `Z8Z_5937 C_lowerleft`,
+`Z8Z_1586 B_center`, `Z8Z_5284 A_detail/C_lowerleft`, and
+`Z8Z_7955 C_lowerleft`. Those rows need a stronger teacher or a changed source
+target, not just arbitrary-tile matching to the current crop-local output.
+
 ### 768-Context Center-Gate Training
 
 The next context-aware pass added trainer support for receipts that contain
