@@ -249,6 +249,20 @@ the remaining 21 failures are concentrated in the hard full-grid images
 fine-tunes failed to pass even their 12 isolated training tiles, narrowing
 that blocker to model/context/source-target formulation rather than simple
 conditioning mismatch.
+The latest contract audit makes that sharper: exact manifest-crop inference
+passes 16/24 hard-eight rows, while arbitrary full-frame tiling passes only
+3/24, with 13 exact-pass to tiled-fail regressions and 14 crops crossed by
+mixed runtime expert roles. Forced coherent cluster-4 and K40-cluster-35
+routes on `Z8Z_0026`/`Z8Z_6680` both pass 0/6, so role mixing alone is not the
+fix. Two hard-eight retrains on the actual arbitrary runtime tile receipt
+also pass 0/96 tile rows, which means the next candidate needs a changed
+model/context formulation rather than more specialists on the same direct CNN
+contract. The audit dashboard is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_contract_audit_hard8_scene_gated_v1/preview_fullframe_contract_audit.html
+```
+
 None of these diagnostics are registered as production.
 
 ---
