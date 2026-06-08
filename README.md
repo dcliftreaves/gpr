@@ -263,6 +263,13 @@ contract. The audit dashboard is:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_contract_audit_hard8_scene_gated_v1/preview_fullframe_contract_audit.html
 ```
 
+Two changed-formulation follow-ups are also negative: a low-frequency spatial
+branch improves the hard runtime-tile receipt from 3/96 to 7/96 but remains far
+below the gate, and a 28-image stitched-output post-refiner stays at 63/84 on
+the manifest crop receipt. The next viable PREVIEW path needs a stronger
+context/full-image model or a better arbitrary-tile teacher/target, not another
+small correction on the current direct CNN path.
+
 None of these diagnostics are registered as production.
 
 ---

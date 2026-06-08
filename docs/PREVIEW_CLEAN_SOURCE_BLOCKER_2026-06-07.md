@@ -1275,3 +1275,53 @@ train a context-aware/full-crop or full-image student against a stable teacher,
 or build a runtime-safe stitched/post path that is trained and validated on a
 multi-image full-frame receipt. The existing hard8 runs narrow the blocker to
 model/context/source-target formulation.
+
+## Formulation Follow-Ups
+
+### Low-Frequency Spatial Branch
+
+The first changed-formulation pass added a low-frequency spatial correction
+branch initialized from the current direct checkpoint:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_expert_hard8_fullgrid_lfstrong_local_globalstats_v1/preview_runtime_refiner.json
+```
+
+It improves the same 96-row hard runtime-tile receipt compared with the default
+checkpoint, but remains far below a viable gate:
+
+- pass: 7/96
+- worst LPIPS: 0.6322
+- median LPIPS: 0.2890
+- worst MS-SSIM: 0.3282
+- worst Y-PSNR: 17.58
+- worst dE2000: 10.29
+
+This is a better direction than the direct hard8 retrains but still not a
+production candidate. It suggests the LF branch helps some tile rows but cannot
+repair the full arbitrary-tile contract by itself.
+
+### Multi-Image Stitched Post-Refiner
+
+The second changed-formulation pass trained a runtime-safe post-refiner on
+stitched no-REF full-frame outputs from the latest scene-gated holdout:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/post_refiner_scene_gated_holdout28_manifest_receipt_v1/post_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/post_refiner_scene_gated_holdout28_manifest_v1/preview_runtime_refiner.json
+```
+
+The receipt covers all 28 images and 84 manifest crops. The trained post pass
+does not improve the aggregate gate:
+
+- pass: 63/84
+- worst LPIPS: 0.5694
+- median LPIPS: 0.0196
+- worst MS-SSIM: 0.6294
+- worst Y-PSNR: 19.38
+- worst dE2000: 8.62
+
+This rules out a simple broad post-refiner over the current scene-gated output.
+The remaining hard rows need a stronger context/full-image model or a better
+teacher/target for arbitrary tiles, not a shallow correction of the stitched
+result.
