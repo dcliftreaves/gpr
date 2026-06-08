@@ -1647,6 +1647,8 @@ Production timing receipt:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_route512_smoke_z8z0026_v2/preview_scene_routed_fullframe.html
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_route512_split_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_route512_split_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_route512_fastfeature_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_route512_fastfeature_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
 ```
 
 Quality-enabled cached-route receipt:
@@ -1657,17 +1659,24 @@ Quality-enabled cached-route receipt:
 ```
 
 Latest `Z8Z_0026` production-timing result with explicit router feature
-max-side 512 and route feature/select split:
+max-side 512, route feature/select split, and the channel-wise saturation fast
+path:
 
-- runtime no-REF wall: 7.89 s/frame, 0.1268 FPS
-- model total: 2.64 s/frame
-- source render/load: 0.68 s + 0.15 s
-- routing: 1.97 s total; cached second-pass route time 0.00 ms
-- route feature extraction: 1.96 s total, 10.45 ms/tile median
-- route sidecar selection: 0.016 s total, 0.086 ms/tile median
-- stitched raw TIFF output: 0.068 s
+- runtime no-REF wall: 7.35 s/frame, 0.1360 FPS
+- model total: 2.75 s/frame
+- source render/load: 0.69 s + 0.15 s
+- routing: 1.11 s total; cached second-pass route time 0.00 ms
+- route feature extraction: 1.09 s total, 5.79 ms/tile median
+- route sidecar selection: 0.017 s total, 0.091 ms/tile median
+- stitched raw TIFF output: 0.086 s
 - quality scoring: skipped; 0.0005 ms scoring wall
-- peak RSS: 3106 MB
+- peak RSS: 3033 MB
+
+The fast feature path preserves the smoke-frame route-role histogram exactly:
+58 `cluster_0`, 6 `cluster_1`, 62 `cluster_2`, 4 `cluster_3`, 16 `cluster_4`,
+12 `override_0_cluster_10`, 4 `override_0_cluster_15`, and 25
+`override_1_cluster_35`. The maximum feature-vector drift versus the previous
+implementation on the same tiles is under 7e-7.
 
 The quality-enabled cached-route run preserves the same route-role histogram
 and crop metrics as the in-memory routing receipt: 0/3 pass, worst LPIPS
@@ -1705,12 +1714,14 @@ sidecar:
 
 | route feature scale | runtime | route total | role result |
 | --- | ---: | ---: | --- |
-| contract max-side 512 | 7.97 s | 2.04 s | baseline roles preserved |
+| contract max-side 512, previous feature path | 7.97 s | 2.04 s | baseline roles preserved |
+| contract max-side 512, fast saturation path | 7.35 s | 1.11 s | baseline roles preserved |
 | intermediate reduced scale | 7.45 s | 1.51 s | role histogram changed |
 | aggressive reduced scale | 6.79 s | 0.82 s | role histogram changed substantially |
 
-The split receipt proves sidecar selection is not the bottleneck. The next
-routing optimization should vectorize/reuse the 512-scale feature extractor or
-retrain/freeze a new reduced-scale router sidecar, rather than quietly changing
-feature scale under the existing sidecar. The next quality blocker remains the
-full-image detail/color failure, not REF content leakage.
+The split receipt proves sidecar selection is not the bottleneck. The fast
+saturation path halves the 512-scale feature cost without changing route roles.
+The next routing optimization should vectorize/reuse more of the 512-scale
+feature extractor or retrain/freeze a new reduced-scale router sidecar, rather
+than quietly changing feature scale under the existing sidecar. The next quality
+blocker remains the full-image detail/color failure, not REF content leakage.

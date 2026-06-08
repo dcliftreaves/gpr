@@ -106,8 +106,11 @@ def load_rgb01(path: Path, max_side: int = 512) -> np.ndarray:
 
 
 def rgb_to_hsv_saturation(rgb: np.ndarray) -> np.ndarray:
-    mx = rgb.max(axis=2)
-    mn = rgb.min(axis=2)
+    r = rgb[..., 0]
+    g = rgb[..., 1]
+    b = rgb[..., 2]
+    mx = np.maximum(np.maximum(r, g), b)
+    mn = np.minimum(np.minimum(r, g), b)
     return np.where(mx > 1e-6, (mx - mn) / np.maximum(mx, 1e-6), 0.0)
 
 
@@ -125,10 +128,13 @@ def feature_vector_rgb(rgb: np.ndarray, max_side: int = 512) -> np.ndarray:
         )
         rgb = np.asarray(image, dtype=np.float32) / 255.0
     else:
-        if rgb.dtype != np.float32 and rgb.dtype != np.float64:
-            rgb = rgb.astype(np.float32)
-        if float(np.max(rgb)) > 1.5:
-            rgb = rgb / 255.0
+        if rgb.dtype == np.uint8:
+            rgb = rgb.astype(np.float32) / 255.0
+        else:
+            if rgb.dtype != np.float32 and rgb.dtype != np.float64:
+                rgb = rgb.astype(np.float32)
+            if float(np.max(rgb)) > 1.5:
+                rgb = rgb / 255.0
     r = rgb[..., 0]
     g = rgb[..., 1]
     b = rgb[..., 2]
@@ -144,27 +150,31 @@ def feature_vector_rgb(rgb: np.ndarray, max_side: int = 512) -> np.ndarray:
     gx = np.diff(luma, axis=1, append=luma[:, -1:])
     gy = np.diff(luma, axis=0, append=luma[-1:, :])
     grad = np.sqrt(gx * gx + gy * gy)
-    p05 = float(np.percentile(luma, 5))
-    p95 = float(np.percentile(luma, 95))
+    p05, p95 = [float(value) for value in np.percentile(luma, [5, 95])]
+    luma_mean = float(luma.mean())
+    sat_mean = float(sat.mean())
+    r_mean = float(r.mean())
+    g_mean = float(g.mean())
+    b_mean = float(b.mean())
     return np.array(
         [
-            float(luma.mean()),
+            luma_mean,
             float(luma.std()),
             p05,
             p95,
             p95 - p05,
             float(np.sqrt(np.mean(hf * hf))),
             float(np.mean(grad > 0.035)),
-            float(sat.mean()),
+            sat_mean,
             float(np.percentile(sat, 95)),
             float(np.mean(sat > 0.45)),
             float(np.mean(luma < 0.12)),
             float(np.mean(luma > 0.88)),
-            float(r.mean()),
-            float(g.mean()),
-            float(b.mean()),
-            float(r.mean() - g.mean()),
-            float(b.mean() - g.mean()),
+            r_mean,
+            g_mean,
+            b_mean,
+            r_mean - g_mean,
+            b_mean - g_mean,
         ],
         dtype=np.float64,
     )
