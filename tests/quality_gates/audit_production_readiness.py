@@ -469,7 +469,7 @@ def check_nonref_preview_candidate() -> list[Check]:
     fullframe_production_timing_dashboard = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260606"
-        / "fullframe_production_timing_tiffraw_route512_split_smoke_z8z0026_v1"
+        / "fullframe_production_timing_tiffraw_route512_fastfeature_smoke_z8z0026_v1"
         / "preview_scene_routed_fullframe.json"
     )
     if not fullframe_tool.exists():
@@ -550,6 +550,7 @@ def check_nonref_preview_candidate() -> list[Check]:
                 and float(first_timing.get("runtime_no_ref_wall_ms", 0.0)) > 0.0
                 and 0.0 < float(first_timing.get("stitch_save_ms", 0.0)) < 500.0
                 and route_feature_total_ms > route_select_total_ms > 0.0
+                and route_feature_total_ms < 1300.0
                 and scoring_ms < 1.0
                 and int(first_image.get("stitched_output_bytes", 0)) > 0
                 and float(memory.get("max_rss_mb", 0.0)) > 0.0
