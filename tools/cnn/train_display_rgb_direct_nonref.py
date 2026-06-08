@@ -251,6 +251,50 @@ class ResidualLowFreqSpatialRGBRefiner(nn.Module):
         return torch.clamp(base * (1.0 + self.residual_scale * gain) + self.residual_scale * bias, 0.0, 1.0)
 
 
+class MidFreqResidualSpatialRGBRefiner(nn.Module):
+    def __init__(self, width: int = 64, in_channels: int = 9, residual_scale: float = 0.5, mid_scale: float = 0.25) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        self.mid_scale = float(mid_scale)
+        self.base = LowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+        mf_width = max(32, width)
+        self.mid = nn.Sequential(
+            nn.Conv2d(in_channels + 3, mf_width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(mf_width),
+            DilatedResBlock(mf_width, 2),
+            ResBlock(mf_width),
+            nn.Conv2d(mf_width, mf_width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(mf_width),
+            nn.Conv2d(mf_width, 3, 3, padding=1),
+        )
+        nn.init.zeros_(self.mid[-1].weight)
+        nn.init.zeros_(self.mid[-1].bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        source = x[:, :3]
+        base = self.base(x)
+        pooled_size = (
+            min(256, max(32, int(x.shape[-2]))),
+            min(256, max(32, int(x.shape[-1]))),
+        )
+        mid_input = F.interpolate(torch.cat([x, base - source], dim=1), size=pooled_size, mode="bilinear", align_corners=False)
+        mid = torch.tanh(self.mid(mid_input))
+        mid = F.interpolate(mid, size=source.shape[-2:], mode="bilinear", align_corners=False)
+        return torch.clamp(base + self.residual_scale * self.mid_scale * mid, 0.0, 1.0)
+
+
+class StrongMidFreqResidualSpatialRGBRefiner(MidFreqResidualSpatialRGBRefiner):
+    def __init__(self, width: int = 64, in_channels: int = 9, residual_scale: float = 0.5) -> None:
+        super().__init__(width=width, in_channels=in_channels, residual_scale=residual_scale, mid_scale=0.5)
+
+
+class ExtraStrongMidFreqResidualSpatialRGBRefiner(MidFreqResidualSpatialRGBRefiner):
+    def __init__(self, width: int = 64, in_channels: int = 9, residual_scale: float = 0.5) -> None:
+        super().__init__(width=width, in_channels=in_channels, residual_scale=residual_scale, mid_scale=1.0)
+
+
 def build_rgb_refiner(
     architecture: str = "direct",
     *,
@@ -268,6 +312,12 @@ def build_rgb_refiner(
         return StrongLowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     if architecture == "lowfreq_spatial_residual":
         return ResidualLowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+    if architecture == "midfreq_spatial_residual":
+        return MidFreqResidualSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+    if architecture == "midfreq_spatial_residual_strong":
+        return StrongMidFreqResidualSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+    if architecture == "midfreq_spatial_residual_xstrong":
+        return ExtraStrongMidFreqResidualSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     raise ValueError(f"unsupported RGB refiner architecture {architecture!r}")
 
 

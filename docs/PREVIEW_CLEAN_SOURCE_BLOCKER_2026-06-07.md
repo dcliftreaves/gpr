@@ -759,3 +759,74 @@ sampling: likely a full-frame/low-frequency Lab field, a larger context model
 that predicts a smooth correction over the scored crop, or a source-side
 normalization target that aligns the lower-left Lab field before local detail
 refinement.
+
+## Mid-Frequency Residual Follow-Up
+
+The corrected stitched-oracle diagnostic crops REF and stitched source with
+their own render dimensions before scoring. It shows the remaining miss is not
+pure broad LF color:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/oracle_stitched_midfreq_rgb_z8z6680_v1/oracle_stitched_midfreq_rgb.json
+```
+
+Key rows on `Z8Z_6680 C_lowerleft`:
+
+- base v5 stitched crop: LPIPS 0.0835, MS-SSIM 0.9555, Y-PSNR 25.90,
+  dE2000 3.90, fail
+- REF-derived RGB residual blurred at radius 1: LPIPS 0.0927, MS-SSIM 0.9849,
+  Y-PSNR 29.36, dE2000 2.53, pass
+- REF-derived RGB residual blurred at radius 1.5: LPIPS 0.0834, MS-SSIM
+  0.9720, Y-PSNR 27.22, dE2000 3.24, fail
+
+That narrows the missing signal to a mid-frequency correction. A very smooth
+field is insufficient; the useful correction sits near the radius-1 boundary
+after the scored crop resize.
+
+The next architecture adds a zero-initialized mid-frequency residual wrapper
+around the existing `lowfreq_spatial` base. It can load the v5 checkpoint into
+the base, freeze it, and train only the added residual branch:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_midfreq_residual_v14/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_midfreq_residual_v14_t512/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_midfreq_residual_strong_v15/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_midfreq_residual_strong_v15_t512/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_midfreq_residual_xstrong_v16/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_midfreq_residual_xstrong_v16_t512/preview_scene_routed_fullframe.json
+```
+
+v14 isolated tile receipt:
+
+- pass: 10/12
+- worst LPIPS: 0.0803
+- worst MS-SSIM: 0.9673
+- worst Y-PSNR: 27.09
+- worst dE2000: 3.41
+
+v14 stitched smoke:
+
+- pass: 2/3
+- `C_lowerleft`: LPIPS 0.0782, MS-SSIM 0.9580, Y-PSNR 26.12, dE2000 3.74
+
+v15 doubles the bounded mid-frequency branch. It is the best stitched result
+from this pass, but it still fails:
+
+- isolated pass: 10/12
+- stitched pass: 2/3
+- `C_lowerleft`: LPIPS 0.0784, MS-SSIM 0.9582, Y-PSNR 26.13, dE2000 3.72
+
+v16 uses the extra-strong branch and regresses:
+
+- isolated pass: 10/12
+- stitched pass: 2/3
+- `C_lowerleft`: LPIPS 0.0825, MS-SSIM 0.9567, Y-PSNR 26.03, dE2000 3.84
+
+This rules out branch amplitude as the main issue. The oracle says
+mid-frequency correction can clear the row; the learned residual wrappers do
+not learn enough of that correction from the current tile/assembled objective.
+The next production-shaped experiment should change the target/objective rather
+than only increasing residual scale: train against an explicit radius-1
+teacher/residual target, supervise the assembled crop with a mid-frequency
+bandpass loss, or predict the correction from larger/full-crop context before
+stitching.

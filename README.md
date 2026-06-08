@@ -220,7 +220,10 @@ regresses non-target tiles badly. A follow-up deterministic spatial override
 that selected a lower-left cluster-4 specialist from normalized tile coordinates
 also failed: the initialized fine-tune reached 6/15 isolated passes, but the
 stitched `Z8Z_6680` smoke stayed 2/3 and regressed `C_lowerleft` to Y-PSNR
-25.66 and dE2000 4.01. None of these diagnostics are registered as production.
+25.66 and dE2000 4.01. A mid-frequency oracle then showed that a radius-1 RGB
+residual can clear the remaining stitched crop, but the first learned
+mid-frequency residual wrappers only improved the smoke to Y-PSNR 26.13 and
+dE2000 3.72. None of these diagnostics are registered as production.
 
 ---
 

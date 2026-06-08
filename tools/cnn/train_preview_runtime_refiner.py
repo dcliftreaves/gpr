@@ -34,7 +34,16 @@ from train_display_rgb_direct_nonref import build_rgb_refiner, grad_loss, pass_p
 
 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-ARCHITECTURES = ["direct", "dilated_context", "lowfreq_spatial", "lowfreq_spatial_strong", "lowfreq_spatial_residual"]
+ARCHITECTURES = [
+    "direct",
+    "dilated_context",
+    "lowfreq_spatial",
+    "lowfreq_spatial_strong",
+    "lowfreq_spatial_residual",
+    "midfreq_spatial_residual",
+    "midfreq_spatial_residual_strong",
+    "midfreq_spatial_residual_xstrong",
+]
 
 
 @dataclass(frozen=True)
