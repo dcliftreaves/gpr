@@ -289,9 +289,13 @@ the best REF-field oracle at only 6/24. The next path needs a different
 source/target or structure/detail formulation, not another smooth LF field.
 Full-frame source luma/detail and editable-DNG source-root probes also failed
 to improve the hard-eight set, and same-row stitched RGB post-refiner capacity
-checks reached only 2/24 and 0/24. That rules out source detail addback,
-current editable-DNG source roots, and a shallow stitched post stage as the
-production fix. A full-frame variant oracle across the existing baseline,
+checks reached only 2/24 and 0/24. A later stitched-tile post-refiner pass on
+the actual hard-eight arbitrary full-frame tile distribution improved dense
+tiles only from 13/394 to 33/394, then regressed the full-frame hard-eight crop
+gate to 3/24; a source-guarded direct residual variant reached only 15/394.
+That rules out source detail addback, current editable-DNG source roots, and a
+single shallow stitched post stage as the production fix. A full-frame variant
+oracle across the existing baseline,
 spatial, and scene-gated arbitrary-tiled 28-image receipts also stays at 63/84
 with 21 unsolved rows, so a scene-level selector over the current variants is
 not enough either. Comparing exact manifest-crop output against arbitrary
