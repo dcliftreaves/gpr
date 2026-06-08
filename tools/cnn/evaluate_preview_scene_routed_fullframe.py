@@ -473,8 +473,12 @@ def route_tile_role(
         return -1, None, args.force_model_key, args.force_conditioning, {
             "route_source": "forced_diagnostic_model_key",
             "route_distance": 0.0,
+            "route_feature_ms": 0.0,
+            "route_select_ms": 0.0,
         }
+    t0 = time.perf_counter()
     features = feature_vector_rgb(tile_rgb, max_side=int(args.route_feature_max_side))
+    t1 = time.perf_counter()
     cluster, override_cluster, model_key, _ckpt, conditioning, route = select_model_features(
         features=features,
         base_sidecar=routing["base_sidecar"],
@@ -486,6 +490,9 @@ def route_tile_role(
         override_conditioning=routing["override_conditioning"],
         default_conditioning=routing["default_conditioning"],
     )
+    t2 = time.perf_counter()
+    route["route_feature_ms"] = (t1 - t0) * 1000.0
+    route["route_select_ms"] = (t2 - t1) * 1000.0
     return cluster, override_cluster, model_key, conditioning, route
 
 
@@ -590,6 +597,8 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     model_batch_sizes: list[int] = []
     input_ms: list[float] = []
     route_ms: list[float] = []
+    route_feature_ms: list[float] = []
+    route_select_ms: list[float] = []
     save_tile_ms: list[float] = []
     tile_jobs: list[dict[str, Any]] = []
     route_cache: dict[
@@ -612,6 +621,8 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     scene_role_counts: dict[str, int] = {}
     spatial_enabled_names: set[str] | None = None
     scene_route_ms: list[float] = []
+    scene_route_feature_ms: list[float] = []
+    scene_route_select_ms: list[float] = []
     if routing["spatial_scene_role_min"]:
         for x0, y0, x1, y1, _tile_label in tile_specs:
             route_pad = max(max(0, int(args.model_context_padding)), int(args.route_context_padding))
@@ -628,6 +639,8 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             )
             _cluster, _override_cluster, model_key, _conditioning, _route = route_result
             scene_route_ms.append((time.perf_counter() - t0) * 1000.0)
+            scene_route_feature_ms.append(float(_route.get("route_feature_ms", 0.0)))
+            scene_route_select_ms.append(float(_route.get("route_select_ms", 0.0)))
             scene_role_counts[model_key] = scene_role_counts.get(model_key, 0) + 1
             route_cache[(x0, y0, x1, y1, _tile_label)] = route_result
         spatial_enabled_names = scene_spatial_enabled_names(scene_role_counts, routing["spatial_scene_role_min"])
@@ -655,6 +668,8 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
                     tile_rgb=route_rgb,
                     routing=routing,
                 )
+                route_feature_ms.append(float(route.get("route_feature_ms", 0.0)))
+                route_select_ms.append(float(route.get("route_select_ms", 0.0)))
             if not args.force_model_key:
                 model_key, conditioning, spatial_route = apply_spatial_override(
                     regions=routing["spatial_regions"],
@@ -843,6 +858,10 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             "ref_load_ms": ref_load_ms,
             "route_ms_median": float(statistics.median(route_ms)) if route_ms else 0.0,
             "route_ms_total": float(sum(route_ms)),
+            "route_feature_ms_median": float(statistics.median(route_feature_ms)) if route_feature_ms else 0.0,
+            "route_feature_ms_total": float(sum(route_feature_ms)),
+            "route_select_ms_median": float(statistics.median(route_select_ms)) if route_select_ms else 0.0,
+            "route_select_ms_total": float(sum(route_select_ms)),
             "save_tile_ms_median": float(statistics.median(save_tile_ms)) if save_tile_ms else 0.0,
             "stitch_save_ms": stitch_save_ms,
             "input_ms_median": float(statistics.median(input_ms)) if input_ms else 0.0,
@@ -855,6 +874,10 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             "post_refiner_wall_ms": post_refiner_wall_ms,
             "scene_route_ms_median": float(statistics.median(scene_route_ms)) if scene_route_ms else 0.0,
             "scene_route_ms_total": float(sum(scene_route_ms)),
+            "scene_route_feature_ms_median": float(statistics.median(scene_route_feature_ms)) if scene_route_feature_ms else 0.0,
+            "scene_route_feature_ms_total": float(sum(scene_route_feature_ms)),
+            "scene_route_select_ms_median": float(statistics.median(scene_route_select_ms)) if scene_route_select_ms else 0.0,
+            "scene_route_select_ms_total": float(sum(scene_route_select_ms)),
         },
         "post_refiner": post_refiner_receipt,
         "tile_roles": {

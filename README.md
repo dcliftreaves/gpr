@@ -299,10 +299,11 @@ overhead is also a production blocker. The first runtime fix moves full-frame
 routing in memory and drops the same `Z8Z_0026` no-REF wall time to
 12.07 s/frame with unchanged route roles and crop metrics. Reusing the
 scene-route pass and skipping REF-only dashboard scoring for production timing
-measures the same smoke render path at 7.97 s/frame when the production
+measures the same smoke render path at 7.89 s/frame when the production
 receipt writes raw TIFF instead of PNG. The current split is roughly 2.64 s in
-CNN inference, 2.04 s in routing, 0.69 s in source render, and 0.069 s in
-stitched output. The receipt explicitly keeps router feature extraction at
+CNN inference, 1.97 s in routing, 0.68 s in source render, and 0.068 s in
+stitched output. The route split shows 1.96 s in feature extraction and only
+0.016 s in frozen sidecar selection. The receipt explicitly keeps router feature extraction at
 max-side 512; reduced feature scales were faster but changed route roles, so
 they are not production-safe with the current sidecars. MPS tile batching was
 measured at batch sizes 2 and 8 and was slower, so the current receipt keeps
