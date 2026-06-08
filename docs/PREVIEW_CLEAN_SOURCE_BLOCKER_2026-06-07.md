@@ -1218,3 +1218,60 @@ Y-PSNR 14.25, and worst dE2000 17.45. The post-refiner cleared the local
 `Z8Z_6680` smoke but does not generalize as a forced model. The next production
 test is to train/validate a routed or broader stitched post-refiner on a
 multi-image full-frame receipt and reject it if it only memorizes this frame.
+
+## Full-Frame Contract Audit and Hard8 Runtime-Tile Training
+
+The latest audit compares the crop-local contract against the arbitrary
+full-frame runtime contract on the hard-eight images:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_contract_audit_hard8_scene_gated_v1/preview_fullframe_contract_audit.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_contract_audit_hard8_scene_gated_v1/preview_fullframe_contract_audit.html
+```
+
+Summary:
+
+- exact manifest-crop rows: 16/24 pass
+- arbitrary full-frame tiled rows: 3/24 pass
+- exact-pass to tiled-fail regressions: 13
+- crops crossed by mixed runtime expert roles: 14
+- worst exact-vs-tiled LPIPS: 0.5575
+- median exact-vs-tiled mean absolute RGB delta: 5.38
+
+Forced coherent-route checks on `Z8Z_0026` and `Z8Z_6680` do not fix the
+problem:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_force_cluster4_0026_6680_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_force_k40c35_0026_6680_v1/preview_scene_routed_fullframe.json
+```
+
+Both forced paths pass 0/6. This rules out a simple "choose one coherent
+expert per crop" fix for those hard rows.
+
+The next pair of training runs used the 28-image arbitrary full-frame tile
+receipt, filtered to the hard-eight images, with global color statistics and
+assembled-crop loss:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_train_holdout28_globalstats_t512/tile_train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_expert_hard8_fullgrid_zerocoord_globalstats_assembled_v1/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_expert_hard8_fullgrid_local_globalstats_assembled_v1/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/eval_default_hard8_runtime_tiles_v1/preview_runtime_refiner.json
+```
+
+Tile-level results on the same 96 hard runtime tiles:
+
+| candidate | pass | worst LPIPS | median LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+|---|---:|---:|---:|---:|---:|---:|
+| default checkpoint | 3/96 | 0.9291 | 0.3534 | 0.2612 | 14.38 | 23.21 |
+| hard8 zero-coordinate/global-stats | 0/96 | 0.6889 | 0.4127 | 0.3535 | 17.77 | 10.39 |
+| hard8 local-coordinate/global-stats | 0/96 | 0.7181 | 0.4140 | 0.3806 | 18.07 | 9.86 |
+
+Conclusion: the current direct CNN plus the existing arbitrary-tile
+supervision does not learn a production-safe full-frame PREVIEW contract. The
+next candidate should change formulation, not just add more loss weighting:
+train a context-aware/full-crop or full-image student against a stable teacher,
+or build a runtime-safe stitched/post path that is trained and validated on a
+multi-image full-frame receipt. The existing hard8 runs narrow the blocker to
+model/context/source-target formulation.

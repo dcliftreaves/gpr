@@ -180,17 +180,24 @@ def build_assembled_crop_groups(samples: list[Any], args: argparse.Namespace) ->
 
 
 def build_input_for_sample(source_rgb: np.ndarray, conditioning: str, coordinate_mode: str, sample: ReceiptSample) -> torch.Tensor:
-    if coordinate_mode == "local" or sample.tile_xywh is None or sample.source_render_size is None:
+    if coordinate_mode == "local" and conditioning != "global_color_stats":
         return build_input(source_rgb, conditioning)
     if coordinate_mode not in {"global_tile", "zero_coord"}:
-        raise ValueError(f"unsupported coordinate mode {coordinate_mode!r}")
+        if coordinate_mode != "local" or conditioning != "global_color_stats":
+            raise ValueError(f"unsupported coordinate mode {coordinate_mode!r}")
     height, width = source_rgb.shape[:2]
-    x0, y0, _tile_w, _tile_h = sample.tile_xywh
-    full_w, full_h = sample.source_render_size
-    if coordinate_mode == "zero_coord":
+    if sample.tile_xywh is None or sample.source_render_size is None or coordinate_mode == "local":
+        yy, xx = np.meshgrid(
+            np.linspace(0, 1, height, dtype=np.float32),
+            np.linspace(0, 1, width, dtype=np.float32),
+            indexing="ij",
+        )
+    elif coordinate_mode == "zero_coord":
         yy = np.zeros((height, width), dtype=np.float32)
         xx = np.zeros((height, width), dtype=np.float32)
     else:
+        x0, y0, _tile_w, _tile_h = sample.tile_xywh
+        full_w, full_h = sample.source_render_size
         yy, xx = np.meshgrid(
             (np.arange(height, dtype=np.float32) + float(y0)) / max(1.0, float(full_h - 1)),
             (np.arange(width, dtype=np.float32) + float(x0)) / max(1.0, float(full_w - 1)),
