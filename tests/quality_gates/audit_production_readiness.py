@@ -392,6 +392,46 @@ def check_preview_coord_field_negative_evidence() -> Check:
         return Check("preview_detail", "coordinate-field negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_fullimage_lf_negative_evidence() -> Check:
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260606"
+        / "fullimage_lf_refiner_hard8_capacity_v2"
+        / "preview_fullimage_lf_refiner.json"
+    )
+    if not receipt.exists():
+        return Check("preview_detail", "full-image LF negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summaries = {str(row.get("variant")): row for row in payload.get("summary") or []}
+        refined = summaries.get("fullimage_lf_refined") or {}
+        oracle = summaries.get("ref_lowfield_oracle") or {}
+        checkpoint = (payload.get("model") or {}).get("checkpoint_sha256")
+        contract = payload.get("render_contract") or {}
+        ok = (
+            payload.get("schema") == "preview_fullimage_lf_refiner_receipt.v1"
+            and int(refined.get("count", 0)) == 24
+            and int(refined.get("pass_count", -1)) == 0
+            and int(oracle.get("count", 0)) == 24
+            and int(oracle.get("pass_count", -1)) == 0
+            and float(oracle.get("worst_lpips", 0.0)) > 0.60
+            and checkpoint
+            and "ref_lowfield_oracle" in contract.get("oracle_variants_not_allowed_for_production", [])
+        )
+        return Check(
+            "preview_detail",
+            "full-image LF negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"refined={int(refined.get('pass_count', -1))}/{int(refined.get('count', 0))}, "
+                f"oracle={int(oracle.get('pass_count', -1))}/{int(oracle.get('count', 0))}, "
+                f"oracle_worst_lpips={float(oracle.get('worst_lpips', 0.0)):.4f} receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "full-image LF negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_nonref_preview_candidate() -> list[Check]:
     artifact_dir = ARTIFACT_ROOT / "display_rgb_direct_lpips_nonref_20260606"
     dashboard = artifact_dir / "rgb_direct_lpips_nonref_dashboard.json"
@@ -1028,6 +1068,7 @@ def main() -> int:
     checks.append(check_preview_exact_teacher_oracle_evidence())
     checks.append(check_preview_post_refiner_negative_evidence())
     checks.append(check_preview_coord_field_negative_evidence())
+    checks.append(check_preview_fullimage_lf_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
         check_file("preview_holdout", "holdout summary dashboard tool", "tests/quality_gates/summarize_preview_holdout.py"),
