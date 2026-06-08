@@ -1750,6 +1750,37 @@ field and cannot be only low-frequency correction over current source detail.
 It needs a full-image-aware low/mid placement target plus fine-detail
 synthesis/preservation that survives LPIPS.
 
+### Context Generator Headroom Test
+
+The next model-side diagnostic removed the source-plus-residual output
+constraint from the prior context U-Net. `context_unet_generator` takes the same
+runtime-safe source/context/coordinate input planes as the refiner, but outputs
+RGB directly through a sigmoid head instead of forcing `source + residual`.
+This tests whether the prior hard-eight failures were caused mainly by
+insufficient output headroom.
+
+Artifact:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/context768_center512_generator_hard8_fit_v1/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/context768_center512_generator_hard8_fit_v1/preview_runtime_refiner.html
+```
+
+Result on the 24 hard-eight 768-context/center-512 rows:
+
+- direct generator: 0/24
+- worst LPIPS 0.6136, median LPIPS 0.4035
+- worst MS-SSIM 0.3989
+- worst Y-PSNR 18.29
+- worst dE2000 11.52
+
+The internal training score improved substantially, but the saved best
+checkpoint still failed every actual gate row. That rules out "residual
+headroom" as the sole blocker. The next useful pass must change the
+source/teacher representation or training target so the full-image low/mid
+placement and fine detail seen in the frequency oracle become learnable from
+source-only inputs.
+
 ### Full-Frame Wall Timing Receipt
 
 The full-frame scene-routed evaluator now records explicit wall-clock timing

@@ -469,6 +469,43 @@ def check_preview_frequency_oracle_evidence() -> Check:
         return Check("preview_detail", "full-image frequency oracle evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_context_generator_negative_evidence() -> Check:
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260606"
+        / "context768_center512_generator_hard8_fit_v1"
+        / "preview_runtime_refiner.json"
+    )
+    if not receipt.exists():
+        return Check("preview_detail", "context generator negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = (payload.get("summary") or {}).get("preview_runtime_policy") or {}
+        training = payload.get("training") or {}
+        contract = payload.get("runtime_contract") or {}
+        ok = (
+            payload.get("schema") == "preview_runtime_refiner_train_receipt.v1"
+            and int(summary.get("count", 0)) == 24
+            and int(summary.get("pass_count", -1)) == 0
+            and float(summary.get("worst_lpips", 0.0)) > 0.60
+            and training.get("checkpoint_sha256")
+            and contract.get("render_inputs")
+            and "REF image content" in contract.get("forbidden_inputs", [])
+        )
+        return Check(
+            "preview_detail",
+            "context generator negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"generator={int(summary.get('pass_count', -1))}/{int(summary.get('count', 0))}, "
+                f"worst_lpips={float(summary.get('worst_lpips', 0.0)):.4f}, "
+                f"median_lpips={float(summary.get('median_lpips', 0.0)):.4f} receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "context generator negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_nonref_preview_candidate() -> list[Check]:
     artifact_dir = ARTIFACT_ROOT / "display_rgb_direct_lpips_nonref_20260606"
     dashboard = artifact_dir / "rgb_direct_lpips_nonref_dashboard.json"
@@ -1107,6 +1144,7 @@ def main() -> int:
     checks.append(check_preview_coord_field_negative_evidence())
     checks.append(check_preview_fullimage_lf_negative_evidence())
     checks.append(check_preview_frequency_oracle_evidence())
+    checks.append(check_preview_context_generator_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
         check_file("preview_holdout", "holdout summary dashboard tool", "tests/quality_gates/summarize_preview_holdout.py"),

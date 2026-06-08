@@ -319,6 +319,12 @@ failures even when Y/dE/MS-SSIM are near or inside threshold. The next PREVIEW
 candidate therefore needs a full-image-aware mapping for near-REF low/mid
 placement plus better fine-detail synthesis/preservation; swapping only high
 or low bands is not enough.
+A follow-up `context_unet_generator` diagnostic removed the source-plus-residual
+output constraint on the 768-context hard-eight fit. It still failed 0/24
+with worst LPIPS 0.6136 and median LPIPS 0.4035, so simple output headroom is
+not the missing piece. The remaining production path needs a better
+source/teacher representation or training target that makes the required
+full-image low/mid and detail placement learnable from source-only inputs.
 The evaluator now records true per-frame wall timing: a `Z8Z_0026` smoke
 receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
 with only 3.67 s spent in model inference, so Python routing/save/stitch
