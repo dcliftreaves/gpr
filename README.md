@@ -297,7 +297,10 @@ receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
 with only 3.67 s spent in model inference, so Python routing/save/stitch
 overhead is also a production blocker. The first runtime fix moves full-frame
 routing in memory and drops the same `Z8Z_0026` no-REF wall time to
-12.07 s/frame with unchanged route roles and crop metrics.
+12.07 s/frame with unchanged route roles and crop metrics. Reusing the
+scene-route pass and skipping REF-only dashboard scoring for production timing
+measures the same smoke render path at 10.09 s/frame, with roughly 2.55 s in
+CNN inference, 1.99 s in routing, and 2.33 s in stitched PNG output.
 
 None of these diagnostics are registered as production.
 

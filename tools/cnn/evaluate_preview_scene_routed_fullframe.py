@@ -525,6 +525,22 @@ def summarize_image_timing(image_receipts: list[dict[str, Any]]) -> dict[str, An
     }
 
 
+def summarize_quality_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    if rows:
+        return summarize(rows)
+    return {
+        "count": 0,
+        "pass_count": 0,
+        "pass_rate": 0.0,
+        "worst_lpips": 0.0,
+        "median_lpips": 0.0,
+        "worst_ms_ssim": 0.0,
+        "worst_y_psnr": 0.0,
+        "worst_dE2000_mean": 0.0,
+        "quality_scoring": "skipped",
+    }
+
+
 def crop_metric_image(image: np.ndarray, crop: dict[str, int], sensor_dims: list[int]) -> np.ndarray:
     box = scaled_box(crop, sensor_dims, (image.shape[1], image.shape[0]))
     pil = Image.fromarray(image).crop(box)
@@ -537,13 +553,13 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     image_wall_start = time.perf_counter()
     image_id = str(image["id"])
     manifest = json.loads(args.manifest.read_text())
-    ref_dng = resolve_ref(image, args.ref_root)
+    ref_dng = None if args.skip_quality_scoring else resolve_ref(image, args.ref_root)
     source_dng = resolve_source(image_id, args.source_root)
     if source_dng is None:
         raise FileNotFoundError(f"missing source DNG for {image_id}")
-    ref_tiff = work / f"{image_id}_REF.tiff"
+    ref_tiff = work / f"{image_id}_REF.tiff" if ref_dng is not None else None
     source_tiff = work / f"{image_id}_source.tiff"
-    ref_render_ms = render_dng_to_tiff(ref_dng, ref_tiff)
+    ref_render_ms = render_dng_to_tiff(ref_dng, ref_tiff) if ref_dng is not None and ref_tiff is not None else 0.0
     runtime_wall_start = time.perf_counter()
     source_render_ms = render_dng_to_tiff(source_dng, source_tiff)
     t0 = time.perf_counter()
@@ -560,6 +576,10 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     input_ms: list[float] = []
     route_ms: list[float] = []
     save_tile_ms: list[float] = []
+    route_cache: dict[
+        tuple[int, int, int, int, str],
+        tuple[int, int | None, str, str, dict[str, Any]],
+    ] = {}
     if args.tile_mode == "manifest_crops":
         tile_specs = []
         for crop_name, crop in manifest["crops"].items():
@@ -585,13 +605,15 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             ry1 = min(height, y1 + route_pad)
             route_rgb = source_rgb[ry0:ry1, rx0:rx1]
             t0 = time.perf_counter()
-            _cluster, _override_cluster, model_key, _conditioning, _route = route_tile_role(
+            route_result = route_tile_role(
                 args=args,
                 tile_rgb=route_rgb,
                 routing=routing,
             )
+            _cluster, _override_cluster, model_key, _conditioning, _route = route_result
             scene_route_ms.append((time.perf_counter() - t0) * 1000.0)
             scene_role_counts[model_key] = scene_role_counts.get(model_key, 0) + 1
+            route_cache[(x0, y0, x1, y1, _tile_label)] = route_result
         spatial_enabled_names = scene_spatial_enabled_names(scene_role_counts, routing["spatial_scene_role_min"])
     for x0, y0, x1, y1, tile_label in tile_specs:
             pad = max(0, int(args.model_context_padding))
@@ -608,11 +630,15 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             context_rgb = source_rgb[cy0:cy1, cx0:cx1]
             route_rgb = source_rgb[ry0:ry1, rx0:rx1]
             t0 = time.perf_counter()
-            cluster, override_cluster, model_key, conditioning, route = route_tile_role(
-                args=args,
-                tile_rgb=route_rgb,
-                routing=routing,
-            )
+            route_key = (x0, y0, x1, y1, tile_label)
+            if route_key in route_cache:
+                cluster, override_cluster, model_key, conditioning, route = route_cache[route_key]
+            else:
+                cluster, override_cluster, model_key, conditioning, route = route_tile_role(
+                    args=args,
+                    tile_rgb=route_rgb,
+                    routing=routing,
+                )
             if not args.force_model_key:
                 model_key, conditioning, spatial_route = apply_spatial_override(
                     regions=routing["spatial_regions"],
@@ -629,7 +655,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
                     enabled_names=spatial_enabled_names,
                 )
                 route.update(spatial_route)
-            route_ms.append((time.perf_counter() - t0) * 1000.0)
+            route_ms.append((time.perf_counter() - t0) * 1000.0 if route_key not in route_cache else 0.0)
             t0 = time.perf_counter()
             x = build_tile_input(
                 context_rgb,
@@ -701,36 +727,41 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
         post_refiner_receipt["png"] = post_path.name
     runtime_wall_ms = (time.perf_counter() - runtime_wall_start) * 1000.0
     scoring_wall_start = time.perf_counter()
-    t0 = time.perf_counter()
-    ref_rgb = load_rgb(ref_tiff)
-    ref_load_ms = (time.perf_counter() - t0) * 1000.0
+    ref_rgb = None
+    ref_load_ms = 0.0
     crop_rows: list[dict[str, Any]] = []
-    for crop_name, crop in manifest["crops"].items():
-        if crop_name.startswith("$"):
-            continue
-        ref_crop = crop_metric_image(ref_rgb, crop, image["sensor_dims"])
-        out_crop = crop_metric_image(scored_image, crop, image["sensor_dims"])
-        crop_png = args.output_dir / f"{image_id}_{crop_name}_scene_routed_fullframe.png"
-        Image.fromarray(out_crop).save(crop_png)
-        metrics = compute_visual_metrics(ref_crop, out_crop)
-        metrics = {k: float(v) for k, v in metrics.items()}
-        metrics["preview_pass"] = pass_preview(metrics)
-        crop_rows.append(
-            {
-                "image_id": image_id,
-                "crop": crop_name,
-                "png": crop_png.name,
-                **metrics,
-            }
-        )
+    if not args.skip_quality_scoring:
+        if ref_tiff is None:
+            raise RuntimeError("quality scoring requested without a REF TIFF")
+        t0 = time.perf_counter()
+        ref_rgb = load_rgb(ref_tiff)
+        ref_load_ms = (time.perf_counter() - t0) * 1000.0
+        for crop_name, crop in manifest["crops"].items():
+            if crop_name.startswith("$"):
+                continue
+            ref_crop = crop_metric_image(ref_rgb, crop, image["sensor_dims"])
+            out_crop = crop_metric_image(scored_image, crop, image["sensor_dims"])
+            crop_png = args.output_dir / f"{image_id}_{crop_name}_scene_routed_fullframe.png"
+            Image.fromarray(out_crop).save(crop_png)
+            metrics = compute_visual_metrics(ref_crop, out_crop)
+            metrics = {k: float(v) for k, v in metrics.items()}
+            metrics["preview_pass"] = pass_preview(metrics)
+            crop_rows.append(
+                {
+                    "image_id": image_id,
+                    "crop": crop_name,
+                    "png": crop_png.name,
+                    **metrics,
+                }
+            )
     scoring_wall_ms = (time.perf_counter() - scoring_wall_start) * 1000.0
     total_eval_wall_ms = (time.perf_counter() - image_wall_start) * 1000.0
     return {
         "image_id": image_id,
         "source_dng": str(source_dng),
-        "ref_dng": str(ref_dng),
+        "ref_dng": str(ref_dng) if ref_dng is not None else None,
         "source_render_size": [width, height],
-        "ref_render_size": [ref_rgb.shape[1], ref_rgb.shape[0]],
+        "ref_render_size": [ref_rgb.shape[1], ref_rgb.shape[0]] if ref_rgb is not None else None,
         "stitched_png": stitched_path.name,
         "tile_count": len(tile_rows),
         "tile_size": tile,
@@ -747,6 +778,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             "ref_render_ms": ref_render_ms,
             "ref_load_ms": ref_load_ms,
             "route_ms_median": float(statistics.median(route_ms)) if route_ms else 0.0,
+            "route_ms_total": float(sum(route_ms)),
             "save_tile_ms_median": float(statistics.median(save_tile_ms)) if save_tile_ms else 0.0,
             "stitch_save_ms": stitch_save_ms,
             "input_ms_median": float(statistics.median(input_ms)) if input_ms else 0.0,
@@ -810,6 +842,10 @@ th.left,td.left { text-align:left; }
         )
     for label, value in cards:
         parts.append(f"<div class=card><b>{label}</b><br>{value}</div>")
+    if not rows:
+        parts.append("</div><p>Quality scoring skipped for production render timing receipt.</p>")
+        html_path.write_text("".join(parts))
+        return
     parts.append("</div><table><thead><tr><th class=left>image</th><th class=left>crop</th><th>LPIPS</th><th>MS</th><th>Y</th><th>dE</th><th>pass</th></tr></thead><tbody>")
     for row in rows:
         cls = "pass" if row["preview_pass"] else "fail"
@@ -873,6 +909,7 @@ def main() -> int:
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
     ap.add_argument("--tmp-dir", type=Path, default=Path("/Volumes/OWC_8TB/gpr_work/tmp"))
+    ap.add_argument("--skip-quality-scoring", action="store_true", help="Measure production no-REF render timing without REF render/load, crop metrics, or crop PNGs.")
     args = ap.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     args.dashboard_json.parent.mkdir(parents=True, exist_ok=True)
@@ -976,11 +1013,12 @@ def main() -> int:
                 "render_inputs": ["stitched RGB full frame", "normalized pixel coordinates", "checkpoint"] if args.post_checkpoint is not None else [],
             },
             "device": str(DEVICE),
+            "quality_scoring": "skipped" if args.skip_quality_scoring else "enabled",
         },
         "router_sidecar_sha256": sha256_file(args.router_sidecar),
         "override_router_sidecar_sha256": [sha256_file(path) for path in args.override_router_sidecar],
         "checkpoints": checkpoint_receipts,
-        "summary": {"preview_runtime_policy": summarize(rows)},
+        "summary": {"preview_runtime_policy": summarize_quality_rows(rows)},
         "timing_summary": summarize_image_timing(image_receipts),
         "memory": {"max_rss_mb": max_rss_mb(), **mps_memory_mb()},
         "images": image_receipts,
