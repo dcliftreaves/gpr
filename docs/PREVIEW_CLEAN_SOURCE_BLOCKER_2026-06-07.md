@@ -1326,6 +1326,35 @@ The remaining hard rows need a stronger context/full-image model or a better
 teacher/target for arbitrary tiles, not a shallow correction of the stitched
 result.
 
+### Existing Variant Oracle
+
+The next diagnostic asks whether a scene-level classifier/router over the
+already-generated arbitrary-tiled variants could solve the holdout without new
+model work. The oracle compares baseline v32, unconditional spatial, and
+scene-gated spatial receipts on the same 84 full-frame holdout rows:
+
+```text
+tools/cnn/compare_preview_fullframe_variants.py
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_variant_oracle_holdout28_v1/preview_fullframe_variant_oracle.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_variant_oracle_holdout28_v1/preview_fullframe_variant_oracle.html
+```
+
+Because this oracle chooses by gate metrics, it is analysis-only and not a
+runtime policy. Result:
+
+- baseline: 57/84
+- unconditional spatial: 33/84
+- scene-gated spatial: 63/84
+- best existing variant per row: 63/84
+- unsolved rows after the oracle: 21/84
+
+This rules out a production path based only on a scene-level classifier that
+selects among the current full-frame variants. The best remaining rows still
+include severe LPIPS/dE failures such as `Z8Z_0705 A_detail`,
+`Z8Z_7480 B_center`, `Z8Z_0026 B_center`, `Z8Z_5937 C_lowerleft`, and
+`Z8Z_6680 B_center/C_lowerleft`. The next candidate needs new model/target
+work, not just routing among these variants.
+
 ### 768-Context Center-Gate Training
 
 The next context-aware pass added trainer support for receipts that contain

@@ -251,6 +251,42 @@ def check_preview_detail(area: str, name: str, pipeline: str) -> Check:
     return check_preview_detail_blocker_evidence()
 
 
+def check_preview_variant_oracle_evidence() -> Check:
+    tool = REPO / "tools/cnn/compare_preview_fullframe_variants.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260606"
+        / "fullframe_variant_oracle_holdout28_v1"
+        / "preview_fullframe_variant_oracle.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "full-frame variant oracle evidence", "FAIL", "missing tracked variant oracle tool")
+    if not receipt.exists():
+        return Check("preview_detail", "full-frame variant oracle evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = payload.get("oracle_summary") or {}
+        complete_rows = int(payload.get("complete_row_count", 0))
+        pass_count = int(summary.get("pass_count", 0))
+        row_count = int(summary.get("count", 0))
+        unsolved = int(payload.get("unsolved_count", 0))
+        ok = (
+            payload.get("schema") == "preview_fullframe_variant_oracle.v1"
+            and complete_rows == 84
+            and row_count == 84
+            and pass_count == 63
+            and unsolved == 21
+        )
+        return Check(
+            "preview_detail",
+            "full-frame variant oracle evidence",
+            "PASS" if ok else "FAIL",
+            f"oracle={pass_count}/{row_count} unsolved={unsolved} receipt={receipt}",
+        )
+    except Exception as exc:
+        return Check("preview_detail", "full-frame variant oracle evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_nonref_preview_candidate() -> list[Check]:
     artifact_dir = ARTIFACT_ROOT / "display_rgb_direct_lpips_nonref_20260606"
     dashboard = artifact_dir / "rgb_direct_lpips_nonref_dashboard.json"
@@ -883,6 +919,7 @@ def main() -> int:
         "Lab Chroma SIPS full PREVIEW gate",
         lab_sips_pipeline,
     ))
+    checks.append(check_preview_variant_oracle_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
         check_file("preview_holdout", "holdout summary dashboard tool", "tests/quality_gates/summarize_preview_holdout.py"),
