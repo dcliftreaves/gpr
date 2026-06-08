@@ -509,33 +509,48 @@ def check_preview_context_generator_negative_evidence() -> Check:
 def check_preview_exact_teacher_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/build_preview_exact_teacher_receipt.py"
     scorer = REPO / "tools/cnn/score_preview_exact_teacher_distill.py"
-    score_receipt = (
+    direct_score_receipt = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260606"
         / "exact_teacher_post_distill_hard8_w96_v2"
+        / "exact_teacher_distill_score.json"
+    )
+    unet_score_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260606"
+        / "exact_teacher_post_distill_hard8_unetgen_v3"
         / "exact_teacher_distill_score.json"
     )
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "exact-teacher distill negative evidence", "FAIL", "missing tracked exact-teacher receipt tool")
     if not scorer.exists() or not git_tracked(scorer):
         return Check("preview_detail", "exact-teacher distill negative evidence", "FAIL", "missing tracked exact-teacher scorer")
-    if not score_receipt.exists():
-        return Check("preview_detail", "exact-teacher distill negative evidence", "FAIL", f"missing {score_receipt}")
+    missing = [str(path) for path in (direct_score_receipt, unet_score_receipt) if not path.exists()]
+    if missing:
+        return Check("preview_detail", "exact-teacher distill negative evidence", "FAIL", "missing " + ", ".join(missing))
     try:
-        payload = json.loads(score_receipt.read_text())
+        payload = json.loads(direct_score_receipt.read_text())
+        unet_payload = json.loads(unet_score_receipt.read_text())
         summary = payload.get("summary") or {}
+        unet_summary = unet_payload.get("summary") or {}
         source_ref = summary.get("source_vs_ref") or {}
         teacher_ref = summary.get("teacher_vs_ref") or {}
         output_ref = summary.get("output_vs_ref") or {}
         output_teacher = summary.get("output_vs_teacher") or {}
+        unet_ref = unet_summary.get("output_vs_ref") or {}
+        unet_teacher = unet_summary.get("output_vs_teacher") or {}
         ok = (
             payload.get("schema") == "preview_exact_teacher_distill_score.v1"
+            and unet_payload.get("schema") == "preview_exact_teacher_distill_score.v1"
             and int(source_ref.get("count", 0)) == 24
             and int(source_ref.get("pass_count", -1)) == 3
             and int(teacher_ref.get("pass_count", -1)) == 16
             and int(output_teacher.get("pass_count", -1)) == 6
             and int(output_ref.get("pass_count", -1)) == 3
             and float(output_ref.get("worst_lpips", 0.0)) > 0.45
+            and int(unet_teacher.get("pass_count", -1)) == 0
+            and int(unet_ref.get("pass_count", -1)) == 0
+            and float(unet_ref.get("worst_dE2000_mean", 0.0)) > 15.0
         )
         return Check(
             "preview_detail",
@@ -545,7 +560,9 @@ def check_preview_exact_teacher_distill_negative_evidence() -> Check:
                 f"source_ref={int(source_ref.get('pass_count', -1))}/24, "
                 f"teacher_ref={int(teacher_ref.get('pass_count', -1))}/24, "
                 f"output_teacher={int(output_teacher.get('pass_count', -1))}/24, "
-                f"output_ref={int(output_ref.get('pass_count', -1))}/24 receipt={score_receipt}"
+                f"output_ref={int(output_ref.get('pass_count', -1))}/24, "
+                f"unet_teacher={int(unet_teacher.get('pass_count', -1))}/24, "
+                f"unet_ref={int(unet_ref.get('pass_count', -1))}/24 receipt={direct_score_receipt}"
             ),
         )
     except Exception as exc:

@@ -329,9 +329,10 @@ An exact-crop-teacher post-distillation pass then used tiled no-REF output as
 source and exact no-REF crop output as the teacher. The teacher itself is
 16/24 against REF, but the wider width-96 direct post model only reached 6/24
 against the teacher and stayed at 3/24 against REF, matching the tiled source
-pass count. That rules out simple exact-crop-teacher post-distillation as the
-full-frame fix; a stronger architecture or better source/teacher representation
-is still required.
+pass count. A context U-Net generator post pass regressed to 0/24 against both
+teacher and REF with large color errors. That rules out simple
+exact-crop-teacher post-distillation as the full-frame fix; a different
+source/teacher representation or more global model class is still required.
 The evaluator now records true per-frame wall timing: a `Z8Z_0026` smoke
 receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
 with only 3.67 s spent in model inference, so Python routing/save/stitch
