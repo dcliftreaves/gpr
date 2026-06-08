@@ -291,7 +291,10 @@ Full-frame source luma/detail and editable-DNG source-root probes also failed
 to improve the hard-eight set, and same-row stitched RGB post-refiner capacity
 checks reached only 2/24 and 0/24. That rules out source detail addback,
 current editable-DNG source roots, and a shallow stitched post stage as the
-production fix.
+production fix. A full-frame variant oracle across the existing baseline,
+spatial, and scene-gated arbitrary-tiled 28-image receipts also stays at 63/84
+with 21 unsolved rows, so a scene-level selector over the current variants is
+not enough either.
 The evaluator now records true per-frame wall timing: a `Z8Z_0026` smoke
 receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
 with only 3.67 s spent in model inference, so Python routing/save/stitch
