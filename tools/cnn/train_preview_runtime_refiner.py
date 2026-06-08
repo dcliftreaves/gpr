@@ -45,6 +45,7 @@ ARCHITECTURES = [
     "midfreq_spatial_residual_strong",
     "midfreq_spatial_residual_xstrong",
     "context_unet",
+    "context_unet_generator",
 ]
 
 
