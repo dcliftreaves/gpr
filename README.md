@@ -325,6 +325,13 @@ with worst LPIPS 0.6136 and median LPIPS 0.4035, so simple output headroom is
 not the missing piece. The remaining production path needs a better
 source/teacher representation or training target that makes the required
 full-image low/mid and detail placement learnable from source-only inputs.
+An exact-crop-teacher post-distillation pass then used tiled no-REF output as
+source and exact no-REF crop output as the teacher. The teacher itself is
+16/24 against REF, but the wider width-96 direct post model only reached 6/24
+against the teacher and stayed at 3/24 against REF, matching the tiled source
+pass count. That rules out simple exact-crop-teacher post-distillation as the
+full-frame fix; a stronger architecture or better source/teacher representation
+is still required.
 The evaluator now records true per-frame wall timing: a `Z8Z_0026` smoke
 receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
 with only 3.67 s spent in model inference, so Python routing/save/stitch
