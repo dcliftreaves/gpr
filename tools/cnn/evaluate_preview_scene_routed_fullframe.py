@@ -45,6 +45,55 @@ from train_display_rgb_direct_nonref import DirectRGBRefiner, build_rgb_refiner,
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 
+def parse_spatial_checkpoint(values: list[str]) -> dict[str, Path]:
+    out: dict[str, Path] = {}
+    for value in values:
+        if "=" not in value:
+            raise ValueError(f"--spatial-checkpoint must be NAME=PATH, got {value!r}")
+        name, path = value.split("=", 1)
+        if not name:
+            raise ValueError("--spatial-checkpoint name cannot be empty")
+        out[name] = Path(path)
+    return out
+
+
+def parse_spatial_region(values: list[str]) -> list[dict[str, Any]]:
+    regions: list[dict[str, Any]] = []
+    for value in values:
+        if "=" not in value:
+            raise ValueError(f"--spatial-region must be NAME=X0,Y0,X1,Y1[,CLUSTER], got {value!r}")
+        name, spec = value.split("=", 1)
+        parts = spec.split(",")
+        if len(parts) not in {4, 5}:
+            raise ValueError(f"--spatial-region must have 4 normalized bounds plus optional cluster, got {value!r}")
+        x0, y0, x1, y1 = [float(v) for v in parts[:4]]
+        if not (0.0 <= x0 < x1 <= 1.0 and 0.0 <= y0 < y1 <= 1.0):
+            raise ValueError(f"spatial bounds must be normalized and ordered, got {value!r}")
+        regions.append(
+            {
+                "name": name,
+                "x0": x0,
+                "y0": y0,
+                "x1": x1,
+                "y1": y1,
+                "cluster": int(parts[4]) if len(parts) == 5 and parts[4] else None,
+            }
+        )
+    return regions
+
+
+def parse_spatial_conditioning(values: list[str]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for value in values:
+        if "=" not in value:
+            raise ValueError(f"--spatial-conditioning must be NAME=MODE, got {value!r}")
+        name, mode = value.split("=", 1)
+        if mode not in {"zero", "content_stats", "color_stats", "global_color_stats"}:
+            raise ValueError(f"unsupported spatial conditioning mode for {name}: {mode!r}")
+        out[name] = mode
+    return out
+
+
 def max_rss_mb() -> float:
     rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     if sys.platform == "darwin":
@@ -291,6 +340,37 @@ def select_model(
     return cluster, override_cluster, model_key, ckpt_path, conditioning, route
 
 
+def apply_spatial_override(
+    *,
+    regions: list[dict[str, Any]],
+    conditioning: dict[str, str],
+    cluster: int,
+    x0: int,
+    y0: int,
+    x1: int,
+    y1: int,
+    width: int,
+    height: int,
+    model_key: str,
+    current_conditioning: str,
+) -> tuple[str, str, dict[str, Any]]:
+    center_x = (float(x0) + float(x1)) * 0.5 / max(1.0, float(width))
+    center_y = (float(y0) + float(y1)) * 0.5 / max(1.0, float(height))
+    for region in regions:
+        expected_cluster = region.get("cluster")
+        if expected_cluster is not None and int(expected_cluster) != int(cluster):
+            continue
+        if region["x0"] <= center_x < region["x1"] and region["y0"] <= center_y < region["y1"]:
+            name = str(region["name"])
+            key = f"spatial_{name}"
+            return key, conditioning.get(name, current_conditioning), {
+                "spatial_override": name,
+                "spatial_center": [center_x, center_y],
+                "spatial_cluster_constraint": expected_cluster,
+            }
+    return model_key, current_conditioning, {"spatial_override": None, "spatial_center": [center_x, center_y]}
+
+
 def crop_metric_image(image: np.ndarray, crop: dict[str, int], sensor_dims: list[int]) -> np.ndarray:
     box = scaled_box(crop, sensor_dims, (image.shape[1], image.shape[0]))
     pil = Image.fromarray(image).crop(box)
@@ -367,8 +447,29 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             else:
                 cluster, override_cluster, model_key, _ckpt, conditioning, route = select_model(
                     source_path=tile_path,
-                    **routing,
+                    base_sidecar=routing["base_sidecar"],
+                    override_sidecars=routing["override_sidecars"],
+                    default_checkpoint=routing["default_checkpoint"],
+                    cluster_ckpts=routing["cluster_ckpts"],
+                    override_ckpts=routing["override_ckpts"],
+                    cluster_conditioning=routing["cluster_conditioning"],
+                    override_conditioning=routing["override_conditioning"],
+                    default_conditioning=routing["default_conditioning"],
                 )
+                model_key, conditioning, spatial_route = apply_spatial_override(
+                    regions=routing["spatial_regions"],
+                    conditioning=routing["spatial_conditioning"],
+                    cluster=cluster,
+                    x0=x0,
+                    y0=y0,
+                    x1=x1,
+                    y1=y1,
+                    width=width,
+                    height=height,
+                    model_key=model_key,
+                    current_conditioning=conditioning,
+                )
+                route.update(spatial_route)
             route_ms.append((time.perf_counter() - t0) * 1000.0)
             t0 = time.perf_counter()
             x = build_tile_input(
@@ -552,8 +653,11 @@ def main() -> int:
     ap.add_argument("--default-checkpoint", type=Path, required=True)
     ap.add_argument("--cluster-checkpoint", action="append", default=[])
     ap.add_argument("--override-cluster-checkpoint", action="append", default=[])
+    ap.add_argument("--spatial-checkpoint", action="append", default=[], help="NAME=PATH; selected by --spatial-region after normal routing.")
     ap.add_argument("--cluster-conditioning", action="append", default=[])
     ap.add_argument("--override-cluster-conditioning", action="append", default=[])
+    ap.add_argument("--spatial-conditioning", action="append", default=[], help="NAME=MODE for spatial checkpoint input conditioning.")
+    ap.add_argument("--spatial-region", action="append", default=[], help="NAME=X0,Y0,X1,Y1[,CLUSTER] normalized tile-center bounds.")
     ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats", "global_color_stats"], default="zero")
     ap.add_argument("--coordinate-mode", choices=["local", "global_tile"], default="local")
     ap.add_argument("--tile-size", type=int, default=768)
@@ -581,6 +685,16 @@ def main() -> int:
 
     cluster_ckpts = parse_cluster_checkpoint(args.cluster_checkpoint)
     override_ckpts = parse_override_checkpoint(args.override_cluster_checkpoint)
+    spatial_ckpts = parse_spatial_checkpoint(args.spatial_checkpoint)
+    spatial_regions = parse_spatial_region(args.spatial_region)
+    spatial_conditioning = parse_spatial_conditioning(args.spatial_conditioning)
+    spatial_region_names = {str(r["name"]) for r in spatial_regions}
+    missing_regions = sorted(set(spatial_ckpts) - spatial_region_names)
+    if missing_regions:
+        raise ValueError(f"spatial checkpoints missing matching --spatial-region entries: {missing_regions}")
+    missing_checkpoints = sorted(spatial_region_names - set(spatial_ckpts))
+    if missing_checkpoints:
+        raise ValueError(f"spatial regions missing matching --spatial-checkpoint entries: {missing_checkpoints}")
     all_ckpts = {
         "default": args.default_checkpoint,
         **{f"cluster_{k}": v for k, v in cluster_ckpts.items()},
@@ -588,6 +702,7 @@ def main() -> int:
             f"override_{idx}_cluster_{cluster}" if idx is not None else f"override_cluster_{cluster}": v
             for (idx, cluster), v in override_ckpts.items()
         },
+        **{f"spatial_{name}": path for name, path in spatial_ckpts.items()},
     }
     models = {key: load_model(path) for key, path in all_ckpts.items()}
     if args.post_checkpoint is not None:
@@ -617,6 +732,8 @@ def main() -> int:
         "cluster_conditioning": parse_cluster_conditioning(args.cluster_conditioning),
         "override_conditioning": parse_override_conditioning(args.override_cluster_conditioning),
         "default_conditioning": args.conditioning,
+        "spatial_regions": spatial_regions,
+        "spatial_conditioning": spatial_conditioning,
     }
     manifest = json.loads(args.manifest.read_text())
     images = [
@@ -640,9 +757,11 @@ def main() -> int:
         "runtime_contract": {
             "source_policy": "scene_router_kmeans_runtime_features_tiled_fullframe",
             "forbidden_inputs": ["REF image content", "REF HF/LF fields", "winner JSON", "sample index", "crop identity key planes", "gate metrics"],
-            "render_inputs": ["source RGB full frame", "runtime tile feature cluster", "selected checkpoint"],
+            "render_inputs": ["source RGB full frame", "runtime tile feature cluster", "normalized tile coordinates", "selected checkpoint"],
             "router_sidecar": str(args.router_sidecar),
             "override_router_sidecar": [str(path) for path in args.override_router_sidecar],
+            "spatial_regions": spatial_regions,
+            "spatial_conditioning": spatial_conditioning,
             "tile_size": args.tile_size,
             "overlap": args.overlap,
             "valid_margin": args.valid_margin,
