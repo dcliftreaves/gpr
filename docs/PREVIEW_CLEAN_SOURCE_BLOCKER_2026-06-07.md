@@ -684,3 +684,78 @@ lower-left correction shared across the holdout.
 Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
 cluster-35 polish specialists as production PREVIEW until the full-frame/tiled
 runtime path has equivalent evidence.
+
+## Cluster/Spatial Override Follow-Up
+
+The next diagnostic added two runtime-valid hooks:
+
+- receipt training can hard-filter rows by `intersects_crops`, so a specialist
+  can train only on tiles that intersect a manifest crop;
+- full-frame evaluation can select a checkpoint by normalized tile-center
+  bounds plus an optional runtime cluster constraint. The selection inputs are
+  source RGB, frozen route features, and tile coordinates only; REF content,
+  crop identity key planes, sample index, winner JSON, and gate metrics remain
+  forbidden.
+
+The `C_lowerleft` tile receipt shows the broad K5 cluster is not homogeneous:
+
+- cluster 0: 84 tiles across 21 images
+- cluster 1: 6 tiles across 2 images
+- cluster 2: 7 tiles across 3 images
+- cluster 4: 15 tiles across 5 images
+
+For `Z8Z_6680`, the four `C_lowerleft` intersecting tiles are all K5 cluster
+4: `tile_1024_4096`, `tile_1536_4096`, `tile_1024_4608`, and
+`tile_1536_4608`.
+
+Two narrow lower-left cluster-4 specialists were trained:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_c_lowerleft_cluster4_spatial_v12/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_c_lowerleft_cluster4_spatial_ft_v13/preview_runtime_refiner.json
+```
+
+v12 trained from scratch and is ruled out immediately:
+
+- pass: 0/15
+- worst LPIPS: 0.6948
+- worst MS-SSIM: 0.6605
+- worst Y-PSNR: 19.48
+- worst dE2000: 8.72
+
+v13 fine-tuned from the v5 assembled full-frame candidate and improved the
+isolated lower-left cluster-4 receipt, but it is still not a production
+specialist:
+
+- pass: 6/15
+- worst LPIPS: 0.5773
+- median LPIPS: 0.1443
+- worst MS-SSIM: 0.8268
+- worst Y-PSNR: 26.75
+- worst dE2000: 3.66
+
+The full-frame spatial route applied v13 only to K5 cluster-4 tiles whose
+normalized tile centers fell in `x=[0.10, 0.28]`, `y=[0.72, 1.00]`:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_v5_spatial_llc4_v13_t512/preview_scene_routed_fullframe.json
+```
+
+That route selected the spatial specialist on 8 of 187 full-frame tiles. It
+did not clear the stitched blocker:
+
+- pass: 2/3
+- `A_detail`: pass, LPIPS 0.0368, MS-SSIM 0.9916, Y-PSNR 40.02, dE2000 1.32
+- `B_center`: pass, LPIPS 0.0496, MS-SSIM 0.9846, Y-PSNR 28.36, dE2000 2.56
+- `C_lowerleft`: fail, LPIPS 0.1013, MS-SSIM 0.9522, Y-PSNR 25.66, dE2000
+  4.01
+
+This rules out the current lower-left cluster-4 coordinate override. The
+failure is now specifically a stitched full-frame transfer problem: a specialist
+can improve selected isolated tiles, but the correction does not compose into a
+passing `C_lowerleft` crop after arbitrary 512px full-frame tiling. The next
+candidate should change the representation rather than keep adding narrow
+sampling: likely a full-frame/low-frequency Lab field, a larger context model
+that predicts a smooth correction over the scored crop, or a source-side
+normalization target that aligns the lower-left Lab field before local detail
+refinement.

@@ -91,7 +91,7 @@ def parse_cluster_conditioning(values: list[str]) -> dict[int, str]:
         if "=" not in value:
             raise ValueError(f"--cluster-conditioning must be CLUSTER=MODE, got {value!r}")
         left, right = value.split("=", 1)
-        if right not in {"zero", "content_stats", "color_stats"}:
+        if right not in {"zero", "content_stats", "color_stats", "global_color_stats"}:
             raise ValueError(f"unsupported conditioning mode for cluster {left}: {right!r}")
         out[int(left)] = right
     return out
@@ -103,7 +103,7 @@ def parse_override_conditioning(values: list[str]) -> dict[tuple[int | None, int
         if "=" not in value:
             raise ValueError(f"--override-cluster-conditioning must be [INDEX:]CLUSTER=MODE, got {value!r}")
         left, right = value.split("=", 1)
-        if right not in {"zero", "content_stats", "color_stats"}:
+        if right not in {"zero", "content_stats", "color_stats", "global_color_stats"}:
             raise ValueError(f"unsupported override conditioning mode for cluster {left}: {right!r}")
         if ":" in left:
             index, cluster = left.split(":", 1)

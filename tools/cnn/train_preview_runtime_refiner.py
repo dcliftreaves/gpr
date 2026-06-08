@@ -64,11 +64,15 @@ class AssembledCropGroup:
 def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
     sidecar = json.loads(args.router_sidecar.read_text()) if args.router_sidecar else None
     wanted_clusters = {int(c) for c in args.include_cluster}
+    wanted_intersects = {str(c) for c in args.include_intersect_crop}
     out: list[ReceiptSample] = []
     for receipt_path in args.sample_receipt or []:
         receipt = json.loads(receipt_path.read_text())
         for row in receipt.get("rows") or []:
             if args.image_id and str(row.get("image_id")) not in set(args.image_id):
+                continue
+            intersects_crops = tuple(str(v) for v in row.get("intersects_crops", []))
+            if wanted_intersects and not wanted_intersects.intersection(intersects_crops):
                 continue
             source_path = Path(str(row.get("source_png_resolved") or row.get("source_png") or ""))
             ref_path = Path(str(row.get("ref_png") or ""))
@@ -90,7 +94,7 @@ def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
                     tile_xywh=tuple(int(v) for v in row["tile_xywh"]) if row.get("tile_xywh") else None,
                     source_render_size=tuple(int(v) for v in row["source_render_size"]) if row.get("source_render_size") else None,
                     source_global_stats={k: float(v) for k, v in row["source_global_stats"].items()} if row.get("source_global_stats") else None,
-                    intersects_crops=tuple(str(v) for v in row.get("intersects_crops", [])),
+                    intersects_crops=intersects_crops,
                 )
             )
     if not out:
@@ -743,6 +747,7 @@ def main() -> int:
     ap.add_argument("--sample-receipt", type=Path, action="append")
     ap.add_argument("--router-sidecar", type=Path)
     ap.add_argument("--include-cluster", type=int, action="append", default=[])
+    ap.add_argument("--include-intersect-crop", action="append", default=[], help="Train only receipt rows whose intersects_crops contains this crop name.")
     ap.add_argument("--focus-intersect-crop", action="append", default=[], help="Oversample receipt rows whose intersects_crops contains this crop name.")
     ap.add_argument("--focus-crop", action="append", default=[], help="Oversample receipt rows whose crop id contains this substring.")
     ap.add_argument("--focus-weight", type=float, default=4.0)

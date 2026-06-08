@@ -216,8 +216,11 @@ stronger runtime source/model formulation for lower-left luma/color consistency,
 not just heavier sampling or loss weighting on the same arbitrary tiles. A
 residual low-frequency wrapper and broad all-28 lower-left residual
 normalization were also tested; the broad correction is scene-unstable and
-regresses non-target tiles badly. None of these diagnostics are registered as
-production.
+regresses non-target tiles badly. A follow-up deterministic spatial override
+that selected a lower-left cluster-4 specialist from normalized tile coordinates
+also failed: the initialized fine-tune reached 6/15 isolated passes, but the
+stitched `Z8Z_6680` smoke stayed 2/3 and regressed `C_lowerleft` to Y-PSNR
+25.66 and dE2000 4.01. None of these diagnostics are registered as production.
 
 ---
 
