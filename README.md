@@ -275,8 +275,10 @@ larger context with a single initialized direct CNN is also ruled out.
 An explicit context U-Net follow-up regressed further to 53/84, and hard-eight
 fit tests with both capped and high residual output failed 0/24 even on their
 own training rows. The blocker is now narrowed away from "larger local RGB
-context CNN" and toward target/source formulation or full-image low-frequency
-field supervision.
+context CNN". A full-frame low-frequency Lab field probe then showed the best
+runtime-safe source-field variant at only 3/24 on hard-eight rows, and even
+the best REF-field oracle at only 6/24. The next path needs a different
+source/target or structure/detail formulation, not another smooth LF field.
 
 None of these diagnostics are registered as production.
 
