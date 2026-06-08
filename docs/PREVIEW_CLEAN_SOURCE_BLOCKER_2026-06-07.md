@@ -1693,6 +1693,34 @@ keeps source detail stable while learning a full-image-aware source-to-target
 mapping, not a local tile CNN, a shallow stitched post stage, or a smooth field
 alone.
 
+### Full-Image LF Residual Capacity
+
+The next runtime-safe formulation trained a bounded low-resolution residual
+field on full hard-eight source/REF renders, then applied the upsampled residual
+to source crops. Render-time inputs are source RGB, normalized coordinates, and
+the checkpoint. REF is used only for training/scoring. The receipt also includes
+`ref_lowfield_oracle`, which is an invalid production variant used only to test
+whether an exact low-frequency REF field would close the gate.
+
+Artifact:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullimage_lf_refiner_hard8_capacity_v2/preview_fullimage_lf_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullimage_lf_refiner_hard8_capacity_v2/preview_fullimage_lf_refiner.html
+```
+
+Result on the 24 hard-eight manifest crop rows:
+
+- source baseline: 0/24, worst LPIPS 0.6839, worst dE2000 10.70
+- learned full-image LF residual: 0/24, worst LPIPS 0.6847, worst dE2000 10.54
+- exact REF low-field oracle: 0/24, worst LPIPS 0.6765, worst dE2000 10.39
+
+This rules out full-image low-frequency/color correction by itself. Even an
+oracle low-field transfer cannot clear LPIPS/MS-SSIM/Y/dE, so the remaining
+PREVIEW blocker must involve mid/high-frequency structure, the source/teacher
+representation, or a model that can make stronger full-image-aware detail
+changes while remaining no-REF at render time.
+
 ### Full-Frame Wall Timing Receipt
 
 The full-frame scene-routed evaluator now records explicit wall-clock timing
