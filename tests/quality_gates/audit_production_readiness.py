@@ -360,6 +360,38 @@ def check_preview_post_refiner_negative_evidence() -> Check:
         return Check("preview_detail", "stitched post-refiner negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_coord_field_negative_evidence() -> Check:
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260606"
+        / "scene_expert_hard8_coord_field_globalstats_v1"
+        / "preview_runtime_refiner.json"
+    )
+    if not receipt.exists():
+        return Check("preview_detail", "coordinate-field negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = (payload.get("summary") or {}).get("preview_runtime_policy") or {}
+        checkpoint = payload.get("training") or {}
+        count = int(summary.get("count", 0))
+        pass_count = int(summary.get("pass_count", -1))
+        worst_lpips = float(summary.get("worst_lpips", 0.0))
+        ok = (
+            count == 96
+            and pass_count == 0
+            and worst_lpips > 0.60
+            and checkpoint.get("checkpoint_sha256")
+        )
+        return Check(
+            "preview_detail",
+            "coordinate-field negative evidence",
+            "PASS" if ok else "FAIL",
+            f"coord_field={pass_count}/{count} worst_lpips={worst_lpips:.4f} receipt={receipt}",
+        )
+    except Exception as exc:
+        return Check("preview_detail", "coordinate-field negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_nonref_preview_candidate() -> list[Check]:
     artifact_dir = ARTIFACT_ROOT / "display_rgb_direct_lpips_nonref_20260606"
     dashboard = artifact_dir / "rgb_direct_lpips_nonref_dashboard.json"
@@ -995,6 +1027,7 @@ def main() -> int:
     checks.append(check_preview_variant_oracle_evidence())
     checks.append(check_preview_exact_teacher_oracle_evidence())
     checks.append(check_preview_post_refiner_negative_evidence())
+    checks.append(check_preview_coord_field_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
         check_file("preview_holdout", "holdout summary dashboard tool", "tests/quality_gates/summarize_preview_holdout.py"),

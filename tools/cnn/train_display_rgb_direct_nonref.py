@@ -216,6 +216,41 @@ class StrongLowFreqSpatialRGBRefiner(nn.Module):
         return torch.clamp(source + detail_delta + self.residual_scale * lf_delta, 0.0, 1.0)
 
 
+class CoordFieldRGBRefiner(nn.Module):
+    def __init__(self, width: int = 32, in_channels: int = 9, residual_scale: float = 0.5) -> None:
+        super().__init__()
+        if in_channels < 9:
+            raise ValueError("CoordFieldRGBRefiner expects source RGB, coordinate planes, and stat planes")
+        self.residual_scale = float(residual_scale)
+        field_channels = in_channels - 3
+        self.field = nn.Sequential(
+            nn.Conv2d(field_channels, width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(width),
+            nn.Conv2d(width, width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(width),
+            nn.Conv2d(width, 6, 3, padding=1),
+        )
+        nn.init.zeros_(self.field[-1].weight)
+        nn.init.zeros_(self.field[-1].bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        source = x[:, :3]
+        field_input = x[:, 3:]
+        pooled_size = (
+            min(64, max(8, int(x.shape[-2]))),
+            min(64, max(8, int(x.shape[-1]))),
+        )
+        low_input = F.interpolate(field_input, size=pooled_size, mode="bilinear", align_corners=False)
+        field = self.field(low_input)
+        field = F.interpolate(field, size=source.shape[-2:], mode="bilinear", align_corners=False)
+        gain = 0.25 * torch.tanh(field[:, :3])
+        bias = 0.25 * torch.tanh(field[:, 3:])
+        corrected = source * (1.0 + self.residual_scale * gain) + self.residual_scale * bias
+        return torch.clamp(corrected, 0.0, 1.0)
+
+
 class ResidualLowFreqSpatialRGBRefiner(nn.Module):
     def __init__(self, width: int = 64, in_channels: int = 9, residual_scale: float = 0.5) -> None:
         super().__init__()
@@ -342,6 +377,8 @@ def build_rgb_refiner(
         return LowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     if architecture == "lowfreq_spatial_strong":
         return StrongLowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+    if architecture == "coord_field":
+        return CoordFieldRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     if architecture == "lowfreq_spatial_residual":
         return ResidualLowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     if architecture == "midfreq_spatial_residual":
