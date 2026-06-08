@@ -234,8 +234,21 @@ remaining CNN blocker is now low-frequency Lab/Y calibration, not missing
 texture/detail. A runtime-safe stitched-frame post-refiner trained on the v21
 full-frame output clears the three-crop `Z8Z_6680` smoke with worst LPIPS
 0.0515, worst MS-SSIM 0.9824, worst Y-PSNR 28.94, and worst dE2000 2.997, but
-it is a single-frame diagnostic and still needs broader holdout proof before it
-can be registered.
+it is a single-frame diagnostic and did not generalize to the hair/skin
+holdout.
+
+The latest production-shaped full-grid pass adds a runtime scene-role gate for
+a hair/skin spatial specialist trained on actual arbitrary full-frame tiles.
+That gate is based on source-route role counts, not image ids. It clears the
+three-image hair/skin smoke 9/9 and improves the full 28-image arbitrary
+tiled holdout from **57/84 (67.86%)** to **63/84 (75.0%)**, with MPS model
+time **3.37 s/frame** and peak RSS **5750 MB**. It is still not production:
+the remaining 21 failures are concentrated in the hard full-grid images
+`Z8Z_0026`, `Z8Z_0705`, `Z8Z_1586`, `Z8Z_5284`, `Z8Z_5937`, `Z8Z_6680`,
+`Z8Z_7480`, and `Z8Z_7955`. Initial `Z8Z_0026` all-crop full-grid
+fine-tunes failed to pass even their 12 isolated training tiles, narrowing
+that blocker to model/context/source-target formulation rather than simple
+conditioning mismatch.
 None of these diagnostics are registered as production.
 
 ---
