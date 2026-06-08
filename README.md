@@ -269,6 +269,9 @@ below the gate, and a 28-image stitched-output post-refiner stays at 63/84 on
 the manifest crop receipt. The next viable PREVIEW path needs a stronger
 context/full-image model or a better arbitrary-tile teacher/target, not another
 small correction on the current direct CNN path.
+A 768-context/center-512 training pass was then added and tested using global
+crop coordinates from the context receipt; it regressed to 60/84, so simple
+larger context with a single initialized direct CNN is also ruled out.
 
 None of these diagnostics are registered as production.
 
