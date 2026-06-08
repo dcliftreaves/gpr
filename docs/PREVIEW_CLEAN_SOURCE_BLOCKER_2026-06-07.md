@@ -1643,8 +1643,8 @@ stitched output and records the no-REF render wall time.
 Production timing receipt:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_inmem_route_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_inmem_route_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_batch1_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_batch1_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
 ```
 
 Quality-enabled cached-route receipt:
@@ -1656,17 +1656,29 @@ Quality-enabled cached-route receipt:
 
 `Z8Z_0026` production-timing result:
 
-- runtime no-REF wall: 10.09 s/frame, 0.0991 FPS
-- model total: 2.55 s/frame
+- runtime no-REF wall: 10.35 s/frame, 0.0966 FPS
+- model total: 2.66 s/frame
 - source render/load: 0.68 s + 0.15 s
-- routing: 1.99 s total; cached second-pass route time 0.00 ms
-- stitched PNG output: 2.33 s
+- routing: 1.98 s total; cached second-pass route time 0.00 ms
+- stitched PNG output: 2.43 s
 - quality scoring: skipped; 0.0004 ms scoring wall
-- peak RSS: 3142 MB
+- peak RSS: 3189 MB
 
 The quality-enabled cached-route run preserves the same route-role histogram
 and crop metrics as the in-memory routing receipt: 0/3 pass, worst LPIPS
-0.4348, worst dE2000 9.44. The next throughput blocker is now tile-model
-batching plus replacing stitched PNG output with the intended production
-writer. The next quality blocker remains the full-image detail/color failure,
-not REF content leakage.
+0.4348, worst dE2000 9.44.
+
+MPS tile batching was measured as a throughput candidate:
+
+| batch size | runtime | FPS | model total | batches | max batch | driver MB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 10.35 s | 0.0966 | 2.66 s | 187 | 1 | 3067 |
+| 2 | 10.51 s | 0.0951 | 2.80 s | 94 | 2 | 3067 |
+| 8 | 10.43 s | 0.0959 | 2.89 s | 27 | 8 | 7163 |
+
+Batching is not the current production default because it is slower on this
+MPS smoke and batch size 8 sharply increases driver memory. The next
+throughput blocker is replacing stitched PNG output with the intended
+production writer and reducing/router-vectorizing feature extraction. The next
+quality blocker remains the full-image detail/color failure, not REF content
+leakage.

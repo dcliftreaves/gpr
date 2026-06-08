@@ -299,8 +299,10 @@ overhead is also a production blocker. The first runtime fix moves full-frame
 routing in memory and drops the same `Z8Z_0026` no-REF wall time to
 12.07 s/frame with unchanged route roles and crop metrics. Reusing the
 scene-route pass and skipping REF-only dashboard scoring for production timing
-measures the same smoke render path at 10.09 s/frame, with roughly 2.55 s in
-CNN inference, 1.99 s in routing, and 2.33 s in stitched PNG output.
+measures the same smoke render path at 10.35 s/frame in the current
+batch-instrumented evaluator, with roughly 2.66 s in CNN inference, 1.98 s in
+routing, and 2.43 s in stitched PNG output. MPS tile batching was measured at
+batch sizes 2 and 8 and was slower, so the current receipt keeps batch size 1.
 
 None of these diagnostics are registered as production.
 

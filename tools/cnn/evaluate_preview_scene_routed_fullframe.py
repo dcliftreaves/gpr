@@ -573,9 +573,11 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     weight_acc = np.zeros((height, width, 1), dtype=np.float32)
     tile_rows: list[dict[str, Any]] = []
     model_ms: list[float] = []
+    model_batch_sizes: list[int] = []
     input_ms: list[float] = []
     route_ms: list[float] = []
     save_tile_ms: list[float] = []
+    tile_jobs: list[dict[str, Any]] = []
     route_cache: dict[
         tuple[int, int, int, int, str],
         tuple[int, int | None, str, str, dict[str, Any]],
@@ -666,42 +668,86 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
                 source_global_stats,
             )
             t1 = time.perf_counter()
-            with torch.no_grad():
-                pred = run_model_padded(models[model_key], x).detach().cpu().numpy()[0]
-            t2 = time.perf_counter()
-            pred_context_rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255.0, 0, 255).astype(np.uint8)
-            ox0 = x0 - cx0
-            oy0 = y0 - cy0
-            pred_rgb = pred_context_rgb[oy0:oy0 + (y1 - y0), ox0:ox0 + (x1 - x0)]
-            valid_margin = max(0, int(args.valid_margin))
-            local_x0 = 0 if x0 == 0 else min(valid_margin, max(0, pred_rgb.shape[1] - 1))
-            local_y0 = 0 if y0 == 0 else min(valid_margin, max(0, pred_rgb.shape[0] - 1))
-            local_x1 = pred_rgb.shape[1] if x1 >= width else max(local_x0 + 1, pred_rgb.shape[1] - valid_margin)
-            local_y1 = pred_rgb.shape[0] if y1 >= height else max(local_y0 + 1, pred_rgb.shape[0] - valid_margin)
-            valid_rgb = pred_rgb[local_y0:local_y1, local_x0:local_x1]
-            w = tile_weight(valid_rgb.shape[0], valid_rgb.shape[1])
-            out_y0 = y0 + local_y0
-            out_x0 = x0 + local_x0
-            out_y1 = out_y0 + valid_rgb.shape[0]
-            out_x1 = out_x0 + valid_rgb.shape[1]
-            out_acc[out_y0:out_y1, out_x0:out_x1] += valid_rgb.astype(np.float32) * w
-            weight_acc[out_y0:out_y1, out_x0:out_x1] += w
             input_ms.append((t1 - t0) * 1000.0)
-            model_ms.append((t2 - t1) * 1000.0)
-            tile_rows.append(
+            tile_jobs.append(
                 {
-                    "xywh": [x0, y0, pred_rgb.shape[1], pred_rgb.shape[0]],
-                    "route_context_xywh": [rx0, ry0, rx1 - rx0, ry1 - ry0],
-                    "context_xywh": [cx0, cy0, cx1 - cx0, cy1 - cy0],
-                    "written_xywh": [out_x0, out_y0, valid_rgb.shape[1], valid_rgb.shape[0]],
+                    "x": x,
+                    "x0": x0,
+                    "y0": y0,
+                    "x1": x1,
+                    "y1": y1,
+                    "cx0": cx0,
+                    "cy0": cy0,
+                    "rx0": rx0,
+                    "ry0": ry0,
+                    "rx1": rx1,
+                    "ry1": ry1,
                     "tile_label": tile_label,
                     "cluster": cluster,
                     "override_cluster": override_cluster,
                     "checkpoint_role": model_key,
                     "conditioning": conditioning,
-                    **route,
+                    "route": route,
                 }
             )
+    model_batch_size = max(1, int(args.model_batch_size))
+    grouped_jobs: dict[tuple[str, int, int, int], list[dict[str, Any]]] = {}
+    for job in tile_jobs:
+        x = job["x"]
+        key = (str(job["checkpoint_role"]), int(x.shape[1]), int(x.shape[2]), int(x.shape[3]))
+        grouped_jobs.setdefault(key, []).append(job)
+    for (model_key, _channels, _height, _width), jobs in grouped_jobs.items():
+        for start in range(0, len(jobs), model_batch_size):
+            chunk = jobs[start:start + model_batch_size]
+            batch = torch.cat([job["x"] for job in chunk], dim=0)
+            t1 = time.perf_counter()
+            with torch.no_grad():
+                preds = run_model_padded(models[model_key], batch).detach().cpu().numpy()
+            t2 = time.perf_counter()
+            model_ms.append((t2 - t1) * 1000.0)
+            model_batch_sizes.append(len(chunk))
+            for job, pred in zip(chunk, preds):
+                x0 = int(job["x0"])
+                y0 = int(job["y0"])
+                x1 = int(job["x1"])
+                y1 = int(job["y1"])
+                cx0 = int(job["cx0"])
+                cy0 = int(job["cy0"])
+                rx0 = int(job["rx0"])
+                ry0 = int(job["ry0"])
+                rx1 = int(job["rx1"])
+                ry1 = int(job["ry1"])
+                pred_context_rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255.0, 0, 255).astype(np.uint8)
+                ox0 = x0 - cx0
+                oy0 = y0 - cy0
+                pred_rgb = pred_context_rgb[oy0:oy0 + (y1 - y0), ox0:ox0 + (x1 - x0)]
+                valid_margin = max(0, int(args.valid_margin))
+                local_x0 = 0 if x0 == 0 else min(valid_margin, max(0, pred_rgb.shape[1] - 1))
+                local_y0 = 0 if y0 == 0 else min(valid_margin, max(0, pred_rgb.shape[0] - 1))
+                local_x1 = pred_rgb.shape[1] if x1 >= width else max(local_x0 + 1, pred_rgb.shape[1] - valid_margin)
+                local_y1 = pred_rgb.shape[0] if y1 >= height else max(local_y0 + 1, pred_rgb.shape[0] - valid_margin)
+                valid_rgb = pred_rgb[local_y0:local_y1, local_x0:local_x1]
+                w = tile_weight(valid_rgb.shape[0], valid_rgb.shape[1])
+                out_y0 = y0 + local_y0
+                out_x0 = x0 + local_x0
+                out_y1 = out_y0 + valid_rgb.shape[0]
+                out_x1 = out_x0 + valid_rgb.shape[1]
+                out_acc[out_y0:out_y1, out_x0:out_x1] += valid_rgb.astype(np.float32) * w
+                weight_acc[out_y0:out_y1, out_x0:out_x1] += w
+                tile_rows.append(
+                    {
+                        "xywh": [x0, y0, pred_rgb.shape[1], pred_rgb.shape[0]],
+                        "route_context_xywh": [rx0, ry0, rx1 - rx0, ry1 - ry0],
+                        "context_xywh": [cx0, cy0, int(job["x"].shape[-1]), int(job["x"].shape[-2])],
+                        "written_xywh": [out_x0, out_y0, valid_rgb.shape[1], valid_rgb.shape[0]],
+                        "tile_label": job["tile_label"],
+                        "cluster": job["cluster"],
+                        "override_cluster": job["override_cluster"],
+                        "checkpoint_role": job["checkpoint_role"],
+                        "conditioning": job["conditioning"],
+                        **job["route"],
+                    }
+                )
     stitched = np.clip(out_acc / np.maximum(weight_acc, 1e-6), 0, 255).astype(np.uint8)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     stitched_path = args.output_dir / f"{image_id}_scene_routed_fullframe.png"
@@ -784,6 +830,10 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             "input_ms_median": float(statistics.median(input_ms)) if input_ms else 0.0,
             "model_ms_median": float(statistics.median(model_ms)) if model_ms else 0.0,
             "model_ms_total": float(sum(model_ms)),
+            "model_batch_size_requested": model_batch_size,
+            "model_batch_count": len(model_batch_sizes),
+            "model_batch_size_max": max(model_batch_sizes) if model_batch_sizes else 0,
+            "model_tile_count": sum(model_batch_sizes),
             "post_refiner_wall_ms": post_refiner_wall_ms,
             "scene_route_ms_median": float(statistics.median(scene_route_ms)) if scene_route_ms else 0.0,
             "scene_route_ms_total": float(sum(scene_route_ms)),
@@ -905,6 +955,7 @@ def main() -> int:
     ap.add_argument("--post-coordinate-mode", choices=["local", "global_tile"], default="global_tile")
     ap.add_argument("--post-tile-size", type=int, default=512)
     ap.add_argument("--post-overlap", type=int, default=128)
+    ap.add_argument("--model-batch-size", type=int, default=1, help="Maximum same-checkpoint/same-shape tiles per model invocation.")
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
@@ -1003,6 +1054,7 @@ def main() -> int:
             "valid_margin": args.valid_margin,
             "route_context_padding": args.route_context_padding,
             "model_context_padding": args.model_context_padding,
+            "model_batch_size": args.model_batch_size,
             "coordinate_mode": args.coordinate_mode,
             "post_refiner": {
                 "enabled": args.post_checkpoint is not None,
