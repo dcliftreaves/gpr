@@ -1643,8 +1643,8 @@ stitched output and records the no-REF render wall time.
 Production timing receipt:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_route512_smoke_z8z0026_v2/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_route512_smoke_z8z0026_v2/preview_scene_routed_fullframe.html
 ```
 
 Quality-enabled cached-route receipt:
@@ -1654,15 +1654,15 @@ Quality-enabled cached-route receipt:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_quality_cached_route_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
 ```
 
-`Z8Z_0026` production-timing result:
+`Z8Z_0026` production-timing result with explicit router feature max-side 512:
 
-- runtime no-REF wall: 7.80 s/frame, 0.1282 FPS
+- runtime no-REF wall: 7.97 s/frame, 0.1255 FPS
 - model total: 2.64 s/frame
 - source render/load: 0.68 s + 0.15 s
-- routing: 1.96 s total; cached second-pass route time 0.00 ms
-- stitched raw TIFF output: 0.068 s
+- routing: 2.04 s total; cached second-pass route time 0.00 ms
+- stitched raw TIFF output: 0.069 s
 - quality scoring: skipped; 0.0005 ms scoring wall
-- peak RSS: 3086 MB
+- peak RSS: 3128 MB
 
 The quality-enabled cached-route run preserves the same route-role histogram
 and crop metrics as the in-memory routing receipt: 0/3 pass, worst LPIPS
@@ -1692,5 +1692,19 @@ timing should not use default PNG compression:
 
 The production receipt now writes raw TIFF so the timing reflects the render
 path instead of PNG compression. The next throughput blocker is
-reducing/router-vectorizing feature extraction. The next quality blocker
-remains the full-image detail/color failure, not REF content leakage.
+reducing/router-vectorizing feature extraction.
+
+Reduced router feature scale was tested as a possible speed path, but it
+changes the frozen sidecar decisions and is not production-safe without a new
+sidecar:
+
+| route feature scale | runtime | route total | role result |
+| --- | ---: | ---: | --- |
+| contract max-side 512 | 7.97 s | 2.04 s | baseline roles preserved |
+| intermediate reduced scale | 7.45 s | 1.51 s | role histogram changed |
+| aggressive reduced scale | 6.79 s | 0.82 s | role histogram changed substantially |
+
+The next routing optimization should vectorize/reuse the 512-scale feature
+extractor or retrain/freeze a new reduced-scale router sidecar, rather than
+quietly changing feature scale under the existing sidecar. The next quality
+blocker remains the full-image detail/color failure, not REF content leakage.

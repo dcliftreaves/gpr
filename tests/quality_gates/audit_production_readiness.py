@@ -469,7 +469,7 @@ def check_nonref_preview_candidate() -> list[Check]:
     fullframe_production_timing_dashboard = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260606"
-        / "fullframe_production_timing_tiffraw_smoke_z8z0026_v1"
+        / "fullframe_production_timing_tiffraw_route512_smoke_z8z0026_v2"
         / "preview_scene_routed_fullframe.json"
     )
     if not fullframe_tool.exists():
@@ -537,9 +537,11 @@ def check_nonref_preview_candidate() -> list[Check]:
             fps = float(timing_summary.get("runtime_no_ref_fps_avg", 0.0))
             scoring_ms = float(first_timing.get("scoring_wall_ms", 999.0))
             output_format = str(runtime_contract.get("stitched_output_format", ""))
+            route_feature_max_side = int(runtime_contract.get("route_feature_max_side", 0))
             timing_ok = (
                 runtime_contract.get("quality_scoring") == "skipped"
                 and output_format == "tiff_raw"
+                and route_feature_max_side == 512
                 and runtime_ms > 0.0
                 and model_ms > 0.0
                 and fps > 0.0
@@ -555,6 +557,7 @@ def check_nonref_preview_candidate() -> list[Check]:
                 "PASS" if timing_ok else "FAIL",
                 f"runtime={runtime_ms / 1000.0:.2f}s fps={fps:.4f} "
                 f"model={model_ms / 1000.0:.2f}s output={output_format} "
+                f"route_max_side={route_feature_max_side} "
                 f"save={float(first_timing.get('stitch_save_ms', 0.0)):.1f}ms scoring={scoring_ms:.3f}ms "
                 f"rss={float(memory.get('max_rss_mb', 0.0)):.1f} MB "
                 f"receipt={fullframe_production_timing_dashboard}",

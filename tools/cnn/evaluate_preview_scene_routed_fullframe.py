@@ -474,7 +474,7 @@ def route_tile_role(
             "route_source": "forced_diagnostic_model_key",
             "route_distance": 0.0,
         }
-    features = feature_vector_rgb(tile_rgb)
+    features = feature_vector_rgb(tile_rgb, max_side=int(args.route_feature_max_side))
     cluster, override_cluster, model_key, _ckpt, conditioning, route = select_model_features(
         features=features,
         base_sidecar=routing["base_sidecar"],
@@ -964,6 +964,7 @@ def main() -> int:
     ap.add_argument("--overlap", type=int, default=128)
     ap.add_argument("--valid-margin", type=int, default=0, help="Overlap-save mode: discard this many non-border pixels from each output tile before stitching.")
     ap.add_argument("--route-context-padding", type=int, default=0, help="Route each output tile using this many surrounding source pixels while keeping model input unchanged unless model context is also set.")
+    ap.add_argument("--route-feature-max-side", type=int, default=512, help="Max side for runtime router feature extraction. Default preserves the frozen sidecar feature implementation.")
     ap.add_argument("--model-context-padding", type=int, default=0, help="Run/route each output tile with this many source pixels of surrounding context, then crop back to the tile.")
     ap.add_argument("--tile-mode", choices=["full_grid", "manifest_crops"], default="full_grid")
     ap.add_argument("--force-model-key", help="Diagnostic: bypass routing and run one loaded model key on every tile.")
@@ -1072,6 +1073,7 @@ def main() -> int:
             "overlap": args.overlap,
             "valid_margin": args.valid_margin,
             "route_context_padding": args.route_context_padding,
+            "route_feature_max_side": args.route_feature_max_side,
             "model_context_padding": args.model_context_padding,
             "model_batch_size": args.model_batch_size,
             "stitched_output_format": args.stitched_output_format,
