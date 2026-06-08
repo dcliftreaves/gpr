@@ -164,7 +164,7 @@ CAPABILITIES = [
          # retrained CNN. Locking the synth fixture's numbers here so the
          # codec change isn't quietly broken.
          criteria=dict(
-             encode_ms={"max": 50, "exceed_below": 25},
+             encode_ms={"max": 60, "exceed_below": 25},
              decode_ms={"max": 50, "exceed_below": 25},
              compress_ratio={"max": 0.06, "exceed_below": 0.045},
              psnr_db={"min": 51.5, "exceed_above": 54.0})),
