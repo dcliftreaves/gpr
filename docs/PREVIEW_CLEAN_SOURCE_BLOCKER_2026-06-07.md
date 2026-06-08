@@ -625,6 +625,62 @@ quality. The next candidate should change the runtime source/model formulation,
 for example a stronger low-frequency field, larger-context/full-frame branch,
 or source-side normalization for lower-left luma/color bias.
 
+## Residual LF Field Follow-Up
+
+The next trainer revision adds two production-shaped safeguards:
+
+- a residual low-frequency wrapper, `lowfreq_spatial_residual`, that loads the
+  prior low-frequency spatial model as a base and learns an additional
+  zero-initialized coarse gain/bias field;
+- initial-checkpoint scoring, so a candidate cannot lose the initialized model
+  if every optimizer update is worse.
+
+Residual-only v8 freezes the v5 base and trains only the added field:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_lf_residual_cfocus_v8/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lf_residual_cfocus_v8_t512/preview_scene_routed_fullframe.json
+```
+
+The residual-only branch does not improve over the initialized v5 state. The
+stitched result remains 2/3 with the same lower-left miss:
+
+- worst LPIPS: 0.0835
+- worst MS-SSIM: 0.9555
+- worst Y-PSNR: 25.90
+- worst dE2000: 3.90
+
+Co-trained residual v9 allows both the base LF field and residual field to move:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_lf_residual_cotrain_v9/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lf_residual_cotrain_v9_t512/preview_scene_routed_fullframe.json
+```
+
+v9 still passes only 2/3 stitched crops and does not beat the prior C-focused
+results:
+
+- worst LPIPS: 0.1023
+- worst MS-SSIM: 0.9629
+- worst Y-PSNR: 26.63
+- worst dE2000: 3.65
+
+Finally, v10 trains the residual lower-left correction across all 28 holdout
+images:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_all28_lf_residual_cfocus_v10/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lf_residual_all28_v10_t512/preview_scene_routed_fullframe.json
+```
+
+v10 is explicitly ruled out. The 336-row isolated tile receipt passes only
+75/336, with worst LPIPS 0.8745, worst MS-SSIM 0.3431, worst Y-PSNR 18.43, and
+worst dE2000 9.06. The `Z8Z_6680` stitched smoke regresses to 1/3. This shows
+that a single broad lower-left spatial/source normalization is not scene-stable;
+the remaining blocker likely needs scene/cluster-conditioned low-frequency
+correction or a stronger full-frame source representation, not a global
+lower-left correction shared across the holdout.
+
 Do not register v11 through v32, the K16 cluster-7 specialists, or the K40
 cluster-35 polish specialists as production PREVIEW until the full-frame/tiled
 runtime path has equivalent evidence.

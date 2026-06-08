@@ -213,8 +213,11 @@ the hard `Z8Z_6680` smoke to 2/3: `A_detail` and `B_center` pass, while
 `C_lowerleft` still misses on low-frequency Y/dE. Follow-up C-focused passes
 narrow that miss but do not clear it. The next PREVIEW candidate needs a
 stronger runtime source/model formulation for lower-left luma/color consistency,
-not just heavier sampling or loss weighting on the same arbitrary tiles. None of
-these diagnostics are registered as production.
+not just heavier sampling or loss weighting on the same arbitrary tiles. A
+residual low-frequency wrapper and broad all-28 lower-left residual
+normalization were also tested; the broad correction is scene-unstable and
+regresses non-target tiles badly. None of these diagnostics are registered as
+production.
 
 ---
 
