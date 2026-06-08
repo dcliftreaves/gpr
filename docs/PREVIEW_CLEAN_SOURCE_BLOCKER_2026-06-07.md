@@ -1366,3 +1366,68 @@ initialized direct CNN trained on 768 context with a center-gate objective.
 The context machinery is still useful, but the next viable candidate needs a
 larger teacher/full-image student or a model that explicitly handles full-frame
 low-frequency consistency across arbitrary tile placement.
+
+### Context U-Net Fit Tests
+
+The next pass added a `context_unet` diagnostic architecture. It keeps
+full-resolution skip paths while adding a deeper 3-level context bottleneck, so
+it can use the 768px source crop without compressing all local texture through
+the same direct residual path. This is still a runtime-safe architecture: input
+is source RGB, normalized coordinates, and source/global stats; REF is
+target/scoring only.
+
+All-84 context run:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/context768_center512_context_unet_w32_all84_v1/preview_runtime_refiner.json
+```
+
+Result:
+
+- pass: 53/84
+- worst LPIPS: 0.6909
+- median LPIPS: 0.0890
+- worst MS-SSIM: 0.2800
+- worst Y-PSNR: 14.15
+- worst dE2000: 16.27
+
+This is worse than both the initialized direct 768-context pass and the routed
+context proxy.
+
+Hard-eight fit, residual scale 0.45:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/context768_center512_context_unet_w32_hard8_fit_v1/preview_runtime_refiner.json
+```
+
+Result:
+
+- pass: 0/24
+- worst LPIPS: 0.6888
+- median LPIPS: 0.3522
+- worst MS-SSIM: 0.2782
+- worst Y-PSNR: 16.92
+- worst dE2000: 10.81
+
+Hard-eight fit, residual scale 1.0:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/context768_center512_context_unet_w32_hard8_fit_res1_v1/preview_runtime_refiner.json
+```
+
+Result:
+
+- pass: 0/24
+- worst LPIPS: 0.6974
+- median LPIPS: 0.3442
+- worst MS-SSIM: 0.2902
+- worst Y-PSNR: 17.19
+- worst dE2000: 10.95
+
+These hard-fit failures are important because they fail even when train and
+evaluation rows are the same hard rows. The production blocker is not simply
+that the prior direct CNN lacked enough local context or residual headroom. The
+next viable direction should change the target/source formulation: full-image
+low-frequency field supervision, a stronger teacher target, or a source-side
+calibration stage before a detail refiner. Another larger crop-local RGB CNN is
+unlikely to close the full-frame PREVIEW gap.
