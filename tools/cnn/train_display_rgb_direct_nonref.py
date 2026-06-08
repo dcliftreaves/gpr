@@ -295,6 +295,38 @@ class ExtraStrongMidFreqResidualSpatialRGBRefiner(MidFreqResidualSpatialRGBRefin
         super().__init__(width=width, in_channels=in_channels, residual_scale=residual_scale, mid_scale=1.0)
 
 
+class ContextUNetRGBRefiner(nn.Module):
+    def __init__(self, width: int = 32, in_channels: int = 9, residual_scale: float = 0.5) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        self.i = nn.Conv2d(in_channels, width, 3, padding=1)
+        self.e0 = nn.Sequential(ResBlock(width), ResBlock(width))
+        self.d1 = nn.Conv2d(width, width * 2, 3, stride=2, padding=1)
+        self.e1 = nn.Sequential(ResBlock(width * 2), DilatedResBlock(width * 2, 2))
+        self.d2 = nn.Conv2d(width * 2, width * 4, 3, stride=2, padding=1)
+        self.e2 = nn.Sequential(ResBlock(width * 4), DilatedResBlock(width * 4, 2), DilatedResBlock(width * 4, 4))
+        self.d3 = nn.Conv2d(width * 4, width * 4, 3, stride=2, padding=1)
+        self.b = nn.Sequential(DilatedResBlock(width * 4, 4), DilatedResBlock(width * 4, 8), DilatedResBlock(width * 4, 4))
+        self.u2 = nn.Sequential(nn.Conv2d(width * 8, width * 4, 3, padding=1), nn.GELU(), ResBlock(width * 4))
+        self.u1 = nn.Sequential(nn.Conv2d(width * 6, width * 2, 3, padding=1), nn.GELU(), ResBlock(width * 2))
+        self.u0 = nn.Sequential(nn.Conv2d(width * 3, width, 3, padding=1), nn.GELU(), ResBlock(width))
+        self.o = nn.Conv2d(width, 3, 3, padding=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        source = x[:, :3]
+        e0 = self.e0(F.gelu(self.i(x)))
+        e1 = self.e1(F.gelu(self.d1(e0)))
+        e2 = self.e2(F.gelu(self.d2(e1)))
+        h = self.b(F.gelu(self.d3(e2)))
+        h = F.interpolate(h, size=e2.shape[-2:], mode="bilinear", align_corners=False)
+        h = self.u2(torch.cat([h, e2], dim=1))
+        h = F.interpolate(h, size=e1.shape[-2:], mode="bilinear", align_corners=False)
+        h = self.u1(torch.cat([h, e1], dim=1))
+        h = F.interpolate(h, size=e0.shape[-2:], mode="bilinear", align_corners=False)
+        h = self.u0(torch.cat([h, e0], dim=1))
+        return torch.clamp(source + self.residual_scale * torch.tanh(self.o(h)), 0.0, 1.0)
+
+
 def build_rgb_refiner(
     architecture: str = "direct",
     *,
@@ -318,6 +350,8 @@ def build_rgb_refiner(
         return StrongMidFreqResidualSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     if architecture == "midfreq_spatial_residual_xstrong":
         return ExtraStrongMidFreqResidualSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+    if architecture == "context_unet":
+        return ContextUNetRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     raise ValueError(f"unsupported RGB refiner architecture {architecture!r}")
 
 

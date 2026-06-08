@@ -272,6 +272,11 @@ small correction on the current direct CNN path.
 A 768-context/center-512 training pass was then added and tested using global
 crop coordinates from the context receipt; it regressed to 60/84, so simple
 larger context with a single initialized direct CNN is also ruled out.
+An explicit context U-Net follow-up regressed further to 53/84, and hard-eight
+fit tests with both capped and high residual output failed 0/24 even on their
+own training rows. The blocker is now narrowed away from "larger local RGB
+context CNN" and toward target/source formulation or full-image low-frequency
+field supervision.
 
 None of these diagnostics are registered as production.
 

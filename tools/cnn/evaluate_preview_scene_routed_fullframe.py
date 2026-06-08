@@ -858,6 +858,7 @@ def main() -> int:
             "overlap": args.overlap,
             "valid_margin": args.valid_margin,
             "route_context_padding": args.route_context_padding,
+            "model_context_padding": args.model_context_padding,
             "coordinate_mode": args.coordinate_mode,
             "post_refiner": {
                 "enabled": args.post_checkpoint is not None,
