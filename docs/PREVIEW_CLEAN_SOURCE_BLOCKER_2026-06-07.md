@@ -830,3 +830,38 @@ than only increasing residual scale: train against an explicit radius-1
 teacher/residual target, supervise the assembled crop with a mid-frequency
 bandpass loss, or predict the correction from larger/full-crop context before
 stitching.
+
+## Explicit Mid-Frequency Teacher Loss
+
+The next trainer revision adds an opt-in `midfreq_residual_loss`: it compares
+the Gaussian-blurred predicted source-to-output residual against the
+Gaussian-blurred source-to-target residual. This uses REF only as the training
+target and scoring reference; render-time inputs are unchanged.
+
+v17 trains the strong mid-frequency residual branch with `midfreq_blur_sigma=1`
+and an explicit mid-frequency score term:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_midfreq_teacher_v17/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_midfreq_teacher_v17_t512/preview_scene_routed_fullframe.json
+```
+
+v17 isolated tile receipt:
+
+- pass: 10/12
+- worst LPIPS: 0.0809
+- worst MS-SSIM: 0.9677
+- worst Y-PSNR: 27.14
+- worst dE2000: 3.40
+
+v17 stitched smoke:
+
+- pass: 2/3
+- `C_lowerleft`: LPIPS 0.0790, MS-SSIM 0.9584, Y-PSNR 26.16, dE2000 3.73
+
+The explicit radius-1 residual objective improves Y slightly over v15 but does
+not close dE. That rules out the simplest residual-teacher loss as sufficient.
+The next likely blocker is context/target formation: the correction that clears
+the oracle may need to be predicted from a larger full-crop/full-frame context,
+or supervised as an assembled-crop bandpass residual instead of independent
+tile residuals.

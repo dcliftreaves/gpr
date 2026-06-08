@@ -327,6 +327,33 @@ def lab_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     )
 
 
+def gaussian_kernel1d(sigma: float, device: torch.device, dtype: torch.dtype) -> torch.Tensor:
+    sigma = max(0.25, float(sigma))
+    radius = max(1, int(round(3.0 * sigma)))
+    x = torch.arange(-radius, radius + 1, device=device, dtype=dtype)
+    kernel = torch.exp(-(x * x) / (2.0 * sigma * sigma))
+    return kernel / kernel.sum()
+
+
+def gaussian_blur(rgb: torch.Tensor, sigma: float) -> torch.Tensor:
+    if sigma <= 0.0:
+        return rgb
+    kernel = gaussian_kernel1d(sigma, rgb.device, rgb.dtype)
+    channels = int(rgb.shape[1])
+    pad = int(kernel.numel() // 2)
+    ky = kernel.view(1, 1, -1, 1).repeat(channels, 1, 1, 1)
+    kx = kernel.view(1, 1, 1, -1).repeat(channels, 1, 1, 1)
+    blurred = F.conv2d(F.pad(rgb, (0, 0, pad, pad), mode="reflect"), ky, groups=channels)
+    blurred = F.conv2d(F.pad(blurred, (pad, pad, 0, 0), mode="reflect"), kx, groups=channels)
+    return blurred
+
+
+def midfreq_residual_loss(pred: torch.Tensor, target: torch.Tensor, source: torch.Tensor, sigma: float) -> torch.Tensor:
+    pred_residual = pred - source
+    target_residual = target - source
+    return charbonnier(gaussian_blur(pred_residual, sigma), gaussian_blur(target_residual, sigma))
+
+
 def sample_weight(sample: ReceiptSample, args: argparse.Namespace) -> float:
     weight = 1.0
     for crop in args.focus_intersect_crop:
@@ -457,6 +484,7 @@ def eval_score(
         y_eval = gate_luma_loss(pred_eval, yb).item()
         opp_eval = opponent_color_loss(pred_eval, yb).item()
         lab_eval = lab_loss(pred_eval, yb).item()
+        mid_eval = midfreq_residual_loss(pred_eval, yb, xb[:, :3], args.midfreq_blur_sigma).item()
         _asm_eval_loss, asm_eval_stats = assembled_crop_loss(
             model=model,
             xt=xt,
@@ -473,6 +501,7 @@ def eval_score(
         + args.score_y_weight * y_eval
         + args.score_opponent_weight * opp_eval
         + args.score_lab_weight * lab_eval
+        + args.score_midfreq_weight * mid_eval
         + args.score_assembled_weight * asm_eval_stats["assembled"]
     )
     return score, {
@@ -482,6 +511,7 @@ def eval_score(
         "y": y_eval,
         "opp": opp_eval,
         "lab": lab_eval,
+        "midfreq": mid_eval,
         **asm_eval_stats,
     }
 
@@ -559,6 +589,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         ly = gate_luma_loss(pred, yb)
         lopp = opponent_color_loss(pred, yb)
         llab = lab_loss(pred, yb)
+        lmid = midfreq_residual_loss(pred, yb, xb[:, :3], args.midfreq_blur_sigma)
         loss = (
             l1
             + args.grad_weight * lg
@@ -568,6 +599,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             + args.y_weight * ly
             + args.opponent_weight * lopp
             + args.lab_weight * llab
+            + args.midfreq_weight * lmid
         )
         lasm, asm_stats = assembled_crop_loss(
             model=model,
@@ -602,6 +634,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 f"step {step}/{args.steps} loss={loss.item():.6f} "
                 f"l1={stats['l1']:.5f} ms={stats['ms']:.5f} lp={stats['lp']:.4f} "
                 f"color={lcolor.item():.5f} y={stats['y']:.5f} opp={stats['opp']:.5f} lab={stats['lab']:.5f} "
+                f"mid={stats['midfreq']:.5f} "
                 f"asm={stats['assembled']:.5f} asm_y={stats['assembled_luma']:.5f} "
                 f"best={best:.6f} t={time.time() - t0:.1f}s",
                 flush=True,
@@ -631,9 +664,12 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "y_weight": args.y_weight,
             "opponent_weight": args.opponent_weight,
             "lab_weight": args.lab_weight,
+            "midfreq_weight": args.midfreq_weight,
+            "midfreq_blur_sigma": args.midfreq_blur_sigma,
             "score_y_weight": args.score_y_weight,
             "score_opponent_weight": args.score_opponent_weight,
             "score_lab_weight": args.score_lab_weight,
+            "score_midfreq_weight": args.score_midfreq_weight,
             "score_assembled_weight": args.score_assembled_weight,
             "focus_intersect_crop": args.focus_intersect_crop,
             "focus_crop": args.focus_crop,
@@ -783,9 +819,12 @@ def main() -> int:
     ap.add_argument("--y-weight", type=float, default=0.0)
     ap.add_argument("--opponent-weight", type=float, default=0.0)
     ap.add_argument("--lab-weight", type=float, default=0.0)
+    ap.add_argument("--midfreq-weight", type=float, default=0.0, help="Weight for blurred residual supervision against source-to-target residual.")
+    ap.add_argument("--midfreq-blur-sigma", type=float, default=1.0, help="Gaussian sigma for mid-frequency residual supervision.")
     ap.add_argument("--score-y-weight", type=float, default=0.0)
     ap.add_argument("--score-opponent-weight", type=float, default=0.0)
     ap.add_argument("--score-lab-weight", type=float, default=0.0)
+    ap.add_argument("--score-midfreq-weight", type=float, default=0.0)
     ap.add_argument("--score-assembled-weight", type=float, default=0.0)
     ap.add_argument("--log-every", type=int, default=100)
     ap.add_argument("--initial-score-max-samples", type=int, default=64)
