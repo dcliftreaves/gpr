@@ -1781,6 +1781,44 @@ source/teacher representation or training target so the full-image low/mid
 placement and fine detail seen in the frequency oracle become learnable from
 source-only inputs.
 
+### Exact-Crop Teacher Post-Distillation
+
+The next transfer diagnostic tested whether arbitrary full-frame tiled output
+can be post-refined toward the exact manifest-crop no-REF teacher. This is a
+runtime-safe training target: the teacher is exact no-REF crop output, not REF.
+REF is copied only for separate scoring. The teacher ceiling remains limited,
+but it is useful because it separates "tiled path cannot match crop path" from
+"crop path itself is insufficient."
+
+Artifacts:
+
+```text
+tools/cnn/build_preview_exact_teacher_receipt.py
+tools/cnn/score_preview_exact_teacher_distill.py
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/exact_teacher_distill_hard8_v1/exact_teacher_distill_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/exact_teacher_post_distill_hard8_v1/exact_teacher_distill_score.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/exact_teacher_post_distill_hard8_w96_v2/exact_teacher_distill_score.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/exact_teacher_post_distill_hard8_w96_v2/exact_teacher_distill_score.html
+```
+
+Hard-eight receipt construction:
+
+- tiled full-frame no-REF source: 3/24 against REF
+- exact no-REF crop teacher: 16/24 against REF
+- rows: 24 across eight hard images
+
+Two post-refiner fits were scored against both teacher and REF:
+
+- width-40 direct post model: output 5/24 against teacher and 2/24 against REF
+- width-96 direct post model: output 6/24 against teacher and 3/24 against REF
+
+The width-96 run improves proxy worst LPIPS from 0.5575 to 0.4644 against the
+exact teacher, but it does not improve the actual REF gate: source is 3/24 and
+output remains 3/24. This rules out simple exact-crop-teacher post-distillation
+as the production fix. The remaining branch needs a stronger architecture or a
+better source/teacher representation; copying the exact-crop behavior through a
+direct post model is not enough.
+
 ### Full-Frame Wall Timing Receipt
 
 The full-frame scene-routed evaluator now records explicit wall-clock timing
