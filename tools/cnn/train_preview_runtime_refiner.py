@@ -39,6 +39,7 @@ ARCHITECTURES = [
     "dilated_context",
     "lowfreq_spatial",
     "lowfreq_spatial_strong",
+    "coord_field",
     "lowfreq_spatial_residual",
     "midfreq_spatial_residual",
     "midfreq_spatial_residual_strong",

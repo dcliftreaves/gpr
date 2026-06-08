@@ -1662,6 +1662,37 @@ stitched full-frame crop gate. The next production candidate should not be
 another single global stitched-output post-refiner; it needs a stronger
 full-image/assembled-crop target or a different representation.
 
+### Coordinate-Field Runtime-Safe Smoke
+
+The next distinct formulation tested a smooth coordinate/stat-driven field
+model. `coord_field` predicts a low-frequency gain/bias field from runtime
+global color stats plus normalized full-frame coordinates only, then applies it
+to source RGB. It preserves source texture by construction and cannot use local
+REF detail or local source texture to invent detail.
+
+Artifact:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_expert_hard8_coord_field_globalstats_v1/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_expert_hard8_coord_field_globalstats_v1/preview_runtime_refiner.html
+```
+
+Result on the 96 hard-eight arbitrary full-frame training tiles:
+
+- 0/96 pass
+- worst LPIPS 0.6796, median LPIPS 0.4221
+- worst MS-SSIM 0.2704
+- worst Y-PSNR 16.92
+- worst dE2000 10.81
+
+This rules out a smooth runtime-safe coordinate/color field by itself. Some
+Y/dE rows move in the right direction, but LPIPS/detail cannot pass without a
+detail-preserving or stronger full-image teacher component. The remaining
+formulation gap is now narrower: production PREVIEW likely needs a model that
+keeps source detail stable while learning a full-image-aware source-to-target
+mapping, not a local tile CNN, a shallow stitched post stage, or a smooth field
+alone.
+
 ### Full-Frame Wall Timing Receipt
 
 The full-frame scene-routed evaluator now records explicit wall-clock timing
