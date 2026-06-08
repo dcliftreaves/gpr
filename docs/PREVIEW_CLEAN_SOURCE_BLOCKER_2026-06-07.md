@@ -1013,5 +1013,17 @@ This is the first learned no-REF path that clears the current `Z8Z_6680`
 stitched smoke. It is not production PREVIEW yet: post v3 was trained from the
 same single frame/crops it clears, has only 0.003 dE headroom, adds a second
 CNN pass, and needs broader full-frame holdout validation before registration.
-The next production test is to train/validate the post-refiner on a broader
-full-frame stitched receipt and reject it if it only memorizes this frame.
+
+A quick overfit check applies the same v21 + post v3 stack to the two other
+hair/skin near-blocker holdout images, `Z8Z_0680` and `Z8Z_0694`, without
+training on them:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_hairskin_holdout_v21_post_v3_t512/preview_scene_routed_fullframe.json
+```
+
+That check fails 0/6 with worst LPIPS 0.6746, worst MS-SSIM 0.7213, worst
+Y-PSNR 14.25, and worst dE2000 17.45. The post-refiner cleared the local
+`Z8Z_6680` smoke but does not generalize as a forced model. The next production
+test is to train/validate a routed or broader stitched post-refiner on a
+multi-image full-frame receipt and reject it if it only memorizes this frame.
