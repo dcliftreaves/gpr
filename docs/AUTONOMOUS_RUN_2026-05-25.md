@@ -135,8 +135,7 @@ return. Logarithmic polling continues in background.
 ## Memory updated this session
 
 - `memory/project_strategic_framing.md` — pre-release contribution
-  framing locked in (open-source non-commercial through 2028+, Apple
-  Silicon-first, OEM-implementable spec is the goal)
+  framing locked in (Apple Silicon-first, OEM-implementable spec is the goal)
 - `memory/feedback_logarithmic_polling.md` — poll long-running
   processes via SSH+tail/ps/gh on 30s/1m/2m/4m/8m/16m/30m schedule;
   NEVER read the JSONL transcript
