@@ -295,7 +295,9 @@ production fix.
 The evaluator now records true per-frame wall timing: a `Z8Z_0026` smoke
 receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
 with only 3.67 s spent in model inference, so Python routing/save/stitch
-overhead is also a production blocker.
+overhead is also a production blocker. The first runtime fix moves full-frame
+routing in memory and drops the same `Z8Z_0026` no-REF wall time to
+12.07 s/frame with unchanged route roles and crop metrics.
 
 None of these diagnostics are registered as production.
 

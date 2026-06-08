@@ -159,7 +159,7 @@ def resolve_ref(row: dict[str, Any], source_map: dict[tuple[str, str, str], Path
     return path
 
 
-def route_from_sidecar(source_path: Path, sidecar: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+def route_features_from_sidecar(features: np.ndarray, sidecar: dict[str, Any]) -> tuple[int, dict[str, Any]]:
     router = sidecar.get("router") or {}
     if router.get("type") != "zscore_nearest_center":
         raise ValueError(f"unsupported router sidecar type: {router.get('type')!r}")
@@ -178,7 +178,6 @@ def route_from_sidecar(source_path: Path, sidecar: dict[str, Any]) -> tuple[int,
     if centers_z.ndim != 2 or centers_z.shape[0] == 0 or centers_z.shape[1] != len(FEATURE_NAMES):
         raise ValueError("router sidecar has invalid centers_z")
     std = np.where(std < 1e-6, 1.0, std)
-    features = feature_vector(source_path)
     z = (features - mean) / std
     distances = ((centers_z - z[None, :]) ** 2).sum(axis=1)
     cluster = int(distances.argmin())
@@ -187,6 +186,10 @@ def route_from_sidecar(source_path: Path, sidecar: dict[str, Any]) -> tuple[int,
         "route_distance": float(distances[cluster]),
         "features": {name: float(features[idx]) for idx, name in enumerate(FEATURE_NAMES)},
     }
+
+
+def route_from_sidecar(source_path: Path, sidecar: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+    return route_features_from_sidecar(feature_vector(source_path), sidecar)
 
 
 def center_crop(arr: np.ndarray, size: int) -> np.ndarray:

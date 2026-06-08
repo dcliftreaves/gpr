@@ -463,7 +463,7 @@ def check_nonref_preview_candidate() -> list[Check]:
     fullframe_timing_dashboard = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260606"
-        / "fullframe_timing_wall_smoke_z8z0026_v1"
+        / "fullframe_timing_inmem_route_smoke_z8z0026_v1"
         / "preview_scene_routed_fullframe.json"
     )
     if not fullframe_tool.exists():
