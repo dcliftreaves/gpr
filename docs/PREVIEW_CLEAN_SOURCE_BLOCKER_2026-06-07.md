@@ -1607,3 +1607,29 @@ PREVIEW diagnostic spends far more wall time in route/save/stitch overhead than
 in the CNN itself. A production PREVIEW implementation needs a non-PNG,
 batched/in-memory tile path before it can be treated as a live or interactive
 preview candidate.
+
+### In-Memory Full-Frame Routing Timing
+
+The first production-path timing fix removed PNG round-trips from full-frame
+tile routing. Router features are now computed from the source tile RGB array
+using the same max-side-512 feature math as the path-based router.
+
+Smoke receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_timing_inmem_route_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_timing_inmem_route_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
+```
+
+`Z8Z_0026` before/after:
+
+- PNG-routing runtime no-REF wall: 29.64 s/frame, 0.0337 FPS
+- in-memory routing runtime no-REF wall: 12.07 s/frame, 0.0828 FPS
+- route roles: unchanged
+- crop metrics: unchanged at 0/3, worst LPIPS 0.4348, worst dE2000 9.44
+- route median: 42.20 ms/tile -> 10.66 ms/tile
+- route PNG save median: 14.20 ms/tile -> 0.00 ms/tile
+
+This is a 2.45x wall-time improvement for the same full-frame routed output.
+It does not solve the quality blocker or make PREVIEW production-ready, but it
+removes one avoidable filesystem bottleneck from the actual runtime path.

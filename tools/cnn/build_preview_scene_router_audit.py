@@ -111,8 +111,24 @@ def rgb_to_hsv_saturation(rgb: np.ndarray) -> np.ndarray:
     return np.where(mx > 1e-6, (mx - mn) / np.maximum(mx, 1e-6), 0.0)
 
 
-def feature_vector(path: Path) -> np.ndarray:
-    rgb = load_rgb01(path)
+def feature_vector_rgb(rgb: np.ndarray, max_side: int = 512) -> np.ndarray:
+    h, w = rgb.shape[:2]
+    if max_side > 0 and max(h, w) > max_side:
+        scale = max_side / max(h, w)
+        if float(np.max(rgb)) <= 1.5:
+            image_u8 = np.clip(rgb * 255.0, 0, 255).astype(np.uint8)
+        else:
+            image_u8 = np.clip(rgb, 0, 255).astype(np.uint8)
+        image = Image.fromarray(image_u8).resize(
+            (max(1, int(w * scale)), max(1, int(h * scale))),
+            Image.Resampling.BICUBIC,
+        )
+        rgb = np.asarray(image, dtype=np.float32) / 255.0
+    else:
+        if rgb.dtype != np.float32 and rgb.dtype != np.float64:
+            rgb = rgb.astype(np.float32)
+        if float(np.max(rgb)) > 1.5:
+            rgb = rgb / 255.0
     r = rgb[..., 0]
     g = rgb[..., 1]
     b = rgb[..., 2]
@@ -152,6 +168,10 @@ def feature_vector(path: Path) -> np.ndarray:
         ],
         dtype=np.float64,
     )
+
+
+def feature_vector(path: Path) -> np.ndarray:
+    return feature_vector_rgb(load_rgb01(path))
 
 
 def kmeans(x: np.ndarray, k: int, iters: int = 80) -> tuple[np.ndarray, np.ndarray]:

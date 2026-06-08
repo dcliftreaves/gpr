@@ -30,12 +30,14 @@ sys.path.insert(0, str(REPO / "tools/test"))
 sys.path.insert(0, str(REPO / "tools/cnn"))
 
 from build_preview_holdout_runtime_receipt import resolve_ref, resolve_source, scaled_box  # noqa: E402
+from build_preview_scene_router_audit import feature_vector_rgb  # noqa: E402
 from evaluate_preview_runtime_policy import build_input, load_rgb, summarize, write_html  # noqa: E402
 from evaluate_preview_scene_routed import (  # noqa: E402
     parse_cluster_checkpoint,
     parse_cluster_conditioning,
     parse_override_checkpoint,
     parse_override_conditioning,
+    route_features_from_sidecar,
     route_from_sidecar,
     sha256_file,
 )
@@ -375,6 +377,58 @@ def select_model(
     return cluster, override_cluster, model_key, ckpt_path, conditioning, route
 
 
+def select_model_features(
+    *,
+    features: np.ndarray,
+    base_sidecar: dict[str, Any],
+    override_sidecars: list[tuple[Path, dict[str, Any]]],
+    default_checkpoint: Path,
+    cluster_ckpts: dict[int, Path],
+    override_ckpts: dict[tuple[int | None, int], Path],
+    cluster_conditioning: dict[int, str],
+    override_conditioning: dict[tuple[int | None, int], str],
+    default_conditioning: str,
+) -> tuple[int, int | None, str, Path, str, dict[str, Any]]:
+    cluster, route = route_features_from_sidecar(features, base_sidecar)
+    ckpt_path = cluster_ckpts.get(cluster, default_checkpoint)
+    model_key = f"cluster_{cluster}" if cluster in cluster_ckpts else "default"
+    conditioning = cluster_conditioning.get(cluster, default_conditioning)
+    override_cluster = None
+    if override_sidecars:
+        trace = []
+        for override_index, (_path, override_sidecar) in enumerate(override_sidecars):
+            routed_cluster, override_route = route_features_from_sidecar(features, override_sidecar)
+            trace.append(
+                {
+                    "index": override_index,
+                    "cluster": routed_cluster,
+                    "route_source": override_route["route_source"],
+                    "route_distance": override_route["route_distance"],
+                }
+            )
+            override_key = (override_index, routed_cluster)
+            legacy_key = (None, routed_cluster)
+            matched_key = override_key if override_key in override_ckpts else legacy_key
+            if matched_key in override_ckpts:
+                override_cluster = routed_cluster
+                ckpt_path = override_ckpts[matched_key]
+                model_key = (
+                    f"override_{override_index}_cluster_{override_cluster}"
+                    if override_key in override_ckpts
+                    else f"override_cluster_{override_cluster}"
+                )
+                conditioning = override_conditioning.get(
+                    matched_key,
+                    override_conditioning.get(legacy_key, conditioning),
+                )
+                route["override_route_source"] = override_route["route_source"]
+                route["override_route_distance"] = override_route["route_distance"]
+                route["override_router_index"] = override_index
+                break
+        route["override_trace"] = trace
+    return cluster, override_cluster, model_key, ckpt_path, conditioning, route
+
+
 def apply_spatial_override(
     *,
     regions: list[dict[str, Any]],
@@ -412,7 +466,7 @@ def apply_spatial_override(
 def route_tile_role(
     *,
     args: argparse.Namespace,
-    tile_path: Path,
+    tile_rgb: np.ndarray,
     routing: dict[str, Any],
 ) -> tuple[int, int | None, str, str, dict[str, Any]]:
     if args.force_model_key:
@@ -420,8 +474,9 @@ def route_tile_role(
             "route_source": "forced_diagnostic_model_key",
             "route_distance": 0.0,
         }
-    cluster, override_cluster, model_key, _ckpt, conditioning, route = select_model(
-        source_path=tile_path,
+    features = feature_vector_rgb(tile_rgb)
+    cluster, override_cluster, model_key, _ckpt, conditioning, route = select_model_features(
+        features=features,
         base_sidecar=routing["base_sidecar"],
         override_sidecars=routing["override_sidecars"],
         default_checkpoint=routing["default_checkpoint"],
@@ -529,12 +584,10 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             rx1 = min(width, x1 + route_pad)
             ry1 = min(height, y1 + route_pad)
             route_rgb = source_rgb[ry0:ry1, rx0:rx1]
-            tile_path = work / f"{image_id}_scene_route_{x0}_{y0}.png"
             t0 = time.perf_counter()
-            Image.fromarray(route_rgb).save(tile_path)
             _cluster, _override_cluster, model_key, _conditioning, _route = route_tile_role(
                 args=args,
-                tile_path=tile_path,
+                tile_rgb=route_rgb,
                 routing=routing,
             )
             scene_route_ms.append((time.perf_counter() - t0) * 1000.0)
@@ -554,14 +607,10 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             tile_rgb = source_rgb[y0:y1, x0:x1]
             context_rgb = source_rgb[cy0:cy1, cx0:cx1]
             route_rgb = source_rgb[ry0:ry1, rx0:rx1]
-            tile_path = work / f"{image_id}_tile_{x0}_{y0}.png"
-            t0 = time.perf_counter()
-            Image.fromarray(route_rgb).save(tile_path)
-            save_tile_ms.append((time.perf_counter() - t0) * 1000.0)
             t0 = time.perf_counter()
             cluster, override_cluster, model_key, conditioning, route = route_tile_role(
                 args=args,
-                tile_path=tile_path,
+                tile_rgb=route_rgb,
                 routing=routing,
             )
             if not args.force_model_key:
