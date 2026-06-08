@@ -426,7 +426,7 @@ def assembled_crop_loss(
 ) -> tuple[torch.Tensor, dict[str, float]]:
     if not groups or args.assembled_crop_weight <= 0.0:
         zero = xt.new_tensor(0.0)
-        return zero, {"assembled": 0.0, "assembled_luma": 0.0, "assembled_lab": 0.0}
+        return zero, {"assembled": 0.0, "assembled_luma": 0.0, "assembled_lab": 0.0, "assembled_midfreq": 0.0}
     count = min(max(1, int(args.assembled_crop_count)), len(groups))
     if count >= len(groups):
         selected = groups
@@ -436,31 +436,39 @@ def assembled_crop_loss(
     losses = []
     luma_values = []
     lab_values = []
+    mid_values = []
     for group in selected:
         idx = torch.tensor(group.sample_indices, dtype=torch.long, device=xt.device)
-        pred_tiles = model(xt.index_select(0, idx)).contiguous()
+        input_tiles = xt.index_select(0, idx)
+        pred_tiles = model(input_tiles).contiguous()
         target_tiles = yt.index_select(0, idx).contiguous()
+        source_tiles = input_tiles[:, :3].contiguous()
         pred_crop, target_crop = assemble_group_crop(pred_tiles, target_tiles, group)
+        source_crop, _source_target = assemble_group_crop(source_tiles, target_tiles, group)
         l1 = charbonnier(pred_crop, target_crop)
         lms = 1.0 - ms_ssim(pred_crop, target_crop, data_range=1.0, win_size=7) if args.assembled_ms_weight > 0.0 else pred_crop.new_tensor(0.0)
         llp = lpips_net(pred_crop * 2 - 1, target_crop * 2 - 1).mean() if lpips_net is not None and args.assembled_lpips_weight > 0.0 else pred_crop.new_tensor(0.0)
         ly = gate_luma_loss(pred_crop, target_crop)
         llab = lab_loss(pred_crop, target_crop)
+        lmid = midfreq_residual_loss(pred_crop, target_crop, source_crop, args.assembled_midfreq_blur_sigma)
         loss = (
             l1
             + args.assembled_ms_weight * lms
             + args.assembled_lpips_weight * llp
             + args.assembled_y_weight * ly
             + args.assembled_lab_weight * llab
+            + args.assembled_midfreq_weight * lmid
         )
         losses.append(loss)
         luma_values.append(float(ly.detach().cpu()))
         lab_values.append(float(llab.detach().cpu()))
+        mid_values.append(float(lmid.detach().cpu()))
     merged = torch.stack(losses).mean()
     return args.assembled_crop_weight * merged, {
         "assembled": float(merged.detach().cpu()),
         "assembled_luma": float(sum(luma_values) / len(luma_values)),
         "assembled_lab": float(sum(lab_values) / len(lab_values)),
+        "assembled_midfreq": float(sum(mid_values) / len(mid_values)),
     }
 
 
@@ -562,7 +570,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         print(
             f"initial score={best:.6f} l1={initial_stats['l1']:.5f} ms={initial_stats['ms']:.5f} "
             f"lp={initial_stats['lp']:.4f} y={initial_stats['y']:.5f} "
-            f"asm={initial_stats['assembled']:.5f} asm_y={initial_stats['assembled_luma']:.5f}",
+            f"asm={initial_stats['assembled']:.5f} asm_y={initial_stats['assembled_luma']:.5f} "
+            f"asm_mid={initial_stats['assembled_midfreq']:.5f}",
             flush=True,
         )
     else:
@@ -635,7 +644,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 f"l1={stats['l1']:.5f} ms={stats['ms']:.5f} lp={stats['lp']:.4f} "
                 f"color={lcolor.item():.5f} y={stats['y']:.5f} opp={stats['opp']:.5f} lab={stats['lab']:.5f} "
                 f"mid={stats['midfreq']:.5f} "
-                f"asm={stats['assembled']:.5f} asm_y={stats['assembled_luma']:.5f} "
+                f"asm={stats['assembled']:.5f} asm_y={stats['assembled_luma']:.5f} asm_mid={stats['assembled_midfreq']:.5f} "
                 f"best={best:.6f} t={time.time() - t0:.1f}s",
                 flush=True,
             )
@@ -682,6 +691,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "assembled_lpips_weight": args.assembled_lpips_weight,
             "assembled_y_weight": args.assembled_y_weight,
             "assembled_lab_weight": args.assembled_lab_weight,
+            "assembled_midfreq_weight": args.assembled_midfreq_weight,
+            "assembled_midfreq_blur_sigma": args.assembled_midfreq_blur_sigma,
             "assembled_groups": [
                 {
                     "image_id": group.image_id,
@@ -804,6 +815,8 @@ def main() -> int:
     ap.add_argument("--assembled-lpips-weight", type=float, default=0.10)
     ap.add_argument("--assembled-y-weight", type=float, default=4.0)
     ap.add_argument("--assembled-lab-weight", type=float, default=2.0)
+    ap.add_argument("--assembled-midfreq-weight", type=float, default=0.0, help="Weight for assembled crop blurred residual supervision.")
+    ap.add_argument("--assembled-midfreq-blur-sigma", type=float, default=1.0)
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--batch-size", type=int, default=0, help="Use stochastic mini-batches when positive; default keeps legacy full-batch training.")
     ap.add_argument("--architecture", choices=ARCHITECTURES, default="direct")

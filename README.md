@@ -224,8 +224,10 @@ stitched `Z8Z_6680` smoke stayed 2/3 and regressed `C_lowerleft` to Y-PSNR
 residual can clear the remaining stitched crop, but the first learned
 mid-frequency residual wrappers only improved the smoke to Y-PSNR 26.13 and
 dE2000 3.72. An explicit sigma-1 residual-teacher loss improved Y-PSNR only to
-26.16 and still missed dE2000 at 3.73. None of these diagnostics are
-registered as production.
+26.16 and still missed dE2000 at 3.73. Moving that sigma-1 residual supervision
+into the assembled stitched-crop loss improves the hard crop to Y-PSNR 26.44
+and dE2000 3.67, but LPIPS regresses to 0.0892 and the smoke remains 2/3.
+None of these diagnostics are registered as production.
 
 ---
 
