@@ -181,6 +181,13 @@ holdout now passes **84/84**. Worst LPIPS is **0.0500**, worst MS-SSIM is
 [`docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md),
 and [`docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md`](docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md).
 
+Latest full-frame/tiled PREVIEW status: the scene-gated v32 route reaches only
+**63/84** on the 28-image stitched full-frame holdout, with **94.28 s** total
+model time for 28 frames on Mac/MPS. Full-frame LF-field and luma-detail
+probes rule out smooth Lab/Y correction and clean-source luma/detail addback as
+the immediate fix; the remaining blocker is source/target formulation under
+arbitrary full-frame tiling.
+
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
 runtime tiles. That narrows the remaining work to tile/context-safe routing and
