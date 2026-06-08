@@ -1632,6 +1632,36 @@ fix. Even same-row hard-eight training does not fit the gate, so the next
 candidate must change representation/model context rather than add a shallow
 post stage to the current stitched output.
 
+Follow-up stitched-output post-refiner tests used the actual failed arbitrary
+full-frame stitched tile distribution, not only manifest-crop rows:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/stitched_post_receipt_hard8_intersect_ov256_v1/stitched_post_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/stitched_post_refiner_hard8_intersect_ov256_lf_v1/baseline_source_metrics.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/stitched_post_refiner_hard8_intersect_ov256_lf_v1/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_hard8_post_lf_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/stitched_post_refiner_hard8_intersect_ov256_direct_srcguard_v1/preview_runtime_refiner.json
+```
+
+Result:
+
+- dense stitched-source baseline: 13/394 pass, worst LPIPS 0.7106, median
+  LPIPS 0.3324, worst dE2000 14.87
+- unconstrained low-frequency post-refiner: 33/394 dense-tile pass, but only
+  3/24 in the actual hard-eight full-frame manifest-crop evaluation; worst
+  LPIPS 0.4697, median LPIPS 0.2778, worst dE2000 8.76
+- source-guarded direct residual post-refiner: 15/394 dense-tile pass, worst
+  LPIPS 0.7111, median LPIPS 0.3202, worst dE2000 14.93
+
+The trainer now exposes `--source-weight`, `--source-lowfreq-weight`, and
+`--source-lowfreq-blur-sigma` so post candidates can be explicitly no-op biased.
+The source-guarded pass confirms the useful correction is not available through
+a conservative single stitched-RGB post model. The unconstrained pass confirms
+that allowing more correction improves some dense tiles but regresses the actual
+stitched full-frame crop gate. The next production candidate should not be
+another single global stitched-output post-refiner; it needs a stronger
+full-image/assembled-crop target or a different representation.
+
 ### Full-Frame Wall Timing Receipt
 
 The full-frame scene-routed evaluator now records explicit wall-clock timing

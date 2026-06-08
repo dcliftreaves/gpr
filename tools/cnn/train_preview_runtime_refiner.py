@@ -399,6 +399,14 @@ def midfreq_residual_loss(pred: torch.Tensor, target: torch.Tensor, source: torc
     return charbonnier(gaussian_blur(pred_residual, sigma), gaussian_blur(target_residual, sigma))
 
 
+def source_preservation_loss(pred: torch.Tensor, source: torch.Tensor) -> torch.Tensor:
+    return charbonnier(pred, source)
+
+
+def source_lowfreq_preservation_loss(pred: torch.Tensor, source: torch.Tensor, sigma: float) -> torch.Tensor:
+    return charbonnier(gaussian_blur(pred, sigma), gaussian_blur(source, sigma))
+
+
 def sample_weight(sample: ReceiptSample, args: argparse.Namespace) -> float:
     weight = 1.0
     for crop in args.focus_intersect_crop:
@@ -653,6 +661,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         lopp = opponent_color_loss(pred_loss, yb_loss)
         llab = lab_loss(pred_loss, yb_loss)
         lmid = midfreq_residual_loss(pred_loss, yb_loss, xb_loss[:, :3], args.midfreq_blur_sigma)
+        lsource = source_preservation_loss(pred_loss, xb_loss[:, :3])
+        lsource_lf = source_lowfreq_preservation_loss(pred_loss, xb_loss[:, :3], args.source_lowfreq_blur_sigma)
         loss = (
             l1
             + args.grad_weight * lg
@@ -663,6 +673,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             + args.opponent_weight * lopp
             + args.lab_weight * llab
             + args.midfreq_weight * lmid
+            + args.source_weight * lsource
+            + args.source_lowfreq_weight * lsource_lf
         )
         lasm, asm_stats = assembled_crop_loss(
             model=model,
@@ -698,6 +710,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 f"l1={stats['l1']:.5f} ms={stats['ms']:.5f} lp={stats['lp']:.4f} "
                 f"color={lcolor.item():.5f} y={stats['y']:.5f} opp={stats['opp']:.5f} lab={stats['lab']:.5f} "
                 f"mid={stats['midfreq']:.5f} "
+                f"src={lsource.item():.5f} src_lf={lsource_lf.item():.5f} "
                 f"asm={stats['assembled']:.5f} asm_y={stats['assembled_luma']:.5f} asm_mid={stats['assembled_midfreq']:.5f} "
                 f"best={best:.6f} t={time.time() - t0:.1f}s",
                 flush=True,
@@ -729,6 +742,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "lab_weight": args.lab_weight,
             "midfreq_weight": args.midfreq_weight,
             "midfreq_blur_sigma": args.midfreq_blur_sigma,
+            "source_weight": args.source_weight,
+            "source_lowfreq_weight": args.source_lowfreq_weight,
+            "source_lowfreq_blur_sigma": args.source_lowfreq_blur_sigma,
             "score_y_weight": args.score_y_weight,
             "score_opponent_weight": args.score_opponent_weight,
             "score_lab_weight": args.score_lab_weight,
@@ -896,6 +912,9 @@ def main() -> int:
     ap.add_argument("--lab-weight", type=float, default=0.0)
     ap.add_argument("--midfreq-weight", type=float, default=0.0, help="Weight for blurred residual supervision against source-to-target residual.")
     ap.add_argument("--midfreq-blur-sigma", type=float, default=1.0, help="Gaussian sigma for mid-frequency residual supervision.")
+    ap.add_argument("--source-weight", type=float, default=0.0, help="Penalize changing the source RGB; useful for no-op-biased post refiners.")
+    ap.add_argument("--source-lowfreq-weight", type=float, default=0.0, help="Penalize changing blurred source RGB; useful for low-frequency no-op bias.")
+    ap.add_argument("--source-lowfreq-blur-sigma", type=float, default=2.0)
     ap.add_argument("--score-y-weight", type=float, default=0.0)
     ap.add_argument("--score-opponent-weight", type=float, default=0.0)
     ap.add_argument("--score-lab-weight", type=float, default=0.0)

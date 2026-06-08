@@ -318,6 +318,48 @@ def check_preview_exact_teacher_oracle_evidence() -> Check:
         return Check("preview_detail", "exact-crop teacher oracle evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_post_refiner_negative_evidence() -> Check:
+    root = ARTIFACT_ROOT / "preview_runtime_policy_20260606"
+    baseline = root / "stitched_post_refiner_hard8_intersect_ov256_lf_v1" / "baseline_source_metrics.json"
+    unconstrained = root / "stitched_post_refiner_hard8_intersect_ov256_lf_v1" / "preview_runtime_refiner.json"
+    fullframe = root / "fullframe_tiled_v32_hard8_post_lf_v1" / "preview_scene_routed_fullframe.json"
+    source_guarded = root / "stitched_post_refiner_hard8_intersect_ov256_direct_srcguard_v1" / "preview_runtime_refiner.json"
+    missing = [str(path) for path in (baseline, unconstrained, fullframe, source_guarded) if not path.exists()]
+    if missing:
+        return Check("preview_detail", "stitched post-refiner negative evidence", "FAIL", "missing " + ", ".join(missing))
+    try:
+        base_summary = json.loads(baseline.read_text()).get("summary") or {}
+        uncon_summary = (json.loads(unconstrained.read_text()).get("summary") or {}).get("preview_runtime_policy") or {}
+        full_summary = (json.loads(fullframe.read_text()).get("summary") or {}).get("preview_runtime_policy") or {}
+        guarded_summary = (json.loads(source_guarded.read_text()).get("summary") or {}).get("preview_runtime_policy") or {}
+        base_count = int(base_summary.get("count", 0))
+        base_pass = int(base_summary.get("pass_count", 0))
+        uncon_pass = int(uncon_summary.get("pass_count", 0))
+        full_pass = int(full_summary.get("pass_count", 0))
+        guarded_pass = int(guarded_summary.get("pass_count", 0))
+        ok = (
+            base_count == 394
+            and base_pass == 13
+            and uncon_pass == 33
+            and int(uncon_summary.get("count", 0)) == 394
+            and full_pass == 3
+            and int(full_summary.get("count", 0)) == 24
+            and guarded_pass == 15
+            and int(guarded_summary.get("count", 0)) == 394
+        )
+        return Check(
+            "preview_detail",
+            "stitched post-refiner negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"dense baseline={base_pass}/{base_count}, unconstrained={uncon_pass}/394, "
+                f"fullframe={full_pass}/24, source_guarded={guarded_pass}/394"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "stitched post-refiner negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_nonref_preview_candidate() -> list[Check]:
     artifact_dir = ARTIFACT_ROOT / "display_rgb_direct_lpips_nonref_20260606"
     dashboard = artifact_dir / "rgb_direct_lpips_nonref_dashboard.json"
@@ -952,6 +994,7 @@ def main() -> int:
     ))
     checks.append(check_preview_variant_oracle_evidence())
     checks.append(check_preview_exact_teacher_oracle_evidence())
+    checks.append(check_preview_post_refiner_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
         check_file("preview_holdout", "holdout summary dashboard tool", "tests/quality_gates/summarize_preview_holdout.py"),
