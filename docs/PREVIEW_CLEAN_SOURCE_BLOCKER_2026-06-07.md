@@ -1633,3 +1633,40 @@ Smoke receipt:
 This is a 2.45x wall-time improvement for the same full-frame routed output.
 It does not solve the quality blocker or make PREVIEW production-ready, but it
 removes one avoidable filesystem bottleneck from the actual runtime path.
+
+### Production Timing Receipt
+
+The evaluator also has a production timing mode that skips REF render/load,
+crop metrics, crop PNGs, and dashboard-quality scoring. It still writes the
+stitched output and records the no-REF render wall time.
+
+Production timing receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_inmem_route_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_inmem_route_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
+```
+
+Quality-enabled cached-route receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_quality_cached_route_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_quality_cached_route_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
+```
+
+`Z8Z_0026` production-timing result:
+
+- runtime no-REF wall: 10.09 s/frame, 0.0991 FPS
+- model total: 2.55 s/frame
+- source render/load: 0.68 s + 0.15 s
+- routing: 1.99 s total; cached second-pass route time 0.00 ms
+- stitched PNG output: 2.33 s
+- quality scoring: skipped; 0.0004 ms scoring wall
+- peak RSS: 3142 MB
+
+The quality-enabled cached-route run preserves the same route-role histogram
+and crop metrics as the in-memory routing receipt: 0/3 pass, worst LPIPS
+0.4348, worst dE2000 9.44. The next throughput blocker is now tile-model
+batching plus replacing stitched PNG output with the intended production
+writer. The next quality blocker remains the full-image detail/color failure,
+not REF content leakage.
