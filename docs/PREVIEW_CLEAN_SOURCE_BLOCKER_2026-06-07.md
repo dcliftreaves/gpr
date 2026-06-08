@@ -1427,7 +1427,41 @@ Result:
 These hard-fit failures are important because they fail even when train and
 evaluation rows are the same hard rows. The production blocker is not simply
 that the prior direct CNN lacked enough local context or residual headroom. The
-next viable direction should change the target/source formulation: full-image
-low-frequency field supervision, a stronger teacher target, or a source-side
-calibration stage before a detail refiner. Another larger crop-local RGB CNN is
-unlikely to close the full-frame PREVIEW gap.
+next diagnostic therefore tested whether a full-frame low-frequency field had
+enough oracle ceiling before spending more time on trainable field stages.
+
+### Full-Frame Low-Frequency Field Probe
+
+The next diagnostic added an artifact-native full-frame low-frequency Lab field
+probe:
+
+```text
+tools/cnn/probe_preview_fullframe_lf_field.py
+```
+
+It reads a stitched full-frame PREVIEW receipt, renders source and REF DNGs,
+and scores the same manifest crops after adding only smooth Lab-field deltas to
+the stitched output. Source-field variants are runtime-safe probes. REF-field
+variants are oracle ceilings and are not production candidates.
+
+Hard-eight receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_lf_field_probe_hard8_v1/preview_fullframe_lf_field_probe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_lf_field_probe_hard8_v1/preview_fullframe_lf_field_probe.html
+```
+
+Result:
+
+- base: 3/24, worst LPIPS 0.5747, worst MS-SSIM 0.6286, worst Y-PSNR 19.25,
+  worst dE2000 8.77
+- best runtime-safe source field: `source_lf_lab_s4`, 3/24, worst LPIPS
+  0.5265, worst MS-SSIM 0.6817, worst Y-PSNR 19.53, worst dE2000 7.78
+- best REF-field oracle: `ref_lf_lab_s4`, 6/24, worst LPIPS 0.4859, worst
+  MS-SSIM 0.7204, worst Y-PSNR 20.35, worst dE2000 7.01
+
+This rules out a simple smooth full-frame Lab/Y calibration field as the next
+production fix. Even the REF-field oracle leaves severe LPIPS, MS-SSIM, Y, and
+dE failures on the hard rows. The remaining blocker is now better described as
+source/target formulation plus structure/detail placement under arbitrary
+full-frame tiling, not low-frequency color calibration alone.
