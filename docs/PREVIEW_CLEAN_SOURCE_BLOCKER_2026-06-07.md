@@ -960,3 +960,58 @@ Y/dE in the right direction, but the remaining gap is now low-frequency Lab/Y
 calibration. The next candidate should add an explicit runtime-safe color
 calibration mechanism or train with broader full-frame color context, rather
 than further increasing the same loss weights.
+
+## Stitched Runtime Post-Refiner
+
+The next diagnostic uses the existing stitched post-refiner receipt path. The
+source side is the already assembled no-REF v21 full-frame output, and REF is
+used only as the training target and scoring reference. At runtime, the
+post-refiner sees only the generated stitched RGB frame, normalized coordinates,
+and global source statistics.
+
+The receipt is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/post_refiner_z8z6680_v21_manifest_receipt/post_receipt.json
+```
+
+Post v1 validates the direction but still misses dE:
+
+- crop-receipt pass: 2/3
+- `C_lowerleft`: LPIPS 0.0395, MS-SSIM 0.9773, Y-PSNR 28.10, dE2000 3.21
+- full-frame stitched pass: 2/3
+- full-frame `C_lowerleft`: worst dE2000 3.23
+
+Post v2 clears the crop receipt and nearly clears full-frame:
+
+- crop-receipt pass: 3/3
+- `C_lowerleft`: LPIPS 0.0368, MS-SSIM 0.9841, Y-PSNR 29.15, dE2000 2.92
+- full-frame stitched pass: 2/3
+- full-frame worst dE2000: 3.031
+
+Post v3 adds a small Lab/opponent continuation and clears the current
+`Z8Z_6680` full-frame smoke:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/post_refiner_z8z6680_v21_lab_v3/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lab_guarded_v21_post_v3_t512/preview_scene_routed_fullframe.json
+```
+
+v21 + post v3 full-frame stitched smoke:
+
+- pass: 3/3
+- worst LPIPS: 0.0515
+- worst MS-SSIM: 0.9824
+- worst Y-PSNR: 28.94
+- worst dE2000: 2.997
+- base model time: 8.15 s/frame for 187 tiles on Mac/MPS
+- post model time: 3.14 s/frame for 187 tiles on Mac/MPS
+- total model time: 11.29 s/frame
+- peak RSS: 4598.0 MB
+
+This is the first learned no-REF path that clears the current `Z8Z_6680`
+stitched smoke. It is not production PREVIEW yet: post v3 was trained from the
+same single frame/crops it clears, has only 0.003 dE headroom, adds a second
+CNN pass, and needs broader full-frame holdout validation before registration.
+The next production test is to train/validate the post-refiner on a broader
+full-frame stitched receipt and reject it if it only memorizes this frame.

@@ -231,7 +231,11 @@ Guarded follow-ups recover the detail regression and make v21 the current best
 learned stitched candidate at LPIPS 0.0477, MS-SSIM 0.9680, Y-PSNR 27.00, and
 dE2000 3.38 on `C_lowerleft`, but it still fails the PREVIEW gate. The
 remaining CNN blocker is now low-frequency Lab/Y calibration, not missing
-texture/detail.
+texture/detail. A runtime-safe stitched-frame post-refiner trained on the v21
+full-frame output clears the three-crop `Z8Z_6680` smoke with worst LPIPS
+0.0515, worst MS-SSIM 0.9824, worst Y-PSNR 28.94, and worst dE2000 2.997, but
+it is a single-frame diagnostic and still needs broader holdout proof before it
+can be registered.
 None of these diagnostics are registered as production.
 
 ---
