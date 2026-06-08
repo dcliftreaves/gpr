@@ -3,8 +3,7 @@
 End-of-day roll-up for the autonomous exploration session. **All technical
 work was done in service of the project framing in
 `memory/project_strategic_framing.md`**: pre-release contribution to
-GoPro's open-source codec, Apple Silicon-first, open-source non-commercial
-through 2028+.
+GoPro's open-source codec, Apple Silicon-first, and OEM-implementable.
 
 ## Shipped (master, this session)
 
