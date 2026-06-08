@@ -210,16 +210,20 @@ def build_tile_input(
 ) -> torch.Tensor:
     if coordinate_mode == "local":
         return build_input(source_rgb, conditioning)
-    if coordinate_mode != "global_tile":
+    if coordinate_mode not in {"global_tile", "zero_coord"}:
         raise ValueError(f"unsupported coordinate mode {coordinate_mode!r}")
     height, width = source_rgb.shape[:2]
     x0, y0, _w, _h = xywh
     full_w, full_h = full_size
-    yy, xx = np.meshgrid(
-        (np.arange(height, dtype=np.float32) + float(y0)) / max(1.0, float(full_h - 1)),
-        (np.arange(width, dtype=np.float32) + float(x0)) / max(1.0, float(full_w - 1)),
-        indexing="ij",
-    )
+    if coordinate_mode == "zero_coord":
+        yy = np.zeros((height, width), dtype=np.float32)
+        xx = np.zeros((height, width), dtype=np.float32)
+    else:
+        yy, xx = np.meshgrid(
+            (np.arange(height, dtype=np.float32) + float(y0)) / max(1.0, float(full_h - 1)),
+            (np.arange(width, dtype=np.float32) + float(x0)) / max(1.0, float(full_w - 1)),
+            indexing="ij",
+        )
     source = np.transpose(source_rgb.astype(np.float32) / 255.0, (2, 0, 1))
     key_planes = np.zeros((4, height, width), dtype=np.float32)
     if conditioning == "zero":
@@ -744,7 +748,7 @@ def main() -> int:
     ap.add_argument("--spatial-region", action="append", default=[], help="NAME=X0,Y0,X1,Y1[,CLUSTER] normalized tile-center bounds.")
     ap.add_argument("--spatial-scene-role-min", action="append", default=[], help="NAME=ROLE,COUNT; enable spatial region only when the full-frame pre-route role histogram meets this minimum.")
     ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats", "global_color_stats"], default="zero")
-    ap.add_argument("--coordinate-mode", choices=["local", "global_tile"], default="local")
+    ap.add_argument("--coordinate-mode", choices=["local", "global_tile", "zero_coord"], default="local")
     ap.add_argument("--tile-size", type=int, default=768)
     ap.add_argument("--overlap", type=int, default=128)
     ap.add_argument("--valid-margin", type=int, default=0, help="Overlap-save mode: discard this many non-border pixels from each output tile before stitching.")

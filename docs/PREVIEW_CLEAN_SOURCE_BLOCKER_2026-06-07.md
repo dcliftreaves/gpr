@@ -445,6 +445,26 @@ viable. The next production-shaped PREVIEW experiment should train or distill
 experts with the same coordinate contract used at runtime: full-frame/global
 or coordinate-free inputs, arbitrary tile placement, and stitched-crop losses.
 
+A first coordinate-free direct fine-tune was added with `--coordinate-mode
+zero_coord`, which keeps the nine-channel input contract but fills the two
+coordinate planes with zero. The `Z8Z_0026` all-crop full-grid run:
+
+`scene_expert_z8z0026_fullgrid_zerocoord_v1/preview_runtime_refiner.json`
+
+- training: 320 steps from the K40 color-stat checkpoint
+- result: 0/12 isolated arbitrary tile pass
+- worst LPIPS: 0.3537
+- median LPIPS: 0.2514
+- worst MS-SSIM: 0.7029
+- worst Y-PSNR: 22.07 dB
+- worst dE2000 mean: 5.62
+
+This rules out a simple coordinate-plane ablation with the same direct model.
+The next attempt should change model/context formation, for example training a
+full-crop or full-image teacher/student that supervises arbitrary tiles from
+their stitched crop output instead of asking isolated 512px tiles to solve the
+hard image independently.
+
 ### Channel Oracle
 
 After CI was restored on `master`, a repeatable channel oracle was added at:
