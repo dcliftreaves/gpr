@@ -223,7 +223,9 @@ stitched `Z8Z_6680` smoke stayed 2/3 and regressed `C_lowerleft` to Y-PSNR
 25.66 and dE2000 4.01. A mid-frequency oracle then showed that a radius-1 RGB
 residual can clear the remaining stitched crop, but the first learned
 mid-frequency residual wrappers only improved the smoke to Y-PSNR 26.13 and
-dE2000 3.72. None of these diagnostics are registered as production.
+dE2000 3.72. An explicit sigma-1 residual-teacher loss improved Y-PSNR only to
+26.16 and still missed dE2000 at 3.73. None of these diagnostics are
+registered as production.
 
 ---
 
