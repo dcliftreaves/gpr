@@ -1465,3 +1465,47 @@ production fix. Even the REF-field oracle leaves severe LPIPS, MS-SSIM, Y, and
 dE failures on the hard rows. The remaining blocker is now better described as
 source/target formulation plus structure/detail placement under arbitrary
 full-frame tiling, not low-frequency color calibration alone.
+
+### Full-Frame Luma-Detail Probe
+
+The next diagnostic added an artifact-native full-frame Lab-L detail probe:
+
+```text
+tools/cnn/probe_preview_fullframe_luma_detail.py
+```
+
+It reads the same stitched full-frame PREVIEW receipt, renders source and REF
+DNGs, and scores the manifest crops after replacing only luma structure/detail
+bands in the stitched output. Source variants are runtime-safe probes. REF
+variants are oracle ceilings and are not production candidates.
+
+Hard-eight receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_luma_detail_probe_hard8_v1/preview_fullframe_luma_detail_probe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_luma_detail_probe_hard8_v1/preview_fullframe_luma_detail_probe.html
+```
+
+Result:
+
+- base: 3/24, worst LPIPS 0.5747, worst MS-SSIM 0.6286, worst Y-PSNR 19.25,
+  worst dE2000 8.77
+- best runtime-safe source luma/detail variant: `source_l_midband_s2_8`, 3/24,
+  worst LPIPS 0.5381, worst MS-SSIM 0.6405, worst Y-PSNR 19.28, worst dE2000
+  7.95
+- full source L replacement: 0/24, worst LPIPS 0.6796, worst MS-SSIM 0.2987,
+  worst Y-PSNR 17.00, worst dE2000 9.80
+- best REF luma/detail oracle: `ref_l_replace`, 16/24, worst LPIPS 0.1475,
+  worst MS-SSIM 0.9176, worst Y-PSNR 23.62, worst dE2000 5.46
+- best REF highpass oracle: `ref_l_highpass_s16`, 15/24, worst LPIPS 0.1518,
+  worst MS-SSIM 0.9171, worst Y-PSNR 23.53, worst dE2000 5.51
+
+This rules out using the clean UPRESABLE/source luma as a donor for the current
+full-frame PREVIEW output. Runtime-safe source L replacement and source
+highpass variants are worse than the base, while REF L replacement improves the
+hard set but still does not clear it. The remaining blocker is therefore not
+"add back recoverable source detail"; it is a source/target formulation gap
+under arbitrary full-frame tiling. The next production-shaped step should test
+a better runtime source/teacher target or a full-frame student trained against
+stable assembled-crop/full-image targets, not another local source-detail donor
+or smooth LF field.
