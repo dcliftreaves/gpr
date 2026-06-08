@@ -185,8 +185,9 @@ Latest full-frame/tiled PREVIEW status: the scene-gated v32 route reaches only
 **63/84** on the 28-image stitched full-frame holdout, with **94.28 s** total
 model time for 28 frames on Mac/MPS. Full-frame LF-field and luma-detail
 probes rule out smooth Lab/Y correction and clean-source luma/detail addback as
-the immediate fix; the remaining blocker is source/target formulation under
-arbitrary full-frame tiling.
+the immediate fix, and source-root scoring shows the clean UPRESABLE source
+itself is 0/24 on the hard-eight PREVIEW crops. The remaining blocker is
+source/target formulation under arbitrary full-frame tiling.
 
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched

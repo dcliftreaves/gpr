@@ -1509,3 +1509,40 @@ under arbitrary full-frame tiling. The next production-shaped step should test
 a better runtime source/teacher target or a full-frame student trained against
 stable assembled-crop/full-image targets, not another local source-detail donor
 or smooth LF field.
+
+### Full-Frame Source Root Score
+
+The next diagnostic added a source-root scorer:
+
+```text
+tools/cnn/score_preview_fullframe_source_roots.py
+```
+
+It renders candidate runtime-safe editable-DNG source roots and scores their
+manifest crops directly against REF. This is not a production pipeline; it is a
+ceiling check for whether any existing source DNG formulation is close enough
+to act as a better PREVIEW source/teacher.
+
+Hard-eight receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_source_root_score_hard8_v1/preview_fullframe_source_root_score.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_source_root_score_hard8_v1/preview_fullframe_source_root_score.html
+```
+
+Result:
+
+- `receipt_source`: 0/24, worst LPIPS 0.6839, worst MS-SSIM 0.2922,
+  worst Y-PSNR 17.00, worst dE2000 10.70
+- `clean_upresable`: 0/24, same metrics as `receipt_source`; the receipt is
+  already using the clean holdout UPRESABLE DNGs
+- `older_hard_upresable`: 0/18, worst LPIPS 0.5936, worst MS-SSIM 0.2922,
+  worst Y-PSNR 17.00, worst dE2000 10.70; incomplete for the hard-eight set
+
+This rules out the available editable-DNG source roots as direct source
+formulation fixes. The clean source is necessary for a valid no-REF contract,
+but it is not close enough to be the learned target or a direct luma/detail
+donor for PREVIEW. The next trainable candidate should keep render-time inputs
+runtime-safe, but use a stronger full-image/assembled-crop teacher target
+during training instead of trying to preserve or reinsert the current source
+render's luma/detail/color.
