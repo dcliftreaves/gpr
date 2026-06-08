@@ -432,6 +432,43 @@ def check_preview_fullimage_lf_negative_evidence() -> Check:
         return Check("preview_detail", "full-image LF negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_frequency_oracle_evidence() -> Check:
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260606"
+        / "fullimage_frequency_oracle_hard8_v1"
+        / "preview_fullimage_frequency_oracle.json"
+    )
+    if not receipt.exists():
+        return Check("preview_detail", "full-image frequency oracle evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summaries = {str(row.get("variant")): row for row in payload.get("summary") or []}
+        exact = summaries.get("ref_exact_oracle") or {}
+        best_band = summaries.get("ref_low_source_high_s1") or {}
+        ref_high = summaries.get("source_low_ref_high_s4") or {}
+        ok = (
+            payload.get("schema") == "preview_fullimage_frequency_oracle.v1"
+            and int(exact.get("pass_count", -1)) == 24
+            and int(best_band.get("pass_count", -1)) == 14
+            and int(best_band.get("count", 0)) == 24
+            and int(ref_high.get("pass_count", -1)) == 5
+            and "ref_exact_oracle" in payload.get("oracle_variants_not_allowed_for_production", [])
+        )
+        return Check(
+            "preview_detail",
+            "full-image frequency oracle evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"exact={int(exact.get('pass_count', -1))}/24, "
+                f"ref_low_source_high_s1={int(best_band.get('pass_count', -1))}/24, "
+                f"source_low_ref_high_s4={int(ref_high.get('pass_count', -1))}/24 receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "full-image frequency oracle evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_nonref_preview_candidate() -> list[Check]:
     artifact_dir = ARTIFACT_ROOT / "display_rgb_direct_lpips_nonref_20260606"
     dashboard = artifact_dir / "rgb_direct_lpips_nonref_dashboard.json"
@@ -1069,6 +1106,7 @@ def main() -> int:
     checks.append(check_preview_post_refiner_negative_evidence())
     checks.append(check_preview_coord_field_negative_evidence())
     checks.append(check_preview_fullimage_lf_negative_evidence())
+    checks.append(check_preview_frequency_oracle_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
         check_file("preview_holdout", "holdout summary dashboard tool", "tests/quality_gates/summarize_preview_holdout.py"),

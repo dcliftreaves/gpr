@@ -1721,6 +1721,35 @@ PREVIEW blocker must involve mid/high-frequency structure, the source/teacher
 representation, or a model that can make stronger full-image-aware detail
 changes while remaining no-REF at render time.
 
+### Full-Image Frequency-Band Oracle
+
+The next diagnostic rendered the hard-eight source/REF full images and exchanged
+low/high RGB bands at Gaussian radii 1, 2, 4, 8, 16, and 32. REF-band variants
+are oracle ceilings only. The purpose is to locate which frequency bands the
+next no-REF model must handle.
+
+Artifact:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullimage_frequency_oracle_hard8_v1/preview_fullimage_frequency_oracle.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullimage_frequency_oracle_hard8_v1/preview_fullimage_frequency_oracle.html
+```
+
+Result on the 24 hard-eight manifest crop rows:
+
+- exact REF oracle: 24/24
+- REF low + source high, sigma 1: 14/24, worst LPIPS 0.4083, worst dE2000 3.58
+- source low + REF high, sigma 4: 5/24, worst LPIPS 0.2859, worst dE2000 11.11
+- source baseline: 0/24, worst LPIPS 0.6839, worst dE2000 10.70
+
+The best nontrivial oracle is `ref_low_source_high_s1`. Its remaining failures
+are mostly LPIPS-heavy rows: `Z8Z_0026` all three crops, `Z8Z_6680` all three
+crops, `Z8Z_7480` all three crops, and `Z8Z_5284 A_detail`. This means the next
+candidate cannot be only high-frequency synthesis over the current source low
+field and cannot be only low-frequency correction over current source detail.
+It needs a full-image-aware low/mid placement target plus fine-detail
+synthesis/preservation that survives LPIPS.
+
 ### Full-Frame Wall Timing Receipt
 
 The full-frame scene-routed evaluator now records explicit wall-clock timing

@@ -312,6 +312,13 @@ full-image LF/color placement. The next viable PREVIEW formulation needs a
 runtime source-to-target model that can change the mid/high-frequency structure
 or a different source/teacher representation while keeping REF out of render
 time.
+A direct full-image frequency-band oracle makes that requirement more specific:
+exact REF is 24/24, REF low plus source high at sigma 1 is 14/24, and source
+low plus REF high tops out at 5/24. The unresolved rows are mostly LPIPS
+failures even when Y/dE/MS-SSIM are near or inside threshold. The next PREVIEW
+candidate therefore needs a full-image-aware mapping for near-REF low/mid
+placement plus better fine-detail synthesis/preservation; swapping only high
+or low bands is not enough.
 The evaluator now records true per-frame wall timing: a `Z8Z_0026` smoke
 receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
 with only 3.67 s spent in model inference, so Python routing/save/stitch
