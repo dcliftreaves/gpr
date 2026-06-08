@@ -469,7 +469,7 @@ def check_nonref_preview_candidate() -> list[Check]:
     fullframe_production_timing_dashboard = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260606"
-        / "fullframe_production_timing_tiffraw_route512_smoke_z8z0026_v2"
+        / "fullframe_production_timing_tiffraw_route512_split_smoke_z8z0026_v1"
         / "preview_scene_routed_fullframe.json"
     )
     if not fullframe_tool.exists():
@@ -538,6 +538,8 @@ def check_nonref_preview_candidate() -> list[Check]:
             scoring_ms = float(first_timing.get("scoring_wall_ms", 999.0))
             output_format = str(runtime_contract.get("stitched_output_format", ""))
             route_feature_max_side = int(runtime_contract.get("route_feature_max_side", 0))
+            route_feature_total_ms = float(first_timing.get("scene_route_feature_ms_total", 0.0))
+            route_select_total_ms = float(first_timing.get("scene_route_select_ms_total", 0.0))
             timing_ok = (
                 runtime_contract.get("quality_scoring") == "skipped"
                 and output_format == "tiff_raw"
@@ -547,6 +549,7 @@ def check_nonref_preview_candidate() -> list[Check]:
                 and fps > 0.0
                 and float(first_timing.get("runtime_no_ref_wall_ms", 0.0)) > 0.0
                 and 0.0 < float(first_timing.get("stitch_save_ms", 0.0)) < 500.0
+                and route_feature_total_ms > route_select_total_ms > 0.0
                 and scoring_ms < 1.0
                 and int(first_image.get("stitched_output_bytes", 0)) > 0
                 and float(memory.get("max_rss_mb", 0.0)) > 0.0
@@ -558,6 +561,8 @@ def check_nonref_preview_candidate() -> list[Check]:
                 f"runtime={runtime_ms / 1000.0:.2f}s fps={fps:.4f} "
                 f"model={model_ms / 1000.0:.2f}s output={output_format} "
                 f"route_max_side={route_feature_max_side} "
+                f"route_features={route_feature_total_ms / 1000.0:.2f}s "
+                f"route_select={route_select_total_ms / 1000.0:.3f}s "
                 f"save={float(first_timing.get('stitch_save_ms', 0.0)):.1f}ms scoring={scoring_ms:.3f}ms "
                 f"rss={float(memory.get('max_rss_mb', 0.0)):.1f} MB "
                 f"receipt={fullframe_production_timing_dashboard}",
