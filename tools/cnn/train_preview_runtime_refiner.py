@@ -92,6 +92,17 @@ def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
                 cluster, _route = route_from_sidecar(source_path, sidecar)
             if wanted_clusters and cluster not in wanted_clusters:
                 continue
+            tile_xywh = tuple(int(v) for v in row["tile_xywh"]) if row.get("tile_xywh") else None
+            source_render_size = tuple(int(v) for v in row["source_render_size"]) if row.get("source_render_size") else None
+            if tile_xywh is None and isinstance(row.get("source_render"), dict):
+                crop_box = row["source_render"].get("crop_box_render")
+                if crop_box:
+                    x0, y0, x1, y1 = [int(v) for v in crop_box]
+                    tile_xywh = (x0, y0, x1 - x0, y1 - y0)
+            if source_render_size is None and isinstance(row.get("source_render"), dict):
+                render_size = row["source_render"].get("render_size")
+                if render_size:
+                    source_render_size = tuple(int(v) for v in render_size)
             out.append(
                 ReceiptSample(
                     image_id=str(row["image_id"]),
@@ -100,8 +111,8 @@ def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
                     source_path=source_path,
                     source_label=str(row.get("source_label", "receipt:source")),
                     cluster=cluster,
-                    tile_xywh=tuple(int(v) for v in row["tile_xywh"]) if row.get("tile_xywh") else None,
-                    source_render_size=tuple(int(v) for v in row["source_render_size"]) if row.get("source_render_size") else None,
+                    tile_xywh=tile_xywh,
+                    source_render_size=source_render_size,
                     source_global_stats={k: float(v) for k, v in row["source_global_stats"].items()} if row.get("source_global_stats") else None,
                     intersects_crops=intersects_crops,
                 )
@@ -264,6 +275,28 @@ def build_tensors(args: argparse.Namespace) -> tuple[list[Any], torch.Tensor, to
 def charbonnier(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     diff = (pred - target).contiguous()
     return torch.sqrt(diff * diff + 1e-6).mean()
+
+
+def center_crop_tensor(x: torch.Tensor, size: int) -> torch.Tensor:
+    if size <= 0:
+        return x
+    height, width = x.shape[-2:]
+    if size > height or size > width:
+        raise ValueError(f"center crop {size} exceeds tensor shape {tuple(x.shape)}")
+    y0 = (height - size) // 2
+    x0 = (width - size) // 2
+    return x[..., y0:y0 + size, x0:x0 + size].contiguous()
+
+
+def center_crop_array(x: np.ndarray, size: int) -> np.ndarray:
+    if size <= 0:
+        return x
+    height, width = x.shape[:2]
+    if size > height or size > width:
+        raise ValueError(f"center crop {size} exceeds array shape {x.shape}")
+    y0 = (height - size) // 2
+    x0 = (width - size) // 2
+    return x[y0:y0 + size, x0:x0 + size].copy()
 
 
 def lowfreq_color_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -497,13 +530,17 @@ def eval_score(
 ) -> tuple[float, dict[str, float]]:
     with torch.no_grad():
         pred_eval = model(xb).contiguous()
-        l1_eval = (pred_eval - yb).abs().mean().item()
-        ms_eval = ms_ssim(pred_eval, yb, data_range=1.0, win_size=7).item() if args.ms_weight > 0.0 else 0.0
-        lp_eval = lpips_net(pred_eval * 2 - 1, yb * 2 - 1).mean().item() if lpips_net is not None else 0.0
-        y_eval = gate_luma_loss(pred_eval, yb).item()
-        opp_eval = opponent_color_loss(pred_eval, yb).item()
-        lab_eval = lab_loss(pred_eval, yb).item()
-        mid_eval = midfreq_residual_loss(pred_eval, yb, xb[:, :3], args.midfreq_blur_sigma).item()
+        score_center_size = args.metric_center_size or args.loss_center_size
+        pred_metric = center_crop_tensor(pred_eval, score_center_size)
+        yb_metric = center_crop_tensor(yb, score_center_size)
+        xb_metric = center_crop_tensor(xb, score_center_size)
+        l1_eval = (pred_metric - yb_metric).abs().mean().item()
+        ms_eval = ms_ssim(pred_metric, yb_metric, data_range=1.0, win_size=7).item() if args.ms_weight > 0.0 else 0.0
+        lp_eval = lpips_net(pred_metric * 2 - 1, yb_metric * 2 - 1).mean().item() if lpips_net is not None else 0.0
+        y_eval = gate_luma_loss(pred_metric, yb_metric).item()
+        opp_eval = opponent_color_loss(pred_metric, yb_metric).item()
+        lab_eval = lab_loss(pred_metric, yb_metric).item()
+        mid_eval = midfreq_residual_loss(pred_metric, yb_metric, xb_metric[:, :3], args.midfreq_blur_sigma).item()
         _asm_eval_loss, asm_eval_stats = assembled_crop_loss(
             model=model,
             xt=xt,
@@ -601,15 +638,20 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             xb = xt
             yb = yt
         pred = model(xb).contiguous()
-        l1 = charbonnier(pred, yb)
-        lms = 1.0 - ms_ssim(pred, yb, data_range=1.0, win_size=7) if args.ms_weight > 0.0 else pred.new_tensor(0.0)
-        lg = grad_loss(pred, yb)
+        pred_loss = center_crop_tensor(pred, args.loss_center_size)
+        yb_loss = center_crop_tensor(yb, args.loss_center_size)
+        xb_loss = center_crop_tensor(xb, args.loss_center_size)
+        l1 = charbonnier(pred_loss, yb_loss)
+        lms = 1.0 - ms_ssim(pred_loss, yb_loss, data_range=1.0, win_size=7) if args.ms_weight > 0.0 else pred.new_tensor(0.0)
+        lg = grad_loss(pred_loss, yb_loss)
         llp = lpips_net(pred * 2 - 1, yb * 2 - 1).mean() if lpips_net is not None else pred.new_tensor(0.0)
-        lcolor = lowfreq_color_loss(pred, yb)
-        ly = gate_luma_loss(pred, yb)
-        lopp = opponent_color_loss(pred, yb)
-        llab = lab_loss(pred, yb)
-        lmid = midfreq_residual_loss(pred, yb, xb[:, :3], args.midfreq_blur_sigma)
+        if lpips_net is not None and args.loss_center_size > 0:
+            llp = lpips_net(pred_loss * 2 - 1, yb_loss * 2 - 1).mean()
+        lcolor = lowfreq_color_loss(pred_loss, yb_loss)
+        ly = gate_luma_loss(pred_loss, yb_loss)
+        lopp = opponent_color_loss(pred_loss, yb_loss)
+        llab = lab_loss(pred_loss, yb_loss)
+        lmid = midfreq_residual_loss(pred_loss, yb_loss, xb_loss[:, :3], args.midfreq_blur_sigma)
         loss = (
             l1
             + args.grad_weight * lg
@@ -694,6 +736,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "focus_intersect_crop": args.focus_intersect_crop,
             "focus_crop": args.focus_crop,
             "focus_weight": args.focus_weight,
+            "loss_center_size": args.loss_center_size,
+            "metric_center_size": args.metric_center_size,
             "assembled_crop_weight": args.assembled_crop_weight,
             "assembled_manifest": str(args.assembled_manifest) if args.assembled_manifest else None,
             "assembled_focus_crop": args.assembled_focus_crop,
@@ -757,9 +801,11 @@ def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, An
             ref = load_rgb(sample.ref_path)
             pred = model(build_input_for_sample(source, args.conditioning, args.coordinate_mode, sample)).detach().cpu().numpy()[0]
             rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255, 0, 255).astype(np.uint8)
+            metric_rgb = center_crop_array(rgb, args.metric_center_size)
+            metric_ref = center_crop_array(ref, args.metric_center_size)
             png = args.output_dir / f"{sample.image_id}_{sample.crop}_{args.policy}_{args.conditioning}_runtime_refiner.png"
-            Image.fromarray(rgb).save(png)
-            metrics = compute_visual_metrics(ref, rgb)
+            Image.fromarray(metric_rgb if args.metric_center_size > 0 else rgb).save(png)
+            metrics = compute_visual_metrics(metric_ref, metric_rgb)
             metrics["preview_pass"] = pass_preview(metrics)
             rows.append({
                 "image_id": sample.image_id,
@@ -781,6 +827,8 @@ def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, An
             "source_policy": args.policy,
             "conditioning": args.conditioning,
             "coordinate_mode": args.coordinate_mode,
+            "loss_center_size": args.loss_center_size,
+            "metric_center_size": args.metric_center_size,
             "forbidden_inputs": ["REF image content", "REF HF/LF fields", "winner JSON", "sample index", "crop identity key planes"],
             "render_inputs": ["source RGB frame/crop", "normalized pixel coordinates", "checkpoint"],
             "device": str(DEVICE),
@@ -818,6 +866,8 @@ def main() -> int:
     ap.add_argument("--focus-intersect-crop", action="append", default=[], help="Oversample receipt rows whose intersects_crops contains this crop name.")
     ap.add_argument("--focus-crop", action="append", default=[], help="Oversample receipt rows whose crop id contains this substring.")
     ap.add_argument("--focus-weight", type=float, default=4.0)
+    ap.add_argument("--loss-center-size", type=int, default=0, help="If set, train ordinary per-sample losses on the centered square only.")
+    ap.add_argument("--metric-center-size", type=int, default=0, help="If set, evaluate metrics and dashboard PNGs on the centered square only.")
     ap.add_argument("--assembled-crop-weight", type=float, default=0.0, help="Add differentiable loss on manifest crops assembled from predicted receipt tiles.")
     ap.add_argument("--assembled-manifest", type=Path, default=REPO / "tests/quality_gates/preview_holdout_set.json")
     ap.add_argument("--assembled-focus-crop", action="append", default=[], help="Limit assembled-crop loss to this manifest crop name.")

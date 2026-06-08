@@ -1325,3 +1325,44 @@ This rules out a simple broad post-refiner over the current scene-gated output.
 The remaining hard rows need a stronger context/full-image model or a better
 teacher/target for arbitrary tiles, not a shallow correction of the stitched
 result.
+
+### 768-Context Center-Gate Training
+
+The next context-aware pass added trainer support for receipts that contain
+larger context crops but should optimize/score only the centered gate crop.
+The context receipt already existed:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/holdout_runtime_context_v1_768_clean_upresable_28img/preview_context_runtime_source_receipt.json
+```
+
+The new training receipt is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/context768_center512_direct_init_all84_v1/preview_runtime_refiner.json
+```
+
+Contract:
+
+- source: clean UPRESABLE 768x768 context crop
+- model input coordinates: global crop coordinates derived from
+  `source_render.crop_box_render`
+- loss: centered 512x512 gate crop
+- metrics/dashboard PNG: centered 512x512 gate crop
+- REF: target/scoring only
+
+Result:
+
+- pass: 60/84
+- worst LPIPS: 0.6427
+- median LPIPS: 0.0570
+- worst MS-SSIM: 0.3574
+- worst Y-PSNR: 16.54
+- worst dE2000: 12.66
+
+This is worse than the earlier 768-context routed proxy and worse than the
+scene-gated full-frame holdout. It rules out the simple formulation of one
+initialized direct CNN trained on 768 context with a center-gate objective.
+The context machinery is still useful, but the next viable candidate needs a
+larger teacher/full-image student or a model that explicitly handles full-frame
+low-frequency consistency across arbitrary tile placement.
