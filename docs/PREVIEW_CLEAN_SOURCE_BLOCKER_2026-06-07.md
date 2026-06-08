@@ -274,6 +274,104 @@ committed PREVIEW gates. Runtime inputs remain source RGB, frozen source
 feature routers, and selected checkpoints. REF is used only for training and
 scoring.
 
+## Full-Frame Tiled Follow-Up
+
+The crop-aligned v32 pass does not carry over to arbitrary full-frame tiling.
+The current full-grid receipts use 512px tiles with no overlap and score the
+manifest crops from stitched full-frame output. REF remains scoring-only.
+
+### v32 Baseline Full-Grid Holdout
+
+Path:
+
+`fullframe_tiled_v32_holdout28_baseline_t512/preview_scene_routed_fullframe.json`
+
+Summary:
+
+- pass: 57/84
+- pass rate: 67.86%
+- worst LPIPS: 0.5749
+- median LPIPS: 0.0192
+- worst MS-SSIM: 0.6288
+- worst Y-PSNR: 17.34 dB
+- worst dE2000 mean: 14.66
+- MPS model time: 88.79 s total, 3.17 s/frame mean
+- peak RSS: 5819 MB
+
+The failures are concentrated in the hard full-grid images:
+`Z8Z_0026`, `Z8Z_0705`, `Z8Z_1586`, `Z8Z_5284`, `Z8Z_5937`,
+`Z8Z_6680`, `Z8Z_7480`, and `Z8Z_7955`.
+
+### Hair/Skin Scene-Gated Spatial Specialist
+
+A full-grid specialist trained on actual arbitrary `Z8Z_0680 B_center` tiles
+fixed the hair/skin scene family when applied through a runtime scene-role
+gate. The gate is based on the full-frame pre-route role histogram:
+
+- `cluster_0 >= 140`
+- `cluster_3 >= 15`
+
+This enabled the spatial `hair_a` and `hair_b` regions only for
+`Z8Z_0680`, `Z8Z_0694`, and `Z8Z_0718` in the 28-image holdout.
+
+Three-image smoke:
+
+`fullframe_tiled_v32_hair3_scene_gated_hairb_train0680_v1_t512/preview_scene_routed_fullframe.json`
+
+- pass: 9/9
+- worst LPIPS: 0.0766
+- worst MS-SSIM: 0.9862
+- worst Y-PSNR: 38.06 dB
+- worst dE2000 mean: 1.53
+
+Full 28-image holdout:
+
+`fullframe_tiled_v32_holdout28_scene_gated_hairb_train0680_v1_t512/preview_scene_routed_fullframe.json`
+
+- pass: 63/84
+- pass rate: 75.0%
+- worst LPIPS: 0.5749
+- median LPIPS: 0.0191
+- worst MS-SSIM: 0.6288
+- worst Y-PSNR: 19.26 dB
+- worst dE2000 mean: 8.75
+- MPS model time: 94.28 s total, 3.37 s/frame mean
+- peak RSS: 5750 MB
+
+The same spatial specialist without the scene-role gate regressed the full
+holdout to 33/84, so coordinate-only spatial routing is not production-safe.
+The scene gate is the correct direction: use runtime source-route features to
+select specialists, not image ids or fixed coordinates alone.
+
+### Current Blocker After Scene Gating
+
+The scene-gated result is still not production PREVIEW. Remaining failures are
+21 rows across eight hard images:
+
+| image | passing crops | dominant issue |
+|---|---:|---|
+| Z8Z_0026 | 0/3 | severe B-center dE/Y plus A/C structure |
+| Z8Z_0705 | 0/3 | A-detail LPIPS and B/C dE/MS |
+| Z8Z_1586 | 1/3 | A/B LPIPS |
+| Z8Z_5284 | 1/3 | A LPIPS and C dE/MS |
+| Z8Z_5937 | 0/3 | C lower-left LPIPS/Y/dE |
+| Z8Z_6680 | 0/3 | B/C low-frequency Y/dE |
+| Z8Z_7480 | 0/3 | A/B/C structure and dE |
+| Z8Z_7955 | 1/3 | A LPIPS/dE and C MS |
+
+Two `Z8Z_0026` full-grid all-crop fine-tunes were tried from the K40
+color-stat checkpoint:
+
+- `scene_expert_z8z0026_fullgrid_allcrops_v1`: global-color conditioning,
+  420 steps, 0/12 isolated tile pass.
+- `scene_expert_z8z0026_fullgrid_colorstats_v2`: aligned color-stat
+  conditioning, 320 steps, 0/12 isolated tile pass.
+
+A wider direct scratch model was also started for `Z8Z_0026`, but at step 130
+it remained much worse than the width-40 fine-tunes and was stopped. Current
+evidence narrows `Z8Z_0026` to a model/context/source-target formulation
+blocker, not a simple checkpoint-conditioning mismatch.
+
 ### Channel Oracle
 
 After CI was restored on `master`, a repeatable channel oracle was added at:

@@ -94,6 +94,25 @@ def parse_spatial_conditioning(values: list[str]) -> dict[str, str]:
     return out
 
 
+def parse_spatial_scene_role_threshold(values: list[str]) -> dict[str, dict[str, int]]:
+    out: dict[str, dict[str, int]] = {}
+    for value in values:
+        if "=" not in value:
+            raise ValueError(f"--spatial-scene-role-min must be NAME=ROLE,COUNT, got {value!r}")
+        name, spec = value.split("=", 1)
+        parts = spec.split(",")
+        if len(parts) != 2:
+            raise ValueError(f"--spatial-scene-role-min must be NAME=ROLE,COUNT, got {value!r}")
+        role, count_text = parts
+        if not name or not role:
+            raise ValueError(f"--spatial-scene-role-min needs non-empty NAME and ROLE, got {value!r}")
+        count = int(count_text)
+        if count < 0:
+            raise ValueError(f"--spatial-scene-role-min count must be non-negative, got {value!r}")
+        out.setdefault(name, {})[role] = count
+    return out
+
+
 def max_rss_mb() -> float:
     rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     if sys.platform == "darwin":
@@ -353,15 +372,18 @@ def apply_spatial_override(
     height: int,
     model_key: str,
     current_conditioning: str,
+    enabled_names: set[str] | None = None,
 ) -> tuple[str, str, dict[str, Any]]:
     center_x = (float(x0) + float(x1)) * 0.5 / max(1.0, float(width))
     center_y = (float(y0) + float(y1)) * 0.5 / max(1.0, float(height))
     for region in regions:
+        name = str(region["name"])
+        if enabled_names is not None and name not in enabled_names:
+            continue
         expected_cluster = region.get("cluster")
         if expected_cluster is not None and int(expected_cluster) != int(cluster):
             continue
         if region["x0"] <= center_x < region["x1"] and region["y0"] <= center_y < region["y1"]:
-            name = str(region["name"])
             key = f"spatial_{name}"
             return key, conditioning.get(name, current_conditioning), {
                 "spatial_override": name,
@@ -369,6 +391,41 @@ def apply_spatial_override(
                 "spatial_cluster_constraint": expected_cluster,
             }
     return model_key, current_conditioning, {"spatial_override": None, "spatial_center": [center_x, center_y]}
+
+
+def route_tile_role(
+    *,
+    args: argparse.Namespace,
+    tile_path: Path,
+    routing: dict[str, Any],
+) -> tuple[int, int | None, str, str, dict[str, Any]]:
+    if args.force_model_key:
+        return -1, None, args.force_model_key, args.force_conditioning, {
+            "route_source": "forced_diagnostic_model_key",
+            "route_distance": 0.0,
+        }
+    cluster, override_cluster, model_key, _ckpt, conditioning, route = select_model(
+        source_path=tile_path,
+        base_sidecar=routing["base_sidecar"],
+        override_sidecars=routing["override_sidecars"],
+        default_checkpoint=routing["default_checkpoint"],
+        cluster_ckpts=routing["cluster_ckpts"],
+        override_ckpts=routing["override_ckpts"],
+        cluster_conditioning=routing["cluster_conditioning"],
+        override_conditioning=routing["override_conditioning"],
+        default_conditioning=routing["default_conditioning"],
+    )
+    return cluster, override_cluster, model_key, conditioning, route
+
+
+def scene_spatial_enabled_names(role_counts: dict[str, int], thresholds: dict[str, dict[str, int]]) -> set[str] | None:
+    if not thresholds:
+        return None
+    enabled: set[str] = set()
+    for name, required in thresholds.items():
+        if all(role_counts.get(role, 0) >= count for role, count in required.items()):
+            enabled.add(name)
+    return enabled
 
 
 def crop_metric_image(image: np.ndarray, crop: dict[str, int], sensor_dims: list[int]) -> np.ndarray:
@@ -416,6 +473,28 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             for y0 in tile_origins(height, tile, stride)
             for x0 in tile_origins(width, tile, stride)
         ]
+    scene_role_counts: dict[str, int] = {}
+    spatial_enabled_names: set[str] | None = None
+    scene_route_ms: list[float] = []
+    if routing["spatial_scene_role_min"]:
+        for x0, y0, x1, y1, _tile_label in tile_specs:
+            route_pad = max(max(0, int(args.model_context_padding)), int(args.route_context_padding))
+            rx0 = max(0, x0 - route_pad)
+            ry0 = max(0, y0 - route_pad)
+            rx1 = min(width, x1 + route_pad)
+            ry1 = min(height, y1 + route_pad)
+            route_rgb = source_rgb[ry0:ry1, rx0:rx1]
+            tile_path = work / f"{image_id}_scene_route_{x0}_{y0}.png"
+            t0 = time.perf_counter()
+            Image.fromarray(route_rgb).save(tile_path)
+            _cluster, _override_cluster, model_key, _conditioning, _route = route_tile_role(
+                args=args,
+                tile_path=tile_path,
+                routing=routing,
+            )
+            scene_route_ms.append((time.perf_counter() - t0) * 1000.0)
+            scene_role_counts[model_key] = scene_role_counts.get(model_key, 0) + 1
+        spatial_enabled_names = scene_spatial_enabled_names(scene_role_counts, routing["spatial_scene_role_min"])
     for x0, y0, x1, y1, tile_label in tile_specs:
             pad = max(0, int(args.model_context_padding))
             route_pad = max(pad, int(args.route_context_padding))
@@ -435,27 +514,12 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             Image.fromarray(route_rgb).save(tile_path)
             save_tile_ms.append((time.perf_counter() - t0) * 1000.0)
             t0 = time.perf_counter()
-            if args.force_model_key:
-                cluster = -1
-                override_cluster = None
-                model_key = args.force_model_key
-                conditioning = args.force_conditioning
-                route = {
-                    "route_source": "forced_diagnostic_model_key",
-                    "route_distance": 0.0,
-                }
-            else:
-                cluster, override_cluster, model_key, _ckpt, conditioning, route = select_model(
-                    source_path=tile_path,
-                    base_sidecar=routing["base_sidecar"],
-                    override_sidecars=routing["override_sidecars"],
-                    default_checkpoint=routing["default_checkpoint"],
-                    cluster_ckpts=routing["cluster_ckpts"],
-                    override_ckpts=routing["override_ckpts"],
-                    cluster_conditioning=routing["cluster_conditioning"],
-                    override_conditioning=routing["override_conditioning"],
-                    default_conditioning=routing["default_conditioning"],
-                )
+            cluster, override_cluster, model_key, conditioning, route = route_tile_role(
+                args=args,
+                tile_path=tile_path,
+                routing=routing,
+            )
+            if not args.force_model_key:
                 model_key, conditioning, spatial_route = apply_spatial_override(
                     regions=routing["spatial_regions"],
                     conditioning=routing["spatial_conditioning"],
@@ -468,6 +532,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
                     height=height,
                     model_key=model_key,
                     current_conditioning=conditioning,
+                    enabled_names=spatial_enabled_names,
                 )
                 route.update(spatial_route)
             route_ms.append((time.perf_counter() - t0) * 1000.0)
@@ -575,11 +640,18 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             "input_ms_median": float(statistics.median(input_ms)) if input_ms else 0.0,
             "model_ms_median": float(statistics.median(model_ms)) if model_ms else 0.0,
             "model_ms_total": float(sum(model_ms)),
+            "scene_route_ms_median": float(statistics.median(scene_route_ms)) if scene_route_ms else 0.0,
+            "scene_route_ms_total": float(sum(scene_route_ms)),
         },
         "post_refiner": post_refiner_receipt,
         "tile_roles": {
             role: sum(1 for row in tile_rows if row["checkpoint_role"] == role)
             for role in sorted({row["checkpoint_role"] for row in tile_rows})
+        },
+        "scene_spatial": {
+            "role_counts_before_spatial": scene_role_counts,
+            "enabled_regions": sorted(spatial_enabled_names) if spatial_enabled_names is not None else None,
+            "role_min": routing["spatial_scene_role_min"],
         },
         "tiles": tile_rows,
         "rows": crop_rows,
@@ -658,6 +730,7 @@ def main() -> int:
     ap.add_argument("--override-cluster-conditioning", action="append", default=[])
     ap.add_argument("--spatial-conditioning", action="append", default=[], help="NAME=MODE for spatial checkpoint input conditioning.")
     ap.add_argument("--spatial-region", action="append", default=[], help="NAME=X0,Y0,X1,Y1[,CLUSTER] normalized tile-center bounds.")
+    ap.add_argument("--spatial-scene-role-min", action="append", default=[], help="NAME=ROLE,COUNT; enable spatial region only when the full-frame pre-route role histogram meets this minimum.")
     ap.add_argument("--conditioning", choices=["zero", "content_stats", "color_stats", "global_color_stats"], default="zero")
     ap.add_argument("--coordinate-mode", choices=["local", "global_tile"], default="local")
     ap.add_argument("--tile-size", type=int, default=768)
@@ -688,6 +761,7 @@ def main() -> int:
     spatial_ckpts = parse_spatial_checkpoint(args.spatial_checkpoint)
     spatial_regions = parse_spatial_region(args.spatial_region)
     spatial_conditioning = parse_spatial_conditioning(args.spatial_conditioning)
+    spatial_scene_role_min = parse_spatial_scene_role_threshold(args.spatial_scene_role_min)
     spatial_region_names = {str(r["name"]) for r in spatial_regions}
     missing_regions = sorted(set(spatial_ckpts) - spatial_region_names)
     if missing_regions:
@@ -734,6 +808,7 @@ def main() -> int:
         "default_conditioning": args.conditioning,
         "spatial_regions": spatial_regions,
         "spatial_conditioning": spatial_conditioning,
+        "spatial_scene_role_min": spatial_scene_role_min,
     }
     manifest = json.loads(args.manifest.read_text())
     images = [
@@ -762,6 +837,7 @@ def main() -> int:
             "override_router_sidecar": [str(path) for path in args.override_router_sidecar],
             "spatial_regions": spatial_regions,
             "spatial_conditioning": spatial_conditioning,
+            "spatial_scene_role_min": spatial_scene_role_min,
             "tile_size": args.tile_size,
             "overlap": args.overlap,
             "valid_margin": args.valid_margin,
