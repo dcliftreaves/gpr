@@ -271,6 +271,7 @@ def check_nonref_preview_candidate() -> list[Check]:
         check_file("preview_nonref", "scene router audit tool", "tools/cnn/build_preview_scene_router_audit.py"),
         check_file("preview_nonref", "full-image holdout source builder", "tools/cnn/build_preview_holdout_runtime_receipt.py"),
         check_file("preview_nonref", "scene routed evaluator", "tools/cnn/evaluate_preview_scene_routed.py"),
+        check_file("preview_nonref", "full-frame tiled evaluator", "tools/cnn/evaluate_preview_scene_routed_fullframe.py"),
     ]
 
     if not dashboard.exists():
@@ -459,6 +460,12 @@ def check_nonref_preview_candidate() -> list[Check]:
         / "fullframe_tiled_v32_smoke_z8z6680_t512"
         / "preview_scene_routed_fullframe.json"
     )
+    fullframe_timing_dashboard = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260606"
+        / "fullframe_timing_wall_smoke_z8z0026_v1"
+        / "preview_scene_routed_fullframe.json"
+    )
     if not fullframe_tool.exists():
         checks.append(Check("preview_nonref", "full-frame tiled PREVIEW evaluator", "FAIL", "missing full-frame tiled evaluator"))
     elif not fullframe_dashboard.exists():
@@ -480,6 +487,35 @@ def check_nonref_preview_candidate() -> list[Check]:
             ))
         except Exception as exc:
             checks.append(Check("preview_nonref", "full-frame tiled blocker receipt", "FAIL", f"bad JSON: {exc}"))
+    if not fullframe_timing_dashboard.exists():
+        checks.append(Check("preview_nonref", "full-frame wall timing receipt", "FAIL", f"missing {fullframe_timing_dashboard}"))
+    else:
+        try:
+            fullframe_timing = json.loads(fullframe_timing_dashboard.read_text())
+            timing_summary = fullframe_timing.get("timing_summary") or {}
+            first_timing = ((fullframe_timing.get("images") or [{}])[0].get("timing") or {})
+            memory = fullframe_timing.get("memory") or {}
+            runtime_ms = float(timing_summary.get("runtime_no_ref_wall_ms_avg", 0.0))
+            model_ms = float(timing_summary.get("model_ms_total_avg", 0.0))
+            fps = float(timing_summary.get("runtime_no_ref_fps_avg", 0.0))
+            timing_ok = (
+                runtime_ms > 0.0
+                and model_ms > 0.0
+                and fps > 0.0
+                and float(first_timing.get("runtime_no_ref_wall_ms", 0.0)) > 0.0
+                and float(first_timing.get("scoring_wall_ms", 0.0)) > 0.0
+                and float(memory.get("max_rss_mb", 0.0)) > 0.0
+            )
+            checks.append(Check(
+                "preview_nonref",
+                "full-frame wall timing receipt",
+                "PASS" if timing_ok else "FAIL",
+                f"runtime={runtime_ms / 1000.0:.2f}s fps={fps:.4f} "
+                f"model={model_ms / 1000.0:.2f}s rss={float(memory.get('max_rss_mb', 0.0)):.1f} MB "
+                f"receipt={fullframe_timing_dashboard}",
+            ))
+        except Exception as exc:
+            checks.append(Check("preview_nonref", "full-frame wall timing receipt", "FAIL", f"bad JSON: {exc}"))
     return checks
 
 
