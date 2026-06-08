@@ -1546,3 +1546,64 @@ donor for PREVIEW. The next trainable candidate should keep render-time inputs
 runtime-safe, but use a stronger full-image/assembled-crop teacher target
 during training instead of trying to preserve or reinsert the current source
 render's luma/detail/color.
+
+### Hard-Eight Stitched Post-Refiner Capacity Check
+
+The next diagnostic tested whether a simple runtime-safe stitched RGB
+post-refiner can even fit the hard-eight full-frame manifest crops when train
+and eval rows are the same. It uses the existing full-frame post receipt;
+source is stitched no-REF RGB, and REF is target/scoring only.
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/post_refiner_hard8_manifest_fit_v1/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/post_refiner_hard8_manifest_fit_v1/preview_runtime_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/post_refiner_hard8_manifest_fullbatch_v2/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/post_refiner_hard8_manifest_fullbatch_v2/preview_runtime_refiner.html
+```
+
+Result:
+
+- stochastic width-40 post v1: 2/24, worst LPIPS 0.5627, median LPIPS 0.3074,
+  worst MS-SSIM 0.6398, worst Y-PSNR 19.98, worst dE2000 8.42
+- full-batch width-40 post v2: 0/24, worst LPIPS 0.5579, median LPIPS 0.3109,
+  worst MS-SSIM 0.7096, worst Y-PSNR 20.68, worst dE2000 7.70
+- base hard-eight scene-gated full-frame remains 3/24
+
+This rules out simple stitched RGB post-refinement as the missing production
+fix. Even same-row hard-eight training does not fit the gate, so the next
+candidate must change representation/model context rather than add a shallow
+post stage to the current stitched output.
+
+### Full-Frame Wall Timing Receipt
+
+The full-frame scene-routed evaluator now records explicit wall-clock timing
+for the production no-REF render path separately from REF scoring:
+
+- `runtime_no_ref_wall_ms`: source render, source load, routing, model
+  inference, stitching, and optional post-refiner output
+- `scoring_wall_ms`: REF load and manifest crop metrics
+- `total_eval_wall_ms`: the complete diagnostic frame including REF render
+
+Smoke receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_timing_wall_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_timing_wall_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
+```
+
+`Z8Z_0026` result:
+
+- runtime no-REF wall: 29.64 s/frame, 0.0337 FPS
+- model total: 3.67 s/frame
+- source render: 0.71 s/frame
+- scoring wall: 1.07 s/frame
+- total diagnostic eval: 31.64 s/frame
+- peak RSS: 3693 MB
+
+This makes performance blocker evidence explicit: the current Python full-frame
+PREVIEW diagnostic spends far more wall time in route/save/stitch overhead than
+in the CNN itself. A production PREVIEW implementation needs a non-PNG,
+batched/in-memory tile path before it can be treated as a live or interactive
+preview candidate.

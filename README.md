@@ -287,6 +287,15 @@ context CNN". A full-frame low-frequency Lab field probe then showed the best
 runtime-safe source-field variant at only 3/24 on hard-eight rows, and even
 the best REF-field oracle at only 6/24. The next path needs a different
 source/target or structure/detail formulation, not another smooth LF field.
+Full-frame source luma/detail and editable-DNG source-root probes also failed
+to improve the hard-eight set, and same-row stitched RGB post-refiner capacity
+checks reached only 2/24 and 0/24. That rules out source detail addback,
+current editable-DNG source roots, and a shallow stitched post stage as the
+production fix.
+The evaluator now records true per-frame wall timing: a `Z8Z_0026` smoke
+receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
+with only 3.67 s spent in model inference, so Python routing/save/stitch
+overhead is also a production blocker.
 
 None of these diagnostics are registered as production.
 

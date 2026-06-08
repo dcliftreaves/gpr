@@ -444,6 +444,32 @@ def scene_spatial_enabled_names(role_counts: dict[str, int], thresholds: dict[st
     return enabled
 
 
+def summarize_image_timing(image_receipts: list[dict[str, Any]]) -> dict[str, Any]:
+    timings = [receipt["timing"] for receipt in image_receipts]
+
+    def avg(key: str) -> float:
+        return float(sum(float(timing.get(key, 0.0)) for timing in timings) / len(timings))
+
+    def min_value(key: str) -> float:
+        return float(min(float(timing.get(key, 0.0)) for timing in timings))
+
+    def max_value(key: str) -> float:
+        return float(max(float(timing.get(key, 0.0)) for timing in timings))
+
+    runtime_avg = avg("runtime_no_ref_wall_ms")
+    return {
+        "image_count": len(image_receipts),
+        "runtime_no_ref_wall_ms_avg": runtime_avg,
+        "runtime_no_ref_wall_ms_min": min_value("runtime_no_ref_wall_ms"),
+        "runtime_no_ref_wall_ms_max": max_value("runtime_no_ref_wall_ms"),
+        "runtime_no_ref_fps_avg": 1000.0 / runtime_avg if runtime_avg > 0 else 0.0,
+        "model_ms_total_avg": avg("model_ms_total"),
+        "source_render_ms_avg": avg("source_render_ms"),
+        "scoring_wall_ms_avg": avg("scoring_wall_ms"),
+        "total_eval_wall_ms_avg": avg("total_eval_wall_ms"),
+    }
+
+
 def crop_metric_image(image: np.ndarray, crop: dict[str, int], sensor_dims: list[int]) -> np.ndarray:
     box = scaled_box(crop, sensor_dims, (image.shape[1], image.shape[0]))
     pil = Image.fromarray(image).crop(box)
@@ -453,6 +479,7 @@ def crop_metric_image(image: np.ndarray, crop: dict[str, int], sensor_dims: list
 
 
 def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Path, models: dict[str, DirectRGBRefiner], routing: dict[str, Any]) -> dict[str, Any]:
+    image_wall_start = time.perf_counter()
     image_id = str(image["id"])
     manifest = json.loads(args.manifest.read_text())
     ref_dng = resolve_ref(image, args.ref_root)
@@ -462,9 +489,11 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     ref_tiff = work / f"{image_id}_REF.tiff"
     source_tiff = work / f"{image_id}_source.tiff"
     ref_render_ms = render_dng_to_tiff(ref_dng, ref_tiff)
+    runtime_wall_start = time.perf_counter()
     source_render_ms = render_dng_to_tiff(source_dng, source_tiff)
+    t0 = time.perf_counter()
     source_rgb = load_rgb(source_tiff)
-    ref_rgb = load_rgb(ref_tiff)
+    source_load_ms = (time.perf_counter() - t0) * 1000.0
     height, width = source_rgb.shape[:2]
     source_global_stats = global_rgb_stats(source_rgb)
     tile = int(args.tile_size)
@@ -601,10 +630,14 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     stitched = np.clip(out_acc / np.maximum(weight_acc, 1e-6), 0, 255).astype(np.uint8)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     stitched_path = args.output_dir / f"{image_id}_scene_routed_fullframe.png"
+    t0 = time.perf_counter()
     Image.fromarray(stitched).save(stitched_path)
+    stitch_save_ms = (time.perf_counter() - t0) * 1000.0
     scored_image = stitched
     post_refiner_receipt = None
+    post_refiner_wall_ms = 0.0
     if args.post_checkpoint is not None:
+        t0 = time.perf_counter()
         scored_image, post_refiner_receipt = apply_post_refiner(
             image_rgb=stitched,
             model=models["post_refiner"],
@@ -615,7 +648,13 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
         )
         post_path = args.output_dir / f"{image_id}_scene_routed_fullframe_post_refined.png"
         Image.fromarray(scored_image).save(post_path)
+        post_refiner_wall_ms = (time.perf_counter() - t0) * 1000.0
         post_refiner_receipt["png"] = post_path.name
+    runtime_wall_ms = (time.perf_counter() - runtime_wall_start) * 1000.0
+    scoring_wall_start = time.perf_counter()
+    t0 = time.perf_counter()
+    ref_rgb = load_rgb(ref_tiff)
+    ref_load_ms = (time.perf_counter() - t0) * 1000.0
     crop_rows: list[dict[str, Any]] = []
     for crop_name, crop in manifest["crops"].items():
         if crop_name.startswith("$"):
@@ -635,6 +674,8 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
                 **metrics,
             }
         )
+    scoring_wall_ms = (time.perf_counter() - scoring_wall_start) * 1000.0
+    total_eval_wall_ms = (time.perf_counter() - image_wall_start) * 1000.0
     return {
         "image_id": image_id,
         "source_dng": str(source_dng),
@@ -649,13 +690,20 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
         "route_context_padding": int(args.route_context_padding),
         "model_context_padding": int(args.model_context_padding),
         "timing": {
+            "runtime_no_ref_wall_ms": runtime_wall_ms,
+            "scoring_wall_ms": scoring_wall_ms,
+            "total_eval_wall_ms": total_eval_wall_ms,
             "source_render_ms": source_render_ms,
+            "source_load_ms": source_load_ms,
             "ref_render_ms": ref_render_ms,
+            "ref_load_ms": ref_load_ms,
             "route_ms_median": float(statistics.median(route_ms)) if route_ms else 0.0,
             "save_tile_ms_median": float(statistics.median(save_tile_ms)) if save_tile_ms else 0.0,
+            "stitch_save_ms": stitch_save_ms,
             "input_ms_median": float(statistics.median(input_ms)) if input_ms else 0.0,
             "model_ms_median": float(statistics.median(model_ms)) if model_ms else 0.0,
             "model_ms_total": float(sum(model_ms)),
+            "post_refiner_wall_ms": post_refiner_wall_ms,
             "scene_route_ms_median": float(statistics.median(scene_route_ms)) if scene_route_ms else 0.0,
             "scene_route_ms_total": float(sum(scene_route_ms)),
         },
@@ -676,6 +724,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
 
 def write_dashboard(payload: dict[str, Any], html_path: Path) -> None:
     summary = payload["summary"]["preview_runtime_policy"]
+    timing = payload.get("timing_summary", {})
     rows = payload["rows"]
     css = """
 body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; margin:18px; background:#f7f8f9; color:#222; }
@@ -701,6 +750,15 @@ th.left,td.left { text-align:left; }
         ("Worst Y-PSNR", f"{summary['worst_y_psnr']:.2f}"),
         ("Worst dE2000", f"{summary['worst_dE2000_mean']:.2f}"),
     ]
+    if timing:
+        cards.extend(
+            [
+                ("Runtime avg", f"{timing['runtime_no_ref_wall_ms_avg'] / 1000.0:.2f}s"),
+                ("Runtime FPS", f"{timing['runtime_no_ref_fps_avg']:.3f}"),
+                ("Model avg", f"{timing['model_ms_total_avg'] / 1000.0:.2f}s"),
+                ("Total eval avg", f"{timing['total_eval_wall_ms_avg'] / 1000.0:.2f}s"),
+            ]
+        )
     for label, value in cards:
         parts.append(f"<div class=card><b>{label}</b><br>{value}</div>")
     parts.append("</div><table><thead><tr><th class=left>image</th><th class=left>crop</th><th>LPIPS</th><th>MS</th><th>Y</th><th>dE</th><th>pass</th></tr></thead><tbody>")
@@ -874,6 +932,7 @@ def main() -> int:
         "override_router_sidecar_sha256": [sha256_file(path) for path in args.override_router_sidecar],
         "checkpoints": checkpoint_receipts,
         "summary": {"preview_runtime_policy": summarize(rows)},
+        "timing_summary": summarize_image_timing(image_receipts),
         "memory": {"max_rss_mb": max_rss_mb(), **mps_memory_mb()},
         "images": image_receipts,
         "rows": rows,
