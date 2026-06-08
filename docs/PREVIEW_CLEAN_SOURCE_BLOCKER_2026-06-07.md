@@ -1643,8 +1643,8 @@ stitched output and records the no-REF render wall time.
 Production timing receipt:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_batch1_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_batch1_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_smoke_z8z0026_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_production_timing_tiffraw_smoke_z8z0026_v1/preview_scene_routed_fullframe.html
 ```
 
 Quality-enabled cached-route receipt:
@@ -1656,13 +1656,13 @@ Quality-enabled cached-route receipt:
 
 `Z8Z_0026` production-timing result:
 
-- runtime no-REF wall: 10.35 s/frame, 0.0966 FPS
-- model total: 2.66 s/frame
+- runtime no-REF wall: 7.80 s/frame, 0.1282 FPS
+- model total: 2.64 s/frame
 - source render/load: 0.68 s + 0.15 s
-- routing: 1.98 s total; cached second-pass route time 0.00 ms
-- stitched PNG output: 2.43 s
-- quality scoring: skipped; 0.0004 ms scoring wall
-- peak RSS: 3189 MB
+- routing: 1.96 s total; cached second-pass route time 0.00 ms
+- stitched raw TIFF output: 0.068 s
+- quality scoring: skipped; 0.0005 ms scoring wall
+- peak RSS: 3086 MB
 
 The quality-enabled cached-route run preserves the same route-role histogram
 and crop metrics as the in-memory routing receipt: 0/3 pass, worst LPIPS
@@ -1677,8 +1677,20 @@ MPS tile batching was measured as a throughput candidate:
 | 8 | 10.43 s | 0.0959 | 2.89 s | 27 | 8 | 7163 |
 
 Batching is not the current production default because it is slower on this
-MPS smoke and batch size 8 sharply increases driver memory. The next
-throughput blocker is replacing stitched PNG output with the intended
-production writer and reducing/router-vectorizing feature extraction. The next
-quality blocker remains the full-image detail/color failure, not REF content
-leakage.
+MPS smoke and batch size 8 sharply increases driver memory.
+
+Stitched-output writer timing from the same full-frame RGB shows why production
+timing should not use default PNG compression:
+
+| writer | avg save | bytes |
+| --- | ---: | ---: |
+| PNG default | 2391 ms | 63,823,317 |
+| PNG compress level 1 | 1003 ms | 96,916,871 |
+| PNG stored | 433 ms | 137,163,322 |
+| raw TIFF | 302 ms including first warm write; subsequent writes ~45 ms | 137,116,940 |
+| BMP | 42 ms | 137,116,854 |
+
+The production receipt now writes raw TIFF so the timing reflects the render
+path instead of PNG compression. The next throughput blocker is
+reducing/router-vectorizing feature extraction. The next quality blocker
+remains the full-image detail/color failure, not REF content leakage.
