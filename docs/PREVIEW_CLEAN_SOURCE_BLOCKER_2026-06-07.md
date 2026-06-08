@@ -906,3 +906,57 @@ cannot recover the correction without perceptual/detail regression. The next
 candidate should preserve v18's Y/dE movement while adding a stronger
 detail/perceptual guardrail or changing the model/context, rather than
 increasing residual weight again.
+
+## Guarded Detail and Lab/Y Follow-Ups
+
+v19 keeps the assembled radius-1 residual target but lowers its weight and
+raises LPIPS/MS-SSIM guardrails. This recovers the v18 detail regression while
+retaining most of the Y/dE movement:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_assembled_midfreq_guarded_v19/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_assembled_midfreq_guarded_v19_t512/preview_scene_routed_fullframe.json
+```
+
+v19 stitched smoke:
+
+- pass: 2/3
+- `C_lowerleft`: LPIPS 0.0690, MS-SSIM 0.9614, Y-PSNR 26.38, dE2000 3.68
+- model-only time: 8.11 s/frame for 187 tiles on Mac/MPS
+- peak RSS: 3510.6 MB
+
+v20 starts from v19 and leaves the base trainable under the same guarded
+objective. It improves texture/detail and luma but still misses color:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_assembled_midfreq_unfrozen_v20/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_assembled_midfreq_unfrozen_v20_t512/preview_scene_routed_fullframe.json
+```
+
+v20 stitched smoke:
+
+- pass: 2/3
+- `C_lowerleft`: LPIPS 0.0477, MS-SSIM 0.9660, Y-PSNR 26.75, dE2000 3.51
+- model-only time: 8.24 s/frame for 187 tiles on Mac/MPS
+- peak RSS: 3734.5 MB
+
+v21 starts from v20 and increases Lab/Y pressure while keeping the perceptual
+guardrails. It is the best learned stitched candidate from this pass:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_lab_guarded_v21/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_lab_guarded_v21_t512/preview_scene_routed_fullframe.json
+```
+
+v21 stitched smoke:
+
+- pass: 2/3
+- `C_lowerleft`: LPIPS 0.0413, MS-SSIM 0.9680, Y-PSNR 27.00, dE2000 3.38
+
+v22 tried a heavier Lab/Y continuation from v21 but did not improve the
+checkpoint score after 60 steps, so the run was stopped. The conclusion is that
+loss reweighting has largely fixed the texture/detail regression and moved
+Y/dE in the right direction, but the remaining gap is now low-frequency Lab/Y
+calibration. The next candidate should add an explicit runtime-safe color
+calibration mechanism or train with broader full-frame color context, rather
+than further increasing the same loss weights.

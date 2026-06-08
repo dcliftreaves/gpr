@@ -227,6 +227,11 @@ dE2000 3.72. An explicit sigma-1 residual-teacher loss improved Y-PSNR only to
 26.16 and still missed dE2000 at 3.73. Moving that sigma-1 residual supervision
 into the assembled stitched-crop loss improves the hard crop to Y-PSNR 26.44
 and dE2000 3.67, but LPIPS regresses to 0.0892 and the smoke remains 2/3.
+Guarded follow-ups recover the detail regression and make v21 the current best
+learned stitched candidate at LPIPS 0.0477, MS-SSIM 0.9680, Y-PSNR 27.00, and
+dE2000 3.38 on `C_lowerleft`, but it still fails the PREVIEW gate. The
+remaining CNN blocker is now low-frequency Lab/Y calibration, not missing
+texture/detail.
 None of these diagnostics are registered as production.
 
 ---
