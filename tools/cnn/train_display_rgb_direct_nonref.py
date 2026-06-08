@@ -167,6 +167,90 @@ class LowFreqSpatialRGBRefiner(nn.Module):
         return torch.clamp(source + detail_delta + self.residual_scale * 0.5 * low, 0.0, 1.0)
 
 
+class StrongLowFreqSpatialRGBRefiner(nn.Module):
+    def __init__(self, width: int = 64, in_channels: int = 9, residual_scale: float = 0.5) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        self.local = DirectRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+        lf_width = max(32, width)
+        self.lf = nn.Sequential(
+            nn.Conv2d(in_channels, lf_width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(lf_width),
+            ResBlock(lf_width),
+            nn.Conv2d(lf_width, lf_width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(lf_width),
+            ResBlock(lf_width),
+            nn.Conv2d(lf_width, 3, 3, padding=1),
+        )
+        nn.init.zeros_(self.lf[-1].weight)
+        nn.init.zeros_(self.lf[-1].bias)
+        self.affine = nn.Sequential(
+            nn.Conv2d(in_channels, lf_width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(lf_width),
+            nn.Conv2d(lf_width, 6, 3, padding=1),
+        )
+        nn.init.zeros_(self.affine[-1].weight)
+        nn.init.zeros_(self.affine[-1].bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        source = x[:, :3]
+        local = self.local(x)
+        pooled_size = (
+            min(96, max(16, int(x.shape[-2]))),
+            min(96, max(16, int(x.shape[-1]))),
+        )
+        low_input = F.interpolate(x, size=pooled_size, mode="bilinear", align_corners=False)
+        low = torch.tanh(self.lf(low_input))
+        affine = self.affine(low_input)
+        gain = 0.25 * torch.tanh(affine[:, :3])
+        bias = 0.25 * torch.tanh(affine[:, 3:])
+        low = F.interpolate(low, size=source.shape[-2:], mode="bilinear", align_corners=False)
+        gain = F.interpolate(gain, size=source.shape[-2:], mode="bilinear", align_corners=False)
+        bias = F.interpolate(bias, size=source.shape[-2:], mode="bilinear", align_corners=False)
+        corrected = source * (1.0 + gain) + bias
+        detail_delta = local - source
+        lf_delta = 0.5 * (corrected - source) + 0.5 * low
+        return torch.clamp(source + detail_delta + self.residual_scale * lf_delta, 0.0, 1.0)
+
+
+class ResidualLowFreqSpatialRGBRefiner(nn.Module):
+    def __init__(self, width: int = 64, in_channels: int = 9, residual_scale: float = 0.5) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        self.base = LowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+        lf_width = max(32, width)
+        self.residual = nn.Sequential(
+            nn.Conv2d(in_channels + 3, lf_width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(lf_width),
+            ResBlock(lf_width),
+            nn.Conv2d(lf_width, lf_width, 3, padding=1),
+            nn.GELU(),
+            ResBlock(lf_width),
+            nn.Conv2d(lf_width, 6, 3, padding=1),
+        )
+        nn.init.zeros_(self.residual[-1].weight)
+        nn.init.zeros_(self.residual[-1].bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        source = x[:, :3]
+        base = self.base(x)
+        pooled_size = (
+            min(96, max(16, int(x.shape[-2]))),
+            min(96, max(16, int(x.shape[-1]))),
+        )
+        low_input = F.interpolate(torch.cat([x, base - source], dim=1), size=pooled_size, mode="bilinear", align_corners=False)
+        field = self.residual(low_input)
+        gain = 0.20 * torch.tanh(field[:, :3])
+        bias = 0.20 * torch.tanh(field[:, 3:])
+        gain = F.interpolate(gain, size=source.shape[-2:], mode="bilinear", align_corners=False)
+        bias = F.interpolate(bias, size=source.shape[-2:], mode="bilinear", align_corners=False)
+        return torch.clamp(base * (1.0 + self.residual_scale * gain) + self.residual_scale * bias, 0.0, 1.0)
+
+
 def build_rgb_refiner(
     architecture: str = "direct",
     *,
@@ -180,6 +264,10 @@ def build_rgb_refiner(
         return DilatedContextRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     if architecture == "lowfreq_spatial":
         return LowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+    if architecture == "lowfreq_spatial_strong":
+        return StrongLowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
+    if architecture == "lowfreq_spatial_residual":
+        return ResidualLowFreqSpatialRGBRefiner(width=width, in_channels=in_channels, residual_scale=residual_scale)
     raise ValueError(f"unsupported RGB refiner architecture {architecture!r}")
 
 

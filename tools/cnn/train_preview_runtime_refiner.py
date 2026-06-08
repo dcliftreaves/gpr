@@ -34,6 +34,7 @@ from train_display_rgb_direct_nonref import build_rgb_refiner, grad_loss, pass_p
 
 
 DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+ARCHITECTURES = ["direct", "dilated_context", "lowfreq_spatial", "lowfreq_spatial_strong", "lowfreq_spatial_residual"]
 
 
 @dataclass(frozen=True)
@@ -324,6 +325,39 @@ def sample_weight(sample: ReceiptSample, args: argparse.Namespace) -> float:
     return float(weight)
 
 
+def load_initial_state(model: torch.nn.Module, checkpoint: Path) -> str:
+    init = torch.load(str(checkpoint), map_location="cpu", weights_only=False)
+    state = init["state_dict"]
+    try:
+        model.load_state_dict(state)
+        return "full"
+    except RuntimeError:
+        pass
+    local = getattr(model, "local", None)
+    base = getattr(model, "base", None)
+    if base is not None:
+        try:
+            base.load_state_dict(state)
+            return "base_full_state"
+        except RuntimeError:
+            pass
+    if local is None:
+        raise RuntimeError(f"cannot initialize {type(model).__name__} from {checkpoint}")
+    try:
+        local.load_state_dict(state)
+        return "local_full_state"
+    except RuntimeError:
+        local_state = {
+            key.removeprefix("local."): value
+            for key, value in state.items()
+            if key.startswith("local.")
+        }
+        if not local_state:
+            raise
+        local.load_state_dict(local_state)
+        return "local_prefixed_state"
+
+
 def assemble_group_crop(pred_tiles: torch.Tensor, target_tiles: torch.Tensor, group: AssembledCropGroup) -> tuple[torch.Tensor, torch.Tensor]:
     canvas_w, canvas_h = group.canvas_size
     pred_canvas = pred_tiles.new_zeros((3, canvas_h, canvas_w))
@@ -390,6 +424,55 @@ def assembled_crop_loss(
     }
 
 
+def eval_score(
+    *,
+    model: torch.nn.Module,
+    xb: torch.Tensor,
+    yb: torch.Tensor,
+    xt: torch.Tensor,
+    yt: torch.Tensor,
+    assembled_groups: list[AssembledCropGroup],
+    args: argparse.Namespace,
+    lpips_net: torch.nn.Module | None,
+    step: int,
+) -> tuple[float, dict[str, float]]:
+    with torch.no_grad():
+        pred_eval = model(xb).contiguous()
+        l1_eval = (pred_eval - yb).abs().mean().item()
+        ms_eval = ms_ssim(pred_eval, yb, data_range=1.0, win_size=7).item() if args.ms_weight > 0.0 else 0.0
+        lp_eval = lpips_net(pred_eval * 2 - 1, yb * 2 - 1).mean().item() if lpips_net is not None else 0.0
+        y_eval = gate_luma_loss(pred_eval, yb).item()
+        opp_eval = opponent_color_loss(pred_eval, yb).item()
+        lab_eval = lab_loss(pred_eval, yb).item()
+        _asm_eval_loss, asm_eval_stats = assembled_crop_loss(
+            model=model,
+            xt=xt,
+            yt=yt,
+            groups=assembled_groups,
+            args=args,
+            lpips_net=lpips_net,
+            step=step,
+        )
+    score = (
+        l1_eval
+        + 0.1 * (1.0 - ms_eval)
+        + 0.2 * lp_eval
+        + args.score_y_weight * y_eval
+        + args.score_opponent_weight * opp_eval
+        + args.score_lab_weight * lab_eval
+        + args.score_assembled_weight * asm_eval_stats["assembled"]
+    )
+    return score, {
+        "l1": l1_eval,
+        "ms": ms_eval,
+        "lp": lp_eval,
+        "y": y_eval,
+        "opp": opp_eval,
+        "lab": lab_eval,
+        **asm_eval_stats,
+    }
+
+
 def train(args: argparse.Namespace) -> dict[str, Any]:
     samples, x, y = build_tensors(args)
     assembled_groups = build_assembled_crop_groups(samples, args)
@@ -399,16 +482,19 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     yt = y.to(DEVICE).contiguous()
     sample_count = int(xt.shape[0])
     model = build_rgb_refiner(args.architecture, width=args.width, residual_scale=args.residual_scale).to(DEVICE)
+    init_load_mode = None
     if args.init_checkpoint is not None:
-        init = torch.load(str(args.init_checkpoint), map_location="cpu", weights_only=False)
-        try:
-            model.load_state_dict(init["state_dict"])
-        except RuntimeError:
-            local = getattr(model, "local", None)
-            if local is None:
-                raise
-            local.load_state_dict(init["state_dict"])
-    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        init_load_mode = load_initial_state(model, args.init_checkpoint)
+    if args.freeze_base:
+        base = getattr(model, "base", None)
+        if base is None:
+            raise RuntimeError("--freeze-base requires a model with a base submodule")
+        for param in base.parameters():
+            param.requires_grad_(False)
+    trainable_params = [param for param in model.parameters() if param.requires_grad]
+    if not trainable_params:
+        raise RuntimeError("no trainable parameters remain")
+    opt = torch.optim.AdamW(trainable_params, lr=args.lr, weight_decay=args.weight_decay)
     needs_lpips = args.lpips_weight > 0.0 or (args.assembled_crop_weight > 0.0 and args.assembled_lpips_weight > 0.0)
     lpips_net = lpips.LPIPS(net="alex").to(DEVICE).eval() if needs_lpips else None
     if lpips_net is not None:
@@ -417,8 +503,28 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     sample_weights = torch.tensor([sample_weight(sample, args) for sample in samples], dtype=torch.float32, device=DEVICE)
     weighted_sampling = bool(args.focus_intersect_crop or args.focus_crop)
 
-    best = float("inf")
-    best_state: dict[str, torch.Tensor] | None = None
+    if sample_count <= int(args.initial_score_max_samples):
+        best, initial_stats = eval_score(
+            model=model,
+            xb=xt,
+            yb=yt,
+            xt=xt,
+            yt=yt,
+            assembled_groups=assembled_groups,
+            args=args,
+            lpips_net=lpips_net,
+            step=0,
+        )
+        best_state: dict[str, torch.Tensor] | None = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+        print(
+            f"initial score={best:.6f} l1={initial_stats['l1']:.5f} ms={initial_stats['ms']:.5f} "
+            f"lp={initial_stats['lp']:.4f} y={initial_stats['y']:.5f} "
+            f"asm={initial_stats['assembled']:.5f} asm_y={initial_stats['assembled_luma']:.5f}",
+            flush=True,
+        )
+    else:
+        best = float("inf")
+        best_state = None
     t0 = time.time()
     for step in range(1, args.steps + 1):
         if args.batch_size and args.batch_size < sample_count:
@@ -465,40 +571,25 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step()
         if step == 1 or step % args.log_every == 0 or step == args.steps:
-            with torch.no_grad():
-                pred_eval = model(xb).contiguous()
-                l1_eval = (pred_eval - yb).abs().mean().item()
-                ms_eval = ms_ssim(pred_eval, yb, data_range=1.0, win_size=7).item() if args.ms_weight > 0.0 else 0.0
-                lp_eval = lpips_net(pred_eval * 2 - 1, yb * 2 - 1).mean().item() if lpips_net is not None else 0.0
-                y_eval = gate_luma_loss(pred_eval, yb).item()
-                opp_eval = opponent_color_loss(pred_eval, yb).item()
-                lab_eval = lab_loss(pred_eval, yb).item()
-                _asm_eval_loss, asm_eval_stats = assembled_crop_loss(
-                    model=model,
-                    xt=xt,
-                    yt=yt,
-                    groups=assembled_groups,
-                    args=args,
-                    lpips_net=lpips_net,
-                    step=step,
-                )
-            score = (
-                l1_eval
-                + 0.1 * (1.0 - ms_eval)
-                + 0.2 * lp_eval
-                + args.score_y_weight * y_eval
-                + args.score_opponent_weight * opp_eval
-                + args.score_lab_weight * lab_eval
-                + args.score_assembled_weight * asm_eval_stats["assembled"]
+            score, stats = eval_score(
+                model=model,
+                xb=xb,
+                yb=yb,
+                xt=xt,
+                yt=yt,
+                assembled_groups=assembled_groups,
+                args=args,
+                lpips_net=lpips_net,
+                step=step,
             )
             if score < best:
                 best = score
                 best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
             print(
                 f"step {step}/{args.steps} loss={loss.item():.6f} "
-                f"l1={l1_eval:.5f} ms={ms_eval:.5f} lp={lp_eval:.4f} "
-                f"color={lcolor.item():.5f} y={y_eval:.5f} opp={opp_eval:.5f} lab={lab_eval:.5f} "
-                f"asm={asm_eval_stats['assembled']:.5f} asm_y={asm_eval_stats['assembled_luma']:.5f} "
+                f"l1={stats['l1']:.5f} ms={stats['ms']:.5f} lp={stats['lp']:.4f} "
+                f"color={lcolor.item():.5f} y={stats['y']:.5f} opp={stats['opp']:.5f} lab={stats['lab']:.5f} "
+                f"asm={stats['assembled']:.5f} asm_y={stats['assembled_luma']:.5f} "
                 f"best={best:.6f} t={time.time() - t0:.1f}s",
                 flush=True,
             )
@@ -513,6 +604,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "state_dict": best_state,
             "width": args.width,
             "residual_scale": args.residual_scale,
+            "init_checkpoint": str(args.init_checkpoint) if args.init_checkpoint else None,
+            "init_load_mode": init_load_mode,
+            "freeze_base": args.freeze_base,
+            "initial_score_max_samples": args.initial_score_max_samples,
             "steps": args.steps,
             "batch_size": args.batch_size,
             "best_score": best,
@@ -661,11 +756,12 @@ def main() -> int:
     ap.add_argument("--assembled-lab-weight", type=float, default=2.0)
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--batch-size", type=int, default=0, help="Use stochastic mini-batches when positive; default keeps legacy full-batch training.")
-    ap.add_argument("--architecture", choices=["direct", "dilated_context", "lowfreq_spatial"], default="direct")
+    ap.add_argument("--architecture", choices=ARCHITECTURES, default="direct")
     ap.add_argument("--width", type=int, default=40)
     ap.add_argument("--residual-scale", type=float, default=0.5)
     ap.add_argument("--lr", type=float, default=8e-4)
     ap.add_argument("--weight-decay", type=float, default=1e-5)
+    ap.add_argument("--freeze-base", action="store_true", help="Freeze a residual wrapper's base model and train only the added correction branch.")
     ap.add_argument("--grad-weight", type=float, default=0.08)
     ap.add_argument("--ms-weight", type=float, default=0.40)
     ap.add_argument("--lpips-weight", type=float, default=0.25)
@@ -678,6 +774,7 @@ def main() -> int:
     ap.add_argument("--score-lab-weight", type=float, default=0.0)
     ap.add_argument("--score-assembled-weight", type=float, default=0.0)
     ap.add_argument("--log-every", type=int, default=100)
+    ap.add_argument("--initial-score-max-samples", type=int, default=64)
     ap.add_argument("--eval-only", action="store_true")
     args = ap.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
