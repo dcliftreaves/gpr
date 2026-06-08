@@ -287,6 +287,37 @@ def check_preview_variant_oracle_evidence() -> Check:
         return Check("preview_detail", "full-frame variant oracle evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_exact_teacher_oracle_evidence() -> Check:
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260606"
+        / "fullframe_exact_teacher_oracle_hard8_v1"
+        / "preview_exact_teacher_oracle.json"
+    )
+    if not receipt.exists():
+        return Check("preview_detail", "exact-crop teacher oracle evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = payload.get("oracle_summary") or {}
+        pass_count = int(summary.get("pass_count", 0))
+        row_count = int(summary.get("count", 0))
+        unsolved = int(payload.get("unsolved_count", 0))
+        ok = (
+            payload.get("schema") == "preview_fullframe_variant_oracle.v1"
+            and row_count == 24
+            and pass_count == 16
+            and unsolved == 8
+        )
+        return Check(
+            "preview_detail",
+            "exact-crop teacher oracle evidence",
+            "PASS" if ok else "FAIL",
+            f"oracle={pass_count}/{row_count} unsolved={unsolved} receipt={receipt}",
+        )
+    except Exception as exc:
+        return Check("preview_detail", "exact-crop teacher oracle evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_nonref_preview_candidate() -> list[Check]:
     artifact_dir = ARTIFACT_ROOT / "display_rgb_direct_lpips_nonref_20260606"
     dashboard = artifact_dir / "rgb_direct_lpips_nonref_dashboard.json"
@@ -920,6 +951,7 @@ def main() -> int:
         lab_sips_pipeline,
     ))
     checks.append(check_preview_variant_oracle_evidence())
+    checks.append(check_preview_exact_teacher_oracle_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
         check_file("preview_holdout", "holdout summary dashboard tool", "tests/quality_gates/summarize_preview_holdout.py"),
