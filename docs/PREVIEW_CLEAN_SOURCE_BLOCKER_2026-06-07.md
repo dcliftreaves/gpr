@@ -865,3 +865,44 @@ The next likely blocker is context/target formation: the correction that clears
 the oracle may need to be predicted from a larger full-crop/full-frame context,
 or supervised as an assembled-crop bandpass residual instead of independent
 tile residuals.
+
+## Assembled Mid-Frequency Teacher Loss
+
+The next pass moves the radius-1 residual supervision into the assembled
+stitched-crop objective. The trainer now accepts opt-in
+`assembled_midfreq_weight` and `assembled_midfreq_blur_sigma` terms, assembles
+the predicted source crop from the same receipt tiles as the predicted and
+target crops, and compares the blurred source-to-output residual against the
+blurred source-to-target residual. Runtime inputs remain source RGB and runtime
+metadata only; REF is still only a training/scoring target.
+
+v18 starts from the v5 assembled checkpoint, freezes the base, and trains the
+strong mid-frequency residual branch with a heavy assembled radius-1 residual
+term:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tile_refiner_z8z6680_assembled_midfreq_v18/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_z8z6680_assembled_midfreq_v18_t512/preview_scene_routed_fullframe.json
+```
+
+v18 isolated tile receipt:
+
+- pass: 10/12
+- worst LPIPS: 0.0877
+- worst MS-SSIM: 0.9667
+- worst Y-PSNR: 27.07
+- worst dE2000: 3.43
+
+v18 stitched smoke:
+
+- pass: 2/3
+- `C_lowerleft`: LPIPS 0.0892, MS-SSIM 0.9624, Y-PSNR 26.44, dE2000 3.67
+
+The assembled bandpass target moves the hard stitched crop in the right Y/dE
+direction but trades away LPIPS/detail and still misses the PREVIEW gate. This
+narrows the blocker further: the missing correction is learnable in oracle
+space, and assembled supervision helps, but the current frozen residual branch
+cannot recover the correction without perceptual/detail regression. The next
+candidate should preserve v18's Y/dE movement while adding a stronger
+detail/perceptual guardrail or changing the model/context, rather than
+increasing residual weight again.
