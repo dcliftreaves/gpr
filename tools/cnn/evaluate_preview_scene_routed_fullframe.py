@@ -21,6 +21,7 @@ from typing import Any
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from PIL import Image
 
 
@@ -167,6 +168,17 @@ def load_model_with_receipt(path: Path) -> tuple[DirectRGBRefiner, dict[str, Any
     return model, ckpt
 
 
+def run_model_padded(model: DirectRGBRefiner, x: torch.Tensor, multiple: int = 4) -> torch.Tensor:
+    """Pad non-grid-sized diagnostic tiles so stride-2 skip paths line up."""
+    height, width = x.shape[-2:]
+    pad_h = (multiple - height % multiple) % multiple
+    pad_w = (multiple - width % multiple) % multiple
+    if pad_h or pad_w:
+        x = F.pad(x, (0, pad_w, 0, pad_h), mode="replicate")
+    pred = model(x)
+    return pred[..., :height, :width]
+
+
 def tile_origins(length: int, tile: int, stride: int) -> list[int]:
     if length <= tile:
         return [0]
@@ -285,7 +297,7 @@ def apply_post_refiner(
             )
             t1 = time.perf_counter()
             with torch.no_grad():
-                pred = model(x).detach().cpu().numpy()[0]
+                pred = run_model_padded(model, x).detach().cpu().numpy()[0]
             t2 = time.perf_counter()
             pred_rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255.0, 0, 255).astype(np.uint8)
             w = tile_weight(pred_rgb.shape[0], pred_rgb.shape[1])
@@ -547,7 +559,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             )
             t1 = time.perf_counter()
             with torch.no_grad():
-                pred = models[model_key](x).detach().cpu().numpy()[0]
+                pred = run_model_padded(models[model_key], x).detach().cpu().numpy()[0]
             t2 = time.perf_counter()
             pred_context_rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255.0, 0, 255).astype(np.uint8)
             ox0 = x0 - cx0

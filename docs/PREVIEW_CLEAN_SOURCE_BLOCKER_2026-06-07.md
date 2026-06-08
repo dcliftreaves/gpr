@@ -402,6 +402,49 @@ This rules out simply increasing runtime tile size with the existing
 matched training receipts and model selection, or a full-image/context-aware
 model, rather than an inference-only tile-size change.
 
+### Coordinate/Alignment Diagnostic
+
+The full-frame evaluator now pads non-grid-sized diagnostic inputs to the
+CNN stride and crops predictions back to the requested region. This lets
+manifest-crop mode evaluate arbitrary crop boxes without crashing on skip-path
+shape mismatches.
+
+Hard-eight manifest-crop local-coordinate path:
+
+`fullframe_manifest_crops_v32_hard8/preview_scene_routed_fullframe.json`
+
+- pass: 16/24
+- pass rate: 66.67%
+- worst LPIPS: 0.2898
+- median LPIPS: 0.0732
+- worst MS-SSIM: 0.7124
+- worst Y-PSNR: 25.31 dB
+- worst dE2000 mean: 3.66
+
+Three hard images that fail full-grid do pass in exact 512 crop mode:
+`Z8Z_0026`, `Z8Z_0705`, and `Z8Z_6680`. This isolates a major failure mode:
+when the same crop is split across arbitrary grid tiles, the model sees each
+piece with different local 0..1 coordinate planes and different route/context
+statistics than it saw in crop-aligned mode.
+
+Hard-eight manifest-crop global-coordinate path:
+
+`fullframe_manifest_crops_v32_hard8_globalcoord/preview_scene_routed_fullframe.json`
+
+- pass: 4/24
+- pass rate: 16.67%
+- worst LPIPS: 0.3456
+- median LPIPS: 0.1608
+- worst MS-SSIM: 0.6902
+- worst Y-PSNR: 22.90 dB
+- worst dE2000 mean: 5.35
+
+The current checkpoints are therefore strongly dependent on crop-local
+coordinate planes. Simply switching inference to global coordinates is not
+viable. The next production-shaped PREVIEW experiment should train or distill
+experts with the same coordinate contract used at runtime: full-frame/global
+or coordinate-free inputs, arbitrary tile placement, and stitched-crop losses.
+
 ### Channel Oracle
 
 After CI was restored on `master`, a repeatable channel oracle was added at:
