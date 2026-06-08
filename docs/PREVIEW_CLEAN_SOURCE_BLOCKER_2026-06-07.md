@@ -372,6 +372,36 @@ it remained much worse than the width-40 fine-tunes and was stopped. Current
 evidence narrows `Z8Z_0026` to a model/context/source-target formulation
 blocker, not a simple checkpoint-conditioning mismatch.
 
+Signal/oracle checks on the 12 arbitrary `Z8Z_0026` training tiles show that
+simple color or low-frequency correction is also not enough. Raw source tiles
+had LPIPS around 0.52-0.68 and dE2000 around 4.8-8.6. Per-tile RGB affine
+matching and a radius-16 low-frequency residual oracle only moved dE modestly
+and left LPIPS around 0.48-0.70. Since exact manifest-crop mode passes while
+arbitrary tile mode fails, the next `Z8Z_0026` attempt should use a
+context/full-crop formulation, not another direct 512px color fine-tune.
+
+### Larger Tile Diagnostic
+
+Path:
+
+`fullframe_tiled_v32_hard8_t1024_baseline/preview_scene_routed_fullframe.json`
+
+Summary on the eight remaining hard images:
+
+- pass: 4/24
+- pass rate: 16.67%
+- worst LPIPS: 0.5546
+- median LPIPS: 0.2552
+- worst MS-SSIM: 0.5114
+- worst Y-PSNR: 18.71 dB
+- worst dE2000 mean: 9.07
+
+This rules out simply increasing runtime tile size with the existing
+512-trained specialists. The route/content distribution changes enough that
+1024px tiling regresses the hard rows. Future larger-context work needs
+matched training receipts and model selection, or a full-image/context-aware
+model, rather than an inference-only tile-size change.
+
 ### Channel Oracle
 
 After CI was restored on `master`, a repeatable channel oracle was added at:
