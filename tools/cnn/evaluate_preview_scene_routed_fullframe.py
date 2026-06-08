@@ -549,6 +549,20 @@ def crop_metric_image(image: np.ndarray, crop: dict[str, int], sensor_dims: list
     return np.asarray(pil.convert("RGB"), dtype=np.uint8)
 
 
+def stitched_output_spec(name: str) -> tuple[str, str, dict[str, Any]]:
+    if name == "png":
+        return ".png", "PNG", {}
+    if name == "png_fast":
+        return ".png", "PNG", {"compress_level": 1}
+    if name == "png_store":
+        return ".png", "PNG", {"compress_level": 0}
+    if name == "tiff_raw":
+        return ".tiff", "TIFF", {"compression": "raw"}
+    if name == "bmp":
+        return ".bmp", "BMP", {}
+    raise ValueError(f"unsupported stitched output format {name!r}")
+
+
 def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Path, models: dict[str, DirectRGBRefiner], routing: dict[str, Any]) -> dict[str, Any]:
     image_wall_start = time.perf_counter()
     image_id = str(image["id"])
@@ -750,9 +764,10 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
                 )
     stitched = np.clip(out_acc / np.maximum(weight_acc, 1e-6), 0, 255).astype(np.uint8)
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    stitched_path = args.output_dir / f"{image_id}_scene_routed_fullframe.png"
+    stitched_suffix, stitched_pil_format, stitched_save_kwargs = stitched_output_spec(args.stitched_output_format)
+    stitched_path = args.output_dir / f"{image_id}_scene_routed_fullframe{stitched_suffix}"
     t0 = time.perf_counter()
-    Image.fromarray(stitched).save(stitched_path)
+    Image.fromarray(stitched).save(stitched_path, stitched_pil_format, **stitched_save_kwargs)
     stitch_save_ms = (time.perf_counter() - t0) * 1000.0
     scored_image = stitched
     post_refiner_receipt = None
@@ -808,7 +823,10 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
         "ref_dng": str(ref_dng) if ref_dng is not None else None,
         "source_render_size": [width, height],
         "ref_render_size": [ref_rgb.shape[1], ref_rgb.shape[0]] if ref_rgb is not None else None,
-        "stitched_png": stitched_path.name,
+        "stitched_output": stitched_path.name,
+        "stitched_output_format": args.stitched_output_format,
+        "stitched_output_bytes": stitched_path.stat().st_size,
+        "stitched_png": stitched_path.name if stitched_suffix == ".png" else None,
         "tile_count": len(tile_rows),
         "tile_size": tile,
         "overlap": int(args.overlap),
@@ -956,6 +974,7 @@ def main() -> int:
     ap.add_argument("--post-tile-size", type=int, default=512)
     ap.add_argument("--post-overlap", type=int, default=128)
     ap.add_argument("--model-batch-size", type=int, default=1, help="Maximum same-checkpoint/same-shape tiles per model invocation.")
+    ap.add_argument("--stitched-output-format", choices=["png", "png_fast", "png_store", "tiff_raw", "bmp"], default="png")
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--dashboard-json", type=Path, required=True)
     ap.add_argument("--dashboard-html", type=Path, required=True)
@@ -1055,6 +1074,7 @@ def main() -> int:
             "route_context_padding": args.route_context_padding,
             "model_context_padding": args.model_context_padding,
             "model_batch_size": args.model_batch_size,
+            "stitched_output_format": args.stitched_output_format,
             "coordinate_mode": args.coordinate_mode,
             "post_refiner": {
                 "enabled": args.post_checkpoint is not None,
