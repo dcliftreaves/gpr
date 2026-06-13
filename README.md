@@ -343,7 +343,10 @@ the best REF-field oracle at only 6/24. The next path needs a different
 source/target or structure/detail formulation, not another smooth LF field.
 Full-frame source luma/detail and editable-DNG source-root probes also failed
 to improve the hard-eight set, and same-row stitched RGB post-refiner capacity
-checks reached only 2/24 and 0/24. A later stitched-tile post-refiner pass on
+checks reached only 2/24 and 0/24. A stronger `context_unet` stitched-post
+capacity test on the hard-eight manifest rows also reached only 2/24, worse
+than the 3/24 stitched baseline, so a larger local post CNN is not enough. A
+later stitched-tile post-refiner pass on
 the actual hard-eight arbitrary full-frame tile distribution improved dense
 tiles only from 13/394 to 33/394, then regressed the full-frame hard-eight crop
 gate to 3/24; a source-guarded direct residual variant reached only 15/394.

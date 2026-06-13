@@ -2138,3 +2138,35 @@ larger radius. Route smoothing is therefore not the production fix for the
 current hard failures. Combined with the same-role failures in the failure-mode
 audit, the next candidate should change the runtime-shaped model/teacher
 contract rather than adding another source-only route post-policy.
+
+### Stitched Context U-Net Capacity Probe
+
+The next capacity test asks whether a larger local post-refiner can fit the
+actual hard-eight stitched/full-frame manifest failure rows. It trains a
+`context_unet` post-refiner on the 24 hard rows from the scene-gated stitched
+receipt, using runtime-safe inputs only: stitched RGB crop, global source color
+stats, global tile coordinates, and checkpoint. REF is training target and
+scoring reference only.
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/stitched_post_hard8_context_unet_capacity_v1/preview_runtime_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/stitched_post_hard8_context_unet_capacity_v1/preview_runtime_refiner.html
+```
+
+Result:
+
+- pass: 2/24
+- worst LPIPS: 0.5509
+- median LPIPS: 0.3044
+- worst MS-SSIM: 0.6481
+- worst Y-PSNR: 20.07
+- worst dE2000: 8.31
+
+The baseline stitched hard-eight receipt has 3/24 passing rows, so this larger
+local post model does not even fit the same rows it trains against. This rules
+out "just use a larger local stitched-post CNN" for the current full-frame
+blocker. The remaining path needs a different source/teacher/full-frame
+formulation, not another local correction model over the current stitched RGB
+distribution.

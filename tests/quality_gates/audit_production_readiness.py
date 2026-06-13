@@ -872,6 +872,57 @@ def check_preview_route_smoothing_negative_evidence() -> Check:
         return Check("preview_detail", "route-smoothing negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_stitched_context_unet_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/train_preview_runtime_refiner.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "stitched_post_hard8_context_unet_capacity_v1"
+        / "preview_runtime_refiner.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "stitched context-U-Net negative evidence", "FAIL", "missing tracked runtime refiner trainer")
+    tool_text = tool.read_text(errors="ignore")
+    if "context_unet" not in tool_text or "--sample-receipt" not in tool_text:
+        return Check("preview_detail", "stitched context-U-Net negative evidence", "FAIL", "trainer missing expected stitched/context support")
+    if not receipt.exists():
+        return Check("preview_detail", "stitched context-U-Net negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = (payload.get("summary") or {}).get("preview_runtime_policy") or {}
+        contract = payload.get("runtime_contract") or {}
+        training = payload.get("training") or {}
+        checkpoint = Path(str(training.get("checkpoint", "")))
+        ok = (
+            payload.get("schema") == "preview_runtime_refiner_train_receipt.v1"
+            and int(summary.get("count", 0)) == 24
+            and int(summary.get("pass_count", -1)) == 2
+            and float(summary.get("worst_lpips", 0.0)) > 0.55
+            and float(summary.get("worst_ms_ssim", 1.0)) < 0.70
+            and float(summary.get("worst_dE2000_mean", 0.0)) > 8.0
+            and contract.get("conditioning") == "global_color_stats"
+            and contract.get("coordinate_mode") == "global_tile"
+            and int(contract.get("input_channels", 0)) == 9
+            and "REF image content" in set(contract.get("forbidden_inputs") or [])
+            and bool(training.get("checkpoint_sha256"))
+            and checkpoint.exists()
+        )
+        return Check(
+            "preview_detail",
+            "stitched context-U-Net negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"context_unet={int(summary.get('pass_count', -1))}/{int(summary.get('count', 0))}, "
+                f"worst_lpips={float(summary.get('worst_lpips', 0.0)):.4f}, "
+                f"worst_ms={float(summary.get('worst_ms_ssim', 0.0)):.4f}, "
+                f"worst_dE={float(summary.get('worst_dE2000_mean', 0.0)):.2f} "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "stitched context-U-Net negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_exact_teacher_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/build_preview_exact_teacher_receipt.py"
     scorer = REPO / "tools/cnn/score_preview_exact_teacher_distill.py"
@@ -1602,6 +1653,7 @@ def main() -> int:
     checks.append(check_preview_fullframe_failure_mode_audit())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
     checks.append(check_preview_route_smoothing_negative_evidence())
+    checks.append(check_preview_stitched_context_unet_negative_evidence())
     checks.append(check_preview_exact_teacher_distill_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
