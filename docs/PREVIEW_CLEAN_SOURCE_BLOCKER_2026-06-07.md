@@ -647,6 +647,13 @@ Additional follow-up diagnostics ruled out several simpler fixes:
   from 6.96 to 5.54. It also raises model time from 3.74 s/frame to 14.01
   s/frame on the Mac/MPS diagnostic path:
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_dense512_o256_z8z6680/preview_scene_routed_fullframe.json`
+- The full-frame evaluator now exposes the same class of multi-origin geometry
+  as repeated `--tile-offset X,Y` values, so the diagnostic can be reproduced
+  without overloading overlap semantics. The 2026-06-12 four-origin receipt
+  also fails 0/3 on `Z8Z_6680`: worst LPIPS 0.2713, worst MS-SSIM 0.8884,
+  worst Y-PSNR 21.49, worst dE2000 5.54, runtime 24.82 s/frame, and 672 model
+  tiles:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/fullframe_multi_offset_v32_z8z6680_t512_o256_v1/preview_scene_routed_fullframe.json`
 - Overlap-save stitching with the same dense 512/256 geometry and a 128px
   valid margin regresses the dense result to worst LPIPS 0.2895, worst MS-SSIM
   0.8660, worst Y-PSNR 20.65, and worst dE2000 6.10. Discarding tile borders is

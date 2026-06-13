@@ -506,6 +506,55 @@ def check_preview_context_generator_negative_evidence() -> Check:
         return Check("preview_detail", "context generator negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_multi_origin_tile_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/evaluate_preview_scene_routed_fullframe.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260612"
+        / "fullframe_multi_offset_v32_z8z6680_t512_o256_v1"
+        / "preview_scene_routed_fullframe.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "multi-origin tile negative evidence", "FAIL", "missing tracked full-frame evaluator")
+    tool_text = tool.read_text(errors="ignore")
+    if "--tile-offset" not in tool_text or "tile_offsets" not in tool_text:
+        return Check("preview_detail", "multi-origin tile negative evidence", "FAIL", "full-frame evaluator missing tile offset support")
+    if not receipt.exists():
+        return Check("preview_detail", "multi-origin tile negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = (payload.get("summary") or {}).get("preview_runtime_policy") or {}
+        contract = payload.get("runtime_contract") or {}
+        rows = payload.get("rows") or []
+        timing = payload.get("timing_summary") or {}
+        offsets = contract.get("tile_offsets") or []
+        ok = (
+            payload.get("schema") == "preview_scene_routed_fullframe_receipt.v1"
+            and len(offsets) == 4
+            and int(summary.get("count", 0)) == 3
+            and int(summary.get("pass_count", -1)) == 0
+            and 0.20 < float(summary.get("worst_lpips", 0.0)) < 0.30
+            and 5.0 < float(summary.get("worst_dE2000_mean", 0.0)) < 6.0
+            and rows
+            and float(timing.get("runtime_no_ref_wall_ms_avg", 0.0)) > 0.0
+            and "REF image content" in set(contract.get("forbidden_inputs") or [])
+        )
+        return Check(
+            "preview_detail",
+            "multi-origin tile negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"multi_origin={int(summary.get('pass_count', -1))}/{int(summary.get('count', 0))}, "
+                f"worst_lpips={float(summary.get('worst_lpips', 0.0)):.4f}, "
+                f"worst_dE={float(summary.get('worst_dE2000_mean', 0.0)):.2f}, "
+                f"runtime={float(timing.get('runtime_no_ref_wall_ms_avg', 0.0)) / 1000.0:.2f}s "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "multi-origin tile negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_exact_teacher_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/build_preview_exact_teacher_receipt.py"
     scorer = REPO / "tools/cnn/score_preview_exact_teacher_distill.py"
@@ -1229,6 +1278,7 @@ def main() -> int:
     checks.append(check_preview_fullimage_lf_negative_evidence())
     checks.append(check_preview_frequency_oracle_evidence())
     checks.append(check_preview_context_generator_negative_evidence())
+    checks.append(check_preview_multi_origin_tile_negative_evidence())
     checks.append(check_preview_exact_teacher_distill_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),

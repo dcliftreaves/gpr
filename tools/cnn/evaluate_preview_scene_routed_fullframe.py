@@ -116,6 +116,21 @@ def parse_spatial_scene_role_threshold(values: list[str]) -> dict[str, dict[str,
     return out
 
 
+def parse_tile_offsets(values: list[str]) -> list[tuple[int, int]]:
+    if not values:
+        return [(0, 0)]
+    offsets: list[tuple[int, int]] = []
+    for value in values:
+        parts = value.split(",")
+        if len(parts) != 2:
+            raise ValueError(f"--tile-offset must be X,Y pixels, got {value!r}")
+        x, y = int(parts[0]), int(parts[1])
+        if x < 0 or y < 0:
+            raise ValueError(f"--tile-offset values must be non-negative, got {value!r}")
+        offsets.append((x, y))
+    return offsets
+
+
 def max_rss_mb() -> float:
     rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     if sys.platform == "darwin":
@@ -189,6 +204,19 @@ def tile_origins(length: int, tile: int, stride: int) -> list[int]:
     if out[-1] != last:
         out.append(last)
     return out
+
+
+def tile_origins_with_offset(length: int, tile: int, stride: int, offset: int) -> list[int]:
+    if length <= tile:
+        return [0]
+    last = length - tile
+    offset = int(offset) % max(1, stride)
+    starts = {0, last}
+    pos = offset
+    while pos <= last:
+        starts.add(pos)
+        pos += stride
+    return sorted(starts)
 
 
 def tile_weight(height: int, width: int) -> np.ndarray:
@@ -613,11 +641,19 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             x0, y0, x1, y1 = scaled_box(crop, image["sensor_dims"], (width, height))
             tile_specs.append((x0, y0, x1, y1, crop_name))
     else:
-        tile_specs = [
-            (x0, y0, min(width, x0 + tile), min(height, y0 + tile), "grid")
-            for y0 in tile_origins(height, tile, stride)
-            for x0 in tile_origins(width, tile, stride)
-        ]
+        tile_specs = []
+        seen_tiles: set[tuple[int, int, int, int]] = set()
+        for offset_x, offset_y in args.tile_offsets:
+            label = f"grid_o{offset_x}_{offset_y}"
+            for y0 in tile_origins_with_offset(height, tile, stride, offset_y):
+                for x0 in tile_origins_with_offset(width, tile, stride, offset_x):
+                    x1 = min(width, x0 + tile)
+                    y1 = min(height, y0 + tile)
+                    key = (x0, y0, x1, y1)
+                    if key in seen_tiles:
+                        continue
+                    seen_tiles.add(key)
+                    tile_specs.append((x0, y0, x1, y1, label))
     scene_role_counts: dict[str, int] = {}
     spatial_enabled_names: set[str] | None = None
     scene_route_ms: list[float] = []
@@ -985,6 +1021,7 @@ def main() -> int:
     ap.add_argument("--coordinate-mode", choices=["local", "global_tile", "zero_coord"], default="local")
     ap.add_argument("--tile-size", type=int, default=768)
     ap.add_argument("--overlap", type=int, default=128)
+    ap.add_argument("--tile-offset", action="append", default=[], help="Full-grid origin offset as X,Y pixels. Repeat for multi-origin stitching.")
     ap.add_argument("--valid-margin", type=int, default=0, help="Overlap-save mode: discard this many non-border pixels from each output tile before stitching.")
     ap.add_argument("--route-context-padding", type=int, default=0, help="Route each output tile using this many surrounding source pixels while keeping model input unchanged unless model context is also set.")
     ap.add_argument("--route-feature-max-side", type=int, default=512, help="Max side for runtime router feature extraction. Default preserves the frozen sidecar feature implementation.")
@@ -1009,6 +1046,7 @@ def main() -> int:
     args.dashboard_json.parent.mkdir(parents=True, exist_ok=True)
     args.dashboard_html.parent.mkdir(parents=True, exist_ok=True)
     args.tmp_dir.mkdir(parents=True, exist_ok=True)
+    args.tile_offsets = parse_tile_offsets(args.tile_offset)
 
     cluster_ckpts = parse_cluster_checkpoint(args.cluster_checkpoint)
     override_ckpts = parse_override_checkpoint(args.override_cluster_checkpoint)
@@ -1094,6 +1132,7 @@ def main() -> int:
             "spatial_scene_role_min": spatial_scene_role_min,
             "tile_size": args.tile_size,
             "overlap": args.overlap,
+            "tile_offsets": args.tile_offsets,
             "valid_margin": args.valid_margin,
             "route_context_padding": args.route_context_padding,
             "route_feature_max_side": args.route_feature_max_side,
