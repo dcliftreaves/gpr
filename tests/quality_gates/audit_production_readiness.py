@@ -745,6 +745,8 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
             and int(summary.get("normalized_row_count", 0)) >= 1200
             and int(summary.get("unique_row_count", 0)) == 84
             and int(summary.get("exact_pass_tiled_fail_count", 0)) == 13
+            and int(summary.get("exact_pass_tiled_fail_mixed_role_count", 0)) == 11
+            and int(summary.get("exact_pass_tiled_fail_coherent_role_count", 0)) == 2
             and int(crop.get("pass_count", -1)) == 84
             and int(fullframe.get("pass_count", -1)) == 63
             and int(exact.get("pass_count", -1)) == 16
@@ -758,6 +760,8 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
                 f"rows={int(summary.get('normalized_row_count', -1))}, "
                 f"unique={int(summary.get('unique_row_count', -1))}, "
                 f"exact_pass_tiled_fail={int(summary.get('exact_pass_tiled_fail_count', -1))}, "
+                f"mixed={int(summary.get('exact_pass_tiled_fail_mixed_role_count', -1))}, "
+                f"coherent={int(summary.get('exact_pass_tiled_fail_coherent_role_count', -1))}, "
                 f"fullframe={int(fullframe.get('pass_count', -1))}/84 "
                 f"receipt={receipt}"
             ),

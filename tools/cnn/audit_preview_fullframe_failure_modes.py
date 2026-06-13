@@ -129,6 +129,13 @@ def normalize_contract_audit(label: str, payload: dict[str, Any]) -> list[dict[s
     for row in rows:
         if not isinstance(row, dict):
             continue
+        tiled_intersections = row.get("tiled_intersections") or {}
+        exact_role = row.get("exact_role") or {}
+        contract_meta = {
+            "exact_role": exact_role.get("role"),
+            "tiled_role_count": tiled_intersections.get("role_count"),
+            "tiled_roles": tiled_intersections.get("roles") or {},
+        }
         for variant, field in (("exact_manifest_crop", "exact_metrics"), ("arbitrary_tiled", "tiled_metrics")):
             metrics_row = row.get(field)
             if not isinstance(metrics_row, dict):
@@ -141,6 +148,7 @@ def normalize_contract_audit(label: str, payload: dict[str, Any]) -> list[dict[s
                     "crop": row.get("crop"),
                     "metrics": extract_metrics(metrics_row),
                     "preview_pass": bool(metrics_row.get("preview_pass", False)),
+                    "metadata": contract_meta,
                 }
             )
     return out
@@ -265,6 +273,12 @@ def summarize_rows(
         if exact is None or tiled is None:
             continue
         if exact["preview_pass"] and not tiled["preview_pass"]:
+            metadata = tiled.get("metadata") or {}
+            tiled_role_count = metadata.get("tiled_role_count")
+            try:
+                tiled_role_count_int = int(tiled_role_count)
+            except (TypeError, ValueError):
+                tiled_role_count_int = 0
             failures = {
                 metric: metric_margin(metric, tiled["metrics"][metric], thresholds)
                 for metric in METRICS
@@ -276,6 +290,10 @@ def summarize_rows(
                     "row": key,
                     "image_id": image_id,
                     "crop": crop,
+                    "exact_role": metadata.get("exact_role"),
+                    "tiled_role_count": tiled_role_count_int,
+                    "mixed_tiled_roles": tiled_role_count_int > 1,
+                    "tiled_roles": metadata.get("tiled_roles") or {},
                     "tiled_failures": failures,
                     "exact_metrics": exact["metrics"],
                     "tiled_metrics": tiled["metrics"],
@@ -329,6 +347,9 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         contract_rows.append(
             "<tr>"
             f"<td>{html.escape(row['row'])}</td>"
+            f"<td>{html.escape(str(row.get('exact_role') or ''))}</td>"
+            f"<td>{row.get('tiled_role_count', 0)}</td>"
+            f"<td>{html.escape(json.dumps(row.get('tiled_roles') or {}, sort_keys=True))}</td>"
             f"<td>{html.escape(json.dumps(row['tiled_failures'], sort_keys=True))}</td>"
             f"<td>{html.escape(json.dumps(row['exact_metrics'], sort_keys=True))}</td>"
             f"<td>{html.escape(json.dumps(row['tiled_metrics'], sort_keys=True))}</td>"
@@ -358,6 +379,7 @@ code, pre {{ background: #f4f7fa; padding: 2px 4px; }}
 <div class="tile"><strong>Normalized Rows</strong><br>{payload['summary']['normalized_row_count']}</div>
 <div class="tile"><strong>Unique Row Keys</strong><br>{payload['summary']['unique_row_count']}</div>
 <div class="tile"><strong>Exact Pass / Tiled Fail</strong><br>{payload['summary']['exact_pass_tiled_fail_count']}</div>
+<div class="tile"><strong>Mixed / Coherent Role Fails</strong><br>{payload['summary']['exact_pass_tiled_fail_mixed_role_count']} / {payload['summary']['exact_pass_tiled_fail_coherent_role_count']}</div>
 </div>
 <h2>Variant Summary</h2>
 <table>
@@ -375,7 +397,7 @@ code, pre {{ background: #f4f7fa; padding: 2px 4px; }}
 </table>
 <h2>Exact Manifest-Crop Pass But Arbitrary-Tiled Fail</h2>
 <table>
-<thead><tr><th>Row</th><th>Tiled Fail Margins</th><th>Exact Metrics</th><th>Tiled Metrics</th></tr></thead>
+<thead><tr><th>Row</th><th>Exact Role</th><th>Tiled Role Count</th><th>Tiled Roles</th><th>Tiled Fail Margins</th><th>Exact Metrics</th><th>Tiled Metrics</th></tr></thead>
 <tbody>
 {''.join(contract_rows)}
 </tbody>
@@ -418,6 +440,8 @@ def main() -> int:
         normalized_rows.extend(rows)
 
     variant_summary, row_summary, contract_rows = summarize_rows(normalized_rows, thresholds)
+    mixed_contract = sum(1 for row in contract_rows if row.get("mixed_tiled_roles"))
+    coherent_contract = len(contract_rows) - mixed_contract
     payload = {
         "schema": "preview_fullframe_failure_mode_audit.v1",
         "thresholds": thresholds,
@@ -427,6 +451,8 @@ def main() -> int:
             "unique_row_count": len({row_key(row) for row in normalized_rows}),
             "variant_count": len(variant_summary),
             "exact_pass_tiled_fail_count": len(contract_rows),
+            "exact_pass_tiled_fail_mixed_role_count": mixed_contract,
+            "exact_pass_tiled_fail_coherent_role_count": coherent_contract,
             "top_failure_images": dict(Counter(row["image_id"] for row in row_summary[:40]).most_common()),
         },
         "variant_summary": variant_summary,

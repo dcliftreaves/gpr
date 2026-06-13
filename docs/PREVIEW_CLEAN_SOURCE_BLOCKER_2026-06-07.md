@@ -2051,6 +2051,8 @@ Summary:
 - hard-eight exact manifest-crop inference: 16/24
 - hard-eight arbitrary-tiled inference: 3/24
 - exact-pass to arbitrary-tiled-fail regressions: 13
+- mixed-role exact-pass to arbitrary-tiled-fail regressions: 11
+- coherent-role exact-pass to arbitrary-tiled-fail regressions: 2
 
 The hardest repeated rows are concentrated in `Z8Z_0026`, `Z8Z_0705`,
 `Z8Z_5284`, `Z8Z_6680`, `Z8Z_7480`, `Z8Z_5937`, `Z8Z_7955`, and `Z8Z_1586`.
@@ -2058,7 +2060,9 @@ The audit makes the production gap more concrete: the current source/model
 contract can pass exact manifest-crop conditions, but it is not stable under the
 arbitrary full-frame tiling required by the runtime path. The next production
 candidate should therefore train and validate against assembled full-frame or
-arbitrary-tile outputs directly, with a target/model class that closes the
-exact-crop to arbitrary-tile gap. More crop-only specialists or another
-dashboard-only selector over the current receipts are already ruled out by this
-audit.
+arbitrary-tile outputs directly, with a target/model class that closes both
+failure classes. Most regressions need route stability across crop interiors;
+`Z8Z_6680:C_lowerleft` and `Z8Z_5937:B_center` also prove that same-role
+arbitrary tiles can fail, so route coherence alone cannot be the complete
+solution. More crop-only specialists or another dashboard-only selector over
+the current receipts are already ruled out by this audit.

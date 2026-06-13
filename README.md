@@ -244,9 +244,11 @@ It normalizes 1,227 evidence rows over the 84-row holdout, confirms the
 crop-shaped routed candidate at 84/84, the broad arbitrary-tiled scene-gated
 path at 63/84, and the hard-eight contract split at 16/24 exact manifest-crop
 passes versus only 3/24 arbitrary-tiled passes. The audit finds 13 rows that
-pass exact manifest-crop inference but fail under arbitrary production tiling,
-so the next PREVIEW candidate must close the exact-crop to arbitrary-tile
-contract gap, not just improve another crop dashboard.
+pass exact manifest-crop inference but fail under arbitrary production tiling:
+11 are mixed-role tiled crops, while two fail even with a coherent tiled role
+(`Z8Z_6680:C_lowerleft` and `Z8Z_5937:B_center`). The next PREVIEW candidate
+must close both parts of the exact-crop to arbitrary-tile contract gap: routing
+stability across crop interiors and same-role tile/context robustness.
 The first explicit low-frequency spatial branch improves the hard `Z8Z_6680`
 tile receipt to 9/12 isolated passes, but stitched full-frame output remains
 1/3 with remaining Y/dE failures in the lower-left region. A follow-up
