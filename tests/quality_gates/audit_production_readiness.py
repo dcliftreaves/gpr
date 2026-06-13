@@ -720,6 +720,52 @@ def check_preview_alignment_oracle_negative_evidence() -> Check:
         return Check("preview_detail", "alignment oracle negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_fullframe_failure_mode_audit() -> Check:
+    tool = REPO / "tools/cnn/audit_preview_fullframe_failure_modes.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullframe_failure_mode_audit_v1"
+        / "preview_fullframe_failure_mode_audit.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "full-frame failure-mode audit", "FAIL", "missing tracked audit tool")
+    if not receipt.exists():
+        return Check("preview_detail", "full-frame failure-mode audit", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = payload.get("summary") or {}
+        variants = {row.get("variant"): row for row in payload.get("variant_summary", [])}
+        crop = variants.get("crop_holdout_v32") or {}
+        fullframe = variants.get("fullframe_scene_gated_84") or {}
+        contract = variants.get("hard8_contract:arbitrary_tiled") or {}
+        exact = variants.get("hard8_contract:exact_manifest_crop") or {}
+        ok = (
+            payload.get("schema") == "preview_fullframe_failure_mode_audit.v1"
+            and int(summary.get("normalized_row_count", 0)) >= 1200
+            and int(summary.get("unique_row_count", 0)) == 84
+            and int(summary.get("exact_pass_tiled_fail_count", 0)) == 13
+            and int(crop.get("pass_count", -1)) == 84
+            and int(fullframe.get("pass_count", -1)) == 63
+            and int(exact.get("pass_count", -1)) == 16
+            and int(contract.get("pass_count", -1)) == 3
+        )
+        return Check(
+            "preview_detail",
+            "full-frame failure-mode audit",
+            "PASS" if ok else "FAIL",
+            (
+                f"rows={int(summary.get('normalized_row_count', -1))}, "
+                f"unique={int(summary.get('unique_row_count', -1))}, "
+                f"exact_pass_tiled_fail={int(summary.get('exact_pass_tiled_fail_count', -1))}, "
+                f"fullframe={int(fullframe.get('pass_count', -1))}/84 "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "full-frame failure-mode audit", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_exact_teacher_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/build_preview_exact_teacher_receipt.py"
     scorer = REPO / "tools/cnn/score_preview_exact_teacher_distill.py"
@@ -1447,6 +1493,7 @@ def main() -> int:
     checks.append(check_preview_source_frequency_negative_evidence())
     checks.append(check_preview_fullimage_band_negative_evidence())
     checks.append(check_preview_alignment_oracle_negative_evidence())
+    checks.append(check_preview_fullframe_failure_mode_audit())
     checks.append(check_preview_exact_teacher_distill_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),

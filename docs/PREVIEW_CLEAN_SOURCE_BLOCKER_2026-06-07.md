@@ -2023,3 +2023,42 @@ The next routing optimization should vectorize/reuse more of the 512-scale
 feature extractor or retrain/freeze a new reduced-scale router sidecar, rather
 than quietly changing feature scale under the existing sidecar. The next quality
 blocker remains the full-image detail/color failure, not REF content leakage.
+
+## Full-Frame Failure-Mode Audit
+
+The latest audit aggregates the current crop, full-frame/tiled, contract,
+variant-oracle, frequency-oracle, source-root, source-frequency, band-refiner,
+and alignment-oracle receipts into one row-level dashboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v1/preview_fullframe_failure_mode_audit.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v1/preview_fullframe_failure_mode_audit.html
+```
+
+Tool:
+
+```text
+tools/cnn/audit_preview_fullframe_failure_modes.py
+```
+
+Summary:
+
+- normalized evidence rows: 1,227
+- unique row keys: 84
+- variants/receipt views: 44
+- crop-shaped routed holdout: 84/84
+- broad arbitrary-tiled scene-gated full-frame holdout: 63/84
+- hard-eight exact manifest-crop inference: 16/24
+- hard-eight arbitrary-tiled inference: 3/24
+- exact-pass to arbitrary-tiled-fail regressions: 13
+
+The hardest repeated rows are concentrated in `Z8Z_0026`, `Z8Z_0705`,
+`Z8Z_5284`, `Z8Z_6680`, `Z8Z_7480`, `Z8Z_5937`, `Z8Z_7955`, and `Z8Z_1586`.
+The audit makes the production gap more concrete: the current source/model
+contract can pass exact manifest-crop conditions, but it is not stable under the
+arbitrary full-frame tiling required by the runtime path. The next production
+candidate should therefore train and validate against assembled full-frame or
+arbitrary-tile outputs directly, with a target/model class that closes the
+exact-crop to arbitrary-tile gap. More crop-only specialists or another
+dashboard-only selector over the current receipts are already ruled out by this
+audit.

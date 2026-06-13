@@ -233,6 +233,20 @@ v32 rows, a +/-12px coarse shift search stays 4/24 with zero failing rows
 recovered; on the multi-origin `Z8Z_6680` smoke, a denser shift/scale search
 stays 0/3 with no metric improvement. Small crop alignment is not the missing
 full-frame fix.
+A full-frame failure-mode audit now aggregates 13 existing receipts into one
+dashboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v1/preview_fullframe_failure_mode_audit.html
+```
+
+It normalizes 1,227 evidence rows over the 84-row holdout, confirms the
+crop-shaped routed candidate at 84/84, the broad arbitrary-tiled scene-gated
+path at 63/84, and the hard-eight contract split at 16/24 exact manifest-crop
+passes versus only 3/24 arbitrary-tiled passes. The audit finds 13 rows that
+pass exact manifest-crop inference but fail under arbitrary production tiling,
+so the next PREVIEW candidate must close the exact-crop to arbitrary-tile
+contract gap, not just improve another crop dashboard.
 The first explicit low-frequency spatial branch improves the hard `Z8Z_6680`
 tile receipt to 9/12 isolated passes, but stitched full-frame output remains
 1/3 with remaining Y/dE failures in the lower-left region. A follow-up
