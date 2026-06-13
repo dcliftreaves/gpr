@@ -387,6 +387,14 @@ The lone 6144 miss is `Z8Z_6680:C_lowerleft`, failing MS-SSIM/Y-PSNR/dE despite
 LPIPS passing. The next viable PREVIEW formulation therefore needs either a
 very high-resolution full-image generator or a full-image model with local
 detail synthesis, not a 768-1536px low-field branch.
+Follow-up high-resolution source-only band-generator receipts tested that
+direction directly. A 2048-wide generated field still passes 0/24 while its
+REF-low oracle ceiling is 7/24. A narrow 4096-wide source+XY generator and a
+4096-wide source+XY+global-color-stat generator also pass 0/24, even though the
+4096 REF-low/source-high oracle variants reach 18/24. This rules out simply
+raising the current full-image band generator resolution; the missing piece is
+a stronger image-conditioned/global model or a different runtime source/teacher
+representation.
 A follow-up `context_unet_generator` diagnostic removed the source-plus-residual
 output constraint on the 768-context hard-eight fit. It still failed 0/24
 with worst LPIPS 0.6136 and median LPIPS 0.4035, so simple output headroom is

@@ -657,6 +657,80 @@ def check_preview_fullimage_band_negative_evidence() -> Check:
         return Check("preview_detail", "full-image band negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_highres_fullimage_band_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/train_preview_fullimage_band_refiner.py"
+    w2048_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullimage_band_refiner_hard8_w2048_capacity_v1"
+        / "preview_fullimage_band_refiner.json"
+    )
+    w4096_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullimage_band_refiner_hard8_w4096_narrow_v1"
+        / "preview_fullimage_band_refiner.json"
+    )
+    stats_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullimage_band_refiner_hard8_w4096_globalstats_v1"
+        / "preview_fullimage_band_refiner.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "high-res full-image band negative evidence", "FAIL", "missing tracked full-image band refiner")
+    tool_text = tool.read_text(errors="ignore")
+    if "xy_global_color_stats" not in tool_text or "source_rgb_global_mean_std" not in tool_text:
+        return Check("preview_detail", "high-res full-image band negative evidence", "FAIL", "tool missing source-global-stat conditioning contract")
+    missing = [str(path) for path in (w2048_receipt, w4096_receipt, stats_receipt) if not path.exists()]
+    if missing:
+        return Check("preview_detail", "high-res full-image band negative evidence", "FAIL", "missing " + ", ".join(missing))
+    try:
+        w2048 = json.loads(w2048_receipt.read_text())
+        w4096 = json.loads(w4096_receipt.read_text())
+        stats = json.loads(stats_receipt.read_text())
+
+        def summary(payload: dict[str, Any], variant: str) -> dict[str, Any]:
+            return {row.get("variant"): row for row in payload.get("summary", [])}.get(variant) or {}
+
+        w2048_ref = summary(w2048, "ref_lowfield_residual")
+        w2048_generated = summary(w2048, "generated_lowfield_residual")
+        w4096_ref = summary(w4096, "ref_low_plus_source_high_s1")
+        w4096_generated = summary(w4096, "generated_low_plus_source_high_s1")
+        stats_generated = summary(stats, "generated_low_plus_source_high_s1")
+        stats_contract = stats.get("render_contract") or {}
+        stats_model = stats.get("model") or {}
+        ok = (
+            w2048.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and w4096.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and stats.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and int(w2048_ref.get("pass_count", -1)) == 7
+            and int(w2048_generated.get("pass_count", -1)) == 0
+            and int(w4096_ref.get("pass_count", -1)) == 18
+            and int(w4096_generated.get("pass_count", -1)) == 0
+            and int(stats_generated.get("pass_count", -1)) == 0
+            and float(stats_generated.get("worst_dE2000_mean", 0.0)) > 20.0
+            and stats_contract.get("conditioning") == "xy_global_color_stats"
+            and "source_rgb_global_mean_std" in (stats_contract.get("render_time_inputs") or [])
+            and int(stats_model.get("in_channels", 0)) == 11
+        )
+        return Check(
+            "preview_detail",
+            "high-res full-image band negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"w2048_ref={int(w2048_ref.get('pass_count', -1))}/24, "
+                f"w2048_generated={int(w2048_generated.get('pass_count', -1))}/24, "
+                f"w4096_ref={int(w4096_ref.get('pass_count', -1))}/24, "
+                f"w4096_generated={int(w4096_generated.get('pass_count', -1))}/24, "
+                f"globalstats_generated={int(stats_generated.get('pass_count', -1))}/24 "
+                f"receipt={stats_receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "high-res full-image band negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_alignment_oracle_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_fullframe_alignment_oracle.py"
     hard8_receipt = (
@@ -1669,6 +1743,7 @@ def main() -> int:
     checks.append(check_preview_multi_origin_tile_negative_evidence())
     checks.append(check_preview_source_frequency_negative_evidence())
     checks.append(check_preview_fullimage_band_negative_evidence())
+    checks.append(check_preview_highres_fullimage_band_negative_evidence())
     checks.append(check_preview_alignment_oracle_negative_evidence())
     checks.append(check_preview_fullframe_failure_mode_audit())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())

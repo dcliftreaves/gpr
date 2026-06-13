@@ -2253,3 +2253,44 @@ It now contains 1,707 normalized rows and 63 variant views while preserving the
 same core full-frame blocker counts: crop-shaped routed holdout 84/84,
 scene-gated arbitrary full-frame 63/84, hard-eight exact manifest-crop 16/24,
 and hard-eight arbitrary-tiled 3/24.
+
+### High-Resolution Source-Only Band Generator
+
+The next bounded source-only follow-up reused the full-image band generator at
+higher spatial bandwidth. Runtime inputs remain source RGB, normalized
+coordinates, and checkpoint weights; the final pass also adds source-derived
+global RGB mean/std planes. REF is supervision/scoring only.
+
+Tool update:
+
+```text
+tools/cnn/train_preview_fullimage_band_refiner.py
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_refiner_hard8_w2048_capacity_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_refiner_hard8_w2048_capacity_v1/preview_fullimage_band_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_refiner_hard8_w4096_narrow_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_refiner_hard8_w4096_narrow_v1/preview_fullimage_band_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_refiner_hard8_w4096_globalstats_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_refiner_hard8_w4096_globalstats_v1/preview_fullimage_band_refiner.html
+```
+
+Result:
+
+| run | generated best | oracle best | memory/timing |
+| --- | ---: | ---: | --- |
+| 2048-wide, width 32/depth 4 | 0/24 | REF low-field residual 7/24 | 6.4 GB RSS, 108 ms median model/image |
+| 4096-wide, width 12/depth 3 | 0/24 | REF low + source high sigma 1: 18/24 | 14.0 GB RSS, 226 ms median model/image |
+| 4096-wide + source global RGB mean/std | 0/24 | REF low + source high sigma 1: 18/24 | 17.6 GB RSS, 301 ms median model/image |
+
+The high-resolution oracle rows improve with spatial bandwidth, but the learned
+source-only generated rows remain 0/24. Source-derived global color-stat
+conditioning does not fix the failure and slightly worsens worst dE. This
+narrows the blocker to the current model/source-conditioning formulation: it is
+not enough to raise the existing full-image band generator to 4096px. The next
+candidate needs a stronger image-conditioned/global model or a different
+runtime source/teacher representation that can learn the 4096-6144px field
+without REF at render time.

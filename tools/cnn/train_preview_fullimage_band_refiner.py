@@ -44,10 +44,10 @@ DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
 
 class FullImageBandGenerator(nn.Module):
-    def __init__(self, width: int, depth: int) -> None:
+    def __init__(self, width: int, depth: int, in_channels: int = 5) -> None:
         super().__init__()
         layers: list[nn.Module] = [
-            nn.Conv2d(5, width, kernel_size=7, padding=3),
+            nn.Conv2d(in_channels, width, kernel_size=7, padding=3),
             nn.SiLU(inplace=True),
         ]
         for _ in range(max(0, depth - 1)):
@@ -122,6 +122,21 @@ def coordinate_tensor(height: int, width: int) -> torch.Tensor:
         indexing="ij",
     )
     return torch.stack([xx, yy], dim=0)
+
+
+def build_model_input(source_low: np.ndarray, conditioning: str) -> torch.Tensor:
+    source01 = source_low.astype(np.float32) / 255.0
+    planes = [rgb_tensor(source_low), coordinate_tensor(source_low.shape[0], source_low.shape[1])]
+    if conditioning == "xy":
+        return torch.cat(planes, dim=0)
+    if conditioning == "xy_global_color_stats":
+        mean = source01.mean(axis=(0, 1), dtype=np.float64).astype(np.float32)
+        std = source01.std(axis=(0, 1), dtype=np.float64).astype(np.float32)
+        stats = np.concatenate([mean, std]).astype(np.float32)
+        stat_planes = np.broadcast_to(stats[:, None, None], (6, source_low.shape[0], source_low.shape[1])).copy()
+        planes.append(torch.from_numpy(stat_planes))
+        return torch.cat(planes, dim=0)
+    raise ValueError(f"unsupported conditioning {conditioning!r}")
 
 
 def crop_rgb(rgb: np.ndarray, crop: dict[str, int], sensor_dims: list[int]) -> np.ndarray:
@@ -206,6 +221,13 @@ def safe_name(value: str) -> str:
     return "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in value)
 
 
+def render_time_inputs(conditioning: str) -> list[str]:
+    inputs = ["source_rgb", "normalized_xy", "checkpoint"]
+    if conditioning == "xy_global_color_stats":
+        inputs.append("source_rgb_global_mean_std")
+    return inputs
+
+
 def select_images(args: argparse.Namespace, manifest: dict[str, Any]) -> list[dict[str, Any]]:
     selected = set(args.image_id)
     images = [image for image in manifest["images"] if not selected or str(image["id"]) in selected]
@@ -256,8 +278,7 @@ def prepare_samples(args: argparse.Namespace, images: list[dict[str, Any]], work
         low_size = resized_dims(source_rgb.shape[1], source_rgb.shape[0], args.model_width)
         source_low = resize_rgb(source_rgb, low_size)
         ref_low = resize_rgb(ref_rgb, low_size)
-        source_t = rgb_tensor(source_low)
-        input_t = torch.cat([source_t, coordinate_tensor(source_low.shape[0], source_low.shape[1])], dim=0)
+        input_t = build_model_input(source_low, args.conditioning)
         samples.append(
             {
                 "image_id": image_id,
@@ -283,7 +304,8 @@ def prepare_samples(args: argparse.Namespace, images: list[dict[str, Any]], work
 
 
 def train_model(args: argparse.Namespace, samples: list[dict[str, Any]]) -> tuple[FullImageBandGenerator, list[dict[str, float]], dict[str, float]]:
-    model = FullImageBandGenerator(args.width, args.depth).to(DEVICE)
+    in_channels = int(samples[0]["input"].shape[0])
+    model = FullImageBandGenerator(args.width, args.depth, in_channels=in_channels).to(DEVICE)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     history: list[dict[str, float]] = []
     fit_samples = [sample for sample in samples if sample["image_id"] not in set(args.holdout_image_id)]
@@ -462,9 +484,11 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
             "state_dict": model.state_dict(),
             "width": args.width,
             "depth": args.depth,
+            "in_channels": int(samples[0]["input"].shape[0]),
             "model_width": args.model_width,
+            "conditioning": args.conditioning,
             "high_sigma": [float(v) for v in args.high_sigma],
-            "source_policy": "runtime_source_rgb_plus_normalized_xy_only",
+            "source_policy": "runtime_source_rgb_plus_normalized_xy_and_optional_source_stats_only",
         },
         checkpoint_path,
     )
@@ -479,7 +503,8 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
         "image_ids": [sample["image_id"] for sample in samples],
         "holdout_image_ids": [str(v) for v in args.holdout_image_id],
         "render_contract": {
-            "render_time_inputs": ["source_rgb", "normalized_xy", "checkpoint"],
+            "render_time_inputs": render_time_inputs(args.conditioning),
+            "conditioning": args.conditioning,
             "forbidden_render_time_inputs": ["ref_rgb", "ref_dng", "gate_metrics", "sample_index"],
             "runtime_variants": ["generated_low_direct", "generated_low_plus_source_high"],
             "oracle_variants_not_allowed_for_production": ["ref_low_plus_source_high"],
@@ -495,7 +520,9 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
             "architecture": "fullimage_band_generator",
             "width": args.width,
             "depth": args.depth,
+            "in_channels": int(samples[0]["input"].shape[0]),
             "model_width": args.model_width,
+            "conditioning": args.conditioning,
             "checkpoint": str(checkpoint_path),
             "checkpoint_sha256": sha256_file(checkpoint_path),
             "checkpoint_bytes": checkpoint_path.stat().st_size,
@@ -546,6 +573,7 @@ def main() -> int:
     ap.add_argument("--model-width", type=int, default=768)
     ap.add_argument("--width", type=int, default=48)
     ap.add_argument("--depth", type=int, default=6)
+    ap.add_argument("--conditioning", choices=["xy", "xy_global_color_stats"], default="xy")
     ap.add_argument("--steps", type=int, default=500)
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--weight-decay", type=float, default=1e-5)
