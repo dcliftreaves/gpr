@@ -1661,6 +1661,7 @@ def check_preview_q8_crop_specialist_evidence() -> Check:
         "fullframe_hardfit_z7955": base / "q8_crop_fullframe_hardfit_z7955_t512_smoke_v1/preview_q8_crop_fullframe.json",
         "fullframe_hardfit_z7480": base / "q8_crop_fullframe_hardfit_z7480_t512_smoke_v1/preview_q8_crop_fullframe.json",
         "fullframe_hardsplit": base / "q8_crop_fullframe_hardsplit_z7480_z7955_t512_smoke_v1/preview_q8_crop_fullframe.json",
+        "fullframe_hard8": base / "q8_crop_fullframe_hardfit_hard8_t512_v1/preview_q8_crop_fullframe.json",
     }
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "q8 crop specialist evidence", "FAIL", "missing tracked q8 crop refiner tool")
@@ -1683,6 +1684,7 @@ def check_preview_q8_crop_specialist_evidence() -> Check:
         fullframe_z7955 = json.loads(receipts["fullframe_hardfit_z7955"].read_text())
         fullframe_z7480 = json.loads(receipts["fullframe_hardfit_z7480"].read_text())
         fullframe_split = json.loads(receipts["fullframe_hardsplit"].read_text())
+        fullframe_hard8 = json.loads(receipts["fullframe_hard8"].read_text())
 
         def summary(payload: dict[str, Any], role: str) -> dict[str, Any]:
             return (payload.get("summary") or {}).get(role) or {}
@@ -1724,6 +1726,7 @@ def check_preview_q8_crop_specialist_evidence() -> Check:
             and fullframe_z7955.get("schema") == "preview_q8_crop_fullframe_receipt.v1"
             and fullframe_z7480.get("schema") == "preview_q8_crop_fullframe_receipt.v1"
             and fullframe_split.get("schema") == "preview_q8_crop_fullframe_receipt.v1"
+            and fullframe_hard8.get("schema") == "preview_q8_crop_fullframe_receipt.v1"
             and (hardfit.get("render_contract") or {}).get("source_policy") == "q8_source_crop_plus_source_derived_features_only"
             and (hardfit.get("model") or {}).get("architecture") == "direct"
             and int((hardfit.get("model") or {}).get("in_channels", 0)) == 34
@@ -1743,11 +1746,14 @@ def check_preview_q8_crop_specialist_evidence() -> Check:
             and (fullframe_z7480.get("checkpoint_sha256") == (hardfit.get("model") or {}).get("checkpoint_sha256"))
             and ff_pass_count(fullframe_z7955) == (3, 3)
             and ff_pass_count(fullframe_z7480) == (3, 3)
+            and ff_pass_count(fullframe_hard8) == (24, 24)
             and ff_pass_count(fullframe_split) == (3, 6)
             and ff_image_pass_count(fullframe_split, "Z8Z_7480") == (0, 3)
             and ff_image_pass_count(fullframe_split, "Z8Z_7955") == (3, 3)
             and ff_split_contract.get("uses_ref_at_render_time") is False
             and ff_split_contract.get("source_policy") == "q8_source_fullframe_tiled_plus_source_derived_features_only"
+            and int((fullframe_hard8.get("timing") or {}).get("tile_count_total", 0)) == 1496
+            and float((fullframe_hard8.get("timing") or {}).get("model_ms_total", 0.0)) > 20000.0
             and int(ff_split_timing.get("tile_count_total", 0)) == 374
             and float(ff_split_timing.get("model_ms_total", 0.0)) > 5000.0
             and float(ff_split_timing.get("max_rss_mb", 0.0)) > 1000.0
@@ -1763,7 +1769,7 @@ def check_preview_q8_crop_specialist_evidence() -> Check:
                 f"z7480={sum(1 for row in z7480_holdout if row.get('preview_pass'))}/3 "
                 f"z7955={sum(1 for row in z7955_holdout if row.get('preview_pass'))}/3; "
                 f"allfit={pass_count(allfit, 'all')[0]}/84; "
-                f"fullframe_hardfit={ff_pass_count(fullframe_z7480)[0] + ff_pass_count(fullframe_z7955)[0]}/6 "
+                f"fullframe_hardfit={ff_pass_count(fullframe_hard8)[0]}/24 "
                 f"fullframe_split={ff_pass_count(fullframe_split)[0]}/6 "
                 f"ff_z7480={ff_image_pass_count(fullframe_split, 'Z8Z_7480')[0]}/3 "
                 f"ff_z7955={ff_image_pass_count(fullframe_split, 'Z8Z_7955')[0]}/3; "

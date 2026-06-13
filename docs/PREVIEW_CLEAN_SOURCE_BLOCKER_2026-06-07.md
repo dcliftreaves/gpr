@@ -3002,6 +3002,8 @@ Receipts:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardfit_z7480_t512_smoke_v1/preview_q8_crop_fullframe.html
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardsplit_z7480_z7955_t512_smoke_v1/preview_q8_crop_fullframe.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardsplit_z7480_z7955_t512_smoke_v1/preview_q8_crop_fullframe.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardfit_hard8_t512_v1/preview_q8_crop_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardfit_hard8_t512_v1/preview_q8_crop_fullframe.html
 ```
 
 Result:
@@ -3011,10 +3013,13 @@ Result:
 | hard-fit | `Z8Z_7955` | 3/3 | 0.0499 | 0.9882 | 38.04 | 1.70 | 187 | 2.80 s |
 | hard-fit | `Z8Z_7480` | 3/3 | 0.1178 | 0.9548 | 33.69 | 2.39 | 187 | 2.78 s |
 | hard split | `Z8Z_7480`, `Z8Z_7955` | 3/6 | 0.1849 | 0.8916 | 27.45 | 3.69 | 374 | 5.68 s |
+| hard-fit | hard eight | 24/24 | 0.1178 | 0.9548 | 30.87 | 2.64 | 1496 | 22.41 s |
 
 The split rows match the crop diagnostic in the production-shaped path:
 `Z8Z_7955` passes 3/3 while held out, and `Z8Z_7480` fails 0/3 while held out.
 The hard-fit rows prove the q8 crop specialist can survive arbitrary 512px
-full-frame tiling and stitching when the scene family is covered by training.
-This is stronger than crop-only evidence, but still not a production PREVIEW
-claim because `Z8Z_7480` does not generalize without matching coverage.
+full-frame tiling and stitching across the full hard-eight family when those
+scene families are covered by training. This is stronger than crop-only
+evidence, but still not a production PREVIEW claim because `Z8Z_7480` does not
+generalize without matching coverage and the specialist still needs a
+runtime-observable router.

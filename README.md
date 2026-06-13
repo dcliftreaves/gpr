@@ -252,12 +252,13 @@ only **46/84**. This makes q8 crop CNNs plausible routed specialists, while
 
 The q8 crop specialist now also has a production-shaped full-frame/tiled smoke.
 The hard-fit checkpoint applied over arbitrary 512px q8 full-frame tiles passes
-`Z8Z_7955` **3/3** and `Z8Z_7480` **3/3** after stitching, with about **2.8 s**
-total model time per 187-tile 50 MP frame on Mac/MPS. The stricter split
+the full hard-eight set **24/24** after stitching, with **22.4 s** total model
+time across eight 187-tile 50 MP frames on Mac/MPS. The stricter split
 checkpoint still passes `Z8Z_7955` **3/3** but fails `Z8Z_7480` **0/3** in the
 same full-frame path. That proves the q8 specialist can survive tiled
-full-frame application, but also confirms `Z8Z_7480` needs matching
-scene-family coverage or a better specialist before PREVIEW can be registered.
+full-frame application for covered hard families, but also confirms `Z8Z_7480`
+needs matching scene-family coverage or a better specialist before PREVIEW can
+be registered.
 
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
