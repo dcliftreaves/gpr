@@ -764,17 +764,31 @@ def check_preview_residual_fullimage_band_negative_evidence() -> Check:
         / "fullimage_band_residual_smoke_0026_6680_w4096_v1"
         / "preview_fullimage_band_refiner.json"
     )
+    unet1536_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullimage_band_residual_unet_smoke_0026_6680_w1536_v1"
+        / "preview_fullimage_band_refiner.json"
+    )
+    unet2048_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullimage_band_residual_unet_smoke_0026_6680_w2048_v1"
+        / "preview_fullimage_band_refiner.json"
+    )
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "residual full-image band negative evidence", "FAIL", "missing tracked full-image band refiner")
     tool_text = tool.read_text(errors="ignore")
-    if "ResidualFullImageBandGenerator" not in tool_text or "--architecture" not in tool_text:
+    if "ResidualFullImageBandGenerator" not in tool_text or "ResidualUNetFullImageBandGenerator" not in tool_text or "--architecture" not in tool_text:
         return Check("preview_detail", "residual full-image band negative evidence", "FAIL", "tool missing residual architecture contract")
-    missing = [str(path) for path in (w1536_receipt, w4096_receipt) if not path.exists()]
+    missing = [str(path) for path in (w1536_receipt, w4096_receipt, unet1536_receipt, unet2048_receipt) if not path.exists()]
     if missing:
         return Check("preview_detail", "residual full-image band negative evidence", "FAIL", "missing " + ", ".join(missing))
     try:
         w1536 = json.loads(w1536_receipt.read_text())
         w4096 = json.loads(w4096_receipt.read_text())
+        unet1536 = json.loads(unet1536_receipt.read_text())
+        unet2048 = json.loads(unet2048_receipt.read_text())
 
         def summary(payload, variant: str):
             return {row.get("variant"): row for row in payload.get("summary", [])}.get(variant) or {}
@@ -784,25 +798,41 @@ def check_preview_residual_fullimage_band_negative_evidence() -> Check:
         w4096_source = summary(w4096, "source_baseline")
         w4096_generated = summary(w4096, "generated_low_plus_source_high_s1")
         w4096_ref = summary(w4096, "ref_low_plus_source_high_s1")
+        unet1536_generated = summary(unet1536, "generated_low_plus_source_high_s4")
+        unet2048_generated = summary(unet2048, "generated_low_plus_source_high_s4")
         w1536_model = w1536.get("model") or {}
         w4096_model = w4096.get("model") or {}
+        unet1536_model = unet1536.get("model") or {}
+        unet2048_model = unet2048.get("model") or {}
         w4096_contract = w4096.get("render_contract") or {}
         ok = (
             w1536.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
             and w4096.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and unet1536.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and unet2048.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
             and w1536_model.get("architecture") == "residual"
             and w4096_model.get("architecture") == "residual"
+            and unet1536_model.get("architecture") == "residual_unet"
+            and unet2048_model.get("architecture") == "residual_unet"
             and int(w1536_model.get("model_width", 0)) == 1536
             and int(w4096_model.get("model_width", 0)) == 4096
+            and int(unet1536_model.get("model_width", 0)) == 1536
+            and int(unet2048_model.get("model_width", 0)) == 2048
             and int(w4096_model.get("in_channels", 0)) == 11
             and w1536_model.get("checkpoint_sha256")
             and w4096_model.get("checkpoint_sha256")
+            and unet1536_model.get("checkpoint_sha256")
+            and unet2048_model.get("checkpoint_sha256")
             and "source_rgb_global_mean_std" in (w4096_contract.get("render_time_inputs") or [])
             and "ref_rgb" in (w4096_contract.get("forbidden_render_time_inputs") or [])
             and int(w1536_source.get("count", 0)) == 6
             and int(w1536_source.get("pass_count", -1)) == 0
             and int(w1536_generated.get("pass_count", -1)) == 0
             and float(w1536_generated.get("worst_lpips", 0.0)) > 0.64
+            and int(unet1536_generated.get("pass_count", -1)) == 0
+            and float(unet1536_generated.get("worst_lpips", 0.0)) > 0.64
+            and int(unet2048_generated.get("pass_count", -1)) == 0
+            and float(unet2048_generated.get("worst_lpips", 0.0)) > 0.64
             and int(w4096_source.get("count", 0)) == 6
             and int(w4096_source.get("pass_count", -1)) == 0
             and int(w4096_generated.get("pass_count", -1)) == 0
@@ -822,8 +852,10 @@ def check_preview_residual_fullimage_band_negative_evidence() -> Check:
                 f"w4096_generated={int(w4096_generated.get('pass_count', -1))}/6 "
                 f"lpips={float(w4096_generated.get('worst_lpips', 999.0)):.4f}; "
                 f"w4096_ref={int(w4096_ref.get('pass_count', -1))}/6 "
-                f"lpips={float(w4096_ref.get('worst_lpips', 999.0)):.4f} "
-                f"receipt={w4096_receipt}"
+                f"lpips={float(w4096_ref.get('worst_lpips', 999.0)):.4f}; "
+                f"unet2048={int(unet2048_generated.get('pass_count', -1))}/6 "
+                f"lpips={float(unet2048_generated.get('worst_lpips', 999.0)):.4f} "
+                f"receipt={unet2048_receipt}"
             ),
         )
     except Exception as exc:

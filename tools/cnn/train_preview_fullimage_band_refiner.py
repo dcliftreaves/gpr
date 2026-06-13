@@ -90,11 +90,60 @@ class ResidualFullImageBandGenerator(nn.Module):
         return torch.clamp(source + self.residual_scale * torch.tanh(self.net(x)), 0.0, 1.0)
 
 
+class BandResBlock(nn.Module):
+    def __init__(self, channels: int) -> None:
+        super().__init__()
+        self.a = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+        self.b = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = F.silu(self.a(x))
+        return F.silu(x + self.b(y))
+
+
+class ResidualUNetFullImageBandGenerator(nn.Module):
+    def __init__(self, width: int, depth: int, in_channels: int = 5, residual_scale: float = 0.5) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        d = max(1, int(depth))
+        self.i = nn.Conv2d(in_channels, width, kernel_size=5, padding=2)
+        self.e0 = nn.Sequential(*[BandResBlock(width) for _ in range(d)])
+        self.d1 = nn.Conv2d(width, width * 2, kernel_size=3, stride=2, padding=1)
+        self.e1 = nn.Sequential(*[BandResBlock(width * 2) for _ in range(d)])
+        self.d2 = nn.Conv2d(width * 2, width * 4, kernel_size=3, stride=2, padding=1)
+        self.e2 = nn.Sequential(*[BandResBlock(width * 4) for _ in range(max(1, d + 1))])
+        self.b = nn.Sequential(BandResBlock(width * 4), BandResBlock(width * 4))
+        self.u1 = nn.Sequential(nn.Conv2d(width * 6, width * 2, kernel_size=3, padding=1), nn.SiLU(inplace=True), BandResBlock(width * 2))
+        self.u0 = nn.Sequential(nn.Conv2d(width * 3, width, kernel_size=3, padding=1), nn.SiLU(inplace=True), BandResBlock(width))
+        self.o = nn.Conv2d(width, 3, kernel_size=3, padding=1)
+        nn.init.zeros_(self.o.weight)
+        nn.init.zeros_(self.o.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        source = x[:, :3]
+        e0 = self.e0(F.silu(self.i(x)))
+        e1 = self.e1(F.silu(self.d1(e0)))
+        e2 = self.e2(F.silu(self.d2(e1)))
+        h = self.b(e2)
+        h = F.interpolate(h, size=e1.shape[-2:], mode="bilinear", align_corners=False)
+        h = self.u1(torch.cat([h, e1], dim=1))
+        h = F.interpolate(h, size=e0.shape[-2:], mode="bilinear", align_corners=False)
+        h = self.u0(torch.cat([h, e0], dim=1))
+        return torch.clamp(source + self.residual_scale * torch.tanh(self.o(h)), 0.0, 1.0)
+
+
 def build_generator(args: argparse.Namespace, in_channels: int) -> nn.Module:
     if args.architecture == "direct":
         return FullImageBandGenerator(args.width, args.depth, in_channels=in_channels)
     if args.architecture == "residual":
         return ResidualFullImageBandGenerator(
+            args.width,
+            args.depth,
+            in_channels=in_channels,
+            residual_scale=args.residual_scale,
+        )
+    if args.architecture == "residual_unet":
+        return ResidualUNetFullImageBandGenerator(
             args.width,
             args.depth,
             in_channels=in_channels,
@@ -673,7 +722,7 @@ def main() -> int:
         ],
     )
     ap.add_argument("--model-width", type=int, default=768)
-    ap.add_argument("--architecture", choices=["direct", "residual"], default="direct")
+    ap.add_argument("--architecture", choices=["direct", "residual", "residual_unet"], default="direct")
     ap.add_argument("--width", type=int, default=48)
     ap.add_argument("--depth", type=int, default=6)
     ap.add_argument("--residual-scale", type=float, default=0.5)

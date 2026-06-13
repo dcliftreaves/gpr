@@ -407,6 +407,11 @@ generated low-plus-source-high variant has worse worst LPIPS than the source
 baseline (0.6898 versus 0.6839), while the 4096 REF-low/source-high oracle is
 much closer but also still 0/6 on this hardest smoke. That rules out the simple
 source-preserving residual-field variant as the missing production formulation.
+A small multi-scale residual U-Net variant was also tested at 1536 and 2048
+widths on the same two images. It still passed 0/6; the best 2048 generated
+low-plus-source-high variant had worst LPIPS 0.6602 and dE2000 12.04. That
+rules out "add multi-scale context to the same source-preserving field" as a
+near-term production fix.
 A per-image full-image RGB affine oracle then fit source fields to REF fields
 at 4096 and 6144 widths. It also stays 0/24, with worst LPIPS above 0.62 and
 worst dE around 10 on the 6144 affine field. That rules out a simple global
