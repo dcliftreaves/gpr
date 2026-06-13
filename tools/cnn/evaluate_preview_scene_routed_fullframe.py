@@ -22,7 +22,7 @@ from typing import Any
 import numpy as np
 import torch
 import torch.nn.functional as F
-from PIL import Image
+from PIL import Image, ImageFilter
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -166,6 +166,7 @@ def load_model(path: Path) -> DirectRGBRefiner:
     model = build_rgb_refiner(
         str(ckpt.get("architecture", "direct")),
         width=int(ckpt.get("width", 40)),
+        in_channels=int(ckpt.get("in_channels", 9)),
         residual_scale=float(ckpt.get("residual_scale", 0.5)),
     ).to(DEVICE)
     model.load_state_dict(ckpt["state_dict"])
@@ -178,6 +179,7 @@ def load_model_with_receipt(path: Path) -> tuple[DirectRGBRefiner, dict[str, Any
     model = build_rgb_refiner(
         str(ckpt.get("architecture", "direct")),
         width=int(ckpt.get("width", 40)),
+        in_channels=int(ckpt.get("in_channels", 9)),
         residual_scale=float(ckpt.get("residual_scale", 0.5)),
     ).to(DEVICE)
     model.load_state_dict(ckpt["state_dict"])
@@ -230,6 +232,23 @@ def tile_weight(height: int, width: int) -> np.ndarray:
     return weight[..., None]
 
 
+def source_frequency_planes(source_rgb: np.ndarray, mode: str, blur_radius: float) -> list[np.ndarray]:
+    if mode == "none":
+        return []
+    if mode != "low_high":
+        raise ValueError(f"unsupported source frequency plane mode {mode!r}")
+    source = source_rgb.astype(np.float32) / 255.0
+    low_rgb = np.asarray(
+        Image.fromarray(source_rgb).filter(ImageFilter.GaussianBlur(radius=float(blur_radius))),
+        dtype=np.float32,
+    ) / 255.0
+    high_rgb = source - low_rgb
+    return [
+        np.transpose(low_rgb, (2, 0, 1)).astype(np.float32),
+        np.transpose(high_rgb, (2, 0, 1)).astype(np.float32),
+    ]
+
+
 def build_tile_input(
     source_rgb: np.ndarray,
     conditioning: str,
@@ -237,8 +256,10 @@ def build_tile_input(
     xywh: tuple[int, int, int, int],
     full_size: tuple[int, int],
     global_stats: dict[str, float] | None = None,
+    source_frequency_mode: str = "none",
+    source_frequency_blur: float = 2.0,
 ) -> torch.Tensor:
-    if coordinate_mode == "local":
+    if coordinate_mode == "local" and source_frequency_mode == "none":
         return build_input(source_rgb, conditioning)
     if coordinate_mode not in {"global_tile", "zero_coord"}:
         raise ValueError(f"unsupported coordinate mode {coordinate_mode!r}")
@@ -284,7 +305,9 @@ def build_tile_input(
         key_planes[3].fill(float(global_stats["gray_std"]))
     else:
         raise ValueError(f"unsupported conditioning {conditioning!r}")
-    arr = np.concatenate([source, np.stack([xx, yy], axis=0), key_planes], axis=0)
+    planes = [source, np.stack([xx, yy], axis=0), key_planes]
+    planes.extend(source_frequency_planes(source_rgb, source_frequency_mode, source_frequency_blur))
+    arr = np.concatenate(planes, axis=0)
     return torch.from_numpy(arr[None].copy()).to(DEVICE).contiguous()
 
 
@@ -306,6 +329,8 @@ def apply_post_refiner(
     coordinate_mode: str,
     tile_size: int,
     overlap: int,
+    source_frequency_mode: str = "none",
+    source_frequency_blur: float = 2.0,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     height, width = image_rgb.shape[:2]
     stride = max(1, tile_size - overlap)
@@ -328,6 +353,8 @@ def apply_post_refiner(
                 (x0, y0, x1 - x0, y1 - y0),
                 (width, height),
                 stats,
+                source_frequency_mode,
+                source_frequency_blur,
             )
             t1 = time.perf_counter()
             with torch.no_grad():
@@ -347,6 +374,8 @@ def apply_post_refiner(
         "overlap": overlap,
         "conditioning": conditioning,
         "coordinate_mode": coordinate_mode,
+        "source_frequency_planes": source_frequency_mode,
+        "source_frequency_blur": source_frequency_blur,
         "input_ms_median": float(statistics.median(input_ms)) if input_ms else 0.0,
         "model_ms_median": float(statistics.median(model_ms)) if model_ms else 0.0,
         "model_ms_total": float(sum(model_ms)),
@@ -832,6 +861,8 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             coordinate_mode=args.post_coordinate_mode,
             tile_size=int(args.post_tile_size),
             overlap=int(args.post_overlap),
+            source_frequency_mode=args.post_source_frequency_planes,
+            source_frequency_blur=args.post_source_frequency_blur,
         )
         post_path = args.output_dir / f"{image_id}_scene_routed_fullframe_post_refined.png"
         Image.fromarray(scored_image).save(post_path)
@@ -1073,8 +1104,12 @@ def main() -> int:
     models = {key: load_model(path) for key, path in all_ckpts.items()}
     if args.post_checkpoint is not None:
         models["post_refiner"], post_ckpt = load_model_with_receipt(args.post_checkpoint)
+        args.post_source_frequency_planes = str(post_ckpt.get("source_frequency_planes", "none"))
+        args.post_source_frequency_blur = float(post_ckpt.get("source_frequency_blur", 2.0))
     else:
         post_ckpt = None
+        args.post_source_frequency_planes = "none"
+        args.post_source_frequency_blur = 2.0
     if args.force_model_key and args.force_model_key not in models:
         raise ValueError(f"--force-model-key must be one of {sorted(models)}, got {args.force_model_key!r}")
     checkpoint_receipts = {
@@ -1088,6 +1123,9 @@ def main() -> int:
             "bytes": args.post_checkpoint.stat().st_size,
             "architecture": str(post_ckpt.get("architecture", "direct")) if post_ckpt else "unknown",
             "source_policy": str(post_ckpt.get("source_policy", "unknown")) if post_ckpt else "unknown",
+            "in_channels": int(post_ckpt.get("in_channels", 9)) if post_ckpt else 9,
+            "source_frequency_planes": args.post_source_frequency_planes,
+            "source_frequency_blur": args.post_source_frequency_blur,
         }
     routing = {
         "base_sidecar": json.loads(args.router_sidecar.read_text()),
@@ -1146,6 +1184,8 @@ def main() -> int:
                 "coordinate_mode": args.post_coordinate_mode if args.post_checkpoint is not None else None,
                 "tile_size": args.post_tile_size if args.post_checkpoint is not None else None,
                 "overlap": args.post_overlap if args.post_checkpoint is not None else None,
+                "source_frequency_planes": args.post_source_frequency_planes if args.post_checkpoint is not None else None,
+                "source_frequency_blur": args.post_source_frequency_blur if args.post_checkpoint is not None else None,
                 "render_inputs": ["stitched RGB full frame", "normalized pixel coordinates", "checkpoint"] if args.post_checkpoint is not None else [],
             },
             "device": str(DEVICE),

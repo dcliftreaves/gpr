@@ -555,6 +555,45 @@ def check_preview_multi_origin_tile_negative_evidence() -> Check:
         return Check("preview_detail", "multi-origin tile negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_source_frequency_negative_evidence() -> Check:
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260612"
+        / "source_frequency_post_hard8_w40_v1"
+        / "preview_runtime_refiner.json"
+    )
+    if not receipt.exists():
+        return Check("preview_detail", "source-frequency post negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = (payload.get("summary") or {}).get("preview_runtime_policy") or {}
+        contract = payload.get("runtime_contract") or {}
+        training = payload.get("training") or {}
+        ok = (
+            payload.get("schema") == "preview_runtime_refiner_train_receipt.v1"
+            and int(summary.get("count", 0)) == 24
+            and int(summary.get("pass_count", -1)) == 3
+            and float(summary.get("worst_lpips", 0.0)) > 0.50
+            and float(summary.get("worst_dE2000_mean", 0.0)) > 8.0
+            and contract.get("source_frequency_planes") == "low_high"
+            and int(contract.get("input_channels", 0)) == 15
+            and training.get("checkpoint_sha256")
+        )
+        return Check(
+            "preview_detail",
+            "source-frequency post negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"source_freq={int(summary.get('pass_count', -1))}/{int(summary.get('count', 0))}, "
+                f"worst_lpips={float(summary.get('worst_lpips', 0.0)):.4f}, "
+                f"worst_dE={float(summary.get('worst_dE2000_mean', 0.0)):.2f}, "
+                f"input_channels={int(contract.get('input_channels', 0))} receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "source-frequency post negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_exact_teacher_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/build_preview_exact_teacher_receipt.py"
     scorer = REPO / "tools/cnn/score_preview_exact_teacher_distill.py"
@@ -1279,6 +1318,7 @@ def main() -> int:
     checks.append(check_preview_frequency_oracle_evidence())
     checks.append(check_preview_context_generator_negative_evidence())
     checks.append(check_preview_multi_origin_tile_negative_evidence())
+    checks.append(check_preview_source_frequency_negative_evidence())
     checks.append(check_preview_exact_teacher_distill_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),

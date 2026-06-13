@@ -654,6 +654,15 @@ Additional follow-up diagnostics ruled out several simpler fixes:
   worst Y-PSNR 21.49, worst dE2000 5.54, runtime 24.82 s/frame, and 672 model
   tiles:
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/fullframe_multi_offset_v32_z8z6680_t512_o256_v1/preview_scene_routed_fullframe.json`
+- A runtime-safe source-frequency representation was then added to the PREVIEW
+  runtime trainer and optional full-frame post-refiner path. It appends
+  low/high planes derived only from source RGB, giving a 15-channel input while
+  keeping REF as target/scoring data only. A hard-eight stitched manifest-crop
+  capacity check from the broad holdout source still reaches only 3/24, with
+  worst LPIPS 0.5604, worst MS-SSIM 0.6496, worst Y-PSNR 20.10, and worst
+  dE2000 8.28:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/stitched_post_hard8_manifest_from_holdout_v1/stitched_post_receipt.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/source_frequency_post_hard8_w40_v1/preview_runtime_refiner.json`
 - Overlap-save stitching with the same dense 512/256 geometry and a 128px
   valid margin regresses the dense result to worst LPIPS 0.2895, worst MS-SSIM
   0.8660, worst Y-PSNR 20.65, and worst dE2000 6.10. Discarding tile borders is

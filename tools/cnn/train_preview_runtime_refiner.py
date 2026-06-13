@@ -19,7 +19,7 @@ import lpips
 import numpy as np
 import torch
 import torch.nn.functional as F
-from PIL import Image
+from PIL import Image, ImageFilter
 from pytorch_msssim import ms_ssim
 
 
@@ -198,8 +198,32 @@ def build_assembled_crop_groups(samples: list[Any], args: argparse.Namespace) ->
     return groups
 
 
-def build_input_for_sample(source_rgb: np.ndarray, conditioning: str, coordinate_mode: str, sample: ReceiptSample) -> torch.Tensor:
-    if coordinate_mode == "local" and conditioning != "global_color_stats":
+def source_frequency_planes(source_rgb: np.ndarray, mode: str, blur_radius: float) -> list[np.ndarray]:
+    if mode == "none":
+        return []
+    if mode != "low_high":
+        raise ValueError(f"unsupported source frequency plane mode {mode!r}")
+    source = source_rgb.astype(np.float32) / 255.0
+    low_rgb = np.asarray(
+        Image.fromarray(source_rgb).filter(ImageFilter.GaussianBlur(radius=float(blur_radius))),
+        dtype=np.float32,
+    ) / 255.0
+    high_rgb = source - low_rgb
+    return [
+        np.transpose(low_rgb, (2, 0, 1)).astype(np.float32),
+        np.transpose(high_rgb, (2, 0, 1)).astype(np.float32),
+    ]
+
+
+def build_input_for_sample(
+    source_rgb: np.ndarray,
+    conditioning: str,
+    coordinate_mode: str,
+    sample: ReceiptSample,
+    source_frequency_mode: str = "none",
+    source_frequency_blur: float = 2.0,
+) -> torch.Tensor:
+    if coordinate_mode == "local" and conditioning != "global_color_stats" and source_frequency_mode == "none":
         return build_input(source_rgb, conditioning)
     if coordinate_mode not in {"global_tile", "zero_coord"}:
         if coordinate_mode != "local" or conditioning != "global_color_stats":
@@ -254,6 +278,7 @@ def build_input_for_sample(source_rgb: np.ndarray, conditioning: str, coordinate
     else:
         raise ValueError(f"unsupported conditioning {conditioning!r}")
     planes = [source, np.stack([xx, yy], axis=0), key_planes]
+    planes.extend(source_frequency_planes(source_rgb, source_frequency_mode, source_frequency_blur))
     if getattr(sample, "context_path", None) is not None:
         context = load_rgb(sample.context_path)
         if context.shape[:2] != source_rgb.shape[:2]:
@@ -284,7 +309,16 @@ def build_tensors(args: argparse.Namespace) -> tuple[list[Any], torch.Tensor, to
     for sample in samples:
         source = load_rgb(sample.source_path)
         ref = load_rgb(sample.ref_path)
-        xs.append(build_input_for_sample(source, args.conditioning, args.coordinate_mode, sample).cpu()[0])
+        xs.append(
+            build_input_for_sample(
+                source,
+                args.conditioning,
+                args.coordinate_mode,
+                sample,
+                args.source_frequency_planes,
+                args.source_frequency_blur,
+            ).cpu()[0]
+        )
         ys.append(np.transpose(ref.astype(np.float32) / 255.0, (2, 0, 1)))
     return samples, torch.stack(xs).contiguous(), torch.from_numpy(np.stack(ys).copy()).contiguous()
 
@@ -768,6 +802,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "source_weight": args.source_weight,
             "source_lowfreq_weight": args.source_lowfreq_weight,
             "source_lowfreq_blur_sigma": args.source_lowfreq_blur_sigma,
+            "source_frequency_planes": args.source_frequency_planes,
+            "source_frequency_blur": args.source_frequency_blur,
             "score_y_weight": args.score_y_weight,
             "score_opponent_weight": args.score_opponent_weight,
             "score_lab_weight": args.score_lab_weight,
@@ -799,6 +835,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 for group in assembled_groups
             ],
             "forbidden_inputs": ["winner JSON", "sample index", "crop identity key planes"],
+            "render_input_features": {
+                "source_frequency_planes": args.source_frequency_planes,
+                "source_frequency_blur": args.source_frequency_blur,
+            },
             "samples": [
                 {
                     "image_id": s.image_id,
@@ -837,11 +877,22 @@ def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, An
         samples = build_receipt_samples(args) if args.sample_receipt else build_samples(args)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, Any]] = []
+    frequency_mode = str(ckpt.get("source_frequency_planes", args.source_frequency_planes))
+    frequency_blur = float(ckpt.get("source_frequency_blur", args.source_frequency_blur))
     with torch.no_grad():
         for sample in samples:
             source = load_rgb(sample.source_path)
             ref = load_rgb(sample.ref_path)
-            pred = model(build_input_for_sample(source, args.conditioning, args.coordinate_mode, sample)).detach().cpu().numpy()[0]
+            pred = model(
+                build_input_for_sample(
+                    source,
+                    args.conditioning,
+                    args.coordinate_mode,
+                    sample,
+                    frequency_mode,
+                    frequency_blur,
+                )
+            ).detach().cpu().numpy()[0]
             rgb = np.clip(np.transpose(pred, (1, 2, 0)) * 255, 0, 255).astype(np.uint8)
             metric_rgb = center_crop_array(rgb, args.metric_center_size)
             metric_ref = center_crop_array(ref, args.metric_center_size)
@@ -873,6 +924,8 @@ def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, An
             "metric_center_size": args.metric_center_size,
             "forbidden_inputs": ["REF image content", "REF HF/LF fields", "winner JSON", "sample index", "crop identity key planes"],
             "render_inputs": ["source RGB frame/crop", "normalized pixel coordinates", "checkpoint"],
+            "source_frequency_planes": frequency_mode,
+            "source_frequency_blur": frequency_blur,
             "input_channels": int(ckpt.get("in_channels", 9)),
             "device": str(DEVICE),
         },
@@ -941,6 +994,8 @@ def main() -> int:
     ap.add_argument("--source-weight", type=float, default=0.0, help="Penalize changing the source RGB; useful for no-op-biased post refiners.")
     ap.add_argument("--source-lowfreq-weight", type=float, default=0.0, help="Penalize changing blurred source RGB; useful for low-frequency no-op bias.")
     ap.add_argument("--source-lowfreq-blur-sigma", type=float, default=2.0)
+    ap.add_argument("--source-frequency-planes", choices=["none", "low_high"], default="none", help="Append source-derived frequency planes to runtime inputs.")
+    ap.add_argument("--source-frequency-blur", type=float, default=2.0, help="Blur radius for source-derived low/high input planes.")
     ap.add_argument("--score-y-weight", type=float, default=0.0)
     ap.add_argument("--score-opponent-weight", type=float, default=0.0)
     ap.add_argument("--score-lab-weight", type=float, default=0.0)

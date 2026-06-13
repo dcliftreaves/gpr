@@ -214,6 +214,11 @@ The full-frame evaluator now exposes that geometry as explicit repeated
 `--tile-offset` origins; the 2026-06-12 four-origin receipt also fails 0/3 on
 `Z8Z_6680` with worst LPIPS 0.2713 and worst dE2000 5.54, so multi-origin
 stitching is tracked as negative evidence rather than a hidden production path.
+A 15-channel source-frequency post-refiner path was then added for runtime-safe
+low/high planes derived from source RGB only. On the 24 hard-eight stitched
+manifest crops it still reaches only 3/24, with worst LPIPS 0.5604 and worst
+dE2000 8.28, so source-derived frequency planes alone are not the missing
+full-frame representation.
 The first explicit low-frequency spatial branch improves the hard `Z8Z_6680`
 tile receipt to 9/12 isolated passes, but stitched full-frame output remains
 1/3 with remaining Y/dE failures in the lower-left region. A follow-up
