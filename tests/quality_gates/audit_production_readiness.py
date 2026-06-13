@@ -1652,17 +1652,26 @@ def check_preview_q8_multiband_negative_evidence() -> Check:
 
 def check_preview_q8_crop_specialist_evidence() -> Check:
     tool = REPO / "tools/cnn/train_preview_q8_crop_refiner.py"
+    fullframe_tool = REPO / "tools/cnn/evaluate_preview_q8_crop_fullframe.py"
     base = ARTIFACT_ROOT / "preview_runtime_policy_20260613"
     receipts = {
         "hardfit": base / "q8_crop_refiner_hardfit_diverseholdout_w40_s300_v1/preview_q8_crop_refiner.json",
         "hard_split": base / "q8_crop_refiner_hard_split_holdout7480_7955_w40_s300_v1/preview_q8_crop_refiner.json",
         "allfit": base / "q8_crop_refiner_allfit_w40_s300_v1/preview_q8_crop_refiner.json",
+        "fullframe_hardfit_z7955": base / "q8_crop_fullframe_hardfit_z7955_t512_smoke_v1/preview_q8_crop_fullframe.json",
+        "fullframe_hardfit_z7480": base / "q8_crop_fullframe_hardfit_z7480_t512_smoke_v1/preview_q8_crop_fullframe.json",
+        "fullframe_hardsplit": base / "q8_crop_fullframe_hardsplit_z7480_z7955_t512_smoke_v1/preview_q8_crop_fullframe.json",
     }
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "q8 crop specialist evidence", "FAIL", "missing tracked q8 crop refiner tool")
+    if not fullframe_tool.exists() or not git_tracked(fullframe_tool):
+        return Check("preview_detail", "q8 crop specialist evidence", "FAIL", "missing tracked q8 crop full-frame evaluator")
     tool_text = tool.read_text()
     if "crop_identity_key_planes" not in tool_text or "q8_source_rgb_crop" not in tool_text:
         return Check("preview_detail", "q8 crop specialist evidence", "FAIL", "tool missing no-key-plane runtime contract")
+    fullframe_tool_text = fullframe_tool.read_text()
+    if "q8_source_rgb_fullframe_tiles" not in fullframe_tool_text or "uses_ref_at_render_time" not in fullframe_tool_text:
+        return Check("preview_detail", "q8 crop specialist evidence", "FAIL", "full-frame evaluator missing runtime contract")
     missing = [str(path) for path in receipts.values() if not path.exists()]
     if missing:
         return Check("preview_detail", "q8 crop specialist evidence", "FAIL", f"missing {missing[0]}")
@@ -1671,6 +1680,9 @@ def check_preview_q8_crop_specialist_evidence() -> Check:
         hardfit = json.loads(receipts["hardfit"].read_text())
         hard_split = json.loads(receipts["hard_split"].read_text())
         allfit = json.loads(receipts["allfit"].read_text())
+        fullframe_z7955 = json.loads(receipts["fullframe_hardfit_z7955"].read_text())
+        fullframe_z7480 = json.loads(receipts["fullframe_hardfit_z7480"].read_text())
+        fullframe_split = json.loads(receipts["fullframe_hardsplit"].read_text())
 
         def summary(payload: dict[str, Any], role: str) -> dict[str, Any]:
             return (payload.get("summary") or {}).get(role) or {}
@@ -1691,10 +1703,27 @@ def check_preview_q8_crop_specialist_evidence() -> Check:
             row for row in hard_split_holdout_rows
             if row.get("image_id") == "Z8Z_7955"
         ]
+
+        def ff_summary(payload: dict[str, Any]) -> dict[str, Any]:
+            return (payload.get("summary") or {}).get("preview_q8_crop_fullframe") or {}
+
+        def ff_pass_count(payload: dict[str, Any]) -> tuple[int, int]:
+            row = ff_summary(payload)
+            return int(row.get("pass_count", -1)), int(row.get("count", 0))
+
+        def ff_image_pass_count(payload: dict[str, Any], image_id: str) -> tuple[int, int]:
+            rows = [row for row in payload.get("rows") or [] if row.get("image_id") == image_id]
+            return sum(1 for row in rows if row.get("preview_pass")), len(rows)
+
+        ff_split_contract = fullframe_split.get("render_contract") or {}
+        ff_split_timing = fullframe_split.get("timing") or {}
         ok = (
             hardfit.get("schema") == "preview_q8_crop_refiner_receipt.v1"
             and hard_split.get("schema") == "preview_q8_crop_refiner_receipt.v1"
             and allfit.get("schema") == "preview_q8_crop_refiner_receipt.v1"
+            and fullframe_z7955.get("schema") == "preview_q8_crop_fullframe_receipt.v1"
+            and fullframe_z7480.get("schema") == "preview_q8_crop_fullframe_receipt.v1"
+            and fullframe_split.get("schema") == "preview_q8_crop_fullframe_receipt.v1"
             and (hardfit.get("render_contract") or {}).get("source_policy") == "q8_source_crop_plus_source_derived_features_only"
             and (hardfit.get("model") or {}).get("architecture") == "direct"
             and int((hardfit.get("model") or {}).get("in_channels", 0)) == 34
@@ -1710,6 +1739,18 @@ def check_preview_q8_crop_specialist_evidence() -> Check:
             and pass_count(allfit, "all") == (46, 84)
             and float((hardfit.get("timing") or {}).get("model_ms_median", 0.0)) > 0.0
             and float((hardfit.get("timing") or {}).get("max_rss_mb", 0.0)) > 1000.0
+            and (fullframe_z7955.get("checkpoint_sha256") == (hardfit.get("model") or {}).get("checkpoint_sha256"))
+            and (fullframe_z7480.get("checkpoint_sha256") == (hardfit.get("model") or {}).get("checkpoint_sha256"))
+            and ff_pass_count(fullframe_z7955) == (3, 3)
+            and ff_pass_count(fullframe_z7480) == (3, 3)
+            and ff_pass_count(fullframe_split) == (3, 6)
+            and ff_image_pass_count(fullframe_split, "Z8Z_7480") == (0, 3)
+            and ff_image_pass_count(fullframe_split, "Z8Z_7955") == (3, 3)
+            and ff_split_contract.get("uses_ref_at_render_time") is False
+            and ff_split_contract.get("source_policy") == "q8_source_fullframe_tiled_plus_source_derived_features_only"
+            and int(ff_split_timing.get("tile_count_total", 0)) == 374
+            and float(ff_split_timing.get("model_ms_total", 0.0)) > 5000.0
+            and float(ff_split_timing.get("max_rss_mb", 0.0)) > 1000.0
         )
         return Check(
             "preview_detail",
@@ -1722,6 +1763,10 @@ def check_preview_q8_crop_specialist_evidence() -> Check:
                 f"z7480={sum(1 for row in z7480_holdout if row.get('preview_pass'))}/3 "
                 f"z7955={sum(1 for row in z7955_holdout if row.get('preview_pass'))}/3; "
                 f"allfit={pass_count(allfit, 'all')[0]}/84; "
+                f"fullframe_hardfit={ff_pass_count(fullframe_z7480)[0] + ff_pass_count(fullframe_z7955)[0]}/6 "
+                f"fullframe_split={ff_pass_count(fullframe_split)[0]}/6 "
+                f"ff_z7480={ff_image_pass_count(fullframe_split, 'Z8Z_7480')[0]}/3 "
+                f"ff_z7955={ff_image_pass_count(fullframe_split, 'Z8Z_7955')[0]}/3; "
                 f"receipts={receipts['hardfit']}, {receipts['hard_split']}, {receipts['allfit']}"
             ),
         )

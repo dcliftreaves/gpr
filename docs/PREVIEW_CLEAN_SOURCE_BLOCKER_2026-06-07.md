@@ -2978,3 +2978,43 @@ the remaining production blocker: `Z8Z_7480` needs either matching structure
 training data, a narrower routed specialist, or a better runtime-safe source
 representation. Do not register this as production until the specialist route
 has held-out full-image evidence and a full-frame/tile application path.
+
+### q8 Crop Specialist Full-frame Tiled Smoke - 2026-06-13
+
+Tool:
+
+```text
+tools/cnn/evaluate_preview_q8_crop_fullframe.py
+```
+
+The new evaluator loads a q8 crop checkpoint, applies it to q8 source
+full-frame tiles, stitches the result, and scores the manifest crops from the
+stitched image. Runtime inputs are q8 source RGB full-frame tiles,
+source-derived multiband/gradient/laplacian/global-stat planes, normalized
+coordinates, and the checkpoint. REF is scoring only.
+
+Receipts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardfit_z7955_t512_smoke_v1/preview_q8_crop_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardfit_z7955_t512_smoke_v1/preview_q8_crop_fullframe.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardfit_z7480_t512_smoke_v1/preview_q8_crop_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardfit_z7480_t512_smoke_v1/preview_q8_crop_fullframe.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardsplit_z7480_z7955_t512_smoke_v1/preview_q8_crop_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_hardsplit_z7480_z7955_t512_smoke_v1/preview_q8_crop_fullframe.html
+```
+
+Result:
+
+| checkpoint | images | stitched crop pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 | tiles | model time |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| hard-fit | `Z8Z_7955` | 3/3 | 0.0499 | 0.9882 | 38.04 | 1.70 | 187 | 2.80 s |
+| hard-fit | `Z8Z_7480` | 3/3 | 0.1178 | 0.9548 | 33.69 | 2.39 | 187 | 2.78 s |
+| hard split | `Z8Z_7480`, `Z8Z_7955` | 3/6 | 0.1849 | 0.8916 | 27.45 | 3.69 | 374 | 5.68 s |
+
+The split rows match the crop diagnostic in the production-shaped path:
+`Z8Z_7955` passes 3/3 while held out, and `Z8Z_7480` fails 0/3 while held out.
+The hard-fit rows prove the q8 crop specialist can survive arbitrary 512px
+full-frame tiling and stitching when the scene family is covered by training.
+This is stronger than crop-only evidence, but still not a production PREVIEW
+claim because `Z8Z_7480` does not generalize without matching coverage.
