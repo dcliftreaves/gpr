@@ -395,6 +395,10 @@ REF-low oracle ceiling is 7/24. A narrow 4096-wide source+XY generator and a
 raising the current full-image band generator resolution; the missing piece is
 a stronger image-conditioned/global model or a different runtime source/teacher
 representation.
+A per-image full-image RGB affine oracle then fit source fields to REF fields
+at 4096 and 6144 widths. It also stays 0/24, with worst LPIPS above 0.62 and
+worst dE around 10 on the 6144 affine field. That rules out a simple global
+color transform as the missing high-resolution source representation.
 A follow-up `context_unet_generator` diagnostic removed the source-plus-residual
 output constraint on the 768-context hard-eight fit. It still failed 0/24
 with worst LPIPS 0.6136 and median LPIPS 0.4035, so simple output headroom is

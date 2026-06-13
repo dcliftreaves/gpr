@@ -2294,3 +2294,41 @@ not enough to raise the existing full-image band generator to 4096px. The next
 candidate needs a stronger image-conditioned/global model or a different
 runtime source/teacher representation that can learn the 4096-6144px field
 without REF at render time.
+
+### Full-Image RGB Affine Oracle
+
+A follow-up oracle tested whether the remaining source/REF field mismatch is
+mostly a per-image global RGB transform. For each image and field width, the
+tool fits a 3x4 RGB affine transform from downsampled source pixels to REF
+pixels, applies it to the source field, then scores manifest crops. The affine
+fit uses REF and is not production-allowed.
+
+Tool:
+
+```text
+tools/cnn/probe_preview_fullimage_affine_oracle.py
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_affine_oracle_hard8_v1/preview_fullimage_affine_oracle.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_affine_oracle_hard8_v1/preview_fullimage_affine_oracle.html
+```
+
+Result:
+
+| variant | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| source field, max width 4096 | 0/24 | 0.7155 | 0.3163 | 17.21 | 10.51 |
+| affine field oracle, max width 4096 | 0/24 | 0.6900 | 0.3218 | 17.36 | 9.93 |
+| affine field + source high, sigma 1, max width 4096 | 0/24 | 0.6374 | 0.2961 | 16.87 | 10.67 |
+| source field, max width 6144 | 0/24 | 0.6365 | 0.2850 | 16.96 | 10.77 |
+| affine field oracle, max width 6144 | 0/24 | 0.6231 | 0.2911 | 17.12 | 10.18 |
+| affine field + source high, sigma 1, max width 6144 | 0/24 | 0.6609 | 0.2686 | 16.64 | 10.89 |
+
+Even an ideal per-image RGB affine does not clear any hard-eight row. This
+rules out simple global source-to-REF color correction as the missing
+production fix. The next candidate needs a different source/teacher
+representation or a model class that can learn spatially varying structure and
+detail placement, not just global color.

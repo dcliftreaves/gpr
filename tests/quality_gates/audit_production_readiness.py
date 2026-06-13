@@ -731,6 +731,56 @@ def check_preview_highres_fullimage_band_negative_evidence() -> Check:
         return Check("preview_detail", "high-res full-image band negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_fullimage_affine_oracle_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/probe_preview_fullimage_affine_oracle.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullimage_affine_oracle_hard8_v1"
+        / "preview_fullimage_affine_oracle.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", "missing tracked affine oracle tool")
+    tool_text = tool.read_text(errors="ignore")
+    if "oracle_uses_ref_to_fit_affine" not in tool_text or "production_allowed" not in tool_text:
+        return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", "tool missing diagnostic-only contract")
+    if not receipt.exists():
+        return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        variants = {row.get("variant"): row for row in payload.get("summary", [])}
+        affine_4096 = variants.get("affine_field_oracle_w4096") or {}
+        affine_6144 = variants.get("affine_field_oracle_w6144") or {}
+        source_high = variants.get("affine_field_source_high_s1_w4096") or {}
+        contract = payload.get("render_contract") or {}
+        ok = (
+            payload.get("schema") == "preview_fullimage_affine_oracle.v1"
+            and contract.get("oracle_uses_ref_to_fit_affine") is True
+            and contract.get("production_allowed") is False
+            and int(affine_4096.get("count", 0)) == 24
+            and int(affine_4096.get("pass_count", -1)) == 0
+            and int(affine_6144.get("count", 0)) == 24
+            and int(affine_6144.get("pass_count", -1)) == 0
+            and int(source_high.get("count", 0)) == 24
+            and int(source_high.get("pass_count", -1)) == 0
+            and float(affine_6144.get("worst_lpips", 0.0)) > 0.6
+            and float(affine_6144.get("worst_dE2000_mean", 0.0)) > 10.0
+        )
+        return Check(
+            "preview_detail",
+            "full-image affine oracle negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"affine4096={int(affine_4096.get('pass_count', -1))}/24, "
+                f"affine6144={int(affine_6144.get('pass_count', -1))}/24, "
+                f"affine_source_high={int(source_high.get('pass_count', -1))}/24 "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_alignment_oracle_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_fullframe_alignment_oracle.py"
     hard8_receipt = (
@@ -1744,6 +1794,7 @@ def main() -> int:
     checks.append(check_preview_source_frequency_negative_evidence())
     checks.append(check_preview_fullimage_band_negative_evidence())
     checks.append(check_preview_highres_fullimage_band_negative_evidence())
+    checks.append(check_preview_fullimage_affine_oracle_negative_evidence())
     checks.append(check_preview_alignment_oracle_negative_evidence())
     checks.append(check_preview_fullframe_failure_mode_audit())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
