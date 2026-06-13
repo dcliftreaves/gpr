@@ -52,6 +52,12 @@ def default_specs(root: Path) -> list[ReceiptSpec]:
             "Runtime-legal source renders; REF is metric-only.",
         ),
         ReceiptSpec(
+            "codec_teacher_sources_hard8",
+            policy_0613 / "codec_teacher_source_score_hard8_v1/preview_codec_teacher_source_score.json",
+            "runtime_source",
+            "Registered codec-derived no-REF teacher/source renders; REF is metric-only.",
+        ),
+        ReceiptSpec(
             "resolution_oracle_highres",
             policy_0613 / "fullimage_resolution_oracle_hard8_highres_v1/preview_fullimage_resolution_oracle.json",
             "mixed",
@@ -279,6 +285,13 @@ def build_findings(rows: list[dict[str, Any]]) -> list[str]:
         findings.append(
             f"Best hard-row no-REF model candidate is {best['pass_count']}/{best['count']} "
             f"({best['receipt']}:{best['variant']}), so current local/residual formulations are not enough."
+        )
+    codec_teachers = [row for row in eligible if row["receipt"] == "codec_teacher_sources_hard8"]
+    if codec_teachers:
+        best = max(codec_teachers, key=lambda row: (row["pass_rate"], row["pass_count"]))
+        findings.append(
+            f"Best codec-derived no-REF teacher/source row is {best['pass_count']}/{best['count']} "
+            f"({best['variant']}), so archival/still codec rendering alone is not a sufficient PREVIEW teacher."
         )
     if oracles:
         best = max(oracles, key=lambda row: (row["pass_rate"], row["pass_count"]))

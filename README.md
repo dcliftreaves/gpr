@@ -189,16 +189,17 @@ the immediate fix, and source-root scoring shows the clean UPRESABLE source
 itself is 0/24 on the hard-eight PREVIEW crops. The remaining blocker is
 source/target formulation under arbitrary full-frame tiling.
 
-The latest candidate evidence rank dashboard aggregates 209 variant summaries
+The latest candidate evidence rank dashboard aggregates 211 variant summaries
 across the source, model, crop-contract, and oracle receipts. It makes the
 current split explicit: crop-shaped no-REF routing is **84/84**, the broad
 production-shaped full-frame route is **63/84**, the best hard-row no-REF model
-candidate is only **2/24**, and the REF-field oracle ceiling is **24/24**.
-That rules down another local post-refiner or residual-band pass as the next
-production move; the next viable PREVIEW experiment needs a different
-runtime-safe source/teacher representation or a more global image-conditioned
-model. Dashboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v1/preview_candidate_evidence_rank.html`.
+candidate is only **2/24**, the best codec-derived no-REF teacher/source row is
+only **12/24**, and the REF-field oracle ceiling is **24/24**. That rules down
+another local post-refiner, residual-band pass, or archival/still codec render
+as the next production move; the next viable PREVIEW experiment needs a
+different runtime-safe source/teacher representation or a more global
+image-conditioned model. Dashboard:
+`/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v2/preview_candidate_evidence_rank.html`.
 
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched

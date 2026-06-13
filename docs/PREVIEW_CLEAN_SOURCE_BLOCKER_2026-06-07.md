@@ -2597,3 +2597,59 @@ the next high-EV production move. The next viable PREVIEW experiment should
 change the runtime-safe source/teacher representation or move to a more global
 image-conditioned model that can learn the missing full-image low/mid/detail
 placement without REF at render time.
+
+### Codec-Derived Teacher Source Probe
+
+The next bounded source/teacher diagnostic tested whether registered
+codec-derived renders could provide a better no-REF teacher for embedded
+PREVIEW than the current UPRESABLE/source path. Candidate renders used only the
+source DNG plus registered codec/CNN/demosaic pipelines. REF was rendered only
+for metrics.
+
+Tool:
+
+```text
+tools/cnn/score_preview_codec_teacher_sources.py
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_hard8_v1/preview_codec_teacher_source_score.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_hard8_v1/preview_codec_teacher_source_score.html
+```
+
+Hard-eight summary:
+
+| source/teacher candidate | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 | median bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `gpr_tools_q8`, no CNN | 12/24 | 0.1849 | 0.8789 | 25.37 | 5.43 | 21.97 MiB |
+| `gpr_tools_q3` + BIBO_1x | 7/24 | 0.2365 | 0.2440 | 15.63 | 11.60 | 15.76 MiB |
+
+The best codec-derived no-REF teacher/source row is therefore the archival q8
+render at 12/24. Its worst failures are spread across `Z8Z_1586`, `Z8Z_7480`,
+`Z8Z_0705`, `Z8Z_7955`, and `Z8Z_5937`, with both LPIPS/detail and dE/Y misses.
+This rules out a simple archival/still codec render as the PREVIEW teacher. A
+future PREVIEW candidate needs either a different runtime-safe teacher/source
+formulation or a more global image-conditioned model; q8 rendering alone does
+not explain the missing full-image field.
+
+The aggregate evidence-rank dashboard was regenerated after this probe:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v2/preview_candidate_evidence_rank.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v2/preview_candidate_evidence_rank.html
+```
+
+Updated result:
+
+| evidence class | best row | pass | interpretation |
+| --- | --- | ---: | --- |
+| crop-shaped no-REF route | `crop_holdout_v32` | 84/84 | Crop-local routing is solved enough for diagnostics. |
+| production-shaped full-frame route | `fullframe_scene_gated_84` | 63/84 | Arbitrary full-image tiling is still the blocker. |
+| hard-row no-REF model | stitched context post-refiner | 2/24 | Local/post/refiner-style models are not sufficient. |
+| codec-derived no-REF teacher/source | `gpr_tools_q8`, no CNN | 12/24 | Archival/still codec rendering alone is not a sufficient PREVIEW teacher. |
+| diagnostic/oracle ceiling | full-resolution REF field | 24/24 | The target is reachable only with information the current runtime path lacks. |
+
+The dashboard now ranks 211 variant summaries, of which 69 are
+production-eligible runtime-source, no-REF full-frame, or no-REF model rows.
