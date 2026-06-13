@@ -65,6 +65,44 @@ class FullImageBandGenerator(nn.Module):
         return torch.sigmoid(self.net(x))
 
 
+class ResidualFullImageBandGenerator(nn.Module):
+    def __init__(self, width: int, depth: int, in_channels: int = 5, residual_scale: float = 0.5) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        layers: list[nn.Module] = [
+            nn.Conv2d(in_channels, width, kernel_size=7, padding=3),
+            nn.SiLU(inplace=True),
+        ]
+        for _ in range(max(0, depth - 1)):
+            layers.extend(
+                [
+                    nn.Conv2d(width, width, kernel_size=3, padding=1),
+                    nn.SiLU(inplace=True),
+                ]
+            )
+        layers.append(nn.Conv2d(width, 3, kernel_size=3, padding=1))
+        self.net = nn.Sequential(*layers)
+        nn.init.zeros_(self.net[-1].weight)
+        nn.init.zeros_(self.net[-1].bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        source = x[:, :3]
+        return torch.clamp(source + self.residual_scale * torch.tanh(self.net(x)), 0.0, 1.0)
+
+
+def build_generator(args: argparse.Namespace, in_channels: int) -> nn.Module:
+    if args.architecture == "direct":
+        return FullImageBandGenerator(args.width, args.depth, in_channels=in_channels)
+    if args.architecture == "residual":
+        return ResidualFullImageBandGenerator(
+            args.width,
+            args.depth,
+            in_channels=in_channels,
+            residual_scale=args.residual_scale,
+        )
+    raise ValueError(f"unsupported architecture {args.architecture!r}")
+
+
 def max_rss_mb() -> float:
     rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     if sys.platform == "darwin":
@@ -331,9 +369,9 @@ def train_model(
     args: argparse.Namespace,
     samples: list[dict[str, Any]],
     crops: dict[str, dict[str, int]],
-) -> tuple[FullImageBandGenerator, list[dict[str, float]], dict[str, float]]:
+) -> tuple[nn.Module, list[dict[str, float]], dict[str, float]]:
     in_channels = int(samples[0]["input"].shape[0])
-    model = FullImageBandGenerator(args.width, args.depth, in_channels=in_channels).to(DEVICE)
+    model = build_generator(args, in_channels).to(DEVICE)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     history: list[dict[str, float]] = []
     fit_samples = [sample for sample in samples if sample["image_id"] not in set(args.holdout_image_id)]
@@ -398,7 +436,7 @@ def train_model(
 
 
 @torch.no_grad()
-def predict_low(model: FullImageBandGenerator, sample: dict[str, Any]) -> tuple[np.ndarray, float]:
+def predict_low(model: nn.Module, sample: dict[str, Any]) -> tuple[np.ndarray, float]:
     t0 = time.perf_counter()
     pred = model(sample["input"].unsqueeze(0).to(DEVICE))[0].detach().cpu()
     wall_ms = (time.perf_counter() - t0) * 1000.0
@@ -408,7 +446,7 @@ def predict_low(model: FullImageBandGenerator, sample: dict[str, Any]) -> tuple[
 def score_samples(
     *,
     args: argparse.Namespace,
-    model: FullImageBandGenerator,
+    model: nn.Module,
     samples: list[dict[str, Any]],
     crops: dict[str, dict[str, int]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
@@ -541,11 +579,13 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
         {
             "schema": "preview_fullimage_band_refiner_checkpoint.v1",
             "state_dict": model.state_dict(),
+            "architecture": args.architecture,
             "width": args.width,
             "depth": args.depth,
             "in_channels": int(samples[0]["input"].shape[0]),
             "model_width": args.model_width,
             "conditioning": args.conditioning,
+            "residual_scale": args.residual_scale,
             "high_sigma": [float(v) for v in args.high_sigma],
             "source_policy": "runtime_source_rgb_plus_normalized_xy_and_optional_source_stats_only",
         },
@@ -578,12 +618,13 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
             "history": history,
         },
         "model": {
-            "architecture": "fullimage_band_generator",
+            "architecture": args.architecture,
             "width": args.width,
             "depth": args.depth,
             "in_channels": int(samples[0]["input"].shape[0]),
             "model_width": args.model_width,
             "conditioning": args.conditioning,
+            "residual_scale": args.residual_scale,
             "checkpoint": str(checkpoint_path),
             "checkpoint_sha256": sha256_file(checkpoint_path),
             "checkpoint_bytes": checkpoint_path.stat().st_size,
@@ -632,8 +673,10 @@ def main() -> int:
         ],
     )
     ap.add_argument("--model-width", type=int, default=768)
+    ap.add_argument("--architecture", choices=["direct", "residual"], default="direct")
     ap.add_argument("--width", type=int, default=48)
     ap.add_argument("--depth", type=int, default=6)
+    ap.add_argument("--residual-scale", type=float, default=0.5)
     ap.add_argument("--conditioning", choices=["xy", "xy_global_color_stats"], default="xy")
     ap.add_argument("--steps", type=int, default=500)
     ap.add_argument("--lr", type=float, default=2e-3)

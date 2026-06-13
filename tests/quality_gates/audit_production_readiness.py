@@ -750,6 +750,86 @@ def check_preview_highres_fullimage_band_negative_evidence() -> Check:
         return Check("preview_detail", "high-res full-image band negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_residual_fullimage_band_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/train_preview_fullimage_band_refiner.py"
+    w1536_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullimage_band_residual_smoke_0026_6680_w1536_v1"
+        / "preview_fullimage_band_refiner.json"
+    )
+    w4096_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullimage_band_residual_smoke_0026_6680_w4096_v1"
+        / "preview_fullimage_band_refiner.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "residual full-image band negative evidence", "FAIL", "missing tracked full-image band refiner")
+    tool_text = tool.read_text(errors="ignore")
+    if "ResidualFullImageBandGenerator" not in tool_text or "--architecture" not in tool_text:
+        return Check("preview_detail", "residual full-image band negative evidence", "FAIL", "tool missing residual architecture contract")
+    missing = [str(path) for path in (w1536_receipt, w4096_receipt) if not path.exists()]
+    if missing:
+        return Check("preview_detail", "residual full-image band negative evidence", "FAIL", "missing " + ", ".join(missing))
+    try:
+        w1536 = json.loads(w1536_receipt.read_text())
+        w4096 = json.loads(w4096_receipt.read_text())
+
+        def summary(payload, variant: str):
+            return {row.get("variant"): row for row in payload.get("summary", [])}.get(variant) or {}
+
+        w1536_generated = summary(w1536, "generated_low_plus_source_high_s4")
+        w1536_source = summary(w1536, "source_baseline")
+        w4096_source = summary(w4096, "source_baseline")
+        w4096_generated = summary(w4096, "generated_low_plus_source_high_s1")
+        w4096_ref = summary(w4096, "ref_low_plus_source_high_s1")
+        w1536_model = w1536.get("model") or {}
+        w4096_model = w4096.get("model") or {}
+        w4096_contract = w4096.get("render_contract") or {}
+        ok = (
+            w1536.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and w4096.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and w1536_model.get("architecture") == "residual"
+            and w4096_model.get("architecture") == "residual"
+            and int(w1536_model.get("model_width", 0)) == 1536
+            and int(w4096_model.get("model_width", 0)) == 4096
+            and int(w4096_model.get("in_channels", 0)) == 11
+            and w1536_model.get("checkpoint_sha256")
+            and w4096_model.get("checkpoint_sha256")
+            and "source_rgb_global_mean_std" in (w4096_contract.get("render_time_inputs") or [])
+            and "ref_rgb" in (w4096_contract.get("forbidden_render_time_inputs") or [])
+            and int(w1536_source.get("count", 0)) == 6
+            and int(w1536_source.get("pass_count", -1)) == 0
+            and int(w1536_generated.get("pass_count", -1)) == 0
+            and float(w1536_generated.get("worst_lpips", 0.0)) > 0.64
+            and int(w4096_source.get("count", 0)) == 6
+            and int(w4096_source.get("pass_count", -1)) == 0
+            and int(w4096_generated.get("pass_count", -1)) == 0
+            and int(w4096_ref.get("pass_count", -1)) == 0
+            and float(w4096_ref.get("worst_lpips", 1.0)) < float(w4096_generated.get("worst_lpips", 0.0))
+            and float(w4096_generated.get("worst_lpips", 0.0)) > float(w4096_source.get("worst_lpips", 0.0))
+        )
+        return Check(
+            "preview_detail",
+            "residual full-image band negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"w1536_generated={int(w1536_generated.get('pass_count', -1))}/6 "
+                f"lpips={float(w1536_generated.get('worst_lpips', 999.0)):.4f}; "
+                f"w4096_source={int(w4096_source.get('pass_count', -1))}/6 "
+                f"lpips={float(w4096_source.get('worst_lpips', 999.0)):.4f}; "
+                f"w4096_generated={int(w4096_generated.get('pass_count', -1))}/6 "
+                f"lpips={float(w4096_generated.get('worst_lpips', 999.0)):.4f}; "
+                f"w4096_ref={int(w4096_ref.get('pass_count', -1))}/6 "
+                f"lpips={float(w4096_ref.get('worst_lpips', 999.0)):.4f} "
+                f"receipt={w4096_receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "residual full-image band negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_fullimage_affine_oracle_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_fullimage_affine_oracle.py"
     local_tool = REPO / "tools/cnn/probe_preview_fullimage_local_affine_oracle.py"
@@ -2025,6 +2105,7 @@ def main() -> int:
     checks.append(check_preview_source_frequency_negative_evidence())
     checks.append(check_preview_fullimage_band_negative_evidence())
     checks.append(check_preview_highres_fullimage_band_negative_evidence())
+    checks.append(check_preview_residual_fullimage_band_negative_evidence())
     checks.append(check_preview_fullimage_affine_oracle_negative_evidence())
     checks.append(check_preview_residual_feature_negative_evidence())
     checks.append(check_preview_dense_warp_negative_evidence())

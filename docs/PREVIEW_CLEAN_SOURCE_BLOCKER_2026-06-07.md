@@ -2510,3 +2510,43 @@ simple render-source swap as the next production fix; the remaining path needs
 a different learned source/teacher formulation or a spatially varying
 full-image model that can recover the missing low/mid/detail fields from
 source-only runtime inputs.
+
+### Residual Full-Image Band Generator
+
+The next bounded model-formulation check changed the full-image band generator
+from a direct sigmoid RGB field to a source-preserving residual field. The
+runtime contract is unchanged except for the new architecture: source RGB,
+normalized coordinates, source global RGB mean/std, and checkpoint weights are
+allowed; REF is training/scoring/oracle-only.
+
+Tool update:
+
+```text
+tools/cnn/train_preview_fullimage_band_refiner.py --architecture residual
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_residual_smoke_0026_6680_w1536_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_residual_smoke_0026_6680_w1536_v1/preview_fullimage_band_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_residual_smoke_0026_6680_w4096_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_residual_smoke_0026_6680_w4096_v1/preview_fullimage_band_refiner.html
+```
+
+Result on `Z8Z_0026` and `Z8Z_6680`:
+
+| variant | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| source baseline | 0/6 | 0.6839 | 0.2922 | 17.00 | 10.70 |
+| residual generated low + source high, 1536 width | 0/6 | 0.6592 | 0.4401 | 17.83 | 10.51 |
+| residual generated low + source high, 4096 width | 0/6 | 0.6898 | 0.5975 | 19.37 | 9.08 |
+| REF low + source high oracle, 4096 width | 0/6 | 0.3784 | 0.8649 | 22.42 | 5.12 |
+
+The residual model moves some Y/dE and MS-SSIM numbers but does not recover any
+PREVIEW row and does not improve the decisive LPIPS/detail failure at 4096
+width. The REF-low oracle remains much closer, so the source-preserving residual
+head is not enough to learn the high-resolution field from the current source
+representation. The next viable candidate still needs a different
+source/teacher representation or a more global image-conditioned model, not just
+a residual variant of the current full-image band generator.

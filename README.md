@@ -398,6 +398,15 @@ representation.
 The same model family with manifest-crop-weighted loss and best-step checkpoint
 restore still stays 0/24, so the gate miss is not just the full-image training
 objective averaging away the scored crops.
+A source-preserving residual version of the full-image band generator was then
+tested on the two hardest smoke images, `Z8Z_0026` and `Z8Z_6680`, at 1536 and
+4096 model widths. The residual architecture starts from source RGB and learns a
+bounded high-resolution residual field from source RGB, normalized coordinates,
+and source global stats only. It still passes 0/6 at both resolutions; the 4096
+generated low-plus-source-high variant has worse worst LPIPS than the source
+baseline (0.6898 versus 0.6839), while the 4096 REF-low/source-high oracle is
+much closer but also still 0/6 on this hardest smoke. That rules out the simple
+source-preserving residual-field variant as the missing production formulation.
 A per-image full-image RGB affine oracle then fit source fields to REF fields
 at 4096 and 6144 widths. It also stays 0/24, with worst LPIPS above 0.62 and
 worst dE around 10 on the 6144 affine field. That rules out a simple global
