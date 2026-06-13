@@ -957,6 +957,61 @@ def check_preview_residual_feature_negative_evidence() -> Check:
         return Check("preview_detail", "source-feature residual negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_dense_warp_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/probe_preview_fullimage_dense_warp_oracle.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "dense_warp_hard8_w1024_v1"
+        / "preview_fullimage_dense_warp_oracle.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "dense-warp oracle negative evidence", "FAIL", "missing tracked dense-warp oracle")
+    tool_text = tool.read_text(errors="ignore")
+    if "uses_ref_to_estimate_dense_flow" not in tool_text or "production_allowed" not in tool_text:
+        return Check("preview_detail", "dense-warp oracle negative evidence", "FAIL", "tool missing diagnostic-only contract")
+    if not receipt.exists():
+        return Check("preview_detail", "dense-warp oracle negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        variants = {row.get("variant"): row for row in payload.get("summary", [])}
+        baseline = variants.get("source_baseline_w1024") or {}
+        tvl1_plus = variants.get("dense_warp_tvl1_plus_w1024") or {}
+        ilk_plus = variants.get("dense_warp_ilk_plus_w1024") or {}
+        contract = payload.get("render_contract") or {}
+        ok = (
+            payload.get("schema") == "preview_fullimage_dense_warp_oracle.v1"
+            and contract.get("uses_ref_to_estimate_dense_flow") is True
+            and contract.get("production_allowed") is False
+            and int(baseline.get("count", 0)) == 24
+            and int(baseline.get("pass_count", -1)) == 0
+            and int(tvl1_plus.get("count", 0)) == 24
+            and int(tvl1_plus.get("pass_count", -1)) == 0
+            and int(ilk_plus.get("count", 0)) == 24
+            and int(ilk_plus.get("pass_count", -1)) == 0
+            and float(tvl1_plus.get("worst_ms_ssim", 0.0)) > float(baseline.get("worst_ms_ssim", 999.0))
+            and float(tvl1_plus.get("worst_y_psnr", 0.0)) > float(baseline.get("worst_y_psnr", 999.0))
+            and float(tvl1_plus.get("worst_lpips", 0.0)) > 0.90
+        )
+        return Check(
+            "preview_detail",
+            "dense-warp oracle negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"baseline={int(baseline.get('pass_count', -1))}/24 "
+                f"lpips={float(baseline.get('worst_lpips', 999.0)):.4f}; "
+                f"tvl1={int(tvl1_plus.get('pass_count', -1))}/24 "
+                f"lpips={float(tvl1_plus.get('worst_lpips', 999.0)):.4f} "
+                f"MS={float(tvl1_plus.get('worst_ms_ssim', 999.0)):.4f}; "
+                f"ilk={int(ilk_plus.get('pass_count', -1))}/24 "
+                f"lpips={float(ilk_plus.get('worst_lpips', 999.0)):.4f} "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "dense-warp oracle negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_alignment_oracle_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_fullframe_alignment_oracle.py"
     hard8_receipt = (
@@ -1972,6 +2027,7 @@ def main() -> int:
     checks.append(check_preview_highres_fullimage_band_negative_evidence())
     checks.append(check_preview_fullimage_affine_oracle_negative_evidence())
     checks.append(check_preview_residual_feature_negative_evidence())
+    checks.append(check_preview_dense_warp_negative_evidence())
     checks.append(check_preview_source_representation_negative_evidence())
     checks.append(check_preview_alignment_oracle_negative_evidence())
     checks.append(check_preview_fullframe_failure_mode_audit())

@@ -402,6 +402,37 @@ by local affine, shallow feature-regressed residual fields, or non-linear
 hand-feature residual transfer. The next candidate needs a stronger full-image
 structure/detail model or a different source/teacher representation.
 
+## Full-Image Dense-Warp Oracle
+
+A REF-guided dense optical-flow oracle then tested whether local
+geometry/detail placement is the dominant blocker. It estimates flow from REF
+and source luminance on the full downsampled image, then warps the source
+field before scoring manifest crops. Because REF is used to estimate flow,
+this is diagnostic only.
+
+Receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/dense_warp_hard8_w1024_v1/preview_fullimage_dense_warp_oracle.json
+```
+
+Result:
+
+| variant | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+|---|---:|---:|---:|---:|---:|
+| source baseline, 1024-wide | 0/24 | 0.9179 | 0.2510 | 17.25 | 9.77 |
+| TV-L1 warp plus, 1024-wide | 0/24 | 0.9111 | 0.4161 | 18.03 | 8.90 |
+| ILK warp plus, 1024-wide | 0/24 | 0.9181 | 0.3696 | 18.01 | 8.98 |
+| ILK warp minus, 1024-wide | 0/24 | 0.9411 | 0.1996 | 16.90 | 9.98 |
+| TV-L1 warp minus, 1024-wide | 0/24 | 0.9451 | 0.2061 | 16.94 | 9.87 |
+
+Interpretation: dense REF-guided warping moves MS-SSIM/Y/dE in the right
+direction for the best flow direction, but LPIPS remains near 0.91 and no
+hard-eight row passes. The full-frame PREVIEW blocker is therefore not simply
+small alignment, local affine color, hand-feature residual transfer, or dense
+local geometric warp. The next candidate needs a stronger full-image
+structure/detail model or a better source/teacher representation.
+
 Two `Z8Z_0026` full-grid all-crop fine-tunes were tried from the K40
 color-stat checkpoint:
 

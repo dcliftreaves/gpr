@@ -420,6 +420,12 @@ improving worst dE to 8.77 and worst Y-PSNR to 18.02 dB, but worst LPIPS is
 still 0.7988 and no crop passes. That makes this feature-residual family a
 dead end for production unless it is replaced by a much better source/teacher
 representation rather than just a stronger hand-feature regressor.
+A dense optical-flow oracle then tested whether local geometry/detail placement
+is the dominant miss. REF-guided TV-L1 and ILK warps at 1024 width also stay
+0/24. The best TV-L1 direction improves worst MS-SSIM/Y/dE versus the 1024
+source baseline, but worst LPIPS remains 0.9111. Dense local warping is
+therefore not enough either; the next viable model needs to synthesize or
+recover perceptual detail from a better full-image source/teacher formulation.
 A runtime source-representation probe then compared the clean editable DNG
 through `sips`, the clean bundle TIFF frame, and rawpy camera-WB renders on
 the same hard-eight rows. Every variant stayed 0/24; the existing clean
