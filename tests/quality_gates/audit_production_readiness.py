@@ -1389,6 +1389,57 @@ def check_preview_candidate_evidence_rank() -> Check:
         return Check("preview_detail", "candidate evidence rank dashboard", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_source_ref_policy_audit() -> Check:
+    tool = REPO / "tools/cnn/audit_preview_source_ref_policy.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "source_ref_policy_audit_v1"
+        / "preview_source_ref_policy_audit.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "source/REF policy audit", "FAIL", "missing tracked source/REF audit tool")
+    if not receipt.exists():
+        return Check("preview_detail", "source/REF policy audit", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = payload.get("summary") or {}
+        by_source_root = {str(row.get("label")): row for row in payload.get("by_source_root") or []}
+        by_ref_root = {str(row.get("label")): row for row in payload.get("by_ref_root") or []}
+        clean_source = by_source_root.get("artifacts/upresable_holdout_clean_20260607/editable_dng") or {}
+        diverse_ref = by_ref_root.get("cnn/diverse_dngs") or {}
+        barnsky_ref = by_ref_root.get("barnsky_full_dngs") or {}
+        ok = (
+            payload.get("schema") == "preview_source_ref_policy_audit.v1"
+            and int(summary.get("pass_count", -1)) == 20
+            and int(summary.get("count", 0)) == 84
+            and int(clean_source.get("pass_count", -1)) == 20
+            and int(clean_source.get("count", 0)) == 84
+            and int(diverse_ref.get("pass_count", -1)) == 0
+            and int(diverse_ref.get("count", 0)) == 24
+            and int(barnsky_ref.get("pass_count", -1)) == 20
+            and int(barnsky_ref.get("count", 0)) == 60
+        )
+        return Check(
+            "preview_detail",
+            "source/REF policy audit",
+            "PASS" if ok else "FAIL",
+            (
+                f"source_baseline={int(summary.get('pass_count', -1))}/{int(summary.get('count', 0))}, "
+                f"clean_source={int(clean_source.get('pass_count', -1))}/{int(clean_source.get('count', 0))}, "
+                f"diverse_ref={int(diverse_ref.get('pass_count', -1))}/{int(diverse_ref.get('count', 0))}, "
+                f"barnsky_ref={int(barnsky_ref.get('pass_count', -1))}/{int(barnsky_ref.get('count', 0))}, "
+                f"worst_lpips={float(summary.get('worst_lpips', float('nan'))):.4f}, "
+                f"worst_ms={float(summary.get('worst_ms_ssim', float('nan'))):.4f}, "
+                f"worst_y={float(summary.get('worst_y_psnr', float('nan'))):.2f}, "
+                f"worst_dE={float(summary.get('worst_dE2000_mean', float('nan'))):.2f} "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "source/REF policy audit", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_rolemap_post_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_rolemap_post_distill.py"
     receipt = (
@@ -2277,6 +2328,7 @@ def main() -> int:
     checks.append(check_preview_alignment_oracle_negative_evidence())
     checks.append(check_preview_fullframe_failure_mode_audit())
     checks.append(check_preview_candidate_evidence_rank())
+    checks.append(check_preview_source_ref_policy_audit())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
     checks.append(check_preview_route_smoothing_negative_evidence())
     checks.append(check_preview_stitched_context_unet_negative_evidence())

@@ -2666,6 +2666,42 @@ Updated result:
 The dashboard now ranks 215 variant summaries, of which 70 are
 production-eligible runtime-source, no-REF full-frame, or no-REF model rows.
 
+### Runtime Source/REF Policy Audit
+
+A follow-up audit scores the rendered runtime source crop PNGs directly against
+their resolved true REF crop PNGs before any model is applied. This isolates the
+source-policy gap from CNN capacity, routing, and post-processing.
+
+Tool:
+
+```text
+tools/cnn/audit_preview_source_ref_policy.py
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/source_ref_policy_audit_v1/preview_source_ref_policy_audit.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/source_ref_policy_audit_v1/preview_source_ref_policy_audit.html
+```
+
+Result:
+
+| slice | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| all rows | 20/84 | 0.6839 | 0.2922 | 14.04 | 18.89 |
+| clean UPRESABLE source root | 20/84 | 0.6839 | 0.2922 | 14.04 | 18.89 |
+| diverse REF rows | 0/24 | 0.6839 | 0.2922 | 17.00 | 10.70 |
+| Barnsky REF rows | 20/60 | 0.1745 | 0.9674 | 14.04 | 18.89 |
+
+Interpretation: the current full-image runtime source starts far outside the
+PREVIEW gate before any model runs. That explains why crop-shaped routing can
+reach 84/84 while production-shaped full-frame output stalls at 63/84. The next
+PREVIEW candidate should change the source-policy/full-image training
+formulation or train a global image-conditioned model against the resolved
+true-REF target. Another local post-refiner, q8 selector, or source-preserving
+low-field residual is not the next high-EV path.
+
 ### Scene-Gated vs q8 Selector Ceiling
 
 The q8 broad result made a source-policy router worth checking before training

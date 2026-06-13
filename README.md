@@ -205,6 +205,14 @@ residual-band pass, simple archival/still codec render, or two-way selector.
 Dashboard:
 `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v5/preview_candidate_evidence_rank.html`.
 
+A dedicated source/REF policy audit scores the current rendered runtime source
+directly against resolved true REF before any model is applied. That baseline is
+only **20/84** overall: the clean UPRESABLE source is **20/84**, diverse REF
+rows are **0/24**, and Barnsky REF rows are **20/60**. This makes the current
+PREVIEW blocker a source-policy/full-image formulation issue, not a small
+post-filter gap. Dashboard:
+`/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/source_ref_policy_audit_v1/preview_source_ref_policy_audit.html`.
+
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
 runtime tiles. That narrows the remaining work to tile/context-safe routing and
