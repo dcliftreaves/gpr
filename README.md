@@ -233,14 +233,14 @@ v32 rows, a +/-12px coarse shift search stays 4/24 with zero failing rows
 recovered; on the multi-origin `Z8Z_6680` smoke, a denser shift/scale search
 stays 0/3 with no metric improvement. Small crop alignment is not the missing
 full-frame fix.
-A full-frame failure-mode audit now aggregates 13 existing receipts into one
+A full-frame failure-mode audit now aggregates 15 existing receipts into one
 dashboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v1/preview_fullframe_failure_mode_audit.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v2/preview_fullframe_failure_mode_audit.html
 ```
 
-It normalizes 1,227 evidence rows over the 84-row holdout, confirms the
+It normalizes 1,371 evidence rows over the 84-row holdout, confirms the
 crop-shaped routed candidate at 84/84, the broad arbitrary-tiled scene-gated
 path at 63/84, and the hard-eight contract split at 16/24 exact manifest-crop
 passes versus only 3/24 arbitrary-tiled passes. The audit finds 13 rows that
@@ -249,6 +249,10 @@ pass exact manifest-crop inference but fail under arbitrary production tiling:
 (`Z8Z_6680:C_lowerleft` and `Z8Z_5937:B_center`). The next PREVIEW candidate
 must close both parts of the exact-crop to arbitrary-tile contract gap: routing
 stability across crop interiors and same-role tile/context robustness.
+A normalized exact-teacher distillation score confirms the wider post model
+reaches only 2/24 against REF, and the later stitched context U-Net capacity
+probe also reaches only 2/24, so the current crop/post-refiner formulation is
+not capacity-limited in an easily fixable local-CNN way.
 A role-map post-distillation capacity test then trained on the 13 exact-pass
 but arbitrary-tiled-fail rows using arbitrary-tiled crop RGB plus runtime tile
 role planes, with exact no-REF crop output as the target. The exact teacher is

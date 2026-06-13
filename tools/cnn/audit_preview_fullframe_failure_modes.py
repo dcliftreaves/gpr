@@ -186,6 +186,37 @@ def normalize_alignment_oracle(label: str, payload: dict[str, Any]) -> list[dict
     return out
 
 
+def normalize_exact_teacher_distill_score(label: str, payload: dict[str, Any]) -> list[dict[str, Any]]:
+    rows = payload.get("rows")
+    if not isinstance(rows, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        for field in (
+            "source_vs_teacher",
+            "output_vs_teacher",
+            "source_vs_ref",
+            "teacher_vs_ref",
+            "output_vs_ref",
+        ):
+            metrics_row = row.get(field)
+            if not isinstance(metrics_row, dict):
+                continue
+            out.append(
+                {
+                    "source": label,
+                    "variant": f"{label}:{field}",
+                    "image_id": row.get("image_id"),
+                    "crop": row.get("crop"),
+                    "metrics": extract_metrics(metrics_row),
+                    "preview_pass": bool(metrics_row.get("preview_pass", False)),
+                }
+            )
+    return out
+
+
 def normalize_receipt(label: str, path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     payload = json.loads(path.read_text())
     schema = str(payload.get("schema", ""))
@@ -193,6 +224,8 @@ def normalize_receipt(label: str, path: Path) -> tuple[dict[str, Any], list[dict
         rows = normalize_contract_audit(label, payload)
     elif schema == "preview_fullframe_alignment_oracle.v1":
         rows = normalize_alignment_oracle(label, payload)
+    elif schema == "preview_exact_teacher_distill_score.v1":
+        rows = normalize_exact_teacher_distill_score(label, payload)
     elif "oracle_rows" in payload:
         rows = normalize_variant_oracle(label, payload)
     else:

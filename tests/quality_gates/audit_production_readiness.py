@@ -725,7 +725,7 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
     receipt = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260613"
-        / "fullframe_failure_mode_audit_v1"
+        / "fullframe_failure_mode_audit_v2"
         / "preview_fullframe_failure_mode_audit.json"
     )
     if not tool.exists() or not git_tracked(tool):
@@ -740,9 +740,12 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
         fullframe = variants.get("fullframe_scene_gated_84") or {}
         contract = variants.get("hard8_contract:arbitrary_tiled") or {}
         exact = variants.get("hard8_contract:exact_manifest_crop") or {}
+        teacher_distill = variants.get("hard8_exact_teacher_distill:output_vs_ref") or {}
+        context_unet = variants.get("hard8_stitched_context_unet") or {}
         ok = (
             payload.get("schema") == "preview_fullframe_failure_mode_audit.v1"
-            and int(summary.get("normalized_row_count", 0)) >= 1200
+            and int(summary.get("normalized_row_count", 0)) >= 1371
+            and int(summary.get("variant_count", 0)) >= 50
             and int(summary.get("unique_row_count", 0)) == 84
             and int(summary.get("exact_pass_tiled_fail_count", 0)) == 13
             and int(summary.get("exact_pass_tiled_fail_mixed_role_count", 0)) == 11
@@ -751,6 +754,8 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
             and int(fullframe.get("pass_count", -1)) == 63
             and int(exact.get("pass_count", -1)) == 16
             and int(contract.get("pass_count", -1)) == 3
+            and int(teacher_distill.get("pass_count", -1)) == 2
+            and int(context_unet.get("pass_count", -1)) == 2
         )
         return Check(
             "preview_detail",
@@ -762,7 +767,9 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
                 f"exact_pass_tiled_fail={int(summary.get('exact_pass_tiled_fail_count', -1))}, "
                 f"mixed={int(summary.get('exact_pass_tiled_fail_mixed_role_count', -1))}, "
                 f"coherent={int(summary.get('exact_pass_tiled_fail_coherent_role_count', -1))}, "
-                f"fullframe={int(fullframe.get('pass_count', -1))}/84 "
+                f"fullframe={int(fullframe.get('pass_count', -1))}/84, "
+                f"teacher_distill={int(teacher_distill.get('pass_count', -1))}/24, "
+                f"context_unet={int(context_unet.get('pass_count', -1))}/24 "
                 f"receipt={receipt}"
             ),
         )

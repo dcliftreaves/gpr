@@ -2170,3 +2170,33 @@ out "just use a larger local stitched-post CNN" for the current full-frame
 blocker. The remaining path needs a different source/teacher/full-frame
 formulation, not another local correction model over the current stitched RGB
 distribution.
+
+### Failure-Mode Audit v2 Refresh
+
+The full-frame failure-mode audit now normalizes exact-teacher distillation
+score receipts and includes the stitched context U-Net capacity result:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v2/preview_fullframe_failure_mode_audit.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v2/preview_fullframe_failure_mode_audit.html
+```
+
+Summary:
+
+- normalized evidence rows: 1,371
+- unique row keys: 84
+- variants/receipt views: 50
+- crop-shaped routed holdout: 84/84
+- broad arbitrary-tiled scene-gated full-frame holdout: 63/84
+- hard-eight exact manifest-crop inference: 16/24
+- hard-eight arbitrary-tiled inference: 3/24
+- hard-eight exact-teacher distillation output vs REF: 2/24
+- hard-eight stitched context U-Net capacity output: 2/24
+- exact-pass to arbitrary-tiled-fail regressions: 13
+- mixed-role exact-pass to arbitrary-tiled-fail regressions: 11
+- coherent-role exact-pass to arbitrary-tiled-fail regressions: 2
+
+The refresh does not change the production conclusion. It makes the blocker
+harder to misread: the current exact-crop teacher ceiling is still only 16/24,
+the best broad arbitrary-tiled path is still 63/84, and both post-distillation
+and larger stitched local CNN capacity checks remain at 2/24 against REF.
