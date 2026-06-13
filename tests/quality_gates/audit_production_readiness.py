@@ -1945,6 +1945,7 @@ def check_preview_q8_threeway_router_union_evidence() -> Check:
 
 def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
     tool = REPO / "tools/cnn/evaluate_preview_q8_threeway_runtime_fullframe.py"
+    entrypoint = REPO / "tools/cnn/render_preview_q8_threeway_runtime.py"
     readme = REPO / "README.md"
     receipt = (
         ARTIFACT_ROOT
@@ -1954,9 +1955,14 @@ def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
     )
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", "missing tracked integrated runtime evaluator")
+    if not entrypoint.exists() or not git_tracked(entrypoint):
+        return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", "missing tracked runtime entrypoint")
     tool_text = tool.read_text(errors="ignore")
     if "evaluate_preview_q8_crop_fullframe.py" not in tool_text or "evaluate_preview_scene_routed_fullframe.py" not in tool_text:
         return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", "tool does not invoke real full-frame child renderers")
+    entrypoint_text = entrypoint.read_text(errors="ignore")
+    if "evaluate_preview_q8_threeway_runtime_fullframe.py" not in entrypoint_text or "GPR_EXTERNAL_ROOT" not in entrypoint_text:
+        return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", "runtime entrypoint does not delegate through the integrated render path")
     if not receipt.exists():
         return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", f"missing {receipt}")
     pipeline_doc = (
@@ -1965,6 +1971,7 @@ def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
         .get("$doc", "")
     )
     cnn_doc = ((REG.get("cnns") or {}).get("preview_q8_threeway_runtime_fullframe_v1", {}) or {}).get("$doc", "")
+    cnn_entrypoint = ((REG.get("cnns") or {}).get("preview_q8_threeway_runtime_fullframe_v1", {}) or {}).get("runtime_entrypoint", "")
     readme_text = readme.read_text(errors="ignore") if readme.exists() else ""
     pipeline_doc_l = pipeline_doc.lower()
     cnn_doc_l = cnn_doc.lower()
@@ -1974,6 +1981,7 @@ def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
         and "not live/camera-back preview" in pipeline_doc_l
         and "offline/review" in cnn_doc_l
         and "not live/camera-back preview" in cnn_doc_l
+        and cnn_entrypoint == "tools/cnn/render_preview_q8_threeway_runtime.py"
         and "offline/review" in readme_text_l
         and "not a live/camera-back preview path" in readme_text_l
     )

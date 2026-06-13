@@ -259,6 +259,7 @@
       "model_loading_policy": "child_renderer_family_preload",
       "external_receipt_only": true,
       "runtime_evaluator": "tools/cnn/evaluate_preview_q8_threeway_runtime_fullframe.py",
+      "runtime_entrypoint": "tools/cnn/render_preview_q8_threeway_runtime.py",
       "router_sidecar_path": "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_router_sidecar.json",
       "router_sidecar_sha256": "9f4a18a2852da5f9c3bba1b14fadbcba32418df8d4717a555e1da1be30ccd969",
       "expert_checkpoints": {

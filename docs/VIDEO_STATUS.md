@@ -41,6 +41,7 @@ embedded-capture ship — Pi 5 can't encode this fast.
 | raw-video container | `.gvid` primary deliverable; MOV/GPR1 compatibility wrapper optional |
 | live/camera-back PREVIEW | codec-only `codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools` speed path |
 | offline/review PREVIEW | `preview_q8_threeway_runtime_fullframe_v1` registered as external-receipt no-REF candidate |
+| offline/review entrypoint | `tools/cnn/render_preview_q8_threeway_runtime.py` |
 | Pi 5 capture fps | **24.93 fps median** (verified 2026-05-26). Post commit `c1eabc6` (2026-05-28 Pass 2 worker-pool dispatch on ≤4-core hosts) per-frame encode dropped from 40.89 → 38.20 ms median (6.6% faster). Sustained capture not re-measured but headroom over 24 fps grew. |
 | per-frame size | **1.30 MB** at half-res |
 | at 24 fps sustained | **31 MB/s** — well within USB SSD capability |
