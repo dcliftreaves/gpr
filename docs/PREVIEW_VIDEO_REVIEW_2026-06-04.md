@@ -74,9 +74,12 @@ legacy diagnostic path because it can introduce sky banding.
 
 ## Quality state
 
-The current preview evidence is promising visually, but this is not a new
-ship-gate claim. The full learned-detail candidates still fail the existing
-quality gate on the texture/detail blocker, especially `Z8Z_6693`.
+This 2026-06-04 review bundle predates the q8 three-way PREVIEW candidate. It
+remains the latest committed ProRes/video-review media bundle, but it is no
+longer the latest PREVIEW quality evidence. The current no-REF full-frame
+quality evidence is `preview_q8_threeway_runtime_fullframe_v1`: 84/84 on the
+28-image holdout, worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, and
+dE2000 2.64. That path is offline/review only at 13.65 s/image (0.073 fps).
 
 Relevant gate runs:
 
@@ -108,8 +111,8 @@ scratch on the external work drive.
 
 ## Next production risk
 
-The remaining image-quality risk is not the container or 24 fps encode path.
-It is signal/noise separation in ISO-dependent high-frequency texture. The
-next pass should derive camera noise from DNG metadata and darkframes, then
-use that analytic noise model to remove only sensor noise before training and
-to add matched noise back after reconstruction.
+The remaining video production risk is not the container or 24 fps encode
+path. It is the live/camera-back PREVIEW path: the current q8 route is
+quality-valid for offline/review output but is far below live frame rate. Noise
+separation remains relevant for future CNN training, but it is not the current
+blocker for the registered offline/review PREVIEW candidate.

@@ -2728,6 +2728,30 @@ def check_pi5_capture_receipt() -> Check:
     )
 
 
+def check_video_status_doc() -> Check:
+    path = REPO / "docs/VIDEO_STATUS.md"
+    if not path.exists():
+        return Check("platform_perf", "video status doc current split", "FAIL", "missing docs/VIDEO_STATUS.md")
+    text = path.read_text(errors="ignore")
+    required = [
+        "24.93 fps median",
+        "preview_q8_threeway_runtime_fullframe_v1",
+        "84-row holdout",
+        "13.65 s/image",
+        "0.073 fps",
+        "not live/camera-back preview",
+        "Live/camera-back display still needs a separate fast",
+        "strategy",
+    ]
+    missing = [s for s in required if s not in text]
+    return Check(
+        "platform_perf",
+        "video status doc current split",
+        "PASS" if not missing else "FAIL",
+        f"{path.relative_to(REPO)}" if not missing else f"missing {missing}",
+    )
+
+
 def check_script_contains(area: str, name: str, rel_path: str, patterns: list[str]) -> Check:
     base = check_file(area, name, rel_path)
     if base.status != "PASS":
@@ -2963,6 +2987,7 @@ def main() -> int:
         check_capabilities_doc(),
         check_capability_memory_receipt(),
         check_pi5_capture_receipt(),
+        check_video_status_doc(),
         check_script_contains(
             "platform_perf",
             "Pi encoder regression covers 50MP decimate=2",

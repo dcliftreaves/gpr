@@ -1,12 +1,13 @@
-# Video pipeline status — 2026-05-28
+# Video pipeline status — refreshed 2026-06-13
 
 ## Your design intent (restated)
 
 > "For video I wanted to take a quality level that allowed us to hit
 > 24 fps and could use a CNN to recover visual quality on the decoder side."
 
-Two parts: **24 fps capture** (encode side, Pi 5 constrained) and
-**CNN-restored quality on decode** (Mac desktop side).
+Three parts: **24 fps capture** (encode side, Pi 5 constrained),
+**offline/review PREVIEW quality** (Mac desktop side), and a separate
+**live/camera-back preview** path if interactive display is required.
 
 ## Current video pipelines
 
@@ -32,21 +33,24 @@ This is the pipeline that PASSes the perceptual gate. It's the
 correct ship for post-processed video on a Mac. It is **NOT** the
 embedded-capture ship — Pi 5 can't encode this fast.
 
-### B) Embedded half-res Pi-capture path (24 fps capable, restoration gap)
+### B) Embedded half-res Pi-capture path (24 fps capable)
 
 | field | value |
 |---|---|
 | codec | `ml2_q3_dec2` (multi-level FUSED, decimate=2 → half-res) |
-| restoration CNN | `bido_4x_ane_ml2_q3_dec2_*` (joint demosaic+SR, 4× spatial) |
+| raw-video container | `.gvid` primary deliverable; MOV/GPR1 compatibility wrapper optional |
+| offline/review PREVIEW | `preview_q8_threeway_runtime_fullframe_v1` registered as external-receipt no-REF candidate |
 | Pi 5 capture fps | **24.93 fps median** (verified 2026-05-26). Post commit `c1eabc6` (2026-05-28 Pass 2 worker-pool dispatch on ≤4-core hosts) per-frame encode dropped from 40.89 → 38.20 ms median (6.6% faster). Sustained capture not re-measured but headroom over 24 fps grew. |
 | per-frame size | **1.30 MB** at half-res |
 | at 24 fps sustained | **31 MB/s** — well within USB SSD capability |
-| gate verdict for restoration | **FAIL** — worst LPIPS 0.45 on OOD images (the BIDO CNN doesn't yet restore well enough for visual-lossless playback) |
+| offline/review PREVIEW quality | **PASS on current 28-image/84-row holdout** — worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, dE2000 2.64 |
+| offline/review PREVIEW speed | **13.65 s/image, 0.073 fps, 5.37 GB peak RSS** on the Mac/MPS receipt — not live/camera-back preview |
 
 **This is the actual 24 fps capture pipeline you asked for.** The
-encode side works. The CNN-restoration side is the open gap. Phase B
-of `BIDO_DISTILLATION_PLAN.md` (Restormer-teacher distillation) is the
-plan to close that.
+encode side works. The current q8 three-way CNN route closes the no-REF
+full-frame PREVIEW quality gap for offline/review output, but it is much too
+slow for live preview. Live/camera-back display still needs a separate fast
+strategy.
 
 ## Pi 5 encode characteristics (real measurements)
 
@@ -75,8 +79,9 @@ For video you need either:
 | What you want | Which pipeline |
 |---|---|
 | Highest-quality video at any size, desktop | **A** (full-res VIDEO_FREEZE) |
-| Embedded Pi-camera capture at 24 fps | **B** (half-res, CNN still needs work) |
-| Desktop preview from B's captures | **B** with BIDO Phase B (planned, not yet shipped) |
+| Embedded Pi-camera capture at 24 fps | **B** (half-res `.gvid`; capture side works) |
+| Offline/review preview from B's captures | **B** with q8 three-way PREVIEW candidate (quality passes; 0.073 fps) |
+| Live/camera-back preview from B's captures | **B** with a future fast path; current q8 path is too slow |
 
 ## Per-frame numbers on Z8 50MP — for budgeting
 
@@ -88,8 +93,9 @@ For video you need either:
 
 ## Open work for video
 
-1. **BIDO Phase B (Restormer distillation)** — close the OOD gap on the
-   embedded preview path. Plan exists. ~6 hours on M5.
+1. **Live PREVIEW performance** — choose and productionize a fast
+   camera-back display path. The q8 three-way route is quality-valid for
+   offline/review output but runs at 0.073 fps on Mac/MPS.
 2. **Codec perf** — 2026-05-28 landed three Pi 5 wins:
    (a) parallel DNG SDK input decode (2.89× on legacy stills, commits
    `79403fb` + `ec1cb2c`);

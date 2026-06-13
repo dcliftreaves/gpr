@@ -1,4 +1,4 @@
-# Full GPR pipeline matrix — 2026-05-28
+# Full GPR pipeline matrix — refreshed 2026-06-13
 
 All entries from `pipelines/registry.json` × `tests/quality_gates/runs/`.
 Sorted within each mode by mean MB (smaller first).
@@ -77,5 +77,5 @@ Per-q numbers; multi-DNG verification in `STILLS_PI5_TIMING.md`.
 
 | pipeline | sustained fps | per-frame MB | per-second MB | restoration |
 |---|---:|---:|---:|---|
-| `ml2_q3_dec2` (half-res capture) | 24.93 | 1.30 | 31 | needs BIDO Phase B |
+| `ml2_q3_dec2` (half-res capture) | 24.93 | 1.30 | 31 | q8 three-way no-REF PREVIEW passes offline/review holdout; 0.073 fps, not live |
 | `ml2_q3_l1x2` (full-res via ml2) | 0.51 (Pi 5 too slow) | 7.81 | 187 | desktop ship (Mac decoder + matched CNN) |
