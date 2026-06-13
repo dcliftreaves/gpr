@@ -241,6 +241,15 @@ fit but **0/60** diverse holdout. This narrows the blocker to scene-family
 generalization under the current runtime-safe q8 model, not missing source
 bands alone.
 
+A direct q8 crop CNN then tested the adjacent specialist path without sample or
+crop key planes. Training only on the hard eight clears the hard rows **24/24**
+with **16.4 ms** median model time per crop, but falls to **0/60** on the
+diverse holdout. A hard-only split trained without `Z8Z_7480`/`Z8Z_7955` clears
+the fit rows **18/18** and generalizes to `Z8Z_7955` **3/3**, but still fails
+`Z8Z_7480` **0/3**. Training one global q8 crop model on all 84 rows reaches
+only **46/84**. This makes q8 crop CNNs plausible routed specialists, while
+`Z8Z_7480` remains a specific structure/data-coverage blocker.
+
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
 runtime tiles. That narrows the remaining work to tile/context-safe routing and

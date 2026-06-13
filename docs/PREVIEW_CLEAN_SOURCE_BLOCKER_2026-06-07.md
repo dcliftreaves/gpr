@@ -2924,3 +2924,57 @@ scene-family-specific correction rather than a stable runtime source-to-target
 mapping. The next viable path should use routed/specialist training with real
 per-cluster data or a larger paired corpus/target, then validate on held-out
 full images before any production registry entry.
+
+### q8 Crop Direct-CNN Specialist
+
+The next pass tested whether q8 can support a direct crop/tile CNN specialist
+instead of only a low-field model. The new diagnostic trains from q8 source
+crops with source-derived multiband/stat/coordinate planes and no sample-index
+or crop-identity key planes. REF is training supervision and metrics reference
+only.
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_refiner_hardfit_diverseholdout_w40_s300_v1/preview_q8_crop_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_refiner_hardfit_diverseholdout_w40_s300_v1/preview_q8_crop_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_refiner_hard_split_holdout7480_7955_w40_s300_v1/preview_q8_crop_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_refiner_hard_split_holdout7480_7955_w40_s300_v1/preview_q8_crop_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_refiner_allfit_w40_s300_v1/preview_q8_crop_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_refiner_allfit_w40_s300_v1/preview_q8_crop_refiner.html
+```
+
+Result:
+
+| split | all rows | fit | holdout | interpretation |
+| --- | ---: | ---: | ---: | --- |
+| hard-eight fit, diverse holdout | 24/84 | 24/24 | 0/60 | q8 crop CNN can clear every hard row when trained as a hard specialist, including the six q8 low-field misses. |
+| hard split, hold out `Z8Z_7480`/`Z8Z_7955` | 21/24 | 18/18 | 3/6 | The model generalizes to `Z8Z_7955`, but `Z8Z_7480` remains 0/3 without matching training rows. |
+| all 28 fit | 46/84 | 46/84 | n/a | One global q8 crop model conflicts across scene families and is not production. |
+
+Timing and hashes:
+
+```text
+hard-fit model_ms_median=16.36
+hard-fit train_steps_per_second=3.5628
+hard-fit max_rss_mb=6570.45
+hard-fit checkpoint_sha256=f5c49483af61b0c67665a24e2a6033bd4c3fc11f8b0b198944765e68e1221f37
+
+hard-split model_ms_median=17.62
+hard-split train_steps_per_second=3.5496
+hard-split max_rss_mb=3988.72
+hard-split checkpoint_sha256=f86e5b2e831c6a3a8e6d1e8a00cd7e6471406ea9e8506b6d5fa17c55984840bd
+
+all-fit model_ms_median=16.32
+all-fit train_steps_per_second=3.5276
+all-fit max_rss_mb=6593.80
+all-fit checkpoint_sha256=fe56dd3046249259708d773de4e4957cb860e96f77dc1ba8a076303f91132483
+```
+
+Interpretation: q8 crop CNNs are now a plausible specialist building block, not
+a global PREVIEW model. The hard-fit receipt proves the model class can clear
+the current q8 hard failures with runtime-safe inputs. The hard split narrows
+the remaining production blocker: `Z8Z_7480` needs either matching structure
+training data, a narrower routed specialist, or a better runtime-safe source
+representation. Do not register this as production until the specialist route
+has held-out full-image evidence and a full-frame/tile application path.

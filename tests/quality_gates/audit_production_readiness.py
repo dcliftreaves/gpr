@@ -1650,6 +1650,85 @@ def check_preview_q8_multiband_negative_evidence() -> Check:
         return Check("preview_detail", "q8 source multiband negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_q8_crop_specialist_evidence() -> Check:
+    tool = REPO / "tools/cnn/train_preview_q8_crop_refiner.py"
+    base = ARTIFACT_ROOT / "preview_runtime_policy_20260613"
+    receipts = {
+        "hardfit": base / "q8_crop_refiner_hardfit_diverseholdout_w40_s300_v1/preview_q8_crop_refiner.json",
+        "hard_split": base / "q8_crop_refiner_hard_split_holdout7480_7955_w40_s300_v1/preview_q8_crop_refiner.json",
+        "allfit": base / "q8_crop_refiner_allfit_w40_s300_v1/preview_q8_crop_refiner.json",
+    }
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "q8 crop specialist evidence", "FAIL", "missing tracked q8 crop refiner tool")
+    tool_text = tool.read_text()
+    if "crop_identity_key_planes" not in tool_text or "q8_source_rgb_crop" not in tool_text:
+        return Check("preview_detail", "q8 crop specialist evidence", "FAIL", "tool missing no-key-plane runtime contract")
+    missing = [str(path) for path in receipts.values() if not path.exists()]
+    if missing:
+        return Check("preview_detail", "q8 crop specialist evidence", "FAIL", f"missing {missing[0]}")
+
+    try:
+        hardfit = json.loads(receipts["hardfit"].read_text())
+        hard_split = json.loads(receipts["hard_split"].read_text())
+        allfit = json.loads(receipts["allfit"].read_text())
+
+        def summary(payload: dict[str, Any], role: str) -> dict[str, Any]:
+            return (payload.get("summary") or {}).get(role) or {}
+
+        def pass_count(payload: dict[str, Any], role: str) -> tuple[int, int]:
+            row = summary(payload, role)
+            return int(row.get("pass_count", -1)), int(row.get("count", 0))
+
+        hard_split_holdout_rows = [
+            row for row in hard_split.get("rows") or []
+            if row.get("fit_role") == "holdout"
+        ]
+        z7480_holdout = [
+            row for row in hard_split_holdout_rows
+            if row.get("image_id") == "Z8Z_7480"
+        ]
+        z7955_holdout = [
+            row for row in hard_split_holdout_rows
+            if row.get("image_id") == "Z8Z_7955"
+        ]
+        ok = (
+            hardfit.get("schema") == "preview_q8_crop_refiner_receipt.v1"
+            and hard_split.get("schema") == "preview_q8_crop_refiner_receipt.v1"
+            and allfit.get("schema") == "preview_q8_crop_refiner_receipt.v1"
+            and (hardfit.get("render_contract") or {}).get("source_policy") == "q8_source_crop_plus_source_derived_features_only"
+            and (hardfit.get("model") or {}).get("architecture") == "direct"
+            and int((hardfit.get("model") or {}).get("in_channels", 0)) == 34
+            and pass_count(hardfit, "fit") == (24, 24)
+            and pass_count(hardfit, "holdout") == (0, 60)
+            and pass_count(hardfit, "all") == (24, 84)
+            and pass_count(hard_split, "fit") == (18, 18)
+            and pass_count(hard_split, "holdout") == (3, 6)
+            and sum(1 for row in z7480_holdout if row.get("preview_pass")) == 0
+            and len(z7480_holdout) == 3
+            and sum(1 for row in z7955_holdout if row.get("preview_pass")) == 3
+            and len(z7955_holdout) == 3
+            and pass_count(allfit, "all") == (46, 84)
+            and float((hardfit.get("timing") or {}).get("model_ms_median", 0.0)) > 0.0
+            and float((hardfit.get("timing") or {}).get("max_rss_mb", 0.0)) > 1000.0
+        )
+        return Check(
+            "preview_detail",
+            "q8 crop specialist evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"hardfit fit={pass_count(hardfit, 'fit')[0]}/24 holdout={pass_count(hardfit, 'holdout')[0]}/60; "
+                f"hard_split fit={pass_count(hard_split, 'fit')[0]}/18 "
+                f"holdout={pass_count(hard_split, 'holdout')[0]}/6 "
+                f"z7480={sum(1 for row in z7480_holdout if row.get('preview_pass'))}/3 "
+                f"z7955={sum(1 for row in z7955_holdout if row.get('preview_pass'))}/3; "
+                f"allfit={pass_count(allfit, 'all')[0]}/84; "
+                f"receipts={receipts['hardfit']}, {receipts['hard_split']}, {receipts['allfit']}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "q8 crop specialist evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_rolemap_post_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_rolemap_post_distill.py"
     receipt = (
@@ -2542,6 +2621,7 @@ def main() -> int:
     checks.append(check_preview_source_policy_generalization_negative_evidence())
     checks.append(check_preview_q8_lowfield_negative_evidence())
     checks.append(check_preview_q8_multiband_negative_evidence())
+    checks.append(check_preview_q8_crop_specialist_evidence())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
     checks.append(check_preview_route_smoothing_negative_evidence())
     checks.append(check_preview_stitched_context_unet_negative_evidence())
