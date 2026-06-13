@@ -888,31 +888,53 @@ def check_preview_residual_feature_negative_evidence() -> Check:
         / "residual_features_hard8_w4096_v1"
         / "preview_fullimage_residual_features.json"
     )
+    knn_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "residual_features_knn_hard8_w2048_v1"
+        / "preview_fullimage_residual_features.json"
+    )
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "source-feature residual negative evidence", "FAIL", "missing tracked residual feature probe")
     tool_text = tool.read_text(errors="ignore")
     if "oracle_uses_ref_to_fit_residual" not in tool_text or "runtime_apply_features_are_source_only" not in tool_text:
         return Check("preview_detail", "source-feature residual negative evidence", "FAIL", "tool missing oracle/runtime-source contract")
-    if not receipt.exists():
-        return Check("preview_detail", "source-feature residual negative evidence", "FAIL", f"missing {receipt}")
+    missing = [str(path) for path in (receipt, knn_receipt) if not path.exists()]
+    if missing:
+        return Check("preview_detail", "source-feature residual negative evidence", "FAIL", "missing " + ", ".join(missing))
     try:
         payload = json.loads(receipt.read_text())
+        knn_payload = json.loads(knn_receipt.read_text())
         variants = {row.get("variant"): row for row in payload.get("summary", [])}
         baseline = variants.get("source_baseline_w4096") or {}
         residual = variants.get("source_feature_residual_ridge_w4096") or {}
         contract = payload.get("render_contract") or {}
+        knn_variants = {row.get("variant"): row for row in knn_payload.get("summary", [])}
+        knn_baseline = knn_variants.get("source_baseline_w2048") or {}
+        knn_residual = knn_variants.get("source_feature_residual_knn_k8_w2048") or {}
+        knn_contract = knn_payload.get("render_contract") or {}
         ok = (
             payload.get("schema") == "preview_fullimage_residual_features.v1"
+            and knn_payload.get("schema") == "preview_fullimage_residual_features.v1"
             and contract.get("oracle_uses_ref_to_fit_residual") is True
+            and knn_contract.get("oracle_uses_ref_to_fit_residual") is True
             and contract.get("production_allowed") is False
+            and knn_contract.get("production_allowed") is False
             and contract.get("runtime_apply_features_are_source_only") is True
+            and knn_contract.get("runtime_apply_features_are_source_only") is True
             and int(baseline.get("count", 0)) == 24
             and int(baseline.get("pass_count", -1)) == 0
             and int(residual.get("count", 0)) == 24
             and int(residual.get("pass_count", -1)) == 0
+            and int(knn_baseline.get("count", 0)) == 24
+            and int(knn_baseline.get("pass_count", -1)) == 0
+            and int(knn_residual.get("count", 0)) == 24
+            and int(knn_residual.get("pass_count", -1)) == 0
             and float(residual.get("worst_dE2000_mean", 0.0)) < float(baseline.get("worst_dE2000_mean", 999.0))
             and float(residual.get("worst_lpips", 0.0)) > float(baseline.get("worst_lpips", 0.0))
             and float(residual.get("worst_lpips", 0.0)) > 0.70
+            and float(knn_residual.get("worst_dE2000_mean", 0.0)) < float(knn_baseline.get("worst_dE2000_mean", 999.0))
+            and float(knn_residual.get("worst_lpips", 0.0)) > 0.75
         )
         return Check(
             "preview_detail",
@@ -924,8 +946,11 @@ def check_preview_residual_feature_negative_evidence() -> Check:
                 f"dE={float(baseline.get('worst_dE2000_mean', 999.0)):.2f}; "
                 f"residual={int(residual.get('pass_count', -1))}/24 "
                 f"lpips={float(residual.get('worst_lpips', 999.0)):.4f} "
-                f"dE={float(residual.get('worst_dE2000_mean', 999.0)):.2f} "
-                f"receipt={receipt}"
+                f"dE={float(residual.get('worst_dE2000_mean', 999.0)):.2f}; "
+                f"knn={int(knn_residual.get('pass_count', -1))}/24 "
+                f"lpips={float(knn_residual.get('worst_lpips', 999.0)):.4f} "
+                f"dE={float(knn_residual.get('worst_dE2000_mean', 999.0)):.2f} "
+                f"receipt={knn_receipt}"
             ),
         )
     except Exception as exc:

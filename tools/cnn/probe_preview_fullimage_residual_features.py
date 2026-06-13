@@ -186,6 +186,60 @@ def apply_ridge(source01: np.ndarray, features: np.ndarray, model: dict[str, Any
     return (np.clip(out, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
 
 
+def fit_knn(features: np.ndarray, target_residual: np.ndarray, max_samples: int) -> dict[str, Any]:
+    from scipy.spatial import cKDTree
+
+    flat_x = features.reshape(-1, features.shape[2]).astype(np.float32)
+    flat_y = target_residual.reshape(-1, 3).astype(np.float32)
+    idx = sample_pixels(features.shape[0], features.shape[1], max_samples)
+    x = flat_x[idx]
+    y = flat_y[idx]
+    mean = x.mean(axis=0, keepdims=True)
+    scale = x.std(axis=0, keepdims=True)
+    scale[scale < 1.0e-6] = 1.0
+    xs = ((x - mean) / scale).astype(np.float32)
+    tree = cKDTree(xs)
+    return {
+        "tree": tree,
+        "residuals": y,
+        "mean": mean.astype(np.float32),
+        "scale": scale.astype(np.float32),
+        "fit_samples": int(len(idx)),
+        "feature_count": int(features.shape[2]),
+        "solver": "ckdtree",
+    }
+
+
+def apply_knn(
+    source01: np.ndarray,
+    features: np.ndarray,
+    model: dict[str, Any],
+    neighbors: int,
+    rows_per_chunk: int,
+) -> np.ndarray:
+    out = np.empty_like(source01, dtype=np.float32)
+    tree = model["tree"]
+    residuals = model["residuals"].astype(np.float32)
+    mean = model["mean"].astype(np.float32)
+    scale = model["scale"].astype(np.float32)
+    k = max(1, int(neighbors))
+    eps = np.float32(1.0e-6)
+    for y0 in range(0, features.shape[0], rows_per_chunk):
+        y1 = min(features.shape[0], y0 + rows_per_chunk)
+        x = features[y0:y1].reshape(-1, features.shape[2]).astype(np.float32)
+        xs = ((x - mean) / scale).astype(np.float32)
+        dist, idx = tree.query(xs, k=k, workers=-1)
+        if k == 1:
+            residual = residuals[idx]
+        else:
+            weights = 1.0 / (dist.astype(np.float32) + eps)
+            weights /= weights.sum(axis=1, keepdims=True)
+            residual = np.sum(residuals[idx] * weights[..., None], axis=1)
+        corrected = source01[y0:y1].reshape(-1, 3) + residual
+        out[y0:y1] = corrected.reshape(y1 - y0, features.shape[1], 3)
+    return (np.clip(out, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
+
+
 def score_crop(
     *,
     args: argparse.Namespace,
@@ -211,7 +265,7 @@ def score_crop(
         **metrics,
     }
     if fit:
-        row.update({k: v for k, v in fit.items() if k not in {"coef", "mean", "scale"}})
+        row.update({k: v for k, v in fit.items() if k not in {"coef", "mean", "scale", "tree", "residuals"}})
     rows.append(row)
 
 
@@ -299,6 +353,12 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
                 residual = ref01 - source01
                 model = fit_ridge(features, residual, args.max_fit_samples, args.ridge)
                 corrected = Image.fromarray(apply_ridge(source01, features, model, args.rows_per_chunk))
+                knn_model = fit_knn(features, residual, args.knn_samples) if args.knn_neighbors > 0 else None
+                knn_corrected = (
+                    Image.fromarray(apply_knn(source01, features, knn_model, args.knn_neighbors, args.rows_per_chunk))
+                    if knn_model is not None
+                    else None
+                )
                 for crop_name, crop in crops.items():
                     ref_crop = crop_metric_image(ref, crop, image["sensor_dims"])
                     source_crop = crop_metric_image(source_low, crop, image["sensor_dims"])
@@ -324,7 +384,21 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
                         out_crop=corrected_crop,
                         fit=model,
                     )
+                    if knn_corrected is not None and knn_model is not None:
+                        score_crop(
+                            args=args,
+                            rows=image_rows,
+                            image_id=image_id,
+                            crop_name=crop_name,
+                            variant=f"source_feature_residual_knn_{k_suffix(args.knn_neighbors)}_w{max_width}",
+                            max_width=max_width,
+                            ref_crop=ref_crop,
+                            out_crop=crop_metric_image(knn_corrected, crop, image["sensor_dims"]),
+                            fit=knn_model,
+                        )
                 corrected.close()
+                if knn_corrected is not None:
+                    knn_corrected.close()
                 source_low.close()
                 ref_low.close()
             rows.extend(image_rows)
@@ -354,7 +428,12 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
         "max_widths": [int(v) for v in args.max_width],
         "ridge": float(args.ridge),
         "max_fit_samples": int(args.max_fit_samples),
-        "oracle_variants_not_allowed_for_production": ["source_feature_residual_ridge_w*"],
+        "knn_neighbors": int(args.knn_neighbors),
+        "knn_samples": int(args.knn_samples),
+        "oracle_variants_not_allowed_for_production": [
+            "source_feature_residual_ridge_w*",
+            "source_feature_residual_knn*_w*",
+        ],
         "render_contract": {
             "oracle_uses_ref_to_fit_residual": True,
             "production_allowed": False,
@@ -422,6 +501,10 @@ th.left,td.left { text-align:left; }
     out.write_text("".join(parts))
 
 
+def k_suffix(neighbors: int) -> str:
+    return f"k{int(neighbors)}"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--manifest", type=Path, default=REPO / "tests/quality_gates/preview_holdout_set.json")
@@ -438,6 +521,8 @@ def main() -> int:
     ap.add_argument("--max-width", type=int, action="append", default=None)
     ap.add_argument("--max-fit-samples", type=int, default=200_000)
     ap.add_argument("--ridge", type=float, default=1.0e-2)
+    ap.add_argument("--knn-neighbors", type=int, default=0)
+    ap.add_argument("--knn-samples", type=int, default=80_000)
     ap.add_argument("--rows-per-chunk", type=int, default=256)
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--output-json", type=Path, required=True)

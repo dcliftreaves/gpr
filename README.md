@@ -414,6 +414,12 @@ worst Y-PSNR from 17.21 to 18.36 dB, but worsens worst LPIPS from 0.7155 to
 0.7893. This rules out a shallow source-feature residual mapper as the
 production fix; the remaining miss is structural/perceptual, not merely a
 feature-regressed color/luma residual.
+A stronger non-linear kNN residual-transfer oracle at 2048 width also stays
+0/24. It uses an 80k source-feature residual dictionary and 8-neighbor transfer,
+improving worst dE to 8.77 and worst Y-PSNR to 18.02 dB, but worst LPIPS is
+still 0.7988 and no crop passes. That makes this feature-residual family a
+dead end for production unless it is replaced by a much better source/teacher
+representation rather than just a stronger hand-feature regressor.
 A runtime source-representation probe then compared the clean editable DNG
 through `sips`, the clean bundle TIFF frame, and rawpy camera-WB renders on
 the same hard-eight rows. Every variant stayed 0/24; the existing clean

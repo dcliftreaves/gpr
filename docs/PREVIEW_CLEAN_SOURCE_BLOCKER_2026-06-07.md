@@ -381,12 +381,26 @@ Result:
 | source baseline, 4096-wide | 0/24 | 0.7155 | 0.3163 | 17.21 | 10.51 |
 | source-feature residual ridge, 4096-wide | 0/24 | 0.7893 | 0.3621 | 18.36 | 8.28 |
 
+A stronger non-linear residual-transfer oracle was then run at 2048 width with
+an 80k source-feature residual dictionary and 8-neighbor KD-tree transfer:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/residual_features_knn_hard8_w2048_v1/preview_fullimage_residual_features.json
+```
+
+| variant | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+|---|---:|---:|---:|---:|---:|
+| source baseline, 2048-wide | 0/24 | 0.8083 | 0.3184 | 17.29 | 10.16 |
+| source-feature residual kNN k=8, 2048-wide | 0/24 | 0.7988 | 0.3292 | 18.02 | 8.77 |
+| source-feature residual ridge, 2048-wide | 0/24 | 0.8369 | 0.3279 | 18.10 | 8.52 |
+
 Interpretation: source-feature residual fitting improves color/luma metrics
-but worsens LPIPS and does not clear any hard-eight row. The full-frame PREVIEW
-blocker is therefore not solved by a shallow feature-regressed residual field.
-The next candidate needs a stronger full-image structure/detail model or a
-different source/teacher representation, not another local affine or shallow
-hand-feature residual pass.
+but does not clear any hard-eight row. The kNN variant is less bad than ridge
+on LPIPS, but still leaves worst LPIPS near 0.8 and is far too slow to be a
+production primitive. The full-frame PREVIEW blocker is therefore not solved
+by local affine, shallow feature-regressed residual fields, or non-linear
+hand-feature residual transfer. The next candidate needs a stronger full-image
+structure/detail model or a different source/teacher representation.
 
 Two `Z8Z_0026` full-grid all-crop fine-tunes were tried from the K40
 color-stat checkpoint:
