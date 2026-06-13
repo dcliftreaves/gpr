@@ -39,6 +39,7 @@ embedded-capture ship — Pi 5 can't encode this fast.
 |---|---|
 | codec | `ml2_q3_dec2` (multi-level FUSED, decimate=2 → half-res) |
 | raw-video container | `.gvid` primary deliverable; MOV/GPR1 compatibility wrapper optional |
+| live/camera-back PREVIEW | codec-only `codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools` speed path |
 | offline/review PREVIEW | `preview_q8_threeway_runtime_fullframe_v1` registered as external-receipt no-REF candidate |
 | Pi 5 capture fps | **24.93 fps median** (verified 2026-05-26). Post commit `c1eabc6` (2026-05-28 Pass 2 worker-pool dispatch on ≤4-core hosts) per-frame encode dropped from 40.89 → 38.20 ms median (6.6% faster). Sustained capture not re-measured but headroom over 24 fps grew. |
 | per-frame size | **1.30 MB** at half-res |
@@ -47,9 +48,10 @@ embedded-capture ship — Pi 5 can't encode this fast.
 | offline/review PREVIEW speed | **13.65 s/image, 0.073 fps, 5.37 GB peak RSS** on the Mac/MPS receipt — not live/camera-back preview |
 
 **This is the actual 24 fps capture pipeline you asked for.** The
-encode side works. The current q8 three-way CNN route closes the no-REF
-full-frame PREVIEW quality gap for offline/review output, but it is much too
-slow for live preview. Live/camera-back display still needs a separate fast
+encode side works. The codec-only PREVIEW route is the fast live/camera-back
+path. The current q8 three-way CNN route closes the no-REF full-frame PREVIEW
+quality gap for offline/review output, but it is much too slow for live
+preview. Live/camera-back quality beyond codec-only remains a separate future
 strategy.
 
 ## Pi 5 encode characteristics (real measurements)
@@ -81,7 +83,7 @@ For video you need either:
 | Highest-quality video at any size, desktop | **A** (full-res VIDEO_FREEZE) |
 | Embedded Pi-camera capture at 24 fps | **B** (half-res `.gvid`; capture side works) |
 | Offline/review preview from B's captures | **B** with q8 three-way PREVIEW candidate (quality passes; 0.073 fps) |
-| Live/camera-back preview from B's captures | **B** with a future fast path; current q8 path is too slow |
+| Live/camera-back preview from B's captures | **B** codec-only speed path; current q8 path is too slow |
 
 ## Per-frame numbers on Z8 50MP — for budgeting
 

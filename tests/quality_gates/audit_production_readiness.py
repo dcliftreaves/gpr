@@ -2740,8 +2740,8 @@ def check_video_status_doc() -> Check:
         "13.65 s/image",
         "0.073 fps",
         "not live/camera-back preview",
-        "Live/camera-back display still needs a separate fast",
-        "strategy",
+        "codec-only PREVIEW route is the fast live/camera-back",
+        "Live/camera-back quality beyond codec-only remains a separate future",
     ]
     missing = [s for s in required if s not in text]
     return Check(
@@ -2749,6 +2749,33 @@ def check_video_status_doc() -> Check:
         "video status doc current split",
         "PASS" if not missing else "FAIL",
         f"{path.relative_to(REPO)}" if not missing else f"missing {missing}",
+    )
+
+
+def check_live_preview_fast_path() -> Check:
+    pipeline = "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools"
+    pipe = (REG.get("pipelines") or {}).get(pipeline) or {}
+    playback = REPO / "tools/test/test_sustained_playback.sh"
+    if not pipe:
+        return Check("platform_perf", "live PREVIEW fast path", "FAIL", f"missing registry pipeline {pipeline}")
+    if not playback.exists() or not git_tracked(playback):
+        return Check("platform_perf", "live PREVIEW fast path", "FAIL", "missing tracked sustained playback test")
+    doc = str(pipe.get("$doc", ""))
+    playback_text = playback.read_text(errors="ignore")
+    ok = (
+        pipe.get("ship_class") == "PREVIEW"
+        and pipe.get("use_for") == "PREVIEW_LIVE_CODEC_ONLY"
+        and pipe.get("cnn") == "none"
+        and "Live/camera-back PREVIEW fast path" in doc
+        and "not the highest-quality offline/review PREVIEW route" in doc
+        and 'FPS_WITH_CNN_MIN="${FPS_WITH_CNN_MIN:-24}"' in playback_text
+        and 'FPS_NO_CNN_MIN="${FPS_NO_CNN_MIN:-24}"' in playback_text
+    )
+    return Check(
+        "platform_perf",
+        "live PREVIEW fast path",
+        "PASS" if ok else "FAIL",
+        f"{pipeline}; sustained playback thresholds default to 24 fps UHD",
     )
 
 
@@ -2988,6 +3015,7 @@ def main() -> int:
         check_capability_memory_receipt(),
         check_pi5_capture_receipt(),
         check_video_status_doc(),
+        check_live_preview_fast_path(),
         check_script_contains(
             "platform_perf",
             "Pi encoder regression covers 50MP decimate=2",
