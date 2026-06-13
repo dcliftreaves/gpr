@@ -2200,3 +2200,56 @@ The refresh does not change the production conclusion. It makes the blocker
 harder to misread: the current exact-crop teacher ceiling is still only 16/24,
 the best broad arbitrary-tiled path is still 63/84, and both post-distillation
 and larger stitched local CNN capacity checks remain at 2/24 against REF.
+
+### Full-Image Resolution Oracle
+
+The next bounded oracle tests whether a full-image RGB field at increasing
+spatial bandwidth could satisfy the hard-eight rows. It renders source and REF
+full images, downsamples each full image to a fixed max width, then crops the
+manifest windows from that field. Source-field rows are runtime-shaped inputs;
+REF-field rows are oracle ceilings only and are not production candidates.
+
+Tool:
+
+```text
+tools/cnn/probe_preview_fullimage_resolution_oracle.py
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_resolution_oracle_hard8_v1/preview_fullimage_resolution_oracle.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_resolution_oracle_hard8_v1/preview_fullimage_resolution_oracle.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_resolution_oracle_hard8_highres_v1/preview_fullimage_resolution_oracle.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_resolution_oracle_hard8_highres_v1/preview_fullimage_resolution_oracle.html
+```
+
+Result:
+
+| variant | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| source full-resolution | 0/24 | 0.6839 | 0.2922 | 17.00 | 10.70 |
+| REF field, max width 3072 | 14/24 | 0.4433 | 0.7729 | 20.38 | 6.22 |
+| REF field, max width 4096 | 19/24 | 0.2882 | 0.8761 | 23.00 | 4.64 |
+| REF field, max width 6144 | 23/24 | 0.0946 | 0.9131 | 23.71 | 4.27 |
+| REF field, full width | 24/24 | 0.0000 | 1.0000 | inf | 0.00 |
+
+The only 6144-wide REF-field miss is `Z8Z_6680:C_lowerleft`: LPIPS passes at
+0.0946, but MS-SSIM is 0.9131, Y-PSNR is 23.71, and dE2000 is 4.27. This narrows
+the next model target. A 768-1536px full-image low-field branch is not enough,
+and even a 3072px REF field only matches the previous sigma-1 frequency oracle
+at 14/24. The next viable PREVIEW candidate needs either a very high-resolution
+full-image generator or a full-image/global model that can synthesize local
+structure and color placement beyond a low/mid field.
+
+The aggregate failure-mode dashboard was refreshed with these rows:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v3/preview_fullframe_failure_mode_audit.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v3/preview_fullframe_failure_mode_audit.html
+```
+
+It now contains 1,707 normalized rows and 63 variant views while preserving the
+same core full-frame blocker counts: crop-shaped routed holdout 84/84,
+scene-gated arbitrary full-frame 63/84, hard-eight exact manifest-crop 16/24,
+and hard-eight arbitrary-tiled 3/24.

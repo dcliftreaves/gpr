@@ -725,7 +725,7 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
     receipt = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260613"
-        / "fullframe_failure_mode_audit_v2"
+        / "fullframe_failure_mode_audit_v3"
         / "preview_fullframe_failure_mode_audit.json"
     )
     if not tool.exists() or not git_tracked(tool):
@@ -742,10 +742,14 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
         exact = variants.get("hard8_contract:exact_manifest_crop") or {}
         teacher_distill = variants.get("hard8_exact_teacher_distill:output_vs_ref") or {}
         context_unet = variants.get("hard8_stitched_context_unet") or {}
+        ref_field_3072 = variants.get("ref_field_oracle_w3072") or {}
+        ref_field_4096 = variants.get("ref_field_oracle_w4096") or {}
+        ref_field_6144 = variants.get("ref_field_oracle_w6144") or {}
+        ref_field_full = variants.get("ref_field_oracle_w8280") or {}
         ok = (
             payload.get("schema") == "preview_fullframe_failure_mode_audit.v1"
-            and int(summary.get("normalized_row_count", 0)) >= 1371
-            and int(summary.get("variant_count", 0)) >= 50
+            and int(summary.get("normalized_row_count", 0)) >= 1707
+            and int(summary.get("variant_count", 0)) >= 63
             and int(summary.get("unique_row_count", 0)) == 84
             and int(summary.get("exact_pass_tiled_fail_count", 0)) == 13
             and int(summary.get("exact_pass_tiled_fail_mixed_role_count", 0)) == 11
@@ -756,6 +760,10 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
             and int(contract.get("pass_count", -1)) == 3
             and int(teacher_distill.get("pass_count", -1)) == 2
             and int(context_unet.get("pass_count", -1)) == 2
+            and int(ref_field_3072.get("pass_count", -1)) == 14
+            and int(ref_field_4096.get("pass_count", -1)) == 19
+            and int(ref_field_6144.get("pass_count", -1)) == 23
+            and int(ref_field_full.get("pass_count", -1)) == 24
         )
         return Check(
             "preview_detail",
@@ -769,7 +777,12 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
                 f"coherent={int(summary.get('exact_pass_tiled_fail_coherent_role_count', -1))}, "
                 f"fullframe={int(fullframe.get('pass_count', -1))}/84, "
                 f"teacher_distill={int(teacher_distill.get('pass_count', -1))}/24, "
-                f"context_unet={int(context_unet.get('pass_count', -1))}/24 "
+                f"context_unet={int(context_unet.get('pass_count', -1))}/24, "
+                "ref_field_oracle="
+                f"3072:{int(ref_field_3072.get('pass_count', -1))}/24 "
+                f"4096:{int(ref_field_4096.get('pass_count', -1))}/24 "
+                f"6144:{int(ref_field_6144.get('pass_count', -1))}/24 "
+                f"full:{int(ref_field_full.get('pass_count', -1))}/24 "
                 f"receipt={receipt}"
             ),
         )

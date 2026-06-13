@@ -380,6 +380,13 @@ failures even when Y/dE/MS-SSIM are near or inside threshold. The next PREVIEW
 candidate therefore needs a full-image-aware mapping for near-REF low/mid
 placement plus better fine-detail synthesis/preservation; swapping only high
 or low bands is not enough.
+A full-image resolution oracle sharpens the target further: REF fields cropped
+from 3072-wide downsampled full images pass 14/24 hard-eight rows, 4096-wide
+fields pass 19/24, 6144-wide fields pass 23/24, and full-width REF passes 24/24.
+The lone 6144 miss is `Z8Z_6680:C_lowerleft`, failing MS-SSIM/Y-PSNR/dE despite
+LPIPS passing. The next viable PREVIEW formulation therefore needs either a
+very high-resolution full-image generator or a full-image model with local
+detail synthesis, not a 768-1536px low-field branch.
 A follow-up `context_unet_generator` diagnostic removed the source-plus-residual
 output constraint on the 768-context hard-eight fit. It still failed 0/24
 with worst LPIPS 0.6136 and median LPIPS 0.4035, so simple output headroom is
