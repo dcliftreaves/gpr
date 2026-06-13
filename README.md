@@ -219,6 +219,14 @@ low/high planes derived from source RGB only. On the 24 hard-eight stitched
 manifest crops it still reaches only 3/24, with worst LPIPS 0.5604 and worst
 dE2000 8.28, so source-derived frequency planes alone are not the missing
 full-frame representation.
+A full-image band refiner diagnostic then trained a downsampled full-frame
+source-to-REF RGB field and composed it with source high-frequency detail. On
+the hard-eight stitched v32 receipt, the source baseline is 4/24 and exact REF
+low-field residual is still only 4/24; the learned full-image band variants
+regress to 0/24. On the newer multi-origin `Z8Z_6680` smoke, exact REF
+low-field residual remains 0/3 with worst LPIPS 0.2702 and worst dE2000 5.32.
+This rules out the current "generated low/mid field plus source detail" path as
+the production fix.
 The first explicit low-frequency spatial branch improves the hard `Z8Z_6680`
 tile receipt to 9/12 isolated passes, but stitched full-frame output remains
 1/3 with remaining Y/dE failures in the lower-left region. A follow-up

@@ -663,6 +663,21 @@ Additional follow-up diagnostics ruled out several simpler fixes:
   dE2000 8.28:
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/stitched_post_hard8_manifest_from_holdout_v1/stitched_post_receipt.json`
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/source_frequency_post_hard8_w40_v1/preview_runtime_refiner.json`
+- A full-image band refiner diagnostic then tested the next adjacent
+  formulation: predict a downsampled full-frame RGB low/mid field from
+  runtime source RGB plus normalized coordinates, then either score it directly
+  or compose it with source high-frequency detail. The hard-eight v32 stitched
+  receipt remains blocked: source baseline is 4/24, exact REF low-field
+  residual is also 4/24, and learned full-image band variants regress to 0/24
+  with worst dE2000 above 22. The newer multi-origin `Z8Z_6680` smoke also
+  stays 0/3; exact REF low-field residual only moves worst LPIPS from 0.2713
+  to 0.2702 and worst dE2000 from 5.54 to 5.32. This rules out the current
+  generated low/mid field plus source-detail composition as the production
+  fix:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/fullimage_band_refiner_hard8_from_v32_capacity_v1/preview_fullimage_band_refiner.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/fullimage_band_refiner_hard8_from_v32_capacity_v1/preview_fullimage_band_refiner.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/fullimage_band_refiner_z8z6680_from_multioffset_smoke_v1/preview_fullimage_band_refiner.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/fullimage_band_refiner_z8z6680_from_multioffset_smoke_v1/preview_fullimage_band_refiner.html`
 - Overlap-save stitching with the same dense 512/256 geometry and a 128px
   valid margin regresses the dense result to worst LPIPS 0.2895, worst MS-SSIM
   0.8660, worst Y-PSNR 20.65, and worst dE2000 6.10. Discarding tile borders is

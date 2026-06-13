@@ -594,6 +594,69 @@ def check_preview_source_frequency_negative_evidence() -> Check:
         return Check("preview_detail", "source-frequency post negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_fullimage_band_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/train_preview_fullimage_band_refiner.py"
+    hard8_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260612"
+        / "fullimage_band_refiner_hard8_from_v32_capacity_v1"
+        / "preview_fullimage_band_refiner.json"
+    )
+    smoke_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260612"
+        / "fullimage_band_refiner_z8z6680_from_multioffset_smoke_v1"
+        / "preview_fullimage_band_refiner.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "full-image band negative evidence", "FAIL", "missing tracked full-image band refiner")
+    tool_text = tool.read_text(errors="ignore")
+    if "--source-fullframe-receipt" not in tool_text or "ref_lowfield_residual" not in tool_text:
+        return Check("preview_detail", "full-image band negative evidence", "FAIL", "tool missing receipt-source or lowfield oracle support")
+    missing = [str(path) for path in (hard8_receipt, smoke_receipt) if not path.exists()]
+    if missing:
+        return Check("preview_detail", "full-image band negative evidence", "FAIL", "missing " + ", ".join(missing))
+    try:
+        hard8 = json.loads(hard8_receipt.read_text())
+        smoke = json.loads(smoke_receipt.read_text())
+        hard8_summary = {row["variant"]: row for row in hard8.get("summary", [])}
+        smoke_summary = {row["variant"]: row for row in smoke.get("summary", [])}
+        hard8_source = hard8_summary.get("source_baseline") or {}
+        hard8_ref_low = hard8_summary.get("ref_lowfield_residual") or {}
+        hard8_generated = hard8_summary.get("generated_lowfield_residual") or {}
+        smoke_source = smoke_summary.get("source_baseline") or {}
+        smoke_ref_low = smoke_summary.get("ref_lowfield_residual") or {}
+        ok = (
+            hard8.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and smoke.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and hard8.get("source_fullframe_receipt")
+            and smoke.get("source_fullframe_receipt")
+            and int(hard8_source.get("count", 0)) == 24
+            and int(hard8_source.get("pass_count", -1)) == 4
+            and int(hard8_ref_low.get("pass_count", -1)) == 4
+            and int(hard8_generated.get("pass_count", -1)) == 0
+            and float(hard8_generated.get("worst_dE2000_mean", 0.0)) > 20.0
+            and int(smoke_source.get("count", 0)) == 3
+            and int(smoke_source.get("pass_count", -1)) == 0
+            and int(smoke_ref_low.get("pass_count", -1)) == 0
+            and float(smoke_ref_low.get("worst_lpips", 0.0)) > 0.25
+        )
+        return Check(
+            "preview_detail",
+            "full-image band negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"hard8_source={int(hard8_source.get('pass_count', -1))}/24, "
+                f"hard8_ref_low={int(hard8_ref_low.get('pass_count', -1))}/24, "
+                f"hard8_generated={int(hard8_generated.get('pass_count', -1))}/24, "
+                f"smoke_ref_low={int(smoke_ref_low.get('pass_count', -1))}/3 "
+                f"receipt={hard8_receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "full-image band negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_exact_teacher_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/build_preview_exact_teacher_receipt.py"
     scorer = REPO / "tools/cnn/score_preview_exact_teacher_distill.py"
@@ -1319,6 +1382,7 @@ def main() -> int:
     checks.append(check_preview_context_generator_negative_evidence())
     checks.append(check_preview_multi_origin_tile_negative_evidence())
     checks.append(check_preview_source_frequency_negative_evidence())
+    checks.append(check_preview_fullimage_band_negative_evidence())
     checks.append(check_preview_exact_teacher_distill_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
