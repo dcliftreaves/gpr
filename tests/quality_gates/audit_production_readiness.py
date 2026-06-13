@@ -506,6 +506,94 @@ def check_preview_context_generator_negative_evidence() -> Check:
         return Check("preview_detail", "context generator negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_multi_origin_tile_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/evaluate_preview_scene_routed_fullframe.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260612"
+        / "fullframe_multi_offset_v32_z8z6680_t512_o256_v1"
+        / "preview_scene_routed_fullframe.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "multi-origin tile negative evidence", "FAIL", "missing tracked full-frame evaluator")
+    tool_text = tool.read_text(errors="ignore")
+    if "--tile-offset" not in tool_text or "tile_offsets" not in tool_text:
+        return Check("preview_detail", "multi-origin tile negative evidence", "FAIL", "full-frame evaluator missing tile offset support")
+    if not receipt.exists():
+        return Check("preview_detail", "multi-origin tile negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = (payload.get("summary") or {}).get("preview_runtime_policy") or {}
+        contract = payload.get("runtime_contract") or {}
+        rows = payload.get("rows") or []
+        timing = payload.get("timing_summary") or {}
+        offsets = contract.get("tile_offsets") or []
+        ok = (
+            payload.get("schema") == "preview_scene_routed_fullframe_receipt.v1"
+            and len(offsets) == 4
+            and int(summary.get("count", 0)) == 3
+            and int(summary.get("pass_count", -1)) == 0
+            and 0.20 < float(summary.get("worst_lpips", 0.0)) < 0.30
+            and 5.0 < float(summary.get("worst_dE2000_mean", 0.0)) < 6.0
+            and rows
+            and float(timing.get("runtime_no_ref_wall_ms_avg", 0.0)) > 0.0
+            and "REF image content" in set(contract.get("forbidden_inputs") or [])
+        )
+        return Check(
+            "preview_detail",
+            "multi-origin tile negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"multi_origin={int(summary.get('pass_count', -1))}/{int(summary.get('count', 0))}, "
+                f"worst_lpips={float(summary.get('worst_lpips', 0.0)):.4f}, "
+                f"worst_dE={float(summary.get('worst_dE2000_mean', 0.0)):.2f}, "
+                f"runtime={float(timing.get('runtime_no_ref_wall_ms_avg', 0.0)) / 1000.0:.2f}s "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "multi-origin tile negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
+def check_preview_source_frequency_negative_evidence() -> Check:
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260612"
+        / "source_frequency_post_hard8_w40_v1"
+        / "preview_runtime_refiner.json"
+    )
+    if not receipt.exists():
+        return Check("preview_detail", "source-frequency post negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = (payload.get("summary") or {}).get("preview_runtime_policy") or {}
+        contract = payload.get("runtime_contract") or {}
+        training = payload.get("training") or {}
+        ok = (
+            payload.get("schema") == "preview_runtime_refiner_train_receipt.v1"
+            and int(summary.get("count", 0)) == 24
+            and int(summary.get("pass_count", -1)) == 3
+            and float(summary.get("worst_lpips", 0.0)) > 0.50
+            and float(summary.get("worst_dE2000_mean", 0.0)) > 8.0
+            and contract.get("source_frequency_planes") == "low_high"
+            and int(contract.get("input_channels", 0)) == 15
+            and training.get("checkpoint_sha256")
+        )
+        return Check(
+            "preview_detail",
+            "source-frequency post negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"source_freq={int(summary.get('pass_count', -1))}/{int(summary.get('count', 0))}, "
+                f"worst_lpips={float(summary.get('worst_lpips', 0.0)):.4f}, "
+                f"worst_dE={float(summary.get('worst_dE2000_mean', 0.0)):.2f}, "
+                f"input_channels={int(contract.get('input_channels', 0))} receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "source-frequency post negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_exact_teacher_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/build_preview_exact_teacher_receipt.py"
     scorer = REPO / "tools/cnn/score_preview_exact_teacher_distill.py"
@@ -521,27 +609,42 @@ def check_preview_exact_teacher_distill_negative_evidence() -> Check:
         / "exact_teacher_post_distill_hard8_unetgen_v3"
         / "exact_teacher_distill_score.json"
     )
+    global_context_score_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260612"
+        / "exact_teacher_post_distill_hard8_global_context_w96_v1"
+        / "exact_teacher_distill_score.json"
+    )
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "exact-teacher distill negative evidence", "FAIL", "missing tracked exact-teacher receipt tool")
     if not scorer.exists() or not git_tracked(scorer):
         return Check("preview_detail", "exact-teacher distill negative evidence", "FAIL", "missing tracked exact-teacher scorer")
-    missing = [str(path) for path in (direct_score_receipt, unet_score_receipt) if not path.exists()]
+    missing = [
+        str(path)
+        for path in (direct_score_receipt, unet_score_receipt, global_context_score_receipt)
+        if not path.exists()
+    ]
     if missing:
         return Check("preview_detail", "exact-teacher distill negative evidence", "FAIL", "missing " + ", ".join(missing))
     try:
         payload = json.loads(direct_score_receipt.read_text())
         unet_payload = json.loads(unet_score_receipt.read_text())
+        global_context_payload = json.loads(global_context_score_receipt.read_text())
         summary = payload.get("summary") or {}
         unet_summary = unet_payload.get("summary") or {}
+        global_context_summary = global_context_payload.get("summary") or {}
         source_ref = summary.get("source_vs_ref") or {}
         teacher_ref = summary.get("teacher_vs_ref") or {}
         output_ref = summary.get("output_vs_ref") or {}
         output_teacher = summary.get("output_vs_teacher") or {}
         unet_ref = unet_summary.get("output_vs_ref") or {}
         unet_teacher = unet_summary.get("output_vs_teacher") or {}
+        global_context_ref = global_context_summary.get("output_vs_ref") or {}
+        global_context_teacher = global_context_summary.get("output_vs_teacher") or {}
         ok = (
             payload.get("schema") == "preview_exact_teacher_distill_score.v1"
             and unet_payload.get("schema") == "preview_exact_teacher_distill_score.v1"
+            and global_context_payload.get("schema") == "preview_exact_teacher_distill_score.v1"
             and int(source_ref.get("count", 0)) == 24
             and int(source_ref.get("pass_count", -1)) == 3
             and int(teacher_ref.get("pass_count", -1)) == 16
@@ -551,6 +654,9 @@ def check_preview_exact_teacher_distill_negative_evidence() -> Check:
             and int(unet_teacher.get("pass_count", -1)) == 0
             and int(unet_ref.get("pass_count", -1)) == 0
             and float(unet_ref.get("worst_dE2000_mean", 0.0)) > 15.0
+            and int(global_context_teacher.get("pass_count", -1)) == 5
+            and int(global_context_ref.get("pass_count", -1)) == 2
+            and float(global_context_ref.get("worst_lpips", 0.0)) > 0.50
         )
         return Check(
             "preview_detail",
@@ -562,7 +668,10 @@ def check_preview_exact_teacher_distill_negative_evidence() -> Check:
                 f"output_teacher={int(output_teacher.get('pass_count', -1))}/24, "
                 f"output_ref={int(output_ref.get('pass_count', -1))}/24, "
                 f"unet_teacher={int(unet_teacher.get('pass_count', -1))}/24, "
-                f"unet_ref={int(unet_ref.get('pass_count', -1))}/24 receipt={direct_score_receipt}"
+                f"unet_ref={int(unet_ref.get('pass_count', -1))}/24, "
+                f"global_context_teacher={int(global_context_teacher.get('pass_count', -1))}/24, "
+                f"global_context_ref={int(global_context_ref.get('pass_count', -1))}/24 "
+                f"receipt={direct_score_receipt}"
             ),
         )
     except Exception as exc:
@@ -1208,6 +1317,8 @@ def main() -> int:
     checks.append(check_preview_fullimage_lf_negative_evidence())
     checks.append(check_preview_frequency_oracle_evidence())
     checks.append(check_preview_context_generator_negative_evidence())
+    checks.append(check_preview_multi_origin_tile_negative_evidence())
+    checks.append(check_preview_source_frequency_negative_evidence())
     checks.append(check_preview_exact_teacher_distill_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),

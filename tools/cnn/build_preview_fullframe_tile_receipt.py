@@ -63,6 +63,34 @@ def tile_origins(length: int, tile: int, stride: int) -> list[int]:
     return out
 
 
+def tile_origins_with_offset(length: int, tile: int, stride: int, offset: int) -> list[int]:
+    if length <= tile:
+        return [0]
+    last = length - tile
+    offset = int(offset) % max(1, stride)
+    starts = {0, last}
+    pos = offset
+    while pos <= last:
+        starts.add(pos)
+        pos += stride
+    return sorted(starts)
+
+
+def parse_tile_offsets(values: list[str]) -> list[tuple[int, int]]:
+    if not values:
+        return [(0, 0)]
+    offsets: list[tuple[int, int]] = []
+    for value in values:
+        parts = value.split(",")
+        if len(parts) != 2:
+            raise ValueError(f"--tile-offset must be X,Y pixels, got {value!r}")
+        x, y = int(parts[0]), int(parts[1])
+        if x < 0 or y < 0:
+            raise ValueError(f"--tile-offset values must be non-negative, got {value!r}")
+        offsets.append((x, y))
+    return offsets
+
+
 def intersects(a: tuple[int, int, int, int], b: tuple[int, int, int, int]) -> bool:
     return a[0] < b[2] and a[2] > b[0] and a[1] < b[3] and a[3] > b[1]
 
@@ -94,15 +122,21 @@ def selected_tiles(
     mode: str,
     crop_boxes: dict[str, tuple[int, int, int, int]],
     max_tiles: int,
+    tile_offsets: list[tuple[int, int]] | None = None,
 ) -> list[tuple[int, int, int, int, list[str]]]:
     rows: list[tuple[int, int, int, int, list[str]]] = []
-    for y0 in tile_origins(height, tile, stride):
-        for x0 in tile_origins(width, tile, stride):
-            box = (x0, y0, min(width, x0 + tile), min(height, y0 + tile))
-            crop_hits = [name for name, crop_box in crop_boxes.items() if intersects(box, crop_box)]
-            if mode == "intersect_crops" and not crop_hits:
-                continue
-            rows.append((*box, crop_hits))
+    seen: set[tuple[int, int, int, int]] = set()
+    for offset_x, offset_y in tile_offsets or [(0, 0)]:
+        for y0 in tile_origins_with_offset(height, tile, stride, offset_y):
+            for x0 in tile_origins_with_offset(width, tile, stride, offset_x):
+                box = (x0, y0, min(width, x0 + tile), min(height, y0 + tile))
+                if box in seen:
+                    continue
+                seen.add(box)
+                crop_hits = [name for name, crop_box in crop_boxes.items() if intersects(box, crop_box)]
+                if mode == "intersect_crops" and not crop_hits:
+                    continue
+                rows.append((*box, crop_hits))
     if max_tiles > 0 and len(rows) > max_tiles:
         if mode == "intersect_crops":
             rows = rows[:max_tiles]
@@ -188,6 +222,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                     mode=args.tile_mode,
                     crop_boxes=crop_boxes,
                     max_tiles=args.max_tiles_per_image,
+                    tile_offsets=args.tile_offsets,
                 )
                 for x0, y0, x1, y1, crop_hits in tile_rows:
                     crop_name = f"tile_{x0}_{y0}"
@@ -236,6 +271,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "tile_mode": args.tile_mode,
         "tile_size": args.tile_size,
         "overlap": args.overlap,
+        "tile_offsets": args.tile_offsets,
         "rows": rows,
         "missing": missing,
         "summary": {
@@ -262,6 +298,7 @@ def main() -> int:
     parser.add_argument("--tile-mode", choices=["intersect_crops", "full_grid"], default="intersect_crops")
     parser.add_argument("--tile-size", type=int, default=512)
     parser.add_argument("--overlap", type=int, default=0)
+    parser.add_argument("--tile-offset", action="append", default=[], help="Tile origin offset as X,Y pixels. Repeat for multi-origin receipts.")
     parser.add_argument("--max-tiles-per-image", type=int, default=0)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--out-json", type=Path, required=True)
@@ -273,6 +310,7 @@ def main() -> int:
         args.source_root = DEFAULT_SOURCE_ROOTS
     args.tmp_dir.mkdir(parents=True, exist_ok=True)
     args.out_json.parent.mkdir(parents=True, exist_ok=True)
+    args.tile_offsets = parse_tile_offsets(args.tile_offset)
     payload = build(args)
     args.out_json.write_text(json.dumps(payload, indent=2) + "\n")
     print(json.dumps(payload["summary"], indent=2), flush=True)

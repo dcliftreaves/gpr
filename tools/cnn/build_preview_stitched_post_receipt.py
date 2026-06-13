@@ -26,7 +26,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools/test"))
 sys.path.insert(0, str(REPO / "tools/cnn"))
 
-from build_preview_fullframe_tile_receipt import intersects, tile_origins  # noqa: E402
+from build_preview_fullframe_tile_receipt import intersects, parse_tile_offsets, tile_origins_with_offset  # noqa: E402
 from build_preview_holdout_runtime_receipt import scaled_box  # noqa: E402
 from evaluate_preview_scene_routed_fullframe import crop_metric_image  # noqa: E402
 
@@ -95,15 +95,21 @@ def selected_tile_boxes(
     mode: str,
     crop_boxes: dict[str, tuple[int, int, int, int]],
     max_tiles: int,
+    tile_offsets: list[tuple[int, int]] | None = None,
 ) -> list[tuple[int, int, int, int, list[str]]]:
     rows: list[tuple[int, int, int, int, list[str]]] = []
-    for y0 in tile_origins(height, tile, stride):
-        for x0 in tile_origins(width, tile, stride):
-            box = (x0, y0, min(width, x0 + tile), min(height, y0 + tile))
-            crop_hits = [name for name, crop_box in crop_boxes.items() if intersects(box, crop_box)]
-            if mode == "intersect_tiles" and not crop_hits:
-                continue
-            rows.append((*box, crop_hits))
+    seen: set[tuple[int, int, int, int]] = set()
+    for offset_x, offset_y in tile_offsets or [(0, 0)]:
+        for y0 in tile_origins_with_offset(height, tile, stride, offset_y):
+            for x0 in tile_origins_with_offset(width, tile, stride, offset_x):
+                box = (x0, y0, min(width, x0 + tile), min(height, y0 + tile))
+                if box in seen:
+                    continue
+                seen.add(box)
+                crop_hits = [name for name, crop_box in crop_boxes.items() if intersects(box, crop_box)]
+                if mode == "intersect_tiles" and not crop_hits:
+                    continue
+                rows.append((*box, crop_hits))
     if max_tiles > 0 and len(rows) > max_tiles:
         rows = rows[:max_tiles]
     return rows
@@ -218,6 +224,7 @@ def append_tile_rows(
             mode=args.sample_mode,
             crop_boxes=crop_boxes,
             max_tiles=args.max_tiles_per_image,
+            tile_offsets=args.tile_offsets,
         )
         stats = image_stats(stitched_rgb)
         for x0, y0, x1, y1, crop_hits in tile_rows:
@@ -299,6 +306,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "sample_mode": args.sample_mode,
         "tile_size": args.tile_size if args.sample_mode != "manifest_crops" else None,
         "overlap": args.overlap if args.sample_mode != "manifest_crops" else None,
+        "tile_offsets": args.tile_offsets if args.sample_mode != "manifest_crops" else None,
         "forbidden_render_inputs": ["REF image content", "REF HF/LF fields", "gate metrics"],
         "rows": rows,
         "missing": missing,
@@ -325,6 +333,7 @@ def main() -> int:
     parser.add_argument("--sample-mode", choices=["manifest_crops", "intersect_tiles", "full_grid"], default="manifest_crops")
     parser.add_argument("--tile-size", type=int, default=512)
     parser.add_argument("--overlap", type=int, default=0)
+    parser.add_argument("--tile-offset", action="append", default=[], help="Tile origin offset as X,Y pixels. Repeat for multi-origin receipts.")
     parser.add_argument("--max-tiles-per-image", type=int, default=0)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--out-json", type=Path, required=True)
@@ -332,6 +341,7 @@ def main() -> int:
     args = parser.parse_args()
     args.tmp_dir.mkdir(parents=True, exist_ok=True)
     args.out_json.parent.mkdir(parents=True, exist_ok=True)
+    args.tile_offsets = parse_tile_offsets(args.tile_offset)
     payload = build(args)
     print(json.dumps(payload["summary"], indent=2), flush=True)
     print(args.out_json)

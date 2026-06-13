@@ -647,6 +647,22 @@ Additional follow-up diagnostics ruled out several simpler fixes:
   from 6.96 to 5.54. It also raises model time from 3.74 s/frame to 14.01
   s/frame on the Mac/MPS diagnostic path:
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_tiled_v32_dense512_o256_z8z6680/preview_scene_routed_fullframe.json`
+- The full-frame evaluator now exposes the same class of multi-origin geometry
+  as repeated `--tile-offset X,Y` values, so the diagnostic can be reproduced
+  without overloading overlap semantics. The 2026-06-12 four-origin receipt
+  also fails 0/3 on `Z8Z_6680`: worst LPIPS 0.2713, worst MS-SSIM 0.8884,
+  worst Y-PSNR 21.49, worst dE2000 5.54, runtime 24.82 s/frame, and 672 model
+  tiles:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/fullframe_multi_offset_v32_z8z6680_t512_o256_v1/preview_scene_routed_fullframe.json`
+- A runtime-safe source-frequency representation was then added to the PREVIEW
+  runtime trainer and optional full-frame post-refiner path. It appends
+  low/high planes derived only from source RGB, giving a 15-channel input while
+  keeping REF as target/scoring data only. A hard-eight stitched manifest-crop
+  capacity check from the broad holdout source still reaches only 3/24, with
+  worst LPIPS 0.5604, worst MS-SSIM 0.6496, worst Y-PSNR 20.10, and worst
+  dE2000 8.28:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/stitched_post_hard8_manifest_from_holdout_v1/stitched_post_receipt.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/source_frequency_post_hard8_w40_v1/preview_runtime_refiner.json`
 - Overlap-save stitching with the same dense 512/256 geometry and a 128px
   valid margin regresses the dense result to worst LPIPS 0.2895, worst MS-SSIM
   0.8660, worst Y-PSNR 20.65, and worst dE2000 6.10. Discarding tile borders is
@@ -1801,6 +1817,9 @@ tools/cnn/score_preview_exact_teacher_distill.py
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/exact_teacher_post_distill_hard8_w96_v2/exact_teacher_distill_score.html
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/exact_teacher_post_distill_hard8_unetgen_v3/exact_teacher_distill_score.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/exact_teacher_post_distill_hard8_unetgen_v3/exact_teacher_distill_score.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/exact_teacher_distill_hard8_global_context_v1/exact_teacher_distill_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/exact_teacher_post_distill_hard8_global_context_w96_v1/exact_teacher_distill_score.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/exact_teacher_post_distill_hard8_global_context_w96_v1/exact_teacher_distill_score.html
 ```
 
 Hard-eight receipt construction:
@@ -1815,15 +1834,18 @@ Two post-refiner fits were scored against both teacher and REF:
 - width-96 direct post model: output 6/24 against teacher and 3/24 against REF
 - width-32 context U-Net generator: output 0/24 against teacher and 0/24
   against REF, with worst dE2000 above 19
+- width-96 direct post model with resized full-frame no-REF context planes:
+  output 5/24 against teacher and 2/24 against REF
 
 The width-96 run improves proxy worst LPIPS from 0.5575 to 0.4644 against the
 exact teacher, but it does not improve the actual REF gate: source is 3/24 and
 output remains 3/24. The context U-Net generator regresses both teacher and REF
-scoring because it cannot maintain color consistency on this target. This rules
-out simple exact-crop-teacher post-distillation as the production fix. The
-remaining branch needs a different source/teacher representation or a more
-global model class; copying the exact-crop behavior through these post models is
-not enough.
+scoring because it cannot maintain color consistency on this target. Adding a
+thumbnail-style no-REF full-frame context image also fails to improve the actual
+REF gate. This rules out simple exact-crop-teacher post-distillation as the
+production fix. The remaining branch needs a different source/teacher
+representation or a more global model class; copying the exact-crop behavior
+through these post models is not enough.
 
 ### Full-Frame Wall Timing Receipt
 

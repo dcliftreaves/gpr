@@ -210,6 +210,15 @@ that passes in crop mode, and one crop still fails even when its intersecting
 tiles select the expected K40 expert. Dense 512px sliding windows with 256px
 overlap improve the smoke but still fail 0/3 and cost about 14.0 s of model
 time for one full frame; overlap-save and route-context-only variants regress.
+The full-frame evaluator now exposes that geometry as explicit repeated
+`--tile-offset` origins; the 2026-06-12 four-origin receipt also fails 0/3 on
+`Z8Z_6680` with worst LPIPS 0.2713 and worst dE2000 5.54, so multi-origin
+stitching is tracked as negative evidence rather than a hidden production path.
+A 15-channel source-frequency post-refiner path was then added for runtime-safe
+low/high planes derived from source RGB only. On the 24 hard-eight stitched
+manifest crops it still reaches only 3/24, with worst LPIPS 0.5604 and worst
+dE2000 8.28, so source-derived frequency planes alone are not the missing
+full-frame representation.
 The first explicit low-frequency spatial branch improves the hard `Z8Z_6680`
 tile receipt to 9/12 isolated passes, but stitched full-frame output remains
 1/3 with remaining Y/dE failures in the lower-left region. A follow-up
@@ -331,8 +340,10 @@ source and exact no-REF crop output as the teacher. The teacher itself is
 against the teacher and stayed at 3/24 against REF, matching the tiled source
 pass count. A context U-Net generator post pass regressed to 0/24 against both
 teacher and REF with large color errors. That rules out simple
-exact-crop-teacher post-distillation as the full-frame fix; a different
-source/teacher representation or more global model class is still required.
+exact-crop-teacher post-distillation as the full-frame fix; adding resized
+no-REF full-frame context planes to the direct post model also regressed to
+5/24 against teacher and 2/24 against REF. A different source/teacher
+representation or more global model class is still required.
 The evaluator now records true per-frame wall timing: a `Z8Z_0026` smoke
 receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
 with only 3.67 s spent in model inference, so Python routing/save/stitch
