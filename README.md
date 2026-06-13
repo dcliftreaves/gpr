@@ -260,6 +260,15 @@ full-frame application for covered hard families, but also confirms `Z8Z_7480`
 needs matching scene-family coverage or a better specialist before PREVIEW can
 be registered.
 
+A runtime-safe q8 hard-family router then combined the q8 hard full-frame
+specialist with the existing v32 full-frame fallback. The router uses only q8
+source full-frame/crop-window features and reaches **28/28** image-level
+leave-one-out routing accuracy on the holdout. The routed union reaches
+**78/84** full-frame stitched crop rows. The six remaining failures are
+`Z8Z_0680`, `Z8Z_0694`, and `Z8Z_0718` fallback rows, so the next PREVIEW work
+is a fallback-family specialist or source policy for those images, not more
+hard-family q8 work.
+
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
 runtime tiles. That narrows the remaining work to tile/context-safe routing and

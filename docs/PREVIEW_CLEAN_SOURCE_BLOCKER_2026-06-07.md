@@ -3023,3 +3023,38 @@ scene families are covered by training. This is stronger than crop-only
 evidence, but still not a production PREVIEW claim because `Z8Z_7480` does not
 generalize without matching coverage and the specialist still needs a
 runtime-observable router.
+
+### q8 Hard-family Router Union - 2026-06-13
+
+Tool:
+
+```text
+tools/cnn/score_preview_q8_hard_router_union.py
+```
+
+The router uses q8 source full-frame RGB features plus fixed manifest crop
+window features. It selects between the q8 hard-fit full-frame specialist and
+the existing v32 full-frame fallback. REF and gate metrics are scoring only.
+
+Receipts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_hard_router_union_loo_v1/preview_q8_hard_router_union.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_hard_router_union_loo_v1/preview_q8_hard_router_union.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_hard_router_union_finalsidecar_v1/preview_q8_hard_router_union.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_hard_router_union_finalsidecar_v1/preview_q8_hard_router_union.html
+```
+
+Result:
+
+| route mode | route accuracy | hard recall | fallback specificity | stitched crop pass | remaining failures |
+| --- | ---: | ---: | ---: | ---: | --- |
+| leave-one-out | 28/28 | 8/8 | 20/20 | 78/84 | `Z8Z_0680`, `Z8Z_0694`, `Z8Z_0718` |
+| final sidecar | 28/28 | 8/8 | 20/20 | 78/84 | `Z8Z_0680`, `Z8Z_0694`, `Z8Z_0718` |
+
+Worst routed-union metrics are LPIPS 0.3670, MS-SSIM 0.8472, Y-PSNR 17.34,
+and dE2000 14.66. Those worst rows all come from the fallback path on the
+three remaining non-hard images. The full-frame PREVIEW blocker is now narrowed
+again: q8 hard-family routing can cover the hard eight, while the fallback
+hair/skin structure family needs its own full-frame specialist or a different
+runtime source policy.

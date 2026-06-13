@@ -1780,6 +1780,77 @@ def check_preview_q8_crop_specialist_evidence() -> Check:
         return Check("preview_detail", "q8 crop specialist evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_q8_hard_router_union_evidence() -> Check:
+    tool = REPO / "tools/cnn/score_preview_q8_hard_router_union.py"
+    base = ARTIFACT_ROOT / "preview_runtime_policy_20260613"
+    loo_receipt = base / "q8_hard_router_union_loo_v1/preview_q8_hard_router_union.json"
+    final_receipt = base / "q8_hard_router_union_finalsidecar_v1/preview_q8_hard_router_union.json"
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "q8 hard router union evidence", "FAIL", "missing tracked q8 hard router union scorer")
+    tool_text = tool.read_text(errors="ignore")
+    if "fixed_manifest_crop_rgb_windows" not in tool_text or "forbidden_router_inputs" not in tool_text:
+        return Check("preview_detail", "q8 hard router union evidence", "FAIL", "tool missing router runtime contract")
+    missing = [str(path) for path in (loo_receipt, final_receipt) if not path.exists()]
+    if missing:
+        return Check("preview_detail", "q8 hard router union evidence", "FAIL", "missing " + ", ".join(missing))
+    try:
+        loo = json.loads(loo_receipt.read_text())
+        final = json.loads(final_receipt.read_text())
+
+        def union_summary(payload: dict[str, Any]) -> dict[str, Any]:
+            return (payload.get("summary") or {}).get("routed_preview_union") or {}
+
+        def route_summary(payload: dict[str, Any], key: str) -> dict[str, Any]:
+            return (payload.get("route_summary") or {}).get(key) or {}
+
+        loo_union = union_summary(loo)
+        final_union = union_summary(final)
+        loo_route = route_summary(loo, "leave_one_out")
+        final_route = route_summary(final, "final_sidecar")
+        failures = [row for row in final.get("rows") or [] if not row.get("preview_pass")]
+        failure_ids = sorted({str(row.get("image_id")) for row in failures})
+        contract = final.get("render_contract") or {}
+        sidecar = final.get("sidecar") or {}
+        ok = (
+            loo.get("schema") == "preview_q8_hard_router_union.v1"
+            and final.get("schema") == "preview_q8_hard_router_union.v1"
+            and loo.get("route_mode") == "leave_one_out"
+            and final.get("route_mode") == "final_sidecar"
+            and int(loo_union.get("pass_count", -1)) == 78
+            and int(loo_union.get("count", 0)) == 84
+            and int(final_union.get("pass_count", -1)) == 78
+            and int(final_union.get("count", 0)) == 84
+            and int(loo_route.get("correct", -1)) == 28
+            and int(loo_route.get("hard_recall", -1)) == 8
+            and int(loo_route.get("fallback_specificity", -1)) == 20
+            and int(final_route.get("correct", -1)) == 28
+            and int(final_route.get("hard_recall", -1)) == 8
+            and int(final_route.get("fallback_specificity", -1)) == 20
+            and failure_ids == ["Z8Z_0680", "Z8Z_0694", "Z8Z_0718"]
+            and contract.get("uses_ref_at_route_time") is False
+            and contract.get("uses_ref_at_render_time") is False
+            and "ref_rgb" in set(contract.get("forbidden_router_inputs") or [])
+            and sidecar.get("schema") == "preview_q8_hard_router_sidecar.v1"
+            and (sidecar.get("training_counts") or {}).get("hard") == 8
+            and (sidecar.get("training_counts") or {}).get("fallback") == 20
+        )
+        return Check(
+            "preview_detail",
+            "q8 hard router union evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"loo={int(loo_union.get('pass_count', -1))}/84 "
+                f"route={int(loo_route.get('correct', -1))}/28 "
+                f"hard={int(loo_route.get('hard_recall', -1))}/8 "
+                f"fallback={int(loo_route.get('fallback_specificity', -1))}/20; "
+                f"final={int(final_union.get('pass_count', -1))}/84 "
+                f"failures={','.join(failure_ids)} receipt={loo_receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "q8 hard router union evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_rolemap_post_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_rolemap_post_distill.py"
     receipt = (
@@ -2673,6 +2744,7 @@ def main() -> int:
     checks.append(check_preview_q8_lowfield_negative_evidence())
     checks.append(check_preview_q8_multiband_negative_evidence())
     checks.append(check_preview_q8_crop_specialist_evidence())
+    checks.append(check_preview_q8_hard_router_union_evidence())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
     checks.append(check_preview_route_smoothing_negative_evidence())
     checks.append(check_preview_stitched_context_unet_negative_evidence())
