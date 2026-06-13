@@ -81,7 +81,7 @@ def normalize_generic_rows(label: str, payload: dict[str, Any]) -> list[dict[str
         if not isinstance(row, dict):
             continue
         if "variant" in row:
-            variant = str(row["variant"])
+            variant = f"{label}:{row['variant']}"
         else:
             variant = label
         metrics = extract_metrics(row)

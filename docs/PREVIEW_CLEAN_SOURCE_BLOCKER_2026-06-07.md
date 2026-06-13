@@ -2319,14 +2319,14 @@ structure and color placement beyond a low/mid field.
 The aggregate failure-mode dashboard was refreshed with these rows:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v3/preview_fullframe_failure_mode_audit.json
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v3/preview_fullframe_failure_mode_audit.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v4/preview_fullframe_failure_mode_audit.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v4/preview_fullframe_failure_mode_audit.html
 ```
 
-It now contains 1,707 normalized rows and 63 variant views while preserving the
-same core full-frame blocker counts: crop-shaped routed holdout 84/84,
-scene-gated arbitrary full-frame 63/84, hard-eight exact manifest-crop 16/24,
-and hard-eight arbitrary-tiled 3/24.
+It now contains 2,043 normalized rows and 121 label-separated variant views
+while preserving the same core full-frame blocker counts: crop-shaped routed
+holdout 84/84, scene-gated arbitrary full-frame 63/84, hard-eight exact
+manifest-crop 16/24, and hard-eight arbitrary-tiled 3/24.
 
 ### High-Resolution Source-Only Band Generator
 

@@ -1192,7 +1192,7 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
     receipt = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260613"
-        / "fullframe_failure_mode_audit_v3"
+        / "fullframe_failure_mode_audit_v4"
         / "preview_fullframe_failure_mode_audit.json"
     )
     if not tool.exists() or not git_tracked(tool):
@@ -1209,14 +1209,16 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
         exact = variants.get("hard8_contract:exact_manifest_crop") or {}
         teacher_distill = variants.get("hard8_exact_teacher_distill:output_vs_ref") or {}
         context_unet = variants.get("hard8_stitched_context_unet") or {}
-        ref_field_3072 = variants.get("ref_field_oracle_w3072") or {}
-        ref_field_4096 = variants.get("ref_field_oracle_w4096") or {}
-        ref_field_6144 = variants.get("ref_field_oracle_w6144") or {}
-        ref_field_full = variants.get("ref_field_oracle_w8280") or {}
+        ref_field_3072 = variants.get("hard8_resolution_oracle_lowmid:ref_field_oracle_w3072") or {}
+        ref_field_4096 = variants.get("hard8_resolution_oracle_high:ref_field_oracle_w4096") or {}
+        ref_field_6144 = variants.get("hard8_resolution_oracle_high:ref_field_oracle_w6144") or {}
+        ref_field_full = variants.get("hard8_resolution_oracle_high:ref_field_oracle_w8280") or {}
+        residual_band = variants.get("hard8_band_residual_w4096:generated_low_plus_source_high_s1") or {}
+        residual_unet = variants.get("hard8_band_residual_unet_w2048:generated_low_plus_source_high_s4") or {}
         ok = (
             payload.get("schema") == "preview_fullframe_failure_mode_audit.v1"
-            and int(summary.get("normalized_row_count", 0)) >= 1707
-            and int(summary.get("variant_count", 0)) >= 63
+            and int(summary.get("normalized_row_count", 0)) >= 2043
+            and int(summary.get("variant_count", 0)) >= 121
             and int(summary.get("unique_row_count", 0)) == 84
             and int(summary.get("exact_pass_tiled_fail_count", 0)) == 13
             and int(summary.get("exact_pass_tiled_fail_mixed_role_count", 0)) == 11
@@ -1231,6 +1233,10 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
             and int(ref_field_4096.get("pass_count", -1)) == 19
             and int(ref_field_6144.get("pass_count", -1)) == 23
             and int(ref_field_full.get("pass_count", -1)) == 24
+            and int(residual_band.get("pass_count", -1)) == 0
+            and int(residual_band.get("count", 0)) == 6
+            and int(residual_unet.get("pass_count", -1)) == 0
+            and int(residual_unet.get("count", 0)) == 6
         )
         return Check(
             "preview_detail",
@@ -1245,6 +1251,8 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
                 f"fullframe={int(fullframe.get('pass_count', -1))}/84, "
                 f"teacher_distill={int(teacher_distill.get('pass_count', -1))}/24, "
                 f"context_unet={int(context_unet.get('pass_count', -1))}/24, "
+                f"residual_band={int(residual_band.get('pass_count', -1))}/6, "
+                f"residual_unet={int(residual_unet.get('pass_count', -1))}/6, "
                 "ref_field_oracle="
                 f"3072:{int(ref_field_3072.get('pass_count', -1))}/24 "
                 f"4096:{int(ref_field_4096.get('pass_count', -1))}/24 "

@@ -237,10 +237,10 @@ A full-frame failure-mode audit now aggregates 15 existing receipts into one
 dashboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v2/preview_fullframe_failure_mode_audit.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v4/preview_fullframe_failure_mode_audit.html
 ```
 
-It normalizes 1,371 evidence rows over the 84-row holdout, confirms the
+It normalizes 2,043 evidence rows over the 84-row holdout, confirms the
 crop-shaped routed candidate at 84/84, the broad arbitrary-tiled scene-gated
 path at 63/84, and the hard-eight contract split at 16/24 exact manifest-crop
 passes versus only 3/24 arbitrary-tiled passes. The audit finds 13 rows that
