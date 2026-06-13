@@ -2559,3 +2559,41 @@ it also remains 0/6 and does not improve the decisive hard-smoke metrics. The
 next viable candidate still needs a different source/teacher representation or
 a more global image-conditioned model, not just a residual variant of the
 current full-image band generator.
+
+### Candidate Evidence Rank
+
+The next production-planning step consolidated the existing source, teacher,
+model, crop-contract, full-frame, and oracle receipts into one dashboard so the
+next experiment is selected from the whole evidence set rather than from the
+latest local CNN result.
+
+Tool:
+
+```text
+tools/cnn/rank_preview_candidate_evidence.py
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v1/preview_candidate_evidence_rank.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v1/preview_candidate_evidence_rank.html
+```
+
+Result:
+
+| evidence class | best row | pass | interpretation |
+| --- | --- | ---: | --- |
+| crop-shaped no-REF route | `crop_holdout_v32` | 84/84 | Crop-local routing is solved enough for diagnostics. |
+| production-shaped full-frame route | `fullframe_scene_gated_84` | 63/84 | Arbitrary full-image tiling is still the blocker. |
+| hard-row no-REF model | stitched context post-refiner | 2/24 | Local/post/refiner-style models are not sufficient. |
+| diagnostic/oracle ceiling | full-resolution REF field | 24/24 | The target is reachable only with information the current runtime path lacks. |
+
+The dashboard ranks 209 variant summaries, of which 67 are production-eligible
+runtime-source, no-REF full-frame, or no-REF model rows. The split rules out
+another small local correction, affine field, dense warp, exact-crop-teacher
+post-distill, source-feature residual, residual band, or residual U-Net pass as
+the next high-EV production move. The next viable PREVIEW experiment should
+change the runtime-safe source/teacher representation or move to a more global
+image-conditioned model that can learn the missing full-image low/mid/detail
+placement without REF at render time.

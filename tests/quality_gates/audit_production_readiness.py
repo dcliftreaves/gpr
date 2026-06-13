@@ -1265,6 +1265,84 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
         return Check("preview_detail", "full-frame failure-mode audit", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_candidate_evidence_rank() -> Check:
+    tool = REPO / "tools/cnn/rank_preview_candidate_evidence.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "preview_candidate_evidence_rank_v1"
+        / "preview_candidate_evidence_rank.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "candidate evidence rank dashboard", "FAIL", "missing tracked evidence-rank tool")
+    if not receipt.exists():
+        return Check("preview_detail", "candidate evidence rank dashboard", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = payload.get("summary") or {}
+        rows = payload.get("rows") or []
+        by_variant = {str(row.get("variant")): row for row in rows}
+        crop = by_variant.get("crop_holdout_v32") or {}
+        fullframe = by_variant.get("fullframe_scene_gated_84") or {}
+        stitched = next(
+            (
+                row
+                for row in rows
+                if row.get("receipt") == "stitched_context_post"
+                and row.get("variant") == "preview_runtime_policy"
+            ),
+            {},
+        )
+        ref_full = next(
+            (
+                row
+                for row in rows
+                if row.get("receipt") == "resolution_oracle_highres"
+                and row.get("variant") == "ref_field_oracle_w8280"
+            ),
+            {},
+        )
+        findings_text = "\n".join(str(item) for item in payload.get("findings") or [])
+        ok = (
+            payload.get("schema") == "preview_candidate_evidence_rank.v1"
+            and int(summary.get("variant_count", 0)) >= 200
+            and int(summary.get("production_eligible_count", 0)) >= 60
+            and int(crop.get("pass_count", -1)) == 84
+            and int(crop.get("count", 0)) == 84
+            and crop.get("class") == "no_ref_crop_only"
+            and crop.get("production_eligible") is False
+            and int(fullframe.get("pass_count", -1)) == 63
+            and int(fullframe.get("count", 0)) == 84
+            and fullframe.get("class") == "no_ref_fullframe"
+            and fullframe.get("production_eligible") is True
+            and int(stitched.get("pass_count", -1)) == 2
+            and int(stitched.get("count", 0)) == 24
+            and stitched.get("production_eligible") is True
+            and int(ref_full.get("pass_count", -1)) == 24
+            and int(ref_full.get("count", 0)) == 24
+            and ref_full.get("production_eligible") is False
+            and "Crop-shaped no-REF evidence reaches 84/84" in findings_text
+            and "Best broad production-shaped full-frame row is 63/84" in findings_text
+            and "Best hard-row no-REF model candidate is 2/24" in findings_text
+        )
+        return Check(
+            "preview_detail",
+            "candidate evidence rank dashboard",
+            "PASS" if ok else "FAIL",
+            (
+                f"variants={int(summary.get('variant_count', -1))}, "
+                f"eligible={int(summary.get('production_eligible_count', -1))}, "
+                f"crop={int(crop.get('pass_count', -1))}/{int(crop.get('count', 0))}, "
+                f"fullframe={int(fullframe.get('pass_count', -1))}/{int(fullframe.get('count', 0))}, "
+                f"best_model={int(stitched.get('pass_count', -1))}/{int(stitched.get('count', 0))}, "
+                f"ref_full={int(ref_full.get('pass_count', -1))}/{int(ref_full.get('count', 0))} "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "candidate evidence rank dashboard", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_rolemap_post_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_rolemap_post_distill.py"
     receipt = (
@@ -2152,6 +2230,7 @@ def main() -> int:
     checks.append(check_preview_source_representation_negative_evidence())
     checks.append(check_preview_alignment_oracle_negative_evidence())
     checks.append(check_preview_fullframe_failure_mode_audit())
+    checks.append(check_preview_candidate_evidence_rank())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
     checks.append(check_preview_route_smoothing_negative_evidence())
     checks.append(check_preview_stitched_context_unet_negative_evidence())
