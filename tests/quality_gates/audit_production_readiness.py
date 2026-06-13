@@ -770,6 +770,54 @@ def check_preview_fullframe_failure_mode_audit() -> Check:
         return Check("preview_detail", "full-frame failure-mode audit", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_rolemap_post_distill_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/probe_preview_rolemap_post_distill.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "rolemap_post_distill_exactpass_tiledfail_v1"
+        / "preview_rolemap_post_distill.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "role-map post-distill negative evidence", "FAIL", "missing tracked role-map probe")
+    if not receipt.exists():
+        return Check("preview_detail", "role-map post-distill negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = payload.get("summary") or {}
+        tiled = summary.get("tiled_ref") or {}
+        exact = summary.get("exact_ref") or {}
+        output_ref = summary.get("output_ref") or {}
+        output_teacher = summary.get("output_teacher") or {}
+        contract = payload.get("runtime_contract") or {}
+        ok = (
+            payload.get("schema") == "preview_rolemap_post_distill.v1"
+            and contract.get("training_target") == "exact no-REF crop output"
+            and contract.get("ref_usage") == "scoring_only"
+            and int(tiled.get("count", 0)) == 13
+            and int(tiled.get("pass_count", -1)) == 0
+            and int(exact.get("pass_count", -1)) == 13
+            and int(output_ref.get("pass_count", -1)) == 1
+            and int(output_teacher.get("pass_count", -1)) == 4
+            and float(output_ref.get("worst_lpips", 0.0)) > 0.40
+            and float(output_ref.get("worst_dE2000_mean", 0.0)) > 5.0
+        )
+        return Check(
+            "preview_detail",
+            "role-map post-distill negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"tiled={int(tiled.get('pass_count', -1))}/13, "
+                f"exact_teacher={int(exact.get('pass_count', -1))}/13, "
+                f"output_ref={int(output_ref.get('pass_count', -1))}/13, "
+                f"output_teacher={int(output_teacher.get('pass_count', -1))}/13 "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "role-map post-distill negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_exact_teacher_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/build_preview_exact_teacher_receipt.py"
     scorer = REPO / "tools/cnn/score_preview_exact_teacher_distill.py"
@@ -1498,6 +1546,7 @@ def main() -> int:
     checks.append(check_preview_fullimage_band_negative_evidence())
     checks.append(check_preview_alignment_oracle_negative_evidence())
     checks.append(check_preview_fullframe_failure_mode_audit())
+    checks.append(check_preview_rolemap_post_distill_negative_evidence())
     checks.append(check_preview_exact_teacher_distill_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),

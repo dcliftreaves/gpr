@@ -2066,3 +2066,39 @@ failure classes. Most regressions need route stability across crop interiors;
 arbitrary tiles can fail, so route coherence alone cannot be the complete
 solution. More crop-only specialists or another dashboard-only selector over
 the current receipts are already ruled out by this audit.
+
+## Role-Map Post-Distillation Probe
+
+The next diagnostic tested whether the arbitrary-tile role grid itself contains
+enough runtime-safe signal to repair the exact-crop to arbitrary-tile
+regressions. It trains a small post-refiner from arbitrary-tiled crop RGB plus
+runtime tile role planes and normalized coordinates to the exact no-REF crop
+output. REF is scoring-only.
+
+Tool:
+
+```text
+tools/cnn/probe_preview_rolemap_post_distill.py
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/rolemap_post_distill_exactpass_tiledfail_v1/preview_rolemap_post_distill.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/rolemap_post_distill_exactpass_tiledfail_v1/preview_rolemap_post_distill.html
+```
+
+Result on the 13 exact-pass/arbitrary-tiled-fail rows:
+
+| view | pass |
+| --- | ---: |
+| arbitrary-tiled source vs REF | 0/13 |
+| exact no-REF teacher vs REF | 13/13 |
+| role-map post output vs REF | 1/13 |
+| role-map post output vs exact teacher | 4/13 |
+
+Worst output-vs-REF metrics remain LPIPS 0.4217, MS-SSIM 0.8691, Y-PSNR
+23.20, and dE2000 5.56. This rules out a simple role-map-conditioned crop
+post-refiner as the route-mixing fix. The next candidate needs to change the
+assembled/full-frame model class or source/teacher representation rather than
+only appending tile-role planes to the current post-refiner contract.

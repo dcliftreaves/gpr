@@ -249,6 +249,14 @@ pass exact manifest-crop inference but fail under arbitrary production tiling:
 (`Z8Z_6680:C_lowerleft` and `Z8Z_5937:B_center`). The next PREVIEW candidate
 must close both parts of the exact-crop to arbitrary-tile contract gap: routing
 stability across crop interiors and same-role tile/context robustness.
+A role-map post-distillation capacity test then trained on the 13 exact-pass
+but arbitrary-tiled-fail rows using arbitrary-tiled crop RGB plus runtime tile
+role planes, with exact no-REF crop output as the target. The exact teacher is
+13/13 against REF, but the learned role-map output reaches only 1/13 against
+REF and 4/13 against the teacher, so simple role-map conditioning is not enough
+to recover the mixed-role failures. The next candidate needs a stronger
+full-frame/assembled-tile model or a different source/teacher representation,
+not just tile-role planes appended to the current post-refiner contract.
 The first explicit low-frequency spatial branch improves the hard `Z8Z_6680`
 tile receipt to 9/12 isolated passes, but stitched full-frame output remains
 1/3 with remaining Y/dE failures in the lower-left region. A follow-up
