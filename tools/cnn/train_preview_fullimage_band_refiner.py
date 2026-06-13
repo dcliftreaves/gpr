@@ -224,12 +224,54 @@ def coordinate_tensor(height: int, width: int) -> torch.Tensor:
     return torch.stack([xx, yy], dim=0)
 
 
+def source_multiband_tensor(source_low: np.ndarray) -> torch.Tensor:
+    source01 = source_low.astype(np.float32) / 255.0
+    height, width = source01.shape[:2]
+
+    def blur(sigma: float) -> np.ndarray:
+        out = np.empty_like(source01, dtype=np.float32)
+        for channel in range(3):
+            out[..., channel] = gaussian(source01[..., channel], sigma=sigma, mode="reflect", preserve_range=True)
+        return out
+
+    blur1 = blur(1.0)
+    blur4 = blur(4.0)
+    blur16 = blur(16.0)
+    high1 = source01 - blur1
+    high4 = source01 - blur4
+    gray = source01.mean(axis=2)
+    gy, gx = np.gradient(gray)
+    grad = np.sqrt(gx * gx + gy * gy).astype(np.float32)
+    lap = (np.gradient(gx, axis=1) + np.gradient(gy, axis=0)).astype(np.float32)
+    planes = [
+        torch.from_numpy(blur1).permute(2, 0, 1),
+        torch.from_numpy(blur4).permute(2, 0, 1),
+        torch.from_numpy(blur16).permute(2, 0, 1),
+        torch.from_numpy(high1).permute(2, 0, 1),
+        torch.from_numpy(high4).permute(2, 0, 1),
+        torch.from_numpy(np.abs(high1)).permute(2, 0, 1),
+        torch.from_numpy(np.abs(high4)).permute(2, 0, 1),
+        torch.from_numpy(grad[None, ...]),
+        torch.from_numpy(lap[None, ...]),
+    ]
+    assert all(tuple(plane.shape[-2:]) == (height, width) for plane in planes)
+    return torch.cat(planes, dim=0).float()
+
+
 def build_model_input(source_low: np.ndarray, conditioning: str) -> torch.Tensor:
     source01 = source_low.astype(np.float32) / 255.0
     planes = [rgb_tensor(source_low), coordinate_tensor(source_low.shape[0], source_low.shape[1])]
     if conditioning == "xy":
         return torch.cat(planes, dim=0)
     if conditioning == "xy_global_color_stats":
+        mean = source01.mean(axis=(0, 1), dtype=np.float64).astype(np.float32)
+        std = source01.std(axis=(0, 1), dtype=np.float64).astype(np.float32)
+        stats = np.concatenate([mean, std]).astype(np.float32)
+        stat_planes = np.broadcast_to(stats[:, None, None], (6, source_low.shape[0], source_low.shape[1])).copy()
+        planes.append(torch.from_numpy(stat_planes))
+        return torch.cat(planes, dim=0)
+    if conditioning == "xy_multiband_global_color_stats":
+        planes.append(source_multiband_tensor(source_low))
         mean = source01.mean(axis=(0, 1), dtype=np.float64).astype(np.float32)
         std = source01.std(axis=(0, 1), dtype=np.float64).astype(np.float32)
         stats = np.concatenate([mean, std]).astype(np.float32)
@@ -325,6 +367,8 @@ def render_time_inputs(conditioning: str) -> list[str]:
     inputs = ["source_rgb", "normalized_xy", "checkpoint"]
     if conditioning == "xy_global_color_stats":
         inputs.append("source_rgb_global_mean_std")
+    if conditioning == "xy_multiband_global_color_stats":
+        inputs.extend(["source_rgb_multiscale_bands", "source_rgb_grad_lap", "source_rgb_global_mean_std"])
     return inputs
 
 
@@ -661,7 +705,7 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
             "conditioning": args.conditioning,
             "residual_scale": args.residual_scale,
             "high_sigma": [float(v) for v in args.high_sigma],
-            "source_policy": "runtime_source_rgb_plus_normalized_xy_and_optional_source_stats_only",
+            "source_policy": "runtime_source_rgb_plus_normalized_xy_and_optional_source_derived_features_only",
         },
         checkpoint_path,
     )
@@ -753,7 +797,11 @@ def main() -> int:
     ap.add_argument("--width", type=int, default=48)
     ap.add_argument("--depth", type=int, default=6)
     ap.add_argument("--residual-scale", type=float, default=0.5)
-    ap.add_argument("--conditioning", choices=["xy", "xy_global_color_stats"], default="xy")
+    ap.add_argument(
+        "--conditioning",
+        choices=["xy", "xy_global_color_stats", "xy_multiband_global_color_stats"],
+        default="xy",
+    )
     ap.add_argument("--steps", type=int, default=500)
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--weight-decay", type=float, default=1e-5)

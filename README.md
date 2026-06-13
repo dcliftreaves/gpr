@@ -230,6 +230,17 @@ reaches only **56/84**. The next PREVIEW candidate needs a stronger
 scene-conditioned/global source-to-target model or different source/teacher
 representation, not this low-field head family.
 
+A richer q8 source-derived multiband residual-U-Net then added runtime-safe
+blur, high-frequency, gradient, laplacian, coordinate, and global-stat planes.
+That changes the all-fit ceiling materially: generated low-field residual
+improves to **72/84**, with **24.9 ms** median model time at 512px working
+width and about **11.2 GB** max RSS on Mac/MPS. The split receipts still fail
+production generalization: training on the 20 non-hard images gives **59/60**
+fit but **0/24** hard holdout, and training on the hard eight gives **18/24**
+fit but **0/60** diverse holdout. This narrows the blocker to scene-family
+generalization under the current runtime-safe q8 model, not missing source
+bands alone.
+
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
 runtime tiles. That narrows the remaining work to tile/context-safe routing and

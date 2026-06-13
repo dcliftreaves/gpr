@@ -2870,3 +2870,57 @@ next PREVIEW experiment should change model class and conditioning more
 substantially, for example a stronger image-conditioned/global source-to-target
 model or a different runtime-safe source/teacher representation, before trying
 to register another low-field variant.
+
+### q8 Source Multiband Residual-U-Net
+
+The next bounded pass kept the q8 full-frame runtime source but expanded the
+model input beyond source low RGB plus coordinates. The new conditioning mode
+adds source-derived blur bands, high-frequency residuals, absolute residuals,
+gradient magnitude, laplacian, and source RGB global mean/std planes. REF is
+still used only as training supervision and metrics reference.
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_multiband_residual_unet_allfit_w512_smoke_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_multiband_residual_unet_allfit_w512_smoke_v1/preview_fullimage_band_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_multiband_residual_unet_hard8holdout_w512_smoke_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_multiband_residual_unet_hard8holdout_w512_smoke_v1/preview_fullimage_band_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_multiband_residual_unet_diverseholdout_w512_smoke_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_multiband_residual_unet_diverseholdout_w512_smoke_v1/preview_fullimage_band_refiner.html
+```
+
+Result:
+
+| split | generated low-field residual | source baseline | REF-low/q8-detail oracle | interpretation |
+| --- | ---: | ---: | ---: | --- |
+| all 28 fit | 72/84 | 32/84 | 78/84 | Multiband conditioning is a real all-fit improvement over the prior 56/84 residual-U-Net smoke. |
+| non-hard fit, hard-eight holdout | 59/84 | 32/84 | 78/84 | Fit side is 59/60, but hard holdout is 0/24 and worse than q8 source baseline. |
+| hard-eight fit, diverse holdout | 18/84 | 32/84 | 78/84 | Hard fit reaches 18/24, but diverse holdout is 0/60. |
+
+Timing and hashes:
+
+```text
+all-fit model_ms_median=24.91
+all-fit train_steps_per_second=2.1362
+all-fit max_rss_mb=11178.00
+all-fit checkpoint_sha256=5780b68e78966ebf92777b7c340d6497e7b27ab037baf2693d39a11adf23e25f
+
+hard-holdout model_ms_median=24.46
+hard-holdout train_steps_per_second=3.1264
+hard-holdout max_rss_mb=10927.94
+hard-holdout checkpoint_sha256=3cacdbbfb4d435299e1e3f8d2dc1d72c4ec92e6a5190fdacd919f6af00972881
+
+diverse-holdout model_ms_median=8.99
+diverse-holdout train_steps_per_second=7.6090
+diverse-holdout max_rss_mb=10948.86
+diverse-holdout checkpoint_sha256=a4a54e5716b02121d62e8dc9da9380e8e25535a4c31e7a4948c17753d8f08fa0
+```
+
+Interpretation: the richer source-derived input stack is necessary but not
+sufficient. It can fit the mixed dashboard much better than the previous small
+U-Net, but the split failures show that this single global model is learning
+scene-family-specific correction rather than a stable runtime source-to-target
+mapping. The next viable path should use routed/specialist training with real
+per-cluster data or a larger paired corpus/target, then validate on held-out
+full images before any production registry entry.
