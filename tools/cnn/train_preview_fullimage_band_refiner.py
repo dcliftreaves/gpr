@@ -11,6 +11,7 @@ high-frequency crop detail.
 from __future__ import annotations
 
 import argparse
+import copy
 import html
 import json
 import resource
@@ -303,7 +304,34 @@ def prepare_samples(args: argparse.Namespace, images: list[dict[str, Any]], work
     }
 
 
-def train_model(args: argparse.Namespace, samples: list[dict[str, Any]]) -> tuple[FullImageBandGenerator, list[dict[str, float]], dict[str, float]]:
+def low_crop_slices(crop: dict[str, int], sensor_dims: list[int], low_size: list[int]) -> tuple[slice, slice]:
+    box = scaled_box(crop, sensor_dims, (int(low_size[0]), int(low_size[1])))
+    x0, y0, x1, y1 = box
+    return slice(max(0, y0), max(y0 + 1, y1)), slice(max(0, x0), max(x0 + 1, x1))
+
+
+def crop_region_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    sample: dict[str, Any],
+    crops: dict[str, dict[str, int]],
+) -> torch.Tensor:
+    losses = []
+    for crop in crops.values():
+        y_slice, x_slice = low_crop_slices(crop, sample["image"]["sensor_dims"], sample["low_size"])
+        pred_crop = pred[..., y_slice, x_slice]
+        target_crop = target[..., y_slice, x_slice]
+        losses.append(F.smooth_l1_loss(pred_crop.contiguous(), target_crop.contiguous()))
+    if not losses:
+        return pred.new_tensor(0.0)
+    return torch.stack(losses).mean()
+
+
+def train_model(
+    args: argparse.Namespace,
+    samples: list[dict[str, Any]],
+    crops: dict[str, dict[str, int]],
+) -> tuple[FullImageBandGenerator, list[dict[str, float]], dict[str, float]]:
     in_channels = int(samples[0]["input"].shape[0])
     model = FullImageBandGenerator(args.width, args.depth, in_channels=in_channels).to(DEVICE)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -313,11 +341,18 @@ def train_model(args: argparse.Namespace, samples: list[dict[str, Any]]) -> tupl
         raise RuntimeError("all selected images were held out; no fit samples remain")
     inputs = [sample["input"].unsqueeze(0).to(DEVICE) for sample in fit_samples]
     targets = [sample["target"].unsqueeze(0).to(DEVICE) for sample in fit_samples]
+    best_state: dict[str, torch.Tensor] | None = None
+    best_loss = float("inf")
+    best_step = 0
     t0 = time.perf_counter()
     for step in range(1, args.steps + 1):
         idx = (step - 1) % len(inputs)
         pred = model(inputs[idx])
-        loss = F.smooth_l1_loss(pred.contiguous(), targets[idx].contiguous())
+        full_loss = F.smooth_l1_loss(pred.contiguous(), targets[idx].contiguous())
+        loss = args.background_loss_weight * full_loss
+        crop_loss = crop_region_loss(pred, targets[idx], fit_samples[idx], crops)
+        if args.crop_loss_weight:
+            loss = loss + args.crop_loss_weight * crop_loss
         if args.gradient_loss_weight:
             pred_dx = pred[..., :, 1:] - pred[..., :, :-1]
             tgt_dx = targets[idx][..., :, 1:] - targets[idx][..., :, :-1]
@@ -330,12 +365,36 @@ def train_model(args: argparse.Namespace, samples: list[dict[str, Any]]) -> tupl
         opt.zero_grad(set_to_none=True)
         loss.backward()
         opt.step()
+        loss_value = float(loss.detach().cpu())
+        if loss_value < best_loss:
+            best_loss = loss_value
+            best_step = step
+            best_state = copy.deepcopy({key: value.detach().cpu() for key, value in model.state_dict().items()})
         if step == 1 or step % args.log_every == 0 or step == args.steps:
-            value = float(loss.detach().cpu())
-            history.append({"step": float(step), "loss": value})
-            print(f"[fullimage-band] step={step} loss={value:.6f}", flush=True)
+            history.append(
+                {
+                    "step": float(step),
+                    "loss": loss_value,
+                    "full_loss": float(full_loss.detach().cpu()),
+                    "crop_loss": float(crop_loss.detach().cpu()),
+                    "best_step": float(best_step),
+                    "best_loss": float(best_loss),
+                }
+            )
+            print(
+                f"[fullimage-band] step={step} loss={loss_value:.6f} "
+                f"full={float(full_loss.detach().cpu()):.6f} crop={float(crop_loss.detach().cpu()):.6f}",
+                flush=True,
+            )
     train_ms = (time.perf_counter() - t0) * 1000.0
-    return model, history, {"train_ms": train_ms, "train_steps_per_second": args.steps / max(train_ms / 1000.0, 1e-9)}
+    if best_state is not None:
+        model.load_state_dict(best_state)
+    return model, history, {
+        "train_ms": train_ms,
+        "train_steps_per_second": args.steps / max(train_ms / 1000.0, 1e-9),
+        "best_step": float(best_step),
+        "best_loss": float(best_loss),
+    }
 
 
 @torch.no_grad()
@@ -472,7 +531,7 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
     work = Path(tempfile.mkdtemp(prefix="preview_fullimage_band_", dir=args.tmp_dir))
     try:
         samples, render_timing = prepare_samples(args, images, work)
-        model, history, train_timing = train_model(args, samples)
+        model, history, train_timing = train_model(args, samples, crops)
         rows, image_receipts, inference_timing = score_samples(args=args, model=model, samples=samples, crops=crops)
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -513,6 +572,8 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
             "steps": args.steps,
             "lr": args.lr,
             "weight_decay": args.weight_decay,
+            "background_loss_weight": args.background_loss_weight,
+            "crop_loss_weight": args.crop_loss_weight,
             "gradient_loss_weight": args.gradient_loss_weight,
             "history": history,
         },
@@ -577,6 +638,8 @@ def main() -> int:
     ap.add_argument("--steps", type=int, default=500)
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--weight-decay", type=float, default=1e-5)
+    ap.add_argument("--background-loss-weight", type=float, default=1.0)
+    ap.add_argument("--crop-loss-weight", type=float, default=0.0)
     ap.add_argument("--gradient-loss-weight", type=float, default=0.1)
     ap.add_argument("--high-sigma", type=float, action="append", default=[1.0, 2.0, 4.0])
     ap.add_argument("--log-every", type=int, default=50)

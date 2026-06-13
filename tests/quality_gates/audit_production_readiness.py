@@ -677,18 +677,27 @@ def check_preview_highres_fullimage_band_negative_evidence() -> Check:
         / "fullimage_band_refiner_hard8_w4096_globalstats_v1"
         / "preview_fullimage_band_refiner.json"
     )
+    crop_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullimage_band_refiner_hard8_w4096_croploss_best_v2"
+        / "preview_fullimage_band_refiner.json"
+    )
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "high-res full-image band negative evidence", "FAIL", "missing tracked full-image band refiner")
     tool_text = tool.read_text(errors="ignore")
     if "xy_global_color_stats" not in tool_text or "source_rgb_global_mean_std" not in tool_text:
         return Check("preview_detail", "high-res full-image band negative evidence", "FAIL", "tool missing source-global-stat conditioning contract")
-    missing = [str(path) for path in (w2048_receipt, w4096_receipt, stats_receipt) if not path.exists()]
+    if "crop_loss_weight" not in tool_text or "best_step" not in tool_text:
+        return Check("preview_detail", "high-res full-image band negative evidence", "FAIL", "tool missing crop-loss/best-step receipt contract")
+    missing = [str(path) for path in (w2048_receipt, w4096_receipt, stats_receipt, crop_receipt) if not path.exists()]
     if missing:
         return Check("preview_detail", "high-res full-image band negative evidence", "FAIL", "missing " + ", ".join(missing))
     try:
         w2048 = json.loads(w2048_receipt.read_text())
         w4096 = json.loads(w4096_receipt.read_text())
         stats = json.loads(stats_receipt.read_text())
+        crop = json.loads(crop_receipt.read_text())
 
         def summary(payload: dict[str, Any], variant: str) -> dict[str, Any]:
             return {row.get("variant"): row for row in payload.get("summary", [])}.get(variant) or {}
@@ -698,18 +707,27 @@ def check_preview_highres_fullimage_band_negative_evidence() -> Check:
         w4096_ref = summary(w4096, "ref_low_plus_source_high_s1")
         w4096_generated = summary(w4096, "generated_low_plus_source_high_s1")
         stats_generated = summary(stats, "generated_low_plus_source_high_s1")
+        crop_generated = summary(crop, "generated_low_plus_source_high_s4")
         stats_contract = stats.get("render_contract") or {}
         stats_model = stats.get("model") or {}
+        crop_training = crop.get("training") or {}
+        crop_timing = crop.get("timing") or {}
         ok = (
             w2048.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
             and w4096.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
             and stats.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and crop.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
             and int(w2048_ref.get("pass_count", -1)) == 7
             and int(w2048_generated.get("pass_count", -1)) == 0
             and int(w4096_ref.get("pass_count", -1)) == 18
             and int(w4096_generated.get("pass_count", -1)) == 0
             and int(stats_generated.get("pass_count", -1)) == 0
             and float(stats_generated.get("worst_dE2000_mean", 0.0)) > 20.0
+            and int(crop_generated.get("count", 0)) == 24
+            and int(crop_generated.get("pass_count", -1)) == 0
+            and float(crop_generated.get("worst_dE2000_mean", 0.0)) > 20.0
+            and float(crop_training.get("crop_loss_weight", 0.0)) >= 20.0
+            and float(crop_timing.get("best_step", 0.0)) > 0.0
             and stats_contract.get("conditioning") == "xy_global_color_stats"
             and "source_rgb_global_mean_std" in (stats_contract.get("render_time_inputs") or [])
             and int(stats_model.get("in_channels", 0)) == 11
@@ -723,8 +741,9 @@ def check_preview_highres_fullimage_band_negative_evidence() -> Check:
                 f"w2048_generated={int(w2048_generated.get('pass_count', -1))}/24, "
                 f"w4096_ref={int(w4096_ref.get('pass_count', -1))}/24, "
                 f"w4096_generated={int(w4096_generated.get('pass_count', -1))}/24, "
-                f"globalstats_generated={int(stats_generated.get('pass_count', -1))}/24 "
-                f"receipt={stats_receipt}"
+                f"globalstats_generated={int(stats_generated.get('pass_count', -1))}/24, "
+                f"crop_loss_generated={int(crop_generated.get('pass_count', -1))}/24 "
+                f"receipt={crop_receipt}"
             ),
         )
     except Exception as exc:

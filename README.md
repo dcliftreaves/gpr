@@ -395,6 +395,9 @@ REF-low oracle ceiling is 7/24. A narrow 4096-wide source+XY generator and a
 raising the current full-image band generator resolution; the missing piece is
 a stronger image-conditioned/global model or a different runtime source/teacher
 representation.
+The same model family with manifest-crop-weighted loss and best-step checkpoint
+restore still stays 0/24, so the gate miss is not just the full-image training
+objective averaging away the scored crops.
 A per-image full-image RGB affine oracle then fit source fields to REF fields
 at 4096 and 6144 widths. It also stays 0/24, with worst LPIPS above 0.62 and
 worst dE around 10 on the 6144 affine field. That rules out a simple global

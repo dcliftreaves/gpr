@@ -2295,6 +2295,34 @@ candidate needs a stronger image-conditioned/global model or a different
 runtime source/teacher representation that can learn the 4096-6144px field
 without REF at render time.
 
+The next variant kept the same runtime contract but changed the training
+objective: full-image background loss was downweighted, manifest crop loss was
+weighted 20x, and the trainer restored the best observed training checkpoint
+before scoring. This tested whether the prior 0/24 result was caused by the
+full-image objective averaging away the gate crops.
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_refiner_hard8_w4096_croploss_best_v2/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_band_refiner_hard8_w4096_croploss_best_v2/preview_fullimage_band_refiner.html
+```
+
+Summary:
+
+| variant | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| REF low + source high, sigma 1 oracle | 18/24 | 0.3784 | 0.8649 | 22.42 | 5.12 |
+| generated low + source high, sigma 4 | 0/24 | 0.7308 | 0.3120 | 17.22 | 20.64 |
+| generated lowfield residual | 0/24 | 0.8816 | 0.3301 | 17.90 | 20.56 |
+| generated low direct | 0/24 | 0.9964 | 0.3605 | 18.29 | 20.57 |
+
+Training did optimize the crop objective (`best_step=419`,
+`best_loss=0.0126`, median model time about 298 ms/image on MPS), but that did
+not translate into PREVIEW gate quality. This rules out crop weighting and
+checkpoint selection as sufficient fixes for the current full-image band
+architecture.
+
 ### Full-Image RGB Affine Oracle
 
 A follow-up oracle tested whether the remaining source/REF field mismatch is
