@@ -427,6 +427,13 @@ def apply_cnn(
             "preview_scene_routed_rgb_refiner is an external-receipt PREVIEW "
             "candidate; evaluate it with tools/cnn/evaluate_preview_scene_routed.py",
         )
+    if cnn.get("cnn_arch_variant") == "preview_q8_threeway_runtime_fullframe":
+        die(
+            2,
+            "preview_q8_threeway_runtime_fullframe is an external-receipt "
+            "PREVIEW candidate; evaluate it with "
+            "tools/cnn/evaluate_preview_q8_threeway_runtime_fullframe.py",
+        )
     if (cnn.get("ckpt_path") is None
             and cnn.get("cnn_arch_variant") not in ("ycbcr_decomp", "lab_chroma_corrector")):
         return bayer

@@ -249,6 +249,68 @@
       "video_receipt": "artifacts/upresable_missing_hard_20260606/summary.json",
       "raw_norm": 255.0
     },
+    "preview_q8_threeway_runtime_fullframe_v1": {
+      "$doc": "External-receipt no-REF display PREVIEW candidate. A frozen source-only q8 three-way router selects q8 hard, q8 fallback3, or v32 fallback full-frame renderers per image. The integrated 28-image/84-row full-frame holdout clears all PREVIEW metrics with timing and memory receipts, but this is not a normal run_gate Bayer pipeline.",
+      "cnn_arch_variant": "preview_q8_threeway_runtime_fullframe",
+      "trained_against_codec": "ml2_q3_dec2",
+      "conditioning": "q8_source_fullframe_rgb_features",
+      "router_assignment": "frozen_threeway_sidecar_nearest_center_with_fallback3_distance_guard",
+      "fallback3_max_distance": 3.0,
+      "model_loading_policy": "child_renderer_family_preload",
+      "external_receipt_only": true,
+      "runtime_evaluator": "tools/cnn/evaluate_preview_q8_threeway_runtime_fullframe.py",
+      "router_sidecar_path": "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_router_sidecar.json",
+      "router_sidecar_sha256": "9f4a18a2852da5f9c3bba1b14fadbcba32418df8d4717a555e1da1be30ccd969",
+      "expert_checkpoints": {
+        "q8_hard": {
+          "path": "artifacts/preview_runtime_policy_20260613/q8_crop_refiner_hardfit_diverseholdout_w40_s300_v1/q8_crop_refiner.pt",
+          "sha256": "f5c49483af61b0c67665a24e2a6033bd4c3fc11f8b0b198944765e68e1221f37"
+        },
+        "q8_fallback3": {
+          "path": "artifacts/preview_runtime_policy_20260613/q8_crop_refiner_fallback3_allfit_w40_s300_v1/q8_crop_refiner.pt",
+          "sha256": "a24868a865bb1db32e521ffc434d32ef950b05908b5e525629cc68fb0f8044ab"
+        },
+        "v32_default": {
+          "path": "artifacts/preview_runtime_policy_20260606/runtime_refiner_priority_zero_cont_colorlight/preview_runtime_refiner.pt",
+          "sha256": "fc3d22aa980537e6f7a9b54af3ce7c618693e3fe8c7ba2cde557be2a74b76344"
+        },
+        "v32_cluster_0": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_cluster0_v4_perceptual_v1/preview_runtime_refiner.pt",
+          "sha256": "af6b7aff7c20591ade877db5b6453425033f7e3c9807fd11dd4c80f1abfd4414"
+        },
+        "v32_cluster_1": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_cluster1_v8_ms_polish_v2/preview_runtime_refiner.pt",
+          "sha256": "fa34b2c3d21c4ab662ed61be15b0938b9c278af374a4a6adb023afca4c87c78c"
+        },
+        "v32_cluster_2": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_cluster2_v8_lab_polish_v3/preview_runtime_refiner.pt",
+          "sha256": "296cd99ba51565e94d8e7dcafb97dc02f73d308ce6dd7c09f3a4c998101ceaf9"
+        },
+        "v32_cluster_3": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_cluster3_v4_perceptual_v1/preview_runtime_refiner.pt",
+          "sha256": "ee0b50a54e2fcd2761a6c7df33c0b1f707d625ed95fba8cf89cf18d95bcbd1c0"
+        },
+        "v32_cluster_4": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_cluster4_v29_lfy_lab_score_v1/preview_runtime_refiner.pt",
+          "sha256": "5de747cbdf3e1bd026887ac4203b1acd4bce0a7fad841c746ad0a2049fe4a7f5"
+        },
+        "v32_override_0_cluster_10": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_k16_cluster10_ms_content_v3/preview_runtime_refiner.pt",
+          "sha256": "13856ebf20321f3bf9ebe901d2564b3471c592d96f764fcaacd694868a34df2e"
+        },
+        "v32_override_0_cluster_15": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_k12_cluster11_7480b_v1/preview_runtime_refiner.pt",
+          "sha256": "e1b187cb32a1288bf1d91638bad2814f5382295e2f407a14067d2b4378b5c5d2"
+        },
+        "v32_override_1_cluster_35": {
+          "path": "artifacts/preview_runtime_policy_20260606/scene_expert_k40_cluster35_colorstats_v2_labpolish/preview_runtime_refiner.pt",
+          "sha256": "58755f6ce1a06e503bb3261dd4d2a894f8a890dd1d739d7e3034468cb4ce5c0b"
+        }
+      },
+      "holdout_receipt": "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.json",
+      "dashboard": "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.html",
+      "raw_norm": 255.0
+    },
     "none": {
       "$doc": "No CNN \u2014 codec output is the final result."
     }
@@ -373,6 +435,14 @@
       "ship_class": "PREVIEW",
       "$role": "temp-preview-scene-routed-k5-l1color-20260606",
       "$doc": "Temporary no-REF routed PREVIEW candidate. Registered after full-image 28-image holdout coverage reached 61/84 pass with frozen sidecar routing, checkpoint hashes, timing/memory receipts, and .gvid/ProRes review output. Not a ship claim because worst failures remain severe and the old crop-proxy dashboard regresses."
+    },
+    "codec=ml2_q3_dec2+cnn=preview_q8_threeway_runtime_fullframe_v1+demosaic=sips_via_gpr_tools": {
+      "codec": "ml2_q3_dec2",
+      "cnn": "preview_q8_threeway_runtime_fullframe_v1",
+      "demosaic": "sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "$role": "temp-preview-q8-threeway-runtime-fullframe-20260613",
+      "$doc": "External-receipt no-REF PREVIEW candidate. Integrated full-frame route/render receipt clears 84/84 on the 28-image holdout with worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, dE2000 2.64, weighted runtime 13.65 s/image, and peak RSS 5.37 GB. Not a run_gate Bayer pipeline; use tools/cnn/evaluate_preview_q8_threeway_runtime_fullframe.py."
     },
     "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_l2x2_l1x2",
