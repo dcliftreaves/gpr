@@ -1801,6 +1801,9 @@ tools/cnn/score_preview_exact_teacher_distill.py
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/exact_teacher_post_distill_hard8_w96_v2/exact_teacher_distill_score.html
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/exact_teacher_post_distill_hard8_unetgen_v3/exact_teacher_distill_score.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/exact_teacher_post_distill_hard8_unetgen_v3/exact_teacher_distill_score.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/exact_teacher_distill_hard8_global_context_v1/exact_teacher_distill_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/exact_teacher_post_distill_hard8_global_context_w96_v1/exact_teacher_distill_score.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/exact_teacher_post_distill_hard8_global_context_w96_v1/exact_teacher_distill_score.html
 ```
 
 Hard-eight receipt construction:
@@ -1815,15 +1818,18 @@ Two post-refiner fits were scored against both teacher and REF:
 - width-96 direct post model: output 6/24 against teacher and 3/24 against REF
 - width-32 context U-Net generator: output 0/24 against teacher and 0/24
   against REF, with worst dE2000 above 19
+- width-96 direct post model with resized full-frame no-REF context planes:
+  output 5/24 against teacher and 2/24 against REF
 
 The width-96 run improves proxy worst LPIPS from 0.5575 to 0.4644 against the
 exact teacher, but it does not improve the actual REF gate: source is 3/24 and
 output remains 3/24. The context U-Net generator regresses both teacher and REF
-scoring because it cannot maintain color consistency on this target. This rules
-out simple exact-crop-teacher post-distillation as the production fix. The
-remaining branch needs a different source/teacher representation or a more
-global model class; copying the exact-crop behavior through these post models is
-not enough.
+scoring because it cannot maintain color consistency on this target. Adding a
+thumbnail-style no-REF full-frame context image also fails to improve the actual
+REF gate. This rules out simple exact-crop-teacher post-distillation as the
+production fix. The remaining branch needs a different source/teacher
+representation or a more global model class; copying the exact-crop behavior
+through these post models is not enough.
 
 ### Full-Frame Wall Timing Receipt
 

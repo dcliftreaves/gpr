@@ -60,6 +60,7 @@ class ReceiptSample:
     tile_xywh: tuple[int, int, int, int] | None = None
     source_render_size: tuple[int, int] | None = None
     source_global_stats: dict[str, float] | None = None
+    context_path: Path | None = None
     intersects_crops: tuple[str, ...] = ()
 
 
@@ -88,8 +89,11 @@ def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
                 continue
             source_path = Path(str(row.get("source_png_resolved") or row.get("source_png") or ""))
             ref_path = Path(str(row.get("ref_png") or ""))
+            context_path = Path(str(row.get("context_png") or "")) if row.get("context_png") else None
             if not source_path.exists() or not ref_path.exists():
                 continue
+            if context_path is not None and not context_path.exists():
+                context_path = None
             cluster = int(row["cluster"]) if row.get("cluster") is not None else None
             if sidecar is not None:
                 cluster, _route = route_from_sidecar(source_path, sidecar)
@@ -117,6 +121,7 @@ def build_receipt_samples(args: argparse.Namespace) -> list[ReceiptSample]:
                     tile_xywh=tile_xywh,
                     source_render_size=source_render_size,
                     source_global_stats={k: float(v) for k, v in row["source_global_stats"].items()} if row.get("source_global_stats") else None,
+                    context_path=context_path,
                     intersects_crops=intersects_crops,
                 )
             )
@@ -248,7 +253,16 @@ def build_input_for_sample(source_rgb: np.ndarray, conditioning: str, coordinate
         key_planes[3].fill(float(stats["gray_std"]))
     else:
         raise ValueError(f"unsupported conditioning {conditioning!r}")
-    arr = np.concatenate([source, np.stack([xx, yy], axis=0), key_planes], axis=0)
+    planes = [source, np.stack([xx, yy], axis=0), key_planes]
+    if getattr(sample, "context_path", None) is not None:
+        context = load_rgb(sample.context_path)
+        if context.shape[:2] != source_rgb.shape[:2]:
+            context = np.asarray(
+                Image.fromarray(context).resize((source_rgb.shape[1], source_rgb.shape[0]), Image.Resampling.BILINEAR),
+                dtype=np.uint8,
+            )
+        planes.append(np.transpose(context.astype(np.float32) / 255.0, (2, 0, 1)))
+    arr = np.concatenate(planes, axis=0)
     return torch.from_numpy(arr[None].copy()).to(DEVICE).contiguous()
 
 
@@ -591,7 +605,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     xt = x.to(DEVICE).contiguous()
     yt = y.to(DEVICE).contiguous()
     sample_count = int(xt.shape[0])
-    model = build_rgb_refiner(args.architecture, width=args.width, residual_scale=args.residual_scale).to(DEVICE)
+    in_channels = int(xt.shape[1])
+    model = build_rgb_refiner(
+        args.architecture,
+        width=args.width,
+        in_channels=in_channels,
+        residual_scale=args.residual_scale,
+    ).to(DEVICE)
     init_load_mode = None
     if args.init_checkpoint is not None:
         init_load_mode = load_initial_state(model, args.init_checkpoint)
@@ -727,6 +747,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "architecture": args.architecture,
             "state_dict": best_state,
             "width": args.width,
+            "in_channels": in_channels,
             "residual_scale": args.residual_scale,
             "init_checkpoint": str(args.init_checkpoint) if args.init_checkpoint else None,
             "init_load_mode": init_load_mode,
@@ -784,6 +805,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     "crop": s.crop,
                     "source_label": s.source_label,
                     "cluster": getattr(s, "cluster", None),
+                    "has_context_rgb": getattr(s, "context_path", None) is not None,
                     "intersects_crops": list(getattr(s, "intersects_crops", ())),
                     "sample_weight": sample_weight(s, args),
                 }
@@ -805,6 +827,7 @@ def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, An
     model = build_rgb_refiner(
         str(ckpt.get("architecture", "direct")),
         width=int(ckpt.get("width", args.width)),
+        in_channels=int(ckpt.get("in_channels", 9)),
         residual_scale=float(ckpt.get("residual_scale", 0.5)),
     ).to(DEVICE)
     model.load_state_dict(ckpt["state_dict"])
@@ -850,6 +873,7 @@ def evaluate(args: argparse.Namespace, training: dict[str, Any]) -> dict[str, An
             "metric_center_size": args.metric_center_size,
             "forbidden_inputs": ["REF image content", "REF HF/LF fields", "winner JSON", "sample index", "crop identity key planes"],
             "render_inputs": ["source RGB frame/crop", "normalized pixel coordinates", "checkpoint"],
+            "input_channels": int(ckpt.get("in_channels", 9)),
             "device": str(DEVICE),
         },
         "training": {k: v for k, v in training.items() if k != "samples"},

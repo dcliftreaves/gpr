@@ -521,27 +521,42 @@ def check_preview_exact_teacher_distill_negative_evidence() -> Check:
         / "exact_teacher_post_distill_hard8_unetgen_v3"
         / "exact_teacher_distill_score.json"
     )
+    global_context_score_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260612"
+        / "exact_teacher_post_distill_hard8_global_context_w96_v1"
+        / "exact_teacher_distill_score.json"
+    )
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "exact-teacher distill negative evidence", "FAIL", "missing tracked exact-teacher receipt tool")
     if not scorer.exists() or not git_tracked(scorer):
         return Check("preview_detail", "exact-teacher distill negative evidence", "FAIL", "missing tracked exact-teacher scorer")
-    missing = [str(path) for path in (direct_score_receipt, unet_score_receipt) if not path.exists()]
+    missing = [
+        str(path)
+        for path in (direct_score_receipt, unet_score_receipt, global_context_score_receipt)
+        if not path.exists()
+    ]
     if missing:
         return Check("preview_detail", "exact-teacher distill negative evidence", "FAIL", "missing " + ", ".join(missing))
     try:
         payload = json.loads(direct_score_receipt.read_text())
         unet_payload = json.loads(unet_score_receipt.read_text())
+        global_context_payload = json.loads(global_context_score_receipt.read_text())
         summary = payload.get("summary") or {}
         unet_summary = unet_payload.get("summary") or {}
+        global_context_summary = global_context_payload.get("summary") or {}
         source_ref = summary.get("source_vs_ref") or {}
         teacher_ref = summary.get("teacher_vs_ref") or {}
         output_ref = summary.get("output_vs_ref") or {}
         output_teacher = summary.get("output_vs_teacher") or {}
         unet_ref = unet_summary.get("output_vs_ref") or {}
         unet_teacher = unet_summary.get("output_vs_teacher") or {}
+        global_context_ref = global_context_summary.get("output_vs_ref") or {}
+        global_context_teacher = global_context_summary.get("output_vs_teacher") or {}
         ok = (
             payload.get("schema") == "preview_exact_teacher_distill_score.v1"
             and unet_payload.get("schema") == "preview_exact_teacher_distill_score.v1"
+            and global_context_payload.get("schema") == "preview_exact_teacher_distill_score.v1"
             and int(source_ref.get("count", 0)) == 24
             and int(source_ref.get("pass_count", -1)) == 3
             and int(teacher_ref.get("pass_count", -1)) == 16
@@ -551,6 +566,9 @@ def check_preview_exact_teacher_distill_negative_evidence() -> Check:
             and int(unet_teacher.get("pass_count", -1)) == 0
             and int(unet_ref.get("pass_count", -1)) == 0
             and float(unet_ref.get("worst_dE2000_mean", 0.0)) > 15.0
+            and int(global_context_teacher.get("pass_count", -1)) == 5
+            and int(global_context_ref.get("pass_count", -1)) == 2
+            and float(global_context_ref.get("worst_lpips", 0.0)) > 0.50
         )
         return Check(
             "preview_detail",
@@ -562,7 +580,10 @@ def check_preview_exact_teacher_distill_negative_evidence() -> Check:
                 f"output_teacher={int(output_teacher.get('pass_count', -1))}/24, "
                 f"output_ref={int(output_ref.get('pass_count', -1))}/24, "
                 f"unet_teacher={int(unet_teacher.get('pass_count', -1))}/24, "
-                f"unet_ref={int(unet_ref.get('pass_count', -1))}/24 receipt={direct_score_receipt}"
+                f"unet_ref={int(unet_ref.get('pass_count', -1))}/24, "
+                f"global_context_teacher={int(global_context_teacher.get('pass_count', -1))}/24, "
+                f"global_context_ref={int(global_context_ref.get('pass_count', -1))}/24 "
+                f"receipt={direct_score_receipt}"
             ),
         )
     except Exception as exc:

@@ -26,6 +26,10 @@ def rows_by_key(receipt: dict[str, Any]) -> dict[tuple[str, str], dict[str, Any]
     return {row_key(row): row for row in receipt.get("rows") or []}
 
 
+def images_by_id(receipt: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {str(row["image_id"]): row for row in receipt.get("images") or []}
+
+
 def copy_named(src: Path, dst: Path) -> None:
     if src.resolve() != dst.resolve():
         shutil.copy2(src, dst)
@@ -58,6 +62,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     source_receipt = json.loads(args.source_receipt.read_text()) if args.source_receipt else None
     exact_rows = rows_by_key(exact_receipt)
     tiled_rows = rows_by_key(tiled_receipt)
+    tiled_images = images_by_id(tiled_receipt)
     source_rows = rows_by_key(source_receipt) if source_receipt else {}
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -82,6 +87,22 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         out_teacher = args.out_dir / f"{image_id}_{crop}_exact_teacher.png"
         copy_named(tiled_path, out_source)
         copy_named(exact_path, out_teacher)
+        context_path = None
+        if args.include_global_context:
+            image_receipt = tiled_images.get(image_id) or {}
+            stitched_name = image_receipt.get("stitched_png") or image_receipt.get("stitched_output")
+            if not stitched_name:
+                missing.append({"image_id": image_id, "crop": crop, "reason": "missing_stitched_context"})
+                continue
+            stitched_path = Path(str(stitched_name))
+            if not stitched_path.is_absolute():
+                stitched_path = args.tiled_receipt.parent / stitched_path
+            if not stitched_path.exists():
+                missing.append({"image_id": image_id, "crop": crop, "reason": "missing_stitched_context_file", "path": str(stitched_path)})
+                continue
+            with Image.open(out_source) as source_image, Image.open(stitched_path) as stitched_image:
+                context_path = args.out_dir / f"{image_id}_{crop}_global_context.png"
+                stitched_image.convert("RGB").resize(source_image.size, Image.Resampling.BILINEAR).save(context_path)
 
         row: dict[str, Any] = {
             "image_id": image_id,
@@ -91,6 +112,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "source_png_resolved": str(out_source),
             "ref_png": str(out_teacher),
             "teacher_png": str(out_teacher),
+            "context_png": str(context_path) if context_path is not None else None,
             "source_global_stats": image_stats(out_source),
             "tiled_metrics_vs_ref": {
                 k: tiled_row[k]
@@ -124,6 +146,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "runtime_contract": {
             "source_policy": "tiled_fullframe_no_ref_output_to_exact_crop_no_ref_teacher",
             "teacher": "exact manifest-crop no-REF PREVIEW output",
+            "global_context": "resized tiled no-REF full-frame output" if args.include_global_context else None,
             "forbidden_render_inputs": [
                 "REF image content",
                 "REF HF/LF fields",
@@ -132,7 +155,16 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 "crop identity key planes",
                 "gate metrics",
             ],
-            "render_inputs": ["tiled no-REF RGB crop/full frame", "normalized pixel coordinates", "checkpoint"],
+            "render_inputs": [
+                item
+                for item in [
+                    "tiled no-REF RGB crop/full frame",
+                    "resized tiled no-REF full-frame context" if args.include_global_context else None,
+                    "normalized pixel coordinates",
+                    "checkpoint",
+                ]
+                if item is not None
+            ],
         },
         "summary": {
             "rows": len(rows),
@@ -151,6 +183,7 @@ def main() -> int:
     parser.add_argument("--exact-receipt", type=Path, required=True)
     parser.add_argument("--tiled-receipt", type=Path, required=True)
     parser.add_argument("--source-receipt", type=Path)
+    parser.add_argument("--include-global-context", action="store_true")
     parser.add_argument("--image-id", action="append", default=[])
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--out-json", type=Path, required=True)
