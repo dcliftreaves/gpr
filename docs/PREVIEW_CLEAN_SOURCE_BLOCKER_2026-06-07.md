@@ -2617,20 +2617,24 @@ Artifacts:
 ```text
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_hard8_v1/preview_codec_teacher_source_score.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_hard8_v1/preview_codec_teacher_source_score.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_holdout28_q8_v1/preview_codec_teacher_source_score.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_holdout28_q8_v1/preview_codec_teacher_source_score.html
 ```
 
-Hard-eight summary:
+Summary:
 
-| source/teacher candidate | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 | median bytes |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `gpr_tools_q8`, no CNN | 12/24 | 0.1849 | 0.8789 | 25.37 | 5.43 | 21.97 MiB |
-| `gpr_tools_q3` + BIBO_1x | 7/24 | 0.2365 | 0.2440 | 15.63 | 11.60 | 15.76 MiB |
+| source/teacher candidate | set | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 | median bytes |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `gpr_tools_q8`, no CNN | hard eight | 12/24 | 0.1849 | 0.8789 | 25.37 | 5.43 | 21.97 MiB |
+| `gpr_tools_q3` + BIBO_1x | hard eight | 7/24 | 0.2365 | 0.2440 | 15.63 | 11.60 | 15.76 MiB |
+| `gpr_tools_q8`, no CNN | 28-image holdout | 72/84 | 0.1849 | 0.8789 | 25.37 | 5.43 | 2.06 MiB |
 
-The best codec-derived no-REF teacher/source row is therefore the archival q8
-render at 12/24. Its worst failures are spread across `Z8Z_1586`, `Z8Z_7480`,
-`Z8Z_0705`, `Z8Z_7955`, and `Z8Z_5937`, with both LPIPS/detail and dE/Y misses.
-This rules out a simple archival/still codec render as the PREVIEW teacher. A
-future PREVIEW candidate needs either a different runtime-safe teacher/source
+The broad q8 result is better than the current arbitrary full-frame route on
+aggregate, but all 12 broad misses are the hard blocker rows. The worst
+failures are spread across `Z8Z_1586`, `Z8Z_7480`, `Z8Z_0705`, `Z8Z_7955`, and
+`Z8Z_5937`, with both LPIPS/detail and dE/Y misses. This makes archival q8 a
+partial source/teacher component, not a production PREVIEW teacher. A future
+PREVIEW candidate needs either a different runtime-safe teacher/source
 formulation or a more global image-conditioned model; q8 rendering alone does
 not explain the missing full-image field.
 
@@ -2639,6 +2643,8 @@ The aggregate evidence-rank dashboard was regenerated after this probe:
 ```text
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v2/preview_candidate_evidence_rank.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v2/preview_candidate_evidence_rank.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v3/preview_candidate_evidence_rank.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v3/preview_candidate_evidence_rank.html
 ```
 
 Updated result:
@@ -2648,8 +2654,8 @@ Updated result:
 | crop-shaped no-REF route | `crop_holdout_v32` | 84/84 | Crop-local routing is solved enough for diagnostics. |
 | production-shaped full-frame route | `fullframe_scene_gated_84` | 63/84 | Arbitrary full-image tiling is still the blocker. |
 | hard-row no-REF model | stitched context post-refiner | 2/24 | Local/post/refiner-style models are not sufficient. |
-| codec-derived no-REF teacher/source | `gpr_tools_q8`, no CNN | 12/24 | Archival/still codec rendering alone is not a sufficient PREVIEW teacher. |
+| codec-derived no-REF teacher/source | `gpr_tools_q8`, no CNN | 72/84 broad, 12/24 hard | Archival/still codec rendering is a partial source component, not sufficient. |
 | diagnostic/oracle ceiling | full-resolution REF field | 24/24 | The target is reachable only with information the current runtime path lacks. |
 
-The dashboard now ranks 211 variant summaries, of which 69 are
+The dashboard now ranks 212 variant summaries, of which 70 are
 production-eligible runtime-source, no-REF full-frame, or no-REF model rows.

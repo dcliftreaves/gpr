@@ -1270,7 +1270,7 @@ def check_preview_candidate_evidence_rank() -> Check:
     receipt = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260613"
-        / "preview_candidate_evidence_rank_v2"
+        / "preview_candidate_evidence_rank_v3"
         / "preview_candidate_evidence_rank.json"
     )
     if not tool.exists() or not git_tracked(tool):
@@ -1302,7 +1302,7 @@ def check_preview_candidate_evidence_rank() -> Check:
             ),
             {},
         )
-        codec_teacher = next(
+        codec_teacher_hard = next(
             (
                 row
                 for row in rows
@@ -1311,11 +1311,20 @@ def check_preview_candidate_evidence_rank() -> Check:
             ),
             {},
         )
+        codec_teacher_broad = next(
+            (
+                row
+                for row in rows
+                if row.get("receipt") == "codec_teacher_q8_holdout28"
+                and row.get("variant") == "codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools"
+            ),
+            {},
+        )
         findings_text = "\n".join(str(item) for item in payload.get("findings") or [])
         ok = (
             payload.get("schema") == "preview_candidate_evidence_rank.v1"
-            and int(summary.get("variant_count", 0)) >= 211
-            and int(summary.get("production_eligible_count", 0)) >= 69
+            and int(summary.get("variant_count", 0)) >= 212
+            and int(summary.get("production_eligible_count", 0)) >= 70
             and int(crop.get("pass_count", -1)) == 84
             and int(crop.get("count", 0)) == 84
             and crop.get("class") == "no_ref_crop_only"
@@ -1327,16 +1336,20 @@ def check_preview_candidate_evidence_rank() -> Check:
             and int(stitched.get("pass_count", -1)) == 2
             and int(stitched.get("count", 0)) == 24
             and stitched.get("production_eligible") is True
-            and int(codec_teacher.get("pass_count", -1)) == 12
-            and int(codec_teacher.get("count", 0)) == 24
-            and codec_teacher.get("production_eligible") is True
+            and int(codec_teacher_hard.get("pass_count", -1)) == 12
+            and int(codec_teacher_hard.get("count", 0)) == 24
+            and codec_teacher_hard.get("production_eligible") is True
+            and int(codec_teacher_broad.get("pass_count", -1)) == 72
+            and int(codec_teacher_broad.get("count", 0)) == 84
+            and codec_teacher_broad.get("production_eligible") is True
             and int(ref_full.get("pass_count", -1)) == 24
             and int(ref_full.get("count", 0)) == 24
             and ref_full.get("production_eligible") is False
             and "Crop-shaped no-REF evidence reaches 84/84" in findings_text
             and "Best broad production-shaped full-frame row is 63/84" in findings_text
             and "Best hard-row no-REF model candidate is 2/24" in findings_text
-            and "Best codec-derived no-REF teacher/source row is 12/24" in findings_text
+            and "Archival q8 no-REF teacher/source reaches 72/84" in findings_text
+            and "only 12/24 on the hard-eight rows" in findings_text
         )
         return Check(
             "preview_detail",
@@ -1348,7 +1361,8 @@ def check_preview_candidate_evidence_rank() -> Check:
                 f"crop={int(crop.get('pass_count', -1))}/{int(crop.get('count', 0))}, "
                 f"fullframe={int(fullframe.get('pass_count', -1))}/{int(fullframe.get('count', 0))}, "
                 f"best_model={int(stitched.get('pass_count', -1))}/{int(stitched.get('count', 0))}, "
-                f"codec_teacher={int(codec_teacher.get('pass_count', -1))}/{int(codec_teacher.get('count', 0))}, "
+                f"codec_teacher_broad={int(codec_teacher_broad.get('pass_count', -1))}/{int(codec_teacher_broad.get('count', 0))}, "
+                f"codec_teacher_hard={int(codec_teacher_hard.get('pass_count', -1))}/{int(codec_teacher_hard.get('count', 0))}, "
                 f"ref_full={int(ref_full.get('pass_count', -1))}/{int(ref_full.get('count', 0))} "
                 f"receipt={receipt}"
             ),

@@ -58,6 +58,12 @@ def default_specs(root: Path) -> list[ReceiptSpec]:
             "Registered codec-derived no-REF teacher/source renders; REF is metric-only.",
         ),
         ReceiptSpec(
+            "codec_teacher_q8_holdout28",
+            policy_0613 / "codec_teacher_source_score_holdout28_q8_v1/preview_codec_teacher_source_score.json",
+            "runtime_source",
+            "Archival q8 no-REF teacher/source render across the 28-image PREVIEW holdout; REF is metric-only.",
+        ),
+        ReceiptSpec(
             "resolution_oracle_highres",
             policy_0613 / "fullimage_resolution_oracle_hard8_highres_v1/preview_fullimage_resolution_oracle.json",
             "mixed",
@@ -286,13 +292,30 @@ def build_findings(rows: list[dict[str, Any]]) -> list[str]:
             f"Best hard-row no-REF model candidate is {best['pass_count']}/{best['count']} "
             f"({best['receipt']}:{best['variant']}), so current local/residual formulations are not enough."
         )
-    codec_teachers = [row for row in eligible if row["receipt"] == "codec_teacher_sources_hard8"]
+    codec_teachers = [row for row in eligible if row["receipt"].startswith("codec_teacher")]
     if codec_teachers:
-        best = max(codec_teachers, key=lambda row: (row["pass_rate"], row["pass_count"]))
-        findings.append(
-            f"Best codec-derived no-REF teacher/source row is {best['pass_count']}/{best['count']} "
-            f"({best['variant']}), so archival/still codec rendering alone is not a sufficient PREVIEW teacher."
+        broad = next((row for row in codec_teachers if row["receipt"] == "codec_teacher_q8_holdout28"), None)
+        hard = next(
+            (
+                row
+                for row in codec_teachers
+                if row["receipt"] == "codec_teacher_sources_hard8"
+                and row["variant"] == "codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools"
+            ),
+            None,
         )
+        if broad is not None and hard is not None:
+            findings.append(
+                f"Archival q8 no-REF teacher/source reaches {broad['pass_count']}/{broad['count']} "
+                f"on the broad holdout but only {hard['pass_count']}/{hard['count']} on the hard-eight rows, "
+                "so it is a partial source component, not a sufficient PREVIEW teacher."
+            )
+        else:
+            best = max(codec_teachers, key=lambda row: (row["pass_rate"], row["pass_count"]))
+            findings.append(
+                f"Best codec-derived no-REF teacher/source row is {best['pass_count']}/{best['count']} "
+                f"({best['variant']}), so archival/still codec rendering alone is not a sufficient PREVIEW teacher."
+            )
     if oracles:
         best = max(oracles, key=lambda row: (row["pass_rate"], row["pass_count"]))
         findings.append(
