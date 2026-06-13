@@ -405,6 +405,15 @@ color transform as the missing high-resolution source representation. A
 spatially varying local-affine oracle with 4x4/8x8 grids also stays 0/24, so
 the next production path needs non-affine structure/detail source modeling,
 not just a learned local color field.
+A full-image source-feature residual oracle then tested that non-affine
+direction with runtime-available source features: RGB powers, blurred
+low-fields, high-pass fields, local gradient/laplacian energy, and image
+coordinates. Even with REF used to fit the residual per image, the 4096-wide
+hard-eight receipt remains 0/24. It improves worst dE from 10.51 to 8.28 and
+worst Y-PSNR from 17.21 to 18.36 dB, but worsens worst LPIPS from 0.7155 to
+0.7893. This rules out a shallow source-feature residual mapper as the
+production fix; the remaining miss is structural/perceptual, not merely a
+feature-regressed color/luma residual.
 A runtime source-representation probe then compared the clean editable DNG
 through `sips`, the clean bundle TIFF frame, and rawpy camera-WB renders on
 the same hard-eight rows. Every variant stayed 0/24; the existing clean

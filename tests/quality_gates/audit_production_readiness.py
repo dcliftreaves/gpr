@@ -880,6 +880,58 @@ def check_preview_source_representation_negative_evidence() -> Check:
         return Check("preview_detail", "source representation negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_residual_feature_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/probe_preview_fullimage_residual_features.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "residual_features_hard8_w4096_v1"
+        / "preview_fullimage_residual_features.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "source-feature residual negative evidence", "FAIL", "missing tracked residual feature probe")
+    tool_text = tool.read_text(errors="ignore")
+    if "oracle_uses_ref_to_fit_residual" not in tool_text or "runtime_apply_features_are_source_only" not in tool_text:
+        return Check("preview_detail", "source-feature residual negative evidence", "FAIL", "tool missing oracle/runtime-source contract")
+    if not receipt.exists():
+        return Check("preview_detail", "source-feature residual negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        variants = {row.get("variant"): row for row in payload.get("summary", [])}
+        baseline = variants.get("source_baseline_w4096") or {}
+        residual = variants.get("source_feature_residual_ridge_w4096") or {}
+        contract = payload.get("render_contract") or {}
+        ok = (
+            payload.get("schema") == "preview_fullimage_residual_features.v1"
+            and contract.get("oracle_uses_ref_to_fit_residual") is True
+            and contract.get("production_allowed") is False
+            and contract.get("runtime_apply_features_are_source_only") is True
+            and int(baseline.get("count", 0)) == 24
+            and int(baseline.get("pass_count", -1)) == 0
+            and int(residual.get("count", 0)) == 24
+            and int(residual.get("pass_count", -1)) == 0
+            and float(residual.get("worst_dE2000_mean", 0.0)) < float(baseline.get("worst_dE2000_mean", 999.0))
+            and float(residual.get("worst_lpips", 0.0)) > float(baseline.get("worst_lpips", 0.0))
+            and float(residual.get("worst_lpips", 0.0)) > 0.70
+        )
+        return Check(
+            "preview_detail",
+            "source-feature residual negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"baseline={int(baseline.get('pass_count', -1))}/24 "
+                f"lpips={float(baseline.get('worst_lpips', 999.0)):.4f} "
+                f"dE={float(baseline.get('worst_dE2000_mean', 999.0)):.2f}; "
+                f"residual={int(residual.get('pass_count', -1))}/24 "
+                f"lpips={float(residual.get('worst_lpips', 999.0)):.4f} "
+                f"dE={float(residual.get('worst_dE2000_mean', 999.0)):.2f} "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "source-feature residual negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_alignment_oracle_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_fullframe_alignment_oracle.py"
     hard8_receipt = (
@@ -1894,6 +1946,7 @@ def main() -> int:
     checks.append(check_preview_fullimage_band_negative_evidence())
     checks.append(check_preview_highres_fullimage_band_negative_evidence())
     checks.append(check_preview_fullimage_affine_oracle_negative_evidence())
+    checks.append(check_preview_residual_feature_negative_evidence())
     checks.append(check_preview_source_representation_negative_evidence())
     checks.append(check_preview_alignment_oracle_negative_evidence())
     checks.append(check_preview_fullframe_failure_mode_audit())

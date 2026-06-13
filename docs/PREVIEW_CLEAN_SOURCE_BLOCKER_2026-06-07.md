@@ -359,6 +359,35 @@ The scene-gated result is still not production PREVIEW. Remaining failures are
 | Z8Z_7480 | 0/3 | A/B/C structure and dE |
 | Z8Z_7955 | 1/3 | A LPIPS/dE and C MS |
 
+## Full-Image Source-Feature Residual Oracle
+
+The next diagnostic tested whether the remaining hard-eight residual is
+explainable by a shallow non-affine model using only runtime-available source
+features at application time. The model fits REF-source residuals per full
+image from source RGB powers, blurred low-fields, high-pass fields, local
+gradient/laplacian energy, and image coordinates. Because REF is used for
+fitting, this is an oracle ceiling and not a production candidate.
+
+Receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/residual_features_hard8_w4096_v1/preview_fullimage_residual_features.json
+```
+
+Result:
+
+| variant | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+|---|---:|---:|---:|---:|---:|
+| source baseline, 4096-wide | 0/24 | 0.7155 | 0.3163 | 17.21 | 10.51 |
+| source-feature residual ridge, 4096-wide | 0/24 | 0.7893 | 0.3621 | 18.36 | 8.28 |
+
+Interpretation: source-feature residual fitting improves color/luma metrics
+but worsens LPIPS and does not clear any hard-eight row. The full-frame PREVIEW
+blocker is therefore not solved by a shallow feature-regressed residual field.
+The next candidate needs a stronger full-image structure/detail model or a
+different source/teacher representation, not another local affine or shallow
+hand-feature residual pass.
+
 Two `Z8Z_0026` full-grid all-crop fine-tunes were tried from the K40
 color-stat checkpoint:
 
