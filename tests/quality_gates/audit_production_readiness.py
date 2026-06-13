@@ -1943,6 +1943,68 @@ def check_preview_q8_threeway_router_union_evidence() -> Check:
         return Check("preview_detail", "q8 three-way router union evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
+    tool = REPO / "tools/cnn/evaluate_preview_q8_threeway_runtime_fullframe.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "q8_threeway_runtime_full_holdout_v1"
+        / "preview_q8_threeway_runtime_fullframe.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", "missing tracked integrated runtime evaluator")
+    tool_text = tool.read_text(errors="ignore")
+    if "evaluate_preview_q8_crop_fullframe.py" not in tool_text or "evaluate_preview_scene_routed_fullframe.py" not in tool_text:
+        return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", "tool does not invoke real full-frame child renderers")
+    if not receipt.exists():
+        return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = (payload.get("summary") or {}).get("preview_q8_threeway_runtime_fullframe") or {}
+        route = (payload.get("route_summary") or {}).get("final_sidecar") or {}
+        selected = payload.get("selected_images_by_family") or {}
+        contract = payload.get("render_contract") or {}
+        timing = payload.get("timing_summary") or {}
+        memory = payload.get("memory") or {}
+        child_timing = payload.get("child_timing") or {}
+        ok = (
+            payload.get("schema") == "preview_q8_threeway_runtime_fullframe_receipt.v1"
+            and int(summary.get("pass_count", -1)) == 84
+            and int(summary.get("count", 0)) == 84
+            and float(summary.get("worst_lpips", 999.0)) <= 0.15
+            and float(summary.get("worst_ms_ssim", 0.0)) >= 0.95
+            and float(summary.get("worst_y_psnr", 0.0)) >= 28.0
+            and float(summary.get("worst_dE2000_mean", 999.0)) <= 3.0
+            and int(route.get("correct", -1)) == 28
+            and len(selected.get("hard") or []) == 8
+            and len(selected.get("fallback3") or []) == 3
+            and len(selected.get("fallback") or []) == 17
+            and contract.get("uses_ref_at_route_time") is False
+            and contract.get("uses_ref_at_render_time") is False
+            and "gate_metrics" in set(contract.get("forbidden_inputs") or [])
+            and int(timing.get("image_count", 0)) == 28
+            and float(timing.get("runtime_no_ref_wall_ms_avg", 0.0)) > 0.0
+            and float(timing.get("runtime_no_ref_fps_avg", 0.0)) > 0.0
+            and float(memory.get("max_rss_mb", 0.0)) > 0.0
+            and {"hard", "fallback3", "fallback"}.issubset(set(child_timing))
+        )
+        return Check(
+            "preview_detail",
+            "q8 three-way runtime full-frame evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"integrated={int(summary.get('pass_count', -1))}/84 "
+                f"route={int(route.get('correct', -1))}/28 "
+                f"runtime={float(timing.get('runtime_no_ref_wall_ms_avg', 0.0)) / 1000.0:.2f}s "
+                f"fps={float(timing.get('runtime_no_ref_fps_avg', 0.0)):.3f} "
+                f"rss={float(memory.get('max_rss_mb', 0.0)):.1f}MB "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_rolemap_post_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_rolemap_post_distill.py"
     receipt = (
@@ -2838,6 +2900,7 @@ def main() -> int:
     checks.append(check_preview_q8_crop_specialist_evidence())
     checks.append(check_preview_q8_hard_router_union_evidence())
     checks.append(check_preview_q8_threeway_router_union_evidence())
+    checks.append(check_preview_q8_threeway_runtime_fullframe_evidence())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
     checks.append(check_preview_route_smoothing_negative_evidence())
     checks.append(check_preview_stitched_context_unet_negative_evidence())

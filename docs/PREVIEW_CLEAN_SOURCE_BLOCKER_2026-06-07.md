@@ -3098,7 +3098,43 @@ Result:
 
 The three-way router uses q8 source full-frame RGB plus fixed crop-window
 features. It selects hard, fallback3, or fallback with **28/28** leave-one-out
-accuracy: hard 8/8, fallback3 3/3, fallback 17/17. This is the first full
-28-image no-REF PREVIEW receipt union with no metric failures. It is still not
-registered as production until the same policy is implemented as one integrated
-renderer with a timing/memory receipt.
+accuracy: hard 8/8, fallback3 3/3, fallback 17/17.
+
+### q8 Three-way Integrated Runtime Receipt - 2026-06-13
+
+The receipt-union policy is now implemented as an integrated runtime wrapper:
+
+```text
+tools/cnn/evaluate_preview_q8_threeway_runtime_fullframe.py
+```
+
+It freezes the final source-only three-way sidecar, routes each image once from
+q8 source full-frame/crop-window features, invokes the actual full-frame child
+renderer for the selected family, and writes one combined receipt/dashboard.
+REF is used only by the child evaluators for scoring.
+
+Receipts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.html
+```
+
+Result:
+
+| integrated runtime receipt | pass | route | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 | runtime | peak RSS |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| q8 three-way runtime full-frame | 84/84 | 28/28 | 0.1178 | 0.9548 | 30.87 | 2.64 | 13.65 s/image, 0.073 fps | 5372.7 MB |
+
+Selected families:
+
+| family | images | rows |
+| --- | ---: | ---: |
+| q8 hard specialist | 8 | 24 |
+| q8 fallback3 specialist | 3 | 9 |
+| v32 fallback | 17 | 51 |
+
+The integrated receipt keeps the solved no-REF PREVIEW quality result while
+adding the missing route/render timing and memory evidence. It is still not a
+registered production pipeline until the same route is packaged behind a stable
+runtime entrypoint and target-platform timing is refreshed.

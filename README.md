@@ -279,10 +279,14 @@ MS-SSIM **0.9548**, worst Y-PSNR **30.87**, and worst dE2000 **2.64**. This is
 the current best PREVIEW evidence, but it still needs a single integrated
 renderer/timing receipt before production registration.
 
-The current full-frame/tiled smoke is the active PREVIEW blocker: on
-`Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
-runtime tiles. That narrows the remaining work to tile/context-safe routing and
-training, not another crop-aligned color pass.
+The same policy now has an integrated runtime full-frame receipt. The wrapper
+freezes the source-only three-way router, invokes the actual q8 hard,
+q8-fallback3, or v32 full-frame renderer for each selected image, and writes one
+combined timing/memory dashboard. That integrated holdout also clears **84/84**
+with the same worst metrics, weighted runtime **13.65 s/image** (**0.073 fps**)
+and peak RSS **5.37 GB**. This makes PREVIEW quality production-shaped; the
+remaining PREVIEW production work is renderer integration/packaging and broader
+platform timing, not another receipt-union proof.
 
 The latest full-frame follow-up narrows that blocker further. Exact
 manifest-crop full-frame evaluation passes 3/3, but arbitrary tiling fails even
