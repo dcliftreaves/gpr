@@ -64,6 +64,12 @@ def default_specs(root: Path) -> list[ReceiptSpec]:
             "Archival q8 no-REF teacher/source render across the 28-image PREVIEW holdout; REF is metric-only.",
         ),
         ReceiptSpec(
+            "policy_union_scene_vs_q8",
+            policy_0613 / "policy_union_scene_gated_vs_q8_v1/preview_policy_union_score.json",
+            "diagnostic_oracle",
+            "Metric-selected oracle union between scene-gated full-frame and q8 direct rows; upper bound for a runtime selector.",
+        ),
+        ReceiptSpec(
             "resolution_oracle_highres",
             policy_0613 / "fullimage_resolution_oracle_hard8_highres_v1/preview_fullimage_resolution_oracle.json",
             "mixed",
@@ -316,6 +322,13 @@ def build_findings(rows: list[dict[str, Any]]) -> list[str]:
                 f"Best codec-derived no-REF teacher/source row is {best['pass_count']}/{best['count']} "
                 f"({best['variant']}), so archival/still codec rendering alone is not a sufficient PREVIEW teacher."
             )
+    policy_unions = [row for row in rows if row["receipt"] == "policy_union_scene_vs_q8" and row["variant"] == "oracle_union"]
+    if policy_unions:
+        best = policy_unions[0]
+        findings.append(
+            f"Metric-selected scene-gated/q8 oracle union reaches only {best['pass_count']}/{best['count']}, "
+            "so a simple runtime selector between those two paths cannot clear the PREVIEW gate."
+        )
     if oracles:
         best = max(oracles, key=lambda row: (row["pass_rate"], row["pass_count"]))
         findings.append(

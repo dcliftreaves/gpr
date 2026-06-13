@@ -1270,11 +1270,14 @@ def check_preview_candidate_evidence_rank() -> Check:
     receipt = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260613"
-        / "preview_candidate_evidence_rank_v3"
+        / "preview_candidate_evidence_rank_v4"
         / "preview_candidate_evidence_rank.json"
     )
+    union_tool = REPO / "tools/cnn/score_preview_policy_union.py"
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "candidate evidence rank dashboard", "FAIL", "missing tracked evidence-rank tool")
+    if not union_tool.exists() or not git_tracked(union_tool):
+        return Check("preview_detail", "candidate evidence rank dashboard", "FAIL", "missing tracked policy-union tool")
     if not receipt.exists():
         return Check("preview_detail", "candidate evidence rank dashboard", "FAIL", f"missing {receipt}")
     try:
@@ -1320,10 +1323,19 @@ def check_preview_candidate_evidence_rank() -> Check:
             ),
             {},
         )
+        policy_union = next(
+            (
+                row
+                for row in rows
+                if row.get("receipt") == "policy_union_scene_vs_q8"
+                and row.get("variant") == "oracle_union"
+            ),
+            {},
+        )
         findings_text = "\n".join(str(item) for item in payload.get("findings") or [])
         ok = (
             payload.get("schema") == "preview_candidate_evidence_rank.v1"
-            and int(summary.get("variant_count", 0)) >= 212
+            and int(summary.get("variant_count", 0)) >= 215
             and int(summary.get("production_eligible_count", 0)) >= 70
             and int(crop.get("pass_count", -1)) == 84
             and int(crop.get("count", 0)) == 84
@@ -1342,6 +1354,9 @@ def check_preview_candidate_evidence_rank() -> Check:
             and int(codec_teacher_broad.get("pass_count", -1)) == 72
             and int(codec_teacher_broad.get("count", 0)) == 84
             and codec_teacher_broad.get("production_eligible") is True
+            and int(policy_union.get("pass_count", -1)) == 74
+            and int(policy_union.get("count", 0)) == 84
+            and policy_union.get("production_eligible") is False
             and int(ref_full.get("pass_count", -1)) == 24
             and int(ref_full.get("count", 0)) == 24
             and ref_full.get("production_eligible") is False
@@ -1350,6 +1365,7 @@ def check_preview_candidate_evidence_rank() -> Check:
             and "Best hard-row no-REF model candidate is 2/24" in findings_text
             and "Archival q8 no-REF teacher/source reaches 72/84" in findings_text
             and "only 12/24 on the hard-eight rows" in findings_text
+            and "Metric-selected scene-gated/q8 oracle union reaches only 74/84" in findings_text
         )
         return Check(
             "preview_detail",
@@ -1363,6 +1379,7 @@ def check_preview_candidate_evidence_rank() -> Check:
                 f"best_model={int(stitched.get('pass_count', -1))}/{int(stitched.get('count', 0))}, "
                 f"codec_teacher_broad={int(codec_teacher_broad.get('pass_count', -1))}/{int(codec_teacher_broad.get('count', 0))}, "
                 f"codec_teacher_hard={int(codec_teacher_hard.get('pass_count', -1))}/{int(codec_teacher_hard.get('count', 0))}, "
+                f"selector_union={int(policy_union.get('pass_count', -1))}/{int(policy_union.get('count', 0))}, "
                 f"ref_full={int(ref_full.get('pass_count', -1))}/{int(ref_full.get('count', 0))} "
                 f"receipt={receipt}"
             ),

@@ -2645,6 +2645,8 @@ The aggregate evidence-rank dashboard was regenerated after this probe:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v2/preview_candidate_evidence_rank.html
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v3/preview_candidate_evidence_rank.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v3/preview_candidate_evidence_rank.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v4/preview_candidate_evidence_rank.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v4/preview_candidate_evidence_rank.html
 ```
 
 Updated result:
@@ -2655,7 +2657,41 @@ Updated result:
 | production-shaped full-frame route | `fullframe_scene_gated_84` | 63/84 | Arbitrary full-image tiling is still the blocker. |
 | hard-row no-REF model | stitched context post-refiner | 2/24 | Local/post/refiner-style models are not sufficient. |
 | codec-derived no-REF teacher/source | `gpr_tools_q8`, no CNN | 72/84 broad, 12/24 hard | Archival/still codec rendering is a partial source component, not sufficient. |
+| metric-selected selector oracle | scene-gated full-frame or q8 | 74/84 | A two-way runtime selector cannot clear the gate even with oracle selection. |
 | diagnostic/oracle ceiling | full-resolution REF field | 24/24 | The target is reachable only with information the current runtime path lacks. |
 
-The dashboard now ranks 212 variant summaries, of which 70 are
+The dashboard now ranks 215 variant summaries, of which 70 are
 production-eligible runtime-source, no-REF full-frame, or no-REF model rows.
+
+### Scene-Gated vs q8 Selector Ceiling
+
+The q8 broad result made a source-policy router worth checking before training
+another model. A metric-selected oracle union compared the current scene-gated
+full-frame route with q8 direct render on the same 84 holdout rows.
+
+Tool:
+
+```text
+tools/cnn/score_preview_policy_union.py
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/policy_union_scene_gated_vs_q8_v1/preview_policy_union_score.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/policy_union_scene_gated_vs_q8_v1/preview_policy_union_score.html
+```
+
+Result:
+
+| variant | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| scene-gated full-frame | 63/84 | 0.5749 | 0.6288 | 19.26 | 8.75 |
+| q8 direct render | 72/84 | 0.1849 | 0.8789 | 25.37 | 5.43 |
+| oracle union | 74/84 | 0.1769 | 0.8789 | 25.96 | 4.37 |
+
+The union adds only two rows beyond q8 direct. Ten rows fail both paths. A
+simple source-derived selector between these two paths therefore cannot reach
+production quality, even before accounting for classifier error. The next
+candidate needs a stronger source/teacher representation or a global model that
+changes the hard rows themselves, not a selector over the current two outputs.
