@@ -257,6 +257,13 @@ REF and 4/13 against the teacher, so simple role-map conditioning is not enough
 to recover the mixed-role failures. The next candidate needs a stronger
 full-frame/assembled-tile model or a different source/teacher representation,
 not just tile-role planes appended to the current post-refiner contract.
+A source-only local route-smoothing probe then tested the other obvious
+post-policy path on `Z8Z_0026` and `Z8Z_6680`. Local-majority smoothing changed
+39 tiles at a 512px radius and 32 tiles at a 1024px radius, but both runs stayed
+0/6. Worst LPIPS remained 0.4377 and 0.4478, and worst dE2000 stayed above 8.7.
+This rules out local route-majority smoothing as the production fix for the hard
+full-frame failures; the remaining work needs a runtime-shaped
+full-frame/assembled-tile model or a different source/teacher representation.
 The first explicit low-frequency spatial branch improves the hard `Z8Z_6680`
 tile receipt to 9/12 isolated passes, but stitched full-frame output remains
 1/3 with remaining Y/dE failures in the lower-left region. A follow-up

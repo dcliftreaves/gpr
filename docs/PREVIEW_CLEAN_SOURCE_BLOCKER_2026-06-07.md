@@ -2102,3 +2102,39 @@ Worst output-vs-REF metrics remain LPIPS 0.4217, MS-SSIM 0.8691, Y-PSNR
 post-refiner as the route-mixing fix. The next candidate needs to change the
 assembled/full-frame model class or source/teacher representation rather than
 only appending tile-role planes to the current post-refiner contract.
+
+### Source-Only Route-Smoothing Probe
+
+The full-frame evaluator now has a default-off local route-smoothing diagnostic:
+
+```text
+tools/cnn/evaluate_preview_scene_routed_fullframe.py --route-smoothing-radius ...
+```
+
+It precomputes the normal source-derived tile routes, then replaces a tile route
+with the local-majority checkpoint role inside a pixel-radius neighborhood when
+the majority exceeds the requested fraction. It uses no REF content, no crop
+identity, and no gate metrics; REF remains scoring-only.
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_route_smoothing_smoke_0026_6680_r512_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_route_smoothing_smoke_0026_6680_r512_v1/preview_scene_routed_fullframe.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_route_smoothing_smoke_0026_6680_r1024_v1/preview_scene_routed_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_route_smoothing_smoke_0026_6680_r1024_v1/preview_scene_routed_fullframe.html
+```
+
+Result on `Z8Z_0026` and `Z8Z_6680`:
+
+| smoothing radius | changed tiles | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 512px | 39 | 0/6 | 0.4377 | 0.6160 | 19.11 | 8.90 |
+| 1024px | 32 | 0/6 | 0.4478 | 0.6141 | 19.32 | 8.72 |
+
+This changes enough tile roles to be a real perturbation, but it does not
+recover any hard full-frame crop and slightly worsens the worst LPIPS at the
+larger radius. Route smoothing is therefore not the production fix for the
+current hard failures. Combined with the same-role failures in the failure-mode
+audit, the next candidate should change the runtime-shaped model/teacher
+contract rather than adding another source-only route post-policy.

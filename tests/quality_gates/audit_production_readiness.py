@@ -818,6 +818,60 @@ def check_preview_rolemap_post_distill_negative_evidence() -> Check:
         return Check("preview_detail", "role-map post-distill negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_route_smoothing_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/evaluate_preview_scene_routed_fullframe.py"
+    root = ARTIFACT_ROOT / "preview_runtime_policy_20260613"
+    r512 = root / "fullframe_route_smoothing_smoke_0026_6680_r512_v1" / "preview_scene_routed_fullframe.json"
+    r1024 = root / "fullframe_route_smoothing_smoke_0026_6680_r1024_v1" / "preview_scene_routed_fullframe.json"
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "route-smoothing negative evidence", "FAIL", "missing tracked full-frame evaluator")
+    tool_text = tool.read_text(errors="ignore")
+    if "--route-smoothing-radius" not in tool_text or "route_smoothing_changed" not in tool_text:
+        return Check("preview_detail", "route-smoothing negative evidence", "FAIL", "evaluator missing route smoothing receipt fields")
+    missing = [str(path) for path in (r512, r1024) if not path.exists()]
+    if missing:
+        return Check("preview_detail", "route-smoothing negative evidence", "FAIL", "missing " + ", ".join(missing))
+    try:
+        p512 = json.loads(r512.read_text())
+        p1024 = json.loads(r1024.read_text())
+        s512 = (p512.get("summary") or {}).get("preview_runtime_policy") or {}
+        s1024 = (p1024.get("summary") or {}).get("preview_runtime_policy") or {}
+        c512 = p512.get("runtime_contract") or {}
+        c1024 = p1024.get("runtime_contract") or {}
+        changed512 = sum(int((image.get("route_smoothing") or {}).get("changed_tile_count", 0)) for image in p512.get("images") or [])
+        changed1024 = sum(int((image.get("route_smoothing") or {}).get("changed_tile_count", 0)) for image in p1024.get("images") or [])
+        ok = (
+            p512.get("schema") == "preview_scene_routed_fullframe_receipt.v1"
+            and p1024.get("schema") == "preview_scene_routed_fullframe_receipt.v1"
+            and float(c512.get("route_smoothing_radius", 0.0)) == 512.0
+            and float(c1024.get("route_smoothing_radius", 0.0)) == 1024.0
+            and int(s512.get("count", 0)) == 6
+            and int(s1024.get("count", 0)) == 6
+            and int(s512.get("pass_count", -1)) == 0
+            and int(s1024.get("pass_count", -1)) == 0
+            and changed512 >= 30
+            and changed1024 >= 30
+            and float(s512.get("worst_lpips", 0.0)) > 0.43
+            and float(s1024.get("worst_lpips", 0.0)) > 0.44
+            and float(s512.get("worst_dE2000_mean", 0.0)) > 8.8
+            and float(s1024.get("worst_dE2000_mean", 0.0)) > 8.7
+        )
+        return Check(
+            "preview_detail",
+            "route-smoothing negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"r512={int(s512.get('pass_count', -1))}/{int(s512.get('count', 0))} "
+                f"changed={changed512} worst_lpips={float(s512.get('worst_lpips', 0.0)):.4f}; "
+                f"r1024={int(s1024.get('pass_count', -1))}/{int(s1024.get('count', 0))} "
+                f"changed={changed1024} worst_lpips={float(s1024.get('worst_lpips', 0.0)):.4f} "
+                f"receipt={r512}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "route-smoothing negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_exact_teacher_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/build_preview_exact_teacher_receipt.py"
     scorer = REPO / "tools/cnn/score_preview_exact_teacher_distill.py"
@@ -1547,6 +1601,7 @@ def main() -> int:
     checks.append(check_preview_alignment_oracle_negative_evidence())
     checks.append(check_preview_fullframe_failure_mode_audit())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
+    checks.append(check_preview_route_smoothing_negative_evidence())
     checks.append(check_preview_exact_teacher_distill_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),

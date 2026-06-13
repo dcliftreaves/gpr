@@ -563,6 +563,123 @@ def scene_spatial_enabled_names(role_counts: dict[str, int], thresholds: dict[st
     return enabled
 
 
+def tile_center(spec: tuple[int, int, int, int, str]) -> tuple[float, float]:
+    x0, y0, x1, y1, _label = spec
+    return (float(x0 + x1) * 0.5, float(y0 + y1) * 0.5)
+
+
+def route_cache_key(spec: tuple[int, int, int, int, str]) -> tuple[int, int, int, int, str]:
+    x0, y0, x1, y1, tile_label = spec
+    return (x0, y0, x1, y1, tile_label)
+
+
+def route_result_for_tile(
+    *,
+    args: argparse.Namespace,
+    spec: tuple[int, int, int, int, str],
+    source_rgb: np.ndarray,
+    width: int,
+    height: int,
+    routing: dict[str, Any],
+    route_cache: dict[
+        tuple[int, int, int, int, str],
+        tuple[int, int | None, str, str, dict[str, Any]],
+    ],
+) -> tuple[int, int | None, str, str, dict[str, Any]]:
+    x0, y0, x1, y1, _tile_label = spec
+    key = route_cache_key(spec)
+    if key in route_cache:
+        return route_cache[key]
+    pad = max(0, int(args.model_context_padding))
+    route_pad = max(pad, int(args.route_context_padding))
+    rx0 = max(0, x0 - route_pad)
+    ry0 = max(0, y0 - route_pad)
+    rx1 = min(width, x1 + route_pad)
+    ry1 = min(height, y1 + route_pad)
+    route_rgb = source_rgb[ry0:ry1, rx0:rx1]
+    result = route_tile_role(
+        args=args,
+        tile_rgb=route_rgb,
+        routing=routing,
+    )
+    route_cache[key] = result
+    return result
+
+
+def build_route_smoothing_cache(
+    *,
+    args: argparse.Namespace,
+    tile_specs: list[tuple[int, int, int, int, str]],
+    source_rgb: np.ndarray,
+    width: int,
+    height: int,
+    routing: dict[str, Any],
+    route_cache: dict[
+        tuple[int, int, int, int, str],
+        tuple[int, int | None, str, str, dict[str, Any]],
+    ],
+) -> dict[tuple[int, int, int, int, str], tuple[int, int | None, str, str, dict[str, Any]]]:
+    radius = float(args.route_smoothing_radius)
+    if radius <= 0.0 or args.force_model_key:
+        return {}
+    min_fraction = float(args.route_smoothing_min_fraction)
+    centers = {route_cache_key(spec): tile_center(spec) for spec in tile_specs}
+    for spec in tile_specs:
+        route_result_for_tile(
+            args=args,
+            spec=spec,
+            source_rgb=source_rgb,
+            width=width,
+            height=height,
+            routing=routing,
+            route_cache=route_cache,
+        )
+    smoothed: dict[tuple[int, int, int, int, str], tuple[int, int | None, str, str, dict[str, Any]]] = {}
+    for spec in tile_specs:
+        key = route_cache_key(spec)
+        cx, cy = centers[key]
+        neighbor_keys = [
+            other_key
+            for other_key, (nx, ny) in centers.items()
+            if abs(nx - cx) <= radius and abs(ny - cy) <= radius
+        ]
+        role_counts: dict[str, int] = {}
+        for other_key in neighbor_keys:
+            _cluster, _override_cluster, model_key, _conditioning, _route = route_cache[other_key]
+            role_counts[model_key] = role_counts.get(model_key, 0) + 1
+        if not role_counts:
+            continue
+        selected_model, selected_count = sorted(role_counts.items(), key=lambda item: (-item[1], item[0]))[0]
+        selected_fraction = float(selected_count) / float(len(neighbor_keys))
+        if selected_fraction < min_fraction:
+            continue
+        selected_key = next(
+            other_key
+            for other_key in neighbor_keys
+            if route_cache[other_key][2] == selected_model
+        )
+        cluster, override_cluster, model_key, conditioning, route = route_cache[selected_key]
+        original_cluster, original_override, original_model, original_conditioning, original_route = route_cache[key]
+        route = dict(route)
+        route.update(
+            {
+                "route_smoothing": "local_majority",
+                "route_smoothing_radius": radius,
+                "route_smoothing_min_fraction": min_fraction,
+                "route_smoothing_neighbor_count": len(neighbor_keys),
+                "route_smoothing_selected_fraction": selected_fraction,
+                "route_smoothing_original_model_key": original_model,
+                "route_smoothing_original_conditioning": original_conditioning,
+                "route_smoothing_original_cluster": original_cluster,
+                "route_smoothing_original_override_cluster": original_override,
+                "route_smoothing_changed": selected_model != original_model,
+                "route_smoothing_original_route_source": original_route.get("route_source"),
+            }
+        )
+        smoothed[key] = (cluster, override_cluster, model_key, conditioning, route)
+    return smoothed
+
+
 def summarize_image_timing(image_receipts: list[dict[str, Any]]) -> dict[str, Any]:
     timings = [receipt["timing"] for receipt in image_receipts]
 
@@ -688,6 +805,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
     scene_route_ms: list[float] = []
     scene_route_feature_ms: list[float] = []
     scene_route_select_ms: list[float] = []
+    route_smoothing_precompute_ms = 0.0
     if routing["spatial_scene_role_min"]:
         for x0, y0, x1, y1, _tile_label in tile_specs:
             route_pad = max(max(0, int(args.model_context_padding)), int(args.route_context_padding))
@@ -709,6 +827,17 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             scene_role_counts[model_key] = scene_role_counts.get(model_key, 0) + 1
             route_cache[(x0, y0, x1, y1, _tile_label)] = route_result
         spatial_enabled_names = scene_spatial_enabled_names(scene_role_counts, routing["spatial_scene_role_min"])
+    t0 = time.perf_counter()
+    route_smoothing_cache = build_route_smoothing_cache(
+        args=args,
+        tile_specs=tile_specs,
+        source_rgb=source_rgb,
+        width=width,
+        height=height,
+        routing=routing,
+        route_cache=route_cache,
+    )
+    route_smoothing_precompute_ms = (time.perf_counter() - t0) * 1000.0
     for x0, y0, x1, y1, tile_label in tile_specs:
             pad = max(0, int(args.model_context_padding))
             route_pad = max(pad, int(args.route_context_padding))
@@ -725,7 +854,9 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             route_rgb = source_rgb[ry0:ry1, rx0:rx1]
             t0 = time.perf_counter()
             route_key = (x0, y0, x1, y1, tile_label)
-            if route_key in route_cache:
+            if route_key in route_smoothing_cache:
+                cluster, override_cluster, model_key, conditioning, route = route_smoothing_cache[route_key]
+            elif route_key in route_cache:
                 cluster, override_cluster, model_key, conditioning, route = route_cache[route_key]
             else:
                 cluster, override_cluster, model_key, conditioning, route = route_tile_role(
@@ -929,6 +1060,7 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
             "route_feature_ms_total": float(sum(route_feature_ms)),
             "route_select_ms_median": float(statistics.median(route_select_ms)) if route_select_ms else 0.0,
             "route_select_ms_total": float(sum(route_select_ms)),
+            "route_smoothing_precompute_ms": route_smoothing_precompute_ms,
             "save_tile_ms_median": float(statistics.median(save_tile_ms)) if save_tile_ms else 0.0,
             "stitch_save_ms": stitch_save_ms,
             "input_ms_median": float(statistics.median(input_ms)) if input_ms else 0.0,
@@ -950,6 +1082,12 @@ def render_full_image(args: argparse.Namespace, image: dict[str, Any], work: Pat
         "tile_roles": {
             role: sum(1 for row in tile_rows if row["checkpoint_role"] == role)
             for role in sorted({row["checkpoint_role"] for row in tile_rows})
+        },
+        "route_smoothing": {
+            "enabled": bool(args.route_smoothing_radius > 0 and not args.force_model_key),
+            "radius": float(args.route_smoothing_radius),
+            "min_fraction": float(args.route_smoothing_min_fraction),
+            "changed_tile_count": sum(1 for row in tile_rows if row.get("route_smoothing_changed")),
         },
         "scene_spatial": {
             "role_counts_before_spatial": scene_role_counts,
@@ -1056,6 +1194,8 @@ def main() -> int:
     ap.add_argument("--valid-margin", type=int, default=0, help="Overlap-save mode: discard this many non-border pixels from each output tile before stitching.")
     ap.add_argument("--route-context-padding", type=int, default=0, help="Route each output tile using this many surrounding source pixels while keeping model input unchanged unless model context is also set.")
     ap.add_argument("--route-feature-max-side", type=int, default=512, help="Max side for runtime router feature extraction. Default preserves the frozen sidecar feature implementation.")
+    ap.add_argument("--route-smoothing-radius", type=float, default=0.0, help="Diagnostic: locally smooth source-derived route roles within this pixel radius before model selection.")
+    ap.add_argument("--route-smoothing-min-fraction", type=float, default=0.50, help="Minimum local-majority fraction needed to replace a tile route when route smoothing is enabled.")
     ap.add_argument("--model-context-padding", type=int, default=0, help="Run/route each output tile with this many source pixels of surrounding context, then crop back to the tile.")
     ap.add_argument("--tile-mode", choices=["full_grid", "manifest_crops"], default="full_grid")
     ap.add_argument("--force-model-key", help="Diagnostic: bypass routing and run one loaded model key on every tile.")
@@ -1174,6 +1314,8 @@ def main() -> int:
             "valid_margin": args.valid_margin,
             "route_context_padding": args.route_context_padding,
             "route_feature_max_side": args.route_feature_max_side,
+            "route_smoothing_radius": args.route_smoothing_radius,
+            "route_smoothing_min_fraction": args.route_smoothing_min_fraction,
             "model_context_padding": args.model_context_padding,
             "model_batch_size": args.model_batch_size,
             "stitched_output_format": args.stitched_output_format,
