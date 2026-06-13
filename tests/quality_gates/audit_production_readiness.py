@@ -1851,6 +1851,98 @@ def check_preview_q8_hard_router_union_evidence() -> Check:
         return Check("preview_detail", "q8 hard router union evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_q8_threeway_router_union_evidence() -> Check:
+    tool = REPO / "tools/cnn/score_preview_q8_threeway_router_union.py"
+    base = ARTIFACT_ROOT / "preview_runtime_policy_20260613"
+    crop_receipt = base / "q8_crop_refiner_fallback3_allfit_w40_s300_v1/preview_q8_crop_refiner.json"
+    fullframe_receipt = base / "q8_crop_fullframe_fallback3_allfit_t512_v1/preview_q8_crop_fullframe.json"
+    false_positive_receipt = base / "q8_crop_fullframe_fallback3_falsepositive_z0640_t512_v1/preview_q8_crop_fullframe.json"
+    loo_receipt = base / "q8_threeway_router_union_loo_v1/preview_q8_threeway_router_union.json"
+    final_receipt = base / "q8_threeway_router_union_finalsidecar_v1/preview_q8_threeway_router_union.json"
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "q8 three-way router union evidence", "FAIL", "missing tracked q8 three-way router scorer")
+    tool_text = tool.read_text(errors="ignore")
+    if "fallback3_max_distance" not in tool_text or "q8_fallback3_fullframe" not in tool_text:
+        return Check("preview_detail", "q8 three-way router union evidence", "FAIL", "tool missing guarded three-way route contract")
+    missing = [
+        str(path)
+        for path in (crop_receipt, fullframe_receipt, false_positive_receipt, loo_receipt, final_receipt)
+        if not path.exists()
+    ]
+    if missing:
+        return Check("preview_detail", "q8 three-way router union evidence", "FAIL", "missing " + ", ".join(missing))
+    try:
+        crop = json.loads(crop_receipt.read_text())
+        fullframe = json.loads(fullframe_receipt.read_text())
+        false_positive = json.loads(false_positive_receipt.read_text())
+        loo = json.loads(loo_receipt.read_text())
+        final = json.loads(final_receipt.read_text())
+
+        def q8_crop_count(payload: dict[str, Any]) -> tuple[int, int]:
+            row = ((payload.get("summary") or {}).get("all") or {})
+            return int(row.get("pass_count", -1)), int(row.get("count", 0))
+
+        def q8_fullframe_count(payload: dict[str, Any]) -> tuple[int, int]:
+            row = ((payload.get("summary") or {}).get("preview_q8_crop_fullframe") or {})
+            return int(row.get("pass_count", -1)), int(row.get("count", 0))
+
+        def union_summary(payload: dict[str, Any]) -> dict[str, Any]:
+            return (payload.get("summary") or {}).get("routed_preview_union") or {}
+
+        def route_summary(payload: dict[str, Any], key: str) -> dict[str, Any]:
+            return (payload.get("route_summary") or {}).get(key) or {}
+
+        loo_union = union_summary(loo)
+        final_union = union_summary(final)
+        loo_route = route_summary(loo, "leave_one_out")
+        final_route = route_summary(final, "final_sidecar")
+        sidecar = final.get("sidecar") or {}
+        contract = final.get("render_contract") or {}
+        ok = (
+            crop.get("schema") == "preview_q8_crop_refiner_receipt.v1"
+            and fullframe.get("schema") == "preview_q8_crop_fullframe_receipt.v1"
+            and false_positive.get("schema") == "preview_q8_crop_fullframe_receipt.v1"
+            and loo.get("schema") == "preview_q8_threeway_router_union.v1"
+            and final.get("schema") == "preview_q8_threeway_router_union.v1"
+            and q8_crop_count(crop) == (9, 9)
+            and q8_fullframe_count(fullframe) == (9, 9)
+            and q8_fullframe_count(false_positive) == (1, 3)
+            and int(loo_union.get("pass_count", -1)) == 84
+            and int(loo_union.get("count", 0)) == 84
+            and int(final_union.get("pass_count", -1)) == 84
+            and int(final_union.get("count", 0)) == 84
+            and float(final_union.get("worst_dE2000_mean", 999.0)) < 3.0
+            and int(loo_route.get("correct", -1)) == 28
+            and int(loo_route.get("hard_correct", -1)) == 8
+            and int(loo_route.get("fallback3_correct", -1)) == 3
+            and int(loo_route.get("fallback_correct", -1)) == 17
+            and int(final_route.get("correct", -1)) == 28
+            and int(final_route.get("hard_correct", -1)) == 8
+            and int(final_route.get("fallback3_correct", -1)) == 3
+            and int(final_route.get("fallback_correct", -1)) == 17
+            and sidecar.get("schema") == "preview_q8_threeway_router_sidecar.v1"
+            and float(sidecar.get("fallback3_max_distance", 0.0)) == 3.0
+            and contract.get("uses_ref_at_route_time") is False
+            and contract.get("uses_ref_at_render_time") is False
+            and "gate_metrics" in set(contract.get("forbidden_router_inputs") or [])
+        )
+        return Check(
+            "preview_detail",
+            "q8 three-way router union evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"fallback3_crop={q8_crop_count(crop)[0]}/9 "
+                f"fallback3_fullframe={q8_fullframe_count(fullframe)[0]}/9 "
+                f"false_positive={q8_fullframe_count(false_positive)[0]}/3; "
+                f"loo={int(loo_union.get('pass_count', -1))}/84 route={int(loo_route.get('correct', -1))}/28; "
+                f"final={int(final_union.get('pass_count', -1))}/84 "
+                f"worst_dE={float(final_union.get('worst_dE2000_mean', 0.0)):.2f} receipt={loo_receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "q8 three-way router union evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_rolemap_post_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_rolemap_post_distill.py"
     receipt = (
@@ -2745,6 +2837,7 @@ def main() -> int:
     checks.append(check_preview_q8_multiband_negative_evidence())
     checks.append(check_preview_q8_crop_specialist_evidence())
     checks.append(check_preview_q8_hard_router_union_evidence())
+    checks.append(check_preview_q8_threeway_router_union_evidence())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
     checks.append(check_preview_route_smoothing_negative_evidence())
     checks.append(check_preview_stitched_context_unet_negative_evidence())

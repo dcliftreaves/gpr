@@ -3058,3 +3058,47 @@ three remaining non-hard images. The full-frame PREVIEW blocker is now narrowed
 again: q8 hard-family routing can cover the hard eight, while the fallback
 hair/skin structure family needs its own full-frame specialist or a different
 runtime source policy.
+
+### q8 Fallback3 Specialist and Three-way Router Union - 2026-06-13
+
+Tools:
+
+```text
+tools/cnn/train_preview_q8_crop_refiner.py
+tools/cnn/evaluate_preview_q8_crop_fullframe.py
+tools/cnn/score_preview_q8_threeway_router_union.py
+```
+
+The remaining routed-union failures were `Z8Z_0680`, `Z8Z_0694`, and
+`Z8Z_0718`. A focused q8 crop specialist trained on those three images clears
+the nine crop rows and then survives 512px full-frame tiling. A naive three-way
+nearest-centroid router had one harmful false positive on `Z8Z_0640`; adding a
+fallback3 distance ceiling of 3.0 rejects that case while preserving all three
+true fallback3 routes.
+
+Receipts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_refiner_fallback3_allfit_w40_s300_v1/preview_q8_crop_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_fallback3_allfit_t512_v1/preview_q8_crop_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_crop_fullframe_fallback3_falsepositive_z0640_t512_v1/preview_q8_crop_fullframe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_threeway_router_union_loo_v1/preview_q8_threeway_router_union.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_threeway_router_union_finalsidecar_v1/preview_q8_threeway_router_union.json
+```
+
+Result:
+
+| receipt | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| fallback3 crop specialist | 9/9 | 0.0072 | 0.9964 | 39.84 | 1.69 |
+| fallback3 full-frame tiled | 9/9 | 0.0538 | 0.9928 | 38.73 | 1.86 |
+| fallback3 on `Z8Z_0640` false-positive probe | 1/3 | 0.0579 | 0.9940 | 36.20 | 3.28 |
+| three-way routed union, leave-one-out | 84/84 | 0.1178 | 0.9548 | 30.87 | 2.64 |
+| three-way routed union, final sidecar | 84/84 | 0.1178 | 0.9548 | 30.87 | 2.64 |
+
+The three-way router uses q8 source full-frame RGB plus fixed crop-window
+features. It selects hard, fallback3, or fallback with **28/28** leave-one-out
+accuracy: hard 8/8, fallback3 3/3, fallback 17/17. This is the first full
+28-image no-REF PREVIEW receipt union with no metric failures. It is still not
+registered as production until the same policy is implemented as one integrated
+renderer with a timing/memory receipt.

@@ -269,6 +269,16 @@ leave-one-out routing accuracy on the holdout. The routed union reaches
 is a fallback-family specialist or source policy for those images, not more
 hard-family q8 work.
 
+That fallback-family specialist now fits those remaining three images and
+survives full-frame tiling: q8 fallback3 crop training clears **9/9**, and its
+512px tiled full-frame receipt also clears **9/9**. A guarded three-way
+source-only router selects q8-hard, q8-fallback3, or v32 fallback and reaches
+**28/28** leave-one-out routing accuracy. The resulting receipt union clears
+the full 28-image stitched holdout **84/84** with worst LPIPS **0.1178**, worst
+MS-SSIM **0.9548**, worst Y-PSNR **30.87**, and worst dE2000 **2.64**. This is
+the current best PREVIEW evidence, but it still needs a single integrated
+renderer/timing receipt before production registration.
+
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
 runtime tiles. That narrows the remaining work to tile/context-safe routing and
