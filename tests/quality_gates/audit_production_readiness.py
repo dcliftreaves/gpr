@@ -1965,11 +1965,11 @@ def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
         return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", "runtime entrypoint does not delegate through the integrated render path")
     if not receipt.exists():
         return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", f"missing {receipt}")
-    pipeline_doc = (
-        (REG.get("pipelines") or {})
-        .get("codec=ml2_q3_dec2+cnn=preview_q8_threeway_runtime_fullframe_v1+demosaic=sips_via_gpr_tools", {})
-        .get("$doc", "")
-    )
+    pipeline_key = "codec=ml2_q3_dec2+cnn=preview_q8_threeway_runtime_fullframe_v1+demosaic=sips_via_gpr_tools"
+    pipeline = ((REG.get("pipelines") or {}).get(pipeline_key, {}) or {})
+    pipeline_doc = str(pipeline.get("$doc", ""))
+    pipeline_role = str(pipeline.get("$role", ""))
+    pipeline_use_for = str(pipeline.get("use_for", ""))
     cnn_doc = ((REG.get("cnns") or {}).get("preview_q8_threeway_runtime_fullframe_v1", {}) or {}).get("$doc", "")
     cnn_entrypoint = ((REG.get("cnns") or {}).get("preview_q8_threeway_runtime_fullframe_v1", {}) or {}).get("runtime_entrypoint", "")
     readme_text = readme.read_text(errors="ignore") if readme.exists() else ""
@@ -1979,8 +1979,12 @@ def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
     documentation_ok = (
         "offline/review" in pipeline_doc_l
         and "not live/camera-back preview" in pipeline_doc_l
+        and "production path" in pipeline_doc_l
+        and pipeline_role == "ship-preview-offline-q8-threeway-runtime-fullframe"
+        and pipeline_use_for == "PREVIEW_OFFLINE_REVIEW_Q8_THREEWAY"
         and "offline/review" in cnn_doc_l
         and "not live/camera-back preview" in cnn_doc_l
+        and "production path" in cnn_doc_l
         and cnn_entrypoint == "tools/cnn/render_preview_q8_threeway_runtime.py"
         and "offline/review" in readme_text_l
         and "not a live/camera-back preview path" in readme_text_l

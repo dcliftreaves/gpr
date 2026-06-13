@@ -3136,8 +3136,7 @@ Selected families:
 
 The integrated receipt keeps the solved no-REF PREVIEW quality result while
 adding the missing route/render timing and memory evidence. The registry now
-tracks this as an external-receipt offline/review PREVIEW candidate, not a
-live/camera-back PREVIEW path: the measured Mac/MPS route is 13.65 s/image
-(0.073 fps). Remaining production work is stable renderer packaging,
-target-platform timing refresh, and a separate fast live-preview strategy if
-camera-back display is required.
+tracks this as the external-receipt offline/review PREVIEW production path, not
+a live/camera-back PREVIEW path: the measured Mac/MPS route is 13.65 s/image
+(0.073 fps). Live/camera-back PREVIEW remains the separate codec-only speed
+path; quality beyond that is future work.

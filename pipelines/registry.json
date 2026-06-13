@@ -250,7 +250,7 @@
       "raw_norm": 255.0
     },
     "preview_q8_threeway_runtime_fullframe_v1": {
-      "$doc": "External-receipt no-REF display PREVIEW offline/review candidate. A frozen source-only q8 three-way router selects q8 hard, q8 fallback3, or v32 fallback full-frame renderers per image. The integrated 28-image/84-row full-frame holdout clears all PREVIEW metrics with timing and memory receipts, but the measured 0.073 fps Mac/MPS path is not live/camera-back preview and this is not a normal run_gate Bayer pipeline.",
+      "$doc": "External-receipt no-REF display PREVIEW offline/review production path. A frozen source-only q8 three-way router selects q8 hard, q8 fallback3, or v32 fallback full-frame renderers per image. The integrated 28-image/84-row full-frame holdout clears all PREVIEW metrics with timing and memory receipts, but the measured 0.073 fps Mac/MPS path is not live/camera-back preview and this is not a normal run_gate Bayer pipeline.",
       "cnn_arch_variant": "preview_q8_threeway_runtime_fullframe",
       "trained_against_codec": "ml2_q3_dec2",
       "conditioning": "q8_source_fullframe_rgb_features",
@@ -444,8 +444,9 @@
       "cnn": "preview_q8_threeway_runtime_fullframe_v1",
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "PREVIEW",
-      "$role": "temp-preview-q8-threeway-runtime-fullframe-20260613",
-      "$doc": "External-receipt no-REF PREVIEW offline/review candidate. Integrated full-frame route/render receipt clears 84/84 on the 28-image holdout with worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, dE2000 2.64, weighted runtime 13.65 s/image, and peak RSS 5.37 GB. Not live/camera-back preview and not a run_gate Bayer pipeline; use tools/cnn/evaluate_preview_q8_threeway_runtime_fullframe.py."
+      "use_for": "PREVIEW_OFFLINE_REVIEW_Q8_THREEWAY",
+      "$role": "ship-preview-offline-q8-threeway-runtime-fullframe",
+      "$doc": "External-receipt no-REF PREVIEW offline/review production path. Integrated full-frame route/render receipt clears 84/84 on the 28-image holdout with worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, dE2000 2.64, weighted runtime 13.65 s/image, and peak RSS 5.37 GB. Not live/camera-back preview and not a run_gate Bayer pipeline; use tools/cnn/render_preview_q8_threeway_runtime.py."
     },
     "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_l2x2_l1x2",

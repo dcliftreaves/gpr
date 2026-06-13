@@ -77,9 +77,10 @@ legacy diagnostic path because it can introduce sky banding.
 This 2026-06-04 review bundle predates the q8 three-way PREVIEW candidate. It
 remains the latest committed ProRes/video-review media bundle, but it is no
 longer the latest PREVIEW quality evidence. The current no-REF full-frame
-quality evidence is `preview_q8_threeway_runtime_fullframe_v1`: 84/84 on the
-28-image holdout, worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, and
-dE2000 2.64. That path is offline/review only at 13.65 s/image (0.073 fps).
+offline/review production path is `preview_q8_threeway_runtime_fullframe_v1`:
+84/84 on the 28-image holdout, worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR
+30.87, and dE2000 2.64. That path is offline/review only at 13.65 s/image
+(0.073 fps).
 
 Relevant gate runs:
 
@@ -112,7 +113,7 @@ scratch on the external work drive.
 ## Next production risk
 
 The remaining video production risk is not the container or 24 fps encode
-path. It is the live/camera-back PREVIEW path: the current q8 route is
-quality-valid for offline/review output but is far below live frame rate. Noise
-separation remains relevant for future CNN training, but it is not the current
-blocker for the registered offline/review PREVIEW candidate.
+path. It is quality beyond codec-only for live/camera-back PREVIEW: the q8
+route is quality-valid for offline/review output but is far below live frame
+rate. Noise separation remains relevant for future CNN training, but it is not
+the current blocker for the registered offline/review PREVIEW path.

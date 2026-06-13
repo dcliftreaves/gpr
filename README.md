@@ -144,8 +144,9 @@ alongside the rendered metrics.
 ### PREVIEW runtime research status — temporary candidate
 
 The current live/camera-back PREVIEW ship claim remains the codec-only gate
-above. The newer no-REF display refiner work is an offline/review candidate
-path, not a live preview path. The dashboard-shaped checkpoint clears 14/16
+above. The newer no-REF display refiner work has now produced an
+offline/review production path, not a live preview path. The dashboard-shaped
+checkpoint clears 14/16
 crop rows, but when the
 same work is forced through deterministic runtime inputs - no REF content, no
 winner JSON, no sample index, and no crop-key planes - the single-refiner
@@ -286,10 +287,9 @@ q8-fallback3, or v32 full-frame renderer for each selected image, and writes one
 combined timing/memory dashboard. That integrated holdout also clears **84/84**
 with the same worst metrics, weighted runtime **13.65 s/image** (**0.073 fps**)
 and peak RSS **5.37 GB**. This makes PREVIEW quality production-shaped; the
-current registration is therefore an offline/review PREVIEW candidate with
-evidence, not a live/camera-back PREVIEW path. The remaining PREVIEW production
-work is renderer integration/packaging, broader platform timing, and a separate
-fast live-preview strategy if camera-back display is required.
+current registration is therefore the offline/review PREVIEW production path,
+not a live/camera-back PREVIEW path. The live/camera-back PREVIEW route remains
+the codec-only speed path; quality beyond that is separate future work.
 
 The latest full-frame follow-up narrows that blocker further. Exact
 manifest-crop full-frame evaluation passes 3/3, but arbitrary tiling fails even
