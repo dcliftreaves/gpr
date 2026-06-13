@@ -59,15 +59,15 @@ def default_specs(root: Path) -> list[ReceiptSpec]:
         ),
         ReceiptSpec(
             "codec_teacher_q8_holdout28",
-            policy_0613 / "codec_teacher_source_score_holdout28_q8_v1/preview_codec_teacher_source_score.json",
+            policy_0613 / "codec_teacher_source_score_holdout28_q8_true_ref_v1/preview_codec_teacher_source_score.json",
             "runtime_source",
-            "Archival q8 no-REF teacher/source render across the 28-image PREVIEW holdout; REF is metric-only.",
+            "Archival q8 no-REF teacher/source render across the 28-image PREVIEW holdout against resolved true REF; REF is metric-only.",
         ),
         ReceiptSpec(
             "policy_union_scene_vs_q8",
-            policy_0613 / "policy_union_scene_gated_vs_q8_v1/preview_policy_union_score.json",
+            policy_0613 / "policy_union_scene_gated_vs_q8_true_ref_v1/preview_policy_union_score.json",
             "diagnostic_oracle",
-            "Metric-selected oracle union between scene-gated full-frame and q8 direct rows; upper bound for a runtime selector.",
+            "Metric-selected oracle union between scene-gated full-frame and true-REF q8 direct rows; upper bound for a runtime selector.",
         ),
         ReceiptSpec(
             "resolution_oracle_highres",
@@ -313,8 +313,9 @@ def build_findings(rows: list[dict[str, Any]]) -> list[str]:
         if broad is not None and hard is not None:
             findings.append(
                 f"Archival q8 no-REF teacher/source reaches {broad['pass_count']}/{broad['count']} "
-                f"on the broad holdout but only {hard['pass_count']}/{hard['count']} on the hard-eight rows, "
-                "so it is a partial source component, not a sufficient PREVIEW teacher."
+                f"on the broad true-REF holdout and {hard['pass_count']}/{hard['count']} on the hard-eight rows. "
+                "The earlier broad q8 score compared some editable-DNG rows against their source path; true-REF scoring "
+                "shows q8 alone is not a sufficient PREVIEW teacher."
             )
         else:
             best = max(codec_teachers, key=lambda row: (row["pass_rate"], row["pass_count"]))

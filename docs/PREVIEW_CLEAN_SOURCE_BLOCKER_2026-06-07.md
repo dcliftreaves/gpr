@@ -2619,6 +2619,8 @@ Artifacts:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_hard8_v1/preview_codec_teacher_source_score.html
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_holdout28_q8_v1/preview_codec_teacher_source_score.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_holdout28_q8_v1/preview_codec_teacher_source_score.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_holdout28_q8_true_ref_v1/preview_codec_teacher_source_score.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/codec_teacher_source_score_holdout28_q8_true_ref_v1/preview_codec_teacher_source_score.html
 ```
 
 Summary:
@@ -2627,16 +2629,15 @@ Summary:
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | `gpr_tools_q8`, no CNN | hard eight | 12/24 | 0.1849 | 0.8789 | 25.37 | 5.43 | 21.97 MiB |
 | `gpr_tools_q3` + BIBO_1x | hard eight | 7/24 | 0.2365 | 0.2440 | 15.63 | 11.60 | 15.76 MiB |
-| `gpr_tools_q8`, no CNN | 28-image holdout | 72/84 | 0.1849 | 0.8789 | 25.37 | 5.43 | 2.06 MiB |
+| `gpr_tools_q8`, no CNN | 28-image holdout, resolved true REF | 32/84 | 0.1849 | 0.8789 | 14.05 | 18.87 | 2.06 MiB |
 
-The broad q8 result is better than the current arbitrary full-frame route on
-aggregate, but all 12 broad misses are the hard blocker rows. The worst
-failures are spread across `Z8Z_1586`, `Z8Z_7480`, `Z8Z_0705`, `Z8Z_7955`, and
-`Z8Z_5937`, with both LPIPS/detail and dE/Y misses. This makes archival q8 a
-partial source/teacher component, not a production PREVIEW teacher. A future
-PREVIEW candidate needs either a different runtime-safe teacher/source
-formulation or a more global image-conditioned model; q8 rendering alone does
-not explain the missing full-image field.
+The earlier broad q8 receipt reported 72/84 because some editable-DNG rows were
+compared against their source path instead of the resolved true REF DNG. The
+corrected true-REF receipt is 32/84 and matches the q8 full-frame source
+baseline in the low-field trainer. The hard-eight result remains 12/24 because
+those rows already came from the same diverse true-REF source. This makes
+archival q8 a useful runtime source component for some hard rows, not a
+production PREVIEW teacher.
 
 The aggregate evidence-rank dashboard was regenerated after this probe:
 
@@ -2647,6 +2648,8 @@ The aggregate evidence-rank dashboard was regenerated after this probe:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v3/preview_candidate_evidence_rank.html
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v4/preview_candidate_evidence_rank.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v4/preview_candidate_evidence_rank.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v5/preview_candidate_evidence_rank.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v5/preview_candidate_evidence_rank.html
 ```
 
 Updated result:
@@ -2656,7 +2659,7 @@ Updated result:
 | crop-shaped no-REF route | `crop_holdout_v32` | 84/84 | Crop-local routing is solved enough for diagnostics. |
 | production-shaped full-frame route | `fullframe_scene_gated_84` | 63/84 | Arbitrary full-image tiling is still the blocker. |
 | hard-row no-REF model | stitched context post-refiner | 2/24 | Local/post/refiner-style models are not sufficient. |
-| codec-derived no-REF teacher/source | `gpr_tools_q8`, no CNN | 72/84 broad, 12/24 hard | Archival/still codec rendering is a partial source component, not sufficient. |
+| codec-derived no-REF teacher/source | `gpr_tools_q8`, no CNN | 32/84 true-REF broad, 12/24 hard | Archival/still codec rendering is not sufficient; the old broad score used the wrong REF for editable-DNG rows. |
 | metric-selected selector oracle | scene-gated full-frame or q8 | 74/84 | A two-way runtime selector cannot clear the gate even with oracle selection. |
 | diagnostic/oracle ceiling | full-resolution REF field | 24/24 | The target is reachable only with information the current runtime path lacks. |
 
@@ -2680,6 +2683,8 @@ Artifacts:
 ```text
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/policy_union_scene_gated_vs_q8_v1/preview_policy_union_score.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/policy_union_scene_gated_vs_q8_v1/preview_policy_union_score.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/policy_union_scene_gated_vs_q8_true_ref_v1/preview_policy_union_score.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/policy_union_scene_gated_vs_q8_true_ref_v1/preview_policy_union_score.html
 ```
 
 Result:
@@ -2687,11 +2692,34 @@ Result:
 | variant | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | scene-gated full-frame | 63/84 | 0.5749 | 0.6288 | 19.26 | 8.75 |
-| q8 direct render | 72/84 | 0.1849 | 0.8789 | 25.37 | 5.43 |
+| q8 direct render, true REF | 32/84 | 0.1849 | 0.8789 | 14.05 | 18.87 |
 | oracle union | 74/84 | 0.1769 | 0.8789 | 25.96 | 4.37 |
 
-The union adds only two rows beyond q8 direct. Ten rows fail both paths. A
-simple source-derived selector between these two paths therefore cannot reach
-production quality, even before accounting for classifier error. The next
-candidate needs a stronger source/teacher representation or a global model that
-changes the hard rows themselves, not a selector over the current two outputs.
+The corrected union still reaches only 74/84. A simple source-derived selector
+between these two paths therefore cannot reach production quality, even before
+accounting for classifier error. The next candidate needs a stronger true-REF
+source/teacher representation or a global model that changes the hard rows
+themselves, not a selector over the current two outputs.
+
+### q8 Low-Field Refiner Smoke
+
+A q8 full-frame source receipt was materialized to test whether the remaining
+hard rows can be moved by a learned full-image low-field correction.
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_fullframes_hard5_v1/preview_codec_source_fullframes.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_lowfield_refiner_hard5_pngref_batch512_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_fullframes_holdout28_v1/preview_codec_source_fullframes.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_lowfield_refiner_holdout28_hard5out_pngref_batch512_v1/preview_fullimage_band_refiner.json
+```
+
+Result:
+
+| variant | scope | pass | interpretation |
+| --- | --- | ---: | --- |
+| q8 source baseline | hard-five fit smoke | 3/15 | Matches corrected q8 source rows. |
+| generated low-field residual | hard-five fit smoke | 10/15 | The correction is learnable as a capacity fit. |
+| q8 source baseline | 28-image true-REF holdout | 32/84 | Corrected broad q8 baseline. |
+| generated low-field residual | hard-five held out from 23-image fit set | 25/84 | The current formulation does not generalize and is not production. |

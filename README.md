@@ -193,15 +193,17 @@ The latest candidate evidence rank dashboard aggregates 215 variant summaries
 across the source, model, crop-contract, and oracle receipts. It makes the
 current split explicit: crop-shaped no-REF routing is **84/84**, the broad
 production-shaped full-frame route is **63/84**, the best hard-row no-REF model
-candidate is only **2/24**, archival q8 no-REF rendering reaches **72/84**
-broad but only **12/24** on the hard-eight rows, a metric-selected
+candidate is only **2/24**, archival q8 no-REF rendering is **32/84** against
+resolved true REF and **12/24** on the hard-eight rows, a metric-selected
 scene-gated/q8 selector oracle reaches only **74/84**, and the REF-field oracle
-ceiling is **24/24**. That rules down another local post-refiner,
-residual-band pass, simple archival/still codec render, or two-way selector as
-the next production move; the next viable PREVIEW experiment needs a different
-runtime-safe source/teacher representation or a more global image-conditioned
-model. Dashboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v4/preview_candidate_evidence_rank.html`.
+ceiling is **24/24**. A focused q8+learned-low-field fit smoke improves the
+selected hard-five images from **3/15** to **10/15**, but the hard-five holdout
+run falls to **25/84**, so that formulation is not production. The next viable
+PREVIEW experiment needs a better true-REF training corpus/source policy or a
+more global image-conditioned model, not another local post-refiner,
+residual-band pass, simple archival/still codec render, or two-way selector.
+Dashboard:
+`/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v5/preview_candidate_evidence_rank.html`.
 
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched

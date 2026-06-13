@@ -182,6 +182,18 @@ def render_dng_to_tiff(dng_path: Path, tiff_path: Path) -> float:
     return (time.perf_counter() - t0) * 1000.0
 
 
+def render_dng_to_png(dng_path: Path, png_path: Path) -> float:
+    t0 = time.perf_counter()
+    result = subprocess.run(
+        ["sips", "-s", "format", "png", str(dng_path), "--out", str(png_path)],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"sips failed for {dng_path}: {result.stderr[-400:]}")
+    return (time.perf_counter() - t0) * 1000.0
+
+
 def load_rgb(path: Path) -> np.ndarray:
     with Image.open(path) as image:
         return np.asarray(image.convert("RGB"), dtype=np.uint8)
@@ -352,17 +364,18 @@ def prepare_samples(args: argparse.Namespace, images: list[dict[str, Any]], work
         if source_dng is None and receipt_source is None:
             raise FileNotFoundError(f"missing source DNG/source receipt image for {image_id}")
         ref_dng = resolve_ref(image, args.ref_root)
-        source_tiff = work / f"{image_id}_source.tiff"
-        ref_tiff = work / f"{image_id}_ref.tiff"
+        source_render = work / f"{image_id}_source.{args.ref_render_format}"
+        ref_render = work / f"{image_id}_ref.{args.ref_render_format}"
         print(f"[fullimage-band] render {image_id}", flush=True)
-        render_ms.append(render_dng_to_tiff(ref_dng, ref_tiff))
+        render_fn = render_dng_to_png if args.ref_render_format == "png" else render_dng_to_tiff
+        render_ms.append(render_fn(ref_dng, ref_render))
         if receipt_source is not None:
             source_rgb = load_rgb(Path(receipt_source["stitched_path"]))
         else:
             assert source_dng is not None
-            render_ms.append(render_dng_to_tiff(source_dng, source_tiff))
-            source_rgb = load_rgb(source_tiff)
-        ref_rgb = load_rgb(ref_tiff)
+            render_ms.append(render_fn(source_dng, source_render))
+            source_rgb = load_rgb(source_render)
+        ref_rgb = load_rgb(ref_render)
         low_size = resized_dims(source_rgb.shape[1], source_rgb.shape[0], args.model_width)
         source_low = resize_rgb(source_rgb, low_size)
         ref_low = resize_rgb(ref_rgb, low_size)
@@ -383,8 +396,8 @@ def prepare_samples(args: argparse.Namespace, images: list[dict[str, Any]], work
                 "low_size": list(low_size),
             }
         )
-        source_tiff.unlink(missing_ok=True)
-        ref_tiff.unlink(missing_ok=True)
+        source_render.unlink(missing_ok=True)
+        ref_render.unlink(missing_ok=True)
     return samples, {
         "render_ms_total": float(sum(render_ms)),
         "render_ms_median": float(np.median(render_ms)) if render_ms else 0.0,
@@ -433,18 +446,30 @@ def train_model(
     best_step = 0
     t0 = time.perf_counter()
     for step in range(1, args.steps + 1):
-        idx = (step - 1) % len(inputs)
-        pred = model(inputs[idx])
-        full_loss = F.smooth_l1_loss(pred.contiguous(), targets[idx].contiguous())
+        if args.batch_all:
+            batch_inputs = torch.cat(inputs, dim=0)
+            batch_targets = torch.cat(targets, dim=0)
+            pred = model(batch_inputs)
+            full_loss = F.smooth_l1_loss(pred.contiguous(), batch_targets.contiguous())
+            crop_losses = [
+                crop_region_loss(pred[idx : idx + 1], batch_targets[idx : idx + 1], sample, crops)
+                for idx, sample in enumerate(fit_samples)
+            ]
+            crop_loss = torch.stack(crop_losses).mean() if crop_losses else pred.new_tensor(0.0)
+        else:
+            idx = (step - 1) % len(inputs)
+            pred = model(inputs[idx])
+            full_loss = F.smooth_l1_loss(pred.contiguous(), targets[idx].contiguous())
+            crop_loss = crop_region_loss(pred, targets[idx], fit_samples[idx], crops)
         loss = args.background_loss_weight * full_loss
-        crop_loss = crop_region_loss(pred, targets[idx], fit_samples[idx], crops)
         if args.crop_loss_weight:
             loss = loss + args.crop_loss_weight * crop_loss
         if args.gradient_loss_weight:
+            target_for_grad = batch_targets if args.batch_all else targets[idx]
             pred_dx = pred[..., :, 1:] - pred[..., :, :-1]
-            tgt_dx = targets[idx][..., :, 1:] - targets[idx][..., :, :-1]
+            tgt_dx = target_for_grad[..., :, 1:] - target_for_grad[..., :, :-1]
             pred_dy = pred[..., 1:, :] - pred[..., :-1, :]
-            tgt_dy = targets[idx][..., 1:, :] - targets[idx][..., :-1, :]
+            tgt_dy = target_for_grad[..., 1:, :] - target_for_grad[..., :-1, :]
             loss = loss + args.gradient_loss_weight * (
                 F.smooth_l1_loss(pred_dx.contiguous(), tgt_dx.contiguous())
                 + F.smooth_l1_loss(pred_dy.contiguous(), tgt_dy.contiguous())
@@ -653,6 +678,7 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
         "render_contract": {
             "render_time_inputs": render_time_inputs(args.conditioning),
             "conditioning": args.conditioning,
+            "ref_render_format_for_training_and_metrics": args.ref_render_format,
             "forbidden_render_time_inputs": ["ref_rgb", "ref_dng", "gate_metrics", "sample_index"],
             "runtime_variants": ["generated_low_direct", "generated_low_plus_source_high"],
             "oracle_variants_not_allowed_for_production": ["ref_low_plus_source_high"],
@@ -664,6 +690,7 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
             "background_loss_weight": args.background_loss_weight,
             "crop_loss_weight": args.crop_loss_weight,
             "gradient_loss_weight": args.gradient_loss_weight,
+            "batch_all": args.batch_all,
             "history": history,
         },
         "model": {
@@ -733,6 +760,8 @@ def main() -> int:
     ap.add_argument("--background-loss-weight", type=float, default=1.0)
     ap.add_argument("--crop-loss-weight", type=float, default=0.0)
     ap.add_argument("--gradient-loss-weight", type=float, default=0.1)
+    ap.add_argument("--batch-all", action="store_true")
+    ap.add_argument("--ref-render-format", choices=["tiff", "png"], default="tiff")
     ap.add_argument("--high-sigma", type=float, action="append", default=[1.0, 2.0, 4.0])
     ap.add_argument("--log-every", type=int, default=50)
     ap.add_argument("--output-dir", type=Path, required=True)

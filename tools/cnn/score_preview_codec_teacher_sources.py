@@ -31,7 +31,7 @@ sys.path.insert(0, str(REPO / "tools/cnn"))
 sys.path.insert(0, str(REPO / "tools/test"))
 
 import run_gate  # noqa: E402
-from build_preview_holdout_runtime_receipt import scaled_box  # noqa: E402
+from build_preview_holdout_runtime_receipt import resolve_ref, scaled_box  # noqa: E402
 from metrics import compute_visual_metrics  # noqa: E402
 from train_display_rgb_direct_nonref import PREVIEW, pass_preview  # noqa: E402
 
@@ -64,11 +64,12 @@ def render_dng_to_png(dng_path: Path, out_png: Path) -> None:
         raise RuntimeError(f"sips render failed for {dng_path}: {r.stderr[-300:]}")
 
 
-def render_ref_png(image: dict[str, Any], work: Path) -> tuple[Path, float]:
+def render_ref_png(image: dict[str, Any], ref_roots: list[Path], work: Path) -> tuple[Path, Path, float]:
     out = work / f"{image['id']}_REF.png"
     t0 = time.perf_counter()
-    render_dng_to_png(Path(image["path"]), out)
-    return out, (time.perf_counter() - t0) * 1000.0
+    ref_dng = resolve_ref(image, ref_roots)
+    render_dng_to_png(ref_dng, out)
+    return ref_dng, out, (time.perf_counter() - t0) * 1000.0
 
 
 def legacy_gpr_tools_to_dng(codec: dict[str, Any], src_dng: Path, workdir: Path) -> tuple[Path, int, float]:
@@ -254,7 +255,7 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
         for image in images:
             image_id = str(image["id"])
             print(f"[codec-teacher] {image_id}", flush=True)
-            ref_path, ref_ms = render_ref_png(image, work)
+            ref_dng, ref_path, ref_ms = render_ref_png(image, args.ref_root, work)
             ref_crops = {
                 crop_name: crop_array(ref_path, crop, image["sensor_dims"])
                 for crop_name, crop in crops.items()
@@ -286,6 +287,7 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
                 {
                     "image_id": image_id,
                     "source_dng": image["path"],
+                    "ref_dng": str(ref_dng),
                     "ref_render_ms": ref_ms,
                     "rows": len(image_variants),
                 }
@@ -295,6 +297,7 @@ def collect(args: argparse.Namespace) -> dict[str, Any]:
     return {
         "schema": "preview_codec_teacher_source_score.v1",
         "manifest": str(args.manifest),
+        "ref_roots": [str(path) for path in args.ref_root],
         "thresholds": PREVIEW,
         "pipelines": list(args.pipeline),
         "render_contract": {
@@ -368,6 +371,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=REPO / "tests/quality_gates/preview_holdout_set.json")
     parser.add_argument("--image-id", action="append", default=[])
+    parser.add_argument(
+        "--ref-root",
+        type=Path,
+        action="append",
+        default=[
+            Path("/Volumes/OWC_8TB/gpr_work/cnn/diverse_dngs"),
+            Path("/Volumes/OWC_8TB/gpr_work/barnsky_full_dngs"),
+        ],
+    )
     parser.add_argument("--pipeline", action="append")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--output-json", type=Path, required=True)
