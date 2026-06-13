@@ -1,8 +1,11 @@
 """Ship pipeline audit.
 
-Every pipeline tagged ship-* in the registry should have a committed passing
-gate run for its exact pipeline id. Strict mode additionally requires the run
-to use the current gates.json and to have a claims_log.md receipt.
+Every pipeline tagged ship-* in the registry should have production evidence.
+Most ship pipelines must have a committed passing gate run for their exact
+pipeline id. External-receipt-only pipelines are allowed only when the registry
+declares the external receipt, dashboard, runtime entrypoint, and production
+scope explicitly. Strict mode additionally requires normal gate runs to use the
+current gates.json and to have a claims_log.md receipt.
 
 Usage:
   python3 tests/quality_gates/audit_ship_pipelines.py
@@ -109,6 +112,57 @@ def image_verdicts_ok(run: dict) -> bool:
     return bool(imgs) and all(im.get("verdict") == "PASS" for im in imgs.values())
 
 
+def git_tracked_file(path: Path) -> bool:
+    try:
+        subprocess.check_output(
+            ["git", "ls-files", "--error-unmatch", str(path.relative_to(REPO))],
+            cwd=REPO,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+        return True
+    except Exception:
+        return False
+
+
+def external_receipt_checks(pipeline: dict) -> tuple[bool, list[str], dict]:
+    cnn_name = str(pipeline.get("cnn", ""))
+    cnn = ((REG.get("cnns") or {}).get(cnn_name, {}) or {})
+    checks: list[str] = []
+    details = {
+        "cnn": cnn_name,
+        "holdout_receipt": str(cnn.get("holdout_receipt", "")),
+        "dashboard": str(cnn.get("dashboard", "")),
+        "runtime_entrypoint": str(cnn.get("runtime_entrypoint", "")),
+    }
+    pipeline_doc_l = str(pipeline.get("$doc", "")).lower()
+    cnn_doc_l = str(cnn.get("$doc", "")).lower()
+    entrypoint = details["runtime_entrypoint"]
+
+    if not cnn.get("external_receipt_only"):
+        checks.append("cnn is not marked external_receipt_only")
+    if not details["holdout_receipt"]:
+        checks.append("missing holdout_receipt")
+    if not details["dashboard"]:
+        checks.append("missing dashboard")
+    if not entrypoint:
+        checks.append("missing runtime_entrypoint")
+    elif not git_tracked_file(REPO / entrypoint):
+        checks.append(f"runtime_entrypoint is not tracked ({entrypoint})")
+    if "external-receipt" not in pipeline_doc_l:
+        checks.append("pipeline doc does not say external-receipt")
+    if "production path" not in pipeline_doc_l:
+        checks.append("pipeline doc does not say production path")
+    if "not live/camera-back preview" not in pipeline_doc_l:
+        checks.append("pipeline doc does not define live/camera-back boundary")
+    if "external-receipt" not in cnn_doc_l:
+        checks.append("cnn doc does not say external-receipt")
+    if "production path" not in cnn_doc_l:
+        checks.append("cnn doc does not say production path")
+
+    return not checks, checks, details
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
@@ -144,8 +198,17 @@ def main() -> int:
         role = p.get("$role", "?")
         sc = p.get("ship_class", "?")
         if r is None:
+            external_ok, external_problems, details = external_receipt_checks(p)
+            if external_ok:
+                print(f"  PASS [{sc:13}] external receipt  {role}")
+                print(f"       pipeline={pn}")
+                print(f"       receipt={details['holdout_receipt']}")
+                print(f"       dashboard={details['dashboard']}")
+                continue
             print(f"  FAIL no committed run [{sc:13}] {role}")
             print(f"          {pn}")
+            for check in external_problems:
+                print(f"       - {check}")
             any_problem = True
             continue
 

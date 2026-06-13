@@ -2,13 +2,19 @@
 
 ## What this is
 
-The only legitimate way to declare a pipeline "ships" or "passes quality"
+The default way to declare a normal Bayer pipeline "ships" or "passes quality"
 is `python3 tests/quality_gates/run_gate.py PIPELINE_NAME`. The script
 reads `gates.json` and `test_set.json` (both committed, both owned by
 the user), runs the pipeline against 4 fixed Z8 50 MP source DNGs,
 computes the visual metric stack (LPIPS / MS-SSIM / Y-PSNR / ΔE2000),
 and emits a PASS/FAIL verdict per image. **Worst image governs.**
 Aggregates are forbidden.
+
+Pipelines that are explicitly marked `external_receipt_only` in
+`pipelines/registry.json` are audited through their committed registry
+contract plus external receipts and dashboards, not through `run_gate.py`.
+They must state their production scope and live/runtime boundary in the
+registry and pass `audit_production_readiness.py --strict`.
 
 See `CLAUDE.md` at the repo root for the load-bearing rules.
 
@@ -26,7 +32,7 @@ tests/quality_gates/
   check_registry_consistency.py
                      registry/schema/artifact metadata check
   audit_ship_pipelines.py
-                     verifies ship-* roles have committed PASS receipts
+                     verifies ship-* roles have production evidence
   audit_production_readiness.py
                      output-family readiness checklist
   dashboard.py       quality-gate run index
@@ -58,16 +64,19 @@ warnings. Strict mode is the release cleanup list: missing checkpoints,
 unresolved checkpoint hashes, and unresolved training provenance must be
 fixed or deliberately removed from the registry before a ship claim.
 
-`audit_ship_pipelines.py` ignores untracked local runs by default. It only
-counts committed `run.json` receipts, so a fresh checkout can verify every
-`ship-*` role. Release preparation should also run:
+`audit_ship_pipelines.py` ignores untracked local runs by default. For normal
+gate pipelines it only counts committed `run.json` receipts, so a fresh
+checkout can verify every `ship-*` role. External-receipt-only pipelines are
+allowed only when the registry declares their receipt path, dashboard path,
+tracked runtime entrypoint, production scope, and live/runtime boundary.
+Release preparation should also run:
 
 ```
 python3 tests/quality_gates/audit_ship_pipelines.py --strict
 ```
 
-Strict ship audit additionally requires the current `gates.json` hash and a
-matching `docs/claims_log.md` receipt.
+Strict ship audit additionally requires normal gate runs to use the current
+`gates.json` hash and have a matching `docs/claims_log.md` receipt.
 
 For a broader stills/video/container/UPRESABLE/Pi-target checklist, run:
 
