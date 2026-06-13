@@ -213,6 +213,13 @@ PREVIEW blocker a source-policy/full-image formulation issue, not a small
 post-filter gap. Dashboard:
 `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/source_ref_policy_audit_v1/preview_source_ref_policy_audit.html`.
 
+A bounded follow-up trained a full-image low-field model on the 20 Barnsky
+images and held out all eight diverse images. It improved the fit-side rows
+from **20/60** to **52/60**, but stayed **0/24** on the held-out diverse rows;
+even the REF-low/source-high oracle stayed **0/24** there. That rules out this
+low-field source-policy correction as production PREVIEW. Dashboard:
+`/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/upresable_source_lowfield_barnskyfit_diverseholdout_w1024_v1/preview_fullimage_band_refiner.html`.
+
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
 runtime tiles. That narrows the remaining work to tile/context-safe routing and

@@ -2702,6 +2702,57 @@ formulation or train a global image-conditioned model against the resolved
 true-REF target. Another local post-refiner, q8 selector, or source-preserving
 low-field residual is not the next high-EV path.
 
+### Source-Policy Low-Field Generalization Check
+
+A bounded follow-up trained the existing full-image band refiner on the 20
+Barnsky images while holding out all eight diverse images. Runtime inputs remain
+source RGB, normalized coordinates, source global RGB stats, and the checkpoint;
+REF is supervision/scoring only. This tests whether the clean UPRESABLE source
+can be corrected by sequence-family low-field learning before spending more
+time on larger CNN variants.
+
+Command shape:
+
+```text
+tools/cnn/train_preview_fullimage_band_refiner.py
+--model-width 1024 --architecture direct --width 32 --depth 4
+--conditioning xy_global_color_stats --steps 300 --batch-all
+--ref-render-format png --crop-loss-weight 5.0
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/upresable_source_lowfield_barnskyfit_diverseholdout_w1024_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/upresable_source_lowfield_barnskyfit_diverseholdout_w1024_v1/preview_fullimage_band_refiner.html
+```
+
+Result:
+
+| variant | all rows | fit rows | held-out diverse rows | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| source baseline | 20/84 | 20/60 | 0/24 | 0.6839 | 0.2922 | 14.04 | 18.89 |
+| generated low-field residual | 52/84 | 52/60 | 0/24 | 0.8260 | 0.2024 | 6.20 | 44.00 |
+| generated low plus source high, sigma 4 | 52/84 | 52/60 | 0/24 | 0.8963 | 0.1707 | 6.18 | 44.12 |
+| REF low-field residual oracle | 60/84 | 60/60 | 0/24 | 0.6684 | 0.4082 | 17.43 | 10.10 |
+
+Timing and memory receipt:
+
+```text
+render_ms_total=295317.68
+train_ms=434651.49
+train_steps_per_second=0.6902
+model_ms_median=51.54
+max_rss_mb=11930.52
+checkpoint_sha256=1404776e09c9fbe49fed3d8d6ab2731d53267562c446f72fbc4d226af23fd8f1
+```
+
+Interpretation: the model can fit the Barnsky sequence-family rows, so capacity
+for that low-field correction is present. It does not generalize at all to the
+diverse holdout, and even REF-low/source-high remains 0/24 there. The remaining
+blocker is therefore the diverse source/target structure/detail gap, not merely
+a trainable sequence-color low-field.
+
 ### Scene-Gated vs q8 Selector Ceiling
 
 The q8 broad result made a source-policy router worth checking before training

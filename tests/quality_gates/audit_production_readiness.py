@@ -1440,6 +1440,65 @@ def check_preview_source_ref_policy_audit() -> Check:
         return Check("preview_detail", "source/REF policy audit", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_source_policy_generalization_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/train_preview_fullimage_band_refiner.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "upresable_source_lowfield_barnskyfit_diverseholdout_w1024_v1"
+        / "preview_fullimage_band_refiner.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "source-policy generalization negative evidence", "FAIL", "missing tracked full-image band tool")
+    if not receipt.exists():
+        return Check("preview_detail", "source-policy generalization negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        summary = {str(row.get("variant")): row for row in payload.get("summary") or []}
+        rows = payload.get("rows") or []
+
+        def role_count(variant: str, role: str) -> tuple[int, int]:
+            selected = [row for row in rows if row.get("variant") == variant and row.get("fit_role") == role]
+            return sum(1 for row in selected if row.get("preview_pass")), len(selected)
+
+        source = summary.get("source_baseline") or {}
+        generated = summary.get("generated_lowfield_residual") or {}
+        ref_low = summary.get("ref_lowfield_residual") or {}
+        generated_fit = role_count("generated_lowfield_residual", "fit")
+        generated_holdout = role_count("generated_lowfield_residual", "holdout")
+        ref_low_holdout = role_count("ref_lowfield_residual", "holdout")
+        ok = (
+            payload.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and int(source.get("pass_count", -1)) == 20
+            and int(source.get("count", 0)) == 84
+            and int(generated.get("pass_count", -1)) == 52
+            and int(generated.get("count", 0)) == 84
+            and int(ref_low.get("pass_count", -1)) == 60
+            and int(ref_low.get("count", 0)) == 84
+            and generated_fit == (52, 60)
+            and generated_holdout == (0, 24)
+            and ref_low_holdout == (0, 24)
+        )
+        return Check(
+            "preview_detail",
+            "source-policy generalization negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"source={int(source.get('pass_count', -1))}/{int(source.get('count', 0))}, "
+                f"generated={int(generated.get('pass_count', -1))}/{int(generated.get('count', 0))}, "
+                f"generated_fit={generated_fit[0]}/{generated_fit[1]}, "
+                f"generated_holdout={generated_holdout[0]}/{generated_holdout[1]}, "
+                f"ref_low={int(ref_low.get('pass_count', -1))}/{int(ref_low.get('count', 0))}, "
+                f"ref_low_holdout={ref_low_holdout[0]}/{ref_low_holdout[1]}, "
+                f"model_ms_median={float((payload.get('timing') or {}).get('model_ms_median', float('nan'))):.2f}, "
+                f"rss={float((payload.get('timing') or {}).get('max_rss_mb', float('nan'))):.1f} MB "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "source-policy generalization negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_rolemap_post_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_rolemap_post_distill.py"
     receipt = (
@@ -2329,6 +2388,7 @@ def main() -> int:
     checks.append(check_preview_fullframe_failure_mode_audit())
     checks.append(check_preview_candidate_evidence_rank())
     checks.append(check_preview_source_ref_policy_audit())
+    checks.append(check_preview_source_policy_generalization_negative_evidence())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
     checks.append(check_preview_route_smoothing_negative_evidence())
     checks.append(check_preview_stitched_context_unet_negative_evidence())
