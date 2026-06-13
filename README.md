@@ -227,6 +227,12 @@ regress to 0/24. On the newer multi-origin `Z8Z_6680` smoke, exact REF
 low-field residual remains 0/3 with worst LPIPS 0.2702 and worst dE2000 5.32.
 This rules out the current "generated low/mid field plus source detail" path as
 the production fix.
+A REF-assisted full-frame alignment oracle then tested whether the source/REF
+render-size mismatch is hiding a crop geometry problem. On the 24 hard-eight
+v32 rows, a +/-12px coarse shift search stays 4/24 with zero failing rows
+recovered; on the multi-origin `Z8Z_6680` smoke, a denser shift/scale search
+stays 0/3 with no metric improvement. Small crop alignment is not the missing
+full-frame fix.
 The first explicit low-frequency spatial branch improves the hard `Z8Z_6680`
 tile receipt to 9/12 isolated passes, but stitched full-frame output remains
 1/3 with remaining Y/dE failures in the lower-left region. A follow-up

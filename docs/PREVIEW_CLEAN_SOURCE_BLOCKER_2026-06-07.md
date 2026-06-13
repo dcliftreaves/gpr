@@ -678,6 +678,18 @@ Additional follow-up diagnostics ruled out several simpler fixes:
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/fullimage_band_refiner_hard8_from_v32_capacity_v1/preview_fullimage_band_refiner.html`
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/fullimage_band_refiner_z8z6680_from_multioffset_smoke_v1/preview_fullimage_band_refiner.json`
   `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260612/fullimage_band_refiner_z8z6680_from_multioffset_smoke_v1/preview_fullimage_band_refiner.html`
+- A REF-assisted crop alignment oracle then tested whether the source/REF
+  render-size mismatch is responsible for the full-frame failure. It rescored
+  manifest crops after shifting and slightly scaling the output crop box. A
+  dense `Z8Z_6680` multi-origin search stays 0/3 with unchanged worst LPIPS
+  0.2713 and worst dE2000 5.54. A broader hard-eight v32 coarse search stays
+  4/24 with zero failing rows recovered; the best worst-row LPIPS only moves
+  from 0.5546 to 0.5486 and worst dE2000 remains 9.07. This rules out small
+  crop/active-area alignment as the missing production fix:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/alignment_oracle_z8z6680_multioffset_v1/preview_fullframe_alignment_oracle.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/alignment_oracle_z8z6680_multioffset_v1/preview_fullframe_alignment_oracle.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/alignment_oracle_hard8_v32_coarse_v1/preview_fullframe_alignment_oracle.json`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/alignment_oracle_hard8_v32_coarse_v1/preview_fullframe_alignment_oracle.html`
 - Overlap-save stitching with the same dense 512/256 geometry and a 128px
   valid margin regresses the dense result to worst LPIPS 0.2895, worst MS-SSIM
   0.8660, worst Y-PSNR 20.65, and worst dE2000 6.10. Discarding tile borders is

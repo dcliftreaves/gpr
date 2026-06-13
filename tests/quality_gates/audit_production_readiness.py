@@ -657,6 +657,69 @@ def check_preview_fullimage_band_negative_evidence() -> Check:
         return Check("preview_detail", "full-image band negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_alignment_oracle_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/probe_preview_fullframe_alignment_oracle.py"
+    hard8_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "alignment_oracle_hard8_v32_coarse_v1"
+        / "preview_fullframe_alignment_oracle.json"
+    )
+    smoke_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "alignment_oracle_z8z6680_multioffset_v1"
+        / "preview_fullframe_alignment_oracle.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "alignment oracle negative evidence", "FAIL", "missing tracked alignment oracle")
+    tool_text = tool.read_text(errors="ignore")
+    if "uses_ref_to_select_alignment" not in tool_text or "production_allowed" not in tool_text:
+        return Check("preview_detail", "alignment oracle negative evidence", "FAIL", "tool missing diagnostic-only contract")
+    missing = [str(path) for path in (hard8_receipt, smoke_receipt) if not path.exists()]
+    if missing:
+        return Check("preview_detail", "alignment oracle negative evidence", "FAIL", "missing " + ", ".join(missing))
+    try:
+        hard8 = json.loads(hard8_receipt.read_text())
+        smoke = json.loads(smoke_receipt.read_text())
+        hard8_summary = hard8.get("summary") or {}
+        smoke_summary = smoke.get("summary") or {}
+        hard8_contract = hard8.get("render_contract") or {}
+        smoke_contract = smoke.get("render_contract") or {}
+        ok = (
+            hard8.get("schema") == "preview_fullframe_alignment_oracle.v1"
+            and smoke.get("schema") == "preview_fullframe_alignment_oracle.v1"
+            and hard8_contract.get("uses_ref_to_select_alignment") is True
+            and hard8_contract.get("production_allowed") is False
+            and smoke_contract.get("uses_ref_to_select_alignment") is True
+            and smoke_contract.get("production_allowed") is False
+            and int(hard8_summary.get("base_count", 0)) == 24
+            and int(hard8_summary.get("base_pass_count", -1)) == 4
+            and int(hard8_summary.get("oracle_pass_count", -1)) == 4
+            and int(hard8_summary.get("rows_improved_pass", -1)) == 0
+            and float(hard8_summary.get("oracle_worst_dE2000_mean", 0.0)) > 9.0
+            and int(smoke_summary.get("base_count", 0)) == 3
+            and int(smoke_summary.get("base_pass_count", -1)) == 0
+            and int(smoke_summary.get("oracle_pass_count", -1)) == 0
+            and int(smoke_summary.get("rows_improved_pass", -1)) == 0
+            and float(smoke_summary.get("oracle_worst_lpips", 0.0)) > 0.25
+        )
+        return Check(
+            "preview_detail",
+            "alignment oracle negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"hard8_base={int(hard8_summary.get('base_pass_count', -1))}/24, "
+                f"hard8_oracle={int(hard8_summary.get('oracle_pass_count', -1))}/24, "
+                f"hard8_improved={int(hard8_summary.get('rows_improved_pass', -1))}, "
+                f"smoke_oracle={int(smoke_summary.get('oracle_pass_count', -1))}/3 "
+                f"receipt={hard8_receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "alignment oracle negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_exact_teacher_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/build_preview_exact_teacher_receipt.py"
     scorer = REPO / "tools/cnn/score_preview_exact_teacher_distill.py"
@@ -1383,6 +1446,7 @@ def main() -> int:
     checks.append(check_preview_multi_origin_tile_negative_evidence())
     checks.append(check_preview_source_frequency_negative_evidence())
     checks.append(check_preview_fullimage_band_negative_evidence())
+    checks.append(check_preview_alignment_oracle_negative_evidence())
     checks.append(check_preview_exact_teacher_distill_negative_evidence())
     checks.extend([
         check_file("preview_holdout", "28-image holdout manifest", "tests/quality_gates/preview_holdout_set.json"),
