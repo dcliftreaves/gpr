@@ -2332,3 +2332,45 @@ rules out simple global source-to-REF color correction as the missing
 production fix. The next candidate needs a different source/teacher
 representation or a model class that can learn spatially varying structure and
 detail placement, not just global color.
+
+### Runtime Source Representation Probe
+
+The next source-side diagnostic compared existing runtime-legal source
+representations before another CNN pass:
+
+- clean UPRESABLE editable DNG rendered by `sips`
+- clean bundle TIFF frame
+- rawpy camera-white-balance renders with and without auto-brightening
+
+REF is used only for scoring. No variant uses REF at render time.
+
+Tool:
+
+```text
+tools/cnn/probe_preview_source_representation.py
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/source_representation_hard8_v1/preview_source_representation_probe.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/source_representation_hard8_v1/preview_source_representation_probe.html
+```
+
+Hard-eight summary:
+
+| source representation | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| editable DNG via `sips`, max width 6144 | 0/24 | 0.6365 | 0.2850 | 16.96 | 10.77 |
+| editable DNG via `sips`, full-resolution | 0/24 | 0.6839 | 0.2922 | 17.00 | 10.70 |
+| clean bundle TIFF frame | 0/24 | 0.8492 | 0.0000 | 6.80 | 36.04 |
+| rawpy camera WB no-auto, max width 6144 | 0/24 | 0.8534 | 0.1216 | 6.61 | 38.17 |
+| rawpy camera WB auto, max width 6144 | 0/24 | 0.9140 | 0.0000 | 6.93 | 44.95 |
+
+The existing clean editable DNG rendered by `sips` remains the least bad
+runtime source representation. The clean bundle frame and rawpy paths are not
+viable replacements for the current PREVIEW source policy. This rules out a
+simple render-source swap as the next production fix; the remaining path needs
+a different learned source/teacher formulation or a spatially varying
+full-image model that can recover the missing low/mid/detail fields from
+source-only runtime inputs.

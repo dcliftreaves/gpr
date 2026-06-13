@@ -781,6 +781,57 @@ def check_preview_fullimage_affine_oracle_negative_evidence() -> Check:
         return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_source_representation_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/probe_preview_source_representation.py"
+    receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "source_representation_hard8_v1"
+        / "preview_source_representation_probe.json"
+    )
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "source representation negative evidence", "FAIL", "missing tracked source representation probe")
+    tool_text = tool.read_text(errors="ignore")
+    if "uses_ref_at_render_time" not in tool_text or "clean_bundle_frame_tiff" not in tool_text:
+        return Check("preview_detail", "source representation negative evidence", "FAIL", "tool missing runtime-source contract or frame variant")
+    if not receipt.exists():
+        return Check("preview_detail", "source representation negative evidence", "FAIL", f"missing {receipt}")
+    try:
+        payload = json.loads(receipt.read_text())
+        variants = {row.get("variant"): row for row in payload.get("summary", [])}
+        sips = variants.get("editable_dng_sips_w6144") or {}
+        frame = variants.get("clean_bundle_frame_tiff_fullres") or {}
+        rawpy = variants.get("editable_dng_rawpy_camera_auto_w6144") or {}
+        contract = payload.get("render_contract") or {}
+        ok = (
+            payload.get("schema") == "preview_source_representation_probe.v1"
+            and contract.get("uses_ref_at_render_time") is False
+            and contract.get("ref_usage") == "scoring only"
+            and int(sips.get("count", 0)) == 24
+            and int(sips.get("pass_count", -1)) == 0
+            and int(frame.get("count", 0)) == 24
+            and int(frame.get("pass_count", -1)) == 0
+            and int(rawpy.get("count", 0)) == 24
+            and int(rawpy.get("pass_count", -1)) == 0
+            and float(sips.get("worst_lpips", 0.0)) > 0.6
+            and float(frame.get("worst_lpips", 0.0)) > float(sips.get("worst_lpips", 1.0))
+            and float(rawpy.get("worst_lpips", 0.0)) > float(sips.get("worst_lpips", 1.0))
+        )
+        return Check(
+            "preview_detail",
+            "source representation negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"sips6144={int(sips.get('pass_count', -1))}/24, "
+                f"frame={int(frame.get('pass_count', -1))}/24, "
+                f"rawpy_auto6144={int(rawpy.get('pass_count', -1))}/24 "
+                f"receipt={receipt}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "source representation negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_alignment_oracle_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_fullframe_alignment_oracle.py"
     hard8_receipt = (
@@ -1795,6 +1846,7 @@ def main() -> int:
     checks.append(check_preview_fullimage_band_negative_evidence())
     checks.append(check_preview_highres_fullimage_band_negative_evidence())
     checks.append(check_preview_fullimage_affine_oracle_negative_evidence())
+    checks.append(check_preview_source_representation_negative_evidence())
     checks.append(check_preview_alignment_oracle_negative_evidence())
     checks.append(check_preview_fullframe_failure_mode_audit())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
