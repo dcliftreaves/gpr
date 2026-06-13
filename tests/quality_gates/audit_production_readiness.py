@@ -1499,6 +1499,74 @@ def check_preview_source_policy_generalization_negative_evidence() -> Check:
         return Check("preview_detail", "source-policy generalization negative evidence", "FAIL", f"bad JSON: {exc}")
 
 
+def check_preview_q8_lowfield_negative_evidence() -> Check:
+    tool = REPO / "tools/cnn/train_preview_fullimage_band_refiner.py"
+    base = ARTIFACT_ROOT / "preview_runtime_policy_20260613"
+    receipts = {
+        "barnskyfit": base / "q8_source_lowfield_barnskyfit_diverseholdout_w1024_v1/preview_fullimage_band_refiner.json",
+        "allfit": base / "q8_source_lowfield_allfit_w1024_v1/preview_fullimage_band_refiner.json",
+        "diversefit": base / "q8_source_lowfield_diversefit_barnskyholdout_w1024_v1/preview_fullimage_band_refiner.json",
+    }
+    if not tool.exists() or not git_tracked(tool):
+        return Check("preview_detail", "q8 source low-field negative evidence", "FAIL", "missing tracked full-image band tool")
+    missing = [str(path) for path in receipts.values() if not path.exists()]
+    if missing:
+        return Check("preview_detail", "q8 source low-field negative evidence", "FAIL", f"missing {missing[0]}")
+
+    def load_summary(path: Path) -> tuple[dict[str, Any], dict[str, dict[str, Any]], list[dict[str, Any]]]:
+        payload = json.loads(path.read_text())
+        return payload, {str(row.get("variant")): row for row in payload.get("summary") or []}, payload.get("rows") or []
+
+    def pass_count(summary: dict[str, dict[str, Any]], variant: str) -> int:
+        return int((summary.get(variant) or {}).get("pass_count", -1))
+
+    def role_count(rows: list[dict[str, Any]], variant: str, role: str) -> tuple[int, int]:
+        selected = [row for row in rows if row.get("variant") == variant and row.get("fit_role") == role]
+        return sum(1 for row in selected if row.get("preview_pass")), len(selected)
+
+    try:
+        barnsky_payload, barnsky, barnsky_rows = load_summary(receipts["barnskyfit"])
+        allfit_payload, allfit, allfit_rows = load_summary(receipts["allfit"])
+        diverse_payload, diverse, diverse_rows = load_summary(receipts["diversefit"])
+        ok = (
+            barnsky_payload.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and allfit_payload.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and diverse_payload.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and pass_count(barnsky, "source_baseline") == 32
+            and pass_count(barnsky, "generated_lowfield_residual") == 50
+            and pass_count(barnsky, "generated_low_plus_source_high_s4") == 51
+            and pass_count(barnsky, "ref_lowfield_residual") == 78
+            and role_count(barnsky_rows, "generated_lowfield_residual", "fit") == (50, 60)
+            and role_count(barnsky_rows, "generated_lowfield_residual", "holdout") == (0, 24)
+            and role_count(barnsky_rows, "ref_lowfield_residual", "holdout") == (18, 24)
+            and pass_count(allfit, "generated_lowfield_residual") == 60
+            and pass_count(allfit, "generated_low_plus_source_high_s4") == 60
+            and pass_count(allfit, "ref_lowfield_residual") == 78
+            and role_count(allfit_rows, "generated_lowfield_residual", "fit") == (60, 84)
+            and pass_count(diverse, "generated_lowfield_residual") == 0
+            and pass_count(diverse, "generated_low_plus_source_high_s4") == 0
+            and pass_count(diverse, "ref_lowfield_residual") == 78
+            and role_count(diverse_rows, "generated_lowfield_residual", "fit") == (0, 24)
+            and role_count(diverse_rows, "generated_lowfield_residual", "holdout") == (0, 60)
+        )
+        return Check(
+            "preview_detail",
+            "q8 source low-field negative evidence",
+            "PASS" if ok else "FAIL",
+            (
+                f"barnskyfit generated={pass_count(barnsky, 'generated_lowfield_residual')}/84 "
+                f"fit={role_count(barnsky_rows, 'generated_lowfield_residual', 'fit')[0]}/60 "
+                f"holdout={role_count(barnsky_rows, 'generated_lowfield_residual', 'holdout')[0]}/24; "
+                f"allfit generated={pass_count(allfit, 'generated_lowfield_residual')}/84; "
+                f"diversefit generated={pass_count(diverse, 'generated_lowfield_residual')}/84; "
+                f"ref_low_oracle={pass_count(allfit, 'ref_lowfield_residual')}/84; "
+                f"receipts={receipts['barnskyfit']}, {receipts['allfit']}, {receipts['diversefit']}"
+            ),
+        )
+    except Exception as exc:
+        return Check("preview_detail", "q8 source low-field negative evidence", "FAIL", f"bad JSON: {exc}")
+
+
 def check_preview_rolemap_post_distill_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_rolemap_post_distill.py"
     receipt = (
@@ -2389,6 +2457,7 @@ def main() -> int:
     checks.append(check_preview_candidate_evidence_rank())
     checks.append(check_preview_source_ref_policy_audit())
     checks.append(check_preview_source_policy_generalization_negative_evidence())
+    checks.append(check_preview_q8_lowfield_negative_evidence())
     checks.append(check_preview_rolemap_post_distill_negative_evidence())
     checks.append(check_preview_route_smoothing_negative_evidence())
     checks.append(check_preview_stitched_context_unet_negative_evidence())

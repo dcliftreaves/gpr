@@ -220,6 +220,15 @@ even the REF-low/source-high oracle stayed **0/24** there. That rules out this
 low-field source-policy correction as production PREVIEW. Dashboard:
 `/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/upresable_source_lowfield_barnskyfit_diverseholdout_w1024_v1/preview_fullimage_band_refiner.html`.
 
+q8 is a better runtime-safe detail source for the diverse rows, but the current
+low-field network still does not productionize it. q8 source baseline is
+**32/84** and the REF-low/q8-detail oracle reaches **78/84**, but generated
+low-field variants reach only **50/84** on Barnsky-fit/diverse-holdout,
+**60/84** when fit on all 28 images, and **0/84** on the diverse-fit reverse
+split. The next PREVIEW candidate needs a stronger scene-conditioned/global
+source-to-target model or different source/teacher representation, not this
+direct low-field head.
+
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched
 runtime tiles. That narrows the remaining work to tile/context-safe routing and

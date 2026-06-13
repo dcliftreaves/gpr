@@ -2810,3 +2810,48 @@ Result:
 | generated low-field residual | hard-five fit smoke | 10/15 | The correction is learnable as a capacity fit. |
 | q8 source baseline | 28-image true-REF holdout | 32/84 | Corrected broad q8 baseline. |
 | generated low-field residual | hard-five held out from 23-image fit set | 25/84 | The current formulation does not generalize and is not production. |
+
+### q8 Source Low-Field Split Diagnostics
+
+The next q8 pass reused the materialized q8 full-frame source receipt and
+tested the same low-field model under three broader split contracts. Runtime
+inputs remain q8 source RGB, normalized coordinates, source global RGB stats,
+and checkpoint weights. REF is supervision/scoring only. These are diagnostics,
+not production registrations.
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_barnskyfit_diverseholdout_w1024_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_barnskyfit_diverseholdout_w1024_v1/preview_fullimage_band_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_allfit_w1024_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_allfit_w1024_v1/preview_fullimage_band_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_diversefit_barnskyholdout_w1024_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_diversefit_barnskyholdout_w1024_v1/preview_fullimage_band_refiner.html
+```
+
+Result:
+
+| split | q8 source baseline | generated low-field residual | generated low plus q8 high, sigma 4 | REF-low/q8-detail oracle | interpretation |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Barnsky fit, diverse holdout | 32/84 | 50/84 | 51/84 | 78/84 | Fits 50/60 Barnsky rows but collapses to 0/24 on diverse holdout. |
+| all 28 fit | 32/84 | 60/84 | 60/84 | 78/84 | Even all-fit cannot approach the REF-low oracle. |
+| diverse fit, Barnsky holdout | 32/84 | 0/84 | 0/84 | 78/84 | The diverse-only direct low-field head does not preserve even q8 baseline quality. |
+
+Split details:
+
+```text
+Barnsky-fit generated_lowfield_residual: fit 50/60, holdout 0/24
+Barnsky-fit REF-low oracle: fit 60/60, holdout 18/24
+All-fit generated_lowfield_residual: fit 60/84
+Diverse-fit generated_lowfield_residual: fit 0/24, holdout 0/60
+```
+
+Interpretation: q8 carries useful detail for the diverse images, because the
+REF-low/q8-detail oracle reaches 78/84. The current direct low-field model is
+not the missing production formulation: it fails the diverse holdout, cannot
+fit the mixed 28-image set to the oracle ceiling, and fails as a diverse-only
+specialist. The next PREVIEW experiment should change model class and
+conditioning, for example a stronger image-conditioned/global source-to-target
+model or a different runtime-safe source/teacher representation, before trying
+to register another low-field variant.
