@@ -225,9 +225,10 @@ low-field network still does not productionize it. q8 source baseline is
 **32/84** and the REF-low/q8-detail oracle reaches **78/84**, but generated
 low-field variants reach only **50/84** on Barnsky-fit/diverse-holdout,
 **60/84** when fit on all 28 images, and **0/84** on the diverse-fit reverse
-split. The next PREVIEW candidate needs a stronger scene-conditioned/global
-source-to-target model or different source/teacher representation, not this
-direct low-field head.
+split. A small residual-U-Net smoke improves the worst color errors but still
+reaches only **56/84**. The next PREVIEW candidate needs a stronger
+scene-conditioned/global source-to-target model or different source/teacher
+representation, not this low-field head family.
 
 The current full-frame/tiled smoke is the active PREVIEW blocker: on
 `Z8Z_6680`, v32 still fails 0/3 scored crops when run on arbitrary stitched

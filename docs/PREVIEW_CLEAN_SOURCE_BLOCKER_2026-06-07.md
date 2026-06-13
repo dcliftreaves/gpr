@@ -2828,6 +2828,8 @@ Artifacts:
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_allfit_w1024_v1/preview_fullimage_band_refiner.html
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_diversefit_barnskyholdout_w1024_v1/preview_fullimage_band_refiner.json
 /Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_diversefit_barnskyholdout_w1024_v1/preview_fullimage_band_refiner.html
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_residual_unet_allfit_w512_smoke_v1/preview_fullimage_band_refiner.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/q8_source_lowfield_residual_unet_allfit_w512_smoke_v1/preview_fullimage_band_refiner.html
 ```
 
 Result:
@@ -2837,6 +2839,7 @@ Result:
 | Barnsky fit, diverse holdout | 32/84 | 50/84 | 51/84 | 78/84 | Fits 50/60 Barnsky rows but collapses to 0/24 on diverse holdout. |
 | all 28 fit | 32/84 | 60/84 | 60/84 | 78/84 | Even all-fit cannot approach the REF-low oracle. |
 | diverse fit, Barnsky holdout | 32/84 | 0/84 | 0/84 | 78/84 | The diverse-only direct low-field head does not preserve even q8 baseline quality. |
+| residual-U-Net all-fit, 512-wide smoke | 32/84 | 56/84 | 53/84 | 78/84 | Smaller U-Net reduces worst dE but does not beat the direct all-fit pass count. |
 
 Split details:
 
@@ -2845,13 +2848,25 @@ Barnsky-fit generated_lowfield_residual: fit 50/60, holdout 0/24
 Barnsky-fit REF-low oracle: fit 60/60, holdout 18/24
 All-fit generated_lowfield_residual: fit 60/84
 Diverse-fit generated_lowfield_residual: fit 0/24, holdout 0/60
+Residual-U-Net smoke generated_lowfield_residual: fit 56/84
+```
+
+Residual-U-Net smoke timing:
+
+```text
+train_ms=33219.22
+train_steps_per_second=2.4082
+model_ms_median=106.81
+max_rss_mb=10607.08
+checkpoint_sha256=832b282b84f29e5d1651ff9066db56b7db974ccdbe6ce1c1d6267b9ac2652acf
 ```
 
 Interpretation: q8 carries useful detail for the diverse images, because the
 REF-low/q8-detail oracle reaches 78/84. The current direct low-field model is
 not the missing production formulation: it fails the diverse holdout, cannot
 fit the mixed 28-image set to the oracle ceiling, and fails as a diverse-only
-specialist. The next PREVIEW experiment should change model class and
-conditioning, for example a stronger image-conditioned/global source-to-target
+specialist. A small residual-U-Net smoke does not close the gap either. The
+next PREVIEW experiment should change model class and conditioning more
+substantially, for example a stronger image-conditioned/global source-to-target
 model or a different runtime-safe source/teacher representation, before trying
 to register another low-field variant.

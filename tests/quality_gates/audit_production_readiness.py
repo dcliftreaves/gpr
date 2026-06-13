@@ -1506,6 +1506,7 @@ def check_preview_q8_lowfield_negative_evidence() -> Check:
         "barnskyfit": base / "q8_source_lowfield_barnskyfit_diverseholdout_w1024_v1/preview_fullimage_band_refiner.json",
         "allfit": base / "q8_source_lowfield_allfit_w1024_v1/preview_fullimage_band_refiner.json",
         "diversefit": base / "q8_source_lowfield_diversefit_barnskyholdout_w1024_v1/preview_fullimage_band_refiner.json",
+        "unet_smoke": base / "q8_source_lowfield_residual_unet_allfit_w512_smoke_v1/preview_fullimage_band_refiner.json",
     }
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "q8 source low-field negative evidence", "FAIL", "missing tracked full-image band tool")
@@ -1528,10 +1529,12 @@ def check_preview_q8_lowfield_negative_evidence() -> Check:
         barnsky_payload, barnsky, barnsky_rows = load_summary(receipts["barnskyfit"])
         allfit_payload, allfit, allfit_rows = load_summary(receipts["allfit"])
         diverse_payload, diverse, diverse_rows = load_summary(receipts["diversefit"])
+        unet_payload, unet, unet_rows = load_summary(receipts["unet_smoke"])
         ok = (
             barnsky_payload.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
             and allfit_payload.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
             and diverse_payload.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
+            and unet_payload.get("schema") == "preview_fullimage_band_refiner_receipt.v1"
             and pass_count(barnsky, "source_baseline") == 32
             and pass_count(barnsky, "generated_lowfield_residual") == 50
             and pass_count(barnsky, "generated_low_plus_source_high_s4") == 51
@@ -1548,6 +1551,12 @@ def check_preview_q8_lowfield_negative_evidence() -> Check:
             and pass_count(diverse, "ref_lowfield_residual") == 78
             and role_count(diverse_rows, "generated_lowfield_residual", "fit") == (0, 24)
             and role_count(diverse_rows, "generated_lowfield_residual", "holdout") == (0, 60)
+            and pass_count(unet, "source_baseline") == 32
+            and pass_count(unet, "generated_lowfield_residual") == 56
+            and pass_count(unet, "generated_low_plus_source_high_s4") == 53
+            and pass_count(unet, "ref_lowfield_residual") == 78
+            and role_count(unet_rows, "generated_lowfield_residual", "fit") == (56, 84)
+            and (unet_payload.get("model") or {}).get("architecture") == "residual_unet"
         )
         return Check(
             "preview_detail",
@@ -1559,8 +1568,9 @@ def check_preview_q8_lowfield_negative_evidence() -> Check:
                 f"holdout={role_count(barnsky_rows, 'generated_lowfield_residual', 'holdout')[0]}/24; "
                 f"allfit generated={pass_count(allfit, 'generated_lowfield_residual')}/84; "
                 f"diversefit generated={pass_count(diverse, 'generated_lowfield_residual')}/84; "
+                f"unet_smoke generated={pass_count(unet, 'generated_lowfield_residual')}/84; "
                 f"ref_low_oracle={pass_count(allfit, 'ref_lowfield_residual')}/84; "
-                f"receipts={receipts['barnskyfit']}, {receipts['allfit']}, {receipts['diversefit']}"
+                f"receipts={receipts['barnskyfit']}, {receipts['allfit']}, {receipts['diversefit']}, {receipts['unet_smoke']}"
             ),
         )
     except Exception as exc:
