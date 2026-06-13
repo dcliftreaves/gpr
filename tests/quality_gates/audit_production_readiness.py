@@ -752,38 +752,66 @@ def check_preview_highres_fullimage_band_negative_evidence() -> Check:
 
 def check_preview_fullimage_affine_oracle_negative_evidence() -> Check:
     tool = REPO / "tools/cnn/probe_preview_fullimage_affine_oracle.py"
+    local_tool = REPO / "tools/cnn/probe_preview_fullimage_local_affine_oracle.py"
     receipt = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260613"
         / "fullimage_affine_oracle_hard8_v1"
         / "preview_fullimage_affine_oracle.json"
     )
+    local_receipt = (
+        ARTIFACT_ROOT
+        / "preview_runtime_policy_20260613"
+        / "fullimage_local_affine_oracle_hard8_v1"
+        / "preview_fullimage_local_affine_oracle.json"
+    )
     if not tool.exists() or not git_tracked(tool):
         return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", "missing tracked affine oracle tool")
+    if not local_tool.exists() or not git_tracked(local_tool):
+        return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", "missing tracked local affine oracle tool")
     tool_text = tool.read_text(errors="ignore")
     if "oracle_uses_ref_to_fit_affine" not in tool_text or "production_allowed" not in tool_text:
         return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", "tool missing diagnostic-only contract")
+    local_tool_text = local_tool.read_text(errors="ignore")
+    if "oracle_uses_ref_to_fit_local_affine" not in local_tool_text or "production_allowed" not in local_tool_text:
+        return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", "local tool missing diagnostic-only contract")
     if not receipt.exists():
         return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", f"missing {receipt}")
+    if not local_receipt.exists():
+        return Check("preview_detail", "full-image affine oracle negative evidence", "FAIL", f"missing {local_receipt}")
     try:
         payload = json.loads(receipt.read_text())
+        local_payload = json.loads(local_receipt.read_text())
         variants = {row.get("variant"): row for row in payload.get("summary", [])}
         affine_4096 = variants.get("affine_field_oracle_w4096") or {}
         affine_6144 = variants.get("affine_field_oracle_w6144") or {}
         source_high = variants.get("affine_field_source_high_s1_w4096") or {}
         contract = payload.get("render_contract") or {}
+        local_variants = {row.get("variant"): row for row in local_payload.get("summary", [])}
+        local_6144 = local_variants.get("local_affine_grid8_w6144") or {}
+        local_4096 = local_variants.get("local_affine_grid8_w4096") or {}
+        local_contract = local_payload.get("render_contract") or {}
         ok = (
             payload.get("schema") == "preview_fullimage_affine_oracle.v1"
+            and local_payload.get("schema") == "preview_fullimage_local_affine_oracle.v1"
             and contract.get("oracle_uses_ref_to_fit_affine") is True
+            and local_contract.get("oracle_uses_ref_to_fit_local_affine") is True
             and contract.get("production_allowed") is False
+            and local_contract.get("production_allowed") is False
             and int(affine_4096.get("count", 0)) == 24
             and int(affine_4096.get("pass_count", -1)) == 0
             and int(affine_6144.get("count", 0)) == 24
             and int(affine_6144.get("pass_count", -1)) == 0
             and int(source_high.get("count", 0)) == 24
             and int(source_high.get("pass_count", -1)) == 0
+            and int(local_4096.get("count", 0)) == 24
+            and int(local_4096.get("pass_count", -1)) == 0
+            and int(local_6144.get("count", 0)) == 24
+            and int(local_6144.get("pass_count", -1)) == 0
             and float(affine_6144.get("worst_lpips", 0.0)) > 0.6
             and float(affine_6144.get("worst_dE2000_mean", 0.0)) > 10.0
+            and float(local_6144.get("worst_lpips", 0.0)) > 0.55
+            and float(local_6144.get("worst_dE2000_mean", 0.0)) > 9.0
         )
         return Check(
             "preview_detail",
@@ -792,8 +820,9 @@ def check_preview_fullimage_affine_oracle_negative_evidence() -> Check:
             (
                 f"affine4096={int(affine_4096.get('pass_count', -1))}/24, "
                 f"affine6144={int(affine_6144.get('pass_count', -1))}/24, "
-                f"affine_source_high={int(source_high.get('pass_count', -1))}/24 "
-                f"receipt={receipt}"
+                f"affine_source_high={int(source_high.get('pass_count', -1))}/24, "
+                f"local6144={int(local_6144.get('pass_count', -1))}/24 "
+                f"receipt={local_receipt}"
             ),
         )
     except Exception as exc:

@@ -401,7 +401,10 @@ objective averaging away the scored crops.
 A per-image full-image RGB affine oracle then fit source fields to REF fields
 at 4096 and 6144 widths. It also stays 0/24, with worst LPIPS above 0.62 and
 worst dE around 10 on the 6144 affine field. That rules out a simple global
-color transform as the missing high-resolution source representation.
+color transform as the missing high-resolution source representation. A
+spatially varying local-affine oracle with 4x4/8x8 grids also stays 0/24, so
+the next production path needs non-affine structure/detail source modeling,
+not just a learned local color field.
 A runtime source-representation probe then compared the clean editable DNG
 through `sips`, the clean bundle TIFF frame, and rawpy camera-WB renders on
 the same hard-eight rows. Every variant stayed 0/24; the existing clean

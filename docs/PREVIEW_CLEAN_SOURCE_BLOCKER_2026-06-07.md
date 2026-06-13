@@ -2361,6 +2361,40 @@ production fix. The next candidate needs a different source/teacher
 representation or a model class that can learn spatially varying structure and
 detail placement, not just global color.
 
+A follow-up local-affine oracle tested the next adjacent hypothesis: maybe the
+missing field is not global color, but spatially varying color. The tool fits
+independent 3x4 RGB affine transforms on 4x4 and 8x8 full-image grids at 4096
+and 6144 widths. These fits also use REF and are not production-allowed.
+
+Tool:
+
+```text
+tools/cnn/probe_preview_fullimage_local_affine_oracle.py
+```
+
+Artifacts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_local_affine_oracle_hard8_v1/preview_fullimage_local_affine_oracle.json
+/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullimage_local_affine_oracle_hard8_v1/preview_fullimage_local_affine_oracle.html
+```
+
+Result:
+
+| variant | pass | worst LPIPS | worst MS-SSIM | worst Y-PSNR | worst dE2000 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| local affine 8x8, max width 6144 | 0/24 | 0.5936 | 0.2916 | 17.32 | 9.26 |
+| local affine 4x4, max width 6144 | 0/24 | 0.5971 | 0.2932 | 17.01 | 9.69 |
+| local affine 8x8, max width 4096 | 0/24 | 0.6059 | 0.3182 | 17.53 | 9.06 |
+| local affine 4x4, max width 4096 | 0/24 | 0.6074 | 0.3203 | 17.21 | 9.50 |
+| local affine 8x8 + source high, max width 6144 | 0/24 | 0.6598 | 0.2701 | 16.88 | 9.81 |
+
+Local affine improves over the global affine oracle slightly, but it still does
+not clear any row and remains far outside the LPIPS/MS/Y/dE gates. This rules
+out a learned spatially varying affine color field as the next production fix.
+The remaining path needs a non-affine source/teacher representation or model
+that can recover structural/detail placement from source-only runtime inputs.
+
 ### Runtime Source Representation Probe
 
 The next source-side diagnostic compared existing runtime-legal source
