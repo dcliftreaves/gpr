@@ -1945,6 +1945,7 @@ def check_preview_q8_threeway_router_union_evidence() -> Check:
 
 def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
     tool = REPO / "tools/cnn/evaluate_preview_q8_threeway_runtime_fullframe.py"
+    readme = REPO / "README.md"
     receipt = (
         ARTIFACT_ROOT
         / "preview_runtime_policy_20260613"
@@ -1958,6 +1959,24 @@ def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
         return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", "tool does not invoke real full-frame child renderers")
     if not receipt.exists():
         return Check("preview_detail", "q8 three-way runtime full-frame evidence", "FAIL", f"missing {receipt}")
+    pipeline_doc = (
+        (REG.get("pipelines") or {})
+        .get("codec=ml2_q3_dec2+cnn=preview_q8_threeway_runtime_fullframe_v1+demosaic=sips_via_gpr_tools", {})
+        .get("$doc", "")
+    )
+    cnn_doc = ((REG.get("cnns") or {}).get("preview_q8_threeway_runtime_fullframe_v1", {}) or {}).get("$doc", "")
+    readme_text = readme.read_text(errors="ignore") if readme.exists() else ""
+    pipeline_doc_l = pipeline_doc.lower()
+    cnn_doc_l = cnn_doc.lower()
+    readme_text_l = readme_text.lower()
+    documentation_ok = (
+        "offline/review" in pipeline_doc_l
+        and "not live/camera-back preview" in pipeline_doc_l
+        and "offline/review" in cnn_doc_l
+        and "not live/camera-back preview" in cnn_doc_l
+        and "offline/review" in readme_text_l
+        and "not a live/camera-back preview path" in readme_text_l
+    )
     try:
         payload = json.loads(receipt.read_text())
         summary = (payload.get("summary") or {}).get("preview_q8_threeway_runtime_fullframe") or {}
@@ -1985,8 +2004,10 @@ def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
             and int(timing.get("image_count", 0)) == 28
             and float(timing.get("runtime_no_ref_wall_ms_avg", 0.0)) > 0.0
             and float(timing.get("runtime_no_ref_fps_avg", 0.0)) > 0.0
+            and float(timing.get("runtime_no_ref_fps_avg", 0.0)) < 1.0
             and float(memory.get("max_rss_mb", 0.0)) > 0.0
             and {"hard", "fallback3", "fallback"}.issubset(set(child_timing))
+            and documentation_ok
         )
         return Check(
             "preview_detail",
@@ -1998,6 +2019,7 @@ def check_preview_q8_threeway_runtime_fullframe_evidence() -> Check:
                 f"runtime={float(timing.get('runtime_no_ref_wall_ms_avg', 0.0)) / 1000.0:.2f}s "
                 f"fps={float(timing.get('runtime_no_ref_fps_avg', 0.0)):.3f} "
                 f"rss={float(memory.get('max_rss_mb', 0.0)):.1f}MB "
+                f"offline_live_doc={'yes' if documentation_ok else 'no'} "
                 f"receipt={receipt}"
             ),
         )

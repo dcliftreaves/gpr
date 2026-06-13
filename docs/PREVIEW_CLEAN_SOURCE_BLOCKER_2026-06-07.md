@@ -3135,6 +3135,9 @@ Selected families:
 | v32 fallback | 17 | 51 |
 
 The integrated receipt keeps the solved no-REF PREVIEW quality result while
-adding the missing route/render timing and memory evidence. It is still not a
-registered production pipeline until the same route is packaged behind a stable
-runtime entrypoint and target-platform timing is refreshed.
+adding the missing route/render timing and memory evidence. The registry now
+tracks this as an external-receipt offline/review PREVIEW candidate, not a
+live/camera-back PREVIEW path: the measured Mac/MPS route is 13.65 s/image
+(0.073 fps). Remaining production work is stable renderer packaging,
+target-platform timing refresh, and a separate fast live-preview strategy if
+camera-back display is required.
