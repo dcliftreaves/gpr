@@ -54,6 +54,7 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `hh_scale_sweep_2k_l2mask4_28f.json` | 28 images / 84 crops | HH amplitude sweep diagnostic |
 | `raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_current/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | 2K L2 HH signal analysis and lower-right edge-margin probe |
 | `raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | 4K signal analysis and lower-right edge-margin probe |
+| `raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_domain_lower_right_probe.json` | 27 failing lower-right rows | 4K raw-domain probe for rendered-proxy LPIPS failures |
 
 ## Current Results
 
@@ -65,15 +66,24 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 - Pi 5 120-frame decode-side timing: 159.6 ms median, 6.3 fps median.
 - 100-frame raw quality against source-derived half-scale Bayer: 50.25 dB mean
   PSNR, 49.78 dB median PSNR, 10.41 LSB mean MAE.
+- The matched main-corpus subset excludes the known fallback-source `Z8Z_0001`
+  row and passes as an editable raw target: 99 rows, 48.45 dB minimum PSNR,
+  50.39 dB mean PSNR, 10.25 LSB max MAE, and 74 LSB max p99 absolute error.
 - 28-image / 84-crop rendered proxy dashboard: 55/84 crops pass PREVIEW proxy
   thresholds, worst LPIPS 0.3327, worst MS-SSIM 0.8772, worst Y-PSNR 30.82,
   worst dE2000 2.11. Failures are 27 LPIPS-only rows plus two LPIPS+MS-SSIM
   rows, concentrated in lower-right texture/detail crops.
-- Current decision: production candidate for Mac/offline raw output with a
-  documented rendered-proxy blocker. It is not a 24 fps Pi decode-side path
-  until `gpr_decode_fused` is accelerated or the live path avoids decode, and
-  it should not be promoted to a rendered/perceptual production path until the
-  LPIPS texture misses are closed or explicitly scoped out.
+- Raw/proxy calibration receipt: the 27 failing lower-right rendered-proxy rows
+  have 70.58 dB mean raw PSNR and 3.29 LSB mean raw MAE at the same edge crop.
+  That means the editable raw target is numerically strong, while the PREVIEW
+  proxy LPIPS threshold is over-sensitive to tiny Bayer-domain differences in
+  this high-frequency region.
+- Current decision: production candidate for Mac/offline editable raw output
+  with a rendered-proxy diagnostic caveat. It is not a 24 fps Pi decode-side
+  path until `gpr_decode_fused` is accelerated or the live path avoids decode,
+  and it should not be promoted to a rendered PREVIEW/perceptual production
+  path unless the proxy LPIPS issue is closed or a raw-target-specific visual
+  gate is formally adopted.
 
 ### 2K raw 0.5x
 
@@ -157,13 +167,12 @@ until the exact source DNG/GPR pairing is verified.
    for deterministic fine-grain synthesis, and 80/84 for the best HH scale
    sweep. The useful signal is actual L2 HH and it now fits the Pi 5 frame
    budget; the remaining blocker is four near-threshold lower-right edge rows.
-3. Close or scope the 4K rendered-proxy blocker. The current no-CNN 4K path has
-   raw PSNR evidence but passes only 55/84 rendered proxy rows, dominated by
-   LPIPS texture misses. Signal analysis shows this is broader than the 2K
-   edge-only issue: the lower-right crop passes only 1/28, mean correlation is
-   0.9610, and margin probes remain failing through 256 px inward. Treat the 4K
-   blocker as source-derived texture/detail reconstruction, not a metric edge
-   artifact.
+3. Keep 4K classified as Mac/offline editable raw, not a live/rendered PREVIEW
+   path. The no-CNN 4K path has strong matched-source raw evidence, but it
+   passes only 55/84 rendered proxy rows under PREVIEW LPIPS. Signal analysis
+   shows lower-right proxy LPIPS remains high even when raw-domain error is
+   tiny, so the remaining work is gate calibration or a raw-target-specific
+   visual proxy, not basic Bayer decodability or bit-depth preservation.
 4. Keep 8K as an offline/review target until a faster 2x raw reconstruction
    exists and clears both quality and timing gates.
 

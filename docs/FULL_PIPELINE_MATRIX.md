@@ -88,7 +88,7 @@ See `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md` for receipts.
 |---|---:|---|---:|
 | `2k_raw_0p5x_fast` | 2070 x 1380 | direct half-res decode; drops L2 highpass | Pi fast mode: 26.6 ms median, 27.7 ms p95, 37.59 fps median |
 | `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode; restores selective L2 HH | L2 HH quality mode: 33.5 ms median, 37.1 ms p95, 29.85 fps median |
-| `4k_raw_1x` | 4140 x 2760 | direct decoded Bayer | Mac: 22.9 ms median, 43.7 fps median; rendered proxy: 55/84 |
+| `4k_raw_1x` | 4140 x 2760 | direct decoded Bayer | Mac: 22.9 ms median, 43.7 fps median; matched-source raw quality passes; rendered proxy: 55/84 diagnostic |
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | 376.4 ms median, 2.7 fps median |
 
 Pi 5 decode-side timing receipt: `pi5_120f/raw_resolution_targets_pi5_120f.json`.
@@ -106,5 +106,7 @@ now clears the Pi 5 24 fps timing budget. It also
 remains a candidate, not a full proxy pass, because four LPIPS rows are still
 just above threshold.
 4K rendered proxy receipt: `visual_4k_28f/raw_resolution_targets_visual_dashboard.html`.
-It passes 55/84 crop rows; failures are LPIPS-dominated texture/detail misses
-with Y-PSNR and dE2000 still passing.
+It passes 55/84 crop rows under PREVIEW proxy thresholds; failures are
+LPIPS-dominated and remain diagnostic for rendered preview scoring, not the
+editable raw contract. Matched main-corpus raw quality passes at 99/99 rows
+with 48.45 dB minimum PSNR, 50.39 dB mean PSNR, and 10.25 LSB max MAE.

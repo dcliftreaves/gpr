@@ -2818,6 +2818,17 @@ def target_metric_summary(payload: dict, target: str, key: str) -> dict:
     return value if isinstance(value, dict) else {}
 
 
+def stats(values: list[float]) -> dict[str, float | int]:
+    if not values:
+        return {"n": 0, "mean": 0.0, "min": 0.0, "max": 0.0}
+    return {
+        "n": len(values),
+        "mean": sum(values) / len(values),
+        "min": min(values),
+        "max": max(values),
+    }
+
+
 def pi_receipt_metadata_ok(payload: dict, target: str, policy: str) -> bool:
     memory = payload.get("memory") or {}
     return (
@@ -2839,8 +2850,15 @@ def check_raw_resolution_receipts() -> list[Check]:
     mask4_pi_path = base14_alias / "pi5_2k_l2hh_alias_120f" / "raw_resolution_targets_pi5_120f.json"
     visual2k_path = base14 / "visual_2k_l2mask4_28f" / "raw_resolution_targets_visual_dashboard.json"
     visual4k_path = base14 / "visual_4k_28f" / "raw_resolution_targets_visual_dashboard.json"
+    quality100_path = base13 / "quality_2k4k_100f" / "raw_resolution_targets_quality.json"
     quality_path = base13 / "quality_2k4k8k_3f" / "raw_resolution_targets_quality.json"
     bench8k_path = base13 / "smoke_2k4k8k_3f" / "raw_resolution_targets_bench.json"
+    raw_probe4k_path = (
+        ARTIFACT_ROOT
+        / "raw_resolution_targets_20260614_analysis"
+        / "visual_4k_28f_current"
+        / "raw_domain_lower_right_probe.json"
+    )
 
     fast_pi, err = read_json_receipt(fast_pi_path)
     if err:
@@ -2916,7 +2934,7 @@ def check_raw_resolution_receipts() -> list[Check]:
 
     visual4k, err = read_json_receipt(visual4k_path)
     if err:
-        checks.append(Check("raw_targets", "4K rendered proxy blocker receipt", "FAIL", err))
+        checks.append(Check("raw_targets", "4K rendered proxy diagnostic receipt", "FAIL", err))
     else:
         summary = (visual4k or {}).get("summary") or {}
         pass_count = int(summary.get("pass_count", -1))
@@ -2934,10 +2952,64 @@ def check_raw_resolution_receipts() -> list[Check]:
         )
         checks.append(Check(
             "raw_targets",
-            "4K rendered proxy blocker receipt",
+            "4K rendered proxy diagnostic receipt",
             "PASS" if ok else "FAIL",
             f"{pass_count}/{count} worst_lpips={worst_lpips:.4f} worst_y={worst_y:.2f} "
             f"worst_dE={worst_de:.2f} receipt={visual4k_path}",
+        ))
+
+    quality100, err = read_json_receipt(quality100_path)
+    if err:
+        checks.append(Check("raw_targets", "4K main-corpus raw quality receipt", "FAIL", err))
+    else:
+        rows = [
+            row
+            for row in (quality100 or {}).get("rows", [])
+            if "/barnsky_full_dngs/" in str(row.get("source_dng", ""))
+            and "4k_raw_1x" in (row.get("targets") or {})
+        ]
+        psnr = stats([float(row["targets"]["4k_raw_1x"].get("psnr_db", 0.0)) for row in rows])
+        mae = stats([float(row["targets"]["4k_raw_1x"].get("mae_lsb", 999.0)) for row in rows])
+        p99 = stats([float(row["targets"]["4k_raw_1x"].get("p99_abs_lsb", 999.0)) for row in rows])
+        ok = (
+            psnr["n"] >= 99
+            and psnr["min"] >= 48.0
+            and psnr["mean"] >= 50.0
+            and mae["max"] <= 11.0
+            and p99["max"] <= 80.0
+        )
+        checks.append(Check(
+            "raw_targets",
+            "4K main-corpus raw quality receipt",
+            "PASS" if ok else "FAIL",
+            f"n={psnr['n']} psnr_min={psnr['min']:.2f} psnr_mean={psnr['mean']:.2f} "
+            f"mae_max={mae['max']:.2f} p99_max={p99['max']:.1f} receipt={quality100_path}",
+        ))
+
+    raw_probe4k, err = read_json_receipt(raw_probe4k_path)
+    if err:
+        checks.append(Check("raw_targets", "4K raw/proxy calibration receipt", "FAIL", err))
+    else:
+        margin0 = []
+        for row in (raw_probe4k or {}).get("rows", []):
+            for margin in row.get("margins", []):
+                if int(margin.get("margin_px", -1)) == 0:
+                    margin0.append(margin.get("raw_metrics") or {})
+        psnr = stats([float(row.get("psnr_db", 0.0)) for row in margin0])
+        mae = stats([float(row.get("mae_lsb", 999.0)) for row in margin0])
+        ok = (
+            (raw_probe4k or {}).get("schema") == "raw_resolution_raw_domain_failure_probe.v1"
+            and (raw_probe4k or {}).get("target") == "4k_raw_1x"
+            and psnr["n"] >= 20
+            and psnr["mean"] >= 65.0
+            and mae["mean"] <= 4.0
+        )
+        checks.append(Check(
+            "raw_targets",
+            "4K raw/proxy calibration receipt",
+            "PASS" if ok else "FAIL",
+            f"lower_right_fail_rows={psnr['n']} raw_psnr_mean={psnr['mean']:.2f} "
+            f"raw_mae_mean={mae['mean']:.2f} receipt={raw_probe4k_path}",
         ))
 
     quality, err = read_json_receipt(quality_path)
