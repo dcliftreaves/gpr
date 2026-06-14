@@ -304,6 +304,20 @@ typedef struct {
     int bw, bh;
 } FUSED_BAND_TASK;
 
+typedef struct {
+    const uint8_t *enc;
+    const uint32_t *band_sizes;
+    const size_t *band_offsets;
+    PIXEL **bands;
+    const int *slot_w;
+    const int *slot_h;
+    int n_slots;
+    int ch;
+    int half_res;
+    int l2_hp_mask;
+    int rc;
+} FUSED_LEVEL2_BAND_TASK;
+
 /* HP-synth per-channel task. Hoisted to file scope (was a GCC nested
    function inside decode_fused_single_level_ll — clang doesn't support
    the nested-fn extension, so the file failed to build on macOS). */
@@ -367,6 +381,34 @@ static void *fused_band_decode_runner(void *arg) {
             if (drc != 0) memset(t->out[s], 0, (size_t)t->bw * t->bh * sizeof(PIXEL));
         }
         off += sz;
+    }
+    return NULL;
+}
+
+static void *fused_level2_band_decode_runner(void *arg) {
+    FUSED_LEVEL2_BAND_TASK *t = (FUSED_LEVEL2_BAND_TASK *)arg;
+    int base = t->ch * t->n_slots;
+    for (int s = 0; s < t->n_slots; s++) {
+        if (t->half_res && (s <= 2 || (s >= 3 && s <= 5 && !(t->l2_hp_mask & (1 << (s - 3)))))) {
+            continue;
+        }
+        PIXEL *out = t->bands[s];
+        if (!out) {
+            t->rc = -11;
+            return NULL;
+        }
+        uint32_t sz = t->band_sizes[base + s];
+        if (sz < 64) {
+            memset(out, 0, (size_t)t->slot_w[s] * t->slot_h[s] * sizeof(PIXEL));
+            continue;
+        }
+        int drc = jans_decode_band_x4(t->enc + t->band_offsets[base + s], sz,
+                                       out, t->slot_w[s], t->slot_h[s],
+                                       t->slot_w[s] * (int)sizeof(PIXEL));
+        if (drc != 0) {
+            t->rc = -12;
+            return NULL;
+        }
     }
     return NULL;
 }
@@ -866,24 +908,65 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
     int band_idx = 0;
     int rc = 0;
     double dt_band0 = _decode_ms();
-    for (int ch = 0; ch < 4 && rc == 0; ch++) {
-        for (int s = 0; s < n_slots && rc == 0; s++) {
-            int bw = slot_w[s], bh = slot_h[s];
-            uint32_t sz = band_sizes[band_idx];
-            if (off + sz > enc_size) { rc = -10; break; }
-            if (half_res && (s <= 2 || (s >= 3 && s <= 5 && !(l2_hp_mask & (1 << (s - 3)))))) {
+    if (half_res && levels == 2) {
+        size_t band_offsets[4 * 10];
+        for (int ch = 0; ch < 4 && rc == 0; ch++) {
+            for (int s = 0; s < n_slots && rc == 0; s++) {
+                int bw = slot_w[s], bh = slot_h[s];
+                uint32_t sz = band_sizes[band_idx];
+                if (off + sz > enc_size) { rc = -10; break; }
+                band_offsets[band_idx] = off;
+                if (!(s <= 2 || (s >= 3 && s <= 5 && !(l2_hp_mask & (1 << (s - 3)))))) {
+                    bands[ch][s] = (PIXEL *)malloc((size_t)bw * bh * sizeof(PIXEL));
+                    if (!bands[ch][s]) { rc = -11; break; }
+                }
                 off += sz;
                 band_idx++;
-                continue;
             }
-            bands[ch][s] = (PIXEL *)malloc((size_t)bw * bh * sizeof(PIXEL));
-            if (!bands[ch][s]) { rc = -11; break; }
-            int drc = jans_decode_band_x4(enc + off, sz,
-                                           bands[ch][s], bw, bh,
-                                           bw * (int)sizeof(PIXEL));
-            if (drc != 0) { rc = -12; break; }
-            off += sz;
-            band_idx++;
+        }
+        if (rc == 0) {
+            FUSED_LEVEL2_BAND_TASK tasks[4];
+            pthread_t threads[4];
+            int created[4] = {0};
+            for (int ch = 0; ch < 4; ch++) {
+                tasks[ch].enc = enc;
+                tasks[ch].band_sizes = band_sizes;
+                tasks[ch].band_offsets = band_offsets;
+                tasks[ch].bands = bands[ch];
+                tasks[ch].slot_w = slot_w;
+                tasks[ch].slot_h = slot_h;
+                tasks[ch].n_slots = n_slots;
+                tasks[ch].ch = ch;
+                tasks[ch].half_res = half_res;
+                tasks[ch].l2_hp_mask = l2_hp_mask;
+                tasks[ch].rc = 0;
+            }
+            for (int ch = 0; ch < 4; ch++) {
+                created[ch] = (pthread_create(&threads[ch], NULL,
+                                               fused_level2_band_decode_runner,
+                                               &tasks[ch]) == 0);
+                if (!created[ch]) fused_level2_band_decode_runner(&tasks[ch]);
+            }
+            for (int ch = 0; ch < 4; ch++) {
+                if (created[ch]) pthread_join(threads[ch], NULL);
+                if (tasks[ch].rc != 0 && rc == 0) rc = tasks[ch].rc;
+            }
+        }
+    } else {
+        for (int ch = 0; ch < 4 && rc == 0; ch++) {
+            for (int s = 0; s < n_slots && rc == 0; s++) {
+                int bw = slot_w[s], bh = slot_h[s];
+                uint32_t sz = band_sizes[band_idx];
+                if (off + sz > enc_size) { rc = -10; break; }
+                bands[ch][s] = (PIXEL *)malloc((size_t)bw * bh * sizeof(PIXEL));
+                if (!bands[ch][s]) { rc = -11; break; }
+                int drc = jans_decode_band_x4(enc + off, sz,
+                                               bands[ch][s], bw, bh,
+                                               bw * (int)sizeof(PIXEL));
+                if (drc != 0) { rc = -12; break; }
+                off += sz;
+                band_idx++;
+            }
         }
     }
     if (dbg_timing) fprintf(stderr, "  decode band_decode: %.1f ms\n", _decode_ms() - dt_band0);

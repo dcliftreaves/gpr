@@ -75,10 +75,12 @@ int main(int argc, char **argv) {
         setenv("GPR_DECODE_HALFRES_DROP_L2_HP", "1", 1);
         unsetenv("GPR_DECODE_HALFRES_L2_MASK");
         setenv("GPR_DECODE_HALFRES_STREAM", "1", 1);
+        setenv("GPR_DECODE_FUSED_STREAM_STRIPS", "2", 1);
     } else if (target_2k_l2hh) {
         unsetenv("GPR_DECODE_HALFRES_DROP_L2_HP");
         setenv("GPR_DECODE_HALFRES_L2_MASK", "4", 1);
         setenv("GPR_DECODE_HALFRES_STREAM", "1", 1);
+        setenv("GPR_DECODE_FUSED_STREAM_STRIPS", "2", 1);
     }
     int sw = atoi(argv[2]), sh = atoi(argv[3]);
     FILE *f = fopen(argv[1], "rb"); if (!f) { perror("open in"); return 1; }
