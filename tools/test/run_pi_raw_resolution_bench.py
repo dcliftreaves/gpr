@@ -25,6 +25,11 @@ REPO = Path(__file__).resolve().parents[2]
 DECODE_RE = re.compile(r"DECODE: (\d+)x(\d+) in ([0-9.]+) ms .* in (\d+) bytes")
 TARGET_RE = re.compile(r"TARGET: ([^ ]+) (\d+)x(\d+) in ([0-9.]+) ms")
 TARGET_2K_CHOICES = ("2k_raw_0p5x", "2k_raw_0p5x_fast", "2k_raw_0p5x_l2hh")
+TARGET_2K_POLICY = {
+    "2k_raw_0p5x": "compatibility/env-driven",
+    "2k_raw_0p5x_fast": "named target: drop L2 highpass",
+    "2k_raw_0p5x_l2hh": "named target: restore selective L2 HH",
+}
 
 
 def percentile(sorted_values: list[float], frac: float) -> float:
@@ -167,6 +172,7 @@ def main() -> int:
         "frame_dir": str(args.frame_dir),
         "frame_count": len(rows),
         "target_2k": args.target_2k,
+        "target_2k_policy": TARGET_2K_POLICY[args.target_2k],
         "git_commit": git_commit(),
         "cli": str(args.cli),
         "cli_sha256": file_sha256(args.cli),

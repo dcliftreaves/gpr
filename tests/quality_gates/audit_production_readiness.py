@@ -2818,13 +2818,25 @@ def target_metric_summary(payload: dict, target: str, key: str) -> dict:
     return value if isinstance(value, dict) else {}
 
 
+def pi_receipt_metadata_ok(payload: dict, target: str, policy: str) -> bool:
+    memory = payload.get("memory") or {}
+    return (
+        payload.get("target_2k") == target
+        and payload.get("target_2k_policy") == policy
+        and bool(payload.get("git_commit"))
+        and bool(payload.get("cli_sha256"))
+        and int(memory.get("children_maxrss_kb", 0)) > 0
+    )
+
+
 def check_raw_resolution_receipts() -> list[Check]:
     base13 = ARTIFACT_ROOT / "raw_resolution_targets_20260613"
     base14 = ARTIFACT_ROOT / "raw_resolution_targets_20260614"
+    base14_alias = ARTIFACT_ROOT / "raw_resolution_targets_20260614_alias_v2"
     checks: list[Check] = []
 
-    fast_pi_path = base14 / "pi5_l2drop_stream_v2_120f" / "raw_resolution_targets_pi5_120f.json"
-    mask4_pi_path = base14 / "pi5_l2mask4_stream_v3_120f" / "raw_resolution_targets_pi5_120f.json"
+    fast_pi_path = base14_alias / "pi5_2k_fast_alias_120f" / "raw_resolution_targets_pi5_120f.json"
+    mask4_pi_path = base14_alias / "pi5_2k_l2hh_alias_120f" / "raw_resolution_targets_pi5_120f.json"
     visual2k_path = base14 / "visual_2k_l2mask4_28f" / "raw_resolution_targets_visual_dashboard.json"
     visual4k_path = base14 / "visual_4k_28f" / "raw_resolution_targets_visual_dashboard.json"
     quality_path = base13 / "quality_2k4k8k_3f" / "raw_resolution_targets_quality.json"
@@ -2834,42 +2846,50 @@ def check_raw_resolution_receipts() -> list[Check]:
     if err:
         checks.append(Check("raw_targets", "2K fast Pi timing receipt", "FAIL", err))
     else:
-        timing = target_timing(fast_pi or {}, "2k_raw_0p5x")
+        target = "2k_raw_0p5x_fast"
+        timing = target_timing(fast_pi or {}, target)
         fps = float(timing.get("fps_median", 0.0))
         ms = float(timing.get("median_ms", 999.0))
+        p95 = float(timing.get("p95_ms", 999.0))
         mode = (fast_pi or {}).get("decode_mode") or {}
         ok = (
             fps >= 24.0
             and ms < 41.7
-            and bool(mode.get("halfres_drop_l2_hp"))
+            and p95 < 41.7
             and bool(mode.get("halfres_stream"))
+            and pi_receipt_metadata_ok(fast_pi or {}, target, "named target: drop L2 highpass")
         )
         checks.append(Check(
             "raw_targets",
             "2K fast Pi timing receipt",
             "PASS" if ok else "FAIL",
-            f"fps_median={fps:.2f} median_ms={ms:.1f} mode={mode} receipt={fast_pi_path}",
+            f"fps_median={fps:.2f} median_ms={ms:.1f} p95_ms={p95:.1f} "
+            f"mode={mode} commit={(fast_pi or {}).get('git_commit', '')[:8]} receipt={fast_pi_path}",
         ))
 
     mask4_pi, err = read_json_receipt(mask4_pi_path)
     if err:
-        checks.append(Check("raw_targets", "2K L2 HH Pi timing receipt", "FAIL", err))
+        checks.append(Check("raw_targets", "2K L2 HH Pi median-live timing receipt", "FAIL", err))
     else:
-        timing = target_timing(mask4_pi or {}, "2k_raw_0p5x")
+        target = "2k_raw_0p5x_l2hh"
+        timing = target_timing(mask4_pi or {}, target)
         fps = float(timing.get("fps_median", 0.0))
         ms = float(timing.get("median_ms", 999.0))
+        p95 = float(timing.get("p95_ms", 999.0))
         mode = (mask4_pi or {}).get("decode_mode") or {}
         ok = (
             fps >= 24.0
             and ms < 41.7
-            and mode.get("halfres_l2_mask") == "4"
             and bool(mode.get("halfres_stream"))
+            and pi_receipt_metadata_ok(mask4_pi or {}, target, "named target: restore selective L2 HH")
         )
         checks.append(Check(
             "raw_targets",
-            "2K L2 HH Pi timing receipt",
+            "2K L2 HH Pi median-live timing receipt",
             "PASS" if ok else "FAIL",
-            f"fps_median={fps:.2f} median_ms={ms:.1f} mode={mode} receipt={mask4_pi_path}",
+            f"fps_median={fps:.2f} median_ms={ms:.1f} p95_ms={p95:.1f} "
+            f"p95_live={'yes' if p95 < 41.7 else 'no'} mode={mode} "
+            f"commit={(mask4_pi or {}).get('git_commit', '')[:8]} receipt={mask4_pi_path}",
         ))
 
     visual2k, err = read_json_receipt(visual2k_path)
