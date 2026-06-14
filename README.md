@@ -139,6 +139,7 @@ python3 tools/verify_production_artifacts.py
 python3 tests/quality_gates/audit_production_readiness.py --strict
 python3 tools/test/check_repo_artifact_hygiene.py
 python3 tools/test/check_sensitive_content.py
+python3 tools/test/check_sensitive_content.py --history
 ```
 
 ## Stills
@@ -226,6 +227,7 @@ export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
 
 python3 tools/test/test_capabilities.py
 python3 tools/test/check_sensitive_content.py
+python3 tools/test/check_sensitive_content.py --history
 python3 tools/test/check_repo_artifact_hygiene.py
 python3 tools/test/check_release_evidence_manifest.py
 python3 tools/verify_production_artifacts.py

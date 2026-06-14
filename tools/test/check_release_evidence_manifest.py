@@ -936,6 +936,7 @@ def main() -> int:
     release_check_text = "\n".join(str(item) for item in release_checks)
     for required in (
         "tools/test/check_sensitive_content.py",
+        "tools/test/check_sensitive_content.py --history",
         "tools/test/check_repo_artifact_hygiene.py",
         "tools/test/check_release_evidence_manifest.py",
         "tools/verify_production_artifacts.py",
