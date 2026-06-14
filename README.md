@@ -96,7 +96,7 @@ targets, platform receipts, and dashboard evidence.
 | `preview_candidate_evidence_rank` | diagnostic | candidate ranking separates production-shaped evidence from crop-only and oracle rows |
 | `preview_failure_mode_audit` | experimental-blocker | live/full-image detail-placement failures are documented rather than hidden by crop-only success |
 | `preview_source_ref_policy_audit` | diagnostic | runtime source policy is scored against resolved true REF rows |
-| `raw_2k_fast_decode` | current | fastest 2K Pi raw mode clears 24 fps, has raw-domain quality receipt, and reaches 56/84 rendered proxy rows |
+| `raw_2k_fast_visual_proxy` | diagnostic | fastest 2K Pi raw mode clears 24 fps and has a raw-domain quality receipt, but reaches only 56/84 rendered proxy rows |
 | `raw_2k_l2hh_visual_proxy` | current | 2K selective-L2 HH raw target reaches 80/84 rendered proxy rows while clearing Pi timing |
 | `raw_4k_visual_proxy` | diagnostic | 4K raw target is strong as editable raw but rendered-proxy LPIPS remains a diagnostic issue |
 | `preview_review_media` | current | ProRes review files exist for preview/timelapse inspection |

@@ -241,7 +241,7 @@
     {
       "id": "2k_raw_0p5x_fast",
       "classification": "live-capable",
-      "classification_detail": "Fast Pi 5 live raw target; visual proxy is diagnostic and not a full PREVIEW quality pass.",
+      "classification_detail": "Fast Pi 5 live raw target; visual proxy is diagnostic and not a full PREVIEW-ready rendered quality pass.",
       "dimensions": "2070x1380",
       "pi5_fps_median": 37.59,
       "pi5_p95_ms": 27.7,
@@ -266,7 +266,7 @@
     {
       "id": "2k_raw_0p5x_l2hh",
       "classification": "live-capable",
-      "classification_detail": "Best current Pi 5 live-quality raw target; clears 24 fps timing and passes matched-source raw quality, but remains experimental for rendered live PREVIEW until four LPIPS-only proxy misses are closed.",
+      "classification_detail": "Best current Pi 5 live-quality raw target; clears 24 fps timing and passes matched-source raw quality, but remains experimental and not a full PREVIEW-ready rendered path until four LPIPS-only proxy misses are closed.",
       "dimensions": "2070x1380",
       "pi5_fps_median": 29.85,
       "pi5_p95_ms": 37.1,
@@ -696,6 +696,29 @@
         "worst_ms_ssim": 0.2922,
         "worst_y_psnr": 14.04,
         "worst_dE2000_mean": 18.89
+      }
+    },
+    {
+      "id": "raw_2k_fast_visual_proxy",
+      "family": "raw_targets",
+      "status": "diagnostic",
+      "purpose": "Fast 2K raw visual proxy dashboard documenting that the fastest Pi 5 live-capable raw mode is not a full rendered PREVIEW pass.",
+      "dashboard": "artifacts/raw_resolution_targets_20260613/visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.html",
+      "docs": [
+        "README.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "receipts": [
+        "artifacts/raw_resolution_targets_20260613/visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.json"
+      ],
+      "metrics": {
+        "rows": 84,
+        "passing_rows": 56,
+        "pass_rate": 0.6667,
+        "worst_lpips": 0.1628,
+        "worst_ms_ssim": 0.9768,
+        "worst_y_psnr": 37.31,
+        "worst_dE2000_mean": 1.46
       }
     },
     {

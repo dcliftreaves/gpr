@@ -77,6 +77,7 @@ REQUIRED_DASHBOARD_IDS = {
     "preview_candidate_evidence_rank",
     "preview_failure_mode_audit",
     "preview_source_ref_policy_audit",
+    "raw_2k_fast_visual_proxy",
     "raw_2k_l2hh_visual_proxy",
     "raw_4k_visual_proxy",
     "preview_review_media",
@@ -334,6 +335,22 @@ def require_raw_target_contract(target: dict[str, Any], failures: list[str]) -> 
         else:
             if fps < 24.0 or p95_ms >= 41.7:
                 failures.append(f"{target_id}: live-capable raw target must clear 24 fps / 41.7 ms p95 on Pi 5")
+
+        try:
+            passing = int(target.get("proxy_rows_passing", 0))
+            total = int(target.get("proxy_rows_total", 0))
+        except (TypeError, ValueError):
+            passing = total = 0
+        if total > 0 and passing < total:
+            detail = str(target.get("classification_detail", "")).lower()
+            if "preview" not in detail or not (
+                "not a full preview" in detail
+                or "not a rendered preview" in detail
+                or "remains experimental" in detail
+            ):
+                failures.append(
+                    f"{target_id}: live raw target with proxy misses must say it is not rendered PREVIEW-ready"
+                )
 
     if classification == "preview-capable":
         try:
