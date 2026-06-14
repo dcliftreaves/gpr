@@ -100,7 +100,8 @@ Raw output targets from the 24 fps capture stream:
 
 | target | dimensions | method | current classification |
 |---|---:|---|---|
-| `2k_raw_0p5x` | 2070 x 1380 | direct half-res decode; fast mode can drop L2 highpass or restore selective L2 HH | Pi live-capable candidate at 34.13 fps median fast mode; L2 HH quality mode reaches 80/84 and 25.84 fps |
+| `2k_raw_0p5x_fast` | 2070 x 1380 | direct half-res decode with L2 highpass dropped | fastest Pi live mode at 34.13 fps median; 56/84 rendered proxy rows |
+| `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode with selective L2 HH restored | live-quality candidate at 25.84 fps median; 80/84 rendered proxy rows |
 | `4k_raw_1x` | 4140 x 2760 | decoded Bayer from `ml2_q3_dec2` | Mac/offline candidate; Pi decode-side is not live; rendered proxy receipt is 55/84 |
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only |
 
@@ -160,20 +161,20 @@ artifacts:
 ```bash
 export GPR_EXTERNAL_ROOT=/Volumes/OWC_8TB/gpr_work
 export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
-export GPR_DECODE_HALFRES_DROP_L2_HP=1
 
 python3 tools/cnn/evaluate_raw_resolution_targets.py --runtime-2k-target
 python3 tools/cnn/build_raw_resolution_visual_dashboard.py --limit 28
 python3 tools/cnn/build_raw_resolution_visual_dashboard.py --target 4k_raw_1x --limit 28
+
+build-local/bin/fused_decode_cli frame.gpr 8280 5520 frame_2k_fast.raw 2k_raw_0p5x_fast
+build-local/bin/fused_decode_cli frame.gpr 8280 5520 frame_2k_l2hh.raw 2k_raw_0p5x_l2hh
 ```
 
 On a Pi 5 target:
 
 ```bash
-GPR_DECODE_HALFRES_DROP_L2_HP=1 \
 python3 tools/test/run_pi_raw_resolution_bench.py \
-  --frames 120 \
-  --targets 2k_raw_0p5x
+  --limit 120
 ```
 
 ## Repository Map

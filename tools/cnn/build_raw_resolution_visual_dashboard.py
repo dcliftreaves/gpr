@@ -31,8 +31,14 @@ from metrics import compute_visual_metrics  # noqa: E402
 
 
 PREVIEW = {"lpips": 0.15, "ms_ssim": 0.95, "y_psnr": 28.0, "dE2000_mean": 3.0}
-TARGET_CHOICES = ("2k_raw_0p5x", "4k_raw_1x")
+TARGET_CHOICES = ("2k_raw_0p5x", "2k_raw_0p5x_fast", "2k_raw_0p5x_l2hh", "4k_raw_1x")
 DEFAULT_TARGET = "2k_raw_0p5x"
+REFERENCE_TARGET = {
+    "2k_raw_0p5x": "2k_raw_0p5x",
+    "2k_raw_0p5x_fast": "2k_raw_0p5x",
+    "2k_raw_0p5x_l2hh": "2k_raw_0p5x",
+    "4k_raw_1x": "4k_raw_1x",
+}
 
 
 def bayer_to_proxy_rgb(bayer: np.ndarray, lo: float, hi: float) -> np.ndarray:
@@ -214,7 +220,7 @@ def main() -> int:
             if source is None:
                 missing.append({"image_id": image_id, "reason": "missing_source_dng"})
                 continue
-            ref_bayer = source_targets(read_bayer_from_dng(source))[args.target]
+            ref_bayer = source_targets(read_bayer_from_dng(source))[REFERENCE_TARGET[args.target]]
             cand_raw = work / f"{image_id}_{args.target}.raw"
             target_info = decode_gpr_target(args.decoder, frame, args.sensor_width, args.sensor_height, cand_raw, args.target)
             cand_bayer = np.fromfile(cand_raw, dtype="<u2").reshape(int(target_info["height"]), int(target_info["width"]))

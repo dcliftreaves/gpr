@@ -1,6 +1,7 @@
 /* Standalone .gpr (FUSED bitstream) -> raw bayer decoder.
    For the Pi-capture -> desktop-CNN ship-readiness demo.
-   Usage: fused_decode_cli in.gpr SENSOR_W SENSOR_H out.raw [4k_raw_1x|2k_raw_0p5x]
+   Usage: fused_decode_cli in.gpr SENSOR_W SENSOR_H out.raw
+          [4k_raw_1x|2k_raw_0p5x|2k_raw_0p5x_fast|2k_raw_0p5x_l2hh]
 */
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
@@ -56,14 +57,28 @@ static int downsample_bayer_0p5x_cfa(const uint16_t *src, int src_w, int src_h,
 
 int main(int argc, char **argv) {
     if (argc < 5) {
-        fprintf(stderr, "usage: %s in.gpr SENSOR_W SENSOR_H out.raw [4k_raw_1x|2k_raw_0p5x]\n", argv[0]);
+        fprintf(stderr, "usage: %s in.gpr SENSOR_W SENSOR_H out.raw "
+                "[4k_raw_1x|2k_raw_0p5x|2k_raw_0p5x_fast|2k_raw_0p5x_l2hh]\n", argv[0]);
         return 1;
     }
     const char *target = (argc >= 6) ? argv[5] : "4k_raw_1x";
-    int target_2k = strcmp(target, "2k_raw_0p5x") == 0;
+    int target_2k_env = strcmp(target, "2k_raw_0p5x") == 0;
+    int target_2k_fast = strcmp(target, "2k_raw_0p5x_fast") == 0;
+    int target_2k_l2hh = strcmp(target, "2k_raw_0p5x_l2hh") == 0;
+    int target_2k = target_2k_env || target_2k_fast || target_2k_l2hh;
     if (!target_2k && strcmp(target, "4k_raw_1x") != 0) {
-        fprintf(stderr, "unknown target '%s' (expected 4k_raw_1x or 2k_raw_0p5x)\n", target);
+        fprintf(stderr, "unknown target '%s' (expected 4k_raw_1x, 2k_raw_0p5x, "
+                "2k_raw_0p5x_fast, or 2k_raw_0p5x_l2hh)\n", target);
         return 1;
+    }
+    if (target_2k_fast) {
+        setenv("GPR_DECODE_HALFRES_DROP_L2_HP", "1", 1);
+        unsetenv("GPR_DECODE_HALFRES_L2_MASK");
+        setenv("GPR_DECODE_HALFRES_STREAM", "1", 1);
+    } else if (target_2k_l2hh) {
+        unsetenv("GPR_DECODE_HALFRES_DROP_L2_HP");
+        setenv("GPR_DECODE_HALFRES_L2_MASK", "4", 1);
+        setenv("GPR_DECODE_HALFRES_STREAM", "1", 1);
     }
     int sw = atoi(argv[2]), sh = atoi(argv[3]);
     FILE *f = fopen(argv[1], "rb"); if (!f) { perror("open in"); return 1; }

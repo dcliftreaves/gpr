@@ -86,7 +86,8 @@ See `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md` for receipts.
 
 | raw target | dimensions | method | local timing |
 |---|---:|---|---:|
-| `2k_raw_0p5x` | 2070 x 1380 | direct half-res decode; fast mode drops L2 highpass or restores selective L2 HH | Pi fast mode: 29.3 ms median, 34.13 fps median; L2 HH quality mode: 38.7 ms median, 25.84 fps median |
+| `2k_raw_0p5x_fast` | 2070 x 1380 | direct half-res decode; drops L2 highpass | Pi fast mode: 29.3 ms median, 34.13 fps median |
+| `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode; restores selective L2 HH | L2 HH quality mode: 38.7 ms median, 25.84 fps median |
 | `4k_raw_1x` | 4140 x 2760 | direct decoded Bayer | Mac: 22.9 ms median, 43.7 fps median; rendered proxy: 55/84 |
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | 376.4 ms median, 2.7 fps median |
 

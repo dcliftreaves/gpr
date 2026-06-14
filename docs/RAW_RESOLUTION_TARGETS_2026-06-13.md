@@ -8,7 +8,9 @@ preserves Bayer semantics and bit depth for each output size.
 
 | target | dimensions | source | method | CNN |
 |---|---:|---|---|---|
-| `2k_raw_0p5x` | 2070 x 1380 | `ml2_q3_dec2` payload | direct half-res decode; optional fast mode drops L2 highpass | none |
+| `2k_raw_0p5x` | 2070 x 1380 | `ml2_q3_dec2` payload | compatibility/env-driven direct half-res decode | none |
+| `2k_raw_0p5x_fast` | 2070 x 1380 | `ml2_q3_dec2` payload | direct half-res decode; drops L2 highpass | none |
+| `2k_raw_0p5x_l2hh` | 2070 x 1380 | `ml2_q3_dec2` payload | direct half-res decode; restores selective L2 HH | none |
 | `4k_raw_1x` | 4140 x 2760 | decoded `ml2_q3_dec2` half-res Bayer | direct decoded Bayer output | none |
 | `8k_raw_2x` | 8280 x 5520 | decoded `ml2_q3_dec2` half-res Bayer | BIBO_2x Bayer super-resolution | `bibo2x_ane_ml2_q3_dec2_diverse` |
 
@@ -129,8 +131,10 @@ until the exact source DNG/GPR pairing is verified.
 
 ## Next Production Work
 
-1. Decide whether the fast 2K mode should be a named registry/output policy or
-   remain an env-gated live-preview path.
+1. Move remaining raw-target scripts from env-only 2K policy selection to the
+   named CLI targets where practical. `fused_decode_cli` now exposes
+   `2k_raw_0p5x_fast` and `2k_raw_0p5x_l2hh`; `2k_raw_0p5x` remains as a
+   compatibility/env-driven target.
 2. If 2K live preview must pass LPIPS <= 0.15 on every proxy crop, the next
    work is not generic sharpening, synthetic noise, or simple HH amplitude
    scaling: the 2026-06-14 probes reached only 65/84 for RGB unsharp, 57/84
