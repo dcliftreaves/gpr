@@ -143,6 +143,7 @@ Run the public CI-style checks:
 
 ```bash
 python3 tools/test/test_capabilities.py
+python3 tools/test/check_sensitive_content.py
 python3 tools/test/test_raw_resolution_targets.py
 python3 tests/quality_gates/check_registry_consistency.py
 python3 tests/quality_gates/audit_production_readiness.py

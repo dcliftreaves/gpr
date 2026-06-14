@@ -164,10 +164,10 @@ static uint16_t *transpose_dw_pytorch_to_hwio_f16(const uint16_t *src_oihw_2c,
         return NO;
     }
     // raw copy (used by Metal kernels)
-    id<MTLBuffer> braw = [_device newBufferWithBytes:raw length:expected
-                                              options:MTLResourceStorageModeShared];
-    if (!braw) { free(raw); return NO; }
-    _buffers[[name stringByAppendingString:@"_raw"]] = braw;
+    id<MTLBuffer> rawBuffer = [_device newBufferWithBytes:raw length:expected
+                                                   options:MTLResourceStorageModeShared];
+    if (!rawBuffer) { free(raw); return NO; }
+    _buffers[[name stringByAppendingString:@"_raw"]] = rawBuffer;
     // hwio copy (used by MPSGraph)
     uint16_t *hwio = transpose_oihw_to_hwio_f16(raw, Cout, Cin, kH, kW);
     free(raw);
@@ -221,10 +221,10 @@ static uint16_t *transpose_dw_pytorch_to_hwio_f16(const uint16_t *src_oihw_2c,
         free(raw);
         return NO;
     }
-    id<MTLBuffer> braw = [_device newBufferWithBytes:raw length:expected
-                                              options:MTLResourceStorageModeShared];
-    if (!braw) { free(raw); return NO; }
-    _buffers[[name stringByAppendingString:@"_raw"]] = braw;
+    id<MTLBuffer> rawBuffer = [_device newBufferWithBytes:raw length:expected
+                                                   options:MTLResourceStorageModeShared];
+    if (!rawBuffer) { free(raw); return NO; }
+    _buffers[[name stringByAppendingString:@"_raw"]] = rawBuffer;
     uint16_t *hwio = transpose_dw_pytorch_to_hwio_f16(raw, Cout, kH, kW);
     free(raw);
     id<MTLBuffer> b = [_device newBufferWithBytes:hwio length:expected

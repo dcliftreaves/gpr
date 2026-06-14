@@ -46,6 +46,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Sensitive-content guard
+        run: python3 tools/test/check_sensitive_content.py
+
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
