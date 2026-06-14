@@ -61,6 +61,13 @@ jobs:
       - name: Release evidence manifest guard
         run: python3 tools/test/check_release_evidence_manifest.py
 
+      - name: Production artifact inventory
+        # Inventory mode exits 0 when private external artifacts are absent,
+        # so hosted CI can exercise the artifact resolver and registry hashing
+        # path without mounting /Volumes/OWC_8TB/gpr_work. Release promotion
+        # still requires the strict local check.
+        run: python3 tools/verify_production_artifacts.py
+
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |

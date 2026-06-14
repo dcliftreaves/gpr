@@ -110,9 +110,12 @@ targets, platform receipts, and dashboard evidence.
 
 CI-safe release checks run on hosted GitHub Actions and prove the source,
 registry, manifest, hygiene, live-policy, and small container contracts. The
-full release-readiness command below also verifies local 8TB-backed production
-artifacts and the strict production-readiness audit; those external checks are
-required before claiming a release, but are intentionally not run on hosted CI.
+artifact verifier also runs in inventory mode in CI so resolver and registry
+hashing code stay exercised even when private checkpoints are absent. The full
+release-readiness command below verifies local 8TB-backed production artifacts
+in strict mode and runs the strict production-readiness audit; those external
+checks are required before claiming a release, but are intentionally not run on
+hosted CI.
 
 | evidence | status | what it proves |
 |---|---|---|
@@ -142,6 +145,7 @@ export GATE_TMPDIR=/Volumes/OWC_8TB/gpr_work/gate_tmp
 
 python3 tools/test/check_release_evidence_manifest.py
 python3 tools/verify_production_artifacts.py
+python3 tools/verify_production_artifacts.py --strict
 python3 tools/live_preview_policy.py
 python3 tools/test/test_raw_resolution_targets.py
 bash tools/test/test_gvid_pack.sh
@@ -241,6 +245,7 @@ python3 tools/test/check_sensitive_content.py
 python3 tools/test/check_sensitive_content.py --history
 python3 tools/test/check_repo_artifact_hygiene.py
 python3 tools/test/check_release_evidence_manifest.py
+python3 tools/verify_production_artifacts.py
 python3 tools/live_preview_policy.py
 python3 tools/test/test_raw_resolution_targets.py
 bash tools/test/test_gvid_pack.sh
@@ -258,7 +263,7 @@ export GPR_ARTIFACT_ROOT=/Volumes/OWC_8TB/gpr_work/artifacts
 export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
 export GATE_TMPDIR=/Volumes/OWC_8TB/gpr_work/gate_tmp
 
-python3 tools/verify_production_artifacts.py
+python3 tools/verify_production_artifacts.py --strict
 python3 tests/quality_gates/audit_production_readiness.py --strict
 ```
 
