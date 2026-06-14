@@ -58,6 +58,23 @@ REQUIRED_EXTERNAL_RECEIPT_IDS = {
     "prores_review_outputs",
     "editable_dng_gpr_outputs",
 }
+REQUIRED_PLATFORM_PERFORMANCE_IDS = {
+    "pi5_mission1_halfres_capture",
+    "pi5_2k_fast_decode",
+    "pi5_2k_l2hh_decode",
+    "pi5_4k_decode_blocked",
+    "mac_m5_preview_offline_render",
+    "mac_m5_4k_raw_decode",
+    "local_8k_raw_offline",
+    "mac_m5_upres_and_gvid_pack",
+    "capability_memory_matrix",
+}
+ALLOWED_PLATFORM_STATUSES = {
+    "meets-target",
+    "measured-offline",
+    "blocked",
+    "receipt-only",
+}
 ALLOWED_BLOCKERS = {
     "quality_gate_failure",
     "model_capacity",
@@ -131,6 +148,97 @@ def require_external_receipts(entry_id: str, entry: dict[str, Any], failures: li
             continue
         if not receipt.startswith("artifacts/"):
             failures.append(f"{entry_id}: external receipt must be under artifacts/: {receipt}")
+
+
+def require_receipt_refs(
+    entry_id: str,
+    entry: dict[str, Any],
+    tracked: set[str],
+    failures: list[str],
+) -> None:
+    receipts = entry.get("receipts")
+    if not isinstance(receipts, list) or not receipts:
+        failures.append(f"{entry_id}: receipts must be a non-empty list")
+        return
+    for receipt in receipts:
+        if not isinstance(receipt, str):
+            failures.append(f"{entry_id}: receipts entries must be strings")
+            continue
+        if receipt.startswith("artifacts/"):
+            continue
+        path = ROOT / receipt
+        if not path.exists():
+            failures.append(f"{entry_id}: referenced receipt does not exist: {receipt}")
+        elif receipt not in tracked:
+            failures.append(f"{entry_id}: referenced receipt is not tracked: {receipt}")
+
+
+def require_platform_performance_contract(
+    entry: dict[str, Any],
+    tracked: set[str],
+    failures: list[str],
+) -> None:
+    entry_id = str(entry.get("id", ""))
+    status = entry.get("status")
+    if status not in ALLOWED_PLATFORM_STATUSES:
+        failures.append(f"{entry_id}: invalid platform performance status {status!r}")
+
+    if not isinstance(entry.get("platform"), str) or not entry.get("platform"):
+        failures.append(f"{entry_id}: platform performance entry needs platform")
+
+    raw_target = entry.get("raw_target")
+    if raw_target is not None and raw_target not in REQUIRED_RAW_IDS:
+        failures.append(f"{entry_id}: unknown raw_target {raw_target!r}")
+
+    metrics = entry.get("metrics")
+    if not isinstance(metrics, dict) or not metrics:
+        failures.append(f"{entry_id}: platform performance entry needs metrics")
+    else:
+        numeric_keys = [
+            "fps_median",
+            "target_fps",
+            "p95_ms",
+            "median_ms",
+            "seconds_per_image",
+            "peak_rss_gb",
+            "max_rss_mb",
+            "mac_upres_fps",
+            "gvid_pack_fps",
+        ]
+        has_numeric = False
+        for key in numeric_keys:
+            if key not in metrics:
+                continue
+            try:
+                float(metrics[key])
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: metric {key} must be numeric")
+            else:
+                has_numeric = True
+        if not has_numeric:
+            failures.append(f"{entry_id}: platform metrics need at least one numeric timing/memory value")
+        if status == "meets-target":
+            try:
+                fps = float(metrics.get("fps_median"))
+                target_fps = float(metrics.get("target_fps"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: meets-target entries need fps_median and target_fps")
+            else:
+                if fps < target_fps:
+                    failures.append(f"{entry_id}: fps_median below target_fps")
+
+    if status == "blocked":
+        blockers = entry.get("blocked_by")
+        if not isinstance(blockers, list) or not blockers:
+            failures.append(f"{entry_id}: blocked platform entries need blocked_by")
+        else:
+            for blocker in blockers:
+                if blocker not in ALLOWED_BLOCKERS:
+                    failures.append(f"{entry_id}: invalid platform blocker {blocker!r}")
+        if not entry.get("reason"):
+            failures.append(f"{entry_id}: blocked platform entries need reason")
+
+    require_receipt_refs(entry_id, entry, tracked, failures)
 
 
 def require_preview_live_experimental_contract(entry: dict[str, Any], failures: list[str]) -> None:
@@ -308,6 +416,25 @@ def main() -> int:
     missing_raw_ids = REQUIRED_RAW_IDS - seen_raw_ids
     if missing_raw_ids:
         failures.append("manifest missing raw target ids: " + ", ".join(sorted(missing_raw_ids)))
+
+    platform_performance = manifest.get("platform_performance")
+    if not isinstance(platform_performance, list):
+        failures.append("platform_performance must be a list")
+        platform_performance = []
+
+    seen_platform_ids: set[str] = set()
+    for entry in platform_performance:
+        if not isinstance(entry, dict):
+            failures.append("platform_performance entries must be objects")
+            continue
+        entry_id = str(entry.get("id", ""))
+        seen_platform_ids.add(entry_id)
+        require_platform_performance_contract(entry, tracked, failures)
+        require_tracked_refs(entry_id, entry, tracked, failures)
+
+    missing_platform_ids = REQUIRED_PLATFORM_PERFORMANCE_IDS - seen_platform_ids
+    if missing_platform_ids:
+        failures.append("manifest missing platform performance ids: " + ", ".join(sorted(missing_platform_ids)))
 
     release_checks = manifest.get("release_checks")
     if not isinstance(release_checks, list):

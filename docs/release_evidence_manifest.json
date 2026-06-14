@@ -311,6 +311,197 @@
       ]
     }
   ],
+  "platform_performance": [
+    {
+      "id": "pi5_mission1_halfres_capture",
+      "platform": "Pi 5 / Mission 1",
+      "status": "meets-target",
+      "target": "24 fps half-res raw capture",
+      "pipeline": "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools",
+      "metrics": {
+        "fps_median": 24.93,
+        "target_fps": 24.0
+      },
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/pi5_bench_2026-05-26.md"
+      ],
+      "receipts": [
+        "docs/pi5_bench_2026-05-26.md",
+        "docs/VIDEO_STATUS.md"
+      ]
+    },
+    {
+      "id": "pi5_2k_fast_decode",
+      "platform": "Pi 5 / Mission 1",
+      "status": "meets-target",
+      "target": "2K raw decode-side preview timing",
+      "raw_target": "2k_raw_0p5x_fast",
+      "metrics": {
+        "fps_median": 37.59,
+        "target_fps": 24.0,
+        "median_ms": 26.6,
+        "p95_ms": 27.7,
+        "max_rss_mb": 98.0
+      },
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "receipts": [
+        "artifacts/raw_resolution_targets_20260614_alias_v4/pi5_2k_fast_alias_120f/raw_resolution_targets_pi5_120f.json",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ]
+    },
+    {
+      "id": "pi5_2k_l2hh_decode",
+      "platform": "Pi 5 / Mission 1",
+      "status": "meets-target",
+      "target": "2K selective-L2 raw decode-side timing",
+      "raw_target": "2k_raw_0p5x_l2hh",
+      "metrics": {
+        "fps_median": 29.85,
+        "target_fps": 24.0,
+        "median_ms": 33.5,
+        "p95_ms": 37.1,
+        "max_rss_mb": 98.0
+      },
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "receipts": [
+        "artifacts/raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ]
+    },
+    {
+      "id": "pi5_4k_decode_blocked",
+      "platform": "Pi 5 / Mission 1",
+      "status": "blocked",
+      "target": "4K raw decode-side live timing",
+      "raw_target": "4k_raw_1x",
+      "reason": "4K raw target is strong as Mac/offline editable raw, but Pi 5 decode-side timing is below 24 fps.",
+      "blocked_by": [
+        "fps_throughput_limit"
+      ],
+      "metrics": {
+        "fps_median": 6.3,
+        "target_fps": 24.0,
+        "median_ms": 159.6
+      },
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "receipts": [
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md",
+        "artifacts/raw_resolution_targets_20260613/quality_2k4k_100f/raw_resolution_targets_quality.json"
+      ]
+    },
+    {
+      "id": "mac_m5_preview_offline_render",
+      "platform": "Mac/M5",
+      "status": "measured-offline",
+      "target": "offline/review PREVIEW render throughput",
+      "pipeline": "codec=ml2_q3_dec2+cnn=preview_q8_threeway_runtime_fullframe_v1+demosaic=sips_via_gpr_tools",
+      "metrics": {
+        "fps_median": 0.073,
+        "seconds_per_image": 13.65,
+        "peak_rss_gb": 5.37
+      },
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md"
+      ],
+      "receipts": [
+        "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.json",
+        "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.html"
+      ]
+    },
+    {
+      "id": "mac_m5_4k_raw_decode",
+      "platform": "Mac/M5",
+      "status": "meets-target",
+      "target": "4K raw offline editable decode timing",
+      "raw_target": "4k_raw_1x",
+      "metrics": {
+        "fps_median": 43.7,
+        "target_fps": 24.0,
+        "median_ms": 22.9
+      },
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "receipts": [
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md",
+        "artifacts/raw_resolution_targets_20260613/quality_2k4k_100f/raw_resolution_targets_quality.json"
+      ]
+    },
+    {
+      "id": "local_8k_raw_offline",
+      "platform": "Mac/M5",
+      "status": "measured-offline",
+      "target": "8K 2x raw reconstruction throughput",
+      "raw_target": "8k_raw_2x",
+      "metrics": {
+        "fps_median": 2.66,
+        "median_ms": 376.4
+      },
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md",
+        "docs/UPRESABLE_PIPELINE.md"
+      ],
+      "receipts": [
+        "artifacts/raw_resolution_targets_20260613/smoke_2k4k8k_3f/raw_resolution_targets_bench.json",
+        "artifacts/raw_resolution_targets_20260613/quality_2k4k8k_3f/raw_resolution_targets_quality.json"
+      ]
+    },
+    {
+      "id": "mac_m5_upres_and_gvid_pack",
+      "platform": "Mac/M5",
+      "status": "receipt-only",
+      "target": "offline UPRESABLE reconstruction and .gvid packing",
+      "metrics": {
+        "mac_upres_fps": 1.79,
+        "gvid_pack_fps": 180.26,
+        "target_fps": 24.0
+      },
+      "docs": [
+        "README.md",
+        "docs/UPRESABLE_PIPELINE.md"
+      ],
+      "receipts": [
+        "artifacts/upresable/pi_mac_bench/run.log",
+        "docs/UPRESABLE_PIPELINE.md"
+      ]
+    },
+    {
+      "id": "capability_memory_matrix",
+      "platform": "CI / local",
+      "status": "receipt-only",
+      "target": "capability encode/decode/RSS matrix",
+      "metrics": {
+        "target_fps": 0.0,
+        "max_rss_mb": 1.0
+      },
+      "docs": [
+        "docs/CAPABILITIES.md"
+      ],
+      "receipts": [
+        "docs/CAPABILITIES.md"
+      ]
+    }
+  ],
   "release_checks": [
     "python3 tools/test/check_sensitive_content.py",
     "python3 tools/test/check_repo_artifact_hygiene.py",
