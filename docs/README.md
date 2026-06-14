@@ -6,6 +6,7 @@ Where to look for what. Last refreshed 2026-06-14.
 
 | if you want to know… | read |
 |---|---|
+| the active production goal and definition of done | `../README.md` |
 | what ships today, by ship class | `SHIP_DECISION.md` |
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |
 | stills vs video — the two production modes | `SHIP_DECISION.md` (header), `VIDEO_STATUS.md` |

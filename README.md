@@ -44,6 +44,24 @@ Artifacts and temporary outputs should live under
 `/Volumes/OWC_8TB/gpr_work`, with `TMPDIR` pointed at the external drive for
 large runs.
 
+## Production Definition Of Done
+
+A path is production only when the repo can prove all of these from committed
+source plus indexed external receipts:
+
+| requirement | proof required |
+|---|---|
+| Quality | A committed quality gate, dashboard, or manifest receipt covers the actual ship class and passes by worst-row thresholds, not just averages. |
+| Runtime inputs | The runtime source policy is explicit. PREVIEW render paths must not use REF content for routing, conditioning, low-frequency fields, high-frequency detail, or output synthesis. |
+| Output contract | The produced file is readable by the intended consumer: Bayer raw stays Bayer-decodable, `.gvid` frames carry valid metadata, wrappers round-trip, and review MOV/ProRes files inspect correctly. |
+| Performance | Timing, FPS/throughput, and memory are measured on the intended target: Pi 5 / Mission 1 for embedded capture and Mac/M5 for offline render. |
+| Reproducibility | Checkpoint hashes, sidecars, registry entries, scripts, dashboards, and artifact paths are listed in the release evidence manifest or linked docs. |
+| Repo hygiene | CI passes, generated artifacts stay outside main, and release checks include artifact verification, sensitive-content guard, manifest validation, and production-readiness audit. |
+
+If any row is missing, the path must be marked experimental, diagnostic, or
+offline-only. Do not promote an intermediate improvement because it is visually
+better; promote only when the evidence matches the intended production role.
+
 ## Readiness Snapshot
 
 The current release state is intentionally split between shipped raw-media
