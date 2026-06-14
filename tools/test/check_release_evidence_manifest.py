@@ -41,6 +41,9 @@ REQUIRED_OUTPUT_IDS = {
     "still_primary",
     "still_archival",
     "video_freeze_primary",
+    "video_freeze_smallest",
+    "video_freeze_smallest_conservative",
+    "video_freeze_alternate_tighter_lpips",
     "upresable_editable_raw",
     "preview_offline_review_q8_threeway",
     "preview_live_codec_only",
@@ -873,6 +876,39 @@ def require_gvid_container_contract(entry: dict[str, Any], tracked: set[str], fa
             failures.append(f"{entry_id}: external receipts missing {token!r}")
 
 
+def require_registry_ship_pipeline_coverage(
+    production_paths: list[dict[str, Any]],
+    pipelines: dict[str, Any],
+    failures: list[str],
+) -> None:
+    manifest_by_pipeline = {
+        entry.get("pipeline"): entry
+        for entry in production_paths
+        if isinstance(entry.get("pipeline"), str)
+    }
+    for pipeline_name, pipeline in pipelines.items():
+        if not isinstance(pipeline, dict):
+            continue
+        role = str(pipeline.get("$role", ""))
+        if not role.startswith("ship-"):
+            continue
+        entry = manifest_by_pipeline.get(pipeline_name)
+        if not entry:
+            failures.append(f"registry ship pipeline missing from release manifest: {role} ({pipeline_name})")
+            continue
+        entry_id = str(entry.get("id", ""))
+        status = entry.get("status")
+        if status not in PRODUCTION_STATUSES:
+            failures.append(f"{entry_id}: registry ship pipeline must have production status, got {status!r}")
+        if entry.get("ship_class") != pipeline.get("ship_class"):
+            failures.append(
+                f"{entry_id}: manifest ship_class {entry.get('ship_class')!r} "
+                f"!= registry ship_class {pipeline.get('ship_class')!r}"
+            )
+        if not entry.get("committed_run_hash") and not entry.get("external_receipt"):
+            failures.append(f"{entry_id}: registry ship pipeline needs committed_run_hash or external_receipt")
+
+
 def main() -> int:
     failures: list[str] = []
     manifest = load_json(MANIFEST)
@@ -966,6 +1002,7 @@ def main() -> int:
     missing_output_ids = REQUIRED_OUTPUT_IDS - seen_output_ids
     if missing_output_ids:
         failures.append("manifest missing output ids: " + ", ".join(sorted(missing_output_ids)))
+    require_registry_ship_pipeline_coverage(production_paths, pipelines, failures)
 
     raw_targets = manifest.get("raw_targets")
     if not isinstance(raw_targets, list):

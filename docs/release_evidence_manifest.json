@@ -70,6 +70,32 @@
       ]
     },
     {
+      "id": "video_freeze_smallest_conservative",
+      "family": "video_raw",
+      "status": "production-pass",
+      "pipeline": "codec=ml2_q3_l2x2_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "committed_run_hash": "8941d5ac9b33f826",
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/FULL_PIPELINE_MATRIX.md"
+      ]
+    },
+    {
+      "id": "video_freeze_alternate_tighter_lpips",
+      "family": "video_raw",
+      "status": "production-pass",
+      "pipeline": "codec=ml2_q3+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "committed_run_hash": "40c393acc2ad89bc",
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/FULL_PIPELINE_MATRIX.md"
+      ]
+    },
+    {
       "id": "upresable_editable_raw",
       "family": "upresable",
       "status": "production-pass",

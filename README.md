@@ -190,6 +190,13 @@ The production video split is explicit:
 | Offline/review PREVIEW | q8 three-way no-REF full-frame runtime | PASS on current holdout, too slow for live |
 | Live/camera-back display | 2K selective-L2 HH edge-safe viewport | production-bounded: raw decode clears 24 fps and the 16 px edge-safe rendered proxy is 84/84; exact-edge raw proxy remains 80/84 and the older codec-only gate remains experimental |
 
+The manifest also keeps two VIDEO_FREEZE alternates production-indexed:
+`ml2_q3_l2x2_l1x2` + matched CNN at 7.11 MB/frame for more LPIPS headroom
+than the smallest path, and `ml2_q3` + matched CNN at 10.26 MB/frame for the
+tightest current VIDEO_FREEZE LPIPS receipt. See
+[`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) and
+[`docs/FULL_PIPELINE_MATRIX.md`](docs/FULL_PIPELINE_MATRIX.md).
+
 Raw output targets from the 24 fps capture stream:
 
 | target | dimensions | method | current classification |
