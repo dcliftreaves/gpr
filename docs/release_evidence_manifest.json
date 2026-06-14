@@ -169,6 +169,11 @@
         "tools/gvid_metadata.py",
         "tools/test/test_gvid_pack.sh",
         "tools/test/test_gvid_metadata.sh"
+      ],
+      "external_receipts": [
+        "artifacts/upresable_missing_hard_20260606/upresable_timelapse.gvid",
+        "artifacts/upresable_missing_hard_20260606/summary.json",
+        "artifacts/gvid_runtime_dispatch_20260604/full_gate_synthetic.gvid.dispatch.json"
       ]
     },
     {
@@ -184,6 +189,10 @@
         "tools/gpraw",
         "tools/gpr2prores/gpr_mov_tool.m",
         "tools/test/test_gpr2prores_gvid_input.sh"
+      ],
+      "external_receipts": [
+        "artifacts/upresable_missing_hard_20260606/upresable_timelapse.gpr1.mov",
+        "artifacts/upresable_missing_hard_20260606/summary.json"
       ]
     },
     {
@@ -199,6 +208,13 @@
       "tools": [
         "tools/gpr2prores",
         "tools/run_codec_movie.sh"
+      ],
+      "external_receipts": [
+        "artifacts/preview_review_20260604/barnsky_codec_only_120f_4k_prores_hq.mov",
+        "artifacts/preview_review_20260604/barnsky_sota_v2_120f_4k_prores_hq.mov",
+        "artifacts/preview_review_20260604/barnsky_codec_vs_sota_v2_120f_3840x1080_prores_hq.mov",
+        "artifacts/preview_review_20260604/upresable_720f_4k_prores_hq.mov",
+        "artifacts/upresable_missing_hard_20260606/upresable_timelapse.mov"
       ]
     },
     {
@@ -213,6 +229,11 @@
       "tools": [
         "tools/cnn/upresable_pipeline.py",
         "source/app/gpr_tools"
+      ],
+      "external_receipts": [
+        "artifacts/upresable_missing_hard_20260606/summary.json",
+        "artifacts/upresable_missing_hard_20260606/editable_dng",
+        "artifacts/upresable_missing_hard_20260606/editable_gpr"
       ]
     }
   ],
@@ -229,6 +250,10 @@
         "README.md",
         "docs/VIDEO_STATUS.md",
         "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "external_receipts": [
+        "artifacts/raw_resolution_targets_20260614_alias_v4/pi5_2k_fast_alias_120f/raw_resolution_targets_pi5_120f.json",
+        "artifacts/raw_resolution_targets_20260614/visual_2k_l2hh_28f_explicit/raw_resolution_targets_visual_dashboard.json"
       ]
     },
     {
@@ -243,6 +268,11 @@
         "README.md",
         "docs/VIDEO_STATUS.md",
         "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "external_receipts": [
+        "artifacts/raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json",
+        "artifacts/raw_resolution_targets_20260614/visual_2k_l2hh_28f_explicit/raw_resolution_targets_visual_dashboard.json",
+        "artifacts/raw_resolution_targets_20260614_analysis/quality_2k_l2hh_100f/raw_resolution_targets_quality.json"
       ]
     },
     {
@@ -257,6 +287,11 @@
         "README.md",
         "docs/VIDEO_STATUS.md",
         "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "external_receipts": [
+        "artifacts/raw_resolution_targets_20260614/visual_4k_28f/raw_resolution_targets_visual_dashboard.json",
+        "artifacts/raw_resolution_targets_20260613/quality_2k4k_100f/raw_resolution_targets_quality.json",
+        "artifacts/raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_domain_lower_right_probe.json"
       ]
     },
     {
@@ -269,6 +304,10 @@
         "docs/VIDEO_STATUS.md",
         "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md",
         "docs/UPRESABLE_PIPELINE.md"
+      ],
+      "external_receipts": [
+        "artifacts/raw_resolution_targets_20260613/quality_2k4k8k_3f/raw_resolution_targets_quality.json",
+        "artifacts/raw_resolution_targets_20260613/smoke_2k4k8k_3f/raw_resolution_targets_bench.json"
       ]
     }
   ],

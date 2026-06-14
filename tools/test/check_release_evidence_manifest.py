@@ -52,6 +52,12 @@ REQUIRED_RAW_IDS = {
     "4k_raw_1x",
     "8k_raw_2x",
 }
+REQUIRED_EXTERNAL_RECEIPT_IDS = {
+    "gvid_container",
+    "mov_wrapper",
+    "prores_review_outputs",
+    "editable_dng_gpr_outputs",
+}
 ALLOWED_BLOCKERS = {
     "quality_gate_failure",
     "model_capacity",
@@ -112,6 +118,19 @@ def require_tracked_refs(
                 failures.append(f"{entry_id}: referenced {key[:-1]} does not exist: {ref}")
             elif ref not in tracked and not any(t.startswith(ref.rstrip('/') + '/') for t in tracked):
                 failures.append(f"{entry_id}: referenced {key[:-1]} is not tracked: {ref}")
+
+
+def require_external_receipts(entry_id: str, entry: dict[str, Any], failures: list[str]) -> None:
+    receipts = entry.get("external_receipts")
+    if not isinstance(receipts, list) or not receipts:
+        failures.append(f"{entry_id}: external_receipts must be a non-empty list")
+        return
+    for receipt in receipts:
+        if not isinstance(receipt, str):
+            failures.append(f"{entry_id}: external_receipts entries must be strings")
+            continue
+        if not receipt.startswith("artifacts/"):
+            failures.append(f"{entry_id}: external receipt must be under artifacts/: {receipt}")
 
 
 def require_preview_live_experimental_contract(entry: dict[str, Any], failures: list[str]) -> None:
@@ -258,6 +277,9 @@ def main() -> int:
         if status == "experimental" and not entry.get("reason"):
             failures.append(f"{entry_id}: experimental entries need a reason")
 
+        if entry_id in REQUIRED_EXTERNAL_RECEIPT_IDS:
+            require_external_receipts(entry_id, entry, failures)
+
         require_preview_live_experimental_contract(entry, failures)
         require_tracked_refs(entry_id, entry, tracked, failures)
 
@@ -280,6 +302,7 @@ def main() -> int:
         classification = target.get("classification")
         if classification not in ALLOWED_RAW_CLASSIFICATIONS:
             failures.append(f"{target_id}: invalid classification {classification!r}")
+        require_external_receipts(target_id, target, failures)
         require_tracked_refs(target_id, target, tracked, failures)
 
     missing_raw_ids = REQUIRED_RAW_IDS - seen_raw_ids
