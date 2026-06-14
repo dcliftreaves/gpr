@@ -57,7 +57,7 @@ large runs.
 | ProRes review | Review artifact path | Generated from preview/review tools, not the primary raw deliverable |
 | PREVIEW offline/review | PASS for q8 three-way runtime full-frame path | No-REF full-frame holdout passes 84/84 on the current receipt |
 | PREVIEW live/camera-back | Experimental | The q8 three-way route is not a live/camera-back preview path; codec-only and 2K raw fast paths are the current speed baselines |
-| 2K raw target | Pi live-capable candidate | Fast decode mode hits 34.13 fps median on Pi 5; selective L2 HH reaches 80/84 proxy crops and still clears live timing at 25.84 fps |
+| 2K raw target | Pi live-capable raw candidate | Fast decode mode hits 37.59 fps median / 27.7 ms p95 on Pi 5; selective L2 HH hits 29.85 fps median / 37.1 ms p95 and reaches 80/84 proxy crops |
 | 4K raw target | Mac/offline editable raw candidate | 43.7 fps median on Mac path; matched main-corpus raw quality passes, while rendered-proxy LPIPS remains diagnostic only |
 | 8K raw target | Offline/review only | Current 2x raw reconstruction is about 2.7 fps on the local timing smoke |
 
@@ -101,7 +101,7 @@ Raw output targets from the 24 fps capture stream:
 | target | dimensions | method | current classification |
 |---|---:|---|---|
 | `2k_raw_0p5x_fast` | 2070 x 1380 | direct half-res decode with L2 highpass dropped | stable Pi live mode at 37.59 fps median / 27.7 ms p95; 56/84 rendered proxy rows |
-| `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode with selective L2 HH restored | p95-live quality candidate at 29.85 fps median / 37.1 ms p95; 80/84 rendered proxy rows |
+| `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode with selective L2 HH restored | p95-live editable raw candidate at 29.85 fps median / 37.1 ms p95; matched-source raw quality passes and rendered proxy is 80/84 |
 | `4k_raw_1x` | 4140 x 2760 | decoded Bayer from `ml2_q3_dec2` | Mac/offline editable raw candidate; Pi decode-side is not live; rendered-proxy LPIPS is diagnostic |
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only |
 

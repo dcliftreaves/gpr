@@ -2850,6 +2850,12 @@ def check_raw_resolution_receipts() -> list[Check]:
     mask4_pi_path = base14_alias / "pi5_2k_l2hh_alias_120f" / "raw_resolution_targets_pi5_120f.json"
     visual2k_path = base14 / "visual_2k_l2mask4_28f" / "raw_resolution_targets_visual_dashboard.json"
     visual4k_path = base14 / "visual_4k_28f" / "raw_resolution_targets_visual_dashboard.json"
+    quality2k_l2hh_path = (
+        ARTIFACT_ROOT
+        / "raw_resolution_targets_20260614_analysis"
+        / "quality_2k_l2hh_100f"
+        / "raw_resolution_targets_quality.json"
+    )
     quality100_path = base13 / "quality_2k4k_100f" / "raw_resolution_targets_quality.json"
     quality_path = base13 / "quality_2k4k8k_3f" / "raw_resolution_targets_quality.json"
     bench8k_path = base13 / "smoke_2k4k8k_3f" / "raw_resolution_targets_bench.json"
@@ -2930,6 +2936,34 @@ def check_raw_resolution_receipts() -> list[Check]:
             "2K L2 HH visual proxy receipt",
             "PASS" if ok else "FAIL",
             f"{pass_count}/{count} worst_lpips={worst_lpips:.4f} receipt={visual2k_path}",
+        ))
+
+    quality2k_l2hh, err = read_json_receipt(quality2k_l2hh_path)
+    if err:
+        checks.append(Check("raw_targets", "2K L2 HH main-corpus raw quality receipt", "FAIL", err))
+    else:
+        rows = [
+            row
+            for row in (quality2k_l2hh or {}).get("rows", [])
+            if "/barnsky_full_dngs/" in str(row.get("source_dng", ""))
+            and "2k_raw_0p5x_l2hh" in (row.get("targets") or {})
+        ]
+        psnr = stats([float(row["targets"]["2k_raw_0p5x_l2hh"].get("psnr_db", 0.0)) for row in rows])
+        mae = stats([float(row["targets"]["2k_raw_0p5x_l2hh"].get("mae_lsb", 999.0)) for row in rows])
+        p99 = stats([float(row["targets"]["2k_raw_0p5x_l2hh"].get("p99_abs_lsb", 999.0)) for row in rows])
+        ok = (
+            psnr["n"] >= 99
+            and psnr["min"] >= 53.0
+            and psnr["mean"] >= 55.0
+            and mae["max"] <= 7.0
+            and p99["max"] <= 45.0
+        )
+        checks.append(Check(
+            "raw_targets",
+            "2K L2 HH main-corpus raw quality receipt",
+            "PASS" if ok else "FAIL",
+            f"n={psnr['n']} psnr_min={psnr['min']:.2f} psnr_mean={psnr['mean']:.2f} "
+            f"mae_max={mae['max']:.2f} p99_max={p99['max']:.1f} receipt={quality2k_l2hh_path}",
         ))
 
     visual4k, err = read_json_receipt(visual4k_path)

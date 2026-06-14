@@ -51,6 +51,7 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `pi5_l2mask4_stream_v3_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing with L2 streaming and explicit receipt schema |
 | `raw_resolution_targets_20260614_alias_v4/pi5_2k_fast_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_fast` Pi 5 timing with commit, binary hash, and RSS metadata |
 | `raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_l2hh` Pi 5 timing with commit, binary hash, and RSS metadata |
+| `raw_resolution_targets_20260614_analysis/quality_2k_l2hh_100f/raw_resolution_targets_quality.json` | 100 | named `2k_raw_0p5x_l2hh` raw quality receipt |
 | `hh_scale_sweep_2k_l2mask4_28f.json` | 28 images / 84 crops | HH amplitude sweep diagnostic |
 | `raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_current/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | 2K L2 HH signal analysis and lower-right edge-margin probe |
 | `raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | 4K signal analysis and lower-right edge-margin probe |
@@ -117,6 +118,9 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
   Y-PSNR 37.60, worst dE2000 1.46. Other masks are worse: mask 1 = 56/84,
   mask 2 = 55/84, mask 3 = 55/84, mask 5 = 56/84, mask 6 = 56/84, and full
   mask 7 = 55/84.
+- The named `2k_raw_0p5x_l2hh` raw-quality receipt passes on the matched
+  main-corpus subset: 99 rows, 53.50 dB minimum PSNR, 55.60 dB mean PSNR,
+  6.69 LSB max MAE, and 44 LSB max p99 absolute error.
 - Signal analysis of the regenerated current dashboard shows the remaining
   four misses are all lower-right LPIPS-only rows. Phase shift is effectively
   zero, correlation remains high (lower-right mean 0.9983), and lower-right
@@ -133,9 +137,9 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 - Current decision: selective L2 HH is now the 2K live-quality candidate. It
   clears the Pi 5 24 fps decode-side target by median and p95, and fixes most
   LPIPS-only texture misses while preserving structure, luma PSNR, and color.
-  It is not a full PREVIEW proxy pass yet because four crop rows remain just
-  above LPIPS 0.15 (worst 0.1549). The low-detail L2-drop mode remains the
-  fastest live mode.
+  It is not a full rendered PREVIEW proxy pass yet because four crop rows
+  remain just above LPIPS 0.15 (worst 0.1549). The low-detail L2-drop mode
+  remains the fastest live mode.
 
 ### 8K raw 2x
 
