@@ -69,11 +69,27 @@ REQUIRED_PLATFORM_PERFORMANCE_IDS = {
     "mac_m5_upres_and_gvid_pack",
     "capability_memory_matrix",
 }
+REQUIRED_DASHBOARD_IDS = {
+    "preview_offline_review_q8_threeway",
+    "preview_candidate_evidence_rank",
+    "preview_failure_mode_audit",
+    "preview_source_ref_policy_audit",
+    "raw_2k_l2hh_visual_proxy",
+    "raw_4k_visual_proxy",
+    "preview_review_media",
+    "gvid_metadata_dispatch",
+    "noise_signal_audit",
+}
 ALLOWED_PLATFORM_STATUSES = {
     "meets-target",
     "measured-offline",
     "blocked",
     "receipt-only",
+}
+ALLOWED_DASHBOARD_STATUSES = {
+    "current",
+    "diagnostic",
+    "experimental-blocker",
 }
 ALLOWED_BLOCKERS = {
     "quality_gate_failure",
@@ -237,6 +253,46 @@ def require_platform_performance_contract(
                     failures.append(f"{entry_id}: invalid platform blocker {blocker!r}")
         if not entry.get("reason"):
             failures.append(f"{entry_id}: blocked platform entries need reason")
+
+    require_receipt_refs(entry_id, entry, tracked, failures)
+
+
+def require_dashboard_contract(
+    entry: dict[str, Any],
+    tracked: set[str],
+    failures: list[str],
+) -> None:
+    entry_id = str(entry.get("id", ""))
+    status = entry.get("status")
+    if status not in ALLOWED_DASHBOARD_STATUSES:
+        failures.append(f"{entry_id}: invalid dashboard status {status!r}")
+
+    for key in ("family", "purpose"):
+        if not isinstance(entry.get(key), str) or not entry.get(key):
+            failures.append(f"{entry_id}: dashboard entry needs {key}")
+
+    dashboard = entry.get("dashboard")
+    if not isinstance(dashboard, str) or not dashboard:
+        failures.append(f"{entry_id}: dashboard entry needs dashboard")
+    elif dashboard.startswith("artifacts/"):
+        pass
+    else:
+        path = ROOT / dashboard
+        if not path.exists():
+            failures.append(f"{entry_id}: referenced dashboard does not exist: {dashboard}")
+        elif dashboard not in tracked:
+            failures.append(f"{entry_id}: referenced dashboard is not tracked: {dashboard}")
+
+    metrics = entry.get("metrics")
+    if metrics is not None:
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: metrics must be an object")
+        else:
+            for key, value in metrics.items():
+                try:
+                    float(value)
+                except (TypeError, ValueError):
+                    failures.append(f"{entry_id}: metric {key} must be numeric")
 
     require_receipt_refs(entry_id, entry, tracked, failures)
 
@@ -435,6 +491,25 @@ def main() -> int:
     missing_platform_ids = REQUIRED_PLATFORM_PERFORMANCE_IDS - seen_platform_ids
     if missing_platform_ids:
         failures.append("manifest missing platform performance ids: " + ", ".join(sorted(missing_platform_ids)))
+
+    dashboards = manifest.get("dashboards")
+    if not isinstance(dashboards, list):
+        failures.append("dashboards must be a list")
+        dashboards = []
+
+    seen_dashboard_ids: set[str] = set()
+    for entry in dashboards:
+        if not isinstance(entry, dict):
+            failures.append("dashboards entries must be objects")
+            continue
+        entry_id = str(entry.get("id", ""))
+        seen_dashboard_ids.add(entry_id)
+        require_dashboard_contract(entry, tracked, failures)
+        require_tracked_refs(entry_id, entry, tracked, failures)
+
+    missing_dashboard_ids = REQUIRED_DASHBOARD_IDS - seen_dashboard_ids
+    if missing_dashboard_ids:
+        failures.append("manifest missing dashboard ids: " + ", ".join(sorted(missing_dashboard_ids)))
 
     release_checks = manifest.get("release_checks")
     if not isinstance(release_checks, list):

@@ -502,6 +502,210 @@
       ]
     }
   ],
+  "dashboards": [
+    {
+      "id": "preview_offline_review_q8_threeway",
+      "family": "preview",
+      "status": "current",
+      "purpose": "Current no-REF offline/review PREVIEW full-frame holdout dashboard.",
+      "dashboard": "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.html",
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md"
+      ],
+      "receipts": [
+        "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.json"
+      ],
+      "metrics": {
+        "rows": 84,
+        "passing_rows": 84,
+        "worst_lpips": 0.1178,
+        "worst_ms_ssim": 0.9548,
+        "worst_y_psnr": 30.87,
+        "worst_dE2000_mean": 2.64,
+        "seconds_per_image": 13.65,
+        "peak_rss_gb": 5.37
+      }
+    },
+    {
+      "id": "preview_candidate_evidence_rank",
+      "family": "preview",
+      "status": "diagnostic",
+      "purpose": "Aggregate PREVIEW candidate ranking used to separate production-shaped evidence from crop-only and oracle rows.",
+      "dashboard": "artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v5/preview_candidate_evidence_rank.html",
+      "docs": [
+        "docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md"
+      ],
+      "receipts": [
+        "artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v5/preview_candidate_evidence_rank.json"
+      ],
+      "metrics": {
+        "variant_count": 215,
+        "production_eligible_count": 70,
+        "crop_holdout_passing_rows": 84,
+        "crop_holdout_rows": 84,
+        "fullframe_passing_rows": 63,
+        "fullframe_rows": 84,
+        "selector_union_passing_rows": 74,
+        "selector_union_rows": 84
+      }
+    },
+    {
+      "id": "preview_failure_mode_audit",
+      "family": "preview",
+      "status": "experimental-blocker",
+      "purpose": "Full-frame PREVIEW failure-mode dashboard showing the crop/full-image placement blocker.",
+      "dashboard": "artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v4/preview_fullframe_failure_mode_audit.html",
+      "docs": [
+        "docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md"
+      ],
+      "receipts": [
+        "artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v4/preview_fullframe_failure_mode_audit.json"
+      ],
+      "metrics": {
+        "normalized_rows": 2043,
+        "unique_rows": 84,
+        "variant_count": 121,
+        "exact_pass_tiled_fail_count": 13,
+        "fullframe_scene_gated_passing_rows": 63,
+        "fullframe_scene_gated_rows": 84
+      }
+    },
+    {
+      "id": "preview_source_ref_policy_audit",
+      "family": "preview",
+      "status": "diagnostic",
+      "purpose": "Runtime source versus true REF policy audit for no-REF PREVIEW candidate selection.",
+      "dashboard": "artifacts/preview_runtime_policy_20260613/source_ref_policy_audit_v1/preview_source_ref_policy_audit.html",
+      "docs": [
+        "docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md"
+      ],
+      "receipts": [
+        "artifacts/preview_runtime_policy_20260613/source_ref_policy_audit_v1/preview_source_ref_policy_audit.json"
+      ],
+      "metrics": {
+        "rows": 84,
+        "passing_rows": 20,
+        "worst_lpips": 0.6839,
+        "worst_ms_ssim": 0.2922,
+        "worst_y_psnr": 14.04,
+        "worst_dE2000_mean": 18.89
+      }
+    },
+    {
+      "id": "raw_2k_l2hh_visual_proxy",
+      "family": "raw_targets",
+      "status": "current",
+      "purpose": "2K selective-L2 HH visual proxy dashboard for the Pi 5 live-capable raw target.",
+      "dashboard": "artifacts/raw_resolution_targets_20260614/visual_2k_l2hh_28f_explicit/raw_resolution_targets_visual_dashboard.html",
+      "docs": [
+        "README.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "receipts": [
+        "artifacts/raw_resolution_targets_20260614/visual_2k_l2hh_28f_explicit/raw_resolution_targets_visual_dashboard.json",
+        "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_explicit/raw_resolution_visual_failure_analysis.json"
+      ],
+      "metrics": {
+        "rows": 84,
+        "passing_rows": 80,
+        "pass_rate": 0.9524,
+        "worst_lpips": 0.1549,
+        "worst_ms_ssim": 0.9771,
+        "worst_y_psnr": 37.6,
+        "worst_dE2000_mean": 1.46
+      }
+    },
+    {
+      "id": "raw_4k_visual_proxy",
+      "family": "raw_targets",
+      "status": "diagnostic",
+      "purpose": "4K raw visual proxy dashboard documenting the current offline/editable raw quality and failure rows.",
+      "dashboard": "artifacts/raw_resolution_targets_20260614/visual_4k_28f/raw_resolution_targets_visual_dashboard.html",
+      "docs": [
+        "README.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "receipts": [
+        "artifacts/raw_resolution_targets_20260614/visual_4k_28f/raw_resolution_targets_visual_dashboard.json",
+        "artifacts/raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_resolution_visual_failure_analysis.json",
+        "artifacts/raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_domain_lower_right_probe.json"
+      ],
+      "metrics": {
+        "rows": 84,
+        "passing_rows": 55,
+        "pass_rate": 0.6548,
+        "worst_lpips": 0.3327,
+        "worst_ms_ssim": 0.8772,
+        "worst_y_psnr": 30.82,
+        "worst_dE2000_mean": 2.11
+      }
+    },
+    {
+      "id": "preview_review_media",
+      "family": "review",
+      "status": "current",
+      "purpose": "Preview/timelapse ProRes review dashboard and rendered media receipts.",
+      "dashboard": "artifacts/preview_review_20260604/preview_review_dashboard.html",
+      "docs": [
+        "README.md",
+        "docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md"
+      ],
+      "receipts": [
+        "artifacts/preview_review_20260604/barnsky_codec_only_120f_4k_prores_hq.mov",
+        "artifacts/preview_review_20260604/barnsky_sota_v2_120f_4k_prores_hq.mov",
+        "artifacts/preview_review_20260604/barnsky_codec_vs_sota_v2_120f_3840x1080_prores_hq.mov",
+        "artifacts/preview_review_20260604/upresable_720f_4k_prores_hq.mov"
+      ],
+      "metrics": {
+        "prores_outputs": 4
+      }
+    },
+    {
+      "id": "gvid_metadata_dispatch",
+      "family": "container",
+      "status": "diagnostic",
+      "purpose": ".gvid metadata dispatch dashboard for source metadata and clean-target routing behavior.",
+      "dashboard": "artifacts/codec_raw_clean_train_20260604/dispatch_comparison_w64_metadata/codec_raw_clean_dispatch_dashboard.html",
+      "docs": [
+        "docs/GVID_METADATA_DISPATCH_2026-06-04.md"
+      ],
+      "receipts": [
+        "artifacts/codec_raw_clean_train_20260604/dispatch_comparison_w64_metadata/codec_raw_clean_dispatch_dashboard.json",
+        "artifacts/gvid_runtime_dispatch_20260604/full_gate_synthetic.gvid.dispatch.json"
+      ],
+      "metrics": {
+        "rows": 12,
+        "accepted_rows": 6,
+        "rejected_rows": 6,
+        "dispatch_mean_clean_rmse_counts": 38.31,
+        "dispatch_max_clean_rmse_counts": 176.0
+      }
+    },
+    {
+      "id": "noise_signal_audit",
+      "family": "noise_signal",
+      "status": "diagnostic",
+      "purpose": "X2D ISO-stratified raw noise/signal separation audit for noise-removal training targets.",
+      "dashboard": "artifacts/x2d_focus_20260605/raw_noise_signal_audit_iso_stratified_21_min800/raw_noise_signal_audit.html",
+      "docs": [
+        "docs/X2D_NOISE_FOCUS_2026-06-05.md",
+        "docs/RAW_NOISE_SIGNAL_AUDIT_2026-06-05.md"
+      ],
+      "receipts": [
+        "artifacts/x2d_focus_20260605/raw_noise_signal_audit_iso_stratified_21_min800/raw_noise_signal_audit.json",
+        "artifacts/x2d_focus_20260605/raw_clean_targets_iso_stratified_21_min800/raw_clean_ref_targets.json",
+        "artifacts/x2d_focus_20260605/x2d_iso_stratified_21_test_set.json"
+      ],
+      "metrics": {
+        "rows": 63,
+        "passing_rows": 63,
+        "failing_rows": 0,
+        "no_op_rows": 63
+      }
+    }
+  ],
   "release_checks": [
     "python3 tools/test/check_sensitive_content.py",
     "python3 tools/test/check_repo_artifact_hygiene.py",
