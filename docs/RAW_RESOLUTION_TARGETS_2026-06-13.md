@@ -44,6 +44,7 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `visual_4k_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 4K rendered proxy visual dashboard |
 | `pi5_l2mask4_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing |
 | `pi5_l2drop_stream_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K fast L2-drop Pi 5 timing with L2 streaming |
+| `pi5_l2drop_stream_v2_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K fast L2-drop Pi 5 timing with L2 streaming and explicit receipt schema |
 | `pi5_l2mask4_stream_v2_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing with L2 streaming |
 | `pi5_l2mask4_stream_v3_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing with L2 streaming and explicit receipt schema |
 | `hh_scale_sweep_2k_l2mask4_28f.json` | 28 images / 84 crops | HH amplitude sweep diagnostic |

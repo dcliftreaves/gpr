@@ -91,7 +91,7 @@ See `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md` for receipts.
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | 376.4 ms median, 2.7 fps median |
 
 Pi 5 decode-side timing receipt: `pi5_120f/raw_resolution_targets_pi5_120f.json`.
-Fast 2K Pi receipt: `pi5_l2drop_stream_120f/raw_resolution_targets_pi5_120f.json`.
+Fast 2K Pi receipt: `pi5_l2drop_stream_v2_120f/raw_resolution_targets_pi5_120f.json`.
 The fast mode is enabled with `GPR_DECODE_HALFRES_DROP_L2_HP=1`; it clears the
 24 fps target at 29.3 ms median and 34.13 fps median.
 Proxy visual receipt: `visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.html`.

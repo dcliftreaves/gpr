@@ -2791,6 +2791,167 @@ def check_live_preview_fast_path() -> Check:
     )
 
 
+def read_json_receipt(path: Path) -> tuple[dict | None, str | None]:
+    if not path.exists():
+        return None, f"missing {path}"
+    try:
+        return json.loads(path.read_text()), None
+    except Exception as exc:
+        return None, f"bad JSON {path}: {exc}"
+
+
+def summary_target(payload: dict, target: str) -> dict:
+    summary = payload.get("summary") or {}
+    value = summary.get(target)
+    return value if isinstance(value, dict) else {}
+
+
+def target_timing(payload: dict, target: str) -> dict:
+    target_summary = summary_target(payload, target)
+    timing = target_summary.get("timing")
+    return timing if isinstance(timing, dict) else {}
+
+
+def target_metric_summary(payload: dict, target: str, key: str) -> dict:
+    target_summary = summary_target(payload, target)
+    value = target_summary.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def check_raw_resolution_receipts() -> list[Check]:
+    base13 = ARTIFACT_ROOT / "raw_resolution_targets_20260613"
+    base14 = ARTIFACT_ROOT / "raw_resolution_targets_20260614"
+    checks: list[Check] = []
+
+    fast_pi_path = base14 / "pi5_l2drop_stream_v2_120f" / "raw_resolution_targets_pi5_120f.json"
+    mask4_pi_path = base14 / "pi5_l2mask4_stream_v3_120f" / "raw_resolution_targets_pi5_120f.json"
+    visual2k_path = base14 / "visual_2k_l2mask4_28f" / "raw_resolution_targets_visual_dashboard.json"
+    visual4k_path = base14 / "visual_4k_28f" / "raw_resolution_targets_visual_dashboard.json"
+    quality_path = base13 / "quality_2k4k8k_3f" / "raw_resolution_targets_quality.json"
+    bench8k_path = base13 / "smoke_2k4k8k_3f" / "raw_resolution_targets_bench.json"
+
+    fast_pi, err = read_json_receipt(fast_pi_path)
+    if err:
+        checks.append(Check("raw_targets", "2K fast Pi timing receipt", "FAIL", err))
+    else:
+        timing = target_timing(fast_pi or {}, "2k_raw_0p5x")
+        fps = float(timing.get("fps_median", 0.0))
+        ms = float(timing.get("median_ms", 999.0))
+        mode = (fast_pi or {}).get("decode_mode") or {}
+        ok = (
+            fps >= 24.0
+            and ms < 41.7
+            and bool(mode.get("halfres_drop_l2_hp"))
+            and bool(mode.get("halfres_stream"))
+        )
+        checks.append(Check(
+            "raw_targets",
+            "2K fast Pi timing receipt",
+            "PASS" if ok else "FAIL",
+            f"fps_median={fps:.2f} median_ms={ms:.1f} mode={mode} receipt={fast_pi_path}",
+        ))
+
+    mask4_pi, err = read_json_receipt(mask4_pi_path)
+    if err:
+        checks.append(Check("raw_targets", "2K L2 HH Pi timing receipt", "FAIL", err))
+    else:
+        timing = target_timing(mask4_pi or {}, "2k_raw_0p5x")
+        fps = float(timing.get("fps_median", 0.0))
+        ms = float(timing.get("median_ms", 999.0))
+        mode = (mask4_pi or {}).get("decode_mode") or {}
+        ok = (
+            fps >= 24.0
+            and ms < 41.7
+            and mode.get("halfres_l2_mask") == "4"
+            and bool(mode.get("halfres_stream"))
+        )
+        checks.append(Check(
+            "raw_targets",
+            "2K L2 HH Pi timing receipt",
+            "PASS" if ok else "FAIL",
+            f"fps_median={fps:.2f} median_ms={ms:.1f} mode={mode} receipt={mask4_pi_path}",
+        ))
+
+    visual2k, err = read_json_receipt(visual2k_path)
+    if err:
+        checks.append(Check("raw_targets", "2K L2 HH visual proxy receipt", "FAIL", err))
+    else:
+        summary = (visual2k or {}).get("summary") or {}
+        pass_count = int(summary.get("pass_count", -1))
+        count = int(summary.get("count", 0))
+        worst_lpips = float(summary.get("worst_lpips", 999.0))
+        ok = (
+            (visual2k or {}).get("target") == "2k_raw_0p5x"
+            and count == 84
+            and pass_count == 80
+            and worst_lpips < 0.16
+        )
+        checks.append(Check(
+            "raw_targets",
+            "2K L2 HH visual proxy receipt",
+            "PASS" if ok else "FAIL",
+            f"{pass_count}/{count} worst_lpips={worst_lpips:.4f} receipt={visual2k_path}",
+        ))
+
+    visual4k, err = read_json_receipt(visual4k_path)
+    if err:
+        checks.append(Check("raw_targets", "4K rendered proxy blocker receipt", "FAIL", err))
+    else:
+        summary = (visual4k or {}).get("summary") or {}
+        pass_count = int(summary.get("pass_count", -1))
+        count = int(summary.get("count", 0))
+        worst_lpips = float(summary.get("worst_lpips", 0.0))
+        worst_y = float(summary.get("worst_y_psnr", 0.0))
+        worst_de = float(summary.get("worst_dE2000_mean", 999.0))
+        ok = (
+            (visual4k or {}).get("target") == "4k_raw_1x"
+            and count == 84
+            and pass_count == 55
+            and worst_lpips > 0.30
+            and worst_y >= 28.0
+            and worst_de <= 3.0
+        )
+        checks.append(Check(
+            "raw_targets",
+            "4K rendered proxy blocker receipt",
+            "PASS" if ok else "FAIL",
+            f"{pass_count}/{count} worst_lpips={worst_lpips:.4f} worst_y={worst_y:.2f} "
+            f"worst_dE={worst_de:.2f} receipt={visual4k_path}",
+        ))
+
+    quality, err = read_json_receipt(quality_path)
+    if err:
+        checks.append(Check("raw_targets", "8K raw quality smoke receipt", "FAIL", err))
+    else:
+        psnr = target_metric_summary(quality or {}, "8k_raw_2x", "psnr_db")
+        mean_psnr = float(psnr.get("mean", 0.0))
+        count = int(summary_target(quality or {}, "8k_raw_2x").get("count", 0))
+        ok = count >= 3 and mean_psnr >= 45.0
+        checks.append(Check(
+            "raw_targets",
+            "8K raw quality smoke receipt",
+            "PASS" if ok else "FAIL",
+            f"count={count} mean_psnr={mean_psnr:.2f} receipt={quality_path}",
+        ))
+
+    bench8k, err = read_json_receipt(bench8k_path)
+    if err:
+        checks.append(Check("raw_targets", "8K offline timing smoke receipt", "FAIL", err))
+    else:
+        timing = target_timing(bench8k or {}, "8k_raw_2x")
+        fps = float(timing.get("fps_median", 0.0))
+        ms = float(timing.get("median_ms", 0.0))
+        ok = 0.0 < fps < 24.0 and ms > 40.0
+        checks.append(Check(
+            "raw_targets",
+            "8K offline timing smoke receipt",
+            "PASS" if ok else "FAIL",
+            f"fps_median={fps:.2f} median_ms={ms:.1f} classification=offline-only receipt={bench8k_path}",
+        ))
+
+    return checks
+
+
 def check_script_contains(area: str, name: str, rel_path: str, patterns: list[str]) -> Check:
     base = check_file(area, name, rel_path)
     if base.status != "PASS":
@@ -3041,6 +3202,7 @@ def main() -> int:
             ['FPS_WITH_CNN_MIN="${FPS_WITH_CNN_MIN:-24}"', 'FPS_NO_CNN_MIN="${FPS_NO_CNN_MIN:-24}"'],
         ),
     ])
+    checks.extend(check_raw_resolution_receipts())
     checks.extend(check_upresable_bench_receipt())
 
     print("=== production readiness audit ===")
