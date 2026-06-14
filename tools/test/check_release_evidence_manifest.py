@@ -157,6 +157,17 @@ def require_tracked_refs(
                 failures.append(f"{entry_id}: referenced {key[:-1]} is not tracked: {ref}")
 
 
+def require_artifact_ref(entry_id: str, key: str, ref: str, failures: list[str]) -> None:
+    if not ref.startswith("artifacts/"):
+        failures.append(f"{entry_id}: {key} must be under artifacts/: {ref}")
+        return
+    path = Path(ref)
+    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+        failures.append(f"{entry_id}: malformed {key} artifact path: {ref}")
+    if len(path.parts) < 2:
+        failures.append(f"{entry_id}: {key} artifact path must name a receipt: {ref}")
+
+
 def require_external_receipts(entry_id: str, entry: dict[str, Any], failures: list[str]) -> None:
     receipts = entry.get("external_receipts")
     if not isinstance(receipts, list) or not receipts:
@@ -166,8 +177,7 @@ def require_external_receipts(entry_id: str, entry: dict[str, Any], failures: li
         if not isinstance(receipt, str):
             failures.append(f"{entry_id}: external_receipts entries must be strings")
             continue
-        if not receipt.startswith("artifacts/"):
-            failures.append(f"{entry_id}: external receipt must be under artifacts/: {receipt}")
+        require_artifact_ref(entry_id, "external receipt", receipt, failures)
 
 
 def require_receipt_refs(
@@ -185,6 +195,7 @@ def require_receipt_refs(
             failures.append(f"{entry_id}: receipts entries must be strings")
             continue
         if receipt.startswith("artifacts/"):
+            require_artifact_ref(entry_id, "receipt", receipt, failures)
             continue
         path = ROOT / receipt
         if not path.exists():
@@ -283,7 +294,7 @@ def require_dashboard_contract(
     if not isinstance(dashboard, str) or not dashboard:
         failures.append(f"{entry_id}: dashboard entry needs dashboard")
     elif dashboard.startswith("artifacts/"):
-        pass
+        require_artifact_ref(entry_id, "dashboard", dashboard, failures)
     else:
         path = ROOT / dashboard
         if not path.exists():
@@ -434,10 +445,14 @@ def main() -> int:
             receipt = entry.get("external_receipt")
             dashboard = entry.get("dashboard")
             runtime_entrypoint = entry.get("runtime_entrypoint")
-            if not isinstance(receipt, str) or not receipt.startswith("artifacts/"):
-                failures.append(f"{entry_id}: external receipt must be under artifacts/")
-            if not isinstance(dashboard, str) or not dashboard.startswith("artifacts/"):
-                failures.append(f"{entry_id}: external dashboard must be under artifacts/")
+            if not isinstance(receipt, str):
+                failures.append(f"{entry_id}: external receipt must be a string")
+            else:
+                require_artifact_ref(entry_id, "external receipt", receipt, failures)
+            if not isinstance(dashboard, str):
+                failures.append(f"{entry_id}: external dashboard must be a string")
+            else:
+                require_artifact_ref(entry_id, "external dashboard", dashboard, failures)
             if not isinstance(runtime_entrypoint, str) or runtime_entrypoint not in tracked:
                 failures.append(f"{entry_id}: runtime entrypoint must be tracked")
             metrics = entry.get("metrics")
