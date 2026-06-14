@@ -30,6 +30,28 @@ TARGET_2K_POLICY = {
     "2k_raw_0p5x_fast": "named target: drop L2 highpass",
     "2k_raw_0p5x_l2hh": "named target: restore selective L2 HH",
 }
+TARGET_2K_CHILD_DECODE_POLICY = {
+    "2k_raw_0p5x": {
+        "source": "environment",
+        "halfres_stream": True,
+        "halfres_drop_l2_hp": None,
+        "halfres_l2_mask": None,
+    },
+    "2k_raw_0p5x_fast": {
+        "source": "fused_decode_cli named target",
+        "halfres_stream": True,
+        "halfres_drop_l2_hp": True,
+        "halfres_l2_mask": None,
+        "stream_strips": 2,
+    },
+    "2k_raw_0p5x_l2hh": {
+        "source": "fused_decode_cli named target",
+        "halfres_stream": True,
+        "halfres_drop_l2_hp": False,
+        "halfres_l2_mask": 4,
+        "stream_strips": 2,
+    },
+}
 
 
 def percentile(sorted_values: list[float], frac: float) -> float:
@@ -173,6 +195,7 @@ def main() -> int:
         "frame_count": len(rows),
         "target_2k": args.target_2k,
         "target_2k_policy": TARGET_2K_POLICY[args.target_2k],
+        "target_2k_child_decode_policy": TARGET_2K_CHILD_DECODE_POLICY[args.target_2k],
         "git_commit": git_commit(),
         "cli": str(args.cli),
         "cli_sha256": file_sha256(args.cli),
@@ -183,7 +206,14 @@ def main() -> int:
             "machine": platform.machine(),
             "processor": platform.processor(),
         },
+        "parent_decode_env": {
+            "halfres_drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
+            "halfres_l2_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
+            "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",
+        },
         "decode_mode": {
+            "deprecated": True,
+            "note": "Parent environment only. Named 2K targets set their decode policy inside fused_decode_cli; use target_2k_child_decode_policy.",
             "halfres_drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
             "halfres_l2_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
             "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",

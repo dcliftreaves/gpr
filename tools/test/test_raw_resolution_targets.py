@@ -13,6 +13,9 @@ sys.path.insert(0, str(REPO / "tools/cnn"))
 
 from bench_raw_resolution_targets import downsample_bayer_0p5x  # noqa: E402
 
+sys.path.insert(0, str(REPO / "tools/test"))
+from run_pi_raw_resolution_bench import TARGET_2K_CHILD_DECODE_POLICY, TARGET_2K_POLICY  # noqa: E402
+
 
 def assemble_rggb(r: np.ndarray, g1: np.ndarray, g2: np.ndarray, b: np.ndarray) -> np.ndarray:
     out = np.zeros((r.shape[0] * 2, r.shape[1] * 2), dtype=np.uint16)
@@ -57,5 +60,22 @@ def test_downsample_bayer_0p5x_preserves_cfa_planes() -> None:
     np.testing.assert_array_equal(candidate, expected)
 
 
+def test_named_2k_target_policies_are_distinct() -> None:
+    fast = TARGET_2K_CHILD_DECODE_POLICY["2k_raw_0p5x_fast"]
+    l2hh = TARGET_2K_CHILD_DECODE_POLICY["2k_raw_0p5x_l2hh"]
+
+    assert TARGET_2K_POLICY["2k_raw_0p5x_fast"] == "named target: drop L2 highpass"
+    assert TARGET_2K_POLICY["2k_raw_0p5x_l2hh"] == "named target: restore selective L2 HH"
+    assert fast["source"] == "fused_decode_cli named target"
+    assert l2hh["source"] == "fused_decode_cli named target"
+    assert fast["halfres_drop_l2_hp"] is True
+    assert fast["halfres_l2_mask"] is None
+    assert l2hh["halfres_drop_l2_hp"] is False
+    assert l2hh["halfres_l2_mask"] == 4
+    assert fast["stream_strips"] == 2
+    assert l2hh["stream_strips"] == 2
+
+
 if __name__ == "__main__":
     test_downsample_bayer_0p5x_preserves_cfa_planes()
+    test_named_2k_target_policies_are_distinct()

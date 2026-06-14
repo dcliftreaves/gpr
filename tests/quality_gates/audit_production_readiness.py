@@ -2840,6 +2840,56 @@ def pi_receipt_metadata_ok(payload: dict, target: str, policy: str) -> bool:
     )
 
 
+def expected_2k_child_policy(target: str) -> dict:
+    if target == "2k_raw_0p5x_fast":
+        return {
+            "source": "fused_decode_cli named target",
+            "halfres_stream": True,
+            "halfres_drop_l2_hp": True,
+            "halfres_l2_mask": None,
+            "stream_strips": 2,
+        }
+    if target == "2k_raw_0p5x_l2hh":
+        return {
+            "source": "fused_decode_cli named target",
+            "halfres_stream": True,
+            "halfres_drop_l2_hp": False,
+            "halfres_l2_mask": 4,
+            "stream_strips": 2,
+        }
+    return {
+        "source": "environment",
+        "halfres_stream": True,
+        "halfres_drop_l2_hp": None,
+        "halfres_l2_mask": None,
+    }
+
+
+def pi_child_policy_ok(payload: dict, target: str) -> bool:
+    """Check the child decode policy when the newer receipt schema records it.
+
+    Older Pi receipts only captured the parent benchmark environment. Named 2K
+    target policy is set inside fused_decode_cli, so the old parent field is
+    useful for debugging but not sufficient proof of the child decode mode.
+    """
+    observed = payload.get("target_2k_child_decode_policy")
+    if observed is None:
+        return True
+    expected = expected_2k_child_policy(target)
+    return all(observed.get(key) == value for key, value in expected.items())
+
+
+def pi_policy_detail(payload: dict, target: str) -> str:
+    child_policy = payload.get("target_2k_child_decode_policy")
+    if child_policy is None:
+        child_policy = expected_2k_child_policy(target)
+        source = "expected_child_policy"
+    else:
+        source = "child_policy"
+    parent_env = payload.get("parent_decode_env") or payload.get("decode_mode") or {}
+    return f"{source}={child_policy} parent_env={parent_env}"
+
+
 def check_raw_resolution_receipts() -> list[Check]:
     base13 = ARTIFACT_ROOT / "raw_resolution_targets_20260613"
     base14 = ARTIFACT_ROOT / "raw_resolution_targets_20260614"
@@ -2881,6 +2931,7 @@ def check_raw_resolution_receipts() -> list[Check]:
             and ms < 41.7
             and p95 < 41.7
             and bool(mode.get("halfres_stream"))
+            and pi_child_policy_ok(fast_pi or {}, target)
             and pi_receipt_metadata_ok(fast_pi or {}, target, "named target: drop L2 highpass")
         )
         checks.append(Check(
@@ -2888,7 +2939,8 @@ def check_raw_resolution_receipts() -> list[Check]:
             "2K fast Pi timing receipt",
             "PASS" if ok else "FAIL",
             f"fps_median={fps:.2f} median_ms={ms:.1f} p95_ms={p95:.1f} "
-            f"mode={mode} commit={(fast_pi or {}).get('git_commit', '')[:8]} receipt={fast_pi_path}",
+            f"{pi_policy_detail(fast_pi or {}, target)} commit={(fast_pi or {}).get('git_commit', '')[:8]} "
+            f"receipt={fast_pi_path}",
         ))
 
     mask4_pi, err = read_json_receipt(mask4_pi_path)
@@ -2906,6 +2958,7 @@ def check_raw_resolution_receipts() -> list[Check]:
             and ms < 41.7
             and p95 < 41.7
             and bool(mode.get("halfres_stream"))
+            and pi_child_policy_ok(mask4_pi or {}, target)
             and pi_receipt_metadata_ok(mask4_pi or {}, target, "named target: restore selective L2 HH")
         )
         checks.append(Check(
@@ -2913,7 +2966,7 @@ def check_raw_resolution_receipts() -> list[Check]:
             "2K L2 HH Pi p95-live timing receipt",
             "PASS" if ok else "FAIL",
             f"fps_median={fps:.2f} median_ms={ms:.1f} p95_ms={p95:.1f} "
-            f"p95_live={'yes' if p95 < 41.7 else 'no'} mode={mode} "
+            f"p95_live={'yes' if p95 < 41.7 else 'no'} {pi_policy_detail(mask4_pi or {}, target)} "
             f"commit={(mask4_pi or {}).get('git_commit', '')[:8]} receipt={mask4_pi_path}",
         ))
 

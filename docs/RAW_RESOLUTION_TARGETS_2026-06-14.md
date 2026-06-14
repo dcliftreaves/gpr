@@ -49,8 +49,8 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `pi5_l2drop_stream_v2_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K fast L2-drop Pi 5 timing with L2 streaming and explicit receipt schema |
 | `pi5_l2mask4_stream_v2_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing with L2 streaming |
 | `pi5_l2mask4_stream_v3_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing with L2 streaming and explicit receipt schema |
-| `raw_resolution_targets_20260614_alias_v4/pi5_2k_fast_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_fast` Pi 5 timing with commit, binary hash, and RSS metadata |
-| `raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_l2hh` Pi 5 timing with commit, binary hash, and RSS metadata |
+| `raw_resolution_targets_20260614_alias_v4/pi5_2k_fast_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_fast` Pi 5 timing with commit, binary hash, RSS metadata, and target policy |
+| `raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_l2hh` Pi 5 timing with commit, binary hash, RSS metadata, and target policy |
 | `raw_resolution_targets_20260614_analysis/quality_2k_l2hh_100f/raw_resolution_targets_quality.json` | 100 | named `2k_raw_0p5x_l2hh` raw quality receipt |
 | `hh_scale_sweep_2k_l2mask4_28f.json` | 28 images / 84 crops | HH amplitude sweep diagnostic |
 | `raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_explicit/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | named 2K L2 HH signal analysis and lower-right edge-margin probe |
@@ -163,7 +163,10 @@ until the exact source DNG/GPR pairing is verified.
 ## Next Production Work
 
 1. The long-running Pi receipts now use the named 2K target aliases and include
-   source commit, CLI hash, and RSS metadata. Keep future Pi timing passes on
+   source commit, CLI hash, RSS metadata, and the named target policy. New
+   receipts also record `target_2k_child_decode_policy`; parent environment
+   fields are debug-only because `fused_decode_cli` sets fast/L2-HH decode
+   policy inside the child process. Keep future Pi timing passes on
    `2k_raw_0p5x_fast` and `2k_raw_0p5x_l2hh`; `2k_raw_0p5x` remains as a
    compatibility/env-driven target.
 2. If 2K live preview must pass LPIPS <= 0.15 on every proxy crop, the next
