@@ -1,5 +1,12 @@
 # PREVIEW Runtime Policy Receipt
 
+Current status note, 2026-06-14: this document is a dated burn-down record for
+the scene-routed display-space PREVIEW work. It is not the current live
+camera-back ship policy. Current live PREVIEW is the bounded
+`preview_live_2k_l2hh_edge_safe_v1` policy in `tools/live_preview_policy.py`;
+current offline/review PREVIEW is the q8 three-way no-REF full-frame path
+indexed in `docs/release_evidence_manifest.json`.
+
 The no-REF crop-dashboard checkpoint is not production-promotable yet. It
 clears the clarified no-REF dashboard condition only with dashboard-shaped
 inputs: selected source winners and sample-index/crop-key conditioning.

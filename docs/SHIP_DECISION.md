@@ -81,14 +81,22 @@ CNN smooths mid-frequency texture on out-of-distribution content
 (Z8Z_6693 rendered LPIPS = 0.343); acceptable for editable raw, but
 the file is **not** a finished render.
 
-## TL;DR — Preview (codec only, no CNN)
+## TL;DR — PREVIEW
 
-| ship | pipeline | worst LPIPS | verdict |
-|---|---|---:|---|
-| PREVIEW | `codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools` | 0.100 | PASS |
+PREVIEW is split into two production roles:
 
-Note: this uses FUSED single-level (deprecated for stills) as a no-CNN
-fallback. Will move to legacy gpr_tools no-CNN at next iteration.
+| role | path | status |
+|---|---|---|
+| Offline/review PREVIEW | q8 three-way no-REF full-frame runtime path | PASS on the 28-image / 84-row holdout; 13.65 s/image, 0.073 fps, 5.37 GB RSS |
+| Live/camera-back PREVIEW | `preview_live_2k_l2hh_edge_safe_v1` over `2k_raw_0p5x_l2hh` | PASS only for the bounded 16 px edge-safe 2K display viewport; exact-edge rendered proxy remains diagnostic at 80/84 |
+| Historical codec-only PREVIEW | `codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools` | Historical single-level fallback; not the current live/camera-back production path |
+
+The current live policy is implemented by `tools/live_preview_policy.py` and
+indexed in `docs/release_evidence_manifest.json` as
+`preview_live_2k_l2hh_edge_safe`. It forbids REF content at render time,
+targets `2k_raw_0p5x_l2hh`, and ships only the 16 px edge-safe display
+viewport. See `docs/VIDEO_STATUS.md` and
+`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` for the receipts.
 
 ## End-to-end demo (validated 2026-05-26)
 
@@ -169,17 +177,16 @@ so historical run logs still resolve.
   estimate was ~0.5 fps. Either way, full-res VIDEO_FREEZE is a
   **desktop/post-process** pipeline, not embedded capture.
 
-### Embedded capture + desktop super-res (work in progress)
+### Embedded capture + desktop super-res
 
 - **`ml2_q3_dec2+bibo2x_ane_ml2_q3_dec2_diverse`** — Pi 5 captures at
   half-res (12.5 MP equivalent) via decimation, desktop applies a 2×
   super-res CNN to restore full resolution. Pi 5 sustained **24.93 fps
   median** measured 2026-05-26 (100-frame test, USB SSD writes, page
   cache defeated).
-- First retrain attempt (barnsky-only corpus, 200 images, 8 K tiles) FAILED
-  the gate on out-of-distribution content (LPIPS 0.44 on skin tones —
-  model over-fit to barn/sky textures). Diverse-corpus retrain
-  (498 images across 10 dates, 19,920 tiles) is in progress on M5.
+- The barnsky-only retrain failed on out-of-distribution content. The
+  production UPRESABLE path now uses the diverse BIBO_2x checkpoint and is
+  gated as editable raw by Bayer PSNR, not finished-render LPIPS.
 
 ## Per-image worst case (current best pipelines)
 

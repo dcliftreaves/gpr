@@ -2,6 +2,12 @@
 
 ## Status
 
+Current status note, 2026-06-14: this is a dated receipt for the scene-routed
+display-space PREVIEW candidate. It remains useful evidence for no-REF
+offline/review PREVIEW and for failure-mode analysis, but it is not the current
+live/camera-back ship policy. Live PREVIEW now ships only under the bounded
+`preview_live_2k_l2hh_edge_safe_v1` 2K edge-safe display policy.
+
 Temporary candidate registered:
 
 ```text

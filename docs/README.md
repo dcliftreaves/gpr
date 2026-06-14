@@ -13,6 +13,7 @@ Where to look for what. Last refreshed 2026-06-14.
 | how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
 | open work items + archived experiment branches | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
 | where production checkpoints/artifacts live | `PRODUCTION_ARTIFACTS.md` |
+| current live/camera-back PREVIEW policy | `RAW_RESOLUTION_TARGETS_2026-06-14.md`, `VIDEO_STATUS.md`, `../tools/live_preview_policy.py` |
 | PREVIEW runtime no-REF burn-down | `PREVIEW_RUNTIME_POLICY_2026-06-06.md` |
 | PREVIEW scene-router research | `PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md` |
 | Pi 5 encode timing at each q level | `STILLS_PI5_TIMING.md` |
@@ -58,6 +59,7 @@ Where to look for what. Last refreshed 2026-06-14.
 | `python3 tests/quality_gates/review_dashboard.py` | refresh decision dashboard |
 | `python3 tools/test/test_capabilities.py` | encoder regression (also in CI) |
 | `python3 tools/test/check_release_evidence_manifest.py` | validate production evidence manifest |
+| `python3 tools/live_preview_policy.py` | print the bounded live PREVIEW runtime policy |
 
 ## Session retrospectives
 
