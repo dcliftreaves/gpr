@@ -342,8 +342,8 @@ jobs:
 
       - name: Ship pipeline receipt audit
         # Verifies every registry role tagged ship-* has an exact committed
-        # PASS run receipt. Release prep runs the same script with --strict.
-        run: python3 tests/quality_gates/audit_ship_pipelines.py
+        # PASS run receipt, current gate hash, and claim receipt.
+        run: python3 tests/quality_gates/audit_ship_pipelines.py --strict
 
       - name: Run CNN regression (macOS only, dev-host deps)
         if: runner.os == 'macOS'

@@ -234,6 +234,7 @@ python3 tools/verify_production_artifacts.py
 python3 tools/live_preview_policy.py
 python3 tools/test/test_raw_resolution_targets.py
 python3 tests/quality_gates/check_registry_consistency.py
+python3 tests/quality_gates/audit_ship_pipelines.py --strict
 python3 tests/quality_gates/audit_production_readiness.py --strict
 ```
 

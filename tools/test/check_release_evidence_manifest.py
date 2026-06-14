@@ -945,6 +945,7 @@ def main() -> int:
         "tools/test/test_gvid_pack.sh",
         "tools/test/test_gvid_metadata.sh",
         "tests/quality_gates/check_registry_consistency.py",
+        "tests/quality_gates/audit_ship_pipelines.py --strict",
         "tests/quality_gates/audit_production_readiness.py --strict",
     ):
         if required not in release_check_text:
