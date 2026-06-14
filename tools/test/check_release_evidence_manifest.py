@@ -151,6 +151,8 @@ REQUIRED_RELEASE_CHECKS = (
     "python3 tools/test/check_release_evidence_manifest.py",
     "python3 tools/verify_production_artifacts.py",
     "python3 tools/verify_production_artifacts.py --strict",
+    "python3 tools/verify_release_manifest_artifacts.py",
+    "python3 tools/verify_release_manifest_artifacts.py --strict",
     "python3 tools/live_preview_policy.py",
     "python3 tools/test/test_raw_resolution_targets.py",
     "bash tools/test/test_gvid_pack.sh",
@@ -167,6 +169,7 @@ REQUIRED_CI_CHECKS = (
     "python3 tools/test/check_repo_artifact_hygiene.py",
     "python3 tools/test/check_release_evidence_manifest.py",
     "python3 tools/verify_production_artifacts.py",
+    "python3 tools/verify_release_manifest_artifacts.py",
     "python3 tools/live_preview_policy.py",
     "python3 tools/test/test_raw_resolution_targets.py",
     "bash tools/test/test_gvid_pack.sh",
@@ -177,6 +180,7 @@ REQUIRED_CI_CHECKS = (
 
 EXTERNAL_RELEASE_ONLY_CHECKS = (
     "python3 tools/verify_production_artifacts.py --strict",
+    "python3 tools/verify_release_manifest_artifacts.py --strict",
     "python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts",
     "python3 tests/quality_gates/audit_production_readiness.py --strict",
 )

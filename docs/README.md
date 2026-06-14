@@ -61,6 +61,7 @@ Where to look for what. Last refreshed 2026-06-14.
 | `python3 tools/test/test_capabilities.py` | encoder regression (also in CI) |
 | `python3 tools/test/check_release_evidence_manifest.py` | validate production evidence manifest |
 | `python3 tools/verify_production_artifacts.py` | inventory production checkpoint files and hashes |
+| `python3 tools/verify_release_manifest_artifacts.py` | inventory external dashboards, media, and receipt paths named by the release manifest |
 | `python3 tools/live_preview_policy.py` | print the bounded live PREVIEW runtime policy |
 
 ## Session retrospectives

@@ -68,6 +68,12 @@ jobs:
         # still requires the strict local check.
         run: python3 tools/verify_production_artifacts.py
 
+      - name: Release manifest artifact inventory
+        # Inventory mode exits 0 when external dashboards/media/checkpoints are
+        # absent, but still verifies that manifest artifact resolution remains
+        # runnable on every CI job. Release promotion requires --strict locally.
+        run: python3 tools/verify_release_manifest_artifacts.py
+
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
