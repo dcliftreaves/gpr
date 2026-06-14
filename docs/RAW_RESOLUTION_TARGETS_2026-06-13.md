@@ -49,6 +49,8 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `pi5_l2drop_stream_v2_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K fast L2-drop Pi 5 timing with L2 streaming and explicit receipt schema |
 | `pi5_l2mask4_stream_v2_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing with L2 streaming |
 | `pi5_l2mask4_stream_v3_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing with L2 streaming and explicit receipt schema |
+| `raw_resolution_targets_20260614_alias_v3/pi5_2k_fast_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_fast` Pi 5 timing with commit, binary hash, and RSS metadata |
+| `raw_resolution_targets_20260614_alias_v3/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_l2hh` Pi 5 timing with commit, binary hash, and RSS metadata |
 | `hh_scale_sweep_2k_l2mask4_28f.json` | 28 images / 84 crops | HH amplitude sweep diagnostic |
 
 ## Current Results
@@ -84,7 +86,9 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
   48.75 ms median, 20.5 fps median.
 - Pi 5 fast direct half-res mode with `GPR_DECODE_HALFRES_DROP_L2_HP=1`:
   31.4 ms median, 31.85 fps median before L2 streaming; 29.3 ms median,
-  34.13 fps median after L2 streaming.
+  34.13 fps median after L2 streaming. The named `2k_raw_0p5x_fast` alias
+  receipt from commit `4e1d134a` is 30.85 ms median, 31.4 ms p95,
+  32.41 fps median, with child peak RSS about 98 MB.
 - 100-frame raw quality against source-derived quarter-scale Bayer: 52.41 dB
   mean PSNR, 51.89 dB median PSNR, 7.44 LSB mean MAE.
 - 100-frame fast runtime quality with `GPR_DECODE_HALFRES_DROP_L2_HP=1`:
@@ -104,12 +108,16 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 - Pi 5 timing for `GPR_DECODE_HALFRES_L2_MASK=4` before L2 streaming: 47.5 ms
   median, 21.05 fps median, p95 51.1 ms. After routing the L2 stop point
   through the row-strip streaming inverse+color path: 38.7 ms median,
-  25.84 fps median, p95 41.8 ms.
+  25.84 fps median, p95 41.8 ms. The named `2k_raw_0p5x_l2hh` alias receipt
+  from commit `4e1d134a` is 40.35 ms median, 43.3 ms p95, 24.78 fps median,
+  with child peak RSS about 98 MB.
 - Current decision: selective L2 HH is now the 2K live-quality candidate. It
-  clears the Pi 5 24 fps decode-side target and fixes most LPIPS-only texture
-  misses while preserving structure, luma PSNR, and color. It is not a full
-  PREVIEW proxy pass yet because four crop rows remain just above LPIPS 0.15
-  (worst 0.1549). The low-detail L2-drop mode remains the fastest live mode.
+  clears the Pi 5 24 fps decode-side target by median and fixes most LPIPS-only
+  texture misses while preserving structure, luma PSNR, and color. It is not the
+  stable p95 live default because the latest p95 is 43.3 ms, and it is not a
+  full PREVIEW proxy pass yet because four crop rows remain just above LPIPS
+  0.15 (worst 0.1549). The low-detail L2-drop mode remains the stable live
+  mode.
 
 ### 8K raw 2x
 
@@ -131,11 +139,10 @@ until the exact source DNG/GPR pairing is verified.
 
 ## Next Production Work
 
-1. Refresh the long-running Pi receipts with the named 2K target aliases on
-   the next timing pass. `fused_decode_cli`, the raw-target bench/evaluator,
-   the visual dashboard, and the Pi bench now accept `2k_raw_0p5x_fast` and
-   `2k_raw_0p5x_l2hh`; `2k_raw_0p5x` remains as a compatibility/env-driven
-   target.
+1. The long-running Pi receipts now use the named 2K target aliases and include
+   source commit, CLI hash, and RSS metadata. Keep future Pi timing passes on
+   `2k_raw_0p5x_fast` and `2k_raw_0p5x_l2hh`; `2k_raw_0p5x` remains as a
+   compatibility/env-driven target.
 2. If 2K live preview must pass LPIPS <= 0.15 on every proxy crop, the next
    work is not generic sharpening, synthetic noise, or simple HH amplitude
    scaling: the 2026-06-14 probes reached only 65/84 for RGB unsharp, 57/84

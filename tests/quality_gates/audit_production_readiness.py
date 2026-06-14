@@ -2832,7 +2832,7 @@ def pi_receipt_metadata_ok(payload: dict, target: str, policy: str) -> bool:
 def check_raw_resolution_receipts() -> list[Check]:
     base13 = ARTIFACT_ROOT / "raw_resolution_targets_20260613"
     base14 = ARTIFACT_ROOT / "raw_resolution_targets_20260614"
-    base14_alias = ARTIFACT_ROOT / "raw_resolution_targets_20260614_alias_v2"
+    base14_alias = ARTIFACT_ROOT / "raw_resolution_targets_20260614_alias_v3"
     checks: list[Check] = []
 
     fast_pi_path = base14_alias / "pi5_2k_fast_alias_120f" / "raw_resolution_targets_pi5_120f.json"
