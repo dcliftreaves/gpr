@@ -2898,6 +2898,8 @@ def check_raw_resolution_receipts() -> list[Check]:
 
     fast_pi_path = base14_alias / "pi5_2k_fast_alias_120f" / "raw_resolution_targets_pi5_120f.json"
     mask4_pi_path = base14_alias / "pi5_2k_l2hh_alias_120f" / "raw_resolution_targets_pi5_120f.json"
+    fast_visual_path = base13 / "visual_fast_2k_28f" / "raw_resolution_targets_visual_dashboard.json"
+    fast_quality_path = base13 / "quality_2k_runtime_fast_l2drop_100f" / "raw_resolution_targets_quality.json"
     visual2k_path = base14 / "visual_2k_l2hh_28f_explicit" / "raw_resolution_targets_visual_dashboard.json"
     visual4k_path = base14 / "visual_4k_28f" / "raw_resolution_targets_visual_dashboard.json"
     quality2k_l2hh_path = (
@@ -2941,6 +2943,58 @@ def check_raw_resolution_receipts() -> list[Check]:
             f"fps_median={fps:.2f} median_ms={ms:.1f} p95_ms={p95:.1f} "
             f"{pi_policy_detail(fast_pi or {}, target)} commit={(fast_pi or {}).get('git_commit', '')[:8]} "
             f"receipt={fast_pi_path}",
+        ))
+
+    fast_visual, err = read_json_receipt(fast_visual_path)
+    if err:
+        checks.append(Check("raw_targets", "2K fast visual proxy receipt", "FAIL", err))
+    else:
+        summary = (fast_visual or {}).get("summary") or {}
+        pass_count = int(summary.get("pass_count", -1))
+        count = int(summary.get("count", 0))
+        worst_lpips = float(summary.get("worst_lpips", 999.0))
+        worst_ms = float(summary.get("worst_ms_ssim", 0.0))
+        worst_y = float(summary.get("worst_y_psnr", 0.0))
+        worst_de = float(summary.get("worst_dE2000_mean", 999.0))
+        ok = (
+            (fast_visual or {}).get("target") == "2k_raw_0p5x"
+            and count == 84
+            and pass_count == 56
+            and 0.15 < worst_lpips < 0.17
+            and worst_ms >= 0.95
+            and worst_y >= 28.0
+            and worst_de <= 3.0
+        )
+        checks.append(Check(
+            "raw_targets",
+            "2K fast visual proxy receipt",
+            "PASS" if ok else "FAIL",
+            f"{pass_count}/{count} worst_lpips={worst_lpips:.4f} worst_ms={worst_ms:.4f} "
+            f"worst_y={worst_y:.2f} worst_dE={worst_de:.2f} receipt={fast_visual_path}",
+        ))
+
+    fast_quality, err = read_json_receipt(fast_quality_path)
+    if err:
+        checks.append(Check("raw_targets", "2K fast raw quality receipt", "FAIL", err))
+    else:
+        summary = ((fast_quality or {}).get("summary") or {}).get("2k_raw_0p5x") or {}
+        psnr = summary.get("psnr_db") or {}
+        mae = summary.get("mae_lsb") or {}
+        p99 = summary.get("p99_abs_lsb") or {}
+        ok = (
+            int(summary.get("count", 0)) == 100
+            and float(psnr.get("mean", 0.0)) >= 55.0
+            and float(psnr.get("median", 0.0)) >= 54.0
+            and float(mae.get("mean", 999.0)) <= 7.0
+            and float(p99.get("median", 999.0)) <= 45.0
+        )
+        checks.append(Check(
+            "raw_targets",
+            "2K fast raw quality receipt",
+            "PASS" if ok else "FAIL",
+            f"n={int(summary.get('count', 0))} psnr_mean={float(psnr.get('mean', 0.0)):.2f} "
+            f"psnr_median={float(psnr.get('median', 0.0)):.2f} mae_mean={float(mae.get('mean', 0.0)):.2f} "
+            f"p99_median={float(p99.get('median', 0.0)):.1f} receipt={fast_quality_path}",
         ))
 
     mask4_pi, err = read_json_receipt(mask4_pi_path)

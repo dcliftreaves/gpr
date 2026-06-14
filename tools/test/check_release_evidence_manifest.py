@@ -345,6 +345,19 @@ def require_raw_target_contract(target: dict[str, Any], failures: list[str]) -> 
             if total <= 0 or passing < total:
                 failures.append(f"{target_id}: preview-capable raw target must pass every proxy row")
 
+    receipts = target.get("external_receipts")
+    receipt_text = "\n".join(str(receipt) for receipt in receipts or [])
+    tokens = target.get("receipt_tokens")
+    if not isinstance(tokens, list) or not tokens:
+        failures.append(f"{target_id}: raw target needs receipt_tokens")
+    else:
+        for token in tokens:
+            if not isinstance(token, str) or not token:
+                failures.append(f"{target_id}: receipt_tokens entries must be non-empty strings")
+                continue
+            if token not in receipt_text:
+                failures.append(f"{target_id}: no external receipt path contains token {token!r}")
+
 
 def require_preview_live_experimental_contract(entry: dict[str, Any], failures: list[str]) -> None:
     entry_id = str(entry.get("id", ""))

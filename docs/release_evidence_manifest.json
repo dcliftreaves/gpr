@@ -252,9 +252,15 @@
         "docs/VIDEO_STATUS.md",
         "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
       ],
+      "receipt_tokens": [
+        "pi5_2k_fast",
+        "visual_fast_2k",
+        "quality_2k_runtime_fast"
+      ],
       "external_receipts": [
         "artifacts/raw_resolution_targets_20260614_alias_v4/pi5_2k_fast_alias_120f/raw_resolution_targets_pi5_120f.json",
-        "artifacts/raw_resolution_targets_20260614/visual_2k_l2hh_28f_explicit/raw_resolution_targets_visual_dashboard.json"
+        "artifacts/raw_resolution_targets_20260613/visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.json",
+        "artifacts/raw_resolution_targets_20260613/quality_2k_runtime_fast_l2drop_100f/raw_resolution_targets_quality.json"
       ]
     },
     {
@@ -270,6 +276,11 @@
         "README.md",
         "docs/VIDEO_STATUS.md",
         "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "receipt_tokens": [
+        "pi5_2k_l2hh",
+        "visual_2k_l2hh",
+        "quality_2k_l2hh"
       ],
       "external_receipts": [
         "artifacts/raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json",
@@ -291,6 +302,11 @@
         "docs/VIDEO_STATUS.md",
         "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
       ],
+      "receipt_tokens": [
+        "visual_4k",
+        "quality_2k4k",
+        "raw_domain_lower_right_probe"
+      ],
       "external_receipts": [
         "artifacts/raw_resolution_targets_20260614/visual_4k_28f/raw_resolution_targets_visual_dashboard.json",
         "artifacts/raw_resolution_targets_20260613/quality_2k4k_100f/raw_resolution_targets_quality.json",
@@ -308,6 +324,10 @@
         "docs/VIDEO_STATUS.md",
         "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md",
         "docs/UPRESABLE_PIPELINE.md"
+      ],
+      "receipt_tokens": [
+        "quality_2k4k8k",
+        "smoke_2k4k8k"
       ],
       "external_receipts": [
         "artifacts/raw_resolution_targets_20260613/quality_2k4k8k_3f/raw_resolution_targets_quality.json",
