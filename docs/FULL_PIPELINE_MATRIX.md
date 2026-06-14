@@ -97,3 +97,7 @@ The fast mode is enabled with `GPR_DECODE_HALFRES_DROP_L2_HP=1`; it clears the
 Proxy visual receipt: `visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.html`.
 It passes 56/84 crop rows under PREVIEW proxy thresholds; misses are LPIPS-only
 texture near-misses, while MS-SSIM, Y-PSNR, and dE2000 remain passing.
+Selective L2 HH (`GPR_DECODE_HALFRES_L2_MASK=4`) improves the visual proxy to
+80/84 with worst LPIPS 0.1549, but the Pi 5 receipt is 47.5 ms median /
+21.05 fps median, so it is a diagnostic quality/performance tradeoff rather
+than a live production path.

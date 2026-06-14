@@ -25,7 +25,8 @@ Timing and quality scripts:
 - `tools/cnn/bench_raw_resolution_targets.py`
 - `tools/cnn/evaluate_raw_resolution_targets.py`
 
-Receipts were written under `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260613/`.
+Receipts were written under `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260613/`
+and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 
 | receipt | frames | targets |
 |---|---:|---|
@@ -39,6 +40,8 @@ Receipts were written under `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_
 | `quality_2k_runtime_fast_l2drop_100f/raw_resolution_targets_quality.json` | 100 | 2K fast runtime quality |
 | `visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 2K fast proxy visual dashboard |
 | `visual_2k_preserve_l2_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 2K preserve-L2 comparison dashboard |
+| `visual_2k_l2mask4_28f/raw_resolution_targets_visual_dashboard.json` | 28 images / 84 crops | 2K selective L2 HH visual diagnostic |
+| `pi5_l2mask4_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing |
 
 ## Current Results
 
@@ -77,11 +80,22 @@ Receipts were written under `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_
   37.31, worst dE2000 1.46.
 - Preserve-L2 comparison on the same proxy dashboard: 55/84 crops pass, worst
   LPIPS 0.1850, worst MS-SSIM 0.9684, worst Y-PSNR 35.56, worst dE2000 1.54.
+- Selective L2 highpass diagnostics with `GPR_DECODE_HALFRES_L2_MASK` show that
+  restoring only mask 4 (the L2 HH band) is the only quality-positive middle
+  ground: 80/84 crops pass, worst LPIPS 0.1549, worst MS-SSIM 0.9771, worst
+  Y-PSNR 37.60, worst dE2000 1.46. Other masks are worse: mask 1 = 56/84,
+  mask 2 = 55/84, mask 3 = 55/84, mask 5 = 56/84, mask 6 = 56/84, and full
+  mask 7 = 55/84.
+- Pi 5 timing for `GPR_DECODE_HALFRES_L2_MASK=4`: 47.5 ms median, 21.05 fps
+  median, p95 51.1 ms. This misses the 24 fps live target.
 - Current decision: the fast runtime mode clears the 24 fps Pi 5 decode-side
   target for 2K raw output. It is explicitly a low-detail/fast mode because it
   drops L2 highpass before the half-res reconstruction. The remaining proxy
   visual misses are LPIPS-only near-misses in lower-right landscape/texture
-  crops; structure, luma PSNR, and color all pass.
+  crops; structure, luma PSNR, and color all pass. Restoring actual L2 HH
+  detail fixes most LPIPS misses but is too slow on Pi 5, so the blocker is
+  specifically L2 highpass decode cost versus live FPS, not missing proof that
+  the bitstream contains useful detail.
 
 ### 8K raw 2x
 
@@ -106,8 +120,12 @@ until the exact source DNG/GPR pairing is verified.
 1. Decide whether the fast 2K mode should be a named registry/output policy or
    remain an env-gated live-preview path.
 2. If 2K live preview must pass LPIPS <= 0.15 on every proxy crop, the next
-   work is a small detail/noise synthesis stage after fast decode, not more
-   decoder plumbing.
+   work is not generic sharpening or synthetic noise: the 2026-06-14 probes
+   reached only 65/84 for RGB unsharp and 57/84 for deterministic fine-grain
+   synthesis. The useful signal is actual L2 HH. The production path needs
+   either a faster HH-band entropy/dequant/inverse path, an encoder-side
+   summary of that band, or a tiny source-derived predictor that mimics the HH
+   contribution below the remaining Pi 5 frame budget.
 3. Add rendered RGB/perceptual gates for 4K raw output. If the no-CNN
    paths pass, keep them no-CNN.
 4. Keep 8K as an offline/review target until a faster 2x raw reconstruction

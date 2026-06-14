@@ -57,7 +57,7 @@ large runs.
 | ProRes review | Review artifact path | Generated from preview/review tools, not the primary raw deliverable |
 | PREVIEW offline/review | PASS for q8 three-way runtime full-frame path | No-REF full-frame holdout passes 84/84 on the current receipt |
 | PREVIEW live/camera-back | Experimental | The q8 three-way route is not a live/camera-back preview path; codec-only and 2K raw fast paths are the current speed baselines |
-| 2K raw target | Pi live-capable candidate | Fast decode mode hits 31.85 fps median on Pi 5 with LPIPS-only proxy misses |
+| 2K raw target | Pi live-capable candidate | Fast decode mode hits 31.85 fps median on Pi 5 with LPIPS-only proxy misses; selective L2 HH improves quality but falls to 21.05 fps |
 | 4K raw target | Mac/offline candidate | 43.7 fps median on Mac path; Pi decode-side is 6.3 fps median |
 | 8K raw target | Offline/review only | Current 2x raw reconstruction is about 2.7 fps on the local timing smoke |
 
@@ -100,7 +100,7 @@ Raw output targets from the 24 fps capture stream:
 
 | target | dimensions | method | current classification |
 |---|---:|---|---|
-| `2k_raw_0p5x` | 2070 x 1380 | direct half-res decode; fast mode can drop L2 highpass | Pi live-capable candidate at 31.85 fps median |
+| `2k_raw_0p5x` | 2070 x 1380 | direct half-res decode; fast mode can drop L2 highpass | Pi live-capable candidate at 31.85 fps median; L2 HH quality diagnostic reaches 80/84 but is 21.05 fps |
 | `4k_raw_1x` | 4140 x 2760 | decoded Bayer from `ml2_q3_dec2` | Mac/offline candidate; Pi decode-side is not live |
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only |
 

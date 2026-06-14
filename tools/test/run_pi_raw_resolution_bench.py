@@ -132,6 +132,7 @@ def main() -> int:
         "frame_count": len(rows),
         "decode_mode": {
             "halfres_drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
+            "halfres_l2_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
         },
         "elapsed_s": time.time() - t0,
         "summary": {

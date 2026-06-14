@@ -830,10 +830,16 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
         const char *e = getenv("GPR_DECODE_TIMING");
         if (e && *e == '1') dbg_timing = 1;
     }
-    int drop_l2_hp = 0;
+    int l2_hp_mask = 7;
     {
-        const char *e = getenv("GPR_DECODE_HALFRES_DROP_L2_HP");
-        if (half_res && e && *e == '1') drop_l2_hp = 1;
+        const char *drop = getenv("GPR_DECODE_HALFRES_DROP_L2_HP");
+        const char *mask = getenv("GPR_DECODE_HALFRES_L2_MASK");
+        if (half_res && drop && *drop == '1') l2_hp_mask = 0;
+        if (half_res && mask && *mask) {
+            char *end = NULL;
+            long v = strtol(mask, &end, 0);
+            if (end != mask && v >= 0 && v <= 7) l2_hp_mask = (int)v;
+        }
     }
     if (levels == 2) {
         slot_w[0]=bw1; slot_w[1]=bw1; slot_w[2]=bw1;
@@ -865,7 +871,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
             int bw = slot_w[s], bh = slot_h[s];
             uint32_t sz = band_sizes[band_idx];
             if (off + sz > enc_size) { rc = -10; break; }
-            if (half_res && (s <= 2 || (drop_l2_hp && s >= 3 && s <= 5))) {
+            if (half_res && (s <= 2 || (s >= 3 && s <= 5 && !(l2_hp_mask & (1 << (s - 3)))))) {
                 off += sz;
                 band_idx++;
                 continue;
@@ -978,7 +984,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
             pthread_t threads[4];
             int created[4] = {0};
             PIXEL *zero_hp = NULL;
-            if (drop_l2_hp) {
+            if (l2_hp_mask != 7) {
                 zero_hp = (PIXEL *)calloc((size_t)bw2 * bh2, sizeof(PIXEL));
                 if (!zero_hp) rc = -24;
             }

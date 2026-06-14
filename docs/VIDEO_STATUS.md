@@ -100,7 +100,7 @@ For video you need either:
 
 | target | dimensions | method | current status |
 |---|---:|---|---|
-| 2K / 0.5x | 2070 x 1380 | direct half-res decode; fast mode drops L2 highpass | Pi fast mode: 31.4 ms median, 31.85 fps median; raw quality 55.14 dB mean PSNR; proxy visual dashboard 56/84 crop rows pass with LPIPS-only texture near-misses |
+| 2K / 0.5x | 2070 x 1380 | direct half-res decode; fast mode drops L2 highpass | Pi fast mode: 31.4 ms median, 31.85 fps median; raw quality 55.14 dB mean PSNR; proxy visual dashboard 56/84 crop rows pass with LPIPS-only texture near-misses. Selective L2 HH improves to 80/84 but falls to 47.5 ms median, 21.05 fps median on Pi 5 |
 | 4K / 1x | 4140 x 2760 | direct decoded Bayer | Mac: 22.9 ms median, 43.7 fps median. Pi decode-side: 159.6 ms median, 6.3 fps median |
 | 8K / 2x | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only at current speed |
 
@@ -110,7 +110,10 @@ Details and receipts are in `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md`.
 
 1. **Live PREVIEW performance** — choose and productionize a fast
    camera-back display path. The q8 three-way route is quality-valid for
-   offline/review output but runs at 0.073 fps on Mac/MPS.
+   offline/review output but runs at 0.073 fps on Mac/MPS. For 2K raw live
+   decode, the current fast path clears 24 fps but has LPIPS-only texture
+   misses; restoring only L2 HH fixes most of those misses but drops Pi 5
+   decode to 21.05 fps, narrowing the blocker to HH-band decode cost.
 2. **Codec perf** — 2026-05-28 landed three Pi 5 wins:
    (a) parallel DNG SDK input decode (2.89× on legacy stills, commits
    `79403fb` + `ec1cb2c`);
