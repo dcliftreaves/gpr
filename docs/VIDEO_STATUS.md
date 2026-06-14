@@ -101,7 +101,7 @@ For video you need either:
 | target | dimensions | method | current status |
 |---|---:|---|---|
 | 2K / 0.5x | 2070 x 1380 | direct half-res decode; fast mode drops L2 highpass; quality mode restores selective L2 HH | Pi fast mode: 29.3 ms median, 34.13 fps median; raw quality 55.14 dB mean PSNR; proxy visual dashboard 56/84 crop rows pass with LPIPS-only texture near-misses. Selective L2 HH improves to 80/84 and now clears Pi 5 timing at 38.7 ms median, 25.84 fps median |
-| 4K / 1x | 4140 x 2760 | direct decoded Bayer | Mac: 22.9 ms median, 43.7 fps median. Pi decode-side: 159.6 ms median, 6.3 fps median |
+| 4K / 1x | 4140 x 2760 | direct decoded Bayer | Mac: 22.9 ms median, 43.7 fps median. Pi decode-side: 159.6 ms median, 6.3 fps median. Rendered proxy: 55/84 with LPIPS texture misses |
 | 8K / 2x | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only at current speed |
 
 Details and receipts are in `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md`.

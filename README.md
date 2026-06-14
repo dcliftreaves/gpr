@@ -58,7 +58,7 @@ large runs.
 | PREVIEW offline/review | PASS for q8 three-way runtime full-frame path | No-REF full-frame holdout passes 84/84 on the current receipt |
 | PREVIEW live/camera-back | Experimental | The q8 three-way route is not a live/camera-back preview path; codec-only and 2K raw fast paths are the current speed baselines |
 | 2K raw target | Pi live-capable candidate | Fast decode mode hits 34.13 fps median on Pi 5; selective L2 HH reaches 80/84 proxy crops and still clears live timing at 25.84 fps |
-| 4K raw target | Mac/offline candidate | 43.7 fps median on Mac path; Pi decode-side is 6.3 fps median |
+| 4K raw target | Mac/offline candidate with perceptual blocker | 43.7 fps median on Mac path; Pi decode-side is 6.3 fps median; rendered proxy is 55/84 with LPIPS texture misses |
 | 8K raw target | Offline/review only | Current 2x raw reconstruction is about 2.7 fps on the local timing smoke |
 
 Source of truth:
@@ -101,7 +101,7 @@ Raw output targets from the 24 fps capture stream:
 | target | dimensions | method | current classification |
 |---|---:|---|---|
 | `2k_raw_0p5x` | 2070 x 1380 | direct half-res decode; fast mode can drop L2 highpass or restore selective L2 HH | Pi live-capable candidate at 34.13 fps median fast mode; L2 HH quality mode reaches 80/84 and 25.84 fps |
-| `4k_raw_1x` | 4140 x 2760 | decoded Bayer from `ml2_q3_dec2` | Mac/offline candidate; Pi decode-side is not live |
+| `4k_raw_1x` | 4140 x 2760 | decoded Bayer from `ml2_q3_dec2` | Mac/offline candidate; Pi decode-side is not live; rendered proxy receipt is 55/84 |
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only |
 
 Latest raw-target receipts are summarized in
@@ -164,6 +164,7 @@ export GPR_DECODE_HALFRES_DROP_L2_HP=1
 
 python3 tools/cnn/evaluate_raw_resolution_targets.py --runtime-2k-target
 python3 tools/cnn/build_raw_resolution_visual_dashboard.py --limit 28
+python3 tools/cnn/build_raw_resolution_visual_dashboard.py --target 4k_raw_1x --limit 28
 ```
 
 On a Pi 5 target:

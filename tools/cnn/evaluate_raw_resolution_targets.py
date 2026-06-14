@@ -50,6 +50,7 @@ def find_source_dng(image_id: str, roots: list[Path]) -> Path | None:
 
 
 def read_bayer_from_dng(path: Path) -> np.ndarray:
+    errors: list[str] = []
     with tifffile.TiffFile(path) as tf:
         # Prefer the largest 2D page/subpage. This handles both ordinary DNGs
         # and DNGs with previews/thumbnails.
@@ -62,9 +63,20 @@ def read_bayer_from_dng(path: Path) -> np.ndarray:
                 except Exception:
                     continue
                 if len(shape) == 2 and shape[0] > 1000 and shape[1] > 1000:
-                    candidates.append(subpage.asarray())
+                    try:
+                        candidates.append(subpage.asarray())
+                    except Exception as exc:
+                        errors.append(f"{type(exc).__name__}: {exc}")
         if not candidates:
-            raise RuntimeError(f"no Bayer-like 2D page found in {path}")
+            try:
+                import rawpy
+
+                with rawpy.imread(str(path)) as raw:
+                    return np.asarray(raw.raw_image.copy(), dtype=np.uint16)
+            except Exception as exc:
+                errors.append(f"rawpy {type(exc).__name__}: {exc}")
+                detail = "; ".join(errors[-3:])
+                raise RuntimeError(f"no Bayer-like 2D page found in {path}; {detail}") from exc
         arr = max(candidates, key=lambda item: item.shape[0] * item.shape[1])
     return np.asarray(arr, dtype=np.uint16)
 

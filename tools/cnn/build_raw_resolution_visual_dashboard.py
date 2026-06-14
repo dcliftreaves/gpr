@@ -31,7 +31,8 @@ from metrics import compute_visual_metrics  # noqa: E402
 
 
 PREVIEW = {"lpips": 0.15, "ms_ssim": 0.95, "y_psnr": 28.0, "dE2000_mean": 3.0}
-TARGET = "2k_raw_0p5x"
+TARGET_CHOICES = ("2k_raw_0p5x", "4k_raw_1x")
+DEFAULT_TARGET = "2k_raw_0p5x"
 
 
 def bayer_to_proxy_rgb(bayer: np.ndarray, lo: float, hi: float) -> np.ndarray:
@@ -132,7 +133,7 @@ def write_dashboard(out_path: Path, payload: dict[str, Any]) -> None:
     parts = [
         "<!doctype html><html><head><meta charset='utf-8'>",
         f"<title>{html.escape(payload['schema'])}</title><style>{css}</style></head><body>",
-        "<h1>2K Raw Runtime Visual Dashboard</h1>",
+        f"<h1>{html.escape(payload['target'])} Raw Runtime Visual Dashboard</h1>",
         f"<div class=sub>Generated {html.escape(payload['generated_at'])}. Target {html.escape(payload['target'])}. "
         f"Drop L2 HP: {payload['drop_l2_hp']}. L2 mask: {html.escape(str(payload.get('l2_hp_mask')))}. "
         f"Halfres stream: {payload.get('halfres_stream')}</div>",
@@ -162,7 +163,7 @@ def write_dashboard(out_path: Path, payload: dict[str, Any]) -> None:
             f"<span class={cls}>LPIPS {m['lpips']:.4f}, MS {m['ms_ssim']:.4f}, Y {m['y_psnr']:.2f}, dE {m['dE2000_mean']:.2f}</span>"
             "<div class=thumbs>"
         )
-        for label, key in (("REF proxy", "ref_png"), ("FAST 2K", "candidate_png"), ("diff x4", "diff_png")):
+        for label, key in (("REF proxy", "ref_png"), (payload["target"], "candidate_png"), ("diff x4", "diff_png")):
             rel = Path(row[key]).relative_to(out_path.parent)
             parts.append(f"<figure><img src='{html.escape(str(rel))}'><figcaption>{label}</figcaption></figure>")
         parts.append("</div></div>")
@@ -192,6 +193,7 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=28)
     ap.add_argument("--image-id", action="append", default=[])
     ap.add_argument("--crop-size", type=int, default=512)
+    ap.add_argument("--target", choices=TARGET_CHOICES, default=DEFAULT_TARGET)
     args = ap.parse_args()
 
     source_roots = args.source_root or source_roots_default
@@ -212,9 +214,9 @@ def main() -> int:
             if source is None:
                 missing.append({"image_id": image_id, "reason": "missing_source_dng"})
                 continue
-            ref_bayer = source_targets(read_bayer_from_dng(source))[TARGET]
-            cand_raw = work / f"{image_id}_{TARGET}.raw"
-            target_info = decode_gpr_target(args.decoder, frame, args.sensor_width, args.sensor_height, cand_raw, TARGET)
+            ref_bayer = source_targets(read_bayer_from_dng(source))[args.target]
+            cand_raw = work / f"{image_id}_{args.target}.raw"
+            target_info = decode_gpr_target(args.decoder, frame, args.sensor_width, args.sensor_height, cand_raw, args.target)
             cand_bayer = np.fromfile(cand_raw, dtype="<u2").reshape(int(target_info["height"]), int(target_info["width"]))
             cand_raw.unlink(missing_ok=True)
             if cand_bayer.shape != ref_bayer.shape:
@@ -260,7 +262,7 @@ def main() -> int:
     payload = {
         "schema": "raw_resolution_targets_visual_dashboard.v1",
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S %Z"),
-        "target": TARGET,
+        "target": args.target,
         "drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
         "l2_hp_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
         "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",

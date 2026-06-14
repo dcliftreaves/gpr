@@ -41,6 +41,7 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 2K fast proxy visual dashboard |
 | `visual_2k_preserve_l2_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 2K preserve-L2 comparison dashboard |
 | `visual_2k_l2mask4_28f/raw_resolution_targets_visual_dashboard.json` | 28 images / 84 crops | 2K selective L2 HH visual diagnostic |
+| `visual_4k_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 4K rendered proxy visual dashboard |
 | `pi5_l2mask4_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing |
 | `pi5_l2drop_stream_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K fast L2-drop Pi 5 timing with L2 streaming |
 | `pi5_l2mask4_stream_v2_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing with L2 streaming |
@@ -57,9 +58,15 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 - Pi 5 120-frame decode-side timing: 159.6 ms median, 6.3 fps median.
 - 100-frame raw quality against source-derived half-scale Bayer: 50.25 dB mean
   PSNR, 49.78 dB median PSNR, 10.41 LSB mean MAE.
-- Current decision: production candidate for Mac/offline raw output. It is not
-  a 24 fps Pi decode-side path until `gpr_decode_fused` is accelerated or the
-  live path avoids decode.
+- 28-image / 84-crop rendered proxy dashboard: 55/84 crops pass PREVIEW proxy
+  thresholds, worst LPIPS 0.3327, worst MS-SSIM 0.8772, worst Y-PSNR 30.82,
+  worst dE2000 2.11. Failures are 27 LPIPS-only rows plus two LPIPS+MS-SSIM
+  rows, concentrated in lower-right texture/detail crops.
+- Current decision: production candidate for Mac/offline raw output with a
+  documented rendered-proxy blocker. It is not a 24 fps Pi decode-side path
+  until `gpr_decode_fused` is accelerated or the live path avoids decode, and
+  it should not be promoted to a rendered/perceptual production path until the
+  LPIPS texture misses are closed or explicitly scoped out.
 
 ### 2K raw 0.5x
 
@@ -129,7 +136,8 @@ until the exact source DNG/GPR pairing is verified.
    for deterministic fine-grain synthesis, and 80/84 for the best HH scale
    sweep. The useful signal is actual L2 HH and it now fits the Pi 5 frame
    budget; the remaining blocker is four near-threshold LPIPS rows.
-3. Add rendered RGB/perceptual gates for 4K raw output. If the no-CNN
-   paths pass, keep them no-CNN.
+3. Close or scope the 4K rendered-proxy blocker. The current no-CNN 4K path has
+   raw PSNR evidence but passes only 55/84 rendered proxy rows, dominated by
+   LPIPS texture misses.
 4. Keep 8K as an offline/review target until a faster 2x raw reconstruction
    exists and clears both quality and timing gates.
