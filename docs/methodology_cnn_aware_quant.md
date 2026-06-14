@@ -350,7 +350,7 @@ measures.
 
 This paper does not attribute how much of the +5.6 dB gain comes from
 the CNN inverting genuine HH1 quant noise vs hallucinating plausible
-diagonal structure from LH1/HL1/LL. That ablation is TODO.
+diagonal structure from LH1/HL1/LL. That ablation remains open.
 
 ## 7. Production implications
 
@@ -380,14 +380,14 @@ quality. Soft upgrade.
 * **HH2 content-dependence (§4.3).** The +2.74 dB CNN gain on barn_sky
   doesn't survive on diverse content. No HH2-targeted retrained
   checkpoint exists yet; the same training-distribution hypothesis
-  should apply. TODO.
+  should apply.
 * **2× super-res variant.** A separate checkpoint takes half-res
   bayer in / full-res bayer out (1× → 2× SR). It almost certainly has
   the same training-distribution gap on HH1; retraining is in flight,
-  results not in this paper. TODO.
+  results are not in this paper.
 * **Combined-knob stacking.** The +5.6 / +4.4 / +4.2 dB gains were
   measured independently. Whether they stack or the retrained CNN
-  saturates at ~5 dB total is unmeasured. TODO.
+  saturates at ~5 dB total remains unmeasured.
 * **Content-adaptive encoder.** PR #21 ships the cranked-quant table
   as a static preset. A cleaner long-term design picks the per-subband
   table per-frame from highpass energy. Out of scope here.
@@ -397,7 +397,7 @@ quality. Soft upgrade.
 * **Bayer-domain PSNR only.** Downstream demosaic + UHD render can
   amplify or attenuate per-subband distortion. PR #17 spot-checks
   that render-domain PSNR moves the same direction; a full
-  demosaic-domain sweep is TODO.
+  demosaic-domain sweep remains open.
 * **The `q>5` regression (#159, #162)** is real and limits where this
   work can be applied. The `q=11` cranked-quant table must stay within
   the per-band floor introduced in PR #16 and extended in PR #20.

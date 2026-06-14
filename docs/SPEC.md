@@ -157,13 +157,14 @@ the 12-bit and 14-bit code paths). `is_rggb` is `1` iff
 The header field `log_bits` carries the operative log/decode bit depth
 and the decoder always trusts it over `pixel_format`.
 
-TODO: the legacy `vc5_encoder.h` enum (`VC5_ENCODER_PIXEL_FORMAT`)
-includes packed-12 variants (`RGGB_12P`, `GBRG_12P`) that route through
-the legacy VC5 encoder. FUSED does not accept packed-12 input; this is
-the `gpr_tools` / `vc5_encoder_process` API boundary. Mapping from
-the legacy enum (values 0-6) to the FUSED `pixel_format` field (values
-0-5) is not 1:1 and needs to be documented in a delta table; for now
-see `vc5_encoder_process` in `vc5_encoder.c`.
+Open spec note: the legacy `vc5_encoder.h` enum
+(`VC5_ENCODER_PIXEL_FORMAT`) includes packed-12 variants (`RGGB_12P`,
+`GBRG_12P`) that route through the legacy VC5 encoder. FUSED does not
+accept packed-12 input; this is the `gpr_tools` /
+`vc5_encoder_process` API boundary. Mapping from the legacy enum
+(values 0-6) to the FUSED `pixel_format` field (values 0-5) is not 1:1;
+until a dedicated delta table is added, `vc5_encoder_process` in
+`vc5_encoder.c` is the source of truth.
 
 ### 2.3 Band manifest
 
@@ -663,15 +664,15 @@ reconstructs `qt[k]` from the preset table and must NOT apply the
 scale (the encoder bakes it into the divisor it actually used and the
 per-band magnitudes are stored at the scaled units).
 
-TODO: this is a leaky abstraction — the bitstream loses the
-information about what the actual divisors were. The decoder still
+Open spec note: this is a leaky abstraction because the bitstream loses
+the information about what the actual divisors were. The decoder still
 works because the quant value only affects the **dequant** step
 (multiply by `qt[k]`), and the encoder's quantized magnitudes are
 already at the scaled units. But this means a file encoded with
-`scale != 1.0` cannot be reproduced from its bitstream without
-external knowledge of the scale. This needs to become an
-explicit per-band quant table in the file before the spec is
-shippable. See `docs/ENV_VAR_CLEANUP.md`.
+`scale != 1.0` cannot be reproduced from its bitstream without external
+knowledge of the scale. This needs to become an explicit per-band quant
+table in the file before the FUSED spec is considered shippable. See
+`docs/ENV_VAR_CLEANUP.md`.
 
 ---
 
@@ -715,9 +716,9 @@ Reference: `source/lib/vc5_common/ans_joint.{h,c}`. Bit layout of the
 blob itself is not duplicated here; an implementer producing a
 new coder must regression-test against `jans_decode_band_x4`.
 
-TODO: extract the rANS blob layout (header bytes, freq-table
-serialization, stripe-mode framing) into a dedicated subsection of
-this spec. Currently the reference C code is the source of truth.
+Open spec note: the rANS blob layout (header bytes, frequency-table
+serialization, stripe-mode framing) still needs a dedicated subsection.
+Until that is written, the reference C code is the source of truth.
 
 ---
 
@@ -756,10 +757,10 @@ For full VC5 bitstream documentation, refer to:
   ordering of header tags + per-channel encode.
 * `docs/format-spec-v2.md` for the DNG container framing.
 
-TODO: this section is intentionally light. The full legacy VC5
-bitstream syntax (tag-value sequence, codeblock structure, VLC
-codebooks) is substantial and should live in its own document.
-Until that exists, the source files above are the spec.
+Open spec note: this section is intentionally light. The full legacy
+VC5 bitstream syntax (tag-value sequence, codeblock structure, VLC
+codebooks) is substantial and should live in its own document. Until
+that exists, the source files above are the spec.
 
 ---
 
