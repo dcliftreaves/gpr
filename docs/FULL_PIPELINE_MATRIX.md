@@ -86,23 +86,23 @@ See `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md` for receipts.
 
 | raw target | dimensions | method | local timing |
 |---|---:|---|---:|
-| `2k_raw_0p5x_fast` | 2070 x 1380 | direct half-res decode; drops L2 highpass | Pi fast mode: 30.85 ms median, 31.4 ms p95, 32.41 fps median |
-| `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode; restores selective L2 HH | L2 HH quality mode: 40.35 ms median, 43.3 ms p95, 24.78 fps median |
+| `2k_raw_0p5x_fast` | 2070 x 1380 | direct half-res decode; drops L2 highpass | Pi fast mode: 26.6 ms median, 27.7 ms p95, 37.59 fps median |
+| `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode; restores selective L2 HH | L2 HH quality mode: 33.5 ms median, 37.1 ms p95, 29.85 fps median |
 | `4k_raw_1x` | 4140 x 2760 | direct decoded Bayer | Mac: 22.9 ms median, 43.7 fps median; rendered proxy: 55/84 |
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | 376.4 ms median, 2.7 fps median |
 
 Pi 5 decode-side timing receipt: `pi5_120f/raw_resolution_targets_pi5_120f.json`.
 Fast 2K Pi receipt:
-`raw_resolution_targets_20260614_alias_v3/pi5_2k_fast_alias_120f/raw_resolution_targets_pi5_120f.json`.
+`raw_resolution_targets_20260614_alias_v4/pi5_2k_fast_alias_120f/raw_resolution_targets_pi5_120f.json`.
 The fast mode is named `2k_raw_0p5x_fast`; it clears the 24 fps target at
-30.85 ms median, 31.4 ms p95, and 32.41 fps median.
+26.6 ms median, 27.7 ms p95, and 37.59 fps median.
 Proxy visual receipt: `visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.html`.
 It passes 56/84 crop rows under PREVIEW proxy thresholds; misses are LPIPS-only
 texture near-misses, while MS-SSIM, Y-PSNR, and dE2000 remain passing.
 Selective L2 HH (`GPR_DECODE_HALFRES_L2_MASK=4`) improves the visual proxy to
 80/84 with worst LPIPS 0.1549. The named `2k_raw_0p5x_l2hh` Pi receipt is
-median-live at 40.35 ms median / 24.78 fps median, but p95 is 43.3 ms, so it
-remains a quality candidate rather than the stable live default. It also
+p95-live at 33.5 ms median / 29.85 fps median with 37.1 ms p95, so it
+now clears the Pi 5 24 fps timing budget. It also
 remains a candidate, not a full proxy pass, because four LPIPS rows are still
 just above threshold.
 4K rendered proxy receipt: `visual_4k_28f/raw_resolution_targets_visual_dashboard.html`.

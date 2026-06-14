@@ -100,8 +100,8 @@ Raw output targets from the 24 fps capture stream:
 
 | target | dimensions | method | current classification |
 |---|---:|---|---|
-| `2k_raw_0p5x_fast` | 2070 x 1380 | direct half-res decode with L2 highpass dropped | stable Pi live mode at 32.41 fps median / 31.4 ms p95; 56/84 rendered proxy rows |
-| `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode with selective L2 HH restored | median-live quality candidate at 24.78 fps median; p95 is 43.3 ms; 80/84 rendered proxy rows |
+| `2k_raw_0p5x_fast` | 2070 x 1380 | direct half-res decode with L2 highpass dropped | stable Pi live mode at 37.59 fps median / 27.7 ms p95; 56/84 rendered proxy rows |
+| `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode with selective L2 HH restored | p95-live quality candidate at 29.85 fps median / 37.1 ms p95; 80/84 rendered proxy rows |
 | `4k_raw_1x` | 4140 x 2760 | decoded Bayer from `ml2_q3_dec2` | Mac/offline candidate; Pi decode-side is not live; rendered proxy receipt is 55/84 |
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only |
 

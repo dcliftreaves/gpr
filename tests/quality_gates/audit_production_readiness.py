@@ -2832,7 +2832,7 @@ def pi_receipt_metadata_ok(payload: dict, target: str, policy: str) -> bool:
 def check_raw_resolution_receipts() -> list[Check]:
     base13 = ARTIFACT_ROOT / "raw_resolution_targets_20260613"
     base14 = ARTIFACT_ROOT / "raw_resolution_targets_20260614"
-    base14_alias = ARTIFACT_ROOT / "raw_resolution_targets_20260614_alias_v3"
+    base14_alias = ARTIFACT_ROOT / "raw_resolution_targets_20260614_alias_v4"
     checks: list[Check] = []
 
     fast_pi_path = base14_alias / "pi5_2k_fast_alias_120f" / "raw_resolution_targets_pi5_120f.json"
@@ -2869,7 +2869,7 @@ def check_raw_resolution_receipts() -> list[Check]:
 
     mask4_pi, err = read_json_receipt(mask4_pi_path)
     if err:
-        checks.append(Check("raw_targets", "2K L2 HH Pi median-live timing receipt", "FAIL", err))
+        checks.append(Check("raw_targets", "2K L2 HH Pi p95-live timing receipt", "FAIL", err))
     else:
         target = "2k_raw_0p5x_l2hh"
         timing = target_timing(mask4_pi or {}, target)
@@ -2880,12 +2880,13 @@ def check_raw_resolution_receipts() -> list[Check]:
         ok = (
             fps >= 24.0
             and ms < 41.7
+            and p95 < 41.7
             and bool(mode.get("halfres_stream"))
             and pi_receipt_metadata_ok(mask4_pi or {}, target, "named target: restore selective L2 HH")
         )
         checks.append(Check(
             "raw_targets",
-            "2K L2 HH Pi median-live timing receipt",
+            "2K L2 HH Pi p95-live timing receipt",
             "PASS" if ok else "FAIL",
             f"fps_median={fps:.2f} median_ms={ms:.1f} p95_ms={p95:.1f} "
             f"p95_live={'yes' if p95 < 41.7 else 'no'} mode={mode} "
