@@ -385,6 +385,76 @@ def require_preview_live_experimental_contract(entry: dict[str, Any], failures: 
                 failures.append(f"{entry_id}: promotion_requirements missing {required}")
 
 
+def require_preview_offline_review_contract(
+    entry: dict[str, Any],
+    pipelines: dict[str, Any],
+    tracked: set[str],
+    failures: list[str],
+) -> None:
+    entry_id = str(entry.get("id", ""))
+    if entry_id != "preview_offline_review_q8_threeway":
+        return
+
+    if entry.get("status") != "production-pass-external-receipt":
+        failures.append(f"{entry_id}: offline/review PREVIEW must use external receipt status")
+    if entry.get("family") != "preview" or entry.get("ship_class") != "PREVIEW":
+        failures.append(f"{entry_id}: offline/review PREVIEW must stay in PREVIEW family/class")
+
+    pipeline_key = entry.get("pipeline")
+    pipeline = pipelines.get(pipeline_key) if isinstance(pipeline_key, str) else None
+    if not isinstance(pipeline, dict):
+        failures.append(f"{entry_id}: missing registered offline/review PREVIEW pipeline")
+    else:
+        pipeline_doc = str(pipeline.get("$doc", "")).lower()
+        if pipeline.get("use_for") != "PREVIEW_OFFLINE_REVIEW_Q8_THREEWAY":
+            failures.append(f"{entry_id}: registered pipeline use_for must be offline/review q8 three-way")
+        for required in ("offline/review", "not live/camera-back preview"):
+            if required not in pipeline_doc:
+                failures.append(f"{entry_id}: registered pipeline doc must say {required}")
+
+    docs = entry.get("docs")
+    if not isinstance(docs, list):
+        docs = []
+    for required_doc in ("README.md", "docs/VIDEO_STATUS.md"):
+        if required_doc not in docs:
+            failures.append(f"{entry_id}: docs must include {required_doc}")
+            continue
+        if required_doc not in tracked:
+            failures.append(f"{entry_id}: required doc is not tracked: {required_doc}")
+            continue
+        text = (ROOT / required_doc).read_text(errors="ignore").lower()
+        if "offline/review" not in text:
+            failures.append(f"{entry_id}: {required_doc} must describe offline/review PREVIEW")
+        if "not a live/camera-back preview path" not in text and "not live/camera-back preview" not in text:
+            failures.append(f"{entry_id}: {required_doc} must distinguish this from live/camera-back preview")
+
+    metrics = entry.get("metrics")
+    if not isinstance(metrics, dict):
+        failures.append(f"{entry_id}: offline/review PREVIEW needs metrics")
+        return
+    try:
+        holdout_rows = int(metrics.get("holdout_rows"))
+        passing_rows = int(metrics.get("passing_rows"))
+        worst_lpips = float(metrics.get("worst_lpips"))
+        worst_ms = float(metrics.get("worst_ms_ssim"))
+        worst_y = float(metrics.get("worst_y_psnr"))
+        worst_de = float(metrics.get("worst_dE2000"))
+        fps = float(metrics.get("fps"))
+        seconds_per_image = float(metrics.get("seconds_per_image"))
+        peak_rss_gb = float(metrics.get("peak_rss_gb"))
+    except (TypeError, ValueError):
+        failures.append(f"{entry_id}: offline/review PREVIEW metrics must be numeric")
+        return
+    if passing_rows != holdout_rows or holdout_rows < 84:
+        failures.append(f"{entry_id}: offline/review PREVIEW must show full 84-row holdout pass")
+    if worst_lpips > 0.15 or worst_ms < 0.95 or worst_y < 28.0 or worst_de > 3.0:
+        failures.append(f"{entry_id}: offline/review PREVIEW metrics must clear committed thresholds")
+    if fps >= 1.0 or seconds_per_image <= 1.0:
+        failures.append(f"{entry_id}: offline/review PREVIEW must record non-live throughput")
+    if peak_rss_gb <= 0.0:
+        failures.append(f"{entry_id}: offline/review PREVIEW needs memory receipt metric")
+
+
 def main() -> int:
     failures: list[str] = []
     manifest = load_json(MANIFEST)
@@ -468,6 +538,7 @@ def main() -> int:
             require_external_receipts(entry_id, entry, failures)
 
         require_preview_live_experimental_contract(entry, failures)
+        require_preview_offline_review_contract(entry, pipelines, tracked, failures)
         require_tracked_refs(entry_id, entry, tracked, failures)
 
     missing_output_ids = REQUIRED_OUTPUT_IDS - seen_output_ids
