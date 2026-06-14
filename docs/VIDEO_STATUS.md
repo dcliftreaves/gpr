@@ -109,8 +109,8 @@ For video you need either:
 
 | target | dimensions | method | current status |
 |---|---:|---|---|
-| 2K / 0.5x | 2070 x 1380 | `2k_raw_0p5x_fast` drops L2 highpass; `2k_raw_0p5x_l2hh` restores selective L2 HH | Fast mode: 26.6 ms median, 27.7 ms p95, 37.59 fps median. Selective L2 HH: 33.5 ms median, 37.1 ms p95, 29.85 fps median; matched-source raw quality 55.60 dB mean PSNR; rendered proxy 80/84 with four LPIPS-only edge misses |
-| 4K / 1x | 4140 x 2760 | direct decoded Bayer | Mac/offline editable raw candidate: 22.9 ms median, 43.7 fps median. Pi decode-side: 159.6 ms median, 6.3 fps median. Rendered proxy: 55/84 diagnostic under PREVIEW LPIPS |
+| 2K / 0.5x | 2070 x 1380 | `2k_raw_0p5x_fast` drops L2 highpass; `2k_raw_0p5x_l2hh` restores selective L2 HH | live-capable raw target. Fast mode: 26.6 ms median, 27.7 ms p95, 37.59 fps median. Selective L2 HH: 33.5 ms median, 37.1 ms p95, 29.85 fps median; matched-source raw quality 55.60 dB mean PSNR; rendered proxy 80/84 with four LPIPS-only edge misses |
+| 4K / 1x | 4140 x 2760 | direct decoded Bayer | offline-only production classification. Mac editable raw: 22.9 ms median, 43.7 fps median. Pi decode-side: 159.6 ms median, 6.3 fps median. Rendered proxy: 55/84 diagnostic under PREVIEW LPIPS |
 | 8K / 2x | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only at current speed |
 
 Details and receipts are in `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`.

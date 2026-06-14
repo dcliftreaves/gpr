@@ -29,8 +29,7 @@ PRODUCTION_STATUSES = {
 ALLOWED_STATUSES = PRODUCTION_STATUSES | {"experimental"}
 ALLOWED_RAW_CLASSIFICATIONS = {
     "live-capable",
-    "p95-live-editable-raw-candidate",
-    "offline-editable-raw",
+    "preview-capable",
     "offline-only",
 }
 REQUIRED_OUTPUT_IDS = {
@@ -316,6 +315,37 @@ def require_dashboard_contract(
     require_receipt_refs(entry_id, entry, tracked, failures)
 
 
+def require_raw_target_contract(target: dict[str, Any], failures: list[str]) -> None:
+    target_id = str(target.get("id", ""))
+    classification = target.get("classification")
+    if classification not in ALLOWED_RAW_CLASSIFICATIONS:
+        failures.append(f"{target_id}: invalid classification {classification!r}")
+        return
+
+    if not isinstance(target.get("dimensions"), str) or "x" not in target.get("dimensions", ""):
+        failures.append(f"{target_id}: raw target needs dimensions")
+
+    if classification == "live-capable":
+        try:
+            fps = float(target.get("pi5_fps_median"))
+            p95_ms = float(target.get("pi5_p95_ms"))
+        except (TypeError, ValueError):
+            failures.append(f"{target_id}: live-capable raw targets need pi5_fps_median and pi5_p95_ms")
+        else:
+            if fps < 24.0 or p95_ms >= 41.7:
+                failures.append(f"{target_id}: live-capable raw target must clear 24 fps / 41.7 ms p95 on Pi 5")
+
+    if classification == "preview-capable":
+        try:
+            passing = int(target.get("proxy_rows_passing"))
+            total = int(target.get("proxy_rows_total"))
+        except (TypeError, ValueError):
+            failures.append(f"{target_id}: preview-capable raw targets need proxy_rows_passing/proxy_rows_total")
+        else:
+            if total <= 0 or passing < total:
+                failures.append(f"{target_id}: preview-capable raw target must pass every proxy row")
+
+
 def require_preview_live_experimental_contract(entry: dict[str, Any], failures: list[str]) -> None:
     entry_id = str(entry.get("id", ""))
     if entry_id != "preview_live_codec_only":
@@ -374,6 +404,11 @@ def require_preview_live_experimental_contract(entry: dict[str, Any], failures: 
         else:
             if fps < 24.0 or p95_ms >= 41.7:
                 failures.append(f"{entry_id}: speed_evidence must show current speed path clears 24 fps timing")
+        receipt = speed.get("receipt")
+        if not isinstance(receipt, str):
+            failures.append(f"{entry_id}: speed_evidence needs receipt")
+        else:
+            require_artifact_ref(entry_id, "speed_evidence receipt", receipt, failures)
 
     promotion = entry.get("promotion_requirements")
     if not isinstance(promotion, list) or not promotion:
@@ -557,9 +592,7 @@ def main() -> int:
             continue
         target_id = str(target.get("id", ""))
         seen_raw_ids.add(target_id)
-        classification = target.get("classification")
-        if classification not in ALLOWED_RAW_CLASSIFICATIONS:
-            failures.append(f"{target_id}: invalid classification {classification!r}")
+        require_raw_target_contract(target, failures)
         require_external_receipts(target_id, target, failures)
         require_tracked_refs(target_id, target, tracked, failures)
 

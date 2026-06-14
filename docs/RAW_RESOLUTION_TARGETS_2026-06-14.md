@@ -59,6 +59,11 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 
 ## Current Results
 
+Production classification uses a small public vocabulary:
+`live-capable`, `preview-capable`, or `offline-only`. A target can still carry
+quality caveats below; the classification only states where it is allowed to
+sit in the production output ladder today.
+
 ### 4K raw 1x
 
 - Dimensions: 4140 x 2760.
@@ -79,7 +84,8 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
   That means the editable raw target is numerically strong, while the PREVIEW
   proxy LPIPS threshold is over-sensitive to tiny Bayer-domain differences in
   this high-frequency region.
-- Current decision: production candidate for Mac/offline editable raw output
+- Current decision: **offline-only** production classification for
+  Mac/offline editable raw output
   with a rendered-proxy diagnostic caveat. It is not a 24 fps Pi decode-side
   path until `gpr_decode_fused` is accelerated or the live path avoids decode,
   and it should not be promoted to a rendered PREVIEW/perceptual production
@@ -135,7 +141,8 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
   25.84 fps median, p95 41.8 ms. The named `2k_raw_0p5x_l2hh` alias receipt
   from commit `50ebc69f` is 33.5 ms median, 37.1 ms p95, 29.85 fps median,
   with child peak RSS about 98 MB.
-- Current decision: selective L2 HH is now the 2K live-quality candidate. It
+- Current decision: selective L2 HH is now the **live-capable** 2K raw-quality
+  candidate. It
   clears the Pi 5 24 fps decode-side target by median and p95, and fixes most
   LPIPS-only texture misses while preserving structure, luma PSNR, and color.
   It is not a full rendered PREVIEW proxy pass yet because four crop rows
@@ -149,8 +156,8 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 - 3-frame timing: 376.4 ms median for decode plus model in the earlier timing
   smoke, roughly 2.7 fps median on this local path.
 - 3-frame raw quality: 48.79 dB mean PSNR, 50.80 dB median PSNR.
-- Current decision: offline/review candidate only. It is not a live 24 fps path
-  without a much faster model or a different 2x reconstruction strategy.
+- Current decision: **offline-only**. It is not a live 24 fps path without a
+  much faster model or a different 2x reconstruction strategy.
 
 ## Source-Lineage Caution
 
@@ -175,8 +182,8 @@ until the exact source DNG/GPR pairing is verified.
    for deterministic fine-grain synthesis, and 80/84 for the best HH scale
    sweep. The useful signal is actual L2 HH and it now fits the Pi 5 frame
    budget; the remaining blocker is four near-threshold lower-right edge rows.
-3. Keep 4K classified as Mac/offline editable raw, not a live/rendered PREVIEW
-   path. The no-CNN 4K path has strong matched-source raw evidence, but it
+3. Keep 4K classified as offline-only, not a live/rendered PREVIEW path. The
+   no-CNN 4K path has strong matched-source raw evidence, but it
    passes only 55/84 rendered proxy rows under PREVIEW LPIPS. Signal analysis
    shows lower-right proxy LPIPS remains high even when raw-domain error is
    tiny, so the remaining work is gate calibration or a raw-target-specific

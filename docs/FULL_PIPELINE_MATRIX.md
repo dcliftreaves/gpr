@@ -108,7 +108,7 @@ It passes 56/84 crop rows under PREVIEW proxy thresholds; misses are LPIPS-only
 texture near-misses, while MS-SSIM, Y-PSNR, and dE2000 remain passing.
 Selective L2 HH (`GPR_DECODE_HALFRES_L2_MASK=4`) improves the visual proxy to
 80/84 with worst LPIPS 0.1549. The named `2k_raw_0p5x_l2hh` Pi receipt is
-p95-live at 33.5 ms median / 29.85 fps median with 37.1 ms p95, so it
+live-capable at 33.5 ms median / 29.85 fps median with 37.1 ms p95, so it
 now clears the Pi 5 24 fps timing budget. It also
 remains a candidate, not a full proxy pass, because four LPIPS rows are still
 just above threshold.

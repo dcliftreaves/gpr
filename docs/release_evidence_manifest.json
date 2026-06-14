@@ -241,6 +241,7 @@
     {
       "id": "2k_raw_0p5x_fast",
       "classification": "live-capable",
+      "classification_detail": "Fast Pi 5 live raw target; visual proxy is diagnostic and not a full PREVIEW quality pass.",
       "dimensions": "2070x1380",
       "pi5_fps_median": 37.59,
       "pi5_p95_ms": 27.7,
@@ -258,7 +259,8 @@
     },
     {
       "id": "2k_raw_0p5x_l2hh",
-      "classification": "p95-live-editable-raw-candidate",
+      "classification": "live-capable",
+      "classification_detail": "Best current Pi 5 live-quality raw target; clears 24 fps timing and passes matched-source raw quality, but remains experimental for rendered live PREVIEW until four LPIPS-only proxy misses are closed.",
       "dimensions": "2070x1380",
       "pi5_fps_median": 29.85,
       "pi5_p95_ms": 37.1,
@@ -277,7 +279,8 @@
     },
     {
       "id": "4k_raw_1x",
-      "classification": "offline-editable-raw",
+      "classification": "offline-only",
+      "classification_detail": "Mac/offline editable raw target. It is not a Pi 5 live target and is not promoted as rendered PREVIEW because the proxy LPIPS dashboard is diagnostic-only.",
       "dimensions": "4140x2760",
       "mac_fps_median": 43.7,
       "pi5_fps_median": 6.3,
@@ -297,6 +300,7 @@
     {
       "id": "8k_raw_2x",
       "classification": "offline-only",
+      "classification_detail": "Offline/review 2x raw reconstruction target until a faster model clears quality and timing gates.",
       "dimensions": "8280x5520",
       "local_fps_smoke": 2.66,
       "docs": [

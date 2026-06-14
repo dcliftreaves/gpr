@@ -58,7 +58,7 @@ large runs.
 | PREVIEW offline/review | PASS for q8 three-way runtime full-frame path | No-REF full-frame holdout passes 84/84 on the current receipt |
 | PREVIEW live/camera-back | Experimental | Speed is not the blocker: 2K L2 HH clears Pi timing at 29.85 fps median / 37.1 ms p95, but the codec-only PREVIEW gate run fails quality at 1/4 images passing, worst LPIPS 0.3119 |
 | 2K raw target | Pi live-capable raw candidate | Fast decode mode hits 37.59 fps median / 27.7 ms p95 on Pi 5; selective L2 HH hits 29.85 fps median / 37.1 ms p95 and reaches 80/84 proxy crops |
-| 4K raw target | Mac/offline editable raw candidate | 43.7 fps median on Mac path; matched main-corpus raw quality passes, while rendered-proxy LPIPS remains diagnostic only |
+| 4K raw target | Offline-only production classification | 43.7 fps median on Mac path; matched main-corpus raw quality passes, but Pi decode-side is 6.3 fps and rendered-proxy LPIPS remains diagnostic only |
 | 8K raw target | Offline/review only | Current 2x raw reconstruction is about 2.7 fps on the local timing smoke |
 
 Source of truth:
@@ -138,9 +138,9 @@ Raw output targets from the 24 fps capture stream:
 
 | target | dimensions | method | current classification |
 |---|---:|---|---|
-| `2k_raw_0p5x_fast` | 2070 x 1380 | direct half-res decode with L2 highpass dropped | stable Pi live mode at 37.59 fps median / 27.7 ms p95; 56/84 rendered proxy rows |
-| `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode with selective L2 HH restored | p95-live editable raw candidate at 29.85 fps median / 37.1 ms p95; matched-source raw quality passes and rendered proxy is 80/84 |
-| `4k_raw_1x` | 4140 x 2760 | decoded Bayer from `ml2_q3_dec2` | Mac/offline editable raw candidate; Pi decode-side is not live; rendered-proxy LPIPS is diagnostic |
+| `2k_raw_0p5x_fast` | 2070 x 1380 | direct half-res decode with L2 highpass dropped | live-capable Pi raw mode at 37.59 fps median / 27.7 ms p95; 56/84 rendered proxy rows |
+| `2k_raw_0p5x_l2hh` | 2070 x 1380 | direct half-res decode with selective L2 HH restored | live-capable Pi quality mode at 29.85 fps median / 37.1 ms p95; matched-source raw quality passes and rendered proxy is 80/84 |
+| `4k_raw_1x` | 4140 x 2760 | decoded Bayer from `ml2_q3_dec2` | offline-only production classification: Mac editable raw passes, Pi decode-side is not live, rendered-proxy LPIPS is diagnostic |
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only |
 
 Latest raw-target receipts are summarized in
