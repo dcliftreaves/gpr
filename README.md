@@ -151,6 +151,7 @@ python3 tools/test/test_raw_resolution_targets.py
 bash tools/test/test_gvid_pack.sh
 bash tools/test/test_gvid_metadata.sh
 python3 tests/quality_gates/check_registry_consistency.py
+python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts
 python3 tests/quality_gates/audit_ship_pipelines.py --strict
 python3 tests/quality_gates/audit_production_readiness.py --strict
 python3 tools/test/check_sensitive_content.py
@@ -264,6 +265,7 @@ export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
 export GATE_TMPDIR=/Volumes/OWC_8TB/gpr_work/gate_tmp
 
 python3 tools/verify_production_artifacts.py --strict
+python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts
 python3 tests/quality_gates/audit_production_readiness.py --strict
 ```
 

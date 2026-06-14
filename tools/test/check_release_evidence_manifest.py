@@ -155,6 +155,7 @@ REQUIRED_RELEASE_CHECKS = (
     "bash tools/test/test_gvid_pack.sh",
     "bash tools/test/test_gvid_metadata.sh",
     "python3 tests/quality_gates/check_registry_consistency.py",
+    "python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts",
     "python3 tests/quality_gates/audit_ship_pipelines.py --strict",
     "python3 tests/quality_gates/audit_production_readiness.py --strict",
 )
@@ -175,6 +176,7 @@ REQUIRED_CI_CHECKS = (
 
 EXTERNAL_RELEASE_ONLY_CHECKS = (
     "python3 tools/verify_production_artifacts.py --strict",
+    "python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts",
     "python3 tests/quality_gates/audit_production_readiness.py --strict",
 )
 
