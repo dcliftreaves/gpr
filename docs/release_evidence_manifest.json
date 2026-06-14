@@ -467,6 +467,87 @@
       ]
     },
     {
+      "id": "pi5_upresable_encode_loop",
+      "platform": "Pi 5 / Mission 1",
+      "status": "receipt-only",
+      "target": "UPRESABLE Pi-side ml2_q3_dec2 encode-loop timing in the Pi-to-Mac bench",
+      "metrics": {
+        "stage_fps": 6.08,
+        "stage_seconds": 19.74,
+        "frame_count": 120
+      },
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/UPRESABLE_PIPELINE.md"
+      ],
+      "receipts": [
+        "artifacts/upresable/pi_mac_bench/run.log",
+        "docs/UPRESABLE_PIPELINE.md"
+      ]
+    },
+    {
+      "id": "pi5_usb_transfer",
+      "platform": "Pi 5 / Mission 1",
+      "status": "receipt-only",
+      "target": "Pi-to-Mac USB transfer throughput for UPRESABLE capture artifacts",
+      "metrics": {
+        "stage_fps": 238.53,
+        "stage_seconds": 0.5,
+        "frame_count": 120,
+        "mb_per_second": 501.27
+      },
+      "docs": [
+        "README.md",
+        "docs/UPRESABLE_PIPELINE.md"
+      ],
+      "receipts": [
+        "artifacts/upresable/pi_mac_bench/run.log",
+        "docs/UPRESABLE_PIPELINE.md"
+      ]
+    },
+    {
+      "id": "mac_m5_upres_offline_stage",
+      "platform": "Mac/M5",
+      "status": "measured-offline",
+      "target": "offline UPRESABLE decode plus BIBO_2x plus full-res encode stage",
+      "metrics": {
+        "stage_fps": 1.79,
+        "stage_seconds": 67.0,
+        "frame_count": 120
+      },
+      "docs": [
+        "README.md",
+        "docs/UPRESABLE_PIPELINE.md"
+      ],
+      "receipts": [
+        "artifacts/upresable/pi_mac_bench/run.log",
+        "docs/UPRESABLE_PIPELINE.md"
+      ]
+    },
+    {
+      "id": "gvid_mov_pack_stage",
+      "platform": "Mac/M5",
+      "status": "meets-target",
+      "target": "GPRaw MOV/.gvid-compatible packaging throughput for UPRESABLE outputs",
+      "metrics": {
+        "fps_median": 180.26,
+        "target_fps": 24.0,
+        "stage_fps": 180.26,
+        "stage_seconds": 0.67,
+        "frame_count": 120
+      },
+      "docs": [
+        "README.md",
+        "docs/UPRESABLE_PIPELINE.md",
+        "docs/GVID_RENDER_INPUT_2026-06-04.md"
+      ],
+      "receipts": [
+        "artifacts/upresable/pi_mac_bench/run.log",
+        "docs/UPRESABLE_PIPELINE.md"
+      ]
+    },
+    {
       "id": "mac_m5_upres_and_gvid_pack",
       "platform": "Mac/M5",
       "status": "receipt-only",

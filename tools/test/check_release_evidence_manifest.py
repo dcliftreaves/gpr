@@ -66,6 +66,10 @@ REQUIRED_PLATFORM_PERFORMANCE_IDS = {
     "mac_m5_preview_offline_render",
     "mac_m5_4k_raw_decode",
     "local_8k_raw_offline",
+    "pi5_upresable_encode_loop",
+    "pi5_usb_transfer",
+    "mac_m5_upres_offline_stage",
+    "gvid_mov_pack_stage",
     "mac_m5_upres_and_gvid_pack",
     "capability_memory_matrix",
 }
@@ -220,6 +224,10 @@ def require_platform_performance_contract(
             "max_rss_mb",
             "mac_upres_fps",
             "gvid_pack_fps",
+            "stage_fps",
+            "stage_seconds",
+            "frame_count",
+            "mb_per_second",
         ]
         has_numeric = False
         for key in numeric_keys:

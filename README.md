@@ -89,6 +89,10 @@ targets, platform receipts, and dashboard evidence.
 | `gvid_metadata_dispatch` | diagnostic | `.gvid` metadata dispatch and clean-target routing behavior have dashboard evidence |
 | `noise_signal_audit` | diagnostic | X2D ISO-stratified noise/signal training targets are audited before model training |
 
+The Pi-to-Mac UPRESABLE bench is indexed as stage receipts: Pi encode loop
+6.08 fps including SSH overhead, USB transfer 501 MB/s, Mac offline upres
+1.79 fps, and GPRaw pack 180.26 fps.
+
 The quick release-readiness command is:
 
 ```bash
