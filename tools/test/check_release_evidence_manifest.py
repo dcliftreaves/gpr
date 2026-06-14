@@ -18,6 +18,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "docs/release_evidence_manifest.json"
 REGISTRY = ROOT / "pipelines/registry.json"
+README = ROOT / "README.md"
+DOCS_README = ROOT / "docs/README.md"
 RUNS_DIR = ROOT / "tests/quality_gates/runs"
 
 EXPECTED_SCHEMA = "gpr_release_evidence_manifest.v1"
@@ -108,6 +110,37 @@ ALLOWED_BLOCKERS = {
     "ci_build_issue",
 }
 
+README_REQUIRED_SECTIONS = (
+    "## Production Goal",
+    "## Production Definition Of Done",
+    "## Readiness Snapshot",
+    "## Current Ship Matrix",
+    "## Release Evidence",
+    "## PREVIEW Status",
+    "## Focused Checks",
+)
+
+README_REQUIRED_TOKENS = (
+    "Productionize GPR as a release-quality raw media suite",
+    "Every registered production path is passing its committed gate or explicitly",
+    "PREVIEW/live decode has a no-REF runtime path",
+    "A path is production only when the repo can prove all of these",
+    "Runtime inputs",
+    "PREVIEW render paths must not use REF content",
+    "Output contract",
+    "Performance",
+    "Reproducibility",
+    "Repo hygiene",
+    "/Volumes/OWC_8TB/gpr_work",
+    "2K raw target",
+    "4K raw target",
+    "8K raw target",
+    "offline-only",
+    "preview_live_2k_l2hh_edge_safe",
+    "tools/verify_production_artifacts.py",
+    "tests/quality_gates/audit_production_readiness.py --strict",
+)
+
 
 def tracked_paths() -> set[str]:
     result = subprocess.run(
@@ -125,6 +158,29 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise TypeError(f"{path} must contain a JSON object")
     return data
+
+
+def require_readme_contract(tracked: set[str], failures: list[str]) -> None:
+    if "README.md" not in tracked:
+        failures.append("README.md must be tracked")
+        return
+    if not README.exists():
+        failures.append("README.md is missing")
+        return
+
+    readme = README.read_text(encoding="utf-8")
+    for section in README_REQUIRED_SECTIONS:
+        if section not in readme:
+            failures.append(f"README.md missing section {section!r}")
+    for token in README_REQUIRED_TOKENS:
+        if token not in readme:
+            failures.append(f"README.md missing production contract token {token!r}")
+
+    docs_readme_ref = "the active production goal and definition of done"
+    if "docs/README.md" not in tracked:
+        failures.append("docs/README.md must be tracked")
+    elif docs_readme_ref not in DOCS_README.read_text(encoding="utf-8"):
+        failures.append("docs/README.md must link the active production goal and definition of done")
 
 
 def run_for_hash(run_hash: str) -> dict[str, Any] | None:
@@ -677,6 +733,7 @@ def main() -> int:
     registry = load_json(REGISTRY)
     pipelines = registry.get("pipelines") or {}
     tracked = tracked_paths()
+    require_readme_contract(tracked, failures)
 
     if manifest.get("schema") != EXPECTED_SCHEMA:
         failures.append(f"schema must be {EXPECTED_SCHEMA}")
@@ -831,6 +888,7 @@ def main() -> int:
         "tools/test/check_release_evidence_manifest.py",
         "tools/verify_production_artifacts.py",
         "tools/live_preview_policy.py",
+        "tools/test/test_raw_resolution_targets.py",
         "tests/quality_gates/check_registry_consistency.py",
         "tests/quality_gates/audit_production_readiness.py --strict",
     ):

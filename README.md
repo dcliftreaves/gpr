@@ -116,7 +116,7 @@ targets, platform receipts, and dashboard evidence.
 | `preview_source_ref_policy_audit` | diagnostic | runtime source policy is scored against resolved true REF rows |
 | `raw_2k_fast_visual_proxy` | diagnostic | fastest 2K Pi raw mode clears 24 fps and has a raw-domain quality receipt, but reaches only 56/84 rendered proxy rows |
 | `raw_2k_l2hh_visual_proxy` | current | 2K selective-L2 HH raw target reaches 80/84 exact-edge rendered proxy rows while clearing Pi timing |
-| `raw_2k_l2hh_edge_safe_visual_proxy` | current | 2K selective-L2 HH with the production 16 px edge-safe display viewport reaches 84/84 rendered proxy rows |
+| `raw_2k_l2hh_edge_safe_visual_proxy` | current | 2K selective-L2 HH with the `preview_live_2k_l2hh_edge_safe` production 16 px edge-safe display viewport reaches 84/84 rendered proxy rows |
 | `raw_4k_visual_proxy` | diagnostic | 4K raw target is strong as editable raw but rendered-proxy LPIPS remains a diagnostic issue |
 | `preview_review_media` | current | ProRes review files exist for preview/timelapse inspection |
 | `gvid_metadata_dispatch` | diagnostic | `.gvid` metadata dispatch and clean-target routing behavior have dashboard evidence |
