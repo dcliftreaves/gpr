@@ -62,6 +62,7 @@ large runs.
 | 8K raw target | Offline/review only | Current 2x raw reconstruction is about 2.7 fps on the local timing smoke |
 
 Source of truth:
+[`docs/release_evidence_manifest.json`](docs/release_evidence_manifest.json),
 [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md),
 [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md),
 [`docs/FULL_PIPELINE_MATRIX.md`](docs/FULL_PIPELINE_MATRIX.md), and
@@ -145,6 +146,7 @@ Run the public CI-style checks:
 python3 tools/test/test_capabilities.py
 python3 tools/test/check_sensitive_content.py
 python3 tools/test/check_repo_artifact_hygiene.py
+python3 tools/test/check_release_evidence_manifest.py
 python3 tools/test/test_raw_resolution_targets.py
 python3 tests/quality_gates/check_registry_consistency.py
 python3 tests/quality_gates/audit_production_readiness.py

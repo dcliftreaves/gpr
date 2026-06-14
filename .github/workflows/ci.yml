@@ -52,6 +52,9 @@ jobs:
       - name: Repo artifact hygiene guard
         run: python3 tools/test/check_repo_artifact_hygiene.py
 
+      - name: Release evidence manifest guard
+        run: python3 tools/test/check_release_evidence_manifest.py
+
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |

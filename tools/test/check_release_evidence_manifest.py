@@ -1,0 +1,239 @@
+#!/usr/bin/env python3
+"""Validate the compact release evidence manifest.
+
+This check keeps high-level production claims tied to concrete registry entries,
+committed quality-gate runs, external receipt references, and tracked docs/tools.
+It intentionally does not require heavyweight external artifacts in CI.
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[2]
+MANIFEST = ROOT / "docs/release_evidence_manifest.json"
+REGISTRY = ROOT / "pipelines/registry.json"
+RUNS_DIR = ROOT / "tests/quality_gates/runs"
+
+EXPECTED_SCHEMA = "gpr_release_evidence_manifest.v1"
+PRODUCTION_STATUSES = {
+    "production-pass",
+    "production-pass-external-receipt",
+    "production-supported",
+}
+ALLOWED_STATUSES = PRODUCTION_STATUSES | {"experimental"}
+ALLOWED_RAW_CLASSIFICATIONS = {
+    "live-capable",
+    "p95-live-editable-raw-candidate",
+    "offline-editable-raw",
+    "offline-only",
+}
+REQUIRED_OUTPUT_IDS = {
+    "still_smallest",
+    "still_primary",
+    "still_archival",
+    "video_freeze_primary",
+    "upresable_editable_raw",
+    "preview_offline_review_q8_threeway",
+    "preview_live_codec_only",
+    "gvid_container",
+    "mov_wrapper",
+    "prores_review_outputs",
+    "editable_dng_gpr_outputs",
+}
+REQUIRED_RAW_IDS = {
+    "2k_raw_0p5x_fast",
+    "2k_raw_0p5x_l2hh",
+    "4k_raw_1x",
+    "8k_raw_2x",
+}
+
+
+def tracked_paths() -> set[str]:
+    result = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+    )
+    return {item.decode("utf-8") for item in result.stdout.split(b"\0") if item}
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        raise TypeError(f"{path} must contain a JSON object")
+    return data
+
+
+def run_for_hash(run_hash: str) -> dict[str, Any] | None:
+    path = RUNS_DIR / run_hash / "run.json"
+    if not path.exists():
+        return None
+    try:
+        return load_json(path)
+    except Exception:
+        return None
+
+
+def require_tracked_refs(
+    entry_id: str,
+    entry: dict[str, Any],
+    tracked: set[str],
+    failures: list[str],
+) -> None:
+    for key in ("docs", "tools"):
+        refs = entry.get(key, [])
+        if not isinstance(refs, list):
+            failures.append(f"{entry_id}: {key} must be a list")
+            continue
+        for ref in refs:
+            if not isinstance(ref, str):
+                failures.append(f"{entry_id}: {key} entry must be a string")
+                continue
+            path = ROOT / ref
+            if not path.exists():
+                failures.append(f"{entry_id}: referenced {key[:-1]} does not exist: {ref}")
+            elif ref not in tracked and not any(t.startswith(ref.rstrip('/') + '/') for t in tracked):
+                failures.append(f"{entry_id}: referenced {key[:-1]} is not tracked: {ref}")
+
+
+def main() -> int:
+    failures: list[str] = []
+    manifest = load_json(MANIFEST)
+    registry = load_json(REGISTRY)
+    pipelines = registry.get("pipelines") or {}
+    tracked = tracked_paths()
+
+    if manifest.get("schema") != EXPECTED_SCHEMA:
+        failures.append(f"schema must be {EXPECTED_SCHEMA}")
+
+    production_paths = manifest.get("production_paths")
+    if not isinstance(production_paths, list):
+        failures.append("production_paths must be a list")
+        production_paths = []
+
+    seen_output_ids: set[str] = set()
+    for entry in production_paths:
+        if not isinstance(entry, dict):
+            failures.append("production_paths entries must be objects")
+            continue
+        entry_id = str(entry.get("id", ""))
+        seen_output_ids.add(entry_id)
+        status = entry.get("status")
+        if status not in ALLOWED_STATUSES:
+            failures.append(f"{entry_id}: invalid status {status!r}")
+
+        pipeline = entry.get("pipeline")
+        if pipeline:
+            if pipeline not in pipelines:
+                failures.append(f"{entry_id}: pipeline is not registered: {pipeline}")
+            else:
+                expected_class = entry.get("ship_class")
+                actual_class = (pipelines[pipeline] or {}).get("ship_class")
+                if expected_class and actual_class != expected_class:
+                    failures.append(
+                        f"{entry_id}: registry ship_class {actual_class!r} != manifest {expected_class!r}"
+                    )
+
+        run_hash = entry.get("committed_run_hash")
+        if run_hash:
+            run = run_for_hash(str(run_hash))
+            rel = f"tests/quality_gates/runs/{run_hash}/run.json"
+            if not run:
+                failures.append(f"{entry_id}: missing or unreadable committed run {run_hash}")
+            elif rel not in tracked:
+                failures.append(f"{entry_id}: committed run is not tracked: {rel}")
+            else:
+                if run.get("run_hash") != run_hash:
+                    failures.append(f"{entry_id}: run_hash mismatch in {rel}")
+                if run.get("pipeline") != pipeline:
+                    failures.append(f"{entry_id}: run pipeline does not match manifest")
+                if run.get("ship_class") != entry.get("ship_class"):
+                    failures.append(f"{entry_id}: run ship_class does not match manifest")
+                if status in PRODUCTION_STATUSES and run.get("verdict") != "PASS":
+                    failures.append(f"{entry_id}: production path references non-PASS run {run_hash}")
+
+        if status == "production-pass-external-receipt":
+            receipt = entry.get("external_receipt")
+            dashboard = entry.get("dashboard")
+            runtime_entrypoint = entry.get("runtime_entrypoint")
+            if not isinstance(receipt, str) or not receipt.startswith("artifacts/"):
+                failures.append(f"{entry_id}: external receipt must be under artifacts/")
+            if not isinstance(dashboard, str) or not dashboard.startswith("artifacts/"):
+                failures.append(f"{entry_id}: external dashboard must be under artifacts/")
+            if not isinstance(runtime_entrypoint, str) or runtime_entrypoint not in tracked:
+                failures.append(f"{entry_id}: runtime entrypoint must be tracked")
+            metrics = entry.get("metrics")
+            if not isinstance(metrics, dict):
+                failures.append(f"{entry_id}: external receipt path needs compact metrics")
+            elif metrics.get("passing_rows") != metrics.get("holdout_rows"):
+                failures.append(f"{entry_id}: external receipt metrics do not show full holdout pass")
+
+        if status == "experimental" and not entry.get("reason"):
+            failures.append(f"{entry_id}: experimental entries need a reason")
+
+        require_tracked_refs(entry_id, entry, tracked, failures)
+
+    missing_output_ids = REQUIRED_OUTPUT_IDS - seen_output_ids
+    if missing_output_ids:
+        failures.append("manifest missing output ids: " + ", ".join(sorted(missing_output_ids)))
+
+    raw_targets = manifest.get("raw_targets")
+    if not isinstance(raw_targets, list):
+        failures.append("raw_targets must be a list")
+        raw_targets = []
+
+    seen_raw_ids: set[str] = set()
+    for target in raw_targets:
+        if not isinstance(target, dict):
+            failures.append("raw_targets entries must be objects")
+            continue
+        target_id = str(target.get("id", ""))
+        seen_raw_ids.add(target_id)
+        classification = target.get("classification")
+        if classification not in ALLOWED_RAW_CLASSIFICATIONS:
+            failures.append(f"{target_id}: invalid classification {classification!r}")
+        require_tracked_refs(target_id, target, tracked, failures)
+
+    missing_raw_ids = REQUIRED_RAW_IDS - seen_raw_ids
+    if missing_raw_ids:
+        failures.append("manifest missing raw target ids: " + ", ".join(sorted(missing_raw_ids)))
+
+    release_checks = manifest.get("release_checks")
+    if not isinstance(release_checks, list):
+        failures.append("release_checks must be a list")
+        release_checks = []
+    release_check_text = "\n".join(str(item) for item in release_checks)
+    for required in (
+        "tools/test/check_sensitive_content.py",
+        "tools/test/check_repo_artifact_hygiene.py",
+        "tools/test/check_release_evidence_manifest.py",
+        "tests/quality_gates/check_registry_consistency.py",
+        "tests/quality_gates/audit_production_readiness.py --strict",
+    ):
+        if required not in release_check_text:
+            failures.append(f"release_checks missing {required}")
+
+    for guard in manifest.get("guards", []):
+        if not isinstance(guard, str) or guard not in tracked:
+            failures.append(f"guard is not tracked: {guard}")
+
+    if failures:
+        print("Release evidence manifest check failed:", file=sys.stderr)
+        for failure in failures:
+            print(f"  {failure}", file=sys.stderr)
+        return 1
+
+    print("OK - release evidence manifest check passed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

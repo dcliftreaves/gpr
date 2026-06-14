@@ -73,14 +73,18 @@ python3 tests/quality_gates/audit_production_readiness.py --strict
 tagged `ship-*`. `audit_production_readiness.py --strict` is the broader
 release checklist: stills, video quality, PREVIEW/non-REF receipts, noise/signal
 guards, UPRESABLE, `.gvid`, MOV compatibility, Pi 5 / Mission 1 setup, and
-platform speed receipts. It expects external receipts under `GPR_ARTIFACT_ROOT`,
-including the direct-RGB non-REF PREVIEW diagnostic dashboard, checkpoint hash,
-and the deterministic runtime PREVIEW policy receipt. As of 2026-06-07, the
-best scene-routed PREVIEW diagnostic clears 82/84 rows on the full-image
-28-image holdout, with frozen router sidecars, expert checkpoint hashes, and
-timing/memory receipts. It is not a ship claim because two rows still miss the
-committed PREVIEW gate on dE/Y-PSNR; see
-`docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md`.
+platform speed receipts. `tools/test/check_release_evidence_manifest.py`
+validates the compact release manifest at
+`docs/release_evidence_manifest.json`.
+
+The current offline/review PREVIEW production path is
+`preview_q8_threeway_runtime_fullframe_v1`. It is a no-REF, full-frame q8
+three-way runtime route with an external receipt under
+`artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/`.
+That receipt reports 84/84 rows passing on the 28-image holdout, weighted
+runtime of 13.65 seconds per image, 0.073 fps, and 5.37 GB peak RSS. It is not
+the live/camera-back path; live PREVIEW remains a separate speed/quality
+problem documented in `docs/VIDEO_STATUS.md`.
 
 ## Runtime resolution
 

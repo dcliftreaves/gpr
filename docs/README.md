@@ -9,6 +9,7 @@ Where to look for what. Last refreshed 2026-06-14.
 | what ships today, by ship class | `SHIP_DECISION.md` |
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |
 | stills vs video — the two production modes | `SHIP_DECISION.md` (header), `VIDEO_STATUS.md` |
+| compact production evidence manifest checked by CI | `release_evidence_manifest.json` |
 | how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
 | open work items + archived experiment branches | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
 | where production checkpoints/artifacts live | `PRODUCTION_ARTIFACTS.md` |
@@ -56,6 +57,7 @@ Where to look for what. Last refreshed 2026-06-14.
 | `python3 tests/quality_gates/dashboard.py` | refresh sweep dashboard |
 | `python3 tests/quality_gates/review_dashboard.py` | refresh decision dashboard |
 | `python3 tools/test/test_capabilities.py` | encoder regression (also in CI) |
+| `python3 tools/test/check_release_evidence_manifest.py` | validate production evidence manifest |
 
 ## Session retrospectives
 

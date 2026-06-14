@@ -1,0 +1,257 @@
+{
+  "schema": "gpr_release_evidence_manifest.v1",
+  "updated": "2026-06-14",
+  "external_root": "/Volumes/OWC_8TB/gpr_work",
+  "purpose": "Compact source-of-truth index for production and explicitly experimental GPR output paths. Heavy dashboards, videos, checkpoints, and rendered media remain outside the repo.",
+  "production_paths": [
+    {
+      "id": "still_smallest",
+      "family": "stills",
+      "status": "production-pass",
+      "pipeline": "codec=gpr_tools_q0+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "committed_run_hash": "54f001717c547574",
+      "docs": [
+        "README.md",
+        "docs/SHIP_DECISION.md",
+        "docs/FULL_PIPELINE_MATRIX.md"
+      ]
+    },
+    {
+      "id": "still_primary",
+      "family": "stills",
+      "status": "production-pass",
+      "pipeline": "codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "committed_run_hash": "b44fa841c05c9bff",
+      "docs": [
+        "README.md",
+        "docs/SHIP_DECISION.md",
+        "docs/FULL_PIPELINE_MATRIX.md"
+      ]
+    },
+    {
+      "id": "still_archival",
+      "family": "stills",
+      "status": "production-pass",
+      "pipeline": "codec=gpr_tools_q8+cnn=none+demosaic=sips_via_gpr_tools",
+      "ship_class": "STILL",
+      "committed_run_hash": "9837b797660627aa",
+      "docs": [
+        "README.md",
+        "docs/SHIP_DECISION.md",
+        "docs/FULL_PIPELINE_MATRIX.md"
+      ]
+    },
+    {
+      "id": "video_freeze_primary",
+      "family": "video_raw",
+      "status": "production-pass",
+      "pipeline": "codec=ml2_q3_l1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "committed_run_hash": "5c3cce4c472d4197",
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/FULL_PIPELINE_MATRIX.md"
+      ]
+    },
+    {
+      "id": "video_freeze_smallest",
+      "family": "video_raw",
+      "status": "production-pass",
+      "pipeline": "codec=ml2_q3_l2x2_l1x2_hh1x2+cnn=bibo1x_ane_ml2_q3+demosaic=sips_via_gpr_tools",
+      "ship_class": "VIDEO_FREEZE",
+      "committed_run_hash": "f2f3e652f2d26dbf",
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/FULL_PIPELINE_MATRIX.md"
+      ]
+    },
+    {
+      "id": "upresable_editable_raw",
+      "family": "upresable",
+      "status": "production-pass",
+      "pipeline": "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse+demosaic=sips_via_gpr_tools",
+      "ship_class": "UPRESABLE",
+      "committed_run_hash": "8864c12ec0b6ce14",
+      "docs": [
+        "README.md",
+        "docs/UPRESABLE_PIPELINE.md",
+        "docs/FULL_PIPELINE_MATRIX.md"
+      ]
+    },
+    {
+      "id": "preview_offline_review_q8_threeway",
+      "family": "preview",
+      "status": "production-pass-external-receipt",
+      "pipeline": "codec=ml2_q3_dec2+cnn=preview_q8_threeway_runtime_fullframe_v1+demosaic=sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "external_receipt": "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.json",
+      "dashboard": "artifacts/preview_runtime_policy_20260613/q8_threeway_runtime_full_holdout_v1/preview_q8_threeway_runtime_fullframe.html",
+      "runtime_entrypoint": "tools/cnn/render_preview_q8_threeway_runtime.py",
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md"
+      ],
+      "metrics": {
+        "holdout_rows": 84,
+        "passing_rows": 84,
+        "worst_lpips": 0.1178,
+        "worst_ms_ssim": 0.9548,
+        "worst_y_psnr": 30.87,
+        "worst_dE2000": 2.64,
+        "seconds_per_image": 13.65,
+        "fps": 0.073,
+        "peak_rss_gb": 5.37
+      }
+    },
+    {
+      "id": "preview_live_codec_only",
+      "family": "preview",
+      "status": "experimental",
+      "pipeline": "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools",
+      "ship_class": "PREVIEW",
+      "committed_run_hash": "b561d2e75801f0aa",
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md"
+      ],
+      "reason": "Live/camera-back speed baseline; current committed PREVIEW gate run fails quality and remains experimental."
+    },
+    {
+      "id": "gvid_container",
+      "family": "container",
+      "status": "production-supported",
+      "docs": [
+        "README.md",
+        "docs/GETTING_STARTED.md",
+        "docs/GVID_METADATA_DISPATCH_2026-06-04.md",
+        "docs/GVID_RENDER_INPUT_2026-06-04.md"
+      ],
+      "tools": [
+        "tools/gvid_pack.py",
+        "tools/gvid_metadata.py",
+        "tools/test/test_gvid_pack.sh",
+        "tools/test/test_gvid_metadata.sh"
+      ]
+    },
+    {
+      "id": "mov_wrapper",
+      "family": "container",
+      "status": "production-supported",
+      "docs": [
+        "README.md",
+        "docs/GETTING_STARTED.md",
+        "docs/GVID_RENDER_INPUT_2026-06-04.md"
+      ],
+      "tools": [
+        "tools/gpraw",
+        "tools/gpr2prores/gpr_mov_tool.m",
+        "tools/test/test_gpr2prores_gvid_input.sh"
+      ]
+    },
+    {
+      "id": "prores_review_outputs",
+      "family": "review",
+      "status": "production-supported",
+      "docs": [
+        "README.md",
+        "docs/GETTING_STARTED.md",
+        "docs/UPRESABLE_PIPELINE.md",
+        "docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md"
+      ],
+      "tools": [
+        "tools/gpr2prores",
+        "tools/run_codec_movie.sh"
+      ]
+    },
+    {
+      "id": "editable_dng_gpr_outputs",
+      "family": "editable_raw",
+      "status": "production-supported",
+      "docs": [
+        "README.md",
+        "docs/UPRESABLE_PIPELINE.md",
+        "docs/GVID_RENDER_INPUT_2026-06-04.md"
+      ],
+      "tools": [
+        "tools/cnn/upresable_pipeline.py",
+        "source/app/gpr_tools"
+      ]
+    }
+  ],
+  "raw_targets": [
+    {
+      "id": "2k_raw_0p5x_fast",
+      "classification": "live-capable",
+      "dimensions": "2070x1380",
+      "pi5_fps_median": 37.59,
+      "pi5_p95_ms": 27.7,
+      "proxy_rows_passing": 56,
+      "proxy_rows_total": 84,
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-13.md"
+      ]
+    },
+    {
+      "id": "2k_raw_0p5x_l2hh",
+      "classification": "p95-live-editable-raw-candidate",
+      "dimensions": "2070x1380",
+      "pi5_fps_median": 29.85,
+      "pi5_p95_ms": 37.1,
+      "proxy_rows_passing": 80,
+      "proxy_rows_total": 84,
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-13.md"
+      ]
+    },
+    {
+      "id": "4k_raw_1x",
+      "classification": "offline-editable-raw",
+      "dimensions": "4140x2760",
+      "mac_fps_median": 43.7,
+      "pi5_fps_median": 6.3,
+      "proxy_rows_passing": 55,
+      "proxy_rows_total": 84,
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-13.md"
+      ]
+    },
+    {
+      "id": "8k_raw_2x",
+      "classification": "offline-only",
+      "dimensions": "8280x5520",
+      "local_fps_smoke": 2.66,
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-13.md",
+        "docs/UPRESABLE_PIPELINE.md"
+      ]
+    }
+  ],
+  "release_checks": [
+    "python3 tools/test/check_sensitive_content.py",
+    "python3 tools/test/check_repo_artifact_hygiene.py",
+    "python3 tools/test/check_release_evidence_manifest.py",
+    "python3 tools/test/test_raw_resolution_targets.py",
+    "python3 tests/quality_gates/check_registry_consistency.py",
+    "python3 tests/quality_gates/audit_ship_pipelines.py",
+    "python3 tests/quality_gates/audit_production_readiness.py --strict"
+  ],
+  "guards": [
+    "tools/test/check_sensitive_content.py",
+    "tools/test/check_repo_artifact_hygiene.py",
+    "tools/test/check_release_evidence_manifest.py"
+  ]
+}
