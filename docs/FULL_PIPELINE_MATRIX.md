@@ -79,3 +79,21 @@ Per-q numbers; multi-DNG verification in `STILLS_PI5_TIMING.md`.
 |---|---:|---:|---:|---|
 | `ml2_q3_dec2` (half-res capture) | 24.93 | 1.30 | 31 | q8 three-way no-REF PREVIEW passes offline/review holdout; 0.073 fps, not live |
 | `ml2_q3_l1x2` (full-res via ml2) | 0.51 (Pi 5 too slow) | 7.81 | 187 | desktop ship (Mac decoder + matched CNN) |
+
+## Raw output targets from `ml2_q3_dec2`
+
+See `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md` for receipts.
+
+| raw target | dimensions | method | local timing |
+|---|---:|---|---:|
+| `2k_raw_0p5x` | 2070 x 1380 | direct half-res decode; fast mode drops L2 highpass | Pi fast mode: 31.4 ms median, 31.85 fps median |
+| `4k_raw_1x` | 4140 x 2760 | direct decoded Bayer | 22.9 ms median, 43.7 fps median |
+| `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | 376.4 ms median, 2.7 fps median |
+
+Pi 5 decode-side timing receipt: `pi5_120f/raw_resolution_targets_pi5_120f.json`.
+Fast 2K Pi receipt: `pi5_fast_l2drop_v2_120f/raw_resolution_targets_pi5_120f.json`.
+The fast mode is enabled with `GPR_DECODE_HALFRES_DROP_L2_HP=1`; it clears the
+24 fps target at 31.4 ms median and 31.85 fps median.
+Proxy visual receipt: `visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.html`.
+It passes 56/84 crop rows under PREVIEW proxy thresholds; misses are LPIPS-only
+texture near-misses, while MS-SSIM, Y-PSNR, and dE2000 remain passing.

@@ -825,6 +825,16 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
            6    = LL2           (bw2×bh2) */
     int slot_w[10], slot_h[10];
     int n_slots = (levels == 2) ? 7 : 10;
+    int dbg_timing = 0;
+    {
+        const char *e = getenv("GPR_DECODE_TIMING");
+        if (e && *e == '1') dbg_timing = 1;
+    }
+    int drop_l2_hp = 0;
+    {
+        const char *e = getenv("GPR_DECODE_HALFRES_DROP_L2_HP");
+        if (half_res && e && *e == '1') drop_l2_hp = 1;
+    }
     if (levels == 2) {
         slot_w[0]=bw1; slot_w[1]=bw1; slot_w[2]=bw1;
         slot_w[3]=bw2; slot_w[4]=bw2; slot_w[5]=bw2;
@@ -849,11 +859,17 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
 
     int band_idx = 0;
     int rc = 0;
+    double dt_band0 = _decode_ms();
     for (int ch = 0; ch < 4 && rc == 0; ch++) {
         for (int s = 0; s < n_slots && rc == 0; s++) {
             int bw = slot_w[s], bh = slot_h[s];
             uint32_t sz = band_sizes[band_idx];
             if (off + sz > enc_size) { rc = -10; break; }
+            if (half_res && (s <= 2 || (drop_l2_hp && s >= 3 && s <= 5))) {
+                off += sz;
+                band_idx++;
+                continue;
+            }
             bands[ch][s] = (PIXEL *)malloc((size_t)bw * bh * sizeof(PIXEL));
             if (!bands[ch][s]) { rc = -11; break; }
             int drc = jans_decode_band_x4(enc + off, sz,
@@ -864,6 +880,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
             band_idx++;
         }
     }
+    if (dbg_timing) fprintf(stderr, "  decode band_decode: %.1f ms\n", _decode_ms() - dt_band0);
 
     /* Per-channel inverse wavelet: level 3 → level 2 → level 1. */
     gpr_allocator alloc = { fd_alloc, fd_free };
@@ -894,12 +911,14 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
         int deepest_slot = (levels == 2) ? 6 : 9;
         int deepest_bw = (levels == 2) ? bw2 : bw3;
         int deepest_bh = (levels == 2) ? bh2 : bh3;
+        double dt_ll0 = _decode_ms();
         for (int ch = 0; ch < 4; ch++) {
             PIXEL *p = bands[ch][deepest_slot];
             if (!p) continue;
             size_t n = (size_t)deepest_bw * deepest_bh;
             for (size_t i = 0; i < n; i++) p[i] *= ll_dequant;
         }
+        if (dbg_timing) fprintf(stderr, "  decode ll_dequant: %.1f ms\n", _decode_ms() - dt_ll0);
 
         /* Coefficient I/O hooks for codec-anchored refinement experiments
            (task #233). Compile-guarded so production builds get zero code
@@ -953,7 +972,44 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
         }
 #endif /* GPR_DEBUG_COEFF_IO */
 
-
+        double dt_wave0 = _decode_ms();
+        if (half_res && levels == 2) {
+            FUSED_INV_TASK tasks[4];
+            pthread_t threads[4];
+            int created[4] = {0};
+            PIXEL *zero_hp = NULL;
+            if (drop_l2_hp) {
+                zero_hp = (PIXEL *)calloc((size_t)bw2 * bh2, sizeof(PIXEL));
+                if (!zero_hp) rc = -24;
+            }
+            for (int ch = 0; ch < 4 && rc == 0; ch++) {
+                channels[ch] = (PIXEL *)malloc((size_t)bw1 * bh1 * sizeof(PIXEL));
+                if (!channels[ch]) { rc = -24; break; }
+                tasks[ch].ll = bands[ch][6];
+                tasks[ch].lh = bands[ch][3] ? bands[ch][3] : zero_hp;
+                tasks[ch].hl = bands[ch][4] ? bands[ch][4] : zero_hp;
+                tasks[ch].hh = bands[ch][5] ? bands[ch][5] : zero_hp;
+                tasks[ch].out_channel = channels[ch];
+                tasks[ch].bw = bw2;
+                tasks[ch].bh = bh2;
+                tasks[ch].ch_w = bw1;
+                tasks[ch].ch_h = bh1;
+                tasks[ch].q = q_l2;
+                tasks[ch].err = CODEC_ERROR_OKAY;
+            }
+            if (rc == 0) {
+                for (int ch = 0; ch < 4; ch++) {
+                    created[ch] = (pthread_create(&threads[ch], NULL,
+                        fused_inv_wavelet_runner, &tasks[ch]) == 0);
+                    if (!created[ch]) fused_inv_wavelet_runner(&tasks[ch]);
+                }
+                for (int ch = 0; ch < 4; ch++) {
+                    if (created[ch]) pthread_join(threads[ch], NULL);
+                    if (tasks[ch].err != CODEC_ERROR_OKAY) rc = -23;
+                }
+            }
+            if (zero_hp) free(zero_hp);
+        } else {
         for (int ch = 0; ch < 4 && rc == 0; ch++) {
             /* Per-level descale values default to descale=2 everywhere
                (mirroring the encoder's prescale=2 at every level). Override
@@ -1032,6 +1088,8 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
                 if (e != CODEC_ERROR_OKAY) { rc = -25; break; }
             }
         }
+        }
+        if (dbg_timing) fprintf(stderr, "  decode wavelet inv: %.1f ms\n", _decode_ms() - dt_wave0);
     }
 
     /* Free band buffers; we've consumed them into the channel planes. */
@@ -1046,6 +1104,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
     int chan_w = half_res ? bw1 : ch_w;
     int chan_h = half_res ? bh1 : ch_h;
     if (rc == 0) {
+        double dt_color0 = _decode_ms();
         int log_max  = (1 << (int)hdr.log_bits) - 1;
         int midpoint = 1 << ((int)hdr.log_bits - 1);
         const uint16_t *log_table =
@@ -1054,63 +1113,36 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
         int shift = 16 - output_bit_depth;
         int is_rggb = (int)hdr.is_rggb;
 
-        for (int y = 0; y < chan_h; y++) {
-            const PIXEL *gs_row = channels[0] + (size_t)y * chan_w;
-            const PIXEL *rg_row = channels[1] + (size_t)y * chan_w;
-            const PIXEL *bg_row = channels[2] + (size_t)y * chan_w;
-            const PIXEL *gd_row = channels[3] + (size_t)y * chan_w;
-            uint8_t *r1_bytes = (uint8_t *)bayer_out + (size_t)(2*y)     * bayer_pitch_bytes;
-            uint8_t *r2_bytes = (uint8_t *)bayer_out + (size_t)(2*y + 1) * bayer_pitch_bytes;
-            uint16_t *bayer_row1 = (uint16_t *)r1_bytes;
-            uint16_t *bayer_row2 = (uint16_t *)r2_bytes;
-
-            for (int x = 0; x < chan_w; x++) {
-                int gs = gs_row[x];
-                int rg = rg_row[x];
-                int bg = bg_row[x];
-                int gd = gd_row[x];
-
-                /* Clamp inputs */
-                if (gs < 0) gs = 0; if (gs > log_max) gs = log_max;
-                if (rg < 0) rg = 0; if (rg > log_max) rg = log_max;
-                if (bg < 0) bg = 0; if (bg > log_max) bg = log_max;
-                if (gd < 0) gd = 0; if (gd > log_max) gd = log_max;
-
-                /* Subtract midpoint, then invert color transform */
-                rg -= midpoint;
-                bg -= midpoint;
-                gd -= midpoint;
-
-                int r  = (rg << 1) + gs;
-                int b  = (bg << 1) + gs;
-                int g1 = gs + gd;
-                int g2 = gs - gd;
-
-                if (r  < 0) r  = 0; if (r  > log_max) r  = log_max;
-                if (g1 < 0) g1 = 0; if (g1 > log_max) g1 = log_max;
-                if (g2 < 0) g2 = 0; if (g2 > log_max) g2 = log_max;
-                if (b  < 0) b  = 0; if (b  > log_max) b  = log_max;
-
-                /* Inverse log curve → output bit depth */
-                int r_lin  = log_table[r]  >> shift;
-                int g1_lin = log_table[g1] >> shift;
-                int g2_lin = log_table[g2] >> shift;
-                int b_lin  = log_table[b]  >> shift;
-
-                if (is_rggb) {
-                    bayer_row1[2*x]   = (uint16_t)r_lin;
-                    bayer_row1[2*x+1] = (uint16_t)g1_lin;
-                    bayer_row2[2*x]   = (uint16_t)g2_lin;
-                    bayer_row2[2*x+1] = (uint16_t)b_lin;
-                } else {
-                    /* GBRG */
-                    bayer_row1[2*x]   = (uint16_t)g1_lin;
-                    bayer_row1[2*x+1] = (uint16_t)b_lin;
-                    bayer_row2[2*x]   = (uint16_t)r_lin;
-                    bayer_row2[2*x+1] = (uint16_t)g2_lin;
-                }
-            }
+        FUSED_COLOR_TASK ct[4];
+        pthread_t cth[4];
+        int created[4] = {0};
+        int nthreads = 4;
+        int rows_per = (chan_h + nthreads - 1) / nthreads;
+        for (int i = 0; i < nthreads; i++) {
+            int y0 = i * rows_per;
+            int y1 = y0 + rows_per;
+            if (y1 > chan_h) y1 = chan_h;
+            ct[i].y_start = y0;
+            ct[i].y_end = y1;
+            ct[i].ch_w = chan_w;
+            ct[i].ch_h = chan_h;
+            ct[i].log_max = log_max;
+            ct[i].midpoint = midpoint;
+            ct[i].shift = shift;
+            ct[i].is_rggb = is_rggb;
+            ct[i].log_table = log_table;
+            ct[i].gs_row = channels[0];
+            ct[i].rg_row = channels[1];
+            ct[i].bg_row = channels[2];
+            ct[i].gd_row = channels[3];
+            ct[i].bayer_out = (uint8_t *)bayer_out;
+            ct[i].bayer_pitch_bytes = bayer_pitch_bytes;
+            created[i] = (pthread_create(&cth[i], NULL, fused_color_runner, &ct[i]) == 0);
+            if (!created[i]) fused_color_runner(&ct[i]);
         }
+        for (int i = 0; i < nthreads; i++)
+            if (created[i]) pthread_join(cth[i], NULL);
+        if (dbg_timing) fprintf(stderr, "  decode color_xform: %.1f ms\n", _decode_ms() - dt_color0);
     }
 
     for (int ch = 0; ch < 4; ch++)

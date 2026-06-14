@@ -1,789 +1,217 @@
-# GPR — wavelet raw codec, contributed back
+# GPR
 
 [![CI](https://img.shields.io/github/actions/workflow/status/dcliftreaves/gpr/ci.yml?branch=master&label=CI&style=flat-square)](https://github.com/dcliftreaves/gpr/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue?style=flat-square)](#license)
 [![STILL smallest](https://img.shields.io/badge/STILL%20smallest-9.80%20MB%20%2F%2050%20MP-2576c4?style=flat-square)](docs/SHIP_DECISION.md)
-[![Pi 5 q=3](https://img.shields.io/badge/Pi%205%20q%3D3-544%20ms%20%C2%B7%201.84%20fps-2ecc71?style=flat-square)](docs/STILLS_PI5_TIMING.md)
-[![Video](https://img.shields.io/badge/Pi%205%20video-24.93%20fps%20%C2%B7%2050%20MP-1a5fb4?style=flat-square)](docs/VIDEO_STATUS.md)
+[![Pi 5 video](https://img.shields.io/badge/Pi%205%20capture-24.93%20fps%20%2F%2050%20MP-1a5fb4?style=flat-square)](docs/VIDEO_STATUS.md)
 [![Spec](https://img.shields.io/badge/built%20on-SMPTE%20ST%202073%20(VC--5)-555?style=flat-square)](docs/SPEC.md)
 
-> **Open-source visually-lossless raw codec for stills and 24 fps × 50 MP video.**
-> Built on SMPTE ST 2073 (VC-5), descended from GoPro's CineForm, retargeted at
-> Apple Silicon and Cortex-A76 (Raspberry Pi 5) with a matched-CNN restoration
-> path that holds visual quality below 10 MB per 50 MP frame.
-
-![GPR wavelet decomposition](data/readmegfx/level3-640.png)
+GPR is an open raw Bayer media suite built around VC-5 wavelet coding,
+matched decoder-side restoration, raw-video containers, and reproducible
+quality gates. The repo is being productionized around one rule: every
+shipping path must either pass its committed gate with receipts, or be clearly
+marked experimental.
 
 ![GPR production status matrix](docs/img/readme_status_matrix.svg)
 
 ![GPR still and video pipeline flow](docs/img/readme_pipeline_flow.svg)
 
-## Contents
-- [What ships today](#what-ships-today)
-- [Today's headline numbers](#todays-headline-numbers-2026-05-28-perf-pass)
-- [30-second quick start](#30-second-quick-start)
-- [Encode a video frame in 10 lines of C](#encode-a-video-frame-in-10-lines-of-c)
-- [Architecture](#architecture)
-- [Honest engineering posture](#honest-engineering-posture)
-- [PREVIEW runtime research status](#preview-runtime-research-status)
-- [Documentation map](#documentation-map)
-- [Build](#build)
-- [License](#license)
-- [Trademarks](#trademarks)
+## Production Goal
 
----
+Use this as the active engineering goal for the repo:
 
-## What ships today
+```text
+Productionize GPR as a release-quality raw media suite across stills, video,
+PREVIEW/live decode, UPRESABLE, .gvid/container outputs, editable raw outputs,
+dashboards, CI, and target-platform performance.
 
-### Stills — three-tier ship, all visual-lossless on the gate
+Stop only when:
+- CI is green on main/master after the final push.
+- Every registered production path is passing its committed gate or explicitly
+  marked experimental.
+- PREVIEW/live decode has a no-REF runtime path, full-image validation,
+  holdout coverage, dashboard evidence, and documented worst rows.
+- Stills, VIDEO_FREEZE, UPRESABLE, .gvid, MOV wrapper, editable DNG/GPR, and
+  ProRes review outputs have current receipts.
+- Pi 5 / Mission 1 and Mac/M5 paths have timing, memory, and FPS receipts.
+- 2K, 4K, and 8K raw targets are classified as live-capable,
+  preview-capable, or offline-only.
+- If production quality cannot be reached, the blocker is named with metrics,
+  visuals, artifact paths, and the next experiment.
+```
 
-| tier        | mean MB / 50 MP | worst LPIPS | what it is |
-|---          |---:             |---:         |---|
-| smallest    | **9.80**        | 0.031       | `gpr_tools -q 0` + matched-q3 CNN |
-| primary     | **15.05**       | 0.016       | `gpr_tools -q 3` + matched-q3 CNN |
-| archival    | **27.17**       | 0.004       | `gpr_tools -q 8`, no CNN needed   |
+Artifacts and temporary outputs should live under
+`/Volumes/OWC_8TB/gpr_work`, with `TMPDIR` pointed at the external drive for
+large runs.
 
-All three clear the perceptual gate (LPIPS ≤ 0.05, MS-SSIM ≥ 0.99, Y-PSNR ≥
-35 dB, ΔE2000 ≤ 1.5). **2.8× storage span across the tiers; one CNN
-checkpoint serves the two CNN-using tiers** — the matched-q3 model
-generalizes down to q=0 with no retrain. See
-[`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md).
+## Current Ship Matrix
 
-The fine-detail crop below (rocks under a train car, the canonical
-hard case for compression artifacts) at all three tiers, sips-rendered
-through each ship pipeline:
+| area | production status | current evidence |
+|---|---|---|
+| Stills | PASS: three tiers | 9.80 MB, 15.05 MB, and 27.17 MB per 50 MP frame all pass the STILL gate |
+| VIDEO_FREEZE | PASS for desktop/post | `ml2_q3_l1x2` + matched CNN passes the VIDEO_FREEZE gate at 7.81 MB/frame |
+| Pi 5 embedded capture | PASS for half-res raw capture | `ml2_q3_dec2` captures 50 MP source-derived frames at 24.93 fps sustained |
+| UPRESABLE | PASS as editable raw | Half-res capture to full-res editable raw passes the UPRESABLE Bayer PSNR gate |
+| `.gvid` | Primary raw-video container | Wraps per-frame FUSED `.gpr` payloads with metadata dispatch docs |
+| MOV wrapper | Compatibility/export path | Available for GPR1/GPRr wrapper and downstream review/export tooling |
+| ProRes review | Review artifact path | Generated from preview/review tools, not the primary raw deliverable |
+| PREVIEW offline/review | PASS for q8 three-way runtime full-frame path | No-REF full-frame holdout passes 84/84 on the current receipt |
+| PREVIEW live/camera-back | Experimental | The q8 three-way route is not a live/camera-back preview path; codec-only and 2K raw fast paths are the current speed baselines |
+| 2K raw target | Pi live-capable candidate | Fast decode mode hits 31.85 fps median on Pi 5 with LPIPS-only proxy misses |
+| 4K raw target | Mac/offline candidate | 43.7 fps median on Mac path; Pi decode-side is 6.3 fps median |
+| 8K raw target | Offline/review only | Current 2x raw reconstruction is about 2.7 fps on the local timing smoke |
+
+Source of truth:
+[`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md),
+[`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md),
+[`docs/FULL_PIPELINE_MATRIX.md`](docs/FULL_PIPELINE_MATRIX.md), and
+`tests/quality_gates/runs/`.
+
+## Stills
+
+The still pipeline uses the legacy `gpr_tools` encoder with either a matched
+BIBO_1x decoder CNN or no CNN for the archival tier.
+
+| tier | pipeline | mean size | verdict |
+|---|---|---:|---|
+| smallest | `gpr_tools_q0` + matched q3 CNN | 9.80 MB | PASS |
+| primary | `gpr_tools_q3` + matched q3 CNN | 15.05 MB | PASS |
+| archival | `gpr_tools_q8` + no CNN | 27.17 MB | PASS |
+
+The gate is per-image worst-case, not an average: LPIPS <= 0.05,
+MS-SSIM >= 0.99, Y-PSNR >= 35 dB, and dE2000 <= 1.5.
 
 ![Three STILL tiers, fine-detail crop](docs/img/still_three_tiers.png)
 
-Animated cycle through the three tiers on the same crop (1.5 s per
-frame) — the visible texture stays consistent across a 2.8× storage
-reduction:
-
 ![Three STILL tiers animated](docs/img/q_levels_animated.gif)
 
-The 9.80 MB tier holds visible quality on sharp edges and shadow
-texture; differences vs the 27 MB archival tier are sub-perceptual on
-this content.
-
-### How GPR compares to JPEG / PNG / raw on a 50 MP Z8 frame
-
-Real numbers, hardest test image (Z8Z_6693, hair / saturated texture):
-
-```mermaid
-xychart-beta
-    title "File size, MB — Z8Z_6693, 50 MP, hardest gate image"
-    x-axis ["PNG 8-bit", "DNG raw", "JPEG q95", "GPR q=8", "JPEG q85", "GPR q=3+CNN", "GPR q=0+CNN"]
-    y-axis "MB" 0 --> 120
-    bar [108.30, 57.91, 33.80, 41.04, 18.97, 21.43, 16.61]
-```
-
-GPR at smallest tier (q=0 + CNN) lands **below JPEG quality 85** while
-remaining a fully-recoverable raw Bayer file: full bit depth, no
-demosaic baked in, CNN-restorable to visual-lossless on decode. JPEG
-discards bit depth and bakes in a one-shot demosaic; PNG triples the
-file size to preserve a lossy color render.
-
-### Video — 24 fps × 50 MP raw on Pi 5
-
-| pipeline                          | fps (Pi 5) | per-frame MB | sustained MB/s |
-|---                                |---:        |---:          |---:            |
-| `ml2_q3_dec2` (half-res capture)  | **24.93**  | 1.30         | 31             |
-| `ml2_q3_l1x2`  (full-res desktop) | n/a*       | 7.81         | 187 @ 24 fps   |
-
-\* Pi 5 maxes ~1.84 fps at full 50 MP — full-res is a desktop/post-process
-ship, not embedded capture. Sustained 24.93 fps embedded capture verified
-on Pi 5 USB-SSD writes with page cache exhausted (`docs/pi5_bench_2026-05-26.md`).
-
-### UPRESABLE — editable raw from half-res capture
-
-The Pi-capture half-res frames (`ml2_q3_dec2`, 24.93 fps sustained) are
-desktop-restored to full-res editable raw via a 2× super-res CNN
-(`bibo2x_ane_ml2_q3_dec2_diverse`, F_ane variant, ~317K params on MPS).
-**Primary deliverable: `.gvid`** — the neutral GVID stream container wrapping
-per-frame FUSED `.gpr` payloads. A GPR1/GPRr MOV wrapper remains available as
-a compatibility/export artifact for `gpr2prores` and patched FFmpeg. Per-frame
-editable DNG (~91 MB) + `gpr_tools .gpr` (~2–8 MB) for Adobe CR / darktable
-hand-off is opt-in via `--dng-export`. ProRes 422 HQ review video is opt-in
-via `--render-prores`.
-
-Latest preview review bundle and SOTA-v2 ProRes evidence:
-`docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md`.
-
-| metric                              | value                         |
-|---                                  |---                            |
-| Capture rate (Pi 5)                 | 24.93 fps sustained           |
-| Per-frame upres (Mac M3, GVID)      | ~750 ms (decode 97 + CNN 435 + encode 210 + pack 8) |
-| Per-frame upres (Mac M3, with --render-prores + --dng-export) | ~2.9 s (legacy path) |
-| Bayer PSNR vs source DNG            | 37.85–43.78 dB (4 gate imgs)  |
-| Gate verdict                        | **PASS** UPRESABLE class      |
-
-UPRESABLE has its own ship class in `tests/quality_gates/gates.json`. It
-enforces `bayer_psnr_final ≥ 35 dB` — the workflow-native fidelity for
-editable raw — while rendered LPIPS / MS-SSIM / Y-PSNR / ΔE2000 are
-computed informationally only. The BIBO_2x CNN smooths mid-frequency
-texture on out-of-distribution content (Z8Z_6693 rendered LPIPS = 0.343);
-this is acceptable for editable raw (colorist re-grades and re-grains in
-their NLE) but the file is **not** a finished render.
-
-### Today's gate verdicts — all four ship classes PASS
-
-| ship class            | worst-image metric        | run hash             |
-|---                    |---                        |---                   |
-| STILL primary         | LPIPS 0.0155 (Z8Z_6693)   | `b44fa841c05c9bff`   |
-| VIDEO_FREEZE primary  | LPIPS 0.0760 (Z8Z_6693)   | `5c3cce4c472d4197`   |
-| PREVIEW (codec only)  | LPIPS 0.1003 (Z8Z_6693)   | `5e7b79b5678fdf62`   |
-| UPRESABLE             | Bayer PSNR 40.39 dB (Z8Z_6693) | `8864c12ec0b6ce14` |
-
-All four verified 2026-05-30 after restoring `test_fused_roundtrip`'s
-binary to its in-tree source (`test_fused_decode_roundtrip.c` — the
-older `test_fused_roundtrip.c` had a stale band-count self-check that
-rejected `GPR_INCLUDE_LL=1` and decimated codec configs). Gate runner
-now tolerates `dec2+SR` chains and `bayer_psnr_final` is gateable
-alongside the rendered metrics.
-
-### PREVIEW runtime research status — temporary candidate
-
-The current live/camera-back PREVIEW ship claim remains the codec-only gate
-above. The newer no-REF display refiner work has now produced an
-offline/review production path, not a live preview path. The dashboard-shaped
-checkpoint clears 14/16
-crop rows, but when the
-same work is forced through deterministic runtime inputs - no REF content, no
-winner JSON, no sample index, and no crop-key planes - the single-refiner
-production-source candidate tops out at **11/16 (68.75%)**. The current best
-hard-routed scene/degradation diagnostic reaches **84/84 (100.0%)** on the
-28-image full-image source holdout.
-
-The current temporary registered candidate is:
-
-```text
-codec=ml2_q3_dec2+cnn=preview_scene_routed_k5_l1color_v1+demosaic=sips_via_gpr_tools
-```
-
-It uses a frozen nearest-center router sidecar computed from runtime
-source-image features and preloaded expert checkpoints. The latest v32
-diagnostic stacks frozen K16 and K40 override routers with namespaced expert
-selection: K16 handles the Z8Z_7480 structure clusters, and K40 cluster 35
-handles the remaining low-frequency color rows with `color_stats`
-conditioning. It is not registered as production PREVIEW.
-
-The routed v32 diagnostic receipt is:
-
-```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/scene_routed_holdout_v32_k16_k40_namespaced_84/preview_scene_routed_holdout.json
-```
-
-Median model time on the Mac/MPS holdout receipt is **13.28 ms/crop** with peak
-RSS **1453 MB**. This is still not a ship claim until the same policy is
-validated through the full-frame/tiled render path, but the 84-row no-REF
-holdout now passes **84/84**. Worst LPIPS is **0.0500**, worst MS-SSIM is
-**0.9642**, worst Y-PSNR is **28.86**, and worst dE2000 is **2.96**. See
-[`docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md`](docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md)
-[`docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md),
-[`docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md),
-and [`docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md`](docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md).
-
-Latest full-frame/tiled PREVIEW status: the scene-gated v32 route reaches only
-**63/84** on the 28-image stitched full-frame holdout, with **94.28 s** total
-model time for 28 frames on Mac/MPS. Full-frame LF-field and luma-detail
-probes rule out smooth Lab/Y correction and clean-source luma/detail addback as
-the immediate fix, and source-root scoring shows the clean UPRESABLE source
-itself is 0/24 on the hard-eight PREVIEW crops. The remaining blocker is
-source/target formulation under arbitrary full-frame tiling.
-
-The latest candidate evidence rank dashboard aggregates 215 variant summaries
-across the source, model, crop-contract, and oracle receipts. It makes the
-current split explicit: crop-shaped no-REF routing is **84/84**, the broad
-production-shaped full-frame route is **63/84**, the best hard-row no-REF model
-candidate is only **2/24**, archival q8 no-REF rendering is **32/84** against
-resolved true REF and **12/24** on the hard-eight rows, a metric-selected
-scene-gated/q8 selector oracle reaches only **74/84**, and the REF-field oracle
-ceiling is **24/24**. A focused q8+learned-low-field fit smoke improves the
-selected hard-five images from **3/15** to **10/15**, but the hard-five holdout
-run falls to **25/84**, so that formulation is not production. The next viable
-PREVIEW experiment needs a better true-REF training corpus/source policy or a
-more global image-conditioned model, not another local post-refiner,
-residual-band pass, simple archival/still codec render, or two-way selector.
-Dashboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/preview_candidate_evidence_rank_v5/preview_candidate_evidence_rank.html`.
-
-A dedicated source/REF policy audit scores the current rendered runtime source
-directly against resolved true REF before any model is applied. That baseline is
-only **20/84** overall: the clean UPRESABLE source is **20/84**, diverse REF
-rows are **0/24**, and Barnsky REF rows are **20/60**. This makes the current
-PREVIEW blocker a source-policy/full-image formulation issue, not a small
-post-filter gap. Dashboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/source_ref_policy_audit_v1/preview_source_ref_policy_audit.html`.
-
-A bounded follow-up trained a full-image low-field model on the 20 Barnsky
-images and held out all eight diverse images. It improved the fit-side rows
-from **20/60** to **52/60**, but stayed **0/24** on the held-out diverse rows;
-even the REF-low/source-high oracle stayed **0/24** there. That rules out this
-low-field source-policy correction as production PREVIEW. Dashboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/upresable_source_lowfield_barnskyfit_diverseholdout_w1024_v1/preview_fullimage_band_refiner.html`.
-
-q8 is a better runtime-safe detail source for the diverse rows, but the current
-low-field network still does not productionize it. q8 source baseline is
-**32/84** and the REF-low/q8-detail oracle reaches **78/84**, but generated
-low-field variants reach only **50/84** on Barnsky-fit/diverse-holdout,
-**60/84** when fit on all 28 images, and **0/84** on the diverse-fit reverse
-split. A small residual-U-Net smoke improves the worst color errors but still
-reaches only **56/84**. The next PREVIEW candidate needs a stronger
-scene-conditioned/global source-to-target model or different source/teacher
-representation, not this low-field head family.
-
-A richer q8 source-derived multiband residual-U-Net then added runtime-safe
-blur, high-frequency, gradient, laplacian, coordinate, and global-stat planes.
-That changes the all-fit ceiling materially: generated low-field residual
-improves to **72/84**, with **24.9 ms** median model time at 512px working
-width and about **11.2 GB** max RSS on Mac/MPS. The split receipts still fail
-production generalization: training on the 20 non-hard images gives **59/60**
-fit but **0/24** hard holdout, and training on the hard eight gives **18/24**
-fit but **0/60** diverse holdout. This narrows the blocker to scene-family
-generalization under the current runtime-safe q8 model, not missing source
-bands alone.
-
-A direct q8 crop CNN then tested the adjacent specialist path without sample or
-crop key planes. Training only on the hard eight clears the hard rows **24/24**
-with **16.4 ms** median model time per crop, but falls to **0/60** on the
-diverse holdout. A hard-only split trained without `Z8Z_7480`/`Z8Z_7955` clears
-the fit rows **18/18** and generalizes to `Z8Z_7955` **3/3**, but still fails
-`Z8Z_7480` **0/3**. Training one global q8 crop model on all 84 rows reaches
-only **46/84**. This makes q8 crop CNNs plausible routed specialists, while
-`Z8Z_7480` remains a specific structure/data-coverage blocker.
-
-The q8 crop specialist now also has a production-shaped full-frame/tiled smoke.
-The hard-fit checkpoint applied over arbitrary 512px q8 full-frame tiles passes
-the full hard-eight set **24/24** after stitching, with **22.4 s** total model
-time across eight 187-tile 50 MP frames on Mac/MPS. The stricter split
-checkpoint still passes `Z8Z_7955` **3/3** but fails `Z8Z_7480` **0/3** in the
-same full-frame path. That proves the q8 specialist can survive tiled
-full-frame application for covered hard families, but also confirms `Z8Z_7480`
-needs matching scene-family coverage or a better specialist before PREVIEW can
-be registered.
-
-A runtime-safe q8 hard-family router then combined the q8 hard full-frame
-specialist with the existing v32 full-frame fallback. The router uses only q8
-source full-frame/crop-window features and reaches **28/28** image-level
-leave-one-out routing accuracy on the holdout. The routed union reaches
-**78/84** full-frame stitched crop rows. The six remaining failures are
-`Z8Z_0680`, `Z8Z_0694`, and `Z8Z_0718` fallback rows, so the next PREVIEW work
-is a fallback-family specialist or source policy for those images, not more
-hard-family q8 work.
-
-That fallback-family specialist now fits those remaining three images and
-survives full-frame tiling: q8 fallback3 crop training clears **9/9**, and its
-512px tiled full-frame receipt also clears **9/9**. A guarded three-way
-source-only router selects q8-hard, q8-fallback3, or v32 fallback and reaches
-**28/28** leave-one-out routing accuracy. The resulting receipt union clears
-the full 28-image stitched holdout **84/84** with worst LPIPS **0.1178**, worst
-MS-SSIM **0.9548**, worst Y-PSNR **30.87**, and worst dE2000 **2.64**. This is
-the current best PREVIEW evidence, but it still needs a single integrated
-renderer/timing receipt before production registration.
-
-The same policy now has an integrated runtime full-frame receipt. The wrapper
-freezes the source-only three-way router, invokes the actual q8 hard,
-q8-fallback3, or v32 full-frame renderer for each selected image, and writes one
-combined timing/memory dashboard. That integrated holdout also clears **84/84**
-with the same worst metrics, weighted runtime **13.65 s/image** (**0.073 fps**)
-and peak RSS **5.37 GB**. This makes PREVIEW quality production-shaped; the
-current registration is therefore the offline/review PREVIEW production path,
-not a live/camera-back PREVIEW path. The live/camera-back PREVIEW route remains
-the codec-only speed path; quality beyond that is separate future work.
-
-The latest full-frame follow-up narrows that blocker further. Exact
-manifest-crop full-frame evaluation passes 3/3, but arbitrary tiling fails even
-with high overlap. A 336-row full-frame tile receipt shows raw UPRESABLE source
-tiles pass only 80/336 before the CNN; the broad global-coordinate tile refiner
-reaches 272/336, and a wider `Z8Z_6680` specialist reaches 8/12 isolated hard
-tiles but only 1/3 stitched full-frame crops. LPIPS/detail can be learned; the
-remaining production blocker is low-frequency luma/color consistency across
-stitched arbitrary full-frame tiles from the current source policy.
-Follow-up global-color conditioning, LF affine-oracle, dilated-context, 1024px
-tile, failure-only polish, stitched-output post-refinement, and 256px
-padded-context inference diagnostics did not clear that blocker. The route audit
-now shows two causes: arbitrary tiles can select different experts inside a crop
-that passes in crop mode, and one crop still fails even when its intersecting
-tiles select the expected K40 expert. Dense 512px sliding windows with 256px
-overlap improve the smoke but still fail 0/3 and cost about 14.0 s of model
-time for one full frame; overlap-save and route-context-only variants regress.
-The full-frame evaluator now exposes that geometry as explicit repeated
-`--tile-offset` origins; the 2026-06-12 four-origin receipt also fails 0/3 on
-`Z8Z_6680` with worst LPIPS 0.2713 and worst dE2000 5.54, so multi-origin
-stitching is tracked as negative evidence rather than a hidden production path.
-A 15-channel source-frequency post-refiner path was then added for runtime-safe
-low/high planes derived from source RGB only. On the 24 hard-eight stitched
-manifest crops it still reaches only 3/24, with worst LPIPS 0.5604 and worst
-dE2000 8.28, so source-derived frequency planes alone are not the missing
-full-frame representation.
-A full-image band refiner diagnostic then trained a downsampled full-frame
-source-to-REF RGB field and composed it with source high-frequency detail. On
-the hard-eight stitched v32 receipt, the source baseline is 4/24 and exact REF
-low-field residual is still only 4/24; the learned full-image band variants
-regress to 0/24. On the newer multi-origin `Z8Z_6680` smoke, exact REF
-low-field residual remains 0/3 with worst LPIPS 0.2702 and worst dE2000 5.32.
-This rules out the current "generated low/mid field plus source detail" path as
-the production fix.
-A REF-assisted full-frame alignment oracle then tested whether the source/REF
-render-size mismatch is hiding a crop geometry problem. On the 24 hard-eight
-v32 rows, a +/-12px coarse shift search stays 4/24 with zero failing rows
-recovered; on the multi-origin `Z8Z_6680` smoke, a denser shift/scale search
-stays 0/3 with no metric improvement. Small crop alignment is not the missing
-full-frame fix.
-A full-frame failure-mode audit now aggregates 15 existing receipts into one
-dashboard:
-
-```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260613/fullframe_failure_mode_audit_v4/preview_fullframe_failure_mode_audit.html
-```
-
-It normalizes 2,043 evidence rows over the 84-row holdout, confirms the
-crop-shaped routed candidate at 84/84, the broad arbitrary-tiled scene-gated
-path at 63/84, and the hard-eight contract split at 16/24 exact manifest-crop
-passes versus only 3/24 arbitrary-tiled passes. The audit finds 13 rows that
-pass exact manifest-crop inference but fail under arbitrary production tiling:
-11 are mixed-role tiled crops, while two fail even with a coherent tiled role
-(`Z8Z_6680:C_lowerleft` and `Z8Z_5937:B_center`). The next PREVIEW candidate
-must close both parts of the exact-crop to arbitrary-tile contract gap: routing
-stability across crop interiors and same-role tile/context robustness.
-A normalized exact-teacher distillation score confirms the wider post model
-reaches only 2/24 against REF, and the later stitched context U-Net capacity
-probe also reaches only 2/24, so the current crop/post-refiner formulation is
-not capacity-limited in an easily fixable local-CNN way.
-A role-map post-distillation capacity test then trained on the 13 exact-pass
-but arbitrary-tiled-fail rows using arbitrary-tiled crop RGB plus runtime tile
-role planes, with exact no-REF crop output as the target. The exact teacher is
-13/13 against REF, but the learned role-map output reaches only 1/13 against
-REF and 4/13 against the teacher, so simple role-map conditioning is not enough
-to recover the mixed-role failures. The next candidate needs a stronger
-full-frame/assembled-tile model or a different source/teacher representation,
-not just tile-role planes appended to the current post-refiner contract.
-A source-only local route-smoothing probe then tested the other obvious
-post-policy path on `Z8Z_0026` and `Z8Z_6680`. Local-majority smoothing changed
-39 tiles at a 512px radius and 32 tiles at a 1024px radius, but both runs stayed
-0/6. Worst LPIPS remained 0.4377 and 0.4478, and worst dE2000 stayed above 8.7.
-This rules out local route-majority smoothing as the production fix for the hard
-full-frame failures; the remaining work needs a runtime-shaped
-full-frame/assembled-tile model or a different source/teacher representation.
-The first explicit low-frequency spatial branch improves the hard `Z8Z_6680`
-tile receipt to 9/12 isolated passes, but stitched full-frame output remains
-1/3 with remaining Y/dE failures in the lower-left region. A follow-up
-worst-row-weighted pass focused on `B_center`/`C_lowerleft` also reached 9/12
-isolated passes and 1/3 stitched full-frame crops; it improved some luma/color
-numbers but did not clear the full-frame gate. Adding an assembled-crop loss
-that stitches predicted receipt tiles before scoring the manifest crops improves
-the hard `Z8Z_6680` smoke to 2/3: `A_detail` and `B_center` pass, while
-`C_lowerleft` still misses on low-frequency Y/dE. Follow-up C-focused passes
-narrow that miss but do not clear it. The next PREVIEW candidate needs a
-stronger runtime source/model formulation for lower-left luma/color consistency,
-not just heavier sampling or loss weighting on the same arbitrary tiles. A
-residual low-frequency wrapper and broad all-28 lower-left residual
-normalization were also tested; the broad correction is scene-unstable and
-regresses non-target tiles badly. A follow-up deterministic spatial override
-that selected a lower-left cluster-4 specialist from normalized tile coordinates
-also failed: the initialized fine-tune reached 6/15 isolated passes, but the
-stitched `Z8Z_6680` smoke stayed 2/3 and regressed `C_lowerleft` to Y-PSNR
-25.66 and dE2000 4.01. A mid-frequency oracle then showed that a radius-1 RGB
-residual can clear the remaining stitched crop, but the first learned
-mid-frequency residual wrappers only improved the smoke to Y-PSNR 26.13 and
-dE2000 3.72. An explicit sigma-1 residual-teacher loss improved Y-PSNR only to
-26.16 and still missed dE2000 at 3.73. Moving that sigma-1 residual supervision
-into the assembled stitched-crop loss improves the hard crop to Y-PSNR 26.44
-and dE2000 3.67, but LPIPS regresses to 0.0892 and the smoke remains 2/3.
-Guarded follow-ups recover the detail regression and make v21 the current best
-learned stitched candidate at LPIPS 0.0477, MS-SSIM 0.9680, Y-PSNR 27.00, and
-dE2000 3.38 on `C_lowerleft`, but it still fails the PREVIEW gate. The
-remaining CNN blocker is now low-frequency Lab/Y calibration, not missing
-texture/detail. A runtime-safe stitched-frame post-refiner trained on the v21
-full-frame output clears the three-crop `Z8Z_6680` smoke with worst LPIPS
-0.0515, worst MS-SSIM 0.9824, worst Y-PSNR 28.94, and worst dE2000 2.997, but
-it is a single-frame diagnostic and did not generalize to the hair/skin
-holdout.
-
-The latest production-shaped full-grid pass adds a runtime scene-role gate for
-a hair/skin spatial specialist trained on actual arbitrary full-frame tiles.
-That gate is based on source-route role counts, not image ids. It clears the
-three-image hair/skin smoke 9/9 and improves the full 28-image arbitrary
-tiled holdout from **57/84 (67.86%)** to **63/84 (75.0%)**, with MPS model
-time **3.37 s/frame** and peak RSS **5750 MB**. It is still not production:
-the remaining 21 failures are concentrated in the hard full-grid images
-`Z8Z_0026`, `Z8Z_0705`, `Z8Z_1586`, `Z8Z_5284`, `Z8Z_5937`, `Z8Z_6680`,
-`Z8Z_7480`, and `Z8Z_7955`. Initial `Z8Z_0026` all-crop full-grid
-fine-tunes failed to pass even their 12 isolated training tiles, narrowing
-that blocker to model/context/source-target formulation rather than simple
-conditioning mismatch.
-The latest contract audit makes that sharper: exact manifest-crop inference
-passes 16/24 hard-eight rows, while arbitrary full-frame tiling passes only
-3/24, with 13 exact-pass to tiled-fail regressions and 14 crops crossed by
-mixed runtime expert roles. Forced coherent cluster-4 and K40-cluster-35
-routes on `Z8Z_0026`/`Z8Z_6680` both pass 0/6, so role mixing alone is not the
-fix. Two hard-eight retrains on the actual arbitrary runtime tile receipt
-also pass 0/96 tile rows, which means the next candidate needs a changed
-model/context formulation rather than more specialists on the same direct CNN
-contract. The audit dashboard is:
-
-```text
-/Volumes/OWC_8TB/gpr_work/artifacts/preview_runtime_policy_20260606/fullframe_contract_audit_hard8_scene_gated_v1/preview_fullframe_contract_audit.html
-```
-
-Two changed-formulation follow-ups are also negative: a low-frequency spatial
-branch improves the hard runtime-tile receipt from 3/96 to 7/96 but remains far
-below the gate, and a 28-image stitched-output post-refiner stays at 63/84 on
-the manifest crop receipt. The next viable PREVIEW path needs a stronger
-context/full-image model or a better arbitrary-tile teacher/target, not another
-small correction on the current direct CNN path.
-A 768-context/center-512 training pass was then added and tested using global
-crop coordinates from the context receipt; it regressed to 60/84, so simple
-larger context with a single initialized direct CNN is also ruled out.
-An explicit context U-Net follow-up regressed further to 53/84, and hard-eight
-fit tests with both capped and high residual output failed 0/24 even on their
-own training rows. The blocker is now narrowed away from "larger local RGB
-context CNN". A full-frame low-frequency Lab field probe then showed the best
-runtime-safe source-field variant at only 3/24 on hard-eight rows, and even
-the best REF-field oracle at only 6/24. The next path needs a different
-source/target or structure/detail formulation, not another smooth LF field.
-Full-frame source luma/detail and editable-DNG source-root probes also failed
-to improve the hard-eight set, and same-row stitched RGB post-refiner capacity
-checks reached only 2/24 and 0/24. A stronger `context_unet` stitched-post
-capacity test on the hard-eight manifest rows also reached only 2/24, worse
-than the 3/24 stitched baseline, so a larger local post CNN is not enough. A
-later stitched-tile post-refiner pass on
-the actual hard-eight arbitrary full-frame tile distribution improved dense
-tiles only from 13/394 to 33/394, then regressed the full-frame hard-eight crop
-gate to 3/24; a source-guarded direct residual variant reached only 15/394.
-An explicit smooth `coord_field` model driven only by runtime global color stats
-and full-frame coordinates also failed 0/96 on the hard-eight arbitrary tiles.
-That rules out source detail addback, current editable-DNG source roots, a
-single shallow stitched post stage, and a smooth field alone as the production
-fix. A full-frame variant
-oracle across the existing baseline,
-spatial, and scene-gated arbitrary-tiled 28-image receipts also stays at 63/84
-with 21 unsolved rows, so a scene-level selector over the current variants is
-not enough either. Comparing exact manifest-crop output against arbitrary
-tiled output on the hard-eight rows gives an exact-crop teacher ceiling of
-16/24, leaving eight rows unsolved even before runtime generalization.
-A full-image low-frequency residual diagnostic then trained on the hard-eight
-full source/REF renders while preserving source high-frequency detail by
-construction. It also failed 0/24, and the exact REF low-field oracle failed
-0/24 with worst LPIPS 0.6765, so the remaining blocker is not just learnable
-full-image LF/color placement. The next viable PREVIEW formulation needs a
-runtime source-to-target model that can change the mid/high-frequency structure
-or a different source/teacher representation while keeping REF out of render
-time.
-A direct full-image frequency-band oracle makes that requirement more specific:
-exact REF is 24/24, REF low plus source high at sigma 1 is 14/24, and source
-low plus REF high tops out at 5/24. The unresolved rows are mostly LPIPS
-failures even when Y/dE/MS-SSIM are near or inside threshold. The next PREVIEW
-candidate therefore needs a full-image-aware mapping for near-REF low/mid
-placement plus better fine-detail synthesis/preservation; swapping only high
-or low bands is not enough.
-A full-image resolution oracle sharpens the target further: REF fields cropped
-from 3072-wide downsampled full images pass 14/24 hard-eight rows, 4096-wide
-fields pass 19/24, 6144-wide fields pass 23/24, and full-width REF passes 24/24.
-The lone 6144 miss is `Z8Z_6680:C_lowerleft`, failing MS-SSIM/Y-PSNR/dE despite
-LPIPS passing. The next viable PREVIEW formulation therefore needs either a
-very high-resolution full-image generator or a full-image model with local
-detail synthesis, not a 768-1536px low-field branch.
-Follow-up high-resolution source-only band-generator receipts tested that
-direction directly. A 2048-wide generated field still passes 0/24 while its
-REF-low oracle ceiling is 7/24. A narrow 4096-wide source+XY generator and a
-4096-wide source+XY+global-color-stat generator also pass 0/24, even though the
-4096 REF-low/source-high oracle variants reach 18/24. This rules out simply
-raising the current full-image band generator resolution; the missing piece is
-a stronger image-conditioned/global model or a different runtime source/teacher
-representation.
-The same model family with manifest-crop-weighted loss and best-step checkpoint
-restore still stays 0/24, so the gate miss is not just the full-image training
-objective averaging away the scored crops.
-A source-preserving residual version of the full-image band generator was then
-tested on the two hardest smoke images, `Z8Z_0026` and `Z8Z_6680`, at 1536 and
-4096 model widths. The residual architecture starts from source RGB and learns a
-bounded high-resolution residual field from source RGB, normalized coordinates,
-and source global stats only. It still passes 0/6 at both resolutions; the 4096
-generated low-plus-source-high variant has worse worst LPIPS than the source
-baseline (0.6898 versus 0.6839), while the 4096 REF-low/source-high oracle is
-much closer but also still 0/6 on this hardest smoke. That rules out the simple
-source-preserving residual-field variant as the missing production formulation.
-A small multi-scale residual U-Net variant was also tested at 1536 and 2048
-widths on the same two images. It still passed 0/6; the best 2048 generated
-low-plus-source-high variant had worst LPIPS 0.6602 and dE2000 12.04. That
-rules out "add multi-scale context to the same source-preserving field" as a
-near-term production fix.
-A per-image full-image RGB affine oracle then fit source fields to REF fields
-at 4096 and 6144 widths. It also stays 0/24, with worst LPIPS above 0.62 and
-worst dE around 10 on the 6144 affine field. That rules out a simple global
-color transform as the missing high-resolution source representation. A
-spatially varying local-affine oracle with 4x4/8x8 grids also stays 0/24, so
-the next production path needs non-affine structure/detail source modeling,
-not just a learned local color field.
-A full-image source-feature residual oracle then tested that non-affine
-direction with runtime-available source features: RGB powers, blurred
-low-fields, high-pass fields, local gradient/laplacian energy, and image
-coordinates. Even with REF used to fit the residual per image, the 4096-wide
-hard-eight receipt remains 0/24. It improves worst dE from 10.51 to 8.28 and
-worst Y-PSNR from 17.21 to 18.36 dB, but worsens worst LPIPS from 0.7155 to
-0.7893. This rules out a shallow source-feature residual mapper as the
-production fix; the remaining miss is structural/perceptual, not merely a
-feature-regressed color/luma residual.
-A stronger non-linear kNN residual-transfer oracle at 2048 width also stays
-0/24. It uses an 80k source-feature residual dictionary and 8-neighbor transfer,
-improving worst dE to 8.77 and worst Y-PSNR to 18.02 dB, but worst LPIPS is
-still 0.7988 and no crop passes. That makes this feature-residual family a
-dead end for production unless it is replaced by a much better source/teacher
-representation rather than just a stronger hand-feature regressor.
-A dense optical-flow oracle then tested whether local geometry/detail placement
-is the dominant miss. REF-guided TV-L1 and ILK warps at 1024 width also stay
-0/24. The best TV-L1 direction improves worst MS-SSIM/Y/dE versus the 1024
-source baseline, but worst LPIPS remains 0.9111. Dense local warping is
-therefore not enough either; the next viable model needs to synthesize or
-recover perceptual detail from a better full-image source/teacher formulation.
-A runtime source-representation probe then compared the clean editable DNG
-through `sips`, the clean bundle TIFF frame, and rawpy camera-WB renders on
-the same hard-eight rows. Every variant stayed 0/24; the existing clean
-editable DNG through `sips` remained the least bad source. The next PREVIEW
-pass therefore needs a different learned source/teacher formulation or
-spatially varying full-image model, not a renderer swap.
-A follow-up `context_unet_generator` diagnostic removed the source-plus-residual
-output constraint on the 768-context hard-eight fit. It still failed 0/24
-with worst LPIPS 0.6136 and median LPIPS 0.4035, so simple output headroom is
-not the missing piece. The remaining production path needs a better
-source/teacher representation or training target that makes the required
-full-image low/mid and detail placement learnable from source-only inputs.
-An exact-crop-teacher post-distillation pass then used tiled no-REF output as
-source and exact no-REF crop output as the teacher. The teacher itself is
-16/24 against REF, but the wider width-96 direct post model only reached 6/24
-against the teacher and stayed at 3/24 against REF, matching the tiled source
-pass count. A context U-Net generator post pass regressed to 0/24 against both
-teacher and REF with large color errors. That rules out simple
-exact-crop-teacher post-distillation as the full-frame fix; adding resized
-no-REF full-frame context planes to the direct post model also regressed to
-5/24 against teacher and 2/24 against REF. A different source/teacher
-representation or more global model class is still required.
-The evaluator now records true per-frame wall timing: a `Z8Z_0026` smoke
-receipt measured the current full-frame no-REF PREVIEW path at 29.64 s/frame
-with only 3.67 s spent in model inference, so Python routing/save/stitch
-overhead is also a production blocker. The first runtime fix moves full-frame
-routing in memory and drops the same `Z8Z_0026` no-REF wall time to
-12.07 s/frame with unchanged route roles and crop metrics. Reusing the
-scene-route pass and skipping REF-only dashboard scoring for production timing
-measured the same smoke render path at 7.89 s/frame when the production
-receipt wrote raw TIFF instead of PNG. A route-feature fast path that preserves
-the frozen max-side-512 sidecar decisions now measures 7.35 s/frame. The
-current split is roughly 2.75 s in CNN inference, 1.11 s in routing, 0.69 s in
-source render, and 0.086 s in stitched output. The route split shows 1.09 s in
-feature extraction and only 0.017 s in frozen sidecar selection, with unchanged
-route roles on the smoke frame. The receipt explicitly keeps router feature
-extraction at max-side 512; reduced feature scales were faster but changed
-route roles, so they are not production-safe with the current sidecars. MPS
-tile batching was measured at batch sizes 2 and 8 and was slower, so the
-current receipt keeps batch size 1.
-
-None of these diagnostics are registered as production.
-
----
-
-## Today's headline numbers (2026-05-28 perf pass)
-
-Two consecutive perf wins on the Raspberry Pi 5 capture target landed today:
-
-```mermaid
-xychart-beta
-    title "Pi 5 single-frame encode, ms — Z8Z_0067 q=3, best of 3"
-    x-axis ["pre-2026-05-28", "+metadata-skip", "+parallel DNG read"]
-    y-axis "ms" 0 --> 1800
-    bar [1577, 966, 544]
-```
-
-**1577 → 544 ms = 2.89× speedup, bitstream byte-identical at every q level.**
-
-The big win was discovering and fixing a **latent Adobe DNG SDK bug**: its
-vendored `qDNGThreadSafe` macro excluded Linux entirely, making the
-SDK's mutex layer a silent no-op. The SDK was *architected* for
-multi-threaded tile decode (`dng_read_tiles_task` ships with a
-mutex-protected work queue and per-thread buffers) — it was just never
-wired up. Three commits later, the embedded video target nearly tripled
-its throughput, bit-exact identical to the serial output, deterministic
-across 10/10 runs. See
-[`docs/STILLS_PI5_TIMING.md`](docs/STILLS_PI5_TIMING.md).
-
-Mac M3 Max gets the same fix: Z8 50 MP q=3 dropped **819 → 212 ms (3.86×)**.
-
----
-
-## 30-second quick start
-
-```bash
-git clone https://github.com/dcliftreaves/gpr
-cd gpr
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
-
-# stills — encode a DNG to GPR, decode back
-./build/source/app/gpr_tools/gpr_tools -i path/to/input.DNG -o out.GPR
-./build/source/app/gpr_tools/gpr_tools -i out.GPR -o roundtrip.DNG
-
-# GVID container smoke tests — synthesize their own fixtures
-python3 -m pip install numpy
-bash tools/test/test_gvid_pack.sh
-bash tools/test/test_gvid_metadata.sh
-```
-
-The output `.GPR` is a DNG-compatible container — Adobe Camera Raw,
-Lightroom, and Photoshop open it directly without GPR-specific software.
-
----
-
-## Encode a video frame in 10 lines of C
-
-```c
-#include "gpr_video.h"
-
-static int write_frame(void *u, const uint8_t *bs, size_t n, uint64_t tag) {
-    return fwrite(bs, 1, n, (FILE *)u) == n ? 0 : -1;
-}
-
-FILE *out = fopen("clip.gvid", "wb");
-GPR_VIDEO_ENCODER *enc = gpr_video_encoder_create(
-    /*width=*/8256, /*height=*/5504, /*pixel_format=*/4 /*RGGB16*/,
-    /*quality=*/3,  /*ring_depth=*/3, write_frame, out);
-gpr_video_encoder_set_target_bitrate(enc, /*MB/s=*/150.0, /*fps=*/24.0);
-for (uint64_t tag = 0; tag < n_frames; ++tag)
-    gpr_video_encoder_submit(enc, bayer_buf, raw_bytes, tag);
-gpr_video_encoder_destroy(enc);   /* flushes + joins */
-fclose(out);
-```
-
-Caller → encoder → writer run on three threads with two SPSC ring buffers.
-`submit()` applies natural back-pressure to the caller; the encoder
-back-pressures on slow storage. The inner fused encoder already saturates
-4 cores via channel-parallel wavelet + band-parallel encode; dual-encoder
-ping-pong (`gpr_video_encoder_create_dual(..., 2, ...)`) adds a second
-context for wider hosts.
-
----
-
-## Architecture
-
-```mermaid
-flowchart LR
-    caller["Caller thread<br/>submit()"]
-    ring1[("input ring<br/>SPSC")]
-    encoder["Encoder thread<br/>channel-parallel<br/>wavelet + NEON<br/>band-parallel entropy"]
-    ring2[("output ring<br/>SPSC")]
-    writer["Writer thread<br/>writer_fn()"]
-    storage[("storage<br/>SD card / SSD")]
-    caller -->|bayer frame| ring1
-    ring1 -->|natural backpressure| encoder
-    encoder -->|VC-5 bitstream| ring2
-    ring2 -->|natural backpressure| writer
-    writer -->|.gvid frames| storage
-    classDef threads fill:#dbeafe,stroke:#1e40af,color:#1e3a8a
-    classDef rings fill:#fef3c7,stroke:#a16207,color:#713f12
-    classDef sinks fill:#dcfce7,stroke:#166534,color:#14532d
-    class caller,encoder,writer threads
-    class ring1,ring2 rings
-    class storage sinks
-```
-
-### Stills path
-Legacy CineForm VC5 encoder + matched BIBO_1x CNN restoration. The CNN
-runs decoder-side only; the `.GPR` on disk is unchanged. The matched-q3
-CNN learns the codec's quantization distribution, generalizes across q
-levels, and recovers visual-lossless quality from heavy quantization.
-
-### Video path
-FUSED multi-level wavelet (2-level, Bayer in → Bayer out → quantize →
-frequency-count → entropy code, single streaming pass with no
-full-frame intermediate). Adaptive bitrate target via proportional rate
-control. Pi 5 capture goes through the half-resolution path
-(`ml2_q3_dec2`) which decimates at the codec's input.
-
-### Wavelet decomposition
-
-![GPR wavelet decomposition — 1 level](data/readmegfx/level1-640.png)
-
-After one forward wavelet transform: low-low band (top-left), and three
-detail bands containing the high frequencies. The codec quantizes the
-detail bands aggressively; the matched CNN learns to invert that
-quantization on decode.
-
----
-
-## Honest engineering posture
-
-We measure, we name what failed, we don't ship language without an
-operator signature on a passing gate. Concrete examples from this
-week:
-
-- **Three Pi 5 perf passes landed (2.89× total).** One was a 1-line
-  plumbing skip; one parallelized the DNG SDK and exposed a vendored
-  bug; one rewired the video Pass-2 fanout to a worker pool on narrow
-  hosts. All bitstream-identical to the pre-perf serial output.
-- **One Pi 5 perf attack returned null.** FFTW/FFmpeg-style cache-line
-  alignment of the legacy encoder's scratch buffers measured ≤2% on
-  both Pi 5 and Mac M3 Max. Below the ship bar, no commits landed.
-  Documented in the commit log; not hidden.
-- **BIDO Phase B distillation failed PREVIEW gate.** Restormer-as-teacher
-  introduced a color-space mismatch the documented plan didn't anticipate;
-  the pivot to feeding the gate target instead reduced the teacher signal
-  to near-zero. Worst-image LPIPS regressed 0.45 → 0.49 on the hard image.
-  Logged as a FAIL run; exploratory dashboards and candidate details are
-  preserved on the archive branch documented in
-  [`docs/EXPERIMENT_ARCHIVE_2026-06-04.md`](docs/EXPERIMENT_ARCHIVE_2026-06-04.md);
-  fix is data acquisition, not loss engineering.
-
-The full quality gate is in `tests/quality_gates/`:
-
-```bash
-python3 tests/quality_gates/run_gate.py codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools
-python3 tests/quality_gates/audit_ship_pipelines.py
-python3 tests/quality_gates/audit_production_readiness.py --strict
-```
-
-Every ship-claim is per-image worst-case (no aggregate hides a regression)
-and routed through an operator inspection sentence into
-[`docs/claims_log.md`](docs/claims_log.md) before any "PASS" is published.
-
----
-
-## Documentation map
-
-| if you want to know… | read |
-|---|---|
-| what ships today, by class | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) |
-| stills vs video — two production modes | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) |
-| how testing layers compose | [`docs/TESTING_METHODOLOGY.md`](docs/TESTING_METHODOLOGY.md) |
-| Pi 5 encode timing per q | [`docs/STILLS_PI5_TIMING.md`](docs/STILLS_PI5_TIMING.md) |
-| full codec × CNN × verdict matrix | [`docs/FULL_PIPELINE_MATRIX.md`](docs/FULL_PIPELINE_MATRIX.md) |
-| OEM-contributable bitstream spec | [`docs/SPEC.md`](docs/SPEC.md) |
-| auto-generated capability matrix | [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) |
-| production checkpoints and artifact roots | [`docs/PRODUCTION_ARTIFACTS.md`](docs/PRODUCTION_ARTIFACTS.md) |
-| PREVIEW runtime no-REF burn-down | [`docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md`](docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md) |
-| omitted experiments and generated artifacts | [`docs/EXPERIMENT_ARCHIVE_2026-06-04.md`](docs/EXPERIMENT_ARCHIVE_2026-06-04.md) |
-
-Full index: [`docs/README.md`](docs/README.md).
-
----
+## Video And Raw Targets
+
+The production video split is explicit:
+
+| use case | path | status |
+|---|---|---|
+| Desktop full-res video | `ml2_q3_l1x2` + matched CNN | PASS, 7.81 MB/frame |
+| Embedded capture | `ml2_q3_dec2` half-res raw stream | PASS, 24.93 fps on Pi 5 |
+| Offline/review PREVIEW | q8 three-way no-REF full-frame runtime | PASS on current holdout, too slow for live |
+| Live/camera-back display | codec-only / 2K fast raw decode baselines | experimental quality policy |
+
+Raw output targets from the 24 fps capture stream:
+
+| target | dimensions | method | current classification |
+|---|---:|---|---|
+| `2k_raw_0p5x` | 2070 x 1380 | direct half-res decode; fast mode can drop L2 highpass | Pi live-capable candidate at 31.85 fps median |
+| `4k_raw_1x` | 4140 x 2760 | decoded Bayer from `ml2_q3_dec2` | Mac/offline candidate; Pi decode-side is not live |
+| `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only |
+
+Latest raw-target receipts are summarized in
+[`docs/RAW_RESOLUTION_TARGETS_2026-06-13.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-13.md).
+
+## PREVIEW Status
+
+PREVIEW has two different meanings in this repo:
+
+- **Offline/review PREVIEW**: a no-REF, full-frame q8 three-way runtime path
+  used to create reviewable rendered output from raw captures. This path passes
+  the current 28-image / 84-row holdout, but runs at offline speed.
+- **Live/camera-back PREVIEW**: an interactive display path. This is not the
+  same problem. The current q8 three-way route is not a live/camera-back
+  preview path.
+
+The latest PREVIEW blocker is not chroma direction. The remaining production
+question is whether live-speed source-derived detail placement can pass the
+visual gate without REF content at render time. See
+[`docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md`](docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md),
+[`docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md`](docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md), and
+[`docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md`](docs/PREVIEW_CLEAN_SOURCE_BLOCKER_2026-06-07.md).
 
 ## Build
 
-- **CMake ≥ 3.5.1**
-- **C99 + C++11** toolchain
-- **pthreads** (POSIX or Windows)
-- **ARM64 NEON** auto-enabled on ARM64 (Apple Silicon, Cortex-A76+ / A78).
-  Also builds on x86_64 with scalar paths.
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+```
 
-Tested on macOS 14+ / Apple Silicon (Xcode 15), Linux x86_64 (gcc 9+),
-Raspberry Pi 5 (Cortex-A76, Debian Bookworm), Windows 10/11 (VS 2019/2022).
+The CI workflow builds on Linux and macOS, generates synthetic 50 MP fixtures,
+runs the codec roundtrip tests, and executes focused Python checks. The local
+build used for production-path work commonly lives in `build-local/`.
 
-No new external dependencies beyond what GPR 1.x already required.
+## Focused Checks
 
----
+Run the public CI-style checks:
+
+```bash
+python3 tools/test/test_capabilities.py
+python3 tools/test/test_raw_resolution_targets.py
+python3 tests/quality_gates/check_registry_consistency.py
+python3 tests/quality_gates/audit_production_readiness.py
+```
+
+Run a quality gate for a registered pipeline:
+
+```bash
+python3 tests/quality_gates/run_gate.py \
+  'codec=gpr_tools_q3+cnn=bibo1x_ane_gpr_tools_q3+demosaic=sips_via_gpr_tools'
+```
+
+Reproduce the current 2K raw fast-path measurements with external-drive
+artifacts:
+
+```bash
+export GPR_EXTERNAL_ROOT=/Volumes/OWC_8TB/gpr_work
+export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
+export GPR_DECODE_HALFRES_DROP_L2_HP=1
+
+python3 tools/cnn/evaluate_raw_resolution_targets.py --runtime-2k-target
+python3 tools/cnn/build_raw_resolution_visual_dashboard.py --limit 28
+```
+
+On a Pi 5 target:
+
+```bash
+GPR_DECODE_HALFRES_DROP_L2_HP=1 \
+python3 tools/test/run_pi_raw_resolution_bench.py \
+  --frames 120 \
+  --targets 2k_raw_0p5x
+```
+
+## Repository Map
+
+| path | purpose |
+|---|---|
+| `source/` | C codec, decoder, CLI, and test applications |
+| `pipelines/registry.json` | Canonical codec/CNN/demosaic registry |
+| `tests/quality_gates/` | Per-class quality gates, readiness audits, and run logs |
+| `tools/cnn/` | CNN training, evaluation, rendering, and dashboard tools |
+| `tools/gpraw/` | Container and wrapper tooling |
+| `docs/` | Ship decisions, status notes, methodology, and experiment summaries |
+
+Useful docs:
+
+- [`docs/README.md`](docs/README.md) - full documentation index.
+- [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) - feature and platform matrix.
+- [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) - current shipping quality gates.
+- [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) - capture, preview, and review status.
+- [`docs/RAW_RESOLUTION_TARGETS_2026-06-13.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-13.md) - 2K/4K/8K raw target ladder.
+- [`docs/UPRESABLE_PIPELINE.md`](docs/UPRESABLE_PIPELINE.md) - half-res capture to editable full-res raw.
+- [`docs/GVID_METADATA_DISPATCH_2026-06-04.md`](docs/GVID_METADATA_DISPATCH_2026-06-04.md) - `.gvid` metadata dispatch.
+- [`docs/EXPERIMENT_ARCHIVE_2026-06-04.md`](docs/EXPERIMENT_ARCHIVE_2026-06-04.md) - old experiment summary without committing bulky artifacts.
+
+## Engineering Rules
+
+- Shipping claims require committed registry entries, reproducible receipts,
+  and a passing gate.
+- Worst-image rows matter more than aggregate averages.
+- Runtime PREVIEW must not use REF content at route time or render time.
+- Large artifacts belong under `/Volumes/OWC_8TB/gpr_work`, not in the repo.
+- Experimental paths stay documented, but they do not become production paths
+  until evidence supports the claim.
 
 ## License
 
-GPR is dual-licensed under Apache-2.0 or MIT at your option, identical to
-the original GoPro release.
+Dual licensed under Apache-2.0 or MIT. See [`LICENSE`](LICENSE).
 
-- [`LICENSE-APACHE`](LICENSE-APACHE)
-- [`LICENSE-MIT`](LICENSE-MIT)
+## Trademarks
+
+Product names and file-format names belong to their respective owners. This
+project uses descriptive compatibility terms only.

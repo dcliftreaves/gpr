@@ -94,6 +94,18 @@ For video you need either:
 | A: ml2_q3 + matched CNN (alternate) | 10.26 | 246 |
 | B: ml2_q3_dec2 (Pi capture) | 1.30 | **31** |
 
+## Raw output target ladder
+
+`ml2_q3_dec2` can feed three raw output sizes while preserving Bayer data:
+
+| target | dimensions | method | current status |
+|---|---:|---|---|
+| 2K / 0.5x | 2070 x 1380 | direct half-res decode; fast mode drops L2 highpass | Pi fast mode: 31.4 ms median, 31.85 fps median; raw quality 55.14 dB mean PSNR; proxy visual dashboard 56/84 crop rows pass with LPIPS-only texture near-misses |
+| 4K / 1x | 4140 x 2760 | direct decoded Bayer | Mac: 22.9 ms median, 43.7 fps median. Pi decode-side: 159.6 ms median, 6.3 fps median |
+| 8K / 2x | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only at current speed |
+
+Details and receipts are in `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md`.
+
 ## Open work for video
 
 1. **Live PREVIEW performance** — choose and productionize a fast
