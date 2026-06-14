@@ -171,11 +171,16 @@ python3 tools/cnn/evaluate_raw_resolution_targets.py \
   --target-2k 2k_raw_0p5x_l2hh
 python3 tools/cnn/build_raw_resolution_visual_dashboard.py \
   --target 2k_raw_0p5x_l2hh \
-  --limit 28
-python3 tools/cnn/build_raw_resolution_visual_dashboard.py --target 4k_raw_1x --limit 28
+  --limit 28 \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/visual_2k_l2hh_28f_explicit
+python3 tools/cnn/build_raw_resolution_visual_dashboard.py \
+  --target 4k_raw_1x \
+  --limit 28 \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/visual_4k_28f
 python3 tools/cnn/analyze_raw_resolution_visual_failures.py \
-  /Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_current/raw_resolution_targets_visual_dashboard.json \
-  --edge-probe
+  /Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/visual_2k_l2hh_28f_explicit/raw_resolution_targets_visual_dashboard.json \
+  --edge-probe \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_explicit/raw_resolution_visual_failure_analysis.json
 
 build-local/bin/fused_decode_cli frame.gpr 8280 5520 frame_2k_fast.raw 2k_raw_0p5x_fast
 build-local/bin/fused_decode_cli frame.gpr 8280 5520 frame_2k_l2hh.raw 2k_raw_0p5x_l2hh

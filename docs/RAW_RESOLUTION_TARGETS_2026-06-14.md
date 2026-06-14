@@ -42,7 +42,7 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `quality_2k_runtime_fast_l2drop_100f/raw_resolution_targets_quality.json` | 100 | 2K fast runtime quality |
 | `visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 2K fast proxy visual dashboard |
 | `visual_2k_preserve_l2_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 2K preserve-L2 comparison dashboard |
-| `visual_2k_l2mask4_28f/raw_resolution_targets_visual_dashboard.json` | 28 images / 84 crops | 2K selective L2 HH visual diagnostic |
+| `visual_2k_l2hh_28f_explicit/raw_resolution_targets_visual_dashboard.json` | 28 images / 84 crops | named 2K selective L2 HH visual diagnostic |
 | `visual_4k_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 4K rendered proxy visual dashboard |
 | `pi5_l2mask4_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing |
 | `pi5_l2drop_stream_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K fast L2-drop Pi 5 timing with L2 streaming |
@@ -53,7 +53,7 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_l2hh` Pi 5 timing with commit, binary hash, and RSS metadata |
 | `raw_resolution_targets_20260614_analysis/quality_2k_l2hh_100f/raw_resolution_targets_quality.json` | 100 | named `2k_raw_0p5x_l2hh` raw quality receipt |
 | `hh_scale_sweep_2k_l2mask4_28f.json` | 28 images / 84 crops | HH amplitude sweep diagnostic |
-| `raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_current/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | 2K L2 HH signal analysis and lower-right edge-margin probe |
+| `raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_explicit/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | named 2K L2 HH signal analysis and lower-right edge-margin probe |
 | `raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | 4K signal analysis and lower-right edge-margin probe |
 | `raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_domain_lower_right_probe.json` | 27 failing lower-right rows | 4K raw-domain probe for rendered-proxy LPIPS failures |
 
@@ -112,12 +112,13 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
   37.31, worst dE2000 1.46.
 - Preserve-L2 comparison on the same proxy dashboard: 55/84 crops pass, worst
   LPIPS 0.1850, worst MS-SSIM 0.9684, worst Y-PSNR 35.56, worst dE2000 1.54.
-- Selective L2 highpass diagnostics with `GPR_DECODE_HALFRES_L2_MASK` show that
-  restoring only mask 4 (the L2 HH band) is the only quality-positive middle
-  ground: 80/84 crops pass, worst LPIPS 0.1549, worst MS-SSIM 0.9771, worst
-  Y-PSNR 37.60, worst dE2000 1.46. Other masks are worse: mask 1 = 56/84,
-  mask 2 = 55/84, mask 3 = 55/84, mask 5 = 56/84, mask 6 = 56/84, and full
-  mask 7 = 55/84.
+- Selective L2 highpass diagnostics with `GPR_DECODE_HALFRES_L2_MASK` showed
+  that restoring only mask 4 (the L2 HH band) was the only quality-positive
+  middle ground. The named `2k_raw_0p5x_l2hh` target now carries that policy
+  explicitly: 80/84 crops pass, worst LPIPS 0.1549, worst MS-SSIM 0.9771,
+  worst Y-PSNR 37.60, worst dE2000 1.46. Other masks were worse: mask 1 =
+  56/84, mask 2 = 55/84, mask 3 = 55/84, mask 5 = 56/84, mask 6 = 56/84, and
+  full mask 7 = 55/84.
 - The named `2k_raw_0p5x_l2hh` raw-quality receipt passes on the matched
   main-corpus subset: 99 rows, 53.50 dB minimum PSNR, 55.60 dB mean PSNR,
   6.69 LSB max MAE, and 44 LSB max p99 absolute error.

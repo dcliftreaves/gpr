@@ -2848,7 +2848,7 @@ def check_raw_resolution_receipts() -> list[Check]:
 
     fast_pi_path = base14_alias / "pi5_2k_fast_alias_120f" / "raw_resolution_targets_pi5_120f.json"
     mask4_pi_path = base14_alias / "pi5_2k_l2hh_alias_120f" / "raw_resolution_targets_pi5_120f.json"
-    visual2k_path = base14 / "visual_2k_l2mask4_28f" / "raw_resolution_targets_visual_dashboard.json"
+    visual2k_path = base14 / "visual_2k_l2hh_28f_explicit" / "raw_resolution_targets_visual_dashboard.json"
     visual4k_path = base14 / "visual_4k_28f" / "raw_resolution_targets_visual_dashboard.json"
     quality2k_l2hh_path = (
         ARTIFACT_ROOT
@@ -2926,7 +2926,7 @@ def check_raw_resolution_receipts() -> list[Check]:
         count = int(summary.get("count", 0))
         worst_lpips = float(summary.get("worst_lpips", 999.0))
         ok = (
-            (visual2k or {}).get("target") == "2k_raw_0p5x"
+            (visual2k or {}).get("target") == "2k_raw_0p5x_l2hh"
             and count == 84
             and pass_count == 80
             and worst_lpips < 0.16
