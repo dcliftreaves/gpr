@@ -74,8 +74,9 @@ Result:
 - Output: `/Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke/out_2k.mov`
 - Size: 1.2 MB
 - Render: `8280x5520 -> decode 4140x2760 -> ProRes 2048x1364`
-- One-frame wall result: `total=0.2s`, effective about `6 fps`
-- Per-frame pipeline total: about `95-106 ms` across local smoke runs
+- This smoke is a functional renderability check, not a production throughput
+  benchmark. Use the platform-performance receipts in
+  `docs/release_evidence_manifest.json` for FPS claims.
 
 Negative proof:
 

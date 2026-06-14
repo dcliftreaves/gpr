@@ -727,6 +727,57 @@ def require_preview_offline_review_contract(
         failures.append(f"{entry_id}: offline/review PREVIEW needs memory receipt metric")
 
 
+def require_gvid_container_contract(entry: dict[str, Any], tracked: set[str], failures: list[str]) -> None:
+    entry_id = str(entry.get("id", ""))
+    if entry_id != "gvid_container":
+        return
+
+    if entry.get("status") != "production-supported":
+        failures.append(f"{entry_id}: .gvid container must remain production-supported or be explicitly downgraded")
+    if entry.get("family") != "container":
+        failures.append(f"{entry_id}: .gvid container must stay in container family")
+
+    docs = entry.get("docs") if isinstance(entry.get("docs"), list) else []
+    tools = entry.get("tools") if isinstance(entry.get("tools"), list) else []
+    for required_doc in (
+        "docs/GVID_METADATA_DISPATCH_2026-06-04.md",
+        "docs/GVID_RENDER_INPUT_2026-06-04.md",
+    ):
+        if required_doc not in docs:
+            failures.append(f"{entry_id}: docs must include {required_doc}")
+    for required_tool in (
+        "tools/gvid_pack.py",
+        "tools/gvid_metadata.py",
+        "tools/test/test_gvid_pack.sh",
+        "tools/test/test_gvid_metadata.sh",
+        "tools/test/test_gpr2prores_gvid_input.sh",
+    ):
+        if required_tool not in tools:
+            failures.append(f"{entry_id}: tools must include {required_tool}")
+
+    render_doc = ROOT / "docs/GVID_RENDER_INPUT_2026-06-04.md"
+    if "docs/GVID_RENDER_INPUT_2026-06-04.md" in tracked and render_doc.exists():
+        text = render_doc.read_text(encoding="utf-8", errors="ignore")
+        for token in (
+            "accepted as an input format",
+            "honored explicitly",
+            "--gvid-dispatch <plan.json>",
+            "Scripted local smoke",
+            "tools/test/test_gpr2prores_gvid_input.sh",
+        ):
+            if token not in text:
+                failures.append(f"{entry_id}: render-input doc missing {token!r}")
+
+    receipts = "\n".join(str(item) for item in entry.get("external_receipts", []))
+    for token in (
+        ".gvid",
+        "summary.json",
+        "gvid_runtime_dispatch",
+    ):
+        if token not in receipts:
+            failures.append(f"{entry_id}: external receipts missing {token!r}")
+
+
 def main() -> int:
     failures: list[str] = []
     manifest = load_json(MANIFEST)
@@ -813,6 +864,7 @@ def main() -> int:
         require_preview_live_experimental_contract(entry, failures)
         require_preview_live_edge_safe_contract(entry, tracked, failures)
         require_preview_offline_review_contract(entry, pipelines, tracked, failures)
+        require_gvid_container_contract(entry, tracked, failures)
         require_tracked_refs(entry_id, entry, tracked, failures)
 
     missing_output_ids = REQUIRED_OUTPUT_IDS - seen_output_ids

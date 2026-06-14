@@ -73,11 +73,16 @@ Runtime dispatch plan smoke:
 - each plan row carries stream payload offset/size plus per-tile
   `accepted_only_raw_clean` or `all_targets_raw_clean` policy.
 
-## Next Production Step
+## Renderer Handoff Status
 
-The remaining handoff is to thread `gvid_runtime_dispatch.v1` into the actual
-decode/restoration renderer: for each decoded frame, use the plan's `frame_tag`
-and payload offsets to find the frame, then apply the per-tile raw-clean policy
-before final render/encode. The dashboard and runtime plan now prove the
-metadata policy contract; model invocation inside the renderer is the next
-integration point.
+The next renderer pass landed in
+[`docs/GVID_RENDER_INPUT_2026-06-04.md`](GVID_RENDER_INPUT_2026-06-04.md):
+`gpr2prores` accepts `.gvid` directly, unpacks frames under `TMPDIR`, and
+validates a `gvid_runtime_dispatch.v1` plan against the actual stream headers
+before render. The scripted smoke for that handoff is
+`tools/test/test_gpr2prores_gvid_input.sh`.
+
+Per-tile raw-clean model selection inside `GPRPipeline` is still intentionally
+not claimed here. The production container claim is the neutral `.gvid` stream,
+metadata sidecar validation, direct render input, dispatch-plan validation, and
+the documented handoff point for future per-tile model invocation.

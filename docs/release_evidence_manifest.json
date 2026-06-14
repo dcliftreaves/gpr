@@ -210,7 +210,8 @@
         "tools/gvid_pack.py",
         "tools/gvid_metadata.py",
         "tools/test/test_gvid_pack.sh",
-        "tools/test/test_gvid_metadata.sh"
+        "tools/test/test_gvid_metadata.sh",
+        "tools/test/test_gpr2prores_gvid_input.sh"
       ],
       "external_receipts": [
         "artifacts/upresable_missing_hard_20260606/upresable_timelapse.gvid",

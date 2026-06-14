@@ -4,6 +4,7 @@ set -euo pipefail
 
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 GPR2PRORES=${GPR2PRORES:-"$REPO/tools/gpr2prores/gpr2prores"}
+PYTHON_BIN=${PYTHON_BIN:-python3}
 SRC_GPR=${SRC_GPR:-/Volumes/OWC_8TB/gpr_work/artifacts/upresable/halfres/Z8Z_0258.gpr}
 META_DNG=${META_DNG:-/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0258.dng}
 WORK=${WORK:-/Volumes/OWC_8TB/gpr_work/tmp/gpr2prores_gvid_smoke}
@@ -27,9 +28,9 @@ rm -rf "$WORK"
 mkdir -p "$WORK/frames" "$WORK/tmp"
 cp "$SRC_GPR" "$WORK/frames/frame_0000.gpr"
 
-python3 "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/oneframe.gvid" \
+"$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/oneframe.gvid" \
   --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4
-python3 - "$WORK/oneframe.gvid" "$WORK/oneframe.gvid.dispatch.json" <<'PY'
+"$PYTHON_BIN" - "$WORK/oneframe.gvid" "$WORK/oneframe.gvid.dispatch.json" <<'PY'
 import json
 import struct
 import sys
@@ -89,7 +90,7 @@ grep -q "magic=0x44535546" "$WORK/phase0.log"
 grep -q "$WORK/tmp/gpr2prores_gvid_.*/frame_000000.gpr" "$WORK/phase0.log"
 grep -q "accepted_only=1 all_targets=1" "$WORK/phase0.log"
 
-python3 - "$WORK/oneframe.gvid.dispatch.json" "$WORK/bad_policy.dispatch.json" <<'PY'
+"$PYTHON_BIN" - "$WORK/oneframe.gvid.dispatch.json" "$WORK/bad_policy.dispatch.json" <<'PY'
 import sys
 from pathlib import Path
 
@@ -107,7 +108,7 @@ if TMPDIR="$WORK/tmp" "$GPR2PRORES" \
 fi
 grep -q "unknown policy" "$WORK/bad_policy.log"
 
-python3 - "$WORK/oneframe.gvid.dispatch.json" "$WORK/bad_payload.dispatch.json" <<'PY'
+"$PYTHON_BIN" - "$WORK/oneframe.gvid.dispatch.json" "$WORK/bad_payload.dispatch.json" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -129,7 +130,7 @@ grep -q "does not match GVID stream header" "$WORK/bad_payload.log"
 
 mkdir -p "$WORK/order_frames"
 cp "$SRC_GPR" "$WORK/order_frames/frame_0000.gpr"
-python3 - "$WORK/order_frames/frame_0001.gpr" <<'PY'
+"$PYTHON_BIN" - "$WORK/order_frames/frame_0001.gpr" <<'PY'
 import struct
 import sys
 from pathlib import Path
@@ -139,9 +140,9 @@ payload[0:4] = struct.pack("<I", 0x21444142)  # "BAD!" in little endian.
 payload[8:16] = struct.pack("<II", 1234, 5678)
 Path(sys.argv[1]).write_bytes(payload)
 PY
-python3 "$REPO/tools/gvid_pack.py" "$WORK/order_frames" "$WORK/out_of_order_tags.gvid" \
+"$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/order_frames" "$WORK/out_of_order_tags.gvid" \
   --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4
-python3 - "$WORK/out_of_order_tags.gvid" <<'PY'
+"$PYTHON_BIN" - "$WORK/out_of_order_tags.gvid" <<'PY'
 import struct
 import sys
 from pathlib import Path
@@ -178,7 +179,7 @@ test -s "$WORK/out_2k.mov"
 grep -q "errors=0" "$WORK/render.log"
 
 cp "$WORK/oneframe.gvid" "$WORK/dup_tag.gvid"
-python3 - "$WORK/dup_tag.gvid" <<'PY'
+"$PYTHON_BIN" - "$WORK/dup_tag.gvid" <<'PY'
 import struct
 import sys
 from pathlib import Path
