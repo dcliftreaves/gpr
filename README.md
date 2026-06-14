@@ -197,6 +197,7 @@ python3 tools/test/run_pi_raw_resolution_bench.py \
 
 Useful docs:
 
+- [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) - current `.gvid` capture-to-ProRes walkthrough.
 - [`docs/README.md`](docs/README.md) - full documentation index.
 - [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) - feature and platform matrix.
 - [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) - current shipping quality gates.

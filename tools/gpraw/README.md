@@ -1,9 +1,9 @@
 # gpraw — GPRaw video container (MOV-wrapped GPR frames)
 
 GPRaw packages a stream of fused-format GPR frames into a single MOV file
-with a custom codec tag and rich metadata. Same convention as BRAW, ProRes
-RAW, and REDCODE: ISO BMFF (MOV) container, opaque codec payload, frames
-remain independent, per-track and per-frame metadata.
+with a custom codec tag and rich metadata. It is the compatibility/export
+wrapper for workflows that need ISO BMFF/MOV, while `.gvid` is the primary
+raw-video capture deliverable.
 
 ## Wire format
 

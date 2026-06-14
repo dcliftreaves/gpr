@@ -9,8 +9,8 @@
  * codec_ids as opaque "raw" video samples — it writes a stsd entry with
  * the codec_tag we hand it and copies the AVPacket payload verbatim into
  * mdat. The demuxer mirrors this. If a future FFmpeg version rejects
- * NONE, we fall back to AV_CODEC_ID_FFV1 (whose tag is overridable;
- * BRAW uses the same trick).
+ * NONE, we fall back to AV_CODEC_ID_FFV1 because FFmpeg allows callers to
+ * override its sample-description tag.
  */
 
 #include "gpraw.h"

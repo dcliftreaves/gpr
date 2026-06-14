@@ -1,12 +1,13 @@
 # GPR docs index
 
-Where to look for what. Last refreshed 2026-06-06.
+Where to look for what. Last refreshed 2026-06-14.
 
 ## Start here
 
 | if you want to know… | read |
 |---|---|
 | what ships today, by ship class | `SHIP_DECISION.md` |
+| current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |
 | stills vs video — the two production modes | `SHIP_DECISION.md` (header), `VIDEO_STATUS.md` |
 | how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
 | open work items + archived experiment branches | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
@@ -15,7 +16,7 @@ Where to look for what. Last refreshed 2026-06-06.
 | PREVIEW scene-router research | `PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md` |
 | Pi 5 encode timing at each q level | `STILLS_PI5_TIMING.md` |
 | full codec × CNN × verdict matrix | `FULL_PIPELINE_MATRIX.md` |
-| GoPro/Nikon spec contribution framing | `architecture.md`, `format-spec-v2.md`, SPEC.md |
+| camera-vendor spec contribution framing | `architecture.md`, `format-spec-v2.md`, SPEC.md |
 
 ## Plans and methodology (read before executing)
 

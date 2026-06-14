@@ -1,6 +1,8 @@
-# Getting Started — Real-time Raw Video Pipeline
+# Getting Started — GPR Raw Video Pipeline
 
-End-to-end walkthrough: capture (Pi 5) → container (.gpraw) → playback (M-series Mac).
+End-to-end walkthrough: capture (Pi 5) → `.gvid` container → playback
+(M-series Mac). `.gvid` is the primary raw-video deliverable; MOV/GPR1 is a
+compatibility/export wrapper.
 
 ## Prerequisites
 
@@ -18,16 +20,16 @@ cmake --build build-local -j$(nproc)
 
 # Playback tool (Mac only)
 cd tools/gpr2prores && make
-cd ../gpraw && make
 
-# Optional: patch FFmpeg for .gpraw decode in other tools
-./tools/gpraw_codec/install_patch.sh /path/to/ffmpeg-src
-cd /path/to/ffmpeg-src && ./tools/gpraw_codec/configure_and_build.sh
+# Optional MOV/GPR1 compatibility tools
+cd ../gpraw && make
 ```
 
 ## Step 1: Capture (Pi 5)
 
-The encoder takes raw Bayer frames from the sensor (or from disk for testing) and produces `.gpr` files or directly streams into a `.gpraw` container.
+The encoder takes raw Bayer frames from the sensor, or source-derived frames
+from disk for testing, and produces per-frame `.gpr` payloads. Production raw
+video is packed into `.gvid` after capture.
 
 ```bash
 # Test with a saved bayer file (assumes you've extracted bayer from a DNG)
@@ -42,25 +44,36 @@ Pi 5 sustained rate is **storage-bound**, not compute-bound. Stock SD slot caps 
 
 See `docs/PI_HARDWARE.md` for measured numbers and full hierarchy.
 
-## Step 2: Pack into a container (optional)
+## Step 2: Pack into the `.gvid` container
 
-If you've captured a directory of `.gpr` files, bundle them into a `.gpraw` container for portability:
+If you've captured a directory of `.gpr` files, bundle them into a `.gvid`
+stream:
 
 ```bash
-./tools/gpr2prores/gpr_mov_tool pack /clip/gpr_dir clip.gpraw \
+python3 tools/gvid_pack.py /clip/gpr_dir clip.gvid \
+  --width 8280 \
+  --height 5520 \
   --fps 24 \
-  --tc-start 01:00:00:00 \           # SMPTE timecode start
-  --meta-dir /clip/dng_dir \         # per-frame EXIF
-  --audio /clip/audio.wav            # embed audio
+  --quality 3 \
+  --pixel-format 4
 
-# Inspect
-./tools/gpr2prores/gpr_mov_tool info clip.gpraw
-
-# Round-trip: unpack a container into individual .gpr files (byte-identical)
-./tools/gpr2prores/gpr_mov_tool unpack clip.gpraw /out/dir --prefix frame
+# Optional: validate and attach a source metadata sidecar
+python3 tools/gvid_pack.py /clip/gpr_dir clip_with_meta.gvid \
+  --width 8280 \
+  --height 5520 \
+  --fps 24 \
+  --quality 3 \
+  --pixel-format 4 \
+  --metadata /clip/clip.gvid.meta.json
 ```
 
-The `.gpraw` file is just a MOV with a `GPR1` codec_tag. Any FFmpeg-aware tool with the patch applied will recognize it.
+The `.gvid` stream is a neutral sequence of per-frame GPR payloads with stable
+frame tags. See `docs/GVID_METADATA_DISPATCH_2026-06-04.md` for metadata and
+runtime dispatch details.
+
+For compatibility workflows, `tools/gpr2prores/gpr_mov_tool` can still pack or
+unpack MOV/GPR1 streams, but that wrapper is not the primary capture
+deliverable.
 
 ## Step 3: Playback (M-series Mac)
 
@@ -74,7 +87,7 @@ The `gpr2prores` tool runs the full playback pipeline: decode → CNN → demosa
   --ckpt /path/to/BIBO_1x_AAon_w16_weights_metal_dir \
   --cnn-backend metal --cnn-scale 1x \
   --demosaic core-image --out-resolution uhd \
-  clip.gpraw out_uhd.mov
+  clip.gvid out_uhd.mov
 ```
 
 ### Best-quality 8K master (slower, 7 fps)
@@ -85,7 +98,7 @@ The `gpr2prores` tool runs the full playback pipeline: decode → CNN → demosa
   --ckpt /path/to/F_aa_on_weights_metal_dir \
   --cnn-backend metal --cnn-scale 2x \
   --demosaic core-image --out-resolution 8k \
-  clip.gpraw out_8k.mov
+  clip.gvid out_8k.mov
 ```
 
 See `tools/gpr2prores/USAGE.md` for all CLI flags and env vars.
@@ -116,19 +129,20 @@ The blob directory is what `gpr2prores --ckpt` points at when `--cnn-backend met
 | `gpr2prores` shows "demosaic mode not found" | wrong `--demosaic` value | use `metal-bilinear` or `core-image` |
 | Output looks green or pink | Bayer pattern mismatch | check `--meta-dng` matches your sensor |
 | Pi 5 throttling at <7 fps after 5 sec | SD card sustained write | hardware upgrade per docs/PI_HARDWARE.md |
-| FFmpeg won't decode .gpraw | unpatched ffmpeg | rebuild ffmpeg with `tools/gpraw_codec/ffmpeg_gpr.patch` |
+| `.gvid` metadata attach fails | sidecar/frame tags do not match stream | rebuild the sidecar or pack without `--metadata` |
+| MOV/GPR1 compatibility file will not decode in FFmpeg | unpatched ffmpeg | rebuild ffmpeg with `tools/gpraw_codec/ffmpeg_gpr.patch` |
 | Build fails missing libraw | homebrew not installed | `brew install libraw` |
 
 ## Step 6: Where the workflows fit together
 
 ```
         +------------+      +---------------+      +----------------+
-sensor →| GPR encode |  →   | .gpraw pack   |  →   | gpr2prores     | → ProRes 422 HQ
- (Pi 5) | (libvc5)   |      | (gpr_mov_tool)|      | (CNN+demosaic) |   (MOV)
+sensor →| GPR encode |  →   | .gvid pack    |  →   | gpr2prores     | → ProRes 422 HQ
+ (Pi 5) | (libvc5)   |      | (gvid_pack.py)|      | (CNN+demosaic) |   (MOV)
         +------------+      +---------------+      +----------------+
               ↓                     ↓                       ↓
-        .gpr files             .gpraw file           UHD/4K/6K/8K MOV
-        (sequence)             (single MOV)          (NLE-ready)
+        .gpr files             .gvid stream          UHD/4K/6K/8K MOV
+        (sequence)             (single stream)       (NLE-ready)
 ```
 
 Or: skip the container step and feed `gpr2prores` a directory of `.gpr` files directly.
@@ -137,7 +151,7 @@ Or: skip the container step and feed `gpr2prores` a directory of `.gpr` files di
 
 For deeper integration:
 - **Embed in your own ObjC app**: link `tools/gpr2prores/` modules into your AVFoundation pipeline
-- **Use the FFmpeg patch**: pipe `.gpraw` through your existing FFmpeg-based workflow once you've rebuilt with the patch
+- **Use the MOV/GPR1 wrapper**: package `.gpr` frames for compatibility workflows that need ISO BMFF/MOV
 - **Train your own CNN**: see the sibling `dering_proto_v2/` training repo for the recipe (NAFBlock backbone, bicubic-baseline + residual, per-tile weighted sampling on bright-hard edges)
 
 For known limitations and future directions, see `docs/RELEASE_NOTES_v2.1.md`.

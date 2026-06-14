@@ -1,10 +1,10 @@
 /* gpraw.h — GPRaw video container (MOV-wrapped streams of GPR-encoded frames).
  *
  * GPRaw is a single-file, frame-independent, metadata-rich video container
- * for streams of fused-format GPR-encoded frames. The wire format follows
- * the conventions established by BRAW, ProRes RAW, and REDCODE: an ISO BMFF
- * (MOV) wrapper carrying a custom codec_tag, one AVPacket per video frame,
- * plus per-track and per-frame metadata.
+ * for streams of fused-format GPR-encoded frames. It is an ISO BMFF/MOV
+ * compatibility wrapper carrying a custom codec_tag, one AVPacket per video
+ * frame, plus per-track and per-frame metadata. The primary raw-video capture
+ * deliverable is the neutral .gvid stream.
  *
  * ## Wire format
  *
