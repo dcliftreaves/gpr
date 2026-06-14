@@ -183,11 +183,12 @@ def build_html():
 <h1>GPR UPRESABLE pipeline — production dashboard</h1>
 <div class="lead">
   Half-res 24 fps capture on Pi 5 → desktop BIBO_2x upres → editable full-res raw DNG + .gpr → ProRes.
-  Built and verified 2026-05-30. All four ship classes (STILL / VIDEO_FREEZE / PREVIEW / UPRESABLE)
-  pass their respective gate thresholds.
+  Stills, VIDEO_FREEZE, UPRESABLE, and offline/review PREVIEW have current
+  production evidence. Live/camera-back PREVIEW remains a separate speed/quality
+  target and is not implied by the offline/review PREVIEW row.
 </div>
 
-<h2>Production roster — fresh gate verdicts (2026-05-30)</h2>
+<h2>Production roster — committed gates plus external receipts</h2>
 <table>
 <tr><th>Ship class</th><th>Pipeline</th><th>Run hash</th><th>Worst-image metric</th><th>Verdict</th></tr>
 <tr>
@@ -205,10 +206,10 @@ def build_html():
   <td><span class="pill pill-pass">PASS</span></td>
 </tr>
 <tr>
-  <td>PREVIEW (codec only)</td>
-  <td><code>codec=sl_q3+cnn=none+demosaic=sips_via_gpr_tools</code></td>
-  <td><code>5e7b79b5678fdf62</code></td>
-  <td class="num">LPIPS 0.1003 (Z8Z_6693)</td>
+  <td>PREVIEW offline/review</td>
+  <td><code>codec=ml2_q3_dec2+cnn=preview_q8_threeway_runtime_fullframe_v1+demosaic=sips_via_gpr_tools</code></td>
+  <td><code>external: preview_q8_threeway_runtime_fullframe.json</code></td>
+  <td class="num">84/84 rows; worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, dE2000 2.64</td>
   <td><span class="pill pill-pass">PASS</span></td>
 </tr>
 <tr>
@@ -226,7 +227,8 @@ def build_html():
   smooth mid-frequency texture on mixed-contrast frames (Z8Z_6693 rendered LPIPS = 0.343); colorists
   in NLEs add their own grain in post, so this is acceptable for the editable-raw workflow but
   would NOT clear VIDEO_FREEZE gates if used as a rendered output. Don't ship UPRESABLE as a
-  finished render.
+  finished render. PREVIEW offline/review is validated by an external full-frame no-REF receipt,
+  not by the normal Bayer run_gate path.
 </p>
 
 <h2>Headline</h2>
@@ -467,7 +469,7 @@ bash tools/test/bench_pi_to_mac_upresable.sh 120
 # --eight-bit opts into legacy 8-bit (causes sky banding; not recommended)
 </pre>
 
-<p style="color:#888; margin-top:40px; font-size:13px;">Generated 2026-05-30 — GPR pre-release exploration repo.</p>
+<p style="color:#888; margin-top:40px; font-size:13px;">Generated from the local UPRESABLE artifact root and current production evidence manifest.</p>
 
 </body>
 </html>"""

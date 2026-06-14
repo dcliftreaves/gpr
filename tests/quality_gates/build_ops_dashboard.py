@@ -21,11 +21,11 @@ DASH_DIR = RUNS_DIR / "dashboard"
 OUT = DASH_DIR / "ops_matrix.html"
 UPRES = Path("/Volumes/OWC_8TB/gpr_work/artifacts/upresable")
 RAW_FULL_BYTES = 8280 * 5520 * 2
+MANIFEST_PATH = REPO / "docs/release_evidence_manifest.json"
 
 PRODUCTION_RUNS = {
     "STILL": "b44fa841c05c9bff",
     "VIDEO_FREEZE": "5c3cce4c472d4197",
-    "PREVIEW": "5e7b79b5678fdf62",
     "UPRESABLE": "8864c12ec0b6ce14",
 }
 
@@ -169,6 +169,44 @@ def load_upres_summary() -> dict:
     return read_json(p) if p.exists() else {}
 
 
+def load_manifest() -> dict:
+    return read_json(MANIFEST_PATH) if MANIFEST_PATH.exists() else {}
+
+
+def external_preview_summary(manifest: dict) -> dict | None:
+    for entry in manifest.get("production_paths") or []:
+        if entry.get("id") != "preview_offline_review_q8_threeway":
+            continue
+        metrics = entry.get("metrics") or {}
+        return {
+            "run_hash": "external-q8-threeway",
+            "pipeline": entry.get("pipeline", ""),
+            "ship_class": entry.get("ship_class", "PREVIEW"),
+            "verdict": "PASS",
+            "mean_mb": None,
+            "min_mb": None,
+            "max_mb": None,
+            "bpp": None,
+            "raw_ratio": None,
+            "enc_ms": None,
+            "enc_fps": None,
+            "cnn_ms": None,
+            "cnn_fps": None,
+            "restore_ms": None,
+            "restore_fps": None,
+            "total_ms": metrics.get("seconds_per_image", 0.0) * 1000.0,
+            "total_fps": metrics.get("fps"),
+            "worst_id": f"{metrics.get('passing_rows', '-')}/{metrics.get('holdout_rows', '-')} rows",
+            "worst_lpips": metrics.get("worst_lpips"),
+            "min_ms_ssim": metrics.get("worst_ms_ssim"),
+            "min_y_psnr": metrics.get("worst_y_psnr"),
+            "max_de_mean": metrics.get("worst_dE2000"),
+            "min_bayer_codec": None,
+            "min_bayer_final": None,
+        }
+    return None
+
+
 def pipeline_short(pipeline: str) -> str:
     return pipeline.replace("codec=", "").replace("+cnn=", " | ").replace("+demosaic=", " | ")
 
@@ -288,6 +326,10 @@ def build_html() -> str:
     all_rows = all_run_summaries()
     prod = [summarize_run(h) for h in PRODUCTION_RUNS.values()]
     prod = [p for p in prod if p]
+    manifest = load_manifest()
+    preview = external_preview_summary(manifest)
+    if preview:
+        prod.append(preview)
     summary = load_upres_summary()
     stats = summary.get("timelapse_stats") or {}
     pi_mac = parse_pi_mac_bench()
@@ -338,11 +380,14 @@ code {{ font-size: 12px; background: #edf1f5; padding: 1px 4px; border-radius: 4
 <h1>GPR operations matrix</h1>
 <p>
 Generated from <code>tests/quality_gates/runs/*/run.json</code>,
+<code>docs/release_evidence_manifest.json</code>,
 <code>/Volumes/OWC_8TB/gpr_work/artifacts/upresable/summary.json</code>, and
 <code>/Volumes/OWC_8TB/gpr_work/artifacts/upresable/pi_mac_bench/run.log</code>.
 The table keeps quality, encoded size, compression ratio, encode timing, and
 gate-stage timing in one place. <code>restore ms</code> is codec plus CNN time;
 <code>gate total ms</code> includes gate-only rendering, crop, and metric work.
+External-receipt rows such as the q8 three-way PREVIEW path have no committed
+run hash and therefore show receipt-level timing/quality instead of codec MB.
 </p>
 
 <div class="cards">{card_html}</div>
