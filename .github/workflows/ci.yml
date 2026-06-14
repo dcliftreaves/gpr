@@ -322,6 +322,12 @@ jobs:
         # live PREVIEW display policy stays tied to the 2K L2 HH target.
         run: python3 tools/test/test_raw_resolution_targets.py
 
+      - name: Run live PREVIEW policy materialization
+        # Cheap standalone contract check for the committed live-preview
+        # source policy. This is also imported by the raw target helper, but
+        # running it directly keeps the CI-safe release-check subset exact.
+        run: python3 tools/live_preview_policy.py
+
       - name: Run GVID pack and metadata smokes
         # Cheap container-contract checks for the neutral .gvid wire header,
         # metadata sidecar validation, runtime dispatch generation, and

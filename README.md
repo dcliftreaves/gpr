@@ -108,6 +108,12 @@ in git. Heavy dashboards, videos, checkpoints, and rendered media stay under
 CI validates that the manifest still names the required production paths, raw
 targets, platform receipts, and dashboard evidence.
 
+CI-safe release checks run on hosted GitHub Actions and prove the source,
+registry, manifest, hygiene, live-policy, and small container contracts. The
+full release-readiness command below also verifies local 8TB-backed production
+artifacts and the strict production-readiness audit; those external checks are
+required before claiming a release, but are intentionally not run on hosted CI.
+
 | evidence | status | what it proves |
 |---|---|---|
 | `preview_offline_review_q8_threeway` | current | no-REF full-frame PREVIEW review path passes 84/84 holdout rows |
@@ -226,21 +232,33 @@ build used for production-path work commonly lives in `build-local/`.
 
 ## Focused Checks
 
-Run the public CI-style checks:
+Run the public CI-safe release checks:
 
 ```bash
 export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
 
-python3 tools/test/test_capabilities.py
 python3 tools/test/check_sensitive_content.py
 python3 tools/test/check_sensitive_content.py --history
 python3 tools/test/check_repo_artifact_hygiene.py
 python3 tools/test/check_release_evidence_manifest.py
-python3 tools/verify_production_artifacts.py
 python3 tools/live_preview_policy.py
 python3 tools/test/test_raw_resolution_targets.py
+bash tools/test/test_gvid_pack.sh
+bash tools/test/test_gvid_metadata.sh
 python3 tests/quality_gates/check_registry_consistency.py
 python3 tests/quality_gates/audit_ship_pipelines.py --strict
+```
+
+Run the external-artifact release checks when `/Volumes/OWC_8TB/gpr_work` is
+mounted:
+
+```bash
+export GPR_EXTERNAL_ROOT=/Volumes/OWC_8TB/gpr_work
+export GPR_ARTIFACT_ROOT=/Volumes/OWC_8TB/gpr_work/artifacts
+export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
+export GATE_TMPDIR=/Volumes/OWC_8TB/gpr_work/gate_tmp
+
+python3 tools/verify_production_artifacts.py
 python3 tests/quality_gates/audit_production_readiness.py --strict
 ```
 

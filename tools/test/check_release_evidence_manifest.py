@@ -20,6 +20,7 @@ MANIFEST = ROOT / "docs/release_evidence_manifest.json"
 REGISTRY = ROOT / "pipelines/registry.json"
 README = ROOT / "README.md"
 DOCS_README = ROOT / "docs/README.md"
+CI_WORKFLOW = ROOT / ".github/workflows/ci.yml"
 RUNS_DIR = ROOT / "tests/quality_gates/runs"
 
 EXPECTED_SCHEMA = "gpr_release_evidence_manifest.v1"
@@ -137,8 +138,42 @@ README_REQUIRED_TOKENS = (
     "8K raw target",
     "offline-only",
     "preview_live_2k_l2hh_edge_safe",
+    "CI-safe release checks",
     "tools/verify_production_artifacts.py",
     "tests/quality_gates/audit_production_readiness.py --strict",
+)
+
+REQUIRED_RELEASE_CHECKS = (
+    "python3 tools/test/check_sensitive_content.py",
+    "python3 tools/test/check_sensitive_content.py --history",
+    "python3 tools/test/check_repo_artifact_hygiene.py",
+    "python3 tools/test/check_release_evidence_manifest.py",
+    "python3 tools/verify_production_artifacts.py",
+    "python3 tools/live_preview_policy.py",
+    "python3 tools/test/test_raw_resolution_targets.py",
+    "bash tools/test/test_gvid_pack.sh",
+    "bash tools/test/test_gvid_metadata.sh",
+    "python3 tests/quality_gates/check_registry_consistency.py",
+    "python3 tests/quality_gates/audit_ship_pipelines.py --strict",
+    "python3 tests/quality_gates/audit_production_readiness.py --strict",
+)
+
+REQUIRED_CI_CHECKS = (
+    "python3 tools/test/check_sensitive_content.py",
+    "python3 tools/test/check_sensitive_content.py --history",
+    "python3 tools/test/check_repo_artifact_hygiene.py",
+    "python3 tools/test/check_release_evidence_manifest.py",
+    "python3 tools/live_preview_policy.py",
+    "python3 tools/test/test_raw_resolution_targets.py",
+    "bash tools/test/test_gvid_pack.sh",
+    "bash tools/test/test_gvid_metadata.sh",
+    "python3 tests/quality_gates/check_registry_consistency.py",
+    "python3 tests/quality_gates/audit_ship_pipelines.py --strict",
+)
+
+EXTERNAL_RELEASE_ONLY_CHECKS = (
+    "python3 tools/verify_production_artifacts.py",
+    "python3 tests/quality_gates/audit_production_readiness.py --strict",
 )
 
 
@@ -929,27 +964,45 @@ def main() -> int:
     if missing_dashboard_ids:
         failures.append("manifest missing dashboard ids: " + ", ".join(sorted(missing_dashboard_ids)))
 
-    release_checks = manifest.get("release_checks")
-    if not isinstance(release_checks, list):
+    release_checks_obj = manifest.get("release_checks")
+    if not isinstance(release_checks_obj, list):
         failures.append("release_checks must be a list")
         release_checks = []
+    else:
+        release_checks = release_checks_obj
     release_check_text = "\n".join(str(item) for item in release_checks)
-    for required in (
-        "tools/test/check_sensitive_content.py",
-        "tools/test/check_sensitive_content.py --history",
-        "tools/test/check_repo_artifact_hygiene.py",
-        "tools/test/check_release_evidence_manifest.py",
-        "tools/verify_production_artifacts.py",
-        "tools/live_preview_policy.py",
-        "tools/test/test_raw_resolution_targets.py",
-        "tools/test/test_gvid_pack.sh",
-        "tools/test/test_gvid_metadata.sh",
-        "tests/quality_gates/check_registry_consistency.py",
-        "tests/quality_gates/audit_ship_pipelines.py --strict",
-        "tests/quality_gates/audit_production_readiness.py --strict",
-    ):
+    for required in REQUIRED_RELEASE_CHECKS:
         if required not in release_check_text:
             failures.append(f"release_checks missing {required}")
+
+    ci_checks_obj = manifest.get("ci_checks")
+    if not isinstance(ci_checks_obj, list):
+        failures.append("ci_checks must be a list")
+        ci_checks = []
+    else:
+        ci_checks = ci_checks_obj
+    ci_check_text = "\n".join(str(item) for item in ci_checks)
+    for required in REQUIRED_CI_CHECKS:
+        if required not in ci_check_text:
+            failures.append(f"ci_checks missing {required}")
+    release_check_set = {item for item in release_checks if isinstance(item, str)}
+    for check in ci_checks:
+        if not isinstance(check, str):
+            failures.append("ci_checks entries must be strings")
+            continue
+        if check not in release_check_set:
+            failures.append(f"ci_checks entry is not also a release_check: {check!r}")
+    for check in EXTERNAL_RELEASE_ONLY_CHECKS:
+        if check in ci_check_text:
+            failures.append(f"external-artifact release check must not be listed as CI-safe: {check}")
+    if CI_WORKFLOW.exists():
+        workflow_text = CI_WORKFLOW.read_text(encoding="utf-8")
+        for check in ci_checks:
+            if isinstance(check, str) and check not in workflow_text:
+                failures.append(f"CI workflow missing ci_checks command {check!r}")
+    else:
+        failures.append(".github/workflows/ci.yml is missing")
+
     if README.exists():
         readme_text = README.read_text(encoding="utf-8")
         for check in release_checks:
