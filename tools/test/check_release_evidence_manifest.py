@@ -941,6 +941,8 @@ def main() -> int:
         "tools/verify_production_artifacts.py",
         "tools/live_preview_policy.py",
         "tools/test/test_raw_resolution_targets.py",
+        "tools/test/test_gvid_pack.sh",
+        "tools/test/test_gvid_metadata.sh",
         "tests/quality_gates/check_registry_consistency.py",
         "tests/quality_gates/audit_production_readiness.py --strict",
     ):
