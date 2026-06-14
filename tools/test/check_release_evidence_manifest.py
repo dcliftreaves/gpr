@@ -950,6 +950,14 @@ def main() -> int:
     ):
         if required not in release_check_text:
             failures.append(f"release_checks missing {required}")
+    if README.exists():
+        readme_text = README.read_text(encoding="utf-8")
+        for check in release_checks:
+            if not isinstance(check, str):
+                failures.append("release_checks entries must be strings")
+                continue
+            if check not in readme_text:
+                failures.append(f"README.md quick checks missing release check {check!r}")
 
     for guard in manifest.get("guards", []):
         if not isinstance(guard, str) or guard not in tracked:
