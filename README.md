@@ -44,6 +44,19 @@ Artifacts and temporary outputs should live under
 `/Volumes/OWC_8TB/gpr_work`, with `TMPDIR` pointed at the external drive for
 large runs.
 
+## Readiness Snapshot
+
+The current release state is intentionally split between shipped raw-media
+paths and experimental live display work:
+
+| bucket | status | production rule |
+|---|---|---|
+| Shipping raw media | Stills, VIDEO_FREEZE, UPRESABLE, `.gvid`, MOV wrapper, editable DNG/GPR, and ProRes review outputs have receipts and pass their committed checks. | Keep these paths gated by the registry, manifest, CI, and production-readiness audit. |
+| Live-capable raw decode | 2K raw decode has Pi 5 timing receipts above 24 fps for both fast and selective-L2 HH modes. | Treat as raw decode/capture readiness, not as a full rendered PREVIEW quality pass. |
+| Offline/review PREVIEW | q8 three-way no-REF full-frame runtime passes the current 84-row holdout. | Production for offline review only; current receipt is 13.65 s/image, 0.073 fps, 5.37 GB RSS. |
+| Live/camera-back PREVIEW | Experimental. The fast codec-only baseline fails the committed PREVIEW quality gate, and the best 2K rendered proxy still has LPIPS-only misses. | Do not claim production until both per-image quality and Pi 5 / Mission 1 24 fps timing pass together. |
+| 4K and 8K raw targets | Offline-only. 4K is strong as editable raw; 8K is review/offline reconstruction. | Keep classified offline until target-platform timing and rendered-quality evidence both support promotion. |
+
 ## Current Ship Matrix
 
 | area | production status | current evidence |
@@ -83,6 +96,7 @@ targets, platform receipts, and dashboard evidence.
 | `preview_candidate_evidence_rank` | diagnostic | candidate ranking separates production-shaped evidence from crop-only and oracle rows |
 | `preview_failure_mode_audit` | experimental-blocker | live/full-image detail-placement failures are documented rather than hidden by crop-only success |
 | `preview_source_ref_policy_audit` | diagnostic | runtime source policy is scored against resolved true REF rows |
+| `raw_2k_fast_decode` | current | fastest 2K Pi raw mode clears 24 fps, has raw-domain quality receipt, and reaches 56/84 rendered proxy rows |
 | `raw_2k_l2hh_visual_proxy` | current | 2K selective-L2 HH raw target reaches 80/84 rendered proxy rows while clearing Pi timing |
 | `raw_4k_visual_proxy` | diagnostic | 4K raw target is strong as editable raw but rendered-proxy LPIPS remains a diagnostic issue |
 | `preview_review_media` | current | ProRes review files exist for preview/timelapse inspection |
@@ -103,6 +117,8 @@ export GATE_TMPDIR=/Volumes/OWC_8TB/gpr_work/gate_tmp
 
 python3 tools/test/check_release_evidence_manifest.py
 python3 tests/quality_gates/audit_production_readiness.py --strict
+python3 tools/test/check_repo_artifact_hygiene.py
+python3 tools/test/check_sensitive_content.py
 ```
 
 ## Stills
@@ -184,6 +200,8 @@ build used for production-path work commonly lives in `build-local/`.
 Run the public CI-style checks:
 
 ```bash
+export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
+
 python3 tools/test/test_capabilities.py
 python3 tools/test/check_sensitive_content.py
 python3 tools/test/check_repo_artifact_hygiene.py
