@@ -169,6 +169,9 @@ python3 tools/cnn/build_raw_resolution_visual_dashboard.py \
   --target 2k_raw_0p5x_l2hh \
   --limit 28
 python3 tools/cnn/build_raw_resolution_visual_dashboard.py --target 4k_raw_1x --limit 28
+python3 tools/cnn/analyze_raw_resolution_visual_failures.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_current/raw_resolution_targets_visual_dashboard.json \
+  --edge-probe
 
 build-local/bin/fused_decode_cli frame.gpr 8280 5520 frame_2k_fast.raw 2k_raw_0p5x_fast
 build-local/bin/fused_decode_cli frame.gpr 8280 5520 frame_2k_l2hh.raw 2k_raw_0p5x_l2hh

@@ -1,8 +1,11 @@
 # CNN training + inference deps for the GPR post-processor.
 # Inference-only users only need torch + numpy + rawpy.
 torch>=2.0
+torchvision>=0.15
 numpy>=1.20
 rawpy>=0.18
+lpips>=0.1
+pytorch-msssim>=1.0
 # Tile building / data prep:
 # Raw DNG noise-target tools also require the external exiftool binary.
 pillow>=9.0

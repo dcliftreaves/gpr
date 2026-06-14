@@ -52,6 +52,8 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `raw_resolution_targets_20260614_alias_v4/pi5_2k_fast_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_fast` Pi 5 timing with commit, binary hash, and RSS metadata |
 | `raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json` | 120 | named `2k_raw_0p5x_l2hh` Pi 5 timing with commit, binary hash, and RSS metadata |
 | `hh_scale_sweep_2k_l2mask4_28f.json` | 28 images / 84 crops | HH amplitude sweep diagnostic |
+| `raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_current/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | 2K L2 HH signal analysis and lower-right edge-margin probe |
+| `raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | 4K signal analysis and lower-right edge-margin probe |
 
 ## Current Results
 
@@ -105,6 +107,13 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
   Y-PSNR 37.60, worst dE2000 1.46. Other masks are worse: mask 1 = 56/84,
   mask 2 = 55/84, mask 3 = 55/84, mask 5 = 56/84, mask 6 = 56/84, and full
   mask 7 = 55/84.
+- Signal analysis of the regenerated current dashboard shows the remaining
+  four misses are all lower-right LPIPS-only rows. Phase shift is effectively
+  zero, correlation remains high (lower-right mean 0.9983), and lower-right
+  gradient energy is about 91.7% of reference. A lower-right edge-margin probe
+  passes all four failing images once the 512 px crop moves inward by 16 px.
+  This narrows the remaining 2K issue to a literal edge/detail-energy miss,
+  not color, luma, or whole-image alignment.
 - Pi 5 timing for `GPR_DECODE_HALFRES_L2_MASK=4` before L2 streaming: 47.5 ms
   median, 21.05 fps median, p95 51.1 ms. After routing the L2 stop point
   through the row-strip streaming inverse+color path: 38.7 ms median,
@@ -147,9 +156,29 @@ until the exact source DNG/GPR pairing is verified.
    scaling: the 2026-06-14 probes reached only 65/84 for RGB unsharp, 57/84
    for deterministic fine-grain synthesis, and 80/84 for the best HH scale
    sweep. The useful signal is actual L2 HH and it now fits the Pi 5 frame
-   budget; the remaining blocker is four near-threshold LPIPS rows.
+   budget; the remaining blocker is four near-threshold lower-right edge rows.
 3. Close or scope the 4K rendered-proxy blocker. The current no-CNN 4K path has
    raw PSNR evidence but passes only 55/84 rendered proxy rows, dominated by
-   LPIPS texture misses.
+   LPIPS texture misses. Signal analysis shows this is broader than the 2K
+   edge-only issue: the lower-right crop passes only 1/28, mean correlation is
+   0.9610, and margin probes remain failing through 256 px inward. Treat the 4K
+   blocker as source-derived texture/detail reconstruction, not a metric edge
+   artifact.
 4. Keep 8K as an offline/review target until a faster 2x raw reconstruction
    exists and clears both quality and timing gates.
+
+## Failure Analysis Tool
+
+Use the signal analyzer after generating a visual dashboard:
+
+```bash
+python3 tools/cnn/analyze_raw_resolution_visual_failures.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_resolution_targets_visual_dashboard.json \
+  --edge-probe \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_resolution_visual_failure_analysis.json
+```
+
+The tool requires dashboard JSON written by the current
+`build_raw_resolution_visual_dashboard.py`, including `candidate_png` paths.
+It reports phase shift, MAE, correlation, gradient-energy ratio, by-crop pass
+rates, top failures, and optional lower-right edge-margin metrics.
