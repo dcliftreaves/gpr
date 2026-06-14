@@ -2,9 +2,18 @@
 
 **Status: 2026-05-12.** 2-level wavelet shipping default + dual-encoder ping-pong landed. 3-level prototype was removed after failing visual-quality testing; only a different wavelet basis would fix it. Parking lot for everything else below.
 
-## Shipping blockers (none currently)
+**Current repo status: 2026-06-14.** This file is an archival raw-video parking
+lot, not the release readiness source of truth. Current production status,
+receipts, and blockers live in `README.md`, `docs/FULL_PIPELINE_MATRIX.md`,
+`docs/VIDEO_STATUS.md`, `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md`, and
+`tests/quality_gates/audit_production_readiness.py`.
 
-The pipeline encode → decode → image-reconstruction is correct and sustains 24 fps × 45 MP × UHS-II V90 microSD. All test harnesses green.
+## Historical raw-video blockers
+
+As of 2026-05-12, the raw-video pipeline encode → decode →
+image-reconstruction was correct and sustained 24 fps × 45 MP × UHS-II V90
+microSD. That statement does not cover newer 2K/4K/8K raw target perceptual
+proxy work or the current PREVIEW/live-decode production blockers.
 
 ## Compute speed for A78 24 fps × 50 MP
 
