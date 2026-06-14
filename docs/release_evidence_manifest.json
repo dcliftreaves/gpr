@@ -120,7 +120,39 @@
         "docs/VIDEO_STATUS.md",
         "docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md"
       ],
-      "reason": "Live/camera-back speed baseline; current committed PREVIEW gate run fails quality and remains experimental."
+      "reason": "Live/camera-back speed baseline; current committed PREVIEW gate run fails quality and remains experimental.",
+      "blocked_by": [
+        "quality_gate_failure",
+        "codec_detail_aliasing"
+      ],
+      "current_gate_result": {
+        "run_hash": "b561d2e75801f0aa",
+        "verdict": "FAIL",
+        "passing_images": 1,
+        "total_images": 4,
+        "worst_image": "Z8Z_0001",
+        "worst_lpips": 0.3119,
+        "worst_ms_ssim": 0.8617,
+        "worst_y_psnr": 24.04,
+        "worst_dE2000": 3.56,
+        "failed_metrics": [
+          "lpips",
+          "ms_ssim",
+          "y_psnr",
+          "dE2000_mean"
+        ]
+      },
+      "speed_evidence": {
+        "raw_target": "2k_raw_0p5x_l2hh",
+        "pi5_fps_median": 29.85,
+        "pi5_p95_ms": 37.1,
+        "receipt": "artifacts/raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json"
+      },
+      "promotion_requirements": [
+        "Pass the PREVIEW gate at LPIPS <= 0.15, MS-SSIM >= 0.95, Y-PSNR >= 28.0, and dE2000 <= 3.0 on every committed gate image.",
+        "Keep the live path at or above 24 fps on Pi 5 / Mission 1 with p95 frame time below 41.7 ms.",
+        "Use only runtime source data; no REF content at render time or route time."
+      ]
     },
     {
       "id": "gvid_container",

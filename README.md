@@ -56,7 +56,7 @@ large runs.
 | MOV wrapper | Compatibility/export path | Available for GPR1/GPRr wrapper and downstream review/export tooling |
 | ProRes review | Review artifact path | Generated from preview/review tools, not the primary raw deliverable |
 | PREVIEW offline/review | PASS for q8 three-way runtime full-frame path | No-REF full-frame holdout passes 84/84 on the current receipt |
-| PREVIEW live/camera-back | Experimental | The q8 three-way route is not a live/camera-back preview path; codec-only and 2K raw fast paths are the current speed baselines |
+| PREVIEW live/camera-back | Experimental | Speed is not the blocker: 2K L2 HH clears Pi timing at 29.85 fps median / 37.1 ms p95, but the codec-only PREVIEW gate run fails quality at 1/4 images passing, worst LPIPS 0.3119 |
 | 2K raw target | Pi live-capable raw candidate | Fast decode mode hits 37.59 fps median / 27.7 ms p95 on Pi 5; selective L2 HH hits 29.85 fps median / 37.1 ms p95 and reaches 80/84 proxy crops |
 | 4K raw target | Mac/offline editable raw candidate | 43.7 fps median on Mac path; matched main-corpus raw quality passes, while rendered-proxy LPIPS remains diagnostic only |
 | 8K raw target | Offline/review only | Current 2x raw reconstruction is about 2.7 fps on the local timing smoke |
@@ -95,7 +95,7 @@ The production video split is explicit:
 | Desktop full-res video | `ml2_q3_l1x2` + matched CNN | PASS, 7.81 MB/frame |
 | Embedded capture | `ml2_q3_dec2` half-res raw stream | PASS, 24.93 fps on Pi 5 |
 | Offline/review PREVIEW | q8 three-way no-REF full-frame runtime | PASS on current holdout, too slow for live |
-| Live/camera-back display | codec-only / 2K fast raw decode baselines | experimental quality policy |
+| Live/camera-back display | codec-only / 2K raw decode baselines | experimental: current speed path clears 24 fps, but current quality gate is 1/4 images passing |
 
 Raw output targets from the 24 fps capture stream:
 
@@ -117,8 +117,12 @@ PREVIEW has two different meanings in this repo:
   used to create reviewable rendered output from raw captures. This path passes
   the current 28-image / 84-row holdout, but runs at offline speed.
 - **Live/camera-back PREVIEW**: an interactive display path. This is not the
-  same problem. The current q8 three-way route is not a live/camera-back
-  preview path.
+  same problem. The current q8 three-way route is an offline/review path and
+  not a live/camera-back preview path. The current codec-only live baseline
+  fails the committed PREVIEW gate at 1/4 images passing, worst LPIPS 0.3119,
+  worst MS-SSIM 0.8617, worst Y-PSNR 24.04, and worst dE2000 3.56. Promotion
+  requires both a per-image PREVIEW quality pass and 24 fps Pi 5 / Mission 1
+  timing.
 
 The latest PREVIEW blocker is not chroma direction. The remaining production
 question is whether live-speed source-derived detail placement can pass the

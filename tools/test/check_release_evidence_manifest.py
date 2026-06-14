@@ -52,6 +52,16 @@ REQUIRED_RAW_IDS = {
     "4k_raw_1x",
     "8k_raw_2x",
 }
+ALLOWED_BLOCKERS = {
+    "quality_gate_failure",
+    "model_capacity",
+    "source_target_mismatch",
+    "codec_detail_aliasing",
+    "memory_limit",
+    "fps_throughput_limit",
+    "missing_data",
+    "ci_build_issue",
+}
 
 
 def tracked_paths() -> set[str]:
@@ -102,6 +112,75 @@ def require_tracked_refs(
                 failures.append(f"{entry_id}: referenced {key[:-1]} does not exist: {ref}")
             elif ref not in tracked and not any(t.startswith(ref.rstrip('/') + '/') for t in tracked):
                 failures.append(f"{entry_id}: referenced {key[:-1]} is not tracked: {ref}")
+
+
+def require_preview_live_experimental_contract(entry: dict[str, Any], failures: list[str]) -> None:
+    entry_id = str(entry.get("id", ""))
+    if entry_id != "preview_live_codec_only":
+        return
+
+    if entry.get("status") != "experimental":
+        failures.append(f"{entry_id}: live/camera-back PREVIEW must remain experimental until it passes quality")
+
+    blockers = entry.get("blocked_by")
+    if not isinstance(blockers, list) or not blockers:
+        failures.append(f"{entry_id}: experimental live PREVIEW needs blocked_by list")
+    else:
+        for blocker in blockers:
+            if blocker not in ALLOWED_BLOCKERS:
+                failures.append(f"{entry_id}: invalid blocker {blocker!r}")
+        if "quality_gate_failure" not in blockers:
+            failures.append(f"{entry_id}: live PREVIEW blocker must include quality_gate_failure")
+
+    gate = entry.get("current_gate_result")
+    if not isinstance(gate, dict):
+        failures.append(f"{entry_id}: experimental live PREVIEW needs current_gate_result")
+    else:
+        if gate.get("run_hash") != entry.get("committed_run_hash"):
+            failures.append(f"{entry_id}: current_gate_result run_hash must match committed_run_hash")
+        if gate.get("verdict") != "FAIL":
+            failures.append(f"{entry_id}: current_gate_result must record the current FAIL")
+        try:
+            pass_images = int(gate.get("passing_images"))
+            total_images = int(gate.get("total_images"))
+            worst_lpips = float(gate.get("worst_lpips"))
+            worst_ms = float(gate.get("worst_ms_ssim"))
+            worst_y = float(gate.get("worst_y_psnr"))
+            worst_de = float(gate.get("worst_dE2000"))
+        except (TypeError, ValueError):
+            failures.append(f"{entry_id}: current_gate_result metrics must be numeric")
+        else:
+            if pass_images >= total_images:
+                failures.append(f"{entry_id}: current_gate_result must show at least one failing image")
+            if not (
+                worst_lpips > 0.15
+                or worst_ms < 0.95
+                or worst_y < 28.0
+                or worst_de > 3.0
+            ):
+                failures.append(f"{entry_id}: current_gate_result does not show a PREVIEW threshold miss")
+
+    speed = entry.get("speed_evidence")
+    if not isinstance(speed, dict):
+        failures.append(f"{entry_id}: experimental live PREVIEW needs speed_evidence")
+    else:
+        try:
+            fps = float(speed.get("pi5_fps_median"))
+            p95_ms = float(speed.get("pi5_p95_ms"))
+        except (TypeError, ValueError):
+            failures.append(f"{entry_id}: speed_evidence fps/p95 must be numeric")
+        else:
+            if fps < 24.0 or p95_ms >= 41.7:
+                failures.append(f"{entry_id}: speed_evidence must show current speed path clears 24 fps timing")
+
+    promotion = entry.get("promotion_requirements")
+    if not isinstance(promotion, list) or not promotion:
+        failures.append(f"{entry_id}: experimental live PREVIEW needs promotion_requirements")
+    else:
+        text = "\n".join(str(item).lower() for item in promotion)
+        for required in ("preview", "lpips", "ms-ssim", "y-psnr", "de2000", "24 fps"):
+            if required not in text:
+                failures.append(f"{entry_id}: promotion_requirements missing {required}")
 
 
 def main() -> int:
@@ -179,6 +258,7 @@ def main() -> int:
         if status == "experimental" and not entry.get("reason"):
             failures.append(f"{entry_id}: experimental entries need a reason")
 
+        require_preview_live_experimental_contract(entry, failures)
         require_tracked_refs(entry_id, entry, tracked, failures)
 
     missing_output_ids = REQUIRED_OUTPUT_IDS - seen_output_ids

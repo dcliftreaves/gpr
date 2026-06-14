@@ -55,6 +55,15 @@ quality gap for offline/review output, but it is much too slow for live
 preview. Live/camera-back quality beyond codec-only remains a separate future
 strategy.
 
+The live/camera-back blocker is quality, not raw-target timing. The committed
+codec-only PREVIEW gate run `b561d2e75801f0aa` passes 1/4 images and fails
+worst-case thresholds at LPIPS 0.3119, MS-SSIM 0.8617, Y-PSNR 24.04, and
+dE2000 3.56. The best current 2K raw timing candidate,
+`2k_raw_0p5x_l2hh`, clears Pi 5 timing at 29.85 fps median and 37.1 ms p95,
+but remains only 80/84 on the rendered proxy crop dashboard. Promotion to a
+production live PREVIEW path requires both a per-image PREVIEW quality pass and
+24 fps / 41.7 ms p95 timing on Pi 5 / Mission 1.
+
 ## Pi 5 encode characteristics (real measurements)
 
 From `docs/STILLS_PI5_TIMING.md` — single-image full-res 50MP encode
@@ -113,7 +122,8 @@ Details and receipts are in `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`.
    offline/review output but runs at 0.073 fps on Mac/MPS. For 2K raw live
    decode, selective L2 HH now clears Pi 5 timing after L2 row streaming and
    fixes most texture misses; the remaining blocker is four near-threshold
-   LPIPS rows, not FPS.
+   LPIPS rows, not FPS. The codec-only live PREVIEW baseline remains
+   experimental because the committed gate run is 1/4 images passing.
 2. **Codec perf** — 2026-05-28 landed three Pi 5 wins:
    (a) parallel DNG SDK input decode (2.89× on legacy stills, commits
    `79403fb` + `ec1cb2c`);
