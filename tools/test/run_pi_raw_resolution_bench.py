@@ -7,17 +7,21 @@ run on the Pi 5 capture target after `fused_decode_cli` has been built there.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import platform
 import re
+import resource
 import statistics
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any
 
 
+REPO = Path(__file__).resolve().parents[2]
 DECODE_RE = re.compile(r"DECODE: (\d+)x(\d+) in ([0-9.]+) ms .* in (\d+) bytes")
 TARGET_RE = re.compile(r"TARGET: ([^ ]+) (\d+)x(\d+) in ([0-9.]+) ms")
 TARGET_2K_CHOICES = ("2k_raw_0p5x", "2k_raw_0p5x_fast", "2k_raw_0p5x_l2hh")
@@ -48,6 +52,36 @@ def summarize(values: list[float]) -> dict[str, float | int]:
         "fps_mean": 1000.0 / mean if mean > 0 else 0.0,
         "fps_median": 1000.0 / median if median > 0 else 0.0,
     }
+
+
+def git_commit() -> str | None:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception:
+        return None
+
+
+def file_sha256(path: Path) -> str | None:
+    try:
+        h = hashlib.sha256()
+        with path.open("rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except Exception:
+        return None
+
+
+def maxrss_kb(who: int) -> int:
+    value = int(resource.getrusage(who).ru_maxrss)
+    if sys.platform == "darwin":
+        return value // 1024
+    return value
 
 
 def run_target(cli: Path, frame: Path, tmp_dir: Path, target: str) -> dict[str, Any]:
@@ -133,12 +167,26 @@ def main() -> int:
         "frame_dir": str(args.frame_dir),
         "frame_count": len(rows),
         "target_2k": args.target_2k,
+        "git_commit": git_commit(),
+        "cli": str(args.cli),
+        "cli_sha256": file_sha256(args.cli),
+        "platform": {
+            "system": platform.system(),
+            "release": platform.release(),
+            "version": platform.version(),
+            "machine": platform.machine(),
+            "processor": platform.processor(),
+        },
         "decode_mode": {
             "halfres_drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
             "halfres_l2_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
             "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",
         },
         "elapsed_s": time.time() - t0,
+        "memory": {
+            "parent_maxrss_kb": maxrss_kb(resource.RUSAGE_SELF),
+            "children_maxrss_kb": maxrss_kb(resource.RUSAGE_CHILDREN),
+        },
         "summary": {
             "4k_raw_1x": target_summary(rows, "4k_raw_1x"),
             args.target_2k: target_summary(rows, args.target_2k),
