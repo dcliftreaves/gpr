@@ -68,6 +68,39 @@ Source of truth:
 [`docs/FULL_PIPELINE_MATRIX.md`](docs/FULL_PIPELINE_MATRIX.md), and
 `tests/quality_gates/runs/`.
 
+## Release Evidence
+
+The repo keeps source, registry entries, small receipts, and verification code
+in git. Heavy dashboards, videos, checkpoints, and rendered media stay under
+`/Volumes/OWC_8TB/gpr_work/artifacts` and are indexed by
+[`docs/release_evidence_manifest.json`](docs/release_evidence_manifest.json).
+CI validates that the manifest still names the required production paths, raw
+targets, platform receipts, and dashboard evidence.
+
+| evidence | status | what it proves |
+|---|---|---|
+| `preview_offline_review_q8_threeway` | current | no-REF full-frame PREVIEW review path passes 84/84 holdout rows |
+| `preview_candidate_evidence_rank` | diagnostic | candidate ranking separates production-shaped evidence from crop-only and oracle rows |
+| `preview_failure_mode_audit` | experimental-blocker | live/full-image detail-placement failures are documented rather than hidden by crop-only success |
+| `preview_source_ref_policy_audit` | diagnostic | runtime source policy is scored against resolved true REF rows |
+| `raw_2k_l2hh_visual_proxy` | current | 2K selective-L2 HH raw target reaches 80/84 rendered proxy rows while clearing Pi timing |
+| `raw_4k_visual_proxy` | diagnostic | 4K raw target is strong as editable raw but rendered-proxy LPIPS remains a diagnostic issue |
+| `preview_review_media` | current | ProRes review files exist for preview/timelapse inspection |
+| `gvid_metadata_dispatch` | diagnostic | `.gvid` metadata dispatch and clean-target routing behavior have dashboard evidence |
+| `noise_signal_audit` | diagnostic | X2D ISO-stratified noise/signal training targets are audited before model training |
+
+The quick release-readiness command is:
+
+```bash
+export GPR_EXTERNAL_ROOT=/Volumes/OWC_8TB/gpr_work
+export GPR_ARTIFACT_ROOT=/Volumes/OWC_8TB/gpr_work/artifacts
+export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
+export GATE_TMPDIR=/Volumes/OWC_8TB/gpr_work/gate_tmp
+
+python3 tools/test/check_release_evidence_manifest.py
+python3 tests/quality_gates/audit_production_readiness.py --strict
+```
+
 ## Stills
 
 The still pipeline uses the legacy `gpr_tools` encoder with either a matched
@@ -153,7 +186,7 @@ python3 tools/test/check_repo_artifact_hygiene.py
 python3 tools/test/check_release_evidence_manifest.py
 python3 tools/test/test_raw_resolution_targets.py
 python3 tests/quality_gates/check_registry_consistency.py
-python3 tests/quality_gates/audit_production_readiness.py
+python3 tests/quality_gates/audit_production_readiness.py --strict
 ```
 
 Run a quality gate for a registered pipeline:
