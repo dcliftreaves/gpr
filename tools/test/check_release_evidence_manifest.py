@@ -20,6 +20,7 @@ MANIFEST = ROOT / "docs/release_evidence_manifest.json"
 REGISTRY = ROOT / "pipelines/registry.json"
 README = ROOT / "README.md"
 DOCS_README = ROOT / "docs/README.md"
+PRODUCTION_ARTIFACTS = ROOT / "docs/PRODUCTION_ARTIFACTS.md"
 CI_WORKFLOW = ROOT / ".github/workflows/ci.yml"
 RUNS_DIR = ROOT / "tests/quality_gates/runs"
 
@@ -180,6 +181,12 @@ EXTERNAL_RELEASE_ONLY_CHECKS = (
     "python3 tests/quality_gates/audit_production_readiness.py --strict",
 )
 
+PRODUCTION_ARTIFACT_REQUIRED_TOKENS = (
+    "Required Registry Artifacts",
+    "Release mode verifies every checkpoint field referenced by",
+    "python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts",
+)
+
 
 def tracked_paths() -> set[str]:
     result = subprocess.run(
@@ -220,6 +227,51 @@ def require_readme_contract(tracked: set[str], failures: list[str]) -> None:
         failures.append("docs/README.md must be tracked")
     elif docs_readme_ref not in DOCS_README.read_text(encoding="utf-8"):
         failures.append("docs/README.md must link the active production goal and definition of done")
+
+
+def checkpoint_specs(cnn: dict[str, Any]) -> list[tuple[str, str, str | None]]:
+    specs: list[tuple[str, str, str | None]] = []
+    if "ckpt_path" in cnn:
+        specs.append(("ckpt_path", str(cnn["ckpt_path"]), cnn.get("ckpt_sha256")))
+    for suffix in ("y", "cb", "cr", "chroma", "detail", "rgb_detail"):
+        path_key = f"ckpt_{suffix}"
+        if path_key in cnn:
+            specs.append((path_key, str(cnn[path_key]), cnn.get(f"{path_key}_sha256")))
+    if "luma_detail_refiner" in cnn:
+        specs.append((
+            "luma_detail_refiner",
+            str(cnn["luma_detail_refiner"]),
+            cnn.get("luma_detail_refiner_sha256"),
+        ))
+    return specs
+
+
+def require_production_artifacts_contract(
+    registry: dict[str, Any],
+    tracked: set[str],
+    failures: list[str],
+) -> None:
+    if "docs/PRODUCTION_ARTIFACTS.md" not in tracked:
+        failures.append("docs/PRODUCTION_ARTIFACTS.md must be tracked")
+        return
+    if not PRODUCTION_ARTIFACTS.exists():
+        failures.append("docs/PRODUCTION_ARTIFACTS.md is missing")
+        return
+
+    text = PRODUCTION_ARTIFACTS.read_text(encoding="utf-8")
+    for token in PRODUCTION_ARTIFACT_REQUIRED_TOKENS:
+        if token not in text:
+            failures.append(f"docs/PRODUCTION_ARTIFACTS.md missing artifact contract token {token!r}")
+    for cnn_name, cnn in registry.get("cnns", {}).items():
+        if str(cnn_name).startswith("$") or cnn_name == "none" or not isinstance(cnn, dict):
+            continue
+        for path_field, path_value, expected_sha in checkpoint_specs(cnn):
+            for token in (str(cnn_name), path_field, path_value, str(expected_sha)):
+                if token not in text:
+                    failures.append(
+                        "docs/PRODUCTION_ARTIFACTS.md missing registry artifact "
+                        f"token {token!r} for {cnn_name}"
+                    )
 
 
 def run_for_hash(run_hash: str) -> dict[str, Any] | None:
@@ -824,6 +876,7 @@ def main() -> int:
     pipelines = registry.get("pipelines") or {}
     tracked = tracked_paths()
     require_readme_contract(tracked, failures)
+    require_production_artifacts_contract(registry, tracked, failures)
 
     if manifest.get("schema") != EXPECTED_SCHEMA:
         failures.append(f"schema must be {EXPECTED_SCHEMA}")

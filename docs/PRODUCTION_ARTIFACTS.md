@@ -29,17 +29,28 @@ Important paths:
 | `TMPDIR` | `/Volumes/OWC_8TB/gpr_work/tmp` | Python/tool temporary files |
 | `GATE_TMPDIR` | `/Volumes/OWC_8TB/gpr_work/gate_tmp` | quality-gate scratch |
 
-## Required models
+## Required Registry Artifacts
 
-The registry currently ships these checkpoint artifacts:
+Release mode verifies every checkpoint field referenced by
+`pipelines/registry.json`, not just the three core shipping model files. This
+keeps experimental, diagnostic, and guardrail registry entries reproducible
+while they remain registered. The current strict artifact inventory is:
 
-| CNN id | filename | sha256 |
-|---|---|---|
-| `bibo1x_ane_gpr_tools_q3` | `BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q3.pt` | `df22af432710bddabd223047c2db2d0edf2808dd17c4341694a974e045ec87cd` |
-| `bibo1x_ane_ml2_q3` | `BayInBayOut_1x_AAon_w16_ANE_ML2_q3.pt` | `7fac7c28f13830c716fede8c9caf129fc7d949151508b70530449f13151fade9` |
-| `bibo2x_ane_ml2_q3_dec2_diverse` | `BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt` | `bd3636d2c026639e3d8c9636de491c662fe05e67bdaa4451061901b47b37659b` |
+| CNN id | field | registry path | sha256 |
+|---|---|---|---|
+| `bibo1x_ane_gpr_tools_q3` | `ckpt_path` | `models/BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q3.pt` | `df22af432710bddabd223047c2db2d0edf2808dd17c4341694a974e045ec87cd` |
+| `bibo1x_ane_ml2_q3` | `ckpt_path` | `models/BayInBayOut_1x_AAon_w16_ANE_ML2_q3.pt` | `7fac7c28f13830c716fede8c9caf129fc7d949151508b70530449f13151fade9` |
+| `bibo2x_ane_ml2_q3_dec2_diverse` | `ckpt_path` | `models/BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt` | `bd3636d2c026639e3d8c9636de491c662fe05e67bdaa4451061901b47b37659b` |
+| `bido4x_ane_ml2_q3_dec2_lpips_detail_lumagrad_w001` | `ckpt_path` | `/Volumes/OWC_8TB/gpr_work/checkpoints/bido_target_detail_20260605/bido_4x_lpips005_detail_lumagrad_w001.pt` | `e538ad8d3d2f464beeb311484a84caebc1e4ec6c754bd94027b5a5933f861132` |
+| `bido4x_w32_ml2_q3_dec2_hardtail_t192_lpips005_lumagrad0005` | `ckpt_path` | `/Volumes/OWC_8TB/gpr_work/checkpoints/bido_full_context_20260605/bido_4x_w32_hardtail_t192_lpips005_lumagrad0005_z6693holdout.pt` | `8fa6d260a0e2bb8b03e98fa8b09496811e1d297cbb3443d621f514ec8060cc6f` |
+| `codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded` | `ckpt_path` | `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt` | `376f1fa52989c62076684ffa39fedbf7a469b8bf7ab3e934a9260100d5dc328c` |
+| `codec_raw_signal_sr_ml2_q3_dec2_w64_iso_expanded_runtime_sigma_probe` | `ckpt_path` | `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_expanded_20260605/codec_raw_signal_sr_w64_iso_expanded_84crops.pt` | `376f1fa52989c62076684ffa39fedbf7a469b8bf7ab3e934a9260100d5dc328c` |
+| `codec_raw_signal_sr_ml2_q3_dec2_w64_iso_runtime_sigma_84crops` | `ckpt_path` | `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_runtime_sigma_20260605/codec_raw_signal_sr_w64_iso_runtime_sigma_84crops.pt` | `fb6e37a1e15ed297d47878b6144bebcbf5ed0ee675bfe5a141da401e5c497aeb` |
+| `codec_raw_signal_sr_ml2_q3_dec2_w64_iso_only_84crops` | `ckpt_path` | `/Volumes/OWC_8TB/gpr_work/artifacts/codec_raw_signal_train_iso_only_20260605/codec_raw_signal_sr_w64_iso_only_84crops.pt` | `7de6e691813e39ae2d9d3ce1a0ed1682a90b2d702c0cb3ac6af2d01f1e9445cf` |
+| `lab_chroma_corrector_w12_sips_residual_ab8_sub10` | `ckpt_y` | `/Volumes/OWC_8TB/gpr_work/cnn/F_ane_no_sr_w16_y_multival_hf05_grad02_sub4.pt` | `e7f5add8b7a3b4ed04f87417f7026b3d5a01ccfc0ee3eb403e4f8ced3eab661e` |
+| `lab_chroma_corrector_w12_sips_residual_ab8_sub10` | `ckpt_chroma` | `/Volumes/OWC_8TB/gpr_work/cnn/F_ane_chroma_corrector_w12_sips_residual_ab8_sub10.pt` | `cbb6bde6f0bdb36eb50f202f2031fec2447fea12379125211475b0e886ff4677` |
 
-Install them as:
+Install the portable model-root artifacts as:
 
 ```bash
 $GPR_MODEL_ROOT/
