@@ -318,7 +318,8 @@ jobs:
 
       - name: Run raw target helper regression
         # Verifies that raw-resolution helper code preserves the CFA plane
-        # contract for 2K/0.5x Bayer downsampling.
+        # contract for 2K/0.5x Bayer downsampling and that the bounded
+        # live PREVIEW display policy stays tied to the 2K L2 HH target.
         run: python3 tools/test/test_raw_resolution_targets.py
 
       - name: Registry consistency check

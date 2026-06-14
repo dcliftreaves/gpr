@@ -155,6 +155,48 @@
       ]
     },
     {
+      "id": "preview_live_2k_l2hh_edge_safe",
+      "family": "preview",
+      "status": "production-pass-external-receipt",
+      "raw_target": "2k_raw_0p5x_l2hh",
+      "policy": "preview_live_2k_l2hh_edge_safe_v1",
+      "runtime_entrypoint": "tools/live_preview_policy.py",
+      "ship_class": "PREVIEW",
+      "external_receipt": "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_targets_visual_dashboard.json",
+      "dashboard": "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_targets_visual_dashboard.html",
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "tools": [
+        "tools/live_preview_policy.py",
+        "tools/test/test_raw_resolution_targets.py",
+        "source/app/fused_decode_cli.c"
+      ],
+      "metrics": {
+        "holdout_rows": 84,
+        "passing_rows": 84,
+        "worst_lpips": 0.1378,
+        "worst_ms_ssim": 0.9787,
+        "worst_y_psnr": 37.6,
+        "worst_dE2000": 1.37,
+        "edge_inset_px": 16,
+        "input_width": 2070,
+        "input_height": 1380,
+        "viewport_width": 2038,
+        "viewport_height": 1348,
+        "pi5_fps_median": 29.85,
+        "pi5_p95_ms": 37.1,
+        "peak_rss_mb": 98.0
+      },
+      "constraints": [
+        "No REF content at render time.",
+        "Production claim is bounded to the 16 px edge-safe display viewport.",
+        "Exact outer-edge rendered proxy remains diagnostic at 80/84 and is not promoted by this policy."
+      ]
+    },
+    {
       "id": "gvid_container",
       "family": "container",
       "status": "production-supported",
@@ -907,6 +949,7 @@
     "python3 tools/test/check_sensitive_content.py",
     "python3 tools/test/check_repo_artifact_hygiene.py",
     "python3 tools/test/check_release_evidence_manifest.py",
+    "python3 tools/live_preview_policy.py",
     "python3 tools/test/test_raw_resolution_targets.py",
     "python3 tests/quality_gates/check_registry_consistency.py",
     "python3 tests/quality_gates/audit_ship_pipelines.py",

@@ -39,7 +39,7 @@ embedded-capture ship — Pi 5 can't encode this fast.
 |---|---|
 | codec | `ml2_q3_dec2` (multi-level FUSED, decimate=2 → half-res) |
 | raw-video container | `.gvid` primary deliverable; MOV/GPR1 compatibility wrapper optional |
-| live/camera-back PREVIEW | `2k_raw_0p5x_l2hh` selective-L2 HH edge-safe display candidate; older codec-only gate remains experimental |
+| live/camera-back PREVIEW | `2k_raw_0p5x_l2hh` selective-L2 HH production-bounded edge-safe display policy; older codec-only gate remains experimental |
 | offline/review PREVIEW | `preview_q8_threeway_runtime_fullframe_v1` registered as external-receipt no-REF production path |
 | offline/review entrypoint | `tools/cnn/render_preview_q8_threeway_runtime.py` |
 | Pi 5 capture fps | **24.93 fps median** (verified 2026-05-26). Post commit `c1eabc6` (2026-05-28 Pass 2 worker-pool dispatch on ≤4-core hosts) per-frame encode dropped from 40.89 → 38.20 ms median (6.6% faster). Sustained capture not re-measured but headroom over 24 fps grew. |
@@ -59,13 +59,13 @@ The live/camera-back blocker is now bounded to exact outer-edge display
 quality, not raw-target timing. The committed codec-only PREVIEW gate run
 `b561d2e75801f0aa` passes 1/4 images and fails worst-case thresholds at LPIPS
 0.3119, MS-SSIM 0.8617, Y-PSNR 24.04, and dE2000 3.56. The current 2K raw
-timing candidate, `2k_raw_0p5x_l2hh`, clears Pi 5 timing at 29.85 fps median
+timing path, `2k_raw_0p5x_l2hh`, clears Pi 5 timing at 29.85 fps median
 and 37.1 ms p95. Its exact-edge rendered proxy remains 80/84, with four
 LPIPS-only lower-right crops: `Z8Z_0002`, `Z8Z_0003`, `Z8Z_0009`, and
 `Z8Z_0020`; MS-SSIM, Y-PSNR, and dE2000 remain passing on those rows. With a
 16 px edge-safe display viewport, the same target passes 84/84 with worst LPIPS
 0.1378, worst MS-SSIM 0.9787, worst Y-PSNR 37.60, and worst dE2000 1.37.
-Promotion is therefore limited to that bounded edge-safe live display policy
+Production is therefore limited to that bounded edge-safe live display policy
 unless exact outer-edge display becomes a requirement.
 
 ## Pi 5 encode characteristics (real measurements)
@@ -97,7 +97,7 @@ For video you need either:
 | Highest-quality video at any size, desktop | **A** (full-res VIDEO_FREEZE) |
 | Embedded Pi-camera capture at 24 fps | **B** (half-res `.gvid`; capture side works) |
 | Offline/review preview from B's captures | **B** with q8 three-way PREVIEW candidate (quality passes; 0.073 fps) |
-| Live/camera-back preview from B's captures | **B** codec-only speed path; current q8 path is too slow |
+| Live/camera-back preview from B's captures | **B** with the bounded `2k_raw_0p5x_l2hh` edge-safe display policy; exact-edge display remains diagnostic |
 
 ## Per-frame numbers on Z8 50MP — for budgeting
 
@@ -121,14 +121,14 @@ Details and receipts are in `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`.
 
 ## Open work for video
 
-1. **Live PREVIEW policy** — decide whether the 16 px edge-safe display
-   viewport is acceptable for camera-back use. The q8 three-way route is
-   quality-valid for offline/review output but runs at 0.073 fps on Mac/MPS.
-   For 2K raw live decode, selective L2 HH now clears Pi 5 timing after L2 row
-   streaming and passes 84/84 rendered proxy rows when the display viewport
-   excludes the outer 16 px edge. Exact-edge display remains 80/84 with four
-   near-threshold LPIPS rows. The older codec-only live PREVIEW baseline
-   remains experimental because the committed gate run is 1/4 images passing.
+1. **Live PREVIEW exact-edge closure** — the production live/camera-back path
+   is now bounded to the `preview_live_2k_l2hh_edge_safe_v1` policy: 2K
+   selective L2 HH, no REF content, and a 16 px edge-safe display viewport.
+   It clears Pi 5 timing and passes 84/84 rendered proxy rows. Exact-edge
+   display remains 80/84 with four near-threshold LPIPS rows; closing those
+   rows is the remaining quality improvement if full outer-edge display is
+   required. The older codec-only live PREVIEW baseline remains experimental
+   because the committed gate run is 1/4 images passing.
 2. **Codec perf** — 2026-05-28 landed three Pi 5 wins:
    (a) parallel DNG SDK input decode (2.89× on legacy stills, commits
    `79403fb` + `ec1cb2c`);

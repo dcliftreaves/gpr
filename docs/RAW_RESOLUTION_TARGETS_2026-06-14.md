@@ -148,12 +148,13 @@ sit in the production output ladder today.
   from commit `50ebc69f` is 33.5 ms median, 37.1 ms p95, 29.85 fps median,
   with child peak RSS about 98 MB.
 - Current decision: selective L2 HH is now the **live-capable** 2K raw-quality
-  candidate and the current bounded live-display candidate. It clears the Pi 5
-  24 fps decode-side target by median and p95, fixes most LPIPS-only texture
-  misses while preserving structure, luma PSNR, and color, and passes the
-  rendered proxy when the display viewport excludes the outer 16 px edge. The
-  exact-edge proxy remains 80/84 with four near-threshold LPIPS-only rows. The
-  low-detail L2-drop mode remains the fastest live raw mode.
+  path and the production-bounded live-display path under
+  `preview_live_2k_l2hh_edge_safe_v1`. It clears the Pi 5 24 fps decode-side
+  target by median and p95, fixes most LPIPS-only texture misses while
+  preserving structure, luma PSNR, and color, and passes the rendered proxy
+  when the display viewport excludes the outer 16 px edge. The exact-edge proxy
+  remains 80/84 with four near-threshold LPIPS-only rows. The low-detail
+  L2-drop mode remains the fastest live raw mode.
 
 ### 8K raw 2x
 
@@ -182,15 +183,14 @@ until the exact source DNG/GPR pairing is verified.
    policy inside the child process. Keep future Pi timing passes on
    `2k_raw_0p5x_fast` and `2k_raw_0p5x_l2hh`; `2k_raw_0p5x` remains as a
    compatibility/env-driven target.
-2. If 2K live preview may use a 16 px edge-safe display viewport, the current
-   `2k_raw_0p5x_l2hh` path is the production-shaped candidate: it clears Pi
-   timing and passes the 84-row rendered proxy. If exact outer-edge display is
-   required, the next work is not generic sharpening, synthetic noise, or
-   simple HH amplitude scaling: the 2026-06-14 probes reached only 65/84 for
-   RGB unsharp, 57/84 for deterministic fine-grain synthesis, and 80/84 for
-   the best HH scale sweep. The useful signal is actual L2 HH and it now fits
-   the Pi 5 frame budget; the remaining exact-edge blocker is four
-   near-threshold lower-right rows.
+2. The 2K live preview production policy is now the 16 px edge-safe display
+   viewport over `2k_raw_0p5x_l2hh`: it clears Pi timing and passes the 84-row
+   rendered proxy. If exact outer-edge display is required, the next work is
+   not generic sharpening, synthetic noise, or simple HH amplitude scaling:
+   the 2026-06-14 probes reached only 65/84 for RGB unsharp, 57/84 for
+   deterministic fine-grain synthesis, and 80/84 for the best HH scale sweep.
+   The useful signal is actual L2 HH and it now fits the Pi 5 frame budget;
+   the remaining exact-edge blocker is four near-threshold lower-right rows.
 3. Keep 4K classified as offline-only, not a live/rendered PREVIEW path. The
    no-CNN 4K path has strong matched-source raw evidence, but it
    passes only 55/84 rendered proxy rows under PREVIEW LPIPS. Signal analysis

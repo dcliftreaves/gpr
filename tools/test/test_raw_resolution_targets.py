@@ -16,6 +16,9 @@ from bench_raw_resolution_targets import downsample_bayer_0p5x  # noqa: E402
 sys.path.insert(0, str(REPO / "tools/test"))
 from run_pi_raw_resolution_bench import TARGET_2K_CHILD_DECODE_POLICY, TARGET_2K_POLICY  # noqa: E402
 
+sys.path.insert(0, str(REPO / "tools"))
+from live_preview_policy import DEFAULT_POLICY_ID, materialize_policy, viewport  # noqa: E402
+
 
 def assemble_rggb(r: np.ndarray, g1: np.ndarray, g2: np.ndarray, b: np.ndarray) -> np.ndarray:
     out = np.zeros((r.shape[0] * 2, r.shape[1] * 2), dtype=np.uint16)
@@ -76,6 +79,38 @@ def test_named_2k_target_policies_are_distinct() -> None:
     assert l2hh["stream_strips"] == 2
 
 
+def test_live_preview_edge_safe_policy_contract() -> None:
+    policy = materialize_policy(DEFAULT_POLICY_ID)
+
+    assert policy["production_path_id"] == "preview_live_2k_l2hh_edge_safe"
+    assert policy["raw_target"] == "2k_raw_0p5x_l2hh"
+    assert policy["source_codec"] == "ml2_q3_dec2"
+    assert policy["display_mode"] == "edge_safe_viewport"
+    assert policy["forbids_ref_content"] is True
+    assert policy["edge_inset_px"] == 16
+    assert policy["target_fps"] == 24.0
+    assert policy["p95_ms_budget"] == 41.7
+    assert policy["display_viewport"] == {
+        "x": 16,
+        "y": 16,
+        "width": 2038,
+        "height": 1348,
+    }
+    assert "visual_2k_l2hh_edgeinset16_28f" in policy["quality_receipt"]
+    assert "pi5_2k_l2hh_alias_120f" in policy["timing_receipt"]
+
+
+def test_live_preview_viewport_rejects_invalid_inset() -> None:
+    try:
+        viewport(32, 32, 16)
+    except ValueError as exc:
+        assert "consumes" in str(exc)
+    else:
+        raise AssertionError("expected invalid edge inset to fail")
+
+
 if __name__ == "__main__":
     test_downsample_bayer_0p5x_preserves_cfa_planes()
     test_named_2k_target_policies_are_distinct()
+    test_live_preview_edge_safe_policy_contract()
+    test_live_preview_viewport_rejects_invalid_inset()

@@ -47,14 +47,14 @@ large runs.
 ## Readiness Snapshot
 
 The current release state is intentionally split between shipped raw-media
-paths and bounded live display candidate work:
+paths and the bounded live display policy:
 
 | bucket | status | production rule |
 |---|---|---|
 | Shipping raw media | Stills, VIDEO_FREEZE, UPRESABLE, `.gvid`, MOV wrapper, editable DNG/GPR, and ProRes review outputs have receipts and pass their committed checks. | Keep these paths gated by the registry, manifest, CI, and production-readiness audit. |
 | Live-capable raw decode | 2K raw decode has Pi 5 timing receipts above 24 fps for both fast and selective-L2 HH modes. | Treat as raw decode/capture readiness, not as a full rendered PREVIEW quality pass. |
 | Offline/review PREVIEW | q8 three-way no-REF full-frame runtime passes the current 84-row holdout. | Production for offline review only; current receipt is 13.65 s/image, 0.073 fps, 5.37 GB RSS. |
-| Live/camera-back PREVIEW | Candidate for bounded 2K display. The fast codec-only baseline fails the committed PREVIEW quality gate, but 2K selective-L2 HH with a 16 px edge-safe viewport passes the 84-row rendered proxy while clearing Pi 5 timing. | Keep exact-edge raw proxy caveats documented; promote only the bounded edge-safe display policy, not full-frame rendered perfection. |
+| Live/camera-back PREVIEW | PASS for bounded 2K display. The fast codec-only baseline fails the committed PREVIEW quality gate, but 2K selective-L2 HH with a 16 px edge-safe viewport passes the 84-row rendered proxy while clearing Pi 5 timing. | Ship only the bounded edge-safe display policy; exact-edge raw proxy caveats remain documented and are not promoted as full-frame rendered perfection. |
 | 4K and 8K raw targets | Offline-only. 4K is strong as editable raw; 8K is review/offline reconstruction. | Keep classified offline until target-platform timing and rendered-quality evidence both support promotion. |
 
 ## Current Ship Matrix
@@ -69,8 +69,8 @@ paths and bounded live display candidate work:
 | MOV wrapper | Compatibility/export path | Available for GPR1/GPRr wrapper and downstream review/export tooling |
 | ProRes review | Review artifact path | Generated from preview/review tools, not the primary raw deliverable |
 | PREVIEW offline/review | PASS for q8 three-way runtime full-frame path | No-REF full-frame holdout passes 84/84 on the current receipt |
-| PREVIEW live/camera-back | Candidate for 2K edge-safe display | Speed is not the blocker: 2K L2 HH clears Pi timing at 29.85 fps median / 37.1 ms p95. Exact-edge rendered proxy is 80/84, but a 16 px edge-safe viewport passes 84/84 with worst LPIPS 0.1378. The older codec-only PREVIEW gate run still fails quality at 1/4 images passing, worst LPIPS 0.3119 |
-| 2K raw target | Pi live-capable raw candidate | Fast decode mode hits 37.59 fps median / 27.7 ms p95 on Pi 5; selective L2 HH hits 29.85 fps median / 37.1 ms p95, reaches 80/84 exact-edge proxy crops, and reaches 84/84 with the 16 px edge-safe display policy |
+| PREVIEW live/camera-back | PASS for bounded 2K edge-safe display | Speed is not the blocker: 2K L2 HH clears Pi timing at 29.85 fps median / 37.1 ms p95. Exact-edge rendered proxy is 80/84, but the production live policy uses a 16 px edge-safe viewport that passes 84/84 with worst LPIPS 0.1378. The older codec-only PREVIEW gate run still fails quality at 1/4 images passing, worst LPIPS 0.3119 |
+| 2K raw target | Pi live-capable raw path | Fast decode mode hits 37.59 fps median / 27.7 ms p95 on Pi 5; selective L2 HH hits 29.85 fps median / 37.1 ms p95, reaches 80/84 exact-edge proxy crops, and reaches 84/84 with the 16 px edge-safe display policy |
 | 4K raw target | Offline-only production classification | 43.7 fps median on Mac path; matched main-corpus raw quality passes, but Pi decode-side is 6.3 fps and rendered-proxy LPIPS remains diagnostic only |
 | 8K raw target | Offline/review only | Current 2x raw reconstruction is about 2.7 fps on the local timing smoke |
 
@@ -98,7 +98,7 @@ targets, platform receipts, and dashboard evidence.
 | `preview_source_ref_policy_audit` | diagnostic | runtime source policy is scored against resolved true REF rows |
 | `raw_2k_fast_visual_proxy` | diagnostic | fastest 2K Pi raw mode clears 24 fps and has a raw-domain quality receipt, but reaches only 56/84 rendered proxy rows |
 | `raw_2k_l2hh_visual_proxy` | current | 2K selective-L2 HH raw target reaches 80/84 exact-edge rendered proxy rows while clearing Pi timing |
-| `raw_2k_l2hh_edge_safe_visual_proxy` | current | 2K selective-L2 HH with a 16 px edge-safe display viewport reaches 84/84 rendered proxy rows |
+| `raw_2k_l2hh_edge_safe_visual_proxy` | current | 2K selective-L2 HH with the production 16 px edge-safe display viewport reaches 84/84 rendered proxy rows |
 | `raw_4k_visual_proxy` | diagnostic | 4K raw target is strong as editable raw but rendered-proxy LPIPS remains a diagnostic issue |
 | `preview_review_media` | current | ProRes review files exist for preview/timelapse inspection |
 | `gvid_metadata_dispatch` | diagnostic | `.gvid` metadata dispatch and clean-target routing behavior have dashboard evidence |
@@ -149,7 +149,7 @@ The production video split is explicit:
 | Desktop full-res video | `ml2_q3_l1x2` + matched CNN | PASS, 7.81 MB/frame |
 | Embedded capture | `ml2_q3_dec2` half-res raw stream | PASS, 24.93 fps on Pi 5 |
 | Offline/review PREVIEW | q8 three-way no-REF full-frame runtime | PASS on current holdout, too slow for live |
-| Live/camera-back display | 2K selective-L2 HH edge-safe viewport | candidate: raw decode clears 24 fps and the 16 px edge-safe rendered proxy is 84/84; exact-edge raw proxy remains 80/84 and the older codec-only gate remains experimental |
+| Live/camera-back display | 2K selective-L2 HH edge-safe viewport | production-bounded: raw decode clears 24 fps and the 16 px edge-safe rendered proxy is 84/84; exact-edge raw proxy remains 80/84 and the older codec-only gate remains experimental |
 
 Raw output targets from the 24 fps capture stream:
 
@@ -175,7 +175,7 @@ PREVIEW has two different meanings in this repo:
   not a live/camera-back preview path. The current codec-only live baseline
   fails the committed PREVIEW gate at 1/4 images passing, worst LPIPS 0.3119,
   worst MS-SSIM 0.8617, worst Y-PSNR 24.04, and worst dE2000 3.56. The current
-  2K selective-L2 HH live display candidate clears Pi timing and passes the
+  2K selective-L2 HH live display path clears Pi timing and passes the
   rendered proxy dashboard when the display viewport excludes the outer 16 px
   edge. Exact-edge raw proxy remains documented at 80/84, so promotion is
   limited to the bounded edge-safe display policy.
@@ -209,6 +209,7 @@ python3 tools/test/test_capabilities.py
 python3 tools/test/check_sensitive_content.py
 python3 tools/test/check_repo_artifact_hygiene.py
 python3 tools/test/check_release_evidence_manifest.py
+python3 tools/live_preview_policy.py
 python3 tools/test/test_raw_resolution_targets.py
 python3 tests/quality_gates/check_registry_consistency.py
 python3 tests/quality_gates/audit_production_readiness.py --strict

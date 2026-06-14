@@ -40,6 +40,7 @@ REQUIRED_OUTPUT_IDS = {
     "upresable_editable_raw",
     "preview_offline_review_q8_threeway",
     "preview_live_codec_only",
+    "preview_live_2k_l2hh_edge_safe",
     "gvid_container",
     "mov_wrapper",
     "prores_review_outputs",
@@ -516,6 +517,90 @@ def require_preview_live_experimental_contract(entry: dict[str, Any], failures: 
                 failures.append(f"{entry_id}: promotion_requirements missing {required}")
 
 
+def require_preview_live_edge_safe_contract(
+    entry: dict[str, Any],
+    tracked: set[str],
+    failures: list[str],
+) -> None:
+    entry_id = str(entry.get("id", ""))
+    if entry_id != "preview_live_2k_l2hh_edge_safe":
+        return
+
+    if entry.get("status") != "production-pass-external-receipt":
+        failures.append(f"{entry_id}: bounded live PREVIEW must use external receipt status")
+    if entry.get("family") != "preview" or entry.get("ship_class") != "PREVIEW":
+        failures.append(f"{entry_id}: bounded live PREVIEW must stay in PREVIEW family/class")
+    if entry.get("raw_target") != "2k_raw_0p5x_l2hh":
+        failures.append(f"{entry_id}: bounded live PREVIEW must use 2k_raw_0p5x_l2hh")
+    if entry.get("policy") != "preview_live_2k_l2hh_edge_safe_v1":
+        failures.append(f"{entry_id}: unexpected live PREVIEW policy id")
+
+    runtime_entrypoint = entry.get("runtime_entrypoint")
+    if runtime_entrypoint != "tools/live_preview_policy.py" or runtime_entrypoint not in tracked:
+        failures.append(f"{entry_id}: live PREVIEW runtime policy tool must be tracked")
+    else:
+        sys.path.insert(0, str(ROOT / "tools"))
+        try:
+            from live_preview_policy import materialize_policy  # type: ignore
+
+            policy = materialize_policy(str(entry.get("policy")))
+        except Exception as exc:
+            failures.append(f"{entry_id}: live PREVIEW policy cannot be materialized: {exc}")
+            policy = {}
+        if policy:
+            expected_policy = {
+                "production_path_id": entry_id,
+                "raw_target": "2k_raw_0p5x_l2hh",
+                "source_codec": "ml2_q3_dec2",
+                "display_mode": "edge_safe_viewport",
+                "edge_inset_px": 16,
+                "forbids_ref_content": True,
+            }
+            for key, expected in expected_policy.items():
+                if policy.get(key) != expected:
+                    failures.append(f"{entry_id}: policy {key} {policy.get(key)!r} != {expected!r}")
+            viewport = policy.get("display_viewport")
+            if viewport != {"x": 16, "y": 16, "width": 2038, "height": 1348}:
+                failures.append(f"{entry_id}: policy viewport mismatch: {viewport!r}")
+
+    metrics = entry.get("metrics")
+    if not isinstance(metrics, dict):
+        failures.append(f"{entry_id}: bounded live PREVIEW needs metrics")
+        return
+    try:
+        rows = int(metrics.get("holdout_rows"))
+        passing = int(metrics.get("passing_rows"))
+        edge_inset = int(metrics.get("edge_inset_px"))
+        input_width = int(metrics.get("input_width"))
+        input_height = int(metrics.get("input_height"))
+        viewport_width = int(metrics.get("viewport_width"))
+        viewport_height = int(metrics.get("viewport_height"))
+        worst_lpips = float(metrics.get("worst_lpips"))
+        worst_ms = float(metrics.get("worst_ms_ssim"))
+        worst_y = float(metrics.get("worst_y_psnr"))
+        worst_de = float(metrics.get("worst_dE2000"))
+        fps = float(metrics.get("pi5_fps_median"))
+        p95 = float(metrics.get("pi5_p95_ms"))
+    except (TypeError, ValueError):
+        failures.append(f"{entry_id}: bounded live PREVIEW metrics must be numeric")
+        return
+    if rows != 84 or passing != rows:
+        failures.append(f"{entry_id}: bounded live PREVIEW must show an 84/84 holdout pass")
+    if edge_inset != 16:
+        failures.append(f"{entry_id}: bounded live PREVIEW must keep a 16 px inset")
+    if (input_width, input_height, viewport_width, viewport_height) != (2070, 1380, 2038, 1348):
+        failures.append(f"{entry_id}: bounded live PREVIEW dimensions/viewport drifted")
+    if worst_lpips > 0.15 or worst_ms < 0.95 or worst_y < 28.0 or worst_de > 3.0:
+        failures.append(f"{entry_id}: bounded live PREVIEW metrics must clear PREVIEW thresholds")
+    if fps < 24.0 or p95 >= 41.7:
+        failures.append(f"{entry_id}: bounded live PREVIEW must clear Pi 5 timing")
+
+    constraints = "\n".join(str(item).lower() for item in entry.get("constraints", []))
+    for required in ("no ref", "16 px", "exact outer-edge"):
+        if required not in constraints:
+            failures.append(f"{entry_id}: constraints must document {required}")
+
+
 def require_preview_offline_review_contract(
     entry: dict[str, Any],
     pipelines: dict[str, Any],
@@ -669,6 +754,7 @@ def main() -> int:
             require_external_receipts(entry_id, entry, failures)
 
         require_preview_live_experimental_contract(entry, failures)
+        require_preview_live_edge_safe_contract(entry, tracked, failures)
         require_preview_offline_review_contract(entry, pipelines, tracked, failures)
         require_tracked_refs(entry_id, entry, tracked, failures)
 
@@ -743,6 +829,7 @@ def main() -> int:
         "tools/test/check_sensitive_content.py",
         "tools/test/check_repo_artifact_hygiene.py",
         "tools/test/check_release_evidence_manifest.py",
+        "tools/live_preview_policy.py",
         "tests/quality_gates/check_registry_consistency.py",
         "tests/quality_gates/audit_production_readiness.py --strict",
     ):
