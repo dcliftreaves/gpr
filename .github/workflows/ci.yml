@@ -45,9 +45,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Sensitive-content guard
         run: python3 tools/test/check_sensitive_content.py
+
+      - name: Sensitive-content history guard
+        if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'Release'
+        run: python3 tools/test/check_sensitive_content.py --history
 
       - name: Repo artifact hygiene guard
         run: python3 tools/test/check_repo_artifact_hygiene.py

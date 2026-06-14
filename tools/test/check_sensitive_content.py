@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
+from typing import Iterable
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -79,11 +81,30 @@ PATTERNS = (
     (re.compile(r"\bProRes\s+RAW\b", re.IGNORECASE), "product-comparison wording"),
 )
 
+HISTORY_PATTERNS = PATTERNS[:7]
+HISTORY_GREP_PATTERNS = (
+    r"(^|[^[:alnum:]_])pa[t]ents?([^[:alnum:]_]|$)",
+    r"(^|[^[:alnum:]_])RED[`'\"[:space:]]*384([^[:alnum:]_]|$)",
+    r"(^|[^[:alnum:]_])RED[`'\"[:space:]]*967([^[:alnum:]_]|$)",
+    r"(^|[^[:alnum:]_])384([^[:alnum:]_].{0,80})2034([^[:alnum:]_]|$)",
+    r"(^|[^[:alnum:]_])967([^[:alnum:]_].{0,80})2028([^[:alnum:]_]|$)",
+    r"(^|[^[:alnum:]_])priority[[:space:]]+20[0-9][0-9]([^[:alnum:]_]|$)",
+    r"(^|[^[:alnum:]_])expiry[[:space:]]+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)([^[:alnum:]_]|$)",
+)
+
 
 def is_excluded(path: Path) -> bool:
     rel = path.relative_to(ROOT).as_posix()
+    return is_excluded_rel(rel)
+
+
+def is_excluded_rel(rel: str) -> bool:
     parts = set(rel.split("/"))
     return bool(parts & EXCLUDE_PARTS) or any(rel == item or rel.startswith(item + "/") for item in EXCLUDE_PARTS)
+
+
+def has_text_suffix(rel: str) -> bool:
+    return Path(rel).suffix in TEXT_SUFFIXES
 
 
 def iter_files(paths: list[Path]):
@@ -113,15 +134,84 @@ def check_file(path: Path) -> list[str]:
     return findings
 
 
+def history_pathspec(paths: Iterable[str]) -> list[str]:
+    exclude_pathspec = [f":(exclude){item}" for item in EXCLUDE_PARTS]
+    return [*paths, *exclude_pathspec]
+
+
+def history_revs() -> list[str]:
+    result = subprocess.run(
+        ["git", "rev-list", "--all"],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+
+def check_history(paths: list[str]) -> list[str]:
+    revs = history_revs()
+    if not revs:
+        return []
+
+    cmd = ["git", "grep", "-n", "-I", "-i", "-E"]
+    for pattern in HISTORY_GREP_PATTERNS:
+        cmd.extend(["-e", pattern])
+    cmd.extend(revs)
+    cmd.extend(["--", *history_pathspec(paths)])
+
+    result = subprocess.run(
+        cmd,
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode not in (0, 1):
+        return [f"history scan failed: {result.stderr.strip() or 'git grep error'}"]
+
+    findings: list[str] = []
+    reported: set[tuple[str, str, str, str]] = set()
+    for raw in result.stdout.splitlines():
+        rev, sep, rest = raw.partition(":")
+        if not sep:
+            continue
+        rel, sep, rest = rest.partition(":")
+        if not sep or is_excluded_rel(rel) or not has_text_suffix(rel):
+            continue
+        line_no, sep, line = rest.partition(":")
+        if not sep:
+            continue
+        for pattern, label in HISTORY_PATTERNS:
+            if pattern.search(line):
+                key = (rev, rel, line_no, label)
+                if key in reported:
+                    continue
+                reported.add(key)
+                findings.append(f"{rev[:12]}:{rel}:{line_no}: {label}: {line.strip()}")
+
+    return findings
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--history",
+        action="store_true",
+        help="scan reachable project-owned history for restricted legal-risk wording",
+    )
     parser.add_argument("paths", nargs="*", help="optional repo-relative paths to scan")
     args = parser.parse_args(argv)
 
-    targets = [ROOT / path for path in args.paths] if args.paths else [ROOT / path for path in DEFAULT_INCLUDE]
     findings: list[str] = []
-    for path in sorted(set(iter_files(targets))):
-        findings.extend(check_file(path))
+    if args.history:
+        findings.extend(check_history(args.paths or list(DEFAULT_INCLUDE)))
+    else:
+        targets = [ROOT / path for path in args.paths] if args.paths else [ROOT / path for path in DEFAULT_INCLUDE]
+        for path in sorted(set(iter_files(targets))):
+            findings.extend(check_file(path))
 
     if findings:
         print("Sensitive-content guard failed:", file=sys.stderr)
@@ -129,7 +219,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {item}", file=sys.stderr)
         return 1
 
-    print("OK - sensitive-content guard passed")
+    mode = "history " if args.history else ""
+    print(f"OK - {mode}sensitive-content guard passed")
     return 0
 
 
