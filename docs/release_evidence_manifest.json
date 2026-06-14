@@ -743,7 +743,45 @@
         "worst_ms_ssim": 0.9771,
         "worst_y_psnr": 37.6,
         "worst_dE2000_mean": 1.46
-      }
+      },
+      "failure_rows": [
+        {
+          "image_id": "Z8Z_0002",
+          "crop": "lower_right",
+          "failed_metric": "lpips",
+          "lpips": 0.1549,
+          "ms_ssim": 0.9771,
+          "y_psnr": 41.28,
+          "dE2000_mean": 1.456
+        },
+        {
+          "image_id": "Z8Z_0003",
+          "crop": "lower_right",
+          "failed_metric": "lpips",
+          "lpips": 0.1532,
+          "ms_ssim": 0.9772,
+          "y_psnr": 41.29,
+          "dE2000_mean": 1.448
+        },
+        {
+          "image_id": "Z8Z_0009",
+          "crop": "lower_right",
+          "failed_metric": "lpips",
+          "lpips": 0.152,
+          "ms_ssim": 0.9772,
+          "y_psnr": 41.23,
+          "dE2000_mean": 1.439
+        },
+        {
+          "image_id": "Z8Z_0020",
+          "crop": "lower_right",
+          "failed_metric": "lpips",
+          "lpips": 0.151,
+          "ms_ssim": 0.9777,
+          "y_psnr": 41.27,
+          "dE2000_mean": 1.423
+        }
+      ]
     },
     {
       "id": "raw_4k_visual_proxy",

@@ -60,9 +60,11 @@ codec-only PREVIEW gate run `b561d2e75801f0aa` passes 1/4 images and fails
 worst-case thresholds at LPIPS 0.3119, MS-SSIM 0.8617, Y-PSNR 24.04, and
 dE2000 3.56. The best current 2K raw timing candidate,
 `2k_raw_0p5x_l2hh`, clears Pi 5 timing at 29.85 fps median and 37.1 ms p95,
-but remains only 80/84 on the rendered proxy crop dashboard. Promotion to a
-production live PREVIEW path requires both a per-image PREVIEW quality pass and
-24 fps / 41.7 ms p95 timing on Pi 5 / Mission 1.
+but remains only 80/84 on the rendered proxy crop dashboard. The four current
+misses are LPIPS-only lower-right crops: `Z8Z_0002`, `Z8Z_0003`, `Z8Z_0009`,
+and `Z8Z_0020`; MS-SSIM, Y-PSNR, and dE2000 remain passing on those rows.
+Promotion to a production live PREVIEW path requires both a per-image PREVIEW
+quality pass and 24 fps / 41.7 ms p95 timing on Pi 5 / Mission 1.
 
 ## Pi 5 encode characteristics (real measurements)
 

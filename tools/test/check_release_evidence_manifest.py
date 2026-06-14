@@ -313,6 +313,42 @@ def require_dashboard_contract(
                 except (TypeError, ValueError):
                     failures.append(f"{entry_id}: metric {key} must be numeric")
 
+    if entry_id == "raw_2k_l2hh_visual_proxy":
+        failure_rows = entry.get("failure_rows")
+        if not isinstance(failure_rows, list) or len(failure_rows) != 4:
+            failures.append(f"{entry_id}: must name the four current LPIPS-only failure rows")
+        else:
+            expected = {
+                ("Z8Z_0002", "lower_right"),
+                ("Z8Z_0003", "lower_right"),
+                ("Z8Z_0009", "lower_right"),
+                ("Z8Z_0020", "lower_right"),
+            }
+            seen: set[tuple[str, str]] = set()
+            for row in failure_rows:
+                if not isinstance(row, dict):
+                    failures.append(f"{entry_id}: failure_rows entries must be objects")
+                    continue
+                image_id = str(row.get("image_id", ""))
+                crop = str(row.get("crop", ""))
+                seen.add((image_id, crop))
+                if row.get("failed_metric") != "lpips":
+                    failures.append(f"{entry_id}: failure row {image_id}:{crop} must be LPIPS-only")
+                try:
+                    lpips = float(row.get("lpips"))
+                    ms = float(row.get("ms_ssim"))
+                    y = float(row.get("y_psnr"))
+                    de = float(row.get("dE2000_mean"))
+                except (TypeError, ValueError):
+                    failures.append(f"{entry_id}: failure row {image_id}:{crop} metrics must be numeric")
+                    continue
+                if lpips <= 0.15 or ms < 0.95 or y < 28.0 or de > 3.0:
+                    failures.append(
+                        f"{entry_id}: failure row {image_id}:{crop} must document LPIPS-only threshold miss"
+                    )
+            if seen != expected:
+                failures.append(f"{entry_id}: failure_rows mismatch: {sorted(seen)}")
+
     require_receipt_refs(entry_id, entry, tracked, failures)
 
 
