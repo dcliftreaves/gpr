@@ -88,8 +88,8 @@ REQUIRED_DASHBOARD_IDS = {
 ALLOWED_PLATFORM_STATUSES = {
     "meets-target",
     "measured-offline",
+    "measured-stage",
     "blocked",
-    "receipt-only",
 }
 ALLOWED_DASHBOARD_STATUSES = {
     "current",
@@ -273,6 +273,12 @@ def require_platform_performance_contract(
                     failures.append(f"{entry_id}: invalid platform blocker {blocker!r}")
         if not entry.get("reason"):
             failures.append(f"{entry_id}: blocked platform entries need reason")
+
+    if status == "measured-stage":
+        if not isinstance(entry.get("stage_scope"), str) or not entry.get("stage_scope"):
+            failures.append(f"{entry_id}: measured-stage entries need stage_scope")
+        if metrics and "stage_fps" not in metrics and "max_rss_mb" not in metrics:
+            failures.append(f"{entry_id}: measured-stage metrics need stage_fps or max_rss_mb")
 
     require_receipt_refs(entry_id, entry, tracked, failures)
 

@@ -495,8 +495,9 @@
     {
       "id": "pi5_upresable_encode_loop",
       "platform": "Pi 5 / Mission 1",
-      "status": "receipt-only",
+      "status": "measured-stage",
       "target": "UPRESABLE Pi-side ml2_q3_dec2 encode-loop timing in the Pi-to-Mac bench",
+      "stage_scope": "UPRESABLE bench substage measured with SSH orchestration overhead; not the standalone 24 fps live-capture contract.",
       "metrics": {
         "stage_fps": 6.08,
         "stage_seconds": 19.74,
@@ -515,8 +516,9 @@
     {
       "id": "pi5_usb_transfer",
       "platform": "Pi 5 / Mission 1",
-      "status": "receipt-only",
+      "status": "measured-stage",
       "target": "Pi-to-Mac USB transfer throughput for UPRESABLE capture artifacts",
+      "stage_scope": "UPRESABLE bench transfer substage used to size handoff overhead after Pi-side capture.",
       "metrics": {
         "stage_fps": 238.53,
         "stage_seconds": 0.5,
@@ -576,7 +578,7 @@
     {
       "id": "mac_m5_upres_and_gvid_pack",
       "platform": "Mac/M5",
-      "status": "receipt-only",
+      "status": "measured-offline",
       "target": "offline UPRESABLE reconstruction and .gvid packing",
       "metrics": {
         "mac_upres_fps": 1.79,
@@ -595,8 +597,9 @@
     {
       "id": "capability_memory_matrix",
       "platform": "CI / local",
-      "status": "receipt-only",
+      "status": "measured-stage",
       "target": "capability encode/decode/RSS matrix",
+      "stage_scope": "Committed CI capability matrix records peak RSS criteria for encode/decode checks; it is not a media FPS target.",
       "metrics": {
         "target_fps": 0.0,
         "max_rss_mb": 1.0

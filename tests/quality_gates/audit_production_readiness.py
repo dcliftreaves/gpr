@@ -3257,7 +3257,7 @@ def check_upresable_bench_receipt() -> list[Check]:
             checks.append(Check("platform_perf", name, "FAIL", "missing stage row in UPRESABLE bench log"))
             continue
         status = "PASS" if fps >= min_fps else "FAIL"
-        target = f" target>={min_fps:.2f}" if min_fps > 0 else " receipt-only"
+        target = f" target>={min_fps:.2f}" if min_fps > 0 else " measured-stage"
         checks.append(Check("platform_perf", name, status, f"fps={fps:.2f}{target}"))
     return checks
 
