@@ -3,6 +3,13 @@
 All entries from `pipelines/registry.json` × `tests/quality_gates/runs/`.
 Sorted within each mode by mean MB (smaller first).
 
+This is a comparison matrix, not the shipping list. It intentionally keeps
+failed and historical experiments visible so regressions and dead ends remain
+auditable. The production source of truth is
+[`docs/release_evidence_manifest.json`](release_evidence_manifest.json) plus
+the summary in [`README.md`](../README.md): a user-visible path ships only when
+it is marked production there, or it remains explicitly experimental.
+
 ## How to read the columns
 
 - **mean MB** = `.gpr` file size on disk (the **codec output**, decided by codec only — CNN doesn't change this).
