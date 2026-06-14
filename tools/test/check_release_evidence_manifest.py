@@ -829,6 +829,7 @@ def main() -> int:
         "tools/test/check_sensitive_content.py",
         "tools/test/check_repo_artifact_hygiene.py",
         "tools/test/check_release_evidence_manifest.py",
+        "tools/verify_production_artifacts.py",
         "tools/live_preview_policy.py",
         "tests/quality_gates/check_registry_consistency.py",
         "tests/quality_gates/audit_production_readiness.py --strict",
