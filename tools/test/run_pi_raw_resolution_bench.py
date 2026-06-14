@@ -20,6 +20,7 @@ from typing import Any
 
 DECODE_RE = re.compile(r"DECODE: (\d+)x(\d+) in ([0-9.]+) ms .* in (\d+) bytes")
 TARGET_RE = re.compile(r"TARGET: ([^ ]+) (\d+)x(\d+) in ([0-9.]+) ms")
+TARGET_2K_CHOICES = ("2k_raw_0p5x", "2k_raw_0p5x_fast", "2k_raw_0p5x_l2hh")
 
 
 def percentile(sorted_values: list[float], frac: float) -> float:
@@ -80,7 +81,7 @@ def run_target(cli: Path, frame: Path, tmp_dir: Path, target: str) -> dict[str, 
 
 def target_summary(rows: list[dict[str, Any]], name: str) -> dict[str, Any]:
     entries = [row["targets"][name] for row in rows]
-    key = "decode_plus_target_ms" if name == "2k_raw_0p5x" else "decode_ms"
+    key = "decode_plus_target_ms" if name.startswith("2k_raw_0p5x") else "decode_ms"
     return {
         "count": len(entries),
         "dims": sorted({(entry["width"], entry["height"]) for entry in entries}),
@@ -100,6 +101,7 @@ def main() -> int:
     ap.add_argument("--frame-dir", type=Path, default=Path("/mnt/ssd/work/bench_pi2mac"))
     ap.add_argument("--output-dir", type=Path, default=Path("/mnt/ssd/work/raw_resolution_targets_20260613"))
     ap.add_argument("--limit", type=int, default=120)
+    ap.add_argument("--target-2k", choices=TARGET_2K_CHOICES, default="2k_raw_0p5x")
     args = ap.parse_args()
 
     tmp_dir = args.output_dir / "tmp"
@@ -114,8 +116,8 @@ def main() -> int:
     t0 = time.time()
     for index, frame in enumerate(frames, start=1):
         target_4k = run_target(args.cli, frame, tmp_dir, "4k_raw_1x")
-        target_2k = run_target(args.cli, frame, tmp_dir, "2k_raw_0p5x")
-        rows.append({"frame": frame.name, "targets": {"4k_raw_1x": target_4k, "2k_raw_0p5x": target_2k}})
+        target_2k = run_target(args.cli, frame, tmp_dir, args.target_2k)
+        rows.append({"frame": frame.name, "targets": {"4k_raw_1x": target_4k, args.target_2k: target_2k}})
         if index % 20 == 0 or index == len(frames):
             print(
                 f"{index}/{len(frames)} "
@@ -130,6 +132,7 @@ def main() -> int:
         "machine": platform.machine(),
         "frame_dir": str(args.frame_dir),
         "frame_count": len(rows),
+        "target_2k": args.target_2k,
         "decode_mode": {
             "halfres_drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
             "halfres_l2_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
@@ -138,7 +141,7 @@ def main() -> int:
         "elapsed_s": time.time() - t0,
         "summary": {
             "4k_raw_1x": target_summary(rows, "4k_raw_1x"),
-            "2k_raw_0p5x": target_summary(rows, "2k_raw_0p5x"),
+            args.target_2k: target_summary(rows, args.target_2k),
         },
         "rows": rows,
     }

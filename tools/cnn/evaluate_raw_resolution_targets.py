@@ -39,6 +39,12 @@ from bench_raw_resolution_targets import (  # noqa: E402
 
 
 RAW_PEAK = 16383.0
+TARGET_2K_CHOICES = ("2k_raw_0p5x", "2k_raw_0p5x_fast", "2k_raw_0p5x_l2hh")
+REFERENCE_TARGET = {
+    "2k_raw_0p5x": "2k_raw_0p5x",
+    "2k_raw_0p5x_fast": "2k_raw_0p5x",
+    "2k_raw_0p5x_l2hh": "2k_raw_0p5x",
+}
 
 
 def find_source_dng(image_id: str, roots: list[Path]) -> Path | None:
@@ -156,7 +162,13 @@ def main() -> int:
     ap.add_argument(
         "--runtime-2k-target",
         action="store_true",
-        help="evaluate the decoder's 2k_raw_0p5x target output instead of Python CFA-downsampling 4K",
+        help="evaluate the decoder's named 2K target output instead of Python CFA-downsampling 4K",
+    )
+    ap.add_argument(
+        "--target-2k",
+        choices=TARGET_2K_CHOICES,
+        default="2k_raw_0p5x",
+        help="2K fused_decode_cli target used when --runtime-2k-target is set",
     )
     args = ap.parse_args()
 
@@ -200,14 +212,14 @@ def main() -> int:
                     args.sensor_width,
                     args.sensor_height,
                     tmp_2k,
-                    "2k_raw_0p5x",
+                    args.target_2k,
                 )
                 candidate_2k = np.fromfile(tmp_2k, dtype="<u2").reshape(
                     int(target_2k_info["height"]),
                     int(target_2k_info["width"]),
                 )
                 tmp_2k.unlink(missing_ok=True)
-                method_2k = "decoder runtime 2k_raw_0p5x target"
+                method_2k = f"decoder runtime {args.target_2k} target"
             else:
                 candidate_2k = downsample_bayer_0p5x(half_bayer)
                 method_2k = "CFA plane area downsample 2x"
@@ -219,12 +231,12 @@ def main() -> int:
                 "decode_ms": decode_info["decode_ms"],
                 "targets": {
                     "4k_raw_1x": raw_metrics(half_bayer, targets["4k_raw_1x"]),
-                    "2k_raw_0p5x": raw_metrics(candidate_2k, targets["2k_raw_0p5x"]),
+                    args.target_2k: raw_metrics(candidate_2k, targets[REFERENCE_TARGET[args.target_2k]]),
                 },
             }
             row["targets"]["4k_raw_1x"]["cnn"] = "none"
-            row["targets"]["2k_raw_0p5x"]["cnn"] = "none"
-            row["targets"]["2k_raw_0p5x"]["method"] = method_2k
+            row["targets"][args.target_2k]["cnn"] = "none"
+            row["targets"][args.target_2k]["method"] = method_2k
 
             if args.include_8k and bibo_model is not None and bibo_device is not None:
                 full_bayer, model_ms = run_bibo2x(bibo_model, bibo_device, half_bayer, args.residual_scale)
@@ -237,7 +249,7 @@ def main() -> int:
             tmp_raw.unlink(missing_ok=True)
             msg = (
                 f"{image_id}: 4k PSNR={row['targets']['4k_raw_1x']['psnr_db']:.2f}dB, "
-                f"2k PSNR={row['targets']['2k_raw_0p5x']['psnr_db']:.2f}dB"
+                f"2k PSNR={row['targets'][args.target_2k]['psnr_db']:.2f}dB"
             )
             if "8k_raw_2x" in row["targets"]:
                 msg += f", 8k PSNR={row['targets']['8k_raw_2x']['psnr_db']:.2f}dB"
@@ -269,6 +281,7 @@ def main() -> int:
         "missing": missing,
         "include_8k": bool(args.include_8k),
         "runtime_2k_target": bool(args.runtime_2k_target),
+        "target_2k": args.target_2k,
         "drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
         "l2_hp_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
         "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",

@@ -131,10 +131,11 @@ until the exact source DNG/GPR pairing is verified.
 
 ## Next Production Work
 
-1. Move remaining raw-target scripts from env-only 2K policy selection to the
-   named CLI targets where practical. `fused_decode_cli` now exposes
-   `2k_raw_0p5x_fast` and `2k_raw_0p5x_l2hh`; `2k_raw_0p5x` remains as a
-   compatibility/env-driven target.
+1. Refresh the long-running Pi receipts with the named 2K target aliases on
+   the next timing pass. `fused_decode_cli`, the raw-target bench/evaluator,
+   the visual dashboard, and the Pi bench now accept `2k_raw_0p5x_fast` and
+   `2k_raw_0p5x_l2hh`; `2k_raw_0p5x` remains as a compatibility/env-driven
+   target.
 2. If 2K live preview must pass LPIPS <= 0.15 on every proxy crop, the next
    work is not generic sharpening, synthetic noise, or simple HH amplitude
    scaling: the 2026-06-14 probes reached only 65/84 for RGB unsharp, 57/84

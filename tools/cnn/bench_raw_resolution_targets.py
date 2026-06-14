@@ -2,13 +2,16 @@
 """Benchmark raw-resolution targets from the ml2_q3_dec2 capture stream.
 
 Targets:
-  2k_raw_0p5x  decode half-res Bayer, CFA-preserving area downsample 0.5x
-  4k_raw_1x    decode half-res Bayer as-is
-  8k_raw_2x    optional BIBO_2x Bayer super-res to full sensor dimensions
+  2k_raw_0p5x       compatibility/env-driven half-res Bayer target
+  2k_raw_0p5x_fast  named fast 2K target, drops L2 highpass
+  2k_raw_0p5x_l2hh  named 2K quality target, restores selective L2 HH
+  4k_raw_1x         decode half-res Bayer as-is
+  8k_raw_2x         optional BIBO_2x Bayer super-res to full sensor dimensions
 
-The 2K path intentionally downsamples each Bayer color plane independently
-before reassembling RGGB. That preserves editable raw semantics; it is not an
-RGB resize.
+The fallback 2K path downsamples each Bayer color plane independently before
+reassembling RGGB. The native 2K paths ask fused_decode_cli for a lower
+resolution Bayer target directly. Both preserve editable raw semantics; neither
+is an RGB resize.
 """
 from __future__ import annotations
 
@@ -31,6 +34,7 @@ REPO = Path(__file__).resolve().parents[2]
 DEFAULT_EXTERNAL_ROOT = Path("/Volumes/OWC_8TB/gpr_work")
 DECODE_RE = re.compile(r"DECODE: (\d+)x(\d+) in ([0-9.]+) ms .* in (\d+) bytes")
 TARGET_RE = re.compile(r"TARGET: ([^ ]+) (\d+)x(\d+) in ([0-9.]+) ms")
+TARGET_2K_CHOICES = ("2k_raw_0p5x", "2k_raw_0p5x_fast", "2k_raw_0p5x_l2hh")
 
 
 def default_external_root() -> Path:
@@ -241,6 +245,12 @@ def main() -> int:
         default="native",
         help="2K/0.5x implementation to benchmark; native uses fused_decode_cli target output",
     )
+    ap.add_argument(
+        "--target-2k",
+        choices=TARGET_2K_CHOICES,
+        default="2k_raw_0p5x",
+        help="2K fused_decode_cli target used when --downsample-mode=native",
+    )
     args = ap.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -282,7 +292,7 @@ def main() -> int:
                     args.sensor_width,
                     args.sensor_height,
                     tmp_2k,
-                    "2k_raw_0p5x",
+                    args.target_2k,
                 )
             else:
                 t0 = time.perf_counter()
@@ -300,7 +310,7 @@ def main() -> int:
                     "input_bytes": decode_info["input_bytes"],
                 }
             method_2k = (
-                "decoder runtime 2k_raw_0p5x target"
+                f"decoder runtime {args.target_2k} target"
                 if args.downsample_mode == "native"
                 else "CFA plane area downsample 2x"
             )
@@ -318,7 +328,7 @@ def main() -> int:
                         "raw_bytes": decode_info["raw_bytes"],
                         "cnn": "none",
                     },
-                    "2k_raw_0p5x": {
+                    args.target_2k: {
                         "width": target_2k_info["width"],
                         "height": target_2k_info["height"],
                         "decode_ms": target_2k_info["decode_ms"],
@@ -342,7 +352,7 @@ def main() -> int:
                 tmp_raw.replace(keep_4k)
                 tmp_2k.replace(keep_2k)
                 row["targets"]["4k_raw_1x"]["path"] = str(keep_4k)
-                row["targets"]["2k_raw_0p5x"]["path"] = str(keep_2k)
+                row["targets"][args.target_2k]["path"] = str(keep_2k)
             else:
                 tmp_raw.unlink(missing_ok=True)
                 tmp_2k.unlink(missing_ok=True)
@@ -408,11 +418,14 @@ def main() -> int:
         "frame_dir": str(args.frame_dir),
         "frame_count": len(rows),
         "include_8k": bool(args.include_8k),
+        "target_2k": args.target_2k,
         "drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
         "l2_hp_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
         "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",
         "targets": {
-            "2k_raw_0p5x": "4140x2760 decoded Bayer -> 2070x1380 CFA-preserving plane area downsample",
+            "2k_raw_0p5x": "compatibility/env-driven 2070x1380 Bayer target",
+            "2k_raw_0p5x_fast": "2070x1380 Bayer target with L2 highpass dropped",
+            "2k_raw_0p5x_l2hh": "2070x1380 Bayer target with selective L2 HH restored",
             "4k_raw_1x": "4140x2760 decoded Bayer direct from ml2_q3_dec2",
             "8k_raw_2x": "8280x5520 Bayer via BIBO_2x super-res from ml2_q3_dec2",
         },

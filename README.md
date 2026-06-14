@@ -162,8 +162,12 @@ artifacts:
 export GPR_EXTERNAL_ROOT=/Volumes/OWC_8TB/gpr_work
 export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
 
-python3 tools/cnn/evaluate_raw_resolution_targets.py --runtime-2k-target
-python3 tools/cnn/build_raw_resolution_visual_dashboard.py --limit 28
+python3 tools/cnn/evaluate_raw_resolution_targets.py \
+  --runtime-2k-target \
+  --target-2k 2k_raw_0p5x_l2hh
+python3 tools/cnn/build_raw_resolution_visual_dashboard.py \
+  --target 2k_raw_0p5x_l2hh \
+  --limit 28
 python3 tools/cnn/build_raw_resolution_visual_dashboard.py --target 4k_raw_1x --limit 28
 
 build-local/bin/fused_decode_cli frame.gpr 8280 5520 frame_2k_fast.raw 2k_raw_0p5x_fast
