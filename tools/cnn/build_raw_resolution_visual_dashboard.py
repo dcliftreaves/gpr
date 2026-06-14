@@ -69,12 +69,13 @@ def tone_window(ref_bayer: np.ndarray) -> tuple[float, float]:
     return lo, hi
 
 
-def fixed_crops(width: int, height: int, crop: int) -> dict[str, tuple[int, int, int, int]]:
+def fixed_crops(width: int, height: int, crop: int, edge_inset_px: int = 0) -> dict[str, tuple[int, int, int, int]]:
     crop = min(crop, width, height)
+    edge_inset_px = max(0, min(edge_inset_px, max(0, min(width, height) - crop)))
     return {
-        "upper_left": (0, 0, crop, crop),
+        "upper_left": (edge_inset_px, edge_inset_px, crop, crop),
         "center": ((width - crop) // 2, (height - crop) // 2, crop, crop),
-        "lower_right": (width - crop, height - crop, crop, crop),
+        "lower_right": (width - crop - edge_inset_px, height - crop - edge_inset_px, crop, crop),
     }
 
 
@@ -142,7 +143,8 @@ def write_dashboard(out_path: Path, payload: dict[str, Any]) -> None:
         f"<h1>{html.escape(payload['target'])} Raw Runtime Visual Dashboard</h1>",
         f"<div class=sub>Generated {html.escape(payload['generated_at'])}. Target {html.escape(payload['target'])}. "
         f"Drop L2 HP: {payload['drop_l2_hp']}. L2 mask: {html.escape(str(payload.get('l2_hp_mask')))}. "
-        f"Halfres stream: {payload.get('halfres_stream')}</div>",
+        f"Halfres stream: {payload.get('halfres_stream')}. "
+        f"Edge inset: {payload.get('edge_inset_px', 0)} px</div>",
         "<div class=grid>",
         f"<div class=card><div class=v>{summary['pass_count']}/{summary['count']}</div><div class=sub>crop rows passing proxy thresholds</div></div>",
         f"<div class=card><div class=v>{summary['worst_lpips']:.4f}</div><div class=sub>worst LPIPS</div></div>",
@@ -199,6 +201,12 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=28)
     ap.add_argument("--image-id", action="append", default=[])
     ap.add_argument("--crop-size", type=int, default=512)
+    ap.add_argument(
+        "--edge-inset-px",
+        type=int,
+        default=0,
+        help="inset edge crops by this many target pixels; center crop is unchanged",
+    )
     ap.add_argument("--target", choices=TARGET_CHOICES, default=DEFAULT_TARGET)
     args = ap.parse_args()
 
@@ -230,7 +238,7 @@ def main() -> int:
             lo, hi = tone_window(ref_bayer)
             ref_rgb = bayer_to_proxy_rgb(ref_bayer, lo, hi)
             cand_rgb = bayer_to_proxy_rgb(cand_bayer, lo, hi)
-            crops = fixed_crops(ref_rgb.shape[1], ref_rgb.shape[0], args.crop_size)
+            crops = fixed_crops(ref_rgb.shape[1], ref_rgb.shape[0], args.crop_size, args.edge_inset_px)
             for crop_name, box in crops.items():
                 ref_crop = crop_rgb(ref_rgb, box)
                 cand_crop = crop_rgb(cand_rgb, box)
@@ -272,6 +280,7 @@ def main() -> int:
         "drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
         "l2_hp_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
         "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",
+        "edge_inset_px": int(args.edge_inset_px),
         "frame_dir": str(args.frame_dir),
         "source_roots": [str(path) for path in source_roots],
         "frame_count": len({row["image_id"] for row in rows}),

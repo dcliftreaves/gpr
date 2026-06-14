@@ -2901,6 +2901,12 @@ def check_raw_resolution_receipts() -> list[Check]:
     fast_visual_path = base13 / "visual_fast_2k_28f" / "raw_resolution_targets_visual_dashboard.json"
     fast_quality_path = base13 / "quality_2k_runtime_fast_l2drop_100f" / "raw_resolution_targets_quality.json"
     visual2k_path = base14 / "visual_2k_l2hh_28f_explicit" / "raw_resolution_targets_visual_dashboard.json"
+    visual2k_edge_path = (
+        ARTIFACT_ROOT
+        / "raw_resolution_targets_20260614_analysis"
+        / "visual_2k_l2hh_edgeinset16_28f"
+        / "raw_resolution_targets_visual_dashboard.json"
+    )
     visual4k_path = base14 / "visual_4k_28f" / "raw_resolution_targets_visual_dashboard.json"
     quality2k_l2hh_path = (
         ARTIFACT_ROOT
@@ -3043,6 +3049,37 @@ def check_raw_resolution_receipts() -> list[Check]:
             "2K L2 HH visual proxy receipt",
             "PASS" if ok else "FAIL",
             f"{pass_count}/{count} worst_lpips={worst_lpips:.4f} receipt={visual2k_path}",
+        ))
+
+    visual2k_edge, err = read_json_receipt(visual2k_edge_path)
+    if err:
+        checks.append(Check("raw_targets", "2K L2 HH edge-safe visual proxy receipt", "FAIL", err))
+    else:
+        summary = (visual2k_edge or {}).get("summary") or {}
+        pass_count = int(summary.get("pass_count", -1))
+        count = int(summary.get("count", 0))
+        worst_lpips = float(summary.get("worst_lpips", 999.0))
+        worst_ms = float(summary.get("worst_ms_ssim", 0.0))
+        worst_y = float(summary.get("worst_y_psnr", 0.0))
+        worst_de = float(summary.get("worst_dE2000_mean", 999.0))
+        edge_inset = int((visual2k_edge or {}).get("edge_inset_px", -1))
+        ok = (
+            (visual2k_edge or {}).get("target") == "2k_raw_0p5x_l2hh"
+            and edge_inset == 16
+            and count == 84
+            and pass_count == 84
+            and worst_lpips <= 0.15
+            and worst_ms >= 0.95
+            and worst_y >= 28.0
+            and worst_de <= 3.0
+        )
+        checks.append(Check(
+            "raw_targets",
+            "2K L2 HH edge-safe visual proxy receipt",
+            "PASS" if ok else "FAIL",
+            f"{pass_count}/{count} edge_inset={edge_inset}px worst_lpips={worst_lpips:.4f} "
+            f"worst_ms={worst_ms:.4f} worst_y={worst_y:.2f} worst_dE={worst_de:.2f} "
+            f"receipt={visual2k_edge_path}",
         ))
 
     quality2k_l2hh, err = read_json_receipt(quality2k_l2hh_path)

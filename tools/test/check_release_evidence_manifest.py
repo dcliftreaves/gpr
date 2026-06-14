@@ -79,6 +79,7 @@ REQUIRED_DASHBOARD_IDS = {
     "preview_source_ref_policy_audit",
     "raw_2k_fast_visual_proxy",
     "raw_2k_l2hh_visual_proxy",
+    "raw_2k_l2hh_edge_safe_visual_proxy",
     "raw_4k_visual_proxy",
     "preview_review_media",
     "gvid_metadata_dispatch",
@@ -348,6 +349,29 @@ def require_dashboard_contract(
                     )
             if seen != expected:
                 failures.append(f"{entry_id}: failure_rows mismatch: {sorted(seen)}")
+
+    if entry_id == "raw_2k_l2hh_edge_safe_visual_proxy":
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: edge-safe dashboard needs metrics")
+        else:
+            try:
+                rows = int(metrics.get("rows"))
+                passing = int(metrics.get("passing_rows"))
+                edge_inset = int(metrics.get("edge_inset_px"))
+                worst_lpips = float(metrics.get("worst_lpips"))
+                worst_ms = float(metrics.get("worst_ms_ssim"))
+                worst_y = float(metrics.get("worst_y_psnr"))
+                worst_de = float(metrics.get("worst_dE2000_mean"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: edge-safe metrics must be numeric")
+            else:
+                if rows != 84 or passing != rows:
+                    failures.append(f"{entry_id}: edge-safe dashboard must pass all 84 rows")
+                if edge_inset != 16:
+                    failures.append(f"{entry_id}: edge-safe dashboard must record 16 px inset")
+                if worst_lpips > 0.15 or worst_ms < 0.95 or worst_y < 28.0 or worst_de > 3.0:
+                    failures.append(f"{entry_id}: edge-safe metrics must clear PREVIEW thresholds")
 
     require_receipt_refs(entry_id, entry, tracked, failures)
 

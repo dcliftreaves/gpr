@@ -43,6 +43,7 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 2K fast proxy visual dashboard |
 | `visual_2k_preserve_l2_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 2K preserve-L2 comparison dashboard |
 | `visual_2k_l2hh_28f_explicit/raw_resolution_targets_visual_dashboard.json` | 28 images / 84 crops | named 2K selective L2 HH visual diagnostic |
+| `raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_targets_visual_dashboard.json` | 28 images / 84 crops | 2K selective L2 HH visual dashboard with 16 px edge-safe display viewport |
 | `visual_4k_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 4K rendered proxy visual dashboard |
 | `pi5_l2mask4_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing |
 | `pi5_l2drop_stream_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K fast L2-drop Pi 5 timing with L2 streaming |
@@ -54,6 +55,7 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `raw_resolution_targets_20260614_analysis/quality_2k_l2hh_100f/raw_resolution_targets_quality.json` | 100 | named `2k_raw_0p5x_l2hh` raw quality receipt |
 | `hh_scale_sweep_2k_l2mask4_28f.json` | 28 images / 84 crops | HH amplitude sweep diagnostic |
 | `raw_resolution_targets_20260614_analysis/visual_2k_l2hh_28f_explicit/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | named 2K L2 HH signal analysis and lower-right edge-margin probe |
+| `raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | 2K edge-safe display signal analysis |
 | `raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_resolution_visual_failure_analysis.json` | 28 images / 84 crops | 4K signal analysis and lower-right edge-margin probe |
 | `raw_resolution_targets_20260614_analysis/visual_4k_28f_current/raw_domain_lower_right_probe.json` | 27 failing lower-right rows | 4K raw-domain probe for rendered-proxy LPIPS failures |
 
@@ -135,6 +137,10 @@ sit in the production output ladder today.
   passes all four failing images once the 512 px crop moves inward by 16 px.
   This narrows the remaining 2K issue to a literal edge/detail-energy miss,
   not color, luma, or whole-image alignment.
+- A full 28-image / 84-crop dashboard using the same 16 px edge-safe display
+  viewport passes every row: 84/84, worst LPIPS 0.1378, worst MS-SSIM 0.9787,
+  worst Y-PSNR 37.60, and worst dE2000 1.37. This is a display viewport
+  policy, not a claim that the exact outer edge is visually solved.
 - Pi 5 timing for `GPR_DECODE_HALFRES_L2_MASK=4` before L2 streaming: 47.5 ms
   median, 21.05 fps median, p95 51.1 ms. After routing the L2 stop point
   through the row-strip streaming inverse+color path: 38.7 ms median,
@@ -142,12 +148,12 @@ sit in the production output ladder today.
   from commit `50ebc69f` is 33.5 ms median, 37.1 ms p95, 29.85 fps median,
   with child peak RSS about 98 MB.
 - Current decision: selective L2 HH is now the **live-capable** 2K raw-quality
-  candidate. It
-  clears the Pi 5 24 fps decode-side target by median and p95, and fixes most
-  LPIPS-only texture misses while preserving structure, luma PSNR, and color.
-  It is not a full rendered PREVIEW proxy pass yet because four crop rows
-  remain just above LPIPS 0.15 (worst 0.1549). The low-detail L2-drop mode
-  remains the fastest live mode.
+  candidate and the current bounded live-display candidate. It clears the Pi 5
+  24 fps decode-side target by median and p95, fixes most LPIPS-only texture
+  misses while preserving structure, luma PSNR, and color, and passes the
+  rendered proxy when the display viewport excludes the outer 16 px edge. The
+  exact-edge proxy remains 80/84 with four near-threshold LPIPS-only rows. The
+  low-detail L2-drop mode remains the fastest live raw mode.
 
 ### 8K raw 2x
 
@@ -176,12 +182,15 @@ until the exact source DNG/GPR pairing is verified.
    policy inside the child process. Keep future Pi timing passes on
    `2k_raw_0p5x_fast` and `2k_raw_0p5x_l2hh`; `2k_raw_0p5x` remains as a
    compatibility/env-driven target.
-2. If 2K live preview must pass LPIPS <= 0.15 on every proxy crop, the next
-   work is not generic sharpening, synthetic noise, or simple HH amplitude
-   scaling: the 2026-06-14 probes reached only 65/84 for RGB unsharp, 57/84
-   for deterministic fine-grain synthesis, and 80/84 for the best HH scale
-   sweep. The useful signal is actual L2 HH and it now fits the Pi 5 frame
-   budget; the remaining blocker is four near-threshold lower-right edge rows.
+2. If 2K live preview may use a 16 px edge-safe display viewport, the current
+   `2k_raw_0p5x_l2hh` path is the production-shaped candidate: it clears Pi
+   timing and passes the 84-row rendered proxy. If exact outer-edge display is
+   required, the next work is not generic sharpening, synthetic noise, or
+   simple HH amplitude scaling: the 2026-06-14 probes reached only 65/84 for
+   RGB unsharp, 57/84 for deterministic fine-grain synthesis, and 80/84 for
+   the best HH scale sweep. The useful signal is actual L2 HH and it now fits
+   the Pi 5 frame budget; the remaining exact-edge blocker is four
+   near-threshold lower-right rows.
 3. Keep 4K classified as offline-only, not a live/rendered PREVIEW path. The
    no-CNN 4K path has strong matched-source raw evidence, but it
    passes only 55/84 rendered proxy rows under PREVIEW LPIPS. Signal analysis

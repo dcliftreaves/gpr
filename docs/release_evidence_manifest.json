@@ -266,7 +266,7 @@
     {
       "id": "2k_raw_0p5x_l2hh",
       "classification": "live-capable",
-      "classification_detail": "Best current Pi 5 live-quality raw target; clears 24 fps timing and passes matched-source raw quality, but remains experimental and not a full PREVIEW-ready rendered path until four LPIPS-only proxy misses are closed.",
+      "classification_detail": "Best current Pi 5 live-quality raw target; clears 24 fps timing and passes matched-source raw quality. Exact-edge rendered proxy remains 80/84 and is not a full PREVIEW-ready rendered path, but the 16 px edge-safe live display viewport passes 84/84 and is indexed separately.",
       "dimensions": "2070x1380",
       "pi5_fps_median": 29.85,
       "pi5_p95_ms": 37.1,
@@ -280,11 +280,13 @@
       "receipt_tokens": [
         "pi5_2k_l2hh",
         "visual_2k_l2hh",
+        "visual_2k_l2hh_edgeinset16",
         "quality_2k_l2hh"
       ],
       "external_receipts": [
         "artifacts/raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json",
         "artifacts/raw_resolution_targets_20260614/visual_2k_l2hh_28f_explicit/raw_resolution_targets_visual_dashboard.json",
+        "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_targets_visual_dashboard.json",
         "artifacts/raw_resolution_targets_20260614_analysis/quality_2k_l2hh_100f/raw_resolution_targets_quality.json"
       ]
     },
@@ -782,6 +784,32 @@
           "dE2000_mean": 1.423
         }
       ]
+    },
+    {
+      "id": "raw_2k_l2hh_edge_safe_visual_proxy",
+      "family": "raw_targets",
+      "status": "current",
+      "purpose": "2K selective-L2 HH live display visual proxy with a 16 px edge-safe viewport inset.",
+      "dashboard": "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_targets_visual_dashboard.html",
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+      ],
+      "receipts": [
+        "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_targets_visual_dashboard.json",
+        "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_visual_failure_analysis.json"
+      ],
+      "metrics": {
+        "rows": 84,
+        "passing_rows": 84,
+        "pass_rate": 1.0,
+        "edge_inset_px": 16,
+        "worst_lpips": 0.1378,
+        "worst_ms_ssim": 0.9787,
+        "worst_y_psnr": 37.6,
+        "worst_dE2000_mean": 1.37
+      }
     },
     {
       "id": "raw_4k_visual_proxy",

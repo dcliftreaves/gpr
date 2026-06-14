@@ -39,7 +39,7 @@ embedded-capture ship — Pi 5 can't encode this fast.
 |---|---|
 | codec | `ml2_q3_dec2` (multi-level FUSED, decimate=2 → half-res) |
 | raw-video container | `.gvid` primary deliverable; MOV/GPR1 compatibility wrapper optional |
-| live/camera-back PREVIEW | codec-only `codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools` speed path |
+| live/camera-back PREVIEW | `2k_raw_0p5x_l2hh` selective-L2 HH edge-safe display candidate; older codec-only gate remains experimental |
 | offline/review PREVIEW | `preview_q8_threeway_runtime_fullframe_v1` registered as external-receipt no-REF production path |
 | offline/review entrypoint | `tools/cnn/render_preview_q8_threeway_runtime.py` |
 | Pi 5 capture fps | **24.93 fps median** (verified 2026-05-26). Post commit `c1eabc6` (2026-05-28 Pass 2 worker-pool dispatch on ≤4-core hosts) per-frame encode dropped from 40.89 → 38.20 ms median (6.6% faster). Sustained capture not re-measured but headroom over 24 fps grew. |
@@ -55,16 +55,18 @@ quality gap for offline/review output, but it is much too slow for live
 preview. Live/camera-back quality beyond codec-only remains a separate future
 strategy.
 
-The live/camera-back blocker is quality, not raw-target timing. The committed
-codec-only PREVIEW gate run `b561d2e75801f0aa` passes 1/4 images and fails
-worst-case thresholds at LPIPS 0.3119, MS-SSIM 0.8617, Y-PSNR 24.04, and
-dE2000 3.56. The best current 2K raw timing candidate,
-`2k_raw_0p5x_l2hh`, clears Pi 5 timing at 29.85 fps median and 37.1 ms p95,
-but remains only 80/84 on the rendered proxy crop dashboard. The four current
-misses are LPIPS-only lower-right crops: `Z8Z_0002`, `Z8Z_0003`, `Z8Z_0009`,
-and `Z8Z_0020`; MS-SSIM, Y-PSNR, and dE2000 remain passing on those rows.
-Promotion to a production live PREVIEW path requires both a per-image PREVIEW
-quality pass and 24 fps / 41.7 ms p95 timing on Pi 5 / Mission 1.
+The live/camera-back blocker is now bounded to exact outer-edge display
+quality, not raw-target timing. The committed codec-only PREVIEW gate run
+`b561d2e75801f0aa` passes 1/4 images and fails worst-case thresholds at LPIPS
+0.3119, MS-SSIM 0.8617, Y-PSNR 24.04, and dE2000 3.56. The current 2K raw
+timing candidate, `2k_raw_0p5x_l2hh`, clears Pi 5 timing at 29.85 fps median
+and 37.1 ms p95. Its exact-edge rendered proxy remains 80/84, with four
+LPIPS-only lower-right crops: `Z8Z_0002`, `Z8Z_0003`, `Z8Z_0009`, and
+`Z8Z_0020`; MS-SSIM, Y-PSNR, and dE2000 remain passing on those rows. With a
+16 px edge-safe display viewport, the same target passes 84/84 with worst LPIPS
+0.1378, worst MS-SSIM 0.9787, worst Y-PSNR 37.60, and worst dE2000 1.37.
+Promotion is therefore limited to that bounded edge-safe live display policy
+unless exact outer-edge display becomes a requirement.
 
 ## Pi 5 encode characteristics (real measurements)
 
@@ -111,7 +113,7 @@ For video you need either:
 
 | target | dimensions | method | current status |
 |---|---:|---|---|
-| 2K / 0.5x | 2070 x 1380 | `2k_raw_0p5x_fast` drops L2 highpass; `2k_raw_0p5x_l2hh` restores selective L2 HH | live-capable raw target. Fast mode: 26.6 ms median, 27.7 ms p95, 37.59 fps median. Selective L2 HH: 33.5 ms median, 37.1 ms p95, 29.85 fps median; matched-source raw quality 55.60 dB mean PSNR; rendered proxy 80/84 with four LPIPS-only edge misses |
+| 2K / 0.5x | 2070 x 1380 | `2k_raw_0p5x_fast` drops L2 highpass; `2k_raw_0p5x_l2hh` restores selective L2 HH | live-capable raw target. Fast mode: 26.6 ms median, 27.7 ms p95, 37.59 fps median. Selective L2 HH: 33.5 ms median, 37.1 ms p95, 29.85 fps median; matched-source raw quality 55.60 dB mean PSNR; exact-edge rendered proxy 80/84, 16 px edge-safe display proxy 84/84 |
 | 4K / 1x | 4140 x 2760 | direct decoded Bayer | offline-only production classification. Mac editable raw: 22.9 ms median, 43.7 fps median. Pi decode-side: 159.6 ms median, 6.3 fps median. Rendered proxy: 55/84 diagnostic under PREVIEW LPIPS |
 | 8K / 2x | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only at current speed |
 
@@ -119,13 +121,14 @@ Details and receipts are in `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`.
 
 ## Open work for video
 
-1. **Live PREVIEW performance** — choose and productionize a fast
-   camera-back display path. The q8 three-way route is quality-valid for
-   offline/review output but runs at 0.073 fps on Mac/MPS. For 2K raw live
-   decode, selective L2 HH now clears Pi 5 timing after L2 row streaming and
-   fixes most texture misses; the remaining blocker is four near-threshold
-   LPIPS rows, not FPS. The codec-only live PREVIEW baseline remains
-   experimental because the committed gate run is 1/4 images passing.
+1. **Live PREVIEW policy** — decide whether the 16 px edge-safe display
+   viewport is acceptable for camera-back use. The q8 three-way route is
+   quality-valid for offline/review output but runs at 0.073 fps on Mac/MPS.
+   For 2K raw live decode, selective L2 HH now clears Pi 5 timing after L2 row
+   streaming and passes 84/84 rendered proxy rows when the display viewport
+   excludes the outer 16 px edge. Exact-edge display remains 80/84 with four
+   near-threshold LPIPS rows. The older codec-only live PREVIEW baseline
+   remains experimental because the committed gate run is 1/4 images passing.
 2. **Codec perf** — 2026-05-28 landed three Pi 5 wins:
    (a) parallel DNG SDK input decode (2.89× on legacy stills, commits
    `79403fb` + `ec1cb2c`);
