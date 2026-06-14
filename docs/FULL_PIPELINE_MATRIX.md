@@ -86,18 +86,18 @@ See `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md` for receipts.
 
 | raw target | dimensions | method | local timing |
 |---|---:|---|---:|
-| `2k_raw_0p5x` | 2070 x 1380 | direct half-res decode; fast mode drops L2 highpass | Pi fast mode: 31.4 ms median, 31.85 fps median |
+| `2k_raw_0p5x` | 2070 x 1380 | direct half-res decode; fast mode drops L2 highpass or restores selective L2 HH | Pi fast mode: 29.3 ms median, 34.13 fps median; L2 HH quality mode: 38.7 ms median, 25.84 fps median |
 | `4k_raw_1x` | 4140 x 2760 | direct decoded Bayer | 22.9 ms median, 43.7 fps median |
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | 376.4 ms median, 2.7 fps median |
 
 Pi 5 decode-side timing receipt: `pi5_120f/raw_resolution_targets_pi5_120f.json`.
-Fast 2K Pi receipt: `pi5_fast_l2drop_v2_120f/raw_resolution_targets_pi5_120f.json`.
+Fast 2K Pi receipt: `pi5_l2drop_stream_120f/raw_resolution_targets_pi5_120f.json`.
 The fast mode is enabled with `GPR_DECODE_HALFRES_DROP_L2_HP=1`; it clears the
-24 fps target at 31.4 ms median and 31.85 fps median.
+24 fps target at 29.3 ms median and 34.13 fps median.
 Proxy visual receipt: `visual_fast_2k_28f/raw_resolution_targets_visual_dashboard.html`.
 It passes 56/84 crop rows under PREVIEW proxy thresholds; misses are LPIPS-only
 texture near-misses, while MS-SSIM, Y-PSNR, and dE2000 remain passing.
 Selective L2 HH (`GPR_DECODE_HALFRES_L2_MASK=4`) improves the visual proxy to
-80/84 with worst LPIPS 0.1549, but the Pi 5 receipt is 47.5 ms median /
-21.05 fps median, so it is a diagnostic quality/performance tradeoff rather
-than a live production path.
+80/84 with worst LPIPS 0.1549 and now clears Pi 5 live timing after L2
+streaming at 38.7 ms median / 25.84 fps median. It remains a candidate, not a
+full proxy pass, because four LPIPS rows are still just above threshold.

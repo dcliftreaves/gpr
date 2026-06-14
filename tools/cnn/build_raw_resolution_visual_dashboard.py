@@ -134,7 +134,8 @@ def write_dashboard(out_path: Path, payload: dict[str, Any]) -> None:
         f"<title>{html.escape(payload['schema'])}</title><style>{css}</style></head><body>",
         "<h1>2K Raw Runtime Visual Dashboard</h1>",
         f"<div class=sub>Generated {html.escape(payload['generated_at'])}. Target {html.escape(payload['target'])}. "
-        f"Drop L2 HP: {payload['drop_l2_hp']}. L2 mask: {html.escape(str(payload.get('l2_hp_mask')))}</div>",
+        f"Drop L2 HP: {payload['drop_l2_hp']}. L2 mask: {html.escape(str(payload.get('l2_hp_mask')))}. "
+        f"Halfres stream: {payload.get('halfres_stream')}</div>",
         "<div class=grid>",
         f"<div class=card><div class=v>{summary['pass_count']}/{summary['count']}</div><div class=sub>crop rows passing proxy thresholds</div></div>",
         f"<div class=card><div class=v>{summary['worst_lpips']:.4f}</div><div class=sub>worst LPIPS</div></div>",
@@ -262,6 +263,7 @@ def main() -> int:
         "target": TARGET,
         "drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
         "l2_hp_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
+        "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",
         "frame_dir": str(args.frame_dir),
         "source_roots": [str(path) for path in source_roots],
         "frame_count": len({row["image_id"] for row in rows}),

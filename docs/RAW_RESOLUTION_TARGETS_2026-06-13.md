@@ -42,6 +42,10 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 | `visual_2k_preserve_l2_28f/raw_resolution_targets_visual_dashboard.html` | 28 images / 84 crops | 2K preserve-L2 comparison dashboard |
 | `visual_2k_l2mask4_28f/raw_resolution_targets_visual_dashboard.json` | 28 images / 84 crops | 2K selective L2 HH visual diagnostic |
 | `pi5_l2mask4_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing |
+| `pi5_l2drop_stream_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K fast L2-drop Pi 5 timing with L2 streaming |
+| `pi5_l2mask4_stream_v2_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing with L2 streaming |
+| `pi5_l2mask4_stream_v3_120f/raw_resolution_targets_pi5_120f.json` | 120 | 2K selective L2 HH Pi 5 timing with L2 streaming and explicit receipt schema |
+| `hh_scale_sweep_2k_l2mask4_28f.json` | 28 images / 84 crops | HH amplitude sweep diagnostic |
 
 ## Current Results
 
@@ -69,7 +73,8 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
 - Pi 5 direct half-res decoder timing after skipping unused L1 highpass:
   48.75 ms median, 20.5 fps median.
 - Pi 5 fast direct half-res mode with `GPR_DECODE_HALFRES_DROP_L2_HP=1`:
-  31.4 ms median, 31.85 fps median.
+  31.4 ms median, 31.85 fps median before L2 streaming; 29.3 ms median,
+  34.13 fps median after L2 streaming.
 - 100-frame raw quality against source-derived quarter-scale Bayer: 52.41 dB
   mean PSNR, 51.89 dB median PSNR, 7.44 LSB mean MAE.
 - 100-frame fast runtime quality with `GPR_DECODE_HALFRES_DROP_L2_HP=1`:
@@ -86,16 +91,15 @@ and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_resolution_targets_20260614/`.
   Y-PSNR 37.60, worst dE2000 1.46. Other masks are worse: mask 1 = 56/84,
   mask 2 = 55/84, mask 3 = 55/84, mask 5 = 56/84, mask 6 = 56/84, and full
   mask 7 = 55/84.
-- Pi 5 timing for `GPR_DECODE_HALFRES_L2_MASK=4`: 47.5 ms median, 21.05 fps
-  median, p95 51.1 ms. This misses the 24 fps live target.
-- Current decision: the fast runtime mode clears the 24 fps Pi 5 decode-side
-  target for 2K raw output. It is explicitly a low-detail/fast mode because it
-  drops L2 highpass before the half-res reconstruction. The remaining proxy
-  visual misses are LPIPS-only near-misses in lower-right landscape/texture
-  crops; structure, luma PSNR, and color all pass. Restoring actual L2 HH
-  detail fixes most LPIPS misses but is too slow on Pi 5, so the blocker is
-  specifically L2 highpass decode cost versus live FPS, not missing proof that
-  the bitstream contains useful detail.
+- Pi 5 timing for `GPR_DECODE_HALFRES_L2_MASK=4` before L2 streaming: 47.5 ms
+  median, 21.05 fps median, p95 51.1 ms. After routing the L2 stop point
+  through the row-strip streaming inverse+color path: 38.7 ms median,
+  25.84 fps median, p95 41.8 ms.
+- Current decision: selective L2 HH is now the 2K live-quality candidate. It
+  clears the Pi 5 24 fps decode-side target and fixes most LPIPS-only texture
+  misses while preserving structure, luma PSNR, and color. It is not a full
+  PREVIEW proxy pass yet because four crop rows remain just above LPIPS 0.15
+  (worst 0.1549). The low-detail L2-drop mode remains the fastest live mode.
 
 ### 8K raw 2x
 
@@ -120,12 +124,11 @@ until the exact source DNG/GPR pairing is verified.
 1. Decide whether the fast 2K mode should be a named registry/output policy or
    remain an env-gated live-preview path.
 2. If 2K live preview must pass LPIPS <= 0.15 on every proxy crop, the next
-   work is not generic sharpening or synthetic noise: the 2026-06-14 probes
-   reached only 65/84 for RGB unsharp and 57/84 for deterministic fine-grain
-   synthesis. The useful signal is actual L2 HH. The production path needs
-   either a faster HH-band entropy/dequant/inverse path, an encoder-side
-   summary of that band, or a tiny source-derived predictor that mimics the HH
-   contribution below the remaining Pi 5 frame budget.
+   work is not generic sharpening, synthetic noise, or simple HH amplitude
+   scaling: the 2026-06-14 probes reached only 65/84 for RGB unsharp, 57/84
+   for deterministic fine-grain synthesis, and 80/84 for the best HH scale
+   sweep. The useful signal is actual L2 HH and it now fits the Pi 5 frame
+   budget; the remaining blocker is four near-threshold LPIPS rows.
 3. Add rendered RGB/perceptual gates for 4K raw output. If the no-CNN
    paths pass, keep them no-CNN.
 4. Keep 8K as an offline/review target until a faster 2x raw reconstruction

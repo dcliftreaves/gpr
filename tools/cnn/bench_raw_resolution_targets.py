@@ -331,6 +331,7 @@ def main() -> int:
                         "implementation": args.downsample_mode,
                         "drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
                         "l2_hp_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
+                        "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",
                     },
                 },
             }
@@ -409,6 +410,7 @@ def main() -> int:
         "include_8k": bool(args.include_8k),
         "drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
         "l2_hp_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
+        "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",
         "targets": {
             "2k_raw_0p5x": "4140x2760 decoded Bayer -> 2070x1380 CFA-preserving plane area downsample",
             "4k_raw_1x": "4140x2760 decoded Bayer direct from ml2_q3_dec2",

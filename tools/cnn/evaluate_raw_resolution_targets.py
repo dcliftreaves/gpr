@@ -259,6 +259,7 @@ def main() -> int:
         "runtime_2k_target": bool(args.runtime_2k_target),
         "drop_l2_hp": os.environ.get("GPR_DECODE_HALFRES_DROP_L2_HP") == "1",
         "l2_hp_mask": os.environ.get("GPR_DECODE_HALFRES_L2_MASK"),
+        "halfres_stream": os.environ.get("GPR_DECODE_HALFRES_STREAM", "1") != "0",
         "elapsed_s": time.perf_counter() - t0,
         "summary": summary,
         "rows": rows,

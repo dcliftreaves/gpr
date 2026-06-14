@@ -978,6 +978,54 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
         }
 #endif /* GPR_DEBUG_COEFF_IO */
 
+        if (half_res && levels == 2) {
+            int use_halfres_stream = 1;
+            {
+                const char *e = getenv("GPR_DECODE_HALFRES_STREAM");
+                if (e && *e == '0') use_halfres_stream = 0;
+            }
+            if (use_halfres_stream) {
+                PIXEL *stream_bands[4][4];
+                memset(stream_bands, 0, sizeof(stream_bands));
+                PIXEL *zero_hp = NULL;
+                if (l2_hp_mask != 7) {
+                    zero_hp = (PIXEL *)calloc((size_t)bw2 * bh2, sizeof(PIXEL));
+                    if (!zero_hp) rc = -24;
+                }
+                for (int ch = 0; ch < 4 && rc == 0; ch++) {
+                    stream_bands[ch][0] = bands[ch][6];
+                    stream_bands[ch][1] = bands[ch][3] ? bands[ch][3] : zero_hp;
+                    stream_bands[ch][2] = bands[ch][4] ? bands[ch][4] : zero_hp;
+                    stream_bands[ch][3] = bands[ch][5] ? bands[ch][5] : zero_hp;
+                }
+                if (rc == 0) {
+                    int log_max  = (1 << (int)hdr.log_bits) - 1;
+                    int midpoint = 1 << ((int)hdr.log_bits - 1);
+                    const uint16_t *log_table =
+                        (hdr.log_bits <= 14) ? DecoderLogCurve14 : DecoderLogCurve16;
+                    int output_bit_depth = (int)hdr.log_bits;
+                    int shift = 16 - output_bit_depth;
+                    int is_rggb = (int)hdr.is_rggb;
+                    QUANT qt_l2_pos[4] = { 1, qt[4], qt[5], qt[6] };
+                    double dt_fs0 = _decode_ms();
+                    int frc = gpr_decode_fused_stream(stream_bands, bw2, bh2, bw1, bh1,
+                                                       qt_l2_pos,
+                                                       log_max, midpoint, shift, is_rggb,
+                                                       log_table,
+                                                       (uint8_t *)bayer_out, bayer_pitch_bytes,
+                                                       l2_hp_mask == 0);
+                    if (frc != 0) rc = -30;
+                    if (dbg_timing) fprintf(stderr, "  decode fused_stream_l2: %.1f ms\n",
+                                            _decode_ms() - dt_fs0);
+                }
+                if (zero_hp) free(zero_hp);
+                for (int ch = 0; ch < 4; ch++)
+                    for (int s = 0; s < 10; s++)
+                        if (bands[ch][s]) free(bands[ch][s]);
+                return rc;
+            }
+        }
+
         double dt_wave0 = _decode_ms();
         if (half_res && levels == 2) {
             FUSED_INV_TASK tasks[4];
