@@ -1,4 +1,4 @@
-# Raw Resolution Targets - 2026-06-13
+# Raw Resolution Targets - 2026-06-14
 
 This note freezes the first production-shaped raw target ladder for the
 `ml2_q3_dec2` capture stream. The point is to choose the fastest raw path that

@@ -107,7 +107,7 @@ Raw output targets from the 24 fps capture stream:
 | `8k_raw_2x` | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only |
 
 Latest raw-target receipts are summarized in
-[`docs/RAW_RESOLUTION_TARGETS_2026-06-13.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-13.md).
+[`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-14.md).
 
 ## PREVIEW Status
 
@@ -206,7 +206,7 @@ Useful docs:
 - [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md) - feature and platform matrix.
 - [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) - current shipping quality gates.
 - [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) - capture, preview, and review status.
-- [`docs/RAW_RESOLUTION_TARGETS_2026-06-13.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-13.md) - 2K/4K/8K raw target ladder.
+- [`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-14.md) - 2K/4K/8K raw target ladder.
 - [`docs/UPRESABLE_PIPELINE.md`](docs/UPRESABLE_PIPELINE.md) - half-res capture to editable full-res raw.
 - [`docs/GVID_METADATA_DISPATCH_2026-06-04.md`](docs/GVID_METADATA_DISPATCH_2026-06-04.md) - `.gvid` metadata dispatch.
 - [`docs/EXPERIMENT_ARCHIVE_2026-06-04.md`](docs/EXPERIMENT_ARCHIVE_2026-06-04.md) - old experiment summary without committing bulky artifacts.

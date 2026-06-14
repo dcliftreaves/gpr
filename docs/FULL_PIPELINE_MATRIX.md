@@ -1,4 +1,4 @@
-# Full GPR pipeline matrix — refreshed 2026-06-13
+# Full GPR pipeline matrix — refreshed 2026-06-14
 
 All entries from `pipelines/registry.json` × `tests/quality_gates/runs/`.
 Sorted within each mode by mean MB (smaller first).
@@ -82,7 +82,7 @@ Per-q numbers; multi-DNG verification in `STILLS_PI5_TIMING.md`.
 
 ## Raw output targets from `ml2_q3_dec2`
 
-See `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md` for receipts.
+See `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` for receipts.
 
 | raw target | dimensions | method | local timing |
 |---|---:|---|---:|

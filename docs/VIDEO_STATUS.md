@@ -1,4 +1,4 @@
-# Video pipeline status — refreshed 2026-06-13
+# Video pipeline status — refreshed 2026-06-14
 
 ## Your design intent (restated)
 
@@ -104,7 +104,7 @@ For video you need either:
 | 4K / 1x | 4140 x 2760 | direct decoded Bayer | Mac/offline editable raw candidate: 22.9 ms median, 43.7 fps median. Pi decode-side: 159.6 ms median, 6.3 fps median. Rendered proxy: 55/84 diagnostic under PREVIEW LPIPS |
 | 8K / 2x | 8280 x 5520 | BIBO_2x Bayer super-resolution | offline/review only at current speed |
 
-Details and receipts are in `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md`.
+Details and receipts are in `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`.
 
 ## Open work for video
 

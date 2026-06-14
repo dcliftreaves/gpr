@@ -5,7 +5,7 @@
 **Current repo status: 2026-06-14.** This file is an archival raw-video parking
 lot, not the release readiness source of truth. Current production status,
 receipts, and blockers live in `README.md`, `docs/FULL_PIPELINE_MATRIX.md`,
-`docs/VIDEO_STATUS.md`, `docs/RAW_RESOLUTION_TARGETS_2026-06-13.md`, and
+`docs/VIDEO_STATUS.md`, `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`, and
 `tests/quality_gates/audit_production_readiness.py`.
 
 ## Historical raw-video blockers
