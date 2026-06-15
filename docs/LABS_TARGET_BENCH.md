@@ -15,6 +15,7 @@ firmware evidence.
 | Desktop review PREVIEW | `docs/VIDEO_STATUS.md` reports q8 three-way PREVIEW quality pass at 13.65 s/image on Mac/MPS | offline-only evidence |
 | Format validation | `test_video_format` and `test_video_full_chain` validate headers, streams, and real encoded `.gvid` files | committed CI evidence |
 | Portable review bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` | stand-in bundle |
+| Target receipt harness | `tools/run_labs_target_bench.py` wraps `bench_fused`, packs a strict `.gvid`, validates truncation behavior, and writes `labs_target_bench.json` | committed harness |
 
 ## Required Target Run
 
@@ -32,6 +33,27 @@ Before claiming firmware readiness, run a sustained target-style capture:
 | drops | count, frame indices, policy taken |
 | output validity | C stream validation, metadata validation, decode checksum |
 | interruption | normal stop and simulated interrupted-file recovery result |
+
+Run the target-style receipt harness on the Pi 5 stand-in with the actual
+`bench_fused` binary and raw input:
+
+```bash
+export GPR_ARTIFACT_ROOT=/Volumes/OWC_8TB/gpr_work/artifacts
+export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
+
+python3 tools/run_labs_target_bench.py \
+  --bench build/bin/bench_fused \
+  --raw /path/to/source_bayer.raw \
+  --frames 14400 \
+  --target-fps 24 \
+  --output-dir "$GPR_ARTIFACT_ROOT/labs_target_bench_pi5_10min_YYYYMMDD"
+```
+
+The receipt must include timing percentiles, dropped-frame accounting, wrapper
+and child-process RSS, storage throughput, basic CPU load, thermal samples when
+`vcgencmd` is available, strict `.gvid` validation, and interrupted-tail
+recovery. CI runs only the simulated schema smoke:
+`bash tools/test/test_labs_target_bench_smoke.sh`.
 
 ## Current Gap
 

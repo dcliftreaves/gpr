@@ -126,6 +126,7 @@ python3 tools/test/test_raw_resolution_targets.py
 bash tools/test/test_gvid_pack.sh
 bash tools/test/test_gvid_metadata.sh
 bash tools/test/test_labs_bundle_verify.sh
+bash tools/test/test_labs_target_bench_smoke.sh
 python3 tests/quality_gates/check_registry_consistency.py
 python3 tests/quality_gates/audit_ship_pipelines.py --strict
 ```

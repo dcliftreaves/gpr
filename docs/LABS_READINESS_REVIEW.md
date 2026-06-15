@@ -19,6 +19,7 @@ capture evidence exist.
 | Source-level safety | hosted CI validates headers, streams, release evidence, registry consistency |
 | Format hardening | C reader rejects malformed v1 headers and whole-stream corruption |
 | Portable stand-in bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` |
+| Target receipt harness | `tools/run_labs_target_bench.py` produces `labs_target_bench.json` with timing, storage, memory, drop, `.gvid`, and interruption fields |
 | Current overview | README is media-focused; detailed proof lives in docs |
 
 ## Not Ready Yet

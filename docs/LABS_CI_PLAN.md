@@ -18,6 +18,7 @@ Current hosted CI should continue to cover:
 - `.gvid` header and stream validation via `test_video_format`,
 - real encoded `.gvid` validation via `test_video_full_chain`,
 - Python `.gvid` pack and metadata smokes,
+- simulated Labs target-bench receipt schema and interruption smoke,
 - registry consistency and ship-pipeline receipt audit.
 
 ## Target Or Self-Hosted CI

@@ -41,6 +41,18 @@ Stop only when one of these is true:
 Do not stop at partial docs or a passing hosted CI run. The goal is reviewable
 Labs intake evidence, not merely repo cleanliness.
 
+## Execution Rules
+
+- Use `/Volumes/OWC_8TB/gpr_work` for large artifacts, temporary files, target
+  receipts, dashboards, and media generated while pursuing this goal.
+- Keep bulky generated media out of the repository; commit compact receipts,
+  manifests, checksums, docs, tests, and source changes.
+- Clean temporary artifacts after each major run unless they are referenced by a
+  manifest or receipt.
+- Do not register or claim production readiness unless the evidence supports it.
+- Do not stop at intermediate pass-rate improvements, partial docs, or hosted CI
+  alone.
+
 ## Milestones
 
 ### 1. Define Labs Scope

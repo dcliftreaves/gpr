@@ -344,11 +344,11 @@ jobs:
       - name: Run GVID pack and metadata smokes
         # Cheap container-contract checks for the neutral .gvid wire header,
         # metadata sidecar validation, runtime dispatch generation, and
-        # negative duplicate/mismatched frame-tag cases. The Labs bundle smoke
-        # verifies the portable artifact manifest/checksum contract without
-        # committing media. Direct gpr2prores render-input smoke remains a
-        # macOS dev-host check because it needs the Objective-C renderer
-        # binary plus local media fixtures.
+        # negative duplicate/mismatched frame-tag cases. The Labs bundle and
+        # target-bench smokes verify portable artifact and receipt schemas
+        # without committing media or claiming target hardware evidence. Direct
+        # gpr2prores render-input smoke remains a macOS dev-host check because
+        # it needs the Objective-C renderer binary plus local media fixtures.
         env:
           GPR_EXTERNAL_ROOT: ${{ runner.temp }}/gpr_work
           GPR_TMPDIR: ${{ runner.temp }}/gpr_work/tmp
@@ -356,6 +356,7 @@ jobs:
           bash tools/test/test_gvid_pack.sh
           bash tools/test/test_gvid_metadata.sh
           bash tools/test/test_labs_bundle_verify.sh
+          bash tools/test/test_labs_target_bench_smoke.sh
 
       - name: Registry consistency check
         # Surfaces unknown refs, still/video mode mismatches, use_for
