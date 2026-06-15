@@ -35,10 +35,13 @@ gpr_labs_bundle/
 | schema | `gpr_labs_bundle.v1` |
 | repo_commit | commit that produced or verified the bundle |
 | ci_run | GitHub Actions run URL for the commit |
-| samples | list of media files with size and SHA-256 |
-| receipts | list of bench/validation receipts with size and SHA-256 |
-| target | hardware used for capture bench; Pi 5 is allowed only as stand-in |
-| notes | explicit gaps, especially if not actual camera hardware |
+| target.name | hardware used for capture bench; Pi 5 is allowed only as stand-in |
+| notes | non-empty explicit gaps, especially if not actual camera hardware |
+| artifacts | single list of files with `path`, `kind`, `size_bytes`, and `sha256` |
+
+The verifier requires the `artifacts` list to include at least one
+`samples/*.gvid` artifact, one `samples/` artifact, one `receipts/` artifact,
+one `review/` or `dashboard` artifact, and `hashes/sha256sums.txt`.
 
 ## Verification Commands
 
@@ -55,12 +58,13 @@ python3 tools/verify_labs_bundle.py manifest.json
 ```
 
 For repo-local validation, `tools/test/test_labs_bundle_verify.sh` exercises
-the bundle verifier with a tiny synthetic `.gvid`, including checksum mismatch
-and zero-frame `.gvid` rejection. The C stream validator is exercised by
-`source/app/test_video_format.c` and `source/app/test_video_full_chain.c`,
-including malformed headers, truncated frame headers/payloads, frame-count
-hint mismatches, duplicate or out-of-order frame tags, oversized payloads, and
-zero-frame streams.
+the bundle verifier with a tiny synthetic `.gvid`, including checksum mismatch,
+bad GitHub Actions run URL, missing `target.name`, missing `notes`, missing
+receipt coverage, and zero-frame `.gvid` rejection. The C stream validator is
+exercised by `source/app/test_video_format.c` and
+`source/app/test_video_full_chain.c`, including malformed headers, truncated
+frame headers/payloads, frame-count hint mismatches, duplicate or out-of-order
+frame tags, oversized payloads, and zero-frame streams.
 
 ## Current Bundle
 

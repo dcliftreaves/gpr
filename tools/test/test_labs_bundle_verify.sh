@@ -15,7 +15,7 @@ WORK=${WORK:-$GPR_TMPDIR/labs_bundle_verify_smoke}
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 rm -rf "$WORK"
-mkdir -p "$WORK/samples" "$WORK/receipts" "$WORK/hashes"
+mkdir -p "$WORK/samples" "$WORK/review" "$WORK/receipts" "$WORK/hashes"
 
 "$PYTHON_BIN" - "$WORK" <<'PY'
 import hashlib
@@ -44,6 +44,12 @@ meta.write_text(json.dumps({
 receipt = root / "receipts" / "gvid_validate.txt"
 receipt.write_text("synthetic labs bundle validator smoke\n", encoding="utf-8")
 
+review = root / "review" / "preview_review_dashboard.html"
+review.write_text("<!doctype html><title>synthetic dashboard</title>\n", encoding="utf-8")
+
+hashes = root / "hashes" / "sha256sums.txt"
+hashes.write_text("synthetic hashes placeholder\n", encoding="utf-8")
+
 def row(path, kind):
     b = path.read_bytes()
     return {
@@ -56,12 +62,15 @@ def row(path, kind):
 manifest = {
     "schema": "gpr_labs_bundle.v1",
     "repo_commit": "synthetic-smoke",
-    "ci_run": "local-smoke",
+    "ci_run": "https://github.com/dcliftreaves/gpr/actions/runs/0",
     "target": {"name": "synthetic"},
+    "notes": ["synthetic smoke bundle"],
     "artifacts": [
         row(gvid, "gvid"),
         row(meta, "json"),
+        row(review, "dashboard"),
         row(receipt, "text"),
+        row(hashes, "text"),
     ],
 }
 (root / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -74,6 +83,31 @@ empty_gvid.write_bytes(struct.pack("<IBBHHHIIIII", 0x44495647, 1, 0, 4, 3, 0, 64
 empty_manifest = json.loads(json.dumps(manifest))
 empty_manifest["artifacts"][0] = row(empty_gvid, "gvid")
 (root / "empty_manifest.json").write_text(json.dumps(empty_manifest, indent=2), encoding="utf-8")
+
+bad_ci = json.loads(json.dumps(manifest))
+bad_ci["ci_run"] = "local-smoke"
+(root / "bad_ci_manifest.json").write_text(json.dumps(bad_ci, indent=2), encoding="utf-8")
+
+missing_notes = json.loads(json.dumps(manifest))
+del missing_notes["notes"]
+(root / "missing_notes_manifest.json").write_text(
+    json.dumps(missing_notes, indent=2), encoding="utf-8"
+)
+
+missing_target = json.loads(json.dumps(manifest))
+del missing_target["target"]
+(root / "missing_target_manifest.json").write_text(
+    json.dumps(missing_target, indent=2), encoding="utf-8"
+)
+
+missing_receipts = json.loads(json.dumps(manifest))
+missing_receipts["artifacts"] = [
+    item for item in missing_receipts["artifacts"]
+    if not item["path"].startswith("receipts/")
+]
+(root / "missing_receipts_manifest.json").write_text(
+    json.dumps(missing_receipts, indent=2), encoding="utf-8"
+)
 PY
 
 "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/manifest.json"
@@ -89,5 +123,29 @@ if "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/empty_manifest.json"
   exit 1
 fi
 grep -q "zero-frame .gvid stream" "$WORK/empty_manifest.log"
+
+if "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/bad_ci_manifest.json" > "$WORK/bad_ci_manifest.log" 2>&1; then
+  echo "test_labs_bundle_verify: expected bad CI URL manifest to fail" >&2
+  exit 1
+fi
+grep -q "GitHub Actions URL" "$WORK/bad_ci_manifest.log"
+
+if "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/missing_notes_manifest.json" > "$WORK/missing_notes_manifest.log" 2>&1; then
+  echo "test_labs_bundle_verify: expected missing notes manifest to fail" >&2
+  exit 1
+fi
+grep -q "manifest notes" "$WORK/missing_notes_manifest.log"
+
+if "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/missing_target_manifest.json" > "$WORK/missing_target_manifest.log" 2>&1; then
+  echo "test_labs_bundle_verify: expected missing target manifest to fail" >&2
+  exit 1
+fi
+grep -q "manifest target" "$WORK/missing_target_manifest.log"
+
+if "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/missing_receipts_manifest.json" > "$WORK/missing_receipts_manifest.log" 2>&1; then
+  echo "test_labs_bundle_verify: expected missing receipts manifest to fail" >&2
+  exit 1
+fi
+grep -q "receipts/" "$WORK/missing_receipts_manifest.log"
 
 echo "test_labs_bundle_verify: PASS"

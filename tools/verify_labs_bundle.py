@@ -107,6 +107,36 @@ def require_string(obj: dict[str, Any], key: str, failures: list[str]) -> None:
         failures.append(f"manifest missing string field {key}")
 
 
+def validate_manifest_metadata(manifest: dict[str, Any], failures: list[str]) -> None:
+    target = manifest.get("target")
+    if (
+        not isinstance(target, dict)
+        or not isinstance(target.get("name"), str)
+        or not target.get("name")
+    ):
+        failures.append("manifest target must be an object with non-empty name")
+
+    notes = manifest.get("notes")
+    if isinstance(notes, str):
+        if not notes:
+            failures.append("manifest notes must be a non-empty string or string list")
+    elif isinstance(notes, list):
+        if not notes or not all(isinstance(item, str) and item for item in notes):
+            failures.append("manifest notes must be a non-empty string or string list")
+    else:
+        failures.append("manifest notes must be a non-empty string or string list")
+
+    ci_run = manifest.get("ci_run")
+    if (
+        isinstance(ci_run, str)
+        and ci_run.startswith("https://github.com/")
+        and "/actions/runs/" in ci_run
+    ):
+        return
+    if isinstance(ci_run, str) and ci_run:
+        failures.append("manifest ci_run must be a GitHub Actions URL")
+
+
 def verify_manifest(manifest_path: Path) -> tuple[int, dict[str, Any]]:
     root = manifest_path.parent
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -117,11 +147,18 @@ def verify_manifest(manifest_path: Path) -> tuple[int, dict[str, Any]]:
         failures.append(f"manifest schema must be {SCHEMA}")
     for key in ("repo_commit", "ci_run"):
         require_string(manifest, key, failures)
+    validate_manifest_metadata(manifest, failures)
 
     artifacts = manifest.get("artifacts")
     if not isinstance(artifacts, list) or not artifacts:
         failures.append("manifest artifacts must be a non-empty list")
         artifacts = []
+
+    seen_gvid_sample = False
+    seen_sample = False
+    seen_receipt = False
+    seen_review = False
+    seen_hashes = False
 
     for idx, artifact in enumerate(artifacts):
         if not isinstance(artifact, dict):
@@ -139,6 +176,16 @@ def verify_manifest(manifest_path: Path) -> tuple[int, dict[str, Any]]:
         except ValueError as exc:
             failures.append(str(exc))
             continue
+        if rel.startswith("samples/"):
+            seen_sample = True
+        if rel.startswith("receipts/"):
+            seen_receipt = True
+        if rel.startswith("review/") or kind == "dashboard":
+            seen_review = True
+        if rel == "hashes/sha256sums.txt":
+            seen_hashes = True
+        if kind == "gvid" and rel.startswith("samples/"):
+            seen_gvid_sample = True
         row: dict[str, Any] = {"path": rel, "kind": kind, "status": "missing"}
         rows.append(row)
         if not path.is_file():
@@ -165,6 +212,17 @@ def verify_manifest(manifest_path: Path) -> tuple[int, dict[str, Any]]:
                 failures.append(f"{rel}: invalid .gvid: {exc}")
         elif kind not in {"text", "media", "dashboard", "receipt"}:
             failures.append(f"{rel}: unknown artifact kind {kind!r}")
+
+    if not seen_gvid_sample:
+        failures.append("manifest artifacts must include at least one samples/*.gvid artifact")
+    if not seen_sample:
+        failures.append("manifest artifacts must include at least one samples/ artifact")
+    if not seen_receipt:
+        failures.append("manifest artifacts must include at least one receipts/ artifact")
+    if not seen_review:
+        failures.append("manifest artifacts must include at least one review/ or dashboard artifact")
+    if not seen_hashes:
+        failures.append("manifest artifacts must include hashes/sha256sums.txt")
 
     report = {
         "manifest": str(manifest_path),
