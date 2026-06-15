@@ -555,6 +555,25 @@ This rules out allocation-only cleanup as the missing throughput source. The
 active blocker remains highpass-preserving Pass1 row math, unpack, tokenization,
 or data movement, not unused full-width scratch allocation.
 
+## Col-Decimate Prefetch Probe
+
+A second low-risk in-worker probe added forward prefetch hints inside the active
+highpass-preserving chroma and luma col-decimate unpack loops. This changed no
+arithmetic and was byte-identical on the local 1024 x 768 decimated fixture:
+both outputs hashed to
+`fef6948bcbe6015db4d0c879f3361ef6f42aa718e0b7d80ae6bb09e783053a21`.
+
+Fresh Pi direct `.gvid` A/B receipts:
+
+| case | receipt | median | p95 | result |
+|---|---|---:|---:|---|
+| baseline, direct `.gvid` | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_baseline_prefetch_ab_120f_20260615/labs_target_bench.json` | 44.62 ms / 22.41 fps | 49.68 ms | below target |
+| col-decimate forward prefetch, direct `.gvid` | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_prefetch_candidate_120f_20260615/labs_target_bench.json` | 51.17 ms / 19.54 fps | 61.40 ms | slower |
+
+This rejects simple forward prefetch hints in the active unpack kernels. The Pi
+regression suggests the hot loop is limited by LUT/arithmetic and scheduling
+behavior more than by raw row cache misses that manual prefetch can hide.
+
 ## Timing Profile
 
 A timing-enabled build of the current clean Labs commit was run on the Pi to
@@ -572,6 +591,25 @@ Probe artifact:
 | baseline, write-all | 46.68 ms | 38.41 ms | 7.74 ms | unpack 22.68 ms |
 | stripe64, no write | 47.11 ms | 39.67 ms | 7.73 ms | unpack 23.62 ms |
 | stripe64, write-all | 44.49 ms | 35.74 ms | 7.80 ms | unpack 21.56 ms |
+
+Short direct `.gvid` timing-detail receipt:
+
+- JSON:
+  `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_timing_detail_30f_0f72df0_20260615/labs_target_bench.json`
+
+| case | median | Pass1 median | Pass2 median | dominant channel component |
+|---|---:|---:|---:|---|
+| direct `.gvid`, timing-detail build | 42.16 ms / 23.72 fps | 32.80 ms | 8.50 ms | unpack mean 20.58 ms |
+
+Component means from the direct-container timing receipt:
+
+| component | mean |
+|---|---:|
+| unpack | 20.58 ms |
+| vertical + quantize | 5.79 ms |
+| tokenize | 3.51 ms |
+| horizontal | 3.04 ms |
+| other | 0.31 ms |
 
 The profile says the blocker is not primarily `.gvid` wrapping or storage I/O
 at this sample size. Multi-level Pass1 dominates the encode, and the largest
@@ -625,9 +663,10 @@ prescale-2 fixed-shift candidates are all ruled out by Pi timing. The
 producer-unpack corruption is now covered by a decimated byte-identity
 regression, and the corrected decimation-aware producer scratch path is rejected
 by full-frame Pi timing. Lazy allocation of an unused full-width scratch buffer
-is also byte-identical but slower on the Pi. The next speed experiment must
-share raw-to-log work inside the active Pass1 worker path, remove highpass work
-without invalidating output, reduce highpass tokenization/data movement, or
+is also byte-identical but slower on the Pi, and manual forward prefetch in the
+active col-decimate unpack loops regresses sharply. The next speed experiment
+must share raw-to-log work inside the active Pass1 worker path, remove highpass
+work without invalidating output, reduce highpass tokenization/data movement, or
 replace the capture-side algorithm.
 The production target remains >= 24 fps sustained; today's best evidenced
 current-build knob is 22.53 fps median on a 100-frame probe and 19.98 fps

@@ -21,7 +21,7 @@ the current half-res capture path restores >= 24 fps on the target-style run.
 | Portable stand-in bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` |
 | Target receipt harness | `tools/run_labs_target_bench.py` produces `labs_target_bench.json` with timing, structured `fused_timing`, storage, memory, drop, `.gvid`, and interruption fields |
 | Strict Pi 5 target receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` proves 14,400 frames, 0 drops, valid `.gvid`, and interrupted-tail recovery |
-| Pi 5 regression probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` records current, historical-doc, environment, runtime-knob, compiler-flag, quality, highpass-bound, timing, producer-guard, polynomial-log, u16 log-scratch, prescale-2 fixed-shift, and lazy scratch allocation probes; corrected q11/quant sweeps top out at 22.36 fps median, while diagnostic highpass dropping reaches 30.35 fps but is not valid output |
+| Pi 5 regression probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` records current, historical-doc, environment, runtime-knob, compiler-flag, quality, highpass-bound, timing, producer-guard, polynomial-log, u16 log-scratch, prescale-2 fixed-shift, lazy scratch allocation, and prefetch probes; corrected q11/quant sweeps top out at 22.36 fps median, while diagnostic highpass dropping reaches 30.35 fps but is not valid output |
 | Reproducible target timing build | CMake exposes `-DFUSED_TIMING=ON -DFUSED_TIMING_DETAIL=ON`; the target receipt harness parses diagnostics into `fused_timing`, and a local smoke verifies per-channel unpack/horizontal/vertical/tokenize detail plus Pass1/Pass2 summaries without editing source |
 | Current overview | README is media-focused; detailed proof lives in docs |
 
@@ -50,7 +50,8 @@ the current half-res encoder path misses the 24 fps target on the stand-in run.
    slower than the LUT/default path. The invalid producer+decimate path is
    covered by a committed fallback identity fixture, a fresh decimation-aware
    producer scratch probe regressed on full-frame Pi timing, and a lazy scratch
-   allocation probe was byte-identical but also slower on Pi.
+   allocation probe was byte-identical but also slower on Pi. A col-decimate
+   prefetch probe was also byte-identical but regressed target timing.
    Use the committed `FUSED_TIMING_DETAIL` diagnostic build and inspect the
    structured `fused_timing` object for the next Pi-side blocker receipt.
 2. Replace or supplement the stand-in bundle with a passing target-capture

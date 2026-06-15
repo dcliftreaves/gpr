@@ -59,7 +59,9 @@ The producer-unpack request is byte-identical on the committed decimated
 fallback fixture, and a fresh decimation-aware producer scratch probe regressed
 on full-frame Pi 5 timing. A later lazy full-width scratch allocation probe was
 also byte-identical but slower on Pi, so allocation-only cleanup is not the
-missing throughput source.
+missing throughput source. A manual col-decimate prefetch probe also regressed,
+which keeps the focus on reducing the unpack/LUT work itself rather than cache
+hints around the current loop shape.
 
 The next production step is to reduce or share raw-to-log/Pass1/channel-unpack
 work inside the active highpass-preserving worker path, or replace that
