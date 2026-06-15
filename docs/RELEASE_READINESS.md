@@ -119,6 +119,7 @@ python3 tools/test/check_sensitive_content.py
 python3 tools/test/check_sensitive_content.py --history
 python3 tools/test/check_repo_artifact_hygiene.py
 python3 tools/test/check_release_evidence_manifest.py
+python3 tools/test/check_labs_readiness.py
 python3 tools/verify_production_artifacts.py
 python3 tools/verify_release_manifest_artifacts.py
 python3 tools/live_preview_policy.py

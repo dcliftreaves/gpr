@@ -429,7 +429,10 @@
         "README.md",
         "docs/VIDEO_STATUS.md",
         "docs/pi5_bench_2026-05-26.md",
-        "docs/LABS_TARGET_BENCH.md"
+        "docs/LABS_INTAKE.md",
+        "docs/LABS_TARGET_BENCH.md",
+        "docs/LABS_READINESS_REVIEW.md",
+        "docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md"
       ],
       "receipts": [
         "artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json",
@@ -990,6 +993,7 @@
     "python3 tools/test/check_sensitive_content.py --history",
     "python3 tools/test/check_repo_artifact_hygiene.py",
     "python3 tools/test/check_release_evidence_manifest.py",
+    "python3 tools/test/check_labs_readiness.py",
     "python3 tools/verify_production_artifacts.py",
     "python3 tools/verify_production_artifacts.py --strict",
     "python3 tools/verify_release_manifest_artifacts.py",
@@ -1010,6 +1014,7 @@
     "python3 tools/test/check_sensitive_content.py --history",
     "python3 tools/test/check_repo_artifact_hygiene.py",
     "python3 tools/test/check_release_evidence_manifest.py",
+    "python3 tools/test/check_labs_readiness.py",
     "python3 tools/verify_production_artifacts.py",
     "python3 tools/verify_release_manifest_artifacts.py",
     "python3 tools/live_preview_policy.py",
@@ -1025,6 +1030,7 @@
     "tools/test/check_sensitive_content.py",
     "tools/test/check_repo_artifact_hygiene.py",
     "tools/test/check_release_evidence_manifest.py",
+    "tools/test/check_labs_readiness.py",
     "tools/verify_labs_bundle.py",
     "tools/verify_release_manifest_artifacts.py"
   ]

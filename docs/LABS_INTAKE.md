@@ -1,6 +1,6 @@
 # Labs Intake: `.gvid` Raw-Video Prototype
 
-Last refreshed: 2026-06-14
+Last refreshed: 2026-06-15
 
 ## Recommendation
 
@@ -19,6 +19,7 @@ ownership, and target CI.
 |---|---|---|
 | Raw-video container | `.gvid` sequence of per-frame FUSED `.gpr` payloads | `source/lib/vc5_encoder/gpr_video_format.h`, `tools/gvid_pack.py` |
 | Half-res 24 fps capture target | Latest strict Pi 5 stand-in receipt is blocked at 19.98 fps median versus 24 fps target | `docs/LABS_TARGET_BENCH.md`, `docs/VIDEO_STATUS.md` |
+| 2K live/camera-back preview | `2k_raw_0p5x_l2hh` clears Pi 5 decode-side timing at 29.85 fps median / 37.1 ms p95 and passes the 16 px edge-safe rendered proxy | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`, `docs/LABS_TARGET_BENCH.md` |
 | Desktop review/export | `.gvid` can feed `gpr2prores` and ProRes review outputs | `docs/GETTING_STARTED.md`, `tools/gpr2prores/USAGE.md` |
 | Metadata dispatch | source metadata sidecar and runtime dispatch validation | `docs/GVID_METADATA_DISPATCH_2026-06-04.md` |
 | Production evidence tracking | release manifest and CI checks | `docs/RELEASE_READINESS.md`, `docs/release_evidence_manifest.json` |
@@ -38,6 +39,7 @@ ownership, and target CI.
 |---|---|
 | Can the repo demonstrate the media shape? | Yes: `.gvid` pack/unpack, metadata dispatch, and ProRes review tooling exist. |
 | Can it hit the half-res capture-rate target on the stand-in path? | Not on the latest strict receipt: commit `0dd6660` writes 14,400/14,400 frames with 0 drops and valid `.gvid`, but reaches only 19.98 fps median versus the 24 fps target. |
+| Can it hit a bounded 2K live display target? | Yes for the decode/display side: `2k_raw_0p5x_l2hh` is live-capable on Pi 5 stand-in timing and the production preview policy is bounded to a 16 px edge-safe viewport. |
 | Is the format safe enough for firmware review? | Source-level path is hardened: v1 C parsing rejects malformed headers and streams; target recovery still needs receipts. |
 | Are artifacts portable outside the 8TB work drive? | Stand-in bundle verifies; final target bundle still needs 10 minute capture and camera-firmware receipts. |
 | Is CI sufficient for Labs intake? | Hosted CI covers source-level checks; target/self-hosted lanes are specified for media and hardware behavior. |

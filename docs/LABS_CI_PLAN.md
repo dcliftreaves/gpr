@@ -1,6 +1,6 @@
 # Labs CI Plan
 
-Last refreshed: 2026-06-14
+Last refreshed: 2026-06-15
 
 Labs readiness needs two CI layers: hosted source-level checks and target or
 self-hosted media/runtime checks. Hosted CI should not pretend to prove target
@@ -13,6 +13,8 @@ Current hosted CI should continue to cover:
 - sensitive-content guard and history guard,
 - repo artifact hygiene,
 - release evidence manifest,
+- Labs readiness guard tying the firmware-intake docs, release manifest, and
+  CI workflow to the current capture-blocked / 2K-live-ready evidence split,
 - production artifact inventory,
 - C build on Linux and macOS,
 - `.gvid` header and stream validation via `test_video_format`,
