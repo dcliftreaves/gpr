@@ -26,7 +26,7 @@ capture evidence exist.
 |---|---|
 | Firmware capture integration | sensor/DMA handoff and memory ownership have not been executed on target |
 | Sustained target run | no committed 10 minute target-style receipt for fps, storage, thermal, memory, drops |
-| Portable artifact bundle | bundle manifest, sample media, checksums, and review outputs still need packaging |
+| Portable artifact bundle | verifier and manifest contract exist; sample media, checksums, and review outputs still need packaging |
 | Recovery proof | partial-file recovery policy is specified but target interruption receipt is missing |
 
 ## Current Risk

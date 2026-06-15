@@ -50,11 +50,14 @@ python3 tools/gvid_metadata.py validate \
 python3 tools/gvid_metadata.py runtime-dispatch \
   samples/half_res_capture.gvid.meta.json \
   --gvid samples/half_res_capture.gvid \
-  --output /tmp/half_res_capture.dispatch.json
+  --output "${TMPDIR:-/tmp}/half_res_capture.dispatch.json"
+python3 tools/verify_labs_bundle.py manifest.json
 ```
 
-For repo-local validation, the C stream validator is exercised by
-`source/app/test_video_format.c` and `source/app/test_video_full_chain.c`.
+For repo-local validation, `tools/test/test_labs_bundle_verify.sh` exercises
+the bundle verifier with a tiny synthetic `.gvid`. The C stream validator is
+exercised by `source/app/test_video_format.c` and
+`source/app/test_video_full_chain.c`.
 
 ## Current Status
 
