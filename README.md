@@ -21,15 +21,14 @@ the image for review, editing, and delivery on the desktop. The current Labs
 package proves the media path with `.gvid` raw-video containers, ProRes review
 outputs, editable raw exports, and target-platform receipts.
 
-The pitch: files in the range of ordinary 8-bit JPEGs, but carrying 14/16-bit
-raw Bayer data, then cleaner review imagery from the decoder-side restoration
-stack.
+The pitch: **8-bit JPEG size, 16-bit RAW quality**, then cleaner review imagery
+from the decoder-side restoration stack.
 
 ![Three STILL tiers, fine-detail crop](docs/img/still_three_tiers.png)
 
 | highlight | what it shows | evidence |
 |---|---|---|
-| JPEG-class size, raw-class latitude | STILL smallest averages **9.80 MB per 50 MP frame** while preserving 14/16-bit Bayer raw editability and passing the still gate. | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) |
+| 8-bit JPEG size, 16-bit RAW quality | STILL smallest averages **9.80 MB per 50 MP frame** while preserving Bayer raw editability and passing the still gate. | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) |
 | Raw video container | `.gvid` carries per-frame FUSED `.gpr` payloads with metadata dispatch and recovery validation. | [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) |
 | GoPro Labs capture path | Pi 5 proxy validates 14,400 frames, 0 drops, valid `.gvid`, and interrupted-tail recovery at **19.98 fps**; Mission 1 hardware receipt is the remaining step. | [`docs/LABS_MISSION1_RUNBOOK.md`](docs/LABS_MISSION1_RUNBOOK.md) |
 | 4K review media | ProRes review outputs exist for codec-only, SOTA-v2, side-by-side, and UPRESABLE timelapse inspection. | [`docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md`](docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md) |
