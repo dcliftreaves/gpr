@@ -101,6 +101,29 @@ diagnostic build is explicitly being used to narrow a blocker. The
 CMake build root, build type, C flags, structured `fused_timing`, and stderr
 tail, so timing lines remain attached to the compact JSON evidence.
 
+## Variant Sweep Wrapper
+
+Use `tools/run_labs_perf_sweep.py` for short, reproducible target A/B probes.
+It runs multiple `tools/run_labs_target_bench.py` variants into separate
+receipt directories and writes a ranked `labs_perf_sweep.json` summary:
+
+```bash
+GPR_ARTIFACT_ROOT=/Volumes/OWC_8TB/gpr_work/artifacts \
+python3 tools/run_labs_perf_sweep.py \
+  --bench build/bin/bench_fused \
+  --raw /path/to/source_bayer.raw \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/labs_perf_sweep_YYYYMMDD \
+  --frames 120 \
+  --direct-gvid \
+  --variant baseline \
+  --variant stripe64_defer:FUSED_STRIPE_ROWS=64,FUSED_DEFER_RANS=1
+```
+
+Sweep summaries are comparison evidence only. The wrapper records
+`production_claim: false`; a sweep winner can promote only after a separate
+sustained target receipt proves fps, no drops, valid `.gvid`,
+interrupted-tail recovery, timing, memory, and storage behavior.
+
 ## Current Gap
 
 The current repo evidence is enough for a Labs prototype conversation, but not

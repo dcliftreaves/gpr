@@ -138,4 +138,39 @@ assert parsed["channel_component_ms"]["vert_quant"]["n"] == 2
 assert parsed["channel_component_by_channel_ms"]["1"]["wait"]["mean_ms"] == 0.2
 PY
 
+"$PYTHON_BIN" "$REPO/tools/run_labs_perf_sweep.py" \
+  --bench "$WORK/fake_bench.py" \
+  --raw "$WORK/fake.raw" \
+  --frames 4 \
+  --output-dir "$WORK/sweep" \
+  --source-width 8 \
+  --source-height 8 \
+  --capture-width 8 \
+  --capture-height 8 \
+  --target-fps 1 \
+  --direct-gvid \
+  --variant baseline \
+  --variant stripe64_defer:FUSED_STRIPE_ROWS=64,FUSED_DEFER_RANS=1
+
+"$PYTHON_BIN" - "$WORK/sweep/labs_perf_sweep.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+sweep = json.loads(Path(sys.argv[1]).read_text())
+assert sweep["schema"] == "gpr_labs_perf_sweep.v1"
+assert sweep["direct_gvid"] is True
+assert sweep["simulated"] is False
+assert sweep["production_claim"] is False
+assert sweep["frames_per_variant"] == 4
+assert set(sweep["ranked_by_fps_median"]) == {"baseline", "stripe64_defer"}
+assert len(sweep["variants"]) == 2
+by_name = {item["name"]: item for item in sweep["variants"]}
+assert by_name["baseline"]["returncode"] == 0
+assert by_name["baseline"]["gvid_valid"] is True
+assert by_name["stripe64_defer"]["env"]["FUSED_STRIPE_ROWS"] == "64"
+assert by_name["stripe64_defer"]["env"]["FUSED_DEFER_RANS"] == "1"
+assert Path(by_name["stripe64_defer"]["receipt"]).is_file()
+PY
+
 echo "test_labs_target_bench_smoke: PASS"
