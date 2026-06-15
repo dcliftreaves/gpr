@@ -56,9 +56,11 @@ by toggling inline tokenization, producer unpack, streaming mode, or pinning.
 The best stable probe remains roughly 18 percent slower than the historical
 median.
 
-Producer unpack is not a viable immediate performance knob in this build
-because both producer-unpack variants abort after frame output with heap
-corruption.
+Producer unpack was not a viable immediate performance knob in the original
+probe because both producer-unpack variants aborted after frame output with
+heap corruption. The corruption cause has since been narrowed: the producer
+ring emitted full channel-space rows while decimated capture allocated
+half-size Pass1 buffers.
 
 ## Historical Build Reprobe
 
@@ -145,6 +147,33 @@ Probe artifact:
 No runtime knob restores 24 fps. `FUSED_STRIPE_ROWS=64` is worth keeping as a
 candidate optimization, but it is not sufficient for production target capture.
 
+## Producer-Unpack Decimate Guard
+
+The current source now disables the shared producer ring when either
+`GPR_ROW_DECIMATE=2` or `GPR_COL_DECIMATE=2` is active. That turns the formerly
+corrupting `FUSED_PRODUCER_UNPACK=1` + decimated-capture combination into a
+safe fallback to the normal per-channel unpack path. A CI smoke test covers
+this on a small raw fixture:
+
+- `tools/test/test_producer_unpack_decimate_fallback.sh`
+
+Pi guard receipt:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_producer_guard_20260615/producer_decimate_guard.json`
+
+| case | result |
+|---|---:|
+| baseline decimated write-all | 300/300 frames, 46.52 ms median, 21.49 fps |
+| producer requested + decimated write-all | 300/300 frames, 42.03 ms median, 23.79 fps |
+
+The guard receipt proves the formerly aborting env combination survives
+300-frame write-all output. The faster producer-requested row should not be
+treated as a production throughput claim because producer mode is intentionally
+disabled for decimated capture in this patch and short Pi timing varies run to
+run. The real throughput work remains a decimation-aware shared producer or a
+different Pass1 unpack optimization.
+
 ## Timing Profile
 
 A timing-enabled build of the current clean Labs commit was run on the Pi to
@@ -166,8 +195,10 @@ Probe artifact:
 The profile says the blocker is not primarily `.gvid` wrapping or storage I/O
 at this sample size. Multi-level Pass1 dominates the encode, and the largest
 measured Pass1 component is channel unpack. The already-existing
-`FUSED_PRODUCER_UNPACK=1` path is the obvious architectural candidate, but it
-currently aborts with heap corruption and is also slower in the failed probes.
+`FUSED_PRODUCER_UNPACK=1` path was the obvious architectural candidate, but its
+full-size ring is not valid for decimated capture. The guarded fallback removes
+the corruption; a real speed fix requires a decimation-aware producer or
+another Pass1 unpack optimization.
 
 ## Next Boundary To Test
 
@@ -176,14 +207,14 @@ The remaining likely causes are:
 1. missing downstream changes from the original unsanitized `be0328a` build,
 2. code-level throughput regression before the historical bench-note commit
    that was not preserved as a committed source delta,
-3. encoder-side corruption in the producer/unpack path, which currently aborts
-   on both comparison commits.
+3. missing decimation-aware producer-unpack implementation for the current
+   Pass1 hot path.
 
 Next step: recover the original downstream `be0328a` worktree if it still
 exists. If it cannot be recovered, treat the May 26 number as non-reproducible
-and focus the current-code fix on Pass1 unpack throughput. First fix or retire
-the producer-unpack path's heap corruption, then remeasure whether a safe shared
-unpack producer can recover the missing 11-18 percent. The production target
-remains >= 24 fps sustained; today's best evidenced current-build knob is
-22.53 fps median on a 100-frame probe and 19.98 fps median on the strict
-10-minute receipt.
+and focus the current-code fix on Pass1 unpack throughput. The producer-unpack
+corruption is now guarded for decimated capture; the next speed experiment is a
+true decimation-aware shared producer or another unpack-path optimization that
+recovers the missing 11-18 percent. The production target remains >= 24 fps
+sustained; today's best evidenced current-build knob is 22.53 fps median on a
+100-frame probe and 19.98 fps median on the strict 10-minute receipt.

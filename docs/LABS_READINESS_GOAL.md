@@ -268,13 +268,17 @@ Current, historical-document, environment, runtime-knob, and timing probes do
 not reproduce the 24.93 fps result. The best current-build knob reaches
 22.53 fps median on a 100-frame probe, while the strict 10-minute receipt
 remains 19.98 fps median. The timing profile shows multi-level Pass1 dominates,
-with channel unpack as the largest measured component. The next engineering
-task is to recover the unrecovered downstream worktree or fix/optimize the
-current Pass1 unpack path.
+with channel unpack as the largest measured component. The invalid
+producer+decimate combination is now guarded to fall back safely instead of
+corrupting memory. The next engineering task is to recover the unrecovered
+downstream worktree or implement a real decimation-aware Pass1 unpack
+optimization.
 
 ## Immediate Next Step
 
 Recover the original downstream `be0328a` worktree if it exists. If it cannot
-be recovered, treat the May 26 24.93 fps result as non-reproducible, fix or
-retire the producer-unpack heap corruption, and optimize Pass1 unpack enough to
-recover the missing 11-18 percent needed to clear the sustained 24 fps target.
+be recovered, treat the May 26 24.93 fps result as non-reproducible and
+optimize Pass1 unpack enough to recover the missing 11-18 percent needed to
+clear the sustained 24 fps target. The producer-unpack heap corruption is
+guarded for decimated capture, but the speed path still needs a
+decimation-aware producer or equivalent unpack optimization.

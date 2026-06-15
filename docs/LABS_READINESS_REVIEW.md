@@ -21,7 +21,7 @@ the current half-res capture path restores >= 24 fps on the target-style run.
 | Portable stand-in bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` |
 | Target receipt harness | `tools/run_labs_target_bench.py` produces `labs_target_bench.json` with timing, storage, memory, drop, `.gvid`, and interruption fields |
 | Strict Pi 5 target receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` proves 14,400 frames, 0 drops, valid `.gvid`, and interrupted-tail recovery |
-| Pi 5 regression probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` records current, historical-doc, environment, runtime-knob, and timing probes; Pass1 unpack dominates, best tested knob is 22.53 fps median, producer unpack aborts |
+| Pi 5 regression probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` records current, historical-doc, environment, runtime-knob, timing, and producer-guard probes; Pass1 unpack dominates, best tested knob is 22.53 fps median, producer+decimate now safely falls back |
 | Current overview | README is media-focused; detailed proof lives in docs |
 
 ## Not Ready Yet
@@ -42,8 +42,9 @@ the current half-res encoder path misses the 24 fps target on the stand-in run.
 ## Next Work
 
 1. Recover the original downstream `be0328a` worktree if it still exists. If
-   not, fix or retire the producer-unpack heap corruption and optimize the
-   current Pass1 unpack path, which dominates the timing profile.
+   not, implement a decimation-aware shared producer or another Pass1 unpack
+   optimization, since the invalid producer+decimate path is now guarded rather
+   than corrupting memory.
 2. Replace or supplement the stand-in bundle with a passing target-capture
    receipt.
 3. Add target/self-hosted CI jobs or documented manual receipts for media

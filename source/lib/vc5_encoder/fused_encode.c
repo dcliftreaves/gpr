@@ -3961,11 +3961,25 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     /* Optional: pre-allocate the shared 4-channel unpack ring (producer
        pool + 4 channel consumers). Disabled by default; enable via
        FUSED_PRODUCER_UNPACK=1. Falls back to per-channel unpack inside
-       each P1 thread when off. */
+       each P1 thread when off.
+
+       Important: the current producer ring emits full channel-space rows
+       (width/2 by height/2). The 2x2 decimated capture path halves those
+       dimensions before allocating channel/band buffers. Letting the full-size
+       producer feed the decimated consumers corrupts the Pass1 row buffers.
+       Until a real decimated shared-unpack producer exists, keep producer mode
+       disabled whenever either decimation knob is active. */
     {
         int use_producer = 0;
         const char *prod_env = getenv("FUSED_PRODUCER_UNPACK");
         if (prod_env && prod_env[0] == '1') use_producer = 1;
+        if (use_producer) {
+            const char *row_dec = getenv("GPR_ROW_DECIMATE");
+            const char *col_dec = getenv("GPR_COL_DECIMATE");
+            if ((row_dec && row_dec[0] == '2') || (col_dec && col_dec[0] == '2')) {
+                use_producer = 0;
+            }
+        }
         if (use_producer) {
             ctx->unpack_ring = (UNPACK_RING *)calloc(1, sizeof(UNPACK_RING));
             if (!ctx->unpack_ring ||
