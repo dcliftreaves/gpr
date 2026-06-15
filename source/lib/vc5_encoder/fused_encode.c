@@ -1862,39 +1862,36 @@ static void unpack_channel_row_col_decimate_2x1(
         if (channel == 1) vst1q_u16(Xs, vR);
         else              vst1q_u16(Xs, vB);
 
-        /* 8 LUT lookups each for X/G1/G2; result is 8 same-channel log values
-           (per chroma channel). We then need to compute 8 intermediate values
-           and pair-avg into 4 outputs. */
-        int32_t Xv[8], G1v[8], G2v[8];
+        /* 8 LUT lookups each for X/G1/G2; the log curve fits in u16, so keep
+           scratch at half width and widen directly into NEON lanes. This is
+           bit-exact with the prior int32 scratch path but cuts stack
+           store/load traffic in the active half-res col-decimate kernel. */
+        uint16_t Xlog[8], G1log[8], G2log[8];
         for (int k = 0; k < 8; k++) {
-            Xv[k]  = log_tbl[Xs[k]];
-            G1v[k] = log_tbl[G1s[k]];
-            G2v[k] = log_tbl[G2s[k]];
+            Xlog[k]  = log_tbl[Xs[k]];
+            G1log[k] = log_tbl[G1s[k]];
+            G2log[k] = log_tbl[G2s[k]];
         }
 
-        /* Two 4-wide NEON arithmetic chunks, but we want the pair-averaged
-           output: out[o+k] = (val[2k] + val[2k+1]) >> 1 for k=0..3. */
-        for (int half = 0; half < 2; half++) {
-            int32x4_t vx  = vld1q_s32(&Xv[half * 4]);
-            int32x4_t vg1 = vld1q_s32(&G1v[half * 4]);
-            int32x4_t vg2 = vld1q_s32(&G2v[half * 4]);
-            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
-            /* val = ((X - GS) + mid2) >> 1   for chroma */
-            int32x4_t val = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
-            /* Pair-avg consecutive lanes within val. We have two halves and
-               want 2 outputs per half. Combine the two halves' outputs later. */
-            if (half == 0) {
-                /* Stash for cross-half uzp. */
-                vst1q_s32(&G1v[0], val);  /* reuse buffer */
-            } else {
-                int32x4_t lo = vld1q_s32(&G1v[0]);
-                int32x4_t hi = val;
-                int32x4_t e = vuzp1q_s32(lo, hi);
-                int32x4_t d = vuzp2q_s32(lo, hi);
-                int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
-                vst1q_s32(&output[o], avg);
-            }
-        }
+        uint16x8_t xlog8 = vld1q_u16(Xlog);
+        uint16x8_t g1log8 = vld1q_u16(G1log);
+        uint16x8_t g2log8 = vld1q_u16(G2log);
+        int32x4_t x_lo  = vreinterpretq_s32_u32(vmovl_u16(vget_low_u16(xlog8)));
+        int32x4_t x_hi  = vreinterpretq_s32_u32(vmovl_u16(vget_high_u16(xlog8)));
+        int32x4_t g1_lo = vreinterpretq_s32_u32(vmovl_u16(vget_low_u16(g1log8)));
+        int32x4_t g1_hi = vreinterpretq_s32_u32(vmovl_u16(vget_high_u16(g1log8)));
+        int32x4_t g2_lo = vreinterpretq_s32_u32(vmovl_u16(vget_low_u16(g2log8)));
+        int32x4_t g2_hi = vreinterpretq_s32_u32(vmovl_u16(vget_high_u16(g2log8)));
+
+        int32x4_t gs_lo = vshrq_n_s32(vaddq_s32(g1_lo, g2_lo), 1);
+        int32x4_t gs_hi = vshrq_n_s32(vaddq_s32(g1_hi, g2_hi), 1);
+        int32x4_t val_lo = vshrq_n_s32(vaddq_s32(vsubq_s32(x_lo, gs_lo), vmid2), 1);
+        int32x4_t val_hi = vshrq_n_s32(vaddq_s32(vsubq_s32(x_hi, gs_hi), vmid2), 1);
+
+        int32x4_t e = vuzp1q_s32(val_lo, val_hi);
+        int32x4_t d = vuzp2q_s32(val_lo, val_hi);
+        int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
+        vst1q_s32(&output[o], avg);
     }
 #endif
 
@@ -2080,36 +2077,31 @@ static void unpack_luma_row_col_decimate_2x1(
         vst1q_u16(G1s, vG1);
         vst1q_u16(G2s, vG2);
 
-        int32_t G1v[8], G2v[8];
+        uint16_t G1log[8], G2log[8];
         for (int k = 0; k < 8; k++) {
-            G1v[k] = log_tbl[G1s[k]];
-            G2v[k] = log_tbl[G2s[k]];
+            G1log[k] = log_tbl[G1s[k]];
+            G2log[k] = log_tbl[G2s[k]];
         }
 
-        /* Two 4-wide NEON arithmetic chunks. For each ch_width_full column c,
-           val(c) is either (g1+g2)>>1 (ch 0) or ((g1-g2)+mid2)>>1 (ch 3).
-           Then pair-avg adjacent (val(2k), val(2k+1)) → output[o+k]. */
-        for (int half = 0; half < 2; half++) {
-            int32x4_t vg1 = vld1q_s32(&G1v[half * 4]);
-            int32x4_t vg2 = vld1q_s32(&G2v[half * 4]);
-            int32x4_t val;
-            if (channel == 0) {
-                val = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
-            } else {  /* channel == 3 */
-                val = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
-            }
-            if (half == 0) {
-                /* Stash half-0's val for the cross-half pair-avg below. */
-                vst1q_s32(&G1v[0], val);  /* reuse buffer */
-            } else {
-                int32x4_t lo = vld1q_s32(&G1v[0]);
-                int32x4_t hi = val;
-                int32x4_t e = vuzp1q_s32(lo, hi);
-                int32x4_t d = vuzp2q_s32(lo, hi);
-                int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
-                vst1q_s32(&output[o], avg);
-            }
+        uint16x8_t g1log8 = vld1q_u16(G1log);
+        uint16x8_t g2log8 = vld1q_u16(G2log);
+        int32x4_t g1_lo = vreinterpretq_s32_u32(vmovl_u16(vget_low_u16(g1log8)));
+        int32x4_t g1_hi = vreinterpretq_s32_u32(vmovl_u16(vget_high_u16(g1log8)));
+        int32x4_t g2_lo = vreinterpretq_s32_u32(vmovl_u16(vget_low_u16(g2log8)));
+        int32x4_t g2_hi = vreinterpretq_s32_u32(vmovl_u16(vget_high_u16(g2log8)));
+
+        int32x4_t val_lo, val_hi;
+        if (channel == 0) {
+            val_lo = vshrq_n_s32(vaddq_s32(g1_lo, g2_lo), 1);
+            val_hi = vshrq_n_s32(vaddq_s32(g1_hi, g2_hi), 1);
+        } else {  /* channel == 3 */
+            val_lo = vshrq_n_s32(vaddq_s32(vsubq_s32(g1_lo, g2_lo), vmid2), 1);
+            val_hi = vshrq_n_s32(vaddq_s32(vsubq_s32(g1_hi, g2_hi), vmid2), 1);
         }
+        int32x4_t e = vuzp1q_s32(val_lo, val_hi);
+        int32x4_t d = vuzp2q_s32(val_lo, val_hi);
+        int32x4_t avg = vshrq_n_s32(vaddq_s32(e, d), 1);
+        vst1q_s32(&output[o], avg);
     }
 #endif
 

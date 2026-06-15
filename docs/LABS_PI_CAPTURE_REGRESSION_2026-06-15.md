@@ -224,6 +224,30 @@ not change the production blocker: sustained half-res capture still needs
 additional Pass1 work reduction or a different capture-side algorithm to reach
 >= 24 fps.
 
+## Pass1 Col-Decimate U16 Scratch Candidate
+
+The active T13/T14 row+col-decimate unpack kernels now keep LUT results in
+`uint16_t` scratch and widen directly into NEON lanes, matching the already
+used pattern in the 2x2 decimate kernel. This removes avoidable 32-bit
+scratch store/load traffic without changing the LUT indices or arithmetic.
+
+Local evidence on Apple Silicon:
+
+- baseline commit: `3d3fea6`
+- byte fixtures: generated synthetic RGGB fixtures at 1024 x 768 and
+  1056 x 784 under the external scratch tree
+- candidate and baseline `.gpr` dumps were byte-identical:
+  `0d7cb86a93d4c3a08a16fa645e1c7f31ac41b5bdb6ab40cc7d1f532dc838a93b`
+  and
+  `82c40fc5cc1722a82a809a26c49a253a93bd80d24b94f793eae55778d3aa37be`
+- 50 MP synthetic local timing, 20 frames, no write-all:
+  baseline 12.94 ms median, candidate 12.54 ms median
+
+This is byte-exact and directionally positive locally, but it is not yet target
+throughput evidence. The next receipt must run the normal Pi 5 stand-in bench
+and record whether this small active-kernel reduction moves the sustained
+half-res path toward 24 fps.
+
 ## GCC Flag And Rehearsal Probe
 
 The prefetch source candidate was also built on the Pi with GCC Release flag
