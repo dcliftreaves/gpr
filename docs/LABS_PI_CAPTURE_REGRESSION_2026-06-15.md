@@ -574,6 +574,25 @@ This rejects simple forward prefetch hints in the active unpack kernels. The Pi
 regression suggests the hot loop is limited by LUT/arithmetic and scheduling
 behavior more than by raw row cache misses that manual prefetch can hide.
 
+## Col-Decimate LUT Unroll Probe
+
+A byte-exact active-kernel probe manually unrolled the 8-entry LUT copy loops
+inside the chroma and luma col-decimate unpack kernels. This matched the style
+of older manually unrolled AA kernels, but did not improve the current Pi path.
+The local 1024 x 768 decimated fixture remained byte-identical:
+`fef6948bcbe6015db4d0c879f3361ef6f42aa718e0b7d80ae6bb09e783053a21`.
+
+Pi direct `.gvid` candidate receipt:
+
+| case | receipt | median | p95 | result |
+|---|---|---:|---:|---|
+| baseline from prefetch A/B, direct `.gvid` | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_baseline_prefetch_ab_120f_20260615/labs_target_bench.json` | 44.62 ms / 22.41 fps | 49.68 ms | below target |
+| 8-entry LUT unroll, direct `.gvid` | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_unroll8_candidate_120f_20260615/labs_target_bench.json` | 45.79 ms / 21.84 fps | 53.45 ms | slower |
+
+This rejects manual unrolling of the existing LUT copy loops as a throughput
+fix. The compiler's existing loop shape is already at least as good for the
+Pi 5 Cortex-A76 path.
+
 ## Timing Profile
 
 A timing-enabled build of the current clean Labs commit was run on the Pi to
@@ -664,10 +683,11 @@ producer-unpack corruption is now covered by a decimated byte-identity
 regression, and the corrected decimation-aware producer scratch path is rejected
 by full-frame Pi timing. Lazy allocation of an unused full-width scratch buffer
 is also byte-identical but slower on the Pi, and manual forward prefetch in the
-active col-decimate unpack loops regresses sharply. The next speed experiment
-must share raw-to-log work inside the active Pass1 worker path, remove highpass
-work without invalidating output, reduce highpass tokenization/data movement, or
-replace the capture-side algorithm.
+active col-decimate unpack loops regresses sharply. Manual unrolling of the
+8-entry LUT copy loops is also byte-identical but slower. The next speed
+experiment must share raw-to-log work inside the active Pass1 worker path,
+remove highpass work without invalidating output, reduce highpass
+tokenization/data movement, or replace the capture-side algorithm.
 The production target remains >= 24 fps sustained; today's best evidenced
 current-build knob is 22.53 fps median on a 100-frame probe and 19.98 fps
 median on the strict 10-minute receipt.
