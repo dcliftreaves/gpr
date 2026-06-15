@@ -633,6 +633,31 @@ wait bucket instead of removing enough total Pass1 work. The scratch source was
 not committed. The next structural attempt should avoid row handoff entirely or
 remove work from chroma unpack/tokenization as well.
 
+A later attempt integrated the same idea as a narrower opt-in source candidate:
+channel 0 computed GS and GD rows from one G1/G2 LUT pass, then channel 3
+consumed GD rows through a small single-producer/single-consumer ring. The
+candidate built and was byte-identical on a 1024 x 1024 decimated multi-level
+fixture, but it performed poorly on the Pi because the handoff serialized the
+GD luma path behind channel 0 and added row-copy/synchronization overhead.
+
+Fresh dirty-source Pi direct `.gvid` sweep copied locally:
+
+- `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_perf_sweep_lumapair_dirty_120f_20260615T114724Z/labs_perf_sweep.json`
+- `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_perf_sweep_lumapair_dirty_120f_20260615T114724Z/baseline.json`
+- `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_perf_sweep_lumapair_dirty_120f_20260615T114724Z/lumapair.json`
+- `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_perf_sweep_lumapair_dirty_120f_20260615T114724Z/lumapair_stripe64_defer.json`
+
+| case | median | p95 | result |
+|---|---:|---:|---|
+| patched baseline, direct `.gvid` | 48.92 ms / 20.44 fps | 49.59 ms | below target |
+| luma-pair handoff, direct `.gvid` | 83.00 ms / 12.05 fps | 100.20 ms | severe regression |
+| luma-pair handoff + `FUSED_STRIPE_ROWS=64 FUSED_DEFER_RANS=1` | 53.94 ms / 18.54 fps | 62.75 ms | slower than baseline |
+
+This rejects the channel0-producer/channel3-consumer luma-pair shape as a
+productionization path. A viable shared-luma design would need to preserve
+parallel row work, for example by sharding rows across luma workers or by
+reducing work inside each existing channel worker without a cross-channel wait.
+
 ## Timing Profile
 
 A timing-enabled build of the current clean Labs commit was run on the Pi to

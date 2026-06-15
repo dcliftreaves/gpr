@@ -15,6 +15,7 @@ firmware evidence.
 | Current half-res variant probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` reports current, historical-doc, environment, runtime-knob, compiler-flag, quality, producer, highpass-bound, target-rehearsal, direct-container, and luma-pair probes; the best short direct-container near-miss is luma-pair plus stripe64/deferred rANS at 23.54 fps median | regression evidence |
 | Corrected pixel-format direct `.gvid` probe | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_120f_e16357f_20260615/labs_target_bench.json` reports commit `e16357f`, 120 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, and 19.85 fps median with pixel format 4 applied to the encoder context | target-performance blocker |
 | Current-head tracked sweep | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_perf_sweep_03eaa4d_120f_20260615T112841Z/labs_perf_sweep.json` reports commit `03eaa4d`, 120-frame direct `.gvid` variants, 0 drops, valid `.gvid`, and no passing variant; baseline is best at 21.54 fps median and stripe64/deferred regresses to 18.52 fps median. Timing receipt `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_timing_3c48f2f_30f_20260615T113211Z/labs_target_bench.json` reports Pass1 median 33.5 ms, Pass2 median 11.6 ms, and unpack mean 20.6 ms | current-head target-performance blocker |
+| Rejected luma-pair handoff candidate | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_perf_sweep_lumapair_dirty_120f_20260615T114724Z/labs_perf_sweep.json` reports a dirty-source opt-in channel0-to-channel3 luma handoff probe; patched baseline is best at 20.44 fps, luma-pair alone regresses to 12.05 fps, and luma-pair plus stripe64/deferred reaches only 18.54 fps | rejected performance candidate |
 | Current-head Pi 5 direct `.gvid` rehearsal | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_direct_1440f_1b934a4_20260615/labs_target_bench.json` reports commit `1b934a4`, 1,440 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, and 16.00 fps median; timing-detail receipt `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_timing_detail_30f_1b934a4_20260615/labs_target_bench.json` reports Pass1 median 38.90 ms and unpack mean 22.79 ms | current-head target-performance blocker |
 | 2K live/camera-back raw target | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` reports `2k_raw_0p5x_l2hh` at 29.85 fps median, 37.1 ms p95 | stand-in evidence |
 | Desktop review PREVIEW | `docs/VIDEO_STATUS.md` reports q8 three-way PREVIEW quality pass at 13.65 s/image on Mac/MPS | offline-only evidence |
@@ -237,6 +238,18 @@ Current-head tracked sweep:
 | timing finding | Pass1 median 33.5 ms, Pass2 median 11.6 ms, unpack mean 20.6 ms; luma unpack channels 0 and 3 are 22.04 ms and 21.86 ms mean |
 | status | below 24 fps target; stripe64/deferred no longer reproduces the older scratch near miss on current head |
 
+Rejected luma-pair handoff candidate:
+
+| metric | 2026-06-15 dirty-source luma-pair handoff sweep |
+|---|---|
+| sweep | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_perf_sweep_lumapair_dirty_120f_20260615T114724Z/labs_perf_sweep.json` |
+| mode | dirty-source opt-in `FUSED_LUMA_PAIR=1`, direct `.gvid`, pixel format 4, q3, 2-level decimate=2 |
+| frames | 120 per variant, 0 drops, valid `.gvid`, interrupted-tail recovery proven |
+| patched baseline | 20.44 fps / 48.92 ms median |
+| luma-pair handoff | 12.05 fps / 83.00 ms median |
+| luma-pair handoff + stripe64/deferred | 18.54 fps / 53.94 ms median |
+| status | rejected; the channel0 producer/channel3 consumer handoff loses channel parallelism and adds synchronization/copy overhead |
+
 The direct default receipts improve measurement fidelity and rule out the
 earlier 13 fps result as a polynomial-log diagnostic, not the default target
 path. The current-head 1,440-frame rehearsal is slower than short probes and
@@ -244,6 +257,10 @@ confirms that short-run medians cannot be promoted as sustained target
 evidence. The luma-pair shared-unpack scratch probe is the strongest short-run
 lead so far, but it still does not remove the performance blocker: the
 highpass-preserving half-res path remains below 24 fps on the Pi 5 stand-in.
+The fresh luma-pair handoff integration attempt shows that sharing luma work
+through a cross-channel row handoff is not the right production shape; any
+future shared-luma work must preserve parallel row execution or remove work
+inside existing channel workers without forcing channel 3 to wait on channel 0.
 
 Remaining missing receipts:
 
