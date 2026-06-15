@@ -9,6 +9,7 @@ WORK="${WORK:-${TMPDIR:-/tmp}/gpr_bench_quality_smoke}"
 RAW="$WORK/input.raw"
 Q3="$WORK/q3.gpr"
 Q11="$WORK/q11.gpr"
+PF5="$WORK/pf5.gpr"
 
 if [ ! -x "$BENCH" ]; then
     echo "ERROR: bench_fused not built at $BENCH" >&2
@@ -54,12 +55,36 @@ FUSED_QUALITY=11 \
 
 python3 - "$Q3" "$Q11" <<'PY'
 import sys
+import struct
 from pathlib import Path
 
 q3 = Path(sys.argv[1]).stat().st_size
 q11 = Path(sys.argv[2]).stat().st_size
 if q3 == q11:
     raise SystemExit(f"FUSED_QUALITY did not change payload size: {q3}")
+
+header = struct.unpack("<12I", Path(sys.argv[1]).read_bytes()[:48])
+if header[4] != 4:
+    raise SystemExit(f"default GPR_BENCH_PIXEL_FORMAT did not reach encoded header: {header[4]}")
+PY
+
+GPR_BENCH_DUMP="$PF5" \
+GPR_INCLUDE_LL=1 \
+FUSED_MULTI_LEVEL=1 \
+FUSED_WAVELET_LEVELS=2 \
+GPR_COL_DECIMATE=2 \
+GPR_ROW_DECIMATE=2 \
+GPR_BENCH_PIXEL_FORMAT=5 \
+"$BENCH" "$RAW" 512 512 1 >/dev/null
+
+python3 - "$PF5" <<'PY'
+import struct
+import sys
+from pathlib import Path
+
+header = struct.unpack("<12I", Path(sys.argv[1]).read_bytes()[:48])
+if header[4] != 5:
+    raise SystemExit(f"GPR_BENCH_PIXEL_FORMAT did not reach encoded header: {header[4]}")
 PY
 
 if FUSED_QUALITY=99 "$BENCH" "$RAW" 512 512 1 >/dev/null 2>"$WORK/invalid.err"; then
@@ -67,6 +92,12 @@ if FUSED_QUALITY=99 "$BENCH" "$RAW" 512 512 1 >/dev/null 2>"$WORK/invalid.err"; 
     exit 1
 fi
 grep -q "invalid FUSED_QUALITY" "$WORK/invalid.err"
+
+if GPR_BENCH_PIXEL_FORMAT=99 "$BENCH" "$RAW" 512 512 1 >/dev/null 2>"$WORK/invalid_pf.err"; then
+    echo "ERROR: invalid GPR_BENCH_PIXEL_FORMAT unexpectedly passed" >&2
+    exit 1
+fi
+grep -q "invalid GPR_BENCH_PIXEL_FORMAT" "$WORK/invalid_pf.err"
 
 rm -rf "$WORK"
 echo "test_bench_fused_quality_env: PASS"
