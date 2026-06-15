@@ -424,7 +424,7 @@
       "blocked_by": [
         "fps_throughput_limit"
       ],
-      "reason": "Latest strict 10 minute Pi 5 Labs target receipt at commit 0dd6660 validates .gvid, drops, memory, and interruption recovery, but misses the 24 fps target. Follow-up probes on current and historical-doc commits do not reproduce the historical 24.93 fps result; best tested current knob is 22.53 fps median. The 2026-06-15 polynomial-log probe and byte-exact u16 log-scratch probe were both slower than the LUT/default path, so the path remains blocked pending deeper hot-path optimization or recovery of the original downstream worktree.",
+      "reason": "Latest strict 10 minute Pi 5 Labs target receipt at commit 0dd6660 validates .gvid, drops, memory, and interruption recovery, but misses the 24 fps target. Follow-up probes on current and historical-doc commits do not reproduce the historical 24.93 fps result; best tested current knob is 22.53 fps median. The 2026-06-15 polynomial-log, byte-exact u16 log-scratch, and byte-exact prescale-2 fixed-shift probes were all slower than the LUT/default path, so the path remains blocked pending deeper hot-path optimization or a different capture-side algorithm.",
       "docs": [
         "README.md",
         "docs/VIDEO_STATUS.md",
@@ -435,6 +435,7 @@
         "artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json",
         "artifacts/labs_pi_poly_log_probe_20260615/poly_log_probe.json",
         "artifacts/labs_pi_u16log_probe_20260615/u16log_probe.json",
+        "artifacts/labs_pi_p2shift_probe_20260615/p2shift_probe.json",
         "docs/pi5_bench_2026-05-26.md",
         "docs/VIDEO_STATUS.md"
       ]

@@ -365,9 +365,10 @@ producer+decimate combination is now guarded to fall back safely instead of
 corrupting memory. A 2026-06-15 search found no separate recoverable
 `be0328a` downstream source tree on the consolidated 8TB work area; the
 archived branch only contains the stale polynomial-comment delta for the codec.
-Polynomial-log and u16 log-scratch probes were byte-safe or documented, but
-slower than the LUT/default path. The next engineering task is deeper Pass1
-work reduction or a different capture-side algorithm.
+Polynomial-log, u16 log-scratch, and prescale-2 fixed-shift probes were
+byte-safe or documented, but slower than the LUT/default path. The next
+engineering task is deeper Pass1/highpass work reduction or a different
+capture-side algorithm.
 
 ## Immediate Next Step
 
@@ -375,7 +376,7 @@ Treat the May 26 24.93 fps result as non-reproducible until a real source tree
 or target receipt proves otherwise. Optimize the current path enough to recover
 the missing 11-18 percent needed to clear sustained 24 fps, focusing on
 Pass1/highpass work that reduces operations or memory traffic rather than
-reshaping LUT scratch. The producer-unpack heap corruption is guarded for
-decimated capture, but the speed path still needs an equivalent in-worker
-unpack/highpass optimization, a valid decimation-aware producer, or a different
-capture-side algorithm.
+reshaping LUT scratch or specializing the same prescale math. The
+producer-unpack heap corruption is guarded for decimated capture, but the speed
+path still needs an equivalent in-worker unpack/highpass optimization, a valid
+decimation-aware producer, or a different capture-side algorithm.

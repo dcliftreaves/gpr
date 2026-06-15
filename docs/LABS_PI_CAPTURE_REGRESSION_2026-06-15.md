@@ -389,6 +389,29 @@ col-decimate helpers as the next speed path. The remaining useful direction is
 still deeper Pass1 work reduction: avoid work, reduce horizontal/highpass
 traffic, or change the capture-side algorithm.
 
+## Prescale-2 Fixed-Shift Candidate
+
+A current-code candidate specialized the hot `horizontal_filter` NEON loop for
+`prescale == 2`, replacing variable-vector right shifts with fixed immediate
+right shifts. The candidate was byte-exact locally and on the Pi 5 stand-in,
+but slower on the target write-all probe, so it was not committed.
+
+Probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_p2shift_probe_20260615/p2shift_probe.json`
+
+| build | frames | median | first-frame hash | finding |
+|---|---:|---:|---|---|
+| baseline `0dbcd75` | 300 | 48.93 ms / 20.44 fps | `c3cc5bc080a4df6f66e1215362d7c0c48abe0f342f1a4324559248d032dc6229` | below target |
+| prescale-2 fixed-shift candidate | 300 | 51.05 ms / 19.59 fps | `c3cc5bc080a4df6f66e1215362d7c0c48abe0f342f1a4324559248d032dc6229` | byte-exact but slower |
+
+This rules out fixed-shift specialization of the existing horizontal-filter
+math as the next speed path. The useful boundary is now clearer: simple
+instruction reshaping around the same Pass1/highpass work has not recovered
+the target. The next experiment should remove or share actual work in the
+active Pass1/highpass path, or change the capture-side algorithm.
+
 ## Producer-Unpack Decimate Guard
 
 The current source now disables the shared producer ring when either
@@ -499,13 +522,15 @@ The remaining likely causes are:
    that was not preserved as a committed source delta,
 3. missing in-worker Pass1 unpack optimization for the current hot path.
 
-Next step: recover the original downstream `be0328a` worktree if it still
-exists. If it cannot be recovered, treat the May 26 number as non-reproducible
-and focus the current-code fix on Pass1 unpack throughput. The producer-unpack
-corruption is now guarded for decimated capture, and the naive decimated
-producer and combined producer scratch paths are both ruled out by timing. The
-next speed experiment must share raw-to-log work in the active Pass1 worker
-path or otherwise reduce unpack cost directly without producer-ring overhead.
+Next step: treat the May 26 number as non-reproducible unless the original
+downstream `be0328a` worktree is recovered, and focus the current-code fix on
+real Pass1/highpass work reduction. Polynomial log, u16 log scratch, and
+prescale-2 fixed-shift candidates are all ruled out by Pi timing. The
+producer-unpack corruption is now guarded for decimated capture, and the naive
+decimated producer plus combined producer scratch paths are both ruled out by
+timing. The next speed experiment must share raw-to-log work in the active
+Pass1 worker path, remove highpass work without invalidating output, reduce
+highpass tokenization/data movement, or replace the capture-side algorithm.
 The production target remains >= 24 fps sustained; today's best evidenced
 current-build knob is 22.53 fps median on a 100-frame probe and 19.98 fps
 median on the strict 10-minute receipt.
