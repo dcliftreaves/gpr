@@ -224,6 +224,44 @@ not change the production blocker: sustained half-res capture still needs
 additional Pass1 work reduction or a different capture-side algorithm to reach
 >= 24 fps.
 
+## GCC Flag And Rehearsal Probe
+
+The prefetch source candidate was also built on the Pi with GCC Release flag
+variants. The best short-run build used:
+
+`-O3 -DNDEBUG -frename-registers -funroll-loops -fprefetch-loop-arrays`
+
+Probe artifacts:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_gcc_flags_probe_20260615/gcc_flags_probe.json`
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_gcc_flags_probe_20260615/gcc_flag_combos_probe.json`
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_gcc_flags_probe_20260615/gcc_fast_confirm.json`
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_fast_flags_runtime_probe_20260615/fast_flags_runtime_probe.json`
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_fast_rehearsal_cfb63f9_20260615/labs_target_bench.json`
+
+Short probes found promising but unstable results:
+
+| case | median | finding |
+|---|---:|---|
+| fast flags + `FUSED_STRIPE_ROWS=64 FUSED_DEFER_RANS=1`, 300 frames | 40.26 ms / 24.84 fps | short-run pass |
+| fast flags + `FUSED_STRIPE_ROWS=48`, 300 frames | 40.44 ms / 24.73 fps | short-run pass |
+| fast flags + default runtime, repeat 300 frames | 43.41 ms / 23.04 fps | below target |
+
+The same fast build and runtime env failed the target-bench rehearsal:
+
+| run | frames | median | verdict |
+|---|---:|---:|---|
+| fast flags + `FUSED_STRIPE_ROWS=64 FUSED_DEFER_RANS=1` | 1,440 | 45.13 ms / 22.16 fps | valid `.gvid`, no drops, below target |
+
+This rules out promoting the GCC flag/runtime combination as production target
+evidence. It can remain a future build-tuning lead, but the current evidence
+does not support changing the committed Pi build flags or claiming >= 24 fps.
+
 ## Producer-Unpack Decimate Guard
 
 The current source now disables the shared producer ring when either
