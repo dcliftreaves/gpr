@@ -220,6 +220,8 @@ def require_ci_contract(tracked: set[str], failures: list[str]) -> None:
         failures.append("CI must run python3 tools/test/check_labs_readiness.py")
     if "python3 tools/test/check_labs_target_receipts.py" not in text:
         failures.append("CI must run python3 tools/test/check_labs_target_receipts.py")
+    if "tools/test/test_fused_context_env_capture.sh" not in text:
+        failures.append("CI must run tools/test/test_fused_context_env_capture.sh")
 
 
 def require_target_workflow_contract(tracked: set[str], failures: list[str]) -> None:

@@ -917,6 +917,17 @@ typedef struct {
        at 0 (DC content shouldn't be soft-thresholded). Per-channel because
        different Bayer color planes have different noise characteristics. */
     int32_t inline_denoise_T[FUSED_MAX_BANDS];
+
+    /* Per-context mode bits captured at encoder creation. Pass1 runs on
+       worker threads, so these must not be read through function-static
+       getenv caches. */
+    int row_decimate;
+    int col_decimate;
+    int decimate_aa;
+    int aa_luma_only;
+    int drop_hp;
+    int fuse_lp_off;
+    int luma_fused_off;
 } FUSED_CHANNEL_STATE;
 
 /* ================================================================
@@ -2330,11 +2341,9 @@ static void pass1_run_channel(
        Combined, these give 2x2 channel-space decimation (1/4 area) for the
        50 MP→ ~5.7 MP-equivalent encode path. ch_width and ch_height are
        halved; downstream band sizes match setup_channel_state. */
-    const char *_rdec_env = getenv("GPR_ROW_DECIMATE");
-    int row_stride_pairs = (_rdec_env && *_rdec_env == '2') ? 4 : 2;
+    int row_stride_pairs = (cs->row_decimate == 2) ? 4 : 2;
     if (row_stride_pairs == 4) ch_height /= 2;
-    const char *_cdec_env = getenv("GPR_COL_DECIMATE");
-    int col_decimate = (_cdec_env && *_cdec_env == '2') ? 2 : 1;
+    int col_decimate = (cs->col_decimate == 2) ? 2 : 1;
     int ch_width_full = ch_width;          /* width of intermediate unpack */
     if (col_decimate == 2) ch_width /= 2;  /* output to horiz */
     const uint16_t *bayer = (const uint16_t *)raw_bayer;
@@ -2383,23 +2392,9 @@ static void pass1_run_channel(
        a function-static cache, but the per-row `do_aa = (...)` expression
        and the conditional dispatch still cost branches. Compute the per-
        channel mode once. */
-    static int decimate_aa = -1;
-    if (decimate_aa < 0) {
-        const char *e = getenv("GPR_DECIMATE_AA");
-        decimate_aa = (e && *e == '1') ? 1 : 0;
-    }
-    static int aa_luma_only = -1;
-    if (aa_luma_only < 0) {
-        const char *e = getenv("GPR_AA_LUMA_ONLY");
-        aa_luma_only = (e && *e == '1') ? 1 : 0;
-    }
-    static int hf_drop_hp = -1;
-    if (hf_drop_hp < 0) {
-        const char *e = getenv("GPR_DROP_HIGHPASS");
-        hf_drop_hp = (e && *e == '1') ? 1 : 0;
-    }
-    int do_aa_ch = (col_decimate == 2 && row_stride_pairs == 4 && decimate_aa);
-    if (do_aa_ch && aa_luma_only && (channel == 1 || channel == 2)) {
+    const int hf_drop_hp = cs->drop_hp;
+    int do_aa_ch = (col_decimate == 2 && row_stride_pairs == 4 && cs->decimate_aa);
+    if (do_aa_ch && cs->aa_luma_only && (channel == 1 || channel == 2)) {
         do_aa_ch = 0;
     }
     /* Per-row dispatch mode: 0 = AA-2x2, 1 = full-width unpack + pair-avg,
@@ -2428,12 +2423,7 @@ static void pass1_run_channel(
                    directly to lowpass_buf, skipping the 8 KB unpack_row
                    intermediate. Gated by FUSED_FUSE_LP_OFF=1 in case
                    regression. */
-                static int fuse_lp_off = -1;
-                if (fuse_lp_off < 0) {
-                    const char *e = getenv("FUSED_FUSE_LP_OFF");
-                    fuse_lp_off = (e && *e == '1') ? 1 : 0;
-                }
-                if (hf_drop_hp && prescale == 2 && !fuse_lp_off) {
+                if (hf_drop_hp && prescale == 2 && !cs->fuse_lp_off) {
                     unpack_channel_row_decimate_2x2_fused_lp(channel, is_rggb,
                         log_tbl, log_max, mid2,
                         row1, row2, row1b, row2b,
@@ -2450,17 +2440,7 @@ static void pass1_run_channel(
                                   hf_drop_hp+prescale==2; writes directly to
                                   cs->lowpass_buf, skipping unpack_row.
                    Gated by FUSED_LUMA_FUSED_OFF=1 / FUSED_FUSE_LP_OFF=1. */
-                static int luma_fused_off = -1;
-                if (luma_fused_off < 0) {
-                    const char *e = getenv("FUSED_LUMA_FUSED_OFF");
-                    luma_fused_off = (e && *e == '1') ? 1 : 0;
-                }
-                static int mode1_fuse_lp_off = -1;
-                if (mode1_fuse_lp_off < 0) {
-                    const char *e = getenv("FUSED_FUSE_LP_OFF");
-                    mode1_fuse_lp_off = (e && *e == '1') ? 1 : 0;
-                }
-                int use_fused_lp = (hf_drop_hp && prescale == 2 && !mode1_fuse_lp_off);
+                int use_fused_lp = (hf_drop_hp && prescale == 2 && !cs->fuse_lp_off);
                 if (channel == 1 || channel == 2) {
                     if (use_fused_lp) {
                         unpack_channel_row_col_decimate_2x1_fused_lp(channel, is_rggb,
@@ -2471,7 +2451,7 @@ static void pass1_run_channel(
                             log_tbl, log_max, mid2,
                             row1, row2, unpack_row, ch_width);
                     }
-                } else if (!luma_fused_off) {
+                } else if (!cs->luma_fused_off) {
                     if (use_fused_lp) {
                         unpack_luma_row_col_decimate_2x1_fused_lp(channel, is_rggb,
                             log_tbl, log_max, mid2,
@@ -2518,25 +2498,15 @@ static void pass1_run_channel(
                T16: mode 1 (col-decimate) also fuses with LP — both chroma
                and luma paths support it. Skip the separate horizontal_filter
                call when any fused-LP path was taken. */
-            static int hf_fuse_lp_off = -1;
-            if (hf_fuse_lp_off < 0) {
-                const char *e = getenv("FUSED_FUSE_LP_OFF");
-                hf_fuse_lp_off = (e && *e == '1') ? 1 : 0;
-            }
-            static int hf_luma_fused_off = -1;
-            if (hf_luma_fused_off < 0) {
-                const char *e = getenv("FUSED_LUMA_FUSED_OFF");
-                hf_luma_fused_off = (e && *e == '1') ? 1 : 0;
-            }
             int skip_h = 0;
-            if (hf_drop_hp && prescale == 2 && !hf_fuse_lp_off) {
+            if (hf_drop_hp && prescale == 2 && !cs->fuse_lp_off) {
                 if (unpack_mode == 0) skip_h = 1;
                 else if (unpack_mode == 1) {
                     /* mode 1 fused-LP is only used when the channel's
                        fused-col-decimate path was taken (chroma always; luma
                        unless FUSED_LUMA_FUSED_OFF). */
                     if (channel == 1 || channel == 2) skip_h = 1;
-                    else if (!hf_luma_fused_off)      skip_h = 1;
+                    else if (!cs->luma_fused_off)    skip_h = 1;
                 }
             }
             if (skip_h) {
@@ -2647,15 +2617,10 @@ static void pass1_run_channel(
                    bands), but the timing tells us if dropping HL/LH/HH bands
                    is sufficient to hit 24 fps on 50 MP input. */
                 if (inline_mode) {
-                    static int drop_hp = -1;
-                    if (drop_hp < 0) {
-                        const char *e = getenv("GPR_DROP_HIGHPASS");
-                        drop_hp = (e && *e == '1') ? 1 : 0;
-                    }
                     if (cs->inline_state[0]) {
                         jans_inline_row(cs->inline_state[0], ll_row, bw);
                     }
-                    if (!drop_hp) {
+                    if (!hf_drop_hp) {
                         /* Inline-mode BayesShrink-style soft-threshold on
                            highpass bands. Applied while bands are still hot
                            in L1, before the tokenize loop reads them. LL is
@@ -2696,18 +2661,13 @@ static void pass1_run_channel(
        but state[0] is still set when GPR_INCLUDE_LL=1. Take either. */
     if (cs->inline_state[0] != NULL || cs->inline_state[1] != NULL) {
         int bw = cs->band_width;
-        static int drop_hp_tail = -1;
-        if (drop_hp_tail < 0) {
-            const char *e = getenv("GPR_DROP_HIGHPASS");
-            drop_hp_tail = (e && *e == '1') ? 1 : 0;
-        }
         PIXEL *zero_row = (PIXEL *)calloc(bw, sizeof(PIXEL));
         if (zero_row) {
             while (cs->band_out_row < cs->band_height) {
                 if (cs->inline_state[0]) {
                     jans_inline_row(cs->inline_state[0], zero_row, bw);
                 }
-                if (!drop_hp_tail && cs->inline_state[1]) {
+                if (!hf_drop_hp && cs->inline_state[1]) {
                     jans_inline_row(cs->inline_state[1], zero_row, bw);
                     jans_inline_row(cs->inline_state[2], zero_row, bw);
                     jans_inline_row(cs->inline_state[3], zero_row, bw);
@@ -2975,12 +2935,7 @@ static void pass1_run_channel_consumer(
     }
     int total_rows = ch_height + tail_extras;
 
-    /* Hoist env-driven flag out of the row loop. */
-    static int hf_drop_hp_c = -1;
-    if (hf_drop_hp_c < 0) {
-        const char *e = getenv("GPR_DROP_HIGHPASS");
-        hf_drop_hp_c = (e && *e == '1') ? 1 : 0;
-    }
+    const int hf_drop_hp_c = cs->drop_hp;
 
     for (int row = 0; row < total_rows; row++) {
         int buf_idx = cs->buf_row % FUSED_ROW_BUFS;
@@ -3102,15 +3057,10 @@ static void pass1_run_channel_consumer(
 #endif
 
                 if (inline_mode) {
-                    static int drop_hp = -1;
-                    if (drop_hp < 0) {
-                        const char *e = getenv("GPR_DROP_HIGHPASS");
-                        drop_hp = (e && *e == '1') ? 1 : 0;
-                    }
                     if (cs->inline_state[0]) {
                         jans_inline_row(cs->inline_state[0], ll_row, bw);
                     }
-                    if (!drop_hp) {
+                    if (!hf_drop_hp_c) {
                         jans_inline_row(cs->inline_state[1], lh_row, bw);
                         jans_inline_row(cs->inline_state[2], hl_row, bw);
                         jans_inline_row(cs->inline_state[3], hh_row, bw);
@@ -3162,18 +3112,13 @@ advance_consumer:
        but state[0] is still set when GPR_INCLUDE_LL=1. Take either. */
     if (cs->inline_state[0] != NULL || cs->inline_state[1] != NULL) {
         int bw = cs->band_width;
-        static int drop_hp_tail = -1;
-        if (drop_hp_tail < 0) {
-            const char *e = getenv("GPR_DROP_HIGHPASS");
-            drop_hp_tail = (e && *e == '1') ? 1 : 0;
-        }
         PIXEL *zero_row = (PIXEL *)calloc(bw, sizeof(PIXEL));
         if (zero_row) {
             while (cs->band_out_row < cs->band_height) {
                 if (cs->inline_state[0]) {
                     jans_inline_row(cs->inline_state[0], zero_row, bw);
                 }
-                if (!drop_hp_tail && cs->inline_state[1]) {
+                if (!hf_drop_hp_c && cs->inline_state[1]) {
                     jans_inline_row(cs->inline_state[1], zero_row, bw);
                     jans_inline_row(cs->inline_state[2], zero_row, bw);
                     jans_inline_row(cs->inline_state[3], zero_row, bw);
@@ -3233,9 +3178,11 @@ static int setup_channel_state(
        GPR_COL_DECIMATE=2 — halve ch_width (post-unpack pair average).
        Combined: 2x2 channel-space decimation; bands/buffers shrink to match. */
     const char *_rdec_env = getenv("GPR_ROW_DECIMATE");
-    if (_rdec_env && *_rdec_env == '2') ch_height /= 2;
+    int row_decimate = (_rdec_env && *_rdec_env == '2') ? 2 : 1;
+    if (row_decimate == 2) ch_height /= 2;
     const char *_cdec_env = getenv("GPR_COL_DECIMATE");
-    if (_cdec_env && *_cdec_env == '2') ch_width /= 2;
+    int col_decimate = (_cdec_env && *_cdec_env == '2') ? 2 : 1;
+    if (col_decimate == 2) ch_width /= 2;
     /* GPR_INCLUDE_LL: in single-level mode, the LL band IS the final lowpass
        output (not a cascade intermediate). Its magnitude after the 5/3 wavelet
        can reach ~16k for 14-bit input, which overflows the rANS class-15
@@ -3251,6 +3198,8 @@ static int setup_channel_state(
 
     for (int ch = 0; ch < 4; ch++) {
         ch_state[ch].levels = levels;
+        ch_state[ch].row_decimate = row_decimate;
+        ch_state[ch].col_decimate = col_decimate;
         /* Level-1 quant: qt[0]=LL1 (effectively no-op divisor=1),
            qt[7,8,9]=LH1,HL1,HH1 in multi-level mode (coarsest quantization
            on the largest bands). Single-level mode uses qt[1..3]. */
@@ -3664,6 +3613,7 @@ struct FUSED_ENCODER {
                           get any rows written in Pass 1 anyway. Saves
                           allocation + thread-create + finalize call per
                           frame; decoder treats size-0 bands as zeros. */
+    int inline_denoise_T; /* GPR_INLINE_DENOISE_T captured at create time. */
     int streaming;    /* When multi_level=1: 1 = stream level-2/3 inline with
                           level-1 (no LL1/LL2 band buffers, embedded-friendly);
                           0 = sequential (full LL1/LL2 buffers, simpler). */
@@ -3766,16 +3716,9 @@ static int fused_choose_streaming(void) {
    inline-tokenize state). Band buffers / row scratch are overwritten as work
    progresses so no per-frame zeroing needed. */
 static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
-    /* Inline-mode BayesShrink threshold (single global value applied to LH/HL/HH
-       bands across all channels). Env knob GPR_INLINE_DENOISE_T sets the
-       threshold in quantized coefficient units. 0 (default) = no thresholding.
-       Typical useful range: 1-8 for noisy high-ISO content, 0 for clean. */
-    static int denoise_T_cached = -1;
-    if (denoise_T_cached < 0) {
-        const char *e = getenv("GPR_INLINE_DENOISE_T");
-        denoise_T_cached = e ? atoi(e) : 0;
-        if (denoise_T_cached < 0) denoise_T_cached = 0;
-    }
+    /* Inline-mode BayesShrink threshold is captured at context creation, not
+       through a worker-visible static getenv cache. */
+    int denoise_T_cached = ctx->inline_denoise_T;
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         cs->band_out_row = 0;
@@ -3823,6 +3766,11 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     ctx->multi_level = fused_choose_multi_level();
     ctx->levels = fused_choose_levels(ctx->multi_level);
     ctx->streaming = ctx->multi_level ? fused_choose_streaming() : 0;
+    {
+        const char *e = getenv("GPR_INLINE_DENOISE_T");
+        ctx->inline_denoise_T = e ? atoi(e) : 0;
+        if (ctx->inline_denoise_T < 0) ctx->inline_denoise_T = 0;
+    }
     /* Multi-level requires split mode (we need LL1/LL2 buffers in memory). */
     if (ctx->multi_level && ctx->inline_mode) {
         ctx->inline_mode = 0;
@@ -3850,6 +3798,24 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     {
         const char *e = getenv("GPR_DROP_HIGHPASS");
         ctx->drop_hp = (e && *e == '1') ? 1 : 0;
+    }
+    {
+        const char *e = getenv("GPR_DECIMATE_AA");
+        int decimate_aa = (e && *e == '1') ? 1 : 0;
+        e = getenv("GPR_AA_LUMA_ONLY");
+        int aa_luma_only = (e && *e == '1') ? 1 : 0;
+        e = getenv("FUSED_FUSE_LP_OFF");
+        int fuse_lp_off = (e && *e == '1') ? 1 : 0;
+        e = getenv("FUSED_LUMA_FUSED_OFF");
+        int luma_fused_off = (e && *e == '1') ? 1 : 0;
+        for (int ch = 0; ch < 4; ch++) {
+            FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
+            cs->decimate_aa = decimate_aa;
+            cs->aa_luma_only = aa_luma_only;
+            cs->drop_hp = ctx->drop_hp;
+            cs->fuse_lp_off = fuse_lp_off;
+            cs->luma_fused_off = luma_fused_off;
+        }
     }
     int band_start = ctx->include_ll ? 0 : 1;
 
@@ -3986,9 +3952,7 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
         const char *prod_env = getenv("FUSED_PRODUCER_UNPACK");
         if (prod_env && prod_env[0] == '1') use_producer = 1;
         if (use_producer) {
-            const char *row_dec = getenv("GPR_ROW_DECIMATE");
-            const char *col_dec = getenv("GPR_COL_DECIMATE");
-            if ((row_dec && row_dec[0] == '2') || (col_dec && col_dec[0] == '2')) {
+            if (ctx->ch_state[0].row_decimate == 2 || ctx->ch_state[0].col_decimate == 2) {
                 use_producer = 0;
             }
         }
@@ -4345,13 +4309,8 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     /* If row/col decimate were applied during encode, the bands and the
        output Bayer are at half dims. Tell the decoder via this field;
        decoder treats the file as a hdr.width/dec × hdr.height/dec image. */
-    {
-        const char *r = getenv("GPR_ROW_DECIMATE");
-        const char *c = getenv("GPR_COL_DECIMATE");
-        int rd = (r && *r == '2') ? 1 : 0;
-        int cd = (c && *c == '2') ? 1 : 0;
-        hdr.decimate = (rd && cd) ? 2 : 0;
-    }
+    hdr.decimate = (ctx->ch_state[0].row_decimate == 2 &&
+                    ctx->ch_state[0].col_decimate == 2) ? 2 : 0;
 
     size_t pos = 0;
     memcpy(ctx->stream_buf + pos, &hdr, sizeof(hdr)); pos += sizeof(hdr);
@@ -4696,13 +4655,8 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
        GPR_COL_DECIMATE=2 are set, setup_channel_state has already halved
        ch_width/ch_height, every band is at the smaller dims, and the decoder
        needs hdr.decimate=2 to size buffers correctly. */
-    {
-        const char *r = getenv("GPR_ROW_DECIMATE");
-        const char *c = getenv("GPR_COL_DECIMATE");
-        int rd = (r && *r == '2') ? 1 : 0;
-        int cd = (c && *c == '2') ? 1 : 0;
-        hdr.decimate = (rd && cd) ? 2 : 0;
-    }
+    hdr.decimate = (ctx->ch_state[0].row_decimate == 2 &&
+                    ctx->ch_state[0].col_decimate == 2) ? 2 : 0;
 
     size_t pos = 0;
     memcpy(ctx->stream_buf + pos, &hdr, sizeof(hdr)); pos += sizeof(hdr);

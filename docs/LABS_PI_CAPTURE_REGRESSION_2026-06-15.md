@@ -520,6 +520,11 @@ full-size ring is not valid for decimated capture. The guarded fallback removes
 the corruption; a real speed fix requires a decimation-aware producer or
 another Pass1 unpack optimization.
 
+The fused encoder mode knobs used by the half-res path are now captured at
+context creation and guarded by `tools/test/test_fused_context_env_capture.sh`,
+so post-create environment drift cannot silently change the emitted decimation
+header while worker threads are running.
+
 ## Reproducible Timing Build
 
 The timing path is now a supported diagnostic build instead of a scratch source

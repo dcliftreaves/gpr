@@ -246,6 +246,9 @@ jobs:
       - name: Run producer-unpack decimate fallback smoke
         run: timeout 60 bash tools/test/test_producer_unpack_decimate_fallback.sh
 
+      - name: Run fused context env capture smoke
+        run: timeout 60 bash tools/test/test_fused_context_env_capture.sh
+
       - name: Run bench_fused quality env smoke
         run: timeout 60 bash tools/test/test_bench_fused_quality_env.sh
 

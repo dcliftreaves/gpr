@@ -1,5 +1,11 @@
 # Labs Firmware Intake Goal
 
+Last updated: 2026-06-15.
+
+This file is the durable goal contract for the current session. If the
+in-session tracker is lost, recreated, or summarized, restart from this file
+instead of inferring new stop criteria from chat history.
+
 ## Active Session Goal
 
 Make GPR reviewable as a camera-firmware Labs prototype: `.gvid` half-res raw
@@ -50,6 +56,22 @@ down. The in-session goal tracker is active with the same objective and stop
 criteria. Work should continue against this file as the durable source of truth
 for what "done" means until the Labs intake package is complete, or until a
 specific evidenced blocker is documented.
+
+Proper session goal:
+
+> Make GPR reviewable as a camera-firmware Labs prototype: `.gvid` half-res raw
+> capture plus desktop review/export, with clear evidence for safety,
+> performance, artifact portability, and firmware integration boundaries.
+
+The session should not stop because an intermediate optimization lands, hosted
+CI passes, a dashboard improves, or one receipt looks better. It should stop
+only when the package is reviewable by a firmware/media engineer, or when the
+blocker is specific enough that the next required action depends on missing
+hardware, missing integration access, or a documented design decision.
+
+Goal tracker status for this session: active. A second goal should not be
+created while this one is active; work should continue under this goal until it
+is complete or objectively blocked.
 
 ## Reviewer Frame
 
