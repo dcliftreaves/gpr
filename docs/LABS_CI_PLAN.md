@@ -15,6 +15,8 @@ Current hosted CI should continue to cover:
 - release evidence manifest,
 - Labs readiness guard tying the firmware-intake docs, release manifest, and
   CI workflow to the current capture-blocked / 2K-live-ready evidence split,
+- Labs target receipt guard tying the release manifest to strict Pi receipt
+  metrics when external artifacts are mounted,
 - production artifact inventory,
 - C build on Linux and macOS,
 - `.gvid` header and stream validation via `test_video_format`,
@@ -33,6 +35,15 @@ Required for Labs intake before firmware-readiness claims:
 | Mac/M-series review export | `.gvid` to review MOV/ProRes, timing and memory receipt |
 | Artifact bundle verify | download bundle, checksum, validate `.gvid`, validate metadata, inspect receipt schema |
 | Interruption recovery | kill capture mid-stream, recover complete frames, reject truncated final frame |
+
+The executable target lane is `.github/workflows/labs-target.yml`. It is
+manual-only (`workflow_dispatch`) and requires a self-hosted runner labeled
+`self-hosted`, `Linux`, `ARM64`, and `gpr-labs-pi5`. It builds `bench_fused`,
+runs `tools/run_labs_target_bench.py` against a caller-supplied raw Bayer file,
+writes the compact `labs_target_bench.json` receipt under external storage, and
+fails the workflow unless the strict verdict passes. The heavy `.gvid` and frame
+payloads stay on the external target drive; GitHub Actions uploads only the JSON
+receipt and stdout tail.
 
 ## Skip Policy
 

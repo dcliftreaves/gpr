@@ -20,6 +20,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "docs/release_evidence_manifest.json"
 CI = ROOT / ".github/workflows/ci.yml"
+TARGET_CI = ROOT / ".github/workflows/labs-target.yml"
 
 REQUIRED_DOCS = {
     "docs/LABS_READINESS_GOAL.md": [
@@ -60,6 +61,8 @@ REQUIRED_DOCS = {
     "docs/LABS_CI_PLAN.md": [
         "Hosted CI",
         "Target Or Self-Hosted CI",
+        ".github/workflows/labs-target.yml",
+        "gpr-labs-pi5",
         "Skip Policy",
         "not a pass for firmware readiness",
     ],
@@ -207,6 +210,28 @@ def require_ci_contract(tracked: set[str], failures: list[str]) -> None:
     text = CI.read_text(encoding="utf-8")
     if "python3 tools/test/check_labs_readiness.py" not in text:
         failures.append("CI must run python3 tools/test/check_labs_readiness.py")
+    if "python3 tools/test/check_labs_target_receipts.py" not in text:
+        failures.append("CI must run python3 tools/test/check_labs_target_receipts.py")
+
+
+def require_target_workflow_contract(tracked: set[str], failures: list[str]) -> None:
+    rel = ".github/workflows/labs-target.yml"
+    if rel not in tracked:
+        failures.append(".github/workflows/labs-target.yml must be tracked")
+        return
+    text = TARGET_CI.read_text(encoding="utf-8")
+    for token in (
+        "workflow_dispatch",
+        "self-hosted",
+        "gpr-labs-pi5",
+        "bench_fused",
+        "tools/run_labs_target_bench.py",
+        "labs_target_bench.json",
+        "actions/upload-artifact",
+        "Enforce target verdict",
+    ):
+        if token not in text:
+            failures.append(f".github/workflows/labs-target.yml missing target workflow token {token!r}")
 
 
 def main() -> int:
@@ -215,6 +240,7 @@ def main() -> int:
     require_docs(tracked, failures)
     require_manifest_contract(load_manifest(), failures)
     require_ci_contract(tracked, failures)
+    require_target_workflow_contract(tracked, failures)
 
     if failures:
         print("Labs readiness guard failed:")

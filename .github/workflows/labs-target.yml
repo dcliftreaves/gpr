@@ -1,0 +1,169 @@
+name: Labs Target Evidence
+
+# Manual target/self-hosted workflow for evidence that hosted CI cannot prove.
+# It is intentionally not triggered by push or pull_request because it needs a
+# Pi 5 / Mission 1 stand-in runner, a local Bayer raw source, and external
+# artifact storage.
+
+on:
+  workflow_dispatch:
+    inputs:
+      raw_path:
+        description: "Absolute path to the target-runner Bayer raw input"
+        required: true
+      output_dir:
+        description: "External artifact root for this target bench"
+        required: true
+        default: "/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_self_hosted"
+      scratch_dir:
+        description: "External scratch/tmp directory on the target runner"
+        required: true
+        default: "/Volumes/OWC_8TB/gpr_work/tmp"
+      frames:
+        description: "Frames to encode; 14400 is 10 minutes at 24 fps"
+        required: true
+        default: "14400"
+      target_fps:
+        description: "Required median FPS target"
+        required: true
+        default: "24"
+      source_width:
+        description: "Source Bayer width"
+        required: true
+        default: "8280"
+      source_height:
+        description: "Source Bayer height"
+        required: true
+        default: "5520"
+      capture_width:
+        description: ".gvid capture width"
+        required: true
+        default: "8280"
+      capture_height:
+        description: ".gvid capture height"
+        required: true
+        default: "5520"
+      quality:
+        description: "FUSED quality preset"
+        required: true
+        default: "3"
+      pixel_format:
+        description: ".gvid pixel format"
+        required: true
+        default: "4"
+
+concurrency:
+  group: labs-target-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pi5-sustained-capture:
+    name: Pi 5 sustained .gvid capture
+    runs-on: [self-hosted, Linux, ARM64, gpr-labs-pi5]
+    timeout-minutes: 120
+
+    env:
+      GPR_EXTERNAL_ROOT: /Volumes/OWC_8TB/gpr_work
+      GPR_ARTIFACT_ROOT: /Volumes/OWC_8TB/gpr_work/artifacts
+      TMPDIR: ${{ inputs.scratch_dir }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Prepare external directories
+        id: prep
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ inputs.scratch_dir }}"
+          OUT="${{ inputs.output_dir }}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$OUT"
+          echo "outdir=$OUT" >> "$GITHUB_OUTPUT"
+          echo "Using output dir: $OUT"
+
+      - name: Configure Release build
+        run: |
+          set -euo pipefail
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build target bench binary
+        run: |
+          set -euo pipefail
+          cmake --build build --target bench_fused -j"$(nproc)"
+
+      - name: Run strict Labs target bench
+        id: bench
+        run: |
+          set -uo pipefail
+          python3 tools/run_labs_target_bench.py \
+            --bench build/bin/bench_fused \
+            --raw "${{ inputs.raw_path }}" \
+            --output-dir "${{ steps.prep.outputs.outdir }}" \
+            --frames "${{ inputs.frames }}" \
+            --target-fps "${{ inputs.target_fps }}" \
+            --source-width "${{ inputs.source_width }}" \
+            --source-height "${{ inputs.source_height }}" \
+            --capture-width "${{ inputs.capture_width }}" \
+            --capture-height "${{ inputs.capture_height }}" \
+            --quality "${{ inputs.quality }}" \
+            --pixel-format "${{ inputs.pixel_format }}" \
+            2>&1 | tee "$RUNNER_TEMP/labs_target_bench_stdout.txt"
+          status=${PIPESTATUS[0]}
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Write target bench summary
+        if: always()
+        env:
+          LABS_TARGET_OUTDIR: ${{ steps.prep.outputs.outdir }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          outdir = Path(os.environ["LABS_TARGET_OUTDIR"])
+          receipt = outdir / "labs_target_bench.json"
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          if not receipt.exists():
+              summary.write_text("## Labs Target Bench\n\nNo receipt was written.\n", encoding="utf-8")
+              raise SystemExit(0)
+
+          data = json.loads(receipt.read_text(encoding="utf-8"))
+          timing = data.get("timing", {})
+          capture = data.get("capture", {})
+          verdict = data.get("verdict", {})
+          gvid = data.get("gvid", {})
+          rows = [
+              ("receipt", str(receipt)),
+              ("frames", f"{capture.get('frames_written')}/{capture.get('frames_requested')}"),
+              ("fps_median", timing.get("fps_median")),
+              ("p95_ms", timing.get("p95_ms")),
+              ("gvid_valid", verdict.get("gvid_valid")),
+              ("no_drops", verdict.get("no_drops")),
+              ("fps_target_met", verdict.get("fps_target_met")),
+              ("interruption_recovery_proven", verdict.get("interruption_recovery_proven")),
+              ("gvid_sha256", gvid.get("sha256")),
+          ]
+          text = ["## Labs Target Bench", "", "| field | value |", "|---|---|"]
+          text += [f"| {k} | {v} |" for k, v in rows]
+          text.append("")
+          summary.write_text("\n".join(text), encoding="utf-8")
+          PY
+
+      - name: Upload compact target receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: labs-target-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          path: |
+            ${{ steps.prep.outputs.outdir }}/labs_target_bench.json
+            ${{ runner.temp }}/labs_target_bench_stdout.txt
+
+      - name: Enforce target verdict
+        run: |
+          set -euo pipefail
+          test "${{ steps.bench.outputs.status }}" = "0"
