@@ -145,6 +145,30 @@ Probe artifact:
 No runtime knob restores 24 fps. `FUSED_STRIPE_ROWS=64` is worth keeping as a
 candidate optimization, but it is not sufficient for production target capture.
 
+## Timing Profile
+
+A timing-enabled build of the current clean Labs commit was run on the Pi to
+separate encode stages. The instrumentation build is not a production timing
+receipt, but it identifies where the missing throughput has to come from.
+
+Probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_timing_probe_20260615_0dd6660/timing_probe.json`
+
+| case | median | Pass1 mean | Pass2 mean | dominant channel cost |
+|---|---:|---:|---:|---|
+| baseline, no write | 46.40 ms | 38.14 ms | 7.99 ms | unpack 22.77 ms |
+| baseline, write-all | 46.68 ms | 38.41 ms | 7.74 ms | unpack 22.68 ms |
+| stripe64, no write | 47.11 ms | 39.67 ms | 7.73 ms | unpack 23.62 ms |
+| stripe64, write-all | 44.49 ms | 35.74 ms | 7.80 ms | unpack 21.56 ms |
+
+The profile says the blocker is not primarily `.gvid` wrapping or storage I/O
+at this sample size. Multi-level Pass1 dominates the encode, and the largest
+measured Pass1 component is channel unpack. The already-existing
+`FUSED_PRODUCER_UNPACK=1` path is the obvious architectural candidate, but it
+currently aborts with heap corruption and is also slower in the failed probes.
+
 ## Next Boundary To Test
 
 The remaining likely causes are:
@@ -156,7 +180,10 @@ The remaining likely causes are:
    on both comparison commits.
 
 Next step: recover the original downstream `be0328a` worktree if it still
-exists, or treat the May 26 number as non-reproducible and profile the current
-encoder hot path directly. The production target remains >= 24 fps sustained;
-today's best evidenced current-build knob is 22.53 fps median on a 100-frame
-probe and 19.98 fps median on the strict 10-minute receipt.
+exists. If it cannot be recovered, treat the May 26 number as non-reproducible
+and focus the current-code fix on Pass1 unpack throughput. First fix or retire
+the producer-unpack path's heap corruption, then remeasure whether a safe shared
+unpack producer can recover the missing 11-18 percent. The production target
+remains >= 24 fps sustained; today's best evidenced current-build knob is
+22.53 fps median on a 100-frame probe and 19.98 fps median on the strict
+10-minute receipt.
