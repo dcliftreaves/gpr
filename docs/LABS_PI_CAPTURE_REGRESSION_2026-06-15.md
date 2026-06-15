@@ -147,6 +147,35 @@ Probe artifact:
 No runtime knob restores 24 fps. `FUSED_STRIPE_ROWS=64` is worth keeping as a
 candidate optimization, but it is not sufficient for production target capture.
 
+## Runtime Combo Probe
+
+A follow-up 100-frame write-all sweep tested combinations of the best earlier
+knobs plus nearby stripe sizes, deferred rANS, LL2 divisor changes, and quality
+overrides. This used the same Release Pi build and cleaned frame payloads after
+each case.
+
+Probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_runtime_combo_probe_20260615/runtime_combo_probe.json`
+
+| variant | median | finding |
+|---|---:|---|
+| baseline | 43.97 ms / 22.74 fps | best case in this short sweep, still below target |
+| `FUSED_STRIPE_ROWS=64 FUSED_DEFER_RANS=1` | 44.12 ms / 22.67 fps | below target |
+| `FUSED_STRIPE_ROWS=64 FUSED_QUALITY=4` | 45.88 ms / 21.80 fps | below target |
+| `FUSED_STRIPE_ROWS=64 FUSED_LL2_DIVISOR=16` | 45.98 ms / 21.75 fps | below target |
+| `FUSED_STRIPE_ROWS=48` | 46.39 ms / 21.56 fps | below target |
+| `FUSED_STRIPE_ROWS=64 FUSED_QUALITY=2` | 46.72 ms / 21.41 fps | below target |
+| `FUSED_STRIPE_ROWS=96` | 47.12 ms / 21.22 fps | below target |
+| `FUSED_STRIPE_ROWS=80` | 47.92 ms / 20.87 fps | below target |
+| `FUSED_STRIPE_ROWS=64 FUSED_LL2_DIVISOR=32` | 48.52 ms / 20.61 fps | smaller payload, slower |
+| `FUSED_STRIPE_ROWS=64` | 48.97 ms / 20.42 fps | below target in this run |
+
+This narrows the capture blocker further: simple runtime tuning does not close
+the gap. The remaining path is code-level reduction of Pass1 work or a
+different capture-side algorithm, not another stripe/divisor/quality sweep.
+
 ## Producer-Unpack Decimate Guard
 
 The current source now disables the shared producer ring when either
