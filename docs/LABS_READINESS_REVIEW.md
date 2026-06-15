@@ -21,7 +21,7 @@ the current half-res capture path restores >= 24 fps on the target-style run.
 | Portable stand-in bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` |
 | Target receipt harness | `tools/run_labs_target_bench.py` produces `labs_target_bench.json` with timing, storage, memory, drop, `.gvid`, and interruption fields |
 | Strict Pi 5 target receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` proves 14,400 frames, 0 drops, valid `.gvid`, and interrupted-tail recovery |
-| Pi 5 regression probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` records current encoder variants; best stable probe is 21.23 fps median, producer unpack aborts |
+| Pi 5 regression probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` records current, historical-doc, environment, and runtime-knob probes; best tested knob is 22.53 fps median, producer unpack aborts |
 | Current overview | README is media-focused; detailed proof lives in docs |
 
 ## Not Ready Yet
@@ -41,9 +41,9 @@ the current half-res encoder path misses the 24 fps target on the stand-in run.
 
 ## Next Work
 
-1. Investigate the current 19.98 fps Pi 5 regression by running the same
-   300-frame probe against the historical `be0328a` build and the current clean
-   Labs build on one runner.
+1. Recover the original downstream `be0328a` worktree if it still exists, or
+   treat the May 26 24.93 fps result as non-reproducible and profile/optimize
+   the current encoder hot path directly.
 2. Replace or supplement the stand-in bundle with a passing target-capture
    receipt.
 3. Add target/self-hosted CI jobs or documented manual receipts for media

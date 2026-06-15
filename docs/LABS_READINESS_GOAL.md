@@ -264,14 +264,15 @@ zero dropped frames, and interrupted-tail recovery, but it misses the half-res
 - median throughput: 19.98 fps
 - p95 frame time: 66.01 ms
 
-The next engineering task is to determine whether this is a configuration,
-benchmark-methodology, target-environment, or encoder regression relative to
-the historical half-res Pi receipt that reached 24.93 fps median.
+Current, historical-document, environment, and runtime-knob probes do not
+reproduce the 24.93 fps result. The best current-build knob reaches 22.53 fps
+median on a 100-frame probe, while the strict 10-minute receipt remains
+19.98 fps median. The next engineering task is to recover the unrecovered
+downstream worktree or profile and optimize the current encoder hot path.
 
 ## Immediate Next Step
 
-Run short Pi 5 half-res encoder variant probes against the current clean Labs
-build without retaining bulky frame artifacts. Compare inline tokenization,
-producer unpack, streaming mode, and pinning settings. Then either restore the
-production target path to >= 24 fps or document the narrowed blocker with
-variant metrics and the next fix path.
+Recover the original downstream `be0328a` worktree if it exists. If it cannot
+be recovered, treat the May 26 24.93 fps result as non-reproducible and profile
+the current encoder directly to find the missing 11-18 percent needed to clear
+the sustained 24 fps target.
