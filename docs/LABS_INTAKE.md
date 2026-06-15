@@ -50,6 +50,7 @@ ownership, and target CI.
 - Video status and target ladder: `docs/VIDEO_STATUS.md`
 - Raw target timing: `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`
 - Labs goal and stop criteria: `docs/LABS_READINESS_GOAL.md`
+- Pi 5 capture regression note: `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md`
 - Firmware integration contract: `docs/LABS_FIRMWARE_API.md`
 - Artifact bundle contract: `docs/LABS_ARTIFACT_BUNDLE.md`
 - Target bench requirements: `docs/LABS_TARGET_BENCH.md`
@@ -59,7 +60,9 @@ ownership, and target CI.
 ## Next Required Evidence
 
 1. Restore the half-res Pi 5 path to >= 24 fps or narrow the regression from
-   the historical 24.93 fps receipt to a specific code/configuration cause.
+   the historical 24.93 fps receipt to a specific code/configuration cause. The
+   current variant probe did not recover target throughput and found producer
+   unpack unstable.
 2. Package a portable artifact bundle with checksums and verification steps.
 3. Add or document CI lanes for hosted source checks and target/self-hosted
    media checks.
