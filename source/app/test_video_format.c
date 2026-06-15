@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "../lib/vc5_encoder/gpr_video_format.h"
 
@@ -146,6 +147,14 @@ static int test_bad_inputs(void) {
     CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, /*pf*/ 9, 3, 24.0, 150.0, 1, 0) == -1, "bad pixel_format rejected");
     CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, /*q*/ 12, 24.0, 150.0, 1, 0) == -1, "bad quality rejected");
     CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, /*fps*/ 0.0, 150.0, 1, 0) == -1, "bad fps rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, NAN, 150.0, 1, 0) == -1, "nan fps rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, INFINITY, 150.0, 1, 0) == -1, "infinite fps rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, 1.0e20, 150.0, 1, 0) == -1, "overflow fps rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, 24.0, -1.0, 1, 0) == -1, "negative target rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, 24.0, NAN, 1, 0) == -1, "nan target rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, 24.0, INFINITY, 1, 0) == -1, "infinite target rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, 24.0, 1.0e20, 1, 0) == -1, "overflow target rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, 24.0, 0.00001, 1, 0) == -1, "target rounding to zero rejected");
 
     /* Wrong magic */
     gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, 24.0, 150.0, 1, 0);

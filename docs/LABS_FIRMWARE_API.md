@@ -86,6 +86,8 @@ frame header and payload per encoded frame. Strict v1 rules:
 - flags may only use defined v1 bits,
 - reserved fields must be zero,
 - width, height, and fps must be nonzero,
+- fps and target bitrate inputs must be finite and fit their v1 scaled
+  `uint32_t` fields before serialization,
 - pixel format must be in `0..5` and quality must be in `0..11`,
 - rate-control flag and target bitrate must agree,
 - frame payloads must be nonzero and bounded by the containing file.

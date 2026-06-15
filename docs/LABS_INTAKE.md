@@ -40,7 +40,7 @@ ownership, and target CI.
 | Can the repo demonstrate the media shape? | Yes: `.gvid` pack/unpack, metadata dispatch, and ProRes review tooling exist. |
 | Can it hit the half-res capture-rate target on the stand-in path? | Not on the latest strict receipt: commit `0dd6660` writes 14,400/14,400 frames with 0 drops and valid `.gvid`, but reaches only 19.98 fps median versus the 24 fps target. |
 | Can it hit a bounded 2K live display target? | Yes for the decode/display side: `2k_raw_0p5x_l2hh` is live-capable on Pi 5 stand-in timing and the production preview policy is bounded to a 16 px edge-safe viewport. |
-| Is the format safe enough for firmware review? | Source-level path is hardened: v1 C parsing rejects malformed headers and streams; target recovery still needs receipts. |
+| Is the format safe enough for firmware review? | Source-level path is hardened: v1 C parsing rejects malformed headers and streams, and v1 writing rejects non-finite/overflowing FPS and bitrate fields; target recovery still needs receipts. |
 | Are artifacts portable outside the 8TB work drive? | Stand-in bundle verifies; final target bundle still needs 10 minute capture and camera-firmware receipts. |
 | Is CI sufficient for Labs intake? | Hosted CI covers source-level checks; target/self-hosted lanes are specified for media and hardware behavior. |
 

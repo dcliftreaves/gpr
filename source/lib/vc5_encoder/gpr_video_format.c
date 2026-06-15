@@ -8,6 +8,7 @@
  */
 
 #include "gpr_video_format.h"
+#include <float.h>
 #include <string.h>
 
 static void write_u32_le(uint8_t *p, uint32_t v) {
@@ -43,6 +44,10 @@ static void write_u64_le(uint8_t *p, uint64_t v) {
     write_u32_le(p + 4, (uint32_t)((v >> 32) & 0xffffffffu));
 }
 
+static int finite_double(double v) {
+    return v == v && v >= -DBL_MAX && v <= DBL_MAX;
+}
+
 static int validate_clip_header_fields(const gpr_video_clip_header *h) {
     if ((h->flags & (uint8_t)~GPR_VIDEO_FLAG_MASK) != 0) return -1;
     if (h->pixel_format > 5) return -1;
@@ -65,7 +70,8 @@ int gpr_video_write_clip_header(uint8_t *buf, size_t buf_size,
     if (!buf || buf_size < GPR_VIDEO_CLIP_HEADER_SIZE) return -1;
     if (width <= 0 || height <= 0 || pixel_format < 0 || pixel_format > 5) return -1;
     if (quality < 0 || quality > GPR_VIDEO_QUALITY_MAX) return -1;
-    if (fps <= 0.0) return -1;
+    if (!finite_double(fps) || fps <= 0.0) return -1;
+    if (!finite_double(target_MBps) || target_MBps < 0.0) return -1;
 
     uint8_t flags = 0;
     if (target_MBps > 0.0) flags |= GPR_VIDEO_FLAG_RATE_CONTROL;
@@ -74,10 +80,17 @@ int gpr_video_write_clip_header(uint8_t *buf, size_t buf_size,
     /* target_MBps × 8 × 1024 ≈ kbps; storing in 32-bit kbps gives finer
        resolution than MB/s for modest targets, and accommodates up to
        ~4 TB/s of headroom for futures we don't have today. */
-    uint32_t target_kbps = (target_MBps > 0.0)
-        ? (uint32_t)(target_MBps * 8.0 * 1024.0 + 0.5)
-        : 0u;
-    uint32_t fps_x1000 = (uint32_t)(fps * 1000.0 + 0.5);
+    double fps_x1000_d = fps * 1000.0 + 0.5;
+    if (fps_x1000_d < 1.0 || fps_x1000_d > (double)UINT32_MAX) return -1;
+
+    double target_kbps_d = 0.0;
+    if (target_MBps > 0.0) {
+        target_kbps_d = target_MBps * 8.0 * 1024.0 + 0.5;
+        if (target_kbps_d < 1.0 || target_kbps_d > (double)UINT32_MAX) return -1;
+    }
+
+    uint32_t target_kbps = (uint32_t)target_kbps_d;
+    uint32_t fps_x1000 = (uint32_t)fps_x1000_d;
 
     write_u32_le(buf +  0, GPR_VIDEO_CLIP_MAGIC);
     buf[4] = GPR_VIDEO_FORMAT_VERSION;
