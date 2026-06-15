@@ -366,7 +366,7 @@ important receipts:
 - latest committed direct-container receipt support: commit
   `be969d1aa40116992694439d6abbb99c0fd59e3b`
 - latest direct `.gvid` probe receipt:
-  `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_poly_nodrop_120f_20260615/labs_target_bench.json`
+  `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_default_nodrop_120f_ede0e07_20260615/labs_target_bench.json`
 
 Strict sustained result:
 
@@ -376,7 +376,18 @@ Strict sustained result:
 - median throughput: 19.98 fps
 - p95 frame time: 66.01 ms
 
-Direct `.gvid` short-probe result:
+Direct `.gvid` current-head default short-probe result:
+
+- commit: `ede0e078eae4a5643efd24b1a6a5ebec4844a826`
+- mode: `--direct-gvid`, default LUT path, highpass-preserving no-drop path
+- result: 120 requested frames, 120 written frames, valid `.gvid`
+- median frame time: 46.83 ms
+- median throughput: 21.36 fps
+- p95 frame time: 49.44 ms
+- timing detail: Pass1 mean 37.45 ms; channel-unpack mean 22.37 ms across
+  channel workers
+
+Direct `.gvid` polynomial diagnostic result:
 
 - commit: `be969d1aa40116992694439d6abbb99c0fd59e3b`
 - mode: `--direct-gvid`, `FUSED_LOG_POLYNOMIAL=ON`, highpass-preserving
@@ -386,8 +397,10 @@ Direct `.gvid` short-probe result:
 - median throughput: 13.39 fps
 - p95 frame time: 86.88 ms
 
-The direct-container receipt improves measurement fidelity but does not solve
-the performance blocker. Current, historical-document, environment,
+The direct-container receipts improve measurement fidelity but do not solve
+the performance blocker. The current-head default path is far better than the
+polynomial diagnostic but still below 24 fps. Current, historical-document,
+environment,
 runtime-knob, and timing probes do not reproduce the 24.93 fps result. The
 best current-build knob reaches roughly 22-23 fps on short probes, while the
 strict 10-minute receipt remains 19.98 fps median. Timing detail shows

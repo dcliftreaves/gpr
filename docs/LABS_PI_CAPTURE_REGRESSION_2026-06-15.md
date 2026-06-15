@@ -601,7 +601,24 @@ harness exposes this as `tools/run_labs_target_bench.py --direct-gvid`, so a
 run can measure sequential container writes instead of writing one `.gpr` file
 per frame and packing afterward.
 
-Pi 5 stand-in probe:
+Current-head Pi 5 stand-in default probe:
+
+- receipt:
+  `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_default_nodrop_120f_ede0e07_20260615/labs_target_bench.json`
+- commit: `ede0e078eae4a5643efd24b1a6a5ebec4844a826`
+- mode: highpass-preserving no-drop path, default LUT path, `--direct-gvid`
+- frames: 120 / 120
+- `.gvid`: valid
+- median: 46.83 ms / 21.36 fps
+- p95: 49.44 ms
+- timing detail: Pass1 mean 37.45 ms, Pass2 mean 8.09 ms, channel-unpack
+  mean 22.37 ms across channel workers
+
+This rules out the earlier 13 fps direct-container result as a polynomial-log
+diagnostic rather than the default target path. It still does not clear the
+production target.
+
+Polynomial diagnostic Pi 5 stand-in probe:
 
 - receipt:
   `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_poly_nodrop_120f_20260615/labs_target_bench.json`
@@ -612,6 +629,7 @@ Pi 5 stand-in probe:
 - median: 74.71 ms / 13.39 fps
 - p95: 86.88 ms
 
-This receipt proves the direct container measurement path but does not clear
+These receipts prove the direct container measurement path but do not clear
 the production target. The remaining blocker is still compute throughput for
-the highpass-preserving half-res path.
+the highpass-preserving half-res path, with Pass1 channel unpack still the
+largest measured component.

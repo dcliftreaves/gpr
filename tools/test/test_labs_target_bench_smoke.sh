@@ -69,6 +69,9 @@ PY
 chmod +x "$WORK/fake_bench.py"
 printf '\0%.0s' {1..128} > "$WORK/fake.raw"
 
+FUSED_LOG_POLYNOMIAL=1 \
+GPR_DECIMATE_AA=1 \
+GPR_BENCH_PIXEL_FORMAT=4 \
 "$PYTHON_BIN" "$REPO/tools/run_labs_target_bench.py" \
   --bench "$WORK/fake_bench.py" \
   --raw "$WORK/fake.raw" \
@@ -92,6 +95,9 @@ assert receipt["capture"]["frames_requested"] == 4
 assert receipt["capture"]["frames_written"] == 4
 assert receipt["gvid"]["validation"]["frame_count"] == 4
 assert receipt["storage"]["fsync_policy"] == "bench_fused sequential .gvid fwrite"
+assert receipt["bench"]["env_overrides"]["FUSED_LOG_POLYNOMIAL"] == "1"
+assert receipt["bench"]["env_overrides"]["GPR_DECIMATE_AA"] == "1"
+assert receipt["bench"]["env_overrides"]["GPR_BENCH_PIXEL_FORMAT"] == "4"
 assert receipt["verdict"]["gvid_valid"] is True
 assert receipt["verdict"]["target_evidence"] is True
 PY

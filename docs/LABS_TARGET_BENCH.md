@@ -12,7 +12,7 @@ firmware evidence.
 |---|---|---|
 | Historical half-res `.gvid` capture budget | `docs/pi5_bench_2026-05-26.md` reports 24.93 fps median on an older Pi branch/run | historical stand-in evidence |
 | Current strict 10 minute Pi 5 target run | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` reports 14,400 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, 19.98 fps median | target-performance blocker |
-| Current half-res variant probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` reports current, historical-doc, environment, runtime-knob, compiler-flag, quality, producer, highpass-bound, and target-rehearsal probes; best 1-minute rehearsal is 22.70 fps median and best corrected quality-env short probe is 22.36 fps median | regression evidence |
+| Current half-res variant probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` reports current, historical-doc, environment, runtime-knob, compiler-flag, quality, producer, highpass-bound, target-rehearsal, and direct-container probes; best current-head direct `.gvid` default probe is 21.36 fps median | regression evidence |
 | 2K live/camera-back raw target | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` reports `2k_raw_0p5x_l2hh` at 29.85 fps median, 37.1 ms p95 | stand-in evidence |
 | Desktop review PREVIEW | `docs/VIDEO_STATUS.md` reports q8 three-way PREVIEW quality pass at 13.65 s/image on Mac/MPS | offline-only evidence |
 | Format validation | `test_video_format` and `test_video_full_chain` validate headers, streams, and real encoded `.gvid` files | committed CI evidence |
@@ -119,9 +119,21 @@ but it misses the 24 fps target:
 | memory | wrapper 29.0 MB RSS, child 137.5 MB RSS |
 | thermal | 60.9 C start, 75.2 C end |
 
-Additional direct-container probe:
+Additional direct-container probes:
 
-| metric | 2026-06-15 direct `.gvid` short probe |
+| metric | 2026-06-15 current-head direct `.gvid` default probe |
+|---|---|
+| receipt | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_default_nodrop_120f_ede0e07_20260615/labs_target_bench.json` |
+| commit | `ede0e078eae4a5643efd24b1a6a5ebec4844a826` |
+| mode | `--direct-gvid`, default LUT path, highpass-preserving no-drop path |
+| frames | 120 requested / 120 written |
+| median fps | 21.36 fps |
+| median encode+write | 46.83 ms/frame |
+| p95 encode+write | 49.44 ms/frame |
+| `.gvid` | valid |
+| dominant timing | Pass1 mean 37.45 ms; unpack mean 22.37 ms across channel workers |
+
+| metric | 2026-06-15 direct `.gvid` polynomial diagnostic |
 |---|---|
 | receipt | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_poly_nodrop_120f_20260615/labs_target_bench.json` |
 | mode | `--direct-gvid`, `FUSED_LOG_POLYNOMIAL=ON`, highpass-preserving no-drop path |
@@ -131,9 +143,10 @@ Additional direct-container probe:
 | p95 encode+write | 86.88 ms/frame |
 | `.gvid` | valid, 114,392,072 bytes |
 
-This direct-container receipt improves measurement fidelity but does not remove
-the performance blocker. The current highpass-preserving half-res path remains
-below 24 fps on the Pi 5 stand-in.
+The current-head direct default receipt improves measurement fidelity and
+rules out the earlier 13 fps result as a polynomial-log diagnostic, not the
+default target path. It still does not remove the performance blocker: the
+highpass-preserving half-res path remains below 24 fps on the Pi 5 stand-in.
 
 Remaining missing receipts:
 
