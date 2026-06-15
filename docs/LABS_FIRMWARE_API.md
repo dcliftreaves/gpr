@@ -1,6 +1,6 @@
 # Labs Firmware Integration Contract
 
-Last refreshed: 2026-06-14
+Last refreshed: 2026-06-15
 
 This document defines the firmware-facing contract required before `.gvid`
 capture can move from repository prototype to Labs target integration.
@@ -76,6 +76,26 @@ shipping source remains `source/lib/vc5_encoder/gpr_video.h` and
 For a firmware target, the default contract should be synchronous submit with
 bounded scratch memory. Async submit is allowed only if `max_inflight_frames`
 is nonzero and the retain/release contract is tested.
+
+## Metadata Contract
+
+The `.gvid` stream is the byte container. Stream metadata travels beside it as
+a sidecar or target receipt until a firmware-owned metadata path is defined.
+Required metadata for Labs review:
+
+| field | requirement |
+|---|---|
+| pixel format | declared explicitly; decoder must not infer it from payload size |
+| bit depth | declared per stream |
+| frame tags | match `.gvid` frame tags exactly and remain monotonic |
+| timestamps | monotonic capture timestamps with declared time unit |
+| source dimensions | source and capture dimensions recorded when decimation is used |
+| dropped frames | index and timestamp recorded when a frame is rejected or dropped |
+| target role | `stand-in` or `camera`, so Pi proxy evidence cannot be mistaken for firmware-ready camera evidence |
+
+Existing metadata tooling is documented in
+`docs/GVID_METADATA_DISPATCH_2026-06-04.md`; target runs additionally normalize
+the same evidence into `gpr_labs_camera_handoff_receipt.v1`.
 
 ## Output Stream Contract
 

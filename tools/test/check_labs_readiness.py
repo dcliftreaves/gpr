@@ -47,6 +47,7 @@ REQUIRED_DOCS = {
     "docs/LABS_FIRMWARE_API.md": [
         "Input Frame Contract",
         "Memory Ownership",
+        "Metadata Contract",
         "Backpressure And Drops",
         "Partial-File Recovery",
         "Target Bench Requirements",
