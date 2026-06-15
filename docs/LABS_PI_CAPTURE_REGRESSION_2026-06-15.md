@@ -717,6 +717,35 @@ fused encoder hot path. The sustained current-head receipt should instead be
 treated as the newest evidence that short 100-120 frame probes overstate the
 production path.
 
+## Corrected Pixel-Format Direct Receipt
+
+Commit `e16357f` fixed the `bench_fused` target harness so
+`GPR_BENCH_PIXEL_FORMAT` reaches the encoder context, not just the `.gvid`
+container header. The target receipt runner already forced
+`GPR_BENCH_PIXEL_FORMAT` and `FUSED_QUALITY` into the bench process, but the
+receipt now also records that effective environment instead of only the parent
+process environment.
+
+Fresh Pi 5 stand-in receipts after that fix:
+
+- direct `.gvid` receipt:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_120f_e16357f_20260615/labs_target_bench.json`
+- timing-detail receipt:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_timing_30f_e16357f_20260615/labs_target_bench.json`
+
+| run | frames | median | p95 | result |
+|---|---:|---:|---:|---|
+| corrected pixel-format direct `.gvid` | 120 / 120 | 50.38 ms / 19.85 fps | 57.23 ms | valid `.gvid`, no drops, interrupted-tail recovery proven, below target |
+| corrected pixel-format timing-detail build | 30 / 30 | 47.41 ms / 21.09 fps | 50.96 ms | diagnostic build only, below target |
+
+The timing-detail receipt reports Pass1 median 34.60 ms, Pass2 median
+11.60 ms, and channel-unpack mean 21.82 ms. This keeps the blocker in the same
+place: highpass-preserving Pass1/unpack remains the largest measured component,
+and the corrected pixel-format path is still below 24 fps. Pre-`e16357f`
+receipts remain useful as container/recovery and blocker evidence, but should
+not be treated as exact RGGB16 timing evidence when they requested pixel format
+4.
+
 ## Reproducible Timing Build
 
 The timing path is now a supported diagnostic build instead of a scratch source
@@ -765,8 +794,9 @@ avoid row handoff overhead, remove highpass work without invalidating output,
 reduce chroma unpack/tokenization/data movement, or replace the capture-side
 algorithm.
 The production target remains >= 24 fps sustained; today's best evidenced
-current-build knob is 22.53 fps median on a 100-frame probe and 19.98 fps
-median on the strict 10-minute receipt.
+current-build knob is 22.53 fps median on a 100-frame probe, 19.98 fps median
+on the strict 10-minute receipt, and 19.85 fps median on the corrected
+pixel-format direct `.gvid` receipt.
 
 ## Direct `.gvid` Receipt Mode
 

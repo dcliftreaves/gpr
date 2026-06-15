@@ -13,6 +13,7 @@ firmware evidence.
 | Historical half-res `.gvid` capture budget | `docs/pi5_bench_2026-05-26.md` reports 24.93 fps median on an older Pi branch/run | historical stand-in evidence |
 | Current strict 10 minute Pi 5 target run | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` reports 14,400 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, 19.98 fps median | target-performance blocker |
 | Current half-res variant probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` reports current, historical-doc, environment, runtime-knob, compiler-flag, quality, producer, highpass-bound, target-rehearsal, direct-container, and luma-pair probes; the best short direct-container near-miss is luma-pair plus stripe64/deferred rANS at 23.54 fps median | regression evidence |
+| Corrected pixel-format direct `.gvid` probe | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_120f_e16357f_20260615/labs_target_bench.json` reports commit `e16357f`, 120 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, and 19.85 fps median with pixel format 4 applied to the encoder context | target-performance blocker |
 | Current-head Pi 5 direct `.gvid` rehearsal | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_direct_1440f_1b934a4_20260615/labs_target_bench.json` reports commit `1b934a4`, 1,440 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, and 16.00 fps median; timing-detail receipt `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_timing_detail_30f_1b934a4_20260615/labs_target_bench.json` reports Pass1 median 38.90 ms and unpack mean 22.79 ms | current-head target-performance blocker |
 | 2K live/camera-back raw target | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` reports `2k_raw_0p5x_l2hh` at 29.85 fps median, 37.1 ms p95 | stand-in evidence |
 | Desktop review PREVIEW | `docs/VIDEO_STATUS.md` reports q8 three-way PREVIEW quality pass at 13.65 s/image on Mac/MPS | offline-only evidence |
@@ -62,9 +63,11 @@ The receipt must include timing percentiles, dropped-frame accounting, wrapper
 and child-process RSS, storage throughput, basic CPU load, thermal samples when
 `vcgencmd` is available, relevant encoder env knobs, `bench_fused` binary hash
 and CMake/C flags when available, strict `.gvid` validation, and
-interrupted-tail recovery. The `--quality` argument is passed through to
-`bench_fused` as `FUSED_QUALITY`, so the encoded payload and receipt/header
-quality now match. CI runs only the simulated schema smoke:
+interrupted-tail recovery. The `--quality` and `--pixel-format` arguments are
+passed through to `bench_fused` as `FUSED_QUALITY` and
+`GPR_BENCH_PIXEL_FORMAT`, and the receipt records the effective bench
+environment, so the encoded payload and receipt/container fields match. CI
+runs only the simulated schema smoke:
 `bash tools/test/test_labs_target_bench_smoke.sh`.
 
 ## Timing-Diagnostic Build
@@ -170,6 +173,27 @@ Current-head direct `.gvid` rehearsal:
 | target state | performance governor, 2.4 GHz, `throttled=0x0`, SSD ext4 `rw,noatime,stripe=8191` |
 | timing receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_timing_detail_30f_1b934a4_20260615/labs_target_bench.json` |
 | timing finding | Pass1 median 38.90 ms, Pass2 median 9.20 ms, unpack mean 22.79 ms |
+
+Corrected pixel-format direct `.gvid` probe:
+
+| metric | 2026-06-15 corrected pixel-format direct `.gvid` probe |
+|---|---|
+| receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_120f_e16357f_20260615/labs_target_bench.json` |
+| commit | `e16357f7984315ec86ae5173fded94d057b1030f` |
+| mode | `--direct-gvid`, pixel format 4 applied to `bench_fused` encoder context |
+| frames | 120 requested / 120 written |
+| drops | 0 |
+| median fps | 19.85 fps |
+| median encode+write | 50.38 ms/frame |
+| p95 encode+write | 57.23 ms/frame |
+| `.gvid` | valid, interrupted-tail recovery proven |
+| timing receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_timing_30f_e16357f_20260615/labs_target_bench.json` |
+| timing finding | Pass1 median 34.60 ms, Pass2 median 11.60 ms, unpack mean 21.82 ms |
+
+Commit `e16357f` fixed the bench harness so `GPR_BENCH_PIXEL_FORMAT` reaches
+the encoder context, not just the `.gvid` header. Pre-fix receipts remain
+useful as container and blocker evidence, but they should not be treated as
+exact RGGB16 timing evidence when the requested pixel format was 4.
 
 The direct default receipts improve measurement fidelity and rule out the
 earlier 13 fps result as a polynomial-log diagnostic, not the default target

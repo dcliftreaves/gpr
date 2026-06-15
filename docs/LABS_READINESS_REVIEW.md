@@ -21,7 +21,7 @@ the current half-res capture path restores >= 24 fps on the target-style run.
 | Portable stand-in bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` |
 | Target receipt harness | `tools/run_labs_target_bench.py` produces `labs_target_bench.json` with timing, structured `fused_timing`, storage, memory, drop, `.gvid`, and interruption fields |
 | Strict Pi 5 target receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` proves 14,400 frames, 0 drops, valid `.gvid`, and interrupted-tail recovery |
-| Pi 5 regression probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` records current, historical-doc, environment, runtime-knob, compiler-flag, quality, highpass-bound, timing, producer-guard, polynomial-log, u16 log-scratch, prescale-2 fixed-shift, lazy scratch allocation, prefetch, LUT-unroll, luma-pair shared-unpack, and current-head direct `.gvid` rehearsal probes; best short direct-container near-miss is 23.54 fps median with luma-pair plus stripe64/deferred rANS, while current-head 1,440-frame direct `.gvid` rehearsal is 16.00 fps median and diagnostic highpass dropping reaches 30.35 fps but is not valid output |
+| Pi 5 regression probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` records current, historical-doc, environment, runtime-knob, compiler-flag, quality, highpass-bound, timing, producer-guard, polynomial-log, u16 log-scratch, prescale-2 fixed-shift, lazy scratch allocation, prefetch, LUT-unroll, luma-pair shared-unpack, current-head direct `.gvid` rehearsal, and corrected pixel-format probes; best short direct-container near-miss is 23.54 fps median with luma-pair plus stripe64/deferred rANS, while the corrected pixel-format direct `.gvid` receipt is 19.85 fps median and diagnostic highpass dropping reaches 30.35 fps but is not valid output |
 | Reproducible target timing build | CMake exposes `-DFUSED_TIMING=ON -DFUSED_TIMING_DETAIL=ON`; the target receipt harness parses diagnostics into `fused_timing`, and a local smoke verifies per-channel unpack/horizontal/vertical/tokenize detail plus Pass1/Pass2 summaries without editing source |
 | Current overview | README is media-focused; detailed proof lives in docs |
 
@@ -30,7 +30,7 @@ the current half-res capture path restores >= 24 fps on the target-style run.
 | area | missing evidence |
 |---|---|
 | Firmware capture integration | sensor/DMA handoff and memory ownership have not been executed on target |
-| Sustained target run | latest strict Pi 5 receipt misses 24 fps: 19.98 fps median, 50.04 ms median, 66.01 ms p95; current-head direct `.gvid` rehearsal also misses at 16.00 fps median over 1,440 frames |
+| Sustained target run | latest strict Pi 5 receipt misses 24 fps: 19.98 fps median, 50.04 ms median, 66.01 ms p95; current-head direct `.gvid` rehearsal misses at 16.00 fps median over 1,440 frames; corrected pixel-format direct `.gvid` receipt also misses at 19.85 fps median over 120 frames |
 | Final target artifact bundle | stand-in bundle exists; final bundle still needs passing target receipt and camera-firmware evidence |
 | Firmware capture integration | target receipt uses Pi stand-in file input, not sensor/DMA handoff |
 
@@ -39,8 +39,8 @@ the current half-res capture path restores >= 24 fps on the target-style run.
 The main risk is no longer whether `.gvid` can represent, validate, and recover
 the media. The latest strict Pi 5 receipt proves that path. The blocker is that
 the current half-res encoder path misses the 24 fps target on the stand-in run.
-The newest current-head direct `.gvid` rehearsal keeps the same blocker active:
-valid output, no drops, and recovery are proven, but sustained throughput is
+The corrected pixel-format direct `.gvid` receipt keeps the same blocker
+active: valid output, no drops, and recovery are proven, but throughput is
 still below target.
 
 ## Next Work
@@ -58,8 +58,8 @@ still below target.
    regressed target timing. A luma-pair shared-unpack scratch candidate improved
    the best short direct-container median to 23.54 fps only with
    stripe64/deferred rANS, but still missed the 24 fps target and was not
-   committed. Current-head 1,440-frame direct `.gvid` rehearsal also misses at
-   16.00 fps median, with timing detail again pointing to Pass1 channel unpack.
+   committed. The corrected pixel-format direct `.gvid` receipt also misses at
+   19.85 fps median, with timing detail again pointing to Pass1 channel unpack.
    Use the committed `FUSED_TIMING_DETAIL` diagnostic build and inspect the
    structured `fused_timing` object for the next Pi-side blocker receipt.
 2. Replace or supplement the stand-in bundle with a passing target-capture

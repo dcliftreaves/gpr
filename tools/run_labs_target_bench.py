@@ -92,8 +92,9 @@ def git_commit() -> str | None:
         return None
 
 
-def relevant_env() -> dict[str, str]:
-    return {key: os.environ[key] for key in RELEVANT_BENCH_ENV if key in os.environ}
+def relevant_env(env: dict[str, str] | None = None) -> dict[str, str]:
+    source = os.environ if env is None else env
+    return {key: source[key] for key in RELEVANT_BENCH_ENV if key in source}
 
 
 def find_cmake_build_root(binary: Path | None) -> Path | None:
@@ -454,9 +455,9 @@ def run_bench(
     args: argparse.Namespace,
     frame_dir: Path,
     direct_gvid: Path,
-) -> tuple[list[float], subprocess.CompletedProcess[str] | None]:
+) -> tuple[list[float], subprocess.CompletedProcess[str] | None, dict[str, str]]:
     if args.simulate:
-        return synth_frames(frame_dir, args.frames), None
+        return synth_frames(frame_dir, args.frames), None, relevant_env()
     if not args.bench or not args.bench.is_file():
         raise RuntimeError("--bench is required and must point to bench_fused unless --simulate is set")
     if not args.raw or not args.raw.is_file():
@@ -479,7 +480,7 @@ def run_bench(
     result = run_cmd(cmd, env=env)
     if result.returncode != 0:
         raise RuntimeError(f"bench failed: {result.stderr[-2000:]}")
-    return bench_times_from_stdout(result.stdout), result
+    return bench_times_from_stdout(result.stdout), result, relevant_env(env)
 
 
 def main() -> int:
@@ -511,7 +512,7 @@ def main() -> int:
     temp_start = read_temp_c()
     load_start = loadavg()
     wall_start = time.time()
-    times_ms, bench_result = run_bench(args, frame_dir, direct_gvid)
+    times_ms, bench_result, bench_env_overrides = run_bench(args, frame_dir, direct_gvid)
     wall_s = time.time() - wall_start
     temp_end = read_temp_c()
     load_end = loadavg()
@@ -609,7 +610,7 @@ def main() -> int:
         "interruption_recovery": interruption,
         "bench": {
             "cmd": [str(args.bench), str(args.raw), str(args.source_width), str(args.source_height), str(args.frames)] if not args.simulate else None,
-            "env_overrides": relevant_env(),
+            "env_overrides": bench_env_overrides,
             "build": bench_build_info(args.bench) if not args.simulate else {},
             "stdout_tail": bench_result.stdout[-2000:] if bench_result else None,
             "stderr_tail": bench_result.stderr[-2000:] if bench_result else None,

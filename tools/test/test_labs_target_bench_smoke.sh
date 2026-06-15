@@ -95,6 +95,12 @@ assert receipt["capture"]["frames_requested"] == 4
 assert receipt["capture"]["frames_written"] == 4
 assert receipt["gvid"]["validation"]["frame_count"] == 4
 assert receipt["storage"]["fsync_policy"] == "bench_fused sequential .gvid fwrite"
+assert receipt["bench"]["env_overrides"]["GPR_INCLUDE_LL"] == "1"
+assert receipt["bench"]["env_overrides"]["FUSED_MULTI_LEVEL"] == "1"
+assert receipt["bench"]["env_overrides"]["FUSED_WAVELET_LEVELS"] == "2"
+assert receipt["bench"]["env_overrides"]["GPR_COL_DECIMATE"] == "2"
+assert receipt["bench"]["env_overrides"]["GPR_ROW_DECIMATE"] == "2"
+assert receipt["bench"]["env_overrides"]["FUSED_QUALITY"] == "3"
 assert receipt["bench"]["env_overrides"]["FUSED_LOG_POLYNOMIAL"] == "1"
 assert receipt["bench"]["env_overrides"]["GPR_DECIMATE_AA"] == "1"
 assert receipt["bench"]["env_overrides"]["GPR_BENCH_PIXEL_FORMAT"] == "4"

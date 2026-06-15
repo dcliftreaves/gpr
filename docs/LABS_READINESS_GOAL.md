@@ -114,7 +114,9 @@ source, tests, and compact receipts:
 
 The immediate blocker is the half-res Pi 5 stand-in capture path. The latest
 strict receipt proves valid `.gvid` output, zero dropped frames, and interrupted
-tail recovery, but it misses the 24 fps target. Work should stay focused on
+tail recovery, but it misses the 24 fps target. The corrected pixel-format
+direct `.gvid` receipt at commit `e16357f` also misses at 19.85 fps median, and
+keeps the blocker in Pass1/channel-unpack work. Work should stay focused on
 recovering sustained target throughput or narrowing the blocker with timing,
 memory, and correctness receipts.
 
