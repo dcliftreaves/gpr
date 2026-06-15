@@ -39,10 +39,42 @@ assert receipt["capture"]["dropped_frames"] == 0
 assert receipt["gvid"]["validation"]["frame_count"] == 8
 assert receipt["interruption_recovery"]["validator_rejects_truncated"] is True
 assert receipt["interruption_recovery"]["complete_frames_recovered"] == 7
+assert receipt["fused_timing"]["available"] is False
+assert receipt["fused_timing"]["timing_line_count"] == 0
 assert "bench_child_maxrss_kb" in receipt["memory"]
 assert "loadavg_start" in receipt["cpu"]
 assert receipt["verdict"]["gvid_valid"] is True
 assert receipt["verdict"]["target_evidence"] is False
+PY
+
+"$PYTHON_BIN" - "$REPO/tools/run_labs_target_bench.py" <<'PY'
+import importlib.util
+import sys
+from pathlib import Path
+
+mod_path = Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("run_labs_target_bench", mod_path)
+mod = importlib.util.module_from_spec(spec)
+assert spec.loader is not None
+spec.loader.exec_module(mod)
+
+sample = """
+    ch0: unpack=5.0, horiz=1.0, vert+quant=2.0, tokenize=3.0, other=0.5, TOTAL=11.5
+    ch1: wait=0.2, horiz=1.3, vert+quant=2.1, tokenize=3.2, other=0.7, TOTAL=7.5
+  FUSED ML Pass1 (level-1, parallel):       20.0ms
+  FUSED ML Level23 (streamed in pass1):     0.1ms
+  FUSED ML Pass2 (40 bands, parallel):      6.0ms
+  FUSED ML Total:                           27.0ms
+"""
+parsed = mod.parse_fused_timing_stderr(sample)
+assert parsed["available"] is True
+assert parsed["timing_line_count"] == 6
+assert parsed["dominant_stage_by_mean_ms"] == "ml_total"
+assert parsed["dominant_channel_component_by_mean_ms"] == "total"
+assert parsed["stage_ms"]["ml_pass1"]["mean_ms"] == 20.0
+assert parsed["channel_component_ms"]["unpack"]["mean_ms"] == 5.0
+assert parsed["channel_component_ms"]["vert_quant"]["n"] == 2
+assert parsed["channel_component_by_channel_ms"]["1"]["wait"]["mean_ms"] == 0.2
 PY
 
 echo "test_labs_target_bench_smoke: PASS"

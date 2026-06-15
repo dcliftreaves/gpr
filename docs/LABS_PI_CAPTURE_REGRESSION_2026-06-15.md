@@ -536,8 +536,11 @@ cmake --build build-labs-timing --target bench_fused -j"$(nproc)"
 `FUSED_TIMING` prints the per-frame Pass1/Pass2 summaries already used in the
 timing profile. `FUSED_TIMING_DETAIL` also prints per-channel wait, horizontal,
 vertical/quantize, tokenize, and other timing, and it implies `FUSED_TIMING` in
-CMake. Use this build to narrow the blocker in a `labs_target_bench.json`
-receipt; use a normal Release build for final production throughput evidence.
+CMake. `tools/run_labs_target_bench.py` now parses those lines into the
+`fused_timing` receipt object, including `stage_ms`, `channel_component_ms`,
+per-channel summaries, producer timing, and dominant mean-cost keys. Use this
+build to narrow the blocker in a `labs_target_bench.json` receipt; use a normal
+Release build for final production throughput evidence.
 
 ## Next Boundary To Test
 

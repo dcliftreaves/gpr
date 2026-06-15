@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import resource
 import shutil
 import statistics
@@ -49,6 +50,14 @@ RELEVANT_BENCH_ENV = [
     "FUSED_QUALITY",
     "FUSED_PRODUCER_UNPACK",
 ]
+FUSED_STAGE_RE = re.compile(
+    r"^\s*FUSED\s+(?P<label>.+?):\s+(?P<ms>[0-9]+(?:\.[0-9]+)?)ms(?:\s+\((?P<note>[^)]*)\))?\s*$"
+)
+FUSED_CHANNEL_RE = re.compile(r"^\s*ch(?P<channel>[0-9]+):\s+(?P<body>.+)$")
+FUSED_KV_MS_RE = re.compile(r"(?P<key>[A-Za-z0-9_+.-]+)=(?P<ms>-?[0-9]+(?:\.[0-9]+)?)")
+FUSED_PRODUCER_RE = re.compile(
+    r"^\s*producer-unpack\[(?P<range>[0-9.]+)\]:\s+(?P<ms>[0-9]+(?:\.[0-9]+)?)ms"
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -168,6 +177,94 @@ def summarize_ms(values: list[float]) -> dict[str, float | int]:
         "max_ms": vals[-1],
         "fps_mean": 1000.0 / mean if mean > 0 else 0.0,
         "fps_median": 1000.0 / median if median > 0 else 0.0,
+    }
+
+
+def normalize_timing_key(text: str) -> str:
+    out = re.sub(r"\([^)]*\)", "", text.strip()).lower()
+    out = out.replace("+", "_")
+    out = re.sub(r"[^a-z0-9]+", "_", out)
+    out = out.strip("_")
+    return out or "unknown"
+
+
+def append_ms(bucket: dict[str, list[float]], key: str, value: float) -> None:
+    bucket.setdefault(key, []).append(float(value))
+
+
+def summarize_ms_map(values: dict[str, list[float]]) -> dict[str, dict[str, float | int]]:
+    return {key: summarize_ms(vals) for key, vals in sorted(values.items())}
+
+
+def dominant_mean_component(summaries: dict[str, dict[str, float | int]]) -> str | None:
+    best_key: str | None = None
+    best_mean = float("-inf")
+    for key, summary in summaries.items():
+        mean = summary.get("mean_ms")
+        if isinstance(mean, (int, float)) and float(mean) > best_mean:
+            best_key = key
+            best_mean = float(mean)
+    return best_key
+
+
+def parse_fused_timing_stderr(stderr: str | None) -> dict[str, Any]:
+    """Summarize FUSED_TIMING / FUSED_TIMING_DETAIL stderr into receipt JSON."""
+    if not stderr:
+        return {"available": False, "timing_line_count": 0}
+
+    stage_ms: dict[str, list[float]] = {}
+    channel_ms: dict[str, list[float]] = {}
+    channel_by_id: dict[str, dict[str, list[float]]] = {}
+    producer_ms: dict[str, list[float]] = {}
+    timing_line_count = 0
+
+    for raw_line in stderr.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        stage = FUSED_STAGE_RE.match(line)
+        if stage:
+            timing_line_count += 1
+            key = normalize_timing_key(stage.group("label"))
+            append_ms(stage_ms, key, float(stage.group("ms")))
+            continue
+
+        channel = FUSED_CHANNEL_RE.match(line)
+        if channel:
+            parsed_any = False
+            channel_id = channel.group("channel")
+            per_channel = channel_by_id.setdefault(channel_id, {})
+            for item in FUSED_KV_MS_RE.finditer(channel.group("body")):
+                parsed_any = True
+                key = normalize_timing_key(item.group("key"))
+                value = float(item.group("ms"))
+                append_ms(channel_ms, key, value)
+                append_ms(per_channel, key, value)
+            if parsed_any:
+                timing_line_count += 1
+            continue
+
+        producer = FUSED_PRODUCER_RE.match(line)
+        if producer:
+            timing_line_count += 1
+            append_ms(producer_ms, f"producer_unpack_{producer.group('range')}", float(producer.group("ms")))
+
+    stage_summary = summarize_ms_map(stage_ms)
+    channel_summary = summarize_ms_map(channel_ms)
+    producer_summary = summarize_ms_map(producer_ms)
+    by_channel_summary = {
+        channel: summarize_ms_map(values)
+        for channel, values in sorted(channel_by_id.items(), key=lambda item: int(item[0]))
+    }
+    return {
+        "available": bool(stage_summary or channel_summary or producer_summary),
+        "timing_line_count": timing_line_count,
+        "stage_ms": stage_summary,
+        "channel_component_ms": channel_summary,
+        "channel_component_by_channel_ms": by_channel_summary,
+        "producer_ms": producer_summary,
+        "dominant_stage_by_mean_ms": dominant_mean_component(stage_summary),
+        "dominant_channel_component_by_mean_ms": dominant_mean_component(channel_summary),
     }
 
 
@@ -419,6 +516,7 @@ def main() -> int:
         interruption["reject_reason"] = str(exc)
 
     timing = summarize_ms(times_ms)
+    fused_timing = parse_fused_timing_stderr(bench_result.stderr if bench_result else None)
     receipt = {
         "schema": "gpr_labs_target_bench.v1",
         "simulated": bool(args.simulate),
@@ -451,6 +549,7 @@ def main() -> int:
             "missing_frames": missing[:100],
         },
         "timing": timing,
+        "fused_timing": fused_timing,
         "storage": {
             "frame_dir": str(frame_dir),
             "total_frame_bytes": total_frame_bytes,

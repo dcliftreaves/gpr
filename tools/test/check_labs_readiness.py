@@ -51,6 +51,7 @@ REQUIRED_DOCS = {
         "Required Target Run",
         "Timing-Diagnostic Build",
         "FUSED_TIMING_DETAIL",
+        "fused_timing",
         "Current Gap",
         "19.98 fps",
         "2k_raw_0p5x_l2hh",
@@ -75,6 +76,7 @@ REQUIRED_DOCS = {
         "Not Ready Yet",
         "Current Risk",
         "Next Work",
+        "fused_timing",
     ],
     "docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md": [
         "Highpass Lower-Bound Probe",
@@ -84,6 +86,7 @@ REQUIRED_DOCS = {
         "Timing Profile",
         "Reproducible Timing Build",
         "FUSED_TIMING_DETAIL",
+        "fused_timing",
     ],
 }
 

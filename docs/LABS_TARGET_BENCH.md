@@ -17,7 +17,7 @@ firmware evidence.
 | Desktop review PREVIEW | `docs/VIDEO_STATUS.md` reports q8 three-way PREVIEW quality pass at 13.65 s/image on Mac/MPS | offline-only evidence |
 | Format validation | `test_video_format` and `test_video_full_chain` validate headers, streams, and real encoded `.gvid` files | committed CI evidence |
 | Portable review bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` | stand-in bundle |
-| Target receipt harness | `tools/run_labs_target_bench.py` wraps `bench_fused`, packs a strict `.gvid`, validates truncation behavior, and writes `labs_target_bench.json` | committed harness |
+| Target receipt harness | `tools/run_labs_target_bench.py` wraps `bench_fused`, packs a strict `.gvid`, validates truncation behavior, parses `FUSED_TIMING_DETAIL` output into `fused_timing`, and writes `labs_target_bench.json` | committed harness |
 
 ## Required Target Run
 
@@ -76,13 +76,20 @@ cmake --build build-labs-timing --target bench_fused -j"$(nproc)"
 `FUSED_TIMING` prints Pass1/Pass2 stage summaries. `FUSED_TIMING_DETAIL`
 also prints per-channel unpack, horizontal, vertical/quantize, tokenize, wait,
 and other timing. `FUSED_TIMING_DETAIL` implies `FUSED_TIMING` in CMake.
+When those lines are present, `tools/run_labs_target_bench.py` records a
+structured `fused_timing` object in `labs_target_bench.json` with summarized
+`stage_ms`, `channel_component_ms`, `channel_component_by_channel_ms`,
+`producer_ms`, and dominant mean-cost keys. This is the reviewer-facing receipt
+field for identifying whether the current blocker is unpack, horizontal
+filtering, vertical/quantize, tokenization, wait time, Pass2, or producer
+overhead.
 
 Diagnostic timing builds are blocker evidence, not production throughput
 claims. Keep the production receipt tied to a normal Release build unless the
 diagnostic build is explicitly being used to narrow a blocker. The
 `tools/run_labs_target_bench.py` receipt stores the `bench_fused` binary hash,
-CMake build root, build type, C flags, and stderr tail, so timing lines remain
-attached to the compact JSON evidence.
+CMake build root, build type, C flags, structured `fused_timing`, and stderr
+tail, so timing lines remain attached to the compact JSON evidence.
 
 ## Current Gap
 

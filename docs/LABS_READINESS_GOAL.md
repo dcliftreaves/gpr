@@ -1,6 +1,6 @@
 # Labs Firmware Intake Goal
 
-## Objective
+## Active Session Goal
 
 Make GPR reviewable as a camera-firmware Labs prototype: `.gvid` half-res raw
 capture plus desktop review/export, with clear evidence for safety,
@@ -11,11 +11,7 @@ target is a credible Labs intake package that lets a firmware/media engineer
 decide whether to prototype `.gvid` raw capture and review tooling on target
 hardware.
 
-## Canonical Session Goal
-
-Make GPR reviewable as a camera-firmware Labs prototype: `.gvid` half-res raw
-capture plus desktop review/export, with clear evidence for safety,
-performance, artifact portability, and firmware integration boundaries.
+## Stop Criteria
 
 Stop only when one of these is true:
 
@@ -74,36 +70,6 @@ source, tests, and compact receipts:
   and which are currently manual receipts?
 - Are historical experiments separated from the small, reviewable production
   path?
-
-## Stop Criteria
-
-Stop only when one of these is true:
-
-1. The Labs intake package is complete and reviewable:
-   - `docs/LABS_INTAKE.md` defines what ships and what is out of scope.
-   - Firmware integration contract exists for frame input, encoder state,
-     memory ownership, metadata, container output, backpressure, dropped frames,
-     and partial-file recovery.
-   - `.gvid` C reader/writer validation is hardened and covered by negative
-     tests.
-   - Target-style performance receipts exist for sustained capture/decode,
-     memory, storage bandwidth, and dropped-frame behavior.
-   - Artifact bundle docs make samples, dashboards, receipts, review media, and
-     model/checkpoint hashes portable outside the local 8TB drive.
-   - CI and release checks cover the Labs path, with self-hosted/target lanes
-     specified where hosted CI cannot run them.
-   - README remains a sharp media overview; detailed proof lives in linked docs.
-
-2. Labs readiness is objectively blocked, with evidence:
-   - target hardware access unavailable,
-   - sensor/DMA integration missing,
-   - thermal/power/storage target cannot be met,
-   - `.gvid` format hardening exposes an incompatible design issue,
-   - artifact portability cannot be satisfied,
-   - or CI/build infrastructure cannot exercise the required path.
-
-Do not stop at partial docs or a passing hosted CI run. The goal is reviewable
-Labs intake evidence, not merely repo cleanliness.
 
 ## Execution Rules
 
