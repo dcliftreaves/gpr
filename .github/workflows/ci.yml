@@ -64,6 +64,14 @@ jobs:
       - name: Labs readiness guard
         run: python3 tools/test/check_labs_readiness.py
 
+      - name: Labs target receipt guard
+        # Hosted CI validates the manifest contract. If external target
+        # receipts are mounted, the same checker validates receipt-derived
+        # metrics and the current blocked/pass state from the JSON evidence.
+        env:
+          GPR_EXTERNAL_ROOT: ${{ runner.temp }}/gpr_work
+        run: python3 tools/test/check_labs_target_receipts.py
+
       - name: Fused quality table guard
         run: python3 tools/test/check_fused_quality_tables.py
 
