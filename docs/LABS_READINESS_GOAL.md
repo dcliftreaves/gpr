@@ -51,11 +51,11 @@ hardening and the Labs intake package.
 
 ## Session Binding
 
-As of 2026-06-15, this is the active Codex session goal for the current burn
-down. The in-session goal tracker is active with the same objective and stop
-criteria. Work should continue against this file as the durable source of truth
-for what "done" means until the Labs intake package is complete, or until a
-specific evidenced blocker is documented.
+As of 2026-06-15, this file is synced from the active Codex session goal for
+the current burn-down. The in-session goal tracker is active with the same
+objective and stop criteria. Work should continue against this file as the
+durable source of truth for what "done" means until the Labs intake package is
+complete, or until a specific evidenced blocker is documented.
 
 Proper session goal:
 

@@ -36,6 +36,8 @@ REQUIRED_DOCS = {
         "What Does Not Ship In The Prototype",
         "Half-res 24 fps capture target",
         "19.98 fps",
+        "23.54 fps",
+        "luma-pair",
         "2K live/camera-back preview",
         "2k_raw_0p5x_l2hh",
     ],
@@ -54,6 +56,8 @@ REQUIRED_DOCS = {
         "fused_timing",
         "Current Gap",
         "19.98 fps",
+        "23.54 fps",
+        "luma-pair",
         "2k_raw_0p5x_l2hh",
     ],
     "docs/LABS_ARTIFACT_BUNDLE.md": [
@@ -87,6 +91,8 @@ REQUIRED_DOCS = {
         "Reproducible Timing Build",
         "FUSED_TIMING_DETAIL",
         "fused_timing",
+        "23.54 fps",
+        "luma-pair",
     ],
 }
 

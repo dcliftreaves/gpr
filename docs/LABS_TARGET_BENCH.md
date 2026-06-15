@@ -12,7 +12,7 @@ firmware evidence.
 |---|---|---|
 | Historical half-res `.gvid` capture budget | `docs/pi5_bench_2026-05-26.md` reports 24.93 fps median on an older Pi branch/run | historical stand-in evidence |
 | Current strict 10 minute Pi 5 target run | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` reports 14,400 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, 19.98 fps median | target-performance blocker |
-| Current half-res variant probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` reports current, historical-doc, environment, runtime-knob, compiler-flag, quality, producer, highpass-bound, target-rehearsal, and direct-container probes; best current-head direct `.gvid` default probe is 21.36 fps median | regression evidence |
+| Current half-res variant probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` reports current, historical-doc, environment, runtime-knob, compiler-flag, quality, producer, highpass-bound, target-rehearsal, direct-container, and luma-pair probes; the best short direct-container near-miss is luma-pair plus stripe64/deferred rANS at 23.54 fps median | regression evidence |
 | 2K live/camera-back raw target | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` reports `2k_raw_0p5x_l2hh` at 29.85 fps median, 37.1 ms p95 | stand-in evidence |
 | Desktop review PREVIEW | `docs/VIDEO_STATUS.md` reports q8 three-way PREVIEW quality pass at 13.65 s/image on Mac/MPS | offline-only evidence |
 | Format validation | `test_video_format` and `test_video_full_chain` validate headers, streams, and real encoded `.gvid` files | committed CI evidence |
@@ -143,10 +143,23 @@ Additional direct-container probes:
 | p95 encode+write | 86.88 ms/frame |
 | `.gvid` | valid, 114,392,072 bytes |
 
+| metric | 2026-06-15 luma-pair shared-unpack near miss |
+|---|---|
+| receipts | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_lumapair_probe_20260615/baseline_120f.json`, `/Volumes/OWC_8TB/gpr_work/artifacts/labs_lumapair_probe_20260615/lumapair_stripe64_defer_120f.json` |
+| mode | scratch luma-pair shared unpack, `FUSED_STRIPE_ROWS=64`, `FUSED_DEFER_RANS=1`, direct `.gvid` |
+| frames | 120 requested / 120 written |
+| baseline median | 45.49 ms / 21.99 fps |
+| luma-pair median | 42.48 ms / 23.54 fps |
+| luma-pair p95 | 44.23 ms/frame |
+| `.gvid` | valid |
+| status | best short near miss; below 24 fps target; scratch source not committed |
+
 The current-head direct default receipt improves measurement fidelity and
 rules out the earlier 13 fps result as a polynomial-log diagnostic, not the
-default target path. It still does not remove the performance blocker: the
-highpass-preserving half-res path remains below 24 fps on the Pi 5 stand-in.
+default target path. The luma-pair shared-unpack scratch probe is the strongest
+short-run lead so far, but it still does not remove the performance blocker:
+the highpass-preserving half-res path remains below 24 fps on the Pi 5
+stand-in.
 
 Remaining missing receipts:
 

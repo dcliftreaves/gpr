@@ -18,7 +18,7 @@ ownership, and target CI.
 | area | status | evidence |
 |---|---|---|
 | Raw-video container | `.gvid` sequence of per-frame FUSED `.gpr` payloads | `source/lib/vc5_encoder/gpr_video_format.h`, `tools/gvid_pack.py` |
-| Half-res 24 fps capture target | Latest strict Pi 5 stand-in receipt is blocked at 19.98 fps median versus 24 fps target | `docs/LABS_TARGET_BENCH.md`, `docs/VIDEO_STATUS.md` |
+| Half-res 24 fps capture target | Latest strict Pi 5 stand-in receipt is blocked at 19.98 fps median versus 24 fps target; the best short luma-pair near-miss is 23.54 fps and remains below target | `docs/LABS_TARGET_BENCH.md`, `docs/VIDEO_STATUS.md` |
 | 2K live/camera-back preview | `2k_raw_0p5x_l2hh` clears Pi 5 decode-side timing at 29.85 fps median / 37.1 ms p95 and passes the 16 px edge-safe rendered proxy | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`, `docs/LABS_TARGET_BENCH.md` |
 | Desktop review/export | `.gvid` can feed `gpr2prores` and ProRes review outputs | `docs/GETTING_STARTED.md`, `tools/gpr2prores/USAGE.md` |
 | Metadata dispatch | source metadata sidecar and runtime dispatch validation | `docs/GVID_METADATA_DISPATCH_2026-06-04.md` |
@@ -38,7 +38,7 @@ ownership, and target CI.
 | question | answer |
 |---|---|
 | Can the repo demonstrate the media shape? | Yes: `.gvid` pack/unpack, metadata dispatch, and ProRes review tooling exist. |
-| Can it hit the half-res capture-rate target on the stand-in path? | Not on the latest strict receipt: commit `0dd6660` writes 14,400/14,400 frames with 0 drops and valid `.gvid`, but reaches only 19.98 fps median versus the 24 fps target. |
+| Can it hit the half-res capture-rate target on the stand-in path? | Not on the latest strict receipt: commit `0dd6660` writes 14,400/14,400 frames with 0 drops and valid `.gvid`, but reaches only 19.98 fps median versus the 24 fps target. A later scratch luma-pair probe reached 23.54 fps on a short direct-container run, but still missed the target and was not committed. |
 | Can it hit a bounded 2K live display target? | Yes for the decode/display side: `2k_raw_0p5x_l2hh` is live-capable on Pi 5 stand-in timing and the production preview policy is bounded to a 16 px edge-safe viewport. |
 | Is the format safe enough for firmware review? | Source-level path is hardened: v1 C parsing rejects malformed headers and streams, and v1 writing rejects non-finite/overflowing FPS and bitrate fields; target recovery still needs receipts. |
 | Are artifacts portable outside the 8TB work drive? | Stand-in bundle verifies; final target bundle still needs 10 minute capture and camera-firmware receipts. |
@@ -64,10 +64,12 @@ ownership, and target CI.
 1. Restore the half-res Pi 5 path to >= 24 fps. Follow-up probes narrowed the
    historical 24.93 fps receipt to a non-reproduced result: current and
    historical-doc commits both run below target today, producer unpack is now
-   guarded for decimated capture, quality/quant sweeps top out at 22.36 fps
-   median, polynomial-log, u16 log-scratch, and prescale-2 fixed-shift
-   candidates are slower than the LUT/default path, and a diagnostic
-   highpass-drop lower bound points at highpass transform/tokenization as the
+   guarded for decimated capture, quality/quant sweeps top out below target,
+   polynomial-log, u16 log-scratch, prescale-2 fixed-shift, prefetch, LUT
+   unroll, and producer-ring candidates are slower than the LUT/default path,
+   and the best short luma-pair shared-unpack probe reaches 23.54 fps only with
+   stripe64/deferred rANS. That near miss is useful evidence, but it still
+   leaves highpass transform/tokenization and channel-unpack work as the
    remaining speed blocker.
 2. Package a portable artifact bundle with checksums and verification steps.
 3. Add or document CI lanes for hosted source checks and target/self-hosted

@@ -63,7 +63,7 @@ better; promote only when the evidence matches the intended production role.
 |---|---|---|
 | Stills | PASS: three tiers | 9.80 MB, 15.05 MB, and 27.17 MB per 50 MP frame all pass the STILL gate |
 | VIDEO_FREEZE | PASS for desktop/post | `ml2_q3_l1x2` + matched CNN passes the VIDEO_FREEZE gate at 7.81 MB/frame |
-| Pi 5 embedded capture | BLOCKED on latest strict target receipt | Historical `ml2_q3_dec2` receipt reached 24.93 fps, but commit `0dd6660` strict 14,400-frame Labs run reaches 19.98 fps median with 0 drops and valid `.gvid`; restore >= 24 fps before production claim. |
+| Pi 5 embedded capture | BLOCKED on latest strict target receipt | Historical `ml2_q3_dec2` receipt reached 24.93 fps, but commit `0dd6660` strict 14,400-frame Labs run reaches 19.98 fps median with 0 drops and valid `.gvid`; the best short luma-pair near miss reaches 23.54 fps and remains below target. Restore >= 24 fps before production claim. |
 | UPRESABLE | PASS as editable raw | Half-res capture to full-res editable raw passes the UPRESABLE Bayer PSNR gate |
 | `.gvid` | Primary raw-video container | Wraps per-frame FUSED `.gpr` payloads with metadata dispatch docs |
 | MOV wrapper | Compatibility/export path | Available for GPR1/GPRr wrapper and downstream review/export tooling |
