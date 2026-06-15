@@ -182,6 +182,8 @@ int gpr_video_validate_stream(const uint8_t *buf, size_t buf_size,
         pos += fh.payload_size;
     }
 
+    if (info.frame_count == 0) return -1;
+
     if (info.clip.frame_count_hint != 0 &&
         info.clip.frame_count_hint != info.frame_count) {
         return -1;

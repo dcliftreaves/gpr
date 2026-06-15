@@ -68,6 +68,12 @@ manifest = {
 bad = json.loads(json.dumps(manifest))
 bad["artifacts"][0]["sha256"] = "0" * 64
 (root / "bad_manifest.json").write_text(json.dumps(bad, indent=2), encoding="utf-8")
+
+empty_gvid = root / "samples" / "empty_capture.gvid"
+empty_gvid.write_bytes(struct.pack("<IBBHHHIIIII", 0x44495647, 1, 0, 4, 3, 0, 640, 360, 24000, 0, 0))
+empty_manifest = json.loads(json.dumps(manifest))
+empty_manifest["artifacts"][0] = row(empty_gvid, "gvid")
+(root / "empty_manifest.json").write_text(json.dumps(empty_manifest, indent=2), encoding="utf-8")
 PY
 
 "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/manifest.json"
@@ -77,5 +83,11 @@ if "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/bad_manifest.json" >
   exit 1
 fi
 grep -q "sha256 mismatch" "$WORK/bad_manifest.log"
+
+if "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/empty_manifest.json" > "$WORK/empty_manifest.log" 2>&1; then
+  echo "test_labs_bundle_verify: expected empty .gvid manifest to fail" >&2
+  exit 1
+fi
+grep -q "zero-frame .gvid stream" "$WORK/empty_manifest.log"
 
 echo "test_labs_bundle_verify: PASS"

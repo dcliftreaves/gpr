@@ -55,9 +55,12 @@ python3 tools/verify_labs_bundle.py manifest.json
 ```
 
 For repo-local validation, `tools/test/test_labs_bundle_verify.sh` exercises
-the bundle verifier with a tiny synthetic `.gvid`. The C stream validator is
-exercised by `source/app/test_video_format.c` and
-`source/app/test_video_full_chain.c`.
+the bundle verifier with a tiny synthetic `.gvid`, including checksum mismatch
+and zero-frame `.gvid` rejection. The C stream validator is exercised by
+`source/app/test_video_format.c` and `source/app/test_video_full_chain.c`,
+including malformed headers, truncated frame headers/payloads, frame-count
+hint mismatches, duplicate or out-of-order frame tags, oversized payloads, and
+zero-frame streams.
 
 ## Current Bundle
 

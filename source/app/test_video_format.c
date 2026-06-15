@@ -265,6 +265,17 @@ static int test_bad_stream_validation(void) {
     size_t len = build_valid_stream(buf, sizeof(buf), 2);
     CHECK(len > 0, "valid stream built");
 
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 640, 360, 4, 3,
+                                      24.0, 0.0, 0, 0) == GPR_VIDEO_CLIP_HEADER_SIZE,
+          "valid clip-only stream built");
+    CHECK(gpr_video_validate_stream(buf, GPR_VIDEO_CLIP_HEADER_SIZE, NULL) == -1,
+          "zero-frame stream rejected");
+
+    len = build_valid_stream(buf, sizeof(buf), 2);
+    CHECK(len > 0, "valid stream built");
+    CHECK(gpr_video_validate_stream(buf, GPR_VIDEO_CLIP_HEADER_SIZE + 8, NULL) == -1,
+          "truncated frame header rejected");
+
     CHECK(gpr_video_validate_stream(buf, len - 1, NULL) == -1, "truncated payload rejected");
 
     len = build_valid_stream(buf, sizeof(buf), 3);
@@ -275,6 +286,11 @@ static int test_bad_stream_validation(void) {
     CHECK(len > 0, "valid stream built");
     put_u32_le(buf + GPR_VIDEO_CLIP_HEADER_SIZE + GPR_VIDEO_FRAME_HEADER_SIZE + 3 + 8, 0);
     CHECK(gpr_video_validate_stream(buf, len, NULL) == -1, "duplicate frame tag rejected");
+
+    len = build_valid_stream(buf, sizeof(buf), 2);
+    CHECK(len > 0, "valid stream built");
+    put_u32_le(buf + GPR_VIDEO_CLIP_HEADER_SIZE + 8, 2);
+    CHECK(gpr_video_validate_stream(buf, len, NULL) == -1, "out-of-order frame tag rejected");
 
     len = build_valid_stream(buf, sizeof(buf), 2);
     CHECK(len > 0, "valid stream built");

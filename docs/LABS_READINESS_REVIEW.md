@@ -17,7 +17,7 @@ the current half-res capture path restores >= 24 fps on the target-style run.
 | Media shape | `.gvid` clip/frame format, Python packer, metadata sidecars |
 | Desktop review path | `gpr2prores` accepts `.gvid` and validates runtime dispatch |
 | Source-level safety | hosted CI validates headers, streams, release evidence, registry consistency |
-| Format hardening | C reader rejects malformed v1 headers and whole-stream corruption; C writer rejects non-finite, negative, overflowing, or rate-control-rounds-to-zero FPS/bitrate fields |
+| Format hardening | C reader rejects malformed v1 headers, truncated headers/payloads, zero-frame streams, duplicate or out-of-order frame tags, and whole-stream corruption; C writer rejects non-finite, negative, overflowing, or rate-control-rounds-to-zero FPS/bitrate fields |
 | Portable stand-in bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` |
 | Target receipt harness | `tools/run_labs_target_bench.py` produces `labs_target_bench.json` with timing, structured `fused_timing`, storage, memory, drop, `.gvid`, and interruption fields |
 | Strict Pi 5 target receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` proves 14,400 frames, 0 drops, valid `.gvid`, and interrupted-tail recovery |

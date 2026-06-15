@@ -65,6 +65,8 @@ REQUIRED_DOCS = {
         "Required Manifest Fields",
         "Verification Commands",
         "Current Bundle",
+        "zero-frame",
+        "out-of-order",
     ],
     "docs/LABS_CI_PLAN.md": [
         "Hosted CI",
@@ -81,6 +83,8 @@ REQUIRED_DOCS = {
         "Current Risk",
         "Next Work",
         "fused_timing",
+        "zero-frame",
+        "out-of-order",
     ],
     "docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md": [
         "Highpass Lower-Bound Probe",

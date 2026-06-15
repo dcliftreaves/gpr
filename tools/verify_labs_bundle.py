@@ -87,6 +87,9 @@ def validate_gvid(path: Path) -> dict[str, Any]:
         payload_bytes += payload_size
         pos += payload_size
 
+    if frame_count == 0:
+        raise ValueError("zero-frame .gvid stream")
+
     if frame_count_hint and frame_count_hint != frame_count:
         raise ValueError(".gvid frame_count_hint mismatch")
 
