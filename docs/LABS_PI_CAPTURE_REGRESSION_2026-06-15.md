@@ -174,6 +174,30 @@ disabled for decimated capture in this patch and short Pi timing varies run to
 run. The real throughput work remains a decimation-aware shared producer or a
 different Pass1 unpack optimization.
 
+## Decimated Producer Experiment
+
+A scratch decimation-aware producer was tested and not committed. It reused the
+existing per-channel decimation kernels inside the producer threads, emitted
+correctly sized rows, and avoided heap corruption, but it was too slow to keep
+as production code.
+
+Probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_producer_dec2_probe_20260615/producer_dec2_probe.json`
+
+| case | result |
+|---|---:|
+| baseline decimated write-all | 300/300 frames, 47.47 ms median, 21.06 fps |
+| producer requested fallback | 300/300 frames, 42.12 ms median, 23.74 fps |
+| explicit decimated producer scratch path | 300/300 frames, 59.50 ms median, 16.81 fps |
+
+The scratch producer was correct enough to run but architecturally wrong for
+speed: it moved the same four per-channel decimation kernels into producer
+threads instead of sharing log/LUT work across channels. That added producer /
+consumer overhead without removing the real cost. Do not revive that shape
+unless it also shares the raw-to-log work across channels.
+
 ## Timing Profile
 
 A timing-enabled build of the current clean Labs commit was run on the Pi to
@@ -213,8 +237,9 @@ The remaining likely causes are:
 Next step: recover the original downstream `be0328a` worktree if it still
 exists. If it cannot be recovered, treat the May 26 number as non-reproducible
 and focus the current-code fix on Pass1 unpack throughput. The producer-unpack
-corruption is now guarded for decimated capture; the next speed experiment is a
-true decimation-aware shared producer or another unpack-path optimization that
-recovers the missing 11-18 percent. The production target remains >= 24 fps
-sustained; today's best evidenced current-build knob is 22.53 fps median on a
-100-frame probe and 19.98 fps median on the strict 10-minute receipt.
+corruption is now guarded for decimated capture, and the naive decimated
+producer scratch path is ruled out by timing. The next speed experiment must
+share raw-to-log work across channels or otherwise reduce unpack cost directly.
+The production target remains >= 24 fps sustained; today's best evidenced
+current-build knob is 22.53 fps median on a 100-frame probe and 19.98 fps
+median on the strict 10-minute receipt.
