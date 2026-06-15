@@ -235,7 +235,43 @@ Expected recommendation shape:
 - No-go: direct firmware merge until actual camera hardware integration and
   thermal/storage validation are complete.
 
+## Current Objective
+
+Burn down the remaining GoPro Labs intake concerns until the repository is
+reviewable as a firmware-adjacent prototype package. The reviewer should be
+able to answer four questions from committed source, docs, CI, and compact
+receipts:
+
+1. What would be integrated into firmware, and what remains desktop-only?
+2. Does `.gvid` fail safely under malformed, truncated, interrupted, or
+   out-of-order stream conditions?
+3. Does the target-style capture path sustain the required frame rate, storage
+   bandwidth, memory use, and recovery behavior?
+4. Can a reviewer reproduce the proof bundle without relying on local machine
+   state or personal external-drive paths?
+
+## Current Blocker
+
+The latest strict Pi 5 stand-in target receipt proves `.gvid` validity,
+zero dropped frames, and interrupted-tail recovery, but it misses the half-res
+24 fps capture target:
+
+- commit: `0dd6660ca478ac9892b014559d3444853663c54b`
+- receipt:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json`
+- result: 14,400 requested frames, 14,400 written frames, 0 drops
+- median frame time: 50.04 ms
+- median throughput: 19.98 fps
+- p95 frame time: 66.01 ms
+
+The next engineering task is to determine whether this is a configuration,
+benchmark-methodology, target-environment, or encoder regression relative to
+the historical half-res Pi receipt that reached 24.93 fps median.
+
 ## Immediate Next Step
 
-Start with `.gvid` C hardening and the Labs intake document. These are concrete,
-reviewable, and directly address the largest firmware-readiness risks.
+Run short Pi 5 half-res encoder variant probes against the current clean Labs
+build without retaining bulky frame artifacts. Compare inline tokenization,
+producer unpack, streaming mode, and pinning settings. Then either restore the
+production target path to >= 24 fps or document the narrowed blocker with
+variant metrics and the next fix path.
