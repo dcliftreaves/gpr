@@ -34,6 +34,20 @@ GVID_VERSION = 1
 CLIP_HEADER_SIZE = 32
 FRAME_HEADER_SIZE = 16
 COPY_CHUNK_SIZE = 1024 * 1024
+RELEVANT_BENCH_ENV = [
+    "GPR_INCLUDE_LL",
+    "FUSED_MULTI_LEVEL",
+    "FUSED_WAVELET_LEVELS",
+    "GPR_COL_DECIMATE",
+    "GPR_ROW_DECIMATE",
+    "FUSED_STRIPE_ROWS",
+    "FUSED_DEFER_RANS",
+    "FUSED_INLINE_TOKENIZE",
+    "FUSED_THREADS",
+    "FUSED_LL2_DIVISOR",
+    "FUSED_QUALITY",
+    "FUSED_PRODUCER_UNPACK",
+]
 
 
 def sha256_file(path: Path) -> str:
@@ -54,6 +68,55 @@ def git_commit() -> str | None:
         ).strip()
     except Exception:
         return None
+
+
+def relevant_env() -> dict[str, str]:
+    return {key: os.environ[key] for key in RELEVANT_BENCH_ENV if key in os.environ}
+
+
+def find_cmake_build_root(binary: Path | None) -> Path | None:
+    if not binary:
+        return None
+    for parent in [binary.parent, *binary.parents]:
+        if (parent / "CMakeCache.txt").is_file():
+            return parent
+    return None
+
+
+def first_matching_line(path: Path, prefix: str) -> str | None:
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if line.startswith(prefix):
+                    return line.strip()
+    except OSError:
+        return None
+    return None
+
+
+def bench_build_info(binary: Path | None) -> dict[str, Any]:
+    if not binary:
+        return {}
+    info: dict[str, Any] = {
+        "binary": str(binary),
+        "binary_sha256": sha256_file(binary) if binary.is_file() else None,
+    }
+    build_root = find_cmake_build_root(binary)
+    if not build_root:
+        return info
+    info["cmake_build_root"] = str(build_root)
+    cache = build_root / "CMakeCache.txt"
+    build_type = first_matching_line(cache, "CMAKE_BUILD_TYPE:")
+    if build_type:
+        info["cmake_build_type"] = build_type.split("=", 1)[-1]
+    for label, rel in {
+        "encoder_c_flags": "source/lib/vc5_encoder/CMakeFiles/vc5_encoder.dir/flags.make",
+        "bench_c_flags": "source/app/bench_fused/CMakeFiles/bench_fused.dir/flags.make",
+    }.items():
+        flags = first_matching_line(build_root / rel, "C_FLAGS =")
+        if flags:
+            info[label] = flags.split("=", 1)[-1].strip()
+    return info
 
 
 def maxrss_kb() -> int:
@@ -406,6 +469,8 @@ def main() -> int:
         "interruption_recovery": interruption,
         "bench": {
             "cmd": [str(args.bench), str(args.raw), str(args.source_width), str(args.source_height), str(args.frames)] if not args.simulate else None,
+            "env_overrides": relevant_env(),
+            "build": bench_build_info(args.bench) if not args.simulate else {},
             "stdout_tail": bench_result.stdout[-2000:] if bench_result else None,
             "stderr_tail": bench_result.stderr[-2000:] if bench_result else None,
         },
