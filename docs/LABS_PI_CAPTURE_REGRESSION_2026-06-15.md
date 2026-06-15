@@ -684,6 +684,39 @@ context creation and guarded by `tools/test/test_fused_context_env_capture.sh`,
 so post-create environment drift cannot silently change the emitted decimation
 header while worker threads are running.
 
+## Current-Head Direct Rehearsal
+
+After commit `1b934a4`, the current clean `master` checkout was rebuilt on the
+Pi 5 stand-in and run through the direct `.gvid` target harness. This is not a
+passing production receipt; it is current-head blocker evidence and a check
+against relying on older short probes.
+
+Receipts copied locally:
+
+- sustained direct `.gvid` rehearsal:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_direct_1440f_1b934a4_20260615/labs_target_bench.json`
+- timing-detail receipt:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_timing_detail_30f_1b934a4_20260615/labs_target_bench.json`
+
+| run | frames | median | p95 | result |
+|---|---:|---:|---:|---|
+| current-head direct `.gvid` rehearsal | 1,440 / 1,440 | 62.48 ms / 16.00 fps | 73.21 ms | valid `.gvid`, no drops, interrupted-tail recovery proven, below target |
+| current-head timing-detail build | 30 / 30 | 48.78 ms / 20.50 fps | 49.38 ms | diagnostic build only, below target |
+
+Target state during the rehearsal was healthy: CPU governor `performance`, all
+cores at 2.4 GHz, `throttled=0x0`, and `/mnt/ssd` mounted as ext4 with
+`rw,noatime,stripe=8191`. The timing-detail receipt reports Pass1 median
+38.90 ms, Pass2 median 9.20 ms, and channel-unpack mean 22.79 ms. That keeps
+the blocker in the same place as the earlier profiles: highpass-preserving
+Pass1, with unpack as the largest measured component.
+
+Short A/B repeats against the older clean `ede0e07` checkout varied by run
+order, so the current-head slowdown should not be read as a proven fused-code
+regression. The source diff from `ede0e07` to `1b934a4` does not touch the
+fused encoder hot path. The sustained current-head receipt should instead be
+treated as the newest evidence that short 100-120 frame probes overstate the
+production path.
+
 ## Reproducible Timing Build
 
 The timing path is now a supported diagnostic build instead of a scratch source

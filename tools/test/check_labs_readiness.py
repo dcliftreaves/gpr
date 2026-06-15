@@ -30,6 +30,8 @@ REQUIRED_DOCS = {
         "Immediate Next Step",
         "Pass1/highpass",
         "24 fps",
+        "current-head direct",
+        "16.00 fps",
     ],
     "docs/LABS_INTAKE.md": [
         "What Ships In The Prototype",
@@ -58,6 +60,8 @@ REQUIRED_DOCS = {
         "19.98 fps",
         "23.54 fps",
         "luma-pair",
+        "current-head direct",
+        "16.00 fps",
         "2k_raw_0p5x_l2hh",
     ],
     "docs/LABS_ARTIFACT_BUNDLE.md": [
@@ -85,6 +89,8 @@ REQUIRED_DOCS = {
         "fused_timing",
         "zero-frame",
         "out-of-order",
+        "current-head direct",
+        "16.00 fps",
     ],
     "docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md": [
         "Highpass Lower-Bound Probe",
@@ -97,6 +103,8 @@ REQUIRED_DOCS = {
         "fused_timing",
         "23.54 fps",
         "luma-pair",
+        "Current-Head Direct Rehearsal",
+        "16.00 fps",
     ],
 }
 

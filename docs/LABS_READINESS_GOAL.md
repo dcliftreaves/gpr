@@ -371,6 +371,10 @@ important receipts:
   `be969d1aa40116992694439d6abbb99c0fd59e3b`
 - latest direct `.gvid` probe receipt:
   `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_default_nodrop_120f_ede0e07_20260615/labs_target_bench.json`
+- current-head direct `.gvid` rehearsal receipt:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_direct_1440f_1b934a4_20260615/labs_target_bench.json`
+- current-head timing-detail receipt:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_timing_detail_30f_1b934a4_20260615/labs_target_bench.json`
 
 Strict sustained result:
 
@@ -380,7 +384,7 @@ Strict sustained result:
 - median throughput: 19.98 fps
 - p95 frame time: 66.01 ms
 
-Direct `.gvid` current-head default short-probe result:
+Earlier direct `.gvid` default short-probe result:
 
 - commit: `ede0e078eae4a5643efd24b1a6a5ebec4844a826`
 - mode: `--direct-gvid`, default LUT path, highpass-preserving no-drop path
@@ -390,6 +394,20 @@ Direct `.gvid` current-head default short-probe result:
 - p95 frame time: 49.44 ms
 - timing detail: Pass1 mean 37.45 ms; channel-unpack mean 22.37 ms across
   channel workers
+
+Current-head direct `.gvid` rehearsal result:
+
+- commit: `1b934a41e0e9dee8f2189e67442e310ed6aa866a`
+- mode: `--direct-gvid`, default LUT path, highpass-preserving no-drop path
+- result: 1,440 requested frames, 1,440 written frames, valid `.gvid`,
+  interrupted-tail recovery proven
+- median frame time: 62.48 ms
+- median throughput: 16.00 fps
+- p95 frame time: 73.21 ms
+- target state: performance governor, 2.4 GHz, `throttled=0x0`, SSD ext4
+  `rw,noatime,stripe=8191`
+- timing detail: Pass1 median 38.90 ms; Pass2 median 9.20 ms; channel-unpack
+  mean 22.79 ms
 
 Direct `.gvid` polynomial diagnostic result:
 
@@ -407,7 +425,8 @@ polynomial diagnostic but still below 24 fps. Current, historical-document,
 environment,
 runtime-knob, and timing probes do not reproduce the 24.93 fps result. The
 best current-build knob reaches roughly 22-23 fps on short probes, while the
-strict 10-minute receipt remains 19.98 fps median. Timing detail shows
+strict 10-minute receipt remains 19.98 fps median and the current-head
+1,440-frame direct-container rehearsal is 16.00 fps median. Timing detail shows
 multi-level Pass1 dominates, with channel unpack as the largest measured
 component. The invalid producer+decimate combination is guarded by a committed
 byte-identity fallback regression, and a fresh decimation-aware producer
