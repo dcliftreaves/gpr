@@ -283,6 +283,59 @@ Probe artifact:
 This rules out a scalar-only build as a recovery path. The remaining work is
 still algorithmic Pass1 reduction, not disabling NEON.
 
+## Highpass Lower-Bound Probe
+
+A diagnostic-only build knob skipped highpass transform/tokenization work to
+bound the cost of the remaining Pass1/Pass2 highpass path. This is not a valid
+production output path: the decoder sees empty highpass bands, so the output
+does not preserve the raw detail payload expected from `.gvid`.
+
+Probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_drop_hp_bound_probe_20260615/drop_hp_bound_probe.json`
+
+| variant | median | finding |
+|---|---:|---|
+| baseline | 48.65 ms / 20.55 fps | below target |
+| `GPR_DROP_HIGHPASS=1` | 32.95 ms / 30.35 fps | diagnostic-only pass |
+| `GPR_DROP_HIGHPASS=1 FUSED_STRIPE_ROWS=48` | 32.88 ms / 30.41 fps | diagnostic-only pass |
+
+This narrows the throughput blocker to highpass transform/tokenization and
+associated Pass1 data movement. The target frame rate is reachable if that
+work is reduced, but simply dropping highpass content is not an acceptable
+Labs prototype path.
+
+## Quality Env And Quant Probe
+
+`bench_fused` previously hard-coded quality 3. That made earlier
+`FUSED_QUALITY=11` short probes invalid as quality experiments, because the
+environment variable did not reach `gpr_encode_fused_create`. The benchmark
+now reads `FUSED_QUALITY=<0..11>`, rejects invalid values, and
+`tools/run_labs_target_bench.py --quality` passes the same quality to the
+encoder payload instead of only recording it in the wrapper receipt/header. A
+CI smoke test covers this behavior:
+
+- `tools/test/test_bench_fused_quality_env.sh`
+
+Corrected Pi probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_quality_env_quant_probe_20260615/quality_env_quant_probe.json`
+
+| variant | median | finding |
+|---|---:|---|
+| `FUSED_QUALITY=3` | 46.10 ms / 21.69 fps | below target |
+| `FUSED_QUALITY=11` | 45.27 ms / 22.09 fps | below target |
+| `FUSED_QUALITY=11 FUSED_STRIPE_ROWS=48` | 46.65 ms / 21.44 fps | below target |
+| `FUSED_QUALITY=11 FUSED_STRIPE_ROWS=64 FUSED_DEFER_RANS=1` | 44.73 ms / 22.36 fps | below target |
+| `FUSED_QUALITY=11 GPR_QUANT_OVERRIDE=6:24` | 45.40 ms / 22.03 fps | below target |
+
+This rules out quality and highpass quantization knobs as sufficient fixes for
+the 24 fps capture target. They move payload size and timing slightly, but the
+remaining production gap still requires code-level reduction of the highpass
+path rather than another runtime sweep.
+
 ## Producer-Unpack Decimate Guard
 
 The current source now disables the shared producer ring when either

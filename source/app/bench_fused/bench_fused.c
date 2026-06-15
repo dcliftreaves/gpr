@@ -7,7 +7,7 @@
  * Usage: bench_clean <raw_file> <width> <height> <n_iters>
  *
  * The Bayer pattern is auto-detected from pixel_format = 1 (RGGB).
- * To force quality, edit gpr_encode_fused_create call below.
+ * To force quality, set FUSED_QUALITY=<0..11>.
  *
  * Companion to tools/pi_benchmark.sh (which sweeps env flags).
  */
@@ -49,7 +49,22 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < sz; i += 4096) sink += raw[i];
     (void)sink;
 
-    FUSED_ENCODER *enc = gpr_encode_fused_create(w, h, /*pf=*/1, /*q=*/3);
+    int quality = 3;
+    {
+        const char *q_env = getenv("FUSED_QUALITY");
+        if (q_env && *q_env) {
+            char *end = NULL;
+            long q = strtol(q_env, &end, 10);
+            if (end != q_env && q >= 0 && q <= 11) {
+                quality = (int)q;
+            } else {
+                fprintf(stderr, "invalid FUSED_QUALITY=%s (expected 0..11)\n", q_env);
+                return 1;
+            }
+        }
+    }
+
+    FUSED_ENCODER *enc = gpr_encode_fused_create(w, h, /*pf=*/1, quality);
     if (!enc) { fprintf(stderr, "create fail\n"); return 1; }
 
     /* Optional BayesShrink wavelet-domain denoise — set GPR_BENCH_DENOISE=<strength>

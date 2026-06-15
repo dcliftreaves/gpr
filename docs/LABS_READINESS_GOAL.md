@@ -11,6 +11,17 @@ target is a credible Labs intake package that lets a firmware/media engineer
 decide whether to prototype `.gvid` raw capture and review tooling on target
 hardware.
 
+## Active Session Goal
+
+Make GPR reviewable as a camera-firmware Labs prototype: `.gvid` half-res raw
+capture plus desktop review/export, with clear evidence for safety,
+performance, artifact portability, and firmware integration boundaries.
+
+Stop only when the full Labs intake package is complete and reviewable, or when
+Labs readiness is objectively blocked with evidence. Use
+`/Volumes/OWC_8TB/gpr_work` for large artifacts and temp. Do not stop at
+partial docs, intermediate pass-rate improvements, or hosted CI alone.
+
 ## Reviewer Frame
 
 Evaluate this repo as a firmware-media prototype intake, not as a research

@@ -346,6 +346,7 @@ def run_bench(args: argparse.Namespace, frame_dir: Path) -> tuple[list[float], s
         "FUSED_WAVELET_LEVELS": "2",
         "GPR_COL_DECIMATE": "2",
         "GPR_ROW_DECIMATE": "2",
+        "FUSED_QUALITY": str(args.quality),
         "GPR_BENCH_WRITE_ALL": str(frame_dir),
     })
     cmd = [str(args.bench), str(args.raw), str(args.source_width), str(args.source_height), str(args.frames)]
