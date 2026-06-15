@@ -139,7 +139,8 @@ python3 tools/check_labs_camera_handoff_receipt.py \
 ```
 
 Pi stand-in `labs_target_bench.json` receipts can be converted into the same
-schema:
+schema. The manual self-hosted target workflow does this automatically after
+`tools/run_labs_target_bench.py`:
 
 ```bash
 python3 tools/labs_target_to_camera_handoff_receipt.py \

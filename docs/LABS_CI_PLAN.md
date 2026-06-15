@@ -43,10 +43,11 @@ The executable target lane is `.github/workflows/labs-target.yml`. It is
 manual-only (`workflow_dispatch`) and requires a self-hosted runner labeled
 `self-hosted`, `Linux`, `ARM64`, and `gpr-labs-pi5`. It builds `bench_fused`,
 runs `tools/run_labs_target_bench.py` against a caller-supplied raw Bayer file,
-writes the compact `labs_target_bench.json` receipt under external storage, and
-fails the workflow unless the strict verdict passes. The heavy `.gvid` and frame
-payloads stay on the external target drive; GitHub Actions uploads only the JSON
-receipt and stdout tail.
+writes the compact `labs_target_bench.json` receipt under external storage,
+converts it to `camera_handoff_receipt.json`, validates that normalized handoff
+receipt, and fails the workflow unless both the strict verdict and handoff
+receipt pass. The heavy `.gvid` and frame payloads stay on the external target
+drive; GitHub Actions uploads only the compact JSON receipts and stdout tail.
 
 ## Skip Policy
 

@@ -51,6 +51,34 @@ on:
         description: ".gvid pixel format"
         required: true
         default: "4"
+      target_name:
+        description: "Receipt target name"
+        required: true
+        default: "Pi 5 stand-in"
+      target_role:
+        description: "Receipt target role: stand-in or camera"
+        required: true
+        default: "stand-in"
+      frame_source:
+        description: "Frame source label for camera handoff receipt"
+        required: true
+        default: "file-backed Bayer stand-in"
+      memory_ownership:
+        description: "Memory ownership label for camera handoff receipt"
+        required: true
+        default: "synchronous submit; caller owns input through return"
+      write_path:
+        description: "Write path label for camera handoff receipt"
+        required: true
+        default: "bench_fused target-bench .gvid path"
+      sensor_dma_executed:
+        description: "Set true only when the real sensor/DMA handoff executed"
+        required: true
+        default: "false"
+      blocker_cause:
+        description: "Blocker cause when firmware_ready is false"
+        required: true
+        default: "camera hardware target not firmware-ready"
 
 concurrency:
   group: labs-target-${{ github.ref }}
@@ -114,6 +142,36 @@ jobs:
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
 
+      - name: Generate camera handoff receipt
+        if: always()
+        id: handoff
+        run: |
+          set -euo pipefail
+          receipt="${{ steps.prep.outputs.outdir }}/labs_target_bench.json"
+          output="${{ steps.prep.outputs.outdir }}/camera_handoff_receipt.json"
+          if [ ! -f "$receipt" ]; then
+            echo "status=missing-target-receipt" >> "$GITHUB_OUTPUT"
+            echo "Missing target receipt: $receipt"
+            exit 0
+          fi
+          sensor_flag=()
+          if [ "${{ inputs.sensor_dma_executed }}" = "true" ]; then
+            sensor_flag=(--sensor-dma-executed)
+          fi
+          python3 tools/labs_target_to_camera_handoff_receipt.py "$receipt" \
+            --output "$output" \
+            --target-name "${{ inputs.target_name }}" \
+            --target-role "${{ inputs.target_role }}" \
+            --target-fps "${{ inputs.target_fps }}" \
+            --frame-source "${{ inputs.frame_source }}" \
+            --memory-ownership "${{ inputs.memory_ownership }}" \
+            --write-path "${{ inputs.write_path }}" \
+            --pixel-format "${{ inputs.pixel_format }}" \
+            --blocker-cause "${{ inputs.blocker_cause }}" \
+            "${sensor_flag[@]}"
+          python3 tools/check_labs_camera_handoff_receipt.py "$output"
+          echo "status=ok" >> "$GITHUB_OUTPUT"
+
       - name: Write target bench summary
         if: always()
         env:
@@ -136,14 +194,21 @@ jobs:
           capture = data.get("capture", {})
           verdict = data.get("verdict", {})
           gvid = data.get("gvid", {})
+          handoff = outdir / "camera_handoff_receipt.json"
+          handoff_data = {}
+          if handoff.exists():
+              handoff_data = json.loads(handoff.read_text(encoding="utf-8"))
+          handoff_verdict = handoff_data.get("verdict", {})
           rows = [
               ("receipt", str(receipt)),
+              ("camera_handoff_receipt", str(handoff) if handoff.exists() else "missing"),
               ("frames", f"{capture.get('frames_written')}/{capture.get('frames_requested')}"),
               ("fps_median", timing.get("fps_median")),
               ("p95_ms", timing.get("p95_ms")),
               ("gvid_valid", verdict.get("gvid_valid")),
               ("no_drops", verdict.get("no_drops")),
               ("fps_target_met", verdict.get("fps_target_met")),
+              ("firmware_ready", handoff_verdict.get("firmware_ready")),
               ("interruption_recovery_proven", verdict.get("interruption_recovery_proven")),
               ("gvid_sha256", gvid.get("sha256")),
           ]
@@ -161,9 +226,11 @@ jobs:
           if-no-files-found: warn
           path: |
             ${{ steps.prep.outputs.outdir }}/labs_target_bench.json
+            ${{ steps.prep.outputs.outdir }}/camera_handoff_receipt.json
             ${{ runner.temp }}/labs_target_bench_stdout.txt
 
       - name: Enforce target verdict
         run: |
           set -euo pipefail
           test "${{ steps.bench.outputs.status }}" = "0"
+          test "${{ steps.handoff.outputs.status }}" = "ok"

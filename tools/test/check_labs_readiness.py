@@ -261,7 +261,10 @@ def require_target_workflow_contract(tracked: set[str], failures: list[str]) -> 
         "gpr-labs-pi5",
         "bench_fused",
         "tools/run_labs_target_bench.py",
+        "tools/labs_target_to_camera_handoff_receipt.py",
+        "tools/check_labs_camera_handoff_receipt.py",
         "labs_target_bench.json",
+        "camera_handoff_receipt.json",
         "actions/upload-artifact",
         "Enforce target verdict",
     ):
