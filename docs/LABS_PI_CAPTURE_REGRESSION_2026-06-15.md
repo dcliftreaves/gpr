@@ -198,6 +198,32 @@ This rules out Pass 2 dispatch policy as the source of the historical 24.93 fps
 receipt. The worker-pool path is directionally helpful, but the remaining gap
 is still in the larger Pass1/unpack budget.
 
+## Pass1 Col-Decimate Prefetch Candidate
+
+A byte-exact source candidate added the same last-cache-line row prefetch used
+by the non-decimated unpack path to the active T13/T14 col-decimate unpack
+helpers. A local baseline/candidate `.gpr` dump comparison was byte-identical
+on a synthetic decimated fixture.
+
+Pi probe artifacts:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_pass1_prefetch_probe_20260615/pass1_prefetch_probe.json`
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_pass1_prefetch_probe_20260615/pass1_prefetch_confirm.json`
+
+| run | variant | median | finding |
+|---|---|---:|---|
+| A/B | baseline | 46.10 ms / 21.69 fps | below target |
+| A/B | prefetch candidate | 45.34 ms / 22.06 fps | faster, below target |
+| reversed | prefetch candidate | 46.13 ms / 21.68 fps | faster, below target |
+| reversed | baseline | 48.47 ms / 20.63 fps | below target |
+
+This is a safe incremental Pass1 improvement, not a full target fix. It does
+not change the production blocker: sustained half-res capture still needs
+additional Pass1 work reduction or a different capture-side algorithm to reach
+>= 24 fps.
+
 ## Producer-Unpack Decimate Guard
 
 The current source now disables the shared producer ring when either

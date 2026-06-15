@@ -1809,6 +1809,11 @@ static void unpack_channel_row_col_decimate_2x1(
     const uint16_t lm = (uint16_t)log_max;
 
 #if ENABLED(NEON)
+    if (ch_width_out >= 8) {
+        __builtin_prefetch(&row1[ch_width_out * 4 - 32], 0, 3);
+        __builtin_prefetch(&row2[ch_width_out * 4 - 32], 0, 3);
+    }
+
     const int o_m4 = (ch_width_out / 4) * 4;
     const uint16x8_t v_log_max = vdupq_n_u16(lm);
     const int32x4_t vmid2 = vdupq_n_s32(mid2);
@@ -2027,6 +2032,11 @@ static void unpack_luma_row_col_decimate_2x1(
     const uint16_t lm = (uint16_t)log_max;
 
 #if ENABLED(NEON)
+    if (ch_width_out >= 8) {
+        __builtin_prefetch(&row1[ch_width_out * 4 - 32], 0, 3);
+        __builtin_prefetch(&row2[ch_width_out * 4 - 32], 0, 3);
+    }
+
     const int o_m4 = (ch_width_out / 4) * 4;
     const uint16x8_t v_log_max = vdupq_n_u16(lm);
     const int32x4_t vmid2 = vdupq_n_s32(mid2);
