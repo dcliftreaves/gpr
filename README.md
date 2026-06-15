@@ -11,6 +11,30 @@ editable camera-original workflows. It combines VC-5 wavelet coding, matched
 decoder-side restoration, `.gvid` raw-video streams, MOV/ProRes review tooling,
 and reproducible quality gates.
 
+## Raw Video For GoPro Labs
+
+**A Labs prototype for the first raw-video workflow on a GoPro. Better imagery.
+Smaller files. Faster review.**
+
+GPR keeps camera-original Bayer data in a compact wavelet stream, then restores
+the image for review, editing, and delivery on the desktop. The current Labs
+package proves the media path with `.gvid` raw-video containers, ProRes review
+outputs, editable raw exports, and target-platform receipts.
+
+The pitch: files in the range of ordinary 8-bit JPEGs, but carrying 14/16-bit
+raw Bayer data, then cleaner review imagery from the decoder-side restoration
+stack.
+
+![Three STILL tiers, fine-detail crop](docs/img/still_three_tiers.png)
+
+| highlight | what it shows | evidence |
+|---|---|---|
+| JPEG-class size, raw-class latitude | STILL smallest averages **9.80 MB per 50 MP frame** while preserving 14/16-bit Bayer raw editability and passing the still gate. | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) |
+| Raw video container | `.gvid` carries per-frame FUSED `.gpr` payloads with metadata dispatch and recovery validation. | [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) |
+| GoPro Labs capture path | Pi 5 proxy validates 14,400 frames, 0 drops, valid `.gvid`, and interrupted-tail recovery at **19.98 fps**; Mission 1 hardware receipt is the remaining step. | [`docs/LABS_MISSION1_RUNBOOK.md`](docs/LABS_MISSION1_RUNBOOK.md) |
+| 4K review media | ProRes review outputs exist for codec-only, SOTA-v2, side-by-side, and UPRESABLE timelapse inspection. | [`docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md`](docs/PREVIEW_VIDEO_REVIEW_2026-06-04.md) |
+| Live camera-back preview | Bounded 2K selective-L2 HH path clears Pi timing at **29.85 fps median** with edge-safe visual gates. | [`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-14.md) |
+
 ![GPR still and video pipeline flow](docs/img/readme_pipeline_flow.svg)
 
 ## Why It Exists
@@ -48,8 +72,6 @@ dashboards, and target-platform timing in
 The still gate is worst-row based: LPIPS <= 0.05, MS-SSIM >= 0.99,
 Y-PSNR >= 35 dB, and dE2000 <= 1.5. Video and PREVIEW use their own committed
 thresholds and ship classes.
-
-![Three STILL tiers, fine-detail crop](docs/img/still_three_tiers.png)
 
 ## Raw Targets
 
