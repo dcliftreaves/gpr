@@ -18,7 +18,7 @@ ownership, and target CI.
 | area | status | evidence |
 |---|---|---|
 | Raw-video container | `.gvid` sequence of per-frame FUSED `.gpr` payloads | `source/lib/vc5_encoder/gpr_video_format.h`, `tools/gvid_pack.py` |
-| Half-res 24 fps capture target | Pi 5 stand-in path has measured headroom | `docs/VIDEO_STATUS.md`, `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` |
+| Half-res 24 fps capture target | Latest strict Pi 5 stand-in receipt is blocked at 19.98 fps median versus 24 fps target | `docs/LABS_TARGET_BENCH.md`, `docs/VIDEO_STATUS.md` |
 | Desktop review/export | `.gvid` can feed `gpr2prores` and ProRes review outputs | `docs/GETTING_STARTED.md`, `tools/gpr2prores/USAGE.md` |
 | Metadata dispatch | source metadata sidecar and runtime dispatch validation | `docs/GVID_METADATA_DISPATCH_2026-06-04.md` |
 | Production evidence tracking | release manifest and CI checks | `docs/RELEASE_READINESS.md`, `docs/release_evidence_manifest.json` |
@@ -30,14 +30,14 @@ ownership, and target CI.
 | Direct firmware merge | No camera-firmware sensor/DMA integration contract has been executed on target hardware. |
 | Full-res 4K/8K live preview | Current quality paths are desktop/offline; live camera-back output is bounded to the 2K edge-safe policy. |
 | Arbitrary CNN routing in firmware | The current CNN/routing work is desktop-side review output, not a firmware dependency. |
-| Unbounded capture guarantees | Sustained thermal, power, storage, and partial-file recovery evidence still needs target-style bench receipts. |
+| Unbounded capture guarantees | The strict Pi 5 target receipt validates container/recovery behavior but currently misses the 24 fps capture target. |
 
 ## Current Readiness
 
 | question | answer |
 |---|---|
 | Can the repo demonstrate the media shape? | Yes: `.gvid` pack/unpack, metadata dispatch, and ProRes review tooling exist. |
-| Can it hit the half-res capture-rate target on the stand-in path? | Current docs report Pi 5 half-res capture at 24.93 fps median and 31 MB/s sustained budget. |
+| Can it hit the half-res capture-rate target on the stand-in path? | Not on the latest strict receipt: commit `0dd6660` writes 14,400/14,400 frames with 0 drops and valid `.gvid`, but reaches only 19.98 fps median versus the 24 fps target. |
 | Is the format safe enough for firmware review? | Source-level path is hardened: v1 C parsing rejects malformed headers and streams; target recovery still needs receipts. |
 | Are artifacts portable outside the 8TB work drive? | Stand-in bundle verifies; final target bundle still needs 10 minute capture and camera-firmware receipts. |
 | Is CI sufficient for Labs intake? | Hosted CI covers source-level checks; target/self-hosted lanes are specified for media and hardware behavior. |
@@ -58,9 +58,8 @@ ownership, and target CI.
 
 ## Next Required Evidence
 
-1. Finish strict `.gvid` C validation and malformed-file tests.
-2. Add a target-style bench receipt for sustained capture, memory, storage,
-   dropped frames, and file recovery.
-3. Package a portable artifact bundle with checksums and verification steps.
-4. Add or document CI lanes for hosted source checks and target/self-hosted
+1. Restore the half-res Pi 5 path to >= 24 fps or narrow the regression from
+   the historical 24.93 fps receipt to a specific code/configuration cause.
+2. Package a portable artifact bundle with checksums and verification steps.
+3. Add or document CI lanes for hosted source checks and target/self-hosted
    media checks.

@@ -45,7 +45,7 @@
   <path class="arrow" d="M210 288 H270"/>
   <rect class="codec" x="270" y="252" width="220" height="72" rx="8"/>
   <text class="label" x="292" y="282">ML-2 q3 dec2</text>
-  <text class="small" x="292" y="304">1.30 MB/frame, 24.93 fps</text>
+  <text class="small" x="292" y="304">latest strict run: 19.98 fps</text>
   <path class="arrow" d="M490 288 H550"/>
   <rect class="out" x="550" y="252" width="220" height="72" rx="8"/>
   <text class="label" x="572" y="282">GVID stream</text>

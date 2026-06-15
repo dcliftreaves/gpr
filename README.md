@@ -36,7 +36,7 @@ dashboards, and target-platform timing in
 |---|---|---|
 | Stills | Compressed raw photos | Three production tiers pass the STILL gate at 9.80 MB, 15.05 MB, and 27.17 MB per 50 MP frame. |
 | VIDEO_FREEZE | Full-res raw video/post | Production-gated desktop/post paths with matched decoder CNN restoration. |
-| Pi 5 capture | Embedded raw stream | `ml2_q3_dec2` captures source-derived 50 MP frames at 24.93 fps sustained. |
+| Pi 5 capture | Embedded raw stream | Latest strict 14,400-frame Labs receipt validates `.gvid` and recovery with 0 drops, but is blocked at 19.98 fps median versus the 24 fps target. |
 | PREVIEW offline/review | Full-frame review render | q8 three-way no-REF runtime path passes the current 84-row holdout; offline speed only. This is not a live/camera-back preview path. |
 | PREVIEW live/camera-back | Bounded display | 2K selective-L2 HH edge-safe viewport clears Pi timing and rendered proxy gates. |
 | UPRESABLE | Half-res capture to full-res raw | Produces editable full-res raw with ProRes and container review outputs. |

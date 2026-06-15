@@ -57,17 +57,20 @@ CNN checkpoint.
 
 At 24 fps the VIDEO_FREEZE primary writes **187 MB/s** — fine for desktop
 post-processing, NOT for Pi 5 capture (Pi caps ~7 fps at full-res). The
-half-res Pi-capture path captures at 24.93 fps median; the **UPRESABLE
-class below** is the production answer (BIBO_2x super-res to full-res
-editable raw DNG/.gpr — workflow-native metric is Bayer PSNR vs source
-DNG, not rendered LPIPS).
+half-res Pi-capture path historically captured at 24.93 fps median; the latest
+strict Labs target receipt at commit `0dd6660` reaches 19.98 fps median and is
+now the production blocker for embedded capture. The **UPRESABLE class below**
+remains the intended production answer once the Pi capture regression is fixed
+(BIBO_2x super-res to full-res editable raw DNG/.gpr — workflow-native metric
+is Bayer PSNR vs source DNG, not rendered LPIPS).
 
 ## TL;DR — UPRESABLE (Pi-capture half-res → editable full-res raw)
 
-Added 2026-05-30 as the production Pi-capture path. Half-res `ml2_q3_dec2`
-on Pi 5 (24.93 fps sustained, 0.98 MB/frame) → desktop M3 BIBO_2x
-super-res CNN → editable full-res raw DNG (91 MB) + compressed .gpr
-(2–8 MB) the user opens in their NLE / raw editor.
+Added 2026-05-30 as the intended production Pi-capture path. Historical
+half-res `ml2_q3_dec2` on Pi 5 reached 24.93 fps sustained; the current strict
+Labs receipt is blocked at 19.98 fps median. Once restored, the flow is Pi
+half-res capture → desktop M3 BIBO_2x super-res CNN → editable full-res raw DNG
+(91 MB) + compressed .gpr (2–8 MB) the user opens in their NLE / raw editor.
 
 | ship | pipeline | bayer_psnr_final (worst, Z8Z_6693) | verdict |
 |---|---|---:|---|
@@ -183,7 +186,8 @@ so historical run logs still resolve.
   half-res (12.5 MP equivalent) via decimation, desktop applies a 2×
   super-res CNN to restore full resolution. Pi 5 sustained **24.93 fps
   median** measured 2026-05-26 (100-frame test, USB SSD writes, page
-  cache defeated).
+  cache defeated), but the latest strict 14,400-frame Labs target receipt
+  at commit `0dd6660` is blocked at **19.98 fps median**.
 - The barnsky-only retrain failed on out-of-distribution content. The
   production UPRESABLE path now uses the diverse BIBO_2x checkpoint and is
   gated as editable raw by Bayer PSNR, not finished-render LPIPS.
@@ -232,15 +236,16 @@ in TL;DR table differ.)
 
 ## Storage on Pi 5
 
-The embedded-capture pipeline writes 1.30 MB / frame at 24.93 fps =
-~31 MB/s sustained. Any consumer SD card class 10 (~30 MB/s) handles
-this; USB SSD has comfortable headroom.
+The historical embedded-capture pipeline wrote 1.30 MB / frame at 24.93 fps =
+~31 MB/s sustained. The latest strict Labs target receipt writes all frames
+with 0 drops and valid `.gvid`, but only reaches 19.98 fps median; treat
+embedded capture as blocked until the current build/config restores >= 24 fps.
 
 The full-res VIDEO_FREEZE primary writes 7.81 MB / frame = 187 MB/s at
 24 fps target. **Pi 5 cannot encode this in real time** — best legacy
 gpr_tools q=3 throughput is 1.84 fps single-frame (post 2026-05-28 perf
 work). Full-res video is a desktop/post-process flow; embedded capture
-uses `ml2_q3_dec2` (half-res, 24.93 fps).
+intends to use `ml2_q3_dec2`, but the current strict target receipt is blocked.
 
 
 ## Embedded video path — architectural limit found 2026-05-26
@@ -278,8 +283,9 @@ the PNG-level bicubic baseline used by the `cnn=none` path.
   matched CNN for in-distribution content. Requires a content
   detector.
 
-Codec-side: Pi 5 captures correctly (24.93 fps median, 1.3 MB/frame at
-ml2_q3_dec2). The codec is not the bottleneck.
+Codec-side: the historical Pi 5 half-res receipt captured correctly at
+24.93 fps median, 1.3 MB/frame with `ml2_q3_dec2`. The latest strict receipt
+now makes the current codec/config path the blocker to investigate.
 
 ## CNN-aware compression revival — findings (2026-05-27)
 

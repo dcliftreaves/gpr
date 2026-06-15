@@ -1,6 +1,6 @@
 # Labs Target Bench
 
-Last refreshed: 2026-06-14
+Last refreshed: 2026-06-15
 
 This page defines the target-style evidence required for Labs prototype review.
 It separates current Pi 5 stand-in evidence from the still-missing camera
@@ -10,7 +10,8 @@ firmware evidence.
 
 | item | current evidence | status |
 |---|---|---|
-| Half-res `.gvid` capture budget | `docs/VIDEO_STATUS.md` reports 24.93 fps median and 31 MB/s at 1.30 MB/frame | stand-in evidence |
+| Historical half-res `.gvid` capture budget | `docs/pi5_bench_2026-05-26.md` reports 24.93 fps median on an older Pi branch/run | historical stand-in evidence |
+| Current strict 10 minute Pi 5 target run | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` reports 14,400 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, 19.98 fps median | target-performance blocker |
 | 2K live/camera-back raw target | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` reports `2k_raw_0p5x_l2hh` at 29.85 fps median, 37.1 ms p95 | stand-in evidence |
 | Desktop review PREVIEW | `docs/VIDEO_STATUS.md` reports q8 three-way PREVIEW quality pass at 13.65 s/image on Mac/MPS | offline-only evidence |
 | Format validation | `test_video_format` and `test_video_full_chain` validate headers, streams, and real encoded `.gvid` files | committed CI evidence |
@@ -58,13 +59,31 @@ recovery. CI runs only the simulated schema smoke:
 ## Current Gap
 
 The current repo evidence is enough for a Labs prototype conversation, but not
-enough for direct firmware readiness. Missing receipts:
+enough for direct firmware readiness. The latest strict Pi 5 stand-in receipt
+at commit `0dd6660` proves the container/recovery path on a 14,400-frame run,
+but it misses the 24 fps target:
+
+| metric | latest strict Pi 5 receipt |
+|---|---|
+| receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` |
+| frames | 14,400 requested / 14,400 written |
+| drops | 0 |
+| median fps | 19.98 fps |
+| mean fps | 19.23 fps |
+| median encode | 50.04 ms/frame |
+| p95 encode | 66.01 ms/frame |
+| max encode | 239.47 ms/frame |
+| `.gvid` | valid, 14,400 frames, 13.73 GB payload |
+| recovery | truncated-tail rejected; 14,399 complete frames recovered |
+| memory | wrapper 29.0 MB RSS, child 137.5 MB RSS |
+| thermal | 60.9 C start, 75.2 C end |
+
+Remaining missing receipts:
 
 - actual camera sensor/DMA handoff,
 - sustained thermal/power behavior,
-- storage behavior on the intended media path,
-- partial-file recovery on target,
-- target memory high-water mark.
+- storage behavior on the intended camera media path,
+- a current commit/path that restores the half-res encoder to >= 24 fps.
 
 Until those exist, Pi 5 numbers must be labeled as stand-in evidence.
 

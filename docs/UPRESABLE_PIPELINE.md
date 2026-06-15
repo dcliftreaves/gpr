@@ -39,12 +39,15 @@ what the desktop does with them:
 
 ## Pipeline stages
 
-### Capture (Pi 5, real-time, 24 fps)
+### Capture (Pi 5, target real-time, currently blocked)
 
 1. Sensor delivers 14-bit Bayer at 50 MP (8280 × 5520)
 2. `ml2_q3_dec2` codec internally decimates 2×2 → encodes 4140 × 2760 at q=3
 3. Output: `.gpr` file, ~1.0–3.4 MB/frame depending on content
-4. Sustained 24.93 fps median on Pi 5 (per `docs/pi5_bench_2026-05-26.md`)
+4. Historical Pi 5 receipt reached 24.93 fps median
+   (`docs/pi5_bench_2026-05-26.md`); latest strict 14,400-frame Labs receipt
+   at commit `0dd6660` reaches 19.98 fps median and blocks current production
+   promotion until the regression is fixed or narrowed.
 
 ### Upres + re-encode (Mac M3, offline post)
 

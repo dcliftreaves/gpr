@@ -410,19 +410,29 @@
     {
       "id": "pi5_mission1_halfres_capture",
       "platform": "Pi 5 / Mission 1",
-      "status": "meets-target",
+      "status": "blocked",
       "target": "24 fps half-res raw capture",
       "pipeline": "codec=ml2_q3_dec2+cnn=none+demosaic=sips_via_gpr_tools",
       "metrics": {
-        "fps_median": 24.93,
-        "target_fps": 24.0
+        "fps_median": 19.984,
+        "target_fps": 24.0,
+        "median_ms": 50.04,
+        "p95_ms": 66.01,
+        "frame_count": 14400,
+        "mb_per_second": 17.46
       },
+      "blocked_by": [
+        "fps_throughput_limit"
+      ],
+      "reason": "Latest strict 10 minute Pi 5 Labs target receipt at commit 0dd6660 validates .gvid, drops, memory, and interruption recovery, but misses the 24 fps target. Historical 2026-05-26 receipt reached 24.93 fps and now needs regression analysis against the current build/config.",
       "docs": [
         "README.md",
         "docs/VIDEO_STATUS.md",
-        "docs/pi5_bench_2026-05-26.md"
+        "docs/pi5_bench_2026-05-26.md",
+        "docs/LABS_TARGET_BENCH.md"
       ],
       "receipts": [
+        "artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json",
         "docs/pi5_bench_2026-05-26.md",
         "docs/VIDEO_STATUS.md"
       ]

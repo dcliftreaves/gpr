@@ -39,11 +39,11 @@
   <text class="small" x="342" y="241">ML-2 q3 l1x2, worst LPIPS 0.076</text>
 
   <rect class="panel" x="600" y="110" width="250" height="150" rx="8"/>
-  <rect class="green" x="622" y="132" width="54" height="24" rx="12"/>
-  <text class="badgeText" x="635" y="149">PASS</text>
+  <rect class="amber" x="622" y="132" width="74" height="24" rx="12"/>
+  <text class="badgeText" x="633" y="149">BLOCKED</text>
   <text class="label" x="622" y="182">Preview capture</text>
-  <text class="num" x="622" y="218">24.93 fps</text>
-  <text class="small" x="622" y="241">Pi 5, ml2_q3_dec2, 1.30 MB/frame</text>
+  <text class="num" x="622" y="218">19.98 fps</text>
+  <text class="small" x="622" y="241">Pi 5 strict run, target 24 fps</text>
 
   <rect class="panel" x="880" y="110" width="250" height="150" rx="8"/>
   <rect class="green" x="902" y="132" width="54" height="24" rx="12"/>

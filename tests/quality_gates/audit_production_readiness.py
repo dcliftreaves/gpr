@@ -2725,19 +2725,31 @@ def check_capability_memory_receipt() -> Check:
 
 
 def check_pi5_capture_receipt() -> Check:
-    path = REPO / "docs/pi5_bench_2026-05-26.md"
-    if not path.exists():
-        return Check("platform_perf", "Pi 5 half-res capture fps receipt", "FAIL", "missing docs/pi5_bench_2026-05-26.md")
-    text = path.read_text(errors="ignore")
-    m = re.search(r"Half-res.*?fps_median=([0-9.]+)", text, re.S)
-    if not m:
-        return Check("platform_perf", "Pi 5 half-res capture fps receipt", "FAIL", "missing half-res fps_median")
-    fps = float(m.group(1))
+    manifest_path = REPO / "docs/release_evidence_manifest.json"
+    if not manifest_path.exists():
+        return Check("platform_perf", "Pi 5 half-res capture fps receipt", "FAIL", "missing release evidence manifest")
+    manifest = json.loads(manifest_path.read_text())
+    entry = next(
+        (
+            item for item in manifest.get("platform_performance", [])
+            if item.get("id") == "pi5_mission1_halfres_capture"
+        ),
+        None,
+    )
+    if not isinstance(entry, dict):
+        return Check("platform_perf", "Pi 5 half-res capture fps receipt", "FAIL", "missing pi5_mission1_halfres_capture manifest entry")
+    metrics = entry.get("metrics", {})
+    try:
+        fps = float(metrics.get("fps_median"))
+        target_fps = float(metrics.get("target_fps"))
+    except (TypeError, ValueError):
+        return Check("platform_perf", "Pi 5 half-res capture fps receipt", "FAIL", "missing numeric fps_median/target_fps")
+    status = str(entry.get("status"))
     return Check(
         "platform_perf",
         "Pi 5 half-res capture fps receipt",
-        "PASS" if fps >= 24.0 else "FAIL",
-        f"fps_median={fps:.2f} target>=24.00",
+        "PASS" if status == "meets-target" and fps >= target_fps else "FAIL",
+        f"status={status} fps_median={fps:.2f} target>={target_fps:.2f} reason={entry.get('reason', '')}",
     )
 
 
@@ -2753,8 +2765,8 @@ def check_video_status_doc() -> Check:
         "13.65 s/image",
         "0.073 fps",
         "not live/camera-back preview",
-        "codec-only PREVIEW route is the fast live/camera-back",
-        "Live/camera-back quality beyond codec-only remains a separate future",
+        "Latest strict 10 minute Labs receipt",
+        "Treat the current commit/path as blocked",
     ]
     missing = [s for s in required if s not in text]
     return Check(

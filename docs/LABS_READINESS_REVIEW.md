@@ -1,14 +1,14 @@
 # Labs Readiness Review
 
-Last refreshed: 2026-06-14
+Last refreshed: 2026-06-15
 
 ## Decision
 
 Go for Labs prototype exploration of half-res `.gvid` raw capture plus desktop
 review/export.
 
-No-go for direct firmware merge until target hardware integration and sustained
-capture evidence exist.
+No-go for direct firmware merge until target hardware integration exists and
+the current half-res capture path restores >= 24 fps on the target-style run.
 
 ## Ready Now
 
@@ -20,6 +20,7 @@ capture evidence exist.
 | Format hardening | C reader rejects malformed v1 headers and whole-stream corruption |
 | Portable stand-in bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` |
 | Target receipt harness | `tools/run_labs_target_bench.py` produces `labs_target_bench.json` with timing, storage, memory, drop, `.gvid`, and interruption fields |
+| Strict Pi 5 target receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` proves 14,400 frames, 0 drops, valid `.gvid`, and interrupted-tail recovery |
 | Current overview | README is media-focused; detailed proof lives in docs |
 
 ## Not Ready Yet
@@ -27,20 +28,22 @@ capture evidence exist.
 | area | missing evidence |
 |---|---|
 | Firmware capture integration | sensor/DMA handoff and memory ownership have not been executed on target |
-| Sustained target run | no committed 10 minute target-style receipt for fps, storage, thermal, memory, drops |
-| Final target artifact bundle | stand-in bundle exists; final bundle still needs 10 minute target receipt and camera-firmware evidence |
-| Recovery proof | partial-file recovery policy is specified but target interruption receipt is missing |
+| Sustained target run | latest strict Pi 5 receipt misses 24 fps: 19.98 fps median, 50.04 ms median, 66.01 ms p95 |
+| Final target artifact bundle | stand-in bundle exists; final bundle still needs passing target receipt and camera-firmware evidence |
+| Firmware capture integration | target receipt uses Pi stand-in file input, not sensor/DMA handoff |
 
 ## Current Risk
 
-The main risk is not whether `.gvid` can represent the media. The risk is
-whether target firmware can feed, encode, write, recover, and validate the
-stream under real storage, thermal, power, and memory constraints.
+The main risk is no longer whether `.gvid` can represent, validate, and recover
+the media. The latest strict Pi 5 receipt proves that path. The blocker is that
+the current half-res encoder path misses the 24 fps target on the stand-in run.
 
 ## Next Work
 
-1. Run the Pi 5 sustained capture bench as explicit 10 minute stand-in evidence.
-2. Replace or supplement the stand-in bundle with final target-capture receipts.
+1. Investigate the current 19.98 fps Pi 5 regression against the historical
+   24.93 fps half-res receipt and restore >= 24 fps or narrow the cause.
+2. Replace or supplement the stand-in bundle with a passing target-capture
+   receipt.
 3. Add target/self-hosted CI jobs or documented manual receipts for media
    behavior hosted CI cannot exercise.
 4. Re-run the readiness review with target bundle hashes and bench receipts attached.

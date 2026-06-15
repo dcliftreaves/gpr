@@ -33,7 +33,7 @@ This is the pipeline that PASSes the perceptual gate. It's the
 correct ship for post-processed video on a Mac. It is **NOT** the
 embedded-capture ship — Pi 5 can't encode this fast.
 
-### B) Embedded half-res Pi-capture path (24 fps capable)
+### B) Embedded half-res Pi-capture path (target blocker on latest strict run)
 
 | field | value |
 |---|---|
@@ -42,18 +42,18 @@ embedded-capture ship — Pi 5 can't encode this fast.
 | live/camera-back PREVIEW | `2k_raw_0p5x_l2hh` selective-L2 HH production-bounded edge-safe display policy; older codec-only gate remains experimental |
 | offline/review PREVIEW | `preview_q8_threeway_runtime_fullframe_v1` registered as external-receipt no-REF production path |
 | offline/review entrypoint | `tools/cnn/render_preview_q8_threeway_runtime.py` |
-| Pi 5 capture fps | **24.93 fps median** (verified 2026-05-26). Post commit `c1eabc6` (2026-05-28 Pass 2 worker-pool dispatch on ≤4-core hosts) per-frame encode dropped from 40.89 → 38.20 ms median (6.6% faster). Sustained capture not re-measured but headroom over 24 fps grew. |
+| Pi 5 capture fps | Historical 2026-05-26 receipt: **24.93 fps median**. Latest strict 10 minute Labs receipt at commit `0dd6660`: **19.98 fps median**, 50.04 ms median, 66.01 ms p95, 14,400/14,400 frames, 0 drops, valid `.gvid`. Treat the current commit/path as blocked until the regression is narrowed or fixed. |
 | per-frame size | **1.30 MB** at half-res |
 | at 24 fps sustained | **31 MB/s** — well within USB SSD capability |
 | offline/review PREVIEW quality | **PASS on current 28-image/84-row holdout** — worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, dE2000 2.64 |
 | offline/review PREVIEW speed | **13.65 s/image, 0.073 fps, 5.37 GB peak RSS** on the Mac/MPS receipt — not live/camera-back preview |
 
-**This is the actual 24 fps capture pipeline you asked for.** The
-encode side works. The codec-only PREVIEW route is the fast live/camera-back
-path. The current q8 three-way CNN route closes the no-REF full-frame PREVIEW
-quality gap for offline/review output, but it is much too slow for live
-preview. Live/camera-back quality beyond codec-only remains a separate future
-strategy.
+This remains the intended embedded capture architecture, but the latest strict
+target-style receipt does not clear 24 fps. The codec-only PREVIEW route is the
+fast live/camera-back path. The current q8 three-way CNN route closes the
+no-REF full-frame PREVIEW quality gap for offline/review output, but it is much
+too slow for live preview. Live/camera-back quality beyond codec-only remains a
+separate future strategy.
 
 The live/camera-back blocker is now bounded to exact outer-edge display
 quality, not raw-target timing. The committed codec-only PREVIEW gate run
@@ -84,7 +84,7 @@ from commits 79403fb + ec1cb2c, which targeted the Adobe DNG SDK input
 decode rather than the VC5 codec itself.)
 
 For video you need either:
-- Half-res capture (achieves 24.93 fps, you have this), or
+- Half-res capture restored to >= 24 fps on the strict target receipt, or
 - A faster encoder. The parallel-DNG-read win above doesn't help the
   pure-encode hot path; further encoder speedup would have to come from
   cache-line alignment / NEON / multi-threading wins on the VC5 codec
