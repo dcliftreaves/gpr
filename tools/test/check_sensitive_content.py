@@ -92,6 +92,9 @@ HISTORY_GREP_PATTERNS = (
     r"(^|[^[:alnum:]_])expiry[[:space:]]+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)([^[:alnum:]_]|$)",
 )
 
+HISTORY_DIFF_GREP_PATTERN = "|".join(f"({pattern})" for pattern in HISTORY_GREP_PATTERNS)
+HISTORY_GREP_BATCH_SIZE = 64
+
 
 def is_excluded(path: Path) -> bool:
     rel = path.relative_to(ROOT).as_posix()
@@ -150,18 +153,27 @@ def history_revs() -> list[str]:
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
+def history_candidate_revs(paths: list[str]) -> list[str]:
+    """Return commits whose diffs mention restricted text in project paths.
 
-def check_history(paths: list[str]) -> list[str]:
-    revs = history_revs()
-    if not revs:
-        return []
+    Grepping every reachable tree is accurate but too slow for hosted CI on this
+    repository. `git log -G` narrows the scan to commits that add/remove a
+    matching line, then `check_history` verifies the resulting commit trees with
+    the same line-level rules used by the old all-tree scan.
+    """
 
-    cmd = ["git", "grep", "-n", "-I", "-i", "-E"]
-    for pattern in HISTORY_GREP_PATTERNS:
-        cmd.extend(["-e", pattern])
-    cmd.extend(revs)
-    cmd.extend(["--", *history_pathspec(paths)])
-
+    cmd = [
+        "git",
+        "log",
+        "--all",
+        "--no-ext-diff",
+        "--regexp-ignore-case",
+        "-G",
+        HISTORY_DIFF_GREP_PATTERN,
+        "--pretty=format:%H",
+        "--",
+        *history_pathspec(paths),
+    ]
     result = subprocess.run(
         cmd,
         cwd=ROOT,
@@ -170,27 +182,63 @@ def check_history(paths: list[str]) -> list[str]:
         text=True,
     )
     if result.returncode not in (0, 1):
-        return [f"history scan failed: {result.stderr.strip() or 'git grep error'}"]
+        raise RuntimeError(result.stderr.strip() or "git log history scan failed")
+
+    seen: set[str] = set()
+    revs: list[str] = []
+    for line in result.stdout.splitlines():
+        rev = line.strip()
+        if rev and rev not in seen:
+            seen.add(rev)
+            revs.append(rev)
+    return revs
+
+
+def check_history(paths: list[str]) -> list[str]:
+    try:
+        revs = history_candidate_revs(paths)
+    except RuntimeError as exc:
+        return [f"history scan failed: {exc}"]
+    if not revs:
+        return []
 
     findings: list[str] = []
     reported: set[tuple[str, str, str, str]] = set()
-    for raw in result.stdout.splitlines():
-        rev, sep, rest = raw.partition(":")
-        if not sep:
-            continue
-        rel, sep, rest = rest.partition(":")
-        if not sep or is_excluded_rel(rel) or not has_text_suffix(rel):
-            continue
-        line_no, sep, line = rest.partition(":")
-        if not sep:
-            continue
-        for pattern, label in HISTORY_PATTERNS:
-            if pattern.search(line):
-                key = (rev, rel, line_no, label)
-                if key in reported:
-                    continue
-                reported.add(key)
-                findings.append(f"{rev[:12]}:{rel}:{line_no}: {label}: {line.strip()}")
+    for start in range(0, len(revs), HISTORY_GREP_BATCH_SIZE):
+        batch = revs[start:start + HISTORY_GREP_BATCH_SIZE]
+        cmd = ["git", "grep", "-n", "-I", "-i", "-E"]
+        for pattern in HISTORY_GREP_PATTERNS:
+            cmd.extend(["-e", pattern])
+        cmd.extend(batch)
+        cmd.extend(["--", *history_pathspec(paths)])
+
+        result = subprocess.run(
+            cmd,
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if result.returncode not in (0, 1):
+            return [f"history scan failed: {result.stderr.strip() or 'git grep error'}"]
+
+        for raw in result.stdout.splitlines():
+            rev, sep, rest = raw.partition(":")
+            if not sep:
+                continue
+            rel, sep, rest = rest.partition(":")
+            if not sep or is_excluded_rel(rel) or not has_text_suffix(rel):
+                continue
+            line_no, sep, line = rest.partition(":")
+            if not sep:
+                continue
+            for pattern, label in HISTORY_PATTERNS:
+                if pattern.search(line):
+                    key = (rev, rel, line_no, label)
+                    if key in reported:
+                        continue
+                    reported.add(key)
+                    findings.append(f"{rev[:12]}:{rel}:{line_no}: {label}: {line.strip()}")
 
     return findings
 

@@ -5,7 +5,8 @@
 > "For video I wanted to take a quality level that allowed us to hit
 > 24 fps and could use a CNN to recover visual quality on the decoder side."
 
-Three parts: **24 fps capture** (encode side, Pi 5 constrained),
+Three parts: **24 fps camera capture** (encode side, with Pi 5 as a
+conservative stand-in proxy),
 **offline/review PREVIEW quality** (Mac desktop side), and a separate
 **live/camera-back preview** path if interactive display is required.
 
@@ -33,7 +34,7 @@ This is the pipeline that PASSes the perceptual gate. It's the
 correct ship for post-processed video on a Mac. It is **NOT** the
 embedded-capture ship — Pi 5 can't encode this fast.
 
-### B) Embedded half-res Pi-capture path (target blocker on latest strict run)
+### B) Embedded half-res Pi-capture path (proxy-acceptable, camera receipt pending)
 
 | field | value |
 |---|---|
@@ -42,18 +43,19 @@ embedded-capture ship — Pi 5 can't encode this fast.
 | live/camera-back PREVIEW | `2k_raw_0p5x_l2hh` selective-L2 HH production-bounded edge-safe display policy; older codec-only gate remains experimental |
 | offline/review PREVIEW | `preview_q8_threeway_runtime_fullframe_v1` registered as external-receipt no-REF production path |
 | offline/review entrypoint | `tools/cnn/render_preview_q8_threeway_runtime.py` |
-| Pi 5 capture fps | Historical 2026-05-26 receipt: **24.93 fps median**. Latest strict 10 minute Labs receipt at commit `0dd6660`: **19.98 fps median**, 50.04 ms median, 66.01 ms p95, 14,400/14,400 frames, 0 drops, valid `.gvid`. Corrected pixel-format short direct `.gvid` probe at commit `e16357f`: **19.85 fps median**, 50.38 ms median, 57.23 ms p95, 120/120 frames, 0 drops, valid `.gvid`. Treat the current commit/path as blocked until the regression is narrowed or fixed. |
+| Pi 5 capture fps | Historical 2026-05-26 receipt: **24.93 fps median**. Latest strict 10 minute Labs receipt at commit `0dd6660`: **19.98 fps median**, 50.04 ms median, 66.01 ms p95, 14,400/14,400 frames, 0 drops, valid `.gvid`; treat this as acceptable conservative 20 fps proxy evidence for camera integration. Corrected pixel-format short direct `.gvid` probe at commit `e16357f`: **19.85 fps median**, 50.38 ms median, 57.23 ms p95, 120/120 frames, 0 drops, valid `.gvid`. Actual Mission 1 24 fps capture remains unproven. |
 | per-frame size | **1.30 MB** at half-res |
 | at 24 fps sustained | **31 MB/s** — well within USB SSD capability |
 | offline/review PREVIEW quality | **PASS on current 28-image/84-row holdout** — worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, dE2000 2.64 |
 | offline/review PREVIEW speed | **13.65 s/image, 0.073 fps, 5.37 GB peak RSS** on the Mac/MPS receipt — not live/camera-back preview |
 
-This remains the intended embedded capture architecture, but the latest strict
-target-style receipt does not clear 24 fps. The codec-only PREVIEW route is the
-fast live/camera-back path. The current q8 three-way CNN route closes the
-no-REF full-frame PREVIEW quality gap for offline/review output, but it is much
-too slow for live preview. Live/camera-back quality beyond codec-only remains a
-separate future strategy.
+This remains the intended embedded capture architecture. The latest strict Pi 5
+target-style receipt is acceptable as 20 fps proxy evidence, while the actual
+Mission 1 24 fps hardware receipt is still required. The codec-only PREVIEW
+route is the fast live/camera-back path. The current q8 three-way CNN route
+closes the no-REF full-frame PREVIEW quality gap for offline/review output, but
+it is much too slow for live preview. Live/camera-back quality beyond
+codec-only remains a separate future strategy.
 
 The live/camera-back blocker is now bounded to exact outer-edge display
 quality, not raw-target timing. The committed codec-only PREVIEW gate run
@@ -83,9 +85,14 @@ perf work; comparable to FUSED order of magnitude):
 from commits 79403fb + ec1cb2c, which targeted the Adobe DNG SDK input
 decode rather than the VC5 codec itself.)
 
-For video you need either:
-- Half-res capture restored to >= 24 fps on the strict target receipt, or
-- A faster encoder. The parallel-DNG-read win above doesn't help the
+For video you need:
+- Pi 5 stand-in evidence at roughly 20 fps for Labs integration, which the
+  strict receipt now provides, and
+- Mission 1 hardware evidence at 24 fps before firmware readiness can be
+  claimed.
+
+If the camera path misses 24 fps, the next options are a faster encoder or a
+capture-side algorithm change. The parallel-DNG-read win above doesn't help the
   pure-encode hot path; further encoder speedup would have to come from
   cache-line alignment / NEON / multi-threading wins on the VC5 codec
   itself. The 2026-05-28 alignment subagent work targets exactly this.
@@ -95,7 +102,7 @@ For video you need either:
 | What you want | Which pipeline |
 |---|---|
 | Highest-quality video at any size, desktop | **A** (full-res VIDEO_FREEZE) |
-| Embedded Pi-camera capture at 24 fps | **B** (half-res `.gvid`; container/recovery work, capture throughput is currently blocked below 24 fps) |
+| Embedded Pi-camera capture at 24 fps | **B** (half-res `.gvid`; Pi proxy is acceptable at 19.98 fps, actual camera 24 fps receipt pending) |
 | Offline/review preview from B's captures | **B** with q8 three-way PREVIEW candidate (quality passes; 0.073 fps) |
 | Live/camera-back preview from B's captures | **B** with the bounded `2k_raw_0p5x_l2hh` edge-safe display policy; exact-edge display remains diagnostic |
 

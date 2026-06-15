@@ -3,7 +3,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/dcliftreaves/gpr/ci.yml?branch=master&label=CI&style=flat-square)](https://github.com/dcliftreaves/gpr/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue?style=flat-square)](#license)
 [![STILL smallest](https://img.shields.io/badge/STILL%20smallest-9.80%20MB%20%2F%2050%20MP-2576c4?style=flat-square)](docs/SHIP_DECISION.md)
-[![Pi 5 video](https://img.shields.io/badge/Pi%205%20capture-blocked%2019.98%20fps%20%2F%2024%20target-b04a1d?style=flat-square)](docs/VIDEO_STATUS.md)
+[![Pi 5 video](https://img.shields.io/badge/Pi%205%20proxy-19.98%20fps%20%7E%2020%20fps-d9822b?style=flat-square)](docs/VIDEO_STATUS.md)
 [![Spec](https://img.shields.io/badge/built%20on-SMPTE%20ST%202073%20(VC--5)-555?style=flat-square)](docs/SPEC.md)
 
 GPR is an open raw Bayer media suite for stills, raw video, review renders, and
@@ -36,7 +36,7 @@ dashboards, and target-platform timing in
 |---|---|---|
 | Stills | Compressed raw photos | Three production tiers pass the STILL gate at 9.80 MB, 15.05 MB, and 27.17 MB per 50 MP frame. |
 | VIDEO_FREEZE | Full-res raw video/post | Production-gated desktop/post paths with matched decoder CNN restoration. |
-| Pi 5 capture | Embedded raw stream | Latest strict 14,400-frame Labs receipt validates `.gvid` and recovery with 0 drops, but is blocked at 19.98 fps median versus the 24 fps target. |
+| Pi 5 capture | Embedded raw stream | Latest strict 14,400-frame Labs receipt validates `.gvid` and recovery with 0 drops at 19.98 fps median, which is sufficient as a conservative Pi proxy for camera integration; actual Mission 1 still needs a 24 fps hardware receipt. |
 | PREVIEW offline/review | Full-frame review render | q8 three-way no-REF runtime path passes the current 84-row holdout; offline speed only. This is not a live/camera-back preview path. |
 | PREVIEW live/camera-back | Bounded display | 2K selective-L2 HH edge-safe viewport clears Pi timing and rendered proxy gates. |
 | UPRESABLE | Half-res capture to full-res raw | Produces editable full-res raw with ProRes and container review outputs. |

@@ -112,22 +112,25 @@ source, tests, and compact receipts:
 
 ## Current Priority
 
-The immediate blocker is the half-res Pi 5 stand-in capture path. The latest
-strict receipt proves valid `.gvid` output, zero dropped frames, and interrupted
-tail recovery, but it misses the 24 fps target. The corrected pixel-format
-direct `.gvid` receipt at commit `e16357f` also misses at 19.85 fps median, and
-keeps the blocker in Pass1/channel-unpack work. Work should stay focused on
-recovering sustained target throughput or narrowing the blocker with timing,
-memory, and correctness receipts.
+The immediate blocker has moved from Pi-only throughput to camera-hardware
+handoff evidence. The latest strict Pi 5 receipt proves valid `.gvid` output,
+zero dropped frames, and interrupted tail recovery at 19.98 fps median, which
+is acceptable as a conservative 20 fps proxy for advancing Labs integration.
+Actual Mission 1 firmware readiness still requires a 24 fps hardware receipt.
+The corrected pixel-format direct `.gvid` receipt at commit `e16357f` is a
+short 19.85 fps probe and keeps Pass1/channel-unpack as the known compute
+hotspot if the camera path is still slow.
 
 Current evidence says Pass1 unpack dominates the runtime. Producer unpack with
 decimated capture is now guarded to avoid unsafe buffer writes, but that guard
 does not recover enough frame rate by itself. Later lazy scratch allocation,
 manual prefetch, LUT unroll, and luma-pair shared-unpack probes did not clear
 the target. The best short direct-container near-miss is 23.54 fps median with
-luma-pair plus stripe64/deferred rANS, still below the 24 fps target. Next
-optimization attempts must prove byte-level output equivalence or document
-intentional differences.
+luma-pair plus stripe64/deferred rANS, still below the 24 fps target. A later
+channel0-to-channel3 luma handoff implementation was byte-identical locally but
+regressed to 12.05 fps on the Pi, so cross-channel row handoff is rejected.
+Next optimization attempts must preserve row/channel parallelism, prove
+byte-level output equivalence, or document intentional differences.
 
 ## Milestones
 
@@ -319,7 +322,8 @@ Acceptance:
    - capture timing receipts for each candidate,
    - reject slow or unsafe variants,
    - commit only source changes that are correct, tested, and justified.
-3. Restore sustained half-res capture to >= 24 fps on the Pi 5 stand-in or
+3. Treat the strict 19.98 fps Pi receipt as proxy-acceptable, then prove
+   sustained half-res capture at >= 24 fps on actual Mission 1 hardware or
    document the precise bottleneck that blocks it.
 4. Refresh `docs/LABS_TARGET_BENCH.md`,
    `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md`, and
@@ -363,9 +367,9 @@ receipts:
 
 ## Current Blocker
 
-The active production blocker is still target throughput for the
-highpass-preserving half-res Pi 5 stand-in capture path. The repo now has two
-important receipts:
+The active production blocker is now the actual Mission 1 capture handoff and
+24 fps hardware receipt. The highpass-preserving half-res Pi 5 stand-in has a
+strict proxy-acceptable receipt plus several diagnostic probes:
 
 - latest strict sustained receipt:
   `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json`
@@ -422,7 +426,7 @@ Direct `.gvid` polynomial diagnostic result:
 - p95 frame time: 86.88 ms
 
 The direct-container receipts improve measurement fidelity but do not solve
-the performance blocker. The current-head default path is far better than the
+camera-hardware readiness. The current-head default path is far better than the
 polynomial diagnostic but still below 24 fps. Current, historical-document,
 environment,
 runtime-knob, and timing probes do not reproduce the 24.93 fps result. The
@@ -438,17 +442,18 @@ recoverable `be0328a` downstream source tree on the consolidated 8TB work
 area; the archived branch only contains the stale polynomial-comment delta for
 the codec. Polynomial-log, u16 log-scratch, prescale-2 fixed-shift, and
 identity-quant shortcut probes were byte-safe or documented but did not recover
-24 fps. The next engineering task is deeper Pass1/highpass work reduction or a
-different capture-side algorithm.
+24 fps. A productionizable channel0-to-channel3 luma handoff candidate also
+regressed badly on Pi because the row handoff lost channel parallelism. Further
+Pi hot-path work should resume only if the camera receipt shows compute remains
+the blocker; otherwise the next engineering task is the firmware handoff,
+portable bundle, and target/self-hosted CI evidence.
 
 ## Immediate Next Step
 
-Treat the May 26 24.93 fps result as non-reproducible until a real source tree
-or target receipt proves otherwise. Optimize the current path enough to recover
-the missing 11-18 percent needed to clear sustained 24 fps, focusing on
-Pass1/highpass work that reduces operations or memory traffic rather than
-reshaping LUT scratch or specializing the same prescale math. The
-producer-unpack heap corruption is now covered by a byte-identity regression
-for decimated capture. The fresh producer-ring timing receipt regressed, so the
-speed path now needs an equivalent in-worker unpack/highpass optimization or a
-different capture-side algorithm.
+Package the current proxy-acceptable Pi evidence into the portable Labs bundle
+and run or document the actual camera-hardware handoff receipt. Treat the May
+26 24.93 fps result as non-reproducible until a real source tree or target
+receipt proves otherwise. If Mission 1 capture misses 24 fps, use the existing
+timing-detail receipt shape to decide whether the fix is in-worker
+Pass1/highpass reduction, row-sharded shared work that avoids channel waiting,
+a different capture-side algorithm, or the firmware storage/sensor path.

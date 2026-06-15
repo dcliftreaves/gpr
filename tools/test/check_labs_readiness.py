@@ -4,8 +4,8 @@
 This intentionally does not verify large external media. It keeps the
 firmware-intake docs, release manifest, and CI workflow aligned on the current
 state: `.gvid` review is ready for Labs exploration, 2K decode/display has a
-passing Pi-side target, and sustained half-res capture remains blocked until a
-new target receipt proves otherwise.
+passing Pi-side target, and sustained half-res capture has a proxy-acceptable
+Pi receipt while actual camera-hardware 24 fps evidence remains blocked.
 """
 
 from __future__ import annotations
@@ -36,7 +36,8 @@ REQUIRED_DOCS = {
     "docs/LABS_INTAKE.md": [
         "What Ships In The Prototype",
         "What Does Not Ship In The Prototype",
-        "Half-res 24 fps capture target",
+        "Half-res capture target",
+        "20 fps proxy",
         "19.98 fps",
         "23.54 fps",
         "luma-pair",
@@ -57,6 +58,7 @@ REQUIRED_DOCS = {
         "FUSED_TIMING_DETAIL",
         "fused_timing",
         "Current Gap",
+        "20 fps proxy",
         "19.98 fps",
         "23.54 fps",
         "luma-pair",

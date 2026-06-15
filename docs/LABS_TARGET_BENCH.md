@@ -11,7 +11,7 @@ firmware evidence.
 | item | current evidence | status |
 |---|---|---|
 | Historical half-res `.gvid` capture budget | `docs/pi5_bench_2026-05-26.md` reports 24.93 fps median on an older Pi branch/run | historical stand-in evidence |
-| Current strict 10 minute Pi 5 target run | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` reports 14,400 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, 19.98 fps median | target-performance blocker |
+| Current strict 10 minute Pi 5 target run | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` reports 14,400 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, 19.98 fps median | proxy-acceptable Pi stand-in; camera 24 fps pending |
 | Current half-res variant probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` reports current, historical-doc, environment, runtime-knob, compiler-flag, quality, producer, highpass-bound, target-rehearsal, direct-container, and luma-pair probes; the best short direct-container near-miss is luma-pair plus stripe64/deferred rANS at 23.54 fps median | regression evidence |
 | Corrected pixel-format direct `.gvid` probe | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_120f_e16357f_20260615/labs_target_bench.json` reports commit `e16357f`, 120 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, and 19.85 fps median with pixel format 4 applied to the encoder context | target-performance blocker |
 | Current-head tracked sweep | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_perf_sweep_03eaa4d_120f_20260615T112841Z/labs_perf_sweep.json` reports commit `03eaa4d`, 120-frame direct `.gvid` variants, 0 drops, valid `.gvid`, and no passing variant; baseline is best at 21.54 fps median and stripe64/deferred regresses to 18.52 fps median. Timing receipt `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_timing_3c48f2f_30f_20260615T113211Z/labs_target_bench.json` reports Pass1 median 33.5 ms, Pass2 median 11.6 ms, and unpack mean 20.6 ms | current-head target-performance blocker |
@@ -130,8 +130,9 @@ interrupted-tail recovery, timing, memory, and storage behavior.
 
 The current repo evidence is enough for a Labs prototype conversation, but not
 enough for direct firmware readiness. The latest strict Pi 5 stand-in receipt
-at commit `0dd6660` proves the container/recovery path on a 14,400-frame run,
-but it misses the 24 fps target:
+at commit `0dd6660` proves the container/recovery path on a 14,400-frame run
+and is acceptable as conservative 20 fps proxy evidence. It still does not
+prove the actual Mission 1 24 fps camera path:
 
 | metric | latest strict Pi 5 receipt |
 |---|---|
@@ -255,8 +256,9 @@ earlier 13 fps result as a polynomial-log diagnostic, not the default target
 path. The current-head 1,440-frame rehearsal is slower than short probes and
 confirms that short-run medians cannot be promoted as sustained target
 evidence. The luma-pair shared-unpack scratch probe is the strongest short-run
-lead so far, but it still does not remove the performance blocker: the
-highpass-preserving half-res path remains below 24 fps on the Pi 5 stand-in.
+lead so far, but it still does not remove the camera-performance question: the
+highpass-preserving half-res path is proxy-acceptable on the strict Pi 5
+stand-in receipt, while actual Mission 1 24 fps capture remains unproven.
 The fresh luma-pair handoff integration attempt shows that sharing luma work
 through a cross-channel row handoff is not the right production shape; any
 future shared-luma work must preserve parallel row execution or remove work
@@ -267,7 +269,8 @@ Remaining missing receipts:
 - actual camera sensor/DMA handoff,
 - sustained thermal/power behavior,
 - storage behavior on the intended camera media path,
-- a current commit/path that restores the half-res encoder to >= 24 fps.
+- an actual Mission 1 camera-hardware receipt that proves the half-res encoder
+  at >= 24 fps, or identifies the hardware bottleneck.
 
 Until those exist, Pi 5 numbers must be labeled as stand-in evidence.
 
