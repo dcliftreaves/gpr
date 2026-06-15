@@ -104,9 +104,13 @@ Memory cost: 2× input slots + 2× output ring + 2× per-encoder band buffers. ~
 | 45 MP dual-encoder (encoder-bound ceiling) | ~42 fps | ~17 fps | fits 45 MP, tight at 50 MP |
 | 45 MP × 24 fps × UHS-II V90 (rate-controlled) | 23.95 fps | ✓ regardless of encoder_count | ✓ |
 
-A78 compute headroom is still the gating factor for 24 fps × 50 MP. Remaining queued optimizations for real-A78 measurement:
-1. `FUSED_LOG_POLYNOMIAL=ON` at cross-compile (5× slower on M1, 1.5-2× faster on A78)
-2. ARM64 hand-asm unpack (`FUSED_UNPACK_ASM=1`, 1% on M1, expected 10-20% on A78)
+A78 compute headroom is still the gating factor for 24 fps × 50 MP. Remaining queued optimization for real-A78 measurement:
+1. ARM64 hand-asm unpack (`FUSED_UNPACK_ASM=1`, 1% on M1, expected 10-20% on A78)
+
+`FUSED_LOG_POLYNOMIAL=ON` is no longer a queued fix for the current Labs
+half-res path. A 2026-06-15 Pi 5 probe showed it slower than the LUT/default
+path on normal write-all output and severely slower on the highpass lower-bound
+diagnostic, so the build default should remain OFF.
 
 ## Verified guarantees today
 

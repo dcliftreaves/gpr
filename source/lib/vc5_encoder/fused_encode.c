@@ -106,17 +106,19 @@ static double _fused_ms(void) {
    work). The CMake option was still defining the macro but no source
    was reading it, so the LUT scalar-gather path was always running.
 
-   Pi 5 (Cortex-A76) sweep showed the polynomial path saves ~1.7 ms vs
-   the LUT path on 50 MP × LL-only-fast (the 5-deep FMA chain is shorter
-   than the load-use latency of 4 chained scalar LUT gathers, and the
-   polynomial has zero L1d footprint vs the LUT's 32 KB at 14-bit).
+   Historical Pi 5 (Cortex-A76) sweeps showed the polynomial path saving time
+   on an older unpack shape. Current half-res Labs capture measurements rule it
+   out for the active T13/T14/T15/T16 path: on 2026-06-15, FUSED_LOG_POLYNOMIAL
+   slowed normal write-all output and severely regressed the highpass lower-
+   bound diagnostic. Keep the CMake default OFF unless a new target-specific
+   receipt proves otherwise.
 
    Polynomial: log2(m) for m in [1, 2) via series in u = (m-1)/(m+1),
    |u| <= 1/3, with 6 terms. Validated to <=1 LSB max error vs LUT across
    the 14- and 16-bit input ranges. We have ~32 LSB of headroom in the
    LL quantizer regardless.
 
-   Default ON via CMake; gated by FUSED_LOG_POLYNOMIAL. With the macro
+   Default OFF via CMake; gated by FUSED_LOG_POLYNOMIAL. With the macro
    off, the LUT scalar-gather paths below remain unchanged byte-for-byte.
    ================================================================ */
 #if defined(FUSED_LOG_POLYNOMIAL) && ENABLED(NEON)

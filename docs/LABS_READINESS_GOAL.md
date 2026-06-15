@@ -22,6 +22,14 @@ Labs readiness is objectively blocked with evidence. Use
 `/Volumes/OWC_8TB/gpr_work` for large artifacts and temp. Do not stop at
 partial docs, intermediate pass-rate improvements, or hosted CI alone.
 
+## Session Binding
+
+As of 2026-06-15, this is the active Codex session goal for the current burn
+down. The in-session goal tracker is active with the same objective and stop
+criteria. Work should continue against this file as the durable source of truth
+for what "done" means until the Labs intake package is complete, or until a
+specific evidenced blocker is documented.
+
 ## Reviewer Frame
 
 Evaluate this repo as a firmware-media prototype intake, not as a research

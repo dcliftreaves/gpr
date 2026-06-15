@@ -160,7 +160,7 @@ set `FUSED_INLINE_TOKENIZE=0`.
 |---|---|---|
 | `FUSED_WAVELET_LEVELS` | 1 = max-fidelity stills, 2 = video default | 2 |
 | `FUSED_LL_DIVISOR` | LL band quantization divisor | 64 |
-| `FUSED_LOG_POLYNOMIAL` | Polynomial log curve in unpack (A78 win, M1 loss) | OFF |
+| `FUSED_LOG_POLYNOMIAL` | Polynomial log curve in unpack; measured slower than LUT/default on the current Pi 5 half-res Labs path | OFF |
 | `FUSED_UNPACK_ASM` (env) | Use ARM64 hand-asm unpack | 0 |
 | `FUSED_THREADS` (env) | 1 = serial Pass 1 + Pass 2 (debug) | parallel |
 | `FUSED_INLINE_TOKENIZE` (env) | 0 = split-pass, 1 = inline-tokenize | inline |

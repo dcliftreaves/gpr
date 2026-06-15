@@ -21,7 +21,7 @@ proxy work or the current PREVIEW/live-decode production blockers.
 
 | Lever | Status | Expected impact |
 |---|---|---|
-| `FUSED_LOG_POLYNOMIAL` compile flag (`53e4777`) | Implemented, needs A78 measurement | 1.5-2× on unpack (A78 64 KB L1d makes LUT contend) |
+| `FUSED_LOG_POLYNOMIAL` compile flag (`53e4777`) | Implemented, measured and rejected for the current Pi 5 half-res Labs path on 2026-06-15 | Slower than LUT/default on normal write-all output; keep default OFF unless a new target-specific receipt proves otherwise |
 | **2-level wavelet (default, `301e4a0`)** | **Landed.** 35% size reduction vs 1-level; PSNR 45.6 dB raw clean | Smaller output → faster ANS + lower writer pressure |
 | **Dual-encoder ping-pong (`9b9ab0a`)** | **Landed (opt-in via `gpr_video_encoder_create_dual`).** | **+40% M1 throughput**; expect same or better on A78 |
 | 3-level wavelet | **Tried, removed (`2b1c152`).** Visible inverse-wavelet ringing on high-contrast edges. Verified not fixable via quantization, prescale, or lossless storage — inherent to cascading the biorthogonal 5/3 inverse three times. Only fix is a different wavelet basis (full codec rewrite). | (deleted) |
@@ -58,4 +58,8 @@ proxy work or the current PREVIEW/live-decode production blockers.
 - `docs/v2-migration-guide.md` — upgrading from stills-only GPR
 - `docs/followups.md` — this file
 
-Branch `feature/raw-video` is shippable. The remaining items above are either A78-hardware-gated (thermal, log polynomial, hand-asm unpack) or speed-optional (int16 14-bit path) — none block 2.0.
+Branch `feature/raw-video` is shippable. The remaining items above are either
+A78-hardware-gated (thermal, hand-asm unpack) or speed-optional (int16 14-bit
+path) - none block 2.0. The log-polynomial lead is no longer queued for the
+current Labs half-res path because the 2026-06-15 Pi 5 probe was slower than
+the LUT/default path.

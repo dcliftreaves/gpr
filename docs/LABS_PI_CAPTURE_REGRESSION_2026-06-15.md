@@ -336,6 +336,37 @@ the 24 fps capture target. They move payload size and timing slightly, but the
 remaining production gap still requires code-level reduction of the highpass
 path rather than another runtime sweep.
 
+## Polynomial Log Probe
+
+`FUSED_LOG_POLYNOMIAL=ON` was remeasured on the Pi 5 stand-in because older
+follow-up notes listed it as a possible A78/Pi-side unpack win. The current
+Labs half-res capture path does not benefit from it.
+
+Probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_poly_log_probe_20260615/poly_log_probe.json`
+
+Build/runtime setup:
+
+- build flags: `-std=c99 -O3 -DNDEBUG -mcpu=native`
+- frames: 180
+- base env: `GPR_INCLUDE_LL=1 FUSED_MULTI_LEVEL=1 FUSED_WAVELET_LEVELS=2`
+  `GPR_COL_DECIMATE=2 GPR_ROW_DECIMATE=2 FUSED_QUALITY=3`
+
+| build | case | median | payload | finding |
+|---|---|---:|---:|---|
+| LUT/default | baseline write-all | 47.84 ms / 20.90 fps | 231,724,440 bytes | below target |
+| polynomial | baseline write-all | 50.25 ms / 19.90 fps | 231,724,440 bytes | slower |
+| LUT/default | stripe64 + deferred rANS | 48.29 ms / 20.71 fps | 231,724,440 bytes | below target |
+| polynomial | stripe64 + deferred rANS | 48.83 ms / 20.48 fps | 231,724,440 bytes | slower |
+| LUT/default | drop highpass lower bound | 32.39 ms / 30.88 fps | 214,846,740 bytes | diagnostic-only pass |
+| polynomial | drop highpass lower bound | 72.53 ms / 13.79 fps | 214,846,020 bytes | severe regression |
+
+This rules out `FUSED_LOG_POLYNOMIAL=ON` for the current Labs half-res path.
+The default should remain OFF. The next speed attempt should target active
+Pass1 unpack/highpass work directly, not the log polynomial path.
+
 ## Producer-Unpack Decimate Guard
 
 The current source now disables the shared producer ring when either
