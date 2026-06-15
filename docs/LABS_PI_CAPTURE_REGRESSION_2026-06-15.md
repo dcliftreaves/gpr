@@ -520,6 +520,25 @@ full-size ring is not valid for decimated capture. The guarded fallback removes
 the corruption; a real speed fix requires a decimation-aware producer or
 another Pass1 unpack optimization.
 
+## Reproducible Timing Build
+
+The timing path is now a supported diagnostic build instead of a scratch source
+edit. Configure the Pi/self-hosted worktree with:
+
+```bash
+cmake -S . -B build-labs-timing \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DFUSED_TIMING=ON \
+  -DFUSED_TIMING_DETAIL=ON
+cmake --build build-labs-timing --target bench_fused -j"$(nproc)"
+```
+
+`FUSED_TIMING` prints the per-frame Pass1/Pass2 summaries already used in the
+timing profile. `FUSED_TIMING_DETAIL` also prints per-channel wait, horizontal,
+vertical/quantize, tokenize, and other timing, and it implies `FUSED_TIMING` in
+CMake. Use this build to narrow the blocker in a `labs_target_bench.json`
+receipt; use a normal Release build for final production throughput evidence.
+
 ## Next Boundary To Test
 
 The remaining likely causes are:

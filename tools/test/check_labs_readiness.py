@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "docs/release_evidence_manifest.json"
 CI = ROOT / ".github/workflows/ci.yml"
 TARGET_CI = ROOT / ".github/workflows/labs-target.yml"
+CMAKE = ROOT / "CMakeLists.txt"
 
 REQUIRED_DOCS = {
     "docs/LABS_READINESS_GOAL.md": [
@@ -48,6 +49,8 @@ REQUIRED_DOCS = {
     "docs/LABS_TARGET_BENCH.md": [
         "Current Evidence",
         "Required Target Run",
+        "Timing-Diagnostic Build",
+        "FUSED_TIMING_DETAIL",
         "Current Gap",
         "19.98 fps",
         "2k_raw_0p5x_l2hh",
@@ -79,6 +82,8 @@ REQUIRED_DOCS = {
         "U16 Log-Scratch Candidate",
         "Prescale-2 Fixed-Shift Candidate",
         "Timing Profile",
+        "Reproducible Timing Build",
+        "FUSED_TIMING_DETAIL",
     ],
 }
 
@@ -234,6 +239,23 @@ def require_target_workflow_contract(tracked: set[str], failures: list[str]) -> 
             failures.append(f".github/workflows/labs-target.yml missing target workflow token {token!r}")
 
 
+def require_timing_build_contract(tracked: set[str], failures: list[str]) -> None:
+    rel = "CMakeLists.txt"
+    if rel not in tracked:
+        failures.append("CMakeLists.txt must be tracked")
+        return
+    text = CMAKE.read_text(encoding="utf-8")
+    for token in (
+        'option(FUSED_TIMING "Enable fused encoder stage timing prints" OFF)',
+        'option(FUSED_TIMING_DETAIL "Enable detailed fused encoder channel timing prints" OFF)',
+        "FUSED_TIMING_DETAIL",
+        "add_compile_definitions(FUSED_TIMING=1)",
+        "add_compile_definitions(FUSED_TIMING_DETAIL=1)",
+    ):
+        if token not in text:
+            failures.append(f"CMakeLists.txt missing Labs timing-build token {token!r}")
+
+
 def main() -> int:
     failures: list[str] = []
     tracked = tracked_paths()
@@ -241,6 +263,7 @@ def main() -> int:
     require_manifest_contract(load_manifest(), failures)
     require_ci_contract(tracked, failures)
     require_target_workflow_contract(tracked, failures)
+    require_timing_build_contract(tracked, failures)
 
     if failures:
         print("Labs readiness guard failed:")

@@ -22,6 +22,7 @@ the current half-res capture path restores >= 24 fps on the target-style run.
 | Target receipt harness | `tools/run_labs_target_bench.py` produces `labs_target_bench.json` with timing, storage, memory, drop, `.gvid`, and interruption fields |
 | Strict Pi 5 target receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` proves 14,400 frames, 0 drops, valid `.gvid`, and interrupted-tail recovery |
 | Pi 5 regression probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` records current, historical-doc, environment, runtime-knob, compiler-flag, quality, highpass-bound, timing, producer-guard, polynomial-log, u16 log-scratch, and prescale-2 fixed-shift probes; corrected q11/quant sweeps top out at 22.36 fps median, while diagnostic highpass dropping reaches 30.35 fps but is not valid output |
+| Reproducible target timing build | CMake exposes `-DFUSED_TIMING=ON -DFUSED_TIMING_DETAIL=ON`; a local timing smoke verifies per-channel unpack/horizontal/vertical/tokenize detail plus Pass1/Pass2 summaries without editing source |
 | Current overview | README is media-focused; detailed proof lives in docs |
 
 ## Not Ready Yet
@@ -49,7 +50,8 @@ the current half-res encoder path misses the 24 fps target on the stand-in run.
    slower than the LUT/default path. The invalid producer+decimate path is now
    guarded, naive / combined producer variants plus compiler/runtime tuning did
    not sustain the target, and the highpass lower-bound probe identifies
-   highpass transform/tokenization as the next speed target.
+   highpass transform/tokenization as the next speed target. Use the committed
+   `FUSED_TIMING_DETAIL` diagnostic build for any next Pi-side blocker receipt.
 2. Replace or supplement the stand-in bundle with a passing target-capture
    receipt.
 3. Add target/self-hosted CI jobs or documented manual receipts for media

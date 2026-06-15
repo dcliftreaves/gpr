@@ -84,6 +84,28 @@ if(FUSED_LOG_POLYNOMIAL)
 endif()
 message(STATUS "FUSED_LOG_POLYNOMIAL: ${FUSED_LOG_POLYNOMIAL}")
 
+# Diagnostic-only fused encoder timing. Default OFF so normal builds keep
+# clean stderr and unchanged optimization shape. Enable on Pi/self-hosted
+# target runners when producing Labs blocker receipts:
+#   -DFUSED_TIMING=ON -DFUSED_TIMING_DETAIL=ON
+#
+# FUSED_TIMING prints per-frame Pass1/Pass2 stage summaries. DETAIL also
+# prints per-channel unpack/horizontal/vertical/tokenize breakdowns, and
+# implies FUSED_TIMING so target receipts include both summary and detail.
+option(FUSED_TIMING "Enable fused encoder stage timing prints" OFF)
+option(FUSED_TIMING_DETAIL "Enable detailed fused encoder channel timing prints" OFF)
+if(FUSED_TIMING_DETAIL)
+  set(FUSED_TIMING ON CACHE BOOL "Enable fused encoder stage timing prints" FORCE)
+endif()
+if(FUSED_TIMING)
+  add_compile_definitions(FUSED_TIMING=1)
+endif()
+if(FUSED_TIMING_DETAIL)
+  add_compile_definitions(FUSED_TIMING_DETAIL=1)
+endif()
+message(STATUS "FUSED_TIMING: ${FUSED_TIMING}")
+message(STATUS "FUSED_TIMING_DETAIL: ${FUSED_TIMING_DETAIL}")
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(
     COMMAND git rev-parse --abbrev-ref HEAD

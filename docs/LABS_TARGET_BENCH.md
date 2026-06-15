@@ -60,6 +60,30 @@ interrupted-tail recovery. The `--quality` argument is passed through to
 quality now match. CI runs only the simulated schema smoke:
 `bash tools/test/test_labs_target_bench_smoke.sh`.
 
+## Timing-Diagnostic Build
+
+When a target receipt misses 24 fps, rebuild `bench_fused` with the opt-in
+timing hooks instead of carrying a scratch source patch:
+
+```bash
+cmake -S . -B build-labs-timing \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DFUSED_TIMING=ON \
+  -DFUSED_TIMING_DETAIL=ON
+cmake --build build-labs-timing --target bench_fused -j"$(nproc)"
+```
+
+`FUSED_TIMING` prints Pass1/Pass2 stage summaries. `FUSED_TIMING_DETAIL`
+also prints per-channel unpack, horizontal, vertical/quantize, tokenize, wait,
+and other timing. `FUSED_TIMING_DETAIL` implies `FUSED_TIMING` in CMake.
+
+Diagnostic timing builds are blocker evidence, not production throughput
+claims. Keep the production receipt tied to a normal Release build unless the
+diagnostic build is explicitly being used to narrow a blocker. The
+`tools/run_labs_target_bench.py` receipt stores the `bench_fused` binary hash,
+CMake build root, build type, C flags, and stderr tail, so timing lines remain
+attached to the compact JSON evidence.
+
 ## Current Gap
 
 The current repo evidence is enough for a Labs prototype conversation, but not
