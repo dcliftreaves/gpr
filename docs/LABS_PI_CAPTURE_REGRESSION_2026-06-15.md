@@ -198,6 +198,30 @@ threads instead of sharing log/LUT work across channels. That added producer /
 consumer overhead without removing the real cost. Do not revive that shape
 unless it also shares the raw-to-log work across channels.
 
+## Combined Decimated Producer Experiment
+
+A second scratch producer was tested to share raw-to-log work across all four
+channels before emitting decimated GS/RG/BG/GD rows. The candidate produced the
+same payload byte count as the baseline and avoided the prior heap corruption,
+but the extra producer/consumer synchronization still outweighed the shared
+work. It was not committed.
+
+Probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_producer_combined_probe_20260615/producer_combined_dec2_probe.json`
+
+| case | result |
+|---|---:|
+| baseline decimated write-all | 300/300 frames, 47.50 ms median, 21.05 fps |
+| producer requested fallback | 300/300 frames, 46.67 ms median, 21.43 fps |
+| combined decimated producer scratch path | 300/300 frames, 53.20 ms median, 18.80 fps |
+
+This rules out the current producer-ring architecture as the next speed path
+for half-res capture. The remaining useful direction is to reduce Pass1 unpack
+inside the active worker path itself, where shared raw-to-log work can avoid
+cross-thread handoff costs.
+
 ## Timing Profile
 
 A timing-enabled build of the current clean Labs commit was run on the Pi to
@@ -231,15 +255,15 @@ The remaining likely causes are:
 1. missing downstream changes from the original unsanitized `be0328a` build,
 2. code-level throughput regression before the historical bench-note commit
    that was not preserved as a committed source delta,
-3. missing decimation-aware producer-unpack implementation for the current
-   Pass1 hot path.
+3. missing in-worker Pass1 unpack optimization for the current hot path.
 
 Next step: recover the original downstream `be0328a` worktree if it still
 exists. If it cannot be recovered, treat the May 26 number as non-reproducible
 and focus the current-code fix on Pass1 unpack throughput. The producer-unpack
 corruption is now guarded for decimated capture, and the naive decimated
-producer scratch path is ruled out by timing. The next speed experiment must
-share raw-to-log work across channels or otherwise reduce unpack cost directly.
+producer and combined producer scratch paths are both ruled out by timing. The
+next speed experiment must share raw-to-log work in the active Pass1 worker
+path or otherwise reduce unpack cost directly without producer-ring overhead.
 The production target remains >= 24 fps sustained; today's best evidenced
 current-build knob is 22.53 fps median on a 100-frame probe and 19.98 fps
 median on the strict 10-minute receipt.

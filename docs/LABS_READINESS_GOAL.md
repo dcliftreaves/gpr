@@ -11,6 +11,26 @@ target is a credible Labs intake package that lets a firmware/media engineer
 decide whether to prototype `.gvid` raw capture and review tooling on target
 hardware.
 
+## Reviewer Frame
+
+Evaluate this repo as a firmware-media prototype intake, not as a research
+dump. A reviewer should be able to answer these questions from committed docs,
+source, tests, and compact receipts:
+
+- What exactly would ship in the Labs prototype, and what is out of scope?
+- Can the container be parsed, rejected, recovered, and decoded safely in C?
+- Can the capture path sustain the target frame rate without frame drops,
+  unbounded memory growth, storage stalls, or thermal collapse?
+- Is the firmware-facing API explicit about frame buffers, stride, bit depth,
+  timestamps, output ownership, backpressure, dropped frames, metadata, and
+  partial-file recovery?
+- Can a fresh machine verify the artifact bundle without depending on one
+  developer's local drive?
+- Which checks are covered by hosted CI, which require target/self-hosted CI,
+  and which are currently manual receipts?
+- Are historical experiments separated from the small, reviewable production
+  path?
+
 ## Stop Criteria
 
 Stop only when one of these is true:
@@ -52,6 +72,24 @@ Labs intake evidence, not merely repo cleanliness.
 - Do not register or claim production readiness unless the evidence supports it.
 - Do not stop at intermediate pass-rate improvements, partial docs, or hosted CI
   alone.
+- Keep active work on the 8TB drive. Use `/Volumes/OWC_8TB/gpr_work` for
+  generated media, Pi receipts, dashboards, scratch builds, and temporary files.
+- Keep the repository small: source, tests, scripts, compact JSON receipts,
+  manifests, checksums, and docs are commit candidates; bulky media and
+  generated artifacts are external bundle contents.
+
+## Current Priority
+
+The immediate blocker is the half-res Pi 5 stand-in capture path. The latest
+strict receipt proves valid `.gvid` output, zero dropped frames, and interrupted
+tail recovery, but it misses the 24 fps target. Work should stay focused on
+recovering sustained target throughput or narrowing the blocker with timing,
+memory, and correctness receipts.
+
+Current evidence says Pass1 unpack dominates the runtime. Producer unpack with
+decimated capture is now guarded to avoid unsafe buffer writes, but that guard
+does not recover enough frame rate by itself. Next optimization attempts must
+prove byte-level output equivalence or document intentional differences.
 
 ## Milestones
 
@@ -218,6 +256,41 @@ Acceptance:
 ### 8. Write Labs Readiness Review
 
 Deliverable: `docs/LABS_READINESS_REVIEW.md`
+
+Summarize the readiness decision in one place:
+
+- what is ready now,
+- what is not ready,
+- current performance blocker,
+- artifact bundle status,
+- CI status,
+- target hardware gaps,
+- next required evidence.
+
+Acceptance:
+
+- The review links to the intake doc, target bench, artifact bundle, firmware
+  API, CI plan, and Pi regression note.
+- Any no-go item is backed by a receipt, failed run, or explicit missing
+  hardware integration step.
+
+## Burn-Down Order
+
+1. Keep CI green on `master` and preserve the small Labs path.
+2. Finish the active Pi half-res throughput investigation:
+   - capture timing receipts for each candidate,
+   - reject slow or unsafe variants,
+   - commit only source changes that are correct, tested, and justified.
+3. Restore sustained half-res capture to >= 24 fps on the Pi 5 stand-in or
+   document the precise bottleneck that blocks it.
+4. Refresh `docs/LABS_TARGET_BENCH.md`,
+   `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md`, and
+   `docs/LABS_READINESS_REVIEW.md` with the final receipt paths and hashes.
+5. Package the portable Labs artifact bundle and verify it from its manifest.
+6. Confirm `.gvid` C validation, negative tests, release evidence checks,
+   artifact hygiene checks, and sensitive-content checks pass locally and in CI.
+7. Re-check the README as a media overview and keep detailed proof in linked
+   docs.
 
 Final review should answer:
 
