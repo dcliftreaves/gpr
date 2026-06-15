@@ -122,6 +122,10 @@ Primary target-proxy receipt:
 
 `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json`
 
+Normalized camera-handoff receipt:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260615_pi_proxy_v1/receipts/pi5_proxy_camera_handoff_receipt.json`
+
 This receipt validates 14,400 frames, 0 drops, `.gvid`, and interrupted-tail
 recovery at 19.98 fps median. It is acceptable as a conservative Pi 5 proxy for
 continuing Labs integration, but it must be replaced or supplemented by an

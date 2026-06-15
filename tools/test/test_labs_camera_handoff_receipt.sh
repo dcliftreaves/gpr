@@ -79,4 +79,45 @@ if "$PYTHON_BIN" "$REPO/tools/check_labs_camera_handoff_receipt.py" "$WORK/bad_p
 fi
 grep -q "firmware-ready receipt" "$WORK/bad.log"
 
+target_bench="$WORK/labs_target_bench.json"
+"$PYTHON_BIN" - "$target_bench" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+Path(sys.argv[1]).write_text(json.dumps({
+    "repo_commit": "synthetic",
+    "created_utc": "2026-06-15T00:00:00Z",
+    "target": {"name": "Pi 5 / Mission 1 stand-in", "fps": 24.0},
+    "capture": {
+        "source_width": 8280,
+        "source_height": 5520,
+        "pixel_format": 4,
+        "frames_requested": 120,
+        "frames_written": 120,
+        "dropped_frames": 0,
+    },
+    "timing": {"n": 120, "fps_median": 20.0, "median_ms": 50.0, "p95_ms": 60.0, "p99_ms": 70.0},
+    "storage": {"write_MBps_wall": 17.0, "fsync_policy": "synthetic"},
+    "memory": {"bench_child_maxrss_kb": 140800},
+    "gvid": {"sha256": "1" * 64, "validation": {"valid": True, "frame_count": 120}},
+    "interruption_recovery": {"validator_rejects_truncated": True, "complete_frames_recovered": 119},
+    "verdict": {
+        "fps_target_met": False,
+        "no_drops": True,
+        "gvid_valid": True,
+        "interruption_recovery_proven": True,
+        "target_evidence": True,
+    },
+}, indent=2), encoding="utf-8")
+PY
+
+"$PYTHON_BIN" "$REPO/tools/labs_target_to_camera_handoff_receipt.py" "$target_bench" \
+  --output "$WORK/converted_standin.json" \
+  --target-name "Pi 5 stand-in" \
+  --target-role stand-in \
+  --target-fps 24 \
+  --blocker-cause "synthetic target below 24 fps"
+"$PYTHON_BIN" "$REPO/tools/check_labs_camera_handoff_receipt.py" "$WORK/converted_standin.json"
+
 echo "test_labs_camera_handoff_receipt: PASS"

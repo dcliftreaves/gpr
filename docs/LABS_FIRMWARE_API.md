@@ -138,6 +138,17 @@ python3 tools/check_labs_camera_handoff_receipt.py \
   /path/to/camera_handoff_receipt.json
 ```
 
+Pi stand-in `labs_target_bench.json` receipts can be converted into the same
+schema:
+
+```bash
+python3 tools/labs_target_to_camera_handoff_receipt.py \
+  /path/to/labs_target_bench.json \
+  --output /path/to/camera_handoff_receipt.json \
+  --target-name "Pi 5 stand-in" \
+  --target-role stand-in
+```
+
 Required sections:
 
 | section | purpose |
