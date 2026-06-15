@@ -176,6 +176,28 @@ This narrows the capture blocker further: simple runtime tuning does not close
 the gap. The remaining path is code-level reduction of Pass1 work or a
 different capture-side algorithm, not another stripe/divisor/quality sweep.
 
+## Pass 2 Dispatch Probe
+
+The only preserved encoder source delta between the historical-doc commit and
+the current Labs source, aside from the producer-decimate safety guard, is the
+multi-level Pass 2 worker-pool dispatch. A compile-time probe compared the
+current auto policy with forced spawn-per-band and forced worker-pool builds.
+
+Probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_pass2_dispatch_probe_20260615/pass2_dispatch_probe.json`
+
+| variant | median | finding |
+|---|---:|---|
+| forced worker pool | 46.82 ms / 21.36 fps | best in this probe, below target |
+| default auto policy | 47.91 ms / 20.87 fps | below target |
+| forced spawn-per-band | 49.71 ms / 20.12 fps | slower |
+
+This rules out Pass 2 dispatch policy as the source of the historical 24.93 fps
+receipt. The worker-pool path is directionally helpful, but the remaining gap
+is still in the larger Pass1/unpack budget.
+
 ## Producer-Unpack Decimate Guard
 
 The current source now disables the shared producer ring when either
