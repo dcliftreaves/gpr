@@ -527,6 +527,34 @@ The remaining useful direction is to reduce Pass1 unpack inside the active
 worker path itself, where shared raw-to-log work can avoid cross-thread handoff
 costs.
 
+## Pass1 Lazy Scratch Allocation Probe
+
+A low-risk in-worker allocation probe was tested and rejected. The candidate
+only allocated the full-width `unpack_full` scratch buffer when the legacy luma
+fallback could use it, instead of allocating it for every `col_decimate == 2`
+Pass1 channel. The default highpass-preserving half-res path does not read that
+buffer, so this was a safety probe for per-frame scratch allocation overhead,
+not an algorithm change.
+
+Correctness and local timing checks:
+
+- A 1024 x 768 decimated fixture produced byte-identical output versus the
+  baseline. Both `.gpr` files hashed to
+  `fef6948bcbe6015db4d0c879f3361ef6f42aa718e0b7d80ae6bb09e783053a21`.
+- A local full Z8 raw sanity run was neutral to slightly slower: baseline
+  8.19 ms median / 122.14 fps, candidate 8.23 ms median / 121.58 fps.
+
+Fresh Pi direct `.gvid` A/B receipts:
+
+| case | receipt | median | p95 | result |
+|---|---|---:|---:|---|
+| baseline, direct `.gvid` | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_baseline_lazyalloc_ab_120f_20260615/labs_target_bench.json` | 45.50 ms / 21.98 fps | 48.53 ms | below target |
+| lazy scratch allocation, direct `.gvid` | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_lazyalloc_candidate_120f_20260615/labs_target_bench.json` | 47.34 ms / 21.13 fps | 51.31 ms | slower |
+
+This rules out allocation-only cleanup as the missing throughput source. The
+active blocker remains highpass-preserving Pass1 row math, unpack, tokenization,
+or data movement, not unused full-width scratch allocation.
+
 ## Timing Profile
 
 A timing-enabled build of the current clean Labs commit was run on the Pi to
@@ -596,10 +624,11 @@ real Pass1/highpass work reduction. Polynomial log, u16 log scratch, and
 prescale-2 fixed-shift candidates are all ruled out by Pi timing. The
 producer-unpack corruption is now covered by a decimated byte-identity
 regression, and the corrected decimation-aware producer scratch path is rejected
-by full-frame Pi timing. The next speed experiment must share raw-to-log work
-inside the active Pass1 worker path, remove highpass work without invalidating
-output, reduce highpass tokenization/data movement, or replace the capture-side
-algorithm.
+by full-frame Pi timing. Lazy allocation of an unused full-width scratch buffer
+is also byte-identical but slower on the Pi. The next speed experiment must
+share raw-to-log work inside the active Pass1 worker path, remove highpass work
+without invalidating output, reduce highpass tokenization/data movement, or
+replace the capture-side algorithm.
 The production target remains >= 24 fps sustained; today's best evidenced
 current-build knob is 22.53 fps median on a 100-frame probe and 19.98 fps
 median on the strict 10-minute receipt.

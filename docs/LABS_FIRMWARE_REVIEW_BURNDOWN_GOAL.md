@@ -57,7 +57,9 @@ it does not yet hit the 24 fps target. The active blocker is compute time in the
 highpass-preserving half-res path, especially Pass1/channel-unpack work.
 The producer-unpack request is byte-identical on the committed decimated
 fallback fixture, and a fresh decimation-aware producer scratch probe regressed
-on full-frame Pi 5 timing.
+on full-frame Pi 5 timing. A later lazy full-width scratch allocation probe was
+also byte-identical but slower on Pi, so allocation-only cleanup is not the
+missing throughput source.
 
 The next production step is to reduce or share raw-to-log/Pass1/channel-unpack
 work inside the active highpass-preserving worker path, or replace that
