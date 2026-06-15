@@ -243,6 +243,8 @@ Probe artifacts:
   `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_fast_flags_runtime_probe_20260615/fast_flags_runtime_probe.json`
 - JSON:
   `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_fast_rehearsal_cfb63f9_20260615/labs_target_bench.json`
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_fast_stripe48_rehearsal_c179189_20260615/labs_target_bench.json`
 
 Short probes found promising but unstable results:
 
@@ -257,6 +259,7 @@ The same fast build and runtime env failed the target-bench rehearsal:
 | run | frames | median | verdict |
 |---|---:|---:|---|
 | fast flags + `FUSED_STRIPE_ROWS=64 FUSED_DEFER_RANS=1` | 1,440 | 45.13 ms / 22.16 fps | valid `.gvid`, no drops, below target |
+| fast flags + `FUSED_STRIPE_ROWS=48` | 1,440 | 44.05 ms / 22.70 fps | valid `.gvid`, no drops, below target |
 
 This rules out promoting the GCC flag/runtime combination as production target
 evidence. It can remain a future build-tuning lead, but the current evidence
