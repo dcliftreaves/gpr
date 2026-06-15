@@ -59,9 +59,28 @@ the bundle verifier with a tiny synthetic `.gvid`. The C stream validator is
 exercised by `source/app/test_video_format.c` and
 `source/app/test_video_full_chain.c`.
 
-## Current Status
+## Current Bundle
 
-Not complete. The repo has the `.gvid` tools, metadata validation, and CI source
-checks. It still needs a portable bundle directory with real sample media,
-checksums, target bench receipts, and review outputs copied out of the local
-8TB artifact tree.
+Current stand-in bundle:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json`
+
+Verification:
+
+```bash
+python3 tools/verify_labs_bundle.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json
+```
+
+Contents:
+
+- UPRESABLE `.gvid` sample;
+- MOV compatibility wrapper;
+- ProRes review MOV;
+- Pi 5 120-frame stand-in timing receipt;
+- preview review dashboard;
+- checksums and CI/run receipt.
+
+This bundle is enough for source/media review. It is **not** final
+camera-firmware evidence because the target bench receipt is a 120-frame Pi 5
+stand-in run, not a 10 minute camera-firmware capture.

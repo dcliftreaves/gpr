@@ -39,7 +39,7 @@ ownership, and target CI.
 | Can the repo demonstrate the media shape? | Yes: `.gvid` pack/unpack, metadata dispatch, and ProRes review tooling exist. |
 | Can it hit the half-res capture-rate target on the stand-in path? | Current docs report Pi 5 half-res capture at 24.93 fps median and 31 MB/s sustained budget. |
 | Is the format safe enough for firmware review? | Source-level path is hardened: v1 C parsing rejects malformed headers and streams; target recovery still needs receipts. |
-| Are artifacts portable outside the 8TB work drive? | Bundle contract and verifier exist; real sample media, checksums, and receipts still need packaging. |
+| Are artifacts portable outside the 8TB work drive? | Stand-in bundle verifies; final target bundle still needs 10 minute capture and camera-firmware receipts. |
 | Is CI sufficient for Labs intake? | Hosted CI covers source-level checks; target/self-hosted lanes are specified for media and hardware behavior. |
 
 ## Reviewer Entry Points

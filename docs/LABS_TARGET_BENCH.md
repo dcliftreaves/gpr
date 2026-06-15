@@ -14,6 +14,7 @@ firmware evidence.
 | 2K live/camera-back raw target | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` reports `2k_raw_0p5x_l2hh` at 29.85 fps median, 37.1 ms p95 | stand-in evidence |
 | Desktop review PREVIEW | `docs/VIDEO_STATUS.md` reports q8 three-way PREVIEW quality pass at 13.65 s/image on Mac/MPS | offline-only evidence |
 | Format validation | `test_video_format` and `test_video_full_chain` validate headers, streams, and real encoded `.gvid` files | committed CI evidence |
+| Portable review bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` | stand-in bundle |
 
 ## Required Target Run
 
@@ -44,3 +45,7 @@ enough for direct firmware readiness. Missing receipts:
 - target memory high-water mark.
 
 Until those exist, Pi 5 numbers must be labeled as stand-in evidence.
+
+The current Labs bundle includes the 120-frame Pi 5 stand-in receipt
+`receipts/pi5_2k_l2hh_120f_standin.json`; it does not replace the required
+10 minute target-style run.
