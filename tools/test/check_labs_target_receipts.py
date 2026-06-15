@@ -176,6 +176,113 @@ def validate_capture_receipt(capture: dict[str, Any], root: Path, failures: list
         failures.append("manifest promoted capture without a passing strict receipt")
 
 
+def validate_corrected_pixel_format_probe(
+    capture: dict[str, Any],
+    root: Path,
+    failures: list[str],
+) -> None:
+    probe = capture.get("corrected_pixel_format_probe")
+    if not isinstance(probe, dict):
+        failures.append("pi5_mission1_halfres_capture needs corrected_pixel_format_probe")
+        return
+    if probe.get("verdict") != "blocked":
+        failures.append("corrected_pixel_format_probe must remain blocked until it clears target")
+
+    metrics = probe.get("metrics")
+    timing_expect = probe.get("timing")
+    receipt_rel = probe.get("receipt")
+    timing_rel = probe.get("timing_receipt")
+    if not isinstance(metrics, dict):
+        failures.append("corrected_pixel_format_probe.metrics must be an object")
+        return
+    if not isinstance(timing_expect, dict):
+        failures.append("corrected_pixel_format_probe.timing must be an object")
+        return
+    if not isinstance(receipt_rel, str) or not receipt_rel.endswith("labs_target_bench.json"):
+        failures.append("corrected_pixel_format_probe.receipt must reference labs_target_bench.json")
+        return
+    if not isinstance(timing_rel, str) or not timing_rel.endswith("labs_target_bench.json"):
+        failures.append("corrected_pixel_format_probe.timing_receipt must reference labs_target_bench.json")
+        return
+
+    fps = as_float(metrics.get("fps_median"), "corrected_pixel_format_probe.metrics.fps_median", failures)
+    target = as_float(metrics.get("target_fps"), "corrected_pixel_format_probe.metrics.target_fps", failures)
+    median_ms = as_float(metrics.get("median_ms"), "corrected_pixel_format_probe.metrics.median_ms", failures)
+    p95_ms = as_float(metrics.get("p95_ms"), "corrected_pixel_format_probe.metrics.p95_ms", failures)
+    frames = metrics.get("frame_count")
+    if target != 24.0:
+        failures.append("corrected_pixel_format_probe target_fps must be 24.0")
+    if fps is not None and target is not None and fps >= target:
+        failures.append("corrected_pixel_format_probe is marked blocked but clears target_fps")
+    if frames != 120:
+        failures.append("corrected_pixel_format_probe must stay tied to the 120-frame corrected receipt")
+
+    receipt_path = root / receipt_rel
+    if not receipt_path.exists():
+        print(f"SKIP corrected pixel-format receipt check: {receipt_path} not mounted")
+    elif fps is not None and median_ms is not None and p95_ms is not None:
+        receipt = load_json(receipt_path)
+        receipt_metrics = receipt.get("timing")
+        capture_fields = receipt.get("capture")
+        verdict = receipt.get("verdict")
+        gvid = receipt.get("gvid")
+        if not isinstance(receipt_metrics, dict):
+            failures.append(f"{receipt_path}: timing must be an object")
+        elif not isinstance(capture_fields, dict):
+            failures.append(f"{receipt_path}: capture must be an object")
+        elif not isinstance(verdict, dict):
+            failures.append(f"{receipt_path}: verdict must be an object")
+        elif not isinstance(gvid, dict) or not isinstance(gvid.get("validation"), dict):
+            failures.append(f"{receipt_path}: gvid.validation must be an object")
+        else:
+            receipt_fps = as_float(receipt_metrics.get("fps_median"), f"{receipt_path}: timing.fps_median", failures)
+            receipt_median = as_float(receipt_metrics.get("median_ms"), f"{receipt_path}: timing.median_ms", failures)
+            receipt_p95 = as_float(receipt_metrics.get("p95_ms"), f"{receipt_path}: timing.p95_ms", failures)
+            if receipt_fps is not None:
+                require_close("corrected_pixel_format_probe fps_median", fps, receipt_fps, 0.01, failures)
+            if receipt_median is not None:
+                require_close("corrected_pixel_format_probe median_ms", median_ms, receipt_median, 0.01, failures)
+            if receipt_p95 is not None:
+                require_close("corrected_pixel_format_probe p95_ms", p95_ms, receipt_p95, 0.01, failures)
+            if capture_fields.get("pixel_format") != 4:
+                failures.append(f"{receipt_path}: corrected probe must record capture.pixel_format 4")
+            if capture_fields.get("quality") != 3:
+                failures.append(f"{receipt_path}: corrected probe must record capture.quality 3")
+            if capture_fields.get("frames_written") != frames:
+                failures.append(f"{receipt_path}: frames_written must match corrected probe frame_count")
+            if verdict.get("target_evidence") is not True:
+                failures.append(f"{receipt_path}: corrected probe must be target evidence")
+            if verdict.get("fps_target_met") is not False:
+                failures.append(f"{receipt_path}: corrected probe should show fps_target_met false")
+            if verdict.get("no_drops") is not True or verdict.get("gvid_valid") is not True:
+                failures.append(f"{receipt_path}: corrected probe must show valid .gvid and no drops")
+
+    timing_path = root / timing_rel
+    if not timing_path.exists():
+        print(f"SKIP corrected pixel-format timing receipt check: {timing_path} not mounted")
+        return
+    timing_receipt = load_json(timing_path)
+    fused = timing_receipt.get("fused_timing")
+    if not isinstance(fused, dict) or fused.get("available") is not True:
+        failures.append(f"{timing_path}: corrected timing receipt must include fused_timing")
+        return
+    stage = fused.get("stage_ms")
+    channel = fused.get("channel_component_ms")
+    if not isinstance(stage, dict) or not isinstance(channel, dict):
+        failures.append(f"{timing_path}: fused_timing stage/channel summaries missing")
+        return
+    expected_pairs = [
+        ("ml_pass1_median_ms", stage.get("ml_pass1", {}), "median_ms"),
+        ("ml_pass2_median_ms", stage.get("ml_pass2", {}), "median_ms"),
+        ("unpack_mean_ms", channel.get("unpack", {}), "mean_ms"),
+    ]
+    for manifest_key, summary, receipt_key in expected_pairs:
+        expected = as_float(timing_expect.get(manifest_key), f"corrected_pixel_format_probe.timing.{manifest_key}", failures)
+        actual = as_float(summary.get(receipt_key) if isinstance(summary, dict) else None, f"{timing_path}: {manifest_key}", failures)
+        if expected is not None and actual is not None:
+            require_close(f"corrected_pixel_format_probe {manifest_key}", expected, actual, 0.05, failures)
+
+
 def validate_decode_entry(entries: dict[str, dict[str, Any]], failures: list[str]) -> None:
     decode = entries.get("pi5_2k_l2hh_decode")
     if not decode:
@@ -207,6 +314,7 @@ def main() -> int:
     else:
         validate_capture_manifest(capture, failures)
         validate_capture_receipt(capture, external_root(manifest), failures)
+        validate_corrected_pixel_format_probe(capture, external_root(manifest), failures)
     validate_decode_entry(platform, failures)
 
     if failures:

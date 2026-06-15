@@ -424,7 +424,26 @@
       "blocked_by": [
         "fps_throughput_limit"
       ],
-      "reason": "Latest strict 10 minute Pi 5 Labs target receipt at commit 0dd6660 validates .gvid, drops, memory, and interruption recovery, but misses the 24 fps target. Follow-up probes on current and historical-doc commits do not reproduce the historical 24.93 fps result. Polynomial-log, byte-exact u16 log-scratch, byte-exact prescale-2 fixed-shift, prefetch, LUT unroll, and decimated producer-ring probes were all slower than the LUT/default path. The best short direct-container near miss is the scratch luma-pair shared-unpack candidate with stripe64/deferred rANS at 23.54 fps median, still below target and not committed. The path remains blocked pending deeper in-worker hot-path optimization or a different capture-side algorithm.",
+      "reason": "Latest strict 10 minute Pi 5 Labs target receipt at commit 0dd6660 validates .gvid, drops, memory, and interruption recovery, but misses the 24 fps target. Follow-up probes on current and historical-doc commits do not reproduce the historical 24.93 fps result. Commit e16357f fixed the bench path so requested pixel format 4 reaches the encoder context; the corrected short direct .gvid probe still misses at 19.85 fps median. Polynomial-log, byte-exact u16 log-scratch, byte-exact prescale-2 fixed-shift, prefetch, LUT unroll, and decimated producer-ring probes were all slower than the LUT/default path. The best short direct-container near miss is the scratch luma-pair shared-unpack candidate with stripe64/deferred rANS at 23.54 fps median, still below target and not committed. The path remains blocked pending deeper in-worker hot-path optimization or a different capture-side algorithm.",
+      "corrected_pixel_format_probe": {
+        "receipt": "artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_120f_e16357f_20260615/labs_target_bench.json",
+        "timing_receipt": "artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_timing_30f_e16357f_20260615/labs_target_bench.json",
+        "commit": "e16357f7984315ec86ae5173fded94d057b1030f",
+        "mode": "direct .gvid, pixel_format 4 applied to encoder context",
+        "metrics": {
+          "fps_median": 19.85,
+          "target_fps": 24.0,
+          "median_ms": 50.38,
+          "p95_ms": 57.23,
+          "frame_count": 120
+        },
+        "timing": {
+          "ml_pass1_median_ms": 34.60,
+          "ml_pass2_median_ms": 11.60,
+          "unpack_mean_ms": 21.82
+        },
+        "verdict": "blocked"
+      },
       "docs": [
         "README.md",
         "docs/VIDEO_STATUS.md",
@@ -443,6 +462,8 @@
         "artifacts/labs_target_direct_gvid_producer_dec2_120f_decprod_candidate_20260615/labs_target_bench.json",
         "artifacts/labs_lumapair_probe_20260615/lumapair_stripe64_defer_120f.json",
         "artifacts/labs_lumapair_probe_20260615/lumapair_timing_detail_30f.json",
+        "artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_120f_e16357f_20260615/labs_target_bench.json",
+        "artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_timing_30f_e16357f_20260615/labs_target_bench.json",
         "docs/pi5_bench_2026-05-26.md",
         "docs/VIDEO_STATUS.md"
       ]

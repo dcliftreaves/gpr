@@ -42,7 +42,7 @@ embedded-capture ship — Pi 5 can't encode this fast.
 | live/camera-back PREVIEW | `2k_raw_0p5x_l2hh` selective-L2 HH production-bounded edge-safe display policy; older codec-only gate remains experimental |
 | offline/review PREVIEW | `preview_q8_threeway_runtime_fullframe_v1` registered as external-receipt no-REF production path |
 | offline/review entrypoint | `tools/cnn/render_preview_q8_threeway_runtime.py` |
-| Pi 5 capture fps | Historical 2026-05-26 receipt: **24.93 fps median**. Latest strict 10 minute Labs receipt at commit `0dd6660`: **19.98 fps median**, 50.04 ms median, 66.01 ms p95, 14,400/14,400 frames, 0 drops, valid `.gvid`. Treat the current commit/path as blocked until the regression is narrowed or fixed. |
+| Pi 5 capture fps | Historical 2026-05-26 receipt: **24.93 fps median**. Latest strict 10 minute Labs receipt at commit `0dd6660`: **19.98 fps median**, 50.04 ms median, 66.01 ms p95, 14,400/14,400 frames, 0 drops, valid `.gvid`. Corrected pixel-format short direct `.gvid` probe at commit `e16357f`: **19.85 fps median**, 50.38 ms median, 57.23 ms p95, 120/120 frames, 0 drops, valid `.gvid`. Treat the current commit/path as blocked until the regression is narrowed or fixed. |
 | per-frame size | **1.30 MB** at half-res |
 | at 24 fps sustained | **31 MB/s** — well within USB SSD capability |
 | offline/review PREVIEW quality | **PASS on current 28-image/84-row holdout** — worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, dE2000 2.64 |
@@ -95,7 +95,7 @@ For video you need either:
 | What you want | Which pipeline |
 |---|---|
 | Highest-quality video at any size, desktop | **A** (full-res VIDEO_FREEZE) |
-| Embedded Pi-camera capture at 24 fps | **B** (half-res `.gvid`; capture side works) |
+| Embedded Pi-camera capture at 24 fps | **B** (half-res `.gvid`; container/recovery work, capture throughput is currently blocked below 24 fps) |
 | Offline/review preview from B's captures | **B** with q8 three-way PREVIEW candidate (quality passes; 0.073 fps) |
 | Live/camera-back preview from B's captures | **B** with the bounded `2k_raw_0p5x_l2hh` edge-safe display policy; exact-edge display remains diagnostic |
 
