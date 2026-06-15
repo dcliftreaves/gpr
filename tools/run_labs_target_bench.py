@@ -33,6 +33,7 @@ GVID_FRAME_MAGIC = 0x004D5246
 GVID_VERSION = 1
 CLIP_HEADER_SIZE = 32
 FRAME_HEADER_SIZE = 16
+COPY_CHUNK_SIZE = 1024 * 1024
 
 
 def sha256_file(path: Path) -> str:
@@ -163,39 +164,45 @@ def write_gvid(frame_paths: list[Path], out: Path, width: int, height: int, fps:
 
 
 def validate_gvid(path: Path) -> dict[str, Any]:
-    data = path.read_bytes()
-    if len(data) < CLIP_HEADER_SIZE:
+    file_size = path.stat().st_size
+    if file_size < CLIP_HEADER_SIZE:
         raise ValueError("too small for clip header")
-    clip = struct.unpack("<IBBHHHIIIII", data[:CLIP_HEADER_SIZE])
-    magic, version, flags, pixel_format, quality, reserved2 = clip[:6]
-    width, height, fps_x1000, target_kbps, frame_count_hint = clip[6:]
-    if magic != GVID_CLIP_MAGIC or version != GVID_VERSION:
-        raise ValueError("bad .gvid magic/version")
-    if flags & ~0x03 or pixel_format > 5 or quality > 8 or reserved2:
-        raise ValueError("bad .gvid clip fields")
-    if width == 0 or height == 0 or fps_x1000 == 0:
-        raise ValueError("bad .gvid dimensions/fps")
-    if bool(flags & 0x01) != bool(target_kbps):
-        raise ValueError("rate-control flag/target mismatch")
-    pos = CLIP_HEADER_SIZE
-    frame_count = 0
-    last_tag: int | None = None
-    payload_bytes = 0
-    while pos < len(data):
-        if len(data) - pos < FRAME_HEADER_SIZE:
-            raise ValueError("truncated frame header")
-        frame_magic, payload_size, tag = struct.unpack("<IIQ", data[pos:pos + FRAME_HEADER_SIZE])
-        pos += FRAME_HEADER_SIZE
-        if frame_magic != GVID_FRAME_MAGIC or payload_size == 0:
-            raise ValueError("bad frame header")
-        if payload_size > len(data) - pos:
-            raise ValueError("truncated payload")
-        if last_tag is not None and tag <= last_tag:
-            raise ValueError("non-monotonic frame tag")
-        last_tag = tag
-        frame_count += 1
-        payload_bytes += payload_size
-        pos += payload_size
+    with path.open("rb") as f:
+        header = f.read(CLIP_HEADER_SIZE)
+        if len(header) != CLIP_HEADER_SIZE:
+            raise ValueError("too small for clip header")
+        clip = struct.unpack("<IBBHHHIIIII", header)
+        magic, version, flags, pixel_format, quality, reserved2 = clip[:6]
+        width, height, fps_x1000, target_kbps, frame_count_hint = clip[6:]
+        if magic != GVID_CLIP_MAGIC or version != GVID_VERSION:
+            raise ValueError("bad .gvid magic/version")
+        if flags & ~0x03 or pixel_format > 5 or quality > 8 or reserved2:
+            raise ValueError("bad .gvid clip fields")
+        if width == 0 or height == 0 or fps_x1000 == 0:
+            raise ValueError("bad .gvid dimensions/fps")
+        if bool(flags & 0x01) != bool(target_kbps):
+            raise ValueError("rate-control flag/target mismatch")
+        pos = CLIP_HEADER_SIZE
+        frame_count = 0
+        last_tag: int | None = None
+        payload_bytes = 0
+        while pos < file_size:
+            frame_header = f.read(FRAME_HEADER_SIZE)
+            if len(frame_header) != FRAME_HEADER_SIZE:
+                raise ValueError("truncated frame header")
+            frame_magic, payload_size, tag = struct.unpack("<IIQ", frame_header)
+            pos += FRAME_HEADER_SIZE
+            if frame_magic != GVID_FRAME_MAGIC or payload_size == 0:
+                raise ValueError("bad frame header")
+            if payload_size > file_size - pos:
+                raise ValueError("truncated payload")
+            if last_tag is not None and tag <= last_tag:
+                raise ValueError("non-monotonic frame tag")
+            last_tag = tag
+            frame_count += 1
+            payload_bytes += payload_size
+            f.seek(payload_size, os.SEEK_CUR)
+            pos += payload_size
     if frame_count_hint and frame_count_hint != frame_count:
         raise ValueError("frame_count_hint mismatch")
     return {
@@ -209,27 +216,46 @@ def validate_gvid(path: Path) -> dict[str, Any]:
 
 
 def complete_frame_count(path: Path) -> int:
-    data = path.read_bytes()
-    if len(data) < CLIP_HEADER_SIZE:
+    file_size = path.stat().st_size
+    if file_size < CLIP_HEADER_SIZE:
         return 0
-    pos = CLIP_HEADER_SIZE
-    count = 0
-    last_tag: int | None = None
-    while pos < len(data):
-        if len(data) - pos < FRAME_HEADER_SIZE:
-            return count
-        frame_magic, payload_size, tag = struct.unpack("<IIQ", data[pos:pos + FRAME_HEADER_SIZE])
-        pos += FRAME_HEADER_SIZE
-        if frame_magic != GVID_FRAME_MAGIC or payload_size == 0:
-            return count
-        if payload_size > len(data) - pos:
-            return count
-        if last_tag is not None and tag <= last_tag:
-            return count
-        last_tag = tag
-        count += 1
-        pos += payload_size
+    with path.open("rb") as f:
+        if len(f.read(CLIP_HEADER_SIZE)) != CLIP_HEADER_SIZE:
+            return 0
+        pos = CLIP_HEADER_SIZE
+        count = 0
+        last_tag: int | None = None
+        while pos < file_size:
+            frame_header = f.read(FRAME_HEADER_SIZE)
+            if len(frame_header) != FRAME_HEADER_SIZE:
+                return count
+            frame_magic, payload_size, tag = struct.unpack("<IIQ", frame_header)
+            pos += FRAME_HEADER_SIZE
+            if frame_magic != GVID_FRAME_MAGIC or payload_size == 0:
+                return count
+            if payload_size > file_size - pos:
+                return count
+            if last_tag is not None and tag <= last_tag:
+                return count
+            last_tag = tag
+            count += 1
+            f.seek(payload_size, os.SEEK_CUR)
+            pos += payload_size
     return count
+
+
+def copy_without_last_byte(src: Path, dst: Path) -> None:
+    remaining = src.stat().st_size - 1
+    if remaining <= 0:
+        dst.write_bytes(b"")
+        return
+    with src.open("rb") as inp, dst.open("wb") as out:
+        while remaining:
+            chunk = inp.read(min(COPY_CHUNK_SIZE, remaining))
+            if not chunk:
+                break
+            out.write(chunk)
+            remaining -= len(chunk)
 
 
 def synth_frames(frame_dir: Path, frame_count: int) -> list[float]:
@@ -307,8 +333,7 @@ def main() -> int:
     gvid_info = validate_gvid(gvid)
 
     truncated = args.output_dir / "capture_interrupted_tail.gvid"
-    data = gvid.read_bytes()
-    truncated.write_bytes(data[:-1] if len(data) > 1 else data)
+    copy_without_last_byte(gvid, truncated)
     interruption = {
         "truncated_path": str(truncated),
         "validator_rejects_truncated": False,
