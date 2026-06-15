@@ -1,5 +1,11 @@
 # Pi 5 capture hardware requirements
 
+Historical note: this page records the older full-res/LL-only storage planning
+bench. The current half-res `.gvid` capture path is tracked in
+`VIDEO_STATUS.md` and `RAW_RESOLUTION_TARGETS_2026-06-14.md`, where the active
+budget is 1.30 MB/frame and about 31 MB/s at 24 fps. Keep this page as storage
+background, not as the current `.gvid` ship budget.
+
 ## TL;DR
 
 The encoder kernel hits 25.9 fps in-memory on Pi 5 (Cortex-A76, LL-only-fast mode). Sustained sensor → SD card capture is **storage-bound at ~7 fps** on the stock SD slot. To hit 24 fps sustained at 50 MP × 3.5 MB/frame compressed, you need a storage path that sustains **≥84 MB/s**.

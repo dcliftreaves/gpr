@@ -43,6 +43,18 @@ static void write_u64_le(uint8_t *p, uint64_t v) {
     write_u32_le(p + 4, (uint32_t)((v >> 32) & 0xffffffffu));
 }
 
+static int validate_clip_header_fields(const gpr_video_clip_header *h) {
+    if ((h->flags & (uint8_t)~GPR_VIDEO_FLAG_MASK) != 0) return -1;
+    if (h->pixel_format > 5) return -1;
+    if (h->quality > 8) return -1;
+    if (h->reserved2 != 0) return -1;
+    if (h->width == 0 || h->height == 0) return -1;
+    if (h->fps_x1000 == 0) return -1;
+    if ((h->flags & GPR_VIDEO_FLAG_RATE_CONTROL) != 0 && h->target_kbps == 0) return -1;
+    if ((h->flags & GPR_VIDEO_FLAG_RATE_CONTROL) == 0 && h->target_kbps != 0) return -1;
+    return 0;
+}
+
 int gpr_video_write_clip_header(uint8_t *buf, size_t buf_size,
                                  int width, int height,
                                  int pixel_format, int quality,
@@ -86,6 +98,7 @@ int gpr_video_write_frame_header(uint8_t *buf, size_t buf_size,
                                   uint64_t frame_tag)
 {
     if (!buf || buf_size < GPR_VIDEO_FRAME_HEADER_SIZE) return -1;
+    if (payload_size == 0) return -1;
     if (payload_size > 0xffffffffu) return -1;
     write_u32_le(buf + 0, GPR_VIDEO_FRAME_MAGIC);
     write_u32_le(buf + 4, (uint32_t)payload_size);
@@ -112,6 +125,7 @@ int gpr_video_read_clip_header(const uint8_t *buf, size_t buf_size,
     out->fps_x1000 = read_u32_le(buf + 20);
     out->target_kbps = read_u32_le(buf + 24);
     out->frame_count_hint = read_u32_le(buf + 28);
+    if (validate_clip_header_fields(out) != 0) return -1;
     return 0;
 }
 
@@ -123,6 +137,7 @@ int gpr_video_read_frame_header(const uint8_t *buf, size_t buf_size,
     if (magic != GPR_VIDEO_FRAME_MAGIC) return -1;
     out->magic = magic;
     out->payload_size = read_u32_le(buf + 4);
+    if (out->payload_size == 0) return -1;
     out->frame_tag = read_u64_le(buf + 8);
     return 0;
 }

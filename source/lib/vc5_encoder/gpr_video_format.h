@@ -43,11 +43,9 @@
  *  diagram above for the v1 layout.
  *
  *  Bump policy:
- *   - Stays at 1 for **additive** changes that an unaware reader can ignore
- *     without producing incorrect output. Examples: defining a new bit in
- *     `flags` (5), defining a sub-flag in `reserved2` (10..11), or repurposing
- *     other currently-zero reserved bits. An existing v1 reader continues to
- *     decode such streams; it just won't act on the new hint.
+ *   - Stays at 1 only for additive changes that the current strict v1 reader
+ *     can reject safely until the reader is updated. Reserved flag bits and
+ *     reserved2 are wire-reserved today and must remain zero in emitted files.
  *   - Bumps to 2 (or higher) for **structural** changes a v1 reader cannot
  *     safely ignore. Examples: a new frame-header magic, a new payload
  *     encoding (different wavelet basis / quantizer / bitstream layout), or
@@ -61,14 +59,11 @@
  *
  *  v1 clip-header stability matrix:
  *   - [0..3] magic, [4] version              : stable across all v1.x
- *   - [5] flags                              : extensible — new bits 2..7
- *                                              may be defined; readers
- *                                              should mask unknown bits
- *                                              rather than treat as error
+ *   - [5] flags                              : bits 0..1 defined; bits 2..7
+ *                                              rejected by the strict v1 reader
  *   - [6..7] pixel_format, [8..9] quality    : stable
- *   - [10..11] reserved2                     : may carry new sub-flags in
- *                                              future v1.x; v1 readers MUST
- *                                              ignore unrecognized bits
+ *   - [10..11] reserved2                     : rejected when nonzero by the
+ *                                              strict v1 reader
  *   - [12..27] width, height, fps_x1000,
  *              target_kbps                   : stable
  *   - [28..31] frame_count_hint              : stable (0 = unknown remains
@@ -97,6 +92,7 @@ extern "C" {
 
 #define GPR_VIDEO_FLAG_RATE_CONTROL  0x01
 #define GPR_VIDEO_FLAG_DENOISE       0x02
+#define GPR_VIDEO_FLAG_MASK          (GPR_VIDEO_FLAG_RATE_CONTROL | GPR_VIDEO_FLAG_DENOISE)
 
 #define GPR_VIDEO_CLIP_HEADER_SIZE  32
 #define GPR_VIDEO_FRAME_HEADER_SIZE 16
@@ -136,12 +132,12 @@ int gpr_video_write_frame_header(uint8_t *buf, size_t buf_size,
                                   size_t payload_size,
                                   uint64_t frame_tag);
 
-/*! @brief Parse a clip header. Validates magic and version.
+/*! @brief Parse a clip header. Validates magic, version, and v1 field ranges.
     @return 0 on success, -1 on malformed/incompatible header. */
 int gpr_video_read_clip_header(const uint8_t *buf, size_t buf_size,
                                 gpr_video_clip_header *out);
 
-/*! @brief Parse a frame header. Validates magic.
+/*! @brief Parse a frame header. Validates magic and payload size.
     @return 0 on success, -1 on malformed header. */
 int gpr_video_read_frame_header(const uint8_t *buf, size_t buf_size,
                                  gpr_video_frame_header *out);

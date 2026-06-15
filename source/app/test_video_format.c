@@ -19,6 +19,24 @@
     if (!(cond)) { fprintf(stderr, "FAIL: %s (line %d)\n", (msg), __LINE__); return 1; } \
 } while (0)
 
+static void put_u16_le(uint8_t *p, uint16_t v) {
+    p[0] = (uint8_t)(v & 0xff);
+    p[1] = (uint8_t)((v >> 8) & 0xff);
+}
+
+static void put_u32_le(uint8_t *p, uint32_t v) {
+    p[0] = (uint8_t)(v & 0xff);
+    p[1] = (uint8_t)((v >> 8) & 0xff);
+    p[2] = (uint8_t)((v >> 16) & 0xff);
+    p[3] = (uint8_t)((v >> 24) & 0xff);
+}
+
+static int write_valid_clip(uint8_t *buf) {
+    return gpr_video_write_clip_header(buf, GPR_VIDEO_CLIP_HEADER_SIZE,
+                                       1920, 1080, 1, 3, 24.0,
+                                       150.0, 1, 12);
+}
+
 static int test_clip_header_roundtrip(void) {
     uint8_t buf[GPR_VIDEO_CLIP_HEADER_SIZE];
     int n = gpr_video_write_clip_header(buf, sizeof(buf),
@@ -110,12 +128,84 @@ static int test_bad_inputs(void) {
     return 0;
 }
 
+static int test_bad_clip_header_fields(void) {
+    uint8_t buf[GPR_VIDEO_CLIP_HEADER_SIZE];
+    gpr_video_clip_header h;
+
+    CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");
+    buf[5] |= 0x80u;
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "unknown flags rejected");
+
+    CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");
+    put_u16_le(buf + 6, 6);
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "read bad pixel_format rejected");
+
+    CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");
+    put_u16_le(buf + 8, 9);
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "read bad quality rejected");
+
+    CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");
+    put_u16_le(buf + 10, 1);
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "reserved2 rejected");
+
+    CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");
+    put_u32_le(buf + 12, 0);
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "zero width rejected");
+
+    CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");
+    put_u32_le(buf + 16, 0);
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "zero height rejected");
+
+    CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");
+    put_u32_le(buf + 20, 0);
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "zero fps rejected");
+
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 1920, 1080, 1, 3,
+                                      24.0, 0.0, 0, 12) == GPR_VIDEO_CLIP_HEADER_SIZE,
+          "valid no-rate-control clip");
+    buf[5] |= GPR_VIDEO_FLAG_RATE_CONTROL;
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "rate-control flag without target rejected");
+
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 1920, 1080, 1, 3,
+                                      24.0, 0.0, 0, 12) == GPR_VIDEO_CLIP_HEADER_SIZE,
+          "valid no-rate-control clip");
+    put_u32_le(buf + 24, 12000);
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "target without rate-control flag rejected");
+
+    printf("  PASS  malformed clip fields rejected\n");
+    return 0;
+}
+
+static int test_bad_frame_header_fields(void) {
+    uint8_t buf[GPR_VIDEO_FRAME_HEADER_SIZE];
+    gpr_video_frame_header h;
+
+    CHECK(gpr_video_write_frame_header(buf, sizeof(buf), 0, 7) == -1,
+          "zero-payload frame write rejected");
+    CHECK(gpr_video_read_frame_header(buf, 8, &h) == -1, "short frame read rejected");
+
+    CHECK(gpr_video_write_frame_header(buf, sizeof(buf), 4, 7) == GPR_VIDEO_FRAME_HEADER_SIZE,
+          "valid frame");
+    buf[0] = 'X';
+    CHECK(gpr_video_read_frame_header(buf, sizeof(buf), &h) == -1, "wrong frame magic rejected");
+
+    CHECK(gpr_video_write_frame_header(buf, sizeof(buf), 4, 7) == GPR_VIDEO_FRAME_HEADER_SIZE,
+          "valid frame");
+    put_u32_le(buf + 4, 0);
+    CHECK(gpr_video_read_frame_header(buf, sizeof(buf), &h) == -1, "zero-payload frame read rejected");
+
+    printf("  PASS  malformed frame fields rejected\n");
+    return 0;
+}
+
 int main(void) {
     int failed = 0;
     failed += test_clip_header_roundtrip();
     failed += test_clip_header_no_rc();
     failed += test_frame_header_roundtrip();
     failed += test_bad_inputs();
+    failed += test_bad_clip_header_fields();
+    failed += test_bad_frame_header_fields();
     printf("\n%s\n", failed == 0 ? "All tests PASS" : "SOME TESTS FAILED");
     return failed;
 }

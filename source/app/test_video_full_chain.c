@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <inttypes.h>
+#include <limits.h>
 
 #include "../lib/vc5_encoder/gpr_video.h"
 #include "../lib/vc5_encoder/gpr_video_format.h"
@@ -39,6 +40,13 @@
 #define RING_DEPTH 3
 #define TARGET_MBPS 50.0
 #define FPS 24.0
+
+static int join_tmp_path(char *out, size_t out_size, const char *name) {
+    const char *tmp = getenv("TMPDIR");
+    if (!tmp || !tmp[0]) tmp = "/tmp";
+    int n = snprintf(out, out_size, "%s/%s", tmp, name);
+    return (n > 0 && (size_t)n < out_size) ? 0 : -1;
+}
 
 static uint8_t *synth_frame(int seed) {
     uint8_t *buf = (uint8_t *)malloc((size_t)W * H * 2);
@@ -267,8 +275,13 @@ static int test_fatal_writer_chain(const char *path) {
 
 int main(void) {
     int fails = 0;
-    const char *happy_path = "/tmp/test_video_full_chain_happy.gvid";
-    const char *fatal_path = "/tmp/test_video_full_chain_fatal.gvid";
+    char happy_path[PATH_MAX];
+    char fatal_path[PATH_MAX];
+    if (join_tmp_path(happy_path, sizeof happy_path, "test_video_full_chain_happy.gvid") != 0 ||
+        join_tmp_path(fatal_path, sizeof fatal_path, "test_video_full_chain_fatal.gvid") != 0) {
+        fprintf(stderr, "FAIL: TMPDIR path too long\n");
+        return 1;
+    }
     fails += test_happy_chain(happy_path);
     fails += test_fatal_writer_chain(fatal_path);
     fprintf(stderr, "\n==========================================\n");
