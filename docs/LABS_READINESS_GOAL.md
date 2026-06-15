@@ -362,15 +362,20 @@ not reproduce the 24.93 fps result. The best current-build knob reaches
 remains 19.98 fps median. The timing profile shows multi-level Pass1 dominates,
 with channel unpack as the largest measured component. The invalid
 producer+decimate combination is now guarded to fall back safely instead of
-corrupting memory. The next engineering task is to recover the unrecovered
-downstream worktree or implement a real decimation-aware Pass1 unpack
-optimization.
+corrupting memory. A 2026-06-15 search found no separate recoverable
+`be0328a` downstream source tree on the consolidated 8TB work area; the
+archived branch only contains the stale polynomial-comment delta for the codec.
+Polynomial-log and u16 log-scratch probes were byte-safe or documented, but
+slower than the LUT/default path. The next engineering task is deeper Pass1
+work reduction or a different capture-side algorithm.
 
 ## Immediate Next Step
 
-Recover the original downstream `be0328a` worktree if it exists. If it cannot
-be recovered, treat the May 26 24.93 fps result as non-reproducible and
-optimize Pass1 unpack enough to recover the missing 11-18 percent needed to
-clear the sustained 24 fps target. The producer-unpack heap corruption is
-guarded for decimated capture, but the speed path still needs a
-decimation-aware producer or equivalent unpack optimization.
+Treat the May 26 24.93 fps result as non-reproducible until a real source tree
+or target receipt proves otherwise. Optimize the current path enough to recover
+the missing 11-18 percent needed to clear sustained 24 fps, focusing on
+Pass1/highpass work that reduces operations or memory traffic rather than
+reshaping LUT scratch. The producer-unpack heap corruption is guarded for
+decimated capture, but the speed path still needs an equivalent in-worker
+unpack/highpass optimization, a valid decimation-aware producer, or a different
+capture-side algorithm.

@@ -63,8 +63,9 @@ ownership, and target CI.
    historical 24.93 fps receipt to a non-reproduced result: current and
    historical-doc commits both run below target today, producer unpack is now
    guarded for decimated capture, quality/quant sweeps top out at 22.36 fps
-   median, and a diagnostic highpass-drop lower bound points at highpass
-   transform/tokenization as the remaining speed blocker.
+   median, polynomial-log and u16 log-scratch candidates are slower than the
+   LUT/default path, and a diagnostic highpass-drop lower bound points at
+   highpass transform/tokenization as the remaining speed blocker.
 2. Package a portable artifact bundle with checksums and verification steps.
 3. Add or document CI lanes for hosted source checks and target/self-hosted
    media checks.

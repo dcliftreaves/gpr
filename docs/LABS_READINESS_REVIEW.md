@@ -41,12 +41,15 @@ the current half-res encoder path misses the 24 fps target on the stand-in run.
 
 ## Next Work
 
-1. Recover the original downstream `be0328a` worktree if it still exists. If
-   not, implement another Pass1 unpack optimization or a different capture-side
-   algorithm. The invalid producer+decimate path is now guarded, naive /
-   combined producer variants plus compiler/runtime tuning did not sustain the
-   target, and the highpass lower-bound probe identifies highpass
-   transform/tokenization as the next speed target.
+1. Continue current-code Pass1/highpass optimization or choose a different
+   capture-side algorithm. A 2026-06-15 search did not find a separate
+   recoverable `be0328a` source tree in the consolidated 8TB work area, the
+   archived branch does not contain a missing codec speed delta, and the
+   polynomial-log plus u16 log-scratch probes were slower than the LUT/default
+   path. The invalid producer+decimate path is now guarded, naive / combined
+   producer variants plus compiler/runtime tuning did not sustain the target,
+   and the highpass lower-bound probe identifies highpass transform/tokenization
+   as the next speed target.
 2. Replace or supplement the stand-in bundle with a passing target-capture
    receipt.
 3. Add target/self-hosted CI jobs or documented manual receipts for media

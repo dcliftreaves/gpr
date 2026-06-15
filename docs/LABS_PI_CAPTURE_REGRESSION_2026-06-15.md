@@ -367,6 +367,28 @@ This rules out `FUSED_LOG_POLYNOMIAL=ON` for the current Labs half-res path.
 The default should remain OFF. The next speed attempt should target active
 Pass1 unpack/highpass work directly, not the log polynomial path.
 
+## U16 Log-Scratch Candidate
+
+A current-code candidate changed the active luma/chroma col-decimate helpers
+to keep LUT results as `uint16_t` scratch and widen in NEON instead of storing
+intermediate log values in `int32_t` arrays. The candidate was byte-exact, but
+slower on the Pi 5 stand-in, so it was not committed.
+
+Probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_u16log_probe_20260615/u16log_probe.json`
+
+| build | frames | median | first-frame hash | finding |
+|---|---:|---:|---|---|
+| baseline `3f7f2c3` | 300 | 45.60 ms / 21.93 fps | `c3cc5bc080a4df6f66e1215362d7c0c48abe0f342f1a4324559248d032dc6229` | below target |
+| u16 log-scratch candidate | 300 | 49.24 ms / 20.31 fps | `c3cc5bc080a4df6f66e1215362d7c0c48abe0f342f1a4324559248d032dc6229` | byte-exact but slower |
+
+This rules out a narrower-log-scratch rewrite of the active mode-1
+col-decimate helpers as the next speed path. The remaining useful direction is
+still deeper Pass1 work reduction: avoid work, reduce horizontal/highpass
+traffic, or change the capture-side algorithm.
+
 ## Producer-Unpack Decimate Guard
 
 The current source now disables the shared producer ring when either
