@@ -62,12 +62,15 @@ also byte-identical but slower on Pi, so allocation-only cleanup is not the
 missing throughput source. A manual col-decimate prefetch probe also regressed,
 which keeps the focus on reducing the unpack/LUT work itself rather than cache
 hints around the current loop shape. Manual unrolling of the active 8-entry LUT
-copy loops was also byte-identical but slower.
+copy loops was also byte-identical but slower. A luma-pair shared-unpack
+scratch candidate improved the best short direct-container run to 42.48 ms /
+23.54 fps only when combined with stripe64/deferred rANS, but it still missed
+the 24 fps target and was not committed.
 
-The next production step is to reduce or share raw-to-log/Pass1/channel-unpack
-work inside the active highpass-preserving worker path, or replace that
-capture-side algorithm with one that keeps the quality guarantees while meeting
-target throughput.
+The next production step is to remove more Pass1/channel-unpack or
+tokenization work without row-handoff overhead, or replace that capture-side
+algorithm with one that keeps the quality guarantees while meeting target
+throughput.
 
 ## Burn-Down Workstreams
 

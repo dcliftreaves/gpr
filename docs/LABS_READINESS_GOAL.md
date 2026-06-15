@@ -120,8 +120,12 @@ memory, and correctness receipts.
 
 Current evidence says Pass1 unpack dominates the runtime. Producer unpack with
 decimated capture is now guarded to avoid unsafe buffer writes, but that guard
-does not recover enough frame rate by itself. Next optimization attempts must
-prove byte-level output equivalence or document intentional differences.
+does not recover enough frame rate by itself. Later lazy scratch allocation,
+manual prefetch, LUT unroll, and luma-pair shared-unpack probes did not clear
+the target. The best short direct-container near-miss is 23.54 fps median with
+luma-pair plus stripe64/deferred rANS, still below the 24 fps target. Next
+optimization attempts must prove byte-level output equivalence or document
+intentional differences.
 
 ## Milestones
 

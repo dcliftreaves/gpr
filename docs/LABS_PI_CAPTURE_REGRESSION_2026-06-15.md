@@ -593,6 +593,46 @@ This rejects manual unrolling of the existing LUT copy loops as a throughput
 fix. The compiler's existing loop shape is already at least as good for the
 Pi 5 Cortex-A76 path.
 
+## Luma-Pair Shared Unpack Probe
+
+A scratch, env-gated candidate shared G1/G2 log lookups between the GS and GD
+luma channels. Channel 0 produced the normal GS row plus a GD row in a tiny
+single-producer/single-consumer ring, and channel 3 consumed the GD row before
+running the existing horizontal, vertical/quant, and tokenization path. This
+was intentionally smaller than reviving the full four-channel producer ring.
+
+Local correctness:
+
+- 1024 x 768 decimated multi-level fixture was byte-identical:
+  `66f51d1893a0a7b86e9bca95f7a8f55389aaac3136e4ad1ce8a2744274984771`
+- local receipt scratch:
+  `/Volumes/OWC_8TB/gpr_work/tmp/luma_pair_identity_20260615`
+
+Pi direct `.gvid` receipts copied locally:
+
+- `/Volumes/OWC_8TB/gpr_work/artifacts/labs_lumapair_probe_20260615/baseline_120f.json`
+- `/Volumes/OWC_8TB/gpr_work/artifacts/labs_lumapair_probe_20260615/lumapair_120f.json`
+- `/Volumes/OWC_8TB/gpr_work/artifacts/labs_lumapair_probe_20260615/lumapair_stripe64_defer_120f.json`
+- `/Volumes/OWC_8TB/gpr_work/artifacts/labs_lumapair_probe_20260615/lumapair_fast_stripe64_defer_120f.json`
+- `/Volumes/OWC_8TB/gpr_work/artifacts/labs_lumapair_probe_20260615/lumapair_timing_detail_30f.json`
+
+| case | median | p95 | result |
+|---|---:|---:|---|
+| baseline, direct `.gvid` | 45.49 ms / 21.99 fps | 48.15 ms | below target |
+| luma-pair, direct `.gvid` | 43.71 ms / 22.88 fps | 52.89 ms | better median, worse tail |
+| luma-pair + `FUSED_STRIPE_ROWS=64 FUSED_DEFER_RANS=1` | 42.48 ms / 23.54 fps | 44.23 ms | best case, still below target |
+| luma-pair + fast compiler flags + stripe64/defer | 43.02 ms / 23.25 fps | 52.49 ms | slower than normal build |
+
+Nearby stripe rows did not compose with the candidate: stripe48 and stripe32
+both regressed to roughly 20-21 fps, with or without deferred rANS.
+
+Conclusion: luma-pair sharing is a useful boundary probe but not a production
+fix. The best short direct-container run still misses the 24 fps target, and
+the timing-detail receipt shows the handoff shifts some cost into the unpack /
+wait bucket instead of removing enough total Pass1 work. The scratch source was
+not committed. The next structural attempt should avoid row handoff entirely or
+remove work from chroma unpack/tokenization as well.
+
 ## Timing Profile
 
 A timing-enabled build of the current clean Labs commit was run on the Pi to
@@ -684,10 +724,13 @@ regression, and the corrected decimation-aware producer scratch path is rejected
 by full-frame Pi timing. Lazy allocation of an unused full-width scratch buffer
 is also byte-identical but slower on the Pi, and manual forward prefetch in the
 active col-decimate unpack loops regresses sharply. Manual unrolling of the
-8-entry LUT copy loops is also byte-identical but slower. The next speed
-experiment must share raw-to-log work inside the active Pass1 worker path,
-remove highpass work without invalidating output, reduce highpass
-tokenization/data movement, or replace the capture-side algorithm.
+8-entry LUT copy loops is also byte-identical but slower. A smaller luma-pair
+shared-unpack handoff improves the best 120-frame direct-container median to
+23.54 fps only when combined with stripe64/deferred rANS, but still misses the
+24 fps production target and was not committed. The next speed experiment must
+avoid row handoff overhead, remove highpass work without invalidating output,
+reduce chroma unpack/tokenization/data movement, or replace the capture-side
+algorithm.
 The production target remains >= 24 fps sustained; today's best evidenced
 current-build knob is 22.53 fps median on a 100-frame probe and 19.98 fps
 median on the strict 10-minute receipt.
