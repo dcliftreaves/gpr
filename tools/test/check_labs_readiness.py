@@ -71,6 +71,7 @@ REQUIRED_DOCS = {
         "Required Manifest Fields",
         "Verification Commands",
         "Current Bundle",
+        "Current target-proxy bundle",
         "zero-frame",
         "out-of-order",
     ],

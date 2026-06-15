@@ -471,6 +471,7 @@
         "artifacts/pi5_current_head_20260615/labs_perf_sweep_03eaa4d_120f_20260615T112841Z/stripe64_defer/labs_target_bench.json",
         "artifacts/pi5_current_head_20260615/labs_target_timing_3c48f2f_30f_20260615T113211Z/labs_target_bench.json",
         "artifacts/pi5_current_head_20260615/labs_perf_sweep_lumapair_dirty_120f_20260615T114724Z/labs_perf_sweep.json",
+        "artifacts/labs_bundle_20260615_pi_proxy_v1/manifest.json",
         "docs/pi5_bench_2026-05-26.md",
         "docs/VIDEO_STATUS.md"
       ]

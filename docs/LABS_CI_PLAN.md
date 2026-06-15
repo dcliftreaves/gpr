@@ -14,7 +14,7 @@ Current hosted CI should continue to cover:
 - repo artifact hygiene,
 - release evidence manifest,
 - Labs readiness guard tying the firmware-intake docs, release manifest, and
-  CI workflow to the current capture-blocked / 2K-live-ready evidence split,
+  CI workflow to the current Pi-proxy / camera-hardware-pending evidence split,
 - Labs target receipt guard tying the release manifest to strict Pi receipt
   metrics when external artifacts are mounted,
 - production artifact inventory,
@@ -22,6 +22,7 @@ Current hosted CI should continue to cover:
 - `.gvid` header and stream validation via `test_video_format`,
 - real encoded `.gvid` validation via `test_video_full_chain`,
 - Python `.gvid` pack and metadata smokes,
+- deterministic Labs bundle manifest/checksum builder smoke,
 - simulated Labs target-bench receipt schema and interruption smoke,
 - registry consistency and ship-pipeline receipt audit.
 

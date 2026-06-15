@@ -379,6 +379,7 @@ jobs:
         run: |
           bash tools/test/test_gvid_pack.sh
           bash tools/test/test_gvid_metadata.sh
+          bash tools/test/test_labs_bundle_builder.sh
           bash tools/test/test_labs_bundle_verify.sh
           bash tools/test/test_labs_target_bench_smoke.sh
 

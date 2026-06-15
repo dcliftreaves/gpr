@@ -8,7 +8,7 @@ Hosted CI does not have the 8TB artifact tree, so this checker has two layers:
    and blocked/pass status are derived from that receipt.
 
 This keeps the repo from silently promoting half-res capture while the latest
-strict Pi 5 run is still below the 24 fps target.
+strict Pi 5 run is only a proxy for the final 24 fps camera-hardware target.
 """
 
 from __future__ import annotations

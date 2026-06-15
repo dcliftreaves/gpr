@@ -41,7 +41,7 @@ ownership, and target CI.
 | Can it hit the half-res capture-rate target on the stand-in path? | It is enough to continue camera integration as a conservative Pi proxy: commit `0dd6660` writes 14,400/14,400 frames with 0 drops and valid `.gvid` at 19.98 fps median. It does not prove the actual 24 fps Mission 1 target. Commit `e16357f` fixed the bench path so pixel format 4 reaches the encoder context; the corrected 120-frame direct `.gvid` probe reaches 19.85 fps median. A later scratch luma-pair probe reached 23.54 fps on a short direct-container run but was not committed. A productionizable channel0-to-channel3 luma handoff version was byte-identical locally but regressed on Pi to 12.05 fps, so that architecture is ruled out. |
 | Can it hit a bounded 2K live display target? | Yes for the decode/display side: `2k_raw_0p5x_l2hh` is live-capable on Pi 5 stand-in timing and the production preview policy is bounded to a 16 px edge-safe viewport. |
 | Is the format safe enough for firmware review? | Source-level path is hardened: v1 C parsing rejects malformed headers and streams, and v1 writing rejects non-finite/overflowing FPS and bitrate fields; target recovery still needs receipts. |
-| Are artifacts portable outside the 8TB work drive? | Stand-in bundle verifies; final target bundle still needs 10 minute capture and camera-firmware receipts. |
+| Are artifacts portable outside the 8TB work drive? | Source/media and Pi target-proxy bundles verify; final camera bundle still needs actual camera-firmware receipts. |
 | Is CI sufficient for Labs intake? | Hosted CI covers source-level checks; target/self-hosted lanes are specified for media and hardware behavior. |
 
 ## Reviewer Entry Points

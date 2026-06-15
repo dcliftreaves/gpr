@@ -46,7 +46,7 @@ one `review/` or `dashboard` artifact, and `hashes/sha256sums.txt`.
 ## Verification Commands
 
 ```bash
-sha256sum -c hashes/sha256sums.txt
+(cd /path/to/gpr_labs_bundle && sha256sum -c hashes/sha256sums.txt)
 python3 tools/gvid_metadata.py validate \
   samples/half_res_capture.gvid.meta.json \
   --gvid samples/half_res_capture.gvid
@@ -55,6 +55,21 @@ python3 tools/gvid_metadata.py runtime-dispatch \
   --gvid samples/half_res_capture.gvid \
   --output "${TMPDIR:-/tmp}/half_res_capture.dispatch.json"
 python3 tools/verify_labs_bundle.py manifest.json
+```
+
+Build or refresh a bundle manifest from explicit bundle-relative files:
+
+```bash
+python3 tools/build_labs_bundle.py /path/to/gpr_labs_bundle \
+  --repo-commit "$(git rev-parse HEAD)" \
+  --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>" \
+  --target-name "Pi 5 stand-in" \
+  --target-role "stand-in" \
+  --note "Pi 5 proxy evidence; actual Mission 1 24 fps receipt pending" \
+  --artifact samples/half_res_capture.gvid:gvid \
+  --artifact samples/half_res_capture.gvid.meta.json:json \
+  --artifact review/preview_review_dashboard.html:dashboard \
+  --artifact receipts/pi5_capture_bench.json:json
 ```
 
 For repo-local validation, `tools/test/test_labs_bundle_verify.sh` exercises
@@ -68,7 +83,7 @@ frame tags, oversized payloads, and zero-frame streams.
 
 ## Current Bundle
 
-Current stand-in bundle:
+Current source/media stand-in bundle:
 
 `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json`
 
@@ -91,3 +106,23 @@ Contents:
 This bundle is enough for source/media review. It is **not** final
 camera-firmware evidence because the target bench receipt is a 120-frame Pi 5
 stand-in run, not a 10 minute camera-firmware capture.
+
+Current target-proxy bundle:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260615_pi_proxy_v1/manifest.json`
+
+Verification:
+
+```bash
+python3 tools/verify_labs_bundle.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260615_pi_proxy_v1/manifest.json
+```
+
+Primary target-proxy receipt:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json`
+
+This receipt validates 14,400 frames, 0 drops, `.gvid`, and interrupted-tail
+recovery at 19.98 fps median. It is acceptable as a conservative Pi 5 proxy for
+continuing Labs integration, but it must be replaced or supplemented by an
+actual Mission 1 24 fps hardware receipt before firmware readiness is claimed.

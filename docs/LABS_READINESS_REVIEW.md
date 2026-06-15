@@ -20,7 +20,8 @@ the Labs prototype into firmware-handoff review.
 | Desktop review path | `gpr2prores` accepts `.gvid` and validates runtime dispatch |
 | Source-level safety | hosted CI validates headers, streams, release evidence, registry consistency |
 | Format hardening | C reader rejects malformed v1 headers, truncated headers/payloads, zero-frame streams, duplicate or out-of-order frame tags, and whole-stream corruption; C writer rejects non-finite, negative, overflowing, or rate-control-rounds-to-zero FPS/bitrate fields |
-| Portable stand-in bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` |
+| Portable source/media bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` |
+| Portable target-proxy bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260615_pi_proxy_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` and includes the strict 10-minute Pi proxy receipt |
 | Target receipt harness | `tools/run_labs_target_bench.py` produces `labs_target_bench.json` with timing, structured `fused_timing`, storage, memory, drop, `.gvid`, and interruption fields |
 | Strict Pi 5 target receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` proves 14,400 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, and a 19.98 fps median that is acceptable as a conservative 20 fps Pi proxy |
 | Pi 5 regression probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` records current, historical-doc, environment, runtime-knob, compiler-flag, quality, highpass-bound, timing, producer-guard, polynomial-log, u16 log-scratch, prescale-2 fixed-shift, lazy scratch allocation, prefetch, LUT-unroll, luma-pair shared-unpack, rejected luma-pair handoff, current-head direct `.gvid` rehearsal, and corrected pixel-format probes; best short direct-container near-miss is 23.54 fps median with luma-pair plus stripe64/deferred rANS, while the productionizable channel0-to-channel3 handoff version regressed to 12.05 fps, the corrected pixel-format direct `.gvid` receipt is 19.85 fps median, and diagnostic highpass dropping reaches 30.35 fps but is not valid output |
@@ -33,7 +34,7 @@ the Labs prototype into firmware-handoff review.
 |---|---|
 | Firmware capture integration | sensor/DMA handoff and memory ownership have not been executed on target; current receipts use Pi stand-in file input |
 | Sustained target run | latest strict Pi 5 receipt is proxy-acceptable at 19.98 fps median, 50.04 ms median, 66.01 ms p95; actual Mission 1 24 fps capture remains unproven. Current-head direct `.gvid` rehearsal misses the proxy at 16.00 fps median over 1,440 frames; corrected pixel-format direct `.gvid` receipt is a short probe at 19.85 fps median over 120 frames |
-| Final target artifact bundle | stand-in bundle exists; final bundle still needs passing target receipt and camera-firmware evidence |
+| Final camera artifact bundle | Pi target-proxy bundle exists; final bundle still needs actual camera-firmware evidence |
 
 ## Current Risk
 
