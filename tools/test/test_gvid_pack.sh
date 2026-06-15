@@ -22,6 +22,9 @@ printf 'frame-0001-payload-longer' > "$WORK/frames/frame_0001.gpr"
 "$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip.gvid" \
   --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4
 
+"$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip_q11.gvid" \
+  --width 8280 --height 5520 --fps 24 --quality 11 --pixel-format 4
+
 "$PYTHON_BIN" - "$WORK/clip.gvid" <<'PY'
 import struct
 import sys
@@ -47,6 +50,22 @@ for idx, expected in enumerate([b"frame-0000-payload", b"frame-0001-payload-long
     pos += size
 assert pos == len(data), (pos, len(data))
 PY
+
+"$PYTHON_BIN" - "$WORK/clip_q11.gvid" <<'PY'
+import struct
+import sys
+from pathlib import Path
+
+clip = struct.unpack("<IBBHHHIIIII", Path(sys.argv[1]).read_bytes()[:32])
+assert clip[4] == 11, clip
+PY
+
+if "$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip_q12.gvid" \
+  --width 8280 --height 5520 --fps 24 --quality 12 --pixel-format 4; then
+  echo "expected q12 pack to fail" >&2
+  exit 1
+fi
+test ! -e "$WORK/clip_q12.gvid"
 
 cat > "$WORK/clip.gvid.meta.json" <<'JSON'
 {

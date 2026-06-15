@@ -69,7 +69,7 @@ typedef struct {
     uint32_t width;          /* pixel width  (Bayer pattern width)  */
     uint32_t height;         /* pixel height (Bayer pattern height) */
     uint32_t pixel_format;   /* same encoding as gpr_encode_fused()  */
-    uint32_t quality;        /* 0..8 */
+    uint32_t quality;        /* 0..11 */
     uint32_t is_rggb;        /* 1 = RGGB, 0 = GBRG */
     uint32_t log_bits;       /* 14 for 12/14-bit input, 16 for 16-bit */
     uint32_t prescale;       /* level-1 prescale (typically 2) */
@@ -95,7 +95,7 @@ typedef struct {
     @param width        Image width in pixels
     @param height       Image height in pixels
     @param pixel_format 0=RGGB12, 1=RGGB14, 2=GBRG12, 3=GBRG14, 4=RGGB16, 5=GBRG16
-    @param quality      Quality preset (0-8, default 3 = Filmscan-1)
+    @param quality      Quality preset (0-11, default 3 = Filmscan-1)
     @param vc5_out      Output: allocated VC5 bitstream (caller must free)
     @param vc5_size     Output: size of VC5 bitstream
     @return 0 on success, -1 on error

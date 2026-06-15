@@ -11,14 +11,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-from gvid_metadata import validate_against_gvid, validate_metadata
-
-
 GVID_MAGIC = 0x44495647
 FRAME_MAGIC = 0x004D5246
 GVID_VERSION = 1
 FLAG_RATE_CONTROL = 0x01
 FLAG_DENOISE = 0x02
+QUALITY_MAX = 11
 
 
 def positive_float(text: str) -> float:
@@ -44,8 +42,8 @@ def pack_gvid(
         raise ValueError("width and height must be positive")
     if not (0 <= pixel_format <= 5):
         raise ValueError("pixel-format must be in 0..5")
-    if not (0 <= quality <= 8):
-        raise ValueError("quality must be in 0..8")
+    if not (0 <= quality <= QUALITY_MAX):
+        raise ValueError(f"quality must be in 0..{QUALITY_MAX}")
     if fps <= 0.0:
         raise ValueError("fps must be positive")
 
@@ -99,6 +97,8 @@ def write_attached_metadata(
     final_gvid: Path,
     metadata_output: Path | None,
 ) -> Path:
+    from gvid_metadata import validate_against_gvid, validate_metadata
+
     meta = json.loads(metadata.read_text())
     validate_metadata(meta)
     validate_against_gvid(meta, validation_gvid)

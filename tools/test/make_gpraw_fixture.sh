@@ -14,7 +14,7 @@
 #   FRAMES=24   (number of frames to take)
 #   START=mid   (mid|0|N — where to start in the source dir)
 #   FPS=24      (container framerate metadata)
-#   QUALITY=3   (GPR quality preset 0-8)
+#   QUALITY=3   (GPR quality preset 0-11)
 #
 # Outputs:
 #   $2 — the .mov container

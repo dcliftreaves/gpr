@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import struct
 import sys
 from pathlib import Path
 from typing import Any
-
-import numpy as np
-
 
 GVID_MAGIC = 0x44495647
 FRAME_MAGIC = 0x004D5246
@@ -119,6 +117,8 @@ def build_runtime_dispatch(meta: dict[str, Any], gvid: Path) -> dict[str, Any]:
 
 
 def load_crop_xywh(npz_path: Path) -> list[int]:
+    import numpy as np
+
     z = np.load(npz_path, allow_pickle=False)
     if "crop_xywh" not in z:
         raise ValueError(f"{npz_path} does not contain crop_xywh")
@@ -215,7 +215,7 @@ def validate_metadata(meta: dict[str, Any]) -> None:
                 "edge_removed_energy_ratio",
             ):
                 value = float(tile[key])
-                if not np.isfinite(value):
+                if not math.isfinite(value):
                     raise ValueError(f"frame {frame_index} tile {tile.get('crop')} {key} is not finite")
 
 

@@ -18,7 +18,7 @@
  *                             bit 1 = denoise_enabled
  *                             bits 2-7 = reserved (must be 0)
  *          [6..7]   pixel_format (0..5; see fused_encode.h)
- *          [8..9]   quality      (0..8 base preset)
+ *          [8..9]   quality      (0..11 preset)
  *          [10..11] reserved2 (must be 0)
  *          [12..15] width
  *          [16..19] height
@@ -96,6 +96,7 @@ extern "C" {
 
 #define GPR_VIDEO_CLIP_HEADER_SIZE  32
 #define GPR_VIDEO_FRAME_HEADER_SIZE 16
+#define GPR_VIDEO_QUALITY_MAX       11
 
 typedef struct {
     uint32_t magic;

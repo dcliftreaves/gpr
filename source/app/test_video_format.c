@@ -105,6 +105,22 @@ static int test_clip_header_no_rc(void) {
     return 0;
 }
 
+static int test_clip_header_q11(void) {
+    uint8_t buf[GPR_VIDEO_CLIP_HEADER_SIZE];
+    int n = gpr_video_write_clip_header(buf, sizeof(buf), 1920, 1080, 4, 11,
+                                         24.0, 0.0, 0, 24);
+    CHECK(n == GPR_VIDEO_CLIP_HEADER_SIZE, "write q11 size");
+
+    gpr_video_clip_header h;
+    CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == 0, "read q11");
+    CHECK(h.quality == 11, "q11 preserved");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 1920, 1080, 4, 12,
+                                      24.0, 0.0, 0, 24) == -1,
+          "q12 rejected");
+    printf("  PASS  clip header accepts supported q11 and rejects q12\n");
+    return 0;
+}
+
 static int test_frame_header_roundtrip(void) {
     uint8_t buf[GPR_VIDEO_FRAME_HEADER_SIZE];
     int n = gpr_video_write_frame_header(buf, sizeof(buf),
@@ -128,7 +144,7 @@ static int test_bad_inputs(void) {
 
     /* Out-of-range parameters */
     CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, /*pf*/ 9, 3, 24.0, 150.0, 1, 0) == -1, "bad pixel_format rejected");
-    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, /*q*/ 9, 24.0, 150.0, 1, 0) == -1, "bad quality rejected");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, /*q*/ 12, 24.0, 150.0, 1, 0) == -1, "bad quality rejected");
     CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, /*fps*/ 0.0, 150.0, 1, 0) == -1, "bad fps rejected");
 
     /* Wrong magic */
@@ -162,7 +178,7 @@ static int test_bad_clip_header_fields(void) {
     CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "read bad pixel_format rejected");
 
     CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");
-    put_u16_le(buf + 8, 9);
+    put_u16_le(buf + 8, 12);
     CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "read bad quality rejected");
 
     CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");
@@ -264,6 +280,7 @@ int main(void) {
     int failed = 0;
     failed += test_clip_header_roundtrip();
     failed += test_clip_header_no_rc();
+    failed += test_clip_header_q11();
     failed += test_frame_header_roundtrip();
     failed += test_bad_inputs();
     failed += test_bad_clip_header_fields();

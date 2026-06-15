@@ -22,6 +22,7 @@ GVID_CLIP_MAGIC = 0x44495647
 GVID_FRAME_MAGIC = 0x004D5246
 GVID_VERSION = 1
 GVID_FLAG_MASK = 0x03
+GVID_QUALITY_MAX = 11
 CLIP_HEADER_SIZE = 32
 FRAME_HEADER_SIZE = 16
 
@@ -55,7 +56,7 @@ def validate_gvid(path: Path) -> dict[str, Any]:
         raise ValueError(f"unsupported .gvid version {version}")
     if flags & ~GVID_FLAG_MASK:
         raise ValueError("unknown .gvid flag bits set")
-    if pixel_format > 5 or quality > 8:
+    if pixel_format > 5 or quality > GVID_QUALITY_MAX:
         raise ValueError("unsupported .gvid pixel_format or quality")
     if reserved2 != 0:
         raise ValueError("nonzero .gvid reserved2")
