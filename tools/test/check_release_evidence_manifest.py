@@ -20,6 +20,7 @@ MANIFEST = ROOT / "docs/release_evidence_manifest.json"
 REGISTRY = ROOT / "pipelines/registry.json"
 README = ROOT / "README.md"
 DOCS_README = ROOT / "docs/README.md"
+RELEASE_READINESS = ROOT / "docs/RELEASE_READINESS.md"
 PRODUCTION_ARTIFACTS = ROOT / "docs/PRODUCTION_ARTIFACTS.md"
 CI_WORKFLOW = ROOT / ".github/workflows/ci.yml"
 RUNS_DIR = ROOT / "tests/quality_gates/runs"
@@ -116,16 +117,41 @@ ALLOWED_BLOCKERS = {
 }
 
 README_REQUIRED_SECTIONS = (
+    "## Why It Exists",
+    "## Media Paths",
+    "## Visual Quality",
+    "## Raw Targets",
+    "## Review Media",
+    "## Quick Start",
+    "## Docs",
+)
+
+README_REQUIRED_TOKENS = (
+    "open raw Bayer media suite",
+    "docs/img/readme_pipeline_flow.svg",
+    "docs/img/readme_status_matrix.svg",
+    "docs/img/still_three_tiers.png",
+    ".gvid",
+    "MOV / ProRes",
+    "PREVIEW offline/review",
+    "PREVIEW live/camera-back",
+    "2k_raw_0p5x_l2hh",
+    "4k_raw_1x",
+    "8k_raw_2x",
+    "/Volumes/OWC_8TB/gpr_work/artifacts",
+    "docs/RELEASE_READINESS.md",
+)
+
+RELEASE_READINESS_REQUIRED_SECTIONS = (
     "## Production Goal",
     "## Production Definition Of Done",
     "## Readiness Snapshot",
     "## Current Ship Matrix",
     "## Release Evidence",
-    "## PREVIEW Status",
     "## Focused Checks",
 )
 
-README_REQUIRED_TOKENS = (
+RELEASE_READINESS_REQUIRED_TOKENS = (
     "Productionize GPR as a release-quality raw media suite",
     "Every registered production path is passing its committed gate or explicitly",
     "PREVIEW/live decode has a no-REF runtime path",
@@ -229,11 +255,24 @@ def require_readme_contract(tracked: set[str], failures: list[str]) -> None:
         if token not in readme:
             failures.append(f"README.md missing production contract token {token!r}")
 
-    docs_readme_ref = "the active production goal and definition of done"
+    if "docs/RELEASE_READINESS.md" not in tracked:
+        failures.append("docs/RELEASE_READINESS.md must be tracked")
+    elif not RELEASE_READINESS.exists():
+        failures.append("docs/RELEASE_READINESS.md is missing")
+    else:
+        release_readiness = RELEASE_READINESS.read_text(encoding="utf-8")
+        for section in RELEASE_READINESS_REQUIRED_SECTIONS:
+            if section not in release_readiness:
+                failures.append(f"docs/RELEASE_READINESS.md missing section {section!r}")
+        for token in RELEASE_READINESS_REQUIRED_TOKENS:
+            if token not in release_readiness:
+                failures.append(f"docs/RELEASE_READINESS.md missing production contract token {token!r}")
+
+    docs_readme_ref = "Release readiness and production proof"
     if "docs/README.md" not in tracked:
         failures.append("docs/README.md must be tracked")
     elif docs_readme_ref not in DOCS_README.read_text(encoding="utf-8"):
-        failures.append("docs/README.md must link the active production goal and definition of done")
+        failures.append("docs/README.md must link release readiness and production proof")
 
 
 def checkpoint_specs(cnn: dict[str, Any]) -> list[tuple[str, str, str | None]]:
@@ -1101,14 +1140,16 @@ def main() -> int:
     else:
         failures.append(".github/workflows/ci.yml is missing")
 
-    if README.exists():
-        readme_text = README.read_text(encoding="utf-8")
+    if RELEASE_READINESS.exists():
+        release_text = RELEASE_READINESS.read_text(encoding="utf-8")
         for check in release_checks:
             if not isinstance(check, str):
                 failures.append("release_checks entries must be strings")
                 continue
-            if check not in readme_text:
-                failures.append(f"README.md quick checks missing release check {check!r}")
+            if check not in release_text:
+                failures.append(f"docs/RELEASE_READINESS.md quick checks missing release check {check!r}")
+    else:
+        failures.append("docs/RELEASE_READINESS.md is missing")
 
     for guard in manifest.get("guards", []):
         if not isinstance(guard, str) or guard not in tracked:
