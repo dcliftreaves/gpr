@@ -3,7 +3,9 @@
 > **⚠ Evening update (same day):** the morning run's "headline" results
 > were measured against a broken codec path (FUSED multi-level has a
 > ~10 dB visual-quality regression vs single-level). Read
-> `docs/REGRESSION_2026-05-25.md` for the corrected picture.
+> `docs/EXPERIMENT_ARCHIVE_2026-06-04.md` for the corrected archived picture.
+> The older regression writeup referenced by this session log was later
+> consolidated into the experiment archive.
 > Specifically: the +5.6 dB CNN gain (PR #19), the +7.80 dB L1+L2 number
 > (in-flight when this doc was written), and the 22% file-size savings
 > from q=12 are all numbers measured on multi-level. On single-level
@@ -11,8 +13,11 @@
 > The retrained CNN checkpoints were trained on multi-level outputs
 > and won't help (may hurt) on single-level codec output.
 
-Read-this-first artifact. Single doc that ties together everything that
-shipped, what's pending, and what decisions are waiting on you.
+Historical session artifact. Single doc that ties together what was believed
+at the time, what was pending, and what decisions were waiting on review. The
+current production source of truth is `docs/RELEASE_READINESS.md`,
+`docs/SHIP_DECISION.md`, `docs/VIDEO_STATUS.md`, and
+`docs/LABS_TARGET_BENCH.md`.
 
 Length budget: 5 minutes to read. Pointer-only — every claim links to
 the underlying artifact.
@@ -23,8 +28,9 @@ the underlying artifact.
 0 broken CI on master. Codec quality at q≥6 fixed on both content
 classes (highlights + dark). CNN-aware quant methodology proven with
 +5.6 dB CNN gain unlock on the retrained checkpoint. Full bitstream
-spec written (5707 words). Pi 5 storage budget cleared — any consumer
-microSD now handles 24 fps × 50 MP capture.
+spec written (5707 words). The Pi 5 storage-budget claim is historical:
+current `master` treats the strict 19.98 fps Pi receipt as Labs proxy evidence
+and still requires a Mission 1 24 fps hardware receipt.
 
 ## Where to start reading (in priority order)
 
@@ -132,16 +138,11 @@ return. Logarithmic polling continues in background.
 🔄 #166       q=12 candidate — data collected, awaits validation
 ```
 
-## Memory updated this session
+## Historical local-memory notes
 
-- `memory/project_strategic_framing.md` — pre-release contribution
-  framing locked in (Apple Silicon-first, OEM-implementable spec is the goal)
-- `memory/feedback_logarithmic_polling.md` — poll long-running
-  processes via SSH+tail/ps/gh on 30s/1m/2m/4m/8m/16m/30m schedule;
-  NEVER read the JSONL transcript
-- `memory/feedback_honest_capture_bench.md` — updated with Pi 5
-  multi-level + decimate=2 storage budget (the old "needs UHS-II V90"
-  caveat is obsolete)
+This session originally updated local memory files outside the repo. Those
+files are not required to interpret current `master`; use the release,
+ship-decision, video-status, and Labs target docs named above.
 
 ## Code state
 

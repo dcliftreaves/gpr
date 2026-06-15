@@ -1,6 +1,6 @@
 # Labs Artifact Bundle
 
-Last refreshed: 2026-06-14
+Last refreshed: 2026-06-15
 
 This defines the portable review bundle for a Labs prototype intake. Large media
 must stay outside git; the repo should carry the manifest, scripts, hashes, and

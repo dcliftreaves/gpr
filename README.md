@@ -181,7 +181,7 @@ python3 tests/quality_gates/audit_production_readiness.py --strict
 
 ## License
 
-Dual licensed under Apache-2.0 or MIT. See [`LICENSE`](LICENSE).
+Dual licensed under Apache-2.0 or MIT. See [`LICENSE.txt`](LICENSE.txt).
 
 ## Trademarks
 

@@ -36,13 +36,20 @@ video is packed into `.gvid` after capture.
 ./build/source/app/bench_fused/bench_fused /tmp/Z8_50mp.raw 8280 5520 100
 ```
 
-Pi 5 sustained rate is **storage-bound**, not compute-bound. Stock SD slot caps at ~7 fps for 50 MP frames. To hit 24 fps sustained:
+Current Labs evidence uses the Pi 5 as a conservative target proxy, not as the
+final camera. The strict 10 minute proxy receipt validates 14,400 frames,
+0 drops, a valid `.gvid`, and interrupted-tail recovery at **19.98 fps**
+median. That is enough for Labs handoff review, while the actual Mission 1
+hardware receipt still needs to prove 24 fps on the sensor/storage path.
 
-- **UHS-II V90 SD card** (~$30-50) — 100-200 MB/s sustained, sufficient
-- **USB 3.0 external SSD** (~$50-100) — 400+ MB/s, comfortable headroom
-- **NVMe via PCIe HAT** (~$30 HAT + $50 SSD) — 500-800 MB/s
+For the historical full-res Pi planning case, storage was the limiter. For the
+current half-res `.gvid` path the active budget is about **1.30 MB/frame**,
+or **31 MB/s at 24 fps**, so USB SSD or NVMe has comfortable headroom. Fast
+microSD can be used only after measuring sustained writes on the actual card.
 
-See `docs/PI_HARDWARE.md` for measured numbers and full hierarchy.
+See `docs/LABS_TARGET_BENCH.md`, `docs/VIDEO_STATUS.md`, and
+`docs/PI_HARDWARE.md` for the current receipt and the historical storage
+background.
 
 ## Step 2: Pack into the `.gvid` container
 

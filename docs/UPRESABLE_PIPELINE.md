@@ -2,8 +2,10 @@
 
 ## What this is
 
-The GPR ship architecture delivers **24 fps × 50 MP editable raw video** by
-splitting the work across two devices:
+The GPR ship architecture targets **24 fps × 50 MP editable raw video** by
+splitting the work across two devices. The current Pi 5 receipt is acceptable
+as a conservative Labs proxy at 19.98 fps median with 0 drops and valid
+`.gvid`; actual Mission 1 hardware still needs a 24 fps target receipt.
 
 ```
    Pi 5 (camera-side)              Mac M3 (desktop-side)
@@ -28,7 +30,7 @@ The terminology that maps to the registry:
 |-----------|-------|-----------|----------|
 | STILL     | gpr_tools q=0/3/8 | full-res | Archival photo capture (~1 fps Pi) |
 | FREEZE    | ml2_q3 (no decimate) | full-res | High-quality freeze-frame (~6 fps Pi, 30+ fps Mac) |
-| **UPRESABLE** | ml2_q3_dec2 | half-res capture | **24 fps video capture; desktop upres to full-res FREEZE-equivalent** |
+| **UPRESABLE** | ml2_q3_dec2 | half-res capture | **target 24 fps video capture; desktop upres to full-res editable raw** |
 | PREVIEW   | ml2_q3_dec2 | half-res, RGB rendering | Display-only (camera back, scrub) — same codec as UPRESABLE |
 
 PREVIEW and UPRESABLE use the **same captured `.gpr` files**. The distinction is
@@ -39,15 +41,17 @@ what the desktop does with them:
 
 ## Pipeline stages
 
-### Capture (Pi 5, target real-time, currently blocked)
+### Capture (Pi 5 proxy, camera target pending)
 
 1. Sensor delivers 14-bit Bayer at 50 MP (8280 × 5520)
 2. `ml2_q3_dec2` codec internally decimates 2×2 → encodes 4140 × 2760 at q=3
 3. Output: `.gpr` file, ~1.0–3.4 MB/frame depending on content
 4. Historical Pi 5 receipt reached 24.93 fps median
-   (`docs/pi5_bench_2026-05-26.md`); latest strict 14,400-frame Labs receipt
-   at commit `0dd6660` reaches 19.98 fps median and blocks current production
-   promotion until the regression is fixed or narrowed.
+   (`docs/pi5_bench_2026-05-26.md`); latest strict 14,400-frame Labs proxy
+   receipt at commit `0dd6660` reaches 19.98 fps median with 0 drops, valid
+   `.gvid`, and interrupted-tail recovery. That is proxy-acceptable for Labs
+   review; production camera readiness still requires the Mission 1 24 fps
+   hardware receipt.
 
 ### Upres + re-encode (Mac M3, offline post)
 

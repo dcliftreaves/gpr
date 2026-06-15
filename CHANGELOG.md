@@ -75,9 +75,9 @@ half-res capture path at 19.98 fps median versus the 24 fps target. The older
 
 ### Performance
 
-- Pi 5 storage-bound capture analysis: NEON-tuned encoder hot paths
-  hit 25.9 fps × 50 MP in-memory; sustained capture is now
-  storage-bound on USB-SSD (see `docs/VIDEO_STATUS.md`).
+- Pi 5 capture analysis: NEON-tuned historical full-res hot paths
+  hit 25.9 fps × 50 MP in-memory, while the current `.gvid` Labs path is
+  tracked by `docs/LABS_TARGET_BENCH.md` and `docs/VIDEO_STATUS.md`.
 - **GPRaw is the UPRESABLE primary deliverable** — wraps the full-res
   `.gpr` sequence in a MOV container with codec_tag `GPR1` (`gpr_mov_tool
   pack`, amortized 8 ms/frame). Per-frame DNG wrap is opt-in via
@@ -103,10 +103,8 @@ half-res capture path at 19.98 fps median versus the 24 fps target. The older
   the FUSED multi-level cascade bug is fixed.
 - `tools/test/reproduce_regression.sh` — self-contained shell repro of
   the multi-level regression.
-- `docs/REGRESSION_2026-05-25.md` — read-this-first artifact documenting
-  the multi-level regression, root cause, and corrected file-size numbers.
-- `docs/SESSION_SUMMARY_2026-05-25_evening.md` — comprehensive session
-  summary.
+- Historical regression and session-summary artifacts were later consolidated
+  into `docs/EXPERIMENT_ARCHIVE_2026-06-04.md` plus current Labs target docs.
 - `FUSED_INVERSE_DESCALE` env var in `fused_decode.c` — per-level descale
   override for cascade debugging.
 - `FUSED_L2_L3_PRESCALE` env var in `fused_encode.c` —
@@ -298,10 +296,10 @@ wavelet, 24 fps target.
   295 MB/s.
 - **Sustained encode rate, dual encoder ping-pong, encoder-bound**:
   41.64 fps, 413 MB/s. **+40% over single encoder.**
-- **Sustained pipeline, 24 fps target × UHS-II V90 (200 MB/s simulated
-  storage with periodic GC stalls)**: 23.94-23.95 fps on both clean
-  ISO 64 and noisy ISO 22800 content. 0 dropped frames across a
-  400-frame stress test.
+- **Historical sustained pipeline simulation, 24 fps target with 200 MB/s
+  simulated storage and periodic GC stalls**: 23.94-23.95 fps on both clean
+  ISO 64 and noisy ISO 22800 content. 0 dropped frames across a 400-frame
+  stress test. Current `.gvid` readiness uses `docs/LABS_TARGET_BENCH.md`.
 - **File sizes (2-level wavelet, q=3, no rate control)**: 13.0 MB
   on Z8 ISO 64; 29.9 MB on Z8 ISO 22800. With rate control at 150 MB/s
   target, both stabilize to roughly 6.2 MB/frame.

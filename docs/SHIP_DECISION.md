@@ -58,19 +58,23 @@ CNN checkpoint.
 At 24 fps the VIDEO_FREEZE primary writes **187 MB/s** — fine for desktop
 post-processing, NOT for Pi 5 capture (Pi caps ~7 fps at full-res). The
 half-res Pi-capture path historically captured at 24.93 fps median; the latest
-strict Labs target receipt at commit `0dd6660` reaches 19.98 fps median and is
-now the production blocker for embedded capture. The **UPRESABLE class below**
-remains the intended production answer once the Pi capture regression is fixed
+strict Labs Pi proxy receipt at commit `0dd6660` reaches 19.98 fps median with
+0 drops, valid `.gvid`, and interrupted-tail recovery. Treat that as
+proxy-acceptable evidence for Labs review, while actual Mission 1 firmware
+readiness still needs a 24 fps target-hardware receipt. The **UPRESABLE class
+below** remains the intended production answer for the raw-video workflow
 (BIBO_2x super-res to full-res editable raw DNG/.gpr — workflow-native metric
 is Bayer PSNR vs source DNG, not rendered LPIPS).
 
 ## TL;DR — UPRESABLE (Pi-capture half-res → editable full-res raw)
 
-Added 2026-05-30 as the intended production Pi-capture path. Historical
-half-res `ml2_q3_dec2` on Pi 5 reached 24.93 fps sustained; the current strict
-Labs receipt is blocked at 19.98 fps median. Once restored, the flow is Pi
-half-res capture → desktop M3 BIBO_2x super-res CNN → editable full-res raw DNG
-(91 MB) + compressed .gpr (2–8 MB) the user opens in their NLE / raw editor.
+Added 2026-05-30 as the intended half-res capture → full-res editable raw path.
+Historical half-res `ml2_q3_dec2` on Pi 5 reached 24.93 fps sustained; the
+current strict Labs Pi proxy receipt is 19.98 fps median with 0 drops and valid
+`.gvid`. The flow is Pi/camera half-res capture → desktop M3 BIBO_2x super-res
+CNN → editable full-res raw DNG (91 MB) + compressed .gpr (2–8 MB) the user
+opens in their NLE / raw editor. Mission 1 still needs its target 24 fps
+hardware receipt before firmware readiness is claimed.
 
 | ship | pipeline | bayer_psnr_final (worst, Z8Z_6693) | verdict |
 |---|---|---:|---|
@@ -185,9 +189,11 @@ so historical run logs still resolve.
 - **`ml2_q3_dec2+bibo2x_ane_ml2_q3_dec2_diverse`** — Pi 5 captures at
   half-res (12.5 MP equivalent) via decimation, desktop applies a 2×
   super-res CNN to restore full resolution. The latest strict 14,400-frame
-  Labs target receipt at commit `0dd6660` is blocked at **19.98 fps median**.
-  The older **24.93 fps median** May 26 result is historical and currently not
-  reproduced by the cleaned Labs build or historical-doc commit probes.
+  Labs Pi proxy receipt at commit `0dd6660` is **19.98 fps median** with
+  0 drops and valid `.gvid`. The older **24.93 fps median** May 26 result is
+  historical and currently not reproduced by the cleaned Labs build or
+  historical-doc commit probes. Actual Mission 1 still needs a 24 fps
+  target-hardware receipt.
 - The barnsky-only retrain failed on out-of-distribution content. The
   production UPRESABLE path now uses the diverse BIBO_2x checkpoint and is
   gated as editable raw by Bayer PSNR, not finished-render LPIPS.
@@ -237,15 +243,17 @@ in TL;DR table differ.)
 ## Storage on Pi 5
 
 The historical embedded-capture pipeline wrote 1.30 MB / frame at 24.93 fps =
-~31 MB/s sustained. The latest strict Labs target receipt writes all frames
-with 0 drops and valid `.gvid`, but only reaches 19.98 fps median; treat
-embedded capture as blocked until the current build/config restores >= 24 fps.
+~31 MB/s sustained. The latest strict Labs Pi proxy receipt writes all frames
+with 0 drops, valid `.gvid`, and interrupted-tail recovery at 19.98 fps median.
+This is proxy-acceptable for Labs handoff review, but not a substitute for the
+actual Mission 1 24 fps hardware receipt.
 
 The full-res VIDEO_FREEZE primary writes 7.81 MB / frame = 187 MB/s at
 24 fps target. **Pi 5 cannot encode this in real time** — best legacy
 gpr_tools q=3 throughput is 1.84 fps single-frame (post 2026-05-28 perf
 work). Full-res video is a desktop/post-process flow; embedded capture
-intends to use `ml2_q3_dec2`, but the current strict target receipt is blocked.
+intends to use `ml2_q3_dec2`, with the current Pi receipt treated as proxy
+evidence and the camera receipt still pending.
 
 
 ## Embedded video path — architectural limit found 2026-05-26
@@ -283,9 +291,10 @@ the PNG-level bicubic baseline used by the `cnn=none` path.
   matched CNN for in-distribution content. Requires a content
   detector.
 
-Codec-side: the historical Pi 5 half-res receipt captured correctly at
-24.93 fps median, 1.3 MB/frame with `ml2_q3_dec2`. The latest strict receipt
-now makes the current codec/config path the blocker to investigate.
+Codec-side: the historical Pi 5 half-res receipt captured at 24.93 fps median,
+1.3 MB/frame with `ml2_q3_dec2`. The latest strict Pi proxy receipt is
+19.98 fps median with 0 drops and valid `.gvid`; the remaining proof point is
+actual Mission 1 24 fps target capture.
 
 ## CNN-aware compression revival — findings (2026-05-27)
 

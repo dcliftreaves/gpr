@@ -171,16 +171,19 @@ shipped on by default.
 
 ## Performance
 
-See [`docs/operating-envelope.md`](operating-envelope.md) for measured
+See [`docs/operating-envelope.md`](operating-envelope.md) for historical
 encoder time, fps, file sizes, PSNR, rate-controller convergence, and
-storage-class fit. Headline numbers on an M1, Z8 45 MP, q=3, 2-level:
+storage-class fit. Current production readiness lives in
+`docs/RELEASE_READINESS.md`, `docs/VIDEO_STATUS.md`, and
+`docs/LABS_TARGET_BENCH.md`. Historical headline numbers on an M1, Z8 45 MP,
+q=3, 2-level:
 
 - ~22 ms per frame in the fused encoder (single context).
 - 29.8 fps sustained encoder-bound throughput on a single context, 41.6
   fps on dual encoder (+40%).
-- 24 fps × 45 MP sustained on UHS-II V90 microSD across both clean and
-  noisy content with the rate controller at target=150 MB/s. 0 dropped
-  frames in 400-frame stress runs.
+- Historical storage simulation sustained 24 fps × 45 MP across both clean and
+  noisy content with the rate controller at target=150 MB/s. Current `.gvid`
+  and Mission 1 readiness must use the Labs target receipts.
 - A78 estimate ~17 fps with dual-encoder mode. The 50 MP × 24 fps × A78
   envelope is not yet closed; see follow-ups.
 

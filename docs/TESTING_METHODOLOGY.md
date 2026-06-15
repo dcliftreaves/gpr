@@ -45,9 +45,10 @@ breaches.
 **What it measures**: real-time encode rate on the Pi 5 capture device,
 sustained throughput including disk writes and page-cache exhaustion.
 
-**Current data**: `docs/STILLS_PI5_TIMING.md` (q=0..8 single-thread
-timings). `docs/pi5_bench_2026-05-26.md` (sustained 24.93 fps for the
-embedded video path).
+**Current data**: `docs/STILLS_PI5_TIMING.md` (q=0..8 single-frame stills
+timings), `docs/LABS_TARGET_BENCH.md` (current Pi proxy receipts and target
+schema), and `docs/pi5_bench_2026-05-26.md` (historical 24.93 fps half-res
+receipt, no longer the current production claim).
 
 **Runs in**: manual, on the Pi 5. Should become a CI cell once we have
 a Pi 5 runner.

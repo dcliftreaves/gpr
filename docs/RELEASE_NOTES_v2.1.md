@@ -7,7 +7,10 @@ A draft of release notes for when the `feature/neon-assembly` PR (#4) merges.
 - **`gpr2prores`** — new ObjC playback tool: GPR → CNN super-res / clean → demosaic → ProRes 422 HQ. Ships two CNN modes (2× super-res, 1× clean) and three demosaic backends (Metal bilinear, CIRAWFilter, Core Image).
 - **GPRaw container** — single-file MOV wrapper for GPR sequences with the `GPR1` codec_tag, plus optional embedded audio, SMPTE timecode track, and per-frame EXIF. 0.005% size overhead.
 - **FFmpeg patch** — adds `AV_CODEC_ID_GPR` to libavcodec so any FFmpeg-aware tool can decode `.gpraw` natively. Measured 182 fps decode on M3 Max.
-- **Pi 5 encoder optimizations** — NEON-tuned hot paths. Kernel hits 25.9 fps × 50 MP in-memory; sustained capture is now storage-bound (see Pi hardware notes).
+- **Pi 5 encoder optimizations** — NEON-tuned hot paths. Historical full-res
+  planning bench hit 25.9 fps × 50 MP in-memory; sustained full-res capture on
+  the tested storage setup was storage-bound (see Pi hardware notes). Current
+  `.gvid`/Labs target receipts are tracked in `docs/LABS_TARGET_BENCH.md`.
 
 ## Real-time performance (M3 Max playback)
 
@@ -27,7 +30,10 @@ ProRes 422 HQ encoder is hardware-accelerated via VTCompressionSession. All stag
 | Sensor → SD card burst (≤4 sec) | 21.3 | absorbed by page cache |
 | Sensor → SD card sustained | 6.88 | **bottlenecked by SD card 33 MB/s write** |
 
-For sustained 24 fps × 50 MP capture on Pi 5: needs UHS-II V90 SD card or USB 3.0 SSD or NVMe HAT (see `docs/PI_HARDWARE.md`).
+For this historical full-res planning case, sustained 24 fps × 50 MP capture
+needed a measured storage path above 84 MB/s, such as USB SSD or NVMe. Current
+half-res `.gvid`/Labs receipts use the target bench docs instead of this draft
+release-note budget.
 
 ## New tools and files
 

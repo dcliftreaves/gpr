@@ -1,6 +1,10 @@
 # GPR Raw Video Encoder — Operating Envelope
 
 **Date:** 2026-05-12 (M1 dev platform measurements). **Updated** after the 3-level wavelet was removed entirely.
+**Current status:** historical operating-envelope note. Current production
+readiness and target receipts live in `docs/RELEASE_READINESS.md`,
+`docs/VIDEO_STATUS.md`, `docs/LABS_TARGET_BENCH.md`, and
+`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`.
 **Codec state:** feature/raw-video, **2-level wavelet default** (`FUSED_WAVELET_LEVELS=2`, 1-level still available via flag), rate control + LL emission, opt-in dual-encoder mode via `gpr_video_encoder_create_dual()`.
 
 ## Multi-level wavelet impact (Z8 45 MP, q=3, no rate control)
@@ -21,7 +25,10 @@ Encoder-bound regime (unlimited bandwidth, no GC, target_fps=120 to saturate):
 | `encoder_count=1` | 29.76 fps | 295 MB/s |
 | **`encoder_count=2`** | **41.64 fps (+40%)** | **413 MB/s** |
 
-Storage-throttled regime (24 fps target × UHS-II V90 simulation): both modes hit 23.94-23.95 fps sustained — bottleneck is writer, not encoder. The +40% win on M1 buys headroom for thermal throttling and worst-case noisy content. On A78 (no shared E-cluster contention), the win should be at least as good.
+Storage-throttled regime in this historical simulation: both modes hit
+23.94-23.95 fps sustained — bottleneck was writer, not encoder. The +40% win
+on M1 bought headroom for thermal throttling and worst-case noisy content.
+Do not use this old simulation as the current Labs production claim.
 
 Memory cost: 2× input slots + 2× output ring + 2× per-encoder band buffers. ~410 MB single → ~820 MB dual at 45 MP/ring_depth=3.
 
@@ -91,10 +98,12 @@ Memory cost: 2× input slots + 2× output ring + 2× per-encoder band buffers. ~
 | UHS-I V30 | 80 MB/s | ✓ (target 80) | ✗ (floor 100) |
 | UHS-I V60 | 100 MB/s | ✓ (target 100) | borderline (floor 100) |
 | UHS-I V90 | 150 MB/s | ✓ (target 100-150) | ✓ (target 150) |
-| **UHS-II V90** | **200 MB/s** | ✓ (target 150-200) | ✓ (target 150-200) |
+| Historical 200 MB/s class | 200 MB/s | ✓ (target 150-200) | ✓ (target 150-200) |
 | CFexpress A | 700 MB/s | ✓ (any target) | ✓ (any target) |
 
-**Recommended deployment: UHS-II V90 microSD with target=150 MB/s.** Handles any ISO content at 24 fps × 45 MP with 30% storage headroom.
+Historical recommendation: use storage that sustains the target write budget
+with margin. Current Labs docs prefer measured USB SSD/NVMe receipts, and the
+actual camera path must supply its own storage proof.
 
 ## What's still cold on M1 (2-level wavelet)
 
@@ -102,7 +111,7 @@ Memory cost: 2× input slots + 2× output ring + 2× per-encoder band buffers. ~
 |---|---|---|---|
 | 45 MP single-encoder (encoder-bound ceiling) | ~30 fps | ~12 fps | doesn't fit at 50 MP |
 | 45 MP dual-encoder (encoder-bound ceiling) | ~42 fps | ~17 fps | fits 45 MP, tight at 50 MP |
-| 45 MP × 24 fps × UHS-II V90 (rate-controlled) | 23.95 fps | ✓ regardless of encoder_count | ✓ |
+| 45 MP × 24 fps × 200 MB/s simulated storage (rate-controlled) | 23.95 fps | ✓ regardless of encoder_count | ✓ |
 
 A78 compute headroom is still the gating factor for 24 fps × 50 MP. Remaining queued optimization for real-A78 measurement:
 1. ARM64 hand-asm unpack (`FUSED_UNPACK_ASM=1`, 1% on M1, expected 10-20% on A78)
@@ -114,7 +123,8 @@ diagnostic, so the build default should remain OFF.
 
 ## Verified guarantees today
 
-- 24 fps × 45 MP × any ISO on UHS-II V90 microSD: **sustained** (24.0+ fps, 400-frame stress test)
+- Historical storage simulation sustained 24 fps × 45 MP on the May 12 test
+  setup; current `.gvid`/Mission 1 readiness uses the Labs target receipts.
 - Encode → decode → reconstruct PSNR: **≥ 46 dB on real photo content at q=3**
 - Output is byte-stable across runs (deterministic)
 - Container format is self-describing (`gpr_video_format.h`)

@@ -5,7 +5,8 @@
 > a ~10 dB visual-quality regression vs single-level. Bayer-PSNR
 > reported here is technically correct for the bayer channel but the
 > visual quality it implied was not real. See
-> `docs/REGRESSION_2026-05-25.md`.
+> `docs/EXPERIMENT_ARCHIVE_2026-06-04.md`. The older regression writeup
+> referenced by this historical note was later consolidated into the archive.
 
 Empirical measurement for task #158 (CNN-aware per-subband quant
 calibration, AccelIR style). Two complementary sweeps:

@@ -1,9 +1,8 @@
 # 2026-05-25 — exploration progress
 
-End-of-day roll-up for the autonomous exploration session. **All technical
-work was done in service of the project framing in
-`memory/project_strategic_framing.md`**: pre-release contribution to
-GoPro's open-source codec, Apple Silicon-first, and OEM-implementable.
+Historical end-of-day roll-up for the autonomous exploration session. Current
+release truth lives in `docs/RELEASE_READINESS.md`, `docs/SHIP_DECISION.md`,
+`docs/VIDEO_STATUS.md`, and `docs/LABS_TARGET_BENCH.md`.
 
 ## Shipped (master, this session)
 
@@ -58,10 +57,11 @@ The 4-deep pipeline hides multi-level's slightly slower decode.
 
 ### Pi 5 capture re-validation (PR-less, doc-only verification)
 
-Multi-level + decimate=2 at 24 fps × 50 MP requires only **6.8 MB/s**
-sustained write bandwidth. USB 3 SSD: 47× headroom. **microSD UHS-I:
-9.7× headroom**. The "needs UHS-II V90 or USB SSD" deployment caveat
-is obsolete. Any consumer-class storage handles this.
+Historical note: at this point the multi-level + decimate=2 storage budget
+looked like the limiting concern. Current `master` uses the stricter Labs
+target receipts instead: the Pi proxy path is 19.98 fps median with 0 drops
+and valid `.gvid`, while Mission 1 still needs a 24 fps camera-hardware
+receipt.
 
 ### CNN-aware quant calibration (the AccelIR-style result)
 
@@ -117,14 +117,11 @@ q-preset PSNR is now monotone-improving on both highlights-heavy and
 dark content. Filed task #166 for q=12 candidate using the L1+L2
 stack-crank data above.
 
-## Strategic context (memory)
+## Strategic context (historical)
 
-- **`memory/project_strategic_framing.md`** captures the pre-release
-  contribution-to-GoPro framing. All decisions during the session
-  used this as the prioritization axis.
-- **`memory/feedback_logarithmic_polling.md`** — learned the hard way
-  that subagents have to be polled on a 30s/1m/2m/4m/8m/16m/30m
-  schedule via SSH+tail/ps/gh, NOT by reading the JSONL transcript.
+- The session originally referenced local memory files outside this repo.
+  Those files are not carried here; use the current docs named at the top of
+  this file for project framing.
 - **`docs/ENV_VAR_CLEANUP.md`** (in repo) — durable map of every
   `GPR_*`/`FUSED_*` env var with proposed disposition for the
   eventual spec contribution. Most env vars are still load-bearing for

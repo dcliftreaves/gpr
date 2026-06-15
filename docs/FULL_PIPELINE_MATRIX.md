@@ -1,4 +1,4 @@
-# Full GPR pipeline matrix — refreshed 2026-06-14
+# Full GPR pipeline matrix — refreshed 2026-06-15
 
 All entries from `pipelines/registry.json` × `tests/quality_gates/runs/`.
 Sorted within each mode by mean MB (smaller first).
@@ -84,7 +84,7 @@ Per-q numbers; multi-DNG verification in `STILLS_PI5_TIMING.md`.
 
 | pipeline | sustained fps | per-frame MB | per-second MB | restoration |
 |---|---:|---:|---:|---|
-| `ml2_q3_dec2` (half-res capture) | 19.98 latest strict receipt; 24.93 historical | 1.30 | 26 latest; 31 historical | q8 three-way no-REF PREVIEW passes offline/review holdout; 0.073 fps, not live; current Pi target path is blocked until >=24 fps is restored |
+| `ml2_q3_dec2` (half-res capture) | 19.98 latest strict Pi proxy; 24.93 historical | 1.30 | 26 latest; 31 historical | q8 three-way no-REF PREVIEW passes offline/review holdout; 0.073 fps, not live; Pi evidence is proxy-acceptable, and actual Mission 1 still needs a 24 fps hardware receipt |
 | `ml2_q3_l1x2` (full-res via ml2) | 0.51 (Pi 5 too slow) | 7.81 | 187 | desktop ship (Mac decoder + matched CNN) |
 
 ## Raw output targets from `ml2_q3_dec2`

@@ -1,4 +1,4 @@
-# Video pipeline status — refreshed 2026-06-14
+# Video pipeline status — refreshed 2026-06-15
 
 ## Your design intent (restated)
 
@@ -56,6 +56,10 @@ route is the fast live/camera-back path. The current q8 three-way CNN route
 closes the no-REF full-frame PREVIEW quality gap for offline/review output, but
 it is much too slow for live preview. Live/camera-back quality beyond
 codec-only remains a separate future strategy.
+
+Treat the current commit/path as blocked for direct firmware readiness until
+the actual Mission 1 hardware receipt proves 24 fps. The Pi result is
+proxy-acceptable only.
 
 The live/camera-back blocker is now bounded to exact outer-edge display
 quality, not raw-target timing. The committed codec-only PREVIEW gate run

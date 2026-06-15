@@ -52,18 +52,18 @@ m.eval()
 
 ## Pairing with the codec
 
-The CNN is calibrated against a SPECIFIC codec configuration. The
-shipped checkpoint was trained on:
+The CNN is calibrated against a SPECIFIC codec configuration. Current shipped
+pairings are:
 
-- FUSED encoder, single-level mode (`FUSED_MULTI_LEVEL=0`)
-- q=3 default quantization
-- Full-res output (no `GPR_COL/ROW_DECIMATE`)
+- legacy stills `gpr_tools_q0/q3` -> `bibo1x_ane_gpr_tools_q3`
+- video-freeze `ml2_q3` and approved cranked ML2 variants ->
+  `bibo1x_ane_ml2_q3`
+- UPRESABLE half-res `ml2_q3_dec2` ->
+  `bibo2x_ane_ml2_q3_dec2_diverse`
 
-It also gives positive gain on cranked-quant outputs (q=11 single-level)
-because the cranked content is still in-distribution. If you ship a
-materially different codec configuration (e.g. multi-level once it's
-fixed, or a new quality preset), you'll want to retrain — see
-`train.py` and `requirements.txt`.
+Do not swap checkpoints across codec families just because dimensions match.
+If a materially different codec configuration or raw target ships, retrain or
+validate the pairing through the relevant quality gate and registry entry.
 
 ## Retraining
 
@@ -84,7 +84,8 @@ tiles at 128×128. The original dataset-building scripts live in
 
 ## Status
 
-- Architecture and training script: **in the repo as of 2026-05-25 evening**.
+- Architecture and training scripts: **in the repo; current production
+  checkpoint hashes live in `pipelines/registry.json`**.
 - Production checkpoints: **off-main artifacts** with registry hashes.
 - Cranked-quant checkpoints (`BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt`,
   `BayInBayOut_1x_AAon_w16_ANE_L1L2x4.pt`): **NOT migrated** because they
@@ -95,5 +96,7 @@ tiles at 128×128. The original dataset-building scripts live in
 
 - `docs/methodology_cnn_aware_quant.md` — AccelIR-style co-design rationale
 - `docs/PRODUCTION_ARTIFACTS.md` — install and verify off-main checkpoints
-- `docs/REGRESSION_2026-05-25.md` — multi-level regression context (relevant
-  for understanding which retrained CNNs are valid)
+- `docs/EXPERIMENT_ARCHIVE_2026-06-04.md` — archived experiment/regression
+  context for understanding which retrained CNNs are valid
+- `docs/VIDEO_STATUS.md` and `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` —
+  current video/PREVIEW target status

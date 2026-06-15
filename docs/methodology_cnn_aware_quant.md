@@ -11,7 +11,10 @@
 > artifact distribution and is not directly applicable to the single-
 > level codec path that should ship until task #172 is closed.
 >
-> Read `docs/REGRESSION_2026-05-25.md` first.
+> Read `docs/EXPERIMENT_ARCHIVE_2026-06-04.md` and
+> `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` for the current archived
+> context. The older regression writeup referenced by this historical note was
+> later consolidated into the archive.
 
 David Clift-Reaves — 2026-05-25
 Branch: `docs/methodology-cnn-aware-quant`

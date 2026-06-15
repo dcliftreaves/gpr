@@ -100,9 +100,10 @@ Multi-DNG verification (best-of-3 wall clock at q=3, all `cmp=OK`):
   `input_skip_rows == 0` (the default).
 - On M3 Max the same fix lands 40-44% end-to-end (q=3: 819→464 ms).
 - Pi 5 is still NOT realistic for 24 fps full-res capture with legacy
-  gpr_tools (best single-frame fps ≈ 1.04 at q=3). The intended 24 fps
-  embedded capture path is half-res FUSED (`ml2_q3_dec2`), but the latest
-  strict Labs target receipt is blocked at 19.98 fps median; 24.93 fps is a
-  historical May 26 result that is not currently reproduced.
+  gpr_tools (best single-frame fps ≈ 1.04 at q=3). The intended embedded
+  capture path is half-res FUSED (`ml2_q3_dec2`). The latest strict Labs Pi
+  proxy receipt is 19.98 fps median with 0 drops and valid `.gvid`; 24.93 fps
+  is a historical May 26 result that is not currently reproduced. Actual
+  Mission 1 firmware readiness still requires a 24 fps target-hardware receipt.
 
 Recorded 2026-05-28 by Claude during the legacy stills retrain track work.

@@ -2,13 +2,19 @@
 
 Historical note: this page records the older full-res/LL-only storage planning
 bench. The current half-res `.gvid` capture path is tracked in
-`VIDEO_STATUS.md` and `RAW_RESOLUTION_TARGETS_2026-06-14.md`, where the active
-budget is 1.30 MB/frame and about 31 MB/s at 24 fps. Keep this page as storage
+`VIDEO_STATUS.md`, `LABS_TARGET_BENCH.md`, and
+`RAW_RESOLUTION_TARGETS_2026-06-14.md`, where the active budget is
+1.30 MB/frame and about 31 MB/s at 24 fps. Keep this page as storage
 background, not as the current `.gvid` ship budget.
 
 ## TL;DR
 
-The encoder kernel hits 25.9 fps in-memory on Pi 5 (Cortex-A76, LL-only-fast mode). Sustained sensor → SD card capture is **storage-bound at ~7 fps** on the stock SD slot. To hit 24 fps sustained at 50 MP × 3.5 MB/frame compressed, you need a storage path that sustains **≥84 MB/s**.
+For this historical full-res planning case, the encoder kernel hit 25.9 fps
+in-memory on Pi 5 (Cortex-A76, LL-only-fast mode), while sustained writes to
+the tested stock SD setup reached only about 7 fps. To sustain 24 fps at
+50 MP × 3.5 MB/frame compressed, a measured storage path of **>=84 MB/s** is
+required. The current half-res `.gvid` Labs path has a lower storage budget;
+its active blocker/evidence is tracked in the Labs target docs.
 
 ## Measured numbers (Pi 5, 8 GB)
 
@@ -25,7 +31,7 @@ The encoder kernel hits 25.9 fps in-memory on Pi 5 (Cortex-A76, LL-only-fast mod
 | Path | Sustained write | Cost | Setup | Notes |
 |---|---|---|---|---|
 | **Stock SD slot, generic V30 card** | 25-40 MB/s | $10-20 | drop-in | what's there today; **insufficient** |
-| **UHS-II V90 SD card** | 100-200 MB/s | $30-50 | drop-in (Pi 5 SD slot supports UHS-II) | meets the bar |
+| **Fast measured microSD** | card-dependent | $20-80 | drop-in | acceptable only if the exact card sustains the required write rate |
 | **USB 3.0 external SSD** | 400-500 MB/s | $50-100 | USB-A | comfortable headroom |
 | **PCIe HAT + NVMe SSD** | 500-800 MB/s | $30 HAT + $50 SSD | HAT install | best, future-proof |
 | **Gigabit Ethernet → NFS** | 100-115 MB/s | $0 (existing LAN) | NFS mount | tethered only; meets the bar with margin |
@@ -33,7 +39,7 @@ The encoder kernel hits 25.9 fps in-memory on Pi 5 (Cortex-A76, LL-only-fast mod
 
 ## Recommendation by workflow
 
-- **Pocket camera (untethered)** → UHS-II SD or USB 3.0 SSD
+- **Pocket camera (untethered)** → measured-fast microSD, USB 3.0 SSD, or NVMe
 - **Studio rig (tethered to workstation)** → Gigabit Ethernet + NFS, or USB SSD
 - **Maximum throughput rig** → PCIe HAT + NVMe
 
