@@ -357,31 +357,49 @@ receipts:
 
 ## Current Blocker
 
-The latest strict Pi 5 stand-in target receipt proves `.gvid` validity,
-zero dropped frames, and interrupted-tail recovery, but it misses the half-res
-24 fps capture target:
+The active production blocker is still target throughput for the
+highpass-preserving half-res Pi 5 stand-in capture path. The repo now has two
+important receipts:
+
+- latest strict sustained receipt:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json`
+- latest committed direct-container receipt support: commit
+  `be969d1aa40116992694439d6abbb99c0fd59e3b`
+- latest direct `.gvid` probe receipt:
+  `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_poly_nodrop_120f_20260615/labs_target_bench.json`
+
+Strict sustained result:
 
 - commit: `0dd6660ca478ac9892b014559d3444853663c54b`
-- receipt:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json`
 - result: 14,400 requested frames, 14,400 written frames, 0 drops
 - median frame time: 50.04 ms
 - median throughput: 19.98 fps
 - p95 frame time: 66.01 ms
 
-Current, historical-document, environment, runtime-knob, and timing probes do
-not reproduce the 24.93 fps result. The best current-build knob reaches
-22.53 fps median on a 100-frame probe, while the strict 10-minute receipt
-remains 19.98 fps median. The timing profile shows multi-level Pass1 dominates,
-with channel unpack as the largest measured component. The invalid
-producer+decimate combination is now guarded to fall back safely instead of
-corrupting memory. A 2026-06-15 search found no separate recoverable
-`be0328a` downstream source tree on the consolidated 8TB work area; the
-archived branch only contains the stale polynomial-comment delta for the codec.
-Polynomial-log, u16 log-scratch, and prescale-2 fixed-shift probes were
-byte-safe or documented, but slower than the LUT/default path. The next
-engineering task is deeper Pass1/highpass work reduction or a different
-capture-side algorithm.
+Direct `.gvid` short-probe result:
+
+- commit: `be969d1aa40116992694439d6abbb99c0fd59e3b`
+- mode: `--direct-gvid`, `FUSED_LOG_POLYNOMIAL=ON`, highpass-preserving
+  no-drop path
+- result: 120 requested frames, 120 written frames, valid `.gvid`
+- median frame time: 74.71 ms
+- median throughput: 13.39 fps
+- p95 frame time: 86.88 ms
+
+The direct-container receipt improves measurement fidelity but does not solve
+the performance blocker. Current, historical-document, environment,
+runtime-knob, and timing probes do not reproduce the 24.93 fps result. The
+best current-build knob reaches roughly 22-23 fps on short probes, while the
+strict 10-minute receipt remains 19.98 fps median. Timing detail shows
+multi-level Pass1 dominates, with channel unpack as the largest measured
+component. The invalid producer+decimate combination is guarded to fall back
+safely instead of corrupting memory. A 2026-06-15 search found no separate
+recoverable `be0328a` downstream source tree on the consolidated 8TB work
+area; the archived branch only contains the stale polynomial-comment delta for
+the codec. Polynomial-log, u16 log-scratch, prescale-2 fixed-shift, and
+identity-quant shortcut probes were byte-safe or documented but did not recover
+24 fps. The next engineering task is deeper Pass1/highpass work reduction or a
+different capture-side algorithm.
 
 ## Immediate Next Step
 
