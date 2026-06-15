@@ -55,11 +55,14 @@ The current Pi 5 stand-in path writes valid `.gvid`, preserves interruption
 recovery, and avoids dropped frames in the strict direct-container receipt, but
 it does not yet hit the 24 fps target. The active blocker is compute time in the
 highpass-preserving half-res path, especially Pass1/channel-unpack work.
+The producer-unpack request is byte-identical on the committed decimated
+fallback fixture, and a fresh decimation-aware producer scratch probe regressed
+on full-frame Pi 5 timing.
 
 The next production step is to reduce or share raw-to-log/Pass1/channel-unpack
-work in the active highpass-preserving path, or replace that capture-side
-algorithm with one that keeps the quality guarantees while meeting target
-throughput.
+work inside the active highpass-preserving worker path, or replace that
+capture-side algorithm with one that keeps the quality guarantees while meeting
+target throughput.
 
 ## Burn-Down Workstreams
 

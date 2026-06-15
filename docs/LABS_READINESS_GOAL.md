@@ -405,8 +405,10 @@ runtime-knob, and timing probes do not reproduce the 24.93 fps result. The
 best current-build knob reaches roughly 22-23 fps on short probes, while the
 strict 10-minute receipt remains 19.98 fps median. Timing detail shows
 multi-level Pass1 dominates, with channel unpack as the largest measured
-component. The invalid producer+decimate combination is guarded to fall back
-safely instead of corrupting memory. A 2026-06-15 search found no separate
+component. The invalid producer+decimate combination is guarded by a committed
+byte-identity fallback regression, and a fresh decimation-aware producer
+scratch probe was rejected by Pi 5 full-frame timing. A 2026-06-15 search found
+no separate
 recoverable `be0328a` downstream source tree on the consolidated 8TB work
 area; the archived branch only contains the stale polynomial-comment delta for
 the codec. Polynomial-log, u16 log-scratch, prescale-2 fixed-shift, and
@@ -421,6 +423,7 @@ or target receipt proves otherwise. Optimize the current path enough to recover
 the missing 11-18 percent needed to clear sustained 24 fps, focusing on
 Pass1/highpass work that reduces operations or memory traffic rather than
 reshaping LUT scratch or specializing the same prescale math. The
-producer-unpack heap corruption is guarded for decimated capture, but the speed
-path still needs an equivalent in-worker unpack/highpass optimization, a valid
-decimation-aware producer, or a different capture-side algorithm.
+producer-unpack heap corruption is now covered by a byte-identity regression
+for decimated capture. The fresh producer-ring timing receipt regressed, so the
+speed path now needs an equivalent in-worker unpack/highpass optimization or a
+different capture-side algorithm.

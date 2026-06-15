@@ -445,11 +445,11 @@ active Pass1/highpass path, or change the capture-side algorithm.
 
 ## Producer-Unpack Decimate Guard
 
-The current source now disables the shared producer ring when either
+The current source disables the shared producer ring when either
 `GPR_ROW_DECIMATE=2` or `GPR_COL_DECIMATE=2` is active. That turns the formerly
 corrupting `FUSED_PRODUCER_UNPACK=1` + decimated-capture combination into a
-safe fallback to the normal per-channel unpack path. A CI smoke test covers
-this on a small raw fixture:
+safe fallback to the normal per-channel unpack path. A CI smoke test now covers
+byte identity for that fallback on a small raw fixture:
 
 - `tools/test/test_producer_unpack_decimate_fallback.sh`
 
@@ -463,19 +463,19 @@ Pi guard receipt:
 | baseline decimated write-all | 300/300 frames, 46.52 ms median, 21.49 fps |
 | producer requested + decimated write-all | 300/300 frames, 42.03 ms median, 23.79 fps |
 
-The guard receipt proves the formerly aborting env combination survives
-300-frame write-all output. The faster producer-requested row should not be
-treated as a production throughput claim because producer mode is intentionally
-disabled for decimated capture in this patch and short Pi timing varies run to
-run. The real throughput work remains a decimation-aware shared producer or a
-different Pass1 unpack optimization.
+The older guard receipt proves the formerly aborting env combination survived
+300-frame write-all output after the fallback was added. It should not be
+treated as a production throughput claim. A fresh decimation-aware producer
+scratch candidate was tested separately and rejected by full-frame Pi timing
+below. The real throughput work now needs a different Pass1 unpack optimization.
 
 ## Decimated Producer Experiment
 
 A scratch decimation-aware producer was tested and not committed. It reused the
 existing per-channel decimation kernels inside the producer threads, emitted
 correctly sized rows, and avoided heap corruption, but it was too slow to keep
-as production code.
+as production code. This was not the committed byte-identity candidate; it is
+kept here as a ruled-out shape.
 
 Probe artifact:
 
@@ -500,7 +500,8 @@ A second scratch producer was tested to share raw-to-log work across all four
 channels before emitting decimated GS/RG/BG/GD rows. The candidate produced the
 same payload byte count as the baseline and avoided the prior heap corruption,
 but the extra producer/consumer synchronization still outweighed the shared
-work. It was not committed.
+work in that probe. A fresh corrected scratch version was then tested with the
+direct `.gvid` harness and rejected by timing.
 
 Probe artifact:
 
@@ -513,10 +514,18 @@ Probe artifact:
 | producer requested fallback | 300/300 frames, 46.67 ms median, 21.43 fps |
 | combined decimated producer scratch path | 300/300 frames, 53.20 ms median, 18.80 fps |
 
-This rules out the current producer-ring architecture as the next speed path
-for half-res capture. The remaining useful direction is to reduce Pass1 unpack
-inside the active worker path itself, where shared raw-to-log work can avoid
-cross-thread handoff costs.
+Fresh direct `.gvid` A/B receipts from the corrected scratch version:
+
+| case | receipt | median | p95 | dominant timing |
+|---|---|---:|---:|---|
+| baseline, direct `.gvid` | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_baseline_dec2_120f_decprod_candidate_20260615/labs_target_bench.json` | 44.93 ms / 22.26 fps | 53.22 ms | Pass1 mean 37.15 ms; unpack mean 22.16 ms |
+| decimated producer scratch, direct `.gvid` | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_producer_dec2_120f_decprod_candidate_20260615/labs_target_bench.json` | 63.41 ms / 15.77 fps | 65.99 ms | Pass1 mean 53.15 ms; channel wait mean 25.20 ms |
+
+This rejects the producer-ring architecture for the active half-res capture
+path. The synchronization/wait cost is larger than the raw-to-log sharing win.
+The remaining useful direction is to reduce Pass1 unpack inside the active
+worker path itself, where shared raw-to-log work can avoid cross-thread handoff
+costs.
 
 ## Timing Profile
 
@@ -540,9 +549,10 @@ The profile says the blocker is not primarily `.gvid` wrapping or storage I/O
 at this sample size. Multi-level Pass1 dominates the encode, and the largest
 measured Pass1 component is channel unpack. The already-existing
 `FUSED_PRODUCER_UNPACK=1` path was the obvious architectural candidate, but its
-full-size ring is not valid for decimated capture. The guarded fallback removes
-the corruption; a real speed fix requires a decimation-aware producer or
-another Pass1 unpack optimization.
+old full-size ring was not valid for decimated capture. A corrected
+decimation-aware scratch producer removed that correctness blocker but regressed
+full-frame Pi timing. A real speed fix now requires another Pass1 unpack
+optimization.
 
 The fused encoder mode knobs used by the half-res path are now captured at
 context creation and guarded by `tools/test/test_fused_context_env_capture.sh`,
@@ -584,11 +594,12 @@ Next step: treat the May 26 number as non-reproducible unless the original
 downstream `be0328a` worktree is recovered, and focus the current-code fix on
 real Pass1/highpass work reduction. Polynomial log, u16 log scratch, and
 prescale-2 fixed-shift candidates are all ruled out by Pi timing. The
-producer-unpack corruption is now guarded for decimated capture, and the naive
-decimated producer plus combined producer scratch paths are both ruled out by
-timing. The next speed experiment must share raw-to-log work in the active
-Pass1 worker path, remove highpass work without invalidating output, reduce
-highpass tokenization/data movement, or replace the capture-side algorithm.
+producer-unpack corruption is now covered by a decimated byte-identity
+regression, and the corrected decimation-aware producer scratch path is rejected
+by full-frame Pi timing. The next speed experiment must share raw-to-log work
+inside the active Pass1 worker path, remove highpass work without invalidating
+output, reduce highpass tokenization/data movement, or replace the capture-side
+algorithm.
 The production target remains >= 24 fps sustained; today's best evidenced
 current-build knob is 22.53 fps median on a 100-frame probe and 19.98 fps
 median on the strict 10-minute receipt.

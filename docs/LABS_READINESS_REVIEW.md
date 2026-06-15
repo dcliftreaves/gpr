@@ -47,12 +47,11 @@ the current half-res encoder path misses the 24 fps target on the stand-in run.
    recoverable `be0328a` source tree in the consolidated 8TB work area, the
    archived branch does not contain a missing codec speed delta, and the
    polynomial-log, u16 log-scratch, and prescale-2 fixed-shift probes were
-   slower than the LUT/default path. The invalid producer+decimate path is now
-   guarded, naive / combined producer variants plus compiler/runtime tuning did
-   not sustain the target, and the highpass lower-bound probe identifies
-   highpass transform/tokenization as the next speed target. Use the committed
-   `FUSED_TIMING_DETAIL` diagnostic build and inspect the structured
-   `fused_timing` object for any next Pi-side blocker receipt.
+   slower than the LUT/default path. The invalid producer+decimate path is
+   covered by a committed fallback identity fixture, and a fresh
+   decimation-aware producer scratch probe regressed on full-frame Pi timing.
+   Use the committed `FUSED_TIMING_DETAIL` diagnostic build and inspect the
+   structured `fused_timing` object for the next Pi-side blocker receipt.
 2. Replace or supplement the stand-in bundle with a passing target-capture
    receipt.
 3. Add target/self-hosted CI jobs or documented manual receipts for media

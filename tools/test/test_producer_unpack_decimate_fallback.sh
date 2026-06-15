@@ -1,21 +1,25 @@
 #!/usr/bin/env bash
 # Regression smoke for FUSED_PRODUCER_UNPACK with decimated capture.
 #
-# The shared producer ring currently emits full channel-space rows. Decimated
-# capture allocates half-size Pass1 buffers, so producer mode must fall back to
-# the safe per-channel unpack path until a decimated producer exists.
+# The active Labs target path uses row+column decimation. Producer-unpack must
+# emit exactly the same encoded bytes as the safe per-channel path before it can
+# be used as a target-throughput optimization.
 
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="${BUILD_DIR:-$REPO/build}"
 BENCH="${BENCH:-$BUILD_DIR/source/app/bench_fused/bench_fused}"
-RAW="${RAW:-${TMPDIR:-/tmp}/gpr_dec2_producer_smoke.raw}"
+WORK="${WORK:-${TMPDIR:-/tmp}/gpr_dec2_producer_smoke}"
+RAW="$WORK/input.raw"
 
 if [ ! -x "$BENCH" ]; then
     echo "ERROR: bench_fused not built at $BENCH" >&2
     exit 2
 fi
+
+rm -rf "$WORK"
+mkdir -p "$WORK"
 
 python3 - "$RAW" <<'PY'
 import sys
@@ -33,12 +37,24 @@ with path.open("wb") as f:
         f.write(row)
 PY
 
+GPR_INCLUDE_LL=1 \
+FUSED_MULTI_LEVEL=1 \
+FUSED_WAVELET_LEVELS=2 \
+GPR_COL_DECIMATE=2 \
+GPR_ROW_DECIMATE=2 \
+GPR_BENCH_DUMP="$WORK/per_channel.gpr" \
+"$BENCH" "$RAW" 512 512 3 >/dev/null
+
 FUSED_PRODUCER_UNPACK=1 \
 GPR_INCLUDE_LL=1 \
 FUSED_MULTI_LEVEL=1 \
 FUSED_WAVELET_LEVELS=2 \
 GPR_COL_DECIMATE=2 \
 GPR_ROW_DECIMATE=2 \
+GPR_BENCH_DUMP="$WORK/producer.gpr" \
 "$BENCH" "$RAW" 512 512 3 >/dev/null
 
-rm -f "$RAW"
+cmp "$WORK/per_channel.gpr" "$WORK/producer.gpr"
+
+rm -rf "$WORK"
+echo "test_producer_unpack_decimate_fallback: PASS"
