@@ -119,16 +119,18 @@ def run_variant(args: argparse.Namespace, name: str, variant_env: dict[str, str]
         "name": name,
         "env": variant_env,
         "receipt": str(receipt_path),
-        "returncode": result.returncode,
+        "bench_exit_code": result.returncode,
+        "completed": False,
         "stdout_tail": result.stdout[-2000:],
         "stderr_tail": result.stderr[-2000:],
     }
-    if result.returncode == 0 and receipt_path.is_file():
+    if receipt_path.is_file():
         receipt = load_json(receipt_path)
         timing = receipt.get("timing", {})
         verdict = receipt.get("verdict", {})
         gvid = receipt.get("gvid", {})
         entry.update({
+            "completed": True,
             "simulated": bool(receipt.get("simulated")),
             "repo_commit": receipt.get("repo_commit"),
             "fps_median": timing.get("fps_median") if isinstance(timing, dict) else None,
@@ -200,7 +202,7 @@ def main() -> int:
     out = args.output_dir / "labs_perf_sweep.json"
     out.write_text(json.dumps(sweep, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
-    failed = [entry for entry in entries if entry["returncode"] != 0]
+    failed = [entry for entry in entries if not entry.get("completed")]
     print(json.dumps({
         "sweep": str(out),
         "best_variant": sweep["best_variant"],

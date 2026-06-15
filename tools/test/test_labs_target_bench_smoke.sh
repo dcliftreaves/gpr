@@ -147,7 +147,7 @@ PY
   --source-height 8 \
   --capture-width 8 \
   --capture-height 8 \
-  --target-fps 1 \
+  --target-fps 2000 \
   --direct-gvid \
   --variant baseline \
   --variant stripe64_defer:FUSED_STRIPE_ROWS=64,FUSED_DEFER_RANS=1
@@ -163,10 +163,13 @@ assert sweep["direct_gvid"] is True
 assert sweep["simulated"] is False
 assert sweep["production_claim"] is False
 assert sweep["frames_per_variant"] == 4
+assert sweep["target_fps"] == 2000
 assert set(sweep["ranked_by_fps_median"]) == {"baseline", "stripe64_defer"}
 assert len(sweep["variants"]) == 2
 by_name = {item["name"]: item for item in sweep["variants"]}
-assert by_name["baseline"]["returncode"] == 0
+assert by_name["baseline"]["bench_exit_code"] == 1
+assert by_name["baseline"]["completed"] is True
+assert by_name["baseline"]["fps_target_met"] is False
 assert by_name["baseline"]["gvid_valid"] is True
 assert by_name["stripe64_defer"]["env"]["FUSED_STRIPE_ROWS"] == "64"
 assert by_name["stripe64_defer"]["env"]["FUSED_DEFER_RANS"] == "1"
