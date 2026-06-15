@@ -14,6 +14,7 @@ firmware evidence.
 | Current strict 10 minute Pi 5 target run | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` reports 14,400 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, 19.98 fps median | target-performance blocker |
 | Current half-res variant probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` reports current, historical-doc, environment, runtime-knob, compiler-flag, quality, producer, highpass-bound, target-rehearsal, direct-container, and luma-pair probes; the best short direct-container near-miss is luma-pair plus stripe64/deferred rANS at 23.54 fps median | regression evidence |
 | Corrected pixel-format direct `.gvid` probe | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_direct_gvid_pf4_120f_e16357f_20260615/labs_target_bench.json` reports commit `e16357f`, 120 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, and 19.85 fps median with pixel format 4 applied to the encoder context | target-performance blocker |
+| Current-head tracked sweep | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_perf_sweep_03eaa4d_120f_20260615T112841Z/labs_perf_sweep.json` reports commit `03eaa4d`, 120-frame direct `.gvid` variants, 0 drops, valid `.gvid`, and no passing variant; baseline is best at 21.54 fps median and stripe64/deferred regresses to 18.52 fps median | current-head target-performance blocker |
 | Current-head Pi 5 direct `.gvid` rehearsal | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_direct_1440f_1b934a4_20260615/labs_target_bench.json` reports commit `1b934a4`, 1,440 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, and 16.00 fps median; timing-detail receipt `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_timing_detail_30f_1b934a4_20260615/labs_target_bench.json` reports Pass1 median 38.90 ms and unpack mean 22.79 ms | current-head target-performance blocker |
 | 2K live/camera-back raw target | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` reports `2k_raw_0p5x_l2hh` at 29.85 fps median, 37.1 ms p95 | stand-in evidence |
 | Desktop review PREVIEW | `docs/VIDEO_STATUS.md` reports q8 three-way PREVIEW quality pass at 13.65 s/image on Mac/MPS | offline-only evidence |
@@ -217,6 +218,22 @@ Commit `e16357f` fixed the bench harness so `GPR_BENCH_PIXEL_FORMAT` reaches
 the encoder context, not just the `.gvid` header. Pre-fix receipts remain
 useful as container and blocker evidence, but they should not be treated as
 exact RGGB16 timing evidence when the requested pixel format was 4.
+
+Current-head tracked sweep:
+
+| metric | 2026-06-15 current-head tracked sweep |
+|---|---|
+| sweep | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_perf_sweep_03eaa4d_120f_20260615T112841Z/labs_perf_sweep.json` |
+| commit | `03eaa4d1da923d1217dccbc7d98411c606e9a06b` |
+| mode | `--direct-gvid`, pixel format 4, q3, 2-level decimate=2 |
+| variants | baseline; `FUSED_STRIPE_ROWS=64 FUSED_DEFER_RANS=1` |
+| frames | 120 per variant, 0 drops, valid `.gvid`, interrupted-tail recovery proven |
+| best variant | baseline |
+| best median fps | 21.54 fps |
+| best median encode+write | 46.43 ms/frame |
+| best p95 encode+write | 52.94 ms/frame |
+| stripe64/deferred median | 18.52 fps / 53.99 ms/frame |
+| status | below 24 fps target; stripe64/deferred no longer reproduces the older scratch near miss on current head |
 
 The direct default receipts improve measurement fidelity and rule out the
 earlier 13 fps result as a polynomial-log diagnostic, not the default target
