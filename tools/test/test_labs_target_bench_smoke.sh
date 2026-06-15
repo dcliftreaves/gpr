@@ -47,6 +47,55 @@ assert receipt["verdict"]["gvid_valid"] is True
 assert receipt["verdict"]["target_evidence"] is False
 PY
 
+cat > "$WORK/fake_bench.py" <<'PY'
+#!/usr/bin/env python3
+import os
+import struct
+import sys
+from pathlib import Path
+
+raw, w, h, n = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
+assert Path(raw).is_file()
+out = os.environ.get("GPR_BENCH_GVID")
+assert out
+with open(out, "wb") as f:
+    f.write(struct.pack("<IBBHHHIIIII", 0x44495647, 1, 0, 4, 3, 0, w, h, 24000, 0, n))
+    for idx in range(n):
+        payload = (f"direct-frame-{idx}\n".encode("ascii") * 3)
+        f.write(struct.pack("<IIQ", 0x004D5246, len(payload), idx))
+        f.write(payload)
+        print(f"{1.0 + idx * 0.01:.2f}")
+PY
+chmod +x "$WORK/fake_bench.py"
+printf '\0%.0s' {1..128} > "$WORK/fake.raw"
+
+"$PYTHON_BIN" "$REPO/tools/run_labs_target_bench.py" \
+  --bench "$WORK/fake_bench.py" \
+  --raw "$WORK/fake.raw" \
+  --frames 4 \
+  --output-dir "$WORK/direct" \
+  --source-width 8 \
+  --source-height 8 \
+  --capture-width 8 \
+  --capture-height 8 \
+  --target-fps 1 \
+  --direct-gvid
+
+"$PYTHON_BIN" - "$WORK/direct/labs_target_bench.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+receipt = json.loads(Path(sys.argv[1]).read_text())
+assert receipt["simulated"] is False
+assert receipt["capture"]["frames_requested"] == 4
+assert receipt["capture"]["frames_written"] == 4
+assert receipt["gvid"]["validation"]["frame_count"] == 4
+assert receipt["storage"]["fsync_policy"] == "bench_fused sequential .gvid fwrite"
+assert receipt["verdict"]["gvid_valid"] is True
+assert receipt["verdict"]["target_evidence"] is True
+PY
+
 "$PYTHON_BIN" - "$REPO/tools/run_labs_target_bench.py" <<'PY'
 import importlib.util
 import sys

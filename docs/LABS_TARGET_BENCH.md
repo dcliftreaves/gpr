@@ -51,6 +51,12 @@ python3 tools/run_labs_target_bench.py \
   --output-dir "$GPR_ARTIFACT_ROOT/labs_target_bench_pi5_10min_YYYYMMDD"
 ```
 
+For a receipt that measures the actual sequential `.gvid` write path instead
+of staging one `.gpr` file per frame and packing afterward, add
+`--direct-gvid`. This mode requires a `bench_fused` binary that supports
+`GPR_BENCH_GVID`; the receipt validates the emitted container and records
+`fsync_policy: bench_fused sequential .gvid fwrite`.
+
 The receipt must include timing percentiles, dropped-frame accounting, wrapper
 and child-process RSS, storage throughput, basic CPU load, thermal samples when
 `vcgencmd` is available, relevant encoder env knobs, `bench_fused` binary hash
@@ -112,6 +118,22 @@ but it misses the 24 fps target:
 | recovery | truncated-tail rejected; 14,399 complete frames recovered |
 | memory | wrapper 29.0 MB RSS, child 137.5 MB RSS |
 | thermal | 60.9 C start, 75.2 C end |
+
+Additional direct-container probe:
+
+| metric | 2026-06-15 direct `.gvid` short probe |
+|---|---|
+| receipt | `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_poly_nodrop_120f_20260615/labs_target_bench.json` |
+| mode | `--direct-gvid`, `FUSED_LOG_POLYNOMIAL=ON`, highpass-preserving no-drop path |
+| frames | 120 requested / 120 written |
+| median fps | 13.39 fps |
+| median encode+write | 74.71 ms/frame |
+| p95 encode+write | 86.88 ms/frame |
+| `.gvid` | valid, 114,392,072 bytes |
+
+This direct-container receipt improves measurement fidelity but does not remove
+the performance blocker. The current highpass-preserving half-res path remains
+below 24 fps on the Pi 5 stand-in.
 
 Remaining missing receipts:
 

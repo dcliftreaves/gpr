@@ -18,6 +18,8 @@
 #include <stdint.h>
 #include <time.h>
 
+#include "gpr_video_format.h"
+
 typedef struct FUSED_ENCODER FUSED_ENCODER;
 extern FUSED_ENCODER *gpr_encode_fused_create(int w, int h, int pf, int q);
 extern int gpr_encode_fused_frame(FUSED_ENCODER *ctx, const unsigned char *raw,
@@ -63,6 +65,20 @@ int main(int argc, char **argv) {
             }
         }
     }
+    int bench_pixel_format = 4;
+    {
+        const char *pf_env = getenv("GPR_BENCH_PIXEL_FORMAT");
+        if (pf_env && *pf_env) {
+            char *end = NULL;
+            long pf = strtol(pf_env, &end, 10);
+            if (end != pf_env && pf >= 0 && pf <= 5) {
+                bench_pixel_format = (int)pf;
+            } else {
+                fprintf(stderr, "invalid GPR_BENCH_PIXEL_FORMAT=%s (expected 0..5)\n", pf_env);
+                return 1;
+            }
+        }
+    }
 
     FUSED_ENCODER *enc = gpr_encode_fused_create(w, h, /*pf=*/1, quality);
     if (!enc) { fprintf(stderr, "create fail\n"); return 1; }
@@ -102,11 +118,17 @@ int main(int argc, char **argv) {
        n ≥ 10 × fps_target so the kernel page cache is exhausted (see
        feedback_honest_capture_bench: short runs are misleading).
 
-       If both env vars are set, GPR_BENCH_DUMP still gets the first
-       frame for byte-identity tests; GPR_BENCH_WRITE_ALL writes ALL
-       frames including the first to its own directory. */
+       Optional direct-container benchmarking: set GPR_BENCH_GVID=<path> to
+       write a strict .gvid stream sequentially as frames are encoded. This is
+       closer to the camera/container path than GPR_BENCH_WRITE_ALL because it
+       avoids per-frame open/close and the post-run pack step.
+
+       If multiple output env vars are set, GPR_BENCH_DUMP still gets the first
+       frame for byte-identity tests, GPR_BENCH_WRITE_ALL writes ALL frames to
+       its own directory, and GPR_BENCH_GVID appends ALL frames to one stream. */
     const char *dump_path = getenv("GPR_BENCH_DUMP");
     const char *write_all_dir = getenv("GPR_BENCH_WRITE_ALL");
+    const char *gvid_path = getenv("GPR_BENCH_GVID");
     if (write_all_dir && *write_all_dir) {
         /* mkdir -p best effort; ignore errors (caller is responsible) */
         char mkdir_cmd[1024];
@@ -115,11 +137,45 @@ int main(int argc, char **argv) {
         fprintf(stderr, "# GPR_BENCH_WRITE_ALL=%s — frame times will include fwrite\n",
                 write_all_dir);
     }
+    FILE *gvid_fp = NULL;
+    if (gvid_path && *gvid_path) {
+        gvid_fp = fopen(gvid_path, "wb");
+        if (!gvid_fp) {
+            fprintf(stderr, "open GPR_BENCH_GVID=%s failed\n", gvid_path);
+            return 1;
+        }
+        uint8_t clip_header[GPR_VIDEO_CLIP_HEADER_SIZE];
+        int n_header = gpr_video_write_clip_header(
+            clip_header, sizeof(clip_header),
+            w, h, bench_pixel_format, quality, 24.0,
+            /*target_MBps=*/0.0, /*denoise_enabled=*/0,
+            (uint32_t)n);
+        if (n_header != GPR_VIDEO_CLIP_HEADER_SIZE ||
+            fwrite(clip_header, 1, sizeof(clip_header), gvid_fp) != sizeof(clip_header)) {
+            fprintf(stderr, "write GPR_BENCH_GVID clip header failed\n");
+            fclose(gvid_fp);
+            return 1;
+        }
+        fprintf(stderr, "# GPR_BENCH_GVID=%s - frame times will include sequential .gvid fwrite\n",
+                gvid_path);
+    }
     double *times = malloc((size_t)n * sizeof(double));
     for (int i = 0; i < n; i++) {
         double t0 = now_ms();
         unsigned char *out = NULL; size_t out_sz = 0;
         gpr_encode_fused_frame(enc, raw, sz, &out, &out_sz);
+        if (gvid_fp && out && out_sz > 0) {
+            uint8_t frame_header[GPR_VIDEO_FRAME_HEADER_SIZE];
+            int n_frame = gpr_video_write_frame_header(
+                frame_header, sizeof(frame_header), out_sz, (uint64_t)i);
+            if (n_frame != GPR_VIDEO_FRAME_HEADER_SIZE ||
+                fwrite(frame_header, 1, sizeof(frame_header), gvid_fp) != sizeof(frame_header) ||
+                fwrite(out, 1, out_sz, gvid_fp) != out_sz) {
+                fprintf(stderr, "write GPR_BENCH_GVID frame %d failed\n", i);
+                fclose(gvid_fp);
+                return 1;
+            }
+        }
         if (write_all_dir && *write_all_dir && out && out_sz > 0) {
             char path[1280];
             snprintf(path, sizeof(path), "%s/frame_%04d.gpr", write_all_dir, i);
@@ -156,6 +212,10 @@ int main(int argc, char **argv) {
         "# fps_mean=%.2f  fps_median=%.2f  fps_p25(fast)=%.2f\n",
         1000.0/mean, 1000.0/times[n/2], 1000.0/times[n/4]);
 
+    if (gvid_fp) {
+        fflush(gvid_fp);
+        fclose(gvid_fp);
+    }
     gpr_encode_fused_destroy(enc);
     return 0;
 }

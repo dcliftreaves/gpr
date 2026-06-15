@@ -438,7 +438,11 @@ def synth_frames(frame_dir: Path, frame_count: int) -> list[float]:
     return times
 
 
-def run_bench(args: argparse.Namespace, frame_dir: Path) -> tuple[list[float], subprocess.CompletedProcess[str] | None]:
+def run_bench(
+    args: argparse.Namespace,
+    frame_dir: Path,
+    direct_gvid: Path,
+) -> tuple[list[float], subprocess.CompletedProcess[str] | None]:
     if args.simulate:
         return synth_frames(frame_dir, args.frames), None
     if not args.bench or not args.bench.is_file():
@@ -453,8 +457,12 @@ def run_bench(args: argparse.Namespace, frame_dir: Path) -> tuple[list[float], s
         "GPR_COL_DECIMATE": "2",
         "GPR_ROW_DECIMATE": "2",
         "FUSED_QUALITY": str(args.quality),
-        "GPR_BENCH_WRITE_ALL": str(frame_dir),
+        "GPR_BENCH_PIXEL_FORMAT": str(args.pixel_format),
     })
+    if args.direct_gvid:
+        env["GPR_BENCH_GVID"] = str(direct_gvid)
+    else:
+        env["GPR_BENCH_WRITE_ALL"] = str(frame_dir)
     cmd = [str(args.bench), str(args.raw), str(args.source_width), str(args.source_height), str(args.frames)]
     result = run_cmd(cmd, env=env)
     if result.returncode != 0:
@@ -475,6 +483,7 @@ def main() -> int:
     ap.add_argument("--capture-height", type=int, default=5520)
     ap.add_argument("--quality", type=int, default=3)
     ap.add_argument("--pixel-format", type=int, default=4)
+    ap.add_argument("--direct-gvid", action="store_true", help="measure bench_fused sequential .gvid output instead of staging per-frame .gpr files")
     ap.add_argument("--simulate", action="store_true", help="write a tiny synthetic receipt for CI/schema tests")
     args = ap.parse_args()
 
@@ -483,24 +492,34 @@ def main() -> int:
     if frame_dir.exists():
         shutil.rmtree(frame_dir)
     frame_dir.mkdir(parents=True)
+    direct_gvid = args.output_dir / "capture.gvid"
+    if direct_gvid.exists():
+        direct_gvid.unlink()
 
     temp_start = read_temp_c()
     load_start = loadavg()
     wall_start = time.time()
-    times_ms, bench_result = run_bench(args, frame_dir)
+    times_ms, bench_result = run_bench(args, frame_dir, direct_gvid)
     wall_s = time.time() - wall_start
     temp_end = read_temp_c()
     load_end = loadavg()
 
-    frame_paths = sorted(frame_dir.glob("frame_*.gpr"))
-    expected_tags = {f"frame_{idx:04d}.gpr" for idx in range(args.frames)}
-    actual_tags = {path.name for path in frame_paths}
-    missing = sorted(expected_tags - actual_tags)
-    total_frame_bytes = sum(path.stat().st_size for path in frame_paths)
+    if args.direct_gvid and not args.simulate:
+        gvid = direct_gvid
+        gvid_info = validate_gvid(gvid)
+        frames_written = int(gvid_info.get("frame_count", 0))
+        missing = [f"frame_{idx:04d}.gpr" for idx in range(frames_written, args.frames)]
+        total_frame_bytes = int(gvid_info.get("payload_bytes", 0))
+    else:
+        frame_paths = sorted(frame_dir.glob("frame_*.gpr"))
+        expected_tags = {f"frame_{idx:04d}.gpr" for idx in range(args.frames)}
+        actual_tags = {path.name for path in frame_paths}
+        missing = sorted(expected_tags - actual_tags)
+        total_frame_bytes = sum(path.stat().st_size for path in frame_paths)
 
-    gvid = args.output_dir / "capture.gvid"
-    write_gvid(frame_paths, gvid, args.capture_width, args.capture_height, args.target_fps, args.quality, args.pixel_format)
-    gvid_info = validate_gvid(gvid)
+        gvid = direct_gvid
+        write_gvid(frame_paths, gvid, args.capture_width, args.capture_height, args.target_fps, args.quality, args.pixel_format)
+        gvid_info = validate_gvid(gvid)
 
     truncated = args.output_dir / "capture_interrupted_tail.gvid"
     copy_without_last_byte(gvid, truncated)
@@ -544,7 +563,7 @@ def main() -> int:
             "quality": args.quality,
             "pixel_format": args.pixel_format,
             "frames_requested": args.frames,
-            "frames_written": len(frame_paths),
+            "frames_written": int(gvid_info.get("frame_count", 0)) if args.direct_gvid and not args.simulate else args.frames - len(missing),
             "dropped_frames": len(missing),
             "missing_frames": missing[:100],
         },
@@ -555,7 +574,7 @@ def main() -> int:
             "total_frame_bytes": total_frame_bytes,
             "gvid_bytes": gvid.stat().st_size,
             "write_MBps_wall": (total_frame_bytes / (1024 * 1024) / wall_s) if wall_s > 0 else 0.0,
-            "fsync_policy": "bench_fused fclose per frame; wrapper packs .gvid after run",
+            "fsync_policy": "bench_fused sequential .gvid fwrite" if args.direct_gvid and not args.simulate else "bench_fused fclose per frame; wrapper packs .gvid after run",
         },
         "memory": {
             "wrapper_maxrss_kb": maxrss_kb(),

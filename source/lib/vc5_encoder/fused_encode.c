@@ -1672,6 +1672,11 @@ static void unpack_channel_row_col_decimate_2x1_fused_lp(
     const int half_m2 = (half / 2) * 2;
 
 #if ENABLED(NEON)
+    if (ch_width_out >= 8) {
+        __builtin_prefetch(&row1[ch_width_out * 4 - 32], 0, 3);
+        __builtin_prefetch(&row2[ch_width_out * 4 - 32], 0, 3);
+    }
+
     const uint16x8_t v_log_max = vdupq_n_u16(lm);
     const int32x4_t vmid2 = vdupq_n_s32(mid2);
     const int32x4_t vthree = vdupq_n_s32(3);
@@ -1730,30 +1735,28 @@ static void unpack_channel_row_col_decimate_2x1_fused_lp(
         if (channel == 1) vst1q_u16(Xs, vR);
         else              vst1q_u16(Xs, vB);
 
-        int32_t Xv[8], G1v[8], G2v[8];
+        uint16_t Xlog[8], G1log[8], G2log[8];
         for (int k = 0; k < 8; k++) {
-            Xv[k]  = log_tbl[Xs[k]];
-            G1v[k] = log_tbl[G1s[k]];
-            G2v[k] = log_tbl[G2s[k]];
+            Xlog[k]  = log_tbl[Xs[k]];
+            G1log[k] = log_tbl[G1s[k]];
+            G2log[k] = log_tbl[G2s[k]];
         }
 
         /* Two 4-wide tiles → 8 intermediates → pair-avg + prescale + pair-sum
            gives 2 LP outs. The intra-tile pair-avg uses vuzp1q/vuzp2q like T13b. */
-        int32x4_t val_lo, val_hi;
-        {
-            int32x4_t vx  = vld1q_s32(&Xv[0]);
-            int32x4_t vg1 = vld1q_s32(&G1v[0]);
-            int32x4_t vg2 = vld1q_s32(&G2v[0]);
-            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
-            val_lo = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
-        }
-        {
-            int32x4_t vx  = vld1q_s32(&Xv[4]);
-            int32x4_t vg1 = vld1q_s32(&G1v[4]);
-            int32x4_t vg2 = vld1q_s32(&G2v[4]);
-            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
-            val_hi = vshrq_n_s32(vaddq_s32(vsubq_s32(vx, vgs), vmid2), 1);
-        }
+        uint16x8_t xlog8 = vld1q_u16(Xlog);
+        uint16x8_t g1log8 = vld1q_u16(G1log);
+        uint16x8_t g2log8 = vld1q_u16(G2log);
+        int32x4_t x_lo  = vreinterpretq_s32_u32(vmovl_u16(vget_low_u16(xlog8)));
+        int32x4_t x_hi  = vreinterpretq_s32_u32(vmovl_u16(vget_high_u16(xlog8)));
+        int32x4_t g1_lo = vreinterpretq_s32_u32(vmovl_u16(vget_low_u16(g1log8)));
+        int32x4_t g1_hi = vreinterpretq_s32_u32(vmovl_u16(vget_high_u16(g1log8)));
+        int32x4_t g2_lo = vreinterpretq_s32_u32(vmovl_u16(vget_low_u16(g2log8)));
+        int32x4_t g2_hi = vreinterpretq_s32_u32(vmovl_u16(vget_high_u16(g2log8)));
+        int32x4_t gs_lo = vshrq_n_s32(vaddq_s32(g1_lo, g2_lo), 1);
+        int32x4_t gs_hi = vshrq_n_s32(vaddq_s32(g1_hi, g2_hi), 1);
+        int32x4_t val_lo = vshrq_n_s32(vaddq_s32(vsubq_s32(x_lo, gs_lo), vmid2), 1);
+        int32x4_t val_hi = vshrq_n_s32(vaddq_s32(vsubq_s32(x_hi, gs_hi), vmid2), 1);
 #endif
         /* Pair-avg across val_lo/val_hi → 4 unpack outputs in `avg`. */
         int32x4_t e = vuzp1q_s32(val_lo, val_hi);
@@ -1939,6 +1942,11 @@ static void unpack_luma_row_col_decimate_2x1_fused_lp(
     const int half_m2 = (half / 2) * 2;
 
 #if ENABLED(NEON)
+    if (ch_width_out >= 8) {
+        __builtin_prefetch(&row1[ch_width_out * 4 - 32], 0, 3);
+        __builtin_prefetch(&row2[ch_width_out * 4 - 32], 0, 3);
+    }
+
     const uint16x8_t v_log_max = vdupq_n_u16(lm);
     const int32x4_t vmid2 = vdupq_n_s32(mid2);
     const int32x4_t vthree = vdupq_n_s32(3);
@@ -1962,24 +1970,25 @@ static void unpack_luma_row_col_decimate_2x1_fused_lp(
         uint16_t G1s[8], G2s[8];
         vst1q_u16(G1s, vG1);
         vst1q_u16(G2s, vG2);
-        int32_t G1v[8], G2v[8];
+        uint16_t G1log[8], G2log[8];
         for (int k = 0; k < 8; k++) {
-            G1v[k] = log_tbl[G1s[k]];
-            G2v[k] = log_tbl[G2s[k]];
+            G1log[k] = log_tbl[G1s[k]];
+            G2log[k] = log_tbl[G2s[k]];
         }
 
+        uint16x8_t g1log8 = vld1q_u16(G1log);
+        uint16x8_t g2log8 = vld1q_u16(G2log);
+        int32x4_t g1_lo = vreinterpretq_s32_u32(vmovl_u16(vget_low_u16(g1log8)));
+        int32x4_t g1_hi = vreinterpretq_s32_u32(vmovl_u16(vget_high_u16(g1log8)));
+        int32x4_t g2_lo = vreinterpretq_s32_u32(vmovl_u16(vget_low_u16(g2log8)));
+        int32x4_t g2_hi = vreinterpretq_s32_u32(vmovl_u16(vget_high_u16(g2log8)));
         int32x4_t val_lo, val_hi;
-        {
-            int32x4_t vg1 = vld1q_s32(&G1v[0]);
-            int32x4_t vg2 = vld1q_s32(&G2v[0]);
-            if (channel == 0) val_lo = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
-            else               val_lo = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
-        }
-        {
-            int32x4_t vg1 = vld1q_s32(&G1v[4]);
-            int32x4_t vg2 = vld1q_s32(&G2v[4]);
-            if (channel == 0) val_hi = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
-            else               val_hi = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+        if (channel == 0) {
+            val_lo = vshrq_n_s32(vaddq_s32(g1_lo, g2_lo), 1);
+            val_hi = vshrq_n_s32(vaddq_s32(g1_hi, g2_hi), 1);
+        } else {
+            val_lo = vshrq_n_s32(vaddq_s32(vsubq_s32(g1_lo, g2_lo), vmid2), 1);
+            val_hi = vshrq_n_s32(vaddq_s32(vsubq_s32(g1_hi, g2_hi), vmid2), 1);
         }
         int32x4_t e = vuzp1q_s32(val_lo, val_hi);
         int32x4_t d = vuzp2q_s32(val_lo, val_hi);

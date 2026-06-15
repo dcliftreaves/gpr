@@ -592,3 +592,26 @@ highpass tokenization/data movement, or replace the capture-side algorithm.
 The production target remains >= 24 fps sustained; today's best evidenced
 current-build knob is 22.53 fps median on a 100-frame probe and 19.98 fps
 median on the strict 10-minute receipt.
+
+## Direct `.gvid` Receipt Mode
+
+`bench_fused` now supports `GPR_BENCH_GVID=<path>` for target probes that write
+one strict `.gvid` stream directly as frames are encoded. The target receipt
+harness exposes this as `tools/run_labs_target_bench.py --direct-gvid`, so a
+run can measure sequential container writes instead of writing one `.gpr` file
+per frame and packing afterward.
+
+Pi 5 stand-in probe:
+
+- receipt:
+  `/mnt/ssd/gpr_work/artifacts/labs_target_direct_gvid_poly_nodrop_120f_20260615/labs_target_bench.json`
+- mode: highpass-preserving no-drop path, `FUSED_LOG_POLYNOMIAL=ON`,
+  `--direct-gvid`
+- frames: 120 / 120
+- `.gvid`: valid, 114,392,072 bytes
+- median: 74.71 ms / 13.39 fps
+- p95: 86.88 ms
+
+This receipt proves the direct container measurement path but does not clear
+the production target. The remaining blocker is still compute throughput for
+the highpass-preserving half-res path.
