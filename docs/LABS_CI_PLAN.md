@@ -24,6 +24,8 @@ Current hosted CI should continue to cover:
 - Python `.gvid` pack and metadata smokes,
 - deterministic Labs bundle manifest/checksum builder smoke,
 - simulated Labs target-bench receipt schema and interruption smoke,
+- camera-handoff receipt schema smoke for stand-in, blocked camera, and
+  invalid promoted-camera cases,
 - registry consistency and ship-pipeline receipt audit.
 
 ## Target Or Self-Hosted CI

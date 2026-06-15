@@ -50,6 +50,8 @@ REQUIRED_DOCS = {
         "Backpressure And Drops",
         "Partial-File Recovery",
         "Target Bench Requirements",
+        "Camera Handoff Receipt",
+        "gpr_labs_camera_handoff_receipt.v1",
     ],
     "docs/LABS_TARGET_BENCH.md": [
         "Current Evidence",
@@ -243,6 +245,8 @@ def require_ci_contract(tracked: set[str], failures: list[str]) -> None:
         failures.append("CI must run python3 tools/test/check_labs_target_receipts.py")
     if "tools/test/test_fused_context_env_capture.sh" not in text:
         failures.append("CI must run tools/test/test_fused_context_env_capture.sh")
+    if "tools/test/test_labs_camera_handoff_receipt.sh" not in text:
+        failures.append("CI must run tools/test/test_labs_camera_handoff_receipt.sh")
 
 
 def require_target_workflow_contract(tracked: set[str], failures: list[str]) -> None:

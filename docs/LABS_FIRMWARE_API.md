@@ -127,3 +127,34 @@ Before claiming firmware readiness, the prototype needs a receipt that records:
 
 The Pi 5 may stand in for early Labs evaluation, but the receipt must label it
 as a stand-in and not as final camera-firmware evidence.
+
+## Camera Handoff Receipt
+
+Firmware or target runs should write a compact JSON receipt with schema
+`gpr_labs_camera_handoff_receipt.v1` and validate it with:
+
+```bash
+python3 tools/check_labs_camera_handoff_receipt.py \
+  /path/to/camera_handoff_receipt.json
+```
+
+Required sections:
+
+| section | purpose |
+|---|---|
+| `target` | hardware name and `role`: `stand-in` or `camera` |
+| `integration` | frame source, memory ownership, write path, and whether sensor/DMA handoff executed |
+| `input_frame` | width, height, stride, bit depth, pixel format, target fps |
+| `capture` | requested/written/dropped frame counts |
+| `timing` | fps median and frame-time percentiles |
+| `storage` | write throughput and flush policy |
+| `memory` | heap high-water mark or RSS |
+| `output` | `.gvid` checksum and validation result |
+| `interruption_recovery` | truncated-tail rejection and recovered-frame proof |
+| `verdict` | firmware-ready, target-evidence, fps-target, and no-drop booleans |
+
+`verdict.firmware_ready=true` is accepted only for `target.role=camera` with
+sensor/DMA handoff executed, target fps met, no drops, valid `.gvid`, and
+interruption recovery proven. A blocked camera receipt must include
+`blocker.cause` so the failure is narrowed to hardware handoff, storage,
+thermal, memory, codec timing, or another concrete cause.

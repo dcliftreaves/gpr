@@ -382,6 +382,7 @@ jobs:
           bash tools/test/test_labs_bundle_builder.sh
           bash tools/test/test_labs_bundle_verify.sh
           bash tools/test/test_labs_target_bench_smoke.sh
+          bash tools/test/test_labs_camera_handoff_receipt.sh
 
       - name: Registry consistency check
         # Surfaces unknown refs, still/video mode mismatches, use_for
