@@ -141,3 +141,39 @@ int gpr_video_read_frame_header(const uint8_t *buf, size_t buf_size,
     out->frame_tag = read_u64_le(buf + 8);
     return 0;
 }
+
+int gpr_video_validate_stream(const uint8_t *buf, size_t buf_size,
+                               gpr_video_stream_info *out)
+{
+    if (!buf || buf_size < GPR_VIDEO_CLIP_HEADER_SIZE) return -1;
+
+    gpr_video_stream_info info;
+    memset(&info, 0, sizeof info);
+    if (gpr_video_read_clip_header(buf, buf_size, &info.clip) != 0) return -1;
+
+    size_t pos = GPR_VIDEO_CLIP_HEADER_SIZE;
+    while (pos < buf_size) {
+        gpr_video_frame_header fh;
+        if (gpr_video_read_frame_header(buf + pos, buf_size - pos, &fh) != 0) return -1;
+        pos += GPR_VIDEO_FRAME_HEADER_SIZE;
+        if ((size_t)fh.payload_size > buf_size - pos) return -1;
+
+        if (info.frame_count == 0) {
+            info.first_frame_tag = fh.frame_tag;
+        } else if (fh.frame_tag <= info.last_frame_tag) {
+            return -1;
+        }
+        info.last_frame_tag = fh.frame_tag;
+        info.payload_bytes += fh.payload_size;
+        info.frame_count++;
+        pos += fh.payload_size;
+    }
+
+    if (info.clip.frame_count_hint != 0 &&
+        info.clip.frame_count_hint != info.frame_count) {
+        return -1;
+    }
+
+    if (out) *out = info;
+    return 0;
+}

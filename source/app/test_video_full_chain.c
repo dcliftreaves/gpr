@@ -133,6 +133,20 @@ static int read_file(const char *path, reader_stats *st) {
     }
     fclose(fp);
 
+    gpr_video_stream_info stream_info;
+    if (gpr_video_validate_stream(buf, file_size, &stream_info) != 0) {
+        fprintf(stderr, "  reader: stream validation FAILED\n");
+        free(buf);
+        return -1;
+    }
+    if (stream_info.frame_count != NUM_FRAMES ||
+        stream_info.first_frame_tag != 0 ||
+        stream_info.last_frame_tag != NUM_FRAMES - 1) {
+        fprintf(stderr, "  reader: stream validation stats mismatch\n");
+        free(buf);
+        return -1;
+    }
+
     size_t pos = 0;
     gpr_video_clip_header clip;
     if (gpr_video_read_clip_header(buf + pos, file_size - pos, &clip) != 0) {

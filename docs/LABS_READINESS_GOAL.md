@@ -93,6 +93,8 @@ Deliverables:
 - stricter C validation in `.gvid` reader/writer,
 - malformed-file tests,
 - fuzz or deterministic negative-test target.
+- whole-stream C validation for payload bounds, frame-count hints, and
+  monotonic frame tags.
 
 Validation should enforce:
 

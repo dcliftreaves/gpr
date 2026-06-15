@@ -37,6 +37,27 @@ static int write_valid_clip(uint8_t *buf) {
                                        150.0, 1, 12);
 }
 
+static size_t append_test_frame(uint8_t *buf, size_t pos, size_t cap,
+                                uint64_t tag, uint32_t payload_size) {
+    if (pos + GPR_VIDEO_FRAME_HEADER_SIZE + payload_size > cap) return 0;
+    int n = gpr_video_write_frame_header(buf + pos, cap - pos, payload_size, tag);
+    if (n != GPR_VIDEO_FRAME_HEADER_SIZE) return 0;
+    pos += GPR_VIDEO_FRAME_HEADER_SIZE;
+    memset(buf + pos, (int)(0x40u + tag), payload_size);
+    return pos + payload_size;
+}
+
+static size_t build_valid_stream(uint8_t *buf, size_t cap, uint32_t hint) {
+    int n = gpr_video_write_clip_header(buf, cap, 640, 360, 4, 3,
+                                        24.0, 0.0, 0, hint);
+    if (n != GPR_VIDEO_CLIP_HEADER_SIZE) return 0;
+    size_t pos = GPR_VIDEO_CLIP_HEADER_SIZE;
+    pos = append_test_frame(buf, pos, cap, 0, 3);
+    if (pos == 0) return 0;
+    pos = append_test_frame(buf, pos, cap, 1, 5);
+    return pos;
+}
+
 static int test_clip_header_roundtrip(void) {
     uint8_t buf[GPR_VIDEO_CLIP_HEADER_SIZE];
     int n = gpr_video_write_clip_header(buf, sizeof(buf),
@@ -198,6 +219,47 @@ static int test_bad_frame_header_fields(void) {
     return 0;
 }
 
+static int test_stream_validation(void) {
+    uint8_t buf[256];
+    gpr_video_stream_info info;
+    size_t len = build_valid_stream(buf, sizeof(buf), 2);
+    CHECK(len > 0, "valid stream built");
+    CHECK(gpr_video_validate_stream(buf, len, &info) == 0, "valid stream accepted");
+    CHECK(info.frame_count == 2, "stream frame count");
+    CHECK(info.first_frame_tag == 0, "first frame tag");
+    CHECK(info.last_frame_tag == 1, "last frame tag");
+    CHECK(info.payload_bytes == 8, "payload byte count");
+    CHECK(info.clip.width == 640 && info.clip.height == 360, "stream clip fields");
+
+    printf("  PASS  complete stream validation accepts valid streams\n");
+    return 0;
+}
+
+static int test_bad_stream_validation(void) {
+    uint8_t buf[256];
+    size_t len = build_valid_stream(buf, sizeof(buf), 2);
+    CHECK(len > 0, "valid stream built");
+
+    CHECK(gpr_video_validate_stream(buf, len - 1, NULL) == -1, "truncated payload rejected");
+
+    len = build_valid_stream(buf, sizeof(buf), 3);
+    CHECK(len > 0, "valid stream built");
+    CHECK(gpr_video_validate_stream(buf, len, NULL) == -1, "frame_count_hint mismatch rejected");
+
+    len = build_valid_stream(buf, sizeof(buf), 2);
+    CHECK(len > 0, "valid stream built");
+    put_u32_le(buf + GPR_VIDEO_CLIP_HEADER_SIZE + GPR_VIDEO_FRAME_HEADER_SIZE + 3 + 8, 0);
+    CHECK(gpr_video_validate_stream(buf, len, NULL) == -1, "duplicate frame tag rejected");
+
+    len = build_valid_stream(buf, sizeof(buf), 2);
+    CHECK(len > 0, "valid stream built");
+    put_u32_le(buf + GPR_VIDEO_CLIP_HEADER_SIZE + GPR_VIDEO_FRAME_HEADER_SIZE + 3 + 4, 1000);
+    CHECK(gpr_video_validate_stream(buf, len, NULL) == -1, "oversized payload rejected");
+
+    printf("  PASS  malformed streams rejected\n");
+    return 0;
+}
+
 int main(void) {
     int failed = 0;
     failed += test_clip_header_roundtrip();
@@ -206,6 +268,8 @@ int main(void) {
     failed += test_bad_inputs();
     failed += test_bad_clip_header_fields();
     failed += test_bad_frame_header_fields();
+    failed += test_stream_validation();
+    failed += test_bad_stream_validation();
     printf("\n%s\n", failed == 0 ? "All tests PASS" : "SOME TESTS FAILED");
     return failed;
 }

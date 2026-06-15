@@ -117,6 +117,14 @@ typedef struct {
     uint64_t frame_tag;
 } gpr_video_frame_header;
 
+typedef struct {
+    gpr_video_clip_header clip;
+    uint32_t frame_count;
+    uint64_t first_frame_tag;
+    uint64_t last_frame_tag;
+    uint64_t payload_bytes;
+} gpr_video_stream_info;
+
 /*! @brief Encode a clip header into a 32-byte buffer.
     @return GPR_VIDEO_CLIP_HEADER_SIZE on success, -1 on error. */
 int gpr_video_write_clip_header(uint8_t *buf, size_t buf_size,
@@ -141,6 +149,13 @@ int gpr_video_read_clip_header(const uint8_t *buf, size_t buf_size,
     @return 0 on success, -1 on malformed header. */
 int gpr_video_read_frame_header(const uint8_t *buf, size_t buf_size,
                                  gpr_video_frame_header *out);
+
+/*! @brief Validate a complete v1 stream buffer.
+    Checks clip header, every frame header, payload bounds, strictly increasing
+    frame tags, and frame_count_hint when nonzero. `out` may be NULL.
+    @return 0 on success, -1 on malformed/incompatible stream. */
+int gpr_video_validate_stream(const uint8_t *buf, size_t buf_size,
+                               gpr_video_stream_info *out);
 
 #ifdef __cplusplus
 }

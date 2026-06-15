@@ -9,6 +9,7 @@ Where to look for what. Last refreshed 2026-06-14.
 | Release readiness and production proof | `RELEASE_READINESS.md` |
 | Labs firmware-prototype intake | `LABS_INTAKE.md` |
 | Labs goal and stop criteria | `LABS_READINESS_GOAL.md` |
+| Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
 | product overview and media paths | `../README.md` |
 | what ships today, by ship class | `SHIP_DECISION.md` |
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |

@@ -38,9 +38,9 @@ ownership, and target CI.
 |---|---|
 | Can the repo demonstrate the media shape? | Yes: `.gvid` pack/unpack, metadata dispatch, and ProRes review tooling exist. |
 | Can it hit the half-res capture-rate target on the stand-in path? | Current docs report Pi 5 half-res capture at 24.93 fps median and 31 MB/s sustained budget. |
-| Is the format safe enough for firmware review? | In progress: v1 C header parsing is being tightened and covered by malformed-header tests. |
-| Are artifacts portable outside the 8TB work drive? | Not yet complete: a portable Labs artifact bundle and checksum manifest still need to be defined. |
-| Is CI sufficient for Labs intake? | Hosted CI covers source-level checks; target/self-hosted lanes must be specified for media and hardware behavior. |
+| Is the format safe enough for firmware review? | Source-level path is hardened: v1 C parsing rejects malformed headers and streams; target recovery still needs receipts. |
+| Are artifacts portable outside the 8TB work drive? | Bundle contract exists; real sample media, checksums, and receipts still need packaging. |
+| Is CI sufficient for Labs intake? | Hosted CI covers source-level checks; target/self-hosted lanes are specified for media and hardware behavior. |
 
 ## Reviewer Entry Points
 
@@ -51,6 +51,10 @@ ownership, and target CI.
 - Raw target timing: `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`
 - Labs goal and stop criteria: `docs/LABS_READINESS_GOAL.md`
 - Firmware integration contract: `docs/LABS_FIRMWARE_API.md`
+- Artifact bundle contract: `docs/LABS_ARTIFACT_BUNDLE.md`
+- Target bench requirements: `docs/LABS_TARGET_BENCH.md`
+- CI lane plan: `docs/LABS_CI_PLAN.md`
+- Current readiness review: `docs/LABS_READINESS_REVIEW.md`
 
 ## Next Required Evidence
 
