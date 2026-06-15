@@ -265,6 +265,24 @@ This rules out promoting the GCC flag/runtime combination as production target
 evidence. It can remain a future build-tuning lead, but the current evidence
 does not support changing the committed Pi build flags or claiming >= 24 fps.
 
+## NEON Compare Probe
+
+A no-NEON build was tested because the active unpack loops are LUT-heavy and
+spill NEON vectors through scalar lookup arrays. Disabling NEON is not viable.
+
+Probe artifact:
+
+- JSON:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/labs_pi_neon_compare_probe_20260615/neon_compare_probe.json`
+
+| variant | median | finding |
+|---|---:|---|
+| fast flags, NEON on, `FUSED_STRIPE_ROWS=48` | 48.41 ms / 20.65 fps | below target |
+| fast flags, NEON off, `FUSED_STRIPE_ROWS=48` | 58.80 ms / 17.01 fps | much slower |
+
+This rules out a scalar-only build as a recovery path. The remaining work is
+still algorithmic Pass1 reduction, not disabling NEON.
+
 ## Producer-Unpack Decimate Guard
 
 The current source now disables the shared producer ring when either
