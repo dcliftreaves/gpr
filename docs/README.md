@@ -11,6 +11,7 @@ Where to look for what. Last refreshed 2026-06-14.
 | Labs goal and stop criteria | `LABS_READINESS_GOAL.md` |
 | Labs firmware-review burn-down goal | `LABS_FIRMWARE_REVIEW_BURNDOWN_GOAL.md` |
 | Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
+| Mission 1 evidence runbook | `LABS_MISSION1_RUNBOOK.md` |
 | product overview and media paths | `../README.md` |
 | what ships today, by ship class | `SHIP_DECISION.md` |
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |

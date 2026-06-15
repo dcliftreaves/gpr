@@ -49,7 +49,8 @@ real sensor/storage path, or record the specific hardware bottleneck.
 1. Package the proxy-acceptable Pi receipt into the portable target bundle,
    then run or stub the actual firmware handoff receipt. If the camera path
    fails 24 fps, use the existing `FUSED_TIMING_DETAIL` receipt shape to name
-   the specific bottleneck.
+   the specific bottleneck. Use `docs/LABS_MISSION1_RUNBOOK.md` for the exact
+   workflow inputs, artifacts, and pass/block rules.
 2. Continue current-code Pass1/highpass optimization only if the hardware
    receipt shows Pi-side compute remains the limiting factor. A 2026-06-15
    search did not find a separate

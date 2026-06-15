@@ -55,6 +55,7 @@ ownership, and target CI.
 - Pi 5 capture regression note: `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md`
 - Firmware integration contract: `docs/LABS_FIRMWARE_API.md`
 - Artifact bundle contract: `docs/LABS_ARTIFACT_BUNDLE.md`
+- Mission 1 evidence runbook: `docs/LABS_MISSION1_RUNBOOK.md`
 - Target bench requirements: `docs/LABS_TARGET_BENCH.md`
 - CI lane plan: `docs/LABS_CI_PLAN.md`
 - Current readiness review: `docs/LABS_READINESS_REVIEW.md`

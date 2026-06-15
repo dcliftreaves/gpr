@@ -53,6 +53,13 @@ REQUIRED_DOCS = {
         "Camera Handoff Receipt",
         "gpr_labs_camera_handoff_receipt.v1",
     ],
+    "docs/LABS_MISSION1_RUNBOOK.md": [
+        "Required Mission 1 Run",
+        "camera_handoff_receipt.json",
+        "sensor_dma_executed=true",
+        "verdict.firmware_ready=true",
+        "Blocked Criteria",
+    ],
     "docs/LABS_TARGET_BENCH.md": [
         "Current Evidence",
         "Required Target Run",
