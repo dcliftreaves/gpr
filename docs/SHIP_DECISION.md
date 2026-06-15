@@ -184,10 +184,10 @@ so historical run logs still resolve.
 
 - **`ml2_q3_dec2+bibo2x_ane_ml2_q3_dec2_diverse`** — Pi 5 captures at
   half-res (12.5 MP equivalent) via decimation, desktop applies a 2×
-  super-res CNN to restore full resolution. Pi 5 sustained **24.93 fps
-  median** measured 2026-05-26 (100-frame test, USB SSD writes, page
-  cache defeated), but the latest strict 14,400-frame Labs target receipt
-  at commit `0dd6660` is blocked at **19.98 fps median**.
+  super-res CNN to restore full resolution. The latest strict 14,400-frame
+  Labs target receipt at commit `0dd6660` is blocked at **19.98 fps median**.
+  The older **24.93 fps median** May 26 result is historical and currently not
+  reproduced by the cleaned Labs build or historical-doc commit probes.
 - The barnsky-only retrain failed on out-of-distribution content. The
   production UPRESABLE path now uses the diverse BIBO_2x checkpoint and is
   gated as editable raw by Bayer PSNR, not finished-render LPIPS.

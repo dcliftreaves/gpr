@@ -335,7 +335,7 @@ def build_html() -> str:
     pi_mac = parse_pi_mac_bench()
 
     cards = {
-        "Pi capture": "24.93 fps",
+        "Pi capture": "blocked 19.98 fps",
         "Pi SSH loop": "6.08 fps",
         "Pi to Mac sustained": "1.79 fps",
         "USB transfer": "501 MB/s",

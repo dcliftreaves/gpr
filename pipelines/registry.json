@@ -51,7 +51,7 @@
       "use_for": "video"
     },
     "ml2_q3_dec2": {
-      "$doc": "2-level FUSED q=3 with 2x2 decimation. Half-res capture, 1/4 pixels. The Pi 5 sustained-24-fps capture mode (24.93 fps median measured 2026-05-26). Pair with a 2x super-res CNN on the desktop.",
+      "$doc": "2-level FUSED q=3 with 2x2 decimation. Half-res capture, 1/4 pixels. Intended Pi 5 sustained-24-fps capture mode; latest strict Labs receipt is blocked at 19.98 fps median versus the 24 fps target. The older 24.93 fps May 26 result is historical and currently not reproduced. Pair with a 2x super-res CNN on the desktop.",
       "binary": "build-local/bin/test_fused_roundtrip",
       "env": {
         "GPR_INCLUDE_LL": "1",
@@ -364,7 +364,7 @@
       "ship_class": "PREVIEW",
       "use_for": "PREVIEW_LIVE_CODEC_ONLY",
       "$role": "embedded-preview-ml2-no-cnn",
-      "$doc": "Live/camera-back PREVIEW fast path. Uses the same 24.93 fps Pi 5 half-res .gvid capture stream as UPRESABLE, decodes without the q8 offline/refinement CNN, and is protected by tools/test/test_sustained_playback.sh default 24 fps UHD thresholds. This is the speed path, not the highest-quality offline/review PREVIEW route."
+      "$doc": "Live/camera-back PREVIEW fast path. Uses the same Pi 5 half-res .gvid capture stream as UPRESABLE, decodes without the q8 offline/refinement CNN, and is protected by tools/test/test_sustained_playback.sh default 24 fps UHD thresholds. The latest strict capture receipt is blocked at 19.98 fps until the 24 fps target is restored. This is the speed path, not the highest-quality offline/review PREVIEW route."
     },
     "codec=ml2_q3_dec2+cnn=bibo2x_ane_ml2_q3_dec2_diverse+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",
@@ -372,7 +372,7 @@
       "demosaic": "sips_via_gpr_tools",
       "ship_class": "UPRESABLE",
       "use_for": "UPRESABLE",
-      "$role": "UPRESABLE production chain \u2014 half-res Pi 5 capture (24.93 fps sustained) + desktop BIBO_2x super-res \u2192 editable full-res raw DNG/.gpr. Bayer PSNR vs source DNG: 37.85\u201343.78 dB on 4 gate images (2026-05-30). See docs/UPRESABLE_PIPELINE.md."
+      "$role": "UPRESABLE production chain \u2014 half-res Pi 5 capture + desktop BIBO_2x super-res \u2192 editable full-res raw DNG/.gpr. Latest strict Pi capture receipt is blocked at 19.98 fps versus 24 fps target; older 24.93 fps result is historical. Bayer PSNR vs source DNG: 37.85\u201343.78 dB on 4 gate images (2026-05-30). See docs/UPRESABLE_PIPELINE.md."
     },
     "codec=ml2_q3_dec2+cnn=bido4x_ane_ml2_q3_dec2_lpips_detail_lumagrad_w001+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

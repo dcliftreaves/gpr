@@ -3,7 +3,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/dcliftreaves/gpr/ci.yml?branch=master&label=CI&style=flat-square)](https://github.com/dcliftreaves/gpr/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue?style=flat-square)](#license)
 [![STILL smallest](https://img.shields.io/badge/STILL%20smallest-9.80%20MB%20%2F%2050%20MP-2576c4?style=flat-square)](docs/SHIP_DECISION.md)
-[![Pi 5 video](https://img.shields.io/badge/Pi%205%20capture-24.93%20fps%20%2F%2050%20MP-1a5fb4?style=flat-square)](docs/VIDEO_STATUS.md)
+[![Pi 5 video](https://img.shields.io/badge/Pi%205%20capture-blocked%2019.98%20fps%20%2F%2024%20target-b04a1d?style=flat-square)](docs/VIDEO_STATUS.md)
 [![Spec](https://img.shields.io/badge/built%20on-SMPTE%20ST%202073%20(VC--5)-555?style=flat-square)](docs/SPEC.md)
 
 GPR is an open raw Bayer media suite for stills, raw video, review renders, and

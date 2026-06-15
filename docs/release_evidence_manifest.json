@@ -424,7 +424,7 @@
       "blocked_by": [
         "fps_throughput_limit"
       ],
-      "reason": "Latest strict 10 minute Pi 5 Labs target receipt at commit 0dd6660 validates .gvid, drops, memory, and interruption recovery, but misses the 24 fps target. Historical 2026-05-26 receipt reached 24.93 fps and now needs regression analysis against the current build/config.",
+      "reason": "Latest strict 10 minute Pi 5 Labs target receipt at commit 0dd6660 validates .gvid, drops, memory, and interruption recovery, but misses the 24 fps target. Follow-up probes on current and historical-doc commits do not reproduce the historical 24.93 fps result; best tested current knob is 22.53 fps median, so the path remains blocked pending hot-path optimization or recovery of the original downstream worktree.",
       "docs": [
         "README.md",
         "docs/VIDEO_STATUS.md",

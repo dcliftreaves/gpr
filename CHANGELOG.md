@@ -7,17 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [2.2.0] — 2026-05-30
 
 The 2.2 release adds a fourth ship class — **UPRESABLE** — that turns the
-Pi 5's 24.93 fps half-res capture into editable full-res raw via a desktop
+historical Pi 5 half-res capture path into editable full-res raw via a desktop
 BIBO_2x super-res CNN. All four ship classes (STILL / VIDEO_FREEZE /
 PREVIEW / UPRESABLE) pass their gate thresholds on the test set. Follows
 v2.1.0-fused (FUSED real-time video codec, NEON Pi 5 optimizations,
 gpr2prores, GPRaw container, FFmpeg patch).
 
+Note for current `master`: later strict Labs target receipts block the Pi 5
+half-res capture path at 19.98 fps median versus the 24 fps target. The older
+24.93 fps number in this release section is historical.
+
 ### Added
 
 - **UPRESABLE ship class** (`tests/quality_gates/gates.json`,
   `pipelines/registry.json`). Workflow: Pi 5 captures half-res
-  `ml2_q3_dec2` (24.93 fps sustained, 0.98 MB/frame); desktop M3 decodes,
+  `ml2_q3_dec2` (historical 24.93 fps receipt, 0.98 MB/frame); desktop M3 decodes,
   runs `bibo2x_ane_ml2_q3_dec2_diverse` super-res CNN on MPS, wraps as
   editable DNG (91 MB) + compressed `.gpr` (2–8 MB), and renders
   ProRes 422 HQ for review. Bayer PSNR vs source DNG: 37.85–43.78 dB

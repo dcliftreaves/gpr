@@ -59,10 +59,10 @@ ownership, and target CI.
 
 ## Next Required Evidence
 
-1. Restore the half-res Pi 5 path to >= 24 fps or narrow the regression from
-   the historical 24.93 fps receipt to a specific code/configuration cause. The
-   current variant probe did not recover target throughput and found producer
-   unpack unstable.
+1. Restore the half-res Pi 5 path to >= 24 fps. Follow-up probes narrowed the
+   historical 24.93 fps receipt to a non-reproduced result: current and
+   historical-doc commits both run below target today, producer unpack is
+   unstable, and the best current runtime knob reaches 22.53 fps median.
 2. Package a portable artifact bundle with checksums and verification steps.
 3. Add or document CI lanes for hosted source checks and target/self-hosted
    media checks.

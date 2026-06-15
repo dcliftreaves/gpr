@@ -27,11 +27,13 @@ BENCH="${BENCH:-$REPO/build/source/app/bench_fused/bench_fused}"
 FIXTURE_DIR="${FIXTURE_DIR:-/mnt/ssd}"
 NFRAMES="${NFRAMES:-30}"
 
-# Baseline fps thresholds — locked from a clean Pi 5 @ 2.7 GHz OC + V90/SSD.
+# Baseline fps thresholds — locked from target expectations. The historical
+# 50MP_DEC2 run reached 24.93 fps, but the current strict Labs receipt is
+# blocked below target; keep this test's threshold at the production target.
 # Margin: assert ≥ 0.8 × measured baseline so jitter doesn't trip the test.
 # `_FPS` is the locked baseline; `_THR` is the threshold (80% of baseline).
 declare -A FPS_BASELINE=(
-    [2K]=290       [UHD]=85     [4K]=80     [13MP]=55   [50MP]=16   [50MP_DEC2]=24.93
+    [2K]=290       [UHD]=85     [4K]=80     [13MP]=55   [50MP]=16   [50MP_DEC2]=24.00
 )
 declare -A FPS_THRESHOLD=(
     [2K]=232       [UHD]=68     [4K]=64     [13MP]=44   [50MP]=12   [50MP_DEC2]=24

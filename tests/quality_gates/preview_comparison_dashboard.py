@@ -80,7 +80,8 @@ def main():
     parts.append(
         '<div class="subtitle">'
         "All three variants decode the same <code>ml2_q3_dec2</code> half-res "
-        "capture (1.30 MB/frame at 24.93 fps on Pi 5). What differs is the "
+        "capture (1.30 MB/frame; latest strict Pi 5 receipt is blocked at "
+        "19.98 fps versus the 24 fps target). What differs is the "
         "decode-time treatment. PREVIEW gate ceilings: "
         f"LPIPS ≤ {PREVIEW_CEILINGS['lpips']}, MS-SSIM ≥ {PREVIEW_CEILINGS['ms_ssim']}, "
         f"Y-PSNR ≥ {PREVIEW_CEILINGS['y_psnr']}, ΔE ≤ {PREVIEW_CEILINGS['delta_e']}."
@@ -167,7 +168,8 @@ def main():
         "Restormer-as-decoder, exposure aug), the cnn=none baseline at 0.31 worst "
         "LPIPS is the realistic floor without a different architecture family. "
         "Shipping <code>cnn=none + bicubic</code> as the honest PREVIEW placeholder "
-        "is the pragmatic move; the codec capture at 24.93 fps still works."
+        "is the pragmatic move; the codec capture path still needs the current "
+        "Pi 5 throughput blocker fixed."
         "</div>"
     )
 

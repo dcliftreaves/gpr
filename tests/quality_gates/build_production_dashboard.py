@@ -235,8 +235,8 @@ def build_html():
 <div class="grid">
   <div class="card">
     <h4>Capture rate (Pi 5)</h4>
-    <div class="v">24.93 fps</div>
-    <div class="sub">half-res ml2_q3_dec2 sustained, per 2026-05-26 bench</div>
+    <div class="v">19.98 fps</div>
+    <div class="sub">latest strict half-res ml2_q3_dec2 receipt is blocked versus the 24 fps target; 24.93 fps is historical</div>
   </div>
   <div class="card">
     <h4>Editable raw fidelity</h4>
@@ -246,7 +246,7 @@ def build_html():
   <div class="card">
     <h4>End-to-end Pi → Mac (GVID delivery)</h4>
     <div class="v">1.79 fps</div>
-    <div class="sub">M3 Max bottleneck on Stage C (decode + BIBO_2x + encode = 546 ms median). Pi encode 6 fps via SSH-per-frame (24.93 fps in-process). USB rsync 501 MB/s. GVID pack ~8 ms/frame. Per <code>tools/test/bench_pi_to_mac_upresable.sh</code> 2026-05-30.</div>
+    <div class="sub">M3 Max bottleneck on Stage C (decode + BIBO_2x + encode = 546 ms median). Latest strict Pi encode receipt is 19.98 fps in-process versus 24 fps target. USB rsync 501 MB/s. GVID pack ~8 ms/frame. Per <code>tools/test/bench_pi_to_mac_upresable.sh</code> 2026-05-30 plus Labs target receipts.</div>
   </div>
   <div class="card">
     <h4>Banding fix</h4>
@@ -293,7 +293,8 @@ The MP4 above is an H.264 transcode for browser playback (ProRes can't play nati
 sensor → ml2_q3_dec2  →  halfres/&lt;frame&gt;.gpr  →   decode (97 ms via fused_decode_cli)
          (49 ms encode,       (~1–3 MB/frame)    → BIBO_2x CNN on MPS (~435 ms batched)
           0.98 MB/frame,                         → full-res Bayer (8280×5520, uint16)
-          24.93 fps sustained)                   → FUSED encode (~210 ms) → fullres/&lt;frame&gt;.gpr
+          19.98 fps strict receipt;              → FUSED encode (~210 ms) → fullres/&lt;frame&gt;.gpr
+          24 fps target blocked)
                                                  → gvid_pack (~8 ms/frame amortized)
                                                  →&nbsp;&nbsp;upresable.gvid  ← PRIMARY DELIVERABLE
                                                        (neutral GVID stream container)
@@ -325,7 +326,7 @@ OPT-IN (correctness / hand-off):
 <tr><td>STILL gpr_tools q=8</td><td class="num">975.4 ms</td><td class="num">1442.9 ms</td><td class="num">15.43 MB</td><td class="num">1.0</td></tr>
 <tr><td>FREEZE ml2_q3 full-res</td><td class="num">169.7 ms</td><td class="num">439.6 ms</td><td class="num">3.91 MB</td><td class="num">5.9</td></tr>
 <tr><td><b>UPRESABLE CAPTURE</b></td><td class="num"><b>49.4 ms</b></td><td class="num"><b>104.6 ms</b></td><td class="num"><b>0.98 MB</b></td><td class="num"><b>20.2 single-frame</b></td></tr>
-<tr><td><b>UPRESABLE sustained (capture pipeline)</b></td><td class="num">40 ms eff</td><td>—</td><td class="num">0.98 MB</td><td class="num"><b>24.93</b></td></tr>
+<tr><td><b>UPRESABLE sustained (capture pipeline)</b></td><td class="num">50.04 ms strict</td><td>—</td><td class="num">0.98–1.30 MB</td><td class="num"><b>19.98 blocked</b></td></tr>
 </table>
 
 <h2>Editable raw regression (4 gate images, vs source DNG)</h2>
