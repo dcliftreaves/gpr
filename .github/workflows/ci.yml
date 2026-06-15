@@ -61,6 +61,9 @@ jobs:
       - name: Release evidence manifest guard
         run: python3 tools/test/check_release_evidence_manifest.py
 
+      - name: Fused quality table guard
+        run: python3 tools/test/check_fused_quality_tables.py
+
       - name: Production artifact inventory
         # Inventory mode exits 0 when private external artifacts are absent,
         # so hosted CI can exercise the artifact resolver and registry hashing

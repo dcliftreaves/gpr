@@ -336,6 +336,13 @@ the 24 fps capture target. They move payload size and timing slightly, but the
 remaining production gap still requires code-level reduction of the highpass
 path rather than another runtime sweep.
 
+Follow-up source audit found a q11 encoder/decoder table drift: the encoder's
+q11 level-2 highpass divisors were `{48,48,24}`, while the fused decoder still
+used `{24,24,12}`. The q11 decoder table is now fixed, and CI statically
+checks all fused quality rows match. The q11 Pi timing probes above remain
+encode-side throughput evidence, but any q11 decode-quality interpretation
+before this table fix should be treated as superseded.
+
 ## Polynomial Log Probe
 
 `FUSED_LOG_POLYNOMIAL=ON` was remeasured on the Pi 5 stand-in because older
