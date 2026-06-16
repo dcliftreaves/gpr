@@ -35,9 +35,16 @@ plus 4 older HERO10 files that should not be mixed into Mission 1 target
 receipts. `GP017517.GPR` decodes through the current `gpr_tools` GPR->RAW path
 to a 100,663,296 byte Bayer file with SHA-256
 `8ab2a9772cc813b2036e30c122315ae605111ef2c14be6dab004c5de5ad44f03`.
-The current DNG/parameter dump path throws a `dng_exception` on that file, so
-use the RAW extraction for target benches until Mission 1 editable-DNG metadata
-compatibility is fixed.
+The `DNG/` subdirectory contains 40 matching Mission 1 DNG conversions plus
+2 HERO10 DNGs. Those Mission 1 DNGs expose useful sidecar metadata: black level
+16, white level 16383, 16-bit RGGB, JPEG raw compression, four gain-map
+opcodes, and DNG `NoiseProfile`. `GP017517.dng` also decodes to RAW, but it is
+not byte-identical to the camera `.GPR` extraction: 88.2% of pixels match and
+the rest are exactly one count lower, so use camera `.GPR` -> RAW for timing
+receipts and use the DNG sidecar for metadata/noise-profile work. The current
+`gpr_tools` parameter dump and DNG->GPR encode paths still throw
+`dng_exception` on Mission 1 files, so editable-DNG metadata compatibility
+remains a separate fix.
 
 ## Required Mission 1 Run
 
