@@ -22,6 +22,23 @@ That proxy receipt validates 14,400 frames, 0 drops, valid `.gvid`, and
 interrupted-tail recovery at 19.98 fps median. It is enough to continue camera
 integration. It is not a firmware-ready claim.
 
+Actual Mission 1 still `.GPR` source files are available locally at:
+
+```text
+/Volumes/Photos/DavidsPics/gopro_raw/2026-06__GoProM1P/GoProMission1
+```
+
+Inventory receipt:
+`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_source_inventory_20260615/summary.json`.
+The folder contains 40 Mission 1 `.GPR` files at 8192 x 6144, 16-bit RGGB,
+plus 4 older HERO10 files that should not be mixed into Mission 1 target
+receipts. `GP017517.GPR` decodes through the current `gpr_tools` GPR->RAW path
+to a 100,663,296 byte Bayer file with SHA-256
+`8ab2a9772cc813b2036e30c122315ae605111ef2c14be6dab004c5de5ad44f03`.
+The current DNG/parameter dump path throws a `dng_exception` on that file, so
+use the RAW extraction for target benches until Mission 1 editable-DNG metadata
+compatibility is fixed.
+
 ## Required Mission 1 Run
 
 Run `.github/workflows/labs-target.yml` on a self-hosted target runner with the
@@ -44,10 +61,10 @@ gh workflow run labs-target.yml \
   -f scratch_dir=/mnt/ssd/gpr_work/tmp \
   -f frames=14400 \
   -f target_fps=24 \
-  -f source_width=8280 \
-  -f source_height=5520 \
-  -f capture_width=8280 \
-  -f capture_height=5520 \
+  -f source_width=8192 \
+  -f source_height=6144 \
+  -f capture_width=8192 \
+  -f capture_height=6144 \
   -f quality=3 \
   -f pixel_format=4 \
   -f target_name="Mission 1" \
