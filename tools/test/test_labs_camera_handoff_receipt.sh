@@ -14,6 +14,14 @@ GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
 WORK=${WORK:-$GPR_TMPDIR/labs_camera_handoff_smoke}
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
+cleanup() {
+  local status=$?
+  if [ "$status" -eq 0 ] && [ "${GPR_KEEP_TEST_ARTIFACTS:-0}" != "1" ]; then
+    rm -rf "$WORK"
+  fi
+}
+trap cleanup EXIT
+
 rm -rf "$WORK"
 mkdir -p "$WORK"
 
@@ -31,6 +39,11 @@ base = {
         "memory_ownership": "synchronous submit; caller owns input through return",
         "write_path": "bench_fused direct .gvid fwrite",
         "sensor_dma_handoff": {"executed": False},
+        "storage_handoff": {
+            "executed": False,
+            "medium": "target-bench filesystem stand-in",
+            "ownership": "OS/page-cache writeback; not camera firmware DMA",
+        },
     },
     "input_frame": {
         "width": 8280,
@@ -60,14 +73,24 @@ bad = json.loads(json.dumps(base))
 bad["target"] = {"name": "Mission 1", "role": "camera"}
 bad["verdict"]["firmware_ready"] = True
 bad["integration"]["sensor_dma_handoff"]["executed"] = False
+bad["integration"]["storage_handoff"]["executed"] = False
 (root / "bad_promoted_camera.json").write_text(json.dumps(bad, indent=2), encoding="utf-8")
 
 blocked_camera = json.loads(json.dumps(base))
 blocked_camera["target"] = {"name": "Mission 1", "role": "camera"}
 blocked_camera["integration"]["frame_source"] = "sensor DMA"
 blocked_camera["integration"]["sensor_dma_handoff"]["executed"] = True
+blocked_camera["integration"]["storage_handoff"] = {
+    "executed": False,
+    "medium": "Mission 1 SD path",
+    "ownership": "firmware writer not yet integrated",
+}
 blocked_camera["blocker"] = {"cause": "storage path below target fps"}
 (root / "blocked_camera_ok.json").write_text(json.dumps(blocked_camera, indent=2), encoding="utf-8")
+
+bad_missing_storage = json.loads(json.dumps(blocked_camera))
+del bad_missing_storage["integration"]["storage_handoff"]
+(root / "bad_missing_storage_handoff.json").write_text(json.dumps(bad_missing_storage, indent=2), encoding="utf-8")
 PY
 
 "$PYTHON_BIN" "$REPO/tools/check_labs_camera_handoff_receipt.py" "$WORK/standin_ok.json"
@@ -79,6 +102,12 @@ if "$PYTHON_BIN" "$REPO/tools/check_labs_camera_handoff_receipt.py" "$WORK/bad_p
 fi
 grep -q "firmware-ready receipt" "$WORK/bad.log"
 
+if "$PYTHON_BIN" "$REPO/tools/check_labs_camera_handoff_receipt.py" "$WORK/bad_missing_storage_handoff.json" > "$WORK/bad_storage.log" 2>&1; then
+  echo "test_labs_camera_handoff_receipt: expected camera receipt without storage handoff to fail" >&2
+  exit 1
+fi
+grep -q "storage_handoff" "$WORK/bad_storage.log"
+
 target_bench="$WORK/labs_target_bench.json"
 "$PYTHON_BIN" - "$target_bench" <<'PY'
 import json
@@ -87,8 +116,23 @@ from pathlib import Path
 
 Path(sys.argv[1]).write_text(json.dumps({
     "repo_commit": "synthetic",
+    "source_provenance": {
+        "available": True,
+        "policy": "source_tree_digest_v1",
+        "root": "/tmp/synthetic_source_snapshot",
+        "sha256": "2" * 64,
+        "file_count": 3,
+        "total_bytes": 128,
+        "included_roots": ["CMakeLists.txt", "source", "tools"],
+        "git": {"available": False, "root": None, "head": None, "dirty": False, "status_short": []},
+    },
     "created_utc": "2026-06-15T00:00:00Z",
-    "target": {"name": "Pi 5 / Mission 1 stand-in", "fps": 24.0},
+    "target": {
+        "name": "Pi 5 / Mission 1 stand-in",
+        "fps": 24.0,
+        "actual_wall_fps": 22.0,
+        "actual_wall_s": 5.45,
+    },
     "capture": {
         "source_width": 8280,
         "source_height": 5520,
@@ -97,13 +141,15 @@ Path(sys.argv[1]).write_text(json.dumps({
         "frames_written": 120,
         "dropped_frames": 0,
     },
-    "timing": {"n": 120, "fps_median": 20.0, "median_ms": 50.0, "p95_ms": 60.0, "p99_ms": 70.0},
+    "timing": {"n": 120, "fps_median": 25.0, "median_ms": 40.0, "p95_ms": 60.0, "p99_ms": 70.0},
     "storage": {"write_MBps_wall": 17.0, "fsync_policy": "synthetic"},
     "memory": {"bench_child_maxrss_kb": 140800},
     "gvid": {"sha256": "1" * 64, "validation": {"valid": True, "frame_count": 120}},
     "interruption_recovery": {"validator_rejects_truncated": True, "complete_frames_recovered": 119},
     "verdict": {
         "fps_target_met": False,
+        "fps_median_target_met": True,
+        "fps_wall_target_met": False,
         "no_drops": True,
         "gvid_valid": True,
         "interruption_recovery_proven": True,
@@ -119,5 +165,21 @@ PY
   --target-fps 24 \
   --blocker-cause "synthetic target below 24 fps"
 "$PYTHON_BIN" "$REPO/tools/check_labs_camera_handoff_receipt.py" "$WORK/converted_standin.json"
+"$PYTHON_BIN" - "$WORK/converted_standin.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+receipt = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert receipt["timing"]["fps_median"] == 25.0
+assert receipt["timing"]["actual_wall_fps"] == 22.0
+assert receipt["verdict"]["fps_median_target_met"] is True
+assert receipt["verdict"]["fps_wall_target_met"] is False
+assert receipt["verdict"]["fps_target_met"] is False
+assert receipt["integration"]["storage_handoff"]["executed"] is False
+assert "stand-in" in receipt["integration"]["storage_handoff"]["medium"]
+assert receipt["source_provenance"]["available"] is True
+assert receipt["source_provenance"]["sha256"] == "2" * 64
+PY
 
 echo "test_labs_camera_handoff_receipt: PASS"

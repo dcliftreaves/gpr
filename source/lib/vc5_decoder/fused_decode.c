@@ -98,6 +98,33 @@ static const QUANT *get_quant_table(int quality)
     return qt;
 }
 
+static void fused_scale_pixels(PIXEL *p, size_t n, int scale)
+{
+    if (!p || scale == 1) return;
+    for (size_t i = 0; i < n; i++) {
+        p[i] *= scale;
+    }
+}
+
+static int fused_ll_extra_divisor(int levels)
+{
+    if (levels == 2) {
+        const char *env = getenv("FUSED_LL2_DIVISOR");
+        if (env && *env) {
+            int v = atoi(env);
+            if (v >= 1 && v <= 64) return v;
+        }
+    }
+    if (levels == 3) {
+        const char *env = getenv("FUSED_LL3_DIVISOR");
+        if (env && *env) {
+            int v = atoi(env);
+            if (v >= 1 && v <= 64) return v;
+        }
+    }
+    return 16;
+}
+
 /* Allocator wrapper for the decoder primitives. They expect a
    gpr_allocator* — provide one backed by libc malloc. */
 static void *fd_alloc(size_t n) { return malloc(n); }
@@ -148,6 +175,7 @@ typedef struct {
     PIXEL *ll, *lh, *hl, *hh;
     PIXEL *out_channel;
     int bw, bh, ch_w, ch_h;
+    int descale;
     QUANT *q;
     CODEC_ERROR err;
 } FUSED_INV_TASK;
@@ -302,6 +330,7 @@ typedef struct {
     const uint32_t *band_sizes;     /* 4 sizes */
     PIXEL *out[4];
     int bw, bh;
+    int raw_band_mask;
 } FUSED_BAND_TASK;
 
 typedef struct {
@@ -317,6 +346,9 @@ typedef struct {
     int l2_hp_mask;
     int rc;
 } FUSED_LEVEL2_BAND_TASK;
+
+#define FUSED_RAW_LL_MAGIC 0x314C4C46u  /* "FLL1", little-endian */
+#define FUSED_PRED_LL_MAGIC 0x324C4C46u /* "FLL2", little-endian */
 
 /* HP-synth per-channel task. Hoisted to file scope (was a GCC nested
    function inside decode_fused_single_level_ll — clang doesn't support
@@ -339,6 +371,82 @@ static void synthesize_hp_bandpass_band(const PIXEL *LL,
                                         double sigma_pct,
                                         uint32_t seed,
                                         double dq_lh, double dq_hl, double dq_hh);
+
+typedef struct {
+    const uint8_t *buf;
+    size_t size;
+    size_t pos;
+    uint64_t acc;
+    int bits;
+} FUSED_LL_BITREADER;
+
+static int fused_ll_br_get_bit(FUSED_LL_BITREADER *br, uint32_t *bit)
+{
+    if (br->bits == 0) {
+        if (br->pos >= br->size) return -1;
+        br->acc = br->buf[br->pos++];
+        br->bits = 8;
+    }
+    *bit = (uint32_t)(br->acc & 1u);
+    br->acc >>= 1;
+    br->bits--;
+    return 0;
+}
+
+static int fused_ll_br_get_bits(FUSED_LL_BITREADER *br, int bits, uint32_t *value)
+{
+    uint32_t out = 0;
+    for (int i = 0; i < bits; i++) {
+        uint32_t bit = 0;
+        if (fused_ll_br_get_bit(br, &bit) != 0) return -1;
+        out |= bit << i;
+    }
+    *value = out;
+    return 0;
+}
+
+static int fused_read_pred_ll_band(const uint8_t *src, size_t size,
+                                   PIXEL *dst, int width, int height)
+{
+    if (!src || !dst || size < 16 || width <= 0 || height <= 0) return -1;
+    uint32_t meta = 0, enc_w = 0, enc_h = 0;
+    memcpy(&meta, src + 4, sizeof(meta));
+    memcpy(&enc_w, src + 8, sizeof(enc_w));
+    memcpy(&enc_h, src + 12, sizeof(enc_h));
+    int rice_k = (int)(meta & 0xffu);
+    int predictor = (int)((meta >> 8) & 0xffu);
+    if ((predictor != 0 && predictor != 1) || rice_k < 0 || rice_k > 15) return -1;
+    if ((int)enc_w != width || (int)enc_h != height) return -1;
+
+    FUSED_LL_BITREADER br = { src + 16, size - 16, 0, 0, 0 };
+    for (int y = 0; y < height; y++) {
+        PIXEL *row = dst + (size_t)y * (size_t)width;
+        const PIXEL *prev = (y > 0) ? (dst + (size_t)(y - 1) * (size_t)width) : NULL;
+        int32_t left = 0;
+        for (int x = 0; x < width; x++) {
+            uint32_t q = 0;
+            for (;;) {
+                uint32_t bit = 0;
+                if (fused_ll_br_get_bit(&br, &bit) != 0) return -1;
+                if (!bit) break;
+                q++;
+                if (q > 0x1ffffu) return -1;
+            }
+            uint32_t r = 0;
+            if (rice_k > 0 && fused_ll_br_get_bits(&br, rice_k, &r) != 0) return -1;
+            uint32_t zz = (q << rice_k) | r;
+            int32_t residual = (int32_t)((zz >> 1) ^ (uint32_t)-(int32_t)(zz & 1u));
+            int32_t up = prev ? prev[x] : left;
+            int32_t pred = (predictor == 1) ? ((left + up) >> 1) : left;
+            int32_t v = pred + residual;
+            if (v < 0) v = 0;
+            if (v > 65535) v = 65535;
+            row[x] = (PIXEL)v;
+            left = v;
+        }
+    }
+    return 0;
+}
 
 static void *hp_synth_runner(void *arg) {
     HP_SYNTH_TASK *t = (HP_SYNTH_TASK *)arg;
@@ -366,15 +474,42 @@ extern int gpr_decode_fused_stream(PIXEL *bands[4][4],
                                    int log_max, int midpoint, int shift, int is_rggb,
                                    const uint16_t *log_table,
                                    uint8_t *bayer_out, size_t bayer_pitch_bytes,
+                                   int descale,
                                    int hp_zero);
 
 static void *fused_band_decode_runner(void *arg) {
     FUSED_BAND_TASK *t = (FUSED_BAND_TASK *)arg;
     size_t off = 0;
+    t->raw_band_mask = 0;
     for (int s = 0; s < 4; s++) {
         uint32_t sz = t->band_sizes[s];
         if (sz < 64) {
             memset(t->out[s], 0, (size_t)t->bw * t->bh * sizeof(PIXEL));
+        } else if (sz >= sizeof(uint32_t)) {
+            uint32_t magic = 0;
+            memcpy(&magic, t->enc_start + off, sizeof(magic));
+            if (magic == FUSED_RAW_LL_MAGIC) {
+                size_t n = (size_t)t->bw * (size_t)t->bh;
+                size_t need = sizeof(uint32_t) + n * sizeof(uint16_t);
+                if (sz >= need) {
+                    const uint16_t *src = (const uint16_t *)(t->enc_start + off + sizeof(uint32_t));
+                    for (size_t i = 0; i < n; i++) t->out[s][i] = (PIXEL)src[i];
+                    t->raw_band_mask |= (1 << s);
+                } else {
+                    memset(t->out[s], 0, n * sizeof(PIXEL));
+                }
+            } else if (magic == FUSED_PRED_LL_MAGIC) {
+                if (fused_read_pred_ll_band(t->enc_start + off, sz,
+                                            t->out[s], t->bw, t->bh) == 0) {
+                    t->raw_band_mask |= (1 << s);
+                } else {
+                    memset(t->out[s], 0, (size_t)t->bw * t->bh * sizeof(PIXEL));
+                }
+            } else {
+                int drc = jans_decode_band_x4(t->enc_start + off, sz, t->out[s],
+                                              t->bw, t->bh, t->bw * (int)sizeof(PIXEL));
+                if (drc != 0) memset(t->out[s], 0, (size_t)t->bw * t->bh * sizeof(PIXEL));
+            }
         } else {
             int drc = jans_decode_band_x4(t->enc_start + off, sz, t->out[s],
                                           t->bw, t->bh, t->bw * (int)sizeof(PIXEL));
@@ -761,15 +896,27 @@ static void synthesize_hp_bandpass_band(const PIXEL *LL,
 static void *fused_inv_wavelet_runner(void *arg) {
     FUSED_INV_TASK *t = (FUSED_INV_TASK *)arg;
     gpr_allocator alloc = { fd_alloc, fd_free };
-    t->err = InvertSpatialQuantDescale16s(&alloc,
-        t->ll, t->bw * (int)sizeof(PIXEL),
-        t->lh, t->bw * (int)sizeof(PIXEL),
-        t->hl, t->bw * (int)sizeof(PIXEL),
-        t->hh, t->bw * (int)sizeof(PIXEL),
-        t->out_channel, t->ch_w * (int)sizeof(PIXEL),
-        (DIMENSION)t->bw, (DIMENSION)t->bh,
-        (DIMENSION)t->ch_w, (DIMENSION)t->ch_h,
-        /*descale=*/2, t->q);
+    if (t->descale == 0) {
+        t->err = InvertSpatialQuant16s(&alloc,
+            t->ll, t->bw * (int)sizeof(PIXEL),
+            t->lh, t->bw * (int)sizeof(PIXEL),
+            t->hl, t->bw * (int)sizeof(PIXEL),
+            t->hh, t->bw * (int)sizeof(PIXEL),
+            t->out_channel, t->ch_w * (int)sizeof(PIXEL),
+            (DIMENSION)t->bw, (DIMENSION)t->bh,
+            (DIMENSION)t->ch_w, (DIMENSION)t->ch_h,
+            t->q);
+    } else {
+        t->err = InvertSpatialQuantDescale16s(&alloc,
+            t->ll, t->bw * (int)sizeof(PIXEL),
+            t->lh, t->bw * (int)sizeof(PIXEL),
+            t->hl, t->bw * (int)sizeof(PIXEL),
+            t->hh, t->bw * (int)sizeof(PIXEL),
+            t->out_channel, t->ch_w * (int)sizeof(PIXEL),
+            (DIMENSION)t->bw, (DIMENSION)t->bh,
+            (DIMENSION)t->ch_w, (DIMENSION)t->ch_h,
+            t->descale, t->q);
+    }
     return NULL;
 }
 
@@ -991,15 +1138,35 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
 
         /* Manually dequantize the deepest LL band (the inverse function
            only dequantizes LH/HL/HH; LL gets passed straight through).
-           Encoder used qt[0] * EXTRA_DIVISOR to keep deepest-LL mag under
-           rANS class-15 ceiling. Same factor (16) for LL2 (2-level) and
-           LL3 (3-level). */
-        #define FUSED_LL_EXTRA_DIVISOR 16
+           rANS class-15 ceiling. LL2 can be lowered for native-12MP quality
+           experiments through FUSED_LL2_DIVISOR; LL3 remains fixed at 16 for
+           existing three-level streams. */
         #define FUSED_LL3_EXTRA_DIVISOR 16  /* kept for back-compat string */
-        int ll_dequant = qt[0] * FUSED_LL_EXTRA_DIVISOR;
+        int ll_dequant = qt[0] * fused_ll_extra_divisor(levels);
         int deepest_slot = (levels == 2) ? 6 : 9;
         int deepest_bw = (levels == 2) ? bw2 : bw3;
         int deepest_bh = (levels == 2) ? bh2 : bh3;
+#ifdef GPR_DEBUG_COEFF_IO
+        {
+            const char *_dump_quant_dir = getenv("GPR_DUMP_DECODE_QUANT_COEFFS");
+            if (_dump_quant_dir && *_dump_quant_dir) {
+                for (int ch = 0; ch < 4; ch++) {
+                    for (int s = 0; s <= deepest_slot; s++) {
+                        if (!bands[ch][s]) continue;
+                        char path[1024];
+                        snprintf(path, sizeof(path), "%s/ch%d_s%d_w%d_h%d.s32",
+                                 _dump_quant_dir, ch, s, slot_w[s], slot_h[s]);
+                        FILE *f = fopen(path, "wb");
+                        if (f) {
+                            size_t n = (size_t)slot_w[s] * (size_t)slot_h[s];
+                            fwrite(bands[ch][s], sizeof(PIXEL), n, f);
+                            fclose(f);
+                        }
+                    }
+                }
+            }
+        }
+#endif /* GPR_DEBUG_COEFF_IO */
         double dt_ll0 = _decode_ms();
         for (int ch = 0; ch < 4; ch++) {
             PIXEL *p = bands[ch][deepest_slot];
@@ -1096,6 +1263,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
                                                        log_max, midpoint, shift, is_rggb,
                                                        log_table,
                                                        (uint8_t *)bayer_out, bayer_pitch_bytes,
+                                                       2,
                                                        l2_hp_mask == 0);
                     if (frc != 0) rc = -30;
                     if (dbg_timing) fprintf(stderr, "  decode fused_stream_l2: %.1f ms\n",
@@ -1152,11 +1320,20 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
                (mirroring the encoder's prescale=2 at every level). Override
                via FUSED_INVERSE_DESCALE="l1,l2,l3" for experimentation. */
             const char *_dsenv = getenv("FUSED_INVERSE_DESCALE");
-            int ds_l1 = 2, ds_l2 = 2, ds_l3 = 2;
+            int ds_l1 = (int)hdr.prescale, ds_l2 = 2, ds_l3 = 2;
             if (_dsenv && *_dsenv) {
                 int a = 0, b = 0, c = 0;
                 if (sscanf(_dsenv, "%d,%d,%d", &a, &b, &c) == 3) {
                     ds_l1 = a; ds_l2 = b; ds_l3 = c;
+                }
+            }
+            const char *_isenv = getenv("FUSED_INTERLEVEL_SCALE");
+            int scale_l3_to_l2 = 1, scale_l2_to_l1 = 1;
+            if (_isenv && *_isenv) {
+                int a = 1, b = 1;
+                if (sscanf(_isenv, "%d,%d", &a, &b) == 2) {
+                    if (a >= 1 && a <= 16) scale_l3_to_l2 = a;
+                    if (b >= 1 && b <= 16) scale_l2_to_l1 = b;
                 }
             }
 
@@ -1176,6 +1353,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
                     (DIMENSION)bw2, (DIMENSION)bh2,
                     /*descale=*/ds_l3, q_l3);
                 if (e != CODEC_ERROR_OKAY) { free(ll2); rc = -21; break; }
+                fused_scale_pixels(ll2, (size_t)bw2 * (size_t)bh2, scale_l3_to_l2);
             } else {
                 /* 2-level: LL2 is read directly from bands[ch][6]. We need
                    to PASS THROUGH that pointer as-is, but the function
@@ -1200,6 +1378,7 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
                 /*descale=*/ds_l2, q_l2);
             free(ll2);
             if (e != CODEC_ERROR_OKAY) { free(ll1); rc = -23; break; }
+            fused_scale_pixels(ll1, (size_t)bw1 * (size_t)bh1, scale_l2_to_l1);
 
             if (half_res) {
                 /* Half-res output: LL1 is the channel. Skip level-1 inverse,
@@ -1241,6 +1420,23 @@ static int gpr_decode_fused_impl(const uint8_t *enc, size_t enc_size,
     int chan_w = half_res ? bw1 : ch_w;
     int chan_h = half_res ? bh1 : ch_h;
     if (rc == 0) {
+        {
+            const char *_dump_channels = getenv("GPR_DUMP_DECODE_CHANNELS");
+            if (_dump_channels && *_dump_channels) {
+                for (int ch = 0; ch < 4; ch++) {
+                    if (!channels[ch]) continue;
+                    char path[1024];
+                    snprintf(path, sizeof(path), "%s/ch%d_w%d_h%d.s32",
+                             _dump_channels, ch, chan_w, chan_h);
+                    FILE *f = fopen(path, "wb");
+                    if (f) {
+                        fwrite(channels[ch], sizeof(PIXEL),
+                               (size_t)chan_w * (size_t)chan_h, f);
+                        fclose(f);
+                    }
+                }
+            }
+        }
         double dt_color0 = _decode_ms();
         int log_max  = (1 << (int)hdr.log_bits) - 1;
         int midpoint = 1 << ((int)hdr.log_bits - 1);
@@ -1384,6 +1580,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
         bt[ch].band_sizes = &band_sizes[ch * 4];
         bt[ch].bw = bw;
         bt[ch].bh = bh;
+        bt[ch].raw_band_mask = 0;
         for (int s = 0; s < 4; s++) {
             bands[ch][s] = fd_arena.band[ch][s];   /* reused from TLS arena */
             bt[ch].out[s] = bands[ch][s];
@@ -1500,15 +1697,25 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
                 fprintf(stderr, "  decode hp_synth: %.1f ms\n", _decode_ms() - dt_hp);
         }
 
-        /* The encoder divides single-level LL by 16× the natural quant to
+        /* The encoder normally divides single-level LL by 16× the natural quant to
            keep magnitudes under the rANS class-15 ceiling (matches the
            multi-level LL3 trick). Pre-multiply LL bands to undo that.
+           Raw-LL sideband streams are self-describing and already carry the
+           dequantized LL coefficients, so those bands must not be scaled.
            NEON 4-wide; ~4× faster than scalar on Pi 5 (4 cores × NEON pipes
            give plenty of throughput; on M1 the scalar loop is bound by
            memory bandwidth so the speedup is smaller). */
-        const int ll_extra = 16;
+        int ll_extra = 16;
+        {
+            const char *e = getenv("FUSED_LL1_DIVISOR");
+            if (e && *e) {
+                int v = atoi(e);
+                if (v >= 1 && v <= 64) ll_extra = v;
+            }
+        }
         const int ll_dequant = qt[0] * ll_extra;
         for (int ch = 0; ch < 4; ch++) {
+            if (bt[ch].raw_band_mask & 1) continue;
             PIXEL *p = bands[ch][0];
             if (!p) continue;
             size_t n = (size_t)bw * bh;
@@ -1589,6 +1796,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
                                                log_max, midpoint, shift, is_rggb,
                                                log_table,
                                                (uint8_t *)bayer_out, bayer_pitch_bytes,
+                                               (int)hdr->prescale,
                                                hp_zero);
             if (frc != 0) rc = -30;
             if (dbg_timing) fprintf(stderr, "  decode fused_stream: %.1f ms\n",
@@ -1606,6 +1814,14 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
         FUSED_INV_TASK tasks[4];
         pthread_t threads[4];
         int created[4] = {0};
+        int single_descale = (int)hdr->prescale;
+        {
+            const char *e = getenv("FUSED_SINGLE_INVERSE_DESCALE");
+            if (e && *e) {
+                int v = atoi(e);
+                if (v >= 0 && v <= 4) single_descale = v;
+            }
+        }
         for (int ch = 0; ch < 4 && rc == 0; ch++) {
             channels[ch] = fd_arena.chan[ch];   /* reused from TLS arena */
             if (!channels[ch]) { rc = -24; break; }
@@ -1618,6 +1834,7 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
             tasks[ch].bh = bh;
             tasks[ch].ch_w = ch_w;
             tasks[ch].ch_h = ch_h;
+            tasks[ch].descale = single_descale;
             tasks[ch].q = q_l1;
             tasks[ch].err = CODEC_ERROR_OKAY;
         }
@@ -1639,6 +1856,24 @@ static int decode_fused_single_level_ll(const FUSED_HEADER *hdr,
     double dt_color0_sl = _decode_ms();
 
     /* Bands stay in the TLS arena for reuse; no per-frame free. */
+
+    {
+        const char *_dump_channels = getenv("GPR_DUMP_DECODE_CHANNELS");
+        if (_dump_channels && *_dump_channels) {
+            for (int ch = 0; ch < 4; ch++) {
+                if (!channels[ch]) continue;
+                char path[1024];
+                snprintf(path, sizeof(path), "%s/ch%d_w%d_h%d.s32",
+                         _dump_channels, ch, ch_w, ch_h);
+                FILE *f = fopen(path, "wb");
+                if (f) {
+                    fwrite(channels[ch], sizeof(PIXEL),
+                           (size_t)ch_w * (size_t)ch_h, f);
+                    fclose(f);
+                }
+            }
+        }
+    }
 
     /* Parallel color transform: split channel rows across 4 threads. Each
        row is independent — output Bayer rows for row y are at 2y, 2y+1. */

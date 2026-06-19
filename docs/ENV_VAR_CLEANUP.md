@@ -32,8 +32,14 @@ toggles that can be removed today.
 | `FUSED_USE_ASM` | fused_encode.c:1148 | Use ARM64 asm path vs C reference | Dev-only. Could be removed (asm should always win on ARM64). |
 | `FUSED_PIN` / `GPR_PIN_AFFINITY` | fused_encode.c:55-56 | Thread affinity hints | Dev-only. |
 | `GPR_DENOISE_AUTO` | gpr.cpp denoise path | Auto-flip wavelet denoise on DNGs with NoiseProfile | **Promote to API**: `gpr_parameters.denoise_auto`. Default to current behavior (1). |
-| `GPR_BENCH_DENOISE`, `GPR_BENCH_NOISE_SCALE`, `GPR_BENCH_NOISE_OFFSET`, `GPR_BENCH_DUMP`, `GPR_BENCH_WRITE_ALL` | bench_fused.c | Benchmark-only knobs in the test app | Keep — bench_fused is a dev tool, not part of the shipped codec. |
+| `GPR_BENCH_DENOISE`, `GPR_BENCH_NOISE_SCALE`, `GPR_BENCH_NOISE_OFFSET`, `GPR_BENCH_DUMP`, `GPR_BENCH_WRITE_ALL`, `GPR_BENCH_GVID_COALESCE_PREFIX` | bench_fused.c | Benchmark-only knobs in the test app | Keep — bench_fused is a dev tool, not part of the shipped codec. `GPR_BENCH_GVID_COALESCE_PREFIX` is a receipt-disambiguated write-layout probe, not a production API. |
 | `Q162_DUMP` | encoder.c (was instrumentation, removed in PR #20) | Per-band coefficient histogram dumper | Removed already; mentioned here so future agents don't reinstate it. |
+
+Rejected target probes:
+
+- `JANS_INLINE_FUSED_HARDT`: fused hard highpass dead-zone thresholding into
+  inline jANS tokenization. It was byte-identical on local/Pi receipts, but
+  slower on Mission 1 12MP Pi A/B runs, so the live env hook was removed.
 
 ## Decoder env vars
 

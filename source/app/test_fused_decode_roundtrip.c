@@ -61,7 +61,9 @@ int main(int argc, char **argv) {
     /* Encode (FUSED_QUALITY env overrides default q=3) */
     const char *q_env = getenv("FUSED_QUALITY");
     int q = (q_env && *q_env) ? atoi(q_env) : 3;
-    FUSED_ENCODER *enc = gpr_encode_fused_create(w, h, 1, q);
+    const char *pf_env = getenv("GPR_BENCH_PIXEL_FORMAT");
+    int pf = (pf_env && *pf_env) ? atoi(pf_env) : 1;
+    FUSED_ENCODER *enc = gpr_encode_fused_create(w, h, pf, q);
     if (!enc) { fprintf(stderr, "create fail\n"); return 1; }
     double t0 = now_ms();
     unsigned char *out = NULL; size_t out_sz = 0;
@@ -138,8 +140,11 @@ int main(int argc, char **argv) {
             sse += d * d;
         }
         double mse = sse / npx;
-        double psnr = 10.0 * log10((65535.0*65535.0) / (mse + 1e-12));
-        fprintf(stderr, "PSNR (full-res): %.2f dB  mse=%.1f\n", psnr, mse);
+        int log_bits = (pf >= 4) ? 16 : 14;
+        double peak = (double)((1 << log_bits) - 1);
+        double psnr = 10.0 * log10((peak * peak) / (mse + 1e-12));
+        fprintf(stderr, "PSNR%d (full-res): %.2f dB  mse=%.1f\n",
+                log_bits, psnr, mse);
     } else {
         fprintf(stderr, "decoded dims %dx%d differ from source %dx%d "
                 "(decimation in effect — full-res PSNR not meaningful; "

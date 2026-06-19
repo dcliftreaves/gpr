@@ -94,6 +94,7 @@ message(STATUS "FUSED_LOG_POLYNOMIAL: ${FUSED_LOG_POLYNOMIAL}")
 # implies FUSED_TIMING so target receipts include both summary and detail.
 option(FUSED_TIMING "Enable fused encoder stage timing prints" OFF)
 option(FUSED_TIMING_DETAIL "Enable detailed fused encoder channel timing prints" OFF)
+option(JANS_INLINE_PROFILE_RUNTIME "Enable opt-in jANS inline profile receipt lines" OFF)
 if(FUSED_TIMING_DETAIL)
   set(FUSED_TIMING ON CACHE BOOL "Enable fused encoder stage timing prints" FORCE)
 endif()
@@ -103,8 +104,12 @@ endif()
 if(FUSED_TIMING_DETAIL)
   add_compile_definitions(FUSED_TIMING_DETAIL=1)
 endif()
+if(JANS_INLINE_PROFILE_RUNTIME)
+  add_compile_definitions(JANS_INLINE_PROFILE_RUNTIME=1)
+endif()
 message(STATUS "FUSED_TIMING: ${FUSED_TIMING}")
 message(STATUS "FUSED_TIMING_DETAIL: ${FUSED_TIMING_DETAIL}")
+message(STATUS "JANS_INLINE_PROFILE_RUNTIME: ${JANS_INLINE_PROFILE_RUNTIME}")
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(
@@ -228,6 +233,26 @@ target_include_directories(coeff_io_tool PRIVATE
   source/lib/vc5_encoder source/lib/vc5_decoder source/lib/vc5_common)
 target_link_libraries(coeff_io_tool vc5_decoder vc5_encoder vc5_common common m)
 set_target_properties(coeff_io_tool PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(jans_coeff_bench source/app/jans_coeff_bench.c)
+target_include_directories(jans_coeff_bench PRIVATE source/lib/vc5_common)
+target_link_libraries(jans_coeff_bench vc5_common common m)
+set_target_properties(jans_coeff_bench PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+if(NOT WIN32)
+  find_package(Threads REQUIRED)
+  add_executable(bayer_detail_residual_sidecar source/app/bayer_detail_residual_sidecar.c)
+  target_link_libraries(bayer_detail_residual_sidecar m Threads::Threads)
+  set_target_properties(bayer_detail_residual_sidecar PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+endif()
+
+add_executable(test_jans_inline_tail_flush source/app/test_jans_inline_tail_flush.c)
+target_include_directories(test_jans_inline_tail_flush PRIVATE source/lib/vc5_common)
+target_link_libraries(test_jans_inline_tail_flush vc5_common common m)
+set_target_properties(test_jans_inline_tail_flush PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
 
 # Fix byte order detection for Linux ARM64 (from gopro/gpr#53 by mckfarm)

@@ -185,8 +185,8 @@ work landed across 147 commits on the `feature/raw-video` branch.
   4-wide highpass / NEON lowpass horizontal filter, 8-wide zero-skip
   in frequency counting, CLZ-based magnitude classifier, polynomial
   log curve for the unpack stage, and per-band rANS encode unrolled
-  4-way for ILP. Hand-tuned ARM64 assembly for `unpack_all_channels_row`
-  available behind `FUSED_UNPACK_ASM=1` for A78-class silicon.
+  4-way for ILP. The earlier hand-tuned shared-unpack producer path was
+  removed after Pi 5 target receipts showed it regressed timing.
 - **Storage-bus pipeline simulator** (`source/app/test_video_pipeline_sim.c`):
   throttled writer callback with configurable MB/s ceiling and periodic
   GC stalls. Lets the pipeline be validated against UHS-I V30 →

@@ -445,13 +445,12 @@ active Pass1/highpass path, or change the capture-side algorithm.
 
 ## Producer-Unpack Decimate Guard
 
-The current source disables the shared producer ring when either
-`GPR_ROW_DECIMATE=2` or `GPR_COL_DECIMATE=2` is active. That turns the formerly
-corrupting `FUSED_PRODUCER_UNPACK=1` + decimated-capture combination into a
-safe fallback to the normal per-channel unpack path. A CI smoke test now covers
-byte identity for that fallback on a small raw fixture:
-
-- `tools/test/test_producer_unpack_decimate_fallback.sh`
+Historical note: an earlier source revision disabled the shared producer ring
+when either `GPR_ROW_DECIMATE=2` or `GPR_COL_DECIMATE=2` was active. Later Pi 5
+target receipts showed the producer path regressed timing even when guarded, so
+the producer ring and its fallback CI smoke were removed from the production
+source. The preserved receipt below remains useful only as a record of the old
+guard behavior.
 
 Pi guard receipt:
 

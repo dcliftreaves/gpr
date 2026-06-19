@@ -17,6 +17,7 @@
  *
  * Env vars consumed:
  *   FUSED_QUALITY, FUSED_MULTI_LEVEL, FUSED_WAVELET_LEVELS,
+ *   GPR_BENCH_PIXEL_FORMAT,
  *   GPR_COL_DECIMATE, GPR_ROW_DECIMATE,
  *   GPR_INCLUDE_LL, GPR_DUMP_COEFFS, GPR_LOAD_COEFFS.
  */
@@ -59,7 +60,9 @@ int main(int argc, char **argv) {
        Declarations come from fused_encode.h. */
     struct timespec t_enc_start, t_enc_end, t_dec_start, t_dec_end;
     clock_gettime(CLOCK_MONOTONIC, &t_enc_start);
-    FUSED_ENCODER *eh = gpr_encode_fused_create(w, h, /*pf=*/1, q);
+    const char *pf_env = getenv("GPR_BENCH_PIXEL_FORMAT");
+    int pf = pf_env && *pf_env ? atoi(pf_env) : 1;
+    FUSED_ENCODER *eh = gpr_encode_fused_create(w, h, pf, q);
     if (!eh) { fprintf(stderr, "encoder create failed\n"); return 5; }
     unsigned char *enc = NULL; size_t enc_sz = 0;
     int rc = gpr_encode_fused_frame(eh, raw, sz, &enc, &enc_sz);

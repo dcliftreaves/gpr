@@ -80,7 +80,9 @@ jobs:
         # so hosted CI can exercise the artifact resolver and registry hashing
         # path without mounting /Volumes/OWC_8TB/gpr_work. Release promotion
         # still requires the strict local check.
-        run: python3 tools/verify_production_artifacts.py
+        run: |
+          python3 tools/verify_production_artifacts.py
+          python3 tools/test/test_verify_production_artifacts.py
 
       - name: Release manifest artifact inventory
         # Inventory mode exits 0 when external dashboards/media/checkpoints are
@@ -243,9 +245,6 @@ jobs:
       - name: Run test_video_encoder_abort
         run: timeout 60 /tmp/gpr-tests/test_video_encoder_abort
 
-      - name: Run producer-unpack decimate fallback smoke
-        run: timeout 60 bash tools/test/test_producer_unpack_decimate_fallback.sh
-
       - name: Run fused context env capture smoke
         run: timeout 60 bash tools/test/test_fused_context_env_capture.sh
 
@@ -357,7 +356,9 @@ jobs:
         # Verifies that raw-resolution helper code preserves the CFA plane
         # contract for 2K/0.5x Bayer downsampling and that the bounded
         # live PREVIEW display policy stays tied to the 2K L2 HH target.
-        run: python3 tools/test/test_raw_resolution_targets.py
+        run: |
+          python3 tools/test/test_raw_resolution_targets.py
+          python3 tools/test/test_bayer_resample.py
 
       - name: Run live PREVIEW policy materialization
         # Cheap standalone contract check for the committed live-preview
@@ -382,7 +383,21 @@ jobs:
           bash tools/test/test_labs_bundle_builder.sh
           bash tools/test/test_labs_bundle_verify.sh
           bash tools/test/test_labs_target_bench_smoke.sh
+          bash tools/test/test_analyze_fused_payload.sh
+          bash tools/test/test_render_gvid_sr_registry.sh
+          python3 tools/test/test_native12_sr8k_readiness_audit.py
+          python3 tools/test/test_mission1_sr_production_gap_report.py
+          python3 tools/test/test_decide_mission1_sr_promotion.py
+          python3 tools/test/test_run_mission1_sr_guarded_experiment.py
+          python3 tools/test/test_mission1_native12_sr_frontier_summary.py
+          python3 tools/test/test_mission1_native12_frontier_summary.py
+          python3 tools/test/test_mission1_write_contention_summary.py
+          python3 tools/test/test_mission1_strict24_gap_report.py
+          python3 tools/test/test_mission1_strict24_probe_matrix_summary.py
+          python3 tools/test/test_mission1_sr_pair_codec_profiles.py
+          GPR_TOOLS=build/source/app/gpr_tools/gpr_tools bash tools/test/test_gpr_tools_raw_gpr_roundtrip.sh
           bash tools/test/test_labs_camera_handoff_receipt.sh
+          bash tools/test/test_mission1_native12_fll2_t2_profile.sh
 
       - name: Registry consistency check
         # Surfaces unknown refs, still/video mode mismatches, use_for

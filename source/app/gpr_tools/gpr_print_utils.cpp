@@ -399,7 +399,11 @@ ostream& operator<<(ostream& output, const gpr_profile_info& x)
     
     print_val( output, "illuminant1", x.illuminant1, 0, false );
     
-    print_val( output, "illuminant2", x.illuminant2, 0, true );
+    print_val( output, "illuminant2", x.illuminant2, 0, false );
+
+    print_val( output, "baseline_exposure", x.baseline_exposure, 0, false );
+
+    print_val( output, "analog_balance", x.analog_balance, 3, true );
     
     end_tag( "profile_info", output );
     

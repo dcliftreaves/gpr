@@ -1,38 +1,45 @@
-# GPR docs index
+# GPR Docs Index
 
-Where to look for what. Last refreshed 2026-06-15.
+Where to look for current production status, evidence, and runbooks. Last
+refreshed 2026-06-19.
 
 ## Start here
 
 | if you want to know… | read |
 |---|---|
+| product overview, media, and quick start | `../README.md` |
 | Release readiness and production proof | `RELEASE_READINESS.md` |
-| Labs firmware-prototype intake | `LABS_INTAKE.md` |
-| Labs goal and stop criteria | `LABS_READINESS_GOAL.md` |
-| Labs firmware-review burn-down goal | `LABS_FIRMWARE_REVIEW_BURNDOWN_GOAL.md` |
-| Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
-| Mission 1 evidence runbook | `LABS_MISSION1_RUNBOOK.md` |
-| product overview and media paths | `../README.md` |
 | what ships today, by ship class | `SHIP_DECISION.md` |
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |
-| stills vs video — the two production modes | `SHIP_DECISION.md` (header), `VIDEO_STATUS.md` |
+| video, preview, Mission 1, and SR status | `VIDEO_STATUS.md` |
+| 2K / 4K / 8K raw target ladder | `RAW_RESOLUTION_TARGETS_2026-06-14.md` |
+| UPRESABLE editable raw workflow | `UPRESABLE_PIPELINE.md` |
 | compact production evidence manifest checked by CI | `release_evidence_manifest.json` |
-| how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
-| open work items + archived experiment branches | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
 | where production checkpoints/artifacts live | `PRODUCTION_ARTIFACTS.md` |
-| current live/camera-back PREVIEW policy | `RAW_RESOLUTION_TARGETS_2026-06-14.md`, `VIDEO_STATUS.md`, `../tools/live_preview_policy.py` |
-| PREVIEW runtime no-REF burn-down | `PREVIEW_RUNTIME_POLICY_2026-06-06.md` |
-| PREVIEW scene-router research | `PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md` |
-| Pi 5 encode timing at each q level | `STILLS_PI5_TIMING.md` |
-| Pi 5 Labs target receipt and current regression notes | `LABS_TARGET_BENCH.md`, `LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` |
-| full codec × CNN × verdict matrix | `FULL_PIPELINE_MATRIX.md` |
-| camera-vendor spec contribution framing | `architecture.md`, `format-spec-v2.md`, SPEC.md |
+| how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
+| Labs firmware-prototype intake | `LABS_INTAKE.md` |
+| Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
+| Mission 1 evidence runbook | `LABS_MISSION1_RUNBOOK.md` |
+| full codec x CNN x verdict matrix | `FULL_PIPELINE_MATRIX.md` |
+| camera-vendor spec contribution framing | `architecture.md`, `format-spec-v2.md`, `SPEC.md` |
+
+## Production Evidence
+
+| artifact family | primary index |
+|---|---|
+| External dashboards, media, and receipts | `release_evidence_manifest.json` |
+| Checkpoint and artifact hashes | `PRODUCTION_ARTIFACTS.md` |
+| Stills, VIDEO_FREEZE, UPRESABLE decisions | `SHIP_DECISION.md` |
+| 12MP Mission 1 native Bayer receipts | `VIDEO_STATUS.md`, `LABS_TARGET_BENCH.md` |
+| 1x/2x CNN and SR status | `VIDEO_STATUS.md`, `MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md` |
+| Live/camera-back PREVIEW policy | `RAW_RESOLUTION_TARGETS_2026-06-14.md`, `../tools/live_preview_policy.py` |
 
 ## Plans and methodology (read before executing)
 
 | topic | doc |
 |---|---|
-| CNN-aware fine-grained compression history | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
+| Open work items and archived experiment branches | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
+| CNN-aware fine-grained compression history | `methodology_cnn_aware_quant.md` |
 | BIDO super-res CNN distillation | `BIDO_DISTILLATION_PLAN.md` |
 | Raw noise/signal separation guardrail | `RAW_NOISE_SIGNAL_AUDIT_2026-06-05.md` |
 | Raw-signal CNN candidate | `RAW_SIGNAL_CNN_CANDIDATE_2026-06-05.md` |
@@ -107,4 +114,6 @@ These have decay — git log is the live history.
 - `tools/test/` — capability + regression tests
 - `tests/quality_gates/` — perceptual gate + registry + runs
 
-If you're new: read `SHIP_DECISION.md`, then `TESTING_METHODOLOGY.md`, then `VIDEO_STATUS.md`. Those three should orient you to current state.
+If you're new: read `../README.md`, then `RELEASE_READINESS.md`, then
+`VIDEO_STATUS.md`. Those three should orient you to the current state before
+you open experiment archives.

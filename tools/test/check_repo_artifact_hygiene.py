@@ -88,6 +88,12 @@ def main() -> int:
 
     for rel in tracked_files():
         path = ROOT / rel
+        if not path.exists():
+            # Dirty local worktrees can include tracked files staged/marked for
+            # deletion. A clean CI checkout will not have this mismatch after
+            # the deletion is committed, so do not crash while preparing the
+            # branch.
+            continue
         suffix = path.suffix.lower()
         allowlisted = is_allowlisted(rel)
         size = path.stat().st_size

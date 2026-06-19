@@ -19,6 +19,10 @@ on:
         description: "External scratch/tmp directory on the target runner"
         required: true
         default: "/Volumes/OWC_8TB/gpr_work/tmp"
+      source_provenance_root:
+        description: "Source snapshot root to digest into labs_target_bench.json"
+        required: true
+        default: "."
       frames:
         description: "Frames to encode; 14400 is 10 minutes at 24 fps"
         required: true
@@ -47,10 +51,54 @@ on:
         description: "FUSED quality preset"
         required: true
         default: "3"
+      wavelet_levels:
+        description: "FUSED wavelet levels"
+        required: true
+        default: "2"
+      no_decimate:
+        description: "Set true for native-resolution sources that should omit GPR row/col decimation"
+        required: true
+        default: "false"
+      col_decimate:
+        description: "GPR_COL_DECIMATE when no_decimate is false"
+        required: true
+        default: "2"
+      row_decimate:
+        description: "GPR_ROW_DECIMATE when no_decimate is false"
+        required: true
+        default: "2"
       pixel_format:
         description: ".gvid pixel format"
         required: true
         default: "4"
+      direct_gvid:
+        description: "Measure direct sequential .gvid output"
+        required: true
+        default: "true"
+      mission1_native12_fll2_profile:
+        description: "Apply current Mission 1 native12 q8 FLL2 avg7555-fast P2-pin profile env"
+        required: true
+        default: "false"
+      storage_target_name:
+        description: "Storage target name recorded in the receipt"
+        required: true
+        default: "Lexar Professional SILVER PLUS SDXC/microSDXC UHS-I (128GB-1TB)"
+      storage_target_read_mbps:
+        description: "Storage target read MB/s recorded for decode/playback evidence"
+        required: true
+        default: "205"
+      storage_target_write_mbps:
+        description: "Storage target write MB/s used for payload-size gate"
+        required: true
+        default: "150"
+      storage_target_safety_margin:
+        description: "Fraction of storage write target allowed for payload"
+        required: true
+        default: "0.90"
+      storage_target_note:
+        description: "Storage target capacity/profile note"
+        required: true
+        default: "Published 128GB-1TB SILVER PLUS profile: 205 MB/s read, 150 MB/s write; 64GB microSD is 205/100."
       target_name:
         description: "Receipt target name"
         required: true
@@ -75,6 +123,18 @@ on:
         description: "Set true only when the real sensor/DMA handoff executed"
         required: true
         default: "false"
+      storage_handoff_executed:
+        description: "Set true only when the real camera storage handoff executed"
+        required: true
+        default: "false"
+      storage_medium:
+        description: "Camera handoff receipt storage medium label"
+        required: true
+        default: "target-bench filesystem stand-in"
+      storage_ownership:
+        description: "Camera handoff receipt write-buffer/storage ownership label"
+        required: true
+        default: "OS/page-cache writeback; not camera firmware DMA"
       blocker_cause:
         description: "Blocker cause when firmware_ready is false"
         required: true
@@ -125,18 +185,64 @@ jobs:
         id: bench
         run: |
           set -uo pipefail
+          bench_path="build/bin/bench_fused"
+          if [ ! -x "$bench_path" ]; then
+            bench_path="build/source/app/bench_fused/bench_fused"
+          fi
+          if [ ! -x "$bench_path" ]; then
+            echo "bench_fused binary not found at build/bin or build/source/app/bench_fused" >&2
+            exit 1
+          fi
+          bench_args=(
+            --bench "$bench_path"
+            --raw "${{ inputs.raw_path }}"
+            --output-dir "${{ steps.prep.outputs.outdir }}"
+            --frames "${{ inputs.frames }}"
+            --target-fps "${{ inputs.target_fps }}"
+            --source-width "${{ inputs.source_width }}"
+            --source-height "${{ inputs.source_height }}"
+            --capture-width "${{ inputs.capture_width }}"
+            --capture-height "${{ inputs.capture_height }}"
+            --quality "${{ inputs.quality }}"
+            --wavelet-levels "${{ inputs.wavelet_levels }}"
+            --pixel-format "${{ inputs.pixel_format }}"
+            --storage-target-name "${{ inputs.storage_target_name }}"
+            --storage-target-read-mbps "${{ inputs.storage_target_read_mbps }}"
+            --storage-target-write-mbps "${{ inputs.storage_target_write_mbps }}"
+            --storage-target-safety-margin "${{ inputs.storage_target_safety_margin }}"
+            --storage-target-note "${{ inputs.storage_target_note }}"
+            --source-provenance-root "${{ inputs.source_provenance_root }}"
+          )
+          if [ "${{ inputs.no_decimate }}" = "true" ]; then
+            bench_args+=(--no-decimate)
+          else
+            bench_args+=(--col-decimate "${{ inputs.col_decimate }}" --row-decimate "${{ inputs.row_decimate }}")
+          fi
+          if [ "${{ inputs.direct_gvid }}" = "true" ]; then
+            bench_args+=(--direct-gvid)
+          fi
+          if [ "${{ inputs.mission1_native12_fll2_profile }}" = "true" ]; then
+            export FUSED_PIN=1
+            export FUSED_PIN_P2=1
+            export GPR_INCLUDE_LL=1
+            export FUSED_RAW_LL=1
+            export FUSED_LL_PREDICT=1
+            export FUSED_LL_PREDICTOR=avg
+            export FUSED_LL_RICE_KS=7,5,5,5
+            export FUSED_LL_RICE_FAST=1
+            export FUSED_LL_ASSUME_U16=1
+            export FUSED_INLINE_TOKENIZE=1
+            export FUSED_DEFER_RANS=1
+            export GPR_BENCH_GVID_SCATTER=1
+            export FUSED_REFERENCE_HORIZONTAL=1
+            export FUSED_STRIPE_ROWS=384
+            export GPR_INLINE_DENOISE_HARD=1
+            export GPR_INLINE_DENOISE_T_LH=2
+            export GPR_INLINE_DENOISE_T_HL=3
+            export GPR_INLINE_DENOISE_T_HH=3
+          fi
           python3 tools/run_labs_target_bench.py \
-            --bench build/bin/bench_fused \
-            --raw "${{ inputs.raw_path }}" \
-            --output-dir "${{ steps.prep.outputs.outdir }}" \
-            --frames "${{ inputs.frames }}" \
-            --target-fps "${{ inputs.target_fps }}" \
-            --source-width "${{ inputs.source_width }}" \
-            --source-height "${{ inputs.source_height }}" \
-            --capture-width "${{ inputs.capture_width }}" \
-            --capture-height "${{ inputs.capture_height }}" \
-            --quality "${{ inputs.quality }}" \
-            --pixel-format "${{ inputs.pixel_format }}" \
+            "${bench_args[@]}" \
             2>&1 | tee "$RUNNER_TEMP/labs_target_bench_stdout.txt"
           status=${PIPESTATUS[0]}
           echo "status=$status" >> "$GITHUB_OUTPUT"
@@ -158,6 +264,10 @@ jobs:
           if [ "${{ inputs.sensor_dma_executed }}" = "true" ]; then
             sensor_flag=(--sensor-dma-executed)
           fi
+          storage_flag=()
+          if [ "${{ inputs.storage_handoff_executed }}" = "true" ]; then
+            storage_flag=(--storage-handoff-executed)
+          fi
           python3 tools/labs_target_to_camera_handoff_receipt.py "$receipt" \
             --output "$output" \
             --target-name "${{ inputs.target_name }}" \
@@ -166,8 +276,11 @@ jobs:
             --frame-source "${{ inputs.frame_source }}" \
             --memory-ownership "${{ inputs.memory_ownership }}" \
             --write-path "${{ inputs.write_path }}" \
+            --storage-medium "${{ inputs.storage_medium }}" \
+            --storage-ownership "${{ inputs.storage_ownership }}" \
             --pixel-format "${{ inputs.pixel_format }}" \
             --blocker-cause "${{ inputs.blocker_cause }}" \
+            "${storage_flag[@]}" \
             "${sensor_flag[@]}"
           python3 tools/check_labs_camera_handoff_receipt.py "$output"
           echo "status=ok" >> "$GITHUB_OUTPUT"
@@ -194,6 +307,7 @@ jobs:
           capture = data.get("capture", {})
           verdict = data.get("verdict", {})
           gvid = data.get("gvid", {})
+          source_provenance = data.get("source_provenance", {})
           handoff = outdir / "camera_handoff_receipt.json"
           handoff_data = {}
           if handoff.exists():
@@ -210,6 +324,7 @@ jobs:
               ("fps_target_met", verdict.get("fps_target_met")),
               ("firmware_ready", handoff_verdict.get("firmware_ready")),
               ("interruption_recovery_proven", verdict.get("interruption_recovery_proven")),
+              ("source_provenance_sha256", source_provenance.get("sha256")),
               ("gvid_sha256", gvid.get("sha256")),
           ]
           text = ["## Labs Target Bench", "", "| field | value |", "|---|---|"]

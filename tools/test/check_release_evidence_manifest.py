@@ -8,7 +8,10 @@ It intentionally does not require heavyweight external artifacts in CI.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
+import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -117,13 +120,15 @@ ALLOWED_BLOCKERS = {
 }
 
 README_REQUIRED_SECTIONS = (
-    "## Why It Exists",
-    "## Media Paths",
-    "## Visual Quality",
-    "## Raw Targets",
-    "## Review Media",
+    "## Open Raw Video For Action Cameras",
+    "## What It Enables",
+    "## Status At A Glance",
+    "## Quality Model",
+    "## Media And Dashboards",
+    "## Raw Output Ladder",
+    "## Mission 1 Reality Check",
     "## Quick Start",
-    "## Docs",
+    "## Documentation",
 )
 
 README_REQUIRED_TOKENS = (
@@ -181,15 +186,26 @@ REQUIRED_RELEASE_CHECKS = (
     "python3 tools/test/check_labs_readiness.py",
     "python3 tools/test/check_labs_target_receipts.py",
     "python3 tools/verify_production_artifacts.py",
+    "python3 tools/test/test_verify_production_artifacts.py",
     "python3 tools/verify_production_artifacts.py --strict",
     "python3 tools/verify_release_manifest_artifacts.py",
     "python3 tools/verify_release_manifest_artifacts.py --strict",
     "python3 tools/live_preview_policy.py",
     "python3 tools/test/test_raw_resolution_targets.py",
+    "python3 tools/test/test_bayer_resample.py",
     "bash tools/test/test_gvid_pack.sh",
     "bash tools/test/test_gvid_metadata.sh",
     "bash tools/test/test_labs_bundle_verify.sh",
     "bash tools/test/test_labs_target_bench_smoke.sh",
+    "python3 tools/test/test_native12_sr8k_readiness_audit.py",
+    "python3 tools/test/test_mission1_sr_production_gap_report.py",
+    "python3 tools/test/test_decide_mission1_sr_promotion.py",
+    "python3 tools/test/test_run_mission1_sr_guarded_experiment.py",
+    "python3 tools/test/test_mission1_native12_sr_frontier_summary.py",
+    "python3 tools/test/test_mission1_native12_frontier_summary.py",
+    "python3 tools/test/test_mission1_write_contention_summary.py",
+    "python3 tools/test/test_mission1_strict24_probe_matrix_summary.py",
+    "python3 tools/test/test_mission1_sr_pair_codec_profiles.py",
     "python3 tests/quality_gates/check_registry_consistency.py",
     "python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts",
     "python3 tests/quality_gates/audit_ship_pipelines.py --strict",
@@ -204,15 +220,30 @@ REQUIRED_CI_CHECKS = (
     "python3 tools/test/check_labs_readiness.py",
     "python3 tools/test/check_labs_target_receipts.py",
     "python3 tools/verify_production_artifacts.py",
+    "python3 tools/test/test_verify_production_artifacts.py",
     "python3 tools/verify_release_manifest_artifacts.py",
     "python3 tools/live_preview_policy.py",
     "python3 tools/test/test_raw_resolution_targets.py",
+    "python3 tools/test/test_bayer_resample.py",
     "bash tools/test/test_gvid_pack.sh",
     "bash tools/test/test_gvid_metadata.sh",
     "bash tools/test/test_labs_bundle_verify.sh",
     "bash tools/test/test_labs_target_bench_smoke.sh",
+    "python3 tools/test/test_native12_sr8k_readiness_audit.py",
+    "python3 tools/test/test_mission1_sr_production_gap_report.py",
+    "python3 tools/test/test_decide_mission1_sr_promotion.py",
+    "python3 tools/test/test_run_mission1_sr_guarded_experiment.py",
+    "python3 tools/test/test_mission1_native12_sr_frontier_summary.py",
+    "python3 tools/test/test_mission1_native12_frontier_summary.py",
+    "python3 tools/test/test_mission1_write_contention_summary.py",
+    "python3 tools/test/test_mission1_strict24_probe_matrix_summary.py",
+    "python3 tools/test/test_mission1_sr_pair_codec_profiles.py",
     "python3 tests/quality_gates/check_registry_consistency.py",
     "python3 tests/quality_gates/audit_ship_pipelines.py --strict",
+)
+
+REQUIRED_BLOCKED_RELEASE_CHECKS = (
+    "python3 tests/quality_gates/audit_production_readiness.py --strict --require-mission1-strict24",
 )
 
 EXTERNAL_RELEASE_ONLY_CHECKS = (
@@ -224,9 +255,11 @@ EXTERNAL_RELEASE_ONLY_CHECKS = (
 
 PRODUCTION_ARTIFACT_REQUIRED_TOKENS = (
     "Required Registry Artifacts",
-    "Release mode verifies every checkpoint field referenced by",
+    "Release mode verifies every checkpoint and registered training-pair field",
     "python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts",
 )
+
+DATE_RE = re.compile(r"(?<!\d)(20\d{2})-(\d{2})-(\d{2})(?!\d)|(?<!\d)(20\d{6})(?!\d)")
 
 
 def tracked_paths() -> set[str]:
@@ -245,6 +278,55 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise TypeError(f"{path} must contain a JSON object")
     return data
+
+
+def iter_strings(value: Any):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from iter_strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from iter_strings(item)
+
+
+def parse_date_token(match: re.Match[str]) -> dt.date:
+    if match.group(1):
+        return dt.date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    compact = match.group(4)
+    assert compact is not None
+    return dt.date(int(compact[:4]), int(compact[4:6]), int(compact[6:8]))
+
+
+def require_manifest_freshness(manifest: dict[str, Any], failures: list[str]) -> None:
+    updated_raw = manifest.get("updated")
+    if not isinstance(updated_raw, str):
+        failures.append("manifest updated must be an ISO date string")
+        return
+    try:
+        updated = dt.date.fromisoformat(updated_raw)
+    except ValueError:
+        failures.append(f"manifest updated is not an ISO date: {updated_raw!r}")
+        return
+
+    referenced_dates: list[dt.date] = []
+    for text in iter_strings(manifest):
+        for match in DATE_RE.finditer(text):
+            try:
+                referenced_dates.append(parse_date_token(match))
+            except ValueError:
+                failures.append(f"manifest contains invalid embedded date in {text!r}")
+    if not referenced_dates:
+        failures.append("manifest must reference at least one dated evidence artifact")
+        return
+
+    newest = max(referenced_dates)
+    if updated < newest:
+        failures.append(
+            f"manifest updated date {updated.isoformat()} is older than newest referenced evidence "
+            f"{newest.isoformat()}"
+        )
 
 
 def require_readme_contract(tracked: set[str], failures: list[str]) -> None:
@@ -287,6 +369,8 @@ def checkpoint_specs(cnn: dict[str, Any]) -> list[tuple[str, str, str | None]]:
     specs: list[tuple[str, str, str | None]] = []
     if "ckpt_path" in cnn:
         specs.append(("ckpt_path", str(cnn["ckpt_path"]), cnn.get("ckpt_sha256")))
+    if "training_pairs_path" in cnn:
+        specs.append(("training_pairs_path", str(cnn["training_pairs_path"]), cnn.get("training_pairs_sha256")))
     for suffix in ("y", "cb", "cr", "chroma", "detail", "rgb_detail"):
         path_key = f"ckpt_{suffix}"
         if path_key in cnn:
@@ -358,6 +442,33 @@ def require_tracked_refs(
                 failures.append(f"{entry_id}: referenced {key[:-1]} does not exist: {ref}")
             elif ref not in tracked and not any(t.startswith(ref.rstrip('/') + '/') for t in tracked):
                 failures.append(f"{entry_id}: referenced {key[:-1]} is not tracked: {ref}")
+
+
+def require_check_command_paths(
+    label: str,
+    checks: list[Any],
+    tracked: set[str],
+    failures: list[str],
+) -> None:
+    """Ensure release-check command strings cannot reference missing repo files."""
+    path_prefixes = ("tools/", "tests/", "docs/", ".github/", "source/")
+    for check in checks:
+        if not isinstance(check, str):
+            failures.append(f"{label} entries must be strings")
+            continue
+        try:
+            tokens = shlex.split(check)
+        except ValueError as exc:
+            failures.append(f"{label} command is not shell-parseable: {check!r}: {exc}")
+            continue
+        for token in tokens:
+            if not token.startswith(path_prefixes):
+                continue
+            path = ROOT / token
+            if not path.exists():
+                failures.append(f"{label} command references missing repo path: {check!r} -> {token}")
+            elif token not in tracked:
+                failures.append(f"{label} command references untracked repo path: {check!r} -> {token}")
 
 
 def require_artifact_ref(entry_id: str, key: str, ref: str, failures: list[str]) -> None:
@@ -923,6 +1034,85 @@ def require_gvid_container_contract(entry: dict[str, Any], tracked: set[str], fa
             failures.append(f"{entry_id}: external receipts missing {token!r}")
 
 
+def require_still_metrics_contract(entry: dict[str, Any], run: dict[str, Any], failures: list[str]) -> None:
+    entry_id = str(entry.get("id", ""))
+    if entry.get("family") != "stills":
+        return
+    metrics = entry.get("metrics")
+    if not isinstance(metrics, dict):
+        failures.append(f"{entry_id}: still production entries need compact metrics")
+        return
+    images = run.get("images")
+    if not isinstance(images, dict) or not images:
+        failures.append(f"{entry_id}: still run must contain image metrics")
+        return
+    enc_bytes = []
+    lpips = []
+    ms_ssim = []
+    y_psnr = []
+    de2000 = []
+    for image_id, image in images.items():
+        if not isinstance(image, dict):
+            failures.append(f"{entry_id}: still image row {image_id!r} must be an object")
+            continue
+        try:
+            enc_bytes.append(float(image["enc_bytes"]))
+            lpips.append(float(image["lpips"]))
+            ms_ssim.append(float(image["ms_ssim"]))
+            y_psnr.append(float(image["y_psnr"]))
+            de2000.append(float(image["dE2000_mean"]))
+        except (KeyError, TypeError, ValueError):
+            failures.append(f"{entry_id}: still image row {image_id!r} missing numeric size/quality metrics")
+    if not enc_bytes or not lpips or not ms_ssim or not y_psnr or not de2000:
+        return
+
+    actual = {
+        "image_count": float(len(images)),
+        "mean_mb": sum(enc_bytes) / len(enc_bytes) / 1e6,
+        "min_mb": min(enc_bytes) / 1e6,
+        "max_mb": max(enc_bytes) / 1e6,
+        "worst_lpips": max(lpips),
+        "min_ms_ssim": min(ms_ssim),
+        "min_y_psnr": min(y_psnr),
+        "max_dE2000": max(de2000),
+    }
+    tolerances = {
+        "image_count": 0.0,
+        "mean_mb": 0.002,
+        "min_mb": 0.002,
+        "max_mb": 0.002,
+        "worst_lpips": 0.0002,
+        "min_ms_ssim": 0.0002,
+        "min_y_psnr": 0.02,
+        "max_dE2000": 0.02,
+    }
+    for key, expected in metrics.items():
+        if key not in actual:
+            failures.append(f"{entry_id}: unknown still metric {key!r}")
+            continue
+        try:
+            expected_f = float(expected)
+        except (TypeError, ValueError):
+            failures.append(f"{entry_id}: still metric {key} must be numeric")
+            continue
+        if abs(expected_f - actual[key]) > tolerances[key]:
+            failures.append(
+                f"{entry_id}: still metric {key} drifted "
+                f"manifest={expected_f:.4f} run={actual[key]:.4f}"
+            )
+
+    if actual["image_count"] < 4:
+        failures.append(f"{entry_id}: still gate must cover at least 4 images")
+    if actual["worst_lpips"] > 0.05:
+        failures.append(f"{entry_id}: still worst_lpips exceeds STILL gate")
+    if actual["min_ms_ssim"] < 0.99:
+        failures.append(f"{entry_id}: still min_ms_ssim below production floor")
+    if actual["min_y_psnr"] < 40.0:
+        failures.append(f"{entry_id}: still min_y_psnr below production floor")
+    if actual["max_dE2000"] > 3.0:
+        failures.append(f"{entry_id}: still max_dE2000 exceeds color guardrail")
+
+
 def require_registry_ship_pipeline_coverage(
     production_paths: list[dict[str, Any]],
     pipelines: dict[str, Any],
@@ -967,6 +1157,7 @@ def main() -> int:
 
     if manifest.get("schema") != EXPECTED_SCHEMA:
         failures.append(f"schema must be {EXPECTED_SCHEMA}")
+    require_manifest_freshness(manifest, failures)
 
     production_paths = manifest.get("production_paths")
     if not isinstance(production_paths, list):
@@ -1013,6 +1204,7 @@ def main() -> int:
                     failures.append(f"{entry_id}: run ship_class does not match manifest")
                 if status in PRODUCTION_STATUSES and run.get("verdict") != "PASS":
                     failures.append(f"{entry_id}: production path references non-PASS run {run_hash}")
+                require_still_metrics_contract(entry, run, failures)
 
         if status == "production-pass-external-receipt":
             receipt = entry.get("external_receipt")
@@ -1119,6 +1311,7 @@ def main() -> int:
     for required in REQUIRED_RELEASE_CHECKS:
         if required not in release_check_text:
             failures.append(f"release_checks missing {required}")
+    require_check_command_paths("release_checks", release_checks, tracked, failures)
 
     ci_checks_obj = manifest.get("ci_checks")
     if not isinstance(ci_checks_obj, list):
@@ -1130,6 +1323,7 @@ def main() -> int:
     for required in REQUIRED_CI_CHECKS:
         if required not in ci_check_text:
             failures.append(f"ci_checks missing {required}")
+    require_check_command_paths("ci_checks", ci_checks, tracked, failures)
     release_check_set = {item for item in release_checks if isinstance(item, str)}
     for check in ci_checks:
         if not isinstance(check, str):
@@ -1140,6 +1334,27 @@ def main() -> int:
     for check in EXTERNAL_RELEASE_ONLY_CHECKS:
         if check in ci_check_text:
             failures.append(f"external-artifact release check must not be listed as CI-safe: {check}")
+
+    blocked_checks_obj = manifest.get("blocked_release_checks")
+    if not isinstance(blocked_checks_obj, list):
+        failures.append("blocked_release_checks must be a list")
+        blocked_checks = []
+    else:
+        blocked_checks = blocked_checks_obj
+    blocked_check_text = "\n".join(str(item) for item in blocked_checks)
+    for required in REQUIRED_BLOCKED_RELEASE_CHECKS:
+        if required not in blocked_check_text:
+            failures.append(f"blocked_release_checks missing {required}")
+    require_check_command_paths("blocked_release_checks", blocked_checks, tracked, failures)
+    for check in blocked_checks:
+        if not isinstance(check, str):
+            failures.append("blocked_release_checks entries must be strings")
+            continue
+        if check in release_check_text:
+            failures.append(f"blocked release check must not be listed as passing release_check: {check}")
+        if check in ci_check_text:
+            failures.append(f"blocked release check must not be listed as CI-safe: {check}")
+
     if CI_WORKFLOW.exists():
         workflow_text = CI_WORKFLOW.read_text(encoding="utf-8")
         for check in ci_checks:
@@ -1156,6 +1371,11 @@ def main() -> int:
                 continue
             if check not in release_text:
                 failures.append(f"docs/RELEASE_READINESS.md quick checks missing release check {check!r}")
+        for check in blocked_checks:
+            if isinstance(check, str) and check not in release_text:
+                failures.append(
+                    f"docs/RELEASE_READINESS.md quick checks missing blocked release check {check!r}"
+                )
     else:
         failures.append("docs/RELEASE_READINESS.md is missing")
 

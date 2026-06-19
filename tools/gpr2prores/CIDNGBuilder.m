@@ -1,9 +1,8 @@
 // CIDNGBuilder.m — see header.
 //
-// Color-science tags (ColorMatrix1/ColorMatrix2/ForwardMatrix1/ForwardMatrix2/
-// CalibrationIlluminant1/CalibrationIlluminant2) come from the template DNG
-// verbatim. We parse the template's IFD0 and any SubIFDs to extract those
-// six tag values as raw bytes, then re-emit them in our synthesized DNG.
+// Camera identity and color-science tags come from the template DNG verbatim.
+// We parse the template's IFD0 and any SubIFDs to extract those tag values as
+// raw bytes, then re-emit them in our synthesized DNG.
 //
 // DNG layout produced here:
 //   TIFF header (8 B) → IFD0 (raw image) → tag-extra blobs → strip data.
@@ -52,6 +51,7 @@
 #define T_DNGVersion                0xC612
 #define T_DNGBackwardVersion        0xC613
 #define T_UniqueCameraModel         0xC614
+#define T_LocalizedCameraModel      0xC615
 #define T_BlackLevel                0xC61A
 #define T_WhiteLevel                0xC61D
 #define T_ColorMatrix1              0xC621
@@ -157,7 +157,7 @@ static size_t typeSize(uint16_t t) {
 }
 
 // Read tags from the IFD starting at ifdOffset, recurse into SubIFDs.
-// Tags we want are 0xC621, 0xC622, 0xC714, 0xC715, 0xC65A, 0xC65B.
+// Tags we want are camera identity plus the color/rendering tags below.
 static void walkIFD(NSData *file, uint32_t ifdOffset,
                     NSMutableDictionary<NSNumber *, NSDictionary *> *out,
                     NSMutableSet<NSNumber *> *visited, int depth) {
@@ -187,7 +187,9 @@ static void walkIFD(NSData *file, uint32_t ifdOffset,
         }
 
         // Capture interesting tags.
-        if (tag == T_ColorMatrix1 || tag == T_ColorMatrix2 ||
+        if (tag == T_Make || tag == T_Model ||
+            tag == T_UniqueCameraModel || tag == T_LocalizedCameraModel ||
+            tag == T_ColorMatrix1 || tag == T_ColorMatrix2 ||
             tag == T_ForwardMatrix1 || tag == T_ForwardMatrix2 ||
             tag == T_CalibrationIlluminant1 || tag == T_CalibrationIlluminant2 ||
             tag == T_AsShotNeutral || tag == T_BlackLevel || tag == T_WhiteLevel ||
@@ -327,9 +329,14 @@ static NSDictionary<NSNumber *, NSDictionary *> *extractTagsFromTemplate(NSStrin
             const uint8_t *p = ci2.bytes; illum2 = p[0] | (p[1] << 8);
         }
     }
-    NSData *blob_make  = blob_ascii("NIKON CORPORATION");
-    NSData *blob_model = blob_ascii("NIKON Z 8");
-    NSData *blob_ucm   = blob_ascii("NIKON Z 8");
+    NSData *blob_make  = extractedPayload(T_Make);
+    NSData *blob_model = extractedPayload(T_Model);
+    NSData *blob_ucm   = extractedPayload(T_UniqueCameraModel);
+    NSData *blob_lcm   = extractedPayload(T_LocalizedCameraModel);
+    if (!blob_make)  blob_make  = blob_ascii("NIKON CORPORATION");
+    if (!blob_model) blob_model = blob_ascii("NIKON Z 8");
+    if (!blob_ucm)   blob_ucm   = blob_ascii("NIKON Z 8");
+    if (!blob_lcm)   blob_lcm   = blob_model;
     NSData *blob_sw    = blob_ascii("gpr2prores");
     NSData *blob_xres  = blob_rational(72, 1);
     NSData *blob_yres  = blob_rational(72, 1);
@@ -374,6 +381,7 @@ static NSDictionary<NSNumber *, NSDictionary *> *extractTagsFromTemplate(NSStrin
         inline_entry(T_DNGVersion,                TIFF_BYTE,  4, dngver_inline),
         inline_entry(T_DNGBackwardVersion,        TIFF_BYTE,  4, dngbwv_inline),
         blob_entry  (T_UniqueCameraModel,         TIFF_ASCII, (uint32_t)blob_ucm.length, blob_ucm),
+        blob_entry  (T_LocalizedCameraModel,      TIFF_ASCII, (uint32_t)blob_lcm.length, blob_lcm),
         blob_entry  (T_BlackLevel,                TIFF_RATIONAL, 1, blob_blvl),
         inline_entry(T_WhiteLevel,                TIFF_LONG, 1, info->whiteLevel),
         blob_entry  (T_ColorMatrix1,              TIFF_SRATIONAL, cm1_count, blob_cm1),

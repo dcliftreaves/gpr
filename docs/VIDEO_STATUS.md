@@ -1,4 +1,4 @@
-# Video pipeline status — refreshed 2026-06-15
+# Video pipeline status — refreshed 2026-06-18
 
 ## Your design intent (restated)
 
@@ -43,7 +43,7 @@ embedded-capture ship — Pi 5 can't encode this fast.
 | live/camera-back PREVIEW | `2k_raw_0p5x_l2hh` selective-L2 HH production-bounded edge-safe display policy; older codec-only gate remains experimental |
 | offline/review PREVIEW | `preview_q8_threeway_runtime_fullframe_v1` registered as external-receipt no-REF production path |
 | offline/review entrypoint | `tools/cnn/render_preview_q8_threeway_runtime.py` |
-| Pi 5 capture fps | Historical 2026-05-26 receipt: **24.93 fps median**. Latest strict 10 minute Labs receipt at commit `0dd6660`: **19.98 fps median**, 50.04 ms median, 66.01 ms p95, 14,400/14,400 frames, 0 drops, valid `.gvid`; treat this as acceptable conservative 20 fps proxy evidence for camera integration. Corrected pixel-format short direct `.gvid` probe at commit `e16357f`: **19.85 fps median**, 50.38 ms median, 57.23 ms p95, 120/120 frames, 0 drops, valid `.gvid`. Actual Mission 1 24 fps capture remains unproven. |
+| Pi 5 capture fps | Historical 2026-05-26 receipt: **24.93 fps median**. Latest strict 10 minute Labs receipt at commit `0dd6660`: **19.98 fps median**, 50.04 ms median, 66.01 ms p95, 14,400/14,400 frames, 0 drops, valid `.gvid`; treat this as acceptable conservative 20 fps proxy evidence for camera integration. Corrected pixel-format short direct `.gvid` probe at commit `e16357f`: **19.85 fps median**, 50.38 ms median, 57.23 ms p95, 120/120 frames, 0 drops, valid `.gvid`. Hardened native 12MP Mission 1 true-Bayer probe: **22.99 fps median / 22.40 fps wall**, 120/120 frames, 0 drops, valid `.gvid`, storage-budget pass; strict 24 fps still fails. Actual Mission 1 24 fps capture remains unproven. |
 | per-frame size | **1.30 MB** at half-res |
 | at 24 fps sustained | **31 MB/s** — well within USB SSD capability |
 | offline/review PREVIEW quality | **PASS on current 28-image/84-row holdout** — worst LPIPS 0.1178, MS-SSIM 0.9548, Y-PSNR 30.87, dE2000 2.64 |
@@ -60,6 +60,8 @@ codec-only remains a separate future strategy.
 Treat the current commit/path as blocked for direct firmware readiness until
 the actual Mission 1 hardware receipt proves 24 fps. The Pi result is
 proxy-acceptable only.
+For current target-bench receipts, direct firmware readiness requires both
+median frame timing and whole-run wall throughput to clear target FPS.
 
 The live/camera-back blocker is now bounded to exact outer-edge display
 quality, not raw-target timing. The committed codec-only PREVIEW gate run
@@ -73,6 +75,64 @@ LPIPS-only lower-right crops: `Z8Z_0002`, `Z8Z_0003`, `Z8Z_0009`, and
 0.1378, worst MS-SSIM 0.9787, worst Y-PSNR 37.60, and worst dE2000 1.37.
 Production is therefore limited to that bounded edge-safe live display policy
 unless exact outer-edge display becomes a requirement.
+
+### C) Native 12MP Mission 1 Bayer recompression candidate
+
+| field | value |
+|---|---|
+| profile | `mission1_native12_fll2_t233_avg7555_fast_pinp2_20fps_v1` |
+| profile helper | `tools/mission1_native12_fll2_t2_profile.py` |
+| codec | single-level fused q8, exact predictive LL sideband (`FLL2`) with avg predictor + tuned Rice, hard per-band highpass dead-zones LH/HL/HH=2/3/3, byte-exact prescale-2 reference-horizontal NEON |
+| source | native Mission 1 4096 x 3072 Bayer, pixel format 1 (`RGGB14`) |
+| target | 20+ fps Pi 5 / Mission 1 stand-in, conservative Lexar SILVER PLUS 128GB-1TB 205/150 write budget with 0.90 margin |
+| quality evidence | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_fll2_T2_native12_quality_20260617/summary.json`; exploratory strict-24 quality/storage boundary dashboard: `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native12_t236_ch2lh3_quality_dashboard_20260618/summary.json` |
+| Pi evidence | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_prescale2_refh_neon_native12_1440f_20fps_20260617/summary.json`; current-code phase probe: `/Volumes/OWC_8TB/gpr_work/artifacts/current_probe_t233_GP017602_pi_20260618/` |
+| status | passes active 20+ fps stand-in floor; T233 remains the registered production profile; T236 is exploratory strict-24 storage-boundary evidence; actual sensor/DMA camera handoff pending; strict 24 fps timing remains open for the quality profile |
+
+Sustained 1,440-frame Pi receipts:
+
+| image | median fps | median ms | MiB/frame | required write at 20 fps |
+|---|---:|---:|---:|---:|
+| GP017601 | 23.13 | 43.23 | 5.218 MiB | 109.4 MB/s |
+| GP017602 | 22.70 | 44.05 | 5.313 MiB | 111.4 MB/s |
+| GP017603 | 24.35 | 41.06 | 4.960 MiB | 104.0 MB/s |
+
+All three receipts pass valid `.gvid`, zero drops, interrupted-tail recovery,
+and storage target checks. This is true Bayer recompression, not camera `.GPR`
+payload wrapping.
+
+The hard frame, `GP017602`, records current sustained strict-24 encode median
+40.72 ms and write median 3.56 ms in
+`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_prescale2_refh_neon_GP017602_1440f_24fps_20260617/labs_target_bench.json`.
+Strict 24 fps therefore remains a total-frame/write-overlap blocker, not a
+storage-size blocker.
+
+Current-code 2026-06-18 Pi phase probe on GP017602 confirms the same practical
+split for the registered T233 profile. SSD-backed direct `.gvid` capture
+records 48.10 ms median total, 44.33 ms encode, and 3.81 ms write. Reading the
+raw fixture from SSD while writing the `.gvid` stream to the Pi root SD card
+records 48.70 ms median total, 44.76 ms encode, and 3.93 ms write, still
+passing the accepted 20 fps floor. A matching scatter encode-only run records
+44.38 ms median, or about 22.5 fps, so strict 24 fps cannot be reached by
+storage work alone for this quality profile.
+
+Latest 2026-06-18 boundary check: exploratory T236 (`LH=2,HL=3,HH=6,CH2_LH=3`,
+FLL2 avg `6,6,5,6`) passes the three-image quality floor and fits strict-24
+storage, but does not replace the registered T233 production profile. Fresh Pi
+isolation shows this is not a visual-quality blocker: T236 encode-only clears
+strict 24 fps at 38.870 ms median, while the best real-write `.gvid` probe is
+42.503 ms total / 23.53 fps with 38.664 ms encode and 3.764 ms write. The
+stronger source-provenance sustained receipt records 43.49 ms total / 23.00 fps
+median over 240 frames, with 22.46 fps wall throughput, valid `.gvid`, no
+drops, interruption recovery, source digest, and storage-budget pass. The remaining miss is
+target-platform encode/write handoff margin. T468
+(`LH=4,HL=6,HH=8,CH2_LH=4`) passes a hardened 120-frame Pi receipt at 27.74
+wall fps, but fails raw quality and is not the production profile.
+
+Codec/CNN policy: CNN recovery is valid only for decoded-valid codec outputs.
+It cannot waive symbol/range clipping, invalid bitstreams, or raw quality
+collapse. The current boundary note is
+[`MISSION1_CODEC_CNN_RISK_BOUNDARY_2026-06-18.md`](MISSION1_CODEC_CNN_RISK_BOUNDARY_2026-06-18.md).
 
 ## Pi 5 encode characteristics (real measurements)
 
@@ -91,9 +151,10 @@ decode rather than the VC5 codec itself.)
 
 For video you need:
 - Pi 5 stand-in evidence at roughly 20 fps for Labs integration, which the
-  strict receipt now provides, and
-- Mission 1 hardware evidence at 24 fps before firmware readiness can be
-  claimed.
+  native 12MP FLL2 T2 receipts now provide, and
+- Mission 1 hardware sensor/DMA evidence before firmware readiness can be
+  claimed. If strict 24 fps remains a requirement, FLL2 T2 still needs
+  additional highpass/rate optimization.
 
 If the camera path misses 24 fps, the next options are a faster encoder or a
 capture-side algorithm change. The parallel-DNG-read win above doesn't help the
@@ -106,7 +167,8 @@ capture-side algorithm change. The parallel-DNG-read win above doesn't help the
 | What you want | Which pipeline |
 |---|---|
 | Highest-quality video at any size, desktop | **A** (full-res VIDEO_FREEZE) |
-| Embedded Pi-camera capture at 24 fps | **B** (half-res `.gvid`; Pi proxy is acceptable at 19.98 fps, actual camera 24 fps receipt pending) |
+| Embedded Pi-camera native 12MP capture at 20+ fps | **C** (FLL2 T2 native Bayer recompression; Pi stand-in receipts pass, actual sensor/DMA camera receipt pending) |
+| Embedded Pi-camera capture at strict 24 fps | **B/C** remain open; half-res has historical proxy evidence, native12 FLL2 T2 needs more rate/throughput margin |
 | Offline/review preview from B's captures | **B** with q8 three-way PREVIEW candidate (quality passes; 0.073 fps) |
 | Live/camera-back preview from B's captures | **B** with the bounded `2k_raw_0p5x_l2hh` edge-safe display policy; exact-edge display remains diagnostic |
 
@@ -117,6 +179,7 @@ capture-side algorithm change. The parallel-DNG-read win above doesn't help the
 | A: ml2_q3_l1x2 + matched CNN | 7.81 | 187 |
 | A: ml2_q3 + matched CNN (alternate) | 10.26 | 246 |
 | B: ml2_q3_dec2 (Pi capture) | 1.30 | **31** |
+| C: native12 FLL2 T2 (GP017602) | 5.80 MiB | 146 MB/s at 24 fps; 122 MB/s at 20 fps |
 
 ## Raw output target ladder
 

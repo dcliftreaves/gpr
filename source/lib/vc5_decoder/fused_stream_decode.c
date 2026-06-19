@@ -714,6 +714,7 @@ typedef struct {
        work roughly halves because we don't touch 3 of the 4 band
        buffers and the inner loops shrink to LL-only math. */
     int hp_zero;
+    int descale;
 
     /* Per-strip scratch (caller-allocated, sized for one row pair × 4
        channels). Layout per channel:
@@ -891,6 +892,7 @@ static void *fused_stream_runner(void *arg)
     }
 
     const int hp_zero = t->hp_zero;
+    const int descale = t->descale;
 
     /* Init LH cache for strip start. Cache holds dequantized LH rows
        {by_start-1, by_start, by_start+1}. Top-of-image strip uses
@@ -958,10 +960,25 @@ static void *fused_stream_runner(void *arg)
                     inv_vert_mid_hpzero(ll_m1p, ll_0, ll_p1p,
                                          even_lp[ch], odd_lp[ch], bw);
                 }
-                invert_horizontal_descale_row_hpzero(even_lp[ch],
-                                                     even_out[ch], bw, ch_w);
-                invert_horizontal_descale_row_hpzero(odd_lp[ch],
-                                                     odd_out[ch],  bw, ch_w);
+                if (descale == 2) {
+                    invert_horizontal_descale_row_hpzero(even_lp[ch],
+                                                         even_out[ch], bw, ch_w);
+                    invert_horizontal_descale_row_hpzero(odd_lp[ch],
+                                                         odd_out[ch],  bw, ch_w);
+                } else {
+                    memset(even_hp[ch], 0, (size_t)bw * sizeof(PIXEL));
+                    if (descale == 0) {
+                        InvertHorizontal16s(even_lp[ch], even_hp[ch],
+                                            even_out[ch], bw, ch_w);
+                        InvertHorizontal16s(odd_lp[ch], even_hp[ch],
+                                            odd_out[ch],  bw, ch_w);
+                    } else {
+                        InvertHorizontalDescale16s(even_lp[ch], even_hp[ch],
+                                                   even_out[ch], bw, ch_w, descale);
+                        InvertHorizontalDescale16s(odd_lp[ch], even_hp[ch],
+                                                   odd_out[ch],  bw, ch_w, descale);
+                    }
+                }
                 continue;
             }
 
@@ -1032,10 +1049,22 @@ static void *fused_stream_runner(void *arg)
             }
 
             /* Horizontal pass — produces 2 channel rows at width ch_w. */
-            invert_horizontal_descale_row(even_lp[ch], even_hp[ch],
-                                          even_out[ch], bw, ch_w);
-            invert_horizontal_descale_row(odd_lp[ch],  odd_hp[ch],
-                                          odd_out[ch],  bw, ch_w);
+            if (descale == 2) {
+                invert_horizontal_descale_row(even_lp[ch], even_hp[ch],
+                                              even_out[ch], bw, ch_w);
+                invert_horizontal_descale_row(odd_lp[ch],  odd_hp[ch],
+                                              odd_out[ch],  bw, ch_w);
+            } else if (descale == 0) {
+                InvertHorizontal16s(even_lp[ch], even_hp[ch],
+                                    even_out[ch], bw, ch_w);
+                InvertHorizontal16s(odd_lp[ch],  odd_hp[ch],
+                                    odd_out[ch],  bw, ch_w);
+            } else {
+                InvertHorizontalDescale16s(even_lp[ch], even_hp[ch],
+                                           even_out[ch], bw, ch_w, descale);
+                InvertHorizontalDescale16s(odd_lp[ch],  odd_hp[ch],
+                                           odd_out[ch],  bw, ch_w, descale);
+            }
         }
 
         /* Color transform on the 4-channel × 2 row tuple → 4 Bayer rows.
@@ -1133,6 +1162,7 @@ int gpr_decode_fused_stream(PIXEL *bands[4][4],
                             int log_max, int midpoint, int shift, int is_rggb,
                             const uint16_t *log_table,
                             uint8_t *bayer_out, size_t bayer_pitch_bytes,
+                            int descale,
                             int hp_zero)
 {
     /* Pick number of strips: 1, 2, or 4. Default 4. Allow override via
@@ -1206,6 +1236,7 @@ int gpr_decode_fused_stream(PIXEL *bands[4][4],
             tasks[i].log_table = log_table;
             tasks[i].bayer_out = bayer_out;
             tasks[i].bayer_pitch_bytes = bayer_pitch_bytes;
+            tasks[i].descale = descale;
             tasks[i].hp_zero = hp_zero;
             tasks[i].err = 0;
         }

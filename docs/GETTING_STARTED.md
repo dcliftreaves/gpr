@@ -86,7 +86,7 @@ deliverable.
 
 The `gpr2prores` tool runs the full playback pipeline: decode → CNN → demosaic → ProRes encode.
 
-### Fastest UHD delivery (23.5 fps on M3 Max)
+### UHD review delivery
 
 ```bash
 ./tools/gpr2prores/gpr2prores \
@@ -97,7 +97,7 @@ The `gpr2prores` tool runs the full playback pipeline: decode → CNN → demosa
   clip.gvid out_uhd.mov
 ```
 
-### Best-quality 8K master (slower, 7 fps)
+### 8K offline master
 
 ```bash
 ./tools/gpr2prores/gpr2prores \
@@ -107,6 +107,11 @@ The `gpr2prores` tool runs the full playback pipeline: decode → CNN → demosa
   --demosaic core-image --out-resolution 8k \
   clip.gvid out_8k.mov
 ```
+
+Current Mission 1 8K SR evidence is offline/review-only. Older raw-target smoke
+receipts are roughly 2.7 fps; the current q4/t2 sidecar-aware `.gvid`
+decode+SR+write receipt is about 1.16 fps. ProRes review receipts prove
+wrapper/timebase correctness; they are not SR throughput claims.
 
 See `tools/gpr2prores/USAGE.md` for all CLI flags and env vars.
 

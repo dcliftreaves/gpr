@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verify production artifacts referenced by pipelines/registry.json.
 
-Checkpoint binaries stay off main. Registry paths remain portable
+Checkpoint binaries and large training-pair datasets stay off main. Registry paths remain portable
 (`models/name.pt`) and resolve from:
 
   1. the repo path itself, for local developer copies;
@@ -70,10 +70,17 @@ def candidates(path_value: str) -> list[Path]:
     return out
 
 
-def checkpoint_specs(cnn: dict) -> list[tuple[str, str, str, str | None]]:
+def artifact_specs(cnn: dict) -> list[tuple[str, str, str, str | None]]:
     specs = []
     if "ckpt_path" in cnn:
         specs.append(("ckpt_path", cnn["ckpt_path"], "ckpt_sha256", cnn.get("ckpt_sha256")))
+    if "training_pairs_path" in cnn:
+        specs.append((
+            "training_pairs_path",
+            cnn["training_pairs_path"],
+            "training_pairs_sha256",
+            cnn.get("training_pairs_sha256"),
+        ))
     for suffix in ("y", "cb", "cr", "chroma", "detail", "rgb_detail"):
         path_key = f"ckpt_{suffix}"
         if path_key in cnn:
@@ -100,7 +107,7 @@ def main() -> int:
     for cnn_name, cnn in reg.get("cnns", {}).items():
         if str(cnn_name).startswith("$") or cnn_name == "none" or not isinstance(cnn, dict):
             continue
-        for path_field, path_value, sha_field, expected_sha in checkpoint_specs(cnn):
+        for path_field, path_value, sha_field, expected_sha in artifact_specs(cnn):
             found = next((p for p in candidates(path_value) if p.exists()), None)
             status = "missing"
             actual_sha = None

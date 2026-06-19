@@ -25,8 +25,6 @@
 #include "dng_misc_opcodes.h"
 #include "dng_gain_map.h"
 
-#define MAX_BUF_SIZE 16000
-
 void parse_gps_info( cJSON* pGpsInfo, gpr_gps_info& exif_info )
 {
     exif_info.gps_info_valid = false;
@@ -298,6 +296,32 @@ void parse_profile_info( cJSON* pProfileInfo, gpr_profile_info& profile_info )
     pJSON = pJSON->next;
 
     profile_info.illuminant2 = pJSON->valueint;
+    pJSON = pJSON->next;
+
+    if( pJSON && strcmp(pJSON->string, "baseline_exposure") == 0 )
+    {
+        profile_info.baseline_exposure = pJSON->valuedouble;
+        pJSON = pJSON->next;
+    }
+
+    if( pJSON && strcmp(pJSON->string, "analog_balance") == 0 )
+    {
+        cJSON* child = pJSON->child;
+        if( child )
+        {
+            profile_info.analog_balance[0] = child->valuedouble;
+            child = child->next;
+        }
+        if( child )
+        {
+            profile_info.analog_balance[1] = child->valuedouble;
+            child = child->next;
+        }
+        if( child )
+        {
+            profile_info.analog_balance[2] = child->valuedouble;
+        }
+    }
 }
 
 void parse_tuning_info( cJSON* pTuningInfo, gpr_tuning_info& tuning_info )
@@ -397,9 +421,16 @@ void parse_tuning_info( cJSON* pTuningInfo, gpr_tuning_info& tuning_info )
             int bytes = child->valueint;
             child = child->next;
             
-            char gain_map_buffer[MAX_BUF_SIZE];
-            
             tuning_info.gain_map.buffers[channel_index] = (char*)malloc( buffer_size );
+            char *gain_map_buffer = (char*)malloc( buffer_size );
+            if( tuning_info.gain_map.buffers[channel_index] == NULL || gain_map_buffer == NULL )
+            {
+                free( tuning_info.gain_map.buffers[channel_index] );
+                free( gain_map_buffer );
+                tuning_info.gain_map.buffers[channel_index] = NULL;
+                tuning_info.gain_map.size = 0;
+                break;
+            }
             
             dng_stream gain_map_stream ( gain_map_buffer, buffer_size );
             
@@ -482,6 +513,7 @@ void parse_tuning_info( cJSON* pTuningInfo, gpr_tuning_info& tuning_info )
             gain_map.PutStream( gain_map_stream );
             
             memcpy( tuning_info.gain_map.buffers[channel_index], gain_map_buffer, buffer_size );
+            free( gain_map_buffer );
             
             channel = channel->next;
             

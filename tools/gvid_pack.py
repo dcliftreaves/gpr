@@ -17,6 +17,7 @@ GVID_VERSION = 1
 FLAG_RATE_CONTROL = 0x01
 FLAG_DENOISE = 0x02
 QUALITY_MAX = 11
+PAYLOAD_KINDS = {"fused_gpr", "camera_gpr"}
 
 
 def positive_float(text: str) -> float:
@@ -47,9 +48,9 @@ def pack_gvid(
     if fps <= 0.0:
         raise ValueError("fps must be positive")
 
-    frames = sorted(frame_dir.glob("*.gpr"))
+    frames = sorted(p for p in frame_dir.iterdir() if p.is_file() and p.suffix.lower() == ".gpr")
     if not frames:
-        raise FileNotFoundError(f"no .gpr frames found in {frame_dir}")
+        raise FileNotFoundError(f"no .gpr/.GPR frames found in {frame_dir}")
 
     output.parent.mkdir(parents=True, exist_ok=True)
     flags = 0
@@ -124,11 +125,22 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--denoise", action="store_true")
     ap.add_argument("--metadata", type=Path, help="validate and attach a gvid_source_metadata.v1 sidecar")
     ap.add_argument("--metadata-output", type=Path, help="sidecar output path; default is <output>.meta.json")
+    ap.add_argument(
+        "--payload-kind",
+        choices=sorted(PAYLOAD_KINDS),
+        default="fused_gpr",
+        help="payload interpretation recorded in attached metadata; v1 stream bytes stay unchanged",
+    )
     args = ap.parse_args(argv)
 
     try:
         if args.metadata_output and not args.metadata:
             raise ValueError("--metadata-output requires --metadata")
+        if args.metadata:
+            meta = json.loads(args.metadata.read_text())
+            meta_kind = meta.get("payload_kind", "fused_gpr")
+            if meta_kind != args.payload_kind:
+                raise ValueError(f"--payload-kind {args.payload_kind!r} does not match metadata payload_kind {meta_kind!r}")
         output = args.output
         temp_output = None
         if args.metadata:

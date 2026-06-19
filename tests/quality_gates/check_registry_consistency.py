@@ -293,6 +293,44 @@ for pname, pipe in REG.get("pipelines", {}).items():
     if pname != expected_name:
         errors.append(f"pipeline {pname!r}: key does not match canonical name {expected_name!r}")
 
+    production_scope = pipe.get("production_scope")
+    if production_scope is not None and production_scope not in {"offline_review_only"}:
+        errors.append(f"pipeline {pname!r}: unknown production_scope {production_scope!r}")
+
+    is_native12_sr = (
+        str(codec_name).startswith("mission1_native12")
+        and str(cnn_name).startswith("mission1_native12_8k_sr")
+    )
+    if is_native12_sr:
+        doc = str(pipe.get("$doc", ""))
+        use_for = str(pipe.get("use_for", ""))
+        if production_scope != "offline_review_only":
+            errors.append(
+                f"pipeline {pname!r}: Mission 1 native12 8K SR must set "
+                "production_scope='offline_review_only'"
+            )
+        if "OFFLINE" not in use_for:
+            errors.append(f"pipeline {pname!r}: Mission 1 native12 8K SR use_for must include OFFLINE")
+        if "not a live-camera path" not in doc:
+            errors.append(
+                f"pipeline {pname!r}: Mission 1 native12 8K SR doc must state "
+                "it is not a live-camera path"
+            )
+
+    is_upresable_production = str(pipe.get("$role", "")).startswith("UPRESABLE production chain")
+    if is_upresable_production:
+        doc = str(pipe.get("$doc", ""))
+        if production_scope != "offline_review_only":
+            errors.append(
+                f"pipeline {pname!r}: UPRESABLE production chain must set "
+                "production_scope='offline_review_only'"
+            )
+        if "editable" not in doc or "not a live-camera path" not in doc:
+            errors.append(
+                f"pipeline {pname!r}: UPRESABLE production doc must describe "
+                "editable output and state it is not a live-camera path"
+            )
+
     codec_use = REG["codecs"][codec_name].get("use_for", "unknown")
     cnn_use = cnn_intent(cnn_name)
     # still codec + video CNN, or vice-versa, is suspicious

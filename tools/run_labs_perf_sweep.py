@@ -97,9 +97,15 @@ def run_variant(args: argparse.Namespace, name: str, variant_env: dict[str, str]
         str(args.capture_height),
         "--quality",
         str(args.quality),
+        "--wavelet-levels",
+        str(args.wavelet_levels),
         "--pixel-format",
         str(args.pixel_format),
     ]
+    if args.no_decimate:
+        cmd.append("--no-decimate")
+    else:
+        cmd.extend(["--col-decimate", str(args.col_decimate), "--row-decimate", str(args.row_decimate)])
     if args.bench:
         cmd.extend(["--bench", str(args.bench)])
     if args.raw:
@@ -108,6 +114,16 @@ def run_variant(args: argparse.Namespace, name: str, variant_env: dict[str, str]
         cmd.append("--direct-gvid")
     if args.simulate:
         cmd.append("--simulate")
+    cmd.extend([
+        "--storage-target-name",
+        args.storage_target_name,
+        "--storage-target-read-mbps",
+        str(args.storage_target_read_mbps),
+        "--storage-target-write-mbps",
+        str(args.storage_target_write_mbps),
+        "--storage-target-safety-margin",
+        str(args.storage_target_safety_margin),
+    ])
 
     env = os.environ.copy()
     env.update(args.env)
@@ -129,6 +145,8 @@ def run_variant(args: argparse.Namespace, name: str, variant_env: dict[str, str]
         timing = receipt.get("timing", {})
         verdict = receipt.get("verdict", {})
         gvid = receipt.get("gvid", {})
+        storage = receipt.get("storage", {})
+        storage_target = storage.get("target", {}) if isinstance(storage, dict) else {}
         entry.update({
             "completed": True,
             "simulated": bool(receipt.get("simulated")),
@@ -138,9 +156,14 @@ def run_variant(args: argparse.Namespace, name: str, variant_env: dict[str, str]
             "p95_ms": timing.get("p95_ms") if isinstance(timing, dict) else None,
             "frames": timing.get("n") if isinstance(timing, dict) else None,
             "fps_target_met": verdict.get("fps_target_met") if isinstance(verdict, dict) else None,
+            "storage_target_met": verdict.get("storage_target_met") if isinstance(verdict, dict) else None,
             "no_drops": verdict.get("no_drops") if isinstance(verdict, dict) else None,
             "gvid_valid": verdict.get("gvid_valid") if isinstance(verdict, dict) else None,
             "gvid_sha256": gvid.get("sha256") if isinstance(gvid, dict) else None,
+            "storage_target_read_MBps": storage_target.get("target_read_MBps") if isinstance(storage_target, dict) else None,
+            "storage_required_write_MBps": storage_target.get("required_write_MBps") if isinstance(storage_target, dict) else None,
+            "storage_budget_write_MBps": storage_target.get("budget_write_MBps") if isinstance(storage_target, dict) else None,
+            "storage_MiB_per_frame": storage_target.get("MiB_per_frame") if isinstance(storage_target, dict) else None,
         })
     return entry
 
@@ -157,9 +180,17 @@ def main() -> int:
     ap.add_argument("--capture-width", type=int, default=8280)
     ap.add_argument("--capture-height", type=int, default=5520)
     ap.add_argument("--quality", type=int, default=3)
+    ap.add_argument("--wavelet-levels", type=int, default=2, choices=(1, 2))
+    ap.add_argument("--col-decimate", type=int, default=2)
+    ap.add_argument("--row-decimate", type=int, default=2)
+    ap.add_argument("--no-decimate", action="store_true")
     ap.add_argument("--pixel-format", type=int, default=4)
     ap.add_argument("--direct-gvid", action="store_true")
     ap.add_argument("--simulate", action="store_true")
+    ap.add_argument("--storage-target-name", default="Lexar Professional SILVER PLUS SDXC/microSDXC UHS-I (128GB-1TB)")
+    ap.add_argument("--storage-target-read-mbps", type=float, default=205.0)
+    ap.add_argument("--storage-target-write-mbps", type=float, default=150.0)
+    ap.add_argument("--storage-target-safety-margin", type=float, default=0.90)
     ap.add_argument("--env", type=parse_env_pair, action="append", default=[], metavar="KEY=VALUE")
     ap.add_argument(
         "--variant",
@@ -191,7 +222,27 @@ def main() -> int:
         "frames_per_variant": args.frames,
         "direct_gvid": bool(args.direct_gvid),
         "simulated": bool(args.simulate),
+        "target_shape": {
+            "source_width": args.source_width,
+            "source_height": args.source_height,
+            "capture_width": args.capture_width,
+            "capture_height": args.capture_height,
+            "quality": args.quality,
+            "wavelet_levels": args.wavelet_levels,
+            "pixel_format": args.pixel_format,
+            "no_decimate": bool(args.no_decimate),
+            "col_decimate": None if args.no_decimate else args.col_decimate,
+            "row_decimate": None if args.no_decimate else args.row_decimate,
+        },
         "common_env": args.env,
+        "storage_target": {
+            "name": args.storage_target_name,
+            "target_read_MBps": args.storage_target_read_mbps,
+            "target_write_MBps": args.storage_target_write_mbps,
+            "safety_margin": args.storage_target_safety_margin,
+            "budget_read_MBps": args.storage_target_read_mbps * args.storage_target_safety_margin,
+            "budget_write_MBps": args.storage_target_write_mbps * args.storage_target_safety_margin,
+        },
         "variants": entries,
         "ranked_by_fps_median": [item["name"] for item in ranked],
         "best_variant": ranked[0]["name"] if ranked else None,

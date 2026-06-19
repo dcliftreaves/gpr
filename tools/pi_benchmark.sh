@@ -5,7 +5,7 @@
 # /tmp/Z8_textured.raw with 8280x5520) and a built /tmp/bench_clean binary
 # linked against the current branch's libvc5_encoder.a.
 #
-# Outputs one block of stats per (single|multi) × (legacy|ring) config.
+# Outputs one block of stats per single-level and multi-level config.
 #
 # Usage:
 #   ./pi_benchmark.sh                            # uses defaults
@@ -57,9 +57,7 @@ echo "Branch: $(git -C "$(dirname "$0")/.." rev-parse --abbrev-ref HEAD 2>/dev/n
 echo "HEAD:   $(git -C "$(dirname "$0")/.." log -1 --oneline 2>/dev/null || echo "unknown")"
 echo
 
-run "single-level  legacy unpack"   FUSED_MULTI_LEVEL=0 FUSED_PRODUCER_UNPACK=0
-run "single-level  ring unpack"     FUSED_MULTI_LEVEL=0 FUSED_PRODUCER_UNPACK=1
-run "multi-level   legacy unpack"   FUSED_MULTI_LEVEL=1 FUSED_PRODUCER_UNPACK=0
-run "multi-level   ring unpack"     FUSED_MULTI_LEVEL=1 FUSED_PRODUCER_UNPACK=1
+run "single-level"   FUSED_MULTI_LEVEL=0
+run "multi-level"    FUSED_MULTI_LEVEL=1
 
 echo "24 fps target = 41.7 ms/frame.  Lower is better."

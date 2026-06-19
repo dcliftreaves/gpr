@@ -42,11 +42,16 @@ def convert(args: argparse.Namespace) -> dict[str, Any]:
     gvid_valid = bool(verdict.get("gvid_valid", validation.get("valid", False)))
     recovery_proven = bool(verdict.get("interruption_recovery_proven", False))
     no_drops = dropped == 0
-    fps_target_met = fps_median >= target_fps
+    actual_wall_fps = target.get("actual_wall_fps")
+    wall_fps = float(actual_wall_fps) if actual_wall_fps is not None else None
+    median_target_met = fps_median >= target_fps
+    wall_target_met = True if wall_fps is None else wall_fps >= target_fps
+    fps_target_met = bool(verdict.get("fps_target_met", median_target_met and wall_target_met))
 
     firmware_ready = (
         args.target_role == "camera"
         and args.sensor_dma_executed
+        and args.storage_handoff_executed
         and bool(verdict.get("target_evidence", False))
         and fps_target_met
         and no_drops
@@ -59,6 +64,7 @@ def convert(args: argparse.Namespace) -> dict[str, Any]:
         "schema": SCHEMA,
         "source_receipt": str(args.target_bench),
         "repo_commit": source.get("repo_commit"),
+        "source_provenance": source.get("source_provenance"),
         "created_utc": source.get("created_utc"),
         "target": {
             "name": args.target_name or str(target.get("name") or "unknown target"),
@@ -69,6 +75,11 @@ def convert(args: argparse.Namespace) -> dict[str, Any]:
             "memory_ownership": args.memory_ownership,
             "write_path": args.write_path,
             "sensor_dma_handoff": {"executed": bool(args.sensor_dma_executed)},
+            "storage_handoff": {
+                "executed": bool(args.storage_handoff_executed),
+                "medium": args.storage_medium,
+                "ownership": args.storage_ownership,
+            },
         },
         "input_frame": {
             "width": int(capture.get("source_width", validation.get("width", 0))),
@@ -112,9 +123,14 @@ def convert(args: argparse.Namespace) -> dict[str, Any]:
             "firmware_ready": firmware_ready,
             "target_evidence": bool(verdict.get("target_evidence", False)),
             "fps_target_met": fps_target_met,
+            "fps_median_target_met": bool(verdict.get("fps_median_target_met", median_target_met)),
+            "fps_wall_target_met": bool(verdict.get("fps_wall_target_met", wall_target_met)),
             "no_drops": no_drops,
         },
     }
+    if wall_fps is not None:
+        receipt["timing"]["actual_wall_fps"] = wall_fps
+        receipt["timing"]["actual_wall_s"] = float(target.get("actual_wall_s", 0.0))
     if not firmware_ready:
         receipt["blocker"] = {"cause": args.blocker_cause}
     return receipt
@@ -131,6 +147,9 @@ def main() -> int:
     ap.add_argument("--memory-ownership", default="synchronous submit; caller owns input through return")
     ap.add_argument("--write-path", default="bench_fused target-bench .gvid path")
     ap.add_argument("--sensor-dma-executed", action="store_true")
+    ap.add_argument("--storage-handoff-executed", action="store_true")
+    ap.add_argument("--storage-medium", default="target-bench filesystem stand-in")
+    ap.add_argument("--storage-ownership", default="OS/page-cache writeback; not camera firmware DMA")
     ap.add_argument("--stride-bytes", type=int, default=16560)
     ap.add_argument("--bit-depth", type=int, default=14)
     ap.add_argument("--pixel-format", type=int, default=4)

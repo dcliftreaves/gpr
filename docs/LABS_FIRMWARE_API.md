@@ -175,7 +175,7 @@ Required sections:
 | section | purpose |
 |---|---|
 | `target` | hardware name and `role`: `stand-in` or `camera` |
-| `integration` | frame source, memory ownership, write path, and whether sensor/DMA handoff executed |
+| `integration` | frame source, memory ownership, write path, and whether sensor/DMA and storage handoffs executed |
 | `input_frame` | width, height, stride, bit depth, pixel format, target fps |
 | `capture` | requested/written/dropped frame counts |
 | `timing` | fps median and frame-time percentiles |
@@ -185,8 +185,14 @@ Required sections:
 | `interruption_recovery` | truncated-tail rejection and recovered-frame proof |
 | `verdict` | firmware-ready, target-evidence, fps-target, and no-drop booleans |
 
+`integration.storage_handoff` is required for camera receipts. It records
+whether the real camera storage path ran, the storage medium, and who owns the
+write buffer. Stand-in receipts may set `executed=false`; firmware-ready
+camera receipts must set it to `true`.
+
 `verdict.firmware_ready=true` is accepted only for `target.role=camera` with
-sensor/DMA handoff executed, target fps met, no drops, valid `.gvid`, and
-interruption recovery proven. A blocked camera receipt must include
+sensor/DMA handoff executed, storage handoff executed, target fps met, no
+drops, valid `.gvid`, and interruption recovery proven. A blocked camera
+receipt must include
 `blocker.cause` so the failure is narrowed to hardware handoff, storage,
 thermal, memory, codec timing, or another concrete cause.

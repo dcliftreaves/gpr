@@ -64,7 +64,7 @@ static unsigned char *make_synthetic(int w, int h, uint32_t seed) {
 }
 
 /* Layout-aware sizes for a band by slot index (encoder writes in this order).
-   Multi-level: 10 slots per channel × 4 channels.
+   Multi-level: 7 or 10 slots per channel × 4 channels.
    Single-level: 3 slots per channel × 4 channels. */
 typedef struct { int w, h; const char *name; } BAND_SHAPE;
 
@@ -75,7 +75,19 @@ static int compute_band_shapes(const FUSED_HEADER *hdr, BAND_SHAPE *out) {
     int bw2 = bw1 / 2, bh2 = bh1 / 2;
     int bw3 = bw1 / 4, bh3 = bh1 / 4;
     int idx = 0;
-    if (hdr->multi_level) {
+    if (hdr->multi_level == 2) {
+        for (int ch = 0; ch < 4; ch++) {
+            const char *cn[] = {"GS","RG","BG","GD"};
+            out[idx++] = (BAND_SHAPE){bw1, bh1, "LH1"};
+            out[idx++] = (BAND_SHAPE){bw1, bh1, "HL1"};
+            out[idx++] = (BAND_SHAPE){bw1, bh1, "HH1"};
+            out[idx++] = (BAND_SHAPE){bw2, bh2, "LH2"};
+            out[idx++] = (BAND_SHAPE){bw2, bh2, "HL2"};
+            out[idx++] = (BAND_SHAPE){bw2, bh2, "HH2"};
+            out[idx++] = (BAND_SHAPE){bw2, bh2, "LL2"};
+            (void)cn;
+        }
+    } else if (hdr->multi_level == 3) {
         for (int ch = 0; ch < 4; ch++) {
             const char *cn[] = {"GS","RG","BG","GD"};
             out[idx++] = (BAND_SHAPE){bw1, bh1, "LH1"};
@@ -146,12 +158,17 @@ int main(int argc, char **argv) {
             fprintf(stderr, "FAIL %s: dims mismatch\n", ml ? "multi" : "single");
             total_failures++; free(enc); continue;
         }
-        if (hdr.multi_level != (uint32_t)ml) {
-            fprintf(stderr, "FAIL %s: multi_level flag mismatch\n",
-                    ml ? "multi" : "single");
+        if (!ml && hdr.multi_level != 0) {
+            fprintf(stderr, "FAIL single: multi_level=%u expected 0\n",
+                    hdr.multi_level);
             total_failures++; free(enc); continue;
         }
-        int expected_bands = ml ? 40 : 12;
+        if (ml && hdr.multi_level != 2 && hdr.multi_level != 3) {
+            fprintf(stderr, "FAIL multi: multi_level=%u expected depth 2 or 3\n",
+                    hdr.multi_level);
+            total_failures++; free(enc); continue;
+        }
+        int expected_bands = ml ? ((hdr.multi_level == 2) ? 28 : 40) : 12;
         if ((int)hdr.num_bands != expected_bands) {
             fprintf(stderr, "FAIL %s: num_bands=%u expected %d\n",
                     ml ? "multi" : "single", hdr.num_bands, expected_bands);

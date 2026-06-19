@@ -56,10 +56,37 @@ def require_string(obj: dict[str, Any], key: str, failures: list[str], prefix: s
     return value
 
 
+def validate_source_provenance(data: dict[str, Any], failures: list[str]) -> bool:
+    value = data.get("source_provenance")
+    if value is None:
+        return False
+    if not isinstance(value, dict):
+        failures.append("source_provenance must be an object")
+        return False
+    available = as_bool(value, "available", failures, "source_provenance")
+    require_string(value, "policy", failures, "source_provenance")
+    if available is not True:
+        return False
+    sha = require_string(value, "sha256", failures, "source_provenance")
+    if sha and (len(sha) != 64 or any(ch not in "0123456789abcdefABCDEF" for ch in sha)):
+        failures.append("source_provenance.sha256 must be a 64-character hex digest")
+    file_count = as_int(value, "file_count", failures, "source_provenance")
+    if file_count is not None and file_count <= 0:
+        failures.append("source_provenance.file_count must be positive")
+    total_bytes = as_int(value, "total_bytes", failures, "source_provenance")
+    if total_bytes is not None and total_bytes <= 0:
+        failures.append("source_provenance.total_bytes must be positive")
+    git = value.get("git")
+    if git is not None and not isinstance(git, dict):
+        failures.append("source_provenance.git must be an object when present")
+    return bool(sha and file_count and file_count > 0 and total_bytes and total_bytes > 0)
+
+
 def validate_receipt(data: dict[str, Any]) -> list[str]:
     failures: list[str] = []
     if data.get("schema") != SCHEMA:
         failures.append(f"schema must be {SCHEMA}")
+    source_provenance_available = validate_source_provenance(data, failures)
 
     target = require_obj(data, "target", failures)
     require_string(target, "name", failures, "target")
@@ -70,9 +97,20 @@ def validate_receipt(data: dict[str, Any]) -> list[str]:
     integration = require_obj(data, "integration", failures)
     sensor_dma = require_obj(integration, "sensor_dma_handoff", failures)
     sensor_dma_executed = as_bool(sensor_dma, "executed", failures, "integration.sensor_dma_handoff")
+    storage_handoff_value = integration.get("storage_handoff")
+    storage_handoff: dict[str, Any] = {}
+    storage_handoff_executed: bool | None = None
+    if storage_handoff_value is not None:
+        if not isinstance(storage_handoff_value, dict):
+            failures.append("integration.storage_handoff must be an object")
+        else:
+            storage_handoff = storage_handoff_value
+            storage_handoff_executed = as_bool(storage_handoff, "executed", failures, "integration.storage_handoff")
+            require_string(storage_handoff, "medium", failures, "integration.storage_handoff")
+            require_string(storage_handoff, "ownership", failures, "integration.storage_handoff")
     require_string(integration, "frame_source", failures, "integration")
     require_string(integration, "memory_ownership", failures, "integration")
-    require_string(integration, "write_path", failures, "integration")
+    write_path = require_string(integration, "write_path", failures, "integration")
 
     input_frame = require_obj(data, "input_frame", failures)
     width = as_int(input_frame, "width", failures, "input_frame")
@@ -107,6 +145,11 @@ def validate_receipt(data: dict[str, Any]) -> list[str]:
 
     timing = require_obj(data, "timing", failures)
     fps_median = as_number(timing, "fps_median", failures, "timing")
+    actual_wall_fps = None
+    if "actual_wall_fps" in timing:
+        actual_wall_fps = as_number(timing, "actual_wall_fps", failures, "timing")
+    if "actual_wall_s" in timing:
+        as_number(timing, "actual_wall_s", failures, "timing")
     as_number(timing, "median_ms", failures, "timing")
     as_number(timing, "p95_ms", failures, "timing")
     as_number(timing, "p99_ms", failures, "timing")
@@ -136,6 +179,12 @@ def validate_receipt(data: dict[str, Any]) -> list[str]:
     verdict = require_obj(data, "verdict", failures)
     firmware_ready = as_bool(verdict, "firmware_ready", failures, "verdict")
     fps_target_met = as_bool(verdict, "fps_target_met", failures, "verdict")
+    fps_median_target_met = None
+    if "fps_median_target_met" in verdict:
+        fps_median_target_met = as_bool(verdict, "fps_median_target_met", failures, "verdict")
+    fps_wall_target_met = None
+    if "fps_wall_target_met" in verdict:
+        fps_wall_target_met = as_bool(verdict, "fps_wall_target_met", failures, "verdict")
     no_drops = as_bool(verdict, "no_drops", failures, "verdict")
     target_evidence = as_bool(verdict, "target_evidence", failures, "verdict")
 
@@ -144,16 +193,28 @@ def validate_receipt(data: dict[str, Any]) -> list[str]:
     if dropped is not None and no_drops is not None and no_drops != (dropped == 0):
         failures.append("verdict.no_drops must match capture.dropped_frames")
     if fps_median is not None and target_fps is not None and fps_target_met is not None:
-        if fps_target_met != (fps_median >= target_fps):
-            failures.append("verdict.fps_target_met must match timing.fps_median >= input_frame.target_fps")
+        median_ok = fps_median >= target_fps
+        wall_ok = True if actual_wall_fps is None else actual_wall_fps >= target_fps
+        if fps_median_target_met is not None and fps_median_target_met != median_ok:
+            failures.append("verdict.fps_median_target_met must match timing.fps_median >= input_frame.target_fps")
+        if fps_wall_target_met is not None and fps_wall_target_met != wall_ok:
+            failures.append("verdict.fps_wall_target_met must match timing.actual_wall_fps >= input_frame.target_fps")
+        if fps_target_met != (median_ok and wall_ok):
+            failures.append("verdict.fps_target_met must match median and wall fps target checks")
 
     if firmware_ready:
         if role != "camera":
             failures.append("firmware-ready receipt must use target.role=camera")
         if sensor_dma_executed is not True:
             failures.append("firmware-ready receipt must execute sensor/DMA handoff")
+        if storage_handoff_executed is not True:
+            failures.append("firmware-ready receipt must execute storage handoff")
+        if write_path and any(token in write_path.lower() for token in ("bench_fused", "file-backed", "stand-in")):
+            failures.append("firmware-ready receipt write_path must be camera/firmware storage, not a stand-in path")
         if target_evidence is not True:
             failures.append("firmware-ready receipt must mark target_evidence true")
+        if source_provenance_available is not True:
+            failures.append("firmware-ready receipt must include available source_provenance")
         for label, value in (
             ("verdict.fps_target_met", fps_target_met),
             ("verdict.no_drops", no_drops),
@@ -170,6 +231,8 @@ def validate_receipt(data: dict[str, Any]) -> list[str]:
 
     if role == "camera" and sensor_dma_executed is not True:
         failures.append("camera receipt must set integration.sensor_dma_handoff.executed=true")
+    if role == "camera" and storage_handoff_value is None:
+        failures.append("camera receipt must include integration.storage_handoff")
 
     return failures
 
