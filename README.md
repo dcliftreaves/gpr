@@ -97,26 +97,27 @@ videos, and receipts under `/Volumes/OWC_8TB/gpr_work/artifacts`.
 
 ## Mission 1 Numbered List
 
-The current Mission 1 request is tracked as four concrete deliverables. All
-four have evidence; items 3 and 4 are production-bounded to offline/post, while
-items 1 and 2 remain blocked from production promotion until camera-side
-receipts exist.
+This branch is organized around the four production paths requested for the
+Mission 1 workstream. The important boundary is that every path starts from raw
+Bayer frames and a real `.gvid` stream. The branch does not count wrapped
+camera `.GPR` payloads, JPEG-derived ProRes, crop-only previews, or the older
+`2k_raw_0p5x_l2hh` experiment as satisfying these four items.
 
-| # | requested path | current result | production blocker |
-|---:|---|---|---|
-| 1 | `RAW 4K Bayer -> .gvid 4K Bayer` at `20 fps+` on Pi 5 | 1,440-frame aggregate Pi stand-in closure run: 4096 x 3072, zero drops, valid `.gvid`, 20.50 fps wall and 21.52 fps median. The firmware-facing `gpr_labs_encoder` shim is committed and covered by `test_labs_encoder_api`. | Real Mission 1 sensor/DMA/storage handoff receipt |
-| 2 | `.gvid 4K Bayer -> Mission screen preview` at `20 fps+` | 1,440-frame aggregate Pi stand-in preview: 1024 x 768, 24.20 fps wall and 43.86 fps median decode-plus-target | Real Mission 1 UI/display receipt |
-| 3 | `.gvid 4K Bayer -> 4K CNN .gvid` and `.gvid 4K Bayer -> 8K SR .gvid` | 4K cleanup passes the intended high-res CFA raw guard and 4K cleanup production signoff; 8K SR has broad gates, `.gvid`, ProRes, editable DNG/GPR packaging, Mission metadata receipts, visual review, and offline-production registry scope. The older clean-low raw comparison is retained as a diagnostic, not this branch's production target. | None for offline/post; 8K SR is not a live-camera path |
-| 4 | `.gvid 4K/8K Bayer -> ProRes 4K/8K` | 4K and 8K ProRes review outputs are receipted | None currently tracked |
+| # | requested path | evidence on this branch | done definition | remaining gap |
+|---:|---|---|---|---|
+| 1 | `RAW 4K Bayer -> .gvid 4K Bayer` at `20 fps+` on Pi 5 | 1,440-frame aggregate Pi stand-in closure run: 4096 x 3072 Bayer, zero drops, valid `.gvid`, 20.50 fps whole-run wall, 21.52 fps median loop timing, and Lexar SILVER PLUS write-budget pass. The firmware-facing `gpr_labs_encoder` shim is committed and covered by `test_labs_encoder_api`. | A camera-side encoder can ingest 4K Bayer frames, recompress them into `.gvid`, write them without drops, and clear the active 20 fps floor. | Real Mission 1 sensor/DMA/storage handoff receipt. The same receipt must come from the actual Mission 1 sensor/DMA or camera ring-buffer source and storage handoff, not the Pi file-backed stand-in. |
+| 2 | `.gvid 4K Bayer -> Mission screen preview` at `20 fps+` | 1,440-frame aggregate Pi stand-in preview: the same 4096 x 3072 `.gvid` decodes to full-frame 1024 x 768 RGB at 24.20 fps whole-run wall and 43.86 fps median decode-plus-target. | The camera-back preview path decodes the 4K Bayer `.gvid`, renders a full-frame screen-resolution view, and clears 20 fps. | Real Mission 1 UI/display receipt. The Mission 1 rear-display/UI path still needs a real camera receipt with the display handoff and visual check marked executed. |
+| 3 | `.gvid 4K Bayer -> 4K CNN .gvid` and `.gvid 4K Bayer -> 8K SR .gvid` | 4K cleanup passes the high-res-derived RGB/CFA target guard and 4K cleanup production signoff. Candidate-aware 8K SR has broad Mission42 and Z8 gates, 8K `.gvid` packaging, editable DNG/GPR packaging, Mission metadata receipts, visual review, and offline registry scope. | Desktop/post can take the 4K raw `.gvid`, run the CNN cleanup/SR path, and emit editable 4K or 8K Bayer `.gvid` artifacts with receipts. | This is intentionally offline/post today. It is not claimed as a live camera path, and visual review still matters before treating a given SR checkpoint as final. |
+| 4 | `.gvid 4K/8K Bayer -> ProRes 4K/8K` | 4K CNN `.gvid` to ProRes review and candidate-aware 8K `.gvid` to 8K ProRes review receipts are indexed in the release manifest. | Review media can be generated from the raw `.gvid` outputs for inspection and comparison without replacing the raw deliverable. | No current blocker for review/export; ProRes remains a review artifact, not the primary raw-video container. |
 
 The last production promotion step is a real-camera closure run. The manual
 target workflow now emits `target_preflight_receipt.json`,
 `labs_target_bench.json`, `camera_handoff_receipt.json`,
 `preview_decode_1024x768/receipt.json`, `preview_ui_receipt.json`, and
-`mission1_camera_closure_run.json`. The aggregate closure validator now proves
-the target bench, handoff, and preview receipts agree on the same `.gvid`,
-frame count, dimensions, pixel format, source provenance, and drop state. The
-production gate will remain blocked until those receipts come from a
+`mission1_camera_closure_run.json`. The aggregate closure validator proves the
+target bench, handoff, and preview receipts agree on the same `.gvid`, frame
+count, dimensions, pixel format, source provenance, and drop state. The
+production gate remains blocked until those receipts come from a
 `target_role=camera` run with real sensor/DMA, storage handoff, UI path, and
 visual display checks marked executed.
 

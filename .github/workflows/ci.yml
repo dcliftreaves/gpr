@@ -79,6 +79,12 @@ jobs:
       - name: Mission 1 8K SR promotion receipt regression
         run: python3 tools/test/test_mission1_8k_sr_production_promotion.py
 
+      - name: Install Python image dependency
+        # The visual-review package regression builds tiny contact-sheet
+        # fixtures with Pillow before the heavier codec test dependencies are
+        # installed below.
+        run: python3 -m pip install pillow --break-system-packages
+
       - name: Mission 1 8K SR visual review regression
         run: python3 tools/test/test_build_mission1_8k_sr_visual_review.py
 
@@ -161,6 +167,7 @@ jobs:
       - name: Install Python dependencies
         # numpy: synthesize test fixtures and compute PSNR.
         # rawpy : open DNG files produced by gpr_tools and read raw_image.
+        # pillow: build compact visual-review package fixtures.
         # Used by both the fixture generator below and the
         # still-quality CI step at the bottom of this job.
         # --break-system-packages is needed on macOS-14 runners (PEP 668
@@ -168,7 +175,7 @@ jobs:
         # install into it without the flag). It's a no-op on Linux where
         # the runner Python is already user-writeable.
         run: |
-          python3 -m pip install numpy rawpy --break-system-packages
+          python3 -m pip install numpy rawpy pillow --break-system-packages
 
       - name: Configure
         run: |
