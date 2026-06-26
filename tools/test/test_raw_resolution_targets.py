@@ -82,22 +82,22 @@ def test_named_2k_target_policies_are_distinct() -> None:
 def test_live_preview_edge_safe_policy_contract() -> None:
     policy = materialize_policy(DEFAULT_POLICY_ID)
 
-    assert policy["production_path_id"] == "preview_live_2k_l2hh_edge_safe"
-    assert policy["raw_target"] == "2k_raw_0p5x_l2hh"
-    assert policy["source_codec"] == "ml2_q3_dec2"
-    assert policy["display_mode"] == "edge_safe_viewport"
+    assert policy["production_path_id"] == "preview_live_mission1_1024"
+    assert policy["raw_target"] == "mission1_preview_1024"
+    assert policy["source_codec"] == "mission1_native12_gvid"
+    assert policy["display_mode"] == "full_frame_downsample"
     assert policy["forbids_ref_content"] is True
-    assert policy["edge_inset_px"] == 16
-    assert policy["target_fps"] == 24.0
-    assert policy["p95_ms_budget"] == 41.7
+    assert policy["edge_inset_px"] == 0
+    assert policy["target_fps"] == 20.0
+    assert policy["p95_ms_budget"] == 50.0
     assert policy["display_viewport"] == {
-        "x": 16,
-        "y": 16,
-        "width": 2038,
-        "height": 1348,
+        "x": 0,
+        "y": 0,
+        "width": 1024,
+        "height": 768,
     }
-    assert "visual_2k_l2hh_edgeinset16_28f" in policy["quality_receipt"]
-    assert "pi5_2k_l2hh_alias_120f" in policy["timing_receipt"]
+    assert "preview_ui_receipt.json" in policy["quality_receipt"]
+    assert "preview_decode_1024x768" in policy["timing_receipt"]
 
 
 def test_live_preview_viewport_rejects_invalid_inset() -> None:

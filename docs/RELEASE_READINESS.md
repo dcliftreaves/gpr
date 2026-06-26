@@ -189,7 +189,7 @@ Current interpretation:
 | MOV wrapper | Compatibility/export path | Available for GPR1/GPRr wrapper and downstream review/export tooling |
 | ProRes review | Review artifact path | Generated from preview/review tools, not the primary raw deliverable |
 | PREVIEW offline/review | PASS for q8 three-way runtime full-frame path | No-REF full-frame holdout passes 84/84 on the current receipt |
-| PREVIEW live/camera-back | PASS for bounded 2K edge-safe display | 2K L2 HH clears Pi timing at 29.85 fps median / 37.1 ms p95; the 16 px edge-safe display policy passes 84/84 with worst LPIPS 0.1378. |
+| PREVIEW live/camera-back | PASS for `preview_live_mission1_1024` Pi stand-in display | The current 4K `.gvid` decodes to a full-frame 1024 x 768 RGB preview at 24.20 fps whole-run wall and 43.86 fps median decode-plus-target on the Pi stand-in; real Mission 1 UI/display handoff is still required. |
 | 2K raw target | Pi live-capable raw path | Fast decode hits 37.59 fps median / 27.7 ms p95; selective L2 HH hits 29.85 fps median / 37.1 ms p95. |
 | 4K raw target | Offline-only production classification | 43.7 fps median on Mac path; Pi decode-side is 6.3 fps and rendered-proxy LPIPS remains diagnostic only. |
 | 8K raw target | Offline/review only | Current 2x raw reconstruction is about 2.7 fps on the local timing smoke. |

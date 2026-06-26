@@ -121,8 +121,8 @@ videos, and receipts under `/Volumes/OWC_8TB/gpr_work/artifacts`.
 This branch is organized around the four production paths requested for the
 Mission 1 workstream. The important boundary is that every path starts from raw
 Bayer frames and a real `.gvid` stream. The branch does not count wrapped
-camera `.GPR` payloads, JPEG-derived ProRes, crop-only previews, or the older
-`2k_raw_0p5x_l2hh` experiment as satisfying these four items.
+camera `.GPR` payloads, JPEG-derived ProRes, or crop-only previews as
+satisfying these four items.
 
 | # | requested path | evidence on this branch | done definition | remaining gap |
 |---:|---|---|---|---|
@@ -209,8 +209,8 @@ current evidence so strict local checks can verify it.
 | `8k_raw_2x` | 8192 x 6144 Mission / 8280 x 5520 Z8 | offline/review only | Candidate-aware CNN SR is positive in broad full-frame gates; current SR throughput is about 1 fps on Mac/MPS. 42-frame 8192 x 6144 `.gvid` packaging and `.gvid` to 8K ProRes review are receipted. |
 
 Details: [`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-14.md).
-That historical target ladder still tracks `2k_raw_0p5x_l2hh`; the current
-Mission 1 camera-back path above is the simpler 1024 x 768 preview target.
+The current Mission 1 camera-back path is the simple 1024 x 768 full-frame
+preview target from the same 4K `.gvid`.
 
 ## Mission 1 Reality Check
 

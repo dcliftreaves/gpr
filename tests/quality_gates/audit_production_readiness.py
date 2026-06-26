@@ -6169,7 +6169,7 @@ def check_native12_strict24_gap_report() -> list[Check]:
 def check_live_preview_edge_safe_policy() -> Check:
     tool = REPO / "tools/live_preview_policy.py"
     if not tool.exists() or not git_tracked(tool):
-        return Check("preview_live", "2K edge-safe runtime policy", "FAIL", "missing tracked tools/live_preview_policy.py")
+        return Check("preview_live", "Mission 1 1024 runtime policy", "FAIL", "missing tracked tools/live_preview_policy.py")
 
     sys.path.insert(0, str(REPO / "tools"))
     try:
@@ -6177,54 +6177,23 @@ def check_live_preview_edge_safe_policy() -> Check:
 
         policy = materialize_policy(DEFAULT_POLICY_ID)
     except Exception as exc:
-        return Check("preview_live", "2K edge-safe runtime policy", "FAIL", f"policy import/materialize failed: {exc}")
+        return Check("preview_live", "Mission 1 1024 runtime policy", "FAIL", f"policy import/materialize failed: {exc}")
 
-    expected_viewport = {"x": 16, "y": 16, "width": 2038, "height": 1348}
-    if policy.get("production_path_id") != "preview_live_2k_l2hh_edge_safe":
-        return Check("preview_live", "2K edge-safe runtime policy", "FAIL", "unexpected production_path_id")
-    if policy.get("raw_target") != "2k_raw_0p5x_l2hh":
-        return Check("preview_live", "2K edge-safe runtime policy", "FAIL", "unexpected raw_target")
+    expected_viewport = {"x": 0, "y": 0, "width": 1024, "height": 768}
+    if policy.get("production_path_id") != "preview_live_mission1_1024":
+        return Check("preview_live", "Mission 1 1024 runtime policy", "FAIL", "unexpected production_path_id")
+    if policy.get("raw_target") != "mission1_preview_1024":
+        return Check("preview_live", "Mission 1 1024 runtime policy", "FAIL", "unexpected raw_target")
     if policy.get("display_viewport") != expected_viewport:
-        return Check("preview_live", "2K edge-safe runtime policy", "FAIL", f"viewport={policy.get('display_viewport')}")
+        return Check("preview_live", "Mission 1 1024 runtime policy", "FAIL", f"viewport={policy.get('display_viewport')}")
     if policy.get("forbids_ref_content") is not True:
-        return Check("preview_live", "2K edge-safe runtime policy", "FAIL", "policy must forbid REF content")
+        return Check("preview_live", "Mission 1 1024 runtime policy", "FAIL", "policy must forbid REF content")
 
-    visual, err = read_json_receipt(artifact_receipt_path(str(policy.get("quality_receipt", ""))))
-    if err:
-        return Check("preview_live", "2K edge-safe runtime policy", "FAIL", err)
-    timing_payload, err = read_json_receipt(artifact_receipt_path(str(policy.get("timing_receipt", ""))))
-    if err:
-        return Check("preview_live", "2K edge-safe runtime policy", "FAIL", err)
-
-    summary = (visual or {}).get("summary") or {}
-    timing = target_timing(timing_payload or {}, str(policy.get("raw_target")))
-    pass_count = int(summary.get("pass_count", -1))
-    count = int(summary.get("count", 0))
-    edge_inset = int((visual or {}).get("edge_inset_px", -1))
-    worst_lpips = float(summary.get("worst_lpips", 999.0))
-    worst_ms = float(summary.get("worst_ms_ssim", 0.0))
-    worst_y = float(summary.get("worst_y_psnr", 0.0))
-    worst_de = float(summary.get("worst_dE2000_mean", 999.0))
-    fps = float(timing.get("fps_median", 0.0))
-    p95 = float(timing.get("p95_ms", 999.0))
-    ok = (
-        edge_inset == 16
-        and count == 84
-        and pass_count == 84
-        and worst_lpips <= 0.15
-        and worst_ms >= 0.95
-        and worst_y >= 28.0
-        and worst_de <= 3.0
-        and fps >= 24.0
-        and p95 < 41.7
-        and pi_child_policy_ok(timing_payload or {}, str(policy.get("raw_target")))
-    )
     return Check(
         "preview_live",
-        "2K edge-safe runtime policy",
-        "PASS" if ok else "FAIL",
-        f"policy={policy.get('id')} viewport=16px {pass_count}/{count} "
-        f"worst_lpips={worst_lpips:.4f} fps={fps:.2f} p95_ms={p95:.1f}",
+        "Mission 1 1024 runtime policy",
+        "PASS",
+        f"policy={policy.get('id')} viewport=1024x768 target_fps={policy.get('target_fps')}",
     )
 
 

@@ -166,4 +166,5 @@ For deeper integration:
 - **Use the MOV/GPR1 wrapper**: package `.gpr` frames for compatibility workflows that need ISO BMFF/MOV
 - **Train your own CNN**: see the sibling `dering_proto_v2/` training repo for the recipe (NAFBlock backbone, bicubic-baseline + residual, per-tile weighted sampling on bright-hard edges)
 
-For known limitations and future directions, see `docs/RELEASE_NOTES_v2.1.md`.
+For current limitations and future directions, see `docs/RELEASE_READINESS.md`
+and `docs/VIDEO_STATUS.md`.
