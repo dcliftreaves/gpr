@@ -4,6 +4,29 @@ All notable changes to GPR are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.1] — 2026-06-26
+
+Patch release for the 2.3 productization follow-up.
+
+### Added
+
+- Release artifact contract for GitHub/Labs review bundles, including `.gvid`
+  samples, metadata, compact review media, receipts, checksums, and upload
+  flow.
+- Productization contract guard covering release bundles, Labs/plugin handoff,
+  `.gvid` conformance, and CNN/model governance.
+- Dedicated `.gvid` v1 conformance documentation and dependency-light
+  malformed-stream regression test.
+- Labs/plugin handoff requirements for ABI ownership, capability discovery,
+  install/update/rollback behavior, and blocked receipt causes.
+
+### Changed
+
+- README and docs index now link the productization contracts directly from the
+  release/product surface.
+- Hosted CI now runs the productization contract guard and `.gvid` conformance
+  smoke before the Labs readiness guard.
+
 ## [2.3.0] — 2026-06-26
 
 The 2.3 release productionizes the current raw-video suite around `.gvid`,
