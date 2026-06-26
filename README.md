@@ -53,6 +53,27 @@ instead of the Pi stand-in.
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
 
+## Stills Performance And CNN Latitude
+
+The stills path is not just smaller files. It is a production-gated raw-photo
+pipeline with measured encode/decode receipts, three quality tiers, and a
+matched 1x CNN that lets lower-bitrate files land in the same visual gate.
+
+| still path | measured performance | quality/compression result |
+|---|---|---|
+| 12 MP still roundtrip | 4032 x 3024 rggb12 q3 encodes in **32.4 ms** and decodes in **52.7 ms** in the committed capability run. | Output is **4.72% of 16-bit raw size** with 43.31 dB Bayer PSNR, exceeding the locked criteria. |
+| 50 MP still roundtrip | 8280 x 5520 rggb14 q3 encodes in **133.5 ms** and decodes in **243.2 ms** in the committed capability run. Pi-side 50 MP still encode is documented at **1.84 fps best** after the parallel DNG-read performance work. | Output is **6.78% of 16-bit raw size** with 53.85 dB Bayer PSNR, exceeding the locked criteria. |
+| STILL smallest | `gpr_tools_q0` plus the matched q3 BIBO_1x CNN averages **9.80 MB** on 50 MP images. | Worst LPIPS is **0.031**, passing the STILL visual gate while landing 35% smaller than primary. |
+| STILL primary | `gpr_tools_q3` plus the matched q3 BIBO_1x CNN averages **15.05 MB** on 50 MP images. | Worst LPIPS is **0.016**; this is the general-purpose visual-lossless still tier. |
+| STILL archival | `gpr_tools_q8` needs no CNN and averages **27.17 MB** on 50 MP images. | Worst LPIPS is **0.004**; this is the tighter, larger-file tier. |
+
+The key result is latitude: the same matched q3 BIBO_1x CNN supports both the
+primary q3 tier and the smaller q0 tier, so a user can trade file size against
+headroom without leaving the committed stills gate. At archival q8, the codec
+is already tight enough that CNN restoration is not required. The current
+source-of-truth tables are [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md)
+and [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md).
+
 ## What It Enables
 
 | capability | current evidence |
