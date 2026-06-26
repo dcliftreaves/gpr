@@ -3,7 +3,8 @@ name: Labs Target Evidence
 # Manual target/self-hosted workflow for evidence that hosted CI cannot prove.
 # It is intentionally not triggered by push or pull_request because it needs a
 # Pi 5 / Mission 1 stand-in runner, a local Bayer raw source, and external
-# artifact storage.
+# artifact storage. Detailed knobs are provided through config_json so the
+# dispatch form stays small enough for GitHub to validate.
 
 on:
   workflow_dispatch:
@@ -11,178 +12,19 @@ on:
       raw_path:
         description: "Absolute path to the target-runner Bayer raw input"
         required: true
-      output_dir:
-        description: "External artifact root for this target bench"
+      profile:
+        description: "Target defaults profile"
         required: true
-        default: "/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_self_hosted"
-      scratch_dir:
-        description: "External scratch/tmp directory on the target runner"
-        required: true
-        default: "/Volumes/OWC_8TB/gpr_work/tmp"
-      source_provenance_root:
-        description: "Source snapshot root to digest into labs_target_bench.json"
-        required: true
-        default: "."
-      frames:
-        description: "Frames to encode; 14400 is 10 minutes at 24 fps"
-        required: true
-        default: "14400"
-      target_fps:
-        description: "Required median FPS target"
-        required: true
-        default: "24"
-      source_width:
-        description: "Source Bayer width"
-        required: true
-        default: "8280"
-      source_height:
-        description: "Source Bayer height"
-        required: true
-        default: "5520"
-      capture_width:
-        description: ".gvid capture width"
-        required: true
-        default: "8280"
-      capture_height:
-        description: ".gvid capture height"
-        required: true
-        default: "5520"
-      quality:
-        description: "FUSED quality preset"
-        required: true
-        default: "3"
-      wavelet_levels:
-        description: "FUSED wavelet levels"
-        required: true
-        default: "2"
-      no_decimate:
-        description: "Set true for native-resolution sources that should omit GPR row/col decimation"
-        required: true
-        default: "false"
-      col_decimate:
-        description: "GPR_COL_DECIMATE when no_decimate is false"
-        required: true
-        default: "2"
-      row_decimate:
-        description: "GPR_ROW_DECIMATE when no_decimate is false"
-        required: true
-        default: "2"
-      pixel_format:
-        description: ".gvid pixel format"
-        required: true
-        default: "4"
-      direct_gvid:
-        description: "Measure direct sequential .gvid output"
-        required: true
-        default: "true"
-      bench_binary:
-        description: "Target bench binary: bench_fused for fastest timing evidence, labs_encoder_bench_cli for firmware-facing shim integration evidence"
-        required: true
-        default: "bench_fused"
+        default: "mission1_native12_pi20"
         type: choice
         options:
-          - bench_fused
-          - labs_encoder_bench_cli
-      mission1_native12_fll2_profile:
-        description: "Apply current Mission 1 native12 q8 FLL2 avg7555-fast P2-pin profile env"
-        required: true
-        default: "false"
-      storage_target_name:
-        description: "Storage target name recorded in the receipt"
-        required: true
-        default: "Lexar Professional SILVER PLUS SDXC/microSDXC UHS-I (128GB-1TB)"
-      storage_target_read_mbps:
-        description: "Storage target read MB/s recorded for decode/playback evidence"
-        required: true
-        default: "205"
-      storage_target_write_mbps:
-        description: "Storage target write MB/s used for payload-size gate"
-        required: true
-        default: "150"
-      storage_target_safety_margin:
-        description: "Fraction of storage write target allowed for payload"
-        required: true
-        default: "0.90"
-      storage_target_note:
-        description: "Storage target capacity/profile note"
-        required: true
-        default: "Published 128GB-1TB SILVER PLUS profile: 205 MB/s read, 150 MB/s write; 64GB microSD is 205/100."
-      target_name:
-        description: "Receipt target name"
-        required: true
-        default: "Pi 5 stand-in"
-      target_role:
-        description: "Receipt target role: stand-in or camera"
-        required: true
-        default: "stand-in"
-      raw_source_kind:
-        description: "Raw source kind: file_standin, sensor_dma_capture, or camera_ring_buffer"
-        required: true
-        default: "file_standin"
-      frame_source:
-        description: "Frame source label for camera handoff receipt"
-        required: true
-        default: "file-backed Bayer stand-in"
-      memory_ownership:
-        description: "Memory ownership label for camera handoff receipt"
-        required: true
-        default: "synchronous submit; caller owns input through return"
-      write_path:
-        description: "Write path label for camera handoff receipt"
-        required: true
-        default: "bench_fused target-bench .gvid path"
-      sensor_dma_executed:
-        description: "Set true only when the real sensor/DMA handoff executed"
-        required: true
-        default: "false"
-      storage_handoff_executed:
-        description: "Set true only when the real camera storage handoff executed"
-        required: true
-        default: "false"
-      storage_medium:
-        description: "Camera handoff receipt storage medium label"
-        required: true
-        default: "target-bench filesystem stand-in"
-      storage_ownership:
-        description: "Camera handoff receipt write-buffer/storage ownership label"
-        required: true
-        default: "OS/page-cache writeback; not camera firmware DMA"
-      blocker_cause:
-        description: "Blocker cause when firmware_ready is false"
-        required: true
-        default: "camera hardware target not firmware-ready"
-      preview_target:
-        description: "fused_decode_cli target for camera-back preview timing"
-        required: true
-        default: "mission1_preview_4x_1024x768"
-      preview_limit:
-        description: "Preview decode frame limit; 0 means all frames"
-        required: true
-        default: "0"
-      ui_path_executed:
-        description: "Set true only when the real camera UI/display path executed"
-        required: true
-        default: "false"
-      visual_checked:
-        description: "Set true only after visual display check on the camera display"
-        required: true
-        default: "false"
-      display_surface:
-        description: "Preview display surface label"
-        required: true
-        default: "stand-in raw preview receipt output"
-      presentation_path:
-        description: "Preview presentation path label"
-        required: true
-        default: "off-camera preview decode receipt"
-      preview_buffer_ownership:
-        description: "Preview buffer ownership label"
-        required: true
-        default: "process-owned RGB output buffer"
-      preview_blocker_cause:
-        description: "Blocker cause when ui_ready is false"
-        required: true
-        default: "Mission 1 camera UI/display path not executed"
+          - mission1_native12_pi20
+          - z8_50mp_strict24
+          - custom_json
+      config_json:
+        description: "Optional JSON overrides for frames, role, dimensions, timing, and receipt labels"
+        required: false
+        default: "{}"
 
 concurrency:
   group: labs-target-${{ github.ref }}
@@ -197,7 +39,7 @@ jobs:
     env:
       GPR_EXTERNAL_ROOT: /Volumes/OWC_8TB/gpr_work
       GPR_ARTIFACT_ROOT: /Volumes/OWC_8TB/gpr_work/artifacts
-      TMPDIR: ${{ inputs.scratch_dir }}
+      TMPDIR: /Volumes/OWC_8TB/gpr_work/tmp
 
     steps:
       - name: Checkout
@@ -205,12 +47,97 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Resolve dispatch config
+        env:
+          RAW_PATH_INPUT: ${{ inputs.raw_path }}
+          PROFILE_INPUT: ${{ inputs.profile }}
+          CONFIG_JSON_INPUT: ${{ inputs.config_json }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          cfg = {
+              "raw_path": os.environ["RAW_PATH_INPUT"],
+              "output_dir": "/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_self_hosted",
+              "scratch_dir": "/Volumes/OWC_8TB/gpr_work/tmp",
+              "source_provenance_root": ".",
+              "frames": "1440",
+              "target_fps": "20",
+              "source_width": "4096",
+              "source_height": "3072",
+              "capture_width": "4096",
+              "capture_height": "3072",
+              "quality": "8",
+              "wavelet_levels": "2",
+              "no_decimate": "true",
+              "col_decimate": "2",
+              "row_decimate": "2",
+              "pixel_format": "4",
+              "direct_gvid": "true",
+              "bench_binary": "bench_fused",
+              "mission1_native12_fll2_profile": "true",
+              "storage_target_name": "Lexar Professional SILVER PLUS SDXC/microSDXC UHS-I (128GB-1TB)",
+              "storage_target_read_mbps": "205",
+              "storage_target_write_mbps": "150",
+              "storage_target_safety_margin": "0.90",
+              "storage_target_note": "Published 128GB-1TB SILVER PLUS profile: 205 MB/s read, 150 MB/s write; 64GB microSD is 205/100.",
+              "target_name": "Pi 5 stand-in",
+              "target_role": "stand-in",
+              "raw_source_kind": "file_standin",
+              "frame_source": "file-backed Bayer stand-in",
+              "memory_ownership": "synchronous submit; caller owns input through return",
+              "write_path": "bench_fused target-bench .gvid path",
+              "sensor_dma_executed": "false",
+              "storage_handoff_executed": "false",
+              "storage_medium": "target-bench filesystem stand-in",
+              "storage_ownership": "OS/page-cache writeback; not camera firmware DMA",
+              "blocker_cause": "camera hardware target not firmware-ready",
+              "preview_target": "mission1_preview_4x_1024x768",
+              "preview_limit": "0",
+              "ui_path_executed": "false",
+              "visual_checked": "false",
+              "display_surface": "stand-in raw preview receipt output",
+              "presentation_path": "off-camera preview decode receipt",
+              "preview_buffer_ownership": "process-owned RGB output buffer",
+              "preview_blocker_cause": "Mission 1 camera UI/display path not executed",
+          }
+
+          if os.environ.get("PROFILE_INPUT") == "z8_50mp_strict24":
+              cfg.update({
+                  "frames": "14400",
+                  "target_fps": "24",
+                  "source_width": "8280",
+                  "source_height": "5520",
+                  "capture_width": "8280",
+                  "capture_height": "5520",
+                  "quality": "3",
+                  "no_decimate": "false",
+                  "mission1_native12_fll2_profile": "false",
+              })
+
+          raw_config = os.environ.get("CONFIG_JSON_INPUT", "").strip()
+          if raw_config:
+              overrides = json.loads(raw_config)
+              if not isinstance(overrides, dict):
+                  raise SystemExit("config_json must be a JSON object")
+              cfg.update({str(k): str(v) for k, v in overrides.items()})
+          if not cfg["raw_path"]:
+              raise SystemExit("raw_path is required")
+
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as f:
+              for key, value in cfg.items():
+                  f.write(f"{key.upper()}<<__GPR_ENV__\n{value}\n__GPR_ENV__\n")
+          PY
+
       - name: Prepare external directories
         id: prep
         run: |
           set -euo pipefail
-          mkdir -p "${{ inputs.scratch_dir }}"
-          OUT="${{ inputs.output_dir }}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$SCRATCH_DIR"
+          OUT="${OUTPUT_DIR}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           mkdir -p "$OUT"
           echo "outdir=$OUT" >> "$GITHUB_OUTPUT"
           echo "Using output dir: $OUT"
@@ -219,20 +146,20 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/check_mission1_camera_dispatch_inputs.py \
-            --target-role "${{ inputs.target_role }}" \
-            --target-name "${{ inputs.target_name }}" \
-            --raw-source-kind "${{ inputs.raw_source_kind }}" \
-            --sensor-dma-executed "${{ inputs.sensor_dma_executed }}" \
-            --storage-handoff-executed "${{ inputs.storage_handoff_executed }}" \
-            --ui-path-executed "${{ inputs.ui_path_executed }}" \
-            --visual-checked "${{ inputs.visual_checked }}" \
-            --frame-source "${{ inputs.frame_source }}" \
-            --write-path "${{ inputs.write_path }}" \
-            --storage-medium "${{ inputs.storage_medium }}" \
-            --storage-ownership "${{ inputs.storage_ownership }}" \
-            --display-surface "${{ inputs.display_surface }}" \
-            --presentation-path "${{ inputs.presentation_path }}" \
-            --preview-buffer-ownership "${{ inputs.preview_buffer_ownership }}"
+            --target-role "$TARGET_ROLE" \
+            --target-name "$TARGET_NAME" \
+            --raw-source-kind "$RAW_SOURCE_KIND" \
+            --sensor-dma-executed "$SENSOR_DMA_EXECUTED" \
+            --storage-handoff-executed "$STORAGE_HANDOFF_EXECUTED" \
+            --ui-path-executed "$UI_PATH_EXECUTED" \
+            --visual-checked "$VISUAL_CHECKED" \
+            --frame-source "$FRAME_SOURCE" \
+            --write-path "$WRITE_PATH" \
+            --storage-medium "$STORAGE_MEDIUM" \
+            --storage-ownership "$STORAGE_OWNERSHIP" \
+            --display-surface "$DISPLAY_SURFACE" \
+            --presentation-path "$PRESENTATION_PATH" \
+            --preview-buffer-ownership "$PREVIEW_BUFFER_OWNERSHIP"
 
       - name: Configure Release build
         run: |
@@ -244,11 +171,10 @@ jobs:
           set -euo pipefail
           cmake --build build --target bench_fused labs_encoder_bench_cli fused_decode_cli gvid_preview_rgb_cli -j"$(nproc)"
 
-      - name: Write target preflight receipt
-        id: preflight
+      - name: Resolve target binaries
         run: |
           set -euo pipefail
-          if [ "${{ inputs.bench_binary }}" = "labs_encoder_bench_cli" ]; then
+          if [ "$BENCH_BINARY" = "labs_encoder_bench_cli" ]; then
             bench_path="build/bin/labs_encoder_bench_cli"
             fallback_path="build/source/app/labs_encoder_bench_cli"
           else
@@ -257,6 +183,10 @@ jobs:
           fi
           if [ ! -x "$bench_path" ]; then
             bench_path="$fallback_path"
+          fi
+          if [ ! -x "$bench_path" ]; then
+            echo "$BENCH_BINARY binary not found at build/bin or source/app fallback" >&2
+            exit 1
           fi
           labs_shim_path="build/bin/labs_encoder_bench_cli"
           if [ ! -x "$labs_shim_path" ]; then
@@ -270,8 +200,19 @@ jobs:
           if [ ! -x "$preview_cli" ]; then
             preview_cli="build/source/app/gvid_preview_rgb_cli"
           fi
+          {
+            echo "BENCH_PATH=$bench_path"
+            echo "LABS_SHIM_PATH=$labs_shim_path"
+            echo "DECODE_CLI=$decode_cli"
+            echo "PREVIEW_CLI=$preview_cli"
+          } >> "$GITHUB_ENV"
+
+      - name: Write target preflight receipt
+        id: preflight
+        run: |
+          set -euo pipefail
           camera_flags=()
-          if [ "${{ inputs.target_role }}" = "camera" ]; then
+          if [ "$TARGET_ROLE" = "camera" ]; then
             camera_flags=(
               --camera-frame-source-ready
               --camera-storage-path-ready
@@ -280,24 +221,24 @@ jobs:
           fi
           receipt="${{ steps.prep.outputs.outdir }}/target_preflight_receipt.json"
           python3 tools/mission1_camera_target_preflight.py \
-            --target-name "${{ inputs.target_name }}" \
-            --target-role "${{ inputs.target_role }}" \
+            --target-name "$TARGET_NAME" \
+            --target-role "$TARGET_ROLE" \
             --repo-root "$PWD" \
-            --raw "${{ inputs.raw_path }}" \
+            --raw "$RAW_PATH" \
             --output-dir "${{ steps.prep.outputs.outdir }}" \
-            --scratch-dir "${{ inputs.scratch_dir }}" \
-            --bench "$bench_path" \
-            --labs-encoder-bench-cli "$labs_shim_path" \
-            --fused-decode-cli "$decode_cli" \
-            --preview-cli "$preview_cli" \
-            --source-width "${{ inputs.source_width }}" \
-            --source-height "${{ inputs.source_height }}" \
-            --raw-source-kind "${{ inputs.raw_source_kind }}" \
-            --frame-source "${{ inputs.frame_source }}" \
-            --write-path "${{ inputs.write_path }}" \
-            --storage-medium "${{ inputs.storage_medium }}" \
-            --display-surface "${{ inputs.display_surface }}" \
-            --presentation-path "${{ inputs.presentation_path }}" \
+            --scratch-dir "$SCRATCH_DIR" \
+            --bench "$BENCH_PATH" \
+            --labs-encoder-bench-cli "$LABS_SHIM_PATH" \
+            --fused-decode-cli "$DECODE_CLI" \
+            --preview-cli "$PREVIEW_CLI" \
+            --source-width "$SOURCE_WIDTH" \
+            --source-height "$SOURCE_HEIGHT" \
+            --raw-source-kind "$RAW_SOURCE_KIND" \
+            --frame-source "$FRAME_SOURCE" \
+            --write-path "$WRITE_PATH" \
+            --storage-medium "$STORAGE_MEDIUM" \
+            --display-surface "$DISPLAY_SURFACE" \
+            --presentation-path "$PRESENTATION_PATH" \
             --output-json "$receipt" \
             --require-ready \
             "${camera_flags[@]}"
@@ -308,49 +249,35 @@ jobs:
         id: bench
         run: |
           set -uo pipefail
-          if [ "${{ inputs.bench_binary }}" = "labs_encoder_bench_cli" ]; then
-            bench_path="build/bin/labs_encoder_bench_cli"
-            fallback_path="build/source/app/labs_encoder_bench_cli"
-          else
-            bench_path="build/bin/bench_fused"
-            fallback_path="build/source/app/bench_fused/bench_fused"
-          fi
-          if [ ! -x "$bench_path" ]; then
-            bench_path="$fallback_path"
-          fi
-          if [ ! -x "$bench_path" ]; then
-            echo "${{ inputs.bench_binary }} binary not found at build/bin or source/app fallback" >&2
-            exit 1
-          fi
           bench_args=(
-            --bench "$bench_path"
-            --raw "${{ inputs.raw_path }}"
+            --bench "$BENCH_PATH"
+            --raw "$RAW_PATH"
             --output-dir "${{ steps.prep.outputs.outdir }}"
-            --frames "${{ inputs.frames }}"
-            --target-fps "${{ inputs.target_fps }}"
-            --source-width "${{ inputs.source_width }}"
-            --source-height "${{ inputs.source_height }}"
-            --capture-width "${{ inputs.capture_width }}"
-            --capture-height "${{ inputs.capture_height }}"
-            --quality "${{ inputs.quality }}"
-            --wavelet-levels "${{ inputs.wavelet_levels }}"
-            --pixel-format "${{ inputs.pixel_format }}"
-            --storage-target-name "${{ inputs.storage_target_name }}"
-            --storage-target-read-mbps "${{ inputs.storage_target_read_mbps }}"
-            --storage-target-write-mbps "${{ inputs.storage_target_write_mbps }}"
-            --storage-target-safety-margin "${{ inputs.storage_target_safety_margin }}"
-            --storage-target-note "${{ inputs.storage_target_note }}"
-            --source-provenance-root "${{ inputs.source_provenance_root }}"
+            --frames "$FRAMES"
+            --target-fps "$TARGET_FPS"
+            --source-width "$SOURCE_WIDTH"
+            --source-height "$SOURCE_HEIGHT"
+            --capture-width "$CAPTURE_WIDTH"
+            --capture-height "$CAPTURE_HEIGHT"
+            --quality "$QUALITY"
+            --wavelet-levels "$WAVELET_LEVELS"
+            --pixel-format "$PIXEL_FORMAT"
+            --storage-target-name "$STORAGE_TARGET_NAME"
+            --storage-target-read-mbps "$STORAGE_TARGET_READ_MBPS"
+            --storage-target-write-mbps "$STORAGE_TARGET_WRITE_MBPS"
+            --storage-target-safety-margin "$STORAGE_TARGET_SAFETY_MARGIN"
+            --storage-target-note "$STORAGE_TARGET_NOTE"
+            --source-provenance-root "$SOURCE_PROVENANCE_ROOT"
           )
-          if [ "${{ inputs.no_decimate }}" = "true" ]; then
+          if [ "$NO_DECIMATE" = "true" ]; then
             bench_args+=(--no-decimate)
           else
-            bench_args+=(--col-decimate "${{ inputs.col_decimate }}" --row-decimate "${{ inputs.row_decimate }}")
+            bench_args+=(--col-decimate "$COL_DECIMATE" --row-decimate "$ROW_DECIMATE")
           fi
-          if [ "${{ inputs.direct_gvid }}" = "true" ]; then
+          if [ "$DIRECT_GVID" = "true" ]; then
             bench_args+=(--direct-gvid)
           fi
-          if [ "${{ inputs.mission1_native12_fll2_profile }}" = "true" ]; then
+          if [ "$MISSION1_NATIVE12_FLL2_PROFILE" = "true" ]; then
             export FUSED_PIN=1
             export FUSED_PIN_P2=1
             export GPR_INCLUDE_LL=1
@@ -390,26 +317,26 @@ jobs:
             exit 0
           fi
           sensor_flag=()
-          if [ "${{ inputs.sensor_dma_executed }}" = "true" ]; then
+          if [ "$SENSOR_DMA_EXECUTED" = "true" ]; then
             sensor_flag=(--sensor-dma-executed)
           fi
           storage_flag=()
-          if [ "${{ inputs.storage_handoff_executed }}" = "true" ]; then
+          if [ "$STORAGE_HANDOFF_EXECUTED" = "true" ]; then
             storage_flag=(--storage-handoff-executed)
           fi
           python3 tools/labs_target_to_camera_handoff_receipt.py "$receipt" \
             --output "$output" \
-            --target-name "${{ inputs.target_name }}" \
-            --target-role "${{ inputs.target_role }}" \
-            --target-fps "${{ inputs.target_fps }}" \
-            --raw-source-kind "${{ inputs.raw_source_kind }}" \
-            --frame-source "${{ inputs.frame_source }}" \
-            --memory-ownership "${{ inputs.memory_ownership }}" \
-            --write-path "${{ inputs.write_path }}" \
-            --storage-medium "${{ inputs.storage_medium }}" \
-            --storage-ownership "${{ inputs.storage_ownership }}" \
-            --pixel-format "${{ inputs.pixel_format }}" \
-            --blocker-cause "${{ inputs.blocker_cause }}" \
+            --target-name "$TARGET_NAME" \
+            --target-role "$TARGET_ROLE" \
+            --target-fps "$TARGET_FPS" \
+            --raw-source-kind "$RAW_SOURCE_KIND" \
+            --frame-source "$FRAME_SOURCE" \
+            --memory-ownership "$MEMORY_OWNERSHIP" \
+            --write-path "$WRITE_PATH" \
+            --storage-medium "$STORAGE_MEDIUM" \
+            --storage-ownership "$STORAGE_OWNERSHIP" \
+            --pixel-format "$PIXEL_FORMAT" \
+            --blocker-cause "$BLOCKER_CAUSE" \
             "${storage_flag[@]}" \
             "${sensor_flag[@]}"
           python3 tools/check_labs_camera_handoff_receipt.py "$output"
@@ -434,44 +361,35 @@ jobs:
           if [ -f "$preflight_receipt" ]; then
             cp "$preflight_receipt" "$closure_dir/target_preflight_receipt.json"
           fi
-          decode_cli="build/bin/fused_decode_cli"
-          if [ ! -x "$decode_cli" ]; then
-            decode_cli="build/source/app/fused_decode_cli"
-          fi
-          if [ ! -x "$decode_cli" ]; then
-            echo "status=missing-fused-decode-cli" >> "$GITHUB_OUTPUT"
-            echo "fused_decode_cli binary not found at build/bin or build/source/app" >&2
-            exit 0
-          fi
           sensor_flag=()
-          if [ "${{ inputs.sensor_dma_executed }}" = "true" ]; then
+          if [ "$SENSOR_DMA_EXECUTED" = "true" ]; then
             sensor_flag=(--sensor-dma-executed)
           fi
           storage_flag=()
-          if [ "${{ inputs.storage_handoff_executed }}" = "true" ]; then
+          if [ "$STORAGE_HANDOFF_EXECUTED" = "true" ]; then
             storage_flag=(--storage-handoff-executed)
           fi
           ui_flag=()
-          if [ "${{ inputs.ui_path_executed }}" = "true" ]; then
+          if [ "$UI_PATH_EXECUTED" = "true" ]; then
             ui_flag=(--ui-path-executed)
           fi
           visual_flag=()
-          if [ "${{ inputs.visual_checked }}" = "true" ]; then
+          if [ "$VISUAL_CHECKED" = "true" ]; then
             visual_flag=(--visual-checked)
           fi
           profile_flag=()
-          if [ "${{ inputs.mission1_native12_fll2_profile }}" = "true" ]; then
+          if [ "$MISSION1_NATIVE12_FLL2_PROFILE" = "true" ]; then
             profile_flag=(--use-mission1-fll2-profile)
           fi
           no_decimate_flag=()
           decimate_args=()
-          if [ "${{ inputs.no_decimate }}" = "true" ]; then
+          if [ "$NO_DECIMATE" = "true" ]; then
             no_decimate_flag=(--no-decimate)
           else
-            decimate_args=(--col-decimate "${{ inputs.col_decimate }}" --row-decimate "${{ inputs.row_decimate }}")
+            decimate_args=(--col-decimate "$COL_DECIMATE" --row-decimate "$ROW_DECIMATE")
           fi
           direct_gvid_flag=()
-          if [ "${{ inputs.direct_gvid }}" = "true" ]; then
+          if [ "$DIRECT_GVID" = "true" ]; then
             direct_gvid_flag=(--direct-gvid)
           fi
           python3 tools/run_mission1_camera_closure.py \
@@ -479,36 +397,36 @@ jobs:
             --target-bench-receipt "$target_receipt" \
             --target-preflight-receipt "$preflight_receipt" \
             --camera-handoff-receipt "$handoff_receipt" \
-            --raw "${{ inputs.raw_path }}" \
-            --fused-decode-cli "$decode_cli" \
-            --target-name "${{ inputs.target_name }}" \
-            --target-role "${{ inputs.target_role }}" \
-            --target-fps "${{ inputs.target_fps }}" \
-            --raw-source-kind "${{ inputs.raw_source_kind }}" \
-            --source-width "${{ inputs.source_width }}" \
-            --source-height "${{ inputs.source_height }}" \
-            --capture-width "${{ inputs.capture_width }}" \
-            --capture-height "${{ inputs.capture_height }}" \
-            --quality "${{ inputs.quality }}" \
-            --wavelet-levels "${{ inputs.wavelet_levels }}" \
-            --pixel-format "${{ inputs.pixel_format }}" \
-            --storage-target-name "${{ inputs.storage_target_name }}" \
-            --storage-target-read-mbps "${{ inputs.storage_target_read_mbps }}" \
-            --storage-target-write-mbps "${{ inputs.storage_target_write_mbps }}" \
-            --storage-target-safety-margin "${{ inputs.storage_target_safety_margin }}" \
-            --storage-target-note "${{ inputs.storage_target_note }}" \
-            --frame-source "${{ inputs.frame_source }}" \
-            --memory-ownership "${{ inputs.memory_ownership }}" \
-            --write-path "${{ inputs.write_path }}" \
-            --storage-medium "${{ inputs.storage_medium }}" \
-            --storage-ownership "${{ inputs.storage_ownership }}" \
-            --handoff-blocker-cause "${{ inputs.blocker_cause }}" \
-            --preview-target "${{ inputs.preview_target }}" \
-            --preview-limit "${{ inputs.preview_limit }}" \
-            --display-surface "${{ inputs.display_surface }}" \
-            --presentation-path "${{ inputs.presentation_path }}" \
-            --preview-buffer-ownership "${{ inputs.preview_buffer_ownership }}" \
-            --preview-blocker-cause "${{ inputs.preview_blocker_cause }}" \
+            --raw "$RAW_PATH" \
+            --fused-decode-cli "$DECODE_CLI" \
+            --target-name "$TARGET_NAME" \
+            --target-role "$TARGET_ROLE" \
+            --target-fps "$TARGET_FPS" \
+            --raw-source-kind "$RAW_SOURCE_KIND" \
+            --source-width "$SOURCE_WIDTH" \
+            --source-height "$SOURCE_HEIGHT" \
+            --capture-width "$CAPTURE_WIDTH" \
+            --capture-height "$CAPTURE_HEIGHT" \
+            --quality "$QUALITY" \
+            --wavelet-levels "$WAVELET_LEVELS" \
+            --pixel-format "$PIXEL_FORMAT" \
+            --storage-target-name "$STORAGE_TARGET_NAME" \
+            --storage-target-read-mbps "$STORAGE_TARGET_READ_MBPS" \
+            --storage-target-write-mbps "$STORAGE_TARGET_WRITE_MBPS" \
+            --storage-target-safety-margin "$STORAGE_TARGET_SAFETY_MARGIN" \
+            --storage-target-note "$STORAGE_TARGET_NOTE" \
+            --frame-source "$FRAME_SOURCE" \
+            --memory-ownership "$MEMORY_OWNERSHIP" \
+            --write-path "$WRITE_PATH" \
+            --storage-medium "$STORAGE_MEDIUM" \
+            --storage-ownership "$STORAGE_OWNERSHIP" \
+            --handoff-blocker-cause "$BLOCKER_CAUSE" \
+            --preview-target "$PREVIEW_TARGET" \
+            --preview-limit "$PREVIEW_LIMIT" \
+            --display-surface "$DISPLAY_SURFACE" \
+            --presentation-path "$PRESENTATION_PATH" \
+            --preview-buffer-ownership "$PREVIEW_BUFFER_OWNERSHIP" \
+            --preview-blocker-cause "$PREVIEW_BLOCKER_CAUSE" \
             "${sensor_flag[@]}" \
             "${storage_flag[@]}" \
             "${ui_flag[@]}" \
@@ -542,24 +460,14 @@ jobs:
           capture = data.get("capture", {})
           verdict = data.get("verdict", {})
           gvid = data.get("gvid", {})
-          source_provenance = data.get("source_provenance", {})
           handoff = outdir / "camera_handoff_receipt.json"
           preflight = outdir / "target_preflight_receipt.json"
           closure_run = outdir / "camera_closure_run" / "mission1_camera_closure_run.json"
-          preflight_data = {}
-          if preflight.exists():
-              preflight_data = json.loads(preflight.read_text(encoding="utf-8"))
-          handoff_data = {}
-          if handoff.exists():
-              handoff_data = json.loads(handoff.read_text(encoding="utf-8"))
-          closure_data = {}
-          if closure_run.exists():
-              closure_data = json.loads(closure_run.read_text(encoding="utf-8"))
-          handoff_verdict = handoff_data.get("verdict", {})
-          closure_verdict = closure_data.get("verdict", {})
-          preflight_verdict = preflight_data.get("verdict", {})
+          handoff_data = json.loads(handoff.read_text(encoding="utf-8")) if handoff.exists() else {}
+          preflight_data = json.loads(preflight.read_text(encoding="utf-8")) if preflight.exists() else {}
+          closure_data = json.loads(closure_run.read_text(encoding="utf-8")) if closure_run.exists() else {}
           rows = [
-              ("bench_binary", "${{ inputs.bench_binary }}"),
+              ("bench_binary", os.environ.get("BENCH_BINARY")),
               ("target_preflight_receipt", str(preflight) if preflight.exists() else "missing"),
               ("receipt", str(receipt)),
               ("camera_handoff_receipt", str(handoff) if handoff.exists() else "missing"),
@@ -570,13 +478,10 @@ jobs:
               ("gvid_valid", verdict.get("gvid_valid")),
               ("no_drops", verdict.get("no_drops")),
               ("fps_target_met", verdict.get("fps_target_met")),
-              ("target_preflight_ready", preflight_verdict.get("target_preflight_ready")),
-              ("camera_closure_possible", preflight_verdict.get("camera_closure_possible")),
-              ("firmware_ready", handoff_verdict.get("firmware_ready")),
-              ("ui_ready", closure_verdict.get("ui_ready")),
-              ("closure_production_ready", closure_verdict.get("production_ready")),
+              ("target_preflight_ready", preflight_data.get("verdict", {}).get("target_preflight_ready")),
+              ("firmware_ready", handoff_data.get("verdict", {}).get("firmware_ready")),
+              ("closure_ready", closure_data.get("verdict", {}).get("production_ready")),
               ("interruption_recovery_proven", verdict.get("interruption_recovery_proven")),
-              ("source_provenance_sha256", source_provenance.get("sha256")),
               ("gvid_sha256", gvid.get("sha256")),
           ]
           text = ["## Labs Target Bench", "", "| field | value |", "|---|---|"]
@@ -596,8 +501,6 @@ jobs:
             ${{ steps.prep.outputs.outdir }}/labs_target_bench.json
             ${{ steps.prep.outputs.outdir }}/camera_handoff_receipt.json
             ${{ steps.prep.outputs.outdir }}/camera_closure_run/mission1_camera_closure_run.json
-            ${{ steps.prep.outputs.outdir }}/camera_closure_run/preview_ui_receipt.json
-            ${{ steps.prep.outputs.outdir }}/camera_closure_run/preview_decode_1024x768/receipt.json
             ${{ runner.temp }}/labs_target_bench_stdout.txt
 
       - name: Enforce target verdict
