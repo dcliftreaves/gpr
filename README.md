@@ -149,6 +149,11 @@ The production log and full evidence matrix live in
 [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md). The current Mission 1
 capture, preview, and SR snapshot is summarized in
 [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md).
+The remaining productization contracts for release bundles, Labs/plugin
+handoff, `.gvid` conformance, and CNN governance are tracked in
+[`docs/PRODUCTIZATION_CONTRACTS.md`](docs/PRODUCTIZATION_CONTRACTS.md),
+[`docs/RELEASE_ARTIFACTS.md`](docs/RELEASE_ARTIFACTS.md), and
+[`docs/GVID_CONFORMANCE.md`](docs/GVID_CONFORMANCE.md).
 
 ## Quality Model
 
@@ -373,6 +378,9 @@ Full walkthrough: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
 | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) | Current ship classes and quality-gate receipts |
 | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) | Capture, PREVIEW, video, and review status |
 | [`docs/LABS_READINESS_REVIEW.md`](docs/LABS_READINESS_REVIEW.md) | Labs readiness and Mission 1 handoff review |
+| [`docs/PRODUCTIZATION_CONTRACTS.md`](docs/PRODUCTIZATION_CONTRACTS.md) | Release bundle, Labs handoff, `.gvid`, and CNN governance checklist |
+| [`docs/RELEASE_ARTIFACTS.md`](docs/RELEASE_ARTIFACTS.md) | GitHub release bundle contents, checksums, and upload flow |
+| [`docs/GVID_CONFORMANCE.md`](docs/GVID_CONFORMANCE.md) | `.gvid` wire-contract and malformed-stream conformance suite |
 | [`docs/PRODUCTION_ARTIFACTS.md`](docs/PRODUCTION_ARTIFACTS.md) | External model/artifact layout and hashes |
 
 ## Engineering Rules
