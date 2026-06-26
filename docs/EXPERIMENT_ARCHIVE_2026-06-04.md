@@ -9,7 +9,15 @@ The full exploratory branch is preserved at:
 archive/multilevel-cascade-experiments-20260604
 ```
 
-That branch keeps the broad investigation history from PR #32, including:
+Additional cleanup history is preserved in:
+
+```text
+production/cnn-video-readme-20260619
+dev/production-status-20260608
+```
+
+Those branches keep the broad investigation history from PR #32 and later
+production-integration work, including:
 
 - model checkpoint sweeps under `models/`;
 - generated gate run receipts under `tests/quality_gates/runs/`;
@@ -36,6 +44,45 @@ Current external scratch root:
 ```text
 /Volumes/OWC_8TB/gpr_work/tmp
 ```
+
+## Docs removed from master
+
+These notes were useful during research, but are now superseded by the current
+README, release readiness docs, video status, numbered-list burndown, and
+release evidence manifest. Use the branches above or git history before the
+cleanup commit if a future agent needs to inspect them.
+
+| removed doc | why it is not in mainline docs |
+|---|---|
+| `docs/AUTONOMOUS_RUN_2026-05-25.md` | Session roll-up; the current docs index and git history are the durable record. |
+| `docs/session_2026-05-25_progress.md` | Session transcript; superseded by current release and capability docs. |
+| `docs/BIDO_DISTILLATION_PLAN.md` | Old BIDO/PREVIEW training worklog; current SR status lives in `VIDEO_STATUS.md`, `RAW_RESOLUTION_TARGETS_2026-06-14.md`, and the manifest. |
+| `docs/CODEC_RAW_CLEAN_CANDIDATE_2026-06-04.md` | Dated raw-clean candidate writeup; superseded by the raw-noise audit and current production path docs. |
+| `docs/CODEC_RAW_CLEAN_DISPATCH_2026-06-04.md` | Dated dispatch worklog; current `.gvid` metadata and render evidence are in the manifest-linked docs. |
+| `docs/DARKFRAME_CALIBRATION_2026-06-05.md` | One-off corpus scan; not part of the current release contract. |
+| `docs/GVID_SOURCE_METADATA_2026-06-04.md` | Early source-side metadata sidecar note; current metadata dispatch evidence is in `GVID_METADATA_DISPATCH_2026-06-04.md`. |
+| `docs/LABS_FIRMWARE_REVIEW_BURNDOWN_GOAL.md` | Intermediate goal statement; current Labs readiness docs and runbook are authoritative. |
+| `docs/NOISE_PROFILE_ANALYSIS_2026-06-04.md` | One-off Z8 noise-profile inspection; superseded by `RAW_NOISE_SIGNAL_AUDIT_2026-06-05.md`. |
+| `docs/PREVIEW_HOLDOUT_RAW_CLEAN_AUDIT_2026-06-04.md` | Informational breadth audit; current PREVIEW evidence is manifest-indexed. |
+| `docs/PREVIEW_RUNTIME_POLICY_2026-06-06.md` | Dated PREVIEW routing receipt; current live preview policy is `tools/live_preview_policy.py` plus `RAW_RESOLUTION_TARGETS_2026-06-14.md`. |
+| `docs/PREVIEW_SCENE_ROUTED_PRODUCTION_PASS_2026-06-06.md` | Dated scene-routed receipt; superseded by current PREVIEW status and release evidence. |
+| `docs/PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md` | Research note; useful context, not production documentation. |
+| `docs/PRODUCTION_PR_SLICE_2026-06-18.md` | PR-shaping note; main now carries only the cleaned production surface. |
+| `docs/RAW_CLEAN_CNN_CANDIDATE_2026-06-04.md` | Early raw-clean CNN candidate; superseded by current raw-signal and production docs. |
+| `docs/RAW_CLEAN_REF_TARGETS_2026-06-04.md` | Early raw clean target builder note; superseded by current raw-noise audit. |
+| `docs/RAW_CLEAN_RUNTIME_GATE_2026-06-04.md` | Dated runtime-gate note; no longer a current ship gate. |
+| `docs/SYNTHETIC_RAW_NOISE_ADDBACK_2026-06-04.md` | Diagnostic noise-addback baseline; not part of the current production path. |
+
+## Tools removed from master
+
+These one-off tools had no current tests, docs, manifest entries, or import
+paths after the docs cleanup. They remain recoverable from the archive branches
+above if darkframe/noise-addback research resumes.
+
+| removed tool | archived purpose |
+|---|---|
+| `tools/cnn/calibrate_darkframes.py` | Z8/X2D darkframe discovery and calibration probe. |
+| `tools/cnn/synthesize_raw_noise_addback.py` | Synthetic raw residual addback diagnostic for early raw-clean targets. |
 
 ## 2026-06-25 Raw-Match And Alignment Probes
 
