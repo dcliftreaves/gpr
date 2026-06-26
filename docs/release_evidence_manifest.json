@@ -211,19 +211,19 @@
       ]
     },
     {
-      "id": "preview_live_2k_l2hh_edge_safe",
+      "id": "preview_live_mission1_1024",
       "family": "preview",
       "status": "production-pass-external-receipt",
-      "raw_target": "2k_raw_0p5x_l2hh",
-      "policy": "preview_live_2k_l2hh_edge_safe_v1",
+      "raw_target": "mission1_preview_1024",
+      "policy": "preview_live_mission1_1024_v1",
       "runtime_entrypoint": "tools/live_preview_policy.py",
       "ship_class": "PREVIEW",
-      "external_receipt": "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_targets_visual_dashboard.json",
-      "dashboard": "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_targets_visual_dashboard.html",
+      "external_receipt": "artifacts/mission1_current_goal_sync_20260625/run_1440f_direct_gvid/preview_decode_1024x768/receipt.json",
+      "dashboard": "artifacts/mission1_current_goal_sync_20260625/run_1440f_direct_gvid/preview_ui_receipt.json",
       "docs": [
         "README.md",
         "docs/VIDEO_STATUS.md",
-        "docs/RAW_RESOLUTION_TARGETS_2026-06-14.md"
+        "docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md"
       ],
       "tools": [
         "tools/live_preview_policy.py",
@@ -231,25 +231,19 @@
         "source/app/fused_decode_cli.c"
       ],
       "metrics": {
-        "holdout_rows": 84,
-        "passing_rows": 84,
-        "worst_lpips": 0.1378,
-        "worst_ms_ssim": 0.9787,
-        "worst_y_psnr": 37.6,
-        "worst_dE2000": 1.37,
-        "edge_inset_px": 16,
-        "input_width": 2070,
-        "input_height": 1380,
-        "viewport_width": 2038,
-        "viewport_height": 1348,
-        "pi5_fps_median": 29.85,
-        "pi5_p95_ms": 37.1,
-        "peak_rss_mb": 98.0
+        "source_width": 4096,
+        "source_height": 3072,
+        "preview_width": 1024,
+        "preview_height": 768,
+        "frames": 1440,
+        "whole_run_fps": 24.20,
+        "decode_plus_target_fps_median": 43.86,
+        "target_fps": 20.0
       },
       "constraints": [
         "No REF content at render time.",
-        "Production claim is bounded to the 16 px edge-safe display viewport.",
-        "Exact outer-edge rendered proxy remains diagnostic at 80/84 and is not promoted by this policy."
+        "Production claim is bounded to the 1024 x 768 full-frame Mission 1 preview target.",
+        "Actual Mission 1 UI/display handoff still requires a camera-role receipt."
       ]
     },
     {

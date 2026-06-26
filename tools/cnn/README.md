@@ -1,102 +1,54 @@
-# CNN post-processor for GPR
+# CNN tools for GPR
 
-The GPR codec is co-designed with a CNN that corrects quantization
-artifacts on the decoded Bayer plane. This directory contains the
-architecture, training script, and recipe for retraining against new
-codec configurations.
+This directory keeps the CNN code that is still part of the current GPR
+feature surface:
 
-## Architecture
+- 1x Bayer restoration for production stills and VIDEO_FREEZE.
+- 4K Mission 1 cleanup against high-resolution-derived RGB/CFA targets.
+- Offline Mission 1/Z8 4K-to-8K SR review paths.
+- UPRESABLE half-resolution-to-editable-raw reconstruction.
+- PREVIEW and release-audit utilities that are still referenced by gates.
 
-`model.py` — `BIBO_1x` (Bayer-In/Bayer-Out, 1× resolution) and `BIBO_2x`
-(super-resolution variant). 4-channel-in / 4-channel-out residual UNet,
-width 16, ANE-friendly (BatchNorm + SiLU). ~330K parameters total.
+Old raw-clean, Restormer, display-HF, and one-off PREVIEW probe scripts were
+removed from `master`. Recover them from the archive branches listed in
+`docs/EXPERIMENT_ARCHIVE_2026-06-04.md` if that research resumes.
 
-## Shipped checkpoints
+## Model code
 
-Checkpoint binaries are production artifacts, not source files. The canonical
-names and sha256 hashes live in `pipelines/registry.json`; install them under
-`$GPR_MODEL_ROOT` (default `/Volumes/OWC_8TB/gpr_work/models`) or in a local
-repo `models/` directory. Verify with:
+`model.py` contains the compact Bayer-in/Bayer-out CNN families used by the
+registry:
+
+- `BIBO_1x`: 1x Bayer restoration for stills and VIDEO_FREEZE.
+- `BIBO_2x`: 2x Bayer reconstruction for UPRESABLE and related paths.
+- Mission 1 SR variants used by the offline 8K review experiments.
+
+Checkpoint binaries are production artifacts, not source files. Canonical
+checkpoint names and sha256 hashes live in `pipelines/registry.json` and
+`docs/PRODUCTION_ARTIFACTS.md`. Install them under `$GPR_MODEL_ROOT`, defaulting
+to `/Volumes/OWC_8TB/gpr_work/models`, then verify with:
 
 ```bash
 python3 tools/verify_production_artifacts.py --strict
 ```
 
-The current shipped CNN entries are:
+## Current tool groups
 
-- `BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q3.pt` — 1x still-restoration
-  checkpoint for legacy `gpr_tools_q3`.
-- `BayInBayOut_1x_AAon_w16_ANE_ML2_q3.pt` — 1x video-freeze checkpoint for
-  `ml2_q3` and cranked ML2 variants.
-- `BayInBayOut_2x_AAon_w16_ANE_ML2_q3_dec2_diverse.pt` — 2x UPRESABLE
-  checkpoint for half-res `ml2_q3_dec2`.
-
-```python
-import os
-import torch, sys
-from pathlib import Path
-
-sys.path.append("tools/cnn")
-from model import build
-
-model_root = Path(os.environ.get("GPR_MODEL_ROOT", "/Volumes/OWC_8TB/gpr_work/models"))
-ckpt = torch.load(
-    model_root / "BayInBayOut_1x_AAon_w16_ANE_gpr_tools_q3.pt",
-    map_location="cpu",
-    weights_only=False,
-)
-m = build(ckpt.get("variant", "F_ane"))
-m.load_state_dict(ckpt["backbone_state"])
-m.eval()
-```
-
-## Pairing with the codec
-
-The CNN is calibrated against a SPECIFIC codec configuration. Current shipped
-pairings are:
-
-- legacy stills `gpr_tools_q0/q3` -> `bibo1x_ane_gpr_tools_q3`
-- video-freeze `ml2_q3` and approved cranked ML2 variants ->
-  `bibo1x_ane_ml2_q3`
-- UPRESABLE half-res `ml2_q3_dec2` ->
-  `bibo2x_ane_ml2_q3_dec2_diverse`
+| role | representative tools |
+|---|---|
+| General 1x training | `train.py`, `model.py` |
+| 4K Mission 1 cleanup | `train_bayer_rgb_target_cleanup.py`, `build_4k_rgb_downsample_target_dashboard.py`, `build_mission1_4k_visual_signoff.py` |
+| 8K SR training/evaluation | `train_mission1_sr.py`, `build_mission1_sr_pairs.py`, `run_mission1_sr_fullframe_broad_eval.py`, `render_gvid_sr_receipt.py` |
+| Raw target and preview audits | `evaluate_raw_resolution_targets.py`, `render_preview_q8_threeway_runtime.py`, `evaluate_preview_q8_threeway_runtime_fullframe.py` |
+| Release receipts | `decide_mission1_sr_promotion.py`, `run_mission1_sr_guarded_experiment.py`, `package_mission1_sr_receipt.py` |
 
 Do not swap checkpoints across codec families just because dimensions match.
-If a materially different codec configuration or raw target ships, retrain or
-validate the pairing through the relevant quality gate and registry entry.
-
-## Retraining
-
-Requires: PyTorch 2.0+ with MPS (Mac) or CUDA. See `requirements.txt`.
-
-```bash
-# Build training-pair dataset (encodes source DNGs through the codec)
-# then train:
-python3 tools/cnn/train.py \
-    --variant F_ane_no_sr \
-    --tiles /path/to/tile_pairs.npz \
-    --epochs 80 --batch 32 --lr 1e-3
-```
-
-The training data layout expects NPZ pairs of (source_bayer, codec_bayer)
-tiles at 128×128. The original dataset-building scripts live in
-`dering_proto_v2/build_dataset_*.py` (will be migrated separately).
-
-## Status
-
-- Architecture and training scripts: **in the repo; current production
-  checkpoint hashes live in `pipelines/registry.json`**.
-- Production checkpoints: **off-main artifacts** with registry hashes.
-- Cranked-quant checkpoints (`BayInBayOut_1x_AAon_w16_ANE_HH1x4.pt`,
-  `BayInBayOut_1x_AAon_w16_ANE_L1L2x4.pt`): **NOT migrated** because they
-  were trained against the broken multi-level codec path. Re-train once
-  task #172 is fixed.
+Every checkpoint is calibrated to a specific codec/CNN/demosaic registry entry
+and must clear the relevant gate before being described as production-ready.
 
 ## Related docs
 
-- `docs/methodology_cnn_aware_quant.md` — AccelIR-style co-design rationale
-- `docs/PRODUCTION_ARTIFACTS.md` — install and verify off-main checkpoints
-- `docs/EXPERIMENT_ARCHIVE_2026-06-04.md` — archived experiment/regression
-  context for understanding which retrained CNNs are valid
-- `docs/VIDEO_STATUS.md` and `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` —
-  current video/PREVIEW target status
+- `docs/VIDEO_STATUS.md`
+- `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`
+- `docs/MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md`
+- `docs/PRODUCTION_ARTIFACTS.md`
+- `docs/EXPERIMENT_ARCHIVE_2026-06-04.md`

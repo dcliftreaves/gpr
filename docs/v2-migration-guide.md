@@ -165,8 +165,8 @@ set `FUSED_INLINE_TOKENIZE=0`.
 | `FUSED_INLINE_TOKENIZE` (env) | 0 = split-pass, 1 = inline-tokenize | inline |
 | `DUMP_BAYER` (env, test only) | Write decoded Bayer to disk for inspection | 0 |
 
-See `docs/followups.md` for the parking lot of knobs that are not yet
-shipped on by default.
+Current knobs and release limits are documented in `docs/RELEASE_READINESS.md`,
+`docs/VIDEO_STATUS.md`, and `docs/LABS_TARGET_BENCH.md`.
 
 ## Performance
 
@@ -208,4 +208,5 @@ the stable API and may change between minor releases.
 - See `SECURITY.md` for vulnerability disclosure.
   posture before commercial deployment.
 - See `docs/operating-envelope.md` for performance and quality data.
-- See `docs/followups.md` for the parking lot of known limitations.
+- See `docs/RELEASE_READINESS.md` and `docs/VIDEO_STATUS.md` for current
+  limitations and open production handoff items.

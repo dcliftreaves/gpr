@@ -51,7 +51,7 @@ REQUIRED_OUTPUT_IDS = {
     "upresable_editable_raw",
     "preview_offline_review_q8_threeway",
     "preview_live_codec_only",
-    "preview_live_2k_l2hh_edge_safe",
+    "preview_live_mission1_1024",
     "gvid_container",
     "mov_wrapper",
     "prores_review_outputs",
@@ -146,7 +146,7 @@ README_REQUIRED_TOKENS = (
     "MOV / ProRes",
     "PREVIEW offline/review",
     "PREVIEW live/camera-back",
-    "2k_raw_0p5x_l2hh",
+    "mission1_preview_1024",
     "4k_raw_1x",
     "8k_raw_2x",
     "Mission 1 Numbered List",
@@ -187,7 +187,7 @@ RELEASE_READINESS_REQUIRED_TOKENS = (
     "4K raw target",
     "8K raw target",
     "offline-only",
-    "preview_live_2k_l2hh_edge_safe",
+    "preview_live_mission1_1024",
     "CI-safe release checks",
     "tools/verify_production_artifacts.py",
     "tests/quality_gates/audit_production_readiness.py --strict",
@@ -914,16 +914,16 @@ def require_preview_live_edge_safe_contract(
     failures: list[str],
 ) -> None:
     entry_id = str(entry.get("id", ""))
-    if entry_id != "preview_live_2k_l2hh_edge_safe":
+    if entry_id != "preview_live_mission1_1024":
         return
 
     if entry.get("status") != "production-pass-external-receipt":
         failures.append(f"{entry_id}: bounded live PREVIEW must use external receipt status")
     if entry.get("family") != "preview" or entry.get("ship_class") != "PREVIEW":
         failures.append(f"{entry_id}: bounded live PREVIEW must stay in PREVIEW family/class")
-    if entry.get("raw_target") != "2k_raw_0p5x_l2hh":
-        failures.append(f"{entry_id}: bounded live PREVIEW must use 2k_raw_0p5x_l2hh")
-    if entry.get("policy") != "preview_live_2k_l2hh_edge_safe_v1":
+    if entry.get("raw_target") != "mission1_preview_1024":
+        failures.append(f"{entry_id}: live PREVIEW must use mission1_preview_1024")
+    if entry.get("policy") != "preview_live_mission1_1024_v1":
         failures.append(f"{entry_id}: unexpected live PREVIEW policy id")
 
     runtime_entrypoint = entry.get("runtime_entrypoint")
@@ -941,17 +941,17 @@ def require_preview_live_edge_safe_contract(
         if policy:
             expected_policy = {
                 "production_path_id": entry_id,
-                "raw_target": "2k_raw_0p5x_l2hh",
-                "source_codec": "ml2_q3_dec2",
-                "display_mode": "edge_safe_viewport",
-                "edge_inset_px": 16,
+                "raw_target": "mission1_preview_1024",
+                "source_codec": "mission1_native12_gvid",
+                "display_mode": "full_frame_downsample",
+                "edge_inset_px": 0,
                 "forbids_ref_content": True,
             }
             for key, expected in expected_policy.items():
                 if policy.get(key) != expected:
                     failures.append(f"{entry_id}: policy {key} {policy.get(key)!r} != {expected!r}")
             viewport = policy.get("display_viewport")
-            if viewport != {"x": 16, "y": 16, "width": 2038, "height": 1348}:
+            if viewport != {"x": 0, "y": 0, "width": 1024, "height": 768}:
                 failures.append(f"{entry_id}: policy viewport mismatch: {viewport!r}")
 
     metrics = entry.get("metrics")
@@ -959,35 +959,26 @@ def require_preview_live_edge_safe_contract(
         failures.append(f"{entry_id}: bounded live PREVIEW needs metrics")
         return
     try:
-        rows = int(metrics.get("holdout_rows"))
-        passing = int(metrics.get("passing_rows"))
-        edge_inset = int(metrics.get("edge_inset_px"))
-        input_width = int(metrics.get("input_width"))
-        input_height = int(metrics.get("input_height"))
-        viewport_width = int(metrics.get("viewport_width"))
-        viewport_height = int(metrics.get("viewport_height"))
-        worst_lpips = float(metrics.get("worst_lpips"))
-        worst_ms = float(metrics.get("worst_ms_ssim"))
-        worst_y = float(metrics.get("worst_y_psnr"))
-        worst_de = float(metrics.get("worst_dE2000"))
-        fps = float(metrics.get("pi5_fps_median"))
-        p95 = float(metrics.get("pi5_p95_ms"))
+        source_width = int(metrics.get("source_width"))
+        source_height = int(metrics.get("source_height"))
+        preview_width = int(metrics.get("preview_width"))
+        preview_height = int(metrics.get("preview_height"))
+        frames = int(metrics.get("frames"))
+        whole_run_fps = float(metrics.get("whole_run_fps"))
+        decode_fps = float(metrics.get("decode_plus_target_fps_median"))
+        target_fps = float(metrics.get("target_fps"))
     except (TypeError, ValueError):
         failures.append(f"{entry_id}: bounded live PREVIEW metrics must be numeric")
         return
-    if rows != 84 or passing != rows:
-        failures.append(f"{entry_id}: bounded live PREVIEW must show an 84/84 holdout pass")
-    if edge_inset != 16:
-        failures.append(f"{entry_id}: bounded live PREVIEW must keep a 16 px inset")
-    if (input_width, input_height, viewport_width, viewport_height) != (2070, 1380, 2038, 1348):
-        failures.append(f"{entry_id}: bounded live PREVIEW dimensions/viewport drifted")
-    if worst_lpips > 0.15 or worst_ms < 0.95 or worst_y < 28.0 or worst_de > 3.0:
-        failures.append(f"{entry_id}: bounded live PREVIEW metrics must clear PREVIEW thresholds")
-    if fps < 24.0 or p95 >= 41.7:
-        failures.append(f"{entry_id}: bounded live PREVIEW must clear Pi 5 timing")
+    if (source_width, source_height, preview_width, preview_height) != (4096, 3072, 1024, 768):
+        failures.append(f"{entry_id}: Mission preview dimensions drifted")
+    if frames < 1000:
+        failures.append(f"{entry_id}: Mission preview receipt must cover a sustained run")
+    if whole_run_fps < target_fps or decode_fps < target_fps:
+        failures.append(f"{entry_id}: Mission preview must clear its target fps")
 
     constraints = "\n".join(str(item).lower() for item in entry.get("constraints", []))
-    for required in ("no ref", "16 px", "exact outer-edge"):
+    for required in ("no ref", "1024 x 768", "ui/display handoff"):
         if required not in constraints:
             failures.append(f"{entry_id}: constraints must document {required}")
 

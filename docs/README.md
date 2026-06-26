@@ -13,7 +13,7 @@ refreshed 2026-06-26.
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |
 | video, preview, Mission 1, and SR status | `VIDEO_STATUS.md` |
 | Mission 1 numbered-list burndown and closure plan | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md` |
-| 2K / 4K / 8K raw target ladder | `RAW_RESOLUTION_TARGETS_2026-06-14.md` |
+| 4K capture, 1024 preview, and offline 8K SR target ladder | `RAW_RESOLUTION_TARGETS_2026-06-14.md` |
 | UPRESABLE editable raw workflow | `UPRESABLE_PIPELINE.md` |
 | compact production evidence manifest checked by CI | `release_evidence_manifest.json` |
 | where production checkpoints/artifacts live | `PRODUCTION_ARTIFACTS.md` |
@@ -22,7 +22,7 @@ refreshed 2026-06-26.
 | Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
 | Mission 1 evidence runbook | `LABS_MISSION1_RUNBOOK.md` |
 | full codec x CNN x verdict matrix | `FULL_PIPELINE_MATRIX.md` |
-| camera-vendor spec contribution framing | `architecture.md`, `format-spec-v2.md`, `SPEC.md` |
+| codec/container/API specification | `format-spec-v2.md`, `SPEC.md` |
 
 ## Production Evidence
 
@@ -36,7 +36,7 @@ refreshed 2026-06-26.
 | 1x/2x CNN and SR status | `VIDEO_STATUS.md`, `MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md` |
 | Live/camera-back PREVIEW policy | `RAW_RESOLUTION_TARGETS_2026-06-14.md`, `../tools/live_preview_policy.py` |
 
-## Plans and methodology (read before executing)
+## Current implementation notes
 
 | topic | doc |
 |---|---|
@@ -52,7 +52,6 @@ refreshed 2026-06-26.
 |---|---|
 | `CAPABILITIES.md` | `tools/test/test_capabilities.py` (encoder regression, in CI) |
 | `pi5_bench_2026-05-26.md` | Historical Pi 5 sustained-bench (manual; not the current production claim) |
-| `ANE_TRAINING_RESULTS.md` | M5 training logs (manual roll-up) |
 
 ## Ship-claim audit trail
 
@@ -106,20 +105,6 @@ refreshed 2026-06-26.
 Long session logs, dated experiment notes, and rejected candidate writeups are
 kept out of the main docs surface. Start with
 `EXPERIMENT_ARCHIVE_2026-06-04.md` for the branch names and deleted-doc index.
-
-## Sub-system writeups
-
-| topic | doc |
-|---|---|
-| ANE-friendly F architecture | `ANE_FRIENDLY_F_PLAN.md` |
-| Visual super-res research lit | `RESEARCH_VSR_AND_ANE.md` |
-| Shadow/highlight recovery research | `shadow_highlight_recovery_research.md` |
-| Multi-level FUSED regression history | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
-| Quant calibration findings | `quant_calibration_findings.md` |
-| Operating envelope (camera↔desktop split) | `operating-envelope.md` |
-| Pi 5 hardware notes | `PI_HARDWARE.md` |
-| Common gotchas | `gotchas.md` |
-| Env var inventory | `ENV_VAR_CLEANUP.md` |
 
 ## Where IS the actual code
 

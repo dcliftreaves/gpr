@@ -8,10 +8,33 @@ from copy import deepcopy
 from typing import Any
 
 
-DEFAULT_POLICY_ID = "preview_live_2k_l2hh_edge_safe_v1"
+DEFAULT_POLICY_ID = "preview_live_mission1_1024_v1"
 
 POLICIES: dict[str, dict[str, Any]] = {
     DEFAULT_POLICY_ID: {
+        "schema": "gpr_live_preview_policy.v1",
+        "production_path_id": "preview_live_mission1_1024",
+        "raw_target": "mission1_preview_1024",
+        "source_codec": "mission1_native12_gvid",
+        "display_mode": "full_frame_downsample",
+        "source_width": 4096,
+        "source_height": 3072,
+        "input_width": 1024,
+        "input_height": 768,
+        "edge_inset_px": 0,
+        "target_fps": 20.0,
+        "p95_ms_budget": 50.0,
+        "forbids_ref_content": True,
+        "quality_receipt": (
+            "artifacts/mission1_current_goal_sync_20260625/"
+            "run_1440f_direct_gvid/preview_ui_receipt.json"
+        ),
+        "timing_receipt": (
+            "artifacts/mission1_current_goal_sync_20260625/"
+            "run_1440f_direct_gvid/preview_decode_1024x768/receipt.json"
+        ),
+    },
+    "preview_live_2k_l2hh_edge_safe_v1": {
         "schema": "gpr_live_preview_policy.v1",
         "production_path_id": "preview_live_2k_l2hh_edge_safe",
         "raw_target": "2k_raw_0p5x_l2hh",
@@ -23,16 +46,8 @@ POLICIES: dict[str, dict[str, Any]] = {
         "target_fps": 24.0,
         "p95_ms_budget": 41.7,
         "forbids_ref_content": True,
-        "quality_receipt": (
-            "artifacts/raw_resolution_targets_20260614_analysis/"
-            "visual_2k_l2hh_edgeinset16_28f/"
-            "raw_resolution_targets_visual_dashboard.json"
-        ),
-        "timing_receipt": (
-            "artifacts/raw_resolution_targets_20260614_alias_v4/"
-            "pi5_2k_l2hh_alias_120f/"
-            "raw_resolution_targets_pi5_120f.json"
-        ),
+        "quality_receipt": "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_targets_visual_dashboard.json",
+        "timing_receipt": "artifacts/raw_resolution_targets_20260614_alias_v4/pi5_2k_l2hh_alias_120f/raw_resolution_targets_pi5_120f.json",
     }
 }
 

@@ -257,15 +257,15 @@ def require_manifest_contract(manifest: dict[str, Any], failures: list[str]) -> 
     elif raw_2k.get("classification") != "live-capable":
         failures.append("2k_raw_0p5x_l2hh must remain live-capable or be explicitly downgraded")
 
-    preview = production_paths.get("preview_live_2k_l2hh_edge_safe")
+    preview = production_paths.get("preview_live_mission1_1024")
     if not preview:
-        failures.append("manifest missing production path preview_live_2k_l2hh_edge_safe")
+        failures.append("manifest missing production path preview_live_mission1_1024")
     else:
         if preview.get("status") != "production-pass-external-receipt":
-            failures.append("preview_live_2k_l2hh_edge_safe must remain tied to an external receipt")
+            failures.append("preview_live_mission1_1024 must remain tied to an external receipt")
         constraints = " ".join(str(item) for item in preview.get("constraints", []))
-        if "16 px edge-safe" not in constraints or "Exact outer-edge" not in constraints:
-            failures.append("preview_live_2k_l2hh_edge_safe must document viewport and exact-edge limits")
+        if "1024 x 768" not in constraints or "UI/display handoff" not in constraints:
+            failures.append("preview_live_mission1_1024 must document display target and handoff limit")
 
 
 def require_ci_contract(tracked: set[str], failures: list[str]) -> None:

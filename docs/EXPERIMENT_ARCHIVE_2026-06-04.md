@@ -84,6 +84,23 @@ above if darkframe/noise-addback research resumes.
 | `tools/cnn/calibrate_darkframes.py` | Z8/X2D darkframe discovery and calibration probe. |
 | `tools/cnn/synthesize_raw_noise_addback.py` | Synthetic raw residual addback diagnostic for early raw-clean targets. |
 
+The 2026-06-26 cleanup also removed old raw-clean, Restormer, display-HF, and
+PREVIEW-probe utility scripts that had no current tests, docs, manifest entries,
+or live import paths. Recover them from the archive branches above if that
+research line resumes.
+
+## Additional research docs removed from master
+
+| removed doc | why it is not in mainline docs |
+|---|---|
+| `docs/ANE_TRAINING_RESULTS.md` | M5 training roll-up; current checkpoint status lives in `PRODUCTION_ARTIFACTS.md` and `pipelines/registry.json`. |
+| `docs/RESEARCH_VSR_AND_ANE.md` | Literature survey; not part of the current implementation surface. |
+| `docs/shadow_highlight_recovery_research.md` | Tonemapping research note; superseded by current Mission 1 status and dashboards. |
+| `docs/perf_findings_20260525.md` | Early performance findings; current performance evidence lives in `CAPABILITIES.md`, `LABS_TARGET_BENCH.md`, and `VIDEO_STATUS.md`. |
+| `docs/rc-limited-quality.md` | Old rate-control quality note; current still/video gates are in `SHIP_DECISION.md`. |
+| `docs/followups.md` | Parking-lot list; current open items are in release readiness and Mission 1 burndown docs. |
+| `docs/RELEASE_NOTES_v2.1.md` | Historical release note with stale research pointers. |
+
 ## 2026-06-25 Raw-Match And Alignment Probes
 
 The Mission 1 JPEG/DNG tone-matching and alignment probes were useful for
