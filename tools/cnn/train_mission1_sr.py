@@ -23,6 +23,10 @@ branch before that adapter trunk for codec-artifact cleanup probes.
 `coord_preclean_adapter_pixelshuffle` adds absolute low-frame XY coordinate
 channels to the SR trunk so full-frame coverage probes can learn
 position/phase-dependent correction while preserving the 4-channel precleaner.
+`coord_detail_preclean_adapter_pixelshuffle` also appends deterministic
+same-color detail channels from the cleaned low Bayer planes, giving the
+adapter branch explicit phase/detail evidence while zero-expanded initialization
+preserves the current coord-preclean function.
 """
 from __future__ import annotations
 
@@ -454,6 +458,35 @@ class CoordDeepPrecleanAdapterPixelShuffleSR(nn.Module):
         return self.sr(torch.cat([clean, x[:, 4:6]], dim=1))
 
 
+class CoordDetailPrecleanAdapterPixelShuffleSR(nn.Module):
+    def __init__(self, width: int = 32, depth: int = 5, residual_scale: float = 0.1) -> None:
+        super().__init__()
+        self.preclean_scale = 0.05
+        self.sr = AdapterPixelShuffleSR(width=width, depth=depth, residual_scale=residual_scale, input_channels=10)
+        preclean_head = nn.Conv2d(4, width, 3, padding=1)
+        preclean_tail = nn.Conv2d(width, 4, 3, padding=1)
+        nn.init.zeros_(preclean_tail.weight)
+        nn.init.zeros_(preclean_tail.bias)
+        self.preclean = nn.Sequential(
+            preclean_head,
+            nn.GELU(),
+            nn.Conv2d(width, width, 3, padding=2, dilation=2),
+            nn.GELU(),
+            preclean_tail,
+        )
+
+    def clean_low(self, x: torch.Tensor) -> torch.Tensor:
+        raw = x[:, :4]
+        return torch.clamp(raw + self.preclean(raw) * self.preclean_scale, 0.0, 1.0)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.shape[1] != 6:
+            raise ValueError("coord_detail_preclean_adapter_pixelshuffle expects 6 input channels")
+        clean = self.clean_low(x)
+        detail = binomial_detail(clean)
+        return self.sr(torch.cat([clean, x[:, 4:6], detail], dim=1))
+
+
 def make_model(architecture: str, width: int, depth: int, residual_scale: float) -> nn.Module:
     if architecture == "residual_highres":
         return ResidualSR(width=width, depth=depth, residual_scale=residual_scale)
@@ -471,6 +504,8 @@ def make_model(architecture: str, width: int, depth: int, residual_scale: float)
         return PrecleanAdapterPixelShuffleSR(width=width, depth=depth, residual_scale=residual_scale)
     if architecture == "coord_preclean_adapter_pixelshuffle":
         return CoordPrecleanAdapterPixelShuffleSR(width=width, depth=depth, residual_scale=residual_scale)
+    if architecture == "coord_detail_preclean_adapter_pixelshuffle":
+        return CoordDetailPrecleanAdapterPixelShuffleSR(width=width, depth=depth, residual_scale=residual_scale)
     if architecture == "coord_deep_preclean_adapter_pixelshuffle":
         return CoordDeepPrecleanAdapterPixelShuffleSR(width=width, depth=depth, residual_scale=residual_scale)
     raise ValueError(f"unknown architecture: {architecture}")
@@ -625,7 +660,11 @@ def initialize_model(
             "expanded_keys": sorted(remapped),
         }
 
-    if architecture in {"coord_preclean_adapter_pixelshuffle", "coord_deep_preclean_adapter_pixelshuffle"}:
+    if architecture in {
+        "coord_preclean_adapter_pixelshuffle",
+        "coord_deep_preclean_adapter_pixelshuffle",
+        "coord_detail_preclean_adapter_pixelshuffle",
+    }:
         source_config = ckpt.get("config", {})
         if source_config.get("architecture") == architecture:
             result = model.load_state_dict(ckpt["model"], strict=not init_nonstrict)
@@ -647,6 +686,22 @@ def initialize_model(
                 "unexpected_keys": list(result.unexpected_keys),
             }
         if source_config.get("architecture") != "preclean_adapter_pixelshuffle":
+            if (
+                architecture == "coord_detail_preclean_adapter_pixelshuffle"
+                and source_config.get("architecture") == "coord_preclean_adapter_pixelshuffle"
+            ):
+                expanded, skipped, unexpected = initialize_coord_preclean_from_preclean(
+                    ckpt["model"],
+                    model.state_dict(),
+                )
+                result = model.load_state_dict(expanded, strict=True)
+                return result, {
+                    "mode": "coord_preclean_to_coord_detail_preclean",
+                    "source_config": source_config,
+                    "expanded_keys": sorted(set(expanded) - set(skipped)),
+                    "skipped_keys": skipped,
+                    "unexpected_keys": unexpected,
+                }
             raise ValueError(
                 f"--init-checkpoint for {architecture} must be preclean_adapter_pixelshuffle"
                 " or coord_preclean_adapter_pixelshuffle"
@@ -811,7 +866,11 @@ def append_coord_channels(x: torch.Tensor, coords: torch.Tensor | None) -> torch
 
 
 def architecture_uses_coords(architecture: str) -> bool:
-    return architecture in {"coord_preclean_adapter_pixelshuffle", "coord_deep_preclean_adapter_pixelshuffle"}
+    return architecture in {
+        "coord_preclean_adapter_pixelshuffle",
+        "coord_deep_preclean_adapter_pixelshuffle",
+        "coord_detail_preclean_adapter_pixelshuffle",
+    }
 
 
 def evaluate(model: nn.Module, dataset: Mission1SRPairs, max_tiles: int = 512, with_coords: bool = False) -> dict[str, Any]:
@@ -879,6 +938,7 @@ def main() -> int:
             "green_detail_adapter_pixelshuffle",
             "preclean_adapter_pixelshuffle",
             "coord_preclean_adapter_pixelshuffle",
+            "coord_detail_preclean_adapter_pixelshuffle",
             "coord_deep_preclean_adapter_pixelshuffle",
         ),
         default="lowres_pixelshuffle",

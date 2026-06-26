@@ -282,6 +282,7 @@ def main() -> int:
     model, config = load_model(args.checkpoint, device)
     coordinate_channels_enabled = bool(config.get("coordinate_channels")) or str(config.get("architecture")) in {
         "coord_preclean_adapter_pixelshuffle",
+        "coord_detail_preclean_adapter_pixelshuffle",
         "coord_deep_preclean_adapter_pixelshuffle",
     }
     rss_after_model_load_mb = max_rss_mb()

@@ -96,6 +96,7 @@ REQUIRED_DASHBOARD_IDS = {
     "preview_review_media",
     "gvid_metadata_dispatch",
     "noise_signal_audit",
+    "mission1_numbered_list_closure_plan",
 }
 ALLOWED_PLATFORM_STATUSES = {
     "meets-target",
@@ -123,6 +124,7 @@ README_REQUIRED_SECTIONS = (
     "## Open Raw Video For Action Cameras",
     "## What It Enables",
     "## Status At A Glance",
+    "## Mission 1 Numbered List",
     "## Quality Model",
     "## Media And Dashboards",
     "## Raw Output Ladder",
@@ -132,7 +134,11 @@ README_REQUIRED_SECTIONS = (
 )
 
 README_REQUIRED_TOKENS = (
+    "8-bit JPEG size. 16-bit RAW quality. Editable Bayer video.",
     "open raw Bayer media suite",
+    "actual Mission 1 sensor/DMA",
+    "docs/img/readme_showcase.webp",
+    "docs/img/readme_z8_timelapse_1024.webp",
     "docs/img/readme_pipeline_flow.svg",
     "docs/img/readme_status_matrix.svg",
     "docs/img/still_three_tiers.png",
@@ -143,6 +149,15 @@ README_REQUIRED_TOKENS = (
     "2k_raw_0p5x_l2hh",
     "4k_raw_1x",
     "8k_raw_2x",
+    "Mission 1 Numbered List",
+    "docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md",
+    "gpr_labs_encoder",
+    "test_labs_encoder_api",
+    "target_preflight_receipt.json",
+    "mission1_camera_closure_run.json",
+    "Real Mission 1 sensor/DMA/storage handoff receipt",
+    "Real Mission 1 UI/display receipt",
+    "4K cleanup production signoff",
     "/Volumes/OWC_8TB/gpr_work/artifacts",
     "docs/RELEASE_READINESS.md",
 )
@@ -182,14 +197,31 @@ REQUIRED_RELEASE_CHECKS = (
     "python3 tools/test/check_sensitive_content.py",
     "python3 tools/test/check_sensitive_content.py --history",
     "python3 tools/test/check_repo_artifact_hygiene.py",
+    "python3 tools/test/check_readme_media.py",
+    "python3 tools/test/test_check_readme_media.py",
     "python3 tools/test/check_release_evidence_manifest.py",
     "python3 tools/test/check_labs_readiness.py",
+    "python3 tools/test/test_mission1_numbered_list_readiness.py",
+    "python3 tools/test/test_mission1_numbered_list_closure_plan.py",
+    "python3 tools/test/test_mission1_8k_sr_production_promotion.py",
+    "python3 tools/test/test_build_mission1_8k_sr_visual_review.py",
+    "python3 tools/test/test_mission1_camera_dispatch_inputs.py",
+    "python3 tools/test/test_mission1_camera_closure_package.py",
+    "python3 tools/test/test_mission1_camera_hardware_audit.py",
+    "python3 tools/test/test_mission1_camera_source_probe.py",
+    "python3 tools/test/test_mission1_camera_target_preflight.py",
+    "python3 tools/test/test_collect_mission1_target_closure.py",
+    "python3 tools/test/test_run_mission1_target_closure_package.py",
+    "python3 tools/test/test_run_mission1_remote_closure_package.py",
+    "python3 tools/test/test_run_mission1_camera_closure.py",
+    "python3 tools/test/test_mission1_camera_closure_run.py",
     "python3 tools/test/check_labs_target_receipts.py",
     "python3 tools/verify_production_artifacts.py",
     "python3 tools/test/test_verify_production_artifacts.py",
     "python3 tools/verify_production_artifacts.py --strict",
-    "python3 tools/verify_release_manifest_artifacts.py",
-    "python3 tools/verify_release_manifest_artifacts.py --strict",
+    "python3 tools/verify_release_manifest_artifacts.py --summary",
+    "python3 tools/test/test_verify_release_manifest_artifacts.py",
+    "python3 tools/verify_release_manifest_artifacts.py --strict --summary",
     "python3 tools/live_preview_policy.py",
     "python3 tools/test/test_raw_resolution_targets.py",
     "python3 tools/test/test_bayer_resample.py",
@@ -197,6 +229,12 @@ REQUIRED_RELEASE_CHECKS = (
     "bash tools/test/test_gvid_metadata.sh",
     "bash tools/test/test_labs_bundle_verify.sh",
     "bash tools/test/test_labs_target_bench_smoke.sh",
+    "bash tools/test/test_labs_encoder_bench_cli.sh",
+    "bash tools/test/test_labs_camera_handoff_receipt.sh",
+    "bash tools/test/test_labs_preview_ui_receipt.sh",
+    "bash tools/test/test_build_labs_preview_ui_receipt.sh",
+    "bash tools/test/test_mission1_4k_cleanup_signoff_receipt.sh",
+    "bash tools/test/test_build_mission1_4k_cleanup_signoff_receipt.sh",
     "python3 tools/test/test_native12_sr8k_readiness_audit.py",
     "python3 tools/test/test_mission1_sr_production_gap_report.py",
     "python3 tools/test/test_decide_mission1_sr_promotion.py",
@@ -216,12 +254,28 @@ REQUIRED_CI_CHECKS = (
     "python3 tools/test/check_sensitive_content.py",
     "python3 tools/test/check_sensitive_content.py --history",
     "python3 tools/test/check_repo_artifact_hygiene.py",
+    "python3 tools/test/check_readme_media.py",
+    "python3 tools/test/test_check_readme_media.py",
     "python3 tools/test/check_release_evidence_manifest.py",
     "python3 tools/test/check_labs_readiness.py",
+    "python3 tools/test/test_mission1_numbered_list_readiness.py",
+    "python3 tools/test/test_mission1_numbered_list_closure_plan.py",
+    "python3 tools/test/test_mission1_8k_sr_production_promotion.py",
+    "python3 tools/test/test_build_mission1_8k_sr_visual_review.py",
+    "python3 tools/test/test_mission1_camera_dispatch_inputs.py",
+    "python3 tools/test/test_mission1_camera_closure_package.py",
+    "python3 tools/test/test_mission1_camera_hardware_audit.py",
+    "python3 tools/test/test_mission1_camera_target_preflight.py",
+    "python3 tools/test/test_collect_mission1_target_closure.py",
+    "python3 tools/test/test_run_mission1_target_closure_package.py",
+    "python3 tools/test/test_run_mission1_remote_closure_package.py",
+    "python3 tools/test/test_run_mission1_camera_closure.py",
+    "python3 tools/test/test_mission1_camera_closure_run.py",
     "python3 tools/test/check_labs_target_receipts.py",
     "python3 tools/verify_production_artifacts.py",
     "python3 tools/test/test_verify_production_artifacts.py",
-    "python3 tools/verify_release_manifest_artifacts.py",
+    "python3 tools/verify_release_manifest_artifacts.py --summary",
+    "python3 tools/test/test_verify_release_manifest_artifacts.py",
     "python3 tools/live_preview_policy.py",
     "python3 tools/test/test_raw_resolution_targets.py",
     "python3 tools/test/test_bayer_resample.py",
@@ -229,6 +283,12 @@ REQUIRED_CI_CHECKS = (
     "bash tools/test/test_gvid_metadata.sh",
     "bash tools/test/test_labs_bundle_verify.sh",
     "bash tools/test/test_labs_target_bench_smoke.sh",
+    "bash tools/test/test_labs_encoder_bench_cli.sh",
+    "bash tools/test/test_labs_camera_handoff_receipt.sh",
+    "bash tools/test/test_labs_preview_ui_receipt.sh",
+    "bash tools/test/test_build_labs_preview_ui_receipt.sh",
+    "bash tools/test/test_mission1_4k_cleanup_signoff_receipt.sh",
+    "bash tools/test/test_build_mission1_4k_cleanup_signoff_receipt.sh",
     "python3 tools/test/test_native12_sr8k_readiness_audit.py",
     "python3 tools/test/test_mission1_sr_production_gap_report.py",
     "python3 tools/test/test_decide_mission1_sr_promotion.py",
@@ -244,11 +304,12 @@ REQUIRED_CI_CHECKS = (
 
 REQUIRED_BLOCKED_RELEASE_CHECKS = (
     "python3 tests/quality_gates/audit_production_readiness.py --strict --require-mission1-strict24",
+    "python3 tools/mission1_numbered_list_readiness.py --external-root /Volumes/OWC_8TB/gpr_work --require-production",
 )
 
 EXTERNAL_RELEASE_ONLY_CHECKS = (
     "python3 tools/verify_production_artifacts.py --strict",
-    "python3 tools/verify_release_manifest_artifacts.py --strict",
+    "python3 tools/verify_release_manifest_artifacts.py --strict --summary",
     "python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts",
     "python3 tests/quality_gates/audit_production_readiness.py --strict",
 )
@@ -358,11 +419,29 @@ def require_readme_contract(tracked: set[str], failures: list[str]) -> None:
             if token not in release_readiness:
                 failures.append(f"docs/RELEASE_READINESS.md missing production contract token {token!r}")
 
-    docs_readme_ref = "Release readiness and production proof"
     if "docs/README.md" not in tracked:
         failures.append("docs/README.md must be tracked")
-    elif docs_readme_ref not in DOCS_README.read_text(encoding="utf-8"):
-        failures.append("docs/README.md must link release readiness and production proof")
+    else:
+        docs_readme = DOCS_README.read_text(encoding="utf-8")
+        for token in (
+            "Release readiness and production proof",
+            "MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md",
+            "test_mission1_numbered_list_readiness.py",
+            "test_mission1_numbered_list_closure_plan.py",
+            "test_mission1_8k_sr_production_promotion.py",
+            "test_build_mission1_8k_sr_visual_review.py",
+            "test_mission1_camera_dispatch_inputs.py",
+            "test_mission1_camera_closure_package.py",
+            "check_mission1_camera_closure_package.py",
+            "test_mission1_camera_target_preflight.py",
+            "test_verify_release_manifest_artifacts.py",
+            "test_labs_encoder_api",
+            "labs_encoder_bench_cli",
+            "test_labs_encoder_bench_cli.sh",
+            "test_labs_camera_handoff_receipt.sh",
+        ):
+            if token not in docs_readme:
+                failures.append(f"docs/README.md must link {token}")
 
 
 def checkpoint_specs(cnn: dict[str, Any]) -> list[tuple[str, str, str | None]]:

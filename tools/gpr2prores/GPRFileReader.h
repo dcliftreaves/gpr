@@ -16,6 +16,7 @@ typedef struct {
     uint32_t pixelFormat;    // FUSED_HEADER.pixel_format
     uint32_t decWidth;       // encWidth  / max(decimate,1)
     uint32_t decHeight;      // encHeight / max(decimate,1)
+    uint32_t containerGPR;    // 0 = direct FUSD payload, 1 = TIFF/GPR container
 } GPRFileInfo;
 
 @interface GPRFileReader : NSObject

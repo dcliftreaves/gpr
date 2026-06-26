@@ -66,7 +66,7 @@ These are the remaining items that prevent a broader production claim:
 | Mission 1 firmware readiness | Pi 5 stand-in receipts prove valid `.gvid`, no drops, recovery, storage-budget fit, and 20+ fps native 12MP true-Bayer recompression. Current quality-preserving real-write receipts remain about 22-23 fps on the Pi stand-in, not strict 24 fps. | Actual Mission 1 sensor/DMA/storage handoff receipt. If strict 24 fps remains required, a target run must clear median and wall-throughput at 24 fps with the quality profile. |
 | Native 12MP strict 24 fps | T236/T238 boundary probes show the payload can fit the Lexar write budget and preserve quality, but real-write timing still misses on the hard Pi stand-in case. The strict-24 gap report at `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_mission1_strict24_gap_report_20260619/summary.json` records the best loop gap as 0.836 ms, the best sustained wall gap as 2.437 ms, 15 rejected visual-neutral optimization paths, 5 near-miss candidates, and a machine-readable next-probe matrix. The latest current-source 240-frame repeat at `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_strict24_probe_matrix_20260619/summary.json` records 44.235 ms median, 22.61 fps median, 22.21 fps wall, valid `.gvid`, no drops, recovery proven, and storage passing at 5.39 MiB/frame. The registered `mission1_native12_t233` production profile already uses the faster FLL2 LL/pinning policy. Its best repeat records 42.780 ms median, 23.38 fps median, and 22.92 fps wall; the latest settled repeat records 43.395 ms median, 23.04 fps median, 22.69 fps wall, and 5.22 MiB/frame. No production-profile repeat closes strict 24 fps. The labeled T233 hot-row profile ranks the jANS overflow/skew targets as `ch0_b1`, `ch3_b1`, `ch0_b2`, and `ch3_b2`; `ch2` no longer overflows under this profile. | Reduce the production T233 profile by about 1.7 ms median and about 2.4 ms wall on the Pi stand-in, then rerun the sustained repeat. The next optimization target is the channel 0/3 band-1 and band-2 tokenization hot path plus wall jitter. The remaining ordered probes are camera-like handoff floor, indexed-writev/current-source A/B, then target-hardware or explicit 20 fps policy receipt. Do not repeat rejected storage/preallocation, PGO/layout, ionice, sync-range, pwritev, LL-rice, async-writer, or simple coalesced-prefix/writev probes without new evidence. |
 | T233 threshold speed probes | Targeted T233 threshold raises prove the speed is in the expected bands but are not production-safe. `ch0/ch3 LH+HL +1` reaches 41.555 ms median / 24.06 fps median and 23.61 fps wall, but fails the raw quality dashboard on all three Mission 1 images. `ch0/ch3 LH +1` is closer visually but still fails GP017603 at 74.03 dB against the 75 dB floor. `ch0/ch3 HL +1` also fails all three quality rows. Single-channel LH probes still fail GP017603 below the committed floor. | Do not promote threshold-only speed tiers for the quality profile. Keep the threshold receipts as rejection evidence and move the next strict-24 work to code-path optimization of the same ch0/ch3 b1/b2 tokenizer cost, or to target-hardware handoff if 20 fps Pi proxy is accepted. |
-| 8K SR live use | The registered 12MP-to-8K SR paths have checkpoint, holdout, `.gvid` decode-to-SR, editable DNG/GPR, ProRes, and metadata receipts. Older raw-target smoke receipts are roughly 2.7 fps; the current q4/t2 sidecar-aware `.gvid` decode+SR+write receipt is about 1.16 fps. The SR production gap report at `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_sr_production_gap_report_20260619/summary.json` classifies q4/t2 as `offline_registry_review_not_production`. | Do not promote to live/camera use unless target-platform timing changes materially; keep it offline/review. Also keep GP017346 paired regression, Mission metadata transplant refresh, and native12 strict-24 capture open until receipts close them. |
+| 8K SR live use | The registered 12MP-to-8K SR paths have checkpoint, holdout, `.gvid` decode-to-SR, editable DNG/GPR, ProRes, metadata, visual-review, and production-promotion receipts. Older raw-target smoke receipts are roughly 2.7 fps; the current candidate-aware `.gvid` decode+SR+write receipt is about 1.09 fps and has current-candidate editable packaging plus Mission metadata transplant audits. | Do not promote to live/camera use unless target-platform timing changes materially. The current numbered-list promotion is complete only for offline/post scope. |
 | Repo merge readiness | Local strict audits and artifact verification pass, but this branch still has a large dirty surface across source, tools, docs, and tests. | Slim PR cleanup: keep production code/tests/docs, keep large artifacts external, and confirm GitHub CI passes after push. |
 
 The production PR should stay narrow: keep reusable source, tests, registry
@@ -78,6 +78,33 @@ external or on a leaf branch.
 
 Current local verification was rerun with large scratch and artifacts on
 `/Volumes/OWC_8TB/gpr_work`.
+
+Update on 2026-06-25:
+
+- Release manifest artifact verification is clean in strict summary mode: 134
+  indexed artifacts, 374 production-artifact hash rows, 0 failures.
+- README media, release-evidence manifest, repo artifact hygiene, sensitive
+  content, Labs readiness, Labs target receipts, registry consistency, strict
+  production-artifact verification, production-readiness audit, live-preview
+  policy, raw-resolution target tests, Bayer-resample tests, and the Mission 1
+  closure-package tests pass from the current production branch.
+- The Mission 1 numbered-list production audit intentionally exits with
+  `evidence_passes_with_production_blockers`: items 3 and 4 are production
+  ready for offline/post scope, while items 1 and 2 remain blocked by the real
+  Mission 1 sensor/DMA/storage handoff receipt and the real Mission 1
+  rear-display preview UI receipt.
+- The current camera-role target preflight records concrete frame-source,
+  storage, and display labels, and still refuses promotion until those labels
+  are backed by real camera execution rather than stand-in paths.
+- The refreshed sensor-ring preflight additionally proves the current Pi target
+  does not expose `/dev/mission1/sensor_dma_ring`; final camera closure needs a
+  real Mission 1 frame-source endpoint before the handoff and preview receipts
+  can be produced.
+- A real non-dry camera-ready closure launch was attempted after the target
+  closure package was synced. It passed dispatch validation, failed the
+  required hardware audit because no camera sensor is enumerated by
+  rpicam/libcamera/V4L, and copied back the early failure receipts under
+  `artifacts/mission1_camera_closure_run_20260625/current_camera_hw_blocked_20260625/`.
 
 Update on 2026-06-19:
 
@@ -109,7 +136,7 @@ Passing checks:
   registry consistency, and ship-pipeline audit.
 - Strict external-artifact checks with the 8TB work drive mounted:
   `verify_production_artifacts.py --strict`,
-  `verify_release_manifest_artifacts.py --strict`,
+  `verify_release_manifest_artifacts.py --strict --summary`,
   `check_registry_consistency.py --strict-artifacts`, and
   `audit_production_readiness.py --strict`.
 - Mission 1/SR source smokes: FLL2 T233 profile, fused payload analysis,
@@ -140,14 +167,10 @@ Current interpretation:
   CFA-preserving `gaussian_area` resampler: each Bayer color plane is
   anti-aliased and downsampled independently, so RGGB phase, green-plane
   separation, and raw bit-depth are preserved.
-- 8K SR is offline/review evidence, not a live-camera path. Registry,
+- 8K SR is offline/post evidence, not a live-camera path. Registry,
   checkpoint, Z8/Mission holdouts, `.gvid` decode-to-SR, editable DNG/GPR,
-  ProRes review, and metadata repack receipts pass for the registered offline
-  candidates. The current q4/t2 sidecar-aware candidate has refreshed packaging
-  receipts and better sidecar-aware quality evidence, but the production gap
-  report keeps it out of production because live timing is about 1.16 fps,
-  `GP017346` has a paired regression, Mission metadata transplant is not
-  refreshed for this candidate, and native12 strict-24 capture is still open.
+  ProRes review, metadata repack, visual-review, and production-promotion
+  receipts pass for the registered offline candidate-aware path.
 - Final camera firmware readiness still requires real Mission 1 sensor/DMA and
   camera-storage handoff evidence.
 - Codec/CNN boundary: symbol/range issues remain codec correctness guardrails,
@@ -216,12 +239,29 @@ export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
 python3 tools/test/check_sensitive_content.py
 python3 tools/test/check_sensitive_content.py --history
 python3 tools/test/check_repo_artifact_hygiene.py
+python3 tools/test/check_readme_media.py
+python3 tools/test/test_check_readme_media.py
 python3 tools/test/check_release_evidence_manifest.py
 python3 tools/test/check_labs_readiness.py
+python3 tools/test/test_mission1_numbered_list_readiness.py
+python3 tools/test/test_mission1_numbered_list_closure_plan.py
+python3 tools/test/test_mission1_8k_sr_production_promotion.py
+python3 tools/test/test_build_mission1_8k_sr_visual_review.py
+python3 tools/test/test_mission1_camera_dispatch_inputs.py
+python3 tools/test/test_mission1_camera_closure_package.py
+python3 tools/test/test_mission1_camera_hardware_audit.py
+python3 tools/test/test_mission1_camera_source_probe.py
+python3 tools/test/test_mission1_camera_target_preflight.py
+python3 tools/test/test_collect_mission1_target_closure.py
+python3 tools/test/test_run_mission1_target_closure_package.py
+python3 tools/test/test_run_mission1_remote_closure_package.py
+python3 tools/test/test_run_mission1_camera_closure.py
+python3 tools/test/test_mission1_camera_closure_run.py
 python3 tools/test/check_labs_target_receipts.py
 python3 tools/verify_production_artifacts.py
 python3 tools/test/test_verify_production_artifacts.py
-python3 tools/verify_release_manifest_artifacts.py
+python3 tools/verify_release_manifest_artifacts.py --summary
+python3 tools/test/test_verify_release_manifest_artifacts.py
 python3 tools/live_preview_policy.py
 python3 tools/test/test_raw_resolution_targets.py
 python3 tools/test/test_bayer_resample.py
@@ -229,6 +269,12 @@ bash tools/test/test_gvid_pack.sh
 bash tools/test/test_gvid_metadata.sh
 bash tools/test/test_labs_bundle_verify.sh
 bash tools/test/test_labs_target_bench_smoke.sh
+bash tools/test/test_labs_encoder_bench_cli.sh
+bash tools/test/test_labs_camera_handoff_receipt.sh
+bash tools/test/test_labs_preview_ui_receipt.sh
+bash tools/test/test_build_labs_preview_ui_receipt.sh
+bash tools/test/test_mission1_4k_cleanup_signoff_receipt.sh
+bash tools/test/test_build_mission1_4k_cleanup_signoff_receipt.sh
 python3 tools/test/test_native12_sr8k_readiness_audit.py
 python3 tools/test/test_mission1_sr_production_gap_report.py
 python3 tools/test/test_decide_mission1_sr_promotion.py
@@ -253,10 +299,29 @@ export TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp
 export GATE_TMPDIR=/Volumes/OWC_8TB/gpr_work/gate_tmp
 
 python3 tools/verify_production_artifacts.py --strict
-python3 tools/verify_release_manifest_artifacts.py --strict
+python3 tools/verify_release_manifest_artifacts.py --strict --summary
 python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts
 python3 tests/quality_gates/audit_production_readiness.py --strict
 ```
+
+Run the Mission 1 numbered-list production-promotion gate only when the team is
+ready to claim all four requested paths are production-ready:
+
+```bash
+python3 tools/mission1_numbered_list_readiness.py \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --require-production
+```
+
+This command is expected to fail until the camera hardware audit enumerates a
+real camera source, the camera-role target preflight reports
+`target_preflight_ready=true` and `camera_closure_possible=true`, records
+concrete non-stand-in frame-source/storage/display labels, and actual camera
+handoff plus actual preview UI receipts are present. The 4K cleanup production
+signoff and 8K offline-production promotion receipts are already present.
+
+One-line form for manifest checks:
+`python3 tools/mission1_numbered_list_readiness.py --external-root /Volumes/OWC_8TB/gpr_work --require-production`
 
 Run the strict Mission 1 final-target check only when deciding whether the
 native 12MP path is ready to claim strict 24 fps production:

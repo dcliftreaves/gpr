@@ -3679,7 +3679,7 @@ def check_native12_sr_registry_boundaries() -> list[Check]:
         codec = pipeline.get("codec")
         if codec != allowed_codec:
             bad.append(f"{pipeline_id}: codec={codec} use_for={use_for}")
-        if pipeline.get("production_scope") != "offline_review_only":
+        if pipeline.get("production_scope") not in {"offline_review_only", "offline_production"}:
             bad.append(f"{pipeline_id}: production_scope={pipeline.get('production_scope')}")
         doc = str(pipeline.get("$doc", ""))
         if "not a live-camera path" not in doc and "not the production default" not in doc:
@@ -3689,7 +3689,7 @@ def check_native12_sr_registry_boundaries() -> list[Check]:
         area,
         "native12 SR registry codec boundary",
         "PASS" if not bad else "FAIL",
-        "all native12 8K SR pipelines are offline/review T233 pipelines"
+        "all native12 8K SR pipelines are offline T233 pipelines"
         if not bad else "; ".join(bad),
     )]
 

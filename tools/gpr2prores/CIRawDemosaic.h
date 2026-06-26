@@ -25,7 +25,8 @@ NS_ASSUME_NONNULL_BEGIN
                               outWidth:(uint32_t)outW
                              outHeight:(uint32_t)outH
                                    info:(const DNGInfo *)info
-                         templateDngPath:(nullable NSString *)templateDngPath;
+                         templateDngPath:(nullable NSString *)templateDngPath
+                                lookMode:(nullable NSString *)lookMode;
 
 // Encode a demosaic pass into `pb`. Synchronous: returns when the GPU work
 // has been committed (matches Demosaic's pattern, where the pipeline blocks

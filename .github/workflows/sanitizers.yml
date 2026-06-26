@@ -145,6 +145,7 @@ jobs:
           build_test test_video_roundtrip
           build_test test_video_full_roundtrip
           build_test test_video_format
+          build_test test_labs_encoder_api
           build_test test_edge_sizes
           build_test test_video_encoder_abort
           build_test test_video_full_chain
@@ -152,6 +153,10 @@ jobs:
       - name: Run test_video_format
         run: |
           env ${{ matrix.run_env }} timeout 120 /tmp/gpr-tests/test_video_format
+
+      - name: Run test_labs_encoder_api
+        run: |
+          env ${{ matrix.run_env }} timeout 120 /tmp/gpr-tests/test_labs_encoder_api
 
       - name: Run test_video_encoder_abort
         run: |

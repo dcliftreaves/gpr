@@ -10,6 +10,8 @@ firmware evidence.
 
 | item | current evidence | status |
 |---|---|---|
+| Current Mission 1 numbered-list audit | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_numbered_list_readiness_20260625/readiness.json` records the active 4K Bayer `.gvid`, 1024 x 768 preview, CNN output, and ProRes review evidence. The best 420-frame 4K `.gvid` receipt is 24.32 fps whole-run wall / 25.29 fps loop median with zero drops and Lexar SILVER PLUS write-budget pass. The selected 1,440-frame aggregate Pi closure rerun records 20.50 fps wall / 21.52 fps median for 4K `.gvid` and 24.20 fps wall / 43.86 fps median decode-plus-target for 1024 x 768 preview, with validated stand-in blocker receipts at `artifacts/mission1_camera_closure_run_20260625/current_standin_followup/`. | active numbered-list Pi 5 stand-in evidence; firmware/UI handoff still pending |
+| Labs shim Pi receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_labs_shim_pi_standin_20260625/run_120f_dual/labs_target_bench.json` validates the public `gpr_labs_encoder` shim on the Pi 5 stand-in: valid 4096 x 3072 `.gvid`, 120 frames, zero drops, interrupted-tail recovery, and Lexar write-budget fit. It reaches 15.40 fps median / 14.33 fps wall, so it is functional integration evidence, not the current production-speed capture path. | shim integration evidence; performance gap remains |
 | Historical half-res `.gvid` capture budget | `docs/pi5_bench_2026-05-26.md` reports 24.93 fps median on an older Pi branch/run | historical stand-in evidence |
 | Current strict 10 minute Pi 5 target run | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json` reports 14,400 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, 19.98 fps median | proxy-acceptable Pi stand-in; camera 24 fps pending |
 | Current half-res variant probe | `docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` reports current, historical-doc, environment, runtime-knob, compiler-flag, quality, producer, highpass-bound, target-rehearsal, direct-container, and luma-pair probes; the best short direct-container near-miss is luma-pair plus stripe64/deferred rANS at 23.54 fps median | regression evidence |
@@ -40,10 +42,10 @@ firmware evidence.
 | Current-head Pi 5 direct `.gvid` rehearsal | `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_direct_1440f_1b934a4_20260615/labs_target_bench.json` reports commit `1b934a4`, 1,440 frames, 0 drops, valid `.gvid`, interrupted-tail recovery, and 16.00 fps median; timing-detail receipt `/Volumes/OWC_8TB/gpr_work/artifacts/pi5_current_head_20260615/labs_target_current_head_timing_detail_30f_1b934a4_20260615/labs_target_bench.json` reports Pass1 median 38.90 ms and unpack mean 22.79 ms | current-head target-performance blocker |
 | 2K live/camera-back raw target | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md` reports `2k_raw_0p5x_l2hh` at 29.85 fps median, 37.1 ms p95 | stand-in evidence |
 | Desktop review PREVIEW | `docs/VIDEO_STATUS.md` reports q8 three-way PREVIEW quality pass at 13.65 s/image on Mac/MPS | offline-only evidence |
-| Format validation | `test_video_format` and `test_video_full_chain` validate headers, streams, and real encoded `.gvid` files | committed CI evidence |
+| Format validation | `test_video_format`, `test_labs_encoder_api`, `test_labs_encoder_bench_cli.sh`, and `test_video_full_chain` validate headers, the firmware-facing shim, target-bench receipt path, streams, and real encoded `.gvid` files | committed CI evidence |
 | Portable source/media bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260614_upresable_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` | source/media stand-in bundle |
 | Portable target-proxy bundle | `/Volumes/OWC_8TB/gpr_work/artifacts/labs_bundle_20260615_pi_proxy_v1/manifest.json` verifies with `tools/verify_labs_bundle.py` and carries the strict 10-minute Pi proxy receipt | Pi proxy bundle |
-| Target receipt harness | `tools/run_labs_target_bench.py` wraps `bench_fused`, packs a strict `.gvid`, validates truncation behavior, parses `FUSED_TIMING_DETAIL` output into `fused_timing`, and writes `labs_target_bench.json` | committed harness |
+| Target receipt harness | `tools/run_labs_target_bench.py` wraps `bench_fused` for production timing evidence or `labs_encoder_bench_cli` for public-shim integration evidence, packs a strict `.gvid`, validates truncation behavior, parses bench timing output, and writes `labs_target_bench.json` | committed harness |
 
 ## Required Target Run
 
@@ -264,9 +266,11 @@ were quality-blocked by severe decoded visual artifacts and remain historical
 timing-only evidence. The current q8 FLL2/T233 true-Bayer profile fixes that
 class of blocker for the 20+ fps Pi stand-in floor: it has quality dashboards,
 valid `.gvid`, 0-drop receipts, interruption recovery, and conservative
-Lexar SILVER PLUS storage-budget evidence. It is still not final firmware
-readiness because actual Mission 1 sensor/DMA/storage handoff and strict
-24 fps total timing are open.
+Lexar SILVER PLUS storage-budget evidence. The current all-42 4K Bayer
+numbered-list audit supersedes the older per-image timing summary for the
+active 20+ fps floor. It is still not final firmware readiness because actual
+Mission 1 sensor/DMA/storage handoff remains open; strict 24 fps total timing
+is open only if it is reinstated as a hard product requirement.
 
 Historical 50MP/half-res evidence remains below for audit context:
 

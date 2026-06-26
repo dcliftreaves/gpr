@@ -1,6 +1,6 @@
 # Labs Firmware Integration Contract
 
-Last refreshed: 2026-06-15
+Last refreshed: 2026-06-25
 
 This document defines the firmware-facing contract required before `.gvid`
 capture can move from repository prototype to Labs target integration.
@@ -57,12 +57,25 @@ gpr_labs_encoder *gpr_labs_encoder_create(const gpr_labs_encoder_config *cfg,
                                           void *write_user);
 int gpr_labs_encoder_submit(gpr_labs_encoder *enc, const gpr_labs_frame *frame);
 int gpr_labs_encoder_flush(gpr_labs_encoder *enc);
+void gpr_labs_encoder_cancel(gpr_labs_encoder *enc);
 void gpr_labs_encoder_destroy(gpr_labs_encoder *enc);
 ```
 
-This is an integration contract, not yet a committed public C API. The existing
-shipping source remains `source/lib/vc5_encoder/gpr_video.h` and
-`source/lib/vc5_encoder/gpr_video_format.h`.
+The committed public shim lives in
+`source/lib/vc5_encoder/gpr_labs_encoder.h`. It wraps the existing
+`source/lib/vc5_encoder/gpr_video.h` pipeline and
+`source/lib/vc5_encoder/gpr_video_format.h` container helpers so firmware code
+can integrate against one small camera-facing API.
+
+Current constraints:
+
+- input frames are unpacked 16-bit Bayer rows; padded stride is accepted and
+  compacted before submit,
+- frame indices must be contiguous starting at zero because `.gvid` v1 emits
+  frames in tag order,
+- `timestamp_ns` is accepted for receipt/sidecar correlation, but v1 `.gvid`
+  does not yet carry timestamps in the stream,
+- nonzero write-callback return values are treated as fatal I/O failures.
 
 ## Memory Ownership
 
@@ -196,3 +209,47 @@ drops, valid `.gvid`, and interruption recovery proven. A blocked camera
 receipt must include
 `blocker.cause` so the failure is narrowed to hardware handoff, storage,
 thermal, memory, codec timing, or another concrete cause.
+
+## Preview UI Receipt
+
+Camera-back preview is a separate integration path from raw capture. The
+current Pi stand-in proves that a 4096 x 3072 `.gvid` can decode to 1024 x 768
+RGB above 20 fps, but it does not prove that the decoded frames are presented
+through the Mission 1 camera UI/display compositor.
+
+Firmware or target runs should write a compact JSON receipt with schema
+`gpr_labs_preview_ui_receipt.v1` and validate it with:
+
+```bash
+python3 tools/check_labs_preview_ui_receipt.py \
+  /path/to/preview_ui_receipt.json
+```
+
+Stand-in preview decode receipts can be normalized into the same schema with:
+
+```bash
+python3 tools/build_labs_preview_ui_receipt.py \
+  --target-bench /path/to/labs_target_bench.json \
+  --preview-receipt /path/to/preview_decode_1024x768/receipt.json \
+  --output /path/to/preview_ui_receipt.json
+```
+
+Required sections:
+
+| section | purpose |
+|---|---|
+| `target` | hardware name and `role`: `stand-in` or `camera` |
+| `source` | source `.gvid` dimensions, frame count, bit depth, pixel format, and SHA-256 |
+| `preview` | output dimensions, frame count, target fps, full-frame downsample flag, color pipeline, and tone pipeline |
+| `integration` | decode path, presentation path, display surface, buffer ownership, and whether the camera UI path executed |
+| `timing` | median and wall fps plus frame-time percentiles |
+| `memory` | heap high-water mark or RSS |
+| `validation` | output validity, drop status, and visual display check |
+| `verdict` | UI-ready, target-evidence, and fps-target booleans |
+
+`verdict.ui_ready=true` is accepted only for `target.role=camera` with
+`integration.ui_path_executed=true`, available source provenance, fps target
+met, valid output, no drops, full-frame downsample, and a visual check on the
+camera display. A blocked camera preview receipt must include `blocker.cause`
+so the failure is narrowed to display plumbing, buffer ownership, timing,
+visual signoff, or another concrete cause.

@@ -145,6 +145,20 @@ def estimate_coord_deep_preclean_adapter_pixelshuffle_macs(
     )
 
 
+def estimate_coord_detail_preclean_adapter_pixelshuffle_macs(
+    width: int,
+    depth: int,
+    low_plane_h: int,
+    low_plane_w: int,
+) -> int:
+    pixels = low_plane_h * low_plane_w
+    middle = max(0, depth - 2)
+    trunk_per_pixel = 9 * (10 * width + middle * width * width + width * 16)
+    adapter_per_pixel = 9 * (10 * width + 2 * width * width + width * 16)
+    preclean_per_pixel = 9 * (4 * width + width * width + width * 4)
+    return int(pixels * (trunk_per_pixel + adapter_per_pixel + preclean_per_pixel))
+
+
 def load_model(checkpoint: Path, device: torch.device) -> tuple[torch.nn.Module, dict[str, Any]]:
     ckpt = torch.load(checkpoint, map_location="cpu", weights_only=False)
     config = dict(ckpt["config"])
@@ -289,6 +303,7 @@ def main() -> int:
     coordinate_channels_enabled = bool(config.get("coordinate_channels")) or str(config.get("architecture")) in {
         "coord_preclean_adapter_pixelshuffle",
         "coord_deep_preclean_adapter_pixelshuffle",
+        "coord_detail_preclean_adapter_pixelshuffle",
     }
     warm_patch = planes[:, :32, :32].astype(np.float32) / RAW_SCALE
     if coordinate_channels_enabled:
@@ -347,6 +362,9 @@ def main() -> int:
     coord_deep_preclean_adapter_macs = estimate_coord_deep_preclean_adapter_pixelshuffle_macs(
         int(config["width"]), int(config["depth"]), args.low_height // 2, args.low_width // 2
     )
+    coord_detail_preclean_adapter_macs = estimate_coord_detail_preclean_adapter_pixelshuffle_macs(
+        int(config["width"]), int(config["depth"]), args.low_height // 2, args.low_width // 2
+    )
     architecture = str(config.get("architecture", "residual_highres"))
     if architecture == "lowres_pixelshuffle":
         actual_macs = low_macs
@@ -362,6 +380,8 @@ def main() -> int:
         actual_macs = preclean_adapter_macs
     elif architecture == "coord_preclean_adapter_pixelshuffle":
         actual_macs = coord_preclean_adapter_macs
+    elif architecture == "coord_detail_preclean_adapter_pixelshuffle":
+        actual_macs = coord_detail_preclean_adapter_macs
     elif architecture == "coord_deep_preclean_adapter_pixelshuffle":
         actual_macs = coord_deep_preclean_adapter_macs
     else:
@@ -425,6 +445,13 @@ def main() -> int:
             "same_width_coord_deep_preclean_adapter_pixelshuffle_tmacs_per_frame": coord_deep_preclean_adapter_macs / 1e12,
             "coord_deep_preclean_adapter_pixelshuffle_cost_ratio": (
                 coord_deep_preclean_adapter_macs / high_macs if high_macs else None
+            ),
+            "same_width_coord_detail_preclean_adapter_pixelshuffle_macs_per_frame": coord_detail_preclean_adapter_macs,
+            "same_width_coord_detail_preclean_adapter_pixelshuffle_tmacs_per_frame": (
+                coord_detail_preclean_adapter_macs / 1e12
+            ),
+            "coord_detail_preclean_adapter_pixelshuffle_cost_ratio": (
+                coord_detail_preclean_adapter_macs / high_macs if high_macs else None
             ),
         },
         "max_rss_mb": usage.ru_maxrss / 1024 / 1024 if sys.platform == "darwin" else usage.ru_maxrss / 1024,

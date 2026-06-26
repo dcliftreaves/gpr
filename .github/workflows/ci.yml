@@ -2,10 +2,10 @@ name: CI
 
 # PR / branch test matrix for GPR 2.0.
 #
-# Builds the core static libraries and 7 test binaries (band-level roundtrip,
-# full-image roundtrip, container format, edge sizes, pipeline simulator,
-# encoder abort, full-chain end-to-end), then runs each against a synthesized
-# Z8-shaped raw input frame.
+# Builds the core static libraries and codec test binaries (band-level
+# roundtrip, full-image roundtrip, container format, Labs encoder shim, edge
+# sizes, pipeline simulator, encoder abort, full-chain end-to-end), then runs
+# each against a synthesized Z8-shaped raw input frame.
 #
 # Platforms:
 #   ubuntu-latest  -> x86_64 (NEON off)
@@ -58,11 +58,59 @@ jobs:
       - name: Repo artifact hygiene guard
         run: python3 tools/test/check_repo_artifact_hygiene.py
 
+      - name: README media guard
+        run: python3 tools/test/check_readme_media.py
+
+      - name: README media guard regression
+        run: python3 tools/test/test_check_readme_media.py
+
       - name: Release evidence manifest guard
         run: python3 tools/test/check_release_evidence_manifest.py
 
       - name: Labs readiness guard
         run: python3 tools/test/check_labs_readiness.py
+
+      - name: Mission 1 numbered-list readiness regression
+        run: python3 tools/test/test_mission1_numbered_list_readiness.py
+
+      - name: Mission 1 numbered-list closure plan regression
+        run: python3 tools/test/test_mission1_numbered_list_closure_plan.py
+
+      - name: Mission 1 8K SR promotion receipt regression
+        run: python3 tools/test/test_mission1_8k_sr_production_promotion.py
+
+      - name: Mission 1 8K SR visual review regression
+        run: python3 tools/test/test_build_mission1_8k_sr_visual_review.py
+
+      - name: Mission 1 camera dispatch input regression
+        run: python3 tools/test/test_mission1_camera_dispatch_inputs.py
+
+      - name: Mission 1 camera closure package regression
+        run: python3 tools/test/test_mission1_camera_closure_package.py
+
+      - name: Mission 1 camera hardware audit regression
+        run: python3 tools/test/test_mission1_camera_hardware_audit.py
+
+      - name: Mission 1 camera source probe regression
+        run: python3 tools/test/test_mission1_camera_source_probe.py
+
+      - name: Mission 1 camera target preflight regression
+        run: python3 tools/test/test_mission1_camera_target_preflight.py
+
+      - name: Mission 1 target closure collector regression
+        run: python3 tools/test/test_collect_mission1_target_closure.py
+
+      - name: Mission 1 target closure package regression
+        run: python3 tools/test/test_run_mission1_target_closure_package.py
+
+      - name: Mission 1 remote closure launch regression
+        run: python3 tools/test/test_run_mission1_remote_closure_package.py
+
+      - name: Mission 1 camera closure runner regression
+        run: python3 tools/test/test_run_mission1_camera_closure.py
+
+      - name: Mission 1 camera closure-run validator regression
+        run: python3 tools/test/test_mission1_camera_closure_run.py
 
       - name: Labs target receipt guard
         # Hosted CI validates the manifest contract. If external target
@@ -88,7 +136,9 @@ jobs:
         # Inventory mode exits 0 when external dashboards/media/checkpoints are
         # absent, but still verifies that manifest artifact resolution remains
         # runnable on every CI job. Release promotion requires --strict locally.
-        run: python3 tools/verify_release_manifest_artifacts.py
+        run: |
+          python3 tools/verify_release_manifest_artifacts.py --summary
+          python3 tools/test/test_verify_release_manifest_artifacts.py
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -194,7 +244,7 @@ jobs:
           set -e
           mkdir -p /tmp/gpr-tests
 
-          # Common link line for the 7 tests. All of them depend on
+          # Common link line for the codec tests. All of them depend on
           # libvc5_encoder.a and libvc5_common.a. Both archives are required
           # because jans_decode_band_x4 lives in vc5_common.
           ENCODER_LIB="build/source/lib/vc5_encoder/libvc5_encoder.a"
@@ -215,6 +265,7 @@ jobs:
           build_test test_video_roundtrip
           build_test test_video_full_roundtrip
           build_test test_video_format
+          build_test test_labs_encoder_api
           build_test test_edge_sizes
           build_test test_video_encoder_abort
           build_test test_video_full_chain
@@ -241,6 +292,9 @@ jobs:
 
       - name: Run test_video_format
         run: timeout 60 /tmp/gpr-tests/test_video_format
+
+      - name: Run test_labs_encoder_api
+        run: timeout 60 /tmp/gpr-tests/test_labs_encoder_api
 
       - name: Run test_video_encoder_abort
         run: timeout 60 /tmp/gpr-tests/test_video_encoder_abort
@@ -383,6 +437,7 @@ jobs:
           bash tools/test/test_labs_bundle_builder.sh
           bash tools/test/test_labs_bundle_verify.sh
           bash tools/test/test_labs_target_bench_smoke.sh
+          BUILD_DIR=build bash tools/test/test_labs_encoder_bench_cli.sh
           bash tools/test/test_analyze_fused_payload.sh
           bash tools/test/test_render_gvid_sr_registry.sh
           python3 tools/test/test_native12_sr8k_readiness_audit.py
@@ -397,6 +452,10 @@ jobs:
           python3 tools/test/test_mission1_sr_pair_codec_profiles.py
           GPR_TOOLS=build/source/app/gpr_tools/gpr_tools bash tools/test/test_gpr_tools_raw_gpr_roundtrip.sh
           bash tools/test/test_labs_camera_handoff_receipt.sh
+          bash tools/test/test_labs_preview_ui_receipt.sh
+          bash tools/test/test_build_labs_preview_ui_receipt.sh
+          bash tools/test/test_mission1_4k_cleanup_signoff_receipt.sh
+          bash tools/test/test_build_mission1_4k_cleanup_signoff_receipt.sh
           bash tools/test/test_mission1_native12_fll2_t2_profile.sh
 
       - name: Registry consistency check

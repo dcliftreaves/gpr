@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Exercise the firmware-facing Labs encoder shim through the target-bench
+# receipt wrapper. This proves the public shim can produce a valid .gvid
+# stream through the same receipt path used by Mission 1 closure runs.
+set -euo pipefail
+
+REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+BUILD_DIR="${BUILD_DIR:-$REPO/build-local}"
+if [ -z "${GPR_EXTERNAL_ROOT:-}" ]; then
+  if [ -d /Volumes/OWC_8TB/gpr_work ]; then
+    GPR_EXTERNAL_ROOT="/Volumes/OWC_8TB/gpr_work"
+  else
+    GPR_EXTERNAL_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/gpr_work"
+  fi
+fi
+GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
+WORK="$GPR_TMPDIR/labs_encoder_bench_cli_smoke"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+
+cleanup() {
+  local status=$?
+  if [ "$status" -eq 0 ] && [ "${GPR_KEEP_TEST_ARTIFACTS:-0}" != "1" ]; then
+    rm -rf "$WORK"
+  fi
+}
+trap cleanup EXIT
+
+rm -rf "$WORK"
+mkdir -p "$WORK"
+
+cmake --build "$BUILD_DIR" --target labs_encoder_bench_cli -j2
+
+"$PYTHON_BIN" - "$WORK/frame.raw" <<'PY'
+import sys
+from pathlib import Path
+W, H = 64, 48
+buf = bytearray()
+for y in range(H):
+    for x in range(W):
+        v = (1024 + x * 31 + y * 17 + x * y) & 0x3fff
+        buf.extend(int(v).to_bytes(2, "little"))
+Path(sys.argv[1]).write_bytes(buf)
+PY
+
+GPR_BENCH_GVID="$WORK/direct.gvid" \
+GPR_BENCH_GVID_FPS=20 \
+GPR_BENCH_PIXEL_FORMAT=4 \
+FUSED_QUALITY=3 \
+"$BUILD_DIR/bin/labs_encoder_bench_cli" "$WORK/frame.raw" 64 48 4 \
+  > "$WORK/bench_stdout.txt" \
+  2> "$WORK/bench_stderr.txt"
+
+"$PYTHON_BIN" "$REPO/tools/run_labs_target_bench.py" \
+  --bench "$BUILD_DIR/bin/labs_encoder_bench_cli" \
+  --raw "$WORK/frame.raw" \
+  --frames 4 \
+  --output-dir "$WORK/receipt" \
+  --source-width 64 \
+  --source-height 48 \
+  --capture-width 64 \
+  --capture-height 48 \
+  --target-fps 20 \
+  --quality 3 \
+  --pixel-format 4 \
+  --direct-gvid \
+  --source-provenance-root "$REPO"
+
+"$PYTHON_BIN" - "$WORK/receipt/labs_target_bench.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+receipt = json.loads(Path(sys.argv[1]).read_text())
+assert receipt["schema"] == "gpr_labs_target_bench.v1"
+assert receipt["capture"]["frames_requested"] == 4
+assert receipt["capture"]["frames_written"] == 4
+assert receipt["capture"]["capture_width"] == 64
+assert receipt["capture"]["capture_height"] == 48
+assert receipt["gvid"]["validation"]["valid"] is True
+assert receipt["gvid"]["validation"]["frame_count"] == 4
+assert receipt["gvid"]["validation"]["fps_x1000"] == 20000
+assert receipt["bench"]["build"]["binary"].endswith("labs_encoder_bench_cli")
+assert receipt["bench_phase_timing"]["available"] is True
+assert receipt["writer_handoff"]["wall_includes_writer_drain"] is True
+assert receipt["verdict"]["gvid_valid"] is True
+assert receipt["verdict"]["storage_target_met"] is True
+PY
+
+echo "test_labs_encoder_bench_cli: PASS"

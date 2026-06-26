@@ -75,6 +75,14 @@ on:
         description: "Measure direct sequential .gvid output"
         required: true
         default: "true"
+      bench_binary:
+        description: "Target bench binary: bench_fused for fastest timing evidence, labs_encoder_bench_cli for firmware-facing shim integration evidence"
+        required: true
+        default: "bench_fused"
+        type: choice
+        options:
+          - bench_fused
+          - labs_encoder_bench_cli
       mission1_native12_fll2_profile:
         description: "Apply current Mission 1 native12 q8 FLL2 avg7555-fast P2-pin profile env"
         required: true
@@ -107,6 +115,10 @@ on:
         description: "Receipt target role: stand-in or camera"
         required: true
         default: "stand-in"
+      raw_source_kind:
+        description: "Raw source kind: file_standin, sensor_dma_capture, or camera_ring_buffer"
+        required: true
+        default: "file_standin"
       frame_source:
         description: "Frame source label for camera handoff receipt"
         required: true
@@ -139,6 +151,38 @@ on:
         description: "Blocker cause when firmware_ready is false"
         required: true
         default: "camera hardware target not firmware-ready"
+      preview_target:
+        description: "fused_decode_cli target for camera-back preview timing"
+        required: true
+        default: "mission1_preview_4x_1024x768"
+      preview_limit:
+        description: "Preview decode frame limit; 0 means all frames"
+        required: true
+        default: "0"
+      ui_path_executed:
+        description: "Set true only when the real camera UI/display path executed"
+        required: true
+        default: "false"
+      visual_checked:
+        description: "Set true only after visual display check on the camera display"
+        required: true
+        default: "false"
+      display_surface:
+        description: "Preview display surface label"
+        required: true
+        default: "stand-in raw preview receipt output"
+      presentation_path:
+        description: "Preview presentation path label"
+        required: true
+        default: "off-camera preview decode receipt"
+      preview_buffer_ownership:
+        description: "Preview buffer ownership label"
+        required: true
+        default: "process-owned RGB output buffer"
+      preview_blocker_cause:
+        description: "Blocker cause when ui_ready is false"
+        required: true
+        default: "Mission 1 camera UI/display path not executed"
 
 concurrency:
   group: labs-target-${{ github.ref }}
@@ -171,26 +215,111 @@ jobs:
           echo "outdir=$OUT" >> "$GITHUB_OUTPUT"
           echo "Using output dir: $OUT"
 
+      - name: Validate dispatch role flags
+        run: |
+          set -euo pipefail
+          python3 tools/check_mission1_camera_dispatch_inputs.py \
+            --target-role "${{ inputs.target_role }}" \
+            --target-name "${{ inputs.target_name }}" \
+            --raw-source-kind "${{ inputs.raw_source_kind }}" \
+            --sensor-dma-executed "${{ inputs.sensor_dma_executed }}" \
+            --storage-handoff-executed "${{ inputs.storage_handoff_executed }}" \
+            --ui-path-executed "${{ inputs.ui_path_executed }}" \
+            --visual-checked "${{ inputs.visual_checked }}" \
+            --frame-source "${{ inputs.frame_source }}" \
+            --write-path "${{ inputs.write_path }}" \
+            --storage-medium "${{ inputs.storage_medium }}" \
+            --storage-ownership "${{ inputs.storage_ownership }}" \
+            --display-surface "${{ inputs.display_surface }}" \
+            --presentation-path "${{ inputs.presentation_path }}" \
+            --preview-buffer-ownership "${{ inputs.preview_buffer_ownership }}"
+
       - name: Configure Release build
         run: |
           set -euo pipefail
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build target bench binary
+      - name: Build target binaries
         run: |
           set -euo pipefail
-          cmake --build build --target bench_fused -j"$(nproc)"
+          cmake --build build --target bench_fused labs_encoder_bench_cli fused_decode_cli gvid_preview_rgb_cli -j"$(nproc)"
+
+      - name: Write target preflight receipt
+        id: preflight
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.bench_binary }}" = "labs_encoder_bench_cli" ]; then
+            bench_path="build/bin/labs_encoder_bench_cli"
+            fallback_path="build/source/app/labs_encoder_bench_cli"
+          else
+            bench_path="build/bin/bench_fused"
+            fallback_path="build/source/app/bench_fused/bench_fused"
+          fi
+          if [ ! -x "$bench_path" ]; then
+            bench_path="$fallback_path"
+          fi
+          labs_shim_path="build/bin/labs_encoder_bench_cli"
+          if [ ! -x "$labs_shim_path" ]; then
+            labs_shim_path="build/source/app/labs_encoder_bench_cli"
+          fi
+          decode_cli="build/bin/fused_decode_cli"
+          if [ ! -x "$decode_cli" ]; then
+            decode_cli="build/source/app/fused_decode_cli"
+          fi
+          preview_cli="build/bin/gvid_preview_rgb_cli"
+          if [ ! -x "$preview_cli" ]; then
+            preview_cli="build/source/app/gvid_preview_rgb_cli"
+          fi
+          camera_flags=()
+          if [ "${{ inputs.target_role }}" = "camera" ]; then
+            camera_flags=(
+              --camera-frame-source-ready
+              --camera-storage-path-ready
+              --camera-display-path-ready
+            )
+          fi
+          receipt="${{ steps.prep.outputs.outdir }}/target_preflight_receipt.json"
+          python3 tools/mission1_camera_target_preflight.py \
+            --target-name "${{ inputs.target_name }}" \
+            --target-role "${{ inputs.target_role }}" \
+            --repo-root "$PWD" \
+            --raw "${{ inputs.raw_path }}" \
+            --output-dir "${{ steps.prep.outputs.outdir }}" \
+            --scratch-dir "${{ inputs.scratch_dir }}" \
+            --bench "$bench_path" \
+            --labs-encoder-bench-cli "$labs_shim_path" \
+            --fused-decode-cli "$decode_cli" \
+            --preview-cli "$preview_cli" \
+            --source-width "${{ inputs.source_width }}" \
+            --source-height "${{ inputs.source_height }}" \
+            --raw-source-kind "${{ inputs.raw_source_kind }}" \
+            --frame-source "${{ inputs.frame_source }}" \
+            --write-path "${{ inputs.write_path }}" \
+            --storage-medium "${{ inputs.storage_medium }}" \
+            --display-surface "${{ inputs.display_surface }}" \
+            --presentation-path "${{ inputs.presentation_path }}" \
+            --output-json "$receipt" \
+            --require-ready \
+            "${camera_flags[@]}"
+          echo "receipt=$receipt" >> "$GITHUB_OUTPUT"
+          echo "status=ok" >> "$GITHUB_OUTPUT"
 
       - name: Run strict Labs target bench
         id: bench
         run: |
           set -uo pipefail
-          bench_path="build/bin/bench_fused"
-          if [ ! -x "$bench_path" ]; then
-            bench_path="build/source/app/bench_fused/bench_fused"
+          if [ "${{ inputs.bench_binary }}" = "labs_encoder_bench_cli" ]; then
+            bench_path="build/bin/labs_encoder_bench_cli"
+            fallback_path="build/source/app/labs_encoder_bench_cli"
+          else
+            bench_path="build/bin/bench_fused"
+            fallback_path="build/source/app/bench_fused/bench_fused"
           fi
           if [ ! -x "$bench_path" ]; then
-            echo "bench_fused binary not found at build/bin or build/source/app/bench_fused" >&2
+            bench_path="$fallback_path"
+          fi
+          if [ ! -x "$bench_path" ]; then
+            echo "${{ inputs.bench_binary }} binary not found at build/bin or source/app fallback" >&2
             exit 1
           fi
           bench_args=(
@@ -273,6 +402,7 @@ jobs:
             --target-name "${{ inputs.target_name }}" \
             --target-role "${{ inputs.target_role }}" \
             --target-fps "${{ inputs.target_fps }}" \
+            --raw-source-kind "${{ inputs.raw_source_kind }}" \
             --frame-source "${{ inputs.frame_source }}" \
             --memory-ownership "${{ inputs.memory_ownership }}" \
             --write-path "${{ inputs.write_path }}" \
@@ -283,6 +413,111 @@ jobs:
             "${storage_flag[@]}" \
             "${sensor_flag[@]}"
           python3 tools/check_labs_camera_handoff_receipt.py "$output"
+          echo "status=ok" >> "$GITHUB_OUTPUT"
+
+      - name: Generate aggregate camera closure run
+        if: always()
+        id: closure
+        run: |
+          set -euo pipefail
+          outdir="${{ steps.prep.outputs.outdir }}"
+          target_receipt="$outdir/labs_target_bench.json"
+          preflight_receipt="$outdir/target_preflight_receipt.json"
+          handoff_receipt="$outdir/camera_handoff_receipt.json"
+          closure_dir="$outdir/camera_closure_run"
+          if [ ! -f "$target_receipt" ] || [ ! -f "$handoff_receipt" ]; then
+            echo "status=missing-input-receipt" >> "$GITHUB_OUTPUT"
+            echo "Missing target or handoff receipt for aggregate closure run"
+            exit 0
+          fi
+          mkdir -p "$closure_dir"
+          if [ -f "$preflight_receipt" ]; then
+            cp "$preflight_receipt" "$closure_dir/target_preflight_receipt.json"
+          fi
+          decode_cli="build/bin/fused_decode_cli"
+          if [ ! -x "$decode_cli" ]; then
+            decode_cli="build/source/app/fused_decode_cli"
+          fi
+          if [ ! -x "$decode_cli" ]; then
+            echo "status=missing-fused-decode-cli" >> "$GITHUB_OUTPUT"
+            echo "fused_decode_cli binary not found at build/bin or build/source/app" >&2
+            exit 0
+          fi
+          sensor_flag=()
+          if [ "${{ inputs.sensor_dma_executed }}" = "true" ]; then
+            sensor_flag=(--sensor-dma-executed)
+          fi
+          storage_flag=()
+          if [ "${{ inputs.storage_handoff_executed }}" = "true" ]; then
+            storage_flag=(--storage-handoff-executed)
+          fi
+          ui_flag=()
+          if [ "${{ inputs.ui_path_executed }}" = "true" ]; then
+            ui_flag=(--ui-path-executed)
+          fi
+          visual_flag=()
+          if [ "${{ inputs.visual_checked }}" = "true" ]; then
+            visual_flag=(--visual-checked)
+          fi
+          profile_flag=()
+          if [ "${{ inputs.mission1_native12_fll2_profile }}" = "true" ]; then
+            profile_flag=(--use-mission1-fll2-profile)
+          fi
+          no_decimate_flag=()
+          decimate_args=()
+          if [ "${{ inputs.no_decimate }}" = "true" ]; then
+            no_decimate_flag=(--no-decimate)
+          else
+            decimate_args=(--col-decimate "${{ inputs.col_decimate }}" --row-decimate "${{ inputs.row_decimate }}")
+          fi
+          direct_gvid_flag=()
+          if [ "${{ inputs.direct_gvid }}" = "true" ]; then
+            direct_gvid_flag=(--direct-gvid)
+          fi
+          python3 tools/run_mission1_camera_closure.py \
+            --output-dir "$closure_dir" \
+            --target-bench-receipt "$target_receipt" \
+            --target-preflight-receipt "$preflight_receipt" \
+            --camera-handoff-receipt "$handoff_receipt" \
+            --raw "${{ inputs.raw_path }}" \
+            --fused-decode-cli "$decode_cli" \
+            --target-name "${{ inputs.target_name }}" \
+            --target-role "${{ inputs.target_role }}" \
+            --target-fps "${{ inputs.target_fps }}" \
+            --raw-source-kind "${{ inputs.raw_source_kind }}" \
+            --source-width "${{ inputs.source_width }}" \
+            --source-height "${{ inputs.source_height }}" \
+            --capture-width "${{ inputs.capture_width }}" \
+            --capture-height "${{ inputs.capture_height }}" \
+            --quality "${{ inputs.quality }}" \
+            --wavelet-levels "${{ inputs.wavelet_levels }}" \
+            --pixel-format "${{ inputs.pixel_format }}" \
+            --storage-target-name "${{ inputs.storage_target_name }}" \
+            --storage-target-read-mbps "${{ inputs.storage_target_read_mbps }}" \
+            --storage-target-write-mbps "${{ inputs.storage_target_write_mbps }}" \
+            --storage-target-safety-margin "${{ inputs.storage_target_safety_margin }}" \
+            --storage-target-note "${{ inputs.storage_target_note }}" \
+            --frame-source "${{ inputs.frame_source }}" \
+            --memory-ownership "${{ inputs.memory_ownership }}" \
+            --write-path "${{ inputs.write_path }}" \
+            --storage-medium "${{ inputs.storage_medium }}" \
+            --storage-ownership "${{ inputs.storage_ownership }}" \
+            --handoff-blocker-cause "${{ inputs.blocker_cause }}" \
+            --preview-target "${{ inputs.preview_target }}" \
+            --preview-limit "${{ inputs.preview_limit }}" \
+            --display-surface "${{ inputs.display_surface }}" \
+            --presentation-path "${{ inputs.presentation_path }}" \
+            --preview-buffer-ownership "${{ inputs.preview_buffer_ownership }}" \
+            --preview-blocker-cause "${{ inputs.preview_blocker_cause }}" \
+            "${sensor_flag[@]}" \
+            "${storage_flag[@]}" \
+            "${ui_flag[@]}" \
+            "${visual_flag[@]}" \
+            "${profile_flag[@]}" \
+            "${no_decimate_flag[@]}" \
+            "${decimate_args[@]}" \
+            "${direct_gvid_flag[@]}"
+          python3 tools/check_mission1_camera_closure_run.py "$closure_dir/mission1_camera_closure_run.json"
           echo "status=ok" >> "$GITHUB_OUTPUT"
 
       - name: Write target bench summary
@@ -309,20 +544,37 @@ jobs:
           gvid = data.get("gvid", {})
           source_provenance = data.get("source_provenance", {})
           handoff = outdir / "camera_handoff_receipt.json"
+          preflight = outdir / "target_preflight_receipt.json"
+          closure_run = outdir / "camera_closure_run" / "mission1_camera_closure_run.json"
+          preflight_data = {}
+          if preflight.exists():
+              preflight_data = json.loads(preflight.read_text(encoding="utf-8"))
           handoff_data = {}
           if handoff.exists():
               handoff_data = json.loads(handoff.read_text(encoding="utf-8"))
+          closure_data = {}
+          if closure_run.exists():
+              closure_data = json.loads(closure_run.read_text(encoding="utf-8"))
           handoff_verdict = handoff_data.get("verdict", {})
+          closure_verdict = closure_data.get("verdict", {})
+          preflight_verdict = preflight_data.get("verdict", {})
           rows = [
+              ("bench_binary", "${{ inputs.bench_binary }}"),
+              ("target_preflight_receipt", str(preflight) if preflight.exists() else "missing"),
               ("receipt", str(receipt)),
               ("camera_handoff_receipt", str(handoff) if handoff.exists() else "missing"),
+              ("mission1_camera_closure_run", str(closure_run) if closure_run.exists() else "missing"),
               ("frames", f"{capture.get('frames_written')}/{capture.get('frames_requested')}"),
               ("fps_median", timing.get("fps_median")),
               ("p95_ms", timing.get("p95_ms")),
               ("gvid_valid", verdict.get("gvid_valid")),
               ("no_drops", verdict.get("no_drops")),
               ("fps_target_met", verdict.get("fps_target_met")),
+              ("target_preflight_ready", preflight_verdict.get("target_preflight_ready")),
+              ("camera_closure_possible", preflight_verdict.get("camera_closure_possible")),
               ("firmware_ready", handoff_verdict.get("firmware_ready")),
+              ("ui_ready", closure_verdict.get("ui_ready")),
+              ("closure_production_ready", closure_verdict.get("production_ready")),
               ("interruption_recovery_proven", verdict.get("interruption_recovery_proven")),
               ("source_provenance_sha256", source_provenance.get("sha256")),
               ("gvid_sha256", gvid.get("sha256")),
@@ -340,12 +592,18 @@ jobs:
           name: labs-target-receipt-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
           path: |
+            ${{ steps.prep.outputs.outdir }}/target_preflight_receipt.json
             ${{ steps.prep.outputs.outdir }}/labs_target_bench.json
             ${{ steps.prep.outputs.outdir }}/camera_handoff_receipt.json
+            ${{ steps.prep.outputs.outdir }}/camera_closure_run/mission1_camera_closure_run.json
+            ${{ steps.prep.outputs.outdir }}/camera_closure_run/preview_ui_receipt.json
+            ${{ steps.prep.outputs.outdir }}/camera_closure_run/preview_decode_1024x768/receipt.json
             ${{ runner.temp }}/labs_target_bench_stdout.txt
 
       - name: Enforce target verdict
         run: |
           set -euo pipefail
+          test "${{ steps.preflight.outputs.status }}" = "ok"
           test "${{ steps.bench.outputs.status }}" = "0"
           test "${{ steps.handoff.outputs.status }}" = "ok"
+          test "${{ steps.closure.outputs.status }}" = "ok"

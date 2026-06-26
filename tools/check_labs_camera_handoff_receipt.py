@@ -95,6 +95,12 @@ def validate_receipt(data: dict[str, Any]) -> list[str]:
         failures.append("target.role must be camera or stand-in")
 
     integration = require_obj(data, "integration", failures)
+    raw_source_kind_value = integration.get("raw_source_kind")
+    raw_source_kind = raw_source_kind_value if isinstance(raw_source_kind_value, str) else None
+    if raw_source_kind_value is not None and not raw_source_kind:
+        failures.append("integration.raw_source_kind must be a non-empty string")
+    if raw_source_kind and raw_source_kind not in {"file_standin", "sensor_dma_capture", "camera_ring_buffer"}:
+        failures.append("integration.raw_source_kind must be file_standin, sensor_dma_capture, or camera_ring_buffer")
     sensor_dma = require_obj(integration, "sensor_dma_handoff", failures)
     sensor_dma_executed = as_bool(sensor_dma, "executed", failures, "integration.sensor_dma_handoff")
     storage_handoff_value = integration.get("storage_handoff")
@@ -205,6 +211,8 @@ def validate_receipt(data: dict[str, Any]) -> list[str]:
     if firmware_ready:
         if role != "camera":
             failures.append("firmware-ready receipt must use target.role=camera")
+        if raw_source_kind in {None, "file_standin"}:
+            failures.append("firmware-ready receipt must use integration.raw_source_kind=sensor_dma_capture or camera_ring_buffer")
         if sensor_dma_executed is not True:
             failures.append("firmware-ready receipt must execute sensor/DMA handoff")
         if storage_handoff_executed is not True:
@@ -231,6 +239,8 @@ def validate_receipt(data: dict[str, Any]) -> list[str]:
 
     if role == "camera" and sensor_dma_executed is not True:
         failures.append("camera receipt must set integration.sensor_dma_handoff.executed=true")
+    if role == "camera" and raw_source_kind in {None, "file_standin"}:
+        failures.append("camera receipt must set integration.raw_source_kind to sensor_dma_capture or camera_ring_buffer")
     if role == "camera" and storage_handoff_value is None:
         failures.append("camera receipt must include integration.storage_handoff")
 

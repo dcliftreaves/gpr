@@ -41,9 +41,9 @@
   <rect class="panel" x="600" y="110" width="250" height="150" rx="8"/>
   <rect class="amber" x="622" y="132" width="74" height="24" rx="12"/>
   <text class="badgeText" x="633" y="149">BLOCKED</text>
-  <text class="label" x="622" y="182">Preview capture</text>
-  <text class="num" x="622" y="218">19.98 fps</text>
-  <text class="small" x="622" y="241">Pi 5 strict run, target 24 fps</text>
+  <text class="label" x="622" y="182">Mission native12</text>
+  <text class="num" x="622" y="218">20.50 fps</text>
+  <text class="small" x="622" y="241">4K .gvid stand-in, handoff open</text>
 
   <rect class="panel" x="880" y="110" width="250" height="150" rx="8"/>
   <rect class="green" x="902" y="132" width="54" height="24" rx="12"/>
@@ -64,9 +64,9 @@
 
   <rect class="panel" x="600" y="300" width="530" height="160" rx="8"/>
   <text class="label" x="622" y="332">Remaining production handoff</text>
-  <text class="small" x="622" y="356">Raw-clean model dispatch is validated at the renderer boundary</text>
+  <text class="small" x="622" y="356">Real camera sensor/DMA, SD writer, and rear display receipts</text>
   <rect class="track" x="622" y="384" width="430" height="18" rx="9"/>
   <rect class="amber" x="622" y="384" width="265" height="18" rx="9"/>
-  <text class="small" x="900" y="399">model apply pending</text>
-  <text class="small" x="622" y="435">Next: per-tile raw-clean runner plus per-frame noise metadata.</text>
+  <text class="small" x="900" y="399">2 receipts open</text>
+  <text class="small" x="622" y="435">Next: camera-role closure run replacing stand-in handoff/UI evidence.</text>
 </svg>

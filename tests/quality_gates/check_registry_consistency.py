@@ -294,7 +294,7 @@ for pname, pipe in REG.get("pipelines", {}).items():
         errors.append(f"pipeline {pname!r}: key does not match canonical name {expected_name!r}")
 
     production_scope = pipe.get("production_scope")
-    if production_scope is not None and production_scope not in {"offline_review_only"}:
+    if production_scope is not None and production_scope not in {"offline_review_only", "offline_production"}:
         errors.append(f"pipeline {pname!r}: unknown production_scope {production_scope!r}")
 
     is_native12_sr = (
@@ -304,10 +304,10 @@ for pname, pipe in REG.get("pipelines", {}).items():
     if is_native12_sr:
         doc = str(pipe.get("$doc", ""))
         use_for = str(pipe.get("use_for", ""))
-        if production_scope != "offline_review_only":
+        if production_scope not in {"offline_review_only", "offline_production"}:
             errors.append(
                 f"pipeline {pname!r}: Mission 1 native12 8K SR must set "
-                "production_scope='offline_review_only'"
+                "production_scope='offline_review_only' or 'offline_production'"
             )
         if "OFFLINE" not in use_for:
             errors.append(f"pipeline {pname!r}: Mission 1 native12 8K SR use_for must include OFFLINE")

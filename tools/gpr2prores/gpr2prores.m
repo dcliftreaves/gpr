@@ -58,6 +58,10 @@ static void print_usage(FILE *out) {
         "                          CIRAWFilter does the upscale to --out-resolution)\n"
         "  --demosaic M        metal-bilinear (default) or core-image\n"
         "                      core-image routes through CIRAWFilter\n"
+        "  --mission-look      experimental Mission 1 JPEG-look controls for\n"
+        "                      core-image demosaic; env overrides:\n"
+        "                      GPR_MISSION_LOOK_EXPOSURE, _BOOST, _BOOST_SHADOW,\n"
+        "                      _LOCAL_TONE, _SHADOW_BIAS, _CROP_SCALE\n"
         "  --out-resolution R  Output resolution. One of: 2k,uhd,4k,6k,8k (default 8k).\n"
         "                      Width is fixed; height is rounded from source aspect ratio:\n"
         "                        2k=2048  uhd=3840  4k=4096  6k=6144  8k=native (no scale)\n"
@@ -372,6 +376,7 @@ int main(int argc, const char *argv[]) {
         NSString *demosaicMode = @"metal-bilinear";
         NSString *outResolution = @"8k";
         NSString *cnnScale = @"2x";
+        NSString *lookMode = @"none";
         NSString *gvidDispatchPath = nil;
         int fps = 24;
         int maxFrames = INT_MAX;
@@ -448,6 +453,8 @@ int main(int argc, const char *argv[]) {
                 outResolution = r;
             } else if (!strcmp(a, "--gvid-dispatch") && i + 1 < argc) {
                 gvidDispatchPath = @(argv[++i]);
+            } else if (!strcmp(a, "--mission-look")) {
+                lookMode = @"mission1";
             } else if (!strcmp(a, "--no-cnn")) noCNN = YES;
             else if (!strcmp(a, "--no-codec")) noCodec = YES;
             else if (!strcmp(a, "--skip-errors")) skipErrors = YES;
@@ -585,6 +592,10 @@ int main(int argc, const char *argv[]) {
             [frames removeObjectsInRange:NSMakeRange(maxFrames, frames.count - maxFrames)];
         }
         if (frames.count == 0) { fprintf(stderr, "error: no input frames found in %s\n", [inputPath UTF8String]); return 1; }
+        if ([lookMode isEqualToString:@"mission1"] && ![demosaicMode isEqualToString:@"core-image"]) {
+            fprintf(stderr, "error: --mission-look requires --demosaic core-image\n");
+            return 1;
+        }
         if (gvidDispatchPath) {
             if (!originalGvidPath && !isGVIDContainer) {
                 fprintf(stderr, "error: --gvid-dispatch is only valid with .gvid input\n");
@@ -677,9 +688,10 @@ int main(int argc, const char *argv[]) {
                                                            noCodec:noCodec
                                                           timing:timing
                                                        cnnBackend:cnnBackend
-                                                      demosaicMode:demosaicMode
-                                                     outResolution:outResolution
-                                                          cnnScale:cnnScale];
+                                                     demosaicMode:demosaicMode
+                                                    outResolution:outResolution
+                                                          cnnScale:cnnScale
+                                                          lookMode:lookMode];
         if (!pipe) {
             fprintf(stderr, "error: pipeline init failed (see messages above)\n");
             return 1;

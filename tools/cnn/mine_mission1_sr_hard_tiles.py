@@ -58,6 +58,20 @@ def highpass_score(target: np.ndarray, model: np.ndarray) -> tuple[float, dict[s
     }
 
 
+def target_detail_score(target: np.ndarray) -> tuple[float, dict[str, float]]:
+    target_f = target.astype(np.float32)
+    tx = target_f[:, :, 1:] - target_f[:, :, :-1]
+    ty = target_f[:, 1:, :] - target_f[:, :-1, :]
+    target_grad = float((np.mean(np.abs(tx)) + np.mean(np.abs(ty))) * 0.5)
+    detail = target_f - binomial_lowpass(target)
+    detail_rmse = float(np.sqrt(np.mean(detail * detail)))
+    score = target_grad * np.log1p(detail_rmse)
+    return score, {
+        "target_gradient_counts": target_grad,
+        "target_detail_rmse_counts": detail_rmse,
+    }
+
+
 def binomial_lowpass(arr: np.ndarray) -> np.ndarray:
     f = arr.astype(np.float32, copy=False)
     p = np.pad(f, ((0, 0), (1, 1), (1, 1)), mode="edge")
@@ -124,6 +138,7 @@ def candidate_tiles(
     sensitivity: dict[str, dict[str, Any]],
     gate_pressure_weight: float,
     codec_score_weight: float,
+    fallback_target_detail_if_missing_model: bool,
 ) -> list[dict[str, Any]]:
     compare = json.loads(compare_json.read_text())
     image_id = Path(compare["target_raw"]).stem
@@ -135,7 +150,15 @@ def candidate_tiles(
     low_h = raw_low_h // 2
     high_tile = low_tile * 2
     target = deinterleave(read_u16_raw(Path(compare["target_raw"]), high_w, high_h))
-    model = deinterleave(read_u16_raw(Path(compare["sr_raw"]), high_w, high_h))
+    model_path = Path(compare["sr_raw"])
+    model = None
+    score_mode = "gate_pressure_weighted_detail_error_plus_codec_residual"
+    if model_path.exists():
+        model = deinterleave(read_u16_raw(model_path, high_w, high_h))
+    elif fallback_target_detail_if_missing_model:
+        score_mode = "gate_pressure_weighted_target_detail_plus_codec_residual"
+    else:
+        model = deinterleave(read_u16_raw(model_path, high_w, high_h))
     clean_low = None
     codec_low = None
     if codec_low_dir is not None and clean_low_dir is not None:
@@ -149,10 +172,14 @@ def candidate_tiles(
         high_y = low_y * 2
         for low_x in range(0, low_w - low_tile + 1, stride):
             high_x = low_x * 2
-            detail_score, components = highpass_score(
-                target[:, high_y : high_y + high_tile, high_x : high_x + high_tile],
-                model[:, high_y : high_y + high_tile, high_x : high_x + high_tile],
-            )
+            target_tile = target[:, high_y : high_y + high_tile, high_x : high_x + high_tile]
+            if model is None:
+                detail_score, components = target_detail_score(target_tile)
+            else:
+                detail_score, components = highpass_score(
+                    target_tile,
+                    model[:, high_y : high_y + high_tile, high_x : high_x + high_tile],
+                )
             codec_score, codec_components = codec_tile_score(
                 clean_low,
                 codec_low,
@@ -169,7 +196,7 @@ def candidate_tiles(
                     "low_y": low_y,
                     "low_tile": low_tile,
                     "score": score,
-                    "score_mode": "gate_pressure_weighted_detail_error_plus_codec_residual",
+                    "score_mode": score_mode,
                     "score_components": {
                         **components,
                         **codec_components,
@@ -212,6 +239,11 @@ def main() -> int:
     ap.add_argument("--codec-sensitivity", type=Path)
     ap.add_argument("--gate-pressure-weight", type=float, default=0.0)
     ap.add_argument("--codec-score-weight", type=float, default=0.0)
+    ap.add_argument(
+        "--fallback-target-detail-if-missing-model",
+        action="store_true",
+        help="mine target-detail tiles if compare JSON exists but its cleaned-up sr_raw is missing",
+    )
     args = ap.parse_args()
 
     sensitivity = sensitivity_by_image(args.codec_sensitivity)
@@ -232,6 +264,7 @@ def main() -> int:
                 sensitivity,
                 args.gate_pressure_weight,
                 args.codec_score_weight,
+                args.fallback_target_detail_if_missing_model,
             )
         )
     payload = {
@@ -246,6 +279,7 @@ def main() -> int:
         "codec_sensitivity": str(args.codec_sensitivity) if args.codec_sensitivity else None,
         "gate_pressure_weight": args.gate_pressure_weight,
         "codec_score_weight": args.codec_score_weight,
+        "fallback_target_detail_if_missing_model": bool(args.fallback_target_detail_if_missing_model),
         "compare_jsons": [str(p) for p in args.compare_json],
         "tile_count": len(tiles),
         "tiles": tiles,

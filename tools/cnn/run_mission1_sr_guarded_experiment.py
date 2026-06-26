@@ -282,6 +282,7 @@ def main() -> int:
             "adapter_pixelshuffle",
             "preclean_adapter_pixelshuffle",
             "coord_preclean_adapter_pixelshuffle",
+            "coord_detail_preclean_adapter_pixelshuffle",
             "coord_deep_preclean_adapter_pixelshuffle",
         ),
         default="lowres_pixelshuffle",

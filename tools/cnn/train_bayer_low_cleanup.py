@@ -202,8 +202,10 @@ def detail_content_loss(
     return torch.sum(weighted) / denom
 
 
-def charbonnier(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-    eps = 1e-3
+def charbonnier(pred: torch.Tensor, target: torch.Tensor, eps_counts: float) -> torch.Tensor:
+    eps = max(0.0, eps_counts) / RAW_SCALE
+    if eps <= 0.0:
+        return torch.mean(torch.abs(pred - target))
     return torch.mean(torch.sqrt((pred - target) ** 2 + eps * eps))
 
 
@@ -281,6 +283,8 @@ def train(args: argparse.Namespace) -> int:
         "residual_scale": args.residual_scale,
         "tile": args.tile,
         "raw_scale": RAW_SCALE,
+        "loss": args.loss,
+        "charbonnier_eps_counts": args.charbonnier_eps_counts,
     }
     model = make_model(config).to(DEVICE)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
@@ -292,7 +296,13 @@ def train(args: argparse.Namespace) -> int:
     for step in range(1, args.steps + 1):
         x, y = dataset.batch(args.batch, rng)
         pred = model(x)
-        loss = charbonnier(pred, y) + args.gradient_weight * gradient_loss(pred, y)
+        if args.loss == "l1":
+            loss = torch.mean(torch.abs(pred - y))
+        elif args.loss == "mse":
+            loss = F.mse_loss(pred, y)
+        else:
+            loss = charbonnier(pred, y, args.charbonnier_eps_counts)
+        loss = loss + args.gradient_weight * gradient_loss(pred, y)
         if args.detail_weight:
             loss = loss + args.detail_weight * detail_content_loss(pred, y, args.detail_threshold, plane_weights)
         opt.zero_grad(set_to_none=True)
@@ -334,6 +344,8 @@ def train(args: argparse.Namespace) -> int:
         "batch": args.batch,
         "lr": args.lr,
         "gradient_weight": args.gradient_weight,
+        "loss": args.loss,
+        "charbonnier_eps_counts": args.charbonnier_eps_counts,
         "detail_weight": args.detail_weight,
         "detail_threshold": args.detail_threshold,
         "detail_plane_weights": args.detail_plane_weights,
@@ -429,6 +441,13 @@ def main() -> int:
     tr.add_argument("--residual-scale", type=float, default=0.05)
     tr.add_argument("--lr", type=float, default=1e-3)
     tr.add_argument("--gradient-weight", type=float, default=0.1)
+    tr.add_argument("--loss", choices=("charbonnier", "l1", "mse"), default="charbonnier")
+    tr.add_argument(
+        "--charbonnier-eps-counts",
+        type=float,
+        default=16.383,
+        help="Charbonnier epsilon in raw-count units; old behavior was about 16.383 counts.",
+    )
     tr.add_argument("--detail-weight", type=float, default=0.0)
     tr.add_argument("--detail-threshold", type=float, default=0.0, help="target same-color detail threshold in raw counts")
     tr.add_argument("--detail-plane-weights", default="1,1,1,1")

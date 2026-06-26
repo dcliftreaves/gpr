@@ -251,6 +251,52 @@ def test_coord_deep_preclean_loads_coord_preclean_function() -> None:
     torch.testing.assert_close(actual, expected, rtol=0.0, atol=1e-6)
 
 
+def test_coord_detail_preclean_loads_preclean_function() -> None:
+    trainer = load_trainer()
+    torch.manual_seed(29)
+    source = trainer.PrecleanAdapterPixelShuffleSR(width=6, depth=5, residual_scale=0.3)
+    for param in source.parameters():
+        torch.nn.init.normal_(param, mean=0.0, std=0.03)
+
+    work_parent = Path(os.environ.get("GPR_TMPDIR", os.environ.get("RUNNER_TEMP", tempfile.gettempdir())))
+    work_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="coord_detail_preclean_init_", dir=work_parent) as td:
+        ckpt = Path(td) / "preclean.pt"
+        torch.save(
+            {
+                "model": source.state_dict(),
+                "config": {
+                    "architecture": "preclean_adapter_pixelshuffle",
+                    "width": 6,
+                    "depth": 5,
+                    "residual_scale": 0.3,
+                },
+            },
+            ckpt,
+        )
+        target = trainer.CoordDetailPrecleanAdapterPixelShuffleSR(width=6, depth=5, residual_scale=0.3)
+        result, details = trainer.initialize_model(
+            target,
+            ckpt,
+            architecture="coord_detail_preclean_adapter_pixelshuffle",
+            width=6,
+            depth=5,
+            residual_scale=0.3,
+            init_nonstrict=False,
+            init_expand_lowres=False,
+        )
+
+    assert details["mode"] == "preclean_adapter_to_coord_preclean_adapter"
+    assert not result.missing_keys
+    assert not result.unexpected_keys
+    x = torch.rand(2, 4, 12, 12)
+    coords = torch.rand(2, 2, 12, 12) * 2.0 - 1.0
+    with torch.no_grad():
+        expected = source(x)
+        actual = target(torch.cat([x, coords], dim=1))
+    torch.testing.assert_close(actual, expected, rtol=0.0, atol=1e-6)
+
+
 def test_trainable_scope_freezes_preclean_adapter_trunk() -> None:
     trainer = load_trainer()
     model = trainer.PrecleanAdapterPixelShuffleSR(width=6, depth=5, residual_scale=0.3)
@@ -369,6 +415,7 @@ if __name__ == "__main__":
     test_preclean_to_coord_preclean_preserves_source_output()
     test_coord_preclean_continuation_loads_same_architecture()
     test_coord_deep_preclean_loads_coord_preclean_function()
+    test_coord_detail_preclean_loads_preclean_function()
     test_trainable_scope_freezes_preclean_adapter_trunk()
     test_trainable_scope_includes_deep_preclean_extra()
     test_plane_weighted_loss_preserves_uniform_behavior()

@@ -208,6 +208,13 @@ target_link_libraries(fused_decode_cli vc5_decoder vc5_common common m)
 set_target_properties(fused_decode_cli PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
 
+add_executable(gvid_preview_rgb_cli source/app/gvid_preview_rgb_cli.c)
+target_include_directories(gvid_preview_rgb_cli PRIVATE
+  source/lib/vc5_decoder source/lib/vc5_common)
+target_link_libraries(gvid_preview_rgb_cli vc5_decoder vc5_common common m)
+set_target_properties(gvid_preview_rgb_cli PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
 add_executable(test_video_pipeline_sim_portable
   source/app/test_video_pipeline_sim_portable.c)
 target_include_directories(test_video_pipeline_sim_portable PRIVATE
@@ -239,6 +246,20 @@ add_executable(jans_coeff_bench source/app/jans_coeff_bench.c)
 target_include_directories(jans_coeff_bench PRIVATE source/lib/vc5_common)
 target_link_libraries(jans_coeff_bench vc5_common common m)
 set_target_properties(jans_coeff_bench PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(test_labs_encoder_api source/app/test_labs_encoder_api.c)
+target_include_directories(test_labs_encoder_api PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_common)
+target_link_libraries(test_labs_encoder_api vc5_encoder vc5_common common m)
+set_target_properties(test_labs_encoder_api PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
+
+add_executable(labs_encoder_bench_cli source/app/labs_encoder_bench_cli.c)
+target_include_directories(labs_encoder_bench_cli PRIVATE
+  source/lib/vc5_encoder source/lib/vc5_common)
+target_link_libraries(labs_encoder_bench_cli vc5_encoder vc5_common common m)
+set_target_properties(labs_encoder_bench_cli PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${GPR_TOOL_BIN_DIR}" FOLDER app)
 
 if(NOT WIN32)

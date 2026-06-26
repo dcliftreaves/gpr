@@ -70,6 +70,77 @@ holdout evidence in `pipelines/registry.json`:
 | registry-driven `.gvid` decode-to-SR smoke receipt | `artifacts/mission1_native12_gvid_to_8k_sr_registry_smoke_20260618/receipt.json` | `d4c49fcacd838d6cbee2e425bab4ddaccf1b1dd2049b5763f28f590042819d13` |
 | `.gvid` multi-frame decode-to-SR receipt | `artifacts/mission1_native12_gvid_to_8k_sr_multiframe_20260618/receipt.json` | `8b438a2d112527aadba0029c0c81eee4a2bc038f7b3be87af9308986be6d8d77` |
 | `.gvid` SR packaging receipt | `artifacts/mission1_native12_gvid_to_8k_sr_packaging_20260618/packaging_receipt.json` | `22ef04b34fe0a6c402164c86616f6ca528645ce392b82c3ea6b65ab8a70662e6` |
+| Mission 1 numbered-list readiness audit | `artifacts/mission1_numbered_list_readiness_20260625/readiness.json` | `94c9af897ba498bd3547f8f9b267dee8a8c42865ee150d65e064ce14426bafab` |
+| Mission 1 numbered-list readiness audit Markdown | `artifacts/mission1_numbered_list_readiness_20260625/readiness.md` | `2b3a62758f463d6a414f702267f4e584c33f4a1e26f4ca191f6efdf7fe4842f4` |
+| Mission 1 numbered-list closure plan | `artifacts/mission1_numbered_list_readiness_20260625/closure_plan.json` | `7994fcd014632d6b7e9d46e51990a38cae5c59cbe20c348d356e62cea02224a1` |
+| Mission 1 numbered-list closure plan Markdown | `artifacts/mission1_numbered_list_readiness_20260625/closure_plan.md` | `763a23bfbe6cb5e7508f36d4153f0dcd344de4b05bed127d2df45bc28a783058` |
+| Mission 1 camera target preflight | `artifacts/mission1_camera_target_preflight_20260625/preflight_192_168_16_67.json` | `29792898a2f59b9198823eb1d1e35d1378734ac413abd5dfc06ea0a322a3c53b` |
+| Mission 1 current Pi target preflight with Labs shim | `artifacts/mission1_camera_target_preflight_20260625/preflight_192_168_16_67_standin_current_20260625.json` | `ad48eb6da9a14f7e263dc4c8240638aef857c2f927825fa2bdc11ca5a475be74` |
+| Mission 1 camera source endpoint probe | `artifacts/mission1_camera_target_preflight_20260625/source_probe_192_168_16_67_camera_sensor_ring_20260625.json` | `47ae3c9c6625211be633d8c711000b2018e48fda279c5120577e9eacbefd54ae` |
+| Mission 1 follow-up camera source endpoint probe | `artifacts/mission1_camera_target_preflight_20260625/source_probe_192_168_16_67_camera_sensor_ring_followup_20260625.json` | `1400868bc33fe4da52da3aa17ca588a3775845fcb6ddfd43c19bad111859614d` |
+| Mission 1 camera target source/display/storage discovery probe | `artifacts/mission1_camera_target_preflight_20260625/source_probe_192_168_16_67_discovery_20260625.json` | `cd28624fc5865e546df4ebdde87f617b47c3f87d0e284381fe836f41f07ff8fd` |
+| Mission 1 target V4L/media capability snapshot | `artifacts/mission1_camera_target_discovery_20260625/v4l_media_capabilities_192_168_16_67_20260625.txt` | `ce0ecd78c41889c1f89622ce2e714c3a8440cf3c85173a939067d589bd1b5cff` |
+| Mission 1 target rpicam/libcamera capability snapshot | `artifacts/mission1_camera_target_discovery_20260625/rpicam_capabilities_192_168_16_67_20260625.txt` | `89a908c79b85ccb406883253763e2878464d07df153d9e53458b11b416a14cbc` |
+| Mission 1 target structured camera hardware audit | `artifacts/mission1_camera_target_discovery_20260625/hardware_audit_192_168_16_67_20260625.json` | `0be23aaf6fdc21a331bb29e122a5b51f1013d3e553608c64d2a3b45522fef57d` |
+| Mission 1 live follow-up camera hardware audit | `artifacts/mission1_camera_target_discovery_20260625/hardware_audit_192_168_16_67_live_followup_20260625T233902Z.json` | `ccdf22402275d9f32ce39aa64a7ab561c2f872824d54242748dfb9edb98c2c33` |
+| Mission 1 camera-role target preflight against sensor-ring endpoint | `artifacts/mission1_camera_target_preflight_20260625/preflight_192_168_16_67_camera_sensor_ring_20260625.json` | `4f963ae01520a00c239b6b9eef5ef5482d2ac71af9ef32e6ec7c1f243166a2bd` |
+| Mission 1 latest camera-role target preflight against codex-followup closure build | `artifacts/mission1_camera_target_preflight_20260625/preflight_192_168_16_67_camera_codex_refresh2_20260625.json` | `aee5f3280a56e2e9761383c79708865ce6dca761f5401ff3052a1f2eb477409c` |
+| Mission 1 refreshed camera-role target preflight | `artifacts/mission1_camera_target_preflight_20260625/preflight_192_168_16_67_camera_refresh_20260625.json` | `8efcc08e0151b3fccf48d69cba1a8fc2cbdc673c69f97ff1698b8161ac66c3de` |
+| Mission 1 latest camera-role target preflight | `artifacts/mission1_camera_target_preflight_20260625/preflight_192_168_16_67_camera_latest_20260625.json` | `96237d3453de87f5addadb40805cebd9e4c7710de11ae8f54198d5ace86c2218` |
+| Mission 1 camera-role target preflight against codex-followup closure build | `artifacts/mission1_camera_target_preflight_20260625/preflight_192_168_16_67_camera_codex_followup_20260625.json` | `4fc47baab52433c851b46dc2b62f046812993b1a3409994837dd99b6d6636036` |
+| Mission 1 camera-role target preflight after Pi closure build | `artifacts/mission1_camera_target_preflight_20260625/preflight_192_168_16_67_camera_attempt_after_build_20260625.json` | `2452d8f493b77fa51510d3e30baf617abd770a188fe6bedc0c012cdadc8cb0df` |
+| Mission 1 stand-in target preflight after Pi closure build | `artifacts/mission1_camera_target_preflight_20260625/preflight_192_168_16_67_standin_after_build_20260625.json` | `94375bc2fba3f31a22c0c018895bd04893e6d61ab15d41d3b325fd9449226a43` |
+| Mission 1 camera-side closure package | `artifacts/mission1_camera_closure_package_20260625/closure_package.json` | `186fa95160e1be51667fde1781b3b3243714f9a4265bc4754869a00a9f5d21fa` |
+| Mission 1 camera-side closure package Markdown | `artifacts/mission1_camera_closure_package_20260625/closure_package.md` | `d01581d67bee5513750cef9bf7dd3c51c203346bcb3f65c36ed918bdd61d4b00` |
+| Mission 1 camera-role closure launch dry-run package | `artifacts/mission1_camera_closure_launch_20260625/mission1_camera_closure_package_dry_run.json` | `7b5c6e6a2ae7e5a32d9994293b194bac8d1b59483ac75bf8dfc4ae00569236f7` |
+| Mission 1 host-to-target remote closure launch dry-run | `artifacts/mission1_camera_closure_launch_20260625/mission1_remote_closure_package_dry_run.json` | `dc1b4f9a389a1d70be582f8028cc9f77d9dd18d9d2f229fb0948762071c190fe` |
+| Mission 1 real camera-role closure attempt blocked by hardware audit | `artifacts/mission1_camera_closure_run_20260625/current_camera_hw_blocked_20260625/remote_closure_summary.json` | `33a42253a9dfec2ce08e8bdfd6d6d4bd01764b315514d47541a4c7d5b9a35259` |
+| Mission 1 real target package stopped at camera hardware audit | `artifacts/mission1_camera_closure_run_20260625/current_camera_hw_blocked_20260625/target_closure_package_run.json` | `46368d523559e76f7f0caadb9215f1c450ac18bc27a4eb514585b1a07662be5f` |
+| Mission 1 real camera hardware audit receipt from blocked closure attempt | `artifacts/mission1_camera_closure_run_20260625/current_camera_hw_blocked_20260625/hardware_audit_receipt.json` | `bb3e80419c1fe45b43ac3de682d7459a40bb763fdc900fb443bedf773ac071f6` |
+| Mission 1 camera-side closure run | `artifacts/mission1_camera_closure_run_20260625/current_standin/mission1_camera_closure_run.json` | `9bd82f0c081414c1e2d1d49d9de36adfbb182f1021d21ee52efabbc74ef93897` |
+| Mission 1 camera-side closure-run target preflight receipt | `artifacts/mission1_camera_closure_run_20260625/current_standin/target_preflight_receipt.json` | `ad48eb6da9a14f7e263dc4c8240638aef857c2f927825fa2bdc11ca5a475be74` |
+| Mission 1 camera-side closure-run handoff receipt | `artifacts/mission1_camera_closure_run_20260625/current_standin/camera_handoff_receipt.json` | `515116aa930820ed3c87aefebb33e6df15556070883390bdf5830447e633612b` |
+| Mission 1 camera-side closure-run preview UI receipt | `artifacts/mission1_camera_closure_run_20260625/current_standin/preview_ui_receipt.json` | `ccb4c5e78d1e1b244817f025615eb395583c4baa2865cecaa66ab1b90a841e61` |
+| Mission 1 follow-up stand-in closure 4K `.gvid` receipt | `artifacts/mission1_camera_closure_run_20260625/current_standin_followup/labs_target_bench.json` | `f2f88db5c272094747f7098a3fc44f667c7c829b2bbd6fe42a931dbed21c2bcf` |
+| Mission 1 follow-up stand-in closure target preflight receipt | `artifacts/mission1_camera_closure_run_20260625/current_standin_followup/target_preflight_receipt.json` | `6f9b57025968543ce4fa1e289e6d01e6b134b7ae93526afa2b597f3c8b8ff761` |
+| Mission 1 follow-up stand-in closure handoff blocker receipt | `artifacts/mission1_camera_closure_run_20260625/current_standin_followup/camera_handoff_receipt.json` | `c39e40e77b41de5024c5c12a0a38ced4c0c697b9192ba6c46fac1b2920675bc4` |
+| Mission 1 follow-up stand-in closure preview receipt | `artifacts/mission1_camera_closure_run_20260625/current_standin_followup/preview_decode_1024x768/receipt.json` | `213650a6b1d2095ce8ab3dbea955065f64d430cfbc691019e9df49c2f1617a4e` |
+| Mission 1 follow-up stand-in closure preview UI blocker receipt | `artifacts/mission1_camera_closure_run_20260625/current_standin_followup/preview_ui_receipt.json` | `ef96fd468f0da5dcfbba0b7df0bab519656b9ef5b044e9d29db6e9bbb07b71e7` |
+| Mission 1 follow-up stand-in aggregate closure run | `artifacts/mission1_camera_closure_run_20260625/current_standin_followup/mission1_camera_closure_run.json` | `dc2df44aa5ae6a511958640f09d8de963df14616c7ada48861f71ab7956ac5b7` |
+| Mission 1 follow-up stand-in aggregate closure collection receipt | `artifacts/mission1_camera_closure_run_20260625/current_standin_followup/collection_receipt.json` | `3129457f3c715b59fe218c9db6a273ae2cd9215ca3111cacb876e648c6fba0b2` |
+| Mission 1 Pi-target aggregate closure stand-in run | `artifacts/mission1_camera_closure_run_20260625/pi_target_standin_20260625/mission1_camera_closure_run.json` | `53965842670dd65a9fe8e4f7e92459e9c0178fe1de7d0241b116f370a4d00e77` |
+| Mission 1 Pi-target aggregate closure target preflight receipt | `artifacts/mission1_camera_closure_run_20260625/pi_target_standin_20260625/target_preflight_receipt.json` | `ad48eb6da9a14f7e263dc4c8240638aef857c2f927825fa2bdc11ca5a475be74` |
+| Mission 1 Pi-target aggregate closure handoff receipt | `artifacts/mission1_camera_closure_run_20260625/pi_target_standin_20260625/camera_handoff_receipt.json` | `5df87808f27e61afcb644b926e8a9ad9834c29e2da2c3bf828b7b759d4499380` |
+| Mission 1 Pi-target aggregate closure preview UI receipt | `artifacts/mission1_camera_closure_run_20260625/pi_target_standin_20260625/preview_ui_receipt.json` | `ccb4c5e78d1e1b244817f025615eb395583c4baa2865cecaa66ab1b90a841e61` |
+| Mission 1 Labs shim Pi stand-in receipt | `artifacts/mission1_labs_shim_pi_standin_20260625/run_120f/labs_target_bench.json` | `5c92b863af08823ba484af1d006aa2de14dcc0d7f01c4b8685f9210fd03c5727` |
+| Mission 1 Labs shim Pi stand-in dual receipt | `artifacts/mission1_labs_shim_pi_standin_20260625/run_120f_dual/labs_target_bench.json` | `70facaf64460454766d2f6449c4267c51b4239a808e9567b1d16ae14bd58f955` |
+| Mission 1 8K SR production-promotion receipt | `artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json` | `1e24b2551d889ced2508d011b77f725a1eb8e855b23a6843127aedc4240db5c9` |
+| Mission 1 8K SR visual review package | `artifacts/mission1_8k_sr_visual_review_20260625/visual_review.json` | `52e6a6d896dfc64bb3125dc590d5efa0f110f379ffd60bb1355ff6b9614a7cee` |
+| Mission 1 8K SR visual review page | `artifacts/mission1_8k_sr_visual_review_20260625/index.html` | `8a288e7629ca6fedd2adc068d4301aa8ac723fde11a8dca9beae5071152bbcb8` |
+| Mission 1 8K SR visual review contact sheet | `artifacts/mission1_8k_sr_visual_review_20260625/visual_review_contact_sheet.jpg` | `a54e3a97538095125e44b8c90241e1cb27e4f9e533234a6179f66c33c6760ac1` |
+| Mission 1 8K SR current-candidate editable packaging receipt | `artifacts/mission1_8k_sr_production_promotion_20260625/current_candidate_editable_packaging_frame0/packaging_receipt.json` | `8b96664d71621d27e7ba36f352dbda7fa9d921c86fda60b78068fa75a285fe87` |
+| Mission 1 8K SR current-candidate metadata transplant audit | `artifacts/mission1_8k_sr_production_promotion_20260625/current_candidate_metadata_transplant_frame0/metadata_transplant_audit.json` | `abbb3fb8acb109bcb8e4ae5555e3b0451a997ae012ecccfc4441073bcc81b978` |
+| Mission 1 all-42 stand-in camera-handoff blocker receipt | `artifacts/mission1_all42_4k_raw_pi20fps_20260624/run_420f_direct_gvid/camera_handoff_receipt.json` | `2db5d44f374c8e19412ceb4c6d4ba2f47d747149d98bf5cdd86e20ffd56917c8` |
+| Mission 1 current-source Pi 4K `.gvid` sustained rerun receipt | `artifacts/mission1_current_goal_sync_20260625/run_1440f_direct_gvid/labs_target_bench.json` | `892c5e48f98e3b0e76ecad80dc576e015614cd1f98cecd0d4cb4f23ffc3ad4b1` |
+| Mission 1 current-source Pi sustained handoff blocker receipt | `artifacts/mission1_current_goal_sync_20260625/run_1440f_direct_gvid/camera_handoff_receipt.json` | `515116aa930820ed3c87aefebb33e6df15556070883390bdf5830447e633612b` |
+| Mission 1 current-source Pi sustained 1024 x 768 preview receipt | `artifacts/mission1_current_goal_sync_20260625/run_1440f_direct_gvid/preview_decode_1024x768/receipt.json` | `74ecef9080f6c8533961c7225a3809d615516fd2a367ab71699bc1076c7c8f68` |
+| Mission 1 current-source Pi preview UI blocker receipt | `artifacts/mission1_current_goal_sync_20260625/run_1440f_direct_gvid/preview_ui_receipt.json` | `ccb4c5e78d1e1b244817f025615eb395583c4baa2865cecaa66ab1b90a841e61` |
+| Mission 1 4K cleanup objective visual signoff | `artifacts/mission1_4k_cleanup_visual_signoff_20260625/visual_signoff.json` | `6eaf6d1627ddb0b8adaa992d2e050be89631e14bb940165d45fb0a7ed23a8188` |
+| Mission 1 4K cleanup visual signoff review page | `artifacts/mission1_4k_cleanup_visual_signoff_20260625/index.html` | `3692a9b5ca9a0d01d78d483a8a6b265672d549bca8d9861a5e1f16d82c4f0a5d` |
+| Mission 1 4K cleanup visual signoff contact sheet | `artifacts/mission1_4k_cleanup_visual_signoff_20260625/visual_signoff_contact_sheet.jpg` | `aa0da5393578accf8ecf3337d4c7eeb95d69414a8f93c40073f86a6ab1416b33` |
+| Mission 1 4K cleanup high-res CFA production signoff receipt | `artifacts/mission1_4k_cleanup_visual_signoff_20260625/production_signoff.json` | `db690ed64b4e0d9fafef7d49f8fff71625a0350264c0511fef887af488a47f03` |
+| candidate-aware 4K cleanup CNN checkpoint (`mission1_native12_4k_cleanup_rgb_cfa_w40_v1`) | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/bayer_rgb_target_w40_d5_rs015_gamma2_grad1_raw2_bayer2_step1000.pt` | `baabbd3650c8e09032849e83cfc1526d8a30a47508c55a9a00f5a4e182e16aa1` |
+| candidate-aware 4K cleanup CNN training receipt | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/bayer_rgb_target_w40_d5_rs015_gamma2_grad1_raw2_bayer2_step1000.pt.json` | `17064271975c8b50e732606d45b81254e0c341470a20ea59c10868ae9d919737` |
+| candidate-aware 4K cleanup CNN promotion decision | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/mission42_strict_rgb_cfa_candidate_decision.json` | `352eb7986120fda4366ff30bb5bded0d826acfa6170005af6cc6e56031dd5ba9` |
+| candidate-aware 4K cleanup RGB/CFA summary | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/mission42_rgb_cfa_target_gate_wb_review/summary.json` | `609ac5a1c1ffa0acf5e73cdfea4131bb01287788bb3bbc9ef09e646497a0c317` |
+| candidate-aware 4K CNN `.gvid` packaging receipt | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/mission42_4k_cnn_gvid_packaging_q8/labs_target_bench.json` | `6b15d0cc2640dbd0b41ea0ec3ad07a561a9331a0a579bcbbdadad147c21c1c86` |
+| candidate-aware 4K CNN `.gvid` to 42-frame ProRes receipt | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/mission42_4k_cnn_prores_review/receipt.json` | `c6851607113ec37d16b87686db03801d61b43c6bbbf29a4c92ed759d8c827c22` |
+| candidate-aware 8K SR Mission42 broad full-frame summary | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_broad_fullframe/summary.json` | `a5fc58a4d1a6760c87b7365d2a789825fcbaf735523976fa6bd66a9a5c7e950c` |
+| candidate-aware 8K SR Z8 broad full-frame summary | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/z8_all24_fullframe/summary.json` | `1021a3fff078a3587476fa0a87691b4502241264057fd1513acff6a5c61b369a` |
+| candidate-aware 4K `.gvid` decode-to-8K-SR timing receipt | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_4kcnn_gvid_to_8k_sr_full42/receipt.json` | `2a5984fc2e99ec80e75a036bf2b509d97fdad475ee548885183d2fd21e756699` |
+| candidate-aware 8K SR `.gvid` packaging receipt | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_4kcnn_8k_sr_gvid_packaging_q3_after_bounds_fix/receipt.json` | `567c62955aa8ccc206d1826c6f2f5b25ba58838e3c7ec5b0f5c9741ab96ce309` |
+| candidate-aware 8K SR `.gvid` to 42-frame ProRes receipt | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_4kcnn_8k_sr_gvid_to_prores_42f_after_bounds_fix/receipt.json` | `895fdf46b04f9e843718995becec46fc87f4da78e136ac897b790208d1153ac1` |
+| Mission 4K CNN tone/green-bias audit summary | `artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/mission42_4k_cnn_tone_audit_20260625/summary.json` | `d50c87a98fd9f7831f78bea8b32858ef76bc2cbb7664526c105acbc2e67c5e32` |
 | SR DNG to ProRes review timebase receipt, not SR throughput | `artifacts/mission1_prores_fps_fix_20260618/prores_fps_fix_receipt.json` | `eb9c9f33f63a53518a88c0a67d72bdeb3ff5fa74d4266e6529485f84a83f8fc1` |
 | Stills REF / codec-only / CNN review dashboard | `artifacts/visual_compare_20260525_final/index.html` | `fe7c0926748ac7d421964aef7898c46b232e0f10447f898f07138c5d5c138325` |
 | Curated ProRes before/after review manifest | `artifacts/current_goal_prores_before_after_20260619/manifest.json` | `77049fd43508807c598f82a285f5cc63d114f85643c6666d7d52e57bf54a11a8` |
@@ -165,7 +236,7 @@ holdout evidence in `pipelines/registry.json`:
 | Mission+Z8 q4/t2 sidecar-aware retained SR render receipt | `artifacts/mission1_native12_gvid_to_8k_sr_q4t2_sidecar_aware_packaging_20260619/receipt.json` | `9bd45a49a13b344498907f7c0532a120fff2944382a9659bd1db9870f39d2e57` |
 | Mission+Z8 q4/t2 sidecar-aware q3 packaging receipt | `artifacts/mission1_native12_gvid_to_8k_sr_q4t2_sidecar_aware_packaging_q3_20260619/packaging_receipt.json` | `eab82ddaa985e2ce6f1667ee5ad025f60a87fc8ee4d4e83504a3121e5975c8f8` |
 | Mission+Z8 rejected q4/t2 sidecar-aware checkpoint interpolation decision | `artifacts/current_goal_sr_q4t2_sidecar_aware_interp_probe_20260619/interpolation_decision_summary.json` | `8b6972e2cb4dfecb05c0c89229e029c1647a06276c7937da3f9fae497c01b8da` |
-| Mission+Z8 q4/t2 sidecar-aware SR production gap report | `artifacts/current_goal_sr_production_gap_report_20260619/summary.json` | `f1fbd618a812183667e7c69fbe1d083bf384e45eccc4411f9823fa237c8f17b9` |
+| Mission+Z8 q4/t2 sidecar-aware SR production gap report | `artifacts/current_goal_sr_production_gap_report_20260619/summary.json` | `9cde420dbdd5ebbf93bacd8a416fbec5fc7f33eb53ef26b0a3bb3fbd06f51df9` |
 | Mission 1 T233 guardrail-focus registry `.gvid` SR smoke | `artifacts/mission1_native12_gvid_to_8k_sr_guardrail_registry_smoke_20260618/receipt.json` | `fd515841b82b2055e84a3270c2bd63dff12beaecb994a701b8a642e8d8544cc7` |
 | Mission 1 T233 guardrail-focus multi-frame `.gvid` SR receipt | `artifacts/mission1_native12_gvid_to_8k_sr_guardrail_multiframe_20260618/receipt.json` | `9fd6d2405181989ebb1b854fb40d853e88bd5d0fd2e17100027ec73bd47e1f06` |
 | Mission 1 T233 guardrail-focus retained SR render receipt | `artifacts/mission1_native12_gvid_to_8k_sr_guardrail_packaging_20260618/receipt.json` | `fdc32724aa7394f14ee738af77cd882220717242f15aeca7b113219cded8f6ec` |
@@ -395,6 +466,7 @@ python3 tools/verify_production_artifacts.py --strict
 python3 tests/quality_gates/check_registry_consistency.py --strict-artifacts
 python3 tests/quality_gates/audit_ship_pipelines.py --strict
 python3 tests/quality_gates/audit_production_readiness.py --strict
+python3 tools/mission1_numbered_list_readiness.py --external-root /Volumes/OWC_8TB/gpr_work --require-production
 ```
 
 `audit_ship_pipelines.py` is the narrow committed-run check for registry roles
@@ -404,6 +476,9 @@ guards, UPRESABLE, `.gvid`, MOV compatibility, Pi 5 / Mission 1 setup, and
 platform speed receipts. `tools/test/check_release_evidence_manifest.py`
 validates the compact release manifest at
 `docs/release_evidence_manifest.json`.
+`mission1_numbered_list_readiness.py --require-production` is the final
+numbered-list promotion gate; it must remain blocked until actual Mission 1
+camera handoff and actual camera preview UI handoff receipts are present.
 
 The current offline/review PREVIEW production path is
 `preview_q8_threeway_runtime_fullframe_v1`. It is a no-REF, full-frame q8
@@ -437,3 +512,13 @@ release mode.
 
 Commit only the registry hash, training sidecar summary, quality-gate receipt,
 and compact documentation needed to reproduce the artifact.
+
+## Registry Review Artifacts
+
+These rows are required by the release evidence manifest guard for temporary
+registry-review candidates that are not final ship artifacts.
+
+| artifact | path | sha256 |
+|---|---|---|
+| Mission+Z8 q4/t2 coord-detail alpha0p5 SR registry checkpoint (`mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1` `ckpt_path`) | `artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/interp_step1_to_balanced_step200/q4t2_coord_detail_balanced_step001_to_step200_alpha0p5.pt` | `791628778f74b13542677edeb5de7934b88d274531a8ec1755d8cf3d6388fb07` |
+| Mission+Z8 q4/t2 coord-detail alpha0p5 SR training pairs (`mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1` `training_pairs_path`) | `artifacts/current_goal_cnn_hardtile_gate_aligned_20260624/mission42_z8all24_q4t2_plus_targetdetail_hardtiles_w96.npz` | `59aa38bac909e8221f48de2b20e9b00d2cc4cc3f6cf24d143bf4cba08e387205` |

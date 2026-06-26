@@ -25,7 +25,9 @@
 #include <time.h>
 #if !defined(_WIN32)
 #include <fcntl.h>
+#include <dirent.h>
 #include <pthread.h>
+#include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/uio.h>
 #include <unistd.h>
@@ -97,6 +99,129 @@ static void print_phase_summary(const char *name, const double *values, int n) {
         sorted[0], sorted[p25], sorted[p50], sorted[p75],
         sorted[p95], sorted[p99], sorted[n - 1]);
     free(sorted);
+}
+
+typedef struct RAW_CORPUS {
+    unsigned char **frames;
+    char **names;
+    int count;
+    size_t frame_size;
+} RAW_CORPUS;
+
+static int cmp_string_ptr(const void *a, const void *b) {
+    const char *sa = *(const char * const *)a;
+    const char *sb = *(const char * const *)b;
+    return strcmp(sa, sb);
+}
+
+static int has_raw_suffix(const char *name) {
+    size_t n = strlen(name);
+    return n >= 4 && strcmp(name + n - 4, ".raw") == 0;
+}
+
+static int path_is_dir(const char *path) {
+    struct stat st;
+    return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+static void raw_corpus_free(RAW_CORPUS *c) {
+    if (!c) return;
+    if (c->frames) {
+        for (int i = 0; i < c->count; i++) free(c->frames[i]);
+    }
+    if (c->names) {
+        for (int i = 0; i < c->count; i++) free(c->names[i]);
+    }
+    free(c->frames);
+    free(c->names);
+    c->frames = NULL;
+    c->names = NULL;
+    c->count = 0;
+}
+
+static int read_exact_file(const char *path, unsigned char *dst, size_t sz) {
+    FILE *f = fopen(path, "rb");
+    if (!f) return -1;
+    size_t got = fread(dst, 1, sz, f);
+    int extra = fgetc(f);
+    fclose(f);
+    return (got == sz && extra == EOF) ? 0 : -1;
+}
+
+static int raw_corpus_load(const char *path, size_t frame_size, RAW_CORPUS *out) {
+    memset(out, 0, sizeof(*out));
+    out->frame_size = frame_size;
+    if (!path_is_dir(path)) {
+        out->frames = (unsigned char **)calloc(1, sizeof(unsigned char *));
+        out->names = (char **)calloc(1, sizeof(char *));
+        if (!out->frames || !out->names) return -1;
+        out->frames[0] = (unsigned char *)malloc(frame_size);
+        out->names[0] = strdup(path);
+        if (!out->frames[0] || !out->names[0]) return -1;
+        if (read_exact_file(path, out->frames[0], frame_size) != 0) return -1;
+        out->count = 1;
+        return 0;
+    }
+
+    DIR *dir = opendir(path);
+    if (!dir) return -1;
+    int cap = 64;
+    int count = 0;
+    char **names = (char **)calloc((size_t)cap, sizeof(char *));
+    if (!names) {
+        closedir(dir);
+        return -1;
+    }
+    struct dirent *ent = NULL;
+    while ((ent = readdir(dir)) != NULL) {
+        if (!has_raw_suffix(ent->d_name)) continue;
+        if (count == cap) {
+            cap *= 2;
+            char **next = (char **)realloc(names, (size_t)cap * sizeof(char *));
+            if (!next) {
+                closedir(dir);
+                for (int i = 0; i < count; i++) free(names[i]);
+                free(names);
+                return -1;
+            }
+            names = next;
+        }
+        names[count] = strdup(ent->d_name);
+        if (!names[count]) {
+            closedir(dir);
+            for (int i = 0; i < count; i++) free(names[i]);
+            free(names);
+            return -1;
+        }
+        count++;
+    }
+    closedir(dir);
+    if (count <= 0) {
+        free(names);
+        return -1;
+    }
+    qsort(names, (size_t)count, sizeof(char *), cmp_string_ptr);
+
+    out->frames = (unsigned char **)calloc((size_t)count, sizeof(unsigned char *));
+    out->names = (char **)calloc((size_t)count, sizeof(char *));
+    if (!out->frames || !out->names) {
+        for (int i = 0; i < count; i++) free(names[i]);
+        free(names);
+        return -1;
+    }
+    for (int i = 0; i < count; i++) {
+        char fullpath[2048];
+        snprintf(fullpath, sizeof(fullpath), "%s/%s", path, names[i]);
+        out->frames[i] = (unsigned char *)malloc(frame_size);
+        out->names[i] = names[i];
+        if (!out->frames[i] || read_exact_file(fullpath, out->frames[i], frame_size) != 0) {
+            free(names);
+            return -1;
+        }
+        out->count++;
+    }
+    free(names);
+    return 0;
 }
 
 #if !defined(_WIN32)
@@ -451,14 +576,18 @@ int main(int argc, char **argv) {
     const char *path = argv[1];
     int w = atoi(argv[2]), h = atoi(argv[3]), n = atoi(argv[4]);
     size_t sz = (size_t)w * h * 2;
-    unsigned char *raw = malloc(sz);
-    FILE *f = fopen(path, "rb");
-    if (!f || fread(raw, 1, sz, f) != sz) { fprintf(stderr, "read fail\n"); return 1; }
-    fclose(f);
+    RAW_CORPUS corpus;
+    if (raw_corpus_load(path, sz, &corpus) != 0 || corpus.count <= 0) {
+        fprintf(stderr, "read fail: %s\n", path);
+        raw_corpus_free(&corpus);
+        return 1;
+    }
+    fprintf(stderr, "# raw_corpus path=%s frames=%d frame_bytes=%zu\n", path, corpus.count, sz);
 
     /* Pre-fault the raw input so the first read isn't paying for it. */
     volatile uint32_t sink = 0;
-    for (size_t i = 0; i < sz; i += 4096) sink += raw[i];
+    for (int fidx = 0; fidx < corpus.count; fidx++)
+        for (size_t i = 0; i < sz; i += 4096) sink += corpus.frames[fidx][i];
     (void)sink;
 
     int quality = 3;
@@ -557,6 +686,7 @@ int main(int argc, char **argv) {
 
     /* 2 warm-up frames not counted */
     for (int i = 0; i < 2; i++) {
+        const unsigned char *raw = corpus.frames[i % corpus.count];
         unsigned char *out = NULL; size_t out_sz = 0;
         if (gvid_scatter) {
             const unsigned char **parts = NULL;
@@ -741,6 +871,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     for (int i = 0; i < n; i++) {
+        const unsigned char *raw = corpus.frames[i % corpus.count];
         double t0 = now_ms();
         unsigned char *out = NULL; size_t out_sz = 0;
         const unsigned char **parts = NULL;
@@ -765,7 +896,7 @@ int main(int argc, char **argv) {
 #endif
             gpr_encode_fused_destroy(enc);
             if (enc_pingpong) gpr_encode_fused_destroy(enc_pingpong);
-            free(raw);
+            raw_corpus_free(&corpus);
             free(times);
             free(encode_times);
             free(write_times);
@@ -987,6 +1118,7 @@ int main(int argc, char **argv) {
     free(encode_times);
     free(write_times);
     free(payload_kib);
+    raw_corpus_free(&corpus);
     if (enc_pingpong) gpr_encode_fused_destroy(enc_pingpong);
     gpr_encode_fused_destroy(enc);
     return 0;

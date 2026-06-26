@@ -21,7 +21,7 @@ gpr2prores \
 | `.gpr` | Single-frame GPR file |
 | Directory of `.gpr` | Frame sequence (sorted lexicographically) |
 | `.dng` / directory of `.dng` | Encode + decode roundtrip in one pass (for validation) |
-| `.gvid` | Neutral raw-video stream of per-frame `.gpr` payloads; auto-unpacked to temp dir |
+| `.gvid` | Neutral raw-video stream of per-frame `.gpr` payloads; auto-unpacked to temp dir. Payloads may be direct FUSED frames or full TIFF/GPR containers. |
 | `.mov` / `.gpraw` / `.gprv` | GPRaw container (auto-unpacked to temp dir) |
 
 `--meta-dng` is required for `.gpr`, `.gvid`, and GPRaw/MOV input
@@ -51,6 +51,40 @@ For 4K delivery prefer `--cnn-scale 1x`. For native 8K masters prefer `--cnn-sca
 |---|---|
 | `metal-bilinear` (default) | Hand-rolled bilinear demosaic. Fastest but lowest quality. |
 | `core-image` | CIRAWFilter via `filterWithCVPixelBuffer:properties:`. Apple AHD-quality. ~28-48 ms at UHD. |
+
+## Mission look prototype
+
+`--mission-look` is an experimental Mission 1 JPEG-look path for
+`--demosaic core-image`. It applies the measured Mission center crop and a
+guarded histogram tone pass after CIRAWFilter render. It is intended for visual
+parity experiments, not production preview performance yet.
+
+```bash
+gpr2prores --meta-dng GP017346.dng \
+  --no-cnn --demosaic core-image --out-resolution 4k \
+  --mission-look \
+  mission1_8192x6144_fused_q8_42f_24p.gvid mission1_review.mov
+```
+
+Environment overrides:
+
+- `GPR_MISSION_LOOK_CROP_SCALE` (default `1.035`)
+- `GPR_MISSION_LOOK_GUARDED_TONE=0|1` (default `1`)
+- `GPR_MISSION_LOOK_LOCAL_CPU=0|1` (default `0`; diagnostic only)
+- `GPR_MISSION_LOOK_LOCAL_DOWNSAMPLE` (default `4`)
+- `GPR_MISSION_LOOK_TONE_MAX_RATIO_SCALE` (default `1.5`)
+- `GPR_MISSION_LOOK_TONE_SHADOW_SCALE` (default `0.8`)
+- `GPR_MISSION_LOOK_EXPOSURE`
+- `GPR_MISSION_LOOK_BASELINE_EXPOSURE`
+- `GPR_MISSION_LOOK_BOOST`
+- `GPR_MISSION_LOOK_BOOST_SHADOW`
+- `GPR_MISSION_LOOK_SHADOW_BIAS`
+- `GPR_MISSION_LOOK_LOCAL_TONE`
+
+Current evidence: the native Mission-look hook is functionally wired, but the
+CPU tone pass is slow and broad quality still trails the Python reference
+renderer. Treat it as a development hook until the Mission status doc says
+otherwise.
 
 ## Output resolution (`--out-resolution`)
 

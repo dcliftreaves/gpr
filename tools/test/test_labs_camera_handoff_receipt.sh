@@ -35,6 +35,7 @@ base = {
     "schema": "gpr_labs_camera_handoff_receipt.v1",
     "target": {"name": "Pi 5 stand-in", "role": "stand-in"},
     "integration": {
+        "raw_source_kind": "file_standin",
         "frame_source": "file-backed Bayer stand-in",
         "memory_ownership": "synchronous submit; caller owns input through return",
         "write_path": "bench_fused direct .gvid fwrite",
@@ -78,6 +79,7 @@ bad["integration"]["storage_handoff"]["executed"] = False
 
 blocked_camera = json.loads(json.dumps(base))
 blocked_camera["target"] = {"name": "Mission 1", "role": "camera"}
+blocked_camera["integration"]["raw_source_kind"] = "sensor_dma_capture"
 blocked_camera["integration"]["frame_source"] = "sensor DMA"
 blocked_camera["integration"]["sensor_dma_handoff"]["executed"] = True
 blocked_camera["integration"]["storage_handoff"] = {
@@ -109,6 +111,8 @@ fi
 grep -q "storage_handoff" "$WORK/bad_storage.log"
 
 target_bench="$WORK/labs_target_bench.json"
+synthetic_gvid="$WORK/synthetic_capture.gvid"
+printf 'synthetic-gvid-payload' > "$synthetic_gvid"
 "$PYTHON_BIN" - "$target_bench" <<'PY'
 import json
 import sys
@@ -180,6 +184,95 @@ assert receipt["integration"]["storage_handoff"]["executed"] is False
 assert "stand-in" in receipt["integration"]["storage_handoff"]["medium"]
 assert receipt["source_provenance"]["available"] is True
 assert receipt["source_provenance"]["sha256"] == "2" * 64
+PY
+
+if "$PYTHON_BIN" "$REPO/tools/labs_target_to_camera_handoff_receipt.py" "$target_bench" \
+  --output "$WORK/bad_converted_camera.json" \
+  --target-name "Mission 1 camera" \
+  --target-role camera \
+  --target-fps 24 \
+  --sensor-dma-executed \
+  --storage-handoff-executed \
+  > "$WORK/bad_converted_camera.log" 2>&1; then
+  echo "test_labs_camera_handoff_receipt: expected camera conversion with stand-in labels to fail" >&2
+  exit 1
+fi
+grep -q "raw-source-kind" "$WORK/bad_converted_camera.log"
+
+if "$PYTHON_BIN" "$REPO/tools/labs_target_to_camera_handoff_receipt.py" "$target_bench" \
+  --output "$WORK/bad_converted_camera_standin_labels.json" \
+  --target-name "Mission 1 camera" \
+  --target-role camera \
+  --raw-source-kind sensor_dma_capture \
+  --target-fps 24 \
+  --sensor-dma-executed \
+  --storage-handoff-executed \
+  > "$WORK/bad_converted_camera_standin_labels.log" 2>&1; then
+  echo "test_labs_camera_handoff_receipt: expected camera conversion with stand-in labels to fail" >&2
+  exit 1
+fi
+grep -q "stand-in label" "$WORK/bad_converted_camera_standin_labels.log"
+
+"$PYTHON_BIN" "$REPO/tools/labs_target_to_camera_handoff_receipt.py" "$target_bench" \
+  --output "$WORK/converted_camera_blocked.json" \
+  --target-name "Mission 1 camera" \
+  --target-role camera \
+  --raw-source-kind sensor_dma_capture \
+  --target-fps 24 \
+  --frame-source "Mission 1 sensor DMA Bayer frame callback" \
+  --memory-ownership "firmware owns input until encoder return" \
+  --write-path "Mission 1 firmware SD writer" \
+  --sensor-dma-executed \
+  --storage-handoff-executed \
+  --storage-medium "Mission 1 SD card writer" \
+  --storage-ownership "firmware storage queue" \
+  --blocker-cause "synthetic target below 24 fps"
+"$PYTHON_BIN" "$REPO/tools/check_labs_camera_handoff_receipt.py" "$WORK/converted_camera_blocked.json"
+"$PYTHON_BIN" - "$WORK/converted_camera_blocked.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+receipt = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+assert receipt["target"]["role"] == "camera"
+assert receipt["integration"]["raw_source_kind"] == "sensor_dma_capture"
+assert receipt["integration"]["sensor_dma_handoff"]["executed"] is True
+assert receipt["integration"]["storage_handoff"]["executed"] is True
+assert receipt["verdict"]["firmware_ready"] is False
+assert receipt["verdict"]["fps_wall_target_met"] is False
+assert receipt["blocker"]["cause"] == "synthetic target below 24 fps"
+PY
+
+"$PYTHON_BIN" - "$target_bench" "$synthetic_gvid" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+gvid_path = Path(sys.argv[2])
+data = json.loads(path.read_text(encoding="utf-8"))
+data["gvid"]["sha256"] = None
+data["gvid"]["path"] = str(gvid_path)
+data["gvid"]["sha256_policy"] = "skipped_by_test"
+path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+PY
+
+"$PYTHON_BIN" "$REPO/tools/labs_target_to_camera_handoff_receipt.py" "$target_bench" \
+  --output "$WORK/converted_standin_computed_hash.json" \
+  --target-name "Pi 5 stand-in" \
+  --target-role stand-in \
+  --target-fps 24 \
+  --blocker-cause "synthetic target below 24 fps"
+"$PYTHON_BIN" "$REPO/tools/check_labs_camera_handoff_receipt.py" "$WORK/converted_standin_computed_hash.json"
+"$PYTHON_BIN" - "$WORK/converted_standin_computed_hash.json" "$synthetic_gvid" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+receipt = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+expected = hashlib.sha256(Path(sys.argv[2]).read_bytes()).hexdigest()
+assert receipt["output"]["sha256"] == expected
 PY
 
 echo "test_labs_camera_handoff_receipt: PASS"

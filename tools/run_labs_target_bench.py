@@ -888,8 +888,8 @@ def run_bench(
         return synth_frames(frame_dir, args.frames), None, relevant_env()
     if not args.bench or not args.bench.is_file():
         raise RuntimeError("--bench is required and must point to bench_fused unless --simulate is set")
-    if not args.raw or not args.raw.is_file():
-        raise RuntimeError("--raw is required and must point to the source Bayer raw unless --simulate is set")
+    if not args.raw or not (args.raw.is_file() or args.raw.is_dir()):
+        raise RuntimeError("--raw is required and must point to a source Bayer raw file or directory unless --simulate is set")
     if (
         args.direct_gvid
         and args.wavelet_levels != 1
