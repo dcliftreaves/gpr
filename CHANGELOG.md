@@ -4,6 +4,67 @@ All notable changes to GPR are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] — 2026-06-26
+
+The 2.3 release productionizes the current raw-video suite around `.gvid`,
+Mission 1 stand-in evidence, CNN restoration, and review/export receipts while
+keeping actual camera-firmware handoff clearly out of the final production
+claim.
+
+### Added
+
+- **`.gvid` raw-video container** for per-frame FUSED `.gpr` payloads, with
+  metadata dispatch, validation, interrupted-tail recovery checks, and ProRes
+  review/export tooling.
+- **Mission 1 native 12MP / 4K Bayer candidate**: true Bayer recompression into
+  `.gvid` clears the active 20+ fps Pi 5 stand-in floor with zero drops,
+  container validation, and Lexar SILVER PLUS write-budget evidence.
+- **Mission 1 1024 x 768 preview policy**: the default live-preview policy is
+  now `preview_live_mission1_1024_v1`, a full-frame screen-resolution preview
+  decoded from the same 4096 x 3072 `.gvid` stream. The Pi stand-in receipt
+  clears the active 20 fps target; actual camera UI/display handoff remains
+  required before final camera production.
+- **4K and 8K post paths**: Mission 1 4K cleanup CNN receipts, offline
+  candidate-aware 8K SR evidence, 8K `.gvid` packaging receipts, and 4K/8K
+  ProRes review outputs are indexed in the release manifest.
+- **Stills performance and CNN latitude documentation**: the README now records
+  12MP and 50MP still roundtrip timings plus STILL smallest / primary /
+  archival gate results.
+- **Labs handoff package**: firmware-facing encoder shim, target-bench receipt
+  tooling, camera handoff receipts, preview UI receipts, target preflight, and
+  camera closure package validators.
+
+### Changed
+
+- The top-level README and docs index now lead with the current production
+  feature surface: compact raw stills, `.gvid`, Mission 1 4K raw capture,
+  1024 preview, 4K cleanup, offline 8K SR, editable raw packaging, and ProRes
+  review.
+- The release evidence manifest now treats `preview_live_mission1_1024` as the
+  current live/camera-back preview path. Older 2K selective-L2 receipts remain
+  historical/diagnostic evidence.
+- Repository hygiene was tightened by removing stale experiment writeups and
+  orphan CNN/research utilities from `master`; the archive branch
+  `archive/multilevel-cascade-experiments-20260604` remains available for
+  spelunking.
+
+### Fixed
+
+- Hosted CI now includes the current release, Labs readiness, artifact hygiene,
+  README media, sensitive-content, Mission 1 closure, `.gvid`, and registry
+  consistency checks needed for the 2.3 feature surface.
+- macOS capability timing tolerance was relaxed to match observed hosted-runner
+  variance without weakening the codec capability contract.
+
+### Known limitations
+
+- Mission 1 camera-firmware production still requires a real camera-role
+  closure receipt from the actual sensor/DMA source, storage writer, and rear
+  display path.
+- Strict 24 fps Mission 1 capture is not claimed for the current Pi stand-in
+  path; the active target is the documented 20+ fps floor.
+- Offline 8K SR is a desktop/post review path, not a live camera path.
+
 ## [2.2.0] — 2026-05-30
 
 The 2.2 release adds a fourth ship class — **UPRESABLE** — that turns the
