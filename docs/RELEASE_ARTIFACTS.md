@@ -1,0 +1,87 @@
+# Release Artifacts
+
+Last refreshed: 2026-06-26
+
+This document defines what must be attached to a GitHub release before the
+release is useful to someone outside the worktree. Source tags and changelog
+notes are not enough; a product release needs verifiable inputs, review media,
+receipts, and checksums.
+
+## Required Release Bundle
+
+Each production release should have a compact bundle named:
+
+```text
+gpr-<version>-review-bundle/
+  README.md
+  manifest.json
+  samples/
+    sample_4k_bayer.gvid
+    sample_4k_bayer.gvid.meta.json
+  review/
+    preview_1024.webp
+    prores_contact_sheet.jpg
+  receipts/
+    ci_run.txt
+    release_evidence_manifest.json
+    mission1_numbered_list_readiness.json
+    gvid_validate.txt
+    labs_target_bench.json
+  hashes/
+    sha256sums.txt
+```
+
+The bundle may also include platform binaries when they are available, but the
+minimum release bundle is source-portable and verifier-friendly. Large movies,
+dashboards, checkpoints, and long-run receipts remain outside git and are
+referenced by hash from `docs/release_evidence_manifest.json` and
+`docs/PRODUCTION_ARTIFACTS.md`.
+
+## Release Bundle Rules
+
+| area | requirement |
+|---|---|
+| Source identity | `repo_commit` must match the release tag commit. |
+| CI identity | `ci_run` must be a GitHub Actions URL for the tagged commit or the merge commit that produced it. |
+| Samples | Include at least one readable `.gvid` sample plus matching metadata sidecar. Synthetic samples are allowed only for conformance bundles and must be labeled synthetic in `README.md`. |
+| Review media | Include a compact visual review asset that opens without project tooling. |
+| Receipts | Include the release evidence manifest, `.gvid` validation output, and at least one target or stand-in timing receipt. |
+| Checksums | Every bundle file except the manifest itself must be listed in `hashes/sha256sums.txt`. |
+| Scope labels | Stand-in, offline-only, and camera-handoff-open evidence must stay labeled that way in the bundle README and manifest notes. |
+
+## Build And Verify
+
+The existing Labs bundle tools are the release-bundle manifest mechanism. Use
+the same `gpr_labs_bundle.v1` schema so Labs intake and GitHub release assets
+are checked by one verifier:
+
+```bash
+python3 tools/build_labs_bundle.py /path/to/gpr-2.3.0-review-bundle \
+  --repo-commit "$(git rev-parse v2.3.0)" \
+  --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>" \
+  --target-name "Pi 5 stand-in" \
+  --target-role stand-in \
+  --note "Mission 1 camera handoff remains open; Pi stand-in receipts prove the current 20+ fps floor" \
+  --artifact samples/sample_4k_bayer.gvid:gvid \
+  --artifact samples/sample_4k_bayer.gvid.meta.json:json \
+  --artifact review/preview_1024.webp:media \
+  --artifact receipts/release_evidence_manifest.json:json \
+  --artifact receipts/labs_target_bench.json:json
+
+python3 tools/verify_labs_bundle.py /path/to/gpr-2.3.0-review-bundle/manifest.json
+(cd /path/to/gpr-2.3.0-review-bundle && shasum -a 256 -c hashes/sha256sums.txt)
+```
+
+Attach the verified archive to the release:
+
+```bash
+tar -C /path/to -czf /path/to/gpr-2.3.0-review-bundle.tar.gz gpr-2.3.0-review-bundle
+gh release upload v2.3.0 /path/to/gpr-2.3.0-review-bundle.tar.gz --repo dcliftreaves/gpr
+```
+
+## Current Status
+
+The `v2.3.0` source release is tagged and published. The next release-artifact
+step is to build and upload the compact review bundle above using the current
+Mission 1 4K `.gvid`, 1024 preview, 4K/8K ProRes review receipts, and CI run
+listed in `docs/release_evidence_manifest.json`.

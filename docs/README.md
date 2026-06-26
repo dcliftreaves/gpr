@@ -11,6 +11,8 @@ refreshed 2026-06-26.
 | Release readiness and production proof | `RELEASE_READINESS.md` |
 | what ships today, by ship class | `SHIP_DECISION.md` |
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |
+| remaining productization contracts | `PRODUCTIZATION_CONTRACTS.md` |
+| GitHub release bundle contents and upload flow | `RELEASE_ARTIFACTS.md` |
 | video, preview, Mission 1, and SR status | `VIDEO_STATUS.md` |
 | Mission 1 numbered-list burndown and closure plan | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md` |
 | 4K capture, 1024 preview, and offline 8K SR target ladder | `RAW_RESOLUTION_TARGETS_2026-06-14.md` |
@@ -20,6 +22,7 @@ refreshed 2026-06-26.
 | how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
 | Labs firmware-prototype intake | `LABS_INTAKE.md` |
 | Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
+| `.gvid` wire-contract conformance | `GVID_CONFORMANCE.md` |
 | Mission 1 evidence runbook | `LABS_MISSION1_RUNBOOK.md` |
 | full codec x CNN x verdict matrix | `FULL_PIPELINE_MATRIX.md` |
 | codec/container/API specification | `format-spec-v2.md`, `SPEC.md` |
@@ -99,6 +102,8 @@ refreshed 2026-06-26.
 | `python3 tools/live_preview_policy.py` | print the bounded live PREVIEW runtime policy |
 | `cmake --build build --target test_labs_encoder_api && build/bin/test_labs_encoder_api` | build and run the firmware-facing Labs encoder shim regression |
 | `BUILD_DIR=build bash tools/test/test_labs_encoder_bench_cli.sh` | regression-test the Labs shim through the target-bench receipt wrapper |
+| `python3 tools/check_productization_contracts.py` | validate release bundle, Labs handoff, `.gvid`, and CNN governance contracts |
+| `python3 tools/test/test_gvid_conformance.py` | regression-test `.gvid` v1 accept/reject behavior with tiny fixtures |
 
 ## Archived history
 
