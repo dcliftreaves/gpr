@@ -286,6 +286,7 @@ static StageInbox *make_inbox(const char *label, int capacity) {
     NSString *_cnnBackend;
     NSString *_demosaicMode;
     NSString *_outResolution;
+    NSString *_lookMode;
     NSString *_metaDngPath;
     NSString *_cnnScale;        // "2x" (default) or "1x" (BIBO_1x — output @ codec dims)
     BOOL _cnnScale1x;           // YES if _cnnScale == "1x"
@@ -399,6 +400,7 @@ static void resolveOutputDims(NSString *preset,
                                 demosaicMode:(NSString *)demosaicMode
                               outResolution:(NSString *)outResolution
                                    cnnScale:(NSString *)cnnScale
+                                   lookMode:(nullable NSString *)lookMode
 {
     self = [super init];
     if (!self) return nil;
@@ -413,6 +415,7 @@ static void resolveOutputDims(NSString *preset,
     _cnnBackend = cnnBackend ?: @"coreml";
     _demosaicMode = demosaicMode ?: @"metal-bilinear";
     _outResolution = outResolution ?: @"8k";
+    _lookMode = lookMode ?: @"none";
     _cnnScale = cnnScale ?: @"2x";
     _cnnScale1x = [[_cnnScale lowercaseString] isEqualToString:@"1x"];
     // For CIRAWFilter we need the source-DNG's color matrices. For .dng input
@@ -442,8 +445,9 @@ static void resolveOutputDims(NSString *preset,
         _codecInfo = _info;
         _codecInfo.width  = gi.decWidth;
         _codecInfo.height = gi.decHeight;
-        fprintf(stderr, "GPRPipeline: GPR input %ux%u → decoded %ux%u (decimate=%u)\n",
-                gi.encWidth, gi.encHeight, gi.decWidth, gi.decHeight, gi.decimate);
+        fprintf(stderr, "GPRPipeline: GPR input %ux%u → decoded %ux%u (decimate=%u, container=%s)\n",
+                gi.encWidth, gi.encHeight, gi.decWidth, gi.decHeight, gi.decimate,
+                gi.containerGPR ? "TIFF/GPR" : "FUSD");
     } else {
         uint16_t *bayer = [DNGReader readBayerFromPath:firstFrame info:&_info];
         if (!bayer) {
@@ -498,7 +502,8 @@ static void resolveOutputDims(NSString *preset,
                                                    outWidth:outW
                                                   outHeight:outH
                                                        info:&_info
-                                            templateDngPath:_metaDngPath];
+                                            templateDngPath:_metaDngPath
+                                                   lookMode:_lookMode];
         if (!_ciDemosaic) { fprintf(stderr, "ciraw demosaic init failed\n"); return nil; }
     } else {
         _demosaic = [[Demosaic alloc] initWithDevice:_device
@@ -932,11 +937,16 @@ static void resolveOutputDims(NSString *preset,
                 }
                 return;
             }
-            int dw = 0, dh = 0;
-            int drc = [self->_codec decode:encData.bytes size:encData.length
-                                  outBayer:decBuf
-                                  outPitch:(size_t)gi.decWidth * 2
-                                  outWidth:&dw outHeight:&dh];
+            int dw = (int)gi.decWidth, dh = (int)gi.decHeight;
+            int drc = gi.containerGPR
+                ? [self->_codec decodeGPRContainer:encData.bytes size:encData.length
+                                          outBayer:decBuf
+                                          outPitch:(size_t)gi.decWidth * 2
+                                          outWidth:&dw outHeight:&dh]
+                : [self->_codec decode:encData.bytes size:encData.length
+                              outBayer:decBuf
+                              outPitch:(size_t)gi.decWidth * 2
+                              outWidth:&dw outHeight:&dh];
             double t2 = now_ms();
             job.t_decode = t2 - t1;
             if (drc != 0) {

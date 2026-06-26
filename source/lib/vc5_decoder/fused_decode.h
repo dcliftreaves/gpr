@@ -50,6 +50,15 @@ int gpr_decode_fused_halfres(const uint8_t *enc, size_t enc_size,
                              uint16_t *bayer_out, size_t bayer_pitch_bytes,
                              int *out_width, int *out_height);
 
+/* Lowpass preview decode for single-level+LL streams. Decodes only the four
+   LL bands, skips the single-level inverse wavelet, reverses the channel
+   color transform at LL resolution, and returns a Bayer preview at
+   (header.width / 2) x (header.height / 2). This is intended for camera
+   screen preview from a full 4K Bayer .gvid payload, not for quality render. */
+int gpr_decode_fused_ll_preview(const uint8_t *enc, size_t enc_size,
+                                uint16_t *bayer_out, size_t bayer_pitch_bytes,
+                                int *out_width, int *out_height);
+
 #ifdef __cplusplus
 }
 #endif

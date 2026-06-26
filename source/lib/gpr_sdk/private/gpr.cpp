@@ -1124,15 +1124,27 @@ static bool read_dng(const gpr_allocator*       allocator,
                 // Note: this code will have to get smarter if we ever have anything other than four GainMap tags in OpcodeList2
                 if ( count == 4 && tuning_info.gain_map.size == 0 )
                 {
-                    char gainmap_buffer [4][MAX_BUF_SIZE];
+                    dng_ifd &rawIFD = *info.fIFD [info.fMainIndex].Get ();
+                    size_t gainmap_cap = MAX_BUF_SIZE;
+                    if (rawIFD.fOpcodeList2Count + 64 > gainmap_cap)
+                    {
+                        gainmap_cap = rawIFD.fOpcodeList2Count + 64;
+                    }
                     
                     for ( int i = 0; i < 4; i++ )
                     {
                         // Get GainMap Opcode
                         dng_opcode &opcode = opcodelist2.Entry( i );
-                
+
+                        char *gainmap_buffer = (char*)allocator->Alloc( gainmap_cap );
+                        if( gainmap_buffer == NULL )
+                        {
+                            tuning_info.gain_map.size = 0;
+                            break;
+                        }
+
                         // generate stream data
-                        dng_stream stream ( gainmap_buffer[i], MAX_BUF_SIZE );
+                        dng_stream stream ( gainmap_buffer, (uint32)gainmap_cap );
                         stream.Put_uint32 ( 0x01040000 ); // version
                         stream.Put_uint32 ( 0x3 ); // flags
                         opcode.PutData( stream );
@@ -1140,11 +1152,35 @@ static bool read_dng(const gpr_allocator*       allocator,
                         // Point to buffer
                         if( i == 0 )
                             tuning_info.gain_map.size = stream.Position();
+                        else if( tuning_info.gain_map.size != stream.Position() )
+                        {
+                            allocator->Free( gainmap_buffer );
+                            for ( int j = 0; j < i; j++ )
+                            {
+                                if( tuning_info.gain_map.buffers[j] )
+                                {
+                                    allocator->Free( tuning_info.gain_map.buffers[j] );
+                                    tuning_info.gain_map.buffers[j] = NULL;
+                                }
+                            }
+                            tuning_info.gain_map.size = 0;
+                            break;
+                        }
                         
                         assert( tuning_info.gain_map.buffers[i] == NULL );
                         
                         tuning_info.gain_map.buffers[i] = (char*)allocator->Alloc( tuning_info.gain_map.size );
-                        memcpy( tuning_info.gain_map.buffers[i], gainmap_buffer[i], tuning_info.gain_map.size );
+                        if( tuning_info.gain_map.buffers[i] )
+                        {
+                            memcpy( tuning_info.gain_map.buffers[i], gainmap_buffer, tuning_info.gain_map.size );
+                        }
+                        else
+                        {
+                            tuning_info.gain_map.size = 0;
+                        }
+                        allocator->Free( gainmap_buffer );
+                        if( tuning_info.gain_map.size == 0 )
+                            break;
                     }
                 }
                 else

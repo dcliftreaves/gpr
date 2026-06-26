@@ -30,7 +30,7 @@ readiness.
 | `vld2q` + branchless clip in unpack | **Already in place** (commit `38605f7`). | n/a (done) |
 | Direct lane access (avoid temp arrays) in unpack | Tried; slower on M1 (compiler does store-load via forwarding). Reverted. | n/a |
 | Conditional int16 vertical filter for 14-bit (`bc52f9b`) | Landed | ~7% on 14-bit content |
-| ARM64 hand-tuned assembly for `unpack_all_channels_row` (`8f658f4`) | Landed, opt-in via `FUSED_UNPACK_ASM=1` | M1: within 1% (no win). A78 expected 10-20% on producer-unpack |
+| ARM64 hand-tuned assembly for the removed shared-unpack producer path (`8f658f4`) | Removed from the production source after Pi 5 target regressions | Historical result: M1 within 1% and no durable A76 win |
 
 ## Done since the original parking-lot
 

@@ -1,4 +1,4 @@
-// GPRFileReader.m — read encoded .gpr files (FUSED format).
+// GPRFileReader.m — read encoded .gpr files.
 //
 // We use mmap'd-backed NSData so the OS handles paging; for ~3.5 MB files
 // on NVMe this resolves to ~1-2 ms of effective wall-clock per frame. The
@@ -16,21 +16,41 @@ static uint32_t le32_at(const uint8_t *p, size_t off) {
          | ((uint32_t)p[off+3] << 24);
 }
 
+extern int fast_gpr_extract_vc5(const uint8_t *gpr_data, size_t gpr_size,
+                                size_t *vc5_offset, size_t *vc5_size,
+                                int *image_width, int *image_height);
+
 static BOOL parse_header_bytes(const uint8_t *bytes, size_t len, GPRFileInfo *info) {
     if (!bytes || len < 48) return NO;
     uint32_t magic = le32_at(bytes, 0);
-    if (magic != 0x44535546u) {
-        fprintf(stderr, "GPRFileReader: bad magic 0x%08x (expected 'FUSD')\n", magic);
-        return NO;
+    if (magic == 0x44535546u) {
+        info->encWidth    = le32_at(bytes,  8);
+        info->encHeight   = le32_at(bytes, 12);
+        info->pixelFormat = le32_at(bytes, 16);
+        uint32_t dec      = le32_at(bytes, 44);
+        info->decimate    = (dec < 2) ? 1 : dec;
+        info->decWidth    = info->encWidth  / info->decimate;
+        info->decHeight   = info->encHeight / info->decimate;
+        info->containerGPR = 0;
+        return YES;
     }
-    info->encWidth    = le32_at(bytes,  8);
-    info->encHeight   = le32_at(bytes, 12);
-    info->pixelFormat = le32_at(bytes, 16);
-    uint32_t dec      = le32_at(bytes, 44);
-    info->decimate    = (dec < 2) ? 1 : dec;
-    info->decWidth    = info->encWidth  / info->decimate;
-    info->decHeight   = info->encHeight / info->decimate;
-    return YES;
+
+    size_t vc5Offset = 0, vc5Size = 0;
+    int imageWidth = 0, imageHeight = 0;
+    if (fast_gpr_extract_vc5(bytes, len, &vc5Offset, &vc5Size, &imageWidth, &imageHeight) == 0 &&
+        imageWidth > 0 && imageHeight > 0) {
+        info->encWidth = (uint32_t)imageWidth;
+        info->encHeight = (uint32_t)imageHeight;
+        info->pixelFormat = 1; // TIFF/GPR fallback currently assumes RGGB14.
+        info->decimate = 1;
+        info->decWidth = info->encWidth;
+        info->decHeight = info->encHeight;
+        info->containerGPR = 1;
+        return YES;
+    }
+
+    fprintf(stderr, "GPRFileReader: bad magic 0x%08x (expected 'FUSD' or TIFF/GPR)\n", magic);
+    return NO;
 }
 
 @implementation GPRFileReader
@@ -47,7 +67,7 @@ static BOOL parse_header_bytes(const uint8_t *bytes, size_t len, GPRFileInfo *in
         return nil;
     }
     if (!parse_header_bytes(data.bytes, data.length, info)) {
-        fprintf(stderr, "GPRFileReader: bad FUSED header in %s\n", [path UTF8String]);
+        fprintf(stderr, "GPRFileReader: bad GPR header in %s\n", [path UTF8String]);
         return nil;
     }
     return data;
@@ -56,7 +76,7 @@ static BOOL parse_header_bytes(const uint8_t *bytes, size_t len, GPRFileInfo *in
 + (BOOL)readHeaderFromPath:(NSString *)path info:(GPRFileInfo *)info {
     NSFileHandle *fh = [NSFileHandle fileHandleForReadingAtPath:path];
     if (!fh) return NO;
-    NSData *hdr = [fh readDataOfLength:48];
+    NSData *hdr = [fh readDataToEndOfFile];
     [fh closeFile];
     return parse_header_bytes(hdr.bytes, hdr.length, info);
 }

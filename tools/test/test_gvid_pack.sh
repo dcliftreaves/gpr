@@ -14,10 +14,21 @@ GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
 WORK=${WORK:-$GPR_TMPDIR/gvid_pack_smoke}
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
+cleanup() {
+  local status=$?
+  if [ "$status" -eq 0 ] && [ "${GPR_KEEP_TEST_ARTIFACTS:-0}" != "1" ]; then
+    rm -rf "$WORK"
+  fi
+}
+trap cleanup EXIT
+
 rm -rf "$WORK"
 mkdir -p "$WORK/frames"
 printf 'frame-0000-payload' > "$WORK/frames/frame_0000.gpr"
 printf 'frame-0001-payload-longer' > "$WORK/frames/frame_0001.gpr"
+mkdir -p "$WORK/native_frames"
+printf 'native-camera-gpr-0000' > "$WORK/native_frames/GP017601.GPR"
+printf 'native-camera-gpr-0001-longer' > "$WORK/native_frames/GP017602.GPR"
 
 "$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip.gvid" \
   --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4
@@ -152,5 +163,46 @@ if "$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/bad_attach.gvi
   exit 1
 fi
 test ! -e "$WORK/bad_attach.gvid"
+
+"$PYTHON_BIN" "$REPO/tools/gvid_metadata.py" from-native-gpr-sequence "$WORK/native_frames" \
+  "$WORK/native.gvid.meta.json" \
+  --width 4096 --height 3072 --fps 24
+
+"$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/native_frames" "$WORK/native.gvid" \
+  --width 4096 --height 3072 --fps 24 --quality 0 --pixel-format 1 \
+  --payload-kind camera_gpr \
+  --metadata "$WORK/native.gvid.meta.json"
+
+"$PYTHON_BIN" "$REPO/tools/gvid_metadata.py" validate "$WORK/native.gvid.meta.json" \
+  --gvid "$WORK/native.gvid"
+"$PYTHON_BIN" "$REPO/tools/gvid_metadata.py" runtime-dispatch "$WORK/native.gvid.meta.json" \
+  --gvid "$WORK/native.gvid" \
+  --output "$WORK/native.gvid.dispatch.json"
+"$PYTHON_BIN" "$REPO/tools/gvid_metadata.py" verify-payloads "$WORK/native.gvid.meta.json" \
+  --gvid "$WORK/native.gvid" \
+  --output "$WORK/native.gvid.payload_verify.json"
+"$PYTHON_BIN" - "$WORK/native.gvid.dispatch.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+dispatch = json.loads(Path(sys.argv[1]).read_text())
+assert dispatch["payload_kind"] == "camera_gpr"
+assert dispatch["frame_count"] == 2
+assert dispatch["tile_count"] == 0
+assert dispatch["frames"][0]["source_id"] == "GP017601"
+assert dispatch["frames"][0]["payload_sha256"]
+PY
+"$PYTHON_BIN" - "$WORK/native.gvid.payload_verify.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+receipt = json.loads(Path(sys.argv[1]).read_text())
+assert receipt["schema"] == "gvid_camera_gpr_payload_verify.v1"
+assert receipt["frame_count"] == 2
+assert receipt["all_exact"] is True
+assert all(frame["ok"] for frame in receipt["frames"])
+PY
 
 echo "test_gvid_pack: PASS"

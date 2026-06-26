@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import struct
@@ -14,6 +15,7 @@ GVID_MAGIC = 0x44495647
 FRAME_MAGIC = 0x004D5246
 GVID_VERSION = 1
 SCHEMA = "gvid_source_metadata.v1"
+PAYLOAD_KINDS = {"fused_gpr", "camera_gpr"}
 
 
 def read_gvid_frames(path: Path) -> list[dict[str, int]]:
@@ -55,6 +57,20 @@ def read_gvid_frame_tags(path: Path) -> list[int]:
     return tags
 
 
+def sha256_gvid_payload(path: Path, frame: dict[str, int]) -> str:
+    h = hashlib.sha256()
+    remaining = int(frame["payload_size"])
+    with path.open("rb") as f:
+        f.seek(int(frame["payload_offset"]))
+        while remaining > 0:
+            chunk = f.read(min(1024 * 1024, remaining))
+            if not chunk:
+                raise ValueError(f"{path} ended while hashing frame tag {frame['frame_tag']}")
+            h.update(chunk)
+            remaining -= len(chunk)
+    return h.hexdigest()
+
+
 def validate_against_gvid(meta: dict[str, Any], gvid: Path) -> None:
     tags = read_gvid_frame_tags(gvid)
     meta_tags = [int(frame["frame_tag"]) for frame in meta["frames"]]
@@ -64,8 +80,61 @@ def validate_against_gvid(meta: dict[str, Any], gvid: Path) -> None:
         raise ValueError(f"{gvid} frame tags {tags} do not match metadata frame tags {meta_tags}")
 
 
+def verify_camera_gpr_payloads(meta: dict[str, Any], gvid: Path) -> dict[str, Any]:
+    validate_metadata(meta)
+    if meta.get("payload_kind", "fused_gpr") != "camera_gpr":
+        raise ValueError("payload hash verification is only defined for payload_kind=camera_gpr")
+    stream_frames = read_gvid_frames(gvid)
+    meta_by_tag = {int(frame["frame_tag"]): frame for frame in meta["frames"]}
+    failures = []
+    checked = []
+    for stream_frame in stream_frames:
+        tag = int(stream_frame["frame_tag"])
+        meta_frame = meta_by_tag.get(tag)
+        if not meta_frame:
+            failures.append({"frame_tag": tag, "error": "missing metadata"})
+            continue
+        expected_size = int(meta_frame["payload_bytes"])
+        actual_size = int(stream_frame["payload_size"])
+        expected_sha = str(meta_frame["payload_sha256"])
+        actual_sha = sha256_gvid_payload(gvid, stream_frame)
+        ok = expected_size == actual_size and expected_sha == actual_sha
+        checked.append({
+            "frame_tag": tag,
+            "source_id": meta_frame["source_id"],
+            "payload_size": actual_size,
+            "sha256": actual_sha,
+            "ok": ok,
+        })
+        if not ok:
+            failures.append({
+                "frame_tag": tag,
+                "expected_size": expected_size,
+                "actual_size": actual_size,
+                "expected_sha256": expected_sha,
+                "actual_sha256": actual_sha,
+            })
+    if len(stream_frames) != len(meta["frames"]):
+        failures.append({
+            "error": "frame count mismatch",
+            "stream_frames": len(stream_frames),
+            "metadata_frames": len(meta["frames"]),
+        })
+    if failures:
+        raise ValueError(f"camera_gpr payload verification failed: {failures}")
+    return {
+        "schema": "gvid_camera_gpr_payload_verify.v1",
+        "gvid": str(gvid),
+        "frame_count": len(checked),
+        "payload_bytes": sum(int(frame["payload_size"]) for frame in stream_frames),
+        "all_exact": True,
+        "frames": checked,
+    }
+
+
 def build_runtime_dispatch(meta: dict[str, Any], gvid: Path) -> dict[str, Any]:
     validate_metadata(meta)
+    payload_kind = meta.get("payload_kind", "fused_gpr")
     stream_frames = read_gvid_frames(gvid)
     if len(stream_frames) != len(meta["frames"]):
         raise ValueError(f"{gvid} has {len(stream_frames)} frames but metadata has {len(meta['frames'])} frames")
@@ -85,30 +154,43 @@ def build_runtime_dispatch(meta: dict[str, Any], gvid: Path) -> dict[str, Any]:
     total_tiles = 0
     for stream_frame in stream_frames:
         meta_frame = meta_by_tag[stream_frame["frame_tag"]]
-        tiles = []
-        for tile in meta_frame["raw_clean_tiles"]:
-            accepted = bool(tile["accepted"])
-            accepted_tiles += int(accepted)
-            total_tiles += 1
-            tiles.append({
-                "crop": tile["crop"],
-                "source_xywh": tile["source_xywh"],
-                "accepted": accepted,
-                "policy": "accepted_only_raw_clean" if accepted else "all_targets_raw_clean",
-                "reject_reasons": tile["reject_reasons"],
-                "sigma_rms_counts": tile["sigma_rms_counts"],
-            })
-        frames.append({
+        frame = {
             **stream_frame,
             "source_id": meta_frame["source_id"],
             "source_path": meta_frame["source_path"],
             "iso": meta_frame["iso"],
-            "raw_clean_tiles": tiles,
-        })
+            "payload_kind": payload_kind,
+        }
+        if payload_kind == "camera_gpr":
+            if int(stream_frame["payload_size"]) != int(meta_frame["payload_bytes"]):
+                raise ValueError(
+                    f"frame tag {stream_frame['frame_tag']} payload size "
+                    f"{stream_frame['payload_size']} does not match metadata "
+                    f"{meta_frame['payload_bytes']}"
+                )
+            frame["payload_sha256"] = meta_frame["payload_sha256"]
+            frame["payload_bytes"] = meta_frame["payload_bytes"]
+        else:
+            tiles = []
+            for tile in meta_frame["raw_clean_tiles"]:
+                accepted = bool(tile["accepted"])
+                accepted_tiles += int(accepted)
+                total_tiles += 1
+                tiles.append({
+                    "crop": tile["crop"],
+                    "source_xywh": tile["source_xywh"],
+                    "accepted": accepted,
+                    "policy": "accepted_only_raw_clean" if accepted else "all_targets_raw_clean",
+                    "reject_reasons": tile["reject_reasons"],
+                    "sigma_rms_counts": tile["sigma_rms_counts"],
+                })
+            frame["raw_clean_tiles"] = tiles
+        frames.append(frame)
     return {
         "schema": "gvid_runtime_dispatch.v1",
         "gvid": str(gvid),
         "metadata": meta.get("gvid"),
+        "payload_kind": payload_kind,
         "frame_count": len(frames),
         "tile_count": total_tiles,
         "accepted_tile_count": accepted_tiles,
@@ -160,6 +242,7 @@ def build_from_raw_clean_targets(targets: Path, out: Path, *, gvid: Path | None)
 
     meta = {
         "schema": SCHEMA,
+        "payload_kind": "fused_gpr",
         "source": "raw_clean_ref_targets",
         "targets": str(targets),
         "gvid": str(gvid) if gvid else None,
@@ -174,9 +257,72 @@ def build_from_raw_clean_targets(targets: Path, out: Path, *, gvid: Path | None)
     return meta
 
 
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def build_from_native_gpr_sequence(
+    frame_dir: Path,
+    out: Path,
+    *,
+    gvid: Path | None,
+    width: int,
+    height: int,
+    fps: float,
+    iso: int,
+) -> dict[str, Any]:
+    frames_in = sorted(p for p in frame_dir.iterdir() if p.is_file() and p.suffix.lower() == ".gpr")
+    if not frames_in:
+        raise FileNotFoundError(f"no .gpr/.GPR frames found in {frame_dir}")
+    if width <= 0 or height <= 0:
+        raise ValueError("width and height must be positive")
+    if fps <= 0.0:
+        raise ValueError("fps must be positive")
+    if iso < 0:
+        raise ValueError("iso must be non-negative")
+
+    frames = []
+    for frame_index, path in enumerate(frames_in):
+        frames.append({
+            "frame_index": frame_index,
+            "frame_tag": frame_index,
+            "source_id": path.stem,
+            "source_path": str(path),
+            "iso": iso,
+            "payload_bytes": path.stat().st_size,
+            "payload_sha256": sha256_file(path),
+        })
+
+    meta = {
+        "schema": SCHEMA,
+        "payload_kind": "camera_gpr",
+        "source": "native_camera_gpr_sequence",
+        "frame_dir": str(frame_dir),
+        "gvid": str(gvid) if gvid else None,
+        "width": width,
+        "height": height,
+        "fps": fps,
+        "frame_count": len(frames),
+        "frames": frames,
+    }
+    validate_metadata(meta)
+    if gvid:
+        validate_against_gvid(meta, gvid)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(meta, indent=2) + "\n")
+    return meta
+
+
 def validate_metadata(meta: dict[str, Any]) -> None:
     if meta.get("schema") != SCHEMA:
         raise ValueError(f"unsupported metadata schema {meta.get('schema')!r}")
+    payload_kind = meta.get("payload_kind", "fused_gpr")
+    if payload_kind not in PAYLOAD_KINDS:
+        raise ValueError(f"unsupported payload_kind {payload_kind!r}")
     frames = meta.get("frames")
     if not isinstance(frames, list):
         raise ValueError("frames must be a list")
@@ -195,28 +341,36 @@ def validate_metadata(meta: dict[str, Any]) -> None:
         seen_tags.add(frame_tag)
         if frame_index < 0 or frame_tag < 0:
             raise ValueError("frame_index/frame_tag must be non-negative")
-        tiles = frame.get("raw_clean_tiles")
-        if not isinstance(tiles, list):
-            raise ValueError(f"frame {frame_index} raw_clean_tiles must be a list")
-        for tile in tiles:
-            xywh = tile.get("source_xywh")
-            if not (isinstance(xywh, list) and len(xywh) == 4 and all(int(v) >= 0 for v in xywh)):
-                raise ValueError(f"frame {frame_index} tile {tile.get('crop')} has invalid source_xywh")
-            if any(int(v) % 2 for v in xywh):
-                raise ValueError(f"frame {frame_index} tile {tile.get('crop')} source_xywh is not CFA aligned")
-            if not isinstance(tile.get("accepted"), bool):
-                raise ValueError(f"frame {frame_index} tile {tile.get('crop')} accepted must be bool")
-            if not isinstance(tile.get("reject_reasons"), list):
-                raise ValueError(f"frame {frame_index} tile {tile.get('crop')} reject_reasons must be list")
-            for key in (
-                "sigma_rms_counts",
-                "exact_residual_to_sigma_rms",
-                "lag_max_abs",
-                "edge_removed_energy_ratio",
-            ):
-                value = float(tile[key])
-                if not math.isfinite(value):
-                    raise ValueError(f"frame {frame_index} tile {tile.get('crop')} {key} is not finite")
+        if payload_kind == "camera_gpr":
+            payload_bytes = int(frame["payload_bytes"])
+            if payload_bytes <= 0:
+                raise ValueError(f"frame {frame_index} payload_bytes must be positive")
+            digest = str(frame["payload_sha256"])
+            if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+                raise ValueError(f"frame {frame_index} payload_sha256 is invalid")
+        else:
+            tiles = frame.get("raw_clean_tiles")
+            if not isinstance(tiles, list):
+                raise ValueError(f"frame {frame_index} raw_clean_tiles must be a list")
+            for tile in tiles:
+                xywh = tile.get("source_xywh")
+                if not (isinstance(xywh, list) and len(xywh) == 4 and all(int(v) >= 0 for v in xywh)):
+                    raise ValueError(f"frame {frame_index} tile {tile.get('crop')} has invalid source_xywh")
+                if any(int(v) % 2 for v in xywh):
+                    raise ValueError(f"frame {frame_index} tile {tile.get('crop')} source_xywh is not CFA aligned")
+                if not isinstance(tile.get("accepted"), bool):
+                    raise ValueError(f"frame {frame_index} tile {tile.get('crop')} accepted must be bool")
+                if not isinstance(tile.get("reject_reasons"), list):
+                    raise ValueError(f"frame {frame_index} tile {tile.get('crop')} reject_reasons must be list")
+                for key in (
+                    "sigma_rms_counts",
+                    "exact_residual_to_sigma_rms",
+                    "lag_max_abs",
+                    "edge_removed_energy_ratio",
+                ):
+                    value = float(tile[key])
+                    if not math.isfinite(value):
+                        raise ValueError(f"frame {frame_index} tile {tile.get('crop')} {key} is not finite")
 
 
 def cmd_from_targets(args: argparse.Namespace) -> int:
@@ -230,6 +384,22 @@ def cmd_from_targets(args: argparse.Namespace) -> int:
     total = sum(len(frame["raw_clean_tiles"]) for frame in meta["frames"])
     print(args.output)
     print(f"frames={meta['frame_count']} tiles={total} accepted_tiles={accepted}")
+    return 0
+
+
+def cmd_from_native_gpr_sequence(args: argparse.Namespace) -> int:
+    meta = build_from_native_gpr_sequence(
+        args.frame_dir,
+        args.output,
+        gvid=args.gvid,
+        width=args.width,
+        height=args.height,
+        fps=args.fps,
+        iso=args.iso,
+    )
+    payload_bytes = sum(int(frame["payload_bytes"]) for frame in meta["frames"])
+    print(args.output)
+    print(f"frames={meta['frame_count']} payload_bytes={payload_bytes}")
     return 0
 
 
@@ -260,6 +430,20 @@ def cmd_runtime_dispatch(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_verify_payloads(args: argparse.Namespace) -> int:
+    meta = json.loads(args.metadata.read_text())
+    receipt = verify_camera_gpr_payloads(meta, args.gvid)
+    text = json.dumps(receipt, indent=2) + "\n"
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text)
+        print(args.output)
+    else:
+        print(text, end="")
+    print(f"frames={receipt['frame_count']} all_exact={receipt['all_exact']}", file=sys.stderr)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Build and validate .gvid source metadata sidecars.")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -269,6 +453,16 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("output", type=Path)
     build.add_argument("--gvid", type=Path)
     build.set_defaults(func=cmd_from_targets)
+
+    native = sub.add_parser("from-native-gpr-sequence")
+    native.add_argument("frame_dir", type=Path)
+    native.add_argument("output", type=Path)
+    native.add_argument("--gvid", type=Path)
+    native.add_argument("--width", type=int, required=True)
+    native.add_argument("--height", type=int, required=True)
+    native.add_argument("--fps", type=float, default=24.0)
+    native.add_argument("--iso", type=int, default=0)
+    native.set_defaults(func=cmd_from_native_gpr_sequence)
 
     validate = sub.add_parser("validate")
     validate.add_argument("metadata", type=Path)
@@ -280,6 +474,12 @@ def main(argv: list[str] | None = None) -> int:
     runtime.add_argument("--gvid", type=Path, required=True)
     runtime.add_argument("--output", type=Path)
     runtime.set_defaults(func=cmd_runtime_dispatch)
+
+    verify_payloads = sub.add_parser("verify-payloads")
+    verify_payloads.add_argument("metadata", type=Path)
+    verify_payloads.add_argument("--gvid", type=Path, required=True)
+    verify_payloads.add_argument("--output", type=Path)
+    verify_payloads.set_defaults(func=cmd_verify_payloads)
 
     args = ap.parse_args(argv)
     try:

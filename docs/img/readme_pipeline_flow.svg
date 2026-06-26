@@ -40,21 +40,21 @@
 
   <text class="lane" x="40" y="236">RAW VIDEO</text>
   <rect class="box" x="40" y="252" width="170" height="72" rx="8"/>
-  <text class="label" x="62" y="282">Pi 5 sensor frames</text>
-  <text class="small" x="62" y="304">24 fps capture target</text>
+  <text class="label" x="62" y="282">4K Bayer frames</text>
+  <text class="small" x="62" y="304">Mission native12 source</text>
   <path class="arrow" d="M210 288 H270"/>
   <rect class="codec" x="270" y="252" width="220" height="72" rx="8"/>
-  <text class="label" x="292" y="282">ML-2 q3 dec2</text>
-  <text class="small" x="292" y="304">latest strict run: 19.98 fps</text>
+  <text class="label" x="292" y="282">Native12 .gvid</text>
+  <text class="small" x="292" y="304">20.50 fps wall, zero drops</text>
   <path class="arrow" d="M490 288 H550"/>
   <rect class="out" x="550" y="252" width="220" height="72" rx="8"/>
-  <text class="label" x="572" y="282">GVID stream</text>
-  <text class="small" x="572" y="304">sidecar metadata + dispatch</text>
+  <text class="label" x="572" y="282">4K .gvid stream</text>
+  <text class="small" x="572" y="304">preview + recovery receipts</text>
   <path class="arrow" d="M770 288 H830"/>
   <rect class="model" x="830" y="252" width="260" height="72" rx="8"/>
-  <text class="label" x="852" y="282">Desktop restore/export</text>
-  <text class="small" x="852" y="304">ProRes review or editable raw</text>
+  <text class="label" x="852" y="282">CNN restore/export</text>
+  <text class="small" x="852" y="304">4K cleanup, 8K SR, ProRes</text>
 
   <path class="arrow" d="M660 324 V358 H960 V336"/>
-  <text class="small" x="690" y="376">Raw-clean dispatch is validated; per-tile model application is the next runtime hook.</text>
+  <text class="small" x="690" y="376">Items 3 and 4 are offline/post-ready; final live promotion needs camera handoff receipts.</text>
 </svg>

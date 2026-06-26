@@ -47,14 +47,20 @@
    placement of the 4 channel threads — sometimes lands them on separate
    cores (median 46 ms), sometimes 2 share a core (median 64 ms). Pinning
    each channel thread to its own core eliminates the bimodal — gates p90
-   down. Producers (when FUSED_PRODUCER_UNPACK=1) intentionally NOT pinned
-   so they can ride whichever core is idle. */
+   down. */
 #if defined(__linux__)
 static int _fused_pin_enabled(void) {
     static int cached = -1;
     if (cached >= 0) return cached;
     const char *e = getenv("FUSED_PIN");
     if (!e) e = getenv("GPR_PIN_AFFINITY");
+    cached = (e && *e == '1') ? 1 : 0;
+    return cached;
+}
+static int _fused_pin_p2_enabled(void) {
+    static int cached = -1;
+    if (cached >= 0) return cached;
+    const char *e = getenv("FUSED_PIN_P2");
     cached = (e && *e == '1') ? 1 : 0;
     return cached;
 }
@@ -70,6 +76,7 @@ static void _fused_pin_self(int core) {
 }
 #else
 static void _fused_pin_self(int core) { (void)core; }
+static int _fused_pin_p2_enabled(void) { return 0; }
 #endif
 
 /* Per-frame timing prints. Comment out for clean micro-benchmarks. */
@@ -297,6 +304,178 @@ static inline int32_t quantize_scalar(int32_t value, int32_t midpoint, int32_t m
     return (value < 0) ? -q : q;
 }
 
+static inline int fused_reference_horizontal_enabled(void)
+{
+    static int cached = -1;
+    if (cached >= 0) return cached;
+    const char *e = getenv("FUSED_REFERENCE_HORIZONTAL");
+    cached = (e && *e == '0') ? 0 : 1;
+    return cached;
+}
+
+static inline PIXEL fused_hpf_ref_middle(const PIXEL *input, int prescale_rounding, int prescale)
+{
+    int32_t sum;
+    if (prescale == 0) {
+        sum = -input[0] - input[1] + (input[2] << 3) - (input[3] << 3) + input[4] + input[5];
+    } else {
+        sum = 0;
+        sum -=  (input[0] + prescale_rounding) >> prescale;
+        sum -=  (input[1] + prescale_rounding) >> prescale;
+        sum += ((input[2] + prescale_rounding) >> prescale) << 3;
+        sum -= ((input[3] + prescale_rounding) >> prescale) << 3;
+        sum +=  (input[4] + prescale_rounding) >> prescale;
+        sum +=  (input[5] + prescale_rounding) >> prescale;
+    }
+    sum += 4;
+    sum = DivideByShift(sum, 3);
+    return ClampPixel(sum);
+}
+
+static inline PIXEL fused_hpf_ref_coeff(const PIXEL *input, const PIXEL *coeffs,
+                                        int prescale_rounding, int prescale)
+{
+    int32_t sum = 0;
+    for (int i = 0; i < 6; i++) {
+        int32_t v = (prescale == 0) ? input[i] : ((input[i] + prescale_rounding) >> prescale);
+        sum += coeffs[i] * v;
+    }
+    sum += 4;
+    sum = DivideByShift(sum, 3);
+    return ClampPixel(sum);
+}
+
+static void horizontal_filter_reference(const PIXEL *input, PIXEL *lowpass, PIXEL *highpass,
+                                        int width, int prescale)
+{
+    int column = 2;
+    int prescale_rounding = (1 << prescale) - 1;
+    const int last_input_column = ((width % 2) == 0) ? width - 2 : width - 1;
+    PIXEL left_coeffs[6] = { 5, -11, 4, 4, -1, -1 };
+    PIXEL right_coeffs[6] = { 1, 1, -4, -4, 11, -5 };
+
+    if (prescale != 0 && prescale != 2 && prescale != 3) {
+        prescale = (prescale > 3) ? 3 : ((prescale > 0) ? 2 : 0);
+        prescale_rounding = (1 << prescale) - 1;
+    }
+
+    lowpass[0] = (input[0] + input[1] + prescale_rounding) >> prescale;
+    highpass[0] = fused_hpf_ref_coeff(input, left_coeffs, prescale_rounding, prescale);
+
+#if ENABLED(NEON)
+    if (prescale == 2) {
+        const int32x4_t vround_lp = vdupq_n_s32(3);
+        const int32x4_t vround_hp = vdupq_n_s32(4);
+        const int32x4_t vprescale = vdupq_n_s32(3);
+        for (; column + 6 < last_input_column && column + 9 < width; column += 8) {
+            const int idx = column;
+            int32x4_t raw0 = vld1q_s32(&input[idx - 2]);  /* c-2 .. c+1 */
+            int32x4_t raw1 = vld1q_s32(&input[idx + 2]);  /* c+2 .. c+5 */
+            int32x4_t raw2 = vld1q_s32(&input[idx + 6]);  /* c+6 .. c+9 */
+
+            int32x4_t cur_pair = vextq_s32(raw0, raw1, 2); /* c .. c+3 */
+            int32x4_t nxt_pair = vextq_s32(raw1, raw2, 2); /* c+4 .. c+7 */
+            int32x4x2_t raw_cur = vuzpq_s32(cur_pair, nxt_pair);
+            int32x4_t lp_sum = vaddq_s32(raw_cur.val[0], raw_cur.val[1]);
+            vst1q_s32(&lowpass[column / 2], vshrq_n_s32(vaddq_s32(lp_sum, vround_lp), 2));
+
+            int32x4_t ps0 = vshrq_n_s32(vaddq_s32(raw0, vprescale), 2);
+            int32x4_t ps1 = vshrq_n_s32(vaddq_s32(raw1, vprescale), 2);
+            int32x4_t ps2 = vshrq_n_s32(vaddq_s32(raw2, vprescale), 2);
+
+            int32x4x2_t prev_pairs = vuzpq_s32(ps0, ps1);
+            int32x4x2_t next_pairs = vuzpq_s32(ps1, ps2);
+            int32x4_t prev_sum = vaddq_s32(prev_pairs.val[0], prev_pairs.val[1]);
+            int32x4_t next_sum = vaddq_s32(next_pairs.val[0], next_pairs.val[1]);
+
+            int32x4_t ps_cur_pair = vextq_s32(ps0, ps1, 2);
+            int32x4_t ps_nxt_pair = vextq_s32(ps1, ps2, 2);
+            int32x4x2_t ps_cur = vuzpq_s32(ps_cur_pair, ps_nxt_pair);
+            int32x4_t center_delta = vsubq_s32(ps_cur.val[0], ps_cur.val[1]);
+
+            int32x4_t hp = vsubq_s32(next_sum, prev_sum);
+            hp = vaddq_s32(hp, vshlq_n_s32(center_delta, 3));
+            hp = vshrq_n_s32(vaddq_s32(hp, vround_hp), 3);
+            vst1q_s32(&highpass[column / 2], hp);
+        }
+    }
+    if (prescale == 3) {
+        const int32x4_t vround_lp = vdupq_n_s32(7);
+        const int32x4_t vround_hp = vdupq_n_s32(4);
+        const int32x4_t vprescale = vdupq_n_s32(7);
+        for (; column + 6 < last_input_column && column + 9 < width; column += 8) {
+            const int idx = column;
+            int32x4_t raw0 = vld1q_s32(&input[idx - 2]);  /* c-2 .. c+1 */
+            int32x4_t raw1 = vld1q_s32(&input[idx + 2]);  /* c+2 .. c+5 */
+            int32x4_t raw2 = vld1q_s32(&input[idx + 6]);  /* c+6 .. c+9 */
+
+            int32x4_t cur_pair = vextq_s32(raw0, raw1, 2); /* c .. c+3 */
+            int32x4_t nxt_pair = vextq_s32(raw1, raw2, 2); /* c+4 .. c+7 */
+            int32x4x2_t raw_cur = vuzpq_s32(cur_pair, nxt_pair);
+            int32x4_t lp_sum = vaddq_s32(raw_cur.val[0], raw_cur.val[1]);
+            vst1q_s32(&lowpass[column / 2], vshrq_n_s32(vaddq_s32(lp_sum, vround_lp), 3));
+
+            int32x4_t ps0 = vshrq_n_s32(vaddq_s32(raw0, vprescale), 3);
+            int32x4_t ps1 = vshrq_n_s32(vaddq_s32(raw1, vprescale), 3);
+            int32x4_t ps2 = vshrq_n_s32(vaddq_s32(raw2, vprescale), 3);
+
+            int32x4x2_t prev_pairs = vuzpq_s32(ps0, ps1);
+            int32x4x2_t next_pairs = vuzpq_s32(ps1, ps2);
+            int32x4_t prev_sum = vaddq_s32(prev_pairs.val[0], prev_pairs.val[1]);
+            int32x4_t next_sum = vaddq_s32(next_pairs.val[0], next_pairs.val[1]);
+
+            int32x4_t ps_cur_pair = vextq_s32(ps0, ps1, 2);
+            int32x4_t ps_nxt_pair = vextq_s32(ps1, ps2, 2);
+            int32x4x2_t ps_cur = vuzpq_s32(ps_cur_pair, ps_nxt_pair);
+            int32x4_t center_delta = vsubq_s32(ps_cur.val[0], ps_cur.val[1]);
+
+            int32x4_t hp = vsubq_s32(next_sum, prev_sum);
+            hp = vaddq_s32(hp, vshlq_n_s32(center_delta, 3));
+            hp = vshrq_n_s32(vaddq_s32(hp, vround_hp), 3);
+            vst1q_s32(&highpass[column / 2], hp);
+        }
+    }
+#endif
+
+    for (; column < last_input_column; column += 2) {
+        if (column & 1) column--;
+        lowpass[column / 2] = (input[column] + input[column + 1] + prescale_rounding) >> prescale;
+        if ((column + 3) < width) {
+            highpass[column / 2] = fused_hpf_ref_middle(input + column - 2, prescale_rounding, prescale);
+        } else {
+            int32_t sum = 0;
+            sum -= (input[column - 2] + prescale_rounding) >> prescale;
+            sum -= (input[column - 1] + prescale_rounding) >> prescale;
+            sum += (input[column + 2] + prescale_rounding) >> prescale;
+            sum += (input[column + 2] + prescale_rounding) >> prescale;
+            sum += 4;
+            sum = DivideByShift(sum, 3);
+            sum += (input[column] + prescale_rounding) >> prescale;
+            sum -= (input[column + 1] + prescale_rounding) >> prescale;
+            highpass[column / 2] = ClampPixel(sum);
+        }
+    }
+
+    column = last_input_column;
+    if ((column + 1) < width) {
+        highpass[column / 2] = fused_hpf_ref_coeff(input + column - 4, right_coeffs,
+                                                   prescale_rounding, prescale);
+        lowpass[column / 2] = (input[column] + input[column + 1] + prescale_rounding) >> prescale;
+    } else {
+        int32_t sum = 0;
+        sum -= 5 * ((input[column] + prescale_rounding) >> prescale);
+        sum += 11 * ((input[column] + prescale_rounding) >> prescale);
+        sum -= 4 * ((input[column - 1] + prescale_rounding) >> prescale);
+        sum -= 4 * ((input[column - 2] + prescale_rounding) >> prescale);
+        sum += (input[column - 3] + prescale_rounding) >> prescale;
+        sum += (input[column - 4] + prescale_rounding) >> prescale;
+        sum += 4;
+        sum = DivideByShift(sum, 3);
+        highpass[column / 2] = ClampPixel(sum);
+        lowpass[column / 2] = (input[column] + input[column] + prescale_rounding) >> prescale;
+    }
+}
+
 /* ================================================================
    Horizontal wavelet filter (simplified from forward.c)
    ================================================================ */
@@ -305,6 +484,11 @@ static inline __attribute__((always_inline))
 void horizontal_filter(const PIXEL *input, PIXEL *lowpass, PIXEL *highpass,
                                int width, int prescale)
 {
+    if (fused_reference_horizontal_enabled()) {
+        horizontal_filter_reference(input, lowpass, highpass, width, prescale);
+        return;
+    }
+
     int prescale_rounding = (1 << prescale) - 1;
     int half = width / 2;
 
@@ -516,6 +700,30 @@ static inline void soft_threshold_row(PIXEL *row, int width, int32_t T)
         if      (v >  T) row[i] = v - T;
         else if (v < -T) row[i] = v + T;
         else             row[i] = 0;
+    }
+}
+
+/* Hard dead-zone threshold for quantized highpass coefficients:
+   values inside [-T, T] become zero; larger signal coefficients are preserved.
+   This is a more conservative noise-removal probe than soft-thresholding,
+   which shrinks every surviving coefficient. */
+static inline void hard_threshold_row(PIXEL *row, int width, int32_t T)
+{
+    if (T <= 0) return;
+    int i = 0;
+#if ENABLED(NEON)
+    const int32x4_t vT    = vdupq_n_s32(T);
+    const int32x4_t vZero = vdupq_n_s32(0);
+    int w_m4 = (width / 4) * 4;
+    for (; i < w_m4; i += 4) {
+        int32x4_t v = vld1q_s32(&row[i]);
+        uint32x4_t keep = vcgtq_s32(vabsq_s32(v), vT);
+        vst1q_s32(&row[i], vbslq_s32(keep, v, vZero));
+    }
+#endif
+    for (; i < width; i++) {
+        PIXEL v = row[i];
+        if (v <= T && v >= -T) row[i] = 0;
     }
 }
 
@@ -782,17 +990,17 @@ static void wavelet_decompose_buffer(
                 int is_bottom = (out_row == out_height - 1);
 
                 vertical_filter_quantize_row(lprefs, out_width,
-                    mid[0], mul[0],  mid[1], mul[1],
+                    mid[0], mul[0],  mid[2], mul[2],
                     0,0, 0,0,
                     out_ll + out_row * out_width,
-                    out_lh + out_row * out_width,
+                    out_hl + out_row * out_width,
                     NULL, NULL,
                     is_top, is_bottom);
 
                 vertical_filter_quantize_row(hprefs, out_width,
-                    mid[2], mul[2],  mid[3], mul[3],
+                    mid[1], mul[1],  mid[3], mul[3],
                     0,0, 0,0,
-                    out_hl + out_row * out_width,
+                    out_lh + out_row * out_width,
                     out_hh + out_row * out_width,
                     NULL, NULL,
                     is_top, is_bottom);
@@ -822,16 +1030,16 @@ static void wavelet_decompose_buffer(
             hprefs[r] = hp_rows[idx];
         }
         vertical_filter_quantize_row(lprefs, out_width,
-            mid[0], mul[0],  mid[1], mul[1],
+            mid[0], mul[0],  mid[2], mul[2],
             0,0, 0,0,
             out_ll + out_row * out_width,
-            out_lh + out_row * out_width,
+            out_hl + out_row * out_width,
             NULL, NULL,
             /*is_top=*/0, /*is_bottom=*/1);
         vertical_filter_quantize_row(hprefs, out_width,
-            mid[2], mul[2],  mid[3], mul[3],
+            mid[1], mul[1],  mid[3], mul[3],
             0,0, 0,0,
-            out_hl + out_row * out_width,
+            out_lh + out_row * out_width,
             out_hh + out_row * out_width,
             NULL, NULL,
             /*is_top=*/0, /*is_bottom=*/1);
@@ -917,6 +1125,7 @@ typedef struct {
        at 0 (DC content shouldn't be soft-thresholded). Per-channel because
        different Bayer color planes have different noise characteristics. */
     int32_t inline_denoise_T[FUSED_MAX_BANDS];
+    int inline_denoise_hard;
 
     /* Per-context mode bits captured at encoder creation. Pass1 runs on
        worker threads, so these must not be read through function-static
@@ -933,116 +1142,6 @@ typedef struct {
 /* ================================================================
    Per-channel Pass 1 (one of 4 parallel threads)
    ================================================================ */
-
-/* Combined 4-channel unpack from one Bayer row pair.
-   Each Bayer 2x2 block produces exactly 4 unique log_tbl lookups (R, G1, G2, B)
-   shared across all 4 channel outputs:
-     GS = (G1+G2)>>1
-     RG = ((R-GS)+mid2)>>1
-     BG = ((B-GS)+mid2)>>1
-     GD = ((G1-G2)+mid2)>>1
-   vs. the per-channel unpack which redundantly looks up G1/G2 four times
-   (2 LUTs ch0+ch3 each, 3 LUTs ch1+ch2 each = 10 LUTs per block, only 4 unique).
-   NEON path uses vld2q_u16 to deinterleave Bayer pairs and vminq_u16 for
-   branchless clip. Used by the shared-unpack ring (producer pool) when
-   FUSED_PRODUCER_UNPACK=1; the legacy unpack_channel_row path stays
-   bit-identical to this routine. */
-static void unpack_all_channels_row(
-    int is_rggb,
-    const uint16_t *log_tbl, int log_max, int32_t mid2,
-    const uint16_t *row1, const uint16_t *row2,
-    PIXEL *out_gs, PIXEL *out_rg, PIXEL *out_bg, PIXEL *out_gd,
-    int ch_width)
-{
-    int col = 0;
-
-#if ENABLED(NEON)
-    /* Process 8 Bayer blocks (16 source pixels per row, 8 outputs per channel) per iter. */
-    const int ch_width_m8 = (ch_width / 8) * 8;
-    const int32x4_t vmid2 = vdupq_n_s32(mid2);
-    const uint16x8_t vclip = vdupq_n_u16((uint16_t)log_max);
-
-    for (; col < ch_width_m8; col += 8) {
-        /* Deinterleaved load: row1 holds [A B A B ...], row2 holds [C D C D ...].
-           For RGGB: A=R, B=G1 in row1; C=G2, D=B in row2.
-           For GBRG: A=G1, B=B in row1; C=R, D=G2 in row2. */
-        uint16x8x2_t r1 = vld2q_u16(&row1[2*col]);
-        uint16x8x2_t r2 = vld2q_u16(&row2[2*col]);
-
-        uint16x8_t Rv, G1v, G2v, Bv;
-        if (is_rggb) {
-            Rv  = r1.val[0]; G1v = r1.val[1];
-            G2v = r2.val[0]; Bv  = r2.val[1];
-        } else {
-            G1v = r1.val[0]; Bv  = r1.val[1];
-            Rv  = r2.val[0]; G2v = r2.val[1];
-        }
-        /* Branchless clip to log_max. */
-        Rv  = vminq_u16(Rv,  vclip);
-        G1v = vminq_u16(G1v, vclip);
-        G2v = vminq_u16(G2v, vclip);
-        Bv  = vminq_u16(Bv,  vclip);
-
-        /* Spill clipped values to stack and gather 4 LUT lookups per lane (8 lanes). */
-        uint16_t Rs[8], G1s[8], G2s[8], Bs[8];
-        vst1q_u16(Rs,  Rv);
-        vst1q_u16(G1s, G1v);
-        vst1q_u16(G2s, G2v);
-        vst1q_u16(Bs,  Bv);
-
-        int32_t r_arr[8], g1_arr[8], g2_arr[8], b_arr[8];
-        for (int k = 0; k < 8; k++) {
-            r_arr[k]  = log_tbl[Rs[k]];
-            g1_arr[k] = log_tbl[G1s[k]];
-            g2_arr[k] = log_tbl[G2s[k]];
-            b_arr[k]  = log_tbl[Bs[k]];
-        }
-
-        /* Process the 8 outputs as 2 x 4-wide NEON tiles. */
-        for (int half = 0; half < 2; half++) {
-            int32x4_t vr  = vld1q_s32(&r_arr[half*4]);
-            int32x4_t vg1 = vld1q_s32(&g1_arr[half*4]);
-            int32x4_t vg2 = vld1q_s32(&g2_arr[half*4]);
-            int32x4_t vb  = vld1q_s32(&b_arr[half*4]);
-
-            int32x4_t vgs = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
-            int32x4_t vgd = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
-            int32x4_t vrg = vshrq_n_s32(vaddq_s32(vsubq_s32(vr, vgs), vmid2), 1);
-            int32x4_t vbg = vshrq_n_s32(vaddq_s32(vsubq_s32(vb, vgs), vmid2), 1);
-
-            vst1q_s32(&out_gs[col + half*4], vgs);
-            vst1q_s32(&out_rg[col + half*4], vrg);
-            vst1q_s32(&out_bg[col + half*4], vbg);
-            vst1q_s32(&out_gd[col + half*4], vgd);
-        }
-    }
-#endif
-
-    /* Scalar cleanup for tail columns. */
-    for (; col < ch_width; col++) {
-        uint16_t R1, G1, G2, B1;
-        if (is_rggb) {
-            R1 = row1[2*col];   G1 = row1[2*col+1];
-            G2 = row2[2*col];   B1 = row2[2*col+1];
-        } else {
-            G1 = row1[2*col];   B1 = row1[2*col+1];
-            R1 = row2[2*col];   G2 = row2[2*col+1];
-        }
-        if (R1 > log_max) R1 = log_max;
-        if (G1 > log_max) G1 = log_max;
-        if (G2 > log_max) G2 = log_max;
-        if (B1 > log_max) B1 = log_max;
-        int32_t r  = log_tbl[R1];
-        int32_t g1 = log_tbl[G1];
-        int32_t g2 = log_tbl[G2];
-        int32_t b  = log_tbl[B1];
-        int32_t gs = (g1 + g2) >> 1;
-        out_gs[col] = gs;
-        out_rg[col] = ((r - gs) + mid2) >> 1;
-        out_bg[col] = ((b - gs) + mid2) >> 1;
-        out_gd[col] = ((g1 - g2) + mid2) >> 1;
-    }
-}
 
 /* Unpack ONE channel from a Bayer row pair (called per output row by a channel thread).
    GS/GD need G1+G2 only. RG/BG also need R or B and compute GS as an intermediate.
@@ -1194,6 +1293,105 @@ static void unpack_channel_row(
             } break;
             case 3: output[col] = ((g1 - g2) + mid2) >> 1; break;
         }
+    }
+}
+
+/* No-decimate luma specialization for channels 0=GS and 3=GD.
+   The generic unpack path also supports chroma and therefore carries channel
+   branches plus R/B scratch handling inside the row loop. Luma needs only G1
+   and G2 log values, so keep this path smaller and branch outside the loop. */
+static void unpack_luma_row(
+    int channel, int is_rggb,
+    const uint16_t *log_tbl, int log_max, int32_t mid2,
+    const uint16_t *row1, const uint16_t *row2,
+    PIXEL *output, int ch_width)
+{
+    int col = 0;
+    const int is_gd = (channel == 3);
+
+#if ENABLED(NEON)
+    const int ch_width_m8 = (ch_width / 8) * 8;
+    const int ch_width_m4 = (ch_width / 4) * 4;
+    const int32x4_t vmid2 = vdupq_n_s32(mid2);
+    const uint16x8_t v_log_max = vdupq_n_u16((uint16_t)log_max);
+
+    __builtin_prefetch(&row1[ch_width * 2 - 32], 0, 3);
+    __builtin_prefetch(&row2[ch_width * 2 - 32], 0, 3);
+
+    for (; col < ch_width_m8; col += 8) {
+        uint16x8x2_t r1d = vld2q_u16(&row1[2*col]);
+        uint16x8x2_t r2d = vld2q_u16(&row2[2*col]);
+        uint16x8_t vG1, vG2;
+        if (is_rggb) {
+            vG1 = vminq_u16(r1d.val[1], v_log_max);
+            vG2 = vminq_u16(r2d.val[0], v_log_max);
+        } else {
+            vG1 = vminq_u16(r1d.val[0], v_log_max);
+            vG2 = vminq_u16(r2d.val[1], v_log_max);
+        }
+
+        uint16_t G1s[8], G2s[8];
+        vst1q_u16(G1s, vG1);
+        vst1q_u16(G2s, vG2);
+
+        for (int half = 0; half < 2; half++) {
+            int32_t g1a[4], g2a[4];
+            for (int k = 0; k < 4; k++) {
+                g1a[k] = log_tbl[G1s[half*4 + k]];
+                g2a[k] = log_tbl[G2s[half*4 + k]];
+            }
+            int32x4_t vg1 = vld1q_s32(g1a);
+            int32x4_t vg2 = vld1q_s32(g2a);
+            int32x4_t result;
+            if (is_gd) {
+                result = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+            } else {
+                result = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+            }
+            vst1q_s32(&output[col + half*4], result);
+        }
+    }
+
+    for (; col < ch_width_m4; col += 4) {
+        int32_t g1a[4], g2a[4];
+        for (int k = 0; k < 4; k++) {
+            int c = col + k;
+            uint16_t G1, G2;
+            if (is_rggb) {
+                G1 = row1[2*c+1]; G2 = row2[2*c];
+            } else {
+                G1 = row1[2*c];   G2 = row2[2*c+1];
+            }
+            if (G1 > log_max) G1 = log_max;
+            if (G2 > log_max) G2 = log_max;
+            g1a[k] = log_tbl[G1];
+            g2a[k] = log_tbl[G2];
+        }
+        int32x4_t vg1 = vld1q_s32(g1a);
+        int32x4_t vg2 = vld1q_s32(g2a);
+        int32x4_t result;
+        if (is_gd) {
+            result = vshrq_n_s32(vaddq_s32(vsubq_s32(vg1, vg2), vmid2), 1);
+        } else {
+            result = vshrq_n_s32(vaddq_s32(vg1, vg2), 1);
+        }
+        vst1q_s32(&output[col], result);
+    }
+#endif
+
+    for (; col < ch_width; col++) {
+        uint16_t G1v, G2v;
+        if (is_rggb) {
+            G1v = row1[2*col+1]; G2v = row2[2*col];
+        } else {
+            G1v = row1[2*col];   G2v = row2[2*col+1];
+        }
+        if (G1v > log_max) G1v = log_max;
+        if (G2v > log_max) G2v = log_max;
+        int32_t g1 = log_tbl[G1v];
+        int32_t g2 = log_tbl[G2v];
+        if (is_gd) output[col] = ((g1 - g2) + mid2) >> 1;
+        else       output[col] = (g1 + g2) >> 1;
     }
 }
 
@@ -2260,16 +2458,16 @@ static void stream_cascade_higher_levels(FUSED_CHANNEL_STATE *cs,
 
             vertical_filter_quantize_row(lp_rows, bw_l2,
                 cs->midpoint_l2[0], cs->multiplier_l2[0],
-                cs->midpoint_l2[1], cs->multiplier_l2[1],
+                cs->midpoint_l2[2], cs->multiplier_l2[2],
                 0,0, 0,0,
-                ll2, lh2, NULL, NULL,
+                ll2, hl2, NULL, NULL,
                 is_top, is_bottom);
 
             vertical_filter_quantize_row(hp_rows, bw_l2,
-                cs->midpoint_l2[2], cs->multiplier_l2[2],
+                cs->midpoint_l2[1], cs->multiplier_l2[1],
                 cs->midpoint_l2[3], cs->multiplier_l2[3],
                 0,0, 0,0,
-                hl2, hh2, NULL, NULL,
+                lh2, hh2, NULL, NULL,
                 is_top, is_bottom);
 
             cs->band_out_row_l2++;
@@ -2308,16 +2506,16 @@ static void stream_cascade_higher_levels(FUSED_CHANNEL_STATE *cs,
 
                     vertical_filter_quantize_row(lp_rows3, bw_l3,
                         cs->midpoint_l3[0], cs->multiplier_l3[0],
-                        cs->midpoint_l3[1], cs->multiplier_l3[1],
+                        cs->midpoint_l3[2], cs->multiplier_l3[2],
                         0,0, 0,0,
-                        ll3, lh3, NULL, NULL,
+                        ll3, hl3, NULL, NULL,
                         is_top3, is_bottom3);
 
                     vertical_filter_quantize_row(hp_rows3, bw_l3,
-                        cs->midpoint_l3[2], cs->multiplier_l3[2],
+                        cs->midpoint_l3[1], cs->multiplier_l3[1],
                         cs->midpoint_l3[3], cs->multiplier_l3[3],
                         0,0, 0,0,
-                        hl3, hh3, NULL, NULL,
+                        lh3, hh3, NULL, NULL,
                         is_top3, is_bottom3);
 
                     cs->band_out_row_l3++;
@@ -2485,8 +2683,13 @@ static void pass1_run_channel(
 #endif
                 }
             } else {
-                unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
-                                   row1, row2, unpack_row, ch_width);
+                if (channel == 0 || channel == 3) {
+                    unpack_luma_row(channel, is_rggb, log_tbl, log_max, mid2,
+                                    row1, row2, unpack_row, ch_width);
+                } else {
+                    unpack_channel_row(channel, is_rggb, log_tbl, log_max, mid2,
+                                       row1, row2, unpack_row, ch_width);
+                }
             }
 
 #ifdef FUSED_TIMING_DETAIL
@@ -2564,17 +2767,23 @@ static void pass1_run_channel(
                 int out_row = cs->band_out_row;
                 /* Allow the tail to write into the +12 scratch rows so the
                    streaming cascade can drive level 3 all the way to
-                   band_height_l3. */
-                if (out_row >= cs->band_height + 12) break;
+                   band_height_l3. Split single-level mode owns only
+                   band_height rows in band_data and must not write past it. */
+                int max_out_rows = streaming ? (cs->band_height + 12) : cs->band_height;
+                if (out_row >= max_out_rows) break;
 
                 int is_top = (out_row == 0);
                 int is_bottom = (out_row == cs->band_height - 1);
 
                 /* Output destinations: per-row scratch for inline/streaming,
-                   full band buffers for split mode. */
-                PIXEL *ll_row = inline_mode    ? cs->row_scratch[0]
-                              : streaming      ? cs->row_scratch[0]
-                                               : (cs->band_data[0] + out_row * cs->band_pitch);
+                   full band buffers for split mode. Hybrid raw-LL inline has
+                   HP inline states but no LL inline state, so LL writes to its
+                   buffered sideband source. */
+                PIXEL *ll_row = (inline_mode && cs->inline_state[0])  ? cs->row_scratch[0]
+                              : (inline_mode && cs->band_data[0])     ? (cs->band_data[0] + out_row * cs->band_pitch)
+                              : inline_mode                           ? cs->row_scratch[0]
+                              : streaming                             ? cs->row_scratch[0]
+                                                                      : (cs->band_data[0] + out_row * cs->band_pitch);
                 PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
                                             : (cs->band_data[1] + out_row * cs->band_pitch);
                 PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
@@ -2592,16 +2801,16 @@ static void pass1_run_channel(
                 } else {
                     vertical_filter_quantize_row(lp_rows, bw,
                         cs->midpoint[0], cs->multiplier[0],
-                        cs->midpoint[1], cs->multiplier[1],
+                        cs->midpoint[2], cs->multiplier[2],
                         0, 0, 0, 0,
-                        ll_row, lh_row, NULL, NULL,
+                        ll_row, hl_row, NULL, NULL,
                         is_top, is_bottom);
 
                     vertical_filter_quantize_row(hp_rows, bw,
-                        cs->midpoint[2], cs->multiplier[2],
+                        cs->midpoint[1], cs->multiplier[1],
                         cs->midpoint[3], cs->multiplier[3],
                         0, 0, 0, 0,
-                        hl_row, hh_row, NULL, NULL,
+                        lh_row, hh_row, NULL, NULL,
                         is_top, is_bottom);
                 }
 
@@ -2621,22 +2830,28 @@ static void pass1_run_channel(
                     if (cs->inline_state[0]) {
                         jans_inline_row(cs->inline_state[0], ll_row, bw);
                     }
-                    if (!hf_drop_hp) {
-                        /* Inline-mode BayesShrink-style soft-threshold on
-                           highpass bands. Applied while bands are still hot
-                           in L1, before the tokenize loop reads them. LL is
-                           intentionally NOT thresholded — it carries DC. */
-                        int32_t T_lh = cs->inline_denoise_T[1];
-                        int32_t T_hl = cs->inline_denoise_T[2];
-                        int32_t T_hh = cs->inline_denoise_T[3];
-                        if (T_lh > 0) soft_threshold_row(lh_row, bw, T_lh);
-                        if (T_hl > 0) soft_threshold_row(hl_row, bw, T_hl);
-                        if (T_hh > 0) soft_threshold_row(hh_row, bw, T_hh);
-                        jans_inline_row(cs->inline_state[1], lh_row, bw);
-                        jans_inline_row(cs->inline_state[2], hl_row, bw);
-                        jans_inline_row(cs->inline_state[3], hh_row, bw);
-                    }
-                }
+	                    if (!hf_drop_hp) {
+	                        /* Inline-mode BayesShrink-style soft-threshold on
+	                           highpass bands. Applied while bands are still hot
+	                           in L1, before the tokenize loop reads them. LL is
+	                           intentionally NOT thresholded — it carries DC. */
+	                        int32_t T_lh = cs->inline_denoise_T[1];
+	                        int32_t T_hl = cs->inline_denoise_T[2];
+	                        int32_t T_hh = cs->inline_denoise_T[3];
+	                        if (cs->inline_denoise_hard) {
+	                            if (T_lh > 0) hard_threshold_row(lh_row, bw, T_lh);
+	                            if (T_hl > 0) hard_threshold_row(hl_row, bw, T_hl);
+	                            if (T_hh > 0) hard_threshold_row(hh_row, bw, T_hh);
+	                        } else {
+	                            if (T_lh > 0) soft_threshold_row(lh_row, bw, T_lh);
+	                            if (T_hl > 0) soft_threshold_row(hl_row, bw, T_hl);
+	                            if (T_hh > 0) soft_threshold_row(hh_row, bw, T_hh);
+	                        }
+	                        jans_inline_row(cs->inline_state[1], lh_row, bw);
+	                        jans_inline_row(cs->inline_state[2], hl_row, bw);
+	                        jans_inline_row(cs->inline_state[3], hh_row, bw);
+	                    }
+	                }
 
                 /* Multi-level streaming: cascade the fresh LL1 row through
                    level-2 and level-3 wavelets while it's hot in cache. */
@@ -2699,204 +2914,6 @@ typedef struct {
     volatile int p1_done[4];
 } CHANNEL_SYNC;
 
-/* ================================================================
-   Shared-unpack ring buffer (N producers + 4 consumers)
-   ----------------------------------------------------------------
-   N producer threads (row-interleaved: producer p handles rows where
-   row % N_PRODUCERS == p) cooperatively fill a small ring of unpacked
-   rows (4 channel-row pointers per slot). The 4 P1 channel consumer
-   threads each consume their channel from the ring and run
-   horiz+vert+quant as before. This eliminates the ~10 LUT lookups per
-   Bayer block (only 4 unique) duplicated across the 4 prior per-channel
-   unpack threads — each Bayer block now goes through the log curve once
-   per pixel-lane instead of 2.5x.
-
-   Each ring slot s carries the row number currently occupying it in
-   slot_row[s]; consumers wait for slot_row[s] == r before reading row r.
-   Producers wait for min_consumer > r - N_RING before writing slot s.
-   N_RING = 64 -> ~4.5 MB at 50 MP. Signalling batched every
-   RING_BATCH rows to keep mutex traffic low. */
-/* Ring depth reduced from 64 to 8 (Pi 5 hardware-aware sizing).
-   At 50 MP each slot is ~33 KB (4 channels × ch_width × 4 B for PIXEL).
-   64 slots × 33 KB = 2.1 MB exceeds Pi 5 L3 (2 MB shared) — producer-
-   written rows evict before consumers read them.
-   8 slots × 33 KB = 264 KB fits in L3 and partially in per-core L2
-   (512 KB), keeping the producer/consumer hand-off in cache.
-   On A76 this should save ~3-5 ms on the producer-unpack path; on
-   the default per-channel path it just shrinks calloc/free of the
-   ring struct, which is negligible. */
-#define UNPACK_RING_SIZE  8
-#define UNPACK_RING_BATCH 16
-#ifndef UNPACK_PRODUCERS
-#define UNPACK_PRODUCERS  4
-#endif
-
-/* Cache-line-padded counter. Each producer/consumer writes its own
-   per-row position into one of these; padding ensures the line owned
-   by thread A is never the line read+written by thread B.
-
-   Pre-padding analysis (4-byte ints in flat arrays):
-     - prod_max_row[4] = 16 B on one 64 B line. All 4 producers wrote every
-       row → 4-way exclusive-line ping-pong on every row pair.
-     - consumed[4]      = 16 B on one 64 B line. All 4 consumers wrote
-       every row → 4-way exclusive-line ping-pong + producer reads in wait
-       loop (lines 1269-1272) → extra L2 traffic.
-     - slot_row[8]      = 32 B on one 64 B line. 4 producers wrote
-       interleaved slots → cross-thread cache-line bouncing.
-   Promoting each to its own 64 B line removes the contention. The cost
-   is +(4-1)*64*3 = 576 B in the ring struct (negligible vs ring slots). */
-typedef struct {
-    volatile int v;
-    char _pad[CACHE_LINE_SIZE - sizeof(int)];
-} PADDED_INT;
-
-typedef struct {
-    PIXEL *rows[UNPACK_RING_SIZE][4];  /* row buf per slot per channel */
-    int ch_width;
-    int total_rows;
-
-    /* slot_row[s] = row number currently occupying slot s (or s - N_RING
-       initially). When producer finishes writing row r to slot s, it sets
-       slot_row[s] = r. Consumers read slot s for row r once slot_row[s] >= r.
-       Cache-line-padded: each slot's row-number tag is on its own line so the
-       interleaved producer writes (each producer p touches rows where
-       row % UNPACK_PRODUCERS == p, and slot = row % UNPACK_RING_SIZE)
-       don't false-share. */
-    PADDED_INT slot_row[UNPACK_RING_SIZE];
-
-    /* Per-producer position (rows produced so far in this producer's stride).
-       Each producer writes its own [pid] every row; padding removes the
-       canonical 4-way false-share. */
-    PADDED_INT prod_max_row[UNPACK_PRODUCERS];
-
-    /* Per-consumer position (rows consumed so far, monotonic). Each consumer
-       writes its own [ch] every row; producers read all 4 in the
-       full-ring-wait loop. Padding eliminates the consumer/producer ping-pong. */
-    PADDED_INT consumed[4];
-
-    pthread_mutex_t lock;
-    pthread_cond_t  prod_cv;   /* producers wait when ring is full */
-    pthread_cond_t  cons_cv;   /* consumers wait when ring is empty */
-} UNPACK_RING;
-
-static int unpack_ring_init(UNPACK_RING *ring, int ch_width, int total_rows) {
-    memset(ring, 0, sizeof(*ring));
-    ring->ch_width = ch_width;
-    ring->total_rows = total_rows;
-    for (int s = 0; s < UNPACK_RING_SIZE; s++) {
-        for (int c = 0; c < 4; c++) {
-            /* 64-B aligned: ring slot row buffers are touched by 4
-               producers + 4 consumers, with NEON ld1q/st1q in the inner
-               loops. Misaligned bases caused every NEON access to risk
-               a 32-B/64-B straddle. */
-            ring->rows[s][c] = (PIXEL *)fused_aligned_alloc(ch_width * sizeof(PIXEL));
-            if (!ring->rows[s][c]) return -1;
-        }
-        ring->slot_row[s].v = s - UNPACK_RING_SIZE;  /* "before-start" sentinel */
-    }
-    pthread_mutex_init(&ring->lock, NULL);
-    pthread_cond_init(&ring->prod_cv, NULL);
-    pthread_cond_init(&ring->cons_cv, NULL);
-    return 0;
-}
-
-static void unpack_ring_destroy(UNPACK_RING *ring) {
-    for (int s = 0; s < UNPACK_RING_SIZE; s++) {
-        for (int c = 0; c < 4; c++) {
-            if (ring->rows[s][c]) free(ring->rows[s][c]);
-        }
-    }
-    pthread_mutex_destroy(&ring->lock);
-    pthread_cond_destroy(&ring->prod_cv);
-    pthread_cond_destroy(&ring->cons_cv);
-}
-
-typedef struct {
-    UNPACK_RING *ring;
-    int producer_id;       /* 0..UNPACK_PRODUCERS-1 */
-    const uint8_t *raw_bayer;
-    int width, height;     /* full image dimensions (rows = height/2 = ring->total_rows) */
-    int log_bits, is_rggb;
-} UNPACK_PRODUCER_TASK;
-
-static void *unpack_producer_thread(void *arg) {
-    UNPACK_PRODUCER_TASK *t = (UNPACK_PRODUCER_TASK *)arg;
-    UNPACK_RING *ring = t->ring;
-    int pid = t->producer_id;
-    const uint16_t *bayer = (const uint16_t *)t->raw_bayer;
-    int bayer_pitch = t->width;
-    int ch_width = ring->ch_width;
-    int total_rows = ring->total_rows;
-    int log_bits = t->log_bits;
-    int is_rggb = t->is_rggb;
-    int32_t mid2 = 2 * (1 << (log_bits - 1));
-    uint16_t *log_tbl = (log_bits <= 14) ? EncoderLogCurve14 : EncoderLogCurve16;
-    int log_max = (log_bits <= 14) ? 16383 : 65535;
-    int batch_counter = 0;
-
-#ifdef FUSED_TIMING_DETAIL
-    double _start = _fused_ms();
-#endif
-
-    /* Row-interleaved: each producer handles rows where row % N_PRODUCERS == pid. */
-    for (int row = pid; row < total_rows; row += UNPACK_PRODUCERS) {
-        int slot = row % UNPACK_RING_SIZE;
-
-        /* Wait until all consumers have advanced past row - UNPACK_RING_SIZE
-           so the slot is free to overwrite.
-           Before sleeping, broadcast cons_cv so any consumer that's blocked
-           on an as-yet-unbatched slot wakes up and drains. Without this,
-           4 producers each fill 2 slots (RING_SIZE=8 ÷ 4 producers) before
-           filling the ring, which is < UNPACK_RING_BATCH=16 → consumer never
-           gets the normal end-of-batch broadcast → deadlock. */
-        if (row >= UNPACK_RING_SIZE) {
-            pthread_mutex_lock(&ring->lock);
-            pthread_cond_broadcast(&ring->cons_cv);
-            for (;;) {
-                int min_cons = ring->consumed[0].v;
-                if (ring->consumed[1].v < min_cons) min_cons = ring->consumed[1].v;
-                if (ring->consumed[2].v < min_cons) min_cons = ring->consumed[2].v;
-                if (ring->consumed[3].v < min_cons) min_cons = ring->consumed[3].v;
-                if (min_cons > row - UNPACK_RING_SIZE) break;
-                pthread_cond_wait(&ring->prod_cv, &ring->lock);
-            }
-            pthread_mutex_unlock(&ring->lock);
-        }
-
-        const uint16_t *row1 = bayer + (row * 2) * bayer_pitch;
-        const uint16_t *row2 = row1 + bayer_pitch;
-
-        unpack_all_channels_row(is_rggb, log_tbl, log_max, mid2,
-                                row1, row2,
-                                ring->rows[slot][0], ring->rows[slot][1],
-                                ring->rows[slot][2], ring->rows[slot][3],
-                                ch_width);
-
-        /* Publish this slot. Use a per-slot row-number tag so the consumer
-           knows when slot s contains row r (slot_row[s] == r).
-           Periodic mutex broadcast wakes the consumer; in between, the plain
-           volatile stores are picked up by the consumer's spin-then-wait. */
-        ring->slot_row[slot].v = row;
-        ring->prod_max_row[pid].v = row;
-        batch_counter++;
-        if (batch_counter >= UNPACK_RING_BATCH || row + UNPACK_PRODUCERS >= total_rows) {
-            pthread_mutex_lock(&ring->lock);
-            pthread_cond_broadcast(&ring->cons_cv);
-            pthread_mutex_unlock(&ring->lock);
-            batch_counter = 0;
-        }
-    }
-
-#ifdef FUSED_TIMING_DETAIL
-    double _end = _fused_ms();
-    if (pid == 0) {
-        fprintf(stderr, "    producer-unpack[0..%d]: %.1fms (P0 thread, %d producers total)\n",
-                UNPACK_PRODUCERS - 1, _end - _start, UNPACK_PRODUCERS);
-    }
-#endif
-    return NULL;
-}
-
 typedef struct {
     int channel;
     const uint8_t *raw_bayer;
@@ -2904,240 +2921,7 @@ typedef struct {
     int log_bits, is_rggb, prescale;
     FUSED_CHANNEL_STATE *cs;
     CHANNEL_SYNC *sync;
-    UNPACK_RING *ring;   /* if non-NULL, consume from ring instead of unpacking */
 } PASS1_CHANNEL_TASK;
-
-/* Producer/consumer variant of pass1_run_channel: consumes unpacked channel
-   rows from the shared ring (filled by unpack_producer_thread). Otherwise
-   identical to pass1_run_channel: horiz -> vert+quant -> optional tokenize,
-   plus the bottom-edge tail (replicates last lp/hp) and the streaming
-   cascade into level 2/3 when cs->streaming_active. */
-static void pass1_run_channel_consumer(
-    int channel,
-    int width, int height,
-    int prescale,
-    FUSED_CHANNEL_STATE *cs,
-    UNPACK_RING *ring)
-{
-    int ch_width = width / 2;
-    int ch_height = height / 2;
-    (void)ch_width;  /* unpack row width matches ring->ch_width */
-
-#ifdef FUSED_TIMING_DETAIL
-    double t_wait = 0, t_horiz = 0, t_vert = 0, t_freq = 0;
-    double _td;
-    double _ch_start = _fused_ms();
-#endif
-
-    /* Tail extras: same logic as pass1_run_channel. */
-    int tail_extras = 4;
-    if (cs->streaming_active) {
-        tail_extras = 28;
-    }
-    int total_rows = ch_height + tail_extras;
-
-    const int hf_drop_hp_c = cs->drop_hp;
-
-    for (int row = 0; row < total_rows; row++) {
-        int buf_idx = cs->buf_row % FUSED_ROW_BUFS;
-
-        if (row < ch_height) {
-            int slot = row % UNPACK_RING_SIZE;
-#ifdef FUSED_TIMING_DETAIL
-            _td = _fused_ms();
-#endif
-            /* Wait for SOME producer to have published this row. slot_row[slot]
-               starts negative and only grows in increments of UNPACK_RING_SIZE;
-               we want slot_row[slot] == row. */
-            if (ring->slot_row[slot].v < row) {
-                /* Brief spin in case the producer is about to publish. */
-                for (int spin = 0; spin < 1024; spin++) {
-                    if (ring->slot_row[slot].v >= row) break;
-                }
-                if (ring->slot_row[slot].v < row) {
-                    pthread_mutex_lock(&ring->lock);
-                    while (ring->slot_row[slot].v < row) {
-                        pthread_cond_wait(&ring->cons_cv, &ring->lock);
-                    }
-                    pthread_mutex_unlock(&ring->lock);
-                }
-            }
-#ifdef FUSED_TIMING_DETAIL
-            t_wait += _fused_ms() - _td; _td = _fused_ms();
-#endif
-
-            PIXEL *unpack_row = ring->rows[slot][channel];
-
-            /* HP-skip fast path when GPR_DROP_HIGHPASS=1; hoisted above. */
-            if (hf_drop_hp_c) {
-                horizontal_filter_lp_only(unpack_row,
-                                          cs->lowpass_buf[buf_idx],
-                                          ch_width, prescale);
-            } else {
-                horizontal_filter(unpack_row,
-                                  cs->lowpass_buf[buf_idx],
-                                  cs->highpass_buf[buf_idx],
-                                  ch_width, prescale);
-            }
-        } else {
-            /* Tail: replicate the previous slot's lp/hp (no ring read). */
-            int prev = (cs->buf_row - 1) % FUSED_ROW_BUFS;
-            if (prev != buf_idx) {
-                memcpy(cs->lowpass_buf[buf_idx], cs->lowpass_buf[prev],
-                       (size_t)(ch_width / 2) * sizeof(PIXEL));
-                memcpy(cs->highpass_buf[buf_idx], cs->highpass_buf[prev],
-                       (size_t)(ch_width / 2) * sizeof(PIXEL));
-            }
-        }
-        cs->buf_row++;
-
-#ifdef FUSED_TIMING_DETAIL
-        t_horiz += _fused_ms() - _td; _td = _fused_ms();
-#endif
-
-        if (cs->buf_row >= 6 && (cs->buf_row % 2) == 0) {
-            /* Two emits on first trigger (top boundary + first interior),
-               single emit thereafter. See line ~1271 for the rationale. */
-            int n_emits = (cs->band_out_row == 0) ? 2 : 1;
-            int base = (cs->buf_row - 6) % FUSED_ROW_BUFS;
-            if (base < 0) base += FUSED_ROW_BUFS;
-            PIXEL *lp_rows[6], *hp_rows[6];
-            for (int r = 0; r < 6; r++) {
-                int idx = (base + r) % FUSED_ROW_BUFS;
-                lp_rows[r] = cs->lowpass_buf[idx];
-                hp_rows[r] = cs->highpass_buf[idx];
-            }
-            /* inline_state[1] may be NULL when GPR_DROP_HIGHPASS=1 (HP bands
-               are unused). Fall back to state[0] (LL band, allocated when
-               GPR_INCLUDE_LL=1) to distinguish inline vs split mode. */
-            const int inline_mode = (cs->inline_state[0] != NULL ||
-                                     cs->inline_state[1] != NULL);
-            const int streaming = cs->streaming_active;
-            int bw = cs->band_width;
-
-            for (int e = 0; e < n_emits; e++) {
-                int out_row = cs->band_out_row;
-                if (out_row >= cs->band_height + 12) break;
-
-                int is_top = (out_row == 0);
-                int is_bottom = (out_row == cs->band_height - 1);
-
-                PIXEL *ll_row = inline_mode    ? cs->row_scratch[0]
-                              : streaming      ? cs->row_scratch[0]
-                                               : (cs->band_data[0] + out_row * cs->band_pitch);
-                PIXEL *lh_row = inline_mode ? cs->row_scratch[1]
-                                            : (cs->band_data[1] + out_row * cs->band_pitch);
-                PIXEL *hl_row = inline_mode ? cs->row_scratch[2]
-                                            : (cs->band_data[2] + out_row * cs->band_pitch);
-                PIXEL *hh_row = inline_mode ? cs->row_scratch[3]
-                                            : (cs->band_data[3] + out_row * cs->band_pitch);
-
-                if (hf_drop_hp_c) {
-                    vertical_filter_quantize_row_lo_only(lp_rows, bw,
-                        cs->midpoint[0], cs->multiplier[0],
-                        ll_row,
-                        is_top, is_bottom);
-                } else {
-                    vertical_filter_quantize_row(lp_rows, bw,
-                        cs->midpoint[0], cs->multiplier[0],
-                        cs->midpoint[1], cs->multiplier[1],
-                        0, 0, 0, 0,
-                        ll_row, lh_row, NULL, NULL,
-                        is_top, is_bottom);
-
-                    vertical_filter_quantize_row(hp_rows, bw,
-                        cs->midpoint[2], cs->multiplier[2],
-                        cs->midpoint[3], cs->multiplier[3],
-                        0, 0, 0, 0,
-                        hl_row, hh_row, NULL, NULL,
-                        is_top, is_bottom);
-                }
-
-#ifdef FUSED_TIMING_DETAIL
-                t_vert += _fused_ms() - _td; _td = _fused_ms();
-#endif
-
-                if (inline_mode) {
-                    if (cs->inline_state[0]) {
-                        jans_inline_row(cs->inline_state[0], ll_row, bw);
-                    }
-                    if (!hf_drop_hp_c) {
-                        jans_inline_row(cs->inline_state[1], lh_row, bw);
-                        jans_inline_row(cs->inline_state[2], hl_row, bw);
-                        jans_inline_row(cs->inline_state[3], hh_row, bw);
-                    }
-                }
-
-                if (streaming) {
-                    stream_cascade_higher_levels(cs, ll_row);
-                }
-
-#ifdef FUSED_TIMING_DETAIL
-                t_freq += _fused_ms() - _td;
-#endif
-
-                cs->band_out_row++;
-            }
-        }
-
-advance_consumer:
-        /* Release the slot once we've consumed it. Only data rows are tracked
-           in the ring; tail rows don't read from the ring. Batch signaling
-           so the producer isn't woken per row.
-           Two pre-existing deadlock conditions fixed here:
-             1. Signal cadence must be < UNPACK_RING_SIZE/UNPACK_PRODUCERS so
-                producers can advance before the ring fills. With RING=8 and
-                4 producers we use sig_period=UNPACK_RING_SIZE/2 = 4.
-             2. Use broadcast (not signal) since up to 4 producers are
-                blocked on prod_cv and they may each need a different
-                consumed[ch] threshold. pthread_cond_signal wakes only one;
-                that one may go right back to sleep, leaving the others
-                stranded with no further wake source. */
-        if (row < ch_height) {
-            int new_cons = row + 1;
-            int sig_period = UNPACK_RING_SIZE / 2;
-            if (sig_period < 1) sig_period = 1;
-            if ((new_cons % sig_period) == 0 || new_cons == ch_height) {
-                pthread_mutex_lock(&ring->lock);
-                ring->consumed[channel].v = new_cons;
-                pthread_cond_broadcast(&ring->prod_cv);
-                pthread_mutex_unlock(&ring->lock);
-            } else {
-                ring->consumed[channel].v = new_cons;
-            }
-        }
-    }
-
-    /* Same bottom-of-band zero-row flush as the per-channel path. */
-    /* Inline-mode detection: state[1] may be NULL when GPR_DROP_HIGHPASS=1,
-       but state[0] is still set when GPR_INCLUDE_LL=1. Take either. */
-    if (cs->inline_state[0] != NULL || cs->inline_state[1] != NULL) {
-        int bw = cs->band_width;
-        PIXEL *zero_row = (PIXEL *)calloc(bw, sizeof(PIXEL));
-        if (zero_row) {
-            while (cs->band_out_row < cs->band_height) {
-                if (cs->inline_state[0]) {
-                    jans_inline_row(cs->inline_state[0], zero_row, bw);
-                }
-                if (!hf_drop_hp_c && cs->inline_state[1]) {
-                    jans_inline_row(cs->inline_state[1], zero_row, bw);
-                    jans_inline_row(cs->inline_state[2], zero_row, bw);
-                    jans_inline_row(cs->inline_state[3], zero_row, bw);
-                }
-                cs->band_out_row++;
-            }
-            free(zero_row);
-        }
-    }
-
-#ifdef FUSED_TIMING_DETAIL
-    double _ch_end = _fused_ms();
-    double _ch_total = _ch_end - _ch_start;
-    double _ch_other = _ch_total - t_wait - t_horiz - t_vert - t_freq;
-    fprintf(stderr, "    ch%d: wait=%.1f, horiz=%.1f, vert+quant=%.1f, tokenize=%.1f, other=%.1f, TOTAL=%.1f\n",
-            channel, t_wait, t_horiz, t_vert, t_freq, _ch_other, _ch_total);
-#endif
-}
 
 static void *pass1_channel_thread(void *arg) {
     PASS1_CHANNEL_TASK *t = (PASS1_CHANNEL_TASK *)arg;
@@ -3145,13 +2929,8 @@ static void *pass1_channel_thread(void *arg) {
        between cores during the row loop, eliminating the bimodal slowdown
        where 2 channel threads end up sharing a core. */
     _fused_pin_self(t->channel);
-    if (t->ring) {
-        pass1_run_channel_consumer(t->channel, t->width, t->height,
-                                    t->prescale, t->cs, t->ring);
-    } else {
-        pass1_run_channel(t->channel, t->raw_bayer, t->width, t->height,
-                          t->log_bits, t->is_rggb, t->prescale, t->cs);
-    }
+    pass1_run_channel(t->channel, t->raw_bayer, t->width, t->height,
+                      t->log_bits, t->is_rggb, t->prescale, t->cs);
 
     /* Signal that this channel's Pass 1 is complete — unblocks its 3 P2 bands */
     if (t->sync) {
@@ -3191,6 +2970,9 @@ static int setup_channel_state(
        LL3 path uses to keep LL bounded. */
     const char *_ll_env = getenv("GPR_INCLUDE_LL");
     int single_level_include_ll = (_ll_env && *_ll_env == '1') ? 1 : 0;
+    const char *_raw_ll_env_setup = getenv("FUSED_RAW_LL");
+    int single_level_raw_ll = (!multi_level && single_level_include_ll &&
+                               _raw_ll_env_setup && *_raw_ll_env_setup == '1');
     QUANT qt_buf[10];
     memcpy(qt_buf, quality_tables[(quality >= 0 && quality < 12) ? quality : 3],
            sizeof(qt_buf));
@@ -3213,7 +2995,15 @@ static int setup_channel_state(
            exceeds the rANS class-15 ceiling and gets clipped at ±2047. */
         int q_ll1_eff = qt[q_ll1];
         if (!multi_level && single_level_include_ll) {
-            q_ll1_eff = qt[q_ll1] * 16;  /* matches multi-level FUSED_LL3_EXTRA_DIVISOR */
+            int ll1_extra = 16;
+            const char *_ll1_env = getenv("FUSED_LL1_DIVISOR");
+            if (_ll1_env && *_ll1_env) {
+                int v = atoi(_ll1_env);
+                if (v >= 1 && v <= 64) ll1_extra = v;
+            }
+            const char *_raw_ll_env = getenv("FUSED_RAW_LL");
+            if (_raw_ll_env && *_raw_ll_env == '1') ll1_extra = 1;
+            q_ll1_eff = qt[q_ll1] * ll1_extra;
         }
         ch_state[ch].midpoint[0] = get_midpoint(q_ll1_eff);
         ch_state[ch].multiplier[0] = get_multiplier(q_ll1_eff);
@@ -3235,7 +3025,15 @@ static int setup_channel_state(
         int bw = ch_state[ch].band_width;
         int bh = ch_state[ch].band_height;
         for (int band = 0; band < 4; band++) {
-            if (inline_mode && !multi_level) {
+            if (inline_mode && single_level_raw_ll && band == 0) {
+                /* Hybrid inline/raw-LL path: highpass bands tokenize inline,
+                   but LL must stay buffered so Pass 2 can emit the FLL1 raw
+                   sideband instead of feeding oversized LL coefficients into
+                   the rANS inline tokenizer. */
+                ch_state[ch].band_data[band] = (PIXEL *)fused_aligned_calloc((size_t)bw * (bh + 12), sizeof(PIXEL));
+                ch_state[ch].row_scratch[band] = NULL;
+                if (!ch_state[ch].band_data[band]) return -1;
+            } else if (inline_mode && !multi_level) {
                 /* Need only a small row scratch instead of the full band */
                 ch_state[ch].band_data[band] = NULL;
                 ch_state[ch].row_scratch[band] = (PIXEL *)fused_aligned_calloc(bw, sizeof(PIXEL));
@@ -3370,8 +3168,13 @@ static int setup_channel_state(
                 /* qt[0]=LL3 (encoded), qt[1,2,3]=LH3,HL3,HH3.
                    LL3 divisor 16× to keep magnitudes under rANS class-15
                    ceiling (2047). */
-                #define FUSED_LL3_EXTRA_DIVISOR 16
-                int ll3_div = qt[0] * FUSED_LL3_EXTRA_DIVISOR;
+                int ll3_extra = 16;
+                const char *_ll3_env = getenv("FUSED_LL3_DIVISOR");
+                if (_ll3_env && *_ll3_env) {
+                    int v = atoi(_ll3_env);
+                    if (v >= 1 && v <= 64) ll3_extra = v;
+                }
+                int ll3_div = qt[0] * ll3_extra;
                 ch_state[ch].midpoint_l3[0] = get_midpoint(ll3_div);
                 ch_state[ch].multiplier_l3[0] = get_multiplier(ll3_div);
                 ch_state[ch].midpoint_l3[1] = get_midpoint(qt[1]);
@@ -3401,6 +3204,7 @@ static int setup_channel_state(
 
 typedef struct {
     int channel;        /* Which channel's P1 we depend on (0..3) */
+    int slot;           /* LL/LH/HL/HH slot within the channel */
     /* Split mode: scan band_data here in Pass 2's tokenize+rANS */
     PIXEL *band_data;
     int width, height, pitch;
@@ -3415,12 +3219,208 @@ typedef struct {
     double denoise_strength;
     double noise_scale;
     double noise_offset;
+    /* LL sideband config captured at encoder-create time. */
+    int raw_ll_sideband;
+    int pred_ll_sideband;
+    int ll_predictor;
+    int ll_rice_k;
+    int ll_fast_rice;
+    int ll_assume_u16;
 } PASS2_BAND_TASK;
+
+#define FUSED_RAW_LL_MAGIC 0x314C4C46u  /* "FLL1", little-endian */
+#define FUSED_PRED_LL_MAGIC 0x324C4C46u /* "FLL2", little-endian */
 
 static void fused_denoise_band(PIXEL *band_data, int width, int height,
                                int pitch_bytes,
                                double noise_scale, double noise_offset,
                                double strength);
+
+typedef struct {
+    uint8_t *buf;
+    size_t cap;
+    size_t pos;
+    uint64_t acc;
+    int bits;
+} FUSED_LL_BITWRITER;
+
+static inline int fused_ll_bw_flush_byte(FUSED_LL_BITWRITER *bw)
+{
+    if (bw->pos >= bw->cap) return -1;
+    bw->buf[bw->pos++] = (uint8_t)(bw->acc & 0xffu);
+    bw->acc >>= 8;
+    bw->bits -= 8;
+    return 0;
+}
+
+static inline int fused_ll_bw_flush32(FUSED_LL_BITWRITER *bw)
+{
+    if (bw->pos + 4 > bw->cap) return -1;
+    uint32_t word = (uint32_t)bw->acc;
+    memcpy(bw->buf + bw->pos, &word, sizeof(word));
+    bw->pos += sizeof(word);
+    bw->acc >>= 32;
+    bw->bits -= 32;
+    return 0;
+}
+
+static inline int fused_ll_bw_put_bits(FUSED_LL_BITWRITER *bw, uint32_t value, int bits)
+{
+    if (bits < 0 || bits > 32) return -1;
+    if (bits == 0) return 0;
+    while (bw->bits + bits > 56) {
+        if (bw->bits >= 32) {
+            if (fused_ll_bw_flush32(bw) != 0) return -1;
+        } else {
+            if (fused_ll_bw_flush_byte(bw) != 0) return -1;
+        }
+    }
+    uint64_t mask = (bits == 32) ? 0xffffffffull : ((1ull << bits) - 1ull);
+    bw->acc |= ((uint64_t)value & mask) << bw->bits;
+    bw->bits += bits;
+    while (bw->bits >= 32) {
+        if (fused_ll_bw_flush32(bw) != 0) return -1;
+    }
+    return 0;
+}
+
+static inline int fused_ll_bw_put_bits64(FUSED_LL_BITWRITER *bw, uint64_t value, int bits)
+{
+    if (bits < 0 || bits > 56) return -1;
+    if (bits == 0) return 0;
+    while (bw->bits + bits > 56) {
+        if (bw->bits >= 32) {
+            if (fused_ll_bw_flush32(bw) != 0) return -1;
+        } else {
+            if (fused_ll_bw_flush_byte(bw) != 0) return -1;
+        }
+    }
+    uint64_t mask = (bits == 64) ? UINT64_MAX : ((1ull << bits) - 1ull);
+    bw->acc |= (value & mask) << bw->bits;
+    bw->bits += bits;
+    while (bw->bits >= 32) {
+        if (fused_ll_bw_flush32(bw) != 0) return -1;
+    }
+    return 0;
+}
+
+static inline int fused_ll_bw_put_unary(FUSED_LL_BITWRITER *bw, uint32_t q)
+{
+    while (q >= 32) {
+        if (fused_ll_bw_put_bits(bw, 0xffffffffu, 32) != 0) return -1;
+        q -= 32;
+    }
+    uint32_t tail = (q == 32) ? 0xffffffffu : ((q == 0) ? 0u : ((1u << q) - 1u));
+    return fused_ll_bw_put_bits(bw, tail, (int)q + 1);
+}
+
+static inline int fused_ll_bw_put_rice_fast(FUSED_LL_BITWRITER *bw, uint32_t q, uint32_t r, int rice_k)
+{
+    if (__builtin_expect(q <= 40, 1)) {
+        uint64_t unary = (q == 0) ? 0ull : ((1ull << q) - 1ull);
+        uint64_t packed = unary | ((uint64_t)r << (q + 1));
+        return fused_ll_bw_put_bits64(bw, packed, (int)q + 1 + rice_k);
+    }
+    if (fused_ll_bw_put_unary(bw, q) != 0) return -1;
+    if (rice_k > 0 && fused_ll_bw_put_bits(bw, r, rice_k) != 0) return -1;
+    return 0;
+}
+
+static int fused_ll_bw_flush(FUSED_LL_BITWRITER *bw)
+{
+    while (bw->bits >= 32) {
+        if (fused_ll_bw_flush32(bw) != 0) return -1;
+    }
+    while (bw->bits > 0) {
+        if (fused_ll_bw_flush_byte(bw) != 0) return -1;
+    }
+    bw->acc = 0;
+    bw->bits = 0;
+    return 0;
+}
+
+static int fused_write_pred_ll_band(uint8_t *dst, size_t cap,
+                                    const PIXEL *src, int width, int height,
+                                    int pitch_elems, int channel,
+                                    int predictor, int rice_k,
+                                    int fast_rice, int assume_u16)
+{
+    if (!dst || !src || width <= 0 || height <= 0) return -1;
+    (void)channel;
+
+    const size_t header_size = 16;
+    if (cap < header_size) return -1;
+    uint32_t magic = FUSED_PRED_LL_MAGIC;
+    uint32_t meta = (uint32_t)(rice_k & 0xff) | ((uint32_t)(predictor & 0xff) << 8);
+    uint32_t w = (uint32_t)width;
+    uint32_t h = (uint32_t)height;
+    memcpy(dst + 0, &magic, sizeof(magic));
+    memcpy(dst + 4, &meta, sizeof(meta));
+    memcpy(dst + 8, &w, sizeof(w));
+    memcpy(dst + 12, &h, sizeof(h));
+
+    FUSED_LL_BITWRITER bw = {
+        dst + header_size,
+        cap - header_size,
+        0,
+        0,
+        0,
+    };
+    if (predictor == 1 && fast_rice && assume_u16 && rice_k > 0) {
+        const uint32_t r_mask = (1u << rice_k) - 1u;
+        const PIXEL *row = src;
+        int32_t left = 0;
+        for (int x = 0; x < width; x++) {
+            int32_t v = row[x];
+            int32_t residual = v - left;
+            left = v;
+            uint32_t zz = ((uint32_t)residual << 1) ^ (uint32_t)(residual >> 31);
+            if (fused_ll_bw_put_rice_fast(&bw, zz >> rice_k, zz & r_mask, rice_k) != 0) return -1;
+        }
+        for (int y = 1; y < height; y++) {
+            const PIXEL *prev = row;
+            row += pitch_elems;
+            left = 0;
+            for (int x = 0; x < width; x++) {
+                int32_t v = row[x];
+                int32_t pred = (left + prev[x]) >> 1;
+                int32_t residual = v - pred;
+                left = v;
+                uint32_t zz = ((uint32_t)residual << 1) ^ (uint32_t)(residual >> 31);
+                if (fused_ll_bw_put_rice_fast(&bw, zz >> rice_k, zz & r_mask, rice_k) != 0) return -1;
+            }
+        }
+        if (fused_ll_bw_flush(&bw) != 0) return -1;
+        return (int)(header_size + bw.pos);
+    }
+    for (int y = 0; y < height; y++) {
+        const PIXEL *row = src + (size_t)y * (size_t)pitch_elems;
+        const PIXEL *prev = (y > 0) ? (src + (size_t)(y - 1) * (size_t)pitch_elems) : NULL;
+        int32_t left = 0;
+        for (int x = 0; x < width; x++) {
+            int32_t v = row[x];
+            if (!assume_u16) {
+                if (v < 0) v = 0;
+                if (v > 65535) v = 65535;
+            }
+            int32_t up = prev ? prev[x] : left;
+            int32_t pred = (predictor == 1) ? ((left + up) >> 1) : left;
+            int32_t residual = v - pred;
+            left = v;
+            uint32_t zz = ((uint32_t)residual << 1) ^ (uint32_t)(residual >> 31);
+            uint32_t q = zz >> rice_k;
+            uint32_t r = zz & ((rice_k == 0) ? 0u : ((1u << rice_k) - 1u));
+            if (fast_rice) {
+                if (fused_ll_bw_put_rice_fast(&bw, q, r, rice_k) != 0) return -1;
+            } else {
+                if (fused_ll_bw_put_unary(&bw, q) != 0) return -1;
+                if (rice_k > 0 && fused_ll_bw_put_bits(&bw, r, rice_k) != 0) return -1;
+            }
+        }
+    }
+    if (fused_ll_bw_flush(&bw) != 0) return -1;
+    return (int)(header_size + bw.pos);
+}
 
 static void *pass2_band_thread(void *arg) {
     PASS2_BAND_TASK *t = (PASS2_BAND_TASK *)arg;
@@ -3438,6 +3438,49 @@ static void *pass2_band_thread(void *arg) {
         /* Inline mode: Pass 1 already tokenized; just do rANS encode + emit */
         t->enc_size = jans_inline_finalize(t->enc_buf, t->enc_cap, t->inline_state);
     } else {
+        if (t->slot == 0 && t->raw_ll_sideband) {
+            if (t->pred_ll_sideband) {
+                int pitch_elems = t->pitch / (int)sizeof(PIXEL);
+#ifdef FUSED_TIMING_DETAIL
+                double t_ll0 = _fused_ms();
+#endif
+                t->enc_size = fused_write_pred_ll_band(t->enc_buf, t->enc_cap,
+                                                       t->band_data,
+                                                       t->width, t->height,
+                                                       pitch_elems,
+                                                       t->channel,
+                                                       t->ll_predictor,
+                                                       t->ll_rice_k,
+                                                       t->ll_fast_rice,
+                                                       t->ll_assume_u16);
+#ifdef FUSED_TIMING_DETAIL
+                fprintf(stderr, "  FUSED pred_ll ch%d: %.3fms size=%d\n",
+                        t->channel, _fused_ms() - t_ll0, t->enc_size);
+#endif
+                return NULL;
+            }
+            size_t n = (size_t)t->width * (size_t)t->height;
+            size_t need = sizeof(uint32_t) + n * sizeof(uint16_t);
+            if (need > t->enc_cap) {
+                t->enc_size = -1;
+                return NULL;
+            }
+            uint32_t magic = FUSED_RAW_LL_MAGIC;
+            memcpy(t->enc_buf, &magic, sizeof(magic));
+            uint16_t *dst = (uint16_t *)(t->enc_buf + sizeof(uint32_t));
+            const PIXEL *src = t->band_data;
+            int pitch_elems = t->pitch / (int)sizeof(PIXEL);
+            for (int y = 0; y < t->height; y++) {
+                for (int x = 0; x < t->width; x++) {
+                    int32_t v = src[(size_t)y * (size_t)pitch_elems + (size_t)x];
+                    if (v < 0) v = 0;
+                    if (v > 65535) v = 65535;
+                    dst[(size_t)y * (size_t)t->width + (size_t)x] = (uint16_t)v;
+                }
+            }
+            t->enc_size = (int)need;
+            return NULL;
+        }
         /* Split mode: optional wavelet-domain denoise, then tokenize + rANS */
         if (t->denoise_strength > 0.0) {
             fused_denoise_band(t->band_data, t->width, t->height, t->pitch,
@@ -3463,18 +3506,29 @@ static void *pass2_band_thread(void *arg) {
    work; on Pi 5 the pool is 4 (one per core). */
 typedef struct {
     PASS2_BAND_TASK *tasks;
+    const int *order;
     int num_tasks;
     int next;
     pthread_mutex_t lock;
 } PASS2_WORK_QUEUE;
 
+typedef struct {
+    PASS2_WORK_QUEUE *wq;
+    int worker_id;
+} PASS2_WORKER_ARG;
+
 static void *pass2_worker_thread(void *arg) {
-    PASS2_WORK_QUEUE *wq = (PASS2_WORK_QUEUE *)arg;
+    PASS2_WORKER_ARG *wa = (PASS2_WORKER_ARG *)arg;
+    PASS2_WORK_QUEUE *wq = wa->wq;
+    if (_fused_pin_p2_enabled() && wa->worker_id >= 0) {
+        _fused_pin_self(wa->worker_id);
+    }
     for (;;) {
         pthread_mutex_lock(&wq->lock);
         int idx = wq->next++;
         pthread_mutex_unlock(&wq->lock);
         if (idx >= wq->num_tasks) return NULL;
+        if (wq->order) idx = wq->order[idx];
         pass2_band_thread(&wq->tasks[idx]);
     }
 }
@@ -3493,6 +3547,39 @@ static void *pass2_worker_thread(void *arg) {
 #  define PASS2_POOL_MAX 8
 #endif
 
+static void fused_dump_coeff_band(const char *dir,
+                                  int ch,
+                                  int slot,
+                                  int width,
+                                  int height,
+                                  const PIXEL *data)
+{
+    if (!dir || !*dir || !data || width <= 0 || height <= 0) return;
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/ch%d_s%d_w%d_h%d.s32",
+             dir, ch, slot, width, height);
+    FILE *f = fopen(path, "wb");
+    if (!f) return;
+    fwrite(data, sizeof(PIXEL), (size_t)width * (size_t)height, f);
+    fclose(f);
+}
+
+static void fused_dump_multilevel_encode_coeffs(int levels,
+                                                const PASS2_BAND_TASK *tasks,
+                                                int task_count)
+{
+    const char *dir = getenv("GPR_DUMP_ENCODE_COEFFS");
+    if (!dir || !*dir || !tasks || task_count <= 0) return;
+
+    const int bands_per_ch = (levels == 2) ? 7 : 10;
+    if (task_count < bands_per_ch * 4) return;
+    for (int ch = 0; ch < 4; ch++) {
+        for (int s = 0; s < bands_per_ch; s++) {
+            const PASS2_BAND_TASK *pt = &tasks[ch * bands_per_ch + s];
+            fused_dump_coeff_band(dir, ch, s, pt->width, pt->height, pt->band_data);
+        }
+    }
+}
 
 static int fused_pass2(
     FUSED_CHANNEL_STATE ch_state[4],
@@ -3608,13 +3695,21 @@ struct FUSED_ENCODER {
     int include_ll;   /* 1 = single-level + LL (16 bands total, decodable);
                           0 = highpass-only (12 bands, undecodable except via
                           multi_level path). GPR_INCLUDE_LL=1 to enable. */
+    int raw_ll_sideband;  /* FUSED_RAW_LL=1 captured at create time. */
+    int pred_ll_sideband; /* FUSED_LL_PREDICT=1 captured at create time. */
+    int ll_predictor;     /* 0 = left, 1 = average(left, up). */
+    int ll_rice_k[4];     /* Per-channel FLL2 Rice K values. */
+    int ll_fast_rice;     /* FUSED_LL_RICE_FAST=1 captured at create time. */
+    int ll_assume_u16;    /* FUSED_LL_ASSUME_U16=1 captured at create time. */
     int drop_hp;      /* 1 = GPR_DROP_HIGHPASS=1 at create time. Skips
                           inline_state[1..3] allocation and the Pass-2
                           finalize dispatch for HP bands, since none of them
                           get any rows written in Pass 1 anyway. Saves
                           allocation + thread-create + finalize call per
                           frame; decoder treats size-0 bands as zeros. */
-    int inline_denoise_T; /* GPR_INLINE_DENOISE_T captured at create time. */
+    int32_t inline_denoise_T[FUSED_MAX_BANDS]; /* Per-band threshold captured at create time. */
+    int32_t inline_denoise_T_ch[FUSED_MAX_CHANNELS][FUSED_MAX_BANDS];
+    int inline_denoise_hard; /* 1 = hard dead-zone threshold, 0 = soft threshold. */
     int streaming;    /* When multi_level=1: 1 = stream level-2/3 inline with
                           level-1 (no LL1/LL2 band buffers, embedded-friendly);
                           0 = sequential (full LL1/LL2 buffers, simpler). */
@@ -3638,6 +3733,17 @@ struct FUSED_ENCODER {
     uint8_t *stream_buf;
     size_t   stream_cap;
 
+    /* Last-frame scatter view for direct container writers. This avoids the
+       final band-buffer-to-stream-buffer memcpy when the caller can write a
+       `.gvid` frame with writev-style chunks. Valid until the next encode. */
+    struct {
+        FUSED_HEADER hdr;
+        uint32_t band_sizes[16];
+    } scatter_prefix;
+    const uint8_t *scatter_parts[18];
+    size_t scatter_part_sizes[18];
+    int scatter_part_count;
+
     /* Wavelet-domain denoise (BayesShrink). When denoise_strength > 0,
        inline mode is disabled (split-pass only — denoise needs the band
        buffer to compute per-band thresholds). noise_scale/noise_offset
@@ -3647,17 +3753,27 @@ struct FUSED_ENCODER {
     double   noise_offset;
     double   denoise_strength;
 
-    /* Shared 4-channel unpack ring. Producer threads (UNPACK_PRODUCERS of
-       them) fill the ring; the 4 P1 channel threads consume from it.
-       When NULL, falls back to the legacy per-channel unpack inside each
-       P1 thread. Enabled via FUSED_PRODUCER_UNPACK=1 (default OFF). */
-    UNPACK_RING *unpack_ring;
-
     /* Rate-controller scale on level-1 quant divisors. 1.0 = identity.
        Updated by gpr_encode_fused_set_quant_scale(); read-only no-ops
        when the new value equals the cached one. */
     double quant_scale;
+
 };
+
+static void fused_dump_singlelevel_encode_coeffs(FUSED_ENCODER *ctx)
+{
+    const char *dir = getenv("GPR_DUMP_ENCODE_COEFFS");
+    if (!dir || !*dir || !ctx) return;
+    for (int ch = 0; ch < 4; ch++) {
+        FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
+        for (int s = 0; s < 4; s++) {
+            if (!cs->band_data[s]) continue;
+            fused_dump_coeff_band(dir, ch, s,
+                                  cs->band_width, cs->band_height,
+                                  cs->band_data[s]);
+        }
+    }
+}
 
 /* Decide which mode to use. Default: inline mode when CPU count is ≤6
    (typical embedded camera SoC like GP3 with 4× A78). M1 / large servers
@@ -3713,13 +3829,70 @@ static int fused_choose_streaming(void) {
     return 1;
 }
 
+static int fused_getenv_nonnegative_int(const char *name, int fallback)
+{
+    const char *env = getenv(name);
+    if (!env || !*env) return fallback;
+    int v = atoi(env);
+    return v < 0 ? 0 : v;
+}
+
+static void fused_parse_ll_sideband_config(FUSED_ENCODER *ctx)
+{
+    const char *e;
+    if (!ctx) return;
+
+    e = getenv("FUSED_RAW_LL");
+    ctx->raw_ll_sideband = (e && *e == '1') ? 1 : 0;
+    e = getenv("FUSED_LL_PREDICT");
+    ctx->pred_ll_sideband = (e && *e == '1') ? 1 : 0;
+
+    ctx->ll_predictor = 0;
+    e = getenv("FUSED_LL_PREDICTOR");
+    if (e && *e) {
+        if (strcmp(e, "1") == 0 || strcmp(e, "avg") == 0 || strcmp(e, "average") == 0) {
+            ctx->ll_predictor = 1;
+        }
+    }
+
+    ctx->ll_rice_k[0] = 8;
+    ctx->ll_rice_k[1] = 7;
+    ctx->ll_rice_k[2] = 7;
+    ctx->ll_rice_k[3] = 7;
+    e = getenv("FUSED_LL_RICE_KS");
+    if (e && *e) {
+        const char *p = e;
+        for (int i = 0; i < 4 && *p; i++) {
+            char *end = NULL;
+            long v = strtol(p, &end, 10);
+            if (end != p && v >= 0 && v <= 15) {
+                ctx->ll_rice_k[i] = (int)v;
+            }
+            if (end == p) break;
+            p = end;
+            while (*p == ' ' || *p == '\t') p++;
+            if (*p == ',') p++;
+            while (*p == ' ' || *p == '\t') p++;
+        }
+    }
+    e = getenv("FUSED_LL_RICE_K");
+    if (e && *e) {
+        int v = atoi(e);
+        if (v >= 0 && v <= 15) {
+            for (int i = 0; i < 4; i++) ctx->ll_rice_k[i] = v;
+        }
+    }
+
+    e = getenv("FUSED_LL_RICE_FAST");
+    ctx->ll_fast_rice = (e && *e == '1') ? 1 : 0;
+    e = getenv("FUSED_LL_ASSUME_U16");
+    ctx->ll_assume_u16 = (e && *e == '1') ? 1 : 0;
+}
+
 /* Reset just the per-frame state on a context (counters, run state, freq tables,
    inline-tokenize state). Band buffers / row scratch are overwritten as work
    progresses so no per-frame zeroing needed. */
 static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
-    /* Inline-mode BayesShrink threshold is captured at context creation, not
-       through a worker-visible static getenv cache. */
-    int denoise_T_cached = ctx->inline_denoise_T;
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         cs->band_out_row = 0;
@@ -3733,23 +3906,21 @@ static void fused_reset_frame_state(FUSED_ENCODER *ctx) {
         for (int band = 0; band < 4; band++) {
             if (cs->inline_state[band]) jans_inline_reset(cs->inline_state[band]);
         }
-        /* LL band intentionally NOT thresholded (band 0). HP bands get the
-           global threshold. Per-channel storage retained so a future BayesShrink
-           estimator can set them independently. */
+        /* LL band intentionally NOT thresholded (band 0). HP bands can use the
+           global threshold or band-specific overrides captured at create time. */
         cs->inline_denoise_T[0] = 0;
-        cs->inline_denoise_T[1] = denoise_T_cached;
-        cs->inline_denoise_T[2] = denoise_T_cached;
-        cs->inline_denoise_T[3] = denoise_T_cached;
+        cs->inline_denoise_T[1] = ctx->inline_denoise_T_ch[ch][1];
+        cs->inline_denoise_T[2] = ctx->inline_denoise_T_ch[ch][2];
+        cs->inline_denoise_T[3] = ctx->inline_denoise_T_ch[ch][3];
+        cs->inline_denoise_hard = ctx->inline_denoise_hard;
     }
-    if (ctx->unpack_ring) {
-        for (int s = 0; s < UNPACK_RING_SIZE; s++) {
-            ctx->unpack_ring->slot_row[s].v = s - UNPACK_RING_SIZE;
-        }
-        for (int p = 0; p < UNPACK_PRODUCERS; p++) {
-            ctx->unpack_ring->prod_max_row[p].v = -1;
-        }
-        for (int c = 0; c < 4; c++) ctx->unpack_ring->consumed[c].v = 0;
-    }
+}
+
+static int fused_getenv_channel_band_threshold(int ch, const char *band, int fallback)
+{
+    char name[64];
+    snprintf(name, sizeof(name), "GPR_INLINE_DENOISE_T_CH%d_%s", ch, band);
+    return fused_getenv_nonnegative_int(name, fallback);
 }
 
 FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, int quality) {
@@ -3761,16 +3932,41 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
     ctx->quality = quality;
     ctx->is_rggb = (pixel_format == 1 || pixel_format == 0 || pixel_format == 4);
     ctx->log_bits = (pixel_format >= 4) ? 16 : 14;
-    ctx->prescale = 2;
+    ctx->prescale = (ctx->log_bits >= 15) ? 2 : 3;
+    {
+        const char *e = getenv("FUSED_L1_PRESCALE");
+        if (e && *e) {
+            int v = atoi(e);
+            if (v == 0 || v == 2 || v == 3) ctx->prescale = v;
+        }
+    }
     ctx->quant_scale = 1.0;
     ctx->inline_mode = fused_choose_inline_mode();
     ctx->multi_level = fused_choose_multi_level();
     ctx->levels = fused_choose_levels(ctx->multi_level);
     ctx->streaming = ctx->multi_level ? fused_choose_streaming() : 0;
     {
-        const char *e = getenv("GPR_INLINE_DENOISE_T");
-        ctx->inline_denoise_T = e ? atoi(e) : 0;
-        if (ctx->inline_denoise_T < 0) ctx->inline_denoise_T = 0;
+        int base_T = fused_getenv_nonnegative_int("GPR_INLINE_DENOISE_T", 0);
+        ctx->inline_denoise_T[0] = 0;
+        ctx->inline_denoise_T[1] = fused_getenv_nonnegative_int("GPR_INLINE_DENOISE_T_LH", base_T);
+        ctx->inline_denoise_T[2] = fused_getenv_nonnegative_int("GPR_INLINE_DENOISE_T_HL", base_T);
+        ctx->inline_denoise_T[3] = fused_getenv_nonnegative_int("GPR_INLINE_DENOISE_T_HH", base_T);
+        for (int ch = 0; ch < FUSED_MAX_CHANNELS; ch++) {
+            ctx->inline_denoise_T_ch[ch][0] = 0;
+            ctx->inline_denoise_T_ch[ch][1] =
+                fused_getenv_channel_band_threshold(ch, "LH", ctx->inline_denoise_T[1]);
+            ctx->inline_denoise_T_ch[ch][2] =
+                fused_getenv_channel_band_threshold(ch, "HL", ctx->inline_denoise_T[2]);
+            ctx->inline_denoise_T_ch[ch][3] =
+                fused_getenv_channel_band_threshold(ch, "HH", ctx->inline_denoise_T[3]);
+        }
+        {
+            const char *mode = getenv("GPR_INLINE_DENOISE_MODE");
+            const char *hard = getenv("GPR_INLINE_DENOISE_HARD");
+            ctx->inline_denoise_hard =
+                (mode && strcmp(mode, "hard") == 0) ||
+                (hard && *hard == '1');
+        }
     }
     /* Multi-level requires split mode (we need LL1/LL2 buffers in memory). */
     if (ctx->multi_level && ctx->inline_mode) {
@@ -3796,9 +3992,15 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
         const char *e = getenv("GPR_INCLUDE_LL");
         ctx->include_ll = (e && *e == '1') ? 1 : 0;
     }
+    fused_parse_ll_sideband_config(ctx);
     {
         const char *e = getenv("GPR_DROP_HIGHPASS");
         ctx->drop_hp = (e && *e == '1') ? 1 : 0;
+    }
+    int raw_ll_sideband_inline = 0;
+    {
+        raw_ll_sideband_inline = (ctx->inline_mode && !ctx->multi_level &&
+                                  ctx->include_ll && ctx->raw_ll_sideband);
     }
     {
         const char *e = getenv("GPR_DECIMATE_AA");
@@ -3835,7 +4037,8 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
             /* GPR_DROP_HIGHPASS=1: bands 1..3 (LH/HL/HH) receive no rows in
                Pass 1, so skip their inline_state allocation. Band 0 (LL) is
                still needed when GPR_INCLUDE_LL=1. */
-            if (ctx->inline_mode && !(ctx->drop_hp && band > 0)) {
+            if (ctx->inline_mode && !(ctx->drop_hp && band > 0) &&
+                !(raw_ll_sideband_inline && band == 0)) {
                 /* Stripe encoding: adaptive default based on band height,
                    overridable via env vars.
 
@@ -3881,6 +4084,11 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
                 if (!cs->inline_state[band]) {
                     gpr_encode_fused_destroy(ctx);
                     return NULL;
+                }
+                {
+                    char profile_label[16];
+                    snprintf(profile_label, sizeof(profile_label), "ch%d_b%d", ch, band);
+                    jans_inline_set_profile_label(cs->inline_state[band], profile_label);
                 }
                 jans_inline_set_stripe_rows(cs->inline_state[band], rows);
                 if (defer_rans) {
@@ -3931,36 +4139,6 @@ FUSED_ENCODER *gpr_encode_fused_create(int width, int height, int pixel_format, 
             ctx->enc_caps_ml[i] = cap;
             ctx->enc_bufs_ml[i] = (uint8_t *)malloc(cap);
             if (!ctx->enc_bufs_ml[i]) {
-                gpr_encode_fused_destroy(ctx);
-                return NULL;
-            }
-        }
-    }
-
-    /* Optional: pre-allocate the shared 4-channel unpack ring (producer
-       pool + 4 channel consumers). Disabled by default; enable via
-       FUSED_PRODUCER_UNPACK=1. Falls back to per-channel unpack inside
-       each P1 thread when off.
-
-       Important: the current producer ring emits full channel-space rows
-       (width/2 by height/2). The 2x2 decimated capture path halves those
-       dimensions before allocating channel/band buffers. Letting the full-size
-       producer feed the decimated consumers corrupts the Pass1 row buffers.
-       Until a real decimated shared-unpack producer exists, keep producer mode
-       disabled whenever either decimation knob is active. */
-    {
-        int use_producer = 0;
-        const char *prod_env = getenv("FUSED_PRODUCER_UNPACK");
-        if (prod_env && prod_env[0] == '1') use_producer = 1;
-        if (use_producer) {
-            if (ctx->ch_state[0].row_decimate == 2 || ctx->ch_state[0].col_decimate == 2) {
-                use_producer = 0;
-            }
-        }
-        if (use_producer) {
-            ctx->unpack_ring = (UNPACK_RING *)calloc(1, sizeof(UNPACK_RING));
-            if (!ctx->unpack_ring ||
-                unpack_ring_init(ctx->unpack_ring, width / 2, height / 2) != 0) {
                 gpr_encode_fused_destroy(ctx);
                 return NULL;
             }
@@ -4023,7 +4201,15 @@ void gpr_encode_fused_set_quant_scale(FUSED_ENCODER *ctx, double scale)
     }
     int q_ll1_base = qt[q_ll1];
     if (!ctx->multi_level && ctx->include_ll) {
-        q_ll1_base *= 16;   /* matches multi-level FUSED_LL3_EXTRA_DIVISOR */
+        int ll1_extra = 16;
+        const char *_ll1_env = getenv("FUSED_LL1_DIVISOR");
+        if (_ll1_env && *_ll1_env) {
+            int v = atoi(_ll1_env);
+            if (v >= 1 && v <= 64) ll1_extra = v;
+        }
+        const char *_raw_ll_env = getenv("FUSED_RAW_LL");
+        if (_raw_ll_env && *_raw_ll_env == '1') ll1_extra = 1;
+        q_ll1_base *= ll1_extra;
     }
     int divs[4] = { q_ll1_base, qt[q_lh1], qt[q_hl1], qt[q_hh1] };
 
@@ -4097,11 +4283,6 @@ static void fused_denoise_band(PIXEL *band_data, int width, int height,
 
 void gpr_encode_fused_destroy(FUSED_ENCODER *ctx) {
     if (!ctx) return;
-    if (ctx->unpack_ring) {
-        unpack_ring_destroy(ctx->unpack_ring);
-        free(ctx->unpack_ring);
-        ctx->unpack_ring = NULL;
-    }
     for (int i = 0; i < 16; i++) if (ctx->enc_bufs[i]) free(ctx->enc_bufs[i]);
     for (int i = 0; i < 40; i++) if (ctx->enc_bufs_ml[i]) free(ctx->enc_bufs_ml[i]);
     if (ctx->stream_buf) free(ctx->stream_buf);
@@ -4135,13 +4316,16 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
                                               uint8_t **vc5_out,
                                               size_t *vc5_size);
 
-int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
+static int gpr_encode_fused_frame_single(FUSED_ENCODER *ctx,
                             const uint8_t *raw_bayer, size_t raw_size,
-                            uint8_t **vc5_out, size_t *vc5_size)
+                            uint8_t **vc5_out, size_t *vc5_size,
+                            int scatter_mode)
 {
     (void)raw_size;
     if (!ctx || !raw_bayer || !vc5_out || !vc5_size) return -1;
+    ctx->scatter_part_count = 0;
     if (ctx->multi_level) {
+        if (scatter_mode) return -1;
         return gpr_encode_fused_frame_multilevel(ctx, raw_bayer, vc5_out, vc5_size);
     }
     int rc = 0;
@@ -4149,6 +4333,13 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     memset(p2_tasks, 0, sizeof(p2_tasks));
     pthread_t p2_threads[16];
     int p2_created[16] = {0};
+    PASS2_WORK_QUEUE p2_wq;
+    int p2_order[16];
+    PASS2_WORKER_ARG p2_worker_args[PASS2_POOL_MAX];
+    pthread_t p2_workers[PASS2_POOL_MAX];
+    int p2_worker_created[PASS2_POOL_MAX] = {0};
+    int p2_worker_count = 0;
+    int p2_use_pool = 0;
     pthread_t p1_threads[4];
     int p1_created[4] = {0};
 
@@ -4158,6 +4349,15 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
 
     const char *threads_env = getenv("FUSED_THREADS");
     int run_serial = (threads_env && threads_env[0] == '1' && threads_env[1] == '\0');
+    if (!run_serial) {
+#ifdef PASS2_POOL_FORCE
+        p2_use_pool = PASS2_POOL_FORCE;
+#else
+        long _nproc = sysconf(_SC_NPROCESSORS_ONLN);
+        if (_nproc < 1) _nproc = 4;
+        p2_use_pool = (_nproc <= 4);
+#endif
+    }
 
     fused_reset_frame_state(ctx);
 
@@ -4165,43 +4365,6 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     pthread_mutex_init(&sync.lock, NULL);
     pthread_cond_init(&sync.cv, NULL);
     for (int i = 0; i < 4; i++) sync.p1_done[i] = 0;
-
-    /* Producer-unpack threads: when ctx->unpack_ring is set and we're running
-       parallel, UNPACK_PRODUCERS dedicated threads cooperatively do the
-       combined 4-channel Bayer unpack (deinterleaved NEON load, 4 unique LUT
-       lookups per Bayer block, branchless clip) and the 4 channel threads
-       consume from the ring. Falls back to per-channel unpack inside each P1
-       thread when the ring is disabled or run_serial. */
-    UNPACK_RING *ring = (!run_serial) ? ctx->unpack_ring : NULL;
-    UNPACK_PRODUCER_TASK prod_tasks[UNPACK_PRODUCERS];
-    pthread_t prod_threads[UNPACK_PRODUCERS];
-    int prod_created[UNPACK_PRODUCERS];
-    for (int p = 0; p < UNPACK_PRODUCERS; p++) prod_created[p] = 0;
-    if (ring) {
-        for (int p = 0; p < UNPACK_PRODUCERS; p++) {
-            prod_tasks[p].ring = ring;
-            prod_tasks[p].producer_id = p;
-            prod_tasks[p].raw_bayer = raw_bayer;
-            prod_tasks[p].width = ctx->width;
-            prod_tasks[p].height = ctx->height;
-            prod_tasks[p].log_bits = ctx->log_bits;
-            prod_tasks[p].is_rggb = ctx->is_rggb;
-            prod_created[p] = (pthread_create(&prod_threads[p], NULL,
-                                              unpack_producer_thread,
-                                              &prod_tasks[p]) == 0);
-        }
-        /* If we failed to launch ANY producer, abort the ring path; the four
-           channel consumers would deadlock waiting for slot_row to advance. */
-        int any_failed = 0;
-        for (int p = 0; p < UNPACK_PRODUCERS; p++) if (!prod_created[p]) any_failed = 1;
-        if (any_failed) {
-            for (int p = 0; p < UNPACK_PRODUCERS; p++) {
-                if (prod_created[p]) pthread_join(prod_threads[p], NULL);
-                prod_created[p] = 0;
-            }
-            ring = NULL;
-        }
-    }
 
     PASS1_CHANNEL_TASK p1_tasks[4];
     for (int ch = 0; ch < 4; ch++) {
@@ -4214,11 +4377,14 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
         p1_tasks[ch].prescale = ctx->prescale;
         p1_tasks[ch].cs = &ctx->ch_state[ch];
         p1_tasks[ch].sync = &sync;
-        p1_tasks[ch].ring = ring;
-        if (run_serial) {
+    }
+    if (run_serial) {
+        for (int ch = 0; ch < 4; ch++) {
             pass1_channel_thread(&p1_tasks[ch]);
             p1_created[ch] = 0;
-        } else {
+        }
+    } else {
+        for (int ch = 0; ch < 4; ch++) {
             p1_created[ch] = (pthread_create(&p1_threads[ch], NULL,
                                               pass1_channel_thread, &p1_tasks[ch]) == 0);
         }
@@ -4226,11 +4392,13 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
 
     int p2_count = 0;
     int band_start = ctx->include_ll ? 0 : 1;
+    int bands_per_channel = 4 - band_start;
     for (int ch = 0; ch < 4; ch++) {
         FUSED_CHANNEL_STATE *cs = &ctx->ch_state[ch];
         for (int band = band_start; band < 4; band++) {
             PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
             pt->channel = ch;
+            pt->slot = band;
             pt->band_data    = cs->band_data[band];     /* NULL in inline mode */
             pt->inline_state = cs->inline_state[band];  /* NULL in split mode */
             pt->width = cs->band_width;
@@ -4243,6 +4411,12 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
             pt->denoise_strength = ctx->denoise_strength;
             pt->noise_scale = ctx->noise_scale;
             pt->noise_offset = ctx->noise_offset;
+            pt->raw_ll_sideband = ctx->raw_ll_sideband;
+            pt->pred_ll_sideband = ctx->pred_ll_sideband;
+            pt->ll_predictor = ctx->ll_predictor;
+            pt->ll_rice_k = ctx->ll_rice_k[ch];
+            pt->ll_fast_rice = ctx->ll_fast_rice;
+            pt->ll_assume_u16 = ctx->ll_assume_u16;
             /* GPR_DROP_HIGHPASS=1: skip Pass-2 dispatch for HP bands (1..3).
                Their inline_state is NULL (3a-style skip in create); enc_size
                stays 0 and the band-size manifest records 0 → decoder fills
@@ -4256,11 +4430,44 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
             if (run_serial) {
                 pass2_band_thread(pt);
                 p2_created[p2_count] = 0;
+            } else if (p2_use_pool) {
+                p2_created[p2_count] = 0;
             } else {
                 p2_created[p2_count] = (pthread_create(&p2_threads[p2_count], NULL,
                                                        pass2_band_thread, pt) == 0);
             }
             p2_count++;
+        }
+    }
+
+    if (!run_serial && p2_use_pool) {
+        int o = 0;
+        for (int band = band_start; band < 4; band++) {
+            for (int ch = 0; ch < 4; ch++) {
+                p2_order[o++] = ch * bands_per_channel + (band - band_start);
+            }
+        }
+        p2_wq.tasks = p2_tasks;
+        p2_wq.order = p2_order;
+        p2_wq.num_tasks = p2_count;
+        p2_wq.next = 0;
+        pthread_mutex_init(&p2_wq.lock, NULL);
+#ifdef PASS2_POOL_FORCE
+        p2_worker_count = 4;
+#else
+        long _nproc = sysconf(_SC_NPROCESSORS_ONLN);
+        if (_nproc < 1) _nproc = 4;
+        p2_worker_count = (int)_nproc;
+#endif
+        if (p2_worker_count > PASS2_POOL_MAX) p2_worker_count = PASS2_POOL_MAX;
+        if (p2_worker_count > p2_count) p2_worker_count = p2_count;
+        if (p2_worker_count < 1) p2_worker_count = 1;
+        for (int w = 0; w < p2_worker_count; w++) {
+            p2_worker_args[w].wq = &p2_wq;
+            p2_worker_args[w].worker_id = w;
+            p2_worker_created[w] = (pthread_create(&p2_workers[w], NULL,
+                                                   pass2_worker_thread,
+                                                   &p2_worker_args[w]) == 0);
         }
     }
 
@@ -4272,17 +4479,30 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     for (int ch = 0; ch < 4; ch++) {
         if (p1_created[ch]) pthread_join(p1_threads[ch], NULL);
     }
-    for (int p = 0; p < UNPACK_PRODUCERS; p++) {
-        if (prod_created[p]) pthread_join(prod_threads[p], NULL);
-    }
+
+    fused_dump_singlelevel_encode_coeffs(ctx);
 
 #ifdef FUSED_TIMING
     double t1 = _fused_ms();
     fprintf(stderr, "  FUSED Pass1 (parallel, signals P2):      %.1fms\n", t1 - t0);
 #endif
 
-    for (int i = 0; i < p2_count; i++) {
-        if (p2_created[i]) pthread_join(p2_threads[i], NULL);
+    if (p2_use_pool) {
+        for (int w = 0; w < p2_worker_count; w++) {
+            if (!p2_worker_created[w]) {
+                PASS2_WORKER_ARG wa = { &p2_wq, w };
+                pass2_worker_thread(&wa);
+                break;
+            }
+        }
+        for (int w = 0; w < p2_worker_count; w++) {
+            if (p2_worker_created[w]) pthread_join(p2_workers[w], NULL);
+        }
+        pthread_mutex_destroy(&p2_wq.lock);
+    } else {
+        for (int i = 0; i < p2_count; i++) {
+            if (p2_created[i]) pthread_join(p2_threads[i], NULL);
+        }
     }
 
 #ifdef FUSED_TIMING
@@ -4313,20 +4533,41 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     hdr.decimate = (ctx->ch_state[0].row_decimate == 2 &&
                     ctx->ch_state[0].col_decimate == 2) ? 2 : 0;
 
-    size_t pos = 0;
-    memcpy(ctx->stream_buf + pos, &hdr, sizeof(hdr)); pos += sizeof(hdr);
-    /* Band-size table */
-    for (int i = 0; i < num_bands; i++) {
-        uint32_t sz = (uint32_t)p2_tasks[i].enc_size;
-        memcpy(ctx->stream_buf + pos, &sz, sizeof(sz)); pos += sizeof(sz);
-    }
-    /* Band data */
-    for (int i = 0; i < num_bands; i++) {
-        PASS2_BAND_TASK *pt = &p2_tasks[i];
-        if (pt->enc_size > 0 && pos + pt->enc_size <= ctx->stream_cap) {
-            memcpy(ctx->stream_buf + pos, pt->enc_buf, pt->enc_size);
-            pos += pt->enc_size;
+    size_t pos = sizeof(hdr) + (size_t)num_bands * sizeof(uint32_t);
+    if (scatter_mode) {
+        ctx->scatter_prefix.hdr = hdr;
+        ctx->scatter_part_count = 0;
+        for (int i = 0; i < num_bands; i++) {
+            ctx->scatter_prefix.band_sizes[i] = (uint32_t)p2_tasks[i].enc_size;
         }
+        ctx->scatter_parts[ctx->scatter_part_count] = (const uint8_t *)&ctx->scatter_prefix;
+        ctx->scatter_part_sizes[ctx->scatter_part_count++] =
+            sizeof(ctx->scatter_prefix.hdr) + (size_t)num_bands * sizeof(uint32_t);
+        for (int i = 0; i < num_bands; i++) {
+            PASS2_BAND_TASK *pt = &p2_tasks[i];
+            if (pt->enc_size > 0) {
+                ctx->scatter_parts[ctx->scatter_part_count] = pt->enc_buf;
+                ctx->scatter_part_sizes[ctx->scatter_part_count++] = pt->enc_size;
+                pos += pt->enc_size;
+            }
+        }
+    } else {
+        size_t out_pos = 0;
+        memcpy(ctx->stream_buf + out_pos, &hdr, sizeof(hdr)); out_pos += sizeof(hdr);
+        /* Band-size table */
+        for (int i = 0; i < num_bands; i++) {
+            uint32_t sz = (uint32_t)p2_tasks[i].enc_size;
+            memcpy(ctx->stream_buf + out_pos, &sz, sizeof(sz)); out_pos += sizeof(sz);
+        }
+        /* Band data */
+        for (int i = 0; i < num_bands; i++) {
+            PASS2_BAND_TASK *pt = &p2_tasks[i];
+            if (pt->enc_size > 0 && out_pos + pt->enc_size <= ctx->stream_cap) {
+                memcpy(ctx->stream_buf + out_pos, pt->enc_buf, pt->enc_size);
+                out_pos += pt->enc_size;
+            }
+        }
+        pos = out_pos;
     }
 
 #ifdef FUSED_TIMING
@@ -4334,9 +4575,35 @@ int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
     fprintf(stderr, "  FUSED Total:                             %.1fms\n", t3 - t0);
 #endif
 
-    *vc5_out = ctx->stream_buf;  /* context-owned; caller must NOT free */
+    *vc5_out = scatter_mode ? NULL : ctx->stream_buf;  /* context-owned; caller must NOT free */
     *vc5_size = pos;
     return rc;
+}
+
+int gpr_encode_fused_frame(FUSED_ENCODER *ctx,
+                            const uint8_t *raw_bayer, size_t raw_size,
+                            uint8_t **vc5_out, size_t *vc5_size)
+{
+    return gpr_encode_fused_frame_single(ctx, raw_bayer, raw_size,
+                                         vc5_out, vc5_size, 0);
+}
+
+int gpr_encode_fused_frame_scatter(FUSED_ENCODER *ctx,
+                                   const uint8_t *raw_bayer, size_t raw_size,
+                                   const uint8_t ***parts,
+                                   const size_t **part_sizes,
+                                   int *part_count,
+                                   size_t *vc5_size)
+{
+    uint8_t *unused = NULL;
+    if (!ctx || !parts || !part_sizes || !part_count || !vc5_size) return -1;
+    int rc = gpr_encode_fused_frame_single(ctx, raw_bayer, raw_size,
+                                           &unused, vc5_size, 1);
+    if (rc != 0) return rc;
+    *parts = ctx->scatter_parts;
+    *part_sizes = ctx->scatter_part_sizes;
+    *part_count = ctx->scatter_part_count;
+    return 0;
 }
 
 /* ================================================================
@@ -4415,38 +4682,6 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
     pthread_cond_init(&sync.cv, NULL);
     for (int i = 0; i < 4; i++) sync.p1_done[i] = 0;
 
-    /* Producer-unpack threads (multi-level path). Same gating as the
-       single-level path: ring on only when ctx->unpack_ring is allocated
-       (FUSED_PRODUCER_UNPACK=1) and we're not running serial. */
-    UNPACK_RING *ring = (!run_serial) ? ctx->unpack_ring : NULL;
-    UNPACK_PRODUCER_TASK prod_tasks[UNPACK_PRODUCERS];
-    pthread_t prod_threads[UNPACK_PRODUCERS];
-    int prod_created[UNPACK_PRODUCERS];
-    for (int p = 0; p < UNPACK_PRODUCERS; p++) prod_created[p] = 0;
-    if (ring) {
-        for (int p = 0; p < UNPACK_PRODUCERS; p++) {
-            prod_tasks[p].ring = ring;
-            prod_tasks[p].producer_id = p;
-            prod_tasks[p].raw_bayer = raw_bayer;
-            prod_tasks[p].width = ctx->width;
-            prod_tasks[p].height = ctx->height;
-            prod_tasks[p].log_bits = ctx->log_bits;
-            prod_tasks[p].is_rggb = ctx->is_rggb;
-            prod_created[p] = (pthread_create(&prod_threads[p], NULL,
-                                              unpack_producer_thread,
-                                              &prod_tasks[p]) == 0);
-        }
-        int any_failed = 0;
-        for (int p = 0; p < UNPACK_PRODUCERS; p++) if (!prod_created[p]) any_failed = 1;
-        if (any_failed) {
-            for (int p = 0; p < UNPACK_PRODUCERS; p++) {
-                if (prod_created[p]) pthread_join(prod_threads[p], NULL);
-                prod_created[p] = 0;
-            }
-            ring = NULL;
-        }
-    }
-
     /* ---- Dispatch Pass 1 (level-1 wavelet) ---- */
     PASS1_CHANNEL_TASK p1_tasks[4];
     for (int ch = 0; ch < 4; ch++) {
@@ -4459,10 +4694,13 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
         p1_tasks[ch].prescale = ctx->prescale;
         p1_tasks[ch].cs = &ctx->ch_state[ch];
         p1_tasks[ch].sync = &sync;
-        p1_tasks[ch].ring = ring;
-        if (run_serial) {
+    }
+    if (run_serial) {
+        for (int ch = 0; ch < 4; ch++) {
             pass1_channel_thread(&p1_tasks[ch]);
-        } else {
+        }
+    } else {
+        for (int ch = 0; ch < 4; ch++) {
             p1_created[ch] = (pthread_create(&p1_threads[ch], NULL,
                                               pass1_channel_thread, &p1_tasks[ch]) == 0);
             if (!p1_created[ch]) pass1_channel_thread(&p1_tasks[ch]);
@@ -4470,9 +4708,6 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
     }
     for (int ch = 0; ch < 4; ch++) {
         if (p1_created[ch]) pthread_join(p1_threads[ch], NULL);
-    }
-    for (int p = 0; p < UNPACK_PRODUCERS; p++) {
-        if (prod_created[p]) pthread_join(prod_threads[p], NULL);
     }
 
 #ifdef FUSED_TIMING
@@ -4548,6 +4783,7 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
         for (int s = 0; s < n_slots; s++) {
             PASS2_BAND_TASK *pt = &p2_tasks[p2_count];
             pt->channel = ch;
+            pt->slot = s;
             pt->band_data = slots[s].data;
             pt->inline_state = NULL;
             pt->width = slots[s].width;
@@ -4560,9 +4796,17 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
             pt->denoise_strength = 0.0;
             pt->noise_scale = 0;
             pt->noise_offset = 0;
+            pt->raw_ll_sideband = ctx->raw_ll_sideband;
+            pt->pred_ll_sideband = ctx->pred_ll_sideband;
+            pt->ll_predictor = ctx->ll_predictor;
+            pt->ll_rice_k = ctx->ll_rice_k[ch];
+            pt->ll_fast_rice = ctx->ll_fast_rice;
+            pt->ll_assume_u16 = ctx->ll_assume_u16;
             p2_count++;
         }
     }
+
+    fused_dump_multilevel_encode_coeffs(ctx->levels, p2_tasks, p2_count);
 
     /* Two dispatch strategies:
        - Narrow host (<= 4 cores, e.g. Pi 5): use a worker pool sized to nproc,
@@ -4586,6 +4830,7 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
         if (use_pool) {
             PASS2_WORK_QUEUE wq;
             wq.tasks = p2_tasks;
+            wq.order = NULL;
             wq.num_tasks = p2_count;
             wq.next = 0;
             pthread_mutex_init(&wq.lock, NULL);
@@ -4602,14 +4847,19 @@ static int gpr_encode_fused_frame_multilevel(FUSED_ENCODER *ctx,
             if (nworkers < 1) nworkers = 1;
 
             pthread_t workers[PASS2_POOL_MAX];
+            PASS2_WORKER_ARG worker_args[PASS2_POOL_MAX];
             int wcreated[PASS2_POOL_MAX] = {0};
             for (int w = 0; w < nworkers; w++) {
+                worker_args[w].wq = &wq;
+                worker_args[w].worker_id = w;
                 wcreated[w] = (pthread_create(&workers[w], NULL,
-                                              pass2_worker_thread, &wq) == 0);
+                                              pass2_worker_thread,
+                                              &worker_args[w]) == 0);
             }
             for (int w = 0; w < nworkers; w++) {
                 if (!wcreated[w]) {
-                    pass2_worker_thread(&wq);  /* drain on this thread */
+                    PASS2_WORKER_ARG wa = { &wq, w };
+                    pass2_worker_thread(&wa);  /* drain on this thread */
                     break;
                 }
             }

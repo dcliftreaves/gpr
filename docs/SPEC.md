@@ -308,7 +308,8 @@ Where `mid2 = log_max` (the maximum value for the log table, i.e.
 differences into a non-negative range that maps cleanly to int16
 storage. `GS` is **not** biased (it is unsigned anyway).
 
-Source: `fused_encode.c::unpack_all_channels_row`, lines ~870-963.
+Source: `fused_encode.c::unpack_channel_row` and
+`fused_encode.c::unpack_luma_row`.
 
 ### 3.2 Inverse (decoder)
 

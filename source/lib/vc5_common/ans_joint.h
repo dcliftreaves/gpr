@@ -163,6 +163,10 @@ void jans_inline_set_stripe_rows(JANS_INLINE_STATE *s, int stripe_rows);
     The encoded output bytes are bit-identical to the non-deferred path. */
 void jans_inline_set_defer_rans(JANS_INLINE_STATE *s, int defer);
 
+/*! Optional diagnostic label emitted by JANS_INLINE_PROFILE_RUNTIME.
+    No effect on encoded bytes or non-profile builds. */
+void jans_inline_set_profile_label(JANS_INLINE_STATE *s, const char *label);
+
 void jans_inline_reset(JANS_INLINE_STATE *s);
 void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width);
 int  jans_inline_finalize(uint8_t *out_buf, size_t out_cap, JANS_INLINE_STATE *s);

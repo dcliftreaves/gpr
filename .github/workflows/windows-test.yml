@@ -1,7 +1,6 @@
 name: Windows Build Test
 on:
-  push:
-    branches: ['feature/v2-minimal']
+  workflow_dispatch:
 jobs:
   windows:
     runs-on: windows-latest

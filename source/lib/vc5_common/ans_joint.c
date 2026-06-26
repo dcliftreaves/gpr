@@ -19,9 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#if defined(JANS_TIMING_DETAIL)
 #include <stdio.h>
-#endif
 
 #ifdef __aarch64__
 #include "rans_kernel_arm64.h"
@@ -66,7 +64,7 @@ static void init_run_lut(void) {
 }
 
 static inline int run_to_class(int run, int *residual) {
-    if (run < 256) {
+    if (__builtin_expect(run < 256, 1)) {
         *residual = run_resid_lut[run];
         return run_class_lut[run];
     }
@@ -142,7 +140,7 @@ static void init_mag_lut(void) {
 }
 
 static inline int mag_to_class(int mag, int *residual) {
-    if (mag < 2048) {
+    if (__builtin_expect(mag < 2048, 1)) {
         *residual = mag_resid_lut[mag];
         return mag_class_lut[mag];
     }
@@ -248,11 +246,12 @@ void bitbuf_write(BITBUF *bb, uint32_t value, int bits) {
 
 /* Returns the total byte size, flushing any trailing partial byte into buf. */
 static size_t bitbuf_size(BITBUF *bb) {
-    if (bb->accum_bits > 0) {
+    while (bb->accum_bits > 0) {
         if (bb->byte_pos < bb->capacity) {
-            bb->buf[bb->byte_pos] = (uint8_t)bb->accum;  /* low 8 bits, rest are zero */
+            bb->buf[bb->byte_pos++] = (uint8_t)bb->accum;
         }
-        return bb->byte_pos + 1;
+        bb->accum >>= 8;
+        bb->accum_bits -= (bb->accum_bits >= 8) ? 8 : bb->accum_bits;
     }
     return bb->byte_pos;
 }
@@ -326,19 +325,13 @@ static void arena_free(JANS_ARENA *a) {
     a->offset = 0;
 }
 
-/* Saturating freq increment.
+/* Saturating frequency increment.
 
-   table.freq[] is uint16_t (max 65535). When a single class-mag symbol
-   dominates a band — e.g. a 2-level LL2 of a flat low-noise input where
-   all coefficients fall in the same class — incrementing past 65535 wraps
-   to 0. normalize_freq then sees freq=0, treats the symbol as
-   never-seen, and rans_enc_put divides by 0, corrupting state and
-   writing past the rans_buf.
-
-   Saturating at 65535 preserves correct relative frequencies: the
-   dominant symbol's normalized share becomes 65535*4096/total (slightly
-   under-allocated), then normalize_freq's max-symbol diff-correction
-   bumps it back to the right value. */
+   table.freq[] is uint16_t. Mission 1 native12 inline stripes can put more
+   than 65k coefficients in a single symbol bucket, so plain ++ can wrap the
+   modeled frequency to zero before normalize_freq(). Saturating preserves a
+   valid nonzero model; the normalized table's max-symbol correction absorbs
+   the small count distortion. */
 #define JANS_FREQ_INC(f) do { if ((f) != 0xFFFFu) (f)++; } while (0)
 
 /* --- Normalize and build tables --- */
@@ -960,7 +953,17 @@ struct JANS_INLINE_STATE {
     size_t    resid_cap;
     BITBUF    bb;
     JANS_TABLE table;
-
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+    int       profile_enabled;
+    char      profile_label[16];
+    uint64_t  profile_coeffs;
+    uint64_t  profile_nonzero;
+    uint64_t  profile_tokens;
+    uint64_t  profile_resid_bits;
+    uint32_t  profile_freq[JANS_NUM_SYMBOLS + 1];
+    uint32_t  profile_max_symbol_freq;
+    uint64_t  profile_overflow_symbols;
+#endif
     /* Stripe-mode bookkeeping. stripe_rows == 0 means single-blob mode. */
     int       stripe_rows;
     int       rows_in_stripe;   /* rows accumulated since last flush */
@@ -997,6 +1000,12 @@ JANS_INLINE_STATE *jans_inline_create(size_t max_coeffs) {
     if (!s) return NULL;
     init_run_lut();
     init_mag_lut(); init_sym_bits();
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+    {
+        const char *profile_env = getenv("JANS_INLINE_PROFILE");
+        s->profile_enabled = (profile_env && profile_env[0] == '1') ? 1 : 0;
+    }
+#endif
     /* Worst-case sizing per stripe (legacy) or per full band (defer).
        In defer mode each coefficient can emit ~25 bits of resid; per token
        we need <= 4 bytes of bitbuf headroom. + slack for run-256 splitting
@@ -1025,6 +1034,19 @@ void jans_inline_set_defer_rans(JANS_INLINE_STATE *s, int defer) {
     s->defer_rans = defer ? 1 : 0;
 }
 
+void jans_inline_set_profile_label(JANS_INLINE_STATE *s, const char *label) {
+    if (!s) return;
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+    if (!label || !label[0]) {
+        s->profile_label[0] = '\0';
+        return;
+    }
+    snprintf(s->profile_label, sizeof(s->profile_label), "%s", label);
+#else
+    (void)label;
+#endif
+}
+
 void jans_inline_reset(JANS_INLINE_STATE *s) {
     if (!s) return;
     s->token_count = 0;
@@ -1034,6 +1056,15 @@ void jans_inline_reset(JANS_INLINE_STATE *s) {
     s->tokens_base = 0;
     s->resid_base = 0;
     s->pending_count = 0;
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+    s->profile_coeffs = 0;
+    s->profile_nonzero = 0;
+    s->profile_tokens = 0;
+    s->profile_resid_bits = 0;
+    memset(s->profile_freq, 0, sizeof(s->profile_freq));
+    s->profile_max_symbol_freq = 0;
+    s->profile_overflow_symbols = 0;
+#endif
     bitbuf_init(&s->bb, s->resid_buf, s->resid_cap);
     memset(&s->table, 0, sizeof(s->table));
 }
@@ -1128,8 +1159,6 @@ static int jans_inline_emit_blob_ex(uint8_t *out_buf, size_t out_capacity,
         }
 #endif
         while (lo + 1 < hi + 1 && lo < hi) {
-            /* Above test rewritten lo+1 <= hi to silence "always true" warnings.
-               When lo == hi (middle byte of odd-length buffer) no swap needed. */
             uint8_t t = rans_buf[lo];
             rans_buf[lo] = rans_buf[hi - 1];
             rans_buf[hi - 1] = t;
@@ -1208,6 +1237,23 @@ static int jans_inline_defer_snapshot(JANS_INLINE_STATE *s) {
     p->rows_in_stripe  = s->rows_in_stripe;
     memcpy(p->freq, s->table.freq, sizeof(p->freq));
 
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+    if (__builtin_expect(s->profile_enabled != 0, 0)) {
+        uint32_t max_freq = 0;
+        uint32_t overflow_symbols = 0;
+        for (int i = 0; i < JANS_NUM_SYMBOLS + 1; i++) {
+            uint32_t f = s->profile_freq[i];
+            if (f > max_freq) max_freq = f;
+            if (f > 0xFFFFu) overflow_symbols++;
+            s->profile_freq[i] = 0;
+        }
+        if (max_freq > s->profile_max_symbol_freq) {
+            s->profile_max_symbol_freq = max_freq;
+        }
+        s->profile_overflow_symbols += overflow_symbols;
+    }
+#endif
+
     /* Advance baselines; next stripe writes after these in the same arenas. */
     s->tokens_base = s->tokens_base + (size_t)s->token_count;
     s->resid_base  = resid_end_abs;
@@ -1227,6 +1273,24 @@ static int jans_inline_defer_snapshot(JANS_INLINE_STATE *s) {
     memset(&s->table, 0, sizeof(s->table));
     return 0;
 }
+
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+static void jans_inline_profile_finish_symbol_counts(JANS_INLINE_STATE *s) {
+    if (!s || !s->profile_enabled) return;
+    uint32_t max_freq = 0;
+    uint32_t overflow_symbols = 0;
+    for (int i = 0; i < JANS_NUM_SYMBOLS + 1; i++) {
+        uint32_t f = s->profile_freq[i];
+        if (f > max_freq) max_freq = f;
+        if (f > 0xFFFFu) overflow_symbols++;
+        s->profile_freq[i] = 0;
+    }
+    if (max_freq > s->profile_max_symbol_freq) {
+        s->profile_max_symbol_freq = max_freq;
+    }
+    s->profile_overflow_symbols += overflow_symbols;
+}
+#endif
 
 /* Encode the currently accumulated tokens as a stripe blob; append to the
    stripe accumulator with row_count + size headers. Reset per-stripe state
@@ -1262,6 +1326,10 @@ static int jans_inline_flush_stripe(JANS_INLINE_STATE *s) {
     int blob_size = jans_inline_emit_blob(blob_dst, blob_max, s);
     if (blob_size < 0) return -1;
 
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+    jans_inline_profile_finish_symbol_counts(s);
+#endif
+
     int rc = s->rows_in_stripe;
     hdr[0] = (rc>>24)&0xFF; hdr[1] = (rc>>16)&0xFF;
     hdr[2] = (rc>>8)&0xFF;  hdr[3] = rc&0xFF;
@@ -1285,6 +1353,13 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
        so this stripe's writes land contiguously after the prior stripe's. */
     uint16_t *tokens = s->tokens + (s->defer_rans ? s->tokens_base : 0);
     int token_count = s->token_count;
+    uint16_t *tokp = tokens + token_count;
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+    const int profile = s->profile_enabled;
+    uint64_t profile_nonzero = 0;
+    uint64_t profile_tokens = 0;
+    uint64_t profile_resid_bits = 0;
+#endif
     int run = 0;
     /* Hoist freq + bb pointer out of the struct access. */
     uint16_t *freq = s->table.freq;
@@ -1305,9 +1380,9 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
 #define BB_WRITE_FAST(val32, nbits) do {                                   \
         uint32_t _v = (val32);                                             \
         int _b = (nbits);                                                  \
-        /* nbits ranges 1..25 in hot path, never 0 and never >=32 */       \
-        uint32_t _m = ((uint32_t)1 << _b) - 1u;                            \
-        bbacc |= ((uint64_t)(_v & _m)) << bbbits;                          \
+        PROFILE_RESID_BITS(_b);                                            \
+        /* Callers construct residual payloads that already fit _b bits. */ \
+        bbacc |= ((uint64_t)_v) << bbbits;                                 \
         bbbits += _b;                                                      \
         if (bbbits >= 32 && bbpos + 4 <= bbcap) {                          \
             uint32_t _w = (uint32_t)bbacc;                                 \
@@ -1318,42 +1393,134 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
         }                                                                  \
     } while (0)
 
-    for (int col = 0; col < width; col++) {
-        int32_t val = row[col];
-        if (val == 0) { run++; continue; }
-        int32_t mag = (val < 0) ? -val : val;
-        while (run >= 256) {
-            int rr; int rc = run_to_class(255, &rr);
-            int sym = rc * JANS_MAG_CLASSES + 0;
-            freq[sym]++;
-            tokens[token_count++] = (uint16_t)sym;
-            BB_WRITE_FAST(rr, run_class_bits[rc]);
-            run -= 255;
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+#define PROFILE_RESID_BITS(nbits) do {                                     \
+        if (__builtin_expect(profile != 0, 0)) profile_resid_bits += (uint64_t)_b; \
+    } while (0)
+#define PROFILE_NONZERO() do { if (__builtin_expect(profile != 0, 0)) profile_nonzero++; } while (0)
+#define PROFILE_TOKEN() do { if (__builtin_expect(profile != 0, 0)) profile_tokens++; } while (0)
+#define PROFILE_FREQ(sym_) do { if (__builtin_expect(profile != 0, 0)) s->profile_freq[(sym_)]++; } while (0)
+#else
+#define PROFILE_RESID_BITS(nbits) do { (void)(nbits); } while (0)
+#define PROFILE_NONZERO() do { } while (0)
+#define PROFILE_TOKEN() do { } while (0)
+#define PROFILE_FREQ(sym_) do { } while (0)
+#endif
+
+#define PROCESS_NONZERO_VALUE(val_) do {                                    \
+        int32_t nz_val = (val_);                                             \
+        PROFILE_NONZERO();                                                   \
+        int32_t mag = (nz_val < 0) ? -nz_val : nz_val;                       \
+        while (run >= 256) {                                                 \
+            int rr; int rc = run_to_class(255, &rr);                         \
+            int sym = rc * JANS_MAG_CLASSES + 0;                             \
+            JANS_FREQ_INC(freq[sym]);                                        \
+            PROFILE_FREQ(sym);                                                \
+            *tokp++ = (uint16_t)sym;                                         \
+            PROFILE_TOKEN();                                                 \
+            BB_WRITE_FAST(rr, run_class_bits[rc]);                           \
+            run -= 255;                                                      \
+        }                                                                    \
+        int run_resid, mag_resid;                                            \
+        int rc = run_to_class(run, &run_resid);                              \
+        int mc = mag_to_class(mag, &mag_resid);                              \
+        int sym = rc * JANS_MAG_CLASSES + mc;                                \
+        JANS_FREQ_INC(freq[sym]);                                            \
+        PROFILE_FREQ(sym);                                                    \
+        *tokp++ = (uint16_t)sym;                                             \
+        PROFILE_TOKEN();                                                     \
+        int rb = sym_run_bits[sym];                                          \
+        int tb = sym_total_bits[sym];                                        \
+        int mb = mag_class_bits[mc];                                         \
+        uint32_t merged = (uint32_t)run_resid;                               \
+        merged |= ((uint32_t)mag_resid << rb);                               \
+        merged |= ((nz_val < 0) ? 1u : 0u) << (rb + mb);                     \
+        BB_WRITE_FAST(merged, tb);                                           \
+        run = 0;                                                             \
+    } while (0)
+#define VALUE_IS_ZERO(val_) ((val_) == 0)
+
+    int col = 0;
+#if defined(__ARM_NEON)
+    {
+#if defined(__aarch64__)
+#define VEC4_ALL_ZERO(v_) (vmaxvq_u32(vreinterpretq_u32_s32(v_)) == 0)
+#else
+        const int32x4_t vzero = vdupq_n_s32(0);
+#define VEC4_ALL_ZERO(v_) ({                                                \
+            uint32x4_t _nonzero = vmvnq_u32(vceqq_s32((v_), vzero));        \
+            uint64x2_t _nz64 = vreinterpretq_u64_u32(_nonzero);             \
+            (vgetq_lane_u64(_nz64, 0) | vgetq_lane_u64(_nz64, 1)) == 0;      \
+        })
+#endif
+#define PROCESS_VEC4(base_, vec_) do {                                      \
+                if (VEC4_ALL_ZERO(vec_)) {                                  \
+                    run += 4;                                               \
+                } else {                                                    \
+                    int32_t _v0 = row[(base_) + 0];                         \
+                    int32_t _v1 = row[(base_) + 1];                         \
+                    int32_t _v2 = row[(base_) + 2];                         \
+                    int32_t _v3 = row[(base_) + 3];                         \
+                    if (VALUE_IS_ZERO(_v0)) run++; else PROCESS_NONZERO_VALUE(_v0); \
+                    if (VALUE_IS_ZERO(_v1)) run++; else PROCESS_NONZERO_VALUE(_v1); \
+                    if (VALUE_IS_ZERO(_v2)) run++; else PROCESS_NONZERO_VALUE(_v2); \
+                    if (VALUE_IS_ZERO(_v3)) run++; else PROCESS_NONZERO_VALUE(_v3); \
+                }                                                           \
+            } while (0)
+        int width_m16 = (width / 16) * 16;
+        for (; col < width_m16; ) {
+            int32x4_t v0 = vld1q_s32(row + col + 0);
+            int32x4_t v1 = vld1q_s32(row + col + 4);
+            int32x4_t v2 = vld1q_s32(row + col + 8);
+            int32x4_t v3 = vld1q_s32(row + col + 12);
+            if (VEC4_ALL_ZERO(v0) && VEC4_ALL_ZERO(v1) &&
+                VEC4_ALL_ZERO(v2) && VEC4_ALL_ZERO(v3)) {
+                run += 16;
+                col += 16;
+                continue;
+            }
+            PROCESS_VEC4(col + 0, v0);
+            PROCESS_VEC4(col + 4, v1);
+            PROCESS_VEC4(col + 8, v2);
+            PROCESS_VEC4(col + 12, v3);
+            col += 16;
         }
-        int run_resid, mag_resid;
-        int rc = run_to_class(run, &run_resid);
-        int mc = mag_to_class(mag, &mag_resid);
-        int sym = rc * JANS_MAG_CLASSES + mc;
-        freq[sym]++;
-        tokens[token_count++] = (uint16_t)sym;
-        {
-            int rb = sym_run_bits[sym];
-            int tb = sym_total_bits[sym];
-            int mb = mag_class_bits[mc];
-            uint32_t merged = (uint32_t)run_resid;
-            merged |= ((uint32_t)mag_resid << rb);
-            merged |= ((val < 0) ? 1u : 0u) << (rb + mb);
-            BB_WRITE_FAST(merged, tb);
+        int width_m4 = (width / 4) * 4;
+        for (; col < width_m4; col += 4) {
+            int32x4_t v = vld1q_s32(row + col);
+            if (VEC4_ALL_ZERO(v)) {
+                run += 4;
+                continue;
+            }
+            int32_t v0 = row[col + 0];
+            int32_t v1 = row[col + 1];
+            int32_t v2 = row[col + 2];
+            int32_t v3 = row[col + 3];
+            if (VALUE_IS_ZERO(v0)) run++; else PROCESS_NONZERO_VALUE(v0);
+            if (VALUE_IS_ZERO(v1)) run++; else PROCESS_NONZERO_VALUE(v1);
+            if (VALUE_IS_ZERO(v2)) run++; else PROCESS_NONZERO_VALUE(v2);
+            if (VALUE_IS_ZERO(v3)) run++; else PROCESS_NONZERO_VALUE(v3);
         }
-        run = 0;
+#undef PROCESS_VEC4
+#undef VEC4_ALL_ZERO
     }
+#endif
+    for (; col < width; col++) {
+        int32_t val = row[col];
+        if (VALUE_IS_ZERO(val)) { run++; continue; }
+        PROCESS_NONZERO_VALUE(val);
+    }
+#undef VALUE_IS_ZERO
+#undef PROCESS_NONZERO_VALUE
     /* End-of-row trailing-zero flush — matches jans_encode_band_x4 boundary */
     while (run > 0) {
         int actual = (run > 255) ? 255 : run;
         int rr; int rc = run_to_class(actual, &rr);
         int sym = rc * JANS_MAG_CLASSES + 0;
-        freq[sym]++;
-        tokens[token_count++] = (uint16_t)sym;
+        JANS_FREQ_INC(freq[sym]);
+        PROFILE_FREQ(sym);
+        *tokp++ = (uint16_t)sym;
+        PROFILE_TOKEN();
         BB_WRITE_FAST(rr, run_class_bits[rc]);
         run -= actual;
     }
@@ -1363,8 +1530,20 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
     bb->byte_pos = bbpos;
 #undef BB_WRITE_FAST
 
-    s->token_count = token_count;
+    s->token_count = (int)(tokp - tokens);
     s->rows_in_stripe++;
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+    if (__builtin_expect(profile != 0, 0)) {
+        s->profile_coeffs += (uint64_t)width;
+        s->profile_nonzero += profile_nonzero;
+        s->profile_tokens += profile_tokens;
+        s->profile_resid_bits += profile_resid_bits;
+    }
+#endif
+#undef PROFILE_RESID_BITS
+#undef PROFILE_NONZERO
+#undef PROFILE_TOKEN
+#undef PROFILE_FREQ
 
     /* Stripe-mode auto-flush */
     if (s->stripe_rows > 0 && s->rows_in_stripe >= s->stripe_rows) {
@@ -1372,12 +1551,42 @@ void jans_inline_row(JANS_INLINE_STATE *s, const int32_t *row, int width) {
     }
 }
 
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+static void jans_inline_maybe_print_profile(const JANS_INLINE_STATE *s, size_t bytes) {
+    if (!s || !s->profile_enabled) return;
+    uint64_t zeros = 0;
+    if (s->profile_coeffs >= s->profile_nonzero) {
+        zeros = s->profile_coeffs - s->profile_nonzero;
+    }
+    fprintf(stderr,
+            "# jans_inline_profile label=%s coeffs=%llu zero=%llu nonzero=%llu tokens=%llu resid_bits=%llu max_symbol_freq=%u overflow_symbols=%llu stripe_rows=%d defer=%d bytes=%zu\n",
+            s->profile_label[0] ? s->profile_label : "unlabeled",
+            (unsigned long long)s->profile_coeffs,
+            (unsigned long long)zeros,
+            (unsigned long long)s->profile_nonzero,
+            (unsigned long long)s->profile_tokens,
+            (unsigned long long)s->profile_resid_bits,
+            s->profile_max_symbol_freq,
+            (unsigned long long)s->profile_overflow_symbols,
+            s->stripe_rows,
+            s->defer_rans,
+            bytes);
+}
+#endif
+
 int jans_inline_finalize(uint8_t *out_buf, size_t out_capacity, JANS_INLINE_STATE *s) {
     if (!s || !out_buf) return -1;
 
     if (s->stripe_rows <= 0) {
         /* Legacy single-blob mode: emit one blob, identical to old format */
-        return jans_inline_emit_blob(out_buf, out_capacity, s);
+        int written = jans_inline_emit_blob(out_buf, out_capacity, s);
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+        if (written >= 0) {
+            jans_inline_profile_finish_symbol_counts(s);
+            jans_inline_maybe_print_profile(s, (size_t)written);
+        }
+#endif
+        return written;
     }
 
     /* Stripe mode: flush any pending stripe, then emit the framing header
@@ -1424,6 +1633,9 @@ int jans_inline_finalize(uint8_t *out_buf, size_t out_capacity, JANS_INLINE_STAT
             hdr[6] = (blob_size>>8)&0xFF;  hdr[7] = blob_size&0xFF;
             pos += 8 + (size_t)blob_size;
         }
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+        jans_inline_maybe_print_profile(s, pos);
+#endif
         return (int)pos;
     }
 
@@ -1443,6 +1655,9 @@ int jans_inline_finalize(uint8_t *out_buf, size_t out_capacity, JANS_INLINE_STAT
     if (s->stripe_acc_pos > 0) {
         memcpy(op, s->stripe_acc, s->stripe_acc_pos);
     }
+#if defined(JANS_INLINE_PROFILE_RUNTIME)
+    jans_inline_maybe_print_profile(s, total);
+#endif
     return (int)total;
 }
 

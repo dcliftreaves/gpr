@@ -113,8 +113,10 @@ actual camera path must supply its own storage proof.
 | 45 MP dual-encoder (encoder-bound ceiling) | ~42 fps | ~17 fps | fits 45 MP, tight at 50 MP |
 | 45 MP × 24 fps × 200 MB/s simulated storage (rate-controlled) | 23.95 fps | ✓ regardless of encoder_count | ✓ |
 
-A78 compute headroom is still the gating factor for 24 fps × 50 MP. Remaining queued optimization for real-A78 measurement:
-1. ARM64 hand-asm unpack (`FUSED_UNPACK_ASM=1`, 1% on M1, expected 10-20% on A78)
+A78 compute headroom is still the gating factor for 24 fps × 50 MP. Remaining
+queued optimization for real-A78 measurement is a new tokenizer/unpack dataflow
+pass; the older shared-unpack assembly path was removed after target
+regressions.
 
 `FUSED_LOG_POLYNOMIAL=ON` is no longer a queued fix for the current Labs
 half-res path. A 2026-06-15 Pi 5 probe showed it slower than the LUT/default

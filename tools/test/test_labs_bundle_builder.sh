@@ -14,6 +14,14 @@ GPR_TMPDIR="${GPR_TMPDIR:-$GPR_EXTERNAL_ROOT/tmp}"
 WORK=${WORK:-$GPR_TMPDIR/labs_bundle_builder_smoke}
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
+cleanup() {
+  local status=$?
+  if [ "$status" -eq 0 ] && [ "${GPR_KEEP_TEST_ARTIFACTS:-0}" != "1" ]; then
+    rm -rf "$WORK"
+  fi
+}
+trap cleanup EXIT
+
 rm -rf "$WORK"
 mkdir -p "$WORK/samples" "$WORK/review" "$WORK/receipts"
 

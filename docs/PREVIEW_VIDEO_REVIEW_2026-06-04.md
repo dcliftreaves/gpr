@@ -2,17 +2,22 @@
 
 ## Current conclusion
 
-The only Pi 5 raw-video encoder path proven to sustain 24 fps is:
+The historical Pi 5 raw-video encoder path reviewed in this bundle was:
 
 ```
 codec=ml2_q3_dec2
 ```
 
 That path encodes decimated Bayer payloads for later desktop decode and
-reconstruction. The production raw-video container should be `.gvid`, which
-wraps the per-frame FUSED `.gpr` payloads with clip-level fps, dimensions,
-pixel format, quality, and bitrate metadata. The MOV/GPRaw wrappers remain
-export and compatibility options, not the primary neutral deliverable.
+reconstruction. This note is no longer the authority for target-platform frame
+rate: current status lives in `docs/VIDEO_STATUS.md` and
+`docs/LABS_TARGET_BENCH.md`. The latest strict evidence treats Pi 5 as a
+20+ fps stand-in proxy, while strict 24 fps and actual Mission 1 camera
+handoff remain open. The production raw-video container should be `.gvid`,
+which wraps the per-frame FUSED `.gpr` payloads with clip-level fps,
+dimensions, pixel format, quality, and bitrate metadata. The MOV/GPRaw
+wrappers remain export and compatibility options, not the primary neutral
+deliverable.
 
 The SOTA-v2 preview renders reviewed on 2026-06-04 are display/review
 outputs from this class of decoded half-res capture. They are not the raw
@@ -97,7 +102,7 @@ Use this product split:
 
 | Output | Role |
 |---|---|
-| `.gvid` | primary raw video deliverable for 24 fps capture |
+| `.gvid` | primary raw video deliverable for raw capture; current Pi evidence is proxy-bound, not final strict-24 camera proof |
 | `.gpraw` / MOV `GPRr` | metadata-rich interchange/export wrapper |
 | MOV `GPR1` | older `gpr2prores` compatibility wrapper |
 | directory of `.gpr` frames | intermediate/debug handoff |
@@ -112,8 +117,10 @@ scratch on the external work drive.
 
 ## Next production risk
 
-The remaining video production risk is not the container or 24 fps encode
-path. It is quality beyond codec-only for live/camera-back PREVIEW: the q8
+The remaining video production risk is split. The container path has strong
+validation evidence, but strict 24 fps on the final Mission 1 sensor/storage
+path is still unproven. Separately, quality beyond codec-only for
+live/camera-back PREVIEW remains bounded to the 2K edge-safe path; the q8
 route is quality-valid for offline/review output but is far below live frame
 rate. Noise separation remains relevant for future CNN training, but it is not
 the current blocker for the registered offline/review PREVIEW path.

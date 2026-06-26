@@ -33,7 +33,7 @@ set -euo pipefail
 
 BUILD_DIR="${BUILD_DIR:-build}"
 GTOOLS="${GTOOLS:-$BUILD_DIR/source/app/gpr_tools/gpr_tools}"
-WORK="${WORK_DIR:-/tmp/gpr-still-quality}"
+WORK="${WORK_DIR:-${GPR_TMPDIR:-${TMPDIR:-/tmp}}/gpr-still-quality}"
 THRESHOLD_DB="${STILL_QUALITY_THRESHOLD_DB:-45.0}"
 
 if [ ! -x "$GTOOLS" ]; then

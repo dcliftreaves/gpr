@@ -27,6 +27,16 @@ NS_ASSUME_NONNULL_BEGIN
      outWidth:(int *)outWidth
     outHeight:(int *)outHeight;
 
+// Decode a full TIFF/GPR container through the lightweight GPR parser + VC5
+// path. Used for .gvid streams whose frame payloads are complete GPR files
+// rather than direct FUSD payloads.
+- (int)decodeGPRContainer:(const uint8_t *)enc
+                     size:(size_t)size
+                 outBayer:(uint16_t *)outBayer
+                 outPitch:(size_t)outPitch
+                 outWidth:(int *)outWidth
+                outHeight:(int *)outHeight;
+
 // Half-resolution decode — same args as -decode:, but the output is at
 // (header.width / 2) × (header.height / 2). For FUSED multi-level streams,
 // this skips the level-1 inverse wavelet so it's ~1.5–2× faster than the

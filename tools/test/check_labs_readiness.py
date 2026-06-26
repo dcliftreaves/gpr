@@ -53,12 +53,23 @@ REQUIRED_DOCS = {
         "Target Bench Requirements",
         "Camera Handoff Receipt",
         "gpr_labs_camera_handoff_receipt.v1",
+        "Preview UI Receipt",
+        "gpr_labs_preview_ui_receipt.v1",
+        "tools/check_labs_preview_ui_receipt.py",
+        "tools/build_labs_preview_ui_receipt.py",
     ],
     "docs/LABS_MISSION1_RUNBOOK.md": [
         "Required Mission 1 Run",
         "camera_handoff_receipt.json",
+        "mission1_camera_closure_run.json",
+        "preview_ui_receipt.json",
         "sensor_dma_executed=true",
         "verdict.firmware_ready=true",
+        "verdict.ui_ready=true",
+        "target_role=camera` is an assertion",
+        "tools/run_mission1_camera_closure.py",
+        "tools/check_mission1_camera_dispatch_inputs.py",
+        "tools/check_mission1_camera_closure_run.py",
         "Blocked Criteria",
     ],
     "docs/LABS_TARGET_BENCH.md": [
@@ -90,6 +101,8 @@ REQUIRED_DOCS = {
         "Target Or Self-Hosted CI",
         ".github/workflows/labs-target.yml",
         "gpr-labs-pi5",
+        "Mission 1 numbered-list readiness regression",
+        "Mission 1 numbered-list closure plan regression",
         "Skip Policy",
         "not a pass for firmware readiness",
     ],
@@ -99,11 +112,25 @@ REQUIRED_DOCS = {
         "Not Ready Yet",
         "Current Risk",
         "Next Work",
+        "gpr.mission1_4k_cleanup_production_signoff.v1",
+        "tools/build_mission1_4k_cleanup_signoff_receipt.py",
+        "tools/check_mission1_4k_cleanup_signoff_receipt.py",
         "fused_timing",
         "zero-frame",
         "out-of-order",
         "current-head direct",
         "16.00 fps",
+    ],
+    "docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md": [
+        "Machine-readable audit",
+        "Machine-readable closure plan",
+        "tools/mission1_numbered_list_closure_plan.py",
+        "camera_handoff_receipt.json",
+        "preview_ui_receipt.json",
+        "production_signoff.json",
+        "tools/check_labs_camera_handoff_receipt.py",
+        "tools/check_labs_preview_ui_receipt.py",
+        "tools/check_mission1_4k_cleanup_signoff_receipt.py",
     ],
     "docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md": [
         "Highpass Lower-Bound Probe",
@@ -249,12 +276,26 @@ def require_ci_contract(tracked: set[str], failures: list[str]) -> None:
     text = CI.read_text(encoding="utf-8")
     if "python3 tools/test/check_labs_readiness.py" not in text:
         failures.append("CI must run python3 tools/test/check_labs_readiness.py")
+    if "python3 tools/test/test_mission1_numbered_list_readiness.py" not in text:
+        failures.append("CI must run python3 tools/test/test_mission1_numbered_list_readiness.py")
+    if "python3 tools/test/test_mission1_numbered_list_closure_plan.py" not in text:
+        failures.append("CI must run python3 tools/test/test_mission1_numbered_list_closure_plan.py")
+    if "python3 tools/test/test_mission1_camera_dispatch_inputs.py" not in text:
+        failures.append("CI must run python3 tools/test/test_mission1_camera_dispatch_inputs.py")
     if "python3 tools/test/check_labs_target_receipts.py" not in text:
         failures.append("CI must run python3 tools/test/check_labs_target_receipts.py")
     if "tools/test/test_fused_context_env_capture.sh" not in text:
         failures.append("CI must run tools/test/test_fused_context_env_capture.sh")
     if "tools/test/test_labs_camera_handoff_receipt.sh" not in text:
         failures.append("CI must run tools/test/test_labs_camera_handoff_receipt.sh")
+    if "tools/test/test_labs_preview_ui_receipt.sh" not in text:
+        failures.append("CI must run tools/test/test_labs_preview_ui_receipt.sh")
+    if "tools/test/test_build_labs_preview_ui_receipt.sh" not in text:
+        failures.append("CI must run tools/test/test_build_labs_preview_ui_receipt.sh")
+    if "tools/test/test_mission1_4k_cleanup_signoff_receipt.sh" not in text:
+        failures.append("CI must run tools/test/test_mission1_4k_cleanup_signoff_receipt.sh")
+    if "tools/test/test_build_mission1_4k_cleanup_signoff_receipt.sh" not in text:
+        failures.append("CI must run tools/test/test_build_mission1_4k_cleanup_signoff_receipt.sh")
 
 
 def require_target_workflow_contract(tracked: set[str], failures: list[str]) -> None:
@@ -267,10 +308,23 @@ def require_target_workflow_contract(tracked: set[str], failures: list[str]) -> 
         "workflow_dispatch",
         "self-hosted",
         "gpr-labs-pi5",
+        "Validate dispatch role flags",
+        "Write target preflight receipt",
+        "tools/mission1_camera_target_preflight.py",
+        "tools/check_mission1_camera_dispatch_inputs.py",
         "bench_fused",
+        "labs_encoder_bench_cli",
+        "bench_binary",
+        "gvid_preview_rgb_cli",
         "tools/run_labs_target_bench.py",
         "tools/labs_target_to_camera_handoff_receipt.py",
         "tools/check_labs_camera_handoff_receipt.py",
+        "tools/run_mission1_camera_closure.py",
+        "tools/check_mission1_camera_closure_run.py",
+        "fused_decode_cli",
+        "target_preflight_receipt.json",
+        "preview_ui_receipt.json",
+        "mission1_camera_closure_run.json",
         "labs_target_bench.json",
         "camera_handoff_receipt.json",
         "actions/upload-artifact",

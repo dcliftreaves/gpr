@@ -18,6 +18,7 @@
     uint32_t                                _width;
     uint32_t                                _height;
     int                                     _fps;
+    int                                     _framesAppended;
     NSString                               *_path;
 }
 
@@ -32,6 +33,7 @@
     _width = width;
     _height = height;
     _fps = fps;
+    _framesAppended = 0;
     _path = path;
 
     // Remove existing file
@@ -55,6 +57,7 @@
     _input = [AVAssetWriterInput assetWriterInputWithMediaType:AVMediaTypeVideo
                                                 outputSettings:outputSettings];
     _input.expectsMediaDataInRealTime = NO;
+    _input.mediaTimeScale = fps;
     NSDictionary *sourceAttrs = @{
         (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_32BGRA),
         (NSString *)kCVPixelBufferWidthKey: @(width),
@@ -109,10 +112,14 @@
                 (long)_writer.status);
         return -1;
     }
+    if (idx + 1 > _framesAppended) _framesAppended = idx + 1;
     return 0;
 }
 
 - (int)finish {
+    if (_framesAppended > 0) {
+        [_writer endSessionAtSourceTime:CMTimeMake(_framesAppended, _fps)];
+    }
     [_input markAsFinished];
     __block BOOL done = NO;
     [_writer finishWritingWithCompletionHandler:^{ done = YES; }];

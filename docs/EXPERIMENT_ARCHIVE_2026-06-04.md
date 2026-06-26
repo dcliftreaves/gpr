@@ -36,3 +36,18 @@ Current external scratch root:
 ```text
 /Volumes/OWC_8TB/gpr_work/tmp
 ```
+
+## 2026-06-25 Raw-Match And Alignment Probes
+
+The Mission 1 JPEG/DNG tone-matching and alignment probes were useful for
+finding the display-look boundary, but they are not part of the production
+camera path. They have been preserved outside the production branch at:
+
+```text
+/Volumes/OWC_8TB/gpr_work/experiment_archive/raw_match_alignment_20260625
+```
+
+That archive includes the Adobe/rawpy matching probes, local-tone and residual
+fit tools, alignment sweep scripts, full-frame TIFF target notes, and related
+one-off dashboards. The production branch keeps the current `.gvid`, preview,
+4K cleanup, 8K SR, ProRes, readiness, and closure-receipt tooling.

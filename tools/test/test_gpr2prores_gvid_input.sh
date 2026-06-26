@@ -178,6 +178,39 @@ TMPDIR="$WORK/tmp" "$GPR2PRORES" \
 test -s "$WORK/out_2k.mov"
 grep -q "errors=0" "$WORK/render.log"
 
+if command -v ffprobe >/dev/null 2>&1; then
+  mkdir -p "$WORK/fps_frames"
+  cp "$SRC_GPR" "$WORK/fps_frames/frame_0000.gpr"
+  cp "$SRC_GPR" "$WORK/fps_frames/frame_0001.gpr"
+  "$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/fps_frames" "$WORK/twoframe.gvid" \
+    --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 4
+  TMPDIR="$WORK/tmp" "$GPR2PRORES" \
+    --max-frames 2 --fps 24 --no-cnn \
+    --demosaic core-image --out-resolution 2k \
+    --meta-dng "$META_DNG" \
+    "$WORK/twoframe.gvid" "$WORK/twoframe_2k.mov" \
+    2>&1 | tee "$WORK/twoframe_render.log"
+  test -s "$WORK/twoframe_2k.mov"
+  grep -q "errors=0" "$WORK/twoframe_render.log"
+  "$PYTHON_BIN" - "$WORK/twoframe_2k.mov" <<'PY'
+import json
+import subprocess
+import sys
+
+probe = json.loads(subprocess.check_output([
+    "ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", sys.argv[1]
+]))
+stream = probe["streams"][0]
+assert stream["nb_frames"] == "2", stream
+assert stream["time_base"] == "1/24", stream
+assert stream["duration_ts"] == 2, stream
+assert stream["r_frame_rate"] == "24/1", stream
+assert stream["avg_frame_rate"] == "24/1", stream
+PY
+else
+  echo "test_gpr2prores_gvid_input: SKIP ProRes fps metadata check; ffprobe missing"
+fi
+
 cp "$WORK/oneframe.gvid" "$WORK/dup_tag.gvid"
 "$PYTHON_BIN" - "$WORK/dup_tag.gvid" <<'PY'
 import struct

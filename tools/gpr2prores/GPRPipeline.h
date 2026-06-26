@@ -25,6 +25,8 @@ NS_ASSUME_NONNULL_BEGIN
 // "8k" means "native source dims, no scale".
 // cnnScale: "2x" (default — F variant, super-res) or "1x" (F_no_sr / BIBO_1x —
 // clean bayer at codec dims; CIRAWFilter handles the upscale to outResolution).
+// lookMode: nil/"none" by default. "mission1" applies the experimental Mission
+// JPEG-look geometry/raw-filter path in the Core Image demosaic backend.
 - (nullable instancetype)initWithFirstFrame:(NSString *)firstFrame
                                 metaDngPath:(nullable NSString *)metaDngPath
                                    ckptPath:(NSString *)ckptPath
@@ -37,7 +39,8 @@ NS_ASSUME_NONNULL_BEGIN
                                  cnnBackend:(NSString *)cnnBackend
                                 demosaicMode:(NSString *)demosaicMode
                               outResolution:(NSString *)outResolution
-                                   cnnScale:(NSString *)cnnScale;
+                                   cnnScale:(NSString *)cnnScale
+                                   lookMode:(nullable NSString *)lookMode;
 
 // Continue past per-frame errors (read/decode/CNN/demosaic failures). The
 // failing frame's index is logged to stderr; subsequent frames continue. The

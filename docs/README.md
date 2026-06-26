@@ -1,38 +1,47 @@
-# GPR docs index
+# GPR Docs Index
 
-Where to look for what. Last refreshed 2026-06-15.
+Where to look for current production status, evidence, and runbooks. Last
+refreshed 2026-06-25.
 
 ## Start here
 
 | if you want to know… | read |
 |---|---|
+| product overview, media, and quick start | `../README.md` |
 | Release readiness and production proof | `RELEASE_READINESS.md` |
-| Labs firmware-prototype intake | `LABS_INTAKE.md` |
-| Labs goal and stop criteria | `LABS_READINESS_GOAL.md` |
-| Labs firmware-review burn-down goal | `LABS_FIRMWARE_REVIEW_BURNDOWN_GOAL.md` |
-| Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
-| Mission 1 evidence runbook | `LABS_MISSION1_RUNBOOK.md` |
-| product overview and media paths | `../README.md` |
 | what ships today, by ship class | `SHIP_DECISION.md` |
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |
-| stills vs video — the two production modes | `SHIP_DECISION.md` (header), `VIDEO_STATUS.md` |
+| video, preview, Mission 1, and SR status | `VIDEO_STATUS.md` |
+| Mission 1 numbered-list burndown and closure plan | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md` |
+| 2K / 4K / 8K raw target ladder | `RAW_RESOLUTION_TARGETS_2026-06-14.md` |
+| UPRESABLE editable raw workflow | `UPRESABLE_PIPELINE.md` |
 | compact production evidence manifest checked by CI | `release_evidence_manifest.json` |
-| how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
-| open work items + archived experiment branches | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
 | where production checkpoints/artifacts live | `PRODUCTION_ARTIFACTS.md` |
-| current live/camera-back PREVIEW policy | `RAW_RESOLUTION_TARGETS_2026-06-14.md`, `VIDEO_STATUS.md`, `../tools/live_preview_policy.py` |
-| PREVIEW runtime no-REF burn-down | `PREVIEW_RUNTIME_POLICY_2026-06-06.md` |
-| PREVIEW scene-router research | `PREVIEW_SCENE_ROUTER_RESEARCH_2026-06-06.md` |
-| Pi 5 encode timing at each q level | `STILLS_PI5_TIMING.md` |
-| Pi 5 Labs target receipt and current regression notes | `LABS_TARGET_BENCH.md`, `LABS_PI_CAPTURE_REGRESSION_2026-06-15.md` |
-| full codec × CNN × verdict matrix | `FULL_PIPELINE_MATRIX.md` |
-| camera-vendor spec contribution framing | `architecture.md`, `format-spec-v2.md`, SPEC.md |
+| how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
+| Labs firmware-prototype intake | `LABS_INTAKE.md` |
+| Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
+| Mission 1 evidence runbook | `LABS_MISSION1_RUNBOOK.md` |
+| full codec x CNN x verdict matrix | `FULL_PIPELINE_MATRIX.md` |
+| camera-vendor spec contribution framing | `architecture.md`, `format-spec-v2.md`, `SPEC.md` |
+
+## Production Evidence
+
+| artifact family | primary index |
+|---|---|
+| External dashboards, media, and receipts | `release_evidence_manifest.json` |
+| Checkpoint and artifact hashes | `PRODUCTION_ARTIFACTS.md` |
+| Stills, VIDEO_FREEZE, UPRESABLE decisions | `SHIP_DECISION.md` |
+| 12MP Mission 1 native Bayer receipts | `VIDEO_STATUS.md`, `LABS_TARGET_BENCH.md` |
+| Mission 1 numbered-list readiness and closure blockers | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md`, `release_evidence_manifest.json` |
+| 1x/2x CNN and SR status | `VIDEO_STATUS.md`, `MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md` |
+| Live/camera-back PREVIEW policy | `RAW_RESOLUTION_TARGETS_2026-06-14.md`, `../tools/live_preview_policy.py` |
 
 ## Plans and methodology (read before executing)
 
 | topic | doc |
 |---|---|
-| CNN-aware fine-grained compression history | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
+| Open work items and archived experiment branches | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
+| CNN-aware fine-grained compression history | `methodology_cnn_aware_quant.md` |
 | BIDO super-res CNN distillation | `BIDO_DISTILLATION_PLAN.md` |
 | Raw noise/signal separation guardrail | `RAW_NOISE_SIGNAL_AUDIT_2026-06-05.md` |
 | Raw-signal CNN candidate | `RAW_SIGNAL_CNN_CANDIDATE_2026-06-05.md` |
@@ -58,6 +67,7 @@ Where to look for what. Last refreshed 2026-06-15.
 
 | command | purpose |
 |---|---|
+| `TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp GPR_TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp tools/test/run_all_regressions.sh` | run the local regression wrapper; it auto-detects `build-local`, runs release/readiness guards, and skips NumPy/rawpy-heavy suites when those dev dependencies are absent |
 | `python3 tests/quality_gates/run_gate.py <pipeline>` | run perceptual gate on a pipeline |
 | `python3 tests/quality_gates/run_gate.py <pipeline> --claim` | log a ship-claim (interactive) |
 | `python3 tests/quality_gates/run_gate_parallel.sh <pipelines>...` | xargs -P wrapper |
@@ -66,10 +76,32 @@ Where to look for what. Last refreshed 2026-06-15.
 | `python3 tests/quality_gates/dashboard.py` | refresh sweep dashboard |
 | `python3 tests/quality_gates/review_dashboard.py` | refresh decision dashboard |
 | `python3 tools/test/test_capabilities.py` | encoder regression (also in CI) |
+| `python3 tools/test/check_readme_media.py` | validate local README showcase media links, sizes, and stale text claims in SVG media |
+| `python3 tools/test/test_check_readme_media.py` | regression-test README showcase stale-claim detection |
 | `python3 tools/test/check_release_evidence_manifest.py` | validate production evidence manifest |
+| `python3 tools/test/test_mission1_numbered_list_readiness.py` | regression-test the four-item Mission 1 readiness audit |
+| `python3 tools/test/test_mission1_numbered_list_closure_plan.py` | regression-test the Mission 1 blocker closure plan |
+| `python3 tools/test/test_mission1_8k_sr_production_promotion.py` | regression-test the Mission 1 8K SR production-promotion receipt schema |
+| `python3 tools/test/test_build_mission1_8k_sr_visual_review.py` | regression-test the Mission 1 8K SR compact visual review package |
+| `python3 tools/test/test_mission1_camera_dispatch_inputs.py` | regression-test camera-role dispatch preflight labels and execution flags |
+| `python3 tools/test/test_mission1_camera_closure_package.py` | regression-test the Mission 1 camera-side closure package |
+| `python3 tools/check_mission1_camera_closure_package.py <closure_package.json>` | validate a real Mission 1 camera closure package, including target-preflight semantics and SHA-pinned final camera receipts |
+| `python3 tools/test/test_mission1_camera_hardware_audit.py` | regression-test the Mission 1 camera hardware enumeration audit |
+| `python3 tools/test/test_mission1_camera_source_probe.py` | regression-test the Mission 1 camera raw source endpoint contract |
+| `python3 tools/test/test_mission1_camera_target_preflight.py` | regression-test target-host readiness receipts for camera closure |
+| `python3 tools/test/test_collect_mission1_target_closure.py` | regression-test compact target closure receipt collection |
+| `python3 tools/test/test_run_mission1_target_closure_package.py` | regression-test the one-command target-side Mission 1 closure package runner |
+| `python3 tools/run_mission1_remote_closure_package.py --dry-run --camera-ready` | launch the target-side Mission 1 closure package over SSH and collect compact receipts after real runs |
+| `python3 tools/test/test_run_mission1_remote_closure_package.py` | regression-test host-to-target Mission 1 closure launch command construction |
+| `python3 tools/test/test_run_mission1_camera_closure.py` | regression-test the Mission 1 camera-side closure runner |
+| `python3 tools/test/test_mission1_camera_closure_run.py` | regression-test the Mission 1 closure-run validator |
 | `python3 tools/verify_production_artifacts.py` | inventory production checkpoint files and hashes |
-| `python3 tools/verify_release_manifest_artifacts.py` | inventory external dashboards, media, and receipt paths named by the release manifest |
+| `python3 tools/verify_release_manifest_artifacts.py --strict --summary` | verify external dashboards, media, receipt paths, and `PRODUCTION_ARTIFACTS.md` hashes with concise CI output |
+| `python3 tools/test/test_verify_release_manifest_artifacts.py` | regression-test release-manifest artifact semantic checks |
+| `bash tools/test/test_labs_camera_handoff_receipt.sh` | regression-test camera handoff receipt schema and camera/source-kind guardrails |
 | `python3 tools/live_preview_policy.py` | print the bounded live PREVIEW runtime policy |
+| `cmake --build build --target test_labs_encoder_api && build/bin/test_labs_encoder_api` | build and run the firmware-facing Labs encoder shim regression |
+| `BUILD_DIR=build bash tools/test/test_labs_encoder_bench_cli.sh` | regression-test the Labs shim through the target-bench receipt wrapper |
 
 ## Session retrospectives
 
@@ -94,7 +126,7 @@ These have decay — git log is the live history.
 
 ## Where IS the actual code
 
-- `source/lib/vc5_encoder/` — legacy CineForm encoder (production stills)
+- `source/lib/vc5_encoder/` — legacy CineForm encoder, FUSED encoder, `.gvid` video APIs, and firmware-facing `gpr_labs_encoder` shim
 - `source/lib/vc5_decoder/` — legacy CineForm decoder + FUSED decoder
 - `source/lib/vc5_common/` — shared (wavelet, log curve, etc.)
 - `source/lib/vc5_encoder/fused_encode.c` — FUSED encoder (production video)
@@ -107,4 +139,6 @@ These have decay — git log is the live history.
 - `tools/test/` — capability + regression tests
 - `tests/quality_gates/` — perceptual gate + registry + runs
 
-If you're new: read `SHIP_DECISION.md`, then `TESTING_METHODOLOGY.md`, then `VIDEO_STATUS.md`. Those three should orient you to current state.
+If you're new: read `../README.md`, then `RELEASE_READINESS.md`, then
+`VIDEO_STATUS.md`. Those three should orient you to the current state before
+you open experiment archives.

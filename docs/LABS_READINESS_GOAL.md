@@ -434,9 +434,9 @@ best current-build knob reaches roughly 22-23 fps on short probes, while the
 strict 10-minute receipt remains 19.98 fps median and the current-head
 1,440-frame direct-container rehearsal is 16.00 fps median. Timing detail shows
 multi-level Pass1 dominates, with channel unpack as the largest measured
-component. The invalid producer+decimate combination is guarded by a committed
-byte-identity fallback regression, and a fresh decimation-aware producer
-scratch probe was rejected by Pi 5 full-frame timing. A 2026-06-15 search found
+component. The invalid producer+decimate combination was removed rather than
+kept as a supported mode, and a fresh decimation-aware producer scratch probe
+was rejected by Pi 5 full-frame timing. A 2026-06-15 search found
 no separate
 recoverable `be0328a` downstream source tree on the consolidated 8TB work
 area; the archived branch only contains the stale polynomial-comment delta for
