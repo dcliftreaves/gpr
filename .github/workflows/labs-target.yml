@@ -463,6 +463,7 @@ jobs:
           handoff = outdir / "camera_handoff_receipt.json"
           preflight = outdir / "target_preflight_receipt.json"
           closure_run = outdir / "camera_closure_run" / "mission1_camera_closure_run.json"
+          preview_ui = outdir / "camera_closure_run" / "preview_ui_receipt.json"
           handoff_data = json.loads(handoff.read_text(encoding="utf-8")) if handoff.exists() else {}
           preflight_data = json.loads(preflight.read_text(encoding="utf-8")) if preflight.exists() else {}
           closure_data = json.loads(closure_run.read_text(encoding="utf-8")) if closure_run.exists() else {}
@@ -472,6 +473,7 @@ jobs:
               ("receipt", str(receipt)),
               ("camera_handoff_receipt", str(handoff) if handoff.exists() else "missing"),
               ("mission1_camera_closure_run", str(closure_run) if closure_run.exists() else "missing"),
+              ("preview_ui_receipt", str(preview_ui) if preview_ui.exists() else "missing"),
               ("frames", f"{capture.get('frames_written')}/{capture.get('frames_requested')}"),
               ("fps_median", timing.get("fps_median")),
               ("p95_ms", timing.get("p95_ms")),
@@ -501,6 +503,7 @@ jobs:
             ${{ steps.prep.outputs.outdir }}/labs_target_bench.json
             ${{ steps.prep.outputs.outdir }}/camera_handoff_receipt.json
             ${{ steps.prep.outputs.outdir }}/camera_closure_run/mission1_camera_closure_run.json
+            ${{ steps.prep.outputs.outdir }}/camera_closure_run/preview_ui_receipt.json
             ${{ runner.temp }}/labs_target_bench_stdout.txt
 
       - name: Enforce target verdict
