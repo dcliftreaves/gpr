@@ -15,6 +15,7 @@ refreshed 2026-06-26.
 | GitHub release bundle contents and upload flow | `RELEASE_ARTIFACTS.md` |
 | video, preview, Mission 1, and SR status | `VIDEO_STATUS.md` |
 | Mission 1 numbered-list burndown and closure plan | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md` |
+| Mission 1 CNN status and next steps | `MISSION1_CNN_NEXT_STEPS_2026-06-28.md` |
 | 4K capture, 1024 preview, and offline 8K SR target ladder | `RAW_RESOLUTION_TARGETS_2026-06-14.md` |
 | UPRESABLE editable raw workflow | `UPRESABLE_PIPELINE.md` |
 | compact production evidence manifest checked by CI | `release_evidence_manifest.json` |
@@ -89,6 +90,7 @@ refreshed 2026-06-26.
 | `python3 tools/check_mission1_camera_closure_package.py <closure_package.json>` | validate a real Mission 1 camera closure package, including target-preflight semantics and SHA-pinned final camera receipts |
 | `python3 tools/test/test_mission1_camera_hardware_audit.py` | regression-test the Mission 1 camera hardware enumeration audit |
 | `python3 tools/test/test_mission1_camera_source_probe.py` | regression-test the Mission 1 camera raw source endpoint contract |
+| `python3 tools/mission1_stream_source_encoder.py --bench build-local/bin/labs_encoder_bench_cli --output /path/to/receipt.json` | feed a deterministic FIFO source into the firmware-facing Labs encoder shim; stand-in evidence only |
 | `python3 tools/test/test_mission1_camera_target_preflight.py` | regression-test target-host readiness receipts for camera closure |
 | `python3 tools/test/test_collect_mission1_target_closure.py` | regression-test compact target closure receipt collection |
 | `python3 tools/test/test_run_mission1_target_closure_package.py` | regression-test the one-command target-side Mission 1 closure package runner |

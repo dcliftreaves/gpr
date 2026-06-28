@@ -85,4 +85,37 @@ assert receipt["verdict"]["gvid_valid"] is True
 assert receipt["verdict"]["storage_target_met"] is True
 PY
 
+"$PYTHON_BIN" "$REPO/tools/mission1_stream_source_encoder.py" \
+  --bench "$BUILD_DIR/bin/labs_encoder_bench_cli" \
+  --output "$WORK/stream_receipt.json" \
+  --work-dir "$WORK/stream" \
+  --source-width 64 \
+  --source-height 48 \
+  --frames 4 \
+  --target-fps 20 \
+  --quality 3 \
+  --pixel-format 4 \
+  --bit-depth 16 \
+  --delay-pattern-ms 0,0.5
+
+"$PYTHON_BIN" - "$WORK/stream_receipt.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+receipt = json.loads(Path(sys.argv[1]).read_text())
+assert receipt["schema"] == "gpr.mission1_stream_source_encoder.v1"
+assert receipt["target"]["role"] == "stand-in"
+assert receipt["target"]["not_camera_evidence"] is True
+assert receipt["source"]["frame_bytes"] == 64 * 48 * 2
+assert receipt["producer"]["process"] == "separate"
+assert receipt["encoder"]["process"] == "separate"
+assert receipt["producer"]["frames_written"] == 4
+assert receipt["encoder"]["stream_frames"] == 4
+assert receipt["encoder"]["labs_encoder_stats"]["written"] == 4
+assert receipt["output"]["validation"]["valid"] is True
+assert receipt["output"]["validation"]["frame_count"] == 4
+assert receipt["verdict"]["stream_encode_ready"] is True
+assert receipt["verdict"]["production_evidence"] is False
+PY
+
 echo "test_labs_encoder_bench_cli: PASS"
