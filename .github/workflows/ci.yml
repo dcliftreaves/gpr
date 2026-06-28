@@ -105,6 +105,9 @@ jobs:
       - name: Mission 1 camera source probe regression
         run: python3 tools/test/test_mission1_camera_source_probe.py
 
+      - name: Mission 1 DMA source simulator regression
+        run: python3 tools/test/test_mission1_dma_source_sim.py
+
       - name: Mission 1 camera target preflight regression
         run: python3 tools/test/test_mission1_camera_target_preflight.py
 
