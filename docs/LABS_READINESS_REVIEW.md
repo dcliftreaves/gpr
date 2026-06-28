@@ -151,6 +151,9 @@ write margin.
    `tools/check_labs_preview_ui_receipt.py`. If the path still writes
    file/video output off-camera, keep `target.role=stand-in` and do not claim
    UI readiness.
+   The shortest GoPro-side checklist for steps 3 and 4 is
+   `docs/GOPRO_MISSION1_QUICK_VALIDATION.md`; use the longer
+   `docs/LABS_MISSION1_RUNBOOK.md` when debugging a specific failed stage.
 5. Continue strict-24 CPU optimization only if 24 fps remains a requirement.
    FLL2 avg7555-fast P2-pin passes 20+ fps and fits the conservative 24 fps
    storage budget on GP017602. The latest sustained current-source T236 receipt
