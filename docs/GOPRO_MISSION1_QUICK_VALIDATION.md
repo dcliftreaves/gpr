@@ -163,6 +163,7 @@ Without camera-source access, the remaining productive work is:
 |---|---|---|
 | Pi 5 file-backed 4K Bayer encode | keeps codec timing, storage budget, recovery, and `.gvid` validity covered | no |
 | deterministic DMA source simulator | replays source cadence, jitter, and backpressure profiles with separate producer/consumer processes | no |
+| deterministic source-to-encoder harness | feeds FIFO-produced Mission 1-shaped Bayer frames into the real Labs encoder shim and validates the `.gvid` | no |
 | 1024 x 768 preview decode | keeps the camera-back preview algorithm above the 20 fps floor on stand-in hardware | no |
 | `.gvid` conformance and recovery tests | protects container correctness and interrupted-file behavior | no |
 | 4K cleanup and 8K SR dashboards | improves offline/Mac post quality and keeps CNN promotion evidence current | no |
@@ -190,13 +191,11 @@ inter-frame jitter, and complete-frame delivery against the camera receipt.
 
 1. Keep the 4K Bayer `.gvid` encoder and 1024 x 768 preview path green on Pi 5
    stand-in tests.
-2. Add a deterministic simulated-source-to-encoder harness, so FIFO source
-   cadence can feed the encode path instead of stopping at producer/consumer
-   timing.
+2. Run the deterministic simulated-source-to-encoder harness on the Pi 5 for
+   longer frame counts and compare it with the file-backed encoder receipts.
 3. Keep 4K cleanup and 8K SR review dashboards current against Mission 1,
    Z8, X2D, and iPhone fixture compatibility.
 4. Maintain release evidence manifests and artifact hashes so a GoPro reviewer
    can verify exactly which receipts support each claim.
 5. Keep the main branch CI green and reject any receipt that blurs stand-in
    evidence with camera evidence.
-

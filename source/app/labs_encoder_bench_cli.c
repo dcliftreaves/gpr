@@ -83,6 +83,28 @@ static int read_exact_frame(const char *path, uint8_t *dst, size_t bytes)
     return 0;
 }
 
+static int read_exact_stream(FILE *fp, uint8_t *dst, size_t bytes)
+{
+    size_t got = 0;
+    while (got < bytes) {
+        size_t n = fread(dst + got, 1, bytes - got, fp);
+        if (n == 0) {
+            if (ferror(fp)) {
+                perror("stream raw input read failed");
+            }
+            return -1;
+        }
+        got += n;
+    }
+    return 0;
+}
+
+static int env_bool(const char *name)
+{
+    const char *s = getenv(name);
+    return (s && *s && strcmp(s, "0") != 0) ? 1 : 0;
+}
+
 static int write_cb(void *user, const uint8_t *data, size_t size)
 {
     writer_ctx *ctx = (writer_ctx *)user;
@@ -141,20 +163,33 @@ int main(int argc, char **argv)
         return 2;
     }
 
+    int stream_input = env_bool("GPR_LABS_STREAM_INPUT");
     uint8_t *frame = (uint8_t *)malloc(frame_bytes);
     if (!frame) {
         fprintf(stderr, "frame allocation failed\n");
         return 1;
     }
     memset(frame, 0, frame_bytes);
-    if (read_exact_frame(raw_path, frame, raw_bytes) != 0) {
+    if (!stream_input && read_exact_frame(raw_path, frame, raw_bytes) != 0) {
         free(frame);
         return 1;
+    }
+
+    FILE *stream_fp = NULL;
+    if (stream_input) {
+        stream_fp = fopen(raw_path, "rb");
+        if (!stream_fp) {
+            fprintf(stderr, "open stream raw input failed: %s\n", raw_path);
+            free(frame);
+            return 1;
+        }
+        fprintf(stderr, "# GPR_LABS_STREAM_INPUT=1 - reading one frame per submit from %s\n", raw_path);
     }
 
     FILE *fp = fopen(gvid_path, "wb");
     if (!fp) {
         fprintf(stderr, "open GPR_BENCH_GVID failed: %s\n", gvid_path);
+        if (stream_fp) fclose(stream_fp);
         free(frame);
         return 1;
     }
@@ -177,12 +212,27 @@ int main(int argc, char **argv)
     if (!enc) {
         fprintf(stderr, "gpr_labs_encoder_create failed\n");
         fclose(fp);
+        if (stream_fp) fclose(stream_fp);
         free(frame);
         return 1;
     }
 
     double t_start = now_ms();
     for (int i = 0; i < frames; i++) {
+        double read_ms = 0.0;
+        if (stream_input) {
+            double r0 = now_ms();
+            if (read_exact_stream(stream_fp, frame, frame_bytes) != 0) {
+                fprintf(stderr, "stream raw input ended before frame %d\n", i);
+                gpr_labs_encoder_cancel(enc);
+                gpr_labs_encoder_destroy(enc);
+                fclose(fp);
+                if (stream_fp) fclose(stream_fp);
+                free(frame);
+                return 1;
+            }
+            read_ms = now_ms() - r0;
+        }
         gpr_labs_frame f;
         memset(&f, 0, sizeof f);
         f.data = frame;
@@ -196,11 +246,16 @@ int main(int argc, char **argv)
             gpr_labs_encoder_cancel(enc);
             gpr_labs_encoder_destroy(enc);
             fclose(fp);
+            if (stream_fp) fclose(stream_fp);
             free(frame);
             return 1;
         }
         double t1 = now_ms();
-        printf("%.3f\n", t1 - t0);
+        if (stream_input) {
+            printf("# stream_frame frame=%d source_read_ms=%.3f submit_ms=%.3f\n", i, read_ms, t1 - t0);
+        } else {
+            printf("%.3f\n", t1 - t0);
+        }
     }
 
     double flush0 = now_ms();
@@ -208,6 +263,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "gpr_labs_encoder_flush failed\n");
         gpr_labs_encoder_destroy(enc);
         fclose(fp);
+        if (stream_fp) fclose(stream_fp);
         free(frame);
         return 1;
     }
@@ -219,6 +275,7 @@ int main(int argc, char **argv)
     gpr_labs_encoder_get_stats(enc, &stats);
     gpr_labs_encoder_destroy(enc);
     fclose(fp);
+    if (stream_fp) fclose(stream_fp);
     free(frame);
 
     fprintf(stderr, "# bench_phase_ms async_drain n=1 mean=%.3f stddev=0.000 min=%.3f p25=%.3f median=%.3f p75=%.3f p95=%.3f p99=%.3f max=%.3f\n",

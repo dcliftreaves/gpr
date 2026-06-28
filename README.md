@@ -149,6 +149,9 @@ backpressure, consumer wait, complete-frame delivery, and hash consistency. Use
 it to replay measured Mission 1 delay profiles on the Pi 5; it is explicitly
 non-production evidence and does not replace the real sensor/DMA, storage, or
 display receipts.
+`tools/mission1_stream_source_encoder.py` extends that rehearsal by feeding the
+deterministic FIFO source into the firmware-facing Labs encoder shim and
+validating the resulting `.gvid`.
 
 Machine-readable status and closure steps live in
 [`docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md`](docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md).
@@ -192,6 +195,7 @@ current evidence so strict local checks can verify it.
 | Production artifact layout and hashes | [`docs/PRODUCTION_ARTIFACTS.md`](docs/PRODUCTION_ARTIFACTS.md) |
 | Mission 1 numbered-list burndown | [`docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md`](docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md) |
 | GoPro Mission 1 quick validation | [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md) |
+| Mission 1 CNN status and next steps | [`docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md`](docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md) |
 | Still/video ship decisions | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) |
 | Video, preview, and Mission 1 status | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) |
 | Raw 2K / 4K / 8K ladder | [`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-14.md) |
@@ -289,6 +293,24 @@ python3 tools/mission1_dma_source_sim.py \
 That receipt should be compared with real Mission 1 source timing once sensor
 handoff is available. It remains a profiling/replay tool, not a production
 promotion artifact.
+
+To feed the deterministic source into the real Labs encoder shim:
+
+```bash
+python3 tools/mission1_stream_source_encoder.py \
+  --bench build-local/bin/labs_encoder_bench_cli \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/mission1_stream_source_encoder/current/receipt.json \
+  --work-dir /Volumes/OWC_8TB/gpr_work/tmp/mission1_stream_source_encoder \
+  --source-width 4096 \
+  --source-height 3072 \
+  --frames 120 \
+  --target-fps 20 \
+  --quality 8 \
+  --pixel-format 1
+```
+
+This is still stand-in evidence. It verifies deterministic source cadence plus
+encoder/container behavior, not real Mission 1 camera handoff.
 
 Run the production gate after collecting those receipts:
 
@@ -406,6 +428,7 @@ Full walkthrough: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
 | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) | Capture, PREVIEW, video, and review status |
 | [`docs/LABS_READINESS_REVIEW.md`](docs/LABS_READINESS_REVIEW.md) | Labs readiness and Mission 1 handoff review |
 | [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md) | Minimal camera-side validation path and non-camera fallback plan |
+| [`docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md`](docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md) | Current 4K cleanup / 8K SR CNN status and next actions |
 | [`docs/PRODUCTIZATION_CONTRACTS.md`](docs/PRODUCTIZATION_CONTRACTS.md) | Release bundle, Labs handoff, `.gvid`, and CNN governance checklist |
 | [`docs/RELEASE_ARTIFACTS.md`](docs/RELEASE_ARTIFACTS.md) | GitHub release bundle contents, checksums, and upload flow |
 | [`docs/GVID_CONFORMANCE.md`](docs/GVID_CONFORMANCE.md) | `.gvid` wire-contract and malformed-stream conformance suite |
