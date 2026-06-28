@@ -222,7 +222,7 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
          *     image (38% of total wall-time on a q=3 encode). */
         const int is_dng_to_gpr = (input_file_type == FILE_TYPE_DNG) &&
                                   (output_file_type == FILE_TYPE_GPR);
-        const int skip_md = (output_file_type == FILE_TYPE_RAW) ||
+        const int skip_md = (output_file_type == FILE_TYPE_RAW && input_file_type != FILE_TYPE_GPR) ||
                             (is_dng_to_gpr && input_skip_rows == 0);
         if (!skip_md)
             gpr_parse_metadata( &allocator, &input_buffer, &params );
@@ -461,7 +461,30 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
 
             void *raw_out = NULL;
             size_t raw_sz = 0;
-            int pf = 1; /* Default: RGGB_14 */
+            int pf = 1; /* Fast decoder enum default: RGGB_14 */
+            switch (params.tuning_info.pixel_format)
+            {
+                case PIXEL_FORMAT_RGGB_12:
+                case PIXEL_FORMAT_RGGB_12P:
+                    pf = 0;
+                    break;
+                case PIXEL_FORMAT_RGGB_14:
+                    pf = 1;
+                    break;
+                case PIXEL_FORMAT_GBRG_12:
+                case PIXEL_FORMAT_GBRG_12P:
+                    pf = 2;
+                    break;
+                case PIXEL_FORMAT_GBRG_16:
+                    pf = 5;
+                    break;
+                case PIXEL_FORMAT_RGGB_16:
+                    pf = 4;
+                    break;
+                default:
+                    pf = 1;
+                    break;
+            }
             int rc = gpr_fast_decode((const uint8_t *)input_buffer.buffer, input_buffer.size,
                                       &raw_out, &raw_sz, pf);
             if (rc == 0 && raw_out) {

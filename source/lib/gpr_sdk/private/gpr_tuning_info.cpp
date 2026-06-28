@@ -95,6 +95,9 @@ void gpr_tuning_info_set_defaults( gpr_tuning_info* x )
     x->ans_enabled = false;
     x->noise_seed = 0;
     memset(x->noise_sigma_est, 0, sizeof(x->noise_sigma_est));
+    x->fix_vignette_radial_valid = false;
+    memset(x->fix_vignette_radial_params, 0, sizeof(x->fix_vignette_radial_params));
+    x->fix_vignette_radial_center_h = 0.0;
+    x->fix_vignette_radial_center_v = 0.0;
 }
-
 
