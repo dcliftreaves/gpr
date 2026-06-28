@@ -142,6 +142,14 @@ production gate remains blocked until those receipts come from a
 `target_role=camera` run with real sensor/DMA, storage handoff, UI path, and
 visual display checks marked executed.
 
+For deterministic rehearsal before that handoff, `tools/mission1_dma_source_sim.py`
+creates a separate-process FIFO producer/consumer that mimics a sensor
+DMA/ring-buffer cadence. Its receipt captures inter-frame timing, producer
+backpressure, consumer wait, complete-frame delivery, and hash consistency. Use
+it to replay measured Mission 1 delay profiles on the Pi 5; it is explicitly
+non-production evidence and does not replace the real sensor/DMA, storage, or
+display receipts.
+
 Machine-readable status and closure steps live in
 [`docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md`](docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md).
 
@@ -263,6 +271,23 @@ When the camera frame source, SD writer, and rear-display path are wired, remove
 | `preview_ui_receipt.json` | `target.role=camera`, UI path executed, full-frame 1024 x 768 preview, no drops, visual display check, and `20+ fps` timing |
 | `mission1_camera_closure_run.json` | the target preflight, encode, and preview receipts belong to the same camera closure package; production requires all three to be ready and aggregate-consistent |
 | `closure_package.json` | the final package retains SHA-pinned target preflight, camera handoff, and preview UI receipt summaries before production promotion |
+
+To simulate camera-source timing deterministically before that run:
+
+```bash
+python3 tools/mission1_dma_source_sim.py \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/mission1_dma_source_sim/current/receipt.json \
+  --work-dir /Volumes/OWC_8TB/gpr_work/tmp/mission1_dma_source_sim \
+  --source-width 4096 \
+  --source-height 3072 \
+  --frames 240 \
+  --target-fps 20 \
+  --delay-pattern-ms 0,0.5,0,1.0
+```
+
+That receipt should be compared with real Mission 1 source timing once sensor
+handoff is available. It remains a profiling/replay tool, not a production
+promotion artifact.
 
 Run the production gate after collecting those receipts:
 

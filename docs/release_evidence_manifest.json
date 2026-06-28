@@ -1,6 +1,6 @@
 {
   "schema": "gpr_release_evidence_manifest.v1",
-  "updated": "2026-06-25",
+  "updated": "2026-06-28",
   "external_root": "/Volumes/OWC_8TB/gpr_work",
   "purpose": "Compact source-of-truth index for production and explicitly experimental GPR output paths. Heavy dashboards, videos, checkpoints, and rendered media remain outside the repo.",
   "production_paths": [
@@ -236,7 +236,7 @@
         "preview_width": 1024,
         "preview_height": 768,
         "frames": 1440,
-        "whole_run_fps": 24.20,
+        "whole_run_fps": 24.2,
         "decode_plus_target_fps_median": 43.86,
         "target_fps": 20.0
       },
@@ -583,6 +583,35 @@
         "docs/pi5_bench_2026-05-26.md",
         "docs/VIDEO_STATUS.md"
       ]
+    },
+    {
+      "id": "mission1_dma_source_simulator",
+      "platform": "Pi 5 / Mission 1",
+      "status": "measured-stage",
+      "target": "deterministic sensor DMA/ring-buffer source cadence replay",
+      "pipeline": "separate-process FIFO producer/consumer; no codec promotion claim",
+      "metrics": {
+        "source_width": 4096,
+        "source_height": 3072,
+        "frame_bytes": 25165824,
+        "frame_count": 60,
+        "target_fps": 20.0,
+        "complete_frames": 60,
+        "over_budget_intervals": 0,
+        "production_evidence": false,
+        "stage_fps": 19.438,
+        "median_ms": 49.834,
+        "p95_ms": 55.129
+      },
+      "reason": "Deterministic process-level source simulator for replaying measured Mission 1 sensor/DMA cadence and backpressure on the Pi 5. This is profiling evidence only; production still requires real target.role=camera sensor/DMA, storage, and preview UI receipts.",
+      "docs": [
+        "README.md",
+        "docs/LABS_READINESS_REVIEW.md"
+      ],
+      "receipts": [
+        "artifacts/mission1_dma_source_sim_20260628/receipt_4096x3072_60f_20fps.json"
+      ],
+      "stage_scope": "process-level camera-source FIFO cadence simulator; profiling only, not camera evidence"
     },
     {
       "id": "pi5_2k_fast_decode",

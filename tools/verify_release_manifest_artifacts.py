@@ -989,6 +989,53 @@ def validate_mission1_camera_hardware_audit(path: Path) -> str | None:
     return None
 
 
+def validate_mission1_dma_source_sim(path: Path) -> str | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return f"Mission 1 DMA source simulator JSON could not be loaded: {exc}"
+    if not isinstance(data, dict):
+        return "Mission 1 DMA source simulator receipt must be a JSON object"
+    if data.get("schema") != "gpr.mission1_dma_source_sim.v1":
+        return "Mission 1 DMA source simulator schema mismatch"
+    target = data.get("target")
+    if not isinstance(target, dict):
+        return "Mission 1 DMA source simulator target must be an object"
+    if target.get("role") != "stand-in":
+        return "Mission 1 DMA source simulator must remain target.role=stand-in"
+    if target.get("not_camera_evidence") is not True:
+        return "Mission 1 DMA source simulator must set target.not_camera_evidence=true"
+    source = data.get("source")
+    if not isinstance(source, dict):
+        return "Mission 1 DMA source simulator source must be an object"
+    if source.get("raw_source_kind") not in {"sensor_dma_capture", "camera_ring_buffer"}:
+        return "Mission 1 DMA source simulator raw_source_kind must be camera-shaped"
+    if source.get("frame_bytes") != source.get("width", 0) * source.get("height", 0) * 2:
+        return "Mission 1 DMA source simulator frame_bytes must match width*height*2"
+    producer = data.get("producer")
+    consumer = data.get("consumer")
+    if not isinstance(producer, dict) or not isinstance(consumer, dict):
+        return "Mission 1 DMA source simulator producer/consumer must be objects"
+    if producer.get("process") != "separate" or consumer.get("process") != "separate":
+        return "Mission 1 DMA source simulator must use separate producer and consumer processes"
+    if producer.get("frames_written") != source.get("frames"):
+        return "Mission 1 DMA source simulator producer must write every requested frame"
+    if consumer.get("complete_frames") != source.get("frames"):
+        return "Mission 1 DMA source simulator consumer must read every complete frame"
+    verdict = data.get("verdict")
+    if not isinstance(verdict, dict):
+        return "Mission 1 DMA source simulator verdict must be an object"
+    if verdict.get("source_ready") is not True:
+        return "Mission 1 DMA source simulator source_ready must be true for the indexed receipt"
+    if verdict.get("deterministic_simulation") is not True:
+        return "Mission 1 DMA source simulator must set deterministic_simulation=true"
+    if verdict.get("production_evidence") is not False:
+        return "Mission 1 DMA source simulator must not claim production_evidence"
+    if verdict.get("hashes_match") is not True:
+        return "Mission 1 DMA source simulator frame hashes must match"
+    return None
+
+
 def semantic_error(ref: str, path: Path | None, manifest: dict[str, Any]) -> str | None:
     if path is None:
         return None
@@ -1023,6 +1070,8 @@ def semantic_error(ref: str, path: Path | None, manifest: dict[str, Any]) -> str
         and ref.endswith(".json")
     ) or ref == "artifacts/mission1_camera_closure_run_20260625/current_camera_hw_blocked_20260625/hardware_audit_receipt.json":
         return validate_mission1_camera_hardware_audit(path)
+    if ref == "artifacts/mission1_dma_source_sim_20260628/receipt_4096x3072_60f_20fps.json":
+        return validate_mission1_dma_source_sim(path)
     if ref.endswith("/collection_receipt.json"):
         return validate_mission1_target_closure_collection(path)
     return None
