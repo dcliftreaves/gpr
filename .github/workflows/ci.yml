@@ -408,14 +408,15 @@ jobs:
         # the 23/50/100 MP cells to keep wall-clock under 2 min.
         # GPR_TIMING_TOLERANCE relaxes ms criteria for hosted-runner variance.
         # Debug builds can hit ~4x Release latency. Hosted macOS Release runners
-        # still show scheduling/filesystem jitter against M3-Max-locked timing
-        # ceilings, especially on large full-frame cells. Quality and size
-        # criteria stay strict.
+        # now resolve to macOS 26 arm64 images and still show
+        # scheduling/filesystem jitter against M3-Max-locked timing ceilings,
+        # especially on large full-frame cells. Quality and size criteria stay
+        # strict.
         env:
           BUILD_DIR: build
           FAST: ${{ runner.os == 'Linux' && '1' || '0' }}
           ARTIFACT_DIR: /tmp/gpr-capabilities
-          GPR_TIMING_TOLERANCE: ${{ matrix.build_type == 'Debug' && '4.0' || runner.os == 'macOS' && '1.75' || '1.0' }}
+          GPR_TIMING_TOLERANCE: ${{ matrix.build_type == 'Debug' && '4.0' || runner.os == 'macOS' && '2.5' || '1.0' }}
         run: timeout 600 python3 tools/test/test_capabilities.py
 
       - name: Run raw target helper regression
