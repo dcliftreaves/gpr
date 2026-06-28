@@ -38,7 +38,7 @@ MISSION1_GPR="${MISSION1_GPR:-/Volumes/Photos/DavidsPics/gopro_raw/2026-06__GoPr
 Z8_DNG="${Z8_DNG:-/Volumes/OWC_8TB/gpr_work/artifacts/upresable/editable_dng/Z8Z_0684.dng}"
 X2D_DNG="${X2D_DNG:-/Volumes/OWC_8TB/gpr_work/x2d_scene_dngs/adobe_20260605/2024_April_X2D_1742.dng}"
 IPHONE_CFA_DNG="${IPHONE_CFA_DNG:-/Volumes/Photos/DavidsPics/MultiYearOther/_2020-04-09_AllDeduped/_BestDeDupAll/iPhone_7_Plus/2017-03/IMG_0173.DNG}"
-IPHONE_LINEAR_RAW_DNG="${IPHONE_LINEAR_RAW_DNG:-/Users/dcliftreaves/Downloads/IMG_9270.DNG}"
+IPHONE_LINEAR_RAW_DNG="${IPHONE_LINEAR_RAW_DNG:-/Volumes/OWC_8TB/gpr_work/artifacts/fixtures/iphone_linear_raw/IMG_9270_iPhone16ProMax_LinearRaw.DNG}"
 
 pass_count=0
 skip_count=0
