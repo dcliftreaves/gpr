@@ -15,6 +15,7 @@ refreshed 2026-06-26.
 | GitHub release bundle contents and upload flow | `RELEASE_ARTIFACTS.md` |
 | video, preview, Mission 1, and SR status | `VIDEO_STATUS.md` |
 | Mission 1 numbered-list burndown and closure plan | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md` |
+| Mission 1 stream-source timing | `MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md` |
 | Mission 1 CNN status and next steps | `MISSION1_CNN_NEXT_STEPS_2026-06-28.md` |
 | 4K capture, 1024 preview, and offline 8K SR target ladder | `RAW_RESOLUTION_TARGETS_2026-06-14.md` |
 | UPRESABLE editable raw workflow | `UPRESABLE_PIPELINE.md` |
