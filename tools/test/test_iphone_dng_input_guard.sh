@@ -10,7 +10,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GPR_TOOLS="${GPR_TOOLS:-$REPO/build-local/source/app/gpr_tools/gpr_tools}"
 
 CFA_DNG="${IPHONE_CFA_DNG:-/Volumes/Photos/DavidsPics/MultiYearOther/_2020-04-09_AllDeduped/_BestDeDupAll/iPhone_7_Plus/2017-03/IMG_0173.DNG}"
-LINEAR_DNG="${IPHONE_LINEAR_RAW_DNG:-/Users/dcliftreaves/Downloads/IMG_9270.DNG}"
+LINEAR_DNG="${IPHONE_LINEAR_RAW_DNG:-/Volumes/OWC_8TB/gpr_work/artifacts/fixtures/iphone_linear_raw/IMG_9270_iPhone16ProMax_LinearRaw.DNG}"
 
 if [ ! -x "$GPR_TOOLS" ]; then
   echo "test_iphone_dng_input_guard: SKIP missing gpr_tools: $GPR_TOOLS"
