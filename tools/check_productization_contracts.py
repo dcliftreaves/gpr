@@ -121,6 +121,7 @@ def main() -> int:
         "docs/GVID_CONFORMANCE.md",
         "docs/LABS_FIRMWARE_API.md",
         "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
+        "docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md",
         "docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md",
         "docs/LABS_ARTIFACT_BUNDLE.md",
         "docs/PRODUCTION_ARTIFACTS.md",
@@ -168,6 +169,12 @@ def main() -> int:
         "8K SR",
         "offline-production",
         "Do not add CNN to camera-side encode",
+    ], failures)
+    require_text("docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md", [
+        "file-backed shim baseline",
+        "RAM mmap ring",
+        "production FLL2 direct",
+        "production_evidence=false",
     ], failures)
     require_text("docs/GVID_CONFORMANCE.md", [
         "python3 tools/test/test_gvid_conformance.py",

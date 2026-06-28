@@ -15,8 +15,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import mmap
 import os
 import re
+import struct
 import subprocess
 import sys
 import tempfile
@@ -29,6 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 from mission1_dma_source_sim import (  # noqa: E402
+    make_frame,
     now_ns,
     parse_delay_pattern,
     producer,
@@ -93,11 +96,81 @@ def parse_stderr(path: Path) -> dict[str, Any]:
     return stats
 
 
-def run_encoder(args: argparse.Namespace, fifo: Path, gvid: Path, stdout_path: Path, stderr_path: Path) -> int:
+def mmap_ring_producer(
+    ring_path: str,
+    frame_bytes: int,
+    frames: int,
+    slots: int,
+    interval_ms: float,
+    delay_pattern_ms: list[float],
+    ready_path: str,
+    report_path: str,
+) -> None:
+    slot_stride = 64 + frame_bytes
+    rows: list[dict[str, Any]] = []
+    first_hash = ""
+    last_hash = ""
+    ring = Path(ring_path)
+    with ring.open("r+b") as fp:
+        mm = mmap.mmap(fp.fileno(), slot_stride * slots)
+        try:
+            Path(ready_path).write_text("ready\n", encoding="utf-8")
+            base_ns = now_ns()
+            for index in range(frames):
+                target_ns = base_ns + int(index * interval_ms * 1_000_000)
+                if delay_pattern_ms:
+                    target_ns += int(delay_pattern_ms[index % len(delay_pattern_ms)] * 1_000_000)
+                before_sleep_ns = now_ns()
+                if target_ns > before_sleep_ns:
+                    time.sleep((target_ns - before_sleep_ns) / 1_000_000_000.0)
+                frame = make_frame(frame_bytes, index)
+                if index == 0:
+                    first_hash = hashlib.sha256(frame).hexdigest()
+                if index == frames - 1:
+                    last_hash = hashlib.sha256(frame).hexdigest()
+                slot = index % slots
+                offset = slot * slot_stride
+                if index >= slots:
+                    want_consumed = index - slots + 1
+                    while struct.unpack("<Q", mm[offset + 16 : offset + 24])[0] < want_consumed:
+                        time.sleep(0.0001)
+                write_start_ns = now_ns()
+                mm[offset + 64 : offset + 64 + frame_bytes] = frame
+                mm[offset + 8 : offset + 16] = struct.pack("<Q", frame_bytes)
+                mm[offset : offset + 8] = struct.pack("<Q", index + 1)
+                write_end_ns = now_ns()
+                rows.append(
+                    {
+                        "frame": index,
+                        "slot": slot,
+                        "scheduled_ms": ms_from_ns(target_ns - base_ns),
+                        "write_start_ms": ms_from_ns(write_start_ns - base_ns),
+                        "write_ms": ms_from_ns(write_end_ns - write_start_ns),
+                        "lateness_ms": ms_from_ns(max(0, write_start_ns - target_ns)),
+                    }
+                )
+        finally:
+            mm.close()
+    Path(report_path).write_text(
+        json.dumps(
+            {
+                "frames_attempted": frames,
+                "frames_written": len(rows),
+                "first_frame_sha256": first_hash,
+                "last_frame_sha256": last_hash,
+                "rows": rows,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def run_encoder(args: argparse.Namespace, source_path: Path, gvid: Path, stdout_path: Path, stderr_path: Path) -> int:
     env = os.environ.copy()
     env.update(
         {
-            "GPR_LABS_STREAM_INPUT": "1",
             "GPR_BENCH_GVID": str(gvid),
             "GPR_BENCH_GVID_FPS": str(args.target_fps),
             "GPR_BENCH_PIXEL_FORMAT": str(args.pixel_format),
@@ -106,12 +179,17 @@ def run_encoder(args: argparse.Namespace, fifo: Path, gvid: Path, stdout_path: P
             "GPR_LABS_STRIDE_BYTES": str(args.stride_bytes),
         }
     )
+    if args.source_mode == "fifo":
+        env["GPR_LABS_STREAM_INPUT"] = "1"
+    elif args.source_mode == "mmap-ring":
+        env["GPR_LABS_MMAP_RING_INPUT"] = "1"
+        env["GPR_LABS_MMAP_RING_SLOTS"] = str(args.ring_slots)
     if args.encoder_count:
         env["GPR_LABS_ENCODER_COUNT"] = str(args.encoder_count)
     if args.max_inflight:
         env["GPR_LABS_MAX_INFLIGHT"] = str(args.max_inflight)
 
-    cmd = [str(args.bench), str(fifo), str(args.source_width), str(args.source_height), str(args.frames)]
+    cmd = [str(args.bench), str(source_path), str(args.source_width), str(args.source_height), str(args.frames)]
     with stdout_path.open("w", encoding="utf-8") as out, stderr_path.open("w", encoding="utf-8") as err:
         proc = subprocess.run(cmd, cwd=ROOT, env=env, stdout=out, stderr=err, text=True)
     return int(proc.returncode)
@@ -119,7 +197,7 @@ def run_encoder(args: argparse.Namespace, fifo: Path, gvid: Path, stdout_path: P
 
 def build_report(
     args: argparse.Namespace,
-    fifo: Path,
+    source_path: Path,
     gvid: Path,
     producer_report: Path,
     stdout_path: Path,
@@ -170,8 +248,9 @@ def build_report(
             "not_camera_evidence": True,
         },
         "source": {
+            "mode": args.source_mode,
             "raw_source_kind": args.raw_source_kind,
-            "endpoint": str(fifo),
+            "endpoint": str(source_path),
             "width": args.source_width,
             "height": args.source_height,
             "stride_bytes": args.stride_bytes,
@@ -181,6 +260,7 @@ def build_report(
             "frames": args.frames,
             "target_fps": args.target_fps,
             "delay_pattern_ms": args.delay_pattern_ms,
+            "ring_slots": args.ring_slots if args.source_mode == "mmap-ring" else None,
         },
         "producer": {
             "process": "separate",
@@ -229,6 +309,7 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--bench", type=Path, required=True, help="path to labs_encoder_bench_cli")
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--work-dir", type=Path)
+    ap.add_argument("--source-dir", type=Path, help="optional directory for FIFO or mmap-ring source files")
     ap.add_argument("--target-name", default="Pi 5 stream-source encoder stand-in")
     ap.add_argument("--raw-source-kind", choices=("sensor_dma_capture", "camera_ring_buffer"), default="sensor_dma_capture")
     ap.add_argument("--source-width", type=int, default=4096)
@@ -240,6 +321,8 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--frames", type=int, default=120)
     ap.add_argument("--target-fps", type=float, default=20.0)
     ap.add_argument("--delay-pattern-ms", default="", help="comma-separated deterministic producer delay offsets")
+    ap.add_argument("--source-mode", choices=("fifo", "mmap-ring"), default="fifo")
+    ap.add_argument("--ring-slots", type=int, default=3)
     ap.add_argument("--encoder-count", type=int, default=0)
     ap.add_argument("--max-inflight", type=int, default=0)
     return ap
@@ -261,6 +344,9 @@ def main() -> int:
     if args.stride_bytes < args.source_width * 2:
         print("--stride-bytes must be at least source_width*2", file=sys.stderr)
         return 1
+    if args.ring_slots <= 0:
+        print("--ring-slots must be positive", file=sys.stderr)
+        return 1
     if not args.bench.is_file():
         print(f"--bench does not exist: {args.bench}", file=sys.stderr)
         return 1
@@ -274,37 +360,57 @@ def main() -> int:
         temp_ctx = tempfile.TemporaryDirectory(prefix="mission1_stream_source_encoder_", dir=parent)
         base_dir = Path(temp_ctx.name)
     base_dir.mkdir(parents=True, exist_ok=True)
-    fifo = base_dir / "sensor_dma_ring.fifo"
+    source_dir = args.source_dir or base_dir
+    source_dir.mkdir(parents=True, exist_ok=True)
+    source_path = source_dir / ("sensor_dma_ring.fifo" if args.source_mode == "fifo" else "sensor_dma_ring.mmap")
     producer_ready = base_dir / "producer.ready"
     producer_report = base_dir / "producer_report.json"
     stdout_path = base_dir / "labs_encoder_stdout.txt"
     stderr_path = base_dir / "labs_encoder_stderr.txt"
     gvid = base_dir / "stream_source_encoder.gvid"
-    if fifo.exists():
-        fifo.unlink()
-    os.mkfifo(fifo)
+    if source_path.exists():
+        source_path.unlink()
 
     frame_bytes = args.stride_bytes * args.source_height
     interval_ms = 1000.0 / args.target_fps
     started_ns = now_ns()
-    prod = Process(
-        target=producer,
-        args=(
-            str(fifo),
-            frame_bytes,
-            args.frames,
-            interval_ms,
-            args.delay_pattern_ms,
-            str(producer_ready),
-            str(producer_report),
-        ),
-    )
+    if args.source_mode == "fifo":
+        os.mkfifo(source_path)
+        prod = Process(
+            target=producer,
+            args=(
+                str(source_path),
+                frame_bytes,
+                args.frames,
+                interval_ms,
+                args.delay_pattern_ms,
+                str(producer_ready),
+                str(producer_report),
+            ),
+        )
+    else:
+        slot_stride = 64 + frame_bytes
+        with source_path.open("wb") as fp:
+            fp.truncate(slot_stride * args.ring_slots)
+        prod = Process(
+            target=mmap_ring_producer,
+            args=(
+                str(source_path),
+                frame_bytes,
+                args.frames,
+                args.ring_slots,
+                interval_ms,
+                args.delay_pattern_ms,
+                str(producer_ready),
+                str(producer_report),
+            ),
+        )
     prod.start()
     deadline = time.time() + 5.0
     while not producer_ready.exists() and time.time() < deadline:
         time.sleep(0.005)
 
-    encoder_returncode = run_encoder(args, fifo, gvid, stdout_path, stderr_path)
+    encoder_returncode = run_encoder(args, source_path, gvid, stdout_path, stderr_path)
     prod.join(timeout=max(10.0, args.frames / args.target_fps + 10.0))
     if prod.is_alive():
         prod.terminate()
@@ -313,7 +419,7 @@ def main() -> int:
         encoder_returncode = encoder_returncode or 1
     elapsed_ms = ms_from_ns(now_ns() - started_ns)
 
-    report = build_report(args, fifo, gvid, producer_report, stdout_path, stderr_path, elapsed_ms, encoder_returncode)
+    report = build_report(args, source_path, gvid, producer_report, stdout_path, stderr_path, elapsed_ms, encoder_returncode)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(args.output), "stream_encode_ready": report["verdict"]["stream_encode_ready"]}, indent=2))
