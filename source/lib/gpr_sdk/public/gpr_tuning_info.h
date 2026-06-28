@@ -135,6 +135,11 @@
         
         double                  warp_red_coefficient;
         double                  warp_blue_coefficient;
+
+        bool                    fix_vignette_radial_valid;
+        double                  fix_vignette_radial_params[5];
+        double                  fix_vignette_radial_center_h;
+        double                  fix_vignette_radial_center_v;
         
         gpr_gain_map            gain_map;
 

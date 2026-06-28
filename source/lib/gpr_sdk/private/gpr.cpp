@@ -21,6 +21,8 @@
 
 #include "gpr.h"
 
+#include <cstdio>
+
 #ifdef GPR_PI_PROFILE
 #include <time.h>
 #include <cstdio>
@@ -660,6 +662,32 @@ static void convert_dng_exif_to_dng_exif_info( gpr_exif_info* dst_exif, const dn
 
 static char _warp_rect_buffer [256];
 
+static void parse_missing_opcode_lists(dng_host &host,
+                                       dng_stream &stream,
+                                       dng_info &info,
+                                       dng_negative &negative)
+{
+    for (int32 i = 0; i < info.fIFDCount; i++)
+    {
+        if (info.fIFD[i].Get() == NULL)
+        {
+            continue;
+        }
+
+        dng_ifd &ifd = *info.fIFD[i].Get();
+
+        if (negative.OpcodeList2().Count() == 0 && ifd.fOpcodeList2Count)
+        {
+            negative.OpcodeList2().Parse(host, stream, ifd.fOpcodeList2Count, ifd.fOpcodeList2Offset);
+        }
+
+        if (negative.OpcodeList3().Count() == 0 && ifd.fOpcodeList3Count)
+        {
+            negative.OpcodeList3().Parse(host, stream, ifd.fOpcodeList3Count, ifd.fOpcodeList3Offset);
+        }
+    }
+}
+
 static bool read_dng(const gpr_allocator*       allocator,
                            dng_stream*          dng_read_stream,
                            gpr_buffer_auto*     raw_image_buffer,
@@ -764,9 +792,23 @@ static bool read_dng(const gpr_allocator*       allocator,
         {
             negative->ReadStage1Image (host, *dng_read_stream, info);
 
+            dng_ifd &rawIFD = *info.fIFD [info.fMainIndex].Get ();
+
+            if (rawIFD.fOpcodeList2Count)
+            {
+                negative->OpcodeList2().Parse (host, *dng_read_stream, rawIFD.fOpcodeList2Count, rawIFD.fOpcodeList2Offset);
+            }
+
+            if (rawIFD.fOpcodeList3Count)
+            {
+                negative->OpcodeList3().Parse (host, *dng_read_stream, rawIFD.fOpcodeList3Count, rawIFD.fOpcodeList3Offset);
+            }
+
             if( is_vc5_format )
                 *is_vc5_format = false;
         }
+
+        parse_missing_opcode_lists(host, *dng_read_stream, info, *negative.Get());
 
         const dng_image& raw_image = negative->RawImage();
         
@@ -1048,16 +1090,27 @@ static bool read_dng(const gpr_allocator*       allocator,
                     }
                 }
                 
-                // Noise profile
-                if ( negative->HasNoiseProfile() )
+                // NoiseProfile can live in the raw SubIFD on Apple CFA DNGs.
+                // Some SDK paths do not expose it through dng_negative, so
+                // fall back to the parsed shared metadata before writing GPR.
                 {
-                    dng_noise_profile  noise_profile = negative->NoiseProfile();
+                    const dng_noise_profile *noise_profile = NULL;
+                    if ( negative->HasNoiseProfile() )
+                    {
+                        noise_profile = &negative->NoiseProfile();
+                    }
+                    else if ( info.fShared.Get() != NULL && info.fShared->fNoiseProfile.IsValid() )
+                    {
+                        noise_profile = &info.fShared->fNoiseProfile;
+                    }
 
-		            dng_noise_function  noise_function = noise_profile.NoiseFunction (0);
-
-                    tuning_info.noise_scale = noise_function.Scale();
-                    tuning_info.noise_offset = noise_function.Offset();
-               }
+                    if ( noise_profile != NULL )
+                    {
+                        dng_noise_function noise_function = noise_profile->NoiseFunction( 0 );
+                        tuning_info.noise_scale = noise_function.Scale();
+                        tuning_info.noise_offset = noise_function.Offset();
+                    }
+                }
 
                 // Read noise model metadata from XMP (if encoded with --Denoise)
                 {
@@ -1188,30 +1241,48 @@ static bool read_dng(const gpr_allocator*       allocator,
                     tuning_info.gain_map.size = 0;
                 }
                     
-                // WarpRectilinear
+                // OpcodeList3 lens correction metadata.
                 dng_opcode_list &opcodelist3 =  negative->OpcodeList3 ();
                 count = opcodelist3.Count ();
-                // Note: this code will have to get smarter if we ever have anything other than one WarpRectilinear tag in OpcodeList3
-                if ( count == 1 )
+                tuning_info.warp_red_coefficient = 0;
+                tuning_info.warp_blue_coefficient = 0;
+                tuning_info.fix_vignette_radial_valid = false;
+                for ( uint32_t i = 0; i < count; i++ )
                 {
-                    // Get WarpRectilinear Opcode
-                    dng_opcode &opcode = opcodelist3.Entry( 0 );
-                    
-                    dng_stream stream ( _warp_rect_buffer, 256 );
-                    opcode.PutData( stream );
-                    
-                    // Ugly way to get the parameters, but I couldn't figure how else to get access to the data
-                    double red_coefficient = * (double *) &_warp_rect_buffer[8];
-                    double blue_coefficient = * (double *) &_warp_rect_buffer[8 + 2*6*8];
-                    //LogPrint( "WarpRectilinear red = %f, blue = %f ", red_coefficient, blue_coefficient );
-                    
-                    tuning_info.warp_red_coefficient = red_coefficient;
-                    tuning_info.warp_blue_coefficient = blue_coefficient;
-                }
-                else
-                {
-                    tuning_info.warp_red_coefficient = 0;
-                    tuning_info.warp_blue_coefficient = 0;
+                    dng_opcode &opcode = opcodelist3.Entry( i );
+
+                    if ( opcode.OpcodeID() == dngOpcode_WarpRectilinear )
+                    {
+                        dng_stream stream ( _warp_rect_buffer, 256 );
+                        opcode.PutData( stream );
+
+                        // Ugly way to get the parameters, but I couldn't figure how else to get access to the data
+                        double red_coefficient = * (double *) &_warp_rect_buffer[8];
+                        double blue_coefficient = * (double *) &_warp_rect_buffer[8 + 2*6*8];
+                        //LogPrint( "WarpRectilinear red = %f, blue = %f ", red_coefficient, blue_coefficient );
+
+                        tuning_info.warp_red_coefficient = red_coefficient;
+                        tuning_info.warp_blue_coefficient = blue_coefficient;
+                    }
+                    else if ( opcode.OpcodeID() == dngOpcode_FixVignetteRadial )
+                    {
+                        char vignette_buffer[128];
+                        dng_stream stream ( vignette_buffer, sizeof(vignette_buffer) );
+                        opcode.PutData( stream );
+                        stream.SetReadPosition( 0 );
+
+                        const uint32 bytes = stream.Get_uint32();
+                        if ( bytes == 7 * sizeof(real64) )
+                        {
+                            for ( int j = 0; j < 5; j++ )
+                            {
+                                tuning_info.fix_vignette_radial_params[j] = stream.Get_real64();
+                            }
+                            tuning_info.fix_vignette_radial_center_h = stream.Get_real64();
+                            tuning_info.fix_vignette_radial_center_v = stream.Get_real64();
+                            tuning_info.fix_vignette_radial_valid = true;
+                        }
+                    }
                 }
             }
         }
@@ -1598,6 +1669,28 @@ static void write_dng(const gpr_allocator*          allocator,
             AutoPtr<dng_opcode> warp_opcode ( new dng_opcode_WarpRectilinear ( chromatic_aberration, 0x03 ));
     
             opcodelist3.Append( warp_opcode );
+        }
+
+        if ( tuning_info->fix_vignette_radial_valid )
+        {
+            dng_opcode_list &opcodelist3 = negative->OpcodeList3 ();
+
+            std::vector<real64> vignette_params;
+            vignette_params.reserve( 5 );
+            for ( int i = 0; i < 5; i++ )
+            {
+                vignette_params.push_back( tuning_info->fix_vignette_radial_params[i] );
+            }
+
+            dng_vignette_radial_params vignette_radial(
+                vignette_params,
+                dng_point_real64(
+                    tuning_info->fix_vignette_radial_center_h,
+                    tuning_info->fix_vignette_radial_center_v ) );
+            AutoPtr<dng_opcode> vignette_opcode(
+                new dng_opcode_FixVignetteRadial( vignette_radial, 0x03 ) );
+
+            opcodelist3.Append( vignette_opcode );
         }
     }
     
@@ -2062,6 +2155,77 @@ static void apply_noise_replace(const gpr_parameters* parameters, void* raw_buff
     const_cast<gpr_parameters*>(parameters)->tuning_info.noise_seed = seed;
 }
 
+static bool dng_is_supported_gpr_cfa(dng_stream *dng_read_stream)
+{
+    dng_host host;
+    dng_info info;
+
+    dng_read_stream->SetReadPosition(0);
+    info.Parse(host, *dng_read_stream);
+    info.PostParse(host);
+
+    if (!info.IsValidDNG() || info.fMainIndex < 0 || info.fMainIndex >= info.fIFDCount)
+    {
+        std::fprintf(stderr, "error: input is not a valid DNG\n");
+        dng_read_stream->SetReadPosition(0);
+        return false;
+    }
+
+    const dng_ifd &rawIFD = *info.fIFD[info.fMainIndex].Get();
+    const bool rggb =
+        rawIFD.fCFAPattern[0][0] == 0 && rawIFD.fCFAPattern[0][1] == 1 &&
+        rawIFD.fCFAPattern[1][0] == 1 && rawIFD.fCFAPattern[1][1] == 2;
+    const bool gbrg =
+        rawIFD.fCFAPattern[0][0] == 1 && rawIFD.fCFAPattern[0][1] == 2 &&
+        rawIFD.fCFAPattern[1][0] == 0 && rawIFD.fCFAPattern[1][1] == 1;
+    const bool supported_cfa =
+        rawIFD.fPhotometricInterpretation == piCFA &&
+        rawIFD.fSamplesPerPixel == 1 &&
+        rawIFD.fCFARepeatPatternRows == 2 &&
+        rawIFD.fCFARepeatPatternCols == 2 &&
+        (rggb || gbrg);
+
+    dng_read_stream->SetReadPosition(0);
+
+    if (!supported_cfa)
+    {
+        std::fprintf(
+            stderr,
+            "error: DNG -> GPR requires single-plane 2x2 RGGB/GBRG CFA input; "
+            "got photometric=%u samples=%u cfa=%ux%u pattern=[[%u,%u],[%u,%u]]\n",
+            (unsigned)rawIFD.fPhotometricInterpretation,
+            (unsigned)rawIFD.fSamplesPerPixel,
+            (unsigned)rawIFD.fCFARepeatPatternRows,
+            (unsigned)rawIFD.fCFARepeatPatternCols,
+            (unsigned)rawIFD.fCFAPattern[0][0],
+            (unsigned)rawIFD.fCFAPattern[0][1],
+            (unsigned)rawIFD.fCFAPattern[1][0],
+            (unsigned)rawIFD.fCFAPattern[1][1]);
+        return false;
+    }
+
+    return true;
+}
+
+static void normalize_exported_raw_bit_depth(gpr_buffer_auto &raw_buffer, const gpr_parameters &params)
+{
+    const GPR_PIXEL_FORMAT pf = params.tuning_info.pixel_format;
+    if (pf != PIXEL_FORMAT_RGGB_12 &&
+        pf != PIXEL_FORMAT_RGGB_12P &&
+        pf != PIXEL_FORMAT_GBRG_12 &&
+        pf != PIXEL_FORMAT_GBRG_12P)
+    {
+        return;
+    }
+
+    uint16_t *pixels = (uint16_t *)raw_buffer.get_buffer();
+    const size_t count = raw_buffer.get_size() / sizeof(uint16_t);
+    for (size_t i = 0; i < count; i++)
+    {
+        pixels[i] = (uint16_t)((pixels[i] + 2) >> 2);
+    }
+}
+
 bool gpr_convert_raw_to_dng(const gpr_allocator*    allocator,
                             const gpr_parameters*   parameters,
                                   gpr_buffer*       inp_raw_buffer,
@@ -2239,6 +2403,11 @@ bool gpr_convert_dng_to_gpr(const gpr_allocator*    allocator,
     dng_memory_stream inp_dng_stream( gDefaultDNGMemoryAllocator );
     inp_dng_stream.Put( inp_dng_buffer->buffer, inp_dng_buffer->size );
     inp_dng_stream.SetReadPosition(0);
+
+    if( dng_is_supported_gpr_cfa( &inp_dng_stream ) == false )
+    {
+        return false;
+    }
 
     // Extract metadata from input DNG into a mutable copy of parameters
     gpr_parameters params_with_meta;
@@ -2427,20 +2596,28 @@ bool gpr_convert_gpr_to_raw(const gpr_allocator*            allocator,
     TIMESTAMP("[BEG]", 1)
 
     gpr_buffer_auto raw_buffer(allocator->Alloc, allocator->Free);
+
+    gpr_parameters params;
+    gpr_parameters_set_defaults( &params );
     
     dng_memory_stream inp_gpr_stream( gDefaultDNGMemoryAllocator );
     inp_gpr_stream.Put( inp_gpr_buffer->buffer, inp_gpr_buffer->size );
     inp_gpr_stream.SetReadPosition(0);
     
-    if( read_dng( allocator, &inp_gpr_stream, &raw_buffer, NULL ) == false )
+    if( read_dng( allocator, &inp_gpr_stream, &raw_buffer, NULL, &params ) == false )
     {
+        gpr_parameters_destroy( &params, allocator->Free );
         assert(0); return false;
     }
+
+    normalize_exported_raw_bit_depth( raw_buffer, params );
     
     out_raw_buffer->buffer = allocator->Alloc( raw_buffer.get_size() );
     out_raw_buffer->size = raw_buffer.get_size();
     
     memcpy(out_raw_buffer->buffer, raw_buffer.get_buffer(), raw_buffer.get_size() );
+
+    gpr_parameters_destroy( &params, allocator->Free );
     
     TIMESTAMP("[END]", 1)
 

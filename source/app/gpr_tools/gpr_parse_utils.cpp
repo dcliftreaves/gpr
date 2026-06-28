@@ -398,6 +398,30 @@ void parse_tuning_info( cJSON* pTuningInfo, gpr_tuning_info& tuning_info )
     tuning_info.warp_blue_coefficient = pJSON->valuedouble;
     pJSON = pJSON->next;
 
+    if( pJSON && pJSON->string && strcmp(pJSON->string, "fix_vignette_radial_valid") == 0 )
+    {
+        tuning_info.fix_vignette_radial_valid = pJSON->valueint != 0;
+        pJSON = pJSON->next;
+
+        for( int i = 0; i < 5 && pJSON; i++ )
+        {
+            tuning_info.fix_vignette_radial_params[i] = pJSON->valuedouble;
+            pJSON = pJSON->next;
+        }
+
+        if( pJSON )
+        {
+            tuning_info.fix_vignette_radial_center_h = pJSON->valuedouble;
+            pJSON = pJSON->next;
+        }
+
+        if( pJSON )
+        {
+            tuning_info.fix_vignette_radial_center_v = pJSON->valuedouble;
+            pJSON = pJSON->next;
+        }
+    }
+
     if( pJSON->child )
     {
         cJSON* size = pJSON->child;
