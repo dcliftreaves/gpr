@@ -24,6 +24,7 @@ refreshed 2026-06-26.
 | Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
 | `.gvid` wire-contract conformance | `GVID_CONFORMANCE.md` |
 | Mission 1 evidence runbook | `LABS_MISSION1_RUNBOOK.md` |
+| GoPro-side Mission 1 quick validation | `GOPRO_MISSION1_QUICK_VALIDATION.md` |
 | full codec x CNN x verdict matrix | `FULL_PIPELINE_MATRIX.md` |
 | codec/container/API specification | `format-spec-v2.md`, `SPEC.md` |
 

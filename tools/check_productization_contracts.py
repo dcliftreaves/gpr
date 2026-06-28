@@ -120,6 +120,7 @@ def main() -> int:
         "docs/RELEASE_ARTIFACTS.md",
         "docs/GVID_CONFORMANCE.md",
         "docs/LABS_FIRMWARE_API.md",
+        "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
         "docs/LABS_ARTIFACT_BUNDLE.md",
         "docs/PRODUCTION_ARTIFACTS.md",
         "tools/verify_labs_bundle.py",
@@ -155,6 +156,12 @@ def main() -> int:
         "gpr_labs_camera_handoff_receipt.v1",
         "gpr_labs_preview_ui_receipt.v1",
     ], failures)
+    require_text("docs/GOPRO_MISSION1_QUICK_VALIDATION.md", [
+        "Quick Camera Probe",
+        "Quick Closure Run",
+        "What We Can Do Without A Mission 1 Dev Kit",
+        "target.role=camera",
+    ], failures)
     require_text("docs/GVID_CONFORMANCE.md", [
         "python3 tools/test/test_gvid_conformance.py",
         "truncated frame header",
@@ -175,4 +182,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
