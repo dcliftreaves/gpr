@@ -39,6 +39,10 @@ Current evidence:
 - `tools/build_camera_noise_calibration.py` now emits a validated
   `gpr.camera_noise_calibration.v1` sidecar from raw darkframe stacks. This is
   the production rail for future noise-aware compression and CNN targets.
+- `tools/convert_darkframe_calibration_to_noise_sidecars.py` converted the real
+  X2D and Z8 darkframe calibration artifacts into v1 sidecars with selected
+  source-frame manifests and SHA-256 hashes:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_sidecars_20260629/`.
 
 Boundaries:
 
@@ -57,8 +61,8 @@ Next production work:
 
 1. Add real BGGR and GRBG camera fixtures to back the committed synthetic
    stills conformance cells.
-2. Run the camera/ISO noise-calibration builder on real darkframes or frame
-   stacks for Z8, X2D, Mission 1, and iPhone CFA where available.
+2. Apply the camera/ISO noise-calibration sidecar flow to Mission 1 and iPhone
+   darkframes/frame stacks where available.
 3. Re-run the raw-noise/signal audit before training any CNN on nonzero clean
    targets.
 4. Add a 100 MP real-fixture visual dashboard, not just synthetic capability

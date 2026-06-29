@@ -42,6 +42,11 @@ Immediate work:
   The lightweight guard is `tools/check_product_pillar_receipts.py` with
   schema `gpr.camera_noise_calibration.v1`; the builder is
   `tools/build_camera_noise_calibration.py`.
+- Convert existing legacy darkframe-calibration artifacts with
+  `tools/convert_darkframe_calibration_to_noise_sidecars.py` only when the
+  selected source frames can be recovered and hashed. The first real converted
+  receipts are under
+  `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_sidecars_20260629/`.
 
 Evidence required:
 
@@ -121,8 +126,8 @@ Evidence required:
 
 1. Add real BGGR/GRBG fixture coverage when a representative camera sample is
    available.
-2. Apply the noise-calibration sidecar builder to real Z8, X2D, Mission 1, and
-   iPhone darkframe/frame-stack artifacts where available.
+2. Apply the noise-calibration sidecar flow to real Mission 1 and iPhone
+   darkframe/frame-stack artifacts where available.
 3. Add a still-SR gate skeleton that can run without large private artifacts.
 4. Apply the PSF receipt path to real Mission/Z8 high-res-to-low-res pairs and
    use it to drive the next PSF-conditioned SR experiment.

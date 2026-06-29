@@ -29,7 +29,7 @@ For production training targets, the receipt must prove:
 
 ## Builder
 
-For little-endian uint16 Bayer darkframes:
+For new little-endian uint16 Bayer darkframes:
 
 ```sh
 python3 tools/build_camera_noise_calibration.py \
@@ -46,6 +46,29 @@ NoiseProfile-compatible offset term. The scale term is intentionally zero for
 darkframes because black frames do not measure shot-noise slope across signal
 levels. A future flat/dark or frame-stack calibration can fill that slope, but
 it must keep the same receipt contract.
+
+## Legacy Calibration Converter
+
+Older darkframe-calibration artifacts can be converted only when their selected
+source frames can be recovered and hashed:
+
+```sh
+python3 tools/convert_darkframe_calibration_to_noise_sidecars.py \
+  --legacy-json /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_calibration_x2d_full_20260605/darkframe_calibration.json \
+  --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_sidecars_20260629/x2d
+```
+
+The converter writes one sidecar per camera/ISO/exposure group plus a
+`camera_noise_calibration_index.json`. Each sidecar points to a
+`*_source_manifest.json` that hashes the selected darkframes and the legacy
+calibration JSON.
+
+Current converted receipts:
+
+| camera | ISO / frames | sidecar root |
+|---|---:|---|
+| Hasselblad X2D 100C | ISO 64 / 64, ISO 200 / 50, ISO 800 / 50, ISO 3200 / 50, ISO 12800 / 49 | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_sidecars_20260629/x2d/` |
+| Nikon Z 8 | ISO 500 / 32 | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_sidecars_20260629/z8/` |
 
 ## Policy
 
