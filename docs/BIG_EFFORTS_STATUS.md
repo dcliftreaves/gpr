@@ -132,6 +132,9 @@ Current evidence:
   proves the loop executes, but it is not production-grade: X2D holdout RMSE
   improvement is only about 0.0008 percent and full visual/editor-latitude
   receipts are still missing.
+- A larger 64-tile-per-fixture still-SR run peaks at about 0.15 percent held-out
+  X2D RMSE improvement at step 400, then overfits/regresses by step 1000. This
+  is a positive signal, not a production checkpoint.
 
 Boundaries:
 
@@ -143,9 +146,10 @@ Boundaries:
 
 Next production work:
 
-1. Replace the still-SR smoke checkpoint with a production-grade candidate:
-   longer training, more tiles, rendered dashboard, raw-domain metrics, and
-   raw-editor latitude checks. The first manifest and pair set live under
+1. Replace the still-SR smoke/large exploratory checkpoints with a
+   production-grade candidate: more fixtures/tiles, early stopping or
+   regularization against X2D regression, rendered dashboard, raw-domain
+   metrics, and raw-editor latitude checks. The first manifest and pair set live under
    `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629/`
    and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_20260629/`.
 2. Train against high-quality still targets, with camera/ISO metadata and a
