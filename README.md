@@ -57,6 +57,8 @@ Detailed status and next-step criteria:
 [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md).
 Camera-noise policy and the calibration sidecar contract:
 [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md).
+Bayer resize PSF policy and the synthetic receipt builder:
+[`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md).
 
 ## At A Glance
 
