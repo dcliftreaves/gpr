@@ -195,6 +195,24 @@ CAPABILITIES = [
              decode_ms={"max": 70, "exceed_below": 27},
              compress_ratio={"max": 0.10, "exceed_below": 0.075},
              psnr_db={"min": 52.0, "exceed_above": 54.5})),
+    dict(id="still_grbg14_1024_q3",
+         display="Stills · grbg14 (alt Bayer) · 1024² · q=3",
+         kind="still_roundtrip",
+         W=1024, H=1024, pf="grbg14", peak=16383, quality=3,
+         criteria=dict(
+             encode_ms={"max": 90, "exceed_below": 30},
+             decode_ms={"max": 90, "exceed_below": 35},
+             compress_ratio={"max": 0.10, "exceed_below": 0.075},
+             psnr_db={"min": 52.0, "exceed_above": 54.5})),
+    dict(id="still_bggr14_1024_q3",
+         display="Stills · bggr14 (alt Bayer) · 1024² · q=3",
+         kind="still_roundtrip",
+         W=1024, H=1024, pf="bggr14", peak=16383, quality=3,
+         criteria=dict(
+             encode_ms={"max": 90, "exceed_below": 30},
+             decode_ms={"max": 90, "exceed_below": 35},
+             compress_ratio={"max": 0.10, "exceed_below": 0.075},
+             psnr_db={"min": 52.0, "exceed_above": 54.5})),
     # ---- resolution-scaling cells ---------------------------------------
     dict(id="still_rggb12_12MP_q3",
          display="Stills · rggb12 · 12 MP (4032×3024) · q=3",
@@ -344,6 +362,16 @@ def synth_bayer(W, H, pf, peak, seed, packed, out: Path):
         img[0::2, 1::2] = bright[0::2, 1::2] + off_b
         img[1::2, 0::2] = bright[1::2, 0::2] + off_r
         img[1::2, 1::2] = bright[1::2, 1::2] + off_g
+    elif pf.startswith("grbg"):
+        img[0::2, 0::2] = bright[0::2, 0::2] + off_g
+        img[0::2, 1::2] = bright[0::2, 1::2] + off_r
+        img[1::2, 0::2] = bright[1::2, 0::2] + off_b
+        img[1::2, 1::2] = bright[1::2, 1::2] + off_g
+    elif pf.startswith("bggr"):
+        img[0::2, 0::2] = bright[0::2, 0::2] + off_b
+        img[0::2, 1::2] = bright[0::2, 1::2] + off_g
+        img[1::2, 0::2] = bright[1::2, 0::2] + off_g
+        img[1::2, 1::2] = bright[1::2, 1::2] + off_r
     else:
         img[0::2, 0::2] = bright[0::2, 0::2] + off_r
         img[0::2, 1::2] = bright[0::2, 1::2] + off_g

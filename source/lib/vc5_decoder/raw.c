@@ -23,6 +23,71 @@
 #include <arm_neon.h>
 #endif
 
+enum {
+    BAYER_PHASE_GRBG = 0,
+    BAYER_PHASE_RGGB = 1,
+    BAYER_PHASE_BGGR = 2,
+    BAYER_PHASE_GBRG = 3,
+};
+
+static INLINE int BayerPhaseFromPixelFormat(PIXEL_FORMAT output_format)
+{
+    switch (output_format)
+    {
+        case PIXEL_FORMAT_RAW_GRBG_12:
+        case PIXEL_FORMAT_RAW_GRBG_14:
+        case PIXEL_FORMAT_RAW_GRBG_16:
+            return BAYER_PHASE_GRBG;
+        case PIXEL_FORMAT_RAW_RGGB_12:
+        case PIXEL_FORMAT_RAW_RGGB_14:
+        case PIXEL_FORMAT_RAW_RGGB_16:
+            return BAYER_PHASE_RGGB;
+        case PIXEL_FORMAT_RAW_BGGR_12:
+        case PIXEL_FORMAT_RAW_BGGR_14:
+        case PIXEL_FORMAT_RAW_BGGR_16:
+            return BAYER_PHASE_BGGR;
+        case PIXEL_FORMAT_RAW_GBRG_12:
+        case PIXEL_FORMAT_RAW_GBRG_14:
+        case PIXEL_FORMAT_RAW_GBRG_16:
+        default:
+            return BAYER_PHASE_GBRG;
+    }
+}
+
+static INLINE void StoreBayerQuad(uint16_t *output_row1_ptr, uint16_t *output_row2_ptr,
+                                  int column, int bayer_phase,
+                                  int32_t R, int32_t G1, int32_t G2, int32_t B)
+{
+    switch (bayer_phase)
+    {
+        case BAYER_PHASE_GRBG:
+            output_row1_ptr[2 * column + 0] = (uint16_t)G1;
+            output_row1_ptr[2 * column + 1] = (uint16_t)R;
+            output_row2_ptr[2 * column + 0] = (uint16_t)B;
+            output_row2_ptr[2 * column + 1] = (uint16_t)G2;
+            break;
+        case BAYER_PHASE_RGGB:
+            output_row1_ptr[2 * column + 0] = (uint16_t)R;
+            output_row1_ptr[2 * column + 1] = (uint16_t)G1;
+            output_row2_ptr[2 * column + 0] = (uint16_t)G2;
+            output_row2_ptr[2 * column + 1] = (uint16_t)B;
+            break;
+        case BAYER_PHASE_BGGR:
+            output_row1_ptr[2 * column + 0] = (uint16_t)B;
+            output_row1_ptr[2 * column + 1] = (uint16_t)G1;
+            output_row2_ptr[2 * column + 0] = (uint16_t)G2;
+            output_row2_ptr[2 * column + 1] = (uint16_t)R;
+            break;
+        case BAYER_PHASE_GBRG:
+        default:
+            output_row1_ptr[2 * column + 0] = (uint16_t)G1;
+            output_row1_ptr[2 * column + 1] = (uint16_t)B;
+            output_row2_ptr[2 * column + 0] = (uint16_t)R;
+            output_row2_ptr[2 * column + 1] = (uint16_t)G2;
+            break;
+    }
+}
+
 /*!
 	@brief Pack the component arrays into an output image
 	
@@ -136,25 +201,7 @@ CODEC_ERROR PackComponentsToRAW(const UNPACKED_IMAGE *image,
         output_row1_ptr = (uint16_t *)output_row_ptr;
         output_row2_ptr = (uint16_t *)(output_row_ptr + output_half_pitch);
         
-        // Determine output ordering from format (once per row, outside column loop)
-        int rggb_order;
-        switch (output_format)
-        {
-            case PIXEL_FORMAT_RAW_RGGB_12:
-            case PIXEL_FORMAT_RAW_RGGB_14:
-            case PIXEL_FORMAT_RAW_RGGB_16:
-                rggb_order = 1;
-                break;
-            case PIXEL_FORMAT_RAW_GBRG_12:
-            case PIXEL_FORMAT_RAW_GBRG_14:
-            case PIXEL_FORMAT_RAW_GBRG_16:
-                rggb_order = 0;
-                break;
-            default:
-                assert(0);
-                rggb_order = 0;
-                break;
-        }
+        int bayer_phase = BayerPhaseFromPixelFormat(output_format);
 
 #if ENABLED(NEON)
         {
@@ -226,20 +273,8 @@ CODEC_ERROR PackComponentsToRAW(const UNPACKED_IMAGE *image,
                         B  >>= shift;
                     }
 
-                    if (rggb_order)
-                    {
-                        output_row1_ptr[2 * (column + k) + 0] = (uint16_t)R;
-                        output_row1_ptr[2 * (column + k) + 1] = (uint16_t)G1;
-                        output_row2_ptr[2 * (column + k) + 0] = (uint16_t)G2;
-                        output_row2_ptr[2 * (column + k) + 1] = (uint16_t)B;
-                    }
-                    else
-                    {
-                        output_row1_ptr[2 * (column + k) + 0] = (uint16_t)G1;
-                        output_row1_ptr[2 * (column + k) + 1] = (uint16_t)B;
-                        output_row2_ptr[2 * (column + k) + 0] = (uint16_t)R;
-                        output_row2_ptr[2 * (column + k) + 1] = (uint16_t)G2;
-                    }
+                    StoreBayerQuad(output_row1_ptr, output_row2_ptr, column + k,
+                                   bayer_phase, R, G1, G2, B);
                 }
             }
         }
@@ -308,20 +343,8 @@ CODEC_ERROR PackComponentsToRAW(const UNPACKED_IMAGE *image,
                 G2  >>= (16 - output_bit_depth);
             }
 
-            if (rggb_order)
-            {
-                output_row1_ptr[2 * column + 0] = (uint16_t)R;
-                output_row1_ptr[2 * column + 1] = (uint16_t)G1;
-                output_row2_ptr[2 * column + 0] = (uint16_t)G2;
-                output_row2_ptr[2 * column + 1] = (uint16_t)B;
-            }
-            else
-            {
-                output_row1_ptr[2 * column + 0] = (uint16_t)G1;
-                output_row1_ptr[2 * column + 1] = (uint16_t)B;
-                output_row2_ptr[2 * column + 0] = (uint16_t)R;
-                output_row2_ptr[2 * column + 1] = (uint16_t)G2;
-            }
+            StoreBayerQuad(output_row1_ptr, output_row2_ptr, column,
+                           bayer_phase, R, G1, G2, B);
         }
     }
     

@@ -30,11 +30,12 @@ model capacity, PSF mismatch, throughput, memory, or storage.
 
 Immediate work:
 
-- Promote `GBRG14` from an implicit internal codec format to an explicit GPR
-  SDK, stills encoder, CLI, and capability-test surface.
-- Add the next CFA conformance gap after `GBRG14`: either real BGGR/GRBG
-  fixtures or a canonical phase-normalization fixture that proves the public
-  API can ingest normal 2x2 Bayer phases without silent phase loss.
+- Keep all normal unpacked 2x2 Bayer still phases guarded. The legacy stills
+  SDK/CLI path now exposes RGGB, GBRG, GRBG, and BGGR at 12/14/16 bits with
+  matrix and capability coverage.
+- Add real BGGR/GRBG camera fixtures as they become available so the current
+  synthetic conformance cells are backed by real metadata and black-level
+  examples.
 - Create a camera-noise calibration sidecar schema keyed by camera model, ISO,
   bit depth, black level, white level, CFA phase, and darkframe/flatfield
   source hash. The lightweight guard is
@@ -43,9 +44,9 @@ Immediate work:
 
 Evidence required:
 
-- `tools/test/test_still_matrix.sh` covers the promoted pixel format.
-- `tools/test/test_capabilities.py` emits a capability row for the promoted
-  format.
+- `tools/test/test_still_matrix.sh` covers every normal unpacked Bayer phase.
+- `tools/test/test_capabilities.py` emits capability rows for the promoted
+  alternate phases.
 - `docs/CAPABILITIES.md` is regenerated from an unfiltered run before a release
   claim is made.
 - Noise removal/addback stays disabled as a production claim until calibrated
@@ -114,10 +115,10 @@ Evidence required:
 
 ## Near-Term Commit Targets
 
-1. Commit explicit `GBRG14` stills support and tests.
-2. Add the next CFA fixture or phase-normalization test.
-3. Add a noise-calibration sidecar schema plus a validator test.
-4. Add a still-SR gate skeleton that can run without large private artifacts.
-5. Add a PSF-estimation receipt schema and a small synthetic regression test.
-6. Re-run the README/media/release guards and open a focused PR for each small
+1. Add real BGGR/GRBG fixture coverage when a representative camera sample is
+   available.
+2. Add a noise-calibration sidecar schema plus a validator test.
+3. Add a still-SR gate skeleton that can run without large private artifacts.
+4. Add a PSF-estimation receipt schema and a small synthetic regression test.
+5. Re-run the README/media/release guards and open a focused PR for each small
    reviewable slice.

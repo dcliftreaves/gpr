@@ -307,6 +307,60 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
             if( input_pitch == 0 || input_pitch == (size_t)-1 )
                 input_pitch = input_width * 2;
         }
+        else if( strcmp(input_pixel_format, "grbg12") == 0 )
+        {
+            params.tuning_info.pixel_format = PIXEL_FORMAT_GRBG_12;
+
+            saturation_level = (1 << 12) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
+                input_pitch = input_width * 2;
+        }
+        else if( strcmp(input_pixel_format, "grbg14") == 0 )
+        {
+            params.tuning_info.pixel_format = PIXEL_FORMAT_GRBG_14;
+
+            saturation_level = (1 << 14) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
+                input_pitch = input_width * 2;
+        }
+        else if( strcmp(input_pixel_format, "grbg16") == 0 )
+        {
+            params.tuning_info.pixel_format = PIXEL_FORMAT_GRBG_16;
+
+            saturation_level = (1 << 16) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
+                input_pitch = input_width * 2;
+        }
+        else if( strcmp(input_pixel_format, "bggr12") == 0 )
+        {
+            params.tuning_info.pixel_format = PIXEL_FORMAT_BGGR_12;
+
+            saturation_level = (1 << 12) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
+                input_pitch = input_width * 2;
+        }
+        else if( strcmp(input_pixel_format, "bggr14") == 0 )
+        {
+            params.tuning_info.pixel_format = PIXEL_FORMAT_BGGR_14;
+
+            saturation_level = (1 << 14) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
+                input_pitch = input_width * 2;
+        }
+        else if( strcmp(input_pixel_format, "bggr16") == 0 )
+        {
+            params.tuning_info.pixel_format = PIXEL_FORMAT_BGGR_16;
+
+            saturation_level = (1 << 16) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
+                input_pitch = input_width * 2;
+        }
 
         params.input_pitch  = input_pitch;
 
@@ -373,13 +427,41 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
                                         void **gpr_output, size_t *gpr_size);
             void *fast_out = NULL;
             size_t fast_sz = 0;
-            int pf = 1; /* RGGB_14 default */
-            int enc_rc = gpr_fast_encode((const uint8_t *)input_buffer.buffer, input_buffer.size,
-                                          params.input_width, params.input_height, pf,
-                                          params.tuning_info.ans_enabled,
-                                          params.tuning_info.embedded_mode,
-                                          &fast_out, &fast_sz);
-            if (enc_rc != 0) fprintf(stderr, "gpr_fast_encode failed: %d (w=%d h=%d)\n", enc_rc, params.input_width, params.input_height);
+            int pf = -1;
+            switch (params.tuning_info.pixel_format)
+            {
+                case PIXEL_FORMAT_RGGB_12:
+                case PIXEL_FORMAT_RGGB_12P:
+                    pf = 0;
+                    break;
+                case PIXEL_FORMAT_RGGB_14:
+                    pf = 1;
+                    break;
+                case PIXEL_FORMAT_GBRG_12:
+                case PIXEL_FORMAT_GBRG_12P:
+                    pf = 2;
+                    break;
+                case PIXEL_FORMAT_GBRG_14:
+                    pf = 3;
+                    break;
+                case PIXEL_FORMAT_RGGB_16:
+                    pf = 4;
+                    break;
+                case PIXEL_FORMAT_GBRG_16:
+                    pf = 5;
+                    break;
+                default:
+                    pf = -1;
+                    break;
+            }
+            int enc_rc = pf >= 0
+                ? gpr_fast_encode((const uint8_t *)input_buffer.buffer, input_buffer.size,
+                                  params.input_width, params.input_height, pf,
+                                  params.tuning_info.ans_enabled,
+                                  params.tuning_info.embedded_mode,
+                                  &fast_out, &fast_sz)
+                : -1;
+            if (pf >= 0 && enc_rc != 0) fprintf(stderr, "gpr_fast_encode failed: %d (w=%d h=%d)\n", enc_rc, params.input_width, params.input_height);
             if (enc_rc == 0 && fast_out) {
                 output_buffer.buffer = fast_out;
                 output_buffer.size = fast_sz;
@@ -490,6 +572,14 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
                 case PIXEL_FORMAT_GBRG_16:
                     pf = 5;
                     break;
+                case PIXEL_FORMAT_GRBG_12:
+                case PIXEL_FORMAT_GRBG_14:
+                case PIXEL_FORMAT_GRBG_16:
+                case PIXEL_FORMAT_BGGR_12:
+                case PIXEL_FORMAT_BGGR_14:
+                case PIXEL_FORMAT_BGGR_16:
+                    pf = -1;
+                    break;
                 case PIXEL_FORMAT_RGGB_16:
                     pf = 4;
                     break;
@@ -497,8 +587,10 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
                     pf = 1;
                     break;
             }
-            int rc = gpr_fast_decode((const uint8_t *)input_buffer.buffer, input_buffer.size,
-                                      &raw_out, &raw_sz, pf);
+            int rc = pf >= 0
+                ? gpr_fast_decode((const uint8_t *)input_buffer.buffer, input_buffer.size,
+                                  &raw_out, &raw_sz, pf)
+                : -1;
             if (rc == 0 && raw_out) {
                 output_buffer.buffer = raw_out;
                 output_buffer.size = raw_sz;
