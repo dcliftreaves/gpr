@@ -61,6 +61,8 @@ Bayer resize PSF policy and the synthetic receipt builder:
 [`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md).
 Premium still-SR gate policy and skeleton:
 [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md).
+Premium still-SR current readiness:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_20260629/index.html`.
 
 ## At A Glance
 
@@ -249,6 +251,7 @@ current evidence so strict local checks can verify it.
 | Mission candidate-aware 8K `.gvid` to ProRes review | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_4kcnn_8k_sr_gvid_to_prores_42f_after_bounds_fix/mission42_8k_sr_gvid_42f_no_cnn_20p_prores.mov` |
 | Mission candidate-aware 8K `.gvid` packaging receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_4kcnn_8k_sr_gvid_packaging_q3_after_bounds_fix/receipt.json` |
 | Mission candidate-aware 8K `.gvid` to ProRes receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_4kcnn_8k_sr_gvid_to_prores_42f_after_bounds_fix/receipt.json` |
+| Premium still-SR current readiness | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_20260629/index.html` |
 
 ![GPR production status matrix](docs/img/readme_status_matrix.svg)
 

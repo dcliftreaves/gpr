@@ -1,0 +1,341 @@
+#!/usr/bin/env python3
+"""Build the current premium still-SR readiness receipt.
+
+This is a productization audit over existing evidence, not a trainer. It keeps
+the "spend time for an amazing still" pillar honest by emitting a valid
+premium still-SR receipt and an explicit blocker list from the current repo and
+external artifact state.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import html
+import json
+import os
+import time
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SCHEMA = "gpr.premium_still_sr_readiness.v1"
+GATE_SCHEMA = "gpr.premium_still_sr_gate.v1"
+
+STILL_BASELINES = [
+    {
+        "tier": "STILL smallest",
+        "pipeline": "gpr_tools_q0 + bibo1x_ane_gpr_tools_q3",
+        "mean_mb": 9.80,
+        "worst_lpips": 0.031,
+        "verdict": "PASS",
+    },
+    {
+        "tier": "STILL primary",
+        "pipeline": "gpr_tools_q3 + bibo1x_ane_gpr_tools_q3",
+        "mean_mb": 15.05,
+        "worst_lpips": 0.016,
+        "verdict": "PASS",
+    },
+    {
+        "tier": "STILL archival",
+        "pipeline": "gpr_tools_q8",
+        "mean_mb": 27.17,
+        "worst_lpips": 0.004,
+        "verdict": "PASS",
+    },
+]
+
+CAPABILITY_EVIDENCE = [
+    {
+        "camera": "Nikon Z8",
+        "class": "50 MP",
+        "dimensions": "8280x5520",
+        "bit_depth": 14,
+        "cfa_phase": "RGGB",
+        "encode_ms": 133.5,
+        "decode_ms": 243.2,
+        "compressed_pct": 6.78,
+        "roundtrip_psnr_db": 53.85,
+    },
+    {
+        "camera": "Hasselblad X2D 100C",
+        "class": "100 MP",
+        "dimensions": "11664x8750",
+        "bit_depth": 16,
+        "cfa_phase": "RGGB",
+        "encode_ms": 260.0,
+        "decode_ms": 427.1,
+        "compressed_pct": 4.89,
+        "roundtrip_psnr_db": 53.52,
+    },
+]
+
+REUSABLE_SR_ARTIFACTS = {
+    "editable_dng": "artifacts/mission1_8k_sr_production_promotion_20260625/current_candidate_editable_packaging_frame0/frame_000000_sr8k_generic.dng",
+    "editable_gpr": "artifacts/mission1_8k_sr_production_promotion_20260625/current_candidate_editable_packaging_frame0/frame_000000_sr8k_sdk_wrapped.gpr",
+    "review_tiff_or_prores": "artifacts/mission1_8k_sr_production_promotion_20260625/current_candidate_editable_packaging_frame0/frame_000000_sr8k_review_2k_prores.mov",
+    "video_sr_promotion": "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json",
+    "cnn_scorecard": "artifacts/cnn_product_scorecard_20260629/scorecard.json",
+}
+
+
+def external_root() -> Path:
+    return Path(os.environ.get("GPR_EXTERNAL_ROOT") or "/Volumes/OWC_8TB/gpr_work")
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def artifact_ref(path: Path) -> dict[str, str]:
+    return {"path": path.as_posix(), "sha256": sha256_file(path)}
+
+
+def load_json(path: Path) -> dict[str, Any] | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def external_artifact(root: Path, rel: str) -> dict[str, Any]:
+    path = root / rel
+    item: dict[str, Any] = {"path": path.as_posix(), "exists": path.is_file()}
+    if path.is_file():
+        item["sha256"] = sha256_file(path)
+        item["bytes"] = path.stat().st_size
+    return item
+
+
+def summarize_noise_sidecars(root: Path) -> dict[str, Any]:
+    sidecar_root = root / "artifacts/camera_noise_sidecars_20260629"
+    paths = sorted(sidecar_root.glob("*/*_noise_calibration.json"))
+    cameras: dict[str, dict[str, Any]] = {}
+    usable_count = 0
+    for path in paths:
+        data = load_json(path) or {}
+        camera = data.get("camera") if isinstance(data.get("camera"), dict) else {}
+        key = f"{camera.get('make', 'unknown')} {camera.get('model', 'unknown')}".strip()
+        if key not in cameras:
+            cameras[key] = {"sidecar_count": 0, "usable_calibrations": 0, "isos": []}
+        cameras[key]["sidecar_count"] += 1
+        for cal in data.get("calibrations", []):
+            if not isinstance(cal, dict):
+                continue
+            if cal.get("iso") is not None:
+                cameras[key]["isos"].append(cal["iso"])
+            if cal.get("usable_for_training_targets") is True:
+                usable_count += 1
+                cameras[key]["usable_calibrations"] += 1
+    for item in cameras.values():
+        item["isos"] = sorted(set(item["isos"]))
+    return {
+        "sidecar_root": sidecar_root.as_posix(),
+        "sidecar_count": len(paths),
+        "usable_calibration_count": usable_count,
+        "camera_count": len(cameras),
+        "cameras": cameras,
+        "has_x2d_and_z8": any("X2D" in k for k in cameras) and any("Z 8" in k or "Z8" in k for k in cameras),
+    }
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> dict[str, str]:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return artifact_ref(path)
+
+
+def build_state(root: Path) -> dict[str, Any]:
+    external = {name: external_artifact(root, rel) for name, rel in REUSABLE_SR_ARTIFACTS.items()}
+    noise = summarize_noise_sidecars(root)
+    has_video_sr_packaging = all(external[name]["exists"] for name in ("editable_dng", "editable_gpr", "review_tiff_or_prores"))
+    blockers = [
+        "No dedicated premium still-SR checkpoint is registered for 50 MP / 100 MP still output.",
+        "No premium still-SR run has produced per-camera raw-domain metrics, rendered dashboard, and worst-row visual review against the still baselines.",
+        "No raw-editor latitude receipt exists for a dedicated still-SR candidate.",
+        "Noise sidecars exist for X2D/Z8, but the noise removal/addback policy has not been wired into a premium still-SR target build.",
+    ]
+    return {
+        "schema": SCHEMA,
+        "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "source": {
+            "repo": str(ROOT),
+            "external_root": str(root),
+        },
+        "goal": "premium offline still SR for 50 MP and 100 MP Bayer cameras",
+        "production_ready": False,
+        "current_verdict": "blocked_on_dedicated_premium_still_sr_candidate",
+        "still_baselines": STILL_BASELINES,
+        "capability_evidence": CAPABILITY_EVIDENCE,
+        "noise_sidecars": noise,
+        "reusable_sr_artifacts": external,
+        "evidence_summary": {
+            "has_50mp_still_roundtrip": True,
+            "has_100mp_still_roundtrip": True,
+            "has_validated_x2d_z8_noise_sidecars": noise["has_x2d_and_z8"] and noise["usable_calibration_count"] > 0,
+            "has_reusable_editable_sr_packaging": has_video_sr_packaging,
+            "has_dedicated_premium_still_sr_checkpoint": False,
+            "has_dedicated_premium_still_sr_dashboard": False,
+            "has_raw_editor_latitude_receipt": False,
+        },
+        "blockers": blockers,
+        "next_steps": [
+            "Build 50 MP and 100 MP still-SR training/evaluation fixtures from real DNG/GPR sources.",
+            "Train or tune a dedicated premium still-SR candidate with camera/ISO noise sidecars as conditioning or target-cleaning policy.",
+            "Emit editable DNG/GPR, review TIFF/ProRes/contact sheet, raw-domain metrics, and raw-editor latitude receipts.",
+            "Promote only if the candidate beats STILL q0/q3/q8 baselines without tone, color, CFA, or noise-texture regressions.",
+        ],
+    }
+
+
+def render_markdown(state: dict[str, Any]) -> str:
+    lines = [
+        "# Premium Still-SR Readiness",
+        "",
+        f"Created: {state['created_utc']}",
+        "",
+        f"Verdict: `{state['current_verdict']}`",
+        "",
+        "## What Exists",
+        "",
+    ]
+    summary = state["evidence_summary"]
+    for key, value in summary.items():
+        lines.append(f"- `{key}`: {value}")
+    lines.extend(["", "## Blockers", ""])
+    for blocker in state["blockers"]:
+        lines.append(f"- {blocker}")
+    lines.extend(["", "## Next Steps", ""])
+    for step in state["next_steps"]:
+        lines.append(f"- {step}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_html(state: dict[str, Any]) -> str:
+    summary_rows = "\n".join(
+        f"<tr><td>{html.escape(key)}</td><td>{html.escape(str(value))}</td></tr>"
+        for key, value in state["evidence_summary"].items()
+    )
+    baseline_rows = "\n".join(
+        "<tr>"
+        f"<td>{html.escape(row['tier'])}</td>"
+        f"<td>{html.escape(row['pipeline'])}</td>"
+        f"<td>{row['mean_mb']:.2f}</td>"
+        f"<td>{row['worst_lpips']:.3f}</td>"
+        f"<td>{html.escape(row['verdict'])}</td>"
+        "</tr>"
+        for row in state["still_baselines"]
+    )
+    blocker_items = "\n".join(f"<li>{html.escape(item)}</li>" for item in state["blockers"])
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Premium Still-SR Readiness</title>
+  <style>
+    body {{ font-family: -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif; margin: 32px; color: #17202a; }}
+    h1 {{ margin-bottom: 0.2rem; }}
+    .verdict {{ display: inline-block; padding: 6px 10px; background: #fff3cd; border: 1px solid #d7a500; border-radius: 6px; }}
+    table {{ border-collapse: collapse; width: 100%; margin: 18px 0; }}
+    th, td {{ border-bottom: 1px solid #d8dde3; padding: 8px; text-align: left; vertical-align: top; }}
+    th {{ background: #f4f6f8; }}
+    code {{ background: #eef2f5; padding: 1px 4px; border-radius: 4px; }}
+  </style>
+</head>
+<body>
+  <h1>Premium Still-SR Readiness</h1>
+  <p class="verdict">{html.escape(state['current_verdict'])}</p>
+  <h2>Evidence Summary</h2>
+  <table><tbody>{summary_rows}</tbody></table>
+  <h2>Current Still Baselines</h2>
+  <table><thead><tr><th>Tier</th><th>Pipeline</th><th>Mean MB</th><th>Worst LPIPS</th><th>Verdict</th></tr></thead><tbody>{baseline_rows}</tbody></table>
+  <h2>Blockers</h2>
+  <ul>{blocker_items}</ul>
+</body>
+</html>
+"""
+
+
+def build_gate_receipt(state: dict[str, Any], output_refs: dict[str, dict[str, str]]) -> dict[str, Any]:
+    candidate_hash = sha256_bytes(json.dumps(state["evidence_summary"], sort_keys=True).encode("utf-8"))
+    return {
+        "schema": GATE_SCHEMA,
+        "candidate": {
+            "pipeline_id": "premium_still_sr_current_state_blocked_v1",
+            "checkpoint_sha256": candidate_hash,
+            "target_role": "offline_premium_still",
+        },
+        "fixture_summary": {
+            "camera_count": 2,
+            "fifty_mp_or_larger_count": 1,
+            "hundred_mp_or_larger_count": 1,
+            "cfa_phases": ["RGGB"],
+        },
+        "outputs": output_refs,
+        "baseline_comparison": {
+            "passed_gate": False,
+            "worst_lpips": 1.0,
+            "worst_delta_e2000": 99.0,
+            "min_raw_psnr_delta_db": 0.0,
+            "editor_latitude_score_delta": 0.0,
+        },
+        "noise_policy": {
+            "mode": "validated_sidecars_available_but_not_yet_wired_into_still_sr_candidate",
+            "raw_noise_signal_audit_passed": False,
+        },
+        "production_ready": False,
+    }
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--external-root", type=Path, default=external_root())
+    ap.add_argument("--output-dir", type=Path, required=True)
+    args = ap.parse_args()
+
+    state = build_state(args.external_root)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    state_ref = write_json(args.output_dir / "readiness.json", state)
+    markdown_path = args.output_dir / "readiness.md"
+    markdown_path.write_text(render_markdown(state), encoding="utf-8")
+    markdown_ref = artifact_ref(markdown_path)
+    dashboard_path = args.output_dir / "index.html"
+    dashboard_path.write_text(render_html(state), encoding="utf-8")
+    dashboard_ref = artifact_ref(dashboard_path)
+
+    output_refs = {
+        "editable_dng": write_json(args.output_dir / "editable_dng_evidence.json", {"role": "editable_dng", "state": state_ref, "external": state["reusable_sr_artifacts"]["editable_dng"]}),
+        "editable_gpr": write_json(args.output_dir / "editable_gpr_evidence.json", {"role": "editable_gpr", "state": state_ref, "external": state["reusable_sr_artifacts"]["editable_gpr"]}),
+        "review_tiff_or_prores": write_json(args.output_dir / "review_tiff_or_prores_evidence.json", {"role": "review_tiff_or_prores", "state": state_ref, "external": state["reusable_sr_artifacts"]["review_tiff_or_prores"]}),
+        "dashboard": dashboard_ref,
+    }
+    gate = build_gate_receipt(state, output_refs)
+    gate_ref = write_json(args.output_dir / "premium_still_sr_gate_receipt.json", gate)
+
+    index = {
+        "schema": "gpr.premium_still_sr_readiness_index.v1",
+        "readiness": state_ref,
+        "readiness_markdown": markdown_ref,
+        "dashboard": dashboard_ref,
+        "gate_receipt": gate_ref,
+    }
+    write_json(args.output_dir / "index.json", index)
+    print(gate_ref["path"])
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
