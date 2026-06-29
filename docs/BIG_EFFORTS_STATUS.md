@@ -36,6 +36,9 @@ Current evidence:
 - The CLI exposes DNG NoiseProfile-aware denoise/noise replacement plumbing,
   but the current raw-noise audit forbids treating the old single-frame REF
   residual as pure removable noise.
+- `tools/build_camera_noise_calibration.py` now emits a validated
+  `gpr.camera_noise_calibration.v1` sidecar from raw darkframe stacks. This is
+  the production rail for future noise-aware compression and CNN targets.
 
 Boundaries:
 
@@ -54,8 +57,8 @@ Next production work:
 
 1. Add real BGGR and GRBG camera fixtures to back the committed synthetic
    stills conformance cells.
-2. Build camera/ISO noise calibration from darkframes or frame stacks for Z8,
-   X2D, Mission 1, and iPhone CFA where available.
+2. Run the camera/ISO noise-calibration builder on real darkframes or frame
+   stacks for Z8, X2D, Mission 1, and iPhone CFA where available.
 3. Re-run the raw-noise/signal audit before training any CNN on nonzero clean
    targets.
 4. Add a 100 MP real-fixture visual dashboard, not just synthetic capability

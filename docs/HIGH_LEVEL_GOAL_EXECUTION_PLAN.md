@@ -36,11 +36,12 @@ Immediate work:
 - Add real BGGR/GRBG camera fixtures as they become available so the current
   synthetic conformance cells are backed by real metadata and black-level
   examples.
-- Create a camera-noise calibration sidecar schema keyed by camera model, ISO,
-  bit depth, black level, white level, CFA phase, and darkframe/flatfield
-  source hash. The lightweight guard is
-  `tools/check_product_pillar_receipts.py` with schema
-  `gpr.camera_noise_calibration.v1`.
+- Use the committed camera-noise calibration sidecar builder for darkframe
+  stacks. The schema is keyed by camera model, dimensions, ISO, bit depth,
+  black level, white level, CFA phase, and darkframe/flatfield source hash.
+  The lightweight guard is `tools/check_product_pillar_receipts.py` with
+  schema `gpr.camera_noise_calibration.v1`; the builder is
+  `tools/build_camera_noise_calibration.py`.
 
 Evidence required:
 
@@ -51,6 +52,7 @@ Evidence required:
   claim is made.
 - Noise removal/addback stays disabled as a production claim until calibrated
   darkframe/stack evidence proves the residual is noise rather than detail.
+  The policy is documented in `docs/CAMERA_NOISE_CALIBRATION.md`.
 
 ### 2. Raw Video MVP For GoPro / Mission 1
 
@@ -117,7 +119,8 @@ Evidence required:
 
 1. Add real BGGR/GRBG fixture coverage when a representative camera sample is
    available.
-2. Add a noise-calibration sidecar schema plus a validator test.
+2. Apply the noise-calibration sidecar builder to real Z8, X2D, Mission 1, and
+   iPhone darkframe/frame-stack artifacts where available.
 3. Add a still-SR gate skeleton that can run without large private artifacts.
 4. Add a PSF-estimation receipt schema and a small synthetic regression test.
 5. Re-run the README/media/release guards and open a focused PR for each small
