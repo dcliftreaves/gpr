@@ -31,6 +31,27 @@ needs both source `.GPR` and Adobe-converted DNG pairs:
 | Mission 1 12MP DNG | `/Volumes/Photos/DavidsPics/gopro_raw/2026-06__GoProM1P/RawPics/DNG/GP017602.dng` | Native 12MP Mission path compatibility. |
 | Mission 1 50MP GPR | `/Volumes/Photos/DavidsPics/gopro_raw/2026-06__GoProM1P/RawPics/GP017504.GPR` | Camera `.GPR` decode compatibility. |
 
+## Latest Receipt
+
+Current local audit receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/real_fixture_compatibility/receipt_20260628T060625Z.txt
+```
+
+Summary: 8 pass, 0 skip.
+
+| Check | Fixture family | Current result |
+| --- | --- | --- |
+| Mission 1 50MP DNG roundtrip | Mission 1 | PASS |
+| Mission 1 12MP DNG roundtrip | Mission 1 | PASS |
+| Mission 1 50MP GPR roundtrip | Mission 1 | PASS |
+| Z8 50MP DNG roundtrip | Nikon Z8 | PASS |
+| X2D 100MP DNG roundtrip | Hasselblad X2D | PASS |
+| iPhone CFA DNG roundtrip | iPhone | PASS |
+| iPhone metadata roundtrip | iPhone | PASS |
+| iPhone Linear Raw rejection | iPhone | PASS |
+
 ## Cleanup Boundary
 
 Do not delete the canonical fixture paths above. Bulky experiment directories in

@@ -123,11 +123,13 @@ def main() -> int:
         "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
         "docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md",
         "docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md",
+        "docs/CNN_PRODUCT_SCORECARD_2026-06-29.md",
         "docs/LABS_ARTIFACT_BUNDLE.md",
         "docs/PRODUCTION_ARTIFACTS.md",
         "tools/verify_labs_bundle.py",
         "tools/build_labs_bundle.py",
         "tools/check_mission1_cnn_closure.py",
+        "tools/build_cnn_product_scorecard.py",
         "tools/test/test_gvid_conformance.py",
         "source/lib/vc5_encoder/gpr_labs_encoder.h",
         "pipelines/registry.json",
@@ -138,6 +140,7 @@ def main() -> int:
         "docs/PRODUCTIZATION_CONTRACTS.md",
         "docs/RELEASE_ARTIFACTS.md",
         "docs/GVID_CONFORMANCE.md",
+        "docs/CNN_PRODUCT_SCORECARD_2026-06-29.md",
     ], failures)
     require_text("docs/README.md", [
         "PRODUCTIZATION_CONTRACTS.md",
@@ -171,6 +174,15 @@ def main() -> int:
         "offline-production",
         "Do not add CNN to camera-side encode",
         "python3 tools/check_mission1_cnn_closure.py",
+    ], failures)
+    require_text("docs/CNN_PRODUCT_SCORECARD_2026-06-29.md", [
+        "CNN Product Scorecard",
+        "mission1_native12_4k_cleanup_rgb_cfa_w40_v1",
+        "mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1",
+        "offline-production",
+        "not a live-camera path",
+        "real fixture compatibility",
+        "python3 tools/build_cnn_product_scorecard.py",
     ], failures)
     require_text("docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md", [
         "file-backed shim baseline",

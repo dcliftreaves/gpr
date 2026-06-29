@@ -34,6 +34,40 @@ def import_tool():
     return module
 
 
+def check_cnn_product_scorecard_validator(module) -> bool:
+    work_parent = Path(os.environ.get("GPR_TMPDIR", os.environ.get("RUNNER_TEMP", tempfile.gettempdir())))
+    work_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="cnn_product_scorecard_validator_", dir=work_parent) as td:
+        path = Path(td) / "scorecard.json"
+        data = {
+            "schema": "gpr.cnn_product_scorecard.v1",
+            "fourk_cleanup": {
+                "cnn": "mission1_native12_4k_cleanup_rgb_cfa_w40_v1",
+                "visual_signoff_passed": True,
+                "image_count": 42,
+            },
+            "eightk_sr": {
+                "cnn": "mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1",
+                "production_ready": True,
+                "mission42": {"image_count": 42},
+                "z8_all24": {"image_count": 24},
+            },
+            "compatibility": {"pass_count": 8, "skip_count": 0},
+            "next_work": ["Keep Mission 1 live capture and camera-back preview CNN-free."],
+        }
+        path.write_text(json.dumps(data) + "\n", encoding="utf-8")
+        if module.validate_cnn_product_scorecard(path) is not None:
+            print("expected CNN product scorecard validator to accept valid fixture", file=sys.stderr)
+            return False
+        data["eightk_sr"]["production_ready"] = False
+        path.write_text(json.dumps(data) + "\n", encoding="utf-8")
+        error = module.validate_cnn_product_scorecard(path)
+        if not error or "production_ready" not in error:
+            print(f"expected CNN product scorecard validator to reject bad fixture, got {error}", file=sys.stderr)
+            return False
+    return True
+
+
 @contextlib.contextmanager
 def patched_env(**updates: str):
     old = {key: os.environ.get(key) for key in updates}
@@ -895,6 +929,9 @@ def run_tool_text(module, manifest: Path, *args: str) -> tuple[int, str]:
 
 
 def main() -> int:
+    module = import_tool()
+    if not check_cnn_product_scorecard_validator(module):
+        return 1
     work_parent = Path(os.environ.get("GPR_TMPDIR", os.environ.get("RUNNER_TEMP", tempfile.gettempdir())))
     work_parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="verify_release_manifest_artifacts_", dir=work_parent) as td:
@@ -904,7 +941,6 @@ def main() -> int:
         write_artifacts(external)
         write_production_artifacts_doc(root, external)
 
-        module = import_tool()
         with patched_env(GPR_EXTERNAL_ROOT=str(external), GPR_ARTIFACT_ROOT=str(external / "artifacts")):
             write_manifest(manifest, external, blockers=1)
             code, payload = run_tool(module, manifest)

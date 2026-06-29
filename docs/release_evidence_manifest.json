@@ -1,6 +1,6 @@
 {
   "schema": "gpr_release_evidence_manifest.v1",
-  "updated": "2026-06-28",
+  "updated": "2026-06-29",
   "external_root": "/Volumes/OWC_8TB/gpr_work",
   "purpose": "Compact source-of-truth index for production and explicitly experimental GPR output paths. Heavy dashboards, videos, checkpoints, and rendered media remain outside the repo.",
   "production_paths": [
@@ -410,8 +410,8 @@
     },
     {
       "id": "8k_raw_2x",
-      "classification": "offline-only",
-      "classification_detail": "Offline/review 2x raw reconstruction target until a faster model clears quality and timing gates.",
+      "classification": "offline-production",
+      "classification_detail": "Offline-production/post 2x raw reconstruction target. Current candidate-aware SR has broad Mission42 and Z8 evidence plus packaging/review receipts, but it is not a live-camera path.",
       "dimensions": "8280x5520",
       "local_fps_smoke": 2.66,
       "docs": [
@@ -1188,6 +1188,31 @@
       }
     },
     {
+      "id": "cnn_product_scorecard_20260629",
+      "family": "cnn_product",
+      "status": "current",
+      "purpose": "Current product-facing scorecard for approved stills CNN latitude, 4K cleanup, offline-production 8K SR, and real fixture compatibility.",
+      "dashboard": "artifacts/cnn_product_scorecard_20260629/index.html",
+      "docs": [
+        "README.md",
+        "docs/CNN_PRODUCT_SCORECARD_2026-06-29.md",
+        "docs/LOCAL_FIXTURE_COMPATIBILITY.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/cnn_product_scorecard_20260629/scorecard.json",
+        "artifacts/cnn_product_scorecard_20260629/index.html"
+      ],
+      "metrics": {
+        "mission4k_images": 42,
+        "mission8k_images": 42,
+        "z8_8k_images": 24,
+        "compatibility_pass": 8,
+        "compatibility_skip": 0,
+        "live_camera_path": 0
+      }
+    },
+    {
       "id": "mission1_numbered_list_closure_plan",
       "family": "mission1_readiness",
       "status": "diagnostic",
@@ -1278,6 +1303,7 @@
     "python3 tools/check_mission1_cnn_closure.py",
     "python3 tools/check_mission1_cnn_closure.py --strict-artifacts",
     "python3 tools/test/test_build_mission1_8k_sr_visual_review.py",
+    "python3 tools/test/test_build_cnn_product_scorecard.py",
     "python3 tools/test/test_mission1_camera_dispatch_inputs.py",
     "python3 tools/test/test_mission1_camera_closure_package.py",
     "python3 tools/test/test_mission1_camera_hardware_audit.py",
@@ -1341,6 +1367,7 @@
     "python3 tools/test/test_check_mission1_cnn_closure.py",
     "python3 tools/check_mission1_cnn_closure.py",
     "python3 tools/test/test_build_mission1_8k_sr_visual_review.py",
+    "python3 tools/test/test_build_cnn_product_scorecard.py",
     "python3 tools/test/test_mission1_camera_dispatch_inputs.py",
     "python3 tools/test/test_mission1_camera_closure_package.py",
     "python3 tools/test/test_mission1_camera_hardware_audit.py",

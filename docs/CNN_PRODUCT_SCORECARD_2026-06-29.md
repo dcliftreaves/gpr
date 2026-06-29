@@ -1,0 +1,107 @@
+# CNN Product Scorecard, 2026-06-29
+
+This is the current product-facing CNN/SR scorecard for the GPR release
+surface. It summarizes the approved offline CNN state and the evidence that
+keeps stills, 4K cleanup, 8K SR, and real fixture compatibility tied together.
+
+Generated dashboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/cnn_product_scorecard_20260629/index.html
+```
+
+Machine-readable summary:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/cnn_product_scorecard_20260629/scorecard.json
+```
+
+Regenerate with:
+
+```bash
+python3 tools/build_cnn_product_scorecard.py \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/cnn_product_scorecard_20260629
+```
+
+Regression smoke:
+
+```bash
+python3 tools/test/test_build_cnn_product_scorecard.py
+```
+
+## Current Verdict
+
+| path | registry id | verdict | boundary |
+|---|---|---|---|
+| 4K cleanup | `mission1_native12_4k_cleanup_rgb_cfa_w40_v1` | Approved as an offline/review enhancer for the current Mission 1 4K raw path. | This is not a live-camera path and must not be added to camera-side encode or camera-back preview. |
+| 8K SR | `mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1` | Approved for offline-production reconstruction/post: broad Mission42 and Z8 full-frame gates are positive, and `.gvid`, editable DNG/GPR, metadata, and ProRes receipts exist. | This is not a live-camera path. Current median runtime is about 1 fps-class on the receipted Mac/MPS path. |
+| STILL smallest/primary | `gpr_tools_q0` and `gpr_tools_q3` with matched q3 BIBO_1x CNN | Production-gated still tiers. | Stills remain separate from FUSED video. |
+| STILL archival | `gpr_tools_q8` without CNN | Production-gated archival still tier. | CNN restoration is not required at this tighter codec setting. |
+
+## Scorecard Numbers
+
+The generated scorecard reads the registry and external receipts directly.
+Current expected values:
+
+| evidence | current value |
+|---|---:|
+| 4K cleanup Mission image count | 42 |
+| 4K cleanup median RGB RMSE improvement | 10.36% |
+| 4K cleanup median CFA raw RMSE improvement | 10.93% |
+| 4K cleanup median Y-gradient improvement | 3.23% |
+| 4K cleanup production signoff | passed |
+| Tone/green audit rows | 126 |
+| Tone/green audit selected rows | 60 |
+| Candidate lower display MAE than baseline | 120 / 126 |
+| Candidate green delta abs p95 | 0.0123 |
+| 8K SR Mission42 image count | 42 |
+| 8K SR Mission42 median RMSE improvement | 55.46% |
+| 8K SR Mission42 median gradient improvement | 23.57% |
+| 8K SR Mission42 median write-inclusive throughput | 1.09 fps |
+| 8K SR Z8 all24 image count | 24 |
+| 8K SR Z8 median RMSE improvement | 43.23% |
+| 8K SR Z8 median gradient improvement | 2.56% |
+| 8K SR Z8 median write-inclusive throughput | 1.40 fps |
+| Real fixture compatibility | 8 pass, 0 skip |
+
+## Replacement Rule
+
+Do not replace the current 4K cleanup or 8K SR CNN just because a dashboard
+row looks better. A replacement must beat the current checkpoint on the same
+product gate:
+
+- 4K cleanup: Mission42 full-frame high-res-derived RGB/CFA target guard,
+  production signoff, tone/green audit, `.gvid` packaging, and ProRes receipt.
+- 8K SR: Mission42 and Z8 all24 broad full-frame gates, `.gvid` decode-to-SR
+  timing, 8K `.gvid` packaging, editable DNG/GPR packaging, metadata audit,
+  and 8K ProRes review receipt.
+- All replacements: registry hash updates, sidecar/training receipt, release
+  manifest entry, dashboard, and `tools/check_mission1_cnn_closure.py` pass.
+
+## Compatibility
+
+The latest real fixture compatibility receipt is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/real_fixture_compatibility/receipt_20260628T060625Z.txt
+```
+
+It covers Mission 1 50MP DNG, Mission 1 12MP DNG, Mission 1 50MP GPR, Nikon Z8
+DNG, Hasselblad X2D DNG, iPhone CFA DNG, iPhone metadata roundtrip, and iPhone
+Linear Raw rejection. See `docs/LOCAL_FIXTURE_COMPATIBILITY.md` for the fixture
+matrix.
+
+## Next CNN Work
+
+The current CNN work is not blocked on more Mission 1 dev-kit setup. The next
+non-dev-kit CNN work is:
+
+1. Keep the approved 4K cleanup and 8K SR artifacts pinned in the scorecard.
+2. If revisiting 4K softness, train against the high-res-derived 4K RGB target
+   and compare against the current `mission1_native12_4k_cleanup_rgb_cfa_w40_v1`
+   signoff, not against JPEG crops.
+3. If revisiting 8K SR, use the current 4K cleanup output as input and require
+   both Mission42 and Z8 all24 broad full-frame wins before promotion.
+4. Keep camera-side capture and preview CNN-free until a future runtime proves
+   otherwise.
