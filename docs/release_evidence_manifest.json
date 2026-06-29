@@ -614,6 +614,36 @@
       "stage_scope": "process-level camera-source FIFO cadence simulator; profiling only, not camera evidence"
     },
     {
+      "id": "pi5_mission1_bench_fused_dma_like_stream_source",
+      "platform": "Pi 5 / Mission 1",
+      "status": "measured-stage",
+      "target": "4K Bayer .gvid encode from DMA-like mmap-ring source at the accepted 20 fps floor",
+      "pipeline": "bench_fused + Mission 1 native12 FLL2/T233 profile + mmap-ring ready-only source replay",
+      "metrics": {
+        "source_width": 4096,
+        "source_height": 3072,
+        "frame_count": 1440,
+        "target_fps": 20.0,
+        "stage_fps": 19.99048,
+        "effective_fps": 19.99048,
+        "encode_write_median_ms": 45.6665,
+        "encode_write_p95_ms": 56.3,
+        "payload_bytes": 7882678080,
+        "production_evidence": false
+      },
+      "reason": "Strongest non-dev-kit source-handoff proxy: actual Mission 1 4096 x 3072 raw replay is preloaded in an mmap ring and the producer publishes ready counters, approximating DMA-owned buffers without artificial CPU copy contention. This remains stand-in evidence until a real target.role=camera source/storage/display receipt exists.",
+      "docs": [
+        "README.md",
+        "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
+        "docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md",
+        "docs/LABS_MISSION1_RUNBOOK.md"
+      ],
+      "receipts": [
+        "artifacts/bench_fused_stream_source_20260628_pi_compact/receipt_4096x3072_1440f_20fps_mmap_ready_fll2_GP017602_replay.json"
+      ],
+      "stage_scope": "production encoder with deterministic DMA-like source handoff; profiling only, not camera evidence"
+    },
+    {
       "id": "pi5_2k_fast_decode",
       "platform": "Pi 5 / Mission 1",
       "status": "meets-target",
