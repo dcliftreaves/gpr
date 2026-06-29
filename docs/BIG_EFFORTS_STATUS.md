@@ -118,6 +118,10 @@ Current evidence:
   `gpr.premium_still_sr_gate.v1` skeleton receipt with editable raw, review
   media, and dashboard artifact hashes. It is deliberately non-production until
   real 50 MP / 100 MP fixtures and gate metrics are supplied.
+- `tools/build_premium_still_sr_readiness.py` now emits a current-state
+  readiness report and a validating non-production gate receipt from the merged
+  baselines, 50 MP / 100 MP capability rows, reusable SR packaging evidence,
+  and X2D/Z8 noise sidecars.
 
 Boundaries:
 
@@ -130,8 +134,8 @@ Boundaries:
 Next production work:
 
 1. Replace the still-SR skeleton receipt with real 50 MP and 100 MP fixture
-   evidence: rendered dashboard, raw-domain metrics, and raw-editor latitude
-   checks.
+   evidence: dedicated checkpoint, rendered dashboard, raw-domain metrics, and
+   raw-editor latitude checks.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Emit review TIFF/ProRes/contact sheets plus editable DNG/GPR receipts.

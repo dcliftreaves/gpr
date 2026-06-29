@@ -38,6 +38,30 @@ model. `--production-ready` is refused unless `--real-artifacts` is also set,
 and the receipt checker still requires real gate pass state, 50 MP fixtures,
 100 MP fixtures, and a passing raw-noise/signal audit.
 
+## Current-State Readiness Builder
+
+The current-state builder audits the merged still baselines, 50 MP / 100 MP
+capability evidence, reusable SR packaging artifacts, and X2D/Z8 camera-noise
+sidecars:
+
+```sh
+python3 tools/build_premium_still_sr_readiness.py \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_20260629
+```
+
+It emits:
+
+- `readiness.json` and `readiness.md`;
+- `index.html` for review;
+- a non-production `premium_still_sr_gate_receipt.json` that validates against
+  the product-pillar checker.
+
+This is the source of truth for the current gap: 50 MP / 100 MP still
+roundtrips, current still baselines, reusable editable SR packaging, and
+validated X2D/Z8 noise sidecars exist, but a dedicated premium still-SR
+checkpoint, still-specific dashboard, and raw-editor latitude receipt do not.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
