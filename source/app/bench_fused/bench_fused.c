@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <pthread.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/uio.h>
@@ -108,6 +109,17 @@ typedef struct RAW_CORPUS {
     size_t frame_size;
 } RAW_CORPUS;
 
+#if !defined(_WIN32)
+typedef struct BENCH_MMAP_RING {
+    int fd;
+    uint8_t *base;
+    size_t mapped_bytes;
+    size_t slot_stride;
+    int slots;
+    size_t frame_size;
+} BENCH_MMAP_RING;
+#endif
+
 static int cmp_string_ptr(const void *a, const void *b) {
     const char *sa = *(const char * const *)a;
     const char *sb = *(const char * const *)b;
@@ -147,6 +159,97 @@ static int read_exact_file(const char *path, unsigned char *dst, size_t sz) {
     fclose(f);
     return (got == sz && extra == EOF) ? 0 : -1;
 }
+
+static int read_exact_stream(FILE *f, unsigned char *dst, size_t sz) {
+    size_t got = 0;
+    while (got < sz) {
+        size_t n = fread(dst + got, 1, sz - got, f);
+        if (n == 0) return -1;
+        got += n;
+    }
+    return 0;
+}
+
+static int bench_env_bool_any(const char *primary, const char *compat) {
+    const char *env = getenv(primary);
+    if ((!env || !*env) && compat) env = getenv(compat);
+    return (env && *env && strcmp(env, "0") != 0) ? 1 : 0;
+}
+
+static int bench_env_int_any(const char *primary, const char *compat, int fallback) {
+    const char *env = getenv(primary);
+    if ((!env || !*env) && compat) env = getenv(compat);
+    if (!env || !*env) return fallback;
+    char *end = NULL;
+    long value = strtol(env, &end, 10);
+    if (end == env || value <= 0 || value > 1024) return fallback;
+    return (int)value;
+}
+
+#if !defined(_WIN32)
+static uint64_t ring_load_u64_le_volatile(const volatile uint8_t *p) {
+    uint64_t v = 0;
+    for (int i = 7; i >= 0; i--) v = (v << 8) | (uint64_t)p[i];
+    return v;
+}
+
+static void ring_store_u64_le_volatile(volatile uint8_t *p, uint64_t v) {
+    for (int i = 0; i < 8; i++) p[i] = (uint8_t)((v >> (8 * i)) & 0xffu);
+}
+
+static void bench_mmap_ring_close(BENCH_MMAP_RING *ring) {
+    if (!ring) return;
+    if (ring->base && ring->base != MAP_FAILED) munmap(ring->base, ring->mapped_bytes);
+    if (ring->fd >= 0) close(ring->fd);
+    memset(ring, 0, sizeof(*ring));
+    ring->fd = -1;
+}
+
+static int bench_mmap_ring_open(BENCH_MMAP_RING *ring, const char *path, size_t frame_size) {
+    if (!ring || !path || frame_size == 0) return -1;
+    memset(ring, 0, sizeof(*ring));
+    ring->fd = -1;
+    ring->slots = bench_env_int_any("GPR_BENCH_MMAP_RING_SLOTS", "GPR_LABS_MMAP_RING_SLOTS", 3);
+    ring->frame_size = frame_size;
+    ring->slot_stride = 64u + frame_size;
+    ring->mapped_bytes = ring->slot_stride * (size_t)ring->slots;
+    ring->fd = open(path, O_RDWR);
+    if (ring->fd < 0) {
+        fprintf(stderr, "open GPR_BENCH_MMAP_RING_INPUT source failed: %s\n", path);
+        return -1;
+    }
+    struct stat st;
+    if (fstat(ring->fd, &st) != 0 || st.st_size < (off_t)ring->mapped_bytes) {
+        fprintf(stderr, "mmap ring source too small: %s\n", path);
+        bench_mmap_ring_close(ring);
+        return -1;
+    }
+    ring->base = (uint8_t *)mmap(NULL, ring->mapped_bytes, PROT_READ | PROT_WRITE, MAP_SHARED, ring->fd, 0);
+    if (ring->base == MAP_FAILED) {
+        fprintf(stderr, "mmap ring source map failed: %s\n", path);
+        bench_mmap_ring_close(ring);
+        return -1;
+    }
+    return 0;
+}
+
+static const unsigned char *bench_mmap_ring_wait_frame(BENCH_MMAP_RING *ring, int frame_index) {
+    int slot = frame_index % ring->slots;
+    uint8_t *slot_base = ring->base + (size_t)slot * ring->slot_stride;
+    volatile uint8_t *ready_ptr = (volatile uint8_t *)slot_base;
+    uint64_t want = (uint64_t)frame_index + 1u;
+    while (ring_load_u64_le_volatile(ready_ptr) != want) usleep(100);
+    uint64_t slot_size = ring_load_u64_le_volatile((volatile uint8_t *)(slot_base + 8u));
+    if (slot_size != (uint64_t)ring->frame_size) return NULL;
+    return slot_base + 64u;
+}
+
+static void bench_mmap_ring_mark_consumed(BENCH_MMAP_RING *ring, int frame_index) {
+    int slot = frame_index % ring->slots;
+    uint8_t *slot_base = ring->base + (size_t)slot * ring->slot_stride;
+    ring_store_u64_le_volatile((volatile uint8_t *)(slot_base + 16u), (uint64_t)frame_index + 1u);
+}
+#endif
 
 static int raw_corpus_load(const char *path, size_t frame_size, RAW_CORPUS *out) {
     memset(out, 0, sizeof(*out));
@@ -577,17 +680,58 @@ int main(int argc, char **argv) {
     int w = atoi(argv[2]), h = atoi(argv[3]), n = atoi(argv[4]);
     size_t sz = (size_t)w * h * 2;
     RAW_CORPUS corpus;
-    if (raw_corpus_load(path, sz, &corpus) != 0 || corpus.count <= 0) {
-        fprintf(stderr, "read fail: %s\n", path);
-        raw_corpus_free(&corpus);
+    memset(&corpus, 0, sizeof(corpus));
+    int stream_input = bench_env_bool_any("GPR_BENCH_STREAM_INPUT", "GPR_LABS_STREAM_INPUT");
+    int mmap_ring_input = bench_env_bool_any("GPR_BENCH_MMAP_RING_INPUT", "GPR_LABS_MMAP_RING_INPUT");
+    if (stream_input && mmap_ring_input) {
+        fprintf(stderr, "GPR_BENCH_STREAM_INPUT and GPR_BENCH_MMAP_RING_INPUT are mutually exclusive\n");
         return 1;
     }
-    fprintf(stderr, "# raw_corpus path=%s frames=%d frame_bytes=%zu\n", path, corpus.count, sz);
+    FILE *stream_fp = NULL;
+    unsigned char *stream_frame = NULL;
+#if !defined(_WIN32)
+    BENCH_MMAP_RING mmap_ring;
+    memset(&mmap_ring, 0, sizeof(mmap_ring));
+    mmap_ring.fd = -1;
+#else
+    if (mmap_ring_input) {
+        fprintf(stderr, "GPR_BENCH_MMAP_RING_INPUT is not supported on this platform\n");
+        return 1;
+    }
+#endif
+    if (stream_input) {
+        stream_fp = fopen(path, "rb");
+        stream_frame = (unsigned char *)malloc(sz);
+        if (!stream_fp || !stream_frame) {
+            fprintf(stderr, "open stream source failed: %s\n", path);
+            if (stream_fp) fclose(stream_fp);
+            free(stream_frame);
+            return 1;
+        }
+        fprintf(stderr, "# GPR_BENCH_STREAM_INPUT=1 source=%s frame_bytes=%zu\n", path, sz);
+    } else if (mmap_ring_input) {
+#if !defined(_WIN32)
+        if (bench_mmap_ring_open(&mmap_ring, path, sz) != 0) {
+            return 1;
+        }
+        fprintf(stderr, "# GPR_BENCH_MMAP_RING_INPUT=1 source=%s slots=%d frame_bytes=%zu\n",
+                path, mmap_ring.slots, sz);
+#endif
+    } else {
+        if (raw_corpus_load(path, sz, &corpus) != 0 || corpus.count <= 0) {
+            fprintf(stderr, "read fail: %s\n", path);
+            raw_corpus_free(&corpus);
+            return 1;
+        }
+        fprintf(stderr, "# raw_corpus path=%s frames=%d frame_bytes=%zu\n", path, corpus.count, sz);
+    }
 
     /* Pre-fault the raw input so the first read isn't paying for it. */
     volatile uint32_t sink = 0;
-    for (int fidx = 0; fidx < corpus.count; fidx++)
-        for (size_t i = 0; i < sz; i += 4096) sink += corpus.frames[fidx][i];
+    if (!stream_input && !mmap_ring_input) {
+        for (int fidx = 0; fidx < corpus.count; fidx++)
+            for (size_t i = 0; i < sz; i += 4096) sink += corpus.frames[fidx][i];
+    }
     (void)sink;
 
     int quality = 3;
@@ -684,20 +828,23 @@ int main(int argc, char **argv) {
         }
     }
 
-    /* 2 warm-up frames not counted */
-    for (int i = 0; i < 2; i++) {
-        const unsigned char *raw = corpus.frames[i % corpus.count];
-        unsigned char *out = NULL; size_t out_sz = 0;
-        if (gvid_scatter) {
-            const unsigned char **parts = NULL;
-            const size_t *part_sizes = NULL;
-            int part_count = 0;
-            gpr_encode_fused_frame_scatter((enc_pingpong && (i & 1)) ? enc_pingpong : enc,
-                                           raw, sz,
-                                           &parts, &part_sizes, &part_count,
-                                           &out_sz);
-        } else {
-            gpr_encode_fused_frame(enc, raw, sz, &out, &out_sz);
+    /* 2 warm-up frames not counted. Live source modes skip this so they do not
+       consume frames or alter the source cadence before timing starts. */
+    if (!stream_input && !mmap_ring_input) {
+        for (int i = 0; i < 2; i++) {
+            const unsigned char *raw = corpus.frames[i % corpus.count];
+            unsigned char *out = NULL; size_t out_sz = 0;
+            if (gvid_scatter) {
+                const unsigned char **parts = NULL;
+                const size_t *part_sizes = NULL;
+                int part_count = 0;
+                gpr_encode_fused_frame_scatter((enc_pingpong && (i & 1)) ? enc_pingpong : enc,
+                                               raw, sz,
+                                               &parts, &part_sizes, &part_count,
+                                               &out_sz);
+            } else {
+                gpr_encode_fused_frame(enc, raw, sz, &out, &out_sz);
+            }
         }
     }
 
@@ -871,7 +1018,26 @@ int main(int argc, char **argv) {
         return 1;
     }
     for (int i = 0; i < n; i++) {
-        const unsigned char *raw = corpus.frames[i % corpus.count];
+        double source0 = now_ms();
+        const unsigned char *raw = NULL;
+        if (stream_input) {
+            if (read_exact_stream(stream_fp, stream_frame, sz) != 0) {
+                fprintf(stderr, "stream source ended before frame %d\n", i);
+                return 1;
+            }
+            raw = stream_frame;
+        } else if (mmap_ring_input) {
+#if !defined(_WIN32)
+            raw = bench_mmap_ring_wait_frame(&mmap_ring, i);
+            if (!raw) {
+                fprintf(stderr, "mmap ring frame %d has wrong frame size\n", i);
+                return 1;
+            }
+#endif
+        } else {
+            raw = corpus.frames[i % corpus.count];
+        }
+        double source_read_ms = now_ms() - source0;
         double t0 = now_ms();
         unsigned char *out = NULL; size_t out_sz = 0;
         const unsigned char **parts = NULL;
@@ -903,6 +1069,11 @@ int main(int argc, char **argv) {
             free(payload_kib);
             return 1;
         }
+#if !defined(_WIN32)
+        if (mmap_ring_input) {
+            bench_mmap_ring_mark_consumed(&mmap_ring, i);
+        }
+#endif
         double t_encode = now_ms();
         if (
 #if !defined(_WIN32)
@@ -1046,6 +1217,10 @@ int main(int argc, char **argv) {
         encode_times[i] = t_encode - t0;
         write_times[i] = t1 - t_encode;
         payload_kib[i] = (double)out_sz / 1024.0;
+        if (stream_input || mmap_ring_input) {
+            printf("# stream_frame frame=%d source_read_ms=%.3f encode_write_ms=%.3f\n",
+                   i, source_read_ms, times[i]);
+        }
         if (i == 0 && dump_path && out_sz > 0) {
             FILE *df = fopen(dump_path, "wb");
             if (df) {
@@ -1119,6 +1294,11 @@ int main(int argc, char **argv) {
     free(write_times);
     free(payload_kib);
     raw_corpus_free(&corpus);
+    if (stream_fp) fclose(stream_fp);
+    free(stream_frame);
+#if !defined(_WIN32)
+    if (mmap_ring_input) bench_mmap_ring_close(&mmap_ring);
+#endif
     if (enc_pingpong) gpr_encode_fused_destroy(enc_pingpong);
     gpr_encode_fused_destroy(enc);
     return 0;
