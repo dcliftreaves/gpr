@@ -39,6 +39,21 @@ instead of the Pi stand-in.
 
 ![GPR video comparison poster](docs/img/readme_preview_codec_vs_sota.png)
 
+## Four Product Pillars
+
+These are the four big efforts this repo is being driven toward. The table is
+intentionally blunt about what is already production-gated and what still needs
+receipts before it should be called done.
+
+| pillar | what works now | not done yet |
+|---|---|---|
+| **1. Best RAW stills** | Production-gated 12 MP, 23 MP, 50 MP, and 100 MP-class Bayer roundtrips; 12/14/16-bit paths; real Mission 1, Z8, X2D, and iPhone CFA fixture coverage; three 50 MP still tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**. | Broaden the codec contract from the currently guarded RGGB/GBRG surface to every normal 2x2 Bayer phase that downstream users expect; add camera/ISO-calibrated noise sidecars from darkframes or frame stacks before promoting nonzero noise removal/addback. |
+| **2. GoPro RAW video MVP** | True 4096 x 3072 Bayer recompression into `.gvid`, valid interrupted-tail recovery, Lexar SILVER PLUS write-budget checks, Pi 5 stand-in capture above the accepted 20 fps floor, and 1024 x 768 camera-back preview from the same stream above 20 fps. | Real Mission 1 sensor/DMA, SD writer, and rear-display receipts. Strict 24 fps is still not production-proven for the current quality profile. |
+| **3. Spend-time-for-quality still/SR** | Matched 1x CNN improves compressed still latitude; current 4K cleanup and 8K SR infrastructure proves the offline CNN path can emit editable raw, `.gvid`, DNG/GPR, and ProRes review artifacts. | A dedicated "amazing still" SR product gate for 50 MP and 100 MP cameras is still open: larger per-camera corpora, noise-aware targets, worst-row visual review, and raw-editor latitude receipts. |
+| **4. RAW video improvement / PSF-aware resize** | Mission native12 4K cleanup is approved for offline review; candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates and has 8K `.gvid` plus ProRes receipts. | The PSF/blur model from resizing Bayer data is not fully formalized. Next work should measure the resize/capture PSF, train against CFA-aware high-res targets, and require both raw-domain and rendered visual gates before replacing the current SR baseline. |
+
+Detailed status and next-step criteria: [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md).
+
 ## At A Glance
 
 | result | current evidence |
