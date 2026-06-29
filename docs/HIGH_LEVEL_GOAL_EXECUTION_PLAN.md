@@ -85,7 +85,8 @@ Immediate work:
 
 - Split still-SR from video-SR. It needs its own 50 MP / 100 MP still fixtures,
   rendered dashboard, raw-domain metrics, editor-latitude checks, and worst-row
-  review. The lightweight guard is `gpr.premium_still_sr_gate.v1`.
+  review. The lightweight guard is `gpr.premium_still_sr_gate.v1`; the
+  CI-safe skeleton builder is `tools/build_premium_still_sr_gate_receipt.py`.
 - Reuse the approved 4K/8K SR tooling only after the target is still-specific:
   high-quality still references, camera metadata, and noise policy included.
 - Keep the output editable: DNG/GPR receipt first, review TIFF/ProRes/contact
@@ -128,7 +129,8 @@ Evidence required:
    available.
 2. Apply the noise-calibration sidecar flow to real Mission 1 and iPhone
    darkframe/frame-stack artifacts where available.
-3. Add a still-SR gate skeleton that can run without large private artifacts.
+3. Replace the still-SR skeleton with a real candidate receipt from 50 MP and
+   100 MP still fixtures.
 4. Apply the PSF receipt path to real Mission/Z8 high-res-to-low-res pairs and
    use it to drive the next PSF-conditioned SR experiment.
 5. Re-run the README/media/release guards and open a focused PR for each small

@@ -114,6 +114,10 @@ Current evidence:
 - The current 8K SR path has Mission42 and Z8 broad full-frame evidence, 8K
   `.gvid` packaging, editable DNG/GPR packaging, metadata receipts, and ProRes
   review artifacts.
+- `tools/build_premium_still_sr_gate_receipt.py` now emits a
+  `gpr.premium_still_sr_gate.v1` skeleton receipt with editable raw, review
+  media, and dashboard artifact hashes. It is deliberately non-production until
+  real 50 MP / 100 MP fixtures and gate metrics are supplied.
 
 Boundaries:
 
@@ -125,8 +129,9 @@ Boundaries:
 
 Next production work:
 
-1. Define a still-SR gate separate from video SR: 50 MP and 100 MP fixtures,
-   rendered dashboard, raw-domain metrics, and raw-editor latitude checks.
+1. Replace the still-SR skeleton receipt with real 50 MP and 100 MP fixture
+   evidence: rendered dashboard, raw-domain metrics, and raw-editor latitude
+   checks.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Emit review TIFF/ProRes/contact sheets plus editable DNG/GPR receipts.
