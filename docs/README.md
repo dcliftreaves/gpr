@@ -1,13 +1,14 @@
 # GPR Docs Index
 
 Where to look for current production status, evidence, and runbooks. Last
-refreshed 2026-06-26.
+refreshed 2026-06-29.
 
 ## Start here
 
 | if you want to know… | read |
 |---|---|
 | product overview, media, and quick start | `../README.md` |
+| four big product efforts and what remains | `BIG_EFFORTS_STATUS.md` |
 | Release readiness and production proof | `RELEASE_READINESS.md` |
 | what ships today, by ship class | `SHIP_DECISION.md` |
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |
