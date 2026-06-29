@@ -16,13 +16,67 @@ camera evidence.
 
 ## Five-Minute Decision Tree
 
-1. If the camera can expose a raw Bayer stream, run the camera source probe.
-2. If the probe passes, run the target closure package.
-3. If closure passes, collect the compact receipts and run the readiness audit.
+1. If the camera can expose a raw Bayer stream, run the one-command quick
+   validation.
+2. If the quick validation stops at the source probe, the blocker is camera
+   source exposure.
+3. If the source probe passes, the runner continues through the closure
+   package and receipt validators.
 4. If closure fails, keep the blocked receipt; the blocker should name source,
    storage, display, timing, memory, or validation.
 5. If no camera stream exists, stop the camera claim and continue with the
    stand-in/simulator work below.
+
+## One-Command Camera Validation
+
+Run this on the Mission 1 development target after the repo and `build-closure`
+tools have been staged:
+
+```bash
+python3 tools/run_gopro_mission1_quick_validation.py \
+  --output-dir /mnt/ssd/gpr_work/artifacts/mission1_quick_validation/current_camera \
+  --collection-output-dir /mnt/ssd/gpr_work/artifacts/mission1_quick_validation/current_camera_compact \
+  --repo-root /mnt/ssd/gpr_work/worktrees/current_goal_sync \
+  --raw /dev/mission1/sensor_dma_ring
+```
+
+This writes `quick_validation.json`, `source_probe.json`,
+`camera_handoff_receipt.json`, `preview_ui_receipt.json`, and
+`mission1_camera_closure_run.json`. The runner stops early if the camera source
+probe fails, then records the failing step in `quick_validation.json`.
+
+Dry-run mode is available for command review only:
+
+```bash
+python3 tools/run_gopro_mission1_quick_validation.py --dry-run
+```
+
+Dry-run output is not production evidence.
+
+## Portable Handoff Bundle
+
+Before sending the repo to a firmware reviewer, build the compact handoff
+bundle. It packages one valid 4096 x 3072 `.gvid` sample, compact stand-in
+receipts, the quick-validation dry-run receipt, visual review assets, checksums,
+and the firmware-facing docs:
+
+```bash
+python3 tools/build_gopro_mission1_handoff_bundle.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_current \
+  --force \
+  --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>"
+```
+
+Verify it before sharing:
+
+```bash
+python3 tools/verify_labs_bundle.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_current/manifest.json
+```
+
+The bundle remains stand-in evidence unless a GoPro employee replaces the
+included receipts with camera-role receipts from the actual Mission 1
+sensor/DMA, storage writer, and rear display path.
 
 ## Required Camera Inputs
 

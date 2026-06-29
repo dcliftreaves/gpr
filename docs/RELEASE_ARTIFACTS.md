@@ -72,6 +72,24 @@ python3 tools/verify_labs_bundle.py /path/to/gpr-2.3.0-review-bundle/manifest.js
 (cd /path/to/gpr-2.3.0-review-bundle && shasum -a 256 -c hashes/sha256sums.txt)
 ```
 
+For the Mission 1 firmware handoff specifically, use the narrower builder:
+
+```bash
+python3 tools/build_gopro_mission1_handoff_bundle.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_current \
+  --force \
+  --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>"
+
+python3 tools/verify_labs_bundle.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_current/manifest.json
+```
+
+That bundle is meant for firmware reviewers. It includes the GoPro quick
+validation command, one valid 4K `.gvid` sample, compact stand-in receipts, a
+quick-validation dry-run receipt, visual review assets, and the relevant docs.
+It must still be replaced or supplemented by camera-role receipts before
+production readiness is claimed.
+
 Attach the verified archive to the release:
 
 ```bash
@@ -85,3 +103,13 @@ The `v2.3.0` source release is tagged and published. The next release-artifact
 step is to build and upload the compact review bundle above using the current
 Mission 1 4K `.gvid`, 1024 preview, 4K/8K ProRes review receipts, and CI run
 listed in `docs/release_evidence_manifest.json`.
+
+Current Mission 1 handoff bundle:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_20260629/manifest.json`
+
+It verifies with `tools/verify_labs_bundle.py` and contains 19 manifest
+artifacts, including a valid 4096 x 3072 `.gvid` sample, compact stand-in
+closure receipts, the quick-validation dry-run receipt, visual assets, docs,
+and checksums. It should be attached or archived with the release if the target
+audience is GoPro firmware/Labs review.

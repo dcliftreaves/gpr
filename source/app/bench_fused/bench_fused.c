@@ -18,6 +18,7 @@
 #  endif
 #endif
 #define _POSIX_C_SOURCE 200809L  /* snprintf, etc. */
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,6 +67,16 @@ static double now_ms(void) {
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1.0e6;
 }
+
+#if !defined(_WIN32)
+static void bench_sleep_100us(void) {
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 100000L;
+    while (nanosleep(&ts, &ts) != 0 && errno == EINTR) {
+    }
+}
+#endif
 
 static int cmp_double(const void *a, const void *b) {
     double da = *(const double *)a;
@@ -238,7 +249,7 @@ static const unsigned char *bench_mmap_ring_wait_frame(BENCH_MMAP_RING *ring, in
     uint8_t *slot_base = ring->base + (size_t)slot * ring->slot_stride;
     volatile uint8_t *ready_ptr = (volatile uint8_t *)slot_base;
     uint64_t want = (uint64_t)frame_index + 1u;
-    while (ring_load_u64_le_volatile(ready_ptr) != want) usleep(100);
+    while (ring_load_u64_le_volatile(ready_ptr) != want) bench_sleep_100us();
     uint64_t slot_size = ring_load_u64_le_volatile((volatile uint8_t *)(slot_base + 8u));
     if (slot_size != (uint64_t)ring->frame_size) return NULL;
     return slot_base + 64u;

@@ -1,3 +1,8 @@
+#if !defined(_WIN32)
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+#endif
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -8,6 +13,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 #endif
 
@@ -36,6 +42,17 @@ static double now_ms(void)
     gettimeofday(&tv, NULL);
     return (double)tv.tv_sec * 1000.0 + (double)tv.tv_usec / 1000.0;
 }
+
+#if !defined(_WIN32)
+static void sleep_100us(void)
+{
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 100000L;
+    while (nanosleep(&ts, &ts) != 0 && errno == EINTR) {
+    }
+}
+#endif
 
 static int parse_int_arg(const char *s, int *out)
 {
@@ -187,7 +204,7 @@ static const uint8_t *mmap_ring_wait_frame(mmap_ring_ctx *ring, int frame_index)
     volatile uint8_t *ready_ptr = (volatile uint8_t *)slot_base;
     uint64_t want = (uint64_t)frame_index + 1u;
     while (load_u64_le_volatile(ready_ptr) != want) {
-        usleep(100);
+        sleep_100us();
     }
     return slot_base + 64u;
 }

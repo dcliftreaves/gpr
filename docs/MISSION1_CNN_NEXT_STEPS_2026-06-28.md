@@ -16,6 +16,30 @@ future profile proves otherwise.
 | camera preview | 1024 x 768 preview remains the native decode/downsample path. | Do not insert CNN into this path until a target profile proves 20 fps and memory. |
 | capture encode | 4K Bayer `.gvid` capture remains codec-only. | Do not add CNN to camera-side encode. |
 
+## 2026-06-29 4K Cleanup Revisit
+
+A sharper 4K cleanup candidate was trained and evaluated:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_4k_cleanup_revisit_20260629/train_w48_d6_rs03_gamma3_grad3_raw1_bayer4_step1200/`
+
+Decision: **reject for production promotion**. It improved median RGB RMSE
+slightly against the high-res-derived RGB target, but it regressed the
+guardrails that matter for a raw/editable 4K output:
+
+| metric | approved 4K baseline | sharper candidate |
+|---|---:|---:|
+| median RGB RMSE improvement | 10.361% | 11.369% |
+| median gamma RGB RMSE improvement | 10.666% | -1.842% |
+| median Y-gradient improvement | 3.228% | -0.120% |
+| median CFA raw RMSE improvement | 10.932% | 5.112% |
+| median CFA raw MAE improvement | 9.148% | -1.415% |
+
+Tone audit was mixed rather than decisive: 81 of 126 crop rows improved display
+MAE and 45 worsened, with candidate green abs p95 at 0.01895. The raw/CFA and
+gamma regressions are enough to keep the approved
+`mission1_native12_4k_cleanup_rgb_cfa_w40_v1` checkpoint as the production
+baseline.
+
 ## Checks Run
 
 ```bash
