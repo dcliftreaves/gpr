@@ -320,6 +320,9 @@ jobs:
       - name: Run bench_fused quality env smoke
         run: timeout 60 bash tools/test/test_bench_fused_quality_env.sh
 
+      - name: Run bench_fused stream source smoke
+        run: timeout 60 bash tools/test/test_bench_fused_stream_source.sh
+
       - name: Run test_edge_sizes
         run: timeout 120 /tmp/gpr-tests/test_edge_sizes
 
