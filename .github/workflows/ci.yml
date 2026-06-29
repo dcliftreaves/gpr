@@ -67,6 +67,12 @@ jobs:
       - name: Product pillar receipt regression
         run: python3 tools/test/test_product_pillar_receipts.py
 
+      - name: Product pillar helper regressions
+        run: |
+          python3 tools/test/test_build_camera_noise_calibration.py
+          python3 tools/test/test_convert_darkframe_calibration_to_noise_sidecars.py
+          python3 tools/test/test_build_bayer_resize_psf_receipt.py
+
       - name: Release evidence manifest guard
         run: python3 tools/test/check_release_evidence_manifest.py
 

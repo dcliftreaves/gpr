@@ -87,7 +87,9 @@ refreshed 2026-06-29.
 | `python3 tests/quality_gates/review_dashboard.py` | refresh decision dashboard |
 | `python3 tools/test/test_capabilities.py` | encoder regression (also in CI) |
 | `python3 tools/build_camera_noise_calibration.py --raw ... --out noise_calibration.json` | build a validated camera/ISO darkframe noise sidecar for still/CNN work |
+| `python3 tools/convert_darkframe_calibration_to_noise_sidecars.py --legacy-json darkframe_calibration.json --out-dir /path/to/out` | convert legacy darkframe calibration artifacts to source-hashed v1 sidecars |
 | `python3 tools/test/test_build_camera_noise_calibration.py` | regression-test the camera-noise calibration sidecar builder |
+| `python3 tools/test/test_convert_darkframe_calibration_to_noise_sidecars.py` | regression-test legacy darkframe calibration conversion |
 | `python3 tools/build_bayer_resize_psf_receipt.py --out-dir /path/to/out` | build a synthetic non-production Bayer resize PSF receipt |
 | `python3 tools/test/test_build_bayer_resize_psf_receipt.py` | regression-test the PSF receipt builder |
 | `python3 tools/test/check_readme_media.py` | validate local README showcase media links, sizes, and stale text claims in SVG media |
