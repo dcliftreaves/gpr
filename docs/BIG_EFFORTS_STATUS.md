@@ -122,6 +122,9 @@ Current evidence:
   readiness report and a validating non-production gate receipt from the merged
   baselines, 50 MP / 100 MP capability rows, reusable SR packaging evidence,
   and X2D/Z8 noise sidecars.
+- `tools/build_premium_still_sr_fixture_manifest.py` turns the latest real
+  fixture compatibility receipt into a hashed 50 MP / 100 MP still-SR manifest
+  with available noise-sidecar references.
 
 Boundaries:
 
@@ -135,7 +138,8 @@ Next production work:
 
 1. Replace the still-SR skeleton receipt with real 50 MP and 100 MP fixture
    evidence: dedicated checkpoint, rendered dashboard, raw-domain metrics, and
-   raw-editor latitude checks.
+   raw-editor latitude checks. The first manifest should be generated at
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629/`.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Emit review TIFF/ProRes/contact sheets plus editable DNG/GPR receipts.

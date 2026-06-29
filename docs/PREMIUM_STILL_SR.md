@@ -62,6 +62,22 @@ roundtrips, current still baselines, reusable editable SR packaging, and
 validated X2D/Z8 noise sidecars exist, but a dedicated premium still-SR
 checkpoint, still-specific dashboard, and raw-editor latitude receipt do not.
 
+## Fixture Manifest Builder
+
+Use the latest real-fixture compatibility receipt to build the first dedicated
+50 MP / 100 MP still-SR input manifest:
+
+```sh
+python3 tools/build_premium_still_sr_fixture_manifest.py \
+  --compat-receipt /Volumes/OWC_8TB/gpr_work/artifacts/real_fixture_compatibility/receipt_20260628T060625Z.txt \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629
+```
+
+The manifest hashes the source DNG/GPR fixtures, classifies 50 MP / 100 MP
+eligibility, and attaches available camera-noise sidecars. It is the input
+contract for the next dedicated still-SR training/evaluation run.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
