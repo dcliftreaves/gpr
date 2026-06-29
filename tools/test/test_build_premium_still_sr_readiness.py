@@ -95,6 +95,10 @@ def main() -> int:
             "artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz.json",
             "artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt",
             "artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt.json",
+            "artifacts/premium_still_sr_pairs_large_20260629/premium_still_sr_pairs_64t.npz",
+            "artifacts/premium_still_sr_pairs_large_20260629/premium_still_sr_pairs_64t.npz.json",
+            "artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt",
+            "artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt.json",
         ):
             path = root / rel
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -113,6 +117,8 @@ def main() -> int:
         assert state["evidence_summary"]["has_validated_x2d_z8_noise_sidecars"] is True
         assert state["evidence_summary"]["has_dedicated_premium_still_sr_pairs"] is True
         assert state["evidence_summary"]["has_dedicated_premium_still_sr_smoke_checkpoint"] is True
+        assert state["evidence_summary"]["has_larger_premium_still_sr_pairs"] is True
+        assert state["evidence_summary"]["has_larger_premium_still_sr_candidate_checkpoint"] is True
         assert state["evidence_summary"]["has_production_grade_premium_still_sr_checkpoint"] is False
         assert gate["schema"] == "gpr.premium_still_sr_gate.v1"
         assert gate["production_ready"] is False

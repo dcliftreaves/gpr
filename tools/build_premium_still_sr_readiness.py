@@ -86,6 +86,10 @@ DEDICATED_STILL_SR_ARTIFACTS = {
     "pair_set_sidecar": "artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz.json",
     "smoke_checkpoint": "artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt",
     "smoke_training_receipt": "artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt.json",
+    "large_pair_set": "artifacts/premium_still_sr_pairs_large_20260629/premium_still_sr_pairs_64t.npz",
+    "large_pair_set_sidecar": "artifacts/premium_still_sr_pairs_large_20260629/premium_still_sr_pairs_64t.npz.json",
+    "large_checkpoint": "artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt",
+    "large_training_receipt": "artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt.json",
 }
 
 
@@ -170,7 +174,7 @@ def build_state(root: Path) -> dict[str, Any]:
     noise = summarize_noise_sidecars(root)
     has_video_sr_packaging = all(external[name]["exists"] for name in ("editable_dng", "editable_gpr", "review_tiff_or_prores"))
     blockers = [
-        "The dedicated premium still-SR smoke checkpoint does not materially beat the baseline and is not registered for production.",
+        "The dedicated premium still-SR candidates are not production-grade: smoke is effectively flat, and the larger run peaks at about 0.15 percent held-out X2D RMSE improvement before overfitting/regressing.",
         "No premium still-SR run has produced full per-camera raw-domain metrics, rendered dashboard, and worst-row visual review against the still baselines.",
         "No raw-editor latitude receipt exists for a dedicated still-SR candidate.",
         "Noise sidecars exist for X2D/Z8, but the noise removal/addback policy has not been wired into a premium still-SR target build.",
@@ -198,6 +202,8 @@ def build_state(root: Path) -> dict[str, Any]:
             "has_dedicated_premium_still_sr_fixture_manifest": dedicated["fixture_manifest"]["exists"],
             "has_dedicated_premium_still_sr_pairs": dedicated["pair_set"]["exists"],
             "has_dedicated_premium_still_sr_smoke_checkpoint": dedicated["smoke_checkpoint"]["exists"],
+            "has_larger_premium_still_sr_pairs": dedicated["large_pair_set"]["exists"],
+            "has_larger_premium_still_sr_candidate_checkpoint": dedicated["large_checkpoint"]["exists"],
             "has_production_grade_premium_still_sr_checkpoint": False,
             "has_dedicated_premium_still_sr_dashboard": False,
             "has_raw_editor_latitude_receipt": False,

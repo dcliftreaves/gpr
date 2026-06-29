@@ -113,6 +113,18 @@ production candidate: with X2D held out it improves RMSE by only about
 0.0008 percent and still lacks full-dashboard, raw-editor latitude, and
 worst-row visual receipts.
 
+A larger 64-tile-per-fixture run also exists:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_large_20260629/premium_still_sr_pairs_64t.npz
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt
+```
+
+It found a small positive held-out X2D signal at step 400
+(`0.15%` RMSE improvement, `0.04%` MAE improvement), then overfit/regressed by
+step 1000. Treat that as evidence that the dedicated still-SR loop is alive,
+not as production approval.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
