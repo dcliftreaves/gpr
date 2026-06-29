@@ -1036,6 +1036,85 @@ def validate_mission1_dma_source_sim(path: Path) -> str | None:
     return None
 
 
+def validate_mission1_stream_source_encoder(path: Path) -> str | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return f"Mission 1 stream-source encoder JSON could not be loaded: {exc}"
+    if not isinstance(data, dict):
+        return "Mission 1 stream-source encoder receipt must be a JSON object"
+    if data.get("schema") != "gpr.mission1_stream_source_encoder.v1":
+        return "Mission 1 stream-source encoder schema mismatch"
+    target = data.get("target")
+    if not isinstance(target, dict):
+        return "Mission 1 stream-source encoder target must be an object"
+    if target.get("role") != "stand-in":
+        return "Mission 1 stream-source encoder must remain target.role=stand-in"
+    if target.get("not_camera_evidence") is not True:
+        return "Mission 1 stream-source encoder must set target.not_camera_evidence=true"
+    source = data.get("source")
+    if not isinstance(source, dict):
+        return "Mission 1 stream-source encoder source must be an object"
+    if source.get("mode") != "mmap-ring":
+        return "Mission 1 stream-source encoder indexed receipt must use mmap-ring source mode"
+    if source.get("producer_mode") != "ready-only":
+        return "Mission 1 stream-source encoder indexed receipt must use ready-only producer mode"
+    if source.get("raw_source_kind") not in {"sensor_dma_capture", "camera_ring_buffer"}:
+        return "Mission 1 stream-source encoder raw_source_kind must be camera-shaped"
+    if source.get("width") != 4096 or source.get("height") != 3072:
+        return "Mission 1 stream-source encoder indexed receipt must be 4096 x 3072"
+    if source.get("frame_bytes") != source.get("stride_bytes", 0) * source.get("height", 0):
+        return "Mission 1 stream-source encoder frame_bytes must match stride_bytes*height"
+    if source.get("frames") != 1440:
+        return "Mission 1 stream-source encoder indexed receipt must cover 1,440 frames"
+    if float(source.get("target_fps", 0.0)) < 20.0:
+        return "Mission 1 stream-source encoder target_fps must be at least 20"
+    producer = data.get("producer")
+    encoder = data.get("encoder")
+    output = data.get("output")
+    timing = data.get("timing")
+    verdict = data.get("verdict")
+    if not isinstance(producer, dict) or not isinstance(encoder, dict):
+        return "Mission 1 stream-source encoder producer/encoder must be objects"
+    if producer.get("process") != "separate" or encoder.get("process") != "separate":
+        return "Mission 1 stream-source encoder must use separate producer and encoder processes"
+    if producer.get("frames_written") != source.get("frames"):
+        return "Mission 1 stream-source encoder producer must write every requested frame"
+    if encoder.get("kind") != "bench-fused":
+        return "Mission 1 stream-source encoder indexed receipt must use bench-fused"
+    if encoder.get("stream_frames") != source.get("frames"):
+        return "Mission 1 stream-source encoder must encode every requested stream frame"
+    if encoder.get("mission1_fll2_profile") != "mission1_native12_fll2_t233_avg7555_fast_pinp2_20fps_v1":
+        return "Mission 1 stream-source encoder must use the Mission 1 FLL2/T233 profile"
+    encode_write = encoder.get("encode_write_ms")
+    if not isinstance(encode_write, dict) or encode_write.get("n") != source.get("frames"):
+        return "Mission 1 stream-source encoder must report encode_write timing for every frame"
+    if float(encode_write.get("median", 999.0)) > 50.0:
+        return "Mission 1 stream-source encoder median encode+write must stay within 20 fps budget"
+    if not isinstance(output, dict) or not isinstance(output.get("validation"), dict):
+        return "Mission 1 stream-source encoder output.validation must be an object"
+    validation = output["validation"]
+    if validation.get("valid") is not True:
+        return "Mission 1 stream-source encoder output .gvid must validate"
+    if validation.get("width") != 4096 or validation.get("height") != 3072:
+        return "Mission 1 stream-source encoder output .gvid dimensions must be 4096 x 3072"
+    if validation.get("frame_count") != source.get("frames"):
+        return "Mission 1 stream-source encoder output .gvid frame count mismatch"
+    if not isinstance(timing, dict) or float(timing.get("effective_fps", 0.0)) < 19.9:
+        return "Mission 1 stream-source encoder effective fps must stay at the accepted 20 fps floor"
+    if not isinstance(verdict, dict):
+        return "Mission 1 stream-source encoder verdict must be an object"
+    if verdict.get("stream_encode_ready") is not True:
+        return "Mission 1 stream-source encoder stream_encode_ready must be true"
+    if verdict.get("deterministic_simulation") is not True:
+        return "Mission 1 stream-source encoder deterministic_simulation must be true"
+    if verdict.get("production_evidence") is not False:
+        return "Mission 1 stream-source encoder must not claim production_evidence"
+    if verdict.get("gvid_valid") is not True or verdict.get("no_drops") is not True:
+        return "Mission 1 stream-source encoder must validate .gvid and report no drops"
+    return None
+
+
 def semantic_error(ref: str, path: Path | None, manifest: dict[str, Any]) -> str | None:
     if path is None:
         return None
@@ -1072,6 +1151,8 @@ def semantic_error(ref: str, path: Path | None, manifest: dict[str, Any]) -> str
         return validate_mission1_camera_hardware_audit(path)
     if ref == "artifacts/mission1_dma_source_sim_20260628/receipt_4096x3072_60f_20fps.json":
         return validate_mission1_dma_source_sim(path)
+    if ref == "artifacts/bench_fused_stream_source_20260628_pi_compact/receipt_4096x3072_1440f_20fps_mmap_ready_fll2_GP017602_replay.json":
+        return validate_mission1_stream_source_encoder(path)
     if ref.endswith("/collection_receipt.json"):
         return validate_mission1_target_closure_collection(path)
     return None

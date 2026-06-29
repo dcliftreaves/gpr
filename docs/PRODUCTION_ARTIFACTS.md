@@ -115,6 +115,7 @@ holdout evidence in `pipelines/registry.json`:
 | Mission 1 Labs shim Pi stand-in receipt | `artifacts/mission1_labs_shim_pi_standin_20260625/run_120f/labs_target_bench.json` | `5c92b863af08823ba484af1d006aa2de14dcc0d7f01c4b8685f9210fd03c5727` |
 | Mission 1 Labs shim Pi stand-in dual receipt | `artifacts/mission1_labs_shim_pi_standin_20260625/run_120f_dual/labs_target_bench.json` | `70facaf64460454766d2f6449c4267c51b4239a808e9567b1d16ae14bd58f955` |
 | Mission 1 DMA source simulator profiling receipt | `artifacts/mission1_dma_source_sim_20260628/receipt_4096x3072_60f_20fps.json` | `373c92bede637a8cb01b3d905c6092d2ccdeb97e046daffdfd7fd856d1e8f003` |
+| Mission 1 bench_fused DMA-like stream-source 1,440-frame receipt | `artifacts/bench_fused_stream_source_20260628_pi_compact/receipt_4096x3072_1440f_20fps_mmap_ready_fll2_GP017602_replay.json` | `3c6315c0efeb588779550a8fed5fb046ab5f6bf18d73295df20066f2086a1d5d` |
 | Mission 1 8K SR production-promotion receipt | `artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json` | `1e24b2551d889ced2508d011b77f725a1eb8e855b23a6843127aedc4240db5c9` |
 | Mission 1 8K SR visual review package | `artifacts/mission1_8k_sr_visual_review_20260625/visual_review.json` | `52e6a6d896dfc64bb3125dc590d5efa0f110f379ffd60bb1355ff6b9614a7cee` |
 | Mission 1 8K SR visual review page | `artifacts/mission1_8k_sr_visual_review_20260625/index.html` | `8a288e7629ca6fedd2adc068d4301aa8ac723fde11a8dca9beae5071152bbcb8` |
