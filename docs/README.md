@@ -9,6 +9,7 @@ refreshed 2026-06-29.
 |---|---|
 | product overview, media, and quick start | `../README.md` |
 | four big product efforts and what remains | `BIG_EFFORTS_STATUS.md` |
+| execution plan for the four big product efforts | `HIGH_LEVEL_GOAL_EXECUTION_PLAN.md` |
 | Release readiness and production proof | `RELEASE_READINESS.md` |
 | what ships today, by ship class | `SHIP_DECISION.md` |
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |

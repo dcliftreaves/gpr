@@ -52,7 +52,9 @@ receipts before it should be called done.
 | **3. Spend-time-for-quality still/SR** | Matched 1x CNN improves compressed still latitude; current 4K cleanup and 8K SR infrastructure proves the offline CNN path can emit editable raw, `.gvid`, DNG/GPR, and ProRes review artifacts. | A dedicated "amazing still" SR product gate for 50 MP and 100 MP cameras is still open: larger per-camera corpora, noise-aware targets, worst-row visual review, and raw-editor latitude receipts. |
 | **4. RAW video improvement / PSF-aware resize** | Mission native12 4K cleanup is approved for offline review; candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates and has 8K `.gvid` plus ProRes receipts. | The PSF/blur model from resizing Bayer data is not fully formalized. Next work should measure the resize/capture PSF, train against CFA-aware high-res targets, and require both raw-domain and rendered visual gates before replacing the current SR baseline. |
 
-Detailed status and next-step criteria: [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md).
+Detailed status and next-step criteria:
+[`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md) and
+[`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md).
 
 ## At A Glance
 

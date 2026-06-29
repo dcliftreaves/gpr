@@ -55,6 +55,8 @@
         PIXEL_FORMAT_RGGB_16 = 5,                           // RGGB 16bit pixels packed into 16bits
 
         PIXEL_FORMAT_GBRG_16 = 6,                           // GBRG 16bit pixels packed into 16bits
+
+        PIXEL_FORMAT_GBRG_14 = 7,                           // GBRG 14bit pixels packed into 16bits
         
     } GPR_PIXEL_FORMAT;
 
