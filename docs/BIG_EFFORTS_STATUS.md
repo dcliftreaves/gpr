@@ -139,6 +139,10 @@ Current evidence:
 - Candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates.
 - Existing diagnostics already look at CFA raw error, rendered tone/green
   behavior, phase, edge alignment, gradient energy, and lower-right failures.
+- `tools/build_bayer_resize_psf_receipt.py` now emits a synthetic
+  non-production `gpr.bayer_resize_psf_receipt.v1` receipt. This keeps the PSF
+  evidence contract executable while real Mission/Z8 pair measurements are
+  collected.
 
 Boundaries:
 
@@ -149,8 +153,9 @@ Boundaries:
 
 Next production work:
 
-1. Estimate the effective Bayer-domain PSF for the resize/capture path using
-   real high-res-to-low-res pairs and sharp-edge/texture targets.
+1. Replace the synthetic PSF receipt fixture with effective Bayer-domain PSF
+   measurements from real high-res-to-low-res pairs and sharp-edge/texture
+   targets.
 2. Train with CFA-aware high-res RGB/downsample targets and PSF-conditioned
    losses.
 3. Promote only if Mission42 and Z8 all24 gates improve, worst rows are clean,
