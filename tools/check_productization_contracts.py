@@ -127,6 +127,7 @@ def main() -> int:
         "docs/PRODUCTION_ARTIFACTS.md",
         "tools/verify_labs_bundle.py",
         "tools/build_labs_bundle.py",
+        "tools/check_mission1_cnn_closure.py",
         "tools/test/test_gvid_conformance.py",
         "source/lib/vc5_encoder/gpr_labs_encoder.h",
         "pipelines/registry.json",
@@ -169,6 +170,7 @@ def main() -> int:
         "8K SR",
         "offline-production",
         "Do not add CNN to camera-side encode",
+        "python3 tools/check_mission1_cnn_closure.py",
     ], failures)
     require_text("docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md", [
         "file-backed shim baseline",

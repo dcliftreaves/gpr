@@ -246,6 +246,9 @@ python3 tools/test/check_labs_readiness.py
 python3 tools/test/test_mission1_numbered_list_readiness.py
 python3 tools/test/test_mission1_numbered_list_closure_plan.py
 python3 tools/test/test_mission1_8k_sr_production_promotion.py
+python3 tools/test/test_check_mission1_cnn_closure.py
+python3 tools/check_mission1_cnn_closure.py
+python3 tools/check_mission1_cnn_closure.py --strict-artifacts
 python3 tools/test/test_build_mission1_8k_sr_visual_review.py
 python3 tools/test/test_mission1_camera_dispatch_inputs.py
 python3 tools/test/test_mission1_camera_closure_package.py
