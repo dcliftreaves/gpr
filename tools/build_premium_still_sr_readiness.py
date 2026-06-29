@@ -90,6 +90,8 @@ DEDICATED_STILL_SR_ARTIFACTS = {
     "large_pair_set_sidecar": "artifacts/premium_still_sr_pairs_large_20260629/premium_still_sr_pairs_64t.npz.json",
     "large_checkpoint": "artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt",
     "large_training_receipt": "artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt.json",
+    "candidate_metric_dashboard": "artifacts/premium_still_sr_candidate_dashboard_20260629/index.html",
+    "candidate_metric_dashboard_summary": "artifacts/premium_still_sr_candidate_dashboard_20260629/candidate_dashboard.json",
 }
 
 
@@ -204,8 +206,9 @@ def build_state(root: Path) -> dict[str, Any]:
             "has_dedicated_premium_still_sr_smoke_checkpoint": dedicated["smoke_checkpoint"]["exists"],
             "has_larger_premium_still_sr_pairs": dedicated["large_pair_set"]["exists"],
             "has_larger_premium_still_sr_candidate_checkpoint": dedicated["large_checkpoint"]["exists"],
+            "has_premium_still_sr_metric_dashboard": dedicated["candidate_metric_dashboard"]["exists"],
             "has_production_grade_premium_still_sr_checkpoint": False,
-            "has_dedicated_premium_still_sr_dashboard": False,
+            "has_rendered_visual_premium_still_sr_dashboard": False,
             "has_raw_editor_latitude_receipt": False,
         },
         "blockers": blockers,

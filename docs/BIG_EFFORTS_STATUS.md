@@ -135,6 +135,9 @@ Current evidence:
 - A larger 64-tile-per-fixture still-SR run peaks at about 0.15 percent held-out
   X2D RMSE improvement at step 400, then overfits/regresses by step 1000. This
   is a positive signal, not a production checkpoint.
+- `tools/build_premium_still_sr_candidate_dashboard.py` emits the current
+  still-SR candidate metric dashboard, including pair/checkpoint hashes,
+  best-step metrics, and final-step regression.
 
 Boundaries:
 
