@@ -95,6 +95,96 @@ extern bool gDNGShowTimers;
 // Include logging file (for reporting timing)
 #include "log.h"
 
+enum {
+    GPR_BAYER_PHASE_GRBG = 0,
+    GPR_BAYER_PHASE_RGGB = 1,
+    GPR_BAYER_PHASE_BGGR = 2,
+    GPR_BAYER_PHASE_GBRG = 3,
+};
+
+static int gpr_cfa_phase_from_ifd(const dng_ifd &ifd)
+{
+    if (ifd.fPhotometricInterpretation != piCFA ||
+        ifd.fSamplesPerPixel != 1 ||
+        ifd.fCFARepeatPatternRows != 2 ||
+        ifd.fCFARepeatPatternCols != 2)
+    {
+        return -1;
+    }
+
+    const uint8 tl = ifd.fCFAPattern[0][0];
+    const uint8 tr = ifd.fCFAPattern[0][1];
+    const uint8 bl = ifd.fCFAPattern[1][0];
+    const uint8 br = ifd.fCFAPattern[1][1];
+
+    if (tl == 1 && tr == 0 && bl == 2 && br == 1) return GPR_BAYER_PHASE_GRBG;
+    if (tl == 0 && tr == 1 && bl == 1 && br == 2) return GPR_BAYER_PHASE_RGGB;
+    if (tl == 2 && tr == 1 && bl == 1 && br == 0) return GPR_BAYER_PHASE_BGGR;
+    if (tl == 1 && tr == 2 && bl == 0 && br == 1) return GPR_BAYER_PHASE_GBRG;
+    return -1;
+}
+
+static GPR_PIXEL_FORMAT gpr_pixel_format_from_phase_and_saturation(int phase, uint32_t max_sat)
+{
+    if (max_sat <= 4095)
+    {
+        switch (phase)
+        {
+            case GPR_BAYER_PHASE_GRBG: return PIXEL_FORMAT_GRBG_12;
+            case GPR_BAYER_PHASE_BGGR: return PIXEL_FORMAT_BGGR_12;
+            case GPR_BAYER_PHASE_GBRG: return PIXEL_FORMAT_GBRG_12;
+            case GPR_BAYER_PHASE_RGGB:
+            default: return PIXEL_FORMAT_RGGB_12;
+        }
+    }
+    if (max_sat <= 16383)
+    {
+        switch (phase)
+        {
+            case GPR_BAYER_PHASE_GRBG: return PIXEL_FORMAT_GRBG_14;
+            case GPR_BAYER_PHASE_BGGR: return PIXEL_FORMAT_BGGR_14;
+            case GPR_BAYER_PHASE_GBRG: return PIXEL_FORMAT_GBRG_14;
+            case GPR_BAYER_PHASE_RGGB:
+            default: return PIXEL_FORMAT_RGGB_14;
+        }
+    }
+    switch (phase)
+    {
+        case GPR_BAYER_PHASE_GRBG: return PIXEL_FORMAT_GRBG_16;
+        case GPR_BAYER_PHASE_BGGR: return PIXEL_FORMAT_BGGR_16;
+        case GPR_BAYER_PHASE_GBRG: return PIXEL_FORMAT_GBRG_16;
+        case GPR_BAYER_PHASE_RGGB:
+        default: return PIXEL_FORMAT_RGGB_16;
+    }
+}
+
+static int gpr_bayer_phase_from_pixel_format(GPR_PIXEL_FORMAT pixel_format)
+{
+    switch (pixel_format)
+    {
+        case PIXEL_FORMAT_GRBG_12:
+        case PIXEL_FORMAT_GRBG_14:
+        case PIXEL_FORMAT_GRBG_16:
+            return GPR_BAYER_PHASE_GRBG;
+        case PIXEL_FORMAT_RGGB_12:
+        case PIXEL_FORMAT_RGGB_12P:
+        case PIXEL_FORMAT_RGGB_14:
+        case PIXEL_FORMAT_RGGB_16:
+            return GPR_BAYER_PHASE_RGGB;
+        case PIXEL_FORMAT_BGGR_12:
+        case PIXEL_FORMAT_BGGR_14:
+        case PIXEL_FORMAT_BGGR_16:
+            return GPR_BAYER_PHASE_BGGR;
+        case PIXEL_FORMAT_GBRG_12:
+        case PIXEL_FORMAT_GBRG_12P:
+        case PIXEL_FORMAT_GBRG_14:
+        case PIXEL_FORMAT_GBRG_16:
+            return GPR_BAYER_PHASE_GBRG;
+        default:
+            return -1;
+    }
+}
+
 void find_rational(float number, float error_tolerance, int* numerator, int* denominator_pow2)
 {
     int _num;
@@ -188,6 +278,30 @@ static void set_vc5_encoder_parameters( vc5_encoder_parameters& vc5_encoder_para
 
         case PIXEL_FORMAT_GBRG_16:
             vc5_encoder_params.pixel_format = VC5_ENCODER_PIXEL_FORMAT_GBRG_16;
+            break;
+
+        case PIXEL_FORMAT_GRBG_12:
+            vc5_encoder_params.pixel_format = VC5_ENCODER_PIXEL_FORMAT_GRBG_12;
+            break;
+
+        case PIXEL_FORMAT_GRBG_14:
+            vc5_encoder_params.pixel_format = VC5_ENCODER_PIXEL_FORMAT_GRBG_14;
+            break;
+
+        case PIXEL_FORMAT_GRBG_16:
+            vc5_encoder_params.pixel_format = VC5_ENCODER_PIXEL_FORMAT_GRBG_16;
+            break;
+
+        case PIXEL_FORMAT_BGGR_12:
+            vc5_encoder_params.pixel_format = VC5_ENCODER_PIXEL_FORMAT_BGGR_12;
+            break;
+
+        case PIXEL_FORMAT_BGGR_14:
+            vc5_encoder_params.pixel_format = VC5_ENCODER_PIXEL_FORMAT_BGGR_14;
+            break;
+
+        case PIXEL_FORMAT_BGGR_16:
+            vc5_encoder_params.pixel_format = VC5_ENCODER_PIXEL_FORMAT_BGGR_16;
             break;
             
         default:
@@ -1057,7 +1171,11 @@ static bool read_dng(const gpr_allocator*       allocator,
                  
                     gpr_saturation_level& dgain_saturation_level = tuning_info.dgain_saturation_level;
                     
-                    bool rggb_raw = (rawIFD.fCFAPattern[0][0] == 0) && (rawIFD.fCFAPattern[0][1] == 1) && (rawIFD.fCFAPattern[1][0] == 1) && (rawIFD.fCFAPattern[1][1] == 2);
+                    int cfa_phase = gpr_cfa_phase_from_ifd(rawIFD);
+                    if (cfa_phase < 0)
+                    {
+                        cfa_phase = GPR_BAYER_PHASE_RGGB;
+                    }
                     
                     // Determine bit depth from the maximum saturation level
                     uint32_t max_sat = dgain_saturation_level.level_red;
@@ -1065,36 +1183,7 @@ static bool read_dng(const gpr_allocator*       allocator,
                     if (dgain_saturation_level.level_green_odd  > max_sat) max_sat = dgain_saturation_level.level_green_odd;
                     if (dgain_saturation_level.level_blue       > max_sat) max_sat = dgain_saturation_level.level_blue;
 
-                    if( rggb_raw )
-                    {
-                        if( max_sat <= 4095 )
-                        {
-                            tuning_info.pixel_format = PIXEL_FORMAT_RGGB_12;
-                        }
-                        else if( max_sat <= 16383 )
-                        {
-                            tuning_info.pixel_format = PIXEL_FORMAT_RGGB_14;
-                        }
-                        else
-                        {
-                            tuning_info.pixel_format = PIXEL_FORMAT_RGGB_16;
-                        }
-                    }
-                    else
-                    {
-                        if( max_sat <= 4095 )
-                        {
-                            tuning_info.pixel_format = PIXEL_FORMAT_GBRG_12;
-                        }
-                        else if( max_sat <= 16383 )
-                        {
-                            tuning_info.pixel_format = PIXEL_FORMAT_GBRG_14;
-                        }
-                        else
-                        {
-                            tuning_info.pixel_format = PIXEL_FORMAT_GBRG_16;
-                        }
-                    }
+                    tuning_info.pixel_format = gpr_pixel_format_from_phase_and_saturation(cfa_phase, max_sat);
                 }
                 
                 // NoiseProfile can live in the raw SubIFD on Apple CFA DNGs.
@@ -1519,6 +1608,30 @@ static void write_dng(const gpr_allocator*          allocator,
             case PIXEL_FORMAT_GBRG_16:
                 vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_GBRG_16;
                 break;
+
+            case PIXEL_FORMAT_GRBG_12:
+                vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_GRBG_12;
+                break;
+
+            case PIXEL_FORMAT_GRBG_14:
+                vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_GRBG_14;
+                break;
+
+            case PIXEL_FORMAT_GRBG_16:
+                vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_GRBG_16;
+                break;
+
+            case PIXEL_FORMAT_BGGR_12:
+                vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_BGGR_12;
+                break;
+
+            case PIXEL_FORMAT_BGGR_14:
+                vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_BGGR_14;
+                break;
+
+            case PIXEL_FORMAT_BGGR_16:
+                vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_BGGR_16;
+                break;
                         
             default:
                 assert(0);
@@ -1599,6 +1712,24 @@ static void write_dng(const gpr_allocator*          allocator,
                                         static_black_level.b_black,
                                         static_black_level.r_black,
                                         static_black_level.g_r_black,
+                                        -1 );
+                break;
+            case PIXEL_FORMAT_GRBG_12:
+            case PIXEL_FORMAT_GRBG_14:
+            case PIXEL_FORMAT_GRBG_16:
+                negative->SetQuadBlacks(static_black_level.g_r_black,
+                                        static_black_level.r_black,
+                                        static_black_level.b_black,
+                                        static_black_level.g_b_black,
+                                        -1 );
+                break;
+            case PIXEL_FORMAT_BGGR_12:
+            case PIXEL_FORMAT_BGGR_14:
+            case PIXEL_FORMAT_BGGR_16:
+                negative->SetQuadBlacks(static_black_level.b_black,
+                                        static_black_level.g_b_black,
+                                        static_black_level.g_r_black,
+                                        static_black_level.r_black,
                                         -1 );
                 break;
                 
@@ -1751,13 +1882,10 @@ static void write_dng(const gpr_allocator*          allocator,
     negative->SetColorKeys(colorCodes[0], colorCodes[1], colorCodes[2], colorCodes[3]);
 
     // Set Bayer Pattern
-    if( convert_params->tuning_info.pixel_format == PIXEL_FORMAT_RGGB_12 || convert_params->tuning_info.pixel_format == PIXEL_FORMAT_RGGB_12P || convert_params->tuning_info.pixel_format == PIXEL_FORMAT_RGGB_14 || convert_params->tuning_info.pixel_format == PIXEL_FORMAT_RGGB_16 )
+    const int bayer_phase = gpr_bayer_phase_from_pixel_format(convert_params->tuning_info.pixel_format);
+    if( bayer_phase >= 0 )
     {
-        negative->SetBayerMosaic(1);
-    }
-    else if( convert_params->tuning_info.pixel_format == PIXEL_FORMAT_GBRG_12 || convert_params->tuning_info.pixel_format == PIXEL_FORMAT_GBRG_12P || convert_params->tuning_info.pixel_format == PIXEL_FORMAT_GBRG_14 || convert_params->tuning_info.pixel_format == PIXEL_FORMAT_GBRG_16 )
-    {
-        negative->SetBayerMosaic(3);
+        negative->SetBayerMosaic((uint32)bayer_phase);
     }
     else
     {
@@ -2184,18 +2312,8 @@ static bool dng_is_supported_gpr_cfa(dng_stream *dng_read_stream)
     }
 
     const dng_ifd &rawIFD = *info.fIFD[info.fMainIndex].Get();
-    const bool rggb =
-        rawIFD.fCFAPattern[0][0] == 0 && rawIFD.fCFAPattern[0][1] == 1 &&
-        rawIFD.fCFAPattern[1][0] == 1 && rawIFD.fCFAPattern[1][1] == 2;
-    const bool gbrg =
-        rawIFD.fCFAPattern[0][0] == 1 && rawIFD.fCFAPattern[0][1] == 2 &&
-        rawIFD.fCFAPattern[1][0] == 0 && rawIFD.fCFAPattern[1][1] == 1;
-    const bool supported_cfa =
-        rawIFD.fPhotometricInterpretation == piCFA &&
-        rawIFD.fSamplesPerPixel == 1 &&
-        rawIFD.fCFARepeatPatternRows == 2 &&
-        rawIFD.fCFARepeatPatternCols == 2 &&
-        (rggb || gbrg);
+    const int cfa_phase = gpr_cfa_phase_from_ifd(rawIFD);
+    const bool supported_cfa = cfa_phase >= 0;
 
     dng_read_stream->SetReadPosition(0);
 
@@ -2203,7 +2321,8 @@ static bool dng_is_supported_gpr_cfa(dng_stream *dng_read_stream)
     {
         std::fprintf(
             stderr,
-            "error: DNG -> GPR requires single-plane 2x2 RGGB/GBRG CFA input; "
+            "error: DNG -> GPR requires single-plane 2x2 Bayer CFA input "
+            "(RGGB, GBRG, GRBG, or BGGR); "
             "got photometric=%u samples=%u cfa=%ux%u pattern=[[%u,%u],[%u,%u]]\n",
             (unsigned)rawIFD.fPhotometricInterpretation,
             (unsigned)rawIFD.fSamplesPerPixel,
@@ -2225,7 +2344,9 @@ static void normalize_exported_raw_bit_depth(gpr_buffer_auto &raw_buffer, const 
     if (pf != PIXEL_FORMAT_RGGB_12 &&
         pf != PIXEL_FORMAT_RGGB_12P &&
         pf != PIXEL_FORMAT_GBRG_12 &&
-        pf != PIXEL_FORMAT_GBRG_12P)
+        pf != PIXEL_FORMAT_GBRG_12P &&
+        pf != PIXEL_FORMAT_GRBG_12 &&
+        pf != PIXEL_FORMAT_BGGR_12)
     {
         return;
     }
@@ -2520,7 +2641,28 @@ bool gpr_convert_gpr_to_rgb(const gpr_allocator*        allocator,
     
     vc5_decoder_params.mem_alloc        = allocator->Alloc;
     vc5_decoder_params.mem_free         = allocator->Free;
-    vc5_decoder_params.pixel_format     = VC5_DECODER_PIXEL_FORMAT_DEFAULT;
+    switch(params.tuning_info.pixel_format)
+    {
+        case PIXEL_FORMAT_RGGB_12:
+        case PIXEL_FORMAT_RGGB_12P:
+            vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_RGGB_12;
+            break;
+        case PIXEL_FORMAT_RGGB_14: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_RGGB_14; break;
+        case PIXEL_FORMAT_RGGB_16: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_RGGB_16; break;
+        case PIXEL_FORMAT_GBRG_12:
+        case PIXEL_FORMAT_GBRG_12P:
+            vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_GBRG_12;
+            break;
+        case PIXEL_FORMAT_GBRG_14: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_GBRG_14; break;
+        case PIXEL_FORMAT_GBRG_16: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_GBRG_16; break;
+        case PIXEL_FORMAT_GRBG_12: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_GRBG_12; break;
+        case PIXEL_FORMAT_GRBG_14: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_GRBG_14; break;
+        case PIXEL_FORMAT_GRBG_16: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_GRBG_16; break;
+        case PIXEL_FORMAT_BGGR_12: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_BGGR_12; break;
+        case PIXEL_FORMAT_BGGR_14: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_BGGR_14; break;
+        case PIXEL_FORMAT_BGGR_16: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_BGGR_16; break;
+        default: vc5_decoder_params.pixel_format = VC5_DECODER_PIXEL_FORMAT_DEFAULT; break;
+    }
     
     vc5_decoder_params.rgb_bits = rgb_bits;
     

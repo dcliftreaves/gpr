@@ -49,6 +49,18 @@
         VC5_ENCODER_PIXEL_FORMAT_GBRG_16 = 6,           // GBRG 16bit pixels packed into 16bits
 
         VC5_ENCODER_PIXEL_FORMAT_GBRG_14 = 7,           // GBRG 14bit pixels packed into 16bits
+
+        VC5_ENCODER_PIXEL_FORMAT_GRBG_12 = 8,           // GRBG 12bit pixels packed into 16bits
+
+        VC5_ENCODER_PIXEL_FORMAT_GRBG_14 = 9,           // GRBG 14bit pixels packed into 16bits
+
+        VC5_ENCODER_PIXEL_FORMAT_GRBG_16 = 10,          // GRBG 16bit pixels packed into 16bits
+
+        VC5_ENCODER_PIXEL_FORMAT_BGGR_12 = 11,          // BGGR 12bit pixels packed into 16bits
+
+        VC5_ENCODER_PIXEL_FORMAT_BGGR_14 = 12,          // BGGR 14bit pixels packed into 16bits
+
+        VC5_ENCODER_PIXEL_FORMAT_BGGR_16 = 13,          // BGGR 16bit pixels packed into 16bits
         
         VC5_ENCODER_PIXEL_FORMAT_DEFAULT = VC5_ENCODER_PIXEL_FORMAT_RGGB_14,
         

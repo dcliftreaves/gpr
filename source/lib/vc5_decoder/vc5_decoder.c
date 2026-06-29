@@ -99,10 +99,42 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
         case VC5_DECODER_PIXEL_FORMAT_GBRG_16:
             parameters.output.format = PIXEL_FORMAT_RAW_GBRG_16;
             break;
+
+        case VC5_DECODER_PIXEL_FORMAT_GRBG_12:
+            parameters.output.format = PIXEL_FORMAT_RAW_GRBG_12;
+            break;
+
+        case VC5_DECODER_PIXEL_FORMAT_GRBG_14:
+            parameters.output.format = PIXEL_FORMAT_RAW_GRBG_14;
+            break;
+
+        case VC5_DECODER_PIXEL_FORMAT_GRBG_16:
+            parameters.output.format = PIXEL_FORMAT_RAW_GRBG_16;
+            break;
+
+        case VC5_DECODER_PIXEL_FORMAT_BGGR_12:
+            parameters.output.format = PIXEL_FORMAT_RAW_BGGR_12;
+            break;
+
+        case VC5_DECODER_PIXEL_FORMAT_BGGR_14:
+            parameters.output.format = PIXEL_FORMAT_RAW_BGGR_14;
+            break;
+
+        case VC5_DECODER_PIXEL_FORMAT_BGGR_16:
+            parameters.output.format = PIXEL_FORMAT_RAW_BGGR_16;
+            break;
             
         default:
             assert(0);
     }
+
+    const bool fast_decode_supported =
+        parameters.output.format == PIXEL_FORMAT_RAW_RGGB_12 ||
+        parameters.output.format == PIXEL_FORMAT_RAW_RGGB_14 ||
+        parameters.output.format == PIXEL_FORMAT_RAW_RGGB_16 ||
+        parameters.output.format == PIXEL_FORMAT_RAW_GBRG_12 ||
+        parameters.output.format == PIXEL_FORMAT_RAW_GBRG_14 ||
+        parameters.output.format == PIXEL_FORMAT_RAW_GBRG_16;
     
     // Check that the enabled parts are correct
     error =  CheckEnabledParts(&parameters.enabled_parts);
@@ -114,11 +146,15 @@ CODEC_ERROR vc5_decoder_process(const vc5_decoder_parameters*   decoding_paramet
     InitRGBImage(&rgb_image);
 
     /* Use fast parallel decoder: pre-index + multi-thread band decode */
-    error = DecodeFastImage((const uint8_t *)vc5_buffer->buffer, vc5_buffer->size,
-                            &output_image, &rgb_image, &parameters);
+    error = fast_decode_supported
+        ? DecodeFastImage((const uint8_t *)vc5_buffer->buffer, vc5_buffer->size,
+                          &output_image, &rgb_image, &parameters)
+        : CODEC_ERROR_UNSUPPORTED_FORMAT;
     if (error != CODEC_ERROR_OKAY) {
         /* Fallback to serial decoder on failure */
-        fprintf(stderr, "Fast decoder failed (error %d), falling back to serial decoder\n", error);
+        if (fast_decode_supported) {
+            fprintf(stderr, "Fast decoder failed (error %d), falling back to serial decoder\n", error);
+        }
 
         STREAM input;
         error = OpenStreamBuffer(&input, vc5_buffer->buffer, vc5_buffer->size);

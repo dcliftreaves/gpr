@@ -112,7 +112,7 @@ public:
 
         ("InputPitch,p",                                    input_pitch,                                0,                      "Input image pitch in bytes (0 = auto from width)")
         
-        ("InputPixelFormat,x",                              input_pixel_format,                         string("rggb14"),       "Input pixel format \n(rggb12, rggb12p, [rggb14], rggb16, gbrg12, gbrg12p, gbrg14, gbrg16)")
+        ("InputPixelFormat,x",                              input_pixel_format,                         string("rggb14"),       "Input pixel format \n(rggb12, rggb12p, [rggb14], rggb16, gbrg12, gbrg12p, gbrg14, gbrg16, grbg12, grbg14, grbg16, bggr12, bggr14, bggr16)")
         
         ("ApplyGprParameters,a",                            apply_gpr_parameters,                       string(""),             "Parameters to use for GPR or DNG file.")
         

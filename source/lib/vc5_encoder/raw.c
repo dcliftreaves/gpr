@@ -29,6 +29,106 @@ static INLINE uint16_t ApplyEncoderCurve(const uint16_t *table, uint16_t sample)
     return table[sample];
 }
 
+enum {
+    BAYER_PHASE_GRBG = 0,
+    BAYER_PHASE_RGGB = 1,
+    BAYER_PHASE_BGGR = 2,
+    BAYER_PHASE_GBRG = 3,
+};
+
+static INLINE void LoadBayerQuad(uint16_t *input_row1_ptr, uint16_t *input_row2_ptr,
+                                 int column, int bayer_phase,
+                                 uint16_t *R1, uint16_t *G1, uint16_t *G2, uint16_t *B1)
+{
+    switch (bayer_phase)
+    {
+        case BAYER_PHASE_GRBG:
+            *G1 = input_row1_ptr[2 * column + 0];
+            *R1 = input_row1_ptr[2 * column + 1];
+            *B1 = input_row2_ptr[2 * column + 0];
+            *G2 = input_row2_ptr[2 * column + 1];
+            break;
+        case BAYER_PHASE_RGGB:
+            *R1 = input_row1_ptr[2 * column + 0];
+            *G1 = input_row1_ptr[2 * column + 1];
+            *G2 = input_row2_ptr[2 * column + 0];
+            *B1 = input_row2_ptr[2 * column + 1];
+            break;
+        case BAYER_PHASE_BGGR:
+            *B1 = input_row1_ptr[2 * column + 0];
+            *G1 = input_row1_ptr[2 * column + 1];
+            *G2 = input_row2_ptr[2 * column + 0];
+            *R1 = input_row2_ptr[2 * column + 1];
+            break;
+        case BAYER_PHASE_GBRG:
+        default:
+            *G1 = input_row1_ptr[2 * column + 0];
+            *B1 = input_row1_ptr[2 * column + 1];
+            *R1 = input_row2_ptr[2 * column + 0];
+            *G2 = input_row2_ptr[2 * column + 1];
+            break;
+    }
+}
+
+static void UnpackPixel_Phase(uint16_t *input_row1_ptr, uint16_t *input_row2_ptr,
+                              int column, PIXEL *output_buffer[], int bayer_phase,
+                              const uint16_t *curve, int internal_precision)
+{
+    uint16_t R1, G1, G2, B1;
+    uint16_t GS, GD, RG, BG;
+    const int32_t midpoint = (1 << (internal_precision - 1));
+
+    LoadBayerQuad(input_row1_ptr, input_row2_ptr, column, bayer_phase, &R1, &G1, &G2, &B1);
+
+    R1 = ApplyEncoderCurve(curve, R1);
+    G1 = ApplyEncoderCurve(curve, G1);
+    G2 = ApplyEncoderCurve(curve, G2);
+    B1 = ApplyEncoderCurve(curve, B1);
+
+    GS = (G1 + G2) >> 1;
+    GD = (G1 - G2 + 2 * midpoint) >> 1;
+    RG = (R1 - GS + 2 * midpoint) >> 1;
+    BG = (B1 - GS + 2 * midpoint) >> 1;
+
+    output_buffer[0][column] = (PIXEL)clamp_uint(GS, internal_precision);
+    output_buffer[3][column] = (PIXEL)clamp_uint(GD, internal_precision);
+    output_buffer[1][column] = (PIXEL)clamp_uint(RG, internal_precision);
+    output_buffer[2][column] = (PIXEL)clamp_uint(BG, internal_precision);
+}
+
+static void UnpackImage_Phase(const PACKED_IMAGE *input, UNPACKED_IMAGE *output,
+                              int bayer_phase, const uint16_t *curve, int internal_precision)
+{
+    uint8_t *input_buffer = (uint8_t *)input->buffer + input->offset;
+    const DIMENSION input_width = input->width / 2;
+    const DIMENSION input_height = input->height / 2;
+    size_t input_pitch = input->pitch;
+    PIXEL *output_row_ptr_array[MAX_CHANNEL_COUNT];
+    uint32_t output_row_ptr_array_pitch[MAX_CHANNEL_COUNT];
+    uint16_t *input_row_ptr = (uint16_t*)input_buffer;
+
+    for (int channel_number = 0; channel_number < MAX_CHANNEL_COUNT; channel_number++)
+    {
+        output_row_ptr_array[channel_number] = (PIXEL *)(output->component_array_list[channel_number].data);
+        output_row_ptr_array_pitch[channel_number] = (output->component_array_list[channel_number].pitch / sizeof(PIXEL));
+    }
+
+    for (int row = 0; row < input_height; row++)
+    {
+        uint16_t* input_row2_ptr = input_row_ptr + (input_pitch / sizeof(uint16_t));
+        for (int column = 0; column < input_width; column++)
+        {
+            UnpackPixel_Phase(input_row_ptr, input_row2_ptr, column, output_row_ptr_array,
+                              bayer_phase, curve, internal_precision);
+        }
+        input_row_ptr += input_pitch;
+        for (int channel_number = 0; channel_number < MAX_CHANNEL_COUNT; channel_number++)
+        {
+            output_row_ptr_array[channel_number] += output_row_ptr_array_pitch[channel_number];
+        }
+    }
+}
+
 #if ENABLED(NEON)
 #include <arm_neon.h>
 
@@ -223,6 +323,12 @@ void UnpackImage_14(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_P
             output_row_ptr_array[channel_number] += output_row_ptr_array_pitch[channel_number];
         }
     }
+}
+
+void UnpackImage_14_Phase(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_PARTS enabled_parts, int bayer_phase )
+{
+    (void)enabled_parts;
+    UnpackImage_Phase(input, output, bayer_phase, EncoderLogCurve14, 14);
 }
 
 /** ------------------- **/
@@ -426,6 +532,12 @@ void UnpackImage_16(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_P
     }
 }
 
+void UnpackImage_16_Phase(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_PARTS enabled_parts, int bayer_phase )
+{
+    (void)enabled_parts;
+    UnpackImage_Phase(input, output, bayer_phase, EncoderLogCurve16, 16);
+}
+
 /** ------------------- **/
 /** 12 BIT INPUT FORMAT **/
 /** ------------------- **/
@@ -607,6 +719,12 @@ void UnpackImage_12(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_P
             output_row_ptr_array[channel_number] += output_row_ptr_array_pitch[channel_number];
         }
     }
+}
+
+void UnpackImage_12_Phase(const PACKED_IMAGE *input, UNPACKED_IMAGE *output, ENABLED_PARTS enabled_parts, int bayer_phase )
+{
+    (void)enabled_parts;
+    UnpackImage_Phase(input, output, bayer_phase, EncoderLogCurve12, 12);
 }
 
 /** -------------------------- **/

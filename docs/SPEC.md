@@ -157,14 +157,14 @@ the 12-bit and 14-bit code paths). `is_rggb` is `1` iff
 The header field `log_bits` carries the operative log/decode bit depth
 and the decoder always trusts it over `pixel_format`.
 
-Open spec note: the legacy `vc5_encoder.h` enum
-(`VC5_ENCODER_PIXEL_FORMAT`) includes packed-12 variants (`RGGB_12P`,
-`GBRG_12P`) that route through the legacy VC5 encoder. FUSED does not
-accept packed-12 input; this is the `gpr_tools` /
-`vc5_encoder_process` API boundary. Mapping from the legacy enum
-(values 0-6) to the FUSED `pixel_format` field (values 0-5) is not 1:1;
-until a dedicated delta table is added, `vc5_encoder_process` in
-`vc5_encoder.c` is the source of truth.
+Open spec note: the legacy stills path exposed through `gpr_tools`,
+`vc5_encoder.h`, and DNG/GPR roundtrip supports normal unpacked 2x2 Bayer
+phases RGGB, GBRG, GRBG, and BGGR at 12/14/16 bits, plus the historical
+packed-12 variants for RGGB/GBRG. FUSED does not accept packed-12 input and
+does not yet expose GRBG/BGGR in its 48-byte header; this is the current
+`gpr_tools` / `vc5_encoder_process` API boundary. Mapping from the legacy enum
+to the FUSED `pixel_format` field is not 1:1; until a dedicated delta table is
+added, `vc5_encoder_process` in `vc5_encoder.c` is the source of truth.
 
 ### 2.3 Band manifest
 

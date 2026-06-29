@@ -801,10 +801,16 @@ static void *unpack_thread_func(void *arg) {
     switch (a->format) {
         case PIXEL_FORMAT_RAW_RGGB_14: UnpackImage_14(&a->sub_input, &a->sub_output, a->enabled_parts, true); break;
         case PIXEL_FORMAT_RAW_GBRG_14: UnpackImage_14(&a->sub_input, &a->sub_output, a->enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_GRBG_14: UnpackImage_14_Phase(&a->sub_input, &a->sub_output, a->enabled_parts, 0); break;
+        case PIXEL_FORMAT_RAW_BGGR_14: UnpackImage_14_Phase(&a->sub_input, &a->sub_output, a->enabled_parts, 2); break;
         case PIXEL_FORMAT_RAW_RGGB_16: UnpackImage_16(&a->sub_input, &a->sub_output, a->enabled_parts, true); break;
         case PIXEL_FORMAT_RAW_GBRG_16: UnpackImage_16(&a->sub_input, &a->sub_output, a->enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_GRBG_16: UnpackImage_16_Phase(&a->sub_input, &a->sub_output, a->enabled_parts, 0); break;
+        case PIXEL_FORMAT_RAW_BGGR_16: UnpackImage_16_Phase(&a->sub_input, &a->sub_output, a->enabled_parts, 2); break;
         case PIXEL_FORMAT_RAW_RGGB_12: UnpackImage_12(&a->sub_input, &a->sub_output, a->enabled_parts, true); break;
         case PIXEL_FORMAT_RAW_GBRG_12: UnpackImage_12(&a->sub_input, &a->sub_output, a->enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_GRBG_12: UnpackImage_12_Phase(&a->sub_input, &a->sub_output, a->enabled_parts, 0); break;
+        case PIXEL_FORMAT_RAW_BGGR_12: UnpackImage_12_Phase(&a->sub_input, &a->sub_output, a->enabled_parts, 2); break;
         default: break;
     }
     return NULL;
@@ -829,6 +835,8 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
     case PIXEL_FORMAT_RAW_RGGB_12P:
     case PIXEL_FORMAT_RAW_GBRG_12:
     case PIXEL_FORMAT_RAW_GBRG_12P:
+    case PIXEL_FORMAT_RAW_GRBG_12:
+    case PIXEL_FORMAT_RAW_BGGR_12:
         channel_count = 4;
         max_channel_width = input->width / 2;
         max_channel_height = input->height / 2;
@@ -837,6 +845,8 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
 
     case PIXEL_FORMAT_RAW_RGGB_14:
     case PIXEL_FORMAT_RAW_GBRG_14:
+    case PIXEL_FORMAT_RAW_GRBG_14:
+    case PIXEL_FORMAT_RAW_BGGR_14:
         channel_count = 4;
         max_channel_width = input->width / 2;
         max_channel_height = input->height / 2;
@@ -845,6 +855,8 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
 
     case PIXEL_FORMAT_RAW_GBRG_16:
     case PIXEL_FORMAT_RAW_RGGB_16:
+    case PIXEL_FORMAT_RAW_GRBG_16:
+    case PIXEL_FORMAT_RAW_BGGR_16:
         channel_count = 4;
         max_channel_width = input->width / 2;
         max_channel_height = input->height / 2;
@@ -921,12 +933,18 @@ CODEC_ERROR ImageUnpackingProcess(const PACKED_IMAGE *input,
     {
         case PIXEL_FORMAT_RAW_RGGB_14: UnpackImage_14(input, output, enabled_parts, true); break;
         case PIXEL_FORMAT_RAW_GBRG_14: UnpackImage_14(input, output, enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_GRBG_14: UnpackImage_14_Phase(input, output, enabled_parts, 0); break;
+        case PIXEL_FORMAT_RAW_BGGR_14: UnpackImage_14_Phase(input, output, enabled_parts, 2); break;
         case PIXEL_FORMAT_RAW_RGGB_12: UnpackImage_12(input, output, enabled_parts, true); break;
         case PIXEL_FORMAT_RAW_GBRG_12: UnpackImage_12(input, output, enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_GRBG_12: UnpackImage_12_Phase(input, output, enabled_parts, 0); break;
+        case PIXEL_FORMAT_RAW_BGGR_12: UnpackImage_12_Phase(input, output, enabled_parts, 2); break;
         case PIXEL_FORMAT_RAW_RGGB_12P: UnpackImage_12P(input, output, enabled_parts, true); break;
         case PIXEL_FORMAT_RAW_GBRG_12P: UnpackImage_12P(input, output, enabled_parts, false); break;
         case PIXEL_FORMAT_RAW_RGGB_16: UnpackImage_16(input, output, enabled_parts, true); break;
         case PIXEL_FORMAT_RAW_GBRG_16: UnpackImage_16(input, output, enabled_parts, false); break;
+        case PIXEL_FORMAT_RAW_GRBG_16: UnpackImage_16_Phase(input, output, enabled_parts, 0); break;
+        case PIXEL_FORMAT_RAW_BGGR_16: UnpackImage_16_Phase(input, output, enabled_parts, 2); break;
         default: return CODEC_ERROR_PIXEL_FORMAT;
     }
 #endif

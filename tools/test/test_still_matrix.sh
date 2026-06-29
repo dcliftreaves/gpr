@@ -8,8 +8,9 @@
 #
 # This is a strict superset of source/app/test_still_quality_corpus.sh
 # along the resolution + quality + bit-depth axes (corpus is 5 rggb14/16
-# cases at default quality; this matrix adds rggb12/12p, gbrg14/16, low &
-# high quality presets, and resolutions up through 100 MP X2D).
+# cases at default quality; this matrix adds rggb12/12p, all normal
+# unpacked Bayer phases at 14/16-bit, low & high quality presets, and
+# resolutions up through 100 MP X2D).
 #
 # Fixture pattern: radial gradient + per-channel DC offsets + noise — the
 # same synthesizer pattern as test_still_quality_corpus.sh. Specifically
@@ -29,6 +30,10 @@
 #   rggb16  q8 1024²              59.63 dB  → threshold 57.5
 #   gbrg14  q3 1024²              53.7 dB   → threshold 51.7
 #   gbrg16  q3 1024²              53.36 dB  → threshold 51.0
+#   grbg14  q3 1024²              53.7 dB   → threshold 51.7
+#   bggr14  q3 1024²              53.7 dB   → threshold 51.7
+#   grbg16  q3 1024²              53.36 dB  → threshold 51.0
+#   bggr16  q3 1024²              53.36 dB  → threshold 51.0
 #   rggb12  q3 4032×3024 (12 MP)  43.31 dB  → threshold 41.0
 #   rggb14  q8 4032×3024 (12 MP)  62.01 dB  → threshold 60.0
 #   rggb14  q3 5568×4176 (23 MP)  53.82 dB  → threshold 51.5
@@ -112,6 +117,18 @@ if pf.startswith("gbrg"):
     img[0::2, 1::2] = bright[0::2, 1::2] + off_b  # B
     img[1::2, 0::2] = bright[1::2, 0::2] + off_r  # R
     img[1::2, 1::2] = bright[1::2, 1::2] + off_g  # G2
+elif pf.startswith("grbg"):
+    # GRBG: row0 G R G R... row1 B G B G...
+    img[0::2, 0::2] = bright[0::2, 0::2] + off_g  # G1
+    img[0::2, 1::2] = bright[0::2, 1::2] + off_r  # R
+    img[1::2, 0::2] = bright[1::2, 0::2] + off_b  # B
+    img[1::2, 1::2] = bright[1::2, 1::2] + off_g  # G2
+elif pf.startswith("bggr"):
+    # BGGR: row0 B G B G... row1 G R G R...
+    img[0::2, 0::2] = bright[0::2, 0::2] + off_b  # B
+    img[0::2, 1::2] = bright[0::2, 1::2] + off_g  # G1
+    img[1::2, 0::2] = bright[1::2, 0::2] + off_g  # G2
+    img[1::2, 1::2] = bright[1::2, 1::2] + off_r  # R
 else:
     img[0::2, 0::2] = bright[0::2, 0::2] + off_r  # R
     img[0::2, 1::2] = bright[0::2, 1::2] + off_g  # G1
@@ -191,6 +208,10 @@ test_case "rggb16_1024_q0"    1024 1024 rggb16  65535  0  52.84  48 || FAILS=$((
 test_case "rggb16_1024_q8"    1024 1024 rggb16  65535  8  59.63  49 || FAILS=$((FAILS+1))
 test_case "gbrg14_1024_q3"    1024 1024 gbrg14  16383  3  53.70  57 || FAILS=$((FAILS+1))
 test_case "gbrg16_1024_q3"    1024 1024 gbrg16  65535  3  53.36  50 || FAILS=$((FAILS+1))
+test_case "grbg14_1024_q3"    1024 1024 grbg14  16383  3  53.70  58 || FAILS=$((FAILS+1))
+test_case "bggr14_1024_q3"    1024 1024 bggr14  16383  3  53.70  59 || FAILS=$((FAILS+1))
+test_case "grbg16_1024_q3"    1024 1024 grbg16  65535  3  53.36  60 || FAILS=$((FAILS+1))
+test_case "bggr16_1024_q3"    1024 1024 bggr16  65535  3  53.36  61 || FAILS=$((FAILS+1))
 
 # ---- 12 MP-class cells (4032×3024) ----
 test_case "rggb12_12MP_q3"    4032 3024 rggb12  4095   3  43.31  51 || FAILS=$((FAILS+1))

@@ -46,6 +46,18 @@
 
         VC5_DECODER_PIXEL_FORMAT_GBRG_16 = 5,               // GBRG 16bit pixels packed into 16bits
 
+        VC5_DECODER_PIXEL_FORMAT_GRBG_12 = 6,               // GRBG 12bit pixels packed into 16bits
+
+        VC5_DECODER_PIXEL_FORMAT_GRBG_14 = 7,               // GRBG 14bit pixels packed into 16bits
+
+        VC5_DECODER_PIXEL_FORMAT_GRBG_16 = 8,               // GRBG 16bit pixels packed into 16bits
+
+        VC5_DECODER_PIXEL_FORMAT_BGGR_12 = 9,               // BGGR 12bit pixels packed into 16bits
+
+        VC5_DECODER_PIXEL_FORMAT_BGGR_14 = 10,              // BGGR 14bit pixels packed into 16bits
+
+        VC5_DECODER_PIXEL_FORMAT_BGGR_16 = 11,              // BGGR 16bit pixels packed into 16bits
+
         VC5_DECODER_PIXEL_FORMAT_DEFAULT = VC5_DECODER_PIXEL_FORMAT_RGGB_14,
         
     } VC5_DECODER_PIXEL_FORMAT;

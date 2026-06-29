@@ -10,7 +10,7 @@ If a metric here conflicts with a committed receipt, the receipt wins.
 
 | effort | current status | production interpretation |
 |---|---|---|
-| Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface. | Good enough to present as a working stills product path, with explicit open work on broader CFA phases and camera-calibrated noise. |
+| Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance. | Good enough to present as a working stills product path, with explicit open work on more real alternate-phase fixtures and camera-calibrated noise. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
 | Raw stills improvement / expensive SR | Partly done through 1x still CNN and reusable 4K/8K SR machinery. | Not done as a dedicated premium still-SR product gate. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup and candidate-aware 8K SR. | Not done as a formal PSF/blur-calibrated resizing model. |
@@ -27,6 +27,9 @@ Current evidence:
   9.80 MB, 15.05 MB, and 27.17 MB mean size.
 - Capability regression includes 12 MP, 23 MP, 50 MP Z8, and 100 MP-class X2D
   roundtrips.
+- The legacy stills SDK/CLI path now exposes RGGB, GBRG, GRBG, and BGGR at
+  12/14/16 bits. `test_still_matrix.sh` covers the full normal unpacked Bayer
+  phase set; `test_capabilities.py` includes alternate-phase capability rows.
 - Fixture compatibility covers Mission 1 50 MP DNG, Mission 1 12 MP DNG,
   Mission 1 50 MP GPR, Nikon Z8 DNG, Hasselblad X2D DNG, iPhone CFA DNG,
   iPhone metadata roundtrip, and iPhone Linear Raw rejection.
@@ -36,10 +39,11 @@ Current evidence:
 
 Boundaries:
 
-- Current guarded Bayer surface is not "every possible CFA." The committed
-  spec and tests primarily protect RGGB/GBRG-style normal Bayer paths plus the
-  fixtures above. Broader BGGR/GRBG coverage should be promoted only with
-  explicit conformance tests and real fixtures.
+- Current guarded Bayer surface is "normal unpacked 2x2 Bayer" for the legacy
+  stills path, not every possible CFA or packed variant. FUSED/video is still
+  scoped separately and remains RGGB/GBRG until its header contract is expanded.
+  More real BGGR/GRBG camera fixtures should be added before claiming broad
+  real-camera alternate-phase coverage.
 - Nonzero camera-noise removal/addback is not promoted as a production stills
   claim yet. The safe current decision is: keep signal targets raw-like, use
   DNG NoiseProfile/ISO as conditioning metadata, and accept nonzero clean
@@ -48,8 +52,8 @@ Boundaries:
 
 Next production work:
 
-1. Add explicit BGGR and GRBG still/video conformance cells or canonical
-   phase-normalization tests.
+1. Add real BGGR and GRBG camera fixtures to back the committed synthetic
+   stills conformance cells.
 2. Build camera/ISO noise calibration from darkframes or frame stacks for Z8,
    X2D, Mission 1, and iPhone CFA where available.
 3. Re-run the raw-noise/signal audit before training any CNN on nonzero clean
