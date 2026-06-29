@@ -750,6 +750,8 @@
       },
       "gvid_decode_sr_packaging_receipt": "artifacts/mission1_native12_gvid_to_8k_sr_coord_detail_alpha0p5_packaging_q3_20260624/packaging_receipt.json",
       "gvid_decode_sr_packaging_receipt_sha256": "749824bb69cda552015062293410e72137b7c9d0a968675c60837d849233f008",
+      "production_promotion_receipt": "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json",
+      "production_promotion_receipt_sha256": "1e24b2551d889ced2508d011b77f725a1eb8e855b23a6843127aedc4240db5c9",
       "packaging_gpr_quality": 3,
       "gvid_decode_sr_packaging_summary": {
         "frame_index": 0,
@@ -758,7 +760,7 @@
         "mission_metadata_transplant": "not refreshed for coord-detail alpha0p5 candidate; generic SDK wrapper path validated"
       },
       "runtime_entrypoint": "tools/cnn/render_gvid_sr_receipt.py",
-      "status": "review_only_promoted_for_registry_review_runtime_and_packaging_refreshed"
+      "status": "offline_production_runtime_and_packaging_refreshed"
     },
     "mission1_native12_4k_cleanup_rgb_cfa_w40_v1": {
       "$doc": "Registry-review candidate for Mission 1 native-12 4096x3072 Bayer cleanup. It maps current 4K Bayer lows to a 4K Bayer output supervised by high-resolution RGB area-downsample and CFA-sampled targets. The broad Mission42 dashboard improves every image versus the baseline on RGB/CFA error and y-gradient, has a green/tone audit, objective visual signoff, a 42-frame 4K .gvid packaging receipt, and a 4K ProRes review receipt. It remains offline/review-only; camera/firmware handoff is tracked separately from this CNN.",
@@ -953,7 +955,7 @@
       "use_for": "MISSION1_NATIVE12_4K_CLEANUP_REGISTRY_REVIEW",
       "production_scope": "offline_review_only",
       "$role": "temp-mission1-native12-4k-cleanup-rgb-cfa-w40-20260625",
-      "$doc": "Temporary registry-review candidate for Mission 1 native-12 .gvid decode to cleaned 4K editable Bayer. It has broad Mission42 RGB/CFA, tone-audit, 4K .gvid packaging, and 4K ProRes review receipts. It is not a live-camera path and remains review-only until final visual signoff and camera/firmware handoff are complete."
+      "$doc": "Temporary registry-review candidate for Mission 1 native-12 .gvid decode to cleaned 4K editable Bayer. It has broad Mission42 RGB/CFA, tone-audit, visual signoff, 4K .gvid packaging, and 4K ProRes review receipts. It is not a live-camera path and remains offline/review-only; camera/firmware handoff is tracked separately from this CNN."
     },
     "codec=ml2_q3_dec2+cnn=bido4x_ane_ml2_q3_dec2_lpips_detail_lumagrad_w001+demosaic=sips_via_gpr_tools": {
       "codec": "ml2_q3_dec2",

@@ -30,6 +30,7 @@ python3 tests/quality_gates/check_registry_consistency.py
 python3 tools/test/test_mission1_8k_sr_production_promotion.py
 python3 tools/test/test_build_mission1_8k_sr_visual_review.py
 python3 tools/test/test_build_mission1_4k_visual_signoff.py
+python3 tools/check_mission1_cnn_closure.py --strict-artifacts
 ```
 
 All passed locally on 2026-06-28. After PR #60 merged, the checks were rerun
@@ -58,6 +59,11 @@ on `master` using the external-drive Python venv for NumPy-backed tests:
 
 These passed. The plain system Python lacks NumPy, so use the external-drive
 venv for CNN/SR tests.
+
+`tools/check_mission1_cnn_closure.py` is the lightweight production-state guard
+for the approved CNN claims. Hosted CI runs it without private artifacts; local
+release checks should use `--strict-artifacts` so the external 4K signoff and
+8K production-promotion receipts are validated too.
 
 ## Next Steps
 

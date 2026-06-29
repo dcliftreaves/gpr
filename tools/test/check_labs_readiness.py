@@ -288,6 +288,10 @@ def require_ci_contract(tracked: set[str], failures: list[str]) -> None:
         failures.append("CI must run tools/test/test_fused_context_env_capture.sh")
     if "tools/test/test_bench_fused_stream_source.sh" not in text:
         failures.append("CI must run tools/test/test_bench_fused_stream_source.sh")
+    if "python3 tools/check_mission1_cnn_closure.py" not in text:
+        failures.append("CI must run python3 tools/check_mission1_cnn_closure.py")
+    if "python3 tools/test/test_check_mission1_cnn_closure.py" not in text:
+        failures.append("CI must run python3 tools/test/test_check_mission1_cnn_closure.py")
     if "tools/test/test_labs_camera_handoff_receipt.sh" not in text:
         failures.append("CI must run tools/test/test_labs_camera_handoff_receipt.sh")
     if "tools/test/test_labs_preview_ui_receipt.sh" not in text:

@@ -84,6 +84,12 @@ jobs:
       - name: Mission 1 8K SR promotion receipt regression
         run: python3 tools/test/test_mission1_8k_sr_production_promotion.py
 
+      - name: Mission 1 CNN closure regression
+        run: python3 tools/test/test_check_mission1_cnn_closure.py
+
+      - name: Mission 1 CNN closure guard
+        run: python3 tools/check_mission1_cnn_closure.py
+
       - name: Install Python image dependency
         # The visual-review package regression builds tiny contact-sheet
         # fixtures with Pillow before the heavier codec test dependencies are
