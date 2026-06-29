@@ -90,6 +90,11 @@ def main() -> int:
             "artifacts/mission1_8k_sr_production_promotion_20260625/current_candidate_editable_packaging_frame0/frame_000000_sr8k_generic.dng",
             "artifacts/mission1_8k_sr_production_promotion_20260625/current_candidate_editable_packaging_frame0/frame_000000_sr8k_sdk_wrapped.gpr",
             "artifacts/mission1_8k_sr_production_promotion_20260625/current_candidate_editable_packaging_frame0/frame_000000_sr8k_review_2k_prores.mov",
+            "artifacts/premium_still_sr_fixture_manifest_20260629/fixture_manifest.json",
+            "artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz",
+            "artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz.json",
+            "artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt",
+            "artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt.json",
         ):
             path = root / rel
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -106,7 +111,9 @@ def main() -> int:
         assert state["evidence_summary"]["has_50mp_still_roundtrip"] is True
         assert state["evidence_summary"]["has_100mp_still_roundtrip"] is True
         assert state["evidence_summary"]["has_validated_x2d_z8_noise_sidecars"] is True
-        assert state["evidence_summary"]["has_dedicated_premium_still_sr_checkpoint"] is False
+        assert state["evidence_summary"]["has_dedicated_premium_still_sr_pairs"] is True
+        assert state["evidence_summary"]["has_dedicated_premium_still_sr_smoke_checkpoint"] is True
+        assert state["evidence_summary"]["has_production_grade_premium_still_sr_checkpoint"] is False
         assert gate["schema"] == "gpr.premium_still_sr_gate.v1"
         assert gate["production_ready"] is False
         assert "blocked_on_dedicated_premium_still_sr_candidate" in (out / "index.html").read_text(encoding="utf-8")

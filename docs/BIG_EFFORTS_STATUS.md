@@ -125,6 +125,13 @@ Current evidence:
 - `tools/build_premium_still_sr_fixture_manifest.py` turns the latest real
   fixture compatibility receipt into a hashed 50 MP / 100 MP still-SR manifest
   with available noise-sidecar references.
+- `tools/cnn/build_premium_still_sr_pairs.py` converts that manifest into
+  same-color 2x Bayer SR tile pairs using `gpr_tools` extraction and per-camera
+  black/saturation normalization.
+- The first dedicated still-SR smoke checkpoint trains from those pairs and
+  proves the loop executes, but it is not production-grade: X2D holdout RMSE
+  improvement is only about 0.0008 percent and full visual/editor-latitude
+  receipts are still missing.
 
 Boundaries:
 
@@ -136,10 +143,11 @@ Boundaries:
 
 Next production work:
 
-1. Replace the still-SR skeleton receipt with real 50 MP and 100 MP fixture
-   evidence: dedicated checkpoint, rendered dashboard, raw-domain metrics, and
-   raw-editor latitude checks. The first manifest should be generated at
-   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629/`.
+1. Replace the still-SR smoke checkpoint with a production-grade candidate:
+   longer training, more tiles, rendered dashboard, raw-domain metrics, and
+   raw-editor latitude checks. The first manifest and pair set live under
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629/`
+   and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_20260629/`.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Emit review TIFF/ProRes/contact sheets plus editable DNG/GPR receipts.

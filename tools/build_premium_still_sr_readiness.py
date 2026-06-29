@@ -80,6 +80,14 @@ REUSABLE_SR_ARTIFACTS = {
     "cnn_scorecard": "artifacts/cnn_product_scorecard_20260629/scorecard.json",
 }
 
+DEDICATED_STILL_SR_ARTIFACTS = {
+    "fixture_manifest": "artifacts/premium_still_sr_fixture_manifest_20260629/fixture_manifest.json",
+    "pair_set": "artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz",
+    "pair_set_sidecar": "artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz.json",
+    "smoke_checkpoint": "artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt",
+    "smoke_training_receipt": "artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt.json",
+}
+
 
 def external_root() -> Path:
     return Path(os.environ.get("GPR_EXTERNAL_ROOT") or "/Volumes/OWC_8TB/gpr_work")
@@ -158,11 +166,12 @@ def write_json(path: Path, payload: dict[str, Any]) -> dict[str, str]:
 
 def build_state(root: Path) -> dict[str, Any]:
     external = {name: external_artifact(root, rel) for name, rel in REUSABLE_SR_ARTIFACTS.items()}
+    dedicated = {name: external_artifact(root, rel) for name, rel in DEDICATED_STILL_SR_ARTIFACTS.items()}
     noise = summarize_noise_sidecars(root)
     has_video_sr_packaging = all(external[name]["exists"] for name in ("editable_dng", "editable_gpr", "review_tiff_or_prores"))
     blockers = [
-        "No dedicated premium still-SR checkpoint is registered for 50 MP / 100 MP still output.",
-        "No premium still-SR run has produced per-camera raw-domain metrics, rendered dashboard, and worst-row visual review against the still baselines.",
+        "The dedicated premium still-SR smoke checkpoint does not materially beat the baseline and is not registered for production.",
+        "No premium still-SR run has produced full per-camera raw-domain metrics, rendered dashboard, and worst-row visual review against the still baselines.",
         "No raw-editor latitude receipt exists for a dedicated still-SR candidate.",
         "Noise sidecars exist for X2D/Z8, but the noise removal/addback policy has not been wired into a premium still-SR target build.",
     ]
@@ -180,12 +189,16 @@ def build_state(root: Path) -> dict[str, Any]:
         "capability_evidence": CAPABILITY_EVIDENCE,
         "noise_sidecars": noise,
         "reusable_sr_artifacts": external,
+        "dedicated_still_sr_artifacts": dedicated,
         "evidence_summary": {
             "has_50mp_still_roundtrip": True,
             "has_100mp_still_roundtrip": True,
             "has_validated_x2d_z8_noise_sidecars": noise["has_x2d_and_z8"] and noise["usable_calibration_count"] > 0,
             "has_reusable_editable_sr_packaging": has_video_sr_packaging,
-            "has_dedicated_premium_still_sr_checkpoint": False,
+            "has_dedicated_premium_still_sr_fixture_manifest": dedicated["fixture_manifest"]["exists"],
+            "has_dedicated_premium_still_sr_pairs": dedicated["pair_set"]["exists"],
+            "has_dedicated_premium_still_sr_smoke_checkpoint": dedicated["smoke_checkpoint"]["exists"],
+            "has_production_grade_premium_still_sr_checkpoint": False,
             "has_dedicated_premium_still_sr_dashboard": False,
             "has_raw_editor_latitude_receipt": False,
         },

@@ -78,6 +78,41 @@ The manifest hashes the source DNG/GPR fixtures, classifies 50 MP / 100 MP
 eligibility, and attaches available camera-noise sidecars. It is the input
 contract for the next dedicated still-SR training/evaluation run.
 
+## Pair Builder
+
+The first dedicated candidate input set is built from that manifest:
+
+```sh
+python3 tools/cnn/build_premium_still_sr_pairs.py \
+  --fixture-manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629/fixture_manifest.json \
+  --out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz \
+  --work-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_20260629/work \
+  --tiles-per-fixture 16 \
+  --low-plane-tile 96 \
+  --include-gpr
+```
+
+This reads real DNG/GPR sources through `gpr_tools`, normalizes each camera from
+its black/saturation levels into the existing 14-bit CNN training range, and
+emits 4-plane Bayer input/target tiles compatible with the current SR trainer.
+
+The first generated pair set is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz
+```
+
+The first smoke checkpoint trained from it is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt
+```
+
+That smoke run proves the dedicated still-SR loop executes, but it is not a
+production candidate: with X2D held out it improves RMSE by only about
+0.0008 percent and still lacks full-dashboard, raw-editor latitude, and
+worst-row visual receipts.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
