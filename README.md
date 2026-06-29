@@ -48,7 +48,7 @@ instead of the Pi stand-in.
 | Raw video container | `.gvid` stores per-frame FUSED `.gpr` payloads with metadata dispatch, validation, and interrupted-tail recovery checks. |
 | 12MP Mission 1 candidate | Native 4096 x 3072 Bayer recompression passes the active Pi stand-in floor with valid `.gvid`, zero drops, and recovery receipts; the latest DMA-like `bench_fused` source receipt is **19.99 fps** over 1,440 frames, while strict 24 fps remains open. |
 | Mission 1 preview target | 4096 x 3072 `.gvid` decodes to 1024 x 768 RGB preview above **20 fps** on the Pi 5 stand-in. |
-| 2x / 8K reconstruction | Candidate-aware Mission native12-to-8K SR is **offline/review only** today; broad Mission42 and Z8 full-frame gates are positive, with `.gvid` decode-to-SR, 8K `.gvid`, and 8K ProRes receipts. |
+| 2x / 8K reconstruction | Candidate-aware Mission native12-to-8K SR is **offline-production for post/reconstruction** today; broad Mission42 and Z8 full-frame gates are positive, with `.gvid` decode-to-SR, 8K `.gvid`, and 8K ProRes receipts. It is not a live-camera path. |
 | 4K rendered detail research | Bayer-output / RGB-supervised cleanup improves all 42 Mission frames against high-res-derived 4K RGB and CFA targets, and feeds the current candidate-aware 8K SR path. |
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
@@ -197,6 +197,7 @@ current evidence so strict local checks can verify it.
 | GoPro Mission 1 quick validation | [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md) |
 | Mission 1 stream-source timing | [`docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md`](docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md) |
 | Mission 1 CNN status and next steps | [`docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md`](docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md) |
+| CNN/product scorecard | [`docs/CNN_PRODUCT_SCORECARD_2026-06-29.md`](docs/CNN_PRODUCT_SCORECARD_2026-06-29.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/cnn_product_scorecard_20260629/index.html` |
 | Still/video ship decisions | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) |
 | Video, preview, and Mission 1 status | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) |
 | Raw 2K / 4K / 8K ladder | [`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-14.md) |
@@ -210,6 +211,7 @@ current evidence so strict local checks can verify it.
 | Mission native12-to-8K ProRes review folder | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native12_gvid_to_8k_sr_q4t2_sidecar_aware_packaging_q3_20260619/` |
 | Mission 4K RGB/CFA target CNN dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/mission42_rgb_cfa_target_gate_wb_review/index.html` |
 | Mission 4K CNN tone/green-bias audit | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/mission42_4k_cnn_tone_audit_20260625/index.html` |
+| CNN/product scorecard dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/cnn_product_scorecard_20260629/index.html` |
 | Mission 4K CNN `.gvid` packaging receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/mission42_4k_cnn_gvid_packaging_q8/labs_target_bench.json` |
 | Mission 4K CNN `.gvid` to ProRes review | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/mission42_4k_cnn_prores_review/` |
 | Mission candidate-aware 8K SR broad dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_broad_fullframe/index.html` |
@@ -226,7 +228,7 @@ current evidence so strict local checks can verify it.
 |---|---:|---|---|
 | `mission1_preview_1024` | 1024 x 768 RGB from 4096 x 3072 `.gvid` | Pi stand-in preview timing pass; camera UI pending | Best receipt is 25.85 fps whole-run wall including extract process and 36.23 fps median decode-plus-target; selected 1,440-frame aggregate closure rerun is 24.20 fps wall and 43.86 fps median decode-plus-target. |
 | `4k_raw_1x` | 4096 x 3072 Mission / 4140 x 2760 Z8 | editable 4K Bayer output | Mission 1 native12 capture/recompression clears the active 20+ fps Pi stand-in floor; 4K CNN detail cleanup and ProRes review are offline/post paths. |
-| `8k_raw_2x` | 8192 x 6144 Mission / 8280 x 5520 Z8 | offline/review only | Candidate-aware CNN SR is positive in broad full-frame gates; current SR throughput is about 1 fps on Mac/MPS. 42-frame 8192 x 6144 `.gvid` packaging and `.gvid` to 8K ProRes review are receipted. |
+| `8k_raw_2x` | 8192 x 6144 Mission / 8280 x 5520 Z8 | offline-production for post/reconstruction; not a live-camera path | Candidate-aware CNN SR is positive in broad full-frame gates; current SR throughput is about 1 fps on Mac/MPS. 42-frame 8192 x 6144 `.gvid` packaging and `.gvid` to 8K ProRes review are receipted. |
 
 Details: [`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-14.md).
 The current Mission 1 camera-back path is the simple 1024 x 768 full-frame

@@ -17,6 +17,7 @@ refreshed 2026-06-26.
 | Mission 1 numbered-list burndown and closure plan | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md` |
 | Mission 1 stream-source timing | `MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md` |
 | Mission 1 CNN status and next steps | `MISSION1_CNN_NEXT_STEPS_2026-06-28.md` |
+| CNN/product scorecard | `CNN_PRODUCT_SCORECARD_2026-06-29.md` |
 | 4K capture, 1024 preview, and offline 8K SR target ladder | `RAW_RESOLUTION_TARGETS_2026-06-14.md` |
 | UPRESABLE editable raw workflow | `UPRESABLE_PIPELINE.md` |
 | compact production evidence manifest checked by CI | `release_evidence_manifest.json` |
@@ -39,7 +40,7 @@ refreshed 2026-06-26.
 | Stills, VIDEO_FREEZE, UPRESABLE decisions | `SHIP_DECISION.md` |
 | 12MP Mission 1 native Bayer receipts | `VIDEO_STATUS.md`, `LABS_TARGET_BENCH.md` |
 | Mission 1 numbered-list readiness and closure blockers | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md`, `release_evidence_manifest.json` |
-| 1x/2x CNN and SR status | `VIDEO_STATUS.md`, `MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md` |
+| 1x/2x CNN and SR status | `CNN_PRODUCT_SCORECARD_2026-06-29.md`, `VIDEO_STATUS.md`, `MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md` |
 | Live/camera-back PREVIEW policy | `RAW_RESOLUTION_TARGETS_2026-06-14.md`, `../tools/live_preview_policy.py` |
 
 ## Current implementation notes
@@ -86,6 +87,8 @@ refreshed 2026-06-26.
 | `python3 tools/test/test_mission1_numbered_list_closure_plan.py` | regression-test the Mission 1 blocker closure plan |
 | `python3 tools/test/test_mission1_8k_sr_production_promotion.py` | regression-test the Mission 1 8K SR production-promotion receipt schema |
 | `python3 tools/test/test_build_mission1_8k_sr_visual_review.py` | regression-test the Mission 1 8K SR compact visual review package |
+| `python3 tools/build_cnn_product_scorecard.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/cnn_product_scorecard_20260629` | regenerate the current CNN/product scorecard dashboard |
+| `python3 tools/test/test_build_cnn_product_scorecard.py` | regression-test the CNN/product scorecard schema against current external artifacts |
 | `python3 tools/test/test_mission1_camera_dispatch_inputs.py` | regression-test camera-role dispatch preflight labels and execution flags |
 | `python3 tools/test/test_mission1_camera_closure_package.py` | regression-test the Mission 1 camera-side closure package |
 | `python3 tools/check_mission1_camera_closure_package.py <closure_package.json>` | validate a real Mission 1 camera closure package, including target-preflight semantics and SHA-pinned final camera receipts |

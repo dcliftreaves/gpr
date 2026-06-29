@@ -39,6 +39,7 @@ ALLOWED_RAW_CLASSIFICATIONS = {
     "live-capable",
     "preview-capable",
     "offline-only",
+    "offline-production",
 }
 REQUIRED_OUTPUT_IDS = {
     "still_smallest",
@@ -205,6 +206,7 @@ REQUIRED_RELEASE_CHECKS = (
     "python3 tools/test/test_mission1_numbered_list_closure_plan.py",
     "python3 tools/test/test_mission1_8k_sr_production_promotion.py",
     "python3 tools/test/test_build_mission1_8k_sr_visual_review.py",
+    "python3 tools/test/test_build_cnn_product_scorecard.py",
     "python3 tools/test/test_mission1_camera_dispatch_inputs.py",
     "python3 tools/test/test_mission1_camera_closure_package.py",
     "python3 tools/test/test_mission1_camera_hardware_audit.py",
@@ -262,6 +264,7 @@ REQUIRED_CI_CHECKS = (
     "python3 tools/test/test_mission1_numbered_list_closure_plan.py",
     "python3 tools/test/test_mission1_8k_sr_production_promotion.py",
     "python3 tools/test/test_build_mission1_8k_sr_visual_review.py",
+    "python3 tools/test/test_build_cnn_product_scorecard.py",
     "python3 tools/test/test_mission1_camera_dispatch_inputs.py",
     "python3 tools/test/test_mission1_camera_closure_package.py",
     "python3 tools/test/test_mission1_camera_hardware_audit.py",
@@ -819,6 +822,11 @@ def require_raw_target_contract(target: dict[str, Any], failures: list[str]) -> 
         else:
             if total <= 0 or passing < total:
                 failures.append(f"{target_id}: preview-capable raw target must pass every proxy row")
+
+    if classification == "offline-production":
+        detail = str(target.get("classification_detail", "")).lower()
+        if "not a live-camera path" not in detail:
+            failures.append(f"{target_id}: offline-production raw target must say it is not a live-camera path")
 
     receipts = target.get("external_receipts")
     receipt_text = "\n".join(str(receipt) for receipt in receipts or [])

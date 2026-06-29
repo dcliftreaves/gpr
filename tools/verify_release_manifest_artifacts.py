@@ -1115,9 +1115,56 @@ def validate_mission1_stream_source_encoder(path: Path) -> str | None:
     return None
 
 
+def validate_cnn_product_scorecard(path: Path) -> str | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return f"CNN product scorecard JSON could not be loaded: {exc}"
+    if not isinstance(data, dict):
+        return "CNN product scorecard must be a JSON object"
+    if data.get("schema") != "gpr.cnn_product_scorecard.v1":
+        return "CNN product scorecard schema mismatch"
+    fourk = data.get("fourk_cleanup")
+    if not isinstance(fourk, dict):
+        return "CNN product scorecard must include fourk_cleanup"
+    if fourk.get("cnn") != "mission1_native12_4k_cleanup_rgb_cfa_w40_v1":
+        return "CNN product scorecard 4K cleanup CNN mismatch"
+    if fourk.get("visual_signoff_passed") is not True:
+        return "CNN product scorecard 4K cleanup signoff must pass"
+    if fourk.get("image_count") != 42:
+        return "CNN product scorecard 4K cleanup must cover 42 Mission frames"
+    eightk = data.get("eightk_sr")
+    if not isinstance(eightk, dict):
+        return "CNN product scorecard must include eightk_sr"
+    if eightk.get("cnn") != "mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1":
+        return "CNN product scorecard 8K SR CNN mismatch"
+    if eightk.get("production_ready") is not True:
+        return "CNN product scorecard 8K SR must be production_ready for offline scope"
+    mission = eightk.get("mission42")
+    z8 = eightk.get("z8_all24")
+    if not isinstance(mission, dict) or mission.get("image_count") != 42:
+        return "CNN product scorecard 8K SR Mission42 count mismatch"
+    if not isinstance(z8, dict) or z8.get("image_count") != 24:
+        return "CNN product scorecard 8K SR Z8 all24 count mismatch"
+    compat = data.get("compatibility")
+    if not isinstance(compat, dict):
+        return "CNN product scorecard must include compatibility"
+    pass_count = compat.get("pass_count")
+    if not isinstance(pass_count, int) or pass_count < 7:
+        return "CNN product scorecard compatibility pass_count must be at least 7"
+    if compat.get("skip_count") != 0:
+        return "CNN product scorecard compatibility skip_count must be 0"
+    next_work = data.get("next_work")
+    if not isinstance(next_work, list) or not any("live capture" in str(row) for row in next_work):
+        return "CNN product scorecard must retain live capture/preview CNN-free boundary"
+    return None
+
+
 def semantic_error(ref: str, path: Path | None, manifest: dict[str, Any]) -> str | None:
     if path is None:
         return None
+    if ref == "artifacts/cnn_product_scorecard_20260629/scorecard.json":
+        return validate_cnn_product_scorecard(path)
     if ref == "artifacts/mission1_numbered_list_readiness_20260625/closure_plan.json":
         return validate_mission1_closure_plan(path, manifest) or cross_validate_mission1_readiness_and_closure(ref, path, manifest)
     if ref == "artifacts/mission1_numbered_list_readiness_20260625/readiness.json":
