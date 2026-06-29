@@ -8,7 +8,7 @@
 #
 # This is a strict superset of source/app/test_still_quality_corpus.sh
 # along the resolution + quality + bit-depth axes (corpus is 5 rggb14/16
-# cases at default quality; this matrix adds rggb12/12p, gbrg16, low &
+# cases at default quality; this matrix adds rggb12/12p, gbrg14/16, low &
 # high quality presets, and resolutions up through 100 MP X2D).
 #
 # Fixture pattern: radial gradient + per-channel DC offsets + noise — the
@@ -27,6 +27,7 @@
 #   rggb16  q3 1024²              53.44 dB  → threshold 51.0
 #   rggb16  q0 1024²              52.84 dB  → threshold 50.5
 #   rggb16  q8 1024²              59.63 dB  → threshold 57.5
+#   gbrg14  q3 1024²              53.7 dB   → threshold 51.7
 #   gbrg16  q3 1024²              53.36 dB  → threshold 51.0
 #   rggb12  q3 4032×3024 (12 MP)  43.31 dB  → threshold 41.0
 #   rggb14  q8 4032×3024 (12 MP)  62.01 dB  → threshold 60.0
@@ -188,6 +189,7 @@ test_case "rggb14_1024_q8"    1024 1024 rggb14  16383  8  62.06  46 || FAILS=$((
 test_case "rggb16_1024_q3"    1024 1024 rggb16  65535  3  53.44  47 || FAILS=$((FAILS+1))
 test_case "rggb16_1024_q0"    1024 1024 rggb16  65535  0  52.84  48 || FAILS=$((FAILS+1))
 test_case "rggb16_1024_q8"    1024 1024 rggb16  65535  8  59.63  49 || FAILS=$((FAILS+1))
+test_case "gbrg14_1024_q3"    1024 1024 gbrg14  16383  3  53.70  57 || FAILS=$((FAILS+1))
 test_case "gbrg16_1024_q3"    1024 1024 gbrg16  65535  3  53.36  50 || FAILS=$((FAILS+1))
 
 # ---- 12 MP-class cells (4032×3024) ----

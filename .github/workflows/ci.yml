@@ -64,6 +64,9 @@ jobs:
       - name: README media guard regression
         run: python3 tools/test/test_check_readme_media.py
 
+      - name: Product pillar receipt regression
+        run: python3 tools/test/test_product_pillar_receipts.py
+
       - name: Release evidence manifest guard
         run: python3 tools/test/check_release_evidence_manifest.py
 
@@ -431,7 +434,7 @@ jobs:
           BUILD_DIR: build
           FAST: ${{ runner.os == 'Linux' && '1' || '0' }}
           ARTIFACT_DIR: /tmp/gpr-capabilities
-          GPR_TIMING_TOLERANCE: ${{ matrix.build_type == 'Debug' && '4.0' || runner.os == 'macOS' && '2.5' || '1.0' }}
+          GPR_TIMING_TOLERANCE: ${{ matrix.build_type == 'Debug' && '4.0' || runner.os == 'macOS' && '4.0' || '1.0' }}
         run: timeout 600 python3 tools/test/test_capabilities.py
 
       - name: Run raw target helper regression

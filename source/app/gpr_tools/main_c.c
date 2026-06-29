@@ -289,6 +289,15 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
             if( input_pitch == 0 || input_pitch == (size_t)-1 )
                 input_pitch = (input_width * 3 / 4) * 2;
         }
+        else if( strcmp(input_pixel_format, "gbrg14") == 0 )
+        {
+            params.tuning_info.pixel_format = PIXEL_FORMAT_GBRG_14;
+
+            saturation_level = (1 << 14) - 1;
+
+            if( input_pitch == 0 || input_pitch == (size_t)-1 )
+                input_pitch = input_width * 2;
+        }
         else if( strcmp(input_pixel_format, "gbrg16") == 0 )
         {
             params.tuning_info.pixel_format = PIXEL_FORMAT_GBRG_16;
@@ -474,6 +483,9 @@ int dng_convert_main(const char*  input_file_path, unsigned int input_width, uns
                 case PIXEL_FORMAT_GBRG_12:
                 case PIXEL_FORMAT_GBRG_12P:
                     pf = 2;
+                    break;
+                case PIXEL_FORMAT_GBRG_14:
+                    pf = 3;
                     break;
                 case PIXEL_FORMAT_GBRG_16:
                     pf = 5;

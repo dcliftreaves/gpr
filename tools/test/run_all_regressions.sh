@@ -160,6 +160,7 @@ else
                 python3 tools/test/check_repo_artifact_hygiene.py && \
                 python3 tools/test/check_readme_media.py && \
                 python3 tools/test/test_check_readme_media.py && \
+                python3 tools/test/test_product_pillar_receipts.py && \
                 python3 tools/test/check_release_evidence_manifest.py && \
                 python3 tools/test/check_labs_readiness.py && \
                 python3 tools/test/test_mission1_numbered_list_readiness.py && \

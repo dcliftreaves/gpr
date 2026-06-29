@@ -164,6 +164,10 @@ const size_t max_vc5_buffer_size = base_size + (base_size >> 1) + (1 << 20);
         case VC5_ENCODER_PIXEL_FORMAT_GBRG_12:
             image.format = PIXEL_FORMAT_RAW_GBRG_12;
             break;
+
+        case VC5_ENCODER_PIXEL_FORMAT_GBRG_14:
+            image.format = PIXEL_FORMAT_RAW_GBRG_14;
+            break;
             
         case VC5_ENCODER_PIXEL_FORMAT_GBRG_12P:
             image.format = PIXEL_FORMAT_RAW_GBRG_12P;

@@ -67,7 +67,7 @@ public:
         
         ("InputFilePath,i",                                 input_file_path,                            string(""),             "Input file path")
         
-        ("OutputPixelFormat,x",                             output_pixel_format,                        string("rggb14"),       "Output pixel format [rggb12, rggb12p, rggb14, gbrg12, gbrg12p]")
+        ("OutputPixelFormat,x",                             output_pixel_format,                        string("rggb14"),       "Output pixel format [rggb12, rggb12p, rggb14, gbrg12, gbrg12p, gbrg14]")
         
         ("OutputFilePath,o",                                output_file_path,                           string(""),             "Output file path")
         

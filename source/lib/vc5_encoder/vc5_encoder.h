@@ -47,6 +47,8 @@
         VC5_ENCODER_PIXEL_FORMAT_RGGB_16 = 5,           // RGGB 16bit pixels packed into 16bits
 
         VC5_ENCODER_PIXEL_FORMAT_GBRG_16 = 6,           // GBRG 16bit pixels packed into 16bits
+
+        VC5_ENCODER_PIXEL_FORMAT_GBRG_14 = 7,           // GBRG 14bit pixels packed into 16bits
         
         VC5_ENCODER_PIXEL_FORMAT_DEFAULT = VC5_ENCODER_PIXEL_FORMAT_RGGB_14,
         
