@@ -120,6 +120,8 @@ def validate_noise_calibration(data: dict[str, Any]) -> list[str]:
     camera = require_obj(data, "camera", failures, "")
     require_string(camera, "make", failures, "camera")
     require_string(camera, "model", failures, "camera")
+    require_int(camera, "width", failures, "camera", minimum=2)
+    require_int(camera, "height", failures, "camera", minimum=2)
     require_int(camera, "bit_depth", failures, "camera", minimum=8)
     cfa = require_string(camera, "cfa_phase", failures, "camera")
     if cfa and cfa not in NORMAL_BAYER_PHASES:
@@ -135,6 +137,7 @@ def validate_noise_calibration(data: dict[str, Any]) -> list[str]:
             failures.append(f"{prefix} must be an object")
             continue
         require_int(item, "iso", failures, prefix, minimum=1)
+        require_string(item, "calibration_method", failures, prefix)
         source_kind = require_string(item, "source_kind", failures, prefix)
         if source_kind and source_kind not in NOISE_SOURCE_KINDS:
             failures.append(f"{prefix}.source_kind must be one of {sorted(NOISE_SOURCE_KINDS)}")
@@ -145,6 +148,7 @@ def validate_noise_calibration(data: dict[str, Any]) -> list[str]:
             metrics = require_obj(planes, plane, failures, f"{prefix}.per_plane")
             require_number(metrics, "noise_profile_scale", failures, f"{prefix}.per_plane.{plane}", minimum=0)
             require_number(metrics, "noise_profile_offset", failures, f"{prefix}.per_plane.{plane}", minimum=0)
+            require_number(metrics, "mean_black", failures, f"{prefix}.per_plane.{plane}", minimum=0)
             require_number(metrics, "sigma_black", failures, f"{prefix}.per_plane.{plane}", minimum=0)
         audit = require_obj(item, "noise_signal_audit", failures, prefix)
         separates = require_bool(audit, "separates_noise_from_signal", failures, f"{prefix}.noise_signal_audit")
@@ -155,6 +159,10 @@ def validate_noise_calibration(data: dict[str, Any]) -> list[str]:
             usable_count += 1
             if separates is not True:
                 failures.append(f"{prefix} cannot be usable_for_training_targets without a passing noise/signal audit")
+            if item.get("sample_count", 0) < 4 and source_kind in {"darkframes", "frame_stack", "flat_dark_pair"}:
+                failures.append(f"{prefix} needs at least 4 frames before training targets can use it")
+            if source_kind == "dng_noise_profile":
+                failures.append(f"{prefix} cannot mark a metadata-only DNG NoiseProfile as usable_for_training_targets")
 
     if require_bool(data, "production_ready", failures, "") is True and usable_count == 0:
         failures.append("production_ready noise calibration requires at least one usable calibration")

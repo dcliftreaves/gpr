@@ -10,6 +10,7 @@ refreshed 2026-06-29.
 | product overview, media, and quick start | `../README.md` |
 | four big product efforts and what remains | `BIG_EFFORTS_STATUS.md` |
 | execution plan for the four big product efforts | `HIGH_LEVEL_GOAL_EXECUTION_PLAN.md` |
+| camera-noise calibration policy and sidecar builder | `CAMERA_NOISE_CALIBRATION.md` |
 | Release readiness and production proof | `RELEASE_READINESS.md` |
 | what ships today, by ship class | `SHIP_DECISION.md` |
 | current capture-to-ProRes walkthrough | `GETTING_STARTED.md` |
@@ -52,6 +53,7 @@ refreshed 2026-06-29.
 | Open work items and archived experiment branches | `EXPERIMENT_ARCHIVE_2026-06-04.md` |
 | CNN-aware fine-grained compression history | `methodology_cnn_aware_quant.md` |
 | Raw noise/signal separation guardrail | `RAW_NOISE_SIGNAL_AUDIT_2026-06-05.md` |
+| Camera-noise calibration receipt contract | `CAMERA_NOISE_CALIBRATION.md` |
 | Raw-signal CNN candidate | `RAW_SIGNAL_CNN_CANDIDATE_2026-06-05.md` |
 | Per-subband quant calibration (historical) | `methodology_cnn_aware_quant.md` |
 
@@ -82,6 +84,8 @@ refreshed 2026-06-29.
 | `python3 tests/quality_gates/dashboard.py` | refresh sweep dashboard |
 | `python3 tests/quality_gates/review_dashboard.py` | refresh decision dashboard |
 | `python3 tools/test/test_capabilities.py` | encoder regression (also in CI) |
+| `python3 tools/build_camera_noise_calibration.py --raw ... --out noise_calibration.json` | build a validated camera/ISO darkframe noise sidecar for still/CNN work |
+| `python3 tools/test/test_build_camera_noise_calibration.py` | regression-test the camera-noise calibration sidecar builder |
 | `python3 tools/test/check_readme_media.py` | validate local README showcase media links, sizes, and stale text claims in SVG media |
 | `python3 tools/test/test_check_readme_media.py` | regression-test README showcase stale-claim detection |
 | `python3 tools/test/check_release_evidence_manifest.py` | validate production evidence manifest |

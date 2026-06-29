@@ -46,6 +46,7 @@ def noise_receipt() -> dict:
     plane = {
         "noise_profile_scale": 0.00012,
         "noise_profile_offset": 0.000001,
+        "mean_black": 64.1,
         "sigma_black": 1.2,
     }
     return {
@@ -53,6 +54,8 @@ def noise_receipt() -> dict:
         "camera": {
             "make": "Fixture",
             "model": "Large Bayer",
+            "width": 16,
+            "height": 16,
             "bit_depth": 14,
             "cfa_phase": "GBRG",
             "black_level": 64,
@@ -61,6 +64,7 @@ def noise_receipt() -> dict:
         "calibrations": [
             {
                 "iso": 1600,
+                "calibration_method": "darkframe_stack_per_plane_sigma_v1",
                 "source_kind": "darkframes",
                 "sample_count": 16,
                 "source": artifact("darkframes.json"),
@@ -164,6 +168,10 @@ def main() -> int:
     bad_noise = copy.deepcopy(receipts[0])
     bad_noise["calibrations"][0]["noise_signal_audit"]["separates_noise_from_signal"] = False
     expect_fail(module, bad_noise, "noise/signal audit")
+
+    bad_noise_metadata = copy.deepcopy(receipts[0])
+    bad_noise_metadata["calibrations"][0]["source_kind"] = "dng_noise_profile"
+    expect_fail(module, bad_noise_metadata, "metadata-only")
 
     bad_still = copy.deepcopy(receipts[1])
     bad_still["fixture_summary"]["hundred_mp_or_larger_count"] = 0
