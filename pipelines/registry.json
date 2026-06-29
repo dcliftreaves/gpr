@@ -761,7 +761,7 @@
       "status": "review_only_promoted_for_registry_review_runtime_and_packaging_refreshed"
     },
     "mission1_native12_4k_cleanup_rgb_cfa_w40_v1": {
-      "$doc": "Temporary registry-review candidate for Mission 1 native-12 4096x3072 Bayer cleanup. It maps current 4K Bayer lows to a 4K Bayer output supervised by high-resolution RGB area-downsample and CFA-sampled targets. The broad Mission42 dashboard improves every image versus the baseline on RGB/CFA error and y-gradient, has a green/tone audit, a 42-frame 4K .gvid packaging receipt, and a 4K ProRes review receipt. It remains review-only until final visual signoff and camera/firmware handoff are complete.",
+      "$doc": "Registry-review candidate for Mission 1 native-12 4096x3072 Bayer cleanup. It maps current 4K Bayer lows to a 4K Bayer output supervised by high-resolution RGB area-downsample and CFA-sampled targets. The broad Mission42 dashboard improves every image versus the baseline on RGB/CFA error and y-gradient, has a green/tone audit, objective visual signoff, a 42-frame 4K .gvid packaging receipt, and a 4K ProRes review receipt. It remains offline/review-only; camera/firmware handoff is tracked separately from this CNN.",
       "ckpt_path": "artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/bayer_rgb_target_w40_d5_rs015_gamma2_grad1_raw2_bayer2_step1000.pt",
       "ckpt_sha256": "baabbd3650c8e09032849e83cfc1526d8a30a47508c55a9a00f5a4e182e16aa1",
       "cnn_arch_variant": "bayer_rgb_target_cleanup_1x",
@@ -809,7 +809,7 @@
         "mov_sha256": "936a3a8bb3dca8d9387f7b9477d22e806014b440717993731aeb98c4569440c4"
       },
       "runtime_entrypoint": "tools/cnn/train_bayer_rgb_target_cleanup.py",
-      "status": "review_only_metric_positive_needs_final_visual_signoff_and_camera_handoff"
+      "status": "review_only_visual_signed_off_camera_handoff_separate"
     },
     "none": {
       "$doc": "No CNN \u2014 codec output is the final result."

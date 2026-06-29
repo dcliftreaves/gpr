@@ -32,7 +32,32 @@ python3 tools/test/test_build_mission1_8k_sr_visual_review.py
 python3 tools/test/test_build_mission1_4k_visual_signoff.py
 ```
 
-All passed locally on 2026-06-28.
+All passed locally on 2026-06-28. After PR #60 merged, the checks were rerun
+on `master` using the external-drive Python venv for NumPy-backed tests:
+
+```bash
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/test/test_analyze_mission1_sr_codec_sensitivity.py
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/test/test_analyze_mission1_sr_phase_reconstruction.py
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/test/test_build_mission1_sr_coverage_manifest.py
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/test/test_build_mission1_sr_pairs_from_raw_dirs.py
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/test/test_mine_mission1_sr_hard_tiles.py
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/test/test_mission1_sr_pair_codec_profiles.py
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/test/test_mission1_sr_production_gap_report.py
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/test/test_raw_resolution_targets.py
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/test/test_train_mission1_sr_expand.py
+```
+
+These passed. The plain system Python lacks NumPy, so use the external-drive
+venv for CNN/SR tests.
 
 ## Next Steps
 
@@ -54,6 +79,17 @@ All passed locally on 2026-06-28.
    should focus on codec timing, streaming source handoff, storage, preview
    decode, and receipts.
 
+## Active Burn-Down
+
+1. Treat the current 4K and 8K checkpoints as the baseline to beat, not as open
+   training failures.
+2. If reopening 4K cleanup, compare against high-res RGB-area-downsample plus
+   CFA-sampled full-frame targets, then require visual/tone/raw guard wins.
+3. If reopening 8K SR, start from the coord/detail alpha0.5 checkpoint and run
+   Mission42 plus Z8 all24 full-frame gates before any promotion discussion.
+4. Keep capture encode and camera-back preview CNN-free unless a target receipt
+   proves 20 fps and memory headroom.
+
 ## Stop/Promotion Rule
 
 Promote a future CNN only when all of these are true:
@@ -65,4 +101,3 @@ Promote a future CNN only when all of these are true:
 - timing and memory are measured for the intended offline/Mac path,
 - registry scope matches the claim: `offline_review_only`,
   `offline_production`, or no production scope.
-
