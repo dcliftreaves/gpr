@@ -131,3 +131,30 @@ This receipt validates 14,400 frames, 0 drops, `.gvid`, and interrupted-tail
 recovery at 19.98 fps median. It is acceptable as a conservative Pi 5 proxy for
 continuing Labs integration, but it must be replaced or supplemented by an
 actual Mission 1 24 fps hardware receipt before firmware readiness is claimed.
+
+Current GoPro Mission 1 handoff bundle:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_20260629/manifest.json`
+
+Verification:
+
+```bash
+python3 tools/verify_labs_bundle.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_20260629/manifest.json
+(cd /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_20260629 && \
+  shasum -a 256 -c hashes/sha256sums.txt)
+```
+
+Contents:
+
+- valid 4096 x 3072 `.gvid` sample from the deterministic stream-source encoder;
+- current 1,440-frame Pi stand-in closure receipts;
+- quick-validation dry-run receipt;
+- compact visual review assets;
+- firmware API, Mission 1 runbook, quick-validation guide, release-artifact
+  rules, and release evidence manifest;
+- SHA-256 manifest and checksum file.
+
+This is the preferred portable package for a GoPro firmware reviewer. It is
+still stand-in evidence until GoPro replaces or supplements the included
+receipts with camera-role sensor/DMA, storage, and display receipts.

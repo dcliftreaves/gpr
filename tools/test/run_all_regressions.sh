@@ -171,6 +171,8 @@ else
                 python3 tools/test/test_mission1_camera_closure_package.py && \
                 python3 tools/test/test_mission1_camera_hardware_audit.py && \
                 python3 tools/test/test_mission1_camera_source_probe.py && \
+                python3 tools/test/test_run_gopro_mission1_quick_validation.py && \
+                python3 tools/test/test_build_gopro_mission1_handoff_bundle.py && \
                 python3 tools/test/test_mission1_camera_target_preflight.py && \
                 python3 tools/test/test_collect_mission1_target_closure.py && \
                 python3 tools/test/test_run_mission1_target_closure_package.py && \

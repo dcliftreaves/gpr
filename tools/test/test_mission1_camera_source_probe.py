@@ -14,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools/mission1_camera_source_probe.py"
+CHECK_TOOL = ROOT / "tools/check_mission1_camera_source_probe.py"
 
 
 def load_tool():
@@ -81,6 +82,18 @@ def main() -> int:
             for check in camera_report["checks"]
         )
 
+        ready_receipt = root / "camera_source_ready.json"
+        ready_receipt.write_text(json.dumps(camera_report, indent=2) + "\n", encoding="utf-8")
+        check_ready = subprocess.run(
+            [sys.executable, str(CHECK_TOOL), str(ready_receipt)],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        assert check_ready.returncode == 0, check_ready.stderr
+
         config_b64 = base64.b64encode(json.dumps({"raw": str(fifo)}).encode("utf-8")).decode("ascii")
         proc = subprocess.run(
             ["python3", "-"],
@@ -113,6 +126,18 @@ def main() -> int:
         )
         assert bad_camera_report["verdict"]["source_ready"] is False
         assert "camera raw source endpoint is not a device-like stream" in bad_camera_report["blockers"]
+        bad_receipt = root / "camera_source_bad.json"
+        bad_receipt.write_text(json.dumps(bad_camera_report, indent=2) + "\n", encoding="utf-8")
+        check_bad = subprocess.run(
+            [sys.executable, str(CHECK_TOOL), str(bad_receipt)],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        assert check_bad.returncode == 1
+        assert "source_ready is false" in check_bad.stderr
 
         missing_report = tool.build_report(
             parse(

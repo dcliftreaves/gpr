@@ -142,6 +142,13 @@ production gate remains blocked until those receipts come from a
 `target_role=camera` run with real sensor/DMA, storage handoff, UI path, and
 visual display checks marked executed.
 
+For GoPro firmware/Labs evaluation, the shortest target-side path is
+`python3 tools/run_gopro_mission1_quick_validation.py`; the full command,
+inputs, receipts, and failure handling are in
+[`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md).
+The portable reviewer package is built with
+`python3 tools/build_gopro_mission1_handoff_bundle.py`.
+
 For deterministic rehearsal before that handoff, `tools/mission1_dma_source_sim.py`
 creates a separate-process FIFO producer/consumer that mimics a sensor
 DMA/ring-buffer cadence. Its receipt captures inter-frame timing, producer
