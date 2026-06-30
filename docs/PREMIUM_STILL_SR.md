@@ -320,6 +320,34 @@ itself will not close the still-SR gap. The next production experiment should
 move the supervision closer to raw-domain signal/detail placement rather than
 expecting noise removal to make the existing rendered-residual target easy.
 
+## Raw-CFA Residual Audit
+
+The raw-CFA residual audit tests the next target direction directly:
+
+```sh
+python3 tools/cnn/audit_premium_still_sr_raw_cfa_residual.py \
+  --target-receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_audit_20260630
+```
+
+Current dashboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_audit_20260630/index.html
+```
+
+The audit compares rendered HF residual supervision against the editable raw
+target: source raw minus candidate raw, high-passed without mixing 2x2 CFA
+phases. Across the expanded 351-row / 13-scene X2D+Z8 target set, median
+absolute rendered-to-raw residual correlation is 0.691 and median best-phase
+correlation is 0.922. Median same-color raw-HF residual magnitude is about
+0.346x the rendered HF residual magnitude.
+
+Conclusion: the current rendered-HF target is not the right primary training
+objective, but it is meaningfully aligned with true same-color raw residuals.
+The next model should train on source-minus-candidate raw CFA residuals
+directly, then use rendered HF/editor-latitude dashboards as promotion review.
+
 ## Fixture Manifest Builder
 
 Use the latest real-fixture compatibility receipt to build the first dedicated

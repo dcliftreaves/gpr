@@ -31,7 +31,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 55% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, and a calibrated noise-clean sweep now guards the next target variant; the no-REF high-frequency texture model is still not production-grade yet. |
+| Premium still/SR | 58% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, calibrated noise-cleaning is bounded, and a raw-CFA residual audit now points the next target at true source-minus-candidate same-color raw residuals; the no-REF high-frequency texture model is still not production-grade yet. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, and the first native PSF measurement has executed; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -163,6 +163,16 @@ It shows the validated ISO 200 X2D noise floor is far below the current HF
 residual: render gain 16 changes about 11.93 percent of pixels, but removes
 only about 0.24 percent median residual energy. Noise cleaning remains a
 guardrail, not the main explanation for the current still-SR blocker.
+
+The current raw-CFA residual audit lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_audit_20260630/index.html`.
+It compares rendered HF supervision against the editable raw target:
+source raw minus candidate raw, high-passed without mixing CFA phases. Across
+351 rows / 13 scenes, median absolute rendered-to-raw residual correlation is
+0.691, median best-phase correlation is 0.922, and median raw-HF residual
+magnitude is about 0.346x the rendered HF residual magnitude. That makes a
+true same-color raw residual target the next training direction, with rendered
+HF/editor-latitude kept as review and promotion metrics.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a

@@ -14,7 +14,7 @@ The generated audit dashboard for these same four pillars is tracked in
 |---|---|---|
 | Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, RGGB plus Mission 1 GBRG real-fixture coverage, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, raw-CFA expanded targets, no-REF HF residual probes including a matched dilated raw-CFA gate, and a calibrated noise-clean target sweep. | Not done until learned/modelled high-frequency texture restoration receipts pass; raw-CFA helps, but the current local/dilated residual probes remain far below promotion, and ISO 200 noise cleaning is too small to explain the gap. |
+| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, raw-CFA expanded targets, no-REF HF residual probes including a matched dilated raw-CFA gate, calibrated noise-clean target sweep, and raw-CFA residual alignment audit. | Not done until learned/modelled high-frequency texture restoration receipts pass; raw-CFA helps, the current local/dilated residual probes remain far below promotion, ISO 200 noise cleaning is too small to explain the gap, and the next target should be true same-color raw residuals. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup, candidate-aware 8K SR, native high/low pair inventory, measurement plan, and first native measurement run. | Not done as a formal PSF/blur-calibrated resizing model until controlled high/low pairs produce a stable native kernel and PSF-conditioned gates pass. |
 
 ## 1. Raw Stills
@@ -163,6 +163,15 @@ Current evidence:
 - `tools/build_premium_still_sr_candidate_dashboard.py` emits the current
   still-SR candidate metric dashboard, including pair/checkpoint hashes,
   best-step metrics, and final-step regression.
+- `tools/cnn/audit_premium_still_sr_raw_cfa_residual.py` now compares rendered
+  HF residual supervision with the actual editable raw target:
+  source raw minus candidate raw, high-passed phase-by-phase without mixing CFA
+  colors. The expanded 351-row audit reports median absolute rendered-to-raw
+  residual correlation 0.691 and median best-phase correlation 0.922:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_audit_20260630/index.html`.
+  This is strong enough to justify the next training pass using same-color raw
+  residuals directly rather than continuing to optimize rendered-HF residuals
+  as the primary target.
 - `tools/build_premium_still_sr_visual_review.py` emits the current tile-level
   visual review dashboard with baseline/model/target/error contact sheets for
   the X2D holdout:
