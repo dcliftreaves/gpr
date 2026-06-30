@@ -266,6 +266,43 @@ specialist checkpoints for premium still-SR. It does not yet satisfy
 production promotion because the result is still tile-level, the improvement is
 modest, and raw-editor latitude/full-frame still receipts are missing.
 
+## Router Plan
+
+The router plan builder turns current specialist evidence into a metadata-only
+contract:
+
+```sh
+python3 tools/build_premium_still_sr_router_plan.py \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --fixture-manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_x2d_batch_20260629/fixture_manifest.json \
+  --receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_20260629/premium_still_sr_x2d_specialist_w48_d6_2400plus2400_origx2d_holdout.pt.json \
+  --receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_batch_20260629/premium_still_sr_w48_d6_2000_origx2d_holdout.pt.json \
+  --candidate-alias candidate_0=x2d_specialist \
+  --candidate-alias candidate_1=shared_x2d_batch_probe \
+  --route x2d:100mp:dng=x2d_specialist \
+  --default-candidate shared_x2d_batch_probe \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630
+```
+
+Current router plan:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/router_plan.json
+```
+
+Current routes:
+
+| route | fixtures | candidate | status |
+|---|---:|---|---|
+| `x2d:100mp:dng` | 9 | `x2d_specialist` | best current X2D route, not production-ready |
+| `mission1:50mp:dng` | 1 | `shared_x2d_batch_probe` | placeholder until Mission specialist or shared full gate exists |
+| `mission1:50mp:gpr` | 1 | `shared_x2d_batch_probe` | placeholder until Mission specialist or shared full gate exists |
+| `z8:50mp:dng` | 1 | `shared_x2d_batch_probe` | placeholder until Z8 specialist or shared full gate exists |
+
+The router plan is deliberately `production_ready=false`. It exists so future
+work can add real candidates route-by-route without ambiguity.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
