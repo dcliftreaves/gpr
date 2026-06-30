@@ -500,7 +500,8 @@ python3 tools/build_premium_still_sr_latitude_review.py \
   --crop-size 768 \
   --output-bps 16 \
   --contact-rows 9 \
-  --allow-common-crop
+  --allow-common-crop \
+  --oracle-hf-addback
 ```
 
 Current dashboard:
@@ -512,16 +513,19 @@ Current dashboard:
 
 Result:
 
-| rows | median display MAE | worst display MAE | median Y MAE | median LF Y MAE | median HF Y MAE | worst HF Y MAE | blocker |
-|---:|---:|---:|---:|---:|---:|---:|---|
-| 9 | 0.04281 | 0.09161 | 0.02909 | 0.00546 | 0.02892 | 0.06095 | +2 EV high-frequency texture/noise loss |
+| rows | median display MAE | worst display MAE | median Y MAE | median LF Y MAE | median HF Y MAE | worst HF Y MAE | source-HF oracle worst MAE | blocker |
+|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 9 | 0.04281 | 0.09161 | 0.02909 | 0.00546 | 0.02892 | 0.06095 | 0.01586 | +2 EV high-frequency texture/noise loss |
 
 Interpretation: metadata/openability is no longer the X2D blocker.
 Low-frequency tone is much closer than full-pixel error. In the +2 EV rows the
 candidate retains only about 44-53 percent of the source high-frequency
-luminance energy, so the next pass should focus on camera texture/noise addback
-and high-frequency target construction rather than broad tone mapping. This is
-not a production pass.
+luminance energy. The optional source-HF oracle preserves candidate
+low-frequency tone and injects source high-frequency content; it drops worst
++2 EV display MAE from 0.09161 to 0.01586 and worst +2 EV HF Y MAE from
+0.06095 to 0.00005. That proves a texture/noise addback path is the right next
+experiment, but the oracle itself uses source content and is not a
+production/no-REF render path.
 
 ## Production Path
 

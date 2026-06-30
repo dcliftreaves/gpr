@@ -12,7 +12,7 @@ If a metric here conflicts with a committed receipt, the receipt wins.
 |---|---|---|
 | Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance. | Good enough to present as a working stills product path, with explicit open work on more real alternate-phase fixtures and camera-calibrated noise. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, and an X2D rawpy latitude dashboard with LF/HF decomposition. | Not done until +2 EV X2D high-frequency texture/noise and noise-aware target/addback receipts pass. |
+| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, and an X2D rawpy latitude dashboard with LF/HF decomposition plus source-HF oracle. | Not done until modeled +2 EV X2D high-frequency texture/noise addback receipts pass. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup and candidate-aware 8K SR. | Not done as a formal PSF/blur-calibrated resizing model. |
 
 ## 1. Raw Stills
@@ -196,6 +196,13 @@ Current evidence:
   high-frequency Y MAE 0.06095. The candidate carries only about 44-53 percent
   of the source high-frequency luminance energy in the +2 EV rows:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_20260630/index.html`.
+- The same latitude review includes a source-HF oracle diagnostic. It preserves
+  candidate low-frequency tone but injects source high-frequency content, so it
+  is diagnostic only and cannot be used as a production/no-REF render path.
+  With that oracle, worst +2 EV display MAE drops from 0.09161 to 0.01586 and
+  worst +2 EV HF Y MAE drops from 0.06095 to 0.00005. This proves the next
+  production experiment should synthesize or restore camera texture/noise,
+  rather than chase broad tone mapping.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
@@ -231,9 +238,10 @@ Boundaries:
 
 Next production work:
 
-1. Close the X2D rawpy latitude blocker, starting with +2 EV high-frequency
-   texture/noise addback. The current LF tone error is much smaller than the
-   HF error, so the next pass should not chase generic tone mapping first.
+1. Replace the source-HF oracle with a production-safe modeled camera
+   texture/noise addback driven by camera noise sidecars, ISO/NoiseProfile, or
+   calibrated texture synthesis. The current LF tone error is much smaller than
+   the HF error, so the next pass should not chase generic tone mapping first.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Add full-frame still visual dashboards, raw-domain metrics, and raw-editor

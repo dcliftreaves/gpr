@@ -87,6 +87,37 @@ def to_float(rgb: np.ndarray) -> np.ndarray:
     return rgb.astype(np.float32) / denom
 
 
+def from_float_like(rgb: np.ndarray, template: np.ndarray) -> np.ndarray:
+    if template.dtype == np.uint16:
+        return (np.clip(rgb, 0.0, 1.0) * 65535.0 + 0.5).astype(np.uint16)
+    return (np.clip(rgb, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
+
+
+def block_lowpass_rgb(rgb: np.ndarray, block: int) -> np.ndarray:
+    if block <= 1:
+        return rgb.copy()
+    h, w, c = rgb.shape
+    pad_h = ((h + block - 1) // block) * block
+    pad_w = ((w + block - 1) // block) * block
+    padded = np.pad(rgb, ((0, pad_h - h), (0, pad_w - w), (0, 0)), mode="edge")
+    low = padded.reshape(pad_h // block, block, pad_w // block, block, c).mean(axis=(1, 3))
+    return np.repeat(np.repeat(low, block, axis=0), block, axis=1)[:h, :w]
+
+
+def oracle_hf_addback(ref: np.ndarray, cand: np.ndarray, block: int) -> np.ndarray:
+    """Replace candidate HF with source HF while preserving candidate LF.
+
+    This is a diagnostic upper bound that uses source content. It is not a
+    production render path and must not be promoted as no-REF behavior.
+    """
+    ref_f = to_float(ref)
+    cand_f = to_float(cand)
+    ref_lf = block_lowpass_rgb(ref_f, block)
+    cand_lf = block_lowpass_rgb(cand_f, block)
+    ref_hf = ref_f - ref_lf
+    return from_float_like(cand_lf + ref_hf, cand)
+
+
 def crop_metrics(ref: np.ndarray, cand: np.ndarray) -> dict[str, Any]:
     ref_f = to_float(ref)
     cand_f = to_float(cand)
@@ -174,12 +205,15 @@ def write_contact_sheet(path: Path, rows: list[dict[str, Any]], max_rows: int) -
     first.close()
     pad = 10
     label_h = 42
-    cols = 3
+    has_oracle = any(any(panel["kind"] == "oracle" for panel in row["panels"]) for row in selected)
+    cols = 5 if has_oracle else 3
     sheet_w = cols * (panel_w + pad) + pad
     sheet_h = len(selected) * (panel_h + label_h + pad) + pad
     sheet = Image.new("RGB", (sheet_w, sheet_h), (18, 18, 18))
     draw = ImageDraw.Draw(sheet)
     headers = ["source DNG", "candidate DNG", "error"]
+    if has_oracle:
+        headers += ["source-HF oracle", "oracle error"]
     for row_idx, row in enumerate(selected):
         y0 = pad + row_idx * (panel_h + label_h + pad)
         title = (
@@ -201,15 +235,26 @@ def write_contact_sheet(path: Path, rows: list[dict[str, Any]], max_rows: int) -
 def render_html(data: dict[str, Any], output_dir: Path) -> str:
     rows = sorted(data["rows"], key=lambda row: row["mae"], reverse=True)
     table_rows = []
+    has_oracle = any("oracle_mae" in row for row in rows)
     for row in rows:
         err_panel = next(panel for panel in row["panels"] if panel["kind"] == "error")
         rel = Path(err_panel["path"]).resolve().relative_to(output_dir.resolve()).as_posix()
+        if has_oracle:
+            oracle_cols = (
+                f"<td>{html.escape(str(row.get('oracle_mae')))}</td>"
+                f"<td>{html.escape(str(row.get('oracle_y_mae')))}</td>"
+                f"<td>{html.escape(str(row.get('oracle_hf_y_mae')))}</td>"
+                f"<td>{html.escape(str(row.get('oracle_mae_improvement')))}</td>"
+            )
+        else:
+            oracle_cols = ""
         table_rows.append(
             f"<tr><td>{html.escape(row['crop'])}</td><td>{row['ev']:+.0f}</td>"
             f"<td>{row['mae']:.5f}</td><td>{row['y_mae']:.5f}</td>"
             f"<td>{html.escape(str(row.get('lf_y_mae')))}</td>"
             f"<td>{html.escape(str(row.get('hf_y_mae')))}</td>"
             f"<td>{html.escape(str(row.get('hf_y_energy_ratio')))}</td>"
+            f"{oracle_cols}"
             f"<td>{row['psnr_db']:.2f}</td>"
             f"<td>{html.escape(str(row['highlight_y_mae']))}</td>"
             f"<td>{html.escape(str(row['shadow_y_mae']))}</td>"
@@ -217,6 +262,22 @@ def render_html(data: dict[str, Any], output_dir: Path) -> str:
         )
     summary = data["summary"]
     contact = Path(data["contact_sheet"]).resolve().relative_to(output_dir.resolve()).as_posix()
+    if has_oracle:
+        oracle_cards = (
+            f"<div class=\"card\"><h2>Oracle MAE</h2><p>median {summary['oracle_mae']['median']:.5f}</p>"
+            f"<p>worst {summary['oracle_mae']['max']:.5f}</p></div>"
+            f"<div class=\"card\"><h2>Oracle Gain</h2><p>median {summary['oracle_mae_improvement']['median']:.5f}</p>"
+            f"<p>best {summary['oracle_mae_improvement']['max']:.5f}</p></div>"
+        )
+        oracle_header = "<th>oracle MAE</th><th>oracle Y MAE</th><th>oracle HF Y MAE</th><th>oracle MAE gain</th>"
+        oracle_note = (
+            "<p><b>Oracle note:</b> source-HF addback uses source DNG high-frequency content. "
+            "It is a diagnostic upper bound, not a production/no-REF render path.</p>"
+        )
+    else:
+        oracle_cards = ""
+        oracle_header = ""
+        oracle_note = ""
     return f"""<!doctype html>
 <html><head><meta charset="utf-8"><title>Premium Still SR Latitude Review</title>
 <style>
@@ -229,6 +290,7 @@ img{{max-width:220px;height:auto}}code{{color:#b7d7ff}}.contact{{max-width:100%;
 <h1>Premium Still SR Latitude Review</h1>
 <p>Source DNG: <code>{html.escape(data['source_dng'])}</code></p>
 <p>Candidate DNG: <code>{html.escape(data['candidate_dng'])}</code></p>
+{oracle_note}
 <div class="grid">
 <div class="card"><h2>Rows</h2><p>{summary['row_count']}</p></div>
 <div class="card"><h2>MAE</h2><p>median {summary['mae']['median']:.5f}</p><p>worst {summary['mae']['max']:.5f}</p></div>
@@ -236,9 +298,10 @@ img{{max-width:220px;height:auto}}code{{color:#b7d7ff}}.contact{{max-width:100%;
 <div class="card"><h2>LF Y MAE</h2><p>median {summary['lf_y_mae']['median']:.5f}</p><p>worst {summary['lf_y_mae']['max']:.5f}</p></div>
 <div class="card"><h2>HF Y MAE</h2><p>median {summary['hf_y_mae']['median']:.5f}</p><p>worst {summary['hf_y_mae']['max']:.5f}</p></div>
 <div class="card"><h2>PSNR</h2><p>median {summary['psnr_db']['median']:.2f} dB</p><p>worst {summary['psnr_db']['min']:.2f} dB</p></div>
+{oracle_cards}
 </div>
 <img class="contact" src="{html.escape(contact)}">
-<table><tr><th>crop</th><th>EV</th><th>MAE</th><th>Y MAE</th><th>LF Y MAE</th><th>HF Y MAE</th><th>HF energy ratio</th><th>PSNR</th><th>highlight Y MAE</th><th>shadow Y MAE</th><th>error</th></tr>
+<table><tr><th>crop</th><th>EV</th><th>MAE</th><th>Y MAE</th><th>LF Y MAE</th><th>HF Y MAE</th><th>HF energy ratio</th>{oracle_header}<th>PSNR</th><th>highlight Y MAE</th><th>shadow Y MAE</th><th>error</th></tr>
 {''.join(table_rows)}
 </table></body></html>
 """
@@ -292,6 +355,34 @@ def build_review(args: argparse.Namespace) -> dict[str, Any]:
             image_from_rgb(ref_crop).save(ref_path, quality=92)
             image_from_rgb(cand_crop).save(cand_path, quality=92)
             error_image(ref_crop, cand_crop, args.error_scale).save(err_path, quality=92)
+            panels = [
+                {"kind": "source", "path": str(ref_path)},
+                {"kind": "candidate", "path": str(cand_path)},
+                {"kind": "error", "path": str(err_path)},
+            ]
+            if args.oracle_hf_addback:
+                oracle_crop = oracle_hf_addback(ref_crop, cand_crop, args.oracle_hf_block)
+                oracle_metrics = crop_metrics(ref_crop, oracle_crop)
+                oracle_path = panels_dir / f"{safe}_oracle_source_hf.jpg"
+                oracle_err_path = panels_dir / f"{safe}_oracle_error.jpg"
+                image_from_rgb(oracle_crop).save(oracle_path, quality=92)
+                error_image(ref_crop, oracle_crop, args.error_scale).save(oracle_err_path, quality=92)
+                panels += [
+                    {"kind": "oracle", "path": str(oracle_path)},
+                    {"kind": "oracle_error", "path": str(oracle_err_path)},
+                ]
+                metrics.update(
+                    {
+                        "oracle_mae": oracle_metrics["mae"],
+                        "oracle_y_mae": oracle_metrics["y_mae"],
+                        "oracle_lf_y_mae": oracle_metrics["lf_y_mae"],
+                        "oracle_hf_y_mae": oracle_metrics["hf_y_mae"],
+                        "oracle_hf_y_energy_ratio": oracle_metrics["hf_y_energy_ratio"],
+                        "oracle_mae_improvement": metrics["mae"] - oracle_metrics["mae"],
+                        "oracle_y_mae_improvement": metrics["y_mae"] - oracle_metrics["y_mae"],
+                        "oracle_note": "source_high_frequency_content_used_for_diagnostic_only",
+                    }
+                )
             rows.append(
                 {
                     "crop": crop_name,
@@ -299,11 +390,7 @@ def build_review(args: argparse.Namespace) -> dict[str, Any]:
                     "crop_xy": [x, y],
                     "crop_size": crop,
                     **metrics,
-                    "panels": [
-                        {"kind": "source", "path": str(ref_path)},
-                        {"kind": "candidate", "path": str(cand_path)},
-                        {"kind": "error", "path": str(err_path)},
-                    ],
+                    "panels": panels,
                 }
             )
         del ref
@@ -325,6 +412,16 @@ def build_review(args: argparse.Namespace) -> dict[str, Any]:
         "shadow_y_mae": stats([float(row["shadow_y_mae"]) for row in rows if row["shadow_y_mae"] is not None]),
         "render_times": render_times,
     }
+    if args.oracle_hf_addback:
+        summary.update(
+            {
+                "oracle_mae": stats([float(row["oracle_mae"]) for row in rows if "oracle_mae" in row]),
+                "oracle_y_mae": stats([float(row["oracle_y_mae"]) for row in rows if "oracle_y_mae" in row]),
+                "oracle_hf_y_mae": stats([float(row["oracle_hf_y_mae"]) for row in rows if row.get("oracle_hf_y_mae") is not None]),
+                "oracle_mae_improvement": stats([float(row["oracle_mae_improvement"]) for row in rows if "oracle_mae_improvement" in row]),
+                "oracle_y_mae_improvement": stats([float(row["oracle_y_mae_improvement"]) for row in rows if "oracle_y_mae_improvement" in row]),
+            }
+        )
     data = {
         "schema": SCHEMA,
         "created_unix": int(time.time()),
@@ -342,6 +439,8 @@ def build_review(args: argparse.Namespace) -> dict[str, Any]:
             "user_flip": 0,
             "half_size": args.half_size,
             "allow_common_crop": args.allow_common_crop,
+            "oracle_hf_addback": args.oracle_hf_addback,
+            "oracle_hf_block": args.oracle_hf_block if args.oracle_hf_addback else None,
         },
         "summary": summary,
         "rows": rows,
@@ -365,6 +464,8 @@ def main() -> int:
     ap.add_argument("--output-bps", type=int, choices=(8, 16), default=16)
     ap.add_argument("--half-size", action="store_true")
     ap.add_argument("--allow-common-crop", action="store_true")
+    ap.add_argument("--oracle-hf-addback", action="store_true")
+    ap.add_argument("--oracle-hf-block", type=int, default=16)
     ap.add_argument("--error-scale", type=float, default=0.06)
     ap.add_argument("--contact-rows", type=int, default=9)
     args = ap.parse_args()

@@ -39,6 +39,10 @@ def main() -> int:
     assert metrics["hf_y_mae"] is not None
     assert len(metrics["channel_mean_delta"]) == 3
     assert tool.crop_starts(100, 80, 20)[1] == ("center", 40, 30)
+    oracle = tool.oracle_hf_addback(ref, cand, 16)
+    oracle_metrics = tool.crop_metrics(ref, oracle)
+    assert oracle.shape == cand.shape
+    assert oracle_metrics["hf_y_mae"] <= metrics["hf_y_mae"]
 
     with tempfile.TemporaryDirectory(prefix="gpr_latitude_review_") as td:
         out = Path(td)
@@ -58,12 +62,21 @@ def main() -> int:
                 "lf_y_mae": {"median": metrics["lf_y_mae"] or 0.0, "max": metrics["lf_y_mae"] or 0.0},
                 "hf_y_mae": {"median": metrics["hf_y_mae"] or 0.0, "max": metrics["hf_y_mae"] or 0.0},
                 "psnr_db": {"median": metrics["psnr_db"], "min": metrics["psnr_db"]},
+                "oracle_mae": {"median": oracle_metrics["mae"], "max": oracle_metrics["mae"]},
+                "oracle_mae_improvement": {
+                    "median": metrics["mae"] - oracle_metrics["mae"],
+                    "max": metrics["mae"] - oracle_metrics["mae"],
+                },
             },
             "rows": [
                 {
                     "crop": "center",
                     "ev": 0.0,
                     **metrics,
+                    "oracle_mae": oracle_metrics["mae"],
+                    "oracle_y_mae": oracle_metrics["y_mae"],
+                    "oracle_hf_y_mae": oracle_metrics["hf_y_mae"],
+                    "oracle_mae_improvement": metrics["mae"] - oracle_metrics["mae"],
                     "panels": [{"kind": "error", "path": str(panel)}],
                 }
             ],
