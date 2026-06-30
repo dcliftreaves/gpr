@@ -231,6 +231,32 @@ def make_features(
             ],
             dim=1,
         )
+    if feature_mode == "raw_context_storedhf_coord_ev_noise":
+        if stored_hf is None:
+            raise ValueError("raw_context_storedhf_coord_ev_noise requires candidate_raw_hf_cfa4")
+        coarse_block = max(block * 3, block + 2)
+        phase_mean = torch.mean(raw, dim=1, keepdim=True)
+        clipped_hf = torch.clamp(stored_hf, -0.5, 0.5)
+        global_raw = torch.mean(raw, dim=(-2, -1))
+        global_hf = torch.mean(torch.abs(clipped_hf), dim=(-2, -1))
+        return torch.cat(
+            [
+                raw,
+                fine,
+                block_highpass(raw, coarse_block),
+                clipped_hf,
+                raw - phase_mean,
+                pooled_context_planes(raw),
+                pooled_context_planes(fine),
+                pooled_context_planes(clipped_hf),
+                scalar_planes(global_raw, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
+                scalar_planes(global_hf, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
+                coord_planes(raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
+                ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
+                scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
+            ],
+            dim=1,
+        )
     if feature_mode == "raw_multiscale_storedhf_coord_ev_noise":
         if stored_hf is None:
             raise ValueError("raw_multiscale_storedhf_coord_ev_noise requires candidate_raw_hf_cfa4")
@@ -259,6 +285,7 @@ def feature_channels(feature_mode: str) -> int:
         "raw_hf_coord_ev_noise": 15,
         "raw_multiscale_coord_ev_noise": 23,
         "raw_context_coord_ev_noise": 35,
+        "raw_context_storedhf_coord_ev_noise": 47,
         "raw_multiscale_storedhf_coord_ev_noise": 27,
     }[feature_mode]
 
@@ -267,6 +294,8 @@ def runtime_input_summary(feature_mode: str) -> str:
     base = "candidate_raw_cfa4 + candidate_raw_highpass + deterministic coordinates/EV + camera/ISO noise sidecar scalars"
     if feature_mode == "raw_context_coord_ev_noise":
         return base + " + pooled candidate raw/HF context planes + global candidate raw scalars"
+    if feature_mode == "raw_context_storedhf_coord_ev_noise":
+        return base + " + stored candidate_raw_hf_cfa4 + pooled candidate raw/HF/stored-HF context planes + global raw/HF scalars"
     if feature_mode == "raw_multiscale_storedhf_coord_ev_noise":
         return base + " + stored candidate_raw_hf_cfa4"
     return base
@@ -611,8 +640,8 @@ code{{color:#b7d7ff}}img{{max-width:100%;border:1px solid #333}}
 
 def train(args: argparse.Namespace) -> dict[str, Any]:
     data = RawCfaResidualTargets(args.targets)
-    if args.feature_mode == "raw_multiscale_storedhf_coord_ev_noise" and data.candidate_raw_hf is None:
-        raise ValueError("raw_multiscale_storedhf_coord_ev_noise requires candidate_raw_hf_cfa4 in the target NPZ")
+    if args.feature_mode in {"raw_multiscale_storedhf_coord_ev_noise", "raw_context_storedhf_coord_ev_noise"} and data.candidate_raw_hf is None:
+        raise ValueError(f"{args.feature_mode} requires candidate_raw_hf_cfa4 in the target NPZ")
     train_indices, holdout_indices = data.row_indices(
         args.holdout_scene,
         args.holdout_camera,
@@ -781,6 +810,7 @@ def main() -> int:
             "raw_hf_coord_ev_noise",
             "raw_multiscale_coord_ev_noise",
             "raw_context_coord_ev_noise",
+            "raw_context_storedhf_coord_ev_noise",
             "raw_multiscale_storedhf_coord_ev_noise",
         ),
         default="raw_multiscale_coord_ev_noise",

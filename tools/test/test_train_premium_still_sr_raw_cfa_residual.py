@@ -174,6 +174,15 @@ def main() -> int:
         assert context_receipt["policy"]["uses_source_raw_at_runtime"] is False
         assert "pooled candidate raw/HF context planes" in context_receipt["policy"]["runtime_inputs"]
 
+        args.output_dir = root / "context_storedhf_holdout"
+        args.feature_mode = "raw_context_storedhf_coord_ev_noise"
+        context_hf_receipt = tool.train(args)
+        assert context_hf_receipt["eval"]["holdout"]["row_count"] == 1
+        assert context_hf_receipt["config"]["feature_mode"] == "raw_context_storedhf_coord_ev_noise"
+        assert context_hf_receipt["policy"]["uses_source_raw_at_runtime"] is False
+        assert "stored candidate_raw_hf_cfa4" in context_hf_receipt["policy"]["runtime_inputs"]
+        assert "pooled candidate raw/HF/stored-HF context planes" in context_hf_receipt["policy"]["runtime_inputs"]
+
         bad_npz = root / "bad_targets.npz"
         np.savez_compressed(
             bad_npz,

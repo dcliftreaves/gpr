@@ -205,7 +205,8 @@ Evidence required:
    noise-thresholded targets do not fix X2D, and a larger-patch
    high-residual-weighted local pass regresses the hard X2D holdout to about
    -0.65 percent. A first pooled raw-context feature pass also remains
-   negative at about -0.33 percent. The next work should test a stronger
+   negative at about -0.33 percent, and a combined stored-HF plus pooled-context
+   feature pass regresses to about -0.43 percent. The next work should test a stronger
    X2D/domain-general raw residual model with full-image or routed context,
    with calibrated noise sidecars used as conditioning rather than as a blunt
    subtraction target.

@@ -237,6 +237,7 @@ The next X2D probes narrowed that further:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w48_1600_abs6_patch256_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_context_w40_1800_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_x2donly_w48_2200_20260630/train_receipt.json
 ```
 
@@ -255,13 +256,17 @@ runtime-safe and uses candidate raw plus deterministic context features, but
 the hard X2D holdout remains negative at about -0.33 percent median MAE
 recovery. An X2D-only train-domain probe also fails: it trains on 216 X2D rows,
 holds out 27 rows from `2024_April_X2D_1742`, and still lands at about -0.15
-percent median holdout recovery. That rules out "just emphasize larger
-residuals and larger local patches", "add simple pooled context planes", and
-"route to an X2D-only version of the same local objective" as the next path.
+percent median holdout recovery. A combined stored-HF plus pooled-context
+feature pass also fails: it trains on 324 rows, holds out the same 27 X2D rows,
+and lands at about -0.43 percent median holdout recovery while also regressing
+the training split to about -0.70 percent. That rules out "just emphasize
+larger residuals and larger local patches", "add simple pooled context planes",
+"combine stored-HF with pooled local context", and "route to an X2D-only
+version of the same local objective" as the next path.
 The next candidate should use stronger full-image/structured raw context or a
 different objective, not just the stored-HF feature, simple noise thresholding,
-local loss-weight tuning, pooled-context feature concatenation, or camera-domain
-filtering alone.
+local loss-weight tuning, pooled-context feature concatenation, combined local
+feature concatenation, or camera-domain filtering alone.
 
 ## Raw-CFA Feature Smoke
 

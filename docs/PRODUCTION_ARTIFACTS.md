@@ -475,8 +475,9 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
-| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json` | `d96adb4100571da7bfb225f6d93583a713399e5d235747abf8739fd8c2b71b34` |
-| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` | `24f484e01f5b90367c238656a07158a705356095c104ffea7a36142436159132` |
+| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json` | `b65b78752905d076f4edbbf228ac80c652d024be387f09e1ea772fa762ba897f` |
+| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` | `c47eea01e0e5e6b9b4da50170b4fd80a8e1d58124978e6e14af315b17332f88c` |
+| Premium still-SR X2D combined stored-HF/context probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json` | `bb060baaedb3f2439eb3d51fd45002eb67278c87d276d403d208351946463ea7` |
 
 Install the portable model-root artifacts as:
 
