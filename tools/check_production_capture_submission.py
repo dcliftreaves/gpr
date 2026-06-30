@@ -8,6 +8,7 @@ requirements without needing private raw files in CI.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import re
@@ -51,6 +52,16 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--requirements", type=Path, default=DEFAULT_REQUIREMENTS)
     ap.add_argument("--json-out", type=Path)
     ap.add_argument("--html-out", type=Path)
+    ap.add_argument(
+        "--require-existing-files",
+        action="store_true",
+        help="Also require every path/hash pair in the submission to exist locally and match its SHA-256.",
+    )
+    ap.add_argument(
+        "--path-root",
+        type=Path,
+        help="Resolve relative evidence paths against this root when --require-existing-files is used.",
+    )
     return ap.parse_args()
 
 
@@ -60,6 +71,66 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError(f"{path} must contain a JSON object")
     return data
+
+
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def resolve_evidence_path(value: Any, path_root: Path | None) -> Path | None:
+    if not isinstance(value, str) or not value or value.startswith("<"):
+        return None
+    path = Path(value)
+    if not path.is_absolute() and path_root is not None:
+        path = path_root / path
+    return path
+
+
+def hash_key_for_path_key(path_key: str) -> str | None:
+    if path_key == "source_path":
+        return "sha256"
+    if path_key == "gvid_path":
+        return "gvid_sha256"
+    if path_key.endswith("_path"):
+        return f"{path_key[:-5]}_sha256"
+    return None
+
+
+def iter_path_hash_pairs(value: Any) -> list[tuple[str, str, str]]:
+    pairs: list[tuple[str, str, str]] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key.endswith("_path") or key in {"source_path", "gvid_path"}:
+                hash_key = hash_key_for_path_key(key)
+                if hash_key and isinstance(item, str) and isinstance(value.get(hash_key), str):
+                    pairs.append((key, item, str(value[hash_key])))
+            pairs.extend(iter_path_hash_pairs(item))
+    elif isinstance(value, list):
+        for item in value:
+            pairs.extend(iter_path_hash_pairs(item))
+    return pairs
+
+
+def validate_existing_files(submission: dict[str, Any], path_root: Path | None) -> list[str]:
+    failures: list[str] = []
+    for key, raw_path, expected_hash in iter_path_hash_pairs(submission):
+        path = resolve_evidence_path(raw_path, path_root)
+        if path is None:
+            continue
+        if not SHA_RE.match(expected_hash):
+            failures.append(f"{key} {raw_path} has invalid expected hash")
+            continue
+        if not path.is_file():
+            failures.append(f"{key} {raw_path} does not exist")
+            continue
+        actual = sha256_file(path)
+        if actual.lower() != expected_hash.lower():
+            failures.append(f"{key} {raw_path} sha256 mismatch: expected {expected_hash}, got {actual}")
+    return failures
 
 
 def as_list(value: Any) -> list[Any]:
@@ -393,10 +464,18 @@ def validate_requirement(req: dict[str, Any], submission: dict[str, Any]) -> dic
     return fail_result(rid, [f"unsupported requirement sample_type {sample_type!r}"])
 
 
-def build_audit(requirements: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any]:
+def build_audit(
+    requirements: dict[str, Any],
+    submission: dict[str, Any],
+    *,
+    require_existing_files: bool = False,
+    path_root: Path | None = None,
+) -> dict[str, Any]:
     failures: list[str] = []
     if submission.get("schema") != SUBMISSION_SCHEMA:
         failures.append(f"submission schema must be {SUBMISSION_SCHEMA}")
+    if require_existing_files:
+        failures.extend(validate_existing_files(submission, path_root))
     req_rows = [row for row in as_list(requirements.get("requirements")) if isinstance(row, dict)]
     results = [validate_requirement(row, submission) for row in req_rows]
     pass_count = sum(1 for row in results if row["status"] == "PASS")
@@ -452,7 +531,12 @@ th {{ background: #eef2f5; color: #4f5b67; font-size: 12px; text-transform: uppe
 def main() -> int:
     args = parse_args()
     try:
-        audit = build_audit(load_json(args.requirements), load_json(args.submission))
+        audit = build_audit(
+            load_json(args.requirements),
+            load_json(args.submission),
+            require_existing_files=args.require_existing_files,
+            path_root=args.path_root,
+        )
     except Exception as exc:
         print(f"check_production_capture_submission: {exc}", file=sys.stderr)
         return 2

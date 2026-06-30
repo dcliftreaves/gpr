@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import subprocess
 import sys
@@ -14,6 +15,35 @@ ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools/check_production_capture_submission.py"
 SHA = "a" * 64
 SHA_B = "b" * 64
+
+
+def path_hash_key(key: str) -> str | None:
+    if key == "source_path":
+        return "sha256"
+    if key == "gvid_path":
+        return "gvid_sha256"
+    if key.endswith("_path"):
+        return f"{key[:-5]}_sha256"
+    return None
+
+
+def materialize_path_hashes(value, bundle: Path, counter: list[int]) -> None:
+    if isinstance(value, dict):
+        for key in list(value):
+            hash_key = path_hash_key(key)
+            if hash_key and isinstance(value.get(hash_key), str):
+                counter[0] += 1
+                rel = Path("evidence") / f"{counter[0]:03d}_{key}.bin"
+                full = bundle / rel
+                full.parent.mkdir(parents=True, exist_ok=True)
+                payload = f"{key}:{counter[0]}\n".encode("utf-8")
+                full.write_bytes(payload)
+                value[key] = rel.as_posix()
+                value[hash_key] = hashlib.sha256(payload).hexdigest()
+            materialize_path_hashes(value[key], bundle, counter)
+    elif isinstance(value, list):
+        for item in value:
+            materialize_path_hashes(item, bundle, counter)
 
 
 def temp_root() -> Path:
@@ -213,6 +243,23 @@ def main() -> int:
         proc = run_tool(manifest)
         assert proc.returncode == 1
         assert "negative control must set expected_reject=true" in proc.stdout
+
+        strict = valid_submission()
+        bundle = work / "bundle"
+        materialize_path_hashes(strict, bundle, [0])
+        manifest.write_text(json.dumps(strict, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+
+        bad = json.loads(manifest.read_text(encoding="utf-8"))
+        bad["requirements"][0]["evidence"][0]["sha256"] = SHA
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "sha256 mismatch" in proc.stdout
 
     print("test_check_production_capture_submission: PASS")
     return 0

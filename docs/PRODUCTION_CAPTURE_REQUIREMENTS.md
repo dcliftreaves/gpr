@@ -60,15 +60,28 @@ python3 tools/check_production_capture_submission.py <submission.json> \
   --html-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/index.html
 ```
 
+For a local handoff bundle where the referenced files are present, use the
+strict file/hash audit:
+
+```sh
+python3 tools/check_production_capture_submission.py <submission.json> \
+  --require-existing-files \
+  --path-root /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date> \
+  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/audit.json \
+  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/index.html
+```
+
 The submission manifest schema is `gpr.production_capture_submission.v1`. The
 checker requires source hashes, fixed camera metadata, no-scene-signal flags for
 darkframes, camera-role Mission 1 receipts, controlled PSF pair hashes,
 8192 x 6144 and 4096 x 3072 decoded Bayer dimensions, exact uint16 byte counts,
 extraction/settings/measurement receipt hashes, negative-control rejection
-reasons, and no-REF premium still-SR promotion receipts. It exits nonzero until
-every committed requirement is closed by the submitted evidence. The template
-builder and checker together are the intake tools for turning the open
-requirements above into an auditable pass/fail package.
+reasons, and no-REF premium still-SR promotion receipts. With
+`--require-existing-files`, every path/hash pair that appears in the manifest
+must exist locally and match its SHA-256. It exits nonzero until every committed
+requirement is closed by the submitted evidence. The template builder and
+checker together are the intake tools for turning the open requirements above
+into an auditable pass/fail package.
 
 ## Current Generated Handoff Views
 
