@@ -32,13 +32,15 @@ def main() -> int:
         artifacts = root / "artifacts"
         bench = artifacts / "bench.json"
         packaging = artifacts / "packaging.json"
+        metadata_audit = artifacts / "metadata_audit.json"
         out = root / "out"
         sr_raw = artifacts / "sr.raw"
         dng = artifacts / "frame.dng"
         gpr = artifacts / "frame.gpr"
         mov = artifacts / "review.mov"
         mov2 = artifacts / "review_twoframe.mov"
-        for path in (sr_raw, dng, gpr, mov, mov2):
+        metadata_dng = artifacts / "frame_meta.dng"
+        for path in (sr_raw, dng, gpr, mov, mov2, metadata_dng):
             write_file(path)
         bench.write_text(
             json.dumps(
@@ -89,6 +91,22 @@ def main() -> int:
             ),
             encoding="utf-8",
         )
+        metadata_audit.write_text(
+            json.dumps(
+                {
+                    "candidates": [
+                        {
+                            "source": str(metadata_dng),
+                            "readable_by_exiftool": True,
+                            "missing_required": [],
+                            "missing_recommended": ["OpcodeList2"],
+                            "diffs_from_reference": [{"tag": "ActiveArea"}, {"tag": "AsShotNeutral"}],
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
         subprocess.run(
             [
                 sys.executable,
@@ -107,6 +125,10 @@ def main() -> int:
                 "Hasselblad X2D",
                 "--source-frame",
                 "fixture",
+                "--metadata-audit",
+                str(metadata_audit),
+                "--metadata-dng",
+                str(metadata_dng),
             ],
             check=True,
         )
@@ -114,9 +136,11 @@ def main() -> int:
         assert receipt["schema"] == "gpr.premium_still_sr_editor_receipt.v1"
         assert receipt["openability_pass"] is True
         assert receipt["production_ready"] is False
-        assert "source-camera metadata transplant" in " ".join(receipt["blockers"])
+        assert receipt["metadata_transplant"]["passed"] is True
+        assert "raw-editor latitude" in " ".join(receipt["blockers"])
         assert receipt["dimensions"]["width"] == 11664
         assert receipt["editable_gpr"]["psnr14_db"] == 63.3
+        assert receipt["editable_gpr"]["psnr_range_db"] > 60.0
         assert (out / "index.html").is_file()
 
     print("test_build_premium_still_sr_editor_receipt: PASS")

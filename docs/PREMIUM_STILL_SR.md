@@ -442,7 +442,7 @@ under exposure stress, not Mission 1 or Z8. This is still a proxy review:
 production promotion needs raw-editor rendering/openability receipts and
 camera-noise sidecar target construction.
 
-## X2D Editor-Openability Receipt
+## X2D Editor-Openability And Metadata Receipt
 
 `tools/build_premium_still_sr_editor_receipt.py` wraps a retained SR-generation
 bench receipt and the editable DNG/GPR packaging receipt into the still-SR
@@ -451,31 +451,38 @@ product vocabulary:
 ```sh
 python3 tools/build_premium_still_sr_editor_receipt.py \
   --bench-receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/sr_gen/x2d_100mp_dng_premium_still_sr_x2d_specialist_w48_d6_2400plus2400_origx2d_holdout_sr8k_512_ov64_bench.json \
-  --packaging-receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/packaging/packaging_receipt.json \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt \
+  --packaging-receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/x2d_scaled/packaging/packaging_receipt.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt_x2dscale_meta \
   --route x2d:100mp:dng \
   --camera "Hasselblad X2D 100C" \
-  --source-frame 2024_April_X2D_1742
+  --source-frame 2024_April_X2D_1742 \
+  --metadata-audit /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/x2d_scaled/metadata_transplant_v2/metadata_transplant_audit.json \
+  --metadata-dng /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/x2d_scaled/metadata_transplant_v2/frame_000000_sr8k_x2d_meta.dng \
+  --raw-black-level 4096 \
+  --raw-white-level 59215 \
+  --min-gpr-psnr-range-db 55
 ```
 
 Current receipt:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt/index.html
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt/editor_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt_x2dscale_meta/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt_x2dscale_meta/editor_receipt.json
 ```
 
 Result:
 
-| route | dimensions | SR throughput with raw write | generic DNG | SDK GPR readback | production state |
+| route | dimensions | SR throughput with raw write | metadata DNG | SDK GPR readback | production state |
 |---|---:|---:|---|---|---|
-| `x2d:100mp:dng` | 11664 x 8748 | 1.50 fps | rawpy-openable and byte-identical raw roundtrip | rawpy-openable via GPR-to-DNG, 63.31 dB PSNR14 at q3 | not production-ready |
+| `x2d:100mp:dng` | 11664 x 8748 | 1.50 fps | rawpy-openable, X2D code-value scale, source-camera metadata audit passes with allowed crop/precision exceptions | rawpy-openable via GPR-to-DNG, 57.49 dB across the X2D black-to-white range at q3 | not production-ready |
 
 This closes the first editor-openability question for the hard X2D route. It
-does not close full raw-editor latitude. The receipt is intentionally
-`production_ready=false` because it uses generic normalized `rggb14` metadata
-rather than transplanted source-camera metadata, and because it proves
-openability/export rather than exposure-stressed editor behavior.
+also proves a practical source-camera metadata transplant after rescaling the
+SR raw back into X2D black/white code values. The receipt is intentionally
+`production_ready=false` because it proves openability/export, not
+exposure-stressed raw-editor latitude. The metadata audit allows the two-row
+`ActiveArea` crop, `AsShotNeutral` numeric-format drift, and missing
+recommended `OpcodeList2`; it does not allow missing required render tags.
 
 ## Production Path
 

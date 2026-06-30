@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import html
 import json
+import math
 import os
 import time
 from pathlib import Path
@@ -77,10 +78,78 @@ def first_stream_dim(media: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def metadata_audit_summary(
+    *,
+    audit_path: Path | None,
+    metadata_dng: Path | None,
+    allowed_missing_recommended: set[str],
+    allowed_diff_tags: set[str],
+    root: Path,
+) -> dict[str, Any]:
+    if audit_path is None:
+        return {
+            "provided": False,
+            "passed": False,
+            "audit": artifact_ref(None, root),
+            "metadata_dng": artifact_ref(metadata_dng, root),
+            "candidates": [],
+        }
+    audit = load_json(audit_path)
+    candidates = []
+    passed = True
+    for row in audit.get("candidates", []):
+        if not isinstance(row, dict):
+            passed = False
+            continue
+        missing_required = row.get("missing_required") if isinstance(row.get("missing_required"), list) else []
+        missing_recommended = row.get("missing_recommended") if isinstance(row.get("missing_recommended"), list) else []
+        diffs = row.get("diffs_from_reference") if isinstance(row.get("diffs_from_reference"), list) else []
+        diff_tags = sorted(
+            item.get("tag")
+            for item in diffs
+            if isinstance(item, dict) and isinstance(item.get("tag"), str)
+        )
+        missing_recommended_set = {str(item) for item in missing_recommended}
+        diff_tag_set = {str(item) for item in diff_tags}
+        row_passed = (
+            row.get("readable_by_exiftool") is True
+            and missing_required == []
+            and missing_recommended_set <= allowed_missing_recommended
+            and diff_tag_set <= allowed_diff_tags
+        )
+        passed = passed and row_passed
+        candidates.append(
+            {
+                "source": row.get("source"),
+                "passed": row_passed,
+                "readable_by_exiftool": row.get("readable_by_exiftool"),
+                "missing_required": missing_required,
+                "missing_recommended": sorted(missing_recommended_set),
+                "diff_tags": diff_tags,
+            }
+        )
+    return {
+        "provided": True,
+        "passed": bool(candidates) and passed,
+        "allowed_missing_recommended": sorted(allowed_missing_recommended),
+        "allowed_diff_tags": sorted(allowed_diff_tags),
+        "audit": artifact_ref(audit_path, root),
+        "metadata_dng": artifact_ref(metadata_dng, root),
+        "candidates": candidates,
+    }
+
+
 def build_receipt(args: argparse.Namespace) -> dict[str, Any]:
     root = args.external_root
     bench = load_json(args.bench_receipt)
     packaging = load_json(args.packaging_receipt)
+    metadata = metadata_audit_summary(
+        audit_path=args.metadata_audit,
+        metadata_dng=args.metadata_dng,
+        allowed_missing_recommended=set(args.metadata_allowed_missing_recommended or []),
+        allowed_diff_tags=set(args.metadata_allowed_diff_tag or []),
+        root=root,
+    )
 
     sr_raw = packaging.get("sr_raw", {}) if isinstance(packaging.get("sr_raw"), dict) else {}
     editable_dng = packaging.get("editable_dng", {}) if isinstance(packaging.get("editable_dng"), dict) else {}
@@ -93,7 +162,18 @@ def build_receipt(args: argparse.Namespace) -> dict[str, Any]:
     gpr_dng_open = isinstance(editable_gpr.get("gpr_to_dng_rawpy_open_shape"), list)
     dng_lossless = editable_dng.get("raw_roundtrip_byte_identical") is True
     gpr_psnr = metrics.get("psnr14_db")
-    gpr_high_quality = isinstance(gpr_psnr, (int, float)) and float(gpr_psnr) >= args.min_gpr_psnr14_db
+    rmse_dn = metrics.get("rmse_dn")
+    raw_range_dn = float(args.raw_white_level) - float(args.raw_black_level)
+    if isinstance(rmse_dn, (int, float)) and float(rmse_dn) > 0.0 and raw_range_dn > 0.0:
+        gpr_psnr_range_db: float | None = 20.0 * math.log10(raw_range_dn / float(rmse_dn))
+    elif isinstance(rmse_dn, (int, float)) and float(rmse_dn) == 0.0:
+        gpr_psnr_range_db = 99.0
+    else:
+        gpr_psnr_range_db = None
+    gpr_high_quality = (
+        isinstance(gpr_psnr_range_db, (int, float))
+        and float(gpr_psnr_range_db) >= args.min_gpr_psnr_range_db
+    )
 
     blockers: list[str] = []
     if not dng_open:
@@ -103,9 +183,9 @@ def build_receipt(args: argparse.Namespace) -> dict[str, Any]:
     if not dng_lossless:
         blockers.append("generic DNG did not roundtrip byte-identically to source raw")
     if not gpr_high_quality:
-        blockers.append(f"editable GPR PSNR14 below {args.min_gpr_psnr14_db:.1f} dB")
-    if not args.metadata_transplant:
-        blockers.append("receipt uses generic normalized raw metadata, not source-camera metadata transplant")
+        blockers.append(f"editable GPR range PSNR below {args.min_gpr_psnr_range_db:.1f} dB")
+    if not metadata["passed"]:
+        blockers.append("source-camera metadata transplant is not proven")
     if not args.raw_editor_latitude:
         blockers.append("receipt proves openability/export, not full raw-editor latitude")
 
@@ -148,10 +228,15 @@ def build_receipt(args: argparse.Namespace) -> dict[str, Any]:
             "quality": editable_gpr.get("quality"),
             "raw_to_gpr_mode": editable_gpr.get("raw_to_gpr_mode"),
             "psnr14_db": gpr_psnr,
+            "psnr_range_db": gpr_psnr_range_db,
+            "raw_black_level": args.raw_black_level,
+            "raw_white_level": args.raw_white_level,
+            "raw_range_dn": raw_range_dn,
             "mae_dn": metrics.get("mae_dn"),
-            "rmse_dn": metrics.get("rmse_dn"),
+            "rmse_dn": rmse_dn,
             "max_abs_dn": metrics.get("max_abs_dn"),
         },
+        "metadata_transplant": metadata,
         "review_media": {
             "single_frame": first_stream_dim(prores),
             "two_frame_fps_check": first_stream_dim(prores_fps),
@@ -184,6 +269,14 @@ def render_html(receipt: dict[str, Any]) -> str:
     sr = receipt["sr_runtime"]
     gpr = receipt["editable_gpr"]
     dims = receipt["dimensions"]
+    metadata = receipt["metadata_transplant"]
+    metadata_rows = "".join(
+        f"<tr><td>{html.escape(str(row.get('source')))}</td><td>{row.get('passed')}</td>"
+        f"<td>{html.escape(', '.join(row.get('missing_required') or []) or 'none')}</td>"
+        f"<td>{html.escape(', '.join(row.get('missing_recommended') or []) or 'none')}</td>"
+        f"<td>{html.escape(', '.join(row.get('diff_tags') or []) or 'none')}</td></tr>"
+        for row in metadata.get("candidates", [])
+    )
     return f"""<!doctype html>
 <html><head><meta charset="utf-8"><title>Premium Still SR Editor Receipt</title>
 <style>
@@ -199,9 +292,11 @@ td,th{{border-bottom:1px solid #333;padding:8px;text-align:left;vertical-align:t
 <div class="grid">
 <div class="card"><h2>Dimensions</h2><p>{dims.get('width')} x {dims.get('height')}</p><p>rawpy {html.escape(str(dims.get('rawpy_open_shape')))}</p></div>
 <div class="card"><h2>SR Runtime</h2><p>{sr.get('fps_with_write')} fps with write</p><p>{sr.get('total_with_write_s')} s total</p></div>
-<div class="card"><h2>Editable GPR</h2><p>{gpr.get('psnr14_db')} dB PSNR14</p><p>MAE {gpr.get('mae_dn')} DN</p></div>
+<div class="card"><h2>Editable GPR</h2><p>{gpr.get('psnr_range_db')} dB range PSNR</p><p>{gpr.get('psnr14_db')} dB PSNR14</p><p>MAE {gpr.get('mae_dn')} DN</p></div>
+<div class="card"><h2>Metadata</h2><p>passed={metadata.get('passed')}</p><p>{html.escape(str((metadata.get('metadata_dng') or {}).get('path')))}</p></div>
 </div>
 <h2>Blockers</h2><ul>{blockers}</ul>
+<h2>Metadata Audit</h2><table><tr><th>candidate</th><th>passed</th><th>missing required</th><th>missing recommended</th><th>diff tags</th></tr>{metadata_rows}</table>
 <h2>Artifacts</h2><table><tr><th>kind</th><th>path</th><th>bytes</th><th>sha256</th></tr>{artifacts}</table>
 </body></html>
 """
@@ -216,8 +311,13 @@ def main() -> int:
     ap.add_argument("--route", required=True)
     ap.add_argument("--camera", required=True)
     ap.add_argument("--source-frame", required=True)
-    ap.add_argument("--min-gpr-psnr14-db", type=float, default=60.0)
-    ap.add_argument("--metadata-transplant", action="store_true")
+    ap.add_argument("--raw-black-level", type=float, default=0.0)
+    ap.add_argument("--raw-white-level", type=float, default=16383.0)
+    ap.add_argument("--min-gpr-psnr-range-db", type=float, default=60.0)
+    ap.add_argument("--metadata-audit", type=Path)
+    ap.add_argument("--metadata-dng", type=Path)
+    ap.add_argument("--metadata-allowed-missing-recommended", action="append", default=["OpcodeList2"])
+    ap.add_argument("--metadata-allowed-diff-tag", action="append", default=["AsShotNeutral", "ActiveArea"])
     ap.add_argument("--raw-editor-latitude", action="store_true")
     ap.add_argument("--production-ready", action="store_true")
     args = ap.parse_args()
