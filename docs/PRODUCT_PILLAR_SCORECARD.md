@@ -68,7 +68,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB plus GoPro/Mission GBRG fixture coverage, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, calibrated noise-cleaning is bounded, and true source-minus-candidate same-color raw residual targets plus raw-domain trainers now exist; Z8 is mildly positive, and small U-Net/full-crop probes make the hard X2D holdout barely positive, but they are still far below promotion while X2D-only, combined stored-HF/context, context-padding-only, frame-context scalar, full-crop-only, full-crop stored-HF/context, full-crop spectral-loss, and simple band-loss probes remain below promotion. |
+| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, calibrated noise-cleaning is bounded, and true source-minus-candidate same-color raw residual targets plus raw-domain trainers now exist. Z8 is mildly positive, but X2D remains far below promotion: small U-Net/full-crop/pyramid probes only barely clear zero, and the candidate-only patch-dictionary retrieval pass regresses the hard X2D holdout. Current candidate-only local/full-crop statistics are not enough for simple CNN or nearest-neighbor transfer. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, including continuous 8K no-CNN versus CNN ProRes review media for a whole-scene A/B; near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, and a hash-strict capture request now spells out the controlled-pair capture and model-gate path. Formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -373,14 +373,30 @@ about 0.02 percent median MAE recovery and about 0.001 percent RMSE recovery
 on the same hard X2D holdout. The bounded full-crop spectral-loss U-Net probe at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_spectral_unet_w24_420_20260630/train_receipt.json`
 adds global FFT-magnitude residual loss, but reaches only about 0.03 percent
-median MAE recovery while regressing the train split. The
-next model needs full-image/structured raw context or a different objective,
-not another local loss-weight/patch-size pass, simple context-plane
-concatenation, combined local-feature concatenation, simple band-loss
-reweighting, camera-domain filtering, camera-balanced sampling, 32px context
-padding, a small U-Net alone, frame-context scalar planes alone, bounded
-full-crop sampling alone, bounded stored-HF/full-crop context alone, or bounded
-full-crop spectral loss alone.
+median MAE recovery while regressing the train split. The larger full-crop
+raw-context U-Net at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_fullcrop_rawcontext_unet_w32_900_20260630/train_receipt.json`
+uses scene-balanced full-crop samples and pooled candidate context, but still
+reaches only about 0.056 percent median MAE recovery and about 0.005 percent
+median RMSE recovery. The deeper gated pyramid U-Net at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_pyramid_rawcontext_w24_700_20260630/train_receipt.json`
+adds a third encoder scale and channel gates, but reaches only about 0.031
+percent median MAE recovery and about 0.003 percent median RMSE recovery.
+
+A non-parametric patch-dictionary probe at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_patch_dictionary_x2dholdout_20260630/patch_dictionary_probe.json`
+tests whether the missing residual can be recovered by nearest-neighbor
+retrieval over current candidate raw/HF patch statistics. It also fails:
+median raw-residual MAE recovery is about -0.80 percent and median RMSE
+recovery is about -0.72 percent on the hard X2D holdout. The next model needs
+a different runtime signal, a materially different target/objective, or a
+stronger learned detail prior, not another local loss-weight/patch-size pass,
+simple context-plane concatenation, combined local-feature concatenation,
+simple band-loss reweighting, camera-domain filtering, camera-balanced
+sampling, 32px context padding, a small U-Net alone, frame-context scalar
+planes alone, bounded full-crop sampling alone, bounded stored-HF/full-crop
+context alone, bounded full-crop spectral loss alone, a deeper pyramid over the
+same runtime features, or simple nearest-neighbor residual transfer.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a
