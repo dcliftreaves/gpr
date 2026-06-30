@@ -86,10 +86,30 @@ def residual_preview(residual: np.ndarray, scale: float) -> Image.Image:
     return Image.fromarray((arr * 255.0 + 0.5).astype(np.uint8), "RGB")
 
 
+def local_cfa4_planes(raw_crop: np.ndarray) -> np.ndarray:
+    """Return repeated local 2x2 CFA planes at the crop's full resolution."""
+    if raw_crop.ndim != 2:
+        raise ValueError(f"raw crop must be 2D, got {raw_crop.shape}")
+    height, width = raw_crop.shape
+    out = np.empty((height, width, 4), dtype=np.float32)
+    for y_phase in (0, 1):
+        for x_phase in (0, 1):
+            channel = y_phase * 2 + x_phase
+            plane = raw_crop[y_phase::2, x_phase::2]
+            expanded = np.repeat(np.repeat(plane, 2, axis=0), 2, axis=1)
+            if expanded.shape[0] < height:
+                expanded = np.pad(expanded, ((0, height - expanded.shape[0]), (0, 0)), mode="edge")
+            if expanded.shape[1] < width:
+                expanded = np.pad(expanded, ((0, 0), (0, width - expanded.shape[1])), mode="edge")
+            out[:, :, channel] = expanded[:height, :width]
+    return out
+
+
 def build_rows_from_arrays(
     *,
     ref: np.ndarray,
     cand: np.ndarray,
+    candidate_raw_norm: np.ndarray | None = None,
     ev: float,
     crop_size: int,
     crop_grid: int = 1,
@@ -100,18 +120,23 @@ def build_rows_from_arrays(
     scene_id: str | None = None,
     source_dng: Path | None = None,
     candidate_dng: Path | None = None,
-) -> tuple[list[dict[str, Any]], list[np.ndarray], list[np.ndarray], list[np.ndarray]]:
+) -> tuple[list[dict[str, Any]], list[np.ndarray], list[np.ndarray], list[np.ndarray], list[np.ndarray]]:
     if ref.shape != cand.shape:
         common_h = min(ref.shape[0], cand.shape[0])
         common_w = min(ref.shape[1], cand.shape[1])
         ref = ref[:common_h, :common_w]
         cand = cand[:common_h, :common_w]
+        if candidate_raw_norm is not None:
+            candidate_raw_norm = candidate_raw_norm[:common_h, :common_w]
+    if candidate_raw_norm is not None and candidate_raw_norm.shape[:2] != cand.shape[:2]:
+        raise ValueError(f"candidate raw feature shape {candidate_raw_norm.shape} does not match render shape {cand.shape[:2]}")
     height, width = ref.shape[:2]
     crop = min(crop_size, width, height)
     rows: list[dict[str, Any]] = []
     inputs: list[np.ndarray] = []
     residuals: list[np.ndarray] = []
     targets: list[np.ndarray] = []
+    raw_cfa_features: list[np.ndarray] = []
     if panels_dir is not None:
         panels_dir.mkdir(parents=True, exist_ok=True)
     positions = crop_positions(width, height, crop, crop_grid)
@@ -149,6 +174,11 @@ def build_rows_from_arrays(
             "residual_p95_abs": float(np.percentile(np.abs(residual), 95.0)),
             "policy": "training_target_uses_source_hf_not_runtime_render_path",
         }
+        if candidate_raw_norm is not None:
+            raw_crop = candidate_raw_norm[y : y + crop, x : x + crop]
+            raw_cfa_features.append(local_cfa4_planes(raw_crop).astype(np.float16))
+            row["candidate_raw_cfa_features"] = "local_2x2_cfa_planes_repeated_to_rgb_crop"
+            row["candidate_raw_cfa_origin_xy"] = [x, y]
         if panels_dir is not None:
             safe = f"{crop_name}_ev{ev:+.0f}".replace("+", "p").replace("-", "m")
             src_path = panels_dir / f"{safe}_source.jpg"
@@ -166,7 +196,7 @@ def build_rows_from_arrays(
         residuals.append(residual.astype(np.float16))
         targets.append(ref_hf.astype(np.float16))
         rows.append(row)
-    return rows, inputs, residuals, targets
+    return rows, inputs, residuals, targets, raw_cfa_features
 
 
 def write_contact_sheet(path: Path, rows: list[dict[str, Any]], max_rows: int) -> None:
@@ -239,15 +269,26 @@ code{{color:#b7d7ff}}.contact{{max-width:100%;border:1px solid #333}}
 """
 
 
-def write_npz(path: Path, inputs: list[np.ndarray], residuals: list[np.ndarray], targets: list[np.ndarray], rows: list[dict[str, Any]]) -> None:
+def write_npz(
+    path: Path,
+    inputs: list[np.ndarray],
+    residuals: list[np.ndarray],
+    targets: list[np.ndarray],
+    rows: list[dict[str, Any]],
+    raw_cfa_features: list[np.ndarray] | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(
-        path,
-        inputs=np.stack(inputs, axis=0).astype(np.float16),
-        hf_residuals=np.stack(residuals, axis=0).astype(np.float16),
-        source_hf_targets=np.stack(targets, axis=0).astype(np.float16),
-        meta=np.asarray(json.dumps(rows, sort_keys=True)),
-    )
+    arrays: dict[str, Any] = {
+        "inputs": np.stack(inputs, axis=0).astype(np.float16),
+        "hf_residuals": np.stack(residuals, axis=0).astype(np.float16),
+        "source_hf_targets": np.stack(targets, axis=0).astype(np.float16),
+        "meta": np.asarray(json.dumps(rows, sort_keys=True)),
+    }
+    if raw_cfa_features is not None:
+        if len(raw_cfa_features) != len(inputs):
+            raise ValueError(f"raw CFA feature count {len(raw_cfa_features)} does not match input count {len(inputs)}")
+        arrays["candidate_raw_cfa4"] = np.stack(raw_cfa_features, axis=0).astype(np.float16)
+    np.savez_compressed(path, **arrays)
 
 
 def render_rawpy_with_raw_replacement(
@@ -288,6 +329,36 @@ def render_rawpy_with_raw_replacement(
         raw.close()
 
 
+def load_normalized_raw_from_dng(path: Path) -> np.ndarray:
+    import rawpy
+
+    raw = rawpy.imread(str(path))
+    try:
+        arr = raw.raw_image.copy().astype(np.float32)
+        black = float(np.mean(raw.black_level_per_channel)) if raw.black_level_per_channel is not None else 0.0
+        white = float(raw.white_level or 65535.0)
+        return np.clip((arr - black) / max(white - black, 1.0), 0.0, 1.0)
+    finally:
+        raw.close()
+
+
+def load_normalized_raw_from_file(path: Path, *, width: int, height: int, template_dng: Path) -> np.ndarray:
+    values = np.fromfile(path, dtype="<u2")
+    expected = width * height
+    if values.size != expected:
+        raise ValueError(f"{path} has {values.size} pixels, expected {expected}")
+    arr = values.reshape((height, width)).astype(np.float32)
+    import rawpy
+
+    raw = rawpy.imread(str(template_dng))
+    try:
+        black = float(np.mean(raw.black_level_per_channel)) if raw.black_level_per_channel is not None else 0.0
+        white = float(raw.white_level or 65535.0)
+    finally:
+        raw.close()
+    return np.clip((arr - black) / max(white - black, 1.0), 0.0, 1.0)
+
+
 def infer_candidate_raw_shape(candidate_raw: Path) -> tuple[int, int]:
     receipt_path = candidate_raw.with_suffix(candidate_raw.suffix + ".json")
     try:
@@ -317,7 +388,21 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     inputs: list[np.ndarray] = []
     residuals: list[np.ndarray] = []
     targets: list[np.ndarray] = []
+    raw_cfa_features: list[np.ndarray] = []
     render_times: list[dict[str, Any]] = []
+    candidate_raw_norm: np.ndarray | None = None
+    if args.include_raw_cfa_features:
+        if args.half_size:
+            raise ValueError("--include-raw-cfa-features is incompatible with --half-size")
+        if args.candidate_raw:
+            candidate_raw_norm = load_normalized_raw_from_file(
+                args.candidate_raw,
+                width=args.candidate_raw_width,
+                height=args.candidate_raw_height,
+                template_dng=args.source_dng,
+            )
+        else:
+            candidate_raw_norm = load_normalized_raw_from_dng(args.candidate_dng)
     for ev in [float(v) for v in args.ev]:
         t0 = time.perf_counter()
         ref = render_rawpy(args.source_dng, ev, args.output_bps, args.half_size)
@@ -335,9 +420,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         else:
             cand = render_rawpy(args.candidate_dng, ev, args.output_bps, args.half_size)
         t2 = time.perf_counter()
-        part_rows, part_inputs, part_residuals, part_targets = build_rows_from_arrays(
+        part_rows, part_inputs, part_residuals, part_targets, part_raw_cfa_features = build_rows_from_arrays(
             ref=ref,
             cand=cand,
+            candidate_raw_norm=candidate_raw_norm,
             ev=ev,
             crop_size=args.crop_size,
             crop_grid=args.crop_grid,
@@ -356,6 +442,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         inputs.extend(part_inputs)
         residuals.extend(part_residuals)
         targets.extend(part_targets)
+        raw_cfa_features.extend(part_raw_cfa_features)
         render_times.append({"ev": ev, "source_s": t1 - t0, "candidate_s": t2 - t1})
         del ref
         del cand
@@ -363,7 +450,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     contact = args.output_dir / "contact_sheet.jpg"
     write_contact_sheet(contact, rows_sorted, args.contact_rows)
     npz_path = args.output_dir / "hf_residual_targets.npz"
-    write_npz(npz_path, inputs, residuals, targets, rows)
+    write_npz(npz_path, inputs, residuals, targets, rows, raw_cfa_features if args.include_raw_cfa_features else None)
     summary = {
         "row_count": len(rows),
         "hf_y_correlation": stats([float(row["hf_y_correlation"]) for row in rows if row["hf_y_correlation"] is not None]),
@@ -416,6 +503,11 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "inputs": "candidate_render_rgb_float16_nhwc",
             "hf_residuals": "source_hf_minus_candidate_hf_float16_nhwc",
             "source_hf_targets": "source_hf_float16_nhwc",
+            "candidate_raw_cfa4": (
+                "candidate_raw_local_2x2_cfa_planes_float16_nhwc_repeated_to_rgb_crop"
+                if args.include_raw_cfa_features
+                else None
+            ),
         },
         "contact_sheet": str(contact),
         "artifacts": {"npz": artifact_ref(npz_path), "contact_sheet": artifact_ref(contact)},
@@ -445,6 +537,7 @@ def main() -> int:
     ap.add_argument("--block", type=int, default=16)
     ap.add_argument("--output-bps", type=int, choices=(8, 16), default=16)
     ap.add_argument("--half-size", action="store_true")
+    ap.add_argument("--include-raw-cfa-features", action="store_true")
     ap.add_argument("--residual-preview-scale", type=float, default=0.08)
     ap.add_argument("--contact-rows", type=int, default=9)
     args = ap.parse_args()

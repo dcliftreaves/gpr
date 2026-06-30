@@ -61,6 +61,7 @@ def main() -> int:
         inputs = []
         residuals = []
         source_hf = []
+        raw_cfa = []
         rows = []
         for i, ev in enumerate([-2.0, 0.0, 2.0, 0.0]):
             base = np.zeros((48, 48, 3), dtype=np.float32)
@@ -71,6 +72,12 @@ def main() -> int:
             inputs.append(base.astype(np.float16))
             residuals.append(residual.astype(np.float16))
             source_hf.append((residual * 1.5).astype(np.float16))
+            raw_planes = np.zeros((48, 48, 4), dtype=np.float32)
+            raw_planes[:, :, 0] = base[:, :, 0]
+            raw_planes[:, :, 1] = base[:, :, 1]
+            raw_planes[:, :, 2] = base[:, :, 1] * 0.9
+            raw_planes[:, :, 3] = base[:, :, 2]
+            raw_cfa.append(raw_planes.astype(np.float16))
             rows.append(
                 {
                     "scene_id": "holdout_scene" if i == 3 else "train_scene",
@@ -87,6 +94,7 @@ def main() -> int:
             inputs=np.stack(inputs),
             hf_residuals=np.stack(residuals),
             source_hf_targets=np.stack(source_hf),
+            candidate_raw_cfa4=np.stack(raw_cfa),
             meta=np.asarray(json.dumps(rows, sort_keys=True)),
         )
 
@@ -103,7 +111,7 @@ def main() -> int:
                 "width": 8,
                 "depth": 3,
                 "residual_scale": 0.08,
-                "feature_mode": "rgb_multiscale_coord_luma_ev_noise_bright",
+                "feature_mode": "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright",
                 "feature_block": 8,
                 "lr": 1.0e-3,
                 "weight_decay": 0.0,
@@ -130,6 +138,7 @@ def main() -> int:
         assert receipt["eval"]["holdout"]["row_count"] == 1
         assert receipt["config"]["holdout_scene"] == "holdout_scene"
         assert receipt["config"]["uses_noise_sidecar_features"] is True
+        assert receipt["config"]["uses_raw_cfa_features"] is True
 
     print("test_train_premium_still_sr_hf_residual: PASS")
     return 0

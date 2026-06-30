@@ -140,10 +140,10 @@ fixtures in the routed manifest, but the plan defers them until validated
 same-camera noise sidecars exist.
 
 The generated command contract is intentionally executable with the current
-tooling: per-scene target building uses `--noise-sidecar`, and the next trainer
-uses `--feature-mode rgb_multiscale_coord_luma_ev_noise_bright`. Do not change
-that wording to `raw_cfa_*` until the target NPZ and trainer actually carry raw
-CFA planes rather than rendered RGB crops.
+tooling: per-scene target building uses `--noise-sidecar` and
+`--include-raw-cfa-features`, and the training step now pairs a raw-CFA probe
+with a matched RGB ablation. The raw-CFA probe is evidence only until it beats
+the RGB ablation and survives the full still/editor-latitude gate.
 
 ## Expanded Target Build And Result
 
@@ -175,6 +175,53 @@ rules out "just add target coverage to the current rendered-context learner" as
 the next production path. The next pass should change the model/feature
 contract, most likely toward raw/CFA-aware or larger-context texture modeling,
 then re-run the full still-SR gate.
+
+## Raw-CFA Feature Smoke
+
+The target builder, merge tool, and trainer now support optional raw-CFA
+feature planes:
+
+- `tools/cnn/build_premium_still_sr_hf_residual_targets.py --include-raw-cfa-features`
+  writes `candidate_raw_cfa4` into the target NPZ.
+- `tools/cnn/merge_premium_still_sr_hf_residual_targets.py` preserves
+  `candidate_raw_cfa4` only when every merged target source has those arrays,
+  and otherwise records incomplete raw-CFA coverage.
+- `tools/cnn/train_premium_still_sr_hf_residual.py --feature-mode rgb_multiscale_rawcfa_coord_luma_ev_noise_bright`
+  refuses to run unless the target NPZ carries `candidate_raw_cfa4`.
+
+The first real one-scene raw-CFA smoke target is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_smoke_targets_20260630/2025_10_oct_austin_0626/hf_residual_targets.json
+```
+
+It contains 27 X2D crops and stores:
+
+```text
+inputs:              27 x 768 x 768 x 3 float16
+hf_residuals:        27 x 768 x 768 x 3 float16
+source_hf_targets:   27 x 768 x 768 x 3 float16
+candidate_raw_cfa4:  27 x 768 x 768 x 4 float16
+```
+
+The first raw-CFA w64/d6 probe is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_probe_model_20260630/train_receipt.json
+```
+
+It improves train median residual MAE by about 1.62 percent and +2 EV holdout
+median residual MAE by about 0.24 percent. The matched RGB-only ablation is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_ablation_rgb_model_20260630/train_receipt.json
+```
+
+It improves train median residual MAE by about 1.62 percent and +2 EV holdout
+median residual MAE by about 0.63 percent. That means the naive raw-CFA
+channel-concat feature contract is not yet better than RGB rendered-context
+features. The next raw/CFA pass should change the architecture or target
+representation, not merely add raw planes to the current CNN.
 
 ## Fixture Manifest Builder
 

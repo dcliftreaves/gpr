@@ -117,10 +117,12 @@ def main() -> int:
         commands = "\n".join(row["command_template"] for row in plan["commands"])
         assert "build_premium_still_sr_degraded_candidate_raw.py" in commands
         assert "--candidate-raw" in commands
+        assert "--include-raw-cfa-features" in commands
         assert "--noise-sidecar" in commands
         assert "--synthetic-hf-sidecar" not in commands
         assert "--feature-mode rgb_multiscale_coord_luma_ev_noise_bright" in commands
-        assert "raw_cfa_multiscale_coord_luma_ev_noise_bright" not in commands
+        assert "--feature-mode rgb_multiscale_rawcfa_coord_luma_ev_noise_bright" in commands
+        assert "premium_still_sr_expanded_rgb_ablation_model_20260630" in commands
         assert "Premium Still-SR Target Expansion Plan" in html
         assert proc.stdout.strip() == str(out / "index.html")
 

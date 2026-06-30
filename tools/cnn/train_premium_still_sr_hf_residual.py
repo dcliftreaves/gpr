@@ -106,6 +106,7 @@ def make_features(
     block: int,
     ev: torch.Tensor | None = None,
     noise: torch.Tensor | None = None,
+    raw_cfa: torch.Tensor | None = None,
 ) -> torch.Tensor:
     if feature_mode == "rgb":
         return x
@@ -155,6 +156,26 @@ def make_features(
             ],
             dim=1,
         )
+    if feature_mode == "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright":
+        if raw_cfa is None:
+            raise ValueError("feature mode rgb_multiscale_rawcfa_coord_luma_ev_noise_bright requires candidate_raw_cfa4")
+        luma = luma_plane(x)
+        coarse_block = max(block * 4, block + 2)
+        return torch.cat(
+            [
+                x,
+                block_highpass(x, block),
+                block_highpass(x, coarse_block),
+                raw_cfa,
+                block_highpass(raw_cfa, block),
+                coord_planes(x.shape[0], x.shape[-2], x.shape[-1], x.device),
+                luma,
+                ev_plane(ev, x.shape[0], x.shape[-2], x.shape[-1], x.device),
+                scalar_planes(noise, x.shape[0], x.shape[-2], x.shape[-1], x.device, 4),
+                brightness_planes(luma),
+            ],
+            dim=1,
+        )
     raise ValueError(f"unknown feature mode: {feature_mode}")
 
 
@@ -166,6 +187,7 @@ def feature_channels(feature_mode: str) -> int:
         "rgb_hf_luma_ev_bright": 12,
         "rgb_hf_coord_luma_ev_noise_bright": 18,
         "rgb_multiscale_coord_luma_ev_noise_bright": 21,
+        "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright": 29,
     }[feature_mode]
 
 
@@ -173,7 +195,12 @@ def uses_noise_sidecar_features(feature_mode: str) -> bool:
     return feature_mode in {
         "rgb_hf_coord_luma_ev_noise_bright",
         "rgb_multiscale_coord_luma_ev_noise_bright",
+        "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright",
     }
+
+
+def uses_raw_cfa_features(feature_mode: str) -> bool:
+    return feature_mode in {"rgb_multiscale_rawcfa_coord_luma_ev_noise_bright"}
 
 
 def load_noise_feature_from_sidecar(path: str | Path) -> tuple[float, float, float, float]:
@@ -254,11 +281,14 @@ class HfResidualTargets:
             self.inputs = z["inputs"].astype(np.float32)
             self.targets = z["hf_residuals"].astype(np.float32)
             self.source_hf_targets = z["source_hf_targets"].astype(np.float32)
+            self.raw_cfa = z["candidate_raw_cfa4"].astype(np.float32) if "candidate_raw_cfa4" in z.files else None
             self.rows = json.loads(str(z["meta"]))
         if self.inputs.shape != self.targets.shape:
             raise ValueError(f"input/target shape mismatch: {self.inputs.shape} vs {self.targets.shape}")
         if self.inputs.ndim != 4 or self.inputs.shape[-1] != 3:
             raise ValueError(f"expected NHWC RGB arrays, got {self.inputs.shape}")
+        if self.raw_cfa is not None and self.raw_cfa.shape[:3] != self.inputs.shape[:3]:
+            raise ValueError(f"raw CFA feature shape {self.raw_cfa.shape} does not match inputs {self.inputs.shape}")
         cache: dict[str, tuple[float, float, float, float]] = {}
         self.noise_features: list[tuple[float, float, float, float]] = []
         for row in self.rows:
@@ -300,9 +330,10 @@ class HfResidualTargets:
         batch_size: int,
         patch_size: int,
         rng: random.Random,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
         xs: list[np.ndarray] = []
         ys: list[np.ndarray] = []
+        raws: list[np.ndarray] = []
         evs: list[float] = []
         noises: list[tuple[float, float, float, float]] = []
         h, w = self.inputs.shape[1:3]
@@ -313,6 +344,8 @@ class HfResidualTargets:
             x0 = rng.randrange(0, w - patch + 1) if w > patch else 0
             xs.append(self.inputs[idx, y0 : y0 + patch, x0 : x0 + patch].transpose(2, 0, 1))
             ys.append(self.targets[idx, y0 : y0 + patch, x0 : x0 + patch].transpose(2, 0, 1))
+            if self.raw_cfa is not None:
+                raws.append(self.raw_cfa[idx, y0 : y0 + patch, x0 : x0 + patch].transpose(2, 0, 1))
             evs.append(float(self.rows[idx].get("ev", 0.0)))
             noises.append(self.noise_features[idx])
         return (
@@ -320,6 +353,7 @@ class HfResidualTargets:
             torch.from_numpy(np.stack(ys)),
             torch.tensor(evs, dtype=torch.float32),
             torch.tensor(noises, dtype=torch.float32),
+            torch.from_numpy(np.stack(raws)) if raws else None,
         )
 
 
@@ -339,6 +373,11 @@ def eval_rows(
     for idx in indices:
         cand = torch.from_numpy(data.inputs[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
         target = torch.from_numpy(data.targets[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
+        raw_cfa_full = (
+            torch.from_numpy(data.raw_cfa[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
+            if data.raw_cfa is not None
+            else None
+        )
         ev = torch.tensor([float(data.rows[idx].get("ev", 0.0))], dtype=torch.float32, device=device)
         noise = torch.tensor([data.noise_features[idx]], dtype=torch.float32, device=device)
         pred = torch.zeros_like(target)
@@ -346,7 +385,10 @@ def eval_rows(
         for y0 in range(0, height, tile):
             for x0 in range(0, width, tile):
                 cand_tile = cand[:, :, y0 : y0 + tile, x0 : x0 + tile]
-                pred[:, :, y0 : y0 + tile, x0 : x0 + tile] = model(make_features(cand_tile, feature_mode, feature_block, ev, noise))
+                raw_tile = raw_cfa_full[:, :, y0 : y0 + tile, x0 : x0 + tile] if raw_cfa_full is not None else None
+                pred[:, :, y0 : y0 + tile, x0 : x0 + tile] = model(
+                    make_features(cand_tile, feature_mode, feature_block, ev, noise, raw_tile)
+                )
         base_err = target
         pred_err = pred - target
         base_mae = float(torch.mean(torch.abs(base_err)).cpu())
@@ -410,9 +452,14 @@ def write_panel_sheet(
     model.eval()
     for row_i, idx in enumerate(selected):
         cand = torch.from_numpy(data.inputs[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
+        raw_cfa = (
+            torch.from_numpy(data.raw_cfa[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
+            if data.raw_cfa is not None
+            else None
+        )
         ev = torch.tensor([float(data.rows[idx].get("ev", 0.0))], dtype=torch.float32, device=device)
         noise = torch.tensor([data.noise_features[idx]], dtype=torch.float32, device=device)
-        pred = model(make_features(cand, feature_mode, feature_block, ev, noise)).squeeze(0).cpu().numpy().transpose(1, 2, 0)
+        pred = model(make_features(cand, feature_mode, feature_block, ev, noise, raw_cfa)).squeeze(0).cpu().numpy().transpose(1, 2, 0)
         target = data.targets[idx]
         err = np.abs(pred - target)
         panels = [
@@ -478,6 +525,8 @@ code{{color:#b7d7ff}}img{{max-width:100%;border:1px solid #333}}
 
 def train(args: argparse.Namespace) -> dict[str, Any]:
     data = HfResidualTargets(args.targets)
+    if uses_raw_cfa_features(args.feature_mode) and data.raw_cfa is None:
+        raise ValueError(f"{args.feature_mode} requires targets built with --include-raw-cfa-features")
     train_indices, holdout_indices = data.row_indices(args.holdout_ev, args.holdout_crop, args.holdout_scene)
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
@@ -491,12 +540,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     history: list[dict[str, Any]] = []
     t0 = time.perf_counter()
     for step in range(1, args.steps + 1):
-        x, y, ev, noise = data.sample_batch(train_indices, args.batch_size, args.patch_size, rng)
+        x, y, ev, noise, raw_cfa = data.sample_batch(train_indices, args.batch_size, args.patch_size, rng)
         x = x.to(DEVICE)
         y = y.to(DEVICE)
         ev = ev.to(DEVICE)
         noise = noise.to(DEVICE)
-        pred = model(make_features(x, args.feature_mode, args.feature_block, ev, noise))
+        raw_cfa = raw_cfa.to(DEVICE) if raw_cfa is not None else None
+        pred = model(make_features(x, args.feature_mode, args.feature_block, ev, noise, raw_cfa))
         loss = residual_loss(
             pred,
             y,
@@ -547,6 +597,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "bright_weight": args.bright_weight,
                 "near_clip_weight": args.near_clip_weight,
                 "uses_noise_sidecar_features": uses_noise_sidecar_features(args.feature_mode),
+                "uses_raw_cfa_features": uses_raw_cfa_features(args.feature_mode),
             },
         },
         checkpoint,
@@ -587,6 +638,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "bright_weight": args.bright_weight,
             "near_clip_weight": args.near_clip_weight,
             "uses_noise_sidecar_features": uses_noise_sidecar_features(args.feature_mode),
+            "uses_raw_cfa_features": uses_raw_cfa_features(args.feature_mode),
             "holdout_ev": args.holdout_ev,
             "holdout_crop": args.holdout_crop,
             "holdout_scene": args.holdout_scene,
@@ -595,7 +647,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "policy": {
             "uses_source_hf_at_training": True,
             "uses_source_hf_at_runtime": False,
-            "runtime_inputs": "candidate_render_rgb + candidate_highpass/multiscale_highpass + deterministic coordinates + candidate_luma/brightness_buckets + deterministic_render_ev + camera/ISO noise sidecar scalars when selected",
+            "runtime_inputs": (
+                "candidate_render_rgb + candidate_highpass/multiscale_highpass + candidate_raw_cfa4 when selected "
+                "+ deterministic coordinates + candidate_luma/brightness_buckets + deterministic_render_ev + camera/ISO noise sidecar scalars when selected"
+            ),
             "production_status": "smoke_training_probe_not_registered_production_algorithm",
         },
         "history": history,
@@ -631,6 +686,7 @@ def main() -> int:
             "rgb_hf_luma_ev_bright",
             "rgb_hf_coord_luma_ev_noise_bright",
             "rgb_multiscale_coord_luma_ev_noise_bright",
+            "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright",
         ),
         default="rgb_hf_coord",
     )

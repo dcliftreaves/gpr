@@ -31,13 +31,14 @@ def stats(values: list[float]) -> dict[str, float]:
     return {"min": float(arr.min()), "median": float(np.median(arr)), "mean": float(arr.mean()), "max": float(arr.max())}
 
 
-def load_target(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[dict[str, Any]]]:
+def load_target(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray | None, list[dict[str, Any]]]:
     with np.load(path, allow_pickle=False) as z:
         inputs = z["inputs"]
         residuals = z["hf_residuals"]
         source_hf = z["source_hf_targets"]
+        raw_cfa = z["candidate_raw_cfa4"] if "candidate_raw_cfa4" in z.files else None
         rows = json.loads(str(z["meta"]))
-    return inputs, residuals, source_hf, rows
+    return inputs, residuals, source_hf, raw_cfa, rows
 
 
 def merge(args: argparse.Namespace) -> dict[str, Any]:
@@ -45,28 +46,38 @@ def merge(args: argparse.Namespace) -> dict[str, Any]:
     all_inputs: list[np.ndarray] = []
     all_residuals: list[np.ndarray] = []
     all_source_hf: list[np.ndarray] = []
+    all_raw_cfa: list[np.ndarray] = []
+    raw_cfa_source_count = 0
     rows: list[dict[str, Any]] = []
     sources: list[dict[str, Any]] = []
     shape: tuple[int, ...] | None = None
     for path in args.target:
-        inputs, residuals, source_hf, part_rows = load_target(path)
+        inputs, residuals, source_hf, raw_cfa, part_rows = load_target(path)
         if shape is None:
             shape = tuple(inputs.shape[1:])
         elif tuple(inputs.shape[1:]) != shape:
             raise ValueError(f"{path} has row shape {inputs.shape[1:]}, expected {shape}")
+        if raw_cfa is not None:
+            if raw_cfa.shape[:3] != inputs.shape[:3]:
+                raise ValueError(f"{path} raw CFA shape {raw_cfa.shape} does not match inputs {inputs.shape}")
+            all_raw_cfa.append(raw_cfa)
+            raw_cfa_source_count += 1
         all_inputs.append(inputs)
         all_residuals.append(residuals)
         all_source_hf.append(source_hf)
         rows.extend(part_rows)
         sources.append({"path": str(path), "sha256": sha256_file(path), "rows": int(inputs.shape[0])})
     out_npz = args.output_dir / "hf_residual_targets_merged.npz"
-    np.savez_compressed(
-        out_npz,
-        inputs=np.concatenate(all_inputs, axis=0).astype(np.float16),
-        hf_residuals=np.concatenate(all_residuals, axis=0).astype(np.float16),
-        source_hf_targets=np.concatenate(all_source_hf, axis=0).astype(np.float16),
-        meta=np.asarray(json.dumps(rows, sort_keys=True)),
-    )
+    arrays: dict[str, Any] = {
+        "inputs": np.concatenate(all_inputs, axis=0).astype(np.float16),
+        "hf_residuals": np.concatenate(all_residuals, axis=0).astype(np.float16),
+        "source_hf_targets": np.concatenate(all_source_hf, axis=0).astype(np.float16),
+        "meta": np.asarray(json.dumps(rows, sort_keys=True)),
+    }
+    raw_cfa_complete = raw_cfa_source_count == len(args.target)
+    if raw_cfa_complete and all_raw_cfa:
+        arrays["candidate_raw_cfa4"] = np.concatenate(all_raw_cfa, axis=0).astype(np.float16)
+    np.savez_compressed(out_npz, **arrays)
     scenes = sorted({str(row.get("scene_id")) for row in rows})
     receipt = {
         "schema": SCHEMA,
@@ -80,6 +91,8 @@ def merge(args: argparse.Namespace) -> dict[str, Any]:
             "scenes": scenes,
             "residual_abs_mean": stats([float(row.get("residual_abs_mean", 0.0)) for row in rows]),
             "hf_y_correlation": stats([float(row["hf_y_correlation"]) for row in rows if row.get("hf_y_correlation") is not None]),
+            "raw_cfa_feature_sources": raw_cfa_source_count,
+            "raw_cfa_feature_complete": raw_cfa_complete,
         },
         "policy": {
             "uses_source_hf": True,

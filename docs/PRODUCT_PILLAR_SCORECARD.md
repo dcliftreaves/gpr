@@ -31,7 +31,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 50% | The expanded 13-scene / 351-row target set now exists, and the first expanded rendered-context training passes prove target coverage alone is not enough; the no-REF high-frequency texture model is still not production-grade yet. |
+| Premium still/SR | 50% | The expanded 13-scene / 351-row target set now exists, and the first expanded rendered-context plus raw-CFA smoke passes prove target coverage alone is not enough; the no-REF high-frequency texture model is still not production-grade yet. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, and the first native PSF measurement has executed; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -126,6 +126,16 @@ and still shows the residual is fine-band dominated. The first expanded
 training passes are intentionally not promoted: the weighted w96
 render-context model was unstable, and the conservative w64 model landed near
 zero held-out recovery.
+
+The current raw-CFA smoke target and ablation receipts live at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_smoke_targets_20260630/2025_10_oct_austin_0626/hf_residual_targets.json`,
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_probe_model_20260630/train_receipt.json`,
+and
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_ablation_rgb_model_20260630/train_receipt.json`.
+They prove the raw-CFA target/trainer path executes on a real X2D scene, but
+the naive raw-CFA channel-concat probe trails the matched RGB ablation on +2 EV
+holdout recovery. The next model must change the raw/CFA architecture or
+target representation before readiness should move.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a

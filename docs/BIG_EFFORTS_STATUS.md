@@ -327,6 +327,21 @@ Current evidence:
   zero held-out recovery. This moves the blocker from target coverage to the
   model/feature contract; the next production pass should be raw/CFA-aware or
   otherwise larger-context texture modeling.
+- Raw-CFA feature plumbing now exists. The target builder can write
+  `candidate_raw_cfa4`, the merge tool records whether raw-CFA feature coverage
+  is complete, and the trainer has a guarded
+  `rgb_multiscale_rawcfa_coord_luma_ev_noise_bright` feature mode. The first
+  real one-scene X2D target has 27 rows with 768 x 768 x 4 raw-CFA feature
+  planes:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_smoke_targets_20260630/2025_10_oct_austin_0626/hf_residual_targets.json`.
+  A w64/d6 raw-CFA probe improves +2 EV holdout residual MAE by only about
+  0.24 percent:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_probe_model_20260630/train_receipt.json`.
+  The matched RGB-only ablation improves the same holdout by about 0.63
+  percent:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_ablation_rgb_model_20260630/train_receipt.json`.
+  This proves the raw-CFA path runs, but it rejects naive raw-CFA channel
+  concatenation as the production fix.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
@@ -349,6 +364,9 @@ Boundaries:
 - Current evidence points to the rendered-context model/feature contract as the
   premium still-SR blocker, rather than target coverage or a broken training
   loop.
+- The first raw-CFA path is plumbing/evidence, not promotion. It must beat the
+  RGB ablation and then pass full 50 MP / 100 MP still/editor gates before it
+  changes product readiness.
 - Added X2D diversity improves same-camera-class generalization, but the
   original X2D scene remains a hard outlier. That points to target/loss or
   scene-specialist work before premium still-SR can be promoted.

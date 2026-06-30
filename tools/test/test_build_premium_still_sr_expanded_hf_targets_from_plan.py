@@ -55,7 +55,16 @@ def main() -> int:
         )
         out = root / "out"
         proc = subprocess.run(
-            [sys.executable, str(TOOL), "--plan", str(plan), "--output-dir", str(out), "--dry-run"],
+            [
+                sys.executable,
+                str(TOOL),
+                "--plan",
+                str(plan),
+                "--output-dir",
+                str(out),
+                "--dry-run",
+                "--include-raw-cfa-features",
+            ],
             cwd=ROOT,
             text=True,
             stdout=subprocess.PIPE,
@@ -68,12 +77,14 @@ def main() -> int:
         receipt = json.loads((out / "expanded_target_build_receipt.json").read_text(encoding="utf-8"))
         assert receipt["schema"] == "gpr.premium_still_sr_expanded_hf_target_build.v1"
         assert receipt["dry_run"] is True
+        assert receipt["include_raw_cfa_features"] is True
         assert receipt["scene_count"] == 1
         assert str(existing) in receipt["merge_inputs"]
         commands = "\n".join(" ".join(cmd) for cmd in receipt["scene_results"][0]["commands"])
         assert "build_premium_still_sr_degraded_candidate_raw.py" in commands
         assert "build_premium_still_sr_hf_residual_targets.py" in commands
         assert "--candidate-raw" in commands
+        assert "--include-raw-cfa-features" in commands
         assert "--noise-sidecar /noise/iso200.json" in commands
 
     print("test_build_premium_still_sr_expanded_hf_targets_from_plan: PASS")

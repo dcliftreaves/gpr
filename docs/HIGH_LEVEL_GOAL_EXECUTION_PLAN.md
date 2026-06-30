@@ -186,7 +186,13 @@ Evidence required:
    but near zero held-out recovery. The next commit target should keep this
    expanded target fixed while changing the learner/feature contract, most
    likely to raw-domain/CFA-aware or otherwise larger-context texture
-   restoration, before another promotion attempt.
+   restoration, before another promotion attempt. Raw-CFA target/trainer
+   plumbing now exists and has one-scene X2D receipts under
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_smoke_targets_20260630/`,
+   but the first naive raw-CFA channel-concat probe improves +2 EV holdout by
+   only 0.24 percent, versus 0.63 percent for the matched RGB ablation. The
+   next pass should therefore change the raw/CFA architecture or target
+   representation, not simply concatenate raw planes into the current CNN.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

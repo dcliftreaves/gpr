@@ -56,12 +56,42 @@ def selected_sidecar(row: dict[str, Any]) -> str:
     raise ValueError(f"target row {row.get('scene_id')} has no usable noise sidecar")
 
 
-def planned_scene_commands(row: dict[str, Any], output_dir: Path, python: str) -> tuple[Path, Path, list[list[str]]]:
+def planned_scene_commands(
+    row: dict[str, Any],
+    output_dir: Path,
+    python: str,
+    *,
+    include_raw_cfa_features: bool = False,
+) -> tuple[Path, Path, list[list[str]]]:
     scene_id = str(row["scene_id"])
     source = str(row["source_path"])
     sidecar = selected_sidecar(row)
     candidate_raw = output_dir / "candidate_raws" / f"{scene_id}_box2_candidate.raw"
     target_dir = output_dir / scene_id
+    build_target_cmd = [
+        python,
+        "tools/cnn/build_premium_still_sr_hf_residual_targets.py",
+        "--source-dng",
+        source,
+        "--candidate-raw",
+        str(candidate_raw),
+        "--output-dir",
+        str(target_dir),
+        "--noise-sidecar",
+        sidecar,
+        "--crop-size",
+        "768",
+        "--crop-grid",
+        "3",
+        "--block",
+        "16",
+        "--output-bps",
+        "16",
+        "--contact-rows",
+        "9",
+    ]
+    if include_raw_cfa_features:
+        build_target_cmd.append("--include-raw-cfa-features")
     commands = [
         [
             python,
@@ -71,28 +101,7 @@ def planned_scene_commands(row: dict[str, Any], output_dir: Path, python: str) -
             "--output-raw",
             str(candidate_raw),
         ],
-        [
-            python,
-            "tools/cnn/build_premium_still_sr_hf_residual_targets.py",
-            "--source-dng",
-            source,
-            "--candidate-raw",
-            str(candidate_raw),
-            "--output-dir",
-            str(target_dir),
-            "--noise-sidecar",
-            sidecar,
-            "--crop-size",
-            "768",
-            "--crop-grid",
-            "3",
-            "--block",
-            "16",
-            "--output-bps",
-            "16",
-            "--contact-rows",
-            "9",
-        ],
+        build_target_cmd,
     ]
     return candidate_raw, target_dir, commands
 
@@ -119,7 +128,12 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     for row in rows:
         if not isinstance(row, dict):
             continue
-        candidate_raw, target_dir, commands = planned_scene_commands(row, output_dir, args.python)
+        candidate_raw, target_dir, commands = planned_scene_commands(
+            row,
+            output_dir,
+            args.python,
+            include_raw_cfa_features=args.include_raw_cfa_features,
+        )
         scene_result: dict[str, Any] = {
             "scene_id": row.get("scene_id"),
             "source_path": row.get("source_path"),
@@ -174,6 +188,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "plan": str(args.plan),
         "output_dir": str(output_dir),
         "dry_run": args.dry_run,
+        "include_raw_cfa_features": args.include_raw_cfa_features,
         "scene_count": len(scene_results),
         "scene_results": scene_results,
         "merge_inputs": merge_inputs,
@@ -198,6 +213,7 @@ def main() -> int:
     ap.add_argument("--max-scenes", type=int)
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--include-raw-cfa-features", action="store_true")
     args = ap.parse_args()
     receipt = build(args)
     print(

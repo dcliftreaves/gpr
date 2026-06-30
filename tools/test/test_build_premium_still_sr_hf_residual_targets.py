@@ -45,9 +45,11 @@ def main() -> int:
         cand[:, :, 0] += detail // 3
         cand[:, :, 1] += detail // 3
         cand[:, :, 2] += detail // 3
-        rows, inputs, residuals, targets = tool.build_rows_from_arrays(
+        candidate_raw_norm = ((x + y) / 128.0).astype(np.float32)
+        rows, inputs, residuals, targets, raw_cfa_features = tool.build_rows_from_arrays(
             ref=ref,
             cand=cand,
+            candidate_raw_norm=candidate_raw_norm,
             ev=0.0,
             crop_size=32,
             crop_grid=2,
@@ -60,18 +62,24 @@ def main() -> int:
             candidate_dng=root / "candidate.dng",
         )
         assert len(rows) == 4
-        assert len(inputs) == len(residuals) == len(targets) == 4
+        assert len(inputs) == len(residuals) == len(targets) == len(raw_cfa_features) == 4
         assert rows[0]["scene_id"] == "synthetic_scene"
         assert rows[0]["crop"].startswith("grid2_")
         assert rows[0]["source_dng"].endswith("source.dng")
+        assert rows[0]["candidate_raw_cfa_features"] == "local_2x2_cfa_planes_repeated_to_rgb_crop"
         assert rows[0]["residual_abs_mean"] > 0.0
         assert rows[0]["hf_y_correlation"] is not None
         npz = root / "targets.npz"
-        tool.write_npz(npz, inputs, residuals, targets, rows)
+        tool.write_npz(npz, inputs, residuals, targets, rows, raw_cfa_features)
         assert npz.stat().st_size > 0
         with np.load(npz, allow_pickle=False) as z:
             assert z["inputs"].shape == z["hf_residuals"].shape
             assert z["inputs"].dtype == np.float16
+            assert z["candidate_raw_cfa4"].shape == (4, 32, 32, 4)
+        raw_planes = tool.local_cfa4_planes(candidate_raw_norm[:4, :4])
+        assert raw_planes.shape == (4, 4, 4)
+        assert np.isclose(raw_planes[0, 0, 0], candidate_raw_norm[0, 0])
+        assert np.isclose(raw_planes[0, 0, 3], candidate_raw_norm[1, 1])
         contact = root / "contact.jpg"
         tool.write_contact_sheet(contact, rows, 4)
         assert contact.stat().st_size > 0

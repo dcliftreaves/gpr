@@ -297,15 +297,19 @@ def build_plan(args: argparse.Namespace) -> dict[str, Any]:
             },
             {
                 "step": "build_hf_targets_per_selected_scene",
-                "command_template": "python3 tools/cnn/build_premium_still_sr_hf_residual_targets.py --source-dng <selected source_path> --candidate-raw /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/candidate_raws/<scene_id>_box2_candidate.raw --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/<scene_id> --noise-sidecar <best camera/ISO noise sidecar> --crop-size 768 --crop-grid 3 --block 16 --output-bps 16",
+                "command_template": "python3 tools/cnn/build_premium_still_sr_hf_residual_targets.py --source-dng <selected source_path> --candidate-raw /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/candidate_raws/<scene_id>_box2_candidate.raw --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/<scene_id> --noise-sidecar <best camera/ISO noise sidecar> --crop-size 768 --crop-grid 3 --block 16 --output-bps 16 --include-raw-cfa-features",
             },
             {
                 "step": "merge_targets",
                 "command_template": "python3 tools/cnn/merge_premium_still_sr_hf_residual_targets.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged <all hf_residual_targets.npz>",
             },
             {
-                "step": "train_next_model",
-                "command_template": "python3 tools/cnn/train_premium_still_sr_hf_residual.py --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/hf_residual_targets_merged.npz --feature-mode rgb_multiscale_coord_luma_ev_noise_bright --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_render_context_model_20260630",
+                "step": "train_raw_cfa_probe",
+                "command_template": "python3 tools/cnn/train_premium_still_sr_hf_residual.py --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/hf_residual_targets_merged.npz --feature-mode rgb_multiscale_rawcfa_coord_luma_ev_noise_bright --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_model_20260630",
+            },
+            {
+                "step": "train_rgb_ablation",
+                "command_template": "python3 tools/cnn/train_premium_still_sr_hf_residual.py --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/hf_residual_targets_merged.npz --feature-mode rgb_multiscale_coord_luma_ev_noise_bright --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rgb_ablation_model_20260630",
             },
         ],
         "production_ready": False,
