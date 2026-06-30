@@ -26,6 +26,7 @@ EIGHTK_CNN = "mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1"
 
 FOURK_SIGNOFF = "artifacts/mission1_4k_cleanup_visual_signoff_20260625/production_signoff.json"
 EIGHTK_PROMOTION = "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"
+EIGHTK_CONTINUOUS_REVIEW = "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json"
 COMPAT_DIR = "artifacts/real_fixture_compatibility"
 
 
@@ -88,6 +89,48 @@ def parse_compat_receipt(path: Path | None) -> dict[str, Any]:
     return {"path": str(path), "pass_count": pass_count, "skip_count": skip_count, "rows": rows}
 
 
+def summarize_continuous_review(root: Path) -> dict[str, Any]:
+    path = rel_to_abs(root, EIGHTK_CONTINUOUS_REVIEW)
+    if path is None or not path.is_file():
+        return {
+            "available": False,
+            "receipt": EIGHTK_CONTINUOUS_REVIEW,
+            "reason": "missing continuous no-CNN vs CNN 8K review receipt",
+        }
+    data = load_json(path)
+    outputs = data.get("outputs") if isinstance(data.get("outputs"), dict) else {}
+
+    def output_summary(name: str) -> dict[str, Any]:
+        row = outputs.get(name)
+        if not isinstance(row, dict):
+            return {"path": None, "bytes": None, "sha256": None, "ffprobe": {}}
+        return {
+            "path": row.get("path"),
+            "bytes": row.get("bytes"),
+            "sha256": row.get("sha256"),
+            "ffprobe": row.get("ffprobe") if isinstance(row.get("ffprobe"), dict) else {},
+        }
+
+    true_no_cnn = output_summary("true_no_cnn")
+    with_cnn = output_summary("with_cnn")
+    side_by_side = output_summary("side_by_side_review")
+    return {
+        "available": True,
+        "receipt": EIGHTK_CONTINUOUS_REVIEW,
+        "schema": data.get("schema"),
+        "note": data.get("note"),
+        "frames": data.get("frames"),
+        "width": data.get("width"),
+        "height": data.get("height"),
+        "fps": data.get("fps"),
+        "baseline_kind": "no-CNN 4096 x 3072 raw Bayer display-upscaled to 8192 x 6144",
+        "candidate_kind": "approved 4K cleanup plus 8K SR CNN raw Bayer path",
+        "true_no_cnn": true_no_cnn,
+        "with_cnn": with_cnn,
+        "side_by_side_review": side_by_side,
+    }
+
+
 def summarize(root: Path) -> dict[str, Any]:
     registry = load_json(REGISTRY)
     cnns = registry["cnns"]
@@ -101,6 +144,7 @@ def summarize(root: Path) -> dict[str, Any]:
     fourk_signoff = load_json(rel_to_abs(root, FOURK_SIGNOFF) or Path())
     eightk_promotion = load_json(rel_to_abs(root, EIGHTK_PROMOTION) or Path())
     compat = parse_compat_receipt(latest_compat_receipt(root))
+    continuous_review = summarize_continuous_review(root)
 
     stills = [
         {"tier": "STILL smallest", "pipeline": "gpr_tools_q0 + matched q3 CNN", "mean_mb": 9.80, "worst_lpips": 0.031, "role": "smallest gated still tier"},
@@ -173,6 +217,7 @@ def summarize(root: Path) -> dict[str, Any]:
             },
             "runtime": eightk.get("gvid_decode_sr_multiframe_summary", {}),
             "packaging_quality": eightk.get("packaging_gpr_quality"),
+            "continuous_review": continuous_review,
         },
         "stills": stills,
         "compatibility": compat,
@@ -201,6 +246,7 @@ def link(path: str | None, label: str, root: Path | None = None) -> str:
 def render_html(data: dict[str, Any], out_json: Path) -> str:
     fourk = data["fourk_cleanup"]
     sr = data["eightk_sr"]
+    review = sr.get("continuous_review", {})
     compat = data["compatibility"]
     root = Path(data["source"]["external_root"])
     still_rows = "\n".join(
@@ -219,6 +265,8 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
         if row.get("status") in {"PASS", "SKIP"}
     )
     next_rows = "\n".join(f"<li>{html.escape(item)}</li>" for item in data["next_work"])
+    review_status = "available" if review.get("available") else "missing"
+    review_class = "ok" if review.get("available") else "warn"
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -289,6 +337,18 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
       <td>{html.escape(sr["status"])}</td>
       <td>{link(sr["mission_dashboard"], "Mission42 dashboard", root)} / {link(sr["z8_dashboard"], "Z8 dashboard", root)} / {link(sr["promotion_receipt"], "promotion receipt", root)}</td>
       <td>Offline-production reconstruction. Current median runtime is about 1 fps-class, not live camera playback.</td>
+    </tr>
+  </table>
+
+  <h2>Continuous 8K No-CNN vs CNN Review</h2>
+  <table>
+    <tr><th>Status</th><th>Baseline</th><th>Candidate</th><th>Side-by-side</th><th>Receipt</th></tr>
+    <tr>
+      <td class="{review_class}">{html.escape(review_status)}</td>
+      <td>{html.escape(str(review.get("baseline_kind", "n/a")))}<br>{link(metric(review, "true_no_cnn", "path"), "ProRes", root)}</td>
+      <td>{html.escape(str(review.get("candidate_kind", "n/a")))}<br>{link(metric(review, "with_cnn", "path"), "ProRes", root)}</td>
+      <td>{link(metric(review, "side_by_side_review", "path"), "3840 x 1440 ProRes", root)}</td>
+      <td>{link(review.get("receipt"), "receipt", root)}<br>{html.escape(str(review.get("frames", "n/a")))} frames at {html.escape(str(review.get("fps", "n/a")))} fps</td>
     </tr>
   </table>
 

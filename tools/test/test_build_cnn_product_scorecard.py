@@ -40,11 +40,24 @@ def main() -> int:
     assert data["eightk_sr"]["production_ready"] is True
     assert data["eightk_sr"]["mission42"]["image_count"] == 42
     assert data["eightk_sr"]["z8_all24"]["image_count"] == 24
+    review = data["eightk_sr"]["continuous_review"]
+    assert review["available"] is True
+    assert review["schema"] == "gpr.mission1_8k_true_no_cnn_vs_cnn_review.v1"
+    assert review["frames"] == 42
+    assert review["width"] == 8192
+    assert review["height"] == 6144
+    assert review["fps"] == 20
+    assert "true_no_cnn" in review["true_no_cnn"]["path"]
+    assert "with_4k_cleanup_and_8k_sr_cnn" in review["with_cnn"]["path"]
+    assert "side_by_side" in review["side_by_side_review"]["path"]
     assert data["compatibility"]["pass_count"] >= 7
     html = dashboard.read_text(encoding="utf-8")
     assert "GPR CNN Product Scorecard" in html
     assert "4K cleanup" in html
     assert "8K SR" in html
+    assert "Continuous 8K No-CNN vs CNN Review" in html
+    assert "no-CNN 4096 x 3072 raw Bayer" in html
+    assert "approved 4K cleanup plus 8K SR CNN" in html
     assert f'file://{external}/artifacts/' in html
     print("test_build_cnn_product_scorecard: PASS")
     return 0
