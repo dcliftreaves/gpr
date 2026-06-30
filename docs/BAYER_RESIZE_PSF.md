@@ -115,6 +115,30 @@ roles, while the native PSF replacement remains open because there is no real
 camera/display PSF receipt and no PSF-conditioned model has beaten the current
 Mission42 and Z8 baselines.
 
+## SR/Detail Candidate Scoreboard
+
+The candidate scoreboard scans historical Mission/Z8 SR and detail decision
+receipts, extracts baseline-vs-candidate holdout deltas, and requires
+Mission42 plus Z8 all24-scale coverage before a row can count as a current
+promotion candidate:
+
+```sh
+python3 tools/build_raw_video_sr_candidate_scoreboard.py \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630
+```
+
+Current scoreboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html
+```
+
+The current run indexes 89 historical decision receipts and finds zero
+current-scale promotion rows. The best ranked rows improve some RMSE floors but
+still regress Mission gradient floor or lack current all24-scale coverage, so
+they do not replace the approved 4K/8K baselines.
+
 ## Production Path
 
 The next real pass should move beyond modeled pairs into native capture and

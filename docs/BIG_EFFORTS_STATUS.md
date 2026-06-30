@@ -391,6 +391,10 @@ Current evidence:
 - The raw-video PSF/SR readiness audit separates the approved 4K/8K baselines
   from the unfinished native PSF replacement claim:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.
+- The raw-video SR/detail candidate scoreboard indexes 89 historical
+  Mission/Z8 decision receipts and finds zero current-scale promotion rows
+  under the Mission42 plus Z8 all24 coverage rule:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html`.
 
 Boundaries:
 

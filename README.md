@@ -71,6 +71,8 @@ Bayer resize PSF policy, synthetic receipt builder, and real-pair receipt builde
 [`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md).
 Raw-video PSF/SR readiness audit:
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.
+Raw-video SR/detail candidate scoreboard:
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html`.
 Premium still-SR gate policy and skeleton:
 [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md).
 Premium still-SR current readiness:

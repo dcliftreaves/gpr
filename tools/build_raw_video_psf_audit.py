@@ -30,6 +30,7 @@ DEFAULT_PSF_RECEIPT = (
 )
 DEFAULT_4K_SIGNOFF = "artifacts/mission1_4k_cleanup_visual_signoff_20260625/production_signoff.json"
 DEFAULT_8K_PROMOTION = "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"
+DEFAULT_SR_SCOREBOARD = "artifacts/raw_video_sr_candidate_scoreboard_20260630/scoreboard.json"
 
 
 def resolve_artifact(external_root: Path, path: str | Path) -> Path:
@@ -130,14 +131,22 @@ def build_audit(
     psf_receipt_path: Path,
     cleanup_signoff_path: Path,
     sr_promotion_path: Path,
+    sr_scoreboard_path: Path,
     synthetic: bool = False,
 ) -> dict[str, Any]:
     if synthetic:
         psf_receipt, cleanup_signoff, sr_promotion = synthetic_inputs()
+        sr_scoreboard = {
+            "schema": "gpr.raw_video_sr_candidate_scoreboard.v1",
+            "decision_count": 3,
+            "promotable_row_count": 0,
+            "production_ready": False,
+        }
     else:
         psf_receipt = load_json(psf_receipt_path)
         cleanup_signoff = load_json(cleanup_signoff_path)
         sr_promotion = load_json(sr_promotion_path)
+        sr_scoreboard = load_json(sr_scoreboard_path)
 
     cleanup_ready = bool_at(cleanup_signoff, ["verdict", "production_ready"])
     sr_ready = bool_at(sr_promotion, ["verdict", "production_ready"])
@@ -162,6 +171,8 @@ def build_audit(
     mid_share = num_at(psf_receipt, ["detail_budget", "mid_share_of_residual_abs"])
     coarse_share = num_at(psf_receipt, ["detail_budget", "coarse_share_of_residual_abs"])
     detail_ratio = num_at(psf_receipt, ["detail_budget", "residual_to_target_cell_detail_ratio"])
+    sr_decision_count = int(num_at(sr_scoreboard, ["decision_count"]) or 0)
+    sr_promotable_rows = int(num_at(sr_scoreboard, ["promotable_row_count"]) or 0)
 
     checks = [
         {
@@ -189,11 +200,17 @@ def build_audit(
             "passed": psf_conditioned_model_ready,
             "production_meaning": "Requires a PSF-conditioned model beating the approved 4K/8K baselines on raw and rendered gates.",
         },
+        {
+            "id": "sr_detail_decision_scoreboard",
+            "passed": sr_decision_count > 0 and sr_promotable_rows == 0,
+            "production_meaning": "Historical SR/detail decisions are indexed; none currently satisfy the current-scale promotion row.",
+        },
     ]
 
     blockers = [
         "No native camera/sensor/DMA/display PSF receipt is present.",
         "No PSF-conditioned replacement model has beaten both current Mission42 and Z8 baselines.",
+        f"The SR/detail candidate scoreboard indexes {sr_decision_count} decision receipts and finds {sr_promotable_rows} current-scale promotion rows.",
         "The existing pair-derived receipt is non-production by design; it proves the modeled target, not the native camera path.",
     ]
 
@@ -214,6 +231,8 @@ def build_audit(
             "z8_all24_psf_gate_passed": z8_psf_gate,
             "native_psf_ready": native_psf_ready,
             "psf_conditioned_model_ready": psf_conditioned_model_ready,
+            "sr_detail_decision_count": sr_decision_count,
+            "sr_detail_promotable_row_count": sr_promotable_rows,
         },
         "pair_derived_psf": {
             "pair_count": pair_count,
@@ -240,6 +259,7 @@ def build_audit(
             artifact_entry("pair-derived PSF/detail receipt", psf_receipt_path, psf_receipt),
             artifact_entry("Mission 1 4K cleanup signoff", cleanup_signoff_path, cleanup_signoff),
             artifact_entry("Mission 1 8K SR promotion", sr_promotion_path, sr_promotion),
+            artifact_entry("raw-video SR/detail candidate scoreboard", sr_scoreboard_path, sr_scoreboard),
         ],
     }
 
@@ -354,6 +374,7 @@ def main() -> int:
     ap.add_argument("--psf-receipt", default=DEFAULT_PSF_RECEIPT)
     ap.add_argument("--cleanup-signoff", default=DEFAULT_4K_SIGNOFF)
     ap.add_argument("--sr-promotion", default=DEFAULT_8K_PROMOTION)
+    ap.add_argument("--sr-scoreboard", default=DEFAULT_SR_SCOREBOARD)
     ap.add_argument("--synthetic", action="store_true")
     args = ap.parse_args()
 
@@ -366,11 +387,13 @@ def main() -> int:
     psf_receipt_path = resolve_artifact(args.external_root, args.psf_receipt)
     cleanup_signoff_path = resolve_artifact(args.external_root, args.cleanup_signoff)
     sr_promotion_path = resolve_artifact(args.external_root, args.sr_promotion)
+    sr_scoreboard_path = resolve_artifact(args.external_root, args.sr_scoreboard)
     data = build_audit(
         args.external_root,
         psf_receipt_path,
         cleanup_signoff_path,
         sr_promotion_path,
+        sr_scoreboard_path,
         synthetic=args.synthetic,
     )
 

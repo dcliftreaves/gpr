@@ -50,6 +50,8 @@ def main() -> int:
         assert data["summary"]["cleanup_4k_ready"] is True
         assert data["summary"]["sr_8k_ready"] is True
         assert data["summary"]["native_psf_ready"] is False
+        assert data["summary"]["sr_detail_decision_count"] == 3
+        assert data["summary"]["sr_detail_promotable_row_count"] == 0
         assert data["pair_derived_psf"]["best_kernel"] == "same_color_box2"
         assert data["pair_derived_psf"]["fine_share_of_residual_abs"] > 0.99
         assert any(check["id"] == "native_capture_display_psf" and not check["passed"] for check in data["checks"])

@@ -66,6 +66,11 @@ It records that the current 4K cleanup and 8K SR baselines are approved for
 their existing offline roles, but the PSF replacement is not production-ready
 without native camera/display PSF evidence and a PSF-conditioned model gate.
 
+The current raw-video SR/detail candidate scoreboard lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html`.
+It indexes 89 historical Mission/Z8 decision receipts and finds zero
+current-scale promotion rows under the Mission42 plus Z8 all24 coverage rule.
+
 The current premium still-SR experiment scoreboard lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html`.
 It ranks the available no-REF HF residual training receipts and currently
