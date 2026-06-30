@@ -197,6 +197,7 @@ else
                 python3 tools/test/test_build_raw_video_sr_candidate_scoreboard.py && \
                 python3 tools/test/test_build_raw_video_psf_audit.py && \
                 python3 tools/test/test_build_raw_video_psf_gap_plan.py && \
+                python3 tools/test/test_build_raw_video_psf_capture_request.py && \
                 python3 tools/test/test_build_product_pillar_scorecard.py && \
                 python3 tools/test/test_build_product_burndown.py && \
                 python3 tools/test/check_release_evidence_manifest.py && \

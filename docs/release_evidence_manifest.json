@@ -1286,6 +1286,30 @@
       }
     },
     {
+      "id": "raw_video_psf_capture_request_20260630",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Controlled Mission 1 high/low capture request required to replace near-time PSF diagnostics with a stable native PSF kernel for 4K/8K SR conditioning.",
+      "dashboard": "artifacts/raw_video_psf_capture_request_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
+      ],
+      "receipts": [
+        "artifacts/raw_video_psf_capture_request_20260630/raw_video_psf_capture_request.json",
+        "artifacts/raw_video_psf_capture_request_20260630/index.html"
+      ],
+      "metrics": {
+        "minimum_new_controlled_pair_count": 3,
+        "request_count": 2,
+        "required_request_count": 1,
+        "current_accepted_pair_count": 2,
+        "current_kernel_stable": 0,
+        "production_psf_capture_request_ready": 1
+      }
+    },
+    {
       "id": "mission1_numbered_list_closure_plan",
       "family": "mission1_readiness",
       "status": "diagnostic",

@@ -523,6 +523,14 @@ Current evidence:
   It preserves the approved 4K/8K baselines, records the accepted-pair and
   kernel-stability blockers, and requires controlled same-scene pairs before a
   PSF-conditioned model can be promoted.
+- The raw-video PSF controlled capture request turns that checklist into a
+  sample handoff:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`.
+  It records the local corpus limit explicitly: 42 native high Mission 1 frames
+  but only 3 native low frames, yielding 4 near-time candidates, 3 selected
+  pairs, 2 accepted pairs, and an unstable kernel. The request asks for locked
+  same-scene high/low pair stacks plus negative controls before training any
+  PSF-conditioned replacement.
 - The raw-video SR/detail candidate scoreboard indexes 89 historical
   Mission/Z8 decision receipts and finds zero current-scale promotion rows
   under the Mission42 plus Z8 all24 coverage rule:

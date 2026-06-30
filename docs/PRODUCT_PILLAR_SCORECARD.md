@@ -121,6 +121,12 @@ scene/alignment vetting and provided 1,409 sharp-edge plus 1,381 texture-field
 tiles, but the combined kernel was unstable and is not ready for model
 conditioning.
 
+The raw-video PSF controlled capture request lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`.
+It is the handoff for closing the measurement blocker: locked same-scene
+8192 x 6144 and 4096 x 3072 Bayer pair stacks, plus negative controls, with
+the exact validation commands required to promote a stable native PSF kernel.
+
 The current raw-video SR/detail candidate scoreboard lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html`.
 It indexes 89 historical Mission/Z8 decision receipts and finds zero
