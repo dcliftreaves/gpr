@@ -154,7 +154,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         {
             "id": "raw_video_psf_sr",
             "title": "4. RAW video improvement / PSF-aware resize",
-            "readiness_percent": 40,
+            "readiness_percent": 42,
             "status": "approved_baseline_psf_replacement_open",
             "production_ready": False,
             "claim": "4K cleanup and 8K SR are approved offline baselines, while formal native PSF/blur-aware replacement work remains open.",
@@ -163,6 +163,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "Candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates with .gvid, editable raw, and ProRes receipts.",
                 "Pair-derived PSF/detail budget over 1,024 real-fixture tiles fits a 2x2 same-color Bayer box model.",
                 "The residual budget shows the 4K-to-8K gap is almost entirely same-cell fine detail, not coarse blur.",
+                "The native Mission 1 high/low pair inventory now indexes near-time 8192 x 6144 and 4096 x 3072 capture candidates for a measured PSF pass.",
                 "The raw-video PSF audit separates approved 4K/8K baselines from the unfinished native PSF replacement claim.",
                 "The SR/detail candidate scoreboard indexes historical Mission/Z8 decisions and finds zero current-scale promotion rows.",
             ],
@@ -179,6 +180,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("8K SR promotion receipt", "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"),
                     artifact_ref("Mission42 8K dashboard", "artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_broad_fullframe/index.html"),
                     artifact_ref("PSF xlarge detail budget", "artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/bayer_resize_psf_receipt.json"),
+                    artifact_ref("Mission 1 native high/low pair inventory", "artifacts/mission1_native_psf_pair_inventory_20260630/index.html"),
                     artifact_ref("raw-video PSF audit", "artifacts/raw_video_psf_audit_20260630/index.html"),
                     artifact_ref("raw-video SR/detail candidate scoreboard", "artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html"),
                 ],
@@ -199,7 +201,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
             "Add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback for those cameras.",
             "Replace premium still-SR residual probes with a larger-context raw-domain texture/noise model before claiming an amazing-still product.",
-            "Move PSF work from modeled pair receipts to native capture/display PSF measurements, then gate against current 4K/8K baselines.",
+            "Run alignment, edge/texture mining, and measured PSF estimation on the Mission 1 native high/low candidate pairs, then gate against current 4K/8K baselines.",
         ],
     }
 

@@ -31,6 +31,7 @@ DEFAULT_PSF_RECEIPT = (
 DEFAULT_4K_SIGNOFF = "artifacts/mission1_4k_cleanup_visual_signoff_20260625/production_signoff.json"
 DEFAULT_8K_PROMOTION = "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"
 DEFAULT_SR_SCOREBOARD = "artifacts/raw_video_sr_candidate_scoreboard_20260630/scoreboard.json"
+DEFAULT_NATIVE_PAIR_INVENTORY = "artifacts/mission1_native_psf_pair_inventory_20260630/inventory.json"
 
 
 def resolve_artifact(external_root: Path, path: str | Path) -> Path:
@@ -88,7 +89,7 @@ def artifact_entry(label: str, path: Path, data: dict[str, Any] | None) -> dict[
     }
 
 
-def synthetic_inputs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+def synthetic_inputs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
     psf = {
         "schema": "gpr.bayer_resize_psf_receipt.v1",
         "production_ready": False,
@@ -123,7 +124,16 @@ def synthetic_inputs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
         "schema": "gpr.mission1_8k_sr_production_promotion.v1",
         "verdict": {"production_ready": True, "accepted_role": "production"},
     }
-    return psf, cleanup, sr
+    native_pairs = {
+        "schema": "gpr.mission1_native_psf_pair_inventory.v1",
+        "summary": {
+            "candidate_pair_count": 2,
+            "decoded_candidate_pair_count": 2,
+            "native_psf_ready": False,
+            "production_ready": False,
+        },
+    }
+    return psf, cleanup, sr, native_pairs
 
 
 def build_audit(
@@ -132,10 +142,11 @@ def build_audit(
     cleanup_signoff_path: Path,
     sr_promotion_path: Path,
     sr_scoreboard_path: Path,
+    native_pair_inventory_path: Path,
     synthetic: bool = False,
 ) -> dict[str, Any]:
     if synthetic:
-        psf_receipt, cleanup_signoff, sr_promotion = synthetic_inputs()
+        psf_receipt, cleanup_signoff, sr_promotion, native_pair_inventory = synthetic_inputs()
         sr_scoreboard = {
             "schema": "gpr.raw_video_sr_candidate_scoreboard.v1",
             "decision_count": 3,
@@ -147,6 +158,7 @@ def build_audit(
         cleanup_signoff = load_json(cleanup_signoff_path)
         sr_promotion = load_json(sr_promotion_path)
         sr_scoreboard = load_json(sr_scoreboard_path)
+        native_pair_inventory = load_json(native_pair_inventory_path)
 
     cleanup_ready = bool_at(cleanup_signoff, ["verdict", "production_ready"])
     sr_ready = bool_at(sr_promotion, ["verdict", "production_ready"])
@@ -173,6 +185,9 @@ def build_audit(
     detail_ratio = num_at(psf_receipt, ["detail_budget", "residual_to_target_cell_detail_ratio"])
     sr_decision_count = int(num_at(sr_scoreboard, ["decision_count"]) or 0)
     sr_promotable_rows = int(num_at(sr_scoreboard, ["promotable_row_count"]) or 0)
+    native_candidate_pairs = int(num_at(native_pair_inventory, ["summary", "candidate_pair_count"]) or 0)
+    decoded_native_candidate_pairs = int(num_at(native_pair_inventory, ["summary", "decoded_candidate_pair_count"]) or 0)
+    native_pair_inventory_ready = native_candidate_pairs > 0 and decoded_native_candidate_pairs > 0
 
     checks = [
         {
@@ -196,6 +211,11 @@ def build_audit(
             "production_meaning": "Requires real native high-res/low-res or display/capture PSF measurements; not satisfied by modeled pairs.",
         },
         {
+            "id": "native_high_low_pair_inventory",
+            "passed": native_pair_inventory_ready,
+            "production_meaning": "Near-time native Mission 1 high/low captures are indexed as candidate inputs, but still need alignment and PSF measurement.",
+        },
+        {
             "id": "psf_conditioned_model_gate",
             "passed": psf_conditioned_model_ready,
             "production_meaning": "Requires a PSF-conditioned model beating the approved 4K/8K baselines on raw and rendered gates.",
@@ -209,6 +229,7 @@ def build_audit(
 
     blockers = [
         "No native camera/sensor/DMA/display PSF receipt is present.",
+        f"The native high/low inventory has {native_candidate_pairs} candidate pairs and {decoded_native_candidate_pairs} decoded raw candidates, but no measured PSF receipt yet.",
         "No PSF-conditioned replacement model has beaten both current Mission42 and Z8 baselines.",
         f"The SR/detail candidate scoreboard indexes {sr_decision_count} decision receipts and finds {sr_promotable_rows} current-scale promotion rows.",
         "The existing pair-derived receipt is non-production by design; it proves the modeled target, not the native camera path.",
@@ -219,7 +240,7 @@ def build_audit(
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "mode": "synthetic" if synthetic else "real",
         "external_root": str(external_root),
-        "readiness_percent": 40,
+        "readiness_percent": 42 if native_pair_inventory_ready else 40,
         "production_ready": False,
         "approved_baselines_ready": cleanup_ready and sr_ready,
         "psf_replacement_ready": psf_replacement_ready,
@@ -230,6 +251,8 @@ def build_audit(
             "mission42_psf_gate_passed": mission42_psf_gate,
             "z8_all24_psf_gate_passed": z8_psf_gate,
             "native_psf_ready": native_psf_ready,
+            "native_high_low_candidate_pair_count": native_candidate_pairs,
+            "native_high_low_decoded_candidate_pair_count": decoded_native_candidate_pairs,
             "psf_conditioned_model_ready": psf_conditioned_model_ready,
             "sr_detail_decision_count": sr_decision_count,
             "sr_detail_promotable_row_count": sr_promotable_rows,
@@ -260,6 +283,7 @@ def build_audit(
             artifact_entry("Mission 1 4K cleanup signoff", cleanup_signoff_path, cleanup_signoff),
             artifact_entry("Mission 1 8K SR promotion", sr_promotion_path, sr_promotion),
             artifact_entry("raw-video SR/detail candidate scoreboard", sr_scoreboard_path, sr_scoreboard),
+            artifact_entry("Mission 1 native high/low pair inventory", native_pair_inventory_path, native_pair_inventory),
         ],
     }
 
@@ -326,6 +350,7 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
     <div class="card"><div class="k">4K cleanup baseline</div><div class="v">{str(data["summary"]["cleanup_4k_ready"]).lower()}</div></div>
     <div class="card"><div class="k">8K SR baseline</div><div class="v">{str(data["summary"]["sr_8k_ready"]).lower()}</div></div>
     <div class="card"><div class="k">PSF replacement</div><div class="v">{str(data["psf_replacement_ready"]).lower()}</div></div>
+    <div class="card"><div class="k">Native candidates</div><div class="v">{data["summary"]["native_high_low_candidate_pair_count"]}</div></div>
     <div class="card"><div class="k">Pair fixtures</div><div class="v">{psf["pair_count"]}</div></div>
     <div class="card"><div class="k">Best modeled kernel</div><div class="v">{html.escape(str(psf.get("best_kernel") or "missing"))}</div></div>
     <div class="card"><div class="k">Fine residual share</div><div class="v">{html.escape(pct(psf.get("fine_share_of_residual_abs")))}</div></div>
@@ -375,6 +400,7 @@ def main() -> int:
     ap.add_argument("--cleanup-signoff", default=DEFAULT_4K_SIGNOFF)
     ap.add_argument("--sr-promotion", default=DEFAULT_8K_PROMOTION)
     ap.add_argument("--sr-scoreboard", default=DEFAULT_SR_SCOREBOARD)
+    ap.add_argument("--native-pair-inventory", default=DEFAULT_NATIVE_PAIR_INVENTORY)
     ap.add_argument("--synthetic", action="store_true")
     args = ap.parse_args()
 
@@ -388,12 +414,14 @@ def main() -> int:
     cleanup_signoff_path = resolve_artifact(args.external_root, args.cleanup_signoff)
     sr_promotion_path = resolve_artifact(args.external_root, args.sr_promotion)
     sr_scoreboard_path = resolve_artifact(args.external_root, args.sr_scoreboard)
+    native_pair_inventory_path = resolve_artifact(args.external_root, args.native_pair_inventory)
     data = build_audit(
         args.external_root,
         psf_receipt_path,
         cleanup_signoff_path,
         sr_promotion_path,
         sr_scoreboard_path,
+        native_pair_inventory_path,
         synthetic=args.synthetic,
     )
 

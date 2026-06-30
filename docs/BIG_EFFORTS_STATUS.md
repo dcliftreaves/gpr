@@ -393,6 +393,9 @@ Current evidence:
 - The raw-video PSF/SR readiness audit separates the approved 4K/8K baselines
   from the unfinished native PSF replacement claim:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.
+- The Mission 1 native high/low candidate inventory indexes near-time
+  8192 x 6144 and 4096 x 3072 capture candidates for the measured PSF pass:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_20260630/index.html`.
 - The raw-video SR/detail candidate scoreboard indexes 89 historical
   Mission/Z8 decision receipts and finds zero current-scale promotion rows
   under the Mission42 plus Z8 all24 coverage rule:
@@ -406,14 +409,16 @@ Boundaries:
   detail budget. It does not measure native camera sensor/DMA/display PSF
   because the low side of the pair is generated from the high-resolution raw
   extraction.
+- The native high/low inventory is an input list, not a measured PSF receipt.
+  It still needs scene matching, alignment, edge/texture mining, and a measured
+  native PSF kernel.
 - Replacing it requires beating the current baseline on full-frame Mission and
   Z8 gates, not just lowering tile loss or improving a small crop.
 
 Next production work:
 
-1. Replace modeled-pair PSF evidence with native capture/display PSF
-   measurements from real high-res-to-native-low-res Mission/Z8 pairs and
-   sharp-edge/texture targets.
+1. Run alignment and edge/texture mining on the Mission 1 native high/low
+   candidate pairs, then produce a measured native PSF receipt.
 2. Train with CFA-aware high-res RGB/downsample targets, PSF-conditioned
    losses, and explicit same-cell fine-detail reconstruction metrics.
 3. Promote only if Mission42 and Z8 all24 gates improve, worst rows are clean,

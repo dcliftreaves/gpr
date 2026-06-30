@@ -102,6 +102,8 @@ refreshed 2026-06-29.
 | `python3 tools/test/test_build_bayer_resize_psf_receipt.py` | regression-test the PSF receipt builder |
 | `python3 tools/build_bayer_resize_psf_from_pairs.py --pairs /path/to/pairs.npz --out-dir /path/to/out` | build a pair-derived non-production Bayer resize PSF receipt |
 | `python3 tools/test/test_build_bayer_resize_psf_from_pairs.py` | regression-test the pair-derived PSF receipt builder |
+| `python3 tools/build_mission1_native_psf_pair_inventory.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_20260630` | inventory near-time native Mission 1 50MP/12MP captures for the measured PSF pass |
+| `python3 tools/test/test_build_mission1_native_psf_pair_inventory.py` | regression-test the Mission 1 native PSF pair inventory |
 | `python3 tools/build_raw_video_psf_audit.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630` | build the raw-video PSF/SR readiness audit |
 | `python3 tools/test/test_build_raw_video_psf_audit.py` | regression-test the PSF/SR readiness audit builder |
 | `python3 tools/build_gopro_mission1_intake_audit.py --manifest /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_20260630/manifest.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630` | verify the GoPro Mission 1 intake bundle and separate review readiness from camera-production readiness |
