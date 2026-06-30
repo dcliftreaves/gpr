@@ -62,6 +62,42 @@ def exif_metadata(path: Path) -> dict[str, Any]:
     return rows[0] if rows and isinstance(rows[0], dict) else {}
 
 
+def batch_exif_metadata(paths: list[Path], chunk_size: int = 200) -> dict[str, dict[str, Any]]:
+    if subprocess.run(["/usr/bin/env", "bash", "-lc", "command -v exiftool"], stdout=subprocess.DEVNULL).returncode != 0:
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for start in range(0, len(paths), chunk_size):
+        chunk = [path for path in paths[start : start + chunk_size] if path.is_file()]
+        if not chunk:
+            continue
+        proc = subprocess.run(
+            [
+                "exiftool",
+                "-j",
+                "-n",
+                "-Make",
+                "-Model",
+                "-ISO",
+                "-ExposureTime",
+                "-FNumber",
+                *[str(path) for path in chunk],
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+        if proc.returncode != 0:
+            continue
+        try:
+            rows = json.loads(proc.stdout or "[]")
+        except json.JSONDecodeError:
+            continue
+        for row in rows:
+            if isinstance(row, dict) and row.get("SourceFile"):
+                out[Path(str(row["SourceFile"])).as_posix()] = row
+    return out
+
+
 def discover_files(roots: list[Path], manifest: Path | None, max_files: int) -> list[Path]:
     files: list[Path] = []
     if manifest:
@@ -101,7 +137,7 @@ def black_white(raw: Any) -> tuple[float, float]:
     return black, white
 
 
-def inspect_dng(path: Path, sample_limit: int) -> dict[str, Any]:
+def inspect_dng(path: Path, sample_limit: int, exif: dict[str, Any] | None = None) -> dict[str, Any]:
     row: dict[str, Any] = {
         "path": path.as_posix(),
         "exists": path.is_file(),
@@ -123,7 +159,7 @@ def inspect_dng(path: Path, sample_limit: int) -> dict[str, Any]:
 
     try:
         with rawpy.imread(str(path)) as raw:
-            exif = exif_metadata(path)
+            exif = exif if exif is not None else exif_metadata(path)
             try:
                 image = raw.raw_image_visible
             except Exception as exc:  # noqa: BLE001 - Linear Raw/non-CFA DNGs can fail here.
@@ -227,16 +263,18 @@ def camera_key(row: dict[str, Any]) -> str:
     return f"{row.get('make') or 'unknown'}|{row.get('model') or 'unknown'}|ISO{row.get('iso') or 'unknown'}|{row.get('cfa_phase') or 'unknown'}"
 
 
-def build_audit(rows: list[dict[str, Any]], mode: str, roots: list[Path]) -> dict[str, Any]:
+def build_audit(rows: list[dict[str, Any]], mode: str, roots: list[Path], source_kind: str = "candidate_discovery") -> dict[str, Any]:
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         if row.get("darkframe_like"):
             groups[camera_key(row)].append(row)
+    can_promote_stack = mode == "synthetic" or source_kind == "confirmed_darkframes"
     stack_groups = [
         {
             "key": key,
             "candidate_count": len(items),
-            "production_stack_ready": len(items) >= 4,
+            "candidate_stack_ready": len(items) >= 4,
+            "production_stack_ready": len(items) >= 4 and can_promote_stack,
             "paths": [item["path"] for item in items],
         }
         for key, items in sorted(groups.items())
@@ -247,12 +285,14 @@ def build_audit(rows: list[dict[str, Any]], mode: str, roots: list[Path]) -> dic
         "schema": SCHEMA,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "mode": mode,
+        "source_kind": source_kind,
         "roots": [root.as_posix() for root in roots],
         "summary": {
             "files_seen": len(rows),
             "parsed_count": len(parsed),
             "darkframe_like_count": sum(1 for row in rows if row.get("darkframe_like")),
             "candidate_stack_group_count": len(stack_groups),
+            "candidate_stack_ready_group_count": sum(1 for row in stack_groups if row["candidate_stack_ready"]),
             "production_stack_ready_group_count": len(ready_groups),
             "production_sidecar_ready": bool(ready_groups),
         },
@@ -261,6 +301,7 @@ def build_audit(rows: list[dict[str, Any]], mode: str, roots: list[Path]) -> dic
         "policy": {
             "sidecar_promotion_requires": "at least four true darkframe-like raw frames for the same camera/ISO/CFA settings",
             "ordinary_scene_frames_are_not_noise_targets": True,
+            "candidate_discovery_is_not_production_evidence": source_kind != "confirmed_darkframes" and mode != "synthetic",
         },
     }
 
@@ -273,13 +314,15 @@ def render_html(audit: dict[str, Any]) -> str:
             ("Files", summary["files_seen"]),
             ("Parsed", summary["parsed_count"]),
             ("Dark-like", summary["darkframe_like_count"]),
-            ("Stack-ready groups", summary["production_stack_ready_group_count"]),
+            ("Candidate stacks", summary.get("candidate_stack_ready_group_count", 0)),
+            ("Production stacks", summary["production_stack_ready_group_count"]),
         )
     )
     group_rows = "".join(
         "<tr>"
         f"<td>{html.escape(row['key'])}</td>"
         f"<td>{row['candidate_count']}</td>"
+        f"<td>{html.escape(str(row.get('candidate_stack_ready')))}</td>"
         f"<td>{html.escape(str(row['production_stack_ready']))}</td>"
         f"<td><code>{html.escape(row['paths'][0]) if row['paths'] else ''}</code></td>"
         "</tr>"
@@ -316,7 +359,7 @@ code{{font-size:12px;word-break:break-all}}
 <p>This audit finds possible darkframe stacks. It does not promote ordinary photos as noise calibration data.</p>
 <div class="grid">{cards}</div>
 <h2>Candidate Stack Groups</h2>
-<table><thead><tr><th>Camera/ISO/CFA</th><th>Dark-like frames</th><th>Stack ready</th><th>Example</th></tr></thead><tbody>{group_rows}</tbody></table>
+<table><thead><tr><th>Camera/ISO/CFA</th><th>Dark-like frames</th><th>Candidate stack</th><th>Production stack</th><th>Example</th></tr></thead><tbody>{group_rows}</tbody></table>
 <h2>Scanned Files</h2>
 <table><thead><tr><th>Dark-like</th><th>Camera</th><th>ISO</th><th>CFA</th><th>Mean</th><th>P99</th><th>Path</th></tr></thead><tbody>{detail_rows}</tbody></table>
 </main></body></html>
@@ -330,14 +373,26 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--manifest", type=Path)
     ap.add_argument("--max-files", type=int, default=200)
     ap.add_argument("--sample-limit", type=int, default=1_000_000)
+    ap.add_argument("--batch-exif", action="store_true", help="Read grouping metadata with one exiftool call per chunk.")
+    ap.add_argument(
+        "--source-kind",
+        choices=("candidate_discovery", "confirmed_darkframes"),
+        default="candidate_discovery",
+        help="Use confirmed_darkframes only for roots known to contain true no-scene-signal darkframes.",
+    )
     ap.add_argument("--synthetic", action="store_true")
     return ap.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    rows = synthetic_rows() if args.synthetic else [inspect_dng(path, args.sample_limit) for path in discover_files(args.root, args.manifest, args.max_files)]
-    audit = build_audit(rows, "synthetic" if args.synthetic else "real", args.root)
+    files = [] if args.synthetic else discover_files(args.root, args.manifest, args.max_files)
+    if args.synthetic:
+        rows = synthetic_rows()
+    else:
+        exif_cache = batch_exif_metadata(files) if args.batch_exif else {}
+        rows = [inspect_dng(path, args.sample_limit, exif_cache.get(path.as_posix())) for path in files]
+    audit = build_audit(rows, "synthetic" if args.synthetic else "real", args.root, args.source_kind)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     json_path = args.output_dir / "darkframe_candidate_audit.json"
     html_path = args.output_dir / "index.html"

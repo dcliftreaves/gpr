@@ -93,6 +93,8 @@ refreshed 2026-06-29.
 | `python3 tools/convert_darkframe_calibration_to_noise_sidecars.py --legacy-json darkframe_calibration.json --out-dir /path/to/out` | convert legacy darkframe calibration artifacts to source-hashed v1 sidecars |
 | `python3 tools/test/test_build_camera_noise_calibration.py` | regression-test the camera-noise calibration sidecar builder |
 | `python3 tools/test/test_convert_darkframe_calibration_to_noise_sidecars.py` | regression-test legacy darkframe calibration conversion |
+| `python3 tools/build_bayer_phase_fixture_inventory.py --metadata-mode batch-exiftool --root /path/to/real/photos --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_<date>` | scan large real-photo DNG roots for CFA phase coverage without rawpy-decoding every file |
+| `python3 tools/build_darkframe_candidate_audit.py --batch-exif --root /path/to/real/photos --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_<date>` | scan large real-photo DNG roots for dark-looking candidates while keeping candidate discovery separate from confirmed darkframe production evidence |
 | `python3 tools/build_premium_still_sr_gate_receipt.py --out-dir /path/to/out` | build a CI-safe non-production premium still-SR gate receipt |
 | `python3 tools/test/test_build_premium_still_sr_gate_receipt.py` | regression-test the premium still-SR gate skeleton |
 | `python3 tools/build_premium_still_sr_visual_review.py --output-dir /path/to/out` | build a tile-level visual review dashboard for the current premium still-SR candidate |

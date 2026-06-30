@@ -66,6 +66,18 @@ Current evidence:
   darkframe-like frames, but they are split across 8 ISO groups and no group
   has the required four-frame stack. The iPhone file in this scan is the known
   Linear Raw negative fixture, not a CFA darkframe source.
+- The broader real-photo Bayer phase sample at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html`
+  scans 350 iPhone/GoPro/Hassel real-photo DNGs with the batch metadata path.
+  It finds 316 Apple iPhone 7 Plus RGGB CFA fixtures and 4 GoPro GBRG fixtures,
+  but still no real GRBG or BGGR fixture.
+- The broader real-photo darkframe-candidate sample at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_realphotos_sample_20260630/index.html`
+  parses 320 files and finds one iPhone ISO1250 RGGB dark-looking four-frame
+  candidate stack. The boosted contact sheet
+  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_realphotos_sample_20260630/iphone_darkframe_like_contact_x16.jpg`
+  shows visible scene content in part of that group, so the audit now keeps it
+  candidate-only: `production_sidecar_ready=false`.
 - The stills fixture gap plan at
   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`
   turns those receipts into the concrete closure list: add real GRBG and BGGR

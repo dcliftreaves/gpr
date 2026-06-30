@@ -31,6 +31,12 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--manifest", type=Path, help="Optional newline or JSON list of files to scan.")
     ap.add_argument("--max-files", type=int, default=400)
     ap.add_argument("--extensions", default=",".join(DEFAULT_EXTENSIONS))
+    ap.add_argument(
+        "--metadata-mode",
+        choices=("auto", "rawpy", "exiftool", "batch-exiftool"),
+        default="auto",
+        help="Metadata reader. batch-exiftool is fastest for broad fixture discovery.",
+    )
     ap.add_argument("--synthetic", action="store_true", help="Build a CI-safe synthetic inventory.")
     return ap.parse_args()
 
@@ -99,22 +105,39 @@ def parse_exif_cfa(data: dict[str, Any]) -> str | None:
             nums = nums[2:]
 
     colors = data.get("CFAPlaneColor")
+    numeric_color_lut = {0: "R", 1: "G", 2: "B", 3: "C", 4: "M", 5: "Y"}
     if isinstance(colors, str):
-        color_names = [part.strip().upper() for part in colors.replace(";", ",").split(",") if part.strip()]
-    elif isinstance(colors, list):
-        color_names = [str(part).strip().upper() for part in colors]
-    else:
-        color_names = ["RED", "GREEN", "BLUE"]
-    lut = []
-    for name in color_names:
-        if name.startswith("RED"):
-            lut.append("R")
-        elif name.startswith("GREEN"):
-            lut.append("G")
-        elif name.startswith("BLUE"):
-            lut.append("B")
+        color_parts = [part.strip().upper() for part in colors.replace(";", " ").replace(",", " ").split() if part.strip()]
+        if color_parts and all(part.lstrip("-").isdigit() for part in color_parts):
+            lut = [numeric_color_lut.get(int(part), "?") for part in color_parts]
         else:
-            lut.append(name[:1] or "?")
+            lut = []
+            for name in color_parts:
+                if name.startswith("RED"):
+                    lut.append("R")
+                elif name.startswith("GREEN"):
+                    lut.append("G")
+                elif name.startswith("BLUE"):
+                    lut.append("B")
+                else:
+                    lut.append(name[:1] or "?")
+    elif isinstance(colors, list):
+        lut = []
+        for part in colors:
+            if isinstance(part, int) or str(part).lstrip("-").isdigit():
+                lut.append(numeric_color_lut.get(int(part), "?"))
+                continue
+            name = str(part).strip().upper()
+            if name.startswith("RED"):
+                lut.append("R")
+            elif name.startswith("GREEN"):
+                lut.append("G")
+            elif name.startswith("BLUE"):
+                lut.append("B")
+            else:
+                lut.append(name[:1] or "?")
+    else:
+        lut = ["R", "G", "B"]
     if len(nums) >= 4 and lut:
         return normalize_phase("".join(lut[n] if 0 <= n < len(lut) else "?" for n in nums[:4]))
     return None
@@ -162,6 +185,94 @@ def phase_from_exiftool(path: Path) -> dict[str, Any]:
     }
 
 
+def row_for_missing(path: Path) -> dict[str, Any]:
+    return {
+        "path": path.as_posix(),
+        "exists": path.is_file(),
+        "bytes": path.stat().st_size if path.is_file() else None,
+        "extension": path.suffix.lower(),
+        "status": "skipped",
+        "phase": None,
+        "normal_bayer": False,
+        "error": "missing" if not path.is_file() else None,
+    }
+
+
+def row_from_exif_record(path: Path, data: dict[str, Any]) -> dict[str, Any]:
+    phase = normalize_phase(parse_exif_cfa(data))
+    row = row_for_missing(path)
+    row.update(
+        {
+            "phase": phase,
+            "pattern_rows": None,
+            "pattern_cols": None,
+            "color_desc": str(data.get("CFAPlaneColor") or ""),
+            "width": int(data.get("RawImageFullWidth") or data.get("ImageWidth") or 0),
+            "height": int(data.get("RawImageFullHeight") or data.get("ImageHeight") or 0),
+            "make": data.get("Make"),
+            "model": data.get("Model"),
+            "method": "batch-exiftool",
+            "normal_bayer": phase in NORMAL_BAYER_PHASES,
+            "status": "parsed" if phase else "non_bayer_or_unknown",
+            "error": None if phase else "no 2x2 Bayer phase found",
+        }
+    )
+    return row
+
+
+def inspect_files_batch_exiftool(paths: list[Path], chunk_size: int = 200) -> list[dict[str, Any]]:
+    rows_by_path: dict[str, dict[str, Any]] = {}
+    for path in paths:
+        rows_by_path[path.as_posix()] = row_for_missing(path)
+    for start in range(0, len(paths), chunk_size):
+        chunk = [path for path in paths[start : start + chunk_size] if path.is_file()]
+        if not chunk:
+            continue
+        proc = subprocess.run(
+            [
+                "exiftool",
+                "-j",
+                "-n",
+                "-Make",
+                "-Model",
+                "-ImageWidth",
+                "-ImageHeight",
+                "-RawImageFullWidth",
+                "-RawImageFullHeight",
+                "-CFARepeatPatternDim",
+                "-CFAPattern",
+                "-CFAPlaneColor",
+                "-CFALayout",
+                *[str(path) for path in chunk],
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if proc.returncode != 0:
+            error = proc.stderr.strip() or f"exiftool failed with {proc.returncode}"
+            for path in chunk:
+                row = rows_by_path[path.as_posix()]
+                row["error"] = error
+            continue
+        try:
+            records = json.loads(proc.stdout or "[]")
+        except json.JSONDecodeError as exc:
+            for path in chunk:
+                row = rows_by_path[path.as_posix()]
+                row["error"] = f"exiftool returned invalid JSON: {exc}"
+            continue
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            source = record.get("SourceFile")
+            if not source:
+                continue
+            source_path = Path(str(source))
+            rows_by_path[source_path.as_posix()] = row_from_exif_record(source_path, record)
+    return [rows_by_path[path.as_posix()] for path in paths]
+
+
 def load_manifest(path: Path) -> list[Path]:
     text = path.read_text(encoding="utf-8")
     try:
@@ -207,7 +318,7 @@ def discover_files(args: argparse.Namespace) -> list[Path]:
     return unique
 
 
-def inspect_file(path: Path, use_exiftool: bool) -> dict[str, Any]:
+def inspect_file(path: Path, use_exiftool: bool, metadata_mode: str = "auto") -> dict[str, Any]:
     row: dict[str, Any] = {
         "path": path.as_posix(),
         "exists": path.is_file(),
@@ -223,7 +334,13 @@ def inspect_file(path: Path, use_exiftool: bool) -> dict[str, Any]:
         return row
 
     errors: list[str] = []
-    for loader in (phase_from_rawpy, phase_from_exiftool if use_exiftool else None):
+    if metadata_mode == "rawpy":
+        loaders = (phase_from_rawpy,)
+    elif metadata_mode in {"exiftool", "batch-exiftool"}:
+        loaders = (phase_from_exiftool if use_exiftool else None,)
+    else:
+        loaders = (phase_from_rawpy, phase_from_exiftool if use_exiftool else None)
+    for loader in loaders:
         if loader is None:
             continue
         try:
@@ -363,7 +480,15 @@ def main() -> int:
     args = parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     use_exiftool = exiftool_available() if not args.synthetic else False
-    rows = synthetic_rows() if args.synthetic else [inspect_file(path, use_exiftool) for path in discover_files(args)]
+    files = [] if args.synthetic else discover_files(args)
+    if args.synthetic:
+        rows = synthetic_rows()
+    elif args.metadata_mode == "batch-exiftool":
+        if not use_exiftool:
+            raise RuntimeError("batch-exiftool mode requires exiftool")
+        rows = inspect_files_batch_exiftool(files)
+    else:
+        rows = [inspect_file(path, use_exiftool, args.metadata_mode) for path in files]
     data = summarize(rows, args.root, args.max_files, "synthetic" if args.synthetic else "real")
     (args.output_dir / "inventory.json").write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (args.output_dir / "index.html").write_text(render_html(data), encoding="utf-8")

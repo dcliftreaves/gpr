@@ -67,6 +67,15 @@ camera/ISO/CFA groups and no group has the four-frame stack required for a
 production sidecar. The iPhone row is the known Linear Raw negative fixture,
 not a CFA darkframe source.
 
+The broader real-photo sample lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html`
+and
+`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_realphotos_sample_20260630/index.html`.
+It adds real-photo iPhone RGGB evidence and finds one iPhone dark-looking
+candidate stack, but the boosted contact sheet shows scene content in part of
+that group. The audit therefore keeps `production_sidecar_ready=false`; Mission
+1/iPhone production noise sidecars remain open.
+
 The current stills fixture gap plan lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`.
 It consolidates the phase/noise receipts into the concrete capture checklist:

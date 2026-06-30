@@ -1236,6 +1236,56 @@
       }
     },
     {
+      "id": "realphoto_bayer_phase_sample_20260630",
+      "family": "stills_fixtures",
+      "status": "diagnostic",
+      "purpose": "Broader real-photo iPhone/GoPro/Hassel CFA phase sample using the batch metadata path; confirms additional iPhone RGGB evidence but no GRBG/BGGR fixture closure.",
+      "dashboard": "artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
+      ],
+      "receipts": [
+        "artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/inventory.json",
+        "artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html"
+      ],
+      "metrics": {
+        "files_seen": 350,
+        "parsed_count": 320,
+        "rggb_count": 316,
+        "gbrg_count": 4,
+        "grbg_count": 0,
+        "bggr_count": 0,
+        "production_real_phase_coverage": 0
+      }
+    },
+    {
+      "id": "realphoto_darkframe_candidate_sample_20260630",
+      "family": "noise_signal",
+      "status": "diagnostic",
+      "purpose": "Broader real-photo iPhone/GoPro darkframe-candidate sample; records one iPhone dark-looking candidate stack but keeps production sidecar readiness false because the source is not confirmed darkframes.",
+      "dashboard": "artifacts/darkframe_candidate_audit_realphotos_sample_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
+      ],
+      "receipts": [
+        "artifacts/darkframe_candidate_audit_realphotos_sample_20260630/darkframe_candidate_audit.json",
+        "artifacts/darkframe_candidate_audit_realphotos_sample_20260630/index.html",
+        "artifacts/darkframe_candidate_audit_realphotos_sample_20260630/iphone_darkframe_like_contact_x16.jpg"
+      ],
+      "metrics": {
+        "files_seen": 320,
+        "parsed_count": 320,
+        "darkframe_like_count": 13,
+        "candidate_stack_ready_group_count": 1,
+        "production_stack_ready_group_count": 0,
+        "production_sidecar_ready": 0
+      }
+    },
+    {
       "id": "mission1_numbered_list_closure_plan",
       "family": "mission1_readiness",
       "status": "diagnostic",
