@@ -89,8 +89,10 @@ refreshed 2026-06-30.
 | `python3 tests/quality_gates/dashboard.py` | refresh sweep dashboard |
 | `python3 tests/quality_gates/review_dashboard.py` | refresh decision dashboard |
 | `python3 tools/test/test_capabilities.py` | encoder regression (also in CI) |
+| `python3 tools/extract_raw_bayer_u16.py --input dark.dng --output dark.raw --write-receipt dark_extract.json` | extract visible raw Bayer samples from original camera files before camera-noise calibration |
 | `python3 tools/build_camera_noise_calibration.py --raw ... --out noise_calibration.json` | build a validated camera/ISO darkframe noise sidecar for still/CNN work |
 | `python3 tools/convert_darkframe_calibration_to_noise_sidecars.py --legacy-json darkframe_calibration.json --out-dir /path/to/out` | convert legacy darkframe calibration artifacts to source-hashed v1 sidecars |
+| `python3 tools/test/test_extract_raw_bayer_u16.py` | regression-test raw Bayer extraction receipts without requiring local camera files |
 | `python3 tools/test/test_build_camera_noise_calibration.py` | regression-test the camera-noise calibration sidecar builder |
 | `python3 tools/test/test_convert_darkframe_calibration_to_noise_sidecars.py` | regression-test legacy darkframe calibration conversion |
 | `python3 tools/build_bayer_phase_fixture_inventory.py --metadata-mode batch-exiftool --root /path/to/real/photos --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_<date>` | scan large real-photo DNG roots for CFA phase coverage without rawpy-decoding every file |

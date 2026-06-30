@@ -64,12 +64,19 @@ def main() -> int:
         assert data["summary"]["required_request_count"] == 4
         assert data["summary"]["missing_real_bayer_phases"] == ["GRBG", "BGGR"]
         assert any(row["id"] == "real_grbg_fixture" for row in data["requests"])
-        assert any(row["id"] == "mission1_darkframe_stack" for row in data["requests"])
+        mission = [row for row in data["requests"] if row["id"] == "mission1_darkframe_stack"][0]
+        assert any("SHA-256" in item for item in mission["metadata_required"])
+        assert any("little-endian uint16 Bayer extraction" in item for item in mission["metadata_required"])
+        assert any("separates_noise_from_signal=true" in item for item in mission["acceptance"])
         topup = [row for row in data["requests"] if row["id"] == "mission1_lowest_lift_darkframe_topup"][0]
         assert topup["minimum_count"] == 2
+        assert any("extract_raw_bayer_u16.py" in command for command in data["validation_commands"])
         assert any("build_camera_noise_calibration.py" in command for command in data["validation_commands"])
+        assert data["promotion_policy"]["noise_sidecar_requires_source_hashes_and_fixed_camera_metadata"] is True
+        assert data["promotion_policy"]["noise_sidecar_requires_u16_bayer_extraction_receipt"] is True
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "Raw Stills Capture Request" in html
+        assert "Metadata required" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
     print("test_build_stills_capture_request: PASS")
     return 0

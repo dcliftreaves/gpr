@@ -44,9 +44,16 @@ def darkframe_request(camera_key: str, label: str) -> dict[str, Any]:
             "Keep camera model, dimensions, CFA phase, bit depth, black level, white level, ISO, and exposure fixed across the stack.",
             "Prefer the ISO values used by the real scenes that will be compressed or used for SR training.",
         ],
+        "metadata_required": [
+            "original raw/DNG/GPR paths and SHA-256 source hashes",
+            "make, model, dimensions, CFA phase, bit depth, black level, white level, ISO, and exposure time",
+            "little-endian uint16 Bayer extraction command or receipt used to build each raw darkframe input",
+            "confirmation that the stack is no-scene-signal data, not ordinary dark-looking scene photos",
+        ],
         "acceptance": [
             "darkframe candidate audit groups at least four frames under one camera/ISO/CFA key",
             "camera-noise calibration builder emits gpr.camera_noise_calibration.v1 with production_ready=true",
+            "sidecar records source hashes, fixed camera metadata, per-plane sigma, and separates_noise_from_signal=true",
             "camera-noise coverage audit marks the camera family ready",
         ],
     }
@@ -74,6 +81,11 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
                     "Provide the original camera raw file, not a demosaiced or linearized derivative.",
                     "Include normal metadata for dimensions, black level, white level, bit depth, CFA phase, ISO, and camera model.",
                     "A simple exposed daylight scene is enough; the fixture is for metadata/openability/phase coverage, not image quality.",
+                ],
+                "metadata_required": [
+                    "original raw/DNG/GPR path and SHA-256 source hash",
+                    "make, model, dimensions, CFA phase, bit depth, black level, white level, and ISO",
+                    "metadata extraction receipt from rawpy or exiftool batch inventory",
                 ],
                 "acceptance": [
                     f"Bayer phase fixture inventory reports at least one real parsed {phase} fixture",
@@ -104,9 +116,15 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
                     "Capture only the missing matching frames; do not mix ISO or raw mode.",
                     "If exact matching is impossible, capture a fresh four-frame same-ISO stack instead.",
                 ],
+                "metadata_required": [
+                    "same camera/ISO/CFA/dimensions/bit-depth/black-level/white-level as the existing group",
+                    "original raw/DNG/GPR paths and SHA-256 source hashes for the top-up frames",
+                    "little-endian uint16 Bayer extraction command or receipt for every frame in the promoted stack",
+                ],
                 "acceptance": [
                     "darkframe candidate audit reports production_stack_ready=true for this group",
                     "sidecar builder emits a production-ready gpr.camera_noise_calibration.v1 receipt",
+                    "sidecar records separates_noise_from_signal=true before any nonzero noise removal/addback is enabled",
                 ],
             }
         )
@@ -114,7 +132,8 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
     validation_commands = [
         "python3 tools/build_bayer_phase_fixture_inventory.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_<date>",
         "python3 tools/build_darkframe_candidate_audit.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_<date> <new dng roots>",
-        "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --camera-model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase>",
+        "python3 tools/extract_raw_bayer_u16.py --input <darkframe.dng> --output <darkframe.raw> --write-receipt <extract_receipt.json>",
+        "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --make <make> --model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase>",
         "python3 tools/build_camera_noise_coverage_audit.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_<date>",
         "python3 tools/build_stills_fixture_gap_plan.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_<date>",
     ]
@@ -138,6 +157,8 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
         "promotion_policy": {
             "real_phase_claim_requires_real_fixture": True,
             "noise_addback_requires_production_ready_noise_sidecar": True,
+            "noise_sidecar_requires_source_hashes_and_fixed_camera_metadata": True,
+            "noise_sidecar_requires_u16_bayer_extraction_receipt": True,
             "ordinary_scene_frames_are_not_noise_targets": True,
             "new_artifacts_stay_under_external_root": "/Volumes/OWC_8TB/gpr_work",
         },
@@ -167,6 +188,7 @@ def render_html(data: dict[str, Any]) -> str:
         f"<td>{html.escape(str(row.get('sample_type') or ''))}</td>"
         f"<td>{html.escape(str(row.get('camera') or ''))}</td>"
         f"<td>{html.escape(str(row.get('minimum_count') or 0))}</td>"
+        f"<td>{html.escape('; '.join(str(x) for x in row.get('metadata_required') or []))}</td>"
         f"<td>{html.escape('; '.join(str(x) for x in row.get('acceptance') or []))}</td>"
         "</tr>"
         for row in data["requests"]
@@ -194,7 +216,7 @@ code {{ white-space: normal; overflow-wrap: anywhere; }}
 <p class="sub">Schema {html.escape(data["schema"])}. This is the handoff list for closing real Bayer phase and camera-noise gaps in the 50 MP / 100 MP stills pillar.</p>
 <div class="grid">{card_html}</div>
 <h2>Requested Samples</h2>
-<table><thead><tr><th>Priority</th><th>ID</th><th>Type</th><th>Camera</th><th>Count</th><th>Acceptance</th></tr></thead><tbody>{request_rows}</tbody></table>
+<table><thead><tr><th>Priority</th><th>ID</th><th>Type</th><th>Camera</th><th>Count</th><th>Metadata required</th><th>Acceptance</th></tr></thead><tbody>{request_rows}</tbody></table>
 <h2>Validation Commands</h2>
 <table><tbody>{command_rows}</tbody></table>
 </main></body></html>

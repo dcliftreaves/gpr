@@ -29,7 +29,18 @@ For production training targets, the receipt must prove:
 
 ## Builder
 
-For new little-endian uint16 Bayer darkframes:
+First extract each original raw/DNG/GPR darkframe to little-endian uint16 Bayer
+and keep the extraction receipt:
+
+```sh
+python3 tools/extract_raw_bayer_u16.py \
+  --input dark_000.dng \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/noise_calibration/dark_000.raw \
+  --write-receipt /Volumes/OWC_8TB/gpr_work/artifacts/noise_calibration/dark_000_extract.json
+```
+
+Then build the sidecar from at least four matching little-endian uint16 Bayer
+darkframes:
 
 ```sh
 python3 tools/build_camera_noise_calibration.py \
