@@ -85,6 +85,12 @@ def main() -> int:
         assert data["pillars"][3]["readiness_percent"] == 44
         assert "PSF-aware raw-video replacement" in data["pillars"][3]["open_production_gates"]
         assert any("8K SR" in item for item in data["pillars"][3]["locked_artifacts"])
+        assert any("continuous 8K no-CNN versus CNN" in item for item in data["pillars"][3]["locked_artifacts"])
+        assert any("true continuous-scene 8K ProRes A/B" in item for item in data["pillars"][3]["done_evidence"])
+        assert any(
+            "mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
+            for ref in data["pillars"][3]["evidence"]
+        )
         assert any(ref["exists"] for ref in data["pillars"][0]["evidence"] if ref["kind"] == "repo")
         assert any(not ref["exists"] for p in data["pillars"] for ref in p["evidence"] if ref["kind"] == "artifact")
 
@@ -96,6 +102,7 @@ def main() -> int:
         assert "Open production gates" in html
         assert "Locked artifacts" in html
         assert "Readiness percentages are not quality metrics" in html
+        assert "continuous 8K no-CNN versus CNN ProRes review media" in html
         assert "production ready: false" in html
         assert proc.stdout.strip() == str(dashboard)
     print("test_build_product_pillar_scorecard: PASS")

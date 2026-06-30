@@ -258,6 +258,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "locked_artifacts": [
                 "approved Mission native12 4K cleanup offline/review baseline",
                 "approved candidate-aware 8K SR offline/reconstruction baseline",
+                "continuous 8K no-CNN versus CNN ProRes review media",
                 "8K .gvid, editable raw, and ProRes review receipts",
                 "first native Mission 1 PSF measurement run as blocker evidence",
             ],
@@ -265,6 +266,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "done_evidence": [
                 "Mission native12 4K cleanup is approved for offline/review scope.",
                 "Candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates with .gvid, editable raw, and ProRes receipts.",
+                "A true continuous-scene 8K ProRes A/B now compares a no-CNN 4096 x 3072 raw Bayer baseline display-upscaled to 8192 x 6144 against the approved 4K cleanup plus 8K SR CNN raw Bayer path.",
                 "Pair-derived PSF/detail budget over 1,024 real-fixture tiles fits a 2x2 same-color Bayer box model.",
                 "The residual budget shows the 4K-to-8K gap is almost entirely same-cell fine detail, not coarse blur.",
                 "The native Mission 1 high/low pair inventory now indexes near-time 8192 x 6144 and 4096 x 3072 capture candidates for a measured PSF pass.",
@@ -287,6 +289,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     repo_ref("CNN product scorecard", "docs/CNN_PRODUCT_SCORECARD_2026-06-29.md"),
                     artifact_ref("4K cleanup visual signoff", "artifacts/mission1_4k_cleanup_visual_signoff_20260625/production_signoff.json"),
                     artifact_ref("8K SR promotion receipt", "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"),
+                    artifact_ref("continuous 8K no-CNN vs CNN ProRes review", "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json"),
                     artifact_ref("Mission42 8K dashboard", "artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_broad_fullframe/index.html"),
                     artifact_ref("PSF xlarge detail budget", "artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/bayer_resize_psf_receipt.json"),
                     artifact_ref("Mission 1 native high/low pair inventory", "artifacts/mission1_native_psf_pair_inventory_20260630/index.html"),
