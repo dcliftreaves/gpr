@@ -86,9 +86,13 @@ def main() -> int:
         assert "PSF-aware raw-video replacement" in data["pillars"][3]["open_production_gates"]
         assert any("8K SR" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any("continuous 8K no-CNN versus CNN" in item for item in data["pillars"][3]["locked_artifacts"])
-        assert any("True continuous-scene 8K ProRes A/B" in item for item in data["pillars"][3]["done_evidence"])
+        assert any("Standalone 8K ProRes A/B" in item for item in data["pillars"][3]["done_evidence"])
         assert any(
             "z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
+            for ref in data["pillars"][3]["evidence"]
+        )
+        assert any(
+            "mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
             for ref in data["pillars"][3]["evidence"]
         )
         assert any(

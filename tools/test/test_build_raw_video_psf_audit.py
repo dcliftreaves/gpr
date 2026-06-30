@@ -65,7 +65,7 @@ def main() -> int:
         assert data["continuous_8k_review_media"]["z8"]["ready"] is True
         assert data["continuous_8k_review_media"]["z8"]["true_no_cnn"]["frames"] == 24
         assert data["continuous_8k_review_media"]["mission1"]["ready"] is True
-        assert data["continuous_8k_review_media"]["mission1"]["true_no_cnn"]["frames"] == 12
+        assert data["continuous_8k_review_media"]["mission1"]["true_no_cnn"]["frames"] == 42
         assert any(
             check["id"] == "standalone_continuous_8k_review_media" and check["passed"]
             for check in data["checks"]

@@ -152,15 +152,19 @@ the retained 4K cleanup CNN Bayer plus approved 8K SR CNN path, with 24 matched
 frames at 20 fps. This is the whole-video review evidence for the approved
 baseline, not a dashboard, contact sheet, side-by-side review, or crop montage.
 
-The current Mission 1 standalone continuous-scene 8K no-CNN versus CNN review
-lives at
+The current Mission 1 broad 8K no-CNN versus CNN review lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/`.
+It contains separate 8192 x 6144 ProRes videos for 42 Mission 1 raw-video
+frames at 20 fps: a no-CNN 4096 x 3072 raw Bayer baseline display-upscaled
+with Lanczos, and the approved 4K cleanup plus 8K SR CNN raw Bayer render.
+This is the broad whole-video Mission 1 review pair; it is not the side-by-side
+movie in that folder.
+
+The stricter Mission 1 sequential-scene 8K no-CNN versus CNN review lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/`.
 It contains separate 8192 x 6144 ProRes videos for 12 sequential Mission 1
 frames at 20 fps: a no-CNN 4096 x 3072 raw Bayer baseline display-upscaled
-with Lanczos, and the approved 4K cleanup plus 8K SR CNN raw Bayer render. The
-broader 42-frame Mission bundle remains supporting coverage; the source-of-
-truth continuous-scene comparison is the two standalone movies in the
-`GP017497` through `GP017508` folder.
+with Lanczos, and the approved 4K cleanup plus 8K SR CNN raw Bayer render.
 
 The current Mission 1 native high/low PSF candidate inventory lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_20260630/index.html`.

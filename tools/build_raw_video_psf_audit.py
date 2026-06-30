@@ -36,7 +36,7 @@ DEFAULT_NATIVE_PSF_MEASUREMENT_PLAN = "artifacts/mission1_native_psf_measurement
 DEFAULT_NATIVE_PSF_MEASUREMENT = "artifacts/mission1_native_psf_measurement_20260630/native_psf_measurement.json"
 DEFAULT_Z8_CONTINUOUS_REVIEW = "artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json"
 DEFAULT_MISSION_CONTINUOUS_REVIEW = (
-    "artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/receipt.json"
+    "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json"
 )
 
 
@@ -141,7 +141,13 @@ def summarize_continuous_review(
         "width": review.get("width") or review.get("scene", {}).get("width"),
         "height": review.get("height") or review.get("scene", {}).get("height"),
         "fps": review.get("fps") or review.get("scene", {}).get("fps"),
-        "frames": len(review.get("frames", [])) if isinstance(review.get("frames"), list) else review.get("scene", {}).get("frame_count"),
+        "frames": (
+            len(review.get("frames", []))
+            if isinstance(review.get("frames"), list)
+            else review.get("frames")
+            if isinstance(review.get("frames"), int)
+            else review.get("scene", {}).get("frame_count")
+        ),
     }
     baseline = review_output_meta(review, "true_no_cnn", top_level)
     candidate = review_output_meta(review, "with_cnn", top_level)
@@ -160,6 +166,9 @@ def summarize_continuous_review(
     sequential_scene = (
         isinstance(review.get("frames"), list)
         and len(review["frames"]) >= minimum_frames
+    ) or (
+        isinstance(review.get("frames"), int)
+        and review["frames"] >= minimum_frames
     ) or (
         isinstance(review.get("scene", {}).get("source_frame_stems"), list)
         and len(review["scene"]["source_frame_stems"]) >= minimum_frames
@@ -294,15 +303,12 @@ def synthetic_inputs() -> tuple[
         },
     }
     mission_review = {
-        "schema": "gpr.mission1_8k_scene_no_cnn_vs_cnn_review.v1",
-        "purpose": "Standalone continuous-scene 8K ProRes A/B. This is not a dashboard, crop sheet, contact sheet, or side-by-side review video.",
-        "scene": {
-            "source_frame_stems": [f"GP017{497 + i}" for i in range(12)],
-            "frame_count": 12,
-            "fps": 20,
-            "width": 8192,
-            "height": 6144,
-        },
+        "schema": "gpr.mission1_8k_true_no_cnn_vs_cnn_review.v1",
+        "note": "Continuous scene-video A/B, not a dashboard. Baseline and CNN result are separate standalone movies.",
+        "frames": 42,
+        "fps": 20,
+        "width": 8192,
+        "height": 6144,
         "outputs": {
             "true_no_cnn": {"path": "/synthetic/mission_no_cnn.mov", "bytes": 1, "sha256": "synthetic"},
             "with_cnn": {"path": "/synthetic/mission_with_cnn.mov", "bytes": 1, "sha256": "synthetic"},
@@ -397,7 +403,7 @@ def build_audit(
         "Mission 1 continuous 8K no-CNN vs CNN review",
         mission_continuous_review_path,
         mission_continuous_review,
-        minimum_frames=12,
+        minimum_frames=42,
         require_exists=not synthetic,
     )
     continuous_reviews_ready = z8_review["ready"] and mission_review["ready"]

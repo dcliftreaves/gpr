@@ -73,6 +73,7 @@
         "dashboards": [
           "cnn_product_scorecard_20260629",
           "z8_continuous_8k_no_cnn_vs_cnn_20260630",
+          "mission1_8k_true_no_cnn_vs_cnn_20260630",
           "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630",
           "mission1_native_psf_corpus_audit_20260630",
           "raw_video_psf_capture_request_20260630"
@@ -1563,6 +1564,31 @@
         "width": 8280,
         "height": 5520,
         "frames": 24,
+        "fps": 20,
+        "standalone_videos": 2,
+        "dashboard_video": 0
+      }
+    },
+    {
+      "id": "mission1_8k_true_no_cnn_vs_cnn_20260630",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Standalone broad 8K ProRes A/B for reviewing the approved 4K cleanup plus 8K SR CNN raw Bayer render against a Mission 1 no-CNN baseline over the 42-frame raw-video sequence. This is not a dashboard, crop sheet, contact sheet, or side-by-side review video.",
+      "dashboard": "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json",
+      "docs": [
+        "README.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/BAYER_RESIZE_PSF.md"
+      ],
+      "receipts": [
+        "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json",
+        "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_true_no_cnn_4k_raw_lanczos_to_8k_42f_20p_prores.mov",
+        "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_with_4k_cleanup_and_8k_sr_cnn_42f_20p_prores.mov"
+      ],
+      "metrics": {
+        "width": 8192,
+        "height": 6144,
+        "frames": 42,
         "fps": 20,
         "standalone_videos": 2,
         "dashboard_video": 0

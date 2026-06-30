@@ -27,7 +27,7 @@ EIGHTK_CNN = "mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1"
 FOURK_SIGNOFF = "artifacts/mission1_4k_cleanup_visual_signoff_20260625/production_signoff.json"
 EIGHTK_PROMOTION = "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"
 EIGHTK_CONTINUOUS_REVIEW = "artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json"
-MISSION_CONTINUOUS_REVIEW = "artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/receipt.json"
+MISSION_CONTINUOUS_REVIEW = "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json"
 COMPAT_DIR = "artifacts/real_fixture_compatibility"
 
 

@@ -121,7 +121,12 @@ The Z8 A/B lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/`
 and contains two standalone 8280 x 5520 ProRes movies: a no-CNN raw Bayer
 baseline and the retained 4K cleanup plus approved 8K SR CNN path. The Mission
-1 A/B lives at
+1 broad A/B lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/`
+and contains two standalone 8192 x 6144 ProRes movies over 42 raw-video
+frames: a no-CNN 4096 x 3072 raw Bayer baseline upscaled to 8K and the
+approved 4K cleanup plus 8K SR CNN render. The stricter Mission 1 scene A/B
+lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/`
 and contains two standalone 8192 x 6144 ProRes movies over the sequential
 `GP017497` through `GP017508` scene: a no-CNN 4096 x 3072 raw Bayer baseline
