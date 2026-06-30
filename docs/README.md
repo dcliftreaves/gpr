@@ -96,6 +96,8 @@ refreshed 2026-06-29.
 | `python3 tools/test/test_build_premium_still_sr_gate_receipt.py` | regression-test the premium still-SR gate skeleton |
 | `python3 tools/build_bayer_resize_psf_receipt.py --out-dir /path/to/out` | build a synthetic non-production Bayer resize PSF receipt |
 | `python3 tools/test/test_build_bayer_resize_psf_receipt.py` | regression-test the PSF receipt builder |
+| `python3 tools/build_bayer_resize_psf_from_pairs.py --pairs /path/to/pairs.npz --out-dir /path/to/out` | build a pair-derived non-production Bayer resize PSF receipt |
+| `python3 tools/test/test_build_bayer_resize_psf_from_pairs.py` | regression-test the pair-derived PSF receipt builder |
 | `python3 tools/test/check_readme_media.py` | validate local README showcase media links, sizes, and stale text claims in SVG media |
 | `python3 tools/test/test_check_readme_media.py` | regression-test README showcase stale-claim detection |
 | `python3 tools/test/check_release_evidence_manifest.py` | validate production evidence manifest |
