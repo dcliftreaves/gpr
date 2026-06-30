@@ -665,6 +665,60 @@ center row is a special case. The next model target should therefore be
 exposure/brightness-aware fine texture restoration with validated camera-noise
 conditioning, not another coarse color/tonemap or random-noise pass.
 
+### Broader X2D HF Residual Grid
+
+The first HF residual target set only had 9 rows: three crops at three EVs.
+`tools/cnn/build_premium_still_sr_hf_residual_targets.py` now supports
+deterministic grid crops and writes scene/source metadata into each row so
+later training can hold out crops or whole source scenes.
+
+Current broader target:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_grid5_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_grid5_20260630/hf_residual_targets.npz
+```
+
+Result:
+
+| target | rows | median HF correlation | median residual abs mean |
+|---|---:|---:|---:|
+| original named crops | 9 | 0.406 | 0.04284 |
+| 5x5 grid across -2/0/+2 EV | 75 | 0.407 | 0.04456 |
+
+The grid target does not change the diagnosis: the candidate still lacks
+high-frequency X2D texture/detail under the rawpy latitude render, and that
+gap is not explained by a single odd crop.
+
+The matching no-REF center-grid holdout probe is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_grid5_centerholdout_w48_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_grid5_centerholdout_w48_20260630/train_receipt.json
+```
+
+| split | train rows | holdout rows | train median residual MAE reduction | holdout median residual MAE reduction | checkpoint SHA-256 |
+|---|---:|---:|---:|---:|---|
+| hold out `grid5_02_02` center crop across EVs | 72 | 3 | 1.65% | 1.69% | `f2a8a3dc4b6e0748b6bf403f83042291baf15ab78a6f3328a914bde3f080f20a` |
+
+The broader band analysis is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_band_analysis_grid5_20260630/index.html
+```
+
+| metric | value |
+|---|---:|
+| median Y residual abs mean | 0.02772 |
+| median fine-band share of residual abs | 0.969x |
+| median mid-band share of residual abs | 0.253x |
+| median coarse-band share of residual abs | 0.00003x |
+
+This confirms the production blocker at broader coverage: the remaining X2D
+gap is fine-band texture/noise/detail and scene generalization. The next target
+expansion should combine multiple X2D scenes, validated X2D noise sidecars, and
+scene-held-out evaluation before spending on a larger model.
+
 ### Exposure/Brightness-Aware Residual Controls
 
 `tools/cnn/train_premium_still_sr_hf_residual.py` now supports an
@@ -682,12 +736,12 @@ texture/detail blocker:
 | EV/brightness weighted | train upper-left/lower-detail, hold out center crop | 5.57% | -1.56% | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_evbright_cropholdout_w64_20260630/index.html` |
 | EV/brightness unweighted | train upper-left/lower-detail, hold out center crop | 6.28% | 0.54% | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_evbright_unweighted_cropholdout_w64_20260630/index.html` |
 
-The weighted objective over-focuses the current tiny crop set and hurts
-spatial holdout. The unweighted crop-holdout control is barely positive. The
-next production-aligned pass should expand the target set before spending on
-larger models: full-frame or many-tile X2D targets across multiple exposures,
-validated ISO/noise sidecars, and a gate that holds out scenes/crops while
-still including +2 EV examples in training.
+The weighted objective over-focuses the tiny named-crop set and hurts spatial
+holdout. The unweighted crop-holdout control is barely positive. The 75-row
+grid target above is the next production-aligned baseline: it gives broader
+coverage, but still only recovers 1.69 percent on the center-grid holdout.
+Promotion now needs multi-scene/full-frame X2D target diversity with validated
+ISO/noise sidecars, not another scalar EV/brightness-only control.
 
 ## Production Path
 

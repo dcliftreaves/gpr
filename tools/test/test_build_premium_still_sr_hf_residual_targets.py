@@ -49,12 +49,20 @@ def main() -> int:
             cand=cand,
             ev=0.0,
             crop_size=32,
+            crop_grid=2,
+            max_crops_per_ev=None,
             block=8,
             residual_scale=0.08,
             panels_dir=root / "panels",
+            scene_id="synthetic_scene",
+            source_dng=root / "source.dng",
+            candidate_dng=root / "candidate.dng",
         )
-        assert len(rows) == 3
-        assert len(inputs) == len(residuals) == len(targets) == 3
+        assert len(rows) == 4
+        assert len(inputs) == len(residuals) == len(targets) == 4
+        assert rows[0]["scene_id"] == "synthetic_scene"
+        assert rows[0]["crop"].startswith("grid2_")
+        assert rows[0]["source_dng"].endswith("source.dng")
         assert rows[0]["residual_abs_mean"] > 0.0
         assert rows[0]["hf_y_correlation"] is not None
         npz = root / "targets.npz"
@@ -64,7 +72,7 @@ def main() -> int:
             assert z["inputs"].shape == z["hf_residuals"].shape
             assert z["inputs"].dtype == np.float16
         contact = root / "contact.jpg"
-        tool.write_contact_sheet(contact, rows, 3)
+        tool.write_contact_sheet(contact, rows, 4)
         assert contact.stat().st_size > 0
 
     print("test_build_premium_still_sr_hf_residual_targets: PASS")

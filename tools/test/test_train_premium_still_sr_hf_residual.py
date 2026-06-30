@@ -49,7 +49,15 @@ def main() -> int:
             inputs.append(base.astype(np.float16))
             residuals.append(residual.astype(np.float16))
             source_hf.append((residual * 1.5).astype(np.float16))
-            rows.append({"crop": f"row_{i}", "ev": ev, "crop_xy": [0, 0], "crop_size": 48})
+            rows.append(
+                {
+                    "scene_id": "holdout_scene" if i == 3 else "train_scene",
+                    "crop": f"row_{i}",
+                    "ev": ev,
+                    "crop_xy": [0, 0],
+                    "crop_size": 48,
+                }
+            )
         npz = root / "targets.npz"
         np.savez_compressed(
             npz,
@@ -82,6 +90,7 @@ def main() -> int:
                 "near_clip_weight": 0.5,
                 "holdout_ev": 2.0,
                 "holdout_crop": None,
+                "holdout_scene": "holdout_scene",
                 "eval_every": 0,
                 "eval_tile": 48,
                 "panel_rows": 2,
@@ -96,6 +105,7 @@ def main() -> int:
         assert Path(receipt["artifacts"]["dashboard"]).stat().st_size > 0
         assert receipt["eval"]["train"]["row_count"] == 3
         assert receipt["eval"]["holdout"]["row_count"] == 1
+        assert receipt["config"]["holdout_scene"] == "holdout_scene"
 
     print("test_train_premium_still_sr_hf_residual: PASS")
     return 0

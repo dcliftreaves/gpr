@@ -12,7 +12,7 @@ If a metric here conflicts with a committed receipt, the receipt wins.
 |---|---|---|
 | Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance. | Good enough to present as a working stills product path, with explicit open work on more real alternate-phase fixtures and camera-calibrated noise. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, a structured HF residual target dataset, and a first no-REF HF residual smoke model. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass; the first smoke model is evidence that the current feature/context set is too weak for promotion. |
+| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, and no-REF HF residual probes. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass; the current grid target/probe proves the target set and model are still too weak for promotion. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup and candidate-aware 8K SR. | Not done as a formal PSF/blur-calibrated resizing model. |
 
 ## 1. Raw Stills
@@ -251,6 +251,18 @@ Current evidence:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_evbright_unweighted_cropholdout_w64_20260630/index.html`.
   This points to insufficient target diversity/full-frame context, not just
   missing scalar EV or brightness features.
+- The HF residual target builder now supports deterministic grid crops with
+  scene/source metadata. The first broader X2D grid target has 75 rows, median
+  HF correlation 0.407, and median residual absolute mean 0.04456:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_grid5_20260630/index.html`.
+  A no-REF w48/d5 probe holding out the center grid crop across EVs improves
+  train median residual MAE by 1.65 percent and holdout by 1.69 percent:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_grid5_centerholdout_w48_20260630/index.html`.
+  The matching band analysis shows median fine-band residual share 0.969x,
+  mid-band share 0.253x, and essentially zero coarse-band share:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_band_analysis_grid5_20260630/index.html`.
+  This is better coverage, not production promotion; the next target needs
+  multiple X2D scenes plus validated camera-noise sidecars.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both

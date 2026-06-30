@@ -31,7 +31,7 @@ from build_premium_still_sr_latitude_review import (  # noqa: E402
     artifact_ref,
     block_lowpass_rgb,
     crop_metrics,
-    crop_starts,
+    crop_starts as named_crop_starts,
     image_from_rgb,
     render_rawpy,
     sha256_file,
@@ -41,6 +41,26 @@ from build_premium_still_sr_latitude_review import (  # noqa: E402
 
 SCHEMA = "gpr.premium_still_sr_hf_residual_targets.v1"
 DEFAULT_EXPOSURES = (-2.0, 0.0, 2.0)
+
+
+def crop_positions(width: int, height: int, crop: int, grid: int) -> list[tuple[str, int, int]]:
+    if grid <= 1:
+        return named_crop_starts(width, height, crop)
+    if crop > width or crop > height:
+        return [("full_fit", 0, 0)]
+    xs = np.linspace(0, max(0, width - crop), grid)
+    ys = np.linspace(0, max(0, height - crop), grid)
+    positions: list[tuple[str, int, int]] = []
+    seen: set[tuple[int, int]] = set()
+    for gy, yf in enumerate(ys):
+        for gx, xf in enumerate(xs):
+            x = int(round(float(xf)))
+            y = int(round(float(yf)))
+            if (x, y) in seen:
+                continue
+            seen.add((x, y))
+            positions.append((f"grid{grid}_{gy:02d}_{gx:02d}", x, y))
+    return positions
 
 
 def stats(values: list[float]) -> dict[str, float]:
@@ -72,9 +92,14 @@ def build_rows_from_arrays(
     cand: np.ndarray,
     ev: float,
     crop_size: int,
+    crop_grid: int = 1,
+    max_crops_per_ev: int | None = None,
     block: int,
     residual_scale: float,
     panels_dir: Path | None = None,
+    scene_id: str | None = None,
+    source_dng: Path | None = None,
+    candidate_dng: Path | None = None,
 ) -> tuple[list[dict[str, Any]], list[np.ndarray], list[np.ndarray], list[np.ndarray]]:
     if ref.shape != cand.shape:
         common_h = min(ref.shape[0], cand.shape[0])
@@ -89,7 +114,10 @@ def build_rows_from_arrays(
     targets: list[np.ndarray] = []
     if panels_dir is not None:
         panels_dir.mkdir(parents=True, exist_ok=True)
-    for crop_name, x, y in crop_starts(width, height, crop):
+    positions = crop_positions(width, height, crop, crop_grid)
+    if max_crops_per_ev is not None:
+        positions = positions[: max(0, max_crops_per_ev)]
+    for crop_name, x, y in positions:
         ref_crop = ref[y : y + crop, x : x + crop]
         cand_crop = cand[y : y + crop, x : x + crop]
         ref_f = to_float(ref_crop)
@@ -99,10 +127,14 @@ def build_rows_from_arrays(
         residual = ref_hf - cand_hf
         metrics = crop_metrics(ref_crop, cand_crop)
         row = {
+            "scene_id": scene_id,
+            "source_dng": str(source_dng) if source_dng else None,
+            "candidate_dng": str(candidate_dng) if candidate_dng else None,
             "crop": crop_name,
             "ev": ev,
             "crop_xy": [x, y],
             "crop_size": crop,
+            "crop_grid": crop_grid,
             "block": block,
             "mae": metrics["mae"],
             "y_mae": metrics["y_mae"],
@@ -173,7 +205,7 @@ def render_html(data: dict[str, Any], output_dir: Path) -> str:
     table = []
     for row in rows:
         table.append(
-            f"<tr><td>{html.escape(row['crop'])}</td><td>{row['ev']:+.0f}</td>"
+            f"<tr><td>{html.escape(str(row.get('scene_id')))}</td><td>{html.escape(row['crop'])}</td><td>{row['ev']:+.0f}</td>"
             f"<td>{row['mae']:.5f}</td><td>{row['hf_y_mae']:.5f}</td>"
             f"<td>{html.escape(str(row['hf_y_energy_ratio']))}</td>"
             f"<td>{html.escape(str(row['hf_y_correlation']))}</td>"
@@ -200,7 +232,7 @@ code{{color:#b7d7ff}}.contact{{max-width:100%;border:1px solid #333}}
 <div class="card"><h2>Residual p95</h2><p>median {summary['residual_p95_abs']['median']:.5f}</p><p>max {summary['residual_p95_abs']['max']:.5f}</p></div>
 </div>
 <img class="contact" src="{html.escape(contact)}">
-<table><tr><th>crop</th><th>EV</th><th>MAE</th><th>HF Y MAE</th><th>HF energy ratio</th><th>HF corr</th><th>residual mean</th><th>residual p95</th></tr>
+<table><tr><th>scene</th><th>crop</th><th>EV</th><th>MAE</th><th>HF Y MAE</th><th>HF energy ratio</th><th>HF corr</th><th>residual mean</th><th>residual p95</th></tr>
 {''.join(table)}
 </table></body></html>
 """
@@ -237,9 +269,14 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             cand=cand,
             ev=ev,
             crop_size=args.crop_size,
+            crop_grid=args.crop_grid,
+            max_crops_per_ev=args.max_crops_per_ev,
             block=args.block,
             residual_scale=args.residual_preview_scale,
             panels_dir=panels_dir,
+            scene_id=args.scene_id or args.source_dng.stem,
+            source_dng=args.source_dng,
+            candidate_dng=args.candidate_dng,
         )
         rows.extend(part_rows)
         inputs.extend(part_inputs)
@@ -279,6 +316,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "half_size": args.half_size,
             "ev": [float(v) for v in args.ev],
             "crop_size": args.crop_size,
+            "crop_grid": args.crop_grid,
+            "max_crops_per_ev": args.max_crops_per_ev,
             "block": args.block,
         },
         "policy": {
@@ -311,6 +350,9 @@ def main() -> int:
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--ev", action="append", type=float, default=list(DEFAULT_EXPOSURES))
     ap.add_argument("--crop-size", type=int, default=768)
+    ap.add_argument("--crop-grid", type=int, default=1, help="1 keeps named crops; >1 uses a deterministic grid per EV")
+    ap.add_argument("--max-crops-per-ev", type=int, help="optional cap after deterministic crop ordering")
+    ap.add_argument("--scene-id", help="stable scene/source id written into each row")
     ap.add_argument("--block", type=int, default=16)
     ap.add_argument("--output-bps", type=int, choices=(8, 16), default=16)
     ap.add_argument("--half-size", action="store_true")

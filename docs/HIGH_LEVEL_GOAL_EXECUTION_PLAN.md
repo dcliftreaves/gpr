@@ -152,15 +152,18 @@ Evidence required:
    and the first no-REF smoke model is under
    `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_w64_20260630/`.
    Its +2 EV holdout residual MAE reduction is only 4.03 percent, so the next
-   commit target should add exposure/brightness-conditioned fine-texture and
-   camera-noise-aware features before rerunning the full rawpy latitude gate.
+   pass added exposure/brightness-conditioned controls and a broader X2D grid
+   target instead of promoting the model.
    The supporting band analysis is under
    `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_band_analysis_20260630/`
    and shows the blocker is fine-band, not coarse tone. The first
    EV/brightness-aware residual controls are still weak; the best crop-holdout
-   control improves only 0.54 percent. The next commit target should build a
-   broader full-frame/many-tile X2D target set with validated camera-noise
-   sidecars before another larger model run.
+   control improves only 0.54 percent. The broader 75-row grid target is under
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_grid5_20260630/`;
+   it confirms median HF correlation 0.407 and the center-grid holdout model
+   recovers only 1.69 percent residual MAE. The next commit target should
+   expand from one X2D scene to multiple X2D scenes/full-frame tiles with
+   validated camera-noise sidecars before another larger model run.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

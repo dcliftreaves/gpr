@@ -167,7 +167,18 @@ class HfResidualTargets:
         if self.inputs.ndim != 4 or self.inputs.shape[-1] != 3:
             raise ValueError(f"expected NHWC RGB arrays, got {self.inputs.shape}")
 
-    def row_indices(self, holdout_ev: float | None, holdout_crop: str | None = None) -> tuple[list[int], list[int]]:
+    def row_indices(
+        self,
+        holdout_ev: float | None,
+        holdout_crop: str | None = None,
+        holdout_scene: str | None = None,
+    ) -> tuple[list[int], list[int]]:
+        if holdout_scene:
+            holdout = [i for i, row in enumerate(self.rows) if str(row.get("scene_id", "")) == holdout_scene]
+            train = [i for i in range(len(self.rows)) if i not in holdout]
+            if not train or not holdout:
+                raise ValueError(f"holdout scene {holdout_scene} produced train={len(train)} holdout={len(holdout)}")
+            return train, holdout
         if holdout_crop:
             holdout = [i for i, row in enumerate(self.rows) if str(row.get("crop", "")) == holdout_crop]
             train = [i for i in range(len(self.rows)) if i not in holdout]
@@ -351,7 +362,7 @@ code{{color:#b7d7ff}}img{{max-width:100%;border:1px solid #333}}
 
 def train(args: argparse.Namespace) -> dict[str, Any]:
     data = HfResidualTargets(args.targets)
-    train_indices, holdout_indices = data.row_indices(args.holdout_ev, args.holdout_crop)
+    train_indices, holdout_indices = data.row_indices(args.holdout_ev, args.holdout_crop, args.holdout_scene)
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
     model = HfResidualNet(
@@ -459,6 +470,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "near_clip_weight": args.near_clip_weight,
             "holdout_ev": args.holdout_ev,
             "holdout_crop": args.holdout_crop,
+            "holdout_scene": args.holdout_scene,
             "seed": args.seed,
         },
         "policy": {
@@ -501,6 +513,7 @@ def main() -> int:
     ap.add_argument("--near-clip-weight", type=float, default=0.0)
     ap.add_argument("--holdout-ev", type=float, default=2.0)
     ap.add_argument("--holdout-crop")
+    ap.add_argument("--holdout-scene")
     ap.add_argument("--eval-every", type=int, default=50)
     ap.add_argument("--eval-tile", type=int, default=384)
     ap.add_argument("--panel-rows", type=int, default=9)
