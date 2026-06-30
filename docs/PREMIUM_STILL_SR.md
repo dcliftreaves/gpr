@@ -577,6 +577,50 @@ This is the first concrete target for the next production experiment: train a
 structured residual/detail model that predicts this field from candidate/runtime
 inputs, then rerun the rawpy latitude gate without source-HF at render time.
 
+### X2D No-REF HF Residual Smoke Model
+
+`tools/cnn/train_premium_still_sr_hf_residual.py` trains a bounded residual
+predictor against the structured HF targets. The model is runtime-safe in the
+narrow input sense: inference sees candidate rendered RGB, candidate high-pass,
+and deterministic XY coordinates only. The source DNG contributes only to the
+supervised target builder above.
+
+```sh
+python3 tools/cnn/train_premium_still_sr_hf_residual.py \
+  --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/hf_residual_targets.npz \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_w64_20260630 \
+  --checkpoint-name x2d_hf_residual_w64_d6_s2000.pt \
+  --steps 2000 \
+  --batch-size 6 \
+  --patch-size 192 \
+  --width 64 \
+  --depth 6 \
+  --residual-scale 0.30 \
+  --feature-mode rgb_hf_coord \
+  --holdout-ev 2.0
+```
+
+Current smoke artifact:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_w64_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_w64_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_w64_20260630/x2d_hf_residual_w64_d6_s2000.pt
+```
+
+Result:
+
+| split | baseline residual MAE median | model residual MAE median | residual MAE reduction median | checkpoint SHA-256 |
+|---|---:|---:|---:|---|
+| train EV -2/0 | 0.03002 | 0.02831 | 5.34% | `25dad7e865724cc00e9a9da40544a325f36d97952db952d1e920d3aab1d0ceff` |
+| holdout EV +2 | 0.08659 | 0.08305 | 4.03% | `25dad7e865724cc00e9a9da40544a325f36d97952db952d1e920d3aab1d0ceff` |
+
+This is progress but not a production result. The source-HF oracle still shows
+that the missing +2 EV texture/detail is recoverable in principle; this no-REF
+smoke model recovers only a small part of it. The next pass should test more
+context-rich inputs or a lower/mid/high-frequency target split before spending
+on a full still-SR promotion run.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D

@@ -12,7 +12,7 @@ If a metric here conflicts with a committed receipt, the receipt wins.
 |---|---|---|
 | Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance. | Good enough to present as a working stills product path, with explicit open work on more real alternate-phase fixtures and camera-calibrated noise. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, and a structured HF residual target dataset for the next training pass. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass. |
+| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, a structured HF residual target dataset, and a first no-REF HF residual smoke model. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass; the first smoke model is evidence that the current feature/context set is too weak for promotion. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup and candidate-aware 8K SR. | Not done as a formal PSF/blur-calibrated resizing model. |
 
 ## 1. Raw Stills
@@ -224,6 +224,15 @@ Current evidence:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/index.html`.
   This target uses source HF for supervision only and is explicitly not a
   runtime/no-REF render path.
+- `tools/cnn/train_premium_still_sr_hf_residual.py` now runs the first no-REF
+  residual learner against that target. The current X2D w64/d6/2000-step smoke
+  model uses candidate RGB, candidate high-pass, and deterministic XY only at
+  inference. It improves train median residual MAE by 5.34 percent and +2 EV
+  holdout median residual MAE by 4.03 percent:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_w64_20260630/index.html`.
+  This is not enough for production promotion; it narrows the next experiment
+  to richer full-frame context, metadata/ISO-aware features, or a different
+  LF/mid/HF target split rather than more random-HF addback.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both

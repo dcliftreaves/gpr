@@ -146,9 +146,14 @@ Evidence required:
    texture/detail path. It should preserve the now-measured low-frequency tone
    path, restore high-frequency luminance energy under +2 EV, and prove it
    without using REF/source content at render time. Calibrated random-HF
-   addback is now ruled out as a sufficient fix; the current next target is
-   the structured HF residual dataset under
-   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/`.
+   addback is now ruled out as a sufficient fix. The structured HF residual
+   dataset is available under
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/`,
+   and the first no-REF smoke model is under
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_w64_20260630/`.
+   Its +2 EV holdout residual MAE reduction is only 4.03 percent, so the next
+   commit target should add richer full-frame/context or metadata-aware
+   features before rerunning the full rawpy latitude gate.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence
