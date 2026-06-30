@@ -66,9 +66,12 @@ receipts remain locked unless their own committed gate, receipt, hash, or CI
 guard fails.
 
 The denominator is the full four-pillar production suite: raw stills, raw video
-MVP, premium still/SR, and PSF-aware video/SR. The burn-down separates remaining
-work into hardware integration, sample acquisition, and model promotion, so new
-fixture or camera-role evidence cannot be mistaken for an algorithm regression.
+MVP, premium still/SR, and PSF-aware video/SR. The generated burn-down is tied
+to the committed requirement IDs in
+[`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.json)
+and separates remaining work into hardware integration, sample acquisition, and
+model promotion, so new fixture or camera-role evidence cannot be mistaken for
+an algorithm regression.
 When reviewing progress, use the lock ledger for artifact stability and the scorecard for remaining production evidence. A percent can stay below 100%
 even when important artifacts are approved, because the open fraction may be
 hardware access, missing samples, or a still-unpromoted research model rather
@@ -107,7 +110,7 @@ the docs and external dashboards:
 | What is done, percent-wise, across the four pillars? | [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_capture_requirements_20260630/index.html` |
 | Which outputs are locked, and what would count as a real regression? | [`docs/PRODUCT_LOCK_LEDGER.md`](docs/PRODUCT_LOCK_LEDGER.md) |
 | What does a release reviewer receive? | [`docs/RELEASE_ARTIFACTS.md`](docs/RELEASE_ARTIFACTS.md); generated bundle manifests now carry the same RAW stills, RAW video MVP, premium still/SR, and PSF-aware video/SR labels used here. |
-| What work remains before calling the whole suite production-ready? | [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md), [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md), [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md), and `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html` |
+| What work remains before calling the whole suite production-ready? | [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md), [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md), [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md), [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.json), and the requirement-linked burn-down at `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html` |
 | What proves the stills path? | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md), [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md), [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md), and the X2D 100MP audit under `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/` |
 | What proves the GoPro/Mission raw-video path? | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md), [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md), [`docs/LABS_INTAKE.md`](docs/LABS_INTAKE.md), and the intake audit under `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260630/` |
 | What does the approved 8K video CNN/SR path look like against no CNN? | Two separate standalone 8K ProRes scene videos, not a dashboard, contact sheet, crop montage, or side-by-side review: Z8 no-CNN baseline `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/z8_24f_true_no_cnn_4k_raw_lanczos_to_8k_20p_prores.mov`, Z8 4K cleanup plus 8K SR CNN `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/z8_24f_with_4k_cleanup_and_8k_sr_cnn_20p_prores.mov`, and receipt `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json`. Both movies are 8280 x 5520 ProRes, 24 matched frames at 20 fps. The baseline is no-CNN 4140 x 2760 raw Bayer display-upscaled to 8280 x 5520, and the candidate is the retained 4K cleanup CNN Bayer plus approved 8K SR CNN path. |

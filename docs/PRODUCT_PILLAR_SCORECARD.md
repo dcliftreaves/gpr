@@ -29,11 +29,14 @@ Companion production burn-down dashboard:
 
 `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html`
 
-The burn-down is the action view: it separates hardware integration, sample
-acquisition, and model-promotion work. That distinction matters because the one
-Mission 1 camera-role closure, the real fixture/darkframe/PSF sample gaps, and
-the premium/PSF model-promotion gaps are different kinds of open evidence, not
-regressions of the locked still, 4K cleanup, 8K SR, or Pi stand-in paths.
+The burn-down is the action view over the same machine-readable capture
+requirements: it carries the requirement IDs, statuses, and validation commands
+from [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json),
+then separates hardware integration, sample-acquisition, and model-promotion
+work. That distinction matters because the one Mission 1 camera-role closure,
+the real fixture/darkframe/PSF sample gaps, and the premium/PSF model-promotion
+gaps are different kinds of open evidence, not regressions of the locked still,
+4K cleanup, 8K SR, or Pi stand-in paths.
 The committed sample/receipt contract is
 [`PRODUCTION_CAPTURE_REQUIREMENTS.md`](PRODUCTION_CAPTURE_REQUIREMENTS.md) and
 [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json).

@@ -120,7 +120,7 @@ refreshed 2026-06-30.
 | `python3 tools/test/test_build_raw_video_psf_audit.py` | regression-test the PSF/SR readiness audit builder |
 | `python3 tools/build_raw_video_psf_capture_request.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630` | build the controlled Mission 1 high/low capture request required for native PSF promotion |
 | `python3 tools/test/test_build_raw_video_psf_capture_request.py` | regression-test the raw-video PSF capture request builder |
-| `python3 tools/build_product_burndown.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630` | build the four-pillar production burn-down: what evidence moves each pillar, grouped as hardware integration, sample acquisition, or model promotion |
+| `python3 tools/build_product_burndown.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630` | build the four-pillar production burn-down from `PRODUCTION_CAPTURE_REQUIREMENTS.json`: what evidence moves each pillar, grouped as hardware integration, sample acquisition, or model promotion |
 | `python3 tools/test/test_build_product_burndown.py` | regression-test the product burn-down builder |
 | `python3 tools/test/check_product_burndown_contract.py` | validate that the product burn-down covers the current blocker/action contract for all four pillars |
 | `python3 tools/test/test_check_product_burndown_contract.py` | regression-test product burn-down contract failures |

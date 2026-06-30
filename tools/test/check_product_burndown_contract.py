@@ -20,12 +20,15 @@ EXPECTED_PILLARS = {
         "readiness": 90,
         "required_actions": {
             "Close real Bayer phase fixture gaps": {
+                "requirement_ids": ["real_grbg_fixture", "real_bggr_fixture"],
                 "tokens": ("GRBG", "BGGR", "still matrix"),
                 "blocker_type": "sample_acquisition",
                 "requires_mission1_camera_role": False,
                 "requires_new_samples": True,
+                "command_tokens": ("build_bayer_phase_fixture_inventory.py", "test_still_matrix.sh"),
             },
             "Add Mission 1 and iPhone darkframe sidecars": {
+                "requirement_ids": ["mission1_darkframe_stack", "iphone_cfa_darkframe_stack"],
                 "tokens": (
                     "Mission 1 darkframes",
                     "iPhone CFA darkframes",
@@ -34,6 +37,7 @@ EXPECTED_PILLARS = {
                 "blocker_type": "sample_acquisition",
                 "requires_mission1_camera_role": False,
                 "requires_new_samples": True,
+                "command_tokens": ("build_darkframe_candidate_audit.py", "build_camera_noise_calibration.py"),
             },
         },
     },
@@ -41,10 +45,12 @@ EXPECTED_PILLARS = {
         "readiness": 80,
         "required_actions": {
             "Replace Pi stand-in receipts with Mission 1 camera-role receipts": {
+                "requirement_ids": ["mission1_camera_role_receipts"],
                 "tokens": ("sensor/DMA", "SD writer", "rear-display", ".gvid"),
                 "blocker_type": "hardware_integration",
                 "requires_mission1_camera_role": True,
                 "requires_new_samples": False,
+                "command_tokens": ("run_gopro_mission1_quick_validation.py", "check_mission1_camera_closure_run.py"),
             },
         },
     },
@@ -52,10 +58,12 @@ EXPECTED_PILLARS = {
         "readiness": 60,
         "required_actions": {
             "Promote a true raw-CFA residual still-SR model": {
+                "requirement_ids": ["premium_still_sr_promotion_receipts"],
                 "tokens": ("candidate-only", "Z8 held-out", "X2D held-out", "50 MP / 100 MP"),
                 "blocker_type": "model_promotion",
                 "requires_mission1_camera_role": False,
                 "requires_new_samples": False,
+                "command_tokens": ("train_premium_still_sr_raw_cfa_residual.py", "build_premium_still_sr_gate_receipt.py"),
             },
         },
     },
@@ -63,6 +71,7 @@ EXPECTED_PILLARS = {
         "readiness": 44,
         "required_actions": {
             "Capture or locate controlled Mission 1 high/low PSF pairs": {
+                "requirement_ids": ["controlled_mission1_psf_pairs"],
                 "tokens": (
                     "8192 x 6144 / 4096 x 3072",
                     "source hashes",
@@ -74,12 +83,15 @@ EXPECTED_PILLARS = {
                 "blocker_type": "sample_acquisition",
                 "requires_mission1_camera_role": False,
                 "requires_new_samples": True,
+                "command_tokens": ("build_mission1_native_psf_pair_inventory.py", "build_mission1_native_psf_measurement.py"),
             },
             "Gate a PSF-conditioned 4K/8K video SR candidate": {
+                "requirement_ids": ["controlled_mission1_psf_pairs"],
                 "tokens": ("PSF-conditioned", "Mission42 and Z8 all24", "4K/8K ProRes"),
                 "blocker_type": "model_promotion",
                 "requires_mission1_camera_role": False,
                 "requires_new_samples": False,
+                "command_tokens": ("build_mission1_native_psf_measurement.py", "build_raw_video_psf_gap_plan.py"),
             },
         },
     },
@@ -101,12 +113,18 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
     failures: list[str] = []
     if data.get("schema") != "gpr.product_burndown.v1":
         failures.append(f"unexpected burn-down schema: {data.get('schema')!r}")
+    if data.get("source_requirements_schema") != "gpr.production_capture_requirements.v1":
+        failures.append("burn-down must source blocker IDs from PRODUCTION_CAPTURE_REQUIREMENTS.json")
+    if data.get("source_requirements_path") != "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json":
+        failures.append("burn-down must record docs/PRODUCTION_CAPTURE_REQUIREMENTS.json as its requirement source")
     if data.get("production_ready") is not False:
         failures.append("four-pillar burn-down must remain production_ready=false while blockers are open")
     if data.get("four_pillar_completion_percent") != 69:
         failures.append("four-pillar completion percent must stay aligned to the current 69% scorecard")
 
     summary = data.get("summary", {})
+    if summary.get("open_requirement_count") != 7:
+        failures.append("burn-down must identify the seven open production capture requirements")
     if summary.get("camera_required_action_count") != 1:
         failures.append("burn-down must identify exactly one camera-required action")
     if summary.get("non_camera_action_count") != 5:
@@ -128,6 +146,17 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
         )
     if summary.get("lowest_readiness_pillar") != "raw_video_psf_sr":
         failures.append("raw_video_psf_sr should remain the lowest-readiness pillar until PSF work closes")
+    expected_open_ids = [
+        "real_grbg_fixture",
+        "real_bggr_fixture",
+        "mission1_darkframe_stack",
+        "iphone_cfa_darkframe_stack",
+        "mission1_camera_role_receipts",
+        "controlled_mission1_psf_pairs",
+        "premium_still_sr_promotion_receipts",
+    ]
+    if data.get("open_requirement_ids") != expected_open_ids:
+        failures.append(f"unexpected open_requirement_ids: {data.get('open_requirement_ids')!r}")
 
     pillars = {str(row.get("id")): row for row in data.get("pillars", [])}
     for pillar_id, spec in EXPECTED_PILLARS.items():
@@ -150,6 +179,25 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
             if not action:
                 failures.append(f"{pillar_id} missing burn-down action {title!r}")
                 continue
+            if action.get("requirement_ids") != action_spec["requirement_ids"]:
+                failures.append(
+                    f"{title!r} requirement_ids are {action.get('requirement_ids')!r}, "
+                    f"expected {action_spec['requirement_ids']!r}"
+                )
+            statuses = action.get("source_requirement_statuses")
+            if not isinstance(statuses, dict):
+                failures.append(f"{title!r} must carry source_requirement_statuses")
+            else:
+                for req_id in action_spec["requirement_ids"]:
+                    if req_id not in statuses:
+                        failures.append(f"{title!r} missing source status for {req_id!r}")
+            commands = action.get("validation_commands", [])
+            if not isinstance(commands, list) or not commands:
+                failures.append(f"{title!r} must carry validation_commands from the committed requirement")
+            command_text = "\n".join(str(command) for command in commands)
+            for token in action_spec["command_tokens"]:
+                if token not in command_text:
+                    failures.append(f"{title!r} missing validation command token {token!r}")
             if action.get("blocker_type") != action_spec["blocker_type"]:
                 failures.append(
                     f"{title!r} blocker_type is {action.get('blocker_type')!r}, expected {action_spec['blocker_type']!r}"

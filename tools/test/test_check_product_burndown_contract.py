@@ -55,6 +55,14 @@ def main() -> int:
     bad_stills["pillars"][0]["burn_down_actions"][0]["completion_gate"] = "Fixture discovery dashboard exists."
     expect_failure(module, bad_stills, "GRBG")
 
+    bad_requirement_link = copy.deepcopy(data)
+    bad_requirement_link["pillars"][0]["burn_down_actions"][0]["requirement_ids"] = ["real_grbg_fixture"]
+    expect_failure(module, bad_requirement_link, "requirement_ids")
+
+    bad_validation_command = copy.deepcopy(data)
+    bad_validation_command["pillars"][1]["burn_down_actions"][0]["validation_commands"] = []
+    expect_failure(module, bad_validation_command, "validation_commands")
+
     bad_stills_blocker = copy.deepcopy(data)
     bad_stills_blocker["pillars"][0]["burn_down_actions"][0]["blocker_type"] = "model_promotion"
     expect_failure(module, bad_stills_blocker, "blocker_type")

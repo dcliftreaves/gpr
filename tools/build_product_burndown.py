@@ -15,6 +15,7 @@ from build_product_pillar_scorecard import DEFAULT_EXTERNAL_ROOT, build_scorecar
 
 SCHEMA = "gpr.product_burndown.v1"
 ROOT = Path(__file__).resolve().parents[1]
+REQUIREMENTS_PATH = ROOT / "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json"
 
 
 def action(
@@ -23,6 +24,7 @@ def action(
     priority: int,
     title: str,
     owner: str,
+    requirement_ids: list[str],
     can_do_without_camera: bool,
     blocker_type: str,
     requires_mission1_camera_role: bool,
@@ -36,6 +38,7 @@ def action(
         "priority": priority,
         "title": title,
         "owner": owner,
+        "requirement_ids": requirement_ids,
         "can_do_without_camera": can_do_without_camera,
         "blocker_type": blocker_type,
         "requires_mission1_camera_role": requires_mission1_camera_role,
@@ -46,12 +49,65 @@ def action(
     }
 
 
+def load_requirements() -> dict[str, Any]:
+    return json.loads(REQUIREMENTS_PATH.read_text(encoding="utf-8"))
+
+
+def requirements_by_id(requirements: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {str(row["id"]): row for row in requirements["requirements"]}
+
+
+def summarize_requirement(req: dict[str, Any]) -> dict[str, Any]:
+    result = {
+        "id": req["id"],
+        "pillar": req["pillar"],
+        "status": req["status"],
+        "sample_type": req["sample_type"],
+        "priority": req["priority"],
+        "why_needed": req["why_needed"],
+        "required_evidence": req["required_evidence"],
+        "acceptance": req["acceptance"],
+        "validation_commands": req["validation_commands"],
+    }
+    for key in ("minimum_count", "minimum_pair_count", "required_cfa_phase", "camera", "lowest_lift_current_group"):
+        if key in req:
+            result[key] = req[key]
+    return result
+
+
+def attach_requirements(
+    actions: list[dict[str, Any]],
+    requirement_map: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    result = []
+    for row in actions:
+        attached = dict(row)
+        source_requirements = []
+        for req_id in row["requirement_ids"]:
+            if req_id not in requirement_map:
+                raise KeyError(f"unknown production capture requirement: {req_id}")
+            source_requirements.append(summarize_requirement(requirement_map[req_id]))
+        attached["source_requirements"] = source_requirements
+        attached["source_requirement_statuses"] = {
+            str(req["id"]): str(req["status"]) for req in source_requirements
+        }
+        attached["validation_commands"] = [
+            str(command)
+            for req in source_requirements
+            for command in req.get("validation_commands", [])
+        ]
+        result.append(attached)
+    return result
+
+
 def pillar_by_id(scorecard: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {str(row["id"]): row for row in scorecard["pillars"]}
 
 
 def build_burndown(external_root: Path) -> dict[str, Any]:
     scorecard = build_scorecard(external_root)
+    requirements = load_requirements()
+    requirement_map = requirements_by_id(requirements)
     pillars = pillar_by_id(scorecard)
     actions = [
         action(
@@ -59,6 +115,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             priority=1,
             title="Close real Bayer phase fixture gaps",
             owner="repo/sample curator",
+            requirement_ids=["real_grbg_fixture", "real_bggr_fixture"],
             can_do_without_camera=True,
             blocker_type="sample_acquisition",
             requires_mission1_camera_role=False,
@@ -80,6 +137,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             priority=2,
             title="Add Mission 1 and iPhone darkframe sidecars",
             owner="sample curator",
+            requirement_ids=["mission1_darkframe_stack", "iphone_cfa_darkframe_stack"],
             can_do_without_camera=True,
             blocker_type="sample_acquisition",
             requires_mission1_camera_role=False,
@@ -101,6 +159,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             priority=1,
             title="Replace Pi stand-in receipts with Mission 1 camera-role receipts",
             owner="GoPro firmware engineer",
+            requirement_ids=["mission1_camera_role_receipts"],
             can_do_without_camera=False,
             blocker_type="hardware_integration",
             requires_mission1_camera_role=True,
@@ -119,6 +178,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             priority=1,
             title="Promote a true raw-CFA residual still-SR model",
             owner="CNN researcher",
+            requirement_ids=["premium_still_sr_promotion_receipts"],
             can_do_without_camera=True,
             blocker_type="model_promotion",
             requires_mission1_camera_role=False,
@@ -141,6 +201,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             priority=1,
             title="Capture or locate controlled Mission 1 high/low PSF pairs",
             owner="sample curator",
+            requirement_ids=["controlled_mission1_psf_pairs"],
             can_do_without_camera=True,
             blocker_type="sample_acquisition",
             requires_mission1_camera_role=False,
@@ -165,6 +226,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             priority=2,
             title="Gate a PSF-conditioned 4K/8K video SR candidate",
             owner="CNN researcher",
+            requirement_ids=["controlled_mission1_psf_pairs"],
             can_do_without_camera=True,
             blocker_type="model_promotion",
             requires_mission1_camera_role=False,
@@ -180,6 +242,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             completion_gate="The PSF-conditioned candidate beats the current approved 4K cleanup and 8K SR baselines without worse worst-row failures.",
         ),
     ]
+    actions = attach_requirements(actions, requirement_map)
     actions.sort(key=lambda row: (row["priority"], row["pillar"], row["title"]))
     by_pillar: dict[str, list[dict[str, Any]]] = {}
     for row in actions:
@@ -193,10 +256,22 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "external_root": str(external_root),
         "source_scorecard_schema": scorecard["schema"],
+        "source_requirements_schema": requirements["schema"],
+        "source_requirements_path": str(REQUIREMENTS_PATH.relative_to(ROOT)),
+        "open_requirement_ids": [
+            str(req["id"])
+            for req in requirements["requirements"]
+            if str(req["status"]) in {"open", "blocked_on_real_camera_access"}
+        ],
         "four_pillar_completion_percent": scorecard["four_pillar_completion_percent"],
         "production_ready": scorecard["production_ready"],
         "summary": {
             "action_count": len(actions),
+            "open_requirement_count": sum(
+                1
+                for req in requirements["requirements"]
+                if str(req["status"]) in {"open", "blocked_on_real_camera_access"}
+            ),
             "camera_required_action_count": sum(1 for row in actions if not row["can_do_without_camera"]),
             "non_camera_action_count": sum(1 for row in actions if row["can_do_without_camera"]),
             "mission1_camera_role_required_action_count": sum(
@@ -243,7 +318,19 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
         action_rows = []
         for row in pillar["burn_down_actions"]:
             evidence = "<br>".join(html.escape(str(item)) for item in row["evidence_required"])
-            command = row["next_command"] or "defined after prerequisite evidence exists"
+            req_ids = "<br>".join(
+                f"<code>{html.escape(str(req_id))}</code>" for req_id in row["requirement_ids"]
+            )
+            statuses = "<br>".join(
+                f"{html.escape(str(req_id))}: {html.escape(str(status))}"
+                for req_id, status in row["source_requirement_statuses"].items()
+            )
+            commands = row["validation_commands"] or ([row["next_command"]] if row["next_command"] else [])
+            if row["next_command"] and row["next_command"] not in commands:
+                commands = [row["next_command"], *commands]
+            command_html = "<br>".join(f"<code>{html.escape(str(command))}</code>" for command in commands)
+            if not command_html:
+                command_html = "defined after prerequisite evidence exists"
             camera = "yes" if row["can_do_without_camera"] else "no"
             blocker = str(row["blocker_type"]).replace("_", " ")
             mission1 = "yes" if row["requires_mission1_camera_role"] else "no"
@@ -253,23 +340,25 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
                 f"<td>{row['priority']}</td>"
                 f"<td>{html.escape(row['title'])}</td>"
                 f"<td>{html.escape(row['owner'])}</td>"
+                f"<td>{req_ids}</td>"
+                f"<td>{statuses}</td>"
                 f"<td>{html.escape(blocker)}</td>"
                 f"<td>{camera}</td>"
                 f"<td>{mission1}</td>"
                 f"<td>{samples}</td>"
                 f"<td>{evidence}</td>"
-                f"<td><code>{html.escape(command)}</code></td>"
+                f"<td>{command_html}</td>"
                 f"<td>{html.escape(row['completion_gate'])}</td>"
                 "</tr>"
             )
-        rows = "\n".join(action_rows) or "<tr><td colspan='10'>No burn-down action recorded.</td></tr>"
+        rows = "\n".join(action_rows) or "<tr><td colspan='12'>No burn-down action recorded.</td></tr>"
         sections.append(
             f"""<section class="detail">
   <h2>{html.escape(pillar["title"])}</h2>
   <p><strong>Lock ledger paths:</strong><br>{ledger_paths}</p>
   <p><strong>Locked artifacts:</strong><br>{locked}</p>
   <p><strong>Open production gates:</strong><br>{open_gates}</p>
-  <table><thead><tr><th>Priority</th><th>Action</th><th>Owner</th><th>Blocker type</th><th>No camera?</th><th>Mission 1 role?</th><th>New samples?</th><th>Evidence required</th><th>Command</th><th>Completion gate</th></tr></thead><tbody>{rows}</tbody></table>
+  <table><thead><tr><th>Priority</th><th>Action</th><th>Owner</th><th>Requirement IDs</th><th>Requirement status</th><th>Blocker type</th><th>No camera?</th><th>Mission 1 role?</th><th>New samples?</th><th>Evidence required</th><th>Validation commands</th><th>Completion gate</th></tr></thead><tbody>{rows}</tbody></table>
 </section>"""
         )
     summary = data["summary"]
@@ -277,6 +366,7 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
         f"{str(key).replace('_', ' ')}: {value}"
         for key, value in sorted(summary["blocker_type_counts"].items())
     )
+    open_ids = ", ".join(f"`{item}`" for item in data["open_requirement_ids"])
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -308,11 +398,12 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
 <body>
 <main>
   <h1>GPR Production Burn-Down</h1>
-  <p class="sub">The scorecard says where the four product pillars are. This burn-down says what evidence moves each pillar toward production and whether the remaining work is hardware integration, sample acquisition, or model promotion. These categories are not locked-artifact regression signals.</p>
+  <p class="sub">The scorecard says where the four product pillars are. This burn-down says what evidence moves each pillar toward production and whether the remaining work is hardware integration, sample acquisition, or model promotion. Each action is tied back to the committed production capture requirement IDs and validation commands. These categories are not locked-artifact regression signals.</p>
   <div class="headline">
     <div class="overall">{data["four_pillar_completion_percent"]}%</div>
     <div class="overall-label">four-pillar completion; production ready: {str(data["production_ready"]).lower()}; {summary["non_camera_action_count"]} non-camera actions, {summary["camera_required_action_count"]} camera-required action; {html.escape(blocker_counts)}</div>
   </div>
+  <p class="meta">Open requirement IDs from {html.escape(data["source_requirements_path"])}: {html.escape(open_ids)}</p>
   <div class="grid">{''.join(cards)}</div>
   {''.join(sections)}
   <p class="meta">Generated {html.escape(data["created_utc"])}. JSON: {html.escape(str(json_path))}. External root: {html.escape(data["external_root"])}.</p>

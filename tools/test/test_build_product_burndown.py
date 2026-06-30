@@ -51,9 +51,12 @@ def main() -> int:
 
         data = json.loads((out_dir / "product_burndown.json").read_text(encoding="utf-8"))
         assert data["schema"] == "gpr.product_burndown.v1"
+        assert data["source_requirements_schema"] == "gpr.production_capture_requirements.v1"
+        assert data["source_requirements_path"] == "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json"
         assert data["four_pillar_completion_percent"] == 69
         assert data["production_ready"] is False
         assert data["summary"]["action_count"] == 6
+        assert data["summary"]["open_requirement_count"] == 7
         assert data["summary"]["camera_required_action_count"] == 1
         assert data["summary"]["non_camera_action_count"] == 5
         assert data["summary"]["mission1_camera_role_required_action_count"] == 1
@@ -71,10 +74,25 @@ def main() -> int:
             "premium_still_sr",
             "raw_video_psf_sr",
         ]
+        assert data["open_requirement_ids"] == [
+            "real_grbg_fixture",
+            "real_bggr_fixture",
+            "mission1_darkframe_stack",
+            "iphone_cfa_darkframe_stack",
+            "mission1_camera_role_receipts",
+            "controlled_mission1_psf_pairs",
+            "premium_still_sr_promotion_receipts",
+        ]
         stills_actions = data["pillars"][0]["burn_down_actions"]
         assert "STILL smallest" in data["pillars"][0]["lock_ledger_paths"]
         assert "Broad real-camera Bayer phase coverage" in data["pillars"][0]["open_production_gates"]
         assert any("X2D 100MP" in item for item in data["pillars"][0]["locked_artifacts"])
+        assert stills_actions[0]["requirement_ids"] == ["real_grbg_fixture", "real_bggr_fixture"]
+        assert stills_actions[0]["source_requirement_statuses"] == {
+            "real_grbg_fixture": "open",
+            "real_bggr_fixture": "open",
+        }
+        assert any("build_bayer_phase_fixture_inventory.py" in command for command in stills_actions[0]["validation_commands"])
         assert any("GRBG" in " ".join(row["evidence_required"]) for row in stills_actions)
         assert any("darkframe" in row["title"].lower() for row in stills_actions)
         assert all(row["blocker_type"] == "sample_acquisition" for row in stills_actions)
@@ -86,13 +104,24 @@ def main() -> int:
         assert video_actions[0]["can_do_without_camera"] is False
         assert video_actions[0]["blocker_type"] == "hardware_integration"
         assert video_actions[0]["requires_mission1_camera_role"] is True
+        assert video_actions[0]["requirement_ids"] == ["mission1_camera_role_receipts"]
+        assert video_actions[0]["source_requirement_statuses"] == {
+            "mission1_camera_role_receipts": "blocked_on_real_camera_access"
+        }
+        assert any("run_gopro_mission1_quick_validation.py" in command for command in video_actions[0]["validation_commands"])
+        premium_actions = data["pillars"][2]["burn_down_actions"]
+        assert premium_actions[0]["requirement_ids"] == ["premium_still_sr_promotion_receipts"]
+        assert any("build_premium_still_sr_gate_receipt.py" in command for command in premium_actions[0]["validation_commands"])
         psf_actions = data["pillars"][3]["burn_down_actions"]
         assert any("PSF-conditioned" in row["title"] for row in psf_actions)
         assert {row["blocker_type"] for row in psf_actions} == {"sample_acquisition", "model_promotion"}
+        assert all("controlled_mission1_psf_pairs" in row["requirement_ids"] for row in psf_actions)
 
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "GPR Production Burn-Down" in html
         assert "four-pillar completion" in html
+        assert "Requirement IDs" in html
+        assert "real_grbg_fixture" in html
         assert "Blocker type" in html
         assert "Lock ledger paths" in html
         assert "Open production gates" in html
@@ -100,6 +129,7 @@ def main() -> int:
         assert "No camera?" in html
         assert "Mission 1 role?" in html
         assert "New samples?" in html
+        assert "Validation commands" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
     print("test_build_product_burndown: PASS")
     return 0

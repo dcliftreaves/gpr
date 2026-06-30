@@ -1310,8 +1310,10 @@
       "metrics": {
         "four_pillar_completion_percent": 69,
         "action_count": 6,
+        "open_requirement_count": 7,
         "non_camera_action_count": 5,
         "camera_required_action_count": 1,
+        "requirement_linked": 1,
         "production_ready": 0
       }
     },
