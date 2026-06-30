@@ -417,6 +417,31 @@ limiting route; it is positive but weak, consistent with the earlier tile
 diagnostics. Production promotion still requires rendered/editor-latitude
 review and camera-noise sidecar target construction.
 
+## Rendered / Latitude Proxy Review
+
+`tools/build_premium_still_sr_rendered_review.py` builds the first routed
+rendered-review dashboard from the full-frame summaries. It reruns each
+specialist checkpoint in memory, renders upper-left, center, and lower-detail
+Bayer crops through a simple OpenCV demosaic at -2/0/+2 EV, and scores display
+MAE against the target render. It does not write generated SR raws.
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rendered_review_routed_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rendered_review_routed_20260630/rendered_review.json
+```
+
+Result:
+
+| rows | model better | model worse | median model-baseline display MAE | worst model-baseline display MAE |
+|---:|---:|---:|---:|---:|
+| 36 | 33 | 3 | -0.00018 | +0.00057 |
+
+All three rendered proxy regressions are the X2D center crop under -2/0/+2 EV.
+That narrows the current premium still-SR blocker to the X2D center-scene route
+under exposure stress, not Mission 1 or Z8. This is still a proxy review:
+production promotion needs raw-editor rendering/openability receipts and
+camera-noise sidecar target construction.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
