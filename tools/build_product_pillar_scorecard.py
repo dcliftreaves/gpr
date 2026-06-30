@@ -57,12 +57,18 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "readiness_percent": 90,
             "status": "strong_current_surface",
             "production_ready": False,
+            "locked_artifacts": [
+                "production STILL q0/q3/q8 tiers",
+                "12/14/16-bit still roundtrip support",
+                "real X2D 100MP DNG to GPR to DNG visual audit",
+                "synthetic RGGB/GBRG/GRBG/BGGR conformance",
+            ],
             "claim": "Production-gated still tiers for the currently tested normal Bayer surface, including 12/14/16-bit, 50 MP, real X2D 100MP-class visual evidence, and real RGGB plus GoPro/Mission GBRG fixture coverage.",
             "done_evidence": [
                 "50 MP still tiers average 9.80 MB, 15.05 MB, and 27.17 MB while passing the committed visual gate.",
                 "Capability and still-matrix coverage include 12 MP, 23 MP, 50 MP, 100 MP-class rows and RGGB/GBRG/GRBG/BGGR synthetic conformance.",
                 "Real fixture compatibility covers Mission 1, Z8, X2D, and iPhone CFA DNG/GPR surfaces.",
-                "The targeted 2,000-file GoPro/Mission/Hassel/iPhone raw scan parses every file as normal Bayer and finds 1,892 GBRG plus 108 RGGB fixtures; GRBG/BGGR are still missing as real fixtures.",
+                "The targeted 3,000-file GoPro/Mission DNG/GPR scan parses every file as normal Bayer and finds 2,892 GBRG plus 108 RGGB fixtures; GRBG/BGGR are still missing as real fixtures.",
                 "A real X2D 100MP DNG to GPR to DNG visual audit records 11,664 x 8,750 Bayer roundtrip evidence with 100% crop panels and 49.21 dB full-image raw PSNR.",
                 "X2D and Z8 darkframe-derived noise sidecars are validated and ready for conditioning experiments.",
                 "The camera-noise coverage audit confirms calibrated noise sidecars for X2D and Z8, and explicitly marks Mission 1/iPhone as missing validated darkframe sidecars.",
@@ -83,7 +89,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("stills visual dashboard", "artifacts/visual_compare_20260525_final/index.html"),
                     artifact_ref("X2D 100MP still visual audit", "artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html"),
                     artifact_ref("real Bayer phase discovery", "artifacts/bayer_phase_fixture_discovery_20260630_rawpy/index.html"),
-                    artifact_ref("targeted 2,000-file Bayer phase scan", "artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html"),
+                    artifact_ref("targeted 3,000-file Bayer phase scan", "artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html"),
                     artifact_ref("camera noise coverage audit", "artifacts/camera_noise_coverage_audit_20260630/index.html"),
                     artifact_ref("camera noise runtime policy", "artifacts/camera_noise_runtime_policy_20260630/index.html"),
                     artifact_ref("Mission/iPhone darkframe candidate audit", "artifacts/darkframe_candidate_audit_mission_iphone_20260630/index.html"),
@@ -102,6 +108,12 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "readiness_percent": 80,
             "status": "pi_stand_in_pass_camera_handoff_open",
             "production_ready": False,
+            "locked_artifacts": [
+                "Pi 5 stand-in 4K Bayer .gvid encode receipts above the accepted 20 fps floor",
+                "Pi 5 stand-in 1024 x 768 preview receipts above the accepted 20 fps floor",
+                ".gvid validation, metadata dispatch, and interrupted-tail recovery checks",
+                "Labs handoff docs and quick-validation tooling",
+            ],
             "claim": "True 4096 x 3072 Bayer frames can be recompressed into .gvid and previewed above the accepted 20 fps Pi 5 stand-in floor.",
             "done_evidence": [
                 ".gvid stores per-frame FUSED .gpr Bayer payloads rather than packed original camera files.",
@@ -134,6 +146,12 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "readiness_percent": 60,
             "status": "research_loop_working_candidate_not_promoted",
             "production_ready": False,
+            "locked_artifacts": [
+                "matched 1x CNN support for committed STILL q0/q3 visual gates",
+                "routed specialist infrastructure and fixture manifests",
+                "raw-CFA target construction over the expanded 351-row set",
+                "editor-openability and rendered review receipts for diagnostics",
+            ],
             "claim": "The offline still-SR machinery is broad and reproducible, but the current no-REF texture model is not good enough to promote.",
             "done_evidence": [
                 "Matched 1x CNN lets q0/q3 still tiers pass the visual gate.",
@@ -202,6 +220,12 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "readiness_percent": 44,
             "status": "approved_baseline_psf_replacement_open",
             "production_ready": False,
+            "locked_artifacts": [
+                "approved Mission native12 4K cleanup offline/review baseline",
+                "approved candidate-aware 8K SR offline/reconstruction baseline",
+                "8K .gvid, editable raw, and ProRes review receipts",
+                "first native Mission 1 PSF measurement run as blocker evidence",
+            ],
             "claim": "4K cleanup and 8K SR are approved offline baselines, while formal native PSF/blur-aware replacement work remains open.",
             "done_evidence": [
                 "Mission native12 4K cleanup is approved for offline/review scope.",
@@ -255,6 +279,11 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "kind": "readiness_burndown_estimate",
             "not_a_quality_metric": True,
             "not_a_locked_artifact_regression_signal": True,
+            "denominator": (
+                "The denominator is the four-pillar production suite: raw stills, raw video MVP, "
+                "premium still/SR, and PSF-aware video/SR. Scores move only when the scope or "
+                "evidence for those pillars changes, not when an approved artifact is re-reviewed."
+            ),
             "policy": (
                 "Readiness percentages summarize remaining production evidence, fixture, hardware, and promotion work. "
                 "They must not be interpreted as a regression of locked algorithms. A locked artifact regresses only if "
@@ -305,6 +334,7 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
   <p>{html.escape(pillar["claim"])}</p>
 </section>"""
         )
+        locked = "\n".join(f"<li>{html.escape(item)}</li>" for item in pillar["locked_artifacts"])
         done = "\n".join(f"<li>{html.escape(item)}</li>" for item in pillar["done_evidence"])
         open_work = "\n".join(f"<li>{html.escape(item)}</li>" for item in pillar["open_work"])
         refs = "\n".join(render_link(ref) for ref in pillar["evidence"])
@@ -313,6 +343,7 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
   <h2>{html.escape(pillar["title"])}</h2>
   <div class="status-line"><strong>{pillar["readiness_percent"]}%</strong> / {html.escape(pillar["status"])} / production ready: {str(pillar["production_ready"]).lower()}</div>
   <div class="cols">
+    <div><h3>Locked artifacts</h3><ul>{locked}</ul></div>
     <div><h3>What is proven</h3><ul>{done}</ul></div>
     <div><h3>What remains</h3><ul>{open_work}</ul></div>
   </div>
@@ -352,7 +383,7 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
     .pct {{ font-size: 36px; font-weight: 760; margin-top: 6px; }}
     .detail {{ margin-top: 18px; background: white; border: 1px solid #dce2e7; border-radius: 8px; padding: 18px; }}
     .status-line {{ color: #53606d; margin-bottom: 12px; }}
-    .cols {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }}
+    .cols {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }}
     .refs {{ columns: 2; column-gap: 30px; }}
     .ok {{ color: #16794c; font-weight: 700; }}
     .missing {{ color: #a33a32; font-weight: 700; }}

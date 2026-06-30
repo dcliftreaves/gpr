@@ -72,11 +72,13 @@ def main() -> int:
             "raw_video_psf_sr",
         ]
         stills_actions = data["pillars"][0]["burn_down_actions"]
+        assert any("X2D 100MP" in item for item in data["pillars"][0]["locked_artifacts"])
         assert any("GRBG" in " ".join(row["evidence_required"]) for row in stills_actions)
         assert any("darkframe" in row["title"].lower() for row in stills_actions)
         assert all(row["blocker_type"] == "sample_acquisition" for row in stills_actions)
         assert all(row["requires_new_samples"] is True for row in stills_actions)
         video_actions = data["pillars"][1]["burn_down_actions"]
+        assert any("20 fps" in item for item in data["pillars"][1]["locked_artifacts"])
         assert video_actions[0]["can_do_without_camera"] is False
         assert video_actions[0]["blocker_type"] == "hardware_integration"
         assert video_actions[0]["requires_mission1_camera_role"] is True
@@ -88,6 +90,7 @@ def main() -> int:
         assert "GPR Production Burn-Down" in html
         assert "four-pillar completion" in html
         assert "Blocker type" in html
+        assert "Locked artifacts" in html
         assert "No camera?" in html
         assert "Mission 1 role?" in html
         assert "New samples?" in html

@@ -45,6 +45,12 @@ production STILL tiers, and Pi-stand-in raw-video/preview receipts can remain
 locked while the overall readiness score stays below 100% because hardware,
 fixture, noise-sidecar, PSF, or promotion evidence is still missing.
 
+The denominator is the full four-pillar production suite: raw stills, raw video
+MVP, premium still/SR, and PSF-aware video/SR. Use
+[`PRODUCT_LOCK_LEDGER.md`](PRODUCT_LOCK_LEDGER.md) to decide whether an
+approved artifact regressed; use this scorecard and the burn-down dashboard to
+decide what production evidence is still missing.
+
 Current interpretation:
 
 | pillar | current score | production reading |

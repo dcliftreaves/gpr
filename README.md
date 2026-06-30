@@ -47,17 +47,16 @@ CI guard fails.
 
 ## Product Pillars
 
-Current four-pillar completion is **69%**. The repo is ready to show as a
-working raw-stills and raw-video prototype, with the remaining gates called out
-explicitly instead of hidden in experiment history.
+Current four-pillar completion is **69%**. This is a production-readiness burn-down, not an image-quality score, and not a regression signal for locked artifacts.
+The approved 4K cleanup, offline 8K SR, STILL tiers, and Pi-stand-in raw-video
+receipts remain locked unless their own committed gate, receipt, hash, or CI
+guard fails.
 
-The percentage is a production-readiness burn-down, not an image-quality score
-and not a regression signal for locked artifacts. The approved 4K cleanup,
-offline 8K SR, STILL tiers, and Pi-stand-in raw-video receipts remain locked
-unless their own committed gate, receipt, hash, or CI guard fails.
-The burn-down now separates the remaining work into hardware integration,
-sample acquisition, and model promotion, so new fixture or camera-role evidence
-cannot be mistaken for an algorithm regression.
+The denominator is the full four-pillar production suite: raw stills, raw video
+MVP, premium still/SR, and PSF-aware video/SR. The burn-down separates remaining
+work into hardware integration, sample acquisition, and model promotion, so new
+fixture or camera-role evidence cannot be mistaken for an algorithm regression.
+When reviewing progress, use the lock ledger for artifact stability and the scorecard for remaining production evidence.
 
 | product pillar | current product story | proof in hand | remaining production gate |
 |---|---|---|---|

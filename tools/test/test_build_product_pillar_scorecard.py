@@ -58,6 +58,7 @@ def main() -> int:
         assert data["score_semantics"]["kind"] == "readiness_burndown_estimate"
         assert data["score_semantics"]["not_a_quality_metric"] is True
         assert data["score_semantics"]["not_a_locked_artifact_regression_signal"] is True
+        assert "four-pillar production suite" in data["score_semantics"]["denominator"]
         assert [p["id"] for p in data["pillars"]] == [
             "raw_stills",
             "raw_video_mvp",
@@ -65,9 +66,14 @@ def main() -> int:
             "raw_video_psf_sr",
         ]
         assert data["pillars"][0]["readiness_percent"] == 90
+        assert any("X2D 100MP" in item for item in data["pillars"][0]["locked_artifacts"])
+        assert any("3,000-file" in item for item in data["pillars"][0]["done_evidence"])
         assert data["pillars"][1]["readiness_percent"] == 80
+        assert any("20 fps" in item for item in data["pillars"][1]["locked_artifacts"])
         assert data["pillars"][2]["readiness_percent"] == 60
+        assert any("351-row" in item for item in data["pillars"][2]["locked_artifacts"])
         assert data["pillars"][3]["readiness_percent"] == 44
+        assert any("8K SR" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any(ref["exists"] for ref in data["pillars"][0]["evidence"] if ref["kind"] == "repo")
         assert any(not ref["exists"] for p in data["pillars"] for ref in p["evidence"] if ref["kind"] == "artifact")
 
@@ -75,6 +81,7 @@ def main() -> int:
         assert "GPR Product Pillar Scorecard" in html
         assert "Best RAW stills" in html
         assert "GoPro RAW video MVP" in html
+        assert "Locked artifacts" in html
         assert "Readiness percentages are not quality metrics" in html
         assert "production ready: false" in html
         assert proc.stdout.strip() == str(dashboard)

@@ -32,6 +32,8 @@ REQUIRED_README_TOKENS = (
     "production-readiness burn-down",
     "not an image-quality score",
     "not a regression signal for locked artifacts",
+    "The denominator is the full four-pillar production suite",
+    "use the lock ledger for artifact stability and the scorecard for remaining production evidence",
     "For the Mission 1 raw-video loop",
     "The full",
     "four-pillar suite still has the fixture/noise, premium still-SR, and PSF gates",
