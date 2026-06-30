@@ -116,6 +116,19 @@ EXPECTED_PERCENTAGES = {
     "RAW video PSF/SR improvement": 44,
 }
 
+REQUIRED_SCORECARD_TOKENS = (
+    "| Best RAW stills | 90% |",
+    "| GoPro RAW video MVP | 80% |",
+    "| Premium still/SR | 60% |",
+    "| PSF-aware RAW video improvement | 44% |",
+    "The percentages are production-readiness burn-down estimates.",
+    "not regression signals for locked artifacts",
+    "candidate-only patch-dictionary retrieval pass regresses the hard X2D holdout",
+    "Current candidate-only local/full-crop statistics are not enough for simple CNN or nearest-neighbor transfer",
+    "deeper gated pyramid U-Net",
+    "premium_still_sr_patch_dictionary_x2dholdout_20260630/patch_dictionary_probe.json",
+)
+
 
 def require_tokens(text: str, tokens: tuple[str, ...], label: str, failures: list[str]) -> None:
     for token in tokens:
@@ -154,19 +167,7 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
 
     if scorecard_path.exists():
         scorecard = scorecard_path.read_text(encoding="utf-8")
-        require_tokens(
-            scorecard,
-            (
-                "| Best RAW stills | 90% |",
-                "| GoPro RAW video MVP | 80% |",
-                "| Premium still/SR | 60% |",
-                "| PSF-aware RAW video improvement | 44% |",
-                "The percentages are production-readiness burn-down estimates.",
-                "not regression signals for locked artifacts",
-            ),
-            scorecard_path.name,
-            failures,
-        )
+        require_tokens(scorecard, REQUIRED_SCORECARD_TOKENS, scorecard_path.name, failures)
     else:
         failures.append(f"{scorecard_path} is missing")
 
