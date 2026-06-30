@@ -72,6 +72,9 @@ open requirements above into an auditable pass/fail package.
 
 - Raw-stills capture request:
   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260630/index.html`
+  This request carries the exact committed requirement IDs it closes:
+  `real_grbg_fixture`, `real_bggr_fixture`, `mission1_darkframe_stack`, and
+  `iphone_cfa_darkframe_stack`.
 - Raw-video PSF capture request:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`
 - GoPro Mission 1 intake audit:

@@ -14,6 +14,14 @@ SCHEMA = "gpr.stills_capture_request.v1"
 DEFAULT_GAP_PLAN = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/stills_fixture_gap_plan.json"
 )
+REQUIREMENT_BY_PHASE = {
+    "GRBG": "real_grbg_fixture",
+    "BGGR": "real_bggr_fixture",
+}
+REQUIREMENT_BY_NOISE_KEY = {
+    "mission1": "mission1_darkframe_stack",
+    "iphone": "iphone_cfa_darkframe_stack",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,7 +41,8 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def darkframe_request(camera_key: str, label: str) -> dict[str, Any]:
     return {
-        "id": f"{camera_key}_darkframe_stack",
+        "id": REQUIREMENT_BY_NOISE_KEY.get(camera_key, f"{camera_key}_darkframe_stack"),
+        "requirement_id": REQUIREMENT_BY_NOISE_KEY.get(camera_key),
         "priority": "required",
         "pillar": "raw_stills_noise",
         "sample_type": "darkframe_stack",
@@ -70,7 +79,8 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
     for phase in missing_phases:
         requests.append(
             {
-                "id": f"real_{phase.lower()}_fixture",
+                "id": REQUIREMENT_BY_PHASE.get(phase, f"real_{phase.lower()}_fixture"),
+                "requirement_id": REQUIREMENT_BY_PHASE.get(phase),
                 "priority": "required",
                 "pillar": "raw_stills_phase_coverage",
                 "sample_type": "real_camera_raw_fixture",
@@ -105,6 +115,7 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
         requests.append(
             {
                 "id": "mission1_lowest_lift_darkframe_topup",
+                "requirement_id": "mission1_darkframe_stack",
                 "priority": "lowest_lift",
                 "pillar": "raw_stills_noise",
                 "sample_type": "matching_darkframe_topup",
@@ -145,6 +156,16 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
         "summary": {
             "request_count": len(requests),
             "required_request_count": sum(1 for row in requests if row.get("priority") == "required"),
+            "required_requirement_ids": sorted(
+                {
+                    str(row.get("requirement_id"))
+                    for row in requests
+                    if row.get("priority") == "required" and row.get("requirement_id")
+                }
+            ),
+            "all_request_ids_are_committed_requirements": all(
+                bool(row.get("requirement_id")) for row in requests if row.get("priority") == "required"
+            ),
             "missing_real_bayer_phases": missing_phases,
             "missing_noise_camera_keys": missing_noise_keys,
             "nearest_darkframe_stack_key": nearest_stack_key,
@@ -183,6 +204,7 @@ def render_html(data: dict[str, Any]) -> str:
     )
     request_rows = "\n".join(
         "<tr>"
+        f"<td>{html.escape(str(row.get('requirement_id') or ''))}</td>"
         f"<td>{html.escape(str(row.get('priority') or ''))}</td>"
         f"<td>{html.escape(str(row.get('id') or ''))}</td>"
         f"<td>{html.escape(str(row.get('sample_type') or ''))}</td>"
@@ -216,7 +238,7 @@ code {{ white-space: normal; overflow-wrap: anywhere; }}
 <p class="sub">Schema {html.escape(data["schema"])}. This is the handoff list for closing real Bayer phase and camera-noise gaps in the 50 MP / 100 MP stills pillar.</p>
 <div class="grid">{card_html}</div>
 <h2>Requested Samples</h2>
-<table><thead><tr><th>Priority</th><th>ID</th><th>Type</th><th>Camera</th><th>Count</th><th>Metadata required</th><th>Acceptance</th></tr></thead><tbody>{request_rows}</tbody></table>
+<table><thead><tr><th>Requirement</th><th>Priority</th><th>ID</th><th>Type</th><th>Camera</th><th>Count</th><th>Metadata required</th><th>Acceptance</th></tr></thead><tbody>{request_rows}</tbody></table>
 <h2>Validation Commands</h2>
 <table><tbody>{command_rows}</tbody></table>
 </main></body></html>

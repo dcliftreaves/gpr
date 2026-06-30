@@ -121,12 +121,28 @@ def main() -> int:
         assert plan["schema"] == "gpr.stills_fixture_gap_plan.v1"
         assert plan["summary"]["production_stills_fixture_closure_ready"] is False
         assert plan["summary"]["missing_real_bayer_phases"] == ["GRBG", "BGGR"]
+        assert plan["summary"]["missing_real_bayer_phase_requirement_ids"] == [
+            "real_grbg_fixture",
+            "real_bggr_fixture",
+        ]
         assert plan["summary"]["noise_missing_camera_keys"] == ["mission1", "iphone"]
+        assert plan["summary"]["noise_missing_requirement_ids"] == [
+            "mission1_darkframe_stack",
+            "iphone_cfa_darkframe_stack",
+        ]
+        assert plan["summary"]["open_requirement_ids"] == [
+            "iphone_cfa_darkframe_stack",
+            "mission1_darkframe_stack",
+            "real_bggr_fixture",
+            "real_grbg_fixture",
+        ]
         assert plan["summary"]["nearest_darkframe_stack_key"] == "GoPro|MISSION 1|ISO232|RGGB"
         assert plan["summary"]["nearest_darkframe_stack_candidate_count"] == 2
+        assert all(row.get("requirement_id") for row in plan["capture_actions"])
         assert any("Top up darkframe group" in row["action"] for row in plan["capture_actions"])
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "Stills Fixture Gap Plan" in html
+        assert "Requirement" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
     print("test_build_stills_fixture_gap_plan: PASS")
     return 0

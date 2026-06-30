@@ -62,13 +62,22 @@ def main() -> int:
         assert data["schema"] == "gpr.stills_capture_request.v1"
         assert data["summary"]["request_count"] == 5
         assert data["summary"]["required_request_count"] == 4
+        assert data["summary"]["all_request_ids_are_committed_requirements"] is True
+        assert data["summary"]["required_requirement_ids"] == [
+            "iphone_cfa_darkframe_stack",
+            "mission1_darkframe_stack",
+            "real_bggr_fixture",
+            "real_grbg_fixture",
+        ]
         assert data["summary"]["missing_real_bayer_phases"] == ["GRBG", "BGGR"]
-        assert any(row["id"] == "real_grbg_fixture" for row in data["requests"])
+        assert any(row["id"] == "real_grbg_fixture" and row["requirement_id"] == "real_grbg_fixture" for row in data["requests"])
         mission = [row for row in data["requests"] if row["id"] == "mission1_darkframe_stack"][0]
+        assert mission["requirement_id"] == "mission1_darkframe_stack"
         assert any("SHA-256" in item for item in mission["metadata_required"])
         assert any("little-endian uint16 Bayer extraction" in item for item in mission["metadata_required"])
         assert any("separates_noise_from_signal=true" in item for item in mission["acceptance"])
         topup = [row for row in data["requests"] if row["id"] == "mission1_lowest_lift_darkframe_topup"][0]
+        assert topup["requirement_id"] == "mission1_darkframe_stack"
         assert topup["minimum_count"] == 2
         assert any("extract_raw_bayer_u16.py" in command for command in data["validation_commands"])
         assert any("build_camera_noise_calibration.py" in command for command in data["validation_commands"])
@@ -76,6 +85,7 @@ def main() -> int:
         assert data["promotion_policy"]["noise_sidecar_requires_u16_bayer_extraction_receipt"] is True
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "Raw Stills Capture Request" in html
+        assert "Requirement" in html
         assert "Metadata required" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
     print("test_build_stills_capture_request: PASS")

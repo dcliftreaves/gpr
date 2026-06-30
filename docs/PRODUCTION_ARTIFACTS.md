@@ -465,10 +465,10 @@ fixtures and Mission/iPhone production darkframe stacks are still missing.
 | Targeted 3,000-file Bayer phase dashboard | `artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html` | `edd17fd5c264dc9230cd272404b4180d9ca432f8ae38a32a183cb2d685b25055` |
 | Targeted Mission DNG darkframe audit JSON | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/darkframe_candidate_audit.json` | `dd06fb371f5177a03f2ffbc683e343f15f1286091b92eed053a2334f537dd74a` |
 | Targeted Mission DNG darkframe dashboard | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html` | `dd7c607f07fa1b9f0f9e473ca514810b3adc74c22690359ae44a655256b2836a` |
-| Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_20260630/stills_fixture_gap_plan.json` | `e8e775fda8109f87d5a7f24884ecd36a15d44a9113bd828286743846bc9528d6` |
-| Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_20260630/index.html` | `48b3b6bebccfb6e155cdb09f5151507bbccd6d85cbf55a6d26fde3dbee81fb74` |
-| Current raw-stills capture request JSON | `artifacts/stills_capture_request_20260630/stills_capture_request.json` | `d02307a444424485bd1f0c89fdfd332436cedd39f2174a866ff78725e39640e3` |
-| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_20260630/index.html` | `90db5e12ec93dab358d1d3c1e2dded121bd2fefe2295e87b185d3dbbd4a09d37` |
+| Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_20260630/stills_fixture_gap_plan.json` | `3629dc25720c839219486871a0758f0fe56a7e11245295ca2a613d787fdc962c` |
+| Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_20260630/index.html` | `37a0f309cf028657c930834e398ef4f63d91624b3ad3e179f8994a6295fc6402` |
+| Current raw-stills capture request JSON | `artifacts/stills_capture_request_20260630/stills_capture_request.json` | `ac8e0f7a148d9f84ac53973edd38141f88b8de40222cd8b9aa203e722a76771f` |
+| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_20260630/index.html` | `51718c05ed06ed237bac3957f91e157d59822be1dcf849a45f0a7e45ac44e48b` |
 
 ## Premium Still-SR Gap Artifacts
 

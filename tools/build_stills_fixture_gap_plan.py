@@ -26,6 +26,14 @@ DEFAULT_NOISE_COVERAGE = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/noise_coverage.json"
 )
 NORMAL_BAYER_PHASES = ("RGGB", "GBRG", "GRBG", "BGGR")
+REQUIREMENT_BY_PHASE = {
+    "GRBG": "real_grbg_fixture",
+    "BGGR": "real_bggr_fixture",
+}
+REQUIREMENT_BY_NOISE_KEY = {
+    "mission1": "mission1_darkframe_stack",
+    "iphone": "iphone_cfa_darkframe_stack",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -102,6 +110,7 @@ def build_plan(
     for phase in missing_phases:
         capture_actions.append(
             {
+                "requirement_id": REQUIREMENT_BY_PHASE.get(phase),
                 "priority": "required",
                 "pillar": "raw_stills",
                 "action": f"Add at least one real camera fixture with {phase} CFA phase",
@@ -110,8 +119,10 @@ def build_plan(
             }
         )
     for row in missing_noise:
+        key = str(row.get("key") or "")
         capture_actions.append(
             {
+                "requirement_id": REQUIREMENT_BY_NOISE_KEY.get(key),
                 "priority": "required",
                 "pillar": "raw_stills_noise",
                 "action": f"Capture or locate a four-frame same-camera/ISO darkframe stack for {row.get('label')}",
@@ -122,6 +133,7 @@ def build_plan(
     if nearest_stack:
         capture_actions.append(
             {
+                "requirement_id": "mission1_darkframe_stack",
                 "priority": "lowest_lift",
                 "pillar": "raw_stills_noise",
                 "action": f"Top up darkframe group {nearest_stack.get('key')} with {nearest_stack['needed_for_stack']} more matching frame(s)",
@@ -138,11 +150,29 @@ def build_plan(
             "all_real_bayer_phases_ready": not missing_phases,
             "phase_counts": phase_counts,
             "missing_real_bayer_phases": missing_phases,
+            "missing_real_bayer_phase_requirement_ids": [
+                REQUIREMENT_BY_PHASE[phase] for phase in missing_phases if phase in REQUIREMENT_BY_PHASE
+            ],
             "noise_ready_camera_count": int(noise_summary.get("ready_camera_count") or len(ready_noise)),
             "noise_missing_camera_keys": noise_summary.get("missing_camera_keys") or [row["key"] for row in missing_noise],
+            "noise_missing_requirement_ids": [
+                REQUIREMENT_BY_NOISE_KEY[str(row["key"])]
+                for row in missing_noise
+                if str(row.get("key") or "") in REQUIREMENT_BY_NOISE_KEY
+            ],
             "darkframe_stack_ready_group_count": int((darkframe_audit.get("summary") or {}).get("production_stack_ready_group_count") or 0),
             "nearest_darkframe_stack_key": nearest_stack.get("key") if nearest_stack else None,
             "nearest_darkframe_stack_candidate_count": nearest_stack.get("candidate_count") if nearest_stack else 0,
+            "open_requirement_ids": sorted(
+                {
+                    *(REQUIREMENT_BY_PHASE[phase] for phase in missing_phases if phase in REQUIREMENT_BY_PHASE),
+                    *(
+                        REQUIREMENT_BY_NOISE_KEY[str(row["key"])]
+                        for row in missing_noise
+                        if str(row.get("key") or "") in REQUIREMENT_BY_NOISE_KEY
+                    ),
+                }
+            ),
             "production_stills_fixture_closure_ready": not missing_phases and not missing_noise,
         },
         "ready_noise_coverage": ready_noise,
@@ -175,6 +205,7 @@ def render_html(plan: dict[str, Any]) -> str:
     )
     action_rows = "\n".join(
         "<tr>"
+        f"<td>{html.escape(str(row.get('requirement_id') or ''))}</td>"
         f"<td>{html.escape(str(row.get('priority') or ''))}</td>"
         f"<td>{html.escape(str(row.get('pillar') or ''))}</td>"
         f"<td>{html.escape(str(row.get('action') or ''))}</td>"
@@ -211,7 +242,7 @@ th {{ background: #eef2f5; color: #4f5b67; font-size: 12px; text-transform: uppe
 <p class="sub">Schema {html.escape(plan["schema"])}. This is the concrete closure list for raw-stills phase and camera-noise evidence.</p>
 <div class="grid">{card_html}</div>
 <h2>Capture Actions</h2>
-<table><thead><tr><th>Priority</th><th>Pillar</th><th>Action</th><th>Why</th><th>Done when</th></tr></thead><tbody>{action_rows}</tbody></table>
+<table><thead><tr><th>Requirement</th><th>Priority</th><th>Pillar</th><th>Action</th><th>Why</th><th>Done when</th></tr></thead><tbody>{action_rows}</tbody></table>
 <h2>Darkframe Candidate Groups</h2>
 <table><thead><tr><th>Group</th><th>Candidates</th><th>Needed</th><th>Stack ready</th></tr></thead><tbody>{stack_rows}</tbody></table>
 </main></body></html>
