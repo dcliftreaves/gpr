@@ -22,6 +22,12 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_EXTERNAL = Path("/Volumes/OWC_8TB/gpr_work")
 DEFAULT_MANIFEST = DEFAULT_EXTERNAL / "artifacts/gopro_mission1_handoff_bundle_20260630/manifest.json"
+REQUIRED_PRODUCT_PILLARS = {
+    "raw_stills": "RAW stills",
+    "raw_video_mvp": "RAW video MVP",
+    "premium_still_sr": "Premium still/SR",
+    "raw_video_psf_sr": "PSF-aware video/SR",
+}
 
 
 def run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
@@ -76,6 +82,52 @@ def check(name: str, passed: bool, detail: str, *, production_gate: bool = False
         "detail": detail,
         "production_gate": bool(production_gate),
     }
+
+
+def product_pillar_rows(manifest: dict[str, Any]) -> list[dict[str, str]]:
+    rows = manifest.get("product_pillars")
+    if not isinstance(rows, list):
+        return []
+    out: list[dict[str, str]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        out.append({
+            "id": str(row.get("id", "")),
+            "release_label": str(row.get("release_label", "")),
+            "status": str(row.get("status", "")),
+            "summary": str(row.get("summary", "")),
+            "open_gate": str(row.get("open_gate", "")),
+        })
+    return out
+
+
+def validate_product_pillars(rows: list[dict[str, str]]) -> tuple[bool, str]:
+    by_id = {row["id"]: row for row in rows if row.get("id")}
+    missing = set(REQUIRED_PRODUCT_PILLARS) - set(by_id)
+    extra = set(by_id) - set(REQUIRED_PRODUCT_PILLARS)
+    label_mismatches = [
+        pillar_id
+        for pillar_id, expected in REQUIRED_PRODUCT_PILLARS.items()
+        if pillar_id in by_id and by_id[pillar_id].get("release_label") != expected
+    ]
+    empty_fields = [
+        pillar_id
+        for pillar_id, row in by_id.items()
+        if not row.get("status") or not row.get("summary") or not row.get("open_gate")
+    ]
+    failures = []
+    if missing:
+        failures.append("missing: " + ", ".join(sorted(missing)))
+    if extra:
+        failures.append("unexpected: " + ", ".join(sorted(extra)))
+    if label_mismatches:
+        failures.append("label mismatch: " + ", ".join(sorted(label_mismatches)))
+    if empty_fields:
+        failures.append("empty fields: " + ", ".join(sorted(empty_fields)))
+    if failures:
+        return False, "; ".join(failures)
+    return True, "bundle manifest exposes RAW stills, RAW video MVP, premium still/SR, and PSF-aware video/SR labels"
 
 
 def build_audit(manifest_path: Path) -> dict[str, Any]:
@@ -139,6 +191,8 @@ def build_audit(manifest_path: Path) -> dict[str, Any]:
     preview_target = preview.get("target") if isinstance(preview.get("target"), dict) else {}
     quick_verdict = quick.get("verdict") if isinstance(quick.get("verdict"), dict) else {}
     quick_target = quick.get("target") if isinstance(quick.get("target"), dict) else {}
+    pillars = product_pillar_rows(manifest)
+    pillars_ok, pillars_detail = validate_product_pillars(pillars)
 
     checks = [
         check(
@@ -166,6 +220,11 @@ def build_audit(manifest_path: Path) -> dict[str, Any]:
             "required firmware-facing docs and quick-validation tools are packaged"
             if not missing_docs
             else "missing: " + ", ".join(missing_docs),
+        ),
+        check(
+            "product_pillar_labels_packaged",
+            pillars_ok,
+            pillars_detail,
         ),
         check(
             "standin_encode_receipt_passes_20fps",
@@ -219,6 +278,7 @@ def build_audit(manifest_path: Path) -> dict[str, Any]:
         "production_ready": camera_ready,
         "checks": checks,
         "blockers": blockers,
+        "product_pillars": pillars,
         "summary": {
             "artifact_count": len(artifacts),
             "sample_gvid": {
@@ -245,6 +305,10 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
         for row in data["checks"]
     )
     blockers = "\n".join(f"<li>{html.escape(item)}</li>" for item in data["blockers"])
+    pillars = "\n".join(
+        f"""<tr><td>{html.escape(row["release_label"])}</td><td>{html.escape(row["status"])}</td><td>{html.escape(row["summary"])}</td><td>{html.escape(row["open_gate"])}</td></tr>"""
+        for row in data.get("product_pillars", [])
+    )
     summary = data["summary"]
     return f"""<!doctype html>
 <html lang="en">
@@ -287,6 +351,8 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
     <div class="card"><div class="k">Bench wall fps</div><div class="v">{summary["bench_wall_fps"]}</div></div>
     <div class="card"><div class="k">Receipt role</div><div class="v">{summary["handoff_target_role"]}</div></div>
   </section>
+  <h2>Product Pillars</h2>
+  <table><thead><tr><th>pillar</th><th>status</th><th>what this bundle says</th><th>open gate</th></tr></thead><tbody>{pillars}</tbody></table>
   <h2>Checks</h2>
   <table><thead><tr><th>check</th><th>passed</th><th>detail</th></tr></thead><tbody>{checks}</tbody></table>
   <h2>Blockers</h2>

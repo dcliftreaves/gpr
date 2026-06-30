@@ -113,6 +113,13 @@ It is not final camera-production evidence by itself.
 - The stand-in receipts preserve the active 20 fps Mission 1 floor for 4K Bayer `.gvid` capture and 1024 x 768 preview.
 - The `.gvid` sample is real container data, not a wrapped JPEG or wrapped camera `.GPR` payload.
 
+## Product Pillars In This Bundle
+
+- **RAW stills**: represented by the repo README and release evidence manifest; stills remain a separate locked product surface, not the main purpose of this Mission 1 handoff.
+- **RAW video MVP**: directly represented by the 4K Bayer `.gvid` sample, stand-in encode/preview receipts, firmware API, and quick-validation command.
+- **Premium still/SR**: represented by the release evidence manifest and README status; current models are review evidence, not firmware requirements.
+- **PSF-aware video/SR**: represented by the release evidence manifest and README status; current 4K cleanup/8K SR paths are offline/post baselines, not camera-side CNN work.
+
 ## What It Does Not Prove
 
 - It does not prove Mission 1 sensor/DMA capture unless `camera_handoff_receipt.json` comes from `target.role=camera`.

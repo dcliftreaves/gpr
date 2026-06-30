@@ -87,12 +87,17 @@ def main() -> int:
         manifest = Path(result["manifest"])
         assert manifest.is_file()
         data = json.loads(manifest.read_text(encoding="utf-8"))
+        pillar_ids = {row["id"] for row in data.get("product_pillars", [])}
+        assert pillar_ids == {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_psf_sr"}
         paths = {row["path"] for row in data["artifacts"]}
         assert "samples/mission1_4k_stream_source_8f.gvid" in paths
         assert "receipts/quick_validation_dry_run.json" in paths
         assert "review/review.webp" in paths
         assert "docs/doc.md" in paths
         assert "hashes/sha256sums.txt" in paths
+        readme = (out / "README.md").read_text(encoding="utf-8")
+        assert "Product Pillars In This Bundle" in readme
+        assert "RAW video MVP" in readme
 
         verify = subprocess.run(
             [sys.executable, str(ROOT / "tools/verify_labs_bundle.py"), str(manifest)],

@@ -157,12 +157,17 @@ def main() -> int:
         assert data["handoff_review_ready"] is True
         assert data["camera_production_ready"] is False
         assert data["production_ready"] is False
+        pillar_ids = {row["id"] for row in data["product_pillars"]}
+        assert pillar_ids == {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_psf_sr"}
         assert data["summary"]["sample_gvid"]["width"] == 4096
         assert data["summary"]["sample_gvid"]["height"] == 3072
+        assert any(row["id"] == "product_pillar_labels_packaged" and row["passed"] for row in data["checks"])
         assert any(row["id"] == "camera_handoff_receipts_are_real_camera" and not row["passed"] for row in data["checks"])
         assert "real Mission 1 camera-role" in " ".join(data["blockers"])
         html = (out / "index.html").read_text(encoding="utf-8")
         assert "GoPro Mission 1 Intake Audit" in html
+        assert "Product Pillars" in html
+        assert "RAW video MVP" in html
         assert "camera production ready: <strong>false</strong>" in html
         assert proc.stdout.strip() == str(out / "index.html")
     print("test_build_gopro_mission1_intake_audit: PASS")
