@@ -90,8 +90,9 @@ Immediate work:
 - Treat the current X2D editor-openability and rawpy latitude receipts as
   partial closure only: DNG/GPR open, export, source-camera metadata
   transplant, automated latitude evidence, and a source-HF oracle upper bound
-  are proven, but production-safe modeled high-frequency texture/noise addback
-  still needs to pass before promotion.
+  are proven. A calibrated no-REF random-HF sweep now shows simple stochastic
+  noise addback is insufficient, so production-safe structured high-frequency
+  texture/detail restoration still needs to pass before promotion.
 - Reuse the approved 4K/8K SR tooling only after the target is still-specific:
   high-quality still references, camera metadata, and noise policy included.
 - Keep the output editable: DNG/GPR receipt first, review TIFF/ProRes/contact
@@ -139,10 +140,11 @@ Evidence required:
    available.
 2. Apply the noise-calibration sidecar flow to real Mission 1 and iPhone
    darkframe/frame-stack artifacts where available.
-3. Replace the X2D source-HF oracle with a production-safe camera
-   texture/noise addback path. It should preserve the now-measured
-   low-frequency tone path, restore high-frequency luminance energy under
-   +2 EV, and prove it without using REF/source content at render time.
+3. Replace the X2D source-HF oracle with a production-safe structured
+   texture/detail path. It should preserve the now-measured low-frequency tone
+   path, restore high-frequency luminance energy under +2 EV, and prove it
+   without using REF/source content at render time. Calibrated random-HF
+   addback is now ruled out as a sufficient fix.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

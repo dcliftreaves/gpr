@@ -43,6 +43,13 @@ def main() -> int:
     oracle_metrics = tool.crop_metrics(ref, oracle)
     assert oracle.shape == cand.shape
     assert oracle_metrics["hf_y_mae"] <= metrics["hf_y_mae"]
+    synth = tool.synthetic_hf_addback(cand, scale=0.005, seed=123, block=16, color=False)
+    synth_again = tool.synthetic_hf_addback(cand, scale=0.005, seed=123, block=16, color=False)
+    synth_metrics = tool.crop_metrics(ref, synth)
+    assert synth.shape == cand.shape
+    assert synth.dtype == cand.dtype
+    assert np.array_equal(synth, synth_again)
+    assert synth_metrics["hf_y_mae"] is not None
 
     with tempfile.TemporaryDirectory(prefix="gpr_latitude_review_") as td:
         out = Path(td)
@@ -67,23 +74,36 @@ def main() -> int:
                     "median": metrics["mae"] - oracle_metrics["mae"],
                     "max": metrics["mae"] - oracle_metrics["mae"],
                 },
+                "synthetic_hf_mae": {"median": synth_metrics["mae"], "max": synth_metrics["mae"]},
+                "synthetic_hf_mae_improvement": {
+                    "median": metrics["mae"] - synth_metrics["mae"],
+                    "max": metrics["mae"] - synth_metrics["mae"],
+                },
             },
+            "render": {"synthetic_hf_addback_config": {"scale_values": [0.005]}},
             "rows": [
                 {
                     "crop": "center",
                     "ev": 0.0,
                     **metrics,
+                    "synthetic_hf_best_scale": 0.005,
+                    "synthetic_hf_mae": synth_metrics["mae"],
+                    "synthetic_hf_y_mae": synth_metrics["y_mae"],
+                    "synthetic_hf_y_energy_ratio": synth_metrics["hf_y_energy_ratio"],
+                    "synthetic_hf_mae_improvement": metrics["mae"] - synth_metrics["mae"],
+                    "synthetic_hf_oracle_mae_gap": synth_metrics["mae"] - oracle_metrics["mae"],
                     "oracle_mae": oracle_metrics["mae"],
                     "oracle_y_mae": oracle_metrics["y_mae"],
                     "oracle_hf_y_mae": oracle_metrics["hf_y_mae"],
                     "oracle_mae_improvement": metrics["mae"] - oracle_metrics["mae"],
-                    "panels": [{"kind": "error", "path": str(panel)}],
+                    "panels": [{"kind": "error", "path": str(panel)}, {"kind": "synthetic_hf", "path": str(panel)}],
                 }
             ],
         }
         html = tool.render_html(data, out)
         assert "Premium Still SR Latitude Review" in html
         assert "center" in html
+        assert "Synthetic HF" in html
 
     print("test_build_premium_still_sr_latitude_review: PASS")
     return 0

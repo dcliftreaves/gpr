@@ -12,7 +12,7 @@ If a metric here conflicts with a committed receipt, the receipt wins.
 |---|---|---|
 | Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance. | Good enough to present as a working stills product path, with explicit open work on more real alternate-phase fixtures and camera-calibrated noise. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, and an X2D rawpy latitude dashboard with LF/HF decomposition plus source-HF oracle. | Not done until modeled +2 EV X2D high-frequency texture/noise addback receipts pass. |
+| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, and an X2D rawpy latitude dashboard with LF/HF decomposition, source-HF oracle, and calibrated no-REF synthetic-HF sweep. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup and candidate-aware 8K SR. | Not done as a formal PSF/blur-calibrated resizing model. |
 
 ## 1. Raw Stills
@@ -203,6 +203,15 @@ Current evidence:
   worst +2 EV HF Y MAE drops from 0.06095 to 0.00005. This proves the next
   production experiment should synthesize or restore camera texture/noise,
   rather than chase broad tone mapping.
+- A follow-up no-REF synthetic-HF sweep uses the X2D ISO 12800 darkframe
+  sidecar to derive a normalized sigma of 0.00390 and tries deterministic
+  generated high-frequency texture from candidate/runtime metadata only:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/index.html`.
+  The best calibrated random-HF rows slightly worsen median display MAE
+  from 0.04281 to 0.04293 and worst MAE from 0.09161 to 0.09167, while the
+  median gap to the source-HF oracle remains 0.03713. That narrows the
+  committed blocker to structured texture/detail reconstruction, not simple
+  stochastic noise addback.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
@@ -238,10 +247,12 @@ Boundaries:
 
 Next production work:
 
-1. Replace the source-HF oracle with a production-safe modeled camera
-   texture/noise addback driven by camera noise sidecars, ISO/NoiseProfile, or
-   calibrated texture synthesis. The current LF tone error is much smaller than
-   the HF error, so the next pass should not chase generic tone mapping first.
+1. Replace the source-HF oracle with a production-safe learned/modelled
+   texture path. Calibrated random-HF addback does not close the X2D +2 EV
+   gap, so the next pass should train a structured texture/detail generator or
+   change the still-SR target/loss. The current LF tone error is much smaller
+   than the HF error, so the next pass should not chase generic tone mapping
+   first.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Add full-frame still visual dashboards, raw-domain metrics, and raw-editor

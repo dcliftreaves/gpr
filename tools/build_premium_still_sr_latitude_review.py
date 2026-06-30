@@ -39,6 +39,11 @@ def artifact_ref(path: Path) -> dict[str, Any]:
     return {"path": path.as_posix(), "bytes": path.stat().st_size, "sha256": sha256_file(path)}
 
 
+def stable_seed(*parts: object) -> int:
+    text = "\n".join(str(part) for part in parts)
+    return int.from_bytes(hashlib.sha256(text.encode("utf-8")).digest()[:8], "little", signed=False)
+
+
 def stats(values: list[float]) -> dict[str, float]:
     if not values:
         return {"min": 0.0, "median": 0.0, "mean": 0.0, "max": 0.0}
@@ -104,6 +109,17 @@ def block_lowpass_rgb(rgb: np.ndarray, block: int) -> np.ndarray:
     return np.repeat(np.repeat(low, block, axis=0), block, axis=1)[:h, :w]
 
 
+def block_lowpass_gray(gray: np.ndarray, block: int) -> np.ndarray:
+    if block <= 1:
+        return gray.copy()
+    h, w = gray.shape
+    pad_h = ((h + block - 1) // block) * block
+    pad_w = ((w + block - 1) // block) * block
+    padded = np.pad(gray, ((0, pad_h - h), (0, pad_w - w)), mode="edge")
+    low = padded.reshape(pad_h // block, block, pad_w // block, block).mean(axis=(1, 3))
+    return np.repeat(np.repeat(low, block, axis=0), block, axis=1)[:h, :w]
+
+
 def oracle_hf_addback(ref: np.ndarray, cand: np.ndarray, block: int) -> np.ndarray:
     """Replace candidate HF with source HF while preserving candidate LF.
 
@@ -116,6 +132,53 @@ def oracle_hf_addback(ref: np.ndarray, cand: np.ndarray, block: int) -> np.ndarr
     cand_lf = block_lowpass_rgb(cand_f, block)
     ref_hf = ref_f - ref_lf
     return from_float_like(cand_lf + ref_hf, cand)
+
+
+def load_noise_sidecar(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def noise_sidecar_sigma_norm(sidecar: dict[str, Any] | None) -> float | None:
+    if not sidecar:
+        return None
+    camera = sidecar.get("camera", {})
+    black = float(camera.get("black_level", 0.0))
+    white = float(camera.get("white_level", 0.0))
+    span = white - black
+    if span <= 0.0:
+        return None
+    sigmas = []
+    per_plane = sidecar.get("per_plane", {})
+    if not per_plane and sidecar.get("calibrations"):
+        per_plane = sidecar["calibrations"][0].get("per_plane", {})
+    for plane in per_plane.values():
+        if "sigma_black" in plane:
+            sigmas.append(float(plane["sigma_black"]))
+    if not sigmas:
+        return None
+    return float(np.median(np.asarray(sigmas, dtype=np.float64)) / span)
+
+
+def synthetic_hf_addback(cand: np.ndarray, scale: float, seed: int, block: int, color: bool) -> np.ndarray:
+    """Add deterministic generated high-frequency texture without source pixels."""
+    cand_f = to_float(cand)
+    rng = np.random.default_rng(seed)
+    if color:
+        noise = rng.normal(0.0, 1.0, cand_f.shape).astype(np.float32)
+        noise -= block_lowpass_rgb(noise, block)
+        denom = float(np.std(noise))
+        if denom > 1.0e-9:
+            noise /= denom
+    else:
+        noise_y = rng.normal(0.0, 1.0, cand_f.shape[:2]).astype(np.float32)
+        noise_y -= block_lowpass_gray(noise_y, block)
+        denom = float(np.std(noise_y))
+        if denom > 1.0e-9:
+            noise_y /= denom
+        noise = np.repeat(noise_y[:, :, None], 3, axis=2)
+    return from_float_like(cand_f + noise * float(scale), cand)
 
 
 def crop_metrics(ref: np.ndarray, cand: np.ndarray) -> dict[str, Any]:
@@ -206,12 +269,15 @@ def write_contact_sheet(path: Path, rows: list[dict[str, Any]], max_rows: int) -
     pad = 10
     label_h = 42
     has_oracle = any(any(panel["kind"] == "oracle" for panel in row["panels"]) for row in selected)
-    cols = 5 if has_oracle else 3
+    has_synthetic = any(any(panel["kind"] == "synthetic_hf" for panel in row["panels"]) for row in selected)
+    cols = 3 + (2 if has_synthetic else 0) + (2 if has_oracle else 0)
     sheet_w = cols * (panel_w + pad) + pad
     sheet_h = len(selected) * (panel_h + label_h + pad) + pad
     sheet = Image.new("RGB", (sheet_w, sheet_h), (18, 18, 18))
     draw = ImageDraw.Draw(sheet)
     headers = ["source DNG", "candidate DNG", "error"]
+    if has_synthetic:
+        headers += ["synthetic HF", "synthetic error"]
     if has_oracle:
         headers += ["source-HF oracle", "oracle error"]
     for row_idx, row in enumerate(selected):
@@ -236,9 +302,21 @@ def render_html(data: dict[str, Any], output_dir: Path) -> str:
     rows = sorted(data["rows"], key=lambda row: row["mae"], reverse=True)
     table_rows = []
     has_oracle = any("oracle_mae" in row for row in rows)
+    has_synthetic = any("synthetic_hf_mae" in row for row in rows)
     for row in rows:
         err_panel = next(panel for panel in row["panels"] if panel["kind"] == "error")
         rel = Path(err_panel["path"]).resolve().relative_to(output_dir.resolve()).as_posix()
+        if has_synthetic:
+            synthetic_cols = (
+                f"<td>{html.escape(str(row.get('synthetic_hf_best_scale')))}</td>"
+                f"<td>{html.escape(str(row.get('synthetic_hf_mae')))}</td>"
+                f"<td>{html.escape(str(row.get('synthetic_hf_y_mae')))}</td>"
+                f"<td>{html.escape(str(row.get('synthetic_hf_y_energy_ratio')))}</td>"
+                f"<td>{html.escape(str(row.get('synthetic_hf_mae_improvement')))}</td>"
+                f"<td>{html.escape(str(row.get('synthetic_hf_oracle_mae_gap')))}</td>"
+            )
+        else:
+            synthetic_cols = ""
         if has_oracle:
             oracle_cols = (
                 f"<td>{html.escape(str(row.get('oracle_mae')))}</td>"
@@ -254,6 +332,7 @@ def render_html(data: dict[str, Any], output_dir: Path) -> str:
             f"<td>{html.escape(str(row.get('lf_y_mae')))}</td>"
             f"<td>{html.escape(str(row.get('hf_y_mae')))}</td>"
             f"<td>{html.escape(str(row.get('hf_y_energy_ratio')))}</td>"
+            f"{synthetic_cols}"
             f"{oracle_cols}"
             f"<td>{row['psnr_db']:.2f}</td>"
             f"<td>{html.escape(str(row['highlight_y_mae']))}</td>"
@@ -262,6 +341,28 @@ def render_html(data: dict[str, Any], output_dir: Path) -> str:
         )
     summary = data["summary"]
     contact = Path(data["contact_sheet"]).resolve().relative_to(output_dir.resolve()).as_posix()
+    if has_synthetic:
+        synthetic_cards = (
+            f"<div class=\"card\"><h2>Synthetic HF MAE</h2><p>median {summary['synthetic_hf_mae']['median']:.5f}</p>"
+            f"<p>worst {summary['synthetic_hf_mae']['max']:.5f}</p></div>"
+            f"<div class=\"card\"><h2>Synthetic HF Gain</h2><p>median {summary['synthetic_hf_mae_improvement']['median']:.5f}</p>"
+            f"<p>best {summary['synthetic_hf_mae_improvement']['max']:.5f}</p></div>"
+        )
+        synthetic_header = (
+            "<th>synthetic scale</th><th>synthetic MAE</th><th>synthetic Y MAE</th>"
+            "<th>synthetic HF energy ratio</th><th>synthetic MAE gain</th><th>synthetic gap to oracle</th>"
+        )
+        synthetic_config = data["render"].get("synthetic_hf_addback_config", {})
+        synthetic_note = (
+            "<p><b>Synthetic HF note:</b> this path adds deterministic generated high-frequency texture "
+            "from candidate/runtime metadata only; it does not use source pixels. Scale selection in this "
+            "dashboard is an offline diagnostic sweep, not yet a fixed production policy. "
+            f"Scales: <code>{html.escape(str(synthetic_config.get('scale_values')))}</code></p>"
+        )
+    else:
+        synthetic_cards = ""
+        synthetic_header = ""
+        synthetic_note = ""
     if has_oracle:
         oracle_cards = (
             f"<div class=\"card\"><h2>Oracle MAE</h2><p>median {summary['oracle_mae']['median']:.5f}</p>"
@@ -290,6 +391,7 @@ img{{max-width:220px;height:auto}}code{{color:#b7d7ff}}.contact{{max-width:100%;
 <h1>Premium Still SR Latitude Review</h1>
 <p>Source DNG: <code>{html.escape(data['source_dng'])}</code></p>
 <p>Candidate DNG: <code>{html.escape(data['candidate_dng'])}</code></p>
+{synthetic_note}
 {oracle_note}
 <div class="grid">
 <div class="card"><h2>Rows</h2><p>{summary['row_count']}</p></div>
@@ -298,10 +400,11 @@ img{{max-width:220px;height:auto}}code{{color:#b7d7ff}}.contact{{max-width:100%;
 <div class="card"><h2>LF Y MAE</h2><p>median {summary['lf_y_mae']['median']:.5f}</p><p>worst {summary['lf_y_mae']['max']:.5f}</p></div>
 <div class="card"><h2>HF Y MAE</h2><p>median {summary['hf_y_mae']['median']:.5f}</p><p>worst {summary['hf_y_mae']['max']:.5f}</p></div>
 <div class="card"><h2>PSNR</h2><p>median {summary['psnr_db']['median']:.2f} dB</p><p>worst {summary['psnr_db']['min']:.2f} dB</p></div>
+{synthetic_cards}
 {oracle_cards}
 </div>
 <img class="contact" src="{html.escape(contact)}">
-<table><tr><th>crop</th><th>EV</th><th>MAE</th><th>Y MAE</th><th>LF Y MAE</th><th>HF Y MAE</th><th>HF energy ratio</th>{oracle_header}<th>PSNR</th><th>highlight Y MAE</th><th>shadow Y MAE</th><th>error</th></tr>
+<table><tr><th>crop</th><th>EV</th><th>MAE</th><th>Y MAE</th><th>LF Y MAE</th><th>HF Y MAE</th><th>HF energy ratio</th>{synthetic_header}{oracle_header}<th>PSNR</th><th>highlight Y MAE</th><th>shadow Y MAE</th><th>error</th></tr>
 {''.join(table_rows)}
 </table></body></html>
 """
@@ -312,6 +415,19 @@ def build_review(args: argparse.Namespace) -> dict[str, Any]:
     panels_dir = args.output_dir / "panels"
     panels_dir.mkdir(parents=True, exist_ok=True)
     exposures = [float(v) for v in args.ev]
+    source_sha = sha256_file(args.source_dng)
+    candidate_sha = sha256_file(args.candidate_dng)
+    noise_sidecar = load_noise_sidecar(args.synthetic_hf_sidecar)
+    noise_sigma_norm = noise_sidecar_sigma_norm(noise_sidecar)
+    synthetic_hf_scales: list[float] = []
+    if args.synthetic_hf_addback:
+        if args.synthetic_hf_scale:
+            synthetic_hf_scales = [float(v) for v in args.synthetic_hf_scale]
+        elif noise_sigma_norm is not None:
+            multipliers = args.synthetic_hf_multiplier or [1.0, 2.0, 4.0, 8.0, 12.0, 16.0]
+            synthetic_hf_scales = [float(noise_sigma_norm * multiplier) for multiplier in multipliers]
+        else:
+            synthetic_hf_scales = [0.0025, 0.005, 0.01, 0.02, 0.04, 0.08]
     rows: list[dict[str, Any]] = []
     render_times: list[dict[str, Any]] = []
     for ev in exposures:
@@ -360,6 +476,52 @@ def build_review(args: argparse.Namespace) -> dict[str, Any]:
                 {"kind": "candidate", "path": str(cand_path)},
                 {"kind": "error", "path": str(err_path)},
             ]
+            if args.synthetic_hf_addback:
+                synthetic_trials = []
+                for scale in synthetic_hf_scales:
+                    seed = stable_seed(args.synthetic_hf_seed, candidate_sha, crop_name, ev, x, y, crop)
+                    synthetic_crop = synthetic_hf_addback(
+                        cand_crop,
+                        scale=scale,
+                        seed=seed,
+                        block=args.synthetic_hf_block,
+                        color=args.synthetic_hf_color,
+                    )
+                    synthetic_metrics = crop_metrics(ref_crop, synthetic_crop)
+                    synthetic_trials.append((synthetic_metrics["mae"], scale, synthetic_metrics, synthetic_crop))
+                synthetic_trials.sort(key=lambda trial: trial[0])
+                _, best_scale, best_synthetic_metrics, best_synthetic_crop = synthetic_trials[0]
+                synthetic_path = panels_dir / f"{safe}_synthetic_hf.jpg"
+                synthetic_err_path = panels_dir / f"{safe}_synthetic_hf_error.jpg"
+                image_from_rgb(best_synthetic_crop).save(synthetic_path, quality=92)
+                error_image(ref_crop, best_synthetic_crop, args.error_scale).save(synthetic_err_path, quality=92)
+                panels += [
+                    {"kind": "synthetic_hf", "path": str(synthetic_path)},
+                    {"kind": "synthetic_hf_error", "path": str(synthetic_err_path)},
+                ]
+                metrics.update(
+                    {
+                        "synthetic_hf_best_scale": best_scale,
+                        "synthetic_hf_mae": best_synthetic_metrics["mae"],
+                        "synthetic_hf_y_mae": best_synthetic_metrics["y_mae"],
+                        "synthetic_hf_lf_y_mae": best_synthetic_metrics["lf_y_mae"],
+                        "synthetic_hf_hf_y_mae": best_synthetic_metrics["hf_y_mae"],
+                        "synthetic_hf_y_energy_ratio": best_synthetic_metrics["hf_y_energy_ratio"],
+                        "synthetic_hf_mae_improvement": metrics["mae"] - best_synthetic_metrics["mae"],
+                        "synthetic_hf_y_mae_improvement": metrics["y_mae"] - best_synthetic_metrics["y_mae"],
+                        "synthetic_hf_trials": [
+                            {
+                                "scale": scale,
+                                "mae": trial_metrics["mae"],
+                                "y_mae": trial_metrics["y_mae"],
+                                "hf_y_mae": trial_metrics["hf_y_mae"],
+                                "hf_y_energy_ratio": trial_metrics["hf_y_energy_ratio"],
+                            }
+                            for _, scale, trial_metrics, _ in synthetic_trials
+                        ],
+                        "synthetic_hf_note": "generated_high_frequency_texture_no_source_pixels_used",
+                    }
+                )
             if args.oracle_hf_addback:
                 oracle_crop = oracle_hf_addback(ref_crop, cand_crop, args.oracle_hf_block)
                 oracle_metrics = crop_metrics(ref_crop, oracle_crop)
@@ -383,6 +545,9 @@ def build_review(args: argparse.Namespace) -> dict[str, Any]:
                         "oracle_note": "source_high_frequency_content_used_for_diagnostic_only",
                     }
                 )
+                if "synthetic_hf_mae" in metrics:
+                    metrics["synthetic_hf_oracle_mae_gap"] = metrics["synthetic_hf_mae"] - oracle_metrics["mae"]
+                    metrics["synthetic_hf_oracle_y_mae_gap"] = metrics["synthetic_hf_y_mae"] - oracle_metrics["y_mae"]
             rows.append(
                 {
                     "crop": crop_name,
@@ -422,13 +587,36 @@ def build_review(args: argparse.Namespace) -> dict[str, Any]:
                 "oracle_y_mae_improvement": stats([float(row["oracle_y_mae_improvement"]) for row in rows if "oracle_y_mae_improvement" in row]),
             }
         )
+    if args.synthetic_hf_addback:
+        summary.update(
+            {
+                "synthetic_hf_mae": stats([float(row["synthetic_hf_mae"]) for row in rows if "synthetic_hf_mae" in row]),
+                "synthetic_hf_y_mae": stats([float(row["synthetic_hf_y_mae"]) for row in rows if "synthetic_hf_y_mae" in row]),
+                "synthetic_hf_hf_y_mae": stats([float(row["synthetic_hf_hf_y_mae"]) for row in rows if row.get("synthetic_hf_hf_y_mae") is not None]),
+                "synthetic_hf_y_energy_ratio": stats(
+                    [float(row["synthetic_hf_y_energy_ratio"]) for row in rows if row.get("synthetic_hf_y_energy_ratio") is not None]
+                ),
+                "synthetic_hf_mae_improvement": stats(
+                    [float(row["synthetic_hf_mae_improvement"]) for row in rows if "synthetic_hf_mae_improvement" in row]
+                ),
+                "synthetic_hf_y_mae_improvement": stats(
+                    [float(row["synthetic_hf_y_mae_improvement"]) for row in rows if "synthetic_hf_y_mae_improvement" in row]
+                ),
+                "synthetic_hf_oracle_mae_gap": stats(
+                    [float(row["synthetic_hf_oracle_mae_gap"]) for row in rows if "synthetic_hf_oracle_mae_gap" in row]
+                ),
+            }
+        )
+    artifacts: dict[str, Any] = {"contact_sheet": artifact_ref(contact)}
+    if args.synthetic_hf_sidecar:
+        artifacts["synthetic_hf_sidecar"] = artifact_ref(args.synthetic_hf_sidecar)
     data = {
         "schema": SCHEMA,
         "created_unix": int(time.time()),
         "source_dng": str(args.source_dng),
         "candidate_dng": str(args.candidate_dng),
-        "source_dng_sha256": sha256_file(args.source_dng),
-        "candidate_dng_sha256": sha256_file(args.candidate_dng),
+        "source_dng_sha256": source_sha,
+        "candidate_dng_sha256": candidate_sha,
         "render": {
             "engine": "rawpy/libraw",
             "use_camera_wb": True,
@@ -441,11 +629,25 @@ def build_review(args: argparse.Namespace) -> dict[str, Any]:
             "allow_common_crop": args.allow_common_crop,
             "oracle_hf_addback": args.oracle_hf_addback,
             "oracle_hf_block": args.oracle_hf_block if args.oracle_hf_addback else None,
+            "synthetic_hf_addback": args.synthetic_hf_addback,
+            "synthetic_hf_addback_config": {
+                "sidecar": str(args.synthetic_hf_sidecar) if args.synthetic_hf_sidecar else None,
+                "sidecar_schema": noise_sidecar.get("schema") if noise_sidecar else None,
+                "sidecar_camera": noise_sidecar.get("camera", {}) if noise_sidecar else None,
+                "noise_sigma_norm": noise_sigma_norm,
+                "scale_values": synthetic_hf_scales,
+                "block": args.synthetic_hf_block,
+                "color": args.synthetic_hf_color,
+                "seed": args.synthetic_hf_seed,
+                "selection": "best_mae_against_source_for_offline_diagnostic_only",
+            }
+            if args.synthetic_hf_addback
+            else None,
         },
         "summary": summary,
         "rows": rows,
         "contact_sheet": str(contact),
-        "artifacts": {"contact_sheet": artifact_ref(contact)},
+        "artifacts": artifacts,
     }
     out_json = args.output_dir / "latitude_review.json"
     out_html = args.output_dir / "index.html"
@@ -466,6 +668,13 @@ def main() -> int:
     ap.add_argument("--allow-common-crop", action="store_true")
     ap.add_argument("--oracle-hf-addback", action="store_true")
     ap.add_argument("--oracle-hf-block", type=int, default=16)
+    ap.add_argument("--synthetic-hf-addback", action="store_true")
+    ap.add_argument("--synthetic-hf-sidecar", type=Path)
+    ap.add_argument("--synthetic-hf-scale", action="append", type=float)
+    ap.add_argument("--synthetic-hf-multiplier", action="append", type=float)
+    ap.add_argument("--synthetic-hf-block", type=int, default=16)
+    ap.add_argument("--synthetic-hf-color", action="store_true")
+    ap.add_argument("--synthetic-hf-seed", type=int, default=20260630)
     ap.add_argument("--error-scale", type=float, default=0.06)
     ap.add_argument("--contact-rows", type=int, default=9)
     args = ap.parse_args()

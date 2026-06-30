@@ -496,26 +496,28 @@ automated review rather than Lightroom/ACR signoff.
 python3 tools/build_premium_still_sr_latitude_review.py \
   --source-dng /Volumes/OWC_8TB/gpr_work/artifacts/fixtures/x2d_dngs/2024_April_X2D_1742.dng \
   --candidate-dng /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/x2d_scaled/metadata_transplant_v3/frame_000000_sr8k_x2d_meta.dng \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_20260630 \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630 \
   --crop-size 768 \
   --output-bps 16 \
   --contact-rows 9 \
   --allow-common-crop \
-  --oracle-hf-addback
+  --oracle-hf-addback \
+  --synthetic-hf-addback \
+  --synthetic-hf-sidecar /Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_sidecars_20260629/x2d/Hasselblad_X2D_100C_ISO12800_exp0.001_noise_calibration.json
 ```
 
 Current dashboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_20260630/index.html
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_20260630/latitude_review.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/latitude_review.json
 ```
 
 Result:
 
-| rows | median display MAE | worst display MAE | median Y MAE | median LF Y MAE | median HF Y MAE | worst HF Y MAE | source-HF oracle worst MAE | blocker |
-|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 9 | 0.04281 | 0.09161 | 0.02909 | 0.00546 | 0.02892 | 0.06095 | 0.01586 | +2 EV high-frequency texture/noise loss |
+| rows | median display MAE | worst display MAE | median LF Y MAE | median HF Y MAE | synthetic-HF median MAE | source-HF oracle worst MAE | blocker |
+|---:|---:|---:|---:|---:|---:|---:|---|
+| 9 | 0.04281 | 0.09161 | 0.00546 | 0.02892 | 0.04293 | 0.01586 | +2 EV structured high-frequency texture/detail loss |
 
 Interpretation: metadata/openability is no longer the X2D blocker.
 Low-frequency tone is much closer than full-pixel error. In the +2 EV rows the
@@ -523,9 +525,17 @@ candidate retains only about 44-53 percent of the source high-frequency
 luminance energy. The optional source-HF oracle preserves candidate
 low-frequency tone and injects source high-frequency content; it drops worst
 +2 EV display MAE from 0.09161 to 0.01586 and worst +2 EV HF Y MAE from
-0.06095 to 0.00005. That proves a texture/noise addback path is the right next
-experiment, but the oracle itself uses source content and is not a
+0.06095 to 0.00005. That oracle uses source content and is not a
 production/no-REF render path.
+
+The same dashboard now runs a production-safe synthetic-HF sweep seeded from
+candidate/runtime metadata only. With the X2D ISO 12800 darkframe sidecar, the
+normalized sigma is 0.00390 and the sweep tests 1x through 16x that scale. The
+best random-HF rows slightly worsen median display MAE from 0.04281 to 0.04293
+and worst display MAE from 0.09161 to 0.09167, leaving a median 0.03713 MAE
+gap to the source-HF oracle. The production conclusion is therefore narrower:
+the next pass needs structured texture/detail reconstruction or a still-SR
+target/loss change, not simple noise addback.
 
 ## Production Path
 
