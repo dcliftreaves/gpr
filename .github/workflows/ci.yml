@@ -64,6 +64,11 @@ jobs:
       - name: README media guard regression
         run: python3 tools/test/test_check_readme_media.py
 
+      - name: README product-pillar guard
+        run: |
+          python3 tools/test/check_readme_product_pillars.py
+          python3 tools/test/test_check_readme_product_pillars.py
+
       - name: Product pillar receipt regression
         run: python3 tools/test/test_product_pillar_receipts.py
 

@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Validate the README's four-pillar product framing.
+
+The README is the public product surface. This guard keeps the high-level
+story aligned with the current production scorecard so future edits do not
+drop the raw-stills, raw-video, premium still/SR, or PSF-aware video goals.
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+README = ROOT / "README.md"
+SCORECARD = ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md"
+
+REQUIRED_SECTIONS = (
+    "## Open Raw Video For Action Cameras",
+    "## Product Pillars",
+    "## Evidence Map",
+    "## Stills Performance And CNN Latitude",
+    "## Mission 1 Numbered List",
+)
+
+REQUIRED_README_TOKENS = (
+    "8-bit JPEG size. 16-bit RAW quality.",
+    "Current four-pillar completion is **69%**",
+    "**1. Best RAW stills**",
+    "**2. GoPro RAW video MVP**",
+    "**3. Premium still/SR**",
+    "**4. PSF-aware video/SR**",
+    "50 MP and 100 MP-class cameras",
+    "normal CFA support",
+    "camera-noise-aware compression",
+    "4096 x 3072 Bayer",
+    ".gvid",
+    "20+ fps",
+    "1024 x 768",
+    "Mission 1 sensor/DMA",
+    "raw-CFA targets",
+    "13-scene / 351-row",
+    "PSF-conditioned model",
+    "Controlled high/low pairs",
+    "docs/PRODUCT_PILLAR_SCORECARD.md",
+    "docs/BIG_EFFORTS_STATUS.md",
+    "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md",
+    "docs/SHIP_DECISION.md",
+    "docs/CAMERA_NOISE_CALIBRATION.md",
+    "docs/VIDEO_STATUS.md",
+    "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
+    "docs/PREMIUM_STILL_SR.md",
+    "docs/BAYER_RESIZE_PSF.md",
+)
+
+EXPECTED_PERCENTAGES = {
+    "Best RAW stills": 90,
+    "GoPro RAW video MVP": 80,
+    "Premium still/SR": 60,
+    "RAW video PSF/SR improvement": 44,
+}
+
+
+def require_tokens(text: str, tokens: tuple[str, ...], label: str, failures: list[str]) -> None:
+    for token in tokens:
+        if token not in text:
+            failures.append(f"{label} missing {token!r}")
+
+
+def extract_done_percent(readme: str, pillar: str) -> int | None:
+    pattern = re.compile(rf"\|\s*{re.escape(pillar)}\s*\|\s*\*\*(\d+)%\*\*")
+    match = pattern.search(readme)
+    if not match:
+        return None
+    return int(match.group(1))
+
+
+def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> list[str]:
+    failures: list[str] = []
+    if not readme_path.exists():
+        return [f"{readme_path} is missing"]
+    readme = readme_path.read_text(encoding="utf-8")
+
+    require_tokens(readme, REQUIRED_SECTIONS, readme_path.name, failures)
+    require_tokens(readme, REQUIRED_README_TOKENS, readme_path.name, failures)
+
+    for pillar, expected in EXPECTED_PERCENTAGES.items():
+        actual = extract_done_percent(readme, pillar)
+        if actual is None:
+            failures.append(f"README.md missing percentage row for {pillar!r}")
+        elif actual != expected:
+            failures.append(
+                f"README.md percentage for {pillar!r} is {actual}%, expected {expected}%"
+            )
+
+    if scorecard_path.exists():
+        scorecard = scorecard_path.read_text(encoding="utf-8")
+        require_tokens(
+            scorecard,
+            (
+                "| Best RAW stills | 90% |",
+                "| GoPro RAW video MVP | 80% |",
+                "| Premium still/SR | 60% |",
+                "| PSF-aware RAW video improvement | 44% |",
+            ),
+            scorecard_path.name,
+            failures,
+        )
+    else:
+        failures.append(f"{scorecard_path} is missing")
+
+    return failures
+
+
+def main() -> int:
+    failures = validate()
+    if failures:
+        print("README product-pillar check failed:", file=sys.stderr)
+        for failure in failures:
+            print(f"  {failure}", file=sys.stderr)
+        return 1
+    print("OK - README product-pillar check passed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

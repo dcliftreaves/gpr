@@ -160,6 +160,8 @@ else
                 python3 tools/test/check_repo_artifact_hygiene.py && \
                 python3 tools/test/check_readme_media.py && \
                 python3 tools/test/test_check_readme_media.py && \
+                python3 tools/test/check_readme_product_pillars.py && \
+                python3 tools/test/test_check_readme_product_pillars.py && \
                 python3 tools/test/test_product_pillar_receipts.py && \
                 python3 tools/test/test_build_camera_noise_calibration.py && \
                 python3 tools/test/test_convert_darkframe_calibration_to_noise_sidecars.py && \

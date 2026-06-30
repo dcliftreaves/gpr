@@ -123,6 +123,8 @@ refreshed 2026-06-30.
 | `python3 tools/test/test_build_gopro_mission1_intake_audit.py` | regression-test the GoPro Mission 1 intake audit |
 | `python3 tools/test/check_readme_media.py` | validate local README showcase media links, sizes, and stale text claims in SVG media |
 | `python3 tools/test/test_check_readme_media.py` | regression-test README showcase stale-claim detection |
+| `python3 tools/test/check_readme_product_pillars.py` | validate that the README still presents the four big product pillars, current percentages, and evidence-map links |
+| `python3 tools/test/test_check_readme_product_pillars.py` | regression-test README product-pillar framing checks |
 | `python3 tools/test/check_release_evidence_manifest.py` | validate production evidence manifest |
 | `python3 tools/test/test_mission1_numbered_list_readiness.py` | regression-test the four-item Mission 1 readiness audit |
 | `python3 tools/test/test_mission1_numbered_list_closure_plan.py` | regression-test the Mission 1 blocker closure plan |
