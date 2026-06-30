@@ -334,10 +334,23 @@ with candidate raw/HF patch statistics plus deterministic crop/EV metadata, and
 uses no source/REF content at holdout runtime. This also fails: the hard X2D
 holdout median raw-residual MAE recovery is about -0.80 percent and median
 RMSE recovery is about -0.72 percent. That rules out a simple retrieval prior
-over the current candidate features. The next path needs a different runtime
-signal, a materially different target/objective, or a stronger learned
-generative/detail prior rather than nearest-neighbor transfer of current
-raw-CFA residual patches.
+over the current candidate features.
+
+A bounded candidate-signal audit now tests whether low-order runtime-safe
+candidate raw/HF/metadata features contain a linearly recoverable version of
+the missing residual:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/index.html`.
+It samples the same 351-row raw-CFA residual target set, holds out
+`2024_April_X2D_1742`, and fits a ridge probe from candidate raw/CFA,
+candidate same-color HF, crop/EV/camera metadata, and CFA plane ID. The probe
+uses no source raw, REF, or JPEG content at runtime. It also fails: the hard
+X2D holdout lands at about -0.29 percent median raw-residual MAE recovery and
+about -0.55 percent median RMSE recovery. That rules out a low-order
+candidate-signal readout over the current targets as the next primary path.
+The next path needs a different runtime signal, a materially different
+target/objective, or a stronger learned generative/detail prior rather than
+nearest-neighbor transfer or a linear readout of current raw-CFA residual
+patches.
 
 ## Raw-CFA Feature Smoke
 

@@ -164,6 +164,7 @@ def build_contract(
                 "larger full-crop raw-context U-Net training over the same candidate-only local/full-crop statistics",
                 "deeper gated pyramid U-Net training over the same candidate-only local/full-crop statistics",
                 "nearest-neighbor residual patch dictionary over current candidate raw/HF patch statistics",
+                "low-order linear candidate raw/HF/metadata signal probes over current residual targets",
                 "calibrated random-HF or noise addback as a substitute for learned signal detail",
             ],
             "success_gates": [
