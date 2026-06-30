@@ -65,6 +65,17 @@ PY
   --artifact receipts/pi5_proxy_receipt.json:json
 
 "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/manifest.json"
+"$PYTHON_BIN" - "$WORK/manifest.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+ids = {row["id"] for row in manifest.get("product_pillars", [])}
+expected = {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_psf_sr"}
+if ids != expected:
+    raise SystemExit(f"unexpected product_pillars ids: {sorted(ids)}")
+PY
 (cd "$WORK" && shasum -a 256 -c hashes/sha256sums.txt)
 
 echo "test_labs_bundle_builder: PASS"

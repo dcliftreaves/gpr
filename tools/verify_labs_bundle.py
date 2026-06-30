@@ -18,6 +18,12 @@ from typing import Any
 
 
 SCHEMA = "gpr_labs_bundle.v1"
+REQUIRED_PRODUCT_PILLARS = {
+    "raw_stills": "RAW stills",
+    "raw_video_mvp": "RAW video MVP",
+    "premium_still_sr": "Premium still/SR",
+    "raw_video_psf_sr": "PSF-aware video/SR",
+}
 GVID_CLIP_MAGIC = 0x44495647
 GVID_FRAME_MAGIC = 0x004D5246
 GVID_VERSION = 1
@@ -127,14 +133,43 @@ def validate_manifest_metadata(manifest: dict[str, Any], failures: list[str]) ->
         failures.append("manifest notes must be a non-empty string or string list")
 
     ci_run = manifest.get("ci_run")
-    if (
+    ci_run_ok = (
         isinstance(ci_run, str)
         and ci_run.startswith("https://github.com/")
         and "/actions/runs/" in ci_run
-    ):
-        return
-    if isinstance(ci_run, str) and ci_run:
+    )
+    if not ci_run_ok and isinstance(ci_run, str) and ci_run:
         failures.append("manifest ci_run must be a GitHub Actions URL")
+
+    pillars = manifest.get("product_pillars")
+    if pillars is None:
+        return
+    if not isinstance(pillars, list):
+        failures.append("manifest product_pillars must be a list when present")
+        return
+    by_id: dict[str, Any] = {}
+    for idx, row in enumerate(pillars):
+        if not isinstance(row, dict):
+            failures.append(f"manifest product_pillars[{idx}] must be an object")
+            continue
+        pillar_id = row.get("id")
+        if not isinstance(pillar_id, str) or not pillar_id:
+            failures.append(f"manifest product_pillars[{idx}] missing id")
+            continue
+        by_id[pillar_id] = row
+        for key in ("release_label", "status", "summary", "open_gate"):
+            if not isinstance(row.get(key), str) or not row.get(key):
+                failures.append(f"manifest product_pillars.{pillar_id} missing string field {key}")
+    missing = set(REQUIRED_PRODUCT_PILLARS) - set(by_id)
+    extra = set(by_id) - set(REQUIRED_PRODUCT_PILLARS)
+    if missing:
+        failures.append("manifest product_pillars missing ids: " + ", ".join(sorted(missing)))
+    if extra:
+        failures.append("manifest product_pillars has unexpected ids: " + ", ".join(sorted(extra)))
+    for pillar_id, label in REQUIRED_PRODUCT_PILLARS.items():
+        row = by_id.get(pillar_id)
+        if isinstance(row, dict) and row.get("release_label") != label:
+            failures.append(f"manifest product_pillars.{pillar_id} release_label must be {label!r}")
 
 
 def verify_manifest(manifest_path: Path) -> tuple[int, dict[str, Any]]:

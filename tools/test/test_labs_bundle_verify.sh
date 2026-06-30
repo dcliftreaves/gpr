@@ -67,12 +67,44 @@ def row(path, kind):
         "sha256": hashlib.sha256(b).hexdigest(),
     }
 
+product_pillars = [
+    {
+        "id": "raw_stills",
+        "release_label": "RAW stills",
+        "status": "locked_with_sample_gaps",
+        "summary": "synthetic raw stills label",
+        "open_gate": "synthetic raw stills gate",
+    },
+    {
+        "id": "raw_video_mvp",
+        "release_label": "RAW video MVP",
+        "status": "pi_stand_in_pass_camera_handoff_open",
+        "summary": "synthetic raw video label",
+        "open_gate": "synthetic raw video gate",
+    },
+    {
+        "id": "premium_still_sr",
+        "release_label": "Premium still/SR",
+        "status": "research_loop_working_candidate_not_promoted",
+        "summary": "synthetic premium still label",
+        "open_gate": "synthetic premium still gate",
+    },
+    {
+        "id": "raw_video_psf_sr",
+        "release_label": "PSF-aware video/SR",
+        "status": "approved_baseline_psf_replacement_open",
+        "summary": "synthetic psf sr label",
+        "open_gate": "synthetic psf sr gate",
+    },
+]
+
 manifest = {
     "schema": "gpr_labs_bundle.v1",
     "repo_commit": "synthetic-smoke",
     "ci_run": "https://github.com/dcliftreaves/gpr/actions/runs/0",
     "target": {"name": "synthetic"},
     "notes": ["synthetic smoke bundle"],
+    "product_pillars": product_pillars,
     "artifacts": [
         row(gvid, "gvid"),
         row(meta, "json"),
@@ -116,6 +148,12 @@ missing_receipts["artifacts"] = [
 (root / "missing_receipts_manifest.json").write_text(
     json.dumps(missing_receipts, indent=2), encoding="utf-8"
 )
+
+bad_pillars = json.loads(json.dumps(manifest))
+bad_pillars["product_pillars"] = bad_pillars["product_pillars"][:-1]
+(root / "bad_pillars_manifest.json").write_text(
+    json.dumps(bad_pillars, indent=2), encoding="utf-8"
+)
 PY
 
 "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/manifest.json"
@@ -155,5 +193,11 @@ if "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/missing_receipts_man
   exit 1
 fi
 grep -q "receipts/" "$WORK/missing_receipts_manifest.log"
+
+if "$PYTHON_BIN" "$REPO/tools/verify_labs_bundle.py" "$WORK/bad_pillars_manifest.json" > "$WORK/bad_pillars_manifest.log" 2>&1; then
+  echo "test_labs_bundle_verify: expected bad product_pillars manifest to fail" >&2
+  exit 1
+fi
+grep -q "product_pillars" "$WORK/bad_pillars_manifest.log"
 
 echo "test_labs_bundle_verify: PASS"

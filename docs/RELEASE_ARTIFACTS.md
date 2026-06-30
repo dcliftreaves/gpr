@@ -1,6 +1,6 @@
 # Release Artifacts
 
-Last refreshed: 2026-06-26
+Last refreshed: 2026-06-30
 
 This document defines what must be attached to a GitHub release before the
 release is useful to someone outside the worktree. Source tags and changelog
@@ -67,9 +67,12 @@ and product scorecards:
   continuous 8K no-CNN versus CNN review media, native PSF evidence, and the
   controlled-capture request for replacing the current baseline.
 
-The release manifest's `product_pillars` section owns this mapping. Release
-README prose can be shorter, but it must keep these labels visible so reviewers
-can tell what each artifact proves without reverse-engineering IDs.
+The release manifest's `product_pillars` section owns this mapping.
+`tools/build_labs_bundle.py` copies that section into generated bundle
+manifests by default, and `tools/verify_labs_bundle.py` rejects malformed
+pillar metadata when it is present. Release README prose can be shorter, but it
+must keep these labels visible so reviewers can tell what each artifact proves
+without reverse-engineering IDs.
 
 ## Build And Verify
 
@@ -83,6 +86,7 @@ python3 tools/build_labs_bundle.py /path/to/gpr-2.3.0-review-bundle \
   --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>" \
   --target-name "Pi 5 stand-in" \
   --target-role stand-in \
+  --product-pillars-from docs/release_evidence_manifest.json \
   --note "Mission 1 camera handoff remains open; Pi stand-in receipts prove the current 20+ fps floor" \
   --artifact samples/sample_4k_bayer.gvid:gvid \
   --artifact samples/sample_4k_bayer.gvid.meta.json:json \

@@ -19,6 +19,7 @@ from typing import Any
 SCHEMA = "gpr_labs_bundle.v1"
 DEFAULT_MANIFEST = "manifest.json"
 DEFAULT_HASHES = "hashes/sha256sums.txt"
+DEFAULT_RELEASE_EVIDENCE = Path(__file__).resolve().parents[1] / "docs/release_evidence_manifest.json"
 ALLOWED_KINDS = {"dashboard", "gvid", "json", "media", "receipt", "text"}
 
 
@@ -74,6 +75,33 @@ def write_hashes(root: Path, rows: list[dict[str, Any]], rel: str) -> dict[str, 
     return artifact_row(root, rel, "text")
 
 
+def load_product_pillars(path: Path | None) -> list[dict[str, Any]] | None:
+    if path is None:
+        return None
+    if not path.is_file():
+        raise FileNotFoundError(f"product pillar source does not exist: {path}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    pillars = data.get("product_pillars")
+    if not isinstance(pillars, list) or not pillars:
+        raise ValueError(f"{path}: product_pillars must be a non-empty list")
+    rows: list[dict[str, Any]] = []
+    for idx, row in enumerate(pillars):
+        if not isinstance(row, dict):
+            raise ValueError(f"{path}: product_pillars[{idx}] must be an object")
+        slim = {
+            "id": row.get("id"),
+            "release_label": row.get("release_label"),
+            "status": row.get("status"),
+            "summary": row.get("summary"),
+            "open_gate": row.get("open_gate"),
+        }
+        missing = [key for key, value in slim.items() if not isinstance(value, str) or not value]
+        if missing:
+            raise ValueError(f"{path}: product_pillars[{idx}] missing string fields: {', '.join(missing)}")
+        rows.append(slim)
+    return rows
+
+
 def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
     root = args.bundle_root.resolve()
     if not root.is_dir():
@@ -102,6 +130,9 @@ def build_manifest(args: argparse.Namespace) -> dict[str, Any]:
     }
     if args.target_role:
         manifest["target"]["role"] = args.target_role
+    product_pillars = load_product_pillars(args.product_pillars_from)
+    if product_pillars is not None:
+        manifest["product_pillars"] = product_pillars
 
     manifest_path = safe_child(root, args.manifest)
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -118,6 +149,13 @@ def main() -> int:
     ap.add_argument("--target-role", default="", help="optional target role, e.g. stand-in or camera")
     ap.add_argument("--note", action="append", required=True, help="bundle note; repeat for multiple notes")
     ap.add_argument(
+        "--product-pillars-from",
+        type=Path,
+        default=DEFAULT_RELEASE_EVIDENCE,
+        help="release evidence manifest whose product_pillars section is copied into the bundle manifest",
+    )
+    ap.add_argument("--no-product-pillars", action="store_true", help="omit product_pillars from the bundle manifest")
+    ap.add_argument(
         "--artifact",
         action="append",
         type=parse_artifact,
@@ -127,6 +165,8 @@ def main() -> int:
     ap.add_argument("--manifest", default=DEFAULT_MANIFEST, help="bundle-relative manifest output path")
     ap.add_argument("--hashes", default=DEFAULT_HASHES, help="bundle-relative sha256sum output path")
     args = ap.parse_args()
+    if args.no_product_pillars:
+        args.product_pillars_from = None
 
     try:
         manifest = build_manifest(args)

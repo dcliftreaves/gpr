@@ -211,6 +211,8 @@ def build_bundle(args: argparse.Namespace) -> dict[str, Any]:
         "GoPro Mission 1 handoff bundle; camera-role sensor/DMA/storage/display receipt remains required for production closure.",
         "--note",
         "Includes compact stand-in receipts, one 4K .gvid sample, quick-validation dry-run receipt, and firmware-facing docs.",
+        "--product-pillars-from",
+        str(ROOT / "docs/release_evidence_manifest.json"),
     ]
     for artifact in artifacts:
         cmd.extend(["--artifact", artifact])
