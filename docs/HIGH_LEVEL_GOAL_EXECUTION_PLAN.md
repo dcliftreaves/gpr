@@ -106,7 +106,9 @@ Immediate work:
 - Estimate the Bayer-domain PSF introduced by camera downsample, resize, and
   reconstruction using high-res/low-res pairs, sharp edges, and texture fields.
   The lightweight guard is `gpr.bayer_resize_psf_receipt.v1`; the synthetic
-  non-production contract builder is `tools/build_bayer_resize_psf_receipt.py`.
+  non-production contract builder is `tools/build_bayer_resize_psf_receipt.py`,
+  and the real-pair modeled-resize builder is
+  `tools/build_bayer_resize_psf_from_pairs.py`.
 - Train or tune 4K cleanup and 8K SR with CFA-aware targets and PSF-conditioned
   losses.
 - Keep dashboards honest: full-frame Mission and Z8 rows, rendered crops,
@@ -131,7 +133,7 @@ Evidence required:
    darkframe/frame-stack artifacts where available.
 3. Replace the still-SR skeleton with a real candidate receipt from 50 MP and
    100 MP still fixtures.
-4. Apply the PSF receipt path to real Mission/Z8 high-res-to-low-res pairs and
-   use it to drive the next PSF-conditioned SR experiment.
+4. Extend the pair-derived PSF receipt path to native camera/display evidence
+   and use it to drive the next PSF-conditioned SR experiment.
 5. Re-run the README/media/release guards and open a focused PR for each small
    reviewable slice.
