@@ -49,7 +49,7 @@ def main() -> int:
             "premium_still_sr",
             "raw_video_psf_sr",
         ]
-        assert data["pillars"][0]["readiness_percent"] == 88
+        assert data["pillars"][0]["readiness_percent"] == 90
         assert data["pillars"][1]["readiness_percent"] == 78
         assert data["pillars"][2]["readiness_percent"] == 45
         assert data["pillars"][3]["readiness_percent"] == 40

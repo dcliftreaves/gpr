@@ -52,16 +52,16 @@ Summary: 8 pass, 0 skip.
 | iPhone metadata roundtrip | iPhone | PASS |
 | iPhone Linear Raw rejection | iPhone | PASS |
 
-Current real Bayer phase inventory:
+Current real Bayer phase discovery:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_inventory_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_20260630_rawpy/index.html
 ```
 
-Summary: canonical Mission 1, Z8, X2D, and iPhone CFA fixtures parse as normal
-2x2 Bayer, and every parsed real fixture is RGGB. GBRG, GRBG, and BGGR are
-covered by synthetic still conformance, but they still need real camera fixtures
-before broad real-camera alternate-phase support should be claimed.
+Summary: the broader local scan parsed 74 normal 2x2 Bayer DNG fixtures: 70
+RGGB and 4 Mission 1 GBRG. GRBG and BGGR remain covered by synthetic still
+conformance, but they still need real camera fixtures before broad real-camera
+alternate-phase support should be claimed.
 
 ## Cleanup Boundary
 

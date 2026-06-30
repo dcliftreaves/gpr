@@ -12,7 +12,7 @@ The generated audit dashboard for these same four pillars is tracked in
 
 | effort | current status | production interpretation |
 |---|---|---|
-| Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, RGGB real-fixture coverage across Mission 1/Z8/X2D/iPhone CFA, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on real GBRG/GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars. |
+| Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, RGGB plus Mission 1 GBRG real-fixture coverage, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
 | Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, and no-REF HF residual probes. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass; the current grid target/probe proves the target set and model are still too weak for promotion. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup and candidate-aware 8K SR. | Not done as a formal PSF/blur-calibrated resizing model. |
@@ -40,11 +40,11 @@ Current evidence:
 - Fixture compatibility covers Mission 1 50 MP DNG, Mission 1 12 MP DNG,
   Mission 1 50 MP GPR, Nikon Z8 DNG, Hasselblad X2D DNG, iPhone CFA DNG,
   iPhone metadata roundtrip, and iPhone Linear Raw rejection.
-- The real Bayer phase inventory at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_inventory_20260630/index.html`
-  confirms that the canonical Mission 1, Z8, X2D, and iPhone CFA fixtures are
-  normal 2x2 Bayer. All parsed real fixtures are RGGB, so GBRG, GRBG, and BGGR
-  remain synthetic-conformance coverage until real fixtures are added.
+- The real Bayer phase discovery at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_20260630_rawpy/index.html`
+  confirms that the broader local Mission 1, Z8, X2D, and iPhone CFA fixture
+  pool contains 74 normal 2x2 Bayer DNGs: 70 RGGB and 4 Mission 1 GBRG. GRBG
+  and BGGR remain synthetic-conformance coverage until real fixtures are added.
 - The CLI exposes DNG NoiseProfile-aware denoise/noise replacement plumbing,
   but the current raw-noise audit forbids treating the old single-frame REF
   residual as pure removable noise.
@@ -66,7 +66,7 @@ Boundaries:
 - Current guarded Bayer surface is "normal unpacked 2x2 Bayer" for the legacy
   stills path, not every possible CFA or packed variant. FUSED/video is still
   scoped separately and remains RGGB/GBRG until its header contract is expanded.
-  Real GBRG, GRBG, and BGGR camera fixtures should be added before claiming
+  Real GRBG and BGGR camera fixtures should be added before claiming
   broad real-camera alternate-phase coverage.
 - Nonzero camera-noise removal/addback is not promoted as a production stills
   claim yet. The safe current decision is: keep signal targets raw-like, use
@@ -76,7 +76,7 @@ Boundaries:
 
 Next production work:
 
-1. Add real GBRG, GRBG, and BGGR camera fixtures to back the committed synthetic
+1. Add real GRBG and BGGR camera fixtures to back the committed synthetic
    stills conformance cells.
 2. Collect or locate Mission 1 and iPhone darkframe/frame-stack data, then
    apply the camera/ISO noise-calibration sidecar flow.
