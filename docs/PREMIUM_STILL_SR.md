@@ -299,14 +299,19 @@ The bounded full-crop stored-HF/context U-Net probe at
 combines whole-crop training with candidate-only stored-HF and pooled candidate
 context, but reaches only about 0.02 percent median MAE recovery and about
 0.001 percent RMSE recovery on the same hard X2D holdout. The next candidate
-should use materially stronger full-image/structured raw context or a different
-objective, not just the
+spectral-loss full-crop U-Net probe at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_spectral_unet_w24_420_20260630/train_receipt.json`
+adds a global FFT-magnitude residual loss, but reaches only about 0.03 percent
+median MAE recovery and regresses the training split. The next candidate should
+use materially stronger full-image/structured raw context or a different
+target/model, not just the
 stored-HF feature, simple noise thresholding, local loss-weight tuning,
 pooled-context feature concatenation, combined local feature concatenation,
 simple band-loss reweighting, camera-domain filtering, camera-balanced
 sampling, small context padding, a small U-Net alone, or frame-context scalar
 planes alone, bounded full-crop sampling alone, or bounded full-crop
-stored-HF/context U-Net training.
+stored-HF/context U-Net training, or bounded full-crop spectral-loss U-Net
+training.
 
 ## Raw-CFA Feature Smoke
 

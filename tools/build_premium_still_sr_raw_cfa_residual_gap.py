@@ -58,6 +58,8 @@ DEFAULT_MODEL_RECEIPTS = [
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_unet_w16_160_20260630/train_receipt.json",
     DEFAULT_EXTERNAL_ROOT
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_contextstoredhf_unet_w24_360_20260630/train_receipt.json",
+    DEFAULT_EXTERNAL_ROOT
+    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_spectral_unet_w24_420_20260630/train_receipt.json",
 ]
 
 
@@ -145,6 +147,7 @@ def summarize_model(path: Path, threshold_pct: float) -> dict[str, Any]:
         "sample_balance": config.get("sample_balance", "row"),
         "sample_mode": config.get("sample_mode", "random_patch"),
         "context_padding": config.get("context_padding", 0),
+        "spectral_weight": config.get("spectral_weight", 0.0),
         "holdout_mae_recovery_pct_median": holdout_mae,
         "holdout_rmse_recovery_pct_median": holdout_rmse,
         "holdout_exact_raw_mae_recovery_pct_median": exact_mae,
@@ -223,7 +226,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 1,
                 "name": "full-image or structured raw-CFA residual learner",
-                "purpose": "make X2D and Z8 holdouts strongly positive at the same time; the first small U-Net/multiscale architecture and the first bounded full-crop U-Net probe move the hard X2D holdout barely positive, while X2D-only camera-domain filtering, camera-balanced sampling-only, 32px context-padding, combined stored-HF plus pooled-context features, bounded full-crop stored-HF/context U-Net, simple multiscale band-loss, and absolute-position/full-crop scalar frame context all remained below promotion",
+                "purpose": "make X2D and Z8 holdouts strongly positive at the same time; the first small U-Net/multiscale architecture and the first bounded full-crop U-Net probe move the hard X2D holdout barely positive, while X2D-only camera-domain filtering, camera-balanced sampling-only, 32px context-padding, combined stored-HF plus pooled-context features, bounded full-crop stored-HF/context U-Net, bounded full-crop spectral U-Net, simple multiscale band-loss, and absolute-position/full-crop scalar frame context all remained below promotion",
                 "must_prove": [
                     f"X2D median raw-residual MAE recovery >= {threshold_pct:.1f}%",
                     f"Z8 median raw-residual MAE recovery >= {threshold_pct:.1f}%",
@@ -233,7 +236,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 2,
                 "name": "full-image or routed raw-context residual model",
-                "purpose": "replace the current weak learner; larger patches, stronger high-residual weighting, simple pooled raw context, stored candidate-HF, stored-HF plus pooled context, multiscale band-loss reweighting, X2D-only train-domain filtering, camera-balanced sampling, 32px context padding, simple frame-context scalar planes, a bounded full-crop U-Net pass, and a bounded full-crop stored-HF/context U-Net pass are not sufficient, while U-Net variants are only barely positive and still far below promotion",
+                "purpose": "replace the current weak learner; larger patches, stronger high-residual weighting, simple pooled raw context, stored candidate-HF, stored-HF plus pooled context, multiscale band-loss reweighting, X2D-only train-domain filtering, camera-balanced sampling, 32px context padding, simple frame-context scalar planes, a bounded full-crop U-Net pass, a bounded full-crop stored-HF/context U-Net pass, and a bounded full-crop spectral U-Net pass are not sufficient, while U-Net variants are only barely positive and still far below promotion",
                 "must_prove": [
                     "uses candidate raw/metadata only at runtime",
                     "beats the local and pooled-context raw-CFA residual baselines on the hard X2D holdout",
@@ -286,6 +289,7 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
         f"<td>{html.escape(str(row['sample_balance']))}</td>"
         f"<td>{html.escape(str(row['sample_mode']))}</td>"
         f"<td>{html.escape(str(row['context_padding']))}</td>"
+        f"<td>{float(row.get('spectral_weight') or 0.0):.3g}</td>"
         f"<td>{html.escape(str(row['target_policy']))}</td>"
         f"<td>{row['holdout_mae_recovery_pct_median']:.3f}%</td>"
         f"<td>{row['holdout_rmse_recovery_pct_median']:.3f}%</td>"
@@ -347,7 +351,7 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
   <table><thead><tr><th>Camera</th><th>Candidates</th><th>Best MAE recovery</th><th>Best RMSE recovery</th><th>Status</th><th>Best receipt</th></tr></thead><tbody>{camera_rows}</tbody></table>
 
   <h2>Model Receipts</h2>
-  <table><thead><tr><th>Camera</th><th>Holdout</th><th>Architecture</th><th>Features</th><th>Sampler</th><th>Sample mode</th><th>Context px</th><th>Target policy</th><th>MAE recovery</th><th>RMSE recovery</th><th>Runtime safe</th><th>Promote</th></tr></thead><tbody>{model_rows}</tbody></table>
+  <table><thead><tr><th>Camera</th><th>Holdout</th><th>Architecture</th><th>Features</th><th>Sampler</th><th>Sample mode</th><th>Context px</th><th>Spectral</th><th>Target policy</th><th>MAE recovery</th><th>RMSE recovery</th><th>Runtime safe</th><th>Promote</th></tr></thead><tbody>{model_rows}</tbody></table>
 
   <h2>Next Experiments</h2>
   {experiments}

@@ -122,6 +122,7 @@ def main() -> int:
                 "target_abs_weight": 0.5,
                 "band_weight": 0.0,
                 "band_blocks": [5, 9],
+                "spectral_weight": 0.0,
                 "target_policy": "raw",
                 "noise_threshold_scale": 1.0,
                 "grad_clip": 1.0,
@@ -156,6 +157,7 @@ def main() -> int:
         assert receipt["config"]["target_policy"] == "raw"
         assert receipt["config"]["band_weight"] == 0.0
         assert receipt["config"]["band_blocks"] == [5, 9]
+        assert receipt["config"]["spectral_weight"] == 0.0
         assert receipt["config"]["sample_balance"] == "row"
         assert receipt["config"]["sample_mode"] == "random_patch"
         assert receipt["config"]["context_padding"] == 0
@@ -205,10 +207,20 @@ def main() -> int:
         assert band_receipt["config"]["band_blocks"] == [5, 9]
         assert band_receipt["policy"]["uses_source_raw_at_runtime"] is False
 
+        args.output_dir = root / "spectral_loss_holdout"
+        args.band_weight = 0.0
+        args.band_blocks = [5, 9]
+        args.spectral_weight = 0.3
+        spectral_receipt = tool.train(args)
+        assert spectral_receipt["eval"]["holdout"]["row_count"] == 1
+        assert spectral_receipt["config"]["spectral_weight"] == 0.3
+        assert spectral_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
         args.output_dir = root / "camera_balanced_holdout"
         args.feature_mode = "raw_multiscale_coord_ev_noise"
         args.band_weight = 0.0
         args.band_blocks = [5, 9]
+        args.spectral_weight = 0.0
         args.sample_balance = "camera"
         camera_balanced_receipt = tool.train(args)
         assert camera_balanced_receipt["eval"]["holdout"]["row_count"] == 1

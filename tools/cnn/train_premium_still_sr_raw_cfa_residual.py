@@ -418,6 +418,12 @@ def multiscale_band_l1(pred: torch.Tensor, target: torch.Tensor, blocks: list[in
     return loss / float(used + 1)
 
 
+def spectral_magnitude_l1(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    pred_fft = torch.fft.rfft2(pred.float(), dim=(-2, -1), norm="ortho")
+    target_fft = torch.fft.rfft2(target.float(), dim=(-2, -1), norm="ortho")
+    return F.l1_loss(torch.abs(pred_fft), torch.abs(target_fft))
+
+
 def residual_loss(pred: torch.Tensor, target: torch.Tensor, *, target_abs_weight: float) -> torch.Tensor:
     weight = torch.ones_like(target[:, 0:1])
     if target_abs_weight > 0.0:
@@ -959,6 +965,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             residual_loss(pred, y, target_abs_weight=args.target_abs_weight)
             + args.grad_weight * gradient_l1(pred, y)
             + args.band_weight * multiscale_band_l1(pred, y, band_blocks)
+            + args.spectral_weight * spectral_magnitude_l1(pred, y)
         )
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -1010,6 +1017,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "target_abs_weight": args.target_abs_weight,
                 "band_weight": args.band_weight,
                 "band_blocks": band_blocks,
+                "spectral_weight": args.spectral_weight,
                 "target_policy": args.target_policy,
                 "noise_threshold_scale": args.noise_threshold_scale,
                 "train_camera": args.train_camera,
@@ -1060,6 +1068,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "target_abs_weight": args.target_abs_weight,
             "band_weight": args.band_weight,
             "band_blocks": band_blocks,
+            "spectral_weight": args.spectral_weight,
             "target_policy": args.target_policy,
             "noise_threshold_scale": args.noise_threshold_scale,
             "holdout_scene": args.holdout_scene,
@@ -1145,6 +1154,12 @@ def main() -> int:
         nargs="*",
         default=[9, 27],
         help="Odd-ish lowpass block sizes used by the multiscale residual-band loss.",
+    )
+    ap.add_argument(
+        "--spectral-weight",
+        type=float,
+        default=0.0,
+        help="Optional global FFT-magnitude residual loss weight. Zero preserves the legacy objective.",
     )
     ap.add_argument(
         "--target-policy",
