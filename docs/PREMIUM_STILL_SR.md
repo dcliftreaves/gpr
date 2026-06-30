@@ -294,6 +294,41 @@ The generated raw-extract cache was removed after pair generation. Durable
 artifacts kept: manifest, pair NPZ, pair sidecar, checkpoints, training
 receipts, and dashboards.
 
+## Mission 1 Specialist Diagnostic
+
+The Mission 1 specialist pass built a Mission-only manifest from real
+8192 x 6144 Mission 1 DNG/GPR sources under
+`/Volumes/Photos/DavidsPics/gopro_raw/2026-06__GoProM1P/RawPics`. Smaller
+23 MP and native 12 MP files were intentionally excluded from this premium
+50 MP still-SR route.
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_mission1_batch_20260630/fixture_manifest.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_mission1_batch_20260630/premium_still_sr_pairs_mission1_batch_32t.npz
+```
+
+The pair set contains 84 fixtures, split as 42 DNG and 42 GPR sources, with
+2,688 same-color Bayer SR tiles. The temporary raw-extract cache was removed
+after pair generation; the durable pair artifact is about 583 MB.
+
+Results:
+
+| candidate | holdout | best RMSE improvement | best MAE improvement | interpretation |
+|---|---|---:|---:|---|
+| Mission 1 specialist | `mission1_gp017504_dng,mission1_gp017504_gpr` | 58.13% | 49.40% | strong route signal for both Mission DNG and GPR sources |
+
+Dashboards:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_mission1_specialist_dashboard_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_mission1_specialist_20260630/index.html
+```
+
+This closes the old Mission placeholder in the router plan. It is still not a
+production still-SR promotion because the evidence remains tile-level and does
+not yet include full-frame rendered review, raw-editor latitude, or
+camera-noise sidecar target construction.
+
 ## Router Plan
 
 The router plan builder turns current specialist evidence into a metadata-only
@@ -302,16 +337,17 @@ contract:
 ```sh
 python3 tools/build_premium_still_sr_router_plan.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
-  --fixture-manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_x2d_batch_20260629/fixture_manifest.json \
+  --fixture-manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_routed_20260630/fixture_manifest.json \
   --receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_20260629/premium_still_sr_x2d_specialist_w48_d6_2400plus2400_origx2d_holdout.pt.json \
   --receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_z8_specialist_20260630/premium_still_sr_z8_specialist_w48_d6_2400plus2400_z8z1349_holdout.pt.json \
-  --receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_batch_20260629/premium_still_sr_w48_d6_2000_origx2d_holdout.pt.json \
+  --receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_mission1_specialist_20260630/premium_still_sr_mission1_specialist_w48_d6_2400_gp017504_holdout.pt.json \
   --candidate-alias candidate_0=x2d_specialist \
   --candidate-alias candidate_1=z8_specialist \
-  --candidate-alias candidate_2=shared_x2d_batch_probe \
+  --candidate-alias candidate_2=mission1_specialist \
   --route x2d:100mp:dng=x2d_specialist \
   --route z8:50mp:dng=z8_specialist \
-  --default-candidate shared_x2d_batch_probe \
+  --route mission1:50mp:dng=mission1_specialist \
+  --route mission1:50mp:gpr=mission1_specialist \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630
 ```
 
@@ -327,9 +363,9 @@ Current routes:
 | route | fixtures | candidate | status |
 |---|---:|---|---|
 | `x2d:100mp:dng` | 9 | `x2d_specialist` | best current X2D route, not production-ready |
-| `mission1:50mp:dng` | 1 | `shared_x2d_batch_probe` | placeholder until Mission specialist or shared full gate exists |
-| `mission1:50mp:gpr` | 1 | `shared_x2d_batch_probe` | placeholder until Mission specialist or shared full gate exists |
-| `z8:50mp:dng` | 1 | `z8_specialist` | strong current Z8 route, not production-ready |
+| `mission1:50mp:dng` | 42 | `mission1_specialist` | strong Mission DNG route, not production-ready |
+| `mission1:50mp:gpr` | 42 | `mission1_specialist` | strong Mission GPR route, not production-ready |
+| `z8:50mp:dng` | 24 | `z8_specialist` | strong current Z8 route, not production-ready |
 
 The router plan is deliberately `production_ready=false`. It exists so future
 work can add real candidates route-by-route without ambiguity.

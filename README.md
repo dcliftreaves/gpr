@@ -49,7 +49,7 @@ receipts before it should be called done.
 |---|---|---|
 | **1. Best RAW stills** | Production-gated 12 MP, 23 MP, 50 MP, and 100 MP-class Bayer roundtrips; 12/14/16-bit paths; committed RGGB/GBRG/GRBG/BGGR still conformance; real Mission 1, Z8, X2D, and iPhone CFA fixture coverage; three 50 MP still tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; validated X2D/Z8 camera-noise sidecars with source-frame hashes. | Apply the same noise sidecar flow to Mission 1/iPhone darkframes before promoting nonzero noise removal/addback; add more real BGGR/GRBG camera fixtures as they become available. |
 | **2. GoPro RAW video MVP** | True 4096 x 3072 Bayer recompression into `.gvid`, valid interrupted-tail recovery, Lexar SILVER PLUS write-budget checks, Pi 5 stand-in capture above the accepted 20 fps floor, and 1024 x 768 camera-back preview from the same stream above 20 fps. | Real Mission 1 sensor/DMA, SD writer, and rear-display receipts. Strict 24 fps is still not production-proven for the current quality profile. |
-| **3. Spend-time-for-quality still/SR** | Matched 1x CNN improves compressed still latitude; current 4K cleanup and 8K SR infrastructure proves the offline CNN path can emit editable raw, `.gvid`, DNG/GPR, and ProRes review artifacts; dedicated premium still-SR fixtures, pair sets, metric dashboard, and tile-level visual review are executable. | Real "amazing still" promotion is still open: stronger 50 MP/100 MP candidate, noise-aware targets, full-frame/worst-row visual review, and raw-editor latitude receipts. |
+| **3. Spend-time-for-quality still/SR** | Matched 1x CNN improves compressed still latitude; current 4K cleanup and 8K SR infrastructure proves the offline CNN path can emit editable raw, `.gvid`, DNG/GPR, and ProRes review artifacts; routed X2D, Z8, and Mission 1 premium still-SR specialists now have hashed fixtures, pair sets, checkpoints, metric dashboards, and tile-level visual reviews. | Real "amazing still" promotion is still open: full-frame/worst-row rendered review, raw-editor latitude receipts, and noise-aware targets before the routed still-SR suite can be called production. |
 | **4. RAW video improvement / PSF-aware resize** | Mission native12 4K cleanup is approved for offline review; candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates and has 8K `.gvid` plus ProRes receipts; real Mission/Z8/X2D pair-derived resize evidence confirms the current same-color 2x Bayer target is a 2x2 box model. | Native capture/display PSF is not fully formalized. Next work should measure camera/sensor resize PSF directly, train against CFA-aware high-res targets, and require both raw-domain and rendered visual gates before replacing the current SR baseline. |
 
 Detailed status and next-step criteria:
@@ -82,6 +82,8 @@ Premium still-SR X2D specialist diagnostic:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_dashboard_20260630/index.html`.
 Premium still-SR Z8 specialist diagnostic:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_z8_specialist_dashboard_20260630/index.html`.
+Premium still-SR Mission 1 specialist diagnostic:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_mission1_specialist_dashboard_20260630/index.html`.
 Premium still-SR specialist router plan:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/index.html`.
 Bayer resize PSF pair-derived dashboard:
@@ -96,6 +98,7 @@ Bayer resize PSF pair-derived dashboard:
 | Raw video container | `.gvid` stores per-frame FUSED `.gpr` payloads with metadata dispatch, validation, and interrupted-tail recovery checks. |
 | 12MP Mission 1 candidate | Native 4096 x 3072 Bayer recompression passes the active Pi stand-in floor with valid `.gvid`, zero drops, and recovery receipts; the latest DMA-like `bench_fused` source receipt is **19.99 fps** over 1,440 frames, while strict 24 fps remains open. |
 | Mission 1 preview target | 4096 x 3072 `.gvid` decodes to 1024 x 768 RGB preview above **20 fps** on the Pi 5 stand-in. |
+| Premium still-SR routed specialists | X2D 100MP, Z8 50MP, and Mission 1 50MP DNG/GPR now have metadata-routed specialist checkpoints. Mission 1 improves held-out GP017504 DNG/GPR tiles by **58.13% RMSE** and **49.40% MAE**; this is still tile-level evidence, not a full still promotion. |
 | 2x / 8K reconstruction | Candidate-aware Mission native12-to-8K SR is **offline-production for post/reconstruction** today; broad Mission42 and Z8 full-frame gates are positive, with `.gvid` decode-to-SR, 8K `.gvid`, and 8K ProRes receipts. It is not a live-camera path. |
 | 4K rendered detail research | Bayer-output / RGB-supervised cleanup improves all 42 Mission frames against high-res-derived 4K RGB and CFA targets, and feeds the current candidate-aware 8K SR path. |
 
@@ -133,6 +136,7 @@ and [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md).
 | Live camera-back preview | 4096 x 3072 `.gvid` decodes to 1024 x 768 RGB preview above 20 fps on the Pi 5 stand-in; Mission 1 display handoff remains the blocker. |
 | 12MP Mission 1 candidate | Native 12MP true Bayer recompression passes the active 20+ fps Pi stand-in floor; strict 24 fps and actual camera handoff are still open. |
 | 8K reconstruction | Mission 1 / Z8 12MP-to-8K SR has offline/Mac evidence, 8K `.gvid` packaging receipts, and `.gvid` to 8K ProRes review receipts. |
+| Premium still-SR | Routed X2D, Z8, and Mission 1 specialists prove the camera/source-specific direction; full-frame still review and raw-editor latitude are the remaining promotion gates. |
 
 ![GPR still and video pipeline flow](docs/img/readme_pipeline_flow.svg)
 
@@ -285,6 +289,7 @@ current evidence so strict local checks can verify it.
 | Premium still-SR X2D batch diagnostic dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_batch_dashboard_20260629/index.html` |
 | Premium still-SR X2D specialist diagnostic dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_dashboard_20260630/index.html` |
 | Premium still-SR Z8 specialist diagnostic dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_z8_specialist_dashboard_20260630/index.html` |
+| Premium still-SR Mission 1 specialist diagnostic dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_mission1_specialist_dashboard_20260630/index.html` |
 | Premium still-SR specialist router plan | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/index.html` |
 | Bayer resize PSF pair-derived dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html` |
 

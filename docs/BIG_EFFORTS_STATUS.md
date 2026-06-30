@@ -157,11 +157,14 @@ Current evidence:
   original-X2D holdout to about 1.08 percent RMSE and 1.18 percent MAE, beating
   the mixed-camera X2D-batch candidate on the same holdout:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_dashboard_20260630/index.html`.
+- A Mission 1-only specialist trained on 84 real 8192 x 6144 Mission DNG/GPR
+  fixtures improves the held-out `mission1_gp017504_dng,gpr` tiles by about
+  58.13 percent RMSE and 49.40 percent MAE:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_mission1_specialist_dashboard_20260630/index.html`.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
-  specialist and `z8:50mp:dng` to the Z8 specialist; Mission 1 remains on a
-  placeholder shared probe until that route has a real specialist or full-gate
-  proof:
+  specialist, `z8:50mp:dng` to the Z8 specialist, and both
+  `mission1:50mp:dng` and `mission1:50mp:gpr` to the Mission 1 specialist:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/index.html`.
 - A Z8-only specialist trained on 24 Z8 DNG fixtures improves the held-out
   `z8_z8z_1349` fixture by about 25.52 percent RMSE and 4.28 percent MAE:
@@ -187,14 +190,13 @@ Boundaries:
   the evidence is still tile-level and lacks raw-editor latitude/full-frame
   still receipts.
 - The router plan is a contract for future routing, not a production registry.
-  The Mission 1 routes are still placeholders; X2D and Z8 have candidate
-  specialists but still lack production full-frame/editor-latitude gates.
+  X2D, Z8, and Mission 1 now have candidate specialists, but all still lack
+  production full-frame/editor-latitude gates.
 
 Next production work:
 
-1. Replace the still-SR smoke/large exploratory checkpoints with routed
-   camera/source specialists: at minimum X2D, Mission 1, and Z8 candidates,
-   with a deterministic metadata/raw-feature router.
+1. Replace tile-only still-SR evidence with full-frame routed
+   camera/source-specialist gates for the X2D, Mission 1, and Z8 candidates.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Add full-frame still visual dashboards, raw-domain metrics, and raw-editor
