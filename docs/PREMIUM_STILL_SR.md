@@ -515,17 +515,19 @@ Current dashboard:
 
 Result:
 
-| rows | median display MAE | worst display MAE | median LF Y MAE | median HF Y MAE | synthetic-HF median MAE | source-HF oracle worst MAE | blocker |
-|---:|---:|---:|---:|---:|---:|---:|---|
-| 9 | 0.04281 | 0.09161 | 0.00546 | 0.02892 | 0.04293 | 0.01586 | +2 EV structured high-frequency texture/detail loss |
+| rows | median display MAE | worst display MAE | median LF Y MAE | median HF Y MAE | median HF corr | synthetic-HF median MAE | source-HF oracle worst MAE | blocker |
+|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 9 | 0.04281 | 0.09161 | 0.00546 | 0.02892 | 0.406 | 0.04293 | 0.01586 | +2 EV structured high-frequency texture/detail loss |
 
 Interpretation: metadata/openability is no longer the X2D blocker.
 Low-frequency tone is much closer than full-pixel error. In the +2 EV rows the
 candidate retains only about 44-53 percent of the source high-frequency
-luminance energy. The optional source-HF oracle preserves candidate
-low-frequency tone and injects source high-frequency content; it drops worst
-+2 EV display MAE from 0.09161 to 0.01586 and worst +2 EV HF Y MAE from
-0.06095 to 0.00005. That oracle uses source content and is not a
+luminance energy. Median HF correlation is only 0.406, with the worst +2 EV
+rows around 0.398-0.483, so the candidate is not just under-amplified; much of
+the source HF structure is not aligned. The optional source-HF oracle preserves
+candidate low-frequency tone and injects source high-frequency content; it
+drops worst +2 EV display MAE from 0.09161 to 0.01586 and worst +2 EV HF Y MAE
+from 0.06095 to 0.00005. That oracle uses source content and is not a
 production/no-REF render path.
 
 The same dashboard now runs a production-safe synthetic-HF sweep seeded from

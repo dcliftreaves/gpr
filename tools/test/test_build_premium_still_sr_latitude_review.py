@@ -30,6 +30,10 @@ def main() -> int:
 
     tool = load_tool()
     ref = np.full((32, 32, 3), 10000, dtype=np.uint16)
+    checker = ((np.indices((32, 32)).sum(axis=0) % 2) * 200).astype(np.uint16)
+    ref[:, :, 0] += checker
+    ref[:, :, 1] += checker
+    ref[:, :, 2] += checker
     cand = ref.copy()
     cand[:, :, 1] += 100
     metrics = tool.crop_metrics(ref, cand)
@@ -37,6 +41,7 @@ def main() -> int:
     assert metrics["psnr_db"] > 40.0
     assert metrics["lf_y_mae"] is not None
     assert metrics["hf_y_mae"] is not None
+    assert metrics["hf_y_correlation"] is not None
     assert len(metrics["channel_mean_delta"]) == 3
     assert tool.crop_starts(100, 80, 20)[1] == ("center", 40, 30)
     oracle = tool.oracle_hf_addback(ref, cand, 16)
@@ -68,6 +73,10 @@ def main() -> int:
                 "y_mae": {"median": metrics["y_mae"], "max": metrics["y_mae"]},
                 "lf_y_mae": {"median": metrics["lf_y_mae"] or 0.0, "max": metrics["lf_y_mae"] or 0.0},
                 "hf_y_mae": {"median": metrics["hf_y_mae"] or 0.0, "max": metrics["hf_y_mae"] or 0.0},
+                "hf_y_correlation": {
+                    "median": metrics["hf_y_correlation"] or 0.0,
+                    "min": metrics["hf_y_correlation"] or 0.0,
+                },
                 "psnr_db": {"median": metrics["psnr_db"], "min": metrics["psnr_db"]},
                 "oracle_mae": {"median": oracle_metrics["mae"], "max": oracle_metrics["mae"]},
                 "oracle_mae_improvement": {

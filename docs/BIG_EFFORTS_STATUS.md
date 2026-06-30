@@ -194,8 +194,9 @@ Current evidence:
   high-frequency Y MAE 0.02892. The worst rows are all +2 EV, with worst
   display MAE 0.09161, worst low-frequency Y MAE 0.01657, and worst
   high-frequency Y MAE 0.06095. The candidate carries only about 44-53 percent
-  of the source high-frequency luminance energy in the +2 EV rows:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_20260630/index.html`.
+  of the source high-frequency luminance energy in the +2 EV rows, with median
+  HF correlation 0.406 and worst-row correlations around 0.398-0.483:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/index.html`.
 - The same latitude review includes a source-HF oracle diagnostic. It preserves
   candidate low-frequency tone but injects source high-frequency content, so it
   is diagnostic only and cannot be used as a production/no-REF render path.
@@ -211,7 +212,9 @@ Current evidence:
   from 0.04281 to 0.04293 and worst MAE from 0.09161 to 0.09167, while the
   median gap to the source-HF oracle remains 0.03713. That narrows the
   committed blocker to structured texture/detail reconstruction, not simple
-  stochastic noise addback.
+  stochastic noise addback. The low HF correlation means the next training pass
+  should learn a residual/detail field from high-quality still targets, not
+  simply increase output HF amplitude.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
@@ -251,8 +254,8 @@ Next production work:
    texture path. Calibrated random-HF addback does not close the X2D +2 EV
    gap, so the next pass should train a structured texture/detail generator or
    change the still-SR target/loss. The current LF tone error is much smaller
-   than the HF error, so the next pass should not chase generic tone mapping
-   first.
+   than the HF error, and HF correlation is only about 0.406 median, so the
+   next pass should not chase generic tone mapping or simple HF gain first.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Add full-frame still visual dashboards, raw-domain metrics, and raw-editor
