@@ -30,7 +30,7 @@ Current interpretation:
 | pillar | current score | production reading |
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
-| GoPro RAW video MVP | 78% | Pi 5 stand-in and handoff package are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
+| GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
 | Premium still/SR | 45% | The infrastructure is broad, but the no-REF high-frequency texture model is not production-grade yet. |
 | PSF-aware RAW video improvement | 40% | Current 4K cleanup and 8K SR baselines are useful; formal native PSF/blur-aware replacement remains open. |
 
@@ -59,6 +59,13 @@ It finds 9 darkframe-like Mission 1 frames, but they are split across 8
 camera/ISO/CFA groups and no group has the four-frame stack required for a
 production sidecar. The iPhone row is the known Linear Raw negative fixture,
 not a CFA darkframe source.
+
+The current GoPro Mission 1 intake audit lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/index.html`.
+It verifies the portable firmware handoff bundle, required docs, 4096 x 3072
+`.gvid` sample, quick-validation dry run, and stand-in encode/preview receipts.
+It remains `camera_production_ready=false` until real Mission 1 sensor/DMA,
+storage, and rear-display receipts replace the stand-in evidence.
 
 The current raw-video PSF/SR readiness audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.

@@ -103,8 +103,10 @@ Current evidence:
   Pi 5 stand-in floor with zero drops and valid `.gvid` receipts.
 - 1024 x 768 camera-back preview is decoded from the same 4K `.gvid` stream
   above 20 fps on the Pi 5 stand-in.
-- The handoff bundle, Labs runbooks, quick validation script, target closure
-  package, `.gvid` conformance tests, and sanitizer-clean CI are in place.
+- The handoff bundle, GoPro intake audit, Labs runbooks, quick validation
+  script, target closure package, `.gvid` conformance tests, and
+  sanitizer-clean CI are in place. The intake audit verifies the bundle while
+  keeping camera-production status false until real camera-role receipts exist.
 
 Boundaries:
 
@@ -117,7 +119,7 @@ Boundaries:
 
 Next production work:
 
-1. Give GoPro engineers the handoff bundle and have them run
+1. Give GoPro engineers the handoff bundle and intake audit, then have them run
    `tools/run_gopro_mission1_quick_validation.py` on real Mission 1 hardware.
 2. Compare camera-role source timing against the FIFO/DMA simulator receipts.
 3. If strict 24 fps is required, optimize encode/write overlap or the FLL2

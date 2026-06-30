@@ -106,10 +106,15 @@ listed in `docs/release_evidence_manifest.json`.
 
 Current Mission 1 handoff bundle:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_20260629/manifest.json`
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_20260630/manifest.json`
 
-It verifies with `tools/verify_labs_bundle.py` and contains 19 manifest
+Current Mission 1 intake audit:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/index.html`
+
+The bundle verifies with `tools/verify_labs_bundle.py` and contains 19 manifest
 artifacts, including a valid 4096 x 3072 `.gvid` sample, compact stand-in
 closure receipts, the quick-validation dry-run receipt, visual assets, docs,
-and checksums. It should be attached or archived with the release if the target
-audience is GoPro firmware/Labs review.
+and checksums. The intake audit marks it firmware-review ready, but still
+`camera_production_ready=false` until camera-role sensor/DMA, storage, and
+rear-display receipts replace the stand-in evidence.

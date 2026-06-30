@@ -91,7 +91,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         {
             "id": "raw_video_mvp",
             "title": "2. GoPro RAW video MVP",
-            "readiness_percent": 78,
+            "readiness_percent": 80,
             "status": "pi_stand_in_pass_camera_handoff_open",
             "production_ready": False,
             "claim": "True 4096 x 3072 Bayer frames can be recompressed into .gvid and previewed above the accepted 20 fps Pi 5 stand-in floor.",
@@ -100,6 +100,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "Pi 5 stand-in capture has valid .gvid, zero-drop, interrupted-tail, and Lexar SILVER PLUS write-budget evidence.",
                 "1024 x 768 camera-back preview decodes from the same 4K .gvid stream above 20 fps on the Pi stand-in.",
                 "Labs handoff docs, quick validation scripts, target closure package, and conformance tests exist.",
+                "The GoPro Mission 1 intake audit verifies the portable handoff bundle, required firmware docs, 4K .gvid sample, quick-validation dry run, and stand-in receipts while keeping camera-production readiness false.",
             ],
             "open_work": [
                 "Run the same path from real Mission 1 sensor/DMA or camera ring-buffer source.",
@@ -111,6 +112,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     repo_ref("Mission 1 quick validation", "docs/GOPRO_MISSION1_QUICK_VALIDATION.md"),
                     repo_ref("Mission 1 stream source timing", "docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md"),
                     repo_ref("GVID conformance", "docs/GVID_CONFORMANCE.md"),
+                    artifact_ref("GoPro Mission 1 intake audit", "artifacts/gopro_mission1_intake_audit_20260630/index.html"),
                     artifact_ref("Pi stream source receipts", "artifacts/mission1_stream_source_encoder_20260628_pi_compact"),
                     artifact_ref("preview timing receipt", "artifacts/mission1_preview_rgb_c_1024x768_72f_20260624/receipt.json"),
                     artifact_ref("Z8 preview media", "artifacts/z8_timelapse_readme_gif_frame800_20260624"),
@@ -194,7 +196,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "interpretation": "This is an execution scorecard. It is intentionally not a release claim while any pillar has open production work.",
         "pillars": pillars,
         "next_actions": [
-            "Package a GoPro-facing Mission 1 closure bundle around the existing quick-validation scripts and required receipt names.",
+            "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
             "Add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback for those cameras.",
             "Replace premium still-SR residual probes with a larger-context raw-domain texture/noise model before claiming an amazing-still product.",
             "Move PSF work from modeled pair receipts to native capture/display PSF measurements, then gate against current 4K/8K baselines.",

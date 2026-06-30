@@ -48,7 +48,7 @@ receipts before it should be called done.
 | pillar | what works now | not done yet |
 |---|---|---|
 | **1. Best RAW stills** | Production-gated 12 MP, 23 MP, 50 MP, and 100 MP-class Bayer roundtrips; 12/14/16-bit paths; committed RGGB/GBRG/GRBG/BGGR still conformance; real Mission 1, Z8, X2D, and iPhone CFA fixture coverage; current real phase discovery includes RGGB plus Mission 1 GBRG; three 50 MP still tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; real X2D 100MP visual roundtrip audit; validated X2D/Z8 camera-noise sidecars with source-frame hashes. | Collect or locate Mission 1/iPhone darkframe stacks before promoting nonzero noise removal/addback there; real GRBG/BGGR fixtures are still needed. |
-| **2. GoPro RAW video MVP** | True 4096 x 3072 Bayer recompression into `.gvid`, valid interrupted-tail recovery, Lexar SILVER PLUS write-budget checks, Pi 5 stand-in capture above the accepted 20 fps floor, and 1024 x 768 camera-back preview from the same stream above 20 fps. | Real Mission 1 sensor/DMA, SD writer, and rear-display receipts. Strict 24 fps is still not production-proven for the current quality profile. |
+| **2. GoPro RAW video MVP** | True 4096 x 3072 Bayer recompression into `.gvid`, valid interrupted-tail recovery, Lexar SILVER PLUS write-budget checks, Pi 5 stand-in capture above the accepted 20 fps floor, 1024 x 768 camera-back preview from the same stream above 20 fps, and a checked GoPro intake bundle with firmware-facing docs and required receipt names. | Real Mission 1 sensor/DMA, SD writer, and rear-display receipts. Strict 24 fps is still not production-proven for the current quality profile. |
 | **3. Spend-time-for-quality still/SR** | Matched 1x CNN improves compressed still latitude; current 4K cleanup and 8K SR infrastructure proves the offline CNN path can emit editable raw, `.gvid`, DNG/GPR, and ProRes review artifacts; routed X2D, Z8, and Mission 1 premium still-SR specialists now have hashed fixtures, full-frame receipts, rendered proxy review, X2D 100MP editor-openability plus metadata transplant, an X2D rawpy latitude dashboard, a structured HF residual target dataset, and the first no-REF HF residual smoke model. | Real "amazing still" promotion is still open: the first X2D no-REF HF model only recovers a small part of the +2 EV residual, so the next pass needs more context/target design before the routed still-SR suite can be called production. |
 | **4. RAW video improvement / PSF-aware resize** | Mission native12 4K cleanup is approved for offline review; candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates and has 8K `.gvid` plus ProRes receipts; real Mission/Z8/X2D pair-derived resize evidence confirms the current same-color 2x Bayer target is a 2x2 box model. The refreshed 1,024-tile detail budget shows the 4K-to-8K residual is essentially all same-cell fine detail, not coarse blur. | Native capture/display PSF is not fully formalized. Next work should measure camera/sensor resize PSF directly, train against CFA-aware high-res targets with explicit fine-detail reconstruction losses, and require both raw-domain and rendered visual gates before replacing the current SR baseline. |
 
@@ -237,6 +237,9 @@ inputs, receipts, and failure handling are in
 [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md).
 The portable reviewer package is built with
 `python3 tools/build_gopro_mission1_handoff_bundle.py`.
+The GoPro intake audit verifies that package and keeps camera-production status
+false until real Mission 1 sensor/DMA, storage, and rear-display receipts exist:
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/index.html`.
 
 For deterministic rehearsal before that handoff, `tools/mission1_dma_source_sim.py`
 creates a separate-process FIFO producer/consumer that mimics a sensor
@@ -291,6 +294,7 @@ current evidence so strict local checks can verify it.
 | Production artifact layout and hashes | [`docs/PRODUCTION_ARTIFACTS.md`](docs/PRODUCTION_ARTIFACTS.md) |
 | Mission 1 numbered-list burndown | [`docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md`](docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md) |
 | GoPro Mission 1 quick validation | [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md) |
+| GoPro Mission 1 intake audit | `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/index.html` |
 | Mission 1 stream-source timing | [`docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md`](docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md) |
 | Mission 1 CNN status and next steps | [`docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md`](docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md) |
 | Four-pillar product scorecard | [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630/index.html` |
