@@ -98,6 +98,8 @@ refreshed 2026-06-29.
 | `python3 tools/test/test_build_premium_still_sr_visual_review.py` | regression-test the premium still-SR visual review builder |
 | `python3 tools/build_premium_still_sr_router_plan.py --fixture-manifest /path/to/fixture_manifest.json --receipt /path/to/model.pt.json --output-dir /path/to/out` | build a metadata-only premium still-SR specialist router plan |
 | `python3 tools/test/test_build_premium_still_sr_router_plan.py` | regression-test the premium still-SR router plan builder |
+| `python3 tools/build_premium_still_sr_blocker_audit.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630` | build the premium still-SR root-cause blocker audit |
+| `python3 tools/test/test_build_premium_still_sr_blocker_audit.py` | regression-test the premium still-SR blocker audit builder |
 | `python3 tools/build_bayer_resize_psf_receipt.py --out-dir /path/to/out` | build a synthetic non-production Bayer resize PSF receipt |
 | `python3 tools/test/test_build_bayer_resize_psf_receipt.py` | regression-test the PSF receipt builder |
 | `python3 tools/build_bayer_resize_psf_from_pairs.py --pairs /path/to/pairs.npz --out-dir /path/to/out` | build a pair-derived non-production Bayer resize PSF receipt |

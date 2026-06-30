@@ -90,6 +90,31 @@ This is a necessary promotion guard, not a full production gate. A future row
 must still pass full-frame raw/editor-latitude review before the premium
 still-SR pillar can move from diagnostic to production-ready.
 
+## Blocker Audit
+
+The blocker audit combines the experiment scoreboard, current readiness
+receipt, merged X2D HF target receipt, and residual band analysis:
+
+```sh
+python3 tools/build_premium_still_sr_blocker_audit.py \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630
+```
+
+Current audit:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html
+```
+
+The current audit keeps production readiness false. It records zero promotable
+rows, a best single-candidate holdout recovery of about 4.03 percent MAE, a
+broader scene-held-out recovery of about 2.56 percent MAE, only three X2D
+target scenes, and roughly 0.97x fine-band residual share. The next candidate
+should therefore be a larger-context raw-domain, CFA-aware, noise-conditioned
+texture model with expanded target coverage and a full still/editor-latitude
+gate, not another small rendered-space residual probe.
+
 ## Fixture Manifest Builder
 
 Use the latest real-fixture compatibility receipt to build the first dedicated
