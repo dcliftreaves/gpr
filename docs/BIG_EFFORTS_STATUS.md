@@ -174,6 +174,10 @@ Current evidence:
   about 1.55 fps with raw write:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fullframe_z8_specialist_20260630/eval/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fullframe_x2d_specialist_20260630/eval/index.html`.
+- The first routed rendered/editor-latitude proxy review covers Mission 1,
+  Z8, and X2D crops at -2/0/+2 EV. The model improves 33 of 36 crop/EV rows;
+  the three regressions are all X2D center-crop rows under exposure stress:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rendered_review_routed_20260630/index.html`.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
@@ -200,16 +204,16 @@ Boundaries:
   scene-specialist work before premium still-SR can be promoted.
 - The specialist results support a camera/source-aware router or separate
   specialist checkpoints. Every current route now has a first full-frame
-  check, but X2D remains weak and the routed suite still lacks raw-editor
-  latitude receipts.
+  check and rendered proxy review, but X2D remains weak and the routed suite
+  still lacks raw-editor openability/latitude receipts.
 - The router plan is a contract for future routing, not a production registry.
   X2D, Z8, and Mission 1 now have candidate specialists, but all still lack
   production full-frame/editor-latitude gates.
 
 Next production work:
 
-1. Add rendered/editor-latitude review for the routed suite, starting with the
-   X2D weak route and then confirming Mission 1/Z8 do not regress visually.
+1. Convert the rendered proxy review into raw-editor openability/latitude
+   receipts, starting with the X2D center-crop exposure-stress blocker.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Add full-frame still visual dashboards, raw-domain metrics, and raw-editor
