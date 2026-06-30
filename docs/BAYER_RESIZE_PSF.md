@@ -145,6 +145,26 @@ tile mining, Bayer/RGB kernel fitting, and gate promotion steps. It is still
 not a measured PSF receipt; production remains blocked until a measured kernel
 and PSF-conditioned 4K/8K model gate exist.
 
+The first native measurement run executes that plan:
+
+```sh
+/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python \
+  tools/build_mission1_native_psf_measurement.py \
+  --measurement-plan /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_20260630/measurement_plan.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_20260630
+```
+
+Dashboard:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_20260630/index.html`
+
+Current result: the run executed alignment, scene vetting, edge/texture mining,
+and Bayer-plane kernel fitting on the selected Mission 1 pairs. It accepted 2
+of 3 pairs, found 1,409 sharp-edge tiles and 1,381 texture-field tiles, but
+rejected the measured kernel as unstable. That narrows the next data need:
+controlled same-scene high/low pairs, not more fitting on the current near-time
+pair set.
+
 ## SR/Detail Candidate Scoreboard
 
 The candidate scoreboard scans historical Mission/Z8 SR and detail decision

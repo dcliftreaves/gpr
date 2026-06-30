@@ -43,7 +43,7 @@ def main() -> int:
         data = json.loads(audit_path.read_text(encoding="utf-8"))
         assert data["schema"] == "gpr.raw_video_psf_audit.v1"
         assert data["mode"] == "synthetic"
-        assert data["readiness_percent"] == 43
+        assert data["readiness_percent"] == 44
         assert data["production_ready"] is False
         assert data["approved_baselines_ready"] is True
         assert data["psf_replacement_ready"] is False
@@ -54,13 +54,17 @@ def main() -> int:
         assert data["summary"]["native_high_low_decoded_candidate_pair_count"] == 3
         assert data["summary"]["native_psf_measurement_plan_ready"] is True
         assert data["summary"]["native_psf_measurement_selected_pair_count"] == 3
+        assert data["summary"]["native_psf_measurement_executed"] is True
+        assert data["summary"]["native_psf_measurement_accepted_pair_count"] == 2
+        assert data["summary"]["native_psf_measurement_kernel_stable"] is False
         assert data["summary"]["sr_detail_decision_count"] == 3
         assert data["summary"]["sr_detail_promotable_row_count"] == 0
         assert data["pair_derived_psf"]["best_kernel"] == "same_color_box2"
         assert data["pair_derived_psf"]["fine_share_of_residual_abs"] > 0.99
         assert any(check["id"] == "native_capture_display_psf" and not check["passed"] for check in data["checks"])
         assert any(check["id"] == "native_psf_measurement_plan" and check["passed"] for check in data["checks"])
-        assert any("native camera" in blocker for blocker in data["blockers"])
+        assert any(check["id"] == "native_psf_measurement_executed" and check["passed"] for check in data["checks"])
+        assert any("production-ready native" in blocker for blocker in data["blockers"])
 
         html = dashboard_path.read_text(encoding="utf-8")
         assert "Raw Video PSF / SR Audit" in html
@@ -68,6 +72,7 @@ def main() -> int:
         assert "PSF replacement" in html
         assert "Native candidates" in html
         assert "Measurement plan" in html
+        assert "Measurement run" in html
         assert "production ready: false" in html
         assert proc.stdout.strip() == str(dashboard_path)
     print("test_build_raw_video_psf_audit: PASS")

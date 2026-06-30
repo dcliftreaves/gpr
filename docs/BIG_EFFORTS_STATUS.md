@@ -15,7 +15,7 @@ The generated audit dashboard for these same four pillars is tracked in
 | Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, RGGB plus Mission 1 GBRG real-fixture coverage, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
 | Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, and no-REF HF residual probes. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass; the current grid target/probe proves the target set and model are still too weak for promotion. |
-| Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup, candidate-aware 8K SR, native high/low pair inventory, and an executable PSF measurement plan. | Not done as a formal PSF/blur-calibrated resizing model until the native measurement and PSF-conditioned gates run. |
+| Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup, candidate-aware 8K SR, native high/low pair inventory, measurement plan, and first native measurement run. | Not done as a formal PSF/blur-calibrated resizing model until controlled high/low pairs produce a stable native kernel and PSF-conditioned gates pass. |
 
 ## 1. Raw Stills
 
@@ -400,6 +400,11 @@ Current evidence:
   defines scene vetting, alignment, edge/texture mining, native kernel fitting,
   and promotion gates:
   `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_20260630/index.html`.
+- The first Mission 1 native PSF measurement run executes that plan:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_20260630/index.html`.
+  It accepted 2 of 3 selected near-time pairs and found strong tile support
+  (1,409 sharp-edge tiles and 1,381 texture-field tiles), but rejected the
+  combined kernel as unstable.
 - The raw-video SR/detail candidate scoreboard indexes 89 historical
   Mission/Z8 decision receipts and finds zero current-scale promotion rows
   under the Mission42 plus Z8 all24 coverage rule:
@@ -413,17 +418,17 @@ Boundaries:
   detail budget. It does not measure native camera sensor/DMA/display PSF
   because the low side of the pair is generated from the high-resolution raw
   extraction.
-- The native high/low inventory and measurement plan are inputs, not a measured
-  PSF receipt. The plan still needs to be executed to produce scene matching,
-  alignment, edge/texture tiles, and a measured native PSF kernel.
+- The native high/low inventory, plan, and first measurement run are still not
+  enough for production. The current near-time pairs do not provide three
+  accepted same-scene pairs or a stable measured kernel.
 - Replacing it requires beating the current baseline on full-frame Mission and
   Z8 gates, not just lowering tile loss or improving a small crop.
 
 Next production work:
 
-1. Execute the Mission 1 native PSF measurement plan: scene-vet, align, mine
-   edge/texture tiles, fit the native high-to-low kernel, and produce the
-   measured PSF receipt.
+1. Capture or locate controlled same-scene Mission 1 high/low pairs, then
+   re-run the native PSF measurement until at least three pairs pass scene
+   vetting and the fitted kernel is stable.
 2. Train with CFA-aware high-res RGB/downsample targets, PSF-conditioned
    losses, and explicit same-cell fine-detail reconstruction metrics.
 3. Promote only if Mission42 and Z8 all24 gates improve, worst rows are clean,

@@ -32,7 +32,7 @@ Current interpretation:
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
 | Premium still/SR | 47% | The infrastructure is broad, and the blocker plus target-expansion audits now make the next experiment concrete; the no-REF high-frequency texture model is still not production-grade yet. |
-| PSF-aware RAW video improvement | 43% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, and the native PSF measurement protocol is now explicit; formal native PSF/blur-aware replacement remains open until the plan is executed. |
+| PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, and the first native PSF measurement has executed; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html`.
@@ -85,6 +85,13 @@ It selects the best decoded native high/low pairs and defines the scene-vetting,
 alignment, edge/texture mining, kernel-fitting, and promotion gates required
 before the PSF-aware raw-video improvement pillar can replace the approved
 4K/8K baselines.
+
+The current Mission 1 native PSF measurement run lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_20260630/index.html`.
+It executed the plan on the selected near-time pairs. Two of three pairs passed
+scene/alignment vetting and provided 1,409 sharp-edge plus 1,381 texture-field
+tiles, but the combined kernel was unstable and is not ready for model
+conditioning.
 
 The current raw-video SR/detail candidate scoreboard lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html`.

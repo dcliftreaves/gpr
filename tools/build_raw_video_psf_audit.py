@@ -33,6 +33,7 @@ DEFAULT_8K_PROMOTION = "artifacts/mission1_8k_sr_production_promotion_20260625/p
 DEFAULT_SR_SCOREBOARD = "artifacts/raw_video_sr_candidate_scoreboard_20260630/scoreboard.json"
 DEFAULT_NATIVE_PAIR_INVENTORY = "artifacts/mission1_native_psf_pair_inventory_20260630/inventory.json"
 DEFAULT_NATIVE_PSF_MEASUREMENT_PLAN = "artifacts/mission1_native_psf_measurement_plan_20260630/measurement_plan.json"
+DEFAULT_NATIVE_PSF_MEASUREMENT = "artifacts/mission1_native_psf_measurement_20260630/native_psf_measurement.json"
 
 
 def resolve_artifact(external_root: Path, path: str | Path) -> Path:
@@ -90,7 +91,7 @@ def artifact_entry(label: str, path: Path, data: dict[str, Any] | None) -> dict[
     }
 
 
-def synthetic_inputs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+def synthetic_inputs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
     psf = {
         "schema": "gpr.bayer_resize_psf_receipt.v1",
         "production_ready": False,
@@ -144,7 +145,22 @@ def synthetic_inputs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], 
             "pair_derived_best_kernel": "same_color_box2",
         },
     }
-    return psf, cleanup, sr, native_pairs, native_plan
+    native_measurement = {
+        "schema": "gpr.mission1_native_psf_measurement.v1",
+        "production_ready": False,
+        "measurement_executed": True,
+        "native_psf_ready_for_model_conditioning": False,
+        "summary": {
+            "selected_pair_count": 3,
+            "accepted_pair_count": 2,
+            "rejected_pair_count": 1,
+            "accepted_sharp_edge_tile_count": 120,
+            "accepted_texture_field_tile_count": 140,
+            "kernel_stable": False,
+            "measured_native_psf_ready": False,
+        },
+    }
+    return psf, cleanup, sr, native_pairs, native_plan, native_measurement
 
 
 def build_audit(
@@ -155,10 +171,18 @@ def build_audit(
     sr_scoreboard_path: Path,
     native_pair_inventory_path: Path,
     native_psf_measurement_plan_path: Path,
+    native_psf_measurement_path: Path,
     synthetic: bool = False,
 ) -> dict[str, Any]:
     if synthetic:
-        psf_receipt, cleanup_signoff, sr_promotion, native_pair_inventory, native_psf_measurement_plan = synthetic_inputs()
+        (
+            psf_receipt,
+            cleanup_signoff,
+            sr_promotion,
+            native_pair_inventory,
+            native_psf_measurement_plan,
+            native_psf_measurement,
+        ) = synthetic_inputs()
         sr_scoreboard = {
             "schema": "gpr.raw_video_sr_candidate_scoreboard.v1",
             "decision_count": 3,
@@ -172,6 +196,7 @@ def build_audit(
         sr_scoreboard = load_json(sr_scoreboard_path)
         native_pair_inventory = load_json(native_pair_inventory_path)
         native_psf_measurement_plan = load_json(native_psf_measurement_plan_path)
+        native_psf_measurement = load_json(native_psf_measurement_path)
 
     cleanup_ready = bool_at(cleanup_signoff, ["verdict", "production_ready"])
     sr_ready = bool_at(sr_promotion, ["verdict", "production_ready"])
@@ -179,7 +204,7 @@ def build_audit(
     mission42_psf_gate = bool_at(psf_receipt, ["gate_results", "mission42_passed"])
     z8_psf_gate = bool_at(psf_receipt, ["gate_results", "z8_all24_passed"])
 
-    native_psf_ready = False
+    native_psf_ready = bool_at(native_psf_measurement, ["native_psf_ready_for_model_conditioning"])
     psf_conditioned_model_ready = False
     psf_replacement_ready = (
         native_psf_ready
@@ -203,6 +228,10 @@ def build_audit(
     native_pair_inventory_ready = native_candidate_pairs > 0 and decoded_native_candidate_pairs > 0
     native_measurement_plan_ready = bool_at(native_psf_measurement_plan, ["measurement_plan_ready"])
     native_measurement_selected_pairs = int(num_at(native_psf_measurement_plan, ["summary", "selected_pair_count"]) or 0)
+    native_measurement_executed = bool_at(native_psf_measurement, ["measurement_executed"])
+    native_measurement_accepted_pairs = int(num_at(native_psf_measurement, ["summary", "accepted_pair_count"]) or 0)
+    native_measurement_rejected_pairs = int(num_at(native_psf_measurement, ["summary", "rejected_pair_count"]) or 0)
+    native_measurement_kernel_stable = bool_at(native_psf_measurement, ["summary", "kernel_stable"])
 
     checks = [
         {
@@ -236,6 +265,11 @@ def build_audit(
             "production_meaning": "The native pair inventory has been converted into a concrete alignment, edge/texture mining, and measured-kernel protocol.",
         },
         {
+            "id": "native_psf_measurement_executed",
+            "passed": native_measurement_executed,
+            "production_meaning": "The native high/low pairs have been aligned, vetted, mined, and fit; current result can still reject the available pairs.",
+        },
+        {
             "id": "psf_conditioned_model_gate",
             "passed": psf_conditioned_model_ready,
             "production_meaning": "Requires a PSF-conditioned model beating the approved 4K/8K baselines on raw and rendered gates.",
@@ -248,9 +282,10 @@ def build_audit(
     ]
 
     blockers = [
-        "No native camera/sensor/DMA/display PSF receipt is present.",
-        f"The native high/low inventory has {native_candidate_pairs} candidate pairs and {decoded_native_candidate_pairs} decoded raw candidates, but no measured PSF receipt yet.",
-        f"The native PSF measurement plan selects {native_measurement_selected_pairs} pairs, but alignment, tile mining, and measured-kernel outputs have not been emitted yet.",
+        "No production-ready native camera/sensor/DMA/display PSF receipt is present.",
+        f"The native high/low inventory has {native_candidate_pairs} candidate pairs and {decoded_native_candidate_pairs} decoded raw candidates.",
+        f"The native PSF measurement plan selects {native_measurement_selected_pairs} pairs for alignment, tile mining, and measured-kernel fitting.",
+        f"The native PSF measurement accepted {native_measurement_accepted_pairs} pairs and rejected {native_measurement_rejected_pairs}; kernel stable is {str(native_measurement_kernel_stable).lower()}, so it is not ready for model conditioning.",
         "No PSF-conditioned replacement model has beaten both current Mission42 and Z8 baselines.",
         f"The SR/detail candidate scoreboard indexes {sr_decision_count} decision receipts and finds {sr_promotable_rows} current-scale promotion rows.",
         "The existing pair-derived receipt is non-production by design; it proves the modeled target, not the native camera path.",
@@ -261,7 +296,7 @@ def build_audit(
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "mode": "synthetic" if synthetic else "real",
         "external_root": str(external_root),
-        "readiness_percent": 43 if native_measurement_plan_ready else (42 if native_pair_inventory_ready else 40),
+        "readiness_percent": 44 if native_measurement_executed else (43 if native_measurement_plan_ready else (42 if native_pair_inventory_ready else 40)),
         "production_ready": False,
         "approved_baselines_ready": cleanup_ready and sr_ready,
         "psf_replacement_ready": psf_replacement_ready,
@@ -276,6 +311,10 @@ def build_audit(
             "native_high_low_decoded_candidate_pair_count": decoded_native_candidate_pairs,
             "native_psf_measurement_plan_ready": native_measurement_plan_ready,
             "native_psf_measurement_selected_pair_count": native_measurement_selected_pairs,
+            "native_psf_measurement_executed": native_measurement_executed,
+            "native_psf_measurement_accepted_pair_count": native_measurement_accepted_pairs,
+            "native_psf_measurement_rejected_pair_count": native_measurement_rejected_pairs,
+            "native_psf_measurement_kernel_stable": native_measurement_kernel_stable,
             "psf_conditioned_model_ready": psf_conditioned_model_ready,
             "sr_detail_decision_count": sr_decision_count,
             "sr_detail_promotable_row_count": sr_promotable_rows,
@@ -297,7 +336,8 @@ def build_audit(
         "blockers": blockers,
         "next_actions": [
             "Capture or synthesize a native camera-source PSF fixture: high-res reference, native 4K/12MP Bayer source, sharp edges, and texture fields.",
-            "Run the native PSF measurement plan: scene-vet, align, mine edge/texture tiles, fit the kernel, and emit the measured receipt.",
+            "Capture or locate controlled same-scene Mission 1 high/low pairs because the current near-time pair measurement does not meet the accepted-pair/kernel-stability gate.",
+            "Re-run the native PSF measurement on controlled pairs until scene vetting, tile support, and kernel stability pass.",
             "Train a PSF-conditioned 4K cleanup or 8K SR candidate against CFA-aware high-res targets and explicit fine-detail losses.",
             "Gate the candidate against current Mission42 and Z8 baselines in raw domain and rendered review, including worst-row visual inspection.",
             "Promote only with .gvid, editable DNG/GPR, ProRes, timing, memory, checkpoint, config, and hash receipts.",
@@ -309,6 +349,7 @@ def build_audit(
             artifact_entry("raw-video SR/detail candidate scoreboard", sr_scoreboard_path, sr_scoreboard),
             artifact_entry("Mission 1 native high/low pair inventory", native_pair_inventory_path, native_pair_inventory),
             artifact_entry("Mission 1 native PSF measurement plan", native_psf_measurement_plan_path, native_psf_measurement_plan),
+            artifact_entry("Mission 1 native PSF measurement", native_psf_measurement_path, native_psf_measurement),
         ],
     }
 
@@ -377,6 +418,7 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
     <div class="card"><div class="k">PSF replacement</div><div class="v">{str(data["psf_replacement_ready"]).lower()}</div></div>
     <div class="card"><div class="k">Native candidates</div><div class="v">{data["summary"]["native_high_low_candidate_pair_count"]}</div></div>
     <div class="card"><div class="k">Measurement plan</div><div class="v">{str(data["summary"]["native_psf_measurement_plan_ready"]).lower()}</div></div>
+    <div class="card"><div class="k">Measurement run</div><div class="v">{str(data["summary"]["native_psf_measurement_executed"]).lower()}</div></div>
     <div class="card"><div class="k">Pair fixtures</div><div class="v">{psf["pair_count"]}</div></div>
     <div class="card"><div class="k">Best modeled kernel</div><div class="v">{html.escape(str(psf.get("best_kernel") or "missing"))}</div></div>
     <div class="card"><div class="k">Fine residual share</div><div class="v">{html.escape(pct(psf.get("fine_share_of_residual_abs")))}</div></div>
@@ -428,6 +470,7 @@ def main() -> int:
     ap.add_argument("--sr-scoreboard", default=DEFAULT_SR_SCOREBOARD)
     ap.add_argument("--native-pair-inventory", default=DEFAULT_NATIVE_PAIR_INVENTORY)
     ap.add_argument("--native-psf-measurement-plan", default=DEFAULT_NATIVE_PSF_MEASUREMENT_PLAN)
+    ap.add_argument("--native-psf-measurement", default=DEFAULT_NATIVE_PSF_MEASUREMENT)
     ap.add_argument("--synthetic", action="store_true")
     args = ap.parse_args()
 
@@ -443,6 +486,7 @@ def main() -> int:
     sr_scoreboard_path = resolve_artifact(args.external_root, args.sr_scoreboard)
     native_pair_inventory_path = resolve_artifact(args.external_root, args.native_pair_inventory)
     native_psf_measurement_plan_path = resolve_artifact(args.external_root, args.native_psf_measurement_plan)
+    native_psf_measurement_path = resolve_artifact(args.external_root, args.native_psf_measurement)
     data = build_audit(
         args.external_root,
         psf_receipt_path,
@@ -451,6 +495,7 @@ def main() -> int:
         sr_scoreboard_path,
         native_pair_inventory_path,
         native_psf_measurement_plan_path,
+        native_psf_measurement_path,
         synthetic=args.synthetic,
     )
 
