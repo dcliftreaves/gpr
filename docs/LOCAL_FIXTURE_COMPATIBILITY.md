@@ -56,12 +56,15 @@ Current real Bayer phase discovery:
 
 ```text
 /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_20260630_rawpy/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html
 ```
 
 Summary: the broader local scan parsed 74 normal 2x2 Bayer DNG fixtures: 70
-RGGB and 4 Mission 1 GBRG. GRBG and BGGR remain covered by synthetic still
-conformance, but they still need real camera fixtures before broad real-camera
-alternate-phase support should be claimed.
+RGGB and 4 Mission 1 GBRG. The targeted GoPro/Mission/Hassel/iPhone raw scan
+then parsed 2,000 local raw files as normal Bayer: 1,892 GBRG and 108 RGGB.
+GRBG and BGGR remain covered by synthetic still conformance, but they still
+need real camera fixtures before broad real-camera alternate-phase support
+should be claimed.
 
 ## Cleanup Boundary
 

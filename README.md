@@ -94,6 +94,10 @@ Broader real-photo fixture sample:
 `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html`.
 Broader real-photo darkframe-candidate sample:
 `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_realphotos_sample_20260630/index.html`.
+Targeted GoPro/Mission/Hassel/iPhone raw fixture scan:
+`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html`.
+Targeted Mission DNG darkframe-candidate scan:
+`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html`.
 Stills fixture gap closure plan:
 `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`.
 Camera-noise policy and the calibration sidecar contract:
@@ -210,6 +214,7 @@ matched 1x CNN that lets lower-bitrate files land in the same visual gate.
 | 100 MP X2D visual roundtrip | The real X2D 11,664 x 8,750 DNG fixture roundtrips DNG to GPR to DNG in the local audit with **593 ms** encode and **965 ms** decode. | The `.gpr` is **47 MB**, full-image raw Bayer PSNR is **49.21 dB**, and the dashboard includes 100% upper-left, center, and lower-right crop panels. |
 | Real Bayer phase inventory | Canonical and broader local Mission 1, Z8, X2D, and iPhone CFA fixtures parse as normal 2x2 Bayer. | The current real-camera scan covers **RGGB + GBRG**; GRBG and BGGR remain synthetic-conformance coverage until real fixtures are added. |
 | Camera-noise coverage | Validated darkframe sidecars cover X2D at ISO **64/200/800/3200/12800** and Z8 at ISO **500**. Mission 1 candidate audit found 9 dark-looking frames. | Mission 1 has no 4-frame same-ISO dark stack yet, and iPhone has no CFA darkframe source, so nonzero noise removal/addback is not promoted for those cameras. |
+| Targeted real-fixture search | The current 2,000-file GoPro/Mission/Hassel/iPhone raw scan parsed every file as normal Bayer: **1,892 GBRG** and **108 RGGB**. The targeted Mission DNG darkframe audit found **9** dark-like frames but no same-ISO 4-frame production stack. | This strengthens the evidence that real GRBG/BGGR and Mission/iPhone darkframes are still sample-acquisition gaps, not parser gaps. |
 | Stills fixture closure plan | The current gap plan turns the fixture/noise receipts into a capture checklist. | Add one real GRBG fixture, one real BGGR fixture, Mission/iPhone darkframe stacks, and top up the existing Mission ISO232 RGGB darkframe group with **2** more matching frames. |
 | STILL smallest | `gpr_tools_q0` plus the matched q3 BIBO_1x CNN averages **9.80 MB** on 50 MP images. | Worst LPIPS is **0.031**, passing the STILL visual gate while landing 35% smaller than primary. |
 | STILL primary | `gpr_tools_q3` plus the matched q3 BIBO_1x CNN averages **15.05 MB** on 50 MP images. | Worst LPIPS is **0.016**; this is the general-purpose visual-lossless still tier. |
@@ -421,6 +426,8 @@ current evidence so strict local checks can verify it.
 | Premium still-SR raw-CFA X2D stored-HF probe | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_storedhf_w32_2000_20260630/index.html` |
 | Premium still-SR raw-CFA X2D noise-threshold probe | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/index.html` |
 | Premium still-SR raw-CFA residual gap dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` |
+| Targeted 2,000-file Bayer phase scan | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html` |
+| Targeted Mission DNG darkframe candidate scan | `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html` |
 | Premium still-SR fixture manifest | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629/index.html` |
 | Premium still-SR pair set | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz` |
 | Premium still-SR smoke checkpoint | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt` |

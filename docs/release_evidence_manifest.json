@@ -1311,6 +1311,54 @@
       }
     },
     {
+      "id": "targeted_raw_fixture_scan_20260630",
+      "family": "stills_fixtures",
+      "status": "diagnostic",
+      "purpose": "Targeted GoPro/Mission/Hassel/iPhone raw scan over 2,000 local files. Confirms every parsed file is normal Bayer while real GRBG/BGGR fixtures remain missing.",
+      "dashboard": "artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/inventory.json",
+        "artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html"
+      ],
+      "metrics": {
+        "files_seen": 2000,
+        "parsed_count": 2000,
+        "normal_bayer_count": 2000,
+        "rggb_count": 108,
+        "gbrg_count": 1892,
+        "grbg_count": 0,
+        "bggr_count": 0,
+        "production_real_phase_coverage": 0
+      }
+    },
+    {
+      "id": "targeted_mission_dng_darkframe_scan_20260630",
+      "family": "noise_signal",
+      "status": "diagnostic",
+      "purpose": "Targeted Mission DNG darkframe-candidate scan from the current raw fixture manifest. It finds dark-like frames but no same-ISO 4-frame production stack.",
+      "dashboard": "artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/darkframe_candidate_audit_targeted_dng_20260630/darkframe_candidate_audit.json",
+        "artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html"
+      ],
+      "metrics": {
+        "files_seen": 49,
+        "parsed_count": 49,
+        "darkframe_like_count": 9,
+        "candidate_stack_ready_group_count": 0,
+        "production_stack_ready_group_count": 0,
+        "production_sidecar_ready": 0
+      }
+    },
+    {
       "id": "raw_video_psf_capture_request_20260630",
       "family": "raw_video_psf",
       "status": "diagnostic",

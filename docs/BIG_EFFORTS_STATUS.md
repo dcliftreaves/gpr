@@ -45,6 +45,11 @@ Current evidence:
   confirms that the broader local Mission 1, Z8, X2D, and iPhone CFA fixture
   pool contains 74 normal 2x2 Bayer DNGs: 70 RGGB and 4 Mission 1 GBRG. GRBG
   and BGGR remain synthetic-conformance coverage until real fixtures are added.
+- The targeted GoPro/Mission/Hassel/iPhone raw fixture scan at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html`
+  parses 2,000 local raw files as normal Bayer: 1,892 GBRG and 108 RGGB. It
+  still finds no real GRBG or BGGR fixture, strengthening the conclusion that
+  this is a sample-acquisition gap rather than a parser gap.
 - The CLI exposes DNG NoiseProfile-aware denoise/noise replacement plumbing,
   but the current raw-noise audit forbids treating the old single-frame REF
   residual as pure removable noise.
@@ -78,6 +83,10 @@ Current evidence:
   `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_realphotos_sample_20260630/iphone_darkframe_like_contact_x16.jpg`
   shows visible scene content in part of that group, so the audit now keeps it
   candidate-only: `production_sidecar_ready=false`.
+- The targeted Mission DNG darkframe scan at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html`
+  finds 9 dark-like Mission frames, but no same-ISO four-frame production
+  stack.
 - The stills fixture gap plan at
   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`
   turns those receipts into the concrete closure list: add real GRBG and BGGR

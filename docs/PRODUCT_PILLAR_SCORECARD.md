@@ -36,7 +36,7 @@ Current interpretation:
 
 | pillar | current score | production reading |
 |---|---:|---|
-| Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
+| Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB plus GoPro/Mission GBRG fixture coverage, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
 | Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, calibrated noise-cleaning is bounded, and true source-minus-candidate same-color raw residual targets plus raw-domain trainers now exist; Z8 is mildly positive, but the hard X2D holdout is only barely positive after a wider/block17 pass and remains far from production-grade. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, and a gap plan now spells out the controlled-pair capture and model-gate path; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
@@ -75,6 +75,14 @@ It adds real-photo iPhone RGGB evidence and finds one iPhone dark-looking
 candidate stack, but the boosted contact sheet shows scene content in part of
 that group. The audit therefore keeps `production_sidecar_ready=false`; Mission
 1/iPhone production noise sidecars remain open.
+
+The targeted GoPro/Mission/Hassel/iPhone raw fixture scan lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html`.
+It parses 2,000 local raw files as normal Bayer: 1,892 GBRG and 108 RGGB. It
+still finds no real GRBG or BGGR fixture, which keeps that work as sample
+acquisition rather than parser work. The targeted Mission DNG darkframe scan at
+`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html`
+finds 9 dark-like Mission frames, but no same-ISO four-frame production stack.
 
 The current stills fixture gap plan lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`.

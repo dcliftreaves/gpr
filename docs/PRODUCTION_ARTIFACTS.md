@@ -442,6 +442,19 @@ holdout evidence in `pipelines/registry.json`:
 | Mission mixed large-context normal-current hard4 summary | `artifacts/current_goal_sr_mixed_large_context_hard4_20260619/interp_a100_normal_current_hard4_fullframe/summary.json` | `1ec618fde41ba1441ce6ca86c36f4662d86757e0ab8a7716906e23549fbb342c` |
 | Mission mixed large-context Z8 holdout summary | `artifacts/current_goal_sr_mixed_large_context_hard4_20260619/interp_a100_z8_holdout5_fullframe/summary.json` | `31daa8792e0812f40cc10555308a4f835e585b728f64624519ce09dd5319f5ff` |
 
+## Raw Stills Fixture Diagnostics
+
+These rows are diagnostic. They strengthen the real-camera fixture search but
+do not close the broad raw-stills production gaps because real GRBG/BGGR
+fixtures and Mission/iPhone production darkframe stacks are still missing.
+
+| artifact | path | sha256 |
+|---|---|---|
+| Targeted 2,000-file Bayer phase inventory JSON | `artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/inventory.json` | `dfef5e95c14c463efda9f1644201a235dc47df84cc87a3f536fd6cd3c38a230e` |
+| Targeted 2,000-file Bayer phase dashboard | `artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html` | `01a810fb0341b2a5a53c5863664f20b3a4a198debad49ee7cec7884e1f1ba505` |
+| Targeted Mission DNG darkframe audit JSON | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/darkframe_candidate_audit.json` | `dd06fb371f5177a03f2ffbc683e343f15f1286091b92eed053a2334f537dd74a` |
+| Targeted Mission DNG darkframe dashboard | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html` | `dd7c607f07fa1b9f0f9e473ca514810b3adc74c22690359ae44a655256b2836a` |
+
 ## Premium Still-SR Gap Artifacts
 
 These rows are diagnostic, not production promotion receipts. They preserve the
