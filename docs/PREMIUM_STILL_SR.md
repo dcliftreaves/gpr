@@ -348,6 +348,33 @@ objective, but it is meaningfully aligned with true same-color raw residuals.
 The next model should train on source-minus-candidate raw CFA residuals
 directly, then use rendered HF/editor-latitude dashboards as promotion review.
 
+The trainable raw-CFA residual target has now been built:
+
+```sh
+python3 tools/cnn/build_premium_still_sr_raw_cfa_residual_targets.py \
+  --target-receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630
+```
+
+Current target dashboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/index.html
+```
+
+The output NPZ contains:
+
+- `candidate_raw_cfa4`
+- `candidate_raw_hf_cfa4`
+- `raw_hf_residual_cfa4`
+- `source_raw_hf_cfa4`
+- `render_hf_residual_y`
+
+It covers the same 351 rows / 13 scenes. Median same-color raw-HF residual
+magnitude is 0.001478, median raw/render HF magnitude ratio is 0.346, and
+median rendered-to-raw residual absolute correlation remains 0.691. This is
+now the intended input for the next premium still-SR training pass.
+
 ## Fixture Manifest Builder
 
 Use the latest real-fixture compatibility receipt to build the first dedicated

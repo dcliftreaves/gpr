@@ -31,7 +31,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 58% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, calibrated noise-cleaning is bounded, and a raw-CFA residual audit now points the next target at true source-minus-candidate same-color raw residuals; the no-REF high-frequency texture model is still not production-grade yet. |
+| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, calibrated noise-cleaning is bounded, and a trainable raw-CFA residual target now exists for true source-minus-candidate same-color raw residuals; the no-REF high-frequency texture model is still not production-grade yet. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, and the first native PSF measurement has executed; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -173,6 +173,14 @@ source raw minus candidate raw, high-passed without mixing CFA phases. Across
 magnitude is about 0.346x the rendered HF residual magnitude. That makes a
 true same-color raw residual target the next training direction, with rendered
 HF/editor-latitude kept as review and promotion metrics.
+
+The current raw-CFA residual target build lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/index.html`.
+It emits the trainable NPZ for that direction: `candidate_raw_cfa4`,
+`candidate_raw_hf_cfa4`, `raw_hf_residual_cfa4`, `source_raw_hf_cfa4`, and
+`render_hf_residual_y`. The NPZ covers the same 351 rows / 13 scenes, is
+1.6 GB on the external artifact drive, and has SHA-256
+`4c92f94e7505c09e2445df74e58d429460d31a199d61cf82b0299479a8c95ba4`.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a

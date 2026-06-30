@@ -123,7 +123,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         {
             "id": "premium_still_sr",
             "title": "3. Spend-time-for-quality still/SR",
-            "readiness_percent": 58,
+            "readiness_percent": 60,
             "status": "research_loop_working_candidate_not_promoted",
             "production_ready": False,
             "claim": "The offline still-SR machinery is broad and reproducible, but the current no-REF texture model is not good enough to promote.",
@@ -141,9 +141,10 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "A matched dilated raw-CFA gated variant has also run: it improves the weak Z8 holdout from 1.04 to 1.30 percent median MAE recovery, but trails the X2D gated baseline at 2.86 versus 2.92 percent and leaves severe negative worst rows.",
                 "A calibrated noise-clean target sweep now exists for the X2D raw-CFA smoke target; it shows ISO 200 sidecar noise is far below the HF residual, so sensor-noise removal alone is not the current still-SR blocker.",
                 "A 351-row raw-CFA residual audit compares rendered HF supervision with source-minus-candidate same-color raw residuals; median absolute correlation is 0.691 and median best-phase correlation is 0.922, making true raw-domain residual supervision the next model target.",
+                "The 351-row raw-CFA residual target NPZ has now been built for training: candidate raw-CFA, candidate raw-HF, source raw-HF, rendered-HF luma review, and source-minus-candidate same-color raw-HF residual arrays are hashed and receipted.",
             ],
             "open_work": [
-                "Build and train an actual source-minus-candidate same-color raw residual target/model, using rendered HF/editor-latitude only as review and promotion metrics.",
+                "Train an actual source-minus-candidate same-color raw residual model from the new raw-CFA target NPZ, using rendered HF/editor-latitude only as review and promotion metrics.",
                 "Pass dedicated 50 MP and 100 MP still-SR gates with editor-latitude and worst-row visual evidence.",
                 "Use calibrated noise sidecars as conditioning, then add back only noise proven separate from signal.",
             ],
@@ -171,6 +172,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("premium still-SR expanded raw-CFA dilated gated X2D holdout", "artifacts/premium_still_sr_expanded_rawcfa_dilated_gated_model_x2dholdout_matched_w48_1000_20260630/train_receipt.json"),
                     artifact_ref("premium still-SR noise-clean sweep", "artifacts/premium_still_sr_noise_clean_sweep_x2d_smoke_20260630/index.html"),
                     artifact_ref("premium still-SR raw-CFA residual audit", "artifacts/premium_still_sr_raw_cfa_residual_audit_20260630/index.html"),
+                    artifact_ref("premium still-SR raw-CFA residual targets", "artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/index.html"),
                     artifact_ref("routed rendered review", "artifacts/premium_still_sr_rendered_review_routed_20260630/index.html"),
                     artifact_ref("X2D latitude review", "artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/index.html"),
                     artifact_ref("noise-conditioned residual dashboard", "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html"),
@@ -232,7 +234,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "next_actions": [
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
             "Add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback for those cameras.",
-            "Replace the premium still-SR rendered-residual learner with a source-minus-candidate same-color raw residual model; the raw-CFA audit shows this target is aligned enough to train, while calibrated noise-cleaning remains a guardrail.",
+            "Train the premium still-SR source-minus-candidate same-color raw residual model from the newly built raw-CFA target NPZ; the raw-CFA audit shows this target is aligned enough to train, while calibrated noise-cleaning remains a guardrail.",
             "Run alignment, edge/texture mining, and measured PSF estimation on the Mission 1 native high/low candidate pairs, then gate against current 4K/8K baselines.",
         ],
     }
