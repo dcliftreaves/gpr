@@ -160,6 +160,16 @@ def main() -> int:
         assert camera_receipt["config"]["target_policy"] == "noise_soft_threshold"
         assert camera_receipt["policy"]["target_policy"] == "noise_soft_threshold"
 
+        args.output_dir = root / "context_holdout"
+        args.holdout_scene = "holdout_scene"
+        args.holdout_camera = None
+        args.feature_mode = "raw_context_coord_ev_noise"
+        args.target_policy = "raw"
+        context_receipt = tool.train(args)
+        assert context_receipt["eval"]["holdout"]["row_count"] == 1
+        assert context_receipt["config"]["feature_mode"] == "raw_context_coord_ev_noise"
+        assert context_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
         bad_npz = root / "bad_targets.npz"
         np.savez_compressed(
             bad_npz,

@@ -90,6 +90,13 @@ def scalar_planes(
     return values.view(batch, channels, 1, 1).expand(batch, channels, height, width)
 
 
+def pooled_context_planes(x: torch.Tensor, grid: int = 8) -> torch.Tensor:
+    grid_h = min(int(grid), int(x.shape[-2]))
+    grid_w = min(int(grid), int(x.shape[-1]))
+    pooled = F.adaptive_avg_pool2d(x, (grid_h, grid_w))
+    return F.interpolate(pooled, size=x.shape[-2:], mode="bilinear", align_corners=False)
+
+
 def load_noise_feature_from_sidecar(path: str | Path) -> tuple[float, float, float, float]:
     p = Path(path)
     try:
@@ -205,6 +212,25 @@ def make_features(
             ],
             dim=1,
         )
+    if feature_mode == "raw_context_coord_ev_noise":
+        coarse_block = max(block * 3, block + 2)
+        phase_mean = torch.mean(raw, dim=1, keepdim=True)
+        global_raw = torch.mean(raw, dim=(-2, -1))
+        return torch.cat(
+            [
+                raw,
+                fine,
+                block_highpass(raw, coarse_block),
+                raw - phase_mean,
+                pooled_context_planes(raw),
+                pooled_context_planes(fine),
+                scalar_planes(global_raw, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
+                coord_planes(raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
+                ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
+                scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
+            ],
+            dim=1,
+        )
     if feature_mode == "raw_multiscale_storedhf_coord_ev_noise":
         if stored_hf is None:
             raise ValueError("raw_multiscale_storedhf_coord_ev_noise requires candidate_raw_hf_cfa4")
@@ -232,6 +258,7 @@ def feature_channels(feature_mode: str) -> int:
         "raw_hf": 8,
         "raw_hf_coord_ev_noise": 15,
         "raw_multiscale_coord_ev_noise": 23,
+        "raw_context_coord_ev_noise": 35,
         "raw_multiscale_storedhf_coord_ev_noise": 27,
     }[feature_mode]
 
@@ -726,6 +753,7 @@ def main() -> int:
             "raw_hf",
             "raw_hf_coord_ev_noise",
             "raw_multiscale_coord_ev_noise",
+            "raw_context_coord_ev_noise",
             "raw_multiscale_storedhf_coord_ev_noise",
         ),
         default="raw_multiscale_coord_ev_noise",

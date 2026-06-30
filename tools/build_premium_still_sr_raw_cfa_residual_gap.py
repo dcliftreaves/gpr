@@ -36,6 +36,8 @@ DEFAULT_MODEL_RECEIPTS = [
     / "artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/train_receipt.json",
     DEFAULT_EXTERNAL_ROOT
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w48_1600_abs6_patch256_20260630/train_receipt.json",
+    DEFAULT_EXTERNAL_ROOT
+    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_context_w40_1800_20260630/train_receipt.json",
 ]
 
 
@@ -206,11 +208,11 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             },
             {
                 "priority": 2,
-                "name": "non-local raw-context residual model",
-                "purpose": "replace the current local-tile residual learner; larger patches plus stronger high-residual weighting regressed X2D and should not be repeated as the main path",
+                "name": "full-image or routed raw-context residual model",
+                "purpose": "replace the current local-tile learner; larger patches, stronger high-residual weighting, and simple pooled raw context all regressed X2D and should not be repeated as the main path",
                 "must_prove": [
                     "uses candidate raw/metadata only at runtime",
-                    "beats the local raw-CFA residual baseline on the hard X2D holdout",
+                    "beats the local and pooled-context raw-CFA residual baselines on the hard X2D holdout",
                     "keeps Z8 positive while improving X2D",
                 ],
             },

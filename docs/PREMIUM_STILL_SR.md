@@ -236,6 +236,7 @@ The next X2D probes narrowed that further:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_storedhf_w32_2000_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w48_1600_abs6_patch256_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_context_w40_1800_20260630/train_receipt.json
 ```
 
 The wider/block17 raw-target pass makes the hard X2D holdout barely positive
@@ -248,10 +249,14 @@ production noise/signal separation policy. A follow-up larger-patch
 high-residual-weighted pass (`w48`, 1600 steps, 256 px patches,
 `target_abs_weight=6`) is also rejected: train median raw-residual MAE recovery
 falls to about -2.76 percent and the hard X2D holdout falls to about -0.65
-percent. That rules out "just emphasize larger residuals and larger local
-patches" as the next path. The next candidate should use a stronger
-domain/generalization strategy with non-local raw context, not just the
-stored-HF feature, simple noise thresholding, or local loss-weight tuning.
+percent. A first pooled raw-context feature pass is also rejected: it is
+runtime-safe and uses candidate raw plus deterministic context features, but
+the hard X2D holdout remains negative at about -0.33 percent median MAE
+recovery. That rules out "just emphasize larger residuals and larger local
+patches" and "add simple pooled context planes" as the next path. The next
+candidate should use a stronger full-image/routed domain-generalization
+strategy, not just the stored-HF feature, simple noise thresholding, local
+loss-weight tuning, or pooled-context feature concatenation.
 
 ## Raw-CFA Feature Smoke
 

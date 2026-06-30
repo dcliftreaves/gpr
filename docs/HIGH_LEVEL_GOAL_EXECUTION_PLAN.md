@@ -204,9 +204,11 @@ Evidence required:
    wider/block17 pass. Stored candidate-HF features and naive one-sigma
    noise-thresholded targets do not fix X2D, and a larger-patch
    high-residual-weighted local pass regresses the hard X2D holdout to about
-   -0.65 percent. The next work should test a stronger X2D/domain-general raw
-   residual model with non-local raw context, with calibrated noise sidecars
-   used as conditioning rather than as a blunt subtraction target.
+   -0.65 percent. A first pooled raw-context feature pass also remains
+   negative at about -0.33 percent. The next work should test a stronger
+   X2D/domain-general raw residual model with full-image or routed context,
+   with calibrated noise sidecars used as conditioning rather than as a blunt
+   subtraction target.
 4. Replace the X2D source-HF oracle with a production-safe structured
    texture/detail path. It should preserve the now-measured low-frequency tone
    path, restore high-frequency luminance energy under +2 EV, and prove it
