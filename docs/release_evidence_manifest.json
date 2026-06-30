@@ -56,6 +56,7 @@
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260630",
+          "premium_still_sr_next_experiment_contract_20260630",
           "cnn_product_scorecard_20260629"
         ]
       },
@@ -1371,6 +1372,33 @@
         "dataset_count": 7,
         "canonical_current_count": 3,
         "legacy_reference_count": 1
+      }
+    },
+    {
+      "id": "premium_still_sr_next_experiment_contract_20260630",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Next-experiment contract for the premium still-SR model pass. Locks the pass to the canonical raw-CFA residual target, forbids REF/source/JPEG content at render time, and records failed local/context/noise-only probes that should not be repeated as the primary approach.",
+      "dashboard": "artifacts/premium_still_sr_next_experiment_contract_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/CNN_PRODUCT_SCORECARD_2026-06-29.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_next_experiment_contract_20260630/premium_still_sr_next_experiment_contract.json",
+        "artifacts/premium_still_sr_next_experiment_contract_20260630/index.html"
+      ],
+      "metrics": {
+        "target_rows": 351,
+        "target_scenes": 13,
+        "scoreboard_promotable_candidate_count": 0,
+        "should_start_next_model_pass": 1,
+        "production_ready": 0,
+        "x2d_best_raw_residual_mae_recovery_pct": 0.02164405662232214,
+        "z8_best_raw_residual_mae_recovery_pct": 0.4983379829708305,
+        "promotion_threshold_pct": 15.0
       }
     },
     {

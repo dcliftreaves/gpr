@@ -70,6 +70,7 @@ REQUIRED_README_TOKENS = (
     "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
     "docs/PREMIUM_STILL_SR.md",
     "docs/BAYER_RESIZE_PSF.md",
+    "premium_still_sr_next_experiment_contract_20260630",
     "z8_continuous_8k_no_cnn_vs_cnn_20260630",
     "Open the separate standalone ProRes movies, not a dashboard",
     "z8_24f_true_no_cnn_4k_raw_lanczos_to_8k_20p_prores.mov",

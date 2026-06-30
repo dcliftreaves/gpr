@@ -82,6 +82,11 @@ def main() -> int:
         assert data["pillars"][2]["readiness_percent"] == 60
         assert "Premium still-SR promotion" in data["pillars"][2]["open_production_gates"]
         assert any("351-row" in item for item in data["pillars"][2]["locked_artifacts"])
+        assert any("next-experiment contract" in item for item in data["pillars"][2]["done_evidence"])
+        assert any(
+            "premium_still_sr_next_experiment_contract_20260630/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
         assert data["pillars"][3]["readiness_percent"] == 44
         assert "PSF-aware raw-video replacement" in data["pillars"][3]["open_production_gates"]
         assert any("8K SR" in item for item in data["pillars"][3]["locked_artifacts"])
