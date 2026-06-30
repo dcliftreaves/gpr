@@ -94,6 +94,9 @@ DEDICATED_STILL_SR_ARTIFACTS = {
     "candidate_metric_dashboard_summary": "artifacts/premium_still_sr_candidate_dashboard_20260629/candidate_dashboard.json",
     "candidate_visual_dashboard": "artifacts/premium_still_sr_visual_review_20260629/index.html",
     "candidate_visual_dashboard_summary": "artifacts/premium_still_sr_visual_review_20260629/visual_review.json",
+    "latest_hf_residual_dashboard": "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html",
+    "latest_hf_residual_checkpoint": "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/premium_still_sr_x2d_hf_residual_noise_multiscale_w96.pt",
+    "latest_hf_residual_train_receipt": "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/train_receipt.json",
 }
 
 
@@ -166,6 +169,45 @@ def summarize_noise_sidecars(root: Path) -> dict[str, Any]:
     }
 
 
+def stat_metric(data: dict[str, Any] | None, split: str, metric: str, stat: str) -> float | None:
+    if not isinstance(data, dict):
+        return None
+    cur: Any = data.get("eval", {}).get(split, {}).get(metric, {}).get(stat)
+    return float(cur) if isinstance(cur, (int, float)) else None
+
+
+def summarize_latest_hf_residual_probe(root: Path, dedicated: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    receipt_info = dedicated["latest_hf_residual_train_receipt"]
+    path = Path(receipt_info["path"])
+    receipt = load_json(path) if path.is_file() else None
+    policy = receipt.get("policy", {}) if isinstance(receipt, dict) else {}
+    config = receipt.get("config", {}) if isinstance(receipt, dict) else {}
+    return {
+        "exists": bool(receipt),
+        "receipt_path": receipt_info["path"],
+        "dashboard_path": dedicated["latest_hf_residual_dashboard"]["path"],
+        "checkpoint_path": dedicated["latest_hf_residual_checkpoint"]["path"],
+        "schema": receipt.get("schema") if isinstance(receipt, dict) else None,
+        "checkpoint_sha256": receipt.get("checkpoint_sha256") if isinstance(receipt, dict) else None,
+        "production_status": policy.get("production_status"),
+        "uses_source_hf_at_training": bool(policy.get("uses_source_hf_at_training")) if isinstance(policy, dict) else None,
+        "uses_source_hf_at_runtime": bool(policy.get("uses_source_hf_at_runtime")) if isinstance(policy, dict) else None,
+        "runtime_inputs": policy.get("runtime_inputs") if isinstance(policy, dict) else None,
+        "feature_mode": config.get("feature_mode") if isinstance(config, dict) else None,
+        "holdout_scene": config.get("holdout_scene") if isinstance(config, dict) else None,
+        "train_seconds": receipt.get("train_seconds") if isinstance(receipt, dict) else None,
+        "steps": receipt.get("steps") if isinstance(receipt, dict) else None,
+        "train_row_count": receipt.get("eval", {}).get("train", {}).get("row_count") if isinstance(receipt, dict) else None,
+        "holdout_row_count": receipt.get("eval", {}).get("holdout", {}).get("row_count") if isinstance(receipt, dict) else None,
+        "train_residual_mae_reduction_pct_median": stat_metric(receipt, "train", "residual_mae_reduction_pct", "median"),
+        "train_residual_rmse_reduction_pct_median": stat_metric(receipt, "train", "residual_rmse_reduction_pct", "median"),
+        "holdout_residual_mae_reduction_pct_median": stat_metric(receipt, "holdout", "residual_mae_reduction_pct", "median"),
+        "holdout_residual_rmse_reduction_pct_median": stat_metric(receipt, "holdout", "residual_rmse_reduction_pct", "median"),
+        "promotion_ready": False,
+        "promotion_reason": "diagnostic no-REF HF residual probe; holdout recovery is too small and no full still/editor-latitude gate is passed",
+    }
+
+
 def write_json(path: Path, payload: dict[str, Any]) -> dict[str, str]:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -176,12 +218,13 @@ def build_state(root: Path) -> dict[str, Any]:
     external = {name: external_artifact(root, rel) for name, rel in REUSABLE_SR_ARTIFACTS.items()}
     dedicated = {name: external_artifact(root, rel) for name, rel in DEDICATED_STILL_SR_ARTIFACTS.items()}
     noise = summarize_noise_sidecars(root)
+    latest_hf = summarize_latest_hf_residual_probe(root, dedicated)
     has_video_sr_packaging = all(external[name]["exists"] for name in ("editable_dng", "editable_gpr", "review_tiff_or_prores"))
     blockers = [
-        "The dedicated premium still-SR candidates are not production-grade: smoke is effectively flat, and the larger run peaks at about 0.15 percent held-out X2D RMSE improvement before overfitting/regressing.",
-        "The current premium still-SR visual review is tile-level only; no run has produced full per-camera rendered still dashboards and worst-row visual review against the still baselines.",
-        "No raw-editor latitude receipt exists for a dedicated still-SR candidate.",
-        "Noise sidecars exist for X2D/Z8, but the noise removal/addback policy has not been wired into a premium still-SR target build.",
+        "The dedicated premium still-SR candidates are not production-grade: the early smoke run is effectively flat, and the first larger run peaks at about 0.15 percent held-out X2D RMSE improvement before overfitting/regressing.",
+        "The latest X2D no-REF HF residual probe uses noise sidecar scalars and no source HF at runtime, but holdout median recovery is still only about 2.56 percent MAE and 2.86 percent RMSE.",
+        "The current premium still-SR visual evidence is diagnostic; no candidate has passed a full still/editor-latitude promotion gate against STILL q0/q3/q8 baselines.",
+        "Noise sidecars exist for X2D/Z8, but the successful policy is still only a conditioning probe, not a proven noise-removal/addback production target.",
     ]
     return {
         "schema": SCHEMA,
@@ -209,16 +252,21 @@ def build_state(root: Path) -> dict[str, Any]:
             "has_larger_premium_still_sr_pairs": dedicated["large_pair_set"]["exists"],
             "has_larger_premium_still_sr_candidate_checkpoint": dedicated["large_checkpoint"]["exists"],
             "has_premium_still_sr_metric_dashboard": dedicated["candidate_metric_dashboard"]["exists"],
+            "has_latest_no_ref_hf_residual_probe": latest_hf["exists"],
+            "latest_no_ref_hf_runtime_uses_ref_content": bool(latest_hf.get("uses_source_hf_at_runtime")),
+            "latest_no_ref_hf_holdout_mae_reduction_pct_median": latest_hf["holdout_residual_mae_reduction_pct_median"],
+            "latest_no_ref_hf_holdout_rmse_reduction_pct_median": latest_hf["holdout_residual_rmse_reduction_pct_median"],
             "has_production_grade_premium_still_sr_checkpoint": False,
             "has_rendered_visual_premium_still_sr_dashboard": dedicated["candidate_visual_dashboard"]["exists"],
             "has_raw_editor_latitude_receipt": False,
         },
+        "latest_hf_residual_probe": latest_hf,
         "blockers": blockers,
         "next_steps": [
-            "Build 50 MP and 100 MP still-SR training/evaluation fixtures from real DNG/GPR sources.",
-            "Train or tune a dedicated premium still-SR candidate with camera/ISO noise sidecars as conditioning or target-cleaning policy.",
-            "Emit editable DNG/GPR, review TIFF/ProRes/contact sheet, raw-domain metrics, and raw-editor latitude receipts.",
-            "Promote only if the candidate beats STILL q0/q3/q8 baselines without tone, color, CFA, or noise-texture regressions.",
+            "Replace the small-crop HF residual probe with a larger-context raw-domain texture/noise model that can use full-image placement cues.",
+            "Use camera/ISO noise sidecars as conditioning and target-cleaning policy, but prove removed content is noise before adding synthetic or original texture back.",
+            "Evaluate on dedicated 50 MP and 100 MP still gates with full-frame panels, 100 percent crops, raw-domain metrics, rendered metrics, and editor-latitude checks.",
+            "Promote only if the candidate beats STILL q0/q3/q8 baselines without tone, color, CFA, or noise-texture regressions and without REF content at render time.",
         ],
     }
 
@@ -240,6 +288,19 @@ def render_markdown(state: dict[str, Any]) -> str:
     lines.extend(["", "## Blockers", ""])
     for blocker in state["blockers"]:
         lines.append(f"- {blocker}")
+    latest = state.get("latest_hf_residual_probe", {})
+    if latest:
+        lines.extend(["", "## Latest No-REF HF Residual Probe", ""])
+        for key in (
+            "exists",
+            "production_status",
+            "uses_source_hf_at_training",
+            "uses_source_hf_at_runtime",
+            "holdout_residual_mae_reduction_pct_median",
+            "holdout_residual_rmse_reduction_pct_median",
+            "promotion_reason",
+        ):
+            lines.append(f"- `{key}`: {latest.get(key)}")
     lines.extend(["", "## Next Steps", ""])
     for step in state["next_steps"]:
         lines.append(f"- {step}")
@@ -263,6 +324,20 @@ def render_html(state: dict[str, Any]) -> str:
         for row in state["still_baselines"]
     )
     blocker_items = "\n".join(f"<li>{html.escape(item)}</li>" for item in state["blockers"])
+    latest = state.get("latest_hf_residual_probe", {})
+    latest_rows = "\n".join(
+        f"<tr><td>{html.escape(key)}</td><td>{html.escape(str(latest.get(key)))}</td></tr>"
+        for key in (
+            "exists",
+            "production_status",
+            "uses_source_hf_at_training",
+            "uses_source_hf_at_runtime",
+            "holdout_residual_mae_reduction_pct_median",
+            "holdout_residual_rmse_reduction_pct_median",
+            "promotion_reason",
+            "dashboard_path",
+        )
+    )
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -285,6 +360,8 @@ def render_html(state: dict[str, Any]) -> str:
   <table><tbody>{summary_rows}</tbody></table>
   <h2>Current Still Baselines</h2>
   <table><thead><tr><th>Tier</th><th>Pipeline</th><th>Mean MB</th><th>Worst LPIPS</th><th>Verdict</th></tr></thead><tbody>{baseline_rows}</tbody></table>
+  <h2>Latest No-REF HF Residual Probe</h2>
+  <table><tbody>{latest_rows}</tbody></table>
   <h2>Blockers</h2>
   <ul>{blocker_items}</ul>
 </body>

@@ -47,7 +47,7 @@ sidecars:
 ```sh
 python3 tools/build_premium_still_sr_readiness.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_20260629
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_20260630
 ```
 
 It emits:
@@ -61,6 +61,11 @@ This is the source of truth for the current gap: 50 MP / 100 MP still
 roundtrips, current still baselines, reusable editable SR packaging, and
 validated X2D/Z8 noise sidecars exist, but a dedicated premium still-SR
 checkpoint, still-specific dashboard, and raw-editor latitude receipt do not.
+The refreshed 2026-06-30 readiness audit also reads the latest X2D no-REF HF
+residual probe. That probe uses source HF only at training time and no REF/HF
+content at runtime, but the scene-held-out median recovery is still only about
+2.56 percent MAE and 2.86 percent RMSE, so it remains diagnostic rather than
+promotable.
 
 ## Fixture Manifest Builder
 

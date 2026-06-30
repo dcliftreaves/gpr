@@ -103,10 +103,50 @@ def main() -> int:
             "artifacts/premium_still_sr_candidate_dashboard_20260629/candidate_dashboard.json",
             "artifacts/premium_still_sr_visual_review_20260629/index.html",
             "artifacts/premium_still_sr_visual_review_20260629/visual_review.json",
+            "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html",
+            "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/premium_still_sr_x2d_hf_residual_noise_multiscale_w96.pt",
         ):
             path = root / rel
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(rel.encode("utf-8"))
+        latest_receipt = root / "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/train_receipt.json"
+        latest_receipt.parent.mkdir(parents=True, exist_ok=True)
+        latest_receipt.write_text(
+            json.dumps(
+                {
+                    "schema": "gpr.premium_still_sr_hf_residual_model.v1",
+                    "checkpoint_sha256": "1" * 64,
+                    "train_seconds": 12.5,
+                    "steps": 40,
+                    "config": {
+                        "feature_mode": "rgb_multiscale_coord_luma_ev_noise_bright",
+                        "holdout_scene": "x2d_test",
+                    },
+                    "policy": {
+                        "uses_source_hf_at_training": True,
+                        "uses_source_hf_at_runtime": False,
+                        "runtime_inputs": "candidate_render_rgb + camera/ISO noise sidecar scalars",
+                        "production_status": "smoke_training_probe_not_registered_production_algorithm",
+                    },
+                    "eval": {
+                        "train": {
+                            "row_count": 3,
+                            "residual_mae_reduction_pct": {"median": 4.0},
+                            "residual_rmse_reduction_pct": {"median": 4.5},
+                        },
+                        "holdout": {
+                            "row_count": 2,
+                            "residual_mae_reduction_pct": {"median": 2.5},
+                            "residual_rmse_reduction_pct": {"median": 2.8},
+                        },
+                    },
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
 
         subprocess.run([sys.executable, str(TOOL), "--external-root", str(root), "--output-dir", str(out)], cwd=ROOT, check=True)
         receipt = out / "premium_still_sr_gate_receipt.json"
@@ -125,6 +165,12 @@ def main() -> int:
         assert state["evidence_summary"]["has_larger_premium_still_sr_candidate_checkpoint"] is True
         assert state["evidence_summary"]["has_premium_still_sr_metric_dashboard"] is True
         assert state["evidence_summary"]["has_rendered_visual_premium_still_sr_dashboard"] is True
+        assert state["evidence_summary"]["has_latest_no_ref_hf_residual_probe"] is True
+        assert state["evidence_summary"]["latest_no_ref_hf_runtime_uses_ref_content"] is False
+        assert state["evidence_summary"]["latest_no_ref_hf_holdout_mae_reduction_pct_median"] == 2.5
+        assert state["latest_hf_residual_probe"]["uses_source_hf_at_training"] is True
+        assert state["latest_hf_residual_probe"]["uses_source_hf_at_runtime"] is False
+        assert state["latest_hf_residual_probe"]["promotion_ready"] is False
         assert state["evidence_summary"]["has_production_grade_premium_still_sr_checkpoint"] is False
         assert gate["schema"] == "gpr.premium_still_sr_gate.v1"
         assert gate["production_ready"] is False
