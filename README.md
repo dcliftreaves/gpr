@@ -30,27 +30,25 @@ receipts. The remaining production step is intentionally narrow: run the same
 closure path from the actual Mission 1 sensor/DMA, SD writer, and rear display
 instead of the Pi stand-in.
 
-## The Four Bets
+## Product Pillars
 
-| product bet | what it unlocks | proof today | production gate |
+Current four-pillar completion is **69%**. The repo is ready to show as a
+working raw-stills and raw-video prototype, with the remaining gates called out
+explicitly instead of hidden in experiment history.
+
+| product pillar | current product story | proof in hand | remaining production gate |
 |---|---|---|---|
-| **Best RAW stills** | 50 MP and 100 MP-class cameras get compact editable Bayer files, normal CFA support, and noise-aware compression rails. | 12/14/16-bit stills, 50 MP tiers down to **9.80 MB**, real X2D 100MP roundtrip, X2D/Z8 darkframe sidecars. | Real GRBG/BGGR fixtures plus Mission 1/iPhone darkframe sidecars. |
-| **GoPro RAW video MVP** | Action cameras can record real 4096 x 3072 Bayer video into `.gvid` and preview it on-camera. | Pi 5 stand-in clears the accepted **20+ fps** floor for native12 encode and 1024 preview decode. | Mission 1 sensor/DMA, SD writer, and rear-display receipts. |
-| **Spend-time-for-quality still/SR** | Offline still processing can spend serious compute to recover texture, latitude, and editable raw quality. | Routed X2D/Z8/Mission specialists, raw-CFA targets, full-frame reviews, editor-openability receipts. | X2D/domain-general raw-residual recovery must beat the still gate without source/REF content at render time. |
-| **PSF-aware video/SR** | 4K cleanup and 8K reconstruction account for the real blur from Bayer resize/capture instead of guessing. | Approved 4K cleanup and 8K SR baselines, 1,024-tile detail budget, native Mission 1 PSF measurement run. | Controlled high/low pairs must produce a stable native kernel, then a PSF-conditioned model must beat the current baselines. |
+| **1. Best RAW stills** | Compact editable Bayer stills for 50 MP and 100 MP-class cameras, with normal CFA support and a path toward camera-noise-aware compression. | 12/14/16-bit stills, three 50 MP tiers down to **9.80 MB**, real X2D 100MP roundtrip, RGGB/GBRG real fixtures, synthetic RGGB/GBRG/GRBG/BGGR conformance, X2D/Z8 darkframe sidecars. | Add real GRBG/BGGR fixtures, Mission 1 darkframe stacks, and iPhone CFA darkframes before claiming broad real-camera phase/noise coverage. |
+| **2. GoPro RAW video MVP** | 4096 x 3072 Bayer frames become `.gvid` raw video and decode to a full-frame camera-back preview. | Pi 5 stand-in clears the active **20+ fps** floor for native12 encode and 1024 x 768 preview decode; `.gvid` validation, recovery, metadata dispatch, and Labs handoff tooling are committed. | Replace stand-in receipts with real Mission 1 sensor/DMA, SD writer, and rear-display receipts. |
+| **3. Premium still/SR** | Offline still processing can spend real compute for the best possible editable raw output, including 4K/8K reconstruction and still latitude recovery. | Routed X2D/Z8/Mission specialists, raw-CFA targets, full-frame reviews, editor-openability receipts, and a 13-scene / 351-row expanded target set. | Current raw-residual models are diagnostic, not production: the X2D/domain-general recovery gap must clear the still/editor-latitude gate without REF/source content at render time. |
+| **4. PSF-aware video/SR** | 4K cleanup and 8K reconstruction should account for the actual blur from Bayer resize/capture instead of guessing. | Approved 4K cleanup and 8K SR baselines, 1,024-tile detail budget, native Mission 1 high/low inventory, measurement plan, and first PSF measurement run. | Controlled high/low pairs need to produce a stable native kernel, then a PSF-conditioned model must beat the current baselines. |
 
-## Production Completion Snapshot
-
-Current four-pillar completion is **69%**. The project is strong enough to show
-as a working raw-stills and raw-video prototype, but it should not be described
-as finished until the camera-role and premium reconstruction gaps close.
-
-| pillar | done | why not 100% |
+| pillar | done | shortest honest read |
 |---|---:|---|
-| Best RAW stills | **90%** | Production-gated for the current tested 12/14/16-bit normal-Bayer surface, including 50 MP and 100 MP-class evidence. Real GRBG/BGGR fixtures plus Mission 1/iPhone darkframe stacks are still needed before claiming broad real-camera phase/noise coverage. |
-| GoPro RAW video MVP | **80%** | 4096 x 3072 Bayer to `.gvid` and 1024 x 768 preview clear the active 20+ fps Pi 5 stand-in floor. Real Mission 1 sensor/DMA, SD writer, and rear-display receipts are still the production gate. |
-| Spend-time-for-quality still/SR | **60%** | The fixture, router, full-frame review, editable raw, noise-sidecar, raw-CFA target, and trainer infrastructure exists. The current X2D raw-residual model is still far below promotion, so the premium "amazing still" claim remains research. |
-| RAW video PSF/SR improvement | **44%** | Current 4K cleanup and 8K SR are useful offline baselines. Native PSF measurement has run, but the fitted kernel is unstable; the gap plan now spells out the controlled-pair capture, stable-kernel, model-gate, and promotion receipts still required. |
+| Best RAW stills | **90%** | Strong for the tested normal-Bayer surface; remaining work is real-fixture/noise-sidecar coverage. |
+| GoPro RAW video MVP | **80%** | Strong prototype/Labs handoff; remaining work is real camera-role closure. |
+| Premium still/SR | **60%** | Infrastructure is real; learned raw texture recovery is not yet good enough. |
+| RAW video PSF/SR improvement | **44%** | Offline baselines are useful; formal PSF-aware replacement is still open. |
 
 ![Raw Bayer timelapse decoded through the GPR preview path](docs/img/readme_z8_timelapse_1024.webp)
 
@@ -61,130 +59,19 @@ as finished until the camera-role and premium reconstruction gaps close.
 
 ![GPR video comparison poster](docs/img/readme_preview_codec_vs_sota.png)
 
-## Four Product Pillars
+## Evidence Map
 
-These are the four big efforts this repo is being driven toward. The table is
-intentionally blunt about what is already production-gated and what still needs
-receipts before it should be called done.
+The main README stays visual and product-facing. The deeper proof is indexed in
+the docs and external dashboards:
 
-| pillar | what works now | not done yet |
-|---|---|---|
-| **1. Best RAW stills** | Production-gated 12 MP, 23 MP, 50 MP, and 100 MP-class Bayer roundtrips; 12/14/16-bit paths; committed RGGB/GBRG/GRBG/BGGR still conformance; real Mission 1, Z8, X2D, and iPhone CFA fixture coverage; current real phase discovery includes RGGB plus Mission 1 GBRG; three 50 MP still tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; real X2D 100MP visual roundtrip audit; validated X2D/Z8 camera-noise sidecars with source-frame hashes. | Collect or locate Mission 1/iPhone darkframe stacks before promoting nonzero noise removal/addback there; real GRBG/BGGR fixtures are still needed. |
-| **2. GoPro RAW video MVP** | True 4096 x 3072 Bayer recompression into `.gvid`, valid interrupted-tail recovery, Lexar SILVER PLUS write-budget checks, Pi 5 stand-in capture above the accepted 20 fps floor, 1024 x 768 camera-back preview from the same stream above 20 fps, and a checked GoPro intake bundle with firmware-facing docs and required receipt names. | Real Mission 1 sensor/DMA, SD writer, and rear-display receipts. Strict 24 fps is still not production-proven for the current quality profile. |
-| **3. Spend-time-for-quality still/SR** | Matched 1x CNN improves compressed still latitude; current 4K cleanup and 8K SR infrastructure proves the offline CNN path can emit editable raw, `.gvid`, DNG/GPR, and ProRes review artifacts; routed X2D, Z8, and Mission 1 premium still-SR specialists now have hashed fixtures, full-frame receipts, rendered proxy review, X2D 100MP editor-openability plus metadata transplant, an X2D rawpy latitude dashboard, structured HF residual targets, a blocker audit, and an executed target expansion: **13 scenes / 351 rows** across X2D and Z8 with validated noise sidecars. Raw-CFA target coverage is complete, raw-CFA gated models beat matched RGB ablations, a matched dilated raw-CFA gate has been tested, calibrated noise-cleaning is bounded, and a trainable source-minus-candidate same-color raw residual target NPZ is now built. | Real "amazing still" promotion is still open. The raw-CFA gated model improves the direction but remains far below promotion: best broad holdout is **2.92%** median MAE recovery against a **15%** threshold, with worst rows still negative. The dilated raw-CFA gate modestly improves Z8 but does not beat the X2D baseline, and the ISO 200 noise-clean sweep shows sensor-noise removal alone is too small to close the gap. The raw-CFA residual target is more promising: rendered HF residuals correlate with same-color raw residuals at **0.691** median abs corr and **0.922** median best-phase corr, so the next model should train directly on raw residuals before the 50 MP / 100 MP still/editor-latitude gate. |
-| **4. RAW video improvement / PSF-aware resize** | Mission native12 4K cleanup is approved for offline review; candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates and has 8K `.gvid` plus ProRes receipts; real Mission/Z8/X2D pair-derived resize evidence confirms the current same-color 2x Bayer target is a 2x2 box model. The refreshed 1,024-tile detail budget shows the 4K-to-8K residual is essentially all same-cell fine detail, not coarse blur. A native Mission 1 high/low inventory, measurement plan, first real measurement run, and explicit PSF gap plan now exist. | Native capture/display PSF is measured but not accepted for model conditioning yet: 2 of 3 pairs passed scene/alignment vetting, tile support was strong, but the fitted kernel was unstable. Next work needs controlled same-scene high/low pairs, then a PSF-conditioned SR gate before replacing the current baseline. |
-
-Detailed status and next-step criteria:
-[`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md) and
-[`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md).
-The machine-readable four-pillar audit view is
-[`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md), with
-the current generated dashboard at
-`/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630/index.html`.
-The evidence-first production burn-down is
-`/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html`;
-it separates non-camera work from the single real-Mission-1 hardware closure.
-Real Bayer phase fixture discovery:
-`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_20260630_rawpy/index.html`.
-Camera-noise coverage audit:
-`/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html`.
-Mission/iPhone darkframe candidate audit:
-`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_20260630/index.html`.
-Broader real-photo fixture sample:
-`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html`.
-Broader real-photo darkframe-candidate sample:
-`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_realphotos_sample_20260630/index.html`.
-Targeted GoPro/Mission/Hassel/iPhone raw fixture scan:
-`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html`.
-Targeted Mission DNG darkframe-candidate scan:
-`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html`.
-Stills fixture gap closure plan:
-`/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`.
-Camera-noise policy and the calibration sidecar contract:
-[`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md).
-Bayer resize PSF policy, synthetic receipt builder, and real-pair receipt builder:
-[`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md).
-Raw-video PSF/SR readiness audit:
-`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.
-Mission 1 native high/low PSF candidate inventory:
-`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_20260630/index.html`.
-Mission 1 native PSF measurement plan:
-`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_20260630/index.html`.
-Mission 1 native PSF measurement run:
-`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_20260630/index.html`.
-Raw-video PSF controlled capture request:
-`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`.
-Raw-video SR/detail candidate scoreboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html`.
-Premium still-SR gate policy and skeleton:
-[`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md).
-Premium still-SR current readiness:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_20260630/index.html`.
-Premium still-SR experiment scoreboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html`.
-Premium still-SR blocker audit:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html`.
-Premium still-SR target expansion plan:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_expansion_plan_20260630/index.html`.
-Premium still-SR expanded target build:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/expanded_target_build_receipt.json`.
-Premium still-SR expanded raw-CFA target build:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/expanded_target_build_receipt.json`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json`.
-Premium still-SR expanded residual band analysis:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_residual_band_analysis_20260630/index.html`.
-Premium still-SR raw-CFA smoke target and ablation:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_smoke_targets_20260630/2025_10_oct_austin_0626/hf_residual_targets.json`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_probe_model_20260630/train_receipt.json`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_ablation_rgb_model_20260630/train_receipt.json`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_gated_probe_w48_1000_20260630/train_receipt.json`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_z8holdout_w48_1000_20260630/train_receipt.json`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_x2dholdout_w48_1000_20260630/train_receipt.json`.
-Premium still-SR raw-CFA residual promotion gap:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html`.
-X2D 100MP still visual roundtrip audit:
-`/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html`.
-Premium still-SR fixture manifest:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629/index.html`.
-Premium still-SR first pair set and smoke checkpoint:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt`.
-Premium still-SR larger exploratory run:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt`.
-Premium still-SR candidate metrics dashboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_dashboard_20260629/index.html`.
-Premium still-SR visual review dashboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_20260629/index.html`.
-Premium still-SR xlarge diagnostic:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_xlarge_dashboard_20260629/index.html`.
-Premium still-SR X2D batch diagnostic:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_batch_dashboard_20260629/index.html`.
-Premium still-SR X2D specialist diagnostic:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_dashboard_20260630/index.html`.
-Premium still-SR Z8 specialist diagnostic:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_z8_specialist_dashboard_20260630/index.html`.
-Premium still-SR Mission 1 specialist diagnostic:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_mission1_specialist_dashboard_20260630/index.html`.
-Premium still-SR specialist router plan:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/index.html`.
-Premium still-SR X2D editor-openability receipt:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt_x2dscale_meta/index.html`.
-Premium still-SR X2D rawpy latitude review:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/index.html`.
-Premium still-SR X2D HF residual training targets:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/index.html`.
-Premium still-SR X2D HF residual band analysis:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_band_analysis_20260630/index.html`.
-Premium still-SR X2D grid target and center-holdout model:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_grid5_20260630/index.html`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_grid5_centerholdout_w48_20260630/index.html`.
-Premium still-SR X2D multi-scene target and scene-holdout model:
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_targets_20260630/merged/merge_receipt.json`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_w48_20260630/index.html`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html`.
-Bayer resize PSF pair-derived dashboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html`,
-`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/index.html`.
+| question | source of truth |
+|---|---|
+| What is done, percent-wise, across the four pillars? | [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630/index.html` |
+| What work remains before calling the whole suite production-ready? | [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md), [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md), and `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html` |
+| What proves the stills path? | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md), [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md), [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md), and the X2D 100MP audit under `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/` |
+| What proves the GoPro/Mission raw-video path? | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md), [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md), [`docs/LABS_INTAKE.md`](docs/LABS_INTAKE.md), and the intake audit under `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/` |
+| What proves or blocks premium still/SR? | [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md) plus the raw-CFA residual gap dashboard under `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/` |
+| What proves or blocks PSF-aware video/SR? | [`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md) plus the PSF audit, measurement, and controlled-capture dashboards under `/Volumes/OWC_8TB/gpr_work/artifacts/` |
 
 ## At A Glance
 

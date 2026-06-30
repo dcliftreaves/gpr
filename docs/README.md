@@ -1,14 +1,14 @@
 # GPR Docs Index
 
 Where to look for current production status, evidence, and runbooks. Last
-refreshed 2026-06-29.
+refreshed 2026-06-30.
 
 ## Start here
 
 | if you want to know… | read |
 |---|---|
-| product overview, media, and quick start | `../README.md` |
-| four big product efforts and what remains | `BIG_EFFORTS_STATUS.md` |
+| product overview, media, four-pillar product map, and quick start | `../README.md` |
+| four big product efforts, current percentages, and what remains | `BIG_EFFORTS_STATUS.md` |
 | execution plan for the four big product efforts | `HIGH_LEVEL_GOAL_EXECUTION_PLAN.md` |
 | machine-checkable pillar scorecard and production burn-down | `PRODUCT_PILLAR_SCORECARD.md` |
 | camera-noise calibration policy and sidecar builder | `CAMERA_NOISE_CALIBRATION.md` |
