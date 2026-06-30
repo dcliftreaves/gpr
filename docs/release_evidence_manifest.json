@@ -1359,6 +1359,27 @@
       }
     },
     {
+      "id": "camera_noise_runtime_policy_20260630",
+      "family": "noise_signal",
+      "status": "diagnostic",
+      "purpose": "Renderer/trainer-facing policy for calibrated noise removal and addback. Allows nonzero noise treatment only for exact camera/ISO classes with production-ready sidecars.",
+      "dashboard": "artifacts/camera_noise_runtime_policy_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/CAMERA_NOISE_CALIBRATION.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
+      ],
+      "receipts": [
+        "artifacts/camera_noise_runtime_policy_20260630/camera_noise_runtime_policy.json",
+        "artifacts/camera_noise_runtime_policy_20260630/index.html"
+      ],
+      "metrics": {
+        "nonzero_noise_addback_camera_count": 2,
+        "metadata_only_camera_count": 2,
+        "production_noise_policy_complete": 0
+      }
+    },
+    {
       "id": "mission1_native_psf_corpus_audit_20260630",
       "family": "raw_video_psf",
       "status": "diagnostic",

@@ -87,12 +87,25 @@ Current coverage dashboard:
 /Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html
 ```
 
+Current runtime policy dashboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_runtime_policy_20260630/index.html
+```
+
 Coverage status: X2D and Z8 are ready for calibrated noise conditioning and
 controlled addback experiments. Mission 1 and iPhone have real still fixtures,
 but they do not yet have validated darkframe sidecars; for those cameras,
 nonzero denoised targets and synthetic noise addback remain blocked until a
 darkframe stack, flat/dark pair, or equivalent no-scene-signal evidence is
 collected and converted.
+
+The runtime policy is the artifact renderers and trainers should consume. It
+allows nonzero denoised targets and calibrated noise addback only for exact
+camera/ISO classes with production-ready sidecars. Missing camera families or
+missing ISOs fall back to metadata conditioning only: preserve source metadata,
+do not remove residual content from targets, and do not add generated noise at
+render time.
 
 ## Darkframe Candidate Audit
 
@@ -127,4 +140,5 @@ darkframe source.
 Current production stills may preserve DNG `NoiseProfile`/ISO metadata and use
 it as model conditioning. They should not train on nonzero denoised targets or
 add synthetic texture back into final outputs unless a validated calibration
-sidecar exists for the camera/ISO class.
+sidecar exists for the exact camera/ISO class and the runtime policy marks that
+camera/ISO as allowed.
