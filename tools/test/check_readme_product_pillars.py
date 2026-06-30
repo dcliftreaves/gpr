@@ -68,6 +68,7 @@ REQUIRED_README_TOKENS = (
     "decoded Bayer hashes",
     "docs/PRODUCT_PILLAR_SCORECARD.md",
     "docs/PRODUCT_LOCK_LEDGER.md",
+    "docs/WORKSPACE_AND_ARTIFACT_MAP.md",
     "docs/BIG_EFFORTS_STATUS.md",
     "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md",
     "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md",
