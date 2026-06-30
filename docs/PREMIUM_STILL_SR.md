@@ -188,6 +188,47 @@ That rebuild records 13 scenes, 351 rows, and
 `raw_cfa_feature_complete=true`, with `candidate_raw_cfa4` present in the
 merged NPZ for every row.
 
+## Raw-CFA Residual Target And Model Probe
+
+The raw-domain target builder now converts the expanded raw-CFA feature set
+into direct source-minus-candidate same-color raw residual supervision:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/raw_cfa_residual_targets.npz
+```
+
+The NPZ covers the same 351 rows / 13 scenes and stores
+`candidate_raw_cfa4`, `candidate_raw_hf_cfa4`, `raw_hf_residual_cfa4`,
+`source_raw_hf_cfa4`, and `render_hf_residual_y`. It is the correct target for
+editable raw restoration because the model output is a four-plane CFA residual,
+not a rendered RGB texture patch.
+
+The first raw-CFA residual trainer is:
+
+```text
+tools/cnn/train_premium_still_sr_raw_cfa_residual.py
+```
+
+Runtime inputs are candidate-only: candidate raw CFA planes, candidate
+same-color highpass features, deterministic crop/EV coordinates, and optional
+camera/ISO noise-sidecar scalars. Source raw is used only to create the
+training target.
+
+Current receipts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_w32_2000_lowlr_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w32_2000_lowlr_20260630/train_receipt.json
+```
+
+The stabilized w32/2000-step pass is mildly positive on held-out Z8, with
+about 0.50 percent median raw-residual MAE recovery. The matched X2D holdout is
+still negative at about -0.21 percent. A quick per-plane highpass linear
+baseline did not explain the missing residual either. The current blocker is
+therefore not target construction or a simple highpass scale/addback; it is
+X2D/domain generalization and insufficient raw residual recovery.
+
 ## Raw-CFA Feature Smoke
 
 The target builder, merge tool, and trainer now support optional raw-CFA

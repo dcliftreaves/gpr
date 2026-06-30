@@ -31,7 +31,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, calibrated noise-cleaning is bounded, and a trainable raw-CFA residual target now exists for true source-minus-candidate same-color raw residuals; the no-REF high-frequency texture model is still not production-grade yet. |
+| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, calibrated noise-cleaning is bounded, and true source-minus-candidate same-color raw residual targets plus the first raw-domain trainer now exist; the first trainer is mildly positive on held-out Z8 but negative on held-out X2D, so the no-REF high-frequency texture model is still not production-grade yet. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, and the first native PSF measurement has executed; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -181,6 +181,15 @@ It emits the trainable NPZ for that direction: `candidate_raw_cfa4`,
 `render_hf_residual_y`. The NPZ covers the same 351 rows / 13 scenes, is
 1.6 GB on the external artifact drive, and has SHA-256
 `4c92f94e7505c09e2445df74e58d429460d31a199d61cf82b0299479a8c95ba4`.
+
+The first raw-CFA residual model receipts live at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_w32_2000_lowlr_20260630/train_receipt.json`
+and
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w32_2000_lowlr_20260630/train_receipt.json`.
+They use candidate-only runtime inputs and four-plane raw residual output. The
+Z8 scene holdout is mildly positive at about 0.50 percent median raw-residual
+MAE recovery, but the X2D scene holdout remains negative at about -0.21
+percent, so these receipts narrow the blocker rather than promoting a model.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a
