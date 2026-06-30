@@ -442,6 +442,17 @@ holdout evidence in `pipelines/registry.json`:
 | Mission mixed large-context normal-current hard4 summary | `artifacts/current_goal_sr_mixed_large_context_hard4_20260619/interp_a100_normal_current_hard4_fullframe/summary.json` | `1ec618fde41ba1441ce6ca86c36f4662d86757e0ab8a7716906e23549fbb342c` |
 | Mission mixed large-context Z8 holdout summary | `artifacts/current_goal_sr_mixed_large_context_hard4_20260619/interp_a100_z8_holdout5_fullframe/summary.json` | `31daa8792e0812f40cc10555308a4f835e585b728f64624519ce09dd5319f5ff` |
 
+## Premium Still-SR Gap Artifacts
+
+These rows are diagnostic, not production promotion receipts. They preserve the
+current raw-CFA residual blocker state for the spend-time-for-quality still/SR
+pillar.
+
+| artifact | path | sha256 |
+|---|---|---|
+| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json` | `72e6b1120377c32213652ff84335e7bf07b0526951d4d111b95873c534882f90` |
+| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` | `3e3043c692cc1611814ae5d0ef0769a82cd7c01802e66640d03fcc02b34d0232` |
+
 Install the portable model-root artifacts as:
 
 ```bash

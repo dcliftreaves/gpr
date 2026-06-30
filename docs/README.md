@@ -117,6 +117,8 @@ refreshed 2026-06-29.
 | `python3 tools/test/test_build_raw_video_psf_capture_request.py` | regression-test the raw-video PSF capture request builder |
 | `python3 tools/build_product_burndown.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630` | build the four-pillar production burn-down: what evidence moves each pillar and which steps need real Mission 1 hardware |
 | `python3 tools/test/test_build_product_burndown.py` | regression-test the product burn-down builder |
+| `python3 tools/build_premium_still_sr_raw_cfa_residual_gap.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630` | build the receipt-driven premium still-SR raw-CFA residual promotion gap dashboard |
+| `python3 tools/test/test_build_premium_still_sr_raw_cfa_residual_gap.py` | regression-test the premium still-SR raw-CFA residual gap builder |
 | `python3 tools/build_gopro_mission1_intake_audit.py --manifest /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_20260630/manifest.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630` | verify the GoPro Mission 1 intake bundle and separate review readiness from camera-production readiness |
 | `python3 tools/test/test_build_gopro_mission1_intake_audit.py` | regression-test the GoPro Mission 1 intake audit |
 | `python3 tools/test/check_readme_media.py` | validate local README showcase media links, sizes, and stale text claims in SVG media |

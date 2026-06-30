@@ -136,6 +136,8 @@ Premium still-SR raw-CFA smoke target and ablation:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_gated_probe_w48_1000_20260630/train_receipt.json`,
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_z8holdout_w48_1000_20260630/train_receipt.json`,
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_x2dholdout_w48_1000_20260630/train_receipt.json`.
+Premium still-SR raw-CFA residual promotion gap:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html`.
 X2D 100MP still visual roundtrip audit:
 `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html`.
 Premium still-SR fixture manifest:
@@ -358,6 +360,7 @@ current evidence so strict local checks can verify it.
 | Four-pillar product scorecard | [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630/index.html` |
 | Four-pillar production burn-down | `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html` |
 | CNN/product scorecard | [`docs/CNN_PRODUCT_SCORECARD_2026-06-29.md`](docs/CNN_PRODUCT_SCORECARD_2026-06-29.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/cnn_product_scorecard_20260629/index.html` |
+| Premium still-SR raw-CFA residual gap | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` |
 | Still/video ship decisions | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) |
 | Video, preview, and Mission 1 status | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) |
 | Raw 2K / 4K / 8K ladder | [`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-14.md) |
@@ -417,6 +420,7 @@ current evidence so strict local checks can verify it.
 | Premium still-SR raw-CFA X2D wider-context probe | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w64_5000_block17_20260630/index.html` |
 | Premium still-SR raw-CFA X2D stored-HF probe | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_storedhf_w32_2000_20260630/index.html` |
 | Premium still-SR raw-CFA X2D noise-threshold probe | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/index.html` |
+| Premium still-SR raw-CFA residual gap dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` |
 | Premium still-SR fixture manifest | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629/index.html` |
 | Premium still-SR pair set | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz` |
 | Premium still-SR smoke checkpoint | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt` |

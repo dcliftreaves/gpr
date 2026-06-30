@@ -1236,6 +1236,31 @@
       }
     },
     {
+      "id": "premium_still_sr_raw_cfa_residual_gap_20260630",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Receipt-driven audit of the current raw-CFA residual still-SR target and model candidates; records why the expensive still-SR path is not promotable yet.",
+      "dashboard": "artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/README.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json",
+        "artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html"
+      ],
+      "metrics": {
+        "target_rows": 351,
+        "target_scenes": 13,
+        "render_to_raw_corr_abs_median": 0.6912654943469239,
+        "best_x2d_holdout_mae_recovery_pct": 0.02164405662232214,
+        "best_z8_holdout_mae_recovery_pct": 0.4983379829708305,
+        "promotion_threshold_pct": 15.0,
+        "production_ready": 0
+      }
+    },
+    {
       "id": "realphoto_bayer_phase_sample_20260630",
       "family": "stills_fixtures",
       "status": "diagnostic",

@@ -113,8 +113,8 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
                 "worst-row dashboard shows no severe texture or tone failures",
             ],
             next_command=(
-                "python3 tools/cnn/train_premium_still_sr_raw_cfa_residual.py "
-                "--help"
+                "python3 tools/build_premium_still_sr_raw_cfa_residual_gap.py "
+                "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_<date>"
             ),
             completion_gate="The model beats the current raw-CFA residual baselines on both Z8 and X2D broad holdouts and passes the still/editor-latitude gate.",
         ),
