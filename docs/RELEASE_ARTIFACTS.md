@@ -65,8 +65,9 @@ and product scorecards:
 - **Premium still/SR**: spend-time-for-quality still/SR targets, model
   receipts, dashboards, and explicit non-promotion blockers.
 - **PSF-aware video/SR**: approved 4K cleanup and offline 8K SR baselines,
-  continuous 8K no-CNN versus CNN review media, native PSF evidence, and the
-  controlled-capture request for replacing the current baseline.
+  continuous 8K no-CNN versus CNN review media, native PSF corpus and
+  kernel-stability evidence, and the controlled-capture request for replacing
+  the current baseline.
 
 The release manifest's `product_pillars` section owns this mapping.
 `tools/build_labs_bundle.py` copies that section into generated bundle

@@ -497,6 +497,16 @@ pillar.
 | Premium still-SR X2D combined stored-HF/context probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json` | `bb060baaedb3f2439eb3d51fd45002eb67278c87d276d403d208351946463ea7` |
 | Premium still-SR X2D multiscale band-loss probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json` | `0dd675d612e66461cea1d658fb62f91fe258703473aaa810d0c573f1fc18cb66` |
 
+## Raw-Video PSF Gap Artifacts
+
+These rows are diagnostic, not production promotion receipts. They preserve the
+native Mission 1 PSF blocker state for the PSF-aware video/SR pillar.
+
+| artifact | path | sha256 |
+|---|---|---|
+| Mission 1 native PSF kernel-stability audit JSON | `artifacts/mission1_native_psf_kernel_stability_audit_20260630/kernel_stability_audit.json` | `e0814ab5b18767fd14307bf5ebce0016855da42ff99973782410ae171fc197f7` |
+| Mission 1 native PSF kernel-stability audit dashboard | `artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html` | `a78d92485b905b8b61058b5f5dee0e916d1be977486c3ebaae95c06004c888ae` |
+
 Install the portable model-root artifacts as:
 
 ```bash

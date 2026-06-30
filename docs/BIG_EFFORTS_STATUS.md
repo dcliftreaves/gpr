@@ -15,7 +15,7 @@ The generated audit dashboard for these same four pillars is tracked in
 | Raw stills for 50 MP / 100 MP cameras | 90% | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, RGGB plus Mission 1 GBRG real-fixture coverage, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars. |
 | Raw video MVP for GoPro / Mission 1 | 80% | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
 | Raw stills improvement / expensive SR | 60% | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, raw-CFA expanded targets, no-REF HF residual probes including a matched dilated raw-CFA gate, calibrated noise-clean target sweep, raw-CFA residual alignment audit, trainable raw-CFA residual target NPZ, and true raw-CFA residual model receipts including X2D-only, combined stored-HF/context, multiscale band-loss rejection evidence, a small U-Net raw-domain probe, frame-context scalar rejection evidence, a bounded full-crop U-Net sample-mode probe, a bounded full-crop stored-HF/context U-Net rejection probe, and a bounded spectral-loss rejection probe. | Not done until learned/modelled high-frequency texture restoration receipts pass; raw-CFA helps, the small U-Net and first full-crop U-Net are only barely positive on X2D, simple scalar frame context, bounded stored-HF/full-crop context, and bounded spectral loss do not improve it, ISO 200 noise cleaning is too small to explain the gap, and the raw-domain trainer narrows the blocker to X2D raw-detail recovery strength plus missing stronger full-image/structured context and objective. |
-| Raw video improvement / PSF-aware Bayer resize | 44% | Partly done through 4K cleanup, candidate-aware 8K SR, native high/low pair inventory, measurement plan, first native measurement run, and a hash-strict PSF gap closure plan. | Not done as a formal PSF/blur-calibrated resizing model until controlled high/low pairs with source hashes, decoded Bayer hashes, fixed settings, and negative controls produce a stable native kernel and PSF-conditioned gates pass. |
+| Raw video improvement / PSF-aware Bayer resize | 44% | Partly done through 4K cleanup, candidate-aware 8K SR, native high/low pair inventory, measurement plan, first native measurement run, kernel-stability audit, and a hash-strict PSF gap closure plan. | Not done as a formal PSF/blur-calibrated resizing model until controlled high/low pairs with source hashes, decoded Bayer hashes, fixed settings, and negative controls produce a stable native kernel and PSF-conditioned gates pass. |
 
 ## 1. Raw Stills
 
@@ -589,6 +589,12 @@ Current evidence:
   It accepted 2 of 3 selected near-time pairs and found strong tile support
   (1,409 sharp-edge tiles and 1,381 texture-field tiles), but rejected the
   combined kernel as unstable.
+- The Mission 1 native PSF kernel-stability audit explains the rejection:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html`.
+  It records max normalized-weight std 0.809 against a 0.10 gate, one accepted
+  pair with invalid negative weights, a low-correlation diagnostic pair, and a
+  combined mean kernel with a negative coefficient. The current near-time
+  kernel must not condition a replacement 4K/8K model.
 - The raw-video PSF gap closure plan turns that failed native measurement into
   the concrete closure list:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html`.

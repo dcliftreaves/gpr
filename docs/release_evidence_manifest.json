@@ -67,7 +67,7 @@
       "id": "raw_video_psf_sr",
       "release_label": "PSF-aware video/SR",
       "status": "approved_baseline_psf_replacement_open",
-      "summary": "Approved 4K cleanup and offline 8K SR baselines, continuous no-CNN versus CNN review media, native PSF corpus audit, and controlled-capture request.",
+      "summary": "Approved 4K cleanup and offline 8K SR baselines, continuous no-CNN versus CNN review media, native PSF corpus/kernel audits, and controlled-capture request.",
       "manifest_refs": {
         "raw_targets": [
           "8k_raw_2x"
@@ -78,6 +78,7 @@
           "mission1_8k_true_no_cnn_vs_cnn_20260630",
           "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630",
           "mission1_native_psf_corpus_audit_20260630",
+          "mission1_native_psf_kernel_stability_audit_20260630",
           "raw_video_psf_capture_request_20260630"
         ],
         "platform_performance": [
@@ -1588,6 +1589,30 @@
         "existing_measurement_accepted_pair_count": 2,
         "existing_measurement_kernel_stable": 0,
         "local_corpus_can_close_psf_gap": 0
+      }
+    },
+    {
+      "id": "mission1_native_psf_kernel_stability_audit_20260630",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Audits why the current Mission 1 near-time native PSF kernel is unstable and must not condition a replacement 4K/8K SR model.",
+      "dashboard": "artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/BAYER_RESIZE_PSF.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
+      ],
+      "receipts": [
+        "artifacts/mission1_native_psf_kernel_stability_audit_20260630/kernel_stability_audit.json",
+        "artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html"
+      ],
+      "metrics": {
+        "accepted_pair_count": 2,
+        "accepted_negative_weight_pair_count": 1,
+        "combined_weight_std_max": 0.8094548654247654,
+        "kernel_stable_by_audit": 0,
+        "native_psf_ready_for_model_conditioning": 0
       }
     },
     {

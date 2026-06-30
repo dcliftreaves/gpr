@@ -183,6 +183,25 @@ rejected the measured kernel as unstable. That narrows the next data need:
 controlled same-scene high/low pairs, not more fitting on the current near-time
 pair set.
 
+The kernel-stability audit makes that rejection explicit:
+
+```sh
+python3 tools/build_mission1_native_psf_kernel_stability_audit.py \
+  --measurement /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_20260630/native_psf_measurement.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_kernel_stability_audit_20260630
+```
+
+Dashboard:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html`
+
+Current result: the dominant blocker is kernel disagreement, not just missing
+one more pair. The current near-time measurement has 2 accepted pairs, max
+normalized-weight std `0.809` against a `0.10` gate, one accepted pair with
+invalid negative weights (`GP017602 -> GP017600`), and one low-correlation
+diagnostic pair (`GP017601 -> GP017600`). This means the current native kernel
+must not be used to condition a replacement model.
+
 The controlled capture request now also requires production provenance for
 each candidate pair: original high/low GPR/DNG paths with SHA-256 source
 hashes, decoded little-endian uint16 Bayer paths with byte counts and hashes,
