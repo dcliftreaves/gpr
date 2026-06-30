@@ -67,6 +67,8 @@ Camera-noise policy and the calibration sidecar contract:
 [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md).
 Bayer resize PSF policy, synthetic receipt builder, and real-pair receipt builder:
 [`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md).
+Raw-video PSF/SR readiness audit:
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.
 Premium still-SR gate policy and skeleton:
 [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md).
 Premium still-SR current readiness:
@@ -336,6 +338,7 @@ current evidence so strict local checks can verify it.
 | Premium still-SR specialist router plan | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/index.html` |
 | Bayer resize PSF pair-derived dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html` |
 | Bayer resize PSF xlarge detail-budget dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/index.html` |
+| Raw-video PSF/SR readiness audit | `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html` |
 
 ![GPR production status matrix](docs/img/readme_status_matrix.svg)
 

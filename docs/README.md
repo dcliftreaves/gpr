@@ -102,6 +102,8 @@ refreshed 2026-06-29.
 | `python3 tools/test/test_build_bayer_resize_psf_receipt.py` | regression-test the PSF receipt builder |
 | `python3 tools/build_bayer_resize_psf_from_pairs.py --pairs /path/to/pairs.npz --out-dir /path/to/out` | build a pair-derived non-production Bayer resize PSF receipt |
 | `python3 tools/test/test_build_bayer_resize_psf_from_pairs.py` | regression-test the pair-derived PSF receipt builder |
+| `python3 tools/build_raw_video_psf_audit.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630` | build the raw-video PSF/SR readiness audit |
+| `python3 tools/test/test_build_raw_video_psf_audit.py` | regression-test the PSF/SR readiness audit builder |
 | `python3 tools/test/check_readme_media.py` | validate local README showcase media links, sizes, and stale text claims in SVG media |
 | `python3 tools/test/test_check_readme_media.py` | regression-test README showcase stale-claim detection |
 | `python3 tools/test/check_release_evidence_manifest.py` | validate production evidence manifest |

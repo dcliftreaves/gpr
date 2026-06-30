@@ -158,6 +158,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "Candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates with .gvid, editable raw, and ProRes receipts.",
                 "Pair-derived PSF/detail budget over 1,024 real-fixture tiles fits a 2x2 same-color Bayer box model.",
                 "The residual budget shows the 4K-to-8K gap is almost entirely same-cell fine detail, not coarse blur.",
+                "The raw-video PSF audit separates approved 4K/8K baselines from the unfinished native PSF replacement claim.",
             ],
             "open_work": [
                 "Measure native camera/sensor/display PSF from real high-res-to-native-low-res pairs.",
@@ -172,6 +173,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("8K SR promotion receipt", "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"),
                     artifact_ref("Mission42 8K dashboard", "artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_broad_fullframe/index.html"),
                     artifact_ref("PSF xlarge detail budget", "artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/bayer_resize_psf_receipt.json"),
+                    artifact_ref("raw-video PSF audit", "artifacts/raw_video_psf_audit_20260630/index.html"),
                 ],
                 external_root,
             ),

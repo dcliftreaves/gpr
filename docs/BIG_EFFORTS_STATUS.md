@@ -372,6 +372,9 @@ Current evidence:
   repeat-to-target residual is 0.99999x fine-band share. This means the modeled
   video-SR gap is same-cell Bayer fine-detail reconstruction, not broad coarse
   deblur.
+- The raw-video PSF/SR readiness audit separates the approved 4K/8K baselines
+  from the unfinished native PSF replacement claim:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.
 
 Boundaries:
 

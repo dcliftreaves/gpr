@@ -53,6 +53,12 @@ and 12800, plus Z8 at ISO 500. Mission 1 and iPhone have real fixtures but no
 production-ready darkframe sidecars yet, so nonzero noise removal/addback is not
 promoted for those cameras.
 
+The current raw-video PSF/SR readiness audit lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.
+It records that the current 4K cleanup and 8K SR baselines are approved for
+their existing offline roles, but the PSF replacement is not production-ready
+without native camera/display PSF evidence and a PSF-conditioned model gate.
+
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a
 finished product result.
