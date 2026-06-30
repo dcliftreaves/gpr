@@ -133,8 +133,10 @@ def main() -> int:
         "tools/build_labs_bundle.py",
         "tools/check_mission1_cnn_closure.py",
         "tools/build_cnn_product_scorecard.py",
+        "tools/check_production_capture_submission.py",
         "tools/test/check_production_capture_requirements.py",
         "tools/test/test_check_production_capture_requirements.py",
+        "tools/test/test_check_production_capture_submission.py",
         "tools/test/test_gvid_conformance.py",
         "source/lib/vc5_encoder/gpr_labs_encoder.h",
         "pipelines/registry.json",
@@ -186,6 +188,8 @@ def main() -> int:
         "controlled_mission1_psf_pairs",
         "premium_still_sr_promotion_receipts",
         "python3 tools/test/check_production_capture_requirements.py",
+        "python3 tools/check_production_capture_submission.py",
+        "gpr.production_capture_submission.v1",
     ], failures)
     require_text("docs/RELEASE_ARTIFACTS.md", [
         "gpr_labs_bundle.v1",

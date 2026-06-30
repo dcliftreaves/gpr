@@ -40,6 +40,26 @@ artifact root, validation commands, and the expected linkage to the four
 product pillars. It is intentionally CI-safe and does not require private
 artifacts.
 
+## Submission Audit
+
+When a developer, camera team, or future agent submits new fixtures, darkframes,
+camera-role receipts, PSF pairs, or premium still-SR promotion receipts, validate
+the package with:
+
+```sh
+python3 tools/check_production_capture_submission.py <submission.json> \
+  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/audit.json \
+  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/index.html
+```
+
+The submission manifest schema is `gpr.production_capture_submission.v1`. The
+checker requires source hashes, fixed camera metadata, no-scene-signal flags for
+darkframes, camera-role Mission 1 receipts, controlled PSF pair hashes plus
+negative controls, and no-REF premium still-SR promotion receipts. It exits
+nonzero until every committed requirement is closed by the submitted evidence.
+This is the intake tool for turning the open requirements above into an
+auditable pass/fail package.
+
 ## Current Generated Handoff Views
 
 - Raw-stills capture request:
