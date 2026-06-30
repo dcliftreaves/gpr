@@ -76,6 +76,8 @@ Premium still-SR visual review dashboard:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_20260629/index.html`.
 Premium still-SR xlarge diagnostic:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_xlarge_dashboard_20260629/index.html`.
+Premium still-SR X2D batch diagnostic:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_batch_dashboard_20260629/index.html`.
 Bayer resize PSF pair-derived dashboard:
 `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html`.
 
@@ -274,6 +276,7 @@ current evidence so strict local checks can verify it.
 | Premium still-SR candidate metrics dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_dashboard_20260629/index.html` |
 | Premium still-SR visual review dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_20260629/index.html` |
 | Premium still-SR xlarge diagnostic dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_xlarge_dashboard_20260629/index.html` |
+| Premium still-SR X2D batch diagnostic dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_batch_dashboard_20260629/index.html` |
 | Bayer resize PSF pair-derived dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html` |
 
 ![GPR production status matrix](docs/img/readme_status_matrix.svg)
