@@ -167,9 +167,14 @@ Evidence required:
    multi-scene version is now under
    `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_targets_20260630/`;
    it covers 81 rows across three X2D scenes and the first scene-held-out model
-   recovers only 1.46 percent residual MAE. The next target should move beyond
-   crop-local RGB/HF features to larger-context, noise-conditioned raw-domain
-   restoration before another promotion attempt.
+   recovers only 1.46 percent residual MAE. A follow-up multiscale model with
+   validated ISO/noise sidecar scalar planes improves that same scene holdout
+   to 2.56 percent:
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/`.
+   That is useful progress, but still too weak for promotion. The next target
+   should move beyond display-space crop-local residual learning to
+   larger-context, noise-conditioned raw-domain restoration before another
+   promotion attempt.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

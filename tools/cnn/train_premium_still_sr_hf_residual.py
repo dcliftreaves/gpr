@@ -77,6 +77,17 @@ def ev_plane(ev: torch.Tensor | None, batch: int, height: int, width: int, devic
     return ev.expand(batch, 1, height, width)
 
 
+def scalar_planes(values: torch.Tensor | None, batch: int, height: int, width: int, device: torch.device, channels: int) -> torch.Tensor:
+    if values is None:
+        values = torch.zeros((batch, channels), dtype=torch.float32, device=device)
+    values = values.to(device=device, dtype=torch.float32)
+    if values.ndim == 1:
+        values = values.view(batch, 1)
+    if values.shape[1] != channels:
+        raise ValueError(f"expected {channels} scalar channels, got {values.shape[1]}")
+    return values.view(batch, channels, 1, 1).expand(batch, channels, height, width)
+
+
 def luma_plane(x: torch.Tensor) -> torch.Tensor:
     return x[:, 0:1] * 0.2126 + x[:, 1:2] * 0.7152 + x[:, 2:3] * 0.0722
 
@@ -89,7 +100,13 @@ def brightness_planes(luma: torch.Tensor) -> torch.Tensor:
     return torch.cat([shadow, midtone, bright, near_clip], dim=1)
 
 
-def make_features(x: torch.Tensor, feature_mode: str, block: int, ev: torch.Tensor | None = None) -> torch.Tensor:
+def make_features(
+    x: torch.Tensor,
+    feature_mode: str,
+    block: int,
+    ev: torch.Tensor | None = None,
+    noise: torch.Tensor | None = None,
+) -> torch.Tensor:
     if feature_mode == "rgb":
         return x
     if feature_mode == "rgb_hf":
@@ -108,11 +125,87 @@ def make_features(x: torch.Tensor, feature_mode: str, block: int, ev: torch.Tens
             ],
             dim=1,
         )
+    if feature_mode == "rgb_hf_coord_luma_ev_noise_bright":
+        luma = luma_plane(x)
+        return torch.cat(
+            [
+                x,
+                block_highpass(x, block),
+                coord_planes(x.shape[0], x.shape[-2], x.shape[-1], x.device),
+                luma,
+                ev_plane(ev, x.shape[0], x.shape[-2], x.shape[-1], x.device),
+                scalar_planes(noise, x.shape[0], x.shape[-2], x.shape[-1], x.device, 4),
+                brightness_planes(luma),
+            ],
+            dim=1,
+        )
+    if feature_mode == "rgb_multiscale_coord_luma_ev_noise_bright":
+        luma = luma_plane(x)
+        coarse_block = max(block * 4, block + 2)
+        return torch.cat(
+            [
+                x,
+                block_highpass(x, block),
+                block_highpass(x, coarse_block),
+                coord_planes(x.shape[0], x.shape[-2], x.shape[-1], x.device),
+                luma,
+                ev_plane(ev, x.shape[0], x.shape[-2], x.shape[-1], x.device),
+                scalar_planes(noise, x.shape[0], x.shape[-2], x.shape[-1], x.device, 4),
+                brightness_planes(luma),
+            ],
+            dim=1,
+        )
     raise ValueError(f"unknown feature mode: {feature_mode}")
 
 
 def feature_channels(feature_mode: str) -> int:
-    return {"rgb": 3, "rgb_hf": 6, "rgb_hf_coord": 8, "rgb_hf_luma_ev_bright": 12}[feature_mode]
+    return {
+        "rgb": 3,
+        "rgb_hf": 6,
+        "rgb_hf_coord": 8,
+        "rgb_hf_luma_ev_bright": 12,
+        "rgb_hf_coord_luma_ev_noise_bright": 18,
+        "rgb_multiscale_coord_luma_ev_noise_bright": 21,
+    }[feature_mode]
+
+
+def uses_noise_sidecar_features(feature_mode: str) -> bool:
+    return feature_mode in {
+        "rgb_hf_coord_luma_ev_noise_bright",
+        "rgb_multiscale_coord_luma_ev_noise_bright",
+    }
+
+
+def load_noise_feature_from_sidecar(path: str | Path) -> tuple[float, float, float, float]:
+    p = Path(path)
+    try:
+        payload = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return (0.0, 0.0, 0.0, 0.0)
+    camera = payload.get("camera", {}) if isinstance(payload, dict) else {}
+    white = float(camera.get("white_level", 65535.0) or 65535.0)
+    black = float(camera.get("black_level", 0.0) or 0.0)
+    scale = max(white - black, 1.0)
+    calibrations = payload.get("calibrations", []) if isinstance(payload, dict) else []
+    cal = calibrations[0] if calibrations and isinstance(calibrations[0], dict) else {}
+    per_plane = cal.get("per_plane", {}) if isinstance(cal, dict) else {}
+    plane_values = [v for v in per_plane.values() if isinstance(v, dict)]
+
+    def mean_key(key: str) -> float:
+        vals = [float(v.get(key, 0.0) or 0.0) for v in plane_values]
+        return float(sum(vals) / len(vals)) if vals else 0.0
+
+    iso = float(cal.get("iso", 0.0) or 0.0)
+    sigma_norm = mean_key("sigma_black") / scale
+    p95_norm = mean_key("temporal_noise_p95_counts") / scale
+    fpn_norm = mean_key("spatial_fpn_rms_counts") / scale
+    iso_norm = np.log2(max(iso, 1.0) / 100.0) / 8.0
+    return (
+        float(np.clip(iso_norm, -1.0, 1.0)),
+        float(np.clip(sigma_norm * 64.0, 0.0, 1.0)),
+        float(np.clip(p95_norm * 32.0, 0.0, 1.0)),
+        float(np.clip(fpn_norm * 256.0, 0.0, 1.0)),
+    )
 
 
 def residual_loss(
@@ -166,6 +259,14 @@ class HfResidualTargets:
             raise ValueError(f"input/target shape mismatch: {self.inputs.shape} vs {self.targets.shape}")
         if self.inputs.ndim != 4 or self.inputs.shape[-1] != 3:
             raise ValueError(f"expected NHWC RGB arrays, got {self.inputs.shape}")
+        cache: dict[str, tuple[float, float, float, float]] = {}
+        self.noise_features: list[tuple[float, float, float, float]] = []
+        for row in self.rows:
+            sidecars = row.get("noise_sidecars", [])
+            sidecar = str(sidecars[0]) if isinstance(sidecars, list) and sidecars else ""
+            if sidecar and sidecar not in cache:
+                cache[sidecar] = load_noise_feature_from_sidecar(sidecar)
+            self.noise_features.append(cache.get(sidecar, (0.0, 0.0, 0.0, 0.0)))
 
     def row_indices(
         self,
@@ -193,10 +294,17 @@ class HfResidualTargets:
             raise ValueError(f"holdout EV {holdout_ev} produced train={len(train)} holdout={len(holdout)}")
         return train, holdout
 
-    def sample_batch(self, indices: list[int], batch_size: int, patch_size: int, rng: random.Random) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def sample_batch(
+        self,
+        indices: list[int],
+        batch_size: int,
+        patch_size: int,
+        rng: random.Random,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         xs: list[np.ndarray] = []
         ys: list[np.ndarray] = []
         evs: list[float] = []
+        noises: list[tuple[float, float, float, float]] = []
         h, w = self.inputs.shape[1:3]
         patch = min(patch_size, h, w)
         for _ in range(batch_size):
@@ -206,7 +314,13 @@ class HfResidualTargets:
             xs.append(self.inputs[idx, y0 : y0 + patch, x0 : x0 + patch].transpose(2, 0, 1))
             ys.append(self.targets[idx, y0 : y0 + patch, x0 : x0 + patch].transpose(2, 0, 1))
             evs.append(float(self.rows[idx].get("ev", 0.0)))
-        return torch.from_numpy(np.stack(xs)), torch.from_numpy(np.stack(ys)), torch.tensor(evs, dtype=torch.float32)
+            noises.append(self.noise_features[idx])
+        return (
+            torch.from_numpy(np.stack(xs)),
+            torch.from_numpy(np.stack(ys)),
+            torch.tensor(evs, dtype=torch.float32),
+            torch.tensor(noises, dtype=torch.float32),
+        )
 
 
 @torch.no_grad()
@@ -226,12 +340,13 @@ def eval_rows(
         cand = torch.from_numpy(data.inputs[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
         target = torch.from_numpy(data.targets[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
         ev = torch.tensor([float(data.rows[idx].get("ev", 0.0))], dtype=torch.float32, device=device)
+        noise = torch.tensor([data.noise_features[idx]], dtype=torch.float32, device=device)
         pred = torch.zeros_like(target)
         _, _, height, width = cand.shape
         for y0 in range(0, height, tile):
             for x0 in range(0, width, tile):
                 cand_tile = cand[:, :, y0 : y0 + tile, x0 : x0 + tile]
-                pred[:, :, y0 : y0 + tile, x0 : x0 + tile] = model(make_features(cand_tile, feature_mode, feature_block, ev))
+                pred[:, :, y0 : y0 + tile, x0 : x0 + tile] = model(make_features(cand_tile, feature_mode, feature_block, ev, noise))
         base_err = target
         pred_err = pred - target
         base_mae = float(torch.mean(torch.abs(base_err)).cpu())
@@ -296,7 +411,8 @@ def write_panel_sheet(
     for row_i, idx in enumerate(selected):
         cand = torch.from_numpy(data.inputs[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
         ev = torch.tensor([float(data.rows[idx].get("ev", 0.0))], dtype=torch.float32, device=device)
-        pred = model(make_features(cand, feature_mode, feature_block, ev)).squeeze(0).cpu().numpy().transpose(1, 2, 0)
+        noise = torch.tensor([data.noise_features[idx]], dtype=torch.float32, device=device)
+        pred = model(make_features(cand, feature_mode, feature_block, ev, noise)).squeeze(0).cpu().numpy().transpose(1, 2, 0)
         target = data.targets[idx]
         err = np.abs(pred - target)
         panels = [
@@ -375,11 +491,12 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     history: list[dict[str, Any]] = []
     t0 = time.perf_counter()
     for step in range(1, args.steps + 1):
-        x, y, ev = data.sample_batch(train_indices, args.batch_size, args.patch_size, rng)
+        x, y, ev, noise = data.sample_batch(train_indices, args.batch_size, args.patch_size, rng)
         x = x.to(DEVICE)
         y = y.to(DEVICE)
         ev = ev.to(DEVICE)
-        pred = model(make_features(x, args.feature_mode, args.feature_block, ev))
+        noise = noise.to(DEVICE)
+        pred = model(make_features(x, args.feature_mode, args.feature_block, ev, noise))
         loss = residual_loss(
             pred,
             y,
@@ -429,6 +546,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "target_abs_weight": args.target_abs_weight,
                 "bright_weight": args.bright_weight,
                 "near_clip_weight": args.near_clip_weight,
+                "uses_noise_sidecar_features": uses_noise_sidecar_features(args.feature_mode),
             },
         },
         checkpoint,
@@ -468,6 +586,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "target_abs_weight": args.target_abs_weight,
             "bright_weight": args.bright_weight,
             "near_clip_weight": args.near_clip_weight,
+            "uses_noise_sidecar_features": uses_noise_sidecar_features(args.feature_mode),
             "holdout_ev": args.holdout_ev,
             "holdout_crop": args.holdout_crop,
             "holdout_scene": args.holdout_scene,
@@ -476,7 +595,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "policy": {
             "uses_source_hf_at_training": True,
             "uses_source_hf_at_runtime": False,
-            "runtime_inputs": "candidate_render_rgb + candidate_highpass + candidate_luma/brightness_buckets + deterministic_render_ev",
+            "runtime_inputs": "candidate_render_rgb + candidate_highpass/multiscale_highpass + deterministic coordinates + candidate_luma/brightness_buckets + deterministic_render_ev + camera/ISO noise sidecar scalars when selected",
             "production_status": "smoke_training_probe_not_registered_production_algorithm",
         },
         "history": history,
@@ -503,7 +622,18 @@ def main() -> int:
     ap.add_argument("--width", type=int, default=32)
     ap.add_argument("--depth", type=int, default=5)
     ap.add_argument("--residual-scale", type=float, default=0.20)
-    ap.add_argument("--feature-mode", choices=("rgb", "rgb_hf", "rgb_hf_coord", "rgb_hf_luma_ev_bright"), default="rgb_hf_coord")
+    ap.add_argument(
+        "--feature-mode",
+        choices=(
+            "rgb",
+            "rgb_hf",
+            "rgb_hf_coord",
+            "rgb_hf_luma_ev_bright",
+            "rgb_hf_coord_luma_ev_noise_bright",
+            "rgb_multiscale_coord_luma_ev_noise_bright",
+        ),
+        default="rgb_hf_coord",
+    )
     ap.add_argument("--feature-block", type=int, default=16)
     ap.add_argument("--lr", type=float, default=1.0e-3)
     ap.add_argument("--weight-decay", type=float, default=1.0e-4)

@@ -35,6 +35,28 @@ def main() -> int:
     tmp_parent = os.environ.get("GPR_TMPDIR") or os.environ.get("TMPDIR")
     with tempfile.TemporaryDirectory(prefix="gpr_hf_residual_train_", dir=tmp_parent) as td:
         root = Path(td)
+        sidecar = root / "noise_sidecar.json"
+        sidecar.write_text(
+            json.dumps(
+                {
+                    "schema": "gpr.camera_noise_calibration.v1",
+                    "camera": {"white_level": 65535.0, "black_level": 4096.0},
+                    "calibrations": [
+                        {
+                            "iso": 3200,
+                            "per_plane": {
+                                "r": {"sigma_black": 30.0, "temporal_noise_p95_counts": 55.0, "spatial_fpn_rms_counts": 4.0},
+                                "g1": {"sigma_black": 45.0, "temporal_noise_p95_counts": 80.0, "spatial_fpn_rms_counts": 6.0},
+                                "g2": {"sigma_black": 46.0, "temporal_noise_p95_counts": 82.0, "spatial_fpn_rms_counts": 6.0},
+                                "b": {"sigma_black": 32.0, "temporal_noise_p95_counts": 58.0, "spatial_fpn_rms_counts": 5.0},
+                            },
+                        }
+                    ],
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
         y, x = np.indices((48, 48))
         inputs = []
         residuals = []
@@ -56,6 +78,7 @@ def main() -> int:
                     "ev": ev,
                     "crop_xy": [0, 0],
                     "crop_size": 48,
+                    "noise_sidecars": [str(sidecar)],
                 }
             )
         npz = root / "targets.npz"
@@ -80,7 +103,7 @@ def main() -> int:
                 "width": 8,
                 "depth": 3,
                 "residual_scale": 0.08,
-                "feature_mode": "rgb_hf_luma_ev_bright",
+                "feature_mode": "rgb_multiscale_coord_luma_ev_noise_bright",
                 "feature_block": 8,
                 "lr": 1.0e-3,
                 "weight_decay": 0.0,
@@ -106,6 +129,7 @@ def main() -> int:
         assert receipt["eval"]["train"]["row_count"] == 3
         assert receipt["eval"]["holdout"]["row_count"] == 1
         assert receipt["config"]["holdout_scene"] == "holdout_scene"
+        assert receipt["config"]["uses_noise_sidecar_features"] is True
 
     print("test_train_premium_still_sr_hf_residual: PASS")
     return 0

@@ -272,10 +272,15 @@ Current evidence:
   A scene-held-out no-REF w48/d5 probe improves train median residual MAE by
   2.21 percent and held-out `x2d_austin0181_iso6400` by 1.46 percent:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_w48_20260630/index.html`.
+  Adding multiscale candidate high-pass features plus validated ISO/noise
+  sidecar scalar planes improves the same scene holdout to 2.56 percent with a
+  w96/d8 model:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html`.
   The merged band analysis still shows median fine-band residual share 0.971x:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_band_analysis_20260630/index.html`.
-  This confirms the blocker is no longer just a single-image target issue; the
-  production path needs a stronger raw-domain/noise-conditioned texture model.
+  This confirms the blocker is no longer just a single-image target issue or
+  missing scalar noise metadata; the production path needs a stronger
+  larger-context raw-domain/noise-conditioned texture model.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both

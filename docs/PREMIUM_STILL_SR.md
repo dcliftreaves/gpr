@@ -750,16 +750,20 @@ Merged result:
 |---:|---:|---:|---:|
 | 81 | 3 | 0.465 | 0.03005 |
 
-Scene-held-out no-REF probe:
+Scene-held-out no-REF probes:
 
 ```text
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_w48_20260630/index.html
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_w48_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/train_receipt.json
 ```
 
-| holdout scene | train median residual MAE reduction | holdout median residual MAE reduction | checkpoint SHA-256 |
-|---|---:|---:|---|
-| `x2d_austin0181_iso6400` | 2.21% | 1.46% | `b1f0af31f5a5f8017fa6218592b35cc06dd8c159074ea993b1cdda7a5a84eba2` |
+| model | holdout scene | train median residual MAE reduction | holdout median residual MAE reduction | checkpoint SHA-256 |
+|---|---|---:|---:|---|
+| w48 crop-local RGB/HF | `x2d_austin0181_iso6400` | 2.21% | 1.46% | `b1f0af31f5a5f8017fa6218592b35cc06dd8c159074ea993b1cdda7a5a84eba2` |
+| w64 multiscale + ISO/noise sidecar scalars | `x2d_austin0181_iso6400` | 3.29% | 2.26% | `c945b24315047592963f3a1dbdf4e1f4722afa732e6821caa9eb24cdee34d4ef` |
+| w96 multiscale + ISO/noise sidecar scalars | `x2d_austin0181_iso6400` | 3.69% | 2.56% | `b3cfc2687a4fe7e66eedb57c7f82352f9804712dc68cc8699461d474390c84c9` |
 
 Merged band analysis:
 
@@ -776,21 +780,23 @@ Merged band analysis:
 | median mid-band share of residual abs | 0.244x |
 | median coarse-band share of residual abs | 0.00003x |
 
-This is the first scene-held-out X2D HF target result. It is positive, but far
-below a production still-SR promotion threshold. The evidence now rules out the
-single-image target as the only problem: even with multiple scenes and
-noise-sidecar metadata recorded, the current candidate-derived feature set and
-small residual model recover only a small part of the fine texture/detail gap.
-The next serious pass should move from crop-local RGB/HF features to a
+These are positive scene-held-out X2D HF target results, but still far below a
+production still-SR promotion threshold. The evidence now rules out the
+single-image target and simple scalar conditioning as the main blockers:
+multiscale candidate features plus validated ISO/noise sidecar scalars improve
+holdout recovery from 1.46 percent to 2.56 percent, but the model still
+recovers only a small part of the fine texture/detail gap. The next serious
+pass should move from display-space crop-local residual learning to a
 larger-context, noise-conditioned, raw-domain target/model, then rerun the
 rawpy latitude gate.
 
 ### Exposure/Brightness-Aware Residual Controls
 
-`tools/cnn/train_premium_still_sr_hf_residual.py` now supports an
-`rgb_hf_luma_ev_bright` feature mode and optional residual/brightness-weighted
-loss. The mode remains no-REF at inference: it uses candidate RGB, candidate
-high-pass, candidate luma/brightness buckets, and deterministic render EV.
+`tools/cnn/train_premium_still_sr_hf_residual.py` now supports EV/brightness
+features, multiscale high-pass features, and optional ISO/noise sidecar scalar
+planes. These modes remain no-REF at inference: they use candidate RGB,
+candidate high-pass, candidate luma/brightness buckets, deterministic render
+EV, deterministic coordinates, and camera/ISO noise sidecar metadata.
 
 The first control pass shows that those features alone do not solve the X2D
 texture/detail blocker:
