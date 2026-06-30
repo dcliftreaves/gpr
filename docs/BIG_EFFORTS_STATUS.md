@@ -261,7 +261,8 @@ Current evidence:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_framectx_unet_w32_1200_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_unet_w16_160_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_contextstoredhf_unet_w24_360_20260630/index.html`,
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_spectral_unet_w24_420_20260630/index.html`.
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_spectral_unet_w24_420_20260630/index.html`,
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_fullcrop_rawcontext_unet_w32_900_20260630/index.html`.
   The bounded full-crop U-Net probe trains on whole target crops and is
   candidate-only at runtime, but it reaches only about 0.06 percent median raw
   MAE recovery on the hard X2D scene while regressing the train split, so
@@ -271,7 +272,11 @@ Current evidence:
   RMSE recovery, so simple candidate context is not sufficient either.
   Adding a global FFT-magnitude spectral objective reaches only about 0.03
   percent median MAE recovery and regresses the train split, so spectral loss
-  alone is not sufficient either.
+  alone is not sufficient either. A larger full-crop raw-context U-Net with
+  scene-balanced sampling and pooled candidate context reaches only about 0.056
+  percent median MAE recovery and about 0.005 percent median RMSE recovery on
+  the same hard X2D holdout, so this still does not close the structured-context
+  gap.
 - `tools/build_premium_still_sr_visual_review.py` emits the current tile-level
   visual review dashboard with baseline/model/target/error contact sheets for
   the X2D holdout:
