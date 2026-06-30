@@ -266,6 +266,34 @@ specialist checkpoints for premium still-SR. It does not yet satisfy
 production promotion because the result is still tile-level, the improvement is
 modest, and raw-editor latitude/full-frame still receipts are missing.
 
+## Z8 Specialist Diagnostic
+
+The Z8 specialist pass built a 24-fixture Nikon Z8 manifest from the existing
+`barn_sky_dngs` fixture directory and trained with `z8_z8z_1349` held out:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_z8_batch_20260630/fixture_manifest.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_z8_batch_20260630/premium_still_sr_pairs_z8_batch_64t.npz
+```
+
+Results:
+
+| candidate | holdout | best RMSE improvement | best MAE improvement | interpretation |
+|---|---|---:|---:|---|
+| Z8 specialist, first pass | `z8_z8z_1349` | 16.04% | 2.56% | strong Z8 route signal |
+| Z8 specialist, continued | `z8_z8z_1349` | 25.52% | 4.28% | best current Z8 route candidate |
+
+Dashboards:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_z8_specialist_dashboard_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_z8_specialist_20260630/index.html
+```
+
+The generated raw-extract cache was removed after pair generation. Durable
+artifacts kept: manifest, pair NPZ, pair sidecar, checkpoints, training
+receipts, and dashboards.
+
 ## Router Plan
 
 The router plan builder turns current specialist evidence into a metadata-only
@@ -276,10 +304,13 @@ python3 tools/build_premium_still_sr_router_plan.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
   --fixture-manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_x2d_batch_20260629/fixture_manifest.json \
   --receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_20260629/premium_still_sr_x2d_specialist_w48_d6_2400plus2400_origx2d_holdout.pt.json \
+  --receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_z8_specialist_20260630/premium_still_sr_z8_specialist_w48_d6_2400plus2400_z8z1349_holdout.pt.json \
   --receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_batch_20260629/premium_still_sr_w48_d6_2000_origx2d_holdout.pt.json \
   --candidate-alias candidate_0=x2d_specialist \
-  --candidate-alias candidate_1=shared_x2d_batch_probe \
+  --candidate-alias candidate_1=z8_specialist \
+  --candidate-alias candidate_2=shared_x2d_batch_probe \
   --route x2d:100mp:dng=x2d_specialist \
+  --route z8:50mp:dng=z8_specialist \
   --default-candidate shared_x2d_batch_probe \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630
 ```
@@ -298,7 +329,7 @@ Current routes:
 | `x2d:100mp:dng` | 9 | `x2d_specialist` | best current X2D route, not production-ready |
 | `mission1:50mp:dng` | 1 | `shared_x2d_batch_probe` | placeholder until Mission specialist or shared full gate exists |
 | `mission1:50mp:gpr` | 1 | `shared_x2d_batch_probe` | placeholder until Mission specialist or shared full gate exists |
-| `z8:50mp:dng` | 1 | `shared_x2d_batch_probe` | placeholder until Z8 specialist or shared full gate exists |
+| `z8:50mp:dng` | 1 | `z8_specialist` | strong current Z8 route, not production-ready |
 
 The router plan is deliberately `production_ready=false`. It exists so future
 work can add real candidates route-by-route without ambiguity.

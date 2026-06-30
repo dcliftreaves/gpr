@@ -159,9 +159,13 @@ Current evidence:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_dashboard_20260630/index.html`.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
-  specialist and leaves Mission 1 / Z8 on a placeholder shared probe until
-  those routes have real specialists or full-gate proof:
+  specialist and `z8:50mp:dng` to the Z8 specialist; Mission 1 remains on a
+  placeholder shared probe until that route has a real specialist or full-gate
+  proof:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/index.html`.
+- A Z8-only specialist trained on 24 Z8 DNG fixtures improves the held-out
+  `z8_z8z_1349` fixture by about 25.52 percent RMSE and 4.28 percent MAE:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_z8_specialist_dashboard_20260630/index.html`.
 
 Boundaries:
 
@@ -183,7 +187,8 @@ Boundaries:
   the evidence is still tile-level and lacks raw-editor latitude/full-frame
   still receipts.
 - The router plan is a contract for future routing, not a production registry.
-  Current non-X2D routes are placeholders.
+  The Mission 1 routes are still placeholders; X2D and Z8 have candidate
+  specialists but still lack production full-frame/editor-latitude gates.
 
 Next production work:
 
