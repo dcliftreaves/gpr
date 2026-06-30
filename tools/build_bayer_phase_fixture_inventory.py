@@ -93,6 +93,10 @@ def parse_exif_cfa(data: dict[str, Any]) -> str | None:
         nums = [int(v) for v in cfa if isinstance(v, int) or str(v).isdigit()]
     else:
         nums = []
+    if len(nums) >= 6:
+        rows, cols = nums[0], nums[1]
+        if rows > 0 and cols > 0 and rows * cols == len(nums) - 2:
+            nums = nums[2:]
 
     colors = data.get("CFAPlaneColor")
     if isinstance(colors, str):

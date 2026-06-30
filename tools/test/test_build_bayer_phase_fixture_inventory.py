@@ -11,9 +11,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools/build_bayer_phase_fixture_inventory.py"
+sys.path.insert(0, str(ROOT / "tools"))
+import build_bayer_phase_fixture_inventory as inventory  # noqa: E402
 
 
 def main() -> int:
+    assert inventory.parse_exif_cfa({"CFAPattern": "2 2 0 1 1 2"}) == "RGGB"
+    assert inventory.parse_exif_cfa({"CFAPattern": [2, 2, 1, 0, 2, 1]}) == "GRBG"
     with tempfile.TemporaryDirectory(prefix="gpr_bayer_phase_inventory_") as td:
         out_dir = Path(td) / "inventory"
         proc = subprocess.run(
