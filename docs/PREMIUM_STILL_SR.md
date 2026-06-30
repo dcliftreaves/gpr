@@ -235,15 +235,49 @@ The generated raw-extract cache was removed after pair generation. Durable
 artifacts kept: converted DNGs, conversion manifest, fixture manifest, pair
 NPZ, checkpoints, training receipts, and dashboards.
 
+## X2D Specialist Diagnostic
+
+The first camera-specialist pass built an X2D-only 100 MP pair set from the
+original X2D fixture plus the eight converted Austin X2D DNGs:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_x2d_only_20260629/fixture_manifest.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_x2d_only_20260629/premium_still_sr_pairs_x2d_only_128t.npz
+```
+
+The original X2D fixture remained the holdout. The X2D-only specialist improves
+the hard holdout more than the mixed-camera X2D-batch model:
+
+| candidate | training set | best RMSE improvement | best MAE improvement | interpretation |
+|---|---|---:|---:|---|
+| mixed-camera X2D batch | Mission 1 + Z8 + X2D | 0.30% | 0.19% | added 100 MP diversity helps, but mixed source training under-serves the hard X2D scene |
+| X2D specialist, first pass | X2D only | 0.76% | 0.65% | camera-specialist direction is useful |
+| X2D specialist, continued | X2D only | 1.08% | 1.18% | best current hard-X2D result, still not production-grade |
+
+Specialist dashboards:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_dashboard_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_x2d_specialist_20260630/index.html
+```
+
+The specialist result supports a camera/source-aware router or separate
+specialist checkpoints for premium still-SR. It does not yet satisfy
+production promotion because the result is still tile-level, the improvement is
+modest, and raw-editor latitude/full-frame still receipts are missing.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
 and Z8 where available:
 
-1. Train or tune against high-quality still targets, not video crops.
-2. Condition on validated camera-noise sidecars for the relevant camera/ISO
+1. Train or tune camera/source specialists against high-quality still targets,
+   not video crops.
+2. Add a deterministic router based on source metadata and/or safe raw-domain
+   features, with a default shared model only where specialists do not help.
+3. Condition on validated camera-noise sidecars for the relevant camera/ISO
    class.
-3. Emit editable DNG/GPR plus review TIFF/ProRes/contact sheets.
-4. Promote only if the candidate beats the current still tiers on raw-domain
+4. Emit editable DNG/GPR plus review TIFF/ProRes/contact sheets.
+5. Promote only if the candidate beats the current still tiers on raw-domain
    metrics, rendered visual gates, editor-latitude checks, and worst-image
    review.
