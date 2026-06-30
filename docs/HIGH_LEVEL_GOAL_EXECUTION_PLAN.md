@@ -156,7 +156,11 @@ Evidence required:
    camera-noise-aware features before rerunning the full rawpy latitude gate.
    The supporting band analysis is under
    `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_band_analysis_20260630/`
-   and shows the blocker is fine-band, not coarse tone.
+   and shows the blocker is fine-band, not coarse tone. The first
+   EV/brightness-aware residual controls are still weak; the best crop-holdout
+   control improves only 0.54 percent. The next commit target should build a
+   broader full-frame/many-tile X2D target set with validated camera-noise
+   sidecars before another larger model run.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

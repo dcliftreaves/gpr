@@ -243,6 +243,14 @@ Current evidence:
   fine-band, brightness/exposure-conditioned texture/noise/detail. The next
   candidate should be fine-texture/noise-aware and exposure-conditioned before
   any full rawpy latitude promotion run.
+- The exposure/brightness-aware residual trainer controls do not yet generalize
+  well enough for promotion. A weighted EV/brightness model drops +2 EV holdout
+  improvement from 4.03 percent to 3.39 percent. On a center-crop holdout split,
+  the weighted model regresses by -1.56 percent and the unweighted
+  EV/brightness model improves only 0.54 percent:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_evbright_unweighted_cropholdout_w64_20260630/index.html`.
+  This points to insufficient target diversity/full-frame context, not just
+  missing scalar EV or brightness features.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both

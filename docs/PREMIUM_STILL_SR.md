@@ -665,6 +665,30 @@ center row is a special case. The next model target should therefore be
 exposure/brightness-aware fine texture restoration with validated camera-noise
 conditioning, not another coarse color/tonemap or random-noise pass.
 
+### Exposure/Brightness-Aware Residual Controls
+
+`tools/cnn/train_premium_still_sr_hf_residual.py` now supports an
+`rgb_hf_luma_ev_bright` feature mode and optional residual/brightness-weighted
+loss. The mode remains no-REF at inference: it uses candidate RGB, candidate
+high-pass, candidate luma/brightness buckets, and deterministic render EV.
+
+The first control pass shows that those features alone do not solve the X2D
+texture/detail blocker:
+
+| run | split | train median residual MAE reduction | holdout median residual MAE reduction | dashboard |
+|---|---|---:|---:|---|
+| baseline w64/d6 | train EV -2/0, hold out +2 EV | 5.34% | 4.03% | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_w64_20260630/index.html` |
+| EV/brightness weighted | train EV -2/0, hold out +2 EV | 4.57% | 3.39% | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_evbright_w64_20260630/index.html` |
+| EV/brightness weighted | train upper-left/lower-detail, hold out center crop | 5.57% | -1.56% | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_evbright_cropholdout_w64_20260630/index.html` |
+| EV/brightness unweighted | train upper-left/lower-detail, hold out center crop | 6.28% | 0.54% | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_evbright_unweighted_cropholdout_w64_20260630/index.html` |
+
+The weighted objective over-focuses the current tiny crop set and hurts
+spatial holdout. The unweighted crop-holdout control is barely positive. The
+next production-aligned pass should expand the target set before spending on
+larger models: full-frame or many-tile X2D targets across multiple exposures,
+validated ISO/noise sidecars, and a gate that holds out scenes/crops while
+still including +2 EV examples in training.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
