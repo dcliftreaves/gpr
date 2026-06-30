@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -74,6 +75,13 @@ def main() -> int:
         contact = root / "contact.jpg"
         tool.write_contact_sheet(contact, rows, 4)
         assert contact.stat().st_size > 0
+        raw = root / "candidate.raw"
+        raw.write_bytes(b"\x00" * (16 * 12 * 2))
+        (root / "candidate.raw.json").write_text(
+            json.dumps({"candidate": {"width": 16, "height": 12}}),
+            encoding="utf-8",
+        )
+        assert tool.infer_candidate_raw_shape(raw) == (16, 12)
 
     print("test_build_premium_still_sr_hf_residual_targets: PASS")
     return 0

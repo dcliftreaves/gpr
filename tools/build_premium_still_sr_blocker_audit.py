@@ -23,8 +23,8 @@ DEFAULT_EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT") or "/Volumes/OW
 
 DEFAULT_SCOREBOARD = "artifacts/premium_still_sr_experiment_scoreboard_20260630/scoreboard.json"
 DEFAULT_READINESS = "artifacts/premium_still_sr_readiness_20260630/readiness.json"
-DEFAULT_MERGED_TARGET = "artifacts/premium_still_sr_x2d_multiscene_hf_targets_20260630/merged/merge_receipt.json"
-DEFAULT_BAND_ANALYSIS = "artifacts/premium_still_sr_x2d_multiscene_hf_residual_band_analysis_20260630/band_analysis.json"
+DEFAULT_MERGED_TARGET = "artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/merge_receipt.json"
+DEFAULT_BAND_ANALYSIS = "artifacts/premium_still_sr_expanded_hf_residual_band_analysis_20260630/band_analysis.json"
 
 PROMOTION_RECOVERY_PCT = 15.0
 MIN_PRODUCTION_SCENES = 6
@@ -129,6 +129,12 @@ def classify_blockers(
 
     has_gate = bool(nested(readiness, ["evidence_summary", "has_raw_editor_latitude_receipt"]))
     has_noise_sidecars = bool(nested(readiness, ["evidence_summary", "has_validated_x2d_z8_noise_sidecars"]))
+    target_coverage_ready = (
+        row_count is not None
+        and scene_count is not None
+        and row_count >= MIN_PRODUCTION_TARGET_ROWS
+        and scene_count >= MIN_PRODUCTION_SCENES
+    )
 
     return [
         build_axis(
@@ -156,20 +162,25 @@ def classify_blockers(
         ),
         build_axis(
             "target_coverage_gap",
-            "The supervised HF target set is too small for a broad 50MP/100MP still product",
-            "blocked",
-            "high",
+            "The supervised HF target set must be broad enough for a 50MP/100MP still product",
+            "resolved" if target_coverage_ready else "blocked",
+            "low" if target_coverage_ready else "high",
             [
                 f"merged target rows: {row_count}",
                 f"merged target scenes: {scene_count}",
                 f"median target residual magnitude: {residual_abs_median}",
             ],
-            "Build a larger target set with more scenes, ISO levels, crops, and both X2D/Z8 classes before using scene-held-out recovery as production evidence.",
+            (
+                "Target coverage is now broad enough for the next training pass; keep it fixed while testing whether the runtime model can learn the fine-band residual."
+                if target_coverage_ready
+                else "Build a larger target set with more scenes, ISO levels, crops, and both X2D/Z8 classes before using scene-held-out recovery as production evidence."
+            ),
             {
                 "target_rows": row_count,
                 "target_scenes": scene_count,
                 "minimum_production_rows": MIN_PRODUCTION_TARGET_ROWS,
                 "minimum_production_scenes": MIN_PRODUCTION_SCENES,
+                "target_coverage_ready": target_coverage_ready,
                 "residual_abs_mean_median": residual_abs_median,
                 "hf_y_correlation_median": hf_corr_median,
             },
@@ -228,11 +239,18 @@ def classify_blockers(
 
 
 def recommended_experiment(axes: list[dict[str, Any]]) -> dict[str, Any]:
+    target_axis = next((axis for axis in axes if axis["id"] == "target_coverage_gap"), None)
+    target_ready = bool(nested(target_axis, ["metrics", "target_coverage_ready"])) if isinstance(target_axis, dict) else False
+    target_instruction = (
+        "Keep the expanded target coverage fixed while changing the runtime model; the current target set already clears the row/scene floor."
+        if target_ready
+        else "Increase target coverage before interpreting holdout recovery as production evidence."
+    )
     return {
         "name": "larger_context_raw_domain_noise_conditioned_texture_model",
         "purpose": "Replace the weak rendered-space no-REF HF residual probe with a production-relevant still-SR candidate.",
         "must_change": [
-            "Increase target coverage before interpreting holdout recovery as production evidence.",
+            target_instruction,
             "Predict in raw/CFA-aware space with larger context instead of relying only on local rendered features.",
             "Clean targets with measured camera/ISO noise sidecars and audit that removed content is noise, not signal.",
             "Optimize against fine texture placement and raw/editor-latitude behavior, not only aggregate residual MAE.",

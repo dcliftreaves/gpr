@@ -109,12 +109,12 @@ Current audit:
 
 The current audit keeps production readiness false. It records zero promotable
 rows, a best single-candidate holdout recovery of about 4.03 percent MAE, a
-broader scene-held-out recovery of about 2.56 percent MAE, only three X2D
-target scenes, and roughly 0.97x fine-band residual share. The next executable
-candidate should therefore expand the target coverage and train the current
-larger-context render/noise-conditioned texture model before any promotion
-attempt. A true raw-domain/CFA-aware model is the follow-on if the executable
-render-context pass still cannot recover the fine-band residual.
+broader scene-held-out recovery of about 2.56 percent MAE, an expanded
+13-scene / 351-row target set, and roughly 0.981x fine-band residual share. The
+target coverage floor is now cleared. The next executable candidate should keep
+that target set fixed and replace the weak rendered-context residual learner
+with a stronger raw-domain/CFA-aware or otherwise larger-context texture model
+before any promotion attempt.
 
 ## Target Expansion Plan
 
@@ -135,10 +135,8 @@ Current plan:
 
 It keeps the current 3-scene / 81-row X2D HF target receipt and selects 10 new
 target scenes: six additional X2D 100MP scenes and four representative Z8 50MP
-scenes, all with validated noise sidecars. That would produce a 13-scene /
-351-row target set, clearing the blocker audit's minimum coverage floor before
-training the next noise-conditioned still-SR model. Mission 1 has 84 eligible
-50MP fixtures in the routed manifest, but the plan defers them until validated
+scenes, all with validated noise sidecars. Mission 1 has 84 eligible 50MP
+fixtures in the routed manifest, but the plan defers them until validated
 same-camera noise sidecars exist.
 
 The generated command contract is intentionally executable with the current
@@ -146,6 +144,37 @@ tooling: per-scene target building uses `--noise-sidecar`, and the next trainer
 uses `--feature-mode rgb_multiscale_coord_luma_ev_noise_bright`. Do not change
 that wording to `raw_cfa_*` until the target NPZ and trainer actually carry raw
 CFA planes rather than rendered RGB crops.
+
+## Expanded Target Build And Result
+
+The target expansion has been executed:
+
+```sh
+python3 tools/cnn/build_premium_still_sr_expanded_hf_targets_from_plan.py \
+  --plan /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_expansion_plan_20260630/target_expansion_plan.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630
+```
+
+Current receipts:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/expanded_target_build_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/merge_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_residual_band_analysis_20260630/index.html
+```
+
+The merged target has 351 rows across 13 X2D/Z8 scenes. Median residual
+absolute mean is about 0.00721 and median HF Y correlation is about 0.575. The
+expanded band analysis still shows a fine-band residual share around 0.981x,
+so the missing detail is not a coarse tone or low-frequency placement problem.
+
+Two expanded rendered-context training passes have been run. The weighted w96
+model was unstable, with strongly negative train and holdout MAE recovery. The
+conservative w64 control was stable but landed near zero holdout recovery. That
+rules out "just add target coverage to the current rendered-context learner" as
+the next production path. The next pass should change the model/feature
+contract, most likely toward raw/CFA-aware or larger-context texture modeling,
+then re-run the full still-SR gate.
 
 ## Fixture Manifest Builder
 

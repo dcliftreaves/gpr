@@ -63,7 +63,7 @@ def main() -> int:
             },
         )
         write_json(
-            root / "artifacts/premium_still_sr_x2d_multiscene_hf_targets_20260630/merged/merge_receipt.json",
+            root / "artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/merge_receipt.json",
             {
                 "schema": "gpr.premium_still_sr_hf_residual_targets_merged.v1",
                 "summary": {
@@ -75,7 +75,7 @@ def main() -> int:
             },
         )
         write_json(
-            root / "artifacts/premium_still_sr_x2d_multiscene_hf_residual_band_analysis_20260630/band_analysis.json",
+            root / "artifacts/premium_still_sr_expanded_hf_residual_band_analysis_20260630/band_analysis.json",
             {
                 "schema": "gpr.premium_still_sr_hf_residual_band_analysis.v1",
                 "summary": {

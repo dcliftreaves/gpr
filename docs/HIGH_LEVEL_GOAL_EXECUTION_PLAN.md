@@ -174,12 +174,19 @@ Evidence required:
    validated ISO/noise sidecar scalar planes improves that same scene holdout
    to 2.56 percent:
    `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/`.
-   That is useful progress, but still too weak for promotion. The next
-   executable target should expand to the planned 13-scene / 351-row set and
-   train the current larger-context render/noise-conditioned model. If that
-   still does not close the fine-band gap, the follow-on should move beyond
-   display-space crop-local residual learning to raw-domain/CFA-aware
-   restoration before another promotion attempt.
+   That is useful progress, but still too weak for promotion. The planned
+   expanded target has now been built under
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/`;
+   it merges 13 X2D/Z8 scenes and 351 rows. The expanded residual band analysis
+   under
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_residual_band_analysis_20260630/`
+   still shows about 0.981x fine-band residual share. Two expanded
+   rendered-context training passes were intentionally not promoted: the
+   weighted w96 model was unstable, and the conservative w64 model was stable
+   but near zero held-out recovery. The next commit target should keep this
+   expanded target fixed while changing the learner/feature contract, most
+   likely to raw-domain/CFA-aware or otherwise larger-context texture
+   restoration, before another promotion attempt.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

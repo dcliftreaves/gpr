@@ -288,6 +288,27 @@ def render_rawpy_with_raw_replacement(
         raw.close()
 
 
+def infer_candidate_raw_shape(candidate_raw: Path) -> tuple[int, int]:
+    receipt_path = candidate_raw.with_suffix(candidate_raw.suffix + ".json")
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(
+            f"{candidate_raw} requires --candidate-raw-width/--candidate-raw-height "
+            f"or a degraded-candidate receipt at {receipt_path}"
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{receipt_path} is not valid JSON") from exc
+    candidate = receipt.get("candidate") if isinstance(receipt, dict) else None
+    if not isinstance(candidate, dict):
+        raise ValueError(f"{receipt_path} does not contain a candidate object")
+    width = int(candidate.get("width") or 0)
+    height = int(candidate.get("height") or 0)
+    if width <= 0 or height <= 0:
+        raise ValueError(f"{receipt_path} does not contain positive candidate width/height")
+    return width, height
+
+
 def build(args: argparse.Namespace) -> dict[str, Any]:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     panels_dir = args.output_dir / "panels"
@@ -428,7 +449,10 @@ def main() -> int:
     ap.add_argument("--contact-rows", type=int, default=9)
     args = ap.parse_args()
     if args.candidate_raw and (args.candidate_raw_width <= 0 or args.candidate_raw_height <= 0):
-        ap.error("--candidate-raw requires --candidate-raw-width and --candidate-raw-height")
+        try:
+            args.candidate_raw_width, args.candidate_raw_height = infer_candidate_raw_shape(args.candidate_raw)
+        except ValueError as exc:
+            ap.error(str(exc))
     data = build(args)
     print(
         json.dumps(

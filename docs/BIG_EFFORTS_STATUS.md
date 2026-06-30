@@ -265,7 +265,7 @@ Current evidence:
   The current scoreboard finds 10 candidate receipts and zero promotable rows.
   The best single-scene no-REF row reaches 4.03 percent held-out MAE recovery;
   the broader multi-scene/noise-conditioned row remains 2.56 percent. This
-  confirms the current 45 percent pillar score is still appropriate.
+  confirms the current 50 percent pillar score is still appropriate.
 - `tools/cnn/analyze_premium_still_sr_hf_residual_bands.py` decomposes the X2D
   residual target by frequency and brightness. The current dashboard shows
   median Y residual absolute mean 0.02892, +2 EV median 0.05983, +2 EV p95
@@ -314,6 +314,19 @@ Current evidence:
   This confirms the blocker is no longer just a single-image target issue or
   missing scalar noise metadata; the production path needs a stronger
   larger-context raw-domain/noise-conditioned texture model.
+- The target expansion pass has now been executed. The executor built the 10
+  newly selected X2D/Z8 scenes, merged them with the existing target sources,
+  and produced a 13-scene / 351-row HF residual target set:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/expanded_target_build_receipt.json`,
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/merge_receipt.json`.
+  The expanded band analysis still shows median fine-band residual share about
+  0.981x:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_residual_band_analysis_20260630/index.html`.
+  Two expanded rendered-context training passes were run and rejected: the
+  weighted w96 model was unstable, and the conservative w64 model landed near
+  zero held-out recovery. This moves the blocker from target coverage to the
+  model/feature contract; the next production pass should be raw/CFA-aware or
+  otherwise larger-context texture modeling.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
@@ -333,8 +346,9 @@ Boundaries:
 - The current visual review is tile-level Bayer-plane RGB only. It is useful
   for softness/artifact inspection, but it is not a full-frame raw-editor
   latitude receipt.
-- Current evidence points to X2D/generalization and fixture diversity as the
-  premium still-SR blocker, rather than a broken training loop.
+- Current evidence points to the rendered-context model/feature contract as the
+  premium still-SR blocker, rather than target coverage or a broken training
+  loop.
 - Added X2D diversity improves same-camera-class generalization, but the
   original X2D scene remains a hard outlier. That points to target/loss or
   scene-specialist work before premium still-SR can be promoted.

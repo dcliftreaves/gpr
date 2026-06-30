@@ -15,6 +15,7 @@ import json
 import math
 import os
 import re
+import subprocess
 import time
 from pathlib import Path
 from typing import Any
@@ -80,6 +81,41 @@ def fixture_scene_id(fixture: dict[str, Any]) -> str:
     return stem.lower()
 
 
+def read_source_iso(path: str | None) -> int | None:
+    if not path:
+        return None
+    try:
+        rows = json.loads(subprocess.check_output(["exiftool", "-j", "-n", "-ISO", path], text=True, stderr=subprocess.DEVNULL))
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
+        return None
+    if not rows or not isinstance(rows[0], dict):
+        return None
+    values = re.findall(r"\d+", str(rows[0].get("ISO", "")))
+    return int(values[0]) if values else None
+
+
+def sidecar_iso(path: str | None) -> int | None:
+    if not path:
+        return None
+    match = re.search(r"ISO(\d+)", path, re.I)
+    return int(match.group(1)) if match else None
+
+
+def select_noise_sidecars(noise_sidecars: list[dict[str, Any]], source_iso: int | None) -> list[dict[str, Any]]:
+    if not noise_sidecars:
+        return []
+    if source_iso is None:
+        return [noise_sidecars[0]]
+
+    def distance(sidecar: dict[str, Any]) -> tuple[float, str]:
+        iso = sidecar_iso(str(sidecar.get("path") or ""))
+        if iso is None or iso <= 0:
+            return (999.0, str(sidecar.get("path") or ""))
+        return (abs(math.log2(max(iso, 1) / max(source_iso, 1))), str(sidecar.get("path") or ""))
+
+    return [min(noise_sidecars, key=distance)]
+
+
 def is_existing_target(fixture: dict[str, Any], tokens: set[str]) -> bool:
     haystack = " ".join(
         [
@@ -127,6 +163,17 @@ def sample_evenly(fixtures: list[dict[str, Any]], count: int) -> list[dict[str, 
 
 def fixture_ref(fixture: dict[str, Any], *, reason: str) -> dict[str, Any]:
     source = fixture.get("source") if isinstance(fixture.get("source"), dict) else {}
+    sidecars = fixture.get("noise_sidecars", [])
+    noise_sidecars = [
+        {
+            "path": nested(sidecar, ["path"], sidecar.get("resolved_path") if isinstance(sidecar, dict) else None),
+            "sha256": sidecar.get("sha256") if isinstance(sidecar, dict) else None,
+        }
+        for sidecar in sidecars
+        if isinstance(sidecar, dict)
+    ]
+    source_iso = read_source_iso(str(source.get("path") or ""))
+    selected_noise_sidecars = select_noise_sidecars(noise_sidecars, source_iso)
     return {
         "label": fixture.get("label"),
         "scene_id": fixture_scene_id(fixture),
@@ -139,7 +186,10 @@ def fixture_ref(fixture: dict[str, Any], *, reason: str) -> dict[str, Any]:
         "height": fixture.get("height"),
         "source_path": source.get("path"),
         "source_sha256": source.get("sha256"),
-        "noise_sidecar_count": len(fixture.get("noise_sidecars", [])) if isinstance(fixture.get("noise_sidecars"), list) else 0,
+        "source_iso": source_iso,
+        "noise_sidecar_count": len(noise_sidecars),
+        "noise_sidecars": noise_sidecars,
+        "selected_noise_sidecars": selected_noise_sidecars,
         "reason": reason,
     }
 
@@ -242,8 +292,12 @@ def build_plan(args: argparse.Namespace) -> dict[str, Any]:
         },
         "commands": [
             {
+                "step": "build_degraded_candidate_raw_per_selected_scene",
+                "command_template": "python3 tools/cnn/build_premium_still_sr_degraded_candidate_raw.py --source-dng <selected source_path> --output-raw /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/candidate_raws/<scene_id>_box2_candidate.raw",
+            },
+            {
                 "step": "build_hf_targets_per_selected_scene",
-                "command_template": "python3 tools/cnn/build_premium_still_sr_hf_residual_targets.py --source-dng <selected source_path> --candidate-dng <current still-SR candidate DNG> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/<scene_id> --noise-sidecar <best camera/ISO noise sidecar>",
+                "command_template": "python3 tools/cnn/build_premium_still_sr_hf_residual_targets.py --source-dng <selected source_path> --candidate-raw /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/candidate_raws/<scene_id>_box2_candidate.raw --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/<scene_id> --noise-sidecar <best camera/ISO noise sidecar> --crop-size 768 --crop-grid 3 --block 16 --output-bps 16",
             },
             {
                 "step": "merge_targets",
@@ -275,7 +329,9 @@ def render_html(plan: dict[str, Any]) -> str:
         f"<td>{html.escape(str(row['label']))}</td>"
         f"<td>{html.escape(str(row['route']))}</td>"
         f"<td>{html.escape(str(row['scene_id']))}</td>"
+        f"<td>{html.escape(str(row.get('source_iso')))}</td>"
         f"<td>{html.escape(str(row['noise_sidecar_count']))}</td>"
+        f"<td>{html.escape(', '.join(str(s.get('path')) for s in row.get('selected_noise_sidecars', [])))}</td>"
         f"<td>{html.escape(str(row['reason']))}</td>"
         "</tr>"
         for row in plan["selected_new_targets"]
@@ -322,7 +378,7 @@ def render_html(plan: dict[str, Any]) -> str:
   <p>Current target: {current['scene_count']} scenes / {current['row_count']} rows. This plan expands coverage before another expensive no-REF CNN pass.</p>
   <section class="cards">{cards}</section>
   <h2>Selected New Target Scenes</h2>
-  <table><thead><tr><th>Label</th><th>Route</th><th>Scene</th><th>Noise Sidecars</th><th>Reason</th></tr></thead><tbody>{selected_rows}</tbody></table>
+  <table><thead><tr><th>Label</th><th>Route</th><th>Scene</th><th>ISO</th><th>Noise Sidecars</th><th>Selected Sidecar</th><th>Reason</th></tr></thead><tbody>{selected_rows}</tbody></table>
   <h2>Fixture Pool</h2>
   <table><thead><tr><th>Route</th><th>Fixtures</th><th>With Noise</th><th>Already Targeted Estimate</th><th>Examples</th></tr></thead><tbody>{pool_rows}</tbody></table>
   <h2>Build Commands</h2>

@@ -112,7 +112,11 @@ def main() -> int:
         assert "x2d_existing_1742" not in labels
         assert "x2d_new_0100" in labels
         assert sum(1 for row in plan["selected_new_targets"] if row["camera_key"] == "z8") == 2
+        assert plan["selected_new_targets"][0]["noise_sidecars"][0]["path"].startswith("/noise/")
+        assert plan["selected_new_targets"][0]["selected_noise_sidecars"][0]["path"].startswith("/noise/")
         commands = "\n".join(row["command_template"] for row in plan["commands"])
+        assert "build_premium_still_sr_degraded_candidate_raw.py" in commands
+        assert "--candidate-raw" in commands
         assert "--noise-sidecar" in commands
         assert "--synthetic-hf-sidecar" not in commands
         assert "--feature-mode rgb_multiscale_coord_luma_ev_noise_bright" in commands

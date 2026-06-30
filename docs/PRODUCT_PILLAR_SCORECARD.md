@@ -31,7 +31,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 47% | The infrastructure is broad, and the blocker plus target-expansion audits now make the next experiment concrete; the no-REF high-frequency texture model is still not production-grade yet. |
+| Premium still/SR | 50% | The expanded 13-scene / 351-row target set now exists, and the first expanded rendered-context training passes prove target coverage alone is not enough; the no-REF high-frequency texture model is still not production-grade yet. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, and the first native PSF measurement has executed; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -108,18 +108,24 @@ both are diagnostic rather than production-ready.
 The premium still-SR blocker audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html`.
 It turns the current diagnostic failure into next-experiment requirements:
-more target scenes and rows, a larger-context render/noise-conditioned texture
-model with calibrated noise/signal cleaning, and a full
-still/editor-latitude promotion gate. A true raw/CFA-aware model remains the
-follow-on if the executable render-context pass still cannot close the
-fine-band residual gap.
+keep the expanded target coverage fixed, replace the weak rendered-context
+learner with a stronger raw/CFA-aware or otherwise larger-context texture
+model, keep calibrated noise/signal cleaning in the feature contract, and run a
+full still/editor-latitude promotion gate.
 
 The premium still-SR target expansion plan lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_expansion_plan_20260630/index.html`.
-It expands the intended next target set from 3 scenes / 81 rows to 13 scenes /
-351 rows by adding six X2D 100MP and four Z8 50MP scenes with validated noise
+It selected six X2D 100MP and four Z8 50MP scenes with validated noise
 sidecars, while explicitly deferring Mission 1 until same-camera noise sidecars
-exist.
+exist. The executed expanded build lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/expanded_target_build_receipt.json`;
+the merged target contains 13 scenes and 351 rows. The expanded residual band
+analysis lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_residual_band_analysis_20260630/index.html`
+and still shows the residual is fine-band dominated. The first expanded
+training passes are intentionally not promoted: the weighted w96
+render-context model was unstable, and the conservative w64 model landed near
+zero held-out recovery.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a
