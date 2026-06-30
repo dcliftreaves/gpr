@@ -101,6 +101,22 @@ Current expected values:
 | 8K SR Z8 median write-inclusive throughput | 1.40 fps |
 | Real fixture compatibility | 8 pass, 0 skip |
 
+## Continuous 8K Review Media
+
+The current public A/B review is a continuous scene-video comparison, not a
+dashboard or contact sheet:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/
+```
+
+It contains a no-CNN baseline rendered from 42 native 4096 x 3072 raw Bayer
+frames and display-upscaled to 8192 x 6144, the approved 4K cleanup plus 8K SR
+CNN raw Bayer result at 8192 x 6144, a 3840 x 1440 side-by-side ProRes review,
+and a receipt with hashes and `ffprobe` dimensions. Use this folder for
+top-level no-CNN versus CNN visual review. The older no-8K-SR comparison only
+isolates the 8K SR stage from an already-cleaned 4K CNN input.
+
 ## Replacement Rule
 
 Do not replace the current 4K cleanup or 8K SR CNN just because a dashboard

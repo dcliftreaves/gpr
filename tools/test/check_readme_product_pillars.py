@@ -69,13 +69,14 @@ REQUIRED_README_TOKENS = (
     "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
     "docs/PREMIUM_STILL_SR.md",
     "docs/BAYER_RESIZE_PSF.md",
-    "mission1_8k_continuous_cnn_ab_20260630",
-    "Continuous scene videos: no 8K SR CNN",
-    "mission42_no_8k_sr_cnn_8k_lanczos_from_4kcnn_42f_20p_prores.mov",
-    "mission42_with_8k_sr_cnn_8k_42f_20p_prores.mov",
-    "mission42_8k_no_sr_vs_with_sr_side_by_side_3840x1440_42f_20p_prores.mov",
-    "This isolates the 8K SR CNN contribution from the same 4K cleanup input",
-    "it is not a zero-CNN end-to-end comparison",
+    "mission1_8k_true_no_cnn_vs_cnn_20260630",
+    "Continuous scene videos: no CNN baseline",
+    "mission42_true_no_cnn_4k_raw_lanczos_to_8k_42f_20p_prores.mov",
+    "mission42_with_4k_cleanup_and_8k_sr_cnn_42f_20p_prores.mov",
+    "mission42_true_no_cnn_vs_with_cnn_side_by_side_3840x1440_42f_20p_prores.mov",
+    "This is a real continuous-scene A/B",
+    "no-CNN 4096 x 3072 raw Bayer display-upscaled to 8192 x 6144",
+    "approved 4K cleanup plus 8K SR CNN raw Bayer path",
 )
 
 FORBIDDEN_README_TOKENS = (
@@ -83,6 +84,10 @@ FORBIDDEN_README_TOKENS = (
     # continuous scene-video comparison. Keep it out of the public evidence map.
     "mission1_8k_sr_with_without_cnn_review_20260630",
     "mission1_8k_sr_with_without_cnn_contact_review_42f_prores.mov",
+    # This older artifact isolates only the 8K SR stage from an already-cleaned
+    # 4K CNN input, so it is not the top-level no-CNN comparison reviewers ask
+    # for in the public README.
+    "mission1_8k_continuous_cnn_ab_20260630",
 )
 
 EXPECTED_PERCENTAGES = {
@@ -117,7 +122,7 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
     require_tokens(readme, REQUIRED_README_TOKENS, readme_path.name, failures)
     for token in FORBIDDEN_README_TOKENS:
         if token in readme:
-            failures.append(f"{readme_path.name} must not reference rejected dashboard-style artifact {token!r}")
+            failures.append(f"{readme_path.name} must not reference rejected or superseded artifact {token!r}")
 
     for pillar, expected in EXPECTED_PERCENTAGES.items():
         actual = extract_done_percent(readme, pillar)

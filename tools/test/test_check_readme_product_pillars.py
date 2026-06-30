@@ -88,8 +88,20 @@ def main() -> int:
             encoding="utf-8",
         )
         failures = module.validate(readme, scorecard)
-        if not failures or not any("rejected dashboard-style artifact" in failure for failure in failures):
+        if not failures or not any("rejected or superseded artifact" in failure for failure in failures):
             print(f"rejected 8K dashboard-video artifact did not trigger expected failure: {failures}", file=sys.stderr)
+            return 1
+
+        readme.write_text(
+            good
+            + "\n/Volumes/OWC_8TB/gpr_work/artifacts/"
+            "mission1_8k_continuous_cnn_ab_20260630/"
+            "mission42_no_8k_sr_cnn_8k_lanczos_from_4kcnn_42f_20p_prores.mov\n",
+            encoding="utf-8",
+        )
+        failures = module.validate(readme, scorecard)
+        if not failures or not any("rejected or superseded artifact" in failure for failure in failures):
+            print(f"older no-8K-SR-only artifact did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 
     print("test_check_readme_product_pillars: PASS")
