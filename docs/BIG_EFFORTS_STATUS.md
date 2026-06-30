@@ -12,7 +12,7 @@ If a metric here conflicts with a committed receipt, the receipt wins.
 |---|---|---|
 | Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance. | Good enough to present as a working stills product path, with explicit open work on more real alternate-phase fixtures and camera-calibrated noise. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, and an X2D rawpy latitude dashboard with LF/HF decomposition, source-HF oracle, and calibrated no-REF synthetic-HF sweep. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass. |
+| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, and a structured HF residual target dataset for the next training pass. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup and candidate-aware 8K SR. | Not done as a formal PSF/blur-calibrated resizing model. |
 
 ## 1. Raw Stills
@@ -215,6 +215,15 @@ Current evidence:
   stochastic noise addback. The low HF correlation means the next training pass
   should learn a residual/detail field from high-quality still targets, not
   simply increase output HF amplitude.
+- `tools/cnn/build_premium_still_sr_hf_residual_targets.py` now materializes
+  that next supervised target: candidate rendered crops plus
+  `source_hf - candidate_hf` residuals. The current X2D artifact has 9 crop/EV
+  rows, median HF correlation 0.406, median residual absolute mean 0.04284,
+  max residual absolute mean 0.09168, median residual p95 0.10893, and an
+  83.4 MB compressed NPZ with artifact hash:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/index.html`.
+  This target uses source HF for supervision only and is explicitly not a
+  runtime/no-REF render path.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
@@ -252,10 +261,11 @@ Next production work:
 
 1. Replace the source-HF oracle with a production-safe learned/modelled
    texture path. Calibrated random-HF addback does not close the X2D +2 EV
-   gap, so the next pass should train a structured texture/detail generator or
-   change the still-SR target/loss. The current LF tone error is much smaller
-   than the HF error, and HF correlation is only about 0.406 median, so the
-   next pass should not chase generic tone mapping or simple HF gain first.
+   gap, so the next pass should train against the structured HF residual target
+   dataset or change the still-SR target/loss. The current LF tone error is
+   much smaller than the HF error, and HF correlation is only about 0.406
+   median, so the next pass should not chase generic tone mapping or simple HF
+   gain first.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Add full-frame still visual dashboards, raw-domain metrics, and raw-editor

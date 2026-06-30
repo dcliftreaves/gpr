@@ -539,6 +539,44 @@ gap to the source-HF oracle. The production conclusion is therefore narrower:
 the next pass needs structured texture/detail reconstruction or a still-SR
 target/loss change, not simple noise addback.
 
+### X2D Structured HF Residual Targets
+
+`tools/cnn/build_premium_still_sr_hf_residual_targets.py` turns the X2D
+latitude comparison into a supervised residual dataset for the next still-SR
+training pass. It stores candidate rendered crops as inputs and
+`source_hf - candidate_hf` as the target residual. The source DNG is used only
+to build the training target; this artifact is not a runtime/no-REF render
+path.
+
+```sh
+python3 tools/cnn/build_premium_still_sr_hf_residual_targets.py \
+  --source-dng /Volumes/OWC_8TB/gpr_work/artifacts/fixtures/x2d_dngs/2024_April_X2D_1742.dng \
+  --candidate-dng /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/x2d_scaled/metadata_transplant_v3/frame_000000_sr8k_x2d_meta.dng \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630 \
+  --crop-size 768 \
+  --block 16 \
+  --output-bps 16 \
+  --contact-rows 9
+```
+
+Current dashboard and target NPZ:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/hf_residual_targets.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/hf_residual_targets.npz
+```
+
+Result:
+
+| rows | median HF corr | median residual mean | max residual mean | median residual p95 | NPZ bytes |
+|---:|---:|---:|---:|---:|---:|
+| 9 | 0.406 | 0.04284 | 0.09168 | 0.10893 | 83,370,728 |
+
+This is the first concrete target for the next production experiment: train a
+structured residual/detail model that predicts this field from candidate/runtime
+inputs, then rerun the rawpy latitude gate without source-HF at render time.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
