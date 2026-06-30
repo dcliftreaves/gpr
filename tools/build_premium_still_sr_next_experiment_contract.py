@@ -161,6 +161,9 @@ def build_contract(
                 "bounded full-crop U-Net training without a stronger full-image objective or model capacity",
                 "bounded full-crop stored-HF/context U-Net training without a materially stronger objective or model capacity",
                 "bounded full-crop spectral-loss U-Net training without a materially stronger model or target",
+                "larger full-crop raw-context U-Net training over the same candidate-only local/full-crop statistics",
+                "deeper gated pyramid U-Net training over the same candidate-only local/full-crop statistics",
+                "nearest-neighbor residual patch dictionary over current candidate raw/HF patch statistics",
                 "calibrated random-HF or noise addback as a substitute for learned signal detail",
             ],
             "success_gates": [
