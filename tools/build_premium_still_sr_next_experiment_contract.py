@@ -134,6 +134,34 @@ def build_contract(
         },
         "next_model_contract": {
             "recommended_first_track": "full-image or structured raw-CFA residual learner",
+            "minimum_viable_next_pass": {
+                "must_change_from_failed_contract": [
+                    "use a full-image, full-crop, or otherwise structured context representation that is not reducible to independent local crop statistics",
+                    "add a materially stronger learned detail prior, teacher-distilled target, or global/contextual objective instead of only increasing local CNN capacity",
+                    "select checkpoints by the joint X2D plus Z8 holdout gates, not train loss or a single-camera dashboard",
+                    "emit the same editable raw, rendered latitude, timing, memory, config, and noise-policy receipts required for promotion even if the result fails",
+                ],
+                "acceptable_first_tracks": [
+                    "global-context encoder with raw-CFA residual decoder and candidate-only runtime inputs",
+                    "teacher-distilled raw-CFA detail prior whose teacher never appears at render time",
+                    "masked/contextual raw-detail reconstruction objective trained on the locked 351-row target set",
+                    "scene-family routed specialists only if the router uses candidate raw/metadata and beats the shared baseline per family",
+                ],
+                "baseline_comparisons_required": [
+                    "best X2D raw-CFA residual baseline",
+                    "best Z8 raw-CFA residual baseline",
+                    "small U-Net raw-domain probe",
+                    "full-crop U-Net and gated pyramid U-Net rejection probes",
+                    "patch-dictionary and low-order candidate-signal rejection probes",
+                ],
+                "early_reject_if": [
+                    "X2D median raw-residual MAE recovery is not positive",
+                    "Z8 median raw-residual MAE recovery drops below the existing positive baseline without a documented tradeoff",
+                    "runtime input policy includes REF, source raw, source HF, or JPEG target content",
+                    "improvement appears only in local crop metrics and disappears in full still/editor-latitude review",
+                    "checkpoint selection depends on train loss without passing held-out X2D and Z8 receipts",
+                ],
+            },
             "allowed_runtime_inputs": [
                 "candidate raw/CFA planes",
                 "candidate-derived luma/detail features",
@@ -204,6 +232,11 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
     do_not_repeat = "".join(f"<li>{html.escape(item)}</li>" for item in data["next_model_contract"]["do_not_repeat_as_primary_path"])
     gates = "".join(f"<li>{html.escape(item)}</li>" for item in data["next_model_contract"]["success_gates"])
     blockers = "".join(f"<li>{html.escape(item)}</li>" for item in data["current_model_state"]["blockers"])
+    minimum = data["next_model_contract"]["minimum_viable_next_pass"]
+    must_change = "".join(f"<li>{html.escape(item)}</li>" for item in minimum["must_change_from_failed_contract"])
+    acceptable_tracks = "".join(f"<li>{html.escape(item)}</li>" for item in minimum["acceptable_first_tracks"])
+    baseline_comparisons = "".join(f"<li>{html.escape(item)}</li>" for item in minimum["baseline_comparisons_required"])
+    early_reject = "".join(f"<li>{html.escape(item)}</li>" for item in minimum["early_reject_if"])
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Premium Still-SR Next Experiment Contract</title>
 <style>
@@ -238,6 +271,15 @@ code {{ font-size: 12px; word-break: break-all; }}
 <ul>{blockers}</ul>
 <h2>Forbidden Runtime Inputs</h2>
 <ul>{forbidden}</ul>
+<h2>Minimum Viable Next Pass</h2>
+<h3>Must change from the failed contract</h3>
+<ul>{must_change}</ul>
+<h3>Acceptable first tracks</h3>
+<ul>{acceptable_tracks}</ul>
+<h3>Required baseline comparisons</h3>
+<ul>{baseline_comparisons}</ul>
+<h3>Early reject if</h3>
+<ul>{early_reject}</ul>
 <h2>Do Not Repeat As Primary Path</h2>
 <ul>{do_not_repeat}</ul>
 <h2>Promotion Gates</h2>

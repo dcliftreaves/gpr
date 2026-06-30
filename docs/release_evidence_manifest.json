@@ -1414,7 +1414,7 @@
         "scoreboard_promotable_candidate_count": 0,
         "should_start_next_model_pass": 1,
         "production_ready": 0,
-        "x2d_best_raw_residual_mae_recovery_pct": 0.02164405662232214,
+        "x2d_best_raw_residual_mae_recovery_pct": 0.09981604486103075,
         "z8_best_raw_residual_mae_recovery_pct": 0.4983379829708305,
         "promotion_threshold_pct": 15.0
       }

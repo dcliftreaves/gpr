@@ -173,9 +173,15 @@ def main() -> int:
         assert any("pyramid U-Net" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("nearest-neighbor residual patch dictionary" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("low-order linear candidate raw/HF/metadata" in item for item in contract["do_not_repeat_as_primary_path"])
+        minimum = contract["minimum_viable_next_pass"]
+        assert any("not reducible to independent local crop statistics" in item for item in minimum["must_change_from_failed_contract"])
+        assert any("teacher-distilled" in item for item in minimum["acceptable_first_tracks"])
+        assert any("patch-dictionary" in item for item in minimum["baseline_comparisons_required"])
+        assert any("source raw" in item for item in minimum["early_reject_if"])
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "Premium Still-SR Next Experiment Contract" in html
         assert "Forbidden Runtime Inputs" in html
+        assert "Minimum Viable Next Pass" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
 
     print("test_build_premium_still_sr_next_experiment_contract: PASS")
