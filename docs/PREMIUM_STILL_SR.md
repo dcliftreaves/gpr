@@ -110,10 +110,11 @@ Current audit:
 The current audit keeps production readiness false. It records zero promotable
 rows, a best single-candidate holdout recovery of about 4.03 percent MAE, a
 broader scene-held-out recovery of about 2.56 percent MAE, only three X2D
-target scenes, and roughly 0.97x fine-band residual share. The next candidate
-should therefore be a larger-context raw-domain, CFA-aware, noise-conditioned
-texture model with expanded target coverage and a full still/editor-latitude
-gate, not another small rendered-space residual probe.
+target scenes, and roughly 0.97x fine-band residual share. The next executable
+candidate should therefore expand the target coverage and train the current
+larger-context render/noise-conditioned texture model before any promotion
+attempt. A true raw-domain/CFA-aware model is the follow-on if the executable
+render-context pass still cannot recover the fine-band residual.
 
 ## Target Expansion Plan
 
@@ -136,9 +137,15 @@ It keeps the current 3-scene / 81-row X2D HF target receipt and selects 10 new
 target scenes: six additional X2D 100MP scenes and four representative Z8 50MP
 scenes, all with validated noise sidecars. That would produce a 13-scene /
 351-row target set, clearing the blocker audit's minimum coverage floor before
-training the next raw-domain/noise-conditioned still-SR model. Mission 1 has
-84 eligible 50MP fixtures in the routed manifest, but the plan defers them
-until validated same-camera noise sidecars exist.
+training the next noise-conditioned still-SR model. Mission 1 has 84 eligible
+50MP fixtures in the routed manifest, but the plan defers them until validated
+same-camera noise sidecars exist.
+
+The generated command contract is intentionally executable with the current
+tooling: per-scene target building uses `--noise-sidecar`, and the next trainer
+uses `--feature-mode rgb_multiscale_coord_luma_ev_noise_bright`. Do not change
+that wording to `raw_cfa_*` until the target NPZ and trainer actually carry raw
+CFA planes rather than rendered RGB crops.
 
 ## Fixture Manifest Builder
 

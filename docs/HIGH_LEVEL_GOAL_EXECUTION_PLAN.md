@@ -174,10 +174,12 @@ Evidence required:
    validated ISO/noise sidecar scalar planes improves that same scene holdout
    to 2.56 percent:
    `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/`.
-   That is useful progress, but still too weak for promotion. The next target
-   should move beyond display-space crop-local residual learning to
-   larger-context, noise-conditioned raw-domain restoration before another
-   promotion attempt.
+   That is useful progress, but still too weak for promotion. The next
+   executable target should expand to the planned 13-scene / 351-row set and
+   train the current larger-context render/noise-conditioned model. If that
+   still does not close the fine-band gap, the follow-on should move beyond
+   display-space crop-local residual learning to raw-domain/CFA-aware
+   restoration before another promotion attempt.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

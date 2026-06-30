@@ -243,7 +243,7 @@ def build_plan(args: argparse.Namespace) -> dict[str, Any]:
         "commands": [
             {
                 "step": "build_hf_targets_per_selected_scene",
-                "command_template": "python3 tools/cnn/build_premium_still_sr_hf_residual_targets.py --source-dng <selected source_path> --candidate-dng <current still-SR candidate DNG> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/<scene_id> --synthetic-hf-sidecar <best camera/ISO noise sidecar>",
+                "command_template": "python3 tools/cnn/build_premium_still_sr_hf_residual_targets.py --source-dng <selected source_path> --candidate-dng <current still-SR candidate DNG> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/<scene_id> --noise-sidecar <best camera/ISO noise sidecar>",
             },
             {
                 "step": "merge_targets",
@@ -251,7 +251,7 @@ def build_plan(args: argparse.Namespace) -> dict[str, Any]:
             },
             {
                 "step": "train_next_model",
-                "command_template": "python3 tools/cnn/train_premium_still_sr_hf_residual.py --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/hf_residual_targets_merged.npz --feature-mode raw_cfa_multiscale_coord_luma_ev_noise_bright --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_raw_context_model_20260630",
+                "command_template": "python3 tools/cnn/train_premium_still_sr_hf_residual.py --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/hf_residual_targets_merged.npz --feature-mode rgb_multiscale_coord_luma_ev_noise_bright --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_render_context_model_20260630",
             },
         ],
         "production_ready": False,

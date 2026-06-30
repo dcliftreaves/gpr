@@ -108,8 +108,11 @@ both are diagnostic rather than production-ready.
 The premium still-SR blocker audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html`.
 It turns the current diagnostic failure into next-experiment requirements:
-larger raw/CFA-aware context, more target scenes and rows, calibrated
-noise/signal cleaning, and a full still/editor-latitude promotion gate.
+more target scenes and rows, a larger-context render/noise-conditioned texture
+model with calibrated noise/signal cleaning, and a full
+still/editor-latitude promotion gate. A true raw/CFA-aware model remains the
+follow-on if the executable render-context pass still cannot close the
+fine-band residual gap.
 
 The premium still-SR target expansion plan lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_expansion_plan_20260630/index.html`.

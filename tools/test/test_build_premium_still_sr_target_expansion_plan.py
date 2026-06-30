@@ -112,6 +112,11 @@ def main() -> int:
         assert "x2d_existing_1742" not in labels
         assert "x2d_new_0100" in labels
         assert sum(1 for row in plan["selected_new_targets"] if row["camera_key"] == "z8") == 2
+        commands = "\n".join(row["command_template"] for row in plan["commands"])
+        assert "--noise-sidecar" in commands
+        assert "--synthetic-hf-sidecar" not in commands
+        assert "--feature-mode rgb_multiscale_coord_luma_ev_noise_bright" in commands
+        assert "raw_cfa_multiscale_coord_luma_ev_noise_bright" not in commands
         assert "Premium Still-SR Target Expansion Plan" in html
         assert proc.stdout.strip() == str(out / "index.html")
 
