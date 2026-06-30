@@ -309,15 +309,22 @@ uses scene-balanced full-crop samples, pooled candidate raw/HF context planes,
 global candidate raw scalars, and candidate-only runtime inputs. It also fails
 promotion by a wide margin: the hard X2D holdout reaches only about 0.056
 percent median raw-residual MAE recovery and about 0.005 percent median RMSE
-recovery after 900 steps. The next candidate should use materially stronger
-full-image/structured raw context or a different target/model, not just the
+recovery after 900 steps. A deeper gated pyramid U-Net probe at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_pyramid_rawcontext_w24_700_20260630/train_receipt.json`
+adds a third encoder scale plus channel gates while keeping the same
+candidate-only full-crop raw-context policy. It is also rejected: the hard X2D
+holdout reaches only about 0.031 percent median raw-residual MAE recovery and
+about 0.003 percent median RMSE recovery after 700 steps. The next candidate
+should use materially stronger full-image/structured raw context or a different
+target/model, not just the
 stored-HF feature, simple noise thresholding, local loss-weight tuning,
 pooled-context feature concatenation, combined local feature concatenation,
 simple band-loss reweighting, camera-domain filtering, camera-balanced
 sampling, small context padding, a small U-Net alone, or frame-context scalar
 planes alone, bounded full-crop sampling alone, or bounded full-crop
 stored-HF/context U-Net training, or bounded full-crop spectral-loss U-Net
-training, or bounded full-crop raw-context U-Net training.
+training, bounded full-crop raw-context U-Net training, or a deeper gated
+pyramid U-Net over the same runtime features.
 
 ## Raw-CFA Feature Smoke
 

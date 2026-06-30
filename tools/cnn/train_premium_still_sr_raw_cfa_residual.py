@@ -507,6 +507,69 @@ class RawCfaResidualUNet(nn.Module):
         return torch.tanh(self.tail(d0)) * self.residual_scale
 
 
+class ChannelGate(nn.Module):
+    def __init__(self, channels: int, reduction: int = 8) -> None:
+        super().__init__()
+        hidden = max(4, channels // max(1, reduction))
+        self.net = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(channels, hidden, 1),
+            nn.GELU(),
+            nn.Conv2d(hidden, channels, 1),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x * self.net(x)
+
+
+class RawCfaResidualPyramidUNet(nn.Module):
+    """Deeper U-Net for full-crop raw-CFA residual probes.
+
+    The existing U-Net is intentionally small. This variant adds one more
+    pyramid level plus channel gating at each scale so a full-crop run can use
+    broader candidate-only context without changing the runtime input policy.
+    """
+
+    def __init__(self, in_channels: int, width: int = 32, depth: int = 4, residual_scale: float = 0.12) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        w1 = max(8, int(width))
+        w2 = w1 * 2
+        w3 = w1 * 4
+        w4 = w1 * 6
+        self.enc0 = nn.Sequential(ConvAct(in_channels, w1), ChannelGate(w1))
+        self.enc1 = nn.Sequential(ConvAct(w1, w2, stride=2), ChannelGate(w2))
+        self.enc2 = nn.Sequential(ConvAct(w2, w3, stride=2), ChannelGate(w3))
+        self.enc3 = nn.Sequential(ConvAct(w3, w4, stride=2), ChannelGate(w4))
+        blocks: list[nn.Module] = []
+        dilations = [1, 2, 4, 8]
+        for i in range(max(1, depth)):
+            blocks.append(ResidualBlock(w4, dilation=dilations[i % len(dilations)]))
+            blocks.append(ChannelGate(w4))
+        self.bottleneck = nn.Sequential(*blocks)
+        self.dec2 = nn.Sequential(ConvAct(w4 + w3, w3), ChannelGate(w3))
+        self.dec1 = nn.Sequential(ConvAct(w3 + w2, w2), ChannelGate(w2))
+        self.dec0 = nn.Sequential(ConvAct(w2 + w1, w1), ChannelGate(w1))
+        self.tail = nn.Conv2d(w1, 4, 3, padding=1)
+        nn.init.zeros_(self.tail.weight)
+        nn.init.zeros_(self.tail.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        e0 = self.enc0(x)
+        e1 = self.enc1(e0)
+        e2 = self.enc2(e1)
+        e3 = self.enc3(e2)
+        b = self.bottleneck(e3)
+        u2 = F.interpolate(b, size=e2.shape[-2:], mode="bilinear", align_corners=False)
+        d2 = self.dec2(torch.cat([u2, e2], dim=1))
+        u1 = F.interpolate(d2, size=e1.shape[-2:], mode="bilinear", align_corners=False)
+        d1 = self.dec1(torch.cat([u1, e1], dim=1))
+        u0 = F.interpolate(d1, size=e0.shape[-2:], mode="bilinear", align_corners=False)
+        d0 = self.dec0(torch.cat([u0, e0], dim=1))
+        return torch.tanh(self.tail(d0)) * self.residual_scale
+
+
 def build_model(model_arch: str, in_channels: int, width: int, depth: int, residual_scale: float) -> nn.Module:
     if model_arch == "residual":
         return RawCfaResidualNet(
@@ -517,6 +580,13 @@ def build_model(model_arch: str, in_channels: int, width: int, depth: int, resid
         )
     if model_arch == "unet":
         return RawCfaResidualUNet(
+            in_channels=in_channels,
+            width=width,
+            depth=depth,
+            residual_scale=residual_scale,
+        )
+    if model_arch == "pyramid_unet":
+        return RawCfaResidualPyramidUNet(
             in_channels=in_channels,
             width=width,
             depth=depth,
@@ -1119,9 +1189,9 @@ def main() -> int:
     ap.add_argument("--residual-scale", type=float, default=0.12)
     ap.add_argument(
         "--model-arch",
-        choices=("residual", "unet"),
+        choices=("residual", "unet", "pyramid_unet"),
         default="residual",
-        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context.",
+        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context; pyramid_unet adds a deeper gated full-crop probe.",
     )
     ap.add_argument(
         "--feature-mode",

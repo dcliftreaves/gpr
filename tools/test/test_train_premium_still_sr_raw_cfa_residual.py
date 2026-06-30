@@ -249,6 +249,21 @@ def main() -> int:
         assert unet_receipt["config"]["model_arch"] == "unet"
         assert unet_receipt["policy"]["uses_source_raw_at_runtime"] is False
 
+        args.output_dir = root / "pyramid_unet_holdout"
+        args.model_arch = "pyramid_unet"
+        args.feature_mode = "raw_context_coord_ev_noise"
+        args.width = 8
+        args.depth = 2
+        args.context_padding = 0
+        args.patch_size = 20
+        args.eval_tile = 19
+        pyramid_receipt = tool.train(args)
+        assert pyramid_receipt["eval"]["holdout"]["row_count"] == 1
+        assert pyramid_receipt["config"]["model_arch"] == "pyramid_unet"
+        assert pyramid_receipt["config"]["feature_mode"] == "raw_context_coord_ev_noise"
+        assert "pooled candidate raw/HF context planes" in pyramid_receipt["policy"]["runtime_inputs"]
+        assert pyramid_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
         args.output_dir = root / "frame_context_holdout"
         args.model_arch = "residual"
         args.feature_mode = "raw_framectx_coord_ev_noise"
