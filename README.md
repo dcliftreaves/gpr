@@ -78,6 +78,8 @@ Camera-noise coverage audit:
 `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html`.
 Mission/iPhone darkframe candidate audit:
 `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_20260630/index.html`.
+Stills fixture gap closure plan:
+`/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`.
 Camera-noise policy and the calibration sidecar contract:
 [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md).
 Bayer resize PSF policy, synthetic receipt builder, and real-pair receipt builder:
@@ -188,6 +190,7 @@ matched 1x CNN that lets lower-bitrate files land in the same visual gate.
 | 100 MP X2D visual roundtrip | The real X2D 11,664 x 8,750 DNG fixture roundtrips DNG to GPR to DNG in the local audit with **593 ms** encode and **965 ms** decode. | The `.gpr` is **47 MB**, full-image raw Bayer PSNR is **49.21 dB**, and the dashboard includes 100% upper-left, center, and lower-right crop panels. |
 | Real Bayer phase inventory | Canonical and broader local Mission 1, Z8, X2D, and iPhone CFA fixtures parse as normal 2x2 Bayer. | The current real-camera scan covers **RGGB + GBRG**; GRBG and BGGR remain synthetic-conformance coverage until real fixtures are added. |
 | Camera-noise coverage | Validated darkframe sidecars cover X2D at ISO **64/200/800/3200/12800** and Z8 at ISO **500**. Mission 1 candidate audit found 9 dark-looking frames. | Mission 1 has no 4-frame same-ISO dark stack yet, and iPhone has no CFA darkframe source, so nonzero noise removal/addback is not promoted for those cameras. |
+| Stills fixture closure plan | The current gap plan turns the fixture/noise receipts into a capture checklist. | Add one real GRBG fixture, one real BGGR fixture, Mission/iPhone darkframe stacks, and top up the existing Mission ISO232 RGGB darkframe group with **2** more matching frames. |
 | STILL smallest | `gpr_tools_q0` plus the matched q3 BIBO_1x CNN averages **9.80 MB** on 50 MP images. | Worst LPIPS is **0.031**, passing the STILL visual gate while landing 35% smaller than primary. |
 | STILL primary | `gpr_tools_q3` plus the matched q3 BIBO_1x CNN averages **15.05 MB** on 50 MP images. | Worst LPIPS is **0.016**; this is the general-purpose visual-lossless still tier. |
 | STILL archival | `gpr_tools_q8` needs no CNN and averages **27.17 MB** on 50 MP images. | Worst LPIPS is **0.004**; this is the tighter, larger-file tier. |
@@ -343,6 +346,7 @@ current evidence so strict local checks can verify it.
 | Local real-camera fixtures | [`docs/LOCAL_FIXTURE_COMPATIBILITY.md`](docs/LOCAL_FIXTURE_COMPATIBILITY.md) |
 | Real Bayer phase inventory | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_inventory_20260630/index.html` |
 | Camera-noise coverage audit | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html` |
+| Stills fixture gap closure plan | `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html` |
 | X2D 100MP still visual roundtrip audit | `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html` |
 | Stills REF / codec-only / CNN dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525_final/index.html` |
 | Mission 1 native PSF pair inventory | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_20260630/index.html` |

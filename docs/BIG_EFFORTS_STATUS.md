@@ -66,6 +66,11 @@ Current evidence:
   darkframe-like frames, but they are split across 8 ISO groups and no group
   has the required four-frame stack. The iPhone file in this scan is the known
   Linear Raw negative fixture, not a CFA darkframe source.
+- The stills fixture gap plan at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`
+  turns those receipts into the concrete closure list: add real GRBG and BGGR
+  fixtures, add Mission 1 and iPhone darkframe stacks, and top up the current
+  Mission 1 ISO232 RGGB darkframe-like group with two more matching frames.
 
 Boundaries:
 
@@ -86,8 +91,9 @@ Next production work:
    stills conformance cells.
 2. Collect or locate Mission 1 and iPhone darkframe/frame-stack data, then
    apply the camera/ISO noise-calibration sidecar flow. For Mission 1, start
-   from the candidate audit and capture at least four same-ISO darkframes for
-   each promoted ISO/settings group.
+   from the candidate audit: the lowest-lift current group is ISO232 RGGB,
+   which has two darkframe-like candidates and needs two more matching frames
+   before sidecar construction.
 3. Re-run the raw-noise/signal audit before training any CNN on nonzero clean
    targets.
 

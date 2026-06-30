@@ -142,9 +142,14 @@ Evidence required:
 ## Near-Term Commit Targets
 
 1. Add real BGGR/GRBG fixture coverage when a representative camera sample is
-   available.
+   available. The current stills fixture gap plan is
+   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`;
+   it records RGGB=70, GBRG=4, GRBG=0, and BGGR=0 real parsed fixtures.
 2. Apply the noise-calibration sidecar flow to real Mission 1 and iPhone
-   darkframe/frame-stack artifacts where available.
+   darkframe/frame-stack artifacts where available. The current lowest-lift
+   Mission candidate is `GoPro|MISSION 1|ISO232|RGGB`, which already has two
+   darkframe-like frames and needs two more matching frames for a production
+   stack candidate.
 3. Continue premium still-SR from the current raw-CFA residual blocker, not
    older rendered-HF targets. The latest candidate-only raw-domain trainer is
    mildly positive on held-out Z8 at about 0.50 percent median raw-residual MAE

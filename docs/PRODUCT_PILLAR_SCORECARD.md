@@ -60,6 +60,13 @@ camera/ISO/CFA groups and no group has the four-frame stack required for a
 production sidecar. The iPhone row is the known Linear Raw negative fixture,
 not a CFA darkframe source.
 
+The current stills fixture gap plan lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`.
+It consolidates the phase/noise receipts into the concrete capture checklist:
+real GRBG and BGGR fixtures, Mission 1 and iPhone darkframe stacks, and two
+additional matching frames for the current Mission 1 ISO232 RGGB darkframe-like
+group.
+
 The current GoPro Mission 1 intake audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/index.html`.
 It verifies the portable firmware handoff bundle, required docs, 4096 x 3072
