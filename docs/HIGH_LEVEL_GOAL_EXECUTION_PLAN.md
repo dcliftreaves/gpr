@@ -35,8 +35,8 @@ Can advance locally without new captures:
 - Premium still-SR: keep the expanded raw-CFA target fixed and test stronger
   candidate-only raw-domain/detail models or losses against the same 50 MP /
   100 MP still/editor gates. The current evidence says the blocker is X2D
-  domain generalization and low raw-residual recovery, not missing target
-  coverage.
+  raw-detail recovery strength and missing full-image/structured context, not
+  missing target coverage or simple camera-domain filtering.
 - Raw-video PSF/SR: use the current modeled-resize/detail-budget receipts to
   build PSF-conditioned ablations, but keep them non-production until controlled
   native high/low pairs produce a stable kernel. Any replacement still has to

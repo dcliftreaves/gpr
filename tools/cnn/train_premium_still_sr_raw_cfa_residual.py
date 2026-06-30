@@ -263,6 +263,15 @@ def feature_channels(feature_mode: str) -> int:
     }[feature_mode]
 
 
+def runtime_input_summary(feature_mode: str) -> str:
+    base = "candidate_raw_cfa4 + candidate_raw_highpass + deterministic coordinates/EV + camera/ISO noise sidecar scalars"
+    if feature_mode == "raw_context_coord_ev_noise":
+        return base + " + pooled candidate raw/HF context planes + global candidate raw scalars"
+    if feature_mode == "raw_multiscale_storedhf_coord_ev_noise":
+        return base + " + stored candidate_raw_hf_cfa4"
+    return base
+
+
 def gradient_l1(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     return F.l1_loss(pred[:, :, :, 1:] - pred[:, :, :, :-1], target[:, :, :, 1:] - target[:, :, :, :-1]) + F.l1_loss(
         pred[:, :, 1:, :] - pred[:, :, :-1, :],
@@ -336,7 +345,13 @@ class RawCfaResidualTargets:
             self.noise_features.append(cache.get(sidecar, (0.0, 0.0, 0.0, 0.0)))
             self.noise_sigma4.append(sigma_cache.get(sidecar, (0.0, 0.0, 0.0, 0.0)))
 
-    def row_indices(self, holdout_scene: str | None, holdout_camera: str | None, holdout_ev: float | None) -> tuple[list[int], list[int]]:
+    def row_indices(
+        self,
+        holdout_scene: str | None,
+        holdout_camera: str | None,
+        holdout_ev: float | None,
+        train_camera: str | None = None,
+    ) -> tuple[list[int], list[int]]:
         if holdout_scene:
             holdout = [i for i, row in enumerate(self.rows) if str(row.get("scene_id", "")) == holdout_scene]
         elif holdout_camera:
@@ -347,8 +362,13 @@ class RawCfaResidualTargets:
         else:
             holdout = []
         train = [i for i in range(len(self.rows)) if i not in holdout]
+        if train_camera:
+            needle = train_camera.lower()
+            train = [i for i in train if needle in str(self.rows[i].get("source_dng", "")).lower()]
         if (holdout_scene or holdout_camera or holdout_ev is not None) and (not train or not holdout):
             raise ValueError(f"holdout split produced train={len(train)} holdout={len(holdout)}")
+        if train_camera and not train:
+            raise ValueError(f"train-camera filter {train_camera!r} produced no training rows")
         return train, holdout
 
     def sample_batch(
@@ -593,7 +613,12 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     data = RawCfaResidualTargets(args.targets)
     if args.feature_mode == "raw_multiscale_storedhf_coord_ev_noise" and data.candidate_raw_hf is None:
         raise ValueError("raw_multiscale_storedhf_coord_ev_noise requires candidate_raw_hf_cfa4 in the target NPZ")
-    train_indices, holdout_indices = data.row_indices(args.holdout_scene, args.holdout_camera, args.holdout_ev)
+    train_indices, holdout_indices = data.row_indices(
+        args.holdout_scene,
+        args.holdout_camera,
+        args.holdout_ev,
+        args.train_camera,
+    )
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
     device = torch.device(args.device) if args.device else DEVICE
@@ -668,6 +693,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "target_abs_weight": args.target_abs_weight,
                 "target_policy": args.target_policy,
                 "noise_threshold_scale": args.noise_threshold_scale,
+                "train_camera": args.train_camera,
             },
         },
         checkpoint,
@@ -713,12 +739,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "holdout_scene": args.holdout_scene,
             "holdout_camera": args.holdout_camera,
             "holdout_ev": args.holdout_ev,
+            "train_camera": args.train_camera,
             "seed": args.seed,
         },
         "policy": {
             "uses_source_raw_at_training": True,
             "uses_source_raw_at_runtime": False,
-            "runtime_inputs": "candidate_raw_cfa4 + candidate_raw_highpass + deterministic coordinates/EV + camera/ISO noise sidecar scalars",
+            "runtime_inputs": runtime_input_summary(args.feature_mode),
             "production_status": "training_probe_not_registered_production_algorithm",
             "target_policy": args.target_policy,
         },
@@ -774,6 +801,7 @@ def main() -> int:
     ap.add_argument("--holdout-scene")
     ap.add_argument("--holdout-camera")
     ap.add_argument("--holdout-ev", type=float)
+    ap.add_argument("--train-camera", help="Restrict training rows to source paths containing this camera/domain token after holdout removal.")
     ap.add_argument("--eval-every", type=int, default=100)
     ap.add_argument("--eval-tile", type=int, default=384)
     ap.add_argument("--panel-rows", type=int, default=9)

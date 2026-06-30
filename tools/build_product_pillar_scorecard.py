@@ -199,10 +199,10 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "A 351-row raw-CFA residual audit compares rendered HF supervision with source-minus-candidate same-color raw residuals; median absolute correlation is 0.691 and median best-phase correlation is 0.922, making true raw-domain residual supervision the next model target.",
                 "The 351-row raw-CFA residual target NPZ has now been built for training: candidate raw-CFA, candidate raw-HF, source raw-HF, rendered-HF luma review, and source-minus-candidate same-color raw-HF residual arrays are hashed and receipted.",
                 "The first true raw-CFA residual trainer now runs against that NPZ with candidate-only runtime inputs. A stabilized w32/2000-step pass is mildly positive on held-out Z8 at about 0.50 percent median raw-residual MAE recovery, but held-out X2D remains negative at about -0.21 percent.",
-                "Follow-up X2D probes show a wider/block17 model barely clears zero at about 0.02 percent median recovery, while stored candidate-HF features, naive one-sigma noise soft-thresholding, larger-patch high-residual-weighted local training, and first pooled raw-context features remain negative. This is blocker evidence rather than a production checkpoint.",
+                "Follow-up X2D probes show a wider/block17 model barely clears zero at about 0.02 percent median recovery, while stored candidate-HF features, naive one-sigma noise soft-thresholding, larger-patch high-residual-weighted local training, first pooled raw-context features, and an X2D-only train-domain filter remain negative. This is blocker evidence rather than a production checkpoint.",
             ],
             "open_work": [
-                "Replace the weak first raw-CFA residual learner with a full-image or routed raw-context model/objective that clears both Z8 and X2D held-out raw-residual gates; the current blocker is X2D/domain generalization and low recovery, not target construction, stored-HF features, naive noise subtraction, local loss-weight tuning, or simple pooled-context feature concatenation.",
+                "Replace the weak first raw-CFA residual learner with a full-image or structured raw-context model/objective that clears both Z8 and X2D held-out raw-residual gates; the current blocker is X2D raw-detail recovery strength, not target construction, stored-HF features, naive noise subtraction, local loss-weight tuning, simple pooled-context feature concatenation, or camera-domain filtering alone.",
                 "Pass dedicated 50 MP and 100 MP still-SR gates with editor-latitude and worst-row visual evidence.",
                 "Use calibrated noise sidecars as conditioning, then add back only noise proven separate from signal.",
             ],
@@ -239,6 +239,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("premium still-SR raw-CFA residual X2D noise-threshold model", "artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/train_receipt.json"),
                     artifact_ref("premium still-SR raw-CFA residual X2D loss-weight probe", "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w48_1600_abs6_patch256_20260630/train_receipt.json"),
                     artifact_ref("premium still-SR raw-CFA residual X2D pooled-context probe", "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_context_w40_1800_20260630/train_receipt.json"),
+                    artifact_ref("premium still-SR raw-CFA residual X2D-only domain probe", "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_x2donly_w48_2200_20260630/train_receipt.json"),
                     artifact_ref("routed rendered review", "artifacts/premium_still_sr_rendered_review_routed_20260630/index.html"),
                     artifact_ref("X2D latitude review", "artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/index.html"),
                     artifact_ref("noise-conditioned residual dashboard", "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html"),
@@ -344,7 +345,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "next_actions": [
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
             "Fulfill the raw-stills capture request: add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback; the current lowest-lift Mission top-up is ISO232 RGGB with two matching frames still needed.",
-            "Continue premium still-SR from the current raw-CFA residual blocker: held-out Z8 is mildly positive, hard X2D is only barely positive after wider context, and stored-HF/noise-threshold probes did not solve it.",
+            "Continue premium still-SR from the current raw-CFA residual blocker: held-out Z8 is mildly positive, hard X2D is only barely positive after wider context, and stored-HF/noise-threshold/pooled-context/X2D-only-domain probes did not solve it.",
             "Follow the raw-video PSF gap plan: capture controlled same-scene Mission 1 high/low pairs, rerun native measurement until the kernel is stable, then gate a PSF-conditioned SR model against the current 4K/8K baselines.",
         ],
     }

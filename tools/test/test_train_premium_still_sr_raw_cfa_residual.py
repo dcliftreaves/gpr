@@ -125,6 +125,7 @@ def main() -> int:
                 "holdout_scene": "holdout_scene",
                 "holdout_camera": None,
                 "holdout_ev": None,
+                "train_camera": "z8",
                 "eval_every": 0,
                 "eval_tile": 40,
                 "panel_rows": 2,
@@ -144,6 +145,7 @@ def main() -> int:
         assert receipt["eval"]["holdout"]["row_count"] == 1
         assert receipt["config"]["feature_mode"] == "raw_multiscale_coord_ev_noise"
         assert receipt["config"]["holdout_scene"] == "holdout_scene"
+        assert receipt["config"]["train_camera"] == "z8"
         assert receipt["config"]["target_policy"] == "raw"
         assert "exact_raw_mae_reduction_pct" in receipt["eval"]["holdout"]
 
@@ -156,6 +158,7 @@ def main() -> int:
         camera_receipt = tool.train(args)
         assert camera_receipt["eval"]["holdout"]["row_count"] == 1
         assert camera_receipt["config"]["holdout_camera"] == "x2d"
+        assert camera_receipt["config"]["train_camera"] == "z8"
         assert camera_receipt["config"]["feature_mode"] == "raw_multiscale_storedhf_coord_ev_noise"
         assert camera_receipt["config"]["target_policy"] == "noise_soft_threshold"
         assert camera_receipt["policy"]["target_policy"] == "noise_soft_threshold"
@@ -169,6 +172,7 @@ def main() -> int:
         assert context_receipt["eval"]["holdout"]["row_count"] == 1
         assert context_receipt["config"]["feature_mode"] == "raw_context_coord_ev_noise"
         assert context_receipt["policy"]["uses_source_raw_at_runtime"] is False
+        assert "pooled candidate raw/HF context planes" in context_receipt["policy"]["runtime_inputs"]
 
         bad_npz = root / "bad_targets.npz"
         np.savez_compressed(

@@ -38,6 +38,8 @@ DEFAULT_MODEL_RECEIPTS = [
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w48_1600_abs6_patch256_20260630/train_receipt.json",
     DEFAULT_EXTERNAL_ROOT
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_context_w40_1800_20260630/train_receipt.json",
+    DEFAULT_EXTERNAL_ROOT
+    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_x2donly_w48_2200_20260630/train_receipt.json",
 ]
 
 
@@ -199,7 +201,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 1,
                 "name": "domain-balanced raw-CFA residual learner",
-                "purpose": "make X2D and Z8 holdouts positive at the same time instead of optimizing one source family",
+                "purpose": "make X2D and Z8 holdouts positive at the same time; the first X2D-only camera-domain filter regressed the hard X2D holdout, so this needs a better objective/context than simple domain filtering",
                 "must_prove": [
                     f"X2D median raw-residual MAE recovery >= {threshold_pct:.1f}%",
                     f"Z8 median raw-residual MAE recovery >= {threshold_pct:.1f}%",
@@ -209,7 +211,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 2,
                 "name": "full-image or routed raw-context residual model",
-                "purpose": "replace the current local-tile learner; larger patches, stronger high-residual weighting, and simple pooled raw context all regressed X2D and should not be repeated as the main path",
+                "purpose": "replace the current local-tile learner; larger patches, stronger high-residual weighting, simple pooled raw context, and X2D-only train-domain filtering all regressed X2D and should not be repeated as the main path",
                 "must_prove": [
                     "uses candidate raw/metadata only at runtime",
                     "beats the local and pooled-context raw-CFA residual baselines on the hard X2D holdout",
@@ -219,7 +221,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 3,
                 "name": "scene-family routed residual specialists",
-                "purpose": "separate X2D high-ISO/latitude scenes from Z8/Mission detail scenes only if shared training remains flat",
+                "purpose": "separate X2D high-ISO/latitude scenes from Z8/Mission detail scenes only with a new context/objective; simple camera-domain specialization is already negative on the hard X2D raw-CFA residual holdout",
                 "must_prove": [
                     "router uses candidate raw/metadata only",
                     "each routed specialist beats the shared baseline on its holdout family",

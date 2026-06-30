@@ -469,8 +469,8 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
-| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json` | `2f3fdfd7f7308014775f51b0947b31a5118ec969ecef15b01e68653b282ba9ce` |
-| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` | `4a6328446db40a8b3d15b3908fdccd5728529e5d108be0be7909a2272d0b3aae` |
+| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json` | `d96adb4100571da7bfb225f6d93583a713399e5d235747abf8739fd8c2b71b34` |
+| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` | `24f484e01f5b90367c238656a07158a705356095c104ffea7a36142436159132` |
 
 Install the portable model-root artifacts as:
 
