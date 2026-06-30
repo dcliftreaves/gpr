@@ -137,6 +137,23 @@ The dashboard summarizes checkpoint hashes, pair hashes, best-step metrics, and
 overfit/regression from the final eval. It is a raw-metric dashboard, not the
 rendered visual/editor-latitude gate required for production promotion.
 
+Build the current tile-level visual review dashboard with:
+
+```sh
+/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python \
+  tools/build_premium_still_sr_visual_review.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_20260629 \
+  --max-tiles 64 --review-rows 12
+```
+
+Current visual review:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_20260629/index.html`
+
+The visual review emits baseline/model/target/error contact sheets for the X2D
+holdout tiles. It is useful for spotting softness and tile artifacts, but it is
+still not a raw-editor render or full-frame still promotion gate.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D

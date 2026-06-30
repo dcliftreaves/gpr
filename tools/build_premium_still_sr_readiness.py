@@ -92,6 +92,8 @@ DEDICATED_STILL_SR_ARTIFACTS = {
     "large_training_receipt": "artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt.json",
     "candidate_metric_dashboard": "artifacts/premium_still_sr_candidate_dashboard_20260629/index.html",
     "candidate_metric_dashboard_summary": "artifacts/premium_still_sr_candidate_dashboard_20260629/candidate_dashboard.json",
+    "candidate_visual_dashboard": "artifacts/premium_still_sr_visual_review_20260629/index.html",
+    "candidate_visual_dashboard_summary": "artifacts/premium_still_sr_visual_review_20260629/visual_review.json",
 }
 
 
@@ -177,7 +179,7 @@ def build_state(root: Path) -> dict[str, Any]:
     has_video_sr_packaging = all(external[name]["exists"] for name in ("editable_dng", "editable_gpr", "review_tiff_or_prores"))
     blockers = [
         "The dedicated premium still-SR candidates are not production-grade: smoke is effectively flat, and the larger run peaks at about 0.15 percent held-out X2D RMSE improvement before overfitting/regressing.",
-        "No premium still-SR run has produced full per-camera raw-domain metrics, rendered dashboard, and worst-row visual review against the still baselines.",
+        "The current premium still-SR visual review is tile-level only; no run has produced full per-camera rendered still dashboards and worst-row visual review against the still baselines.",
         "No raw-editor latitude receipt exists for a dedicated still-SR candidate.",
         "Noise sidecars exist for X2D/Z8, but the noise removal/addback policy has not been wired into a premium still-SR target build.",
     ]
@@ -208,7 +210,7 @@ def build_state(root: Path) -> dict[str, Any]:
             "has_larger_premium_still_sr_candidate_checkpoint": dedicated["large_checkpoint"]["exists"],
             "has_premium_still_sr_metric_dashboard": dedicated["candidate_metric_dashboard"]["exists"],
             "has_production_grade_premium_still_sr_checkpoint": False,
-            "has_rendered_visual_premium_still_sr_dashboard": False,
+            "has_rendered_visual_premium_still_sr_dashboard": dedicated["candidate_visual_dashboard"]["exists"],
             "has_raw_editor_latitude_receipt": False,
         },
         "blockers": blockers,

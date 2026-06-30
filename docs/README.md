@@ -94,6 +94,8 @@ refreshed 2026-06-29.
 | `python3 tools/test/test_convert_darkframe_calibration_to_noise_sidecars.py` | regression-test legacy darkframe calibration conversion |
 | `python3 tools/build_premium_still_sr_gate_receipt.py --out-dir /path/to/out` | build a CI-safe non-production premium still-SR gate receipt |
 | `python3 tools/test/test_build_premium_still_sr_gate_receipt.py` | regression-test the premium still-SR gate skeleton |
+| `python3 tools/build_premium_still_sr_visual_review.py --output-dir /path/to/out` | build a tile-level visual review dashboard for the current premium still-SR candidate |
+| `python3 tools/test/test_build_premium_still_sr_visual_review.py` | regression-test the premium still-SR visual review builder |
 | `python3 tools/build_bayer_resize_psf_receipt.py --out-dir /path/to/out` | build a synthetic non-production Bayer resize PSF receipt |
 | `python3 tools/test/test_build_bayer_resize_psf_receipt.py` | regression-test the PSF receipt builder |
 | `python3 tools/build_bayer_resize_psf_from_pairs.py --pairs /path/to/pairs.npz --out-dir /path/to/out` | build a pair-derived non-production Bayer resize PSF receipt |
