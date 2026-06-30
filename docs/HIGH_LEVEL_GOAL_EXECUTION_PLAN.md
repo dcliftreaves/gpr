@@ -1,6 +1,6 @@
 # High-Level Goal Execution Plan
 
-Last refreshed: 2026-06-29
+Last refreshed: 2026-06-30
 
 This is the burndown plan for the four product pillars in the main README and
 `BIG_EFFORTS_STATUS.md`. It is intentionally execution-focused: every item
@@ -87,6 +87,9 @@ Immediate work:
   rendered dashboard, raw-domain metrics, editor-latitude checks, and worst-row
   review. The lightweight guard is `gpr.premium_still_sr_gate.v1`; the
   CI-safe skeleton builder is `tools/build_premium_still_sr_gate_receipt.py`.
+- Treat the current X2D editor-openability receipt as a partial closure only:
+  generic DNG/GPR open and export, but source-camera metadata transplant and
+  full raw-editor latitude are still required.
 - Reuse the approved 4K/8K SR tooling only after the target is still-specific:
   high-quality still references, camera metadata, and noise policy included.
 - Keep the output editable: DNG/GPR receipt first, review TIFF/ProRes/contact
@@ -97,6 +100,9 @@ Evidence required:
 - The still-SR candidate must beat the current STILL q0/q3/q8 baseline on the
   committed still gate, not just sharpen crops.
 - 50 MP and 100 MP camera classes both need receipts before the claim is broad.
+- Openability is not enough for promotion. The routed still-SR suite needs
+  source-camera metadata, editor exposure-stress, rendered visual, and
+  worst-row receipts.
 - Any nonzero denoise target must pass the raw-noise/signal audit first.
 
 ### 4. PSF-Aware Raw Video Improvement
@@ -131,9 +137,12 @@ Evidence required:
    available.
 2. Apply the noise-calibration sidecar flow to real Mission 1 and iPhone
    darkframe/frame-stack artifacts where available.
-3. Replace the still-SR skeleton with a real candidate receipt from 50 MP and
-   100 MP still fixtures.
-4. Extend the pair-derived PSF receipt path to native camera/display evidence
+3. Add source-camera metadata transplant and full raw-editor latitude receipts
+   for the routed premium still-SR candidates, starting with the X2D 100 MP
+   center-crop exposure-stress blocker.
+4. Replace the still-SR skeleton with a production candidate receipt only after
+   the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
+5. Extend the pair-derived PSF receipt path to native camera/display evidence
    and use it to drive the next PSF-conditioned SR experiment.
-5. Re-run the README/media/release guards and open a focused PR for each small
+6. Re-run the README/media/release guards and open a focused PR for each small
    reviewable slice.

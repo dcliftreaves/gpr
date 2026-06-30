@@ -442,6 +442,41 @@ under exposure stress, not Mission 1 or Z8. This is still a proxy review:
 production promotion needs raw-editor rendering/openability receipts and
 camera-noise sidecar target construction.
 
+## X2D Editor-Openability Receipt
+
+`tools/build_premium_still_sr_editor_receipt.py` wraps a retained SR-generation
+bench receipt and the editable DNG/GPR packaging receipt into the still-SR
+product vocabulary:
+
+```sh
+python3 tools/build_premium_still_sr_editor_receipt.py \
+  --bench-receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/sr_gen/x2d_100mp_dng_premium_still_sr_x2d_specialist_w48_d6_2400plus2400_origx2d_holdout_sr8k_512_ov64_bench.json \
+  --packaging-receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/packaging/packaging_receipt.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt \
+  --route x2d:100mp:dng \
+  --camera "Hasselblad X2D 100C" \
+  --source-frame 2024_April_X2D_1742
+```
+
+Current receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt/editor_receipt.json
+```
+
+Result:
+
+| route | dimensions | SR throughput with raw write | generic DNG | SDK GPR readback | production state |
+|---|---:|---:|---|---|---|
+| `x2d:100mp:dng` | 11664 x 8748 | 1.50 fps | rawpy-openable and byte-identical raw roundtrip | rawpy-openable via GPR-to-DNG, 63.31 dB PSNR14 at q3 | not production-ready |
+
+This closes the first editor-openability question for the hard X2D route. It
+does not close full raw-editor latitude. The receipt is intentionally
+`production_ready=false` because it uses generic normalized `rggb14` metadata
+rather than transplanted source-camera metadata, and because it proves
+openability/export rather than exposure-stressed editor behavior.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
