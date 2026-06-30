@@ -153,6 +153,10 @@ Current evidence:
   original X2D holdout improves about 0.30 percent RMSE, and a held-out Austin
   X2D scene improves about 2.16 percent RMSE:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_batch_dashboard_20260629/index.html`.
+- An X2D-only specialist trained on the 100 MP fixtures improves the hard
+  original-X2D holdout to about 1.08 percent RMSE and 1.18 percent MAE, beating
+  the mixed-camera X2D-batch candidate on the same holdout:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_dashboard_20260630/index.html`.
 
 Boundaries:
 
@@ -169,18 +173,21 @@ Boundaries:
 - Added X2D diversity improves same-camera-class generalization, but the
   original X2D scene remains a hard outlier. That points to target/loss or
   scene-specialist work before premium still-SR can be promoted.
+- The first specialist result supports a camera/source-aware router or
+  separate specialist checkpoints. It does not yet satisfy production because
+  the evidence is still tile-level and lacks raw-editor latitude/full-frame
+  still receipts.
 
 Next production work:
 
-1. Replace the still-SR smoke/large exploratory checkpoints with a
-   production-grade candidate: more fixtures/tiles, early stopping or
-   regularization against X2D regression, rendered dashboard, raw-domain
-   metrics, and raw-editor latitude checks. The first manifest and pair set live under
-   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629/`
-   and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_20260629/`.
+1. Replace the still-SR smoke/large exploratory checkpoints with routed
+   camera/source specialists: at minimum X2D, Mission 1, and Z8 candidates,
+   with a deterministic metadata/raw-feature router.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
-3. Emit review TIFF/ProRes/contact sheets plus editable DNG/GPR receipts.
+3. Add full-frame still visual dashboards, raw-domain metrics, and raw-editor
+   latitude checks for each routed candidate.
+4. Emit review TIFF/ProRes/contact sheets plus editable DNG/GPR receipts.
 
 ## 4. Raw Video Improvement / PSF-Aware Resize
 
