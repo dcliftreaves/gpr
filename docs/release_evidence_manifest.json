@@ -1335,22 +1335,22 @@
       "id": "targeted_raw_fixture_scan_20260630",
       "family": "stills_fixtures",
       "status": "diagnostic",
-      "purpose": "Targeted GoPro/Mission/Hassel/iPhone raw scan over 2,000 local files. Confirms every parsed file is normal Bayer while real GRBG/BGGR fixtures remain missing.",
-      "dashboard": "artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html",
+      "purpose": "Targeted GoPro/Mission DNG/GPR scan over 3,000 local files. Confirms every parsed file is normal Bayer while real GRBG/BGGR fixtures remain missing.",
+      "dashboard": "artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html",
       "docs": [
         "README.md",
         "docs/PRODUCTION_ARTIFACTS.md"
       ],
       "receipts": [
-        "artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/inventory.json",
-        "artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html"
+        "artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/inventory.json",
+        "artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html"
       ],
       "metrics": {
-        "files_seen": 2000,
-        "parsed_count": 2000,
-        "normal_bayer_count": 2000,
+        "files_seen": 3000,
+        "parsed_count": 3000,
+        "normal_bayer_count": 3000,
         "rggb_count": 108,
-        "gbrg_count": 1892,
+        "gbrg_count": 2892,
         "grbg_count": 0,
         "bggr_count": 0,
         "production_real_phase_coverage": 0

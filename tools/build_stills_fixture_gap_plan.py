@@ -17,7 +17,7 @@ from typing import Any
 
 SCHEMA = "gpr.stills_fixture_gap_plan.v1"
 DEFAULT_BAYER_INVENTORY = Path(
-    "/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_20260630_rawpy/inventory.json"
+    "/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/inventory.json"
 )
 DEFAULT_DARKFRAME_AUDIT = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_20260630/darkframe_candidate_audit.json"

@@ -45,11 +45,11 @@ Current evidence:
   confirms that the broader local Mission 1, Z8, X2D, and iPhone CFA fixture
   pool contains 74 normal 2x2 Bayer DNGs: 70 RGGB and 4 Mission 1 GBRG. GRBG
   and BGGR remain synthetic-conformance coverage until real fixtures are added.
-- The targeted GoPro/Mission/Hassel/iPhone raw fixture scan at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html`
-  parses 2,000 local raw files as normal Bayer: 1,892 GBRG and 108 RGGB. It
-  still finds no real GRBG or BGGR fixture, strengthening the conclusion that
-  this is a sample-acquisition gap rather than a parser gap.
+- The targeted GoPro/Mission DNG/GPR fixture scan at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html`
+  parses 3,000 local DNG/GPR files as normal Bayer: 2,892 GBRG and 108 RGGB.
+  It still finds no real GRBG or BGGR fixture, strengthening the conclusion
+  that this is a sample-acquisition gap rather than a parser gap.
 - The CLI exposes DNG NoiseProfile-aware denoise/noise replacement plumbing,
   but the current raw-noise audit forbids treating the old single-frame REF
   residual as pure removable noise.

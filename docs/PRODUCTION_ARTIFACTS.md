@@ -452,8 +452,14 @@ fixtures and Mission/iPhone production darkframe stacks are still missing.
 |---|---|---|
 | Targeted 2,000-file Bayer phase inventory JSON | `artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/inventory.json` | `dfef5e95c14c463efda9f1644201a235dc47df84cc87a3f536fd6cd3c38a230e` |
 | Targeted 2,000-file Bayer phase dashboard | `artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html` | `01a810fb0341b2a5a53c5863664f20b3a4a198debad49ee7cec7884e1f1ba505` |
+| Targeted 3,000-file Bayer phase inventory JSON | `artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/inventory.json` | `7c69434fbd575e20596e2d26ee0dd7270e57eac87bea7dae6bfe36c94f252b80` |
+| Targeted 3,000-file Bayer phase dashboard | `artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html` | `edd17fd5c264dc9230cd272404b4180d9ca432f8ae38a32a183cb2d685b25055` |
 | Targeted Mission DNG darkframe audit JSON | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/darkframe_candidate_audit.json` | `dd06fb371f5177a03f2ffbc683e343f15f1286091b92eed053a2334f537dd74a` |
 | Targeted Mission DNG darkframe dashboard | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html` | `dd7c607f07fa1b9f0f9e473ca514810b3adc74c22690359ae44a655256b2836a` |
+| Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_20260630/stills_fixture_gap_plan.json` | `e8e775fda8109f87d5a7f24884ecd36a15d44a9113bd828286743846bc9528d6` |
+| Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_20260630/index.html` | `48b3b6bebccfb6e155cdb09f5151507bbccd6d85cbf55a6d26fde3dbee81fb74` |
+| Current raw-stills capture request JSON | `artifacts/stills_capture_request_20260630/stills_capture_request.json` | `d02307a444424485bd1f0c89fdfd332436cedd39f2174a866ff78725e39640e3` |
+| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_20260630/index.html` | `90db5e12ec93dab358d1d3c1e2dded121bd2fefe2295e87b185d3dbbd4a09d37` |
 
 ## Premium Still-SR Gap Artifacts
 

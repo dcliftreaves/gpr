@@ -89,10 +89,10 @@ candidate stack, but the boosted contact sheet shows scene content in part of
 that group. The audit therefore keeps `production_sidecar_ready=false`; Mission
 1/iPhone production noise sidecars remain open.
 
-The targeted GoPro/Mission/Hassel/iPhone raw fixture scan lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html`.
-It parses 2,000 local raw files as normal Bayer: 1,892 GBRG and 108 RGGB. It
-still finds no real GRBG or BGGR fixture, which keeps that work as sample
+The targeted GoPro/Mission DNG/GPR fixture scan lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html`.
+It parses 3,000 local DNG/GPR files as normal Bayer: 2,892 GBRG and 108 RGGB.
+It still finds no real GRBG or BGGR fixture, which keeps that work as sample
 acquisition rather than parser work. The targeted Mission DNG darkframe scan at
 `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html`
 finds 9 dark-like Mission frames, but no same-ISO four-frame production stack.
