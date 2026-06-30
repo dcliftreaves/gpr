@@ -2,8 +2,9 @@
 """Validate productization docs and governance contracts.
 
 This is intentionally lightweight and CI-safe. It does not require external
-artifacts, but it makes sure the release bundle, Labs handoff, `.gvid`
-conformance, and CNN governance contracts remain discoverable and testable.
+artifacts, but it makes sure the four product pillars plus the release bundle,
+Labs handoff, `.gvid` conformance, and CNN governance contracts remain
+discoverable and testable.
 """
 from __future__ import annotations
 
@@ -146,6 +147,24 @@ def main() -> int:
         "PRODUCTIZATION_CONTRACTS.md",
         "RELEASE_ARTIFACTS.md",
         "GVID_CONFORMANCE.md",
+    ], failures)
+    require_text("docs/PRODUCTIZATION_CONTRACTS.md", [
+        "best RAW stills for 50 MP and 100 MP cameras",
+        "GoPro / Mission 1 RAW video MVP",
+        "premium spend-time-for-quality still/SR",
+        "PSF-aware RAW video cleanup and reconstruction",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCT_LOCK_LEDGER.md",
+        "Current Product Boundary",
+        "4096 x 3072 Bayer `.gvid` encode",
+        "accepted 20 fps Pi 5 stand-in floor",
+        "Real Mission 1 camera-role sensor/DMA",
+        "validated sidecars",
+        "Mission 1 and iPhone remain metadata-conditioning-only",
+        "continuous 8K no-CNN versus CNN ProRes review media",
+        "recompressed Bayer payloads",
+        "packed original camera files",
+        "four product pillars and the cross-cutting",
     ], failures)
     require_text("docs/RELEASE_ARTIFACTS.md", [
         "gpr_labs_bundle.v1",
