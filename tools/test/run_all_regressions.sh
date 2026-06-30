@@ -202,6 +202,8 @@ else
                 python3 tools/test/test_build_raw_video_psf_capture_request.py && \
                 python3 tools/test/test_build_product_pillar_scorecard.py && \
                 python3 tools/test/test_build_product_burndown.py && \
+                python3 tools/test/check_product_burndown_contract.py && \
+                python3 tools/test/test_check_product_burndown_contract.py && \
                 python3 tools/test/check_release_evidence_manifest.py && \
                 python3 tools/test/check_labs_readiness.py && \
                 python3 tools/test/test_mission1_numbered_list_readiness.py && \

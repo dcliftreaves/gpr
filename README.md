@@ -466,6 +466,8 @@ python3 tools/test/check_readme_media.py
 python3 tools/test/test_check_readme_media.py
 python3 tools/test/check_readme_product_pillars.py
 python3 tools/test/test_check_readme_product_pillars.py
+python3 tools/test/check_product_burndown_contract.py
+python3 tools/test/test_check_product_burndown_contract.py
 python3 tools/test/check_release_evidence_manifest.py
 python3 tools/test/check_labs_readiness.py
 python3 tools/test/test_mission1_numbered_list_readiness.py
