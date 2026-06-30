@@ -109,7 +109,7 @@ Dashboard:
 
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`
 
-The audit intentionally keeps this pillar non-production at 42 percent. It
+The audit intentionally keeps this pillar non-production at 44 percent. It
 records that the approved 4K cleanup and 8K SR baselines are ready for their
 current offline roles, and that near-time native Mission 1 high/low candidates
 exist, while the native PSF replacement remains open because there is no

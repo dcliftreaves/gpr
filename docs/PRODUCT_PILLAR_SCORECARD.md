@@ -39,7 +39,7 @@ Current interpretation:
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB plus GoPro/Mission GBRG fixture coverage, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
 | Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, calibrated noise-cleaning is bounded, and true source-minus-candidate same-color raw residual targets plus raw-domain trainers now exist; Z8 is mildly positive, but the hard X2D holdout is only barely positive after a wider/block17 pass and remains far from production-grade. |
-| PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, and a gap plan now spells out the controlled-pair capture and model-gate path; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
+| PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, and a hash-strict capture request now spells out the controlled-pair capture and model-gate path; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html`.
@@ -132,8 +132,10 @@ conditioning.
 The raw-video PSF controlled capture request lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`.
 It is the handoff for closing the measurement blocker: locked same-scene
-8192 x 6144 and 4096 x 3072 Bayer pair stacks, plus negative controls, with
-the exact validation commands required to promote a stable native PSF kernel.
+8192 x 6144 and 4096 x 3072 Bayer pair stacks, source GPR/DNG hashes, decoded
+little-endian uint16 Bayer hashes, fixed ISO/exposure/WB/lens/sharpening
+settings, plus negative controls, with the exact validation commands required
+to promote a stable native PSF kernel.
 
 The current raw-video SR/detail candidate scoreboard lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html`.

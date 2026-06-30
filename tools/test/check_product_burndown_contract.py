@@ -54,6 +54,9 @@ EXPECTED_PILLARS = {
         "required_actions": {
             "Capture or locate controlled Mission 1 high/low PSF pairs": (
                 "8192 x 6144 / 4096 x 3072",
+                "source hashes",
+                "decoded little-endian uint16 Bayer hashes",
+                "negative controls",
                 "stable measured native PSF kernel",
                 "model conditioning",
             ),

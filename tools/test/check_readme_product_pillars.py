@@ -44,6 +44,7 @@ REQUIRED_README_TOKENS = (
     "13-scene / 351-row",
     "PSF-conditioned model",
     "Controlled high/low pairs",
+    "decoded Bayer hashes",
     "docs/PRODUCT_PILLAR_SCORECARD.md",
     "docs/BIG_EFFORTS_STATUS.md",
     "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md",

@@ -129,7 +129,7 @@ Immediate work:
   pillar:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html`.
   It records the current accepted-pair count, tile support, kernel-stability
-  result, required controlled-pair capture, and promotion receipts.
+  result, required hash-strict controlled-pair capture, and promotion receipts.
 - Keep dashboards honest: full-frame Mission and Z8 rows, rendered crops,
   raw-domain metrics, lower-right/worst-row inspection, and metadata receipts.
 
@@ -234,8 +234,9 @@ Evidence required:
    `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html`.
    The current native measurement has enough tile support but only 2 accepted
    pairs and an unstable fitted kernel. The next PSF commit should add
-   controlled same-scene Mission 1 high/low pairs or document that the available
-   local corpus cannot supply them before training the PSF-conditioned SR
-   experiment.
+   controlled same-scene Mission 1 high/low pairs with source hashes, decoded
+   Bayer hashes, fixed settings, and negative controls, or document that the
+   available local corpus cannot supply them before training the
+   PSF-conditioned SR experiment.
 7. Re-run the README/media/release guards and open a focused PR for each small
    reviewable slice.
