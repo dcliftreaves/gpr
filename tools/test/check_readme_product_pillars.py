@@ -19,6 +19,7 @@ SCORECARD = ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md"
 
 REQUIRED_SECTIONS = (
     "## Open Raw Video For Action Cameras",
+    "## Product Snapshot",
     "## Product Pillars",
     "## Evidence Map",
     "## Stills Performance And CNN Latitude",
@@ -31,6 +32,11 @@ REQUIRED_README_TOKENS = (
     "production-readiness burn-down",
     "not an image-quality score",
     "not a regression signal for locked artifacts",
+    "**50 MP RAW still tiers**",
+    "**4K `.gvid` capture prototype**",
+    "**1024 camera-back preview**",
+    "**Offline 4K cleanup and 8K SR**",
+    "See [`docs/PRODUCT_LOCK_LEDGER.md`](docs/PRODUCT_LOCK_LEDGER.md)",
     "**1. Best RAW stills**",
     "**2. GoPro RAW video MVP**",
     "**3. Premium still/SR**",

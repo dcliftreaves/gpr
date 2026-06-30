@@ -30,6 +30,19 @@ receipts. The remaining production step is intentionally narrow: run the same
 closure path from the actual Mission 1 sensor/DMA, SD writer, and rear display
 instead of the Pi stand-in.
 
+## Product Snapshot
+
+| locked now | why it matters | still open |
+|---|---|---|
+| **50 MP RAW still tiers** | Three editable Bayer still tiers pass the committed visual gate at **9.80 MB**, **15.05 MB**, and **27.17 MB** mean size. | Add real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars before claiming broad real-camera phase/noise coverage. |
+| **4K `.gvid` capture prototype** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20 fps** Pi 5 stand-in floor. | Replace the Pi stand-in with real Mission 1 sensor/DMA, SD writer, and rear-display receipts. |
+| **1024 camera-back preview** | The same 4K `.gvid` decodes to full-frame 1024 x 768 preview above **20 fps** on the Pi 5 stand-in. | Run the preview through the actual Mission 1 UI/display handoff. |
+| **Offline 4K cleanup and 8K SR** | Approved CNN paths emit editable 4K/8K Bayer `.gvid` plus ProRes review media for desktop/post workflows. | Premium still-SR and PSF-conditioned video/SR are still research gates, not production replacements. |
+
+See [`docs/PRODUCT_LOCK_LEDGER.md`](docs/PRODUCT_LOCK_LEDGER.md) for the exact
+lock rule: a path regresses only when its own committed gate, receipt, hash, or
+CI guard fails.
+
 ## Product Pillars
 
 Current four-pillar completion is **69%**. The repo is ready to show as a
