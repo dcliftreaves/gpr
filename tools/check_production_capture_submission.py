@@ -30,6 +30,19 @@ REQUIRED_CAMERA_ROLE_RECEIPTS = {
     "preview_ui_receipt",
     "mission1_camera_closure_run",
 }
+PSF_HIGH_DIMS = (8192, 6144)
+PSF_LOW_DIMS = (4096, 3072)
+PSF_HIGH_BYTES = PSF_HIGH_DIMS[0] * PSF_HIGH_DIMS[1] * 2
+PSF_LOW_BYTES = PSF_LOW_DIMS[0] * PSF_LOW_DIMS[1] * 2
+PSF_FIXED_SETTING_FIELDS = [
+    "iso",
+    "exposure",
+    "white_balance",
+    "lens_mode",
+    "stabilization",
+    "sharpening",
+    "lens_correction",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -86,6 +99,17 @@ def number_at_least(row: dict[str, Any], key: str, minimum: float) -> tuple[bool
         return False, f"{key} must be numeric and >= {minimum:g}"
     if parsed < minimum:
         return False, f"{key} must be >= {minimum:g}"
+    return True, ""
+
+
+def number_equals(row: dict[str, Any], key: str, expected: int) -> tuple[bool, str]:
+    value = row.get(key)
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return False, f"{key} must be numeric and equal {expected}"
+    if parsed != expected:
+        return False, f"{key} must equal {expected}"
     return True, ""
 
 
@@ -247,21 +271,70 @@ def validate_psf_pairs(rid: str, req: dict[str, Any], submission: dict[str, Any]
     accepted = 0
     negative_controls = 0
     for pair in pairs:
-        for key in ("high_source_sha256", "low_source_sha256", "high_bayer_sha256", "low_bayer_sha256"):
+        pair_id = str(pair.get("id") or "")
+        required = [
+            "high_source_path",
+            "low_source_path",
+            "high_bayer_path",
+            "low_bayer_path",
+            "high_width",
+            "high_height",
+            "low_width",
+            "low_height",
+            "high_bayer_bytes",
+            "low_bayer_bytes",
+            "cfa_phase",
+            "settings_receipt_sha256",
+            "measurement_receipt_sha256",
+        ]
+        missing = missing_fields(pair, required)
+        if missing:
+            failures.append(f"pair {pair_id} missing {', '.join(missing)}")
+            continue
+        for key in (
+            "high_source_sha256",
+            "low_source_sha256",
+            "high_bayer_sha256",
+            "low_bayer_sha256",
+            "high_extract_receipt_sha256",
+            "low_extract_receipt_sha256",
+            "settings_receipt_sha256",
+            "measurement_receipt_sha256",
+        ):
             if not has_sha(pair, key):
-                failures.append(f"pair {pair.get('id') or ''} missing valid {key}")
+                failures.append(f"pair {pair_id} missing valid {key}")
+        for key, expected in (
+            ("high_width", PSF_HIGH_DIMS[0]),
+            ("high_height", PSF_HIGH_DIMS[1]),
+            ("low_width", PSF_LOW_DIMS[0]),
+            ("low_height", PSF_LOW_DIMS[1]),
+            ("high_bayer_bytes", PSF_HIGH_BYTES),
+            ("low_bayer_bytes", PSF_LOW_BYTES),
+        ):
+            ok, failure = number_equals(pair, key, expected)
+            if not ok:
+                failures.append(f"pair {pair_id} {failure}")
+        if str(pair.get("cfa_phase") or "").upper() not in {"RGGB", "GBRG", "GRBG", "BGGR"}:
+            failures.append(f"pair {pair_id} cfa_phase must be a normal 2x2 Bayer phase")
+        fixed_missing = missing_fields(pair, PSF_FIXED_SETTING_FIELDS)
+        if fixed_missing:
+            failures.append(f"pair {pair_id} missing fixed setting field(s): {', '.join(fixed_missing)}")
         if pair.get("negative_control") is True:
-            if pair.get("expected_reject") is True:
+            if pair.get("expected_reject") is True and pair.get("rejected_by_measurement") is True and pair.get("rejection_reason"):
                 negative_controls += 1
+            else:
+                failures.append(
+                    f"pair {pair_id} negative control must set expected_reject=true, rejected_by_measurement=true, and rejection_reason"
+                )
             continue
         if pair.get("fixed_settings") is not True:
-            failures.append(f"pair {pair.get('id') or ''} must set fixed_settings=true")
+            failures.append(f"pair {pair_id} must set fixed_settings=true")
             continue
         if pair.get("static_scene") is not True:
-            failures.append(f"pair {pair.get('id') or ''} must set static_scene=true")
+            failures.append(f"pair {pair_id} must set static_scene=true")
             continue
         if pair.get("accepted_by_measurement") is not True:
-            failures.append(f"pair {pair.get('id') or ''} must set accepted_by_measurement=true")
+            failures.append(f"pair {pair_id} must set accepted_by_measurement=true")
             continue
         accepted += 1
     if accepted < min_pairs:

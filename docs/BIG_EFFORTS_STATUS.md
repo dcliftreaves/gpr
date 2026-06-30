@@ -587,8 +587,10 @@ Current evidence:
   It records the local corpus limit explicitly: 42 native high Mission 1 frames
   but only 3 native low frames, yielding 4 near-time candidates, 3 selected
   pairs, 2 accepted pairs, and an unstable kernel. The request asks for locked
-  same-scene high/low pair stacks plus negative controls before training any
-  PSF-conditioned replacement.
+  same-scene high/low pair stacks with source hashes, decoded Bayer hashes,
+  exact dimensions and byte counts, extraction/settings/measurement receipt
+  hashes, fixed settings, plus negative controls with explicit rejection reasons
+  before training any PSF-conditioned replacement.
 - The raw-video SR/detail candidate scoreboard indexes 89 historical
   Mission/Z8 decision receipts and finds zero current-scale promotion rows
   under the Mission42 plus Z8 all24 coverage rule:

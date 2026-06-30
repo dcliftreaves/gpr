@@ -161,12 +161,17 @@
       "required_evidence": [
         "original high-resolution and low-resolution GPR/DNG paths with SHA-256 source hashes",
         "decoded little-endian uint16 Bayer paths, byte counts, dimensions, CFA phase, and SHA-256 hashes for both sides of every pair",
+        "extraction receipt paths and SHA-256 hashes for the high and low decoded Bayer files",
+        "settings receipt path and SHA-256 hash proving fixed ISO, exposure, white balance, lens mode, stabilization, sharpening, and lens-correction state",
+        "PSF measurement receipt path and SHA-256 hash proving accepted or rejected pair status",
         "fixed ISO, exposure, white balance, lens mode, stabilization, sharpening, and lens-correction state",
         "locked camera and static scene confirmation",
-        "negative controls labelled as moved-camera, changed-scene, or mismatched-settings pairs"
+        "negative controls labelled as moved-camera, changed-scene, or mismatched-settings pairs with rejected_by_measurement=true and rejection_reason"
       ],
       "acceptance": [
         "pair inventory reports at least three decoded native high/low Mission 1 candidate pairs",
+        "each accepted pair records 8192 x 6144 high-resolution Bayer and 4096 x 3072 low-resolution Bayer dimensions",
+        "decoded Bayer byte counts equal 100663296 bytes for high-resolution inputs and 25165824 bytes for low-resolution inputs",
         "measurement plan selects at least three controlled pairs",
         "native PSF measurement accepts at least three pairs after scene/alignment vetting",
         "accepted pairs provide at least 96 sharp-edge and 96 texture-field tiles",

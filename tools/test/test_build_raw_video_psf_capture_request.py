@@ -72,11 +72,16 @@ def main() -> int:
         primary = [row for row in data["requests"] if row["id"] == "mission1_static_high_low_psf_pairs"][0]
         assert any("SHA-256 source hashes" in item for item in primary["metadata_required"])
         assert any("little-endian uint16 Bayer" in item for item in primary["metadata_required"])
+        assert any("settings receipt path and SHA-256 hash" in item for item in primary["metadata_required"])
+        assert any("PSF measurement receipt path and SHA-256 hash" in item for item in primary["metadata_required"])
         assert any("camera and scene did not move" in item for item in primary["metadata_required"])
         assert any("decoded raw hashes" in item for item in primary["acceptance"])
+        assert any("extraction, settings, and measurement receipt hashes" in item for item in primary["acceptance"])
         assert any("expected byte size" in item for item in primary["acceptance"])
+        assert any("100663296 bytes" in item for item in primary["acceptance"])
         controls = [row for row in data["requests"] if row["id"] == "mission1_psf_negative_controls"][0]
         assert any("intended negative-control defect" in item for item in controls["metadata_required"])
+        assert any("rejected_by_measurement=true" in item for item in controls["acceptance"])
         assert any("extract_raw_bayer_u16.py" in command for command in data["validation_commands"])
         assert any("build_mission1_native_psf_measurement.py" in command for command in data["validation_commands"])
         html = (out / "index.html").read_text(encoding="utf-8")

@@ -24,7 +24,7 @@ model-promotion artifacts needed to finish the wider product suite.
 | `mission1_darkframe_stack` | RAW stills | Four matching no-scene-signal Mission 1 darkframes under one camera/ISO/CFA/dimensions key. | `gpr.camera_noise_calibration.v1` sidecar validates and runtime policy allows exact-match noise use. |
 | `iphone_cfa_darkframe_stack` | RAW stills | Four matching no-scene-signal iPhone CFA DNG darkframes; Linear Raw does not count. | iPhone CFA sidecar validates and Linear Raw remains a negative fixture. |
 | `mission1_camera_role_receipts` | RAW video MVP | Real Mission 1 sensor/DMA or camera ring-buffer source, SD writer, and rear-display receipts. | Camera closure validator marks camera production ready; Pi stand-in receipts are replaced by camera-role evidence. |
-| `controlled_mission1_psf_pairs` | PSF-aware video/SR | Controlled high/low Mission 1 raw pair stack with source hashes, decoded Bayer hashes, fixed settings, and negative controls. | Native PSF measurement accepts at least three pairs and produces a stable kernel for model conditioning. |
+| `controlled_mission1_psf_pairs` | PSF-aware video/SR | Controlled high/low Mission 1 raw pair stack with source hashes, decoded Bayer hashes, exact dimensions/byte counts, extraction/settings/measurement receipt hashes, fixed settings, and negative controls. | Native PSF measurement accepts at least three pairs and produces a stable kernel for model conditioning. |
 | `premium_still_sr_promotion_receipts` | Premium still/SR | Checkpoint, target, full-frame/editor-latitude, editable raw, timing/memory, and noise-policy receipts. | No-REF candidate beats current still-SR baselines on 50 MP and 100 MP gates without severe worst-row failures. |
 
 ## Guard
@@ -62,11 +62,13 @@ python3 tools/check_production_capture_submission.py <submission.json> \
 
 The submission manifest schema is `gpr.production_capture_submission.v1`. The
 checker requires source hashes, fixed camera metadata, no-scene-signal flags for
-darkframes, camera-role Mission 1 receipts, controlled PSF pair hashes plus
-negative controls, and no-REF premium still-SR promotion receipts. It exits
-nonzero until every committed requirement is closed by the submitted evidence.
-The template builder and checker together are the intake tools for turning the
-open requirements above into an auditable pass/fail package.
+darkframes, camera-role Mission 1 receipts, controlled PSF pair hashes,
+8192 x 6144 and 4096 x 3072 decoded Bayer dimensions, exact uint16 byte counts,
+extraction/settings/measurement receipt hashes, negative-control rejection
+reasons, and no-REF premium still-SR promotion receipts. It exits nonzero until
+every committed requirement is closed by the submitted evidence. The template
+builder and checker together are the intake tools for turning the open
+requirements above into an auditable pass/fail package.
 
 ## Current Generated Handoff Views
 

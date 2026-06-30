@@ -65,15 +65,39 @@ def darkframe(model: str, idx: int, *, iphone: bool = False) -> dict:
 def pair(idx: int, *, negative: bool = False) -> dict:
     return {
         "id": f"pair_{idx}",
+        "high_source_path": f"/captures/pair_{idx}_high.dng",
+        "low_source_path": f"/captures/pair_{idx}_low.dng",
         "high_source_sha256": SHA,
         "low_source_sha256": SHA_B,
+        "high_bayer_path": f"/captures/pair_{idx}_high.raw",
+        "low_bayer_path": f"/captures/pair_{idx}_low.raw",
         "high_bayer_sha256": SHA,
         "low_bayer_sha256": SHA_B,
+        "high_extract_receipt_sha256": SHA,
+        "low_extract_receipt_sha256": SHA_B,
+        "settings_receipt_sha256": SHA,
+        "measurement_receipt_sha256": SHA_B,
+        "high_width": 8192,
+        "high_height": 6144,
+        "low_width": 4096,
+        "low_height": 3072,
+        "high_bayer_bytes": 100663296,
+        "low_bayer_bytes": 25165824,
+        "cfa_phase": "GBRG",
+        "iso": 100,
+        "exposure": "1/240",
+        "white_balance": "5500K",
+        "lens_mode": "wide",
+        "stabilization": "off",
+        "sharpening": "off",
+        "lens_correction": "off",
         "fixed_settings": not negative,
         "static_scene": not negative,
         "accepted_by_measurement": not negative,
         "negative_control": negative,
         "expected_reject": negative,
+        "rejected_by_measurement": negative,
+        "rejection_reason": "alignment mismatch" if negative else "",
     }
 
 
@@ -181,6 +205,14 @@ def main() -> int:
         proc = run_tool(manifest)
         assert proc.returncode == 1
         assert "no_ref_runtime must be true" in proc.stdout
+
+        bad = valid_submission()
+        bad["requirements"][5]["pairs"][-1]["rejected_by_measurement"] = False
+        bad["requirements"][5]["pairs"][-1]["rejection_reason"] = ""
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "negative control must set expected_reject=true" in proc.stdout
 
     print("test_check_production_capture_submission: PASS")
     return 0

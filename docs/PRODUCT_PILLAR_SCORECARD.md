@@ -199,9 +199,11 @@ The raw-video PSF controlled capture request lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`.
 It is the handoff for closing the measurement blocker: locked same-scene
 8192 x 6144 and 4096 x 3072 Bayer pair stacks, source GPR/DNG hashes, decoded
-little-endian uint16 Bayer hashes, fixed ISO/exposure/WB/lens/sharpening
-settings, plus negative controls, with the exact validation commands required
-to promote a stable native PSF kernel.
+little-endian uint16 Bayer hashes, exact dimensions and byte counts,
+extraction/settings/measurement receipt hashes, fixed
+ISO/exposure/WB/lens/sharpening settings, plus negative controls with explicit
+rejection reasons, with the exact validation commands required to promote a
+stable native PSF kernel.
 That controlled-pair blocker is pinned as `controlled_mission1_psf_pairs` in
 the committed production capture requirements.
 

@@ -52,14 +52,17 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
             "metadata_required": [
                 "original high-resolution and low-resolution GPR/DNG paths with SHA-256 source hashes",
                 "decoded little-endian uint16 Bayer paths, byte counts, dimensions, CFA phase, and SHA-256 hashes for both sides of every pair",
-                "extraction receipt or command for each decoded raw file, including whether tools/extract_raw_bayer_u16.py or camera firmware produced it",
+                "extraction receipt path and SHA-256 hash for each decoded raw file, including whether tools/extract_raw_bayer_u16.py or camera firmware produced it",
+                "settings receipt path and SHA-256 hash proving ISO, exposure, white balance, lens mode, stabilization, sharpening, and lens-correction state stayed fixed",
+                "PSF measurement receipt path and SHA-256 hash proving whether the pair was accepted by the measurement pass",
                 "make, model, capture mode, ISO, exposure time, white balance, lens mode, stabilization state, sharpening state, and lens-correction state",
                 "pair label, capture order, timestamp delta, and confirmation that the camera and scene did not move between high/low captures",
             ],
             "acceptance": [
                 "pair inventory reports at least three decoded native high/low Mission 1 candidate pairs",
                 "each accepted pair has source hashes plus decoded raw hashes for both the 8192 x 6144 and 4096 x 3072 Bayer inputs",
-                "each decoded raw input has the exact expected byte size for its dimensions and little-endian uint16 Bayer format",
+                "each accepted pair has extraction, settings, and measurement receipt hashes",
+                "each decoded raw input has the exact expected byte size for its dimensions and little-endian uint16 Bayer format: 100663296 bytes for 8192 x 6144 and 25165824 bytes for 4096 x 3072",
                 "measurement plan selects at least three pairs",
                 "native PSF measurement accepts at least three pairs after scene/alignment vetting",
                 "accepted pairs provide at least 96 sharp-edge and 96 texture-field tiles",
@@ -80,11 +83,12 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
             "metadata_required": [
                 "original high-resolution and low-resolution GPR/DNG paths with SHA-256 source hashes",
                 "decoded little-endian uint16 Bayer paths, byte counts, dimensions, and SHA-256 hashes for both sides of every control pair",
+                "extraction, settings, and measurement receipt hashes for every control pair",
                 "explicit label describing the intended negative-control defect: moved camera, changed scene, or mismatched capture settings",
             ],
             "acceptance": [
                 "native PSF measurement rejects the negative controls",
-                "rejection reasons point to alignment/scene mismatch rather than tool failure",
+                "rejected_by_measurement=true and rejection_reason point to alignment/scene mismatch rather than tool failure",
             ],
         },
     ]
