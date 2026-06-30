@@ -119,6 +119,8 @@ def main() -> int:
                 "weight_decay": 0.0,
                 "grad_weight": 0.0,
                 "target_abs_weight": 0.5,
+                "band_weight": 0.0,
+                "band_blocks": [5, 9],
                 "target_policy": "raw",
                 "noise_threshold_scale": 1.0,
                 "grad_clip": 1.0,
@@ -147,6 +149,8 @@ def main() -> int:
         assert receipt["config"]["holdout_scene"] == "holdout_scene"
         assert receipt["config"]["train_camera"] == "z8"
         assert receipt["config"]["target_policy"] == "raw"
+        assert receipt["config"]["band_weight"] == 0.0
+        assert receipt["config"]["band_blocks"] == [5, 9]
         assert "exact_raw_mae_reduction_pct" in receipt["eval"]["holdout"]
 
         args.output_dir = root / "camera_holdout"
@@ -182,6 +186,16 @@ def main() -> int:
         assert context_hf_receipt["policy"]["uses_source_raw_at_runtime"] is False
         assert "stored candidate_raw_hf_cfa4" in context_hf_receipt["policy"]["runtime_inputs"]
         assert "pooled candidate raw/HF/stored-HF context planes" in context_hf_receipt["policy"]["runtime_inputs"]
+
+        args.output_dir = root / "band_loss_holdout"
+        args.feature_mode = "raw_multiscale_coord_ev_noise"
+        args.band_weight = 0.25
+        args.band_blocks = [4, 9]
+        band_receipt = tool.train(args)
+        assert band_receipt["eval"]["holdout"]["row_count"] == 1
+        assert band_receipt["config"]["band_weight"] == 0.25
+        assert band_receipt["config"]["band_blocks"] == [5, 9]
+        assert band_receipt["policy"]["uses_source_raw_at_runtime"] is False
 
         bad_npz = root / "bad_targets.npz"
         np.savez_compressed(

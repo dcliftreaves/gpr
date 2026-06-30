@@ -42,6 +42,8 @@ DEFAULT_MODEL_RECEIPTS = [
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_x2donly_w48_2200_20260630/train_receipt.json",
     DEFAULT_EXTERNAL_ROOT
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json",
+    DEFAULT_EXTERNAL_ROOT
+    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json",
 ]
 
 
@@ -203,7 +205,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 1,
                 "name": "domain-balanced raw-CFA residual learner",
-                "purpose": "make X2D and Z8 holdouts positive at the same time; the first X2D-only camera-domain filter and the combined stored-HF plus pooled-context feature pass both regressed the hard X2D holdout, so this needs a better objective/context than simple domain filtering or feature concatenation",
+                "purpose": "make X2D and Z8 holdouts positive at the same time; the first X2D-only camera-domain filter, combined stored-HF plus pooled-context feature pass, and simple multiscale band-loss objective all regressed the hard X2D holdout, so this needs a better objective/context than simple domain filtering, feature concatenation, or band reweighting",
                 "must_prove": [
                     f"X2D median raw-residual MAE recovery >= {threshold_pct:.1f}%",
                     f"Z8 median raw-residual MAE recovery >= {threshold_pct:.1f}%",
@@ -213,7 +215,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 2,
                 "name": "full-image or routed raw-context residual model",
-                "purpose": "replace the current local-tile learner; larger patches, stronger high-residual weighting, simple pooled raw context, stored candidate-HF, stored-HF plus pooled context, and X2D-only train-domain filtering all regressed X2D and should not be repeated as the main path",
+                "purpose": "replace the current local-tile learner; larger patches, stronger high-residual weighting, simple pooled raw context, stored candidate-HF, stored-HF plus pooled context, multiscale band-loss reweighting, and X2D-only train-domain filtering all regressed X2D and should not be repeated as the main path",
                 "must_prove": [
                     "uses candidate raw/metadata only at runtime",
                     "beats the local and pooled-context raw-CFA residual baselines on the hard X2D holdout",

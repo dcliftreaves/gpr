@@ -308,6 +308,44 @@ def gradient_l1(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     )
 
 
+def lowpass(x: torch.Tensor, block: int) -> torch.Tensor:
+    block = max(3, int(block))
+    if block % 2 == 0:
+        block += 1
+    pad = block // 2
+    return F.avg_pool2d(F.pad(x, (pad, pad, pad, pad), mode="reflect"), block, stride=1)
+
+
+def normalize_band_blocks(values: list[int]) -> list[int]:
+    blocks = []
+    for value in values:
+        block = max(3, int(value))
+        if block % 2 == 0:
+            block += 1
+        blocks.append(block)
+    return sorted(set(blocks))
+
+
+def multiscale_band_l1(pred: torch.Tensor, target: torch.Tensor, blocks: list[int]) -> torch.Tensor:
+    if not blocks:
+        return torch.zeros((), dtype=pred.dtype, device=pred.device)
+    loss = torch.zeros((), dtype=pred.dtype, device=pred.device)
+    prev_pred_low = pred
+    prev_target_low = target
+    used = 0
+    for block in blocks:
+        pred_low = lowpass(pred, block)
+        target_low = lowpass(target, block)
+        pred_band = prev_pred_low - pred_low
+        target_band = prev_target_low - target_low
+        loss = loss + F.l1_loss(pred_band, target_band)
+        prev_pred_low = pred_low
+        prev_target_low = target_low
+        used += 1
+    loss = loss + F.l1_loss(prev_pred_low, prev_target_low)
+    return loss / float(used + 1)
+
+
 def residual_loss(pred: torch.Tensor, target: torch.Tensor, *, target_abs_weight: float) -> torch.Tensor:
     weight = torch.ones_like(target[:, 0:1])
     if target_abs_weight > 0.0:
@@ -642,6 +680,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     data = RawCfaResidualTargets(args.targets)
     if args.feature_mode in {"raw_multiscale_storedhf_coord_ev_noise", "raw_context_storedhf_coord_ev_noise"} and data.candidate_raw_hf is None:
         raise ValueError(f"{args.feature_mode} requires candidate_raw_hf_cfa4 in the target NPZ")
+    band_blocks = normalize_band_blocks(args.band_blocks)
     train_indices, holdout_indices = data.row_indices(
         args.holdout_scene,
         args.holdout_camera,
@@ -675,7 +714,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             noise_threshold_scale=args.noise_threshold_scale,
         )
         pred = model(make_features(x, args.feature_mode, args.feature_block, ev, noise, stored_hf))
-        loss = residual_loss(pred, y, target_abs_weight=args.target_abs_weight) + args.grad_weight * gradient_l1(pred, y)
+        loss = (
+            residual_loss(pred, y, target_abs_weight=args.target_abs_weight)
+            + args.grad_weight * gradient_l1(pred, y)
+            + args.band_weight * multiscale_band_l1(pred, y, band_blocks)
+        )
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
@@ -720,6 +763,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "depth": args.depth,
                 "residual_scale": args.residual_scale,
                 "target_abs_weight": args.target_abs_weight,
+                "band_weight": args.band_weight,
+                "band_blocks": band_blocks,
                 "target_policy": args.target_policy,
                 "noise_threshold_scale": args.noise_threshold_scale,
                 "train_camera": args.train_camera,
@@ -763,6 +808,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "weight_decay": args.weight_decay,
             "grad_weight": args.grad_weight,
             "target_abs_weight": args.target_abs_weight,
+            "band_weight": args.band_weight,
+            "band_blocks": band_blocks,
             "target_policy": args.target_policy,
             "noise_threshold_scale": args.noise_threshold_scale,
             "holdout_scene": args.holdout_scene,
@@ -820,6 +867,19 @@ def main() -> int:
     ap.add_argument("--weight-decay", type=float, default=1.0e-4)
     ap.add_argument("--grad-weight", type=float, default=0.05)
     ap.add_argument("--target-abs-weight", type=float, default=1.0)
+    ap.add_argument(
+        "--band-weight",
+        type=float,
+        default=0.0,
+        help="Optional multiscale residual-band consistency loss weight. Zero preserves the legacy objective.",
+    )
+    ap.add_argument(
+        "--band-blocks",
+        type=int,
+        nargs="*",
+        default=[9, 27],
+        help="Odd-ish lowpass block sizes used by the multiscale residual-band loss.",
+    )
     ap.add_argument(
         "--target-policy",
         choices=("raw", "noise_soft_threshold"),
