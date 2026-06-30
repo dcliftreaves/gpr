@@ -7,7 +7,7 @@ refreshed 2026-06-30.
 
 | if you want to know… | read |
 |---|---|
-| product overview, media, four-pillar product map, and quick start | `../README.md` |
+| product overview, media, four product tracks, four-pillar product map, and quick start | `../README.md` |
 | four big product efforts, current percentages, and what remains | `BIG_EFFORTS_STATUS.md` |
 | execution plan for the four big product efforts | `HIGH_LEVEL_GOAL_EXECUTION_PLAN.md` |
 | machine-checkable pillar scorecard and production burn-down | `PRODUCT_PILLAR_SCORECARD.md` |
@@ -178,7 +178,7 @@ Long session logs, dated experiment notes, and rejected candidate writeups are
 kept out of the main docs surface. Start with
 `EXPERIMENT_ARCHIVE_2026-06-04.md` for the branch names and deleted-doc index.
 
-## Where IS the actual code
+## Where is the actual code
 
 - `source/lib/vc5_encoder/` — legacy CineForm encoder, FUSED encoder, `.gvid` video APIs, and firmware-facing `gpr_labs_encoder` shim
 - `source/lib/vc5_decoder/` — legacy CineForm decoder + FUSED decoder

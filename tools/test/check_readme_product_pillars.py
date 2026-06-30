@@ -19,6 +19,7 @@ SCORECARD = ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md"
 
 REQUIRED_SECTIONS = (
     "## Open Raw Video For Action Cameras",
+    "## Four Product Tracks",
     "## Product Snapshot",
     "## Product Pillars",
     "## Evidence Map",
@@ -32,6 +33,12 @@ REQUIRED_README_TOKENS = (
     "production-readiness burn-down",
     "not an image-quality score",
     "not a regression signal for locked artifacts",
+    "GPR is not one codec demo",
+    "capture better raw, keep raw editable, preview it",
+    "**1. RAW stills**",
+    "**2. RAW video MVP**",
+    "**3. Premium still improvement**",
+    "**4. PSF-aware video improvement**",
     "The denominator is the full four-pillar production suite",
     "use the lock ledger for artifact stability and the scorecard for remaining production evidence",
     "For the Mission 1 raw-video loop",

@@ -40,6 +40,19 @@ sensor/DMA, SD writer, and rear display instead of the Pi stand-in. The full
 four-pillar suite still has the fixture/noise, premium still-SR, and PSF gates
 listed below.
 
+## Four Product Tracks
+
+GPR is not one codec demo. The repo is organized as four product tracks that
+ladder into a camera workflow: capture better raw, keep raw editable, preview it
+on-device, then spend desktop compute only where it buys visible quality.
+
+| track | what a user gets | current product line |
+|---|---|---|
+| **1. RAW stills** | 50 MP and 100 MP-class editable Bayer stills that are far smaller than flat 16-bit raw, with 12/14/16-bit support and normal 2x2 Bayer coverage. | Three 50 MP still tiers are production-gated today; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are the remaining broad-camera proof. |
+| **2. RAW video MVP** | A GoPro-class raw-video stream: 4K Bayer frames into `.gvid`, the same stream decoded for camera-back preview, then desktop tools for post. | The Pi 5 stand-in clears the accepted 20+ fps encode and preview floors; GoPro/Mission 1 engineers need to run the camera-role closure package on real sensor/DMA, SD, and display paths. |
+| **3. Premium still improvement** | A slow, offline "make the best still" path that can use camera noise calibration, raw-CFA targets, and SR-style reconstruction without baking the raw. | The infrastructure is real, but the current raw-CFA residual CNNs are diagnostic; this track is not promoted until the still/editor-latitude gate passes. |
+| **4. PSF-aware video improvement** | 4K cleanup and 8K reconstruction that model the real blur from Bayer resize/capture instead of generic sharpening. | Approved 4K cleanup and 8K SR baselines are available for post; controlled high/low PSF captures and a PSF-conditioned model gate remain open. |
+
 ## What This Is Trying To Ship
 
 GPR is organized around four product bets. Two are already strong enough to
