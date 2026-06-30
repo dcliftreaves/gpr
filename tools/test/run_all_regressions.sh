@@ -167,6 +167,7 @@ else
                 python3 tools/test/test_build_premium_still_sr_readiness.py && \
                 python3 tools/test/test_build_premium_still_sr_fixture_manifest.py && \
                 python3 tools/test/test_build_premium_still_sr_pairs.py && \
+                python3 tools/test/test_build_premium_still_sr_candidate_dashboard.py && \
                 python3 tools/test/test_build_bayer_resize_psf_receipt.py && \
                 python3 tools/test/check_release_evidence_manifest.py && \
                 python3 tools/test/check_labs_readiness.py && \

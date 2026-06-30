@@ -125,6 +125,18 @@ It found a small positive held-out X2D signal at step 400
 step 1000. Treat that as evidence that the dedicated still-SR loop is alive,
 not as production approval.
 
+Build the current candidate metrics dashboard with:
+
+```sh
+python3 tools/build_premium_still_sr_candidate_dashboard.py \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_dashboard_20260629
+```
+
+The dashboard summarizes checkpoint hashes, pair hashes, best-step metrics, and
+overfit/regression from the final eval. It is a raw-metric dashboard, not the
+rendered visual/editor-latitude gate required for production promotion.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
