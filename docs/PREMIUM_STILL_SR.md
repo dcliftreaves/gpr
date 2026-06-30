@@ -326,6 +326,19 @@ stored-HF/context U-Net training, or bounded full-crop spectral-loss U-Net
 training, bounded full-crop raw-context U-Net training, or a deeper gated
 pyramid U-Net over the same runtime features.
 
+A non-parametric patch-dictionary probe now tests whether the missing residual
+is at least recoverable through candidate-only nearest-neighbor retrieval:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_patch_dictionary_x2dholdout_20260630/patch_dictionary_probe.json`.
+It builds 5,832 training residual patches from non-holdout scenes, indexes them
+with candidate raw/HF patch statistics plus deterministic crop/EV metadata, and
+uses no source/REF content at holdout runtime. This also fails: the hard X2D
+holdout median raw-residual MAE recovery is about -0.80 percent and median
+RMSE recovery is about -0.72 percent. That rules out a simple retrieval prior
+over the current candidate features. The next path needs a different runtime
+signal, a materially different target/objective, or a stronger learned
+generative/detail prior rather than nearest-neighbor transfer of current
+raw-CFA residual patches.
+
 ## Raw-CFA Feature Smoke
 
 The target builder, merge tool, and trainer now support optional raw-CFA
