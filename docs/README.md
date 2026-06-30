@@ -100,6 +100,8 @@ refreshed 2026-06-29.
 | `python3 tools/test/test_build_premium_still_sr_router_plan.py` | regression-test the premium still-SR router plan builder |
 | `python3 tools/build_premium_still_sr_blocker_audit.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630` | build the premium still-SR root-cause blocker audit |
 | `python3 tools/test/test_build_premium_still_sr_blocker_audit.py` | regression-test the premium still-SR blocker audit builder |
+| `python3 tools/build_premium_still_sr_target_expansion_plan.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_expansion_plan_20260630` | build the next premium still-SR expanded target plan |
+| `python3 tools/test/test_build_premium_still_sr_target_expansion_plan.py` | regression-test the premium still-SR target expansion planner |
 | `python3 tools/build_bayer_resize_psf_receipt.py --out-dir /path/to/out` | build a synthetic non-production Bayer resize PSF receipt |
 | `python3 tools/test/test_build_bayer_resize_psf_receipt.py` | regression-test the PSF receipt builder |
 | `python3 tools/build_bayer_resize_psf_from_pairs.py --pairs /path/to/pairs.npz --out-dir /path/to/out` | build a pair-derived non-production Bayer resize PSF receipt |

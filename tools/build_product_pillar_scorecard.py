@@ -123,7 +123,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         {
             "id": "premium_still_sr",
             "title": "3. Spend-time-for-quality still/SR",
-            "readiness_percent": 46,
+            "readiness_percent": 47,
             "status": "research_loop_working_candidate_not_promoted",
             "production_ready": False,
             "claim": "The offline still-SR machinery is broad and reproducible, but the current no-REF texture model is not good enough to promote.",
@@ -133,9 +133,10 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "X2D high-frequency residual targets and multiscale/noise-conditioned probes isolate the remaining +2 EV texture gap.",
                 "Latest scene-held-out X2D residual probe improves only 2.56 percent, which is useful diagnosis rather than production quality.",
                 "The blocker audit now ranks the next still-SR failure axes: metric gap, target coverage, runtime feature sufficiency, noise policy, and missing full promotion gate.",
+                "The target expansion plan selects 10 additional X2D/Z8 scenes with validated noise sidecars, taking the next intended target set from 3 scenes / 81 rows to 13 scenes / 351 rows.",
             ],
             "open_work": [
-                "Run the next larger-context raw-domain/noise-conditioned texture model defined by the blocker audit.",
+                "Build the expanded X2D/Z8 HF target set and train the larger-context raw-domain/noise-conditioned texture model defined by the blocker audit.",
                 "Pass dedicated 50 MP and 100 MP still-SR gates with editor-latitude and worst-row visual evidence.",
                 "Use calibrated noise sidecars as conditioning, then add back only noise proven separate from signal.",
             ],
@@ -145,6 +146,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("premium still-SR readiness", "artifacts/premium_still_sr_readiness_20260630/index.html"),
                     artifact_ref("premium still-SR experiment scoreboard", "artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html"),
                     artifact_ref("premium still-SR blocker audit", "artifacts/premium_still_sr_blocker_audit_20260630/index.html"),
+                    artifact_ref("premium still-SR target expansion plan", "artifacts/premium_still_sr_target_expansion_plan_20260630/index.html"),
                     artifact_ref("routed rendered review", "artifacts/premium_still_sr_rendered_review_routed_20260630/index.html"),
                     artifact_ref("X2D latitude review", "artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/index.html"),
                     artifact_ref("noise-conditioned residual dashboard", "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html"),
@@ -202,7 +204,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "next_actions": [
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
             "Add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback for those cameras.",
-            "Run the premium still-SR blocker-audit experiment: larger-context raw-domain texture/noise model, expanded target coverage, noise/signal cleaning, then full still/editor-latitude gate.",
+            "Build the premium still-SR expanded X2D/Z8 target set, train the blocker-audit model, then run noise/signal cleaning and the full still/editor-latitude gate.",
             "Run alignment, edge/texture mining, and measured PSF estimation on the Mission 1 native high/low candidate pairs, then gate against current 4K/8K baselines.",
         ],
     }

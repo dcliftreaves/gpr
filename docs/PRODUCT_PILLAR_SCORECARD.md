@@ -31,7 +31,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 46% | The infrastructure is broad, and the blocker audit now makes the next experiment concrete; the no-REF high-frequency texture model is still not production-grade yet. |
+| Premium still/SR | 47% | The infrastructure is broad, and the blocker plus target-expansion audits now make the next experiment concrete; the no-REF high-frequency texture model is still not production-grade yet. |
 | PSF-aware RAW video improvement | 42% | Current 4K cleanup and 8K SR baselines are useful, and near-time native Mission 1 high/low candidates are now indexed; formal native PSF/blur-aware replacement remains open. |
 
 The current real X2D 100MP still audit lives at
@@ -96,6 +96,13 @@ The premium still-SR blocker audit lives at
 It turns the current diagnostic failure into next-experiment requirements:
 larger raw/CFA-aware context, more target scenes and rows, calibrated
 noise/signal cleaning, and a full still/editor-latitude promotion gate.
+
+The premium still-SR target expansion plan lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_expansion_plan_20260630/index.html`.
+It expands the intended next target set from 3 scenes / 81 rows to 13 scenes /
+351 rows by adding six X2D 100MP and four Z8 50MP scenes with validated noise
+sidecars, while explicitly deferring Mission 1 until same-camera noise sidecars
+exist.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a

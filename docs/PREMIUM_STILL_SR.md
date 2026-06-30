@@ -115,6 +115,31 @@ should therefore be a larger-context raw-domain, CFA-aware, noise-conditioned
 texture model with expanded target coverage and a full still/editor-latitude
 gate, not another small rendered-space residual probe.
 
+## Target Expansion Plan
+
+The target expansion planner turns the blocker audit into the next concrete
+training input list:
+
+```sh
+python3 tools/build_premium_still_sr_target_expansion_plan.py \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_expansion_plan_20260630
+```
+
+Current plan:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_expansion_plan_20260630/index.html
+```
+
+It keeps the current 3-scene / 81-row X2D HF target receipt and selects 10 new
+target scenes: six additional X2D 100MP scenes and four representative Z8 50MP
+scenes, all with validated noise sidecars. That would produce a 13-scene /
+351-row target set, clearing the blocker audit's minimum coverage floor before
+training the next raw-domain/noise-conditioned still-SR model. Mission 1 has
+84 eligible 50MP fixtures in the routed manifest, but the plan defers them
+until validated same-camera noise sidecars exist.
+
 ## Fixture Manifest Builder
 
 Use the latest real-fixture compatibility receipt to build the first dedicated
