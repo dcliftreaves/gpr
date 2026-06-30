@@ -24,6 +24,46 @@ If a pillar cannot close, the blocker must be specific and evidenced: missing
 camera access, CFA/metadata incompatibility, noise calibration uncertainty,
 model capacity, PSF mismatch, throughput, memory, or storage.
 
+## Execution Split
+
+The high-level goal has two different kinds of remaining work. Keep them
+separate so hardware/sample acquisition blockers do not stall local model and
+productization work.
+
+Can advance locally without new captures:
+
+- Premium still-SR: keep the expanded raw-CFA target fixed and test stronger
+  candidate-only raw-domain/detail models or losses against the same 50 MP /
+  100 MP still/editor gates. The current evidence says the blocker is X2D
+  domain generalization and low raw-residual recovery, not missing target
+  coverage.
+- Raw-video PSF/SR: use the current modeled-resize/detail-budget receipts to
+  build PSF-conditioned ablations, but keep them non-production until controlled
+  native high/low pairs produce a stable kernel. Any replacement still has to
+  beat the locked 4K cleanup and 8K SR baselines on Mission42 and Z8 all24.
+- README/release hygiene: keep the four pillars, lock ledger, scorecard,
+  release manifest, artifact guards, and continuous review media aligned with
+  the evidence that actually exists.
+
+Requires new hardware or new samples before it can close:
+
+- Mission 1 raw-video MVP production closure: real sensor/DMA or camera
+  ring-buffer source, SD writer, rear-display/UI handoff, zero drops, valid
+  `.gvid`, and timing receipts from `target_role=camera`.
+- Broad real-camera Bayer phase coverage: real GRBG and BGGR fixtures with
+  metadata, black/white levels, extraction receipts, and updated matrix/capability
+  evidence.
+- Mission 1 and iPhone nonzero noise addback: same-camera, same-ISO darkframe
+  stacks with source hashes and validated `gpr.camera_noise_calibration.v1`
+  sidecars.
+- Native PSF promotion: controlled same-scene Mission 1 high/low Bayer pair
+  stacks with source hashes, decoded Bayer hashes, fixed settings, and negative
+  controls.
+
+The next local work should therefore default to premium still-SR and
+PSF-conditioned ablations unless new Mission 1 hardware receipts or missing
+fixtures have arrived.
+
 ## Current Burn-Down Order
 
 ### 1. Raw Stills Compatibility And Noise Policy
