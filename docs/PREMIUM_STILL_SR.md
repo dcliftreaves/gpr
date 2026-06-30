@@ -621,6 +621,50 @@ smoke model recovers only a small part of it. The next pass should test more
 context-rich inputs or a lower/mid/high-frequency target split before spending
 on a full still-SR promotion run.
 
+### X2D HF Residual Band Analysis
+
+`tools/cnn/analyze_premium_still_sr_hf_residual_bands.py` decomposes the
+structured residual target by frequency band and brightness range. This is a
+diagnostic only; the source-derived residual target is used to decide what a
+future no-REF model must learn.
+
+```sh
+python3 tools/cnn/analyze_premium_still_sr_hf_residual_bands.py \
+  --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/hf_residual_targets.npz \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_band_analysis_20260630 \
+  --fine-block 4 \
+  --mid-block 16 \
+  --coarse-block 64 \
+  --contact-rows 9
+```
+
+Current diagnostic artifact:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_band_analysis_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_band_analysis_20260630/band_analysis.json
+```
+
+Result:
+
+| metric | value |
+|---|---:|
+| median Y residual abs mean | 0.02892 |
+| +2 EV median Y residual abs mean | 0.05983 |
+| +2 EV median Y residual p95 | 0.15422 |
+| median HF energy ratio | 0.467 |
+| median fine-band share of residual abs | 0.980x |
+| median mid-band share of residual abs | 0.204x |
+| median coarse-band share of residual abs | 0.00003x |
+
+The residual is not a coarse tone or alignment problem. It is dominated by
+fine-band texture/noise/detail, with a meaningful but smaller mid-band term.
+The error grows sharply at +2 EV and has brightness-range structure: +2 EV
+bright pixels show much larger residuals than midtones, while the clipped
+center row is a special case. The next model target should therefore be
+exposure/brightness-aware fine texture restoration with validated camera-noise
+conditioning, not another coarse color/tonemap or random-noise pass.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D

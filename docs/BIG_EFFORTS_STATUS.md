@@ -233,6 +233,16 @@ Current evidence:
   This is not enough for production promotion; it narrows the next experiment
   to richer full-frame context, metadata/ISO-aware features, or a different
   LF/mid/HF target split rather than more random-HF addback.
+- `tools/cnn/analyze_premium_still_sr_hf_residual_bands.py` decomposes the X2D
+  residual target by frequency and brightness. The current dashboard shows
+  median Y residual absolute mean 0.02892, +2 EV median 0.05983, +2 EV p95
+  0.15422, median HF energy ratio 0.467, fine-band residual share 0.980x,
+  mid-band share 0.204x, and effectively zero coarse-band share:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_band_analysis_20260630/index.html`.
+  This narrows the production blocker further: the missing X2D +2 EV detail is
+  fine-band, brightness/exposure-conditioned texture/noise/detail. The next
+  candidate should be fine-texture/noise-aware and exposure-conditioned before
+  any full rawpy latitude promotion run.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
