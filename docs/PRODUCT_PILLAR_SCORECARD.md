@@ -229,7 +229,7 @@ The premium still-SR next-experiment contract lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_20260630/index.html`.
 It locks the next model pass to the canonical 351-row / 13-scene raw-CFA
 residual target, forbids REF/source/JPEG content at render time, records the
-failed local/context/noise-only paths that should not be repeated as the
+failed local/context/noise/sampling-only paths that should not be repeated as the
 primary approach, and keeps the promotion gate at the current X2D/Z8 15 percent
 median raw-residual recovery threshold plus full still/editor-latitude receipts.
 The final still-SR promotion artifact set is pinned as
@@ -339,7 +339,7 @@ the X2D-only split remains negative at about -0.15 percent. The
 next model needs full-image/structured raw context or a different objective,
 not another local loss-weight/patch-size pass, simple context-plane
 concatenation, combined local-feature concatenation, simple band-loss
-reweighting, or camera-domain filtering alone.
+reweighting, camera-domain filtering, or camera-balanced sampling alone.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a

@@ -81,7 +81,7 @@ Current dashboard:
 
 It locks the next still-SR pass to the 351-row / 13-scene raw-CFA residual
 target, forbids REF/source/JPEG content at render time, and records the
-local/context/noise-only probes that should not be repeated as the primary
+local/context/noise/sampling-only probes that should not be repeated as the primary
 approach.
 production promotion from it when the current raw-CFA and Mission/Z8 target
 corpora above exist.

@@ -153,6 +153,18 @@ def load_noise_sigma4_from_sidecar(path: str | Path) -> tuple[float, float, floa
     return tuple(float(np.clip(v, 0.0, 1.0)) for v in values)  # type: ignore[return-value]
 
 
+def infer_row_camera(row: dict[str, Any]) -> str:
+    scene = str(row.get("scene_id") or "").lower()
+    source = str(row.get("source_dng") or row.get("candidate_raw") or "").lower()
+    if "z8" in scene or "z8" in source:
+        return "z8"
+    if "x2d" in scene or "x2d" in source or "austin" in scene:
+        return "x2d"
+    if "mission" in scene or "gopro" in source or "gp0" in scene:
+        return "mission1"
+    return "unknown"
+
+
 def apply_target_policy(
     target: torch.Tensor,
     sigma4: torch.Tensor | None,
@@ -444,6 +456,7 @@ class RawCfaResidualTargets:
         batch_size: int,
         patch_size: int,
         rng: random.Random,
+        sample_balance: str = "row",
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
         xs: list[np.ndarray] = []
         ys: list[np.ndarray] = []
@@ -453,8 +466,26 @@ class RawCfaResidualTargets:
         sigmas: list[tuple[float, float, float, float]] = []
         h, w = self.candidate_raw.shape[1:3]
         patch = min(patch_size, h, w)
+        groups: dict[str, list[int]] | None = None
+        if sample_balance != "row":
+            groups = {}
+            for idx in indices:
+                if sample_balance == "camera":
+                    key = infer_row_camera(self.rows[idx])
+                elif sample_balance == "scene":
+                    key = str(self.rows[idx].get("scene_id") or "unknown")
+                else:
+                    raise ValueError(f"unknown sample_balance: {sample_balance}")
+                groups.setdefault(key, []).append(idx)
+            groups = {key: value for key, value in groups.items() if value}
+            if not groups:
+                raise ValueError(f"sample_balance={sample_balance} produced no groups")
+            group_keys = sorted(groups)
         for _ in range(batch_size):
-            idx = rng.choice(indices)
+            if groups is None:
+                idx = rng.choice(indices)
+            else:
+                idx = rng.choice(groups[rng.choice(group_keys)])
             y0 = rng.randrange(0, h - patch + 1) if h > patch else 0
             x0 = rng.randrange(0, w - patch + 1) if w > patch else 0
             xs.append(self.candidate_raw[idx, y0 : y0 + patch, x0 : x0 + patch].transpose(2, 0, 1))
@@ -700,7 +731,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     history: list[dict[str, Any]] = []
     t0 = time.perf_counter()
     for step in range(1, args.steps + 1):
-        x, y, ev, noise, sigma, stored_hf = data.sample_batch(train_indices, args.batch_size, args.patch_size, rng)
+        x, y, ev, noise, sigma, stored_hf = data.sample_batch(
+            train_indices,
+            args.batch_size,
+            args.patch_size,
+            rng,
+            args.sample_balance,
+        )
         x = x.to(device)
         y = y.to(device)
         ev = ev.to(device)
@@ -768,6 +805,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "target_policy": args.target_policy,
                 "noise_threshold_scale": args.noise_threshold_scale,
                 "train_camera": args.train_camera,
+                "sample_balance": args.sample_balance,
             },
         },
         checkpoint,
@@ -816,6 +854,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "holdout_camera": args.holdout_camera,
             "holdout_ev": args.holdout_ev,
             "train_camera": args.train_camera,
+            "sample_balance": args.sample_balance,
             "seed": args.seed,
         },
         "policy": {
@@ -892,6 +931,12 @@ def main() -> int:
     ap.add_argument("--holdout-camera")
     ap.add_argument("--holdout-ev", type=float)
     ap.add_argument("--train-camera", help="Restrict training rows to source paths containing this camera/domain token after holdout removal.")
+    ap.add_argument(
+        "--sample-balance",
+        choices=("row", "camera", "scene"),
+        default="row",
+        help="Training sampler. row preserves legacy behavior; camera and scene sample groups uniformly before rows.",
+    )
     ap.add_argument("--eval-every", type=int, default=100)
     ap.add_argument("--eval-tile", type=int, default=384)
     ap.add_argument("--panel-rows", type=int, default=9)

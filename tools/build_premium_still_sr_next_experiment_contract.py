@@ -5,7 +5,7 @@ This is not a training script. It consumes the current dataset inventory,
 experiment scoreboard, raw-CFA residual gap audit, and production capture
 requirements, then writes the narrow contract for the next model pass. The
 purpose is to keep premium still-SR work pointed at the canonical raw-CFA
-targets and away from already-rejected local/context/noise-only probes.
+targets and away from already-rejected local/context/noise/sampling-only probes.
 """
 from __future__ import annotations
 
@@ -154,6 +154,7 @@ def build_contract(
                 "combined stored-HF plus pooled-context features",
                 "simple multiscale band-loss reweighting",
                 "X2D-only domain filtering without a stronger context/objective",
+                "camera-balanced sampling without a stronger context/objective",
                 "calibrated random-HF or noise addback as a substitute for learned signal detail",
             ],
             "success_gates": [

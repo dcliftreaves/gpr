@@ -128,6 +128,7 @@ def main() -> int:
                 "holdout_camera": None,
                 "holdout_ev": None,
                 "train_camera": "z8",
+                "sample_balance": "row",
                 "eval_every": 0,
                 "eval_tile": 40,
                 "panel_rows": 2,
@@ -151,6 +152,7 @@ def main() -> int:
         assert receipt["config"]["target_policy"] == "raw"
         assert receipt["config"]["band_weight"] == 0.0
         assert receipt["config"]["band_blocks"] == [5, 9]
+        assert receipt["config"]["sample_balance"] == "row"
         assert "exact_raw_mae_reduction_pct" in receipt["eval"]["holdout"]
 
         args.output_dir = root / "camera_holdout"
@@ -196,6 +198,16 @@ def main() -> int:
         assert band_receipt["config"]["band_weight"] == 0.25
         assert band_receipt["config"]["band_blocks"] == [5, 9]
         assert band_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
+        args.output_dir = root / "camera_balanced_holdout"
+        args.feature_mode = "raw_multiscale_coord_ev_noise"
+        args.band_weight = 0.0
+        args.band_blocks = [5, 9]
+        args.sample_balance = "camera"
+        camera_balanced_receipt = tool.train(args)
+        assert camera_balanced_receipt["eval"]["holdout"]["row_count"] == 1
+        assert camera_balanced_receipt["config"]["sample_balance"] == "camera"
+        assert camera_balanced_receipt["policy"]["uses_source_raw_at_runtime"] is False
 
         bad_npz = root / "bad_targets.npz"
         np.savez_compressed(
