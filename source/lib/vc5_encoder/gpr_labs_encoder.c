@@ -94,7 +94,7 @@ static int validate_config(const gpr_labs_encoder_config *cfg,
     if (cfg->width > (uint32_t)INT_MAX || cfg->height > (uint32_t)INT_MAX) {
         return -1;
     }
-    if (cfg->pixel_format > 5) return -1;
+    if (cfg->pixel_format > GPR_VIDEO_PIXEL_FORMAT_MAX) return -1;
     if (cfg->quality > GPR_VIDEO_QUALITY_MAX) return -1;
     if (cfg->fps_x1000 == 0) return -1;
     if (cfg->bit_depth == 0 || cfg->bit_depth > 16) return -1;

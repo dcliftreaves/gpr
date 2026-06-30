@@ -33,6 +33,7 @@ GVID_CLIP_MAGIC = 0x44495647
 GVID_FRAME_MAGIC = 0x004D5246
 GVID_VERSION = 1
 GVID_QUALITY_MAX = 11
+GVID_PIXEL_FORMAT_MAX = 5
 CLIP_HEADER_SIZE = 32
 FRAME_HEADER_SIZE = 16
 COPY_CHUNK_SIZE = 1024 * 1024
@@ -718,8 +719,8 @@ def write_gvid(frame_paths: list[Path], out: Path, width: int, height: int, fps:
         raise ValueError("bad .gvid dimensions")
     if fps <= 0.0:
         raise ValueError("bad .gvid fps")
-    if not (0 <= pixel_format <= 5):
-        raise ValueError("bad .gvid pixel_format")
+    if not (0 <= pixel_format <= GVID_PIXEL_FORMAT_MAX):
+        raise ValueError(f"bad .gvid pixel_format {pixel_format}; expected 0..{GVID_PIXEL_FORMAT_MAX}")
     if not (0 <= quality <= GVID_QUALITY_MAX):
         raise ValueError(f"bad .gvid quality {quality}; expected 0..{GVID_QUALITY_MAX}")
     fps_x1000 = int(round(fps * 1000.0))
@@ -759,7 +760,7 @@ def validate_gvid(path: Path) -> dict[str, Any]:
         width, height, fps_x1000, target_kbps, frame_count_hint = clip[6:]
         if magic != GVID_CLIP_MAGIC or version != GVID_VERSION:
             raise ValueError("bad .gvid magic/version")
-        if flags & ~0x03 or pixel_format > 5 or quality > GVID_QUALITY_MAX or reserved2:
+        if flags & ~0x03 or pixel_format > GVID_PIXEL_FORMAT_MAX or quality > GVID_QUALITY_MAX or reserved2:
             raise ValueError("bad .gvid clip fields")
         if width == 0 or height == 0 or fps_x1000 == 0:
             raise ValueError("bad .gvid dimensions/fps")

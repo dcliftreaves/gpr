@@ -94,7 +94,10 @@ typedef struct {
     @param raw_size     Size of raw data in bytes
     @param width        Image width in pixels
     @param height       Image height in pixels
-    @param pixel_format 0=RGGB12, 1=RGGB14, 2=GBRG12, 3=GBRG14, 4=RGGB16, 5=GBRG16
+    @param pixel_format 0=RGGB12, 1=RGGB14, 2=GBRG12, 3=GBRG14, 4=RGGB16, 5=GBRG16.
+                        The live FUSED/.gvid path currently supports this
+                        RGGB/GBRG unpacked set only. The standard still/GPR
+                        encoder path supports GRBG/BGGR separately.
     @param quality      Quality preset (0-11, default 3 = Filmscan-1)
     @param vc5_out      Output: allocated VC5 bitstream (caller must free)
     @param vc5_size     Output: size of VC5 bitstream

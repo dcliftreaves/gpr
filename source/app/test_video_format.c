@@ -143,8 +143,9 @@ static int test_bad_inputs(void) {
     /* Short write buffer */
     CHECK(gpr_video_write_clip_header(buf, 16, 100, 100, 0, 3, 24.0, 150.0, 1, 0) == -1, "short write rejected");
 
-    /* Out-of-range parameters */
-    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, /*pf*/ 9, 3, 24.0, 150.0, 1, 0) == -1, "bad pixel_format rejected");
+    /* Pixel-format boundary: live .gvid accepts the current FUSED 0..5 set. */
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, GPR_VIDEO_PIXEL_FORMAT_MAX, 3, 24.0, 150.0, 1, 0) == GPR_VIDEO_CLIP_HEADER_SIZE, "max pixel_format accepted");
+    CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, GPR_VIDEO_PIXEL_FORMAT_MAX + 1, 3, 24.0, 150.0, 1, 0) == -1, "bad pixel_format rejected");
     CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, /*q*/ 12, 24.0, 150.0, 1, 0) == -1, "bad quality rejected");
     CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, /*fps*/ 0.0, 150.0, 1, 0) == -1, "bad fps rejected");
     CHECK(gpr_video_write_clip_header(buf, sizeof(buf), 100, 100, 1, 3, NAN, 150.0, 1, 0) == -1, "nan fps rejected");
@@ -183,7 +184,7 @@ static int test_bad_clip_header_fields(void) {
     CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "unknown flags rejected");
 
     CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");
-    put_u16_le(buf + 6, 6);
+    put_u16_le(buf + 6, GPR_VIDEO_PIXEL_FORMAT_MAX + 1);
     CHECK(gpr_video_read_clip_header(buf, sizeof(buf), &h) == -1, "read bad pixel_format rejected");
 
     CHECK(write_valid_clip(buf) == GPR_VIDEO_CLIP_HEADER_SIZE, "valid base clip");

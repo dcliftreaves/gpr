@@ -7,7 +7,7 @@
  * Usage: bench_clean <raw_file> <width> <height> <n_iters>
  *
  * The Bayer pattern defaults to pixel_format = 4 (RGGB16). Override with
- * GPR_BENCH_PIXEL_FORMAT=<0..5>.
+ * GPR_BENCH_PIXEL_FORMAT=<0..GPR_VIDEO_PIXEL_FORMAT_MAX>.
  * To force quality, set FUSED_QUALITY=<0..11>.
  *
  * Companion to tools/pi_benchmark.sh (which sweeps env flags).
@@ -766,10 +766,11 @@ int main(int argc, char **argv) {
         if (pf_env && *pf_env) {
             char *end = NULL;
             long pf = strtol(pf_env, &end, 10);
-            if (end != pf_env && pf >= 0 && pf <= 5) {
+            if (end != pf_env && pf >= 0 && pf <= GPR_VIDEO_PIXEL_FORMAT_MAX) {
                 bench_pixel_format = (int)pf;
             } else {
-                fprintf(stderr, "invalid GPR_BENCH_PIXEL_FORMAT=%s (expected 0..5)\n", pf_env);
+                fprintf(stderr, "invalid GPR_BENCH_PIXEL_FORMAT=%s (expected 0..%d)\n",
+                        pf_env, GPR_VIDEO_PIXEL_FORMAT_MAX);
                 return 1;
             }
         }

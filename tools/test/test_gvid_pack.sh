@@ -36,6 +36,9 @@ printf 'native-camera-gpr-0001-longer' > "$WORK/native_frames/GP017602.GPR"
 "$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip_q11.gvid" \
   --width 8280 --height 5520 --fps 24 --quality 11 --pixel-format 4
 
+"$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip_pf5.gvid" \
+  --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 5
+
 "$PYTHON_BIN" - "$WORK/clip.gvid" <<'PY'
 import struct
 import sys
@@ -77,6 +80,13 @@ if "$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip_q12.gvid"
   exit 1
 fi
 test ! -e "$WORK/clip_q12.gvid"
+
+if "$PYTHON_BIN" "$REPO/tools/gvid_pack.py" "$WORK/frames" "$WORK/clip_pf6.gvid" \
+  --width 8280 --height 5520 --fps 24 --quality 3 --pixel-format 6; then
+  echo "expected pixel-format 6 pack to fail" >&2
+  exit 1
+fi
+test ! -e "$WORK/clip_pf6.gvid"
 
 cat > "$WORK/clip.gvid.meta.json" <<'JSON'
 {

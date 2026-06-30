@@ -126,7 +126,7 @@ typedef struct {
 | `version` | `1` | Bitstream version. Decoder rejects mismatch with `-4`. Future versions must change this number when adding non-backward-compatible fields. |
 | `width` | 1..65535 (pixels) | Bayer-plane width before any decimation. The encoded bands describe a `width/decimate` × `height/decimate` Bayer image; the output Bayer (and the value the container advertises as `decWidth`) is at the decimated size. |
 | `height` | 1..65535 (pixels) | Bayer-plane height before any decimation. |
-| `pixel_format` | 0..5 | Bayer pattern + bit-depth tag. See §2.2. |
+| `pixel_format` | 0..5 | Live FUSED/.gvid Bayer pattern + bit-depth tag. See §2.2. |
 | `quality` | 0..11 | Quality preset index. See §6.1 for the quant tables; values ≥12 cause the decoder to return `-7`. Values 9, 10 are reserved and mirror 8. |
 | `is_rggb` | 0 or 1 | 1 = top-left 2×2 is `R G / G B` (RGGB). 0 = top-left 2×2 is `G B / R G` (GBRG). All other patterns are unsupported. |
 | `log_bits` | 12, 14, or 16 | Bit depth used for the encoder log-curve domain AND the decoder output bit depth. 12 and 14 share `DecoderLogCurve14`; 16 uses `DecoderLogCurve16`. |
@@ -157,7 +157,8 @@ the 12-bit and 14-bit code paths). `is_rggb` is `1` iff
 The header field `log_bits` carries the operative log/decode bit depth
 and the decoder always trusts it over `pixel_format`.
 
-Open spec note: the legacy stills path exposed through `gpr_tools`,
+Scope note: the live FUSED/.gvid stream currently carries the RGGB/GBRG
+unpacked set above. The legacy stills path exposed through `gpr_tools`,
 `vc5_encoder.h`, and DNG/GPR roundtrip supports normal unpacked 2x2 Bayer
 phases RGGB, GBRG, GRBG, and BGGR at 12/14/16 bits, plus the historical
 packed-12 variants for RGGB/GBRG. FUSED does not accept packed-12 input and

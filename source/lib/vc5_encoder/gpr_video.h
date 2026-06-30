@@ -82,7 +82,10 @@ typedef int (*gpr_video_writer_fn)(void *user_data,
 
     @param width         Frame width in pixels
     @param height        Frame height in pixels
-    @param pixel_format  0=RGGB12, 1=RGGB14, 2=GBRG12, 3=GBRG14, 4=RGGB16, 5=GBRG16
+    @param pixel_format  0=RGGB12, 1=RGGB14, 2=GBRG12, 3=GBRG14, 4=RGGB16, 5=GBRG16.
+                         This live-video wrapper follows the FUSED/.gvid
+                         contract; GRBG/BGGR are supported by the standard
+                         still/GPR encoder path, not by this live path yet.
     @param quality       VC5 quality preset (0-11, 3=Filmscan-1 default)
     @param ring_depth    Number of in-flight frame slots (2-4 typical).
                          Bigger ring = more memory + more latency hiding.

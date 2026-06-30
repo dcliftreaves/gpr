@@ -10,6 +10,7 @@ from typing import Any
 
 
 SCHEMA = "gpr_labs_camera_handoff_receipt.v1"
+GVID_PIXEL_FORMAT_MAX = 5
 
 
 def as_bool(obj: dict[str, Any], key: str, failures: list[str], prefix: str) -> bool | None:
@@ -133,8 +134,8 @@ def validate_receipt(data: dict[str, Any]) -> list[str]:
         failures.append("input_frame.stride_bytes must be positive")
     if bit_depth is not None and bit_depth <= 0:
         failures.append("input_frame.bit_depth must be positive")
-    if pixel_format is not None and not (0 <= pixel_format <= 5):
-        failures.append("input_frame.pixel_format must be in 0..5")
+    if pixel_format is not None and not (0 <= pixel_format <= GVID_PIXEL_FORMAT_MAX):
+        failures.append(f"input_frame.pixel_format must be in 0..{GVID_PIXEL_FORMAT_MAX}")
     if target_fps is not None and target_fps <= 0:
         failures.append("input_frame.target_fps must be positive")
 

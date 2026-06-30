@@ -50,7 +50,7 @@ static int finite_double(double v) {
 
 static int validate_clip_header_fields(const gpr_video_clip_header *h) {
     if ((h->flags & (uint8_t)~GPR_VIDEO_FLAG_MASK) != 0) return -1;
-    if (h->pixel_format > 5) return -1;
+    if (h->pixel_format > GPR_VIDEO_PIXEL_FORMAT_MAX) return -1;
     if (h->quality > GPR_VIDEO_QUALITY_MAX) return -1;
     if (h->reserved2 != 0) return -1;
     if (h->width == 0 || h->height == 0) return -1;
@@ -68,7 +68,7 @@ int gpr_video_write_clip_header(uint8_t *buf, size_t buf_size,
                                  uint32_t frame_count_hint)
 {
     if (!buf || buf_size < GPR_VIDEO_CLIP_HEADER_SIZE) return -1;
-    if (width <= 0 || height <= 0 || pixel_format < 0 || pixel_format > 5) return -1;
+    if (width <= 0 || height <= 0 || pixel_format < 0 || pixel_format > GPR_VIDEO_PIXEL_FORMAT_MAX) return -1;
     if (quality < 0 || quality > GPR_VIDEO_QUALITY_MAX) return -1;
     if (!finite_double(fps) || fps <= 0.0) return -1;
     if (!finite_double(target_MBps) || target_MBps < 0.0) return -1;

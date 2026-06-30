@@ -35,6 +35,11 @@ The detailed closure list is pinned in
 `controlled_mission1_psf_pairs`, and
 `premium_still_sr_promotion_receipts`.
 
+The normal-Bayer support claim is deliberately split by path: the still/GPR
+path covers synthetic RGGB/GBRG/GRBG/BGGR conformance today, while the live
+FUSED/.gvid path remains scoped to its 0..5 RGGB/GBRG 12/14/16-bit contract
+until the fused header and preview decoder grow a real four-phase contract.
+
 ## 1. Release Artifacts
 
 Source tags are not enough. A release is externally useful only when it has a

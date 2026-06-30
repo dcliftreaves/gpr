@@ -17,6 +17,7 @@ GVID_VERSION = 1
 FLAG_RATE_CONTROL = 0x01
 FLAG_DENOISE = 0x02
 QUALITY_MAX = 11
+PIXEL_FORMAT_MAX = 5
 PAYLOAD_KINDS = {"fused_gpr", "camera_gpr"}
 
 
@@ -41,8 +42,8 @@ def pack_gvid(
 ) -> int:
     if width <= 0 or height <= 0:
         raise ValueError("width and height must be positive")
-    if not (0 <= pixel_format <= 5):
-        raise ValueError("pixel-format must be in 0..5")
+    if not (0 <= pixel_format <= PIXEL_FORMAT_MAX):
+        raise ValueError(f"pixel-format must be in 0..{PIXEL_FORMAT_MAX}")
     if not (0 <= quality <= QUALITY_MAX):
         raise ValueError(f"quality must be in 0..{QUALITY_MAX}")
     if fps <= 0.0:

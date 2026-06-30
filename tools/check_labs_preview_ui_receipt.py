@@ -10,6 +10,7 @@ from typing import Any
 
 
 SCHEMA = "gpr_labs_preview_ui_receipt.v1"
+GVID_PIXEL_FORMAT_MAX = 5
 
 
 def as_bool(obj: dict[str, Any], key: str, failures: list[str], prefix: str) -> bool | None:
@@ -109,8 +110,8 @@ def validate_receipt(data: dict[str, Any]) -> list[str]:
         failures.append("source.frame_count must be positive")
     if source_bit_depth is not None and source_bit_depth <= 0:
         failures.append("source.bit_depth must be positive")
-    if source_pixel_format is not None and not (0 <= source_pixel_format <= 5):
-        failures.append("source.pixel_format must be in 0..5")
+    if source_pixel_format is not None and not (0 <= source_pixel_format <= GVID_PIXEL_FORMAT_MAX):
+        failures.append(f"source.pixel_format must be in 0..{GVID_PIXEL_FORMAT_MAX}")
 
     preview = require_obj(data, "preview", failures)
     preview_width = as_int(preview, "width", failures, "preview")
