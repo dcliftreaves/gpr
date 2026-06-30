@@ -71,6 +71,11 @@ Current evidence:
   turns those receipts into the concrete closure list: add real GRBG and BGGR
   fixtures, add Mission 1 and iPhone darkframe stacks, and top up the current
   Mission 1 ISO232 RGGB darkframe-like group with two more matching frames.
+- The raw-stills capture request at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260630/index.html`
+  converts that closure list into handoff-ready sample requests and validation
+  commands for the missing GRBG/BGGR fixtures plus Mission/iPhone darkframe
+  stacks.
 
 Boundaries:
 
@@ -87,10 +92,10 @@ Boundaries:
 
 Next production work:
 
-1. Add real GRBG and BGGR camera fixtures to back the committed synthetic
-   stills conformance cells.
-2. Collect or locate Mission 1 and iPhone darkframe/frame-stack data, then
-   apply the camera/ISO noise-calibration sidecar flow. For Mission 1, start
+1. Fulfill the raw-stills capture request: add real GRBG and BGGR camera
+   fixtures to back the committed synthetic stills conformance cells.
+2. Collect or locate Mission 1 and iPhone darkframe/frame-stack data from that
+   request, then apply the camera/ISO noise-calibration sidecar flow. For Mission 1, start
    from the candidate audit: the lowest-lift current group is ISO232 RGGB,
    which has two darkframe-like candidates and needs two more matching frames
    before sidecar construction.

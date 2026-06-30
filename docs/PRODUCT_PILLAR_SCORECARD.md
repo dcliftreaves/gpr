@@ -67,6 +67,11 @@ real GRBG and BGGR fixtures, Mission 1 and iPhone darkframe stacks, and two
 additional matching frames for the current Mission 1 ISO232 RGGB darkframe-like
 group.
 
+The raw-stills capture request lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260630/index.html`.
+It converts that closure list into handoff-ready sample requests, validation
+commands, and promotion criteria.
+
 The current GoPro Mission 1 intake audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/index.html`.
 It verifies the portable firmware handoff bundle, required docs, 4096 x 3072

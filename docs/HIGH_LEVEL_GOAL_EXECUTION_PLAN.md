@@ -150,6 +150,8 @@ Evidence required:
    available. The current stills fixture gap plan is
    `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`;
    it records RGGB=70, GBRG=4, GRBG=0, and BGGR=0 real parsed fixtures.
+   The handoff-ready raw-stills capture request is
+   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260630/index.html`.
 2. Apply the noise-calibration sidecar flow to real Mission 1 and iPhone
    darkframe/frame-stack artifacts where available. The current lowest-lift
    Mission candidate is `GoPro|MISSION 1|ISO232|RGGB`, which already has two

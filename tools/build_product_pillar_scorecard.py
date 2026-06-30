@@ -68,10 +68,11 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "The camera-noise coverage audit confirms calibrated noise sidecars for X2D and Z8, and explicitly marks Mission 1/iPhone as missing validated darkframe sidecars.",
                 "The Mission/iPhone darkframe candidate audit found 9 Mission 1 dark-looking frames, but no same-camera/ISO/CFA group has the required four-frame production stack.",
                 "The stills fixture gap plan turns the phase/noise receipts into a concrete capture checklist and identifies the lowest-lift Mission darkframe top-up: ISO232 RGGB has two candidates and needs two more matching frames.",
+                "The raw-stills capture request converts that checklist into handoff-ready sample requests, validation commands, and promotion criteria.",
             ],
             "open_work": [
-                "Add real GRBG and BGGR camera fixtures so alternate Bayer support is fully backed by real cameras, not only synthetic cells.",
-                "Collect or locate same-ISO Mission 1 and CFA iPhone darkframe stacks, then apply camera-noise calibration before promoting nonzero noise removal/addback for those cameras. Start with the Mission ISO232 RGGB group if new capture is possible.",
+                "Fulfill the raw-stills capture request: add real GRBG and BGGR camera fixtures, then collect or locate same-ISO Mission 1 and CFA iPhone darkframe stacks.",
+                "Keep nonzero noise removal/addback disabled for cameras without validated darkframe sidecars.",
             ],
             "evidence": annotate_refs(
                 [
@@ -84,6 +85,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("camera noise coverage audit", "artifacts/camera_noise_coverage_audit_20260630/index.html"),
                     artifact_ref("Mission/iPhone darkframe candidate audit", "artifacts/darkframe_candidate_audit_mission_iphone_20260630/index.html"),
                     artifact_ref("stills fixture gap plan", "artifacts/stills_fixture_gap_plan_20260630/index.html"),
+                    artifact_ref("raw-stills capture request", "artifacts/stills_capture_request_20260630/index.html"),
                     artifact_ref("camera noise sidecars", "artifacts/camera_noise_sidecars_20260629"),
                     artifact_ref("real fixture compatibility", "artifacts/real_fixture_compatibility"),
                 ],
@@ -244,7 +246,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "pillars": pillars,
         "next_actions": [
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
-            "Add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback for those cameras; the current lowest-lift Mission top-up is ISO232 RGGB with two matching frames still needed.",
+            "Fulfill the raw-stills capture request: add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback; the current lowest-lift Mission top-up is ISO232 RGGB with two matching frames still needed.",
             "Continue premium still-SR from the current raw-CFA residual blocker: held-out Z8 is mildly positive, hard X2D is only barely positive after wider context, and stored-HF/noise-threshold probes did not solve it.",
             "Follow the raw-video PSF gap plan: capture controlled same-scene Mission 1 high/low pairs, rerun native measurement until the kernel is stable, then gate a PSF-conditioned SR model against the current 4K/8K baselines.",
         ],

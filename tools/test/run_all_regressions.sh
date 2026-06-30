@@ -167,6 +167,7 @@ else
                 python3 tools/test/test_build_darkframe_candidate_audit.py && \
                 python3 tools/test/test_build_bayer_phase_fixture_inventory.py && \
                 python3 tools/test/test_build_stills_fixture_gap_plan.py && \
+                python3 tools/test/test_build_stills_capture_request.py && \
                 python3 tools/test/test_build_premium_still_sr_gate_receipt.py && \
                 python3 tools/test/test_build_premium_still_sr_readiness.py && \
                 python3 tools/test/test_build_100mp_still_visual_audit.py && \
