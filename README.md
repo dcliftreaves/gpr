@@ -23,12 +23,14 @@ review media while preserving an editable raw source.
 |---|---|---|---|
 | 4096 x 3072 Bayer into `.gvid`, above the active 20 fps Pi 5 stand-in floor | 1024 x 768 full-frame preview from the same 4K `.gvid`, above 20 fps | 4K cleanup and offline 8K SR from raw Bayer sources | 4K and 8K ProRes review outputs from `.gvid` receipts |
 
-The current evidence covers the prototype loop end to end: true Bayer
+The current evidence covers the raw-video prototype loop end to end: true Bayer
 recompression into `.gvid`, camera-back preview decode from that stream, 4K
 cleanup, offline 8K SR, editable DNG/GPR packaging, ProRes review, and release
-receipts. The remaining production step is intentionally narrow: run the same
-closure path from the actual Mission 1 sensor/DMA, SD writer, and rear display
-instead of the Pi stand-in.
+receipts. For the Mission 1 raw-video loop, the remaining production step is
+intentionally narrow: run the same closure path from the actual Mission 1
+sensor/DMA, SD writer, and rear display instead of the Pi stand-in. The full
+four-pillar suite still has the fixture/noise, premium still-SR, and PSF gates
+listed below.
 
 ## Product Snapshot
 
