@@ -11,6 +11,7 @@ refreshed 2026-06-30.
 | four big product efforts, current percentages, and what remains | `BIG_EFFORTS_STATUS.md` |
 | execution plan for the four big product efforts | `HIGH_LEVEL_GOAL_EXECUTION_PLAN.md` |
 | machine-checkable pillar scorecard and production burn-down | `PRODUCT_PILLAR_SCORECARD.md` |
+| locked product paths versus open production gates | `PRODUCT_LOCK_LEDGER.md` |
 | camera-noise calibration policy and sidecar builder | `CAMERA_NOISE_CALIBRATION.md` |
 | premium still-SR gate policy and skeleton | `PREMIUM_STILL_SR.md` |
 | Bayer resize PSF policy and synthetic receipt builder | `BAYER_RESIZE_PSF.md` |

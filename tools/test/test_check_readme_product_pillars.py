@@ -28,6 +28,9 @@ def main() -> int:
         tmp = Path(td)
         readme = tmp / "README.md"
         scorecard = tmp / "PRODUCT_PILLAR_SCORECARD.md"
+        docs_dir = tmp / "docs"
+        docs_dir.mkdir()
+        lock_ledger = docs_dir / "PRODUCT_LOCK_LEDGER.md"
 
         good = (ROOT / "README.md").read_text(encoding="utf-8")
         readme.write_text(good, encoding="utf-8")
@@ -40,6 +43,22 @@ def main() -> int:
                     "| PSF-aware RAW video improvement | 44% |",
                     "The percentages are production-readiness burn-down estimates.",
                     "not regression signals for locked artifacts",
+                )
+            ),
+            encoding="utf-8",
+        )
+        lock_ledger.write_text(
+            "\n".join(
+                (
+                    "a locked path regresses only when its own committed gate",
+                    "## Locked Paths",
+                    "Mission 1 4K cleanup",
+                    "Mission 1 8K SR",
+                    "Mission 1 Pi stand-in raw-video encode",
+                    "## Open Production Gates",
+                    "Real Mission 1 camera-role raw-video closure",
+                    "Premium still-SR promotion",
+                    "PSF-aware raw-video replacement",
                 )
             ),
             encoding="utf-8",

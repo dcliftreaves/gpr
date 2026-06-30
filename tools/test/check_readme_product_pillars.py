@@ -49,6 +49,7 @@ REQUIRED_README_TOKENS = (
     "Controlled high/low pairs",
     "decoded Bayer hashes",
     "docs/PRODUCT_PILLAR_SCORECARD.md",
+    "docs/PRODUCT_LOCK_LEDGER.md",
     "docs/BIG_EFFORTS_STATUS.md",
     "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md",
     "docs/SHIP_DECISION.md",
@@ -116,6 +117,28 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
         )
     else:
         failures.append(f"{scorecard_path} is missing")
+
+    lock_ledger = readme_path.parent / "docs" / "PRODUCT_LOCK_LEDGER.md"
+    if lock_ledger.exists():
+        ledger = lock_ledger.read_text(encoding="utf-8")
+        require_tokens(
+            ledger,
+            (
+                "a locked path regresses only when its own committed gate",
+                "## Locked Paths",
+                "## Open Production Gates",
+                "Mission 1 4K cleanup",
+                "Mission 1 8K SR",
+                "Mission 1 Pi stand-in raw-video encode",
+                "Real Mission 1 camera-role raw-video closure",
+                "Premium still-SR promotion",
+                "PSF-aware raw-video replacement",
+            ),
+            lock_ledger.name,
+            failures,
+        )
+    else:
+        failures.append(f"{lock_ledger} is missing")
 
     return failures
 
