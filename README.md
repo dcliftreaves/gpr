@@ -49,7 +49,7 @@ receipts before it should be called done.
 |---|---|---|
 | **1. Best RAW stills** | Production-gated 12 MP, 23 MP, 50 MP, and 100 MP-class Bayer roundtrips; 12/14/16-bit paths; committed RGGB/GBRG/GRBG/BGGR still conformance; real Mission 1, Z8, X2D, and iPhone CFA fixture coverage; three 50 MP still tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; validated X2D/Z8 camera-noise sidecars with source-frame hashes. | Apply the same noise sidecar flow to Mission 1/iPhone darkframes before promoting nonzero noise removal/addback; add more real BGGR/GRBG camera fixtures as they become available. |
 | **2. GoPro RAW video MVP** | True 4096 x 3072 Bayer recompression into `.gvid`, valid interrupted-tail recovery, Lexar SILVER PLUS write-budget checks, Pi 5 stand-in capture above the accepted 20 fps floor, and 1024 x 768 camera-back preview from the same stream above 20 fps. | Real Mission 1 sensor/DMA, SD writer, and rear-display receipts. Strict 24 fps is still not production-proven for the current quality profile. |
-| **3. Spend-time-for-quality still/SR** | Matched 1x CNN improves compressed still latitude; current 4K cleanup and 8K SR infrastructure proves the offline CNN path can emit editable raw, `.gvid`, DNG/GPR, and ProRes review artifacts; a dedicated premium still-SR gate skeleton is now executable. | Real "amazing still" promotion is still open: 50 MP and 100 MP still corpora, noise-aware targets, worst-row visual review, and raw-editor latitude receipts. |
+| **3. Spend-time-for-quality still/SR** | Matched 1x CNN improves compressed still latitude; current 4K cleanup and 8K SR infrastructure proves the offline CNN path can emit editable raw, `.gvid`, DNG/GPR, and ProRes review artifacts; dedicated premium still-SR fixtures, pair sets, metric dashboard, and tile-level visual review are executable. | Real "amazing still" promotion is still open: stronger 50 MP/100 MP candidate, noise-aware targets, full-frame/worst-row visual review, and raw-editor latitude receipts. |
 | **4. RAW video improvement / PSF-aware resize** | Mission native12 4K cleanup is approved for offline review; candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates and has 8K `.gvid` plus ProRes receipts; real Mission/Z8/X2D pair-derived resize evidence confirms the current same-color 2x Bayer target is a 2x2 box model. | Native capture/display PSF is not fully formalized. Next work should measure camera/sensor resize PSF directly, train against CFA-aware high-res targets, and require both raw-domain and rendered visual gates before replacing the current SR baseline. |
 
 Detailed status and next-step criteria:
@@ -72,6 +72,8 @@ Premium still-SR larger exploratory run:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt`.
 Premium still-SR candidate metrics dashboard:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_dashboard_20260629/index.html`.
+Premium still-SR visual review dashboard:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_20260629/index.html`.
 Bayer resize PSF pair-derived dashboard:
 `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html`.
 
@@ -268,6 +270,7 @@ current evidence so strict local checks can verify it.
 | Premium still-SR smoke checkpoint | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_smoke_20260629/premium_still_sr_smoke_w24_d4_120.pt` |
 | Premium still-SR larger exploratory checkpoint | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt` |
 | Premium still-SR candidate metrics dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_dashboard_20260629/index.html` |
+| Premium still-SR visual review dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_20260629/index.html` |
 | Bayer resize PSF pair-derived dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html` |
 
 ![GPR production status matrix](docs/img/readme_status_matrix.svg)

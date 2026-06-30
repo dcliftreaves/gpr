@@ -101,6 +101,8 @@ def main() -> int:
             "artifacts/premium_still_sr_candidate_large_20260629/premium_still_sr_w32_d5_1000_x2dholdout.pt.json",
             "artifacts/premium_still_sr_candidate_dashboard_20260629/index.html",
             "artifacts/premium_still_sr_candidate_dashboard_20260629/candidate_dashboard.json",
+            "artifacts/premium_still_sr_visual_review_20260629/index.html",
+            "artifacts/premium_still_sr_visual_review_20260629/visual_review.json",
         ):
             path = root / rel
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -122,6 +124,7 @@ def main() -> int:
         assert state["evidence_summary"]["has_larger_premium_still_sr_pairs"] is True
         assert state["evidence_summary"]["has_larger_premium_still_sr_candidate_checkpoint"] is True
         assert state["evidence_summary"]["has_premium_still_sr_metric_dashboard"] is True
+        assert state["evidence_summary"]["has_rendered_visual_premium_still_sr_dashboard"] is True
         assert state["evidence_summary"]["has_production_grade_premium_still_sr_checkpoint"] is False
         assert gate["schema"] == "gpr.premium_still_sr_gate.v1"
         assert gate["production_ready"] is False

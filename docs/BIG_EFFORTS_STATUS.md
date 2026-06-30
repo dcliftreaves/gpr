@@ -138,6 +138,10 @@ Current evidence:
 - `tools/build_premium_still_sr_candidate_dashboard.py` emits the current
   still-SR candidate metric dashboard, including pair/checkpoint hashes,
   best-step metrics, and final-step regression.
+- `tools/build_premium_still_sr_visual_review.py` emits the current tile-level
+  visual review dashboard with baseline/model/target/error contact sheets for
+  the X2D holdout:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_20260629/index.html`.
 
 Boundaries:
 
@@ -146,6 +150,9 @@ Boundaries:
 - "Looks sharper" is not enough for a still-SR promotion. The output must keep
   raw-editor latitude, tone/color stability, worst-row visual quality, and
   camera-specific noise handling.
+- The current visual review is tile-level Bayer-plane RGB only. It is useful
+  for softness/artifact inspection, but it is not a full-frame raw-editor
+  latitude receipt.
 
 Next production work:
 
