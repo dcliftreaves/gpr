@@ -197,6 +197,44 @@ priors, but the production blocker is now narrowed to X2D/generalization and
 fixture diversity. The next candidate needs more 100 MP fixtures or
 camera-specific specialization before it should be promoted.
 
+## X2D Batch Diagnostic
+
+Adobe DNG Converter can batch-convert Hasselblad `.fff` / `.3FR` sources for
+this fixture path:
+
+```sh
+"/Applications/Adobe DNG Converter.app/Contents/MacOS/Adobe DNG Converter" \
+  -c -d /Volumes/OWC_8TB/gpr_work/artifacts/x2d_dng_adobe_batch_20260629 \
+  /path/to/source.fff
+```
+
+The 2026-06-29 X2D batch converted eight Hasselblad X2D 100C `.fff` files to
+DNG and built an expanded 12-fixture manifest:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/x2d_dng_adobe_batch_20260629/conversion_manifest.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_x2d_batch_20260629/fixture_manifest.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_x2d_batch_20260629/premium_still_sr_pairs_x2d_batch_64t.npz
+```
+
+Results:
+
+| holdout | checkpoint | best RMSE improvement | best MAE improvement | interpretation |
+|---|---|---:|---:|---|
+| original X2D fixture | `premium_still_sr_w48_d6_2000_origx2d_holdout.pt` | 0.30% | 0.19% | better than the previous 0.15% result, but still weak |
+| new Austin X2D fixture 00 | `premium_still_sr_w48_d6_1600_austin00_holdout.pt` | 2.16% | 1.38% | added X2D diversity helps same-camera-class generalization |
+
+Dashboards:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_batch_dashboard_20260629/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_x2d_batch_austin00_20260629/index.html
+```
+
+The generated raw-extract cache was removed after pair generation. Durable
+artifacts kept: converted DNGs, conversion manifest, fixture manifest, pair
+NPZ, checkpoints, training receipts, and dashboards.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D

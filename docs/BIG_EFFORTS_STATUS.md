@@ -148,6 +148,11 @@ Current evidence:
   improves Mission 1 by about 56 percent, Z8 by about 20 percent, and X2D by
   about 2.36 percent:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_xlarge_dashboard_20260629/index.html`.
+- Eight additional Hasselblad X2D 100C `.fff` files were converted to DNG with
+  Adobe DNG Converter and added as 100 MP fixtures. With those fixtures, the
+  original X2D holdout improves about 0.30 percent RMSE, and a held-out Austin
+  X2D scene improves about 2.16 percent RMSE:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_batch_dashboard_20260629/index.html`.
 
 Boundaries:
 
@@ -161,6 +166,9 @@ Boundaries:
   latitude receipt.
 - Current evidence points to X2D/generalization and fixture diversity as the
   premium still-SR blocker, rather than a broken training loop.
+- Added X2D diversity improves same-camera-class generalization, but the
+  original X2D scene remains a hard outlier. That points to target/loss or
+  scene-specialist work before premium still-SR can be promoted.
 
 Next production work:
 
