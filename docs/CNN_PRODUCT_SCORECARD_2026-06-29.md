@@ -58,6 +58,13 @@ Current canonical rows are:
 
 The inventory deliberately marks `mission1_sr_pairs_20260616` as legacy and
 `upresable` as a large reference corpus, not the current SR training source.
+It also indexes the separate `/Volumes/OWC_8TB/gpr_work/cnn` pool as a
+legacy/reference area. That directory still contains the broad Z8
+`diverse_dngs` set, out-of-distribution DNGs, expanded source DNGs, teacher
+tensors, render caches, and older checkpoints. Use it for holdout discovery,
+source lookup, OOD checks, and reproducing older experiments; do not start a new
+production promotion from it when the current raw-CFA and Mission/Z8 target
+corpora above exist.
 
 ## Current Verdict
 

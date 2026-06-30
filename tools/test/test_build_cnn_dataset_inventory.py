@@ -35,7 +35,7 @@ def main() -> int:
             return proc.returncode
         data = json.loads((out_dir / "cnn_dataset_inventory.json").read_text(encoding="utf-8"))
         assert data["schema"] == "gpr.cnn_dataset_inventory.v1"
-        assert data["summary"]["dataset_count"] >= 7
+        assert data["summary"]["dataset_count"] >= 8
         assert data["summary"]["canonical_current_count"] == 3
         assert data["summary"]["canonical_ready_count"] == 3
         rows = {row["id"]: row for row in data["datasets"]}
@@ -50,9 +50,14 @@ def main() -> int:
         legacy = rows["mission1_sr_pairs_legacy"]
         assert legacy["status"] == "legacy_reference"
         assert legacy["ready_for_current_work"] is False
+        external = rows["external_cnn_legacy_reference_pool"]
+        assert external["status"] == "legacy_reference"
+        assert external["ready_for_current_work"] is False
+        assert "broad holdout discovery" in external["use_for_next"]
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "GPR CNN Dataset Inventory" in html
         assert "Mission/Z8 4K cleanup" in html
+        assert "External CNN legacy/reference pool" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
     print("test_build_cnn_dataset_inventory: PASS")
     return 0

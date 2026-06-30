@@ -111,6 +111,21 @@ DATASETS: list[dict[str, Any]] = [
         "expected_artifacts": [],
     },
     {
+        "id": "external_cnn_legacy_reference_pool",
+        "label": "External CNN legacy/reference pool",
+        "relpath": "cnn",
+        "status": "legacy_reference",
+        "pillars": ["premium_still_sr", "raw_video_improvement", "raw_stills"],
+        "role": "Large historical CNN work area with diverse Z8 DNGs, out-of-distribution DNGs, source-DNG expansions, teacher tensors, render caches, and legacy checkpoints.",
+        "use_for_next": "Use for broad holdout discovery, source-image lookup, OOD sanity checks, and reproducing older preview/CNN experiments.",
+        "do_not_use_for": "Do not treat this directory as the current canonical training target; use the explicit current raw-CFA and Mission/Z8 target corpora for new promotion attempts.",
+        "expected_artifacts": [
+            "diverse_dngs",
+            "source_dngs_expanded",
+            "ood_dngs_2025-04-20",
+        ],
+    },
+    {
         "id": "upresable_reference_corpus",
         "label": "UPRESABLE reference corpus",
         "relpath": "artifacts/upresable",
