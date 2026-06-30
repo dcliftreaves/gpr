@@ -223,7 +223,8 @@ code{{color:#b7d7ff}}.contact{{max-width:100%;border:1px solid #333}}
 </style></head><body>
 <h1>Premium Still SR HF Residual Targets</h1>
 <p>Source DNG: <code>{html.escape(data['source_dng'])}</code></p>
-<p>Candidate DNG: <code>{html.escape(data['candidate_dng'])}</code></p>
+<p>Candidate DNG: <code>{html.escape(str(data.get('candidate_dng')))}</code></p>
+<p>Candidate raw: <code>{html.escape(str(data.get('candidate_raw')))}</code></p>
 <p><b>Policy:</b> source DNG high-frequency content is used only to build supervised training targets. This is not a no-REF runtime render path.</p>
 <div class="grid">
 <div class="card"><h2>Rows</h2><p>{summary['row_count']}</p></div>
@@ -249,6 +250,44 @@ def write_npz(path: Path, inputs: list[np.ndarray], residuals: list[np.ndarray],
     )
 
 
+def render_rawpy_with_raw_replacement(
+    template_dng: Path,
+    replacement_raw: Path,
+    *,
+    width: int,
+    height: int,
+    ev: float,
+    output_bps: int,
+    half_size: bool,
+) -> np.ndarray:
+    import rawpy
+
+    raw_values = np.fromfile(replacement_raw, dtype="<u2")
+    expected = width * height
+    if raw_values.size != expected:
+        raise ValueError(f"{replacement_raw} has {raw_values.size} pixels, expected {expected}")
+    replacement = raw_values.reshape((height, width))
+    raw = rawpy.imread(str(template_dng))
+    try:
+        if raw.raw_image.shape != replacement.shape:
+            raise ValueError(f"{template_dng} raw shape {raw.raw_image.shape} does not match replacement {replacement.shape}")
+        raw.raw_image[:, :] = replacement
+        return raw.postprocess(
+            use_camera_wb=True,
+            no_auto_bright=True,
+            output_bps=output_bps,
+            gamma=(2.222, 4.5),
+            output_color=rawpy.ColorSpace.sRGB,
+            demosaic_algorithm=rawpy.DemosaicAlgorithm.AHD,
+            exp_shift=2.0**ev,
+            exp_preserve_highlights=0.0,
+            user_flip=0,
+            half_size=half_size,
+        )
+    finally:
+        raw.close()
+
+
 def build(args: argparse.Namespace) -> dict[str, Any]:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     panels_dir = args.output_dir / "panels"
@@ -262,7 +301,18 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         t0 = time.perf_counter()
         ref = render_rawpy(args.source_dng, ev, args.output_bps, args.half_size)
         t1 = time.perf_counter()
-        cand = render_rawpy(args.candidate_dng, ev, args.output_bps, args.half_size)
+        if args.candidate_raw:
+            cand = render_rawpy_with_raw_replacement(
+                args.source_dng,
+                args.candidate_raw,
+                width=args.candidate_raw_width,
+                height=args.candidate_raw_height,
+                ev=ev,
+                output_bps=args.output_bps,
+                half_size=args.half_size,
+            )
+        else:
+            cand = render_rawpy(args.candidate_dng, ev, args.output_bps, args.half_size)
         t2 = time.perf_counter()
         part_rows, part_inputs, part_residuals, part_targets = build_rows_from_arrays(
             ref=ref,
@@ -278,6 +328,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             source_dng=args.source_dng,
             candidate_dng=args.candidate_dng,
         )
+        for row in part_rows:
+            row["candidate_raw"] = str(args.candidate_raw) if args.candidate_raw else None
+            row["noise_sidecars"] = [str(path) for path in args.noise_sidecar]
         rows.extend(part_rows)
         inputs.extend(part_inputs)
         residuals.extend(part_residuals)
@@ -303,9 +356,11 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "schema": SCHEMA,
         "created_unix": int(time.time()),
         "source_dng": str(args.source_dng),
-        "candidate_dng": str(args.candidate_dng),
+        "candidate_dng": str(args.candidate_dng) if args.candidate_dng else None,
+        "candidate_raw": str(args.candidate_raw) if args.candidate_raw else None,
         "source_dng_sha256": sha256_file(args.source_dng),
-        "candidate_dng_sha256": sha256_file(args.candidate_dng),
+        "candidate_dng_sha256": sha256_file(args.candidate_dng) if args.candidate_dng else None,
+        "candidate_raw_sha256": sha256_file(args.candidate_raw) if args.candidate_raw else None,
         "render": {
             "engine": "rawpy/libraw",
             "use_camera_wb": True,
@@ -320,6 +375,14 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "max_crops_per_ev": args.max_crops_per_ev,
             "block": args.block,
         },
+        "noise_sidecars": [
+            {
+                "path": str(path),
+                "sha256": sha256_file(path),
+                "bytes": path.stat().st_size,
+            }
+            for path in args.noise_sidecar
+        ],
         "policy": {
             "uses_source_hf": True,
             "runtime_safe": False,
@@ -346,7 +409,12 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--source-dng", type=Path, required=True)
-    ap.add_argument("--candidate-dng", type=Path, required=True)
+    candidate = ap.add_mutually_exclusive_group(required=True)
+    candidate.add_argument("--candidate-dng", type=Path)
+    candidate.add_argument("--candidate-raw", type=Path)
+    ap.add_argument("--candidate-raw-width", type=int, default=0)
+    ap.add_argument("--candidate-raw-height", type=int, default=0)
+    ap.add_argument("--noise-sidecar", type=Path, action="append", default=[])
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--ev", action="append", type=float, default=list(DEFAULT_EXPOSURES))
     ap.add_argument("--crop-size", type=int, default=768)
@@ -359,6 +427,8 @@ def main() -> int:
     ap.add_argument("--residual-preview-scale", type=float, default=0.08)
     ap.add_argument("--contact-rows", type=int, default=9)
     args = ap.parse_args()
+    if args.candidate_raw and (args.candidate_raw_width <= 0 or args.candidate_raw_height <= 0):
+        ap.error("--candidate-raw requires --candidate-raw-width and --candidate-raw-height")
     data = build(args)
     print(
         json.dumps(

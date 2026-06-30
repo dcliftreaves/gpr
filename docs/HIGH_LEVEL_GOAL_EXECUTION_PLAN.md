@@ -163,7 +163,13 @@ Evidence required:
    it confirms median HF correlation 0.407 and the center-grid holdout model
    recovers only 1.69 percent residual MAE. The next commit target should
    expand from one X2D scene to multiple X2D scenes/full-frame tiles with
-   validated camera-noise sidecars before another larger model run.
+   validated camera-noise sidecars before another larger model run. The first
+   multi-scene version is now under
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_targets_20260630/`;
+   it covers 81 rows across three X2D scenes and the first scene-held-out model
+   recovers only 1.46 percent residual MAE. The next target should move beyond
+   crop-local RGB/HF features to larger-context, noise-conditioned raw-domain
+   restoration before another promotion attempt.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

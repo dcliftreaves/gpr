@@ -719,6 +719,72 @@ gap is fine-band texture/noise/detail and scene generalization. The next target
 expansion should combine multiple X2D scenes, validated X2D noise sidecars, and
 scene-held-out evaluation before spending on a larger model.
 
+### Multi-Scene X2D HF Residual Target
+
+`tools/cnn/build_premium_still_sr_degraded_candidate_raw.py` now creates a
+deterministic same-color box2 degraded raw from a source DNG, and
+`tools/cnn/build_premium_still_sr_hf_residual_targets.py` can render that raw
+through the source DNG metadata. This avoids requiring a packaged candidate
+DNG for every training scene while preserving camera WB/color/tone behavior in
+the target render. `tools/cnn/merge_premium_still_sr_hf_residual_targets.py`
+then combines per-scene NPZ files into one training set.
+
+Current multi-scene target:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_targets_20260630/merged/merge_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_targets_20260630/merged/hf_residual_targets_merged.npz
+```
+
+Scenes:
+
+| scene | ISO | noise sidecar status | rows |
+|---|---:|---|---:|
+| `x2d_1742_iso12800` | 12800 | exact X2D ISO 12800 sidecar | 27 |
+| `x2d_austin0150_iso3200` | 3200 | exact X2D ISO 3200 sidecar | 27 |
+| `x2d_austin0181_iso6400` | 6400 | bracketed by X2D ISO 3200 and 12800 sidecars | 27 |
+
+Merged result:
+
+| rows | scenes | median HF correlation | median residual abs mean |
+|---:|---:|---:|---:|
+| 81 | 3 | 0.465 | 0.03005 |
+
+Scene-held-out no-REF probe:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_w48_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_w48_20260630/train_receipt.json
+```
+
+| holdout scene | train median residual MAE reduction | holdout median residual MAE reduction | checkpoint SHA-256 |
+|---|---:|---:|---|
+| `x2d_austin0181_iso6400` | 2.21% | 1.46% | `b1f0af31f5a5f8017fa6218592b35cc06dd8c159074ea993b1cdda7a5a84eba2` |
+
+Merged band analysis:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_band_analysis_20260630/index.html
+```
+
+| metric | value |
+|---|---:|
+| median Y residual abs mean | 0.01894 |
+| median Y residual p95 abs | 0.04723 |
+| median HF energy ratio | 0.579 |
+| median fine-band share of residual abs | 0.971x |
+| median mid-band share of residual abs | 0.244x |
+| median coarse-band share of residual abs | 0.00003x |
+
+This is the first scene-held-out X2D HF target result. It is positive, but far
+below a production still-SR promotion threshold. The evidence now rules out the
+single-image target as the only problem: even with multiple scenes and
+noise-sidecar metadata recorded, the current candidate-derived feature set and
+small residual model recover only a small part of the fine texture/detail gap.
+The next serious pass should move from crop-local RGB/HF features to a
+larger-context, noise-conditioned, raw-domain target/model, then rerun the
+rawpy latitude gate.
+
 ### Exposure/Brightness-Aware Residual Controls
 
 `tools/cnn/train_premium_still_sr_hf_residual.py` now supports an

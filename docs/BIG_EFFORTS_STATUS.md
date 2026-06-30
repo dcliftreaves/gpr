@@ -263,6 +263,19 @@ Current evidence:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_band_analysis_grid5_20260630/index.html`.
   This is better coverage, not production promotion; the next target needs
   multiple X2D scenes plus validated camera-noise sidecars.
+- The X2D HF target path now also supports candidate raw renders through the
+  source DNG metadata, plus deterministic same-color box2 degraded candidate
+  raws and target NPZ merging. The first multi-scene X2D target has 81 rows
+  across ISO 12800, ISO 3200, and ISO 6400 scenes, with exact sidecars for
+  ISO 12800/3200 and bracket sidecars for ISO 6400:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_targets_20260630/merged/merge_receipt.json`.
+  A scene-held-out no-REF w48/d5 probe improves train median residual MAE by
+  2.21 percent and held-out `x2d_austin0181_iso6400` by 1.46 percent:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_w48_20260630/index.html`.
+  The merged band analysis still shows median fine-band residual share 0.971x:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_band_analysis_20260630/index.html`.
+  This confirms the blocker is no longer just a single-image target issue; the
+  production path needs a stronger raw-domain/noise-conditioned texture model.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both

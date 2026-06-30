@@ -170,7 +170,9 @@ else
                 python3 tools/test/test_build_premium_still_sr_candidate_dashboard.py && \
                 python3 tools/test/test_build_premium_still_sr_visual_review.py && \
                 python3 tools/test/test_build_premium_still_sr_router_plan.py && \
+                python3 tools/test/test_build_premium_still_sr_degraded_candidate_raw.py && \
                 python3 tools/test/test_build_premium_still_sr_hf_residual_targets.py && \
+                python3 tools/test/test_merge_premium_still_sr_hf_residual_targets.py && \
                 python3 tools/test/test_analyze_premium_still_sr_hf_residual_bands.py && \
                 python3 tools/test/test_train_premium_still_sr_hf_residual.py && \
                 python3 tools/test/test_build_bayer_resize_psf_receipt.py && \

@@ -97,6 +97,9 @@ Premium still-SR X2D HF residual band analysis:
 Premium still-SR X2D grid target and center-holdout model:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_grid5_20260630/index.html`,
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_model_grid5_centerholdout_w48_20260630/index.html`.
+Premium still-SR X2D multi-scene target and scene-holdout model:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_targets_20260630/merged/merge_receipt.json`,
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_w48_20260630/index.html`.
 Bayer resize PSF pair-derived dashboard:
 `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html`.
 
@@ -109,7 +112,7 @@ Bayer resize PSF pair-derived dashboard:
 | Raw video container | `.gvid` stores per-frame FUSED `.gpr` payloads with metadata dispatch, validation, and interrupted-tail recovery checks. |
 | 12MP Mission 1 candidate | Native 4096 x 3072 Bayer recompression passes the active Pi stand-in floor with valid `.gvid`, zero drops, and recovery receipts; the latest DMA-like `bench_fused` source receipt is **19.99 fps** over 1,440 frames, while strict 24 fps remains open. |
 | Mission 1 preview target | 4096 x 3072 `.gvid` decodes to 1024 x 768 RGB preview above **20 fps** on the Pi 5 stand-in. |
-| Premium still-SR routed specialists | X2D 100MP, Z8 50MP, and Mission 1 50MP DNG/GPR now have metadata-routed specialist checkpoints, full-frame receipts, rendered latitude proxy review, and an X2D editor-openability plus metadata-transplant receipt. Mission 1 improves full frames by **56.62% RMSE**, Z8 by **40.74%**, and X2D by **1.03%**; rendered proxy improves 33/36 crop/EV rows, with the 3 misses isolated to the X2D center crop. The X2D-scale DNG opens with transplanted source-camera metadata; q3 GPR readback is **57.49 dB** across the X2D black-to-white range. Rawpy latitude review shows median LF Y MAE **0.00546** and median HF correlation only **0.406**; source-HF oracle drops worst +2 EV MAE from **0.0916** to **0.0159**. Random-HF addback slightly worsens median MAE; the first no-REF structured HF residual model improves +2 EV holdout residual MAE by only **4.03%**. The broader 75-row X2D grid target confirms median HF correlation **0.407** and only **1.69%** center-grid holdout recovery, with **0.969x** fine-band residual share, so promotion needs multi-scene/full-frame camera-noise target data rather than coarse tone work. |
+| Premium still-SR routed specialists | X2D 100MP, Z8 50MP, and Mission 1 50MP DNG/GPR now have metadata-routed specialist checkpoints, full-frame receipts, rendered latitude proxy review, and an X2D editor-openability plus metadata-transplant receipt. Mission 1 improves full frames by **56.62% RMSE**, Z8 by **40.74%**, and X2D by **1.03%**; rendered proxy improves 33/36 crop/EV rows, with the 3 misses isolated to the X2D center crop. The X2D-scale DNG opens with transplanted source-camera metadata; q3 GPR readback is **57.49 dB** across the X2D black-to-white range. Rawpy latitude review shows median LF Y MAE **0.00546** and median HF correlation only **0.406**; source-HF oracle drops worst +2 EV MAE from **0.0916** to **0.0159**. Random-HF addback slightly worsens median MAE; the first no-REF structured HF residual model improves +2 EV holdout residual MAE by only **4.03%**. The broader X2D targets now cover 75 single-scene rows and 81 multi-scene rows; scene-held-out recovery is still only **1.46%**, with **0.971x** fine-band residual share, so promotion needs a stronger texture/noise target and model rather than coarse tone work. |
 | 2x / 8K reconstruction | Candidate-aware Mission native12-to-8K SR is **offline-production for post/reconstruction** today; broad Mission42 and Z8 full-frame gates are positive, with `.gvid` decode-to-SR, 8K `.gvid`, and 8K ProRes receipts. It is not a live-camera path. |
 | 4K rendered detail research | Bayer-output / RGB-supervised cleanup improves all 42 Mission frames against high-res-derived 4K RGB and CFA targets, and feeds the current candidate-aware 8K SR path. |
 
@@ -309,6 +312,7 @@ current evidence so strict local checks can verify it.
 | Premium still-SR X2D rawpy latitude review | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/index.html` |
 | Premium still-SR X2D HF residual target dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_20260630/index.html` |
 | Premium still-SR X2D 75-row grid target dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_hf_residual_targets_grid5_20260630/index.html` |
+| Premium still-SR X2D 81-row multi-scene target receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_targets_20260630/merged/merge_receipt.json` |
 | Premium still-SR specialist router plan | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/index.html` |
 | Bayer resize PSF pair-derived dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html` |
 
