@@ -112,6 +112,8 @@ jobs:
       - name: Productization contract guard
         run: |
           python3 tools/check_productization_contracts.py
+          python3 tools/test/check_production_capture_requirements.py
+          python3 tools/test/test_check_production_capture_requirements.py
           python3 tools/test/test_gvid_conformance.py "${RUNNER_TEMP:-/tmp}/gvid_conformance"
 
       - name: Labs readiness guard
