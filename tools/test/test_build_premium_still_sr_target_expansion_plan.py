@@ -121,7 +121,9 @@ def main() -> int:
         assert "--noise-sidecar" in commands
         assert "--synthetic-hf-sidecar" not in commands
         assert "--feature-mode rgb_multiscale_coord_luma_ev_noise_bright" in commands
-        assert "--feature-mode rgb_multiscale_rawcfa_coord_luma_ev_noise_bright" in commands
+        assert "--model-arch raw_cfa_gated" in commands
+        assert "--feature-mode rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright" in commands
+        assert "premium_still_sr_expanded_rawcfa_gated_model_20260630" in commands
         assert "premium_still_sr_expanded_rgb_ablation_model_20260630" in commands
         assert "Premium Still-SR Target Expansion Plan" in html
         assert proc.stdout.strip() == str(out / "index.html")

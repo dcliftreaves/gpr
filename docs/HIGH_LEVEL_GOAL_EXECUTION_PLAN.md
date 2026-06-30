@@ -191,8 +191,12 @@ Evidence required:
    `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_smoke_targets_20260630/`,
    but the first naive raw-CFA channel-concat probe improves +2 EV holdout by
    only 0.24 percent, versus 0.63 percent for the matched RGB ablation. The
-   next pass should therefore change the raw/CFA architecture or target
-   representation, not simply concatenate raw planes into the current CNN.
+   follow-up raw-CFA gated architecture reaches 0.79 percent on the same
+   smoke holdout:
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_gated_probe_w48_1000_20260630/`.
+   The next pass should therefore scale that gated raw/CFA architecture to the
+   expanded target set instead of simply concatenating raw planes into the
+   current CNN.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

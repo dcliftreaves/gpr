@@ -176,6 +176,30 @@ def make_features(
             ],
             dim=1,
         )
+    if feature_mode == "rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright":
+        if raw_cfa is None:
+            raise ValueError("feature mode rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright requires candidate_raw_cfa4")
+        luma = luma_plane(x)
+        coarse_block = max(block * 4, block + 2)
+        raw_mean = torch.mean(raw_cfa, dim=1, keepdim=True)
+        raw_phase_contrast = raw_cfa - raw_mean
+        return torch.cat(
+            [
+                x,
+                block_highpass(x, block),
+                block_highpass(x, coarse_block),
+                coord_planes(x.shape[0], x.shape[-2], x.shape[-1], x.device),
+                luma,
+                ev_plane(ev, x.shape[0], x.shape[-2], x.shape[-1], x.device),
+                scalar_planes(noise, x.shape[0], x.shape[-2], x.shape[-1], x.device, 4),
+                brightness_planes(luma),
+                raw_cfa,
+                block_highpass(raw_cfa, block),
+                block_highpass(raw_cfa, coarse_block),
+                raw_phase_contrast,
+            ],
+            dim=1,
+        )
     raise ValueError(f"unknown feature mode: {feature_mode}")
 
 
@@ -188,6 +212,7 @@ def feature_channels(feature_mode: str) -> int:
         "rgb_hf_coord_luma_ev_noise_bright": 18,
         "rgb_multiscale_coord_luma_ev_noise_bright": 21,
         "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright": 29,
+        "rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright": 37,
     }[feature_mode]
 
 
@@ -196,11 +221,21 @@ def uses_noise_sidecar_features(feature_mode: str) -> bool:
         "rgb_hf_coord_luma_ev_noise_bright",
         "rgb_multiscale_coord_luma_ev_noise_bright",
         "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright",
+        "rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright",
     }
 
 
 def uses_raw_cfa_features(feature_mode: str) -> bool:
-    return feature_mode in {"rgb_multiscale_rawcfa_coord_luma_ev_noise_bright"}
+    return feature_mode in {
+        "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright",
+        "rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright",
+    }
+
+
+def raw_cfa_guided_feature_split(feature_mode: str) -> tuple[int, int] | None:
+    if feature_mode == "rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright":
+        return (21, 16)
+    return None
 
 
 def load_noise_feature_from_sidecar(path: str | Path) -> tuple[float, float, float, float]:
@@ -273,6 +308,85 @@ class HfResidualNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return torch.tanh(self.net(x)) * self.residual_scale
+
+
+class HfResidualRawCfaGatedNet(nn.Module):
+    """Residual predictor with an explicit raw-CFA guide branch.
+
+    The first raw-CFA pass concatenated raw planes with rendered RGB features.
+    This version keeps RGB/render metadata as the primary signal, but lets
+    phase-aware raw detail gate and bias the hidden features before the shared
+    residual trunk. It is still runtime-safe: all inputs come from candidate
+    render/raw data and deterministic metadata.
+    """
+
+    def __init__(
+        self,
+        rgb_channels: int,
+        raw_channels: int,
+        width: int = 32,
+        depth: int = 5,
+        residual_scale: float = 0.20,
+    ) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        self.rgb_head = nn.Sequential(nn.Conv2d(rgb_channels, width, 3, padding=1), nn.GELU())
+        self.raw_head = nn.Sequential(
+            nn.Conv2d(raw_channels, width, 3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(width, width, 3, padding=1),
+            nn.GELU(),
+        )
+        self.raw_gate = nn.Conv2d(width, width, 1)
+        self.raw_bias = nn.Conv2d(width, width, 1)
+        trunk: list[nn.Module] = []
+        for _ in range(max(0, depth - 2)):
+            trunk += [nn.Conv2d(width, width, 3, padding=1), nn.GELU()]
+        tail = nn.Conv2d(width, 3, 3, padding=1)
+        nn.init.zeros_(tail.weight)
+        nn.init.zeros_(tail.bias)
+        trunk.append(tail)
+        self.trunk = nn.Sequential(*trunk)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        rgb_channels = self.rgb_head[0].in_channels
+        rgb = x[:, :rgb_channels]
+        raw = x[:, rgb_channels:]
+        rgb_hidden = self.rgb_head(rgb)
+        raw_hidden = self.raw_head(raw)
+        gate = 0.5 + 1.5 * torch.sigmoid(self.raw_gate(raw_hidden))
+        hidden = rgb_hidden * gate + self.raw_bias(raw_hidden)
+        return torch.tanh(self.trunk(hidden)) * self.residual_scale
+
+
+def build_model(
+    *,
+    model_arch: str,
+    feature_mode: str,
+    width: int,
+    depth: int,
+    residual_scale: float,
+) -> nn.Module:
+    if model_arch == "plain":
+        return HfResidualNet(
+            in_channels=feature_channels(feature_mode),
+            width=width,
+            depth=depth,
+            residual_scale=residual_scale,
+        )
+    if model_arch == "raw_cfa_gated":
+        split = raw_cfa_guided_feature_split(feature_mode)
+        if split is None:
+            raise ValueError(f"model_arch raw_cfa_gated requires a phase raw-CFA feature mode, got {feature_mode}")
+        rgb_channels, raw_channels = split
+        return HfResidualRawCfaGatedNet(
+            rgb_channels=rgb_channels,
+            raw_channels=raw_channels,
+            width=width,
+            depth=depth,
+            residual_scale=residual_scale,
+        )
+    raise ValueError(f"unknown model architecture: {model_arch}")
 
 
 class HfResidualTargets:
@@ -527,11 +641,14 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     data = HfResidualTargets(args.targets)
     if uses_raw_cfa_features(args.feature_mode) and data.raw_cfa is None:
         raise ValueError(f"{args.feature_mode} requires targets built with --include-raw-cfa-features")
+    if args.model_arch == "raw_cfa_gated" and raw_cfa_guided_feature_split(args.feature_mode) is None:
+        raise ValueError(f"model_arch raw_cfa_gated requires a phase raw-CFA feature mode, got {args.feature_mode}")
     train_indices, holdout_indices = data.row_indices(args.holdout_ev, args.holdout_crop, args.holdout_scene)
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
-    model = HfResidualNet(
-        in_channels=feature_channels(args.feature_mode),
+    model = build_model(
+        model_arch=args.model_arch,
+        feature_mode=args.feature_mode,
         width=args.width,
         depth=args.depth,
         residual_scale=args.residual_scale,
@@ -588,6 +705,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "schema": SCHEMA,
             "state_dict": model.state_dict(),
             "config": {
+                "model_arch": args.model_arch,
                 "feature_mode": args.feature_mode,
                 "feature_block": args.feature_block,
                 "width": args.width,
@@ -625,6 +743,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "train_seconds": train_s,
         "steps": args.steps,
         "config": {
+            "model_arch": args.model_arch,
             "feature_mode": args.feature_mode,
             "feature_block": args.feature_block,
             "width": args.width,
@@ -678,6 +797,12 @@ def main() -> int:
     ap.add_argument("--depth", type=int, default=5)
     ap.add_argument("--residual-scale", type=float, default=0.20)
     ap.add_argument(
+        "--model-arch",
+        choices=("plain", "raw_cfa_gated"),
+        default="plain",
+        help="Model architecture. raw_cfa_gated requires the phase raw-CFA feature mode.",
+    )
+    ap.add_argument(
         "--feature-mode",
         choices=(
             "rgb",
@@ -687,6 +812,7 @@ def main() -> int:
             "rgb_hf_coord_luma_ev_noise_bright",
             "rgb_multiscale_coord_luma_ev_noise_bright",
             "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright",
+            "rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright",
         ),
         default="rgb_hf_coord",
     )

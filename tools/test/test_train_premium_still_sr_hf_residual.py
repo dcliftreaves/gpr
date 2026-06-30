@@ -111,7 +111,8 @@ def main() -> int:
                 "width": 8,
                 "depth": 3,
                 "residual_scale": 0.08,
-                "feature_mode": "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright",
+                "model_arch": "raw_cfa_gated",
+                "feature_mode": "rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright",
                 "feature_block": 8,
                 "lr": 1.0e-3,
                 "weight_decay": 0.0,
@@ -136,9 +137,19 @@ def main() -> int:
         assert Path(receipt["artifacts"]["dashboard"]).stat().st_size > 0
         assert receipt["eval"]["train"]["row_count"] == 3
         assert receipt["eval"]["holdout"]["row_count"] == 1
+        assert receipt["config"]["model_arch"] == "raw_cfa_gated"
         assert receipt["config"]["holdout_scene"] == "holdout_scene"
         assert receipt["config"]["uses_noise_sidecar_features"] is True
         assert receipt["config"]["uses_raw_cfa_features"] is True
+
+        args.output_dir = root / "bad_out"
+        args.feature_mode = "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright"
+        try:
+            tool.train(args)
+        except ValueError as exc:
+            assert "requires a phase raw-CFA feature mode" in str(exc)
+        else:
+            raise AssertionError("raw_cfa_gated accepted incompatible feature mode")
 
     print("test_train_premium_still_sr_hf_residual: PASS")
     return 0

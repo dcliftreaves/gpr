@@ -330,9 +330,9 @@ Current evidence:
 - Raw-CFA feature plumbing now exists. The target builder can write
   `candidate_raw_cfa4`, the merge tool records whether raw-CFA feature coverage
   is complete, and the trainer has a guarded
-  `rgb_multiscale_rawcfa_coord_luma_ev_noise_bright` feature mode. The first
-  real one-scene X2D target has 27 rows with 768 x 768 x 4 raw-CFA feature
-  planes:
+  `rgb_multiscale_rawcfa_coord_luma_ev_noise_bright` feature mode plus an
+  explicit raw-CFA gated architecture for phase-detail features. The first real
+  one-scene X2D target has 27 rows with 768 x 768 x 4 raw-CFA feature planes:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_smoke_targets_20260630/2025_10_oct_austin_0626/hf_residual_targets.json`.
   A w64/d6 raw-CFA probe improves +2 EV holdout residual MAE by only about
   0.24 percent:
@@ -340,8 +340,12 @@ Current evidence:
   The matched RGB-only ablation improves the same holdout by about 0.63
   percent:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_ablation_rgb_model_20260630/train_receipt.json`.
-  This proves the raw-CFA path runs, but it rejects naive raw-CFA channel
-  concatenation as the production fix.
+  The raw-CFA gated w48/d6/1000-step probe improves the same holdout by about
+  0.79 percent:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_gated_probe_w48_1000_20260630/train_receipt.json`.
+  This proves the raw-CFA path runs and that a gated raw branch is more
+  promising than naive channel concatenation, but it still needs expanded-target
+  validation before production promotion.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both

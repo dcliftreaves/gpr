@@ -141,9 +141,10 @@ same-camera noise sidecars exist.
 
 The generated command contract is intentionally executable with the current
 tooling: per-scene target building uses `--noise-sidecar` and
-`--include-raw-cfa-features`, and the training step now pairs a raw-CFA probe
-with a matched RGB ablation. The raw-CFA probe is evidence only until it beats
-the RGB ablation and survives the full still/editor-latitude gate.
+`--include-raw-cfa-features`, and the training step now pairs a raw-CFA gated
+probe with a matched RGB ablation. The raw-CFA gated probe is evidence only
+until it scales beyond the one-scene smoke, beats the RGB ablation on the
+expanded target set, and survives the full still/editor-latitude gate.
 
 ## Expanded Target Build And Result
 
@@ -188,6 +189,11 @@ feature planes:
   and otherwise records incomplete raw-CFA coverage.
 - `tools/cnn/train_premium_still_sr_hf_residual.py --feature-mode rgb_multiscale_rawcfa_coord_luma_ev_noise_bright`
   refuses to run unless the target NPZ carries `candidate_raw_cfa4`.
+- `tools/cnn/train_premium_still_sr_hf_residual.py --model-arch raw_cfa_gated --feature-mode rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright`
+  splits rendered RGB/metadata features from raw phase-detail features, then
+  uses the raw-CFA branch to gate the residual predictor. This is still a
+  no-REF runtime path: candidate render/raw data and deterministic metadata are
+  the only inference inputs.
 
 The first real one-scene raw-CFA smoke target is:
 
@@ -219,9 +225,23 @@ median residual MAE by about 0.24 percent. The matched RGB-only ablation is:
 
 It improves train median residual MAE by about 1.62 percent and +2 EV holdout
 median residual MAE by about 0.63 percent. That means the naive raw-CFA
-channel-concat feature contract is not yet better than RGB rendered-context
-features. The next raw/CFA pass should change the architecture or target
-representation, not merely add raw planes to the current CNN.
+channel-concat feature contract is not better than RGB rendered-context
+features.
+
+The next architecture pass adds an explicit raw-CFA gated branch:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_gated_probe_w48_1000_20260630/train_receipt.json
+```
+
+That w48/d6/1000-step gated probe improves train median residual MAE by about
+1.46 percent and +2 EV holdout median residual MAE by about 0.79 percent. This
+is only a one-scene smoke result, but it clears the matched RGB ablation on the
+same target. The blocker has therefore moved from "raw-CFA does not help" to
+"raw-CFA gated detail needs expanded-target validation." The next pass should
+rebuild or complete raw-CFA coverage across the 13-scene X2D/Z8 target set,
+train the gated model against that expanded set, and only then attempt the full
+50 MP / 100 MP still/editor-latitude promotion gate.
 
 ## Fixture Manifest Builder
 

@@ -304,8 +304,8 @@ def build_plan(args: argparse.Namespace) -> dict[str, Any]:
                 "command_template": "python3 tools/cnn/merge_premium_still_sr_hf_residual_targets.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged <all hf_residual_targets.npz>",
             },
             {
-                "step": "train_raw_cfa_probe",
-                "command_template": "python3 tools/cnn/train_premium_still_sr_hf_residual.py --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/hf_residual_targets_merged.npz --feature-mode rgb_multiscale_rawcfa_coord_luma_ev_noise_bright --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_model_20260630",
+                "step": "train_raw_cfa_gated_probe",
+                "command_template": "python3 tools/cnn/train_premium_still_sr_hf_residual.py --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/hf_residual_targets_merged.npz --model-arch raw_cfa_gated --feature-mode rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_20260630",
             },
             {
                 "step": "train_rgb_ablation",
