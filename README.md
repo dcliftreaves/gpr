@@ -55,6 +55,9 @@ The percentage is a production-readiness burn-down, not an image-quality score
 and not a regression signal for locked artifacts. The approved 4K cleanup,
 offline 8K SR, STILL tiers, and Pi-stand-in raw-video receipts remain locked
 unless their own committed gate, receipt, hash, or CI guard fails.
+The burn-down now separates the remaining work into hardware integration,
+sample acquisition, and model promotion, so new fixture or camera-role evidence
+cannot be mistaken for an algorithm regression.
 
 | product pillar | current product story | proof in hand | remaining production gate |
 |---|---|---|---|

@@ -29,8 +29,11 @@ Companion production burn-down dashboard:
 
 `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html`
 
-The burn-down is the action view: it separates the one Mission 1 hardware-only
-closure from the remaining non-camera fixture, CNN, and PSF work.
+The burn-down is the action view: it separates hardware integration, sample
+acquisition, and model-promotion work. That distinction matters because the one
+Mission 1 camera-role closure, the real fixture/darkframe/PSF sample gaps, and
+the premium/PSF model-promotion gaps are different kinds of open evidence, not
+regressions of the locked still, 4K cleanup, 8K SR, or Pi stand-in paths.
 
 ## Score Semantics
 

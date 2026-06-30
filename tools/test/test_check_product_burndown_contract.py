@@ -44,12 +44,24 @@ def main() -> int:
     bad_camera["summary"]["camera_required_action_count"] = 0
     expect_failure(module, bad_camera, "camera-required")
 
+    bad_blocker_count = copy.deepcopy(data)
+    bad_blocker_count["summary"]["blocker_type_counts"]["model_promotion"] = 1
+    expect_failure(module, bad_blocker_count, "blocker_type_counts")
+
     bad_stills = copy.deepcopy(data)
     bad_stills["pillars"][0]["burn_down_actions"][0]["evidence_required"] = [
         "updated Bayer phase fixture discovery dashboard"
     ]
     bad_stills["pillars"][0]["burn_down_actions"][0]["completion_gate"] = "Fixture discovery dashboard exists."
     expect_failure(module, bad_stills, "GRBG")
+
+    bad_stills_blocker = copy.deepcopy(data)
+    bad_stills_blocker["pillars"][0]["burn_down_actions"][0]["blocker_type"] = "model_promotion"
+    expect_failure(module, bad_stills_blocker, "blocker_type")
+
+    bad_video_role = copy.deepcopy(data)
+    bad_video_role["pillars"][1]["burn_down_actions"][0]["requires_mission1_camera_role"] = False
+    expect_failure(module, bad_video_role, "requires_mission1_camera_role")
 
     bad_psf = copy.deepcopy(data)
     bad_psf["pillars"][3]["burn_down_actions"] = [

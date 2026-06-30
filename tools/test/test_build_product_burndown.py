@@ -56,6 +56,14 @@ def main() -> int:
         assert data["summary"]["action_count"] == 6
         assert data["summary"]["camera_required_action_count"] == 1
         assert data["summary"]["non_camera_action_count"] == 5
+        assert data["summary"]["mission1_camera_role_required_action_count"] == 1
+        assert data["summary"]["new_sample_required_action_count"] == 3
+        assert data["summary"]["model_promotion_action_count"] == 2
+        assert data["summary"]["blocker_type_counts"] == {
+            "hardware_integration": 1,
+            "model_promotion": 2,
+            "sample_acquisition": 3,
+        }
         assert data["summary"]["lowest_readiness_pillar"] == "raw_video_psf_sr"
         assert [row["id"] for row in data["pillars"]] == [
             "raw_stills",
@@ -66,15 +74,23 @@ def main() -> int:
         stills_actions = data["pillars"][0]["burn_down_actions"]
         assert any("GRBG" in " ".join(row["evidence_required"]) for row in stills_actions)
         assert any("darkframe" in row["title"].lower() for row in stills_actions)
+        assert all(row["blocker_type"] == "sample_acquisition" for row in stills_actions)
+        assert all(row["requires_new_samples"] is True for row in stills_actions)
         video_actions = data["pillars"][1]["burn_down_actions"]
         assert video_actions[0]["can_do_without_camera"] is False
+        assert video_actions[0]["blocker_type"] == "hardware_integration"
+        assert video_actions[0]["requires_mission1_camera_role"] is True
         psf_actions = data["pillars"][3]["burn_down_actions"]
         assert any("PSF-conditioned" in row["title"] for row in psf_actions)
+        assert {row["blocker_type"] for row in psf_actions} == {"sample_acquisition", "model_promotion"}
 
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "GPR Production Burn-Down" in html
         assert "four-pillar completion" in html
+        assert "Blocker type" in html
         assert "No camera?" in html
+        assert "Mission 1 role?" in html
+        assert "New samples?" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
     print("test_build_product_burndown: PASS")
     return 0

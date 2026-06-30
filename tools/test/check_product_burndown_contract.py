@@ -19,52 +19,68 @@ EXPECTED_PILLARS = {
     "raw_stills": {
         "readiness": 90,
         "required_actions": {
-            "Close real Bayer phase fixture gaps": ("GRBG", "BGGR", "still matrix"),
-            "Add Mission 1 and iPhone darkframe sidecars": (
-                "Mission 1 darkframes",
-                "iPhone CFA darkframes",
-                "gpr.camera_noise_calibration.v1",
-            ),
+            "Close real Bayer phase fixture gaps": {
+                "tokens": ("GRBG", "BGGR", "still matrix"),
+                "blocker_type": "sample_acquisition",
+                "requires_mission1_camera_role": False,
+                "requires_new_samples": True,
+            },
+            "Add Mission 1 and iPhone darkframe sidecars": {
+                "tokens": (
+                    "Mission 1 darkframes",
+                    "iPhone CFA darkframes",
+                    "gpr.camera_noise_calibration.v1",
+                ),
+                "blocker_type": "sample_acquisition",
+                "requires_mission1_camera_role": False,
+                "requires_new_samples": True,
+            },
         },
     },
     "raw_video_mvp": {
         "readiness": 80,
         "required_actions": {
-            "Replace Pi stand-in receipts with Mission 1 camera-role receipts": (
-                "sensor/DMA",
-                "SD writer",
-                "rear-display",
-                ".gvid",
-            ),
+            "Replace Pi stand-in receipts with Mission 1 camera-role receipts": {
+                "tokens": ("sensor/DMA", "SD writer", "rear-display", ".gvid"),
+                "blocker_type": "hardware_integration",
+                "requires_mission1_camera_role": True,
+                "requires_new_samples": False,
+            },
         },
     },
     "premium_still_sr": {
         "readiness": 60,
         "required_actions": {
-            "Promote a true raw-CFA residual still-SR model": (
-                "candidate-only",
-                "Z8 held-out",
-                "X2D held-out",
-                "50 MP / 100 MP",
-            ),
+            "Promote a true raw-CFA residual still-SR model": {
+                "tokens": ("candidate-only", "Z8 held-out", "X2D held-out", "50 MP / 100 MP"),
+                "blocker_type": "model_promotion",
+                "requires_mission1_camera_role": False,
+                "requires_new_samples": False,
+            },
         },
     },
     "raw_video_psf_sr": {
         "readiness": 44,
         "required_actions": {
-            "Capture or locate controlled Mission 1 high/low PSF pairs": (
-                "8192 x 6144 / 4096 x 3072",
-                "source hashes",
-                "decoded little-endian uint16 Bayer hashes",
-                "negative controls",
-                "stable measured native PSF kernel",
-                "model conditioning",
-            ),
-            "Gate a PSF-conditioned 4K/8K video SR candidate": (
-                "PSF-conditioned",
-                "Mission42 and Z8 all24",
-                "4K/8K ProRes",
-            ),
+            "Capture or locate controlled Mission 1 high/low PSF pairs": {
+                "tokens": (
+                    "8192 x 6144 / 4096 x 3072",
+                    "source hashes",
+                    "decoded little-endian uint16 Bayer hashes",
+                    "negative controls",
+                    "stable measured native PSF kernel",
+                    "model conditioning",
+                ),
+                "blocker_type": "sample_acquisition",
+                "requires_mission1_camera_role": False,
+                "requires_new_samples": True,
+            },
+            "Gate a PSF-conditioned 4K/8K video SR candidate": {
+                "tokens": ("PSF-conditioned", "Mission42 and Z8 all24", "4K/8K ProRes"),
+                "blocker_type": "model_promotion",
+                "requires_mission1_camera_role": False,
+                "requires_new_samples": False,
+            },
         },
     },
 }
@@ -95,6 +111,21 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
         failures.append("burn-down must identify exactly one camera-required action")
     if summary.get("non_camera_action_count") != 5:
         failures.append("burn-down must identify the five non-camera actions that can continue now")
+    if summary.get("mission1_camera_role_required_action_count") != 1:
+        failures.append("burn-down must identify exactly one Mission 1 camera-role action")
+    if summary.get("new_sample_required_action_count") != 3:
+        failures.append("burn-down must identify three sample-acquisition actions")
+    if summary.get("model_promotion_action_count") != 2:
+        failures.append("burn-down must identify two model-promotion actions")
+    expected_blockers = {
+        "hardware_integration": 1,
+        "model_promotion": 2,
+        "sample_acquisition": 3,
+    }
+    if summary.get("blocker_type_counts") != expected_blockers:
+        failures.append(
+            f"unexpected blocker_type_counts: {summary.get('blocker_type_counts')!r}, expected {expected_blockers!r}"
+        )
     if summary.get("lowest_readiness_pillar") != "raw_video_psf_sr":
         failures.append("raw_video_psf_sr should remain the lowest-readiness pillar until PSF work closes")
 
@@ -114,11 +145,21 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
             failures.append(f"{pillar_id} must carry a current_blocker string")
 
         actions = {str(row.get("title")): row for row in pillar.get("burn_down_actions", [])}
-        for title, required_tokens in spec["required_actions"].items():
+        for title, action_spec in spec["required_actions"].items():
             action = actions.get(title)
             if not action:
                 failures.append(f"{pillar_id} missing burn-down action {title!r}")
                 continue
+            if action.get("blocker_type") != action_spec["blocker_type"]:
+                failures.append(
+                    f"{title!r} blocker_type is {action.get('blocker_type')!r}, expected {action_spec['blocker_type']!r}"
+                )
+            if action.get("requires_mission1_camera_role") is not action_spec["requires_mission1_camera_role"]:
+                failures.append(
+                    f"{title!r} requires_mission1_camera_role must be {action_spec['requires_mission1_camera_role']}"
+                )
+            if action.get("requires_new_samples") is not action_spec["requires_new_samples"]:
+                failures.append(f"{title!r} requires_new_samples must be {action_spec['requires_new_samples']}")
             if not action.get("owner"):
                 failures.append(f"{title!r} must name an owner")
             evidence = action.get("evidence_required", [])
@@ -127,7 +168,7 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
             if not str(action.get("completion_gate", "")).strip():
                 failures.append(f"{title!r} must define a completion_gate")
             text = flatten_action(action)
-            for token in required_tokens:
+            for token in action_spec["tokens"]:
                 if token not in text:
                     failures.append(f"{title!r} missing required blocker token {token!r}")
 

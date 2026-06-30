@@ -24,6 +24,9 @@ def action(
     title: str,
     owner: str,
     can_do_without_camera: bool,
+    blocker_type: str,
+    requires_mission1_camera_role: bool,
+    requires_new_samples: bool,
     evidence_required: list[str],
     next_command: str | None,
     completion_gate: str,
@@ -34,6 +37,9 @@ def action(
         "title": title,
         "owner": owner,
         "can_do_without_camera": can_do_without_camera,
+        "blocker_type": blocker_type,
+        "requires_mission1_camera_role": requires_mission1_camera_role,
+        "requires_new_samples": requires_new_samples,
         "evidence_required": evidence_required,
         "next_command": next_command,
         "completion_gate": completion_gate,
@@ -54,6 +60,9 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             title="Close real Bayer phase fixture gaps",
             owner="repo/sample curator",
             can_do_without_camera=True,
+            blocker_type="sample_acquisition",
+            requires_mission1_camera_role=False,
+            requires_new_samples=True,
             evidence_required=[
                 "one parsed real GRBG fixture",
                 "one parsed real BGGR fixture",
@@ -72,6 +81,9 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             title="Add Mission 1 and iPhone darkframe sidecars",
             owner="sample curator",
             can_do_without_camera=True,
+            blocker_type="sample_acquisition",
+            requires_mission1_camera_role=False,
+            requires_new_samples=True,
             evidence_required=[
                 "four same-camera/same-ISO Mission 1 darkframes",
                 "four same-camera/same-ISO iPhone CFA darkframes",
@@ -90,6 +102,9 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             title="Replace Pi stand-in receipts with Mission 1 camera-role receipts",
             owner="GoPro firmware engineer",
             can_do_without_camera=False,
+            blocker_type="hardware_integration",
+            requires_mission1_camera_role=True,
+            requires_new_samples=False,
             evidence_required=[
                 "real sensor/DMA or camera ring-buffer source receipt",
                 "real SD writer receipt",
@@ -105,6 +120,9 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             title="Promote a true raw-CFA residual still-SR model",
             owner="CNN researcher",
             can_do_without_camera=True,
+            blocker_type="model_promotion",
+            requires_mission1_camera_role=False,
+            requires_new_samples=False,
             evidence_required=[
                 "candidate-only runtime inputs",
                 "Z8 held-out raw-residual recovery clears promotion threshold",
@@ -124,6 +142,9 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             title="Capture or locate controlled Mission 1 high/low PSF pairs",
             owner="sample curator",
             can_do_without_camera=True,
+            blocker_type="sample_acquisition",
+            requires_mission1_camera_role=False,
+            requires_new_samples=True,
             evidence_required=[
                 "at least three same-scene 8192 x 6144 / 4096 x 3072 pairs",
                 "source hashes and decoded little-endian uint16 Bayer hashes for both sides of each pair",
@@ -145,6 +166,9 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             title="Gate a PSF-conditioned 4K/8K video SR candidate",
             owner="CNN researcher",
             can_do_without_camera=True,
+            blocker_type="model_promotion",
+            requires_mission1_camera_role=False,
+            requires_new_samples=False,
             evidence_required=[
                 "PSF-conditioned training config",
                 "Mission42 and Z8 all24 full-frame gates",
@@ -160,6 +184,10 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
     by_pillar: dict[str, list[dict[str, Any]]] = {}
     for row in actions:
         by_pillar.setdefault(str(row["pillar"]), []).append(row)
+    blocker_type_counts = {
+        blocker_type: sum(1 for row in actions if row["blocker_type"] == blocker_type)
+        for blocker_type in sorted({str(row["blocker_type"]) for row in actions})
+    }
     return {
         "schema": SCHEMA,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -171,6 +199,12 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             "action_count": len(actions),
             "camera_required_action_count": sum(1 for row in actions if not row["can_do_without_camera"]),
             "non_camera_action_count": sum(1 for row in actions if row["can_do_without_camera"]),
+            "mission1_camera_role_required_action_count": sum(
+                1 for row in actions if row["requires_mission1_camera_role"]
+            ),
+            "new_sample_required_action_count": sum(1 for row in actions if row["requires_new_samples"]),
+            "model_promotion_action_count": sum(1 for row in actions if row["blocker_type"] == "model_promotion"),
+            "blocker_type_counts": blocker_type_counts,
             "lowest_readiness_pillar": min(
                 scorecard["pillars"], key=lambda row: int(row["readiness_percent"])
             )["id"],
@@ -205,25 +239,35 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
             evidence = "<br>".join(html.escape(str(item)) for item in row["evidence_required"])
             command = row["next_command"] or "defined after prerequisite evidence exists"
             camera = "yes" if row["can_do_without_camera"] else "no"
+            blocker = str(row["blocker_type"]).replace("_", " ")
+            mission1 = "yes" if row["requires_mission1_camera_role"] else "no"
+            samples = "yes" if row["requires_new_samples"] else "no"
             action_rows.append(
                 "<tr>"
                 f"<td>{row['priority']}</td>"
                 f"<td>{html.escape(row['title'])}</td>"
                 f"<td>{html.escape(row['owner'])}</td>"
+                f"<td>{html.escape(blocker)}</td>"
                 f"<td>{camera}</td>"
+                f"<td>{mission1}</td>"
+                f"<td>{samples}</td>"
                 f"<td>{evidence}</td>"
                 f"<td><code>{html.escape(command)}</code></td>"
                 f"<td>{html.escape(row['completion_gate'])}</td>"
                 "</tr>"
             )
-        rows = "\n".join(action_rows) or "<tr><td colspan='7'>No burn-down action recorded.</td></tr>"
+        rows = "\n".join(action_rows) or "<tr><td colspan='10'>No burn-down action recorded.</td></tr>"
         sections.append(
             f"""<section class="detail">
   <h2>{html.escape(pillar["title"])}</h2>
-  <table><thead><tr><th>Priority</th><th>Action</th><th>Owner</th><th>No camera?</th><th>Evidence required</th><th>Command</th><th>Completion gate</th></tr></thead><tbody>{rows}</tbody></table>
+  <table><thead><tr><th>Priority</th><th>Action</th><th>Owner</th><th>Blocker type</th><th>No camera?</th><th>Mission 1 role?</th><th>New samples?</th><th>Evidence required</th><th>Command</th><th>Completion gate</th></tr></thead><tbody>{rows}</tbody></table>
 </section>"""
         )
     summary = data["summary"]
+    blocker_counts = ", ".join(
+        f"{str(key).replace('_', ' ')}: {value}"
+        for key, value in sorted(summary["blocker_type_counts"].items())
+    )
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -255,10 +299,10 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
 <body>
 <main>
   <h1>GPR Production Burn-Down</h1>
-  <p class="sub">The scorecard says where the four product pillars are. This burn-down says what evidence moves each pillar toward production and which steps can proceed without Mission 1 firmware access.</p>
+  <p class="sub">The scorecard says where the four product pillars are. This burn-down says what evidence moves each pillar toward production and whether the remaining work is hardware integration, sample acquisition, or model promotion. These categories are not locked-artifact regression signals.</p>
   <div class="headline">
     <div class="overall">{data["four_pillar_completion_percent"]}%</div>
-    <div class="overall-label">four-pillar completion; production ready: {str(data["production_ready"]).lower()}; {summary["non_camera_action_count"]} non-camera actions, {summary["camera_required_action_count"]} camera-required action</div>
+    <div class="overall-label">four-pillar completion; production ready: {str(data["production_ready"]).lower()}; {summary["non_camera_action_count"]} non-camera actions, {summary["camera_required_action_count"]} camera-required action; {html.escape(blocker_counts)}</div>
   </div>
   <div class="grid">{''.join(cards)}</div>
   {''.join(sections)}
