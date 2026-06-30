@@ -157,6 +157,11 @@ Current evidence:
   original-X2D holdout to about 1.08 percent RMSE and 1.18 percent MAE, beating
   the mixed-camera X2D-batch candidate on the same holdout:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_x2d_specialist_dashboard_20260630/index.html`.
+- `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
+  routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
+  specialist and leaves Mission 1 / Z8 on a placeholder shared probe until
+  those routes have real specialists or full-gate proof:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/index.html`.
 
 Boundaries:
 
@@ -177,6 +182,8 @@ Boundaries:
   separate specialist checkpoints. It does not yet satisfy production because
   the evidence is still tile-level and lacks raw-editor latitude/full-frame
   still receipts.
+- The router plan is a contract for future routing, not a production registry.
+  Current non-X2D routes are placeholders.
 
 Next production work:
 
