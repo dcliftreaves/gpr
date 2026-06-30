@@ -73,6 +73,8 @@ Premium still-SR gate policy and skeleton:
 [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md).
 Premium still-SR current readiness:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_20260630/index.html`.
+Premium still-SR experiment scoreboard:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html`.
 X2D 100MP still visual roundtrip audit:
 `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html`.
 Premium still-SR fixture manifest:

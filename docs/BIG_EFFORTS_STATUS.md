@@ -248,6 +248,14 @@ Current evidence:
   This is not enough for production promotion; it narrows the next experiment
   to richer full-frame context, metadata/ISO-aware features, or a different
   LF/mid/HF target split rather than more random-HF addback.
+- `tools/build_premium_still_sr_experiment_scoreboard.py` now ranks the
+  premium still-SR training receipts and applies the no-REF runtime promotion
+  guard:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html`.
+  The current scoreboard finds 10 candidate receipts and zero promotable rows.
+  The best single-scene no-REF row reaches 4.03 percent held-out MAE recovery;
+  the broader multi-scene/noise-conditioned row remains 2.56 percent. This
+  confirms the current 45 percent pillar score is still appropriate.
 - `tools/cnn/analyze_premium_still_sr_hf_residual_bands.py` decomposes the X2D
   residual target by frequency and brightness. The current dashboard shows
   median Y residual absolute mean 0.02892, +2 EV median 0.05983, +2 EV p95

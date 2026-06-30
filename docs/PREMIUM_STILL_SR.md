@@ -67,6 +67,29 @@ content at runtime, but the scene-held-out median recovery is still only about
 2.56 percent MAE and 2.86 percent RMSE, so it remains diagnostic rather than
 promotable.
 
+## Experiment Scoreboard
+
+The experiment scoreboard scans premium still-SR training receipts under the
+external artifact root, ranks the candidates by held-out residual recovery, and
+marks rows as promotable only when they clear the no-REF runtime policy and the
+minimum held-out MAE/RMSE recovery thresholds:
+
+```sh
+python3 tools/build_premium_still_sr_experiment_scoreboard.py \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630
+```
+
+Current scoreboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html
+```
+
+This is a necessary promotion guard, not a full production gate. A future row
+must still pass full-frame raw/editor-latitude review before the premium
+still-SR pillar can move from diagnostic to production-ready.
+
 ## Fixture Manifest Builder
 
 Use the latest real-fixture compatibility receipt to build the first dedicated

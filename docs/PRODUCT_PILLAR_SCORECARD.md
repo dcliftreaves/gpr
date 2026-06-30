@@ -59,6 +59,13 @@ It records that the current 4K cleanup and 8K SR baselines are approved for
 their existing offline roles, but the PSF replacement is not production-ready
 without native camera/display PSF evidence and a PSF-conditioned model gate.
 
+The current premium still-SR experiment scoreboard lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html`.
+It ranks the available no-REF HF residual training receipts and currently
+records zero promotable rows. The best single-scene row reaches 4.03 percent
+held-out MAE recovery, while the broader multi-scene row remains 2.56 percent;
+both are diagnostic rather than production-ready.
+
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a
 finished product result.

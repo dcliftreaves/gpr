@@ -178,6 +178,7 @@ else
                 python3 tools/test/test_merge_premium_still_sr_hf_residual_targets.py && \
                 python3 tools/test/test_analyze_premium_still_sr_hf_residual_bands.py && \
                 python3 tools/test/test_train_premium_still_sr_hf_residual.py && \
+                python3 tools/test/test_build_premium_still_sr_experiment_scoreboard.py && \
                 python3 tools/test/test_build_bayer_resize_psf_receipt.py && \
                 python3 tools/test/test_build_bayer_resize_psf_from_pairs.py && \
                 python3 tools/test/test_build_raw_video_psf_audit.py && \
