@@ -74,6 +74,9 @@ def main() -> int:
                 "schema": "gpr.raw_video_psf_audit.v1",
                 "approved_baselines_ready": True,
                 "psf_replacement_ready": False,
+                "summary": {
+                    "standalone_continuous_8k_review_media_ready": True,
+                },
             },
         )
         proc = subprocess.run(
@@ -103,11 +106,13 @@ def main() -> int:
         plan = json.loads((out_dir / "raw_video_psf_gap_plan.json").read_text(encoding="utf-8"))
         assert plan["schema"] == "gpr.raw_video_psf_gap_plan.v1"
         assert plan["summary"]["approved_baselines_ready"] is True
+        assert plan["summary"]["standalone_continuous_8k_review_media_ready"] is True
         assert plan["summary"]["accepted_pair_count"] == 2
         assert plan["summary"]["tile_support_ready"] is True
         assert plan["summary"]["kernel_stable"] is False
         assert plan["summary"]["production_psf_closure_ready"] is False
         assert any(row["id"] == "accepted_pair_count" for row in plan["blockers"])
+        assert not any(row["id"] == "standalone_continuous_8k_review_media" for row in plan["blockers"])
         assert any(row["id"] == "kernel_stability" for row in plan["blockers"])
         assert any("PSF-conditioned" in row["action"] for row in plan["next_actions"])
         html = (out_dir / "index.html").read_text(encoding="utf-8")

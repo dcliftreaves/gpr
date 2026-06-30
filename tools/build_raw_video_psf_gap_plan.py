@@ -92,12 +92,13 @@ def build_plan(
     kernel_stable = bool_at(measurement, ("summary", "kernel_stable"))
     measured_ready = bool_at(measurement, ("native_psf_ready_for_model_conditioning"))
     approved_baselines_ready = bool_at(psf_audit, ("approved_baselines_ready",))
+    continuous_reviews_ready = bool_at(psf_audit, ("summary", "standalone_continuous_8k_review_media_ready"))
     psf_replacement_ready = bool_at(psf_audit, ("psf_replacement_ready",))
 
     enough_pairs = accepted_pairs >= 3
     tile_support_ready = sharp_tiles >= 96 and texture_tiles >= 96
     measurement_ready = enough_pairs and tile_support_ready and kernel_stable and measured_ready
-    production_ready = measurement_ready and psf_replacement_ready
+    production_ready = measurement_ready and continuous_reviews_ready and psf_replacement_ready
 
     blockers: list[dict[str, Any]] = []
     if not approved_baselines_ready:
@@ -106,6 +107,14 @@ def build_plan(
                 "id": "baseline_missing",
                 "status": "required",
                 "detail": "Approved 4K cleanup and 8K SR baselines must remain available before measuring a replacement.",
+            }
+        )
+    if not continuous_reviews_ready:
+        blockers.append(
+            {
+                "id": "standalone_continuous_8k_review_media",
+                "status": "required",
+                "detail": "Need separate full-frame no-CNN and CNN 8K scene videos for Mission 1 and Z8; dashboards, crop montages, and side-by-side-only videos do not satisfy review evidence.",
             }
         )
     if accepted_pairs < 3:
@@ -180,6 +189,7 @@ def build_plan(
             "tile_support_ready": tile_support_ready,
             "native_psf_ready_for_model_conditioning": measured_ready,
             "approved_baselines_ready": approved_baselines_ready,
+            "standalone_continuous_8k_review_media_ready": continuous_reviews_ready,
             "psf_replacement_ready": psf_replacement_ready,
             "production_psf_closure_ready": production_ready,
         },
@@ -187,6 +197,7 @@ def build_plan(
             "minimum_accepted_pairs": 3,
             "minimum_sharp_edge_tiles": 96,
             "minimum_texture_field_tiles": 96,
+            "require_separate_no_cnn_and_cnn_scene_videos": True,
             "use_near_time_pairs_only_as_candidates": True,
             "do_not_replace_baseline_until_conditioned_gate_passes": True,
         },

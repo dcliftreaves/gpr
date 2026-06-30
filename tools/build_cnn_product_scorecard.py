@@ -27,6 +27,7 @@ EIGHTK_CNN = "mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1"
 FOURK_SIGNOFF = "artifacts/mission1_4k_cleanup_visual_signoff_20260625/production_signoff.json"
 EIGHTK_PROMOTION = "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"
 EIGHTK_CONTINUOUS_REVIEW = "artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json"
+MISSION_CONTINUOUS_REVIEW = "artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/receipt.json"
 COMPAT_DIR = "artifacts/real_fixture_compatibility"
 
 
@@ -89,12 +90,18 @@ def parse_compat_receipt(path: Path | None) -> dict[str, Any]:
     return {"path": str(path), "pass_count": pass_count, "skip_count": skip_count, "rows": rows}
 
 
-def summarize_continuous_review(root: Path) -> dict[str, Any]:
-    path = rel_to_abs(root, EIGHTK_CONTINUOUS_REVIEW)
+def summarize_continuous_review(
+    root: Path,
+    receipt: str,
+    *,
+    baseline_kind: str,
+    candidate_kind: str,
+) -> dict[str, Any]:
+    path = rel_to_abs(root, receipt)
     if path is None or not path.is_file():
         return {
             "available": False,
-            "receipt": EIGHTK_CONTINUOUS_REVIEW,
+            "receipt": receipt,
             "reason": "missing continuous no-CNN vs CNN 8K review receipt",
         }
     data = load_json(path)
@@ -116,15 +123,19 @@ def summarize_continuous_review(root: Path) -> dict[str, Any]:
     side_by_side = output_summary("side_by_side_review")
     return {
         "available": True,
-        "receipt": EIGHTK_CONTINUOUS_REVIEW,
+        "receipt": receipt,
         "schema": data.get("schema"),
         "note": data.get("note"),
-        "frames": len(data.get("frames")) if isinstance(data.get("frames"), list) else data.get("frames"),
-        "width": data.get("width"),
-        "height": data.get("height"),
-        "fps": data.get("fps"),
-        "baseline_kind": "no-CNN 4140 x 2760 Z8 raw Bayer display-upscaled to 8280 x 5520",
-        "candidate_kind": "retained 4K cleanup CNN Bayer plus approved 8K SR CNN path",
+        "frames": (
+            len(data.get("frames"))
+            if isinstance(data.get("frames"), list)
+            else metric(data, "scene", "frame_count") or data.get("frames")
+        ),
+        "width": data.get("width") or metric(data, "scene", "width"),
+        "height": data.get("height") or metric(data, "scene", "height"),
+        "fps": data.get("fps") or metric(data, "scene", "fps"),
+        "baseline_kind": baseline_kind,
+        "candidate_kind": candidate_kind,
         "true_no_cnn": true_no_cnn,
         "with_cnn": with_cnn,
         "side_by_side_review": side_by_side,
@@ -144,7 +155,18 @@ def summarize(root: Path) -> dict[str, Any]:
     fourk_signoff = load_json(rel_to_abs(root, FOURK_SIGNOFF) or Path())
     eightk_promotion = load_json(rel_to_abs(root, EIGHTK_PROMOTION) or Path())
     compat = parse_compat_receipt(latest_compat_receipt(root))
-    continuous_review = summarize_continuous_review(root)
+    continuous_review = summarize_continuous_review(
+        root,
+        EIGHTK_CONTINUOUS_REVIEW,
+        baseline_kind="no-CNN 4140 x 2760 Z8 raw Bayer display-upscaled to 8280 x 5520",
+        candidate_kind="retained 4K cleanup CNN Bayer plus approved 8K SR CNN path",
+    )
+    mission_continuous_review = summarize_continuous_review(
+        root,
+        MISSION_CONTINUOUS_REVIEW,
+        baseline_kind="no-CNN 4096 x 3072 Mission 1 raw Bayer display-upscaled to 8192 x 6144",
+        candidate_kind="Mission 1 4K cleanup plus approved 8K SR CNN path",
+    )
 
     stills = [
         {"tier": "STILL smallest", "pipeline": "gpr_tools_q0 + matched q3 CNN", "mean_mb": 9.80, "worst_lpips": 0.031, "role": "smallest gated still tier"},
@@ -218,6 +240,7 @@ def summarize(root: Path) -> dict[str, Any]:
             "runtime": eightk.get("gvid_decode_sr_multiframe_summary", {}),
             "packaging_quality": eightk.get("packaging_gpr_quality"),
             "continuous_review": continuous_review,
+            "mission_continuous_review": mission_continuous_review,
         },
         "stills": stills,
         "compatibility": compat,
@@ -247,6 +270,7 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
     fourk = data["fourk_cleanup"]
     sr = data["eightk_sr"]
     review = sr.get("continuous_review", {})
+    mission_review = sr.get("mission_continuous_review", {})
     compat = data["compatibility"]
     root = Path(data["source"]["external_root"])
     still_rows = "\n".join(
@@ -267,6 +291,8 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
     next_rows = "\n".join(f"<li>{html.escape(item)}</li>" for item in data["next_work"])
     review_status = "available" if review.get("available") else "missing"
     review_class = "ok" if review.get("available") else "warn"
+    mission_review_status = "available" if mission_review.get("available") else "missing"
+    mission_review_class = "ok" if mission_review.get("available") else "warn"
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -342,12 +368,20 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
 
   <h2>Continuous 8K No-CNN vs CNN Review</h2>
   <table>
-    <tr><th>Status</th><th>Baseline</th><th>Candidate</th><th>Receipt</th></tr>
+    <tr><th>Set</th><th>Status</th><th>Baseline</th><th>Candidate</th><th>Receipt</th></tr>
     <tr>
+      <td>Z8</td>
       <td class="{review_class}">{html.escape(review_status)}</td>
       <td>{html.escape(str(review.get("baseline_kind", "n/a")))}<br>{link(metric(review, "true_no_cnn", "path"), "ProRes", root)}</td>
       <td>{html.escape(str(review.get("candidate_kind", "n/a")))}<br>{link(metric(review, "with_cnn", "path"), "ProRes", root)}</td>
       <td>{link(review.get("receipt"), "receipt", root)}<br>{html.escape(str(review.get("frames", "n/a")))} frames at {html.escape(str(review.get("fps", "n/a")))} fps</td>
+    </tr>
+    <tr>
+      <td>Mission 1</td>
+      <td class="{mission_review_class}">{html.escape(mission_review_status)}</td>
+      <td>{html.escape(str(mission_review.get("baseline_kind", "n/a")))}<br>{link(metric(mission_review, "true_no_cnn", "path"), "ProRes", root)}</td>
+      <td>{html.escape(str(mission_review.get("candidate_kind", "n/a")))}<br>{link(metric(mission_review, "with_cnn", "path"), "ProRes", root)}</td>
+      <td>{link(mission_review.get("receipt"), "receipt", root)}<br>{html.escape(str(mission_review.get("frames", "n/a")))} frames at {html.escape(str(mission_review.get("fps", "n/a")))} fps</td>
     </tr>
   </table>
 

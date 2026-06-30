@@ -75,8 +75,12 @@ REQUIRED_README_TOKENS = (
     "z8_24f_true_no_cnn_4k_raw_lanczos_to_8k_20p_prores.mov",
     "z8_24f_with_4k_cleanup_and_8k_sr_cnn_20p_prores.mov",
     "Both movies are 8280 x 5520 ProRes, 24 matched frames at 20 fps",
-    "no-CNN 4140 x 2760 raw Bayer display-upscaled to 8280 x 5520",
-    "retained 4K cleanup CNN Bayer plus approved 8K SR CNN path",
+    "Z8 no-CNN baseline",
+    "Z8 4K cleanup plus 8K SR CNN",
+    "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630",
+    "GP017497_508_true_no_cnn_8k_12f_20p_prores.mov",
+    "GP017497_508_with_4k_cleanup_8k_sr_cnn_12f_20p_prores.mov",
+    "12 sequential frames at 20 fps",
     "Production capture requirements",
     "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json",
     "real fixtures, darkframes, camera receipts, PSF pairs, and model-promotion receipts",
@@ -91,7 +95,6 @@ FORBIDDEN_README_TOKENS = (
     # 4K CNN input, so it is not the top-level no-CNN comparison reviewers ask
     # for in the public README.
     "mission1_8k_continuous_cnn_ab_20260630",
-    "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630",
 )
 
 EXPECTED_PERCENTAGES = {

@@ -49,6 +49,7 @@ def main() -> int:
         assert data["psf_replacement_ready"] is False
         assert data["summary"]["cleanup_4k_ready"] is True
         assert data["summary"]["sr_8k_ready"] is True
+        assert data["summary"]["standalone_continuous_8k_review_media_ready"] is True
         assert data["summary"]["native_psf_ready"] is False
         assert data["summary"]["native_high_low_candidate_pair_count"] == 3
         assert data["summary"]["native_high_low_decoded_candidate_pair_count"] == 3
@@ -61,6 +62,14 @@ def main() -> int:
         assert data["summary"]["sr_detail_promotable_row_count"] == 0
         assert data["pair_derived_psf"]["best_kernel"] == "same_color_box2"
         assert data["pair_derived_psf"]["fine_share_of_residual_abs"] > 0.99
+        assert data["continuous_8k_review_media"]["z8"]["ready"] is True
+        assert data["continuous_8k_review_media"]["z8"]["true_no_cnn"]["frames"] == 24
+        assert data["continuous_8k_review_media"]["mission1"]["ready"] is True
+        assert data["continuous_8k_review_media"]["mission1"]["true_no_cnn"]["frames"] == 12
+        assert any(
+            check["id"] == "standalone_continuous_8k_review_media" and check["passed"]
+            for check in data["checks"]
+        )
         assert any(check["id"] == "native_capture_display_psf" and not check["passed"] for check in data["checks"])
         assert any(check["id"] == "native_psf_measurement_plan" and check["passed"] for check in data["checks"])
         assert any(check["id"] == "native_psf_measurement_executed" and check["passed"] for check in data["checks"])
@@ -69,6 +78,8 @@ def main() -> int:
         html = dashboard_path.read_text(encoding="utf-8")
         assert "Raw Video PSF / SR Audit" in html
         assert "4K cleanup baseline" in html
+        assert "Standalone 8K A/B" in html
+        assert "Standalone Continuous 8K Review Media" in html
         assert "PSF replacement" in html
         assert "Native candidates" in html
         assert "Measurement plan" in html

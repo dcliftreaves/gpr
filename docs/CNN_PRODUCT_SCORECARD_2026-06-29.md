@@ -117,6 +117,16 @@ Bayer input passed through the approved 8K SR CNN and rendered to a separate
 versus CNN visual review. The older no-8K-SR comparison only isolates the 8K SR
 stage from an already-cleaned 4K CNN input.
 
+The Mission 1 counterpart is also a pair of standalone videos, not a dashboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/
+```
+
+It contains separate 8192 x 6144 ProRes movies for the sequential `GP017497`
+through `GP017508` scene: one no-CNN baseline and one 4K cleanup plus 8K SR CNN
+render.
+
 ## Replacement Rule
 
 Do not replace the current 4K cleanup or 8K SR CNN just because a dashboard
