@@ -98,6 +98,7 @@ def main() -> int:
         readme = (out / "README.md").read_text(encoding="utf-8")
         assert "Product Pillars In This Bundle" in readme
         assert "RAW video MVP" in readme
+        assert "production capture requirements" in readme
 
         verify = subprocess.run(
             [sys.executable, str(ROOT / "tools/verify_labs_bundle.py"), str(manifest)],
@@ -108,6 +109,42 @@ def main() -> int:
             check=False,
         )
         assert verify.returncode == 0, verify.stderr
+
+        default_proc = subprocess.run(
+            [
+                sys.executable,
+                str(TOOL),
+                str(root / "default_bundle"),
+                "--repo-commit",
+                "synthetic-handoff-smoke",
+                "--ci-run",
+                "https://github.com/dcliftreaves/gpr/actions/runs/0",
+                "--sample-gvid",
+                str(sample),
+                "--producer-report",
+                str(producer),
+                "--labs-target-bench",
+                str(bench),
+                "--camera-handoff",
+                str(handoff),
+                "--preview-ui",
+                str(preview),
+                "--closure-run",
+                str(closure),
+                "--review-media",
+                str(review),
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        assert default_proc.returncode == 0, default_proc.stderr
+        default_manifest = json.loads((root / "default_bundle/manifest.json").read_text(encoding="utf-8"))
+        default_paths = {row["path"] for row in default_manifest["artifacts"]}
+        assert "docs/source/docs__PRODUCTION_CAPTURE_REQUIREMENTS.md" in default_paths
+        assert "docs/source/docs__PRODUCTION_CAPTURE_REQUIREMENTS.json" in default_paths
     print("test_build_gopro_mission1_handoff_bundle: PASS")
     return 0
 

@@ -59,8 +59,9 @@ and product scorecards:
   MP-class compatibility evidence, Bayer phase coverage, and validated
   noise-sidecar policy.
 - **RAW video MVP**: `.gvid` Bayer recompression, camera-back preview,
-  MOV/ProRes review, editable DNG/GPR export, and Mission 1 handoff/timing
-  receipts.
+  MOV/ProRes review, editable DNG/GPR export, Mission 1 handoff/timing
+  receipts, and the production capture requirements that define camera-role
+  closure.
 - **Premium still/SR**: spend-time-for-quality still/SR targets, model
   receipts, dashboards, and explicit non-promotion blockers.
 - **PSF-aware video/SR**: approved 4K cleanup and offline 8K SR baselines,
@@ -73,6 +74,12 @@ manifests by default, and `tools/verify_labs_bundle.py` rejects malformed
 pillar metadata when it is present. Release README prose can be shorter, but it
 must keep these labels visible so reviewers can tell what each artifact proves
 without reverse-engineering IDs.
+
+Mission 1 handoff bundles built by
+`tools/build_gopro_mission1_handoff_bundle.py` must also package
+`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md` and
+`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`, and the intake audit treats those
+files as required firmware-facing docs.
 
 ## Build And Verify
 
@@ -132,13 +139,13 @@ listed in `docs/release_evidence_manifest.json`.
 
 Current Mission 1 handoff bundle:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_20260630/manifest.json`
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260630/manifest.json`
 
 Current Mission 1 intake audit:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/index.html`
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260630/index.html`
 
-The bundle verifies with `tools/verify_labs_bundle.py` and contains 19 manifest
+The bundle verifies with `tools/verify_labs_bundle.py` and contains 21 manifest
 artifacts, including a valid 4096 x 3072 `.gvid` sample, compact stand-in
 closure receipts, the quick-validation dry-run receipt, visual assets, docs,
 and checksums. The intake audit marks it firmware-review ready, but still

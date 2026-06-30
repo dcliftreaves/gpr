@@ -39,6 +39,7 @@ def build_bundle(root: Path) -> Path:
         "docs/source/docs__GOPRO_MISSION1_QUICK_VALIDATION.md",
         "docs/source/docs__LABS_FIRMWARE_API.md",
         "docs/source/docs__LABS_MISSION1_RUNBOOK.md",
+        "docs/source/docs__PRODUCTION_CAPTURE_REQUIREMENTS.md",
         "docs/source/docs__RELEASE_ARTIFACTS.md",
         "docs/source/tools__run_gopro_mission1_quick_validation.py",
         "docs/source/tools__check_mission1_camera_source_probe.py",
@@ -46,6 +47,7 @@ def build_bundle(root: Path) -> Path:
         p = root / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text("# doc\n", encoding="utf-8")
+    write_json(root / "docs/source/docs__PRODUCTION_CAPTURE_REQUIREMENTS.json", {"schema": "test.production_capture"})
     write_json(root / "docs/source/docs__release_evidence_manifest.json", {"schema": "test.release"})
     write_json(
         root / "receipts/quick_validation_dry_run.json",
@@ -110,6 +112,8 @@ def build_bundle(root: Path) -> Path:
         "docs/source/docs__GOPRO_MISSION1_QUICK_VALIDATION.md:text",
         "docs/source/docs__LABS_FIRMWARE_API.md:text",
         "docs/source/docs__LABS_MISSION1_RUNBOOK.md:text",
+        "docs/source/docs__PRODUCTION_CAPTURE_REQUIREMENTS.md:text",
+        "docs/source/docs__PRODUCTION_CAPTURE_REQUIREMENTS.json:json",
         "docs/source/docs__RELEASE_ARTIFACTS.md:text",
         "docs/source/docs__release_evidence_manifest.json:json",
         "docs/source/tools__run_gopro_mission1_quick_validation.py:text",

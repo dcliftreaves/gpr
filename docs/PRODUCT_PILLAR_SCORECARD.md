@@ -18,12 +18,12 @@ Build it with:
 GPR_TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp \
 python3 tools/build_product_pillar_scorecard.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_capture_requirements_20260630
 ```
 
 Current generated dashboard:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630/index.html`
+`/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_capture_requirements_20260630/index.html`
 
 Companion production burn-down dashboard:
 
@@ -127,7 +127,7 @@ requirements as `real_grbg_fixture`, `real_bggr_fixture`,
 `mission1_darkframe_stack`, and `iphone_cfa_darkframe_stack`.
 
 The current GoPro Mission 1 intake audit lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260630/index.html`.
 It verifies the portable firmware handoff bundle, required docs, 4096 x 3072
 `.gvid` sample, quick-validation dry run, and stand-in encode/preview receipts.
 It remains `camera_production_ready=false` until real Mission 1 sensor/DMA,

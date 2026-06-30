@@ -191,8 +191,20 @@ def main() -> int:
         "gpr_labs_bundle.v1",
         "tools/build_labs_bundle.py",
         "tools/verify_labs_bundle.py",
+        "tools/build_gopro_mission1_handoff_bundle.py",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json",
         "gh release upload",
         "hashes/sha256sums.txt",
+    ], failures)
+    require_text("tools/build_gopro_mission1_handoff_bundle.py", [
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json",
+        "production capture requirements",
+    ], failures)
+    require_text("tools/build_gopro_mission1_intake_audit.py", [
+        "docs/source/docs__PRODUCTION_CAPTURE_REQUIREMENTS.md",
+        "docs/source/docs__PRODUCTION_CAPTURE_REQUIREMENTS.json",
     ], failures)
     require_text("docs/LABS_FIRMWARE_API.md", [
         "ABI",

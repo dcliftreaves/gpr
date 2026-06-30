@@ -21,7 +21,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_EXTERNAL = Path("/Volumes/OWC_8TB/gpr_work")
-DEFAULT_MANIFEST = DEFAULT_EXTERNAL / "artifacts/gopro_mission1_handoff_bundle_20260630/manifest.json"
+DEFAULT_MANIFEST = DEFAULT_EXTERNAL / "artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260630/manifest.json"
 REQUIRED_PRODUCT_PILLARS = {
     "raw_stills": "RAW stills",
     "raw_video_mvp": "RAW video MVP",
@@ -176,6 +176,8 @@ def build_audit(manifest_path: Path) -> dict[str, Any]:
         "docs/source/docs__GOPRO_MISSION1_QUICK_VALIDATION.md",
         "docs/source/docs__LABS_FIRMWARE_API.md",
         "docs/source/docs__LABS_MISSION1_RUNBOOK.md",
+        "docs/source/docs__PRODUCTION_CAPTURE_REQUIREMENTS.md",
+        "docs/source/docs__PRODUCTION_CAPTURE_REQUIREMENTS.json",
         "docs/source/docs__RELEASE_ARTIFACTS.md",
         "docs/source/docs__release_evidence_manifest.json",
         "docs/source/tools__run_gopro_mission1_quick_validation.py",
