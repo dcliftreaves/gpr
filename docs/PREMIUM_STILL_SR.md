@@ -287,13 +287,20 @@ camera one-hot, and full-crop candidate raw/HF scalar context to that U-Net
 does not improve the result: the X2D holdout lands at about 0.09 percent
 median raw-residual MAE recovery, and the matched Z8 holdout lands at about
 0.19 percent versus the existing 0.50 percent Z8 raw-CFA residual baseline.
+The first true full-crop sample-mode probe also exists:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_unet_w16_160_20260630/train_receipt.json`.
+It trains on whole target crops, uses candidate-only runtime inputs, and holds
+out the hard `2024_April_X2D_1742` scene. It reaches about 0.06 percent median
+raw-residual MAE recovery on that holdout, about 0.006 percent median RMSE
+recovery, and regresses the training split by about -0.20 percent median MAE.
+That keeps full-crop sampling as useful evidence, but not a promotion path.
 The next candidate should use stronger
 full-image/structured raw context or a different objective, not just the
 stored-HF feature, simple noise thresholding, local loss-weight tuning,
 pooled-context feature concatenation, combined local feature concatenation,
 simple band-loss reweighting, camera-domain filtering, camera-balanced
 sampling, small context padding, a small U-Net alone, or frame-context scalar
-planes alone.
+planes alone, or bounded full-crop sampling alone.
 
 ## Raw-CFA Feature Smoke
 

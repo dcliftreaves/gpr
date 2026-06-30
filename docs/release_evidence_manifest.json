@@ -1340,14 +1340,16 @@
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_framectx_unet_w32_1200_20260630/train_receipt.json",
-        "artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_framectx_unet_w32_1200_20260630/train_receipt.json"
+        "artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_framectx_unet_w32_1200_20260630/train_receipt.json",
+        "artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_unet_w16_160_20260630/train_receipt.json"
       ],
       "metrics": {
         "target_rows": 351,
         "target_scenes": 13,
         "render_to_raw_corr_abs_median": 0.6912654943469239,
-        "model_receipt_count": 15,
+        "model_receipt_count": 16,
         "best_x2d_holdout_mae_recovery_pct": 0.09981604486103075,
+        "x2d_full_crop_unet_probe_holdout_mae_recovery_pct": 0.06355886511255635,
         "x2d_loss_weight_patch_probe_holdout_mae_recovery_pct": -0.6484285043976422,
         "x2d_pooled_context_probe_holdout_mae_recovery_pct": -0.330202424153684,
         "x2d_context_storedhf_probe_holdout_mae_recovery_pct": -0.4258695412707576,

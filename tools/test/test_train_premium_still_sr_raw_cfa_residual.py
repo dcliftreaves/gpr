@@ -130,6 +130,7 @@ def main() -> int:
                 "holdout_ev": None,
                 "train_camera": "z8",
                 "sample_balance": "row",
+                "sample_mode": "random_patch",
                 "context_padding": 0,
                 "eval_every": 0,
                 "eval_tile": 40,
@@ -156,6 +157,7 @@ def main() -> int:
         assert receipt["config"]["band_weight"] == 0.0
         assert receipt["config"]["band_blocks"] == [5, 9]
         assert receipt["config"]["sample_balance"] == "row"
+        assert receipt["config"]["sample_mode"] == "random_patch"
         assert receipt["config"]["context_padding"] == 0
         assert "exact_raw_mae_reduction_pct" in receipt["eval"]["holdout"]
 
@@ -246,6 +248,20 @@ def main() -> int:
         assert frame_context_receipt["config"]["feature_mode"] == "raw_framectx_coord_ev_noise"
         assert "absolute crop position" in frame_context_receipt["policy"]["runtime_inputs"]
         assert frame_context_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
+        args.output_dir = root / "full_crop_holdout"
+        args.model_arch = "unet"
+        args.feature_mode = "raw_multiscale_coord_ev_noise"
+        args.sample_mode = "full_crop"
+        args.batch_size = 1
+        args.patch_size = 8
+        args.eval_tile = 40
+        full_crop_receipt = tool.train(args)
+        assert full_crop_receipt["eval"]["holdout"]["row_count"] == 1
+        assert full_crop_receipt["config"]["sample_mode"] == "full_crop"
+        assert full_crop_receipt["config"]["patch_size"] == 8
+        assert full_crop_receipt["policy"]["uses_source_raw_at_runtime"] is False
+        assert "full target crops" in full_crop_receipt["policy"]["sample_contract"]
 
         bad_npz = root / "bad_targets.npz"
         np.savez_compressed(

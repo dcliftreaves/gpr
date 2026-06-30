@@ -178,15 +178,23 @@ def infer_row_camera(row: dict[str, Any]) -> str:
     return "unknown"
 
 
-def context_crop_np(arr: np.ndarray, idx: int, y0: int, x0: int, patch: int, context_padding: int) -> np.ndarray:
+def context_crop_np(
+    arr: np.ndarray,
+    idx: int,
+    y0: int,
+    x0: int,
+    patch_h: int,
+    patch_w: int,
+    context_padding: int,
+) -> np.ndarray:
     if context_padding <= 0:
-        return arr[idx, y0 : y0 + patch, x0 : x0 + patch]
+        return arr[idx, y0 : y0 + patch_h, x0 : x0 + patch_w]
     padded = np.pad(
         arr[idx],
         ((context_padding, context_padding), (context_padding, context_padding), (0, 0)),
         mode="edge",
     )
-    return padded[y0 : y0 + patch + 2 * context_padding, x0 : x0 + patch + 2 * context_padding]
+    return padded[y0 : y0 + patch_h + 2 * context_padding, x0 : x0 + patch_w + 2 * context_padding]
 
 
 def center_crop_like(pred: torch.Tensor, target: torch.Tensor, context_padding: int) -> torch.Tensor:
@@ -617,6 +625,7 @@ class RawCfaResidualTargets:
         patch_size: int,
         rng: random.Random,
         sample_balance: str = "row",
+        sample_mode: str = "random_patch",
         context_padding: int = 0,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
         xs: list[np.ndarray] = []
@@ -627,7 +636,13 @@ class RawCfaResidualTargets:
         sigmas: list[tuple[float, float, float, float]] = []
         contexts: list[tuple[float, ...]] = []
         h, w = self.candidate_raw.shape[1:3]
-        patch = min(patch_size, h, w)
+        if sample_mode == "random_patch":
+            patch_h = patch_w = min(patch_size, h, w)
+        elif sample_mode == "full_crop":
+            patch_h = h
+            patch_w = w
+        else:
+            raise ValueError(f"unknown sample_mode: {sample_mode}")
         groups: dict[str, list[int]] | None = None
         if sample_balance != "row":
             groups = {}
@@ -648,12 +663,14 @@ class RawCfaResidualTargets:
                 idx = rng.choice(indices)
             else:
                 idx = rng.choice(groups[rng.choice(group_keys)])
-            y0 = rng.randrange(0, h - patch + 1) if h > patch else 0
-            x0 = rng.randrange(0, w - patch + 1) if w > patch else 0
-            xs.append(context_crop_np(self.candidate_raw, idx, y0, x0, patch, context_padding).transpose(2, 0, 1))
-            ys.append(self.target[idx, y0 : y0 + patch, x0 : x0 + patch].transpose(2, 0, 1))
+            y0 = rng.randrange(0, h - patch_h + 1) if h > patch_h else 0
+            x0 = rng.randrange(0, w - patch_w + 1) if w > patch_w else 0
+            xs.append(context_crop_np(self.candidate_raw, idx, y0, x0, patch_h, patch_w, context_padding).transpose(2, 0, 1))
+            ys.append(self.target[idx, y0 : y0 + patch_h, x0 : x0 + patch_w].transpose(2, 0, 1))
             if self.candidate_raw_hf is not None:
-                hfs.append(context_crop_np(self.candidate_raw_hf, idx, y0, x0, patch, context_padding).transpose(2, 0, 1))
+                hfs.append(
+                    context_crop_np(self.candidate_raw_hf, idx, y0, x0, patch_h, patch_w, context_padding).transpose(2, 0, 1)
+                )
             evs.append(float(self.rows[idx].get("ev", 0.0)))
             noises.append(self.noise_features[idx])
             sigmas.append(self.noise_sigma4[idx])
@@ -920,6 +937,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             args.patch_size,
             rng,
             args.sample_balance,
+            args.sample_mode,
             args.context_padding,
         )
         x = x.to(device)
@@ -996,6 +1014,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "noise_threshold_scale": args.noise_threshold_scale,
                 "train_camera": args.train_camera,
                 "sample_balance": args.sample_balance,
+                "sample_mode": args.sample_mode,
                 "context_padding": args.context_padding,
             },
         },
@@ -1048,6 +1067,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "holdout_ev": args.holdout_ev,
             "train_camera": args.train_camera,
             "sample_balance": args.sample_balance,
+            "sample_mode": args.sample_mode,
             "context_padding": args.context_padding,
             "seed": args.seed,
         },
@@ -1055,6 +1075,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "uses_source_raw_at_training": True,
             "uses_source_raw_at_runtime": False,
             "runtime_inputs": runtime_input_summary(args.feature_mode),
+            "sample_contract": (
+                "training samples are full target crops"
+                if args.sample_mode == "full_crop"
+                else "training samples are random local patches"
+            ),
             "model_context_padding_pixels": args.context_padding,
             "production_status": "training_probe_not_registered_production_algorithm",
             "target_policy": args.target_policy,
@@ -1138,6 +1163,12 @@ def main() -> int:
         choices=("row", "camera", "scene"),
         default="row",
         help="Training sampler. row preserves legacy behavior; camera and scene sample groups uniformly before rows.",
+    )
+    ap.add_argument(
+        "--sample-mode",
+        choices=("random_patch", "full_crop"),
+        default="random_patch",
+        help="random_patch preserves legacy local sampling; full_crop trains on whole target crops for detail-placement probes.",
     )
     ap.add_argument(
         "--context-padding",

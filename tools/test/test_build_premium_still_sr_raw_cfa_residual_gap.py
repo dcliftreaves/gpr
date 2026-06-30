@@ -35,6 +35,7 @@ def receipt(scene: str, mae: float, rmse: float, *, feature_mode: str = "raw_mul
             "depth": 4,
             "patch_size": 128,
             "steps": 2000,
+            "sample_mode": "full_crop" if "X2D" in scene else "random_patch",
         },
         "policy": {
             "uses_source_raw_at_runtime": False,
@@ -109,6 +110,7 @@ def main() -> int:
         assert any("X2D holdout" in blocker for blocker in data["blockers"])
         assert data["next_experiments"][0]["name"] == "full-image or structured raw-CFA residual learner"
         assert "sample_balance" in data["models"][0]
+        assert "sample_mode" in data["models"][0]
         assert "context_padding" in data["models"][0]
         assert "model_arch" in data["models"][0]
 
@@ -117,6 +119,7 @@ def main() -> int:
         assert "Production ready" in html
         assert "full-image or structured raw-CFA residual learner" in html
         assert "Sampler" in html
+        assert "Sample mode" in html
         assert "Context px" in html
         assert "Architecture" in html
         assert proc.stdout.strip() == str(out / "index.html")

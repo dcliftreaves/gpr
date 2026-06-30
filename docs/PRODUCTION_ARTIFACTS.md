@@ -478,15 +478,16 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
-| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json` | `693d9e34d53c2d255085e4ea1e50e21ca5d8ec7f912f6c7bb5ab28dcf6612099` |
-| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` | `80fe22285c777aa710ceb430f475f403fe1ef67769a709d1e5f5e7bee221bda6` |
+| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json` | `cded04551ae11dc841c2b025237e260acee7c17e0eb1f75ab17c7d997a294e96` |
+| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` | `0a82651ba7e5d27bf6ab7d844b0c73c7e2eeab2ee4ab3780eb540b0861c61d15` |
 | Premium still-SR raw-CFA residual X2D camera-balanced sampler receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json` | `5b1857af9e32b1554c1e4c69ba1fca9cade8490213775538d1360e29ca0fafdd` |
 | Premium still-SR raw-CFA residual X2D context-padding receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json` | `ec12cfa610c02ba2189ffcbff60820d494e653bc944af11d9e0fd4fbe335397f` |
 | Premium still-SR raw-CFA residual X2D U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json` | `32a9d283678dcc9367d323ce83fecc98f7beab4d1d8e3c28e7d1b602d59170fe` |
 | Premium still-SR raw-CFA residual X2D frame-context U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_framectx_unet_w32_1200_20260630/train_receipt.json` | `60e260db6084e0a8499086c7633ef6af4855949e2b2948906f5f66b3efe062c8` |
 | Premium still-SR raw-CFA residual Z8 frame-context U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_framectx_unet_w32_1200_20260630/train_receipt.json` | `acf9814a6fce227eaac2b394f15a52d454f0e4fe4e9d13de3bd4ce9310acbcbd` |
-| Premium still-SR next-experiment contract JSON | `artifacts/premium_still_sr_next_experiment_contract_20260630/premium_still_sr_next_experiment_contract.json` | `88d6f8b5e5235d77e71b4f494230d3af46a53f78bce1a912b310b6d156b05665` |
-| Premium still-SR next-experiment contract dashboard | `artifacts/premium_still_sr_next_experiment_contract_20260630/index.html` | `d0236672dab7ecdd2fc6846c166ecfd137a2aa4ab2c0cdafdaeba1f2df0cb93d` |
+| Premium still-SR raw-CFA residual X2D full-crop U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_unet_w16_160_20260630/train_receipt.json` | `91fe43b4ec74010b44ce1b321f53dd88effe52c898acac8dc734feee7b2bc610` |
+| Premium still-SR next-experiment contract JSON | `artifacts/premium_still_sr_next_experiment_contract_20260630/premium_still_sr_next_experiment_contract.json` | `2e6f57cecb5e804ddfe5afa5750ec1bcea6dfebe9bfbedd680f9db3c60c13524` |
+| Premium still-SR next-experiment contract dashboard | `artifacts/premium_still_sr_next_experiment_contract_20260630/index.html` | `a437405a2ee763bd6cff2251621a629299a6014c0fa02b98208c63ab62424184` |
 | Premium still-SR X2D combined stored-HF/context probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json` | `bb060baaedb3f2439eb3d51fd45002eb67278c87d276d403d208351946463ea7` |
 | Premium still-SR X2D multiscale band-loss probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json` | `0dd675d612e66461cea1d658fb62f91fe258703473aaa810d0c573f1fc18cb66` |
 

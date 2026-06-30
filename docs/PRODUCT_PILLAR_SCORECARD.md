@@ -68,7 +68,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB plus GoPro/Mission GBRG fixture coverage, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, calibrated noise-cleaning is bounded, and true source-minus-candidate same-color raw residual targets plus raw-domain trainers now exist; Z8 is mildly positive, and a small U-Net makes the hard X2D holdout barely positive, but it is still far below promotion while X2D-only, combined stored-HF/context, context-padding-only, frame-context scalar, and simple band-loss probes remain below promotion. |
+| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, calibrated noise-cleaning is bounded, and true source-minus-candidate same-color raw residual targets plus raw-domain trainers now exist; Z8 is mildly positive, and small U-Net/full-crop probes make the hard X2D holdout barely positive, but they are still far below promotion while X2D-only, combined stored-HF/context, context-padding-only, frame-context scalar, full-crop-only, and simple band-loss probes remain below promotion. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, including continuous 8K no-CNN versus CNN ProRes review media for a whole-scene A/B; near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, and a hash-strict capture request now spells out the controlled-pair capture and model-gate path. Formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -352,12 +352,18 @@ raw-domain branch to move the X2D holdout directionally positive at about
 0.10 percent median MAE recovery, but that is still far below promotion.
 Adding absolute crop-position, camera one-hot, and full-crop candidate raw/HF
 scalar context to that U-Net lands at about 0.09 percent on X2D and about
-0.19 percent on Z8, below the existing Z8 raw-CFA baseline. The
+0.19 percent on Z8, below the existing Z8 raw-CFA baseline. The bounded
+full-crop U-Net sample-mode probe at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_unet_w16_160_20260630/train_receipt.json`
+trains on whole target crops and is runtime-safe, but it reaches only about
+0.06 percent median MAE recovery on the hard X2D scene and regresses the train
+split. The
 next model needs full-image/structured raw context or a different objective,
 not another local loss-weight/patch-size pass, simple context-plane
 concatenation, combined local-feature concatenation, simple band-loss
 reweighting, camera-domain filtering, camera-balanced sampling, 32px context
-padding, a small U-Net alone, or frame-context scalar planes alone.
+padding, a small U-Net alone, frame-context scalar planes alone, or bounded
+full-crop sampling alone.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a
