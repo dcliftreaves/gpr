@@ -29,6 +29,11 @@ Current evidence:
   9.80 MB, 15.05 MB, and 27.17 MB mean size.
 - Capability regression includes 12 MP, 23 MP, 50 MP Z8, and 100 MP-class X2D
   roundtrips.
+- A real X2D 100MP visual roundtrip audit now exists at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html`.
+  It records a 11,664 x 8,750 DNG to GPR to DNG path, three 100 percent crop
+  panels, a 47 MB `.gpr`, 593 ms encode, 965 ms decode, and 49.21 dB
+  full-image raw Bayer PSNR.
 - The legacy stills SDK/CLI path now exposes RGGB, GBRG, GRBG, and BGGR at
   12/14/16 bits. `test_still_matrix.sh` covers the full normal unpacked Bayer
   phase set; `test_capabilities.py` includes alternate-phase capability rows.
@@ -67,8 +72,6 @@ Next production work:
    darkframes/frame stacks where available.
 3. Re-run the raw-noise/signal audit before training any CNN on nonzero clean
    targets.
-4. Add a 100 MP real-fixture visual dashboard, not just synthetic capability
-   timing/PSNR.
 
 ## 2. Raw Video MVP
 

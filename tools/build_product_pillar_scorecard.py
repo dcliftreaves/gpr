@@ -54,20 +54,20 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         {
             "id": "raw_stills",
             "title": "1. Best RAW stills",
-            "readiness_percent": 85,
+            "readiness_percent": 88,
             "status": "strong_current_surface",
             "production_ready": False,
-            "claim": "Production-gated still tiers for the currently tested normal Bayer surface, including 12/14/16-bit and 50 MP-class evidence.",
+            "claim": "Production-gated still tiers for the currently tested normal Bayer surface, including 12/14/16-bit, 50 MP, and real X2D 100MP-class visual evidence.",
             "done_evidence": [
                 "50 MP still tiers average 9.80 MB, 15.05 MB, and 27.17 MB while passing the committed visual gate.",
                 "Capability and still-matrix coverage include 12 MP, 23 MP, 50 MP, 100 MP-class rows and RGGB/GBRG/GRBG/BGGR synthetic conformance.",
                 "Real fixture compatibility covers Mission 1, Z8, X2D, and iPhone CFA DNG/GPR surfaces.",
+                "A real X2D 100MP DNG to GPR to DNG visual audit records 11,664 x 8,750 Bayer roundtrip evidence with 100% crop panels and 49.21 dB full-image raw PSNR.",
                 "X2D and Z8 darkframe-derived noise sidecars are validated and ready for conditioning experiments.",
             ],
             "open_work": [
                 "Add more real BGGR/GRBG camera fixtures so alternate Bayer support is backed by real cameras, not only synthetic cells.",
                 "Apply camera-noise calibration to Mission 1 and iPhone before promoting nonzero noise removal/addback.",
-                "Add a real 100 MP visual dashboard beyond capability timing and PSNR rows.",
             ],
             "evidence": annotate_refs(
                 [
@@ -75,6 +75,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     repo_ref("local fixture compatibility", "docs/LOCAL_FIXTURE_COMPATIBILITY.md"),
                     repo_ref("camera noise calibration contract", "docs/CAMERA_NOISE_CALIBRATION.md"),
                     artifact_ref("stills visual dashboard", "artifacts/visual_compare_20260525_final/index.html"),
+                    artifact_ref("X2D 100MP still visual audit", "artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html"),
                     artifact_ref("camera noise sidecars", "artifacts/camera_noise_sidecars_20260629"),
                     artifact_ref("real fixture compatibility", "artifacts/real_fixture_compatibility"),
                 ],
@@ -183,7 +184,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "pillars": pillars,
         "next_actions": [
             "Package a GoPro-facing Mission 1 closure bundle around the existing quick-validation scripts and required receipt names.",
-            "Run a real 100 MP still visual dashboard and add more real alternate Bayer fixtures.",
+            "Add more real alternate Bayer fixtures and apply Mission 1/iPhone noise calibration before promoting nonzero noise addback.",
             "Replace premium still-SR residual probes with a larger-context raw-domain texture/noise model before claiming an amazing-still product.",
             "Move PSF work from modeled pair receipts to native capture/display PSF measurements, then gate against current 4K/8K baselines.",
         ],
