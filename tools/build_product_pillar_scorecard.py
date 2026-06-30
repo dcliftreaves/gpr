@@ -57,6 +57,15 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "readiness_percent": 90,
             "status": "strong_current_surface",
             "production_ready": False,
+            "lock_ledger_paths": [
+                "STILL smallest",
+                "STILL primary",
+                "STILL archival",
+            ],
+            "open_production_gates": [
+                "Broad real-camera Bayer phase coverage",
+                "Mission 1 and iPhone nonzero noise addback",
+            ],
             "locked_artifacts": [
                 "production STILL q0/q3/q8 tiers",
                 "12/14/16-bit still roundtrip support",
@@ -108,7 +117,18 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "readiness_percent": 80,
             "status": "pi_stand_in_pass_camera_handoff_open",
             "production_ready": False,
+            "lock_ledger_paths": [
+                "VIDEO_FREEZE",
+                "UPRESABLE editable raw",
+                "Mission 1 Pi stand-in raw-video encode",
+                "Mission 1 Pi stand-in preview",
+            ],
+            "open_production_gates": [
+                "Real Mission 1 camera-role raw-video closure",
+            ],
             "locked_artifacts": [
+                "VIDEO_FREEZE desktop/post raw-video path",
+                "UPRESABLE half-resolution capture to editable full-resolution raw",
                 "Pi 5 stand-in 4K Bayer .gvid encode receipts above the accepted 20 fps floor",
                 "Pi 5 stand-in 1024 x 768 preview receipts above the accepted 20 fps floor",
                 ".gvid validation, metadata dispatch, and interrupted-tail recovery checks",
@@ -146,9 +166,17 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "readiness_percent": 60,
             "status": "research_loop_working_candidate_not_promoted",
             "production_ready": False,
+            "lock_ledger_paths": [
+                "Mission 1 4K cleanup",
+                "Mission 1 8K SR",
+            ],
+            "open_production_gates": [
+                "Premium still-SR promotion",
+            ],
             "locked_artifacts": [
                 "matched 1x CNN support for committed STILL q0/q3 visual gates",
                 "routed specialist infrastructure and fixture manifests",
+                "approved Mission 1 4K cleanup and 8K SR outputs as source candidates for expensive still/post workflows",
                 "raw-CFA target construction over the expanded 351-row set",
                 "editor-openability and rendered review receipts for diagnostics",
             ],
@@ -220,6 +248,13 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "readiness_percent": 44,
             "status": "approved_baseline_psf_replacement_open",
             "production_ready": False,
+            "lock_ledger_paths": [
+                "Mission 1 4K cleanup",
+                "Mission 1 8K SR",
+            ],
+            "open_production_gates": [
+                "PSF-aware raw-video replacement",
+            ],
             "locked_artifacts": [
                 "approved Mission native12 4K cleanup offline/review baseline",
                 "approved candidate-aware 8K SR offline/reconstruction baseline",
@@ -334,6 +369,8 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
   <p>{html.escape(pillar["claim"])}</p>
 </section>"""
         )
+        ledger_paths = "\n".join(f"<li>{html.escape(item)}</li>" for item in pillar["lock_ledger_paths"])
+        open_gates = "\n".join(f"<li>{html.escape(item)}</li>" for item in pillar["open_production_gates"])
         locked = "\n".join(f"<li>{html.escape(item)}</li>" for item in pillar["locked_artifacts"])
         done = "\n".join(f"<li>{html.escape(item)}</li>" for item in pillar["done_evidence"])
         open_work = "\n".join(f"<li>{html.escape(item)}</li>" for item in pillar["open_work"])
@@ -343,7 +380,9 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
   <h2>{html.escape(pillar["title"])}</h2>
   <div class="status-line"><strong>{pillar["readiness_percent"]}%</strong> / {html.escape(pillar["status"])} / production ready: {str(pillar["production_ready"]).lower()}</div>
   <div class="cols">
+    <div><h3>Lock ledger paths</h3><ul>{ledger_paths}</ul></div>
     <div><h3>Locked artifacts</h3><ul>{locked}</ul></div>
+    <div><h3>Open production gates</h3><ul>{open_gates}</ul></div>
     <div><h3>What is proven</h3><ul>{done}</ul></div>
     <div><h3>What remains</h3><ul>{open_work}</ul></div>
   </div>

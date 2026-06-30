@@ -66,13 +66,24 @@ def main() -> int:
             "raw_video_psf_sr",
         ]
         assert data["pillars"][0]["readiness_percent"] == 90
+        assert data["pillars"][0]["lock_ledger_paths"] == [
+            "STILL smallest",
+            "STILL primary",
+            "STILL archival",
+        ]
+        assert "Broad real-camera Bayer phase coverage" in data["pillars"][0]["open_production_gates"]
         assert any("X2D 100MP" in item for item in data["pillars"][0]["locked_artifacts"])
         assert any("3,000-file" in item for item in data["pillars"][0]["done_evidence"])
         assert data["pillars"][1]["readiness_percent"] == 80
+        assert "VIDEO_FREEZE" in data["pillars"][1]["lock_ledger_paths"]
+        assert "UPRESABLE editable raw" in data["pillars"][1]["lock_ledger_paths"]
+        assert "Real Mission 1 camera-role raw-video closure" in data["pillars"][1]["open_production_gates"]
         assert any("20 fps" in item for item in data["pillars"][1]["locked_artifacts"])
         assert data["pillars"][2]["readiness_percent"] == 60
+        assert "Premium still-SR promotion" in data["pillars"][2]["open_production_gates"]
         assert any("351-row" in item for item in data["pillars"][2]["locked_artifacts"])
         assert data["pillars"][3]["readiness_percent"] == 44
+        assert "PSF-aware raw-video replacement" in data["pillars"][3]["open_production_gates"]
         assert any("8K SR" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any(ref["exists"] for ref in data["pillars"][0]["evidence"] if ref["kind"] == "repo")
         assert any(not ref["exists"] for p in data["pillars"] for ref in p["evidence"] if ref["kind"] == "artifact")
@@ -81,6 +92,8 @@ def main() -> int:
         assert "GPR Product Pillar Scorecard" in html
         assert "Best RAW stills" in html
         assert "GoPro RAW video MVP" in html
+        assert "Lock ledger paths" in html
+        assert "Open production gates" in html
         assert "Locked artifacts" in html
         assert "Readiness percentages are not quality metrics" in html
         assert "production ready: false" in html

@@ -51,6 +51,11 @@ MVP, premium still/SR, and PSF-aware video/SR. Use
 approved artifact regressed; use this scorecard and the burn-down dashboard to
 decide what production evidence is still missing.
 
+The generated scorecard now carries the exact lock-ledger path names and open
+production gate names for each pillar. `tools/test/check_product_lock_ledger.py`
+keeps the Markdown ledger, generated scorecard contract, and CI view from
+drifting apart.
+
 Current interpretation:
 
 | pillar | current score | production reading |

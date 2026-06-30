@@ -215,7 +215,9 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
                 "title": pillars[pillar_id]["title"],
                 "readiness_percent": pillars[pillar_id]["readiness_percent"],
                 "production_ready": pillars[pillar_id]["production_ready"],
+                "lock_ledger_paths": pillars[pillar_id]["lock_ledger_paths"],
                 "locked_artifacts": pillars[pillar_id]["locked_artifacts"],
+                "open_production_gates": pillars[pillar_id]["open_production_gates"],
                 "current_blocker": pillars[pillar_id]["open_work"][0],
                 "burn_down_actions": by_pillar.get(pillar_id, []),
             }
@@ -235,6 +237,8 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
   <p>{html.escape(pillar["current_blocker"])}</p>
 </section>"""
         )
+        ledger_paths = "<br>".join(html.escape(str(item)) for item in pillar["lock_ledger_paths"])
+        open_gates = "<br>".join(html.escape(str(item)) for item in pillar["open_production_gates"])
         locked = "<br>".join(html.escape(str(item)) for item in pillar["locked_artifacts"])
         action_rows = []
         for row in pillar["burn_down_actions"]:
@@ -262,7 +266,9 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
         sections.append(
             f"""<section class="detail">
   <h2>{html.escape(pillar["title"])}</h2>
+  <p><strong>Lock ledger paths:</strong><br>{ledger_paths}</p>
   <p><strong>Locked artifacts:</strong><br>{locked}</p>
+  <p><strong>Open production gates:</strong><br>{open_gates}</p>
   <table><thead><tr><th>Priority</th><th>Action</th><th>Owner</th><th>Blocker type</th><th>No camera?</th><th>Mission 1 role?</th><th>New samples?</th><th>Evidence required</th><th>Command</th><th>Completion gate</th></tr></thead><tbody>{rows}</tbody></table>
 </section>"""
         )
