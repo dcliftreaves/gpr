@@ -32,7 +32,7 @@ Current interpretation:
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
 | Premium still/SR | 47% | The infrastructure is broad, and the blocker plus target-expansion audits now make the next experiment concrete; the no-REF high-frequency texture model is still not production-grade yet. |
-| PSF-aware RAW video improvement | 42% | Current 4K cleanup and 8K SR baselines are useful, and near-time native Mission 1 high/low candidates are now indexed; formal native PSF/blur-aware replacement remains open. |
+| PSF-aware RAW video improvement | 43% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, and the native PSF measurement protocol is now explicit; formal native PSF/blur-aware replacement remains open until the plan is executed. |
 
 The current real X2D 100MP still audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html`.
@@ -78,6 +78,13 @@ The current Mission 1 native high/low PSF candidate inventory lives at
 It indexes near-time 8192 x 6144 and 4096 x 3072 Mission 1 captures as inputs
 for the measured PSF pass. It is not a measured PSF receipt yet; alignment,
 edge/texture mining, and a PSF-conditioned gate remain open.
+
+The current Mission 1 native PSF measurement plan lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_20260630/index.html`.
+It selects the best decoded native high/low pairs and defines the scene-vetting,
+alignment, edge/texture mining, kernel-fitting, and promotion gates required
+before the PSF-aware raw-video improvement pillar can replace the approved
+4K/8K baselines.
 
 The current raw-video SR/detail candidate scoreboard lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html`.
