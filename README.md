@@ -160,7 +160,7 @@ matched 1x CNN that lets lower-bitrate files land in the same visual gate.
 | 100 MP X2D visual roundtrip | The real X2D 11,664 x 8,750 DNG fixture roundtrips DNG to GPR to DNG in the local audit with **593 ms** encode and **965 ms** decode. | The `.gpr` is **47 MB**, full-image raw Bayer PSNR is **49.21 dB**, and the dashboard includes 100% upper-left, center, and lower-right crop panels. |
 | Real Bayer phase inventory | Canonical and broader local Mission 1, Z8, X2D, and iPhone CFA fixtures parse as normal 2x2 Bayer. | The current real-camera scan covers **RGGB + GBRG**; GRBG and BGGR remain synthetic-conformance coverage until real fixtures are added. |
 | Camera-noise coverage | Validated darkframe sidecars cover X2D at ISO **64/200/800/3200/12800** and Z8 at ISO **500**. Mission 1 candidate audit found 9 dark-looking frames. | Mission 1 has no 4-frame same-ISO dark stack yet, and iPhone has no CFA darkframe source, so nonzero noise removal/addback is not promoted for those cameras. |
-| Targeted real-fixture search | The current 3,000-file GoPro/Mission DNG/GPR scan parsed every file as normal Bayer: **2,892 GBRG** and **108 RGGB**. The targeted Mission DNG darkframe audit found **9** dark-like frames but no same-ISO 4-frame production stack. | This strengthens the evidence that real GRBG/BGGR and Mission/iPhone darkframes are still sample-acquisition gaps, not parser gaps. |
+| Targeted real-fixture search | The current 3,000-file GoPro/Mission DNG/GPR scan parsed every file as normal Bayer: **2,892 GBRG** and **108 RGGB**. A bounded source-root scan adds **1,279** files seen and **710** parsed normal Bayer rows: **460 RGGB** and **250 GBRG**, still no GRBG/BGGR. The targeted Mission DNG darkframe audit found **9** dark-like frames but no same-ISO 4-frame production stack. | This strengthens the evidence that real GRBG/BGGR and Mission/iPhone darkframes are still sample-acquisition gaps, not parser gaps. |
 | Stills fixture closure plan | The current gap plan turns the fixture/noise receipts into a capture checklist. | Add one real GRBG fixture, one real BGGR fixture, Mission/iPhone darkframe stacks, and top up the existing Mission ISO232 RGGB darkframe group with **2** more matching frames. |
 | STILL smallest | `gpr_tools_q0` plus the matched q3 BIBO_1x CNN averages **9.80 MB** on 50 MP images. | Worst LPIPS is **0.031**, passing the STILL visual gate while landing 35% smaller than primary. |
 | STILL primary | `gpr_tools_q3` plus the matched q3 BIBO_1x CNN averages **15.05 MB** on 50 MP images. | Worst LPIPS is **0.016**; this is the general-purpose visual-lossless still tier. |
@@ -324,6 +324,7 @@ current evidence so strict local checks can verify it.
 | Local real-camera fixtures | [`docs/LOCAL_FIXTURE_COMPATIBILITY.md`](docs/LOCAL_FIXTURE_COMPATIBILITY.md) |
 | Real Bayer phase inventory | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_inventory_20260630/index.html` |
 | Real-photo Bayer phase sample | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html` |
+| Source-root Bayer phase scan | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html` |
 | Camera-noise coverage audit | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html` |
 | Camera-noise runtime policy | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_runtime_policy_20260630/index.html` |
 | Real-photo darkframe-candidate sample | `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_realphotos_sample_20260630/index.html` |
@@ -387,6 +388,7 @@ current evidence so strict local checks can verify it.
 | Premium still-SR raw-CFA frame-context U-Net probes | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_framectx_unet_w32_1200_20260630/index.html`, `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_framectx_unet_w32_1200_20260630/index.html` |
 | Premium still-SR raw-CFA residual gap dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` |
 | Targeted 3,000-file Bayer phase scan | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html` |
+| Source-root 1,279-file Bayer phase scan | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html` |
 | Targeted Mission DNG darkframe candidate scan | `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html` |
 | Premium still-SR fixture manifest | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_20260629/index.html` |
 | Premium still-SR pair set | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_20260629/premium_still_sr_pairs.npz` |

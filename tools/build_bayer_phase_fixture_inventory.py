@@ -30,6 +30,24 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--root", type=Path, action="append", default=[], help="Fixture root to scan. Repeatable.")
     ap.add_argument("--manifest", type=Path, help="Optional newline or JSON list of files to scan.")
     ap.add_argument("--max-files", type=int, default=400)
+    ap.add_argument(
+        "--per-root-max",
+        type=int,
+        default=0,
+        help="Optional cap per --root before applying --max-files. Useful for broad trees.",
+    )
+    ap.add_argument(
+        "--batch-size",
+        type=int,
+        default=200,
+        help="Number of files per batch-exiftool invocation.",
+    )
+    ap.add_argument(
+        "--exiftool-timeout",
+        type=float,
+        default=60.0,
+        help="Seconds before a batch-exiftool metadata batch is marked timed out.",
+    )
     ap.add_argument("--extensions", default=",".join(DEFAULT_EXTENSIONS))
     ap.add_argument(
         "--metadata-mode",
@@ -220,35 +238,44 @@ def row_from_exif_record(path: Path, data: dict[str, Any]) -> dict[str, Any]:
     return row
 
 
-def inspect_files_batch_exiftool(paths: list[Path], chunk_size: int = 200) -> list[dict[str, Any]]:
+def inspect_files_batch_exiftool(paths: list[Path], chunk_size: int = 200, timeout: float = 60.0) -> list[dict[str, Any]]:
     rows_by_path: dict[str, dict[str, Any]] = {}
     for path in paths:
         rows_by_path[path.as_posix()] = row_for_missing(path)
+    chunk_size = max(1, chunk_size)
     for start in range(0, len(paths), chunk_size):
         chunk = [path for path in paths[start : start + chunk_size] if path.is_file()]
         if not chunk:
             continue
-        proc = subprocess.run(
-            [
-                "exiftool",
-                "-j",
-                "-n",
-                "-Make",
-                "-Model",
-                "-ImageWidth",
-                "-ImageHeight",
-                "-RawImageFullWidth",
-                "-RawImageFullHeight",
-                "-CFARepeatPatternDim",
-                "-CFAPattern",
-                "-CFAPlaneColor",
-                "-CFALayout",
-                *[str(path) for path in chunk],
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
+        try:
+            proc = subprocess.run(
+                [
+                    "exiftool",
+                    "-j",
+                    "-n",
+                    "-Make",
+                    "-Model",
+                    "-ImageWidth",
+                    "-ImageHeight",
+                    "-RawImageFullWidth",
+                    "-RawImageFullHeight",
+                    "-CFARepeatPatternDim",
+                    "-CFAPattern",
+                    "-CFAPlaneColor",
+                    "-CFALayout",
+                    *[str(path) for path in chunk],
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired:
+            for path in chunk:
+                row = rows_by_path[path.as_posix()]
+                row["status"] = "timeout"
+                row["error"] = f"exiftool timed out after {timeout:g}s"
+            continue
         if proc.returncode != 0:
             error = proc.stderr.strip() or f"exiftool failed with {proc.returncode}"
             for path in chunk:
@@ -293,6 +320,7 @@ def discover_files(args: argparse.Namespace) -> list[Path]:
     if args.manifest:
         files.extend(load_manifest(args.manifest))
     for root in args.root:
+        root_count = 0
         if root.is_file():
             if root.suffix.lower() in extensions:
                 files.append(root)
@@ -300,12 +328,11 @@ def discover_files(args: argparse.Namespace) -> list[Path]:
         if not root.exists():
             continue
         for path in root.rglob("*"):
-            if len(files) >= args.max_files:
+            if args.per_root_max > 0 and root_count >= args.per_root_max:
                 break
             if path.is_file() and path.suffix.lower() in extensions:
                 files.append(path)
-        if len(files) >= args.max_files:
-            break
+                root_count += 1
     seen: set[str] = set()
     unique: list[Path] = []
     for path in files:
@@ -399,7 +426,15 @@ def synthetic_rows() -> list[dict[str, Any]]:
     return rows
 
 
-def summarize(rows: list[dict[str, Any]], roots: list[Path], max_files: int, mode: str) -> dict[str, Any]:
+def summarize(
+    rows: list[dict[str, Any]],
+    roots: list[Path],
+    max_files: int,
+    mode: str,
+    per_root_max: int = 0,
+    batch_size: int = 200,
+    exiftool_timeout: float = 60.0,
+) -> dict[str, Any]:
     parsed = [row for row in rows if row.get("status") == "parsed"]
     phase_counts = Counter(str(row.get("phase")) for row in parsed if row.get("phase"))
     present = [phase for phase in NORMAL_BAYER_PHASES if phase_counts.get(phase, 0) > 0]
@@ -411,6 +446,9 @@ def summarize(rows: list[dict[str, Any]], roots: list[Path], max_files: int, mod
         "mode": mode,
         "roots": [root.as_posix() for root in roots],
         "max_files": max_files,
+        "per_root_max": per_root_max,
+        "batch_size": batch_size,
+        "exiftool_timeout_seconds": exiftool_timeout,
         "summary": {
             "files_seen": len(rows),
             "parsed_count": len(parsed),
@@ -433,6 +471,7 @@ def render_html(data: dict[str, Any]) -> str:
         ("Mode", data["mode"]),
         ("Files seen", summary["files_seen"]),
         ("Parsed", summary["parsed_count"]),
+        ("Per-root cap", data.get("per_root_max") or "none"),
         ("Normal phases", ", ".join(summary["normal_bayer_phases_present"]) or "none"),
         ("Missing", ", ".join(summary["normal_bayer_phases_missing"]) or "none"),
     ]
@@ -486,10 +525,18 @@ def main() -> int:
     elif args.metadata_mode == "batch-exiftool":
         if not use_exiftool:
             raise RuntimeError("batch-exiftool mode requires exiftool")
-        rows = inspect_files_batch_exiftool(files)
+        rows = inspect_files_batch_exiftool(files, chunk_size=args.batch_size, timeout=args.exiftool_timeout)
     else:
         rows = [inspect_file(path, use_exiftool, args.metadata_mode) for path in files]
-    data = summarize(rows, args.root, args.max_files, "synthetic" if args.synthetic else "real")
+    data = summarize(
+        rows,
+        args.root,
+        args.max_files,
+        "synthetic" if args.synthetic else "real",
+        per_root_max=args.per_root_max,
+        batch_size=args.batch_size,
+        exiftool_timeout=args.exiftool_timeout,
+    )
     (args.output_dir / "inventory.json").write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     (args.output_dir / "index.html").write_text(render_html(data), encoding="utf-8")
     print(args.output_dir / "index.html")

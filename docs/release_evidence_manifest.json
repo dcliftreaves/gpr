@@ -18,6 +18,7 @@
         "dashboards": [
           "realphoto_bayer_phase_sample_20260630",
           "targeted_raw_fixture_scan_20260630",
+          "source_root_raw_fixture_scan_20260630",
           "camera_noise_runtime_policy_20260630"
         ]
       },
@@ -1487,6 +1488,34 @@
         "normal_bayer_count": 3000,
         "rggb_count": 108,
         "gbrg_count": 2892,
+        "grbg_count": 0,
+        "bggr_count": 0,
+        "production_real_phase_coverage": 0
+      }
+    },
+    {
+      "id": "source_root_raw_fixture_scan_20260630",
+      "family": "stills_fixtures",
+      "status": "diagnostic",
+      "purpose": "Bounded source-root scan over Mission/GoPro, Hassel/X2D, iPhone, X2D darkframe, Barnsky, and related local source roots. Uses per-root limits and exiftool timeouts; confirms more RGGB/GBRG evidence while real GRBG/BGGR fixtures remain missing.",
+      "dashboard": "artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/LOCAL_FIXTURE_COMPATIBILITY.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/bayer_phase_fixture_discovery_source_roots_20260630/inventory.json",
+        "artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html"
+      ],
+      "metrics": {
+        "files_seen": 1279,
+        "parsed_count": 710,
+        "normal_bayer_count": 710,
+        "rggb_count": 460,
+        "gbrg_count": 250,
         "grbg_count": 0,
         "bggr_count": 0,
         "production_real_phase_coverage": 0

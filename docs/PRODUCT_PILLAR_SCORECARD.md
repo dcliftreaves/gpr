@@ -114,6 +114,13 @@ acquisition rather than parser work. The targeted Mission DNG darkframe scan at
 `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html`
 finds 9 dark-like Mission frames, but no same-ISO four-frame production stack.
 
+The bounded source-root Bayer phase scan lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html`.
+It uses per-root limits and exiftool timeouts to avoid broad-tree stalls, sees
+1,279 files across source roots, and parses 710 normal Bayer rows: 460 RGGB and
+250 GBRG. It still finds zero GRBG and zero BGGR rows, so the real-fixture
+blocker remains a sample-acquisition task.
+
 The current stills fixture gap plan lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`.
 It consolidates the phase/noise receipts into the concrete capture checklist:

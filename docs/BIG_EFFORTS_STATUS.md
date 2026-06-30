@@ -50,6 +50,12 @@ Current evidence:
   parses 3,000 local DNG/GPR files as normal Bayer: 2,892 GBRG and 108 RGGB.
   It still finds no real GRBG or BGGR fixture, strengthening the conclusion
   that this is a sample-acquisition gap rather than a parser gap.
+- The bounded source-root Bayer phase scan at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html`
+  adds 1,279 files seen across Mission/GoPro, Hassel/X2D, iPhone, X2D darkframe,
+  Barnsky, and related source roots. It parses 710 normal Bayer rows: 460 RGGB
+  and 250 GBRG, with no GRBG or BGGR. This strengthens the negative evidence
+  while keeping the production gap open.
 - The CLI exposes DNG NoiseProfile-aware denoise/noise replacement plumbing,
   but the current raw-noise audit forbids treating the old single-frame REF
   residual as pure removable noise.

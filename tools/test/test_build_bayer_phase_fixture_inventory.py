@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 import tempfile
+from argparse import Namespace
 from pathlib import Path
 
 
@@ -52,6 +53,44 @@ def main() -> int:
         assert "RGGB" in html
         assert "linear RGB negative fixture" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
+
+    with tempfile.TemporaryDirectory(prefix="gpr_bayer_phase_inventory_roots_") as td:
+        base = Path(td)
+        root_a = base / "a"
+        root_b = base / "b"
+        root_a.mkdir()
+        root_b.mkdir()
+        for idx in range(3):
+            (root_a / f"a_{idx}.dng").write_bytes(b"fake")
+            (root_b / f"b_{idx}.dng").write_bytes(b"fake")
+        args = Namespace(
+            extensions=".dng",
+            manifest=None,
+            root=[root_a, root_b],
+            max_files=10,
+            per_root_max=2,
+        )
+        files = inventory.discover_files(args)
+        assert len(files) == 4
+        assert sum(1 for path in files if path.parent == root_a) == 2
+        assert sum(1 for path in files if path.parent == root_b) == 2
+
+    with tempfile.TemporaryDirectory(prefix="gpr_bayer_phase_inventory_timeout_") as td:
+        sample = Path(td) / "slow.dng"
+        sample.write_bytes(b"fake")
+        original_run = inventory.subprocess.run
+
+        def raise_timeout(*_args, **_kwargs):
+            raise subprocess.TimeoutExpired(cmd="exiftool", timeout=0.01)
+
+        try:
+            inventory.subprocess.run = raise_timeout
+            rows = inventory.inspect_files_batch_exiftool([sample], chunk_size=1, timeout=0.01)
+        finally:
+            inventory.subprocess.run = original_run
+        assert rows[0]["status"] == "timeout"
+        assert "timed out" in rows[0]["error"]
+
     print("test_build_bayer_phase_fixture_inventory: PASS")
     return 0
 

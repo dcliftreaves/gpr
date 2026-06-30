@@ -108,6 +108,7 @@ REQUIRED_PRODUCT_PILLARS = {
             "dashboards": {
                 "realphoto_bayer_phase_sample_20260630",
                 "targeted_raw_fixture_scan_20260630",
+                "source_root_raw_fixture_scan_20260630",
                 "camera_noise_runtime_policy_20260630",
             },
         },
