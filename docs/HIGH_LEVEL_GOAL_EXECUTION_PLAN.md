@@ -198,9 +198,13 @@ Evidence required:
    expanded target under
    `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/`.
    It beats matched RGB ablations on both held-out Z8 and held-out X2D, with
-   the best broad scene holdout at 2.92 percent median MAE recovery. The next
-   pass should therefore move beyond the local residual learner to a
-   larger-context raw/CFA model and cleaned signal/noise targets.
+   the best broad scene holdout at 2.92 percent median MAE recovery. A matched
+   dilated raw-CFA gated variant improves the weaker Z8 holdout from 1.04 to
+   about 1.30 percent, but trails the X2D gated baseline at 2.86 versus 2.92
+   percent and leaves severe negative worst rows. The next pass should
+   therefore move beyond the current rendered-residual target to a stronger
+   raw-domain/noise-cleaned target and model, not just another simple
+   context-width change.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

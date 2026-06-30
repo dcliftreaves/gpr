@@ -359,6 +359,72 @@ class HfResidualRawCfaGatedNet(nn.Module):
         return torch.tanh(self.trunk(hidden)) * self.residual_scale
 
 
+class DilatedResidualBlock(nn.Module):
+    def __init__(self, width: int, dilation: int) -> None:
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(width, width, 3, padding=dilation, dilation=dilation),
+            nn.GELU(),
+            nn.Conv2d(width, width, 3, padding=dilation, dilation=dilation),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x + 0.25 * self.net(x)
+
+
+class HfResidualRawCfaDilatedGatedNet(nn.Module):
+    """Raw-CFA gated residual predictor with a wider receptive field.
+
+    The first gated model proves raw CFA phase is useful, but its receptive
+    field is still local. This variant adds dilated raw and trunk blocks so a
+    tile can use broader CFA/luma context while preserving the same runtime-safe
+    feature contract and zero-initialized output behavior.
+    """
+
+    def __init__(
+        self,
+        rgb_channels: int,
+        raw_channels: int,
+        width: int = 48,
+        depth: int = 6,
+        residual_scale: float = 0.20,
+    ) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        self.rgb_head = nn.Sequential(
+            nn.Conv2d(rgb_channels, width, 3, padding=1),
+            nn.GELU(),
+            DilatedResidualBlock(width, 2),
+        )
+        self.raw_head = nn.Sequential(
+            nn.Conv2d(raw_channels, width, 3, padding=1),
+            nn.GELU(),
+            DilatedResidualBlock(width, 2),
+            DilatedResidualBlock(width, 4),
+        )
+        self.raw_gate = nn.Conv2d(width, width, 1)
+        self.raw_bias = nn.Conv2d(width, width, 1)
+        dilations = [1, 2, 4, 8, 4, 2, 1]
+        trunk: list[nn.Module] = []
+        for i in range(max(1, depth)):
+            trunk.append(DilatedResidualBlock(width, dilations[i % len(dilations)]))
+        tail = nn.Conv2d(width, 3, 3, padding=1)
+        nn.init.zeros_(tail.weight)
+        nn.init.zeros_(tail.bias)
+        self.trunk = nn.Sequential(*trunk)
+        self.tail = tail
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        rgb_channels = self.rgb_head[0].in_channels
+        rgb = x[:, :rgb_channels]
+        raw = x[:, rgb_channels:]
+        rgb_hidden = self.rgb_head(rgb)
+        raw_hidden = self.raw_head(raw)
+        gate = 0.5 + 1.5 * torch.sigmoid(self.raw_gate(raw_hidden))
+        hidden = rgb_hidden * gate + self.raw_bias(raw_hidden)
+        return torch.tanh(self.tail(self.trunk(hidden))) * self.residual_scale
+
+
 def build_model(
     *,
     model_arch: str,
@@ -380,6 +446,18 @@ def build_model(
             raise ValueError(f"model_arch raw_cfa_gated requires a phase raw-CFA feature mode, got {feature_mode}")
         rgb_channels, raw_channels = split
         return HfResidualRawCfaGatedNet(
+            rgb_channels=rgb_channels,
+            raw_channels=raw_channels,
+            width=width,
+            depth=depth,
+            residual_scale=residual_scale,
+        )
+    if model_arch == "raw_cfa_dilated_gated":
+        split = raw_cfa_guided_feature_split(feature_mode)
+        if split is None:
+            raise ValueError(f"model_arch raw_cfa_dilated_gated requires a phase raw-CFA feature mode, got {feature_mode}")
+        rgb_channels, raw_channels = split
+        return HfResidualRawCfaDilatedGatedNet(
             rgb_channels=rgb_channels,
             raw_channels=raw_channels,
             width=width,
@@ -641,8 +719,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     data = HfResidualTargets(args.targets)
     if uses_raw_cfa_features(args.feature_mode) and data.raw_cfa is None:
         raise ValueError(f"{args.feature_mode} requires targets built with --include-raw-cfa-features")
-    if args.model_arch == "raw_cfa_gated" and raw_cfa_guided_feature_split(args.feature_mode) is None:
-        raise ValueError(f"model_arch raw_cfa_gated requires a phase raw-CFA feature mode, got {args.feature_mode}")
+    if args.model_arch in {"raw_cfa_gated", "raw_cfa_dilated_gated"} and raw_cfa_guided_feature_split(args.feature_mode) is None:
+        raise ValueError(f"model_arch {args.model_arch} requires a phase raw-CFA feature mode, got {args.feature_mode}")
     train_indices, holdout_indices = data.row_indices(args.holdout_ev, args.holdout_crop, args.holdout_scene)
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
@@ -798,9 +876,9 @@ def main() -> int:
     ap.add_argument("--residual-scale", type=float, default=0.20)
     ap.add_argument(
         "--model-arch",
-        choices=("plain", "raw_cfa_gated"),
+        choices=("plain", "raw_cfa_gated", "raw_cfa_dilated_gated"),
         default="plain",
-        help="Model architecture. raw_cfa_gated requires the phase raw-CFA feature mode.",
+        help="Model architecture. raw_cfa_gated/raw_cfa_dilated_gated require the phase raw-CFA feature mode.",
     )
     ap.add_argument(
         "--feature-mode",

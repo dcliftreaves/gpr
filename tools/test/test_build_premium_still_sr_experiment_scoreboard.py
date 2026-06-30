@@ -34,6 +34,7 @@ def write_receipt(
     holdout_rmse: float,
     train_mae: float,
     uses_source_hf_at_runtime: bool,
+    model_arch: str = "plain",
 ) -> None:
     path = root / "artifacts" / name / "train_receipt.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -45,6 +46,7 @@ def write_receipt(
         "train_seconds": 1.25,
         "device": "cpu",
         "config": {
+            "model_arch": model_arch,
             "feature_mode": "rgb_multiscale_coord_luma_ev_noise_bright",
             "holdout_scene": "scene_b",
         },
@@ -96,6 +98,7 @@ def main() -> int:
             holdout_rmse=17.0,
             train_mae=18.0,
             uses_source_hf_at_runtime=False,
+            model_arch="raw_cfa_dilated_gated",
         )
 
         subprocess.run([sys.executable, str(TOOL), "--external-root", str(external), "--output-dir", str(out)], cwd=ROOT, check=True)
@@ -109,8 +112,10 @@ def main() -> int:
         assert scoreboard["best_candidate"]["experiment"] == "premium_still_sr_candidate_ref_oracle"
         ready = [row for row in scoreboard["experiments"] if row["promotion_ready"]]
         assert ready[0]["experiment"] == "premium_still_sr_candidate_promotable_row"
+        assert ready[0]["model_arch"] == "raw_cfa_dilated_gated"
         assert "Premium Still-SR Experiment Scoreboard" in html
         assert "premium_still_sr_candidate_weak" in html
+        assert "raw_cfa_dilated_gated" in html
 
     print("test_build_premium_still_sr_experiment_scoreboard: PASS")
     return 0

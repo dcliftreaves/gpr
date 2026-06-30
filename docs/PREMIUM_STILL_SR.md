@@ -205,6 +205,9 @@ feature planes:
   uses the raw-CFA branch to gate the residual predictor. This is still a
   no-REF runtime path: candidate render/raw data and deterministic metadata are
   the only inference inputs.
+- `tools/cnn/train_premium_still_sr_hf_residual.py --model-arch raw_cfa_dilated_gated --feature-mode rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright`
+  keeps the same no-REF feature contract, but adds dilated raw-CFA and trunk
+  blocks to test whether broader local context fixes the weak scene holdouts.
 
 The first real one-scene raw-CFA smoke target is:
 
@@ -264,8 +267,22 @@ recovery versus 0.36 percent for the matched RGB ablation. On held-out X2D, it
 reaches about 2.92 percent versus 2.42 percent. That proves the raw-CFA gated
 direction generalizes beyond the smoke target, but it is still far from the
 15 percent broad-holdout recovery threshold and still has negative worst rows.
-The next model must add larger context and/or a better raw-domain target, then
-run the full 50 MP / 100 MP still/editor-latitude promotion gate.
+
+The first larger-context raw-CFA pass has also been run with matched training
+hyperparameters:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_dilated_gated_model_z8holdout_matched_w48_1000_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_dilated_gated_model_x2dholdout_matched_w48_1000_20260630/train_receipt.json
+```
+
+The dilated raw-CFA gate improves the weaker held-out Z8 median MAE recovery
+from 1.04 percent to about 1.30 percent, but it does not beat the X2D gated
+baseline: 2.86 percent versus 2.92 percent. Its worst rows are also worse,
+with negative outliers on both holdouts. This rules out "add simple dilated
+context to the current rendered-residual target" as the production path by
+itself. The next model must use a stronger raw-domain/noise-cleaned target and
+model, then run the full 50 MP / 100 MP still/editor-latitude promotion gate.
 
 ## Fixture Manifest Builder
 

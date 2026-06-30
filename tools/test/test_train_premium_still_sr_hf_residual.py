@@ -142,7 +142,16 @@ def main() -> int:
         assert receipt["config"]["uses_noise_sidecar_features"] is True
         assert receipt["config"]["uses_raw_cfa_features"] is True
 
+        args.output_dir = root / "dilated_out"
+        args.model_arch = "raw_cfa_dilated_gated"
+        args.feature_mode = "rgb_multiscale_rawcfa_phase_coord_luma_ev_noise_bright"
+        dilated_receipt = tool.train(args)
+        assert dilated_receipt["config"]["model_arch"] == "raw_cfa_dilated_gated"
+        assert Path(dilated_receipt["checkpoint"]).stat().st_size > Path(receipt["checkpoint"]).stat().st_size
+        assert dilated_receipt["policy"]["uses_source_hf_at_runtime"] is False
+
         args.output_dir = root / "bad_out"
+        args.model_arch = "raw_cfa_gated"
         args.feature_mode = "rgb_multiscale_rawcfa_coord_luma_ev_noise_bright"
         try:
             tool.train(args)

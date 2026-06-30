@@ -85,6 +85,7 @@ def classify_receipt(path: Path, payload: dict[str, Any]) -> dict[str, Any] | No
         "steps": payload.get("steps"),
         "train_seconds": payload.get("train_seconds"),
         "device": payload.get("device"),
+        "model_arch": config.get("model_arch"),
         "feature_mode": config.get("feature_mode"),
         "holdout_scene": config.get("holdout_scene"),
         "holdout_crop": config.get("holdout_crop"),
@@ -166,6 +167,7 @@ def render_html(scoreboard: dict[str, Any]) -> str:
         rows.append(
             "<tr class='" + klass + "'>"
             f"<td>{html.escape(str(row['experiment']))}</td>"
+            f"<td>{html.escape(str(row.get('model_arch') or ''))}</td>"
             f"<td>{html.escape(fmt(row.get('holdout_residual_mae_reduction_pct_median')))}</td>"
             f"<td>{html.escape(fmt(row.get('holdout_residual_rmse_reduction_pct_median')))}</td>"
             f"<td>{html.escape(fmt(row.get('train_residual_mae_reduction_pct_median')))}</td>"
@@ -206,7 +208,7 @@ def render_html(scoreboard: dict[str, Any]) -> str:
     <div class="card"><div>Best experiment</div><code>{html.escape(str(best.get('experiment', 'none')))}</code></div>
   </div>
   <table>
-    <thead><tr><th>Experiment</th><th>Holdout MAE %</th><th>Holdout RMSE %</th><th>Train MAE %</th><th>Holdout rows</th><th>Uses source HF at runtime</th><th>Promotion row</th><th>Receipt</th></tr></thead>
+    <thead><tr><th>Experiment</th><th>Model</th><th>Holdout MAE %</th><th>Holdout RMSE %</th><th>Train MAE %</th><th>Holdout rows</th><th>Uses source HF at runtime</th><th>Promotion row</th><th>Receipt</th></tr></thead>
     <tbody>{''.join(rows)}</tbody>
   </table>
 </body>

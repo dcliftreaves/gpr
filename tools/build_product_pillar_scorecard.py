@@ -138,9 +138,10 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "The first expanded rendered-context training passes have run: the weighted w96 model was unstable and the conservative w64 control landed near zero holdout recovery, so target coverage alone is not sufficient.",
                 "The expanded raw-CFA target rebuild now has complete candidate_raw_cfa4 coverage for all 351 rows / 13 scenes.",
                 "The raw-CFA gated model beats matched RGB ablations on expanded Z8 and X2D scene holdouts, but the best broad holdout remains only 2.92 percent median MAE recovery and is not promotable.",
+                "A matched dilated raw-CFA gated variant has also run: it improves the weak Z8 holdout from 1.04 to 1.30 percent median MAE recovery, but trails the X2D gated baseline at 2.86 versus 2.92 percent and leaves severe negative worst rows.",
             ],
             "open_work": [
-                "Replace the local residual learner with a larger-context raw/CFA model that can clear the 15 percent broad holdout recovery threshold.",
+                "Replace the local residual learner with a stronger raw-domain/noise-cleaned target and model; the first simple dilated raw-CFA gate is diagnostic but not enough to clear the 15 percent broad holdout recovery threshold.",
                 "Pass dedicated 50 MP and 100 MP still-SR gates with editor-latitude and worst-row visual evidence.",
                 "Use calibrated noise sidecars as conditioning, then add back only noise proven separate from signal.",
             ],
@@ -164,6 +165,8 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("premium still-SR expanded raw-CFA merge receipt", "artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json"),
                     artifact_ref("premium still-SR expanded raw-CFA gated Z8 holdout", "artifacts/premium_still_sr_expanded_rawcfa_gated_model_z8holdout_w48_1000_20260630/train_receipt.json"),
                     artifact_ref("premium still-SR expanded raw-CFA gated X2D holdout", "artifacts/premium_still_sr_expanded_rawcfa_gated_model_x2dholdout_w48_1000_20260630/train_receipt.json"),
+                    artifact_ref("premium still-SR expanded raw-CFA dilated gated Z8 holdout", "artifacts/premium_still_sr_expanded_rawcfa_dilated_gated_model_z8holdout_matched_w48_1000_20260630/train_receipt.json"),
+                    artifact_ref("premium still-SR expanded raw-CFA dilated gated X2D holdout", "artifacts/premium_still_sr_expanded_rawcfa_dilated_gated_model_x2dholdout_matched_w48_1000_20260630/train_receipt.json"),
                     artifact_ref("routed rendered review", "artifacts/premium_still_sr_rendered_review_routed_20260630/index.html"),
                     artifact_ref("X2D latitude review", "artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/index.html"),
                     artifact_ref("noise-conditioned residual dashboard", "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html"),
@@ -225,7 +228,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "next_actions": [
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
             "Add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback for those cameras.",
-            "Replace the premium still-SR local residual learner with a larger-context raw/CFA model, then run noise/signal cleaning and the full still/editor-latitude gate.",
+            "Replace the premium still-SR rendered-residual learner with a stronger raw-domain/noise-cleaned target and model, then run the full still/editor-latitude gate.",
             "Run alignment, edge/texture mining, and measured PSF estimation on the Mission 1 native high/low candidate pairs, then gate against current 4K/8K baselines.",
         ],
     }

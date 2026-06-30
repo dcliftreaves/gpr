@@ -14,7 +14,7 @@ The generated audit dashboard for these same four pillars is tracked in
 |---|---|---|
 | Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, RGGB plus Mission 1 GBRG real-fixture coverage, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, and no-REF HF residual probes. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass; the current grid target/probe proves the target set and model are still too weak for promotion. |
+| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, raw-CFA expanded targets, and no-REF HF residual probes including a matched dilated raw-CFA gate. | Not done until learned/modelled high-frequency texture restoration receipts pass; raw-CFA helps, but the current local/dilated residual probes remain far below promotion and need a stronger raw-domain/noise-cleaned target and model. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup, candidate-aware 8K SR, native high/low pair inventory, measurement plan, and first native measurement run. | Not done as a formal PSF/blur-calibrated resizing model until controlled high/low pairs produce a stable native kernel and PSF-conditioned gates pass. |
 
 ## 1. Raw Stills
@@ -353,9 +353,16 @@ Current evidence:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_z8holdout_w48_1000_20260630/train_receipt.json`.
   On held-out X2D, it improves about 2.92 percent versus 2.42 percent:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_x2dholdout_w48_1000_20260630/train_receipt.json`.
-  This moves the blocker from raw-CFA plumbing/coverage to model capacity and
-  context: the best broad holdout is still far below the 15 percent promotion
-  threshold and still has negative worst rows.
+  A matched dilated raw-CFA gated variant also exists:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_dilated_gated_model_z8holdout_matched_w48_1000_20260630/train_receipt.json`
+  and
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_dilated_gated_model_x2dholdout_matched_w48_1000_20260630/train_receipt.json`.
+  It improves the weak Z8 holdout from 1.04 to about 1.30 percent median MAE
+  recovery, but trails the X2D baseline at 2.86 versus 2.92 percent and leaves
+  severe negative worst rows. This moves the blocker from raw-CFA
+  plumbing/coverage to target/model design: simple dilated context is not
+  enough, and the next pass needs a stronger raw-domain/noise-cleaned target
+  and model.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
