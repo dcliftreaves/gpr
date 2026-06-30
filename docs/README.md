@@ -12,6 +12,7 @@ refreshed 2026-06-30.
 | execution plan for the four big product efforts | `HIGH_LEVEL_GOAL_EXECUTION_PLAN.md` |
 | machine-checkable pillar scorecard and production burn-down | `PRODUCT_PILLAR_SCORECARD.md` |
 | locked product paths versus open production gates | `PRODUCT_LOCK_LEDGER.md` |
+| exact real samples and hardware receipts still needed | `PRODUCTION_CAPTURE_REQUIREMENTS.md`, `PRODUCTION_CAPTURE_REQUIREMENTS.json` |
 | camera-noise calibration policy and sidecar builder | `CAMERA_NOISE_CALIBRATION.md` |
 | premium still-SR gate policy and skeleton | `PREMIUM_STILL_SR.md` |
 | Bayer resize PSF policy and synthetic receipt builder | `BAYER_RESIZE_PSF.md` |
@@ -47,6 +48,7 @@ refreshed 2026-06-30.
 | Stills, VIDEO_FREEZE, UPRESABLE decisions | `SHIP_DECISION.md` |
 | 12MP Mission 1 native Bayer receipts | `VIDEO_STATUS.md`, `LABS_TARGET_BENCH.md` |
 | Mission 1 numbered-list readiness and closure blockers | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md`, `release_evidence_manifest.json` |
+| Real-sample and hardware receipt blockers | `PRODUCTION_CAPTURE_REQUIREMENTS.md`, `PRODUCTION_CAPTURE_REQUIREMENTS.json` |
 | 1x/2x CNN and SR status | `CNN_PRODUCT_SCORECARD_2026-06-29.md`, `VIDEO_STATUS.md`, `MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md` |
 | Live/camera-back PREVIEW policy | `RAW_RESOLUTION_TARGETS_2026-06-14.md`, `../tools/live_preview_policy.py` |
 
@@ -132,6 +134,8 @@ refreshed 2026-06-30.
 | `python3 tools/test/test_check_readme_media.py` | regression-test README showcase stale-claim detection |
 | `python3 tools/test/check_readme_product_pillars.py` | validate that the README still presents the four big product pillars, current percentages, and evidence-map links |
 | `python3 tools/test/test_check_readme_product_pillars.py` | regression-test README product-pillar framing checks |
+| `python3 tools/test/check_production_capture_requirements.py` | validate the committed real-sample and hardware-receipt requirements contract |
+| `python3 tools/test/test_check_production_capture_requirements.py` | regression-test production capture requirements guard failures |
 | `python3 tools/test/check_high_level_goal_contract.py` | validate that README, big-efforts status, and execution-plan docs still cover the four explicit production pillars |
 | `python3 tools/test/test_check_high_level_goal_contract.py` | regression-test high-level goal contract failures |
 | `python3 tools/test/check_release_evidence_manifest.py` | validate production evidence manifest |

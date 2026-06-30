@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""Validate the committed production capture requirements contract."""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[2]
+REQ_PATH = ROOT / "docs" / "PRODUCTION_CAPTURE_REQUIREMENTS.json"
+DOC_PATH = ROOT / "docs" / "PRODUCTION_CAPTURE_REQUIREMENTS.md"
+
+EXPECTED_SCHEMA = "gpr.production_capture_requirements.v1"
+EXPECTED_ROOT = "/Volumes/OWC_8TB/gpr_work"
+EXPECTED_IDS = {
+    "real_grbg_fixture": ("raw_stills", "real_camera_raw_fixture"),
+    "real_bggr_fixture": ("raw_stills", "real_camera_raw_fixture"),
+    "mission1_darkframe_stack": ("raw_stills", "darkframe_stack"),
+    "iphone_cfa_darkframe_stack": ("raw_stills", "darkframe_stack"),
+    "mission1_camera_role_receipts": ("raw_video_mvp", "camera_hardware_receipt"),
+    "controlled_mission1_psf_pairs": ("raw_video_psf_sr", "controlled_same_scene_high_low_raw_pair_stack"),
+    "premium_still_sr_promotion_receipts": ("premium_still_sr", "model_promotion_receipt"),
+}
+EXPECTED_PILLARS = {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_psf_sr"}
+OPEN_STATUSES = {"open", "blocked_on_real_camera_access"}
+
+
+def as_list(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
+def display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def validate() -> list[str]:
+    failures: list[str] = []
+    if not REQ_PATH.is_file():
+        return [f"missing {display_path(REQ_PATH)}"]
+    if not DOC_PATH.is_file():
+        failures.append(f"missing {display_path(DOC_PATH)}")
+
+    try:
+        data = json.loads(REQ_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return [f"{display_path(REQ_PATH)} is invalid JSON: {exc}"]
+
+    if data.get("schema") != EXPECTED_SCHEMA:
+        failures.append(f"schema is {data.get('schema')!r}, expected {EXPECTED_SCHEMA!r}")
+    if data.get("external_artifact_root") != EXPECTED_ROOT:
+        failures.append(f"external_artifact_root must be {EXPECTED_ROOT}")
+
+    rows = as_list(data.get("requirements"))
+    by_id: dict[str, dict[str, Any]] = {}
+    for idx, row in enumerate(rows):
+        if not isinstance(row, dict):
+            failures.append(f"requirements[{idx}] must be an object")
+            continue
+        rid = str(row.get("id") or "")
+        if not rid:
+            failures.append(f"requirements[{idx}] missing id")
+            continue
+        if rid in by_id:
+            failures.append(f"duplicate requirement id {rid!r}")
+        by_id[rid] = row
+
+    missing = sorted(set(EXPECTED_IDS) - set(by_id))
+    extra = sorted(set(by_id) - set(EXPECTED_IDS))
+    for rid in missing:
+        failures.append(f"missing required requirement {rid!r}")
+    for rid in extra:
+        failures.append(f"unexpected requirement {rid!r}; update the guard if this is intentional")
+
+    seen_pillars: set[str] = set()
+    for rid, (expected_pillar, expected_type) in EXPECTED_IDS.items():
+        row = by_id.get(rid)
+        if not row:
+            continue
+        pillar = row.get("pillar")
+        sample_type = row.get("sample_type")
+        status = row.get("status")
+        priority = row.get("priority")
+        seen_pillars.add(str(pillar))
+        if pillar != expected_pillar:
+            failures.append(f"{rid}: pillar is {pillar!r}, expected {expected_pillar!r}")
+        if sample_type != expected_type:
+            failures.append(f"{rid}: sample_type is {sample_type!r}, expected {expected_type!r}")
+        if priority != "required":
+            failures.append(f"{rid}: priority must be required")
+        if status not in OPEN_STATUSES:
+            failures.append(f"{rid}: status {status!r} must be one of {sorted(OPEN_STATUSES)}")
+        if not row.get("why_needed"):
+            failures.append(f"{rid}: missing why_needed")
+        if not as_list(row.get("required_evidence")):
+            failures.append(f"{rid}: missing required_evidence")
+        if not as_list(row.get("acceptance")):
+            failures.append(f"{rid}: missing acceptance")
+        if not as_list(row.get("validation_commands")):
+            failures.append(f"{rid}: missing validation_commands")
+
+        if sample_type == "darkframe_stack" and int(row.get("minimum_count") or 0) < 4:
+            failures.append(f"{rid}: darkframe stacks require minimum_count >= 4")
+        if sample_type == "real_camera_raw_fixture" and int(row.get("minimum_count") or 0) < 1:
+            failures.append(f"{rid}: real fixtures require minimum_count >= 1")
+        if sample_type == "controlled_same_scene_high_low_raw_pair_stack" and int(row.get("minimum_pair_count") or 0) < 3:
+            failures.append(f"{rid}: PSF capture requires minimum_pair_count >= 3")
+
+    if seen_pillars != EXPECTED_PILLARS:
+        failures.append(f"pillars covered are {sorted(seen_pillars)}, expected {sorted(EXPECTED_PILLARS)}")
+
+    if DOC_PATH.is_file():
+        doc = DOC_PATH.read_text(encoding="utf-8")
+        for token in (*EXPECTED_IDS.keys(), "Product pillar scorecard", "stills_capture_request_20260630", "raw_video_psf_capture_request_20260630"):
+            if token not in doc:
+                failures.append(f"{display_path(DOC_PATH)} missing {token!r}")
+
+    return failures
+
+
+def main() -> int:
+    failures = validate()
+    if failures:
+        print("Production capture requirements check failed:")
+        for failure in failures:
+            print(f"  - {failure}")
+        return 1
+    print("OK - production capture requirements contract passed")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

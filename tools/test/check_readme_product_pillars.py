@@ -63,6 +63,7 @@ REQUIRED_README_TOKENS = (
     "docs/PRODUCT_LOCK_LEDGER.md",
     "docs/BIG_EFFORTS_STATUS.md",
     "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md",
+    "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md",
     "docs/SHIP_DECISION.md",
     "docs/CAMERA_NOISE_CALIBRATION.md",
     "docs/VIDEO_STATUS.md",
@@ -77,6 +78,9 @@ REQUIRED_README_TOKENS = (
     "This is a real continuous-scene A/B",
     "no-CNN 4096 x 3072 raw Bayer display-upscaled to 8192 x 6144",
     "approved 4K cleanup plus 8K SR CNN raw Bayer path",
+    "Production capture requirements",
+    "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json",
+    "real fixtures, darkframes, camera receipts, PSF pairs, and model-promotion receipts",
 )
 
 FORBIDDEN_README_TOKENS = (

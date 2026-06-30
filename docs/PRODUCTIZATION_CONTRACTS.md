@@ -14,7 +14,10 @@ Release artifacts, Labs/plugin handoff, `.gvid` conformance, and CNN/model
 governance are the cross-cutting contracts that keep those pillars shippable.
 The top-level status lives in `docs/PRODUCT_PILLAR_SCORECARD.md`, while
 `docs/PRODUCT_LOCK_LEDGER.md` separates locked paths from still-open
-production-readiness gates.
+production-readiness gates. `docs/PRODUCTION_CAPTURE_REQUIREMENTS.md` and
+`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json` are the committed contract for the
+real fixtures, darkframes, camera receipts, controlled PSF pairs, and
+model-promotion receipts still needed to close those gates.
 
 ## Current Product Boundary
 
@@ -24,6 +27,13 @@ production-readiness gates.
 | RAW video MVP | 4096 x 3072 Bayer `.gvid` encode and 1024 x 768 preview above the accepted 20 fps Pi 5 stand-in floor, plus conformance and handoff tooling. | Real Mission 1 camera-role sensor/DMA, SD writer, and rear-display receipts. |
 | Premium still/SR | Target builders, raw-CFA residual datasets, model probes, dashboards, and explicit blocker evidence. | Candidate-only 50 MP / 100 MP still-SR model that clears broad Z8/X2D holdouts, editor-latitude review, and worst-row visual gates. |
 | PSF-aware video/SR | Approved 4K cleanup and offline 8K SR baselines, including continuous 8K no-CNN versus CNN ProRes review media. | Controlled Mission 1 high/low Bayer pairs, stable native PSF kernel, and a PSF-conditioned 4K/8K model that beats the current baselines. |
+
+The detailed closure list is pinned in
+`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`: `real_grbg_fixture`,
+`real_bggr_fixture`, `mission1_darkframe_stack`,
+`iphone_cfa_darkframe_stack`, `mission1_camera_role_receipts`,
+`controlled_mission1_psf_pairs`, and
+`premium_still_sr_promotion_receipts`.
 
 ## 1. Release Artifacts
 
@@ -100,8 +110,10 @@ Run the productization contract guard before release:
 
 ```bash
 python3 tools/check_productization_contracts.py
+python3 tools/test/check_production_capture_requirements.py
 ```
 
 The guard verifies that the four product pillars and the cross-cutting
 productization contracts are documented, linked, and backed by the expected
-source/test surfaces.
+source/test surfaces. The capture-requirements guard verifies the committed
+real-sample and hardware-receipt closure contract.

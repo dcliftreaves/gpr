@@ -34,6 +34,9 @@ acquisition, and model-promotion work. That distinction matters because the one
 Mission 1 camera-role closure, the real fixture/darkframe/PSF sample gaps, and
 the premium/PSF model-promotion gaps are different kinds of open evidence, not
 regressions of the locked still, 4K cleanup, 8K SR, or Pi stand-in paths.
+The committed sample/receipt contract is
+[`PRODUCTION_CAPTURE_REQUIREMENTS.md`](PRODUCTION_CAPTURE_REQUIREMENTS.md) and
+[`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json).
 
 ## Score Semantics
 
@@ -119,6 +122,9 @@ The raw-stills capture request lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260630/index.html`.
 It converts that closure list into handoff-ready sample requests, validation
 commands, and promotion criteria.
+The same raw-stills blockers are pinned in the committed production capture
+requirements as `real_grbg_fixture`, `real_bggr_fixture`,
+`mission1_darkframe_stack`, and `iphone_cfa_darkframe_stack`.
 
 The current GoPro Mission 1 intake audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/index.html`.
@@ -126,6 +132,9 @@ It verifies the portable firmware handoff bundle, required docs, 4096 x 3072
 `.gvid` sample, quick-validation dry run, and stand-in encode/preview receipts.
 It remains `camera_production_ready=false` until real Mission 1 sensor/DMA,
 storage, and rear-display receipts replace the stand-in evidence.
+That required camera-side proof is pinned as
+`mission1_camera_role_receipts` in the committed production capture
+requirements.
 
 The current raw-video PSF/SR readiness audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.
@@ -176,6 +185,8 @@ It is the handoff for closing the measurement blocker: locked same-scene
 little-endian uint16 Bayer hashes, fixed ISO/exposure/WB/lens/sharpening
 settings, plus negative controls, with the exact validation commands required
 to promote a stable native PSF kernel.
+That controlled-pair blocker is pinned as `controlled_mission1_psf_pairs` in
+the committed production capture requirements.
 
 The current raw-video SR/detail candidate scoreboard lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html`.
@@ -196,6 +207,9 @@ keep the expanded target coverage fixed, replace the weak rendered-context
 learner with a stronger raw/CFA-aware or otherwise larger-context texture
 model, keep calibrated noise/signal cleaning in the feature contract, and run a
 full still/editor-latitude promotion gate.
+The final still-SR promotion artifact set is pinned as
+`premium_still_sr_promotion_receipts` in the committed production capture
+requirements.
 
 The premium still-SR target expansion plan lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_expansion_plan_20260630/index.html`.

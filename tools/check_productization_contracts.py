@@ -118,6 +118,8 @@ def main() -> int:
 
     for rel in (
         "docs/PRODUCTIZATION_CONTRACTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json",
         "docs/RELEASE_ARTIFACTS.md",
         "docs/GVID_CONFORMANCE.md",
         "docs/LABS_FIRMWARE_API.md",
@@ -131,6 +133,8 @@ def main() -> int:
         "tools/build_labs_bundle.py",
         "tools/check_mission1_cnn_closure.py",
         "tools/build_cnn_product_scorecard.py",
+        "tools/test/check_production_capture_requirements.py",
+        "tools/test/test_check_production_capture_requirements.py",
         "tools/test/test_gvid_conformance.py",
         "source/lib/vc5_encoder/gpr_labs_encoder.h",
         "pipelines/registry.json",
@@ -139,6 +143,7 @@ def main() -> int:
 
     require_text("README.md", [
         "docs/PRODUCTIZATION_CONTRACTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md",
         "docs/RELEASE_ARTIFACTS.md",
         "docs/GVID_CONFORMANCE.md",
         "docs/CNN_PRODUCT_SCORECARD_2026-06-29.md",
@@ -165,6 +170,22 @@ def main() -> int:
         "recompressed Bayer payloads",
         "packed original camera files",
         "four product pillars and the cross-cutting",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json",
+        "real fixtures, darkframes, camera receipts, controlled PSF pairs",
+        "real_grbg_fixture",
+        "mission1_camera_role_receipts",
+        "controlled_mission1_psf_pairs",
+    ], failures)
+    require_text("docs/PRODUCTION_CAPTURE_REQUIREMENTS.md", [
+        "real_grbg_fixture",
+        "real_bggr_fixture",
+        "mission1_darkframe_stack",
+        "iphone_cfa_darkframe_stack",
+        "mission1_camera_role_receipts",
+        "controlled_mission1_psf_pairs",
+        "premium_still_sr_promotion_receipts",
+        "python3 tools/test/check_production_capture_requirements.py",
     ], failures)
     require_text("docs/RELEASE_ARTIFACTS.md", [
         "gpr_labs_bundle.v1",

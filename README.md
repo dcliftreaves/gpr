@@ -107,7 +107,7 @@ the docs and external dashboards:
 | What is done, percent-wise, across the four pillars? | [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630/index.html` |
 | Which outputs are locked, and what would count as a real regression? | [`docs/PRODUCT_LOCK_LEDGER.md`](docs/PRODUCT_LOCK_LEDGER.md) |
 | What does a release reviewer receive? | [`docs/RELEASE_ARTIFACTS.md`](docs/RELEASE_ARTIFACTS.md); generated bundle manifests now carry the same RAW stills, RAW video MVP, premium still/SR, and PSF-aware video/SR labels used here. |
-| What work remains before calling the whole suite production-ready? | [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md), [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md), and `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html` |
+| What work remains before calling the whole suite production-ready? | [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md), [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md), [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md), and `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html` |
 | What proves the stills path? | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md), [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md), [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md), and the X2D 100MP audit under `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/` |
 | What proves the GoPro/Mission raw-video path? | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md), [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md), [`docs/LABS_INTAKE.md`](docs/LABS_INTAKE.md), and the intake audit under `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/` |
 | What does the approved 8K video CNN/SR path look like against no CNN? | Continuous scene videos: no CNN baseline `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_true_no_cnn_4k_raw_lanczos_to_8k_42f_20p_prores.mov`, with 4K cleanup plus 8K SR CNN `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_with_4k_cleanup_and_8k_sr_cnn_42f_20p_prores.mov`, side-by-side review `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_true_no_cnn_vs_with_cnn_side_by_side_3840x1440_42f_20p_prores.mov`, and receipt `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json`. This is a real continuous-scene A/B: the baseline is no-CNN 4096 x 3072 raw Bayer display-upscaled to 8192 x 6144, and the candidate is the approved 4K cleanup plus 8K SR CNN raw Bayer path. |
@@ -257,6 +257,9 @@ handoff, `.gvid` conformance, and CNN governance are tracked in
 [`docs/PRODUCTIZATION_CONTRACTS.md`](docs/PRODUCTIZATION_CONTRACTS.md),
 [`docs/RELEASE_ARTIFACTS.md`](docs/RELEASE_ARTIFACTS.md), and
 [`docs/GVID_CONFORMANCE.md`](docs/GVID_CONFORMANCE.md).
+The exact real samples and hardware receipts still needed to finish the four
+pillars are pinned in
+[`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md).
 
 ## Quality Model
 
@@ -292,6 +295,7 @@ current evidence so strict local checks can verify it.
 | Mission 1 CNN status and next steps | [`docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md`](docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md) |
 | Four-pillar product scorecard | [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630/index.html` |
 | Four-pillar production burn-down | `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html` |
+| Production capture requirements | [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md) and [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.json) |
 | CNN/product scorecard | [`docs/CNN_PRODUCT_SCORECARD_2026-06-29.md`](docs/CNN_PRODUCT_SCORECARD_2026-06-29.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/cnn_product_scorecard_20260629/index.html` |
 | CNN dataset inventory | [`docs/CNN_PRODUCT_SCORECARD_2026-06-29.md`](docs/CNN_PRODUCT_SCORECARD_2026-06-29.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/cnn_dataset_inventory_20260630/index.html` |
 | Premium still-SR raw-CFA residual gap | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` |
@@ -605,6 +609,7 @@ Full walkthrough: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
 | [`docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md`](docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md) | Pi stream-source-to-encoder timing results and next production gap |
 | [`docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md`](docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md) | Current 4K cleanup / 8K SR CNN status and next actions |
 | [`docs/PRODUCTIZATION_CONTRACTS.md`](docs/PRODUCTIZATION_CONTRACTS.md) | Release bundle, Labs handoff, `.gvid`, and CNN governance checklist |
+| [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md) | Exact real fixtures, darkframes, camera receipts, PSF pairs, and model-promotion receipts still needed |
 | [`docs/RELEASE_ARTIFACTS.md`](docs/RELEASE_ARTIFACTS.md) | GitHub release bundle contents, checksums, and upload flow |
 | [`docs/GVID_CONFORMANCE.md`](docs/GVID_CONFORMANCE.md) | `.gvid` wire-contract and malformed-stream conformance suite |
 | [`docs/PRODUCTION_ARTIFACTS.md`](docs/PRODUCTION_ARTIFACTS.md) | External model/artifact layout and hashes |

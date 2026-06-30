@@ -95,6 +95,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     repo_ref("still/video ship decision", "docs/SHIP_DECISION.md"),
                     repo_ref("local fixture compatibility", "docs/LOCAL_FIXTURE_COMPATIBILITY.md"),
                     repo_ref("camera noise calibration contract", "docs/CAMERA_NOISE_CALIBRATION.md"),
+                    repo_ref("production capture requirements", "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"),
                     artifact_ref("stills visual dashboard", "artifacts/visual_compare_20260525_final/index.html"),
                     artifact_ref("X2D 100MP still visual audit", "artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html"),
                     artifact_ref("real Bayer phase discovery", "artifacts/bayer_phase_fixture_discovery_20260630_rawpy/index.html"),
@@ -152,6 +153,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     repo_ref("Mission 1 quick validation", "docs/GOPRO_MISSION1_QUICK_VALIDATION.md"),
                     repo_ref("Mission 1 stream source timing", "docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md"),
                     repo_ref("GVID conformance", "docs/GVID_CONFORMANCE.md"),
+                    repo_ref("production capture requirements", "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"),
                     artifact_ref("GoPro Mission 1 intake audit", "artifacts/gopro_mission1_intake_audit_20260630/index.html"),
                     artifact_ref("Pi stream source receipts", "artifacts/mission1_stream_source_encoder_20260628_pi_compact"),
                     artifact_ref("preview timing receipt", "artifacts/mission1_preview_rgb_c_1024x768_72f_20260624/receipt.json"),
@@ -207,6 +209,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "evidence": annotate_refs(
                 [
                     repo_ref("premium still-SR contract", "docs/PREMIUM_STILL_SR.md"),
+                    repo_ref("production capture requirements", "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"),
                     artifact_ref("premium still-SR readiness", "artifacts/premium_still_sr_readiness_20260630/index.html"),
                     artifact_ref("premium still-SR experiment scoreboard", "artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html"),
                     artifact_ref("premium still-SR blocker audit", "artifacts/premium_still_sr_blocker_audit_20260630/index.html"),
@@ -287,6 +290,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 [
                     repo_ref("Bayer resize PSF policy", "docs/BAYER_RESIZE_PSF.md"),
                     repo_ref("CNN product scorecard", "docs/CNN_PRODUCT_SCORECARD_2026-06-29.md"),
+                    repo_ref("production capture requirements", "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"),
                     artifact_ref("4K cleanup visual signoff", "artifacts/mission1_4k_cleanup_visual_signoff_20260625/production_signoff.json"),
                     artifact_ref("8K SR promotion receipt", "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"),
                     artifact_ref("continuous 8K no-CNN vs CNN ProRes review", "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json"),
