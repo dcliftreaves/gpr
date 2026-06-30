@@ -154,6 +154,49 @@ The visual review emits baseline/model/target/error contact sheets for the X2D
 holdout tiles. It is useful for spotting softness and tile artifacts, but it is
 still not a raw-editor render or full-frame still promotion gate.
 
+## Xlarge Diagnostic
+
+The 2026-06-29 xlarge diagnostic increased the pair set to 1,024 tiles:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs_xlarge_20260629/premium_still_sr_pairs_256t.npz
+```
+
+Whole-image X2D holdout stayed weak:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_xlarge_20260629/premium_still_sr_w48_d6_2000_x2dholdout.pt
+best step 300: 0.09% RMSE improvement, 0.06% MAE improvement
+```
+
+Random tile holdout across the same fixture set improved substantially:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_xlarge_20260629/premium_still_sr_w48_d6_2400_randomholdout.pt
+best step 2400: 12.74% RMSE improvement, 12.30% MAE improvement
+```
+
+Diagnostic dashboards:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_xlarge_dashboard_20260629/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_xlarge_random_20260629/index.html
+```
+
+Per-image random-holdout RMSE improvement:
+
+| image | eval tiles | RMSE improvement | interpretation |
+|---|---:|---:|---|
+| Mission 1 50 MP DNG | 57 | 55.89% | model can learn this source distribution |
+| Mission 1 50 MP GPR | 44 | 55.71% | model can learn this compressed source distribution |
+| Nikon Z8 50 MP DNG | 51 | 19.81% | useful signal, but less dramatic |
+| Hasselblad X2D 100 MP DNG | 52 | 2.36% | current blocker for broad 100 MP promotion |
+
+Conclusion: the premium still-SR loop is capable of learning useful detail
+priors, but the production blocker is now narrowed to X2D/generalization and
+fixture diversity. The next candidate needs more 100 MP fixtures or
+camera-specific specialization before it should be promoted.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
