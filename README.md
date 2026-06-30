@@ -30,6 +30,19 @@ receipts. The remaining production step is intentionally narrow: run the same
 closure path from the actual Mission 1 sensor/DMA, SD writer, and rear display
 instead of the Pi stand-in.
 
+## Production Completion Snapshot
+
+Current four-pillar completion is **69%**. The project is strong enough to show
+as a working raw-stills and raw-video prototype, but it should not be described
+as finished until the camera-role and premium reconstruction gaps close.
+
+| pillar | done | why not 100% |
+|---|---:|---|
+| Best RAW stills | **90%** | Production-gated for the current tested 12/14/16-bit normal-Bayer surface, including 50 MP and 100 MP-class evidence. Real GRBG/BGGR fixtures plus Mission 1/iPhone darkframe stacks are still needed before claiming broad real-camera phase/noise coverage. |
+| GoPro RAW video MVP | **80%** | 4096 x 3072 Bayer to `.gvid` and 1024 x 768 preview clear the active 20+ fps Pi 5 stand-in floor. Real Mission 1 sensor/DMA, SD writer, and rear-display receipts are still the production gate. |
+| Spend-time-for-quality still/SR | **60%** | The fixture, router, full-frame review, editable raw, noise-sidecar, raw-CFA target, and trainer infrastructure exists. The current X2D raw-residual model is still far below promotion, so the premium "amazing still" claim remains research. |
+| RAW video PSF/SR improvement | **44%** | Current 4K cleanup and 8K SR are useful offline baselines. Native PSF measurement has run, but the fitted kernel is unstable and not ready for PSF-conditioned model promotion. |
+
 ![Raw Bayer timelapse decoded through the GPR preview path](docs/img/readme_z8_timelapse_1024.webp)
 
 > Raw Bayer timelapse frames rendered through the current preview path. Large

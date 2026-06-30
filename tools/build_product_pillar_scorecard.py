@@ -241,8 +241,8 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "next_actions": [
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
             "Add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback for those cameras.",
-            "Train the premium still-SR source-minus-candidate same-color raw residual model from the newly built raw-CFA target NPZ; the raw-CFA audit shows this target is aligned enough to train, while calibrated noise-cleaning remains a guardrail.",
-            "Run alignment, edge/texture mining, and measured PSF estimation on the Mission 1 native high/low candidate pairs, then gate against current 4K/8K baselines.",
+            "Continue premium still-SR from the current raw-CFA residual blocker: held-out Z8 is mildly positive, hard X2D is only barely positive after wider context, and stored-HF/noise-threshold probes did not solve it.",
+            "Capture controlled same-scene Mission 1 high/low pairs or rerun native PSF measurement only when enough pairs can produce a stable kernel, then gate a PSF-conditioned SR model against the current 4K/8K baselines.",
         ],
     }
 

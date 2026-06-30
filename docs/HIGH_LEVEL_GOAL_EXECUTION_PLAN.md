@@ -145,7 +145,16 @@ Evidence required:
    available.
 2. Apply the noise-calibration sidecar flow to real Mission 1 and iPhone
    darkframe/frame-stack artifacts where available.
-3. Replace the X2D source-HF oracle with a production-safe structured
+3. Continue premium still-SR from the current raw-CFA residual blocker, not
+   older rendered-HF targets. The latest candidate-only raw-domain trainer is
+   mildly positive on held-out Z8 at about 0.50 percent median raw-residual MAE
+   recovery, but the hard X2D holdout only reaches about 0.02 percent after a
+   wider/block17 pass. Stored candidate-HF features and naive one-sigma
+   noise-thresholded targets do not fix X2D. The next work should test a
+   stronger X2D/domain-general raw residual model or objective, with calibrated
+   noise sidecars used as conditioning rather than as a blunt subtraction
+   target.
+4. Replace the X2D source-HF oracle with a production-safe structured
    texture/detail path. It should preserve the now-measured low-frequency tone
    path, restore high-frequency luminance energy under +2 EV, and prove it
    without using REF/source content at render time. Calibrated random-HF
@@ -207,9 +216,9 @@ Evidence required:
    should therefore move beyond the current rendered-residual target to a
    stronger raw-domain signal/detail target and model, with calibrated
    noise-cleaning kept as a guardrail rather than the main fix.
-4. Replace the still-SR skeleton with a production candidate receipt only after
+5. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
-5. Extend the pair-derived PSF receipt path to native camera/display evidence
+6. Extend the pair-derived PSF receipt path to native camera/display evidence
    and use it to drive the next PSF-conditioned SR experiment.
-6. Re-run the README/media/release guards and open a focused PR for each small
+7. Re-run the README/media/release guards and open a focused PR for each small
    reviewable slice.
