@@ -201,10 +201,12 @@ Evidence required:
    the best broad scene holdout at 2.92 percent median MAE recovery. A matched
    dilated raw-CFA gated variant improves the weaker Z8 holdout from 1.04 to
    about 1.30 percent, but trails the X2D gated baseline at 2.86 versus 2.92
-   percent and leaves severe negative worst rows. The next pass should
-   therefore move beyond the current rendered-residual target to a stronger
-   raw-domain/noise-cleaned target and model, not just another simple
-   context-width change.
+   percent and leaves severe negative worst rows. A calibrated X2D ISO 200
+   noise-clean sweep now shows gain 16 changes about 11.93 percent of pixels
+   but removes only about 0.24 percent median residual energy. The next pass
+   should therefore move beyond the current rendered-residual target to a
+   stronger raw-domain signal/detail target and model, with calibrated
+   noise-cleaning kept as a guardrail rather than the main fix.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

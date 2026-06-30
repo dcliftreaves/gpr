@@ -43,6 +43,79 @@ SCHEMA = "gpr.premium_still_sr_hf_residual_targets.v1"
 DEFAULT_EXPOSURES = (-2.0, 0.0, 2.0)
 
 
+def mean_noise_sigma_norm(noise_sidecars: list[Path], *, render_gain: float = 1.0) -> tuple[float | None, list[dict[str, Any]]]:
+    rows: list[dict[str, Any]] = []
+    values: list[float] = []
+    for path in noise_sidecars:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        camera = payload.get("camera", {}) if isinstance(payload, dict) else {}
+        white = float(camera.get("white_level", 65535.0) or 65535.0)
+        black = float(camera.get("black_level", 0.0) or 0.0)
+        scale = max(white - black, 1.0)
+        calibrations = payload.get("calibrations", []) if isinstance(payload, dict) else []
+        cal = calibrations[0] if calibrations and isinstance(calibrations[0], dict) else {}
+        per_plane = cal.get("per_plane", {}) if isinstance(cal, dict) else {}
+        sigma_values = [
+            float(v.get("sigma_black", 0.0) or 0.0)
+            for v in per_plane.values()
+            if isinstance(v, dict) and "sigma_black" in v
+        ]
+        sigma_norm = float(np.mean(sigma_values) / scale) if sigma_values else 0.0
+        usable = bool(cal.get("usable_for_training_targets", False))
+        rows.append(
+            {
+                "path": str(path),
+                "camera": camera,
+                "iso": cal.get("iso"),
+                "sample_count": cal.get("sample_count"),
+                "usable_for_training_targets": usable,
+                "sigma_black_norm_mean": sigma_norm,
+                "render_gain": float(render_gain),
+                "render_noise_floor": sigma_norm * float(render_gain),
+            }
+        )
+        if usable and sigma_norm > 0.0:
+            values.append(sigma_norm)
+    if not values:
+        return None, rows
+    return float(np.mean(values) * float(render_gain)), rows
+
+
+def conservative_noise_floor_clean(
+    residual: np.ndarray,
+    ref_hf: np.ndarray,
+    cand_hf: np.ndarray,
+    *,
+    noise_floor: float,
+    sigma_mult: float,
+    texture_mult: float,
+) -> tuple[np.ndarray, dict[str, float]]:
+    threshold = max(float(noise_floor) * float(sigma_mult), 0.0)
+    if threshold <= 0.0:
+        return residual, {
+            "noise_floor": float(noise_floor),
+            "threshold": 0.0,
+            "changed_fraction": 0.0,
+            "removed_abs_mean": 0.0,
+            "removed_energy_fraction": 0.0,
+        }
+
+    texture = np.maximum(np.abs(ref_hf), np.abs(cand_hf))
+    low_texture = texture <= (threshold * max(float(texture_mult), 0.0))
+    shrunk = np.sign(residual) * np.maximum(np.abs(residual) - threshold, 0.0)
+    cleaned = np.where(low_texture, shrunk, residual)
+    delta = residual - cleaned
+    residual_energy = float(np.mean(residual * residual))
+    removed_energy = float(np.mean(delta * delta))
+    return cleaned.astype(np.float32), {
+        "noise_floor": float(noise_floor),
+        "threshold": float(threshold),
+        "changed_fraction": float(np.mean(np.abs(delta) > 0.0)),
+        "removed_abs_mean": float(np.mean(np.abs(delta))),
+        "removed_energy_fraction": float(removed_energy / max(residual_energy, 1.0e-12)),
+    }
+
+
 def crop_positions(width: int, height: int, crop: int, grid: int) -> list[tuple[str, int, int]]:
     if grid <= 1:
         return named_crop_starts(width, height, crop)
@@ -120,6 +193,10 @@ def build_rows_from_arrays(
     scene_id: str | None = None,
     source_dng: Path | None = None,
     candidate_dng: Path | None = None,
+    target_cleaning: str = "none",
+    noise_floor: float | None = None,
+    noise_clean_sigma_mult: float = 1.0,
+    noise_clean_texture_mult: float = 2.0,
 ) -> tuple[list[dict[str, Any]], list[np.ndarray], list[np.ndarray], list[np.ndarray], list[np.ndarray]]:
     if ref.shape != cand.shape:
         common_h = min(ref.shape[0], cand.shape[0])
@@ -150,6 +227,26 @@ def build_rows_from_arrays(
         ref_hf = ref_f - block_lowpass_rgb(ref_f, block)
         cand_hf = cand_f - block_lowpass_rgb(cand_f, block)
         residual = ref_hf - cand_hf
+        raw_residual = residual
+        clean_stats = {
+            "noise_floor": float(noise_floor or 0.0),
+            "threshold": 0.0,
+            "changed_fraction": 0.0,
+            "removed_abs_mean": 0.0,
+            "removed_energy_fraction": 0.0,
+        }
+        if target_cleaning == "conservative_noise_floor":
+            if noise_floor is None or noise_floor <= 0.0:
+                raise ValueError("conservative_noise_floor target cleaning requires a usable noise sidecar")
+            residual, clean_stats = conservative_noise_floor_clean(
+                raw_residual,
+                ref_hf,
+                cand_hf,
+                noise_floor=noise_floor,
+                sigma_mult=noise_clean_sigma_mult,
+                texture_mult=noise_clean_texture_mult,
+            )
+            ref_hf = cand_hf + residual
         metrics = crop_metrics(ref_crop, cand_crop)
         row = {
             "scene_id": scene_id,
@@ -170,8 +267,11 @@ def build_rows_from_arrays(
             "ref_hf_abs_mean": float(np.mean(np.abs(ref_hf))),
             "candidate_hf_abs_mean": float(np.mean(np.abs(cand_hf))),
             "residual_abs_mean": float(np.mean(np.abs(residual))),
+            "raw_residual_abs_mean": float(np.mean(np.abs(raw_residual))),
             "residual_rmse": float(np.sqrt(np.mean(residual * residual))),
             "residual_p95_abs": float(np.percentile(np.abs(residual), 95.0)),
+            "target_cleaning": target_cleaning,
+            "noise_cleaning": clean_stats,
             "policy": "training_target_uses_source_hf_not_runtime_render_path",
         }
         if candidate_raw_norm is not None:
@@ -242,6 +342,7 @@ def render_html(data: dict[str, Any], output_dir: Path) -> str:
             f"<td>{row['residual_abs_mean']:.5f}</td><td>{row['residual_p95_abs']:.5f}</td></tr>"
         )
     summary = data["summary"]
+    target_cleaning = data.get("target_cleaning", {})
     return f"""<!doctype html>
 <html><head><meta charset="utf-8"><title>Premium Still SR HF Residual Targets</title>
 <style>
@@ -261,6 +362,7 @@ code{{color:#b7d7ff}}.contact{{max-width:100%;border:1px solid #333}}
 <div class="card"><h2>HF Corr</h2><p>median {summary['hf_y_correlation']['median']:.5f}</p><p>min {summary['hf_y_correlation']['min']:.5f}</p></div>
 <div class="card"><h2>Residual Mean</h2><p>median {summary['residual_abs_mean']['median']:.5f}</p><p>max {summary['residual_abs_mean']['max']:.5f}</p></div>
 <div class="card"><h2>Residual p95</h2><p>median {summary['residual_p95_abs']['median']:.5f}</p><p>max {summary['residual_p95_abs']['max']:.5f}</p></div>
+<div class="card"><h2>Target Cleaning</h2><p>{html.escape(str(target_cleaning.get('mode', 'none')))}</p><p>changed median {summary['noise_clean_changed_fraction']['median']:.5f}</p></div>
 </div>
 <img class="contact" src="{html.escape(contact)}">
 <table><tr><th>scene</th><th>crop</th><th>EV</th><th>MAE</th><th>HF Y MAE</th><th>HF energy ratio</th><th>HF corr</th><th>residual mean</th><th>residual p95</th></tr>
@@ -381,6 +483,8 @@ def infer_candidate_raw_shape(candidate_raw: Path) -> tuple[int, int]:
 
 
 def build(args: argparse.Namespace) -> dict[str, Any]:
+    if args.target_cleaning != "none" and not args.noise_sidecar:
+        raise ValueError(f"--target-cleaning {args.target_cleaning} requires at least one --noise-sidecar")
     args.output_dir.mkdir(parents=True, exist_ok=True)
     panels_dir = args.output_dir / "panels"
     panels_dir.mkdir(parents=True, exist_ok=True)
@@ -391,6 +495,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     raw_cfa_features: list[np.ndarray] = []
     render_times: list[dict[str, Any]] = []
     candidate_raw_norm: np.ndarray | None = None
+    noise_floor, noise_floor_rows = mean_noise_sigma_norm(args.noise_sidecar, render_gain=args.noise_clean_render_gain)
     if args.include_raw_cfa_features:
         if args.half_size:
             raise ValueError("--include-raw-cfa-features is incompatible with --half-size")
@@ -434,6 +539,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             scene_id=args.scene_id or args.source_dng.stem,
             source_dng=args.source_dng,
             candidate_dng=args.candidate_dng,
+            target_cleaning=args.target_cleaning,
+            noise_floor=noise_floor,
+            noise_clean_sigma_mult=args.noise_clean_sigma_mult,
+            noise_clean_texture_mult=args.noise_clean_texture_mult,
         )
         for row in part_rows:
             row["candidate_raw"] = str(args.candidate_raw) if args.candidate_raw else None
@@ -456,8 +565,12 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "hf_y_correlation": stats([float(row["hf_y_correlation"]) for row in rows if row["hf_y_correlation"] is not None]),
         "hf_y_energy_ratio": stats([float(row["hf_y_energy_ratio"]) for row in rows if row["hf_y_energy_ratio"] is not None]),
         "residual_abs_mean": stats([float(row["residual_abs_mean"]) for row in rows]),
+        "raw_residual_abs_mean": stats([float(row["raw_residual_abs_mean"]) for row in rows]),
         "residual_rmse": stats([float(row["residual_rmse"]) for row in rows]),
         "residual_p95_abs": stats([float(row["residual_p95_abs"]) for row in rows]),
+        "noise_clean_changed_fraction": stats([float(row["noise_cleaning"]["changed_fraction"]) for row in rows]),
+        "noise_clean_removed_abs_mean": stats([float(row["noise_cleaning"]["removed_abs_mean"]) for row in rows]),
+        "noise_clean_removed_energy_fraction": stats([float(row["noise_cleaning"]["removed_energy_fraction"]) for row in rows]),
         "render_times": render_times,
     }
     data = {
@@ -491,10 +604,24 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             }
             for path in args.noise_sidecar
         ],
+        "target_cleaning": {
+            "mode": args.target_cleaning,
+            "policy": (
+                "default_none"
+                if args.target_cleaning == "none"
+                else "conservative_noise_floor_soft_shrink_only_low_texture_residuals"
+            ),
+            "render_noise_floor": noise_floor,
+            "sigma_mult": args.noise_clean_sigma_mult,
+            "texture_mult": args.noise_clean_texture_mult,
+            "render_gain": args.noise_clean_render_gain,
+            "sidecar_rows": noise_floor_rows,
+        },
         "policy": {
             "uses_source_hf": True,
             "runtime_safe": False,
             "purpose": "supervised_structured_hf_residual_training_target",
+            "noise_cleaning_uses_only_calibrated_darkframe_sidecars": args.target_cleaning != "none",
         },
         "summary": summary,
         "rows": rows,
@@ -529,7 +656,7 @@ def main() -> int:
     ap.add_argument("--candidate-raw-height", type=int, default=0)
     ap.add_argument("--noise-sidecar", type=Path, action="append", default=[])
     ap.add_argument("--output-dir", type=Path, required=True)
-    ap.add_argument("--ev", action="append", type=float, default=list(DEFAULT_EXPOSURES))
+    ap.add_argument("--ev", action="append", type=float, help="Exposure value to render; repeat for multiple values. Defaults to -2, 0, +2.")
     ap.add_argument("--crop-size", type=int, default=768)
     ap.add_argument("--crop-grid", type=int, default=1, help="1 keeps named crops; >1 uses a deterministic grid per EV")
     ap.add_argument("--max-crops-per-ev", type=int, help="optional cap after deterministic crop ordering")
@@ -538,9 +665,20 @@ def main() -> int:
     ap.add_argument("--output-bps", type=int, choices=(8, 16), default=16)
     ap.add_argument("--half-size", action="store_true")
     ap.add_argument("--include-raw-cfa-features", action="store_true")
+    ap.add_argument(
+        "--target-cleaning",
+        choices=("none", "conservative_noise_floor"),
+        default="none",
+        help="Optional training-target cleaning. The conservative mode soft-shrinks only low-texture HF residuals within the calibrated noise floor.",
+    )
+    ap.add_argument("--noise-clean-sigma-mult", type=float, default=1.0)
+    ap.add_argument("--noise-clean-texture-mult", type=float, default=2.0)
+    ap.add_argument("--noise-clean-render-gain", type=float, default=1.0)
     ap.add_argument("--residual-preview-scale", type=float, default=0.08)
     ap.add_argument("--contact-rows", type=int, default=9)
     args = ap.parse_args()
+    if args.ev is None:
+        args.ev = list(DEFAULT_EXPOSURES)
     if args.candidate_raw and (args.candidate_raw_width <= 0 or args.candidate_raw_height <= 0):
         try:
             args.candidate_raw_width, args.candidate_raw_height = infer_candidate_raw_shape(args.candidate_raw)

@@ -284,6 +284,42 @@ context to the current rendered-residual target" as the production path by
 itself. The next model must use a stronger raw-domain/noise-cleaned target and
 model, then run the full 50 MP / 100 MP still/editor-latitude promotion gate.
 
+## Noise-Clean Target Sweep
+
+The target builder now has an explicit opt-in target-cleaning mode:
+
+```sh
+python3 tools/cnn/build_premium_still_sr_hf_residual_targets.py \
+  --target-cleaning conservative_noise_floor \
+  --noise-sidecar /path/to/gpr.camera_noise_calibration.v1.json
+```
+
+This mode does not blur the target. It soft-shrinks only low-texture
+high-frequency residuals that are inside a calibrated darkframe noise floor,
+and each row records the changed fraction, removed absolute mean, and removed
+energy fraction. The default remains `--target-cleaning none`.
+
+The first sweep dashboard is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_noise_clean_sweep_x2d_smoke_20260630/index.html
+```
+
+It uses the existing X2D raw-CFA smoke target and the validated ISO 200 X2D
+sidecar. The result is important: calibrated sensor noise is much smaller than
+the current HF residual. With render-domain gain 1, the median changed fraction
+is about 0.17 percent and removed residual energy is effectively zero. With
+gain 16, the median changed fraction rises to about 11.93 percent, but median
+removed residual energy is still only about 0.24 percent. Gain 32 changes about
+34.53 percent of pixels and starts to look too aggressive for a first promoted
+target policy.
+
+Conclusion: calibrated noise cleaning should remain in the target contract as a
+guardrail, especially for high-ISO X2D/Z8 scenes, but ISO 200 noise removal by
+itself will not close the still-SR gap. The next production experiment should
+move the supervision closer to raw-domain signal/detail placement rather than
+expecting noise removal to make the existing rendered-residual target easy.
+
 ## Fixture Manifest Builder
 
 Use the latest real-fixture compatibility receipt to build the first dedicated

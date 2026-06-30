@@ -31,7 +31,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 55% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, and a matched dilated raw-CFA variant has been tested; the no-REF high-frequency texture model is still not production-grade yet. |
+| Premium still/SR | 55% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, a matched dilated raw-CFA variant has been tested, and a calibrated noise-clean sweep now guards the next target variant; the no-REF high-frequency texture model is still not production-grade yet. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, and the first native PSF measurement has executed; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -157,6 +157,12 @@ They improve the weak Z8 holdout from 1.04 to about 1.30 percent median MAE
 recovery, but trail the X2D gated baseline at 2.86 versus 2.92 percent and
 leave severe negative worst rows. That makes the simple dilated gate a useful
 diagnostic, not the production path.
+The current calibrated noise-clean sweep lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_noise_clean_sweep_x2d_smoke_20260630/index.html`.
+It shows the validated ISO 200 X2D noise floor is far below the current HF
+residual: render gain 16 changes about 11.93 percent of pixels, but removes
+only about 0.24 percent median residual energy. Noise cleaning remains a
+guardrail, not the main explanation for the current still-SR blocker.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a

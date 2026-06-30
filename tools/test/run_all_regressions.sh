@@ -176,6 +176,7 @@ else
                 python3 tools/test/test_build_premium_still_sr_router_plan.py && \
                 python3 tools/test/test_build_premium_still_sr_degraded_candidate_raw.py && \
                 python3 tools/test/test_build_premium_still_sr_hf_residual_targets.py && \
+                python3 tools/test/test_audit_premium_still_sr_noise_clean_sweep.py && \
                 python3 tools/test/test_merge_premium_still_sr_hf_residual_targets.py && \
                 python3 tools/test/test_analyze_premium_still_sr_hf_residual_bands.py && \
                 python3 tools/test/test_train_premium_still_sr_hf_residual.py && \

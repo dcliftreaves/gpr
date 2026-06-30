@@ -68,6 +68,7 @@ def main() -> int:
         assert rows[0]["source_dng"].endswith("source.dng")
         assert rows[0]["candidate_raw_cfa_features"] == "local_2x2_cfa_planes_repeated_to_rgb_crop"
         assert rows[0]["residual_abs_mean"] > 0.0
+        assert rows[0]["target_cleaning"] == "none"
         assert rows[0]["hf_y_correlation"] is not None
         npz = root / "targets.npz"
         tool.write_npz(npz, inputs, residuals, targets, rows, raw_cfa_features)
@@ -80,6 +81,56 @@ def main() -> int:
         assert raw_planes.shape == (4, 4, 4)
         assert np.isclose(raw_planes[0, 0, 0], candidate_raw_norm[0, 0])
         assert np.isclose(raw_planes[0, 0, 3], candidate_raw_norm[1, 1])
+        sidecar = root / "noise_sidecar.json"
+        sidecar.write_text(
+            json.dumps(
+                {
+                    "schema": "gpr.camera_noise_calibration.v1",
+                    "camera": {"black_level": 0.0, "white_level": 10000.0},
+                    "calibrations": [
+                        {
+                            "usable_for_training_targets": True,
+                            "iso": 800,
+                            "sample_count": 8,
+                            "per_plane": {
+                                "r": {"sigma_black": 10.0},
+                                "g1": {"sigma_black": 10.0},
+                                "g2": {"sigma_black": 10.0},
+                                "b": {"sigma_black": 10.0},
+                            },
+                        }
+                    ],
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+        floor, floor_rows = tool.mean_noise_sigma_norm([sidecar], render_gain=1.0)
+        assert np.isclose(floor, 0.001)
+        assert floor_rows[0]["usable_for_training_targets"] is True
+        tiny_residual = np.full((8, 8, 3), floor * 0.75, dtype=np.float32)
+        low_texture = np.zeros_like(tiny_residual)
+        cleaned, clean_stats = tool.conservative_noise_floor_clean(
+            tiny_residual,
+            low_texture,
+            low_texture,
+            noise_floor=floor,
+            sigma_mult=1.0,
+            texture_mult=2.0,
+        )
+        assert np.max(np.abs(cleaned)) == 0.0
+        assert clean_stats["changed_fraction"] == 1.0
+        strong_texture = np.ones_like(tiny_residual) * 0.1
+        preserved, preserve_stats = tool.conservative_noise_floor_clean(
+            tiny_residual,
+            strong_texture,
+            low_texture,
+            noise_floor=floor,
+            sigma_mult=1.0,
+            texture_mult=2.0,
+        )
+        assert np.allclose(preserved, tiny_residual)
+        assert preserve_stats["changed_fraction"] == 0.0
         contact = root / "contact.jpg"
         tool.write_contact_sheet(contact, rows, 4)
         assert contact.stat().st_size > 0
