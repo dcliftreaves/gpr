@@ -12,7 +12,7 @@ If a metric here conflicts with a committed receipt, the receipt wins.
 |---|---|---|
 | Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance. | Good enough to present as a working stills product path, with explicit open work on more real alternate-phase fixtures and camera-calibrated noise. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, and X2D editor-openability plus metadata-transplant proof. | Not done until full raw-editor latitude, X2D exposure-stress, and noise-aware target receipts pass. |
+| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, and an X2D rawpy latitude dashboard. | Not done until +2 EV X2D exposure-stress and noise-aware target/addback receipts pass. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup and candidate-aware 8K SR. | Not done as a formal PSF/blur-calibrated resizing model. |
 
 ## 1. Raw Stills
@@ -186,6 +186,14 @@ Current evidence:
   recommended `OpcodeList2`. The q3 GPR readback opens through GPR-to-DNG and
   scores 57.49 dB across the X2D black-to-white range:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt_x2dscale_meta/index.html`.
+- `tools/build_premium_still_sr_latitude_review.py` now emits a rawpy/LibRaw
+  latitude dashboard that renders the original X2D DNG and the
+  metadata-transplanted SR DNG with camera WB/color metadata at -2/0/+2 EV.
+  The 2026-06-30 X2D run has 9 crop/EV rows, median display MAE 0.04281,
+  median Y MAE 0.02909, and median low-frequency Y MAE 0.00546. The worst
+  rows are all +2 EV, with worst display MAE 0.09161 and worst low-frequency
+  Y MAE 0.01657:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_20260630/index.html`.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
@@ -212,17 +220,18 @@ Boundaries:
   scene-specialist work before premium still-SR can be promoted.
 - The specialist results support a camera/source-aware router or separate
   specialist checkpoints. Every current route now has a first full-frame
-  check and rendered proxy review, and X2D has editor-openability plus
-  source-camera metadata proof. X2D remains weak, and the routed suite still
-  lacks full raw-editor latitude receipts.
+  check and rendered proxy review, and X2D has editor-openability,
+  source-camera metadata proof, and rawpy latitude evidence. X2D remains weak,
+  and the routed suite still lacks a passing full raw-editor latitude gate.
 - The router plan is a contract for future routing, not a production registry.
   X2D, Z8, and Mission 1 now have candidate specialists, but all still lack
   production full-frame/editor-latitude gates.
 
 Next production work:
 
-1. Convert the X2D openability/metadata receipt into full raw-editor latitude
-   receipts, starting with the X2D center-crop exposure-stress blocker.
+1. Close the X2D rawpy latitude blocker, starting with +2 EV rows and explicit
+   noise/detail addback so the SR candidate is not punished for missing
+   camera texture that should be modeled separately.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Add full-frame still visual dashboards, raw-domain metrics, and raw-editor

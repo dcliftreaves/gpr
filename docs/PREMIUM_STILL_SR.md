@@ -456,8 +456,8 @@ python3 tools/build_premium_still_sr_editor_receipt.py \
   --route x2d:100mp:dng \
   --camera "Hasselblad X2D 100C" \
   --source-frame 2024_April_X2D_1742 \
-  --metadata-audit /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/x2d_scaled/metadata_transplant_v2/metadata_transplant_audit.json \
-  --metadata-dng /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/x2d_scaled/metadata_transplant_v2/frame_000000_sr8k_x2d_meta.dng \
+  --metadata-audit /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/x2d_scaled/metadata_transplant_v3/metadata_transplant_audit.json \
+  --metadata-dng /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/x2d_scaled/metadata_transplant_v3/frame_000000_sr8k_x2d_meta.dng \
   --raw-black-level 4096 \
   --raw-white-level 59215 \
   --min-gpr-psnr-range-db 55
@@ -483,6 +483,43 @@ SR raw back into X2D black/white code values. The receipt is intentionally
 exposure-stressed raw-editor latitude. The metadata audit allows the two-row
 `ActiveArea` crop, `AsShotNeutral` numeric-format drift, and missing
 recommended `OpcodeList2`; it does not allow missing required render tags.
+
+## X2D Rawpy Latitude Review
+
+`tools/build_premium_still_sr_latitude_review.py` renders the original X2D DNG
+and the metadata-transplanted SR DNG through rawpy/LibRaw with camera WB/color
+metadata, no auto-bright, AHD demosaic, and -2/0/+2 EV exposure shifts. This is
+closer to a raw-editor receipt than the OpenCV Bayer proxy, but it is still an
+automated review rather than Lightroom/ACR signoff.
+
+```sh
+python3 tools/build_premium_still_sr_latitude_review.py \
+  --source-dng /Volumes/OWC_8TB/gpr_work/artifacts/fixtures/x2d_dngs/2024_April_X2D_1742.dng \
+  --candidate-dng /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_editor_receipt_20260630/x2d_scaled/metadata_transplant_v3/frame_000000_sr8k_x2d_meta.dng \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_20260630 \
+  --crop-size 768 \
+  --output-bps 16 \
+  --contact-rows 9 \
+  --allow-common-crop
+```
+
+Current dashboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_20260630/latitude_review.json
+```
+
+Result:
+
+| rows | median display MAE | worst display MAE | median Y MAE | median LF Y MAE | worst LF Y MAE | blocker |
+|---:|---:|---:|---:|---:|---:|---|
+| 9 | 0.04281 | 0.09161 | 0.02909 | 0.00546 | 0.01657 | +2 EV rows, especially bright/shadow stress and fine texture/noise mismatch |
+
+Interpretation: metadata/openability is no longer the X2D blocker. Low-frequency
+tone is much closer than full-pixel error, which points toward a combined
+highlight/latitude and camera-texture/noise-addback problem rather than a
+basic DNG compatibility problem. This is not a production pass.
 
 ## Production Path
 

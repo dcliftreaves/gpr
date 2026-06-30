@@ -87,9 +87,10 @@ Immediate work:
   rendered dashboard, raw-domain metrics, editor-latitude checks, and worst-row
   review. The lightweight guard is `gpr.premium_still_sr_gate.v1`; the
   CI-safe skeleton builder is `tools/build_premium_still_sr_gate_receipt.py`.
-- Treat the current X2D editor-openability receipt as a partial closure only:
-  DNG/GPR open, export, and source-camera metadata transplant are proven, but
-  full raw-editor latitude is still required.
+- Treat the current X2D editor-openability and rawpy latitude receipts as
+  partial closure only: DNG/GPR open, export, source-camera metadata
+  transplant, and automated latitude evidence are proven, but +2 EV worst rows
+  still need to pass before promotion.
 - Reuse the approved 4K/8K SR tooling only after the target is still-specific:
   high-quality still references, camera metadata, and noise policy included.
 - Keep the output editable: DNG/GPR receipt first, review TIFF/ProRes/contact
@@ -101,8 +102,8 @@ Evidence required:
   committed still gate, not just sharpen crops.
 - 50 MP and 100 MP camera classes both need receipts before the claim is broad.
 - Openability and metadata transplant are not enough for promotion. The routed
-  still-SR suite still needs editor exposure-stress, rendered visual, and
-  worst-row receipts.
+  still-SR suite still needs passing editor exposure-stress, rendered visual,
+  and worst-row receipts.
 - Any nonzero denoise target must pass the raw-noise/signal audit first.
 
 ### 4. PSF-Aware Raw Video Improvement
@@ -137,9 +138,8 @@ Evidence required:
    available.
 2. Apply the noise-calibration sidecar flow to real Mission 1 and iPhone
    darkframe/frame-stack artifacts where available.
-3. Add full raw-editor latitude receipts for the routed premium still-SR
-   candidates, starting with the X2D 100 MP center-crop exposure-stress
-   blocker.
+3. Close the X2D 100 MP +2 EV latitude blocker with a noise/detail policy that
+   separates low-frequency tone from high-frequency camera texture.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence
