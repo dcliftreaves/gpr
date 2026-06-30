@@ -47,6 +47,22 @@ def main() -> int:
                     "holdout_residual_rmse_reduction_pct_median": 3.7,
                     "uses_source_hf_at_runtime": False,
                 },
+                "experiments": [
+                    {
+                        "experiment": "broad_rgb_ablation",
+                        "holdout_scene": "scene_a",
+                        "holdout_row_count": 27,
+                        "holdout_residual_mae_reduction_pct_median": 2.5,
+                        "holdout_residual_rmse_reduction_pct_median": 2.8,
+                    },
+                    {
+                        "experiment": "broad_raw_cfa_gated",
+                        "holdout_scene": "scene_b",
+                        "holdout_row_count": 27,
+                        "holdout_residual_mae_reduction_pct_median": 3.1,
+                        "holdout_residual_rmse_reduction_pct_median": 3.4,
+                    },
+                ],
             },
         )
         write_json(
@@ -63,7 +79,7 @@ def main() -> int:
             },
         )
         write_json(
-            root / "artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/merge_receipt.json",
+            root / "artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json",
             {
                 "schema": "gpr.premium_still_sr_hf_residual_targets_merged.v1",
                 "summary": {
@@ -71,6 +87,8 @@ def main() -> int:
                     "scene_count": 3,
                     "residual_abs_mean": {"median": 0.03},
                     "hf_y_correlation": {"median": 0.46},
+                    "raw_cfa_feature_complete": True,
+                    "raw_cfa_feature_sources": 3,
                 },
             },
         )
@@ -113,7 +131,10 @@ def main() -> int:
         assert audit["production_ready"] is False
         assert audit["summary"]["promotable_candidate_count"] == 0
         assert audit["summary"]["best_holdout_mae_recovery_pct"] == 4.0
+        assert audit["summary"]["broader_scene_holdout_mae_recovery_pct"] == 3.1
+        assert audit["summary"]["broader_scene_holdout_experiment"] == "broad_raw_cfa_gated"
         assert audit["summary"]["target_scene_count"] == 3
+        assert audit["summary"]["raw_cfa_feature_complete"] is True
         assert audit["summary"]["fine_band_residual_share_median"] == 0.97
         assert audit["summary"]["candidate_gradient_correlation_median"] == 0.10
         assert audit["sources"]["scoreboard"]["loaded"] is True

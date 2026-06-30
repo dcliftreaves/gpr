@@ -23,7 +23,7 @@ DEFAULT_EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT") or "/Volumes/OW
 
 DEFAULT_SCOREBOARD = "artifacts/premium_still_sr_experiment_scoreboard_20260630/scoreboard.json"
 DEFAULT_READINESS = "artifacts/premium_still_sr_readiness_20260630/readiness.json"
-DEFAULT_MERGED_TARGET = "artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/merge_receipt.json"
+DEFAULT_MERGED_TARGET = "artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json"
 DEFAULT_BAND_ANALYSIS = "artifacts/premium_still_sr_expanded_hf_residual_band_analysis_20260630/band_analysis.json"
 
 PROMOTION_RECOVERY_PCT = 15.0
@@ -81,6 +81,28 @@ def pct_gap(best: float | None, target: float) -> float | None:
     return max(0.0, target - best)
 
 
+def best_scene_holdout_candidate(scoreboard: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(scoreboard, dict):
+        return None
+    experiments = scoreboard.get("experiments")
+    if not isinstance(experiments, list):
+        return None
+    scene_holdouts = [
+        row
+        for row in experiments
+        if isinstance(row, dict)
+        and row.get("holdout_scene")
+        and as_int(row.get("holdout_row_count")) is not None
+        and int(row.get("holdout_row_count")) >= 9
+    ]
+    if not scene_holdouts:
+        return None
+    return max(
+        scene_holdouts,
+        key=lambda row: as_float(row.get("holdout_residual_mae_reduction_pct_median")) or float("-inf"),
+    )
+
+
 def build_axis(
     axis_id: str,
     title: str,
@@ -112,13 +134,17 @@ def classify_blockers(
     best_rmse = as_float(nested(best, ["holdout_residual_rmse_reduction_pct_median"]) if isinstance(best, dict) else None)
     promotable = as_int(nested(scoreboard, ["promotable_candidate_count"])) or 0
     runtime_uses_ref = bool_from_nested(best if isinstance(best, dict) else None, ["uses_source_hf_at_runtime"])
-    broader_mae = as_float(nested(readiness, ["evidence_summary", "latest_no_ref_hf_holdout_mae_reduction_pct_median"]))
-    broader_rmse = as_float(nested(readiness, ["evidence_summary", "latest_no_ref_hf_holdout_rmse_reduction_pct_median"]))
+    broader = best_scene_holdout_candidate(scoreboard)
+    broader_mae = as_float(broader.get("holdout_residual_mae_reduction_pct_median")) if isinstance(broader, dict) else None
+    broader_rmse = as_float(broader.get("holdout_residual_rmse_reduction_pct_median")) if isinstance(broader, dict) else None
+    broader_experiment = str(broader.get("experiment")) if isinstance(broader, dict) else None
 
     row_count = as_int(nested(merged_target, ["summary", "row_count"]))
     scene_count = as_int(nested(merged_target, ["summary", "scene_count"]))
     residual_abs_median = as_float(nested(merged_target, ["summary", "residual_abs_mean", "median"]))
     hf_corr_median = as_float(nested(merged_target, ["summary", "hf_y_correlation", "median"]))
+    raw_cfa_complete = bool_from_nested(merged_target, ["summary", "raw_cfa_feature_complete"])
+    raw_cfa_sources = as_int(nested(merged_target, ["summary", "raw_cfa_feature_sources"]))
 
     fine_share = as_float(nested(band_analysis, ["summary", "bands", "fine", "share_of_residual_abs", "median"]))
     mid_share = as_float(nested(band_analysis, ["summary", "bands", "mid", "share_of_residual_abs", "median"]))
@@ -145,7 +171,7 @@ def classify_blockers(
             [
                 f"promotable rows: {promotable}",
                 f"best single-candidate holdout MAE/RMSE recovery: {best_mae}% / {best_rmse}%",
-                f"broader scene-held-out no-REF recovery: {broader_mae}% / {broader_rmse}%",
+                f"best broad scene-held-out no-REF recovery: {broader_mae}% / {broader_rmse}% ({broader_experiment})",
             ],
             "Do not promote another checkpoint until a no-REF holdout row reaches the recovery threshold and then passes full-frame/editor-latitude gates.",
             {
@@ -154,6 +180,7 @@ def classify_blockers(
                 "best_holdout_rmse_recovery_pct": best_rmse,
                 "broader_scene_holdout_mae_recovery_pct": broader_mae,
                 "broader_scene_holdout_rmse_recovery_pct": broader_rmse,
+                "broader_scene_holdout_experiment": broader_experiment,
                 "mae_gap_to_threshold_pct": pct_gap(best_mae, PROMOTION_RECOVERY_PCT),
                 "rmse_gap_to_threshold_pct": pct_gap(best_rmse, PROMOTION_RECOVERY_PCT),
                 "promotable_candidate_count": promotable,
@@ -169,6 +196,7 @@ def classify_blockers(
                 f"merged target rows: {row_count}",
                 f"merged target scenes: {scene_count}",
                 f"median target residual magnitude: {residual_abs_median}",
+                f"raw-CFA feature coverage complete: {raw_cfa_complete}",
             ],
             (
                 "Target coverage is now broad enough for the next training pass; keep it fixed while testing whether the runtime model can learn the fine-band residual."
@@ -181,6 +209,8 @@ def classify_blockers(
                 "minimum_production_rows": MIN_PRODUCTION_TARGET_ROWS,
                 "minimum_production_scenes": MIN_PRODUCTION_SCENES,
                 "target_coverage_ready": target_coverage_ready,
+                "raw_cfa_feature_complete": raw_cfa_complete,
+                "raw_cfa_feature_sources": raw_cfa_sources,
                 "residual_abs_mean_median": residual_abs_median,
                 "hf_y_correlation_median": hf_corr_median,
             },
@@ -278,6 +308,7 @@ def build_audit(
     readiness = load_json(readiness_path)
     merged_target = load_json(merged_target_path)
     band_analysis = load_json(band_analysis_path)
+    broader = best_scene_holdout_candidate(scoreboard)
     axes = classify_blockers(scoreboard, readiness, merged_target, band_analysis)
     blocked_count = sum(1 for axis in axes if axis["status"] == "blocked")
     return {
@@ -292,9 +323,12 @@ def build_audit(
             "promotable_candidate_count": as_int(nested(scoreboard, ["promotable_candidate_count"])) or 0,
             "best_holdout_mae_recovery_pct": as_float(nested(scoreboard, ["best_candidate", "holdout_residual_mae_reduction_pct_median"])),
             "best_holdout_rmse_recovery_pct": as_float(nested(scoreboard, ["best_candidate", "holdout_residual_rmse_reduction_pct_median"])),
-            "broader_scene_holdout_mae_recovery_pct": as_float(nested(readiness, ["evidence_summary", "latest_no_ref_hf_holdout_mae_reduction_pct_median"])),
+            "broader_scene_holdout_mae_recovery_pct": as_float(broader.get("holdout_residual_mae_reduction_pct_median")) if isinstance(broader, dict) else None,
+            "broader_scene_holdout_rmse_recovery_pct": as_float(broader.get("holdout_residual_rmse_reduction_pct_median")) if isinstance(broader, dict) else None,
+            "broader_scene_holdout_experiment": broader.get("experiment") if isinstance(broader, dict) else None,
             "target_scene_count": as_int(nested(merged_target, ["summary", "scene_count"])),
             "target_row_count": as_int(nested(merged_target, ["summary", "row_count"])),
+            "raw_cfa_feature_complete": bool_from_nested(merged_target, ["summary", "raw_cfa_feature_complete"]),
             "fine_band_residual_share_median": as_float(nested(band_analysis, ["summary", "bands", "fine", "share_of_residual_abs", "median"])),
             "candidate_gradient_correlation_median": as_float(nested(band_analysis, ["summary", "residual_corr_with_candidate_gradient", "median"])),
         },

@@ -344,8 +344,18 @@ Current evidence:
   0.79 percent:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_gated_probe_w48_1000_20260630/train_receipt.json`.
   This proves the raw-CFA path runs and that a gated raw branch is more
-  promising than naive channel concatenation, but it still needs expanded-target
-  validation before production promotion.
+  promising than naive channel concatenation.
+- Expanded raw-CFA target coverage is now complete. The rebuilt target records
+  351 rows across 13 X2D/Z8 scenes with `raw_cfa_feature_complete=true`:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json`.
+  On held-out Z8, the raw-CFA gated model improves median residual MAE by about
+  1.04 percent versus 0.36 percent for the matched RGB ablation:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_z8holdout_w48_1000_20260630/train_receipt.json`.
+  On held-out X2D, it improves about 2.92 percent versus 2.42 percent:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_x2dholdout_w48_1000_20260630/train_receipt.json`.
+  This moves the blocker from raw-CFA plumbing/coverage to model capacity and
+  context: the best broad holdout is still far below the 15 percent promotion
+  threshold and still has negative worst rows.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both

@@ -143,8 +143,8 @@ The generated command contract is intentionally executable with the current
 tooling: per-scene target building uses `--noise-sidecar` and
 `--include-raw-cfa-features`, and the training step now pairs a raw-CFA gated
 probe with a matched RGB ablation. The raw-CFA gated probe is evidence only
-until it scales beyond the one-scene smoke, beats the RGB ablation on the
-expanded target set, and survives the full still/editor-latitude gate.
+until it beats the RGB ablation on the expanded target set and survives the
+full still/editor-latitude gate.
 
 ## Expanded Target Build And Result
 
@@ -176,6 +176,17 @@ rules out "just add target coverage to the current rendered-context learner" as
 the next production path. The next pass should change the model/feature
 contract, most likely toward raw/CFA-aware or larger-context texture modeling,
 then re-run the full still-SR gate.
+
+The expanded target has also been rebuilt with complete raw-CFA features:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/expanded_target_build_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json
+```
+
+That rebuild records 13 scenes, 351 rows, and
+`raw_cfa_feature_complete=true`, with `candidate_raw_cfa4` present in the
+merged NPZ for every row.
 
 ## Raw-CFA Feature Smoke
 
@@ -235,13 +246,26 @@ The next architecture pass adds an explicit raw-CFA gated branch:
 ```
 
 That w48/d6/1000-step gated probe improves train median residual MAE by about
-1.46 percent and +2 EV holdout median residual MAE by about 0.79 percent. This
-is only a one-scene smoke result, but it clears the matched RGB ablation on the
-same target. The blocker has therefore moved from "raw-CFA does not help" to
-"raw-CFA gated detail needs expanded-target validation." The next pass should
-rebuild or complete raw-CFA coverage across the 13-scene X2D/Z8 target set,
-train the gated model against that expanded set, and only then attempt the full
-50 MP / 100 MP still/editor-latitude promotion gate.
+1.46 percent and +2 EV holdout median residual MAE by about 0.79 percent. It
+clears the matched RGB ablation on the same smoke target, which justified the
+expanded validation pass below.
+
+The expanded validation pass now exists:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_z8holdout_w48_1000_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rgb_ablation_model_z8holdout_w48_1000_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_x2dholdout_w48_1000_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rgb_ablation_model_x2dholdout_w48_1000_20260630/train_receipt.json
+```
+
+On held-out Z8, the raw-CFA gated model reaches about 1.04 percent median MAE
+recovery versus 0.36 percent for the matched RGB ablation. On held-out X2D, it
+reaches about 2.92 percent versus 2.42 percent. That proves the raw-CFA gated
+direction generalizes beyond the smoke target, but it is still far from the
+15 percent broad-holdout recovery threshold and still has negative worst rows.
+The next model must add larger context and/or a better raw-domain target, then
+run the full 50 MP / 100 MP still/editor-latitude promotion gate.
 
 ## Fixture Manifest Builder
 

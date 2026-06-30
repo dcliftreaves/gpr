@@ -63,7 +63,7 @@ def main() -> int:
         ]
         assert data["pillars"][0]["readiness_percent"] == 90
         assert data["pillars"][1]["readiness_percent"] == 80
-        assert data["pillars"][2]["readiness_percent"] == 52
+        assert data["pillars"][2]["readiness_percent"] == 55
         assert data["pillars"][3]["readiness_percent"] == 44
         assert any(ref["exists"] for ref in data["pillars"][0]["evidence"] if ref["kind"] == "repo")
         assert any(not ref["exists"] for p in data["pillars"] for ref in p["evidence"] if ref["kind"] == "artifact")

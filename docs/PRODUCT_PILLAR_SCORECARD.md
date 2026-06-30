@@ -31,7 +31,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase discovery with RGGB plus Mission 1 GBRG, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 52% | The expanded 13-scene / 351-row target set now exists, and the first expanded rendered-context plus raw-CFA smoke passes prove target coverage alone is not enough; the raw-CFA gated smoke now beats the matched RGB ablation, but the no-REF high-frequency texture model is still not production-grade yet. |
+| Premium still/SR | 55% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, and the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts; the no-REF high-frequency texture model is still not production-grade yet. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, near-time native Mission 1 high/low candidates are indexed, and the first native PSF measurement has executed; formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -137,8 +137,18 @@ The current raw-CFA gated architecture receipt lives at
 Together these prove the raw-CFA target/trainer path executes on a real X2D
 scene: naive channel concatenation trails the matched RGB ablation, while the
 explicit raw-CFA gated probe beats that ablation on +2 EV holdout recovery.
-The next model must scale that raw/CFA architecture to the expanded target set
-before readiness should move again.
+The expanded raw-CFA target rebuild lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/expanded_target_build_receipt.json`
+and
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json`.
+It records complete raw-CFA feature coverage for all 351 rows / 13 scenes. The
+expanded gated holdout receipts live at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_z8holdout_w48_1000_20260630/train_receipt.json`
+and
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_gated_model_x2dholdout_w48_1000_20260630/train_receipt.json`.
+They beat matched RGB ablations on held-out Z8 and X2D, but the best broad
+holdout is still only about 2.92 percent median MAE recovery against the 15
+percent promotion threshold.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a

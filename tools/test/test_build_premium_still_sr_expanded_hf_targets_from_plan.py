@@ -36,6 +36,14 @@ def main() -> int:
         root = Path(tmp)
         existing = root / "existing_target.npz"
         existing.write_bytes(b"fixture")
+        write_json(
+            root / "existing_target.json",
+            {
+                "source_dng": "/fixtures/existing_source.dng",
+                "noise_sidecars": [{"path": "/noise/existing_iso800.json"}],
+                "rows": [{"scene_id": "existing_scene", "source_dng": "/fixtures/existing_source.dng"}],
+            },
+        )
         merged = root / "old_merge.json"
         write_json(merged, {"sources": [{"path": str(existing), "rows": 27}]})
         plan = root / "plan.json"
@@ -64,6 +72,7 @@ def main() -> int:
                 str(out),
                 "--dry-run",
                 "--include-raw-cfa-features",
+                "--rebuild-existing-targets",
             ],
             cwd=ROOT,
             text=True,
@@ -78,13 +87,18 @@ def main() -> int:
         assert receipt["schema"] == "gpr.premium_still_sr_expanded_hf_target_build.v1"
         assert receipt["dry_run"] is True
         assert receipt["include_raw_cfa_features"] is True
-        assert receipt["scene_count"] == 1
-        assert str(existing) in receipt["merge_inputs"]
-        commands = "\n".join(" ".join(cmd) for cmd in receipt["scene_results"][0]["commands"])
+        assert receipt["rebuild_existing_targets"] is True
+        assert receipt["rebuilt_existing_target_count"] == 1
+        assert receipt["scene_count"] == 2
+        assert str(existing) not in receipt["merge_inputs"]
+        assert receipt["scene_results"][0]["scene_id"] == "existing_scene"
+        assert receipt["scene_results"][0]["source_path"] == "/fixtures/existing_source.dng"
+        commands = "\n".join(" ".join(cmd) for result in receipt["scene_results"] for cmd in result["commands"])
         assert "build_premium_still_sr_degraded_candidate_raw.py" in commands
         assert "build_premium_still_sr_hf_residual_targets.py" in commands
         assert "--candidate-raw" in commands
         assert "--include-raw-cfa-features" in commands
+        assert "--noise-sidecar /noise/existing_iso800.json" in commands
         assert "--noise-sidecar /noise/iso200.json" in commands
 
     print("test_build_premium_still_sr_expanded_hf_targets_from_plan: PASS")

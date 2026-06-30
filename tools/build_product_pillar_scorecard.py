@@ -123,7 +123,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         {
             "id": "premium_still_sr",
             "title": "3. Spend-time-for-quality still/SR",
-            "readiness_percent": 52,
+            "readiness_percent": 55,
             "status": "research_loop_working_candidate_not_promoted",
             "production_ready": False,
             "claim": "The offline still-SR machinery is broad and reproducible, but the current no-REF texture model is not good enough to promote.",
@@ -136,10 +136,11 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "The target expansion plan selected 10 additional X2D/Z8 scenes with validated noise sidecars, and the expanded target executor built the 13-scene / 351-row merged HF target set.",
                 "Expanded target band analysis confirms the remaining residual is still fine-band dominated, with median fine-band residual share about 0.981x.",
                 "The first expanded rendered-context training passes have run: the weighted w96 model was unstable and the conservative w64 control landed near zero holdout recovery, so target coverage alone is not sufficient.",
-                "Raw-CFA target/trainer plumbing now has one-scene real receipts. The naive raw-CFA channel-concat probe trailed the RGB ablation, but the stronger raw-CFA gated probe now beats that ablation on the same +2 EV holdout.",
+                "The expanded raw-CFA target rebuild now has complete candidate_raw_cfa4 coverage for all 351 rows / 13 scenes.",
+                "The raw-CFA gated model beats matched RGB ablations on expanded Z8 and X2D scene holdouts, but the best broad holdout remains only 2.92 percent median MAE recovery and is not promotable.",
             ],
             "open_work": [
-                "Scale the raw-CFA gated architecture to the expanded 13-scene target set and prove it generalizes beyond the one-scene smoke.",
+                "Replace the local residual learner with a larger-context raw/CFA model that can clear the 15 percent broad holdout recovery threshold.",
                 "Pass dedicated 50 MP and 100 MP still-SR gates with editor-latitude and worst-row visual evidence.",
                 "Use calibrated noise sidecars as conditioning, then add back only noise proven separate from signal.",
             ],
@@ -159,6 +160,10 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("premium still-SR raw-CFA probe receipt", "artifacts/premium_still_sr_rawcfa_probe_model_20260630/train_receipt.json"),
                     artifact_ref("premium still-SR RGB ablation receipt", "artifacts/premium_still_sr_rawcfa_ablation_rgb_model_20260630/train_receipt.json"),
                     artifact_ref("premium still-SR raw-CFA gated probe receipt", "artifacts/premium_still_sr_rawcfa_gated_probe_w48_1000_20260630/train_receipt.json"),
+                    artifact_ref("premium still-SR expanded raw-CFA target build", "artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/expanded_target_build_receipt.json"),
+                    artifact_ref("premium still-SR expanded raw-CFA merge receipt", "artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json"),
+                    artifact_ref("premium still-SR expanded raw-CFA gated Z8 holdout", "artifacts/premium_still_sr_expanded_rawcfa_gated_model_z8holdout_w48_1000_20260630/train_receipt.json"),
+                    artifact_ref("premium still-SR expanded raw-CFA gated X2D holdout", "artifacts/premium_still_sr_expanded_rawcfa_gated_model_x2dholdout_w48_1000_20260630/train_receipt.json"),
                     artifact_ref("routed rendered review", "artifacts/premium_still_sr_rendered_review_routed_20260630/index.html"),
                     artifact_ref("X2D latitude review", "artifacts/premium_still_sr_x2d_latitude_review_synthetic_hf_20260630/index.html"),
                     artifact_ref("noise-conditioned residual dashboard", "artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html"),
@@ -220,7 +225,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "next_actions": [
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
             "Add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback for those cameras.",
-            "Scale the premium still-SR raw-CFA gated learner to the expanded target set, then run noise/signal cleaning and the full still/editor-latitude gate.",
+            "Replace the premium still-SR local residual learner with a larger-context raw/CFA model, then run noise/signal cleaning and the full still/editor-latitude gate.",
             "Run alignment, edge/texture mining, and measured PSF estimation on the Mission 1 native high/low candidate pairs, then gate against current 4K/8K baselines.",
         ],
     }

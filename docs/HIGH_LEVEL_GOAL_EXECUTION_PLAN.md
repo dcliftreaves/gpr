@@ -194,9 +194,13 @@ Evidence required:
    follow-up raw-CFA gated architecture reaches 0.79 percent on the same
    smoke holdout:
    `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_gated_probe_w48_1000_20260630/`.
-   The next pass should therefore scale that gated raw/CFA architecture to the
-   expanded target set instead of simply concatenating raw planes into the
-   current CNN.
+   That gated raw/CFA architecture has now been scaled to a complete raw-CFA
+   expanded target under
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/`.
+   It beats matched RGB ablations on both held-out Z8 and held-out X2D, with
+   the best broad scene holdout at 2.92 percent median MAE recovery. The next
+   pass should therefore move beyond the local residual learner to a
+   larger-context raw/CFA model and cleaned signal/noise targets.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
 5. Extend the pair-derived PSF receipt path to native camera/display evidence

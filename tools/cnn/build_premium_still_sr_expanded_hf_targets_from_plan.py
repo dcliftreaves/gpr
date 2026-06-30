@@ -113,6 +113,55 @@ def existing_target_paths(plan: dict[str, Any]) -> list[str]:
     return [str(row["path"]) for row in sources if isinstance(row, dict) and row.get("path")]
 
 
+def existing_target_rebuild_rows(plan: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for target_path in existing_target_paths(plan):
+        target_json = Path(target_path).with_suffix(".json")
+        if not target_json.exists():
+            raise FileNotFoundError(f"cannot rebuild existing target without metadata JSON: {target_json}")
+        target = load_json(target_json)
+        source = target.get("source_dng")
+        if not source:
+            target_rows = target.get("rows", [])
+            if isinstance(target_rows, list) and target_rows and isinstance(target_rows[0], dict):
+                source = target_rows[0].get("source_dng")
+        if not source:
+            raise ValueError(f"existing target {target_json} does not record source_dng")
+        scene_id = target.get("scene_id")
+        if not scene_id:
+            target_rows = target.get("rows", [])
+            if isinstance(target_rows, list) and target_rows and isinstance(target_rows[0], dict):
+                scene_id = target_rows[0].get("scene_id")
+        if not scene_id:
+            scene_id = target_json.parent.name
+        noise_sidecars = target.get("noise_sidecars")
+        selected_noise_sidecars = []
+        if isinstance(noise_sidecars, list):
+            for sidecar in noise_sidecars:
+                if isinstance(sidecar, dict) and sidecar.get("path"):
+                    selected_noise_sidecars.append({"path": str(sidecar["path"])})
+                elif isinstance(sidecar, str):
+                    selected_noise_sidecars.append({"path": sidecar})
+        if not selected_noise_sidecars:
+            target_rows = target.get("rows", [])
+            if isinstance(target_rows, list) and target_rows and isinstance(target_rows[0], dict):
+                row_sidecars = target_rows[0].get("noise_sidecars")
+                if isinstance(row_sidecars, list):
+                    selected_noise_sidecars = [{"path": str(path)} for path in row_sidecars if path]
+        if not selected_noise_sidecars:
+            raise ValueError(f"existing target {target_json} does not record noise sidecars")
+        rows.append(
+            {
+                "scene_id": str(scene_id),
+                "source_path": str(source),
+                "source_iso": target.get("source_iso"),
+                "selected_noise_sidecars": selected_noise_sidecars,
+                "rebuild_source_target": target_path,
+            }
+        )
+    return rows
+
+
 def build(args: argparse.Namespace) -> dict[str, Any]:
     plan = load_json(args.plan)
     output_dir = args.output_dir
@@ -122,6 +171,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         rows = rows[: max(0, args.max_scenes)]
     if not isinstance(rows, list):
         raise TypeError("selected_new_targets must be a list")
+    existing_rebuild_rows: list[dict[str, Any]] = []
+    if args.rebuild_existing_targets:
+        existing_rebuild_rows = existing_target_rebuild_rows(plan)
+        rows = existing_rebuild_rows + rows
 
     scene_results: list[dict[str, Any]] = []
     target_npzs: list[str] = []
@@ -166,7 +219,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         target_npzs.append(str(target_npz))
         scene_results.append(scene_result)
 
-    merge_inputs = existing_target_paths(plan) + target_npzs
+    existing_inputs = [] if args.rebuild_existing_targets else existing_target_paths(plan)
+    merge_inputs = existing_inputs + target_npzs
     merge_cmd = [
         args.python,
         "tools/cnn/merge_premium_still_sr_hf_residual_targets.py",
@@ -189,6 +243,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "output_dir": str(output_dir),
         "dry_run": args.dry_run,
         "include_raw_cfa_features": args.include_raw_cfa_features,
+        "rebuild_existing_targets": args.rebuild_existing_targets,
+        "rebuilt_existing_target_count": len(existing_rebuild_rows),
         "scene_count": len(scene_results),
         "scene_results": scene_results,
         "merge_inputs": merge_inputs,
@@ -214,6 +270,11 @@ def main() -> int:
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--include-raw-cfa-features", action="store_true")
+    ap.add_argument(
+        "--rebuild-existing-targets",
+        action="store_true",
+        help="Rebuild existing baseline target sources into this output instead of merging old NPZs.",
+    )
     args = ap.parse_args()
     receipt = build(args)
     print(
