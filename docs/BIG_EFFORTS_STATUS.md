@@ -349,14 +349,23 @@ Current evidence:
   X2D tile pairs. The 2026-06-29 run confirms the modeled same-color 2x target
   is effectively a 2x2 box kernel, with fitted weights near 0.25 each:
   `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html`.
+- The refreshed 2026-06-30 xlarge pair receipt covers 1,024 real-fixture tiles
+  and adds a residual/detail budget:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/index.html`.
+  The fitted normalized weights are `[0.25000165, 0.25000245, 0.25000036,
+  0.24999554]`, fit RMSE is 0.30044 on the 14-bit training scale, and the
+  repeat-to-target residual is 0.99999x fine-band share. This means the modeled
+  video-SR gap is same-cell Bayer fine-detail reconstruction, not broad coarse
+  deblur.
 
 Boundaries:
 
 - The current SR path is not a formal PSF-calibrated model. It is an approved
   empirical candidate with dashboards and receipts.
-- The pair-derived PSF receipt validates the current modeled resize target. It
-  does not measure native camera sensor/DMA/display PSF because the low side of
-  the pair is generated from the high-resolution raw extraction.
+- The pair-derived PSF receipt validates the current modeled resize target and
+  detail budget. It does not measure native camera sensor/DMA/display PSF
+  because the low side of the pair is generated from the high-resolution raw
+  extraction.
 - Replacing it requires beating the current baseline on full-frame Mission and
   Z8 gates, not just lowering tile loss or improving a small crop.
 
@@ -365,8 +374,8 @@ Next production work:
 1. Replace modeled-pair PSF evidence with native capture/display PSF
    measurements from real high-res-to-native-low-res Mission/Z8 pairs and
    sharp-edge/texture targets.
-2. Train with CFA-aware high-res RGB/downsample targets and PSF-conditioned
-   losses.
+2. Train with CFA-aware high-res RGB/downsample targets, PSF-conditioned
+   losses, and explicit same-cell fine-detail reconstruction metrics.
 3. Promote only if Mission42 and Z8 all24 gates improve, worst rows are clean,
    and `.gvid`, editable DNG/GPR, ProRes, timing, and memory receipts exist.
 

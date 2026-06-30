@@ -91,6 +91,9 @@ def main() -> int:
         assert model["kernel_width_px"] == 2.0
         assert model["kernel_height_px"] == 2.0
         assert model["normalized_rmse"] < 0.001
+        assert payload["detail_budget"]["residual_abs_mean_14bit"] > 0.0
+        assert payload["detail_budget"]["fine_share_of_residual_abs"] > 0.0
+        assert payload["per_image_detail_budget"]["residual_abs_mean_14bit"]["median"] > 0.0
         assert (out_dir / "index.html").is_file()
 
     print("test_build_bayer_resize_psf_from_pairs: PASS")

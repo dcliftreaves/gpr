@@ -50,7 +50,7 @@ receipts before it should be called done.
 | **1. Best RAW stills** | Production-gated 12 MP, 23 MP, 50 MP, and 100 MP-class Bayer roundtrips; 12/14/16-bit paths; committed RGGB/GBRG/GRBG/BGGR still conformance; real Mission 1, Z8, X2D, and iPhone CFA fixture coverage; three 50 MP still tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; validated X2D/Z8 camera-noise sidecars with source-frame hashes. | Apply the same noise sidecar flow to Mission 1/iPhone darkframes before promoting nonzero noise removal/addback; add more real BGGR/GRBG camera fixtures as they become available. |
 | **2. GoPro RAW video MVP** | True 4096 x 3072 Bayer recompression into `.gvid`, valid interrupted-tail recovery, Lexar SILVER PLUS write-budget checks, Pi 5 stand-in capture above the accepted 20 fps floor, and 1024 x 768 camera-back preview from the same stream above 20 fps. | Real Mission 1 sensor/DMA, SD writer, and rear-display receipts. Strict 24 fps is still not production-proven for the current quality profile. |
 | **3. Spend-time-for-quality still/SR** | Matched 1x CNN improves compressed still latitude; current 4K cleanup and 8K SR infrastructure proves the offline CNN path can emit editable raw, `.gvid`, DNG/GPR, and ProRes review artifacts; routed X2D, Z8, and Mission 1 premium still-SR specialists now have hashed fixtures, full-frame receipts, rendered proxy review, X2D 100MP editor-openability plus metadata transplant, an X2D rawpy latitude dashboard, a structured HF residual target dataset, and the first no-REF HF residual smoke model. | Real "amazing still" promotion is still open: the first X2D no-REF HF model only recovers a small part of the +2 EV residual, so the next pass needs more context/target design before the routed still-SR suite can be called production. |
-| **4. RAW video improvement / PSF-aware resize** | Mission native12 4K cleanup is approved for offline review; candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates and has 8K `.gvid` plus ProRes receipts; real Mission/Z8/X2D pair-derived resize evidence confirms the current same-color 2x Bayer target is a 2x2 box model. | Native capture/display PSF is not fully formalized. Next work should measure camera/sensor resize PSF directly, train against CFA-aware high-res targets, and require both raw-domain and rendered visual gates before replacing the current SR baseline. |
+| **4. RAW video improvement / PSF-aware resize** | Mission native12 4K cleanup is approved for offline review; candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates and has 8K `.gvid` plus ProRes receipts; real Mission/Z8/X2D pair-derived resize evidence confirms the current same-color 2x Bayer target is a 2x2 box model. The refreshed 1,024-tile detail budget shows the 4K-to-8K residual is essentially all same-cell fine detail, not coarse blur. | Native capture/display PSF is not fully formalized. Next work should measure camera/sensor resize PSF directly, train against CFA-aware high-res targets with explicit fine-detail reconstruction losses, and require both raw-domain and rendered visual gates before replacing the current SR baseline. |
 
 Detailed status and next-step criteria:
 [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md) and
@@ -102,7 +102,8 @@ Premium still-SR X2D multi-scene target and scene-holdout model:
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_w48_20260630/index.html`,
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html`.
 Bayer resize PSF pair-derived dashboard:
-`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html`,
+`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/index.html`.
 
 ## At A Glance
 
@@ -115,7 +116,7 @@ Bayer resize PSF pair-derived dashboard:
 | Mission 1 preview target | 4096 x 3072 `.gvid` decodes to 1024 x 768 RGB preview above **20 fps** on the Pi 5 stand-in. |
 | Premium still-SR routed specialists | X2D 100MP, Z8 50MP, and Mission 1 50MP DNG/GPR now have metadata-routed specialist checkpoints, full-frame receipts, rendered latitude proxy review, and an X2D editor-openability plus metadata-transplant receipt. Mission 1 improves full frames by **56.62% RMSE**, Z8 by **40.74%**, and X2D by **1.03%**; rendered proxy improves 33/36 crop/EV rows, with the 3 misses isolated to the X2D center crop. The X2D-scale DNG opens with transplanted source-camera metadata; q3 GPR readback is **57.49 dB** across the X2D black-to-white range. Rawpy latitude review shows median LF Y MAE **0.00546** and median HF correlation only **0.406**; source-HF oracle drops worst +2 EV MAE from **0.0916** to **0.0159**. Random-HF addback slightly worsens median MAE; the first no-REF structured HF residual model improves +2 EV holdout residual MAE by only **4.03%**. The broader X2D targets now cover 75 single-scene rows and 81 multi-scene rows; adding multiscale candidate features plus ISO/noise sidecar scalars raises scene-held-out recovery from **1.46%** to **2.56%**, with **0.971x** fine-band residual share still unresolved, so promotion needs a stronger raw-domain texture/noise target and model rather than coarse tone work. |
 | 2x / 8K reconstruction | Candidate-aware Mission native12-to-8K SR is **offline-production for post/reconstruction** today; broad Mission42 and Z8 full-frame gates are positive, with `.gvid` decode-to-SR, 8K `.gvid`, and 8K ProRes receipts. It is not a live-camera path. |
-| 4K rendered detail research | Bayer-output / RGB-supervised cleanup improves all 42 Mission frames against high-res-derived 4K RGB and CFA targets, and feeds the current candidate-aware 8K SR path. |
+| 4K rendered detail research | Bayer-output / RGB-supervised cleanup improves all 42 Mission frames against high-res-derived 4K RGB and CFA targets, and feeds the current candidate-aware 8K SR path. The refreshed PSF/detail receipt fits 1,024 real-fixture tiles to normalized weights `[0.25000165, 0.25000245, 0.25000036, 0.24999554]`, with **0.300** 14-bit RMSE and **0.99999x** fine residual share. |
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
 
@@ -317,6 +318,7 @@ current evidence so strict local checks can verify it.
 | Premium still-SR X2D noise-conditioned multiscale residual dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_multiscene_hf_residual_model_sceneholdout_noise_multiscale_w96_20260630/index.html` |
 | Premium still-SR specialist router plan | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_router_plan_20260630/index.html` |
 | Bayer resize PSF pair-derived dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_20260629/index.html` |
+| Bayer resize PSF xlarge detail-budget dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/index.html` |
 
 ![GPR production status matrix](docs/img/readme_status_matrix.svg)
 

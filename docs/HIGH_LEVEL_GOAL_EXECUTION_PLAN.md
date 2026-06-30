@@ -119,9 +119,12 @@ Immediate work:
   The lightweight guard is `gpr.bayer_resize_psf_receipt.v1`; the synthetic
   non-production contract builder is `tools/build_bayer_resize_psf_receipt.py`,
   and the real-pair modeled-resize builder is
-  `tools/build_bayer_resize_psf_from_pairs.py`.
+  `tools/build_bayer_resize_psf_from_pairs.py`. The current xlarge pair receipt
+  confirms the modeled target is a 2x2 same-color Bayer box and that the
+  4K-to-8K residual is almost entirely same-cell fine detail:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/`.
 - Train or tune 4K cleanup and 8K SR with CFA-aware targets and PSF-conditioned
-  losses.
+  losses, including explicit same-cell fine-detail reconstruction metrics.
 - Keep dashboards honest: full-frame Mission and Z8 rows, rendered crops,
   raw-domain metrics, lower-right/worst-row inspection, and metadata receipts.
 

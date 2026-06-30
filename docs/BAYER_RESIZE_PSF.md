@@ -39,7 +39,9 @@ stability. It is not enough to replace the current SR baseline.
 
 The pair-derived builder consumes the premium still-SR pair NPZ layout and fits
 the same-color 2x Bayer resize kernel that maps high-resolution target planes
-to low-resolution input planes:
+to low-resolution input planes. It also measures the 2x repeat residual budget
+so the video-SR work can distinguish broad deblur from same-cell detail
+reconstruction:
 
 ```sh
 /Users/dcliftreaves/anaconda3/envs/py3_10/bin/python \
@@ -62,6 +64,33 @@ global fit converges to normalized weights very close to `[0.25, 0.25, 0.25,
 0.30 RMSE on the normalized 14-bit training scale. This confirms the current
 pair target is internally consistent with a same-color 2x2 box resize model.
 
+Refreshed 2026-06-30 xlarge receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/bayer_resize_psf_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/index.html
+```
+
+That run uses 1,024 real-fixture tiles and keeps the same conclusion: fitted
+normalized weights are `[0.25000165, 0.25000245, 0.25000036, 0.24999554]`,
+`same_color_box2` remains the best kernel, and fit RMSE is `0.30044` on the
+14-bit training scale. The new detail budget shows the 2x repeat residual is
+almost entirely same-cell fine detail:
+
+| metric | value |
+|---|---:|
+| residual abs mean, 14-bit scale | 67.88974 |
+| residual RMSE, 14-bit scale | 165.42555 |
+| fine share of residual abs | 0.99999x |
+| mid share of residual abs | 0.00347x |
+| coarse share of residual abs | 0.00187x |
+| residual / target same-cell detail ratio | 1.00001x |
+
+Interpretation: for the modeled 4K-to-8K pair target, the effective PSF is a
+2x2 box, and the missing signal is not a broad low-frequency blur field. It is
+same-cell Bayer fine detail that must be reconstructed by the offline SR model
+or supplied by a better native capture target.
+
 It is still non-production evidence. The current pair generator creates the
 low-resolution side by downsampling extracted high-resolution raw, so this does
 not yet measure native sensor, camera ISP, DMA, display, or storage blur.
@@ -73,7 +102,7 @@ display evidence:
 
 1. Estimate effective Bayer-domain PSF from true high-res / native-low-res
    Mission 1 and Z8 captures, with sharp edges and texture fields.
-2. Train or tune 4K cleanup and 8K SR with CFA-aware targets and
-   PSF-conditioned losses.
+2. Train or tune 4K cleanup and 8K SR with CFA-aware targets, PSF-conditioned
+   losses, and explicit fine-detail reconstruction metrics.
 3. Promote only if Mission42 and Z8 all24 gates improve and the output has
    `.gvid`, editable DNG/GPR, ProRes, timing, memory, and hash receipts.

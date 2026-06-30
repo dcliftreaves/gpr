@@ -54,6 +54,18 @@ def write_json(path: Path, payload: dict[str, Any]) -> dict[str, str]:
     return artifact_ref(path)
 
 
+def value_stats(np: Any, values: list[float]) -> dict[str, float]:
+    if not values:
+        return {"min": 0.0, "median": 0.0, "mean": 0.0, "max": 0.0}
+    arr = np.asarray(values, dtype=np.float64)
+    return {
+        "min": float(arr.min()),
+        "median": float(np.median(arr)),
+        "mean": float(arr.mean()),
+        "max": float(arr.max()),
+    }
+
+
 def read_pairs(np: Any, pairs: Path) -> tuple[Any, Any, dict[str, Any]]:
     data = np.load(pairs, allow_pickle=False)
     inputs = data["inputs"].astype(np.float32)
@@ -79,6 +91,52 @@ def target_cells(np: Any, target: Any) -> Any:
 
 def kernel_low(np: Any, cells: Any, weights: Any) -> Any:
     return np.tensordot(cells, weights.astype(np.float32), axes=([-1], [0]))
+
+
+def repeat_2x(np: Any, low: Any) -> Any:
+    return np.repeat(np.repeat(low, 2, axis=-2), 2, axis=-1)
+
+
+def block_mean_repeat(np: Any, x: Any, block: int) -> Any:
+    if block <= 1:
+        return x.astype(np.float32)
+    h = (x.shape[-2] // block) * block
+    w = (x.shape[-1] // block) * block
+    cropped = x[..., :h, :w].astype(np.float32)
+    pooled = cropped.reshape(*cropped.shape[:-2], h // block, block, w // block, block).mean(axis=(-3, -1))
+    return np.repeat(np.repeat(pooled, block, axis=-2), block, axis=-1)
+
+
+def residual_detail_budget_for_arrays(np: Any, inputs: Any, targets: Any) -> dict[str, float]:
+    pred_high = repeat_2x(np, inputs).astype(np.float32)
+    target = targets.astype(np.float32)
+    h = min(pred_high.shape[-2], target.shape[-2])
+    w = min(pred_high.shape[-1], target.shape[-1])
+    pred_high = pred_high[..., :h, :w]
+    target = target[..., :h, :w]
+    residual = target - pred_high
+    fine = residual - block_mean_repeat(np, residual, 2)
+    mid_base = block_mean_repeat(np, residual, 2)
+    mid = mid_base - block_mean_repeat(np, residual, 8)
+    coarse = block_mean_repeat(np, residual, 8)
+    target_detail = target - block_mean_repeat(np, target, 2)
+    total_abs = float(np.mean(np.abs(residual)))
+    fine_abs = float(np.mean(np.abs(fine)))
+    mid_abs = float(np.mean(np.abs(mid)))
+    coarse_abs = float(np.mean(np.abs(coarse)))
+    target_detail_abs = float(np.mean(np.abs(target_detail)))
+    return {
+        "residual_abs_mean_14bit": total_abs,
+        "residual_rmse_14bit": float(np.sqrt(np.mean(residual * residual))),
+        "fine_abs_mean_14bit": fine_abs,
+        "mid_abs_mean_14bit": mid_abs,
+        "coarse_abs_mean_14bit": coarse_abs,
+        "target_cell_detail_abs_mean_14bit": target_detail_abs,
+        "fine_share_of_residual_abs": fine_abs / max(total_abs, 1.0e-12),
+        "mid_share_of_residual_abs": mid_abs / max(total_abs, 1.0e-12),
+        "coarse_share_of_residual_abs": coarse_abs / max(total_abs, 1.0e-12),
+        "residual_to_target_cell_detail_ratio": total_abs / max(target_detail_abs, 1.0e-12),
+    }
 
 
 def candidate_metrics(np: Any, inputs: Any, targets: Any) -> list[dict[str, Any]]:
@@ -184,6 +242,7 @@ def estimate(np: Any, pairs: Path, max_samples_per_image: int) -> dict[str, Any]
             texture_field_count += 1
 
     global_fit = fit_kernel_for_group(np, inputs, targets, list(range(inputs.shape[0])), max_samples_per_image)
+    global_budget = residual_detail_budget_for_arrays(np, inputs, targets)
     candidate_rows = candidate_metrics(np, inputs, targets)
     sample_rmse = next(row["rmse_14bit"] for row in candidate_rows if row["kernel"] == "same_color_sample_topleft")
     best_rmse = float(candidate_rows[0]["rmse_14bit"])
@@ -191,7 +250,13 @@ def estimate(np: Any, pairs: Path, max_samples_per_image: int) -> dict[str, Any]
 
     per_image = []
     for image_id, indexes in sorted(by_image.items()):
-        per_image.append({"image_id": image_id, **fit_kernel_for_group(np, inputs, targets, indexes, max_samples_per_image)})
+        per_image.append(
+            {
+                "image_id": image_id,
+                **fit_kernel_for_group(np, inputs, targets, indexes, max_samples_per_image),
+                "detail_budget": residual_detail_budget_for_arrays(np, inputs[indexes], targets[indexes]),
+            }
+        )
 
     phases = []
     for image in meta.get("images", []):
@@ -212,6 +277,17 @@ def estimate(np: Any, pairs: Path, max_samples_per_image: int) -> dict[str, Any]
         "sharp_edge_count": int(sharp_edge_count),
         "texture_field_count": int(texture_field_count),
         "global_fit": global_fit,
+        "detail_budget": global_budget,
+        "per_image_detail_budget": {
+            "residual_abs_mean_14bit": value_stats(np, [float(row["detail_budget"]["residual_abs_mean_14bit"]) for row in per_image]),
+            "fine_share_of_residual_abs": value_stats(np, [float(row["detail_budget"]["fine_share_of_residual_abs"]) for row in per_image]),
+            "mid_share_of_residual_abs": value_stats(np, [float(row["detail_budget"]["mid_share_of_residual_abs"]) for row in per_image]),
+            "coarse_share_of_residual_abs": value_stats(np, [float(row["detail_budget"]["coarse_share_of_residual_abs"]) for row in per_image]),
+            "residual_to_target_cell_detail_ratio": value_stats(
+                np,
+                [float(row["detail_budget"]["residual_to_target_cell_detail_ratio"]) for row in per_image],
+            ),
+        },
         "candidate_kernels": candidate_rows,
         "per_image": per_image,
         "min_gradient_mae_improvement_pct": float(gradient_proxy_improvement),
@@ -232,6 +308,7 @@ def render_html(summary: dict[str, Any], receipt: dict[str, Any]) -> str:
         )
     image_rows = []
     for row in summary["per_image"]:
+        budget = row["detail_budget"]
         image_rows.append(
             "<tr>"
             f"<td>{html.escape(row['image_id'])}</td>"
@@ -239,8 +316,12 @@ def render_html(summary: dict[str, Any], receipt: dict[str, Any]) -> str:
             f"<td>{row['rmse_14bit']:.6f}</td>"
             f"<td>{html.escape(json.dumps([round(x, 6) for x in row['normalized_weights']]))}</td>"
             f"<td>{row['box_weight_rmse']:.8f}</td>"
+            f"<td>{budget['residual_abs_mean_14bit']:.6f}</td>"
+            f"<td>{budget['fine_share_of_residual_abs']:.3f}</td>"
+            f"<td>{budget['mid_share_of_residual_abs']:.3f}</td>"
             "</tr>"
         )
+    budget = summary["detail_budget"]
     return f"""<!doctype html>
 <meta charset="utf-8">
 <title>Bayer Resize PSF From Pairs</title>
@@ -265,13 +346,16 @@ modeling. It does not claim native sensor/DMA PSF closure.</p>
 <li>Target shape: <code>{html.escape(json.dumps(summary["target_shape"]))}</code></li>
 <li>Fitted normalized weights: <code>{html.escape(json.dumps([round(x, 8) for x in summary["global_fit"]["normalized_weights"]]))}</code></li>
 <li>Kernel width/height: {summary["global_fit"]["kernel_width_px"]:.2f} x {summary["global_fit"]["kernel_height_px"]:.2f} high-res pixels</li>
+<li>2x repeat residual abs mean: {budget["residual_abs_mean_14bit"]:.6f} on the 14-bit training scale</li>
+<li>Residual frequency shares: fine {budget["fine_share_of_residual_abs"]:.3f}, mid {budget["mid_share_of_residual_abs"]:.3f}, coarse {budget["coarse_share_of_residual_abs"]:.3f}</li>
+<li>Residual / target same-cell detail ratio: {budget["residual_to_target_cell_detail_ratio"]:.3f}</li>
 </ul>
 <h2>Candidate Kernels</h2>
 <table><thead><tr><th>kernel</th><th>RMSE 14-bit</th><th>MAE 14-bit</th><th>normalized RMSE</th><th>weights</th></tr></thead><tbody>
 {''.join(rows)}
 </tbody></table>
 <h2>Per Image Fit</h2>
-<table><thead><tr><th>image</th><th>samples</th><th>RMSE 14-bit</th><th>normalized weights</th><th>box-weight RMSE</th></tr></thead><tbody>
+<table><thead><tr><th>image</th><th>samples</th><th>RMSE 14-bit</th><th>normalized weights</th><th>box-weight RMSE</th><th>repeat residual abs</th><th>fine share</th><th>mid share</th></tr></thead><tbody>
 {''.join(image_rows)}
 </tbody></table>
 """
@@ -333,6 +417,8 @@ def build_receipt(args: argparse.Namespace) -> dict[str, Any]:
             "cfa_phases": summary["cfa_phases"],
             "dataset_receipt": dataset_ref,
         },
+        "detail_budget": summary["detail_budget"],
+        "per_image_detail_budget": summary["per_image_detail_budget"],
         "gate_results": {
             "mission42_passed": False,
             "z8_all24_passed": False,
