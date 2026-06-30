@@ -49,8 +49,17 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
                 "Capture at least five high/low pairs if practical, because the current local corpus accepted only two near-time pairs and produced an unstable kernel.",
                 "Keep original GPR/DNG/JPEG triplets and decoded raw Bayer files; do not crop, demosaic, tone-map, or resize before the PSF tools run.",
             ],
+            "metadata_required": [
+                "original high-resolution and low-resolution GPR/DNG paths with SHA-256 source hashes",
+                "decoded little-endian uint16 Bayer paths, byte counts, dimensions, CFA phase, and SHA-256 hashes for both sides of every pair",
+                "extraction receipt or command for each decoded raw file, including whether tools/extract_raw_bayer_u16.py or camera firmware produced it",
+                "make, model, capture mode, ISO, exposure time, white balance, lens mode, stabilization state, sharpening state, and lens-correction state",
+                "pair label, capture order, timestamp delta, and confirmation that the camera and scene did not move between high/low captures",
+            ],
             "acceptance": [
                 "pair inventory reports at least three decoded native high/low Mission 1 candidate pairs",
+                "each accepted pair has source hashes plus decoded raw hashes for both the 8192 x 6144 and 4096 x 3072 Bayer inputs",
+                "each decoded raw input has the exact expected byte size for its dimensions and little-endian uint16 Bayer format",
                 "measurement plan selects at least three pairs",
                 "native PSF measurement accepts at least three pairs after scene/alignment vetting",
                 "accepted pairs provide at least 96 sharp-edge and 96 texture-field tiles",
@@ -68,6 +77,11 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
                 "Include two intentionally changed-scene or moved-camera high/low pairs.",
                 "These should fail alignment/scene vetting and verify the measurement does not accept bad calibration data.",
             ],
+            "metadata_required": [
+                "original high-resolution and low-resolution GPR/DNG paths with SHA-256 source hashes",
+                "decoded little-endian uint16 Bayer paths, byte counts, dimensions, and SHA-256 hashes for both sides of every control pair",
+                "explicit label describing the intended negative-control defect: moved camera, changed scene, or mismatched capture settings",
+            ],
             "acceptance": [
                 "native PSF measurement rejects the negative controls",
                 "rejection reasons point to alignment/scene mismatch rather than tool failure",
@@ -75,6 +89,8 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
         },
     ]
     validation_commands = [
+        "python3 tools/extract_raw_bayer_u16.py --input <high_8192x6144.dng> --output <high_8192x6144.raw> --write-receipt <high_extract_receipt.json>",
+        "python3 tools/extract_raw_bayer_u16.py --input <low_4096x3072.dng> --output <low_4096x3072.raw> --write-receipt <low_extract_receipt.json>",
         "python3 tools/build_mission1_native_psf_pair_inventory.py --media-summary <media_summary.json> --raw50-dir <decoded_8192x6144_raw_dir> --raw12-dir <decoded_4096x3072_raw_dir> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_<date>",
         "python3 tools/build_mission1_native_psf_measurement_plan.py --pair-inventory /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_<date>/inventory.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_<date>",
         "/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3 tools/build_mission1_native_psf_measurement.py --measurement-plan /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_<date>/measurement_plan.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_<date>",
@@ -103,6 +119,9 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
         "promotion_policy": {
             "near_time_pairs_are_diagnostic_only": True,
             "controlled_same_scene_pairs_required_for_kernel_promotion": True,
+            "pair_promotion_requires_source_hashes_and_decoded_raw_hashes": True,
+            "pair_promotion_requires_fixed_camera_settings": True,
+            "pair_promotion_requires_negative_controls": True,
             "psf_conditioned_model_gate_required_after_kernel": True,
             "new_artifacts_stay_under_external_root": "/Volumes/OWC_8TB/gpr_work",
         },
@@ -133,6 +152,7 @@ def render_html(data: dict[str, Any]) -> str:
         f"<td>{html.escape(str(row['sample_type']))}</td>"
         f"<td>{html.escape(str(row['minimum_pair_count']))}</td>"
         f"<td>{html.escape('; '.join(row['capture_guidance']))}</td>"
+        f"<td>{html.escape('; '.join(row.get('metadata_required') or []))}</td>"
         f"<td>{html.escape('; '.join(row['acceptance']))}</td>"
         "</tr>"
         for row in data["requests"]
@@ -160,7 +180,7 @@ code {{ white-space: normal; overflow-wrap: anywhere; }}
 <p class="sub">Schema {html.escape(data["schema"])}. The current Mission 1 native PSF run has tile support but only two accepted near-time pairs and an unstable kernel. This is the controlled capture handoff needed before a PSF-conditioned 4K/8K SR model can replace the approved baselines.</p>
 <div class="grid">{card_html}</div>
 <h2>Requested Samples</h2>
-<table><thead><tr><th>Priority</th><th>ID</th><th>Type</th><th>Pairs</th><th>Capture guidance</th><th>Acceptance</th></tr></thead><tbody>{request_rows}</tbody></table>
+<table><thead><tr><th>Priority</th><th>ID</th><th>Type</th><th>Pairs</th><th>Capture guidance</th><th>Metadata required</th><th>Acceptance</th></tr></thead><tbody>{request_rows}</tbody></table>
 <h2>Validation Commands</h2>
 <table><tbody>{command_rows}</tbody></table>
 </main></body></html>

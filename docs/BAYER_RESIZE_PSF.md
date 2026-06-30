@@ -165,6 +165,14 @@ rejected the measured kernel as unstable. That narrows the next data need:
 controlled same-scene high/low pairs, not more fitting on the current near-time
 pair set.
 
+The controlled capture request now also requires production provenance for
+each candidate pair: original high/low GPR/DNG paths with SHA-256 source
+hashes, decoded little-endian uint16 Bayer paths with byte counts and hashes,
+fixed camera settings across each pair, extraction receipts or camera-firmware
+decode receipts, and negative controls that are expected to fail alignment or
+scene vetting. This keeps PSF conditioning from being trained on cropped,
+tone-mapped, demosaiced, moved-camera, or otherwise ambiguous data.
+
 ## SR/Detail Candidate Scoreboard
 
 The candidate scoreboard scans historical Mission/Z8 SR and detail decision

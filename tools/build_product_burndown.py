@@ -126,6 +126,9 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             can_do_without_camera=True,
             evidence_required=[
                 "at least three same-scene 8192 x 6144 / 4096 x 3072 pairs",
+                "source hashes and decoded little-endian uint16 Bayer hashes for both sides of each pair",
+                "fixed ISO/exposure/WB/lens/stabilization/sharpening/lens-correction settings",
+                "negative controls that fail scene/alignment vetting",
                 "scene and alignment vetting pass",
                 "stable measured native PSF kernel",
                 "native PSF receipt accepted for model conditioning",

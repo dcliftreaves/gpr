@@ -66,10 +66,22 @@ def main() -> int:
         assert data["summary"]["required_request_count"] == 1
         assert data["summary"]["minimum_new_controlled_pair_count"] == 3
         assert data["promotion_policy"]["controlled_same_scene_pairs_required_for_kernel_promotion"] is True
-        assert any(row["id"] == "mission1_static_high_low_psf_pairs" for row in data["requests"])
+        assert data["promotion_policy"]["pair_promotion_requires_source_hashes_and_decoded_raw_hashes"] is True
+        assert data["promotion_policy"]["pair_promotion_requires_fixed_camera_settings"] is True
+        assert data["promotion_policy"]["pair_promotion_requires_negative_controls"] is True
+        primary = [row for row in data["requests"] if row["id"] == "mission1_static_high_low_psf_pairs"][0]
+        assert any("SHA-256 source hashes" in item for item in primary["metadata_required"])
+        assert any("little-endian uint16 Bayer" in item for item in primary["metadata_required"])
+        assert any("camera and scene did not move" in item for item in primary["metadata_required"])
+        assert any("decoded raw hashes" in item for item in primary["acceptance"])
+        assert any("expected byte size" in item for item in primary["acceptance"])
+        controls = [row for row in data["requests"] if row["id"] == "mission1_psf_negative_controls"][0]
+        assert any("intended negative-control defect" in item for item in controls["metadata_required"])
+        assert any("extract_raw_bayer_u16.py" in command for command in data["validation_commands"])
         assert any("build_mission1_native_psf_measurement.py" in command for command in data["validation_commands"])
         html = (out / "index.html").read_text(encoding="utf-8")
         assert "Raw Video PSF Capture Request" in html
+        assert "Metadata required" in html
         assert proc.stdout.strip() == str(out / "index.html")
     print("test_build_raw_video_psf_capture_request: PASS")
     return 0

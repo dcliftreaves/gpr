@@ -1375,6 +1375,9 @@
       ],
       "metrics": {
         "minimum_new_controlled_pair_count": 3,
+        "pair_promotion_requires_fixed_camera_settings": 1,
+        "pair_promotion_requires_negative_controls": 1,
+        "pair_promotion_requires_source_hashes_and_decoded_raw_hashes": 1,
         "request_count": 2,
         "required_request_count": 1,
         "current_accepted_pair_count": 2,
