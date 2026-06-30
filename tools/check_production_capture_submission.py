@@ -78,6 +78,17 @@ def has_sha(row: dict[str, Any], key: str = "sha256") -> bool:
     return isinstance(value, str) and bool(SHA_RE.match(value))
 
 
+def number_at_least(row: dict[str, Any], key: str, minimum: float) -> tuple[bool, str]:
+    value = row.get(key)
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return False, f"{key} must be numeric and >= {minimum:g}"
+    if parsed < minimum:
+        return False, f"{key} must be >= {minimum:g}"
+    return True, ""
+
+
 def missing_fields(row: dict[str, Any], fields: list[str]) -> list[str]:
     return [field for field in fields if row.get(field) in (None, "")]
 
@@ -217,10 +228,10 @@ def validate_camera_role_receipts(rid: str, submission: dict[str, Any]) -> dict[
         failures.append("valid_gvid must be true")
     if int(row.get("dropped_frames") or 0) != 0:
         failures.append("dropped_frames must be 0")
-    if float(row.get("encode_fps") or 0.0) < 20.0:
-        failures.append("encode_fps must be >= 20")
-    if float(row.get("preview_fps") or 0.0) < 20.0:
-        failures.append("preview_fps must be >= 20")
+    for key in ("encode_fps", "preview_fps"):
+        ok, failure = number_at_least(row, key, 20.0)
+        if not ok:
+            failures.append(failure)
     if row.get("preview_full_frame") is not True:
         failures.append("preview_full_frame must be true")
     if failures:

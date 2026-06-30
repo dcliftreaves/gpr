@@ -44,7 +44,15 @@ artifacts.
 
 When a developer, camera team, or future agent submits new fixtures, darkframes,
 camera-role receipts, PSF pairs, or premium still-SR promotion receipts, validate
-the package with:
+the package by first generating a fill-in manifest template:
+
+```sh
+python3 tools/build_production_capture_submission_template.py \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/submission_template.json
+```
+
+After replacing the placeholders with real paths, hashes, metadata, timing, and
+receipt flags, audit the package with:
 
 ```sh
 python3 tools/check_production_capture_submission.py <submission.json> \
@@ -57,8 +65,8 @@ checker requires source hashes, fixed camera metadata, no-scene-signal flags for
 darkframes, camera-role Mission 1 receipts, controlled PSF pair hashes plus
 negative controls, and no-REF premium still-SR promotion receipts. It exits
 nonzero until every committed requirement is closed by the submitted evidence.
-This is the intake tool for turning the open requirements above into an
-auditable pass/fail package.
+The template builder and checker together are the intake tools for turning the
+open requirements above into an auditable pass/fail package.
 
 ## Current Generated Handoff Views
 
