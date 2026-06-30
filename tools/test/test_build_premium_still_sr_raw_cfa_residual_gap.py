@@ -107,16 +107,18 @@ def main() -> int:
         assert data["target"]["render_to_raw_corr_abs_median"] == 0.691
         assert {row["camera"] for row in data["camera_summary"]} == {"Z8", "X2D"}
         assert any("X2D holdout" in blocker for blocker in data["blockers"])
-        assert data["next_experiments"][0]["name"] == "domain-balanced raw-CFA residual learner"
+        assert data["next_experiments"][0]["name"] == "full-image or structured raw-CFA residual learner"
         assert "sample_balance" in data["models"][0]
         assert "context_padding" in data["models"][0]
+        assert "model_arch" in data["models"][0]
 
         html = (out / "index.html").read_text(encoding="utf-8")
         assert "Premium Still-SR Raw-CFA Residual Gap" in html
         assert "Production ready" in html
-        assert "domain-balanced raw-CFA residual learner" in html
+        assert "full-image or structured raw-CFA residual learner" in html
         assert "Sampler" in html
         assert "Context px" in html
+        assert "Architecture" in html
         assert proc.stdout.strip() == str(out / "index.html")
     print("test_build_premium_still_sr_raw_cfa_residual_gap: PASS")
     return 0

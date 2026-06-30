@@ -242,6 +242,7 @@ The next X2D probes narrowed that further:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_x2donly_w48_2200_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json
 ```
 
 The wider/block17 raw-target pass makes the hard X2D holdout barely positive
@@ -274,11 +275,17 @@ larger residuals and larger local patches", "add simple pooled context planes",
 version of the same local objective" as the next path. A simple multiscale
 residual-band loss objective also fails: it trains on 324 rows, holds out the
 same 27 X2D rows, and lands at about -0.54 percent median holdout recovery.
-The next candidate should use stronger full-image/structured raw context or a
-different objective, not just the stored-HF feature, simple noise thresholding,
-local loss-weight tuning, pooled-context feature concatenation, combined local
-feature concatenation, simple band-loss reweighting, camera-domain filtering,
-camera-balanced sampling, or small context padding alone.
+A bounded small U-Net/multiscale architecture probe is the first candidate in
+this raw-domain branch to move the hard X2D holdout directionally positive:
+1200 steps, width 32, 32 px context padding, candidate-only runtime inputs,
+about 0.10 percent median raw-residual MAE recovery, and about 0.02 percent
+median RMSE recovery. That is useful evidence for multi-scale structure, but
+it remains far below promotion. The next candidate should use stronger
+full-image/structured raw context or a different objective, not just the
+stored-HF feature, simple noise thresholding, local loss-weight tuning,
+pooled-context feature concatenation, combined local feature concatenation,
+simple band-loss reweighting, camera-domain filtering, camera-balanced
+sampling, small context padding, or a small U-Net alone.
 
 ## Raw-CFA Feature Smoke
 

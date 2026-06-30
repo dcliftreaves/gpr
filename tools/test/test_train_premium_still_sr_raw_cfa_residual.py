@@ -110,6 +110,7 @@ def main() -> int:
                 "steps": 3,
                 "batch_size": 2,
                 "patch_size": 20,
+                "model_arch": "residual",
                 "width": 8,
                 "depth": 2,
                 "residual_scale": 0.08,
@@ -147,6 +148,7 @@ def main() -> int:
         assert Path(receipt["artifacts"]["panel_sheet"]).stat().st_size > 0
         assert receipt["eval"]["train"]["row_count"] == 3
         assert receipt["eval"]["holdout"]["row_count"] == 1
+        assert receipt["config"]["model_arch"] == "residual"
         assert receipt["config"]["feature_mode"] == "raw_multiscale_coord_ev_noise"
         assert receipt["config"]["holdout_scene"] == "holdout_scene"
         assert receipt["config"]["train_camera"] == "z8"
@@ -222,6 +224,16 @@ def main() -> int:
         assert context_padded_receipt["eval"]["holdout"]["context_padding"] == 3
         assert context_padded_receipt["policy"]["model_context_padding_pixels"] == 3
         assert context_padded_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
+        args.output_dir = root / "unet_holdout"
+        args.model_arch = "unet"
+        args.context_padding = 0
+        args.patch_size = 20
+        args.eval_tile = 19
+        unet_receipt = tool.train(args)
+        assert unet_receipt["eval"]["holdout"]["row_count"] == 1
+        assert unet_receipt["config"]["model_arch"] == "unet"
+        assert unet_receipt["policy"]["uses_source_raw_at_runtime"] is False
 
         bad_npz = root / "bad_targets.npz"
         np.savez_compressed(

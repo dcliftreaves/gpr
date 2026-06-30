@@ -14,7 +14,7 @@ The generated audit dashboard for these same four pillars is tracked in
 |---|---:|---|---|
 | Raw stills for 50 MP / 100 MP cameras | 90% | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, RGGB plus Mission 1 GBRG real-fixture coverage, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars. |
 | Raw video MVP for GoPro / Mission 1 | 80% | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | 60% | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, raw-CFA expanded targets, no-REF HF residual probes including a matched dilated raw-CFA gate, calibrated noise-clean target sweep, raw-CFA residual alignment audit, trainable raw-CFA residual target NPZ, and true raw-CFA residual model receipts including X2D-only, combined stored-HF/context, and multiscale band-loss rejection evidence. | Not done until learned/modelled high-frequency texture restoration receipts pass; raw-CFA helps, the current local/dilated/domain-filtered/context/objective residual probes remain far below promotion, ISO 200 noise cleaning is too small to explain the gap, and the raw-domain trainer narrows the blocker to X2D raw-detail recovery strength. |
+| Raw stills improvement / expensive SR | 60% | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, raw-CFA expanded targets, no-REF HF residual probes including a matched dilated raw-CFA gate, calibrated noise-clean target sweep, raw-CFA residual alignment audit, trainable raw-CFA residual target NPZ, and true raw-CFA residual model receipts including X2D-only, combined stored-HF/context, multiscale band-loss rejection evidence, and a small U-Net raw-domain probe. | Not done until learned/modelled high-frequency texture restoration receipts pass; raw-CFA helps, the small U-Net is only barely positive on X2D, ISO 200 noise cleaning is too small to explain the gap, and the raw-domain trainer narrows the blocker to X2D raw-detail recovery strength plus missing full-image/structured context. |
 | Raw video improvement / PSF-aware Bayer resize | 44% | Partly done through 4K cleanup, candidate-aware 8K SR, native high/low pair inventory, measurement plan, first native measurement run, and a hash-strict PSF gap closure plan. | Not done as a formal PSF/blur-calibrated resizing model until controlled high/low pairs with source hashes, decoded Bayer hashes, fixed settings, and negative controls produce a stable native kernel and PSF-conditioned gates pass. |
 
 ## 1. Raw Stills
@@ -223,13 +223,17 @@ Current evidence:
   pooled raw-context feature probe, combined stored-HF plus pooled-context
   feature probe, multiscale band-loss objective probe, X2D-only
   train-domain filter, camera-balanced sampler pass, and 32 px context-padding
-  pass remain negative. Those
+  pass remain negative. A bounded small U-Net/multiscale architecture probe
+  is candidate-only at runtime and moves the hard X2D holdout barely positive
+  at about 0.10 percent median raw-residual MAE recovery, with about 0.02
+  percent median RMSE recovery, but remains far below promotion. Those
   receipts narrow the blocker to X2D raw-detail recovery
   strength and missing full-image/structured context, not
   target availability, stored-HF feature mismatch, naive noise subtraction,
   local loss-weight/patch-size tuning, simple context-plane concatenation, or
   combined local-feature concatenation, simple band-loss reweighting,
-  camera-domain filtering, camera-balanced sampling, or small context padding alone:
+  camera-domain filtering, camera-balanced sampling, small context padding, or
+  a small U-Net alone:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w64_5000_block17_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_storedhf_w32_2000_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/index.html`,
@@ -239,7 +243,8 @@ Current evidence:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_x2donly_w48_2200_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/index.html`,
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/index.html`.
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/index.html`,
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/index.html`.
 - `tools/build_premium_still_sr_visual_review.py` emits the current tile-level
   visual review dashboard with baseline/model/target/error contact sheets for
   the X2D holdout:

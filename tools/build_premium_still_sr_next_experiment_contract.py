@@ -133,7 +133,7 @@ def build_contract(
             "blockers": blockers,
         },
         "next_model_contract": {
-            "recommended_first_track": "domain-balanced full-image or routed raw-CFA residual learner",
+            "recommended_first_track": "full-image or structured raw-CFA residual learner",
             "allowed_runtime_inputs": [
                 "candidate raw/CFA planes",
                 "candidate-derived luma/detail features",
@@ -156,6 +156,7 @@ def build_contract(
                 "X2D-only domain filtering without a stronger context/objective",
                 "camera-balanced sampling without a stronger context/objective",
                 "small context-padding around the same local objective",
+                "small U-Net/multiscale architecture without stronger supervision or full-image context",
                 "calibrated random-HF or noise addback as a substitute for learned signal detail",
             ],
             "success_gates": [

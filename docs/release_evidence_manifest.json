@@ -1337,14 +1337,15 @@
         "artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json",
         "artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json",
-        "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json"
+        "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json",
+        "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json"
       ],
       "metrics": {
         "target_rows": 351,
         "target_scenes": 13,
         "render_to_raw_corr_abs_median": 0.6912654943469239,
-        "model_receipt_count": 12,
-        "best_x2d_holdout_mae_recovery_pct": 0.02164405662232214,
+        "model_receipt_count": 13,
+        "best_x2d_holdout_mae_recovery_pct": 0.09981604486103075,
         "x2d_loss_weight_patch_probe_holdout_mae_recovery_pct": -0.6484285043976422,
         "x2d_pooled_context_probe_holdout_mae_recovery_pct": -0.330202424153684,
         "x2d_context_storedhf_probe_holdout_mae_recovery_pct": -0.4258695412707576,
@@ -1352,6 +1353,7 @@
         "x2d_only_domain_probe_holdout_mae_recovery_pct": -0.15236912961782187,
         "x2d_camera_balanced_sampler_probe_holdout_mae_recovery_pct": -0.4486720189406414,
         "x2d_context_padding_probe_holdout_mae_recovery_pct": -0.1559764723882089,
+        "x2d_unet_context_probe_holdout_mae_recovery_pct": 0.09981604486103075,
         "best_z8_holdout_mae_recovery_pct": 0.4983379829708305,
         "promotion_threshold_pct": 15.0,
         "production_ready": 0

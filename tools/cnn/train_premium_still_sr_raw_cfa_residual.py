@@ -55,7 +55,8 @@ def block_highpass(x: torch.Tensor, block: int) -> torch.Tensor:
     if block % 2 == 0:
         block += 1
     pad = block // 2
-    low = F.avg_pool2d(F.pad(x, (pad, pad, pad, pad), mode="reflect"), block, stride=1)
+    mode = "reflect" if x.shape[-1] > pad and x.shape[-2] > pad else "replicate"
+    low = F.avg_pool2d(F.pad(x, (pad, pad, pad, pad), mode=mode), block, stride=1)
     return x - low
 
 
@@ -343,7 +344,8 @@ def lowpass(x: torch.Tensor, block: int) -> torch.Tensor:
     if block % 2 == 0:
         block += 1
     pad = block // 2
-    return F.avg_pool2d(F.pad(x, (pad, pad, pad, pad), mode="reflect"), block, stride=1)
+    mode = "reflect" if x.shape[-1] > pad and x.shape[-2] > pad else "replicate"
+    return F.avg_pool2d(F.pad(x, (pad, pad, pad, pad), mode=mode), block, stride=1)
 
 
 def normalize_band_blocks(values: list[int]) -> list[int]:
@@ -414,6 +416,67 @@ class RawCfaResidualNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return torch.tanh(self.net(x)) * self.residual_scale
+
+
+class ConvAct(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int, stride: int = 1) -> None:
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 3, stride=stride, padding=1),
+            nn.GELU(),
+            nn.Conv2d(out_channels, out_channels, 3, padding=1),
+            nn.GELU(),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x)
+
+
+class RawCfaResidualUNet(nn.Module):
+    def __init__(self, in_channels: int, width: int = 32, depth: int = 4, residual_scale: float = 0.12) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        w1 = max(8, int(width))
+        w2 = w1 * 2
+        w3 = w1 * 4
+        self.enc0 = ConvAct(in_channels, w1)
+        self.enc1 = ConvAct(w1, w2, stride=2)
+        self.enc2 = ConvAct(w2, w3, stride=2)
+        self.bottleneck = nn.Sequential(*[ResidualBlock(w3, dilation=2 if i % 2 else 1) for i in range(max(1, depth))])
+        self.dec1 = ConvAct(w3 + w2, w2)
+        self.dec0 = ConvAct(w2 + w1, w1)
+        self.tail = nn.Conv2d(w1, 4, 3, padding=1)
+        nn.init.zeros_(self.tail.weight)
+        nn.init.zeros_(self.tail.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        e0 = self.enc0(x)
+        e1 = self.enc1(e0)
+        e2 = self.enc2(e1)
+        b = self.bottleneck(e2)
+        u1 = F.interpolate(b, size=e1.shape[-2:], mode="bilinear", align_corners=False)
+        d1 = self.dec1(torch.cat([u1, e1], dim=1))
+        u0 = F.interpolate(d1, size=e0.shape[-2:], mode="bilinear", align_corners=False)
+        d0 = self.dec0(torch.cat([u0, e0], dim=1))
+        return torch.tanh(self.tail(d0)) * self.residual_scale
+
+
+def build_model(model_arch: str, in_channels: int, width: int, depth: int, residual_scale: float) -> nn.Module:
+    if model_arch == "residual":
+        return RawCfaResidualNet(
+            in_channels=in_channels,
+            width=width,
+            depth=depth,
+            residual_scale=residual_scale,
+        )
+    if model_arch == "unet":
+        return RawCfaResidualUNet(
+            in_channels=in_channels,
+            width=width,
+            depth=depth,
+            residual_scale=residual_scale,
+        )
+    raise ValueError(f"unknown model_arch: {model_arch}")
 
 
 class RawCfaResidualTargets:
@@ -526,7 +589,7 @@ class RawCfaResidualTargets:
 
 @torch.no_grad()
 def eval_rows(
-    model: RawCfaResidualNet,
+    model: nn.Module,
     data: RawCfaResidualTargets,
     indices: list[int],
     *,
@@ -623,7 +686,7 @@ def cfa4_to_rgb_preview(arr: np.ndarray) -> np.ndarray:
 @torch.no_grad()
 def write_panel_sheet(
     path: Path,
-    model: RawCfaResidualNet,
+    model: nn.Module,
     data: RawCfaResidualTargets,
     indices: list[int],
     *,
@@ -750,7 +813,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
     device = torch.device(args.device) if args.device else DEVICE
-    model = RawCfaResidualNet(
+    model = build_model(
+        args.model_arch,
         in_channels=feature_channels(args.feature_mode),
         width=args.width,
         depth=args.depth,
@@ -828,6 +892,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "state_dict": model.state_dict(),
             "config": {
                 "feature_mode": args.feature_mode,
+                "model_arch": args.model_arch,
                 "feature_block": args.feature_block,
                 "steps": args.steps,
                 "width": args.width,
@@ -871,6 +936,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "steps": args.steps,
         "config": {
             "feature_mode": args.feature_mode,
+            "model_arch": args.model_arch,
             "feature_block": args.feature_block,
             "steps": args.steps,
             "width": args.width,
@@ -926,6 +992,12 @@ def main() -> int:
     ap.add_argument("--width", type=int, default=48)
     ap.add_argument("--depth", type=int, default=6)
     ap.add_argument("--residual-scale", type=float, default=0.12)
+    ap.add_argument(
+        "--model-arch",
+        choices=("residual", "unet"),
+        default="residual",
+        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context.",
+    )
     ap.add_argument(
         "--feature-mode",
         choices=(
