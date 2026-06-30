@@ -28,6 +28,9 @@ REQUIRED_SECTIONS = (
 REQUIRED_README_TOKENS = (
     "8-bit JPEG size. 16-bit RAW quality.",
     "Current four-pillar completion is **69%**",
+    "production-readiness burn-down",
+    "not an image-quality score",
+    "not a regression signal for locked artifacts",
     "**1. Best RAW stills**",
     "**2. GoPro RAW video MVP**",
     "**3. Premium still/SR**",
@@ -105,6 +108,8 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
                 "| GoPro RAW video MVP | 80% |",
                 "| Premium still/SR | 60% |",
                 "| PSF-aware RAW video improvement | 44% |",
+                "The percentages are production-readiness burn-down estimates.",
+                "not regression signals for locked artifacts",
             ),
             scorecard_path.name,
             failures,

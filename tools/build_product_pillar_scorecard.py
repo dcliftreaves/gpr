@@ -251,6 +251,22 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "production_ready": all(bool(p["production_ready"]) for p in pillars),
         "four_pillar_completion_percent": four_pillar_percent,
         "interpretation": "This is an execution scorecard. It is intentionally not a release claim while any pillar has open production work.",
+        "score_semantics": {
+            "kind": "readiness_burndown_estimate",
+            "not_a_quality_metric": True,
+            "not_a_locked_artifact_regression_signal": True,
+            "policy": (
+                "Readiness percentages summarize remaining production evidence, fixture, hardware, and promotion work. "
+                "They must not be interpreted as a regression of locked algorithms. A locked artifact regresses only if "
+                "its own committed gate, receipt, hash, or CI guard fails."
+            ),
+            "locked_artifact_examples": [
+                "production STILL q0/q3/q8 tiers",
+                "Mission 1 4K cleanup offline/review checkpoint",
+                "Mission 1 candidate-aware 8K SR offline checkpoint",
+                "Mission 1 Pi-stand-in raw-video/preview receipts",
+            ],
+        },
         "pillars": pillars,
         "next_actions": [
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
@@ -326,6 +342,7 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
     .headline {{ display: flex; gap: 20px; align-items: end; flex-wrap: wrap; margin-top: 18px; }}
     .overall {{ font-size: 54px; font-weight: 760; }}
     .overall-label {{ color: #56616d; padding-bottom: 12px; }}
+    .semantics {{ margin-top: 16px; padding: 12px 14px; background: #fff; border: 1px solid #dce2e7; border-left: 5px solid #1267a3; border-radius: 8px; max-width: 920px; }}
     .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }}
     .card {{ background: white; border: 1px solid #dce2e7; border-radius: 8px; padding: 16px; min-height: 150px; }}
     .card.strong {{ border-top: 5px solid #16794c; }}
@@ -351,6 +368,7 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
       <div class="overall">{data["four_pillar_completion_percent"]}%</div>
       <div class="overall-label">four-pillar completion; production ready: {str(data["production_ready"]).lower()}</div>
     </div>
+    <p class="semantics"><strong>Readiness percentages are not quality metrics.</strong> They summarize remaining production evidence, fixture, hardware, and promotion work. Locked algorithms regress only when their own committed gate, receipt, hash, or CI guard fails.</p>
   </section>
   <div class="grid">
     {''.join(cards)}

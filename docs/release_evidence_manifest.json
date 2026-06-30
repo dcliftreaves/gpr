@@ -1261,6 +1261,27 @@
       }
     },
     {
+      "id": "cnn_dataset_inventory_20260630",
+      "family": "cnn_sr",
+      "status": "diagnostic",
+      "purpose": "Inventory of the large external CNN/SR corpora and their current roles, including canonical current, diagnostic, legacy, and large-reference boundaries.",
+      "dashboard": "artifacts/cnn_dataset_inventory_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/CNN_PRODUCT_SCORECARD_2026-06-29.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/cnn_dataset_inventory_20260630/cnn_dataset_inventory.json",
+        "artifacts/cnn_dataset_inventory_20260630/index.html"
+      ],
+      "metrics": {
+        "dataset_count": 7,
+        "canonical_current_count": 3,
+        "legacy_reference_count": 1
+      }
+    },
+    {
       "id": "realphoto_bayer_phase_sample_20260630",
       "family": "stills_fixtures",
       "status": "diagnostic",

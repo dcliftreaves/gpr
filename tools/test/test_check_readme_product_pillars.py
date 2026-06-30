@@ -38,6 +38,8 @@ def main() -> int:
                     "| GoPro RAW video MVP | 80% |",
                     "| Premium still/SR | 60% |",
                     "| PSF-aware RAW video improvement | 44% |",
+                    "The percentages are production-readiness burn-down estimates.",
+                    "not regression signals for locked artifacts",
                 )
             ),
             encoding="utf-8",

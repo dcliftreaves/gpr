@@ -36,6 +36,11 @@ Current four-pillar completion is **69%**. The repo is ready to show as a
 working raw-stills and raw-video prototype, with the remaining gates called out
 explicitly instead of hidden in experiment history.
 
+The percentage is a production-readiness burn-down, not an image-quality score
+and not a regression signal for locked artifacts. The approved 4K cleanup,
+offline 8K SR, STILL tiers, and Pi-stand-in raw-video receipts remain locked
+unless their own committed gate, receipt, hash, or CI guard fails.
+
 | product pillar | current product story | proof in hand | remaining production gate |
 |---|---|---|---|
 | **1. Best RAW stills** | Compact editable Bayer stills for 50 MP and 100 MP-class cameras, with normal CFA support and a path toward camera-noise-aware compression. | 12/14/16-bit stills, three 50 MP tiers down to **9.80 MB**, real X2D 100MP roundtrip, RGGB/GBRG real fixtures, synthetic RGGB/GBRG/GRBG/BGGR conformance, X2D/Z8 darkframe sidecars. | Add real GRBG/BGGR fixtures, Mission 1 darkframe stacks, and iPhone CFA darkframes before claiming broad real-camera phase/noise coverage. |
@@ -252,6 +257,7 @@ current evidence so strict local checks can verify it.
 | Four-pillar product scorecard | [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630/index.html` |
 | Four-pillar production burn-down | `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html` |
 | CNN/product scorecard | [`docs/CNN_PRODUCT_SCORECARD_2026-06-29.md`](docs/CNN_PRODUCT_SCORECARD_2026-06-29.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/cnn_product_scorecard_20260629/index.html` |
+| CNN dataset inventory | `/Volumes/OWC_8TB/gpr_work/artifacts/cnn_dataset_inventory_20260630/index.html` |
 | Premium still-SR raw-CFA residual gap | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` |
 | Still/video ship decisions | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) |
 | Video, preview, and Mission 1 status | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) |

@@ -55,6 +55,9 @@ def main() -> int:
         assert data["schema"] == "gpr.product_pillar_scorecard.v1"
         assert data["production_ready"] is False
         assert data["four_pillar_completion_percent"] == 69
+        assert data["score_semantics"]["kind"] == "readiness_burndown_estimate"
+        assert data["score_semantics"]["not_a_quality_metric"] is True
+        assert data["score_semantics"]["not_a_locked_artifact_regression_signal"] is True
         assert [p["id"] for p in data["pillars"]] == [
             "raw_stills",
             "raw_video_mvp",
@@ -72,6 +75,7 @@ def main() -> int:
         assert "GPR Product Pillar Scorecard" in html
         assert "Best RAW stills" in html
         assert "GoPro RAW video MVP" in html
+        assert "Readiness percentages are not quality metrics" in html
         assert "production ready: false" in html
         assert proc.stdout.strip() == str(dashboard)
     print("test_build_product_pillar_scorecard: PASS")

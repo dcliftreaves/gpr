@@ -32,6 +32,16 @@ Companion production burn-down dashboard:
 The burn-down is the action view: it separates the one Mission 1 hardware-only
 closure from the remaining non-camera fixture, CNN, and PSF work.
 
+## Score Semantics
+
+The percentages are production-readiness burn-down estimates. They are not
+image-quality metrics and they are not regression signals for locked artifacts.
+A locked path regresses only when its own committed gate, receipt, hash, or CI
+guard fails. This matters because the approved 4K cleanup, offline 8K SR,
+production STILL tiers, and Pi-stand-in raw-video/preview receipts can remain
+locked while the overall readiness score stays below 100% because hardware,
+fixture, noise-sidecar, PSF, or promotion evidence is still missing.
+
 Current interpretation:
 
 | pillar | current score | production reading |

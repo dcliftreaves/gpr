@@ -30,6 +30,35 @@ Regression smoke:
 python3 tools/test/test_build_cnn_product_scorecard.py
 ```
 
+## Dataset Inventory
+
+The large external CNN/SR corpora are indexed separately so new training runs
+start from the current canonical target set instead of an older artifact tree:
+
+```bash
+python3 tools/build_cnn_dataset_inventory.py \
+  --external-root /Volumes/OWC_8TB/gpr_work \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/cnn_dataset_inventory_20260630
+```
+
+Current dashboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/cnn_dataset_inventory_20260630/index.html
+```
+
+Current canonical rows are:
+
+- `current_goal_bayer_rgb_target_cleanup_20260625` for Mission/Z8 4K cleanup
+  and 8K SR replacement work;
+- `premium_still_sr_expanded_rawcfa_hf_targets_20260630` for the expanded
+  raw-CFA still-SR target set;
+- `premium_still_sr_raw_cfa_residual_targets_20260630` for direct raw residual
+  still-SR supervision.
+
+The inventory deliberately marks `mission1_sr_pairs_20260616` as legacy and
+`upresable` as a large reference corpus, not the current SR training source.
+
 ## Current Verdict
 
 | path | registry id | verdict | boundary |

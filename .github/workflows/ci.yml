@@ -138,7 +138,9 @@ jobs:
         run: python3 tools/test/test_build_mission1_8k_sr_visual_review.py
 
       - name: CNN product scorecard regression
-        run: python3 tools/test/test_build_cnn_product_scorecard.py
+        run: |
+          python3 tools/test/test_build_cnn_product_scorecard.py
+          python3 tools/test/test_build_cnn_dataset_inventory.py
 
       - name: Mission 1 camera dispatch input regression
         run: python3 tools/test/test_mission1_camera_dispatch_inputs.py
