@@ -169,6 +169,7 @@ def main() -> int:
         assert any("X2D median raw-residual MAE recovery >= 15.0%" == gate for gate in contract["success_gates"])
         assert any("stored candidate-HF" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("camera-balanced sampling" in item for item in contract["do_not_repeat_as_primary_path"])
+        assert any("context-padding" in item for item in contract["do_not_repeat_as_primary_path"])
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "Premium Still-SR Next Experiment Contract" in html
         assert "Forbidden Runtime Inputs" in html

@@ -222,13 +222,14 @@ Current evidence:
   noise-soft-threshold target, larger-patch high-residual-weighted probe, first
   pooled raw-context feature probe, combined stored-HF plus pooled-context
   feature probe, multiscale band-loss objective probe, X2D-only
-  train-domain filter, and camera-balanced sampler pass remain negative. Those
+  train-domain filter, camera-balanced sampler pass, and 32 px context-padding
+  pass remain negative. Those
   receipts narrow the blocker to X2D raw-detail recovery
   strength and missing full-image/structured context, not
   target availability, stored-HF feature mismatch, naive noise subtraction,
   local loss-weight/patch-size tuning, simple context-plane concatenation, or
   combined local-feature concatenation, simple band-loss reweighting,
-  camera-domain filtering, or camera-balanced sampling alone:
+  camera-domain filtering, camera-balanced sampling, or small context padding alone:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w64_5000_block17_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_storedhf_w32_2000_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/index.html`,
@@ -237,7 +238,8 @@ Current evidence:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_x2donly_w48_2200_20260630/index.html`,
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/index.html`.
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/index.html`,
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/index.html`.
 - `tools/build_premium_still_sr_visual_review.py` emits the current tile-level
   visual review dashboard with baseline/model/target/error contact sheets for
   the X2D holdout:

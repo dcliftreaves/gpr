@@ -241,6 +241,7 @@ The next X2D probes narrowed that further:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_x2donly_w48_2200_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json
 ```
 
 The wider/block17 raw-target pass makes the hard X2D holdout barely positive
@@ -264,7 +265,10 @@ and lands at about -0.43 percent median holdout recovery while also regressing
 the training split to about -0.70 percent. A camera-balanced sampler pass with
 the same candidate-only runtime contract also regresses the hard X2D holdout,
 landing at about -0.45 percent median raw-residual MAE recovery and about
--0.50 percent median RMSE recovery. That rules out "just emphasize
+-0.50 percent median RMSE recovery. A first 32 px context-padding pass also
+stays negative on the hard X2D holdout at about -0.16 percent median MAE
+recovery and -0.31 percent median RMSE recovery, despite using only
+candidate-side runtime inputs. That rules out "just emphasize
 larger residuals and larger local patches", "add simple pooled context planes",
 "combine stored-HF with pooled local context", and "route to an X2D-only
 version of the same local objective" as the next path. A simple multiscale
@@ -274,7 +278,7 @@ The next candidate should use stronger full-image/structured raw context or a
 different objective, not just the stored-HF feature, simple noise thresholding,
 local loss-weight tuning, pooled-context feature concatenation, combined local
 feature concatenation, simple band-loss reweighting, camera-domain filtering,
-or camera-balanced sampling alone.
+camera-balanced sampling, or small context padding alone.
 
 ## Raw-CFA Feature Smoke
 

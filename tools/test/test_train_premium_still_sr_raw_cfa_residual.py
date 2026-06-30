@@ -129,6 +129,7 @@ def main() -> int:
                 "holdout_ev": None,
                 "train_camera": "z8",
                 "sample_balance": "row",
+                "context_padding": 0,
                 "eval_every": 0,
                 "eval_tile": 40,
                 "panel_rows": 2,
@@ -153,6 +154,7 @@ def main() -> int:
         assert receipt["config"]["band_weight"] == 0.0
         assert receipt["config"]["band_blocks"] == [5, 9]
         assert receipt["config"]["sample_balance"] == "row"
+        assert receipt["config"]["context_padding"] == 0
         assert "exact_raw_mae_reduction_pct" in receipt["eval"]["holdout"]
 
         args.output_dir = root / "camera_holdout"
@@ -208,6 +210,18 @@ def main() -> int:
         assert camera_balanced_receipt["eval"]["holdout"]["row_count"] == 1
         assert camera_balanced_receipt["config"]["sample_balance"] == "camera"
         assert camera_balanced_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
+        args.output_dir = root / "context_padded_holdout"
+        args.sample_balance = "row"
+        args.context_padding = 3
+        args.patch_size = 18
+        args.eval_tile = 17
+        context_padded_receipt = tool.train(args)
+        assert context_padded_receipt["eval"]["holdout"]["row_count"] == 1
+        assert context_padded_receipt["config"]["context_padding"] == 3
+        assert context_padded_receipt["eval"]["holdout"]["context_padding"] == 3
+        assert context_padded_receipt["policy"]["model_context_padding_pixels"] == 3
+        assert context_padded_receipt["policy"]["uses_source_raw_at_runtime"] is False
 
         bad_npz = root / "bad_targets.npz"
         np.savez_compressed(

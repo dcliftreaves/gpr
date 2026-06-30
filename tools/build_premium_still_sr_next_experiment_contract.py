@@ -155,6 +155,7 @@ def build_contract(
                 "simple multiscale band-loss reweighting",
                 "X2D-only domain filtering without a stronger context/objective",
                 "camera-balanced sampling without a stronger context/objective",
+                "small context-padding around the same local objective",
                 "calibrated random-HF or noise addback as a substitute for learned signal detail",
             ],
             "success_gates": [

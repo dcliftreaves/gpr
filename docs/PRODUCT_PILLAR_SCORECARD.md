@@ -339,7 +339,7 @@ the X2D-only split remains negative at about -0.15 percent. The
 next model needs full-image/structured raw context or a different objective,
 not another local loss-weight/patch-size pass, simple context-plane
 concatenation, combined local-feature concatenation, simple band-loss
-reweighting, camera-domain filtering, or camera-balanced sampling alone.
+reweighting, camera-domain filtering, camera-balanced sampling, or 32px context padding alone.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a

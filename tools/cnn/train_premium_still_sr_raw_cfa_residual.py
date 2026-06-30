@@ -165,6 +165,24 @@ def infer_row_camera(row: dict[str, Any]) -> str:
     return "unknown"
 
 
+def context_crop_np(arr: np.ndarray, idx: int, y0: int, x0: int, patch: int, context_padding: int) -> np.ndarray:
+    if context_padding <= 0:
+        return arr[idx, y0 : y0 + patch, x0 : x0 + patch]
+    padded = np.pad(
+        arr[idx],
+        ((context_padding, context_padding), (context_padding, context_padding), (0, 0)),
+        mode="edge",
+    )
+    return padded[y0 : y0 + patch + 2 * context_padding, x0 : x0 + patch + 2 * context_padding]
+
+
+def center_crop_like(pred: torch.Tensor, target: torch.Tensor, context_padding: int) -> torch.Tensor:
+    if context_padding <= 0:
+        return pred
+    _, _, target_h, target_w = target.shape
+    return pred[:, :, context_padding : context_padding + target_h, context_padding : context_padding + target_w]
+
+
 def apply_target_policy(
     target: torch.Tensor,
     sigma4: torch.Tensor | None,
@@ -457,6 +475,7 @@ class RawCfaResidualTargets:
         patch_size: int,
         rng: random.Random,
         sample_balance: str = "row",
+        context_padding: int = 0,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
         xs: list[np.ndarray] = []
         ys: list[np.ndarray] = []
@@ -488,10 +507,10 @@ class RawCfaResidualTargets:
                 idx = rng.choice(groups[rng.choice(group_keys)])
             y0 = rng.randrange(0, h - patch + 1) if h > patch else 0
             x0 = rng.randrange(0, w - patch + 1) if w > patch else 0
-            xs.append(self.candidate_raw[idx, y0 : y0 + patch, x0 : x0 + patch].transpose(2, 0, 1))
+            xs.append(context_crop_np(self.candidate_raw, idx, y0, x0, patch, context_padding).transpose(2, 0, 1))
             ys.append(self.target[idx, y0 : y0 + patch, x0 : x0 + patch].transpose(2, 0, 1))
             if self.candidate_raw_hf is not None:
-                hfs.append(self.candidate_raw_hf[idx, y0 : y0 + patch, x0 : x0 + patch].transpose(2, 0, 1))
+                hfs.append(context_crop_np(self.candidate_raw_hf, idx, y0, x0, patch, context_padding).transpose(2, 0, 1))
             evs.append(float(self.rows[idx].get("ev", 0.0)))
             noises.append(self.noise_features[idx])
             sigmas.append(self.noise_sigma4[idx])
@@ -517,6 +536,7 @@ def eval_rows(
     noise_threshold_scale: float,
     device: torch.device,
     tile: int,
+    context_padding: int,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     model.eval()
@@ -539,13 +559,21 @@ def eval_rows(
         )
         pred = torch.zeros_like(target)
         _, _, height, width = raw.shape
+        pad = max(0, int(context_padding))
+        raw_padded = torch.nn.functional.pad(raw, (pad, pad, pad, pad), mode="replicate") if pad else raw
+        stored_hf_padded = (
+            torch.nn.functional.pad(stored_hf, (pad, pad, pad, pad), mode="replicate")
+            if pad and stored_hf is not None
+            else stored_hf
+        )
         for y0 in range(0, height, tile):
             for x0 in range(0, width, tile):
-                raw_tile = raw[:, :, y0 : y0 + tile, x0 : x0 + tile]
-                hf_tile = stored_hf[:, :, y0 : y0 + tile, x0 : x0 + tile] if stored_hf is not None else None
-                pred[:, :, y0 : y0 + tile, x0 : x0 + tile] = model(
-                    make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile)
-                )
+                y1 = min(y0 + tile, height)
+                x1 = min(x0 + tile, width)
+                raw_tile = raw_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad]
+                hf_tile = stored_hf_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad] if stored_hf_padded is not None else None
+                pred_tile = model(make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile))
+                pred[:, :, y0:y1, x0:x1] = pred_tile[:, :, pad : pad + (y1 - y0), pad : pad + (x1 - x0)] if pad else pred_tile
         base_err = target
         pred_err = pred - target
         raw_pred_err = pred - raw_target
@@ -580,6 +608,7 @@ def eval_rows(
         "model_raw_residual_rmse": stats([row["model_raw_residual_rmse"] for row in rows]),
         "raw_residual_rmse_reduction_pct": stats([row["raw_residual_rmse_reduction_pct"] for row in rows]),
         "exact_raw_mae_reduction_pct": stats([row["exact_raw_mae_reduction_pct"] for row in rows]),
+        "context_padding": context_padding,
         "rows": rows,
     }
 
@@ -737,6 +766,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             args.patch_size,
             rng,
             args.sample_balance,
+            args.context_padding,
         )
         x = x.to(device)
         y = y.to(device)
@@ -751,6 +781,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             noise_threshold_scale=args.noise_threshold_scale,
         )
         pred = model(make_features(x, args.feature_mode, args.feature_block, ev, noise, stored_hf))
+        pred = center_crop_like(pred, y, args.context_padding)
         loss = (
             residual_loss(pred, y, target_abs_weight=args.target_abs_weight)
             + args.grad_weight * gradient_l1(pred, y)
@@ -773,6 +804,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         noise_threshold_scale=args.noise_threshold_scale,
         device=device,
         tile=args.eval_tile,
+        context_padding=args.context_padding,
     )
     holdout_eval = None
     if holdout_indices:
@@ -786,6 +818,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             noise_threshold_scale=args.noise_threshold_scale,
             device=device,
             tile=args.eval_tile,
+            context_padding=args.context_padding,
         )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = args.output_dir / args.checkpoint_name
@@ -796,6 +829,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "config": {
                 "feature_mode": args.feature_mode,
                 "feature_block": args.feature_block,
+                "steps": args.steps,
                 "width": args.width,
                 "depth": args.depth,
                 "residual_scale": args.residual_scale,
@@ -806,6 +840,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "noise_threshold_scale": args.noise_threshold_scale,
                 "train_camera": args.train_camera,
                 "sample_balance": args.sample_balance,
+                "context_padding": args.context_padding,
             },
         },
         checkpoint,
@@ -837,6 +872,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "config": {
             "feature_mode": args.feature_mode,
             "feature_block": args.feature_block,
+            "steps": args.steps,
             "width": args.width,
             "depth": args.depth,
             "residual_scale": args.residual_scale,
@@ -855,12 +891,14 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "holdout_ev": args.holdout_ev,
             "train_camera": args.train_camera,
             "sample_balance": args.sample_balance,
+            "context_padding": args.context_padding,
             "seed": args.seed,
         },
         "policy": {
             "uses_source_raw_at_training": True,
             "uses_source_raw_at_runtime": False,
             "runtime_inputs": runtime_input_summary(args.feature_mode),
+            "model_context_padding_pixels": args.context_padding,
             "production_status": "training_probe_not_registered_production_algorithm",
             "target_policy": args.target_policy,
         },
@@ -936,6 +974,12 @@ def main() -> int:
         choices=("row", "camera", "scene"),
         default="row",
         help="Training sampler. row preserves legacy behavior; camera and scene sample groups uniformly before rows.",
+    )
+    ap.add_argument(
+        "--context-padding",
+        type=int,
+        default=0,
+        help="Candidate raw/HF context pixels added around each training/eval tile; loss and metrics are computed on the center target crop.",
     )
     ap.add_argument("--eval-every", type=int, default=100)
     ap.add_argument("--eval-tile", type=int, default=384)

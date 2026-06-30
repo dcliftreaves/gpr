@@ -46,6 +46,8 @@ DEFAULT_MODEL_RECEIPTS = [
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json",
     DEFAULT_EXTERNAL_ROOT
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json",
+    DEFAULT_EXTERNAL_ROOT
+    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json",
 ]
 
 
@@ -127,9 +129,10 @@ def summarize_model(path: Path, threshold_pct: float) -> dict[str, Any]:
         "width": config.get("width"),
         "depth": config.get("depth"),
         "patch_size": config.get("patch_size"),
-        "steps": config.get("steps"),
+        "steps": config.get("steps", receipt.get("steps")),
         "target_policy": config.get("target_policy", "raw"),
         "sample_balance": config.get("sample_balance", "row"),
+        "context_padding": config.get("context_padding", 0),
         "holdout_mae_recovery_pct_median": holdout_mae,
         "holdout_rmse_recovery_pct_median": holdout_rmse,
         "holdout_exact_raw_mae_recovery_pct_median": exact_mae,
@@ -208,7 +211,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 1,
                 "name": "domain-balanced raw-CFA residual learner",
-                "purpose": "make X2D and Z8 holdouts positive at the same time; the first X2D-only camera-domain filter, camera-balanced sampling-only pass, combined stored-HF plus pooled-context feature pass, and simple multiscale band-loss objective all regressed the hard X2D holdout, so this needs a better objective/context than simple domain balancing, feature concatenation, or band reweighting",
+                "purpose": "make X2D and Z8 holdouts positive at the same time; the first X2D-only camera-domain filter, camera-balanced sampling-only pass, 32px context-padding pass, combined stored-HF plus pooled-context feature pass, and simple multiscale band-loss objective all regressed the hard X2D holdout, so this needs a better objective/context than simple domain balancing, context padding, feature concatenation, or band reweighting",
                 "must_prove": [
                     f"X2D median raw-residual MAE recovery >= {threshold_pct:.1f}%",
                     f"Z8 median raw-residual MAE recovery >= {threshold_pct:.1f}%",
@@ -218,7 +221,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 2,
                 "name": "full-image or routed raw-context residual model",
-                "purpose": "replace the current local-tile learner; larger patches, stronger high-residual weighting, simple pooled raw context, stored candidate-HF, stored-HF plus pooled context, multiscale band-loss reweighting, X2D-only train-domain filtering, and camera-balanced sampling alone all regressed X2D and should not be repeated as the main path",
+                "purpose": "replace the current local-tile learner; larger patches, stronger high-residual weighting, simple pooled raw context, stored candidate-HF, stored-HF plus pooled context, multiscale band-loss reweighting, X2D-only train-domain filtering, camera-balanced sampling, and 32px context padding alone all regressed X2D and should not be repeated as the main path",
                 "must_prove": [
                     "uses candidate raw/metadata only at runtime",
                     "beats the local and pooled-context raw-CFA residual baselines on the hard X2D holdout",
@@ -268,6 +271,7 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
         f"<td>{html.escape(str(row['holdout_scene']))}</td>"
         f"<td>{html.escape(str(row['feature_mode']))}</td>"
         f"<td>{html.escape(str(row['sample_balance']))}</td>"
+        f"<td>{html.escape(str(row['context_padding']))}</td>"
         f"<td>{html.escape(str(row['target_policy']))}</td>"
         f"<td>{row['holdout_mae_recovery_pct_median']:.3f}%</td>"
         f"<td>{row['holdout_rmse_recovery_pct_median']:.3f}%</td>"
@@ -329,7 +333,7 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
   <table><thead><tr><th>Camera</th><th>Candidates</th><th>Best MAE recovery</th><th>Best RMSE recovery</th><th>Status</th><th>Best receipt</th></tr></thead><tbody>{camera_rows}</tbody></table>
 
   <h2>Model Receipts</h2>
-  <table><thead><tr><th>Camera</th><th>Holdout</th><th>Features</th><th>Sampler</th><th>Target policy</th><th>MAE recovery</th><th>RMSE recovery</th><th>Runtime safe</th><th>Promote</th></tr></thead><tbody>{model_rows}</tbody></table>
+  <table><thead><tr><th>Camera</th><th>Holdout</th><th>Features</th><th>Sampler</th><th>Context px</th><th>Target policy</th><th>MAE recovery</th><th>RMSE recovery</th><th>Runtime safe</th><th>Promote</th></tr></thead><tbody>{model_rows}</tbody></table>
 
   <h2>Next Experiments</h2>
   {experiments}

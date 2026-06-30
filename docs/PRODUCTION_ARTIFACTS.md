@@ -478,11 +478,12 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
-| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json` | `aef330f1fd3dfc3afb698fb0e2a7af819c96e86b8cf05c420c5eb5c9f14cfb48` |
-| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` | `11271371778bab997b3fc8b0b3f65a810fbe667d92774f5829c63110c244048e` |
+| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json` | `0dfea109f80e76d90622bc341eb99cf90a6b58f58e38ce2ca1f2fa856461403a` |
+| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html` | `c3439a75710d8d9db9f11003e95b0b0085b7bb0cbed226ebf31606ead1a96146` |
 | Premium still-SR raw-CFA residual X2D camera-balanced sampler receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json` | `5b1857af9e32b1554c1e4c69ba1fca9cade8490213775538d1360e29ca0fafdd` |
-| Premium still-SR next-experiment contract JSON | `artifacts/premium_still_sr_next_experiment_contract_20260630/premium_still_sr_next_experiment_contract.json` | `2772be5bbfe8d96bd6774e6621cbba32f32061c57365112dca304f8b68ddd5ba` |
-| Premium still-SR next-experiment contract dashboard | `artifacts/premium_still_sr_next_experiment_contract_20260630/index.html` | `3b383e3b5378f9ab9cc21c2dd1ca14bccd43f064aea6f486ddeec676f9280cda` |
+| Premium still-SR raw-CFA residual X2D context-padding receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json` | `ec12cfa610c02ba2189ffcbff60820d494e653bc944af11d9e0fd4fbe335397f` |
+| Premium still-SR next-experiment contract JSON | `artifacts/premium_still_sr_next_experiment_contract_20260630/premium_still_sr_next_experiment_contract.json` | `a8f9d336ee4b5aa67063837c75e855225872aecf443f4bb8c90e27f419aba108` |
+| Premium still-SR next-experiment contract dashboard | `artifacts/premium_still_sr_next_experiment_contract_20260630/index.html` | `e3dd9fb5b509ce9685a3ed8b2f28d0897f1cd61718b94b6113a4a9f3cc3c270c` |
 | Premium still-SR X2D combined stored-HF/context probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json` | `bb060baaedb3f2439eb3d51fd45002eb67278c87d276d403d208351946463ea7` |
 | Premium still-SR X2D multiscale band-loss probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json` | `0dd675d612e66461cea1d658fb62f91fe258703473aaa810d0c573f1fc18cb66` |
 
