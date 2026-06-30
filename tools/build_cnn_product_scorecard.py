@@ -26,7 +26,7 @@ EIGHTK_CNN = "mission1_native12_8k_sr_q4t2_coord_detail_alpha0p5_v1"
 
 FOURK_SIGNOFF = "artifacts/mission1_4k_cleanup_visual_signoff_20260625/production_signoff.json"
 EIGHTK_PROMOTION = "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"
-EIGHTK_CONTINUOUS_REVIEW = "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json"
+EIGHTK_CONTINUOUS_REVIEW = "artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json"
 COMPAT_DIR = "artifacts/real_fixture_compatibility"
 
 
@@ -119,12 +119,12 @@ def summarize_continuous_review(root: Path) -> dict[str, Any]:
         "receipt": EIGHTK_CONTINUOUS_REVIEW,
         "schema": data.get("schema"),
         "note": data.get("note"),
-        "frames": data.get("frames"),
+        "frames": len(data.get("frames")) if isinstance(data.get("frames"), list) else data.get("frames"),
         "width": data.get("width"),
         "height": data.get("height"),
         "fps": data.get("fps"),
-        "baseline_kind": "no-CNN 4096 x 3072 raw Bayer display-upscaled to 8192 x 6144",
-        "candidate_kind": "approved 4K cleanup plus 8K SR CNN raw Bayer path",
+        "baseline_kind": "no-CNN 4140 x 2760 Z8 raw Bayer display-upscaled to 8280 x 5520",
+        "candidate_kind": "retained 4K cleanup CNN Bayer plus approved 8K SR CNN path",
         "true_no_cnn": true_no_cnn,
         "with_cnn": with_cnn,
         "side_by_side_review": side_by_side,
@@ -342,12 +342,11 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
 
   <h2>Continuous 8K No-CNN vs CNN Review</h2>
   <table>
-    <tr><th>Status</th><th>Baseline</th><th>Candidate</th><th>Side-by-side</th><th>Receipt</th></tr>
+    <tr><th>Status</th><th>Baseline</th><th>Candidate</th><th>Receipt</th></tr>
     <tr>
       <td class="{review_class}">{html.escape(review_status)}</td>
       <td>{html.escape(str(review.get("baseline_kind", "n/a")))}<br>{link(metric(review, "true_no_cnn", "path"), "ProRes", root)}</td>
       <td>{html.escape(str(review.get("candidate_kind", "n/a")))}<br>{link(metric(review, "with_cnn", "path"), "ProRes", root)}</td>
-      <td>{link(metric(review, "side_by_side_review", "path"), "3840 x 1440 ProRes", root)}</td>
       <td>{link(review.get("receipt"), "receipt", root)}<br>{html.escape(str(review.get("frames", "n/a")))} frames at {html.escape(str(review.get("fps", "n/a")))} fps</td>
     </tr>
   </table>

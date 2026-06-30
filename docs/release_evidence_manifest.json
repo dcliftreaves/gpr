@@ -72,7 +72,7 @@
         ],
         "dashboards": [
           "cnn_product_scorecard_20260629",
-          "mission1_8k_true_no_cnn_vs_cnn_20260630",
+          "z8_continuous_8k_no_cnn_vs_cnn_20260630",
           "mission1_native_psf_corpus_audit_20260630",
           "raw_video_psf_capture_request_20260630"
         ],
@@ -1533,25 +1533,25 @@
       }
     },
     {
-      "id": "mission1_8k_true_no_cnn_vs_cnn_20260630",
+      "id": "z8_continuous_8k_no_cnn_vs_cnn_20260630",
       "family": "raw_video_psf",
       "status": "diagnostic",
-      "purpose": "Standalone continuous-scene 8K ProRes A/B for reviewing the approved Mission 1 4K cleanup plus 8K SR CNN against a no-CNN baseline. This is not a dashboard, crop sheet, contact sheet, or side-by-side review video.",
-      "dashboard": "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json",
+      "purpose": "Standalone continuous-scene 8K ProRes A/B for reviewing the retained 4K cleanup CNN Bayer plus approved 8K SR CNN against a Z8 no-CNN baseline. This is not a dashboard, crop sheet, contact sheet, or side-by-side review video.",
+      "dashboard": "artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json",
       "docs": [
         "README.md",
         "docs/PRODUCT_PILLAR_SCORECARD.md",
         "docs/BAYER_RESIZE_PSF.md"
       ],
       "receipts": [
-        "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json",
-        "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_true_no_cnn_4k_raw_lanczos_to_8k_42f_20p_prores.mov",
-        "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_with_4k_cleanup_and_8k_sr_cnn_42f_20p_prores.mov"
+        "artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json",
+        "artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/z8_24f_true_no_cnn_4k_raw_lanczos_to_8k_20p_prores.mov",
+        "artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/z8_24f_with_4k_cleanup_and_8k_sr_cnn_20p_prores.mov"
       ],
       "metrics": {
-        "width": 8192,
-        "height": 6144,
-        "frames": 42,
+        "width": 8280,
+        "height": 5520,
+        "frames": 24,
         "fps": 20,
         "standalone_videos": 2,
         "dashboard_video": 0

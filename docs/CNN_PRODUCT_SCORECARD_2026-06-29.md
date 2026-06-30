@@ -107,15 +107,15 @@ The current public A/B review is a continuous scene-video comparison, not a
 dashboard or contact sheet:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/
+/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/
 ```
 
-It contains a no-CNN baseline rendered from 42 native 4096 x 3072 raw Bayer
-frames and display-upscaled to 8192 x 6144, the approved 4K cleanup plus 8K SR
-CNN raw Bayer result at 8192 x 6144, a 3840 x 1440 side-by-side ProRes review,
-and a receipt with hashes and `ffprobe` dimensions. Use this folder for
-top-level no-CNN versus CNN visual review. The older no-8K-SR comparison only
-isolates the 8K SR stage from an already-cleaned 4K CNN input.
+It contains a no-CNN baseline rendered from 24 ordered 4140 x 2760 Z8 raw Bayer
+frames and display-upscaled to 8280 x 5520, plus the retained 4K cleanup CNN
+Bayer input passed through the approved 8K SR CNN and rendered to a separate
+8280 x 5520 ProRes movie. Use these two standalone movies for top-level no-CNN
+versus CNN visual review. The older no-8K-SR comparison only isolates the 8K SR
+stage from an already-cleaned 4K CNN input.
 
 ## Replacement Rule
 

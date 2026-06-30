@@ -88,7 +88,7 @@ def main() -> int:
         assert any("continuous 8K no-CNN versus CNN" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any("true continuous-scene 8K ProRes A/B" in item for item in data["pillars"][3]["done_evidence"])
         assert any(
-            "mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
+            "z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
             for ref in data["pillars"][3]["evidence"]
         )
         assert any(ref["exists"] for ref in data["pillars"][0]["evidence"] if ref["kind"] == "repo")
