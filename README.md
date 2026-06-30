@@ -30,6 +30,15 @@ receipts. The remaining production step is intentionally narrow: run the same
 closure path from the actual Mission 1 sensor/DMA, SD writer, and rear display
 instead of the Pi stand-in.
 
+## The Four Bets
+
+| product bet | what it unlocks | proof today | production gate |
+|---|---|---|---|
+| **Best RAW stills** | 50 MP and 100 MP-class cameras get compact editable Bayer files, normal CFA support, and noise-aware compression rails. | 12/14/16-bit stills, 50 MP tiers down to **9.80 MB**, real X2D 100MP roundtrip, X2D/Z8 darkframe sidecars. | Real GRBG/BGGR fixtures plus Mission 1/iPhone darkframe sidecars. |
+| **GoPro RAW video MVP** | Action cameras can record real 4096 x 3072 Bayer video into `.gvid` and preview it on-camera. | Pi 5 stand-in clears the accepted **20+ fps** floor for native12 encode and 1024 preview decode. | Mission 1 sensor/DMA, SD writer, and rear-display receipts. |
+| **Spend-time-for-quality still/SR** | Offline still processing can spend serious compute to recover texture, latitude, and editable raw quality. | Routed X2D/Z8/Mission specialists, raw-CFA targets, full-frame reviews, editor-openability receipts. | X2D/domain-general raw-residual recovery must beat the still gate without source/REF content at render time. |
+| **PSF-aware video/SR** | 4K cleanup and 8K reconstruction account for the real blur from Bayer resize/capture instead of guessing. | Approved 4K cleanup and 8K SR baselines, 1,024-tile detail budget, native Mission 1 PSF measurement run. | Controlled high/low pairs must produce a stable native kernel, then a PSF-conditioned model must beat the current baselines. |
+
 ## Production Completion Snapshot
 
 Current four-pillar completion is **69%**. The project is strong enough to show
