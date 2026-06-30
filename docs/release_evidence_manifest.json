@@ -1326,7 +1326,9 @@
       "docs": [
         "README.md",
         "docs/README.md",
-        "docs/PRODUCTION_ARTIFACTS.md"
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/BIG_EFFORTS_STATUS.md"
       ],
       "receipts": [
         "artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json",
@@ -1336,7 +1338,9 @@
         "target_rows": 351,
         "target_scenes": 13,
         "render_to_raw_corr_abs_median": 0.6912654943469239,
+        "model_receipt_count": 6,
         "best_x2d_holdout_mae_recovery_pct": 0.02164405662232214,
+        "x2d_loss_weight_patch_probe_holdout_mae_recovery_pct": -0.6484285043976422,
         "best_z8_holdout_mae_recovery_pct": 0.4983379829708305,
         "promotion_threshold_pct": 15.0,
         "production_ready": 0

@@ -295,10 +295,15 @@ The follow-up X2D receipts at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w64_5000_block17_20260630/train_receipt.json`,
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_storedhf_w32_2000_20260630/train_receipt.json`,
 and
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/train_receipt.json`
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/train_receipt.json`,
+plus the larger-patch high-residual-weighted probe at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w48_1600_abs6_patch256_20260630/train_receipt.json`
 show that wider raw context barely clears zero at about 0.02 percent median
 X2D recovery, while stored candidate-HF features and naive one-sigma noise
-soft-thresholding do not fix the X2D blocker.
+soft-thresholding do not fix the X2D blocker; the larger-patch/stronger-local
+loss pass regresses the hard X2D holdout to about -0.65 percent median MAE
+recovery. The next model needs non-local raw context or a different
+domain-generalization strategy, not another local loss-weight/patch-size pass.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a

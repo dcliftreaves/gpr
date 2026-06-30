@@ -34,6 +34,8 @@ DEFAULT_MODEL_RECEIPTS = [
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_storedhf_w32_2000_20260630/train_receipt.json",
     DEFAULT_EXTERNAL_ROOT
     / "artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/train_receipt.json",
+    DEFAULT_EXTERNAL_ROOT
+    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w48_1600_abs6_patch256_20260630/train_receipt.json",
 ]
 
 
@@ -204,6 +206,16 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             },
             {
                 "priority": 2,
+                "name": "non-local raw-context residual model",
+                "purpose": "replace the current local-tile residual learner; larger patches plus stronger high-residual weighting regressed X2D and should not be repeated as the main path",
+                "must_prove": [
+                    "uses candidate raw/metadata only at runtime",
+                    "beats the local raw-CFA residual baseline on the hard X2D holdout",
+                    "keeps Z8 positive while improving X2D",
+                ],
+            },
+            {
+                "priority": 3,
                 "name": "scene-family routed residual specialists",
                 "purpose": "separate X2D high-ISO/latitude scenes from Z8/Mission detail scenes only if shared training remains flat",
                 "must_prove": [
@@ -213,7 +225,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
                 ],
             },
             {
-                "priority": 3,
+                "priority": 4,
                 "name": "full still promotion gate",
                 "purpose": "confirm raw-residual gains survive editable DNG/GPR output and rendered latitude review",
                 "must_prove": [
