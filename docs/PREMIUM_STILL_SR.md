@@ -324,10 +324,28 @@ Dashboards:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_mission1_specialist_20260630/index.html
 ```
 
-This closes the old Mission placeholder in the router plan. It is still not a
-production still-SR promotion because the evidence remains tile-level and does
-not yet include full-frame rendered review, raw-editor latitude, or
-camera-noise sidecar target construction.
+Full-frame follow-up:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fullframe_mission1_specialist_20260630/eval/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fullframe_mission1_specialist_20260630/eval/summary.json
+```
+
+The full-frame run generated normalized 4096 x 3072 low raws and 8192 x 6144
+targets from the held-out GP017504 DNG/GPR sources, ran tiled inference with
+512-plane-pixel tiles and 64-pixel overlap, and deleted the generated SR raws
+after comparison. Both held-out frames improved over bilinear same-color
+upsampling:
+
+| scope | RMSE improvement | MAE improvement | gradient MAE improvement | Mac/MPS throughput with 8K raw write |
+|---|---:|---:|---:|---:|
+| GP017504 DNG/GPR full-frame median | 56.62% | 46.67% | 29.70% | 2.68 fps |
+
+This closes the old Mission placeholder in the router plan and gives Mission 1
+its first full-frame still-SR receipt. It is still not a production still-SR
+promotion because X2D/Z8 need equivalent full-frame checks, and the whole
+routed suite still needs rendered/editor-latitude review plus camera-noise
+sidecar target construction.
 
 ## Router Plan
 
