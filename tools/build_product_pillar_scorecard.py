@@ -66,10 +66,11 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "A real X2D 100MP DNG to GPR to DNG visual audit records 11,664 x 8,750 Bayer roundtrip evidence with 100% crop panels and 49.21 dB full-image raw PSNR.",
                 "X2D and Z8 darkframe-derived noise sidecars are validated and ready for conditioning experiments.",
                 "The camera-noise coverage audit confirms calibrated noise sidecars for X2D and Z8, and explicitly marks Mission 1/iPhone as missing validated darkframe sidecars.",
+                "The Mission/iPhone darkframe candidate audit found 9 Mission 1 dark-looking frames, but no same-camera/ISO/CFA group has the required four-frame production stack.",
             ],
             "open_work": [
                 "Add real GRBG and BGGR camera fixtures so alternate Bayer support is fully backed by real cameras, not only synthetic cells.",
-                "Collect or locate Mission 1 and iPhone darkframe stacks, then apply camera-noise calibration before promoting nonzero noise removal/addback for those cameras.",
+                "Collect or locate same-ISO Mission 1 and CFA iPhone darkframe stacks, then apply camera-noise calibration before promoting nonzero noise removal/addback for those cameras.",
             ],
             "evidence": annotate_refs(
                 [
@@ -80,6 +81,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("X2D 100MP still visual audit", "artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html"),
                     artifact_ref("real Bayer phase discovery", "artifacts/bayer_phase_fixture_discovery_20260630_rawpy/index.html"),
                     artifact_ref("camera noise coverage audit", "artifacts/camera_noise_coverage_audit_20260630/index.html"),
+                    artifact_ref("Mission/iPhone darkframe candidate audit", "artifacts/darkframe_candidate_audit_mission_iphone_20260630/index.html"),
                     artifact_ref("camera noise sidecars", "artifacts/camera_noise_sidecars_20260629"),
                     artifact_ref("real fixture compatibility", "artifacts/real_fixture_compatibility"),
                 ],
@@ -191,7 +193,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         "pillars": pillars,
         "next_actions": [
             "Package a GoPro-facing Mission 1 closure bundle around the existing quick-validation scripts and required receipt names.",
-            "Add real GRBG/BGGR fixtures and collect Mission 1/iPhone darkframes before promoting nonzero noise addback for those cameras.",
+            "Add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback for those cameras.",
             "Replace premium still-SR residual probes with a larger-context raw-domain texture/noise model before claiming an amazing-still product.",
             "Move PSF work from modeled pair receipts to native capture/display PSF measurements, then gate against current 4K/8K baselines.",
         ],

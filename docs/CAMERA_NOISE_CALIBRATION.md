@@ -83,6 +83,34 @@ nonzero denoised targets and synthetic noise addback remain blocked until a
 darkframe stack, flat/dark pair, or equivalent no-scene-signal evidence is
 collected and converted.
 
+## Darkframe Candidate Audit
+
+Use the discovery audit before promoting new camera noise sidecars. It scans
+bounded DNG sets in raw space, flags frames that are dark enough to inspect as
+possible darkframes, and groups them by camera/ISO/CFA. It deliberately does
+not create production sidecars from ordinary photos or single dark-looking
+frames:
+
+```sh
+TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp \
+/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python \
+  tools/build_darkframe_candidate_audit.py \
+  --manifest /Volumes/OWC_8TB/gpr_work/tmp/darkframe_candidate_mission_iphone_manifest.txt \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_20260630
+```
+
+Current Mission 1 / iPhone candidate audit:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_20260630/index.html
+```
+
+The current scan saw 50 files, parsed 49 Mission 1 CFA DNGs, and found 9
+darkframe-like Mission 1 frames across 8 camera/ISO/CFA groups. No group has
+the required four-frame stack, so `production_sidecar_ready=false`. The iPhone
+fixture in this scan is the known Linear Raw negative fixture and is not a CFA
+darkframe source.
+
 ## Policy
 
 Current production stills may preserve DNG `NoiseProfile`/ISO metadata and use

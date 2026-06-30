@@ -53,6 +53,13 @@ and 12800, plus Z8 at ISO 500. Mission 1 and iPhone have real fixtures but no
 production-ready darkframe sidecars yet, so nonzero noise removal/addback is not
 promoted for those cameras.
 
+The current Mission/iPhone darkframe candidate audit lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_20260630/index.html`.
+It finds 9 darkframe-like Mission 1 frames, but they are split across 8
+camera/ISO/CFA groups and no group has the four-frame stack required for a
+production sidecar. The iPhone row is the known Linear Raw negative fixture,
+not a CFA darkframe source.
+
 The current raw-video PSF/SR readiness audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.
 It records that the current 4K cleanup and 8K SR baselines are approved for

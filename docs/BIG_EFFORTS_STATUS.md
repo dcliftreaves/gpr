@@ -60,6 +60,12 @@ Current evidence:
   records six production-ready darkframe sidecars: X2D at ISO 64, 200, 800,
   3200, and 12800, plus Z8 at ISO 500. Mission 1 and iPhone have real fixtures
   but no production-ready darkframe sidecars yet.
+- The Mission/iPhone darkframe candidate audit at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_20260630/index.html`
+  scans 50 local DNG candidates. It parsed 49 Mission 1 CFA DNGs and found 9
+  darkframe-like frames, but they are split across 8 ISO groups and no group
+  has the required four-frame stack. The iPhone file in this scan is the known
+  Linear Raw negative fixture, not a CFA darkframe source.
 
 Boundaries:
 
@@ -79,7 +85,9 @@ Next production work:
 1. Add real GRBG and BGGR camera fixtures to back the committed synthetic
    stills conformance cells.
 2. Collect or locate Mission 1 and iPhone darkframe/frame-stack data, then
-   apply the camera/ISO noise-calibration sidecar flow.
+   apply the camera/ISO noise-calibration sidecar flow. For Mission 1, start
+   from the candidate audit and capture at least four same-ISO darkframes for
+   each promoted ISO/settings group.
 3. Re-run the raw-noise/signal audit before training any CNN on nonzero clean
    targets.
 
