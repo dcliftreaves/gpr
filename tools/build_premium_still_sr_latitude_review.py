@@ -104,24 +104,50 @@ def crop_metrics(ref: np.ndarray, cand: np.ndarray) -> dict[str, Any]:
     if bh > 0 and bw > 0:
         ref_lf = ref_y[:bh, :bw].reshape(bh // block, block, bw // block, block).mean(axis=(1, 3))
         cand_lf = cand_y[:bh, :bw].reshape(bh // block, block, bw // block, block).mean(axis=(1, 3))
-        lf_y_mae: float | None = float(np.mean(np.abs(cand_lf - ref_lf)))
+        lf_delta = cand_lf - ref_lf
+        lf_y_mae: float | None = float(np.mean(np.abs(lf_delta)))
+        lf_y_bias: float | None = float(np.mean(lf_delta))
+        ref_lf_up = np.repeat(np.repeat(ref_lf, block, axis=0), block, axis=1)
+        cand_lf_up = np.repeat(np.repeat(cand_lf, block, axis=0), block, axis=1)
+        ref_hf = ref_y[:bh, :bw] - ref_lf_up
+        cand_hf = cand_y[:bh, :bw] - cand_lf_up
+        hf_delta = cand_hf - ref_hf
+        hf_y_mae: float | None = float(np.mean(np.abs(hf_delta)))
+        hf_y_rmse: float | None = float(np.sqrt(np.mean(hf_delta * hf_delta)))
+        ref_hf_energy = float(np.mean(np.abs(ref_hf)))
+        cand_hf_energy = float(np.mean(np.abs(cand_hf)))
+        hf_energy_ratio: float | None = cand_hf_energy / ref_hf_energy if ref_hf_energy > 1.0e-9 else None
     else:
         lf_y_mae = None
+        lf_y_bias = None
+        hf_y_mae = None
+        hf_y_rmse = None
+        ref_hf_energy = None
+        cand_hf_energy = None
+        hf_energy_ratio = None
     highlight = ref_y >= 0.85
     shadow = ref_y <= 0.10
     midtone = (ref_y > 0.10) & (ref_y < 0.85)
+    clip_delta = float(np.mean(np.any(cand_f >= 0.999, axis=2)) - np.mean(np.any(ref_f >= 0.999, axis=2)))
     return {
         "mae": mae,
         "rmse": rmse,
         "psnr_db": psnr,
         "y_mae": float(np.mean(y_diff)),
         "lf_y_mae": lf_y_mae,
+        "lf_y_bias": lf_y_bias,
+        "hf_y_mae": hf_y_mae,
+        "hf_y_rmse": hf_y_rmse,
+        "ref_hf_y_energy": ref_hf_energy,
+        "candidate_hf_y_energy": cand_hf_energy,
+        "hf_y_energy_ratio": hf_energy_ratio,
         "highlight_y_mae": float(np.mean(y_diff[highlight])) if np.any(highlight) else None,
         "shadow_y_mae": float(np.mean(y_diff[shadow])) if np.any(shadow) else None,
         "midtone_y_mae": float(np.mean(y_diff[midtone])) if np.any(midtone) else None,
         "channel_mean_delta": [float(v) for v in np.mean(diff, axis=(0, 1))],
         "ref_clip_fraction": float(np.mean(np.any(ref_f >= 0.999, axis=2))),
         "candidate_clip_fraction": float(np.mean(np.any(cand_f >= 0.999, axis=2))),
+        "clip_fraction_delta": clip_delta,
     }
 
 
@@ -158,7 +184,8 @@ def write_contact_sheet(path: Path, rows: list[dict[str, Any]], max_rows: int) -
         y0 = pad + row_idx * (panel_h + label_h + pad)
         title = (
             f"{row['crop']} EV {row['ev']:+.0f} "
-            f"MAE {row['mae']:.4f} Y {row['y_mae']:.4f} LF {row.get('lf_y_mae'):.4f} PSNR {row['psnr_db']:.2f}"
+            f"MAE {row['mae']:.4f} Y {row['y_mae']:.4f} "
+            f"LF {row.get('lf_y_mae'):.4f} HF {row.get('hf_y_mae'):.4f} PSNR {row['psnr_db']:.2f}"
         )
         draw.text((pad, y0), title, fill=(245, 245, 245))
         for col, panel in enumerate(row["panels"]):
@@ -179,7 +206,11 @@ def render_html(data: dict[str, Any], output_dir: Path) -> str:
         rel = Path(err_panel["path"]).resolve().relative_to(output_dir.resolve()).as_posix()
         table_rows.append(
             f"<tr><td>{html.escape(row['crop'])}</td><td>{row['ev']:+.0f}</td>"
-            f"<td>{row['mae']:.5f}</td><td>{row['y_mae']:.5f}</td><td>{html.escape(str(row.get('lf_y_mae')))}</td><td>{row['psnr_db']:.2f}</td>"
+            f"<td>{row['mae']:.5f}</td><td>{row['y_mae']:.5f}</td>"
+            f"<td>{html.escape(str(row.get('lf_y_mae')))}</td>"
+            f"<td>{html.escape(str(row.get('hf_y_mae')))}</td>"
+            f"<td>{html.escape(str(row.get('hf_y_energy_ratio')))}</td>"
+            f"<td>{row['psnr_db']:.2f}</td>"
             f"<td>{html.escape(str(row['highlight_y_mae']))}</td>"
             f"<td>{html.escape(str(row['shadow_y_mae']))}</td>"
             f"<td><img src='{html.escape(rel)}'></td></tr>"
@@ -203,10 +234,11 @@ img{{max-width:220px;height:auto}}code{{color:#b7d7ff}}.contact{{max-width:100%;
 <div class="card"><h2>MAE</h2><p>median {summary['mae']['median']:.5f}</p><p>worst {summary['mae']['max']:.5f}</p></div>
 <div class="card"><h2>Y MAE</h2><p>median {summary['y_mae']['median']:.5f}</p><p>worst {summary['y_mae']['max']:.5f}</p></div>
 <div class="card"><h2>LF Y MAE</h2><p>median {summary['lf_y_mae']['median']:.5f}</p><p>worst {summary['lf_y_mae']['max']:.5f}</p></div>
+<div class="card"><h2>HF Y MAE</h2><p>median {summary['hf_y_mae']['median']:.5f}</p><p>worst {summary['hf_y_mae']['max']:.5f}</p></div>
 <div class="card"><h2>PSNR</h2><p>median {summary['psnr_db']['median']:.2f} dB</p><p>worst {summary['psnr_db']['min']:.2f} dB</p></div>
 </div>
 <img class="contact" src="{html.escape(contact)}">
-<table><tr><th>crop</th><th>EV</th><th>MAE</th><th>Y MAE</th><th>LF Y MAE</th><th>PSNR</th><th>highlight Y MAE</th><th>shadow Y MAE</th><th>error</th></tr>
+<table><tr><th>crop</th><th>EV</th><th>MAE</th><th>Y MAE</th><th>LF Y MAE</th><th>HF Y MAE</th><th>HF energy ratio</th><th>PSNR</th><th>highlight Y MAE</th><th>shadow Y MAE</th><th>error</th></tr>
 {''.join(table_rows)}
 </table></body></html>
 """
@@ -284,6 +316,10 @@ def build_review(args: argparse.Namespace) -> dict[str, Any]:
         "mae": stats([float(row["mae"]) for row in rows]),
         "y_mae": stats([float(row["y_mae"]) for row in rows]),
         "lf_y_mae": stats([float(row["lf_y_mae"]) for row in rows if row["lf_y_mae"] is not None]),
+        "lf_y_bias": stats([float(row["lf_y_bias"]) for row in rows if row["lf_y_bias"] is not None]),
+        "hf_y_mae": stats([float(row["hf_y_mae"]) for row in rows if row["hf_y_mae"] is not None]),
+        "hf_y_rmse": stats([float(row["hf_y_rmse"]) for row in rows if row["hf_y_rmse"] is not None]),
+        "hf_y_energy_ratio": stats([float(row["hf_y_energy_ratio"]) for row in rows if row["hf_y_energy_ratio"] is not None]),
         "psnr_db": stats([float(row["psnr_db"]) for row in rows]),
         "highlight_y_mae": stats([float(row["highlight_y_mae"]) for row in rows if row["highlight_y_mae"] is not None]),
         "shadow_y_mae": stats([float(row["shadow_y_mae"]) for row in rows if row["shadow_y_mae"] is not None]),

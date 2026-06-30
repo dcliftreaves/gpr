@@ -29,12 +29,14 @@ def main() -> int:
         return 0
 
     tool = load_tool()
-    ref = np.full((8, 8, 3), 10000, dtype=np.uint16)
+    ref = np.full((32, 32, 3), 10000, dtype=np.uint16)
     cand = ref.copy()
     cand[:, :, 1] += 100
     metrics = tool.crop_metrics(ref, cand)
     assert metrics["mae"] > 0.0
     assert metrics["psnr_db"] > 40.0
+    assert metrics["lf_y_mae"] is not None
+    assert metrics["hf_y_mae"] is not None
     assert len(metrics["channel_mean_delta"]) == 3
     assert tool.crop_starts(100, 80, 20)[1] == ("center", 40, 30)
 
@@ -54,6 +56,7 @@ def main() -> int:
                 "mae": {"median": metrics["mae"], "max": metrics["mae"]},
                 "y_mae": {"median": metrics["y_mae"], "max": metrics["y_mae"]},
                 "lf_y_mae": {"median": metrics["lf_y_mae"] or 0.0, "max": metrics["lf_y_mae"] or 0.0},
+                "hf_y_mae": {"median": metrics["hf_y_mae"] or 0.0, "max": metrics["hf_y_mae"] or 0.0},
                 "psnr_db": {"median": metrics["psnr_db"], "min": metrics["psnr_db"]},
             },
             "rows": [

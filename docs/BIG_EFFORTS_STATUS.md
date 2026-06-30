@@ -12,7 +12,7 @@ If a metric here conflicts with a committed receipt, the receipt wins.
 |---|---|---|
 | Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance. | Good enough to present as a working stills product path, with explicit open work on more real alternate-phase fixtures and camera-calibrated noise. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, and an X2D rawpy latitude dashboard. | Not done until +2 EV X2D exposure-stress and noise-aware target/addback receipts pass. |
+| Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, and an X2D rawpy latitude dashboard with LF/HF decomposition. | Not done until +2 EV X2D high-frequency texture/noise and noise-aware target/addback receipts pass. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup and candidate-aware 8K SR. | Not done as a formal PSF/blur-calibrated resizing model. |
 
 ## 1. Raw Stills
@@ -190,9 +190,11 @@ Current evidence:
   latitude dashboard that renders the original X2D DNG and the
   metadata-transplanted SR DNG with camera WB/color metadata at -2/0/+2 EV.
   The 2026-06-30 X2D run has 9 crop/EV rows, median display MAE 0.04281,
-  median Y MAE 0.02909, and median low-frequency Y MAE 0.00546. The worst
-  rows are all +2 EV, with worst display MAE 0.09161 and worst low-frequency
-  Y MAE 0.01657:
+  median Y MAE 0.02909, median low-frequency Y MAE 0.00546, and median
+  high-frequency Y MAE 0.02892. The worst rows are all +2 EV, with worst
+  display MAE 0.09161, worst low-frequency Y MAE 0.01657, and worst
+  high-frequency Y MAE 0.06095. The candidate carries only about 44-53 percent
+  of the source high-frequency luminance energy in the +2 EV rows:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_x2d_latitude_review_20260630/index.html`.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
@@ -229,9 +231,9 @@ Boundaries:
 
 Next production work:
 
-1. Close the X2D rawpy latitude blocker, starting with +2 EV rows and explicit
-   noise/detail addback so the SR candidate is not punished for missing
-   camera texture that should be modeled separately.
+1. Close the X2D rawpy latitude blocker, starting with +2 EV high-frequency
+   texture/noise addback. The current LF tone error is much smaller than the
+   HF error, so the next pass should not chase generic tone mapping first.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Add full-frame still visual dashboards, raw-domain metrics, and raw-editor

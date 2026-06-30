@@ -512,14 +512,16 @@ Current dashboard:
 
 Result:
 
-| rows | median display MAE | worst display MAE | median Y MAE | median LF Y MAE | worst LF Y MAE | blocker |
-|---:|---:|---:|---:|---:|---:|---|
-| 9 | 0.04281 | 0.09161 | 0.02909 | 0.00546 | 0.01657 | +2 EV rows, especially bright/shadow stress and fine texture/noise mismatch |
+| rows | median display MAE | worst display MAE | median Y MAE | median LF Y MAE | median HF Y MAE | worst HF Y MAE | blocker |
+|---:|---:|---:|---:|---:|---:|---:|---|
+| 9 | 0.04281 | 0.09161 | 0.02909 | 0.00546 | 0.02892 | 0.06095 | +2 EV high-frequency texture/noise loss |
 
-Interpretation: metadata/openability is no longer the X2D blocker. Low-frequency
-tone is much closer than full-pixel error, which points toward a combined
-highlight/latitude and camera-texture/noise-addback problem rather than a
-basic DNG compatibility problem. This is not a production pass.
+Interpretation: metadata/openability is no longer the X2D blocker.
+Low-frequency tone is much closer than full-pixel error. In the +2 EV rows the
+candidate retains only about 44-53 percent of the source high-frequency
+luminance energy, so the next pass should focus on camera texture/noise addback
+and high-frequency target construction rather than broad tone mapping. This is
+not a production pass.
 
 ## Production Path
 
