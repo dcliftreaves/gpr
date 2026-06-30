@@ -157,6 +157,7 @@ def build_contract(
                 "camera-balanced sampling without a stronger context/objective",
                 "small context-padding around the same local objective",
                 "small U-Net/multiscale architecture without stronger supervision or full-image context",
+                "absolute crop-position/full-crop scalar frame context without stronger supervision or full-image context",
                 "calibrated random-HF or noise addback as a substitute for learned signal detail",
             ],
             "success_gates": [

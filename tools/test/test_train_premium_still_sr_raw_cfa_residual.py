@@ -235,6 +235,18 @@ def main() -> int:
         assert unet_receipt["config"]["model_arch"] == "unet"
         assert unet_receipt["policy"]["uses_source_raw_at_runtime"] is False
 
+        args.output_dir = root / "frame_context_holdout"
+        args.model_arch = "residual"
+        args.feature_mode = "raw_framectx_coord_ev_noise"
+        args.context_padding = 0
+        args.patch_size = 20
+        args.eval_tile = 19
+        frame_context_receipt = tool.train(args)
+        assert frame_context_receipt["eval"]["holdout"]["row_count"] == 1
+        assert frame_context_receipt["config"]["feature_mode"] == "raw_framectx_coord_ev_noise"
+        assert "absolute crop position" in frame_context_receipt["policy"]["runtime_inputs"]
+        assert frame_context_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
         bad_npz = root / "bad_targets.npz"
         np.savez_compressed(
             bad_npz,

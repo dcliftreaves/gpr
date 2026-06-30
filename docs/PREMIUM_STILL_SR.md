@@ -243,6 +243,8 @@ The next X2D probes narrowed that further:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_framectx_unet_w32_1200_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_framectx_unet_w32_1200_20260630/train_receipt.json
 ```
 
 The wider/block17 raw-target pass makes the hard X2D holdout barely positive
@@ -280,12 +282,18 @@ this raw-domain branch to move the hard X2D holdout directionally positive:
 1200 steps, width 32, 32 px context padding, candidate-only runtime inputs,
 about 0.10 percent median raw-residual MAE recovery, and about 0.02 percent
 median RMSE recovery. That is useful evidence for multi-scale structure, but
-it remains far below promotion. The next candidate should use stronger
+it remains far below promotion. Adding runtime-safe absolute crop-position,
+camera one-hot, and full-crop candidate raw/HF scalar context to that U-Net
+does not improve the result: the X2D holdout lands at about 0.09 percent
+median raw-residual MAE recovery, and the matched Z8 holdout lands at about
+0.19 percent versus the existing 0.50 percent Z8 raw-CFA residual baseline.
+The next candidate should use stronger
 full-image/structured raw context or a different objective, not just the
 stored-HF feature, simple noise thresholding, local loss-weight tuning,
 pooled-context feature concatenation, combined local feature concatenation,
 simple band-loss reweighting, camera-domain filtering, camera-balanced
-sampling, small context padding, or a small U-Net alone.
+sampling, small context padding, a small U-Net alone, or frame-context scalar
+planes alone.
 
 ## Raw-CFA Feature Smoke
 

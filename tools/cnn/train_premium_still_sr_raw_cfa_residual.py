@@ -91,6 +91,18 @@ def scalar_planes(
     return values.view(batch, channels, 1, 1).expand(batch, channels, height, width)
 
 
+def frame_context_channels() -> int:
+    return 19
+
+
+def camera_onehot(camera: str) -> tuple[float, float, float]:
+    return (
+        1.0 if camera == "x2d" else 0.0,
+        1.0 if camera == "z8" else 0.0,
+        1.0 if camera == "mission1" else 0.0,
+    )
+
+
 def pooled_context_planes(x: torch.Tensor, grid: int = 8) -> torch.Tensor:
     grid_h = min(int(grid), int(x.shape[-2]))
     grid_w = min(int(grid), int(x.shape[-1]))
@@ -211,6 +223,7 @@ def make_features(
     ev: torch.Tensor | None = None,
     noise: torch.Tensor | None = None,
     stored_hf: torch.Tensor | None = None,
+    frame_context: torch.Tensor | None = None,
 ) -> torch.Tensor:
     if feature_mode == "raw":
         return raw
@@ -240,6 +253,22 @@ def make_features(
                 coord_planes(raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
+            ],
+            dim=1,
+        )
+    if feature_mode == "raw_framectx_coord_ev_noise":
+        coarse_block = max(block * 3, block + 2)
+        phase_mean = torch.mean(raw, dim=1, keepdim=True)
+        return torch.cat(
+            [
+                raw,
+                fine,
+                block_highpass(raw, coarse_block),
+                raw - phase_mean,
+                coord_planes(raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
+                ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
+                scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
+                scalar_planes(frame_context, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, frame_context_channels()),
             ],
             dim=1,
         )
@@ -315,6 +344,7 @@ def feature_channels(feature_mode: str) -> int:
         "raw_hf": 8,
         "raw_hf_coord_ev_noise": 15,
         "raw_multiscale_coord_ev_noise": 23,
+        "raw_framectx_coord_ev_noise": 42,
         "raw_context_coord_ev_noise": 35,
         "raw_context_storedhf_coord_ev_noise": 47,
         "raw_multiscale_storedhf_coord_ev_noise": 27,
@@ -323,6 +353,8 @@ def feature_channels(feature_mode: str) -> int:
 
 def runtime_input_summary(feature_mode: str) -> str:
     base = "candidate_raw_cfa4 + candidate_raw_highpass + deterministic coordinates/EV + camera/ISO noise sidecar scalars"
+    if feature_mode == "raw_framectx_coord_ev_noise":
+        return base + " + absolute crop position + camera one-hot + full-crop candidate raw/HF statistics"
     if feature_mode == "raw_context_coord_ev_noise":
         return base + " + pooled candidate raw/HF context planes + global candidate raw scalars"
     if feature_mode == "raw_context_storedhf_coord_ev_noise":
@@ -496,6 +528,19 @@ class RawCfaResidualTargets:
         sigma_cache: dict[str, tuple[float, float, float, float]] = {}
         self.noise_features: list[tuple[float, float, float, float]] = []
         self.noise_sigma4: list[tuple[float, float, float, float]] = []
+        scene_dims: dict[str, tuple[float, float]] = {}
+        for row in self.rows:
+            scene = str(row.get("scene_id") or "unknown")
+            origin = row.get("candidate_raw_cfa_origin_xy") or row.get("crop_xy") or [0, 0]
+            try:
+                ox = float(origin[0])
+                oy = float(origin[1])
+            except (TypeError, ValueError, IndexError):
+                ox = oy = 0.0
+            crop_size = float(row.get("crop_size") or self.candidate_raw.shape[1])
+            current_w, current_h = scene_dims.get(scene, (crop_size, crop_size))
+            scene_dims[scene] = (max(current_w, ox + crop_size), max(current_h, oy + crop_size))
+        self.frame_context_features: list[tuple[float, ...]] = []
         for row in self.rows:
             sidecars = row.get("noise_sidecars", [])
             sidecar = str(sidecars[0]) if isinstance(sidecars, list) and sidecars else ""
@@ -504,6 +549,40 @@ class RawCfaResidualTargets:
                 sigma_cache[sidecar] = load_noise_sigma4_from_sidecar(sidecar)
             self.noise_features.append(cache.get(sidecar, (0.0, 0.0, 0.0, 0.0)))
             self.noise_sigma4.append(sigma_cache.get(sidecar, (0.0, 0.0, 0.0, 0.0)))
+        for idx, row in enumerate(self.rows):
+            scene = str(row.get("scene_id") or "unknown")
+            scene_w, scene_h = scene_dims.get(scene, (float(self.candidate_raw.shape[2]), float(self.candidate_raw.shape[1])))
+            origin = row.get("candidate_raw_cfa_origin_xy") or row.get("crop_xy") or [0, 0]
+            try:
+                ox = float(origin[0])
+                oy = float(origin[1])
+            except (TypeError, ValueError, IndexError):
+                ox = oy = 0.0
+            crop_size = float(row.get("crop_size") or self.candidate_raw.shape[1])
+            cx = 2.0 * ((ox + 0.5 * crop_size) / max(scene_w, 1.0)) - 1.0
+            cy = 2.0 * ((oy + 0.5 * crop_size) / max(scene_h, 1.0)) - 1.0
+            crop_w = crop_size / max(scene_w, 1.0)
+            crop_h = crop_size / max(scene_h, 1.0)
+            raw = self.candidate_raw[idx].astype(np.float32)
+            raw_mean = np.mean(raw, axis=(0, 1))
+            raw_std = np.std(raw, axis=(0, 1))
+            if self.candidate_raw_hf is not None:
+                hf_abs = np.mean(np.abs(np.clip(self.candidate_raw_hf[idx].astype(np.float32), -0.5, 0.5)), axis=(0, 1))
+            else:
+                hf_abs = np.mean(np.abs(raw - np.mean(raw, axis=(0, 1), keepdims=True)), axis=(0, 1))
+            context = (
+                float(np.clip(cx, -1.0, 1.0)),
+                float(np.clip(cy, -1.0, 1.0)),
+                float(np.clip(crop_w, 0.0, 1.0)),
+                float(np.clip(crop_h, 0.0, 1.0)),
+                *camera_onehot(infer_row_camera(row)),
+                *(float(np.clip(v, 0.0, 1.0)) for v in raw_mean.tolist()),
+                *(float(np.clip(v * 4.0, 0.0, 1.0)) for v in raw_std.tolist()),
+                *(float(np.clip(v * 16.0, 0.0, 1.0)) for v in hf_abs.tolist()),
+            )
+            if len(context) != frame_context_channels():
+                raise ValueError(f"frame context has {len(context)} channels, expected {frame_context_channels()}")
+            self.frame_context_features.append(context)
 
     def row_indices(
         self,
@@ -539,13 +618,14 @@ class RawCfaResidualTargets:
         rng: random.Random,
         sample_balance: str = "row",
         context_padding: int = 0,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
         xs: list[np.ndarray] = []
         ys: list[np.ndarray] = []
         hfs: list[np.ndarray] = []
         evs: list[float] = []
         noises: list[tuple[float, float, float, float]] = []
         sigmas: list[tuple[float, float, float, float]] = []
+        contexts: list[tuple[float, ...]] = []
         h, w = self.candidate_raw.shape[1:3]
         patch = min(patch_size, h, w)
         groups: dict[str, list[int]] | None = None
@@ -577,12 +657,14 @@ class RawCfaResidualTargets:
             evs.append(float(self.rows[idx].get("ev", 0.0)))
             noises.append(self.noise_features[idx])
             sigmas.append(self.noise_sigma4[idx])
+            contexts.append(self.frame_context_features[idx])
         return (
             torch.from_numpy(np.stack(xs)),
             torch.from_numpy(np.stack(ys)),
             torch.tensor(evs, dtype=torch.float32),
             torch.tensor(noises, dtype=torch.float32),
             torch.tensor(sigmas, dtype=torch.float32),
+            torch.tensor(contexts, dtype=torch.float32),
             torch.from_numpy(np.stack(hfs)) if hfs else None,
         )
 
@@ -608,6 +690,7 @@ def eval_rows(
         raw_target = torch.from_numpy(data.target[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
         ev = torch.tensor([float(data.rows[idx].get("ev", 0.0))], dtype=torch.float32, device=device)
         noise = torch.tensor([data.noise_features[idx]], dtype=torch.float32, device=device)
+        frame_context = torch.tensor([data.frame_context_features[idx]], dtype=torch.float32, device=device)
         sigma = torch.tensor([data.noise_sigma4[idx]], dtype=torch.float32, device=device)
         stored_hf = (
             torch.from_numpy(data.candidate_raw_hf[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
@@ -635,7 +718,7 @@ def eval_rows(
                 x1 = min(x0 + tile, width)
                 raw_tile = raw_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad]
                 hf_tile = stored_hf_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad] if stored_hf_padded is not None else None
-                pred_tile = model(make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile))
+                pred_tile = model(make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile, frame_context))
                 pred[:, :, y0:y1, x0:x1] = pred_tile[:, :, pad : pad + (y1 - y0), pad : pad + (x1 - x0)] if pad else pred_tile
         base_err = target
         pred_err = pred - target
@@ -715,13 +798,20 @@ def write_panel_sheet(
         raw = torch.from_numpy(data.candidate_raw[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
         ev = torch.tensor([float(data.rows[idx].get("ev", 0.0))], dtype=torch.float32, device=device)
         noise = torch.tensor([data.noise_features[idx]], dtype=torch.float32, device=device)
+        frame_context = torch.tensor([data.frame_context_features[idx]], dtype=torch.float32, device=device)
         sigma = torch.tensor([data.noise_sigma4[idx]], dtype=torch.float32, device=device)
         stored_hf = (
             torch.from_numpy(data.candidate_raw_hf[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
             if data.candidate_raw_hf is not None
             else None
         )
-        pred = model(make_features(raw, feature_mode, feature_block, ev, noise, stored_hf)).squeeze(0).cpu().numpy().transpose(1, 2, 0)
+        pred = (
+            model(make_features(raw, feature_mode, feature_block, ev, noise, stored_hf, frame_context))
+            .squeeze(0)
+            .cpu()
+            .numpy()
+            .transpose(1, 2, 0)
+        )
         target_t = torch.from_numpy(data.target[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
         target = (
             apply_target_policy(
@@ -824,7 +914,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     history: list[dict[str, Any]] = []
     t0 = time.perf_counter()
     for step in range(1, args.steps + 1):
-        x, y, ev, noise, sigma, stored_hf = data.sample_batch(
+        x, y, ev, noise, sigma, frame_context, stored_hf = data.sample_batch(
             train_indices,
             args.batch_size,
             args.patch_size,
@@ -837,6 +927,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         ev = ev.to(device)
         noise = noise.to(device)
         sigma = sigma.to(device)
+        frame_context = frame_context.to(device)
         stored_hf = stored_hf.to(device) if stored_hf is not None else None
         y = apply_target_policy(
             y,
@@ -844,7 +935,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             target_policy=args.target_policy,
             noise_threshold_scale=args.noise_threshold_scale,
         )
-        pred = model(make_features(x, args.feature_mode, args.feature_block, ev, noise, stored_hf))
+        pred = model(make_features(x, args.feature_mode, args.feature_block, ev, noise, stored_hf, frame_context))
         pred = center_crop_like(pred, y, args.context_padding)
         loss = (
             residual_loss(pred, y, target_abs_weight=args.target_abs_weight)
@@ -1005,6 +1096,7 @@ def main() -> int:
             "raw_hf",
             "raw_hf_coord_ev_noise",
             "raw_multiscale_coord_ev_noise",
+            "raw_framectx_coord_ev_noise",
             "raw_context_coord_ev_noise",
             "raw_context_storedhf_coord_ev_noise",
             "raw_multiscale_storedhf_coord_ev_noise",
