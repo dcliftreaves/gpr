@@ -80,6 +80,18 @@ def main() -> int:
             print(f"wrong premium percentage did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 
+        readme.write_text(
+            good
+            + "\n/Volumes/OWC_8TB/gpr_work/artifacts/"
+            "mission1_8k_sr_with_without_cnn_review_20260630/"
+            "mission1_8k_sr_with_without_cnn_contact_review_42f_prores.mov\n",
+            encoding="utf-8",
+        )
+        failures = module.validate(readme, scorecard)
+        if not failures or not any("rejected dashboard-style artifact" in failure for failure in failures):
+            print(f"rejected 8K dashboard-video artifact did not trigger expected failure: {failures}", file=sys.stderr)
+            return 1
+
     print("test_check_readme_product_pillars: PASS")
     return 0
 

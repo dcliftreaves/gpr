@@ -32,6 +32,19 @@ sensor/DMA, SD writer, and rear display instead of the Pi stand-in. The full
 four-pillar suite still has the fixture/noise, premium still-SR, and PSF gates
 listed below.
 
+## What This Is Trying To Ship
+
+GPR is organized around four product bets. Two are already strong enough to
+show as working product paths; two are active research-to-product tracks that
+must earn promotion with stronger receipts.
+
+| product bet | plain-English offer | current state |
+|---|---|---|
+| **Best RAW stills** | Smaller editable RAW photos for 50 MP and 100 MP-class Bayer cameras, with normal CFA coverage and a calibrated noise policy. | Product-gated for the tested surface; remaining gaps are real GRBG/BGGR samples and Mission/iPhone darkframe sidecars. |
+| **GoPro RAW video MVP** | Record true 4K Bayer frames into `.gvid`, play them back as a camera-back preview, and hand the stream to desktop post. | Pi 5 stand-in clears the accepted 20+ fps floor; real Mission 1 sensor/DMA, SD writer, and rear-display receipts are the final firmware evidence. |
+| **Premium still improvement** | Spend offline compute to make a better editable still than the baseline codec/CNN path can produce. | Tooling, targets, dashboards, and routed specialists exist; the current raw-CFA residual models are not yet strong enough to promote. |
+| **PSF-aware video/SR** | Make 4K cleanup and 8K reconstruction aware of the real blur from Bayer resizing and capture, not just generic sharpening. | Approved 4K cleanup and 8K SR baselines exist; controlled high/low pairs and a stable native PSF-conditioned model are still open. |
+
 ## Product Snapshot
 
 | locked now | why it matters | still open |
@@ -56,7 +69,10 @@ The denominator is the full four-pillar production suite: raw stills, raw video
 MVP, premium still/SR, and PSF-aware video/SR. The burn-down separates remaining
 work into hardware integration, sample acquisition, and model promotion, so new
 fixture or camera-role evidence cannot be mistaken for an algorithm regression.
-When reviewing progress, use the lock ledger for artifact stability and the scorecard for remaining production evidence.
+When reviewing progress, use the lock ledger for artifact stability and the scorecard for remaining production evidence. A percent can stay below 100%
+even when important artifacts are approved, because the open fraction may be
+hardware access, missing samples, or a still-unpromoted research model rather
+than a regression in the approved path.
 
 | product pillar | current product story | proof in hand | remaining production gate |
 |---|---|---|---|
@@ -93,6 +109,7 @@ the docs and external dashboards:
 | What work remains before calling the whole suite production-ready? | [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md), [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md), and `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html` |
 | What proves the stills path? | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md), [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md), [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md), and the X2D 100MP audit under `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/` |
 | What proves the GoPro/Mission raw-video path? | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md), [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md), [`docs/LABS_INTAKE.md`](docs/LABS_INTAKE.md), and the intake audit under `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630/` |
+| What does the approved 8K video CNN/SR path look like against the no-CNN baseline? | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_continuous_cnn_ab_20260630/mission42_no_8k_sr_cnn_8k_lanczos_from_4kcnn_42f_20p_prores.mov`, `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_continuous_cnn_ab_20260630/mission42_with_8k_sr_cnn_8k_42f_20p_prores.mov`, side-by-side review `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_continuous_cnn_ab_20260630/mission42_8k_no_sr_vs_with_sr_side_by_side_3840x1440_42f_20p_prores.mov`, and receipt `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_continuous_cnn_ab_20260630/receipt.json` |
 | What proves or blocks premium still/SR? | [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md) plus the raw-CFA residual gap dashboard under `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/` |
 | What proves or blocks PSF-aware video/SR? | [`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md) plus the PSF audit, measurement, and controlled-capture dashboards under `/Volumes/OWC_8TB/gpr_work/artifacts/` |
 

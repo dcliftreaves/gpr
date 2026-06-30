@@ -69,6 +69,17 @@ REQUIRED_README_TOKENS = (
     "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
     "docs/PREMIUM_STILL_SR.md",
     "docs/BAYER_RESIZE_PSF.md",
+    "mission1_8k_continuous_cnn_ab_20260630",
+    "mission42_no_8k_sr_cnn_8k_lanczos_from_4kcnn_42f_20p_prores.mov",
+    "mission42_with_8k_sr_cnn_8k_42f_20p_prores.mov",
+    "mission42_8k_no_sr_vs_with_sr_side_by_side_3840x1440_42f_20p_prores.mov",
+)
+
+FORBIDDEN_README_TOKENS = (
+    # This folder contains a dashboard/contact-sheet movie, not the requested
+    # continuous scene-video comparison. Keep it out of the public evidence map.
+    "mission1_8k_sr_with_without_cnn_review_20260630",
+    "mission1_8k_sr_with_without_cnn_contact_review_42f_prores.mov",
 )
 
 EXPECTED_PERCENTAGES = {
@@ -101,6 +112,9 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
 
     require_tokens(readme, REQUIRED_SECTIONS, readme_path.name, failures)
     require_tokens(readme, REQUIRED_README_TOKENS, readme_path.name, failures)
+    for token in FORBIDDEN_README_TOKENS:
+        if token in readme:
+            failures.append(f"{readme_path.name} must not reference rejected dashboard-style artifact {token!r}")
 
     for pillar, expected in EXPECTED_PERCENTAGES.items():
         actual = extract_done_percent(readme, pillar)
