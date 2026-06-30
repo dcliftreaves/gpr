@@ -142,6 +142,12 @@ Current evidence:
   visual review dashboard with baseline/model/target/error contact sheets for
   the X2D holdout:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_visual_review_20260629/index.html`.
+- The xlarge 1,024-tile diagnostic narrowed the blocker. Whole-image X2D
+  holdout remains weak at about 0.09 percent RMSE improvement, but random
+  tile holdout improves about 12.74 percent overall. Per-image random holdout
+  improves Mission 1 by about 56 percent, Z8 by about 20 percent, and X2D by
+  about 2.36 percent:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_xlarge_dashboard_20260629/index.html`.
 
 Boundaries:
 
@@ -153,6 +159,8 @@ Boundaries:
 - The current visual review is tile-level Bayer-plane RGB only. It is useful
   for softness/artifact inspection, but it is not a full-frame raw-editor
   latitude receipt.
+- Current evidence points to X2D/generalization and fixture diversity as the
+  premium still-SR blocker, rather than a broken training loop.
 
 Next production work:
 
