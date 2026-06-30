@@ -70,6 +70,19 @@ Current converted receipts:
 | Hasselblad X2D 100C | ISO 64 / 64, ISO 200 / 50, ISO 800 / 50, ISO 3200 / 50, ISO 12800 / 49 | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_sidecars_20260629/x2d/` |
 | Nikon Z 8 | ISO 500 / 32 | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_sidecars_20260629/z8/` |
 
+Current coverage dashboard:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html
+```
+
+Coverage status: X2D and Z8 are ready for calibrated noise conditioning and
+controlled addback experiments. Mission 1 and iPhone have real still fixtures,
+but they do not yet have validated darkframe sidecars; for those cameras,
+nonzero denoised targets and synthetic noise addback remain blocked until a
+darkframe stack, flat/dark pair, or equivalent no-scene-signal evidence is
+collected and converted.
+
 ## Policy
 
 Current production stills may preserve DNG `NoiseProfile`/ISO metadata and use

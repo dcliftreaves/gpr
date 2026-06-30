@@ -29,7 +29,7 @@ Current interpretation:
 
 | pillar | current score | production reading |
 |---|---:|---|
-| Best RAW stills | 88% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit and a real Bayer phase inventory; real GBRG/GRBG/BGGR fixtures and calibrated Mission/iPhone noise are still open. |
+| Best RAW stills | 88% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, a real Bayer phase inventory, and explicit camera-noise coverage; real GBRG/GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 78% | Pi 5 stand-in and handoff package are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
 | Premium still/SR | 45% | The infrastructure is broad, but the no-REF high-frequency texture model is not production-grade yet. |
 | PSF-aware RAW video improvement | 40% | Current 4K cleanup and 8K SR baselines are useful; formal native PSF/blur-aware replacement remains open. |
@@ -45,6 +45,13 @@ It confirms that the canonical Mission 1, Z8, X2D, and iPhone CFA fixtures are
 normal 2x2 Bayer, but all parsed real fixtures are RGGB. GBRG, GRBG, and BGGR
 remain covered by committed synthetic conformance until real camera fixtures are
 added.
+
+The current camera-noise coverage audit lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html`.
+It records six validated darkframe sidecars: X2D at ISO 64, 200, 800, 3200,
+and 12800, plus Z8 at ISO 500. Mission 1 and iPhone have real fixtures but no
+production-ready darkframe sidecars yet, so nonzero noise removal/addback is not
+promoted for those cameras.
 
 The generated JSON keeps `production_ready=false` until all four pillars have
 direct evidence. This avoids promoting a proxy benchmark or diagnostic CNN as a

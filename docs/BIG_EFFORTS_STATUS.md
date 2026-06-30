@@ -12,7 +12,7 @@ The generated audit dashboard for these same four pillars is tracked in
 
 | effort | current status | production interpretation |
 |---|---|---|
-| Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance and RGGB real-fixture coverage across Mission 1, Z8, X2D, and iPhone CFA. | Good enough to present as a working stills product path, with explicit open work on real GBRG/GRBG/BGGR fixtures and camera-calibrated noise. |
+| Raw stills for 50 MP / 100 MP cameras | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, RGGB real-fixture coverage across Mission 1/Z8/X2D/iPhone CFA, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on real GBRG/GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars. |
 | Raw video MVP for GoPro / Mission 1 | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
 | Raw stills improvement / expensive SR | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, and no-REF HF residual probes. | Not done until learned/modelled +2 EV X2D high-frequency texture restoration receipts pass; the current grid target/probe proves the target set and model are still too weak for promotion. |
 | Raw video improvement / PSF-aware Bayer resize | Partly done through 4K cleanup and candidate-aware 8K SR. | Not done as a formal PSF/blur-calibrated resizing model. |
@@ -55,6 +55,11 @@ Current evidence:
   X2D and Z8 darkframe calibration artifacts into v1 sidecars with selected
   source-frame manifests and SHA-256 hashes:
   `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_sidecars_20260629/`.
+- The camera-noise coverage audit at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html`
+  records six production-ready darkframe sidecars: X2D at ISO 64, 200, 800,
+  3200, and 12800, plus Z8 at ISO 500. Mission 1 and iPhone have real fixtures
+  but no production-ready darkframe sidecars yet.
 
 Boundaries:
 
@@ -73,8 +78,8 @@ Next production work:
 
 1. Add real GBRG, GRBG, and BGGR camera fixtures to back the committed synthetic
    stills conformance cells.
-2. Apply the camera/ISO noise-calibration sidecar flow to Mission 1 and iPhone
-   darkframes/frame stacks where available.
+2. Collect or locate Mission 1 and iPhone darkframe/frame-stack data, then
+   apply the camera/ISO noise-calibration sidecar flow.
 3. Re-run the raw-noise/signal audit before training any CNN on nonzero clean
    targets.
 
