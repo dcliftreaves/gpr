@@ -48,6 +48,28 @@ referenced by hash from `docs/release_evidence_manifest.json` and
 | Receipts | Include the release evidence manifest, `.gvid` validation output, and at least one target or stand-in timing receipt. |
 | Checksums | Every bundle file except the manifest itself must be listed in `hashes/sha256sums.txt`. |
 | Scope labels | Stand-in, offline-only, and camera-handoff-open evidence must stay labeled that way in the bundle README and manifest notes. |
+| Product-pillar labels | Bundle README and manifest notes must map artifacts to RAW stills, RAW video MVP, premium still/SR, and PSF-aware video/SR. Use `docs/release_evidence_manifest.json.product_pillars` as the source of truth. |
+
+## Product Pillar Labels
+
+Every release bundle should expose the same four-pillar map used by the README
+and product scorecards:
+
+- **RAW stills**: production still tiers, bit-depth support, real 50 MP / 100
+  MP-class compatibility evidence, Bayer phase coverage, and validated
+  noise-sidecar policy.
+- **RAW video MVP**: `.gvid` Bayer recompression, camera-back preview,
+  MOV/ProRes review, editable DNG/GPR export, and Mission 1 handoff/timing
+  receipts.
+- **Premium still/SR**: spend-time-for-quality still/SR targets, model
+  receipts, dashboards, and explicit non-promotion blockers.
+- **PSF-aware video/SR**: approved 4K cleanup and offline 8K SR baselines,
+  continuous 8K no-CNN versus CNN review media, native PSF evidence, and the
+  controlled-capture request for replacing the current baseline.
+
+The release manifest's `product_pillars` section owns this mapping. Release
+README prose can be shorter, but it must keep these labels visible so reviewers
+can tell what each artifact proves without reverse-engineering IDs.
 
 ## Build And Verify
 

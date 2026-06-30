@@ -99,6 +99,65 @@ REQUIRED_DASHBOARD_IDS = {
     "noise_signal_audit",
     "mission1_numbered_list_closure_plan",
 }
+REQUIRED_PRODUCT_PILLARS = {
+    "raw_stills": {
+        "label": "RAW stills",
+        "status": "locked_with_sample_gaps",
+        "refs": {
+            "production_paths": {"still_smallest", "still_primary", "still_archival"},
+            "dashboards": {
+                "realphoto_bayer_phase_sample_20260630",
+                "targeted_raw_fixture_scan_20260630",
+                "camera_noise_runtime_policy_20260630",
+            },
+        },
+        "tokens": ("50 MP", "100 MP", "noise"),
+    },
+    "raw_video_mvp": {
+        "label": "RAW video MVP",
+        "status": "pi_stand_in_pass_camera_handoff_open",
+        "refs": {
+            "production_paths": {
+                "preview_live_mission1_1024",
+                "gvid_container",
+                "mov_wrapper",
+                "prores_review_outputs",
+                "editable_dng_gpr_outputs",
+            },
+            "raw_targets": {"4k_raw_1x"},
+            "platform_performance": {
+                "pi5_mission1_halfres_capture",
+                "pi5_mission1_bench_fused_dma_like_stream_source",
+            },
+        },
+        "tokens": ("4096 x 3072", "Mission 1", "camera-role"),
+    },
+    "premium_still_sr": {
+        "label": "Premium still/SR",
+        "status": "research_loop_working_candidate_not_promoted",
+        "refs": {
+            "dashboards": {
+                "premium_still_sr_raw_cfa_residual_gap_20260630",
+                "cnn_product_scorecard_20260629",
+            },
+        },
+        "tokens": ("Candidate-only", "50 MP", "100 MP"),
+    },
+    "raw_video_psf_sr": {
+        "label": "PSF-aware video/SR",
+        "status": "approved_baseline_psf_replacement_open",
+        "refs": {
+            "raw_targets": {"8k_raw_2x"},
+            "dashboards": {
+                "cnn_product_scorecard_20260629",
+                "mission1_native_psf_corpus_audit_20260630",
+                "raw_video_psf_capture_request_20260630",
+            },
+            "platform_performance": {"local_8k_raw_offline"},
+        },
+        "tokens": ("continuous", "PSF", "baselines"),
+    },
+}
 ALLOWED_PLATFORM_STATUSES = {
     "meets-target",
     "measured-offline",
@@ -562,6 +621,72 @@ def require_artifact_ref(entry_id: str, key: str, ref: str, failures: list[str])
         failures.append(f"{entry_id}: malformed {key} artifact path: {ref}")
     if len(path.parts) < 2:
         failures.append(f"{entry_id}: {key} artifact path must name a receipt: {ref}")
+
+
+def ids_by_section(manifest: dict[str, Any], section: str, failures: list[str]) -> set[str]:
+    rows = manifest.get(section)
+    if not isinstance(rows, list):
+        failures.append(f"{section} must be a list before product_pillars can reference it")
+        return set()
+    ids: set[str] = set()
+    for row in rows:
+        if isinstance(row, dict) and isinstance(row.get("id"), str):
+            ids.add(row["id"])
+    return ids
+
+
+def require_product_pillars_contract(manifest: dict[str, Any], failures: list[str]) -> None:
+    pillars = manifest.get("product_pillars")
+    if not isinstance(pillars, list):
+        failures.append("manifest product_pillars must be a list")
+        return
+    by_id = {str(row.get("id")): row for row in pillars if isinstance(row, dict)}
+    missing = set(REQUIRED_PRODUCT_PILLARS) - set(by_id)
+    extra = set(by_id) - set(REQUIRED_PRODUCT_PILLARS)
+    if missing:
+        failures.append("manifest product_pillars missing ids: " + ", ".join(sorted(missing)))
+    if extra:
+        failures.append("manifest product_pillars has unexpected ids: " + ", ".join(sorted(extra)))
+
+    section_ids = {
+        section: ids_by_section(manifest, section, failures)
+        for section in ("production_paths", "raw_targets", "platform_performance", "dashboards")
+    }
+    for pillar_id, spec in REQUIRED_PRODUCT_PILLARS.items():
+        row = by_id.get(pillar_id)
+        if not isinstance(row, dict):
+            continue
+        if row.get("release_label") != spec["label"]:
+            failures.append(f"product_pillars.{pillar_id}: release_label must be {spec['label']!r}")
+        if row.get("status") != spec["status"]:
+            failures.append(f"product_pillars.{pillar_id}: status must be {spec['status']!r}")
+        summary = str(row.get("summary", ""))
+        open_gate = str(row.get("open_gate", ""))
+        for token in spec["tokens"]:
+            if token not in summary and token not in open_gate:
+                failures.append(f"product_pillars.{pillar_id}: missing required token {token!r}")
+        refs = row.get("manifest_refs")
+        if not isinstance(refs, dict):
+            failures.append(f"product_pillars.{pillar_id}: manifest_refs must be an object")
+            continue
+        for section, required_ids in spec["refs"].items():
+            values = refs.get(section)
+            if not isinstance(values, list):
+                failures.append(f"product_pillars.{pillar_id}: manifest_refs.{section} must be a list")
+                continue
+            value_set = {str(value) for value in values}
+            missing_refs = set(required_ids) - value_set
+            if missing_refs:
+                failures.append(
+                    f"product_pillars.{pillar_id}: manifest_refs.{section} missing "
+                    + ", ".join(sorted(missing_refs))
+                )
+            unknown_refs = value_set - section_ids.get(section, set())
+            if unknown_refs:
+                failures.append(
+                    f"product_pillars.{pillar_id}: manifest_refs.{section} references unknown ids "
+                    + ", ".join(sorted(unknown_refs))
+                )
 
 
 def require_external_receipts(entry_id: str, entry: dict[str, Any], failures: list[str]) -> None:
@@ -1236,6 +1361,7 @@ def main() -> int:
     if manifest.get("schema") != EXPECTED_SCHEMA:
         failures.append(f"schema must be {EXPECTED_SCHEMA}")
     require_manifest_freshness(manifest, failures)
+    require_product_pillars_contract(manifest, failures)
 
     production_paths = manifest.get("production_paths")
     if not isinstance(production_paths, list):

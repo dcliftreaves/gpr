@@ -3,6 +3,85 @@
   "updated": "2026-06-30",
   "external_root": "/Volumes/OWC_8TB/gpr_work",
   "purpose": "Compact source-of-truth index for production and explicitly experimental GPR output paths. Heavy dashboards, videos, checkpoints, and rendered media remain outside the repo.",
+  "product_pillars": [
+    {
+      "id": "raw_stills",
+      "release_label": "RAW stills",
+      "status": "locked_with_sample_gaps",
+      "summary": "50 MP still tiers, 12/14/16-bit support, real X2D 100 MP-class roundtrip evidence, normal Bayer parser/conformance coverage, and camera-noise policy evidence.",
+      "manifest_refs": {
+        "production_paths": [
+          "still_smallest",
+          "still_primary",
+          "still_archival"
+        ],
+        "dashboards": [
+          "realphoto_bayer_phase_sample_20260630",
+          "targeted_raw_fixture_scan_20260630",
+          "camera_noise_runtime_policy_20260630"
+        ]
+      },
+      "open_gate": "Real GRBG/BGGR camera fixtures and Mission 1/iPhone darkframe sidecars are still required before broad-camera and nonzero noise-addback claims are complete."
+    },
+    {
+      "id": "raw_video_mvp",
+      "release_label": "RAW video MVP",
+      "status": "pi_stand_in_pass_camera_handoff_open",
+      "summary": "4096 x 3072 Bayer .gvid encode, 1024 x 768 preview, container validation, MOV/ProRes review, editable DNG/GPR packaging, and Mission 1 handoff tooling.",
+      "manifest_refs": {
+        "production_paths": [
+          "video_freeze_primary",
+          "video_freeze_smallest",
+          "preview_live_mission1_1024",
+          "gvid_container",
+          "mov_wrapper",
+          "prores_review_outputs",
+          "editable_dng_gpr_outputs"
+        ],
+        "raw_targets": [
+          "4k_raw_1x"
+        ],
+        "platform_performance": [
+          "pi5_mission1_halfres_capture",
+          "pi5_mission1_bench_fused_dma_like_stream_source"
+        ]
+      },
+      "open_gate": "Real Mission 1 camera-role sensor/DMA, SD writer, and rear-display receipts must replace Pi stand-in evidence before production readiness is claimed."
+    },
+    {
+      "id": "premium_still_sr",
+      "release_label": "Premium still/SR",
+      "status": "research_loop_working_candidate_not_promoted",
+      "summary": "Target builders, raw-CFA residual datasets, noise-conditioned probes, model receipts, and blocker dashboards for spend-time-for-quality still reconstruction.",
+      "manifest_refs": {
+        "dashboards": [
+          "premium_still_sr_raw_cfa_residual_gap_20260630",
+          "cnn_product_scorecard_20260629"
+        ]
+      },
+      "open_gate": "Candidate-only 50 MP / 100 MP still-SR must clear broad Z8/X2D holdouts, editor-latitude review, and worst-row visual gates."
+    },
+    {
+      "id": "raw_video_psf_sr",
+      "release_label": "PSF-aware video/SR",
+      "status": "approved_baseline_psf_replacement_open",
+      "summary": "Approved 4K cleanup and offline 8K SR baselines, continuous no-CNN versus CNN review media, native PSF corpus audit, and controlled-capture request.",
+      "manifest_refs": {
+        "raw_targets": [
+          "8k_raw_2x"
+        ],
+        "dashboards": [
+          "cnn_product_scorecard_20260629",
+          "mission1_native_psf_corpus_audit_20260630",
+          "raw_video_psf_capture_request_20260630"
+        ],
+        "platform_performance": [
+          "local_8k_raw_offline"
+        ]
+      },
+      "open_gate": "Controlled Mission 1 high/low Bayer pairs, a stable native PSF kernel, and a PSF-conditioned 4K/8K candidate must beat the current baselines."
+    }
+  ],
   "production_paths": [
     {
       "id": "still_smallest",
