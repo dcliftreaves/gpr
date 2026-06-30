@@ -47,7 +47,7 @@ receipts before it should be called done.
 
 | pillar | what works now | not done yet |
 |---|---|---|
-| **1. Best RAW stills** | Production-gated 12 MP, 23 MP, 50 MP, and 100 MP-class Bayer roundtrips; 12/14/16-bit paths; committed RGGB/GBRG/GRBG/BGGR still conformance; real Mission 1, Z8, X2D, and iPhone CFA fixture coverage; three 50 MP still tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; real X2D 100MP visual roundtrip audit; validated X2D/Z8 camera-noise sidecars with source-frame hashes. | Apply the same noise sidecar flow to Mission 1/iPhone darkframes before promoting nonzero noise removal/addback; add more real BGGR/GRBG camera fixtures as they become available. |
+| **1. Best RAW stills** | Production-gated 12 MP, 23 MP, 50 MP, and 100 MP-class Bayer roundtrips; 12/14/16-bit paths; committed RGGB/GBRG/GRBG/BGGR still conformance; real Mission 1, Z8, X2D, and iPhone CFA fixture coverage; three 50 MP still tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; real X2D 100MP visual roundtrip audit; validated X2D/Z8 camera-noise sidecars with source-frame hashes. | Apply the same noise sidecar flow to Mission 1/iPhone darkframes before promoting nonzero noise removal/addback; current real fixture inventory is RGGB-only, so real GBRG/GRBG/BGGR fixtures are still needed. |
 | **2. GoPro RAW video MVP** | True 4096 x 3072 Bayer recompression into `.gvid`, valid interrupted-tail recovery, Lexar SILVER PLUS write-budget checks, Pi 5 stand-in capture above the accepted 20 fps floor, and 1024 x 768 camera-back preview from the same stream above 20 fps. | Real Mission 1 sensor/DMA, SD writer, and rear-display receipts. Strict 24 fps is still not production-proven for the current quality profile. |
 | **3. Spend-time-for-quality still/SR** | Matched 1x CNN improves compressed still latitude; current 4K cleanup and 8K SR infrastructure proves the offline CNN path can emit editable raw, `.gvid`, DNG/GPR, and ProRes review artifacts; routed X2D, Z8, and Mission 1 premium still-SR specialists now have hashed fixtures, full-frame receipts, rendered proxy review, X2D 100MP editor-openability plus metadata transplant, an X2D rawpy latitude dashboard, a structured HF residual target dataset, and the first no-REF HF residual smoke model. | Real "amazing still" promotion is still open: the first X2D no-REF HF model only recovers a small part of the +2 EV residual, so the next pass needs more context/target design before the routed still-SR suite can be called production. |
 | **4. RAW video improvement / PSF-aware resize** | Mission native12 4K cleanup is approved for offline review; candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates and has 8K `.gvid` plus ProRes receipts; real Mission/Z8/X2D pair-derived resize evidence confirms the current same-color 2x Bayer target is a 2x2 box model. The refreshed 1,024-tile detail budget shows the 4K-to-8K residual is essentially all same-cell fine detail, not coarse blur. | Native capture/display PSF is not fully formalized. Next work should measure camera/sensor resize PSF directly, train against CFA-aware high-res targets with explicit fine-detail reconstruction losses, and require both raw-domain and rendered visual gates before replacing the current SR baseline. |
@@ -59,6 +59,8 @@ The machine-readable four-pillar audit view is
 [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md), with
 the current generated dashboard at
 `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630/index.html`.
+Real Bayer phase fixture inventory:
+`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_inventory_20260630/index.html`.
 Camera-noise policy and the calibration sidecar contract:
 [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md).
 Bayer resize PSF policy, synthetic receipt builder, and real-pair receipt builder:
@@ -137,6 +139,7 @@ matched 1x CNN that lets lower-bitrate files land in the same visual gate.
 | 12 MP still roundtrip | 4032 x 3024 rggb12 q3 encodes in **32.4 ms** and decodes in **52.7 ms** in the committed capability run. | Output is **4.72% of 16-bit raw size** with 43.31 dB Bayer PSNR, exceeding the locked criteria. |
 | 50 MP still roundtrip | 8280 x 5520 rggb14 q3 encodes in **133.5 ms** and decodes in **243.2 ms** in the committed capability run. Pi-side 50 MP still encode is documented at **1.84 fps best** after the parallel DNG-read performance work. | Output is **6.78% of 16-bit raw size** with 53.85 dB Bayer PSNR, exceeding the locked criteria. |
 | 100 MP X2D visual roundtrip | The real X2D 11,664 x 8,750 DNG fixture roundtrips DNG to GPR to DNG in the local audit with **593 ms** encode and **965 ms** decode. | The `.gpr` is **47 MB**, full-image raw Bayer PSNR is **49.21 dB**, and the dashboard includes 100% upper-left, center, and lower-right crop panels. |
+| Real Bayer phase inventory | Canonical Mission 1, Z8, X2D, and iPhone CFA fixtures parse as normal 2x2 Bayer. | The current real-camera fixture set is **RGGB-only**; GBRG, GRBG, and BGGR remain synthetic-conformance coverage until real fixtures are added. |
 | STILL smallest | `gpr_tools_q0` plus the matched q3 BIBO_1x CNN averages **9.80 MB** on 50 MP images. | Worst LPIPS is **0.031**, passing the STILL visual gate while landing 35% smaller than primary. |
 | STILL primary | `gpr_tools_q3` plus the matched q3 BIBO_1x CNN averages **15.05 MB** on 50 MP images. | Worst LPIPS is **0.016**; this is the general-purpose visual-lossless still tier. |
 | STILL archival | `gpr_tools_q8` needs no CNN and averages **27.17 MB** on 50 MP images. | Worst LPIPS is **0.004**; this is the tighter, larger-file tier. |
@@ -286,6 +289,7 @@ current evidence so strict local checks can verify it.
 | Raw 2K / 4K / 8K ladder | [`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-14.md) |
 | UPRESABLE editable raw workflow | [`docs/UPRESABLE_PIPELINE.md`](docs/UPRESABLE_PIPELINE.md) |
 | Local real-camera fixtures | [`docs/LOCAL_FIXTURE_COMPATIBILITY.md`](docs/LOCAL_FIXTURE_COMPATIBILITY.md) |
+| Real Bayer phase inventory | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_inventory_20260630/index.html` |
 | X2D 100MP still visual roundtrip audit | `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html` |
 | Stills REF / codec-only / CNN dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525_final/index.html` |
 | Still 1x / video 1x / Mission 2x CNN dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_1x2x_review_20260618/index.html` |
