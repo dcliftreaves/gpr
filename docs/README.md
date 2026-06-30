@@ -10,6 +10,7 @@ refreshed 2026-06-29.
 | product overview, media, and quick start | `../README.md` |
 | four big product efforts and what remains | `BIG_EFFORTS_STATUS.md` |
 | execution plan for the four big product efforts | `HIGH_LEVEL_GOAL_EXECUTION_PLAN.md` |
+| machine-checkable pillar scorecard and production burn-down | `PRODUCT_PILLAR_SCORECARD.md` |
 | camera-noise calibration policy and sidecar builder | `CAMERA_NOISE_CALIBRATION.md` |
 | premium still-SR gate policy and skeleton | `PREMIUM_STILL_SR.md` |
 | Bayer resize PSF policy and synthetic receipt builder | `BAYER_RESIZE_PSF.md` |
@@ -110,6 +111,8 @@ refreshed 2026-06-29.
 | `python3 tools/test/test_build_mission1_native_psf_pair_inventory.py` | regression-test the Mission 1 native PSF pair inventory |
 | `python3 tools/build_raw_video_psf_audit.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630` | build the raw-video PSF/SR readiness audit |
 | `python3 tools/test/test_build_raw_video_psf_audit.py` | regression-test the PSF/SR readiness audit builder |
+| `python3 tools/build_product_burndown.py --external-root /Volumes/OWC_8TB/gpr_work --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630` | build the four-pillar production burn-down: what evidence moves each pillar and which steps need real Mission 1 hardware |
+| `python3 tools/test/test_build_product_burndown.py` | regression-test the product burn-down builder |
 | `python3 tools/build_gopro_mission1_intake_audit.py --manifest /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_20260630/manifest.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_20260630` | verify the GoPro Mission 1 intake bundle and separate review readiness from camera-production readiness |
 | `python3 tools/test/test_build_gopro_mission1_intake_audit.py` | regression-test the GoPro Mission 1 intake audit |
 | `python3 tools/test/check_readme_media.py` | validate local README showcase media links, sizes, and stale text claims in SVG media |

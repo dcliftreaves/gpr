@@ -25,6 +25,13 @@ Current generated dashboard:
 
 `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_20260630/index.html`
 
+Companion production burn-down dashboard:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html`
+
+The burn-down is the action view: it separates the one Mission 1 hardware-only
+closure from the remaining non-camera fixture, CNN, and PSF work.
+
 Current interpretation:
 
 | pillar | current score | production reading |

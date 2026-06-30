@@ -1,6 +1,6 @@
 {
   "schema": "gpr_release_evidence_manifest.v1",
-  "updated": "2026-06-29",
+  "updated": "2026-06-30",
   "external_root": "/Volumes/OWC_8TB/gpr_work",
   "purpose": "Compact source-of-truth index for production and explicitly experimental GPR output paths. Heavy dashboards, videos, checkpoints, and rendered media remain outside the repo.",
   "production_paths": [
@@ -1210,6 +1210,29 @@
         "compatibility_pass": 8,
         "compatibility_skip": 0,
         "live_camera_path": 0
+      }
+    },
+    {
+      "id": "product_burndown_20260630",
+      "family": "product_status",
+      "status": "current",
+      "purpose": "Four-pillar production burn-down showing the remaining evidence gates and which work can proceed without Mission 1 firmware access.",
+      "dashboard": "artifacts/product_burndown_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/BIG_EFFORTS_STATUS.md"
+      ],
+      "receipts": [
+        "artifacts/product_burndown_20260630/product_burndown.json",
+        "artifacts/product_burndown_20260630/index.html"
+      ],
+      "metrics": {
+        "four_pillar_completion_percent": 69,
+        "action_count": 6,
+        "non_camera_action_count": 5,
+        "camera_required_action_count": 1,
+        "production_ready": 0
       }
     },
     {
