@@ -15,7 +15,7 @@ The generated audit dashboard for these same four pillars is tracked in
 | Raw stills for 50 MP / 100 MP cameras | 90% | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, RGGB plus Mission 1 GBRG real-fixture coverage, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars. |
 | Raw video MVP for GoPro / Mission 1 | 80% | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
 | Raw stills improvement / expensive SR | 60% | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, raw-CFA expanded targets, no-REF HF residual probes including a matched dilated raw-CFA gate, calibrated noise-clean target sweep, raw-CFA residual alignment audit, trainable raw-CFA residual target NPZ, and the first true raw-CFA residual model receipts. | Not done until learned/modelled high-frequency texture restoration receipts pass; raw-CFA helps, the current local/dilated residual probes remain far below promotion, ISO 200 noise cleaning is too small to explain the gap, and the first raw-domain trainer narrows the blocker to X2D/domain generalization and low raw-residual recovery. |
-| Raw video improvement / PSF-aware Bayer resize | 44% | Partly done through 4K cleanup, candidate-aware 8K SR, native high/low pair inventory, measurement plan, and first native measurement run. | Not done as a formal PSF/blur-calibrated resizing model until controlled high/low pairs produce a stable native kernel and PSF-conditioned gates pass. |
+| Raw video improvement / PSF-aware Bayer resize | 44% | Partly done through 4K cleanup, candidate-aware 8K SR, native high/low pair inventory, measurement plan, first native measurement run, and an explicit PSF gap closure plan. | Not done as a formal PSF/blur-calibrated resizing model until controlled high/low pairs produce a stable native kernel and PSF-conditioned gates pass. |
 
 ## 1. Raw Stills
 
@@ -500,6 +500,12 @@ Current evidence:
   It accepted 2 of 3 selected near-time pairs and found strong tile support
   (1,409 sharp-edge tiles and 1,381 texture-field tiles), but rejected the
   combined kernel as unstable.
+- The raw-video PSF gap closure plan turns that failed native measurement into
+  the concrete closure list:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html`.
+  It preserves the approved 4K/8K baselines, records the accepted-pair and
+  kernel-stability blockers, and requires controlled same-scene pairs before a
+  PSF-conditioned model can be promoted.
 - The raw-video SR/detail candidate scoreboard indexes 89 historical
   Mission/Z8 decision receipts and finds zero current-scale promotion rows
   under the Mission42 plus Z8 all24 coverage rule:
@@ -521,9 +527,10 @@ Boundaries:
 
 Next production work:
 
-1. Capture or locate controlled same-scene Mission 1 high/low pairs, then
-   re-run the native PSF measurement until at least three pairs pass scene
-   vetting and the fitted kernel is stable.
+1. Follow the raw-video PSF gap closure plan: capture or locate controlled
+   same-scene Mission 1 high/low pairs, then re-run the native PSF measurement
+   until at least three pairs pass scene vetting and the fitted kernel is
+   stable.
 2. Train with CFA-aware high-res RGB/downsample targets, PSF-conditioned
    losses, and explicit same-cell fine-detail reconstruction metrics.
 3. Promote only if Mission42 and Z8 all24 gates improve, worst rows are clean,

@@ -125,6 +125,11 @@ Immediate work:
   `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/`.
 - Train or tune 4K cleanup and 8K SR with CFA-aware targets and PSF-conditioned
   losses, including explicit same-cell fine-detail reconstruction metrics.
+- Use the current raw-video PSF gap plan as the closure checklist for this
+  pillar:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html`.
+  It records the current accepted-pair count, tile support, kernel-stability
+  result, required controlled-pair capture, and promotion receipts.
 - Keep dashboards honest: full-frame Mission and Z8 rows, rendered crops,
   raw-domain metrics, lower-right/worst-row inspection, and metadata receipts.
 
@@ -223,7 +228,12 @@ Evidence required:
    noise-cleaning kept as a guardrail rather than the main fix.
 5. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
-6. Extend the pair-derived PSF receipt path to native camera/display evidence
-   and use it to drive the next PSF-conditioned SR experiment.
+6. Follow the raw-video PSF gap plan:
+   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html`.
+   The current native measurement has enough tile support but only 2 accepted
+   pairs and an unstable fitted kernel. The next PSF commit should add
+   controlled same-scene Mission 1 high/low pairs or document that the available
+   local corpus cannot supply them before training the PSF-conditioned SR
+   experiment.
 7. Re-run the README/media/release guards and open a focused PR for each small
    reviewable slice.

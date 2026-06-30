@@ -206,10 +206,11 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "The native PSF measurement plan selects the best decoded high/low pairs and defines the alignment, edge/texture mining, kernel fitting, and promotion gates required next.",
                 "The first native PSF measurement run executed on the selected Mission 1 pairs: 2 of 3 pairs passed scene/alignment vetting with 1,409 sharp-edge and 1,381 texture-field tiles, but the kernel is unstable and rejected for model conditioning.",
                 "The raw-video PSF audit separates approved 4K/8K baselines from the unfinished native PSF replacement claim.",
+                "The raw-video PSF gap plan now turns that failed native measurement into a concrete capture, measurement, model-gate, and promotion checklist.",
                 "The SR/detail candidate scoreboard indexes historical Mission/Z8 decisions and finds zero current-scale promotion rows.",
             ],
             "open_work": [
-                "Capture or locate controlled same-scene Mission 1 high/low pairs so at least three pairs pass scene vetting and produce a stable measured native PSF kernel.",
+                "Follow the raw-video PSF gap plan: capture or locate controlled same-scene Mission 1 high/low pairs so at least three pairs pass scene vetting and produce a stable measured native PSF kernel.",
                 "Train PSF-conditioned SR against CFA-aware high-res targets with explicit fine-detail reconstruction losses.",
                 "Promote only if Mission42 and Z8 all24 gates beat the current approved baseline and worst rows stay clean.",
             ],
@@ -225,6 +226,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("Mission 1 native PSF measurement plan", "artifacts/mission1_native_psf_measurement_plan_20260630/index.html"),
                     artifact_ref("Mission 1 native PSF measurement", "artifacts/mission1_native_psf_measurement_20260630/index.html"),
                     artifact_ref("raw-video PSF audit", "artifacts/raw_video_psf_audit_20260630/index.html"),
+                    artifact_ref("raw-video PSF gap plan", "artifacts/raw_video_psf_gap_plan_20260630/index.html"),
                     artifact_ref("raw-video SR/detail candidate scoreboard", "artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html"),
                 ],
                 external_root,
@@ -244,7 +246,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
             "Add real GRBG/BGGR fixtures and collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback for those cameras; the current lowest-lift Mission top-up is ISO232 RGGB with two matching frames still needed.",
             "Continue premium still-SR from the current raw-CFA residual blocker: held-out Z8 is mildly positive, hard X2D is only barely positive after wider context, and stored-HF/noise-threshold probes did not solve it.",
-            "Capture controlled same-scene Mission 1 high/low pairs or rerun native PSF measurement only when enough pairs can produce a stable kernel, then gate a PSF-conditioned SR model against the current 4K/8K baselines.",
+            "Follow the raw-video PSF gap plan: capture controlled same-scene Mission 1 high/low pairs, rerun native measurement until the kernel is stable, then gate a PSF-conditioned SR model against the current 4K/8K baselines.",
         ],
     }
 
