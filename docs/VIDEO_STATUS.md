@@ -1,4 +1,4 @@
-# Video pipeline status — refreshed 2026-06-25
+# Video pipeline status — refreshed 2026-06-30
 
 ## Your design intent (restated)
 
@@ -13,6 +13,39 @@ The active Mission 1 target now uses native 4096 x 3072 Bayer `.gvid` as the
 capture stream and decodes that stream to 1024 x 768 RGB for camera-back
 preview. Older half-res/2K sections below are retained as historical context,
 not the current numbered-list success definition.
+
+## Current 2026-06-30 read
+
+The current video product surface has four separate claims:
+
+| path | current status |
+|---|---|
+| 4K Bayer capture stream | Native 4096 x 3072 Bayer recompresses into `.gvid` above the accepted 20 fps Pi 5 stand-in floor, with zero-drop and recovery receipts. Real Mission 1 sensor/DMA, storage, and rear-display receipts are still required before firmware readiness can be claimed. |
+| Camera-back preview | The same 4K `.gvid` decodes to a full-frame 1024 x 768 RGB preview above 20 fps on the Pi 5 stand-in. Actual Mission 1 UI/display handoff remains open. |
+| Offline 4K cleanup | The approved 4K cleanup path is a desktop/post path. It emits editable Bayer outputs and review media; it is not a live camera-side CNN. |
+| Offline 8K SR | The approved 8K SR path has separate whole-scene no-CNN and CNN ProRes review videos for Z8 and Mission 1 evidence sets, plus `.gvid`/editable-packaging receipts. |
+
+Standalone whole-video 8K review files:
+
+- Z8 no-CNN:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/z8_24f_true_no_cnn_4k_raw_lanczos_to_8k_20p_prores.mov`
+- Z8 with 4K cleanup plus 8K SR CNN:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/z8_24f_with_4k_cleanup_and_8k_sr_cnn_20p_prores.mov`
+- Mission 1 broad no-CNN:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_true_no_cnn_4k_raw_lanczos_to_8k_42f_20p_prores.mov`
+- Mission 1 broad with 4K cleanup plus 8K SR CNN:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_with_4k_cleanup_and_8k_sr_cnn_42f_20p_prores.mov`
+- Mission 1 strict sequential scene, no-CNN:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/GP017497_508_true_no_cnn_8k_12f_20p_prores.mov`
+- Mission 1 strict sequential scene, with 4K cleanup plus 8K SR CNN:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/GP017497_508_with_4k_cleanup_8k_sr_cnn_12f_20p_prores.mov`
+
+Live `.gvid`/FUSED Bayer format scope is intentionally narrower than the
+standard still/GPR path. Live `.gvid` currently carries RGGB/GBRG unpacked
+12/14/16-bit pixel formats `0..5`. The standard still/GPR encoder path covers
+normal unpacked RGGB/GBRG/GRBG/BGGR separately. Do not claim live-video
+GRBG/BGGR support until the FUSED header and preview decoder have a real
+four-phase contract.
 
 ## Current video pipelines
 
