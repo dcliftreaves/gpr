@@ -269,6 +269,7 @@ current evidence so strict local checks can verify it.
 | Mission 1 native PSF pair inventory | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_20260630/index.html` |
 | Mission 1 native PSF measurement plan | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_20260630/index.html` |
 | Mission 1 native PSF measurement run | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_20260630/index.html` |
+| Mission 1 native PSF corpus audit | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_corpus_audit_20260630/index.html` |
 | Raw-video PSF gap closure plan | `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html` |
 | Raw-video PSF controlled capture request | `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html` |
 | Still 1x / video 1x / Mission 2x CNN dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_cnn_1x2x_review_20260618/index.html` |

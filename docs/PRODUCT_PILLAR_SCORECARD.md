@@ -129,6 +129,15 @@ scene/alignment vetting and provided 1,409 sharp-edge plus 1,381 texture-field
 tiles, but the combined kernel was unstable and is not ready for model
 conditioning.
 
+The current Mission 1 native PSF corpus audit lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_corpus_audit_20260630/index.html`.
+It hashes all four current near-time candidate pairs and records that zero are
+strict controlled pairs: ISO/settings are not fixed enough, fixed
+WB/lens/stabilization/sharpening metadata is absent, no negative controls are
+marked, the existing measurement accepted only two pairs, and the kernel is
+unstable. This proves the local corpus cannot close the PSF blocker without new
+or newly located controlled captures.
+
 The raw-video PSF controlled capture request lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`.
 It is the handoff for closing the measurement blocker: locked same-scene

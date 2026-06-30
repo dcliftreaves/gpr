@@ -1359,6 +1359,31 @@
       }
     },
     {
+      "id": "mission1_native_psf_corpus_audit_20260630",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Audits whether the existing local Mission 1 high/low corpus can satisfy the strict native PSF promotion contract.",
+      "dashboard": "artifacts/mission1_native_psf_corpus_audit_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/BAYER_RESIZE_PSF.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
+      ],
+      "receipts": [
+        "artifacts/mission1_native_psf_corpus_audit_20260630/mission1_native_psf_corpus_audit.json",
+        "artifacts/mission1_native_psf_corpus_audit_20260630/index.html"
+      ],
+      "metrics": {
+        "candidate_pair_count": 4,
+        "hashed_candidate_pair_count": 4,
+        "strict_controlled_pair_count": 0,
+        "existing_measurement_accepted_pair_count": 2,
+        "existing_measurement_kernel_stable": 0,
+        "local_corpus_can_close_psf_gap": 0
+      }
+    },
+    {
       "id": "raw_video_psf_capture_request_20260630",
       "family": "raw_video_psf",
       "status": "diagnostic",

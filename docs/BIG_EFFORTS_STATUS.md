@@ -532,6 +532,14 @@ Current evidence:
   It preserves the approved 4K/8K baselines, records the accepted-pair and
   kernel-stability blockers, and requires controlled same-scene pairs before a
   PSF-conditioned model can be promoted.
+- The Mission 1 native PSF corpus audit checks whether the current local files
+  can satisfy that stricter closure contract:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_corpus_audit_20260630/index.html`.
+  It hashes all four current near-time candidate pairs, but finds zero strict
+  controlled pairs. The failures are specific: ISO/settings are not fixed
+  tightly enough, fixed WB/lens/stabilization/sharpening metadata is missing,
+  no negative controls are marked, the measurement accepted only two pairs, and
+  the native kernel is unstable.
 - The raw-video PSF controlled capture request turns that checklist into a
   sample handoff:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`.

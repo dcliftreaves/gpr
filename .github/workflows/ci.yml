@@ -97,6 +97,7 @@ jobs:
           python3 tools/test/test_build_bayer_resize_psf_receipt.py
           python3 tools/test/test_build_raw_video_psf_audit.py
           python3 tools/test/test_build_raw_video_psf_gap_plan.py
+          python3 tools/test/test_build_mission1_native_psf_corpus_audit.py
           python3 tools/test/check_product_burndown_contract.py
           python3 tools/test/test_check_product_burndown_contract.py
 
