@@ -143,11 +143,11 @@ their existing offline roles, but the PSF replacement is not production-ready
 without native camera/display PSF evidence and a PSF-conditioned model gate.
 
 The current standalone continuous-scene 8K no-CNN versus CNN review lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/`.
 It contains separate 8192 x 6144 ProRes videos for the no-CNN baseline and the
-approved 4K cleanup plus 8K SR CNN path, both cut from the same GP017497 through
-GP017508 scene run. This is the whole-video review evidence for the approved
-baseline, not a dashboard, contact sheet, side-by-side review, or crop montage.
+approved 4K cleanup plus 8K SR CNN path, with 42 matched frames at 20 fps. This
+is the whole-video review evidence for the approved baseline, not a dashboard,
+contact sheet, side-by-side review, or crop montage.
 
 The current Mission 1 native high/low PSF candidate inventory lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_20260630/index.html`.

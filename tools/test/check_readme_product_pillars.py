@@ -70,11 +70,11 @@ REQUIRED_README_TOKENS = (
     "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
     "docs/PREMIUM_STILL_SR.md",
     "docs/BAYER_RESIZE_PSF.md",
-    "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630",
-    "Standalone continuous-scene videos, not a dashboard or side-by-side contact review",
-    "GP017497_508_true_no_cnn_8k_12f_20p_prores.mov",
-    "GP017497_508_with_4k_cleanup_8k_sr_cnn_12f_20p_prores.mov",
-    "Both movies are 8192 x 6144 ProRes, 12 matched frames at 20 fps",
+    "mission1_8k_true_no_cnn_vs_cnn_20260630",
+    "Two separate standalone 8K ProRes scene videos, not a dashboard",
+    "mission42_true_no_cnn_4k_raw_lanczos_to_8k_42f_20p_prores.mov",
+    "mission42_with_4k_cleanup_and_8k_sr_cnn_42f_20p_prores.mov",
+    "Both movies are 8192 x 6144 ProRes, 42 matched frames at 20 fps",
     "no-CNN 4096 x 3072 raw Bayer display-upscaled to 8192 x 6144",
     "approved 4K cleanup plus 8K SR CNN raw Bayer path",
     "Production capture requirements",
@@ -91,6 +91,7 @@ FORBIDDEN_README_TOKENS = (
     # 4K CNN input, so it is not the top-level no-CNN comparison reviewers ask
     # for in the public README.
     "mission1_8k_continuous_cnn_ab_20260630",
+    "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630",
 )
 
 EXPECTED_PERCENTAGES = {
