@@ -229,6 +229,24 @@ baseline did not explain the missing residual either. The current blocker is
 therefore not target construction or a simple highpass scale/addback; it is
 X2D/domain generalization and insufficient raw residual recovery.
 
+The next X2D probes narrowed that further:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w64_5000_block17_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_storedhf_w32_2000_20260630/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/train_receipt.json
+```
+
+The wider/block17 raw-target pass makes the hard X2D holdout barely positive
+at about 0.02 percent median raw-residual MAE recovery, but that is still not a
+promotable result. Feeding the stored `candidate_raw_hf_cfa4` feature directly
+does not solve the holdout and remains negative at about -0.17 percent. A
+naive calibrated-noise soft-threshold target is also negative, so simply
+subtracting one sigma of sidecar noise removes useful structure and is not the
+production noise/signal separation policy. The next candidate should use a
+stronger domain/generalization strategy, not just the stored-HF feature or
+simple noise thresholding.
+
 ## Raw-CFA Feature Smoke
 
 The target builder, merge tool, and trainer now support optional raw-CFA

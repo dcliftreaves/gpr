@@ -185,6 +185,14 @@ Current evidence:
   held-out X2D remains negative at about -0.21 percent:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_w32_2000_lowlr_20260630/index.html`,
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w32_2000_lowlr_20260630/index.html`.
+  A wider/block17 X2D pass reaches only about 0.02 percent median holdout
+  recovery, while the stored candidate-HF feature probe and one-sigma
+  noise-soft-threshold target remain negative. Those receipts narrow the
+  blocker to X2D/domain generalization and recovery strength, not target
+  availability, stored-HF feature mismatch, or a naive noise subtraction:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w64_5000_block17_20260630/index.html`,
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_storedhf_w32_2000_20260630/index.html`,
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/index.html`.
 - `tools/build_premium_still_sr_visual_review.py` emits the current tile-level
   visual review dashboard with baseline/model/target/error contact sheets for
   the X2D holdout:

@@ -119,6 +119,8 @@ def main() -> int:
                 "weight_decay": 0.0,
                 "grad_weight": 0.0,
                 "target_abs_weight": 0.5,
+                "target_policy": "raw",
+                "noise_threshold_scale": 1.0,
                 "grad_clip": 1.0,
                 "holdout_scene": "holdout_scene",
                 "holdout_camera": None,
@@ -142,13 +144,21 @@ def main() -> int:
         assert receipt["eval"]["holdout"]["row_count"] == 1
         assert receipt["config"]["feature_mode"] == "raw_multiscale_coord_ev_noise"
         assert receipt["config"]["holdout_scene"] == "holdout_scene"
+        assert receipt["config"]["target_policy"] == "raw"
+        assert "exact_raw_mae_reduction_pct" in receipt["eval"]["holdout"]
 
         args.output_dir = root / "camera_holdout"
         args.holdout_scene = None
         args.holdout_camera = "x2d"
+        args.feature_mode = "raw_multiscale_storedhf_coord_ev_noise"
+        args.target_policy = "noise_soft_threshold"
+        args.noise_threshold_scale = 0.5
         camera_receipt = tool.train(args)
         assert camera_receipt["eval"]["holdout"]["row_count"] == 1
         assert camera_receipt["config"]["holdout_camera"] == "x2d"
+        assert camera_receipt["config"]["feature_mode"] == "raw_multiscale_storedhf_coord_ev_noise"
+        assert camera_receipt["config"]["target_policy"] == "noise_soft_threshold"
+        assert camera_receipt["policy"]["target_policy"] == "noise_soft_threshold"
 
         bad_npz = root / "bad_targets.npz"
         np.savez_compressed(
@@ -159,6 +169,8 @@ def main() -> int:
         )
         args.targets = bad_npz
         args.output_dir = root / "bad_out"
+        args.feature_mode = "raw_multiscale_coord_ev_noise"
+        args.target_policy = "raw"
         try:
             tool.train(args)
         except ValueError as exc:
