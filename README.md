@@ -12,16 +12,24 @@
 **8-bit JPEG size. 16-bit RAW quality. Editable Bayer video.**
 
 GPR is an open raw Bayer media suite for stills, camera-class raw video,
-camera-back preview, offline reconstruction, and review renders. It takes
-sensor Bayer frames into compact `.gvid` streams, previews them at display
-resolution, restores 4K/8K detail with decoder-side CNNs, and exports ProRes
-review media while preserving an editable raw source.
+camera-back preview, offline reconstruction, and review renders. It is the
+prototype path for GoPro-class raw video: sensor Bayer frames go into compact
+`.gvid` streams, the same stream drives a camera-back preview, desktop tools
+restore 4K/8K detail with decoder-side CNNs, and ProRes review media can be
+exported without replacing the editable raw source.
 
 ![GPR raw-video showcase: 4K Bayer .gvid, live preview, native 12MP crops, and 8K SR review](docs/img/readme_showcase.webp)
 
 | capture | camera preview | detail restore | review/export |
 |---|---|---|---|
 | 4096 x 3072 Bayer into `.gvid`, above the active 20 fps Pi 5 stand-in floor | 1024 x 768 full-frame preview from the same 4K `.gvid`, above 20 fps | 4K cleanup and offline 8K SR from raw Bayer sources | 4K and 8K ProRes review outputs from `.gvid` receipts |
+
+| headline result | current proof |
+|---|---|
+| **8-bit JPEG size, 16-bit RAW quality** | 50 MP editable still tiers average **9.80 MB**, **15.05 MB**, and **27.17 MB** while passing the committed visual gate. |
+| **True raw-video MVP** | 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20 fps** Pi 5 stand-in floor; camera-role Mission 1 receipts remain the production handoff. |
+| **Same stream, live preview** | The 4K `.gvid` decodes to full-frame 1024 x 768 preview above **20 fps** on the Pi 5 stand-in. |
+| **Offline 8K reconstruction** | Separate standalone 8K scene videos exist for no-CNN and CNN paths on Z8 and Mission 1 evidence sets, plus `.gvid` and ProRes receipts. |
 
 The current evidence covers the raw-video prototype loop end to end: true Bayer
 recompression into `.gvid`, camera-back preview decode from that stream, 4K
@@ -113,7 +121,7 @@ the docs and external dashboards:
 | What work remains before calling the whole suite production-ready? | [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md), [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md), [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md), [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.json), and the requirement-linked burn-down at `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html` |
 | What proves the stills path? | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md), [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md), [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md), and the X2D 100MP audit under `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/` |
 | What proves the GoPro/Mission raw-video path? | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md), [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md), [`docs/LABS_INTAKE.md`](docs/LABS_INTAKE.md), and the intake audit under `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260630/` |
-| What does the approved 8K video CNN/SR path look like against no CNN? | Two separate standalone 8K ProRes scene videos, not a dashboard, contact sheet, crop montage, or side-by-side review: Z8 no-CNN baseline `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/z8_24f_true_no_cnn_4k_raw_lanczos_to_8k_20p_prores.mov`, Z8 4K cleanup plus 8K SR CNN `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/z8_24f_with_4k_cleanup_and_8k_sr_cnn_20p_prores.mov`, and receipt `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json`. Both movies are 8280 x 5520 ProRes, 24 matched frames at 20 fps. The baseline is no-CNN 4140 x 2760 raw Bayer display-upscaled to 8280 x 5520, and the candidate is the retained 4K cleanup CNN Bayer plus approved 8K SR CNN path. |
+| What does the approved 8K video CNN/SR path look like against no CNN? | Two separate standalone 8K ProRes scene videos, not a dashboard, contact sheet, crop montage, or side-by-side review: Z8 no-CNN baseline `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/z8_24f_true_no_cnn_4k_raw_lanczos_to_8k_20p_prores.mov`, Z8 4K cleanup plus 8K SR CNN `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/z8_24f_with_4k_cleanup_and_8k_sr_cnn_20p_prores.mov`, and receipt `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json`. Both movies are 8280 x 5520 ProRes, 24 matched frames at 20 fps. The baseline is no-CNN 4140 x 2760 raw Bayer display-upscaled to 8280 x 5520, and the candidate is the retained 4K cleanup CNN Bayer plus approved 8K SR CNN path. The Mission 1 counterpart is also a full-video A/B, not a dashboard: no-CNN `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_true_no_cnn_4k_raw_lanczos_to_8k_42f_20p_prores.mov`, with CNN `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/mission42_with_4k_cleanup_and_8k_sr_cnn_42f_20p_prores.mov`, and receipt `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json`; those are 8192 x 6144 ProRes, 42 matched frames at 20 fps. |
 | What proves or blocks premium still/SR? | [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md) plus the raw-CFA residual gap dashboard under `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/` |
 | What proves or blocks PSF-aware video/SR? | [`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md) plus the PSF audit, measurement, and controlled-capture dashboards under `/Volumes/OWC_8TB/gpr_work/artifacts/` |
 
@@ -335,6 +343,7 @@ current evidence so strict local checks can verify it.
 | Mission candidate-aware 8K SR broad dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_broad_fullframe/index.html` |
 | Z8 candidate-aware 8K SR broad dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/z8_all24_fullframe/index.html` |
 | Z8 standalone 8K no-CNN vs CNN ProRes review | `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/` |
+| Mission 1 standalone 8K no-CNN vs CNN ProRes review | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/` |
 | Mission candidate-aware 8K `.gvid` to ProRes review | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_4kcnn_8k_sr_gvid_to_prores_42f_after_bounds_fix/mission42_8k_sr_gvid_42f_no_cnn_20p_prores.mov` |
 | Mission candidate-aware 8K `.gvid` packaging receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_4kcnn_8k_sr_gvid_packaging_q3_after_bounds_fix/receipt.json` |
 | Mission candidate-aware 8K `.gvid` to ProRes receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_4kcnn_8k_sr_gvid_to_prores_42f_after_bounds_fix/receipt.json` |
