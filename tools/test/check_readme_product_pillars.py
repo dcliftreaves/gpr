@@ -70,9 +70,12 @@ REQUIRED_README_TOKENS = (
     "docs/PREMIUM_STILL_SR.md",
     "docs/BAYER_RESIZE_PSF.md",
     "mission1_8k_continuous_cnn_ab_20260630",
+    "Continuous scene videos: no 8K SR CNN",
     "mission42_no_8k_sr_cnn_8k_lanczos_from_4kcnn_42f_20p_prores.mov",
     "mission42_with_8k_sr_cnn_8k_42f_20p_prores.mov",
     "mission42_8k_no_sr_vs_with_sr_side_by_side_3840x1440_42f_20p_prores.mov",
+    "This isolates the 8K SR CNN contribution from the same 4K cleanup input",
+    "it is not a zero-CNN end-to-end comparison",
 )
 
 FORBIDDEN_README_TOKENS = (
