@@ -56,6 +56,8 @@ DEFAULT_MODEL_RECEIPTS = [
     / "artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_framectx_unet_w32_1200_20260630/train_receipt.json",
     DEFAULT_EXTERNAL_ROOT
     / "artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_unet_w16_160_20260630/train_receipt.json",
+    DEFAULT_EXTERNAL_ROOT
+    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_contextstoredhf_unet_w24_360_20260630/train_receipt.json",
 ]
 
 
@@ -221,7 +223,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 1,
                 "name": "full-image or structured raw-CFA residual learner",
-                "purpose": "make X2D and Z8 holdouts strongly positive at the same time; the first small U-Net/multiscale architecture and the first bounded full-crop U-Net probe move the hard X2D holdout barely positive, while X2D-only camera-domain filtering, camera-balanced sampling-only, 32px context-padding, combined stored-HF plus pooled-context features, simple multiscale band-loss, and absolute-position/full-crop scalar frame context all remained below promotion",
+                "purpose": "make X2D and Z8 holdouts strongly positive at the same time; the first small U-Net/multiscale architecture and the first bounded full-crop U-Net probe move the hard X2D holdout barely positive, while X2D-only camera-domain filtering, camera-balanced sampling-only, 32px context-padding, combined stored-HF plus pooled-context features, bounded full-crop stored-HF/context U-Net, simple multiscale band-loss, and absolute-position/full-crop scalar frame context all remained below promotion",
                 "must_prove": [
                     f"X2D median raw-residual MAE recovery >= {threshold_pct:.1f}%",
                     f"Z8 median raw-residual MAE recovery >= {threshold_pct:.1f}%",
@@ -231,7 +233,7 @@ def build_gap(target_receipt: Path, model_receipts: list[Path], threshold_pct: f
             {
                 "priority": 2,
                 "name": "full-image or routed raw-context residual model",
-                "purpose": "replace the current weak learner; larger patches, stronger high-residual weighting, simple pooled raw context, stored candidate-HF, stored-HF plus pooled context, multiscale band-loss reweighting, X2D-only train-domain filtering, camera-balanced sampling, 32px context padding, simple frame-context scalar planes, and a bounded full-crop U-Net pass are not sufficient, while U-Net variants are only barely positive and still far below promotion",
+                "purpose": "replace the current weak learner; larger patches, stronger high-residual weighting, simple pooled raw context, stored candidate-HF, stored-HF plus pooled context, multiscale band-loss reweighting, X2D-only train-domain filtering, camera-balanced sampling, 32px context padding, simple frame-context scalar planes, a bounded full-crop U-Net pass, and a bounded full-crop stored-HF/context U-Net pass are not sufficient, while U-Net variants are only barely positive and still far below promotion",
                 "must_prove": [
                     "uses candidate raw/metadata only at runtime",
                     "beats the local and pooled-context raw-CFA residual baselines on the hard X2D holdout",

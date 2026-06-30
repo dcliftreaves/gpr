@@ -159,6 +159,7 @@ def build_contract(
                 "small U-Net/multiscale architecture without stronger supervision or full-image context",
                 "absolute crop-position/full-crop scalar frame context without stronger supervision or full-image context",
                 "bounded full-crop U-Net training without a stronger full-image objective or model capacity",
+                "bounded full-crop stored-HF/context U-Net training without a materially stronger objective or model capacity",
                 "calibrated random-HF or noise addback as a substitute for learned signal detail",
             ],
             "success_gates": [
