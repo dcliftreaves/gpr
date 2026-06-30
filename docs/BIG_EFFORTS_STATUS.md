@@ -166,6 +166,14 @@ Current evidence:
   56.62 percent RMSE, 46.67 percent MAE, and 29.70 percent gradient MAE, with
   Mac/MPS tiled inference plus 8192 x 6144 raw write at about 2.68 fps:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fullframe_mission1_specialist_20260630/eval/index.html`.
+- The routed full-frame sweep now covers every current specialist route. Z8
+  `Z8Z_1349` improves by about 40.74 percent RMSE, 7.86 percent MAE, and
+  4.06 percent gradient MAE at about 3.20 fps with raw write. X2D
+  `2024_April_X2D_1742` uses a 11664 x 8748 full-gate crop and improves by
+  about 1.03 percent RMSE, 1.20 percent MAE, and 1.06 percent gradient MAE at
+  about 1.55 fps with raw write:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fullframe_z8_specialist_20260630/eval/index.html`,
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fullframe_x2d_specialist_20260630/eval/index.html`.
 - `tools/build_premium_still_sr_router_plan.py` now emits a metadata-only
   routed specialist plan. The current plan maps `x2d:100mp:dng` to the X2D
   specialist, `z8:50mp:dng` to the Z8 specialist, and both
@@ -191,17 +199,17 @@ Boundaries:
   original X2D scene remains a hard outlier. That points to target/loss or
   scene-specialist work before premium still-SR can be promoted.
 - The specialist results support a camera/source-aware router or separate
-  specialist checkpoints. Mission 1 now has first full-frame evidence; X2D/Z8
-  still need equivalent full-frame checks, and the routed suite still lacks
-  raw-editor latitude receipts.
+  specialist checkpoints. Every current route now has a first full-frame
+  check, but X2D remains weak and the routed suite still lacks raw-editor
+  latitude receipts.
 - The router plan is a contract for future routing, not a production registry.
   X2D, Z8, and Mission 1 now have candidate specialists, but all still lack
   production full-frame/editor-latitude gates.
 
 Next production work:
 
-1. Extend full-frame routed camera/source-specialist gates from Mission 1 to
-   X2D and Z8, then add rendered/editor-latitude review for the routed suite.
+1. Add rendered/editor-latitude review for the routed suite, starting with the
+   X2D weak route and then confirming Mission 1/Z8 do not regress visually.
 2. Train against high-quality still targets, with camera/ISO metadata and a
    noise policy that passes the raw-noise/signal audit.
 3. Add full-frame still visual dashboards, raw-domain metrics, and raw-editor

@@ -388,6 +388,35 @@ Current routes:
 The router plan is deliberately `production_ready=false`. It exists so future
 work can add real candidates route-by-route without ambiguity.
 
+## Routed Full-Frame Sweep
+
+After the Mission 1 full-frame follow-up, the same tiled full-frame evaluator
+was run on the current Z8 and X2D specialist holdouts. Generated SR raws were
+deleted after comparison; durable artifacts are the input sidecars, bench
+receipts, compare receipts, contact sheets, summaries, and dashboards.
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fullframe_mission1_specialist_20260630/eval/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fullframe_z8_specialist_20260630/eval/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fullframe_x2d_specialist_20260630/eval/index.html
+```
+
+| route | holdout | full-frame crop | RMSE improvement | MAE improvement | gradient MAE improvement | throughput with raw write |
+|---|---|---:|---:|---:|---:|---:|
+| `mission1:50mp:dng/gpr` | `GP017504` DNG/GPR | 8192 x 6144 | 56.62% | 46.67% | 29.70% | 2.68 fps |
+| `z8:50mp:dng` | `Z8Z_1349` | 8280 x 5520 | 40.74% | 7.86% | 4.06% | 3.20 fps |
+| `x2d:100mp:dng` | `2024_April_X2D_1742` | 11664 x 8748 | 1.03% | 1.20% | 1.06% | 1.55 fps |
+
+The X2D source is 11664 x 8750; the full-frame check uses a two-row bottom
+crop so every Bayer plane can be downsampled by an exact same-color 2x rule.
+This is a full-gate crop, not a hidden resize.
+
+Interpretation: the routed full-frame path is now executable for every current
+specialist route. Mission 1 and Z8 are directionally strong. X2D remains the
+limiting route; it is positive but weak, consistent with the earlier tile
+diagnostics. Production promotion still requires rendered/editor-latitude
+review and camera-noise sidecar target construction.
+
 ## Production Path
 
 The next real pass should use 50 MP and 100 MP still fixtures, including X2D
