@@ -321,9 +321,15 @@ adds a downsampled full-crop feature-map branch and scene-balanced full-crop
 training while keeping candidate-only runtime inputs. It is also rejected:
 the hard X2D holdout reaches only about 0.0166 percent median raw-residual MAE
 recovery and about 0.0015 percent median RMSE recovery after 500 steps, below
-the earlier small U-Net diagnostic best. The next candidate should use a
-materially different runtime signal, teacher/detail prior, or target/objective,
-not just the
+the earlier small U-Net diagnostic best. A follow-up masked-context
+global-context U-Net probe at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_maskedctx_globalctx_w24_420_20260630/train_receipt.json`
+randomly hides candidate detail blocks during training while evaluating with
+normal candidate-only runtime inputs. It is also rejected: the hard X2D
+holdout reaches only about 0.0025 percent median raw-residual MAE recovery and
+about -0.0002 percent median RMSE recovery after 420 steps. The next candidate
+should use a materially different runtime signal, teacher/detail prior, or
+target/objective, not just the
 stored-HF feature, simple noise thresholding, local loss-weight tuning,
 pooled-context feature concatenation, combined local feature concatenation,
 simple band-loss reweighting, camera-domain filtering, camera-balanced
@@ -331,7 +337,8 @@ sampling, small context padding, a small U-Net alone, or frame-context scalar
 planes alone, bounded full-crop sampling alone, or bounded full-crop
 stored-HF/context U-Net training, or bounded full-crop spectral-loss U-Net
 training, bounded full-crop raw-context U-Net training, or a deeper gated
-pyramid U-Net or global-context U-Net over the same runtime features.
+pyramid U-Net, global-context U-Net, or training-only random context masking
+over the same runtime features.
 
 A non-parametric patch-dictionary probe now tests whether the missing residual
 is at least recoverable through candidate-only nearest-neighbor retrieval:

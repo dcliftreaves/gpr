@@ -91,6 +91,40 @@ def scalar_planes(
     return values.view(batch, channels, 1, 1).expand(batch, channels, height, width)
 
 
+def apply_context_mask(
+    raw: torch.Tensor,
+    stored_hf: torch.Tensor | None,
+    *,
+    mask_prob: float,
+    mask_block: int,
+) -> tuple[torch.Tensor, torch.Tensor | None]:
+    """Hide local candidate detail during training while preserving runtime inputs.
+
+    This is a training-only contextual reconstruction objective. The model
+    still receives normal candidate-derived inputs at evaluation/runtime, but
+    the training batch is sometimes forced to infer residual structure from
+    surrounding context instead of copying local candidate statistics.
+    """
+
+    prob = float(mask_prob)
+    if prob <= 0.0:
+        return raw, stored_hf
+    prob = min(prob, 0.95)
+    block = max(2, int(mask_block))
+    batch, _, height, width = raw.shape
+    grid_h = max(1, (height + block - 1) // block)
+    grid_w = max(1, (width + block - 1) // block)
+    mask = (torch.rand((batch, 1, grid_h, grid_w), device=raw.device) < prob).to(raw.dtype)
+    mask = F.interpolate(mask, size=(height, width), mode="nearest")
+    raw_fill = torch.mean(raw, dim=(-2, -1), keepdim=True)
+    masked_raw = raw * (1.0 - mask) + raw_fill * mask
+    masked_hf = None
+    if stored_hf is not None:
+        hf_fill = torch.zeros_like(stored_hf[:, :, :1, :1])
+        masked_hf = stored_hf * (1.0 - mask) + hf_fill * mask
+    return masked_raw, masked_hf
+
+
 def frame_context_channels() -> int:
     return 19
 
@@ -1086,14 +1120,22 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             target_policy=args.target_policy,
             noise_threshold_scale=args.noise_threshold_scale,
         )
-        pred = model(make_features(x, args.feature_mode, args.feature_block, ev, noise, stored_hf, frame_context))
+        x_train, stored_hf_train = apply_context_mask(
+            x,
+            stored_hf,
+            mask_prob=args.context_mask_prob,
+            mask_block=args.context_mask_block,
+        )
+        pred = model(make_features(x_train, args.feature_mode, args.feature_block, ev, noise, stored_hf_train, frame_context))
         pred = center_crop_like(pred, y, args.context_padding)
         loss = (
             residual_loss(pred, y, target_abs_weight=args.target_abs_weight)
             + args.grad_weight * gradient_l1(pred, y)
-            + args.band_weight * multiscale_band_l1(pred, y, band_blocks)
-            + args.spectral_weight * spectral_magnitude_l1(pred, y)
         )
+        if args.band_weight > 0.0:
+            loss = loss + args.band_weight * multiscale_band_l1(pred, y, band_blocks)
+        if args.spectral_weight > 0.0:
+            loss = loss + args.spectral_weight * spectral_magnitude_l1(pred, y)
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
@@ -1157,6 +1199,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "sample_balance": args.sample_balance,
                 "sample_mode": args.sample_mode,
                 "context_padding": args.context_padding,
+                "context_mask_prob": args.context_mask_prob,
+                "context_mask_block": args.context_mask_block,
             },
         },
         checkpoint,
@@ -1211,6 +1255,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "sample_balance": args.sample_balance,
             "sample_mode": args.sample_mode,
             "context_padding": args.context_padding,
+            "context_mask_prob": args.context_mask_prob,
+            "context_mask_block": args.context_mask_block,
             "eval_train_rows": args.eval_train_rows,
             "eval_holdout_rows": args.eval_holdout_rows,
             "seed": args.seed,
@@ -1230,6 +1276,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 else "diagnostic bounded evaluation; use full evaluation before promotion"
             ),
             "model_context_padding_pixels": args.context_padding,
+            "training_context_mask": (
+                "disabled"
+                if args.context_mask_prob <= 0.0
+                else f"training-only random candidate detail mask prob={args.context_mask_prob:.3f}, block={args.context_mask_block}px"
+            ),
             "production_status": "training_probe_not_registered_production_algorithm",
             "target_policy": args.target_policy,
         },
@@ -1330,6 +1381,18 @@ def main() -> int:
         type=int,
         default=0,
         help="Candidate raw/HF context pixels added around each training/eval tile; loss and metrics are computed on the center target crop.",
+    )
+    ap.add_argument(
+        "--context-mask-prob",
+        type=float,
+        default=0.0,
+        help="Training-only probability for masking candidate local detail blocks before feature extraction. Evaluation/runtime are unmasked.",
+    )
+    ap.add_argument(
+        "--context-mask-block",
+        type=int,
+        default=32,
+        help="Approximate block size in pixels for --context-mask-prob.",
     )
     ap.add_argument("--eval-every", type=int, default=100)
     ap.add_argument("--eval-tile", type=int, default=384)

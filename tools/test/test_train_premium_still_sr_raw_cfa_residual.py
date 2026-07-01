@@ -133,6 +133,8 @@ def main() -> int:
                 "sample_balance": "row",
                 "sample_mode": "random_patch",
                 "context_padding": 0,
+                "context_mask_prob": 0.0,
+                "context_mask_block": 16,
                 "eval_every": 0,
                 "eval_tile": 40,
                 "eval_train_rows": 0,
@@ -163,6 +165,8 @@ def main() -> int:
         assert receipt["config"]["sample_balance"] == "row"
         assert receipt["config"]["sample_mode"] == "random_patch"
         assert receipt["config"]["context_padding"] == 0
+        assert receipt["config"]["context_mask_prob"] == 0.0
+        assert receipt["policy"]["training_context_mask"] == "disabled"
         assert "exact_raw_mae_reduction_pct" in receipt["eval"]["holdout"]
 
         args.output_dir = root / "camera_holdout"
@@ -270,6 +274,8 @@ def main() -> int:
         args.model_arch = "global_context_unet"
         args.feature_mode = "raw_multiscale_coord_ev_noise"
         args.sample_mode = "full_crop"
+        args.context_mask_prob = 0.25
+        args.context_mask_block = 8
         args.batch_size = 1
         args.patch_size = 20
         args.eval_tile = 40
@@ -279,6 +285,9 @@ def main() -> int:
         assert global_receipt["eval"]["train"]["row_count"] == 2
         assert global_receipt["config"]["model_arch"] == "global_context_unet"
         assert global_receipt["config"]["sample_mode"] == "full_crop"
+        assert global_receipt["config"]["context_mask_prob"] == 0.25
+        assert global_receipt["config"]["context_mask_block"] == 8
+        assert "training-only random candidate detail mask" in global_receipt["policy"]["training_context_mask"]
         assert global_receipt["config"]["eval_train_rows"] == 2
         assert "diagnostic bounded evaluation" in global_receipt["policy"]["eval_contract"]
         assert global_receipt["policy"]["uses_source_raw_at_runtime"] is False
@@ -287,6 +296,8 @@ def main() -> int:
         args.model_arch = "residual"
         args.feature_mode = "raw_framectx_coord_ev_noise"
         args.sample_mode = "random_patch"
+        args.context_mask_prob = 0.0
+        args.context_mask_block = 16
         args.batch_size = 2
         args.context_padding = 0
         args.patch_size = 20

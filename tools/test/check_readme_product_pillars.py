@@ -135,7 +135,7 @@ REQUIRED_SCORECARD_TOKENS = (
     "The percentages are production-readiness burn-down estimates.",
     "not regression signals for locked artifacts",
     "candidate-only patch-dictionary retrieval pass regresses the hard X2D holdout",
-    "Current candidate-only local/full-crop/global-context statistics are not enough for simple CNN or nearest-neighbor transfer",
+    "candidate-only local/full-crop/global-context/masked-context",
     "deeper gated pyramid U-Net",
     "premium_still_sr_patch_dictionary_x2dholdout_20260630/patch_dictionary_probe.json",
 )

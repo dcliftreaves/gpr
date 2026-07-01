@@ -283,16 +283,20 @@ Current evidence:
   pyramid level over the same runtime features is also insufficient. A bounded
   global-context U-Net with a downsampled full-crop feature-map branch reaches
   only about 0.0166 percent median MAE recovery and about 0.0015 percent
-  median RMSE recovery, so this class of candidate-only raw-context CNN is now
-  narrowed further; the next attempt needs a different runtime signal,
-  teacher/detail prior, or target/objective.
+  median RMSE recovery. A masked-context version of that global-context probe
+  randomly hides candidate detail blocks during training, but still reaches
+  only about 0.0025 percent median MAE recovery and slightly negative RMSE
+  recovery on the hard X2D holdout. This class of candidate-only raw-context
+  CNN is now narrowed further; the next attempt needs a different runtime
+  signal, teacher/detail prior, or target/objective.
   A non-parametric candidate-only patch-dictionary probe is also rejected:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_patch_dictionary_x2dholdout_20260630/index.html`.
   It transfers training residual patches by nearest candidate raw/HF patch
   features and regresses the hard X2D holdout by about -0.80 percent median
   MAE and -0.72 percent median RMSE. This makes the blocker more specific:
-  current candidate-only local/full-crop/global-context statistics do not contain enough
-  recoverable signal for simple CNN or nearest-neighbor transfer.
+  current candidate-only local/full-crop/global-context/masked-context
+  statistics do not contain enough recoverable signal for simple CNN or
+  nearest-neighbor transfer.
 - `tools/build_premium_still_sr_visual_review.py` emits the current tile-level
   visual review dashboard with baseline/model/target/error contact sheets for
   the X2D holdout:
