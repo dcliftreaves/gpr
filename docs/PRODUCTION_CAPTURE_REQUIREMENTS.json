@@ -230,26 +230,34 @@
       "why_needed": "The still-SR pipeline, target builders, specialists, and raw-CFA residual trainers exist, but current no-REF models remain diagnostic and do not clear the production still/editor-latitude gate.",
       "required_evidence": [
         "checkpoint hash and training config",
-        "training target hash with candidate-only runtime inputs",
-        "50 MP and 100 MP full-frame raw-domain gates",
+        "training target hash with runtime_inputs limited to candidate raw, camera metadata, and validated optional noise sidecars",
+        "50 MP and 100 MP full-frame raw-domain gates with row counts",
+        "positive 50 MP and 100 MP median MAE reduction, with nonnegative worst-row MAE reduction",
         "raw-editor latitude review at exposure offsets",
         "worst-row visual dashboard",
         "editable DNG/GPR output receipts",
-        "timing and memory receipt for the offline render path",
-        "camera-noise policy receipt proving noise is conditioning or calibrated addback, not source-content leakage"
+        "timing and memory receipt for the offline render path, including seconds per 50 MP frame, seconds per 100 MP frame, and peak RSS",
+        "camera-noise policy receipt proving noise is conditioning or exact-sidecar calibrated addback, not source-content leakage"
       ],
       "acceptance": [
         "candidate beats current still-SR baselines on 50 MP and 100 MP holdouts",
-        "no REF/source image content is used at render time",
+        "runtime_inputs includes candidate_raw and camera_metadata",
+        "no REF/source/JPEG image content is used at render time",
+        "full_frame_gate_50mp_row_count and full_frame_gate_100mp_row_count are at least 1",
+        "median_mae_reduction_pct_50mp and median_mae_reduction_pct_100mp are greater than 0",
+        "worst_row_mae_reduction_pct_50mp and worst_row_mae_reduction_pct_100mp are not negative",
         "raw-editor latitude review has no severe worst-row failures",
-        "noise removal/addback is enabled only for exact camera/ISO classes with validated sidecars",
+        "noise removal/addback is enabled only for exact camera/ISO classes with validated sidecars and source residual noise is forbidden",
+        "render_seconds_per_50mp_frame, render_seconds_per_100mp_frame, and peak_rss_gb are recorded",
         "promotion receipt is registered only after the gate passes"
       ],
       "validation_commands": [
         "python3 tools/build_premium_still_sr_fixture_manifest.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_<date>",
         "python3 tools/cnn/train_premium_still_sr_raw_cfa_residual.py --help",
         "python3 tools/build_premium_still_sr_gate_receipt.py --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate_<date>",
-        "python3 tools/build_premium_still_sr_readiness.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_<date>"
+        "python3 tools/build_premium_still_sr_readiness.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_<date>",
+        "python3 tools/build_production_capture_submission_template.py --output /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/submission_template.json",
+        "python3 tools/check_production_capture_submission.py /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/submission.json --json-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/audit.json --html-out /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/index.html"
       ]
     }
   ]

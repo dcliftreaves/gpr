@@ -111,6 +111,22 @@ def main() -> int:
         premium_actions = data["pillars"][2]["burn_down_actions"]
         assert premium_actions[0]["requirement_ids"] == ["premium_still_sr_promotion_receipts"]
         assert any("build_premium_still_sr_gate_receipt.py" in command for command in premium_actions[0]["validation_commands"])
+        assert any(
+            "check_production_capture_submission.py" in command
+            for command in premium_actions[0]["validation_commands"]
+        )
+        premium_text = "\n".join(premium_actions[0]["evidence_required"] + [premium_actions[0]["completion_gate"]])
+        assert "runtime_inputs" in premium_text
+        assert "candidate_raw" in premium_text
+        assert "REF/source/JPEG" in premium_text
+        assert "median_mae_reduction_pct_50mp" in premium_text
+        assert "median_mae_reduction_pct_100mp" in premium_text
+        assert "worst_row_mae_reduction_pct_50mp" in premium_text
+        assert "worst_row_mae_reduction_pct_100mp" in premium_text
+        assert "render_seconds_per_50mp_frame" in premium_text
+        assert "render_seconds_per_100mp_frame" in premium_text
+        assert "peak_rss_gb" in premium_text
+        assert "exact-sidecar-only" in premium_text
         reconstruction_actions = data["pillars"][3]["burn_down_actions"]
         assert reconstruction_actions == []
         assert data["pillars"][3]["readiness_percent"] == 95

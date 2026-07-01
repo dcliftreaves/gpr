@@ -202,17 +202,25 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             requires_mission1_camera_role=False,
             requires_new_samples=False,
             evidence_required=[
-                "candidate-only runtime inputs",
+                "runtime_inputs includes candidate_raw and camera_metadata but excludes REF/source/JPEG content",
                 "Z8 held-out raw-residual recovery clears promotion threshold",
                 "X2D held-out raw-residual recovery clears promotion threshold",
+                "positive median_mae_reduction_pct_50mp and median_mae_reduction_pct_100mp",
+                "nonnegative worst_row_mae_reduction_pct_50mp and worst_row_mae_reduction_pct_100mp",
                 "50 MP / 100 MP visual and editor-latitude review dashboards",
+                "render_seconds_per_50mp_frame, render_seconds_per_100mp_frame, and peak_rss_gb timing/memory receipt",
+                "exact-sidecar-only noise policy with source residual noise forbidden",
                 "worst-row dashboard shows no severe texture or tone failures",
             ],
             next_command=(
                 "python3 tools/build_premium_still_sr_raw_cfa_residual_gap.py "
                 "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_<date>"
             ),
-            completion_gate="The model beats the current raw-CFA residual baselines on both Z8 and X2D broad holdouts and passes the still/editor-latitude gate.",
+            completion_gate=(
+                "The model beats the current raw-CFA residual baselines on both Z8 and X2D broad holdouts, "
+                "passes the 50 MP / 100 MP still/editor-latitude gate, validates through "
+                "tools/check_production_capture_submission.py, and records runtime-input, noise-policy, timing, and memory receipts."
+            ),
         ),
         action(
             pillar="raw_video_psf_research",
