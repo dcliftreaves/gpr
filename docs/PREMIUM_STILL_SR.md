@@ -244,6 +244,10 @@ architecture pass should be rebuilt around these points:
   level, CFA phase, and exposure metadata. RMFA-Net explicitly calls out black
   level, CFA handling, exposure/tone, and local/global feature separation as
   neural-ISP concerns: https://arxiv.org/html/2406.11469v1.
+- Normalize or explicitly encode Bayer phase before mixing camera families.
+  BayerUnify-style raw denoising work treats heterogeneous Bayer patterns as a
+  first-order training problem rather than a cosmetic metadata detail:
+  https://openaccess.thecvf.com/content_CVPRW_2019/papers/NTIRE/Liu_Learning_Raw_Image_Denoising_With_Bayer_Pattern_Unification_and_Bayer_CVPRW_2019_paper.pdf.
 - Treat RAW restoration, denoising, demosaicing, and SR as a joint or
   end-to-end problem when the output is rendered/reviewed. JDN DMSR uses
   residual channel-attention blocks for joint denoising, demosaicing, and SR,
@@ -253,6 +257,12 @@ architecture pass should be rebuilt around these points:
   "Rethinking Learning-based Demosaicing, Denoising, and Super-Resolution"
   emphasizes Poisson-Gaussian raw noise and direct raw denoising:
   https://ar5iv.labs.arxiv.org/html/1905.02538.
+- Treat blur/resize as part of the forward model. The NTIRE 2024 RAW SR survey
+  frames RAW 2x SR as Bayer upscaling under unknown noise and blur, and
+  physics-informed PSF work points toward calibrated blur estimation rather
+  than unconditioned texture hallucination:
+  https://arxiv.org/html/2404.16223v1 and
+  https://arxiv.org/html/2502.11382v1.
 - Use stronger high-resolution restoration backbones or a teacher/student
   strategy rather than small local U-Nets. The NTIRE 2024 RAW SR survey reports
   top approaches using NAFNet teachers, progressive patch-size finetuning,
@@ -263,11 +273,14 @@ architecture pass should be rebuilt around these points:
   https://openaccess.thecvf.com/content/ICCV2021/papers/Lecouat_Lucas-Kanade_Reloaded_End-to-End_Super-Resolution_From_Raw_Image_Bursts_ICCV_2021_paper.pdf.
 
 For this repo, that means the next premium still-SR candidate should not be
-another small raw-residual learner over the current duplicated rows. It should
-start from the deduplicated raw-domain target, then train a CFA-aware NAFNet/RCAB or
-Restormer-like teacher on unique raw rows with camera/noise/PSF conditioning,
-spatial + Fourier losses, and rendered review gates. A smaller student can be
-distilled later only if the teacher clears the X2D/Z8 raw and rendered gates.
+another small raw-residual learner over the current duplicated rows, and the
+new source-HF rejection receipts show it also should not ask the small U-Net to
+predict full source HF directly. It should start from the deduplicated
+raw-domain target, then train a CFA-aware NAFNet/RCAB or Restormer-like teacher
+on unique raw rows with explicit Bayer phase handling, camera/noise/PSF
+conditioning, progressive patch sizing, spatial/frequency objectives, and
+rendered review gates. A smaller student can be distilled later only if the
+teacher clears the X2D/Z8 raw and rendered gates.
 
 The first RCAB-style teacher smoke run exists:
 
@@ -463,6 +476,25 @@ also trails the current baseline. Full-strength scaling reaches about
 **-0.137%**, versus **0.153%** for the noise-floor-only U-Net. The hard X2D
 scene mismatch is therefore not solved by scalar target-energy weights,
 spatial/Fourier scalar losses, or candidate-HF scalar output normalization.
+
+A non-scalar target-representation control then tested whether the model should
+predict source raw HF directly and convert that prediction back to residual
+space using runtime candidate HF:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_sourcehf_noisefloor_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_sourcehf_storedhf_noisefloor_unet_w32_1200_20260701/index.html
+```
+
+Both are strong rejections. Predicting full source HF without stored candidate
+HF regresses the hard X2D holdout to about **-241.62%** median raw MAE recovery;
+adding stored candidate HF as an input regresses further to about **-862.69%**.
+That narrows the failure: the current U-Net cannot be rescued by replacing the
+residual target with full-HF reconstruction, even when candidate HF is exposed.
+The next pass should keep residual-space scoring and move to a stronger
+CFA-aware teacher/objective with camera/noise/PSF conditioning or a learned
+multiscale prior, rather than asking the small U-Net to synthesize all source
+HF directly.
 
 The first raw-CFA residual trainer is:
 

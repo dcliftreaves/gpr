@@ -258,6 +258,46 @@ def apply_target_policy(
     return torch.sign(target) * torch.clamp(torch.abs(target) - threshold, min=0.0)
 
 
+def prepare_training_target(
+    residual_target: torch.Tensor,
+    source_hf_target: torch.Tensor | None,
+    sigma4: torch.Tensor | None,
+    *,
+    target_representation: str,
+    target_policy: str,
+    noise_threshold_scale: float,
+) -> torch.Tensor:
+    if target_representation == "residual":
+        return apply_target_policy(
+            residual_target,
+            sigma4,
+            target_policy=target_policy,
+            noise_threshold_scale=noise_threshold_scale,
+        )
+    if target_representation == "source_hf":
+        if target_policy != "raw":
+            raise ValueError("target_representation=source_hf currently requires target_policy=raw")
+        if source_hf_target is None:
+            raise ValueError("target_representation=source_hf requires source_raw_hf_cfa4 in the target NPZ")
+        return source_hf_target
+    raise ValueError(f"unknown target_representation: {target_representation}")
+
+
+def prediction_to_residual(
+    pred: torch.Tensor,
+    candidate_hf: torch.Tensor | None,
+    *,
+    target_representation: str,
+) -> torch.Tensor:
+    if target_representation == "residual":
+        return pred
+    if target_representation == "source_hf":
+        if candidate_hf is None:
+            raise ValueError("target_representation=source_hf requires candidate_raw_hf_cfa4 for residual conversion")
+        return pred - candidate_hf
+    raise ValueError(f"unknown target_representation: {target_representation}")
+
+
 def classify_target_snr(target: np.ndarray, sigma4: tuple[float, float, float, float]) -> tuple[str, float, float]:
     sigma_mean = float(np.mean(np.asarray(sigma4, dtype=np.float64)))
     target_f = target.astype(np.float32, copy=False)
@@ -984,6 +1024,10 @@ class RawCfaResidualTargets:
             raise ValueError(f"candidate/target shape mismatch: {self.candidate_raw.shape} vs {self.target.shape}")
         if self.candidate_raw.ndim != 4 or self.candidate_raw.shape[-1] != 4:
             raise ValueError(f"expected NHWC raw-CFA4 arrays, got {self.candidate_raw.shape}")
+        if self.candidate_raw_hf is not None and self.candidate_raw_hf.shape != self.target.shape:
+            raise ValueError(f"candidate_raw_hf_cfa4 shape mismatch: {self.candidate_raw_hf.shape} vs {self.target.shape}")
+        if self.source_raw_hf is not None and self.source_raw_hf.shape != self.target.shape:
+            raise ValueError(f"source_raw_hf_cfa4 shape mismatch: {self.source_raw_hf.shape} vs {self.target.shape}")
         cache: dict[str, tuple[float, float, float, float]] = {}
         sigma_cache: dict[str, tuple[float, float, float, float]] = {}
         self.noise_features: list[tuple[float, float, float, float]] = []
@@ -1153,6 +1197,7 @@ class RawCfaResidualTargets:
         target_scale_policy: str = "none",
         target_scale_strength: float = 1.0,
         target_scale_reference_abs_mean: float = 0.0,
+        target_representation: str = "residual",
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
         xs: list[np.ndarray] = []
         ys: list[np.ndarray] = []
@@ -1194,7 +1239,15 @@ class RawCfaResidualTargets:
             y0 = rng.randrange(0, h - patch_h + 1) if h > patch_h else 0
             x0 = rng.randrange(0, w - patch_w + 1) if w > patch_w else 0
             xs.append(context_crop_np(self.candidate_raw, idx, y0, x0, patch_h, patch_w, context_padding).transpose(2, 0, 1))
-            ys.append(self.target[idx, y0 : y0 + patch_h, x0 : x0 + patch_w].transpose(2, 0, 1))
+            if target_representation == "residual":
+                y_arr = self.target[idx, y0 : y0 + patch_h, x0 : x0 + patch_w]
+            elif target_representation == "source_hf":
+                if self.source_raw_hf is None:
+                    raise ValueError("target_representation=source_hf requires source_raw_hf_cfa4 in the target NPZ")
+                y_arr = self.source_raw_hf[idx, y0 : y0 + patch_h, x0 : x0 + patch_w]
+            else:
+                raise ValueError(f"unknown target_representation: {target_representation}")
+            ys.append(y_arr.transpose(2, 0, 1))
             if self.candidate_raw_hf is not None:
                 hfs.append(
                     context_crop_np(self.candidate_raw_hf, idx, y0, x0, patch_h, patch_w, context_padding).transpose(2, 0, 1)
@@ -1247,6 +1300,7 @@ def eval_rows(
     target_scale_policy: str,
     target_scale_strength: float,
     target_scale_reference_abs_mean: float,
+    target_representation: str,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     model.eval()
@@ -1290,6 +1344,7 @@ def eval_rows(
                 hf_tile = stored_hf_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad] if stored_hf_padded is not None else None
                 pred_tile = model(make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile, frame_context)) * target_scale
                 pred[:, :, y0:y1, x0:x1] = pred_tile[:, :, pad : pad + (y1 - y0), pad : pad + (x1 - x0)] if pad else pred_tile
+        pred = prediction_to_residual(pred, stored_hf, target_representation=target_representation)
         base_err = target
         pred_err = pred - target
         raw_pred_err = pred - raw_target
@@ -1313,6 +1368,7 @@ def eval_rows(
                 "exact_raw_model_mae": raw_pred_mae,
                 "exact_raw_mae_reduction_pct": 100.0 * (raw_base_mae - raw_pred_mae) / max(raw_base_mae, 1.0e-12),
                 "target_scale": float(target_scale.cpu().item()),
+                "target_representation": target_representation,
             }
         )
         rows.append(row_meta)
@@ -1354,6 +1410,7 @@ def write_panel_sheet(
     target_scale_policy: str,
     target_scale_strength: float,
     target_scale_reference_abs_mean: float,
+    target_representation: str,
 ) -> None:
     selected = indices[:max_rows]
     if not selected:
@@ -1387,6 +1444,12 @@ def write_panel_sheet(
             .transpose(1, 2, 0)
         )
         pred *= data.target_scale(idx, target_scale_policy, target_scale_strength, target_scale_reference_abs_mean)
+        if target_representation == "source_hf":
+            if data.candidate_raw_hf is None:
+                raise ValueError("target_representation=source_hf requires candidate_raw_hf_cfa4 for panel rendering")
+            pred = pred - data.candidate_raw_hf[idx]
+        elif target_representation != "residual":
+            raise ValueError(f"unknown target_representation: {target_representation}")
         target_t = torch.from_numpy(data.target[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
         target = (
             apply_target_policy(
@@ -1448,6 +1511,7 @@ code{{color:#b7d7ff}}img{{max-width:100%;border:1px solid #333}}
 </style></head><body>
 <h1>Premium Still SR Raw-CFA Residual Model</h1>
 <p><b>Policy:</b> training target uses source raw, but inference uses candidate raw CFA planes and deterministic metadata only.</p>
+<p><b>Target representation:</b> <code>{html.escape(str(receipt['config'].get('target_representation', 'residual')))}</code>.</p>
 <p><b>Target policy:</b> <code>{html.escape(str(receipt['config']['target_policy']))}</code>, noise threshold scale <code>{float(receipt['config']['noise_threshold_scale']):.2f}</code>.</p>
 <p>Checkpoint: <code>{html.escape(receipt['checkpoint'])}</code></p>
 <div class="grid">
@@ -1481,9 +1545,20 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.target_scale_policy = "none"
     if not hasattr(args, "target_scale_strength"):
         args.target_scale_strength = 1.0
+    if not hasattr(args, "target_representation"):
+        args.target_representation = "residual"
     data = RawCfaResidualTargets(args.targets)
     if args.feature_mode in {"raw_multiscale_storedhf_coord_ev_noise", "raw_context_storedhf_coord_ev_noise"} and data.candidate_raw_hf is None:
         raise ValueError(f"{args.feature_mode} requires candidate_raw_hf_cfa4 in the target NPZ")
+    if args.target_representation == "source_hf":
+        if args.target_policy != "raw":
+            raise ValueError("target_representation=source_hf currently requires target_policy=raw")
+        if data.source_raw_hf is None:
+            raise ValueError("target_representation=source_hf requires source_raw_hf_cfa4 in the target NPZ")
+        if data.candidate_raw_hf is None:
+            raise ValueError("target_representation=source_hf requires candidate_raw_hf_cfa4 in the target NPZ")
+    elif args.target_representation != "residual":
+        raise ValueError(f"unknown target_representation: {args.target_representation}")
     band_blocks = normalize_band_blocks(args.band_blocks)
     train_indices, holdout_indices = data.row_indices(
         args.holdout_scene,
@@ -1526,6 +1601,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             args.target_scale_policy,
             args.target_scale_strength,
             target_scale_reference_abs_mean,
+            args.target_representation,
         )
         x = x.to(device)
         y = y.to(device)
@@ -1536,9 +1612,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         snr_weight = snr_weight.to(device)
         target_scale = target_scale.to(device).view(-1, 1, 1, 1)
         stored_hf = stored_hf.to(device) if stored_hf is not None else None
-        y = apply_target_policy(
+        y = prepare_training_target(
             y,
+            y if args.target_representation == "source_hf" else None,
             sigma,
+            target_representation=args.target_representation,
             target_policy=args.target_policy,
             noise_threshold_scale=args.noise_threshold_scale,
         )
@@ -1581,6 +1659,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     target_scale_policy=args.target_scale_policy,
                     target_scale_strength=args.target_scale_strength,
                     target_scale_reference_abs_mean=target_scale_reference_abs_mean,
+                    target_representation=args.target_representation,
                 )
                 probe_median = float(probe_eval["raw_residual_mae_reduction_pct"]["median"])
                 row["holdout_probe_row_count"] = len(probe_indices)
@@ -1622,6 +1701,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         target_scale_policy=args.target_scale_policy,
         target_scale_strength=args.target_scale_strength,
         target_scale_reference_abs_mean=target_scale_reference_abs_mean,
+        target_representation=args.target_representation,
     )
     holdout_eval = None
     if eval_holdout_indices:
@@ -1639,6 +1719,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             target_scale_policy=args.target_scale_policy,
             target_scale_strength=args.target_scale_strength,
             target_scale_reference_abs_mean=target_scale_reference_abs_mean,
+            target_representation=args.target_representation,
         )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = args.output_dir / args.checkpoint_name
@@ -1658,6 +1739,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "band_weight": args.band_weight,
                 "band_blocks": band_blocks,
                 "spectral_weight": args.spectral_weight,
+                "target_representation": args.target_representation,
                 "target_policy": args.target_policy,
                 "noise_threshold_scale": args.noise_threshold_scale,
                 "train_camera": args.train_camera,
@@ -1697,6 +1779,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         target_scale_policy=args.target_scale_policy,
         target_scale_strength=args.target_scale_strength,
         target_scale_reference_abs_mean=target_scale_reference_abs_mean,
+        target_representation=args.target_representation,
     )
     receipt = {
         "schema": SCHEMA,
@@ -1725,6 +1808,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "band_weight": args.band_weight,
             "band_blocks": band_blocks,
             "spectral_weight": args.spectral_weight,
+            "target_representation": args.target_representation,
             "target_policy": args.target_policy,
             "noise_threshold_scale": args.noise_threshold_scale,
             "holdout_scene": args.holdout_scene,
@@ -1814,6 +1898,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 else f"training-only random candidate detail mask prob={args.context_mask_prob:.3f}, block={args.context_mask_block}px"
             ),
             "production_status": "training_probe_not_registered_production_algorithm",
+            "target_representation": args.target_representation,
             "target_policy": args.target_policy,
             "train_snr_class_filter": args.train_snr_class,
             "snr_loss_weight_policy": args.snr_loss_weight_policy,
@@ -1950,6 +2035,12 @@ def main() -> int:
         type=float,
         default=1.0,
         help="Blend strength for --target-scale-policy. 0 preserves unscaled targets; 1 uses the policy scale.",
+    )
+    ap.add_argument(
+        "--target-representation",
+        choices=("residual", "source_hf"),
+        default="residual",
+        help="Training target representation. residual preserves legacy source-minus-candidate residual training; source_hf predicts source raw HF and converts back to residual with candidate HF at eval/runtime.",
     )
     ap.add_argument(
         "--sample-balance",

@@ -139,6 +139,7 @@ def main() -> int:
                 "target_energy_loss_weight_strength": 1.0,
                 "target_scale_policy": "none",
                 "target_scale_strength": 1.0,
+                "target_representation": "residual",
                 "sample_balance": "row",
                 "sample_mode": "random_patch",
                 "context_padding": 0,
@@ -177,8 +178,10 @@ def main() -> int:
         assert receipt["config"]["target_scale_policy"] == "none"
         assert receipt["config"]["target_scale_strength"] == 1.0
         assert receipt["config"]["train_target_scale_stats"]["median"] == 1.0
+        assert receipt["config"]["target_representation"] == "residual"
         assert receipt["policy"]["target_energy_loss_weight_policy"] == "none"
         assert receipt["policy"]["target_scale_policy"] == "none"
+        assert receipt["policy"]["target_representation"] == "residual"
         assert receipt["policy"]["snr_loss_weight_policy"] == "none"
         assert receipt["config"]["target_policy"] == "raw"
         assert receipt["config"]["band_weight"] == 0.0
@@ -248,6 +251,19 @@ def main() -> int:
         assert scale_receipt["policy"]["target_scale_policy"] == "candidate_hf_abs_mean"
         assert "target_scale" in scale_receipt["eval"]["holdout"]["rows"][0]
         args.target_scale_policy = "none"
+
+        args.output_dir = root / "source_hf_holdout"
+        args.target_representation = "source_hf"
+        args.target_policy = "raw"
+        args.feature_mode = "raw_multiscale_storedhf_coord_ev_noise"
+        source_hf_receipt = tool.train(args)
+        assert source_hf_receipt["eval"]["holdout"]["row_count"] == 1
+        assert source_hf_receipt["config"]["target_representation"] == "source_hf"
+        assert source_hf_receipt["policy"]["target_representation"] == "source_hf"
+        assert source_hf_receipt["policy"]["uses_source_raw_at_runtime"] is False
+        assert source_hf_receipt["eval"]["holdout"]["rows"][0]["target_representation"] == "source_hf"
+        assert "stored candidate_raw_hf_cfa4" in source_hf_receipt["policy"]["runtime_inputs"]
+        args.target_representation = "residual"
 
         args.output_dir = root / "context_holdout"
         args.holdout_scene = "holdout_scene"
