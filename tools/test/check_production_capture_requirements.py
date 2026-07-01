@@ -138,11 +138,23 @@ def validate() -> list[str]:
             *EXPECTED_IDS.keys(),
             *OPTIONAL_RESEARCH_IDS.keys(),
             "Product pillar scorecard",
+            "release of the approved current raw-video SR workflow",
+            "Optional Research Requests",
+            "optional PSF research pairs",
             "stills_capture_request_strict_provenance_20260701",
             "raw_video_psf_capture_request_20260630",
         ):
             if token not in doc:
                 failures.append(f"{display_path(DOC_PATH)} missing {token!r}")
+        forbidden_phrases = (
+            "PSF pairs, and model-promotion receipts still needed",
+            "PSF pairs still needed",
+        )
+        for phrase in forbidden_phrases:
+            if phrase in doc:
+                failures.append(
+                    f"{display_path(DOC_PATH)} must not imply optional PSF pairs are release blockers: {phrase!r}"
+                )
 
     return failures
 

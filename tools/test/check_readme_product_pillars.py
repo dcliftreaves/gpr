@@ -151,6 +151,7 @@ FORBIDDEN_README_TOKENS = (
     # PSF/blur modeling is optional research for a future replacement, not a
     # current-release blocker for the approved raw-video SR path.
     "PSF gates",
+    "PSF pairs, and model-promotion receipts still needed",
 )
 
 README_PILLAR_LABELS = {
