@@ -95,6 +95,10 @@ REQUIRED_README_TOKENS = (
     "positive median MAE reduction with nonnegative worst-row MAE",
     "seconds/frame and peak RSS",
     "exact-sidecar-only noise",
+    "80** runtime-safe",
+    "**0** promotable rows",
+    "**4.03%** held-out MAE recovery / **3.75%** held-out RMSE recovery",
+    "**15% / 15%** promotion floor",
     "**50 MP RAW still tiers**",
     "**4K `.gvid` capture prototype**",
     "**1024 camera-back preview**",
@@ -228,6 +232,11 @@ REQUIRED_SCORECARD_TOKENS = (
     "candidate-only local/full-crop/global-context/masked-context",
     "deeper gated pyramid U-Net",
     "premium_still_sr_patch_dictionary_x2dholdout_20260630/patch_dictionary_probe.json",
+    "80 runtime-safe rendered-HF and raw-CFA residual training receipts",
+    "zero promotable rows",
+    "4.03",
+    "3.75",
+    "15 percent / 15 percent promotion threshold",
 )
 
 

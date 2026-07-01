@@ -178,6 +178,10 @@ exclude REF/source/JPEG content at render time, report 50 MP and 100 MP gate row
 show positive median MAE reduction with nonnegative worst-row MAE reduction,
 record seconds/frame and peak RSS, and prove exact-sidecar-only noise policy
 before it can be called production.
+The current scoreboard is deliberately not promotable: **80** runtime-safe
+still-SR receipts, **0** promotable rows, and a best runtime-safe row at
+**4.03%** held-out MAE recovery / **3.75%** held-out RMSE recovery against the
+**15% / 15%** promotion floor.
 
 | pillar | done | shortest honest read |
 |---|---:|---|
