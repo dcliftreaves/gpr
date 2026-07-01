@@ -239,19 +239,21 @@ promotion candidate:
 ```sh
 python3 tools/build_raw_video_sr_candidate_scoreboard.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260701
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701
 ```
 
 Current scoreboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701/index.html
 ```
 
-The current run indexes 89 historical decision receipts and finds zero
-current-scale promotion rows. The best ranked rows improve some RMSE floors but
-still regress Mission gradient floor or lack current all24-scale coverage, so
-they do not replace the approved 4K/8K baselines.
+The current run indexes 90 decision receipts and finds zero current-scale
+promotion rows. It now has one PSF-detail-ready row from the metric-bearing
+rerun: the current candidate improves median same-cell detail by 2.004 points
+on Mission42 and 0.302 points on Z8, but still regresses Mission gradient floor
+versus the approved baseline. It therefore does not replace the approved 4K/8K
+baselines.
 
 ## Detail Metric Audit
 

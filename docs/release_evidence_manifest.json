@@ -1969,10 +1969,48 @@
         "promotable_row_count": 0,
         "non_rejected_row_count": 5,
         "mission_ok_row_count": 1,
-        "z8_ok_row_count": 5,
+        "z8_ok_row_count": 6,
         "best_candidate_mission_ok": 0,
         "best_candidate_z8_ok": 1,
         "best_promotable_candidate_present": 0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "raw_video_sr_candidate_scoreboard_psf_detail_20260701",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Scores raw-video SR/detail candidates with explicit Mission42/Z8 same-cell Bayer detail deltas so PSF-aware replacement work cannot promote from RMSE/gradient alone.",
+      "dashboard": "artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BAYER_RESIZE_PSF.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/current_goal_sr_psf_detail_metric_rerun_20260701/psf_detail_metric_decision.json",
+        "artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701/scoreboard.json",
+        "artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701/index.html"
+      ],
+      "hashes": {
+        "decision_json_sha256": "91d1ff935547bf7db3c8f5abc657d01d02bfb08ff7e09e45cf0253184d5c010a",
+        "scoreboard_json_sha256": "c7d38374df40e04934f729b31bf9bc5165f6556de92a7bcb338444dd83b8e0bf",
+        "dashboard_sha256": "65eede3af2d4e0f32ea2a125bee32eb4262ac8e34cc1fa3ce38a2ec11d4f37fd"
+      },
+      "metrics": {
+        "decision_count": 90,
+        "promotable_row_count": 0,
+        "non_rejected_row_count": 6,
+        "mission_ok_row_count": 1,
+        "z8_ok_row_count": 5,
+        "psf_detail_ready_row_count": 1,
+        "psf_detail_ok_row_count": 1,
+        "best_candidate_mission_ok": 0,
+        "best_candidate_z8_ok": 1,
+        "best_candidate_psf_detail_ok": 1,
+        "best_candidate_mission_same_cell_detail_delta": 2.003922649469491,
+        "best_candidate_z8_same_cell_detail_delta": 0.3020904794142516,
         "production_ready": 0
       }
     },

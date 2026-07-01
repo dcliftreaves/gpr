@@ -337,7 +337,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "The raw-video PSF gap plan now turns that failed native measurement into a concrete capture, measurement, model-gate, and promotion checklist.",
                 "The native PSF corpus audit hashes the current near-time candidate pairs and records zero strict controlled pairs, because ISO/settings are not fixed tightly enough, fixed camera-setting metadata and negative controls are missing, and the existing measurement still accepts only two pairs with an unstable kernel.",
                 "The controlled-capture request now requires source GPR/DNG hashes, decoded little-endian uint16 Bayer hashes, fixed ISO/exposure/WB/lens/sharpening settings, and negative controls before a measured kernel can be promoted.",
-                "The SR/detail candidate scoreboard indexes historical Mission/Z8 decisions and finds zero current-scale promotion rows.",
+                "The SR/detail candidate scoreboard indexes 90 Mission/Z8 decisions, has one PSF-detail-ready row, and still finds zero current-scale promotion rows.",
                 "The PSF detail-metric rerun adds same-cell Bayer fine-detail metrics to the current Mission42/Z8 baseline and candidate summaries. The current candidate improves median same-cell detail from 26.091 to 28.095 percent on Mission42 and from 3.214 to 3.516 percent on Z8.",
             ],
             "open_work": [
@@ -364,7 +364,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("raw-video PSF gap plan", "artifacts/raw_video_psf_gap_plan_20260630/index.html"),
                     artifact_ref("Mission 1 native PSF corpus audit", "artifacts/mission1_native_psf_corpus_audit_20260630/index.html"),
                     artifact_ref("raw-video PSF controlled capture request", "artifacts/raw_video_psf_capture_request_20260630/index.html"),
-                    artifact_ref("raw-video SR/detail candidate scoreboard", "artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html"),
+                    artifact_ref("raw-video SR/detail candidate scoreboard", "artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701/index.html"),
                     artifact_ref("raw-video PSF detail metric audit", "artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/index.html"),
                 ],
                 external_root,

@@ -224,9 +224,13 @@ That controlled-pair blocker is pinned as `controlled_mission1_psf_pairs` in
 the committed production capture requirements.
 
 The current raw-video SR/detail candidate scoreboard lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html`.
-It indexes 89 historical Mission/Z8 decision receipts and finds zero
-current-scale promotion rows under the Mission42 plus Z8 all24 coverage rule.
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701/index.html`.
+It indexes 90 Mission/Z8 decision receipts and finds zero current-scale
+promotion rows under the Mission42 plus Z8 all24 coverage rule. One row is
+PSF-detail-ready and PSF-detail-OK: the current metric-bearing candidate
+improves median same-cell detail by **2.004** points on Mission42 and
+**0.302** points on Z8. It still does not promote because `mission_ok=false`
+from the Mission gradient-floor regression.
 
 The current raw-video PSF detail-metric audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/index.html`.

@@ -100,6 +100,12 @@ def summarize_pair(candidate: dict[str, Any] | None, baseline: dict[str, Any] | 
     base_grad_min = metric(baseline, "gradient_improvement_min", "gradient_lift_min")
     cand_mae_min = metric(candidate, "mae_improvement_min", "mae_lift_min")
     base_mae_min = metric(baseline, "mae_improvement_min", "mae_lift_min")
+    cand_detail_med = metric(candidate, "same_cell_detail_improvement_median", "same_cell_detail_mae_improvement_median")
+    base_detail_med = metric(baseline, "same_cell_detail_improvement_median", "same_cell_detail_mae_improvement_median")
+    cand_fine_med = metric(candidate, "same_cell_fine_detail_improvement_median", "same_cell_fine_detail_mae_improvement_median")
+    base_fine_med = metric(baseline, "same_cell_fine_detail_improvement_median", "same_cell_fine_detail_mae_improvement_median")
+    cand_cfa_med = metric(candidate, "cfa_plane_detail_improvement_median", "cfa_plane_detail_mae_improvement_median")
+    base_cfa_med = metric(baseline, "cfa_plane_detail_improvement_median", "cfa_plane_detail_mae_improvement_median")
     return {
         "candidate_image_count": int(metric(candidate, "image_count") or 0),
         "baseline_image_count": int(metric(baseline, "image_count") or 0),
@@ -118,11 +124,53 @@ def summarize_pair(candidate: dict[str, Any] | None, baseline: dict[str, Any] | 
         "candidate_mae_min": cand_mae_min,
         "baseline_mae_min": base_mae_min,
         "delta_mae_min": delta(cand_mae_min, base_mae_min),
+        "candidate_same_cell_detail_median": cand_detail_med,
+        "baseline_same_cell_detail_median": base_detail_med,
+        "delta_same_cell_detail_median": delta(cand_detail_med, base_detail_med),
+        "candidate_same_cell_fine_detail_median": cand_fine_med,
+        "baseline_same_cell_fine_detail_median": base_fine_med,
+        "delta_same_cell_fine_detail_median": delta(cand_fine_med, base_fine_med),
+        "candidate_cfa_plane_detail_median": cand_cfa_med,
+        "baseline_cfa_plane_detail_median": base_cfa_med,
+        "delta_cfa_plane_detail_median": delta(cand_cfa_med, base_cfa_med),
     }
 
 
 def has_useful_pair(summary: dict[str, Any]) -> bool:
-    return any(summary.get(key) is not None for key in ("delta_rmse_min", "delta_rmse_median", "delta_gradient_min", "delta_mae_min"))
+    return any(
+        summary.get(key) is not None
+        for key in (
+            "delta_rmse_min",
+            "delta_rmse_median",
+            "delta_gradient_min",
+            "delta_mae_min",
+            "delta_same_cell_detail_median",
+            "delta_same_cell_fine_detail_median",
+            "delta_cfa_plane_detail_median",
+        )
+    )
+
+
+def detail_ready(summary: dict[str, Any]) -> bool:
+    return all(
+        summary.get(key) is not None
+        for key in (
+            "delta_same_cell_detail_median",
+            "delta_same_cell_fine_detail_median",
+            "delta_cfa_plane_detail_median",
+        )
+    )
+
+
+def detail_ok(summary: dict[str, Any]) -> bool:
+    return detail_ready(summary) and all(
+        float(summary.get(key) or -999.0) >= 0.0
+        for key in (
+            "delta_same_cell_detail_median",
+            "delta_same_cell_fine_detail_median",
+            "delta_cfa_plane_detail_median",
+        )
+    )
 
 
 def classify_decision(path: Path, data: dict[str, Any]) -> dict[str, Any] | None:
@@ -150,8 +198,12 @@ def classify_decision(path: Path, data: dict[str, Any]) -> dict[str, Any] | None
         and (z8.get("delta_rmse_min") or -999.0) >= 0.0
         and (z8.get("delta_gradient_min") or -999.0) >= 0.0
     )
+    mission_detail_ready = detail_ready(mission)
+    z8_detail_ready = detail_ready(z8)
+    psf_detail_ready = mission_detail_ready and z8_detail_ready
+    psf_detail_ok = detail_ok(mission) and detail_ok(z8)
     explicit_reject = decision.lower().startswith("reject") or "reject" in reason.lower()
-    promotable_row = mission_ok and z8_ok and not explicit_reject
+    promotable_row = mission_ok and z8_ok and psf_detail_ok and not explicit_reject
     return {
         "path": path.as_posix(),
         "schema": data.get("schema"),
@@ -164,20 +216,27 @@ def classify_decision(path: Path, data: dict[str, Any]) -> dict[str, Any] | None
         "z8": z8,
         "mission_ok": mission_ok,
         "z8_ok": z8_ok,
+        "mission_detail_ready": mission_detail_ready,
+        "z8_detail_ready": z8_detail_ready,
+        "psf_detail_ready": psf_detail_ready,
+        "psf_detail_ok": psf_detail_ok,
         "explicit_reject": explicit_reject,
         "promotable_row": promotable_row,
     }
 
 
-def score_row(row: dict[str, Any]) -> tuple[float, float, float, float, float, str]:
+def score_row(row: dict[str, Any]) -> tuple[Any, ...]:
     mission = row["mission"]
     z8 = row["z8"]
     return (
         1.0 if row["promotable_row"] else 0.0,
         1.0 if not row["explicit_reject"] else 0.0,
         float(row["mission_ok"]) + float(row["z8_ok"]),
+        1.0 if row.get("psf_detail_ok") else 0.0,
         float(mission.get("delta_rmse_min") or -999.0),
         float(z8.get("delta_rmse_min") or -999.0),
+        float(mission.get("delta_same_cell_detail_median") or -999.0),
+        float(z8.get("delta_same_cell_detail_median") or -999.0),
         float(mission.get("delta_gradient_min") or -999.0),
         str(row["experiment"]),
     )
@@ -210,6 +269,8 @@ def build_scoreboard(external_root: Path) -> dict[str, Any]:
     non_rejected = [row for row in rows if not row["explicit_reject"]]
     mission_ok = [row for row in rows if row["mission_ok"]]
     z8_ok = [row for row in rows if row["z8_ok"]]
+    psf_detail_ready = [row for row in rows if row.get("psf_detail_ready")]
+    psf_detail_ok = [row for row in rows if row.get("psf_detail_ok")]
     return {
         "schema": SCHEMA,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -219,6 +280,8 @@ def build_scoreboard(external_root: Path) -> dict[str, Any]:
         "non_rejected_row_count": len(non_rejected),
         "mission_ok_row_count": len(mission_ok),
         "z8_ok_row_count": len(z8_ok),
+        "psf_detail_ready_row_count": len(psf_detail_ready),
+        "psf_detail_ok_row_count": len(psf_detail_ok),
         "production_ready": False,
         "best_candidate": rows[0] if rows else None,
         "best_promotable_candidate": promotable[0] if promotable else None,
@@ -226,8 +289,8 @@ def build_scoreboard(external_root: Path) -> dict[str, Any]:
         "interpretation": (
             "This ranks historical SR/detail decisions with promotable rows first, then non-rejected "
             "diagnostic rows, then explicit rejects. A row can be useful evidence, but PSF production "
-            "promotion still requires native PSF receipt, current Mission42/Z8 gates, packaging, timing, "
-            "memory, and visual signoff."
+            "promotion requires same-cell Bayer detail metrics, native PSF receipt, current Mission42/Z8 "
+            "gates, packaging, timing, memory, and visual signoff."
         ),
         "rows": rows,
     }
@@ -253,8 +316,11 @@ def render_html(scoreboard: dict[str, Any]) -> str:
             f"<td>{html.escape(row['decision'])}</td>"
             f"<td>{html.escape(fmt(mission.get('delta_rmse_min')))}</td>"
             f"<td>{html.escape(fmt(mission.get('delta_gradient_min')))}</td>"
+            f"<td>{html.escape(fmt(mission.get('delta_same_cell_detail_median')))}</td>"
             f"<td>{html.escape(fmt(z8.get('delta_rmse_min')))}</td>"
             f"<td>{html.escape(fmt(z8.get('delta_gradient_min')))}</td>"
+            f"<td>{html.escape(fmt(z8.get('delta_same_cell_detail_median')))}</td>"
+            f"<td>{html.escape(str(row.get('psf_detail_ok')))}</td>"
             f"<td>{html.escape(str(row['explicit_reject']))}</td>"
             f"<td>{html.escape(str(row['promotable_row']))}</td>"
             f"<td><a href='file://{html.escape(row['path'])}'>decision</a></td>"
@@ -287,11 +353,13 @@ def render_html(scoreboard: dict[str, Any]) -> str:
     <div class="card"><div>Decision receipts</div><div class="metric">{scoreboard['decision_count']}</div></div>
     <div class="card"><div>Promotable rows</div><div class="metric">{scoreboard['promotable_row_count']}</div></div>
     <div class="card"><div>Non-rejected rows</div><div class="metric">{scoreboard['non_rejected_row_count']}</div></div>
+    <div class="card"><div>PSF detail-ready rows</div><div class="metric">{scoreboard['psf_detail_ready_row_count']}</div></div>
+    <div class="card"><div>PSF detail-OK rows</div><div class="metric">{scoreboard['psf_detail_ok_row_count']}</div></div>
     <div class="card"><div>Production ready</div><div class="metric">{str(scoreboard['production_ready']).lower()}</div></div>
     <div class="card"><div>Top ranked experiment</div><code>{html.escape(str(best.get('experiment', 'none')))}</code></div>
   </div>
   <table>
-    <thead><tr><th>Experiment</th><th>Decision</th><th>Mission dRMSE min</th><th>Mission dGrad min</th><th>Z8 dRMSE min</th><th>Z8 dGrad min</th><th>Explicit reject</th><th>Promotion row</th><th>Receipt</th></tr></thead>
+    <thead><tr><th>Experiment</th><th>Decision</th><th>Mission dRMSE min</th><th>Mission dGrad min</th><th>Mission dDetail med</th><th>Z8 dRMSE min</th><th>Z8 dGrad min</th><th>Z8 dDetail med</th><th>PSF detail OK</th><th>Explicit reject</th><th>Promotion row</th><th>Receipt</th></tr></thead>
     <tbody>{''.join(table_rows)}</tbody>
   </table>
 </body>

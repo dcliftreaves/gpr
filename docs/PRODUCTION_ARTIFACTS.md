@@ -616,6 +616,9 @@ native Mission 1 PSF blocker state for the PSF-aware video/SR pillar.
 | Mission 1 native PSF kernel-stability audit dashboard | `artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html` | `a78d92485b905b8b61058b5f5dee0e916d1be977486c3ebaae95c06004c888ae` |
 | Raw-video SR candidate scoreboard JSON | `artifacts/raw_video_sr_candidate_scoreboard_20260701/scoreboard.json` | `2b07eb4c68c09e71c273b336e5503aaf82a70c2f6059ec50ac98099a41bf1f48` |
 | Raw-video SR candidate scoreboard dashboard | `artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html` | `d3cc60b9f4732c0169b5967bf33f7ccc583471129a4b8bb9338183e7d7c3ca79` |
+| Raw-video PSF detail metric decision receipt | `artifacts/current_goal_sr_psf_detail_metric_rerun_20260701/psf_detail_metric_decision.json` | `91d1ff935547bf7db3c8f5abc657d01d02bfb08ff7e09e45cf0253184d5c010a` |
+| Raw-video PSF-detail-aware SR candidate scoreboard JSON | `artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701/scoreboard.json` | `c7d38374df40e04934f729b31bf9bc5165f6556de92a7bcb338444dd83b8e0bf` |
+| Raw-video PSF-detail-aware SR candidate scoreboard dashboard | `artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701/index.html` | `65eede3af2d4e0f32ea2a125bee32eb4262ac8e34cc1fa3ce38a2ec11d4f37fd` |
 | Raw-video PSF detail metric audit JSON | `artifacts/raw_video_psf_detail_metric_audit_20260701/raw_video_psf_detail_metric_audit.json` | `6b6e35dadebd6670c9dda1cd1051eae81d9945f1d9631d34f92d3c564716b23e` |
 | Raw-video PSF detail metric audit dashboard | `artifacts/raw_video_psf_detail_metric_audit_20260701/index.html` | `7066640f6c4b5e332d18a25afb7529ef671c76c2c92a24a49f91d3fb45ec5d8a` |
 | Raw-video PSF detail metric rerun Mission42 baseline summary | `artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/mission42_baseline_fullframe/summary.json` | `4e9dddacac10bf02f1a190da6e10dad45dd9770fa8d507e406e7a13557aa3af1` |
