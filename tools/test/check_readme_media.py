@@ -27,9 +27,12 @@ REQUIRED_MEDIA = {
 }
 TEXT_MEDIA_SUFFIXES = {".svg"}
 STALE_SHOWCASE_CLAIMS = {
+    "12MP%20Mission%201-24.32%20fps%20stand--in": "current README badge should lead with the accepted 20+ fps Mission native12 stand-in floor",
     "24 fps capture target": "current README claim is the active 20+ fps Mission native12 stand-in floor",
     "latest strict run: 19.98 fps": "current README claim uses the selected 20.50 fps aggregate stand-in closure run",
     "Pi 5 strict run, target 24 fps": "current README claim is blocked on camera handoff/UI, not strict-24 proxy timing",
+    "strict 24 fps and actual camera handoff are still open": "current README should name camera handoff as the active blocker and strict 24 fps as optional performance research",
+    "while strict 24 fps remains open": "current README should name strict 24 fps as optional performance research, not an active release blocker",
     "ML-2 q3 dec2": "current README raw-video showcase should describe Mission native12 .gvid, not the older half-res path",
     "Preview capture": "current README status matrix should distinguish Mission native12 and camera handoff/UI",
     "Raw-clean model dispatch is validated": "current README status matrix should describe camera-role closure blockers",

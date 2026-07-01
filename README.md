@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue?style=flat-square)](#license)
 [![STILL smallest](https://img.shields.io/badge/STILL%20smallest-9.80%20MB%20%2F%2050%20MP-2576c4?style=flat-square)](docs/SHIP_DECISION.md)
 [![Mission preview](https://img.shields.io/badge/Mission%20preview-25.85%20fps%20Pi%205-2e7d32?style=flat-square)](docs/VIDEO_STATUS.md)
-[![12MP Mission 1](https://img.shields.io/badge/12MP%20Mission%201-24.32%20fps%20stand--in%2C%20handoff%20open-d9822b?style=flat-square)](docs/VIDEO_STATUS.md)
+[![12MP Mission 1](https://img.shields.io/badge/12MP%20Mission%201-20%2B%20fps%20stand--in%2C%20camera%20handoff%20open-d9822b?style=flat-square)](docs/VIDEO_STATUS.md)
 [![Spec](https://img.shields.io/badge/built%20on-SMPTE%20ST%202073%20(VC--5)-555?style=flat-square)](docs/SPEC.md)
 
 ## Open Raw Video For Action Cameras
@@ -181,7 +181,7 @@ the docs and external dashboards:
 | Compact 50 MP RAW stills | Three production STILL tiers average **9.80 MB**, **15.05 MB**, and **27.17 MB** per frame while passing the committed visual gate. |
 | 1x decoder CNN restoration | The current still/video 1x CNN checkpoints remain gate-passing; no retrain is needed for the production STILL and VIDEO_FREEZE paths. |
 | Raw video container | `.gvid` stores per-frame FUSED `.gpr` payloads with metadata dispatch, validation, and interrupted-tail recovery checks. |
-| 12MP Mission 1 candidate | Native 4096 x 3072 Bayer recompression passes the active Pi stand-in floor with valid `.gvid`, zero drops, and recovery receipts; the latest DMA-like `bench_fused` source receipt is **19.99 fps** over 1,440 frames, while strict 24 fps remains open. |
+| 12MP Mission 1 candidate | Native 4096 x 3072 Bayer recompression passes the active 20+ fps Pi stand-in floor with valid `.gvid`, zero drops, and recovery receipts; the latest DMA-like `bench_fused` source receipt is **19.99 fps** over 1,440 frames. Strict 24 fps is stretch performance research, not the active ship blocker. |
 | Mission 1 preview target | 4096 x 3072 `.gvid` decodes to 1024 x 768 RGB preview above **20 fps** on the Pi 5 stand-in. |
 | Premium still-SR routed specialists | X2D 100MP, Z8 50MP, and Mission 1 50MP DNG/GPR now have metadata-routed specialist checkpoints, full-frame receipts, rendered latitude proxy review, and an X2D editor-openability plus metadata-transplant receipt. Mission 1 improves full frames by **56.62% RMSE**, Z8 by **40.74%**, and X2D by **1.03%**; rendered proxy improves 33/36 crop/EV rows, with the 3 misses isolated to the X2D center crop. The expanded target set covers **351 rows / 13 scenes** with complete raw-CFA features, and the deduplicated raw-supervision NPZ collapses it to **117 unique scene/crop raw rows** with zero raw conflicts. Raw-CFA gated models beat matched RGB ablations on expanded Z8/X2D rendered-HF holdouts, but remain far below promotion. The stronger raw-domain target aligns with rendered HF residuals at **0.691** median abs corr and **0.922** median best-phase corr. Held-out Z8 is mildly positive (**0.50%** median raw MAE recovery), but hard X2D remains far below the **15%** promotion gate: early-selected U-Net reaches **0.13%**, best known X2D is **0.16%**, scaled RCAB reaches only **0.034%**, simple NAF-style training reaches **-0.059%**, source-HF target replacement regresses **-241.62%** without stored HF and **-862.69%** with stored HF, matched frame-context/noise-floor U-Net reaches only **0.001%**, same-scene candidate-signal regresses **-3.67%**, frequency filtering regresses **-4.29%**, scalar Fourier/band-loss shaping regresses, candidate-HF target scaling trails, and patch retrieval regresses. The next pass needs a materially stronger CFA-aware teacher/objective with camera/noise/PSF conditioning and learned multiscale texture priors; this is not a production still-SR claim yet. |
 | 2x / 8K reconstruction | Candidate-aware Mission native12-to-8K SR is **offline-production for post/reconstruction** today; broad Mission42 and Z8 full-frame gates are positive, with `.gvid` decode-to-SR, 8K `.gvid`, and 8K ProRes receipts. It is not a live-camera path. |
@@ -224,7 +224,7 @@ and [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md).
 | Desktop-quality video/post | VIDEO_FREEZE passes the video gate with matched decoder CNN restoration for desktop/post workflows. |
 | Review media | `.gvid` can feed MOV/GPR wrappers and ProRes review outputs for visual inspection. |
 | Live camera-back preview | 4096 x 3072 `.gvid` decodes to 1024 x 768 RGB preview above 20 fps on the Pi 5 stand-in; Mission 1 display handoff remains the blocker. |
-| 12MP Mission 1 candidate | Native 12MP true Bayer recompression passes the active 20+ fps Pi stand-in floor; strict 24 fps and actual camera handoff are still open. |
+| 12MP Mission 1 candidate | Native 12MP true Bayer recompression passes the active 20+ fps Pi stand-in floor; actual camera handoff is the active firmware-readiness gap. Strict 24 fps remains optional performance research unless the product target is raised again. |
 | 8K reconstruction | Mission 1 / Z8 12MP-to-8K SR has offline/Mac evidence, 8K `.gvid` packaging receipts, and `.gvid` to 8K ProRes review receipts. |
 | Premium still-SR | Routed X2D, Z8, and Mission 1 specialists prove the camera/source-specific direction; X2D now has editable DNG/GPR openability, source-camera metadata transplant, and rawpy latitude evidence, but +2 EV HF texture/noise addback remains a promotion blocker. |
 
@@ -254,7 +254,7 @@ videos, and receipts under `/Volumes/OWC_8TB/gpr_work/artifacts`.
 | **UPRESABLE** | Half-res capture to editable full-res raw | **Production-gated as editable raw.** Uses Bayer PSNR gates; rendered appearance is for review, not final grading. |
 | **PREVIEW offline/review** | Full-frame no-REF render | **Production-gated for offline review.** Current q8 three-way path passes the 84-row holdout but is slow; this is not a live/camera-back preview path. |
 | **PREVIEW live/camera-back** | 1024 x 768 display preview | **Pi stand-in target passes.** Current Mission 1 `.gvid` preview decode/render receipts are above 20 fps; exact camera UI integration remains a firmware handoff task. |
-| **Mission 1 native 12MP** | True Bayer camera candidate | **20+ fps proxy passes; strict 24 fps not proven.** The best all-42 numbered-list receipt records 24.32 fps whole-run wall and 25.29 fps loop median on the Pi stand-in; the selected 1,440-frame aggregate closure rerun records 20.50 fps wall and 21.52 fps median. Camera handoff is still open. |
+| **Mission 1 native 12MP** | True Bayer camera candidate | **20+ fps proxy passes; camera handoff open.** The selected 1,440-frame aggregate closure rerun records 20.50 fps wall and 21.52 fps median; an older all-42 numbered-list receipt records 24.32 fps whole-run wall and 25.29 fps loop median on the Pi stand-in. Strict 24 fps is not the active release blocker. |
 | **4K raw target** | Editable raw output | **Offline-only.** Strong raw-domain evidence, but not a Pi live decode path. |
 | **8K SR target** | Offline reconstruction / review | **Offline-only.** Candidate-aware SR is positive on Mission42 and Z8 broad gates; 8K `.gvid` packaging and `.gvid` to 8K ProRes review are receipted. |
 
@@ -510,11 +510,12 @@ The native 12MP work is intentionally labeled tightly:
 - It is true Bayer recompression, not wrapping pre-compressed camera `.GPR`
   payloads and calling that encode performance.
 - Current quality-preserving profiles pass the active 20+ fps Pi stand-in
-  floor across real Mission 1 12MP images. The best all-42 numbered-list
-  receipt records 24.32 fps whole-run wall and 25.29 fps loop median; a fresh
-  selected 1,440-frame aggregate closure rerun records 20.50 fps wall and 21.52 fps
+  floor across real Mission 1 12MP images. The selected 1,440-frame aggregate
+  closure rerun records 20.50 fps wall and 21.52 fps median; an older all-42
+  numbered-list receipt records 24.32 fps whole-run wall and 25.29 fps loop
   median.
-- Strict 24 fps is not production-proven yet on the Pi stand-in path.
+- Strict 24 fps is not the active release blocker; keep it as optional
+  performance research unless the product target is raised again.
 - Firmware readiness still requires actual camera sensor/DMA/storage handoff
   receipts, not just file-backed bench runs.
 
