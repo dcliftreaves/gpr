@@ -49,6 +49,9 @@ def main() -> int:
         }
         mission = next(row for row in data["requirements"] if row["id"] == "mission1_darkframe_stack")
         assert len(mission["evidence"]) == 4
+        assert mission["source_provenance_audit_schema"] == "gpr.darkframe_source_provenance_audit.v1"
+        assert mission["source_provenance_audit_ready_frame_count"] == 4
+        assert mission["source_provenance_audit_production_ready"] is True
         assert mission["evidence"][0]["no_scene_signal"] is True
         assert mission["evidence"][0]["source_kind"] == "confirmed_darkframes"
         assert "extracted_bayer_path" in mission["evidence"][0]

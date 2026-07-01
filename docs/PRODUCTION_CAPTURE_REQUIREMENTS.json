@@ -91,6 +91,7 @@
         "original DNG/GPR paths and SHA-256 source hashes",
         "little-endian uint16 Bayer extraction receipts for every frame",
         "strict source-provenance manifest with extracted raw SHA-256, original source SHA-256, extraction receipt, no_scene_signal=true, and capture_setup/proof for every frame",
+        "gpr.darkframe_source_provenance_audit.v1 receipt path and SHA-256 with production_ready=true and ready_frame_count >= 4",
         "fixed make, model, dimensions, CFA phase, bit depth, black level, white level, ISO, and exposure"
       ],
       "lowest_lift_current_group": {
@@ -136,6 +137,7 @@
         "proof that the files are CFA raw, not Linear Raw",
         "little-endian uint16 Bayer extraction receipts for every frame",
         "strict source-provenance manifest with extracted raw SHA-256, original source SHA-256, extraction receipt, no_scene_signal=true, and capture_setup/proof for every frame",
+        "gpr.darkframe_source_provenance_audit.v1 receipt path and SHA-256 with production_ready=true and ready_frame_count >= 4",
         "fixed make, model, dimensions, CFA phase, bit depth, black level, white level, ISO, and exposure"
       ],
       "acceptance": [

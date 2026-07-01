@@ -60,6 +60,7 @@ CONFIRMED_DARKFRAME_SOURCE_KINDS = {
     "flat_dark_pair",
     "equivalent_no_scene_stack",
 }
+DARKFRAME_SOURCE_PROVENANCE_AUDIT_SCHEMA = "gpr.darkframe_source_provenance_audit.v1"
 
 
 def parse_args() -> argparse.Namespace:
@@ -301,6 +302,7 @@ def darkframe_key(row: dict[str, Any]) -> tuple[Any, ...]:
 
 def validate_darkframe_stack(rid: str, req: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any]:
     min_count = int(req.get("minimum_count") or 4)
+    record = record_for(submission, rid)
     required = [
         "source_path",
         "sha256",
@@ -321,6 +323,27 @@ def validate_darkframe_stack(rid: str, req: dict[str, Any], submission: dict[str
         "source_kind",
     ]
     failures: list[str] = []
+    audit_required = [
+        "source_provenance_audit_path",
+        "source_provenance_audit_sha256",
+        "source_provenance_audit_schema",
+        "source_provenance_audit_ready_frame_count",
+        "source_provenance_audit_production_ready",
+    ]
+    audit_missing = missing_fields(record, audit_required)
+    if audit_missing:
+        failures.append(f"darkframe stack missing {', '.join(audit_missing)}")
+    else:
+        if not has_sha(record, "source_provenance_audit_sha256"):
+            failures.append("source_provenance_audit_sha256 must be a 64-hex hash")
+        if record.get("source_provenance_audit_schema") != DARKFRAME_SOURCE_PROVENANCE_AUDIT_SCHEMA:
+            failures.append(f"source_provenance_audit_schema must be {DARKFRAME_SOURCE_PROVENANCE_AUDIT_SCHEMA}")
+        ok, failure = number_at_least(record, "source_provenance_audit_ready_frame_count", min_count)
+        if not ok:
+            failures.append(failure)
+        if record.get("source_provenance_audit_production_ready") is not True:
+            failures.append("source_provenance_audit_production_ready must be true")
+
     grouped: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
     for row in rows_for(submission, rid):
         local = missing_fields(row, required)

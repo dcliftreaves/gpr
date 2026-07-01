@@ -145,10 +145,20 @@ def valid_submission() -> dict:
             {"id": "real_bggr_fixture", "evidence": [fixture("BGGR")]},
             {
                 "id": "mission1_darkframe_stack",
+                "source_provenance_audit_path": "/captures/mission1_darkframe_source_provenance_audit.json",
+                "source_provenance_audit_sha256": SHA,
+                "source_provenance_audit_schema": "gpr.darkframe_source_provenance_audit.v1",
+                "source_provenance_audit_ready_frame_count": 4,
+                "source_provenance_audit_production_ready": True,
                 "evidence": [darkframe("MISSION 1", idx) for idx in range(4)],
             },
             {
                 "id": "iphone_cfa_darkframe_stack",
+                "source_provenance_audit_path": "/captures/iphone_darkframe_source_provenance_audit.json",
+                "source_provenance_audit_sha256": SHA,
+                "source_provenance_audit_schema": "gpr.darkframe_source_provenance_audit.v1",
+                "source_provenance_audit_ready_frame_count": 4,
+                "source_provenance_audit_production_ready": True,
                 "evidence": [darkframe("iPhone 15 Pro", idx, iphone=True) for idx in range(4)],
             },
             {
@@ -295,6 +305,20 @@ def main() -> int:
         proc = run_tool(manifest)
         assert proc.returncode == 1
         assert "capture_setup or proof" in proc.stdout
+
+        bad = valid_submission()
+        bad["requirements"][2]["source_provenance_audit_production_ready"] = False
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "source_provenance_audit_production_ready must be true" in proc.stdout
+
+        bad = valid_submission()
+        del bad["requirements"][2]["source_provenance_audit_path"]
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "source_provenance_audit_path" in proc.stdout
 
         bad = valid_submission()
         bad["requirements"][4]["target_role"] = "pi_stand_in"

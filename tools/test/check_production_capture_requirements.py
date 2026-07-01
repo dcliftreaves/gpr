@@ -126,6 +126,8 @@ def validate() -> list[str]:
                 failures.append(f"{rid}: darkframe validation must include check_darkframe_source_provenance.py")
             if "source-provenance manifest" not in required_evidence:
                 failures.append(f"{rid}: darkframe evidence must require a source-provenance manifest")
+            if "gpr.darkframe_source_provenance_audit.v1" not in required_evidence:
+                failures.append(f"{rid}: darkframe evidence must require a darkframe source-provenance audit")
         if sample_type == "real_camera_raw_fixture" and int(row.get("minimum_count") or 0) < 1:
             failures.append(f"{rid}: real fixtures require minimum_count >= 1")
         if sample_type == "controlled_same_scene_high_low_raw_pair_stack" and int(row.get("minimum_pair_count") or 0) < 3:

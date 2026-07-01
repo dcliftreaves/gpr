@@ -200,6 +200,11 @@ def requirement_template(req: dict[str, Any]) -> dict[str, Any]:
         row["evidence"] = [base_fixture(req)]
     elif sample_type == "darkframe_stack":
         count = int(req.get("minimum_count") or 4)
+        row["source_provenance_audit_path"] = "<darkframe_source_provenance_audit.json>"
+        row["source_provenance_audit_sha256"] = SHA_PLACEHOLDER
+        row["source_provenance_audit_schema"] = "gpr.darkframe_source_provenance_audit.v1"
+        row["source_provenance_audit_ready_frame_count"] = count
+        row["source_provenance_audit_production_ready"] = True
         row["evidence"] = [darkframe_row(req, idx) for idx in range(count)]
     elif sample_type == "camera_hardware_receipt":
         row.update(camera_role_template())

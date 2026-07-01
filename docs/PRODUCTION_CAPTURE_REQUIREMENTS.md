@@ -98,7 +98,11 @@ the original `source_path`/`sha256`, `extracted_bayer_path` and
 `python3 tools/check_darkframe_source_provenance.py <darkframe_raw_source_provenance.json> --minimum-count 4 --require-existing-files`
 against the filled extraction-provenance manifest; it rejects placeholders,
 missing hashes, duplicate extracted raw hashes, missing no-scene proof, and
-file/hash mismatches. A premium still-SR submission must name runtime
+file/hash mismatches. The production submission must include that audit as
+`source_provenance_audit_path`, `source_provenance_audit_sha256`,
+`source_provenance_audit_schema=gpr.darkframe_source_provenance_audit.v1`,
+`source_provenance_audit_ready_frame_count>=4`, and
+`source_provenance_audit_production_ready=true`. A premium still-SR submission must name runtime
 inputs, include `candidate_raw` and `camera_metadata`, exclude REF/source/JPEG
 content, report 50 MP and 100 MP full-frame gate row counts, show positive
 median MAE reduction for both classes, show nonnegative worst-row MAE
