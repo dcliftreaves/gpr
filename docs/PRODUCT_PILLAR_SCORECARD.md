@@ -232,6 +232,13 @@ improves median same-cell detail by **2.004** points on Mission42 and
 **0.302** points on Z8. It still does not promote because `mission_ok=false`
 from the Mission gradient-floor regression.
 
+The Mission gradient/detail blocker audit lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gradient_detail_blocker_audit_20260701/index.html`.
+It narrows the current failure to five Mission rows that regress both gradient
+and same-cell Bayer detail: `GP017346`, `GP017600`, `GP017347`, `GP017348`,
+and `GP017359`. The next candidate should target those rows without giving up
+the current positive Mission/Z8 median same-cell detail deltas.
+
 The current raw-video PSF detail-metric audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/index.html`.
 The first audit confirmed that Mission42 and Z8 all24 baseline/candidate

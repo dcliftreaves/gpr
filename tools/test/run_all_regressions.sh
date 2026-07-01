@@ -210,6 +210,7 @@ else
                 python3 tools/test/test_build_raw_video_psf_capture_request.py && \
                 python3 tools/test/test_build_raw_video_psf_next_experiment_contract.py && \
                 python3 tools/test/test_build_raw_video_psf_detail_metric_audit.py && \
+                python3 tools/test/test_build_raw_video_psf_gradient_detail_blocker_audit.py && \
                 python3 tools/test/test_run_mission1_sr_fullframe_broad_eval_summary.py && \
                 python3 tools/test/test_build_product_pillar_scorecard.py && \
                 python3 tools/test/test_build_product_burndown.py && \

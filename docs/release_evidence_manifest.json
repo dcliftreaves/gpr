@@ -2015,6 +2015,37 @@
       }
     },
     {
+      "id": "raw_video_psf_gradient_detail_blocker_audit_20260701",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Audits Mission42 rows where the current PSF-detail-ready SR candidate regresses both gradient and same-cell Bayer detail versus the approved baseline.",
+      "dashboard": "artifacts/raw_video_psf_gradient_detail_blocker_audit_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BAYER_RESIZE_PSF.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/raw_video_psf_gradient_detail_blocker_audit_20260701/gradient_detail_blocker_audit.json",
+        "artifacts/raw_video_psf_gradient_detail_blocker_audit_20260701/index.html"
+      ],
+      "hashes": {
+        "audit_json_sha256": "6b302bc47a28954c5006a2c9604b5cc8a65b7280cb5bdeb89a6d961e4ac426e4",
+        "dashboard_sha256": "e08440b7417225d7970c2820b00c824506dde4027a68ed89999ab9e3cbd99e18"
+      },
+      "metrics": {
+        "shared_image_count": 42,
+        "gradient_regression_count": 5,
+        "same_cell_detail_regression_count": 5,
+        "combined_gradient_detail_regression_count": 5,
+        "candidate_promotable_by_gradient_detail": 0,
+        "worst_gradient_delta_pct": -2.1964478571142116,
+        "worst_same_cell_detail_delta_pct": -2.366390257910929
+      }
+    },
+    {
       "id": "raw_video_psf_detail_metric_audit_20260701",
       "family": "raw_video_psf",
       "status": "diagnostic",

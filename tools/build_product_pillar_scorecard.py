@@ -339,6 +339,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "The controlled-capture request now requires source GPR/DNG hashes, decoded little-endian uint16 Bayer hashes, fixed ISO/exposure/WB/lens/sharpening settings, and negative controls before a measured kernel can be promoted.",
                 "The SR/detail candidate scoreboard indexes 90 Mission/Z8 decisions, has one PSF-detail-ready row, and still finds zero current-scale promotion rows.",
                 "The PSF detail-metric rerun adds same-cell Bayer fine-detail metrics to the current Mission42/Z8 baseline and candidate summaries. The current candidate improves median same-cell detail from 26.091 to 28.095 percent on Mission42 and from 3.214 to 3.516 percent on Z8.",
+                "The Mission gradient/detail blocker audit narrows the current non-promotion cause to five rows that regress both gradient and same-cell detail: GP017346, GP017600, GP017347, GP017348, and GP017359.",
             ],
             "open_work": [
                 "Follow the raw-video PSF gap plan: capture or locate controlled same-scene Mission 1 high/low pairs with source hashes, decoded Bayer hashes, fixed settings, and negative controls so at least three pairs pass scene vetting and produce a stable measured native PSF kernel.",
@@ -366,6 +367,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("raw-video PSF controlled capture request", "artifacts/raw_video_psf_capture_request_20260630/index.html"),
                     artifact_ref("raw-video SR/detail candidate scoreboard", "artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701/index.html"),
                     artifact_ref("raw-video PSF detail metric audit", "artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/index.html"),
+                    artifact_ref("raw-video PSF gradient/detail blocker audit", "artifacts/raw_video_psf_gradient_detail_blocker_audit_20260701/index.html"),
                 ],
                 external_root,
             ),

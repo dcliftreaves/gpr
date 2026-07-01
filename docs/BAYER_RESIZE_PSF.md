@@ -255,6 +255,18 @@ on Mission42 and 0.302 points on Z8, but still regresses Mission gradient floor
 versus the approved baseline. It therefore does not replace the approved 4K/8K
 baselines.
 
+The Mission gradient/detail blocker audit lives at:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gradient_detail_blocker_audit_20260701/index.html
+```
+
+It confirms that the current candidate has five Mission rows that regress both
+gradient and same-cell Bayer detail relative to the approved baseline:
+`GP017346`, `GP017600`, `GP017347`, `GP017348`, and `GP017359`. The next local
+candidate should preserve the current median same-cell detail gains while
+adding a hard-row gradient/detail floor objective or sampler around those rows.
+
 ## Detail Metric Audit
 
 The current PSF-conditioned replacement gate needs detail metrics that match
