@@ -140,7 +140,7 @@ ISO232 RGGB frames and provenance validation for the 27-frame iPhone ISO1250
 RGGB dark-like candidate stack.
 
 The raw-stills capture request lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html`.
 It converts that closure list into handoff-ready sample requests, validation
 commands, and promotion criteria.
 The same raw-stills blockers are pinned in the committed production capture

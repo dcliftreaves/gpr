@@ -22,7 +22,7 @@
           "source_root_raw_fixture_scan_20260630",
           "mission_iphone_fullmanifest_darkframe_audit_20260701",
           "stills_fixture_gap_plan_noise_fullmanifest_20260701",
-          "stills_capture_request_noise_fullmanifest_20260701",
+          "stills_capture_request_strict_provenance_20260701",
           "camera_noise_runtime_policy_20260630",
           "raw_stills_noise_sidecar_readiness_20260701"
         ]
@@ -1920,11 +1920,11 @@
       }
     },
     {
-      "id": "stills_capture_request_noise_fullmanifest_20260701",
+      "id": "stills_capture_request_strict_provenance_20260701",
       "family": "stills_fixtures",
       "status": "current",
-      "purpose": "Current raw-stills capture request for the remaining Mission/iPhone darkframe sidecars, including per-family lowest-lift follow-ups and no-scene-signal provenance requirements.",
-      "dashboard": "artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html",
+      "purpose": "Current raw-stills capture request for the remaining Mission/iPhone darkframe sidecars, including per-family lowest-lift follow-ups and strict source-provenance requirements.",
+      "dashboard": "artifacts/stills_capture_request_strict_provenance_20260701/index.html",
       "docs": [
         "README.md",
         "docs/BIG_EFFORTS_STATUS.md",
@@ -1933,12 +1933,12 @@
         "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"
       ],
       "receipts": [
-        "artifacts/stills_capture_request_noise_fullmanifest_20260701/stills_capture_request.json",
-        "artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html"
+        "artifacts/stills_capture_request_strict_provenance_20260701/stills_capture_request.json",
+        "artifacts/stills_capture_request_strict_provenance_20260701/index.html"
       ],
       "hashes": {
-        "stills_capture_request_json_sha256": "a1d1dc99415cdedafbbef8c8799a5b20b25c7db83d05bf3c1b82eced43e6e46e",
-        "dashboard_sha256": "b221af099d5d067b7b0686deb0c5c6a9daa7cec6f07d27cc2d75bdf2c023bc25"
+        "stills_capture_request_json_sha256": "a6dfad28cf05b771226614c4a6316fbec7bcfec7b91e6347c959db0decc762c2",
+        "dashboard_sha256": "c067a6faa811908c19bfd6c99ac70ac75dcc653251d4bba4c9d31233a096f5b1"
       },
       "metrics": {
         "request_count": 4,

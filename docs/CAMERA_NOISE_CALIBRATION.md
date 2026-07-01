@@ -24,6 +24,9 @@ For production training targets, the receipt must prove:
   stack;
 - at least four frames contributed to the calibration;
 - the noise/signal audit marks `separates_noise_from_signal=true`;
+- new Mission 1, iPhone, or other promoted camera sidecars use strict
+  per-frame source provenance so every extracted Bayer frame is linked to its
+  original raw file, extraction receipt, and no-scene-signal capture proof;
 - metadata-only DNG `NoiseProfile` values are treated as conditioning data, not
   proof that a residual can be removed from training targets.
 
@@ -40,7 +43,8 @@ python3 tools/extract_raw_bayer_u16.py \
 ```
 
 Then build the sidecar from at least four matching little-endian uint16 Bayer
-darkframes:
+darkframes. Production promotion should pass a source-provenance manifest and
+`--require-source-provenance`:
 
 ```sh
 python3 tools/build_camera_noise_calibration.py \
@@ -49,8 +53,17 @@ python3 tools/build_camera_noise_calibration.py \
   --bit-depth 14 --cfa-phase RGGB --iso 1600 \
   --make Nikon --model Z8 \
   --black-level 64 --white-level 16383 \
+  --source-provenance-manifest /Volumes/OWC_8TB/gpr_work/artifacts/noise_calibration/z8_iso1600_source_provenance.json \
+  --require-source-provenance \
   --out /Volumes/OWC_8TB/gpr_work/artifacts/noise_calibration/z8_iso1600.json
 ```
+
+The source-provenance manifest must contain one `frames` row per `--raw` input
+with `raw_path`, `raw_sha256`, `original_path`, `original_sha256`,
+`extract_receipt`, `no_scene_signal=true`, and `capture_setup` or `proof`.
+Strict mode refuses promotion if any extracted raw hash does not match the file
+contents, any original source hash is missing or malformed, or any frame lacks
+no-scene-signal proof.
 
 The builder estimates black-frame sigma per Bayer plane and writes a
 NoiseProfile-compatible offset term. The scale term is intentionally zero for
@@ -163,6 +176,20 @@ The provenance manifest must include one row per promoted frame with `path`,
 `sha256`, `no_scene_signal=true`, and a non-empty `capture_setup` or `proof`.
 Without that manifest, the audit stays discovery-only and cannot mark a
 production stack ready.
+
+After extracting the promoted frames, carry the same provenance into the final
+noise sidecar builder with:
+
+```sh
+python3 tools/build_camera_noise_calibration.py \
+  --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> \
+  --out <sidecar.json> \
+  --make <make> --model <model> --iso <iso> \
+  --width <w> --height <h> --bit-depth <bits> \
+  --black-level <black> --white-level <white> --cfa-phase <phase> \
+  --source-provenance-manifest <darkframe_raw_source_provenance.json> \
+  --require-source-provenance
+```
 
 ## Policy
 

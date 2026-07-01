@@ -478,8 +478,8 @@ remain open.
 | Raw-stills noise sidecar readiness dashboard | `artifacts/raw_stills_noise_sidecar_readiness_20260701/index.html` | `a934dab97b2ef3e46ab3c334d9230f9cda986fdf70b0355fa52fc596efe83622` |
 | Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/stills_fixture_gap_plan.json` | `ecd791fd1b2405d2acc5e15c466bd5b67a9b9d002659a383c53d36a2c793f53a` |
 | Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html` | `01eceab64395920d6818dc9b524801d350bca2f5cd252e57f0deee9d2020bb7b` |
-| Current raw-stills capture request JSON | `artifacts/stills_capture_request_noise_fullmanifest_20260701/stills_capture_request.json` | `a1d1dc99415cdedafbbef8c8799a5b20b25c7db83d05bf3c1b82eced43e6e46e` |
-| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html` | `b221af099d5d067b7b0686deb0c5c6a9daa7cec6f07d27cc2d75bdf2c023bc25` |
+| Current raw-stills capture request JSON | `artifacts/stills_capture_request_strict_provenance_20260701/stills_capture_request.json` | `a6dfad28cf05b771226614c4a6316fbec7bcfec7b91e6347c959db0decc762c2` |
+| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_strict_provenance_20260701/index.html` | `c067a6faa811908c19bfd6c99ac70ac75dcc653251d4bba4c9d31233a096f5b1` |
 
 ## Premium Still-SR Gap Artifacts
 

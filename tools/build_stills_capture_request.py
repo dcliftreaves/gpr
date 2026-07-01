@@ -56,17 +56,19 @@ def darkframe_request(camera_key: str, label: str) -> dict[str, Any]:
             "Use true no-scene-signal darkframes: lens/body cap on, no light leaks, same raw mode as production still/video capture.",
             "Keep camera model, dimensions, CFA phase, bit depth, black level, white level, ISO, and exposure fixed across the stack.",
             "Prefer the ISO values used by the real scenes that will be compressed or used for SR training.",
+            "Create a source-provenance manifest that links every extracted uint16 raw frame back to the original DNG/GPR file and extraction receipt.",
         ],
         "metadata_required": [
             "original raw/DNG/GPR paths and SHA-256 source hashes",
             "make, model, dimensions, CFA phase, bit depth, black level, white level, ISO, and exposure time",
             "little-endian uint16 Bayer extraction command or receipt used to build each raw darkframe input",
+            "per-frame source-provenance manifest with raw SHA-256, original source SHA-256, extraction receipt, no_scene_signal=true, and capture_setup/proof",
             "confirmation that the stack is no-scene-signal data, not ordinary dark-looking scene photos",
         ],
         "acceptance": [
             "darkframe candidate audit groups at least four frames under one camera/ISO/CFA key",
-            "camera-noise calibration builder emits gpr.camera_noise_calibration.v1 with production_ready=true",
-            "sidecar records source hashes, fixed camera metadata, per-plane sigma, and separates_noise_from_signal=true",
+            "camera-noise calibration builder runs with --require-source-provenance and emits gpr.camera_noise_calibration.v1 with production_ready=true",
+            "sidecar records per-frame source hashes, fixed camera metadata, per-plane sigma, source_provenance_ready=true, and separates_noise_from_signal=true",
             "camera-noise coverage audit marks the camera family ready",
         ],
     }
@@ -98,11 +100,12 @@ def topup_request(camera_key: str, nearest: dict[str, Any]) -> dict[str, Any]:
             "same camera/ISO/CFA/dimensions/bit-depth/black-level/white-level as the existing group",
             "original raw/DNG/GPR paths and SHA-256 source hashes for the top-up or promoted stack frames",
             "little-endian uint16 Bayer extraction command or receipt for every frame in the promoted stack",
+            "strict per-frame source-provenance manifest for the final promoted four-plus-frame stack",
             "confirmation that every promoted frame is no-scene-signal data, not an ordinary dark-looking scene photo",
         ],
         "acceptance": [
             "darkframe candidate audit reports production_stack_ready=true for this group",
-            "sidecar builder emits a production-ready gpr.camera_noise_calibration.v1 receipt",
+            "sidecar builder emits a production-ready gpr.camera_noise_calibration.v1 receipt with source_provenance_ready=true",
             "sidecar records separates_noise_from_signal=true before any nonzero noise removal/addback is enabled",
         ],
     }
@@ -168,7 +171,7 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
         "python3 tools/build_bayer_phase_fixture_inventory.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_<date>",
         "python3 tools/build_darkframe_candidate_audit.py --source-kind confirmed_darkframes --provenance-manifest <darkframe_source_provenance.json> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_<date> <new dng roots>",
         "python3 tools/extract_raw_bayer_u16.py --input <darkframe.dng> --output <darkframe.raw> --write-receipt <extract_receipt.json>",
-        "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --make <make> --model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase>",
+        "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --make <make> --model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase> --source-provenance-manifest <darkframe_raw_source_provenance.json> --require-source-provenance",
         "python3 tools/build_camera_noise_coverage_audit.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_<date>",
         "python3 tools/build_stills_fixture_gap_plan.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_<date>",
     ]
@@ -204,6 +207,7 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
             "noise_addback_requires_production_ready_noise_sidecar": True,
             "noise_sidecar_requires_source_hashes_and_fixed_camera_metadata": True,
             "noise_sidecar_requires_u16_bayer_extraction_receipt": True,
+            "noise_sidecar_requires_strict_source_provenance": True,
             "ordinary_scene_frames_are_not_noise_targets": True,
             "new_artifacts_stay_under_external_root": "/Volumes/OWC_8TB/gpr_work",
         },

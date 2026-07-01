@@ -32,7 +32,7 @@ DEFAULT_GAP_PLAN = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/stills_fixture_gap_plan.json"
 )
 DEFAULT_CAPTURE_REQUEST = Path(
-    "/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_fullmanifest_20260701/stills_capture_request.json"
+    "/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/stills_capture_request.json"
 )
 
 

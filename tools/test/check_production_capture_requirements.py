@@ -105,6 +105,18 @@ def validate() -> list[str]:
 
         if sample_type == "darkframe_stack" and int(row.get("minimum_count") or 0) < 4:
             failures.append(f"{rid}: darkframe stacks require minimum_count >= 4")
+        if sample_type == "darkframe_stack":
+            acceptance = " ".join(str(item) for item in as_list(row.get("acceptance")))
+            commands = "\n".join(str(item) for item in as_list(row.get("validation_commands")))
+            required_evidence = " ".join(str(item) for item in as_list(row.get("required_evidence")))
+            if "source_provenance_ready=true" not in acceptance:
+                failures.append(f"{rid}: darkframe acceptance must require source_provenance_ready=true")
+            if "--require-source-provenance" not in commands:
+                failures.append(f"{rid}: darkframe validation must require --require-source-provenance")
+            if "--source-provenance-manifest" not in commands:
+                failures.append(f"{rid}: darkframe validation must include --source-provenance-manifest")
+            if "source-provenance manifest" not in required_evidence:
+                failures.append(f"{rid}: darkframe evidence must require a source-provenance manifest")
         if sample_type == "real_camera_raw_fixture" and int(row.get("minimum_count") or 0) < 1:
             failures.append(f"{rid}: real fixtures require minimum_count >= 1")
         if sample_type == "controlled_same_scene_high_low_raw_pair_stack" and int(row.get("minimum_pair_count") or 0) < 3:
@@ -118,7 +130,7 @@ def validate() -> list[str]:
         for token in (
             *EXPECTED_IDS.keys(),
             "Product pillar scorecard",
-            "stills_capture_request_noise_fullmanifest_20260701",
+            "stills_capture_request_strict_provenance_20260701",
             "raw_video_psf_capture_request_20260630",
         ):
             if token not in doc:

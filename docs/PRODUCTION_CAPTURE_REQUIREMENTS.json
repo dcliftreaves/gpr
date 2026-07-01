@@ -90,6 +90,7 @@
         "lens/body cap or equivalent no-light capture confirmation",
         "original DNG/GPR paths and SHA-256 source hashes",
         "little-endian uint16 Bayer extraction receipts for every frame",
+        "strict source-provenance manifest with extracted raw SHA-256, original source SHA-256, extraction receipt, no_scene_signal=true, and capture_setup/proof for every frame",
         "fixed make, model, dimensions, CFA phase, bit depth, black level, white level, ISO, and exposure"
       ],
       "lowest_lift_current_group": {
@@ -101,14 +102,14 @@
       },
       "acceptance": [
         "darkframe candidate audit groups at least four Mission 1 frames under one camera/ISO/CFA key",
-        "camera-noise calibration builder emits gpr.camera_noise_calibration.v1 with production_ready=true",
-        "sidecar records source hashes, fixed camera metadata, per-plane sigma, and separates_noise_from_signal=true",
+        "camera-noise calibration builder runs with --require-source-provenance and emits gpr.camera_noise_calibration.v1 with production_ready=true",
+        "sidecar records source hashes, fixed camera metadata, per-plane sigma, source_provenance_ready=true, and separates_noise_from_signal=true",
         "camera-noise runtime policy enables nonzero denoised targets/noise addback only for exact matching sidecar classes"
       ],
       "validation_commands": [
         "python3 tools/build_darkframe_candidate_audit.py --source-kind confirmed_darkframes --provenance-manifest <darkframe_source_provenance.json> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission1_<date> <new dng roots>",
         "python3 tools/extract_raw_bayer_u16.py --input <darkframe.dng> --output <darkframe.raw> --write-receipt <extract_receipt.json>",
-        "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --make <make> --model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase>",
+        "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --make <make> --model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase> --source-provenance-manifest <darkframe_raw_source_provenance.json> --require-source-provenance",
         "python3 tools/build_camera_noise_coverage_audit.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_<date>"
       ]
     },
@@ -133,18 +134,20 @@
         "original DNG paths and SHA-256 source hashes",
         "proof that the files are CFA raw, not Linear Raw",
         "little-endian uint16 Bayer extraction receipts for every frame",
+        "strict source-provenance manifest with extracted raw SHA-256, original source SHA-256, extraction receipt, no_scene_signal=true, and capture_setup/proof for every frame",
         "fixed make, model, dimensions, CFA phase, bit depth, black level, white level, ISO, and exposure"
       ],
       "acceptance": [
         "darkframe candidate audit groups at least four iPhone CFA frames under one camera/ISO/CFA key",
-        "camera-noise calibration builder emits gpr.camera_noise_calibration.v1 with production_ready=true",
+        "camera-noise calibration builder runs with --require-source-provenance and emits gpr.camera_noise_calibration.v1 with production_ready=true",
+        "sidecar records source_provenance_ready=true and separates_noise_from_signal=true",
         "camera-noise coverage audit marks iPhone CFA ready",
         "Linear Raw remains rejected as a raw Bayer fixture"
       ],
       "validation_commands": [
         "python3 tools/build_darkframe_candidate_audit.py --source-kind confirmed_darkframes --provenance-manifest <darkframe_source_provenance.json> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_iphone_<date> <iphone cfa dng roots>",
         "python3 tools/extract_raw_bayer_u16.py --input <darkframe.dng> --output <darkframe.raw> --write-receipt <extract_receipt.json>",
-        "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --make <make> --model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase>"
+        "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --make <make> --model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase> --source-provenance-manifest <darkframe_raw_source_provenance.json> --require-source-provenance"
       ]
     },
     {

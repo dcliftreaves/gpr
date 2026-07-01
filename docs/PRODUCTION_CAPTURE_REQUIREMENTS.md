@@ -19,8 +19,8 @@ model-promotion artifacts needed to finish the wider product suite.
 
 | id | pillar | required evidence | closure signal |
 |---|---|---|---|
-| `mission1_darkframe_stack` | RAW stills | Four matching no-scene-signal Mission 1 darkframes under one camera/ISO/CFA/dimensions key; current ISO232 RGGB candidate group has 2 and needs 2 more. | `gpr.camera_noise_calibration.v1` sidecar validates and runtime policy allows exact-match noise use. |
-| `iphone_cfa_darkframe_stack` | RAW stills | Four matching no-scene-signal iPhone CFA DNG darkframes; Linear Raw does not count. The ISO1250 RGGB candidate group has enough dark-like frames but still needs no-scene provenance. | iPhone CFA sidecar validates and Linear Raw remains a negative fixture. |
+| `mission1_darkframe_stack` | RAW stills | Four matching no-scene-signal Mission 1 darkframes under one camera/ISO/CFA/dimensions key, with per-frame source provenance from original raw to extracted Bayer; current ISO232 RGGB candidate group has 2 and needs 2 more. | `gpr.camera_noise_calibration.v1` sidecar validates with `source_provenance_ready=true` and runtime policy allows exact-match noise use. |
+| `iphone_cfa_darkframe_stack` | RAW stills | Four matching no-scene-signal iPhone CFA DNG darkframes, with per-frame source provenance from original raw to extracted Bayer; Linear Raw does not count. The ISO1250 RGGB candidate group has enough dark-like frames but still needs no-scene provenance. | iPhone CFA sidecar validates with `source_provenance_ready=true` and Linear Raw remains a negative fixture. |
 | `mission1_camera_role_receipts` | RAW video MVP | Real Mission 1 sensor/DMA or camera ring-buffer source, SD writer, and rear-display receipts. | Camera closure validator marks camera production ready; Pi stand-in receipts are replaced by camera-role evidence. |
 | `controlled_mission1_psf_pairs` | PSF-aware video/SR | Controlled high/low Mission 1 raw pair stack with source hashes, decoded Bayer hashes, exact dimensions/byte counts, extraction/settings/measurement receipt hashes, fixed settings, and negative controls. | Native PSF measurement accepts at least three pairs and produces a stable kernel for model conditioning. |
 | `premium_still_sr_promotion_receipts` | Premium still/SR | Checkpoint, target, full-frame/editor-latitude, editable raw, timing/memory, and noise-policy receipts. | No-REF candidate beats current still-SR baselines on 50 MP and 100 MP gates without severe worst-row failures. |
@@ -91,7 +91,7 @@ into an auditable pass/fail package.
 ## Current Generated Handoff Views
 
 - Raw-stills capture request:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html`
   This request carries the exact committed requirement IDs it closes:
   `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack`.
 - Raw-video PSF capture request:

@@ -89,7 +89,9 @@ def main() -> int:
         assert mission["requirement_id"] == "mission1_darkframe_stack"
         assert any("SHA-256" in item for item in mission["metadata_required"])
         assert any("little-endian uint16 Bayer extraction" in item for item in mission["metadata_required"])
+        assert any("source-provenance manifest" in item for item in mission["metadata_required"])
         assert any("separates_noise_from_signal=true" in item for item in mission["acceptance"])
+        assert any("source_provenance_ready=true" in item for item in mission["acceptance"])
         topup = [row for row in data["requests"] if row["id"] == "mission1_lowest_lift_darkframe_topup"][0]
         assert topup["requirement_id"] == "mission1_darkframe_stack"
         assert topup["minimum_count"] == 2
@@ -102,8 +104,11 @@ def main() -> int:
         assert any("no-scene-signal" in item for item in iphone_topup["metadata_required"])
         assert any("extract_raw_bayer_u16.py" in command for command in data["validation_commands"])
         assert any("build_camera_noise_calibration.py" in command for command in data["validation_commands"])
+        assert any("--require-source-provenance" in command for command in data["validation_commands"])
+        assert any("--source-provenance-manifest" in command for command in data["validation_commands"])
         assert data["promotion_policy"]["noise_sidecar_requires_source_hashes_and_fixed_camera_metadata"] is True
         assert data["promotion_policy"]["noise_sidecar_requires_u16_bayer_extraction_receipt"] is True
+        assert data["promotion_policy"]["noise_sidecar_requires_strict_source_provenance"] is True
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "Raw Stills Capture Request" in html
         assert "Requirement" in html

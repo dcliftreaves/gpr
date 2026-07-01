@@ -110,7 +110,7 @@ Current evidence:
   ISO1250 RGGB dark-like candidate set is true no-scene data or must be
   recaptured.
 - The raw-stills capture request at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html`
   converts that closure list into handoff-ready sample requests and validation
   commands for Mission/iPhone darkframe stacks.
 

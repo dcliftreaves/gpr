@@ -111,7 +111,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("Mission 1 current DNG darkframe candidate audit", "artifacts/darkframe_candidate_audit_mission1_dng_full_20260701/index.html"),
                     artifact_ref("targeted Mission DNG darkframe scan", "artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html"),
                     artifact_ref("stills fixture gap plan", "artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html"),
-                    artifact_ref("raw-stills capture request", "artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html"),
+                    artifact_ref("raw-stills capture request", "artifacts/stills_capture_request_strict_provenance_20260701/index.html"),
                     artifact_ref("camera noise sidecars", "artifacts/camera_noise_sidecars_20260629"),
                     artifact_ref("real fixture compatibility", "artifacts/real_fixture_compatibility"),
                 ],
