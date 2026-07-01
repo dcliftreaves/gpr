@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import hashlib
 import json
 import subprocess
 import time
@@ -263,20 +264,88 @@ def camera_key(row: dict[str, Any]) -> str:
     return f"{row.get('make') or 'unknown'}|{row.get('model') or 'unknown'}|ISO{row.get('iso') or 'unknown'}|{row.get('cfa_phase') or 'unknown'}"
 
 
-def build_audit(rows: list[dict[str, Any]], mode: str, roots: list[Path], source_kind: str = "candidate_discovery") -> dict[str, Any]:
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_provenance_manifest(path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    with path.open("r", encoding="utf-8") as fh:
+        data = json.load(fh)
+    if not isinstance(data, dict):
+        raise ValueError(f"{path} did not contain a JSON object")
+    return data
+
+
+def provenance_index(manifest: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    if not manifest:
+        return {}
+    rows = manifest.get("frames") or manifest.get("rows") or []
+    result: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        raw_path = row.get("path") or row.get("source_path")
+        if not raw_path:
+            continue
+        path = Path(str(raw_path))
+        keys = {path.as_posix()}
+        if path.is_absolute():
+            keys.add(str(path.resolve()))
+        for key in keys:
+            result[key] = row
+    return result
+
+
+def provenance_for_path(path_text: str, index: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
+    if path_text in index:
+        return index[path_text]
+    path = Path(path_text)
+    if path.is_absolute():
+        return index.get(str(path.resolve()))
+    return None
+
+
+def frame_provenance_ready(row: dict[str, Any], index: dict[str, dict[str, Any]]) -> tuple[bool, str | None]:
+    path_text = str(row.get("path") or "")
+    provenance = provenance_for_path(path_text, index)
+    if not provenance:
+        return False, "missing provenance row"
+    if provenance.get("no_scene_signal") is not True:
+        return False, "no_scene_signal is not true"
+    sha = str(provenance.get("sha256") or "")
+    if len(sha) != 64 or any(ch not in "0123456789abcdefABCDEF" for ch in sha):
+        return False, "sha256 is missing or invalid"
+    path = Path(path_text)
+    if path.is_file() and sha256_file(path).lower() != sha.lower():
+        return False, "sha256 does not match file contents"
+    setup = str(provenance.get("capture_setup") or provenance.get("proof") or "")
+    if not setup.strip():
+        return False, "capture_setup/proof is missing"
+    return True, None
+
+
+def build_audit(
+    rows: list[dict[str, Any]],
+    mode: str,
+    roots: list[Path],
+    source_kind: str = "candidate_discovery",
+    provenance_manifest: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         if row.get("darkframe_like"):
             groups[camera_key(row)].append(row)
+    provenance = provenance_index(provenance_manifest)
     can_promote_stack = mode == "synthetic" or source_kind == "confirmed_darkframes"
+    require_provenance = source_kind == "confirmed_darkframes" and mode != "synthetic"
     stack_groups = [
-        {
-            "key": key,
-            "candidate_count": len(items),
-            "candidate_stack_ready": len(items) >= 4,
-            "production_stack_ready": len(items) >= 4 and can_promote_stack,
-            "paths": [item["path"] for item in items],
-        }
+        build_stack_group(key, items, can_promote_stack, require_provenance, provenance)
         for key, items in sorted(groups.items())
     ]
     ready_groups = [row for row in stack_groups if row["production_stack_ready"]]
@@ -295,6 +364,8 @@ def build_audit(rows: list[dict[str, Any]], mode: str, roots: list[Path], source
             "candidate_stack_ready_group_count": sum(1 for row in stack_groups if row["candidate_stack_ready"]),
             "production_stack_ready_group_count": len(ready_groups),
             "production_sidecar_ready": bool(ready_groups),
+            "source_provenance_manifest_required": require_provenance,
+            "source_provenance_manifest_present": provenance_manifest is not None,
         },
         "stack_groups": stack_groups,
         "rows": rows,
@@ -302,7 +373,41 @@ def build_audit(rows: list[dict[str, Any]], mode: str, roots: list[Path], source
             "sidecar_promotion_requires": "at least four true darkframe-like raw frames for the same camera/ISO/CFA settings",
             "ordinary_scene_frames_are_not_noise_targets": True,
             "candidate_discovery_is_not_production_evidence": source_kind != "confirmed_darkframes" and mode != "synthetic",
+            "confirmed_darkframes_require_source_provenance_manifest": True,
         },
+    }
+
+
+def build_stack_group(
+    key: str,
+    items: list[dict[str, Any]],
+    can_promote_stack: bool,
+    require_provenance: bool,
+    provenance: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    failures: list[dict[str, str]] = []
+    ready_count = 0
+    for item in items:
+        if require_provenance:
+            ready, reason = frame_provenance_ready(item, provenance)
+        else:
+            ready, reason = True, None
+        if ready:
+            ready_count += 1
+        else:
+            failures.append({"path": str(item.get("path") or ""), "reason": str(reason or "unknown")})
+    candidate_ready = len(items) >= 4
+    provenance_ready = not require_provenance or (candidate_ready and ready_count >= len(items))
+    return {
+        "key": key,
+        "candidate_count": len(items),
+        "candidate_stack_ready": candidate_ready,
+        "source_provenance_ready": provenance_ready,
+        "source_provenance_ready_count": ready_count,
+        "source_provenance_failure_count": len(failures),
+        "source_provenance_failures": failures,
+        "production_stack_ready": candidate_ready and can_promote_stack and provenance_ready,
+        "paths": [item["path"] for item in items],
     }
 
 
@@ -323,6 +428,8 @@ def render_html(audit: dict[str, Any]) -> str:
         f"<td>{html.escape(row['key'])}</td>"
         f"<td>{row['candidate_count']}</td>"
         f"<td>{html.escape(str(row.get('candidate_stack_ready')))}</td>"
+        f"<td>{html.escape(str(row.get('source_provenance_ready')))}</td>"
+        f"<td>{html.escape(str(row.get('source_provenance_failure_count', 0)))}</td>"
         f"<td>{html.escape(str(row['production_stack_ready']))}</td>"
         f"<td><code>{html.escape(row['paths'][0]) if row['paths'] else ''}</code></td>"
         "</tr>"
@@ -359,7 +466,7 @@ code{{font-size:12px;word-break:break-all}}
 <p>This audit finds possible darkframe stacks. It does not promote ordinary photos as noise calibration data.</p>
 <div class="grid">{cards}</div>
 <h2>Candidate Stack Groups</h2>
-<table><thead><tr><th>Camera/ISO/CFA</th><th>Dark-like frames</th><th>Candidate stack</th><th>Production stack</th><th>Example</th></tr></thead><tbody>{group_rows}</tbody></table>
+<table><thead><tr><th>Camera/ISO/CFA</th><th>Dark-like frames</th><th>Candidate stack</th><th>Provenance</th><th>Prov. failures</th><th>Production stack</th><th>Example</th></tr></thead><tbody>{group_rows}</tbody></table>
 <h2>Scanned Files</h2>
 <table><thead><tr><th>Dark-like</th><th>Camera</th><th>ISO</th><th>CFA</th><th>Mean</th><th>P99</th><th>Path</th></tr></thead><tbody>{detail_rows}</tbody></table>
 </main></body></html>
@@ -380,19 +487,33 @@ def parse_args() -> argparse.Namespace:
         default="candidate_discovery",
         help="Use confirmed_darkframes only for roots known to contain true no-scene-signal darkframes.",
     )
+    ap.add_argument(
+        "--provenance-manifest",
+        type=Path,
+        help="JSON manifest with per-frame path, sha256, no_scene_signal=true, and capture_setup/proof. Required for confirmed_darkframes.",
+    )
     ap.add_argument("--synthetic", action="store_true")
     return ap.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    if args.source_kind == "confirmed_darkframes" and not args.synthetic and args.provenance_manifest is None:
+        raise SystemExit("--source-kind confirmed_darkframes requires --provenance-manifest")
     files = [] if args.synthetic else discover_files(args.root, args.manifest, args.max_files)
     if args.synthetic:
         rows = synthetic_rows()
     else:
         exif_cache = batch_exif_metadata(files) if args.batch_exif else {}
         rows = [inspect_dng(path, args.sample_limit, exif_cache.get(path.as_posix())) for path in files]
-    audit = build_audit(rows, "synthetic" if args.synthetic else "real", args.root, args.source_kind)
+    provenance_manifest = load_provenance_manifest(args.provenance_manifest)
+    audit = build_audit(
+        rows,
+        "synthetic" if args.synthetic else "real",
+        args.root,
+        args.source_kind,
+        provenance_manifest,
+    )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     json_path = args.output_dir / "darkframe_candidate_audit.json"
     html_path = args.output_dir / "index.html"

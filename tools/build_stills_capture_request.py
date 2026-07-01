@@ -166,7 +166,7 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
 
     validation_commands = [
         "python3 tools/build_bayer_phase_fixture_inventory.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_<date>",
-        "python3 tools/build_darkframe_candidate_audit.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_<date> <new dng roots>",
+        "python3 tools/build_darkframe_candidate_audit.py --source-kind confirmed_darkframes --provenance-manifest <darkframe_source_provenance.json> --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_<date> <new dng roots>",
         "python3 tools/extract_raw_bayer_u16.py --input <darkframe.dng> --output <darkframe.raw> --write-receipt <extract_receipt.json>",
         "python3 tools/build_camera_noise_calibration.py --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> --out <sidecar.json> --make <make> --model <model> --iso <iso> --width <w> --height <h> --bit-depth <bits> --black-level <black> --white-level <white> --cfa-phase <phase>",
         "python3 tools/build_camera_noise_coverage_audit.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_<date>",

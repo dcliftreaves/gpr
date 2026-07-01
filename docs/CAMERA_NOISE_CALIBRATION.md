@@ -136,6 +136,22 @@ RGGB candidate group. iPhone has a 27-frame ISO1250 RGGB candidate group, but
 those candidate-discovery frames still need confirmed no-scene-signal
 provenance before they can become a production sidecar.
 
+When the source root is known to contain true darkframes, rerun the audit with
+confirmed provenance instead of candidate discovery:
+
+```sh
+python3 tools/build_darkframe_candidate_audit.py \
+  --source-kind confirmed_darkframes \
+  --provenance-manifest <darkframe_source_provenance.json> \
+  --root <confirmed darkframe root> \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_confirmed_<date>
+```
+
+The provenance manifest must include one row per promoted frame with `path`,
+`sha256`, `no_scene_signal=true`, and a non-empty `capture_setup` or `proof`.
+Without that manifest, the audit stays discovery-only and cannot mark a
+production stack ready.
+
 ## Policy
 
 Current production stills may preserve DNG `NoiseProfile`/ISO metadata and use
