@@ -255,10 +255,25 @@ RELEASE_READINESS_REQUIRED_TOKENS = (
     "4K raw target",
     "8K raw target",
     "offline-only",
+    "4K raw-video target",
+    "PASS on the Pi 5 stand-in for the accepted 20+ fps floor",
+    "Strict 24 fps is stretch performance research unless the product bar is raised again",
+    "Mission 1 and iPhone noise sidecars",
+    "Premium still-SR promotion",
+    "Optional stretch work, not release blockers",
+    "This check is intentionally not part of the current release blocker list",
     "preview_live_mission1_1024",
     "CI-safe release checks",
     "tools/verify_production_artifacts.py",
     "tests/quality_gates/audit_production_readiness.py --strict",
+)
+
+RELEASE_READINESS_FORBIDDEN_TOKENS = (
+    "| Native 12MP strict 24 fps |",
+    "| T233 threshold speed probes |",
+    "| Repo merge readiness |",
+    "large dirty surface across source, tools, docs, and tests",
+    "ready to claim strict 24 fps production",
 )
 
 REQUIRED_RELEASE_CHECKS = (
@@ -488,6 +503,9 @@ def require_readme_contract(tracked: set[str], failures: list[str]) -> None:
         for token in RELEASE_READINESS_REQUIRED_TOKENS:
             if token not in release_readiness:
                 failures.append(f"docs/RELEASE_READINESS.md missing production contract token {token!r}")
+        for token in RELEASE_READINESS_FORBIDDEN_TOKENS:
+            if token in release_readiness:
+                failures.append(f"docs/RELEASE_READINESS.md contains stale release-readiness token {token!r}")
 
     if "docs/README.md" not in tracked:
         failures.append("docs/README.md must be tracked")
