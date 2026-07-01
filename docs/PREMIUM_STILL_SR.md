@@ -332,6 +332,24 @@ than the first NAF failure: train/holdout camera distribution matters, but
 simple NAF-style scale-up with this objective still trails the weak
 early-selected U-Net branch and is far below the still-SR gate.
 
+The first SNR-filtered U-Net probe batch then tested the SNR audit as a
+training-control hypothesis on the same held-out X2D scene:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_snrfiltered_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_snrmixed_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_x2dall_unet_w32_1200_20260701/index.html
+```
+
+All three use `model_arch=unet`, X2D-only training, the deduplicated raw target,
+and the same 9-row `2024_April_X2D_1742` holdout. Hard filtering is not the
+answer: `signal_dominated` training reaches about **0.112%** holdout median raw
+MAE recovery, `signal_or_mixed` reaches about **0.119%**, and unfiltered
+X2D-only training reaches about **0.149%**. The SNR audit is therefore useful
+for diagnosis and future weighting, but dropping noise-floor rows outright
+hurts this small X2D target. The next objective should use camera/SNR-aware
+loss weighting or multitask uncertainty rather than binary row removal.
+
 A raw-target SNR audit now compares the deduplicated raw-CFA residual target to
 the calibrated camera noise sidecars:
 

@@ -258,6 +258,35 @@ def apply_target_policy(
     return torch.sign(target) * torch.clamp(torch.abs(target) - threshold, min=0.0)
 
 
+def classify_target_snr(target: np.ndarray, sigma4: tuple[float, float, float, float]) -> tuple[str, float, float]:
+    sigma_mean = float(np.mean(np.asarray(sigma4, dtype=np.float64)))
+    target_f = target.astype(np.float32, copy=False)
+    target_rmse = float(np.sqrt(np.mean(target_f * target_f)))
+    target_p95 = float(np.percentile(np.abs(target_f), 95.0))
+    p95_proxy = sigma_mean * 3.0
+    if sigma_mean <= 0.0:
+        return ("missing_noise_sidecar", 0.0, 0.0)
+    rmse_ratio = target_rmse / max(sigma_mean, 1.0e-12)
+    p95_ratio = target_p95 / max(p95_proxy, 1.0e-12)
+    if rmse_ratio >= 3.0 and p95_ratio >= 2.0:
+        return ("signal_dominated", rmse_ratio, p95_ratio)
+    if rmse_ratio <= 1.5 and p95_ratio <= 1.5:
+        return ("noise_floor", rmse_ratio, p95_ratio)
+    return ("mixed_signal_noise", rmse_ratio, p95_ratio)
+
+
+def snr_class_allowed(row_class: str, policy: str) -> bool:
+    if policy == "all":
+        return True
+    if policy == "signal_dominated":
+        return row_class == "signal_dominated"
+    if policy == "signal_or_mixed":
+        return row_class in {"signal_dominated", "mixed_signal_noise"}
+    if policy == "not_noise_floor":
+        return row_class != "noise_floor"
+    raise ValueError(f"unknown train_snr_class: {policy}")
+
+
 def make_features(
     raw: torch.Tensor,
     feature_mode: str,
@@ -877,6 +906,9 @@ class RawCfaResidualTargets:
         sigma_cache: dict[str, tuple[float, float, float, float]] = {}
         self.noise_features: list[tuple[float, float, float, float]] = []
         self.noise_sigma4: list[tuple[float, float, float, float]] = []
+        self.target_snr_classes: list[str] = []
+        self.target_snr_rmse_ratios: list[float] = []
+        self.target_snr_p95_ratios: list[float] = []
         scene_dims: dict[str, tuple[float, float]] = {}
         for row in self.rows:
             scene = str(row.get("scene_id") or "unknown")
@@ -898,6 +930,11 @@ class RawCfaResidualTargets:
                 sigma_cache[sidecar] = load_noise_sigma4_from_sidecar(sidecar)
             self.noise_features.append(cache.get(sidecar, (0.0, 0.0, 0.0, 0.0)))
             self.noise_sigma4.append(sigma_cache.get(sidecar, (0.0, 0.0, 0.0, 0.0)))
+        for idx, sigma4 in enumerate(self.noise_sigma4):
+            row_class, rmse_ratio, p95_ratio = classify_target_snr(self.target[idx], sigma4)
+            self.target_snr_classes.append(row_class)
+            self.target_snr_rmse_ratios.append(rmse_ratio)
+            self.target_snr_p95_ratios.append(p95_ratio)
         for idx, row in enumerate(self.rows):
             scene = str(row.get("scene_id") or "unknown")
             scene_w, scene_h = scene_dims.get(scene, (float(self.candidate_raw.shape[2]), float(self.candidate_raw.shape[1])))
@@ -939,6 +976,7 @@ class RawCfaResidualTargets:
         holdout_camera: str | None,
         holdout_ev: float | None,
         train_camera: str | None = None,
+        train_snr_class: str = "all",
     ) -> tuple[list[int], list[int]]:
         if holdout_scene:
             holdout = [i for i, row in enumerate(self.rows) if str(row.get("scene_id", "")) == holdout_scene]
@@ -953,6 +991,11 @@ class RawCfaResidualTargets:
         if train_camera:
             needle = train_camera.lower()
             train = [i for i in train if needle in str(self.rows[i].get("source_dng", "")).lower()]
+        if train_snr_class != "all":
+            before = len(train)
+            train = [i for i in train if snr_class_allowed(self.target_snr_classes[i], train_snr_class)]
+            if before and not train:
+                raise ValueError(f"train-snr-class filter {train_snr_class!r} removed all {before} training rows")
         if (holdout_scene or holdout_camera or holdout_ev is not None) and (not train or not holdout):
             raise ValueError(f"holdout split produced train={len(train)} holdout={len(holdout)}")
         if train_camera and not train:
@@ -1261,6 +1304,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.holdout_camera,
         args.holdout_ev,
         args.train_camera,
+        args.train_snr_class,
     )
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
@@ -1409,6 +1453,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "target_policy": args.target_policy,
                 "noise_threshold_scale": args.noise_threshold_scale,
                 "train_camera": args.train_camera,
+                "train_snr_class": args.train_snr_class,
                 "sample_balance": args.sample_balance,
                 "sample_mode": args.sample_mode,
                 "context_padding": args.context_padding,
@@ -1467,6 +1512,15 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "holdout_camera": args.holdout_camera,
             "holdout_ev": args.holdout_ev,
             "train_camera": args.train_camera,
+            "train_snr_class": args.train_snr_class,
+            "train_snr_class_counts": {
+                key: sum(1 for idx in train_indices if data.target_snr_classes[idx] == key)
+                for key in sorted(set(data.target_snr_classes[idx] for idx in train_indices))
+            },
+            "holdout_snr_class_counts": {
+                key: sum(1 for idx in holdout_indices if data.target_snr_classes[idx] == key)
+                for key in sorted(set(data.target_snr_classes[idx] for idx in holdout_indices))
+            },
             "sample_balance": args.sample_balance,
             "sample_mode": args.sample_mode,
             "context_padding": args.context_padding,
@@ -1500,6 +1554,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             ),
             "production_status": "training_probe_not_registered_production_algorithm",
             "target_policy": args.target_policy,
+            "train_snr_class_filter": args.train_snr_class,
             "holdout_selection_policy": (
                 "diagnostic_best_holdout_probe_checkpoint"
                 if args.save_best_holdout_checkpoint and best_holdout is not None
@@ -1587,6 +1642,12 @@ def main() -> int:
     ap.add_argument("--holdout-camera")
     ap.add_argument("--holdout-ev", type=float)
     ap.add_argument("--train-camera", help="Restrict training rows to source paths containing this camera/domain token after holdout removal.")
+    ap.add_argument(
+        "--train-snr-class",
+        choices=("all", "signal_dominated", "signal_or_mixed", "not_noise_floor"),
+        default="all",
+        help="Filter training rows by raw-target SNR class after holdout/camera filtering. Holdout rows are never filtered.",
+    )
     ap.add_argument(
         "--sample-balance",
         choices=("row", "camera", "scene"),

@@ -72,6 +72,8 @@ def main() -> int:
             raw[:, :, 2] = (x + y + i) / 96.0
             raw[:, :, 3] = ((x * 2 + y + i) % 11) / 11.0
             residual = (raw - raw.mean(axis=(0, 1), keepdims=True)) * 0.025
+            if i == 2:
+                residual = residual * 0.01
             raws.append(raw.astype(np.float16))
             residuals.append(residual.astype(np.float16))
             raw_hf.append((raw - raw.mean(axis=(0, 1), keepdims=True)).astype(np.float16))
@@ -130,6 +132,7 @@ def main() -> int:
                 "holdout_camera": None,
                 "holdout_ev": None,
                 "train_camera": "z8",
+                "train_snr_class": "all",
                 "sample_balance": "row",
                 "sample_mode": "random_patch",
                 "context_padding": 0,
@@ -158,6 +161,7 @@ def main() -> int:
         assert receipt["config"]["feature_mode"] == "raw_multiscale_coord_ev_noise"
         assert receipt["config"]["holdout_scene"] == "holdout_scene"
         assert receipt["config"]["train_camera"] == "z8"
+        assert receipt["config"]["train_snr_class"] == "all"
         assert receipt["config"]["target_policy"] == "raw"
         assert receipt["config"]["band_weight"] == 0.0
         assert receipt["config"]["band_blocks"] == [5, 9]
@@ -182,6 +186,18 @@ def main() -> int:
         assert camera_receipt["config"]["feature_mode"] == "raw_multiscale_storedhf_coord_ev_noise"
         assert camera_receipt["config"]["target_policy"] == "noise_soft_threshold"
         assert camera_receipt["policy"]["target_policy"] == "noise_soft_threshold"
+
+        args.output_dir = root / "snr_filtered_holdout"
+        args.target_policy = "raw"
+        args.train_snr_class = "signal_dominated"
+        snr_receipt = tool.train(args)
+        assert snr_receipt["eval"]["holdout"]["row_count"] == 1
+        assert snr_receipt["eval"]["train"]["row_count"] == 2
+        assert snr_receipt["config"]["train_snr_class"] == "signal_dominated"
+        assert snr_receipt["config"]["train_snr_class_counts"] == {"signal_dominated": 2}
+        assert snr_receipt["config"]["holdout_snr_class_counts"] == {"signal_dominated": 1}
+        assert snr_receipt["policy"]["train_snr_class_filter"] == "signal_dominated"
+        args.train_snr_class = "all"
 
         args.output_dir = root / "context_holdout"
         args.holdout_scene = "holdout_scene"
