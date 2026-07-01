@@ -403,6 +403,22 @@ therefore not use a single unweighted residual objective across both cameras:
 use noise-aware row weighting/filtering or camera-specific target treatment
 before another architecture scale-up.
 
+A target-distribution audit now quantifies the X2D scene mismatch directly:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_distribution_audit_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_distribution_audit_20260701/target_distribution_audit.json
+```
+
+The hard `2024_April_X2D_1742` holdout is not outside the training maximum,
+but it is a high-energy split: median target absolute residual is about
+**3.45x** the X2D train median, and **6/9** holdout rows are above the train
+p90. That explains why the small U-Net can move MAE only slightly while many
+candidate-only feature/capacity variants regress. The next teacher should
+either normalize or model this scene-energy/domain shift explicitly, add more
+matched high-energy X2D raw targets, or change the target construction so the
+held-out residual is not treated as a generic row from the same distribution.
+
 The first raw-CFA residual trainer is:
 
 ```text
