@@ -24,6 +24,18 @@ source.
 
 ![GPR raw-video showcase: 4K Bayer .gvid, live preview, native 12MP crops, and 8K SR review](docs/img/readme_showcase.webp)
 
+## 30-Second Review
+
+Start here if you are deciding whether this branch is worth picking up.
+
+| reviewer question | short answer |
+|---|---|
+| Does it really store editable raw, not JPEG-derived video? | Yes. The raw-video path starts from decoded Bayer frames and writes per-frame FUSED `.gpr` payloads inside `.gvid`; wrapping original camera `.GPR` files does not count as success here. |
+| What is already production-gated? | The 50 MP still tiers, normal-Bayer still coverage, VIDEO_FREEZE, UPRESABLE, the Pi-stand-in 4K `.gvid` encode path, camera-back preview decode, and the approved offline 4K/8K CNN review baselines have receipts and lock-ledger protection. |
+| What does GoPro need to prove on hardware? | Real Mission 1 sensor/DMA or camera-ring-buffer input, SD writer, rear-display handoff, zero drops, valid `.gvid`, and timing receipts from the camera role. |
+| What local model work remains? | Premium still-SR needs a no-REF candidate that clears 50 MP / 100 MP still gates; PSF-aware video/SR needs controlled high/low Mission 1 pairs and a PSF-conditioned model that beats the approved 4K/8K baselines. |
+| What should not be overclaimed? | Mission/iPhone nonzero noise addback, premium still-SR promotion, PSF-conditioned replacement, and actual Mission 1 firmware readiness are still open production gates. |
+
 ## What This Branch Proves
 
 The repo is organized around four product outcomes, not one benchmark. Each

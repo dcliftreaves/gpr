@@ -36,7 +36,13 @@ Can advance locally without new captures:
   candidate-only raw-domain/detail models or losses against the same 50 MP /
   100 MP still/editor gates. The current evidence says the blocker is X2D
   raw-detail recovery strength and missing full-image/structured context, not
-  missing target coverage or simple camera-domain filtering.
+  simple camera-domain filtering. The raw target duplicate audit shows the
+  nominal 351-row target collapses to 117 unique scene/crop raw rows across EV
+  variants, so the next local model pass should deduplicate raw supervision
+  and use rendered EV rows only for review/tone gates. The architecture should
+  move away from another small local U-Net and toward a CFA-aware restoration
+  teacher with camera/noise/PSF conditioning, progressive patch sizing, and
+  spatial plus Fourier losses before distilling to a smaller student.
 - Raw-video PSF/SR: use the current modeled-resize/detail-budget receipts to
   build PSF-conditioned ablations, but keep them non-production until controlled
   native high/low pairs produce a stable kernel. Any replacement still has to
@@ -197,17 +203,18 @@ Evidence required:
 2. Continue premium still-SR from the current raw-CFA residual blocker, not
    older rendered-HF targets. The latest candidate-only raw-domain trainer is
    mildly positive on held-out Z8 at about 0.50 percent median raw-residual MAE
-   recovery, but the hard X2D holdout only reaches about 0.02 percent after a
-   wider/block17 pass. Stored candidate-HF features and naive one-sigma
-   noise-thresholded targets do not fix X2D, and a larger-patch
-   high-residual-weighted local pass regresses the hard X2D holdout to about
-   -0.65 percent. A first pooled raw-context feature pass also remains
-   negative at about -0.33 percent, a combined stored-HF plus pooled-context
-   feature pass regresses to about -0.43 percent, and a simple multiscale
-   band-loss objective pass regresses to about -0.54 percent. The next work should test a stronger
-   X2D/domain-general raw residual model with full-image or routed context,
-   with calibrated noise sidecars used as conditioning rather than as a blunt
-   subtraction target.
+   recovery, but the hard X2D holdout remains far below promotion: the best
+   diagnostic early-selected U-Net reaches about 0.13 percent median recovery,
+   the best known X2D row is about 0.16 percent, same-scene candidate-signal
+   regresses by about -3.67 percent, and a per-CFA-plane frequency filter
+   regresses by about -4.29 percent. The raw target duplicate audit also shows
+   that the 351 rendered EV rows are only 117 unique raw scene/crop rows. The
+   next model work should therefore first deduplicate raw-domain rows, then
+   train a literature-aligned CFA-aware teacher, such as a NAFNet/RCAB or
+   Restormer-like restoration model, with camera/noise/PSF conditioning,
+   progressive patch sizes, and spatial plus Fourier losses. Distill to a
+   smaller candidate-only runtime student only after the teacher clears the
+   50 MP / 100 MP still/editor-latitude gates.
 3. Replace the X2D source-HF oracle with a production-safe structured
    texture/detail path. It should preserve the now-measured low-frequency tone
    path, restore high-frequency luminance energy under +2 EV, and prove it
