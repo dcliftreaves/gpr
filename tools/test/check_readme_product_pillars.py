@@ -23,6 +23,7 @@ SCORECARD_BUILDER = ROOT / "tools/build_product_pillar_scorecard.py"
 
 REQUIRED_SECTIONS = (
     "## Open Raw Video For Action Cameras",
+    "## Product Status In One Screen",
     "## The Four Product Bets",
     "## Release Board",
     "## What This Branch Proves",
@@ -37,6 +38,13 @@ REQUIRED_SECTIONS = (
 REQUIRED_README_TOKENS = (
     "8-bit JPEG size. 16-bit RAW quality.",
     "![GPR four-pillar production readiness](docs/img/readme_status_matrix.svg)",
+    "| **RAW stills: 92%** |",
+    "| **GoPro RAW video MVP: 80%** |",
+    "| **Premium still/SR: 60%** |",
+    "| **RAW video reconstruction: 100%** |",
+    "capture editable Bayer, keep it",
+    "preview from the same raw stream",
+    "spend desktop compute only when it",
     "Current four-pillar completion is **",
     "production-readiness burn-down",
     "not an image-quality score",

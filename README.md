@@ -26,6 +26,19 @@ source.
 
 ![GPR four-pillar production readiness](docs/img/readme_status_matrix.svg)
 
+## Product Status In One Screen
+
+| product | ready now | still blocking 100% |
+|---|---|---|
+| **RAW stills: 92%** | 50 MP tiers, X2D 100 MP roundtrip, 12/14/16-bit normal Bayer, and real RGGB/GBRG/GRBG/BGGR coverage. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
+| **GoPro RAW video MVP: 80%** | 4096 x 3072 Bayer `.gvid` encode and 1024 x 768 preview both clear the accepted 20+ fps Pi 5 stand-in floor. | Real Mission 1 sensor/DMA, SD writer, and rear-display receipts. |
+| **Premium still/SR: 60%** | Datasets, routed specialists, editor-openability, raw-CFA targets, and promotion tooling exist. | A no-REF 50 MP / 100 MP candidate that actually beats the current still baseline and passes worst-row, timing, memory, and noise-policy gates. |
+| **RAW video reconstruction: 100%** | Approved offline/post 4K cleanup and 8K SR with `.gvid`, editable raw, standalone ProRes A/B review movies, objective review, and manual signoff. | No release blocker. PSF/blur work is parked as optional replacement research. |
+
+The key product line is deliberately plain: **capture editable Bayer, keep it
+small, preview from the same raw stream, then spend desktop compute only when it
+visibly improves the result.**
+
 ## The Four Product Bets
 
 | product bet | what a user gets | ship boundary |
