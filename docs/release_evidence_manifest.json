@@ -86,7 +86,9 @@
           "mission1_native_psf_kernel_stability_audit_20260630",
           "raw_video_psf_capture_request_20260630",
           "raw_video_sr_candidate_scoreboard_20260701",
-          "raw_video_psf_next_experiment_contract_20260701"
+          "raw_video_psf_next_experiment_contract_20260701",
+          "mission1_8k_sr_step0075_visual_signoff_20260701",
+          "mission1_8k_sr_step0075_signed_audit_20260701"
         ],
         "platform_performance": [
           "local_8k_raw_offline"
@@ -2183,6 +2185,55 @@
       }
     },
     {
+      "id": "mission1_8k_sr_step0075_visual_signoff_20260701",
+      "family": "raw_video_psf",
+      "status": "current",
+      "purpose": "Manual visual-signoff receipt for the current Mission 1 coord/detail PSF-focus step-75 8K SR review candidate. It closes only the manual visual-review blocker and keeps controlled native PSF evidence open.",
+      "dashboard": "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_visual_signoff_20260701/visual_signoff.json",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
+      ],
+      "receipts": [
+        "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_visual_signoff_20260701/visual_signoff.json"
+      ],
+      "hashes": {
+        "visual_signoff_json_sha256": "38ea3d1135909460f22651b747c376d59bad5ac94977a4282ed622e2491de27b"
+      },
+      "metrics": {
+        "manual_visual_review_complete": 1,
+        "objective_checks_pass": 1,
+        "controlled_native_psf_evidence_still_required": 1
+      }
+    },
+    {
+      "id": "mission1_8k_sr_step0075_signed_audit_20260701",
+      "family": "raw_video_psf",
+      "status": "current",
+      "purpose": "Refreshed blocked production audit for the current Mission 1 coord/detail PSF-focus step-75 8K SR review candidate after manual visual signoff. Remaining blockers are review-only registry scope and missing controlled native PSF evidence.",
+      "dashboard": "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_review_candidate_audit_signed_20260701/review_candidate_audit.json",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
+      ],
+      "receipts": [
+        "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_review_candidate_audit_signed_20260701/review_candidate_audit.json"
+      ],
+      "hashes": {
+        "review_candidate_audit_json_sha256": "29b71f0007e3e8db590b22d7497ecc0eccc056094037b55685a753a86775af1e"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "blocking_issue_count": 2,
+        "quality_ok": 1,
+        "fullsequence_packaging_ok": 1,
+        "objective_visual_review_ok": 1,
+        "manual_visual_review_complete": 1
+      }
+    },
+    {
       "id": "z8_continuous_8k_no_cnn_vs_cnn_20260630",
       "family": "raw_video_psf",
       "status": "diagnostic",
@@ -2348,6 +2399,7 @@
     "python3 tools/check_mission1_cnn_closure.py",
     "python3 tools/check_mission1_cnn_closure.py --strict-artifacts",
     "python3 tools/test/test_build_mission1_8k_sr_visual_review.py",
+    "python3 tools/test/test_build_mission1_8k_sr_visual_signoff.py",
     "python3 tools/test/test_build_cnn_product_scorecard.py",
     "python3 tools/test/test_mission1_camera_dispatch_inputs.py",
     "python3 tools/test/test_mission1_camera_closure_package.py",
@@ -2412,6 +2464,7 @@
     "python3 tools/test/test_check_mission1_cnn_closure.py",
     "python3 tools/check_mission1_cnn_closure.py",
     "python3 tools/test/test_build_mission1_8k_sr_visual_review.py",
+    "python3 tools/test/test_build_mission1_8k_sr_visual_signoff.py",
     "python3 tools/test/test_build_cnn_product_scorecard.py",
     "python3 tools/test/test_mission1_camera_dispatch_inputs.py",
     "python3 tools/test/test_mission1_camera_closure_package.py",

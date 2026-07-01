@@ -124,6 +124,7 @@ def main() -> int:
             cnn_id=tool.DEFAULT_CNN_ID,
             pipeline_id=tool.DEFAULT_PIPELINE_ID,
             visual_review=visual,
+            visual_signoff=None,
             controlled_native_psf_proven=False,
             production_ready=False,
         ))
@@ -137,6 +138,40 @@ def main() -> int:
         assert "manual_visual_review_incomplete" in blockers
         assert "controlled_native_psf_evidence_missing" in blockers
         assert "artifact_hash_or_existence_gap" not in blockers
+
+        signoff = artifacts / "visual_signoff/visual_signoff.json"
+        write_json(signoff, {
+            "schema": "gpr.mission1_8k_sr_visual_signoff.v1",
+            "visual_review": {
+                "path": str(visual),
+                "sha256": tool.sha256_file(visual),
+                "objective_checks_pass": True,
+            },
+            "signoff": {
+                "manual_visual_review_complete": True,
+                "reviewer_role": "project_owner",
+                "statement": "approved",
+                "scope": "test",
+            },
+            "production_boundary": {
+                "controlled_native_psf_evidence_still_required": True,
+            },
+        })
+        signed_report = tool.build(argparse.Namespace(
+            external_root=root,
+            registry=registry,
+            cnn_id=tool.DEFAULT_CNN_ID,
+            pipeline_id=tool.DEFAULT_PIPELINE_ID,
+            visual_review=visual,
+            visual_signoff=signoff,
+            controlled_native_psf_proven=False,
+            production_ready=False,
+        ))
+        signed_blockers = set(signed_report["verdict"]["blocking_issues"])
+        assert signed_report["visual_signoff"]["manual_visual_review_complete"] is True
+        assert "manual_visual_review_incomplete" not in signed_blockers
+        assert "registry_scope_offline_review_only" in signed_blockers
+        assert "controlled_native_psf_evidence_missing" in signed_blockers
 
     print("test_build_mission1_8k_sr_review_candidate_audit: PASS")
     return 0

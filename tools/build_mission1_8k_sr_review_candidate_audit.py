@@ -22,6 +22,10 @@ DEFAULT_VISUAL_REVIEW = (
     DEFAULT_EXTERNAL_ROOT
     / "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_visual_review_20260701/visual_review.json"
 )
+DEFAULT_VISUAL_SIGNOFF = (
+    DEFAULT_EXTERNAL_ROOT
+    / "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_visual_signoff_20260701/visual_signoff.json"
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -102,6 +106,40 @@ def visual_review_summary(path: Path) -> dict[str, Any]:
     }
 
 
+def visual_signoff_summary(path: Path | None, visual_review_path: Path) -> dict[str, Any]:
+    if path is None:
+        return {"exists": False, "manual_visual_review_complete": False}
+    if not path.exists():
+        return {"path": str(path), "exists": False, "manual_visual_review_complete": False}
+    data = read_json(path)
+    visual = data.get("visual_review") if isinstance(data.get("visual_review"), dict) else {}
+    signoff = data.get("signoff") if isinstance(data.get("signoff"), dict) else {}
+    boundary = data.get("production_boundary") if isinstance(data.get("production_boundary"), dict) else {}
+    expected_visual_sha = sha256_file(visual_review_path) if visual_review_path.exists() else None
+    sha_matches = visual.get("sha256") == expected_visual_sha
+    complete = bool(
+        data.get("schema") == "gpr.mission1_8k_sr_visual_signoff.v1"
+        and signoff.get("manual_visual_review_complete") is True
+        and visual.get("objective_checks_pass") is True
+        and sha_matches
+        and boundary.get("controlled_native_psf_evidence_still_required") is True
+    )
+    return {
+        "path": str(path),
+        "sha256": sha256_file(path),
+        "exists": True,
+        "schema": data.get("schema"),
+        "visual_review_sha256_matches": sha_matches,
+        "reviewer_role": signoff.get("reviewer_role"),
+        "statement": signoff.get("statement"),
+        "scope": signoff.get("scope"),
+        "manual_visual_review_complete": complete,
+        "controlled_native_psf_evidence_still_required": boundary.get(
+            "controlled_native_psf_evidence_still_required"
+        ),
+    }
+
+
 def sequence_packaging_summary(path: Path | None) -> dict[str, Any]:
     if path is None or not path.exists():
         return {"exists": False, "sequence_packaging_ok": False}
@@ -164,6 +202,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     z8 = read_json(z8_path) if z8_path and z8_path.exists() else {}
     packaging_path = artifact_path(args.external_root, cnn.get("gvid_decode_sr_fullsequence_packaging_receipt"))
     visual = visual_review_summary(args.visual_review)
+    visual_signoff = visual_signoff_summary(args.visual_signoff, args.visual_review)
     packaging = sequence_packaging_summary(packaging_path)
 
     evidence_complete = all(row["sha256_ok"] for row in artifact_checks.values())
@@ -185,7 +224,11 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         blockers.append("artifact_hash_or_existence_gap")
     if not objective_visual_ok:
         blockers.append("objective_visual_review_not_passing")
-    if visual.get("manual_visual_review_complete") is not True:
+    manual_visual_complete = bool(
+        visual.get("manual_visual_review_complete") is True
+        or visual_signoff.get("manual_visual_review_complete") is True
+    )
+    if not manual_visual_complete:
         blockers.append("manual_visual_review_incomplete")
     if not args.controlled_native_psf_proven:
         blockers.append("controlled_native_psf_evidence_missing")
@@ -219,6 +262,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "z8_psnr14_min_db": stat(z8, "model_psnr14_db", "min"),
         },
         "visual_review": visual,
+        "visual_signoff": visual_signoff,
         "fullsequence_packaging": packaging,
         "controlled_native_psf_proven": bool(args.controlled_native_psf_proven),
         "production_ready": production_ready,
@@ -236,6 +280,7 @@ def main() -> int:
     parser.add_argument("--cnn-id", default=DEFAULT_CNN_ID)
     parser.add_argument("--pipeline-id", default=DEFAULT_PIPELINE_ID)
     parser.add_argument("--visual-review", type=Path, default=DEFAULT_VISUAL_REVIEW)
+    parser.add_argument("--visual-signoff", type=Path, default=DEFAULT_VISUAL_SIGNOFF)
     parser.add_argument("--controlled-native-psf-proven", action="store_true")
     parser.add_argument("--production-ready", action="store_true")
     parser.add_argument("--output", type=Path, required=True)

@@ -146,6 +146,9 @@ jobs:
       - name: Mission 1 8K SR visual review regression
         run: python3 tools/test/test_build_mission1_8k_sr_visual_review.py
 
+      - name: Mission 1 8K SR visual signoff regression
+        run: python3 tools/test/test_build_mission1_8k_sr_visual_signoff.py
+
       - name: CNN product scorecard regression
         run: |
           python3 tools/test/test_build_cnn_product_scorecard.py
