@@ -11,6 +11,12 @@ receipt, hash, or CI guard fails. A lower or unchanged pillar percentage can
 still be correct when new hardware, fixture, noise, or promotion evidence is
 required.
 
+For SR specifically, this means there is no open-ended raw-video SR loop in the
+current release. Mission 1 4K cleanup and Mission 1 8K SR are locked
+offline/post product paths. Further PSF/blur work can only be replacement
+research unless it beats those locked paths and submits the same receipt set.
+Premium still-SR is separate and remains the only open SR model-promotion gate.
+
 ## Locked Paths
 
 | path | locked role | evidence that owns the lock | what would count as regression |

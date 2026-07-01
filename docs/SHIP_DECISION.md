@@ -17,6 +17,12 @@ PSF/blur modeling is useful next-generation research, but it is not a release
 requirement for the current raw-video workflow. It becomes a blocker only for a
 future claim that a PSF-conditioned model replaces the approved 4K/8K SR path.
 
+Ship discipline: raw-video SR work stops at the approved 4K cleanup and 8K
+reconstruction receipts unless a locked gate or receipt fails. Do not keep
+training raw-video SR models to chase incremental dashboard gains. The active
+model-promotion work is premium still-SR, and that work ships only under its
+own still/editor-latitude gate.
+
 GPR has **two production modes** with two different encoders:
 
 - **Stills** → legacy CineForm VC5 encoder via `gpr_tools` + matched BIBO_1x CNN.
