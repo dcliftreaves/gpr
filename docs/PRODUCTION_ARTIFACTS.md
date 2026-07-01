@@ -510,6 +510,8 @@ native Mission 1 PSF blocker state for the PSF-aware video/SR pillar.
 |---|---|---|
 | Mission 1 native PSF kernel-stability audit JSON | `artifacts/mission1_native_psf_kernel_stability_audit_20260630/kernel_stability_audit.json` | `e0814ab5b18767fd14307bf5ebce0016855da42ff99973782410ae171fc197f7` |
 | Mission 1 native PSF kernel-stability audit dashboard | `artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html` | `a78d92485b905b8b61058b5f5dee0e916d1be977486c3ebaae95c06004c888ae` |
+| Raw-video PSF next-experiment contract JSON | `artifacts/raw_video_psf_next_experiment_contract_20260701/raw_video_psf_next_experiment_contract.json` | `e1d4f82486824704a1ff9e08eeea0e5cf2ec3d843043165e1bc04e01948d2644` |
+| Raw-video PSF next-experiment contract dashboard | `artifacts/raw_video_psf_next_experiment_contract_20260701/index.html` | `f57e37660c05b91f86581f9b7cee94418359cff4dbb5dfc6a5221374ec100bc0` |
 
 Install the portable model-root artifacts as:
 

@@ -226,6 +226,12 @@ The current raw-video SR/detail candidate scoreboard lives at
 It indexes 89 historical Mission/Z8 decision receipts and finds zero
 current-scale promotion rows under the Mission42 plus Z8 all24 coverage rule.
 
+The current raw-video PSF next-experiment contract lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_next_experiment_contract_20260701/index.html`.
+It makes modeled-PSF same-cell fine-detail ablations the recommended local
+track, while explicitly forbidding production promotion from the current
+unstable native Mission 1 kernel or partial historical SR rows.
+
 The current premium still-SR experiment scoreboard lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html`.
 It ranks the available no-REF HF residual training receipts and currently
