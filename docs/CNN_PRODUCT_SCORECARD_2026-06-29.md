@@ -87,6 +87,10 @@ The latest CFA-aware target control confirms the target regeneration is stable:
 the non-CFA control reproduces the 0.153 percent X2D scene-holdout baseline,
 while the simple CFA one-hot conditioned U-Net reaches about 0.100 percent and
 is not the next primary still-SR quality path.
+The matched global-context X2D-scene/noise-floor U-Net reaches about 0.149
+percent median raw MAE recovery and about -0.0049 percent median RMSE recovery,
+so it is also evidence against simple global-context branch scale-up as the
+next primary quality path.
 
 ## Current Verdict
 

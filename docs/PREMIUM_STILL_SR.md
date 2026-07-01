@@ -569,6 +569,20 @@ but worse at about **0.100%** median raw MAE recovery. CFA metadata remains
 important for normal-Bayer compatibility, but this simple one-hot conditioning
 should not be repeated as the primary still-SR quality path.
 
+A matched global-context U-Net then tested whether the older small
+global-context probe was underpowered rather than the wrong direction:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_globalctx_matched_w32_1200_20260701/index.html
+```
+
+It uses the same X2D scene holdout, regenerated deduplicated CFA-aware target,
+train-camera filter, noise-floor weighting, seed, and bounded eval as the
+**0.153%** U-Net baseline. The best probe checkpoint lands at **0.149%**
+median raw MAE recovery and **-0.0049%** median RMSE recovery. That improves
+RMSE versus the 0.153% noise-floor baseline but trails it on MAE, so simple
+global-context branch scale-up is recorded as a rejection, not a promotion.
+
 Two direct target-energy weighting controls then tested whether simple
 train-time row weighting closes that mismatch:
 
@@ -790,6 +804,13 @@ stored-HF/context U-Net training, or bounded full-crop spectral-loss U-Net
 training, bounded full-crop raw-context U-Net training, or a deeper gated
 pyramid U-Net, global-context U-Net, or training-only random context masking
 over the same runtime features.
+
+A later matched global-context U-Net on the current X2D-scene/noise-floor
+baseline reaches about 0.149 percent median raw MAE recovery and about -0.0049
+percent median RMSE recovery at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_globalctx_matched_w32_1200_20260701/train_receipt.json`.
+That still trails the 0.153 percent small U-Net branch on MAE, confirming that
+the blocker is not just the older global-context smoke being too small.
 
 A non-parametric patch-dictionary probe now tests whether the missing residual
 is at least recoverable through candidate-only nearest-neighbor retrieval:
