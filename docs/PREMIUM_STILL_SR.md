@@ -496,6 +496,20 @@ CFA-aware teacher/objective with camera/noise/PSF conditioning or a learned
 multiscale prior, rather than asking the small U-Net to synthesize all source
 HF directly.
 
+A matched frame-context control then tested whether the current best
+noise-floor U-Net branch improves when it receives runtime-safe crop position,
+camera one-hot, full-crop raw statistics, and candidate-HF statistics:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_framectx_noisefloor_unet_w32_1200_20260701/index.html
+```
+
+It also rejects the current small-U-Net direction. The hard X2D scene holdout
+reaches only **0.001%** median raw MAE recovery and **-0.068%** median raw
+RMSE recovery, versus **0.153%** MAE for the matched noise-floor baseline.
+That rules out simple scalar frame/camera/crop-stat concatenation as the
+missing ingredient for this branch.
+
 The first raw-CFA residual trainer is:
 
 ```text
