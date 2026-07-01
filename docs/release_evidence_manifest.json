@@ -83,7 +83,9 @@
           "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630",
           "mission1_native_psf_corpus_audit_20260630",
           "mission1_native_psf_kernel_stability_audit_20260630",
-          "raw_video_psf_capture_request_20260630"
+          "raw_video_psf_capture_request_20260630",
+          "raw_video_sr_candidate_scoreboard_20260630",
+          "raw_video_psf_next_experiment_contract_20260701"
         ],
         "platform_performance": [
           "local_8k_raw_offline"
@@ -1772,6 +1774,64 @@
         "current_accepted_pair_count": 2,
         "current_kernel_stable": 0,
         "production_psf_capture_request_ready": 1
+      }
+    },
+    {
+      "id": "raw_video_sr_candidate_scoreboard_20260630",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Scores raw-video SR/detail candidates against Mission42 and Z8 all24 coverage so PSF-aware replacement work cannot promote a crop-local or single-camera improvement.",
+      "dashboard": "artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html",
+      "docs": [
+        "README.md",
+        "docs/BAYER_RESIZE_PSF.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
+      ],
+      "receipts": [
+        "artifacts/raw_video_sr_candidate_scoreboard_20260630/scoreboard.json",
+        "artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html"
+      ],
+      "hashes": {
+        "scoreboard_json_sha256": "18ac1fdf49380ec17fc4f53865cfca8903d1cb6d500f9dfcacb00e104b315821",
+        "dashboard_sha256": "fc0eb290232d7beb7fd5b0e88db6d3ff01d692d28f4d2a27837807f01f7a504d"
+      },
+      "metrics": {
+        "decision_count": 89,
+        "promotable_row_count": 0,
+        "best_candidate_mission_ok": 0,
+        "best_candidate_z8_ok": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "raw_video_psf_next_experiment_contract_20260701",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Local-experiment contract for the next PSF-aware video/SR pass. Allows modeled-PSF same-cell fine-detail ablations while forbidding production promotion from the current unstable native Mission 1 kernel.",
+      "dashboard": "artifacts/raw_video_psf_next_experiment_contract_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BAYER_RESIZE_PSF.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md"
+      ],
+      "receipts": [
+        "artifacts/raw_video_psf_next_experiment_contract_20260701/raw_video_psf_next_experiment_contract.json",
+        "artifacts/raw_video_psf_next_experiment_contract_20260701/index.html"
+      ],
+      "hashes": {
+        "contract_json_sha256": "e1d4f82486824704a1ff9e08eeea0e5cf2ec3d843043165e1bc04e01948d2644",
+        "dashboard_sha256": "f57e37660c05b91f86581f9b7cee94418359cff4dbb5dfc6a5221374ec100bc0"
+      },
+      "metrics": {
+        "local_experiments_allowed": 1,
+        "production_ready": 0,
+        "modeled_fine_share_of_residual_abs": 0.9999912344225574,
+        "native_accepted_pair_count": 2,
+        "native_weight_std_max": 0.8094548654247654,
+        "native_ready_for_model_conditioning": 0,
+        "sr_scoreboard_decision_count": 89,
+        "sr_scoreboard_promotable_row_count": 0
       }
     },
     {
