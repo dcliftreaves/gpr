@@ -80,18 +80,20 @@ def main() -> int:
         status_matrix.write_text(
             "\n".join(
                 (
-                    "GPR four-pillar production readiness",
-                    "RAW stills",
-                    "92%",
-                    "GoPro RAW video MVP",
-                    "80%",
-                    "Premium still/SR",
-                    "60%",
-                    "Video reconstruction",
-                    "100%",
-                    "PSF / blur modeling is parked, not blocking the release.",
-                    "Controlled high/low Mission 1 pairs",
-                    "same .gvid, editable raw, ProRes, dashboard, timing, memory, and hash receipts",
+                    '<svg xmlns="http://www.w3.org/2000/svg">',
+                    "<title>GPR four-pillar production readiness</title>",
+                    "<text>RAW stills</text>",
+                    "<text>92%</text>",
+                    "<text>GoPro RAW video MVP</text>",
+                    "<text>80%</text>",
+                    "<text>Premium still/SR</text>",
+                    "<text>60%</text>",
+                    "<text>Video reconstruction</text>",
+                    "<text>100%</text>",
+                    "<text>PSF / blur modeling is parked, not blocking the release.</text>",
+                    "<text>Controlled high/low Mission 1 pairs</text>",
+                    "<text>same .gvid, editable raw, ProRes, dashboard, timing, memory, and hash receipts</text>",
+                    "</svg>",
                 )
             ),
             encoding="utf-8",
@@ -112,6 +114,14 @@ def main() -> int:
         if not failures or not any("Premium still/SR" in failure and "expected 60%" in failure for failure in failures):
             print(f"wrong premium percentage did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
+
+        readme.write_text(good, encoding="utf-8")
+        status_matrix.write_text(status_matrix.read_text(encoding="utf-8").replace("<text>60%</text>", "<text>95%</text>"), encoding="utf-8")
+        failures = module.validate(readme, scorecard)
+        if not failures or not any("readme_status_matrix.svg" in failure and "Premium still/SR" in failure for failure in failures):
+            print(f"wrong SVG premium percentage did not trigger expected failure: {failures}", file=sys.stderr)
+            return 1
+        status_matrix.write_text(status_matrix.read_text(encoding="utf-8").replace("<text>95%</text>", "<text>60%</text>"), encoding="utf-8")
 
         readme.write_text(
             good
