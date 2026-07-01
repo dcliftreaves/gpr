@@ -489,8 +489,8 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
-| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `bc49bca0c431ac08f47a8b77d59547582423c5f2c6fbfc006dfbee18113a27f4` |
-| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `9bfa3e50a0eaa548502312a10f8d92114c36ea315875489b9fe7bbe272b98498` |
+| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `3d95db1c9c468034e11ef255d3f3606fb5546e4a77b0d7eb49b8b82d11aaad13` |
+| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `ba0ddcc00db1f9b22d2e3c138051cbd375a6a5c6b78f87f9ab623e7ade062968` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |
 | Premium still-SR candidate-signal ridge audit dashboard | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/index.html` | `e3d14168594271f93461610e2efc88e85f271f1fe5efd5ad27e70ca1b43acdac` |
 | Premium still-SR X2D same-scene center candidate-signal audit JSON | `artifacts/premium_still_sr_candidate_signal_x2d1742_center_same_scene_20260701/candidate_signal_audit.json` | `eeff361e82e78fef67a5444ceb3148bba1f607d5ee0523e0511213c2130d318c` |
@@ -557,6 +557,10 @@ pillar.
 | Premium still-SR matched global-context X2D U-Net receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_globalctx_matched_w32_1200_20260701/train_receipt.json` | `bb2b197f9959fc845fb766120eb89296a18d3e296bfaa36f00e64b4ce4eddd8d` |
 | Premium still-SR matched global-context X2D U-Net dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_globalctx_matched_w32_1200_20260701/index.html` | `c434b8ceab86b788ef1ef01983e1a2dd2a2a4e1017180e7822046a9c1c5324d2` |
 | Premium still-SR matched global-context X2D U-Net panel | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_globalctx_matched_w32_1200_20260701/panel_sheet.jpg` | `b373f77b519a42bbc6c517bb0230cbf82d4e623897ccdbc8182ecfc9c0f42a17` |
+| Premium still-SR non-box PSF/CFA NAF X2D checkpoint | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_nonboxpsf_cfa_naf_w32_800_20260701/premium_still_sr_raw_cfa_residual_x2dsceneholdout_nonboxpsf_cfa_naf_w32_800.pt` | `bb327124e03989f8d539815fd1722128dc0937ae23dd56f126da50bee36bd8cf` |
+| Premium still-SR non-box PSF/CFA NAF X2D receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_nonboxpsf_cfa_naf_w32_800_20260701/train_receipt.json` | `c04ce9f3be5b2e03afbc4145a966cdeef53793fe8f7d3fc2d7831a1fe07f57bf` |
+| Premium still-SR non-box PSF/CFA NAF X2D dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_nonboxpsf_cfa_naf_w32_800_20260701/index.html` | `5cc3d6fe78c842ce679be34133825b6d2986f993c3eb7e944c40704772b2b6d1` |
+| Premium still-SR non-box PSF/CFA NAF X2D panel | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_nonboxpsf_cfa_naf_w32_800_20260701/panel_sheet.jpg` | `140b427369c204310d68a8d3b7aeef6e5eb146725c7aa1bb74877c4de9898847` |
 | Premium still-SR stored-HF noise-floor X2D U-Net checkpoint | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_storedhf_noisefloor_unet_w32_1200_20260701/premium_still_sr_raw_cfa_residual_x2dsceneholdout_storedhf_noisefloor_unet_w32_1200.pt` | `e80d02c5ed52bee00383fbda66d34b54acc9ac6f628583da69fd07a1dbf81d1b` |
 | Premium still-SR stored-HF noise-floor X2D U-Net receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_storedhf_noisefloor_unet_w32_1200_20260701/train_receipt.json` | `1f1a1661109fb7867bce084a5973c8c25cad4f91b7c57ad9f5c3f7457ce6c80a` |
 | Premium still-SR stored-HF noise-floor X2D U-Net dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_storedhf_noisefloor_unet_w32_1200_20260701/index.html` | `90b8af514b1be793ab30dc0ffdea83d2eaee6fd7fdb6c37143d7e3beba666b82` |

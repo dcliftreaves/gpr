@@ -91,6 +91,10 @@ The matched global-context X2D-scene/noise-floor U-Net reaches about 0.149
 percent median raw MAE recovery and about -0.0049 percent median RMSE recovery,
 so it is also evidence against simple global-context branch scale-up as the
 next primary quality path.
+The non-box PSF/CFA NAF diagnostic reaches about 0.130 percent median raw MAE
+recovery and about 0.0025 percent median RMSE recovery with fixed
+`[0.52, 0.23, 0.17, 0.08]` kernel conditioning, so fixed global PSF conditioning
+is not enough without real row-level PSF/camera variation.
 
 ## Current Verdict
 

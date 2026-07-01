@@ -583,6 +583,21 @@ median raw MAE recovery and **-0.0049%** median RMSE recovery. That improves
 RMSE versus the 0.153% noise-floor baseline but trails it on MAE, so simple
 global-context branch scale-up is recorded as a rejection, not a promotion.
 
+A non-box PSF/CFA NAF diagnostic then tested whether a known asymmetric 2x
+kernel signal plus CFA metadata changes the X2D result:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_nonboxpsf_cfa_naf_w32_800_20260701/index.html
+```
+
+It uses the known-kernel validation weights `[0.52, 0.23, 0.17, 0.08]` as an
+explicit global PSF conditioning signal, not as a production sidecar. The best
+probe checkpoint lands at **0.130%** median raw MAE recovery and **0.0025%**
+median RMSE recovery. That beats the corrected X2D-scene NAF rejection but
+still trails the **0.153%** small U-Net branch, so the actionable conclusion is
+not "use a fixed synthetic PSF"; it is that real row-level PSF/camera variation
+is still needed before PSF conditioning can be expected to move the pillar.
+
 Two direct target-energy weighting controls then tested whether simple
 train-time row weighting closes that mismatch:
 
