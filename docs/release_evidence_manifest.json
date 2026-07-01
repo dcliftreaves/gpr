@@ -64,6 +64,7 @@
           "premium_still_sr_raw_cfa_residual_gap_20260701",
           "premium_still_sr_next_experiment_contract_20260701",
           "premium_still_sr_psf_metadata_gap_20260701",
+          "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
         ]
       },
@@ -1632,6 +1633,38 @@
         "baseline_median_exact_raw_mae_recovery_pct": 0.1529010434311497,
         "best_psf_probe_median_exact_raw_mae_recovery_pct": 0.10556071404497147,
         "another_psf_cnn_run_justified": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_psf_sidecar_contract_20260701",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Builds the row-keyed PSF sidecar consumed by premium still-SR raw-CFA training and records whether current rows have camera-specific PSF variation.",
+      "dashboard": "artifacts/premium_still_sr_psf_sidecar_contract_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_psf_sidecar_contract_20260701/premium_still_sr_psf_sidecar_contract.json",
+        "artifacts/premium_still_sr_psf_sidecar_contract_20260701/premium_still_sr_psf_sidecar.json",
+        "artifacts/premium_still_sr_psf_sidecar_contract_20260701/index.html"
+      ],
+      "metrics": {
+        "target_rows": 117,
+        "target_scenes": 13,
+        "x2d_rows": 81,
+        "z8_rows": 36,
+        "rows_with_camera_specific_psf": 0,
+        "rows_using_default_psf": 117,
+        "rows_missing_psf": 0,
+        "near_box_rows": 117,
+        "unique_kernel_count": 1,
+        "training_ready_for_psf_conditioning": 0
       }
     },
     {

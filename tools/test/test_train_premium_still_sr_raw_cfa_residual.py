@@ -118,6 +118,7 @@ def main() -> int:
                 "residual_scale": 0.08,
                 "feature_mode": "raw_multiscale_coord_ev_noise",
                 "psf_receipt": None,
+                "psf_sidecar": None,
                 "psf_kernel_weight": None,
                 "feature_block": 5,
                 "lr": 1.0e-3,
@@ -458,6 +459,54 @@ def main() -> int:
         assert psf_receipt["policy"]["psf_conditioning"].startswith("enabled")
         assert psf_receipt["policy"]["uses_source_raw_at_runtime"] is False
         assert psf_receipt["eval"]["holdout"]["rows"][0]["psf_kernel_weights"] == [0.52, 0.23, 0.17, 0.08]
+        assert psf_receipt["eval"]["holdout"]["rows"][0]["psf_source"] == "default"
+        args.psf_kernel_weight = None
+
+        psf_sidecar = root / "psf_sidecar.json"
+        sidecar_rows = []
+        for idx, row in enumerate(rows):
+            weights = [0.4, 0.3, 0.2, 0.1] if idx != 3 else [0.11, 0.22, 0.33, 0.34]
+            sidecar_rows.append(
+                {
+                    "target_row_index": idx,
+                    "row_key": tool.target_row_key(row, idx),
+                    "scene": row["scene_id"],
+                    "crop": row["crop"],
+                    "camera": "x2d" if idx == 3 else "z8",
+                    "assignment_policy": "camera_specific",
+                    "psf_kernel_weights": weights,
+                    "psf_receipt_path": f"/fixtures/psf_{idx}.json",
+                    "psf_receipt_sha256": "0" * 64,
+                }
+            )
+        psf_sidecar.write_text(
+            json.dumps(
+                {
+                    "schema": "gpr.premium_still_sr_psf_sidecar.v1",
+                    "created_unix": 1,
+                    "targets": str(npz),
+                    "targets_sha256": tool.sha256_file(npz),
+                    "row_key_algorithm": "sha256(index, scene_id, crop, crop_xy, candidate_raw, source_raw, ev)",
+                    "rows": sidecar_rows,
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+        args.output_dir = root / "psf_sidecar_holdout"
+        args.model_arch = "global_context_unet"
+        args.feature_mode = "raw_context_coord_ev_noise_psf"
+        args.psf_sidecar = psf_sidecar
+        args.psf_kernel_weight = [0.25, 0.25, 0.25, 0.25]
+        sidecar_receipt = tool.train(args)
+        assert sidecar_receipt["eval"]["holdout"]["row_count"] == 1
+        assert sidecar_receipt["config"]["psf_sidecar"] == str(psf_sidecar)
+        assert sidecar_receipt["config"]["psf_sidecar_stats"]["matched_rows"] == 4
+        assert sidecar_receipt["config"]["psf_sidecar_stats"]["default_rows"] == 0
+        assert sidecar_receipt["config"]["psf_sidecar_stats"]["unique_kernel_count"] == 2
+        assert sidecar_receipt["eval"]["holdout"]["rows"][0]["psf_kernel_weights"] == [0.11, 0.22, 0.33, 0.34]
+        assert sidecar_receipt["eval"]["holdout"]["rows"][0]["psf_source"] == "psf_sidecar"
+        args.psf_sidecar = None
         args.psf_kernel_weight = None
 
         args.output_dir = root / "full_crop_holdout"

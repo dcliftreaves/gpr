@@ -612,6 +612,9 @@ pillar.
 | Premium still-SR X2D full-crop raw-context PSF U-Net dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_fullcrop_rawcontext_psf_unet_w32_900_20260701/index.html` | `904402cc144a3e0dc84363070744f8219583a3188007843942286fec18191c1d` |
 | Premium still-SR PSF metadata gap JSON | `artifacts/premium_still_sr_psf_metadata_gap_20260701/premium_still_sr_psf_metadata_gap.json` | `440f9f8992910a195c405c64a6c17f29d17a6527c074aeefc9548d1f3a6aca31` |
 | Premium still-SR PSF metadata gap dashboard | `artifacts/premium_still_sr_psf_metadata_gap_20260701/index.html` | `dc19a0980e59ad13ecd51168d580c3d1a91c182d231e7af21e3157d214f51abb` |
+| Premium still-SR PSF sidecar contract JSON | `artifacts/premium_still_sr_psf_sidecar_contract_20260701/premium_still_sr_psf_sidecar_contract.json` | `be3039d09c9eff4d9009f037b260ddf8f96bc37510987a034c77509a42f86ec2` |
+| Premium still-SR PSF sidecar JSON | `artifacts/premium_still_sr_psf_sidecar_contract_20260701/premium_still_sr_psf_sidecar.json` | `fba102bd2e43cdb289ff63ab49d07516a4c8ad63239278373de52e744d53b475` |
+| Premium still-SR PSF sidecar dashboard | `artifacts/premium_still_sr_psf_sidecar_contract_20260701/index.html` | `3f91c82e99157fcb6a4bb65cedee1e0c6246ea427e074cc6d6d9413a76b05a33` |
 | Premium still-SR X2D combined stored-HF/context probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json` | `bb060baaedb3f2439eb3d51fd45002eb67278c87d276d403d208351946463ea7` |
 | Premium still-SR X2D multiscale band-loss probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json` | `0dd675d612e66461cea1d658fb62f91fe258703473aaa810d0c573f1fc18cb66` |
 

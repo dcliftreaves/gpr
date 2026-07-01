@@ -282,6 +282,30 @@ next PSF-aware still-SR pass should only be treated as materially new if it adds
 real per-camera/per-resize PSF variation, or if it changes the teacher/objective
 enough to beat the current **0.153%** X2D scene-holdout baseline.
 
+The row-level PSF sidecar contract now turns that blocker into an executable
+trainer input:
+
+```sh
+/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3 \
+  tools/build_premium_still_sr_psf_sidecar_contract.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_sidecar_contract_20260701
+```
+
+Current sidecar contract:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_sidecar_contract_20260701/index.html
+```
+
+It emits `gpr.premium_still_sr_psf_sidecar.v1` rows keyed by stable target-row
+hashes and `gpr.premium_still_sr_psf_sidecar_contract.v1` readiness metadata.
+The trainer consumes it with `--psf-sidecar`; direct row metadata still wins,
+the sidecar beats global fallback weights, and global `--psf-receipt` /
+`--psf-kernel-weight` remains only the compatibility fallback. The current
+117-row artifact is deliberately **not ready** for PSF-conditioned promotion:
+0 rows have camera-specific PSF assignments, 117 rows use the global default
+near-box receipt, all 117 rows are near-box, and only 1 unique kernel exists.
+
 The PSF metadata gap audit makes that decision explicit:
 
 ```sh

@@ -136,6 +136,54 @@ def resolve_default_psf_kernel_weights(args: Any) -> tuple[float, float, float, 
     return weights if weights is not None else normalize_psf_kernel_weights(None)
 
 
+def target_row_key(row: dict[str, Any], idx: int) -> str:
+    """Stable key used to attach external row-level metadata to target NPZ rows."""
+
+    payload = {
+        "index": int(idx),
+        "scene_id": row.get("scene_id") or row.get("scene") or "",
+        "crop": row.get("crop") or "",
+        "crop_xy": row.get("crop_xy") or row.get("candidate_raw_cfa_origin_xy") or [],
+        "candidate_raw": row.get("candidate_raw") or row.get("candidate_dng") or "",
+        "source_raw": row.get("source_raw") or row.get("source_dng") or "",
+        "ev": row.get("ev"),
+    }
+    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    return hashlib.sha256(blob).hexdigest()
+
+
+def load_psf_sidecar(path: str | Path | None) -> dict[int, dict[str, Any]]:
+    if not path:
+        return {}
+    p = Path(path)
+    payload = json.loads(p.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"{p} did not contain a JSON object")
+    if payload.get("schema") != "gpr.premium_still_sr_psf_sidecar.v1":
+        raise ValueError(f"{p} is not a gpr.premium_still_sr_psf_sidecar.v1 sidecar")
+    rows = payload.get("rows")
+    if not isinstance(rows, list):
+        raise ValueError(f"{p} sidecar has no rows array")
+    out: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError(f"{p} sidecar contains a non-object row")
+        idx = row.get("target_row_index")
+        if not isinstance(idx, int):
+            raise ValueError(f"{p} sidecar row is missing integer target_row_index")
+        if row.get("psf_kernel_weights") is None:
+            raise ValueError(f"{p} sidecar row {idx} is missing psf_kernel_weights")
+        weights = normalize_psf_kernel_weights(row.get("psf_kernel_weights"))
+        out[idx] = {
+            "row_key": str(row.get("row_key") or ""),
+            "psf_kernel_weights": weights,
+            "assignment_policy": row.get("assignment_policy"),
+            "psf_receipt_path": row.get("psf_receipt_path"),
+            "psf_receipt_sha256": row.get("psf_receipt_sha256"),
+        }
+    return out
+
+
 def apply_context_mask(
     raw: torch.Tensor,
     stored_hf: torch.Tensor | None,
@@ -1152,7 +1200,12 @@ def build_model(model_arch: str, in_channels: int, width: int, depth: int, resid
 
 
 class RawCfaResidualTargets:
-    def __init__(self, path: Path, default_psf_kernel_weights: tuple[float, float, float, float] | None = None) -> None:
+    def __init__(
+        self,
+        path: Path,
+        default_psf_kernel_weights: tuple[float, float, float, float] | None = None,
+        psf_sidecar_path: Path | None = None,
+    ) -> None:
         with np.load(path, allow_pickle=False) as z:
             self.candidate_raw = z["candidate_raw_cfa4"].astype(np.float32)
             self.target = z["raw_hf_residual_cfa4"].astype(np.float32)
@@ -1179,6 +1232,19 @@ class RawCfaResidualTargets:
         self.candidate_hf_abs_means: list[float] = []
         self.default_psf_features = psf_weight_features(default_psf_kernel_weights)
         self.psf_features: list[tuple[float, ...]] = []
+        self.psf_sources: list[str] = []
+        self.psf_sidecar_path = str(psf_sidecar_path) if psf_sidecar_path else None
+        sidecar_rows = load_psf_sidecar(psf_sidecar_path)
+        self.psf_sidecar_stats: dict[str, Any] = {
+            "path": self.psf_sidecar_path,
+            "sidecar_row_count": len(sidecar_rows),
+            "matched_rows": 0,
+            "missing_rows": 0,
+            "metadata_rows": 0,
+            "sidecar_rows": 0,
+            "default_rows": 0,
+            "unique_kernel_count": 0,
+        }
         scene_dims: dict[str, tuple[float, float]] = {}
         for row in self.rows:
             scene = str(row.get("scene_id") or "unknown")
@@ -1246,7 +1312,28 @@ class RawCfaResidualTargets:
                 or row.get("bayer_resize_psf_kernel_weights")
                 or row.get("same_color_psf_weights")
             )
+            psf_source = "row_metadata"
+            if row_psf is None:
+                psf_source = "default"
+                sidecar = sidecar_rows.get(idx)
+                if sidecar is not None:
+                    expected = target_row_key(row, idx)
+                    if sidecar["row_key"] and sidecar["row_key"] != expected:
+                        raise ValueError(f"PSF sidecar row-key mismatch at target row {idx}")
+                    row_psf = sidecar["psf_kernel_weights"]
+                    psf_source = "psf_sidecar"
+                else:
+                    self.psf_sidecar_stats["missing_rows"] += 1
             self.psf_features.append(psf_weight_features(row_psf) if row_psf is not None else self.default_psf_features)
+            self.psf_sources.append(psf_source)
+            if psf_source == "row_metadata":
+                self.psf_sidecar_stats["metadata_rows"] += 1
+            elif psf_source == "psf_sidecar":
+                self.psf_sidecar_stats["matched_rows"] += 1
+                self.psf_sidecar_stats["sidecar_rows"] += 1
+            else:
+                self.psf_sidecar_stats["default_rows"] += 1
+        self.psf_sidecar_stats["unique_kernel_count"] = len({tuple(round(float(v), 9) for v in feat[:4]) for feat in self.psf_features})
 
     def row_indices(
         self,
@@ -1522,6 +1609,7 @@ def eval_rows(
                 "target_scale": float(target_scale.cpu().item()),
                 "target_representation": target_representation,
                 "psf_kernel_weights": [float(x) for x in data.psf_features[idx][:4]],
+                "psf_source": data.psf_sources[idx],
             }
         )
         rows.append(row_meta)
@@ -1705,8 +1793,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.psf_receipt = None
     if not hasattr(args, "psf_kernel_weight"):
         args.psf_kernel_weight = None
+    if not hasattr(args, "psf_sidecar"):
+        args.psf_sidecar = None
     default_psf_kernel_weights = resolve_default_psf_kernel_weights(args)
-    data = RawCfaResidualTargets(args.targets, default_psf_kernel_weights)
+    data = RawCfaResidualTargets(args.targets, default_psf_kernel_weights, args.psf_sidecar)
     if args.feature_mode in {
         "raw_multiscale_storedhf_coord_ev_noise",
         "raw_context_storedhf_coord_ev_noise",
@@ -1925,7 +2015,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "eval_during_training_rows": args.eval_during_training_rows,
                 "save_best_holdout_checkpoint": args.save_best_holdout_checkpoint,
                 "psf_receipt": str(args.psf_receipt) if args.psf_receipt else None,
+                "psf_sidecar": str(args.psf_sidecar) if args.psf_sidecar else None,
                 "psf_kernel_weights": [float(x) for x in default_psf_kernel_weights],
+                "psf_sidecar_stats": data.psf_sidecar_stats,
             },
         },
         checkpoint,
@@ -1992,8 +2084,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "target_scale_strength": args.target_scale_strength,
             "target_scale_reference_abs_mean": target_scale_reference_abs_mean,
             "psf_receipt": str(args.psf_receipt) if args.psf_receipt else None,
+            "psf_sidecar": str(args.psf_sidecar) if args.psf_sidecar else None,
             "psf_kernel_weights": [float(x) for x in default_psf_kernel_weights],
             "psf_conditioning_enabled": "_psf" in args.feature_mode,
+            "psf_sidecar_stats": data.psf_sidecar_stats,
             "train_snr_class_counts": {
                 key: sum(1 for idx in train_indices if data.target_snr_classes[idx] == key)
                 for key in sorted(set(data.target_snr_classes[idx] for idx in train_indices))
@@ -2078,7 +2172,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "target_scale_policy": args.target_scale_policy,
             "target_scale_strength": args.target_scale_strength,
             "psf_conditioning": (
-                "enabled: PSF/kernel scalar planes from row metadata, --psf-kernel-weight, or --psf-receipt"
+                "enabled: PSF/kernel scalar planes from row metadata, --psf-sidecar, --psf-kernel-weight, or --psf-receipt"
                 if "_psf" in args.feature_mode
                 else "disabled"
             ),
@@ -2148,6 +2242,11 @@ def main() -> int:
         action="append",
         default=None,
         help="Explicit four-value same-color 2x PSF kernel. May be repeated four times; overrides --psf-receipt.",
+    )
+    ap.add_argument(
+        "--psf-sidecar",
+        type=Path,
+        help="Optional gpr.premium_still_sr_psf_sidecar.v1 JSON keyed by target rows. Row metadata wins; sidecar beats global PSF fallback.",
     )
     ap.add_argument("--feature-block", type=int, default=9)
     ap.add_argument("--lr", type=float, default=5.0e-4)

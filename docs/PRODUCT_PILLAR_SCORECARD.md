@@ -309,6 +309,12 @@ stronger teacher/objective. The PSF metadata gap audit at
 records 117 rows, 13 scenes, inferred 81 X2D and 36 Z8 rows, **0/117** rows
 with row-level PSF metadata, **0** unique row kernels, a near-box global PSF,
 and `another_psf_cnn_run_justified=false`.
+The PSF sidecar contract at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_sidecar_contract_20260701/index.html`
+now makes that gap executable for the trainer via `--psf-sidecar`. It is still
+blocker evidence rather than promotion evidence: **0/117** rows have
+camera-specific PSF assignments, **117/117** rows use the global fallback, all
+rows are near-box, and only **1** unique kernel exists.
 The final still-SR promotion artifact set is pinned as
 `premium_still_sr_promotion_receipts` in the committed production capture
 requirements.
