@@ -8,14 +8,17 @@ drop the raw-stills, raw-video, premium still/SR, or PSF-aware video goals.
 
 from __future__ import annotations
 
+import importlib.util
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
 README = ROOT / "README.md"
 SCORECARD = ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md"
+SCORECARD_BUILDER = ROOT / "tools/build_product_pillar_scorecard.py"
 
 REQUIRED_SECTIONS = (
     "## Open Raw Video For Action Cameras",
@@ -30,7 +33,7 @@ REQUIRED_SECTIONS = (
 
 REQUIRED_README_TOKENS = (
     "8-bit JPEG size. 16-bit RAW quality.",
-    "Current four-pillar completion is **72%**",
+    "Current four-pillar completion is **",
     "production-readiness burn-down",
     "not an image-quality score",
     "not a regression signal for locked artifacts",
@@ -129,11 +132,11 @@ FORBIDDEN_README_TOKENS = (
     "iPhone has no CFA darkframe source",
 )
 
-EXPECTED_PERCENTAGES = {
-    "Best RAW stills": 92,
-    "GoPro RAW video MVP": 80,
-    "Premium still/SR": 60,
-    "RAW video PSF/SR improvement": 55,
+README_PILLAR_LABELS = {
+    "raw_stills": "Best RAW stills",
+    "raw_video_mvp": "GoPro RAW video MVP",
+    "premium_still_sr": "Premium still/SR",
+    "raw_video_psf_sr": "RAW video PSF/SR improvement",
 }
 
 REQUIRED_SCORECARD_TOKENS = (
@@ -167,6 +170,32 @@ def extract_done_percent(readme: str, pillar: str) -> int | None:
     return int(match.group(1))
 
 
+def load_scorecard_builder() -> Any:
+    spec = importlib.util.spec_from_file_location(
+        "build_product_pillar_scorecard_under_readme_check",
+        SCORECARD_BUILDER,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"could not load {SCORECARD_BUILDER}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def expected_percentages_from_scorecard() -> tuple[int, dict[str, int]]:
+    builder = load_scorecard_builder()
+    data = builder.build_scorecard(builder.DEFAULT_EXTERNAL_ROOT)
+    overall = int(data["four_pillar_completion_percent"])
+    by_label: dict[str, int] = {}
+    for pillar in data.get("pillars", []):
+        pillar_id = pillar.get("id")
+        label = README_PILLAR_LABELS.get(str(pillar_id))
+        if label is not None:
+            by_label[label] = int(pillar["readiness_percent"])
+    return overall, by_label
+
+
 def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> list[str]:
     failures: list[str] = []
     if not readme_path.exists():
@@ -179,7 +208,20 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
         if token in readme:
             failures.append(f"{readme_path.name} must not reference rejected or superseded artifact {token!r}")
 
-    for pillar, expected in EXPECTED_PERCENTAGES.items():
+    try:
+        expected_overall, expected_percentages = expected_percentages_from_scorecard()
+    except Exception as exc:
+        failures.append(f"could not build product scorecard for README percentage check: {exc}")
+        expected_overall, expected_percentages = 0, {}
+
+    overall_token = f"Current four-pillar completion is **{expected_overall}%**"
+    if expected_overall and overall_token not in readme:
+        failures.append(f"README.md missing generated overall completion token {overall_token!r}")
+
+    missing_pillars = sorted(set(README_PILLAR_LABELS.values()) - set(expected_percentages))
+    if missing_pillars:
+        failures.append(f"product scorecard missing README pillar labels: {missing_pillars}")
+    for pillar, expected in expected_percentages.items():
         actual = extract_done_percent(readme, pillar)
         if actual is None:
             failures.append(f"README.md missing percentage row for {pillar!r}")

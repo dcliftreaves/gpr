@@ -1,7 +1,7 @@
 # GPR Docs Index
 
 Where to look for current production status, evidence, and runbooks. Last
-refreshed 2026-06-30.
+refreshed 2026-07-01.
 
 ## Start here
 
@@ -138,7 +138,7 @@ refreshed 2026-06-30.
 | `python3 tools/test/test_build_gopro_mission1_intake_audit.py` | regression-test the GoPro Mission 1 intake audit |
 | `python3 tools/test/check_readme_media.py` | validate local README showcase media links, sizes, and stale text claims in SVG media |
 | `python3 tools/test/test_check_readme_media.py` | regression-test README showcase stale-claim detection |
-| `python3 tools/test/check_readme_product_pillars.py` | validate that the README still presents the four big product pillars, current percentages, and evidence-map links |
+| `python3 tools/test/check_readme_product_pillars.py` | validate that the README still presents the four big product pillars, scorecard-derived current percentages, and evidence-map links |
 | `python3 tools/test/test_check_readme_product_pillars.py` | regression-test README product-pillar framing checks |
 | `python3 tools/test/check_production_capture_requirements.py` | validate the committed real-sample and hardware-receipt requirements contract |
 | `python3 tools/test/test_check_production_capture_requirements.py` | regression-test production capture requirements guard failures |
