@@ -33,6 +33,15 @@ source.
 | **3. Premium still improvement** | A slow offline still path that can spend serious compute on raw-CFA restoration, editor latitude, and texture recovery. | The tooling and datasets exist, but the no-REF 50 MP / 100 MP still-SR promotion gate is still open. |
 | **4. RAW video reconstruction** | Approved offline/post 4K cleanup and 8K reconstruction, with editable `.gvid`/DNG/GPR outputs and ProRes review media. | Closed for the current offline/post release. PSF/blur work is optional replacement research, not a shipping blocker. |
 
+## Release Board
+
+| lane | ship decision | next evidence that changes status |
+|---|---|---|
+| **RAW stills** | Ship the current 50 MP still tiers and normal-Bayer support. X2D/Z8 calibrated noise addback is enabled by sidecars. | Mission 1 and iPhone darkframe sidecars with strict source provenance. |
+| **GoPro RAW video MVP** | Ship as a Labs-ready handoff package from the Pi 5 stand-in evidence. | Real Mission 1 camera-role receipts for sensor/DMA input, SD write, rear display, zero drops, `.gvid` validity, timing, memory, and storage. |
+| **Premium still/SR** | Do not ship as a promoted quality claim yet. Current CNNs are diagnostic. | A no-REF 50 MP / 100 MP raw-CFA still candidate that beats the existing still baseline and passes editor-latitude, worst-row, timing, memory, and artifact-hash gates. |
+| **RAW video reconstruction** | Ship the approved offline/post 4K cleanup and 8K SR path now. | Reopen only if a locked receipt/gate/hash/manual review fails, or if a replacement already beats the locked baseline with the same `.gvid`, editable raw, ProRes, dashboard, timing, memory, and hash evidence. |
+
 ## 30-Second Review
 
 Start here if you are deciding whether this branch is worth picking up.
