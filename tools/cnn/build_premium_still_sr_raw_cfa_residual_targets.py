@@ -16,7 +16,7 @@ import html
 import json
 import sys
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +39,7 @@ from build_premium_still_sr_hf_residual_targets import local_cfa4_planes, sha256
 
 
 SCHEMA = "gpr.premium_still_sr_raw_cfa_residual_targets.v1"
+CFA_PHASES = ("RGGB", "GBRG", "GRBG", "BGGR", "unknown")
 
 
 def stats(values: list[float]) -> dict[str, float]:
@@ -60,6 +61,104 @@ def load_meta(z: np.lib.npyio.NpzFile) -> list[dict[str, Any]]:
     if not isinstance(meta, list):
         return []
     return [row if isinstance(row, dict) else {} for row in meta]
+
+
+def normalize_cfa_phase(value: Any) -> str:
+    if value is None:
+        return "unknown"
+    if isinstance(value, (list, tuple)):
+        numeric_to_color = {0: "R", 1: "G", 2: "B", 3: "G"}
+        try:
+            value = "".join(numeric_to_color[int(v)] for v in np.asarray(value).reshape(-1))
+        except (KeyError, TypeError, ValueError):
+            value = "".join(str(v) for v in np.asarray(value).reshape(-1))
+    elif isinstance(value, np.ndarray):
+        return normalize_cfa_phase(value.reshape(-1).tolist())
+    text = "".join(ch for ch in str(value).upper() if ch in {"R", "G", "B"})
+    return text if text in CFA_PHASES[:-1] else "unknown"
+
+
+def row_cfa_phase_from_keys(row: dict[str, Any], keys: tuple[str, ...]) -> str:
+    for key in keys:
+        phase = normalize_cfa_phase(row.get(key))
+        if phase != "unknown":
+            return phase
+    return "unknown"
+
+
+def shift_cfa_phase(base_phase: str, x_offset: int, y_offset: int) -> str:
+    phase = normalize_cfa_phase(base_phase)
+    if phase == "unknown":
+        return "unknown"
+    matrix = ((phase[0], phase[1]), (phase[2], phase[3]))
+    y0 = int(y_offset) & 1
+    x0 = int(x_offset) & 1
+    return "".join(
+        (
+            matrix[y0][x0],
+            matrix[y0][x0 ^ 1],
+            matrix[y0 ^ 1][x0],
+            matrix[y0 ^ 1][x0 ^ 1],
+        )
+    )
+
+
+def dng_cfa_phase(path: Path) -> str:
+    try:
+        import rawpy
+    except ModuleNotFoundError:
+        return "unknown"
+
+    try:
+        raw = rawpy.imread(str(path))
+    except Exception:
+        return "unknown"
+    try:
+        pattern = getattr(raw, "raw_pattern", None)
+        color_desc = getattr(raw, "color_desc", b"RGBG")
+        if pattern is None:
+            return "unknown"
+        desc = color_desc.decode("ascii", errors="ignore") if isinstance(color_desc, bytes) else str(color_desc)
+        chars: list[str] = []
+        for value in np.asarray(pattern).reshape(-1):
+            idx = int(value)
+            if 0 <= idx < len(desc):
+                chars.append("G" if desc[idx].upper() == "G" else desc[idx].upper())
+            else:
+                chars.append(str(idx))
+        return normalize_cfa_phase(chars)
+    finally:
+        raw.close()
+
+
+def resolve_row_cfa_phase(row: dict[str, Any], source_phase: str, x: int, y: int) -> dict[str, str]:
+    local_explicit = row_cfa_phase_from_keys(row, ("cfa_phase", "crop_cfa_phase", "bayer_phase"))
+    if local_explicit != "unknown":
+        explicit_source = row_cfa_phase_from_keys(row, ("source_cfa_phase", "cfa_pattern", "bayer_pattern", "CFAPattern"))
+        resolved_source = explicit_source if explicit_source != "unknown" else source_phase
+        return {
+            "source_cfa_phase": resolved_source,
+            "crop_cfa_phase": local_explicit,
+            "cfa_phase": local_explicit,
+            "cfa_phase_source": "row_metadata",
+        }
+    explicit_source = row_cfa_phase_from_keys(
+        row,
+        ("source_cfa_phase", "cfa_pattern", "bayer_pattern", "CFARepeatPatternDim", "CFAPattern"),
+    )
+    if explicit_source != "unknown":
+        source_phase = explicit_source
+    crop_phase = shift_cfa_phase(source_phase, x, y)
+    return {
+        "source_cfa_phase": source_phase,
+        "crop_cfa_phase": crop_phase,
+        "cfa_phase": crop_phase,
+        "cfa_phase_source": (
+            "row_source_metadata"
+            if explicit_source != "unknown"
+            else "source_dng_raw_pattern" if source_phase != "unknown" else "unknown"
+        ),
+    }
 
 
 def crop_common(raw_a: np.ndarray, raw_b: np.ndarray, x: int, y: int, crop: int) -> tuple[np.ndarray, np.ndarray]:
@@ -94,6 +193,7 @@ def build_from_npz(path: Path, *, max_rows: int | None = None) -> tuple[list[np.
 
         for (source_path, candidate_path), indices in groups.items():
             source_raw, black, white = source_raw_norm(Path(source_path))
+            source_phase = dng_cfa_phase(Path(source_path))
             candidate_raw = candidate_raw_norm(Path(candidate_path), shape=source_raw.shape, black=black, white=white)
             for idx in indices:
                 row = meta[idx]
@@ -135,6 +235,7 @@ def build_from_npz(path: Path, *, max_rows: int | None = None) -> tuple[list[np.
                         "render_y_to_raw_same_color_hf_corr": corr(render_y, raw_hf),
                     }
                 )
+                out.update(resolve_row_cfa_phase(row, source_phase, x, y))
                 out_rows.append(out)
             del source_raw
             del candidate_raw
@@ -143,10 +244,15 @@ def build_from_npz(path: Path, *, max_rows: int | None = None) -> tuple[list[np.
 
 def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     scenes = sorted({str(row.get("scene_id")) for row in rows})
+    cfa_counts = Counter(normalize_cfa_phase(row.get("cfa_phase")) for row in rows)
+    cfa_source_counts = Counter(str(row.get("cfa_phase_source") or "unknown") for row in rows)
     return {
         "row_count": len(rows),
         "scene_count": len(scenes),
         "scenes": scenes,
+        "cfa_phase_counts": {phase: int(cfa_counts.get(phase, 0)) for phase in CFA_PHASES},
+        "cfa_phase_source_counts": dict(sorted(cfa_source_counts.items())),
+        "cfa_phase_known_row_count": int(sum(cfa_counts.get(phase, 0) for phase in CFA_PHASES[:-1])),
         "raw_residual_abs_mean": stats([float(row["raw_residual_abs_mean"]) for row in rows]),
         "raw_same_color_hf_residual_abs_mean": stats([float(row["raw_same_color_hf_residual_abs_mean"]) for row in rows]),
         "render_hf_residual_y_abs_mean": stats([float(row["render_hf_residual_y_abs_mean"]) for row in rows]),
@@ -172,6 +278,7 @@ def render_html(payload: dict[str, Any]) -> str:
             "<tr>"
             f"<td>{html.escape(str(row.get('scene_id')))}</td>"
             f"<td>{html.escape(str(row.get('crop')))}</td>"
+            f"<td>{html.escape(str(row.get('cfa_phase') or 'unknown'))}</td>"
             f"<td>{float(row.get('ev') or 0.0):+.0f}</td>"
             f"<td>{row['raw_same_color_hf_residual_abs_mean']:.6f}</td>"
             f"<td>{row['render_hf_residual_y_abs_mean']:.6f}</td>"
@@ -206,7 +313,9 @@ def render_html(payload: dict[str, Any]) -> str:
     <div class="card"><h2>Abs Corr</h2><p>median {summary['render_y_to_raw_same_color_hf_corr_abs']['median']:.4f}</p></div>
   </div>
   <h2>Largest Raw Residual Rows</h2>
-  <table><thead><tr><th>Scene</th><th>Crop</th><th>EV</th><th>Raw HF residual</th><th>Rendered residual</th><th>Raw/render</th><th>Corr</th></tr></thead><tbody>{''.join(body_rows)}</tbody></table>
+  <h2>CFA Phase Coverage</h2>
+  <p>{html.escape(json.dumps(summary['cfa_phase_counts'], sort_keys=True))}</p>
+  <table><thead><tr><th>Scene</th><th>Crop</th><th>CFA</th><th>EV</th><th>Raw HF residual</th><th>Rendered residual</th><th>Raw/render</th><th>Corr</th></tr></thead><tbody>{''.join(body_rows)}</tbody></table>
 </body>
 </html>
 """
@@ -265,6 +374,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "uses_source_raw": True,
             "runtime_safe": False,
             "rendered_hf_is_review_signal_only": True,
+            "cfa_phase_policy": "row metadata first, otherwise source DNG raw_pattern shifted by crop_xy parity; unknown is preserved instead of guessed",
         },
         "summary": summarize(rows),
         "rows": rows,

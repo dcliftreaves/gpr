@@ -15,7 +15,7 @@ import hashlib
 import html
 import json
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +25,7 @@ import numpy as np
 SCHEMA = "gpr.premium_still_sr_raw_cfa_residual_targets_dedup.v1"
 RAW_ARRAYS = ("candidate_raw_cfa4", "candidate_raw_hf_cfa4", "raw_hf_residual_cfa4", "source_raw_hf_cfa4")
 REVIEW_ARRAYS = ("render_hf_residual_y",)
+CFA_PHASES = ("RGGB", "GBRG", "GRBG", "BGGR", "unknown")
 
 
 def sha256_file(path: Path) -> str:
@@ -52,6 +53,13 @@ def load_meta(z: np.lib.npyio.NpzFile) -> list[dict[str, Any]]:
     if not isinstance(rows, list):
         raise ValueError("target meta must be a JSON list")
     return [row if isinstance(row, dict) else {} for row in rows]
+
+
+def normalize_cfa_phase(value: Any) -> str:
+    if value is None:
+        return "unknown"
+    text = "".join(ch for ch in str(value).upper() if ch in {"R", "G", "B"})
+    return text if text in CFA_PHASES[:-1] else "unknown"
 
 
 def group_key(row: dict[str, Any]) -> tuple[str, str, str, str]:
@@ -164,11 +172,14 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 out_arrays[name].append(arrays[name][first_idx])
             for name in REVIEW_ARRAYS:
                 out_arrays[name].append(np.mean(arrays[name][indices].astype(np.float32), axis=0).astype(arrays[name].dtype))
-            out_rows.append(representative_meta(rows, indices, raw_max, render_max))
+            representative = representative_meta(rows, indices, raw_max, render_max)
+            out_rows.append(representative)
             group_summaries.append(
                 {
                     "scene_id": key[0],
                     "crop": key[1],
+                    "cfa_phase": representative.get("cfa_phase"),
+                    "cfa_phase_source": representative.get("cfa_phase_source"),
                     "row_indices": indices,
                     "source_row_count": len(indices),
                     "raw_max_abs_diff": raw_max,
@@ -194,6 +205,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     row_count = len(rows)
     dedup_row_count = len(out_rows)
     duplicate_factor = float(row_count / max(dedup_row_count, 1))
+    cfa_counts = Counter(normalize_cfa_phase(row.get("cfa_phase")) for row in out_rows)
+    cfa_source_counts = Counter(str(row.get("cfa_phase_source") or "unknown") for row in out_rows)
     payload = {
         "schema": SCHEMA,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -217,6 +230,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "duplicate_factor": duplicate_factor,
             "raw_conflict_group_count": len(raw_conflicts),
             "multi_row_group_count": sum(1 for row in group_summaries if row["source_row_count"] > 1),
+            "cfa_phase_counts": {phase: int(cfa_counts.get(phase, 0)) for phase in CFA_PHASES},
+            "cfa_phase_source_counts": dict(sorted(cfa_source_counts.items())),
+            "cfa_phase_known_row_count": int(sum(cfa_counts.get(phase, 0) for phase in CFA_PHASES[:-1])),
             "raw_max_abs_diff": stats([float(row["raw_max_abs_diff"]) for row in group_summaries]),
             "render_max_abs_diff": stats([float(row["render_max_abs_diff"]) for row in group_summaries]),
         },
@@ -238,6 +254,7 @@ def render_html(payload: dict[str, Any]) -> str:
         "<tr>"
         f"<td>{html.escape(str(row['scene_id']))}</td>"
         f"<td>{html.escape(str(row['crop']))}</td>"
+        f"<td>{html.escape(str(row.get('cfa_phase') or 'unknown'))}</td>"
         f"<td>{int(row['source_row_count'])}</td>"
         f"<td>{float(row['raw_max_abs_diff']):.6g}</td>"
         f"<td>{float(row['render_max_abs_diff']):.6g}</td>"
@@ -270,9 +287,12 @@ code {{ font-size: 12px; word-break: break-all; }}
   <section class="card"><div class="label">Duplicate factor</div><div class="value">{summary['duplicate_factor']:.2f}x</div></section>
   <section class="card"><div class="label">Raw conflicts</div><div class="value">{summary['raw_conflict_group_count']}</div></section>
   <section class="card"><div class="label">Multi-row groups</div><div class="value">{summary['multi_row_group_count']}</div></section>
+  <section class="card"><div class="label">Known CFA rows</div><div class="value">{summary['cfa_phase_known_row_count']}</div></section>
 </div>
+<h2>CFA Phase Coverage</h2>
+<p class="sub">{html.escape(json.dumps(summary['cfa_phase_counts'], sort_keys=True))}</p>
 <h2>Groups</h2>
-<table><tr><th>scene</th><th>crop</th><th>source rows</th><th>raw max abs diff</th><th>render max abs diff</th><th>indices</th></tr>{rows}</table>
+<table><tr><th>scene</th><th>crop</th><th>CFA</th><th>source rows</th><th>raw max abs diff</th><th>render max abs diff</th><th>indices</th></tr>{rows}</table>
 </main></body></html>
 """
 

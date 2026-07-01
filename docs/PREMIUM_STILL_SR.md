@@ -194,15 +194,18 @@ The raw-domain target builder now converts the expanded raw-CFA feature set
 into direct source-minus-candidate same-color raw residual supervision:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/index.html
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/raw_cfa_residual_targets.npz
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701/raw_cfa_residual_targets.npz
 ```
 
 The NPZ covers the same 351 rows / 13 scenes and stores
 `candidate_raw_cfa4`, `candidate_raw_hf_cfa4`, `raw_hf_residual_cfa4`,
 `source_raw_hf_cfa4`, and `render_hf_residual_y`. It is the correct target for
 editable raw restoration because the model output is a four-plane CFA residual,
-not a rendered RGB texture patch.
+not a rendered RGB texture patch. The refreshed CFA-aware build also resolves
+crop-local Bayer phase from source DNG `raw_pattern` plus `crop_xy` parity:
+351/351 rows have known phase labels, with 270 `RGGB` rows and 81 `GBRG`
+rows.
 
 The target now has a duplicate-row audit:
 
@@ -222,8 +225,8 @@ the deduplicated target below for new teacher/student runs.
 The deduplicated raw-supervision target is now materialized:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/index.html
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/raw_cfa_residual_targets_dedup.npz
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/raw_cfa_residual_targets_dedup.npz
 ```
 
 It keeps the trainer-facing array names (`candidate_raw_cfa4`,
@@ -234,6 +237,11 @@ one review plane and preserved in metadata under
 `raw_deduplicated_review_rows`; they should not be counted as independent raw
 supervision.
 
+The current deduplicated CFA-aware target has 117 unique raw rows, 0 raw
+conflicts, and 117/117 known crop-local CFA labels: 90 `RGGB` rows and 27
+`GBRG` rows. New mixed-normal-Bayer premium still-SR runs should use this
+artifact or a newer target with the same `cfa_phase` metadata contract.
+
 ## PSF-Conditioned Trainer Path
 
 The raw-CFA residual trainer now has explicit PSF/kernel conditioning feature
@@ -242,7 +250,7 @@ modes for the next premium still-SR pass:
 ```sh
 /Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3 \
   tools/cnn/train_premium_still_sr_raw_cfa_residual.py \
-  --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/raw_cfa_residual_targets_dedup.npz \
+  --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/raw_cfa_residual_targets_dedup.npz \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_conditioned_probe_<date> \
   --model-arch global_context_unet \
   --feature-mode raw_context_coord_ev_noise_psf \
@@ -263,10 +271,10 @@ Bayer target sets, including `raw_multiscale_coord_ev_noise_cfa`,
 `raw_context_coord_ev_noise_cfa`, and `raw_context_coord_ev_noise_psf_cfa`.
 Those variants append RGGB/GBRG/GRBG/BGGR/unknown one-hot metadata from target
 rows (`cfa_phase`, `cfa_pattern`, `bayer_phase`, or `bayer_pattern`) while
-leaving older feature modes behavior-compatible. Current deduplicated targets
-do not carry explicit phase metadata, so they resolve to `unknown`; new
-mixed-camera target builds should write the phase before training a promoted
-teacher.
+leaving older feature modes behavior-compatible. The current CFA-aware
+deduplicated target resolves all 117 rows from DNG metadata and crop parity, so
+`_cfa` training no longer collapses the expanded X2D/Z8 target set to
+`unknown`.
 
 Two first PSF-conditioned probes have now been run against the deduplicated
 X2D scene holdout:
@@ -975,13 +983,13 @@ The trainable raw-CFA residual target has now been built:
 ```sh
 python3 tools/cnn/build_premium_still_sr_raw_cfa_residual_targets.py \
   --target-receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_expanded_rawcfa_hf_targets_20260630/merged/merge_receipt.json \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701
 ```
 
 Current target dashboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701/index.html
 ```
 
 The output NPZ contains:
@@ -994,8 +1002,10 @@ The output NPZ contains:
 
 It covers the same 351 rows / 13 scenes. Median same-color raw-HF residual
 magnitude is 0.001478, median raw/render HF magnitude ratio is 0.346, and
-median rendered-to-raw residual absolute correlation remains 0.691. This is
-now the intended input for the next premium still-SR training pass.
+median rendered-to-raw residual absolute correlation remains 0.691. The
+refreshed build also records crop-local CFA phase for every row from source DNG
+metadata, so it is now the intended input for the next premium still-SR
+training pass.
 
 ## Fixture Manifest Builder
 

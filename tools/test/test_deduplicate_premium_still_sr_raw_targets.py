@@ -47,6 +47,10 @@ def main() -> int:
                     "ev": ev,
                     "source_dng": "/fixtures/scene_a.dng",
                     "candidate_raw": "/fixtures/scene_a_candidate.raw",
+                    "source_cfa_phase": "RGGB",
+                    "crop_cfa_phase": "RGGB",
+                    "cfa_phase": "RGGB",
+                    "cfa_phase_source": "source_dng_raw_pattern",
                     "render_hf_residual_y_abs_mean": float(np.mean(np.abs(render0 + ev * 0.01))),
                 }
             )
@@ -80,6 +84,9 @@ def main() -> int:
         assert payload["summary"]["duplicate_factor"] == 3.0
         assert payload["summary"]["raw_conflict_group_count"] == 0
         assert payload["summary"]["multi_row_group_count"] == 1
+        assert payload["summary"]["cfa_phase_counts"]["RGGB"] == 1
+        assert payload["summary"]["cfa_phase_known_row_count"] == 1
+        assert payload["summary"]["cfa_phase_source_counts"]["source_dng_raw_pattern"] == 1
         assert payload["production_ready"] is True
 
         with np.load(root / "out/raw_cfa_residual_targets_dedup.npz", allow_pickle=False) as z:
@@ -93,9 +100,11 @@ def main() -> int:
             assert meta[0]["raw_deduplicated_row_count"] == 3
             assert meta[0]["raw_deduplicated_review_evs"] == [-2.0, 0.0, 2.0]
             assert len(meta[0]["raw_deduplicated_review_rows"]) == 3
+            assert meta[0]["cfa_phase"] == "RGGB"
 
         html = (root / "out/index.html").read_text(encoding="utf-8")
         assert "Premium Still-SR Deduplicated Raw Targets" in html
+        assert "CFA Phase Coverage" in html
 
     print("test_deduplicate_premium_still_sr_raw_targets: PASS")
     return 0

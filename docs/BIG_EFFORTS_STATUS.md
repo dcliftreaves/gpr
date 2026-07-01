@@ -220,10 +220,12 @@ Current evidence:
   as the primary target.
 - `tools/cnn/build_premium_still_sr_raw_cfa_residual_targets.py` now builds
   that training input. The full expanded target build lives at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701/index.html`
   and writes a 1.6 GB NPZ with candidate raw-CFA, candidate raw-HF, source
   raw-HF, rendered-HF luma review, and source-minus-candidate same-color raw-HF
-  residual arrays for 351 rows / 13 scenes.
+  residual arrays for 351 rows / 13 scenes. The current build also records
+  known crop-local CFA phase for all rows: 270 `RGGB`, 81 `GBRG`, and 0
+  unknown.
 - `tools/cnn/train_premium_still_sr_raw_cfa_residual.py` now trains a
   four-plane raw residual model against that NPZ using candidate-only runtime
   inputs. The stabilized w32/2000-step receipts are diagnostic: held-out Z8 is
@@ -280,9 +282,11 @@ Current evidence:
   deduplicated target or report unique raw supervision separately from rendered
   review rows before claiming target coverage.
   The deduplicated raw-CFA target is now materialized at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/index.html`.
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/index.html`.
   It keeps the trainer-facing arrays and collapses the target to 117 raw rows
   with zero raw conflicts, while preserving rendered EV review rows in metadata.
+  The deduped target keeps 117/117 known crop-local CFA labels: 90 `RGGB`, 27
+  `GBRG`, and 0 unknown.
   A first RCAB-style teacher smoke run now trains against that deduplicated
   target with multiscale band and Fourier losses:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/index.html`.

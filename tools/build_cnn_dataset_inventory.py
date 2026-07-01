@@ -59,7 +59,7 @@ DATASETS: list[dict[str, Any]] = [
     {
         "id": "premium_still_sr_raw_cfa_residual_targets",
         "label": "Premium still-SR raw-CFA residual targets",
-        "relpath": "artifacts/premium_still_sr_raw_cfa_residual_targets_20260630",
+        "relpath": "artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701",
         "status": "canonical_current",
         "pillars": ["premium_still_sr", "raw_stills"],
         "role": "Direct source-minus-candidate same-color raw residual supervision target.",

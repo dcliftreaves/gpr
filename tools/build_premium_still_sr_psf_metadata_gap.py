@@ -14,7 +14,7 @@ from typing import Any
 SCHEMA = "gpr.premium_still_sr_psf_metadata_gap.v1"
 DEFAULT_TARGETS = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/"
-    "premium_still_sr_raw_cfa_residual_targets_dedup_20260701/"
+    "premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/"
     "raw_cfa_residual_targets_dedup.npz"
 )
 DEFAULT_PSF_RECEIPT = Path(

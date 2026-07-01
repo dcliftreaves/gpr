@@ -53,7 +53,7 @@ Current canonical rows are:
   and 8K SR replacement work;
 - `premium_still_sr_expanded_rawcfa_hf_targets_20260630` for the expanded
   raw-CFA still-SR target set;
-- `premium_still_sr_raw_cfa_residual_targets_20260630` for direct raw residual
+- `premium_still_sr_raw_cfa_residual_targets_cfa_20260701` for direct raw residual
   still-SR supervision.
 
 The inventory deliberately marks `mission1_sr_pairs_20260616` as legacy and

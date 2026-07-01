@@ -489,8 +489,8 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
-| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `d483a5303dca52694caa2e51698a7a46d45e2061696910b866d861854ea0253e` |
-| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `08bc2fd29f7ed70b684e98120efae6e43355a83885d1105c675cad792c0fd9a9` |
+| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `8323d9bccb64116a7c5e3b06c327e677ccec99067e14767fdfbcf44fcd680dd1` |
+| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `b95fc36000ea327be79e26d1851850c69dbd04cbf59e4880b90ed8515e6d64c9` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |
 | Premium still-SR candidate-signal ridge audit dashboard | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/index.html` | `e3d14168594271f93461610e2efc88e85f271f1fe5efd5ad27e70ca1b43acdac` |
 | Premium still-SR X2D same-scene center candidate-signal audit JSON | `artifacts/premium_still_sr_candidate_signal_x2d1742_center_same_scene_20260701/candidate_signal_audit.json` | `eeff361e82e78fef67a5444ceb3148bba1f607d5ee0523e0511213c2130d318c` |
@@ -499,9 +499,12 @@ pillar.
 | Premium still-SR X2D same-scene frequency-filter dashboard | `artifacts/premium_still_sr_frequency_filter_x2d1742_center_same_scene_20260701/index.html` | `5ff5d372cb16116ec715097ebafff1b5a0925d616d1f8f068e8df2421096dc81` |
 | Premium still-SR raw target duplicate audit JSON | `artifacts/premium_still_sr_raw_target_duplicate_audit_20260701/raw_target_duplicate_audit.json` | `4914096083d6720ba564d675fba4c7dfbfbaaf26d58dd1215b15a4b372f1b5d1` |
 | Premium still-SR raw target duplicate dashboard | `artifacts/premium_still_sr_raw_target_duplicate_audit_20260701/index.html` | `1ef2f96c803580ab078ddefad90d22856c380b867333e5b38d0c95d376787fc6` |
-| Premium still-SR deduplicated raw-CFA target NPZ | `artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/raw_cfa_residual_targets_dedup.npz` | `b697eebc14aec4d96668cb45c9414dd5f4acad88a22859ef228cacd07bbc48cc` |
-| Premium still-SR deduplicated raw-CFA target JSON | `artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/raw_cfa_residual_targets_dedup.json` | `467025a7925242a86a33be3887f92ca657237116f964203effde4a6c99fb64da` |
-| Premium still-SR deduplicated raw-CFA target dashboard | `artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/index.html` | `8100767498a031d28ef863ed51588881c3310aa9985d1b39c1d84744dd96b2af` |
+| Premium still-SR CFA-aware raw-CFA target NPZ | `artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701/raw_cfa_residual_targets.npz` | `06fa4b4efdc04b946a596d6907f79d590b62c0969716f903f3edcbd6be9a3488` |
+| Premium still-SR CFA-aware raw-CFA target JSON | `artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701/raw_cfa_residual_targets.json` | `9b3d4bb8f74ddddcef902fe5b1c36a537aa115692f796b404f1fed4d1110451f` |
+| Premium still-SR CFA-aware raw-CFA target dashboard | `artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701/index.html` | `7cfff7f48f1fb2428956736b68e20229a44648924fcb5864be90c354a02b16ff` |
+| Premium still-SR deduplicated CFA-aware raw-CFA target NPZ | `artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/raw_cfa_residual_targets_dedup.npz` | `3589262e9d4c12a399fd66c4041ac12c12b0be72413a2b0c154be5317a2f5442` |
+| Premium still-SR deduplicated CFA-aware raw-CFA target JSON | `artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/raw_cfa_residual_targets_dedup.json` | `1bd35991823fe50ef6b6db9c097f35e2c383dcf46ac5d83bbd6863ad2c8d97d3` |
+| Premium still-SR deduplicated CFA-aware raw-CFA target dashboard | `artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/index.html` | `e78420c9ecfbf485d9877722bcafa1e57279b5b1ef6d47a2839dec13dcc80a3c` |
 | Premium still-SR deduped RCAB teacher smoke checkpoint | `artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/premium_still_sr_raw_cfa_residual_dedup_rcab_teacher_smoke.pt` | `c77b17a5bb66265061d449e17950c54f79837bfcda3a225fdf0bd26cedacac0b` |
 | Premium still-SR deduped RCAB teacher smoke receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/train_receipt.json` | `1644f000d4dac763896eaf29934cad9f56e1da529c6fed1a94e4145ab2ab9a5b` |
 | Premium still-SR deduped RCAB teacher smoke dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/index.html` | `17e509a8d4cbaabf54b53d835657b145e5fa3bf05fe692eb59e688293ecfd8c4` |
@@ -610,10 +613,10 @@ pillar.
 | Premium still-SR X2D PSF noise-floor U-Net dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_psf_noisefloor_unet_w32_1200_20260701/index.html` | `74cef306d2a022aaba3ae159aa84513ff80a3065eb1bed2ef0d940797cf49a3d` |
 | Premium still-SR X2D full-crop raw-context PSF U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_fullcrop_rawcontext_psf_unet_w32_900_20260701/train_receipt.json` | `8329f52f998cbeb8eeb47c975fb7356e1315e9ddff7a7c1dc61c5bd702889d35` |
 | Premium still-SR X2D full-crop raw-context PSF U-Net dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_fullcrop_rawcontext_psf_unet_w32_900_20260701/index.html` | `904402cc144a3e0dc84363070744f8219583a3188007843942286fec18191c1d` |
-| Premium still-SR PSF metadata gap JSON | `artifacts/premium_still_sr_psf_metadata_gap_20260701/premium_still_sr_psf_metadata_gap.json` | `440f9f8992910a195c405c64a6c17f29d17a6527c074aeefc9548d1f3a6aca31` |
-| Premium still-SR PSF metadata gap dashboard | `artifacts/premium_still_sr_psf_metadata_gap_20260701/index.html` | `dc19a0980e59ad13ecd51168d580c3d1a91c182d231e7af21e3157d214f51abb` |
-| Premium still-SR PSF sidecar contract JSON | `artifacts/premium_still_sr_psf_sidecar_contract_20260701/premium_still_sr_psf_sidecar_contract.json` | `be3039d09c9eff4d9009f037b260ddf8f96bc37510987a034c77509a42f86ec2` |
-| Premium still-SR PSF sidecar JSON | `artifacts/premium_still_sr_psf_sidecar_contract_20260701/premium_still_sr_psf_sidecar.json` | `fba102bd2e43cdb289ff63ab49d07516a4c8ad63239278373de52e744d53b475` |
+| Premium still-SR PSF metadata gap JSON | `artifacts/premium_still_sr_psf_metadata_gap_20260701/premium_still_sr_psf_metadata_gap.json` | `3e2e8e049db9783c9bcbc5d313f7ee63fe186d3204054f2f4212674ad3dd7762` |
+| Premium still-SR PSF metadata gap dashboard | `artifacts/premium_still_sr_psf_metadata_gap_20260701/index.html` | `3172dd6e11969ece44e76f547063c9dd480a6473dc59b77316c8f07a851f3308` |
+| Premium still-SR PSF sidecar contract JSON | `artifacts/premium_still_sr_psf_sidecar_contract_20260701/premium_still_sr_psf_sidecar_contract.json` | `7ad7c2909a20a6a61d1c580f8505422bca4d5ab43c7a08ddb6ddcdc42a2125e5` |
+| Premium still-SR PSF sidecar JSON | `artifacts/premium_still_sr_psf_sidecar_contract_20260701/premium_still_sr_psf_sidecar.json` | `9107805241edf9f976d7fe05bdc201f7c710b0d2d7cfc6668b26030e21334a7b` |
 | Premium still-SR PSF sidecar dashboard | `artifacts/premium_still_sr_psf_sidecar_contract_20260701/index.html` | `3f91c82e99157fcb6a4bb65cedee1e0c6246ea427e074cc6d6d9413a76b05a33` |
 | Premium still-SR X2D combined stored-HF/context probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json` | `bb060baaedb3f2439eb3d51fd45002eb67278c87d276d403d208351946463ea7` |
 | Premium still-SR X2D multiscale band-loss probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json` | `0dd675d612e66461cea1d658fb62f91fe258703473aaa810d0c573f1fc18cb66` |

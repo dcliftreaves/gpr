@@ -22,7 +22,7 @@ SCHEMA = "gpr.premium_still_sr_raw_cfa_residual_gap.v1"
 DEFAULT_EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT") or "/Volumes/OWC_8TB/gpr_work")
 DEFAULT_TARGET_RECEIPT = (
     DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/raw_cfa_residual_targets.json"
+    / "artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701/raw_cfa_residual_targets.json"
 )
 DEFAULT_MODEL_RECEIPT_GLOB = "premium_still_sr_raw_cfa_residual_model_*/train_receipt.json"
 

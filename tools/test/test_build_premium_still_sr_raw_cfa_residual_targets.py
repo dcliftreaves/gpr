@@ -49,6 +49,8 @@ def main() -> int:
                 "crop_size": 32,
                 "block": 8,
                 "ev": 0.0,
+                "source_cfa_phase": "RGGB",
+                "cfa_phase": "RGGB",
             }
         ]
         source_npz = root / "source_targets.npz"
@@ -87,7 +89,16 @@ def main() -> int:
         payload = tool.build(args)
         assert payload["schema"] == "gpr.premium_still_sr_raw_cfa_residual_targets.v1"
         assert payload["summary"]["row_count"] == 1
+        assert payload["summary"]["cfa_phase_counts"]["RGGB"] == 1
+        assert payload["summary"]["cfa_phase_known_row_count"] == 1
         assert payload["summary"]["render_y_to_raw_same_color_hf_corr_abs"]["median"] > 0.95
+        assert tool.normalize_cfa_phase([[0, 1], [3, 2]]) == "RGGB"
+        assert tool.shift_cfa_phase("RGGB", 1, 0) == "GRBG"
+        assert tool.shift_cfa_phase("RGGB", 0, 1) == "GBRG"
+        assert tool.shift_cfa_phase("RGGB", 1, 1) == "BGGR"
+        local = tool.resolve_row_cfa_phase({"crop_cfa_phase": "GBRG"}, "RGGB", 1, 1)
+        assert local["cfa_phase"] == "GBRG"
+        assert local["source_cfa_phase"] == "RGGB"
         out_npz = Path(payload["output_npz"])
         assert out_npz.stat().st_size > 0
         with np.load(out_npz, allow_pickle=False) as z:
@@ -97,8 +108,14 @@ def main() -> int:
             assert z["source_raw_hf_cfa4"].shape == (1, 32, 32, 4)
             assert z["render_hf_residual_y"].shape == (1, 32, 32)
             assert float(np.mean(np.abs(z["raw_hf_residual_cfa4"]))) > 0.0
+            out_meta = json.loads(str(z["meta"]))
+            assert out_meta[0]["source_cfa_phase"] == "RGGB"
+            assert out_meta[0]["crop_cfa_phase"] == "RGGB"
+            assert out_meta[0]["cfa_phase"] == "RGGB"
+            assert out_meta[0]["cfa_phase_source"] == "row_metadata"
         html = (root / "out" / "index.html").read_text(encoding="utf-8")
         assert "Premium Still-SR Raw CFA Residual Targets" in html
+        assert "CFA Phase Coverage" in html
 
     print("test_build_premium_still_sr_raw_cfa_residual_targets: PASS")
     return 0

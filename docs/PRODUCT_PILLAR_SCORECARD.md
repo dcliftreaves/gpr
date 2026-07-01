@@ -381,12 +381,13 @@ true same-color raw residual target the next training direction, with rendered
 HF/editor-latitude kept as review and promotion metrics.
 
 The current raw-CFA residual target build lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_cfa_20260701/index.html`.
 It emits the trainable NPZ for that direction: `candidate_raw_cfa4`,
 `candidate_raw_hf_cfa4`, `raw_hf_residual_cfa4`, `source_raw_hf_cfa4`, and
 `render_hf_residual_y`. The NPZ covers the same 351 rows / 13 scenes, is
-1.6 GB on the external artifact drive, and has SHA-256
-`4c92f94e7505c09e2445df74e58d429460d31a199d61cf82b0299479a8c95ba4`.
+1.6 GB on the external artifact drive, has SHA-256
+`06fa4b4efdc04b946a596d6907f79d590b62c0969716f903f3edcbd6be9a3488`,
+and records known crop-local CFA phase for all 351 rows.
 
 The first raw-CFA residual model receipts live at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_w32_2000_lowlr_20260630/train_receipt.json`
@@ -446,10 +447,10 @@ raw-domain rows; raw arrays are identical across -2/0/+2 EV while rendered
 review residuals vary. Raw-CFA training should now use the deduplicated target
 and report unique raw supervision separately from rendered review rows.
 The deduplicated raw-supervision NPZ is now materialized at
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/index.html`.
 It collapses the target to 117 raw rows with zero raw conflicts, preserves
-rendered EV review rows in metadata, and keeps the trainer-facing array names
-for the next teacher pass.
+rendered EV review rows in metadata, keeps the trainer-facing array names for
+the next teacher pass, and carries 117/117 known CFA phase labels.
 The raw-target SNR audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_target_snr_audit_20260701/index.html`.
 It compares all 117 deduplicated rows with calibrated camera-noise sidecars:

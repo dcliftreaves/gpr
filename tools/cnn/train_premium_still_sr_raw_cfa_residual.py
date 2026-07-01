@@ -233,11 +233,11 @@ def normalize_cfa_phase(value: Any) -> str:
     if value is None:
         return "unknown"
     if isinstance(value, (list, tuple)):
-        numeric_to_color = {0: "R", 1: "G", 2: "B"}
+        numeric_to_color = {0: "R", 1: "G", 2: "B", 3: "G"}
         try:
-            value = "".join(numeric_to_color[int(v)] for v in value)
+            value = "".join(numeric_to_color[int(v)] for v in np.asarray(value).reshape(-1))
         except (KeyError, TypeError, ValueError):
-            value = "".join(str(v) for v in value)
+            value = "".join(str(v) for v in np.asarray(value).reshape(-1))
     text = "".join(ch for ch in str(value).upper() if ch in {"R", "G", "B"})
     return text if text in CFA_PHASES[:-1] else "unknown"
 
