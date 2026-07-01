@@ -1319,8 +1319,8 @@
         "artifacts/product_burndown_20260701/index.html"
       ],
       "hashes": {
-        "product_burndown_json_sha256": "7843fe4e5b892c88bca3f576cb0c80ab7d9dc6845a3b611abc7334c1bbb5ece2",
-        "dashboard_sha256": "c1b2287e8973a2453e282e6539c149d974bb3c7d574cd82e10175fa52e5c229a"
+        "product_burndown_json_sha256": "bd297d835286b99c55dc43461b3608d8fd2c8c9bdff6adc2e023485c9713e820",
+        "dashboard_sha256": "e0289b93a65b3baf8bcc71238142d4ff22196e817c65da0d9a2b22ebc2bfca08"
       },
       "metrics": {
         "four_pillar_completion_percent": 69,
@@ -1351,6 +1351,8 @@
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json",
+        "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_earlyselect_20260701/train_receipt.json",
+        "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_earlyselect_20260701/index.html",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_framectx_unet_w32_1200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_framectx_unet_w32_1200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_unet_w16_160_20260630/train_receipt.json",
@@ -1361,7 +1363,7 @@
         "target_rows": 351,
         "target_scenes": 13,
         "render_to_raw_corr_abs_median": 0.6912654943469239,
-        "model_receipt_count": 23,
+        "model_receipt_count": 24,
         "best_x2d_holdout_mae_recovery_pct": 0.1572830387663978,
         "x2d_full_crop_unet_probe_holdout_mae_recovery_pct": 0.06355886511255635,
         "x2d_full_crop_contextstoredhf_unet_probe_holdout_mae_recovery_pct": 0.02068661175833202,
@@ -1374,6 +1376,7 @@
         "x2d_camera_balanced_sampler_probe_holdout_mae_recovery_pct": -0.4486720189406414,
         "x2d_context_padding_probe_holdout_mae_recovery_pct": -0.1559764723882089,
         "x2d_unet_context_probe_holdout_mae_recovery_pct": 0.09981604486103075,
+        "x2d_unet_earlyselect_probe_holdout_mae_recovery_pct": 0.12863610238315765,
         "x2d_frame_context_unet_probe_holdout_mae_recovery_pct": 0.0940617045168477,
         "z8_frame_context_unet_probe_holdout_mae_recovery_pct": 0.1893594161958504,
         "best_z8_holdout_mae_recovery_pct": 0.4983379829708305,

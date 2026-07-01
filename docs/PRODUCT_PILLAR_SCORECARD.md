@@ -373,7 +373,10 @@ X2D-only split remains negative at about -0.15 percent, camera-balanced
 sampling remains negative at about -0.45 percent, and context padding remains
 negative at about -0.16 percent. The small U-Net/multiscale probe is the first
 raw-domain branch to move the X2D holdout directionally positive at about
-0.10 percent median MAE recovery, but that is still far below promotion.
+0.10 percent median MAE recovery. A diagnostic early-selection variant saves
+the best holdout-probe checkpoint and raises that branch to about 0.13 percent,
+but that is still below the best 0.16 percent X2D smoke row and far below
+promotion.
 Adding absolute crop-position, camera one-hot, and full-crop candidate raw/HF
 scalar context to that U-Net lands at about 0.09 percent on X2D and about
 0.19 percent on Z8, below the existing Z8 raw-CFA baseline. The bounded

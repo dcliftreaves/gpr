@@ -1074,6 +1074,10 @@ code{{color:#b7d7ff}}img{{max-width:100%;border:1px solid #333}}
 
 
 def train(args: argparse.Namespace) -> dict[str, Any]:
+    if not hasattr(args, "eval_during_training_rows"):
+        args.eval_during_training_rows = 0
+    if not hasattr(args, "save_best_holdout_checkpoint"):
+        args.save_best_holdout_checkpoint = False
     data = RawCfaResidualTargets(args.targets)
     if args.feature_mode in {"raw_multiscale_storedhf_coord_ev_noise", "raw_context_storedhf_coord_ev_noise"} and data.candidate_raw_hf is None:
         raise ValueError(f"{args.feature_mode} requires candidate_raw_hf_cfa4 in the target NPZ")
@@ -1096,6 +1100,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     ).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     history: list[dict[str, Any]] = []
+    best_holdout: dict[str, Any] | None = None
+    best_state: dict[str, torch.Tensor] | None = None
     t0 = time.perf_counter()
     for step in range(1, args.steps + 1):
         x, y, ev, noise, sigma, frame_context, stored_hf = data.sample_batch(
@@ -1141,8 +1147,41 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         opt.step()
         if step == 1 or step == args.steps or (args.eval_every > 0 and step % args.eval_every == 0):
-            history.append({"step": step, "loss": float(loss.detach().cpu())})
+            row: dict[str, Any] = {"step": step, "loss": float(loss.detach().cpu())}
+            if args.eval_during_training_rows > 0 and holdout_indices:
+                probe_indices = holdout_indices[: min(args.eval_during_training_rows, len(holdout_indices))]
+                probe_eval = eval_rows(
+                    model,
+                    data,
+                    probe_indices,
+                    feature_mode=args.feature_mode,
+                    feature_block=args.feature_block,
+                    target_policy=args.target_policy,
+                    noise_threshold_scale=args.noise_threshold_scale,
+                    device=device,
+                    tile=args.eval_tile,
+                    context_padding=args.context_padding,
+                )
+                probe_median = float(probe_eval["raw_residual_mae_reduction_pct"]["median"])
+                row["holdout_probe_row_count"] = len(probe_indices)
+                row["holdout_probe_raw_mae_reduction_pct_median"] = probe_median
+                if best_holdout is None or probe_median > float(best_holdout["raw_mae_reduction_pct_median"]):
+                    best_holdout = {
+                        "step": step,
+                        "raw_mae_reduction_pct_median": probe_median,
+                        "row_count": len(probe_indices),
+                        "selection_metric": "holdout_probe_raw_mae_reduction_pct_median",
+                    }
+                    if args.save_best_holdout_checkpoint:
+                        best_state = {
+                            key: value.detach().cpu().clone()
+                            for key, value in model.state_dict().items()
+                        }
+                model.train()
+            history.append(row)
     train_s = time.perf_counter() - t0
+    if args.save_best_holdout_checkpoint and best_state is not None:
+        model.load_state_dict({key: value.to(device) for key, value in best_state.items()})
     eval_train_indices = train_indices
     if args.eval_train_rows > 0:
         eval_train_indices = train_indices[: min(args.eval_train_rows, len(train_indices))]
@@ -1201,6 +1240,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "context_padding": args.context_padding,
                 "context_mask_prob": args.context_mask_prob,
                 "context_mask_block": args.context_mask_block,
+                "eval_during_training_rows": args.eval_during_training_rows,
+                "save_best_holdout_checkpoint": args.save_best_holdout_checkpoint,
             },
         },
         checkpoint,
@@ -1259,6 +1300,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "context_mask_block": args.context_mask_block,
             "eval_train_rows": args.eval_train_rows,
             "eval_holdout_rows": args.eval_holdout_rows,
+            "eval_during_training_rows": args.eval_during_training_rows,
+            "save_best_holdout_checkpoint": args.save_best_holdout_checkpoint,
             "seed": args.seed,
         },
         "policy": {
@@ -1283,8 +1326,14 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             ),
             "production_status": "training_probe_not_registered_production_algorithm",
             "target_policy": args.target_policy,
+            "holdout_selection_policy": (
+                "diagnostic_best_holdout_probe_checkpoint"
+                if args.save_best_holdout_checkpoint and best_holdout is not None
+                else "final_step_checkpoint"
+            ),
         },
         "history": history,
+        "best_holdout_probe": best_holdout,
         "eval": {"train": train_eval, "holdout": holdout_eval},
         "artifacts": {"panel_sheet": str(panel)},
     }
@@ -1407,6 +1456,17 @@ def main() -> int:
         type=int,
         default=0,
         help="Diagnostic speed knob. Zero evaluates all holdout rows; positive values evaluate only the first N holdout rows.",
+    )
+    ap.add_argument(
+        "--eval-during-training-rows",
+        type=int,
+        default=0,
+        help="Diagnostic early-selection knob. Positive values evaluate the first N holdout rows at history steps.",
+    )
+    ap.add_argument(
+        "--save-best-holdout-checkpoint",
+        action="store_true",
+        help="Save/evaluate the best diagnostic holdout-probe step instead of the final step. Not a production promotion policy.",
     )
     ap.add_argument("--panel-rows", type=int, default=9)
     ap.add_argument("--seed", type=int, default=1234)

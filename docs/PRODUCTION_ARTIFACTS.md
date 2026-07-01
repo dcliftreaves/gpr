@@ -485,13 +485,15 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
-| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `8cd217570eaff5a0ffcb9e9b441620882e1b918ed858ba17a638eec709065736` |
-| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `d7db1b8f55dd954009f8c3b0a75b7e72fa829a996e653eb8784531f2d8316046` |
+| Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `d483a5303dca52694caa2e51698a7a46d45e2061696910b866d861854ea0253e` |
+| Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `08bc2fd29f7ed70b684e98120efae6e43355a83885d1105c675cad792c0fd9a9` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |
 | Premium still-SR candidate-signal ridge audit dashboard | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/index.html` | `e3d14168594271f93461610e2efc88e85f271f1fe5efd5ad27e70ca1b43acdac` |
 | Premium still-SR raw-CFA residual X2D camera-balanced sampler receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json` | `5b1857af9e32b1554c1e4c69ba1fca9cade8490213775538d1360e29ca0fafdd` |
 | Premium still-SR raw-CFA residual X2D context-padding receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json` | `ec12cfa610c02ba2189ffcbff60820d494e653bc944af11d9e0fd4fbe335397f` |
 | Premium still-SR raw-CFA residual X2D U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json` | `32a9d283678dcc9367d323ce83fecc98f7beab4d1d8e3c28e7d1b602d59170fe` |
+| Premium still-SR raw-CFA residual X2D early-selection U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_earlyselect_20260701/train_receipt.json` | `3fbab21edc548097d0cf452324aa014545348107822c8e30ba0ccb363951468d` |
+| Premium still-SR raw-CFA residual X2D early-selection U-Net dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_earlyselect_20260701/index.html` | `b1f74e5f09993b76ac3df6de4b096330e1bcfc7f21d92912d42372f17f1d4963` |
 | Premium still-SR raw-CFA residual X2D frame-context U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_framectx_unet_w32_1200_20260630/train_receipt.json` | `60e260db6084e0a8499086c7633ef6af4855949e2b2948906f5f66b3efe062c8` |
 | Premium still-SR raw-CFA residual Z8 frame-context U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_framectx_unet_w32_1200_20260630/train_receipt.json` | `acf9814a6fce227eaac2b394f15a52d454f0e4fe4e9d13de3bd4ce9310acbcbd` |
 | Premium still-SR raw-CFA residual X2D full-crop U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_unet_w16_160_20260630/train_receipt.json` | `91fe43b4ec74010b44ce1b321f53dd88effe52c898acac8dc734feee7b2bc610` |

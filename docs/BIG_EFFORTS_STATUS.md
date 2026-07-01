@@ -231,9 +231,11 @@ Current evidence:
   feature probe, multiscale band-loss objective probe, X2D-only
   train-domain filter, camera-balanced sampler pass, and 32 px context-padding
   pass remain negative. A bounded small U-Net/multiscale architecture probe
-  is candidate-only at runtime and moves the hard X2D holdout barely positive
-  at about 0.10 percent median raw-residual MAE recovery, with about 0.02
-  percent median RMSE recovery, but remains far below promotion. Adding
+  is candidate-only at runtime and moves the hard X2D holdout barely positive.
+  Diagnostic holdout-probe checkpoint selection raises that U-Net branch to
+  about 0.13 percent median raw-residual MAE recovery, but the best known X2D
+  row remains only about 0.16 percent and the promotion gate is 15 percent.
+  That rules out final-checkpoint selection as the primary blocker. Adding
   absolute crop-position, camera one-hot, and full-crop candidate raw/HF
   scalar context to that U-Net does not improve the held-out receipts: X2D
   lands at about 0.09 percent median MAE recovery and Z8 lands at about 0.19
