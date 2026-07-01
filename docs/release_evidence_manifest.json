@@ -1611,6 +1611,36 @@
       }
     },
     {
+      "id": "premium_still_sr_experiment_scoreboard_20260701",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Corrected premium still-SR experiment scoreboard. It scans both older rendered-HF and newer raw-CFA residual training receipts, normalizes the held-out MAE/RMSE recovery metrics, reports runtime-safe candidates separately, and records zero promotable rows against the 15 percent / 15 percent promotion threshold.",
+      "dashboard": "artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_experiment_scoreboard_20260701/scoreboard.json",
+        "artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html"
+      ],
+      "hashes": {
+        "scoreboard_json_sha256": "1a1d07482b1e2b1e3d7697b5883818c2b7cd90622713890af8bfb4edb7fcbd49",
+        "dashboard_sha256": "5a8a4523e7ddb240ce51d604112e2e7412151a9ceb5b9a069b714a7c76fa3ab4"
+      },
+      "metrics": {
+        "receipt_count": 80,
+        "runtime_safe_candidate_count": 80,
+        "promotable_candidate_count": 0,
+        "best_runtime_safe_holdout_mae_recovery_pct": 4.031355420019811,
+        "best_runtime_safe_holdout_rmse_recovery_pct": 3.753504206299621,
+        "promotion_threshold_pct": 15.0,
+        "production_ready": 0
+      }
+    },
+    {
       "id": "premium_still_sr_next_experiment_contract_transformer_teacher_20260701",
       "family": "premium_still_sr",
       "status": "diagnostic",

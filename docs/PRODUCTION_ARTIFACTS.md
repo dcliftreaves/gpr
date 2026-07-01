@@ -491,6 +491,8 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
+| Premium still-SR experiment scoreboard JSON | `artifacts/premium_still_sr_experiment_scoreboard_20260701/scoreboard.json` | `1a1d07482b1e2b1e3d7697b5883818c2b7cd90622713890af8bfb4edb7fcbd49` |
+| Premium still-SR experiment scoreboard dashboard | `artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html` | `5a8a4523e7ddb240ce51d604112e2e7412151a9ceb5b9a069b714a7c76fa3ab4` |
 | Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `3d95db1c9c468034e11ef255d3f3606fb5546e4a77b0d7eb49b8b82d11aaad13` |
 | Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `ba0ddcc00db1f9b22d2e3c138051cbd375a6a5c6b78f87f9ab623e7ade062968` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |

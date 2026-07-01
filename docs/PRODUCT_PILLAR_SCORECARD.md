@@ -286,11 +286,13 @@ track, while explicitly forbidding production promotion from the current
 unstable native Mission 1 kernel or partial historical SR rows.
 
 The current premium still-SR experiment scoreboard lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html`.
-It ranks the available no-REF HF residual training receipts and currently
-records zero promotable rows. The best single-scene row reaches 4.03 percent
-held-out MAE recovery, while the best broad scene-held-out row remains 2.92
-percent; both are diagnostic rather than production-ready.
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html`.
+It now ranks 80 runtime-safe rendered-HF and raw-CFA residual training receipts
+and records zero promotable rows. The best runtime-safe row reaches 4.03
+percent held-out MAE recovery and 3.75 percent held-out RMSE recovery against
+the 15 percent / 15 percent promotion threshold, while the best broad
+scene-held-out row remains 2.92 percent; both are diagnostic rather than
+production-ready.
 
 The premium still-SR blocker audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html`.

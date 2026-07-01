@@ -77,18 +77,23 @@ minimum held-out MAE/RMSE recovery thresholds:
 ```sh
 python3 tools/build_premium_still_sr_experiment_scoreboard.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701
 ```
 
 Current scoreboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html
 ```
 
-This is a necessary promotion guard, not a full production gate. A future row
-must still pass full-frame raw/editor-latitude review before the premium
-still-SR pillar can move from diagnostic to production-ready.
+The current scoreboard scans **80** premium still-SR training receipts across
+the older rendered-HF and newer raw-CFA residual schemas. All 80 rows are
+runtime-safe, but **0** are promotable. The best runtime-safe row reaches only
+**4.03%** held-out MAE recovery and **3.75%** held-out RMSE recovery against a
+15% / 15% promotion threshold. This is a necessary promotion guard, not a full
+production gate. A future row must still pass full-frame raw/editor-latitude
+review before the premium still-SR pillar can move from diagnostic to
+production-ready.
 
 ## Blocker Audit
 

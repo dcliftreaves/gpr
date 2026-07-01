@@ -21,6 +21,15 @@ SCHEMA = "gpr.premium_still_sr_experiment_scoreboard.v1"
 DEFAULT_EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT") or "/Volumes/OWC_8TB/gpr_work")
 PROMOTION_HOLDOUT_MAE_REDUCTION_PCT = 15.0
 PROMOTION_HOLDOUT_RMSE_REDUCTION_PCT = 15.0
+MAE_METRIC_KEYS = (
+    "residual_mae_reduction_pct",
+    "raw_residual_mae_reduction_pct",
+    "exact_raw_mae_reduction_pct",
+)
+RMSE_METRIC_KEYS = (
+    "residual_rmse_reduction_pct",
+    "raw_residual_rmse_reduction_pct",
+)
 
 
 def load_json(path: Path) -> dict[str, Any] | None:
@@ -49,6 +58,18 @@ def nested_value(data: dict[str, Any], keys: list[str]) -> Any:
     return cur
 
 
+def first_nested_float(data: dict[str, Any], paths: list[list[str]]) -> tuple[float | None, str | None]:
+    for path in paths:
+        value = nested_float(data, path)
+        if value is not None:
+            return value, ".".join(path)
+    return None, None
+
+
+def split_metric_paths(split: str, metric_keys: tuple[str, ...]) -> list[list[str]]:
+    return [["eval", split, key, "median"] for key in metric_keys]
+
+
 def classify_receipt(path: Path, payload: dict[str, Any]) -> dict[str, Any] | None:
     schema = str(payload.get("schema", ""))
     if "premium_still_sr" not in schema:
@@ -57,10 +78,10 @@ def classify_receipt(path: Path, payload: dict[str, Any]) -> dict[str, Any] | No
     if not isinstance(eval_data, dict):
         return None
 
-    holdout_mae = nested_float(payload, ["eval", "holdout", "residual_mae_reduction_pct", "median"])
-    holdout_rmse = nested_float(payload, ["eval", "holdout", "residual_rmse_reduction_pct", "median"])
-    train_mae = nested_float(payload, ["eval", "train", "residual_mae_reduction_pct", "median"])
-    train_rmse = nested_float(payload, ["eval", "train", "residual_rmse_reduction_pct", "median"])
+    holdout_mae, holdout_mae_metric = first_nested_float(payload, split_metric_paths("holdout", MAE_METRIC_KEYS))
+    holdout_rmse, holdout_rmse_metric = first_nested_float(payload, split_metric_paths("holdout", RMSE_METRIC_KEYS))
+    train_mae, train_mae_metric = first_nested_float(payload, split_metric_paths("train", MAE_METRIC_KEYS))
+    train_rmse, train_rmse_metric = first_nested_float(payload, split_metric_paths("train", RMSE_METRIC_KEYS))
     holdout_rows = nested_value(payload, ["eval", "holdout", "row_count"])
     train_rows = nested_value(payload, ["eval", "train", "row_count"])
     if holdout_mae is None and holdout_rmse is None and train_mae is None and train_rmse is None:
@@ -68,13 +89,21 @@ def classify_receipt(path: Path, payload: dict[str, Any]) -> dict[str, Any] | No
 
     policy = payload.get("policy") if isinstance(payload.get("policy"), dict) else {}
     config = payload.get("config") if isinstance(payload.get("config"), dict) else {}
-    uses_ref_runtime = bool(policy.get("uses_source_hf_at_runtime")) if policy else None
+    source_runtime_flags = {
+        "uses_source_hf_at_runtime": policy.get("uses_source_hf_at_runtime") if policy else None,
+        "uses_source_raw_at_runtime": policy.get("uses_source_raw_at_runtime") if policy else None,
+        "uses_ref_at_runtime": policy.get("uses_ref_at_runtime") if policy else None,
+    }
+    explicit_runtime_safe = [value for value in source_runtime_flags.values() if value is not None]
+    uses_forbidden_runtime_content = any(value is True for value in explicit_runtime_safe)
+    runtime_safety_known = bool(explicit_runtime_safe)
+    runtime_safe = runtime_safety_known and not uses_forbidden_runtime_content
     promotion_ready = (
         holdout_mae is not None
         and holdout_rmse is not None
         and holdout_mae >= PROMOTION_HOLDOUT_MAE_REDUCTION_PCT
         and holdout_rmse >= PROMOTION_HOLDOUT_RMSE_REDUCTION_PCT
-        and uses_ref_runtime is False
+        and runtime_safe
     )
     return {
         "path": path.as_posix(),
@@ -96,8 +125,17 @@ def classify_receipt(path: Path, payload: dict[str, Any]) -> dict[str, Any] | No
         "train_residual_rmse_reduction_pct_median": train_rmse,
         "holdout_residual_mae_reduction_pct_median": holdout_mae,
         "holdout_residual_rmse_reduction_pct_median": holdout_rmse,
+        "train_mae_metric": train_mae_metric,
+        "train_rmse_metric": train_rmse_metric,
+        "holdout_mae_metric": holdout_mae_metric,
+        "holdout_rmse_metric": holdout_rmse_metric,
         "uses_source_hf_at_training": policy.get("uses_source_hf_at_training"),
-        "uses_source_hf_at_runtime": uses_ref_runtime,
+        "uses_source_hf_at_runtime": source_runtime_flags["uses_source_hf_at_runtime"],
+        "uses_source_raw_at_runtime": source_runtime_flags["uses_source_raw_at_runtime"],
+        "uses_ref_at_runtime": source_runtime_flags["uses_ref_at_runtime"],
+        "runtime_safety_known": runtime_safety_known,
+        "runtime_safe": runtime_safe,
+        "uses_forbidden_runtime_content": uses_forbidden_runtime_content,
         "production_status": policy.get("production_status"),
         "promotion_ready": promotion_ready,
     }
@@ -130,6 +168,8 @@ def scan_receipts(external_root: Path) -> list[dict[str, Any]]:
 def build_scoreboard(external_root: Path) -> dict[str, Any]:
     rows = scan_receipts(external_root)
     best = rows[0] if rows else None
+    runtime_safe_rows = [row for row in rows if row["runtime_safe"]]
+    best_runtime_safe = runtime_safe_rows[0] if runtime_safe_rows else None
     promotable = [row for row in rows if row["promotion_ready"]]
     return {
         "schema": SCHEMA,
@@ -139,9 +179,11 @@ def build_scoreboard(external_root: Path) -> dict[str, Any]:
         "promotion_thresholds": {
             "holdout_residual_mae_reduction_pct_median": PROMOTION_HOLDOUT_MAE_REDUCTION_PCT,
             "holdout_residual_rmse_reduction_pct_median": PROMOTION_HOLDOUT_RMSE_REDUCTION_PCT,
-            "uses_source_hf_at_runtime": False,
+            "runtime_safe": True,
         },
         "best_candidate": best,
+        "best_runtime_safe_candidate": best_runtime_safe,
+        "runtime_safe_candidate_count": len(runtime_safe_rows),
         "promotable_candidate_count": len(promotable),
         "production_ready": bool(promotable),
         "interpretation": (
@@ -172,12 +214,13 @@ def render_html(scoreboard: dict[str, Any]) -> str:
             f"<td>{html.escape(fmt(row.get('holdout_residual_rmse_reduction_pct_median')))}</td>"
             f"<td>{html.escape(fmt(row.get('train_residual_mae_reduction_pct_median')))}</td>"
             f"<td>{html.escape(str(row.get('holdout_row_count') or ''))}</td>"
-            f"<td>{html.escape(str(row.get('uses_source_hf_at_runtime')))}</td>"
+            f"<td>{html.escape(str(row.get('runtime_safe')))}</td>"
             f"<td>{html.escape(str(row.get('promotion_ready')))}</td>"
             f"<td><a href='file://{html.escape(row['path'])}'>receipt</a></td>"
             "</tr>"
         )
     best = scoreboard.get("best_candidate") or {}
+    best_runtime_safe = scoreboard.get("best_runtime_safe_candidate") or {}
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -203,12 +246,13 @@ def render_html(scoreboard: dict[str, Any]) -> str:
   <p>{html.escape(scoreboard['interpretation'])}</p>
   <div class="cards">
     <div class="card"><div>Receipts</div><div class="metric">{scoreboard['receipt_count']}</div></div>
+    <div class="card"><div>Runtime-safe rows</div><div class="metric">{scoreboard['runtime_safe_candidate_count']}</div></div>
     <div class="card"><div>Promotable rows</div><div class="metric">{scoreboard['promotable_candidate_count']}</div></div>
-    <div class="card"><div>Best holdout MAE recovery</div><div class="metric">{html.escape(fmt(best.get('holdout_residual_mae_reduction_pct_median')))}%</div></div>
-    <div class="card"><div>Best experiment</div><code>{html.escape(str(best.get('experiment', 'none')))}</code></div>
+    <div class="card"><div>Best runtime-safe holdout MAE recovery</div><div class="metric">{html.escape(fmt(best_runtime_safe.get('holdout_residual_mae_reduction_pct_median')))}%</div></div>
+    <div class="card"><div>Best runtime-safe experiment</div><code>{html.escape(str(best_runtime_safe.get('experiment', 'none')))}</code></div>
   </div>
   <table>
-    <thead><tr><th>Experiment</th><th>Model</th><th>Holdout MAE %</th><th>Holdout RMSE %</th><th>Train MAE %</th><th>Holdout rows</th><th>Uses source HF at runtime</th><th>Promotion row</th><th>Receipt</th></tr></thead>
+    <thead><tr><th>Experiment</th><th>Model</th><th>Holdout MAE %</th><th>Holdout RMSE %</th><th>Train MAE %</th><th>Holdout rows</th><th>Runtime safe</th><th>Promotion row</th><th>Receipt</th></tr></thead>
     <tbody>{''.join(rows)}</tbody>
   </table>
 </body>
