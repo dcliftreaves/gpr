@@ -133,6 +133,13 @@ reason to delay shipping the current workflow.
 | **3. Premium still/SR** | Offline still processing can spend real compute for the best possible editable raw output, including 4K/8K reconstruction and still latitude recovery. | Routed X2D/Z8/Mission specialists, raw-CFA targets, full-frame reviews, editor-openability receipts, a 13-scene / 351-row expanded target set, raw-target SNR/distribution audits, PSF/kernel-conditioned trainer plumbing, a PSF metadata gap audit plus row-level sidecar contract, deduplicated RCAB/NAF/U-Net teacher receipts, a first real-target window-attention teacher smoke, and explicit overlapped-tile/seam validation receipts. | Current raw-residual models are diagnostic, not production: simple RCAB/NAF scale-up still fails X2D, noise-floor-only weighted U-Net is the best current X2D-scene branch at **0.153%**, the bounded window-attention smoke reaches only **0.142%**, the overlap/seam smoke is validation machinery at **0.448%**, first near-box PSF probes reach **0.106%** and **0.064%**, stored-HF/pyramid/target-energy/Fourier-band/candidate-scale/source-HF/frame-context follow-ups regress, and the hard holdout has **3.45x** train-median target energy. The next pass remains a full SwinIR/HAT-style window-attention or Restormer-style high-resolution raw teacher/student run, with full-image/overlap validation and no REF/source/JPEG runtime inputs. |
 | **4. Raw video reconstruction improvement** | 4K cleanup and 8K reconstruction should ship on the approved current baselines, while PSF/blur modeling stays available for a later replacement. | Approved 4K cleanup and 8K SR baselines, 1,024-tile detail budget, continuous no-CNN/CNN ProRes review media, `.gvid` decode/SR, editable DNG/GPR, 2K ProRes, Mission metadata-transplant receipts, 42-frame full-sequence `.gvid` packaging, objective visual-review, and manual visual signoff. | No release blocker for the current offline reconstruction path. Controlled high/low PSF pairs remain optional research before claiming a PSF-conditioned replacement. |
 
+Premium still-SR promotion is intentionally stricter than "looks sharper." A
+candidate must submit `runtime_inputs` with `candidate_raw` and camera metadata,
+exclude REF/source/JPEG content at render time, report 50 MP and 100 MP gate row counts,
+show positive median MAE reduction with nonnegative worst-row MAE reduction,
+record seconds/frame and peak RSS, and prove exact-sidecar-only noise policy
+before it can be called production.
+
 | pillar | done | shortest honest read |
 |---|---:|---|
 | Best RAW stills | **92%** | Strong for the tested normal-Bayer surface; remaining work is Mission/iPhone noise-sidecar coverage. |
