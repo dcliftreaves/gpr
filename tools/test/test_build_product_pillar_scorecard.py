@@ -85,8 +85,20 @@ def main() -> int:
         assert "Premium still-SR promotion" in data["pillars"][2]["open_production_gates"]
         assert any("351-row" in item for item in data["pillars"][2]["locked_artifacts"])
         assert any("next-experiment contract" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("matched global-context" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("fixed non-box PSF/CFA" in item for item in data["pillars"][2]["done_evidence"])
         assert any(
             "premium_still_sr_next_experiment_contract_20260701/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_globalctx_matched_w32_1200_20260701/index.html"
+            in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_nonboxpsf_cfa_naf_w32_800_20260701/index.html"
+            in ref["path"]
             for ref in data["pillars"][2]["evidence"]
         )
         assert data["pillars"][3]["readiness_percent"] == 55
