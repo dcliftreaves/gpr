@@ -50,9 +50,6 @@ Requires new hardware or new samples before it can close:
 - Mission 1 raw-video MVP production closure: real sensor/DMA or camera
   ring-buffer source, SD writer, rear-display/UI handoff, zero drops, valid
   `.gvid`, and timing receipts from `target_role=camera`.
-- Broad real-camera Bayer phase coverage: real GRBG and BGGR fixtures with
-  metadata, black/white levels, extraction receipts, and updated matrix/capability
-  evidence.
 - Mission 1 and iPhone nonzero noise addback: same-camera, same-ISO darkframe
   stacks with source hashes and validated `gpr.camera_noise_calibration.v1`
   sidecars.
@@ -73,9 +70,9 @@ Immediate work:
 - Keep all normal unpacked 2x2 Bayer still phases guarded. The legacy stills
   SDK/CLI path now exposes RGGB, GBRG, GRBG, and BGGR at 12/14/16 bits with
   matrix and capability coverage.
-- Add real BGGR/GRBG camera fixtures as they become available so the current
-  synthetic conformance cells are backed by real metadata and black-level
-  examples.
+- Keep real RGGB/GBRG/GRBG/BGGR still fixture coverage linked to the broad
+  GoPro/Mission and old-photo phase scans so synthetic conformance cells stay
+  backed by real metadata and black-level examples.
 - Use the committed camera-noise calibration sidecar builder for darkframe
   stacks. The schema is keyed by camera model, dimensions, ISO, bit depth,
   black level, white level, CFA phase, and darkframe/flatfield source hash.
@@ -186,18 +183,15 @@ Evidence required:
 
 ## Near-Term Commit Targets
 
-1. Add real BGGR/GRBG fixture coverage when a representative camera sample is
-   available. The current stills fixture gap plan is
-   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`;
-   it records RGGB=70, GBRG=4, GRBG=0, and BGGR=0 real parsed fixtures.
-   The handoff-ready raw-stills capture request is
-   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260630/index.html`.
-2. Apply the noise-calibration sidecar flow to real Mission 1 and iPhone
+1. Apply the noise-calibration sidecar flow to real Mission 1 and iPhone
    darkframe/frame-stack artifacts where available. The current lowest-lift
    Mission candidate is `GoPro|MISSION 1|ISO232|RGGB`, which already has two
    darkframe-like frames and needs two more matching frames for a production
-   stack candidate.
-3. Continue premium still-SR from the current raw-CFA residual blocker, not
+   stack candidate. The current stills fixture gap plan is
+   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/index.html`;
+   the handoff-ready raw-stills capture request is
+   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260701/index.html`.
+2. Continue premium still-SR from the current raw-CFA residual blocker, not
    older rendered-HF targets. The latest candidate-only raw-domain trainer is
    mildly positive on held-out Z8 at about 0.50 percent median raw-residual MAE
    recovery, but the hard X2D holdout only reaches about 0.02 percent after a

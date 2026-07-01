@@ -17,16 +17,8 @@ from build_product_pillar_scorecard import DEFAULT_EXTERNAL_ROOT  # noqa: E402
 
 EXPECTED_PILLARS = {
     "raw_stills": {
-        "readiness": 90,
+        "readiness": 92,
         "required_actions": {
-            "Close real Bayer phase fixture gaps": {
-                "requirement_ids": ["real_grbg_fixture", "real_bggr_fixture"],
-                "tokens": ("GRBG", "BGGR", "still matrix"),
-                "blocker_type": "sample_acquisition",
-                "requires_mission1_camera_role": False,
-                "requires_new_samples": True,
-                "command_tokens": ("build_bayer_phase_fixture_inventory.py", "test_still_matrix.sh"),
-            },
             "Add Mission 1 and iPhone darkframe sidecars": {
                 "requirement_ids": ["mission1_darkframe_stack", "iphone_cfa_darkframe_stack"],
                 "tokens": (
@@ -123,22 +115,22 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
         failures.append("four-pillar completion percent must stay aligned to the current 69% scorecard")
 
     summary = data.get("summary", {})
-    if summary.get("open_requirement_count") != 7:
-        failures.append("burn-down must identify the seven open production capture requirements")
+    if summary.get("open_requirement_count") != 5:
+        failures.append("burn-down must identify the five open production capture requirements")
     if summary.get("camera_required_action_count") != 1:
         failures.append("burn-down must identify exactly one camera-required action")
-    if summary.get("non_camera_action_count") != 5:
-        failures.append("burn-down must identify the five non-camera actions that can continue now")
+    if summary.get("non_camera_action_count") != 4:
+        failures.append("burn-down must identify the four non-camera actions that can continue now")
     if summary.get("mission1_camera_role_required_action_count") != 1:
         failures.append("burn-down must identify exactly one Mission 1 camera-role action")
-    if summary.get("new_sample_required_action_count") != 3:
-        failures.append("burn-down must identify three sample-acquisition actions")
+    if summary.get("new_sample_required_action_count") != 2:
+        failures.append("burn-down must identify two sample-acquisition actions")
     if summary.get("model_promotion_action_count") != 2:
         failures.append("burn-down must identify two model-promotion actions")
     expected_blockers = {
         "hardware_integration": 1,
         "model_promotion": 2,
-        "sample_acquisition": 3,
+        "sample_acquisition": 2,
     }
     if summary.get("blocker_type_counts") != expected_blockers:
         failures.append(
@@ -147,8 +139,6 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
     if summary.get("lowest_readiness_pillar") != "raw_video_psf_sr":
         failures.append("raw_video_psf_sr should remain the lowest-readiness pillar until PSF work closes")
     expected_open_ids = [
-        "real_grbg_fixture",
-        "real_bggr_fixture",
         "mission1_darkframe_stack",
         "iphone_cfa_darkframe_stack",
         "mission1_camera_role_receipts",

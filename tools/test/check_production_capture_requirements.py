@@ -24,7 +24,7 @@ EXPECTED_IDS = {
     "premium_still_sr_promotion_receipts": ("premium_still_sr", "model_promotion_receipt"),
 }
 EXPECTED_PILLARS = {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_psf_sr"}
-OPEN_STATUSES = {"open", "blocked_on_real_camera_access"}
+VALID_STATUSES = {"open", "closed", "blocked_on_real_camera_access"}
 
 
 def as_list(value: Any) -> list[Any]:
@@ -92,8 +92,8 @@ def validate() -> list[str]:
             failures.append(f"{rid}: sample_type is {sample_type!r}, expected {expected_type!r}")
         if priority != "required":
             failures.append(f"{rid}: priority must be required")
-        if status not in OPEN_STATUSES:
-            failures.append(f"{rid}: status {status!r} must be one of {sorted(OPEN_STATUSES)}")
+        if status not in VALID_STATUSES:
+            failures.append(f"{rid}: status {status!r} must be one of {sorted(VALID_STATUSES)}")
         if not row.get("why_needed"):
             failures.append(f"{rid}: missing why_needed")
         if not as_list(row.get("required_evidence")):
@@ -115,7 +115,7 @@ def validate() -> list[str]:
 
     if DOC_PATH.is_file():
         doc = DOC_PATH.read_text(encoding="utf-8")
-        for token in (*EXPECTED_IDS.keys(), "Product pillar scorecard", "stills_capture_request_20260630", "raw_video_psf_capture_request_20260630"):
+        for token in (*EXPECTED_IDS.keys(), "Product pillar scorecard", "stills_capture_request_20260701", "raw_video_psf_capture_request_20260630"):
             if token not in doc:
                 failures.append(f"{display_path(DOC_PATH)} missing {token!r}")
 

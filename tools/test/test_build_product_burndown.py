@@ -55,17 +55,17 @@ def main() -> int:
         assert data["source_requirements_path"] == "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json"
         assert data["four_pillar_completion_percent"] == 69
         assert data["production_ready"] is False
-        assert data["summary"]["action_count"] == 6
-        assert data["summary"]["open_requirement_count"] == 7
+        assert data["summary"]["action_count"] == 5
+        assert data["summary"]["open_requirement_count"] == 5
         assert data["summary"]["camera_required_action_count"] == 1
-        assert data["summary"]["non_camera_action_count"] == 5
+        assert data["summary"]["non_camera_action_count"] == 4
         assert data["summary"]["mission1_camera_role_required_action_count"] == 1
-        assert data["summary"]["new_sample_required_action_count"] == 3
+        assert data["summary"]["new_sample_required_action_count"] == 2
         assert data["summary"]["model_promotion_action_count"] == 2
         assert data["summary"]["blocker_type_counts"] == {
             "hardware_integration": 1,
             "model_promotion": 2,
-            "sample_acquisition": 3,
+            "sample_acquisition": 2,
         }
         assert data["summary"]["lowest_readiness_pillar"] == "raw_video_psf_sr"
         assert [row["id"] for row in data["pillars"]] == [
@@ -75,8 +75,6 @@ def main() -> int:
             "raw_video_psf_sr",
         ]
         assert data["open_requirement_ids"] == [
-            "real_grbg_fixture",
-            "real_bggr_fixture",
             "mission1_darkframe_stack",
             "iphone_cfa_darkframe_stack",
             "mission1_camera_role_receipts",
@@ -85,15 +83,15 @@ def main() -> int:
         ]
         stills_actions = data["pillars"][0]["burn_down_actions"]
         assert "STILL smallest" in data["pillars"][0]["lock_ledger_paths"]
-        assert "Broad real-camera Bayer phase coverage" in data["pillars"][0]["open_production_gates"]
+        assert "Broad real-camera Bayer phase coverage" not in data["pillars"][0]["open_production_gates"]
         assert any("X2D 100MP" in item for item in data["pillars"][0]["locked_artifacts"])
-        assert stills_actions[0]["requirement_ids"] == ["real_grbg_fixture", "real_bggr_fixture"]
+        assert stills_actions[0]["requirement_ids"] == ["mission1_darkframe_stack", "iphone_cfa_darkframe_stack"]
         assert stills_actions[0]["source_requirement_statuses"] == {
-            "real_grbg_fixture": "open",
-            "real_bggr_fixture": "open",
+            "mission1_darkframe_stack": "open",
+            "iphone_cfa_darkframe_stack": "open",
         }
-        assert any("build_bayer_phase_fixture_inventory.py" in command for command in stills_actions[0]["validation_commands"])
-        assert any("GRBG" in " ".join(row["evidence_required"]) for row in stills_actions)
+        assert any("build_darkframe_candidate_audit.py" in command for command in stills_actions[0]["validation_commands"])
+        assert any("darkframe" in " ".join(row["evidence_required"]).lower() for row in stills_actions)
         assert any("darkframe" in row["title"].lower() for row in stills_actions)
         assert all(row["blocker_type"] == "sample_acquisition" for row in stills_actions)
         assert all(row["requires_new_samples"] is True for row in stills_actions)
@@ -121,7 +119,7 @@ def main() -> int:
         assert "GPR Production Burn-Down" in html
         assert "four-pillar completion" in html
         assert "Requirement IDs" in html
-        assert "real_grbg_fixture" in html
+        assert "mission1_darkframe_stack" in html
         assert "Blocker type" in html
         assert "Lock ledger paths" in html
         assert "Open production gates" in html

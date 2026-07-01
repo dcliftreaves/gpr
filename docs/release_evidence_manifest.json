@@ -1,6 +1,6 @@
 {
   "schema": "gpr_release_evidence_manifest.v1",
-  "updated": "2026-06-30",
+  "updated": "2026-07-01",
   "external_root": "/Volumes/OWC_8TB/gpr_work",
   "purpose": "Compact source-of-truth index for production and explicitly experimental GPR output paths. Heavy dashboards, videos, checkpoints, and rendered media remain outside the repo.",
   "product_pillars": [
@@ -8,7 +8,7 @@
       "id": "raw_stills",
       "release_label": "RAW stills",
       "status": "locked_with_sample_gaps",
-      "summary": "50 MP still tiers, 12/14/16-bit support, real X2D 100 MP-class roundtrip evidence, normal Bayer parser/conformance coverage, and camera-noise policy evidence.",
+      "summary": "50 MP still tiers, 12/14/16-bit support, real X2D 100 MP-class roundtrip evidence, normal Bayer parser/conformance coverage, real RGGB/GBRG/GRBG/BGGR fixture evidence, and camera-noise policy evidence.",
       "manifest_refs": {
         "production_paths": [
           "still_smallest",
@@ -16,13 +16,14 @@
           "still_archival"
         ],
         "dashboards": [
-          "realphoto_bayer_phase_sample_20260630",
-          "targeted_raw_fixture_scan_20260630",
-          "source_root_raw_fixture_scan_20260630",
-          "camera_noise_runtime_policy_20260630"
-        ]
-      },
-      "open_gate": "Real GRBG/BGGR camera fixtures and Mission 1/iPhone darkframe sidecars are still required before broad-camera and nonzero noise-addback claims are complete."
+	          "realphoto_bayer_phase_sample_20260630",
+	          "targeted_raw_fixture_scan_20260630",
+	          "broad_old_photo_bayer_phase_scan_20260701",
+	          "source_root_raw_fixture_scan_20260630",
+	          "camera_noise_runtime_policy_20260630"
+	        ]
+	      },
+	      "open_gate": "Mission 1/iPhone darkframe sidecars are still required before broad-camera nonzero noise-addback claims are complete; real RGGB/GBRG/GRBG/BGGR fixture coverage is closed for the stills path."
     },
     {
       "id": "raw_video_mvp",
@@ -1298,25 +1299,29 @@
       }
     },
     {
-      "id": "product_burndown_20260630",
+      "id": "product_burndown_20260701",
       "family": "product_status",
       "status": "current",
       "purpose": "Four-pillar production burn-down showing the remaining evidence gates and which work can proceed without Mission 1 firmware access.",
-      "dashboard": "artifacts/product_burndown_20260630/index.html",
+      "dashboard": "artifacts/product_burndown_20260701/index.html",
       "docs": [
         "README.md",
         "docs/PRODUCT_PILLAR_SCORECARD.md",
         "docs/BIG_EFFORTS_STATUS.md"
       ],
       "receipts": [
-        "artifacts/product_burndown_20260630/product_burndown.json",
-        "artifacts/product_burndown_20260630/index.html"
+        "artifacts/product_burndown_20260701/product_burndown.json",
+        "artifacts/product_burndown_20260701/index.html"
       ],
+      "hashes": {
+        "product_burndown_json_sha256": "62f2151e31191933eea163294dadab88f4375456b5f7976983bde741b3ae85a2",
+        "dashboard_sha256": "7a3828d743a24fcb94e2219ecf917d07a3639541f78f1cba2070853f3747c0f0"
+      },
       "metrics": {
         "four_pillar_completion_percent": 69,
-        "action_count": 6,
-        "open_requirement_count": 7,
-        "non_camera_action_count": 5,
+        "action_count": 5,
+        "open_requirement_count": 5,
+        "non_camera_action_count": 4,
         "camera_required_action_count": 1,
         "requirement_linked": 1,
         "production_ready": 0
@@ -1423,7 +1428,7 @@
       "id": "realphoto_bayer_phase_sample_20260630",
       "family": "stills_fixtures",
       "status": "diagnostic",
-      "purpose": "Broader real-photo iPhone/GoPro/Hassel CFA phase sample using the batch metadata path; confirms additional iPhone RGGB evidence but no GRBG/BGGR fixture closure.",
+      "purpose": "Broader real-photo iPhone/GoPro/Hassel CFA phase sample using the batch metadata path; confirms additional iPhone RGGB evidence. Later broad old-photo evidence closes GRBG/BGGR fixture coverage.",
       "dashboard": "artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html",
       "docs": [
         "README.md",
@@ -1473,7 +1478,7 @@
       "id": "targeted_raw_fixture_scan_20260630",
       "family": "stills_fixtures",
       "status": "diagnostic",
-      "purpose": "Targeted GoPro/Mission DNG/GPR scan over 3,000 local files. Confirms every parsed file is normal Bayer while real GRBG/BGGR fixtures remain missing.",
+      "purpose": "Targeted GoPro/Mission DNG/GPR scan over 3,000 local files. Confirms every parsed file is normal Bayer and supplies the real GBRG/RGGB side of the all-phase stills evidence.",
       "dashboard": "artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html",
       "docs": [
         "README.md",
@@ -1498,7 +1503,7 @@
       "id": "source_root_raw_fixture_scan_20260630",
       "family": "stills_fixtures",
       "status": "diagnostic",
-      "purpose": "Bounded source-root scan over Mission/GoPro, Hassel/X2D, iPhone, X2D darkframe, Barnsky, and related local source roots. Uses per-root limits and exiftool timeouts; confirms more RGGB/GBRG evidence while real GRBG/BGGR fixtures remain missing.",
+      "purpose": "Bounded source-root scan over Mission/GoPro, Hassel/X2D, iPhone, X2D darkframe, Barnsky, and related local source roots. Uses per-root limits and exiftool timeouts; confirms more RGGB/GBRG evidence. Later broad old-photo evidence closes GRBG/BGGR fixture coverage.",
       "dashboard": "artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html",
       "docs": [
         "README.md",
@@ -1520,6 +1525,38 @@
         "grbg_count": 0,
         "bggr_count": 0,
         "production_real_phase_coverage": 0
+      }
+    },
+    {
+      "id": "broad_old_photo_bayer_phase_scan_20260701",
+      "family": "stills_fixtures",
+      "status": "current",
+      "purpose": "Broad old-photo Bayer phase scan over local historical raw photos. Adds real Nikon D200 GRBG and Nikon D70 BGGR fixtures, closing real RGGB/GBRG/GRBG/BGGR coverage for the stills path when combined with the GoPro/Mission scan.",
+      "dashboard": "artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"
+      ],
+      "receipts": [
+        "artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/inventory.json",
+        "artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/index.html"
+      ],
+      "hashes": {
+        "inventory_json_sha256": "2d73555e2d95f4b5bbd602c2be2ab66c3f6bccbb101c7f9e5a40fd2ef3aed1f2",
+        "dashboard_sha256": "19f3b402ec54f3eba27c8e02ffd83abe2f89978ac960e3700455425e707bcb42"
+      },
+      "metrics": {
+        "files_seen": 840,
+        "parsed_count": 818,
+        "normal_bayer_count": 818,
+        "rggb_count": 618,
+        "gbrg_count": 0,
+        "grbg_count": 120,
+        "bggr_count": 80,
+        "production_real_phase_coverage": 1
       }
     },
     {

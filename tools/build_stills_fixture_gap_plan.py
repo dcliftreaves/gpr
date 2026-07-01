@@ -38,7 +38,13 @@ REQUIREMENT_BY_NOISE_KEY = {
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--bayer-inventory", type=Path, default=DEFAULT_BAYER_INVENTORY)
+    ap.add_argument(
+        "--bayer-inventory",
+        type=Path,
+        action="append",
+        default=None,
+        help="Bayer phase inventory JSON. Repeat to union evidence across scans.",
+    )
     ap.add_argument("--darkframe-audit", type=Path, default=DEFAULT_DARKFRAME_AUDIT)
     ap.add_argument("--noise-coverage", type=Path, default=DEFAULT_NOISE_COVERAGE)
     ap.add_argument("--output-dir", type=Path, required=True)
@@ -70,17 +76,17 @@ def sorted_stack_groups(darkframe_audit: dict[str, Any]) -> list[dict[str, Any]]
 
 
 def build_plan(
-    bayer_inventory: dict[str, Any],
+    bayer_inventories: list[dict[str, Any]],
     darkframe_audit: dict[str, Any],
     noise_coverage: dict[str, Any],
-    sources: dict[str, Path],
+    sources: dict[str, Any],
 ) -> dict[str, Any]:
-    bayer_summary = bayer_inventory.get("summary") or {}
     noise_summary = noise_coverage.get("summary") or {}
-    phase_counts = {
-        phase: int((bayer_summary.get("phase_counts") or {}).get(phase) or 0)
-        for phase in NORMAL_BAYER_PHASES
-    }
+    phase_counts = dict.fromkeys(NORMAL_BAYER_PHASES, 0)
+    for inventory in bayer_inventories:
+        bayer_summary = inventory.get("summary") or {}
+        for phase in NORMAL_BAYER_PHASES:
+            phase_counts[phase] += int((bayer_summary.get("phase_counts") or {}).get(phase) or 0)
     missing_phases = [phase for phase, count in phase_counts.items() if count <= 0]
 
     coverage_rows = noise_coverage.get("coverage") or []
@@ -145,7 +151,10 @@ def build_plan(
     return {
         "schema": SCHEMA,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "sources": {key: path.as_posix() for key, path in sources.items()},
+        "sources": {
+            key: [item.as_posix() for item in value] if isinstance(value, list) else value.as_posix()
+            for key, value in sources.items()
+        },
         "summary": {
             "all_real_bayer_phases_ready": not missing_phases,
             "phase_counts": phase_counts,
@@ -251,13 +260,14 @@ th {{ background: #eef2f5; color: #4f5b67; font-size: 12px; text-transform: uppe
 
 def main() -> int:
     args = parse_args()
+    bayer_inventory_paths = args.bayer_inventory or [DEFAULT_BAYER_INVENTORY]
     sources = {
-        "bayer_inventory": args.bayer_inventory,
+        "bayer_inventories": bayer_inventory_paths,
         "darkframe_audit": args.darkframe_audit,
         "noise_coverage": args.noise_coverage,
     }
     plan = build_plan(
-        load_json(args.bayer_inventory),
+        [load_json(path) for path in bayer_inventory_paths],
         load_json(args.darkframe_audit),
         load_json(args.noise_coverage),
         sources,

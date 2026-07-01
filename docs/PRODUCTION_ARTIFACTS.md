@@ -454,8 +454,9 @@ holdout evidence in `pipelines/registry.json`:
 ## Raw Stills Fixture Diagnostics
 
 These rows are diagnostic. They strengthen the real-camera fixture search but
-do not close the broad raw-stills production gaps because real GRBG/BGGR
-fixtures and Mission/iPhone production darkframe stacks are still missing.
+the latest broad old-photo scan closes the real GRBG/BGGR fixture gap when
+combined with the GoPro/Mission scan. Mission/iPhone production darkframe stacks
+remain open.
 
 | artifact | path | sha256 |
 |---|---|---|
@@ -465,12 +466,14 @@ fixtures and Mission/iPhone production darkframe stacks are still missing.
 | Targeted 3,000-file Bayer phase dashboard | `artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html` | `edd17fd5c264dc9230cd272404b4180d9ca432f8ae38a32a183cb2d685b25055` |
 | Source-root Bayer phase inventory JSON | `artifacts/bayer_phase_fixture_discovery_source_roots_20260630/inventory.json` | `f672d99a55e72eef4fb8f07865650c01d4db0b415ae74014455b756a456d7dc0` |
 | Source-root Bayer phase dashboard | `artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html` | `2f90700e137333c753a6cb12914836945503e8bf808ace63320f3252b3a1b5ca` |
+| Broad old-photo Bayer phase inventory JSON | `artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/inventory.json` | `2d73555e2d95f4b5bbd602c2be2ab66c3f6bccbb101c7f9e5a40fd2ef3aed1f2` |
+| Broad old-photo Bayer phase dashboard | `artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/index.html` | `19f3b402ec54f3eba27c8e02ffd83abe2f89978ac960e3700455425e707bcb42` |
 | Targeted Mission DNG darkframe audit JSON | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/darkframe_candidate_audit.json` | `dd06fb371f5177a03f2ffbc683e343f15f1286091b92eed053a2334f537dd74a` |
 | Targeted Mission DNG darkframe dashboard | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html` | `dd7c607f07fa1b9f0f9e473ca514810b3adc74c22690359ae44a655256b2836a` |
-| Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_20260630/stills_fixture_gap_plan.json` | `3629dc25720c839219486871a0758f0fe56a7e11245295ca2a613d787fdc962c` |
-| Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_20260630/index.html` | `37a0f309cf028657c930834e398ef4f63d91624b3ad3e179f8994a6295fc6402` |
-| Current raw-stills capture request JSON | `artifacts/stills_capture_request_20260630/stills_capture_request.json` | `ac8e0f7a148d9f84ac53973edd38141f88b8de40222cd8b9aa203e722a76771f` |
-| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_20260630/index.html` | `51718c05ed06ed237bac3957f91e157d59822be1dcf849a45f0a7e45ac44e48b` |
+| Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_20260701/stills_fixture_gap_plan.json` | `9f96503fd6142667fbdcb6941bae898c10c932322ffa77f7028cca17a091024a` |
+| Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_20260701/index.html` | `1b1ca0bdbf9b5d570a09a5a002f4197f09022dcd8b699c050a90eefbce162815` |
+| Current raw-stills capture request JSON | `artifacts/stills_capture_request_20260701/stills_capture_request.json` | `6dd409c69db61446b0a564b4194c635ea0b01207bfd25ea0fa94973443b51630` |
+| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_20260701/index.html` | `2446aea88e98a208129228662d6131008f21c791b543498cf8e3e448fe58fc62` |
 
 ## Premium Still-SR Gap Artifacts
 

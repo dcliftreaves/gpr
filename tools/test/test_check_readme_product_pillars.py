@@ -37,7 +37,7 @@ def main() -> int:
         scorecard.write_text(
             "\n".join(
                 (
-                    "| Best RAW stills | 90% |",
+                    "| Best RAW stills | 92% |",
                     "| GoPro RAW video MVP | 80% |",
                     "| Premium still/SR | 60% |",
                     "| PSF-aware RAW video improvement | 44% |",

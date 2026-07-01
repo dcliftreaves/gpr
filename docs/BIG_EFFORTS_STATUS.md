@@ -1,6 +1,6 @@
 # Big Efforts Status
 
-Last refreshed: 2026-06-30
+Last refreshed: 2026-07-01
 
 This document maps the repo to the four large product efforts. It is a
 planning/status document, not a replacement for the release evidence manifest.
@@ -12,7 +12,7 @@ The generated audit dashboard for these same four pillars is tracked in
 
 | effort | done | current status | production interpretation |
 |---|---:|---|---|
-| Raw stills for 50 MP / 100 MP cameras | 90% | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, RGGB plus Mission 1 GBRG real-fixture coverage, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars. |
+| Raw stills for 50 MP / 100 MP cameras | 92% | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, real RGGB/GBRG/GRBG/BGGR fixture coverage, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on Mission/iPhone darkframe sidecars. |
 | Raw video MVP for GoPro / Mission 1 | 80% | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
 | Raw stills improvement / expensive SR | 60% | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, raw-CFA expanded targets, no-REF HF residual probes including a matched dilated raw-CFA gate, calibrated noise-clean target sweep, raw-CFA residual alignment audit, trainable raw-CFA residual target NPZ, and true raw-CFA residual model receipts including X2D-only, combined stored-HF/context, multiscale band-loss rejection evidence, a small U-Net raw-domain probe, frame-context scalar rejection evidence, a bounded full-crop U-Net sample-mode probe, a bounded full-crop stored-HF/context U-Net rejection probe, and a bounded spectral-loss rejection probe. | Not done until learned/modelled high-frequency texture restoration receipts pass; raw-CFA helps, the small U-Net and first full-crop U-Net are only barely positive on X2D, simple scalar frame context, bounded stored-HF/full-crop context, and bounded spectral loss do not improve it, ISO 200 noise cleaning is too small to explain the gap, and the raw-domain trainer narrows the blocker to X2D raw-detail recovery strength plus missing stronger full-image/structured context and objective. |
 | Raw video improvement / PSF-aware Bayer resize | 44% | Partly done through 4K cleanup, candidate-aware 8K SR, native high/low pair inventory, measurement plan, first native measurement run, kernel-stability audit, and a hash-strict PSF gap closure plan. | Not done as a formal PSF/blur-calibrated resizing model until controlled high/low pairs with source hashes, decoded Bayer hashes, fixed settings, and negative controls produce a stable native kernel and PSF-conditioned gates pass. |
@@ -43,19 +43,21 @@ Current evidence:
 - The real Bayer phase discovery at
   `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_20260630_rawpy/index.html`
   confirms that the broader local Mission 1, Z8, X2D, and iPhone CFA fixture
-  pool contains 74 normal 2x2 Bayer DNGs: 70 RGGB and 4 Mission 1 GBRG. GRBG
-  and BGGR remain synthetic-conformance coverage until real fixtures are added.
+  pool contains 74 normal 2x2 Bayer DNGs: 70 RGGB and 4 Mission 1 GBRG.
 - The targeted GoPro/Mission DNG/GPR fixture scan at
   `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html`
   parses 3,000 local DNG/GPR files as normal Bayer: 2,892 GBRG and 108 RGGB.
-  It still finds no real GRBG or BGGR fixture, strengthening the conclusion
-  that this is a sample-acquisition gap rather than a parser gap.
+- The broad old-photo Bayer phase scan at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/index.html`
+  adds 818 parsed normal Bayer rows: 618 RGGB, 120 GRBG, and 80 BGGR. Combined
+  with the GoPro/Mission scan, real RGGB/GBRG/GRBG/BGGR coverage is closed for
+  the stills path.
 - The bounded source-root Bayer phase scan at
   `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html`
   adds 1,279 files seen across Mission/GoPro, Hassel/X2D, iPhone, X2D darkframe,
   Barnsky, and related source roots. It parses 710 normal Bayer rows: 460 RGGB
-  and 250 GBRG, with no GRBG or BGGR. This strengthens the negative evidence
-  while keeping the production gap open.
+  and 250 GBRG. The later broad old-photo scan closes the missing GRBG/BGGR
+  evidence.
 - The CLI exposes DNG NoiseProfile-aware denoise/noise replacement plumbing,
   but the current raw-noise audit forbids treating the old single-frame REF
   residual as pure removable noise.
@@ -80,8 +82,7 @@ Current evidence:
 - The broader real-photo Bayer phase sample at
   `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html`
   scans 350 iPhone/GoPro/Hassel real-photo DNGs with the batch metadata path.
-  It finds 316 Apple iPhone 7 Plus RGGB CFA fixtures and 4 GoPro GBRG fixtures,
-  but still no real GRBG or BGGR fixture.
+  It finds 316 Apple iPhone 7 Plus RGGB CFA fixtures and 4 GoPro GBRG fixtures.
 - The broader real-photo darkframe-candidate sample at
   `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_realphotos_sample_20260630/index.html`
   parses 320 files and finds one iPhone ISO1250 RGGB dark-looking four-frame
@@ -94,23 +95,21 @@ Current evidence:
   finds 9 dark-like Mission frames, but no same-ISO four-frame production
   stack.
 - The stills fixture gap plan at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`
-  turns those receipts into the concrete closure list: add real GRBG and BGGR
-  fixtures, add Mission 1 and iPhone darkframe stacks, and top up the current
-  Mission 1 ISO232 RGGB darkframe-like group with two more matching frames.
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/index.html`
+  turns those receipts into the concrete closure list: add Mission 1 and iPhone
+  darkframe stacks, and top up the current Mission 1 ISO232 RGGB darkframe-like
+  group with two more matching frames.
 - The raw-stills capture request at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260630/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260701/index.html`
   converts that closure list into handoff-ready sample requests and validation
-  commands for the missing GRBG/BGGR fixtures plus Mission/iPhone darkframe
-  stacks.
+  commands for Mission/iPhone darkframe stacks.
 
 Boundaries:
 
 - Current guarded Bayer surface is "normal unpacked 2x2 Bayer" for the legacy
   stills path, not every possible CFA or packed variant. FUSED/video is still
   scoped separately and remains RGGB/GBRG until its header contract is expanded.
-  Real GRBG and BGGR camera fixtures should be added before claiming
-  broad real-camera alternate-phase coverage.
+  Real RGGB/GBRG/GRBG/BGGR camera fixtures are now covered for the stills path.
 - Nonzero camera-noise removal/addback is not promoted as a production stills
   claim yet. The safe current decision is: keep signal targets raw-like, use
   DNG NoiseProfile/ISO as conditioning metadata, and accept nonzero clean
@@ -119,14 +118,13 @@ Boundaries:
 
 Next production work:
 
-1. Fulfill the raw-stills capture request: add real GRBG and BGGR camera
-   fixtures to back the committed synthetic stills conformance cells.
-2. Collect or locate Mission 1 and iPhone darkframe/frame-stack data from that
+1. Collect or locate Mission 1 and iPhone darkframe/frame-stack data from the
+   raw-stills capture
    request, then apply the camera/ISO noise-calibration sidecar flow. For Mission 1, start
    from the candidate audit: the lowest-lift current group is ISO232 RGGB,
    which has two darkframe-like candidates and needs two more matching frames
    before sidecar construction.
-3. Re-run the raw-noise/signal audit before training any CNN on nonzero clean
+2. Re-run the raw-noise/signal audit before training any CNN on nonzero clean
    targets.
 
 ## 2. Raw Video MVP

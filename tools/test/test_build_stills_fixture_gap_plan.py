@@ -33,9 +33,11 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="gpr_stills_fixture_gap_", dir=temp_root()) as tmp:
         work = Path(tmp)
         bayer = work / "bayer.json"
+        bayer_extra = work / "bayer_extra.json"
         dark = work / "dark.json"
         noise = work / "noise.json"
         out_dir = work / "out"
+        out_dir_combined = work / "out_combined"
         write_json(
             bayer,
             {
@@ -43,6 +45,16 @@ def main() -> int:
                 "summary": {
                     "phase_counts": {"RGGB": 4, "GBRG": 1},
                     "normal_bayer_phases_missing": ["GRBG", "BGGR"],
+                },
+            },
+        )
+        write_json(
+            bayer_extra,
+            {
+                "schema": "gpr.bayer_phase_fixture_inventory.v1",
+                "summary": {
+                    "phase_counts": {"GRBG": 2, "BGGR": 3},
+                    "normal_bayer_phases_missing": ["GBRG"],
                 },
             },
         )
@@ -144,6 +156,39 @@ def main() -> int:
         assert "Stills Fixture Gap Plan" in html
         assert "Requirement" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
+
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--bayer-inventory",
+                str(bayer),
+                "--bayer-inventory",
+                str(bayer_extra),
+                "--darkframe-audit",
+                str(dark),
+                "--noise-coverage",
+                str(noise),
+                "--output-dir",
+                str(out_dir_combined),
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        combined = json.loads((out_dir_combined / "stills_fixture_gap_plan.json").read_text(encoding="utf-8"))
+        assert combined["summary"]["phase_counts"] == {"RGGB": 4, "GBRG": 1, "GRBG": 2, "BGGR": 3}
+        assert combined["summary"]["missing_real_bayer_phases"] == []
+        assert combined["summary"]["missing_real_bayer_phase_requirement_ids"] == []
+        assert combined["summary"]["open_requirement_ids"] == [
+            "iphone_cfa_darkframe_stack",
+            "mission1_darkframe_stack",
+        ]
     print("test_build_stills_fixture_gap_plan: PASS")
     return 0
 

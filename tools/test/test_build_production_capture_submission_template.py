@@ -42,16 +42,12 @@ def main() -> int:
         assert proc.stdout.strip() == str(out)
         ids = {row["id"] for row in data["requirements"]}
         assert ids == {
-            "real_grbg_fixture",
-            "real_bggr_fixture",
             "mission1_darkframe_stack",
             "iphone_cfa_darkframe_stack",
             "mission1_camera_role_receipts",
             "controlled_mission1_psf_pairs",
             "premium_still_sr_promotion_receipts",
         }
-        grbg = next(row for row in data["requirements"] if row["id"] == "real_grbg_fixture")
-        assert grbg["evidence"][0]["cfa_phase"] == "GRBG"
         mission = next(row for row in data["requirements"] if row["id"] == "mission1_darkframe_stack")
         assert len(mission["evidence"]) == 4
         assert mission["evidence"][0]["no_scene_signal"] is True

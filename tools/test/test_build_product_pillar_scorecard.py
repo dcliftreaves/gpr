@@ -65,14 +65,16 @@ def main() -> int:
             "premium_still_sr",
             "raw_video_psf_sr",
         ]
-        assert data["pillars"][0]["readiness_percent"] == 90
+        assert data["pillars"][0]["readiness_percent"] == 92
         assert data["pillars"][0]["lock_ledger_paths"] == [
             "STILL smallest",
             "STILL primary",
             "STILL archival",
+            "Broad real-camera Bayer phase coverage",
         ]
-        assert "Broad real-camera Bayer phase coverage" in data["pillars"][0]["open_production_gates"]
+        assert "Broad real-camera Bayer phase coverage" not in data["pillars"][0]["open_production_gates"]
         assert any("X2D 100MP" in item for item in data["pillars"][0]["locked_artifacts"])
+        assert any("RGGB/GBRG/GRBG/BGGR" in item for item in data["pillars"][0]["locked_artifacts"])
         assert any("3,000-file" in item for item in data["pillars"][0]["done_evidence"])
         assert data["pillars"][1]["readiness_percent"] == 80
         assert "VIDEO_FREEZE" in data["pillars"][1]["lock_ledger_paths"]

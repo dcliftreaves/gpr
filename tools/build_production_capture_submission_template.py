@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REQUIREMENTS = ROOT / "docs" / "PRODUCTION_CAPTURE_REQUIREMENTS.json"
 SCHEMA = "gpr.production_capture_submission.v1"
 SHA_PLACEHOLDER = "<64_hex_sha256>"
+SUBMISSION_STATUSES = {"open", "blocked_on_real_camera_access"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -193,7 +194,11 @@ def requirement_template(req: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_template(requirements: dict[str, Any], requirements_path: Path) -> dict[str, Any]:
-    req_rows = [row for row in requirements.get("requirements") or [] if isinstance(row, dict)]
+    req_rows = [
+        row
+        for row in requirements.get("requirements") or []
+        if isinstance(row, dict) and str(row.get("status")) in SUBMISSION_STATUSES
+    ]
     return {
         "schema": SCHEMA,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

@@ -16,18 +16,18 @@ Build it with:
 
 ```bash
 GPR_TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp \
-python3 tools/build_product_pillar_scorecard.py \
+  python3 tools/build_product_pillar_scorecard.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_capture_requirements_20260630
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_capture_requirements_20260701
 ```
 
 Current generated dashboard:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_capture_requirements_20260630/index.html`
+`/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_capture_requirements_20260701/index.html`
 
 Companion production burn-down dashboard:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260630/index.html`
+`/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_20260701/index.html`
 
 The burn-down is the action view over the same machine-readable capture
 requirements: it carries the requirement IDs, statuses, and validation commands
@@ -66,7 +66,7 @@ Current interpretation:
 
 | pillar | current score | production reading |
 |---|---:|---|
-| Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB plus GoPro/Mission GBRG fixture coverage, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
+| Best RAW stills | 92% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB/GBRG/GRBG/BGGR fixture coverage, and explicit camera-noise coverage; Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
 | Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, calibrated noise-cleaning is bounded, and true source-minus-candidate same-color raw residual targets plus raw-domain trainers now exist. Z8 is mildly positive, but X2D remains far below promotion: small U-Net/full-crop/pyramid/global-context/masked-context probes only barely clear zero, and the candidate-only patch-dictionary retrieval pass regresses the hard X2D holdout. Current candidate-only local/full-crop/global-context/masked-context statistics are not enough for simple CNN or nearest-neighbor transfer. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, including continuous 8K no-CNN versus CNN ProRes review media for a whole-scene A/B; near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, the kernel-stability audit identifies coefficient disagreement, and a hash-strict capture request now spells out the controlled-pair capture and model-gate path. Formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
@@ -76,12 +76,10 @@ The current real X2D 100MP still audit lives at
 It records a 11,664 x 8,750 DNG to GPR to DNG roundtrip, 100 percent crop
 panels, and 49.21 dB full-image raw Bayer PSNR.
 
-The current real Bayer phase discovery lives at
+The canonical real Bayer phase discovery lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_20260630_rawpy/index.html`.
 It scans canonical plus broader local Mission 1/Z8/X2D/iPhone DNG pools and
-finds 74 normal 2x2 Bayer DNGs: 70 RGGB and 4 Mission 1 GBRG. GRBG and BGGR
-remain covered by committed synthetic conformance until real camera fixtures are
-added.
+finds 74 normal 2x2 Bayer DNGs: 70 RGGB and 4 Mission 1 GBRG.
 
 The current camera-noise coverage audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html`.
@@ -109,8 +107,11 @@ that group. The audit therefore keeps `production_sidecar_ready=false`; Mission
 The targeted GoPro/Mission DNG/GPR fixture scan lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html`.
 It parses 3,000 local DNG/GPR files as normal Bayer: 2,892 GBRG and 108 RGGB.
-It still finds no real GRBG or BGGR fixture, which keeps that work as sample
-acquisition rather than parser work. The targeted Mission DNG darkframe scan at
+The broad old-photo scan at
+`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/index.html`
+adds 818 parsed normal Bayer rows: 618 RGGB, 120 GRBG, and 80 BGGR. Combined
+with the GoPro/Mission scan, real RGGB/GBRG/GRBG/BGGR coverage is closed for
+the stills path. The targeted Mission DNG darkframe scan at
 `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html`
 finds 9 dark-like Mission frames, but no same-ISO four-frame production stack.
 
@@ -118,23 +119,20 @@ The bounded source-root Bayer phase scan lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html`.
 It uses per-root limits and exiftool timeouts to avoid broad-tree stalls, sees
 1,279 files across source roots, and parses 710 normal Bayer rows: 460 RGGB and
-250 GBRG. It still finds zero GRBG and zero BGGR rows, so the real-fixture
-blocker remains a sample-acquisition task.
+250 GBRG. The later broad old-photo scan closes the missing GRBG/BGGR evidence.
 
 The current stills fixture gap plan lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/index.html`.
 It consolidates the phase/noise receipts into the concrete capture checklist:
-real GRBG and BGGR fixtures, Mission 1 and iPhone darkframe stacks, and two
-additional matching frames for the current Mission 1 ISO232 RGGB darkframe-like
-group.
+Mission 1 and iPhone darkframe stacks, including two additional matching frames
+for the current Mission 1 ISO232 RGGB darkframe-like group.
 
 The raw-stills capture request lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260630/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260701/index.html`.
 It converts that closure list into handoff-ready sample requests, validation
 commands, and promotion criteria.
 The same raw-stills blockers are pinned in the committed production capture
-requirements as `real_grbg_fixture`, `real_bggr_fixture`,
-`mission1_darkframe_stack`, and `iphone_cfa_darkframe_stack`.
+requirements as `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack`.
 
 The current GoPro Mission 1 intake audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260630/index.html`.

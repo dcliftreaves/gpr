@@ -16,6 +16,7 @@ from build_product_pillar_scorecard import DEFAULT_EXTERNAL_ROOT, build_scorecar
 SCHEMA = "gpr.product_burndown.v1"
 ROOT = Path(__file__).resolve().parents[1]
 REQUIREMENTS_PATH = ROOT / "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json"
+OPEN_REQUIREMENT_STATUSES = {"open", "blocked_on_real_camera_access"}
 
 
 def action(
@@ -98,6 +99,13 @@ def attach_requirements(
         ]
         result.append(attached)
     return result
+
+
+def has_open_requirement(action_row: dict[str, Any], requirement_map: dict[str, dict[str, Any]]) -> bool:
+    return any(
+        str(requirement_map[req_id].get("status")) in OPEN_REQUIREMENT_STATUSES
+        for req_id in action_row["requirement_ids"]
+    )
 
 
 def pillar_by_id(scorecard: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -242,6 +250,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             completion_gate="The PSF-conditioned candidate beats the current approved 4K cleanup and 8K SR baselines without worse worst-row failures.",
         ),
     ]
+    actions = [row for row in actions if has_open_requirement(row, requirement_map)]
     actions = attach_requirements(actions, requirement_map)
     actions.sort(key=lambda row: (row["priority"], row["pillar"], row["title"]))
     by_pillar: dict[str, list[dict[str, Any]]] = {}
@@ -261,7 +270,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
         "open_requirement_ids": [
             str(req["id"])
             for req in requirements["requirements"]
-            if str(req["status"]) in {"open", "blocked_on_real_camera_access"}
+            if str(req["status"]) in OPEN_REQUIREMENT_STATUSES
         ],
         "four_pillar_completion_percent": scorecard["four_pillar_completion_percent"],
         "production_ready": scorecard["production_ready"],
@@ -270,7 +279,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             "open_requirement_count": sum(
                 1
                 for req in requirements["requirements"]
-                if str(req["status"]) in {"open", "blocked_on_real_camera_access"}
+                if str(req["status"]) in OPEN_REQUIREMENT_STATUSES
             ),
             "camera_required_action_count": sum(1 for row in actions if not row["can_do_without_camera"]),
             "non_camera_action_count": sum(1 for row in actions if row["can_do_without_camera"]),

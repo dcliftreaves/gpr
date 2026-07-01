@@ -12,7 +12,7 @@ from typing import Any
 
 SCHEMA = "gpr.stills_capture_request.v1"
 DEFAULT_GAP_PLAN = Path(
-    "/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260630/stills_fixture_gap_plan.json"
+    "/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/stills_fixture_gap_plan.json"
 )
 REQUIREMENT_BY_PHASE = {
     "GRBG": "real_grbg_fixture",

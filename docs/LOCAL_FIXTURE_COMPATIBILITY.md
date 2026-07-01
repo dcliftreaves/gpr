@@ -59,6 +59,7 @@ Current real Bayer phase discovery:
 /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_targeted_2000_20260630/index.html
 /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/index.html
 /Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/index.html
 ```
 
 Summary: the broader local scan parsed 74 normal 2x2 Bayer DNG fixtures: 70
@@ -68,9 +69,9 @@ The newer targeted GoPro/Mission DNG/GPR scan parses 3,000 local files as
 normal Bayer: 2,892 GBRG and 108 RGGB. The bounded source-root scan adds 1,279
 files seen across Mission/GoPro, Hassel/X2D, iPhone, X2D darkframe, Barnsky,
 and related source roots, with 710 parsed normal Bayer rows: 460 RGGB and 250
-GBRG. GRBG and BGGR remain covered by synthetic still conformance, but they
-still need real camera fixtures before broad real-camera alternate-phase support
-should be claimed.
+GBRG. The broad old-photo scan adds 818 parsed normal Bayer rows: 618 RGGB, 120
+GRBG Nikon D200, and 80 BGGR Nikon D70. Combined with the GoPro/Mission scan,
+real RGGB/GBRG/GRBG/BGGR fixture coverage is closed for the stills path.
 
 ## Cleanup Boundary
 

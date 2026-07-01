@@ -122,14 +122,14 @@ FORBIDDEN_README_TOKENS = (
 )
 
 EXPECTED_PERCENTAGES = {
-    "Best RAW stills": 90,
+    "Best RAW stills": 92,
     "GoPro RAW video MVP": 80,
     "Premium still/SR": 60,
     "RAW video PSF/SR improvement": 44,
 }
 
 REQUIRED_SCORECARD_TOKENS = (
-    "| Best RAW stills | 90% |",
+    "| Best RAW stills | 92% |",
     "| GoPro RAW video MVP | 80% |",
     "| Premium still/SR | 60% |",
     "| PSF-aware RAW video improvement | 44% |",

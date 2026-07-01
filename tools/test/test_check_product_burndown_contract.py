@@ -50,13 +50,15 @@ def main() -> int:
 
     bad_stills = copy.deepcopy(data)
     bad_stills["pillars"][0]["burn_down_actions"][0]["evidence_required"] = [
-        "updated Bayer phase fixture discovery dashboard"
+        "generic darkframe receipt",
+        "generic sidecar",
+        "generic audit",
     ]
-    bad_stills["pillars"][0]["burn_down_actions"][0]["completion_gate"] = "Fixture discovery dashboard exists."
-    expect_failure(module, bad_stills, "GRBG")
+    bad_stills["pillars"][0]["burn_down_actions"][0]["completion_gate"] = "Noise sidecar exists."
+    expect_failure(module, bad_stills, "Mission 1 darkframes")
 
     bad_requirement_link = copy.deepcopy(data)
-    bad_requirement_link["pillars"][0]["burn_down_actions"][0]["requirement_ids"] = ["real_grbg_fixture"]
+    bad_requirement_link["pillars"][0]["burn_down_actions"][0]["requirement_ids"] = ["mission1_darkframe_stack"]
     expect_failure(module, bad_requirement_link, "requirement_ids")
 
     bad_validation_command = copy.deepcopy(data)

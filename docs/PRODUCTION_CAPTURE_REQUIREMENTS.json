@@ -1,6 +1,6 @@
 {
   "schema": "gpr.production_capture_requirements.v1",
-  "last_updated": "2026-06-30",
+  "last_updated": "2026-07-01",
   "external_artifact_root": "/Volumes/OWC_8TB/gpr_work",
   "purpose": "Committed source of truth for real samples and hardware receipts still required before the four product pillars can be called production-complete.",
   "requirements": [
@@ -9,10 +9,20 @@
       "pillar": "raw_stills",
       "priority": "required",
       "sample_type": "real_camera_raw_fixture",
-      "status": "open",
+      "status": "closed",
       "minimum_count": 1,
       "required_cfa_phase": "GRBG",
-      "why_needed": "Current GRBG support is committed synthetic conformance only. Broad real-camera Bayer coverage requires at least one real original raw fixture.",
+      "why_needed": "Closed on 2026-07-01 by the broad old-photo Bayer phase scan, which found real Nikon D200 GRBG fixtures.",
+      "closed_evidence": [
+        {
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/inventory.json",
+          "sha256": "2d73555e2d95f4b5bbd602c2be2ab66c3f6bccbb101c7f9e5a40fd2ef3aed1f2"
+        },
+        {
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/stills_fixture_gap_plan.json",
+          "sha256": "9f96503fd6142667fbdcb6941bae898c10c932322ffa77f7028cca17a091024a"
+        }
+      ],
       "required_evidence": [
         "original camera raw file, not demosaiced or linearized",
         "SHA-256 source hash",
@@ -35,10 +45,20 @@
       "pillar": "raw_stills",
       "priority": "required",
       "sample_type": "real_camera_raw_fixture",
-      "status": "open",
+      "status": "closed",
       "minimum_count": 1,
       "required_cfa_phase": "BGGR",
-      "why_needed": "Current BGGR support is committed synthetic conformance only. Broad real-camera Bayer coverage requires at least one real original raw fixture.",
+      "why_needed": "Closed on 2026-07-01 by the broad old-photo Bayer phase scan, which found real Nikon D70 BGGR fixtures.",
+      "closed_evidence": [
+        {
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/inventory.json",
+          "sha256": "2d73555e2d95f4b5bbd602c2be2ab66c3f6bccbb101c7f9e5a40fd2ef3aed1f2"
+        },
+        {
+          "path": "/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/stills_fixture_gap_plan.json",
+          "sha256": "9f96503fd6142667fbdcb6941bae898c10c932322ffa77f7028cca17a091024a"
+        }
+      ],
       "required_evidence": [
         "original camera raw file, not demosaiced or linearized",
         "SHA-256 source hash",
