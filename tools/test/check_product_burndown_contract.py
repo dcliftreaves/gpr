@@ -60,7 +60,7 @@ EXPECTED_PILLARS = {
         },
     },
     "raw_video_psf_sr": {
-        "readiness": 54,
+        "readiness": 55,
         "required_actions": {
             "Capture or locate controlled Mission 1 high/low PSF pairs": {
                 "requirement_ids": ["controlled_mission1_psf_pairs"],

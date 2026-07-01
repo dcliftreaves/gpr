@@ -225,6 +225,7 @@ else
                 python3 tools/test/test_mission1_8k_sr_production_promotion.py && \
                 python3 tools/test/test_build_mission1_8k_sr_visual_review.py && \
                 python3 tools/test/test_package_mission1_sr_sequence_receipt.py && \
+                python3 tools/test/test_build_mission1_8k_sr_review_candidate_audit.py && \
                 python3 tools/test/test_build_cnn_product_scorecard.py && \
                 python3 tools/test/test_mission1_camera_dispatch_inputs.py && \
                 python3 tools/test/test_mission1_camera_closure_package.py && \

@@ -190,8 +190,10 @@ Manual visual review required: <code>{str(report["manual_visual_review_required"
 
 
 def build(args: argparse.Namespace) -> dict[str, Any]:
-    mission_summary_path = args.sr_base / "mission42_broad_fullframe/summary.json"
-    z8_summary_path = args.sr_base / "z8_all24_fullframe/summary.json"
+    mission_summary_path = getattr(args, "mission_summary", None) or args.sr_base / "mission42_broad_fullframe/summary.json"
+    z8_summary_path = getattr(args, "z8_summary", None) or args.sr_base / "z8_all24_fullframe/summary.json"
+    mission_dashboard_path = getattr(args, "mission_dashboard", None) or mission_summary_path.with_name("index.html")
+    z8_dashboard_path = getattr(args, "z8_dashboard", None) or z8_summary_path.with_name("index.html")
     mission = read_json(mission_summary_path)
     z8 = read_json(z8_summary_path)
     selected = worst_rows(mission) + worst_rows(z8)
@@ -204,8 +206,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "mission_summary_sha256": sha256_file(mission_summary_path),
         "z8_summary": rel(z8_summary_path, args.external_root),
         "z8_summary_sha256": sha256_file(z8_summary_path),
-        "mission_dashboard": rel(args.sr_base / "mission42_broad_fullframe/index.html", args.external_root),
-        "z8_dashboard": rel(args.sr_base / "z8_all24_fullframe/index.html", args.external_root),
+        "mission_dashboard": rel(mission_dashboard_path, args.external_root),
+        "z8_dashboard": rel(z8_dashboard_path, args.external_root),
         "contact_sheet": rel(contact, args.external_root),
         "contact_sheet_sha256": sha256_file(contact),
         "verdict": "objective_visual_metrics_pass_manual_review_required" if all(c["passed"] for c in checks) else "objective_visual_metrics_fail",
@@ -222,6 +224,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--external-root", type=Path, default=DEFAULT_EXTERNAL_ROOT)
     ap.add_argument("--sr-base", type=Path, default=DEFAULT_SR_BASE)
+    ap.add_argument("--mission-summary", type=Path)
+    ap.add_argument("--z8-summary", type=Path)
+    ap.add_argument("--mission-dashboard", type=Path)
+    ap.add_argument("--z8-dashboard", type=Path)
     ap.add_argument("--output-dir", type=Path, required=True)
     args = ap.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)

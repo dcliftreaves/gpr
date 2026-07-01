@@ -1319,8 +1319,8 @@
         "artifacts/product_burndown_20260701/index.html"
       ],
       "hashes": {
-        "product_burndown_json_sha256": "8765e846fceb02a68c124c1bb53b36cc413d4ac8ceca31e9f29de304d8b0d87e",
-        "dashboard_sha256": "0d0c82324c0f102c55e1ed980bcc31828a4de8aa38aaf27e8eabd22efab52f08"
+        "product_burndown_json_sha256": "1f6c19f39734632c04b2e938a0ae241f3d329562b1d4d120aead8a4201f7e399",
+        "dashboard_sha256": "663fdeb85a6b9584fc3625aa858f26f4e26bb68fa8c0a25134421fa18351fe1f"
       },
       "metrics": {
         "four_pillar_completion_percent": 72,

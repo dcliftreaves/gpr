@@ -133,14 +133,14 @@ EXPECTED_PERCENTAGES = {
     "Best RAW stills": 92,
     "GoPro RAW video MVP": 80,
     "Premium still/SR": 60,
-    "RAW video PSF/SR improvement": 54,
+    "RAW video PSF/SR improvement": 55,
 }
 
 REQUIRED_SCORECARD_TOKENS = (
     "| Best RAW stills | 92% |",
     "| GoPro RAW video MVP | 80% |",
     "| Premium still/SR | 60% |",
-    "| PSF-aware RAW video improvement | 54% |",
+    "| PSF-aware RAW video improvement | 55% |",
     "psf_gradient_focus_from_detail_s400_fw6_gw12_s300",
     "mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1",
     "The percentages are production-readiness burn-down estimates.",
