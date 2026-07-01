@@ -37,6 +37,7 @@ PRODUCTION_STATUSES = {
 ALLOWED_STATUSES = PRODUCTION_STATUSES | {"experimental"}
 ALLOWED_RAW_CLASSIFICATIONS = {
     "live-capable",
+    "camera-mvp-stand-in",
     "preview-capable",
     "offline-only",
     "offline-production",
@@ -61,6 +62,7 @@ REQUIRED_OUTPUT_IDS = {
 REQUIRED_RAW_IDS = {
     "2k_raw_0p5x_fast",
     "2k_raw_0p5x_l2hh",
+    "mission1_native12_4k_gvid",
     "4k_raw_1x",
     "8k_raw_2x",
 }
@@ -125,7 +127,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "prores_review_outputs",
                 "editable_dng_gpr_outputs",
             },
-            "raw_targets": {"4k_raw_1x"},
+            "raw_targets": {"mission1_native12_4k_gvid"},
             "platform_performance": {
                 "pi5_mission1_halfres_capture",
                 "pi5_mission1_bench_fused_dma_like_stream_source",
@@ -917,13 +919,21 @@ def require_raw_target_contract(target: dict[str, Any], failures: list[str]) -> 
 
     if classification == "live-capable":
         try:
+            target_fps = float(target.get("target_fps"))
+            p95_target_ms = float(target.get("p95_target_ms"))
             fps = float(target.get("pi5_fps_median"))
             p95_ms = float(target.get("pi5_p95_ms"))
         except (TypeError, ValueError):
-            failures.append(f"{target_id}: live-capable raw targets need pi5_fps_median and pi5_p95_ms")
+            failures.append(
+                f"{target_id}: live-capable raw targets need target_fps, p95_target_ms, "
+                "pi5_fps_median, and pi5_p95_ms"
+            )
         else:
-            if fps < 24.0 or p95_ms >= 41.7:
-                failures.append(f"{target_id}: live-capable raw target must clear 24 fps / 41.7 ms p95 on Pi 5")
+            if fps < target_fps or p95_ms >= p95_target_ms:
+                failures.append(
+                    f"{target_id}: live-capable raw target must clear {target_fps:g} fps / "
+                    f"{p95_target_ms:g} ms p95 on Pi 5"
+                )
 
         try:
             passing = int(target.get("proxy_rows_passing", 0))
@@ -940,6 +950,37 @@ def require_raw_target_contract(target: dict[str, Any], failures: list[str]) -> 
                 failures.append(
                     f"{target_id}: live raw target with proxy misses must say it is not rendered PREVIEW-ready"
                 )
+
+    if classification == "camera-mvp-stand-in":
+        detail = str(target.get("classification_detail", "")).lower()
+        for required in ("pi 5 stand-in", "not actual mission 1 camera"):
+            if required not in detail:
+                failures.append(f"{target_id}: camera MVP stand-in detail must say {required}")
+        try:
+            target_fps = float(target.get("target_fps"))
+            wall_fps = float(target.get("pi5_wall_fps"))
+            median_fps = float(target.get("pi5_fps_median"))
+            frames = int(target.get("frame_count"))
+        except (TypeError, ValueError):
+            failures.append(
+                f"{target_id}: camera MVP stand-in targets need target_fps, "
+                "pi5_wall_fps, pi5_fps_median, and frame_count"
+            )
+        else:
+            if target_fps < 20.0:
+                failures.append(f"{target_id}: camera MVP stand-in target_fps must be at least 20")
+            if wall_fps < target_fps or median_fps < target_fps:
+                failures.append(f"{target_id}: camera MVP stand-in must clear target_fps by wall and median fps")
+            if frames < 1000:
+                failures.append(f"{target_id}: camera MVP stand-in receipt must cover at least 1000 frames")
+        if target.get("valid_gvid") is not True:
+            failures.append(f"{target_id}: camera MVP stand-in must validate .gvid output")
+        if target.get("zero_drops") is not True:
+            failures.append(f"{target_id}: camera MVP stand-in must record zero drops")
+        if target.get("lexar_silver_plus_budget_pass") is not True:
+            failures.append(f"{target_id}: camera MVP stand-in must fit the Lexar SILVER PLUS budget")
+        if target.get("camera_role_production_evidence") is not False:
+            failures.append(f"{target_id}: camera MVP stand-in must not claim actual camera-role evidence")
 
     if classification == "preview-capable":
         try:

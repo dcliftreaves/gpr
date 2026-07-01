@@ -45,7 +45,7 @@
           "editable_dng_gpr_outputs"
         ],
         "raw_targets": [
-          "4k_raw_1x"
+          "mission1_native12_4k_gvid"
         ],
         "platform_performance": [
           "pi5_mission1_halfres_capture",
@@ -433,6 +433,8 @@
       "classification": "live-capable",
       "classification_detail": "Fast Pi 5 live raw target; visual proxy is diagnostic and not a full PREVIEW-ready rendered quality pass.",
       "dimensions": "2070x1380",
+      "target_fps": 24.0,
+      "p95_target_ms": 41.7,
       "pi5_fps_median": 37.59,
       "pi5_p95_ms": 27.7,
       "proxy_rows_passing": 56,
@@ -458,6 +460,8 @@
       "classification": "live-capable",
       "classification_detail": "Best current Pi 5 live-quality raw target; clears 24 fps timing and passes matched-source raw quality. Exact-edge rendered proxy remains 80/84 and is not a full PREVIEW-ready rendered path, but the 16 px edge-safe live display viewport passes 84/84 and is indexed separately.",
       "dimensions": "2070x1380",
+      "target_fps": 24.0,
+      "p95_target_ms": 41.7,
       "pi5_fps_median": 29.85,
       "pi5_p95_ms": 37.1,
       "proxy_rows_passing": 80,
@@ -478,6 +482,36 @@
         "artifacts/raw_resolution_targets_20260614/visual_2k_l2hh_28f_explicit/raw_resolution_targets_visual_dashboard.json",
         "artifacts/raw_resolution_targets_20260614_analysis/visual_2k_l2hh_edgeinset16_28f/raw_resolution_targets_visual_dashboard.json",
         "artifacts/raw_resolution_targets_20260614_analysis/quality_2k_l2hh_100f/raw_resolution_targets_quality.json"
+      ]
+    },
+    {
+      "id": "mission1_native12_4k_gvid",
+      "classification": "camera-mvp-stand-in",
+      "classification_detail": "Mission 1 4096 x 3072 Bayer .gvid camera MVP on the Pi 5 stand-in; not actual Mission 1 camera evidence until sensor/DMA, SD writer, and rear-display handoff receipts replace this stand-in.",
+      "dimensions": "4096x3072",
+      "target_fps": 20.0,
+      "pi5_wall_fps": 20.5,
+      "pi5_fps_median": 21.52,
+      "frame_count": 1440,
+      "zero_drops": true,
+      "valid_gvid": true,
+      "lexar_silver_plus_budget_pass": true,
+      "camera_role_production_evidence": false,
+      "docs": [
+        "README.md",
+        "docs/VIDEO_STATUS.md",
+        "docs/LABS_TARGET_BENCH.md",
+        "docs/LABS_MISSION1_RUNBOOK.md",
+        "docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md"
+      ],
+      "receipt_tokens": [
+        "mission1_camera_closure_run_20260625",
+        "camera_handoff_receipt",
+        "mission1_numbered_list_readiness_20260625"
+      ],
+      "external_receipts": [
+        "artifacts/mission1_camera_closure_run_20260625/current_standin_followup/camera_handoff_receipt.json",
+        "artifacts/mission1_numbered_list_readiness_20260625/readiness.json"
       ]
     },
     {
