@@ -153,15 +153,32 @@ REQUIRED_PRODUCT_PILLARS = {
             "raw_targets": {"8k_raw_2x"},
             "dashboards": {
                 "cnn_product_scorecard_20260629",
-                "mission1_native_psf_corpus_audit_20260630",
-                "raw_video_psf_capture_request_20260630",
-                "raw_video_sr_candidate_scoreboard_20260701",
-                "raw_video_psf_next_experiment_contract_20260701",
+                "z8_continuous_8k_no_cnn_vs_cnn_20260630",
+                "mission1_8k_true_no_cnn_vs_cnn_20260630",
+                "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630",
+                "mission1_8k_sr_step0075_visual_signoff_20260701",
+                "mission1_8k_sr_step0075_signed_audit_20260701",
             },
             "platform_performance": {"local_8k_raw_offline"},
         },
         "tokens": ("continuous", "PSF", "baselines", "optional"),
     },
+}
+OPTIONAL_RESEARCH_REFS = {
+    "raw_video_psf_replacement": {
+        "dashboards": {
+            "mission1_native_psf_corpus_audit_20260630",
+            "mission1_native_psf_kernel_stability_audit_20260630",
+            "raw_video_psf_capture_request_20260630",
+            "bayer_resize_psf_known_kernel_validation_20260701",
+            "raw_video_sr_candidate_scoreboard_20260701",
+            "raw_video_psf_next_experiment_contract_20260701",
+        },
+        "scope_tokens": (
+            "Optional next-generation research only",
+            "must not be counted as release blockers",
+        ),
+    }
 }
 ALLOWED_PLATFORM_STATUSES = {
     "meets-target",
@@ -713,6 +730,54 @@ def require_product_pillars_contract(manifest: dict[str, Any], failures: list[st
                     f"product_pillars.{pillar_id}: manifest_refs.{section} references unknown ids "
                     + ", ".join(sorted(unknown_refs))
                 )
+        if pillar_id == "raw_video_reconstruction":
+            dashboards = refs.get("dashboards", [])
+            dash_by_id = {
+                str(row.get("id")): row
+                for row in manifest.get("dashboards", [])
+                if isinstance(row, dict)
+            }
+            for dashboard_id in dashboards if isinstance(dashboards, list) else []:
+                dash = dash_by_id.get(str(dashboard_id))
+                if isinstance(dash, dict) and dash.get("family") == "raw_video_psf":
+                    failures.append(
+                        "raw_video_reconstruction production refs must not point "
+                        f"at raw_video_psf research dashboard {dashboard_id!r}"
+                    )
+
+
+def require_optional_research_refs(manifest: dict[str, Any], failures: list[str]) -> None:
+    refs = manifest.get("optional_research_refs")
+    if not isinstance(refs, dict):
+        failures.append("manifest optional_research_refs must be an object")
+        return
+    dashboard_ids = ids_by_section(manifest, "dashboards", failures)
+    for group_id, spec in OPTIONAL_RESEARCH_REFS.items():
+        group = refs.get(group_id)
+        if not isinstance(group, dict):
+            failures.append(f"optional_research_refs missing group {group_id!r}")
+            continue
+        scope = str(group.get("scope", ""))
+        for token in spec["scope_tokens"]:
+            if token not in scope:
+                failures.append(f"optional_research_refs.{group_id}.scope missing token {token!r}")
+        dashboards = group.get("dashboards")
+        if not isinstance(dashboards, list):
+            failures.append(f"optional_research_refs.{group_id}.dashboards must be a list")
+            continue
+        dashboard_set = {str(item) for item in dashboards}
+        missing = spec["dashboards"] - dashboard_set
+        if missing:
+            failures.append(
+                f"optional_research_refs.{group_id}.dashboards missing "
+                + ", ".join(sorted(missing))
+            )
+        unknown = dashboard_set - dashboard_ids
+        if unknown:
+            failures.append(
+                f"optional_research_refs.{group_id}.dashboards references unknown ids "
+                + ", ".join(sorted(unknown))
+            )
 
 
 def require_external_receipts(entry_id: str, entry: dict[str, Any], failures: list[str]) -> None:
@@ -1427,6 +1492,7 @@ def main() -> int:
         failures.append(f"schema must be {EXPECTED_SCHEMA}")
     require_manifest_freshness(manifest, failures)
     require_product_pillars_contract(manifest, failures)
+    require_optional_research_refs(manifest, failures)
 
     production_paths = manifest.get("production_paths")
     if not isinstance(production_paths, list):

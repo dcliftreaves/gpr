@@ -74,7 +74,7 @@
       "id": "raw_video_reconstruction",
       "release_label": "RAW video reconstruction",
       "status": "approved_offline_reconstruction_psf_research_optional",
-      "summary": "Approved 4K cleanup and offline 8K SR baselines, continuous no-CNN versus CNN review media, editable raw packaging, native PSF corpus/kernel audits as optional research, and controlled-capture request for a future replacement.",
+      "summary": "Approved 4K cleanup and offline 8K SR baselines, continuous no-CNN versus CNN review media, editable raw packaging, objective review, manual signoff, and hash/timing receipts for the current reconstruction release. Native PSF corpus/kernel audits are optional research for a future replacement.",
       "manifest_refs": {
         "raw_targets": [
           "8k_raw_2x"
@@ -84,12 +84,6 @@
           "z8_continuous_8k_no_cnn_vs_cnn_20260630",
           "mission1_8k_true_no_cnn_vs_cnn_20260630",
           "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630",
-          "mission1_native_psf_corpus_audit_20260630",
-          "mission1_native_psf_kernel_stability_audit_20260630",
-          "raw_video_psf_capture_request_20260630",
-          "bayer_resize_psf_known_kernel_validation_20260701",
-          "raw_video_sr_candidate_scoreboard_20260701",
-          "raw_video_psf_next_experiment_contract_20260701",
           "mission1_8k_sr_step0075_visual_signoff_20260701",
           "mission1_8k_sr_step0075_signed_audit_20260701"
         ],
@@ -100,6 +94,19 @@
       "open_gate": "No release blocker for the approved current offline reconstruction workflow; controlled Mission 1 high/low Bayer pairs, a stable native PSF kernel, and a PSF-conditioned 4K/8K candidate are optional next-generation replacement research."
     }
   ],
+  "optional_research_refs": {
+    "raw_video_psf_replacement": {
+      "scope": "Optional next-generation research only. These receipts must not be counted as release blockers for the approved current 4K cleanup and 8K SR reconstruction workflow.",
+      "dashboards": [
+        "mission1_native_psf_corpus_audit_20260630",
+        "mission1_native_psf_kernel_stability_audit_20260630",
+        "raw_video_psf_capture_request_20260630",
+        "bayer_resize_psf_known_kernel_validation_20260701",
+        "raw_video_sr_candidate_scoreboard_20260701",
+        "raw_video_psf_next_experiment_contract_20260701"
+      ]
+    }
+  },
   "production_paths": [
     {
       "id": "still_smallest",
@@ -2414,7 +2421,7 @@
     },
     {
       "id": "mission1_8k_sr_step0075_visual_signoff_20260701",
-      "family": "raw_video_psf",
+      "family": "raw_video_reconstruction",
       "status": "current",
       "purpose": "Manual visual-signoff receipt for the current Mission 1 coord/detail PSF-focus step-75 8K SR review candidate. It closes the manual visual-review requirement for the approved offline path and keeps controlled native PSF evidence as optional replacement research.",
       "dashboard": "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_visual_signoff_20260701/visual_signoff.json",
@@ -2437,7 +2444,7 @@
     },
     {
       "id": "mission1_8k_sr_step0075_signed_audit_20260701",
-      "family": "raw_video_psf",
+      "family": "raw_video_reconstruction",
       "status": "current",
       "purpose": "Refreshed production audit for the current Mission 1 coord/detail PSF-focus step-75 8K SR review candidate after manual visual signoff. Remaining release boundary is review-only registry scope; controlled native PSF evidence is optional replacement research.",
       "dashboard": "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_review_candidate_audit_signed_20260701/review_candidate_audit.json",
@@ -2463,14 +2470,13 @@
     },
     {
       "id": "z8_continuous_8k_no_cnn_vs_cnn_20260630",
-      "family": "raw_video_psf",
+      "family": "raw_video_reconstruction",
       "status": "diagnostic",
       "purpose": "Standalone continuous-scene 8K ProRes A/B for reviewing the retained 4K cleanup CNN Bayer plus approved 8K SR CNN against a Z8 no-CNN baseline. This is not a dashboard, crop sheet, contact sheet, or side-by-side review video.",
       "dashboard": "artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json",
       "docs": [
         "README.md",
-        "docs/PRODUCT_PILLAR_SCORECARD.md",
-        "docs/BAYER_RESIZE_PSF.md"
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
       ],
       "receipts": [
         "artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json",
@@ -2488,14 +2494,13 @@
     },
     {
       "id": "mission1_8k_true_no_cnn_vs_cnn_20260630",
-      "family": "raw_video_psf",
+      "family": "raw_video_reconstruction",
       "status": "diagnostic",
       "purpose": "Standalone broad 8K ProRes A/B for reviewing the approved 4K cleanup plus 8K SR CNN raw Bayer render against a Mission 1 no-CNN baseline over the 42-frame raw-video sequence. This is not a dashboard, crop sheet, contact sheet, or side-by-side review video.",
       "dashboard": "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json",
       "docs": [
         "README.md",
-        "docs/PRODUCT_PILLAR_SCORECARD.md",
-        "docs/BAYER_RESIZE_PSF.md"
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
       ],
       "receipts": [
         "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json",
@@ -2513,14 +2518,13 @@
     },
     {
       "id": "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630",
-      "family": "raw_video_psf",
+      "family": "raw_video_reconstruction",
       "status": "diagnostic",
       "purpose": "Standalone continuous-scene 8K ProRes A/B for reviewing the approved 4K cleanup plus 8K SR CNN raw Bayer render against a Mission 1 no-CNN baseline on the sequential GP017497 through GP017508 scene. This is not a dashboard, crop sheet, contact sheet, or side-by-side review video.",
       "dashboard": "artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/receipt.json",
       "docs": [
         "README.md",
-        "docs/PRODUCT_PILLAR_SCORECARD.md",
-        "docs/BAYER_RESIZE_PSF.md"
+        "docs/PRODUCT_PILLAR_SCORECARD.md"
       ],
       "receipts": [
         "artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/receipt.json",
