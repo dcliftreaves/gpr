@@ -53,7 +53,7 @@ def main() -> int:
         assert data["schema"] == "gpr.product_burndown.v1"
         assert data["source_requirements_schema"] == "gpr.production_capture_requirements.v1"
         assert data["source_requirements_path"] == "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json"
-        assert data["four_pillar_completion_percent"] == 69
+        assert data["four_pillar_completion_percent"] == 70
         assert data["production_ready"] is False
         assert data["summary"]["action_count"] == 5
         assert data["summary"]["open_requirement_count"] == 5
