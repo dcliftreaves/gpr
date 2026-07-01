@@ -30,7 +30,7 @@ REQUIRED_SECTIONS = (
 
 REQUIRED_README_TOKENS = (
     "8-bit JPEG size. 16-bit RAW quality.",
-    "Current four-pillar completion is **70%**",
+    "Current four-pillar completion is **71%**",
     "production-readiness burn-down",
     "not an image-quality score",
     "not a regression signal for locked artifacts",
@@ -133,16 +133,16 @@ EXPECTED_PERCENTAGES = {
     "Best RAW stills": 92,
     "GoPro RAW video MVP": 80,
     "Premium still/SR": 60,
-    "RAW video PSF/SR improvement": 48,
+    "RAW video PSF/SR improvement": 50,
 }
 
 REQUIRED_SCORECARD_TOKENS = (
     "| Best RAW stills | 92% |",
     "| GoPro RAW video MVP | 80% |",
     "| Premium still/SR | 60% |",
-    "| PSF-aware RAW video improvement | 48% |",
+    "| PSF-aware RAW video improvement | 50% |",
     "psf_gradient_focus_from_detail_s400_fw6_gw12_s300",
-    "Mission gradient median +0.253",
+    "mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1",
     "The percentages are production-readiness burn-down estimates.",
     "not regression signals for locked artifacts",
     "deduplicated raw-supervision NPZ collapses it to 117 unique scene/crop raw-domain rows with zero raw conflicts",
