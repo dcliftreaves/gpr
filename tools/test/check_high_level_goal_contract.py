@@ -48,6 +48,8 @@ DOC_TOKENS = {
         "No Infinite SR Rule",
         "SR work is not allowed to move the release target by itself.",
         "PSF/blur experiments are optional next-generation research.",
+        "release hygiene, camera-role handoff docs, noise",
+        "sidecar closure, and premium still-SR promotion outrank another video-SR",
         "Execution Split",
         "Can advance locally without new captures",
         "Requires new hardware or new samples before it can close",
@@ -77,6 +79,7 @@ FORBIDDEN_TOKENS = {
     ),
     "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md": (
         "PSF/blur-aware replacement work is required",
+        "video-SR research pass unless a locked video-SR gate actually fails or a replacement is already better",
     ),
     "docs/SHIP_DECISION.md": (
         "PSF gates",

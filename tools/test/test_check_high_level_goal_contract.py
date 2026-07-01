@@ -66,6 +66,20 @@ def main() -> int:
             print(f"missing still-SR gate did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 
+        paths["docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md"].write_text(
+            module.path_for("docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md").read_text(encoding="utf-8").replace(
+                "release hygiene, camera-role handoff docs, noise\n"
+                "  sidecar closure, and premium still-SR promotion outrank another video-SR",
+                "another video-SR research pass outranks release hygiene, camera-role handoff docs, noise\n"
+                "  sidecar closure, and premium still-SR promotion",
+            ),
+            encoding="utf-8",
+        )
+        failures = module.validate(paths)
+        if not failures or not any("premium still-SR promotion outrank another video-SR" in failure for failure in failures):
+            print(f"video-SR priority inversion did not trigger expected failure: {failures}", file=sys.stderr)
+            return 1
+
     print("test_check_high_level_goal_contract: PASS")
     return 0
 
