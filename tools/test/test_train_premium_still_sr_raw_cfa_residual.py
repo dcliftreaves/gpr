@@ -169,6 +169,19 @@ def main() -> int:
         assert Path(receipt["artifacts"]["receipt"]).stat().st_size > 0
         assert Path(receipt["artifacts"]["dashboard"]).stat().st_size > 0
         assert Path(receipt["artifacts"]["panel_sheet"]).stat().st_size > 0
+        progress_path = Path(receipt["artifacts"]["progress_jsonl"])
+        assert progress_path.stat().st_size > 0
+        progress_rows = [
+            json.loads(line)
+            for line in progress_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        assert progress_rows[0]["event"] == "start"
+        assert any(row["event"] == "history" and row["step"] == 1 for row in progress_rows)
+        assert progress_rows[-1]["event"] == "complete"
+        assert receipt["history"][0]["elapsed_seconds"] >= 0.0
+        assert receipt["history"][0]["seconds_per_step"] >= 0.0
+        assert receipt["config"]["progress_jsonl"] == str(progress_path)
         assert receipt["eval"]["train"]["row_count"] == 3
         assert receipt["eval"]["holdout"]["row_count"] == 1
         assert receipt["config"]["model_arch"] == "residual"

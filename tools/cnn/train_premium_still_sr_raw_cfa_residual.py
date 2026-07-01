@@ -2255,6 +2255,9 @@ code{{color:#b7d7ff}}img{{max-width:100%;border:1px solid #333}}
 
 
 def train(args: argparse.Namespace) -> dict[str, Any]:
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    if not hasattr(args, "progress_jsonl"):
+        args.progress_jsonl = None
     if not hasattr(args, "eval_during_training_rows"):
         args.eval_during_training_rows = 0
     if not hasattr(args, "save_best_holdout_checkpoint"):
@@ -2309,6 +2312,28 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
     device = torch.device(args.device) if args.device else DEVICE
+    progress_path = (
+        args.progress_jsonl
+        if args.progress_jsonl is not None
+        else args.output_dir / "progress.jsonl"
+    )
+    progress_path.parent.mkdir(parents=True, exist_ok=True)
+    progress_path.write_text(
+        json.dumps(
+            {
+                "event": "start",
+                "created_unix": int(time.time()),
+                "targets": str(args.targets),
+                "model_arch": args.model_arch,
+                "feature_mode": args.feature_mode,
+                "steps": args.steps,
+                "device": str(device),
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     model = build_model(
         args.model_arch,
         in_channels=feature_channels(args.feature_mode),
@@ -2383,7 +2408,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         opt.step()
         if step == 1 or step == args.steps or (args.eval_every > 0 and step % args.eval_every == 0):
-            row: dict[str, Any] = {"step": step, "loss": float(loss.detach().cpu())}
+            elapsed_s = time.perf_counter() - t0
+            row: dict[str, Any] = {
+                "step": step,
+                "loss": float(loss.detach().cpu()),
+                "elapsed_seconds": elapsed_s,
+                "seconds_per_step": elapsed_s / max(step, 1),
+            }
             if args.eval_during_training_rows > 0 and holdout_indices:
                 probe_indices = holdout_indices[: min(args.eval_during_training_rows, len(holdout_indices))]
                 probe_eval = eval_rows(
@@ -2421,6 +2452,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                         }
                 model.train()
             history.append(row)
+            with progress_path.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"event": "history", **row}, sort_keys=True) + "\n")
     train_s = time.perf_counter() - t0
     if args.save_best_holdout_checkpoint and best_state is not None:
         model.load_state_dict({key: value.to(device) for key, value in best_state.items()})
@@ -2468,7 +2501,6 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             eval_overlap=args.eval_overlap,
             seam_check_width=args.seam_check_width,
         )
-    args.output_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = args.output_dir / args.checkpoint_name
     torch.save(
         {
@@ -2639,6 +2671,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "seam_check_width": args.seam_check_width,
             "save_best_holdout_checkpoint": args.save_best_holdout_checkpoint,
             "seed": args.seed,
+            "progress_jsonl": str(progress_path),
         },
         "policy": {
             "uses_source_raw_at_training": True,
@@ -2689,12 +2722,28 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         "history": history,
         "best_holdout_probe": best_holdout,
         "eval": {"train": train_eval, "holdout": holdout_eval},
-        "artifacts": {"panel_sheet": str(panel)},
+        "artifacts": {"panel_sheet": str(panel), "progress_jsonl": str(progress_path)},
     }
     receipt_path = args.output_dir / "train_receipt.json"
     index = args.output_dir / "index.html"
     receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
     index.write_text(render_html(receipt, args.output_dir), encoding="utf-8")
+    with progress_path.open("a", encoding="utf-8") as fh:
+        fh.write(
+            json.dumps(
+                {
+                    "event": "complete",
+                    "created_unix": int(time.time()),
+                    "train_seconds": train_s,
+                    "receipt": str(receipt_path),
+                    "dashboard": str(index),
+                    "checkpoint": str(checkpoint),
+                    "checkpoint_sha256": receipt["checkpoint_sha256"],
+                },
+                sort_keys=True,
+            )
+            + "\n"
+        )
     receipt["artifacts"]["receipt"] = str(receipt_path)
     receipt["artifacts"]["dashboard"] = str(index)
     return receipt
@@ -2925,6 +2974,11 @@ def main() -> int:
     ap.add_argument("--panel-rows", type=int, default=9)
     ap.add_argument("--seed", type=int, default=1234)
     ap.add_argument("--device", help="Override torch device, for example cpu/mps/cuda.")
+    ap.add_argument(
+        "--progress-jsonl",
+        type=Path,
+        help="Optional progress JSONL path. Defaults to progress.jsonl inside --output-dir.",
+    )
     args = ap.parse_args()
     receipt = train(args)
     holdout = receipt["eval"].get("holdout")
