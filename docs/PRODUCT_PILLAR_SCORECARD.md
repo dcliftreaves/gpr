@@ -299,7 +299,16 @@ The trainer now has PSF/kernel-conditioned `_psf` feature modes that can consume
 row metadata, explicit four-weight kernels, or a `gpr.bayer_resize_psf_receipt.v1`
 without adding source/REF content at runtime. That opens the intended
 PSF/camera-aware experiment path, but it is not a promoted still-SR model. The
-first two X2D scene-holdout PSF probes are now recorded: a local noise-floor
+trainer now also has `model_arch=window_attention_teacher`, a shifted-window
+attention plus overlap-convolution raw-CFA teacher path. Its first bounded
+real-target smoke receipt lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/index.html`
+and proves executable PSF+CFA-conditioned path coverage on the canonical
+117-row deduplicated target without REF/source/JPEG runtime inputs. It is not a
+promotion run: the bounded 2-row X2D holdout median raw MAE recovery is about
+0.142 percent, far below the 15 percent promotion gate.
+
+The first two X2D scene-holdout PSF probes are now recorded: a local noise-floor
 U-Net with near-box PSF planes reaches about 0.106 percent median exact raw MAE
 recovery versus the non-PSF 0.153 percent baseline, and a full-crop raw-context
 PSF U-Net reaches about 0.064 percent. The current blocker is therefore not

@@ -1112,6 +1112,153 @@ class RawCfaResidualNAFTeacher(nn.Module):
         return torch.tanh(self.tail(fused)) * self.residual_scale
 
 
+def attention_heads(channels: int) -> int:
+    for heads in (8, 4, 2):
+        if channels % heads == 0 and channels >= heads:
+            return heads
+    return 1
+
+
+def window_partition(x: torch.Tensor, window_size: int) -> tuple[torch.Tensor, tuple[int, int, int, int]]:
+    b, c, h, w = x.shape
+    pad_h = (window_size - h % window_size) % window_size
+    pad_w = (window_size - w % window_size) % window_size
+    if pad_h or pad_w:
+        mode = "reflect" if h > pad_h and w > pad_w else "replicate"
+        x = F.pad(x, (0, pad_w, 0, pad_h), mode=mode)
+    hp, wp = x.shape[-2:]
+    tokens = (
+        x.view(b, c, hp // window_size, window_size, wp // window_size, window_size)
+        .permute(0, 2, 4, 3, 5, 1)
+        .contiguous()
+        .view(-1, window_size * window_size, c)
+    )
+    return tokens, (h, w, hp, wp)
+
+
+def window_reverse(tokens: torch.Tensor, shape: tuple[int, int, int, int], batch: int, channels: int, window_size: int) -> torch.Tensor:
+    h, w, hp, wp = shape
+    x = (
+        tokens.view(batch, hp // window_size, wp // window_size, window_size, window_size, channels)
+        .permute(0, 5, 1, 3, 2, 4)
+        .contiguous()
+        .view(batch, channels, hp, wp)
+    )
+    return x[:, :, :h, :w]
+
+
+class ShiftedWindowAttentionBlock(nn.Module):
+    """SwinIR/HAT-style local self-attention block for raw-CFA residuals."""
+
+    def __init__(self, channels: int, window_size: int = 8, shift_size: int = 0, ffn_expansion: int = 2) -> None:
+        super().__init__()
+        self.window_size = max(4, int(window_size))
+        self.shift_size = int(shift_size) % self.window_size
+        heads = attention_heads(channels)
+        self.norm1 = nn.GroupNorm(1, channels)
+        self.attn = nn.MultiheadAttention(channels, num_heads=heads, batch_first=True)
+        self.overlap = nn.Sequential(
+            nn.Conv2d(channels, channels, 3, padding=1, groups=channels),
+            nn.GELU(),
+            nn.Conv2d(channels, channels, 1),
+        )
+        hidden = max(channels, channels * int(ffn_expansion))
+        self.norm2 = nn.GroupNorm(1, channels)
+        self.ffn = nn.Sequential(
+            nn.Conv2d(channels, hidden, 1),
+            nn.GELU(),
+            nn.Conv2d(hidden, channels, 1),
+        )
+        self.attn_scale = nn.Parameter(torch.zeros((1, channels, 1, 1)))
+        self.ffn_scale = nn.Parameter(torch.zeros((1, channels, 1, 1)))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        residual = x
+        y = self.norm1(x)
+        if self.shift_size:
+            y = torch.roll(y, shifts=(-self.shift_size, -self.shift_size), dims=(-2, -1))
+        tokens, shape = window_partition(y, self.window_size)
+        attended, _ = self.attn(tokens, tokens, tokens, need_weights=False)
+        y = window_reverse(attended, shape, x.shape[0], x.shape[1], self.window_size)
+        if self.shift_size:
+            y = torch.roll(y, shifts=(self.shift_size, self.shift_size), dims=(-2, -1))
+        y = y + self.overlap(self.norm1(x))
+        x = residual + self.attn_scale * y
+        return x + self.ffn_scale * self.ffn(self.norm2(x))
+
+
+class RawCfaResidualWindowAttentionTeacher(nn.Module):
+    """Shifted-window raw-CFA teacher for the next premium still-SR pass.
+
+    This is the executable SwinIR/HAT-style branch requested by the current
+    next-experiment contract. It keeps the trainer's candidate-only runtime
+    policy, but replaces local-only CNN context with alternating shifted-window
+    self-attention, overlap convolution, and downsampled full-crop context.
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        width: int = 48,
+        depth: int = 8,
+        residual_scale: float = 0.12,
+        window_size: int = 8,
+    ) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        w1 = max(8, int(width))
+        w2 = w1 * 2
+        self.head = nn.Sequential(nn.Conv2d(in_channels, w1, 3, padding=1), nn.GELU())
+        blocks: list[nn.Module] = []
+        for i in range(max(1, int(depth))):
+            shift = 0 if i % 2 == 0 else max(1, window_size // 2)
+            blocks.append(ShiftedWindowAttentionBlock(w1, window_size=window_size, shift_size=shift))
+        self.local = nn.Sequential(*blocks)
+        self.down = nn.Sequential(nn.Conv2d(w1, w2, 3, stride=2, padding=1), nn.GELU())
+        self.context = nn.Sequential(
+            *[
+                ShiftedWindowAttentionBlock(
+                    w2,
+                    window_size=max(4, window_size),
+                    shift_size=0 if i % 2 == 0 else max(1, window_size // 2),
+                )
+                for i in range(max(1, int(depth) // 2))
+            ]
+        )
+        self.global_proj = nn.Sequential(nn.Conv2d(w1, w2, 1), nn.GELU())
+        self.global_body = nn.Sequential(
+            *[
+                ShiftedWindowAttentionBlock(
+                    w2,
+                    window_size=max(4, window_size),
+                    shift_size=0 if i % 2 == 0 else max(1, window_size // 2),
+                )
+                for i in range(max(1, int(depth) // 3))
+            ]
+        )
+        self.up = nn.Conv2d(w2, w1, 1)
+        self.global_up = nn.Conv2d(w2, w1, 1)
+        self.fuse = nn.Sequential(
+            nn.Conv2d(w1 * 3, w1, 1),
+            ShiftedWindowAttentionBlock(w1, window_size=window_size, shift_size=0),
+            ShiftedWindowAttentionBlock(w1, window_size=window_size, shift_size=max(1, window_size // 2)),
+        )
+        self.tail = nn.Conv2d(w1, 4, 3, padding=1)
+        nn.init.zeros_(self.tail.weight)
+        nn.init.zeros_(self.tail.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        local = self.local(self.head(x))
+        context = self.context(self.down(local))
+        context = F.interpolate(self.up(context), size=local.shape[-2:], mode="bilinear", align_corners=False)
+        global_size = (min(32, max(4, x.shape[-2] // 2)), min(32, max(4, x.shape[-1] // 2)))
+        global_context = self.global_proj(F.adaptive_avg_pool2d(local, global_size))
+        global_context = self.global_body(global_context)
+        global_context = F.interpolate(self.global_up(global_context), size=local.shape[-2:], mode="bilinear", align_corners=False)
+        fused = self.fuse(torch.cat([local, context, global_context], dim=1))
+        return torch.tanh(self.tail(fused)) * self.residual_scale
+
+
 class RawCfaResidualPyramidUNet(nn.Module):
     """Deeper U-Net for full-crop raw-CFA residual probes.
 
@@ -1233,6 +1380,13 @@ def build_model(model_arch: str, in_channels: int, width: int, depth: int, resid
         )
     if model_arch == "naf_teacher":
         return RawCfaResidualNAFTeacher(
+            in_channels=in_channels,
+            width=width,
+            depth=depth,
+            residual_scale=residual_scale,
+        )
+    if model_arch == "window_attention_teacher":
+        return RawCfaResidualWindowAttentionTeacher(
             in_channels=in_channels,
             width=width,
             depth=depth,
@@ -2279,9 +2433,17 @@ def main() -> int:
     ap.add_argument("--residual-scale", type=float, default=0.12)
     ap.add_argument(
         "--model-arch",
-        choices=("residual", "unet", "rcab_teacher", "naf_teacher", "pyramid_unet", "global_context_unet"),
+        choices=(
+            "residual",
+            "unet",
+            "rcab_teacher",
+            "naf_teacher",
+            "window_attention_teacher",
+            "pyramid_unet",
+            "global_context_unet",
+        ),
         default="residual",
-        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context; rcab_teacher adds residual channel attention and broad context; naf_teacher adds NAFNet-style SimpleGate blocks; pyramid_unet adds a deeper gated full-crop probe; global_context_unet adds a downsampled full-crop context branch.",
+        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context; rcab_teacher adds residual channel attention and broad context; naf_teacher adds NAFNet-style SimpleGate blocks; window_attention_teacher adds shifted-window self-attention with overlap convolution; pyramid_unet adds a deeper gated full-crop probe; global_context_unet adds a downsampled full-crop context branch.",
     )
     ap.add_argument(
         "--feature-mode",

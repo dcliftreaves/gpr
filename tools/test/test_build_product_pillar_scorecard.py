@@ -85,10 +85,16 @@ def main() -> int:
         assert "Premium still-SR promotion" in data["pillars"][2]["open_production_gates"]
         assert any("351-row" in item for item in data["pillars"][2]["locked_artifacts"])
         assert any("next-experiment contract" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("window_attention_teacher" in item for item in data["pillars"][2]["done_evidence"])
         assert any("matched global-context" in item for item in data["pillars"][2]["done_evidence"])
         assert any("fixed non-box PSF/CFA" in item for item in data["pillars"][2]["done_evidence"])
         assert any(
             "premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/index.html"
+            in ref["path"]
             for ref in data["pillars"][2]["evidence"]
         )
         assert any(

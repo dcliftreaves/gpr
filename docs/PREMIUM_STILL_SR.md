@@ -251,9 +251,9 @@ modes for the next premium still-SR pass:
 /Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3 \
   tools/cnn/train_premium_still_sr_raw_cfa_residual.py \
   --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/raw_cfa_residual_targets_dedup.npz \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_conditioned_probe_<date> \
-  --model-arch global_context_unet \
-  --feature-mode raw_context_coord_ev_noise_psf \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_teacher_<date> \
+  --model-arch window_attention_teacher \
+  --feature-mode raw_multiscale_storedhf_coord_ev_noise_psf_cfa \
   --psf-receipt /Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_known_kernel_validation_20260701/bayer_resize_psf_receipt.json \
   --sample-mode full_crop \
   --holdout-camera x2d
@@ -404,9 +404,28 @@ predict full source HF directly. It should start from the deduplicated
 raw-domain target, then train a CFA-aware window-attention or high-resolution
 restoration teacher on unique raw rows with explicit Bayer phase handling,
 camera/noise/PSF conditioning, progressive patch sizing, spatial/frequency
-objectives, and rendered review gates. A smaller student can be distilled later
-only if the teacher clears the X2D/Z8 raw and rendered gates without
-full-image/tile-overlap artifacts.
+objectives, and rendered review gates. The raw-CFA trainer now exposes this
+path as `model_arch=window_attention_teacher`, which uses alternating
+shifted-window self-attention, overlap convolution, and a downsampled full-crop
+context branch while preserving the candidate-only runtime input policy. A
+smaller student can be distilled later only if the teacher clears the X2D/Z8
+raw and rendered gates without full-image/tile-overlap artifacts.
+
+The first real-target window-attention smoke receipt exists:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/train_receipt.json
+```
+
+It uses `model_arch=window_attention_teacher` with
+`raw_multiscale_storedhf_coord_ev_noise_psf_cfa` on the canonical 117-row
+deduplicated raw-CFA target, a known-kernel PSF receipt, CFA phase conditioning,
+2 training steps, and bounded 2-row train / 2-row X2D holdout evaluation. It is
+only executable path evidence: the bounded holdout median raw MAE recovery is
+about **0.142%**, far below the promotion gate and not comparable to a full
+teacher run. Its value is that the next contracted architecture can now run on
+the real target without REF/source/JPEG runtime inputs.
 
 The first RCAB-style teacher smoke run exists:
 
