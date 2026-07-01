@@ -43,8 +43,9 @@ def main() -> int:
                     "| PSF-aware RAW video improvement | 44% |",
                     "The percentages are production-readiness burn-down estimates.",
                     "not regression signals for locked artifacts",
-                    "candidate-only patch-dictionary retrieval pass regresses the hard X2D holdout",
-                    "Current candidate-only local/full-crop/global-context/masked-context statistics are not enough for simple CNN or nearest-neighbor transfer",
+                    "raw target duplicate audit shows only 117 unique scene/crop raw-domain rows",
+                    "same-scene candidate-signal and frequency-filter probes regress",
+                    "Current candidate-only local/full-crop/global-context/masked-context statistics are not enough",
                     "deeper gated pyramid U-Net",
                     "premium_still_sr_patch_dictionary_x2dholdout_20260630/patch_dictionary_probe.json",
                 )
@@ -111,13 +112,13 @@ def main() -> int:
         readme.write_text(good, encoding="utf-8")
         scorecard.write_text(
             scorecard.read_text(encoding="utf-8").replace(
-                "candidate-only patch-dictionary retrieval pass regresses the hard X2D holdout",
-                "candidate-only retrieval was tried",
+                "same-scene candidate-signal and frequency-filter probes regress",
+                "some candidate probes were tried",
             ),
             encoding="utf-8",
         )
         failures = module.validate(readme, scorecard)
-        if not failures or not any("patch-dictionary" in failure for failure in failures):
+        if not failures or not any("frequency-filter" in failure for failure in failures):
             print(f"stale premium still-SR scorecard blocker did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 

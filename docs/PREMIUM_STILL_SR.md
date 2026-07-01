@@ -204,6 +204,56 @@ The NPZ covers the same 351 rows / 13 scenes and stores
 editable raw restoration because the model output is a four-plane CFA residual,
 not a rendered RGB texture patch.
 
+The target now has a duplicate-row audit:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_target_duplicate_audit_20260701/index.html
+```
+
+It records 351 target rows but only 117 unique scene/crop raw-domain rows. For
+all 117 scene/crop groups, `candidate_raw_cfa4`, `candidate_raw_hf_cfa4`,
+`raw_hf_residual_cfa4`, and `source_raw_hf_cfa4` are identical across the
+-2/0/+2 EV rows, while `render_hf_residual_y` varies across every group. The
+EV rows are therefore useful rendered review/tone rows, but they are not
+independent raw-CFA supervision. Future raw-domain training receipts should
+report unique scene/crop counts or deduplicate raw rows before claiming target
+coverage.
+
+## Research Alignment For The Next CNN Pass
+
+The current local U-Net/raw-residual experiments are intentionally diagnostic,
+but they are not aligned with the stronger RAW SR literature. The next
+architecture pass should be rebuilt around these points:
+
+- Use packed Bayer / CFA-aware preprocessing and preserve sensor-specific black
+  level, CFA phase, and exposure metadata. RMFA-Net explicitly calls out black
+  level, CFA handling, exposure/tone, and local/global feature separation as
+  neural-ISP concerns: https://arxiv.org/html/2406.11469v1.
+- Treat RAW restoration, denoising, demosaicing, and SR as a joint or
+  end-to-end problem when the output is rendered/reviewed. JDN DMSR uses
+  residual channel-attention blocks for joint denoising, demosaicing, and SR,
+  and reports better results than sequential solutions:
+  https://openaccess.thecvf.com/content/CVPR2021/papers/Xing_End-to-End_Learning_for_Joint_Image_Demosaicing_Denoising_and_Super-Resolution_CVPR_2021_paper.pdf.
+- Model realistic RAW noise/degradation in the raw domain. The pipeline study
+  "Rethinking Learning-based Demosaicing, Denoising, and Super-Resolution"
+  emphasizes Poisson-Gaussian raw noise and direct raw denoising:
+  https://ar5iv.labs.arxiv.org/html/1905.02538.
+- Use stronger high-resolution restoration backbones or a teacher/student
+  strategy rather than small local U-Nets. The NTIRE 2024 RAW SR survey reports
+  top approaches using NAFNet teachers, progressive patch-size finetuning,
+  spatial + Fourier losses, and spatial/frequency branches:
+  https://arxiv.org/html/2404.16223v1.
+- If multiple frames exist, burst RAW SR literature treats single-image SR as
+  severely ill-posed and uses alignment/aggregation over raw bursts:
+  https://openaccess.thecvf.com/content/ICCV2021/papers/Lecouat_Lucas-Kanade_Reloaded_End-to-End_Super-Resolution_From_Raw_Image_Bursts_ICCV_2021_paper.pdf.
+
+For this repo, that means the next premium still-SR candidate should not be
+another small raw-residual learner over the current duplicated rows. It should
+first deduplicate raw-domain target rows, then train a CFA-aware NAFNet/RCAB or
+Restormer-like teacher on unique raw rows with camera/noise/PSF conditioning,
+spatial + Fourier losses, and rendered review gates. A smaller student can be
+distilled later only if the teacher clears the X2D/Z8 raw and rendered gates.
+
 The first raw-CFA residual trainer is:
 
 ```text
