@@ -67,9 +67,14 @@ def darkframe_row(req: dict[str, Any], idx: int) -> dict[str, Any]:
         "white_level": "<white_level>",
         "iso": "<iso>",
         "exposure": "<exposure_time>",
+        "source_kind": "confirmed_darkframes",
+        "extracted_bayer_path": f"<darkframe_{idx}_u16_bayer.raw>",
+        "extracted_bayer_sha256": SHA_PLACEHOLDER,
         "extract_receipt_path": f"<darkframe_{idx}_extract_receipt.json>",
         "extract_receipt_sha256": SHA_PLACEHOLDER,
         "no_scene_signal": True,
+        "capture_setup": "<lens_cap_or_dark_bag_or_equivalent_no_light_setup>",
+        "proof": "<brief_no_scene_signal_proof_or_capture_log_reference>",
         "linear_raw": False,
     }
 

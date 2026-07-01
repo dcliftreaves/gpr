@@ -50,6 +50,11 @@ def main() -> int:
         mission = next(row for row in data["requirements"] if row["id"] == "mission1_darkframe_stack")
         assert len(mission["evidence"]) == 4
         assert mission["evidence"][0]["no_scene_signal"] is True
+        assert mission["evidence"][0]["source_kind"] == "confirmed_darkframes"
+        assert "extracted_bayer_path" in mission["evidence"][0]
+        assert "extracted_bayer_sha256" in mission["evidence"][0]
+        assert "capture_setup" in mission["evidence"][0]
+        assert "proof" in mission["evidence"][0]
         camera = next(row for row in data["requirements"] if row["id"] == "mission1_camera_role_receipts")
         assert camera["target_role"] == "camera"
         assert "mission1_camera_closure_run" in camera["receipts"]

@@ -55,6 +55,11 @@ PREMIUM_FORBIDDEN_RUNTIME_INPUTS = {
     "JPEG_target",
     "jpeg_target",
 }
+CONFIRMED_DARKFRAME_SOURCE_KINDS = {
+    "confirmed_darkframes",
+    "flat_dark_pair",
+    "equivalent_no_scene_stack",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -286,6 +291,9 @@ def validate_darkframe_stack(rid: str, req: dict[str, Any], submission: dict[str
     required = [
         "source_path",
         "sha256",
+        "extracted_bayer_path",
+        "extracted_bayer_sha256",
+        "extract_receipt_path",
         "make",
         "model",
         "width",
@@ -297,6 +305,7 @@ def validate_darkframe_stack(rid: str, req: dict[str, Any], submission: dict[str
         "iso",
         "exposure",
         "extract_receipt_sha256",
+        "source_kind",
     ]
     failures: list[str] = []
     grouped: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
@@ -305,11 +314,19 @@ def validate_darkframe_stack(rid: str, req: dict[str, Any], submission: dict[str
         if local:
             failures.append(f"darkframe missing {', '.join(local)}")
             continue
-        if not has_sha(row) or not has_sha(row, "extract_receipt_sha256"):
-            failures.append("darkframe source and extraction receipt hashes must be 64 hex characters")
+        if not has_sha(row) or not has_sha(row, "extracted_bayer_sha256") or not has_sha(row, "extract_receipt_sha256"):
+            failures.append("darkframe source, extracted Bayer, and extraction receipt hashes must be 64 hex characters")
+            continue
+        if row.get("source_kind") not in CONFIRMED_DARKFRAME_SOURCE_KINDS:
+            failures.append(
+                "darkframe source_kind must be confirmed_darkframes, flat_dark_pair, or equivalent_no_scene_stack"
+            )
             continue
         if row.get("no_scene_signal") is not True:
             failures.append("darkframe must set no_scene_signal=true")
+            continue
+        if not (row.get("capture_setup") or row.get("proof")):
+            failures.append("darkframe must include capture_setup or proof for no-scene-signal provenance")
             continue
         if rid == "iphone_cfa_darkframe_stack" and row.get("linear_raw") is True:
             failures.append("iPhone darkframes must be CFA raw, not Linear Raw")

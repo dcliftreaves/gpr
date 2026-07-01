@@ -89,16 +89,21 @@ python3 tools/check_production_capture_submission.py <submission.json> \
 The submission manifest schema is `gpr.production_capture_submission.v1`. The
 checker requires source hashes, fixed camera metadata, no-scene-signal flags for
 darkframes, camera-role Mission 1 receipts, and strict no-REF premium still-SR
-promotion receipts. A premium still-SR submission must name runtime inputs,
-include `candidate_raw` and `camera_metadata`, exclude REF/source/JPEG content,
-report 50 MP and 100 MP full-frame gate row counts, show positive median MAE
-reduction for both classes, show nonnegative worst-row MAE reduction, record
-seconds per 50 MP frame, seconds per 100 MP frame, peak RSS, and prove exact
-sidecar-only noise policy with source residual noise forbidden. When optional
-PSF research pairs are submitted, the checker also requires controlled pair
-hashes, 8192 x 6144 and 4096 x 3072 decoded Bayer dimensions, exact uint16 byte
-counts, extraction/settings/measurement receipt hashes, and negative-control
-rejection reasons. With
+promotion receipts. Darkframe rows must set `source_kind` to
+`confirmed_darkframes`, `flat_dark_pair`, or `equivalent_no_scene_stack`, carry
+the original `source_path`/`sha256`, `extracted_bayer_path` and
+`extracted_bayer_sha256`, `extract_receipt_path` and
+`extract_receipt_sha256`, `no_scene_signal=true`, and a non-empty
+`capture_setup` or `proof`. A premium still-SR submission must name runtime
+inputs, include `candidate_raw` and `camera_metadata`, exclude REF/source/JPEG
+content, report 50 MP and 100 MP full-frame gate row counts, show positive
+median MAE reduction for both classes, show nonnegative worst-row MAE
+reduction, record seconds per 50 MP frame, seconds per 100 MP frame, peak RSS,
+and prove exact sidecar-only noise policy with source residual noise forbidden.
+When optional PSF research pairs are submitted, the checker also requires
+controlled pair hashes, 8192 x 6144 and 4096 x 3072 decoded Bayer dimensions,
+exact uint16 byte counts, extraction/settings/measurement receipt hashes, and
+negative-control rejection reasons. With
 `--require-existing-files`, every path/hash pair that appears in the manifest
 must exist locally and match its SHA-256. It exits nonzero until every committed
 requirement is closed by the submitted evidence. The template builder and

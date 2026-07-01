@@ -76,6 +76,9 @@ def darkframe(model: str, idx: int, *, iphone: bool = False) -> dict:
     return {
         "source_path": f"/captures/{model}_{idx}.dng",
         "sha256": SHA,
+        "extracted_bayer_path": f"/captures/{model}_{idx}.raw",
+        "extracted_bayer_sha256": SHA,
+        "extract_receipt_path": f"/captures/{model}_{idx}_extract.json",
         "extract_receipt_sha256": SHA_B,
         "make": "Apple" if iphone else "GoPro",
         "model": model,
@@ -87,7 +90,10 @@ def darkframe(model: str, idx: int, *, iphone: bool = False) -> dict:
         "white_level": 4095,
         "iso": 232,
         "exposure": "1/30",
+        "source_kind": "confirmed_darkframes",
         "no_scene_signal": True,
+        "capture_setup": "lens cap on, camera in dark bag",
+        "proof": "capture log marks this burst as darkframes",
         "linear_raw": False,
     }
 
@@ -238,6 +244,21 @@ def main() -> int:
         assert proc.returncode == 1
         assert "mission1_darkframe_stack" in proc.stdout
         assert "need 4" in proc.stdout
+
+        bad = valid_submission()
+        bad["requirements"][2]["evidence"][0]["source_kind"] = "candidate_discovery"
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "source_kind must be confirmed_darkframes" in proc.stdout
+
+        bad = valid_submission()
+        bad["requirements"][2]["evidence"][0]["capture_setup"] = ""
+        bad["requirements"][2]["evidence"][0]["proof"] = ""
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "capture_setup or proof" in proc.stdout
 
         bad = valid_submission()
         bad["requirements"][4]["target_role"] = "pi_stand_in"
