@@ -62,7 +62,7 @@ For ML/CNN scripts, the current local environment is:
 | question | start here |
 |---|---|
 | What is locked, what is open, and what regresses? | `docs/PRODUCT_LOCK_LEDGER.md` |
-| What percentage done are the four product pillars? | `docs/PRODUCT_PILLAR_SCORECARD.md` and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_capture_requirements_20260701/index.html` |
+| What percentage done are the four product pillars? | `docs/PRODUCT_PILLAR_SCORECARD.md` and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_psf_gradient_focus_20260701/index.html` |
 | What is the broad four-effort status? | `docs/BIG_EFFORTS_STATUS.md` |
 | What exact samples/receipts are still required? | `docs/PRODUCTION_CAPTURE_REQUIREMENTS.md` and `docs/PRODUCTION_CAPTURE_REQUIREMENTS.json` |
 | What release artifacts are indexed and hash-checked? | `docs/RELEASE_ARTIFACTS.md`, `docs/release_evidence_manifest.json`, and `docs/PRODUCTION_ARTIFACTS.md` |
