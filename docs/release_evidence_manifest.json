@@ -2576,7 +2576,7 @@
       "id": "mission1_handoff_bundle_current_master_20260701",
       "family": "release_packaging",
       "status": "current",
-      "purpose": "Verified current-master GoPro Mission 1 handoff/review bundle built after the PSF optional-research boundary and premium still-SR scoreboard fixes. It contains a decode-checked 4096 x 3072 .gvid sample, current product-pillar manifest labels, stand-in timing receipts, quick-validation dry-run receipt, firmware-facing docs, and checksums. This is firmware-review packaging evidence; camera production readiness still requires real Mission 1 camera-role sensor/DMA, storage, and rear-display receipts.",
+      "purpose": "Verified CI-backed GoPro Mission 1 handoff/review bundle for commit 041f53e built after the PSF optional-research boundary and premium still-SR scoreboard fixes, then rebuilt with the passing CI URL for that commit. It contains a decode-checked 4096 x 3072 .gvid sample, current product-pillar manifest labels, stand-in timing receipts, quick-validation dry-run receipt, firmware-facing docs, and checksums. This is firmware-review packaging evidence; camera production readiness still requires real Mission 1 camera-role sensor/DMA, storage, and rear-display receipts.",
       "dashboard": "artifacts/gopro_mission1_handoff_bundle_current_master_20260701/manifest.json",
       "docs": [
         "README.md",
@@ -2591,10 +2591,11 @@
         "artifacts/gpr-current-master-mission1-handoff-bundle-20260701.tar.gz"
       ],
       "hashes": {
-        "repo_commit": "baa5449ceeec0b3b5bd5e2b925ea7b3ac04eda8f",
-        "manifest_sha256": "cf8090f32ced58177f4e82d8d56d18526ad2e7a7a79d9194a605ac3d73cf237e",
+        "repo_commit": "041f53e8aeaa8c0e192756185f4bf6eeb8465926",
+        "manifest_sha256": "252d03ac7ac2aa70031460d6d072441f1e4c7da194d7b127ef231a174dda3a74",
         "sample_gvid_sha256": "95748cda17c78b763be077d4adb6bb3822dd0aecf31353b88680af0bbb9afa9d",
-        "archive_sha256": "97907da315ebc35f5db134d0ad6da93dcb40bec4d4943e9ab8071cbc6f523ea2"
+        "archive_sha256": "e56f021ac4de0f4d83cd9235aa846e7d9ecf176afeb4881d374dd5dfd23c1bc7",
+        "ci_run": "https://github.com/dcliftreaves/gpr/actions/runs/28519825322"
       },
       "metrics": {
         "artifact_count": 21,
@@ -2603,7 +2604,7 @@
         "sample_gvid_frames": 8,
         "sample_gvid_fps": 24,
         "sample_gvid_bytes": 70120168,
-        "archive_bytes": 49673941,
+        "archive_bytes": 49674524,
         "verification_failures": 0,
         "camera_production_ready": 0
       }

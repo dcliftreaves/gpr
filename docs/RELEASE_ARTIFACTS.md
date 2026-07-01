@@ -138,23 +138,27 @@ The published `v2.3.1` release is older than current `master`; do not move that
 tag. Cut the next public release from the current commit after CI passes, then
 attach a verified review bundle built from the same commit.
 
-Current verified current-master Mission 1 handoff bundle:
+Current verified CI-backed Mission 1 handoff bundle for commit `041f53e`:
 
 `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_current_master_20260701/manifest.json`
 
-Current verified current-master archive:
+Current verified CI-backed archive for commit `041f53e`:
 
 `/Volumes/OWC_8TB/gpr_work/artifacts/gpr-current-master-mission1-handoff-bundle-20260701.tar.gz`
 
+Current CI receipt:
+
+`https://github.com/dcliftreaves/gpr/actions/runs/28519825322`
+
 Archive SHA-256:
 
-`97907da315ebc35f5db134d0ad6da93dcb40bec4d4943e9ab8071cbc6f523ea2`
+`e56f021ac4de0f4d83cd9235aa846e7d9ecf176afeb4881d374dd5dfd23c1bc7`
 
 Current Mission 1 intake audit:
 
 `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701/index.html`
 
-The current-master bundle verifies with `tools/verify_labs_bundle.py` and
+The CI-backed `041f53e` bundle verifies with `tools/verify_labs_bundle.py` and
 contains 21 manifest artifacts, including a decode-checked 4096 x 3072 `.gvid`
 sample, compact stand-in closure receipts, the quick-validation dry-run receipt,
 visual assets, docs, current product-pillar labels, and checksums. The intake
