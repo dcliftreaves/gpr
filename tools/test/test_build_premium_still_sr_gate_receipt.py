@@ -56,6 +56,11 @@ def main() -> int:
         assert payload["schema"] == "gpr.premium_still_sr_gate.v1"
         assert payload["production_ready"] is False
         assert payload["fixture_summary"]["hundred_mp_or_larger_count"] == 1
+        assert payload["runtime_policy"]["runtime_inputs"] == ["candidate_raw", "camera_metadata"]
+        assert payload["runtime_policy"]["no_ref_runtime"] is False
+        assert payload["promotion_metrics"]["full_frame_gate_50mp_row_count"] == 0
+        assert payload["performance"]["render_seconds_per_100mp_frame"] == 0.0
+        assert payload["noise_policy"]["exact_sidecars_only"] is False
         assert payload["candidate"]["checkpoint_sha256"]
         for ref in payload["outputs"].values():
             assert Path(ref["path"]).exists()

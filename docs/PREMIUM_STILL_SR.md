@@ -22,7 +22,20 @@ The receipt requires:
 - editable DNG, editable GPR, review TIFF/ProRes, and dashboard artifact
   hashes;
 - comparison against the current STILL q0/q3/q8 baseline;
-- a noise policy with raw-noise/signal audit status.
+- runtime policy proving `candidate_raw` plus camera metadata are allowed and
+  REF/source/JPEG content is absent at render time;
+- 50 MP and 100 MP full-frame gate row counts, median MAE reduction,
+  nonnegative worst-row MAE reduction, editor-latitude status, and severe
+  worst-row status;
+- render seconds per 50 MP frame, render seconds per 100 MP frame, and peak
+  RSS;
+- a noise policy with raw-noise/signal audit status, exact-sidecar-only use,
+  and source-residual-noise leakage forbidden.
+
+`production_ready=true` is accepted only when those fields show a no-REF
+candidate that beats the current baseline, passes both 50 MP and 100 MP gates,
+has no severe worst-row failures, records timing/memory, and uses only exact
+validated noise sidecars for nonzero noise policy.
 
 ## Skeleton Builder
 

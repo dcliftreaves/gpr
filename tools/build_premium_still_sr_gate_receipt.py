@@ -102,9 +102,34 @@ def build_receipt(args: argparse.Namespace) -> dict[str, Any]:
             "min_raw_psnr_delta_db": args.min_raw_psnr_delta_db,
             "editor_latitude_score_delta": args.editor_latitude_score_delta,
         },
+        "runtime_policy": {
+            "runtime_inputs": args.runtime_input,
+            "no_ref_runtime": args.no_ref_runtime,
+            "forbidden_source_content_absent": args.forbidden_source_content_absent,
+        },
+        "promotion_metrics": {
+            "full_frame_gate_50mp_passed": args.full_frame_gate_50mp_passed,
+            "full_frame_gate_100mp_passed": args.full_frame_gate_100mp_passed,
+            "full_frame_gate_50mp_row_count": args.full_frame_gate_50mp_row_count,
+            "full_frame_gate_100mp_row_count": args.full_frame_gate_100mp_row_count,
+            "median_mae_reduction_pct_50mp": args.median_mae_reduction_pct_50mp,
+            "median_mae_reduction_pct_100mp": args.median_mae_reduction_pct_100mp,
+            "worst_row_mae_reduction_pct_50mp": args.worst_row_mae_reduction_pct_50mp,
+            "worst_row_mae_reduction_pct_100mp": args.worst_row_mae_reduction_pct_100mp,
+            "editor_latitude_passed": args.editor_latitude_passed,
+            "beats_current_baseline": args.beats_current_baseline,
+            "severe_worst_row_failures": args.severe_worst_row_failures,
+        },
+        "performance": {
+            "render_seconds_per_50mp_frame": args.render_seconds_per_50mp_frame,
+            "render_seconds_per_100mp_frame": args.render_seconds_per_100mp_frame,
+            "peak_rss_gb": args.peak_rss_gb,
+        },
         "noise_policy": {
             "mode": args.noise_policy_mode,
             "raw_noise_signal_audit_passed": args.raw_noise_signal_audit_passed,
+            "exact_sidecars_only": args.noise_policy_exact_sidecars_only,
+            "forbids_source_residual_noise": args.noise_policy_forbids_source_residual_noise,
         },
         "production_ready": production_ready,
     }
@@ -125,8 +150,27 @@ def main() -> int:
     ap.add_argument("--worst-delta-e2000", type=float, default=99.0)
     ap.add_argument("--min-raw-psnr-delta-db", type=float, default=0.0)
     ap.add_argument("--editor-latitude-score-delta", type=float, default=0.0)
+    ap.add_argument("--runtime-input", action="append", default=["candidate_raw", "camera_metadata"])
+    ap.add_argument("--no-ref-runtime", action="store_true")
+    ap.add_argument("--forbidden-source-content-absent", action="store_true")
+    ap.add_argument("--full-frame-gate-50mp-passed", action="store_true")
+    ap.add_argument("--full-frame-gate-100mp-passed", action="store_true")
+    ap.add_argument("--full-frame-gate-50mp-row-count", type=int, default=0)
+    ap.add_argument("--full-frame-gate-100mp-row-count", type=int, default=0)
+    ap.add_argument("--median-mae-reduction-pct-50mp", type=float, default=0.0)
+    ap.add_argument("--median-mae-reduction-pct-100mp", type=float, default=0.0)
+    ap.add_argument("--worst-row-mae-reduction-pct-50mp", type=float, default=0.0)
+    ap.add_argument("--worst-row-mae-reduction-pct-100mp", type=float, default=0.0)
+    ap.add_argument("--editor-latitude-passed", action="store_true")
+    ap.add_argument("--beats-current-baseline", action="store_true")
+    ap.add_argument("--severe-worst-row-failures", action="store_true")
+    ap.add_argument("--render-seconds-per-50mp-frame", type=float, default=0.0)
+    ap.add_argument("--render-seconds-per-100mp-frame", type=float, default=0.0)
+    ap.add_argument("--peak-rss-gb", type=float, default=0.0)
     ap.add_argument("--noise-policy-mode", default="requires_calibrated_camera_noise_sidecar")
     ap.add_argument("--raw-noise-signal-audit-passed", action="store_true")
+    ap.add_argument("--noise-policy-exact-sidecars-only", action="store_true")
+    ap.add_argument("--noise-policy-forbids-source-residual-noise", action="store_true")
     ap.add_argument("--production-ready", action="store_true")
     ap.add_argument("--real-artifacts", action="store_true")
     args = ap.parse_args()

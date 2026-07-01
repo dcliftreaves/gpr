@@ -21,6 +21,17 @@ PSF_SCHEMA = "gpr.bayer_resize_psf_receipt.v1"
 
 NORMAL_BAYER_PHASES = {"RGGB", "GBRG", "BGGR", "GRBG"}
 NOISE_SOURCE_KINDS = {"darkframes", "frame_stack", "dng_noise_profile", "flat_dark_pair"}
+STILL_SR_REQUIRED_RUNTIME_INPUTS = {"candidate_raw", "camera_metadata"}
+STILL_SR_FORBIDDEN_RUNTIME_INPUTS = {
+    "REF",
+    "reference",
+    "reference_image",
+    "source_raw",
+    "source_rgb",
+    "source_hf",
+    "JPEG_target",
+    "jpeg_target",
+}
 
 
 def require_obj(obj: dict[str, Any], key: str, failures: list[str], prefix: str) -> dict[str, Any]:
@@ -104,6 +115,21 @@ def require_number(
         failures.append(f"{label} must be >= {minimum}")
     if maximum is not None and result > maximum:
         failures.append(f"{label} must be <= {maximum}")
+    return result
+
+
+def require_number_gt(
+    obj: dict[str, Any],
+    key: str,
+    failures: list[str],
+    prefix: str,
+    *,
+    minimum: float,
+) -> float | None:
+    result = require_number(obj, key, failures, prefix)
+    label = f"{prefix}.{key}" if prefix else key
+    if result is not None and result <= minimum:
+        failures.append(f"{label} must be > {minimum}")
     return result
 
 
@@ -200,19 +226,82 @@ def validate_still_sr_gate(data: dict[str, Any]) -> list[str]:
     require_number(comparison, "min_raw_psnr_delta_db", failures, "baseline_comparison")
     require_number(comparison, "editor_latitude_score_delta", failures, "baseline_comparison")
 
+    runtime = require_obj(data, "runtime_policy", failures, "")
+    runtime_inputs = runtime.get("runtime_inputs")
+    runtime_set: set[str] = set()
+    if not isinstance(runtime_inputs, list) or not runtime_inputs or not all(isinstance(item, str) for item in runtime_inputs):
+        failures.append("runtime_policy.runtime_inputs must be a non-empty list of strings")
+    else:
+        runtime_set = set(runtime_inputs)
+        missing_runtime = sorted(STILL_SR_REQUIRED_RUNTIME_INPUTS - runtime_set)
+        forbidden_runtime = sorted(STILL_SR_FORBIDDEN_RUNTIME_INPUTS & runtime_set)
+        if missing_runtime:
+            failures.append(f"runtime_policy.runtime_inputs missing required input(s): {', '.join(missing_runtime)}")
+        if forbidden_runtime:
+            failures.append(f"runtime_policy.runtime_inputs contains forbidden input(s): {', '.join(forbidden_runtime)}")
+    no_ref_runtime = require_bool(runtime, "no_ref_runtime", failures, "runtime_policy")
+    forbidden_absent = require_bool(runtime, "forbidden_source_content_absent", failures, "runtime_policy")
+
+    promotion = require_obj(data, "promotion_metrics", failures, "")
+    full_50 = require_bool(promotion, "full_frame_gate_50mp_passed", failures, "promotion_metrics")
+    full_100 = require_bool(promotion, "full_frame_gate_100mp_passed", failures, "promotion_metrics")
+    require_int(promotion, "full_frame_gate_50mp_row_count", failures, "promotion_metrics", minimum=0)
+    require_int(promotion, "full_frame_gate_100mp_row_count", failures, "promotion_metrics", minimum=0)
+    require_number(promotion, "median_mae_reduction_pct_50mp", failures, "promotion_metrics")
+    require_number(promotion, "median_mae_reduction_pct_100mp", failures, "promotion_metrics")
+    require_number(promotion, "worst_row_mae_reduction_pct_50mp", failures, "promotion_metrics")
+    require_number(promotion, "worst_row_mae_reduction_pct_100mp", failures, "promotion_metrics")
+    editor_passed = require_bool(promotion, "editor_latitude_passed", failures, "promotion_metrics")
+    beats_baseline = require_bool(promotion, "beats_current_baseline", failures, "promotion_metrics")
+    severe_worst = require_bool(promotion, "severe_worst_row_failures", failures, "promotion_metrics")
+
+    performance = require_obj(data, "performance", failures, "")
+    require_number(performance, "render_seconds_per_50mp_frame", failures, "performance", minimum=0)
+    require_number(performance, "render_seconds_per_100mp_frame", failures, "performance", minimum=0)
+    require_number(performance, "peak_rss_gb", failures, "performance", minimum=0)
+
     noise = require_obj(data, "noise_policy", failures, "")
     require_string(noise, "mode", failures, "noise_policy")
     audit_passed = require_bool(noise, "raw_noise_signal_audit_passed", failures, "noise_policy")
+    exact_sidecars_only = require_bool(noise, "exact_sidecars_only", failures, "noise_policy")
+    forbids_source_residual_noise = require_bool(noise, "forbids_source_residual_noise", failures, "noise_policy")
 
     if require_bool(data, "production_ready", failures, "") is True:
         if passed_gate is not True:
             failures.append("production_ready still-SR requires baseline_comparison.passed_gate=true")
+        if no_ref_runtime is not True:
+            failures.append("production_ready still-SR requires runtime_policy.no_ref_runtime=true")
+        if forbidden_absent is not True:
+            failures.append("production_ready still-SR requires runtime_policy.forbidden_source_content_absent=true")
+        if full_50 is not True:
+            failures.append("production_ready still-SR requires promotion_metrics.full_frame_gate_50mp_passed=true")
+        if full_100 is not True:
+            failures.append("production_ready still-SR requires promotion_metrics.full_frame_gate_100mp_passed=true")
+        if editor_passed is not True:
+            failures.append("production_ready still-SR requires promotion_metrics.editor_latitude_passed=true")
+        if beats_baseline is not True:
+            failures.append("production_ready still-SR requires promotion_metrics.beats_current_baseline=true")
+        if severe_worst is not False:
+            failures.append("production_ready still-SR requires promotion_metrics.severe_worst_row_failures=false")
         if audit_passed is not True:
             failures.append("production_ready still-SR requires noise_policy.raw_noise_signal_audit_passed=true")
+        if exact_sidecars_only is not True:
+            failures.append("production_ready still-SR requires noise_policy.exact_sidecars_only=true")
+        if forbids_source_residual_noise is not True:
+            failures.append("production_ready still-SR requires noise_policy.forbids_source_residual_noise=true")
         if fixtures.get("fifty_mp_or_larger_count", 0) <= 0:
             failures.append("production_ready still-SR requires 50 MP-class fixtures")
         if fixtures.get("hundred_mp_or_larger_count", 0) <= 0:
             failures.append("production_ready still-SR requires 100 MP-class fixtures")
+        require_int(promotion, "full_frame_gate_50mp_row_count", failures, "promotion_metrics", minimum=1)
+        require_int(promotion, "full_frame_gate_100mp_row_count", failures, "promotion_metrics", minimum=1)
+        require_number_gt(promotion, "median_mae_reduction_pct_50mp", failures, "promotion_metrics", minimum=0)
+        require_number_gt(promotion, "median_mae_reduction_pct_100mp", failures, "promotion_metrics", minimum=0)
+        require_number(promotion, "worst_row_mae_reduction_pct_50mp", failures, "promotion_metrics", minimum=0)
+        require_number(promotion, "worst_row_mae_reduction_pct_100mp", failures, "promotion_metrics", minimum=0)
+        require_number_gt(performance, "render_seconds_per_50mp_frame", failures, "performance", minimum=0)
+        require_number_gt(performance, "render_seconds_per_100mp_frame", failures, "performance", minimum=0)
+        require_number_gt(performance, "peak_rss_gb", failures, "performance", minimum=0)
     return failures
 
 

@@ -108,9 +108,34 @@ def still_sr_receipt() -> dict:
             "min_raw_psnr_delta_db": 0.4,
             "editor_latitude_score_delta": 0.2,
         },
+        "runtime_policy": {
+            "runtime_inputs": ["candidate_raw", "camera_metadata", "validated_noise_sidecar_optional"],
+            "no_ref_runtime": True,
+            "forbidden_source_content_absent": True,
+        },
+        "promotion_metrics": {
+            "full_frame_gate_50mp_passed": True,
+            "full_frame_gate_100mp_passed": True,
+            "full_frame_gate_50mp_row_count": 8,
+            "full_frame_gate_100mp_row_count": 6,
+            "median_mae_reduction_pct_50mp": 4.5,
+            "median_mae_reduction_pct_100mp": 2.25,
+            "worst_row_mae_reduction_pct_50mp": 0.0,
+            "worst_row_mae_reduction_pct_100mp": 0.1,
+            "editor_latitude_passed": True,
+            "beats_current_baseline": True,
+            "severe_worst_row_failures": False,
+        },
+        "performance": {
+            "render_seconds_per_50mp_frame": 120.0,
+            "render_seconds_per_100mp_frame": 310.0,
+            "peak_rss_gb": 14.5,
+        },
         "noise_policy": {
             "mode": "calibrated_darkframe_sidecar",
             "raw_noise_signal_audit_passed": True,
+            "exact_sidecars_only": True,
+            "forbids_source_residual_noise": True,
         },
         "production_ready": True,
     }
@@ -176,6 +201,14 @@ def main() -> int:
     bad_still = copy.deepcopy(receipts[1])
     bad_still["fixture_summary"]["hundred_mp_or_larger_count"] = 0
     expect_fail(module, bad_still, "100 MP-class")
+
+    bad_still_runtime = copy.deepcopy(receipts[1])
+    bad_still_runtime["runtime_policy"]["runtime_inputs"].append("REF")
+    expect_fail(module, bad_still_runtime, "forbidden input")
+
+    bad_still_perf = copy.deepcopy(receipts[1])
+    bad_still_perf["performance"]["render_seconds_per_100mp_frame"] = 0.0
+    expect_fail(module, bad_still_perf, "render_seconds_per_100mp_frame")
 
     bad_psf = copy.deepcopy(receipts[2])
     bad_psf["gate_results"]["z8_all24_passed"] = False

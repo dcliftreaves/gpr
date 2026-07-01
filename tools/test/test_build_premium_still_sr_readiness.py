@@ -174,6 +174,13 @@ def main() -> int:
         assert state["evidence_summary"]["has_production_grade_premium_still_sr_checkpoint"] is False
         assert gate["schema"] == "gpr.premium_still_sr_gate.v1"
         assert gate["production_ready"] is False
+        assert gate["runtime_policy"]["no_ref_runtime"] is True
+        assert gate["runtime_policy"]["forbidden_source_content_absent"] is True
+        assert gate["promotion_metrics"]["full_frame_gate_50mp_passed"] is False
+        assert gate["promotion_metrics"]["full_frame_gate_100mp_row_count"] == 0
+        assert gate["performance"]["peak_rss_gb"] == 0.0
+        assert gate["noise_policy"]["exact_sidecars_only"] is True
+        assert gate["noise_policy"]["forbids_source_residual_noise"] is True
         assert "blocked_on_dedicated_premium_still_sr_candidate" in (out / "index.html").read_text(encoding="utf-8")
 
     print("test_build_premium_still_sr_readiness: PASS")
