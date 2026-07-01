@@ -87,13 +87,21 @@ def readiness_row(
     }.get(key)
     request_rows = requests.get(str(requirement_id), []) if requirement_id else []
     sidecar_ready = bool(coverage_row.get("ready"))
-    runtime_ready = bool(policy_row.get("allow_nonzero_noise_addback"))
+    declared_runtime_ready = bool(policy_row.get("allow_nonzero_noise_addback"))
+    consistency_errors: list[str] = []
+    if declared_runtime_ready and not sidecar_ready:
+        consistency_errors.append("runtime policy enables nonzero addback without validated sidecar coverage")
+    if sidecar_ready and not declared_runtime_ready:
+        consistency_errors.append("validated sidecar coverage exists but runtime policy disables nonzero addback")
+    runtime_ready = sidecar_ready and declared_runtime_ready and not consistency_errors
     production_ready = sidecar_ready and runtime_ready
     candidate_count = int(nearest.get("candidate_count") or 0)
     needed = int(nearest.get("needed_for_stack") or max(0, 4 - candidate_count))
     blocker = None
     if not production_ready:
-        if candidate_count >= 4:
+        if consistency_errors:
+            blocker = "; ".join(consistency_errors)
+        elif candidate_count >= 4:
             blocker = (
                 "candidate stack has enough dark-looking frames, but source provenance "
                 "does not prove true no-scene-signal darkframes"
@@ -110,8 +118,10 @@ def readiness_row(
         "label": coverage_row.get("label") or policy_row.get("label") or key,
         "production_ready": production_ready,
         "sidecar_ready": sidecar_ready,
+        "runtime_policy_declares_nonzero_noise_addback": declared_runtime_ready,
         "runtime_nonzero_noise_addback_enabled": runtime_ready,
         "runtime_mode": (policy_row.get("runtime_fallback") or {}).get("mode"),
+        "source_consistency_errors": consistency_errors,
         "ready_isos": coverage_row.get("ready_isos") or policy_row.get("ready_isos") or [],
         "requirement_id": requirement_id,
         "nearest_candidate_stack": nearest,
@@ -147,6 +157,11 @@ def build_readiness(
     ]
     ready = [row["camera_key"] for row in rows if row["production_ready"]]
     blocked = [row["camera_key"] for row in rows if not row["production_ready"]]
+    consistency_errors = {
+        row["camera_key"]: row["source_consistency_errors"]
+        for row in rows
+        if row["source_consistency_errors"]
+    }
     gap_summary = gap_plan.get("summary") or {}
     dark_summary = darkframe_audit.get("summary") or {}
     cap_summary = capture_request.get("summary") or {}
@@ -164,6 +179,9 @@ def build_readiness(
                 row["production_ready"] for row in rows if row["camera_key"] in {"mission1", "iphone"}
             ),
             "nonzero_noise_addback_must_remain_disabled_for_blocked_cameras": bool(blocked),
+            "source_consistency_ok": not consistency_errors,
+            "source_consistency_error_count": sum(len(errors) for errors in consistency_errors.values()),
+            "source_consistency_errors": consistency_errors,
             "all_real_bayer_phases_ready": bool(gap_summary.get("all_real_bayer_phases_ready")),
             "darkframe_like_count": int(dark_summary.get("darkframe_like_count") or 0),
             "production_stack_ready_group_count": int(dark_summary.get("production_stack_ready_group_count") or 0),
@@ -207,6 +225,7 @@ def render_html(data: dict[str, Any]) -> str:
         "<tr>"
         f"<td>{html.escape(str(row['label']))}</td>"
         f"<td>{'ready' if row['production_ready'] else 'blocked'}</td>"
+        f"<td>{'yes' if row['runtime_policy_declares_nonzero_noise_addback'] else 'no'}</td>"
         f"<td>{'yes' if row['runtime_nonzero_noise_addback_enabled'] else 'no'}</td>"
         f"<td>{html.escape(', '.join(str(v) for v in row.get('ready_isos') or []) or '')}</td>"
         f"<td>{html.escape(str((row.get('nearest_candidate_stack') or {}).get('key') or ''))}</td>"
@@ -243,7 +262,7 @@ code {{ white-space: normal; overflow-wrap: anywhere; }}
 <div class="grid">{card_html}</div>
 <section class="panel"><h2>Rules</h2><ul>{rule_items}</ul></section>
 <h2>Camera Readiness</h2>
-<table><thead><tr><th>Camera</th><th>Status</th><th>Runtime addback</th><th>Ready ISOs</th><th>Nearest candidate stack</th><th>Candidates</th><th>Needed</th><th>Blocker</th></tr></thead><tbody>{rows}</tbody></table>
+<table><thead><tr><th>Camera</th><th>Status</th><th>Policy declares addback</th><th>Effective addback</th><th>Ready ISOs</th><th>Nearest candidate stack</th><th>Candidates</th><th>Needed</th><th>Blocker</th></tr></thead><tbody>{rows}</tbody></table>
 <section class="panel"><h2>Sources</h2><ul>{source_items}</ul></section>
 </main></body></html>
 """

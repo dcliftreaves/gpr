@@ -2089,14 +2089,16 @@
         "artifacts/raw_stills_noise_sidecar_readiness_20260701/index.html"
       ],
       "hashes": {
-        "raw_stills_noise_sidecar_readiness_json_sha256": "65716359088adb7206c2ef3c7e19f5391d5a34e0f2da86790cce296bb8215076",
-        "dashboard_sha256": "a934dab97b2ef3e46ab3c334d9230f9cda986fdf70b0355fa52fc596efe83622"
+        "raw_stills_noise_sidecar_readiness_json_sha256": "402980e03c440e89c7bc399808cd2bb87d72fdb175cf0bb71bffc76d2e4e7e92",
+        "dashboard_sha256": "bbea0d5409cb7074f8a3babd2a5fc82de0b7322057b726023fc214653290a03d"
       },
       "metrics": {
         "production_ready_camera_count": 2,
         "blocked_camera_count": 2,
         "mission_iphone_noise_addback_enabled": 0,
         "production_raw_stills_noise_ready": 0,
+        "source_consistency_ok": 1,
+        "source_consistency_error_count": 0,
         "darkframe_like_count": 59,
         "production_stack_ready_group_count": 0
       }
