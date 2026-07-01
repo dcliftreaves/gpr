@@ -40,7 +40,7 @@ def main() -> int:
                     "| Best RAW stills | 92% |",
                     "| GoPro RAW video MVP | 80% |",
                     "| Premium still/SR | 60% |",
-                    "| PSF-aware RAW video improvement | 44% |",
+                    "| PSF-aware RAW video improvement | 45% |",
                     "The percentages are production-readiness burn-down estimates.",
                     "not regression signals for locked artifacts",
                     "deduplicated raw-supervision NPZ collapses it to 117 unique scene/crop raw-domain rows with zero raw conflicts",

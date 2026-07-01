@@ -618,6 +618,12 @@ native Mission 1 PSF blocker state for the PSF-aware video/SR pillar.
 | Raw-video SR candidate scoreboard dashboard | `artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html` | `d3cc60b9f4732c0169b5967bf33f7ccc583471129a4b8bb9338183e7d7c3ca79` |
 | Raw-video PSF detail metric audit JSON | `artifacts/raw_video_psf_detail_metric_audit_20260701/raw_video_psf_detail_metric_audit.json` | `6b6e35dadebd6670c9dda1cd1051eae81d9945f1d9631d34f92d3c564716b23e` |
 | Raw-video PSF detail metric audit dashboard | `artifacts/raw_video_psf_detail_metric_audit_20260701/index.html` | `7066640f6c4b5e332d18a25afb7529ef671c76c2c92a24a49f91d3fb45ec5d8a` |
+| Raw-video PSF detail metric rerun Mission42 baseline summary | `artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/mission42_baseline_fullframe/summary.json` | `4e9dddacac10bf02f1a190da6e10dad45dd9770fa8d507e406e7a13557aa3af1` |
+| Raw-video PSF detail metric rerun Mission42 candidate summary | `artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/mission42_candidate_fullframe/summary.json` | `03bdf41edde228419645dbc8b24948bde07ccd51b5dc8c035b615cd0914bd96b` |
+| Raw-video PSF detail metric rerun Z8 baseline summary | `artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/z8_baseline_fullframe/summary.json` | `080cba9d8f1a3ae4eaacf8e1691e1e9e93bfa8c764c69162afce8ada1604c236` |
+| Raw-video PSF detail metric rerun Z8 candidate summary | `artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/z8_candidate_fullframe/summary.json` | `6f2fb7b4709bfb92870509b11b7fde12af85c8eb4882584f96f384001b947eff` |
+| Raw-video PSF detail metric rerun audit JSON | `artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/raw_video_psf_detail_metric_audit.json` | `28f2a16537b23c1d2364cad215ac7e9fcc531774bd7fc8c91153d512420e8866` |
+| Raw-video PSF detail metric rerun audit dashboard | `artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/index.html` | `fe383c40ae7477e0cb47dea5cfe60c8a6cf936381437dd614ed95dea9eaba56e` |
 | Raw-video PSF next-experiment contract JSON | `artifacts/raw_video_psf_next_experiment_contract_20260701/raw_video_psf_next_experiment_contract.json` | `df23e0f05f9829a99edb15c24c326ff18dd1da4e42c112f112049356da027996` |
 | Raw-video PSF next-experiment contract dashboard | `artifacts/raw_video_psf_next_experiment_contract_20260701/index.html` | `ab25ef25dc61ad2e1eeb33c8cdeab0df8acde4625e5c4964bff8d9858276a470` |
 

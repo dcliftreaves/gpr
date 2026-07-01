@@ -272,9 +272,9 @@ Current dashboard:
 /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_detail_metric_audit_20260701/index.html
 ```
 
-Current result: coverage is present for the selected Mission42 and Z8 all24
-baseline/candidate summaries, but all four summaries are missing the required
-same-cell detail fields:
+Initial result: coverage was present for the selected Mission42 and Z8 all24
+baseline/candidate summaries, but all four historical summaries were missing
+the required same-cell detail fields:
 
 - `same_cell_detail_mae_improvement_pct`
 - `same_cell_fine_detail_mae_improvement_pct`
@@ -285,6 +285,33 @@ The resulting status is
 emit these metrics from the full-frame Mission/Z8 summary builders, then
 re-run the SR/detail scoreboard before training or promoting a PSF-conditioned
 replacement.
+
+That implementation pass is now complete for the current best baseline and
+candidate summaries. The metric-bearing full-frame rerun lives at:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/
+```
+
+The rerun preserves four summary receipts:
+
+| summary | images | same-cell detail median | same-cell fine median | CFA-plane detail median |
+|---|---:|---:|---:|---:|
+| Mission42 baseline | 42 | 26.091% | 22.100% | 26.091% |
+| Mission42 candidate | 42 | 28.095% | 23.397% | 28.095% |
+| Z8 baseline | 24 | 3.214% | 2.347% | 3.214% |
+| Z8 candidate | 24 | 3.516% | 2.552% | 3.516% |
+
+The matching metric audit is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/index.html
+```
+
+It records `ready_summary_count=4`, `missing_summary_count=0`, and
+`psf_detail_gate_ready=true`. This closes the missing-metric blocker only. It
+does not promote a PSF-conditioned replacement because the controlled native
+PSF kernel and PSF-conditioned model gate are still open.
 
 ## Next-Experiment Contract
 

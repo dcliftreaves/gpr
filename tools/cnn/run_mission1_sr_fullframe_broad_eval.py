@@ -75,6 +75,11 @@ def row_from_receipts(stem: str, paths: dict[str, Path]) -> dict[str, Any]:
         "rmse_improvement_pct": comp["improvement_pct"]["rmse"],
         "mae_improvement_pct": comp["improvement_pct"]["mae"],
         "gradient_mae_improvement_pct": comp["improvement_pct"]["gradient_mae"],
+        "same_cell_detail_mae_improvement_pct": comp["improvement_pct"].get("same_cell_detail_mae", 0.0),
+        "same_cell_fine_detail_mae_improvement_pct": comp["improvement_pct"].get("same_cell_fine_detail_mae", 0.0),
+        "cfa_plane_detail_mae_improvement_pct": comp["improvement_pct"].get("cfa_plane_detail_mae", 0.0),
+        "baseline_same_cell_detail_mae": comp.get("baseline_same_cell_detail", {}).get("same_cell_detail_mae_counts", 0.0),
+        "model_same_cell_detail_mae": comp.get("model_same_cell_detail", {}).get("same_cell_detail_mae_counts", 0.0),
         "baseline_psnr14_db": comp["baseline_bilinear"]["psnr14_db"],
         "model_psnr14_db": comp["model"]["psnr14_db"],
         "baseline_rmse": comp["baseline_bilinear"]["rmse_counts"],
@@ -96,6 +101,9 @@ def build_summary(out_root: Path, checkpoint: Path, rows: list[dict[str, Any]], 
         "rmse_improvement_pct",
         "mae_improvement_pct",
         "gradient_mae_improvement_pct",
+        "same_cell_detail_mae_improvement_pct",
+        "same_cell_fine_detail_mae_improvement_pct",
+        "cfa_plane_detail_mae_improvement_pct",
         "model_psnr14_db",
     ]:
         summary[key] = stats(rows, key)
@@ -103,6 +111,9 @@ def build_summary(out_root: Path, checkpoint: Path, rows: list[dict[str, Any]], 
         summary["worst_by_rmse_improvement"] = min(rows, key=lambda r: r["rmse_improvement_pct"])
         summary["worst_by_mae_improvement"] = min(rows, key=lambda r: r["mae_improvement_pct"])
         summary["worst_by_gradient_improvement"] = min(rows, key=lambda r: r["gradient_mae_improvement_pct"])
+        summary["worst_by_same_cell_detail_improvement"] = min(
+            rows, key=lambda r: r["same_cell_detail_mae_improvement_pct"]
+        )
     summary["dashboard"] = str(out_root / "index.html")
     return summary
 
@@ -127,6 +138,7 @@ def write_dashboard(out_root: Path, summary: dict[str, Any]) -> None:
                   <div><dt>RMSE lift</dt><dd>{row['rmse_improvement_pct']:.1f}%</dd></div>
                   <div><dt>MAE lift</dt><dd>{row['mae_improvement_pct']:.1f}%</dd></div>
                   <div><dt>Gradient lift</dt><dd>{row['gradient_mae_improvement_pct']:.1f}%</dd></div>
+                  <div><dt>Same-cell detail</dt><dd>{row['same_cell_detail_mae_improvement_pct']:.1f}%</dd></div>
                   <div><dt>PSNR14</dt><dd>{row['model_psnr14_db']:.2f} dB</dd></div>
                   <div><dt>Time</dt><dd>{row['total_with_write_s']:.3f}s</dd></div>
                   <div><dt>FPS</dt><dd>{row['fps_with_write']:.2f}</dd></div>
@@ -141,6 +153,7 @@ def write_dashboard(out_root: Path, summary: dict[str, Any]) -> None:
     rmse = summary["rmse_improvement_pct"]
     mae = summary["mae_improvement_pct"]
     grad = summary["gradient_mae_improvement_pct"]
+    detail = summary["same_cell_detail_mae_improvement_pct"]
     fps = summary["fps_with_write"]
     body = f"""<!doctype html>
 <html lang="en">
@@ -202,6 +215,7 @@ def write_dashboard(out_root: Path, summary: dict[str, Any]) -> None:
       <div class="metric"><span>RMSE lift worst</span><strong>{rmse['min']:.1f}%</strong></div>
       <div class="metric"><span>MAE lift median</span><strong>{mae['median']:.1f}%</strong></div>
       <div class="metric"><span>Gradient lift median</span><strong>{grad['median']:.1f}%</strong></div>
+      <div class="metric"><span>Same-cell detail median</span><strong>{detail['median']:.1f}%</strong></div>
       <div class="metric"><span>MPS throughput</span><strong>{fps['median']:.2f} fps</strong></div>
     </section>
   </header>

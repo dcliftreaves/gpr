@@ -2009,6 +2009,50 @@
       }
     },
     {
+      "id": "raw_video_psf_detail_metric_audit_rerun_20260701",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Metric-bearing Mission42 and Z8 all24 baseline/candidate rerun for same-cell Bayer fine-detail PSF comparison.",
+      "dashboard": "artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BAYER_RESIZE_PSF.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/mission42_baseline_fullframe/summary.json",
+        "artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/mission42_candidate_fullframe/summary.json",
+        "artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/z8_baseline_fullframe/summary.json",
+        "artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/z8_candidate_fullframe/summary.json",
+        "artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/raw_video_psf_detail_metric_audit.json",
+        "artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/index.html"
+      ],
+      "hashes": {
+        "mission42_baseline_summary_sha256": "4e9dddacac10bf02f1a190da6e10dad45dd9770fa8d507e406e7a13557aa3af1",
+        "mission42_candidate_summary_sha256": "03bdf41edde228419645dbc8b24948bde07ccd51b5dc8c035b615cd0914bd96b",
+        "z8_baseline_summary_sha256": "080cba9d8f1a3ae4eaacf8e1691e1e9e93bfa8c764c69162afce8ada1604c236",
+        "z8_candidate_summary_sha256": "6f2fb7b4709bfb92870509b11b7fde12af85c8eb4882584f96f384001b947eff",
+        "audit_json_sha256": "28f2a16537b23c1d2364cad215ac7e9fcc531774bd7fc8c91153d512420e8866",
+        "dashboard_sha256": "fe383c40ae7477e0cb47dea5cfe60c8a6cf936381437dd614ed95dea9eaba56e"
+      },
+      "metrics": {
+        "coverage_ready": 1,
+        "summary_count": 4,
+        "ready_summary_count": 4,
+        "missing_summary_count": 0,
+        "mission_candidate_image_count": 42,
+        "z8_candidate_image_count": 24,
+        "same_cell_detail_metric_ready": 1,
+        "psf_detail_gate_ready": 1,
+        "mission_baseline_same_cell_detail_median_pct": 26.091070921247514,
+        "mission_candidate_same_cell_detail_median_pct": 28.094993570717005,
+        "z8_baseline_same_cell_detail_median_pct": 3.213765666715251,
+        "z8_candidate_same_cell_detail_median_pct": 3.5158561461295026
+      }
+    },
+    {
       "id": "raw_video_psf_next_experiment_contract_20260701",
       "family": "raw_video_psf",
       "status": "diagnostic",

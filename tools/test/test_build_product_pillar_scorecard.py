@@ -89,11 +89,12 @@ def main() -> int:
             "premium_still_sr_next_experiment_contract_20260701/index.html" in ref["path"]
             for ref in data["pillars"][2]["evidence"]
         )
-        assert data["pillars"][3]["readiness_percent"] == 44
+        assert data["pillars"][3]["readiness_percent"] == 45
         assert "PSF-aware raw-video replacement" in data["pillars"][3]["open_production_gates"]
         assert any("8K SR" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any("continuous 8K no-CNN versus CNN" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any("Standalone 8K ProRes A/B" in item for item in data["pillars"][3]["done_evidence"])
+        assert any("same-cell Bayer" in item for item in data["pillars"][3]["done_evidence"])
         assert any(
             "z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
             for ref in data["pillars"][3]["evidence"]
@@ -104,6 +105,10 @@ def main() -> int:
         )
         assert any(
             "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
+            for ref in data["pillars"][3]["evidence"]
+        )
+        assert any(
+            "raw_video_psf_detail_metric_audit_rerun_20260701/index.html" in ref["path"]
             for ref in data["pillars"][3]["evidence"]
         )
         assert any(ref["exists"] for ref in data["pillars"][0]["evidence"] if ref["kind"] == "repo")

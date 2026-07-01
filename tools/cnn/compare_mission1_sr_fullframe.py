@@ -64,6 +64,20 @@ def gradient_mae(a: np.ndarray, b: np.ndarray) -> float:
     return float((dx + dy) * 0.5)
 
 
+def same_cell_detail(planes: np.ndarray) -> np.ndarray:
+    pf = planes.astype(np.float32)
+    _, h, w = pf.shape
+    if h % 2 or w % 2:
+        raise ValueError("same-cell detail metric expects even CFA-plane dimensions")
+    cell_mean = pf.reshape((pf.shape[0], h // 2, 2, w // 2, 2)).mean(axis=(2, 4))
+    return pf - np.repeat(np.repeat(cell_mean, 2, axis=1), 2, axis=2)
+
+
+def cfa_plane_mae(a: np.ndarray, b: np.ndarray) -> dict[str, float]:
+    labels = ("r", "g1", "g2", "b")
+    return {label: mae(a[idx], b[idx]) for idx, label in enumerate(labels)}
+
+
 def psnr14(value: float) -> float:
     return 99.0 if value == 0.0 else 20.0 * math.log10(RAW_SCALE / value)
 
@@ -76,6 +90,21 @@ def metric_row(candidate: np.ndarray, target: np.ndarray) -> dict[str, float]:
         "gradient_mae_counts": gradient_mae(candidate, target),
         "psnr14_db": psnr14(r),
     }
+
+
+def detail_metric_row(candidate: np.ndarray, target: np.ndarray) -> dict[str, Any]:
+    candidate_detail = same_cell_detail(candidate)
+    target_detail = same_cell_detail(target)
+    detail_mae = mae(candidate_detail, target_detail)
+    return {
+        "same_cell_detail_mae_counts": detail_mae,
+        "same_cell_fine_detail_mae_counts": gradient_mae(candidate_detail, target_detail),
+        "cfa_plane_detail_mae_counts": cfa_plane_mae(candidate_detail, target_detail),
+    }
+
+
+def improvement_pct(baseline: float, model: float) -> float:
+    return 0.0 if baseline == 0.0 else 100.0 * (baseline - model) / baseline
 
 
 def luma(planes: np.ndarray) -> np.ndarray:
@@ -155,6 +184,10 @@ def main() -> int:
 
     baseline = metric_row(bilinear, target_f)
     model = metric_row(sr_f, target_f)
+    baseline_detail = detail_metric_row(bilinear, target_f)
+    model_detail = detail_metric_row(sr_f, target_f)
+    cfa_baseline_mean = float(np.mean(list(baseline_detail["cfa_plane_detail_mae_counts"].values())))
+    cfa_model_mean = float(np.mean(list(model_detail["cfa_plane_detail_mae_counts"].values())))
     payload: dict[str, Any] = {
         "schema": "mission1_sr_fullframe_compare.v1",
         "low_raw": str(args.low_raw),
@@ -166,12 +199,21 @@ def main() -> int:
         "high_height": high_height,
         "baseline_bilinear": baseline,
         "model": model,
+        "baseline_same_cell_detail": baseline_detail,
+        "model_same_cell_detail": model_detail,
         "improvement_pct": {
-            "rmse": 100.0 * (baseline["rmse_counts"] - model["rmse_counts"]) / baseline["rmse_counts"],
-            "mae": 100.0 * (baseline["mae_counts"] - model["mae_counts"]) / baseline["mae_counts"],
-            "gradient_mae": 100.0
-            * (baseline["gradient_mae_counts"] - model["gradient_mae_counts"])
-            / baseline["gradient_mae_counts"],
+            "rmse": improvement_pct(baseline["rmse_counts"], model["rmse_counts"]),
+            "mae": improvement_pct(baseline["mae_counts"], model["mae_counts"]),
+            "gradient_mae": improvement_pct(baseline["gradient_mae_counts"], model["gradient_mae_counts"]),
+            "same_cell_detail_mae": improvement_pct(
+                baseline_detail["same_cell_detail_mae_counts"],
+                model_detail["same_cell_detail_mae_counts"],
+            ),
+            "same_cell_fine_detail_mae": improvement_pct(
+                baseline_detail["same_cell_fine_detail_mae_counts"],
+                model_detail["same_cell_fine_detail_mae_counts"],
+            ),
+            "cfa_plane_detail_mae": improvement_pct(cfa_baseline_mean, cfa_model_mean),
         },
         "contact_sheet": str(args.contact_sheet),
     }
