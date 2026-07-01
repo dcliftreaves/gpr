@@ -216,7 +216,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("premium still-SR readiness", "artifacts/premium_still_sr_readiness_20260630/index.html"),
                     artifact_ref("premium still-SR experiment scoreboard", "artifacts/premium_still_sr_experiment_scoreboard_20260630/index.html"),
                     artifact_ref("premium still-SR blocker audit", "artifacts/premium_still_sr_blocker_audit_20260630/index.html"),
-                    artifact_ref("premium still-SR next-experiment contract", "artifacts/premium_still_sr_next_experiment_contract_20260630/index.html"),
+                    artifact_ref("premium still-SR next-experiment contract", "artifacts/premium_still_sr_next_experiment_contract_20260701/index.html"),
                     artifact_ref("premium still-SR target expansion plan", "artifacts/premium_still_sr_target_expansion_plan_20260630/index.html"),
                     artifact_ref("premium still-SR expanded target build", "artifacts/premium_still_sr_expanded_hf_targets_20260630/expanded_target_build_receipt.json"),
                     artifact_ref("premium still-SR expanded target receipt", "artifacts/premium_still_sr_expanded_hf_targets_20260630/merged/merge_receipt.json"),

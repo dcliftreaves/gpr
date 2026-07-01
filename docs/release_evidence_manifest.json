@@ -60,8 +60,8 @@
       "summary": "Target builders, raw-CFA residual datasets, noise-conditioned probes, model receipts, and blocker dashboards for spend-time-for-quality still reconstruction.",
       "manifest_refs": {
         "dashboards": [
-          "premium_still_sr_raw_cfa_residual_gap_20260630",
-          "premium_still_sr_next_experiment_contract_20260630",
+          "premium_still_sr_raw_cfa_residual_gap_20260701",
+          "premium_still_sr_next_experiment_contract_20260701",
           "cnn_product_scorecard_20260629"
         ]
       },
@@ -1317,8 +1317,8 @@
         "artifacts/product_burndown_20260701/index.html"
       ],
       "hashes": {
-        "product_burndown_json_sha256": "2f21897c9007c80e15a1354e26a1ffd594fa45b087a8f060cc718167732eef1f",
-        "dashboard_sha256": "f12f7e29079236a325b71190dfca3c2f5c2e01198c96e6ee561451657d2e2fb6"
+        "product_burndown_json_sha256": "30ea4e5f5397361089f7327356cdd4e98a35726bb481259f1a6ffd47b0674630",
+        "dashboard_sha256": "0be8eeca36747c01196e75c3a638c9fb399bd6c418841a336e7ff29445399287"
       },
       "metrics": {
         "four_pillar_completion_percent": 69,
@@ -1331,11 +1331,11 @@
       }
     },
     {
-      "id": "premium_still_sr_raw_cfa_residual_gap_20260630",
+      "id": "premium_still_sr_raw_cfa_residual_gap_20260701",
       "family": "premium_still_sr",
       "status": "diagnostic",
       "purpose": "Receipt-driven audit of the current raw-CFA residual still-SR target and model candidates; records why the expensive still-SR path is not promotable yet.",
-      "dashboard": "artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html",
+      "dashboard": "artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html",
       "docs": [
         "README.md",
         "docs/README.md",
@@ -1344,8 +1344,8 @@
         "docs/BIG_EFFORTS_STATUS.md"
       ],
       "receipts": [
-        "artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json",
-        "artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html",
+        "artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json",
+        "artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json",
@@ -1359,8 +1359,8 @@
         "target_rows": 351,
         "target_scenes": 13,
         "render_to_raw_corr_abs_median": 0.6912654943469239,
-        "model_receipt_count": 18,
-        "best_x2d_holdout_mae_recovery_pct": 0.09981604486103075,
+        "model_receipt_count": 23,
+        "best_x2d_holdout_mae_recovery_pct": 0.1572830387663978,
         "x2d_full_crop_unet_probe_holdout_mae_recovery_pct": 0.06355886511255635,
         "x2d_full_crop_contextstoredhf_unet_probe_holdout_mae_recovery_pct": 0.02068661175833202,
         "x2d_full_crop_spectral_unet_probe_holdout_mae_recovery_pct": 0.027191569278422086,
@@ -1401,11 +1401,11 @@
       }
     },
     {
-      "id": "premium_still_sr_next_experiment_contract_20260630",
+      "id": "premium_still_sr_next_experiment_contract_20260701",
       "family": "premium_still_sr",
       "status": "diagnostic",
       "purpose": "Next-experiment contract for the premium still-SR model pass. Locks the pass to the canonical raw-CFA residual target, forbids REF/source/JPEG content at render time, and records failed local/context/noise/sampling-only probes that should not be repeated as the primary approach.",
-      "dashboard": "artifacts/premium_still_sr_next_experiment_contract_20260630/index.html",
+      "dashboard": "artifacts/premium_still_sr_next_experiment_contract_20260701/index.html",
       "docs": [
         "README.md",
         "docs/CNN_PRODUCT_SCORECARD_2026-06-29.md",
@@ -1413,8 +1413,8 @@
         "docs/PRODUCTION_ARTIFACTS.md"
       ],
       "receipts": [
-        "artifacts/premium_still_sr_next_experiment_contract_20260630/premium_still_sr_next_experiment_contract.json",
-        "artifacts/premium_still_sr_next_experiment_contract_20260630/index.html"
+        "artifacts/premium_still_sr_next_experiment_contract_20260701/premium_still_sr_next_experiment_contract.json",
+        "artifacts/premium_still_sr_next_experiment_contract_20260701/index.html"
       ],
       "metrics": {
         "target_rows": 351,
@@ -1422,7 +1422,7 @@
         "scoreboard_promotable_candidate_count": 0,
         "should_start_next_model_pass": 1,
         "production_ready": 0,
-        "x2d_best_raw_residual_mae_recovery_pct": 0.09981604486103075,
+        "x2d_best_raw_residual_mae_recovery_pct": 0.1572830387663978,
         "z8_best_raw_residual_mae_recovery_pct": 0.4983379829708305,
         "promotion_threshold_pct": 15.0
       }

@@ -12,55 +12,32 @@ import argparse
 import hashlib
 import html
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
 
 
 SCHEMA = "gpr.premium_still_sr_raw_cfa_residual_gap.v1"
-DEFAULT_EXTERNAL_ROOT = Path("/Volumes/OWC_8TB/gpr_work")
+DEFAULT_EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT") or "/Volumes/OWC_8TB/gpr_work")
 DEFAULT_TARGET_RECEIPT = (
     DEFAULT_EXTERNAL_ROOT
     / "artifacts/premium_still_sr_raw_cfa_residual_targets_20260630/raw_cfa_residual_targets.json"
 )
-DEFAULT_MODEL_RECEIPTS = [
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_w32_2000_lowlr_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w32_2000_lowlr_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w64_5000_block17_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_storedhf_w32_2000_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_signal_residual_model_x2dholdout_w32_2000_thr1_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_w48_1600_abs6_patch256_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_context_w40_1800_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_x2donly_w48_2200_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_framectx_unet_w32_1200_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_z8holdout_framectx_unet_w32_1200_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_unet_w16_160_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_contextstoredhf_unet_w24_360_20260630/train_receipt.json",
-    DEFAULT_EXTERNAL_ROOT
-    / "artifacts/premium_still_sr_raw_cfa_residual_model_x2d1742_fullcrop_spectral_unet_w24_420_20260630/train_receipt.json",
-]
+DEFAULT_MODEL_RECEIPT_GLOB = "premium_still_sr_raw_cfa_residual_model_*/train_receipt.json"
+
+
+def default_model_receipts() -> list[Path]:
+    """Discover all current raw-CFA residual training receipts.
+
+    The premium still-SR blocker dashboard is used to choose the next model
+    direction. A fixed list can silently omit newer rejected probes and make
+    the next-experiment contract look cleaner than the evidence really is.
+    Explicit ``--model-receipt`` arguments still provide reproducible fixture
+    inputs for tests and one-off audits.
+    """
+
+    return sorted((DEFAULT_EXTERNAL_ROOT / "artifacts").glob(DEFAULT_MODEL_RECEIPT_GLOB))
 
 
 def sha256_file(path: Path) -> str:
@@ -371,7 +348,7 @@ def main() -> int:
     ap.add_argument("--output-dir", type=Path, required=True)
     args = ap.parse_args()
 
-    receipts = args.model_receipt or DEFAULT_MODEL_RECEIPTS
+    receipts = args.model_receipt or default_model_receipts()
     data = build_gap(args.target_receipt, receipts, args.threshold_pct)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     json_path = args.output_dir / "raw_cfa_residual_gap.json"

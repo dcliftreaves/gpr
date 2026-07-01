@@ -86,7 +86,7 @@ def main() -> int:
         assert any("351-row" in item for item in data["pillars"][2]["locked_artifacts"])
         assert any("next-experiment contract" in item for item in data["pillars"][2]["done_evidence"])
         assert any(
-            "premium_still_sr_next_experiment_contract_20260630/index.html" in ref["path"]
+            "premium_still_sr_next_experiment_contract_20260701/index.html" in ref["path"]
             for ref in data["pillars"][2]["evidence"]
         )
         assert data["pillars"][3]["readiness_percent"] == 44

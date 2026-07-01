@@ -138,7 +138,7 @@ REQUIRED_PRODUCT_PILLARS = {
         "status": "research_loop_working_candidate_not_promoted",
         "refs": {
             "dashboards": {
-                "premium_still_sr_raw_cfa_residual_gap_20260630",
+                "premium_still_sr_raw_cfa_residual_gap_20260701",
                 "cnn_product_scorecard_20260629",
             },
         },

@@ -306,7 +306,7 @@ def main() -> int:
     args = parse_args()
     inventory_path = args.inventory or args.external_root / "artifacts/cnn_dataset_inventory_20260630/cnn_dataset_inventory.json"
     scoreboard_path = args.scoreboard or args.external_root / "artifacts/premium_still_sr_experiment_scoreboard_20260630/scoreboard.json"
-    residual_gap_path = args.residual_gap or args.external_root / "artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/raw_cfa_residual_gap.json"
+    residual_gap_path = args.residual_gap or args.external_root / "artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json"
     data = build_contract(
         inventory=load_json(inventory_path),
         scoreboard=load_json(scoreboard_path),
