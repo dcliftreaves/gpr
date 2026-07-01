@@ -30,7 +30,10 @@ def main() -> int:
         scorecard = tmp / "PRODUCT_PILLAR_SCORECARD.md"
         docs_dir = tmp / "docs"
         docs_dir.mkdir()
+        img_dir = docs_dir / "img"
+        img_dir.mkdir()
         lock_ledger = docs_dir / "PRODUCT_LOCK_LEDGER.md"
+        status_matrix = img_dir / "readme_status_matrix.svg"
 
         good = (ROOT / "README.md").read_text(encoding="utf-8")
         readme.write_text(good, encoding="utf-8")
@@ -70,6 +73,25 @@ def main() -> int:
                     "Real Mission 1 camera-role raw-video closure",
                     "Premium still-SR promotion",
                     "PSF-aware raw-video replacement",
+                )
+            ),
+            encoding="utf-8",
+        )
+        status_matrix.write_text(
+            "\n".join(
+                (
+                    "GPR four-pillar production readiness",
+                    "RAW stills",
+                    "92%",
+                    "GoPro RAW video MVP",
+                    "80%",
+                    "Premium still/SR",
+                    "60%",
+                    "Video reconstruction",
+                    "100%",
+                    "PSF / blur modeling is parked, not blocking the release.",
+                    "Controlled high/low Mission 1 pairs",
+                    "same .gvid, editable raw, ProRes, dashboard, timing, memory, and hash receipts",
                 )
             ),
             encoding="utf-8",

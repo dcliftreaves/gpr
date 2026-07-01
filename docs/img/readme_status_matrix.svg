@@ -1,72 +1,83 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="520" viewBox="0 0 1180 520" role="img" aria-labelledby="title desc">
-  <title id="title">GPR production status matrix</title>
-  <desc id="desc">Dashboard-style summary of stills, video, preview, GVID, raw clean dispatch, and platform performance status.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="560" viewBox="0 0 1180 560" role="img" aria-labelledby="title desc">
+  <title id="title">GPR four-pillar production readiness</title>
+  <desc id="desc">Four product pillars for GPR: RAW stills 92 percent, GoPro RAW video MVP 80 percent, premium still SR 60 percent, and raw video reconstruction 100 percent, with PSF work parked as research.</desc>
   <defs>
     <style>
-      .bg { fill: #f8fafc; }
-      .panel { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1; }
-      .title { font: 700 28px system-ui, -apple-system, Segoe UI, sans-serif; fill: #0f172a; }
-      .subtitle { font: 500 14px system-ui, -apple-system, Segoe UI, sans-serif; fill: #475569; }
-      .label { font: 700 15px system-ui, -apple-system, Segoe UI, sans-serif; fill: #0f172a; }
-      .small { font: 500 13px system-ui, -apple-system, Segoe UI, sans-serif; fill: #475569; }
-      .num { font: 800 25px system-ui, -apple-system, Segoe UI, sans-serif; fill: #0f172a; }
-      .pass { fill: #15803d; }
-      .warn { fill: #b45309; }
-      .track { fill: #e2e8f0; }
-      .blue { fill: #2563eb; }
-      .green { fill: #16a34a; }
-      .amber { fill: #d97706; }
-      .ink { fill: #0f172a; }
+      .bg { fill: #f7f9fb; }
+      .ink { fill: #101820; }
+      .muted { fill: #536170; }
+      .panel { fill: #ffffff; stroke: #d6dee8; stroke-width: 1; }
+      .title { font: 800 32px system-ui, -apple-system, Segoe UI, sans-serif; fill: #101820; }
+      .subtitle { font: 500 15px system-ui, -apple-system, Segoe UI, sans-serif; fill: #536170; }
+      .label { font: 800 18px system-ui, -apple-system, Segoe UI, sans-serif; fill: #101820; }
+      .small { font: 500 13px system-ui, -apple-system, Segoe UI, sans-serif; fill: #536170; }
+      .num { font: 900 34px system-ui, -apple-system, Segoe UI, sans-serif; fill: #101820; }
       .badgeText { font: 800 12px system-ui, -apple-system, Segoe UI, sans-serif; fill: #ffffff; }
+      .track { fill: #e6edf3; }
+      .stills { fill: #008a64; }
+      .video { fill: #2067b1; }
+      .premium { fill: #b45f06; }
+      .recon { fill: #6f42c1; }
+      .research { fill: #6b7280; }
     </style>
   </defs>
-  <rect class="bg" width="1180" height="520"/>
-  <text class="title" x="40" y="50">GPR/GVID Production Status</text>
-  <text class="subtitle" x="40" y="76">Slim integration branch: production code, quality gates, container path, and platform receipts only</text>
+  <rect class="bg" width="1180" height="560"/>
+  <text class="title" x="42" y="56">Four Product Pillars</text>
+  <text class="subtitle" x="42" y="84">Ship decisions, blockers, and research parking for the current production branch.</text>
 
-  <rect class="panel" x="40" y="110" width="250" height="150" rx="8"/>
-  <rect class="green" x="62" y="132" width="54" height="24" rx="12"/>
-  <text class="badgeText" x="75" y="149">PASS</text>
-  <text class="label" x="62" y="182">Stills</text>
-  <text class="num" x="62" y="218">15.05 MB</text>
-  <text class="small" x="62" y="241">primary, worst LPIPS 0.016</text>
+  <rect class="panel" x="42" y="122" width="258" height="270" rx="8"/>
+  <rect class="stills" x="64" y="146" width="86" height="26" rx="13"/>
+  <text class="badgeText" x="80" y="164">SHIP</text>
+  <text class="label" x="64" y="206">RAW stills</text>
+  <text class="num" x="64" y="250">92%</text>
+  <rect class="track" x="64" y="276" width="206" height="16" rx="8"/>
+  <rect class="stills" x="64" y="276" width="190" height="16" rx="8"/>
+  <text class="small" x="64" y="318">50 MP tiers are locked.</text>
+  <text class="small" x="64" y="340">Normal Bayer support is locked.</text>
+  <text class="small" x="64" y="362">Mission/iPhone darkframes</text>
+  <text class="small" x="64" y="384">close noise addback.</text>
 
-  <rect class="panel" x="320" y="110" width="250" height="150" rx="8"/>
-  <rect class="green" x="342" y="132" width="54" height="24" rx="12"/>
-  <text class="badgeText" x="355" y="149">PASS</text>
-  <text class="label" x="342" y="182">Video freeze-frame</text>
-  <text class="num" x="342" y="218">7.81 MB</text>
-  <text class="small" x="342" y="241">ML-2 q3 l1x2, worst LPIPS 0.076</text>
+  <rect class="panel" x="322" y="122" width="258" height="270" rx="8"/>
+  <rect class="video" x="344" y="146" width="132" height="26" rx="13"/>
+  <text class="badgeText" x="361" y="164">HANDOFF</text>
+  <text class="label" x="344" y="206">GoPro RAW video MVP</text>
+  <text class="num" x="344" y="250">80%</text>
+  <rect class="track" x="344" y="276" width="206" height="16" rx="8"/>
+  <rect class="video" x="344" y="276" width="165" height="16" rx="8"/>
+  <text class="small" x="344" y="318">4K Bayer .gvid encode passes on Pi 5.</text>
+  <text class="small" x="344" y="340">1024 preview decode passes on Pi 5.</text>
+  <text class="small" x="344" y="362">Real sensor, SD, and display</text>
+  <text class="small" x="344" y="384">receipts remain.</text>
 
-  <rect class="panel" x="600" y="110" width="250" height="150" rx="8"/>
-  <rect class="amber" x="622" y="132" width="74" height="24" rx="12"/>
-  <text class="badgeText" x="633" y="149">BLOCKED</text>
-  <text class="label" x="622" y="182">Mission native12</text>
-  <text class="num" x="622" y="218">20.50 fps</text>
-  <text class="small" x="622" y="241">4K .gvid stand-in, handoff open</text>
+  <rect class="panel" x="602" y="122" width="258" height="270" rx="8"/>
+  <rect class="premium" x="624" y="146" width="126" height="26" rx="13"/>
+  <text class="badgeText" x="641" y="164">DO NOT SHIP</text>
+  <text class="label" x="624" y="206">Premium still/SR</text>
+  <text class="num" x="624" y="250">60%</text>
+  <rect class="track" x="624" y="276" width="206" height="16" rx="8"/>
+  <rect class="premium" x="624" y="276" width="124" height="16" rx="8"/>
+  <text class="small" x="624" y="318">Datasets and trainers exist.</text>
+  <text class="small" x="624" y="340">Current CNNs are diagnostic.</text>
+  <text class="small" x="624" y="362">Needs no-REF 50 MP / 100 MP</text>
+  <text class="small" x="624" y="384">gate pass.</text>
 
-  <rect class="panel" x="880" y="110" width="250" height="150" rx="8"/>
-  <rect class="green" x="902" y="132" width="54" height="24" rx="12"/>
-  <text class="badgeText" x="915" y="149">PASS</text>
-  <text class="label" x="902" y="182">GVID container</text>
-  <text class="num" x="902" y="218">renderable</text>
-  <text class="small" x="902" y="241">metadata + dispatch validation</text>
+  <rect class="panel" x="882" y="122" width="258" height="270" rx="8"/>
+  <rect class="recon" x="904" y="146" width="86" height="26" rx="13"/>
+  <text class="badgeText" x="919" y="164">SHIP</text>
+  <text class="label" x="904" y="206">Video reconstruction</text>
+  <text class="num" x="904" y="250">100%</text>
+  <rect class="track" x="904" y="276" width="206" height="16" rx="8"/>
+  <rect class="recon" x="904" y="276" width="206" height="16" rx="8"/>
+  <text class="small" x="904" y="318">Approved offline 4K cleanup.</text>
+  <text class="small" x="904" y="340">Approved offline 8K SR.</text>
+  <text class="small" x="904" y="362">Reopens only on failed receipt</text>
+  <text class="small" x="904" y="384">or better replacement.</text>
 
-  <rect class="panel" x="40" y="300" width="530" height="160" rx="8"/>
-  <text class="label" x="62" y="332">Quality gate coverage</text>
-  <text class="small" x="62" y="356">Committed gate tooling; generated run artifacts stay off main</text>
-  <rect class="track" x="62" y="384" width="430" height="18" rx="9"/>
-  <rect class="blue" x="62" y="384" width="410" height="18" rx="9"/>
-  <text class="small" x="505" y="399">4 ship classes</text>
-  <rect class="track" x="62" y="420" width="430" height="18" rx="9"/>
-  <rect class="green" x="62" y="420" width="342" height="18" rx="9"/>
-  <text class="small" x="417" y="435">CI + audits</text>
-
-  <rect class="panel" x="600" y="300" width="530" height="160" rx="8"/>
-  <text class="label" x="622" y="332">Remaining production handoff</text>
-  <text class="small" x="622" y="356">Real camera sensor/DMA, SD writer, and rear display receipts</text>
-  <rect class="track" x="622" y="384" width="430" height="18" rx="9"/>
-  <rect class="amber" x="622" y="384" width="265" height="18" rx="9"/>
-  <text class="small" x="900" y="399">2 receipts open</text>
-  <text class="small" x="622" y="435">Next: camera-role closure run replacing stand-in handoff/UI evidence.</text>
+  <rect class="panel" x="42" y="414" width="1098" height="116" rx="8"/>
+  <rect class="research" x="64" y="438" width="124" height="26" rx="13"/>
+  <text class="badgeText" x="82" y="456">RESEARCH</text>
+  <text class="label" x="208" y="452">PSF / blur modeling is parked, not blocking the release.</text>
+  <text class="small" x="208" y="476">Controlled high/low Mission 1 pairs and PSF-conditioned video SR are replacement research.</text>
+  <text class="small" x="208" y="496">They replace the current path only after beating the locked baseline.</text>
+  <text class="small" x="208" y="516">Requires the same .gvid, editable raw, ProRes, dashboard, timing, memory, and hash receipts.</text>
 </svg>

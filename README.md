@@ -24,6 +24,8 @@ source.
 
 ![GPR raw-video showcase: 4K Bayer .gvid, live preview, native 12MP crops, and 8K SR review](docs/img/readme_showcase.webp)
 
+![GPR four-pillar production readiness](docs/img/readme_status_matrix.svg)
+
 ## The Four Product Bets
 
 | product bet | what a user gets | ship boundary |
@@ -512,8 +514,6 @@ current evidence so strict local checks can verify it.
 | Mission 1 native PSF kernel-stability audit | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html` |
 | Raw-video PSF gap closure plan | `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html` |
 | Raw-video PSF controlled capture request | `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html` |
-
-![GPR production status matrix](docs/img/readme_status_matrix.svg)
 
 ## Raw Output Ladder
 

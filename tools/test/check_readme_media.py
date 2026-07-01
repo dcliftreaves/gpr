@@ -23,6 +23,7 @@ ALLOWED_SUFFIXES = {".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"}
 MAX_MEDIA_BYTES = 2 * 1024 * 1024
 REQUIRED_MEDIA = {
     "docs/img/readme_showcase.webp",
+    "docs/img/readme_status_matrix.svg",
     "docs/img/readme_z8_timelapse_1024.webp",
 }
 TEXT_MEDIA_SUFFIXES = {".svg"}

@@ -36,6 +36,7 @@ REQUIRED_SECTIONS = (
 
 REQUIRED_README_TOKENS = (
     "8-bit JPEG size. 16-bit RAW quality.",
+    "![GPR four-pillar production readiness](docs/img/readme_status_matrix.svg)",
     "Current four-pillar completion is **",
     "production-readiness burn-down",
     "not an image-quality score",
@@ -152,6 +153,21 @@ REQUIRED_README_TOKENS = (
     "finds **59** dark-like frames",
     "Mission ISO232 RGGB has **2** dark-like candidates",
     "iPhone ISO1250 RGGB has **27** dark-like candidates",
+)
+
+REQUIRED_STATUS_MATRIX_TOKENS = (
+    "GPR four-pillar production readiness",
+    "RAW stills",
+    "92%",
+    "GoPro RAW video MVP",
+    "80%",
+    "Premium still/SR",
+    "60%",
+    "Video reconstruction",
+    "100%",
+    "PSF / blur modeling is parked, not blocking the release.",
+    "Controlled high/low Mission 1 pairs",
+    "same .gvid, editable raw, ProRes, dashboard, timing, memory, and hash receipts",
 )
 
 FORBIDDEN_README_TOKENS = (
@@ -301,6 +317,13 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
         )
     else:
         failures.append(f"{lock_ledger} is missing")
+
+    status_matrix = readme_path.parent / "docs" / "img" / "readme_status_matrix.svg"
+    if status_matrix.exists():
+        status = status_matrix.read_text(encoding="utf-8")
+        require_tokens(status, REQUIRED_STATUS_MATRIX_TOKENS, status_matrix.name, failures)
+    else:
+        failures.append(f"{status_matrix} is missing")
 
     return failures
 
