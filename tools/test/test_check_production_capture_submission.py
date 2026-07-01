@@ -167,9 +167,20 @@ def valid_submission() -> dict:
                 "source_kind": "real_sensor_dma",
                 "valid_gvid": True,
                 "dropped_frames": 0,
+                "source_width": 4096,
+                "source_height": 3072,
+                "source_fps": 20.8,
                 "encode_fps": 20.5,
+                "storage_medium": "Lexar SILVER PLUS SD",
+                "storage_write_mb_s": 126.0,
+                "storage_budget_passed": True,
+                "peak_rss_mb": 384.0,
+                "preview_width": 1024,
+                "preview_height": 768,
                 "preview_fps": 21.0,
                 "preview_full_frame": True,
+                "gvid_path": "/captures/mission1_camera_output.gvid",
+                "gvid_sha256": SHA,
                 "receipts": {
                     "target_preflight_receipt": {"sha256": SHA},
                     "labs_target_bench": {"sha256": SHA},
@@ -326,6 +337,20 @@ def main() -> int:
         proc = run_tool(manifest)
         assert proc.returncode == 1
         assert "target_role must be camera" in proc.stdout
+
+        bad = valid_submission()
+        bad["requirements"][4]["source_width"] = 3840
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "source_width must equal 4096" in proc.stdout
+
+        bad = valid_submission()
+        bad["requirements"][4]["storage_budget_passed"] = False
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "storage_budget_passed must be true" in proc.stdout
 
         bad = valid_submission()
         bad["requirements"][6]["no_ref_runtime"] = False

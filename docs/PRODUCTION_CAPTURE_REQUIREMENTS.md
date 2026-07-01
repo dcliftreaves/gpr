@@ -23,7 +23,7 @@ longer blocks release of the approved current raw-video SR workflow.
 |---|---|---|---|
 | `mission1_darkframe_stack` | RAW stills | Four matching no-scene-signal Mission 1 darkframes under one camera/ISO/CFA/dimensions key, with per-frame source provenance from original raw to extracted Bayer; current ISO232 RGGB candidate group has 2 and needs 2 more. | `gpr.camera_noise_calibration.v1` sidecar validates with `source_provenance_ready=true` and runtime policy allows exact-match noise use. |
 | `iphone_cfa_darkframe_stack` | RAW stills | Four matching no-scene-signal iPhone CFA DNG darkframes, with per-frame source provenance from original raw to extracted Bayer; Linear Raw does not count. The ISO1250 RGGB candidate group has enough dark-like frames but still needs no-scene provenance. | iPhone CFA sidecar validates with `source_provenance_ready=true` and Linear Raw remains a negative fixture. |
-| `mission1_camera_role_receipts` | RAW video MVP | Real Mission 1 sensor/DMA or camera ring-buffer source, SD writer, and rear-display receipts. | Camera closure validator marks camera production ready; Pi stand-in receipts are replaced by camera-role evidence. |
+| `mission1_camera_role_receipts` | RAW video MVP | Real Mission 1 sensor/DMA or camera ring-buffer source, SD writer, and rear-display receipts, plus scalar `source_fps`, `encode_fps`, `storage_write_mb_s`, `preview_fps`, `peak_rss_mb`, source/preview dimensions, `.gvid` hash, and `storage_budget_passed=true`. | Camera closure validator marks camera production ready; Pi stand-in receipts are replaced by camera-role evidence that proves 4096 x 3072 source, 1024 x 768 preview, 20+ fps source/encode/preview, storage budget, and memory. |
 | `premium_still_sr_promotion_receipts` | Premium still/SR | Checkpoint/config/target hashes, `runtime_inputs`, 50 MP and 100 MP full-frame gate row counts, median and worst-row MAE reduction, editor-latitude review, editable raw, timing/memory, and noise-policy receipts. | No-REF candidate beats current still-SR baselines on 50 MP and 100 MP gates, uses no REF/source/JPEG render-time content, records seconds/frame and peak RSS, and has no severe or negative worst-row failures. |
 
 ## Optional Research Requests
@@ -89,7 +89,11 @@ python3 tools/check_production_capture_submission.py <submission.json> \
 The submission manifest schema is `gpr.production_capture_submission.v1`. The
 checker requires source hashes, fixed camera metadata, no-scene-signal flags for
 darkframes, camera-role Mission 1 receipts, and strict no-REF premium still-SR
-promotion receipts. Darkframe rows must set `source_kind` to
+promotion receipts. Camera-role Mission 1 rows must include `gvid_path`,
+`gvid_sha256`, `source_width=4096`, `source_height=3072`, `source_fps>=20`,
+`encode_fps>=20`, `storage_medium`, `storage_write_mb_s>0`,
+`storage_budget_passed=true`, `peak_rss_mb>0`, `preview_width=1024`,
+`preview_height=768`, and `preview_fps>=20`. Darkframe rows must set `source_kind` to
 `confirmed_darkframes`, `flat_dark_pair`, or `equivalent_no_scene_stack`, carry
 the original `source_path`/`sha256`, `extracted_bayer_path` and
 `extracted_bayer_sha256`, `extract_receipt_path` and

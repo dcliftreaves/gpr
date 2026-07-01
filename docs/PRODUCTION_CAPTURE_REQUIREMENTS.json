@@ -171,12 +171,19 @@
         "preview_ui_receipt.json",
         "mission1_camera_closure_run.json",
         "valid .gvid output with zero dropped frames",
+        "source_width=4096 and source_height=3072 from real sensor/DMA or camera ring-buffer",
+        "preview_width=1024 and preview_height=768 from the same .gvid stream",
+        "source_fps, encode_fps, and preview_fps all at or above the accepted 20 fps floor",
+        "gvid_path and gvid_sha256 for the camera-produced .gvid",
+        "storage_medium, storage_write_mb_s, and storage_budget_passed=true for the SD/storage writer",
+        "peak_rss_mb for the camera-role run",
         "timing and memory receipt for sensor/DMA to encode/write and preview handoff"
       ],
       "acceptance": [
         "closure validator marks camera_production_ready=true",
         "raw 4096 x 3072 Bayer to .gvid clears the accepted 20 fps floor or documents the real camera bottleneck",
         "the same .gvid decodes to full-frame camera-back preview at 20 fps or better",
+        "submission checker records source/write/preview/memory scalar fields rather than relying only on free-form receipt links",
         "receipts prove the source was real sensor/DMA or camera ring-buffer data rather than a packed original .GPR wrapper"
       ],
       "validation_commands": [

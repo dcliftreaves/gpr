@@ -60,6 +60,13 @@ def main() -> int:
         assert "proof" in mission["evidence"][0]
         camera = next(row for row in data["requirements"] if row["id"] == "mission1_camera_role_receipts")
         assert camera["target_role"] == "camera"
+        assert camera["source_width"] == 4096
+        assert camera["source_height"] == 3072
+        assert camera["preview_width"] == 1024
+        assert camera["preview_height"] == 768
+        assert camera["storage_budget_passed"] is True
+        assert "storage_write_mb_s" in camera
+        assert "peak_rss_mb" in camera
         assert "mission1_camera_closure_run" in camera["receipts"]
         sr = next(row for row in data["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
         assert sr["no_ref_runtime"] is True

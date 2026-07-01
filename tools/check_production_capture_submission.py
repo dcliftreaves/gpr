@@ -381,6 +381,26 @@ def validate_camera_role_receipts(rid: str, submission: dict[str, Any]) -> dict[
     row = record_for(submission, rid)
     receipts = row.get("receipts") if isinstance(row.get("receipts"), dict) else {}
     failures: list[str] = []
+    required_fields = [
+        "gvid_path",
+        "gvid_sha256",
+        "source_width",
+        "source_height",
+        "source_fps",
+        "encode_fps",
+        "preview_width",
+        "preview_height",
+        "preview_fps",
+        "storage_medium",
+        "storage_write_mb_s",
+        "storage_budget_passed",
+        "peak_rss_mb",
+    ]
+    missing = missing_fields(row, required_fields)
+    if missing:
+        failures.append(f"missing camera performance field(s): {', '.join(missing)}")
+    if row.get("gvid_path") and not has_sha(row, "gvid_sha256"):
+        failures.append("gvid_sha256 needs sha256")
     missing = sorted(REQUIRED_CAMERA_ROLE_RECEIPTS - set(receipts))
     if missing:
         failures.append(f"missing receipt(s): {', '.join(missing)}")
@@ -398,10 +418,27 @@ def validate_camera_role_receipts(rid: str, submission: dict[str, Any]) -> dict[
         failures.append("valid_gvid must be true")
     if int(row.get("dropped_frames") or 0) != 0:
         failures.append("dropped_frames must be 0")
-    for key in ("encode_fps", "preview_fps"):
+    for key in ("source_fps", "encode_fps", "preview_fps"):
         ok, failure = number_at_least(row, key, 20.0)
         if not ok:
             failures.append(failure)
+    for key, expected in (
+        ("source_width", 4096),
+        ("source_height", 3072),
+        ("preview_width", 1024),
+        ("preview_height", 768),
+    ):
+        ok, failure = number_equals(row, key, expected)
+        if not ok:
+            failures.append(failure)
+    ok, failure = number_greater_than(row, "storage_write_mb_s", 0.0)
+    if not ok:
+        failures.append(failure)
+    ok, failure = number_greater_than(row, "peak_rss_mb", 0.0)
+    if not ok:
+        failures.append(failure)
+    if row.get("storage_budget_passed") is not True:
+        failures.append("storage_budget_passed must be true")
     if row.get("preview_full_frame") is not True:
         failures.append("preview_full_frame must be true")
     if failures:

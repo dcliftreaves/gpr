@@ -130,6 +130,26 @@ def validate() -> list[str]:
                 failures.append(f"{rid}: darkframe evidence must require a darkframe source-provenance audit")
         if sample_type == "real_camera_raw_fixture" and int(row.get("minimum_count") or 0) < 1:
             failures.append(f"{rid}: real fixtures require minimum_count >= 1")
+        if sample_type == "camera_hardware_receipt":
+            acceptance = " ".join(str(item) for item in as_list(row.get("acceptance")))
+            required_evidence = " ".join(str(item) for item in as_list(row.get("required_evidence")))
+            for token in (
+                "source_width=4096",
+                "source_height=3072",
+                "preview_width=1024",
+                "preview_height=768",
+                "source_fps",
+                "encode_fps",
+                "preview_fps",
+                "gvid_sha256",
+                "storage_write_mb_s",
+                "storage_budget_passed=true",
+                "peak_rss_mb",
+            ):
+                if token not in required_evidence:
+                    failures.append(f"{rid}: camera evidence must require {token}")
+            if "source/write/preview/memory scalar fields" not in acceptance:
+                failures.append(f"{rid}: camera acceptance must require source/write/preview/memory scalar fields")
         if sample_type == "controlled_same_scene_high_low_raw_pair_stack" and int(row.get("minimum_pair_count") or 0) < 3:
             failures.append(f"{rid}: PSF capture requires minimum_pair_count >= 3")
 
