@@ -75,6 +75,7 @@ def provenance_template_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
                 "original_path": row["original_path"],
                 "original_sha256": row["original_sha256"] or "<64_hex_original_source_sha256>",
                 "extract_receipt": f"<extract_receipt_{idx}_{stem}.json>",
+                "extract_receipt_sha256": "<64_hex_extract_receipt_sha256>",
                 "no_scene_signal": "<set true only after human/provenance confirmation>",
                 "capture_setup": "<lens cap/body cap/no-light-leak proof or recapture note>",
             }

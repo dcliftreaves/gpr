@@ -642,11 +642,11 @@ Next production work:
    latitude checks for each routed candidate.
 4. Emit review TIFF/ProRes/contact sheets plus editable DNG/GPR receipts.
 
-## 4. Raw Video Improvement / PSF-Aware Resize
+## 4. Raw Video Reconstruction / Optional PSF Research
 
-Goal: understand and improve the point-spread/blur introduced when resizing or
-reconstructing Bayer data, especially 12 MP or 4K capture feeding 4K cleanup
-and 8K reconstruction.
+Goal: ship the approved offline/post 4K cleanup and 8K reconstruction path,
+then keep point-spread/blur modeling as optional replacement research. PSF is
+not part of the current raw-video release denominator.
 
 Current evidence:
 
@@ -741,7 +741,7 @@ Boundaries:
 - Replacing it requires beating the current baseline on full-frame Mission and
   Z8 gates, not just lowering tile loss or improving a small crop.
 
-Next production work:
+Next optional research work:
 
 1. Follow the raw-video PSF gap closure plan: capture or locate controlled
    same-scene Mission 1 high/low pairs, then re-run the native PSF measurement
@@ -767,7 +767,10 @@ What is done enough to show externally:
 What remains:
 
 - real Mission 1 camera-role validation,
-- broader Bayer phase coverage,
-- calibrated camera-noise removal/addback,
-- dedicated premium still-SR product gates,
-- formal PSF/blur-aware video SR replacement work.
+- Mission 1 and iPhone calibrated camera-noise sidecars,
+- dedicated premium still-SR product gates.
+
+PSF/blur-aware video SR replacement work is explicitly optional research. It
+should not delay the current raw-video 4K cleanup and 8K SR release unless a
+future replacement has already beaten the locked baseline with the full receipt
+surface.

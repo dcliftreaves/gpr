@@ -94,7 +94,11 @@ promotion receipts. Darkframe rows must set `source_kind` to
 the original `source_path`/`sha256`, `extracted_bayer_path` and
 `extracted_bayer_sha256`, `extract_receipt_path` and
 `extract_receipt_sha256`, `no_scene_signal=true`, and a non-empty
-`capture_setup` or `proof`. A premium still-SR submission must name runtime
+`capture_setup` or `proof`. Before building a production noise sidecar, run
+`python3 tools/check_darkframe_source_provenance.py <darkframe_raw_source_provenance.json> --minimum-count 4 --require-existing-files`
+against the filled extraction-provenance manifest; it rejects placeholders,
+missing hashes, duplicate extracted raw hashes, missing no-scene proof, and
+file/hash mismatches. A premium still-SR submission must name runtime
 inputs, include `candidate_raw` and `camera_metadata`, exclude REF/source/JPEG
 content, report 50 MP and 100 MP full-frame gate row counts, show positive
 median MAE reduction for both classes, show nonnegative worst-row MAE

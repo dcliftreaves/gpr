@@ -78,6 +78,7 @@ def main() -> int:
         template = json.loads(template_path.read_text(encoding="utf-8"))
         assert template["schema"] == "gpr.darkframe_source_provenance_manifest.v1"
         assert template["frames"][0]["original_sha256"] == module.sha256_file(cand0)
+        assert template["frames"][0]["extract_receipt_sha256"] == "<64_hex_extract_receipt_sha256>"
         assert template_rel in html_path.read_text(encoding="utf-8")
     print("test_build_darkframe_provenance_review_packet: PASS")
     return 0

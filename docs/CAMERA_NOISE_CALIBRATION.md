@@ -190,6 +190,20 @@ fill-in templates under `source_provenance_manifest_templates/`. It is not a
 production sidecar; it exists to decide whether the candidate frames can be
 confirmed as true no-scene-signal darkframes or must be recaptured.
 
+Before promotion, validate the filled extraction provenance manifest:
+
+```sh
+python3 tools/check_darkframe_source_provenance.py \
+  <darkframe_raw_source_provenance.json> \
+  --minimum-count 4 \
+  --require-existing-files \
+  --json-out <darkframe_source_provenance_audit.json>
+```
+
+The checker rejects placeholder values, missing source/extracted/receipt
+hashes, duplicate extracted raw hashes, missing `no_scene_signal=true`, and
+local file/hash mismatches when `--require-existing-files` is set.
+
 After extracting the promoted frames, carry the same provenance into the final
 noise sidecar builder with:
 
