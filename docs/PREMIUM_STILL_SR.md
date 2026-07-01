@@ -369,6 +369,22 @@ teacher should keep the noise-floor downweight as a conservative training
 prior, then move to a stronger CFA-aware objective with camera/PSF conditioning
 and spatial plus Fourier losses.
 
+Two immediate follow-up controls tested whether the weak branch was missing
+candidate-side HF input or simple context capacity:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_storedhf_noisefloor_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_noisefloor_pyramid_unet_w32_1200_20260701/index.html
+```
+
+Both are rejection evidence. Adding stored `candidate_raw_hf_cfa4` to the same
+noise-floor-weighted U-Net regresses the held-out X2D scene to about
+**0.110%** median raw MAE recovery. A broader pyramid U-Net without stored HF
+also trails the small U-Net baseline at about **0.131%**. This narrows the
+blocker further: the current candidate-only HF/context statistics and simple
+capacity increase are not enough; the next pass needs a different raw-detail
+teacher/target treatment, not another stored-HF or pyramid repeat.
+
 A raw-target SNR audit now compares the deduplicated raw-CFA residual target to
 the calibrated camera noise sidecars:
 
