@@ -315,6 +315,24 @@ Simple NAF-style architecture support is therefore not enough by itself; the
 blocker is now more likely the target/objective/teacher construction than
 another small RCAB/NAF scale-up.
 
+A raw-target SNR audit now compares the deduplicated raw-CFA residual target to
+the calibrated camera noise sidecars:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_target_snr_audit_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_target_snr_audit_20260701/raw_target_snr_audit.json
+```
+
+All 117 deduplicated rows have sidecar coverage. The result is mixed by camera:
+X2D is mostly signal-dominated, with 59/81 rows classified as above the noise
+floor and a median target RMSE/noise-sigma ratio of about **5.34x**; Z8 is
+mostly noise-floor/mixed, with 28/36 rows at the noise floor and a median
+target RMSE/noise-sigma ratio of about **0.48x**. Overall counts are 59
+signal-dominated, 39 noise-floor, and 19 mixed rows. The next teacher should
+therefore not use a single unweighted residual objective across both cameras:
+use noise-aware row weighting/filtering or camera-specific target treatment
+before another architecture scale-up.
+
 The first raw-CFA residual trainer is:
 
 ```text
@@ -337,8 +355,9 @@ The stabilized w32/2000-step pass is mildly positive on held-out Z8, with
 about 0.50 percent median raw-residual MAE recovery. The matched X2D holdout is
 still negative at about -0.21 percent. A quick per-plane highpass linear
 baseline did not explain the missing residual either. The current blocker is
-therefore not target construction or a simple highpass scale/addback; it is
-X2D/domain generalization and insufficient raw residual recovery.
+therefore not a simple highpass scale/addback; with the later SNR audit, it is
+now narrowed to camera-dependent target/objective quality plus X2D/domain
+generalization and insufficient raw residual recovery.
 
 The next X2D probes narrowed that further:
 

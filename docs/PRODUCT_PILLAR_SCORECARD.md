@@ -68,7 +68,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 92% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB/GBRG/GRBG/BGGR fixture coverage, and explicit camera-noise coverage; Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the deduplicated raw-supervision NPZ collapses it to 117 unique scene/crop raw-domain rows with zero raw conflicts, and RCAB/NAF-style teacher receipts run on that target. Z8 is mildly positive, but X2D remains far below promotion: the RCAB smoke is only **0.069%** median recovery on an 8-row X2D holdout, the scaled RCAB pass is only **0.034%** on a 24-row X2D holdout, the NAF-style pass is **-0.059%** on a 24-row X2D holdout with a heavily regressed train split, small U-Net/full-crop/pyramid/global-context/masked-context probes only barely clear zero, same-scene candidate-signal and frequency-filter probes regress, and nearest-neighbor retrieval regresses the hard X2D holdout. Current candidate-only local/full-crop/global-context/masked-context statistics and simple RCAB/NAF scale-up are not enough; the next pass needs a materially stronger CFA-aware teacher/data objective with noise/PSF conditioning and spatial + Fourier losses. |
+| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the deduplicated raw-supervision NPZ collapses it to 117 unique scene/crop raw-domain rows with zero raw conflicts, and RCAB/NAF-style teacher receipts run on that target. Z8 is mildly positive, but X2D remains far below promotion: the RCAB smoke is only **0.069%** median recovery on an 8-row X2D holdout, the scaled RCAB pass is only **0.034%** on a 24-row X2D holdout, the NAF-style pass is **-0.059%** on a 24-row X2D holdout with a heavily regressed train split, small U-Net/full-crop/pyramid/global-context/masked-context probes only barely clear zero, same-scene candidate-signal and frequency-filter probes regress, and nearest-neighbor retrieval regresses the hard X2D holdout. The raw-target SNR audit shows why one unweighted residual objective is wrong: X2D is mostly signal-dominated while Z8 is mostly noise-floor/mixed. Current candidate-only local/full-crop/global-context/masked-context statistics and simple RCAB/NAF scale-up are not enough; the next pass needs a materially stronger CFA-aware teacher/data objective with noise-aware row weighting/filtering, camera conditioning, PSF conditioning, and spatial + Fourier losses. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, including continuous 8K no-CNN versus CNN ProRes review media for a whole-scene A/B; near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, the kernel-stability audit identifies coefficient disagreement, and a hash-strict capture request now spells out the controlled-pair capture and model-gate path. Formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -391,6 +391,15 @@ The deduplicated raw-supervision NPZ is now materialized at
 It collapses the target to 117 raw rows with zero raw conflicts, preserves
 rendered EV review rows in metadata, and keeps the trainer-facing array names
 for the next teacher pass.
+The raw-target SNR audit lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_target_snr_audit_20260701/index.html`.
+It compares all 117 deduplicated rows with calibrated camera-noise sidecars:
+X2D is mostly signal-dominated, with 59/81 rows above the noise floor and about
+5.34x median target RMSE/noise sigma, while Z8 is mostly noise-floor/mixed,
+with 28/36 rows at the noise floor and about 0.48x median target RMSE/noise
+sigma. The next teacher should therefore use noise-aware row
+weighting/filtering or camera-specific target treatment instead of one
+unweighted residual objective across both cameras.
 The first deduped-target RCAB teacher smoke run lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/index.html`.
 It uses residual channel attention, stored candidate HF, multiscale band loss,
