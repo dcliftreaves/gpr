@@ -419,6 +419,20 @@ either normalize or model this scene-energy/domain shift explicitly, add more
 matched high-energy X2D raw targets, or change the target construction so the
 held-out residual is not treated as a generic row from the same distribution.
 
+Two direct target-energy weighting controls then tested whether simple
+train-time row weighting closes that mismatch:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_energyweighted_noisefloor_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_energyinverse_noisefloor_unet_w32_1200_20260701/index.html
+```
+
+Both trail the small noise-floor-only U-Net baseline: high-energy emphasis
+reaches about **0.118%** holdout median raw MAE recovery and inverse-energy
+normalization reaches about **0.133%**, versus **0.153%** for the current best
+small U-Net branch. The distribution audit is still the right blocker, but it
+cannot be fixed by a scalar row-weighting policy alone.
+
 The first raw-CFA residual trainer is:
 
 ```text

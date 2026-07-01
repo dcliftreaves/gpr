@@ -135,6 +135,8 @@ def main() -> int:
                 "train_snr_class": "all",
                 "snr_loss_weight_policy": "none",
                 "snr_loss_weight_strength": 1.0,
+                "target_energy_loss_weight_policy": "none",
+                "target_energy_loss_weight_strength": 1.0,
                 "sample_balance": "row",
                 "sample_mode": "random_patch",
                 "context_padding": 0,
@@ -167,6 +169,10 @@ def main() -> int:
         assert receipt["config"]["snr_loss_weight_policy"] == "none"
         assert receipt["config"]["snr_loss_weight_strength"] == 1.0
         assert receipt["config"]["train_snr_loss_weight_stats"]["median"] == 1.0
+        assert receipt["config"]["target_energy_loss_weight_policy"] == "none"
+        assert receipt["config"]["target_energy_loss_weight_strength"] == 1.0
+        assert receipt["config"]["train_target_energy_loss_weight_stats"]["median"] == 1.0
+        assert receipt["policy"]["target_energy_loss_weight_policy"] == "none"
         assert receipt["policy"]["snr_loss_weight_policy"] == "none"
         assert receipt["config"]["target_policy"] == "raw"
         assert receipt["config"]["band_weight"] == 0.0
@@ -214,6 +220,16 @@ def main() -> int:
         assert weighted_receipt["config"]["train_snr_loss_weight_stats"]["min"] < 1.0
         assert weighted_receipt["policy"]["snr_loss_weight_policy"] == "signal_emphasis"
         args.snr_loss_weight_policy = "none"
+
+        args.output_dir = root / "target_energy_weighted_holdout"
+        args.target_energy_loss_weight_policy = "high_energy_emphasis"
+        energy_receipt = tool.train(args)
+        assert energy_receipt["eval"]["holdout"]["row_count"] == 1
+        assert energy_receipt["config"]["target_energy_loss_weight_policy"] == "high_energy_emphasis"
+        assert energy_receipt["config"]["target_energy_loss_weight_strength"] == 1.0
+        assert energy_receipt["config"]["train_target_energy_loss_weight_stats"]["max"] > 1.0
+        assert energy_receipt["policy"]["target_energy_loss_weight_policy"] == "high_energy_emphasis"
+        args.target_energy_loss_weight_policy = "none"
 
         args.output_dir = root / "context_holdout"
         args.holdout_scene = "holdout_scene"

@@ -312,6 +312,20 @@ def target_snr_loss_weight(row_class: str, rmse_ratio: float, p95_ratio: float, 
     return float(np.clip(1.0 + strength * (base - 1.0), 0.05, 2.0))
 
 
+def target_energy_loss_weight(row_abs_mean: float, reference_abs_mean: float, policy: str, strength: float) -> float:
+    if policy == "none":
+        return 1.0
+    strength = float(np.clip(strength, 0.0, 2.0))
+    ratio = float(row_abs_mean) / max(float(reference_abs_mean), 1.0e-12)
+    if policy == "high_energy_emphasis":
+        base = float(np.clip(np.sqrt(max(ratio, 0.0)), 0.25, 3.0))
+    elif policy == "inverse_energy":
+        base = float(np.clip(1.0 / np.sqrt(max(ratio, 1.0e-6)), 0.25, 3.0))
+    else:
+        raise ValueError(f"unknown target_energy_loss_weight_policy: {policy}")
+    return float(np.clip(1.0 + strength * (base - 1.0), 0.05, 4.0))
+
+
 def make_features(
     raw: torch.Tensor,
     feature_mode: str,
@@ -961,6 +975,7 @@ class RawCfaResidualTargets:
         self.target_snr_classes: list[str] = []
         self.target_snr_rmse_ratios: list[float] = []
         self.target_snr_p95_ratios: list[float] = []
+        self.target_abs_means: list[float] = []
         scene_dims: dict[str, tuple[float, float]] = {}
         for row in self.rows:
             scene = str(row.get("scene_id") or "unknown")
@@ -987,6 +1002,7 @@ class RawCfaResidualTargets:
             self.target_snr_classes.append(row_class)
             self.target_snr_rmse_ratios.append(rmse_ratio)
             self.target_snr_p95_ratios.append(p95_ratio)
+            self.target_abs_means.append(float(np.mean(np.abs(self.target[idx].astype(np.float32, copy=False)))))
         for idx, row in enumerate(self.rows):
             scene = str(row.get("scene_id") or "unknown")
             scene_w, scene_h = scene_dims.get(scene, (float(self.candidate_raw.shape[2]), float(self.candidate_raw.shape[1])))
@@ -1067,6 +1083,22 @@ class RawCfaResidualTargets:
         ]
         return stats(values)
 
+    def target_energy_reference(self, indices: list[int]) -> float:
+        values = [self.target_abs_means[idx] for idx in indices]
+        return float(np.median(np.asarray(values, dtype=np.float64))) if values else 0.0
+
+    def target_energy_loss_weight_stats(self, indices: list[int], policy: str, strength: float, reference_abs_mean: float) -> dict[str, float]:
+        values = [
+            target_energy_loss_weight(
+                self.target_abs_means[idx],
+                reference_abs_mean,
+                policy,
+                strength,
+            )
+            for idx in indices
+        ]
+        return stats(values)
+
     def sample_batch(
         self,
         indices: list[int],
@@ -1078,6 +1110,9 @@ class RawCfaResidualTargets:
         context_padding: int = 0,
         snr_loss_weight_policy: str = "none",
         snr_loss_weight_strength: float = 1.0,
+        target_energy_loss_weight_policy: str = "none",
+        target_energy_loss_weight_strength: float = 1.0,
+        target_energy_reference_abs_mean: float = 0.0,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
         xs: list[np.ndarray] = []
         ys: list[np.ndarray] = []
@@ -1127,15 +1162,20 @@ class RawCfaResidualTargets:
             noises.append(self.noise_features[idx])
             sigmas.append(self.noise_sigma4[idx])
             contexts.append(self.frame_context_features[idx])
-            snr_weights.append(
-                target_snr_loss_weight(
-                    self.target_snr_classes[idx],
-                    self.target_snr_rmse_ratios[idx],
-                    self.target_snr_p95_ratios[idx],
-                    snr_loss_weight_policy,
-                    snr_loss_weight_strength,
-                )
+            snr_weight = target_snr_loss_weight(
+                self.target_snr_classes[idx],
+                self.target_snr_rmse_ratios[idx],
+                self.target_snr_p95_ratios[idx],
+                snr_loss_weight_policy,
+                snr_loss_weight_strength,
             )
+            energy_weight = target_energy_loss_weight(
+                self.target_abs_means[idx],
+                target_energy_reference_abs_mean,
+                target_energy_loss_weight_policy,
+                target_energy_loss_weight_strength,
+            )
+            snr_weights.append(snr_weight * energy_weight)
         return (
             torch.from_numpy(np.stack(xs)),
             torch.from_numpy(np.stack(ys)),
@@ -1377,6 +1417,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.snr_loss_weight_policy = "none"
     if not hasattr(args, "snr_loss_weight_strength"):
         args.snr_loss_weight_strength = 1.0
+    if not hasattr(args, "target_energy_loss_weight_policy"):
+        args.target_energy_loss_weight_policy = "none"
+    if not hasattr(args, "target_energy_loss_weight_strength"):
+        args.target_energy_loss_weight_strength = 1.0
     data = RawCfaResidualTargets(args.targets)
     if args.feature_mode in {"raw_multiscale_storedhf_coord_ev_noise", "raw_context_storedhf_coord_ev_noise"} and data.candidate_raw_hf is None:
         raise ValueError(f"{args.feature_mode} requires candidate_raw_hf_cfa4 in the target NPZ")
@@ -1388,6 +1432,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.train_camera,
         args.train_snr_class,
     )
+    target_energy_reference_abs_mean = data.target_energy_reference(train_indices)
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
     device = torch.device(args.device) if args.device else DEVICE
@@ -1414,6 +1459,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             args.context_padding,
             args.snr_loss_weight_policy,
             args.snr_loss_weight_strength,
+            args.target_energy_loss_weight_policy,
+            args.target_energy_loss_weight_strength,
+            target_energy_reference_abs_mean,
         )
         x = x.to(device)
         y = y.to(device)
@@ -1541,6 +1589,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "train_snr_class": args.train_snr_class,
                 "snr_loss_weight_policy": args.snr_loss_weight_policy,
                 "snr_loss_weight_strength": args.snr_loss_weight_strength,
+                "target_energy_loss_weight_policy": args.target_energy_loss_weight_policy,
+                "target_energy_loss_weight_strength": args.target_energy_loss_weight_strength,
+                "target_energy_reference_abs_mean": target_energy_reference_abs_mean,
                 "sample_balance": args.sample_balance,
                 "sample_mode": args.sample_mode,
                 "context_padding": args.context_padding,
@@ -1602,6 +1653,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "train_snr_class": args.train_snr_class,
             "snr_loss_weight_policy": args.snr_loss_weight_policy,
             "snr_loss_weight_strength": args.snr_loss_weight_strength,
+            "target_energy_loss_weight_policy": args.target_energy_loss_weight_policy,
+            "target_energy_loss_weight_strength": args.target_energy_loss_weight_strength,
+            "target_energy_reference_abs_mean": target_energy_reference_abs_mean,
             "train_snr_class_counts": {
                 key: sum(1 for idx in train_indices if data.target_snr_classes[idx] == key)
                 for key in sorted(set(data.target_snr_classes[idx] for idx in train_indices))
@@ -1619,6 +1673,18 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 holdout_indices,
                 args.snr_loss_weight_policy,
                 args.snr_loss_weight_strength,
+            ),
+            "train_target_energy_loss_weight_stats": data.target_energy_loss_weight_stats(
+                train_indices,
+                args.target_energy_loss_weight_policy,
+                args.target_energy_loss_weight_strength,
+                target_energy_reference_abs_mean,
+            ),
+            "holdout_target_energy_loss_weight_stats": data.target_energy_loss_weight_stats(
+                holdout_indices,
+                args.target_energy_loss_weight_policy,
+                args.target_energy_loss_weight_strength,
+                target_energy_reference_abs_mean,
             ),
             "sample_balance": args.sample_balance,
             "sample_mode": args.sample_mode,
@@ -1656,6 +1722,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "train_snr_class_filter": args.train_snr_class,
             "snr_loss_weight_policy": args.snr_loss_weight_policy,
             "snr_loss_weight_strength": args.snr_loss_weight_strength,
+            "target_energy_loss_weight_policy": args.target_energy_loss_weight_policy,
+            "target_energy_loss_weight_strength": args.target_energy_loss_weight_strength,
             "holdout_selection_policy": (
                 "diagnostic_best_holdout_probe_checkpoint"
                 if args.save_best_holdout_checkpoint and best_holdout is not None
@@ -1760,6 +1828,18 @@ def main() -> int:
         type=float,
         default=1.0,
         help="Blend strength for --snr-loss-weight-policy. 0 preserves unweighted loss; 1 uses the policy defaults.",
+    )
+    ap.add_argument(
+        "--target-energy-loss-weight-policy",
+        choices=("none", "high_energy_emphasis", "inverse_energy"),
+        default="none",
+        help="Per-row training loss weighting from source residual energy. This is training-only and does not add runtime inputs.",
+    )
+    ap.add_argument(
+        "--target-energy-loss-weight-strength",
+        type=float,
+        default=1.0,
+        help="Blend strength for --target-energy-loss-weight-policy. 0 preserves unweighted loss; 1 uses the policy defaults.",
     )
     ap.add_argument(
         "--sample-balance",
