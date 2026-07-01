@@ -32,12 +32,30 @@ RESEARCH_BASIS = [
         ),
     },
     {
+        "id": "rbsformer_raw_sr",
+        "title": "RBSFormer: Enhanced Transformer Network for Raw Image Super-Resolution",
+        "url": "https://openaccess.thecvf.com/content/CVPR2024W/NTIRE/html/Jiang_RBSFormer_Enhanced_Transformer_Network_for_Raw_Image_Super-Resolution_CVPRW_2024_paper.html",
+        "repo_implication": (
+            "Use RAW-SR-specific transformer blocks and explicit degradation modeling "
+            "as the teacher direction instead of treating the problem as ordinary RGB SR."
+        ),
+    },
+    {
         "id": "ntire_2025_raw_restoration_sr",
         "title": "NTIRE 2025 Challenge on RAW Image Restoration and Super-Resolution",
         "url": "https://arxiv.org/abs/2506.02197",
         "repo_implication": (
             "Keep denoising, deblurring, and super-resolution coupled in the "
             "model/gate because portable-camera RAW degradations are mixed."
+        ),
+    },
+    {
+        "id": "jdndmsr",
+        "title": "End-to-End Learning for Joint Image Demosaicing, Denoising and Super-Resolution",
+        "url": "https://openaccess.thecvf.com/content/CVPR2021/papers/Xing_End-to-End_Learning_for_Joint_Image_Demosaicing_Denoising_and_Super-Resolution_CVPR_2021_paper.pdf",
+        "repo_implication": (
+            "Do not separate demosaic, denoise, and SR thinking too early; train the "
+            "raw-CFA target as a coupled restoration problem, then verify editable raw output."
         ),
     },
     {
@@ -48,6 +66,15 @@ RESEARCH_BASIS = [
             "Use sensor/ISO-specific darkframe or real-noise sidecars for noise "
             "conditioning/addback; do not learn a generic noise residual from "
             "single-image REF differences."
+        ),
+    },
+    {
+        "id": "bayer_unify_aug",
+        "title": "Learning Raw Image Denoising with Bayer Pattern Unification and Bayer Preserving Augmentation",
+        "url": "https://arxiv.org/abs/1904.12945",
+        "repo_implication": (
+            "Keep Bayer phase handling and augmentation sensor-pattern preserving; "
+            "ordinary RGB flips/rotations can silently corrupt raw-CFA supervision."
         ),
     },
     {
@@ -211,6 +238,53 @@ def build_contract(
         "research_basis": RESEARCH_BASIS,
         "next_model_contract": {
             "recommended_first_track": "full-image or structured raw-CFA residual learner",
+            "implementation_blueprint": {
+                "teacher_family": (
+                    "SwinIR/HAT/RBSFormer-style window or hybrid-attention raw restoration teacher, "
+                    "with Restormer-style high-resolution blocks as the fallback if window attention "
+                    "does not clear full-image placement gates"
+                ),
+                "student_family": (
+                    "candidate-only raw-CFA residual student distilled only after the teacher clears "
+                    "the X2D and Z8 holdout gates"
+                ),
+                "input_tensor_contract": [
+                    "four same-color candidate raw-CFA planes",
+                    "candidate-derived high-frequency/detail planes",
+                    "CFA phase one-hot or BayerUnify-style canonical phase mapping",
+                    "camera/model and ISO conditioning",
+                    "validated noise-sidecar scalar planes where available",
+                    "PSF/kernel sidecar weights where row-level or modeled kernels are available",
+                ],
+                "output_tensor_contract": [
+                    "four same-color raw-CFA residual planes",
+                    "no rendered RGB output as the promoted artifact",
+                    "editable DNG/GPR reconstruction before review TIFF/ProRes export",
+                ],
+                "training_protocol": [
+                    "deduplicate the 351 rendered EV rows to the 117 unique raw scene/crop rows for raw-domain loss",
+                    "use EV/rendered rows only for rendered/tone review gates, not as duplicated raw supervision",
+                    "use Bayer-preserving flips/rotations or canonical phase remapping only when the output phase metadata is updated",
+                    "train with spatial raw residual loss plus frequency/detail-band terms that are ablated against the same target",
+                    "treat denoise, deblur/PSF, and SR as one raw-restoration target, while keeping calibrated noise addback separate from signal supervision",
+                    "start with teacher-scale capacity, then distill only after teacher evidence beats the locked baselines",
+                ],
+                "validation_protocol": [
+                    "scene-held-out X2D and Z8 gates",
+                    "full-image or overlapped-tile inference with seam-band diagnostics",
+                    "100 percent crop dashboard with worst rows by MAE/RMSE and rendered latitude stress",
+                    "editable DNG/GPR openability and metadata transplant receipts",
+                    "timing and memory receipts, even if the path is offline-only",
+                ],
+                "first_ablation_order": [
+                    "window-attention teacher versus current best noise-floor U-Net on the same deduplicated rows",
+                    "teacher with and without Bayer phase conditioning",
+                    "teacher with and without validated noise-sidecar conditioning",
+                    "teacher with modeled/global PSF sidecar versus no PSF conditioning",
+                    "teacher full-image or overlapped-tile validation versus crop-only metrics",
+                    "distilled student only after teacher clears both camera holdouts",
+                ],
+            },
             "minimum_viable_next_pass": {
                 "must_change_from_failed_contract": [
                     "use a full-image, full-crop, or otherwise structured context representation that is not reducible to independent local crop statistics",
@@ -336,6 +410,12 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
         for row in data.get("research_basis", [])
     )
     minimum = data["next_model_contract"]["minimum_viable_next_pass"]
+    blueprint = data["next_model_contract"].get("implementation_blueprint", {})
+    input_contract = "".join(f"<li>{html.escape(item)}</li>" for item in blueprint.get("input_tensor_contract", []))
+    output_contract = "".join(f"<li>{html.escape(item)}</li>" for item in blueprint.get("output_tensor_contract", []))
+    training_protocol = "".join(f"<li>{html.escape(item)}</li>" for item in blueprint.get("training_protocol", []))
+    validation_protocol = "".join(f"<li>{html.escape(item)}</li>" for item in blueprint.get("validation_protocol", []))
+    first_ablation_order = "".join(f"<li>{html.escape(item)}</li>" for item in blueprint.get("first_ablation_order", []))
     must_change = "".join(f"<li>{html.escape(item)}</li>" for item in minimum["must_change_from_failed_contract"])
     acceptable_tracks = "".join(f"<li>{html.escape(item)}</li>" for item in minimum["acceptable_first_tracks"])
     baseline_comparisons = "".join(f"<li>{html.escape(item)}</li>" for item in minimum["baseline_comparisons_required"])
@@ -374,6 +454,21 @@ code {{ font-size: 12px; word-break: break-all; }}
 <ul>{blockers}</ul>
 <h2>Research Basis</h2>
 <table><tr><th>source</th><th>link</th><th>repo implication</th></tr>{research}</table>
+<h2>Implementation Blueprint</h2>
+<table>
+  <tr><th>teacher family</th><td>{html.escape(str(blueprint.get('teacher_family')))}</td></tr>
+  <tr><th>student family</th><td>{html.escape(str(blueprint.get('student_family')))}</td></tr>
+</table>
+<h3>Input tensor contract</h3>
+<ul>{input_contract}</ul>
+<h3>Output tensor contract</h3>
+<ul>{output_contract}</ul>
+<h3>Training protocol</h3>
+<ul>{training_protocol}</ul>
+<h3>Validation protocol</h3>
+<ul>{validation_protocol}</ul>
+<h3>First ablation order</h3>
+<ul>{first_ablation_order}</ul>
 <h2>Forbidden Runtime Inputs</h2>
 <ul>{forbidden}</ul>
 <h2>Minimum Viable Next Pass</h2>

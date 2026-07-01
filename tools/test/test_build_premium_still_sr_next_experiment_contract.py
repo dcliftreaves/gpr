@@ -167,8 +167,14 @@ def main() -> int:
         research = data["research_basis"]
         assert any(row["id"] == "ntire_2024_raw_sr" for row in research)
         assert any("hardware-specific Bayer restoration" in row["repo_implication"] for row in research)
+        assert any(row["id"] == "rbsformer_raw_sr" for row in research)
+        assert any("RAW-SR-specific transformer" in row["repo_implication"] for row in research)
+        assert any(row["id"] == "jdndmsr" for row in research)
+        assert any("coupled restoration problem" in row["repo_implication"] for row in research)
         assert any(row["id"] == "rethinking_raw_noise" for row in research)
         assert any("darkframe" in row["repo_implication"] for row in research)
+        assert any(row["id"] == "bayer_unify_aug" for row in research)
+        assert any("Bayer phase handling" in row["repo_implication"] for row in research)
         assert any(row["id"] == "swinir" for row in research)
         assert any(row["id"] == "restormer" for row in research)
         assert any(row["id"] == "hat" for row in research)
@@ -176,6 +182,17 @@ def main() -> int:
         assert "JPEG-derived target content" in contract["forbidden_runtime_inputs"]
         assert "CFA phase / Bayer pattern metadata" in contract["allowed_runtime_inputs"]
         assert "trained model priors distilled from external or offline teachers" in contract["allowed_runtime_inputs"]
+        blueprint = contract["implementation_blueprint"]
+        assert "RBSFormer-style" in blueprint["teacher_family"]
+        assert "candidate-only raw-CFA residual student" in blueprint["student_family"]
+        assert "four same-color candidate raw-CFA planes" in blueprint["input_tensor_contract"]
+        assert any("BayerUnify-style canonical phase mapping" in item for item in blueprint["input_tensor_contract"])
+        assert "four same-color raw-CFA residual planes" in blueprint["output_tensor_contract"]
+        assert any("deduplicate the 351 rendered EV rows" in item for item in blueprint["training_protocol"])
+        assert any("Bayer-preserving flips" in item for item in blueprint["training_protocol"])
+        assert any("overlapped-tile inference" in item for item in blueprint["validation_protocol"])
+        assert any("window-attention teacher" in item for item in blueprint["first_ablation_order"])
+        assert any("distilled student only after teacher clears" in item for item in blueprint["first_ablation_order"])
         assert any("X2D median raw-residual MAE recovery >= 15.0%" == gate for gate in contract["success_gates"])
         assert any("stored candidate-HF" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("camera-balanced sampling" in item for item in contract["do_not_repeat_as_primary_path"])
@@ -205,6 +222,7 @@ def main() -> int:
         assert "Premium Still-SR Next Experiment Contract" in html
         assert "Forbidden Runtime Inputs" in html
         assert "Minimum Viable Next Pass" in html
+        assert "Implementation Blueprint" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
 
     print("test_build_premium_still_sr_next_experiment_contract: PASS")

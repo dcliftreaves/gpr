@@ -390,9 +390,19 @@ model requirements:
   top approaches using NAFNet teachers, progressive patch-size finetuning,
   spatial + Fourier losses, and spatial/frequency branches:
   https://arxiv.org/html/2404.16223v1. The refreshed contract also points the
-  next primary pass toward SwinIR/HAT-style shifted-window or hybrid-attention
-  raw restoration teachers, or a Restormer-style high-resolution teacher, with
-  overlapped-tile/full-image validation before any student distillation.
+  next primary pass toward SwinIR/HAT/RBSFormer-style shifted-window,
+  hybrid-attention, or RAW-SR transformer teachers, or a Restormer-style
+  high-resolution teacher, with overlapped-tile/full-image validation before
+  any student distillation.
+- Preserve Bayer geometry during augmentation and validation. The next pass
+  should use Bayer-preserving flips/rotations or canonical phase remapping and
+  should fail early if CFA phase metadata is wrong after augmentation.
+- Make the first ablations architecture/data-contract tests, not another
+  scalar-loss sweep: window-attention teacher versus the current noise-floor
+  U-Net, with/without CFA phase conditioning, with/without validated noise
+  sidecar conditioning, with/without modeled PSF sidecar, crop-only versus
+  overlapped/full-image evaluation, and student distillation only after the
+  teacher clears both camera holdouts.
 - If multiple frames exist, burst RAW SR literature treats single-image SR as
   severely ill-posed and uses alignment/aggregation over raw bursts:
   https://openaccess.thecvf.com/content/ICCV2021/papers/Lecouat_Lucas-Kanade_Reloaded_End-to-End_Super-Resolution_From_Raw_Image_Bursts_ICCV_2021_paper.pdf.
