@@ -258,9 +258,29 @@ JPEG target content at runtime. The default kernel is the neutral
 `[0.25, 0.25, 0.25, 0.25]` box, so existing non-PSF feature modes remain
 behavior-compatible.
 
-This is an executable experiment path, not a result. It must still beat the
-current X2D/Z8 holdout gates and full still/editor-latitude review before any
-premium still-SR promotion claim.
+Two first PSF-conditioned probes have now been run against the deduplicated
+X2D scene holdout:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_psf_noisefloor_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_fullcrop_rawcontext_psf_unet_w32_900_20260701/index.html
+```
+
+The local noise-floor U-Net plus PSF planes reaches **0.106%** median exact raw
+MAE recovery on the 9-row X2D scene holdout, below the prior non-PSF
+noise-floor branch at **0.153%**, though its median raw residual RMSE recovery
+turns slightly positive. The full-crop raw-context PSF U-Net reaches
+**0.064%**, barely above the older non-PSF full-crop raw-context branch at
+**0.056%** and still far below the promotion threshold.
+
+This is useful evidence, not a promotion. The available PSF receipt is an
+almost-neutral same-color box kernel
+`[0.25000165, 0.25000245, 0.25000036, 0.24999554]`, and the deduplicated rows
+do not carry per-row PSF metadata. A single near-box kernel is therefore not
+enough runtime information to solve the hard X2D detail-placement miss. The
+next PSF-aware still-SR pass should only be treated as materially new if it adds
+real per-camera/per-resize PSF variation, or if it changes the teacher/objective
+enough to beat the current **0.153%** X2D scene-holdout baseline.
 
 ## Research Alignment For The Next CNN Pass
 

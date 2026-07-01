@@ -253,8 +253,16 @@ Current evidence:
   (`raw_multiscale_coord_ev_noise_psf`, `raw_context_coord_ev_noise_psf`, and
   stored-HF variants). They use candidate raw plus metadata/PSF sidecar scalar
   planes only, keep source/REF content out of runtime inputs, and are covered
-  by the trainer regression. This opens the next executable PSF/camera-aware
-  teacher pass, but does not promote any current still-SR model.
+  by the trainer regression. Two first X2D scene-holdout probes using the
+  measured near-box PSF receipt have now been run. The local noise-floor U-Net
+  plus PSF planes reaches about 0.106 percent median exact raw MAE recovery,
+  below the non-PSF 0.153 percent branch but with slightly positive RMSE
+  recovery; the full-crop raw-context PSF U-Net reaches about 0.064 percent,
+  only barely above the older full-crop raw-context branch. That rules out a
+  single global near-box kernel as sufficient evidence for still-SR promotion.
+  The next materially new pass needs per-camera/per-resize PSF variation or a
+  stronger teacher/objective, not the same scalar sidecar repeated across all
+  rows.
   The raw target duplicate audit records 351 rows but only 117 unique
   scene/crop raw-domain rows: all raw arrays are identical across -2/0/+2 EV,
   while rendered review residuals vary. Raw-CFA training must therefore use the

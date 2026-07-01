@@ -298,7 +298,13 @@ median raw-residual recovery threshold plus full still/editor-latitude receipts.
 The trainer now has PSF/kernel-conditioned `_psf` feature modes that can consume
 row metadata, explicit four-weight kernels, or a `gpr.bayer_resize_psf_receipt.v1`
 without adding source/REF content at runtime. That opens the intended
-PSF/camera-aware experiment path, but it is not a promoted still-SR model.
+PSF/camera-aware experiment path, but it is not a promoted still-SR model. The
+first two X2D scene-holdout PSF probes are now recorded: a local noise-floor
+U-Net with near-box PSF planes reaches about 0.106 percent median exact raw MAE
+recovery versus the non-PSF 0.153 percent baseline, and a full-crop raw-context
+PSF U-Net reaches about 0.064 percent. The current blocker is therefore not
+"missing PSF plumbing"; it is missing per-row/per-camera PSF variation or a
+stronger teacher/objective.
 The final still-SR promotion artifact set is pinned as
 `premium_still_sr_promotion_receipts` in the committed production capture
 requirements.
