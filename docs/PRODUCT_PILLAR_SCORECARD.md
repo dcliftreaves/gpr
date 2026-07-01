@@ -88,6 +88,14 @@ and 12800, plus Z8 at ISO 500. Mission 1 and iPhone have real fixtures but no
 production-ready darkframe sidecars yet, so nonzero noise removal/addback is not
 promoted for those cameras.
 
+The raw-stills noise sidecar readiness receipt lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_stills_noise_sidecar_readiness_20260701/index.html`.
+It rolls the coverage audit, runtime policy, darkframe candidate audit, fixture
+gap plan, and capture request into the current product verdict: X2D and Z8 are
+enabled for calibrated nonzero noise addback, while Mission 1 and iPhone remain
+metadata-conditioning-only. The receipt records the two open requirement IDs:
+`mission1_darkframe_stack` and `iphone_cfa_darkframe_stack`.
+
 The current full-manifest Mission/iPhone darkframe candidate audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html`.
 It parses 1,997 of 2,000 bounded manifest rows, finds 59 dark-like frames, and

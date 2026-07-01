@@ -354,6 +354,7 @@ current evidence so strict local checks can verify it.
 | Source-root Bayer phase scan | `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_source_roots_20260630/index.html` |
 | Camera-noise coverage audit | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html` |
 | Camera-noise runtime policy | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_runtime_policy_20260630/index.html` |
+| Raw-stills noise sidecar readiness | `/Volumes/OWC_8TB/gpr_work/artifacts/raw_stills_noise_sidecar_readiness_20260701/index.html` |
 | Real-photo darkframe-candidate sample | `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_realphotos_sample_20260630/index.html` |
 | Full-manifest Mission/iPhone darkframe candidate audit | `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html` |
 | Stills fixture gap closure plan | `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html` |

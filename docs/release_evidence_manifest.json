@@ -23,7 +23,8 @@
           "mission_iphone_fullmanifest_darkframe_audit_20260701",
           "stills_fixture_gap_plan_noise_fullmanifest_20260701",
           "stills_capture_request_noise_fullmanifest_20260701",
-          "camera_noise_runtime_policy_20260630"
+          "camera_noise_runtime_policy_20260630",
+          "raw_stills_noise_sidecar_readiness_20260701"
         ]
       },
       "open_gate": "Mission 1/iPhone darkframe sidecars are still required before broad-camera nonzero noise-addback claims are complete; real RGGB/GBRG/GRBG/BGGR fixture coverage is closed for the stills path."
@@ -1864,6 +1865,35 @@
         "nonzero_noise_addback_camera_count": 2,
         "metadata_only_camera_count": 2,
         "production_noise_policy_complete": 0
+      }
+    },
+    {
+      "id": "raw_stills_noise_sidecar_readiness_20260701",
+      "family": "noise_signal",
+      "status": "current",
+      "purpose": "Product-facing raw-stills noise sidecar readiness receipt. It consolidates coverage, runtime policy, darkframe candidates, fixture gap plan, and capture request into one verdict: X2D/Z8 enabled, Mission/iPhone blocked until validated darkframe sidecars exist.",
+      "dashboard": "artifacts/raw_stills_noise_sidecar_readiness_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/raw_stills_noise_sidecar_readiness_20260701/raw_stills_noise_sidecar_readiness.json",
+        "artifacts/raw_stills_noise_sidecar_readiness_20260701/index.html"
+      ],
+      "hashes": {
+        "raw_stills_noise_sidecar_readiness_json_sha256": "65716359088adb7206c2ef3c7e19f5391d5a34e0f2da86790cce296bb8215076",
+        "dashboard_sha256": "a934dab97b2ef3e46ab3c334d9230f9cda986fdf70b0355fa52fc596efe83622"
+      },
+      "metrics": {
+        "production_ready_camera_count": 2,
+        "blocked_camera_count": 2,
+        "mission_iphone_noise_addback_enabled": 0,
+        "production_raw_stills_noise_ready": 0,
+        "darkframe_like_count": 59,
+        "production_stack_ready_group_count": 0
       }
     },
     {

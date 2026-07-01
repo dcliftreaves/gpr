@@ -73,6 +73,13 @@ Current evidence:
   records six production-ready darkframe sidecars: X2D at ISO 64, 200, 800,
   3200, and 12800, plus Z8 at ISO 500. Mission 1 and iPhone have real fixtures
   but no production-ready darkframe sidecars yet.
+- The raw-stills noise sidecar readiness receipt at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/raw_stills_noise_sidecar_readiness_20260701/index.html`
+  consolidates the coverage audit, runtime policy, Mission/iPhone darkframe
+  candidate audit, fixture gap plan, and capture request into one product
+  verdict: X2D and Z8 may use nonzero calibrated noise addback; Mission 1 and
+  iPhone must remain metadata-conditioning-only until validated darkframe
+  sidecars exist.
 - The Mission/iPhone full-manifest darkframe candidate audit at
   `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html`
   scans 2,000 bounded manifest rows. It parsed 1,997, found 59 dark-like
