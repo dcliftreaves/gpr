@@ -19,6 +19,7 @@ SCORECARD = ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md"
 
 REQUIRED_SECTIONS = (
     "## Open Raw Video For Action Cameras",
+    "## What This Branch Proves",
     "## Four Product Tracks",
     "## Product Snapshot",
     "## Product Pillars",
@@ -34,6 +35,15 @@ REQUIRED_README_TOKENS = (
     "not an image-quality score",
     "not a regression signal for locked artifacts",
     "GPR is not one codec demo",
+    "The repo is organized around four product outcomes, not one benchmark",
+    "outcome has a locked proof surface",
+    "**Best RAW stills**",
+    "**GoPro RAW video MVP**",
+    "**Premium still improvement**",
+    "**PSF-aware video improvement**",
+    "Actual Mission 1 sensor/DMA, SD writer, and rear-display receipts",
+    "A no-REF candidate that clears the 50 MP / 100 MP still/editor-latitude gate",
+    "Controlled high/low Mission 1 pairs",
     "capture better raw, keep raw editable, preview it",
     "**1. RAW stills**",
     "**2. RAW video MVP**",

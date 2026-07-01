@@ -24,6 +24,19 @@ source.
 
 ![GPR raw-video showcase: 4K Bayer .gvid, live preview, native 12MP crops, and 8K SR review](docs/img/readme_showcase.webp)
 
+## What This Branch Proves
+
+The repo is organized around four product outcomes, not one benchmark. Each
+outcome has a locked proof surface, a clear production boundary, and a next
+receipt required to call the entire suite finished.
+
+| outcome | proof in hand | what still closes production |
+|---|---|
+| **Best RAW stills** | 50 MP tiers pass at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100MP roundtrip is 47 MB at 49.21 dB; 12/14/16-bit normal Bayer stills are guarded. | Real GRBG/BGGR fixtures plus Mission 1 and iPhone darkframe sidecars for broader real-camera noise coverage. |
+| **GoPro RAW video MVP** | Real 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor; the same stream previews at 1024 x 768 above **20 fps**. | Actual Mission 1 sensor/DMA, SD writer, and rear-display receipts. |
+| **Premium still improvement** | Still-SR infrastructure, raw-CFA targets, editor-openability, metadata transplant, and 13-scene / 351-row training receipts exist. | A no-REF candidate that clears the 50 MP / 100 MP still/editor-latitude gate; current raw-CFA CNN probes are diagnostic only. |
+| **PSF-aware video improvement** | Approved 4K cleanup and 8K SR baselines, standalone no-CNN/CNN ProRes review movies, and native high/low PSF audits exist. | Controlled high/low Mission 1 pairs and a stable PSF-conditioned model that beats the current baselines. |
+
 | product surface | what it shows |
 |---|---|
 | **RAW stills** | 50 MP and 100 MP-class editable Bayer files, with 12/14/16-bit support, normal Bayer conformance, and a calibrated noise-policy path. |
