@@ -63,9 +63,23 @@ def load_meta(z: np.lib.npyio.NpzFile) -> list[dict[str, Any]]:
     return [row if isinstance(row, dict) else {} for row in rows]
 
 
-def split_rows(rows: list[dict[str, Any]], holdout_scene: str | None, holdout_camera: str | None) -> tuple[list[int], list[int]]:
+def split_rows(
+    rows: list[dict[str, Any]],
+    holdout_scene: str | None,
+    holdout_camera: str | None,
+    holdout_crop: str | None = None,
+    holdout_ev: float | None = None,
+) -> tuple[list[int], list[int]]:
     if holdout_scene:
-        holdout = [idx for idx, row in enumerate(rows) if str(row.get("scene_id") or "") == holdout_scene]
+        holdout = []
+        for idx, row in enumerate(rows):
+            if str(row.get("scene_id") or "") != holdout_scene:
+                continue
+            if holdout_crop is not None and str(row.get("crop") or "") != holdout_crop:
+                continue
+            if holdout_ev is not None and abs(float(row.get("ev", 0.0) or 0.0) - holdout_ev) > 1.0e-6:
+                continue
+            holdout.append(idx)
     elif holdout_camera:
         needle = holdout_camera.lower()
         holdout = [idx for idx, row in enumerate(rows) if camera_from_row(row) == needle]
@@ -139,10 +153,15 @@ def fit_ridge(x: np.ndarray, y: np.ndarray, ridge: float) -> tuple[np.ndarray, n
     mean = x.mean(axis=0, keepdims=True)
     std = x.std(axis=0, keepdims=True)
     std = np.where(std < 1.0e-6, 1.0, std)
-    xs = (x - mean) / std
+    xs = ((x - mean) / std).astype(np.float64)
     xtx = xs.T @ xs
-    reg = np.eye(xtx.shape[0], dtype=np.float32) * float(ridge)
-    w = np.linalg.solve(xtx + reg, xs.T @ y.astype(np.float32))
+    reg = np.eye(xtx.shape[0], dtype=np.float64) * float(ridge)
+    lhs = xtx + reg
+    rhs = xs.T @ y.astype(np.float64)
+    try:
+        w = np.linalg.solve(lhs, rhs)
+    except np.linalg.LinAlgError:
+        w = np.linalg.lstsq(lhs, rhs, rcond=None)[0]
     return w.astype(np.float32), mean.astype(np.float32), std.astype(np.float32)
 
 
@@ -242,9 +261,11 @@ code {{ font-size: 12px; word-break: break-all; }}
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    holdout_crop = getattr(args, "holdout_crop", None)
+    holdout_ev = getattr(args, "holdout_ev", None)
     z = np.load(args.targets, allow_pickle=False)
     rows = load_meta(z)
-    train_indices, holdout_indices = split_rows(rows, args.holdout_scene, args.holdout_camera)
+    train_indices, holdout_indices = split_rows(rows, args.holdout_scene, args.holdout_camera, holdout_crop, holdout_ev)
     raw = z["candidate_raw_cfa4"].astype(np.float32)
     hf = z["candidate_raw_hf_cfa4"].astype(np.float32)
     target = z["raw_hf_residual_cfa4"].astype(np.float32)
@@ -314,6 +335,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "split": {
             "holdout_scene": args.holdout_scene,
             "holdout_camera": args.holdout_camera,
+            "holdout_crop": holdout_crop,
+            "holdout_ev": holdout_ev,
             "train_row_count": len(train_indices),
             "holdout_row_count": len(holdout_indices),
         },
@@ -347,6 +370,8 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--holdout-scene", default=None)
     ap.add_argument("--holdout-camera", default=None)
+    ap.add_argument("--holdout-crop", default=None)
+    ap.add_argument("--holdout-ev", type=float, default=None)
     ap.add_argument("--samples-per-train-row", type=int, default=256)
     ap.add_argument("--samples-per-holdout-row", type=int, default=512)
     ap.add_argument("--max-train-rows", type=int, default=None)

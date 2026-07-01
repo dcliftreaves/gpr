@@ -1348,6 +1348,8 @@
       "receipts": [
         "artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json",
         "artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html",
+        "artifacts/premium_still_sr_candidate_signal_x2d1742_center_same_scene_20260701/candidate_signal_audit.json",
+        "artifacts/premium_still_sr_candidate_signal_x2d1742_center_same_scene_20260701/index.html",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json",
@@ -1372,6 +1374,7 @@
         "x2d_pooled_context_probe_holdout_mae_recovery_pct": -0.330202424153684,
         "x2d_context_storedhf_probe_holdout_mae_recovery_pct": -0.4258695412707576,
         "x2d_band_loss_probe_holdout_mae_recovery_pct": -0.5429413178342872,
+        "x2d_center_same_scene_candidate_signal_probe_holdout_mae_recovery_pct": -3.6671465917567434,
         "x2d_only_domain_probe_holdout_mae_recovery_pct": -0.15236912961782187,
         "x2d_camera_balanced_sampler_probe_holdout_mae_recovery_pct": -0.4486720189406414,
         "x2d_context_padding_probe_holdout_mae_recovery_pct": -0.1559764723882089,

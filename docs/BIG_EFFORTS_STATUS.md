@@ -235,8 +235,11 @@ Current evidence:
   Diagnostic holdout-probe checkpoint selection raises that U-Net branch to
   about 0.13 percent median raw-residual MAE recovery, but the best known X2D
   row remains only about 0.16 percent and the promotion gate is 15 percent.
-  That rules out final-checkpoint selection as the primary blocker. Adding
-  absolute crop-position, camera one-hot, and full-crop candidate raw/HF
+  That rules out final-checkpoint selection as the primary blocker. A
+  same-scene center-crop candidate-signal audit still regresses the hard X2D
+  center rows by about -3.67 percent median MAE, so low-order candidate
+  features are not enough even with neighboring crops from the same scene.
+  Adding absolute crop-position, camera one-hot, and full-crop candidate raw/HF
   scalar context to that U-Net does not improve the held-out receipts: X2D
   lands at about 0.09 percent median MAE recovery and Z8 lands at about 0.19
   percent versus the existing 0.50 percent Z8 baseline. Those

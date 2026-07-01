@@ -368,6 +368,14 @@ uses no source raw, REF, or JPEG content at runtime. It also fails: the hard
 X2D holdout lands at about -0.29 percent median raw-residual MAE recovery and
 about -0.55 percent median RMSE recovery. That rules out a low-order
 candidate-signal readout over the current targets as the next primary path.
+The same probe now also supports narrower same-scene crop holdouts. Holding out
+only the `grid3_01_01` center crop from `2024_April_X2D_1742` while training
+on all other rows, including neighboring crops from the same scene, regresses
+the center rows to about -3.67 percent median MAE recovery:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_signal_x2d1742_center_same_scene_20260701/index.html`.
+That argues the current low-order candidate-side features are not enough even
+with same-scene neighboring context; the blocker is not only the scene-held-out
+split.
 The next path needs a different runtime signal, a materially different
 target/objective, or a stronger learned generative/detail prior rather than
 nearest-neighbor transfer or a linear readout of current raw-CFA residual

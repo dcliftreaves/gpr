@@ -376,7 +376,10 @@ raw-domain branch to move the X2D holdout directionally positive at about
 0.10 percent median MAE recovery. A diagnostic early-selection variant saves
 the best holdout-probe checkpoint and raises that branch to about 0.13 percent,
 but that is still below the best 0.16 percent X2D smoke row and far below
-promotion.
+promotion. A same-scene center-crop candidate-signal audit still regresses the
+hard X2D center rows by about -3.67 percent median MAE, so low-order candidate
+features are not enough even when neighboring crops from the same scene are
+available.
 Adding absolute crop-position, camera one-hot, and full-crop candidate raw/HF
 scalar context to that U-Net lands at about 0.09 percent on X2D and about
 0.19 percent on Z8, below the existing Z8 raw-CFA baseline. The bounded
