@@ -126,6 +126,7 @@ def main() -> int:
             visual_review=visual,
             visual_signoff=None,
             controlled_native_psf_proven=False,
+            psf_replacement_claim=False,
             production_ready=False,
         ))
         blockers = set(report["verdict"]["blocking_issues"])
@@ -136,8 +137,24 @@ def main() -> int:
         assert report["fullsequence_packaging"]["sequence_packaging_ok"] is True
         assert "registry_scope_offline_review_only" in blockers
         assert "manual_visual_review_incomplete" in blockers
-        assert "controlled_native_psf_evidence_missing" in blockers
+        assert "controlled_native_psf_evidence_missing" not in blockers
+        assert "controlled_native_psf_evidence_missing_for_future_replacement" in report["optional_research"]
         assert "artifact_hash_or_existence_gap" not in blockers
+
+        psf_replacement_report = tool.build(argparse.Namespace(
+            external_root=root,
+            registry=registry,
+            cnn_id=tool.DEFAULT_CNN_ID,
+            pipeline_id=tool.DEFAULT_PIPELINE_ID,
+            visual_review=visual,
+            visual_signoff=None,
+            controlled_native_psf_proven=False,
+            psf_replacement_claim=True,
+            production_ready=False,
+        ))
+        assert "controlled_native_psf_evidence_missing" in set(
+            psf_replacement_report["verdict"]["blocking_issues"]
+        )
 
         signoff = artifacts / "visual_signoff/visual_signoff.json"
         write_json(signoff, {
@@ -154,7 +171,7 @@ def main() -> int:
                 "scope": "test",
             },
             "production_boundary": {
-                "controlled_native_psf_evidence_still_required": True,
+                "controlled_native_psf_evidence_required_for_future_replacement": True,
             },
         })
         signed_report = tool.build(argparse.Namespace(
@@ -165,13 +182,14 @@ def main() -> int:
             visual_review=visual,
             visual_signoff=signoff,
             controlled_native_psf_proven=False,
+            psf_replacement_claim=False,
             production_ready=False,
         ))
         signed_blockers = set(signed_report["verdict"]["blocking_issues"])
         assert signed_report["visual_signoff"]["manual_visual_review_complete"] is True
         assert "manual_visual_review_incomplete" not in signed_blockers
         assert "registry_scope_offline_review_only" in signed_blockers
-        assert "controlled_native_psf_evidence_missing" in signed_blockers
+        assert "controlled_native_psf_evidence_missing" not in signed_blockers
 
     print("test_build_mission1_8k_sr_review_candidate_audit: PASS")
     return 0

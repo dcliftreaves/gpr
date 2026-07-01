@@ -2432,7 +2432,7 @@
       "metrics": {
         "manual_visual_review_complete": 1,
         "objective_checks_pass": 1,
-        "controlled_native_psf_evidence_still_required": 1
+        "controlled_native_psf_evidence_required_for_future_replacement": 1
       }
     },
     {

@@ -53,7 +53,7 @@ def main() -> int:
         assert data["visual_review"]["objective_checks_pass"] is True
         assert data["signoff"]["manual_visual_review_complete"] is True
         assert data["production_boundary"]["does_not_prove_controlled_native_psf"] is True
-        assert data["production_boundary"]["controlled_native_psf_evidence_still_required"] is True
+        assert data["production_boundary"]["controlled_native_psf_evidence_required_for_future_replacement"] is True
     print("test_build_mission1_8k_sr_visual_signoff: PASS")
     return 0
 

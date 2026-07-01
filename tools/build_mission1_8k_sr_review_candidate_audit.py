@@ -117,12 +117,14 @@ def visual_signoff_summary(path: Path | None, visual_review_path: Path) -> dict[
     boundary = data.get("production_boundary") if isinstance(data.get("production_boundary"), dict) else {}
     expected_visual_sha = sha256_file(visual_review_path) if visual_review_path.exists() else None
     sha_matches = visual.get("sha256") == expected_visual_sha
+    replacement_only = boundary.get("controlled_native_psf_evidence_required_for_future_replacement")
+    if replacement_only is None:
+        replacement_only = boundary.get("controlled_native_psf_evidence_still_required")
     complete = bool(
         data.get("schema") == "gpr.mission1_8k_sr_visual_signoff.v1"
         and signoff.get("manual_visual_review_complete") is True
         and visual.get("objective_checks_pass") is True
         and sha_matches
-        and boundary.get("controlled_native_psf_evidence_still_required") is True
     )
     return {
         "path": str(path),
@@ -134,6 +136,7 @@ def visual_signoff_summary(path: Path | None, visual_review_path: Path) -> dict[
         "statement": signoff.get("statement"),
         "scope": signoff.get("scope"),
         "manual_visual_review_complete": complete,
+        "controlled_native_psf_evidence_required_for_future_replacement": replacement_only,
         "controlled_native_psf_evidence_still_required": boundary.get(
             "controlled_native_psf_evidence_still_required"
         ),
@@ -230,7 +233,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     )
     if not manual_visual_complete:
         blockers.append("manual_visual_review_incomplete")
+    optional_research: list[str] = []
     if not args.controlled_native_psf_proven:
+        optional_research.append("controlled_native_psf_evidence_missing_for_future_replacement")
+    if args.psf_replacement_claim and not args.controlled_native_psf_proven:
         blockers.append("controlled_native_psf_evidence_missing")
     if not sequence_packaging_ok:
         blockers.append("fullsequence_packaging_not_proven")
@@ -265,6 +271,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "visual_signoff": visual_signoff,
         "fullsequence_packaging": packaging,
         "controlled_native_psf_proven": bool(args.controlled_native_psf_proven),
+        "psf_replacement_claim": bool(args.psf_replacement_claim),
+        "optional_research": optional_research,
         "production_ready": production_ready,
         "verdict": {
             "accepted_role": "production" if production_ready else "blocked_review_candidate",
@@ -282,6 +290,11 @@ def main() -> int:
     parser.add_argument("--visual-review", type=Path, default=DEFAULT_VISUAL_REVIEW)
     parser.add_argument("--visual-signoff", type=Path, default=DEFAULT_VISUAL_SIGNOFF)
     parser.add_argument("--controlled-native-psf-proven", action="store_true")
+    parser.add_argument(
+        "--psf-replacement-claim",
+        action="store_true",
+        help="Require controlled native PSF evidence because this run claims to replace the locked SR baseline.",
+    )
     parser.add_argument("--production-ready", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()

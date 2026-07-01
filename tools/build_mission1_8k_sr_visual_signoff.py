@@ -68,7 +68,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "closes_manual_visual_review_blocker": manual_complete,
             "does_not_prove_controlled_native_psf": True,
             "does_not_change_live_camera_scope": True,
-            "controlled_native_psf_evidence_still_required": True,
+            "controlled_native_psf_evidence_required_for_future_replacement": True,
         },
     }
 
@@ -92,8 +92,8 @@ def main() -> int:
     print(json.dumps({
         "output": args.output.as_posix(),
         "manual_visual_review_complete": data["signoff"]["manual_visual_review_complete"],
-        "controlled_native_psf_evidence_still_required": data["production_boundary"][
-            "controlled_native_psf_evidence_still_required"
+        "controlled_native_psf_evidence_required_for_future_replacement": data["production_boundary"][
+            "controlled_native_psf_evidence_required_for_future_replacement"
         ],
     }, indent=2))
     return 0
