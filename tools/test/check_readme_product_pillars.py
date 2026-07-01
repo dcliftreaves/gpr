@@ -196,6 +196,13 @@ README_PILLAR_LABELS = {
     "raw_video_reconstruction": "RAW video reconstruction improvement",
 }
 
+SVG_PILLAR_LABELS = {
+    "raw_stills": "RAW stills",
+    "raw_video_mvp": "GoPro RAW video MVP",
+    "premium_still_sr": "Premium still/SR",
+    "raw_video_reconstruction": "Video reconstruction",
+}
+
 REQUIRED_SCORECARD_TOKENS = (
     "| Best RAW stills | 92% |",
     "| GoPro RAW video MVP | 80% |",
@@ -230,6 +237,18 @@ def extract_done_percent(readme: str, pillar: str) -> int | None:
     return int(match.group(1))
 
 
+def extract_svg_percent(svg: str, pillar: str) -> int | None:
+    label = re.escape(pillar)
+    pattern = re.compile(
+        rf"<text[^>]*>\s*{label}\s*</text>.*?<text[^>]*>\s*(\d+)%\s*</text>",
+        re.DOTALL,
+    )
+    match = pattern.search(svg)
+    if not match:
+        return None
+    return int(match.group(1))
+
+
 def load_scorecard_builder() -> Any:
     spec = importlib.util.spec_from_file_location(
         "build_product_pillar_scorecard_under_readme_check",
@@ -243,17 +262,22 @@ def load_scorecard_builder() -> Any:
     return module
 
 
-def expected_percentages_from_scorecard() -> tuple[int, dict[str, int]]:
+def expected_product_state_from_scorecard() -> tuple[int, dict[str, int], dict[str, int]]:
     builder = load_scorecard_builder()
     data = builder.build_scorecard(builder.DEFAULT_EXTERNAL_ROOT)
     overall = int(data["four_pillar_completion_percent"])
-    by_label: dict[str, int] = {}
+    readme_by_label: dict[str, int] = {}
+    svg_by_label: dict[str, int] = {}
     for pillar in data.get("pillars", []):
         pillar_id = pillar.get("id")
-        label = README_PILLAR_LABELS.get(str(pillar_id))
-        if label is not None:
-            by_label[label] = int(pillar["readiness_percent"])
-    return overall, by_label
+        readiness = int(pillar["readiness_percent"])
+        readme_label = README_PILLAR_LABELS.get(str(pillar_id))
+        if readme_label is not None:
+            readme_by_label[readme_label] = readiness
+        svg_label = SVG_PILLAR_LABELS.get(str(pillar_id))
+        if svg_label is not None:
+            svg_by_label[svg_label] = readiness
+    return overall, readme_by_label, svg_by_label
 
 
 def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> list[str]:
@@ -269,10 +293,10 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
             failures.append(f"{readme_path.name} must not reference rejected or superseded artifact {token!r}")
 
     try:
-        expected_overall, expected_percentages = expected_percentages_from_scorecard()
+        expected_overall, expected_percentages, expected_svg_percentages = expected_product_state_from_scorecard()
     except Exception as exc:
         failures.append(f"could not build product scorecard for README percentage check: {exc}")
-        expected_overall, expected_percentages = 0, {}
+        expected_overall, expected_percentages, expected_svg_percentages = 0, {}, {}
 
     overall_token = f"Current four-pillar completion is **{expected_overall}%**"
     if expected_overall and overall_token not in readme:
@@ -322,6 +346,17 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
     if status_matrix.exists():
         status = status_matrix.read_text(encoding="utf-8")
         require_tokens(status, REQUIRED_STATUS_MATRIX_TOKENS, status_matrix.name, failures)
+        missing_svg_pillars = sorted(set(SVG_PILLAR_LABELS.values()) - set(expected_svg_percentages))
+        if missing_svg_pillars:
+            failures.append(f"product scorecard missing SVG pillar labels: {missing_svg_pillars}")
+        for pillar, expected in expected_svg_percentages.items():
+            actual = extract_svg_percent(status, pillar)
+            if actual is None:
+                failures.append(f"{status_matrix.name} missing percentage text for {pillar!r}")
+            elif actual != expected:
+                failures.append(
+                    f"{status_matrix.name} percentage for {pillar!r} is {actual}%, expected {expected}%"
+                )
     else:
         failures.append(f"{status_matrix} is missing")
 
