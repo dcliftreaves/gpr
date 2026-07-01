@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 README = ROOT / "README.md"
 BIG_EFFORTS = ROOT / "docs/BIG_EFFORTS_STATUS.md"
 PLAN = ROOT / "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md"
+SHIP_DECISION = ROOT / "docs/SHIP_DECISION.md"
 
 
 DOC_TOKENS = {
@@ -55,6 +56,19 @@ DOC_TOKENS = {
         "noise calibration uncertainty",
         "throughput, memory, or storage",
     ),
+    "docs/SHIP_DECISION.md": (
+        "Current release boundary",
+        "Raw-video SR is frozen for shipment",
+        "Do not keep iterating on SR just because a new",
+        "experiment is plausible",
+        "Reopen the raw-video SR decision only if the locked",
+        "gate, artifact hash, receipt, CI guard, or manual review fails",
+        "replacement has already beaten the locked baseline",
+        "PSF/blur modeling is useful next-generation research",
+        "not a release",
+        "requirement for the current raw-video workflow",
+        "future claim that a PSF-conditioned model replaces",
+    ),
 }
 
 FORBIDDEN_TOKENS = {
@@ -63,6 +77,11 @@ FORBIDDEN_TOKENS = {
     ),
     "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md": (
         "PSF/blur-aware replacement work is required",
+    ),
+    "docs/SHIP_DECISION.md": (
+        "PSF gates",
+        "PSF/blur modeling is required",
+        "PSF/blur modeling is a release requirement",
     ),
 }
 
@@ -74,6 +93,8 @@ def path_for(label: str) -> Path:
         return BIG_EFFORTS
     if label == "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md":
         return PLAN
+    if label == "docs/SHIP_DECISION.md":
+        return SHIP_DECISION
     raise KeyError(label)
 
 
