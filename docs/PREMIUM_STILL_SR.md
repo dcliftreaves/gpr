@@ -99,8 +99,8 @@ Current scoreboard:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html
 ```
 
-The current scoreboard scans **80** premium still-SR training receipts across
-the older rendered-HF and newer raw-CFA residual schemas. All 80 rows are
+The current scoreboard scans **81** premium still-SR training receipts across
+the older rendered-HF and newer raw-CFA residual schemas. All 81 rows are
 runtime-safe, but **0** are promotable. The best runtime-safe row reaches only
 **4.03%** held-out MAE recovery and **3.75%** held-out RMSE recovery against a
 15% / 15% promotion threshold. This is a necessary promotion guard, not a full
@@ -452,6 +452,26 @@ shifted-window self-attention, overlap convolution, and a downsampled full-crop
 context branch while preserving the candidate-only runtime input policy. A
 smaller student can be distilled later only if the teacher clears the X2D/Z8
 raw and rendered gates without full-image/tile-overlap artifacts.
+
+The trainer also exposes `model_arch=restormer_teacher`, a Restormer-style
+raw-CFA teacher branch with local depthwise filtering plus transposed
+channel-attention over the full crop. This is a materially different next
+candidate path from the local CNN, RCAB, NAF, and window-attention probes while
+keeping the same no-REF candidate-only runtime contract.
+
+The first real-target Restormer smoke receipt exists:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_restormer_teacher_smoke_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_restormer_teacher_smoke_20260701/train_receipt.json
+```
+
+It uses `model_arch=restormer_teacher` with
+`raw_multiscale_storedhf_coord_ev_noise_psf_cfa`, the known-kernel PSF receipt,
+CFA phase conditioning, 2 training steps, 64 px overlap evaluation, and bounded
+2-row train / 2-row X2D holdout evaluation. It is path proof only: the bounded
+holdout median raw MAE recovery is about **0.112%**, far below the promotion
+gate.
 
 The first real-target window-attention smoke receipt exists:
 

@@ -57,7 +57,7 @@ def main() -> int:
                     "Current candidate-only local/full-crop/global-context/masked-context statistics are not enough",
                     "deeper gated pyramid U-Net",
                     "premium_still_sr_patch_dictionary_x2dholdout_20260630/patch_dictionary_probe.json",
-                    "80 runtime-safe rendered-HF and raw-CFA residual training receipts",
+                    "81 runtime-safe rendered-HF and raw-CFA residual training receipts",
                     "zero promotable rows",
                     "4.03 percent held-out MAE recovery and 3.75 percent held-out RMSE recovery",
                     "15 percent / 15 percent promotion threshold",
@@ -166,13 +166,13 @@ def main() -> int:
 
         scorecard.write_text(
             (ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md").read_text(encoding="utf-8").replace(
-                "80 runtime-safe rendered-HF and raw-CFA residual training receipts",
+                "81 runtime-safe rendered-HF and raw-CFA residual training receipts",
                 "many runtime-safe rendered-HF and raw-CFA residual training receipts",
             ),
             encoding="utf-8",
         )
         failures = module.validate(readme, scorecard)
-        if not failures or not any("80 runtime-safe" in failure for failure in failures):
+        if not failures or not any("81 runtime-safe" in failure for failure in failures):
             print(f"stale premium still-SR scoreboard count did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 
