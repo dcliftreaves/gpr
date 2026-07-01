@@ -18,12 +18,12 @@ Build it with:
 GPR_TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp \
   python3 tools/build_product_pillar_scorecard.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_capture_requirements_20260701
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_psf_detail_metric_audit_20260701
 ```
 
 Current generated dashboard:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_capture_requirements_20260701/index.html`
+`/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_psf_detail_metric_audit_20260701/index.html`
 
 Companion production burn-down dashboard:
 
@@ -69,7 +69,7 @@ Current interpretation:
 | Best RAW stills | 92% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB/GBRG/GRBG/BGGR fixture coverage, and explicit camera-noise coverage; Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
 | Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the deduplicated raw-supervision NPZ collapses it to 117 unique scene/crop raw-domain rows with zero raw conflicts, and RCAB/NAF/U-Net teacher receipts run on that target. Z8 is mildly positive, but X2D remains far below promotion: the raw-target distribution audit shows the hard X2D holdout has **3.45x** the X2D train-median target energy with **6/9** rows above train p90, the RCAB smoke is only **0.069%** median recovery on an 8-row X2D holdout, the scaled RCAB pass is only **0.034%** on a 24-row X2D holdout, the all-X2D-holdout NAF-style pass is **-0.059%** on a 24-row X2D holdout with a heavily regressed train split, the corrected X2D-scene NAF pass reaches only **0.107%** median MAE recovery and negative RMSE recovery, hard SNR filtering hurts versus unfiltered X2D-only **0.149%**, broad SNR weighting also hurts, and noise-floor-only downweighting only nudges the X2D-scene U-Net branch to **0.153%**. Scalar target-energy weighting regresses to **0.118%** or **0.133%**, Fourier/band-loss shaping regresses to **-0.386%** or **-0.139%**, candidate-HF target scaling reaches only **0.052%** or **-0.137%**, direct source-HF target prediction regresses to **-241.62%** without stored HF and **-862.69%** with stored HF, frame-context scalar conditioning reaches only **0.001%**, stored candidate-HF regresses to **0.110%**, broader pyramid context trails at **0.131%**, same-scene candidate-signal and frequency-filter probes regress, nearest-neighbor retrieval regresses the hard X2D holdout, and candidate-only local/full-crop/global-context/masked-context statistics remain insufficient. The raw-target SNR/distribution audits are useful, but binary row removal, simple row weighting, stored-HF, Fourier/band scalar loss shaping, candidate-side scalar output scaling, source-HF target replacement, frame-stat concatenation, and simple capacity increases are not enough; the next pass needs a materially different CFA-aware teacher/data objective with camera conditioning, PSF conditioning, and learned multiscale texture priors. |
-| PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, including continuous 8K no-CNN versus CNN ProRes review media for a whole-scene A/B; near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, the kernel-stability audit identifies coefficient disagreement, and a hash-strict capture request now spells out the controlled-pair capture and model-gate path. Formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
+| PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, including continuous 8K no-CNN versus CNN ProRes review media for a whole-scene A/B; near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, the kernel-stability audit identifies coefficient disagreement, a hash-strict capture request now spells out the controlled-pair capture and model-gate path, and the detail-metric audit shows the current Mission42/Z8 summaries still lack explicit same-cell Bayer fine-detail metrics. Formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel and the current summary metrics are not yet specific enough for PSF-conditioned promotion. |
 
 The current real X2D 100MP still audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html`.
@@ -227,6 +227,16 @@ The current raw-video SR/detail candidate scoreboard lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html`.
 It indexes 89 historical Mission/Z8 decision receipts and finds zero
 current-scale promotion rows under the Mission42 plus Z8 all24 coverage rule.
+
+The current raw-video PSF detail-metric audit lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_detail_metric_audit_20260701/index.html`.
+It confirms that Mission42 and Z8 all24 baseline/candidate summaries are
+available, but all four selected summaries are missing
+`same_cell_detail_mae_improvement_pct`,
+`same_cell_fine_detail_mae_improvement_pct`, and
+`cfa_plane_detail_mae_improvement_pct`. That blocks a PSF-conditioned
+replacement claim until the full-frame summary builders emit same-cell Bayer
+fine-detail metrics.
 
 The current raw-video PSF next-experiment contract lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_next_experiment_contract_20260701/index.html`.

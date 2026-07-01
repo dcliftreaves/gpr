@@ -1977,6 +1977,38 @@
       }
     },
     {
+      "id": "raw_video_psf_detail_metric_audit_20260701",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Audits whether the current Mission42 and Z8 all24 full-frame summaries expose explicit same-cell Bayer fine-detail metrics before any PSF-conditioned replacement claim.",
+      "dashboard": "artifacts/raw_video_psf_detail_metric_audit_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BAYER_RESIZE_PSF.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/raw_video_psf_detail_metric_audit_20260701/raw_video_psf_detail_metric_audit.json",
+        "artifacts/raw_video_psf_detail_metric_audit_20260701/index.html"
+      ],
+      "hashes": {
+        "audit_json_sha256": "6b6e35dadebd6670c9dda1cd1051eae81d9945f1d9631d34f92d3c564716b23e",
+        "dashboard_sha256": "7066640f6c4b5e332d18a25afb7529ef671c76c2c92a24a49f91d3fb45ec5d8a"
+      },
+      "metrics": {
+        "coverage_ready": 1,
+        "summary_count": 4,
+        "ready_summary_count": 0,
+        "missing_summary_count": 4,
+        "mission_candidate_image_count": 42,
+        "z8_candidate_image_count": 24,
+        "same_cell_detail_metric_ready": 0,
+        "psf_detail_gate_ready": 0
+      }
+    },
+    {
       "id": "raw_video_psf_next_experiment_contract_20260701",
       "family": "raw_video_psf",
       "status": "diagnostic",

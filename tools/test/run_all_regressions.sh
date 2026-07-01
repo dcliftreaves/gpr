@@ -209,6 +209,7 @@ else
                 python3 tools/test/test_build_raw_video_psf_gap_plan.py && \
                 python3 tools/test/test_build_raw_video_psf_capture_request.py && \
                 python3 tools/test/test_build_raw_video_psf_next_experiment_contract.py && \
+                python3 tools/test/test_build_raw_video_psf_detail_metric_audit.py && \
                 python3 tools/test/test_build_product_pillar_scorecard.py && \
                 python3 tools/test/test_build_product_burndown.py && \
                 python3 tools/test/check_product_burndown_contract.py && \

@@ -616,6 +616,8 @@ native Mission 1 PSF blocker state for the PSF-aware video/SR pillar.
 | Mission 1 native PSF kernel-stability audit dashboard | `artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html` | `a78d92485b905b8b61058b5f5dee0e916d1be977486c3ebaae95c06004c888ae` |
 | Raw-video SR candidate scoreboard JSON | `artifacts/raw_video_sr_candidate_scoreboard_20260701/scoreboard.json` | `2b07eb4c68c09e71c273b336e5503aaf82a70c2f6059ec50ac98099a41bf1f48` |
 | Raw-video SR candidate scoreboard dashboard | `artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html` | `d3cc60b9f4732c0169b5967bf33f7ccc583471129a4b8bb9338183e7d7c3ca79` |
+| Raw-video PSF detail metric audit JSON | `artifacts/raw_video_psf_detail_metric_audit_20260701/raw_video_psf_detail_metric_audit.json` | `6b6e35dadebd6670c9dda1cd1051eae81d9945f1d9631d34f92d3c564716b23e` |
+| Raw-video PSF detail metric audit dashboard | `artifacts/raw_video_psf_detail_metric_audit_20260701/index.html` | `7066640f6c4b5e332d18a25afb7529ef671c76c2c92a24a49f91d3fb45ec5d8a` |
 | Raw-video PSF next-experiment contract JSON | `artifacts/raw_video_psf_next_experiment_contract_20260701/raw_video_psf_next_experiment_contract.json` | `df23e0f05f9829a99edb15c24c326ff18dd1da4e42c112f112049356da027996` |
 | Raw-video PSF next-experiment contract dashboard | `artifacts/raw_video_psf_next_experiment_contract_20260701/index.html` | `ab25ef25dc61ad2e1eeb33c8cdeab0df8acde4625e5c4964bff8d9858276a470` |
 
