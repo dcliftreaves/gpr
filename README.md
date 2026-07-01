@@ -496,7 +496,8 @@ current evidence so strict local checks can verify it.
 | target | dimensions | classification | current result |
 |---|---:|---|---|
 | `mission1_preview_1024` | 1024 x 768 RGB from 4096 x 3072 `.gvid` | Pi stand-in preview timing pass; camera UI pending | Best receipt is 25.85 fps whole-run wall including extract process and 36.23 fps median decode-plus-target; selected 1,440-frame aggregate closure rerun is 24.20 fps wall and 43.86 fps median decode-plus-target. |
-| `4k_raw_1x` | 4096 x 3072 Mission / 4140 x 2760 Z8 | editable 4K Bayer output | Mission 1 native12 capture/recompression clears the active 20+ fps Pi stand-in floor; 4K CNN detail cleanup and ProRes review are offline/post paths. |
+| `mission1_native12_4k_gvid` | 4096 x 3072 Bayer `.gvid` | camera MVP stand-in; real camera handoff pending | Selected 1,440-frame Pi stand-in closure run clears the active 20 fps floor at 20.50 fps wall / 21.52 fps median, with zero drops, valid `.gvid`, and Lexar SILVER PLUS budget pass. |
+| `4k_raw_1x` | 4096 x 3072 Mission / 4140 x 2760 Z8 | editable 4K Bayer output for offline/post | Strong raw-domain evidence for 4K raw output, 4K CNN detail cleanup, and ProRes review. This is separate from the live Mission 1 camera MVP target above. |
 | `8k_raw_2x` | 8192 x 6144 Mission / 8280 x 5520 Z8 | offline-production for post/reconstruction; not a live-camera path | Candidate-aware CNN SR is positive in broad full-frame gates; current SR throughput is about 1 fps on Mac/MPS. 42-frame 8192 x 6144 `.gvid` packaging and `.gvid` to 8K ProRes review are receipted. |
 
 Details: [`docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`](docs/RAW_RESOLUTION_TARGETS_2026-06-14.md).
