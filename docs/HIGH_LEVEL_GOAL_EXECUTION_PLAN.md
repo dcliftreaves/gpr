@@ -1,6 +1,6 @@
 # High-Level Goal Execution Plan
 
-Last refreshed: 2026-06-30
+Last refreshed: 2026-07-01
 
 This is the burndown plan for the four product pillars in the main README and
 `BIG_EFFORTS_STATUS.md`. It is intentionally execution-focused: every item
@@ -207,7 +207,7 @@ Evidence required:
    X2D/domain-general raw residual model with full-image or routed context,
    with calibrated noise sidecars used as conditioning rather than as a blunt
    subtraction target.
-4. Replace the X2D source-HF oracle with a production-safe structured
+3. Replace the X2D source-HF oracle with a production-safe structured
    texture/detail path. It should preserve the now-measured low-frequency tone
    path, restore high-frequency luminance energy under +2 EV, and prove it
    without using REF/source content at render time. Calibrated random-HF
@@ -269,9 +269,9 @@ Evidence required:
    should therefore move beyond the current rendered-residual target to a
    stronger raw-domain signal/detail target and model, with calibrated
    noise-cleaning kept as a guardrail rather than the main fix.
-5. Replace the still-SR skeleton with a production candidate receipt only after
+4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
-6. Follow the raw-video PSF gap plan:
+5. Follow the raw-video PSF gap plan:
    `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html`.
    The current native measurement has enough tile support but only 2 accepted
    pairs and an unstable fitted kernel. The next PSF commit should add
@@ -279,5 +279,10 @@ Evidence required:
    Bayer hashes, fixed settings, and negative controls, or document that the
    available local corpus cannot supply them before training the
    PSF-conditioned SR experiment.
+6. Gate a PSF-conditioned 4K/8K video SR candidate only against the locked
+   Mission42 and Z8 all24 baselines. If it does not beat the current 4K cleanup
+   and 8K SR paths, keep the approved baselines and record whether the blocker
+   is native PSF estimation, loss/objective design, model capacity, codec/detail
+   aliasing, or missing controlled-pair evidence.
 7. Re-run the README/media/release guards and open a focused PR for each small
    reviewable slice.

@@ -1,6 +1,6 @@
 # Workspace And Artifact Map
 
-Last refreshed: 2026-06-30
+Last refreshed: 2026-07-01
 
 This file records where the active production work lives on this workstation.
 It is operational documentation, not a portable build requirement. The GitHub
@@ -72,6 +72,19 @@ For ML/CNN scripts, the current local environment is:
 | What proves the approved 8K SR review path? | The standalone ProRes movies under `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/`, `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/`, and `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/`. |
 | What proves or blocks premium still-SR? | `docs/PREMIUM_STILL_SR.md`, `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260630/index.html`, and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_20260630/index.html` |
 | What proves or blocks PSF-aware video/SR? | `docs/BAYER_RESIZE_PSF.md`, `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html`, and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html` |
+
+## Current Local Work Queue
+
+The active production burn-down has five open requirement IDs. Four have work
+that can continue without a Mission 1 development kit; one requires a real
+camera-role run.
+
+| priority | work | local status |
+|---|---|---|
+| 1 | Premium still-SR promotion | Local model-promotion work can continue from the raw-CFA residual target and blocker dashboards. The current blocker is X2D/domain-general raw-detail recovery strength, not missing tooling. |
+| 2 | PSF-aware video/SR promotion | Local work can continue on PSF-conditioned ablations, but a production replacement cannot be promoted until controlled Mission 1 high/low pairs produce a stable native kernel. |
+| 3 | Mission 1 / iPhone noise sidecars | Local audits and sidecar builders are ready; Mission needs two more matching ISO232 RGGB darkframes, and iPhone needs confirmed no-scene provenance or recapture. |
+| 4 | Mission 1 raw-video MVP closure | Blocked on real Mission 1 sensor/DMA or camera-ring-buffer, SD writer, and rear-display receipts. Pi 5 stand-in receipts remain proxy evidence only. |
 
 ## Current Whole-Video Review Artifacts
 
