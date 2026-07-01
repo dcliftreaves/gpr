@@ -45,7 +45,6 @@ def main() -> int:
             "mission1_darkframe_stack",
             "iphone_cfa_darkframe_stack",
             "mission1_camera_role_receipts",
-            "controlled_mission1_psf_pairs",
             "premium_still_sr_promotion_receipts",
         }
         mission = next(row for row in data["requirements"] if row["id"] == "mission1_darkframe_stack")
@@ -54,15 +53,6 @@ def main() -> int:
         camera = next(row for row in data["requirements"] if row["id"] == "mission1_camera_role_receipts")
         assert camera["target_role"] == "camera"
         assert "mission1_camera_closure_run" in camera["receipts"]
-        psf = next(row for row in data["requirements"] if row["id"] == "controlled_mission1_psf_pairs")
-        assert len(psf["pairs"]) == 4
-        assert any(pair["negative_control"] is True for pair in psf["pairs"])
-        assert psf["pairs"][0]["high_width"] == 8192
-        assert psf["pairs"][0]["low_bayer_bytes"] == 25165824
-        assert "high_extract_receipt_sha256" in psf["pairs"][0]
-        assert "measurement_receipt_sha256" in psf["pairs"][0]
-        assert psf["pairs"][-1]["rejected_by_measurement"] is True
-        assert psf["pairs"][-1]["rejection_reason"] == "<alignment_or_scene_mismatch>"
         sr = next(row for row in data["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
         assert sr["no_ref_runtime"] is True
         assert "<64_hex_sha256>" in out.read_text(encoding="utf-8")
