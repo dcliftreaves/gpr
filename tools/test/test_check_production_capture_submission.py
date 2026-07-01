@@ -209,6 +209,22 @@ def valid_submission() -> dict:
     }
 
 
+def valid_release_blocking_submission() -> dict:
+    data = valid_submission()
+    data["requirements"] = [
+        row
+        for row in data["requirements"]
+        if row["id"]
+        in {
+            "mission1_darkframe_stack",
+            "iphone_cfa_darkframe_stack",
+            "mission1_camera_role_receipts",
+            "premium_still_sr_promotion_receipts",
+        }
+    ]
+    return data
+
+
 def run_tool(path: Path, *extra: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, str(TOOL), str(path), *extra],
@@ -234,8 +250,28 @@ def main() -> int:
         audit = json.loads(out_json.read_text(encoding="utf-8"))
         assert audit["schema"] == "gpr.production_capture_submission_audit.v1"
         assert audit["all_requirements_closed"] is True
+        assert audit["submission_valid"] is True
         assert audit["pass_count"] == 7
+        assert audit["skip_count"] == 0
+        assert audit["required_for_closure_count"] == 4
+        assert audit["required_for_closure_pass_count"] == 4
         assert "Production Capture Submission Audit" in out_html.read_text(encoding="utf-8")
+
+        release_only = valid_release_blocking_submission()
+        manifest.write_text(json.dumps(release_only, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--json-out", str(out_json), "--html-out", str(out_html))
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        audit = json.loads(out_json.read_text(encoding="utf-8"))
+        assert audit["all_requirements_closed"] is True
+        assert audit["submission_valid"] is True
+        assert audit["pass_count"] == 4
+        assert audit["skip_count"] == 3
+        assert audit["optional_research_fail_count"] == 0
+        skipped = {row["id"] for row in audit["results"] if row["status"] == "SKIP"}
+        assert skipped == {"real_grbg_fixture", "real_bggr_fixture", "controlled_mission1_psf_pairs"}
 
         bad = valid_submission()
         bad["requirements"][2]["evidence"] = bad["requirements"][2]["evidence"][:3]
@@ -296,7 +332,23 @@ def main() -> int:
         assert proc.returncode == 1
         assert "negative control must set expected_reject=true" in proc.stdout
 
-        strict = valid_submission()
+        bad = valid_release_blocking_submission()
+        bad["requirements"].append(
+            {
+                "id": "controlled_mission1_psf_pairs",
+                "pairs": [pair(0), pair(1), pair(99, negative=True)],
+            }
+        )
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--json-out", str(out_json))
+        assert proc.returncode == 1
+        audit = json.loads(out_json.read_text(encoding="utf-8"))
+        assert audit["all_requirements_closed"] is True
+        assert audit["submission_valid"] is False
+        assert audit["optional_research_fail_count"] == 1
+        assert "controlled_mission1_psf_pairs" in proc.stdout
+
+        strict = valid_release_blocking_submission()
         bundle = work / "bundle"
         materialize_path_hashes(strict, bundle, [0])
         manifest.write_text(json.dumps(strict, indent=2) + "\n", encoding="utf-8")

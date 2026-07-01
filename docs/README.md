@@ -142,9 +142,9 @@ refreshed 2026-07-01.
 | `python3 tools/test/test_check_readme_product_pillars.py` | regression-test README product-pillar framing checks |
 | `python3 tools/test/check_production_capture_requirements.py` | validate the committed real-sample and hardware-receipt requirements contract |
 | `python3 tools/test/test_check_production_capture_requirements.py` | regression-test production capture requirements guard failures |
-| `python3 tools/build_production_capture_submission_template.py --output /path/to/submission_template.json` | generate a fill-in manifest for new fixtures, darkframes, camera receipts, PSF pairs, and still-SR promotion evidence |
+| `python3 tools/build_production_capture_submission_template.py --output /path/to/submission_template.json` | generate a fill-in manifest for release-blocking darkframes, camera receipts, and still-SR promotion evidence |
 | `python3 tools/test/test_build_production_capture_submission_template.py` | regression-test production capture submission template generation |
-| `python3 tools/check_production_capture_submission.py <submission.json>` | audit whether a submitted capture/receipt package closes the committed production requirements |
+| `python3 tools/check_production_capture_submission.py <submission.json>` | audit whether a submitted capture/receipt package closes the release-blocking production requirements; optional PSF research is validated only when included |
 | `python3 tools/test/test_check_production_capture_submission.py` | regression-test production capture submission auditing |
 | `python3 tools/test/check_high_level_goal_contract.py` | validate that README, big-efforts status, and execution-plan docs still cover the four explicit production pillars |
 | `python3 tools/test/test_check_high_level_goal_contract.py` | regression-test high-level goal contract failures |

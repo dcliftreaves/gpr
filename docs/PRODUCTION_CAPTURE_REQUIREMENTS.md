@@ -100,13 +100,19 @@ content, report 50 MP and 100 MP full-frame gate row counts, show positive
 median MAE reduction for both classes, show nonnegative worst-row MAE
 reduction, record seconds per 50 MP frame, seconds per 100 MP frame, peak RSS,
 and prove exact sidecar-only noise policy with source residual noise forbidden.
+The checker separates release closure from optional research. `all_requirements_closed`
+is driven by the open release-blocking requirements above; already-closed fixture
+rows and omitted optional PSF research rows are skipped. If optional PSF research
+pairs are submitted, the checker still validates them and sets
+`submission_valid=false` until the optional research evidence is internally clean.
 When optional PSF research pairs are submitted, the checker also requires
 controlled pair hashes, 8192 x 6144 and 4096 x 3072 decoded Bayer dimensions,
 exact uint16 byte counts, extraction/settings/measurement receipt hashes, and
 negative-control rejection reasons. With
 `--require-existing-files`, every path/hash pair that appears in the manifest
-must exist locally and match its SHA-256. It exits nonzero until every committed
-requirement is closed by the submitted evidence. The template builder and
+must exist locally and match its SHA-256. It exits nonzero until every
+release-blocking requirement is closed and every submitted optional evidence row
+is valid. The template builder and
 checker together are the intake tools for turning the open requirements above
 into an auditable pass/fail package.
 

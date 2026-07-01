@@ -229,6 +229,19 @@ def fail_result(rid: str, failures: list[str], evidence_count: int = 0) -> dict[
     }
 
 
+def skip_result(rid: str, message: str) -> dict[str, Any]:
+    return {"id": rid, "status": "SKIP", "evidence_count": 0, "message": message, "failures": []}
+
+
+def submission_has_requirement(submission: dict[str, Any], rid: str) -> bool:
+    rows = submission.get("requirements")
+    return any(isinstance(row, dict) and row.get("id") == rid for row in as_list(rows))
+
+
+def required_for_release_closure(req: dict[str, Any]) -> bool:
+    return req.get("priority") == "required" and req.get("status") != "closed"
+
+
 def validate_real_fixture(rid: str, req: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any]:
     expected_phase = str(req.get("required_cfa_phase") or "")
     min_count = int(req.get("minimum_count") or 1)
@@ -550,15 +563,48 @@ def build_audit(
     if require_existing_files:
         failures.extend(validate_existing_files(submission, path_root))
     req_rows = [row for row in as_list(requirements.get("requirements")) if isinstance(row, dict)]
-    results = [validate_requirement(row, submission) for row in req_rows]
+    results = []
+    for row in req_rows:
+        rid = str(row.get("id") or "")
+        closure_blocking = required_for_release_closure(row)
+        if closure_blocking or submission_has_requirement(submission, rid):
+            result = validate_requirement(row, submission)
+        else:
+            priority = str(row.get("priority") or "required")
+            status = str(row.get("status") or "")
+            if priority == "research_optional":
+                result = skip_result(rid, "optional research evidence was not submitted")
+            else:
+                result = skip_result(rid, f"requirement is already {status or 'not release-blocking'}")
+        result["closure_blocking"] = closure_blocking
+        result["priority"] = row.get("priority")
+        result["requirement_status"] = row.get("status")
+        results.append(result)
+
     pass_count = sum(1 for row in results if row["status"] == "PASS")
+    skip_count = sum(1 for row in results if row["status"] == "SKIP")
+    fail_count = sum(1 for row in results if row["status"] == "FAIL")
+    required_results = [row for row in results if row["closure_blocking"]]
+    required_pass_count = sum(1 for row in required_results if row["status"] == "PASS")
+    optional_fail_count = sum(
+        1
+        for row in results
+        if not row["closure_blocking"] and row["status"] == "FAIL"
+    )
+    all_required_closed = not failures and required_pass_count == len(required_results)
+    submission_valid = all_required_closed and optional_fail_count == 0
     return {
         "schema": SCHEMA,
         "requirements_schema": requirements.get("schema"),
         "submission_schema": submission.get("schema"),
-        "all_requirements_closed": not failures and pass_count == len(results),
+        "all_requirements_closed": all_required_closed,
+        "submission_valid": submission_valid,
         "pass_count": pass_count,
-        "fail_count": len(results) - pass_count + len(failures),
+        "skip_count": skip_count,
+        "fail_count": fail_count + len(failures),
+        "required_for_closure_count": len(required_results),
+        "required_for_closure_pass_count": required_pass_count,
+        "optional_research_fail_count": optional_fail_count,
         "manifest_failures": failures,
         "results": results,
     }
@@ -592,8 +638,10 @@ th {{ background: #eef2f5; color: #4f5b67; font-size: 12px; text-transform: uppe
 <h1>Production Capture Submission Audit</h1>
 <div class="summary">
 <section class="card"><div class="label">All closed</div><div class="value">{html.escape(str(audit["all_requirements_closed"]))}</div></section>
+<section class="card"><div class="label">Submission valid</div><div class="value">{html.escape(str(audit["submission_valid"]))}</div></section>
 <section class="card"><div class="label">Pass</div><div class="value">{audit["pass_count"]}</div></section>
 <section class="card"><div class="label">Fail</div><div class="value">{audit["fail_count"]}</div></section>
+<section class="card"><div class="label">Skip</div><div class="value">{audit["skip_count"]}</div></section>
 </div>
 <ul>{manifest_failures}</ul>
 <table><thead><tr><th>Status</th><th>Requirement</th><th>Evidence</th><th>Message</th></tr></thead><tbody>{rows}</tbody></table>
@@ -619,15 +667,15 @@ def main() -> int:
     if args.html_out:
         args.html_out.parent.mkdir(parents=True, exist_ok=True)
         args.html_out.write_text(render_html(audit), encoding="utf-8")
-    if not audit["all_requirements_closed"]:
+    if not audit["submission_valid"]:
         print("Production capture submission is incomplete:")
         for failure in audit["manifest_failures"]:
             print(f"  - {failure}")
         for row in audit["results"]:
-            if row["status"] != "PASS":
+            if row["status"] == "FAIL" or (row.get("closure_blocking") and row["status"] != "PASS"):
                 print(f"  - {row['id']}: {row['message']}")
         return 1
-    print("OK - production capture submission closes all committed requirements")
+    print("OK - production capture submission closes all release-blocking requirements")
     return 0
 
 
