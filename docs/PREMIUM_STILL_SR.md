@@ -282,6 +282,30 @@ next PSF-aware still-SR pass should only be treated as materially new if it adds
 real per-camera/per-resize PSF variation, or if it changes the teacher/objective
 enough to beat the current **0.153%** X2D scene-holdout baseline.
 
+The PSF metadata gap audit makes that decision explicit:
+
+```sh
+/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3 \
+  tools/build_premium_still_sr_psf_metadata_gap.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_metadata_gap_20260701
+```
+
+Current audit:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_metadata_gap_20260701/index.html
+```
+
+It records 117 deduplicated raw target rows across 13 scenes, with inferred
+coverage of 81 X2D rows and 36 Z8 rows, but **0/117** rows carry row-level PSF
+metadata and **0** unique row kernels exist. The global PSF is near-box
+(`max_abs_delta_from_box=4.46e-06`), and the best PSF probe reaches
+**0.106%** median exact raw MAE recovery versus the non-PSF **0.153%**
+baseline. Its verdict is therefore
+`another_psf_cnn_run_justified=false` until row-level camera/PSF variation is
+added; otherwise the next still-SR effort should move to a stronger
+camera/noise-aware teacher objective rather than repeat global PSF planes.
+
 ## Research Alignment For The Next CNN Pass
 
 The current local U-Net/raw-residual experiments are intentionally diagnostic,

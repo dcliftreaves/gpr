@@ -304,7 +304,11 @@ U-Net with near-box PSF planes reaches about 0.106 percent median exact raw MAE
 recovery versus the non-PSF 0.153 percent baseline, and a full-crop raw-context
 PSF U-Net reaches about 0.064 percent. The current blocker is therefore not
 "missing PSF plumbing"; it is missing per-row/per-camera PSF variation or a
-stronger teacher/objective.
+stronger teacher/objective. The PSF metadata gap audit at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_metadata_gap_20260701/index.html`
+records 117 rows, 13 scenes, inferred 81 X2D and 36 Z8 rows, **0/117** rows
+with row-level PSF metadata, **0** unique row kernels, a near-box global PSF,
+and `another_psf_cnn_run_justified=false`.
 The final still-SR promotion artifact set is pinned as
 `premium_still_sr_promotion_receipts` in the committed production capture
 requirements.

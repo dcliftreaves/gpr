@@ -610,6 +610,8 @@ pillar.
 | Premium still-SR X2D PSF noise-floor U-Net dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_psf_noisefloor_unet_w32_1200_20260701/index.html` | `74cef306d2a022aaba3ae159aa84513ff80a3065eb1bed2ef0d940797cf49a3d` |
 | Premium still-SR X2D full-crop raw-context PSF U-Net probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_fullcrop_rawcontext_psf_unet_w32_900_20260701/train_receipt.json` | `8329f52f998cbeb8eeb47c975fb7356e1315e9ddff7a7c1dc61c5bd702889d35` |
 | Premium still-SR X2D full-crop raw-context PSF U-Net dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_fullcrop_rawcontext_psf_unet_w32_900_20260701/index.html` | `904402cc144a3e0dc84363070744f8219583a3188007843942286fec18191c1d` |
+| Premium still-SR PSF metadata gap JSON | `artifacts/premium_still_sr_psf_metadata_gap_20260701/premium_still_sr_psf_metadata_gap.json` | `440f9f8992910a195c405c64a6c17f29d17a6527c074aeefc9548d1f3a6aca31` |
+| Premium still-SR PSF metadata gap dashboard | `artifacts/premium_still_sr_psf_metadata_gap_20260701/index.html` | `dc19a0980e59ad13ecd51168d580c3d1a91c182d231e7af21e3157d214f51abb` |
 | Premium still-SR X2D combined stored-HF/context probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json` | `bb060baaedb3f2439eb3d51fd45002eb67278c87d276d403d208351946463ea7` |
 | Premium still-SR X2D multiscale band-loss probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json` | `0dd675d612e66461cea1d658fb62f91fe258703473aaa810d0c573f1fc18cb66` |
 

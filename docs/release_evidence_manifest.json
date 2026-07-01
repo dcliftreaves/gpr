@@ -63,6 +63,7 @@
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
           "premium_still_sr_next_experiment_contract_20260701",
+          "premium_still_sr_psf_metadata_gap_20260701",
           "cnn_product_scorecard_20260629"
         ]
       },
@@ -1600,6 +1601,37 @@
         "x2d_best_raw_residual_mae_recovery_pct": 0.1572830387663978,
         "z8_best_raw_residual_mae_recovery_pct": 0.4983379829708305,
         "promotion_threshold_pct": 15.0
+      }
+    },
+    {
+      "id": "premium_still_sr_psf_metadata_gap_20260701",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Audits whether the deduplicated raw-CFA still-SR target has enough per-row PSF/camera metadata to justify another PSF-conditioned CNN run.",
+      "dashboard": "artifacts/premium_still_sr_psf_metadata_gap_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_psf_metadata_gap_20260701/premium_still_sr_psf_metadata_gap.json",
+        "artifacts/premium_still_sr_psf_metadata_gap_20260701/index.html"
+      ],
+      "metrics": {
+        "target_rows": 117,
+        "target_scenes": 13,
+        "rows_with_psf_metadata": 0,
+        "unique_row_psf_kernel_count": 0,
+        "x2d_rows": 81,
+        "z8_rows": 36,
+        "global_psf_near_box": 1,
+        "baseline_median_exact_raw_mae_recovery_pct": 0.1529010434311497,
+        "best_psf_probe_median_exact_raw_mae_recovery_pct": 0.10556071404497147,
+        "another_psf_cnn_run_justified": 0
       }
     },
     {
