@@ -54,7 +54,7 @@ def main() -> int:
         data = json.loads(summary.read_text(encoding="utf-8"))
         assert data["schema"] == "gpr.product_pillar_scorecard.v1"
         assert data["production_ready"] is False
-        assert data["four_pillar_completion_percent"] == 71
+        assert data["four_pillar_completion_percent"] == 72
         assert data["score_semantics"]["kind"] == "readiness_burndown_estimate"
         assert data["score_semantics"]["not_a_quality_metric"] is True
         assert data["score_semantics"]["not_a_locked_artifact_regression_signal"] is True
@@ -89,7 +89,7 @@ def main() -> int:
             "premium_still_sr_next_experiment_contract_20260701/index.html" in ref["path"]
             for ref in data["pillars"][2]["evidence"]
         )
-        assert data["pillars"][3]["readiness_percent"] == 52
+        assert data["pillars"][3]["readiness_percent"] == 54
         assert "PSF-aware raw-video replacement" in data["pillars"][3]["open_production_gates"]
         assert any("8K SR" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any("continuous 8K no-CNN versus CNN" in item for item in data["pillars"][3]["locked_artifacts"])
@@ -97,6 +97,7 @@ def main() -> int:
         assert any("same-cell Bayer" in item for item in data["pillars"][3]["done_evidence"])
         assert any("psf_gradient_focus_from_detail_s400_fw6_gw12_s300" in item for item in data["pillars"][3]["done_evidence"])
         assert any("coord_detail_psf_focus_step0075" in item for item in data["pillars"][3]["done_evidence"])
+        assert any("42-frame full-sequence .gvid packaging" in item for item in data["pillars"][3]["done_evidence"])
         assert any(
             "z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
             for ref in data["pillars"][3]["evidence"]
@@ -119,6 +120,10 @@ def main() -> int:
         )
         assert any(
             "current_goal_sr_coord_detail_context_20260701/coord_detail_from_psf_focus_s150_step000075_decision.json" in ref["path"]
+            for ref in data["pillars"][3]["evidence"]
+        )
+        assert any(
+            "mission1_native120_gvid_to_8k_sr_coord_detail_psf_focus_step0075_sequence_packaging_42f_20260701/receipt.json" in ref["path"]
             for ref in data["pillars"][3]["evidence"]
         )
         assert any(ref["exists"] for ref in data["pillars"][0]["evidence"] if ref["kind"] == "repo")

@@ -60,7 +60,7 @@ EXPECTED_PILLARS = {
         },
     },
     "raw_video_psf_sr": {
-        "readiness": 52,
+        "readiness": 54,
         "required_actions": {
             "Capture or locate controlled Mission 1 high/low PSF pairs": {
                 "requirement_ids": ["controlled_mission1_psf_pairs"],
@@ -111,8 +111,8 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
         failures.append("burn-down must record docs/PRODUCTION_CAPTURE_REQUIREMENTS.json as its requirement source")
     if data.get("production_ready") is not False:
         failures.append("four-pillar burn-down must remain production_ready=false while blockers are open")
-    if data.get("four_pillar_completion_percent") != 71:
-        failures.append("four-pillar completion percent must stay aligned to the current 71% scorecard")
+    if data.get("four_pillar_completion_percent") != 72:
+        failures.append("four-pillar completion percent must stay aligned to the current 72% scorecard")
 
     summary = data.get("summary", {})
     if summary.get("open_requirement_count") != 5:

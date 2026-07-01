@@ -1319,11 +1319,11 @@
         "artifacts/product_burndown_20260701/index.html"
       ],
       "hashes": {
-        "product_burndown_json_sha256": "182cd7f64d7d5e322b67bd2d1ed72609613d3004472e6ea13483c6456948a1db",
-        "dashboard_sha256": "9a4f0aed7ae7f3da55e8313eee27ec3a10bdb26a9f183d9f3b1fc95b2efbe604"
+        "product_burndown_json_sha256": "8765e846fceb02a68c124c1bb53b36cc413d4ac8ceca31e9f29de304d8b0d87e",
+        "dashboard_sha256": "0d0c82324c0f102c55e1ed980bcc31828a4de8aa38aaf27e8eabd22efab52f08"
       },
       "metrics": {
-        "four_pillar_completion_percent": 69,
+        "four_pillar_completion_percent": 72,
         "action_count": 5,
         "open_requirement_count": 5,
         "non_camera_action_count": 4,
