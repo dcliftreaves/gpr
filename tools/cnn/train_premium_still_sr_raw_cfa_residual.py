@@ -538,9 +538,13 @@ def multiscale_band_l1(pred: torch.Tensor, target: torch.Tensor, blocks: list[in
 
 
 def spectral_magnitude_l1(pred: torch.Tensor, target: torch.Tensor, sample_weight: torch.Tensor | None = None) -> torch.Tensor:
-    pred_fft = torch.fft.rfft2(pred.float().contiguous(), dim=(-2, -1), norm="ortho")
-    target_fft = torch.fft.rfft2(target.float().contiguous(), dim=(-2, -1), norm="ortho")
-    return weighted_abs_mean(torch.abs(pred_fft) - torch.abs(target_fft), sample_weight)
+    # MPS currently emits noisy internal-resize warnings for rfft2 on these
+    # small diagnostic tensors. Keep this optional loss deterministic and quiet.
+    device = pred.device
+    pred_fft = torch.fft.rfft2(pred.float().contiguous().cpu(), dim=(-2, -1), norm="ortho")
+    target_fft = torch.fft.rfft2(target.float().contiguous().cpu(), dim=(-2, -1), norm="ortho")
+    weight = sample_weight.cpu() if sample_weight is not None else None
+    return weighted_abs_mean(torch.abs(pred_fft) - torch.abs(target_fft), weight).to(device)
 
 
 def residual_loss(

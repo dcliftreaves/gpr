@@ -433,6 +433,21 @@ normalization reaches about **0.133%**, versus **0.153%** for the current best
 small U-Net branch. The distribution audit is still the right blocker, but it
 cannot be fixed by a scalar row-weighting policy alone.
 
+A matched Fourier/band-loss objective control then tested whether adding
+explicit multiscale residual-band consistency and FFT-magnitude loss to the
+same X2D-scene U-Net would improve detail placement:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_fourierband_noisefloor_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_lightfourierband_noisefloor_unet_w32_1200_20260701/index.html
+```
+
+Both regress the hard X2D scene holdout. The heavier objective reaches about
+**-0.386%** median raw MAE recovery, and the lighter objective reaches about
+**-0.139%**, versus **0.153%** for the noise-floor-only U-Net. The next pass
+should change target construction, input context, or teacher capacity, not add
+another scalar spatial/Fourier loss term to the current small U-Net.
+
 The first raw-CFA residual trainer is:
 
 ```text
