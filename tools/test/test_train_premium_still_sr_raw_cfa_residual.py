@@ -277,6 +277,28 @@ def main() -> int:
         assert "stored candidate_raw_hf_cfa4" in rcab_receipt["policy"]["runtime_inputs"]
         assert rcab_receipt["policy"]["uses_source_raw_at_runtime"] is False
 
+        args.output_dir = root / "naf_teacher_holdout"
+        args.model_arch = "naf_teacher"
+        args.feature_mode = "raw_multiscale_storedhf_coord_ev_noise"
+        args.width = 8
+        args.depth = 2
+        args.batch_size = 1
+        args.patch_size = 20
+        args.sample_mode = "full_crop"
+        args.eval_tile = 40
+        args.band_weight = 0.1
+        args.band_blocks = [5, 9]
+        args.spectral_weight = 0.1
+        naf_receipt = tool.train(args)
+        assert naf_receipt["eval"]["holdout"]["row_count"] == 1
+        assert naf_receipt["config"]["model_arch"] == "naf_teacher"
+        assert naf_receipt["config"]["feature_mode"] == "raw_multiscale_storedhf_coord_ev_noise"
+        assert naf_receipt["config"]["sample_mode"] == "full_crop"
+        assert naf_receipt["config"]["band_weight"] == 0.1
+        assert naf_receipt["config"]["spectral_weight"] == 0.1
+        assert "stored candidate_raw_hf_cfa4" in naf_receipt["policy"]["runtime_inputs"]
+        assert naf_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
         args.output_dir = root / "pyramid_unet_holdout"
         args.model_arch = "pyramid_unet"
         args.feature_mode = "raw_context_coord_ev_noise"

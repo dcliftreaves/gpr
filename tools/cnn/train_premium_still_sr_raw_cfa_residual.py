@@ -626,6 +626,97 @@ class RawCfaResidualRCABTeacher(nn.Module):
         return torch.tanh(self.tail(fused)) * self.residual_scale
 
 
+class SimpleGate(nn.Module):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        a, b = torch.chunk(x, 2, dim=1)
+        return a * b
+
+
+class NAFBlock(nn.Module):
+    """NAFNet-style block with SimpleGate and lightweight channel attention."""
+
+    def __init__(self, channels: int, expansion: int = 2, ffn_expansion: int = 2) -> None:
+        super().__init__()
+        dw_channels = max(2, channels * int(expansion))
+        if dw_channels % 2:
+            dw_channels += 1
+        ffn_channels = max(2, channels * int(ffn_expansion))
+        if ffn_channels % 2:
+            ffn_channels += 1
+        self.norm1 = nn.GroupNorm(1, channels)
+        self.pw1 = nn.Conv2d(channels, dw_channels, 1)
+        self.dwconv = nn.Conv2d(dw_channels, dw_channels, 3, padding=1, groups=dw_channels)
+        self.gate = SimpleGate()
+        self.channel_attn = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(dw_channels // 2, dw_channels // 2, 1),
+            nn.Sigmoid(),
+        )
+        self.pw2 = nn.Conv2d(dw_channels // 2, channels, 1)
+        self.norm2 = nn.GroupNorm(1, channels)
+        self.ffn1 = nn.Conv2d(channels, ffn_channels, 1)
+        self.ffn_gate = SimpleGate()
+        self.ffn2 = nn.Conv2d(ffn_channels // 2, channels, 1)
+        self.beta = nn.Parameter(torch.zeros((1, channels, 1, 1)))
+        self.gamma = nn.Parameter(torch.zeros((1, channels, 1, 1)))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = self.pw1(self.norm1(x))
+        y = self.dwconv(y)
+        y = self.gate(y)
+        y = y * self.channel_attn(y)
+        y = self.pw2(y)
+        x = x + self.beta * y
+        z = self.ffn1(self.norm2(x))
+        z = self.ffn_gate(z)
+        z = self.ffn2(z)
+        return x + self.gamma * z
+
+
+class RawCfaResidualNAFTeacher(nn.Module):
+    """NAFNet-style CFA teacher for deduplicated raw residual targets.
+
+    This mirrors the current research direction more closely than the local
+    residual and RCAB probes: candidate-side packed CFA features enter a
+    SimpleGate/attention backbone with a downsampled context path. The output
+    remains a raw-CFA residual and the runtime input policy remains candidate
+    raw plus deterministic metadata.
+    """
+
+    def __init__(self, in_channels: int, width: int = 48, depth: int = 8, residual_scale: float = 0.12) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        w1 = max(8, int(width))
+        w2 = w1 * 2
+        self.intro = nn.Conv2d(in_channels, w1, 3, padding=1)
+        self.local = nn.Sequential(*[NAFBlock(w1) for _ in range(max(1, int(depth)))])
+        self.down = nn.Conv2d(w1, w2, 2, stride=2)
+        self.context = nn.Sequential(*[NAFBlock(w2) for _ in range(max(1, int(depth) // 2))])
+        self.global_proj = nn.Conv2d(w1, w2, 1)
+        self.global_body = nn.Sequential(*[NAFBlock(w2) for _ in range(max(1, int(depth) // 3))])
+        self.up = nn.Conv2d(w2, w1, 1)
+        self.global_up = nn.Conv2d(w2, w1, 1)
+        self.fuse = nn.Sequential(
+            nn.Conv2d(w1 * 3, w1, 1),
+            NAFBlock(w1),
+            NAFBlock(w1),
+        )
+        self.tail = nn.Conv2d(w1, 4, 3, padding=1)
+        nn.init.zeros_(self.tail.weight)
+        nn.init.zeros_(self.tail.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        local = self.local(self.intro(x))
+        context = self.context(self.down(local))
+        context = F.interpolate(self.up(context), size=local.shape[-2:], mode="bilinear", align_corners=False)
+        global_size = (min(32, max(4, x.shape[-2] // 2)), min(32, max(4, x.shape[-1] // 2)))
+        global_context = self.global_proj(F.adaptive_avg_pool2d(local, global_size))
+        global_context = self.global_body(global_context)
+        global_context = F.interpolate(self.global_up(global_context), size=local.shape[-2:], mode="bilinear", align_corners=False)
+        fused = self.fuse(torch.cat([local, context, global_context], dim=1))
+        return torch.tanh(self.tail(fused)) * self.residual_scale
+
+
 class RawCfaResidualPyramidUNet(nn.Module):
     """Deeper U-Net for full-crop raw-CFA residual probes.
 
@@ -740,6 +831,13 @@ def build_model(model_arch: str, in_channels: int, width: int, depth: int, resid
         )
     if model_arch == "rcab_teacher":
         return RawCfaResidualRCABTeacher(
+            in_channels=in_channels,
+            width=width,
+            depth=depth,
+            residual_scale=residual_scale,
+        )
+    if model_arch == "naf_teacher":
+        return RawCfaResidualNAFTeacher(
             in_channels=in_channels,
             width=width,
             depth=depth,
@@ -1435,9 +1533,9 @@ def main() -> int:
     ap.add_argument("--residual-scale", type=float, default=0.12)
     ap.add_argument(
         "--model-arch",
-        choices=("residual", "unet", "rcab_teacher", "pyramid_unet", "global_context_unet"),
+        choices=("residual", "unet", "rcab_teacher", "naf_teacher", "pyramid_unet", "global_context_unet"),
         default="residual",
-        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context; rcab_teacher adds residual channel attention and broad context; pyramid_unet adds a deeper gated full-crop probe; global_context_unet adds a downsampled full-crop context branch.",
+        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context; rcab_teacher adds residual channel attention and broad context; naf_teacher adds NAFNet-style SimpleGate blocks; pyramid_unet adds a deeper gated full-crop probe; global_context_unet adds a downsampled full-crop context branch.",
     )
     ap.add_argument(
         "--feature-mode",
