@@ -74,6 +74,14 @@ or manual-review failure, or by a replacement that already beats the locked
 baseline and emits the same `.gvid`, editable raw, ProRes, dashboard, and
 receipt set. PSF-conditioned work remains optional research until then.
 
+The generated scorecard enforces that boundary in structure: raw-video
+production evidence lives under `evidence`, while PSF/blur references live under
+`research_evidence`. Tests fail if PSF lineage drifts back into the locked
+raw-video artifacts or the done/proven release evidence. That is the stop rule
+against endless SR iteration: shipping work is judged against locked receipts,
+and new SR research can only replace the release path after it beats those
+receipts first.
+
 Current interpretation:
 
 | pillar | current score | production reading |

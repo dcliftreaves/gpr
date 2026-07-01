@@ -338,27 +338,14 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "approved candidate-aware 8K SR offline/reconstruction baseline",
                 "continuous 8K no-CNN versus CNN ProRes review media",
                 "8K .gvid, editable raw, and ProRes review receipts",
-                "first native Mission 1 PSF measurement run as optional research evidence",
             ],
             "claim": "4K cleanup and 8K SR are approved offline/post baselines with packaging, editable raw, ProRes, continuous review, objective review, and manual signoff evidence. Formal native PSF/blur-aware replacement work is optional research, not a release blocker.",
             "done_evidence": [
                 "Mission native12 4K cleanup is approved for offline/review scope.",
                 "Candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates with .gvid, editable raw, and ProRes receipts.",
                 "Standalone 8K ProRes A/B review media now compares no-CNN baselines against the approved 4K cleanup plus 8K SR CNN path on Z8, the broad 42-frame Mission 1 sequence, and the stricter Mission 1 GP017497 through GP017508 scene.",
-                "Pair-derived PSF/detail budget over 1,024 real-fixture tiles fits a 2x2 same-color Bayer box model.",
-                "The residual budget shows the 4K-to-8K gap is almost entirely same-cell fine detail, not coarse blur.",
-                "The native Mission 1 high/low pair inventory now indexes near-time 8192 x 6144 and 4096 x 3072 capture candidates for a measured PSF pass.",
-                "The native PSF measurement plan selects the best decoded high/low pairs and defines the alignment, edge/texture mining, kernel fitting, and promotion gates required next.",
-                "The first native PSF measurement run executed on the selected Mission 1 pairs: 2 of 3 pairs passed scene/alignment vetting with 1,409 sharp-edge and 1,381 texture-field tiles, but the kernel is unstable and rejected for model conditioning.",
-                "The raw-video PSF audit separates approved 4K/8K baselines from the unfinished native PSF replacement claim, which is now optional research rather than a release blocker.",
-                "The raw-video PSF gap plan now turns that failed native measurement into a concrete capture, measurement, model-gate, and promotion checklist.",
-                "The native PSF corpus audit hashes the current near-time candidate pairs and records zero strict controlled pairs, because ISO/settings are not fixed tightly enough, fixed camera-setting metadata and negative controls are missing, and the existing measurement still accepts only two pairs with an unstable kernel.",
-                "The controlled-capture request now requires source GPR/DNG hashes, decoded little-endian uint16 Bayer hashes, fixed ISO/exposure/WB/lens/sharpening settings, and negative controls before a measured kernel can be promoted.",
-                "The SR/detail candidate scoreboard indexes 90 Mission/Z8 decisions, has one PSF-detail-ready row, and still finds zero current-scale promotion rows.",
-                "The PSF detail-metric rerun adds same-cell Bayer fine-detail metrics to the current Mission42/Z8 baseline and candidate summaries. The current candidate improves median same-cell detail from 26.091 to 28.095 percent on Mission42 and from 3.214 to 3.516 percent on Z8.",
-                "The Mission gradient/detail blocker audit narrows the current non-promotion cause to five rows that regress both gradient and same-cell detail: GP017346, GP017600, GP017347, GP017348, and GP017359.",
-                "The focused hard-row continuation psf_gradient_focus_from_detail_s400_fw6_gw12_s300 improves the previous diagnostic candidate medians on Mission42 and Z8, but still misses the older Mission worst-row floor on GP017346, GP017600, GP017347, and GP017348.",
-                "The coord/detail PSF-focus step-75 continuation is registered for review as mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1. It beats the previous psf-gradient-focus baseline on paired Mission42 and regenerated Z8 RMSE/PSNR floors, and now has registry-driven .gvid decode-to-SR, editable DNG/GPR, 2K ProRes, Mission metadata-transplant receipts, 42-frame full-sequence .gvid packaging, continuous 8K ProRes review, objective visual-review, and manual visual signoff receipts. Controlled native PSF evidence remains useful before claiming a PSF-conditioned replacement, but it does not block the approved current offline reconstruction workflow.",
+                "The approved current continuation has registry-driven .gvid decode-to-SR, editable DNG/GPR, 2K ProRes, Mission metadata-transplant receipts, 42-frame full-sequence .gvid packaging, continuous 8K ProRes review, objective visual-review, and manual visual signoff receipts.",
+                "The release boundary is now explicit: the approved 4K/8K reconstruction path is frozen unless its own gate, receipt, hash, CI check, or manual review fails.",
             ],
             "open_work": [
                 "No release blocker remains for the approved offline/post 4K cleanup and 8K SR workflow; keep it frozen and guarded unless its own committed gate, receipt, hash, CI guard, or manual review fails.",
@@ -376,6 +363,15 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("Mission 1 broad 8K no-CNN vs CNN ProRes review", "artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json"),
                     artifact_ref("Mission 1 sequential-scene 8K no-CNN vs CNN ProRes review", "artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/receipt.json"),
                     artifact_ref("Mission42 8K dashboard", "artifacts/current_goal_bayer_rgb_target_cleanup_20260625/train_w40_d5_rs015_gamma2_grad1_raw2_bayer2/sr_4kcnn_input_alpha0p5_finetune_w96_d6_rs03_s600/mission42_broad_fullframe/index.html"),
+                    artifact_ref("42-frame decode-to-SR receipt", "artifacts/mission1_native120_gvid_to_8k_sr_coord_detail_psf_focus_step0075_42f_20260701/receipt.json"),
+                    artifact_ref("42-frame .gvid and ProRes packaging receipt", "artifacts/mission1_native120_gvid_to_8k_sr_coord_detail_psf_focus_step0075_sequence_packaging_42f_20260701/receipt.json"),
+                    artifact_ref("objective visual review", "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_visual_review_20260701/visual_review.json"),
+                    artifact_ref("review candidate audit", "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_review_candidate_audit_20260701/review_candidate_audit.json"),
+                ],
+                external_root,
+            ),
+            "research_evidence": annotate_refs(
+                [
                     artifact_ref("PSF xlarge detail budget", "artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/bayer_resize_psf_receipt.json"),
                     artifact_ref("Mission 1 native high/low pair inventory", "artifacts/mission1_native_psf_pair_inventory_20260630/index.html"),
                     artifact_ref("Mission 1 native PSF measurement plan", "artifacts/mission1_native_psf_measurement_plan_20260630/index.html"),
@@ -390,10 +386,6 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("focused PSF gradient continuation", "artifacts/current_goal_sr_psf_gradient_focus_20260701/psf_gradient_focus_from_detail_s400_fw6_gw12_s300_decision.json"),
                     artifact_ref("coord/detail PSF-focus registry-review decision", "artifacts/current_goal_sr_coord_detail_context_20260701/coord_detail_from_psf_focus_s150_step000075_decision.json"),
                     artifact_ref("focused PSF SR scoreboard", "artifacts/raw_video_sr_candidate_scoreboard_psf_gradient_focus_20260701/index.html"),
-                    artifact_ref("coord/detail PSF-focus 42-frame decode-to-SR receipt", "artifacts/mission1_native120_gvid_to_8k_sr_coord_detail_psf_focus_step0075_42f_20260701/receipt.json"),
-                    artifact_ref("coord/detail PSF-focus 42-frame .gvid and ProRes packaging receipt", "artifacts/mission1_native120_gvid_to_8k_sr_coord_detail_psf_focus_step0075_sequence_packaging_42f_20260701/receipt.json"),
-                    artifact_ref("coord/detail PSF-focus objective visual review", "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_visual_review_20260701/visual_review.json"),
-                    artifact_ref("coord/detail PSF-focus blocked production audit", "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_review_candidate_audit_20260701/review_candidate_audit.json"),
                 ],
                 external_root,
             ),
@@ -472,6 +464,12 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
         done = "\n".join(f"<li>{html.escape(item)}</li>" for item in pillar["done_evidence"])
         open_work = "\n".join(f"<li>{html.escape(item)}</li>" for item in pillar["open_work"])
         refs = "\n".join(render_link(ref) for ref in pillar["evidence"])
+        research_refs = "\n".join(render_link(ref) for ref in pillar.get("research_evidence", []))
+        research_block = (
+            f"<h3>Research Parking Lot</h3><ul class=\"refs research\">{research_refs}</ul>"
+            if research_refs
+            else ""
+        )
         sections.append(
             f"""<section class="detail">
   <h2>{html.escape(pillar["title"])}</h2>
@@ -485,6 +483,7 @@ def render_html(data: dict[str, Any], out_json: Path) -> str:
   </div>
   <h3>Evidence</h3>
   <ul class="refs">{refs}</ul>
+  {research_block}
 </section>"""
         )
     next_actions = "\n".join(f"<li>{html.escape(item)}</li>" for item in data["next_actions"])

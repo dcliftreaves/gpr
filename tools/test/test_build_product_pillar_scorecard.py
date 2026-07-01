@@ -120,13 +120,13 @@ def main() -> int:
         assert any("8K SR" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any("continuous 8K no-CNN versus CNN" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any("Standalone 8K ProRes A/B" in item for item in data["pillars"][3]["done_evidence"])
-        assert any("same-cell Bayer" in item for item in data["pillars"][3]["done_evidence"])
-        assert any("psf_gradient_focus_from_detail_s400_fw6_gw12_s300" in item for item in data["pillars"][3]["done_evidence"])
-        assert any("coord_detail_psf_focus_step0075" in item for item in data["pillars"][3]["done_evidence"])
+        assert not any("PSF" in item or "psf" in item for item in data["pillars"][3]["locked_artifacts"])
+        assert not any("PSF" in item or "psf" in item for item in data["pillars"][3]["done_evidence"])
         assert any("42-frame full-sequence .gvid packaging" in item for item in data["pillars"][3]["done_evidence"])
-        assert any("does not block the approved current offline reconstruction workflow" in item for item in data["pillars"][3]["done_evidence"])
+        assert any("approved 4K/8K reconstruction path is frozen" in item for item in data["pillars"][3]["done_evidence"])
         assert any("no release blocker" in item.lower() for item in data["pillars"][3]["open_work"])
         assert any("optional research" in item.lower() for item in data["pillars"][3]["open_work"])
+        assert "research_evidence" in data["pillars"][3]
         assert any(
             "z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
             for ref in data["pillars"][3]["evidence"]
@@ -140,18 +140,6 @@ def main() -> int:
             for ref in data["pillars"][3]["evidence"]
         )
         assert any(
-            "raw_video_psf_detail_metric_audit_rerun_20260701/index.html" in ref["path"]
-            for ref in data["pillars"][3]["evidence"]
-        )
-        assert any(
-            "current_goal_sr_psf_gradient_focus_20260701/psf_gradient_focus_from_detail_s400_fw6_gw12_s300_decision.json" in ref["path"]
-            for ref in data["pillars"][3]["evidence"]
-        )
-        assert any(
-            "current_goal_sr_coord_detail_context_20260701/coord_detail_from_psf_focus_s150_step000075_decision.json" in ref["path"]
-            for ref in data["pillars"][3]["evidence"]
-        )
-        assert any(
             "mission1_native120_gvid_to_8k_sr_coord_detail_psf_focus_step0075_sequence_packaging_42f_20260701/receipt.json" in ref["path"]
             for ref in data["pillars"][3]["evidence"]
         )
@@ -159,8 +147,24 @@ def main() -> int:
             "mission1_8k_sr_coord_detail_psf_focus_step0075_review_candidate_audit_20260701/review_candidate_audit.json" in ref["path"]
             for ref in data["pillars"][3]["evidence"]
         )
+        assert any(
+            "raw_video_psf_detail_metric_audit_rerun_20260701/index.html" in ref["path"]
+            for ref in data["pillars"][3]["research_evidence"]
+        )
+        assert any(
+            "current_goal_sr_psf_gradient_focus_20260701/psf_gradient_focus_from_detail_s400_fw6_gw12_s300_decision.json" in ref["path"]
+            for ref in data["pillars"][3]["research_evidence"]
+        )
+        assert any(
+            "current_goal_sr_coord_detail_context_20260701/coord_detail_from_psf_focus_s150_step000075_decision.json" in ref["path"]
+            for ref in data["pillars"][3]["research_evidence"]
+        )
         assert any(ref["exists"] for ref in data["pillars"][0]["evidence"] if ref["kind"] == "repo")
-        assert any(not ref["exists"] for p in data["pillars"] for ref in p["evidence"] if ref["kind"] == "artifact")
+        all_refs = []
+        for pillar in data["pillars"]:
+            all_refs.extend(pillar["evidence"])
+            all_refs.extend(pillar.get("research_evidence", []))
+        assert any(not ref["exists"] for ref in all_refs if ref["kind"] == "artifact")
 
         html = dashboard.read_text(encoding="utf-8")
         assert "GPR Product Pillar Scorecard" in html
@@ -171,6 +175,7 @@ def main() -> int:
         assert "Locked artifacts" in html
         assert "Readiness percentages are not quality metrics" in html
         assert "continuous 8K no-CNN versus CNN ProRes review media" in html
+        assert "Research Parking Lot" in html
         assert "production ready: false" in html
         assert proc.stdout.strip() == str(dashboard)
     print("test_build_product_pillar_scorecard: PASS")
