@@ -76,6 +76,12 @@ def main() -> int:
                         "production_stack_ready": False,
                         "paths": ["c.dng"],
                     },
+                    {
+                        "key": "Apple|iPhone 7 Plus|ISO1250|RGGB",
+                        "candidate_count": 5,
+                        "production_stack_ready": False,
+                        "paths": ["iphone0.dng", "iphone1.dng", "iphone2.dng", "iphone3.dng", "iphone4.dng"],
+                    },
                 ],
             },
         )
@@ -148,10 +154,15 @@ def main() -> int:
             "real_bggr_fixture",
             "real_grbg_fixture",
         ]
-        assert plan["summary"]["nearest_darkframe_stack_key"] == "GoPro|MISSION 1|ISO232|RGGB"
-        assert plan["summary"]["nearest_darkframe_stack_candidate_count"] == 2
+        assert plan["summary"]["nearest_darkframe_stack_key"] == "Apple|iPhone 7 Plus|ISO1250|RGGB"
+        assert plan["summary"]["nearest_darkframe_stack_candidate_count"] == 5
+        assert plan["summary"]["nearest_darkframe_stack_by_noise_key"]["mission1"]["key"] == "GoPro|MISSION 1|ISO232|RGGB"
+        assert plan["summary"]["nearest_darkframe_stack_by_noise_key"]["mission1"]["needed_for_stack"] == 2
+        assert plan["summary"]["nearest_darkframe_stack_by_noise_key"]["iphone"]["key"] == "Apple|iPhone 7 Plus|ISO1250|RGGB"
+        assert plan["summary"]["nearest_darkframe_stack_by_noise_key"]["iphone"]["needed_for_stack"] == 0
         assert all(row.get("requirement_id") for row in plan["capture_actions"])
-        assert any("Top up darkframe group" in row["action"] for row in plan["capture_actions"])
+        assert any("Validate or top up GoPro Mission 1 darkframe group" in row["action"] for row in plan["capture_actions"])
+        assert any("Validate or top up iPhone CFA darkframe group" in row["action"] for row in plan["capture_actions"])
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "Stills Fixture Gap Plan" in html
         assert "Requirement" in html

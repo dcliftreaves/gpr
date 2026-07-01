@@ -16,14 +16,17 @@
           "still_archival"
         ],
         "dashboards": [
-	          "realphoto_bayer_phase_sample_20260630",
-	          "targeted_raw_fixture_scan_20260630",
-	          "broad_old_photo_bayer_phase_scan_20260701",
-	          "source_root_raw_fixture_scan_20260630",
-	          "camera_noise_runtime_policy_20260630"
-	        ]
-	      },
-	      "open_gate": "Mission 1/iPhone darkframe sidecars are still required before broad-camera nonzero noise-addback claims are complete; real RGGB/GBRG/GRBG/BGGR fixture coverage is closed for the stills path."
+          "realphoto_bayer_phase_sample_20260630",
+          "targeted_raw_fixture_scan_20260630",
+          "broad_old_photo_bayer_phase_scan_20260701",
+          "source_root_raw_fixture_scan_20260630",
+          "broad_mission_iphone_darkframe_audit_20260701",
+          "stills_fixture_gap_plan_noise_broad_20260701",
+          "stills_capture_request_noise_broad_20260701",
+          "camera_noise_runtime_policy_20260630"
+        ]
+      },
+      "open_gate": "Mission 1/iPhone darkframe sidecars are still required before broad-camera nonzero noise-addback claims are complete; real RGGB/GBRG/GRBG/BGGR fixture coverage is closed for the stills path."
     },
     {
       "id": "raw_video_mvp",
@@ -1314,8 +1317,8 @@
         "artifacts/product_burndown_20260701/index.html"
       ],
       "hashes": {
-        "product_burndown_json_sha256": "62f2151e31191933eea163294dadab88f4375456b5f7976983bde741b3ae85a2",
-        "dashboard_sha256": "7a3828d743a24fcb94e2219ecf917d07a3639541f78f1cba2070853f3747c0f0"
+        "product_burndown_json_sha256": "2f21897c9007c80e15a1354e26a1ffd594fa45b087a8f060cc718167732eef1f",
+        "dashboard_sha256": "f12f7e29079236a325b71190dfca3c2f5c2e01198c96e6ee561451657d2e2fb6"
       },
       "metrics": {
         "four_pillar_completion_percent": 69,
@@ -1580,6 +1583,95 @@
         "candidate_stack_ready_group_count": 0,
         "production_stack_ready_group_count": 0,
         "production_sidecar_ready": 0
+      }
+    },
+    {
+      "id": "broad_mission_iphone_darkframe_audit_20260701",
+      "family": "noise_signal",
+      "status": "current",
+      "purpose": "Broad Mission/iPhone DNG darkframe-candidate audit. It parses 650 real DNGs, finds dark-like iPhone and Mission candidates, and keeps production sidecar readiness false because candidate-discovery frames need confirmed no-scene-signal provenance.",
+      "dashboard": "artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"
+      ],
+      "receipts": [
+        "artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/darkframe_candidate_audit.json",
+        "artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html"
+      ],
+      "hashes": {
+        "darkframe_candidate_audit_json_sha256": "79b79fa7976f54db8be4872bce4be666e15d06b4a81cdcdda36f6d988ac6e55c",
+        "dashboard_sha256": "96c612c98f933f8b3a655d23e609c7475b239d38beb665bd399ff7c266d9e517"
+      },
+      "metrics": {
+        "files_seen": 650,
+        "parsed_count": 650,
+        "darkframe_like_count": 58,
+        "candidate_stack_ready_group_count": 3,
+        "production_stack_ready_group_count": 0,
+        "production_sidecar_ready": 0,
+        "mission1_iso232_candidate_count": 2,
+        "iphone_iso1250_candidate_count": 23
+      }
+    },
+    {
+      "id": "stills_fixture_gap_plan_noise_broad_20260701",
+      "family": "stills_fixtures",
+      "status": "current",
+      "purpose": "Current raw-stills fixture/noise gap plan. It combines all-four real Bayer phase evidence with the broad Mission/iPhone darkframe audit and narrows the remaining stills gap to Mission/iPhone noise sidecars.",
+      "dashboard": "artifacts/stills_fixture_gap_plan_noise_broad_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"
+      ],
+      "receipts": [
+        "artifacts/stills_fixture_gap_plan_noise_broad_20260701/stills_fixture_gap_plan.json",
+        "artifacts/stills_fixture_gap_plan_noise_broad_20260701/index.html"
+      ],
+      "hashes": {
+        "stills_fixture_gap_plan_json_sha256": "8b2eef0265424a9aea08bfd169bf87472c1f556138f810e9987ced7b4b450394",
+        "dashboard_sha256": "f05eed88eb3297500837002dca814185fd255bbb204bfab5a17e1fa62ab81984"
+      },
+      "metrics": {
+        "all_real_bayer_phases_ready": 1,
+        "darkframe_stack_ready_group_count": 0,
+        "open_requirement_count": 2,
+        "mission1_iso232_candidate_count": 2,
+        "iphone_iso1250_candidate_count": 23
+      }
+    },
+    {
+      "id": "stills_capture_request_noise_broad_20260701",
+      "family": "stills_fixtures",
+      "status": "current",
+      "purpose": "Current raw-stills capture request for the remaining Mission/iPhone darkframe sidecars, including per-family lowest-lift follow-ups and no-scene-signal provenance requirements.",
+      "dashboard": "artifacts/stills_capture_request_noise_broad_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"
+      ],
+      "receipts": [
+        "artifacts/stills_capture_request_noise_broad_20260701/stills_capture_request.json",
+        "artifacts/stills_capture_request_noise_broad_20260701/index.html"
+      ],
+      "hashes": {
+        "stills_capture_request_json_sha256": "5d1038b505584f8201d238f7a176aef89862d584ff142fd507f1783f59bc5c06",
+        "dashboard_sha256": "b221af099d5d067b7b0686deb0c5c6a9daa7cec6f07d27cc2d75bdf2c023bc25"
+      },
+      "metrics": {
+        "request_count": 4,
+        "required_request_count": 2,
+        "production_stills_fixture_closure_ready": 0,
+        "raw_stills_capture_request_ready": 1
       }
     },
     {

@@ -95,7 +95,8 @@
       "lowest_lift_current_group": {
         "group": "Mission 1 ISO232 RGGB darkframe-like group",
         "current_candidate_count": 2,
-        "additional_matching_frames_needed": 2
+        "additional_matching_frames_needed": 2,
+        "candidate_audit": "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html"
       },
       "acceptance": [
         "darkframe candidate audit groups at least four Mission 1 frames under one camera/ISO/CFA key",
@@ -119,6 +120,13 @@
       "minimum_count": 4,
       "camera": "iPhone CFA raw",
       "why_needed": "iPhone CFA DNG compatibility exists, but the current iPhone Linear Raw fixture is a negative fixture and cannot calibrate CFA noise.",
+      "lowest_lift_current_group": {
+        "group": "Apple iPhone 7 Plus ISO1250 RGGB dark-like candidate group",
+        "current_candidate_count": 23,
+        "additional_matching_frames_needed": 0,
+        "candidate_audit": "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html",
+        "promotion_blocker": "candidate-discovery frames need confirmed no-scene-signal provenance before sidecar construction"
+      },
       "required_evidence": [
         "at least four true no-scene-signal CFA DNG frames under one camera/ISO/CFA/dimensions key",
         "original DNG paths and SHA-256 source hashes",

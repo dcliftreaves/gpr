@@ -74,11 +74,12 @@ Current evidence:
   3200, and 12800, plus Z8 at ISO 500. Mission 1 and iPhone have real fixtures
   but no production-ready darkframe sidecars yet.
 - The Mission/iPhone darkframe candidate audit at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_20260630/index.html`
-  scans 50 local DNG candidates. It parsed 49 Mission 1 CFA DNGs and found 9
-  darkframe-like frames, but they are split across 8 ISO groups and no group
-  has the required four-frame stack. The iPhone file in this scan is the known
-  Linear Raw negative fixture, not a CFA darkframe source.
+  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html`
+  scans 650 local Mission/iPhone DNG candidates. It parsed all 650, found 58
+  dark-like frames, and found three iPhone same-ISO candidate stacks. It still
+  keeps production readiness false because candidate-discovery scene frames need
+  confirmed no-scene-signal provenance before they can become noise sidecars.
+  Mission 1 remains at the existing ISO232 RGGB two-frame candidate group.
 - The broader real-photo Bayer phase sample at
   `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html`
   scans 350 iPhone/GoPro/Hassel real-photo DNGs with the batch metadata path.
@@ -95,12 +96,13 @@ Current evidence:
   finds 9 dark-like Mission frames, but no same-ISO four-frame production
   stack.
 - The stills fixture gap plan at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_broad_20260701/index.html`
   turns those receipts into the concrete closure list: add Mission 1 and iPhone
-  darkframe stacks, and top up the current Mission 1 ISO232 RGGB darkframe-like
-  group with two more matching frames.
+  darkframe stacks, top up the current Mission 1 ISO232 RGGB darkframe-like
+  group with two more matching frames, and confirm whether the iPhone ISO1250
+  RGGB dark-like candidate set is true no-scene data or must be recaptured.
 - The raw-stills capture request at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260701/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_broad_20260701/index.html`
   converts that closure list into handoff-ready sample requests and validation
   commands for Mission/iPhone darkframe stacks.
 
@@ -119,11 +121,11 @@ Boundaries:
 Next production work:
 
 1. Collect or locate Mission 1 and iPhone darkframe/frame-stack data from the
-   raw-stills capture
-   request, then apply the camera/ISO noise-calibration sidecar flow. For Mission 1, start
-   from the candidate audit: the lowest-lift current group is ISO232 RGGB,
-   which has two darkframe-like candidates and needs two more matching frames
-   before sidecar construction.
+   raw-stills capture request, then apply the camera/ISO noise-calibration
+   sidecar flow. For Mission 1, start from ISO232 RGGB, which has two
+   darkframe-like candidates and needs two more matching frames. For iPhone,
+   validate whether the ISO1250 RGGB candidate stack is true no-scene-signal
+   data; otherwise recapture a confirmed four-frame stack.
 2. Re-run the raw-noise/signal audit before training any CNN on nonzero clean
    targets.
 

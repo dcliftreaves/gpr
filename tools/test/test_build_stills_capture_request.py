@@ -39,6 +39,20 @@ def main() -> int:
                         "noise_missing_camera_keys": ["mission1", "iphone"],
                         "nearest_darkframe_stack_key": "GoPro|MISSION 1|ISO232|RGGB",
                         "nearest_darkframe_stack_candidate_count": 2,
+                        "nearest_darkframe_stack_by_noise_key": {
+                            "mission1": {
+                                "key": "GoPro|MISSION 1|ISO232|RGGB",
+                                "candidate_count": 2,
+                                "needed_for_stack": 2,
+                                "paths": ["a.dng", "b.dng"],
+                            },
+                            "iphone": {
+                                "key": "Apple|iPhone 7 Plus|ISO1250|RGGB",
+                                "candidate_count": 5,
+                                "needed_for_stack": 0,
+                                "paths": ["iphone0.dng", "iphone1.dng", "iphone2.dng", "iphone3.dng"],
+                            },
+                        },
                         "production_stills_fixture_closure_ready": False,
                     },
                 },
@@ -60,7 +74,7 @@ def main() -> int:
             return proc.returncode
         data = json.loads((out_dir / "stills_capture_request.json").read_text(encoding="utf-8"))
         assert data["schema"] == "gpr.stills_capture_request.v1"
-        assert data["summary"]["request_count"] == 5
+        assert data["summary"]["request_count"] == 6
         assert data["summary"]["required_request_count"] == 4
         assert data["summary"]["all_request_ids_are_committed_requirements"] is True
         assert data["summary"]["required_requirement_ids"] == [
@@ -79,6 +93,13 @@ def main() -> int:
         topup = [row for row in data["requests"] if row["id"] == "mission1_lowest_lift_darkframe_topup"][0]
         assert topup["requirement_id"] == "mission1_darkframe_stack"
         assert topup["minimum_count"] == 2
+        assert topup["existing_candidate_count"] == 2
+        assert any("ordinary dark-looking scene photos" in item for item in topup["capture_guidance"])
+        iphone_topup = [row for row in data["requests"] if row["id"] == "iphone_lowest_lift_darkframe_topup"][0]
+        assert iphone_topup["requirement_id"] == "iphone_cfa_darkframe_stack"
+        assert iphone_topup["minimum_count"] == 0
+        assert iphone_topup["existing_candidate_count"] == 5
+        assert any("no-scene-signal" in item for item in iphone_topup["metadata_required"])
         assert any("extract_raw_bayer_u16.py" in command for command in data["validation_commands"])
         assert any("build_camera_noise_calibration.py" in command for command in data["validation_commands"])
         assert data["promotion_policy"]["noise_sidecar_requires_source_hashes_and_fixed_camera_metadata"] is True

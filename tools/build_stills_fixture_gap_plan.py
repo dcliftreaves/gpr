@@ -20,7 +20,7 @@ DEFAULT_BAYER_INVENTORY = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/inventory.json"
 )
 DEFAULT_DARKFRAME_AUDIT = Path(
-    "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_20260630/darkframe_candidate_audit.json"
+    "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/darkframe_candidate_audit.json"
 )
 DEFAULT_NOISE_COVERAGE = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/noise_coverage.json"
@@ -33,6 +33,10 @@ REQUIREMENT_BY_PHASE = {
 REQUIREMENT_BY_NOISE_KEY = {
     "mission1": "mission1_darkframe_stack",
     "iphone": "iphone_cfa_darkframe_stack",
+}
+NOISE_STACK_MATCHERS = {
+    "mission1": ("mission 1",),
+    "iphone": ("iphone",),
 }
 
 
@@ -75,6 +79,20 @@ def sorted_stack_groups(darkframe_audit: dict[str, Any]) -> list[dict[str, Any]]
     return sorted(groups, key=lambda row: (-int(row["candidate_count"]), str(row.get("key") or "")))
 
 
+def stack_matches_noise_key(stack_key: str, noise_key: str) -> bool:
+    lowered = stack_key.lower()
+    return any(token in lowered for token in NOISE_STACK_MATCHERS.get(noise_key, (noise_key,)))
+
+
+def nearest_stack_by_noise_key(stack_groups: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    nearest: dict[str, dict[str, Any]] = {}
+    for noise_key in REQUIREMENT_BY_NOISE_KEY:
+        matches = [row for row in stack_groups if stack_matches_noise_key(str(row.get("key") or ""), noise_key)]
+        if matches:
+            nearest[noise_key] = matches[0]
+    return nearest
+
+
 def build_plan(
     bayer_inventories: list[dict[str, Any]],
     darkframe_audit: dict[str, Any],
@@ -111,6 +129,7 @@ def build_plan(
     ]
     stack_groups = sorted_stack_groups(darkframe_audit)
     nearest_stack = stack_groups[0] if stack_groups else None
+    nearest_by_noise_key = nearest_stack_by_noise_key(stack_groups)
 
     capture_actions: list[dict[str, Any]] = []
     for phase in missing_phases:
@@ -136,15 +155,30 @@ def build_plan(
                 "done_when": "camera-noise coverage audit marks this camera family ready with a production_ready sidecar.",
             }
         )
-    if nearest_stack:
+    for row in missing_noise:
+        key = str(row.get("key") or "")
+        nearest_for_key = nearest_by_noise_key.get(key)
+        if not nearest_for_key:
+            continue
+        label = row.get("label") or key
         capture_actions.append(
             {
-                "requirement_id": "mission1_darkframe_stack",
+                "requirement_id": REQUIREMENT_BY_NOISE_KEY.get(key),
                 "priority": "lowest_lift",
                 "pillar": "raw_stills_noise",
-                "action": f"Top up darkframe group {nearest_stack.get('key')} with {nearest_stack['needed_for_stack']} more matching frame(s)",
-                "why": f"Current audit already has {nearest_stack['candidate_count']} darkframe-like candidate(s) in that group.",
-                "done_when": "darkframe candidate audit reports production_stack_ready=true for the group, then sidecar builder emits gpr.camera_noise_calibration.v1.",
+                "action": (
+                    f"Validate or top up {label} darkframe group {nearest_for_key.get('key')} "
+                    f"with {nearest_for_key['needed_for_stack']} more matching frame(s)"
+                ),
+                "why": (
+                    f"Current audit already has {nearest_for_key['candidate_count']} darkframe-like "
+                    "candidate(s) in that camera family. Candidate-discovery scene frames still need "
+                    "confirmed no-scene-signal provenance before promotion."
+                ),
+                "done_when": (
+                    "darkframe candidate audit reports production_stack_ready=true for the group, "
+                    "then sidecar builder emits gpr.camera_noise_calibration.v1."
+                ),
             }
         )
 
@@ -172,6 +206,16 @@ def build_plan(
             "darkframe_stack_ready_group_count": int((darkframe_audit.get("summary") or {}).get("production_stack_ready_group_count") or 0),
             "nearest_darkframe_stack_key": nearest_stack.get("key") if nearest_stack else None,
             "nearest_darkframe_stack_candidate_count": nearest_stack.get("candidate_count") if nearest_stack else 0,
+            "nearest_darkframe_stack_by_noise_key": {
+                key: {
+                    "key": row.get("key"),
+                    "candidate_count": row.get("candidate_count"),
+                    "needed_for_stack": row.get("needed_for_stack"),
+                    "production_stack_ready": row.get("production_stack_ready"),
+                    "paths": row.get("paths") or [],
+                }
+                for key, row in nearest_by_noise_key.items()
+            },
             "open_requirement_ids": sorted(
                 {
                     *(REQUIREMENT_BY_PHASE[phase] for phase in missing_phases if phase in REQUIREMENT_BY_PHASE),

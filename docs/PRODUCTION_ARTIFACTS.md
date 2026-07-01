@@ -470,10 +470,12 @@ remain open.
 | Broad old-photo Bayer phase dashboard | `artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/index.html` | `19f3b402ec54f3eba27c8e02ffd83abe2f89978ac960e3700455425e707bcb42` |
 | Targeted Mission DNG darkframe audit JSON | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/darkframe_candidate_audit.json` | `dd06fb371f5177a03f2ffbc683e343f15f1286091b92eed053a2334f537dd74a` |
 | Targeted Mission DNG darkframe dashboard | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html` | `dd7c607f07fa1b9f0f9e473ca514810b3adc74c22690359ae44a655256b2836a` |
-| Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_20260701/stills_fixture_gap_plan.json` | `9f96503fd6142667fbdcb6941bae898c10c932322ffa77f7028cca17a091024a` |
-| Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_20260701/index.html` | `1b1ca0bdbf9b5d570a09a5a002f4197f09022dcd8b699c050a90eefbce162815` |
-| Current raw-stills capture request JSON | `artifacts/stills_capture_request_20260701/stills_capture_request.json` | `6dd409c69db61446b0a564b4194c635ea0b01207bfd25ea0fa94973443b51630` |
-| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_20260701/index.html` | `2446aea88e98a208129228662d6131008f21c791b543498cf8e3e448fe58fc62` |
+| Broad Mission/iPhone darkframe audit JSON | `artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/darkframe_candidate_audit.json` | `79b79fa7976f54db8be4872bce4be666e15d06b4a81cdcdda36f6d988ac6e55c` |
+| Broad Mission/iPhone darkframe dashboard | `artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html` | `96c612c98f933f8b3a655d23e609c7475b239d38beb665bd399ff7c266d9e517` |
+| Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_noise_broad_20260701/stills_fixture_gap_plan.json` | `8b2eef0265424a9aea08bfd169bf87472c1f556138f810e9987ced7b4b450394` |
+| Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_noise_broad_20260701/index.html` | `f05eed88eb3297500837002dca814185fd255bbb204bfab5a17e1fa62ab81984` |
+| Current raw-stills capture request JSON | `artifacts/stills_capture_request_noise_broad_20260701/stills_capture_request.json` | `5d1038b505584f8201d238f7a176aef89862d584ff142fd507f1783f59bc5c06` |
+| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_noise_broad_20260701/index.html` | `b221af099d5d067b7b0686deb0c5c6a9daa7cec6f07d27cc2d75bdf2c023bc25` |
 
 ## Premium Still-SR Gap Artifacts
 

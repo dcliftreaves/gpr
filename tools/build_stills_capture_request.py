@@ -12,7 +12,7 @@ from typing import Any
 
 SCHEMA = "gpr.stills_capture_request.v1"
 DEFAULT_GAP_PLAN = Path(
-    "/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/stills_fixture_gap_plan.json"
+    "/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_broad_20260701/stills_fixture_gap_plan.json"
 )
 REQUIREMENT_BY_PHASE = {
     "GRBG": "real_grbg_fixture",
@@ -21,6 +21,10 @@ REQUIREMENT_BY_PHASE = {
 REQUIREMENT_BY_NOISE_KEY = {
     "mission1": "mission1_darkframe_stack",
     "iphone": "iphone_cfa_darkframe_stack",
+}
+LABELS_BY_NOISE_KEY = {
+    "mission1": "GoPro Mission 1",
+    "iphone": "iPhone CFA raw",
 }
 
 
@@ -68,12 +72,49 @@ def darkframe_request(camera_key: str, label: str) -> dict[str, Any]:
     }
 
 
+def topup_request(camera_key: str, nearest: dict[str, Any]) -> dict[str, Any]:
+    requirement_id = REQUIREMENT_BY_NOISE_KEY.get(camera_key)
+    label = LABELS_BY_NOISE_KEY.get(camera_key, camera_key)
+    existing_group = str(nearest.get("key") or "")
+    candidate_count = int(nearest.get("candidate_count") or 0)
+    minimum_count = max(0, int(nearest.get("needed_for_stack") or (4 - candidate_count)))
+    return {
+        "id": f"{camera_key}_lowest_lift_darkframe_topup",
+        "requirement_id": requirement_id,
+        "priority": "lowest_lift",
+        "pillar": "raw_stills_noise",
+        "sample_type": "matching_darkframe_topup",
+        "camera": label,
+        "minimum_count": minimum_count,
+        "existing_group": existing_group,
+        "existing_candidate_count": candidate_count,
+        "candidate_paths": list(nearest.get("paths") or []),
+        "capture_guidance": [
+            f"Match the existing group exactly: {existing_group}.",
+            "Capture only missing matching frames if the existing candidates are confirmed true no-scene-signal darkframes.",
+            "If these are ordinary dark-looking scene photos, capture a fresh four-frame same-ISO no-scene-signal stack instead.",
+        ],
+        "metadata_required": [
+            "same camera/ISO/CFA/dimensions/bit-depth/black-level/white-level as the existing group",
+            "original raw/DNG/GPR paths and SHA-256 source hashes for the top-up or promoted stack frames",
+            "little-endian uint16 Bayer extraction command or receipt for every frame in the promoted stack",
+            "confirmation that every promoted frame is no-scene-signal data, not an ordinary dark-looking scene photo",
+        ],
+        "acceptance": [
+            "darkframe candidate audit reports production_stack_ready=true for this group",
+            "sidecar builder emits a production-ready gpr.camera_noise_calibration.v1 receipt",
+            "sidecar records separates_noise_from_signal=true before any nonzero noise removal/addback is enabled",
+        ],
+    }
+
+
 def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, Any]:
     summary = gap_plan.get("summary") or {}
     missing_phases = list(summary.get("missing_real_bayer_phases") or [])
     missing_noise_keys = list(summary.get("noise_missing_camera_keys") or [])
     nearest_stack_key = summary.get("nearest_darkframe_stack_key")
     nearest_stack_count = int(summary.get("nearest_darkframe_stack_candidate_count") or 0)
+    nearest_by_noise_key = summary.get("nearest_darkframe_stack_by_noise_key") or {}
 
     requests: list[dict[str, Any]] = []
     for phase in missing_phases:
@@ -104,40 +145,23 @@ def build_request(gap_plan: dict[str, Any], gap_plan_path: Path) -> dict[str, An
             }
         )
 
-    labels = {
-        "mission1": "GoPro Mission 1",
-        "iphone": "iPhone CFA raw",
-    }
     for key in missing_noise_keys:
-        requests.append(darkframe_request(str(key), labels.get(str(key), str(key))))
+        key = str(key)
+        requests.append(darkframe_request(key, LABELS_BY_NOISE_KEY.get(key, key)))
+        nearest_for_key = nearest_by_noise_key.get(key)
+        if isinstance(nearest_for_key, dict):
+            requests.append(topup_request(key, nearest_for_key))
 
-    if nearest_stack_key:
+    if nearest_stack_key and not nearest_by_noise_key:
         requests.append(
-            {
-                "id": "mission1_lowest_lift_darkframe_topup",
-                "requirement_id": "mission1_darkframe_stack",
-                "priority": "lowest_lift",
-                "pillar": "raw_stills_noise",
-                "sample_type": "matching_darkframe_topup",
-                "camera": "GoPro Mission 1",
-                "minimum_count": max(0, 4 - nearest_stack_count),
-                "existing_group": nearest_stack_key,
-                "capture_guidance": [
-                    f"Match the existing group exactly: {nearest_stack_key}.",
-                    "Capture only the missing matching frames; do not mix ISO or raw mode.",
-                    "If exact matching is impossible, capture a fresh four-frame same-ISO stack instead.",
-                ],
-                "metadata_required": [
-                    "same camera/ISO/CFA/dimensions/bit-depth/black-level/white-level as the existing group",
-                    "original raw/DNG/GPR paths and SHA-256 source hashes for the top-up frames",
-                    "little-endian uint16 Bayer extraction command or receipt for every frame in the promoted stack",
-                ],
-                "acceptance": [
-                    "darkframe candidate audit reports production_stack_ready=true for this group",
-                    "sidecar builder emits a production-ready gpr.camera_noise_calibration.v1 receipt",
-                    "sidecar records separates_noise_from_signal=true before any nonzero noise removal/addback is enabled",
-                ],
-            }
+            topup_request(
+                "mission1",
+                {
+                    "key": nearest_stack_key,
+                    "candidate_count": nearest_stack_count,
+                    "needed_for_stack": max(0, 4 - nearest_stack_count),
+                },
+            )
         )
 
     validation_commands = [

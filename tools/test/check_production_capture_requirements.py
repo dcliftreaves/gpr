@@ -115,7 +115,12 @@ def validate() -> list[str]:
 
     if DOC_PATH.is_file():
         doc = DOC_PATH.read_text(encoding="utf-8")
-        for token in (*EXPECTED_IDS.keys(), "Product pillar scorecard", "stills_capture_request_20260701", "raw_video_psf_capture_request_20260630"):
+        for token in (
+            *EXPECTED_IDS.keys(),
+            "Product pillar scorecard",
+            "stills_capture_request_noise_broad_20260701",
+            "raw_video_psf_capture_request_20260630",
+        ):
             if token not in doc:
                 failures.append(f"{display_path(DOC_PATH)} missing {token!r}")
 

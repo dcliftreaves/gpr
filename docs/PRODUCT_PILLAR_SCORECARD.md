@@ -88,12 +88,14 @@ and 12800, plus Z8 at ISO 500. Mission 1 and iPhone have real fixtures but no
 production-ready darkframe sidecars yet, so nonzero noise removal/addback is not
 promoted for those cameras.
 
-The current Mission/iPhone darkframe candidate audit lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_20260630/index.html`.
-It finds 9 darkframe-like Mission 1 frames, but they are split across 8
-camera/ISO/CFA groups and no group has the four-frame stack required for a
-production sidecar. The iPhone row is the known Linear Raw negative fixture,
-not a CFA darkframe source.
+The current broad Mission/iPhone darkframe candidate audit lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html`.
+It parses 650 real DNGs, finds 58 dark-like frames, and identifies three iPhone
+same-ISO candidate stacks. It still keeps `production_sidecar_ready=false`
+because candidate-discovery frames need confirmed no-scene-signal provenance
+before they can become noise sidecars. Mission 1 remains the tighter sample gap:
+the lowest-lift ISO232 RGGB group has two candidates and needs two more matching
+frames.
 
 The broader real-photo sample lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_realphotos_sample_20260630/index.html`
@@ -122,13 +124,14 @@ It uses per-root limits and exiftool timeouts to avoid broad-tree stalls, sees
 250 GBRG. The later broad old-photo scan closes the missing GRBG/BGGR evidence.
 
 The current stills fixture gap plan lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_broad_20260701/index.html`.
 It consolidates the phase/noise receipts into the concrete capture checklist:
-Mission 1 and iPhone darkframe stacks, including two additional matching frames
-for the current Mission 1 ISO232 RGGB darkframe-like group.
+Mission 1 and iPhone darkframe stacks, including two additional matching Mission
+ISO232 RGGB frames and provenance validation for the iPhone ISO1250 RGGB
+dark-like candidate stack.
 
 The raw-stills capture request lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260701/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_broad_20260701/index.html`.
 It converts that closure list into handoff-ready sample requests, validation
 commands, and promotion criteria.
 The same raw-stills blockers are pinned in the committed production capture

@@ -187,10 +187,12 @@ Evidence required:
    darkframe/frame-stack artifacts where available. The current lowest-lift
    Mission candidate is `GoPro|MISSION 1|ISO232|RGGB`, which already has two
    darkframe-like frames and needs two more matching frames for a production
-   stack candidate. The current stills fixture gap plan is
-   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_20260701/index.html`;
+   stack candidate. The iPhone ISO1250 RGGB candidate set already has enough
+   dark-like frames, but it still needs no-scene-signal provenance before it can
+   be promoted. The current stills fixture gap plan is
+   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_broad_20260701/index.html`;
    the handoff-ready raw-stills capture request is
-   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_20260701/index.html`.
+   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_broad_20260701/index.html`.
 2. Continue premium still-SR from the current raw-CFA residual blocker, not
    older rendered-HF targets. The latest candidate-only raw-domain trainer is
    mildly positive on held-out Z8 at about 0.50 percent median raw-residual MAE
