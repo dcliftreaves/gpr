@@ -40,7 +40,7 @@ def main() -> int:
                     "| Best RAW stills | 92% |",
                     "| GoPro RAW video MVP | 80% |",
                     "| Premium still/SR | 60% |",
-                    "| PSF-aware RAW video improvement | 50% |",
+                    "| PSF-aware RAW video improvement | 52% |",
                     "psf_gradient_focus_from_detail_s400_fw6_gw12_s300",
                     "mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1",
                     "Mission gradient median +0.253",

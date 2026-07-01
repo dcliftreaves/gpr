@@ -306,7 +306,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         {
             "id": "raw_video_psf_sr",
             "title": "4. RAW video improvement / PSF-aware resize",
-            "readiness_percent": 50,
+            "readiness_percent": 52,
             "status": "approved_baseline_psf_replacement_open",
             "production_ready": False,
             "lock_ledger_paths": [
@@ -341,10 +341,11 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "The PSF detail-metric rerun adds same-cell Bayer fine-detail metrics to the current Mission42/Z8 baseline and candidate summaries. The current candidate improves median same-cell detail from 26.091 to 28.095 percent on Mission42 and from 3.214 to 3.516 percent on Z8.",
                 "The Mission gradient/detail blocker audit narrows the current non-promotion cause to five rows that regress both gradient and same-cell detail: GP017346, GP017600, GP017347, GP017348, and GP017359.",
                 "The focused hard-row continuation psf_gradient_focus_from_detail_s400_fw6_gw12_s300 improves the previous diagnostic candidate medians on Mission42 and Z8, but still misses the older Mission worst-row floor on GP017346, GP017600, GP017347, and GP017348.",
-                "The coord/detail PSF-focus step-75 continuation is now registered for review as mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1. It beats the previous psf-gradient-focus baseline on paired Mission42 and regenerated Z8 RMSE/PSNR floors, but still needs .gvid, editable raw, ProRes, metadata-transplant, and production-audit refresh before promotion.",
+                "The coord/detail PSF-focus step-75 continuation is now registered for review as mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1. It beats the previous psf-gradient-focus baseline on paired Mission42 and regenerated Z8 RMSE/PSNR floors, and now has registry-driven .gvid decode-to-SR, editable DNG/GPR, 2K ProRes, and Mission metadata-transplant receipts. It still needs full-sequence .gvid packaging, visual review, and production-promotion audit refresh before promotion.",
             ],
             "open_work": [
                 "Follow the raw-video PSF gap plan: capture or locate controlled same-scene Mission 1 high/low pairs with source hashes, decoded Bayer hashes, fixed settings, and negative controls so at least three pairs pass scene vetting and produce a stable measured native PSF kernel.",
+                "Refresh full-sequence .gvid packaging, whole-scene visual review, and production-promotion audit for the coord/detail PSF-focus step-75 candidate if it remains the preferred review candidate.",
                 "Train PSF-conditioned SR against CFA-aware high-res targets with better candidate-side detail/phase/context conditioning or a stronger PSF-aware teacher.",
                 "Promote only if Mission42 and Z8 all24 gates beat the current approved baseline and worst rows stay clean.",
             ],

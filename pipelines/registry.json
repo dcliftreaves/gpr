@@ -763,7 +763,7 @@
       "status": "offline_production_runtime_and_packaging_refreshed"
     },
     "mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1": {
-      "$doc": "Temporary registry-review candidate for the Mission 1 native-12 current-T233 12MP-to-8K Bayer SR path. It continues the focused PSF-gradient diagnostic checkpoint with deterministic coordinate and same-color detail channels. The paired full-frame review beats the previous psf-gradient-focus baseline on Mission42 and regenerated Z8 RMSE/PSNR floors, but it has not refreshed .gvid decode-to-SR, editable GPR/DNG, ProRes, metadata-transplant, or production-promotion receipts. It is not a live-camera path and is not production.",
+      "$doc": "Temporary registry-review candidate for the Mission 1 native-12 current-T233 12MP-to-8K Bayer SR path. It continues the focused PSF-gradient diagnostic checkpoint with deterministic coordinate and same-color detail channels. The paired full-frame review beats the previous psf-gradient-focus baseline on Mission42 and regenerated Z8 RMSE/PSNR floors. Registry-driven .gvid decode-to-SR, editable DNG/GPR, 2K ProRes review, and Mission metadata-transplant receipts are refreshed for frame-level review. It is not a live-camera path and is not production; full-sequence .gvid packaging, visual review, and production-promotion audit remain open.",
       "ckpt_path": "artifacts/current_goal_sr_coord_detail_context_20260701/eval_checkpoints/coord_detail_from_psf_focus_s150_step000075.pt",
       "ckpt_sha256": "9e3e57ec5555bc8387809eb3bd76003bd0422b37a99d8db3a8a4d12b18a7ae46",
       "cnn_arch_variant": "coord_detail_preclean_adapter_pixelshuffle_bayer2x",
@@ -797,8 +797,31 @@
       "baseline_psf_gradient_focus_decision": "artifacts/current_goal_sr_psf_gradient_focus_20260701/psf_gradient_focus_from_detail_s400_fw6_gw12_s300_decision.json",
       "dashboard": "artifacts/current_goal_sr_coord_detail_context_20260701/coord_detail_from_psf_focus_s150_step000075_mission_fullframe/index.html",
       "z8_dashboard": "artifacts/current_goal_sr_coord_detail_context_20260701/coord_detail_from_psf_focus_s150_step000075_z8_fullframe/index.html",
+      "gvid_decode_sr_multiframe_receipt": "artifacts/mission1_native12_gvid_to_8k_sr_coord_detail_psf_focus_step0075_multiframe_20260701/receipt.json",
+      "gvid_decode_sr_multiframe_receipt_sha256": "fc4b0f2eb584ed70547defec9b5120b683f212cb67b50d26c5c383d148559850",
+      "gvid_decode_sr_multiframe_summary": {
+        "frames": 3,
+        "input_gvid_frames": 3,
+        "gvid_sha256": "6dea3c44949e5559898fd337175df8d357fc1e976d117f9d3918aaae79a35596",
+        "median_decode_plus_sr_write_s": 0.9125507905207574,
+        "median_decode_plus_sr_write_fps": 1.0958294161679907,
+        "max_rss_mb": 761.984375,
+        "intermediates_retained": true,
+        "status": "pass_registry_gvid_decode_to_sr"
+      },
+      "gvid_decode_sr_packaging_receipt": "artifacts/mission1_native12_gvid_to_8k_sr_coord_detail_psf_focus_step0075_packaging_q3_20260701/packaging_receipt.json",
+      "gvid_decode_sr_packaging_receipt_sha256": "2de4910ac458862da7f75154dd732488073dbd13e4a40c4735fa531d94b3d606",
+      "packaging_gpr_quality": 3,
+      "gvid_decode_sr_packaging_summary": {
+        "frame_index": 0,
+        "editable_gpr": "pass_sdk_wrapped_gpr_readback_psnr14_65_78db_and_gpr_to_dng_opens",
+        "prores_review": "pass_2048x1536_prores_from_sr_dng; two-frame receipt reports 24 fps review output",
+        "mission_metadata_transplant": "pass_exiftool_audit; required tags present, RawDataUniqueID missing as allowed, AsShotNeutral/NoiseProfile rounding diffs only"
+      },
+      "mission_metadata_transplant_audit": "artifacts/mission1_native12_gvid_to_8k_sr_coord_detail_psf_focus_step0075_metadata_transplant_20260701/metadata_transplant_audit.json",
+      "mission_metadata_transplant_audit_sha256": "33ba940fe5276f456be49f291fd3de104b7fc46f635a5141d15ae7802edf7d10",
       "runtime_entrypoint": "tools/cnn/render_gvid_sr_receipt.py",
-      "status": "review_only_needs_gvid_packaging_and_production_audit"
+      "status": "review_only_needs_full_sequence_gvid_visual_review_and_production_audit"
     },
     "mission1_native12_4k_cleanup_rgb_cfa_w40_v1": {
       "$doc": "Registry-review candidate for Mission 1 native-12 4096x3072 Bayer cleanup. It maps current 4K Bayer lows to a 4K Bayer output supervised by high-resolution RGB area-downsample and CFA-sampled targets. The broad Mission42 dashboard improves every image versus the baseline on RGB/CFA error and y-gradient, has a green/tone audit, objective visual signoff, a 42-frame 4K .gvid packaging receipt, and a 4K ProRes review receipt. It remains offline/review-only; camera/firmware handoff is tracked separately from this CNN.",
