@@ -1,11 +1,12 @@
 # Labs Intake: `.gvid` Raw-Video Prototype
 
-Last refreshed: 2026-06-15
+Last refreshed: 2026-07-01
 
 ## Recommendation
 
-GPR is ready for **Labs prototype exploration** as a half-res raw-video capture
-path that writes `.gvid` streams and uses desktop tools for unpack, review, and
+GPR is ready for **Labs prototype exploration** as a native 4096 x 3072 Bayer
+raw-video capture path that writes `.gvid` streams, decodes the same stream for
+camera-back preview, and uses desktop tools for cleanup, 8K SR, review, and
 ProRes export.
 
 GPR is **not** ready for direct camera-firmware merge. The missing work is not
@@ -18,8 +19,8 @@ ownership, and target CI.
 | area | status | evidence |
 |---|---|---|
 | Raw-video container | `.gvid` sequence of per-frame FUSED `.gpr` payloads | `source/lib/vc5_encoder/gpr_video_format.h`, `tools/gvid_pack.py` |
-| Half-res capture target | Latest strict Pi 5 stand-in receipt validates 14,400 frames, 0 drops, `.gvid`, and recovery at 19.98 fps median, which is acceptable as a conservative 20 fps proxy for advancing camera integration; actual Mission 1 firmware readiness still needs a 24 fps hardware receipt. The corrected pixel-format short direct `.gvid` probe is 19.85 fps; the best short luma-pair near-miss is 23.54 fps; a later channel0-to-channel3 luma handoff integration regressed to 12.05 fps and is rejected | `docs/LABS_TARGET_BENCH.md`, `docs/VIDEO_STATUS.md` |
-| 2K live/camera-back preview | `2k_raw_0p5x_l2hh` clears Pi 5 decode-side timing at 29.85 fps median / 37.1 ms p95 and passes the 16 px edge-safe rendered proxy | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`, `docs/LABS_TARGET_BENCH.md` |
+| Native 12MP / 4K Bayer capture target | Selected 1,440-frame Pi stand-in closure validates 4096 x 3072 Bayer recompression into `.gvid`, 0 drops, recovery, valid container, and 20.50 fps wall / 21.52 fps median. This clears the accepted 20+ fps floor for Labs handoff; actual Mission 1 firmware readiness still needs a camera-role receipt from sensor/DMA or camera ring buffer, SD writer, and rear display. Strict 24 fps is stretch performance research unless the product target is raised again. | `docs/LABS_TARGET_BENCH.md`, `docs/VIDEO_STATUS.md` |
+| Live/camera-back preview | The same 4096 x 3072 `.gvid` decodes to 1024 x 768 full-frame RGB preview at 24.20 fps wall / 43.86 fps median decode-plus-target on the Pi stand-in. | `docs/RAW_RESOLUTION_TARGETS_2026-06-14.md`, `docs/LABS_TARGET_BENCH.md` |
 | Desktop review/export | `.gvid` can feed `gpr2prores` and ProRes review outputs | `docs/GETTING_STARTED.md`, `tools/gpr2prores/USAGE.md` |
 | Metadata dispatch | source metadata sidecar and runtime dispatch validation | `docs/GVID_METADATA_DISPATCH_2026-06-04.md` |
 | Production evidence tracking | release manifest and CI checks | `docs/RELEASE_READINESS.md`, `docs/release_evidence_manifest.json` |
@@ -29,17 +30,17 @@ ownership, and target CI.
 | area | reason |
 |---|---|
 | Direct firmware merge | No camera-firmware sensor/DMA integration contract has been executed on target hardware. |
-| Full-res 4K/8K live preview | Current quality paths are desktop/offline; live camera-back output is bounded to the 2K edge-safe policy. |
+| Full-res 4K/8K live preview | Current quality paths are desktop/offline; live camera-back output is the 1024 x 768 full-frame preview from the 4K `.gvid` stream. |
 | Arbitrary CNN routing in firmware | The current CNN/routing work is desktop-side review output, not a firmware dependency. |
-| Unbounded capture guarantees | The strict Pi 5 target receipt validates container/recovery behavior near the 20 fps proxy threshold, but actual 24 fps camera-hardware capture is not proven. |
+| Unbounded capture guarantees | Pi stand-in receipts validate container/recovery behavior above the accepted 20+ fps floor, but actual Mission 1 camera-role capture is not proven. Strict 24 fps is optional performance research unless reinstated as the product target. |
 
 ## Current Readiness
 
 | question | answer |
 |---|---|
 | Can the repo demonstrate the media shape? | Yes: `.gvid` pack/unpack, metadata dispatch, and ProRes review tooling exist. |
-| Can it hit the half-res capture-rate target on the stand-in path? | It is enough to continue camera integration as a conservative Pi proxy: commit `0dd6660` writes 14,400/14,400 frames with 0 drops and valid `.gvid` at 19.98 fps median. It does not prove the actual 24 fps Mission 1 target. Commit `e16357f` fixed the bench path so pixel format 4 reaches the encoder context; the corrected 120-frame direct `.gvid` probe reaches 19.85 fps median. A later scratch luma-pair probe reached 23.54 fps on a short direct-container run but was not committed. A productionizable channel0-to-channel3 luma handoff version was byte-identical locally but regressed on Pi to 12.05 fps, so that architecture is ruled out. |
-| Can it hit a bounded 2K live display target? | Yes for the decode/display side: `2k_raw_0p5x_l2hh` is live-capable on Pi 5 stand-in timing and the production preview policy is bounded to a 16 px edge-safe viewport. |
+| Can it hit the native 12MP / 4K Bayer capture-rate target on the stand-in path? | Yes for the accepted 20+ fps floor: the selected 1,440-frame Pi stand-in closure records 20.50 fps wall / 21.52 fps median with zero drops, valid `.gvid`, recovery, and Lexar write-budget pass. It does not prove actual Mission 1 camera-role capture until the real sensor/DMA or camera ring-buffer source, SD writer, and rear display run. |
+| Can it hit the live display target? | Yes for the stand-in decode/display side: the same 4K `.gvid` decodes to full-frame 1024 x 768 RGB preview above 20 fps. |
 | Is the format safe enough for firmware review? | Source-level path is hardened: v1 C parsing rejects malformed headers and streams, and v1 writing rejects non-finite/overflowing FPS and bitrate fields; target recovery still needs receipts. |
 | Are artifacts portable outside the 8TB work drive? | Source/media and Pi target-proxy bundles verify; final camera bundle still needs actual camera-firmware receipts. |
 | Is CI sufficient for Labs intake? | Hosted CI covers source-level checks; target/self-hosted lanes are specified for media and hardware behavior. |
@@ -62,10 +63,12 @@ ownership, and target CI.
 
 ## Next Required Evidence
 
-1. Package a portable target artifact bundle with checksums and verification
-   steps, using the strict 19.98 fps Pi receipt as a conservative proxy while
-   labeling actual Mission 1 24 fps hardware capture as unproven.
+1. Package or refresh a portable target artifact bundle with checksums and
+   verification steps, using the native 12MP / 4K Bayer Pi closure receipts as
+   conservative 20+ fps stand-in evidence while labeling actual Mission 1
+   camera-role capture as unproven.
 2. Execute or stub the firmware sensor/DMA handoff receipt: frame ownership,
-   metadata, storage path, recovery behavior, and 24 fps camera target.
+   metadata, storage path, recovery behavior, and accepted 20+ fps camera
+   target.
 3. Add or document CI lanes for hosted source checks and target/self-hosted
    media checks.

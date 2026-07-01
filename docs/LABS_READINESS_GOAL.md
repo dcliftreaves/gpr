@@ -116,7 +116,10 @@ The immediate blocker has moved from Pi-only throughput to camera-hardware
 handoff evidence. The latest strict Pi 5 receipt proves valid `.gvid` output,
 zero dropped frames, and interrupted tail recovery at 19.98 fps median, which
 is acceptable as a conservative 20 fps proxy for advancing Labs integration.
-Actual Mission 1 firmware readiness still requires a 24 fps hardware receipt.
+Actual Mission 1 firmware readiness still requires a camera-role receipt from
+the real sensor/DMA or camera ring-buffer source, storage writer, and rear
+display at the accepted 20+ fps floor. Strict 24 fps is stretch performance
+research unless the product target is raised again.
 The corrected pixel-format direct `.gvid` receipt at commit `e16357f` is a
 short 19.85 fps probe and keeps Pass1/channel-unpack as the known compute
 hotspot if the camera path is still slow.
@@ -368,8 +371,10 @@ receipts:
 ## Current Blocker
 
 The active production blocker is now the actual Mission 1 capture handoff and
-24 fps hardware receipt. The highpass-preserving half-res Pi 5 stand-in has a
-strict proxy-acceptable receipt plus several diagnostic probes:
+camera-role receipt at the accepted 20+ fps floor. The current native
+12MP/4K Pi stand-in closure has the release-facing receipt; the older
+highpass-preserving half-res Pi stand-in remains diagnostic context with a
+strict proxy-acceptable receipt plus several probes:
 
 - latest strict sustained receipt:
   `/Volumes/OWC_8TB/gpr_work/artifacts/labs_target_bench_pi5_20260615_0dd6660/labs_target_bench.json`

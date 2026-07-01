@@ -259,8 +259,10 @@ in TL;DR table differ.)
 The historical embedded-capture pipeline wrote 1.30 MB / frame at 24.93 fps =
 ~31 MB/s sustained. The latest strict Labs Pi proxy receipt writes all frames
 with 0 drops, valid `.gvid`, and interrupted-tail recovery at 19.98 fps median.
-This is proxy-acceptable for Labs handoff review, but not a substitute for the
-actual Mission 1 24 fps hardware receipt.
+This is proxy-acceptable for Labs handoff review, but not a substitute for an
+actual Mission 1 camera-role receipt at the accepted 20+ fps floor. Strict 24
+fps remains stretch performance research unless the product target is raised
+again.
 
 The full-res VIDEO_FREEZE primary writes 7.81 MB / frame = 187 MB/s at
 24 fps target. **Pi 5 cannot encode this in real time** — best legacy

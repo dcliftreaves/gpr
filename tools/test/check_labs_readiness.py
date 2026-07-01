@@ -3,9 +3,9 @@
 
 This intentionally does not verify large external media. It keeps the
 firmware-intake docs, release manifest, and CI workflow aligned on the current
-state: `.gvid` review is ready for Labs exploration, 2K decode/display has a
-passing Pi-side target, and sustained half-res capture has a proxy-acceptable
-Pi receipt while actual camera-hardware 24 fps evidence remains blocked.
+state: `.gvid` review is ready for Labs exploration, native 12MP/4K Bayer
+capture and 1024 preview have proxy-acceptable Pi receipts, and actual
+camera-role evidence at the accepted 20+ fps floor remains blocked.
 """
 
 from __future__ import annotations
@@ -36,13 +36,11 @@ REQUIRED_DOCS = {
     "docs/LABS_INTAKE.md": [
         "What Ships In The Prototype",
         "What Does Not Ship In The Prototype",
-        "Half-res capture target",
-        "20 fps proxy",
-        "19.98 fps",
-        "23.54 fps",
-        "luma-pair",
-        "2K live/camera-back preview",
-        "2k_raw_0p5x_l2hh",
+        "Native 12MP / 4K Bayer capture target",
+        "accepted 20+ fps floor",
+        "20.50 fps wall / 21.52 fps median",
+        "1024 x 768 full-frame RGB preview",
+        "Strict 24 fps is optional performance research",
     ],
     "docs/LABS_FIRMWARE_API.md": [
         "Input Frame Contract",
@@ -155,6 +153,24 @@ REQUIRED_MANIFEST_DOC_REFS = {
     "docs/LABS_PI_CAPTURE_REGRESSION_2026-06-15.md",
 }
 
+FORBIDDEN_DOC_TOKENS = {
+    "docs/LABS_INTAKE.md": [
+        "actual Mission 1 firmware readiness still needs a 24 fps hardware receipt",
+        "labeling actual Mission 1 24 fps hardware capture as unproven",
+        "24 fps camera target",
+    ],
+    "docs/LABS_READINESS_GOAL.md": [
+        "Actual Mission 1 firmware readiness still requires a 24 fps hardware receipt",
+        "actual Mission 1 capture handoff and\n24 fps hardware receipt",
+    ],
+    "docs/SHIP_DECISION.md": [
+        "actual Mission 1 24 fps hardware receipt",
+    ],
+    "docs/LABS_TARGET_BENCH.md": [
+        "camera 24 fps pending",
+    ],
+}
+
 
 def tracked_paths() -> set[str]:
     result = subprocess.run(
@@ -197,6 +213,20 @@ def require_docs(tracked: set[str], failures: list[str]) -> None:
         for token in tokens:
             if token not in text:
                 failures.append(f"{rel} missing Labs contract token {token!r}")
+        for token in FORBIDDEN_DOC_TOKENS.get(rel, []):
+            if token in text:
+                failures.append(f"{rel} contains stale Labs blocker token {token!r}")
+
+    for rel, tokens in FORBIDDEN_DOC_TOKENS.items():
+        if rel in REQUIRED_DOCS:
+            continue
+        path = ROOT / rel
+        if rel not in tracked or not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for token in tokens:
+            if token in text:
+                failures.append(f"{rel} contains stale Labs blocker token {token!r}")
 
 
 def require_manifest_contract(manifest: dict[str, Any], failures: list[str]) -> None:
