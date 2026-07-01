@@ -169,6 +169,9 @@ def main() -> int:
         assert any("hardware-specific Bayer restoration" in row["repo_implication"] for row in research)
         assert any(row["id"] == "rethinking_raw_noise" for row in research)
         assert any("darkframe" in row["repo_implication"] for row in research)
+        assert any(row["id"] == "swinir" for row in research)
+        assert any(row["id"] == "restormer" for row in research)
+        assert any(row["id"] == "hat" for row in research)
         assert "source raw content" in contract["forbidden_runtime_inputs"]
         assert "JPEG-derived target content" in contract["forbidden_runtime_inputs"]
         assert "CFA phase / Bayer pattern metadata" in contract["allowed_runtime_inputs"]
@@ -186,12 +189,18 @@ def main() -> int:
         assert any("not reducible to independent local crop statistics" in item for item in minimum["must_change_from_failed_contract"])
         assert any("denoising, deblurring/PSF, and SR as one raw-restoration objective" in item for item in minimum["must_change_from_failed_contract"])
         assert any("sensor-pattern alignment" in item for item in minimum["must_change_from_failed_contract"])
+        assert any("overlapped tile inference" in item for item in minimum["must_change_from_failed_contract"])
         assert any("teacher-distilled" in item for item in minimum["acceptable_first_tracks"])
         assert any("CFA-phase-conditioned raw-CFA residual model" in item for item in minimum["acceptable_first_tracks"])
         assert any("NAF-style or transformer-style" in item for item in minimum["acceptable_first_tracks"])
+        assert any("SwinIR/HAT-style" in item for item in minimum["acceptable_first_tracks"])
+        assert any("Restormer-style" in item for item in minimum["acceptable_first_tracks"])
         assert any("sensor-pattern-aligned real-noise conditioning" in item for item in minimum["acceptable_first_tracks"])
+        assert any("window-attention/transformer" in item for item in minimum["baseline_comparisons_required"])
         assert any("patch-dictionary" in item for item in minimum["baseline_comparisons_required"])
         assert any("source raw" in item for item in minimum["early_reject_if"])
+        assert any("window seams" in item for item in minimum["early_reject_if"])
+        assert any("local CNN width/depth/loss sweep" in item for item in contract["do_not_repeat_as_primary_path"])
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "Premium Still-SR Next Experiment Contract" in html
         assert "Forbidden Runtime Inputs" in html

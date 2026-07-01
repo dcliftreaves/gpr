@@ -289,7 +289,7 @@ model, keep calibrated noise/signal cleaning in the feature contract, and run a
 full still/editor-latitude promotion gate.
 
 The premium still-SR next-experiment contract lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_20260701/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html`.
 It locks the next model pass to the canonical 351-row / 13-scene raw-CFA
 residual target, forbids REF/source/JPEG content at render time, records the
 failed local/context/noise/sampling-only paths that should not be repeated as the

@@ -88,7 +88,7 @@ def main() -> int:
         assert any("matched global-context" in item for item in data["pillars"][2]["done_evidence"])
         assert any("fixed non-box PSF/CFA" in item for item in data["pillars"][2]["done_evidence"])
         assert any(
-            "premium_still_sr_next_experiment_contract_20260701/index.html" in ref["path"]
+            "premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html" in ref["path"]
             for ref in data["pillars"][2]["evidence"]
         )
         assert any(

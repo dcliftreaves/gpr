@@ -359,7 +359,7 @@ machine-readable `research_basis` rows and converts it into the minimum viable
 model requirements:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html
 ```
 
 - Use packed Bayer / CFA-aware preprocessing and preserve sensor-specific black
@@ -389,7 +389,10 @@ model requirements:
   strategy rather than small local U-Nets. The NTIRE 2024 RAW SR survey reports
   top approaches using NAFNet teachers, progressive patch-size finetuning,
   spatial + Fourier losses, and spatial/frequency branches:
-  https://arxiv.org/html/2404.16223v1.
+  https://arxiv.org/html/2404.16223v1. The refreshed contract also points the
+  next primary pass toward SwinIR/HAT-style shifted-window or hybrid-attention
+  raw restoration teachers, or a Restormer-style high-resolution teacher, with
+  overlapped-tile/full-image validation before any student distillation.
 - If multiple frames exist, burst RAW SR literature treats single-image SR as
   severely ill-posed and uses alignment/aggregation over raw bursts:
   https://openaccess.thecvf.com/content/ICCV2021/papers/Lecouat_Lucas-Kanade_Reloaded_End-to-End_Super-Resolution_From_Raw_Image_Bursts_ICCV_2021_paper.pdf.
@@ -398,11 +401,12 @@ For this repo, that means the next premium still-SR candidate should not be
 another small raw-residual learner over the current duplicated rows, and the
 new source-HF rejection receipts show it also should not ask the small U-Net to
 predict full source HF directly. It should start from the deduplicated
-raw-domain target, then train a CFA-aware NAFNet/RCAB or Restormer-like teacher
-on unique raw rows with explicit Bayer phase handling, camera/noise/PSF
-conditioning, progressive patch sizing, spatial/frequency objectives, and
-rendered review gates. A smaller student can be distilled later only if the
-teacher clears the X2D/Z8 raw and rendered gates.
+raw-domain target, then train a CFA-aware window-attention or high-resolution
+restoration teacher on unique raw rows with explicit Bayer phase handling,
+camera/noise/PSF conditioning, progressive patch sizing, spatial/frequency
+objectives, and rendered review gates. A smaller student can be distilled later
+only if the teacher clears the X2D/Z8 raw and rendered gates without
+full-image/tile-overlap artifacts.
 
 The first RCAB-style teacher smoke run exists:
 

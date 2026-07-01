@@ -60,6 +60,34 @@ RESEARCH_BASIS = [
         ),
     },
     {
+        "id": "swinir",
+        "title": "SwinIR: Image Restoration Using Swin Transformer",
+        "url": "https://arxiv.org/abs/2108.10257",
+        "repo_implication": (
+            "Use shifted-window attention plus residual groups as the first serious "
+            "non-local detail prior for SR/denoise/compression restoration, rather "
+            "than only widening local convolutional probes."
+        ),
+    },
+    {
+        "id": "restormer",
+        "title": "Restormer: Efficient Transformer for High-Resolution Image Restoration",
+        "url": "https://arxiv.org/abs/2111.09881",
+        "repo_implication": (
+            "For high-resolution stills, prefer restoration blocks that model long-range "
+            "dependencies with feasible memory instead of independent crop-local context."
+        ),
+    },
+    {
+        "id": "hat",
+        "title": "HAT: Hybrid Attention Transformer for Image Restoration",
+        "url": "https://arxiv.org/abs/2309.05239",
+        "repo_implication": (
+            "Hybrid channel/window attention plus overlapping cross-window interaction is "
+            "a stronger candidate for activating more source pixels and placing fine detail."
+        ),
+    },
+    {
         "id": "raw_enhanced_realsr",
         "title": "Unveiling Hidden Details: A RAW Data-Enhanced Paradigm for Real-World Super-Resolution",
         "url": "https://arxiv.org/abs/2411.10798",
@@ -187,6 +215,7 @@ def build_contract(
                 "must_change_from_failed_contract": [
                     "use a full-image, full-crop, or otherwise structured context representation that is not reducible to independent local crop statistics",
                     "add a materially stronger learned detail prior, teacher-distilled target, or global/contextual objective instead of only increasing local CNN capacity",
+                    "use overlapped tile inference or full-image/TLC-style validation so window/context seams and long-range placement errors are visible before promotion",
                     "condition on camera/noise and measured or modeled PSF metadata where available, rather than treating all resize/detail residuals as one distribution",
                     "treat denoising, deblurring/PSF, and SR as one raw-restoration objective while keeping the final emitted file editable raw",
                     "preserve sensor-pattern alignment for noise and CFA detail features instead of mixing Bayer phases in RGB space before the raw gate",
@@ -200,6 +229,8 @@ def build_contract(
                     "teacher-distilled raw-CFA detail prior whose teacher never appears at render time",
                     "masked/contextual raw-detail reconstruction objective trained on the locked 351-row target set",
                     "NAF-style or transformer-style raw restoration teacher with full-image/TLC-style evaluation and candidate-only runtime inputs",
+                    "SwinIR/HAT-style shifted-window or hybrid-attention raw restoration teacher adapted to four-plane CFA residual output",
+                    "Restormer-style high-resolution raw restoration teacher for denoise/deblur/SR coupling before distilling to a smaller runtime model",
                     "sensor-pattern-aligned real-noise conditioning/addback using validated darkframe sidecars for cameras with calibrated sidecars",
                     "scene-family routed specialists only if the router uses candidate raw/metadata and beats the shared baseline per family",
                 ],
@@ -208,6 +239,7 @@ def build_contract(
                     "best Z8 raw-CFA residual baseline",
                     "small U-Net raw-domain probe",
                     "full-crop U-Net and gated pyramid U-Net rejection probes",
+                    "matched local-CNN versus window-attention/transformer raw-restoration teacher ablation on the same deduplicated target",
                     "patch-dictionary and low-order candidate-signal rejection probes",
                 ],
                 "early_reject_if": [
@@ -215,6 +247,7 @@ def build_contract(
                     "Z8 median raw-residual MAE recovery drops below the existing positive baseline without a documented tradeoff",
                     "runtime input policy includes REF, source raw, source HF, or JPEG target content",
                     "improvement appears only in local crop metrics and disappears in full still/editor-latitude review",
+                    "tile-overlap/full-image evaluation shows window seams or long-range detail placement regressions",
                     "checkpoint selection depends on train loss without passing held-out X2D and Z8 receipts",
                 ],
             },
@@ -255,6 +288,7 @@ def build_contract(
                 "nearest-neighbor residual patch dictionary over current candidate raw/HF patch statistics",
                 "low-order linear candidate raw/HF/metadata signal probes over current residual targets",
                 "calibrated random-HF or noise addback as a substitute for learned signal detail",
+                "another local CNN width/depth/loss sweep that does not add non-local attention, stronger teacher supervision, or full-image evaluation",
             ],
             "success_gates": [
                 f"X2D median raw-residual MAE recovery >= {mae_threshold:.1f}%",
