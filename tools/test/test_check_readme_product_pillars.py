@@ -43,7 +43,7 @@ def main() -> int:
                     "| PSF-aware RAW video improvement | 44% |",
                     "The percentages are production-readiness burn-down estimates.",
                     "not regression signals for locked artifacts",
-                    "raw target duplicate audit shows only 117 unique scene/crop raw-domain rows",
+                    "deduplicated raw-supervision NPZ collapses it to 117 unique scene/crop raw-domain rows with zero raw conflicts",
                     "same-scene candidate-signal and frequency-filter probes regress",
                     "Current candidate-only local/full-crop/global-context/masked-context statistics are not enough",
                     "deeper gated pyramid U-Net",

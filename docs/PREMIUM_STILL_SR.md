@@ -215,9 +215,24 @@ all 117 scene/crop groups, `candidate_raw_cfa4`, `candidate_raw_hf_cfa4`,
 `raw_hf_residual_cfa4`, and `source_raw_hf_cfa4` are identical across the
 -2/0/+2 EV rows, while `render_hf_residual_y` varies across every group. The
 EV rows are therefore useful rendered review/tone rows, but they are not
-independent raw-CFA supervision. Future raw-domain training receipts should
-report unique scene/crop counts or deduplicate raw rows before claiming target
-coverage.
+independent raw-CFA supervision. Raw-domain training receipts should therefore
+report unique scene/crop counts separately from rendered review rows and use
+the deduplicated target below for new teacher/student runs.
+
+The deduplicated raw-supervision target is now materialized:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/raw_cfa_residual_targets_dedup.npz
+```
+
+It keeps the trainer-facing array names (`candidate_raw_cfa4`,
+`candidate_raw_hf_cfa4`, `raw_hf_residual_cfa4`, `source_raw_hf_cfa4`, and
+`render_hf_residual_y`) but collapses the target from 351 source rows to 117
+unique raw rows with zero raw conflicts. The rendered EV rows are averaged into
+one review plane and preserved in metadata under
+`raw_deduplicated_review_rows`; they should not be counted as independent raw
+supervision.
 
 ## Research Alignment For The Next CNN Pass
 
@@ -249,7 +264,7 @@ architecture pass should be rebuilt around these points:
 
 For this repo, that means the next premium still-SR candidate should not be
 another small raw-residual learner over the current duplicated rows. It should
-first deduplicate raw-domain target rows, then train a CFA-aware NAFNet/RCAB or
+start from the deduplicated raw-domain target, then train a CFA-aware NAFNet/RCAB or
 Restormer-like teacher on unique raw rows with camera/noise/PSF conditioning,
 spatial + Fourier losses, and rendered review gates. A smaller student can be
 distilled later only if the teacher clears the X2D/Z8 raw and rendered gates.
