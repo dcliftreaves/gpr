@@ -427,6 +427,35 @@ about **0.142%**, far below the promotion gate and not comparable to a full
 teacher run. Its value is that the next contracted architecture can now run on
 the real target without REF/source/JPEG runtime inputs.
 
+The trainer now also supports explicit overlapped-tile final evaluation and
+seam diagnostics:
+
+```sh
+/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python \
+  tools/cnn/train_premium_still_sr_raw_cfa_residual.py \
+  --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/raw_cfa_residual_targets_dedup.npz \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_overlap_eval_<date> \
+  --model-arch window_attention_teacher \
+  --feature-mode raw_multiscale_storedhf_coord_ev_noise_psf_cfa \
+  --psf-receipt /Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_known_kernel_validation_20260701/bayer_resize_psf_receipt.json \
+  --eval-tile 256 \
+  --eval-overlap 64 \
+  --seam-check-width 8
+```
+
+The first real-target overlap/seam smoke receipt exists:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_overlap_eval_smoke_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_overlap_eval_smoke_20260701/train_receipt.json
+```
+
+It uses 64 px overlap and 8 px seam bands on bounded 2-row train / 2-row X2D
+holdout evaluation. The bounded X2D holdout median raw MAE recovery is about
+**0.448%**, with overlap-vs-plain median MAE around **1.65e-5** and seam-band
+delta around **7.04e-5**. This is validation machinery and seam-risk evidence,
+not a production still-SR model.
+
 The first RCAB-style teacher smoke run exists:
 
 ```text

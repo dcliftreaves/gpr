@@ -1741,6 +1741,119 @@ class RawCfaResidualTargets:
 
 
 @torch.no_grad()
+def tile_blend_weights(
+    tile_h: int,
+    tile_w: int,
+    *,
+    y0: int,
+    y1: int,
+    x0: int,
+    x1: int,
+    height: int,
+    width: int,
+    overlap: int,
+    device: torch.device,
+) -> torch.Tensor:
+    weights = torch.ones((1, 1, tile_h, tile_w), dtype=torch.float32, device=device)
+    if overlap <= 0:
+        return weights
+    fade_y = min(max(1, overlap // 2), max(1, tile_h // 2))
+    fade_x = min(max(1, overlap // 2), max(1, tile_w // 2))
+    if y0 > 0 and fade_y > 0:
+        ramp = torch.linspace(1.0 / (fade_y + 1), 1.0, fade_y, dtype=torch.float32, device=device).view(1, 1, fade_y, 1)
+        weights[:, :, :fade_y, :] *= ramp
+    if y1 < height and fade_y > 0:
+        ramp = torch.linspace(1.0, 1.0 / (fade_y + 1), fade_y, dtype=torch.float32, device=device).view(1, 1, fade_y, 1)
+        weights[:, :, -fade_y:, :] *= ramp
+    if x0 > 0 and fade_x > 0:
+        ramp = torch.linspace(1.0 / (fade_x + 1), 1.0, fade_x, dtype=torch.float32, device=device).view(1, 1, 1, fade_x)
+        weights[:, :, :, :fade_x] *= ramp
+    if x1 < width and fade_x > 0:
+        ramp = torch.linspace(1.0, 1.0 / (fade_x + 1), fade_x, dtype=torch.float32, device=device).view(1, 1, 1, fade_x)
+        weights[:, :, :, -fade_x:] *= ramp
+    return weights
+
+
+def tiled_residual_prediction(
+    model: nn.Module,
+    raw: torch.Tensor,
+    *,
+    stored_hf: torch.Tensor | None,
+    feature_mode: str,
+    feature_block: int,
+    ev: torch.Tensor,
+    noise: torch.Tensor,
+    frame_context: torch.Tensor,
+    psf: torch.Tensor,
+    cfa_phase: torch.Tensor,
+    tile: int,
+    context_padding: int,
+    eval_overlap: int,
+    target_scale: torch.Tensor,
+    target_representation: str,
+) -> torch.Tensor:
+    _, _, height, width = raw.shape
+    tile = max(1, int(tile))
+    overlap = max(0, min(int(eval_overlap), tile - 1))
+    stride = max(1, tile - overlap)
+    pad = max(0, int(context_padding))
+    raw_padded = F.pad(raw, (pad, pad, pad, pad), mode="replicate") if pad else raw
+    stored_hf_padded = F.pad(stored_hf, (pad, pad, pad, pad), mode="replicate") if pad and stored_hf is not None else stored_hf
+    pred_sum = torch.zeros_like(raw)
+    weight_sum = torch.zeros((1, 1, height, width), dtype=raw.dtype, device=raw.device)
+
+    def starts_for(size: int) -> list[int]:
+        if overlap <= 0:
+            return list(range(0, size, tile))
+        max_start = max(0, size - tile)
+        starts = list(range(0, max_start + 1, stride))
+        if starts[-1] != max_start:
+            starts.append(max_start)
+        return sorted(set(starts))
+
+    for y0 in starts_for(height):
+        for x0 in starts_for(width):
+            y1 = min(y0 + tile, height)
+            x1 = min(x0 + tile, width)
+            raw_tile = raw_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad]
+            hf_tile = stored_hf_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad] if stored_hf_padded is not None else None
+            pred_tile = model(
+                make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile, frame_context, psf, cfa_phase)
+            ) * target_scale
+            pred_center = pred_tile[:, :, pad : pad + (y1 - y0), pad : pad + (x1 - x0)] if pad else pred_tile
+            weights = tile_blend_weights(
+                y1 - y0,
+                x1 - x0,
+                y0=y0,
+                y1=y1,
+                x0=x0,
+                x1=x1,
+                height=height,
+                width=width,
+                overlap=overlap,
+                device=raw.device,
+            ).to(dtype=raw.dtype)
+            pred_sum[:, :, y0:y1, x0:x1] += pred_center * weights
+            weight_sum[:, :, y0:y1, x0:x1] += weights
+    pred = pred_sum / weight_sum.clamp_min(1.0e-12)
+    return prediction_to_residual(pred, stored_hf, target_representation=target_representation)
+
+
+def seam_mask(height: int, width: int, tile: int, seam_width: int, device: torch.device) -> torch.Tensor:
+    mask = torch.zeros((1, 1, height, width), dtype=torch.bool, device=device)
+    tile = max(1, int(tile))
+    seam_width = max(0, int(seam_width))
+    if seam_width <= 0:
+        return mask
+    half = max(1, seam_width // 2)
+    for y in range(tile, height, tile):
+        mask[:, :, max(0, y - half) : min(height, y + half), :] = True
+    for x in range(tile, width, tile):
+        mask[:, :, :, max(0, x - half) : min(width, x + half)] = True
+    return mask
+
+
+@torch.no_grad()
 def eval_rows(
     model: nn.Module,
     data: RawCfaResidualTargets,
@@ -1757,6 +1870,8 @@ def eval_rows(
     target_scale_strength: float,
     target_scale_reference_abs_mean: float,
     target_representation: str,
+    eval_overlap: int = 0,
+    seam_check_width: int = 0,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     model.eval()
@@ -1785,26 +1900,53 @@ def eval_rows(
             dtype=torch.float32,
             device=device,
         ).view(1, 1, 1, 1)
-        pred = torch.zeros_like(target)
         _, _, height, width = raw.shape
-        pad = max(0, int(context_padding))
-        raw_padded = torch.nn.functional.pad(raw, (pad, pad, pad, pad), mode="replicate") if pad else raw
-        stored_hf_padded = (
-            torch.nn.functional.pad(stored_hf, (pad, pad, pad, pad), mode="replicate")
-            if pad and stored_hf is not None
-            else stored_hf
+        pred = tiled_residual_prediction(
+            model,
+            raw,
+            stored_hf=stored_hf,
+            feature_mode=feature_mode,
+            feature_block=feature_block,
+            ev=ev,
+            noise=noise,
+            frame_context=frame_context,
+            psf=psf,
+            cfa_phase=cfa_phase,
+            tile=tile,
+            context_padding=context_padding,
+            eval_overlap=eval_overlap,
+            target_scale=target_scale,
+            target_representation=target_representation,
         )
-        for y0 in range(0, height, tile):
-            for x0 in range(0, width, tile):
-                y1 = min(y0 + tile, height)
-                x1 = min(x0 + tile, width)
-                raw_tile = raw_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad]
-                hf_tile = stored_hf_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad] if stored_hf_padded is not None else None
-                pred_tile = model(
-                    make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile, frame_context, psf, cfa_phase)
-                ) * target_scale
-                pred[:, :, y0:y1, x0:x1] = pred_tile[:, :, pad : pad + (y1 - y0), pad : pad + (x1 - x0)] if pad else pred_tile
-        pred = prediction_to_residual(pred, stored_hf, target_representation=target_representation)
+        overlap_metrics: dict[str, float] = {}
+        if eval_overlap > 0:
+            plain_pred = tiled_residual_prediction(
+                model,
+                raw,
+                stored_hf=stored_hf,
+                feature_mode=feature_mode,
+                feature_block=feature_block,
+                ev=ev,
+                noise=noise,
+                frame_context=frame_context,
+                psf=psf,
+                cfa_phase=cfa_phase,
+                tile=tile,
+                context_padding=context_padding,
+                eval_overlap=0,
+                target_scale=target_scale,
+                target_representation=target_representation,
+            )
+            delta = torch.abs(pred - plain_pred)
+            overlap_metrics["overlap_vs_plain_mae"] = float(torch.mean(delta).cpu())
+            overlap_metrics["overlap_vs_plain_max_abs"] = float(torch.max(delta).cpu())
+            mask = seam_mask(height, width, tile, seam_check_width, device)
+            if bool(torch.any(mask).cpu()):
+                overlap_metrics["overlap_vs_plain_seam_mae"] = float(torch.mean(delta.expand_as(pred)[mask.expand_as(pred)]).cpu())
+                nonmask = ~mask
+                overlap_metrics["overlap_vs_plain_nonseam_mae"] = (
+                    float(torch.mean(delta.expand_as(pred)[nonmask.expand_as(pred)]).cpu()) if bool(torch.any(nonmask).cpu()) else 0.0
+                )
         base_err = target
         pred_err = pred - target
         raw_pred_err = pred - raw_target
@@ -1832,10 +1974,13 @@ def eval_rows(
                 "psf_kernel_weights": [float(x) for x in data.psf_features[idx][:4]],
                 "psf_source": data.psf_sources[idx],
                 "cfa_phase": data.cfa_phase_labels[idx],
+                "eval_overlap": max(0, int(eval_overlap)),
+                "seam_check_width": max(0, int(seam_check_width)),
             }
         )
+        row_meta.update(overlap_metrics)
         rows.append(row_meta)
-    return {
+    result = {
         "row_count": len(rows),
         "baseline_raw_residual_mae": stats([row["baseline_raw_residual_mae"] for row in rows]),
         "model_raw_residual_mae": stats([row["model_raw_residual_mae"] for row in rows]),
@@ -1845,8 +1990,19 @@ def eval_rows(
         "raw_residual_rmse_reduction_pct": stats([row["raw_residual_rmse_reduction_pct"] for row in rows]),
         "exact_raw_mae_reduction_pct": stats([row["exact_raw_mae_reduction_pct"] for row in rows]),
         "context_padding": context_padding,
+        "eval_overlap": max(0, int(eval_overlap)),
+        "seam_check_width": max(0, int(seam_check_width)),
         "rows": rows,
     }
+    if eval_overlap > 0:
+        for key in (
+            "overlap_vs_plain_mae",
+            "overlap_vs_plain_max_abs",
+            "overlap_vs_plain_seam_mae",
+            "overlap_vs_plain_nonseam_mae",
+        ):
+            result[key] = stats([float(row[key]) for row in rows if key in row])
+    return result
 
 
 def cfa4_to_rgb_preview(arr: np.ndarray) -> np.ndarray:
@@ -1965,6 +2121,12 @@ def render_html(receipt: dict[str, Any], output_dir: Path) -> str:
             f"<div class='card'><h2>Holdout Raw MAE Reduction</h2>"
             f"<p>{holdout['raw_residual_mae_reduction_pct']['median']:.2f}% median</p></div>"
         )
+    overlap_text = "disabled"
+    if int(receipt["config"].get("eval_overlap", 0)) > 0:
+        overlap_text = (
+            f"{int(receipt['config'].get('eval_overlap', 0))} px overlap, "
+            f"{int(receipt['config'].get('seam_check_width', 0))} px seam check"
+        )
     return f"""<!doctype html>
 <html><head><meta charset="utf-8"><title>Premium Still SR Raw-CFA Residual Model</title>
 <style>
@@ -1985,6 +2147,7 @@ code{{color:#b7d7ff}}img{{max-width:100%;border:1px solid #333}}
 {holdout_text}
 <div class="card"><h2>Exact Raw Holdout</h2><p>{0.0 if not holdout else holdout['exact_raw_mae_reduction_pct']['median']:.2f}% median</p></div>
 <div class="card"><h2>Runtime Safety</h2><p>{html.escape(receipt['policy']['runtime_inputs'])}</p></div>
+<div class="card"><h2>Overlap Eval</h2><p>{html.escape(overlap_text)}</p></div>
 </div>
 <img src="{html.escape(panel)}">
 <table><tr><th>scene</th><th>crop</th><th>EV</th><th>baseline raw MAE</th><th>model raw MAE</th><th>MAE reduction</th><th>model RMSE</th></tr>
@@ -2018,6 +2181,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.psf_kernel_weight = None
     if not hasattr(args, "psf_sidecar"):
         args.psf_sidecar = None
+    if not hasattr(args, "eval_overlap"):
+        args.eval_overlap = 0
+    if not hasattr(args, "seam_check_width"):
+        args.seam_check_width = 0
     default_psf_kernel_weights = resolve_default_psf_kernel_weights(args)
     data = RawCfaResidualTargets(args.targets, default_psf_kernel_weights, args.psf_sidecar)
     if "storedhf" in args.feature_mode and data.candidate_raw_hf is None:
@@ -2136,6 +2303,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     target_scale_strength=args.target_scale_strength,
                     target_scale_reference_abs_mean=target_scale_reference_abs_mean,
                     target_representation=args.target_representation,
+                    eval_overlap=0,
+                    seam_check_width=0,
                 )
                 probe_median = float(probe_eval["raw_residual_mae_reduction_pct"]["median"])
                 row["holdout_probe_row_count"] = len(probe_indices)
@@ -2178,6 +2347,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         target_scale_strength=args.target_scale_strength,
         target_scale_reference_abs_mean=target_scale_reference_abs_mean,
         target_representation=args.target_representation,
+        eval_overlap=args.eval_overlap,
+        seam_check_width=args.seam_check_width,
     )
     holdout_eval = None
     if eval_holdout_indices:
@@ -2196,6 +2367,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             target_scale_strength=args.target_scale_strength,
             target_scale_reference_abs_mean=target_scale_reference_abs_mean,
             target_representation=args.target_representation,
+            eval_overlap=args.eval_overlap,
+            seam_check_width=args.seam_check_width,
         )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = args.output_dir / args.checkpoint_name
@@ -2234,6 +2407,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "context_mask_prob": args.context_mask_prob,
                 "context_mask_block": args.context_mask_block,
                 "eval_during_training_rows": args.eval_during_training_rows,
+                "eval_overlap": args.eval_overlap,
+                "seam_check_width": args.seam_check_width,
                 "save_best_holdout_checkpoint": args.save_best_holdout_checkpoint,
                 "psf_receipt": str(args.psf_receipt) if args.psf_receipt else None,
                 "psf_sidecar": str(args.psf_sidecar) if args.psf_sidecar else None,
@@ -2362,6 +2537,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "eval_train_rows": args.eval_train_rows,
             "eval_holdout_rows": args.eval_holdout_rows,
             "eval_during_training_rows": args.eval_during_training_rows,
+            "eval_overlap": args.eval_overlap,
+            "seam_check_width": args.seam_check_width,
             "save_best_holdout_checkpoint": args.save_best_holdout_checkpoint,
             "seed": args.seed,
         },
@@ -2378,6 +2555,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "full train/holdout evaluation"
                 if args.eval_train_rows <= 0 and args.eval_holdout_rows <= 0
                 else "diagnostic bounded evaluation; use full evaluation before promotion"
+            ),
+            "eval_overlap_contract": (
+                "disabled"
+                if args.eval_overlap <= 0
+                else f"enabled: metrics use overlapped tile accumulation with {args.eval_overlap}px overlap and compare against plain hard-tile output"
             ),
             "model_context_padding_pixels": args.context_padding,
             "training_context_mask": (
@@ -2606,6 +2788,18 @@ def main() -> int:
     )
     ap.add_argument("--eval-every", type=int, default=100)
     ap.add_argument("--eval-tile", type=int, default=384)
+    ap.add_argument(
+        "--eval-overlap",
+        type=int,
+        default=0,
+        help="Optional overlap in pixels for final tiled train/holdout evaluation. Zero preserves hard non-overlap evaluation.",
+    )
+    ap.add_argument(
+        "--seam-check-width",
+        type=int,
+        default=0,
+        help="Band width around hard-tile boundaries for overlap-vs-plain seam diagnostics.",
+    )
     ap.add_argument(
         "--eval-train-rows",
         type=int,

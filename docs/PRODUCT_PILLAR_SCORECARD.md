@@ -307,6 +307,14 @@ and proves executable PSF+CFA-conditioned path coverage on the canonical
 117-row deduplicated target without REF/source/JPEG runtime inputs. It is not a
 promotion run: the bounded 2-row X2D holdout median raw MAE recovery is about
 0.142 percent, far below the 15 percent promotion gate.
+The trainer now also exposes explicit overlapped-tile final evaluation and seam
+diagnostics through `--eval-overlap` and `--seam-check-width`. The first
+real-target overlap smoke receipt lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_overlap_eval_smoke_20260701/index.html`.
+It uses the same canonical deduplicated target with 64 px overlap and 8 px seam
+bands. The bounded X2D holdout median raw MAE recovery is about 0.448 percent,
+with overlap-vs-plain median MAE around 1.65e-5 and seam-band delta around
+7.04e-5. This is validation machinery and seam-risk evidence, not promotion.
 
 The first two X2D scene-holdout PSF probes are now recorded: a local noise-floor
 U-Net with near-box PSF planes reaches about 0.106 percent median exact raw MAE

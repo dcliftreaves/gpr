@@ -58,7 +58,7 @@
       "id": "premium_still_sr",
       "release_label": "Premium still/SR",
       "status": "research_loop_working_candidate_not_promoted",
-      "summary": "Target builders, raw-CFA residual datasets, noise-conditioned probes, model receipts, and blocker dashboards for spend-time-for-quality still reconstruction.",
+      "summary": "Target builders, raw-CFA residual datasets, noise-conditioned probes, model receipts, overlap/seam diagnostics, and blocker dashboards for spend-time-for-quality still reconstruction.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -1370,6 +1370,10 @@
         "artifacts/premium_still_sr_raw_target_snr_audit_20260701/index.html",
         "artifacts/premium_still_sr_target_distribution_audit_20260701/target_distribution_audit.json",
         "artifacts/premium_still_sr_target_distribution_audit_20260701/index.html",
+        "artifacts/premium_still_sr_window_attention_overlap_eval_smoke_20260701/premium_still_sr_raw_cfa_residual.pt",
+        "artifacts/premium_still_sr_window_attention_overlap_eval_smoke_20260701/train_receipt.json",
+        "artifacts/premium_still_sr_window_attention_overlap_eval_smoke_20260701/index.html",
+        "artifacts/premium_still_sr_window_attention_overlap_eval_smoke_20260701/panel_sheet.jpg",
         "artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/premium_still_sr_raw_cfa_residual_dedup_rcab_teacher_smoke.pt",
         "artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/index.html",

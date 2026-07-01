@@ -152,6 +152,8 @@ def main() -> int:
                 "context_mask_block": 16,
                 "eval_every": 0,
                 "eval_tile": 40,
+                "eval_overlap": 0,
+                "seam_check_width": 0,
                 "eval_train_rows": 0,
                 "eval_holdout_rows": 0,
                 "panel_rows": 2,
@@ -200,6 +202,9 @@ def main() -> int:
         assert receipt["config"]["sample_balance"] == "row"
         assert receipt["config"]["sample_mode"] == "random_patch"
         assert receipt["config"]["context_padding"] == 0
+        assert receipt["config"]["eval_overlap"] == 0
+        assert receipt["config"]["seam_check_width"] == 0
+        assert receipt["policy"]["eval_overlap_contract"] == "disabled"
         assert receipt["config"]["context_mask_prob"] == 0.0
         assert receipt["policy"]["training_context_mask"] == "disabled"
         assert "exact_raw_mae_reduction_pct" in receipt["eval"]["holdout"]
@@ -336,6 +341,21 @@ def main() -> int:
         assert context_padded_receipt["eval"]["holdout"]["context_padding"] == 3
         assert context_padded_receipt["policy"]["model_context_padding_pixels"] == 3
         assert context_padded_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
+        args.output_dir = root / "overlap_eval_holdout"
+        args.eval_tile = 17
+        args.eval_overlap = 8
+        args.seam_check_width = 4
+        overlap_receipt = tool.train(args)
+        assert overlap_receipt["eval"]["holdout"]["row_count"] == 1
+        assert overlap_receipt["config"]["eval_overlap"] == 8
+        assert overlap_receipt["config"]["seam_check_width"] == 4
+        assert "enabled: metrics use overlapped tile accumulation" in overlap_receipt["policy"]["eval_overlap_contract"]
+        assert "overlap_vs_plain_mae" in overlap_receipt["eval"]["holdout"]
+        assert "overlap_vs_plain_mae" in overlap_receipt["eval"]["holdout"]["rows"][0]
+        assert "overlap_vs_plain_seam_mae" in overlap_receipt["eval"]["holdout"]["rows"][0]
+        args.eval_overlap = 0
+        args.seam_check_width = 0
 
         args.output_dir = root / "unet_holdout"
         args.model_arch = "unet"
