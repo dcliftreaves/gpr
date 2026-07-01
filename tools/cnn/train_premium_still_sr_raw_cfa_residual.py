@@ -287,6 +287,31 @@ def snr_class_allowed(row_class: str, policy: str) -> bool:
     raise ValueError(f"unknown train_snr_class: {policy}")
 
 
+def target_snr_loss_weight(row_class: str, rmse_ratio: float, p95_ratio: float, policy: str, strength: float) -> float:
+    if policy == "none":
+        return 1.0
+    strength = float(np.clip(strength, 0.0, 2.0))
+    if policy == "noise_floor_downweight":
+        base = 0.35 if row_class == "noise_floor" else 1.0
+    elif policy == "signal_emphasis":
+        base = {
+            "signal_dominated": 1.0,
+            "mixed_signal_noise": 0.70,
+            "noise_floor": 0.35,
+            "missing_noise_sidecar": 0.50,
+        }.get(row_class, 0.50)
+    elif policy == "continuous_snr":
+        if row_class == "missing_noise_sidecar":
+            base = 0.50
+        else:
+            rmse_score = float(np.clip(rmse_ratio / 3.0, 0.0, 1.0))
+            p95_score = float(np.clip(p95_ratio / 2.0, 0.0, 1.0))
+            base = 0.30 + 0.70 * float(np.sqrt(rmse_score * p95_score))
+    else:
+        raise ValueError(f"unknown snr_loss_weight_policy: {policy}")
+    return float(np.clip(1.0 + strength * (base - 1.0), 0.05, 2.0))
+
+
 def make_features(
     raw: torch.Tensor,
     feature_mode: str,
@@ -435,10 +460,27 @@ def runtime_input_summary(feature_mode: str) -> str:
     return base
 
 
-def gradient_l1(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-    return F.l1_loss(pred[:, :, :, 1:] - pred[:, :, :, :-1], target[:, :, :, 1:] - target[:, :, :, :-1]) + F.l1_loss(
-        pred[:, :, 1:, :] - pred[:, :, :-1, :],
-        target[:, :, 1:, :] - target[:, :, :-1, :],
+def sample_weight_map(sample_weight: torch.Tensor | None, diff: torch.Tensor) -> torch.Tensor | None:
+    if sample_weight is None:
+        return None
+    weight = sample_weight.to(device=diff.device, dtype=diff.dtype).view(diff.shape[0], *([1] * (diff.ndim - 1)))
+    return weight / torch.mean(weight).clamp_min(1.0e-6)
+
+
+def weighted_abs_mean(diff: torch.Tensor, sample_weight: torch.Tensor | None = None) -> torch.Tensor:
+    weight = sample_weight_map(sample_weight, diff)
+    if weight is not None:
+        diff = diff * weight
+    return torch.mean(torch.abs(diff))
+
+
+def gradient_l1(pred: torch.Tensor, target: torch.Tensor, sample_weight: torch.Tensor | None = None) -> torch.Tensor:
+    return weighted_abs_mean(
+        pred[:, :, :, 1:] - pred[:, :, :, :-1] - (target[:, :, :, 1:] - target[:, :, :, :-1]),
+        sample_weight,
+    ) + weighted_abs_mean(
+        pred[:, :, 1:, :] - pred[:, :, :-1, :] - (target[:, :, 1:, :] - target[:, :, :-1, :]),
+        sample_weight,
     )
 
 
@@ -461,7 +503,7 @@ def normalize_band_blocks(values: list[int]) -> list[int]:
     return sorted(set(blocks))
 
 
-def multiscale_band_l1(pred: torch.Tensor, target: torch.Tensor, blocks: list[int]) -> torch.Tensor:
+def multiscale_band_l1(pred: torch.Tensor, target: torch.Tensor, blocks: list[int], sample_weight: torch.Tensor | None = None) -> torch.Tensor:
     if not blocks:
         return torch.zeros((), dtype=pred.dtype, device=pred.device)
     loss = torch.zeros((), dtype=pred.dtype, device=pred.device)
@@ -473,27 +515,37 @@ def multiscale_band_l1(pred: torch.Tensor, target: torch.Tensor, blocks: list[in
         target_low = lowpass(target, block)
         pred_band = prev_pred_low - pred_low
         target_band = prev_target_low - target_low
-        loss = loss + F.l1_loss(pred_band, target_band)
+        loss = loss + weighted_abs_mean(pred_band - target_band, sample_weight)
         prev_pred_low = pred_low
         prev_target_low = target_low
         used += 1
-    loss = loss + F.l1_loss(prev_pred_low, prev_target_low)
+    loss = loss + weighted_abs_mean(prev_pred_low - prev_target_low, sample_weight)
     return loss / float(used + 1)
 
 
-def spectral_magnitude_l1(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+def spectral_magnitude_l1(pred: torch.Tensor, target: torch.Tensor, sample_weight: torch.Tensor | None = None) -> torch.Tensor:
     pred_fft = torch.fft.rfft2(pred.float().contiguous(), dim=(-2, -1), norm="ortho")
     target_fft = torch.fft.rfft2(target.float().contiguous(), dim=(-2, -1), norm="ortho")
-    return F.l1_loss(torch.abs(pred_fft), torch.abs(target_fft))
+    return weighted_abs_mean(torch.abs(pred_fft) - torch.abs(target_fft), sample_weight)
 
 
-def residual_loss(pred: torch.Tensor, target: torch.Tensor, *, target_abs_weight: float) -> torch.Tensor:
+def residual_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    *,
+    target_abs_weight: float,
+    sample_weight: torch.Tensor | None = None,
+) -> torch.Tensor:
     weight = torch.ones_like(target[:, 0:1])
     if target_abs_weight > 0.0:
         target_abs = torch.mean(torch.abs(target), dim=1, keepdim=True)
         weight = weight + float(target_abs_weight) * torch.clamp(target_abs / 0.03, 0.0, 5.0)
     weight = weight / torch.mean(weight).clamp_min(1.0e-6)
-    return torch.mean(torch.abs(pred - target) * weight)
+    diff = torch.abs(pred - target) * weight
+    row_weight = sample_weight_map(sample_weight, diff)
+    if row_weight is not None:
+        diff = diff * row_weight
+    return torch.mean(diff)
 
 
 class ResidualBlock(nn.Module):
@@ -1002,6 +1054,19 @@ class RawCfaResidualTargets:
             raise ValueError(f"train-camera filter {train_camera!r} produced no training rows")
         return train, holdout
 
+    def snr_loss_weight_stats(self, indices: list[int], policy: str, strength: float) -> dict[str, float]:
+        values = [
+            target_snr_loss_weight(
+                self.target_snr_classes[idx],
+                self.target_snr_rmse_ratios[idx],
+                self.target_snr_p95_ratios[idx],
+                policy,
+                strength,
+            )
+            for idx in indices
+        ]
+        return stats(values)
+
     def sample_batch(
         self,
         indices: list[int],
@@ -1011,7 +1076,9 @@ class RawCfaResidualTargets:
         sample_balance: str = "row",
         sample_mode: str = "random_patch",
         context_padding: int = 0,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
+        snr_loss_weight_policy: str = "none",
+        snr_loss_weight_strength: float = 1.0,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
         xs: list[np.ndarray] = []
         ys: list[np.ndarray] = []
         hfs: list[np.ndarray] = []
@@ -1019,6 +1086,7 @@ class RawCfaResidualTargets:
         noises: list[tuple[float, float, float, float]] = []
         sigmas: list[tuple[float, float, float, float]] = []
         contexts: list[tuple[float, ...]] = []
+        snr_weights: list[float] = []
         h, w = self.candidate_raw.shape[1:3]
         if sample_mode == "random_patch":
             patch_h = patch_w = min(patch_size, h, w)
@@ -1059,6 +1127,15 @@ class RawCfaResidualTargets:
             noises.append(self.noise_features[idx])
             sigmas.append(self.noise_sigma4[idx])
             contexts.append(self.frame_context_features[idx])
+            snr_weights.append(
+                target_snr_loss_weight(
+                    self.target_snr_classes[idx],
+                    self.target_snr_rmse_ratios[idx],
+                    self.target_snr_p95_ratios[idx],
+                    snr_loss_weight_policy,
+                    snr_loss_weight_strength,
+                )
+            )
         return (
             torch.from_numpy(np.stack(xs)),
             torch.from_numpy(np.stack(ys)),
@@ -1066,6 +1143,7 @@ class RawCfaResidualTargets:
             torch.tensor(noises, dtype=torch.float32),
             torch.tensor(sigmas, dtype=torch.float32),
             torch.tensor(contexts, dtype=torch.float32),
+            torch.tensor(snr_weights, dtype=torch.float32),
             torch.from_numpy(np.stack(hfs)) if hfs else None,
         )
 
@@ -1295,6 +1373,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.eval_during_training_rows = 0
     if not hasattr(args, "save_best_holdout_checkpoint"):
         args.save_best_holdout_checkpoint = False
+    if not hasattr(args, "snr_loss_weight_policy"):
+        args.snr_loss_weight_policy = "none"
+    if not hasattr(args, "snr_loss_weight_strength"):
+        args.snr_loss_weight_strength = 1.0
     data = RawCfaResidualTargets(args.targets)
     if args.feature_mode in {"raw_multiscale_storedhf_coord_ev_noise", "raw_context_storedhf_coord_ev_noise"} and data.candidate_raw_hf is None:
         raise ValueError(f"{args.feature_mode} requires candidate_raw_hf_cfa4 in the target NPZ")
@@ -1322,7 +1404,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     best_state: dict[str, torch.Tensor] | None = None
     t0 = time.perf_counter()
     for step in range(1, args.steps + 1):
-        x, y, ev, noise, sigma, frame_context, stored_hf = data.sample_batch(
+        x, y, ev, noise, sigma, frame_context, snr_weight, stored_hf = data.sample_batch(
             train_indices,
             args.batch_size,
             args.patch_size,
@@ -1330,6 +1412,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             args.sample_balance,
             args.sample_mode,
             args.context_padding,
+            args.snr_loss_weight_policy,
+            args.snr_loss_weight_strength,
         )
         x = x.to(device)
         y = y.to(device)
@@ -1337,6 +1421,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         noise = noise.to(device)
         sigma = sigma.to(device)
         frame_context = frame_context.to(device)
+        snr_weight = snr_weight.to(device)
         stored_hf = stored_hf.to(device) if stored_hf is not None else None
         y = apply_target_policy(
             y,
@@ -1353,13 +1438,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         pred = model(make_features(x_train, args.feature_mode, args.feature_block, ev, noise, stored_hf_train, frame_context))
         pred = center_crop_like(pred, y, args.context_padding)
         loss = (
-            residual_loss(pred, y, target_abs_weight=args.target_abs_weight)
-            + args.grad_weight * gradient_l1(pred, y)
+            residual_loss(pred, y, target_abs_weight=args.target_abs_weight, sample_weight=snr_weight)
+            + args.grad_weight * gradient_l1(pred, y, snr_weight)
         )
         if args.band_weight > 0.0:
-            loss = loss + args.band_weight * multiscale_band_l1(pred, y, band_blocks)
+            loss = loss + args.band_weight * multiscale_band_l1(pred, y, band_blocks, snr_weight)
         if args.spectral_weight > 0.0:
-            loss = loss + args.spectral_weight * spectral_magnitude_l1(pred, y)
+            loss = loss + args.spectral_weight * spectral_magnitude_l1(pred, y, snr_weight)
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
@@ -1454,6 +1539,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "noise_threshold_scale": args.noise_threshold_scale,
                 "train_camera": args.train_camera,
                 "train_snr_class": args.train_snr_class,
+                "snr_loss_weight_policy": args.snr_loss_weight_policy,
+                "snr_loss_weight_strength": args.snr_loss_weight_strength,
                 "sample_balance": args.sample_balance,
                 "sample_mode": args.sample_mode,
                 "context_padding": args.context_padding,
@@ -1513,6 +1600,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "holdout_ev": args.holdout_ev,
             "train_camera": args.train_camera,
             "train_snr_class": args.train_snr_class,
+            "snr_loss_weight_policy": args.snr_loss_weight_policy,
+            "snr_loss_weight_strength": args.snr_loss_weight_strength,
             "train_snr_class_counts": {
                 key: sum(1 for idx in train_indices if data.target_snr_classes[idx] == key)
                 for key in sorted(set(data.target_snr_classes[idx] for idx in train_indices))
@@ -1521,6 +1610,16 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 key: sum(1 for idx in holdout_indices if data.target_snr_classes[idx] == key)
                 for key in sorted(set(data.target_snr_classes[idx] for idx in holdout_indices))
             },
+            "train_snr_loss_weight_stats": data.snr_loss_weight_stats(
+                train_indices,
+                args.snr_loss_weight_policy,
+                args.snr_loss_weight_strength,
+            ),
+            "holdout_snr_loss_weight_stats": data.snr_loss_weight_stats(
+                holdout_indices,
+                args.snr_loss_weight_policy,
+                args.snr_loss_weight_strength,
+            ),
             "sample_balance": args.sample_balance,
             "sample_mode": args.sample_mode,
             "context_padding": args.context_padding,
@@ -1555,6 +1654,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "production_status": "training_probe_not_registered_production_algorithm",
             "target_policy": args.target_policy,
             "train_snr_class_filter": args.train_snr_class,
+            "snr_loss_weight_policy": args.snr_loss_weight_policy,
+            "snr_loss_weight_strength": args.snr_loss_weight_strength,
             "holdout_selection_policy": (
                 "diagnostic_best_holdout_probe_checkpoint"
                 if args.save_best_holdout_checkpoint and best_holdout is not None
@@ -1647,6 +1748,18 @@ def main() -> int:
         choices=("all", "signal_dominated", "signal_or_mixed", "not_noise_floor"),
         default="all",
         help="Filter training rows by raw-target SNR class after holdout/camera filtering. Holdout rows are never filtered.",
+    )
+    ap.add_argument(
+        "--snr-loss-weight-policy",
+        choices=("none", "noise_floor_downweight", "signal_emphasis", "continuous_snr"),
+        default="none",
+        help="Per-row loss weighting from calibrated raw-target SNR. Unlike --train-snr-class, this keeps all rows available.",
+    )
+    ap.add_argument(
+        "--snr-loss-weight-strength",
+        type=float,
+        default=1.0,
+        help="Blend strength for --snr-loss-weight-policy. 0 preserves unweighted loss; 1 uses the policy defaults.",
     )
     ap.add_argument(
         "--sample-balance",

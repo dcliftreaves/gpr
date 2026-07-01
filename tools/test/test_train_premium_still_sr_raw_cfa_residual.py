@@ -133,6 +133,8 @@ def main() -> int:
                 "holdout_ev": None,
                 "train_camera": "z8",
                 "train_snr_class": "all",
+                "snr_loss_weight_policy": "none",
+                "snr_loss_weight_strength": 1.0,
                 "sample_balance": "row",
                 "sample_mode": "random_patch",
                 "context_padding": 0,
@@ -162,6 +164,10 @@ def main() -> int:
         assert receipt["config"]["holdout_scene"] == "holdout_scene"
         assert receipt["config"]["train_camera"] == "z8"
         assert receipt["config"]["train_snr_class"] == "all"
+        assert receipt["config"]["snr_loss_weight_policy"] == "none"
+        assert receipt["config"]["snr_loss_weight_strength"] == 1.0
+        assert receipt["config"]["train_snr_loss_weight_stats"]["median"] == 1.0
+        assert receipt["policy"]["snr_loss_weight_policy"] == "none"
         assert receipt["config"]["target_policy"] == "raw"
         assert receipt["config"]["band_weight"] == 0.0
         assert receipt["config"]["band_blocks"] == [5, 9]
@@ -198,6 +204,16 @@ def main() -> int:
         assert snr_receipt["config"]["holdout_snr_class_counts"] == {"signal_dominated": 1}
         assert snr_receipt["policy"]["train_snr_class_filter"] == "signal_dominated"
         args.train_snr_class = "all"
+
+        args.output_dir = root / "snr_weighted_holdout"
+        args.snr_loss_weight_policy = "signal_emphasis"
+        weighted_receipt = tool.train(args)
+        assert weighted_receipt["eval"]["holdout"]["row_count"] == 1
+        assert weighted_receipt["config"]["snr_loss_weight_policy"] == "signal_emphasis"
+        assert weighted_receipt["config"]["snr_loss_weight_strength"] == 1.0
+        assert weighted_receipt["config"]["train_snr_loss_weight_stats"]["min"] < 1.0
+        assert weighted_receipt["policy"]["snr_loss_weight_policy"] == "signal_emphasis"
+        args.snr_loss_weight_policy = "none"
 
         args.output_dir = root / "context_holdout"
         args.holdout_scene = "holdout_scene"

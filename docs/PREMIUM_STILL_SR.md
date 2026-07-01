@@ -350,6 +350,25 @@ for diagnosis and future weighting, but dropping noise-floor rows outright
 hurts this small X2D target. The next objective should use camera/SNR-aware
 loss weighting or multitask uncertainty rather than binary row removal.
 
+The first matched SNR-weighted U-Net probe batch then tested that next
+hypothesis without removing rows:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_snrweighted_signal_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_snrweighted_continuous_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_snrweighted_noisefloor_unet_w32_1200_20260701/index.html
+```
+
+Broad weighting still trails the unfiltered branch: `signal_emphasis` reaches
+about **0.135%** holdout median raw MAE recovery and `continuous_snr` reaches
+about **0.129%**. The only positive control is narrow
+`noise_floor_downweight`, which reaches about **0.153%** on the same 9-row X2D
+scene holdout. That is a useful direction signal, but not a promotion result:
+RMSE remains negative and the gain is too small to change the blocker. The next
+teacher should keep the noise-floor downweight as a conservative training
+prior, then move to a stronger CFA-aware objective with camera/PSF conditioning
+and spatial plus Fourier losses.
+
 A raw-target SNR audit now compares the deduplicated raw-CFA residual target to
 the calibrated camera noise sidecars:
 
