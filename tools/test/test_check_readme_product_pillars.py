@@ -42,6 +42,8 @@ def main() -> int:
                     "| Premium still/SR | 60% |",
                     "| RAW video reconstruction improvement | 100% |",
                     "PSF-conditioned replacement training are preserved as optional research evidence",
+                    "separate Research Parking Lot for PSF/SR follow-ups",
+                    "excluded from production action counts and readiness percentages",
                     "psf_gradient_focus_from_detail_s400_fw6_gw12_s300",
                     "mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1",
                     "Mission gradient median +0.253",
