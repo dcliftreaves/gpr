@@ -56,6 +56,7 @@ def main() -> int:
         assert data["four_pillar_completion_percent"] == 83
         assert data["production_ready"] is False
         assert data["summary"]["action_count"] == 3
+        assert data["summary"]["optional_research_action_count"] == 2
         assert data["summary"]["open_requirement_count"] == 4
         assert data["summary"]["optional_research_requirement_count"] == 1
         assert data["summary"]["camera_required_action_count"] == 1
@@ -82,6 +83,17 @@ def main() -> int:
             "premium_still_sr_promotion_receipts",
         ]
         assert data["optional_research_requirement_ids"] == ["controlled_mission1_psf_pairs"]
+        research_actions = data["optional_research_actions"]
+        assert [row["title"] for row in research_actions] == [
+            "Capture or locate controlled Mission 1 high/low PSF pairs",
+            "Gate a PSF-conditioned 4K/8K video SR candidate",
+        ]
+        assert all(row["pillar"] == "raw_video_psf_research" for row in research_actions)
+        assert all(row["requirement_ids"] == ["controlled_mission1_psf_pairs"] for row in research_actions)
+        assert all(
+            row["source_requirement_statuses"] == {"controlled_mission1_psf_pairs": "research_optional"}
+            for row in research_actions
+        )
         stills_actions = data["pillars"][0]["burn_down_actions"]
         assert "STILL smallest" in data["pillars"][0]["lock_ledger_paths"]
         assert "Broad real-camera Bayer phase coverage" not in data["pillars"][0]["open_production_gates"]
@@ -140,6 +152,8 @@ def main() -> int:
         assert "Requirement IDs" in html
         assert "Open production requirement IDs" in html
         assert "Optional research requirement IDs, excluded from release blocker counts" in html
+        assert "Research Parking Lot" in html
+        assert "excluded from release blocker counts, production action counts, and four-pillar readiness" in html
         assert "mission1_darkframe_stack" in html
         assert "controlled_mission1_psf_pairs" in html
         assert "Blocker type" in html

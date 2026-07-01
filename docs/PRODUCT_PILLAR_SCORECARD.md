@@ -34,10 +34,13 @@ The burn-down is the action view over the same machine-readable capture
 requirements: it carries the requirement IDs, statuses, and validation commands
 from [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json),
 then separates hardware integration, sample-acquisition, model-promotion, and
-optional research requirement IDs. That distinction matters because the one Mission 1
-camera-role closure, real fixture/darkframe gaps, premium model-promotion gaps,
-and optional PSF research are different kinds of evidence, not regressions of
-the locked still, 4K cleanup, 8K SR, or Pi stand-in paths.
+optional research requirement IDs. The generated dashboard also carries a
+separate Research Parking Lot for PSF/SR follow-ups; those actions are retained
+for traceability but excluded from production action counts and readiness percentages.
+That distinction matters because the one Mission 1 camera-role
+closure, real fixture/darkframe gaps, premium model-promotion gaps, and optional
+PSF research are different kinds of evidence, not regressions of the locked
+still, 4K cleanup, 8K SR, or Pi stand-in paths.
 The committed sample/receipt contract is
 [`PRODUCTION_CAPTURE_REQUIREMENTS.md`](PRODUCTION_CAPTURE_REQUIREMENTS.md) and
 [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json).

@@ -128,8 +128,9 @@ premium still/SR, and approved raw-video reconstruction. The generated burn-down
 to the committed requirement IDs in
 [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.json)
 and separates remaining work into hardware integration, sample acquisition, and
-model promotion, so new fixture or camera-role evidence cannot be mistaken for
-an algorithm regression.
+model promotion. Optional PSF/SR follow-ups live in the burn-down's **Research Parking Lot**,
+outside production action counts and readiness percentages, so new fixture or
+camera-role evidence cannot be mistaken for an algorithm regression, and research cannot quietly become a ship blocker.
 When reviewing progress, use the lock ledger for artifact stability and the scorecard for remaining production evidence. A percent can stay below 100% even
 when important artifacts are approved, because the open fraction may be hardware
 access, missing samples, or a still-unpromoted research model rather than a

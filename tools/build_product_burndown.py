@@ -121,6 +121,14 @@ def is_release_action(action_row: dict[str, Any], requirement_map: dict[str, dic
     )
 
 
+def is_optional_research_action(action_row: dict[str, Any], requirement_map: dict[str, dict[str, Any]]) -> bool:
+    return any(
+        str(requirement_map[req_id].get("status")) in OPTIONAL_RESEARCH_STATUSES
+        or str(requirement_map[req_id].get("priority")) == "research_optional"
+        for req_id in action_row["requirement_ids"]
+    )
+
+
 def optional_research_requirement_ids(requirements: dict[str, Any]) -> list[str]:
     return [
         str(req["id"])
@@ -280,12 +288,18 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             completion_gate="The PSF-conditioned candidate beats the current approved 4K cleanup and 8K SR baselines without worse worst-row failures.",
         ),
     ]
-    actions = [
+    release_actions = [
         row for row in actions
         if is_release_action(row, requirement_map) and has_open_requirement(row, requirement_map)
     ]
-    actions = attach_requirements(actions, requirement_map)
+    optional_research_actions = [
+        row for row in actions
+        if is_optional_research_action(row, requirement_map)
+    ]
+    actions = attach_requirements(release_actions, requirement_map)
+    optional_research_actions = attach_requirements(optional_research_actions, requirement_map)
     actions.sort(key=lambda row: (row["priority"], row["pillar"], row["title"]))
+    optional_research_actions.sort(key=lambda row: (row["priority"], row["pillar"], row["title"]))
     by_pillar: dict[str, list[dict[str, Any]]] = {}
     for row in actions:
         by_pillar.setdefault(str(row["pillar"]), []).append(row)
@@ -306,10 +320,12 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             if str(req["status"]) in OPEN_REQUIREMENT_STATUSES
         ],
         "optional_research_requirement_ids": optional_research_requirement_ids(requirements),
+        "optional_research_actions": optional_research_actions,
         "four_pillar_completion_percent": scorecard["four_pillar_completion_percent"],
         "production_ready": scorecard["production_ready"],
         "summary": {
             "action_count": len(actions),
+            "optional_research_action_count": len(optional_research_actions),
             "open_requirement_count": sum(
                 1
                 for req in requirements["requirements"]
@@ -412,6 +428,44 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
     )
     open_ids = ", ".join(f"`{item}`" for item in data["open_requirement_ids"])
     research_ids = ", ".join(f"`{item}`" for item in data["optional_research_requirement_ids"])
+    research_rows = []
+    for row in data.get("optional_research_actions", []):
+        evidence = "<br>".join(html.escape(str(item)) for item in row["evidence_required"])
+        req_ids = "<br>".join(
+            f"<code>{html.escape(str(req_id))}</code>" for req_id in row["requirement_ids"]
+        )
+        statuses = "<br>".join(
+            f"{html.escape(str(req_id))}: {html.escape(str(status))}"
+            for req_id, status in row["source_requirement_statuses"].items()
+        )
+        commands = row["validation_commands"] or ([row["next_command"]] if row["next_command"] else [])
+        if row["next_command"] and row["next_command"] not in commands:
+            commands = [row["next_command"], *commands]
+        command_html = "<br>".join(f"<code>{html.escape(str(command))}</code>" for command in commands)
+        if not command_html:
+            command_html = "defined after prerequisite evidence exists"
+        research_rows.append(
+            "<tr>"
+            f"<td>{row['priority']}</td>"
+            f"<td>{html.escape(str(row['pillar']).replace('_', ' '))}</td>"
+            f"<td>{html.escape(row['title'])}</td>"
+            f"<td>{html.escape(row['owner'])}</td>"
+            f"<td>{req_ids}</td>"
+            f"<td>{statuses}</td>"
+            f"<td>{evidence}</td>"
+            f"<td>{command_html}</td>"
+            f"<td>{html.escape(row['completion_gate'])}</td>"
+            "</tr>"
+        )
+    research_body = (
+        "\n".join(research_rows)
+        or "<tr><td colspan='9'>No optional research actions recorded.</td></tr>"
+    )
+    research_section = f"""<section class="detail research">
+  <h2>Research Parking Lot</h2>
+  <p>These actions are retained for traceability but excluded from release blocker counts, production action counts, and four-pillar readiness. They can replace a locked path only after they beat the locked baseline and provide the same receipts.</p>
+  <table><thead><tr><th>Priority</th><th>Research track</th><th>Action</th><th>Owner</th><th>Requirement IDs</th><th>Requirement status</th><th>Evidence required</th><th>Validation commands</th><th>Completion gate</th></tr></thead><tbody>{research_body}</tbody></table>
+</section>"""
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -437,6 +491,7 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
     .label {{ color: #53606d; font-size: 12px; text-transform: uppercase; font-weight: 700; }}
     .pct {{ font-size: 36px; font-weight: 760; margin-top: 6px; }}
     .detail {{ margin-top: 18px; background: white; border: 1px solid #dce2e7; border-radius: 8px; padding: 18px; }}
+    .research {{ border-top: 5px solid #7a8591; }}
     .meta {{ color: #66727e; font-size: 13px; margin-top: 20px; }}
   </style>
 </head>
@@ -452,6 +507,7 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
   <p class="meta">Optional research requirement IDs, excluded from release blocker counts: {html.escape(research_ids or 'none')}</p>
   <div class="grid">{''.join(cards)}</div>
   {''.join(sections)}
+  {research_section}
   <p class="meta">Generated {html.escape(data["created_utc"])}. JSON: {html.escape(str(json_path))}. External root: {html.escape(data["external_root"])}.</p>
 </main>
 </body>

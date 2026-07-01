@@ -151,8 +151,34 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
         )
     if summary.get("optional_research_requirement_count") != 1:
         failures.append("burn-down must identify one optional research requirement outside release blockers")
+    if summary.get("optional_research_action_count") != 2:
+        failures.append("burn-down must keep the two PSF follow-ups in optional research actions")
     if RELEASE_PILLAR_IDS != set(EXPECTED_PILLARS):
         failures.append(f"release pillar guard drifted: {RELEASE_PILLAR_IDS!r}")
+    research_actions = data.get("optional_research_actions")
+    if not isinstance(research_actions, list):
+        failures.append("burn-down must expose optional_research_actions as a list")
+        research_actions = []
+    research_titles = [str(row.get("title")) for row in research_actions if isinstance(row, dict)]
+    expected_research_titles = [
+        "Capture or locate controlled Mission 1 high/low PSF pairs",
+        "Gate a PSF-conditioned 4K/8K video SR candidate",
+    ]
+    if research_titles != expected_research_titles:
+        failures.append(f"unexpected optional research action titles: {research_titles!r}")
+    for row in research_actions:
+        if not isinstance(row, dict):
+            failures.append(f"optional research action is not a dict: {row!r}")
+            continue
+        if row.get("pillar") in EXPECTED_PILLARS:
+            failures.append("optional research action must not use a release pillar id")
+        if row.get("requirement_ids") != ["controlled_mission1_psf_pairs"]:
+            failures.append(f"optional research action uses unexpected requirements: {row.get('requirement_ids')!r}")
+        if row.get("source_requirement_statuses") != {"controlled_mission1_psf_pairs": "research_optional"}:
+            failures.append(
+                "optional research action must carry research_optional source status, "
+                f"got {row.get('source_requirement_statuses')!r}"
+            )
 
     pillars = {str(row.get("id")): row for row in data.get("pillars", [])}
     for pillar_id, spec in EXPECTED_PILLARS.items():
