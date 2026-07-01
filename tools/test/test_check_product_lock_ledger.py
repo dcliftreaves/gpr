@@ -43,7 +43,10 @@ def main() -> int:
             return 1
 
         tmp_ledger.write_text(
-            text.replace("| PSF-aware raw-video replacement |", "| Imaginary open gate |"),
+            text.replace(
+                "| Release packaging and documentation hygiene for the approved offline reconstruction workflow |",
+                "| Imaginary open gate |",
+            ),
             encoding="utf-8",
         )
         failures = module.validate(tmp_ledger)

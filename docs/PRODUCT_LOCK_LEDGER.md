@@ -8,8 +8,8 @@ regressions.
 
 The rule is simple: a locked path regresses only when its own committed gate,
 receipt, hash, or CI guard fails. A lower or unchanged pillar percentage can
-still be correct when new hardware, fixture, noise, PSF, or promotion evidence
-is required.
+still be correct when new hardware, fixture, noise, release-packaging, or
+promotion evidence is required.
 
 ## Locked Paths
 
@@ -33,12 +33,20 @@ is required.
 | Real Mission 1 camera-role raw-video closure | Current raw-video encode and preview receipts are Pi stand-ins, not actual Mission 1 sensor/DMA, SD writer, and rear-display receipts. | Real camera-role closure run with sensor/DMA or camera ring-buffer source, storage handoff, rear-display/UI handoff, zero drops, valid `.gvid`, and timing receipts. |
 | Mission 1 and iPhone nonzero noise addback | X2D and Z8 have validated darkframe sidecars; Mission 1 and iPhone do not. | Same-camera, same-ISO darkframe stacks with source hashes, v1 camera-noise sidecars, runtime policy update, and raw-noise/signal audit pass. |
 | Premium still-SR promotion | Current raw-CFA residual targets and trainers are diagnostic; Z8 is mildly positive, X2D/domain-general recovery is too weak. | Candidate-only runtime model that clears dedicated 50 MP and 100 MP still-SR gates, editor-latitude review, worst-row dashboard, editable DNG/GPR packaging, and no REF/source content at render time. |
-| PSF-aware raw-video replacement | 4K cleanup and 8K SR are approved baselines, but current native high/low pairs produce an unstable kernel. | Controlled Mission 1 high/low Bayer pairs with source hashes, decoded Bayer hashes, fixed settings, negative controls, stable native PSF kernel, and a PSF-conditioned 4K/8K candidate that beats the current baselines. |
+| Release packaging and documentation hygiene for the approved offline reconstruction workflow | The approved 4K cleanup and 8K SR baselines are shippable offline/post paths, but release docs and bundle labels still need to stay aligned with the current evidence. | README, scorecard, release manifest, handoff bundle labels, artifact hashes, and lock-ledger checks all agree on the approved 4K/8K reconstruction boundary. |
+
+## Optional Research
+
+| research item | why it is not a production gate | evidence needed before it can replace a locked path |
+|---|---|---|
+| PSF-aware raw-video replacement | 4K cleanup and 8K SR are already approved baselines, and current native high/low pairs produce an unstable kernel. | Controlled Mission 1 high/low Bayer pairs with source hashes, decoded Bayer hashes, fixed settings, negative controls, stable native PSF kernel, and a PSF-conditioned 4K/8K candidate that beats the current baselines. |
 
 ## Reviewer Read
 
 The repo is a working raw-stills and raw-video prototype with several locked
 product paths. It is not a complete production claim for every pillar. The
 remaining work is specific: real Mission 1 camera-role receipts,
-Mission/iPhone noise sidecars, promotable premium still-SR, and controlled PSF
-evidence for a better video/SR model.
+Mission/iPhone noise sidecars, promotable premium still-SR, and release hygiene
+around the approved 4K/8K reconstruction path. Controlled PSF evidence is still
+useful for a better future video/SR model, but it is optional research rather
+than a shipping blocker.
