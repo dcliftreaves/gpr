@@ -20,7 +20,7 @@ DEFAULT_BAYER_INVENTORY = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/bayer_phase_fixture_discovery_broad_dng_gpr_3000_20260630/inventory.json"
 )
 DEFAULT_DARKFRAME_AUDIT = Path(
-    "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/darkframe_candidate_audit.json"
+    "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/darkframe_candidate_audit.json"
 )
 DEFAULT_NOISE_COVERAGE = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/noise_coverage.json"

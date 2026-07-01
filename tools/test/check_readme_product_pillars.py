@@ -108,10 +108,10 @@ REQUIRED_README_TOKENS = (
     "Production capture requirements",
     "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json",
     "real fixtures, darkframes, camera receipts, PSF pairs, and model-promotion receipts",
-    "broad Mission/iPhone audit parses **650** DNGs",
-    "finds **58** dark-like frames",
+    "full-manifest Mission/iPhone audit parses **1,997 / 2,000** rows",
+    "finds **59** dark-like frames",
     "Mission ISO232 RGGB has **2** dark-like candidates",
-    "iPhone ISO1250 RGGB has **23** dark-like candidates",
+    "iPhone ISO1250 RGGB has **27** dark-like candidates",
 )
 
 FORBIDDEN_README_TOKENS = (

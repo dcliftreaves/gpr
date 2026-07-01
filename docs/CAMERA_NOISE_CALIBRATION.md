@@ -119,21 +119,22 @@ frames:
 TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp \
 /Users/dcliftreaves/anaconda3/envs/py3_10/bin/python \
   tools/build_darkframe_candidate_audit.py \
-  --manifest /Volumes/OWC_8TB/gpr_work/tmp/darkframe_candidate_mission_iphone_manifest.txt \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701
+  --manifest /Volumes/OWC_8TB/gpr_work/tmp/darkframe_candidate_manifest_20260630.txt \
+  --max-files 2000 \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701
 ```
 
 Current Mission 1 / iPhone candidate audit:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html
 ```
 
-The current scan saw 50 files, parsed 49 Mission 1 CFA DNGs, and found 9
-darkframe-like Mission 1 frames across 8 camera/ISO/CFA groups. No group has
-the required four-frame stack, so `production_sidecar_ready=false`. The iPhone
-fixture in this scan is the known Linear Raw negative fixture and is not a CFA
-darkframe source.
+The current full-manifest scan saw 2,000 bounded manifest rows, parsed 1,997,
+and found 59 darkframe-like frames. Mission 1 still has only a two-frame ISO232
+RGGB candidate group. iPhone has a 27-frame ISO1250 RGGB candidate group, but
+those candidate-discovery frames still need confirmed no-scene-signal
+provenance before they can become a production sidecar.
 
 ## Policy
 

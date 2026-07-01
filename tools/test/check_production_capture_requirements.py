@@ -118,7 +118,7 @@ def validate() -> list[str]:
         for token in (
             *EXPECTED_IDS.keys(),
             "Product pillar scorecard",
-            "stills_capture_request_noise_broad_20260701",
+            "stills_capture_request_noise_fullmanifest_20260701",
             "raw_video_psf_capture_request_20260630",
         ):
             if token not in doc:

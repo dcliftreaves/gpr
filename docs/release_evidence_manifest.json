@@ -20,9 +20,9 @@
           "targeted_raw_fixture_scan_20260630",
           "broad_old_photo_bayer_phase_scan_20260701",
           "source_root_raw_fixture_scan_20260630",
-          "broad_mission_iphone_darkframe_audit_20260701",
-          "stills_fixture_gap_plan_noise_broad_20260701",
-          "stills_capture_request_noise_broad_20260701",
+          "mission_iphone_fullmanifest_darkframe_audit_20260701",
+          "stills_fixture_gap_plan_noise_fullmanifest_20260701",
+          "stills_capture_request_noise_fullmanifest_20260701",
           "camera_noise_runtime_policy_20260630"
         ]
       },
@@ -1319,8 +1319,8 @@
         "artifacts/product_burndown_20260701/index.html"
       ],
       "hashes": {
-        "product_burndown_json_sha256": "97fd2a808c59a5302beed6c5ef82ed2ea9ef4e86acda297de056458a8edb5b2d",
-        "dashboard_sha256": "77e1e752ca526e6397c91e2a2069e8eb849be229f56244736d2c502d102c56f7"
+        "product_burndown_json_sha256": "7843fe4e5b892c88bca3f576cb0c80ab7d9dc6845a3b611abc7334c1bbb5ece2",
+        "dashboard_sha256": "c1b2287e8973a2453e282e6539c149d974bb3c7d574cd82e10175fa52e5c229a"
       },
       "metrics": {
         "four_pillar_completion_percent": 69,
@@ -1588,11 +1588,11 @@
       }
     },
     {
-      "id": "broad_mission_iphone_darkframe_audit_20260701",
+      "id": "mission_iphone_fullmanifest_darkframe_audit_20260701",
       "family": "noise_signal",
       "status": "current",
-      "purpose": "Broad Mission/iPhone DNG darkframe-candidate audit. It parses 650 real DNGs, finds dark-like iPhone and Mission candidates, and keeps production sidecar readiness false because candidate-discovery frames need confirmed no-scene-signal provenance.",
-      "dashboard": "artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html",
+      "purpose": "Full-manifest Mission/iPhone darkframe-candidate audit. It parses 1,997 of 2,000 bounded manifest rows, finds dark-like iPhone and Mission candidates, and keeps production sidecar readiness false because candidate-discovery frames need confirmed no-scene-signal provenance.",
+      "dashboard": "artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html",
       "docs": [
         "README.md",
         "docs/BIG_EFFORTS_STATUS.md",
@@ -1601,30 +1601,30 @@
         "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"
       ],
       "receipts": [
-        "artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/darkframe_candidate_audit.json",
-        "artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html"
+        "artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/darkframe_candidate_audit.json",
+        "artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html"
       ],
       "hashes": {
-        "darkframe_candidate_audit_json_sha256": "79b79fa7976f54db8be4872bce4be666e15d06b4a81cdcdda36f6d988ac6e55c",
-        "dashboard_sha256": "96c612c98f933f8b3a655d23e609c7475b239d38beb665bd399ff7c266d9e517"
+        "darkframe_candidate_audit_json_sha256": "68523ecb35dc32342735e7843528d1a61fb7824e7c9f297934a611768425449e",
+        "dashboard_sha256": "bae377aeef9fa8f48947cb54d087af975b309b7315797616376db0ac785002a1"
       },
       "metrics": {
-        "files_seen": 650,
-        "parsed_count": 650,
-        "darkframe_like_count": 58,
-        "candidate_stack_ready_group_count": 3,
+        "files_seen": 2000,
+        "parsed_count": 1997,
+        "darkframe_like_count": 59,
+        "candidate_stack_ready_group_count": 4,
         "production_stack_ready_group_count": 0,
         "production_sidecar_ready": 0,
         "mission1_iso232_candidate_count": 2,
-        "iphone_iso1250_candidate_count": 23
+        "iphone_iso1250_candidate_count": 27
       }
     },
     {
-      "id": "stills_fixture_gap_plan_noise_broad_20260701",
+      "id": "stills_fixture_gap_plan_noise_fullmanifest_20260701",
       "family": "stills_fixtures",
       "status": "current",
-      "purpose": "Current raw-stills fixture/noise gap plan. It combines all-four real Bayer phase evidence with the broad Mission/iPhone darkframe audit and narrows the remaining stills gap to Mission/iPhone noise sidecars.",
-      "dashboard": "artifacts/stills_fixture_gap_plan_noise_broad_20260701/index.html",
+      "purpose": "Current raw-stills fixture/noise gap plan. It combines all-four real Bayer phase evidence with the full-manifest Mission/iPhone darkframe audit and narrows the remaining stills gap to Mission/iPhone noise sidecars.",
+      "dashboard": "artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html",
       "docs": [
         "README.md",
         "docs/BIG_EFFORTS_STATUS.md",
@@ -1633,27 +1633,27 @@
         "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"
       ],
       "receipts": [
-        "artifacts/stills_fixture_gap_plan_noise_broad_20260701/stills_fixture_gap_plan.json",
-        "artifacts/stills_fixture_gap_plan_noise_broad_20260701/index.html"
+        "artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/stills_fixture_gap_plan.json",
+        "artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html"
       ],
       "hashes": {
-        "stills_fixture_gap_plan_json_sha256": "8b2eef0265424a9aea08bfd169bf87472c1f556138f810e9987ced7b4b450394",
-        "dashboard_sha256": "f05eed88eb3297500837002dca814185fd255bbb204bfab5a17e1fa62ab81984"
+        "stills_fixture_gap_plan_json_sha256": "ecd791fd1b2405d2acc5e15c466bd5b67a9b9d002659a383c53d36a2c793f53a",
+        "dashboard_sha256": "01eceab64395920d6818dc9b524801d350bca2f5cd252e57f0deee9d2020bb7b"
       },
       "metrics": {
         "all_real_bayer_phases_ready": 1,
         "darkframe_stack_ready_group_count": 0,
         "open_requirement_count": 2,
         "mission1_iso232_candidate_count": 2,
-        "iphone_iso1250_candidate_count": 23
+        "iphone_iso1250_candidate_count": 27
       }
     },
     {
-      "id": "stills_capture_request_noise_broad_20260701",
+      "id": "stills_capture_request_noise_fullmanifest_20260701",
       "family": "stills_fixtures",
       "status": "current",
       "purpose": "Current raw-stills capture request for the remaining Mission/iPhone darkframe sidecars, including per-family lowest-lift follow-ups and no-scene-signal provenance requirements.",
-      "dashboard": "artifacts/stills_capture_request_noise_broad_20260701/index.html",
+      "dashboard": "artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html",
       "docs": [
         "README.md",
         "docs/BIG_EFFORTS_STATUS.md",
@@ -1662,11 +1662,11 @@
         "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"
       ],
       "receipts": [
-        "artifacts/stills_capture_request_noise_broad_20260701/stills_capture_request.json",
-        "artifacts/stills_capture_request_noise_broad_20260701/index.html"
+        "artifacts/stills_capture_request_noise_fullmanifest_20260701/stills_capture_request.json",
+        "artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html"
       ],
       "hashes": {
-        "stills_capture_request_json_sha256": "5d1038b505584f8201d238f7a176aef89862d584ff142fd507f1783f59bc5c06",
+        "stills_capture_request_json_sha256": "a1d1dc99415cdedafbbef8c8799a5b20b25c7db83d05bf3c1b82eced43e6e46e",
         "dashboard_sha256": "b221af099d5d067b7b0686deb0c5c6a9daa7cec6f07d27cc2d75bdf2c023bc25"
       },
       "metrics": {

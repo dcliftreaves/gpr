@@ -91,7 +91,7 @@ into an auditable pass/fail package.
 ## Current Generated Handoff Views
 
 - Raw-stills capture request:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_broad_20260701/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html`
   This request carries the exact committed requirement IDs it closes:
   `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack`.
 - Raw-video PSF capture request:

@@ -470,12 +470,12 @@ remain open.
 | Broad old-photo Bayer phase dashboard | `artifacts/bayer_phase_fixture_discovery_broad_photos_20260701/index.html` | `19f3b402ec54f3eba27c8e02ffd83abe2f89978ac960e3700455425e707bcb42` |
 | Targeted Mission DNG darkframe audit JSON | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/darkframe_candidate_audit.json` | `dd06fb371f5177a03f2ffbc683e343f15f1286091b92eed053a2334f537dd74a` |
 | Targeted Mission DNG darkframe dashboard | `artifacts/darkframe_candidate_audit_targeted_dng_20260630/index.html` | `dd7c607f07fa1b9f0f9e473ca514810b3adc74c22690359ae44a655256b2836a` |
-| Broad Mission/iPhone darkframe audit JSON | `artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/darkframe_candidate_audit.json` | `79b79fa7976f54db8be4872bce4be666e15d06b4a81cdcdda36f6d988ac6e55c` |
-| Broad Mission/iPhone darkframe dashboard | `artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html` | `96c612c98f933f8b3a655d23e609c7475b239d38beb665bd399ff7c266d9e517` |
-| Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_noise_broad_20260701/stills_fixture_gap_plan.json` | `8b2eef0265424a9aea08bfd169bf87472c1f556138f810e9987ced7b4b450394` |
-| Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_noise_broad_20260701/index.html` | `f05eed88eb3297500837002dca814185fd255bbb204bfab5a17e1fa62ab81984` |
-| Current raw-stills capture request JSON | `artifacts/stills_capture_request_noise_broad_20260701/stills_capture_request.json` | `5d1038b505584f8201d238f7a176aef89862d584ff142fd507f1783f59bc5c06` |
-| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_noise_broad_20260701/index.html` | `b221af099d5d067b7b0686deb0c5c6a9daa7cec6f07d27cc2d75bdf2c023bc25` |
+| Full-manifest Mission/iPhone darkframe audit JSON | `artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/darkframe_candidate_audit.json` | `68523ecb35dc32342735e7843528d1a61fb7824e7c9f297934a611768425449e` |
+| Full-manifest Mission/iPhone darkframe dashboard | `artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html` | `bae377aeef9fa8f48947cb54d087af975b309b7315797616376db0ac785002a1` |
+| Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/stills_fixture_gap_plan.json` | `ecd791fd1b2405d2acc5e15c466bd5b67a9b9d002659a383c53d36a2c793f53a` |
+| Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html` | `01eceab64395920d6818dc9b524801d350bca2f5cd252e57f0deee9d2020bb7b` |
+| Current raw-stills capture request JSON | `artifacts/stills_capture_request_noise_fullmanifest_20260701/stills_capture_request.json` | `a1d1dc99415cdedafbbef8c8799a5b20b25c7db83d05bf3c1b82eced43e6e46e` |
+| Current raw-stills capture request dashboard | `artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html` | `b221af099d5d067b7b0686deb0c5c6a9daa7cec6f07d27cc2d75bdf2c023bc25` |
 
 ## Premium Still-SR Gap Artifacts
 

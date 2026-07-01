@@ -73,11 +73,11 @@ Current evidence:
   records six production-ready darkframe sidecars: X2D at ISO 64, 200, 800,
   3200, and 12800, plus Z8 at ISO 500. Mission 1 and iPhone have real fixtures
   but no production-ready darkframe sidecars yet.
-- The Mission/iPhone darkframe candidate audit at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_broad_20260701/index.html`
-  scans 650 local Mission/iPhone DNG candidates. It parsed all 650, found 58
-  dark-like frames, and found three iPhone same-ISO candidate stacks. It still
-  keeps production readiness false because candidate-discovery scene frames need
+- The Mission/iPhone full-manifest darkframe candidate audit at
+  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html`
+  scans 2,000 bounded manifest rows. It parsed 1,997, found 59 dark-like
+  frames, and found four iPhone same-ISO candidate stacks. It still keeps
+  production readiness false because candidate-discovery scene frames need
   confirmed no-scene-signal provenance before they can become noise sidecars.
   Mission 1 remains at the existing ISO232 RGGB two-frame candidate group.
 - The broader real-photo Bayer phase sample at
@@ -96,13 +96,14 @@ Current evidence:
   finds 9 dark-like Mission frames, but no same-ISO four-frame production
   stack.
 - The stills fixture gap plan at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_broad_20260701/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html`
   turns those receipts into the concrete closure list: add Mission 1 and iPhone
   darkframe stacks, top up the current Mission 1 ISO232 RGGB darkframe-like
-  group with two more matching frames, and confirm whether the iPhone ISO1250
-  RGGB dark-like candidate set is true no-scene data or must be recaptured.
+  group with two more matching frames, and confirm whether the 27-frame iPhone
+  ISO1250 RGGB dark-like candidate set is true no-scene data or must be
+  recaptured.
 - The raw-stills capture request at
-  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_broad_20260701/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_noise_fullmanifest_20260701/index.html`
   converts that closure list into handoff-ready sample requests and validation
   commands for Mission/iPhone darkframe stacks.
 
