@@ -121,4 +121,4 @@ into an auditable pass/fail package.
 - GoPro Mission 1 intake audit:
   `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701/index.html`
 - Product pillar scorecard:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_coord_detail_review_20260701/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_ship_boundary_20260701/index.html`

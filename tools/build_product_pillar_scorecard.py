@@ -2,11 +2,11 @@
 """Build the four-pillar GPR product scorecard.
 
 This is a summary and audit layer over committed docs plus large external
-receipts. It deliberately keeps "production ready" false while real Mission 1
-camera closure, Mission/iPhone noise sidecars, premium still-SR promotion, and
-release packaging/handoff evidence are open. Native PSF/blur work is tracked as
-optional replacement research and must not block the approved current 4K/8K
-raw-video reconstruction workflow.
+receipts. It deliberately keeps the overall product "production ready" false
+while real Mission 1 camera closure, Mission/iPhone noise sidecars, and premium
+still-SR promotion are open. Native PSF/blur work is tracked as optional
+replacement research and must not block the approved current 4K/8K raw-video
+reconstruction workflow.
 """
 from __future__ import annotations
 
@@ -325,16 +325,14 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
         {
             "id": "raw_video_reconstruction",
             "title": "4. RAW video reconstruction improvement",
-            "readiness_percent": 95,
+            "readiness_percent": 100,
             "status": "approved_offline_reconstruction_psf_research_optional",
-            "production_ready": False,
+            "production_ready": True,
             "lock_ledger_paths": [
                 "Mission 1 4K cleanup",
                 "Mission 1 8K SR",
             ],
-            "open_production_gates": [
-                "Release packaging and documentation hygiene for the approved offline reconstruction workflow",
-            ],
+            "open_production_gates": [],
             "locked_artifacts": [
                 "approved Mission native12 4K cleanup offline/review baseline",
                 "approved candidate-aware 8K SR offline/reconstruction baseline",
@@ -363,7 +361,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "The coord/detail PSF-focus step-75 continuation is registered for review as mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1. It beats the previous psf-gradient-focus baseline on paired Mission42 and regenerated Z8 RMSE/PSNR floors, and now has registry-driven .gvid decode-to-SR, editable DNG/GPR, 2K ProRes, Mission metadata-transplant receipts, 42-frame full-sequence .gvid packaging, continuous 8K ProRes review, objective visual-review, and manual visual signoff receipts. Controlled native PSF evidence remains useful before claiming a PSF-conditioned replacement, but it does not block the approved current offline reconstruction workflow.",
             ],
             "open_work": [
-                "Keep the approved 4K cleanup and 8K SR workflow packaged, documented, and guarded as the shippable offline/post reconstruction path.",
+                "No release blocker remains for the approved offline/post 4K cleanup and 8K SR workflow; keep it frozen and guarded unless its own committed gate, receipt, hash, CI guard, or manual review fails.",
                 "Optional research: follow the raw-video PSF gap plan only when controlled same-scene Mission 1 high/low pairs with source hashes, decoded Bayer hashes, fixed settings, and negative controls are available.",
                 "Optional replacement promotion: train PSF-conditioned SR only if it can beat the locked Mission42 and Z8 all24 baselines with clean worst rows.",
             ],
@@ -435,7 +433,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "Replace the GoPro-facing Mission 1 stand-in intake bundle with camera-role sensor/DMA, storage, and rear-display receipts when a dev kit is available.",
             "Fulfill the raw-stills capture request: collect same-ISO Mission 1/CFA iPhone darkframes before promoting nonzero noise addback; current lowest-lift paths are Mission ISO232 RGGB with two matching frames still needed and iPhone ISO1250 RGGB with enough dark-like candidates but unconfirmed no-scene provenance.",
             "Continue premium still-SR from the current raw-CFA residual blocker: held-out Z8 is mildly positive, hard X2D is only barely positive after wider context, and stored-HF/noise-threshold/pooled-context/combined-context/band-loss/X2D-only-domain/target-energy weighting/Fourier-band/candidate-scale probes did not solve it.",
-            "Follow the raw-video PSF gap plan: capture controlled same-scene Mission 1 high/low pairs, rerun native measurement until the kernel is stable, then gate a PSF-conditioned SR model against the current 4K/8K baselines.",
+            "Do not reopen approved raw-video SR for the current release. PSF-conditioned video work is optional replacement research and starts only after controlled native high/low pairs exist or a locked 4K/8K gate fails.",
         ],
     }
 

@@ -1344,29 +1344,29 @@
       }
     },
     {
-      "id": "product_burndown_20260701",
+      "id": "product_burndown_ship_boundary_20260701",
       "family": "product_status",
       "status": "current",
       "purpose": "Four-pillar production burn-down showing the remaining evidence gates and which work can proceed without Mission 1 firmware access.",
-      "dashboard": "artifacts/product_burndown_20260701/index.html",
+      "dashboard": "artifacts/product_burndown_ship_boundary_20260701/index.html",
       "docs": [
         "README.md",
         "docs/PRODUCT_PILLAR_SCORECARD.md",
         "docs/BIG_EFFORTS_STATUS.md"
       ],
       "receipts": [
-        "artifacts/product_burndown_20260701/product_burndown.json",
-        "artifacts/product_burndown_20260701/index.html"
+        "artifacts/product_burndown_ship_boundary_20260701/product_burndown.json",
+        "artifacts/product_burndown_ship_boundary_20260701/index.html"
       ],
       "hashes": {
-        "product_burndown_json_sha256": "1f6c19f39734632c04b2e938a0ae241f3d329562b1d4d120aead8a4201f7e399",
-        "dashboard_sha256": "663fdeb85a6b9584fc3625aa858f26f4e26bb68fa8c0a25134421fa18351fe1f"
+        "product_burndown_json_sha256": "f8d9cd9d4c491c8888d5c8ab0cc1f2d93368d8de95917d7c3e064f5f46d572bc",
+        "dashboard_sha256": "5a8513a3a798f5b111a47ab1e0d4b51ccc60b5f72721353746d37fb76b0d5d1f"
       },
       "metrics": {
-        "four_pillar_completion_percent": 72,
-        "action_count": 5,
-        "open_requirement_count": 5,
-        "non_camera_action_count": 4,
+        "four_pillar_completion_percent": 83,
+        "action_count": 3,
+        "open_requirement_count": 4,
+        "non_camera_action_count": 2,
         "camera_required_action_count": 1,
         "requirement_linked": 1,
         "production_ready": 0

@@ -62,7 +62,7 @@ For ML/CNN scripts, the current local environment is:
 | question | start here |
 |---|---|
 | What is locked, what is open, and what regresses? | `docs/PRODUCT_LOCK_LEDGER.md` |
-| What percentage done are the four product pillars? | `docs/PRODUCT_PILLAR_SCORECARD.md`, `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_coord_detail_review_20260701/index.html`, and the release-blocker burn-down at `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_optional_psf_boundary_20260701/index.html` |
+| What percentage done are the four product pillars? | `docs/PRODUCT_PILLAR_SCORECARD.md`, `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_ship_boundary_20260701/index.html`, and the release-blocker burn-down at `/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_ship_boundary_20260701/index.html` |
 | What is the broad four-effort status? | `docs/BIG_EFFORTS_STATUS.md` |
 | What exact samples/receipts are still required? | `docs/PRODUCTION_CAPTURE_REQUIREMENTS.md` and `docs/PRODUCTION_CAPTURE_REQUIREMENTS.json` |
 | What release artifacts are indexed and hash-checked? | `docs/RELEASE_ARTIFACTS.md`, `docs/release_evidence_manifest.json`, and `docs/PRODUCTION_ARTIFACTS.md` |
@@ -85,8 +85,7 @@ with the full receipt surface.
 |---|---|---|
 | 1 | Premium still-SR promotion | Local model-promotion work can continue from the raw-CFA residual target and blocker dashboards. The current blocker is X2D/domain-general raw-detail recovery strength, not missing tooling. |
 | 2 | Mission 1 / iPhone noise sidecars | Local audits and sidecar builders are ready; Mission needs two more matching ISO232 RGGB darkframes, and iPhone needs confirmed no-scene provenance or recapture. |
-| 3 | Release packaging and documentation hygiene | Keep README, scorecard, release manifest, handoff bundle labels, artifact hashes, and lock-ledger checks aligned with the approved 4K/8K reconstruction boundary. |
-| 4 | Mission 1 raw-video MVP closure | Blocked on real Mission 1 sensor/DMA or camera-ring-buffer, SD writer, and rear-display receipts. Pi 5 stand-in receipts remain proxy evidence only. |
+| 3 | Mission 1 raw-video MVP closure | Blocked on real Mission 1 sensor/DMA or camera-ring-buffer, SD writer, and rear-display receipts. Pi 5 stand-in receipts remain proxy evidence only. |
 
 ## Current Whole-Video Review Artifacts
 

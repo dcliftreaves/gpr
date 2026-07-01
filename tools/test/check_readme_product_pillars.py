@@ -158,7 +158,7 @@ REQUIRED_SCORECARD_TOKENS = (
     "| Best RAW stills | 92% |",
     "| GoPro RAW video MVP | 80% |",
     "| Premium still/SR | 60% |",
-    "| RAW video reconstruction improvement | 95% |",
+    "| RAW video reconstruction improvement | 100% |",
     "psf_gradient_focus_from_detail_s400_fw6_gw12_s300",
     "mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1",
     "PSF-conditioned replacement training are preserved as optional research evidence",

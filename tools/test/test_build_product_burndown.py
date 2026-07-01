@@ -53,7 +53,7 @@ def main() -> int:
         assert data["schema"] == "gpr.product_burndown.v1"
         assert data["source_requirements_schema"] == "gpr.production_capture_requirements.v1"
         assert data["source_requirements_path"] == "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json"
-        assert data["four_pillar_completion_percent"] == 82
+        assert data["four_pillar_completion_percent"] == 83
         assert data["production_ready"] is False
         assert data["summary"]["action_count"] == 3
         assert data["summary"]["open_requirement_count"] == 4
@@ -129,7 +129,9 @@ def main() -> int:
         assert "exact-sidecar-only" in premium_text
         reconstruction_actions = data["pillars"][3]["burn_down_actions"]
         assert reconstruction_actions == []
-        assert data["pillars"][3]["readiness_percent"] == 95
+        assert data["pillars"][3]["readiness_percent"] == 100
+        assert data["pillars"][3]["production_ready"] is True
+        assert data["pillars"][3]["open_production_gates"] == []
         assert any("offline" in item.lower() for item in data["pillars"][3]["locked_artifacts"])
 
         html = (out_dir / "index.html").read_text(encoding="utf-8")

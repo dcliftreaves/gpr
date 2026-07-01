@@ -44,7 +44,7 @@ def main() -> int:
 
         tmp_ledger.write_text(
             text.replace(
-                "| Release packaging and documentation hygiene for the approved offline reconstruction workflow |",
+                "| Premium still-SR promotion |",
                 "| Imaginary open gate |",
             ),
             encoding="utf-8",

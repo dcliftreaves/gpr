@@ -77,7 +77,7 @@ def validate(ledger_path: Path = LEDGER, external_root: Path = DEFAULT_EXTERNAL_
     for pillar in scorecard.get("pillars", []):
         if not pillar.get("lock_ledger_paths"):
             failures.append(f"{pillar.get('id')} has no lock_ledger_paths")
-        if not pillar.get("open_production_gates"):
+        if not pillar.get("production_ready") and not pillar.get("open_production_gates"):
             failures.append(f"{pillar.get('id')} has no open_production_gates")
         if not pillar.get("locked_artifacts"):
             failures.append(f"{pillar.get('id')} has no locked_artifacts")

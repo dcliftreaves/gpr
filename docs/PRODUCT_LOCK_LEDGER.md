@@ -8,8 +8,8 @@ regressions.
 
 The rule is simple: a locked path regresses only when its own committed gate,
 receipt, hash, or CI guard fails. A lower or unchanged pillar percentage can
-still be correct when new hardware, fixture, noise, release-packaging, or
-promotion evidence is required.
+still be correct when new hardware, fixture, noise, or promotion evidence is
+required.
 
 ## Locked Paths
 
@@ -33,7 +33,6 @@ promotion evidence is required.
 | Real Mission 1 camera-role raw-video closure | Current raw-video encode and preview receipts are Pi stand-ins, not actual Mission 1 sensor/DMA, SD writer, and rear-display receipts. | Real camera-role closure run with sensor/DMA or camera ring-buffer source, storage handoff, rear-display/UI handoff, zero drops, valid `.gvid`, and timing receipts. |
 | Mission 1 and iPhone nonzero noise addback | X2D and Z8 have validated darkframe sidecars; Mission 1 and iPhone do not. | Same-camera, same-ISO darkframe stacks with source hashes, v1 camera-noise sidecars, runtime policy update, and raw-noise/signal audit pass. |
 | Premium still-SR promotion | Current raw-CFA residual targets and trainers are diagnostic; Z8 is mildly positive, X2D/domain-general recovery is too weak. | Candidate-only runtime model that clears dedicated 50 MP and 100 MP still-SR gates, editor-latitude review, worst-row dashboard, editable DNG/GPR packaging, and no REF/source content at render time. |
-| Release packaging and documentation hygiene for the approved offline reconstruction workflow | The approved 4K cleanup and 8K SR baselines are shippable offline/post paths, but release docs and bundle labels still need to stay aligned with the current evidence. | README, scorecard, release manifest, handoff bundle labels, artifact hashes, and lock-ledger checks all agree on the approved 4K/8K reconstruction boundary. |
 
 ## Optional Research
 
@@ -46,7 +45,7 @@ promotion evidence is required.
 The repo is a working raw-stills and raw-video prototype with several locked
 product paths. It is not a complete production claim for every pillar. The
 remaining work is specific: real Mission 1 camera-role receipts,
-Mission/iPhone noise sidecars, promotable premium still-SR, and release hygiene
-around the approved 4K/8K reconstruction path. Controlled PSF evidence is still
-useful for a better future video/SR model, but it is optional research rather
-than a shipping blocker.
+Mission/iPhone noise sidecars, and promotable premium still-SR. The approved
+4K/8K reconstruction path is closed for the current offline/post release.
+Controlled PSF evidence is still useful for a better future video/SR model, but
+it is optional research rather than a shipping blocker.

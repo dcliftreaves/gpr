@@ -79,7 +79,7 @@ EXPECTED_PILLARS = {
         },
     },
     "raw_video_reconstruction": {
-        "readiness": 95,
+        "readiness": 100,
         "required_actions": {},
     },
 }
@@ -106,8 +106,8 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
         failures.append("burn-down must record docs/PRODUCTION_CAPTURE_REQUIREMENTS.json as its requirement source")
     if data.get("production_ready") is not False:
         failures.append("four-pillar burn-down must remain production_ready=false while blockers are open")
-    if data.get("four_pillar_completion_percent") != 82:
-        failures.append("four-pillar completion percent must stay aligned to the current 82% scorecard")
+    if data.get("four_pillar_completion_percent") != 83:
+        failures.append("four-pillar completion percent must stay aligned to the current 83% scorecard")
 
     summary = data.get("summary", {})
     if summary.get("open_requirement_count") != 4:
@@ -157,8 +157,12 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
         if not pillar:
             failures.append(f"missing pillar {pillar_id!r}")
             continue
-        if pillar.get("production_ready") is not False:
-            failures.append(f"{pillar_id} must not be production_ready before its blockers close")
+        expected_production_ready = pillar_id == "raw_video_reconstruction"
+        if pillar.get("production_ready") is not expected_production_ready:
+            failures.append(
+                f"{pillar_id} production_ready is {pillar.get('production_ready')!r}, "
+                f"expected {expected_production_ready!r}"
+            )
         if pillar.get("readiness_percent") != spec["readiness"]:
             failures.append(
                 f"{pillar_id} readiness is {pillar.get('readiness_percent')}, expected {spec['readiness']}"
