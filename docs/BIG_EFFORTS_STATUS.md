@@ -280,7 +280,12 @@ Current evidence:
   gap. A deeper gated pyramid U-Net with an extra encoder scale and channel
   gates reaches only about 0.031 percent median MAE recovery and about 0.003
   percent median RMSE recovery on that holdout, so simply adding one more
-  pyramid level over the same runtime features is also insufficient.
+  pyramid level over the same runtime features is also insufficient. A bounded
+  global-context U-Net with a downsampled full-crop feature-map branch reaches
+  only about 0.0166 percent median MAE recovery and about 0.0015 percent
+  median RMSE recovery, so this class of candidate-only raw-context CNN is now
+  narrowed further; the next attempt needs a different runtime signal,
+  teacher/detail prior, or target/objective.
   A non-parametric candidate-only patch-dictionary probe is also rejected:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_patch_dictionary_x2dholdout_20260630/index.html`.
   It transfers training residual patches by nearest candidate raw/HF patch

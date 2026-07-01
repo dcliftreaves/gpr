@@ -68,7 +68,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 90% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB plus GoPro/Mission GBRG fixture coverage, and explicit camera-noise coverage; real GRBG/BGGR fixtures and Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, calibrated noise-cleaning is bounded, and true source-minus-candidate same-color raw residual targets plus raw-domain trainers now exist. Z8 is mildly positive, but X2D remains far below promotion: small U-Net/full-crop/pyramid probes only barely clear zero, and the candidate-only patch-dictionary retrieval pass regresses the hard X2D holdout. Current candidate-only local/full-crop statistics are not enough for simple CNN or nearest-neighbor transfer. |
+| Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the raw-CFA gated model beats matched RGB ablations on expanded Z8/X2D holdouts, calibrated noise-cleaning is bounded, and true source-minus-candidate same-color raw residual targets plus raw-domain trainers now exist. Z8 is mildly positive, but X2D remains far below promotion: small U-Net/full-crop/pyramid/global-context probes only barely clear zero, and the candidate-only patch-dictionary retrieval pass regresses the hard X2D holdout. Current candidate-only local/full-crop/global-context statistics are not enough for simple CNN or nearest-neighbor transfer. |
 | PSF-aware RAW video improvement | 44% | Current 4K cleanup and 8K SR baselines are useful, including continuous 8K no-CNN versus CNN ProRes review media for a whole-scene A/B; near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, the kernel-stability audit identifies coefficient disagreement, and a hash-strict capture request now spells out the controlled-pair capture and model-gate path. Formal native PSF/blur-aware replacement remains open because the available near-time pairs produce an unstable kernel. |
 
 The current real X2D 100MP still audit lives at
@@ -388,7 +388,12 @@ reaches only about 0.056 percent median MAE recovery and about 0.005 percent
 median RMSE recovery. The deeper gated pyramid U-Net at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_pyramid_rawcontext_w24_700_20260630/train_receipt.json`
 adds a third encoder scale and channel gates, but reaches only about 0.031
-percent median MAE recovery and about 0.003 percent median RMSE recovery.
+percent median MAE recovery and about 0.003 percent median RMSE recovery. The
+bounded global-context U-Net at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_globalctx_unet_w24_500_20260630/train_receipt.json`
+adds a downsampled full-crop feature-map branch and scene-balanced full-crop
+training, but reaches only about 0.0166 percent median MAE recovery and about
+0.0015 percent median RMSE recovery.
 
 A non-parametric patch-dictionary probe at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_patch_dictionary_x2dholdout_20260630/patch_dictionary_probe.json`

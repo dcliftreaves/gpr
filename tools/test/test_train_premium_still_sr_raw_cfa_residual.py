@@ -135,6 +135,8 @@ def main() -> int:
                 "context_padding": 0,
                 "eval_every": 0,
                 "eval_tile": 40,
+                "eval_train_rows": 0,
+                "eval_holdout_rows": 0,
                 "panel_rows": 2,
                 "seed": 7,
                 "device": "cpu",
@@ -264,12 +266,32 @@ def main() -> int:
         assert "pooled candidate raw/HF context planes" in pyramid_receipt["policy"]["runtime_inputs"]
         assert pyramid_receipt["policy"]["uses_source_raw_at_runtime"] is False
 
+        args.output_dir = root / "global_context_unet_holdout"
+        args.model_arch = "global_context_unet"
+        args.feature_mode = "raw_multiscale_coord_ev_noise"
+        args.sample_mode = "full_crop"
+        args.batch_size = 1
+        args.patch_size = 20
+        args.eval_tile = 40
+        args.eval_train_rows = 2
+        global_receipt = tool.train(args)
+        assert global_receipt["eval"]["holdout"]["row_count"] == 1
+        assert global_receipt["eval"]["train"]["row_count"] == 2
+        assert global_receipt["config"]["model_arch"] == "global_context_unet"
+        assert global_receipt["config"]["sample_mode"] == "full_crop"
+        assert global_receipt["config"]["eval_train_rows"] == 2
+        assert "diagnostic bounded evaluation" in global_receipt["policy"]["eval_contract"]
+        assert global_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
         args.output_dir = root / "frame_context_holdout"
         args.model_arch = "residual"
         args.feature_mode = "raw_framectx_coord_ev_noise"
+        args.sample_mode = "random_patch"
+        args.batch_size = 2
         args.context_padding = 0
         args.patch_size = 20
         args.eval_tile = 19
+        args.eval_train_rows = 0
         frame_context_receipt = tool.train(args)
         assert frame_context_receipt["eval"]["holdout"]["row_count"] == 1
         assert frame_context_receipt["config"]["feature_mode"] == "raw_framectx_coord_ev_noise"

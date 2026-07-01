@@ -171,6 +171,7 @@ def main() -> int:
         assert any("camera-balanced sampling" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("context-padding" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("pyramid U-Net" in item for item in contract["do_not_repeat_as_primary_path"])
+        assert any("global-context U-Net" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("nearest-neighbor residual patch dictionary" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("low-order linear candidate raw/HF/metadata" in item for item in contract["do_not_repeat_as_primary_path"])
         minimum = contract["minimum_viable_next_pass"]

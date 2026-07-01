@@ -570,6 +570,56 @@ class RawCfaResidualPyramidUNet(nn.Module):
         return torch.tanh(self.tail(d0)) * self.residual_scale
 
 
+class RawCfaResidualGlobalContextUNet(nn.Module):
+    """Full-crop U-Net with an explicit downsampled global context branch.
+
+    This is deliberately different from the earlier pooled-statistics probes:
+    the branch sees a spatially downsampled candidate-derived feature map,
+    processes it with convolutional residual blocks, and injects that
+    structured context at the bottleneck. It still uses only candidate-side
+    runtime inputs.
+    """
+
+    def __init__(self, in_channels: int, width: int = 32, depth: int = 4, residual_scale: float = 0.12) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        w1 = max(8, int(width))
+        w2 = w1 * 2
+        w3 = w1 * 4
+        self.enc0 = nn.Sequential(ConvAct(in_channels, w1), ChannelGate(w1))
+        self.enc1 = nn.Sequential(ConvAct(w1, w2, stride=2), ChannelGate(w2))
+        self.enc2 = nn.Sequential(ConvAct(w2, w3, stride=2), ChannelGate(w3))
+        context_blocks: list[nn.Module] = [ConvAct(in_channels, w2), ConvAct(w2, w3), ChannelGate(w3)]
+        for i in range(max(1, depth // 2)):
+            context_blocks.append(ResidualBlock(w3, dilation=2 if i % 2 else 1))
+        self.context = nn.Sequential(*context_blocks)
+        bottleneck_blocks: list[nn.Module] = []
+        dilations = [1, 2, 4, 8]
+        for i in range(max(1, depth)):
+            bottleneck_blocks.append(ResidualBlock(w3, dilation=dilations[i % len(dilations)]))
+            bottleneck_blocks.append(ChannelGate(w3))
+        self.bottleneck = nn.Sequential(*bottleneck_blocks)
+        self.dec1 = nn.Sequential(ConvAct(w3 + w2, w2), ChannelGate(w2))
+        self.dec0 = nn.Sequential(ConvAct(w2 + w1, w1), ChannelGate(w1))
+        self.tail = nn.Conv2d(w1, 4, 3, padding=1)
+        nn.init.zeros_(self.tail.weight)
+        nn.init.zeros_(self.tail.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        e0 = self.enc0(x)
+        e1 = self.enc1(e0)
+        e2 = self.enc2(e1)
+        context_size = (min(24, x.shape[-2]), min(24, x.shape[-1]))
+        g = self.context(F.adaptive_avg_pool2d(x, context_size))
+        g = F.interpolate(g, size=e2.shape[-2:], mode="bilinear", align_corners=False)
+        b = self.bottleneck(e2 + g)
+        u1 = F.interpolate(b, size=e1.shape[-2:], mode="bilinear", align_corners=False)
+        d1 = self.dec1(torch.cat([u1, e1], dim=1))
+        u0 = F.interpolate(d1, size=e0.shape[-2:], mode="bilinear", align_corners=False)
+        d0 = self.dec0(torch.cat([u0, e0], dim=1))
+        return torch.tanh(self.tail(d0)) * self.residual_scale
+
+
 def build_model(model_arch: str, in_channels: int, width: int, depth: int, residual_scale: float) -> nn.Module:
     if model_arch == "residual":
         return RawCfaResidualNet(
@@ -587,6 +637,13 @@ def build_model(model_arch: str, in_channels: int, width: int, depth: int, resid
         )
     if model_arch == "pyramid_unet":
         return RawCfaResidualPyramidUNet(
+            in_channels=in_channels,
+            width=width,
+            depth=depth,
+            residual_scale=residual_scale,
+        )
+    if model_arch == "global_context_unet":
+        return RawCfaResidualGlobalContextUNet(
             in_channels=in_channels,
             width=width,
             depth=depth,
@@ -1044,10 +1101,16 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         if step == 1 or step == args.steps or (args.eval_every > 0 and step % args.eval_every == 0):
             history.append({"step": step, "loss": float(loss.detach().cpu())})
     train_s = time.perf_counter() - t0
+    eval_train_indices = train_indices
+    if args.eval_train_rows > 0:
+        eval_train_indices = train_indices[: min(args.eval_train_rows, len(train_indices))]
+    eval_holdout_indices = holdout_indices
+    if args.eval_holdout_rows > 0:
+        eval_holdout_indices = holdout_indices[: min(args.eval_holdout_rows, len(holdout_indices))]
     train_eval = eval_rows(
         model,
         data,
-        train_indices,
+        eval_train_indices,
         feature_mode=args.feature_mode,
         feature_block=args.feature_block,
         target_policy=args.target_policy,
@@ -1057,11 +1120,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         context_padding=args.context_padding,
     )
     holdout_eval = None
-    if holdout_indices:
+    if eval_holdout_indices:
         holdout_eval = eval_rows(
             model,
             data,
-            holdout_indices,
+            eval_holdout_indices,
             feature_mode=args.feature_mode,
             feature_block=args.feature_block,
             target_policy=args.target_policy,
@@ -1148,6 +1211,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "sample_balance": args.sample_balance,
             "sample_mode": args.sample_mode,
             "context_padding": args.context_padding,
+            "eval_train_rows": args.eval_train_rows,
+            "eval_holdout_rows": args.eval_holdout_rows,
             "seed": args.seed,
         },
         "policy": {
@@ -1158,6 +1223,11 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "training samples are full target crops"
                 if args.sample_mode == "full_crop"
                 else "training samples are random local patches"
+            ),
+            "eval_contract": (
+                "full train/holdout evaluation"
+                if args.eval_train_rows <= 0 and args.eval_holdout_rows <= 0
+                else "diagnostic bounded evaluation; use full evaluation before promotion"
             ),
             "model_context_padding_pixels": args.context_padding,
             "production_status": "training_probe_not_registered_production_algorithm",
@@ -1189,9 +1259,9 @@ def main() -> int:
     ap.add_argument("--residual-scale", type=float, default=0.12)
     ap.add_argument(
         "--model-arch",
-        choices=("residual", "unet", "pyramid_unet"),
+        choices=("residual", "unet", "pyramid_unet", "global_context_unet"),
         default="residual",
-        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context; pyramid_unet adds a deeper gated full-crop probe.",
+        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context; pyramid_unet adds a deeper gated full-crop probe; global_context_unet adds a downsampled full-crop context branch.",
     )
     ap.add_argument(
         "--feature-mode",
@@ -1263,6 +1333,18 @@ def main() -> int:
     )
     ap.add_argument("--eval-every", type=int, default=100)
     ap.add_argument("--eval-tile", type=int, default=384)
+    ap.add_argument(
+        "--eval-train-rows",
+        type=int,
+        default=0,
+        help="Diagnostic speed knob. Zero evaluates all train rows; positive values evaluate only the first N train rows.",
+    )
+    ap.add_argument(
+        "--eval-holdout-rows",
+        type=int,
+        default=0,
+        help="Diagnostic speed knob. Zero evaluates all holdout rows; positive values evaluate only the first N holdout rows.",
+    )
     ap.add_argument("--panel-rows", type=int, default=9)
     ap.add_argument("--seed", type=int, default=1234)
     ap.add_argument("--device", help="Override torch device, for example cpu/mps/cuda.")
