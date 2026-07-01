@@ -282,6 +282,22 @@ Fourier magnitude loss. It is a 30-step path proof, not a promotion run:
 8-row X2D holdout median raw MAE recovery is only about **0.069%**, and the
 receipt remains `training_probe_not_registered_production_algorithm`.
 
+A scaled RCAB teacher pass also exists:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_w32_700_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_w32_700_20260701/train_receipt.json
+```
+
+It uses width 32, depth 6, 700 steps, scene-balanced sampling, 256 px patches,
+multiscale band loss, and Fourier magnitude loss on the same deduplicated
+target. It is also a rejection receipt, not a promotion receipt: 24-row X2D
+holdout median raw MAE recovery is only about **0.034%**, best holdout probe
+selection occurs at step 1, and the train split regresses by about **-3.45%**
+median. Simple RCAB scaling is therefore not enough by itself; the next pass
+needs a materially stronger teacher/data objective, not just more steps on this
+configuration.
+
 The first raw-CFA residual trainer is:
 
 ```text
