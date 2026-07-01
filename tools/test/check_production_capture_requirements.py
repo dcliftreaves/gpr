@@ -166,6 +166,9 @@ def validate() -> list[str]:
             "Optional Research Requests",
             "optional PSF research pairs",
             "stills_capture_request_strict_provenance_20260701",
+            "darkframe_provenance_review_packet_20260701",
+            "production_sidecar_ready=false",
+            "source_provenance_manifest_templates",
             "raw_video_psf_capture_request_20260630",
         ):
             if token not in doc:

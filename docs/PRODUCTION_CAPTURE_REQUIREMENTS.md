@@ -134,6 +134,15 @@ into an auditable pass/fail package.
   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html`
   This request carries the exact committed requirement IDs it closes:
   `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack`.
+- Darkframe provenance review packet:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_20260701/index.html`
+  This packet hashes the current lowest-lift Mission 1 and iPhone CFA
+  candidates, writes fill-in templates under
+  `source_provenance_manifest_templates`, and reports
+  `production_sidecar_ready=false`. `mission1_darkframe_stack` still needs 2
+  additional matching true darkframes. `iphone_cfa_darkframe_stack` has 27
+  candidate ISO1250 RGGB files but still needs confirmed no-scene source
+  provenance before it can close.
 - Optional raw-video PSF research capture request:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`
 - GoPro Mission 1 intake audit:
