@@ -44,6 +44,17 @@ PSF_FIXED_SETTING_FIELDS = [
     "sharpening",
     "lens_correction",
 ]
+PREMIUM_REQUIRED_RUNTIME_INPUTS = {"candidate_raw", "camera_metadata"}
+PREMIUM_FORBIDDEN_RUNTIME_INPUTS = {
+    "REF",
+    "reference",
+    "reference_image",
+    "source_raw",
+    "source_rgb",
+    "source_hf",
+    "JPEG_target",
+    "jpeg_target",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -170,6 +181,17 @@ def number_at_least(row: dict[str, Any], key: str, minimum: float) -> tuple[bool
         return False, f"{key} must be numeric and >= {minimum:g}"
     if parsed < minimum:
         return False, f"{key} must be >= {minimum:g}"
+    return True, ""
+
+
+def number_greater_than(row: dict[str, Any], key: str, minimum: float) -> tuple[bool, str]:
+    value = row.get(key)
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return False, f"{key} must be numeric and > {minimum:g}"
+    if parsed <= minimum:
+        return False, f"{key} must be > {minimum:g}"
     return True, ""
 
 
@@ -421,6 +443,7 @@ def validate_premium_still_sr(rid: str, submission: dict[str, Any]) -> dict[str,
     row = record_for(submission, rid)
     required_hashes = [
         "checkpoint_sha256",
+        "training_config_sha256",
         "training_target_sha256",
         "editable_raw_receipt_sha256",
         "review_dashboard_sha256",
@@ -443,6 +466,39 @@ def validate_premium_still_sr(rid: str, submission: dict[str, Any]) -> dict[str,
             failures.append(f"{key} must be true")
     if row.get("severe_worst_row_failures") is not False:
         failures.append("severe_worst_row_failures must be false")
+
+    runtime_inputs = row.get("runtime_inputs")
+    if not isinstance(runtime_inputs, list) or not all(isinstance(item, str) for item in runtime_inputs):
+        failures.append("runtime_inputs must list production runtime inputs")
+    else:
+        runtime_set = set(runtime_inputs)
+        missing_runtime = sorted(PREMIUM_REQUIRED_RUNTIME_INPUTS - runtime_set)
+        forbidden_runtime = sorted(PREMIUM_FORBIDDEN_RUNTIME_INPUTS & runtime_set)
+        if missing_runtime:
+            failures.append(f"runtime_inputs missing required input(s): {', '.join(missing_runtime)}")
+        if forbidden_runtime:
+            failures.append(f"runtime_inputs contains forbidden render-time input(s): {', '.join(forbidden_runtime)}")
+
+    for key in ("full_frame_gate_50mp_row_count", "full_frame_gate_100mp_row_count"):
+        ok, failure = number_at_least(row, key, 1)
+        if not ok:
+            failures.append(failure)
+    for key in ("median_mae_reduction_pct_50mp", "median_mae_reduction_pct_100mp"):
+        ok, failure = number_greater_than(row, key, 0)
+        if not ok:
+            failures.append(failure)
+    for key in ("worst_row_mae_reduction_pct_50mp", "worst_row_mae_reduction_pct_100mp"):
+        ok, failure = number_at_least(row, key, 0)
+        if not ok:
+            failures.append(failure)
+    for key in ("render_seconds_per_50mp_frame", "render_seconds_per_100mp_frame", "peak_rss_gb"):
+        ok, failure = number_greater_than(row, key, 0)
+        if not ok:
+            failures.append(failure)
+    if row.get("noise_policy_exact_sidecars_only") is not True:
+        failures.append("noise_policy_exact_sidecars_only must be true")
+    if row.get("noise_policy_forbids_source_residual_noise") is not True:
+        failures.append("noise_policy_forbids_source_residual_noise must be true")
     if failures:
         return fail_result(rid, failures, 1 if row else 0)
     return pass_result(rid, "premium still-SR promotion evidence passes manifest checks", 1)

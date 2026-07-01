@@ -170,17 +170,34 @@ def valid_submission() -> dict:
             {
                 "id": "premium_still_sr_promotion_receipts",
                 "checkpoint_sha256": SHA,
+                "training_config_sha256": SHA,
                 "training_target_sha256": SHA,
                 "editable_raw_receipt_sha256": SHA,
                 "review_dashboard_sha256": SHA,
                 "timing_memory_receipt_sha256": SHA,
                 "noise_policy_receipt_sha256": SHA,
+                "runtime_inputs": [
+                    "candidate_raw",
+                    "camera_metadata",
+                    "validated_noise_sidecar_optional",
+                ],
                 "full_frame_gate_50mp_passed": True,
                 "full_frame_gate_100mp_passed": True,
+                "full_frame_gate_50mp_row_count": 8,
+                "full_frame_gate_100mp_row_count": 6,
+                "median_mae_reduction_pct_50mp": 4.5,
+                "median_mae_reduction_pct_100mp": 2.25,
+                "worst_row_mae_reduction_pct_50mp": 0.0,
+                "worst_row_mae_reduction_pct_100mp": 0.1,
                 "editor_latitude_passed": True,
                 "no_ref_runtime": True,
                 "beats_current_baseline": True,
                 "severe_worst_row_failures": False,
+                "render_seconds_per_50mp_frame": 120.0,
+                "render_seconds_per_100mp_frame": 310.0,
+                "peak_rss_gb": 14.5,
+                "noise_policy_exact_sidecars_only": True,
+                "noise_policy_forbids_source_residual_noise": True,
             },
         ],
     }
@@ -235,6 +252,20 @@ def main() -> int:
         proc = run_tool(manifest)
         assert proc.returncode == 1
         assert "no_ref_runtime must be true" in proc.stdout
+
+        bad = valid_submission()
+        bad["requirements"][6]["runtime_inputs"].append("REF")
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "forbidden render-time input" in proc.stdout
+
+        bad = valid_submission()
+        bad["requirements"][6]["median_mae_reduction_pct_100mp"] = 0.0
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "median_mae_reduction_pct_100mp must be > 0" in proc.stdout
 
         bad = valid_submission()
         bad["requirements"][5]["pairs"][-1]["rejected_by_measurement"] = False

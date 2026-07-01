@@ -55,6 +55,11 @@ def main() -> int:
         assert "mission1_camera_closure_run" in camera["receipts"]
         sr = next(row for row in data["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
         assert sr["no_ref_runtime"] is True
+        assert "candidate_raw" in sr["runtime_inputs"]
+        assert sr["noise_policy_exact_sidecars_only"] is True
+        assert sr["noise_policy_forbids_source_residual_noise"] is True
+        assert "full_frame_gate_50mp_row_count" in sr
+        assert "render_seconds_per_100mp_frame" in sr
         assert "<64_hex_sha256>" in out.read_text(encoding="utf-8")
 
         check = subprocess.run(

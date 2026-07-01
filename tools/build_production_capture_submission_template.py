@@ -156,12 +156,28 @@ def premium_still_sr_template() -> dict[str, Any]:
         "timing_memory_receipt_sha256": SHA_PLACEHOLDER,
         "noise_policy_receipt_path": "<noise_policy_receipt.json>",
         "noise_policy_receipt_sha256": SHA_PLACEHOLDER,
+        "runtime_inputs": [
+            "candidate_raw",
+            "camera_metadata",
+            "validated_noise_sidecar_optional",
+        ],
         "full_frame_gate_50mp_passed": True,
         "full_frame_gate_100mp_passed": True,
+        "full_frame_gate_50mp_row_count": "<50mp_gate_row_count>",
+        "full_frame_gate_100mp_row_count": "<100mp_gate_row_count>",
+        "median_mae_reduction_pct_50mp": "<median_mae_reduction_pct_50mp>",
+        "median_mae_reduction_pct_100mp": "<median_mae_reduction_pct_100mp>",
+        "worst_row_mae_reduction_pct_50mp": "<worst_row_mae_reduction_pct_50mp>",
+        "worst_row_mae_reduction_pct_100mp": "<worst_row_mae_reduction_pct_100mp>",
         "editor_latitude_passed": True,
         "no_ref_runtime": True,
         "beats_current_baseline": True,
         "severe_worst_row_failures": False,
+        "render_seconds_per_50mp_frame": "<render_seconds_per_50mp_frame>",
+        "render_seconds_per_100mp_frame": "<render_seconds_per_100mp_frame>",
+        "peak_rss_gb": "<peak_rss_gb>",
+        "noise_policy_exact_sidecars_only": True,
+        "noise_policy_forbids_source_residual_noise": True,
     }
 
 
