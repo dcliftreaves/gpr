@@ -336,6 +336,14 @@ The current local U-Net/raw-residual experiments are intentionally diagnostic,
 but they are not aligned with the stronger RAW SR literature. The next
 architecture pass should be rebuilt around these points:
 
+The generated next-experiment contract now carries this research basis as
+machine-readable `research_basis` rows and converts it into the minimum viable
+model requirements:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_20260701/index.html
+```
+
 - Use packed Bayer / CFA-aware preprocessing and preserve sensor-specific black
   level, CFA phase, and exposure metadata. RMFA-Net explicitly calls out black
   level, CFA handling, exposure/tone, and local/global feature separation as

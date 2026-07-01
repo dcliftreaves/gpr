@@ -164,8 +164,14 @@ def main() -> int:
         assert data["current_model_state"]["scoreboard_promotable_candidate_count"] == 0
         assert data["current_model_state"]["best_by_camera"]["X2D"]["passes_threshold"] is False
         contract = data["next_model_contract"]
+        research = data["research_basis"]
+        assert any(row["id"] == "ntire_2024_raw_sr" for row in research)
+        assert any("hardware-specific Bayer restoration" in row["repo_implication"] for row in research)
+        assert any(row["id"] == "rethinking_raw_noise" for row in research)
+        assert any("darkframe" in row["repo_implication"] for row in research)
         assert "source raw content" in contract["forbidden_runtime_inputs"]
         assert "JPEG-derived target content" in contract["forbidden_runtime_inputs"]
+        assert "trained model priors distilled from external or offline teachers" in contract["allowed_runtime_inputs"]
         assert any("X2D median raw-residual MAE recovery >= 15.0%" == gate for gate in contract["success_gates"])
         assert any("stored candidate-HF" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("camera-balanced sampling" in item for item in contract["do_not_repeat_as_primary_path"])
@@ -177,7 +183,11 @@ def main() -> int:
         assert any("low-order linear candidate raw/HF/metadata" in item for item in contract["do_not_repeat_as_primary_path"])
         minimum = contract["minimum_viable_next_pass"]
         assert any("not reducible to independent local crop statistics" in item for item in minimum["must_change_from_failed_contract"])
+        assert any("denoising, deblurring/PSF, and SR as one raw-restoration objective" in item for item in minimum["must_change_from_failed_contract"])
+        assert any("sensor-pattern alignment" in item for item in minimum["must_change_from_failed_contract"])
         assert any("teacher-distilled" in item for item in minimum["acceptable_first_tracks"])
+        assert any("NAF-style or transformer-style" in item for item in minimum["acceptable_first_tracks"])
+        assert any("sensor-pattern-aligned real-noise conditioning" in item for item in minimum["acceptable_first_tracks"])
         assert any("patch-dictionary" in item for item in minimum["baseline_comparisons_required"])
         assert any("source raw" in item for item in minimum["early_reject_if"])
         html = (out_dir / "index.html").read_text(encoding="utf-8")

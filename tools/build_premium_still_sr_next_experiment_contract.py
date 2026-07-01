@@ -21,6 +21,54 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = "gpr.premium_still_sr_next_experiment_contract.v1"
 DEFAULT_EXTERNAL_ROOT = Path(os.environ.get("GPR_EXTERNAL_ROOT") or "/Volumes/OWC_8TB/gpr_work")
+RESEARCH_BASIS = [
+    {
+        "id": "ntire_2024_raw_sr",
+        "title": "Deep RAW Image Super-Resolution. A NTIRE 2024 Challenge Survey",
+        "url": "https://arxiv.org/abs/2404.16223",
+        "repo_implication": (
+            "Treat RAW SR as a hardware-specific Bayer restoration problem with "
+            "unknown noise and blur, not as generic RGB sharpening."
+        ),
+    },
+    {
+        "id": "ntire_2025_raw_restoration_sr",
+        "title": "NTIRE 2025 Challenge on RAW Image Restoration and Super-Resolution",
+        "url": "https://arxiv.org/abs/2506.02197",
+        "repo_implication": (
+            "Keep denoising, deblurring, and super-resolution coupled in the "
+            "model/gate because portable-camera RAW degradations are mixed."
+        ),
+    },
+    {
+        "id": "rethinking_raw_noise",
+        "title": "Rethinking Noise Synthesis and Modeling in Raw Denoising",
+        "url": "https://openaccess.thecvf.com/content/ICCV2021/html/Zhang_Rethinking_Noise_Synthesis_and_Modeling_in_Raw_Denoising_ICCV_2021_paper.html",
+        "repo_implication": (
+            "Use sensor/ISO-specific darkframe or real-noise sidecars for noise "
+            "conditioning/addback; do not learn a generic noise residual from "
+            "single-image REF differences."
+        ),
+    },
+    {
+        "id": "nafnet",
+        "title": "Simple Baselines for Image Restoration",
+        "url": "https://www.ecva.net/papers/eccv_2022/papers_ECCV/html/3043_ECCV_2022_paper.php",
+        "repo_implication": (
+            "Use NAF-style restoration blocks as an efficient baseline, but gate "
+            "against full-image behavior because patch-only evaluation can hide artifacts."
+        ),
+    },
+    {
+        "id": "raw_enhanced_realsr",
+        "title": "Unveiling Hidden Details: A RAW Data-Enhanced Paradigm for Real-World Super-Resolution",
+        "url": "https://arxiv.org/abs/2411.10798",
+        "repo_implication": (
+            "RAW carries recoverable fine detail that RGB-only supervision loses; "
+            "model the RAW adapter/noise alignment explicitly."
+        ),
+    },
+]
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -132,6 +180,7 @@ def build_contract(
             "best_by_camera": best_by_camera,
             "blockers": blockers,
         },
+        "research_basis": RESEARCH_BASIS,
         "next_model_contract": {
             "recommended_first_track": "full-image or structured raw-CFA residual learner",
             "minimum_viable_next_pass": {
@@ -139,6 +188,8 @@ def build_contract(
                     "use a full-image, full-crop, or otherwise structured context representation that is not reducible to independent local crop statistics",
                     "add a materially stronger learned detail prior, teacher-distilled target, or global/contextual objective instead of only increasing local CNN capacity",
                     "condition on camera/noise and measured or modeled PSF metadata where available, rather than treating all resize/detail residuals as one distribution",
+                    "treat denoising, deblurring/PSF, and SR as one raw-restoration objective while keeping the final emitted file editable raw",
+                    "preserve sensor-pattern alignment for noise and CFA detail features instead of mixing Bayer phases in RGB space before the raw gate",
                     "select checkpoints by the joint X2D plus Z8 holdout gates, not train loss or a single-camera dashboard",
                     "emit the same editable raw, rendered latitude, timing, memory, config, and noise-policy receipts required for promotion even if the result fails",
                 ],
@@ -147,6 +198,8 @@ def build_contract(
                     "PSF/kernel-conditioned global-context raw-CFA residual model using candidate raw plus measured or modeled kernel metadata",
                     "teacher-distilled raw-CFA detail prior whose teacher never appears at render time",
                     "masked/contextual raw-detail reconstruction objective trained on the locked 351-row target set",
+                    "NAF-style or transformer-style raw restoration teacher with full-image/TLC-style evaluation and candidate-only runtime inputs",
+                    "sensor-pattern-aligned real-noise conditioning/addback using validated darkframe sidecars for cameras with calibrated sidecars",
                     "scene-family routed specialists only if the router uses candidate raw/metadata and beats the shared baseline per family",
                 ],
                 "baseline_comparisons_required": [
@@ -170,6 +223,7 @@ def build_contract(
                 "camera metadata",
                 "ISO/noise sidecar scalar conditioning where validated",
                 "PSF/kernel metadata sidecar or per-row kernel weights",
+                "trained model priors distilled from external or offline teachers",
             ],
             "forbidden_runtime_inputs": [
                 "REF image content",
@@ -237,6 +291,14 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
     do_not_repeat = "".join(f"<li>{html.escape(item)}</li>" for item in data["next_model_contract"]["do_not_repeat_as_primary_path"])
     gates = "".join(f"<li>{html.escape(item)}</li>" for item in data["next_model_contract"]["success_gates"])
     blockers = "".join(f"<li>{html.escape(item)}</li>" for item in data["current_model_state"]["blockers"])
+    research = "\n".join(
+        "<tr>"
+        f"<td>{html.escape(str(row.get('title')))}</td>"
+        f"<td><a href=\"{html.escape(str(row.get('url')))}\">source</a></td>"
+        f"<td>{html.escape(str(row.get('repo_implication')))}</td>"
+        "</tr>"
+        for row in data.get("research_basis", [])
+    )
     minimum = data["next_model_contract"]["minimum_viable_next_pass"]
     must_change = "".join(f"<li>{html.escape(item)}</li>" for item in minimum["must_change_from_failed_contract"])
     acceptable_tracks = "".join(f"<li>{html.escape(item)}</li>" for item in minimum["acceptable_first_tracks"])
@@ -274,6 +336,8 @@ code {{ font-size: 12px; word-break: break-all; }}
 <h2>Current Camera Blockers</h2>
 <table><tr><th>camera</th><th>best MAE recovery</th><th>best RMSE recovery</th><th>passes</th><th>receipt</th></tr>{cameras}</table>
 <ul>{blockers}</ul>
+<h2>Research Basis</h2>
+<table><tr><th>source</th><th>link</th><th>repo implication</th></tr>{research}</table>
 <h2>Forbidden Runtime Inputs</h2>
 <ul>{forbidden}</ul>
 <h2>Minimum Viable Next Pass</h2>

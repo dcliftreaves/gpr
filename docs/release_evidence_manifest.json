@@ -1581,7 +1581,7 @@
       "id": "premium_still_sr_next_experiment_contract_20260701",
       "family": "premium_still_sr",
       "status": "diagnostic",
-      "purpose": "Next-experiment contract for the premium still-SR model pass. Locks the pass to the canonical raw-CFA residual target, forbids REF/source/JPEG content at render time, and records failed local/context/noise/sampling-only probes that should not be repeated as the primary approach.",
+      "purpose": "Next-experiment contract for the premium still-SR model pass. Locks the pass to the canonical raw-CFA residual target, forbids REF/source/JPEG content at render time, records failed local/context/noise/sampling-only probes that should not be repeated as the primary approach, and carries the paper-backed RAW SR/noise/PSF implications for the next architecture pass.",
       "dashboard": "artifacts/premium_still_sr_next_experiment_contract_20260701/index.html",
       "docs": [
         "README.md",
