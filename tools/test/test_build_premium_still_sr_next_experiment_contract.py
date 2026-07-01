@@ -192,6 +192,7 @@ def main() -> int:
         assert any("Bayer-preserving flips" in item for item in blueprint["training_protocol"])
         assert any("overlapped-tile inference" in item for item in blueprint["validation_protocol"])
         assert any("window-attention teacher" in item for item in blueprint["first_ablation_order"])
+        assert any("global near-box PSF is a control only" in item for item in blueprint["first_ablation_order"])
         assert any("distilled student only after teacher clears" in item for item in blueprint["first_ablation_order"])
         execution = contract["execution_plan"]
         assert execution["run_id"] == "premium_still_sr_window_attention_teacher_gate_20260701"
@@ -225,9 +226,13 @@ def main() -> int:
         assert any("random context masking" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("nearest-neighbor residual patch dictionary" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("low-order linear candidate raw/HF/metadata" in item for item in contract["do_not_repeat_as_primary_path"])
+        assert any("simple RCAB or NAF teacher scale-up" in item for item in contract["do_not_repeat_as_primary_path"])
+        assert any("global near-box PSF conditioning repeat" in item for item in contract["do_not_repeat_as_primary_path"])
+        assert any("simple CFA one-hot" in item for item in contract["do_not_repeat_as_primary_path"])
         minimum = contract["minimum_viable_next_pass"]
         assert any("not reducible to independent local crop statistics" in item for item in minimum["must_change_from_failed_contract"])
         assert any("denoising, deblurring/PSF, and SR as one raw-restoration objective" in item for item in minimum["must_change_from_failed_contract"])
+        assert any("global near-box PSF" in item and "negative/control input" in item for item in minimum["must_change_from_failed_contract"])
         assert any("sensor-pattern alignment" in item for item in minimum["must_change_from_failed_contract"])
         assert any("overlapped tile inference" in item for item in minimum["must_change_from_failed_contract"])
         assert any("teacher-distilled" in item for item in minimum["acceptable_first_tracks"])

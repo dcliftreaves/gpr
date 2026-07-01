@@ -429,9 +429,12 @@ timing, memory, scoreboard, and premium gate receipts.
 - Make the first ablations architecture/data-contract tests, not another
   scalar-loss sweep: window-attention teacher versus the current noise-floor
   U-Net, with/without CFA phase conditioning, with/without validated noise
-  sidecar conditioning, with/without modeled PSF sidecar, crop-only versus
-  overlapped/full-image evaluation, and student distillation only after the
-  teacher clears both camera holdouts.
+  sidecar conditioning, with row-level/measured PSF variation versus no PSF
+  conditioning, crop-only versus overlapped/full-image evaluation, and student
+  distillation only after the teacher clears both camera holdouts. A global
+  near-box PSF sidecar is now a control/negative input only; it is not a
+  primary still-SR path unless row-level or camera-specific PSF variation is
+  added.
 - If multiple frames exist, burst RAW SR literature treats single-image SR as
   severely ill-posed and uses alignment/aggregation over raw bursts:
   https://openaccess.thecvf.com/content/ICCV2021/papers/Lecouat_Lucas-Kanade_Reloaded_End-to-End_Super-Resolution_From_Raw_Image_Bursts_ICCV_2021_paper.pdf.
