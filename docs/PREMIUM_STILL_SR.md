@@ -269,6 +269,19 @@ Restormer-like teacher on unique raw rows with camera/noise/PSF conditioning,
 spatial + Fourier losses, and rendered review gates. A smaller student can be
 distilled later only if the teacher clears the X2D/Z8 raw and rendered gates.
 
+The first RCAB-style teacher smoke run exists:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/train_receipt.json
+```
+
+It trains `model_arch=rcab_teacher` against the deduplicated 117-row target
+with `raw_multiscale_storedhf_coord_ev_noise`, multiscale band loss, and
+Fourier magnitude loss. It is a 30-step path proof, not a promotion run:
+8-row X2D holdout median raw MAE recovery is only about **0.069%**, and the
+receipt remains `training_probe_not_registered_production_algorithm`.
+
 The first raw-CFA residual trainer is:
 
 ```text

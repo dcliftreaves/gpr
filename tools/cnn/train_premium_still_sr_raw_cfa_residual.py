@@ -453,8 +453,8 @@ def multiscale_band_l1(pred: torch.Tensor, target: torch.Tensor, blocks: list[in
 
 
 def spectral_magnitude_l1(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-    pred_fft = torch.fft.rfft2(pred.float(), dim=(-2, -1), norm="ortho")
-    target_fft = torch.fft.rfft2(target.float(), dim=(-2, -1), norm="ortho")
+    pred_fft = torch.fft.rfft2(pred.float().contiguous(), dim=(-2, -1), norm="ortho")
+    target_fft = torch.fft.rfft2(target.float().contiguous(), dim=(-2, -1), norm="ortho")
     return F.l1_loss(torch.abs(pred_fft), torch.abs(target_fft))
 
 
@@ -555,6 +555,75 @@ class ChannelGate(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x * self.net(x)
+
+
+class RCABlock(nn.Module):
+    """Residual channel-attention block for CFA-aware teacher probes."""
+
+    def __init__(self, width: int, dilation: int = 1, residual_scale: float = 0.25) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        self.body = nn.Sequential(
+            nn.Conv2d(width, width, 3, padding=dilation, dilation=dilation),
+            nn.GELU(),
+            nn.Conv2d(width, width, 3, padding=dilation, dilation=dilation),
+            ChannelGate(width),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x + self.residual_scale * self.body(x)
+
+
+class RawCfaResidualRCABTeacher(nn.Module):
+    """CFA-aware teacher backbone with channel attention and broad context.
+
+    This is the first architecture in this trainer built to match the current
+    premium still-SR research direction: packed CFA inputs, residual channel
+    attention, a downsampled context branch, and compatibility with the existing
+    spatial, multiscale-band, and Fourier losses. It remains a training probe
+    until its receipts clear the still/editor-latitude gates.
+    """
+
+    def __init__(self, in_channels: int, width: int = 48, depth: int = 8, residual_scale: float = 0.12) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        w1 = max(8, int(width))
+        w2 = w1 * 2
+        self.head = nn.Sequential(nn.Conv2d(in_channels, w1, 3, padding=1), nn.GELU())
+        self.local_body = nn.Sequential(
+            *[RCABlock(w1, dilation=[1, 2, 4, 2][i % 4]) for i in range(max(1, int(depth)))]
+        )
+        self.down = nn.Sequential(nn.Conv2d(w1, w2, 3, stride=2, padding=1), nn.GELU())
+        self.context_body = nn.Sequential(
+            *[RCABlock(w2, dilation=[1, 2, 4, 8][i % 4]) for i in range(max(1, int(depth) // 2))]
+        )
+        self.global_body = nn.Sequential(
+            nn.Conv2d(w1, w2, 3, padding=1),
+            nn.GELU(),
+            *[RCABlock(w2, dilation=1) for _ in range(max(1, int(depth) // 3))],
+        )
+        self.up = nn.Conv2d(w2, w1, 3, padding=1)
+        self.global_up = nn.Conv2d(w2, w1, 3, padding=1)
+        self.fuse = nn.Sequential(
+            nn.Conv2d(w1 * 3, w1, 3, padding=1),
+            nn.GELU(),
+            RCABlock(w1, dilation=1),
+            RCABlock(w1, dilation=2),
+        )
+        self.tail = nn.Conv2d(w1, 4, 3, padding=1)
+        nn.init.zeros_(self.tail.weight)
+        nn.init.zeros_(self.tail.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        h = self.head(x)
+        local = self.local_body(h)
+        context = self.context_body(self.down(local))
+        context = F.interpolate(self.up(context), size=local.shape[-2:], mode="bilinear", align_corners=False)
+        global_size = (min(32, max(4, x.shape[-2] // 2)), min(32, max(4, x.shape[-1] // 2)))
+        global_context = self.global_body(F.adaptive_avg_pool2d(local, global_size))
+        global_context = F.interpolate(self.global_up(global_context), size=local.shape[-2:], mode="bilinear", align_corners=False)
+        fused = self.fuse(torch.cat([local, context, global_context], dim=1))
+        return torch.tanh(self.tail(fused)) * self.residual_scale
 
 
 class RawCfaResidualPyramidUNet(nn.Module):
@@ -664,6 +733,13 @@ def build_model(model_arch: str, in_channels: int, width: int, depth: int, resid
         )
     if model_arch == "unet":
         return RawCfaResidualUNet(
+            in_channels=in_channels,
+            width=width,
+            depth=depth,
+            residual_scale=residual_scale,
+        )
+    if model_arch == "rcab_teacher":
+        return RawCfaResidualRCABTeacher(
             in_channels=in_channels,
             width=width,
             depth=depth,
@@ -1359,9 +1435,9 @@ def main() -> int:
     ap.add_argument("--residual-scale", type=float, default=0.12)
     ap.add_argument(
         "--model-arch",
-        choices=("residual", "unet", "pyramid_unet", "global_context_unet"),
+        choices=("residual", "unet", "rcab_teacher", "pyramid_unet", "global_context_unet"),
         default="residual",
-        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context; pyramid_unet adds a deeper gated full-crop probe; global_context_unet adds a downsampled full-crop context branch.",
+        help="Residual keeps the legacy local/dilated stack; unet adds multi-scale encoder/decoder context; rcab_teacher adds residual channel attention and broad context; pyramid_unet adds a deeper gated full-crop probe; global_context_unet adds a downsampled full-crop context branch.",
     )
     ap.add_argument(
         "--feature-mode",
