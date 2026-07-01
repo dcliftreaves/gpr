@@ -4,6 +4,19 @@
 This file summarizes what the gate has actually verified. If something
 here doesn't match the latest run logs, the run logs win.
 
+## Current release boundary
+
+Raw-video SR is frozen for shipment on the approved 4K cleanup and 8K
+reconstruction receipts. Do not keep iterating on SR just because a new
+experiment is plausible. Reopen the raw-video SR decision only if the locked
+gate, artifact hash, receipt, CI guard, or manual review fails, or if a
+replacement has already beaten the locked baseline while emitting the same
+`.gvid`, editable DNG/GPR, ProRes, timing/memory, dashboard, and hash evidence.
+
+PSF/blur modeling is useful next-generation research, but it is not a release
+requirement for the current raw-video workflow. It becomes a blocker only for a
+future claim that a PSF-conditioned model replaces the approved 4K/8K SR path.
+
 GPR has **two production modes** with two different encoders:
 
 - **Stills** → legacy CineForm VC5 encoder via `gpr_tools` + matched BIBO_1x CNN.
