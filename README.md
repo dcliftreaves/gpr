@@ -69,8 +69,8 @@ cleanup, offline 8K SR, editable DNG/GPR packaging, ProRes review, and release
 receipts. For the Mission 1 raw-video loop, the remaining production step is
 intentionally narrow: run the same closure path from the actual Mission 1
 sensor/DMA, SD writer, and rear display instead of the Pi stand-in. The full
-four-pillar suite still has the fixture/noise, premium still-SR, and PSF gates
-listed below.
+four-pillar suite still has fixture/noise, premium still-SR, real camera-role,
+and release-hygiene gates listed below; PSF/blur work is optional research.
 
 ## Four Product Tracks
 

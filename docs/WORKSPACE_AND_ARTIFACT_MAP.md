@@ -71,19 +71,21 @@ For ML/CNN scripts, the current local environment is:
 | What proves the camera-back preview proxy? | `docs/VIDEO_STATUS.md` and the Mission 1 numbered-list burndown in `docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md` |
 | What proves the approved 8K SR review path? | The standalone ProRes movies under `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/`, `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/`, and `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/`. |
 | What proves or blocks premium still-SR? | `docs/PREMIUM_STILL_SR.md`, `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html`, and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html` |
-| What proves or blocks PSF-aware video/SR? | `docs/BAYER_RESIZE_PSF.md`, `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html`, and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html` |
+| What tracks optional PSF-aware video/SR research? | `docs/BAYER_RESIZE_PSF.md`, `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html`, and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html` |
 
 ## Current Local Work Queue
 
-The active production burn-down has five open requirement IDs. Four have work
-that can continue without a Mission 1 development kit; one requires a real
-camera-role run.
+The active production burn-down has four release-blocking open requirement IDs.
+Three have work that can continue without a Mission 1 development kit; one
+requires a real camera-role run. PSF-aware video/SR is intentionally not in this
+queue; it is optional research unless it later beats the locked 4K/8K baseline
+with the full receipt surface.
 
 | priority | work | local status |
 |---|---|---|
 | 1 | Premium still-SR promotion | Local model-promotion work can continue from the raw-CFA residual target and blocker dashboards. The current blocker is X2D/domain-general raw-detail recovery strength, not missing tooling. |
-| 2 | PSF-aware video/SR promotion | Local work can continue on PSF-conditioned ablations, but a production replacement cannot be promoted until controlled Mission 1 high/low pairs produce a stable native kernel. |
-| 3 | Mission 1 / iPhone noise sidecars | Local audits and sidecar builders are ready; Mission needs two more matching ISO232 RGGB darkframes, and iPhone needs confirmed no-scene provenance or recapture. |
+| 2 | Mission 1 / iPhone noise sidecars | Local audits and sidecar builders are ready; Mission needs two more matching ISO232 RGGB darkframes, and iPhone needs confirmed no-scene provenance or recapture. |
+| 3 | Release packaging and documentation hygiene | Keep README, scorecard, release manifest, handoff bundle labels, artifact hashes, and lock-ledger checks aligned with the approved 4K/8K reconstruction boundary. |
 | 4 | Mission 1 raw-video MVP closure | Blocked on real Mission 1 sensor/DMA or camera-ring-buffer, SD writer, and rear-display receipts. Pi 5 stand-in receipts remain proxy evidence only. |
 
 ## Current Whole-Video Review Artifacts

@@ -44,6 +44,9 @@ DOC_TOKENS = {
         "Raw video reconstruction improvement ships the approved 4K cleanup",
         "reconstruction workflow",
         "optional research, not a release blocker",
+        "No Infinite SR Rule",
+        "SR work is not allowed to move the release target by itself.",
+        "PSF/blur experiments are optional next-generation research.",
         "Execution Split",
         "Can advance locally without new captures",
         "Requires new hardware or new samples before it can close",
@@ -51,6 +54,15 @@ DOC_TOKENS = {
         "camera access",
         "noise calibration uncertainty",
         "throughput, memory, or storage",
+    ),
+}
+
+FORBIDDEN_TOKENS = {
+    "README.md": (
+        "PSF gates",
+    ),
+    "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md": (
+        "PSF/blur-aware replacement work is required",
     ),
 }
 
@@ -77,6 +89,9 @@ def validate(paths: dict[str, Path] | None = None) -> list[str]:
         for token in tokens:
             if token not in text:
                 failures.append(f"{label} missing {token!r}")
+        for token in FORBIDDEN_TOKENS.get(label, ()):
+            if token in text:
+                failures.append(f"{label} must not contain {token!r}")
     return failures
 
 

@@ -27,6 +27,25 @@ camera access, CFA/metadata incompatibility, noise calibration uncertainty,
 model capacity, throughput, memory, or storage. PSF mismatch is a blocker only
 for a future PSF-conditioned replacement claim.
 
+## No Infinite SR Rule
+
+SR work is not allowed to move the release target by itself.
+
+- Raw-video 4K cleanup and 8K SR are locked for the current release. They can
+  reopen only if their own committed gate, receipt, hash, CI guard, or manual
+  review fails.
+- A new raw-video SR idea can replace the locked path only after it already
+  beats the locked baseline and emits the same `.gvid`, editable raw, ProRes,
+  dashboard, timing, memory, and hash receipts.
+- PSF/blur experiments are optional next-generation research. They are not part
+  of the release denominator for the current raw-video reconstruction path.
+- Premium still-SR remains a separate open model-promotion gate. It can consume
+  local model time, but failed probes must be recorded as evidence and cannot
+  delay raw-video shipment.
+- When choosing the next task, release hygiene, camera-role handoff docs, noise
+  sidecar closure, and premium still-SR promotion outrank another video-SR
+  research pass unless a locked video-SR gate actually fails.
+
 ## Execution Split
 
 The high-level goal has two different kinds of remaining work. Keep them

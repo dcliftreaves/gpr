@@ -130,6 +130,9 @@ FORBIDDEN_README_TOKENS = (
     # now has dark-like CFA candidates, but no production sidecar until
     # no-scene-signal provenance is proven.
     "iPhone has no CFA darkframe source",
+    # PSF/blur modeling is optional research for a future replacement, not a
+    # current-release blocker for the approved raw-video SR path.
+    "PSF gates",
 )
 
 README_PILLAR_LABELS = {
