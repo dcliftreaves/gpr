@@ -315,6 +315,23 @@ Simple NAF-style architecture support is therefore not enough by itself; the
 blocker is now more likely the target/objective/teacher construction than
 another small RCAB/NAF scale-up.
 
+After the SNR audit below, a corrected-distribution NAF probe trained only on
+X2D rows while holding out the `2024_April_X2D_1742` scene:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_naf_teacher_w32_700_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_naf_teacher_w32_700_20260701/train_receipt.json
+```
+
+This fixes the worst train-distribution mistake from the all-X2D-holdout NAF
+run, but it still is not a promotion candidate: the 9-row X2D scene holdout
+median raw MAE recovery is only about **0.107%**, holdout RMSE recovery remains
+negative at about **-0.128%**, train rows regress by about **-0.493%** median,
+and best holdout selection again happens at step 1. The conclusion is narrower
+than the first NAF failure: train/holdout camera distribution matters, but
+simple NAF-style scale-up with this objective still trails the weak
+early-selected U-Net branch and is far below the still-SR gate.
+
 A raw-target SNR audit now compares the deduplicated raw-CFA residual target to
 the calibrated camera noise sidecars:
 
