@@ -169,10 +169,13 @@ def classify_decision(path: Path, data: dict[str, Any]) -> dict[str, Any] | None
     }
 
 
-def score_row(row: dict[str, Any]) -> tuple[float, float, float, str]:
+def score_row(row: dict[str, Any]) -> tuple[float, float, float, float, float, str]:
     mission = row["mission"]
     z8 = row["z8"]
     return (
+        1.0 if row["promotable_row"] else 0.0,
+        1.0 if not row["explicit_reject"] else 0.0,
+        float(row["mission_ok"]) + float(row["z8_ok"]),
         float(mission.get("delta_rmse_min") or -999.0),
         float(z8.get("delta_rmse_min") or -999.0),
         float(mission.get("delta_gradient_min") or -999.0),
@@ -204,18 +207,27 @@ def scan(external_root: Path) -> list[dict[str, Any]]:
 def build_scoreboard(external_root: Path) -> dict[str, Any]:
     rows = scan(external_root)
     promotable = [row for row in rows if row["promotable_row"]]
+    non_rejected = [row for row in rows if not row["explicit_reject"]]
+    mission_ok = [row for row in rows if row["mission_ok"]]
+    z8_ok = [row for row in rows if row["z8_ok"]]
     return {
         "schema": SCHEMA,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "external_root": external_root.as_posix(),
         "decision_count": len(rows),
         "promotable_row_count": len(promotable),
+        "non_rejected_row_count": len(non_rejected),
+        "mission_ok_row_count": len(mission_ok),
+        "z8_ok_row_count": len(z8_ok),
         "production_ready": False,
         "best_candidate": rows[0] if rows else None,
+        "best_promotable_candidate": promotable[0] if promotable else None,
+        "best_non_rejected_candidate": non_rejected[0] if non_rejected else None,
         "interpretation": (
-            "This ranks historical SR/detail decisions by baseline deltas. A row can be useful evidence, "
-            "but PSF production promotion still requires native PSF receipt, current Mission42/Z8 gates, "
-            "packaging, timing, memory, and visual signoff."
+            "This ranks historical SR/detail decisions with promotable rows first, then non-rejected "
+            "diagnostic rows, then explicit rejects. A row can be useful evidence, but PSF production "
+            "promotion still requires native PSF receipt, current Mission42/Z8 gates, packaging, timing, "
+            "memory, and visual signoff."
         ),
         "rows": rows,
     }
@@ -274,6 +286,7 @@ def render_html(scoreboard: dict[str, Any]) -> str:
   <div class="cards">
     <div class="card"><div>Decision receipts</div><div class="metric">{scoreboard['decision_count']}</div></div>
     <div class="card"><div>Promotable rows</div><div class="metric">{scoreboard['promotable_row_count']}</div></div>
+    <div class="card"><div>Non-rejected rows</div><div class="metric">{scoreboard['non_rejected_row_count']}</div></div>
     <div class="card"><div>Production ready</div><div class="metric">{str(scoreboard['production_ready']).lower()}</div></div>
     <div class="card"><div>Top ranked experiment</div><code>{html.escape(str(best.get('experiment', 'none')))}</code></div>
   </div>

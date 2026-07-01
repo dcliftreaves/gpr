@@ -84,7 +84,7 @@
           "mission1_native_psf_corpus_audit_20260630",
           "mission1_native_psf_kernel_stability_audit_20260630",
           "raw_video_psf_capture_request_20260630",
-          "raw_video_sr_candidate_scoreboard_20260630",
+          "raw_video_sr_candidate_scoreboard_20260701",
           "raw_video_psf_next_experiment_contract_20260701"
         ],
         "platform_performance": [
@@ -1319,8 +1319,8 @@
         "artifacts/product_burndown_20260701/index.html"
       ],
       "hashes": {
-        "product_burndown_json_sha256": "30ea4e5f5397361089f7327356cdd4e98a35726bb481259f1a6ffd47b0674630",
-        "dashboard_sha256": "0be8eeca36747c01196e75c3a638c9fb399bd6c418841a336e7ff29445399287"
+        "product_burndown_json_sha256": "97fd2a808c59a5302beed6c5ef82ed2ea9ef4e86acda297de056458a8edb5b2d",
+        "dashboard_sha256": "77e1e752ca526e6397c91e2a2069e8eb849be229f56244736d2c502d102c56f7"
       },
       "metrics": {
         "four_pillar_completion_percent": 69,
@@ -1777,29 +1777,33 @@
       }
     },
     {
-      "id": "raw_video_sr_candidate_scoreboard_20260630",
+      "id": "raw_video_sr_candidate_scoreboard_20260701",
       "family": "raw_video_psf",
       "status": "diagnostic",
       "purpose": "Scores raw-video SR/detail candidates against Mission42 and Z8 all24 coverage so PSF-aware replacement work cannot promote a crop-local or single-camera improvement.",
-      "dashboard": "artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html",
+      "dashboard": "artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html",
       "docs": [
         "README.md",
         "docs/BAYER_RESIZE_PSF.md",
         "docs/PRODUCT_PILLAR_SCORECARD.md"
       ],
       "receipts": [
-        "artifacts/raw_video_sr_candidate_scoreboard_20260630/scoreboard.json",
-        "artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html"
+        "artifacts/raw_video_sr_candidate_scoreboard_20260701/scoreboard.json",
+        "artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html"
       ],
       "hashes": {
-        "scoreboard_json_sha256": "18ac1fdf49380ec17fc4f53865cfca8903d1cb6d500f9dfcacb00e104b315821",
-        "dashboard_sha256": "fc0eb290232d7beb7fd5b0e88db6d3ff01d692d28f4d2a27837807f01f7a504d"
+        "scoreboard_json_sha256": "2b07eb4c68c09e71c273b336e5503aaf82a70c2f6059ec50ac98099a41bf1f48",
+        "dashboard_sha256": "d3cc60b9f4732c0169b5967bf33f7ccc583471129a4b8bb9338183e7d7c3ca79"
       },
       "metrics": {
         "decision_count": 89,
         "promotable_row_count": 0,
+        "non_rejected_row_count": 5,
+        "mission_ok_row_count": 1,
+        "z8_ok_row_count": 5,
         "best_candidate_mission_ok": 0,
         "best_candidate_z8_ok": 1,
+        "best_promotable_candidate_present": 0,
         "production_ready": 0
       }
     },
@@ -1820,8 +1824,8 @@
         "artifacts/raw_video_psf_next_experiment_contract_20260701/index.html"
       ],
       "hashes": {
-        "contract_json_sha256": "e1d4f82486824704a1ff9e08eeea0e5cf2ec3d843043165e1bc04e01948d2644",
-        "dashboard_sha256": "f57e37660c05b91f86581f9b7cee94418359cff4dbb5dfc6a5221374ec100bc0"
+        "contract_json_sha256": "df23e0f05f9829a99edb15c24c326ff18dd1da4e42c112f112049356da027996",
+        "dashboard_sha256": "ab25ef25dc61ad2e1eeb33c8cdeab0df8acde4625e5c4964bff8d9858276a470"
       },
       "metrics": {
         "local_experiments_allowed": 1,

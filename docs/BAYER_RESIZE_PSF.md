@@ -239,13 +239,13 @@ promotion candidate:
 ```sh
 python3 tools/build_raw_video_sr_candidate_scoreboard.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260701
 ```
 
 Current scoreboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html
 ```
 
 The current run indexes 89 historical decision receipts and finds zero

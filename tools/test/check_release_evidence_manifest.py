@@ -153,7 +153,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "cnn_product_scorecard_20260629",
                 "mission1_native_psf_corpus_audit_20260630",
                 "raw_video_psf_capture_request_20260630",
-                "raw_video_sr_candidate_scoreboard_20260630",
+                "raw_video_sr_candidate_scoreboard_20260701",
                 "raw_video_psf_next_experiment_contract_20260701",
             },
             "platform_performance": {"local_8k_raw_offline"},

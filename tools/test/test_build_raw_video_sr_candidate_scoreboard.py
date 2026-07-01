@@ -75,8 +75,13 @@ def main() -> int:
         assert data["schema"] == "gpr.raw_video_sr_candidate_scoreboard.v1"
         assert data["decision_count"] == 3
         assert data["promotable_row_count"] == 1
+        assert data["non_rejected_row_count"] == 2
+        assert data["mission_ok_row_count"] == 3
+        assert data["z8_ok_row_count"] == 2
         assert data["production_ready"] is False
-        assert data["best_candidate"]["experiment"] == "current_goal_sr_rejected"
+        assert data["best_candidate"]["experiment"] == "current_goal_sr_good"
+        assert data["best_promotable_candidate"]["experiment"] == "current_goal_sr_good"
+        assert data["best_non_rejected_candidate"]["experiment"] == "current_goal_sr_good"
         promotable = [row for row in data["rows"] if row["promotable_row"]]
         assert promotable[0]["experiment"] == "current_goal_sr_good"
         assert "Raw Video SR Candidate Scoreboard" in html

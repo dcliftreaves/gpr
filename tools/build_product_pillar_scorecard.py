@@ -325,7 +325,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     artifact_ref("raw-video PSF gap plan", "artifacts/raw_video_psf_gap_plan_20260630/index.html"),
                     artifact_ref("Mission 1 native PSF corpus audit", "artifacts/mission1_native_psf_corpus_audit_20260630/index.html"),
                     artifact_ref("raw-video PSF controlled capture request", "artifacts/raw_video_psf_capture_request_20260630/index.html"),
-                    artifact_ref("raw-video SR/detail candidate scoreboard", "artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html"),
+                    artifact_ref("raw-video SR/detail candidate scoreboard", "artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html"),
                 ],
                 external_root,
             ),

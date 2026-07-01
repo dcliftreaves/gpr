@@ -27,7 +27,7 @@ DEFAULT_NATIVE_STABILITY = (
     "artifacts/mission1_native_psf_kernel_stability_audit_20260630/"
     "kernel_stability_audit.json"
 )
-DEFAULT_SR_SCOREBOARD = "artifacts/raw_video_sr_candidate_scoreboard_20260630/scoreboard.json"
+DEFAULT_SR_SCOREBOARD = "artifacts/raw_video_sr_candidate_scoreboard_20260701/scoreboard.json"
 DEFAULT_GAP_PLAN = "artifacts/raw_video_psf_gap_plan_20260630/raw_video_psf_gap_plan.json"
 
 

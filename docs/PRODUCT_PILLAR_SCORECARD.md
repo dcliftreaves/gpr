@@ -223,7 +223,7 @@ That controlled-pair blocker is pinned as `controlled_mission1_psf_pairs` in
 the committed production capture requirements.
 
 The current raw-video SR/detail candidate scoreboard lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260630/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_20260701/index.html`.
 It indexes 89 historical Mission/Z8 decision receipts and finds zero
 current-scale promotion rows under the Mission42 plus Z8 all24 coverage rule.
 

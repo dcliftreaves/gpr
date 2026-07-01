@@ -30,7 +30,7 @@ DEFAULT_PSF_RECEIPT = (
 )
 DEFAULT_4K_SIGNOFF = "artifacts/mission1_4k_cleanup_visual_signoff_20260625/production_signoff.json"
 DEFAULT_8K_PROMOTION = "artifacts/mission1_8k_sr_production_promotion_20260625/production_promotion.json"
-DEFAULT_SR_SCOREBOARD = "artifacts/raw_video_sr_candidate_scoreboard_20260630/scoreboard.json"
+DEFAULT_SR_SCOREBOARD = "artifacts/raw_video_sr_candidate_scoreboard_20260701/scoreboard.json"
 DEFAULT_NATIVE_PAIR_INVENTORY = "artifacts/mission1_native_psf_pair_inventory_20260630/inventory.json"
 DEFAULT_NATIVE_PSF_MEASUREMENT_PLAN = "artifacts/mission1_native_psf_measurement_plan_20260630/measurement_plan.json"
 DEFAULT_NATIVE_PSF_MEASUREMENT = "artifacts/mission1_native_psf_measurement_20260630/native_psf_measurement.json"
