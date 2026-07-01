@@ -604,8 +604,8 @@ pillar.
 | Premium still-SR raw-target SNR audit dashboard | `artifacts/premium_still_sr_raw_target_snr_audit_20260701/index.html` | `7e267673e68896a6d3999f17d03ef8e9ea2e3be52f54c668a70c93080e59f141` |
 | Premium still-SR target distribution audit JSON | `artifacts/premium_still_sr_target_distribution_audit_20260701/target_distribution_audit.json` | `4defd67c6250b36946bf2a3aa0ae0617f98705fae46193f9a723d14d2127da43` |
 | Premium still-SR target distribution audit dashboard | `artifacts/premium_still_sr_target_distribution_audit_20260701/index.html` | `abee7e5ef47b2c687ec97bac861d3de001f7065424653bdd13c47793c3aacc4c` |
-| Premium still-SR next-experiment contract JSON | `artifacts/premium_still_sr_next_experiment_contract_20260701/premium_still_sr_next_experiment_contract.json` | `f773c29fd639ad6e5e0924f541997b3d2800a1a73af387b4233072a1aaea1b83` |
-| Premium still-SR next-experiment contract dashboard | `artifacts/premium_still_sr_next_experiment_contract_20260701/index.html` | `719cde569d18e520d02129b894d46ad416587c2459afbf56f4add88476fbb5fd` |
+| Premium still-SR next-experiment contract JSON | `artifacts/premium_still_sr_next_experiment_contract_20260701/premium_still_sr_next_experiment_contract.json` | `2c42b8070f26e706e9bbdc8f2741b0f6e3f36c11229a82d07d922c82ec7f8647` |
+| Premium still-SR next-experiment contract dashboard | `artifacts/premium_still_sr_next_experiment_contract_20260701/index.html` | `8c9d65aa6dab4dff5292dbd13ee657413af290a8aea4ea1ba2d5cba8f9488628` |
 | Premium still-SR X2D combined stored-HF/context probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextstoredhf_w40_1800_20260630/train_receipt.json` | `bb060baaedb3f2439eb3d51fd45002eb67278c87d276d403d208351946463ea7` |
 | Premium still-SR X2D multiscale band-loss probe receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_bandloss_w40_1800_20260630/train_receipt.json` | `0dd675d612e66461cea1d658fb62f91fe258703473aaa810d0c573f1fc18cb66` |
 

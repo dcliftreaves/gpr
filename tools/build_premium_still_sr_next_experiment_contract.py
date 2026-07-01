@@ -138,11 +138,13 @@ def build_contract(
                 "must_change_from_failed_contract": [
                     "use a full-image, full-crop, or otherwise structured context representation that is not reducible to independent local crop statistics",
                     "add a materially stronger learned detail prior, teacher-distilled target, or global/contextual objective instead of only increasing local CNN capacity",
+                    "condition on camera/noise and measured or modeled PSF metadata where available, rather than treating all resize/detail residuals as one distribution",
                     "select checkpoints by the joint X2D plus Z8 holdout gates, not train loss or a single-camera dashboard",
                     "emit the same editable raw, rendered latitude, timing, memory, config, and noise-policy receipts required for promotion even if the result fails",
                 ],
                 "acceptable_first_tracks": [
                     "global-context encoder with raw-CFA residual decoder and candidate-only runtime inputs",
+                    "PSF/kernel-conditioned global-context raw-CFA residual model using candidate raw plus measured or modeled kernel metadata",
                     "teacher-distilled raw-CFA detail prior whose teacher never appears at render time",
                     "masked/contextual raw-detail reconstruction objective trained on the locked 351-row target set",
                     "scene-family routed specialists only if the router uses candidate raw/metadata and beats the shared baseline per family",
@@ -167,6 +169,7 @@ def build_contract(
                 "candidate-derived luma/detail features",
                 "camera metadata",
                 "ISO/noise sidecar scalar conditioning where validated",
+                "PSF/kernel metadata sidecar or per-row kernel weights",
             ],
             "forbidden_runtime_inputs": [
                 "REF image content",

@@ -117,6 +117,8 @@ def main() -> int:
                 "depth": 2,
                 "residual_scale": 0.08,
                 "feature_mode": "raw_multiscale_coord_ev_noise",
+                "psf_receipt": None,
+                "psf_kernel_weight": None,
                 "feature_block": 5,
                 "lr": 1.0e-3,
                 "weight_decay": 0.0,
@@ -178,6 +180,8 @@ def main() -> int:
         assert receipt["config"]["target_scale_policy"] == "none"
         assert receipt["config"]["target_scale_strength"] == 1.0
         assert receipt["config"]["train_target_scale_stats"]["median"] == 1.0
+        assert receipt["config"]["psf_conditioning_enabled"] is False
+        assert receipt["config"]["psf_kernel_weights"] == [0.25, 0.25, 0.25, 0.25]
         assert receipt["config"]["target_representation"] == "residual"
         assert receipt["policy"]["target_energy_loss_weight_policy"] == "none"
         assert receipt["policy"]["target_scale_policy"] == "none"
@@ -436,6 +440,25 @@ def main() -> int:
         assert frame_context_receipt["config"]["feature_mode"] == "raw_framectx_coord_ev_noise"
         assert "absolute crop position" in frame_context_receipt["policy"]["runtime_inputs"]
         assert frame_context_receipt["policy"]["uses_source_raw_at_runtime"] is False
+
+        args.output_dir = root / "psf_conditioned_holdout"
+        args.model_arch = "global_context_unet"
+        args.feature_mode = "raw_context_coord_ev_noise_psf"
+        args.psf_kernel_weight = [0.52, 0.23, 0.17, 0.08]
+        args.sample_mode = "full_crop"
+        args.batch_size = 1
+        args.patch_size = 20
+        args.eval_tile = 40
+        psf_receipt = tool.train(args)
+        assert psf_receipt["eval"]["holdout"]["row_count"] == 1
+        assert psf_receipt["config"]["feature_mode"] == "raw_context_coord_ev_noise_psf"
+        assert psf_receipt["config"]["psf_conditioning_enabled"] is True
+        assert psf_receipt["config"]["psf_kernel_weights"] == [0.52, 0.23, 0.17, 0.08]
+        assert "PSF/kernel scalar conditioning" in psf_receipt["policy"]["runtime_inputs"]
+        assert psf_receipt["policy"]["psf_conditioning"].startswith("enabled")
+        assert psf_receipt["policy"]["uses_source_raw_at_runtime"] is False
+        assert psf_receipt["eval"]["holdout"]["rows"][0]["psf_kernel_weights"] == [0.52, 0.23, 0.17, 0.08]
+        args.psf_kernel_weight = None
 
         args.output_dir = root / "full_crop_holdout"
         args.model_arch = "unet"

@@ -234,6 +234,34 @@ one review plane and preserved in metadata under
 `raw_deduplicated_review_rows`; they should not be counted as independent raw
 supervision.
 
+## PSF-Conditioned Trainer Path
+
+The raw-CFA residual trainer now has explicit PSF/kernel conditioning feature
+modes for the next premium still-SR pass:
+
+```sh
+/Users/dcliftreaves/anaconda3/envs/py3_10/bin/python3 \
+  tools/cnn/train_premium_still_sr_raw_cfa_residual.py \
+  --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/raw_cfa_residual_targets_dedup.npz \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_conditioned_probe_<date> \
+  --model-arch global_context_unet \
+  --feature-mode raw_context_coord_ev_noise_psf \
+  --psf-receipt /Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_known_kernel_validation_20260701/bayer_resize_psf_receipt.json \
+  --sample-mode full_crop \
+  --holdout-camera x2d
+```
+
+The `_psf` modes add scalar planes derived from a
+`gpr.bayer_resize_psf_receipt.v1` or explicit four-value
+`--psf-kernel-weight` values. They do not add REF, source raw, source HF, or
+JPEG target content at runtime. The default kernel is the neutral
+`[0.25, 0.25, 0.25, 0.25]` box, so existing non-PSF feature modes remain
+behavior-compatible.
+
+This is an executable experiment path, not a result. It must still beat the
+current X2D/Z8 holdout gates and full still/editor-latitude review before any
+premium still-SR promotion claim.
+
 ## Research Alignment For The Next CNN Pass
 
 The current local U-Net/raw-residual experiments are intentionally diagnostic,

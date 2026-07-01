@@ -295,6 +295,10 @@ residual target, forbids REF/source/JPEG content at render time, records the
 failed local/context/noise/sampling-only paths that should not be repeated as the
 primary approach, and keeps the promotion gate at the current X2D/Z8 15 percent
 median raw-residual recovery threshold plus full still/editor-latitude receipts.
+The trainer now has PSF/kernel-conditioned `_psf` feature modes that can consume
+row metadata, explicit four-weight kernels, or a `gpr.bayer_resize_psf_receipt.v1`
+without adding source/REF content at runtime. That opens the intended
+PSF/camera-aware experiment path, but it is not a promoted still-SR model.
 The final still-SR promotion artifact set is pinned as
 `premium_still_sr_promotion_receipts` in the committed production capture
 requirements.

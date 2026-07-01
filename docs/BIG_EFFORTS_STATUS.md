@@ -249,6 +249,12 @@ Current evidence:
   A per-CFA-plane frequency filter from candidate HF to the same raw residual
   also regresses that split by about -4.29 percent median MAE, so the missing
   detail is not a simple frequency response of candidate HF.
+  The raw-CFA residual trainer now has PSF/kernel-conditioned feature modes
+  (`raw_multiscale_coord_ev_noise_psf`, `raw_context_coord_ev_noise_psf`, and
+  stored-HF variants). They use candidate raw plus metadata/PSF sidecar scalar
+  planes only, keep source/REF content out of runtime inputs, and are covered
+  by the trainer regression. This opens the next executable PSF/camera-aware
+  teacher pass, but does not promote any current still-SR model.
   The raw target duplicate audit records 351 rows but only 117 unique
   scene/crop raw-domain rows: all raw arrays are identical across -2/0/+2 EV,
   while rendered review residuals vary. Raw-CFA training must therefore use the
