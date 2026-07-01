@@ -222,6 +222,50 @@ def frame_context_channels() -> int:
     return 19
 
 
+CFA_PHASES = ("RGGB", "GBRG", "GRBG", "BGGR", "unknown")
+
+
+def cfa_phase_channels() -> int:
+    return len(CFA_PHASES)
+
+
+def normalize_cfa_phase(value: Any) -> str:
+    if value is None:
+        return "unknown"
+    if isinstance(value, (list, tuple)):
+        numeric_to_color = {0: "R", 1: "G", 2: "B"}
+        try:
+            value = "".join(numeric_to_color[int(v)] for v in value)
+        except (KeyError, TypeError, ValueError):
+            value = "".join(str(v) for v in value)
+    text = "".join(ch for ch in str(value).upper() if ch in {"R", "G", "B"})
+    return text if text in CFA_PHASES[:-1] else "unknown"
+
+
+def infer_row_cfa_phase(row: dict[str, Any]) -> str:
+    for key in (
+        "cfa_phase",
+        "cfa_pattern",
+        "bayer_phase",
+        "bayer_pattern",
+        "CFARepeatPatternDim",
+        "CFAPattern",
+    ):
+        phase = normalize_cfa_phase(row.get(key))
+        if phase != "unknown":
+            return phase
+    haystack = " ".join(str(row.get(key) or "") for key in ("source_dng", "candidate_dng", "candidate_raw", "scene_id"))
+    for phase in CFA_PHASES[:-1]:
+        if phase.lower() in haystack.lower():
+            return phase
+    return "unknown"
+
+
+def cfa_phase_features(phase: str) -> tuple[float, ...]:
+    normalized = normalize_cfa_phase(phase)
+    return tuple(1.0 if normalized == item else 0.0 for item in CFA_PHASES)
+
+
 def camera_onehot(camera: str) -> tuple[float, float, float]:
     return (
         1.0 if camera == "x2d" else 0.0,
@@ -480,27 +524,44 @@ def make_features(
     stored_hf: torch.Tensor | None = None,
     frame_context: torch.Tensor | None = None,
     psf: torch.Tensor | None = None,
+    cfa_phase: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    if feature_mode == "raw":
+    use_cfa_phase = feature_mode.endswith("_cfa")
+    base_feature_mode = feature_mode[:-4] if use_cfa_phase else feature_mode
+
+    def cat_parts(parts: list[torch.Tensor]) -> torch.Tensor:
+        if use_cfa_phase:
+            parts.append(
+                scalar_planes(
+                    cfa_phase,
+                    raw.shape[0],
+                    raw.shape[-2],
+                    raw.shape[-1],
+                    raw.device,
+                    cfa_phase_channels(),
+                )
+            )
+        return torch.cat(parts, dim=1)
+
+    if base_feature_mode == "raw":
         return raw
     fine = block_highpass(raw, block)
-    if feature_mode == "raw_hf":
+    if base_feature_mode == "raw_hf":
         return torch.cat([raw, fine], dim=1)
-    if feature_mode == "raw_hf_coord_ev_noise":
-        return torch.cat(
+    if base_feature_mode == "raw_hf_coord_ev_noise":
+        return cat_parts(
             [
                 raw,
                 fine,
                 coord_planes(raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
-            ],
-            dim=1,
+            ]
         )
-    if feature_mode == "raw_multiscale_coord_ev_noise":
+    if base_feature_mode == "raw_multiscale_coord_ev_noise":
         coarse_block = max(block * 3, block + 2)
         phase_mean = torch.mean(raw, dim=1, keepdim=True)
-        return torch.cat(
+        return cat_parts(
             [
                 raw,
                 fine,
@@ -509,13 +570,12 @@ def make_features(
                 coord_planes(raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
-            ],
-            dim=1,
+            ]
         )
-    if feature_mode == "raw_multiscale_coord_ev_noise_psf":
+    if base_feature_mode == "raw_multiscale_coord_ev_noise_psf":
         coarse_block = max(block * 3, block + 2)
         phase_mean = torch.mean(raw, dim=1, keepdim=True)
-        return torch.cat(
+        return cat_parts(
             [
                 raw,
                 fine,
@@ -525,13 +585,12 @@ def make_features(
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
                 scalar_planes(psf, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, psf_feature_channels()),
-            ],
-            dim=1,
+            ]
         )
-    if feature_mode == "raw_framectx_coord_ev_noise":
+    if base_feature_mode == "raw_framectx_coord_ev_noise":
         coarse_block = max(block * 3, block + 2)
         phase_mean = torch.mean(raw, dim=1, keepdim=True)
-        return torch.cat(
+        return cat_parts(
             [
                 raw,
                 fine,
@@ -541,14 +600,13 @@ def make_features(
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
                 scalar_planes(frame_context, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, frame_context_channels()),
-            ],
-            dim=1,
+            ]
         )
-    if feature_mode == "raw_context_coord_ev_noise":
+    if base_feature_mode == "raw_context_coord_ev_noise":
         coarse_block = max(block * 3, block + 2)
         phase_mean = torch.mean(raw, dim=1, keepdim=True)
         global_raw = torch.mean(raw, dim=(-2, -1))
-        return torch.cat(
+        return cat_parts(
             [
                 raw,
                 fine,
@@ -560,14 +618,13 @@ def make_features(
                 coord_planes(raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
-            ],
-            dim=1,
+            ]
         )
-    if feature_mode == "raw_context_coord_ev_noise_psf":
+    if base_feature_mode == "raw_context_coord_ev_noise_psf":
         coarse_block = max(block * 3, block + 2)
         phase_mean = torch.mean(raw, dim=1, keepdim=True)
         global_raw = torch.mean(raw, dim=(-2, -1))
-        return torch.cat(
+        return cat_parts(
             [
                 raw,
                 fine,
@@ -580,18 +637,17 @@ def make_features(
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
                 scalar_planes(psf, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, psf_feature_channels()),
-            ],
-            dim=1,
+            ]
         )
-    if feature_mode == "raw_context_storedhf_coord_ev_noise":
+    if base_feature_mode == "raw_context_storedhf_coord_ev_noise":
         if stored_hf is None:
-            raise ValueError("raw_context_storedhf_coord_ev_noise requires candidate_raw_hf_cfa4")
+            raise ValueError(f"{feature_mode} requires candidate_raw_hf_cfa4")
         coarse_block = max(block * 3, block + 2)
         phase_mean = torch.mean(raw, dim=1, keepdim=True)
         clipped_hf = torch.clamp(stored_hf, -0.5, 0.5)
         global_raw = torch.mean(raw, dim=(-2, -1))
         global_hf = torch.mean(torch.abs(clipped_hf), dim=(-2, -1))
-        return torch.cat(
+        return cat_parts(
             [
                 raw,
                 fine,
@@ -606,18 +662,17 @@ def make_features(
                 coord_planes(raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
-            ],
-            dim=1,
+            ]
         )
-    if feature_mode == "raw_context_storedhf_coord_ev_noise_psf":
+    if base_feature_mode == "raw_context_storedhf_coord_ev_noise_psf":
         if stored_hf is None:
-            raise ValueError("raw_context_storedhf_coord_ev_noise_psf requires candidate_raw_hf_cfa4")
+            raise ValueError(f"{feature_mode} requires candidate_raw_hf_cfa4")
         coarse_block = max(block * 3, block + 2)
         phase_mean = torch.mean(raw, dim=1, keepdim=True)
         clipped_hf = torch.clamp(stored_hf, -0.5, 0.5)
         global_raw = torch.mean(raw, dim=(-2, -1))
         global_hf = torch.mean(torch.abs(clipped_hf), dim=(-2, -1))
-        return torch.cat(
+        return cat_parts(
             [
                 raw,
                 fine,
@@ -633,15 +688,14 @@ def make_features(
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
                 scalar_planes(psf, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, psf_feature_channels()),
-            ],
-            dim=1,
+            ]
         )
-    if feature_mode == "raw_multiscale_storedhf_coord_ev_noise":
+    if base_feature_mode == "raw_multiscale_storedhf_coord_ev_noise":
         if stored_hf is None:
-            raise ValueError("raw_multiscale_storedhf_coord_ev_noise requires candidate_raw_hf_cfa4")
+            raise ValueError(f"{feature_mode} requires candidate_raw_hf_cfa4")
         coarse_block = max(block * 3, block + 2)
         phase_mean = torch.mean(raw, dim=1, keepdim=True)
-        return torch.cat(
+        return cat_parts(
             [
                 raw,
                 fine,
@@ -651,15 +705,14 @@ def make_features(
                 coord_planes(raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
-            ],
-            dim=1,
+            ]
         )
-    if feature_mode == "raw_multiscale_storedhf_coord_ev_noise_psf":
+    if base_feature_mode == "raw_multiscale_storedhf_coord_ev_noise_psf":
         if stored_hf is None:
-            raise ValueError("raw_multiscale_storedhf_coord_ev_noise_psf requires candidate_raw_hf_cfa4")
+            raise ValueError(f"{feature_mode} requires candidate_raw_hf_cfa4")
         coarse_block = max(block * 3, block + 2)
         phase_mean = torch.mean(raw, dim=1, keepdim=True)
-        return torch.cat(
+        return cat_parts(
             [
                 raw,
                 fine,
@@ -670,13 +723,14 @@ def make_features(
                 ev_plane(ev, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device),
                 scalar_planes(noise, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, 4),
                 scalar_planes(psf, raw.shape[0], raw.shape[-2], raw.shape[-1], raw.device, psf_feature_channels()),
-            ],
-            dim=1,
+            ]
         )
     raise ValueError(f"unknown feature mode: {feature_mode}")
 
 
 def feature_channels(feature_mode: str) -> int:
+    if feature_mode.endswith("_cfa"):
+        return feature_channels(feature_mode[:-4]) + cfa_phase_channels()
     return {
         "raw": 4,
         "raw_hf": 8,
@@ -694,24 +748,26 @@ def feature_channels(feature_mode: str) -> int:
 
 
 def runtime_input_summary(feature_mode: str) -> str:
+    cfa_suffix = " + CFA phase one-hot metadata" if feature_mode.endswith("_cfa") else ""
+    base_feature_mode = feature_mode[:-4] if feature_mode.endswith("_cfa") else feature_mode
     base = "candidate_raw_cfa4 + candidate_raw_highpass + deterministic coordinates/EV + camera/ISO noise sidecar scalars"
-    if feature_mode == "raw_framectx_coord_ev_noise":
-        return base + " + absolute crop position + camera one-hot + full-crop candidate raw/HF statistics"
-    if feature_mode == "raw_context_coord_ev_noise":
-        return base + " + pooled candidate raw/HF context planes + global candidate raw scalars"
-    if feature_mode == "raw_context_storedhf_coord_ev_noise":
-        return base + " + stored candidate_raw_hf_cfa4 + pooled candidate raw/HF/stored-HF context planes + global raw/HF scalars"
-    if feature_mode == "raw_multiscale_storedhf_coord_ev_noise":
-        return base + " + stored candidate_raw_hf_cfa4"
-    if feature_mode == "raw_multiscale_coord_ev_noise_psf":
-        return base + " + PSF/kernel scalar conditioning"
-    if feature_mode == "raw_context_coord_ev_noise_psf":
-        return base + " + pooled candidate raw/HF context planes + global candidate raw scalars + PSF/kernel scalar conditioning"
-    if feature_mode == "raw_context_storedhf_coord_ev_noise_psf":
-        return base + " + stored candidate_raw_hf_cfa4 + pooled candidate raw/HF/stored-HF context planes + global raw/HF scalars + PSF/kernel scalar conditioning"
-    if feature_mode == "raw_multiscale_storedhf_coord_ev_noise_psf":
-        return base + " + stored candidate_raw_hf_cfa4 + PSF/kernel scalar conditioning"
-    return base
+    if base_feature_mode == "raw_framectx_coord_ev_noise":
+        return base + " + absolute crop position + camera one-hot + full-crop candidate raw/HF statistics" + cfa_suffix
+    if base_feature_mode == "raw_context_coord_ev_noise":
+        return base + " + pooled candidate raw/HF context planes + global candidate raw scalars" + cfa_suffix
+    if base_feature_mode == "raw_context_storedhf_coord_ev_noise":
+        return base + " + stored candidate_raw_hf_cfa4 + pooled candidate raw/HF/stored-HF context planes + global raw/HF scalars" + cfa_suffix
+    if base_feature_mode == "raw_multiscale_storedhf_coord_ev_noise":
+        return base + " + stored candidate_raw_hf_cfa4" + cfa_suffix
+    if base_feature_mode == "raw_multiscale_coord_ev_noise_psf":
+        return base + " + PSF/kernel scalar conditioning" + cfa_suffix
+    if base_feature_mode == "raw_context_coord_ev_noise_psf":
+        return base + " + pooled candidate raw/HF context planes + global candidate raw scalars + PSF/kernel scalar conditioning" + cfa_suffix
+    if base_feature_mode == "raw_context_storedhf_coord_ev_noise_psf":
+        return base + " + stored candidate_raw_hf_cfa4 + pooled candidate raw/HF/stored-HF context planes + global raw/HF scalars + PSF/kernel scalar conditioning" + cfa_suffix
+    if base_feature_mode == "raw_multiscale_storedhf_coord_ev_noise_psf":
+        return base + " + stored candidate_raw_hf_cfa4 + PSF/kernel scalar conditioning" + cfa_suffix
+    return base + cfa_suffix
 
 
 def sample_weight_map(sample_weight: torch.Tensor | None, diff: torch.Tensor) -> torch.Tensor | None:
@@ -1230,6 +1286,8 @@ class RawCfaResidualTargets:
         self.target_snr_p95_ratios: list[float] = []
         self.target_abs_means: list[float] = []
         self.candidate_hf_abs_means: list[float] = []
+        self.cfa_phase_labels: list[str] = []
+        self.cfa_phase_features: list[tuple[float, ...]] = []
         self.default_psf_features = psf_weight_features(default_psf_kernel_weights)
         self.psf_features: list[tuple[float, ...]] = []
         self.psf_sources: list[str] = []
@@ -1259,6 +1317,9 @@ class RawCfaResidualTargets:
             scene_dims[scene] = (max(current_w, ox + crop_size), max(current_h, oy + crop_size))
         self.frame_context_features: list[tuple[float, ...]] = []
         for row in self.rows:
+            cfa_phase = infer_row_cfa_phase(row)
+            self.cfa_phase_labels.append(cfa_phase)
+            self.cfa_phase_features.append(cfa_phase_features(cfa_phase))
             sidecars = row.get("noise_sidecars", [])
             sidecar = str(sidecars[0]) if isinstance(sidecars, list) and sidecars else ""
             if sidecar and sidecar not in cache:
@@ -1433,7 +1494,7 @@ class RawCfaResidualTargets:
         target_scale_strength: float = 1.0,
         target_scale_reference_abs_mean: float = 0.0,
         target_representation: str = "residual",
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
         xs: list[np.ndarray] = []
         ys: list[np.ndarray] = []
         hfs: list[np.ndarray] = []
@@ -1442,6 +1503,7 @@ class RawCfaResidualTargets:
         sigmas: list[tuple[float, float, float, float]] = []
         contexts: list[tuple[float, ...]] = []
         psfs: list[tuple[float, ...]] = []
+        cfas: list[tuple[float, ...]] = []
         snr_weights: list[float] = []
         target_scales: list[float] = []
         h, w = self.candidate_raw.shape[1:3]
@@ -1493,6 +1555,7 @@ class RawCfaResidualTargets:
             sigmas.append(self.noise_sigma4[idx])
             contexts.append(self.frame_context_features[idx])
             psfs.append(self.psf_features[idx])
+            cfas.append(self.cfa_phase_features[idx])
             snr_weight = target_snr_loss_weight(
                 self.target_snr_classes[idx],
                 self.target_snr_rmse_ratios[idx],
@@ -1516,6 +1579,7 @@ class RawCfaResidualTargets:
             torch.tensor(sigmas, dtype=torch.float32),
             torch.tensor(contexts, dtype=torch.float32),
             torch.tensor(psfs, dtype=torch.float32),
+            torch.tensor(cfas, dtype=torch.float32),
             torch.tensor(snr_weights, dtype=torch.float32),
             torch.tensor(target_scales, dtype=torch.float32),
             torch.from_numpy(np.stack(hfs)) if hfs else None,
@@ -1549,6 +1613,7 @@ def eval_rows(
         noise = torch.tensor([data.noise_features[idx]], dtype=torch.float32, device=device)
         frame_context = torch.tensor([data.frame_context_features[idx]], dtype=torch.float32, device=device)
         psf = torch.tensor([data.psf_features[idx]], dtype=torch.float32, device=device)
+        cfa_phase = torch.tensor([data.cfa_phase_features[idx]], dtype=torch.float32, device=device)
         sigma = torch.tensor([data.noise_sigma4[idx]], dtype=torch.float32, device=device)
         stored_hf = (
             torch.from_numpy(data.candidate_raw_hf[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
@@ -1581,7 +1646,9 @@ def eval_rows(
                 x1 = min(x0 + tile, width)
                 raw_tile = raw_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad]
                 hf_tile = stored_hf_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad] if stored_hf_padded is not None else None
-                pred_tile = model(make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile, frame_context, psf)) * target_scale
+                pred_tile = model(
+                    make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile, frame_context, psf, cfa_phase)
+                ) * target_scale
                 pred[:, :, y0:y1, x0:x1] = pred_tile[:, :, pad : pad + (y1 - y0), pad : pad + (x1 - x0)] if pad else pred_tile
         pred = prediction_to_residual(pred, stored_hf, target_representation=target_representation)
         base_err = target
@@ -1610,6 +1677,7 @@ def eval_rows(
                 "target_representation": target_representation,
                 "psf_kernel_weights": [float(x) for x in data.psf_features[idx][:4]],
                 "psf_source": data.psf_sources[idx],
+                "cfa_phase": data.cfa_phase_labels[idx],
             }
         )
         rows.append(row_meta)
@@ -1672,6 +1740,7 @@ def write_panel_sheet(
         noise = torch.tensor([data.noise_features[idx]], dtype=torch.float32, device=device)
         frame_context = torch.tensor([data.frame_context_features[idx]], dtype=torch.float32, device=device)
         psf = torch.tensor([data.psf_features[idx]], dtype=torch.float32, device=device)
+        cfa_phase = torch.tensor([data.cfa_phase_features[idx]], dtype=torch.float32, device=device)
         sigma = torch.tensor([data.noise_sigma4[idx]], dtype=torch.float32, device=device)
         stored_hf = (
             torch.from_numpy(data.candidate_raw_hf[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
@@ -1679,7 +1748,7 @@ def write_panel_sheet(
             else None
         )
         pred = (
-            model(make_features(raw, feature_mode, feature_block, ev, noise, stored_hf, frame_context, psf))
+            model(make_features(raw, feature_mode, feature_block, ev, noise, stored_hf, frame_context, psf, cfa_phase))
             .squeeze(0)
             .cpu()
             .numpy()
@@ -1797,12 +1866,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.psf_sidecar = None
     default_psf_kernel_weights = resolve_default_psf_kernel_weights(args)
     data = RawCfaResidualTargets(args.targets, default_psf_kernel_weights, args.psf_sidecar)
-    if args.feature_mode in {
-        "raw_multiscale_storedhf_coord_ev_noise",
-        "raw_context_storedhf_coord_ev_noise",
-        "raw_multiscale_storedhf_coord_ev_noise_psf",
-        "raw_context_storedhf_coord_ev_noise_psf",
-    } and data.candidate_raw_hf is None:
+    if "storedhf" in args.feature_mode and data.candidate_raw_hf is None:
         raise ValueError(f"{args.feature_mode} requires candidate_raw_hf_cfa4 in the target NPZ")
     if args.target_representation == "source_hf":
         if args.target_policy != "raw":
@@ -1839,7 +1903,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     best_state: dict[str, torch.Tensor] | None = None
     t0 = time.perf_counter()
     for step in range(1, args.steps + 1):
-        x, y, ev, noise, sigma, frame_context, psf, snr_weight, target_scale, stored_hf = data.sample_batch(
+        x, y, ev, noise, sigma, frame_context, psf, cfa_phase, snr_weight, target_scale, stored_hf = data.sample_batch(
             train_indices,
             args.batch_size,
             args.patch_size,
@@ -1864,6 +1928,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         sigma = sigma.to(device)
         frame_context = frame_context.to(device)
         psf = psf.to(device)
+        cfa_phase = cfa_phase.to(device)
         snr_weight = snr_weight.to(device)
         target_scale = target_scale.to(device).view(-1, 1, 1, 1)
         stored_hf = stored_hf.to(device) if stored_hf is not None else None
@@ -1882,7 +1947,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             mask_prob=args.context_mask_prob,
             mask_block=args.context_mask_block,
         )
-        pred = model(make_features(x_train, args.feature_mode, args.feature_block, ev, noise, stored_hf_train, frame_context, psf))
+        pred = model(
+            make_features(x_train, args.feature_mode, args.feature_block, ev, noise, stored_hf_train, frame_context, psf, cfa_phase)
+        )
         pred = center_crop_like(pred, y, args.context_padding)
         loss = (
             residual_loss(pred, y_train, target_abs_weight=args.target_abs_weight, sample_weight=snr_weight)
@@ -2018,6 +2085,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "psf_sidecar": str(args.psf_sidecar) if args.psf_sidecar else None,
                 "psf_kernel_weights": [float(x) for x in default_psf_kernel_weights],
                 "psf_sidecar_stats": data.psf_sidecar_stats,
+                "cfa_phase_counts": {phase: data.cfa_phase_labels.count(phase) for phase in CFA_PHASES},
             },
         },
         checkpoint,
@@ -2088,6 +2156,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "psf_kernel_weights": [float(x) for x in default_psf_kernel_weights],
             "psf_conditioning_enabled": "_psf" in args.feature_mode,
             "psf_sidecar_stats": data.psf_sidecar_stats,
+            "cfa_phase_conditioning_enabled": args.feature_mode.endswith("_cfa"),
+            "cfa_phase_counts": {phase: data.cfa_phase_labels.count(phase) for phase in CFA_PHASES},
             "train_snr_class_counts": {
                 key: sum(1 for idx in train_indices if data.target_snr_classes[idx] == key)
                 for key in sorted(set(data.target_snr_classes[idx] for idx in train_indices))
@@ -2219,15 +2289,25 @@ def main() -> int:
             "raw",
             "raw_hf",
             "raw_hf_coord_ev_noise",
+            "raw_hf_coord_ev_noise_cfa",
             "raw_multiscale_coord_ev_noise",
+            "raw_multiscale_coord_ev_noise_cfa",
             "raw_multiscale_coord_ev_noise_psf",
+            "raw_multiscale_coord_ev_noise_psf_cfa",
             "raw_framectx_coord_ev_noise",
+            "raw_framectx_coord_ev_noise_cfa",
             "raw_context_coord_ev_noise",
+            "raw_context_coord_ev_noise_cfa",
             "raw_context_coord_ev_noise_psf",
+            "raw_context_coord_ev_noise_psf_cfa",
             "raw_context_storedhf_coord_ev_noise",
+            "raw_context_storedhf_coord_ev_noise_cfa",
             "raw_context_storedhf_coord_ev_noise_psf",
+            "raw_context_storedhf_coord_ev_noise_psf_cfa",
             "raw_multiscale_storedhf_coord_ev_noise",
+            "raw_multiscale_storedhf_coord_ev_noise_cfa",
             "raw_multiscale_storedhf_coord_ev_noise_psf",
+            "raw_multiscale_storedhf_coord_ev_noise_psf_cfa",
         ),
         default="raw_multiscale_coord_ev_noise",
     )

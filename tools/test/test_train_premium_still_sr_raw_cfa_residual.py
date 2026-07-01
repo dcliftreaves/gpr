@@ -65,6 +65,7 @@ def main() -> int:
         source_hf = []
         render_y = []
         rows = []
+        cfa_phases = ["RGGB", "GBRG", "GRBG", "BGGR"]
         for i, ev in enumerate([-2.0, 0.0, 2.0, 0.0]):
             raw = np.zeros((40, 40, 4), dtype=np.float32)
             raw[:, :, 0] = (x + i) / 64.0
@@ -87,6 +88,7 @@ def main() -> int:
                     "crop_xy": [0, 0],
                     "crop_size": 40,
                     "source_dng": f"/fixtures/{'x2d' if i == 3 else 'z8'}/frame_{i}.dng",
+                    "cfa_phase": cfa_phases[i],
                     "noise_sidecars": [str(sidecar)],
                 }
             )
@@ -183,6 +185,9 @@ def main() -> int:
         assert receipt["config"]["train_target_scale_stats"]["median"] == 1.0
         assert receipt["config"]["psf_conditioning_enabled"] is False
         assert receipt["config"]["psf_kernel_weights"] == [0.25, 0.25, 0.25, 0.25]
+        assert receipt["config"]["cfa_phase_conditioning_enabled"] is False
+        assert receipt["config"]["cfa_phase_counts"] == {"BGGR": 1, "GBRG": 1, "GRBG": 1, "RGGB": 1, "unknown": 0}
+        assert receipt["eval"]["holdout"]["rows"][0]["cfa_phase"] == "BGGR"
         assert receipt["config"]["target_representation"] == "residual"
         assert receipt["policy"]["target_energy_loss_weight_policy"] == "none"
         assert receipt["policy"]["target_scale_policy"] == "none"
@@ -508,6 +513,18 @@ def main() -> int:
         assert sidecar_receipt["eval"]["holdout"]["rows"][0]["psf_source"] == "psf_sidecar"
         args.psf_sidecar = None
         args.psf_kernel_weight = None
+
+        args.output_dir = root / "cfa_phase_holdout"
+        args.model_arch = "residual"
+        args.feature_mode = "raw_multiscale_coord_ev_noise_cfa"
+        cfa_receipt = tool.train(args)
+        assert cfa_receipt["eval"]["holdout"]["row_count"] == 1
+        assert cfa_receipt["config"]["feature_mode"] == "raw_multiscale_coord_ev_noise_cfa"
+        assert cfa_receipt["config"]["cfa_phase_conditioning_enabled"] is True
+        assert cfa_receipt["config"]["cfa_phase_counts"]["RGGB"] == 1
+        assert cfa_receipt["config"]["cfa_phase_counts"]["BGGR"] == 1
+        assert cfa_receipt["eval"]["holdout"]["rows"][0]["cfa_phase"] == "BGGR"
+        assert "CFA phase one-hot metadata" in cfa_receipt["policy"]["runtime_inputs"]
 
         args.output_dir = root / "full_crop_holdout"
         args.model_arch = "unet"

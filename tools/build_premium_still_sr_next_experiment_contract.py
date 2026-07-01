@@ -196,6 +196,7 @@ def build_contract(
                 "acceptable_first_tracks": [
                     "global-context encoder with raw-CFA residual decoder and candidate-only runtime inputs",
                     "PSF/kernel-conditioned global-context raw-CFA residual model using candidate raw plus measured or modeled kernel metadata",
+                    "CFA-phase-conditioned raw-CFA residual model using RGGB/GBRG/GRBG/BGGR/unknown one-hot metadata for mixed normal-Bayer target sets",
                     "teacher-distilled raw-CFA detail prior whose teacher never appears at render time",
                     "masked/contextual raw-detail reconstruction objective trained on the locked 351-row target set",
                     "NAF-style or transformer-style raw restoration teacher with full-image/TLC-style evaluation and candidate-only runtime inputs",
@@ -221,6 +222,7 @@ def build_contract(
                 "candidate raw/CFA planes",
                 "candidate-derived luma/detail features",
                 "camera metadata",
+                "CFA phase / Bayer pattern metadata",
                 "ISO/noise sidecar scalar conditioning where validated",
                 "PSF/kernel metadata sidecar or per-row kernel weights",
                 "trained model priors distilled from external or offline teachers",

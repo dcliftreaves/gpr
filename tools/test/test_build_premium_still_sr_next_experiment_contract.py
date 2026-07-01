@@ -171,6 +171,7 @@ def main() -> int:
         assert any("darkframe" in row["repo_implication"] for row in research)
         assert "source raw content" in contract["forbidden_runtime_inputs"]
         assert "JPEG-derived target content" in contract["forbidden_runtime_inputs"]
+        assert "CFA phase / Bayer pattern metadata" in contract["allowed_runtime_inputs"]
         assert "trained model priors distilled from external or offline teachers" in contract["allowed_runtime_inputs"]
         assert any("X2D median raw-residual MAE recovery >= 15.0%" == gate for gate in contract["success_gates"])
         assert any("stored candidate-HF" in item for item in contract["do_not_repeat_as_primary_path"])
@@ -186,6 +187,7 @@ def main() -> int:
         assert any("denoising, deblurring/PSF, and SR as one raw-restoration objective" in item for item in minimum["must_change_from_failed_contract"])
         assert any("sensor-pattern alignment" in item for item in minimum["must_change_from_failed_contract"])
         assert any("teacher-distilled" in item for item in minimum["acceptable_first_tracks"])
+        assert any("CFA-phase-conditioned raw-CFA residual model" in item for item in minimum["acceptable_first_tracks"])
         assert any("NAF-style or transformer-style" in item for item in minimum["acceptable_first_tracks"])
         assert any("sensor-pattern-aligned real-noise conditioning" in item for item in minimum["acceptable_first_tracks"])
         assert any("patch-dictionary" in item for item in minimum["baseline_comparisons_required"])

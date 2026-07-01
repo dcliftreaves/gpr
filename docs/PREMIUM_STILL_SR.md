@@ -258,6 +258,16 @@ JPEG target content at runtime. The default kernel is the neutral
 `[0.25, 0.25, 0.25, 0.25]` box, so existing non-PSF feature modes remain
 behavior-compatible.
 
+The trainer also has additive `_cfa` feature-mode variants for mixed normal
+Bayer target sets, including `raw_multiscale_coord_ev_noise_cfa`,
+`raw_context_coord_ev_noise_cfa`, and `raw_context_coord_ev_noise_psf_cfa`.
+Those variants append RGGB/GBRG/GRBG/BGGR/unknown one-hot metadata from target
+rows (`cfa_phase`, `cfa_pattern`, `bayer_phase`, or `bayer_pattern`) while
+leaving older feature modes behavior-compatible. Current deduplicated targets
+do not carry explicit phase metadata, so they resolve to `unknown`; new
+mixed-camera target builds should write the phase before training a promoted
+teacher.
+
 Two first PSF-conditioned probes have now been run against the deduplicated
 X2D scene holdout:
 
