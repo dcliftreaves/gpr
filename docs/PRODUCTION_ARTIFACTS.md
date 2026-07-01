@@ -484,10 +484,10 @@ remain open.
 | Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html` | `01eceab64395920d6818dc9b524801d350bca2f5cd252e57f0deee9d2020bb7b` |
 | Current raw-stills capture request JSON | `artifacts/stills_capture_request_strict_provenance_20260701/stills_capture_request.json` | `a6dfad28cf05b771226614c4a6316fbec7bcfec7b91e6347c959db0decc762c2` |
 | Current raw-stills capture request dashboard | `artifacts/stills_capture_request_strict_provenance_20260701/index.html` | `c067a6faa811908c19bfd6c99ac70ac75dcc653251d4bba4c9d31233a096f5b1` |
-| Mission/iPhone darkframe provenance packet JSON | `artifacts/darkframe_provenance_review_packet_20260701/darkframe_provenance_review_packet.json` | `3386b7e3c3100c5449d18a09f11916fc357ff954370eead22a661fa3e8a85f1e` |
+| Mission/iPhone darkframe provenance packet JSON | `artifacts/darkframe_provenance_review_packet_20260701/darkframe_provenance_review_packet.json` | `464b6661d57056ef4e1cbf184e36ac345ffe4260ec97bd692f3b8153fe6383c0` |
 | Mission/iPhone darkframe provenance packet dashboard | `artifacts/darkframe_provenance_review_packet_20260701/index.html` | `d52b704df6b94cf818e152d86549b2ceaafc49828031ad464bb40b6eec367346` |
-| iPhone darkframe provenance template | `artifacts/darkframe_provenance_review_packet_20260701/source_provenance_manifest_templates/iphone_cfa_darkframe_stack__Apple_iPhone_7_Plus_ISO1250_RGGB.template.json` | `c906280e9e63199b90f089bd296bf04ddd4a679ee73a0d614b79a33769b88ae3` |
-| Mission 1 darkframe provenance template | `artifacts/darkframe_provenance_review_packet_20260701/source_provenance_manifest_templates/mission1_darkframe_stack__GoPro_MISSION_1_ISO232_RGGB.template.json` | `64264ac64ab21b5d95018305dc070fc80aa6de5966a3eaa0ba4713868282922b` |
+| iPhone darkframe provenance template | `artifacts/darkframe_provenance_review_packet_20260701/source_provenance_manifest_templates/iphone_cfa_darkframe_stack__Apple_iPhone_7_Plus_ISO1250_RGGB.template.json` | `dc3c5a34be289b1c37fba22a7c1bb0db61e2c837be3e8158fb53d6be9aa461f3` |
+| Mission 1 darkframe provenance template | `artifacts/darkframe_provenance_review_packet_20260701/source_provenance_manifest_templates/mission1_darkframe_stack__GoPro_MISSION_1_ISO232_RGGB.template.json` | `52b25c794f28c1a0fa6d8c62e6170fb0021e8f7c4d0675e6d37b5f1e946151c3` |
 
 ## Premium Still-SR Gap Artifacts
 
@@ -497,8 +497,8 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
-| Premium still-SR experiment scoreboard JSON | `artifacts/premium_still_sr_experiment_scoreboard_20260701/scoreboard.json` | `1a1d07482b1e2b1e3d7697b5883818c2b7cd90622713890af8bfb4edb7fcbd49` |
-| Premium still-SR experiment scoreboard dashboard | `artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html` | `5a8a4523e7ddb240ce51d604112e2e7412151a9ceb5b9a069b714a7c76fa3ab4` |
+| Premium still-SR experiment scoreboard JSON | `artifacts/premium_still_sr_experiment_scoreboard_20260701/scoreboard.json` | `c4e5c8c3941b78d663993741b544b26c59770b32ddb0336c1c94e9ab07f45743` |
+| Premium still-SR experiment scoreboard dashboard | `artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html` | `318e239f130171009ee947e3228d4d2ed8768a9bce9ecc34d4dfa692e4c51996` |
 | Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `3d95db1c9c468034e11ef255d3f3606fb5546e4a77b0d7eb49b8b82d11aaad13` |
 | Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `ba0ddcc00db1f9b22d2e3c138051cbd375a6a5c6b78f87f9ab623e7ade062968` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |
@@ -633,8 +633,8 @@ pillar.
 | Premium still-SR raw-target SNR audit dashboard | `artifacts/premium_still_sr_raw_target_snr_audit_20260701/index.html` | `7e267673e68896a6d3999f17d03ef8e9ea2e3be52f54c668a70c93080e59f141` |
 | Premium still-SR target distribution audit JSON | `artifacts/premium_still_sr_target_distribution_audit_20260701/target_distribution_audit.json` | `4defd67c6250b36946bf2a3aa0ae0617f98705fae46193f9a723d14d2127da43` |
 | Premium still-SR target distribution audit dashboard | `artifacts/premium_still_sr_target_distribution_audit_20260701/index.html` | `abee7e5ef47b2c687ec97bac861d3de001f7065424653bdd13c47793c3aacc4c` |
-| Premium still-SR next-experiment contract JSON | `artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/premium_still_sr_next_experiment_contract.json` | `4df9e94677f256dfdb773c3c074922ae2fec8893213e69d1bf4e6aa27c208c62` |
-| Premium still-SR next-experiment contract dashboard | `artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html` | `1e6df2b001a33f4841ea2d8d07528e6bf57620a15dc05ff4c88e43d749b50610` |
+| Premium still-SR next-experiment contract JSON | `artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/premium_still_sr_next_experiment_contract.json` | `0d54ae8987ba8278fa385aff4dfb3d3b8fce9ec29e43dd772853b468daf08e37` |
+| Premium still-SR next-experiment contract dashboard | `artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html` | `41e60a8c0f4bc31b871191416257b1ad7068a8725ac1cb9d5e9b0a8a9d90c9c5` |
 | Premium still-SR window-attention teacher smoke checkpoint | `artifacts/premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/premium_still_sr_raw_cfa_residual.pt` | `c6b170d8ecdd5abc74697d110a29de1b71d20dab9334f341e043890bd93dbeac` |
 | Premium still-SR window-attention teacher smoke receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/train_receipt.json` | `6b86bed1e20b0638c51878a99b2d6ff4757b167ca989c6000fee8c25cdc5b538` |
 | Premium still-SR window-attention teacher smoke dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/index.html` | `ade2122b53540f437c863b2071e041430767a454a476d461a505dac1833e2ecf` |
