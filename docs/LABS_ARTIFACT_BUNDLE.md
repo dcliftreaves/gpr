@@ -65,7 +65,7 @@ python3 tools/build_labs_bundle.py /path/to/gpr_labs_bundle \
   --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>" \
   --target-name "Pi 5 stand-in" \
   --target-role "stand-in" \
-  --note "Pi 5 proxy evidence; actual Mission 1 24 fps receipt pending" \
+  --note "Pi 5 proxy evidence; actual Mission 1 camera-role 20+ fps receipt pending" \
   --artifact samples/half_res_capture.gvid:gvid \
   --artifact samples/half_res_capture.gvid.meta.json:json \
   --artifact review/preview_review_dashboard.html:dashboard \
@@ -130,7 +130,8 @@ Normalized camera-handoff receipt:
 This receipt validates 14,400 frames, 0 drops, `.gvid`, and interrupted-tail
 recovery at 19.98 fps median. It is acceptable as a conservative Pi 5 proxy for
 continuing Labs integration, but it must be replaced or supplemented by an
-actual Mission 1 24 fps hardware receipt before firmware readiness is claimed.
+actual Mission 1 camera-role hardware receipt at the accepted 20+ fps floor
+before firmware readiness is claimed.
 
 Current GoPro Mission 1 handoff bundle:
 

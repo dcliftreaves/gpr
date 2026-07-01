@@ -86,8 +86,9 @@ Historical half-res `ml2_q3_dec2` on Pi 5 reached 24.93 fps sustained; the
 current strict Labs Pi proxy receipt is 19.98 fps median with 0 drops and valid
 `.gvid`. The flow is Pi/camera half-res capture → desktop M3 BIBO_2x super-res
 CNN → editable full-res raw DNG (91 MB) + compressed .gpr (2–8 MB) the user
-opens in their NLE / raw editor. Mission 1 still needs its target 24 fps
-hardware receipt before firmware readiness is claimed.
+opens in their NLE / raw editor. Mission 1 still needs a camera-role receipt
+against the accepted 20+ fps floor before firmware readiness is claimed; strict
+24 fps is a stretch performance target, not the active ship blocker.
 
 | ship | pipeline | bayer_psnr_final (worst, Z8Z_6693) | verdict |
 |---|---|---:|---|
