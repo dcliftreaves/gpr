@@ -484,8 +484,10 @@ remain open.
 | Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html` | `01eceab64395920d6818dc9b524801d350bca2f5cd252e57f0deee9d2020bb7b` |
 | Current raw-stills capture request JSON | `artifacts/stills_capture_request_strict_provenance_20260701/stills_capture_request.json` | `a6dfad28cf05b771226614c4a6316fbec7bcfec7b91e6347c959db0decc762c2` |
 | Current raw-stills capture request dashboard | `artifacts/stills_capture_request_strict_provenance_20260701/index.html` | `c067a6faa811908c19bfd6c99ac70ac75dcc653251d4bba4c9d31233a096f5b1` |
-| Mission/iPhone darkframe provenance packet JSON | `artifacts/darkframe_provenance_review_packet_20260701/darkframe_provenance_review_packet.json` | `84f5c63a71be66f0a7f2dfa2ce8471ed1a34439a7cf8f3456adbecb31bf6e4f9` |
-| Mission/iPhone darkframe provenance packet dashboard | `artifacts/darkframe_provenance_review_packet_20260701/index.html` | `2a88e4733a5209889371034612ecb023fd16383c4261992cc1a315fd09465a73` |
+| Mission/iPhone darkframe provenance packet JSON | `artifacts/darkframe_provenance_review_packet_20260701/darkframe_provenance_review_packet.json` | `3386b7e3c3100c5449d18a09f11916fc357ff954370eead22a661fa3e8a85f1e` |
+| Mission/iPhone darkframe provenance packet dashboard | `artifacts/darkframe_provenance_review_packet_20260701/index.html` | `d52b704df6b94cf818e152d86549b2ceaafc49828031ad464bb40b6eec367346` |
+| iPhone darkframe provenance template | `artifacts/darkframe_provenance_review_packet_20260701/source_provenance_manifest_templates/iphone_cfa_darkframe_stack__Apple_iPhone_7_Plus_ISO1250_RGGB.template.json` | `c906280e9e63199b90f089bd296bf04ddd4a679ee73a0d614b79a33769b88ae3` |
+| Mission 1 darkframe provenance template | `artifacts/darkframe_provenance_review_packet_20260701/source_provenance_manifest_templates/mission1_darkframe_stack__GoPro_MISSION_1_ISO232_RGGB.template.json` | `64264ac64ab21b5d95018305dc070fc80aa6de5966a3eaa0ba4713868282922b` |
 
 ## Premium Still-SR Gap Artifacts
 

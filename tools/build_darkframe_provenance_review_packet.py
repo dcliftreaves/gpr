@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import html
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -79,6 +80,12 @@ def provenance_template_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
             }
         )
     return template
+
+
+def slug(value: Any) -> str:
+    text = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value or "").strip())
+    text = text.strip("._-")
+    return text or "darkframe_stack"
 
 
 def review_group(row: dict[str, Any]) -> dict[str, Any]:
@@ -171,6 +178,12 @@ def render_html(data: dict[str, Any]) -> str:
     )
     sections = []
     for group in data["groups"]:
+        template_file = str(group.get("provenance_manifest_template_file") or "")
+        template_note = (
+            f"<p><strong>Template file:</strong> <code>{html.escape(template_file)}</code></p>"
+            if template_file
+            else ""
+        )
         rows = "\n".join(
             "<tr>"
             f"<td><code>{html.escape(str(row['original_path']))}</code></td>"
@@ -185,6 +198,7 @@ def render_html(data: dict[str, Any]) -> str:
 <h2>{html.escape(str(group['camera']))}: {html.escape(str(group['existing_group']))}</h2>
 <p><strong>Requirement:</strong> <code>{html.escape(str(group['requirement_id']))}</code></p>
 <p><strong>Next action:</strong> {html.escape(str(group['next_action']))}</p>
+{template_note}
 <table><thead><tr><th>Original source</th><th>Exists</th><th>Bytes</th><th>SHA-256</th></tr></thead><tbody>{rows}</tbody></table>
 </section>"""
         )
@@ -212,14 +226,42 @@ code {{ white-space: normal; overflow-wrap: anywhere; }}
 """
 
 
+def attach_template_files(data: dict[str, Any], output_dir: Path) -> None:
+    template_dir = output_dir / "source_provenance_manifest_templates"
+    template_dir.mkdir(parents=True, exist_ok=True)
+    count = 0
+    for group in data.get("groups") or []:
+        if not isinstance(group, dict):
+            continue
+        template = group.get("provenance_manifest_template")
+        if not isinstance(template, dict):
+            continue
+        name = f"{slug(group.get('requirement_id'))}__{slug(group.get('existing_group'))}.template.json"
+        path = template_dir / name
+        path.write_text(json.dumps(template, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        group["provenance_manifest_template_file"] = path.relative_to(output_dir).as_posix()
+        count += 1
+    summary = data.setdefault("summary", {})
+    summary["provenance_manifest_template_file_count"] = count
+    summary["provenance_manifest_templates_dir"] = (
+        template_dir.relative_to(output_dir).as_posix() if count else ""
+    )
+
+
+def write_outputs(data: dict[str, Any], output_dir: Path) -> tuple[Path, Path]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    attach_template_files(data, output_dir)
+    json_path = output_dir / "darkframe_provenance_review_packet.json"
+    html_path = output_dir / "index.html"
+    json_path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    html_path.write_text(render_html(data), encoding="utf-8")
+    return json_path, html_path
+
+
 def main() -> int:
     args = parse_args()
     data = build_packet(load_json(args.capture_request), args.capture_request)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    json_path = args.output_dir / "darkframe_provenance_review_packet.json"
-    html_path = args.output_dir / "index.html"
-    json_path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    html_path.write_text(render_html(data), encoding="utf-8")
+    _, html_path = write_outputs(data, args.output_dir)
     print(html_path)
     return 0
 

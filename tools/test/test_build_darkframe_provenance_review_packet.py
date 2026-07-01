@@ -67,9 +67,18 @@ def main() -> int:
         capture_path.write_text(json.dumps(capture), encoding="utf-8")
         proc_args = type("Args", (), {"capture_request": capture_path, "output_dir": out})
         data = module.build_packet(module.load_json(proc_args.capture_request), proc_args.capture_request)
-        out.mkdir()
-        (out / "darkframe_provenance_review_packet.json").write_text(json.dumps(data), encoding="utf-8")
-        assert (out / "darkframe_provenance_review_packet.json").is_file()
+        json_path, html_path = module.write_outputs(data, out)
+        assert json_path.is_file()
+        assert html_path.is_file()
+        written = json.loads(json_path.read_text(encoding="utf-8"))
+        assert written["summary"]["provenance_manifest_template_file_count"] == 1
+        template_rel = written["groups"][0]["provenance_manifest_template_file"]
+        template_path = out / template_rel
+        assert template_path.is_file()
+        template = json.loads(template_path.read_text(encoding="utf-8"))
+        assert template["schema"] == "gpr.darkframe_source_provenance_manifest.v1"
+        assert template["frames"][0]["original_sha256"] == module.sha256_file(cand0)
+        assert template_rel in html_path.read_text(encoding="utf-8")
     print("test_build_darkframe_provenance_review_packet: PASS")
     return 0
 

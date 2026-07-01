@@ -185,10 +185,10 @@ python3 tools/build_darkframe_provenance_review_packet.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_<date>
 ```
 
-That packet hashes the lowest-lift candidate DNGs and emits a fill-in
-provenance template. It is not a production sidecar; it exists to decide
-whether the candidate frames can be confirmed as true no-scene-signal
-darkframes or must be recaptured.
+That packet hashes the lowest-lift candidate DNGs and writes per-requirement
+fill-in templates under `source_provenance_manifest_templates/`. It is not a
+production sidecar; it exists to decide whether the candidate frames can be
+confirmed as true no-scene-signal darkframes or must be recaptured.
 
 After extracting the promoted frames, carry the same provenance into the final
 noise sidecar builder with:

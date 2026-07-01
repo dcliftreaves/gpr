@@ -2015,7 +2015,7 @@
       "id": "darkframe_provenance_review_packet_20260701",
       "family": "stills_fixtures",
       "status": "current",
-      "purpose": "Hash-strict Mission/iPhone darkframe provenance review packet. It records the exact lowest-lift candidate DNG source hashes and fill-in provenance templates while keeping production sidecar readiness false until no-scene-signal confirmation and uint16 Bayer extraction receipts exist.",
+      "purpose": "Hash-strict Mission/iPhone darkframe provenance review packet. It records the exact lowest-lift candidate DNG source hashes and writes fill-in provenance manifest template files while keeping production sidecar readiness false until no-scene-signal confirmation and uint16 Bayer extraction receipts exist.",
       "dashboard": "artifacts/darkframe_provenance_review_packet_20260701/index.html",
       "docs": [
         "README.md",
@@ -2025,16 +2025,21 @@
       ],
       "receipts": [
         "artifacts/darkframe_provenance_review_packet_20260701/darkframe_provenance_review_packet.json",
-        "artifacts/darkframe_provenance_review_packet_20260701/index.html"
+        "artifacts/darkframe_provenance_review_packet_20260701/index.html",
+        "artifacts/darkframe_provenance_review_packet_20260701/source_provenance_manifest_templates/iphone_cfa_darkframe_stack__Apple_iPhone_7_Plus_ISO1250_RGGB.template.json",
+        "artifacts/darkframe_provenance_review_packet_20260701/source_provenance_manifest_templates/mission1_darkframe_stack__GoPro_MISSION_1_ISO232_RGGB.template.json"
       ],
       "hashes": {
-        "darkframe_provenance_review_packet_json_sha256": "84f5c63a71be66f0a7f2dfa2ce8471ed1a34439a7cf8f3456adbecb31bf6e4f9",
-        "dashboard_sha256": "2a88e4733a5209889371034612ecb023fd16383c4261992cc1a315fd09465a73"
+        "darkframe_provenance_review_packet_json_sha256": "3386b7e3c3100c5449d18a09f11916fc357ff954370eead22a661fa3e8a85f1e",
+        "dashboard_sha256": "d52b704df6b94cf818e152d86549b2ceaafc49828031ad464bb40b6eec367346",
+        "iphone_template_sha256": "c906280e9e63199b90f089bd296bf04ddd4a679ee73a0d614b79a33769b88ae3",
+        "mission1_template_sha256": "64264ac64ab21b5d95018305dc070fc80aa6de5966a3eaa0ba4713868282922b"
       },
       "metrics": {
         "candidate_source_count": 29,
         "minimum_additional_darkframes_needed": 2,
         "production_sidecar_ready": 0,
+        "provenance_manifest_template_file_count": 2,
         "iphone_enough_candidates_missing_provenance": 1,
         "mission1_still_needs_capture": 1
       }
