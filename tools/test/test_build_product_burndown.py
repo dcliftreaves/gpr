@@ -53,32 +53,31 @@ def main() -> int:
         assert data["schema"] == "gpr.product_burndown.v1"
         assert data["source_requirements_schema"] == "gpr.production_capture_requirements.v1"
         assert data["source_requirements_path"] == "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json"
-        assert data["four_pillar_completion_percent"] == 72
+        assert data["four_pillar_completion_percent"] == 82
         assert data["production_ready"] is False
-        assert data["summary"]["action_count"] == 5
-        assert data["summary"]["open_requirement_count"] == 5
+        assert data["summary"]["action_count"] == 3
+        assert data["summary"]["open_requirement_count"] == 4
         assert data["summary"]["camera_required_action_count"] == 1
-        assert data["summary"]["non_camera_action_count"] == 4
+        assert data["summary"]["non_camera_action_count"] == 2
         assert data["summary"]["mission1_camera_role_required_action_count"] == 1
-        assert data["summary"]["new_sample_required_action_count"] == 2
-        assert data["summary"]["model_promotion_action_count"] == 2
+        assert data["summary"]["new_sample_required_action_count"] == 1
+        assert data["summary"]["model_promotion_action_count"] == 1
         assert data["summary"]["blocker_type_counts"] == {
             "hardware_integration": 1,
-            "model_promotion": 2,
-            "sample_acquisition": 2,
+            "model_promotion": 1,
+            "sample_acquisition": 1,
         }
-        assert data["summary"]["lowest_readiness_pillar"] == "raw_video_psf_sr"
+        assert data["summary"]["lowest_readiness_pillar"] == "premium_still_sr"
         assert [row["id"] for row in data["pillars"]] == [
             "raw_stills",
             "raw_video_mvp",
             "premium_still_sr",
-            "raw_video_psf_sr",
+            "raw_video_reconstruction",
         ]
         assert data["open_requirement_ids"] == [
             "mission1_darkframe_stack",
             "iphone_cfa_darkframe_stack",
             "mission1_camera_role_receipts",
-            "controlled_mission1_psf_pairs",
             "premium_still_sr_promotion_receipts",
         ]
         stills_actions = data["pillars"][0]["burn_down_actions"]
@@ -110,10 +109,10 @@ def main() -> int:
         premium_actions = data["pillars"][2]["burn_down_actions"]
         assert premium_actions[0]["requirement_ids"] == ["premium_still_sr_promotion_receipts"]
         assert any("build_premium_still_sr_gate_receipt.py" in command for command in premium_actions[0]["validation_commands"])
-        psf_actions = data["pillars"][3]["burn_down_actions"]
-        assert any("PSF-conditioned" in row["title"] for row in psf_actions)
-        assert {row["blocker_type"] for row in psf_actions} == {"sample_acquisition", "model_promotion"}
-        assert all("controlled_mission1_psf_pairs" in row["requirement_ids"] for row in psf_actions)
+        reconstruction_actions = data["pillars"][3]["burn_down_actions"]
+        assert reconstruction_actions == []
+        assert data["pillars"][3]["readiness_percent"] == 95
+        assert any("offline" in item.lower() for item in data["pillars"][3]["locked_artifacts"])
 
         html = (out_dir / "index.html").read_text(encoding="utf-8")
         assert "GPR Production Burn-Down" in html

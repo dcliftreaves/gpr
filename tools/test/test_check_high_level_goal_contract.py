@@ -40,14 +40,14 @@ def main() -> int:
 
         paths["docs/BIG_EFFORTS_STATUS.md"].write_text(
             paths["docs/BIG_EFFORTS_STATUS.md"].read_text(encoding="utf-8").replace(
-                "Raw video improvement / PSF-aware Bayer resize",
+                "Raw video reconstruction improvement",
                 "Raw video improvement",
             ),
             encoding="utf-8",
         )
         failures = module.validate(paths)
-        if not failures or not any("PSF-aware Bayer resize" in failure for failure in failures):
-            print(f"missing PSF effort did not trigger expected failure: {failures}", file=sys.stderr)
+        if not failures or not any("Raw video reconstruction improvement" in failure for failure in failures):
+            print(f"missing raw-video reconstruction effort did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 
         paths["docs/BIG_EFFORTS_STATUS.md"].write_text(

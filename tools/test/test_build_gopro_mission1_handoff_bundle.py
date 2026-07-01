@@ -88,7 +88,7 @@ def main() -> int:
         assert manifest.is_file()
         data = json.loads(manifest.read_text(encoding="utf-8"))
         pillar_ids = {row["id"] for row in data.get("product_pillars", [])}
-        assert pillar_ids == {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_psf_sr"}
+        assert pillar_ids == {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_reconstruction"}
         paths = {row["path"] for row in data["artifacts"]}
         assert "samples/mission1_4k_stream_source_8f.gvid" in paths
         assert "receipts/quick_validation_dry_run.json" in paths

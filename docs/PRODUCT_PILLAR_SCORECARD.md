@@ -6,7 +6,8 @@ efforts currently driving the repo:
 1. best RAW stills for 50 MP / 100 MP cameras,
 2. GoPro / Mission 1 RAW video MVP,
 3. premium spend-time-for-quality still/SR,
-4. PSF-aware RAW video cleanup and reconstruction.
+4. RAW video cleanup and reconstruction, with PSF/blur work tracked as optional
+   next-generation research.
 
 It is intentionally stricter than the README. The README can sell the project
 clearly; this scorecard says what is proven, what is only proxy-proven, and
@@ -32,11 +33,11 @@ Companion production burn-down dashboard:
 The burn-down is the action view over the same machine-readable capture
 requirements: it carries the requirement IDs, statuses, and validation commands
 from [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json),
-then separates hardware integration, sample-acquisition, and model-promotion
-work. That distinction matters because the one Mission 1 camera-role closure,
-the real fixture/darkframe/PSF sample gaps, and the premium/PSF model-promotion
-gaps are different kinds of open evidence, not regressions of the locked still,
-4K cleanup, 8K SR, or Pi stand-in paths.
+then separates hardware integration, sample-acquisition, model-promotion, and
+optional research work. That distinction matters because the one Mission 1
+camera-role closure, real fixture/darkframe gaps, premium model-promotion gaps,
+and optional PSF research are different kinds of evidence, not regressions of
+the locked still, 4K cleanup, 8K SR, or Pi stand-in paths.
 The committed sample/receipt contract is
 [`PRODUCTION_CAPTURE_REQUIREMENTS.md`](PRODUCTION_CAPTURE_REQUIREMENTS.md) and
 [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json).
@@ -49,10 +50,12 @@ A locked path regresses only when its own committed gate, receipt, hash, or CI
 guard fails. This matters because the approved 4K cleanup, offline 8K SR,
 production STILL tiers, and Pi-stand-in raw-video/preview receipts can remain
 locked while the overall readiness score stays below 100% because hardware,
-fixture, noise-sidecar, PSF, or promotion evidence is still missing.
+fixture, noise-sidecar, or promotion evidence is still missing. PSF evidence is
+kept as optional research for a future replacement, not a blocker for shipping
+the approved current raw-video SR workflow.
 
-The denominator is the full four-pillar production suite: raw stills, raw video
-MVP, premium still/SR, and PSF-aware video/SR. Use
+The denominator is the shippable production suite: raw stills, raw video MVP,
+premium still/SR, and approved raw-video reconstruction. Use
 [`PRODUCT_LOCK_LEDGER.md`](PRODUCT_LOCK_LEDGER.md) to decide whether an
 approved artifact regressed; use this scorecard and the burn-down dashboard to
 decide what production evidence is still missing.
@@ -62,6 +65,12 @@ production gate names for each pillar. `tools/test/check_product_lock_ledger.py`
 keeps the Markdown ledger, generated scorecard contract, and CI view from
 drifting apart.
 
+For raw-video SR specifically, the approved 4K cleanup and 8K reconstruction
+path is frozen for release. It is reopened only by a committed gate/receipt/hash
+or manual-review failure, or by a replacement that already beats the locked
+baseline and emits the same `.gvid`, editable raw, ProRes, dashboard, and
+receipt set. PSF-conditioned work remains optional research until then.
+
 Current interpretation:
 
 | pillar | current score | production reading |
@@ -69,7 +78,7 @@ Current interpretation:
 | Best RAW stills | 92% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB/GBRG/GRBG/BGGR fixture coverage, and explicit camera-noise coverage; Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
 | Premium still/SR | 60% | The expanded 13-scene / 351-row target set now has complete raw-CFA features, the deduplicated raw-supervision NPZ collapses it to 117 unique scene/crop raw-domain rows with zero raw conflicts, and RCAB/NAF/U-Net teacher receipts run on that target. Z8 is mildly positive, but X2D remains far below promotion: the raw-target distribution audit shows the hard X2D holdout has **3.45x** the X2D train-median target energy with **6/9** rows above train p90, the RCAB smoke is only **0.069%** median recovery on an 8-row X2D holdout, the scaled RCAB pass is only **0.034%** on a 24-row X2D holdout, the all-X2D-holdout NAF-style pass is **-0.059%** on a 24-row X2D holdout with a heavily regressed train split, the corrected X2D-scene NAF pass reaches only **0.107%** median MAE recovery and negative RMSE recovery, hard SNR filtering hurts versus unfiltered X2D-only **0.149%**, broad SNR weighting also hurts, and noise-floor-only downweighting only nudges the X2D-scene U-Net branch to **0.153%**. Scalar target-energy weighting regresses to **0.118%** or **0.133%**, Fourier/band-loss shaping regresses to **-0.386%** or **-0.139%**, candidate-HF target scaling reaches only **0.052%** or **-0.137%**, direct source-HF target prediction regresses to **-241.62%** without stored HF and **-862.69%** with stored HF, frame-context scalar conditioning reaches only **0.001%**, matched global-context trails at **0.149%**, fixed non-box PSF/CFA NAF trails at **0.130%**, stored candidate-HF regresses to **0.110%**, broader pyramid context trails at **0.131%**, same-scene candidate-signal and frequency-filter probes regress, nearest-neighbor retrieval regresses the hard X2D holdout, and candidate-only local/full-crop/global-context/masked-context statistics remain insufficient. The raw-target SNR/distribution audits are useful, but binary row removal, simple row weighting, stored-HF, Fourier/band scalar loss shaping, candidate-side scalar output scaling, source-HF target replacement, frame-stat concatenation, fixed global PSF conditioning, and simple capacity increases are not enough; the next pass needs a materially different CFA-aware teacher/data objective with camera conditioning, row-level PSF conditioning, and learned multiscale texture priors. |
-| PSF-aware RAW video improvement | 55% | Current 4K cleanup and 8K SR baselines are useful, including continuous 8K no-CNN versus CNN ProRes review media for a whole-scene A/B; near-time native Mission 1 high/low candidates are indexed, the first native PSF measurement has executed, the kernel-stability audit identifies coefficient disagreement, a hash-strict capture request now spells out the controlled-pair capture and model-gate path, and the current Mission42/Z8 baseline/candidate summaries now expose same-cell Bayer fine-detail metrics. The focused hard-row continuation, `psf_gradient_focus_from_detail_s400_fw6_gw12_s300`, improved the previous diagnostic candidate medians. The newer coord/detail continuation, `mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1`, is now registered for review after beating that focused baseline on paired Mission42 and regenerated Z8 RMSE/PSNR floors, and it has refreshed `.gvid` decode-to-SR, editable DNG/GPR, 2K ProRes, Mission metadata-transplant receipts, 42-frame full-sequence `.gvid` packaging, continuous 8K ProRes review, objective visual-review, manual visual signoff, and blocked production-audit receipts. It is still not production-promoted because registry scope remains review-only and formal native PSF/blur-aware replacement remains open until controlled high/low pairs produce a stable measured kernel. |
+| RAW video reconstruction improvement | 95% | Current 4K cleanup and 8K SR baselines are approved for the offline/post workflow, including continuous 8K no-CNN versus CNN ProRes review media for whole-scene A/B, `.gvid` decode-to-SR, editable DNG/GPR packaging, 2K/8K ProRes review, Mission metadata-transplant receipts, 42-frame full-sequence `.gvid` packaging, objective visual-review, manual visual signoff, and release/registry receipts. The retained research lineage includes `psf_gradient_focus_from_detail_s400_fw6_gw12_s300` and `mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1`. Controlled high/low PSF pairs, native kernel measurement, and PSF-conditioned replacement training are preserved as optional research evidence, but no longer block shipping the approved current raw-video SR workflow. |
 
 The current real X2D 100MP still audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html`.
@@ -187,14 +196,13 @@ The current Mission 1 native high/low PSF candidate inventory lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_20260630/index.html`.
 It indexes near-time 8192 x 6144 and 4096 x 3072 Mission 1 captures as inputs
 for the measured PSF pass. It is not a measured PSF receipt yet; alignment,
-edge/texture mining, and a PSF-conditioned gate remain open.
+edge/texture mining, and a PSF-conditioned gate remain optional research.
 
 The current Mission 1 native PSF measurement plan lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_plan_20260630/index.html`.
 It selects the best decoded native high/low pairs and defines the scene-vetting,
 alignment, edge/texture mining, kernel-fitting, and promotion gates required
-before the PSF-aware raw-video improvement pillar can replace the approved
-4K/8K baselines.
+before a future PSF-conditioned model can replace the approved 4K/8K baselines.
 
 The current Mission 1 native PSF measurement run lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_measurement_20260630/index.html`.
@@ -217,7 +225,7 @@ strict controlled pairs: ISO/settings are not fixed enough, fixed
 WB/lens/stabilization/sharpening metadata is absent, no negative controls are
 marked, the existing measurement accepted only two pairs, and the kernel is
 unstable. This proves the local corpus cannot close the PSF blocker without new
-or newly located controlled captures.
+or newly located controlled captures for a future PSF-conditioned replacement.
 
 The deterministic known-kernel PSF validation lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_known_kernel_validation_20260701/index.html`.
@@ -226,6 +234,8 @@ within **1.1e-8** normalized-weight RMSE and rejects the mismatched negative
 control with about **9064** RMSE on the 14-bit scale. This strengthens the
 measurement-tooling evidence only; it does not close the controlled native
 Mission 1 PSF blocker.
+It does not block the approved current 4K cleanup and 8K reconstruction
+workflow.
 
 The raw-video PSF controlled capture request lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`.
@@ -236,8 +246,9 @@ extraction/settings/measurement receipt hashes, fixed
 ISO/exposure/WB/lens/sharpening settings, plus negative controls with explicit
 rejection reasons, with the exact validation commands required to promote a
 stable native PSF kernel.
-That controlled-pair blocker is pinned as `controlled_mission1_psf_pairs` in
-the committed production capture requirements.
+That controlled-pair request is pinned as optional research under
+`controlled_mission1_psf_pairs` in the committed production capture
+requirements.
 
 The current raw-video SR/detail candidate scoreboard lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_sr_candidate_scoreboard_psf_detail_20260701/index.html`.

@@ -205,7 +205,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             completion_gate="The model beats the current raw-CFA residual baselines on both Z8 and X2D broad holdouts and passes the still/editor-latitude gate.",
         ),
         action(
-            pillar="raw_video_psf_sr",
+            pillar="raw_video_psf_research",
             priority=1,
             title="Capture or locate controlled Mission 1 high/low PSF pairs",
             owner="sample curator",
@@ -230,7 +230,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             completion_gate="The native PSF kernel is stable enough to condition 4K cleanup and 8K SR training.",
         ),
         action(
-            pillar="raw_video_psf_sr",
+            pillar="raw_video_psf_research",
             priority=2,
             title="Gate a PSF-conditioned 4K/8K video SR candidate",
             owner="CNN researcher",
@@ -305,7 +305,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
                 "current_blocker": pillars[pillar_id]["open_work"][0],
                 "burn_down_actions": by_pillar.get(pillar_id, []),
             }
-            for pillar_id in ["raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_psf_sr"]
+            for pillar_id in ["raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_reconstruction"]
         ],
     }
 

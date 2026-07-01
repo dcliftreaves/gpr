@@ -188,8 +188,9 @@ Dashboard:
 The plan selects the best decoded native high/low pairs, hashes the input
 receipts, and spells out the required alignment, scene vetting, edge/texture
 tile mining, Bayer/RGB kernel fitting, and gate promotion steps. It is still
-not a measured PSF receipt; production remains blocked until a measured kernel
-and PSF-conditioned 4K/8K model gate exist.
+not a measured PSF receipt; a future PSF-conditioned replacement claim remains
+blocked until a measured kernel and 4K/8K model gate exist. The approved current
+4K cleanup and 8K SR workflow is not blocked by this research gap.
 
 The first native measurement run executes that plan:
 

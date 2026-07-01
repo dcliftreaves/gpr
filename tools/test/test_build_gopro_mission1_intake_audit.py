@@ -162,7 +162,7 @@ def main() -> int:
         assert data["camera_production_ready"] is False
         assert data["production_ready"] is False
         pillar_ids = {row["id"] for row in data["product_pillars"]}
-        assert pillar_ids == {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_psf_sr"}
+        assert pillar_ids == {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_reconstruction"}
         assert data["summary"]["sample_gvid"]["width"] == 4096
         assert data["summary"]["sample_gvid"]["height"] == 3072
         assert any(row["id"] == "product_pillar_labels_packaged" and row["passed"] for row in data["checks"])

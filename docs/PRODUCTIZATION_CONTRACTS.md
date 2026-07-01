@@ -8,7 +8,8 @@ production-ready suite:
 1. best RAW stills for 50 MP and 100 MP cameras,
 2. GoPro / Mission 1 RAW video MVP,
 3. premium spend-time-for-quality still/SR,
-4. PSF-aware RAW video cleanup and reconstruction.
+4. RAW video cleanup and reconstruction, with PSF-aware replacement work kept
+   as optional research.
 
 Release artifacts, Labs/plugin handoff, `.gvid` conformance, and CNN/model
 governance are the cross-cutting contracts that keep those pillars shippable.
@@ -16,8 +17,9 @@ The top-level status lives in `docs/PRODUCT_PILLAR_SCORECARD.md`, while
 `docs/PRODUCT_LOCK_LEDGER.md` separates locked paths from still-open
 production-readiness gates. `docs/PRODUCTION_CAPTURE_REQUIREMENTS.md` and
 `docs/PRODUCTION_CAPTURE_REQUIREMENTS.json` are the committed contract for the
-real fixtures, darkframes, camera receipts, controlled PSF pairs, and
-model-promotion receipts still needed to close those gates.
+real fixtures, darkframes, camera receipts, and model-promotion receipts still
+needed to close those gates. Controlled PSF pairs remain listed as optional
+research, not a release blocker.
 
 ## Current Product Boundary
 
@@ -26,15 +28,18 @@ model-promotion receipts still needed to close those gates.
 | RAW stills | 50 MP production still tiers, 12/14/16-bit support, real X2D 100 MP-class roundtrip evidence, normal Bayer parser/conformance coverage, and real RGGB/GBRG/GRBG/BGGR fixture evidence. | Mission 1/iPhone darkframe sidecars before nonzero noise addback can be enabled for those cameras. |
 | RAW video MVP | 4096 x 3072 Bayer `.gvid` encode and 1024 x 768 preview above the accepted 20 fps Pi 5 stand-in floor, plus conformance and handoff tooling. | Real Mission 1 camera-role sensor/DMA, SD writer, and rear-display receipts. |
 | Premium still/SR | Target builders, raw-CFA residual datasets, model probes, dashboards, and explicit blocker evidence. | Candidate-only 50 MP / 100 MP still-SR model that clears broad Z8/X2D holdouts, editor-latitude review, and worst-row visual gates. |
-| PSF-aware video/SR | Approved 4K cleanup and offline 8K SR baselines, including continuous 8K no-CNN versus CNN ProRes review media. | Controlled Mission 1 high/low Bayer pairs, stable native PSF kernel, and a PSF-conditioned 4K/8K model that beats the current baselines. |
+| RAW video reconstruction | Approved 4K cleanup and offline 8K SR baselines, including continuous 8K no-CNN versus CNN ProRes review media, `.gvid` packaging, editable raw packaging, objective review, and manual signoff. | Ship the approved current offline/post workflow. Controlled Mission 1 high/low Bayer pairs, stable native PSF kernel, and a PSF-conditioned 4K/8K replacement are optional next-gen research. |
 
 The detailed closure list is pinned in
 `docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`: `mission1_darkframe_stack`,
 `iphone_cfa_darkframe_stack`, `mission1_camera_role_receipts`,
-`controlled_mission1_psf_pairs`, and
 `premium_still_sr_promotion_receipts`. The `real_grbg_fixture` and
 `real_bggr_fixture` requirements are closed by the 2026-07-01 broad old-photo
 Bayer phase scan.
+
+`controlled_mission1_psf_pairs` remains in the same JSON as
+`priority=research_optional` so future PSF work has an auditable intake path
+without blocking the current release.
 
 The normal-Bayer support claim is deliberately split by path: the still/GPR
 path covers synthetic RGGB/GBRG/GRBG/BGGR conformance today, while the live
@@ -52,7 +57,9 @@ verified review bundle with:
 - checksums,
 - explicit labels for stand-in, offline-only, or camera-handoff-open evidence.
 - product-pillar labels for RAW stills, RAW video MVP, premium still/SR, and
-  PSF-aware video/SR so reviewers can tell what each artifact proves.
+  RAW video reconstruction so reviewers can tell what each artifact proves;
+  PSF-aware artifacts should be labelled as research unless they later replace
+  the approved baseline.
 
 Source of truth: `docs/RELEASE_ARTIFACTS.md`.
 

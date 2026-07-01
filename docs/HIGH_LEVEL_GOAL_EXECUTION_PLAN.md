@@ -17,12 +17,15 @@ have production receipts:
    preview decode, recovery, timing, and storage receipts.
 3. Offline premium still improvement has a dedicated still-SR gate and emits
    editable raw plus review artifacts that beat the current still baseline.
-4. Raw video improvement has PSF/blur-aware 4K cleanup and 8K reconstruction
-   evidence, not just crop-local CNN examples.
+4. Raw video reconstruction improvement ships the approved 4K cleanup and 8K
+   reconstruction workflow with `.gvid`, editable raw, ProRes, objective
+   review, and manual signoff receipts. PSF/blur-aware replacement work is
+   optional research, not a release blocker.
 
 If a pillar cannot close, the blocker must be specific and evidenced: missing
 camera access, CFA/metadata incompatibility, noise calibration uncertainty,
-model capacity, PSF mismatch, throughput, memory, or storage.
+model capacity, throughput, memory, or storage. PSF mismatch is a blocker only
+for a future PSF-conditioned replacement claim.
 
 ## Execution Split
 
@@ -43,10 +46,17 @@ Can advance locally without new captures:
   move away from another small local U-Net and toward a CFA-aware restoration
   teacher with camera/noise/PSF conditioning, progressive patch sizing, and
   spatial plus Fourier losses before distilling to a smaller student.
-- Raw-video PSF/SR: use the current modeled-resize/detail-budget receipts to
-  build PSF-conditioned ablations, but keep them non-production until controlled
-  native high/low pairs produce a stable kernel. Any replacement still has to
-  beat the locked 4K cleanup and 8K SR baselines on Mission42 and Z8 all24.
+- Raw-video reconstruction: keep the approved 4K cleanup and 8K SR workflow
+  packaged, documented, and guarded as the shippable offline/post path. PSF
+  ablations may continue only as optional research and must not block release.
+  Any future PSF-conditioned replacement still has to beat the locked 4K
+  cleanup and 8K SR baselines on Mission42 and Z8 all24 before it can replace
+  them.
+- SR freeze rule: do not reopen approved raw-video SR for another iteration
+  unless a committed gate, receipt, hash, or manual review fails, or unless a
+  replacement already beats the locked baseline and emits the same `.gvid`,
+  editable raw, ProRes, dashboard, and receipt set. Model ideas that do not meet
+  that bar stay in optional research and cannot delay release work.
 - README/release hygiene: keep the four pillars, lock ledger, scorecard,
   release manifest, artifact guards, and continuous review media aligned with
   the evidence that actually exists.
@@ -59,13 +69,13 @@ Requires new hardware or new samples before it can close:
 - Mission 1 and iPhone nonzero noise addback: same-camera, same-ISO darkframe
   stacks with source hashes and validated `gpr.camera_noise_calibration.v1`
   sidecars.
-- Native PSF promotion: controlled same-scene Mission 1 high/low Bayer pair
-  stacks with source hashes, decoded Bayer hashes, fixed settings, and negative
-  controls.
+- Optional native PSF research: controlled same-scene Mission 1 high/low Bayer
+  pair stacks with source hashes, decoded Bayer hashes, fixed settings, and
+  negative controls.
 
 The next local work should therefore default to premium still-SR and
-PSF-conditioned ablations unless new Mission 1 hardware receipts or missing
-fixtures have arrived.
+release hygiene unless new Mission 1 hardware receipts or missing fixtures have
+arrived. PSF-conditioned ablations are allowed only as optional research.
 
 ## Current Burn-Down Order
 
@@ -153,30 +163,35 @@ Evidence required:
   and worst-row receipts.
 - Any nonzero denoise target must pass the raw-noise/signal audit first.
 
-### 4. PSF-Aware Raw Video Improvement
+### 4. Raw Video Reconstruction Improvement
 
 Immediate work:
 
-- Estimate the Bayer-domain PSF introduced by camera downsample, resize, and
-  reconstruction using high-res/low-res pairs, sharp edges, and texture fields.
-  The lightweight guard is `gpr.bayer_resize_psf_receipt.v1`; the synthetic
-  non-production contract builder is `tools/build_bayer_resize_psf_receipt.py`,
-  and the real-pair modeled-resize builder is
-  `tools/build_bayer_resize_psf_from_pairs.py`. The current xlarge pair receipt
-  confirms the modeled target is a 2x2 same-color Bayer box and that the
-  4K-to-8K residual is almost entirely same-cell fine detail:
+- Keep the approved 4K cleanup and 8K reconstruction path frozen for release.
+  It already emits `.gvid`, editable raw, ProRes review, objective review, and
+  manual signoff receipts. Do not reopen it unless a committed gate, receipt,
+  hash, or manual review fails, or unless a replacement already beats the
+  locked baseline with the same artifact surface.
+- Keep the PSF tooling as optional next-generation research. It estimates the
+  Bayer-domain PSF introduced by camera downsample, resize, and reconstruction
+  using high-res/low-res pairs, sharp edges, and texture fields. The lightweight
+  guard is `gpr.bayer_resize_psf_receipt.v1`; the synthetic non-production
+  contract builder is `tools/build_bayer_resize_psf_receipt.py`, and the
+  real-pair modeled-resize builder is `tools/build_bayer_resize_psf_from_pairs.py`.
+  The current xlarge pair receipt confirms the modeled target is a 2x2
+  same-color Bayer box and that the 4K-to-8K residual is almost entirely
+  same-cell fine detail:
   `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_from_pairs_xlarge_detail_budget_20260630/`.
-- Train or tune 4K cleanup and 8K SR with CFA-aware targets and PSF-conditioned
-  losses, including explicit same-cell fine-detail reconstruction metrics.
-- Use the current raw-video PSF gap plan as the closure checklist for this
-  pillar:
+- Train or tune PSF-conditioned models only as candidates for a later
+  replacement, not as release blockers for the current approved workflow.
+- Use the current raw-video PSF gap plan as the optional research checklist:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html`.
   It records the current accepted-pair count, tile support, kernel-stability
   result, required hash-strict controlled-pair capture, and promotion receipts.
 - Keep dashboards honest: full-frame Mission and Z8 rows, rendered crops,
   raw-domain metrics, lower-right/worst-row inspection, and metadata receipts.
 
-Evidence required:
+Replacement evidence required:
 
 - A replacement must beat the current approved 4K cleanup / 8K SR baseline on
   Mission42 and Z8 all24 gates.
@@ -279,15 +294,15 @@ Evidence required:
    noise-cleaning kept as a guardrail rather than the main fix.
 4. Replace the still-SR skeleton with a production candidate receipt only after
    the routed 50 MP and 100 MP candidates pass those editor and worst-row gates.
-5. Follow the raw-video PSF gap plan:
+5. Keep the raw-video PSF gap plan as optional research:
    `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_gap_plan_20260630/index.html`.
    The current native measurement has enough tile support but only 2 accepted
-   pairs and an unstable fitted kernel. The next PSF commit should add
+   pairs and an unstable fitted kernel. A future PSF research commit should add
    controlled same-scene Mission 1 high/low pairs with source hashes, decoded
    Bayer hashes, fixed settings, and negative controls, or document that the
    available local corpus cannot supply them before training the
    PSF-conditioned SR experiment.
-6. Gate a PSF-conditioned 4K/8K video SR candidate only against the locked
+6. Gate any PSF-conditioned 4K/8K video SR replacement only against the locked
    Mission42 and Z8 all24 baselines. If it does not beat the current 4K cleanup
    and 8K SR paths, keep the approved baselines and record whether the blocker
    is native PSF estimation, loss/objective design, model capacity, codec/detail

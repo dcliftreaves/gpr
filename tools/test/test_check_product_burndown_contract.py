@@ -45,7 +45,7 @@ def main() -> int:
     expect_failure(module, bad_camera, "camera-required")
 
     bad_blocker_count = copy.deepcopy(data)
-    bad_blocker_count["summary"]["blocker_type_counts"]["model_promotion"] = 1
+    bad_blocker_count["summary"]["blocker_type_counts"]["model_promotion"] = 2
     expect_failure(module, bad_blocker_count, "blocker_type_counts")
 
     bad_stills = copy.deepcopy(data)
@@ -72,13 +72,6 @@ def main() -> int:
     bad_video_role = copy.deepcopy(data)
     bad_video_role["pillars"][1]["burn_down_actions"][0]["requires_mission1_camera_role"] = False
     expect_failure(module, bad_video_role, "requires_mission1_camera_role")
-
-    bad_psf = copy.deepcopy(data)
-    bad_psf["pillars"][3]["burn_down_actions"] = [
-        row for row in bad_psf["pillars"][3]["burn_down_actions"]
-        if "PSF-conditioned" not in row["title"]
-    ]
-    expect_failure(module, bad_psf, "PSF-conditioned")
 
     print("test_check_product_burndown_contract: PASS")
     return 0

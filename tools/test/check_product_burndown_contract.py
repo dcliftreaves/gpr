@@ -59,33 +59,9 @@ EXPECTED_PILLARS = {
             },
         },
     },
-    "raw_video_psf_sr": {
-        "readiness": 55,
-        "required_actions": {
-            "Capture or locate controlled Mission 1 high/low PSF pairs": {
-                "requirement_ids": ["controlled_mission1_psf_pairs"],
-                "tokens": (
-                    "8192 x 6144 / 4096 x 3072",
-                    "source hashes",
-                    "decoded little-endian uint16 Bayer hashes",
-                    "negative controls",
-                    "stable measured native PSF kernel",
-                    "model conditioning",
-                ),
-                "blocker_type": "sample_acquisition",
-                "requires_mission1_camera_role": False,
-                "requires_new_samples": True,
-                "command_tokens": ("build_mission1_native_psf_pair_inventory.py", "build_mission1_native_psf_measurement.py"),
-            },
-            "Gate a PSF-conditioned 4K/8K video SR candidate": {
-                "requirement_ids": ["controlled_mission1_psf_pairs"],
-                "tokens": ("PSF-conditioned", "Mission42 and Z8 all24", "4K/8K ProRes"),
-                "blocker_type": "model_promotion",
-                "requires_mission1_camera_role": False,
-                "requires_new_samples": False,
-                "command_tokens": ("build_mission1_native_psf_measurement.py", "build_raw_video_psf_gap_plan.py"),
-            },
-        },
+    "raw_video_reconstruction": {
+        "readiness": 95,
+        "required_actions": {},
     },
 }
 
@@ -111,38 +87,37 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
         failures.append("burn-down must record docs/PRODUCTION_CAPTURE_REQUIREMENTS.json as its requirement source")
     if data.get("production_ready") is not False:
         failures.append("four-pillar burn-down must remain production_ready=false while blockers are open")
-    if data.get("four_pillar_completion_percent") != 72:
-        failures.append("four-pillar completion percent must stay aligned to the current 72% scorecard")
+    if data.get("four_pillar_completion_percent") != 82:
+        failures.append("four-pillar completion percent must stay aligned to the current 82% scorecard")
 
     summary = data.get("summary", {})
-    if summary.get("open_requirement_count") != 5:
-        failures.append("burn-down must identify the five open production capture requirements")
+    if summary.get("open_requirement_count") != 4:
+        failures.append("burn-down must identify the four open production capture requirements")
     if summary.get("camera_required_action_count") != 1:
         failures.append("burn-down must identify exactly one camera-required action")
-    if summary.get("non_camera_action_count") != 4:
-        failures.append("burn-down must identify the four non-camera actions that can continue now")
+    if summary.get("non_camera_action_count") != 2:
+        failures.append("burn-down must identify the two non-camera actions that can continue now")
     if summary.get("mission1_camera_role_required_action_count") != 1:
         failures.append("burn-down must identify exactly one Mission 1 camera-role action")
-    if summary.get("new_sample_required_action_count") != 2:
-        failures.append("burn-down must identify two sample-acquisition actions")
-    if summary.get("model_promotion_action_count") != 2:
-        failures.append("burn-down must identify two model-promotion actions")
+    if summary.get("new_sample_required_action_count") != 1:
+        failures.append("burn-down must identify one sample-acquisition action")
+    if summary.get("model_promotion_action_count") != 1:
+        failures.append("burn-down must identify one model-promotion action")
     expected_blockers = {
         "hardware_integration": 1,
-        "model_promotion": 2,
-        "sample_acquisition": 2,
+        "model_promotion": 1,
+        "sample_acquisition": 1,
     }
     if summary.get("blocker_type_counts") != expected_blockers:
         failures.append(
             f"unexpected blocker_type_counts: {summary.get('blocker_type_counts')!r}, expected {expected_blockers!r}"
         )
-    if summary.get("lowest_readiness_pillar") != "raw_video_psf_sr":
-        failures.append("raw_video_psf_sr should remain the lowest-readiness pillar until PSF work closes")
+    if summary.get("lowest_readiness_pillar") != "premium_still_sr":
+        failures.append("premium_still_sr should remain the lowest-readiness release pillar")
     expected_open_ids = [
         "mission1_darkframe_stack",
         "iphone_cfa_darkframe_stack",
         "mission1_camera_role_receipts",
-        "controlled_mission1_psf_pairs",
         "premium_still_sr_promotion_receipts",
     ]
     if data.get("open_requirement_ids") != expected_open_ids:

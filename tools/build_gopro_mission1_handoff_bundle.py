@@ -184,7 +184,7 @@ It is not final camera-production evidence by itself.
 - **RAW stills**: represented by the repo README and release evidence manifest; stills remain a separate locked product surface, not the main purpose of this Mission 1 handoff.
 - **RAW video MVP**: directly represented by the 4K Bayer `.gvid` sample, stand-in encode/preview receipts, firmware API, and quick-validation command.
 - **Premium still/SR**: represented by the release evidence manifest and README status; current models are review evidence, not firmware requirements.
-- **PSF-aware video/SR**: represented by the release evidence manifest and README status; current 4K cleanup/8K SR paths are offline/post baselines, not camera-side CNN work.
+- **RAW video reconstruction**: represented by the release evidence manifest and README status; current 4K cleanup/8K SR paths are approved offline/post baselines, while PSF-aware replacement work remains optional research.
 
 The packaged production capture requirements are the closure contract for
 missing real fixtures, darkframes, camera-role receipts, controlled PSF pairs,

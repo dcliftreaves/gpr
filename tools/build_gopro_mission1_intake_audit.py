@@ -26,7 +26,7 @@ REQUIRED_PRODUCT_PILLARS = {
     "raw_stills": "RAW stills",
     "raw_video_mvp": "RAW video MVP",
     "premium_still_sr": "Premium still/SR",
-    "raw_video_psf_sr": "PSF-aware video/SR",
+    "raw_video_reconstruction": "RAW video reconstruction",
 }
 
 
@@ -127,7 +127,7 @@ def validate_product_pillars(rows: list[dict[str, str]]) -> tuple[bool, str]:
         failures.append("empty fields: " + ", ".join(sorted(empty_fields)))
     if failures:
         return False, "; ".join(failures)
-    return True, "bundle manifest exposes RAW stills, RAW video MVP, premium still/SR, and PSF-aware video/SR labels"
+    return True, "bundle manifest exposes RAW stills, RAW video MVP, premium still/SR, and RAW video reconstruction labels"
 
 
 def build_audit(manifest_path: Path) -> dict[str, Any]:

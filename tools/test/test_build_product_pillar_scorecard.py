@@ -54,16 +54,17 @@ def main() -> int:
         data = json.loads(summary.read_text(encoding="utf-8"))
         assert data["schema"] == "gpr.product_pillar_scorecard.v1"
         assert data["production_ready"] is False
-        assert data["four_pillar_completion_percent"] == 72
+        assert data["four_pillar_completion_percent"] == 82
         assert data["score_semantics"]["kind"] == "readiness_burndown_estimate"
         assert data["score_semantics"]["not_a_quality_metric"] is True
         assert data["score_semantics"]["not_a_locked_artifact_regression_signal"] is True
-        assert "four-pillar production suite" in data["score_semantics"]["denominator"]
+        assert "shippable production suite" in data["score_semantics"]["denominator"]
+        assert "PSF-aware replacement work is optional research" in data["score_semantics"]["denominator"]
         assert [p["id"] for p in data["pillars"]] == [
             "raw_stills",
             "raw_video_mvp",
             "premium_still_sr",
-            "raw_video_psf_sr",
+            "raw_video_reconstruction",
         ]
         assert data["pillars"][0]["readiness_percent"] == 92
         assert data["pillars"][0]["lock_ledger_paths"] == [
@@ -112,8 +113,9 @@ def main() -> int:
             in ref["path"]
             for ref in data["pillars"][2]["evidence"]
         )
-        assert data["pillars"][3]["readiness_percent"] == 55
-        assert "PSF-aware raw-video replacement" in data["pillars"][3]["open_production_gates"]
+        assert data["pillars"][3]["readiness_percent"] == 95
+        assert data["pillars"][3]["title"] == "4. RAW video reconstruction improvement"
+        assert any("documentation hygiene" in item for item in data["pillars"][3]["open_production_gates"])
         assert any("8K SR" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any("continuous 8K no-CNN versus CNN" in item for item in data["pillars"][3]["locked_artifacts"])
         assert any("Standalone 8K ProRes A/B" in item for item in data["pillars"][3]["done_evidence"])
@@ -121,7 +123,8 @@ def main() -> int:
         assert any("psf_gradient_focus_from_detail_s400_fw6_gw12_s300" in item for item in data["pillars"][3]["done_evidence"])
         assert any("coord_detail_psf_focus_step0075" in item for item in data["pillars"][3]["done_evidence"])
         assert any("42-frame full-sequence .gvid packaging" in item for item in data["pillars"][3]["done_evidence"])
-        assert any("blocked production-audit receipts" in item for item in data["pillars"][3]["done_evidence"])
+        assert any("does not block the approved current offline reconstruction workflow" in item for item in data["pillars"][3]["done_evidence"])
+        assert any("optional research" in item.lower() for item in data["pillars"][3]["open_work"])
         assert any(
             "z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
             for ref in data["pillars"][3]["evidence"]

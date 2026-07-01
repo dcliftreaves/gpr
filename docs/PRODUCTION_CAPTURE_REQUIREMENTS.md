@@ -1,7 +1,7 @@
 # Production Capture Requirements
 
 This is the committed checklist for real samples and hardware receipts that
-still block the four product pillars from being called production-complete. The
+still block the shippable product pillars from being called production-complete. The
 machine-readable source is
 [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json);
 generated dashboards under `/Volumes/OWC_8TB/gpr_work/artifacts` are review
@@ -13,7 +13,9 @@ The locked product paths are not the same thing as the remaining production
 evidence. The 50 MP still tiers, Mission 1 Pi-stand-in `.gvid` encode/preview,
 4K cleanup, and 8K SR baselines stay locked unless their own gate fails. The
 requirements here are the missing real-world samples, camera receipts, and
-model-promotion artifacts needed to finish the wider product suite.
+model-promotion artifacts needed to finish the shippable product suite. PSF
+capture remains useful research for a future replacement model, but it no
+longer blocks release of the approved current raw-video SR workflow.
 
 ## Open Requirements
 
@@ -22,8 +24,16 @@ model-promotion artifacts needed to finish the wider product suite.
 | `mission1_darkframe_stack` | RAW stills | Four matching no-scene-signal Mission 1 darkframes under one camera/ISO/CFA/dimensions key, with per-frame source provenance from original raw to extracted Bayer; current ISO232 RGGB candidate group has 2 and needs 2 more. | `gpr.camera_noise_calibration.v1` sidecar validates with `source_provenance_ready=true` and runtime policy allows exact-match noise use. |
 | `iphone_cfa_darkframe_stack` | RAW stills | Four matching no-scene-signal iPhone CFA DNG darkframes, with per-frame source provenance from original raw to extracted Bayer; Linear Raw does not count. The ISO1250 RGGB candidate group has enough dark-like frames but still needs no-scene provenance. | iPhone CFA sidecar validates with `source_provenance_ready=true` and Linear Raw remains a negative fixture. |
 | `mission1_camera_role_receipts` | RAW video MVP | Real Mission 1 sensor/DMA or camera ring-buffer source, SD writer, and rear-display receipts. | Camera closure validator marks camera production ready; Pi stand-in receipts are replaced by camera-role evidence. |
-| `controlled_mission1_psf_pairs` | PSF-aware video/SR | Controlled high/low Mission 1 raw pair stack with source hashes, decoded Bayer hashes, exact dimensions/byte counts, extraction/settings/measurement receipt hashes, fixed settings, and negative controls. | Native PSF measurement accepts at least three pairs and produces a stable kernel for model conditioning. |
 | `premium_still_sr_promotion_receipts` | Premium still/SR | Checkpoint, target, full-frame/editor-latitude, editable raw, timing/memory, and noise-policy receipts. | No-REF candidate beats current still-SR baselines on 50 MP and 100 MP gates without severe worst-row failures. |
+
+## Optional Research Requests
+
+These items are useful for a next-generation model, but they are not release
+blockers for the current approved raw-video SR workflow.
+
+| id | research track | requested evidence | closure signal |
+|---|---|---|---|
+| `controlled_mission1_psf_pairs` | PSF-aware video/SR research | Controlled high/low Mission 1 raw pair stack with source hashes, decoded Bayer hashes, exact dimensions/byte counts, extraction/settings/measurement receipt hashes, fixed settings, and negative controls. | Native PSF measurement accepts at least three pairs and produces a stable kernel for model conditioning. |
 
 ## Closed Requirements
 
@@ -48,7 +58,7 @@ artifacts.
 ## Submission Audit
 
 When a developer, camera team, or future agent submits new fixtures, darkframes,
-camera-role receipts, PSF pairs, or premium still-SR promotion receipts, validate
+camera-role receipts, optional PSF research pairs, or premium still-SR promotion receipts, validate
 the package by first generating a fill-in manifest template:
 
 ```sh
@@ -78,10 +88,11 @@ python3 tools/check_production_capture_submission.py <submission.json> \
 
 The submission manifest schema is `gpr.production_capture_submission.v1`. The
 checker requires source hashes, fixed camera metadata, no-scene-signal flags for
-darkframes, camera-role Mission 1 receipts, controlled PSF pair hashes,
-8192 x 6144 and 4096 x 3072 decoded Bayer dimensions, exact uint16 byte counts,
-extraction/settings/measurement receipt hashes, negative-control rejection
-reasons, and no-REF premium still-SR promotion receipts. With
+darkframes, camera-role Mission 1 receipts, no-REF premium still-SR promotion
+receipts, and, when optional PSF research pairs are submitted, controlled pair
+hashes, 8192 x 6144 and 4096 x 3072 decoded Bayer dimensions, exact uint16 byte
+counts, extraction/settings/measurement receipt hashes, and negative-control
+rejection reasons. With
 `--require-existing-files`, every path/hash pair that appears in the manifest
 must exist locally and match its SHA-256. It exits nonzero until every committed
 requirement is closed by the submitted evidence. The template builder and
@@ -94,7 +105,7 @@ into an auditable pass/fail package.
   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html`
   This request carries the exact committed requirement IDs it closes:
   `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack`.
-- Raw-video PSF capture request:
+- Optional raw-video PSF research capture request:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`
 - GoPro Mission 1 intake audit:
   `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701/index.html`

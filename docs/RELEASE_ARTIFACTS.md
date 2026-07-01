@@ -48,7 +48,7 @@ referenced by hash from `docs/release_evidence_manifest.json` and
 | Receipts | Include the release evidence manifest, `.gvid` validation output, and at least one target or stand-in timing receipt. |
 | Checksums | Every bundle file except the manifest itself must be listed in `hashes/sha256sums.txt`. |
 | Scope labels | Stand-in, offline-only, and camera-handoff-open evidence must stay labeled that way in the bundle README and manifest notes. |
-| Product-pillar labels | Bundle README and manifest notes must map artifacts to RAW stills, RAW video MVP, premium still/SR, and PSF-aware video/SR. Use `docs/release_evidence_manifest.json.product_pillars` as the source of truth. |
+| Product-pillar labels | Bundle README and manifest notes must map artifacts to RAW stills, RAW video MVP, premium still/SR, and RAW video reconstruction. Use `docs/release_evidence_manifest.json.product_pillars` as the source of truth. PSF-aware replacement artifacts are research references unless they later replace the approved baseline. |
 
 ## Product Pillar Labels
 
@@ -64,10 +64,9 @@ and product scorecards:
   closure.
 - **Premium still/SR**: spend-time-for-quality still/SR targets, model
   receipts, dashboards, and explicit non-promotion blockers.
-- **PSF-aware video/SR**: approved 4K cleanup and offline 8K SR baselines,
-  continuous 8K no-CNN versus CNN review media, native PSF corpus and
-  kernel-stability evidence, and the controlled-capture request for replacing
-  the current baseline.
+- **RAW video reconstruction**: approved 4K cleanup and offline 8K SR baselines,
+  continuous 8K no-CNN versus CNN review media, editable raw packaging, and
+  optional PSF research evidence for a future replacement.
 
 The release manifest's `product_pillars` section owns this mapping.
 `tools/build_labs_bundle.py` copies that section into generated bundle

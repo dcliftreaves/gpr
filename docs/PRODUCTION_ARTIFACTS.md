@@ -623,8 +623,8 @@ pillar.
 | Premium still-SR raw-target SNR audit dashboard | `artifacts/premium_still_sr_raw_target_snr_audit_20260701/index.html` | `7e267673e68896a6d3999f17d03ef8e9ea2e3be52f54c668a70c93080e59f141` |
 | Premium still-SR target distribution audit JSON | `artifacts/premium_still_sr_target_distribution_audit_20260701/target_distribution_audit.json` | `4defd67c6250b36946bf2a3aa0ae0617f98705fae46193f9a723d14d2127da43` |
 | Premium still-SR target distribution audit dashboard | `artifacts/premium_still_sr_target_distribution_audit_20260701/index.html` | `abee7e5ef47b2c687ec97bac861d3de001f7065424653bdd13c47793c3aacc4c` |
-| Premium still-SR next-experiment contract JSON | `artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/premium_still_sr_next_experiment_contract.json` | `7771046e3a0cdedcc3f98952166ea46e70916017865c6854285308a05990cd86` |
-| Premium still-SR next-experiment contract dashboard | `artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html` | `5ef5ac078e9ab2712cc4843a458a8128245101725cb743896cdb08a786fd0b5d` |
+| Premium still-SR next-experiment contract JSON | `artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/premium_still_sr_next_experiment_contract.json` | `4df9e94677f256dfdb773c3c074922ae2fec8893213e69d1bf4e6aa27c208c62` |
+| Premium still-SR next-experiment contract dashboard | `artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html` | `1e6df2b001a33f4841ea2d8d07528e6bf57620a15dc05ff4c88e43d749b50610` |
 | Premium still-SR window-attention teacher smoke checkpoint | `artifacts/premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/premium_still_sr_raw_cfa_residual.pt` | `c6b170d8ecdd5abc74697d110a29de1b71d20dab9334f341e043890bd93dbeac` |
 | Premium still-SR window-attention teacher smoke receipt | `artifacts/premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/train_receipt.json` | `6b86bed1e20b0638c51878a99b2d6ff4757b167ca989c6000fee8c25cdc5b538` |
 | Premium still-SR window-attention teacher smoke dashboard | `artifacts/premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/index.html` | `ade2122b53540f437c863b2071e041430767a454a476d461a505dac1833e2ecf` |
@@ -648,7 +648,7 @@ pillar.
 ## Raw-Video PSF Gap Artifacts
 
 These rows are diagnostic, not production promotion receipts. They preserve the
-native Mission 1 PSF blocker state for the PSF-aware video/SR pillar.
+native Mission 1 PSF state for optional future PSF-conditioned video/SR work.
 
 | artifact | path | sha256 |
 |---|---|---|

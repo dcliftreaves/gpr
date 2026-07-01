@@ -3,7 +3,8 @@
 
 The README is the public product surface. This guard keeps the high-level
 story aligned with the current production scorecard so future edits do not
-drop the raw-stills, raw-video, premium still/SR, or PSF-aware video goals.
+drop the raw-stills, raw-video, premium still/SR, or raw-video reconstruction
+goals.
 """
 
 from __future__ import annotations
@@ -43,20 +44,20 @@ REQUIRED_README_TOKENS = (
     "**Best RAW stills**",
     "**GoPro RAW video MVP**",
     "**Premium still improvement**",
-    "**PSF-aware video improvement**",
+    "**Raw video reconstruction**",
     "Actual Mission 1 sensor/DMA, SD writer, and rear-display receipts",
     "A no-REF candidate that clears the 50 MP / 100 MP still/editor-latitude gate",
-    "Controlled high/low Mission 1 pairs",
+    "PSF-aware video/SR is now tracked as optional next-gen research",
     "capture better raw, keep raw editable, preview it",
     "**1. RAW stills**",
     "**2. RAW video MVP**",
     "**3. Premium still improvement**",
-    "**4. PSF-aware video improvement**",
-    "The denominator is the full four-pillar production suite",
+    "**4. Raw video reconstruction improvement**",
+    "The denominator is the shippable production suite",
     "use the lock ledger for artifact stability and the scorecard for remaining production evidence",
     "For the Mission 1 raw-video loop",
     "The full",
-    "four-pillar suite still has the fixture/noise, premium still-SR, and PSF gates",
+    "PSF-conditioned replacement work is optional research",
     "**50 MP RAW still tiers**",
     "**4K `.gvid` capture prototype**",
     "**1024 camera-back preview**",
@@ -65,7 +66,7 @@ REQUIRED_README_TOKENS = (
     "**1. Best RAW stills**",
     "**2. GoPro RAW video MVP**",
     "**3. Premium still/SR**",
-    "**4. PSF-aware video/SR**",
+    "**4. Raw video reconstruction improvement**",
     "50 MP and 100 MP-class cameras",
     "normal CFA support",
     "camera-noise-aware compression",
@@ -76,9 +77,8 @@ REQUIRED_README_TOKENS = (
     "Mission 1 sensor/DMA",
     "raw-CFA targets",
     "13-scene / 351-row",
-    "PSF-conditioned model",
-    "Controlled high/low pairs",
-    "decoded Bayer hashes",
+    "PSF-conditioned replacement",
+    "Controlled high/low PSF pairs remain optional research",
     "docs/PRODUCT_PILLAR_SCORECARD.md",
     "docs/PRODUCT_LOCK_LEDGER.md",
     "docs/WORKSPACE_AND_ARTIFACT_MAP.md",
@@ -110,7 +110,7 @@ REQUIRED_README_TOKENS = (
     "12 sequential frames at 20 fps",
     "Production capture requirements",
     "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json",
-    "real fixtures, darkframes, camera receipts, PSF pairs, and model-promotion receipts",
+    "Production capture requirements",
     "full-manifest Mission/iPhone audit parses **1,997 / 2,000** rows",
     "finds **59** dark-like frames",
     "Mission ISO232 RGGB has **2** dark-like candidates",
@@ -136,16 +136,17 @@ README_PILLAR_LABELS = {
     "raw_stills": "Best RAW stills",
     "raw_video_mvp": "GoPro RAW video MVP",
     "premium_still_sr": "Premium still/SR",
-    "raw_video_psf_sr": "RAW video PSF/SR improvement",
+    "raw_video_reconstruction": "RAW video reconstruction improvement",
 }
 
 REQUIRED_SCORECARD_TOKENS = (
     "| Best RAW stills | 92% |",
     "| GoPro RAW video MVP | 80% |",
     "| Premium still/SR | 60% |",
-    "| PSF-aware RAW video improvement | 55% |",
+    "| RAW video reconstruction improvement | 95% |",
     "psf_gradient_focus_from_detail_s400_fw6_gw12_s300",
     "mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1",
+    "PSF-conditioned replacement training are preserved as optional research evidence",
     "The percentages are production-readiness burn-down estimates.",
     "not regression signals for locked artifacts",
     "deduplicated raw-supervision NPZ collapses it to 117 unique scene/crop raw-domain rows with zero raw conflicts",

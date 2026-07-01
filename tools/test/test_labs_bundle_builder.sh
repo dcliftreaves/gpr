@@ -72,7 +72,7 @@ from pathlib import Path
 
 manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 ids = {row["id"] for row in manifest.get("product_pillars", [])}
-expected = {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_psf_sr"}
+expected = {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_reconstruction"}
 if ids != expected:
     raise SystemExit(f"unexpected product_pillars ids: {sorted(ids)}")
 PY

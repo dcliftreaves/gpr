@@ -320,26 +320,26 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             ),
         },
         {
-            "id": "raw_video_psf_sr",
-            "title": "4. RAW video improvement / PSF-aware resize",
-            "readiness_percent": 55,
-            "status": "approved_baseline_psf_replacement_open",
+            "id": "raw_video_reconstruction",
+            "title": "4. RAW video reconstruction improvement",
+            "readiness_percent": 95,
+            "status": "approved_offline_reconstruction_psf_research_optional",
             "production_ready": False,
             "lock_ledger_paths": [
                 "Mission 1 4K cleanup",
                 "Mission 1 8K SR",
             ],
             "open_production_gates": [
-                "PSF-aware raw-video replacement",
+                "Release packaging and documentation hygiene for the approved offline reconstruction workflow",
             ],
             "locked_artifacts": [
                 "approved Mission native12 4K cleanup offline/review baseline",
                 "approved candidate-aware 8K SR offline/reconstruction baseline",
                 "continuous 8K no-CNN versus CNN ProRes review media",
                 "8K .gvid, editable raw, and ProRes review receipts",
-                "first native Mission 1 PSF measurement run as blocker evidence",
+                "first native Mission 1 PSF measurement run as optional research evidence",
             ],
-            "claim": "4K cleanup and 8K SR are approved offline baselines, while formal native PSF/blur-aware replacement work remains open.",
+            "claim": "4K cleanup and 8K SR are approved offline/post baselines with packaging, editable raw, ProRes, continuous review, objective review, and manual signoff evidence. Formal native PSF/blur-aware replacement work is optional research, not a release blocker.",
             "done_evidence": [
                 "Mission native12 4K cleanup is approved for offline/review scope.",
                 "Candidate-aware 8K SR passes broad Mission42 and Z8 full-frame gates with .gvid, editable raw, and ProRes receipts.",
@@ -349,7 +349,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "The native Mission 1 high/low pair inventory now indexes near-time 8192 x 6144 and 4096 x 3072 capture candidates for a measured PSF pass.",
                 "The native PSF measurement plan selects the best decoded high/low pairs and defines the alignment, edge/texture mining, kernel fitting, and promotion gates required next.",
                 "The first native PSF measurement run executed on the selected Mission 1 pairs: 2 of 3 pairs passed scene/alignment vetting with 1,409 sharp-edge and 1,381 texture-field tiles, but the kernel is unstable and rejected for model conditioning.",
-                "The raw-video PSF audit separates approved 4K/8K baselines from the unfinished native PSF replacement claim.",
+                "The raw-video PSF audit separates approved 4K/8K baselines from the unfinished native PSF replacement claim, which is now optional research rather than a release blocker.",
                 "The raw-video PSF gap plan now turns that failed native measurement into a concrete capture, measurement, model-gate, and promotion checklist.",
                 "The native PSF corpus audit hashes the current near-time candidate pairs and records zero strict controlled pairs, because ISO/settings are not fixed tightly enough, fixed camera-setting metadata and negative controls are missing, and the existing measurement still accepts only two pairs with an unstable kernel.",
                 "The controlled-capture request now requires source GPR/DNG hashes, decoded little-endian uint16 Bayer hashes, fixed ISO/exposure/WB/lens/sharpening settings, and negative controls before a measured kernel can be promoted.",
@@ -357,12 +357,12 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                 "The PSF detail-metric rerun adds same-cell Bayer fine-detail metrics to the current Mission42/Z8 baseline and candidate summaries. The current candidate improves median same-cell detail from 26.091 to 28.095 percent on Mission42 and from 3.214 to 3.516 percent on Z8.",
                 "The Mission gradient/detail blocker audit narrows the current non-promotion cause to five rows that regress both gradient and same-cell detail: GP017346, GP017600, GP017347, GP017348, and GP017359.",
                 "The focused hard-row continuation psf_gradient_focus_from_detail_s400_fw6_gw12_s300 improves the previous diagnostic candidate medians on Mission42 and Z8, but still misses the older Mission worst-row floor on GP017346, GP017600, GP017347, and GP017348.",
-                "The coord/detail PSF-focus step-75 continuation is now registered for review as mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1. It beats the previous psf-gradient-focus baseline on paired Mission42 and regenerated Z8 RMSE/PSNR floors, and now has registry-driven .gvid decode-to-SR, editable DNG/GPR, 2K ProRes, Mission metadata-transplant receipts, 42-frame full-sequence .gvid packaging, continuous 8K ProRes review, objective visual-review, manual visual signoff, and blocked production-audit receipts. It still needs controlled native PSF evidence before promotion.",
+                "The coord/detail PSF-focus step-75 continuation is registered for review as mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1. It beats the previous psf-gradient-focus baseline on paired Mission42 and regenerated Z8 RMSE/PSNR floors, and now has registry-driven .gvid decode-to-SR, editable DNG/GPR, 2K ProRes, Mission metadata-transplant receipts, 42-frame full-sequence .gvid packaging, continuous 8K ProRes review, objective visual-review, and manual visual signoff receipts. Controlled native PSF evidence remains useful before claiming a PSF-conditioned replacement, but it does not block the approved current offline reconstruction workflow.",
             ],
             "open_work": [
-                "Follow the raw-video PSF gap plan: capture or locate controlled same-scene Mission 1 high/low pairs with source hashes, decoded Bayer hashes, fixed settings, and negative controls so at least three pairs pass scene vetting and produce a stable measured native PSF kernel.",
-                "Train PSF-conditioned SR against CFA-aware high-res targets with better candidate-side detail/phase/context conditioning or a stronger PSF-aware teacher.",
-                "Promote only if Mission42 and Z8 all24 gates beat the current approved baseline and worst rows stay clean.",
+                "Keep the approved 4K cleanup and 8K SR workflow packaged, documented, and guarded as the shippable offline/post reconstruction path.",
+                "Optional research: follow the raw-video PSF gap plan only when controlled same-scene Mission 1 high/low pairs with source hashes, decoded Bayer hashes, fixed settings, and negative controls are available.",
+                "Optional replacement promotion: train PSF-conditioned SR only if it can beat the locked Mission42 and Z8 all24 baselines with clean worst rows.",
             ],
             "evidence": annotate_refs(
                 [
@@ -411,9 +411,9 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
             "not_a_quality_metric": True,
             "not_a_locked_artifact_regression_signal": True,
             "denominator": (
-                "The denominator is the four-pillar production suite: raw stills, raw video MVP, "
-                "premium still/SR, and PSF-aware video/SR. Scores move only when the scope or "
-                "evidence for those pillars changes, not when an approved artifact is re-reviewed."
+                "The denominator is the shippable production suite: raw stills, raw video MVP, "
+                "premium still/SR, and approved raw-video reconstruction. PSF-aware replacement "
+                "work is optional research unless it later beats and replaces the approved baseline."
             ),
             "policy": (
                 "Readiness percentages summarize remaining production evidence, fixture, hardware, and promotion work. "

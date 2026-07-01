@@ -193,6 +193,29 @@ def main() -> int:
         assert any("overlapped-tile inference" in item for item in blueprint["validation_protocol"])
         assert any("window-attention teacher" in item for item in blueprint["first_ablation_order"])
         assert any("distilled student only after teacher clears" in item for item in blueprint["first_ablation_order"])
+        execution = contract["execution_plan"]
+        assert execution["run_id"] == "premium_still_sr_window_attention_teacher_gate_20260701"
+        assert execution["artifact_root"].endswith("/artifacts/premium_still_sr_window_attention_teacher_gate_20260701")
+        assert execution["tmp_root"] == str(base / "tmp")
+        assert execution["canonical_full_target_npz"] == "/synthetic/residual/raw_cfa_residual_targets.npz"
+        assert execution["training_target_npz"].endswith(
+            "/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/raw_cfa_residual_targets_dedup.npz"
+        )
+        assert "deduplicated 117-row raw-domain NPZ" in execution["target_policy"]
+        assert "no REF/source/JPEG pixels at render time" in execution["runtime_input_policy"]
+        assert "window_attention_teacher" in execution["smoke_command"]
+        assert "--device cpu" in execution["smoke_command"]
+        assert "--holdout-scene x2d" in execution["smoke_command"]
+        assert len(execution["full_train_commands"]) == 2
+        assert execution["full_train_commands"][0]["id"] == "x2d_scene_holdout_window_attention_teacher"
+        assert execution["full_train_commands"][0]["holdout_scene"] == "x2d"
+        assert "--eval-overlap 64" in execution["full_train_commands"][0]["command"]
+        assert "--save-best-holdout-checkpoint" in execution["full_train_commands"][0]["command"]
+        assert "--feature-mode raw_multiscale_coord_ev_noise_psf_cfa" in execution["full_train_commands"][0]["command"]
+        assert execution["full_train_commands"][1]["id"] == "z8_scene_holdout_window_attention_teacher"
+        assert execution["full_train_commands"][1]["holdout_scene"] == "z8"
+        assert any("editable DNG and GPR" in item for item in execution["required_followup_receipts"])
+        assert any("source raw" in item for item in execution["promotion_reject_conditions"])
         assert any("X2D median raw-residual MAE recovery >= 15.0%" == gate for gate in contract["success_gates"])
         assert any("stored candidate-HF" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("camera-balanced sampling" in item for item in contract["do_not_repeat_as_primary_path"])
@@ -223,6 +246,8 @@ def main() -> int:
         assert "Forbidden Runtime Inputs" in html
         assert "Minimum Viable Next Pass" in html
         assert "Implementation Blueprint" in html
+        assert "Executable Next Pass" in html
+        assert "Full train commands" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
 
     print("test_build_premium_still_sr_next_experiment_contract: PASS")

@@ -71,10 +71,10 @@
       "open_gate": "Candidate-only 50 MP / 100 MP still-SR must clear broad Z8/X2D holdouts, editor-latitude review, and worst-row visual gates."
     },
     {
-      "id": "raw_video_psf_sr",
-      "release_label": "PSF-aware video/SR",
-      "status": "approved_baseline_psf_replacement_open",
-      "summary": "Approved 4K cleanup and offline 8K SR baselines, continuous no-CNN versus CNN review media, native PSF corpus/kernel audits, and controlled-capture request.",
+      "id": "raw_video_reconstruction",
+      "release_label": "RAW video reconstruction",
+      "status": "approved_offline_reconstruction_psf_research_optional",
+      "summary": "Approved 4K cleanup and offline 8K SR baselines, continuous no-CNN versus CNN review media, editable raw packaging, native PSF corpus/kernel audits as optional research, and controlled-capture request for a future replacement.",
       "manifest_refs": {
         "raw_targets": [
           "8k_raw_2x"
@@ -97,7 +97,7 @@
           "local_8k_raw_offline"
         ]
       },
-      "open_gate": "Controlled Mission 1 high/low Bayer pairs, a stable native PSF kernel, and a PSF-conditioned 4K/8K candidate must beat the current baselines."
+      "open_gate": "No release blocker for the approved current offline reconstruction workflow; controlled Mission 1 high/low Bayer pairs, a stable native PSF kernel, and a PSF-conditioned 4K/8K candidate are optional next-generation replacement research."
     }
   ],
   "production_paths": [
@@ -1614,7 +1614,7 @@
       "id": "premium_still_sr_next_experiment_contract_transformer_teacher_20260701",
       "family": "premium_still_sr",
       "status": "diagnostic",
-      "purpose": "Next-experiment contract for the premium still-SR model pass. Locks the pass to the canonical raw-CFA residual target, forbids REF/source/JPEG content at render time, records failed local/context/noise/sampling-only probes that should not be repeated as the primary approach, and carries the paper-backed RAW SR/noise/PSF implications for the next architecture pass.",
+      "purpose": "Next-experiment contract for the premium still-SR model pass. Locks raw-domain training to the deduplicated raw-CFA residual target, reserves the full 351-row EV target for rendered tone/latitude review, forbids REF/source/JPEG content at render time, records the copy-pasteable window-attention X2D/Z8 holdout commands, records failed local/context/noise/sampling-only probes that should not be repeated as the primary approach, and carries the paper-backed RAW SR/noise/PSF implications for the next architecture pass.",
       "dashboard": "artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html",
       "docs": [
         "README.md",

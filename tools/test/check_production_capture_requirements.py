@@ -20,11 +20,13 @@ EXPECTED_IDS = {
     "mission1_darkframe_stack": ("raw_stills", "darkframe_stack"),
     "iphone_cfa_darkframe_stack": ("raw_stills", "darkframe_stack"),
     "mission1_camera_role_receipts": ("raw_video_mvp", "camera_hardware_receipt"),
-    "controlled_mission1_psf_pairs": ("raw_video_psf_sr", "controlled_same_scene_high_low_raw_pair_stack"),
     "premium_still_sr_promotion_receipts": ("premium_still_sr", "model_promotion_receipt"),
 }
-EXPECTED_PILLARS = {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_psf_sr"}
-VALID_STATUSES = {"open", "closed", "blocked_on_real_camera_access"}
+OPTIONAL_RESEARCH_IDS = {
+    "controlled_mission1_psf_pairs": ("raw_video_psf_research", "controlled_same_scene_high_low_raw_pair_stack"),
+}
+EXPECTED_PILLARS = {"raw_stills", "raw_video_mvp", "premium_still_sr"}
+VALID_STATUSES = {"open", "closed", "blocked_on_real_camera_access", "research_optional"}
 
 
 def as_list(value: Any) -> list[Any]:
@@ -69,15 +71,16 @@ def validate() -> list[str]:
             failures.append(f"duplicate requirement id {rid!r}")
         by_id[rid] = row
 
+    known_ids = set(EXPECTED_IDS) | set(OPTIONAL_RESEARCH_IDS)
     missing = sorted(set(EXPECTED_IDS) - set(by_id))
-    extra = sorted(set(by_id) - set(EXPECTED_IDS))
+    extra = sorted(set(by_id) - known_ids)
     for rid in missing:
         failures.append(f"missing required requirement {rid!r}")
     for rid in extra:
         failures.append(f"unexpected requirement {rid!r}; update the guard if this is intentional")
 
     seen_pillars: set[str] = set()
-    for rid, (expected_pillar, expected_type) in EXPECTED_IDS.items():
+    for rid, (expected_pillar, expected_type) in {**EXPECTED_IDS, **OPTIONAL_RESEARCH_IDS}.items():
         row = by_id.get(rid)
         if not row:
             continue
@@ -85,13 +88,17 @@ def validate() -> list[str]:
         sample_type = row.get("sample_type")
         status = row.get("status")
         priority = row.get("priority")
-        seen_pillars.add(str(pillar))
+        if rid in EXPECTED_IDS:
+            seen_pillars.add(str(pillar))
         if pillar != expected_pillar:
             failures.append(f"{rid}: pillar is {pillar!r}, expected {expected_pillar!r}")
         if sample_type != expected_type:
             failures.append(f"{rid}: sample_type is {sample_type!r}, expected {expected_type!r}")
-        if priority != "required":
-            failures.append(f"{rid}: priority must be required")
+        expected_priority = "research_optional" if rid in OPTIONAL_RESEARCH_IDS else "required"
+        if priority != expected_priority:
+            failures.append(f"{rid}: priority must be {expected_priority}")
+        if rid in OPTIONAL_RESEARCH_IDS and status != "research_optional":
+            failures.append(f"{rid}: optional research requirement status must be research_optional")
         if status not in VALID_STATUSES:
             failures.append(f"{rid}: status {status!r} must be one of {sorted(VALID_STATUSES)}")
         if not row.get("why_needed"):
@@ -129,6 +136,7 @@ def validate() -> list[str]:
         doc = DOC_PATH.read_text(encoding="utf-8")
         for token in (
             *EXPECTED_IDS.keys(),
+            *OPTIONAL_RESEARCH_IDS.keys(),
             "Product pillar scorecard",
             "stills_capture_request_strict_provenance_20260701",
             "raw_video_psf_capture_request_20260630",

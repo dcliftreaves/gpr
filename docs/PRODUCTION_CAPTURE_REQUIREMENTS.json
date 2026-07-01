@@ -183,13 +183,13 @@
     },
     {
       "id": "controlled_mission1_psf_pairs",
-      "pillar": "raw_video_psf_sr",
-      "priority": "required",
+      "pillar": "raw_video_psf_research",
+      "priority": "research_optional",
       "sample_type": "controlled_same_scene_high_low_raw_pair_stack",
-      "status": "open",
+      "status": "research_optional",
       "minimum_pair_count": 3,
       "camera": "GoPro Mission 1",
-      "why_needed": "Current near-time high/low pairs are useful diagnostics but produce an unstable native PSF kernel. A PSF-conditioned 4K/8K replacement needs controlled same-scene data.",
+      "why_needed": "Current near-time high/low pairs are useful diagnostics but produce an unstable native PSF kernel. A PSF-conditioned 4K/8K replacement needs controlled same-scene data, but this is a next-generation research path and does not block shipping the approved current 4K cleanup and 8K SR workflow.",
       "required_evidence": [
         "original high-resolution and low-resolution GPR/DNG paths with SHA-256 source hashes",
         "decoded little-endian uint16 Bayer paths, byte counts, dimensions, CFA phase, and SHA-256 hashes for both sides of every pair",

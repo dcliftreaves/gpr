@@ -22,7 +22,7 @@ REQUIRED_PRODUCT_PILLARS = {
     "raw_stills": "RAW stills",
     "raw_video_mvp": "RAW video MVP",
     "premium_still_sr": "Premium still/SR",
-    "raw_video_psf_sr": "PSF-aware video/SR",
+    "raw_video_reconstruction": "RAW video reconstruction",
 }
 GVID_CLIP_MAGIC = 0x44495647
 GVID_FRAME_MAGIC = 0x004D5246

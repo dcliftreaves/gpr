@@ -362,6 +362,17 @@ model requirements:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html
 ```
 
+The same contract now includes an executable next-pass plan. It pins raw-domain
+training to the deduplicated 117-row raw-CFA residual NPZ, reserves the full
+351-row / EV target for rendered tone and latitude review, and emits
+copy-pasteable smoke, X2D holdout, and Z8 holdout commands for the
+`window_attention_teacher` branch. The planned full pass uses
+`raw_multiscale_coord_ev_noise_psf_cfa`, the row-level PSF sidecar, full-crop
+scene-balanced training, overlap/seam evaluation, and the no-REF/no-source
+runtime policy. It is still diagnostic until the generated receipts clear the
+X2D and Z8 gates and are followed by editable DNG/GPR, rendered-latitude,
+timing, memory, scoreboard, and premium gate receipts.
+
 - Use packed Bayer / CFA-aware preprocessing and preserve sensor-specific black
   level, CFA phase, and exposure metadata. RMFA-Net explicitly calls out black
   level, CFA handling, exposure/tone, and local/global feature separation as

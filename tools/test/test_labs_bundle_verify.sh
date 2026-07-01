@@ -90,11 +90,11 @@ product_pillars = [
         "open_gate": "synthetic premium still gate",
     },
     {
-        "id": "raw_video_psf_sr",
-        "release_label": "PSF-aware video/SR",
-        "status": "approved_baseline_psf_replacement_open",
-        "summary": "synthetic psf sr label",
-        "open_gate": "synthetic psf sr gate",
+        "id": "raw_video_reconstruction",
+        "release_label": "RAW video reconstruction",
+        "status": "approved_offline_reconstruction_psf_research_optional",
+        "summary": "synthetic raw video reconstruction label",
+        "open_gate": "synthetic raw video reconstruction gate",
     },
 ]
 

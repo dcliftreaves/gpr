@@ -56,9 +56,15 @@ def main() -> int:
 
         missing_id = copy.deepcopy(source)
         missing_id["requirements"] = [
-            row for row in missing_id["requirements"] if row["id"] != "controlled_mission1_psf_pairs"
+            row for row in missing_id["requirements"] if row["id"] != "premium_still_sr_promotion_receipts"
         ]
-        expect_failure(module, req_path, missing_id, "controlled_mission1_psf_pairs")
+        expect_failure(module, req_path, missing_id, "premium_still_sr_promotion_receipts")
+
+        bad_optional_psf = copy.deepcopy(source)
+        for row in bad_optional_psf["requirements"]:
+            if row["id"] == "controlled_mission1_psf_pairs":
+                row["priority"] = "required"
+        expect_failure(module, req_path, bad_optional_psf, "priority must be research_optional")
 
         bad_darkframes = copy.deepcopy(source)
         for row in bad_darkframes["requirements"]:

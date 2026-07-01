@@ -144,9 +144,9 @@ REQUIRED_PRODUCT_PILLARS = {
         },
         "tokens": ("Candidate-only", "50 MP", "100 MP"),
     },
-    "raw_video_psf_sr": {
-        "label": "PSF-aware video/SR",
-        "status": "approved_baseline_psf_replacement_open",
+    "raw_video_reconstruction": {
+        "label": "RAW video reconstruction",
+        "status": "approved_offline_reconstruction_psf_research_optional",
         "refs": {
             "raw_targets": {"8k_raw_2x"},
             "dashboards": {
@@ -158,7 +158,7 @@ REQUIRED_PRODUCT_PILLARS = {
             },
             "platform_performance": {"local_8k_raw_offline"},
         },
-        "tokens": ("continuous", "PSF", "baselines"),
+        "tokens": ("continuous", "PSF", "baselines", "optional"),
     },
 }
 ALLOWED_PLATFORM_STATUSES = {
