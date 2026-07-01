@@ -136,6 +136,18 @@ RGGB candidate group. iPhone has a 27-frame ISO1250 RGGB candidate group, but
 those candidate-discovery frames still need confirmed no-scene-signal
 provenance before they can become a production sidecar.
 
+The current compact Mission 1 DNG root has also been rescanned directly:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission1_dng_full_20260701/index.html
+```
+
+That scan parses all 49 Mission 1 DNGs and finds five dark-like RGGB frames.
+It still does not close the Mission sidecar: the best same-ISO group remains
+`GoPro|MISSION 1|ISO232|RGGB` with two frames, so the lowest-lift path is two
+more matching true darkframes with provenance, or a fresh four-frame
+same-settings stack.
+
 When the source root is known to contain true darkframes, rerun the audit with
 confirmed provenance instead of candidate discovery:
 

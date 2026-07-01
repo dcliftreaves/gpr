@@ -96,7 +96,8 @@
         "group": "Mission 1 ISO232 RGGB darkframe-like group",
         "current_candidate_count": 2,
         "additional_matching_frames_needed": 2,
-        "candidate_audit": "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html"
+        "candidate_audit": "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html",
+        "current_dng_audit": "/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission1_dng_full_20260701/index.html"
       },
       "acceptance": [
         "darkframe candidate audit groups at least four Mission 1 frames under one camera/ISO/CFA key",
