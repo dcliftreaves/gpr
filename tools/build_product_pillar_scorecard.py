@@ -3,8 +3,10 @@
 
 This is a summary and audit layer over committed docs plus large external
 receipts. It deliberately keeps "production ready" false while real Mission 1
-camera closure, premium still-SR promotion, and formal native PSF evidence are
-open.
+camera closure, Mission/iPhone noise sidecars, premium still-SR promotion, and
+release packaging/handoff evidence are open. Native PSF/blur work is tracked as
+optional replacement research and must not block the approved current 4K/8K
+raw-video reconstruction workflow.
 """
 from __future__ import annotations
 

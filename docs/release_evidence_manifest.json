@@ -2319,7 +2319,7 @@
       "id": "mission1_8k_sr_step0075_visual_signoff_20260701",
       "family": "raw_video_psf",
       "status": "current",
-      "purpose": "Manual visual-signoff receipt for the current Mission 1 coord/detail PSF-focus step-75 8K SR review candidate. It closes only the manual visual-review blocker and keeps controlled native PSF evidence open.",
+      "purpose": "Manual visual-signoff receipt for the current Mission 1 coord/detail PSF-focus step-75 8K SR review candidate. It closes the manual visual-review requirement for the approved offline path and keeps controlled native PSF evidence as optional replacement research.",
       "dashboard": "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_visual_signoff_20260701/visual_signoff.json",
       "docs": [
         "README.md",
@@ -2342,7 +2342,7 @@
       "id": "mission1_8k_sr_step0075_signed_audit_20260701",
       "family": "raw_video_psf",
       "status": "current",
-      "purpose": "Refreshed blocked production audit for the current Mission 1 coord/detail PSF-focus step-75 8K SR review candidate after manual visual signoff. Remaining blockers are review-only registry scope and missing controlled native PSF evidence.",
+      "purpose": "Refreshed production audit for the current Mission 1 coord/detail PSF-focus step-75 8K SR review candidate after manual visual signoff. Remaining release boundary is review-only registry scope; controlled native PSF evidence is optional replacement research.",
       "dashboard": "artifacts/mission1_8k_sr_coord_detail_psf_focus_step0075_review_candidate_audit_signed_20260701/review_candidate_audit.json",
       "docs": [
         "README.md",

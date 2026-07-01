@@ -28,13 +28,13 @@ Current generated dashboard:
 
 Companion production burn-down dashboard:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_coord_detail_review_20260701/index.html`
+`/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_optional_psf_boundary_20260701/index.html`
 
 The burn-down is the action view over the same machine-readable capture
 requirements: it carries the requirement IDs, statuses, and validation commands
 from [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json),
 then separates hardware integration, sample-acquisition, model-promotion, and
-optional research work. That distinction matters because the one Mission 1
+optional research requirement IDs. That distinction matters because the one Mission 1
 camera-role closure, real fixture/darkframe gaps, premium model-promotion gaps,
 and optional PSF research are different kinds of evidence, not regressions of
 the locked still, 4K cleanup, 8K SR, or Pi stand-in paths.
@@ -224,8 +224,9 @@ It hashes all four current near-time candidate pairs and records that zero are
 strict controlled pairs: ISO/settings are not fixed enough, fixed
 WB/lens/stabilization/sharpening metadata is absent, no negative controls are
 marked, the existing measurement accepted only two pairs, and the kernel is
-unstable. This proves the local corpus cannot close the PSF blocker without new
-or newly located controlled captures for a future PSF-conditioned replacement.
+unstable. This proves the local corpus cannot close the PSF replacement
+research gap without new or newly located controlled captures for a future
+PSF-conditioned replacement.
 
 The deterministic known-kernel PSF validation lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_known_kernel_validation_20260701/index.html`.
@@ -233,7 +234,7 @@ It recovers the non-box `[0.52, 0.23, 0.17, 0.08]` same-color 2x Bayer kernel
 within **1.1e-8** normalized-weight RMSE and rejects the mismatched negative
 control with about **9064** RMSE on the 14-bit scale. This strengthens the
 measurement-tooling evidence only; it does not close the controlled native
-Mission 1 PSF blocker.
+Mission 1 PSF replacement research gap.
 It does not block the approved current 4K cleanup and 8K reconstruction
 workflow.
 

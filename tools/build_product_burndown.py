@@ -17,6 +17,7 @@ SCHEMA = "gpr.product_burndown.v1"
 ROOT = Path(__file__).resolve().parents[1]
 REQUIREMENTS_PATH = ROOT / "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json"
 OPEN_REQUIREMENT_STATUSES = {"open", "blocked_on_real_camera_access"}
+OPTIONAL_RESEARCH_STATUSES = {"research_optional"}
 
 
 def action(
@@ -106,6 +107,15 @@ def has_open_requirement(action_row: dict[str, Any], requirement_map: dict[str, 
         str(requirement_map[req_id].get("status")) in OPEN_REQUIREMENT_STATUSES
         for req_id in action_row["requirement_ids"]
     )
+
+
+def optional_research_requirement_ids(requirements: dict[str, Any]) -> list[str]:
+    return [
+        str(req["id"])
+        for req in requirements["requirements"]
+        if str(req.get("status")) in OPTIONAL_RESEARCH_STATUSES
+        or str(req.get("priority")) == "research_optional"
+    ]
 
 
 def pillar_by_id(scorecard: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -272,6 +282,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             for req in requirements["requirements"]
             if str(req["status"]) in OPEN_REQUIREMENT_STATUSES
         ],
+        "optional_research_requirement_ids": optional_research_requirement_ids(requirements),
         "four_pillar_completion_percent": scorecard["four_pillar_completion_percent"],
         "production_ready": scorecard["production_ready"],
         "summary": {
@@ -281,6 +292,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
                 for req in requirements["requirements"]
                 if str(req["status"]) in OPEN_REQUIREMENT_STATUSES
             ),
+            "optional_research_requirement_count": len(optional_research_requirement_ids(requirements)),
             "camera_required_action_count": sum(1 for row in actions if not row["can_do_without_camera"]),
             "non_camera_action_count": sum(1 for row in actions if row["can_do_without_camera"]),
             "mission1_camera_role_required_action_count": sum(
@@ -376,6 +388,7 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
         for key, value in sorted(summary["blocker_type_counts"].items())
     )
     open_ids = ", ".join(f"`{item}`" for item in data["open_requirement_ids"])
+    research_ids = ", ".join(f"`{item}`" for item in data["optional_research_requirement_ids"])
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -412,7 +425,8 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
     <div class="overall">{data["four_pillar_completion_percent"]}%</div>
     <div class="overall-label">four-pillar completion; production ready: {str(data["production_ready"]).lower()}; {summary["non_camera_action_count"]} non-camera actions, {summary["camera_required_action_count"]} camera-required action; {html.escape(blocker_counts)}</div>
   </div>
-  <p class="meta">Open requirement IDs from {html.escape(data["source_requirements_path"])}: {html.escape(open_ids)}</p>
+  <p class="meta">Open production requirement IDs from {html.escape(data["source_requirements_path"])}: {html.escape(open_ids)}</p>
+  <p class="meta">Optional research requirement IDs, excluded from release blocker counts: {html.escape(research_ids or 'none')}</p>
   <div class="grid">{''.join(cards)}</div>
   {''.join(sections)}
   <p class="meta">Generated {html.escape(data["created_utc"])}. JSON: {html.escape(str(json_path))}. External root: {html.escape(data["external_root"])}.</p>

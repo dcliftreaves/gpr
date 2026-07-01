@@ -57,6 +57,7 @@ def main() -> int:
         assert data["production_ready"] is False
         assert data["summary"]["action_count"] == 3
         assert data["summary"]["open_requirement_count"] == 4
+        assert data["summary"]["optional_research_requirement_count"] == 1
         assert data["summary"]["camera_required_action_count"] == 1
         assert data["summary"]["non_camera_action_count"] == 2
         assert data["summary"]["mission1_camera_role_required_action_count"] == 1
@@ -80,6 +81,7 @@ def main() -> int:
             "mission1_camera_role_receipts",
             "premium_still_sr_promotion_receipts",
         ]
+        assert data["optional_research_requirement_ids"] == ["controlled_mission1_psf_pairs"]
         stills_actions = data["pillars"][0]["burn_down_actions"]
         assert "STILL smallest" in data["pillars"][0]["lock_ledger_paths"]
         assert "Broad real-camera Bayer phase coverage" not in data["pillars"][0]["open_production_gates"]
@@ -118,7 +120,10 @@ def main() -> int:
         assert "GPR Production Burn-Down" in html
         assert "four-pillar completion" in html
         assert "Requirement IDs" in html
+        assert "Open production requirement IDs" in html
+        assert "Optional research requirement IDs, excluded from release blocker counts" in html
         assert "mission1_darkframe_stack" in html
+        assert "controlled_mission1_psf_pairs" in html
         assert "Blocker type" in html
         assert "Lock ledger paths" in html
         assert "Open production gates" in html

@@ -122,6 +122,15 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
     ]
     if data.get("open_requirement_ids") != expected_open_ids:
         failures.append(f"unexpected open_requirement_ids: {data.get('open_requirement_ids')!r}")
+    if "controlled_mission1_psf_pairs" in data.get("open_requirement_ids", []):
+        failures.append("controlled_mission1_psf_pairs must not be an open production requirement")
+    if data.get("optional_research_requirement_ids") != ["controlled_mission1_psf_pairs"]:
+        failures.append(
+            "burn-down must expose controlled_mission1_psf_pairs only as optional research, "
+            f"got {data.get('optional_research_requirement_ids')!r}"
+        )
+    if summary.get("optional_research_requirement_count") != 1:
+        failures.append("burn-down must identify one optional research requirement outside release blockers")
 
     pillars = {str(row.get("id")): row for row in data.get("pillars", [])}
     for pillar_id, spec in EXPECTED_PILLARS.items():
@@ -139,6 +148,9 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
             failures.append(f"{pillar_id} must carry a current_blocker string")
 
         actions = {str(row.get("title")): row for row in pillar.get("burn_down_actions", [])}
+        for action in actions.values():
+            if "controlled_mission1_psf_pairs" in action.get("requirement_ids", []):
+                failures.append("optional PSF research must not appear as a production burn-down action")
         for title, action_spec in spec["required_actions"].items():
             action = actions.get(title)
             if not action:
