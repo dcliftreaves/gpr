@@ -291,7 +291,7 @@ Current evidence:
   It transfers training residual patches by nearest candidate raw/HF patch
   features and regresses the hard X2D holdout by about -0.80 percent median
   MAE and -0.72 percent median RMSE. This makes the blocker more specific:
-  current candidate-only local/full-crop statistics do not contain enough
+  current candidate-only local/full-crop/global-context statistics do not contain enough
   recoverable signal for simple CNN or nearest-neighbor transfer.
 - `tools/build_premium_still_sr_visual_review.py` emits the current tile-level
   visual review dashboard with baseline/model/target/error contact sheets for
