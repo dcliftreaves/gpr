@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 
 from build_product_burndown import build_burndown  # noqa: E402
+from build_product_burndown import RELEASE_PILLAR_IDS  # noqa: E402
 from build_product_pillar_scorecard import DEFAULT_EXTERNAL_ROOT  # noqa: E402
 
 
@@ -150,6 +151,8 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
         )
     if summary.get("optional_research_requirement_count") != 1:
         failures.append("burn-down must identify one optional research requirement outside release blockers")
+    if RELEASE_PILLAR_IDS != set(EXPECTED_PILLARS):
+        failures.append(f"release pillar guard drifted: {RELEASE_PILLAR_IDS!r}")
 
     pillars = {str(row.get("id")): row for row in data.get("pillars", [])}
     for pillar_id, spec in EXPECTED_PILLARS.items():

@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUIREMENTS_PATH = ROOT / "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json"
 OPEN_REQUIREMENT_STATUSES = {"open", "blocked_on_real_camera_access"}
 OPTIONAL_RESEARCH_STATUSES = {"research_optional"}
+RELEASE_PILLAR_IDS = {"raw_stills", "raw_video_mvp", "premium_still_sr", "raw_video_reconstruction"}
 
 
 def action(
@@ -105,6 +106,17 @@ def attach_requirements(
 def has_open_requirement(action_row: dict[str, Any], requirement_map: dict[str, dict[str, Any]]) -> bool:
     return any(
         str(requirement_map[req_id].get("status")) in OPEN_REQUIREMENT_STATUSES
+        for req_id in action_row["requirement_ids"]
+    )
+
+
+def is_release_action(action_row: dict[str, Any], requirement_map: dict[str, dict[str, Any]]) -> bool:
+    """Return true only for actions that can affect the current release burn-down."""
+    if str(action_row.get("pillar")) not in RELEASE_PILLAR_IDS:
+        return False
+    return all(
+        str(requirement_map[req_id].get("status")) not in OPTIONAL_RESEARCH_STATUSES
+        and str(requirement_map[req_id].get("priority")) != "research_optional"
         for req_id in action_row["requirement_ids"]
     )
 
@@ -268,7 +280,10 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             completion_gate="The PSF-conditioned candidate beats the current approved 4K cleanup and 8K SR baselines without worse worst-row failures.",
         ),
     ]
-    actions = [row for row in actions if has_open_requirement(row, requirement_map)]
+    actions = [
+        row for row in actions
+        if is_release_action(row, requirement_map) and has_open_requirement(row, requirement_map)
+    ]
     actions = attach_requirements(actions, requirement_map)
     actions.sort(key=lambda row: (row["priority"], row["pillar"], row["title"]))
     by_pillar: dict[str, list[dict[str, Any]]] = {}
