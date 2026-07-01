@@ -1,6 +1,6 @@
 # Release Artifacts
 
-Last refreshed: 2026-06-30
+Last refreshed: 2026-07-01
 
 This document defines what must be attached to a GitHub release before the
 release is useful to someone outside the worktree. Source tags and changelog
@@ -88,8 +88,8 @@ the same `gpr_labs_bundle.v1` schema so Labs intake and GitHub release assets
 are checked by one verifier:
 
 ```bash
-python3 tools/build_labs_bundle.py /path/to/gpr-2.3.0-review-bundle \
-  --repo-commit "$(git rev-parse v2.3.0)" \
+python3 tools/build_labs_bundle.py /path/to/gpr-<version>-review-bundle \
+  --repo-commit "$(git rev-parse v<version>)" \
   --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>" \
   --target-name "Pi 5 stand-in" \
   --target-role stand-in \
@@ -101,8 +101,8 @@ python3 tools/build_labs_bundle.py /path/to/gpr-2.3.0-review-bundle \
   --artifact receipts/release_evidence_manifest.json:json \
   --artifact receipts/labs_target_bench.json:json
 
-python3 tools/verify_labs_bundle.py /path/to/gpr-2.3.0-review-bundle/manifest.json
-(cd /path/to/gpr-2.3.0-review-bundle && shasum -a 256 -c hashes/sha256sums.txt)
+python3 tools/verify_labs_bundle.py /path/to/gpr-<version>-review-bundle/manifest.json
+(cd /path/to/gpr-<version>-review-bundle && shasum -a 256 -c hashes/sha256sums.txt)
 ```
 
 For the Mission 1 firmware handoff specifically, use the narrower builder:
@@ -128,28 +128,36 @@ production readiness is claimed.
 Attach the verified archive to the release:
 
 ```bash
-tar -C /path/to -czf /path/to/gpr-2.3.0-review-bundle.tar.gz gpr-2.3.0-review-bundle
-gh release upload v2.3.0 /path/to/gpr-2.3.0-review-bundle.tar.gz --repo dcliftreaves/gpr
+tar -C /path/to -czf /path/to/gpr-<version>-review-bundle.tar.gz gpr-<version>-review-bundle
+gh release upload v<version> /path/to/gpr-<version>-review-bundle.tar.gz --repo dcliftreaves/gpr
 ```
 
 ## Current Status
 
-The `v2.3.0` source release is tagged and published. The next release-artifact
-step is to build and upload the compact review bundle above using the current
-Mission 1 4K `.gvid`, 1024 preview, 4K/8K ProRes review receipts, and CI run
-listed in `docs/release_evidence_manifest.json`.
+The published `v2.3.1` release is older than current `master`; do not move that
+tag. Cut the next public release from the current commit after CI passes, then
+attach a verified review bundle built from the same commit.
 
-Current Mission 1 handoff bundle:
+Current verified current-master Mission 1 handoff bundle:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260701/manifest.json`
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_current_master_20260701/manifest.json`
+
+Current verified current-master archive:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/gpr-current-master-mission1-handoff-bundle-20260701.tar.gz`
+
+Archive SHA-256:
+
+`97907da315ebc35f5db134d0ad6da93dcb40bec4d4943e9ab8071cbc6f523ea2`
 
 Current Mission 1 intake audit:
 
 `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701/index.html`
 
-The bundle verifies with `tools/verify_labs_bundle.py` and contains 21 manifest
-artifacts, including a decode-checked 4096 x 3072 `.gvid` sample, compact stand-in
-closure receipts, the quick-validation dry-run receipt, visual assets, docs,
-and checksums. The intake audit marks it firmware-review ready, but still
+The current-master bundle verifies with `tools/verify_labs_bundle.py` and
+contains 21 manifest artifacts, including a decode-checked 4096 x 3072 `.gvid`
+sample, compact stand-in closure receipts, the quick-validation dry-run receipt,
+visual assets, docs, current product-pillar labels, and checksums. The intake
+audit marks the handoff firmware-review ready, but still
 `camera_production_ready=false` until camera-role sensor/DMA, storage, and
 rear-display receipts replace the stand-in evidence.

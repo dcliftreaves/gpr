@@ -2160,7 +2160,7 @@
       "metrics": {
         "algorithm_fixture_ready": 1,
         "real_mission1_controlled_psf_ready": 0,
-        "known_kernel_weight_rmse": 0.000000010702471553587619,
+        "known_kernel_weight_rmse": 1.0702471553587619e-08,
         "positive_fit_rmse_14bit": 0.00014709421683651203,
         "negative_control_rmse_14bit": 9064.09875602099,
         "negative_control_rejected": 1
@@ -2570,6 +2570,42 @@
         "blockers": 2,
         "production_ready": 0,
         "production_ready_items": 2
+      }
+    },
+    {
+      "id": "mission1_handoff_bundle_current_master_20260701",
+      "family": "release_packaging",
+      "status": "current",
+      "purpose": "Verified current-master GoPro Mission 1 handoff/review bundle built after the PSF optional-research boundary and premium still-SR scoreboard fixes. It contains a decode-checked 4096 x 3072 .gvid sample, current product-pillar manifest labels, stand-in timing receipts, quick-validation dry-run receipt, firmware-facing docs, and checksums. This is firmware-review packaging evidence; camera production readiness still requires real Mission 1 camera-role sensor/DMA, storage, and rear-display receipts.",
+      "dashboard": "artifacts/gopro_mission1_handoff_bundle_current_master_20260701/manifest.json",
+      "docs": [
+        "README.md",
+        "docs/RELEASE_ARTIFACTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "receipts": [
+        "artifacts/gopro_mission1_handoff_bundle_current_master_20260701/manifest.json",
+        "artifacts/gopro_mission1_handoff_bundle_current_master_20260701/hashes/sha256sums.txt",
+        "artifacts/gpr-current-master-mission1-handoff-bundle-20260701.tar.gz"
+      ],
+      "hashes": {
+        "repo_commit": "baa5449ceeec0b3b5bd5e2b925ea7b3ac04eda8f",
+        "manifest_sha256": "cf8090f32ced58177f4e82d8d56d18526ad2e7a7a79d9194a605ac3d73cf237e",
+        "sample_gvid_sha256": "95748cda17c78b763be077d4adb6bb3822dd0aecf31353b88680af0bbb9afa9d",
+        "archive_sha256": "97907da315ebc35f5db134d0ad6da93dcb40bec4d4943e9ab8071cbc6f523ea2"
+      },
+      "metrics": {
+        "artifact_count": 21,
+        "sample_gvid_width": 4096,
+        "sample_gvid_height": 3072,
+        "sample_gvid_frames": 8,
+        "sample_gvid_fps": 24,
+        "sample_gvid_bytes": 70120168,
+        "archive_bytes": 49673941,
+        "verification_failures": 0,
+        "camera_production_ready": 0
       }
     }
   ],
