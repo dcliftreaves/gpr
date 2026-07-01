@@ -24,6 +24,15 @@ source.
 
 ![GPR raw-video showcase: 4K Bayer .gvid, live preview, native 12MP crops, and 8K SR review](docs/img/readme_showcase.webp)
 
+## The Four Product Bets
+
+| product bet | what a user gets | ship boundary |
+|---|---|---|
+| **1. Better RAW stills** | 50 MP and 100 MP-class editable Bayer photos at much smaller sizes, with normal RGGB/GBRG/GRBG/BGGR support and calibrated X2D/Z8 noise sidecars. | Stills are strong on the tested surface; Mission 1 and iPhone need strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
+| **2. GoPro RAW video MVP** | True 4096 x 3072 Bayer frames recorded as `.gvid`, then decoded from the same stream for a camera-back preview. | Pi 5 stand-in encode and preview clear the accepted 20+ fps floor; real Mission 1 sensor/DMA, SD writer, and display receipts are the firmware handoff gate. |
+| **3. Premium still improvement** | A slow offline still path that can spend serious compute on raw-CFA restoration, editor latitude, and texture recovery. | The tooling and datasets exist, but the no-REF 50 MP / 100 MP still-SR promotion gate is still open. |
+| **4. RAW video reconstruction** | Approved offline/post 4K cleanup and 8K reconstruction, with editable `.gvid`/DNG/GPR outputs and ProRes review media. | Closed for the current offline/post release. PSF/blur work is optional replacement research, not a shipping blocker. |
+
 ## 30-Second Review
 
 Start here if you are deciding whether this branch is worth picking up.
@@ -47,7 +56,7 @@ receipt required to call the entire suite finished.
 | **Best RAW stills** | 50 MP tiers pass at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100MP roundtrip is 47 MB at 49.21 dB; 12/14/16-bit normal Bayer stills are guarded; real RGGB/GBRG/GRBG/BGGR fixture coverage is closed. | Mission 1 and iPhone strict-provenance darkframe sidecars for broader real-camera noise coverage. |
 | **GoPro RAW video MVP** | Real 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor; the same stream previews at 1024 x 768 above **20 fps**. | Actual Mission 1 sensor/DMA, SD writer, and rear-display receipts. |
 | **Premium still improvement** | Still-SR infrastructure, raw-CFA targets, editor-openability, metadata transplant, and 13-scene / 351-row training receipts exist. | A no-REF candidate that clears the 50 MP / 100 MP still/editor-latitude gate; current raw-CFA CNN probes are diagnostic only. |
-| **Raw video reconstruction** | Approved 4K cleanup and 8K SR baselines, standalone no-CNN/CNN ProRes review movies, `.gvid` packaging, editable raw packaging, and review receipts exist. | Ship the current offline reconstruction path; keep controlled high/low Mission 1 pairs and PSF-conditioned replacement work as optional next-gen research. |
+| **Raw video reconstruction** | Approved 4K cleanup and 8K SR baselines, standalone no-CNN/CNN ProRes review movies, `.gvid` packaging, editable raw packaging, and review receipts exist. | Closed for the approved offline/post path; keep controlled high/low Mission 1 pairs and PSF-conditioned replacement work as optional next-gen research. |
 
 | product surface | what it shows |
 |---|---|
@@ -69,8 +78,8 @@ cleanup, offline 8K SR, editable DNG/GPR packaging, ProRes review, and release
 receipts. For the Mission 1 raw-video loop, the remaining production step is
 intentionally narrow: run the same closure path from the actual Mission 1
 sensor/DMA, SD writer, and rear display instead of the Pi stand-in. The full
-four-pillar suite still has fixture/noise, premium still-SR, real camera-role,
-and release-hygiene gates listed below; PSF/blur work is optional research.
+four-pillar suite still has fixture/noise, premium still-SR, and real
+camera-role gates listed below; PSF/blur work is optional research.
 
 ## Four Product Tracks
 
@@ -92,7 +101,7 @@ on-device, then spend desktop compute only where it buys visible quality.
 | **50 MP RAW still tiers** | Three editable Bayer still tiers pass the committed visual gate at **9.80 MB**, **15.05 MB**, and **27.17 MB** mean size. | Add Mission/iPhone darkframe sidecars before claiming broad real-camera nonzero noise addback. |
 | **4K `.gvid` capture prototype** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20 fps** Pi 5 stand-in floor. | Replace the Pi stand-in with real Mission 1 sensor/DMA, SD writer, and rear-display receipts. |
 | **1024 camera-back preview** | The same 4K `.gvid` decodes to full-frame 1024 x 768 preview above **20 fps** on the Pi 5 stand-in. | Run the preview through the actual Mission 1 UI/display handoff. |
-| **Offline 4K cleanup and 8K SR** | Approved CNN paths emit editable 4K/8K Bayer `.gvid` plus ProRes review media for desktop/post workflows. | Premium still-SR is still a research gate; PSF-conditioned video/SR is optional next-gen research, not a blocker for the approved current SR path. |
+| **Offline 4K cleanup and 8K SR** | Approved CNN paths emit editable 4K/8K Bayer `.gvid` plus ProRes review media for desktop/post workflows. | Closed for the current offline/post release; PSF-conditioned video/SR is optional next-gen research, not a blocker for the approved current SR path. |
 
 See [`docs/PRODUCT_LOCK_LEDGER.md`](docs/PRODUCT_LOCK_LEDGER.md) for the exact
 lock rule: a path regresses only when its own committed gate, receipt, hash, or

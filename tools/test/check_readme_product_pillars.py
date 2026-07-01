@@ -23,6 +23,7 @@ SCORECARD_BUILDER = ROOT / "tools/build_product_pillar_scorecard.py"
 
 REQUIRED_SECTIONS = (
     "## Open Raw Video For Action Cameras",
+    "## The Four Product Bets",
     "## What This Branch Proves",
     "## Four Product Tracks",
     "## Product Snapshot",
@@ -41,6 +42,11 @@ REQUIRED_README_TOKENS = (
     "GPR is not one codec demo",
     "The repo is organized around four product outcomes, not one benchmark",
     "outcome has a locked proof surface",
+    "**1. Better RAW stills**",
+    "**2. GoPro RAW video MVP**",
+    "**3. Premium still improvement**",
+    "**4. RAW video reconstruction**",
+    "Closed for the current offline/post release",
     "**Best RAW stills**",
     "**GoPro RAW video MVP**",
     "**Premium still improvement**",
