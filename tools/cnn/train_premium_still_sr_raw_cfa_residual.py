@@ -326,6 +326,18 @@ def target_energy_loss_weight(row_abs_mean: float, reference_abs_mean: float, po
     return float(np.clip(1.0 + strength * (base - 1.0), 0.05, 4.0))
 
 
+def target_scale_value(row_abs_mean: float, reference_abs_mean: float, policy: str, strength: float) -> float:
+    if policy == "none":
+        return 1.0
+    strength = float(np.clip(strength, 0.0, 1.0))
+    ratio = float(row_abs_mean) / max(float(reference_abs_mean), 1.0e-12)
+    if policy == "candidate_hf_abs_mean":
+        base = float(np.clip(ratio, 0.25, 4.0))
+    else:
+        raise ValueError(f"unknown target_scale_policy: {policy}")
+    return float(np.clip(1.0 + strength * (base - 1.0), 0.25, 4.0))
+
+
 def make_features(
     raw: torch.Tensor,
     feature_mode: str,
@@ -980,6 +992,7 @@ class RawCfaResidualTargets:
         self.target_snr_rmse_ratios: list[float] = []
         self.target_snr_p95_ratios: list[float] = []
         self.target_abs_means: list[float] = []
+        self.candidate_hf_abs_means: list[float] = []
         scene_dims: dict[str, tuple[float, float]] = {}
         for row in self.rows:
             scene = str(row.get("scene_id") or "unknown")
@@ -1028,6 +1041,7 @@ class RawCfaResidualTargets:
                 hf_abs = np.mean(np.abs(np.clip(self.candidate_raw_hf[idx].astype(np.float32), -0.5, 0.5)), axis=(0, 1))
             else:
                 hf_abs = np.mean(np.abs(raw - np.mean(raw, axis=(0, 1), keepdims=True)), axis=(0, 1))
+            self.candidate_hf_abs_means.append(float(np.mean(hf_abs)))
             context = (
                 float(np.clip(cx, -1.0, 1.0)),
                 float(np.clip(cy, -1.0, 1.0)),
@@ -1103,6 +1117,25 @@ class RawCfaResidualTargets:
         ]
         return stats(values)
 
+    def target_scale_reference(self, indices: list[int], policy: str) -> float:
+        if policy == "none":
+            return 0.0
+        if policy == "candidate_hf_abs_mean":
+            values = [self.candidate_hf_abs_means[idx] for idx in indices]
+            return float(np.median(np.asarray(values, dtype=np.float64))) if values else 0.0
+        raise ValueError(f"unknown target_scale_policy: {policy}")
+
+    def target_scale(self, idx: int, policy: str, strength: float, reference_abs_mean: float) -> float:
+        if policy == "none":
+            return 1.0
+        if policy == "candidate_hf_abs_mean":
+            return target_scale_value(self.candidate_hf_abs_means[idx], reference_abs_mean, policy, strength)
+        raise ValueError(f"unknown target_scale_policy: {policy}")
+
+    def target_scale_stats(self, indices: list[int], policy: str, strength: float, reference_abs_mean: float) -> dict[str, float]:
+        values = [self.target_scale(idx, policy, strength, reference_abs_mean) for idx in indices]
+        return stats(values)
+
     def sample_batch(
         self,
         indices: list[int],
@@ -1117,7 +1150,10 @@ class RawCfaResidualTargets:
         target_energy_loss_weight_policy: str = "none",
         target_energy_loss_weight_strength: float = 1.0,
         target_energy_reference_abs_mean: float = 0.0,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
+        target_scale_policy: str = "none",
+        target_scale_strength: float = 1.0,
+        target_scale_reference_abs_mean: float = 0.0,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor | None]:
         xs: list[np.ndarray] = []
         ys: list[np.ndarray] = []
         hfs: list[np.ndarray] = []
@@ -1126,6 +1162,7 @@ class RawCfaResidualTargets:
         sigmas: list[tuple[float, float, float, float]] = []
         contexts: list[tuple[float, ...]] = []
         snr_weights: list[float] = []
+        target_scales: list[float] = []
         h, w = self.candidate_raw.shape[1:3]
         if sample_mode == "random_patch":
             patch_h = patch_w = min(patch_size, h, w)
@@ -1180,6 +1217,7 @@ class RawCfaResidualTargets:
                 target_energy_loss_weight_strength,
             )
             snr_weights.append(snr_weight * energy_weight)
+            target_scales.append(self.target_scale(idx, target_scale_policy, target_scale_strength, target_scale_reference_abs_mean))
         return (
             torch.from_numpy(np.stack(xs)),
             torch.from_numpy(np.stack(ys)),
@@ -1188,6 +1226,7 @@ class RawCfaResidualTargets:
             torch.tensor(sigmas, dtype=torch.float32),
             torch.tensor(contexts, dtype=torch.float32),
             torch.tensor(snr_weights, dtype=torch.float32),
+            torch.tensor(target_scales, dtype=torch.float32),
             torch.from_numpy(np.stack(hfs)) if hfs else None,
         )
 
@@ -1205,6 +1244,9 @@ def eval_rows(
     device: torch.device,
     tile: int,
     context_padding: int,
+    target_scale_policy: str,
+    target_scale_strength: float,
+    target_scale_reference_abs_mean: float,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     model.eval()
@@ -1226,6 +1268,11 @@ def eval_rows(
             target_policy=target_policy,
             noise_threshold_scale=noise_threshold_scale,
         )
+        target_scale = torch.tensor(
+            [data.target_scale(idx, target_scale_policy, target_scale_strength, target_scale_reference_abs_mean)],
+            dtype=torch.float32,
+            device=device,
+        ).view(1, 1, 1, 1)
         pred = torch.zeros_like(target)
         _, _, height, width = raw.shape
         pad = max(0, int(context_padding))
@@ -1241,7 +1288,7 @@ def eval_rows(
                 x1 = min(x0 + tile, width)
                 raw_tile = raw_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad]
                 hf_tile = stored_hf_padded[:, :, y0 : y1 + 2 * pad, x0 : x1 + 2 * pad] if stored_hf_padded is not None else None
-                pred_tile = model(make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile, frame_context))
+                pred_tile = model(make_features(raw_tile, feature_mode, feature_block, ev, noise, hf_tile, frame_context)) * target_scale
                 pred[:, :, y0:y1, x0:x1] = pred_tile[:, :, pad : pad + (y1 - y0), pad : pad + (x1 - x0)] if pad else pred_tile
         base_err = target
         pred_err = pred - target
@@ -1265,6 +1312,7 @@ def eval_rows(
                 "exact_raw_baseline_mae": raw_base_mae,
                 "exact_raw_model_mae": raw_pred_mae,
                 "exact_raw_mae_reduction_pct": 100.0 * (raw_base_mae - raw_pred_mae) / max(raw_base_mae, 1.0e-12),
+                "target_scale": float(target_scale.cpu().item()),
             }
         )
         rows.append(row_meta)
@@ -1303,6 +1351,9 @@ def write_panel_sheet(
     device: torch.device,
     residual_scale: float,
     max_rows: int,
+    target_scale_policy: str,
+    target_scale_strength: float,
+    target_scale_reference_abs_mean: float,
 ) -> None:
     selected = indices[:max_rows]
     if not selected:
@@ -1335,6 +1386,7 @@ def write_panel_sheet(
             .numpy()
             .transpose(1, 2, 0)
         )
+        pred *= data.target_scale(idx, target_scale_policy, target_scale_strength, target_scale_reference_abs_mean)
         target_t = torch.from_numpy(data.target[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
         target = (
             apply_target_policy(
@@ -1425,6 +1477,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.target_energy_loss_weight_policy = "none"
     if not hasattr(args, "target_energy_loss_weight_strength"):
         args.target_energy_loss_weight_strength = 1.0
+    if not hasattr(args, "target_scale_policy"):
+        args.target_scale_policy = "none"
+    if not hasattr(args, "target_scale_strength"):
+        args.target_scale_strength = 1.0
     data = RawCfaResidualTargets(args.targets)
     if args.feature_mode in {"raw_multiscale_storedhf_coord_ev_noise", "raw_context_storedhf_coord_ev_noise"} and data.candidate_raw_hf is None:
         raise ValueError(f"{args.feature_mode} requires candidate_raw_hf_cfa4 in the target NPZ")
@@ -1437,6 +1493,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.train_snr_class,
     )
     target_energy_reference_abs_mean = data.target_energy_reference(train_indices)
+    target_scale_reference_abs_mean = data.target_scale_reference(train_indices, args.target_scale_policy)
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
     device = torch.device(args.device) if args.device else DEVICE
@@ -1453,7 +1510,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     best_state: dict[str, torch.Tensor] | None = None
     t0 = time.perf_counter()
     for step in range(1, args.steps + 1):
-        x, y, ev, noise, sigma, frame_context, snr_weight, stored_hf = data.sample_batch(
+        x, y, ev, noise, sigma, frame_context, snr_weight, target_scale, stored_hf = data.sample_batch(
             train_indices,
             args.batch_size,
             args.patch_size,
@@ -1466,6 +1523,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             args.target_energy_loss_weight_policy,
             args.target_energy_loss_weight_strength,
             target_energy_reference_abs_mean,
+            args.target_scale_policy,
+            args.target_scale_strength,
+            target_scale_reference_abs_mean,
         )
         x = x.to(device)
         y = y.to(device)
@@ -1474,6 +1534,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         sigma = sigma.to(device)
         frame_context = frame_context.to(device)
         snr_weight = snr_weight.to(device)
+        target_scale = target_scale.to(device).view(-1, 1, 1, 1)
         stored_hf = stored_hf.to(device) if stored_hf is not None else None
         y = apply_target_policy(
             y,
@@ -1481,6 +1542,7 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             target_policy=args.target_policy,
             noise_threshold_scale=args.noise_threshold_scale,
         )
+        y_train = y / target_scale.clamp_min(1.0e-6)
         x_train, stored_hf_train = apply_context_mask(
             x,
             stored_hf,
@@ -1490,13 +1552,13 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         pred = model(make_features(x_train, args.feature_mode, args.feature_block, ev, noise, stored_hf_train, frame_context))
         pred = center_crop_like(pred, y, args.context_padding)
         loss = (
-            residual_loss(pred, y, target_abs_weight=args.target_abs_weight, sample_weight=snr_weight)
-            + args.grad_weight * gradient_l1(pred, y, snr_weight)
+            residual_loss(pred, y_train, target_abs_weight=args.target_abs_weight, sample_weight=snr_weight)
+            + args.grad_weight * gradient_l1(pred, y_train, snr_weight)
         )
         if args.band_weight > 0.0:
-            loss = loss + args.band_weight * multiscale_band_l1(pred, y, band_blocks, snr_weight)
+            loss = loss + args.band_weight * multiscale_band_l1(pred, y_train, band_blocks, snr_weight)
         if args.spectral_weight > 0.0:
-            loss = loss + args.spectral_weight * spectral_magnitude_l1(pred, y, snr_weight)
+            loss = loss + args.spectral_weight * spectral_magnitude_l1(pred, y_train, snr_weight)
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
@@ -1516,6 +1578,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     device=device,
                     tile=args.eval_tile,
                     context_padding=args.context_padding,
+                    target_scale_policy=args.target_scale_policy,
+                    target_scale_strength=args.target_scale_strength,
+                    target_scale_reference_abs_mean=target_scale_reference_abs_mean,
                 )
                 probe_median = float(probe_eval["raw_residual_mae_reduction_pct"]["median"])
                 row["holdout_probe_row_count"] = len(probe_indices)
@@ -1554,6 +1619,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         device=device,
         tile=args.eval_tile,
         context_padding=args.context_padding,
+        target_scale_policy=args.target_scale_policy,
+        target_scale_strength=args.target_scale_strength,
+        target_scale_reference_abs_mean=target_scale_reference_abs_mean,
     )
     holdout_eval = None
     if eval_holdout_indices:
@@ -1568,6 +1636,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             device=device,
             tile=args.eval_tile,
             context_padding=args.context_padding,
+            target_scale_policy=args.target_scale_policy,
+            target_scale_strength=args.target_scale_strength,
+            target_scale_reference_abs_mean=target_scale_reference_abs_mean,
         )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = args.output_dir / args.checkpoint_name
@@ -1596,6 +1667,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "target_energy_loss_weight_policy": args.target_energy_loss_weight_policy,
                 "target_energy_loss_weight_strength": args.target_energy_loss_weight_strength,
                 "target_energy_reference_abs_mean": target_energy_reference_abs_mean,
+                "target_scale_policy": args.target_scale_policy,
+                "target_scale_strength": args.target_scale_strength,
+                "target_scale_reference_abs_mean": target_scale_reference_abs_mean,
                 "sample_balance": args.sample_balance,
                 "sample_mode": args.sample_mode,
                 "context_padding": args.context_padding,
@@ -1620,6 +1694,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         device=device,
         residual_scale=args.residual_scale,
         max_rows=args.panel_rows,
+        target_scale_policy=args.target_scale_policy,
+        target_scale_strength=args.target_scale_strength,
+        target_scale_reference_abs_mean=target_scale_reference_abs_mean,
     )
     receipt = {
         "schema": SCHEMA,
@@ -1660,6 +1737,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "target_energy_loss_weight_policy": args.target_energy_loss_weight_policy,
             "target_energy_loss_weight_strength": args.target_energy_loss_weight_strength,
             "target_energy_reference_abs_mean": target_energy_reference_abs_mean,
+            "target_scale_policy": args.target_scale_policy,
+            "target_scale_strength": args.target_scale_strength,
+            "target_scale_reference_abs_mean": target_scale_reference_abs_mean,
             "train_snr_class_counts": {
                 key: sum(1 for idx in train_indices if data.target_snr_classes[idx] == key)
                 for key in sorted(set(data.target_snr_classes[idx] for idx in train_indices))
@@ -1689,6 +1769,18 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 args.target_energy_loss_weight_policy,
                 args.target_energy_loss_weight_strength,
                 target_energy_reference_abs_mean,
+            ),
+            "train_target_scale_stats": data.target_scale_stats(
+                train_indices,
+                args.target_scale_policy,
+                args.target_scale_strength,
+                target_scale_reference_abs_mean,
+            ),
+            "holdout_target_scale_stats": data.target_scale_stats(
+                holdout_indices,
+                args.target_scale_policy,
+                args.target_scale_strength,
+                target_scale_reference_abs_mean,
             ),
             "sample_balance": args.sample_balance,
             "sample_mode": args.sample_mode,
@@ -1728,6 +1820,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "snr_loss_weight_strength": args.snr_loss_weight_strength,
             "target_energy_loss_weight_policy": args.target_energy_loss_weight_policy,
             "target_energy_loss_weight_strength": args.target_energy_loss_weight_strength,
+            "target_scale_policy": args.target_scale_policy,
+            "target_scale_strength": args.target_scale_strength,
             "holdout_selection_policy": (
                 "diagnostic_best_holdout_probe_checkpoint"
                 if args.save_best_holdout_checkpoint and best_holdout is not None
@@ -1844,6 +1938,18 @@ def main() -> int:
         type=float,
         default=1.0,
         help="Blend strength for --target-energy-loss-weight-policy. 0 preserves unweighted loss; 1 uses the policy defaults.",
+    )
+    ap.add_argument(
+        "--target-scale-policy",
+        choices=("none", "candidate_hf_abs_mean"),
+        default="none",
+        help="Train on normalized residuals and rescale runtime output from candidate-only energy. This never uses REF/source content at runtime.",
+    )
+    ap.add_argument(
+        "--target-scale-strength",
+        type=float,
+        default=1.0,
+        help="Blend strength for --target-scale-policy. 0 preserves unscaled targets; 1 uses the policy scale.",
     )
     ap.add_argument(
         "--sample-balance",

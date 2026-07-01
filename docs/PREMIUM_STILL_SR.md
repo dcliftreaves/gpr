@@ -448,6 +448,22 @@ Both regress the hard X2D scene holdout. The heavier objective reaches about
 should change target construction, input context, or teacher capacity, not add
 another scalar spatial/Fourier loss term to the current small U-Net.
 
+Candidate-HF target scaling then tested whether the model should learn a
+normalized residual and rescale output from runtime-safe candidate high-frequency
+energy:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_candhfscale_noisefloor_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_candhfscale0p5_noisefloor_unet_w32_1200_20260701/index.html
+```
+
+The policy is runtime-safe because it uses candidate raw-HF energy only, but it
+also trails the current baseline. Full-strength scaling reaches about
+**0.052%** median raw MAE recovery, and half-strength scaling regresses to about
+**-0.137%**, versus **0.153%** for the noise-floor-only U-Net. The hard X2D
+scene mismatch is therefore not solved by scalar target-energy weights,
+spatial/Fourier scalar losses, or candidate-HF scalar output normalization.
+
 The first raw-CFA residual trainer is:
 
 ```text
