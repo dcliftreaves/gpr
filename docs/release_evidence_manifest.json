@@ -1319,8 +1319,8 @@
         "artifacts/product_burndown_20260701/index.html"
       ],
       "hashes": {
-        "product_burndown_json_sha256": "bd297d835286b99c55dc43461b3608d8fd2c8c9bdff6adc2e023485c9713e820",
-        "dashboard_sha256": "e0289b93a65b3baf8bcc71238142d4ff22196e817c65da0d9a2b22ebc2bfca08"
+        "product_burndown_json_sha256": "182cd7f64d7d5e322b67bd2d1ed72609613d3004472e6ea13483c6456948a1db",
+        "dashboard_sha256": "9a4f0aed7ae7f3da55e8313eee27ec3a10bdb26a9f183d9f3b1fc95b2efbe604"
       },
       "metrics": {
         "four_pillar_completion_percent": 69,
@@ -1350,6 +1350,8 @@
         "artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html",
         "artifacts/premium_still_sr_candidate_signal_x2d1742_center_same_scene_20260701/candidate_signal_audit.json",
         "artifacts/premium_still_sr_candidate_signal_x2d1742_center_same_scene_20260701/index.html",
+        "artifacts/premium_still_sr_frequency_filter_x2d1742_center_same_scene_20260701/frequency_filter_audit.json",
+        "artifacts/premium_still_sr_frequency_filter_x2d1742_center_same_scene_20260701/index.html",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_camera_balanced_w48_2200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_contextpad32_w48_1200_20260630/train_receipt.json",
         "artifacts/premium_still_sr_raw_cfa_residual_model_x2dholdout_unet_w32_1200_20260630/train_receipt.json",
@@ -1375,6 +1377,7 @@
         "x2d_context_storedhf_probe_holdout_mae_recovery_pct": -0.4258695412707576,
         "x2d_band_loss_probe_holdout_mae_recovery_pct": -0.5429413178342872,
         "x2d_center_same_scene_candidate_signal_probe_holdout_mae_recovery_pct": -3.6671465917567434,
+        "x2d_center_same_scene_frequency_filter_probe_holdout_mae_recovery_pct": -4.290569790569791,
         "x2d_only_domain_probe_holdout_mae_recovery_pct": -0.15236912961782187,
         "x2d_camera_balanced_sampler_probe_holdout_mae_recovery_pct": -0.4486720189406414,
         "x2d_context_padding_probe_holdout_mae_recovery_pct": -0.1559764723882089,

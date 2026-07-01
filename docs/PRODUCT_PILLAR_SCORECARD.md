@@ -379,7 +379,9 @@ but that is still below the best 0.16 percent X2D smoke row and far below
 promotion. A same-scene center-crop candidate-signal audit still regresses the
 hard X2D center rows by about -3.67 percent median MAE, so low-order candidate
 features are not enough even when neighboring crops from the same scene are
-available.
+available. A per-CFA-plane frequency filter from candidate HF to the raw
+residual also regresses that split by about -4.29 percent median MAE, so the
+missing detail is not a simple frequency response of candidate HF.
 Adding absolute crop-position, camera one-hot, and full-crop candidate raw/HF
 scalar context to that U-Net lands at about 0.09 percent on X2D and about
 0.19 percent on Z8, below the existing Z8 raw-CFA baseline. The bounded

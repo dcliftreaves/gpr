@@ -376,10 +376,18 @@ the center rows to about -3.67 percent median MAE recovery:
 That argues the current low-order candidate-side features are not enough even
 with same-scene neighboring context; the blocker is not only the scene-held-out
 split.
+The next stronger runtime-safe linear baseline is a per-CFA-plane
+frequency-domain filter from candidate highpass raw planes to the same raw-CFA
+residual target:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_frequency_filter_x2d1742_center_same_scene_20260701/index.html`.
+It also fails on the same X2D center-crop split, landing at about -4.29 percent
+median MAE recovery. That argues the missing residual is not recoverable by a
+simple frequency response from candidate HF, even when neighboring crops from
+the same scene are available.
 The next path needs a different runtime signal, a materially different
 target/objective, or a stronger learned generative/detail prior rather than
-nearest-neighbor transfer or a linear readout of current raw-CFA residual
-patches.
+nearest-neighbor transfer, a linear readout of current raw-CFA residual
+patches, or a per-frequency candidate-HF filter.
 
 ## Raw-CFA Feature Smoke
 

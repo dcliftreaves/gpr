@@ -239,6 +239,9 @@ Current evidence:
   same-scene center-crop candidate-signal audit still regresses the hard X2D
   center rows by about -3.67 percent median MAE, so low-order candidate
   features are not enough even with neighboring crops from the same scene.
+  A per-CFA-plane frequency filter from candidate HF to the same raw residual
+  also regresses that split by about -4.29 percent median MAE, so the missing
+  detail is not a simple frequency response of candidate HF.
   Adding absolute crop-position, camera one-hot, and full-crop candidate raw/HF
   scalar context to that U-Net does not improve the held-out receipts: X2D
   lands at about 0.09 percent median MAE recovery and Z8 lands at about 0.19
