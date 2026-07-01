@@ -202,6 +202,7 @@ else
                 python3 tools/test/test_build_premium_still_sr_expanded_hf_targets_from_plan.py && \
                 python3 tools/test/test_build_bayer_resize_psf_receipt.py && \
                 python3 tools/test/test_build_bayer_resize_psf_from_pairs.py && \
+                python3 tools/test/test_build_bayer_resize_psf_known_kernel_validation.py && \
                 python3 tools/test/test_build_mission1_native_psf_pair_inventory.py && \
                 python3 tools/test/test_build_mission1_native_psf_measurement_plan.py && \
                 python3 tools/test/test_build_mission1_native_psf_measurement.py && \

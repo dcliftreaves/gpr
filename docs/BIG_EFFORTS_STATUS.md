@@ -619,6 +619,13 @@ Current evidence:
   repeat-to-target residual is 0.99999x fine-band share. This means the modeled
   video-SR gap is same-cell Bayer fine-detail reconstruction, not broad coarse
   deblur.
+- The deterministic known-kernel fitter validation proves the same fitter can
+  recover a deliberately non-box `[0.52, 0.23, 0.17, 0.08]` same-color 2x
+  kernel within 1.1e-8 normalized-weight RMSE, while rejecting a mismatched
+  negative control:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_known_kernel_validation_20260701/index.html`.
+  This validates the algorithmic fitter path only; it does not replace native
+  Mission 1 controlled high/low pairs.
 - The raw-video PSF/SR readiness audit separates the approved 4K/8K baselines
   from the unfinished native PSF replacement claim:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_audit_20260630/index.html`.

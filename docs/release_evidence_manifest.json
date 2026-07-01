@@ -85,6 +85,7 @@
           "mission1_native_psf_corpus_audit_20260630",
           "mission1_native_psf_kernel_stability_audit_20260630",
           "raw_video_psf_capture_request_20260630",
+          "bayer_resize_psf_known_kernel_validation_20260701",
           "raw_video_sr_candidate_scoreboard_20260701",
           "raw_video_psf_next_experiment_contract_20260701",
           "mission1_8k_sr_step0075_visual_signoff_20260701",
@@ -1975,6 +1976,38 @@
         "current_accepted_pair_count": 2,
         "current_kernel_stable": 0,
         "production_psf_capture_request_ready": 1
+      }
+    },
+    {
+      "id": "bayer_resize_psf_known_kernel_validation_20260701",
+      "family": "raw_video_psf",
+      "status": "diagnostic",
+      "purpose": "Deterministic known-kernel validation for the Bayer resize PSF fitter. Recovers a non-box same-color 2x kernel and rejects a mismatched negative control, while keeping native Mission 1 controlled PSF evidence open.",
+      "dashboard": "artifacts/bayer_resize_psf_known_kernel_validation_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/BAYER_RESIZE_PSF.md",
+        "docs/BIG_EFFORTS_STATUS.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/bayer_resize_psf_known_kernel_validation_20260701/known_kernel_validation.json",
+        "artifacts/bayer_resize_psf_known_kernel_validation_20260701/bayer_resize_psf_receipt.json",
+        "artifacts/bayer_resize_psf_known_kernel_validation_20260701/index.html"
+      ],
+      "hashes": {
+        "known_kernel_validation_json_sha256": "381f9597a6add3fd9ca4d9e7880b36d1065926f1e6985b0fdd1b5155625f6f13",
+        "bayer_resize_psf_receipt_json_sha256": "b5d6bfdda52c2b66620a0f229d1443aabc0a3e39d1da1589a8f797ac61894c70",
+        "dashboard_sha256": "4c32f1a320ae245cc1b5235eceab8475bccdbdc315f1e37164decafb7f6a3d1a"
+      },
+      "metrics": {
+        "algorithm_fixture_ready": 1,
+        "real_mission1_controlled_psf_ready": 0,
+        "known_kernel_weight_rmse": 0.000000010702471553587619,
+        "positive_fit_rmse_14bit": 0.00014709421683651203,
+        "negative_control_rmse_14bit": 9064.09875602099,
+        "negative_control_rejected": 1
       }
     },
     {

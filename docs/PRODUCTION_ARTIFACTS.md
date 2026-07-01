@@ -633,6 +633,9 @@ native Mission 1 PSF blocker state for the PSF-aware video/SR pillar.
 | Raw-video PSF detail metric rerun Z8 candidate summary | `artifacts/raw_video_psf_detail_metrics_fullframe_rerun_20260701/z8_candidate_fullframe/summary.json` | `6f2fb7b4709bfb92870509b11b7fde12af85c8eb4882584f96f384001b947eff` |
 | Raw-video PSF detail metric rerun audit JSON | `artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/raw_video_psf_detail_metric_audit.json` | `28f2a16537b23c1d2364cad215ac7e9fcc531774bd7fc8c91153d512420e8866` |
 | Raw-video PSF detail metric rerun audit dashboard | `artifacts/raw_video_psf_detail_metric_audit_rerun_20260701/index.html` | `fe383c40ae7477e0cb47dea5cfe60c8a6cf936381437dd614ed95dea9eaba56e` |
+| Bayer resize PSF known-kernel validation JSON | `artifacts/bayer_resize_psf_known_kernel_validation_20260701/known_kernel_validation.json` | `381f9597a6add3fd9ca4d9e7880b36d1065926f1e6985b0fdd1b5155625f6f13` |
+| Bayer resize PSF known-kernel validation receipt | `artifacts/bayer_resize_psf_known_kernel_validation_20260701/bayer_resize_psf_receipt.json` | `b5d6bfdda52c2b66620a0f229d1443aabc0a3e39d1da1589a8f797ac61894c70` |
+| Bayer resize PSF known-kernel validation dashboard | `artifacts/bayer_resize_psf_known_kernel_validation_20260701/index.html` | `4c32f1a320ae245cc1b5235eceab8475bccdbdc315f1e37164decafb7f6a3d1a` |
 | Raw-video PSF next-experiment contract JSON | `artifacts/raw_video_psf_next_experiment_contract_20260701/raw_video_psf_next_experiment_contract.json` | `df23e0f05f9829a99edb15c24c326ff18dd1da4e42c112f112049356da027996` |
 | Raw-video PSF next-experiment contract dashboard | `artifacts/raw_video_psf_next_experiment_contract_20260701/index.html` | `ab25ef25dc61ad2e1eeb33c8cdeab0df8acde4625e5c4964bff8d9858276a470` |
 

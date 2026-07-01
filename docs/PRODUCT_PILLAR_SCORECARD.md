@@ -219,6 +219,14 @@ marked, the existing measurement accepted only two pairs, and the kernel is
 unstable. This proves the local corpus cannot close the PSF blocker without new
 or newly located controlled captures.
 
+The deterministic known-kernel PSF validation lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/bayer_resize_psf_known_kernel_validation_20260701/index.html`.
+It recovers the non-box `[0.52, 0.23, 0.17, 0.08]` same-color 2x Bayer kernel
+within **1.1e-8** normalized-weight RMSE and rejects the mismatched negative
+control with about **9064** RMSE on the 14-bit scale. This strengthens the
+measurement-tooling evidence only; it does not close the controlled native
+Mission 1 PSF blocker.
+
 The raw-video PSF controlled capture request lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`.
 It is the handoff for closing the measurement blocker: locked same-scene
