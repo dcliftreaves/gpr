@@ -234,6 +234,13 @@ Replacement evidence required:
    `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html`;
    the handoff-ready raw-stills capture request is
    `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html`.
+   The current darkframe provenance review packet is
+   `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_20260701/index.html`;
+   it hashes the Mission/iPhone candidates, writes fill-in
+   `source_provenance_manifest_templates`, and keeps
+   `production_sidecar_ready=false` until Mission 1 has two additional matching
+   true darkframes and the iPhone ISO1250 RGGB candidate stack has confirmed
+   no-scene provenance.
 2. Continue premium still-SR from the current raw-CFA residual blocker, not
    older rendered-HF targets. The latest candidate-only raw-domain trainer is
    mildly positive on held-out Z8 at about 0.50 percent median raw-residual MAE
