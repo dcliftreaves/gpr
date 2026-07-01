@@ -554,6 +554,21 @@ either normalize or model this scene-energy/domain shift explicitly, add more
 matched high-energy X2D raw targets, or change the target construction so the
 held-out residual is not treated as a generic row from the same distribution.
 
+A CFA-aware target control and a matched CFA-conditioned U-Net then tested the
+new crop-local CFA metadata directly:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_cfa_target_control_unet_w32_1200_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_cfa_matched_unet_w32_1200_20260701/index.html
+```
+
+The non-CFA control exactly reproduces the matched **0.153%** median raw MAE
+recovery on the regenerated CFA-aware target, so the target rebuild did not
+change the baseline arrays. Adding simple CFA one-hot planes is still positive
+but worse at about **0.100%** median raw MAE recovery. CFA metadata remains
+important for normal-Bayer compatibility, but this simple one-hot conditioning
+should not be repeated as the primary still-SR quality path.
+
 Two direct target-energy weighting controls then tested whether simple
 train-time row weighting closes that mismatch:
 

@@ -83,8 +83,10 @@ It locks the next still-SR pass to the 351-row / 13-scene raw-CFA residual
 target, forbids REF/source/JPEG content at render time, and records the
 local/context/noise/sampling-only probes that should not be repeated as the primary
 approach.
-production promotion from it when the current raw-CFA and Mission/Z8 target
-corpora above exist.
+The latest CFA-aware target control confirms the target regeneration is stable:
+the non-CFA control reproduces the 0.153 percent X2D scene-holdout baseline,
+while the simple CFA one-hot conditioned U-Net reaches about 0.100 percent and
+is not the next primary still-SR quality path.
 
 ## Current Verdict
 

@@ -533,6 +533,13 @@ It shows broad weighting is not enough: signal-emphasis reaches about
 0.135 percent, continuous-SNR reaches about 0.129 percent, and noise-floor-only
 downweighting reaches about 0.153 percent median MAE recovery while RMSE
 remains negative.
+The CFA-aware target control and matched CFA-conditioned U-Net live at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_cfa_target_control_unet_w32_1200_20260701/index.html`
+and
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_cfa_matched_unet_w32_1200_20260701/index.html`.
+The control reproduces the 0.153 percent baseline on the regenerated
+CFA-aware target, while simple CFA one-hot conditioning drops to about 0.100
+percent median MAE recovery.
 The stored-HF/noise-floor U-Net and pyramid/noise-floor U-Net controls live at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_storedhf_noisefloor_unet_w32_1200_20260701/index.html`
 and

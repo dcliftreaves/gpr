@@ -287,6 +287,13 @@ Current evidence:
   with zero raw conflicts, while preserving rendered EV review rows in metadata.
   The deduped target keeps 117/117 known crop-local CFA labels: 90 `RGGB`, 27
   `GBRG`, and 0 unknown.
+  A matched control on the regenerated CFA-aware target exactly reproduces the
+  prior 0.153 percent X2D scene-holdout median raw MAE recovery, while adding
+  simple crop-local CFA one-hot planes to the same U-Net reaches only about
+  0.100 percent. The CFA metadata path is therefore retained for normal-Bayer
+  compatibility, but not promoted as the next still-SR quality objective:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_cfa_target_control_unet_w32_1200_20260701/index.html`,
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_cfa_matched_unet_w32_1200_20260701/index.html`.
   A first RCAB-style teacher smoke run now trains against that deduplicated
   target with multiscale band and Fourier losses:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_model_dedup_rcab_teacher_smoke_20260701/index.html`.
