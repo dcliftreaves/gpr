@@ -177,6 +177,19 @@ The provenance manifest must include one row per promoted frame with `path`,
 Without that manifest, the audit stays discovery-only and cannot mark a
 production stack ready.
 
+For the current Mission/iPhone candidate sets, first build the review packet:
+
+```sh
+python3 tools/build_darkframe_provenance_review_packet.py \
+  --capture-request /Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/stills_capture_request.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_<date>
+```
+
+That packet hashes the lowest-lift candidate DNGs and emits a fill-in
+provenance template. It is not a production sidecar; it exists to decide
+whether the candidate frames can be confirmed as true no-scene-signal
+darkframes or must be recaptured.
+
 After extracting the promoted frames, carry the same provenance into the final
 noise sidecar builder with:
 

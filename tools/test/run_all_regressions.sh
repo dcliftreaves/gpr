@@ -170,6 +170,7 @@ else
                 python3 tools/test/test_build_camera_noise_coverage_audit.py && \
                 python3 tools/test/test_build_raw_stills_noise_sidecar_readiness.py && \
                 python3 tools/test/test_build_darkframe_candidate_audit.py && \
+                python3 tools/test/test_build_darkframe_provenance_review_packet.py && \
                 python3 tools/test/test_build_bayer_phase_fixture_inventory.py && \
                 python3 tools/test/test_build_stills_fixture_gap_plan.py && \
                 python3 tools/test/test_extract_raw_bayer_u16.py && \

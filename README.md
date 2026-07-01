@@ -368,6 +368,7 @@ current evidence so strict local checks can verify it.
 | Full-manifest Mission/iPhone darkframe candidate audit | `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html` |
 | Stills fixture gap closure plan | `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html` |
 | Raw-stills capture request | `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html` |
+| Mission/iPhone darkframe provenance packet | `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_20260701/index.html` |
 | X2D 100MP still visual roundtrip audit | `/Volumes/OWC_8TB/gpr_work/artifacts/x2d_100mp_still_visual_audit_roundtrip_20260630/index.html` |
 | Stills REF / codec-only / CNN dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/visual_compare_20260525_final/index.html` |
 | Mission 1 native PSF pair inventory | `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_pair_inventory_20260630/index.html` |

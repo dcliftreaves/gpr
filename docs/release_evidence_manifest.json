@@ -1948,6 +1948,34 @@
       }
     },
     {
+      "id": "darkframe_provenance_review_packet_20260701",
+      "family": "stills_fixtures",
+      "status": "current",
+      "purpose": "Hash-strict Mission/iPhone darkframe provenance review packet. It records the exact lowest-lift candidate DNG source hashes and fill-in provenance templates while keeping production sidecar readiness false until no-scene-signal confirmation and uint16 Bayer extraction receipts exist.",
+      "dashboard": "artifacts/darkframe_provenance_review_packet_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/CAMERA_NOISE_CALIBRATION.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"
+      ],
+      "receipts": [
+        "artifacts/darkframe_provenance_review_packet_20260701/darkframe_provenance_review_packet.json",
+        "artifacts/darkframe_provenance_review_packet_20260701/index.html"
+      ],
+      "hashes": {
+        "darkframe_provenance_review_packet_json_sha256": "84f5c63a71be66f0a7f2dfa2ce8471ed1a34439a7cf8f3456adbecb31bf6e4f9",
+        "dashboard_sha256": "2a88e4733a5209889371034612ecb023fd16383c4261992cc1a315fd09465a73"
+      },
+      "metrics": {
+        "candidate_source_count": 29,
+        "minimum_additional_darkframes_needed": 2,
+        "production_sidecar_ready": 0,
+        "iphone_enough_candidates_missing_provenance": 1,
+        "mission1_still_needs_capture": 1
+      }
+    },
+    {
       "id": "camera_noise_runtime_policy_20260630",
       "family": "noise_signal",
       "status": "diagnostic",
