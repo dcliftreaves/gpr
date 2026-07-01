@@ -21,7 +21,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_EXTERNAL = Path("/Volumes/OWC_8TB/gpr_work")
-DEFAULT_MANIFEST = DEFAULT_EXTERNAL / "artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260630/manifest.json"
+DEFAULT_MANIFEST = DEFAULT_EXTERNAL / "artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260701/manifest.json"
 REQUIRED_PRODUCT_PILLARS = {
     "raw_stills": "RAW stills",
     "raw_video_mvp": "RAW video MVP",

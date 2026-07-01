@@ -139,7 +139,7 @@ The same raw-stills blockers are pinned in the committed production capture
 requirements as `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack`.
 
 The current GoPro Mission 1 intake audit lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260630/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701/index.html`.
 It verifies the portable firmware handoff bundle, required docs, 4096 x 3072
 `.gvid` sample, quick-validation dry run, and stand-in encode/preview receipts.
 It remains `camera_production_ready=false` until real Mission 1 sensor/DMA,

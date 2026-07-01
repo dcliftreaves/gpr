@@ -112,14 +112,16 @@ For the Mission 1 firmware handoff specifically, use the narrower builder:
 python3 tools/build_gopro_mission1_handoff_bundle.py \
   /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_current \
   --force \
-  --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>"
+  --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>" \
+  --fused-decode-cli build-local/bin/fused_decode_cli \
+  --require-sample-decode
 
 python3 tools/verify_labs_bundle.py \
   /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_current/manifest.json
 ```
 
 That bundle is meant for firmware reviewers. It includes the GoPro quick
-validation command, one valid 4K `.gvid` sample, compact stand-in receipts, a
+validation command, one decode-checked 4K `.gvid` sample, compact stand-in receipts, a
 quick-validation dry-run receipt, visual review assets, and the relevant docs.
 It must still be replaced or supplemented by camera-role receipts before
 production readiness is claimed.
@@ -140,14 +142,14 @@ listed in `docs/release_evidence_manifest.json`.
 
 Current Mission 1 handoff bundle:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260630/manifest.json`
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260701/manifest.json`
 
 Current Mission 1 intake audit:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260630/index.html`
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701/index.html`
 
 The bundle verifies with `tools/verify_labs_bundle.py` and contains 21 manifest
-artifacts, including a valid 4096 x 3072 `.gvid` sample, compact stand-in
+artifacts, including a decode-checked 4096 x 3072 `.gvid` sample, compact stand-in
 closure receipts, the quick-validation dry-run receipt, visual assets, docs,
 and checksums. The intake audit marks it firmware-review ready, but still
 `camera_production_ready=false` until camera-role sensor/DMA, storage, and

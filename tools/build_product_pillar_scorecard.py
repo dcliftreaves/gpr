@@ -156,7 +156,7 @@ def build_scorecard(external_root: Path) -> dict[str, Any]:
                     repo_ref("Mission 1 stream source timing", "docs/MISSION1_STREAM_SOURCE_TIMING_2026-06-28.md"),
                     repo_ref("GVID conformance", "docs/GVID_CONFORMANCE.md"),
                     repo_ref("production capture requirements", "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"),
-                    artifact_ref("GoPro Mission 1 intake audit", "artifacts/gopro_mission1_intake_audit_capture_requirements_20260630/index.html"),
+                    artifact_ref("GoPro Mission 1 intake audit", "artifacts/gopro_mission1_intake_audit_capture_requirements_20260701/index.html"),
                     artifact_ref("Pi stream source receipts", "artifacts/mission1_stream_source_encoder_20260628_pi_compact"),
                     artifact_ref("preview timing receipt", "artifacts/mission1_preview_rgb_c_1024x768_72f_20260624/receipt.json"),
                     artifact_ref("Z8 preview media", "artifacts/z8_timelapse_readme_gif_frame800_20260624"),

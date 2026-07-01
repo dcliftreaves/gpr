@@ -56,7 +56,7 @@ Dry-run output is not production evidence.
 ## Portable Handoff Bundle
 
 Before sending the repo to a firmware reviewer, build the compact handoff
-bundle. It packages one valid 4096 x 3072 `.gvid` sample, compact stand-in
+bundle. It packages one decode-checked 4096 x 3072 `.gvid` sample, compact stand-in
 receipts, the quick-validation dry-run receipt, visual review assets, checksums,
 and the firmware-facing docs:
 
@@ -64,7 +64,9 @@ and the firmware-facing docs:
 python3 tools/build_gopro_mission1_handoff_bundle.py \
   /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_current \
   --force \
-  --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>"
+  --ci-run "https://github.com/dcliftreaves/gpr/actions/runs/<run-id>" \
+  --fused-decode-cli build-local/bin/fused_decode_cli \
+  --require-sample-decode
 ```
 
 Verify it before sharing:

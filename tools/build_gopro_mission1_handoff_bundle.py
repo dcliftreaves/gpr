@@ -12,13 +12,16 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
+
+from gvid_metadata import read_gvid_frames
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_EXTERNAL = Path("/Volumes/OWC_8TB/gpr_work")
-DEFAULT_SAMPLE_GVID = DEFAULT_EXTERNAL / "artifacts/mission1_stream_source_encoder_20260628/run_4096x3072_8f/stream_source_encoder.gvid"
+DEFAULT_SAMPLE_GVID = DEFAULT_EXTERNAL / "artifacts/mission1_corrected_q8_local_gvid_120f_20260617/capture.gvid"
 DEFAULT_PRODUCER_REPORT = DEFAULT_EXTERNAL / "artifacts/mission1_stream_source_encoder_20260628/run_4096x3072_8f/producer_report.json"
 DEFAULT_CLOSURE_ROOT = DEFAULT_EXTERNAL / "artifacts/mission1_camera_closure_run_20260625/current_standin_followup"
 DEFAULT_REVIEW_MEDIA = (
@@ -66,6 +69,67 @@ def copy_file(src: Path, dst: Path) -> None:
     shutil.copy2(src, dst)
 
 
+def write_clipped_gvid(src: Path, dst: Path, *, frame_count: int) -> int:
+    """Copy the first N complete .gvid frames while fixing the frame-count hint."""
+    if frame_count <= 0:
+        raise ValueError("--sample-frame-count must be positive")
+    frames = read_gvid_frames(src)
+    if not frames:
+        raise ValueError(f"{src} contains no .gvid frames")
+    selected = frames[: min(frame_count, len(frames))]
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    header = bytearray(src.read_bytes()[:32])
+    # Header layout is <IBBHHHIIIII>; frame_count_hint is the final uint32.
+    header[28:32] = len(selected).to_bytes(4, "little")
+    with src.open("rb") as inp, dst.open("wb") as out:
+        out.write(header)
+        for frame in selected:
+            frame_start = int(frame["payload_offset"]) - 16
+            frame_end = int(frame["payload_offset"]) + int(frame["payload_size"])
+            inp.seek(frame_start)
+            remaining = frame_end - frame_start
+            while remaining:
+                chunk = inp.read(min(1024 * 1024, remaining))
+                if not chunk:
+                    raise EOFError(f"{src} ended while clipping frame {frame['frame_index']}")
+                out.write(chunk)
+                remaining -= len(chunk)
+    read_gvid_frames(dst)
+    return len(selected)
+
+
+def validate_sample_decode(sample: Path, decoder: Path) -> None:
+    if not decoder.is_file():
+        raise FileNotFoundError(f"missing fused decoder for sample validation: {decoder}")
+    frames = read_gvid_frames(sample)
+    if not frames:
+        raise ValueError(f"{sample} contains no frames")
+    with tempfile.TemporaryDirectory(prefix="gpr_handoff_decode_") as td:
+        root = Path(td)
+        payload = root / "frame0.gpr"
+        raw = root / "frame0.raw"
+        frame = frames[0]
+        with sample.open("rb") as inp, payload.open("wb") as out:
+            inp.seek(int(frame["payload_offset"]))
+            out.write(inp.read(int(frame["payload_size"])))
+        proc = run([
+            str(decoder),
+            str(payload),
+            "4096",
+            "3072",
+            str(raw),
+            "4k_raw_1x",
+        ])
+        if proc.returncode != 0:
+            raise RuntimeError(
+                "sample .gvid payload failed fused decode validation: "
+                + (proc.stderr.strip() or proc.stdout.strip() or f"rc={proc.returncode}")
+            )
+        expected = 4096 * 3072 * 2
+        if raw.stat().st_size != expected:
+            raise RuntimeError(f"decoded raw size {raw.stat().st_size} != expected {expected}")
+
+
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
@@ -103,7 +167,7 @@ It is not final camera-production evidence by itself.
 
 ## What Is Included
 
-- `samples/mission1_4k_stream_source_8f.gvid`: valid 4096 x 3072 `.gvid` sample for container and decode validation.
+- `samples/mission1_4k_stream_source_8f.gvid`: compact 4096 x 3072 `.gvid` sample for container and optional payload-decode validation.
 - `receipts/`: current Pi 5 stand-in closure receipts plus a quick-validation dry-run receipt.
 - `review/`: compact visual assets from the repo README.
 - `docs/`: the GoPro quick validation guide, firmware ABI, runbook, production capture requirements, release artifact rules, and release evidence manifest.
@@ -175,7 +239,15 @@ def build_bundle(args: argparse.Namespace) -> dict[str, Any]:
     write_readme(args, bundle_root / "README.md")
     add_artifact(artifacts, "README.md", "text")
 
-    copy_file(args.sample_gvid, bundle_root / "samples/mission1_4k_stream_source_8f.gvid")
+    sample_dst = bundle_root / "samples/mission1_4k_stream_source_8f.gvid"
+    if args.copy_sample_whole:
+        copy_file(args.sample_gvid, sample_dst)
+    else:
+        write_clipped_gvid(args.sample_gvid, sample_dst, frame_count=args.sample_frame_count)
+    if args.require_sample_decode or args.fused_decode_cli:
+        if not args.fused_decode_cli:
+            raise ValueError("--require-sample-decode requires --fused-decode-cli")
+        validate_sample_decode(sample_dst, args.fused_decode_cli)
     add_artifact(artifacts, "samples/mission1_4k_stream_source_8f.gvid", "gvid")
 
     receipt_sources = [
@@ -255,6 +327,10 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--target-role", default="stand-in")
     ap.add_argument("--camera-raw-path", default="/dev/mission1/sensor_dma_ring")
     ap.add_argument("--sample-gvid", type=Path, default=DEFAULT_SAMPLE_GVID)
+    ap.add_argument("--sample-frame-count", type=int, default=8)
+    ap.add_argument("--copy-sample-whole", action="store_true")
+    ap.add_argument("--fused-decode-cli", type=Path)
+    ap.add_argument("--require-sample-decode", action="store_true")
     ap.add_argument("--producer-report", type=Path, default=DEFAULT_PRODUCER_REPORT)
     ap.add_argument("--labs-target-bench", type=Path, default=DEFAULT_CLOSURE_ROOT / "labs_target_bench.json")
     ap.add_argument("--camera-handoff", type=Path, default=DEFAULT_CLOSURE_ROOT / "camera_handoff_receipt.json")

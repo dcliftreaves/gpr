@@ -134,24 +134,24 @@ actual Mission 1 24 fps hardware receipt before firmware readiness is claimed.
 
 Current GoPro Mission 1 handoff bundle:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260630/manifest.json`
+`/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260701/manifest.json`
 
 Verification:
 
 ```bash
 python3 tools/verify_labs_bundle.py \
-  /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260630/manifest.json
-(cd /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260630 && \
+  /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260701/manifest.json
+(cd /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260701 && \
   shasum -a 256 -c hashes/sha256sums.txt)
 
 python3 tools/build_gopro_mission1_intake_audit.py \
-  --manifest /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260630/manifest.json \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260630
+  --manifest /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_handoff_bundle_capture_requirements_20260701/manifest.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701
 ```
 
 Contents:
 
-- valid 4096 x 3072 `.gvid` sample from the deterministic stream-source encoder;
+- decode-checked 4096 x 3072 `.gvid` sample clipped from a decoder-compatible Mission 1 native12 stream;
 - current 1,440-frame Pi stand-in closure receipts;
 - quick-validation dry-run receipt;
 - compact visual review assets;
