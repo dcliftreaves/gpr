@@ -59,6 +59,18 @@ The candidate preflight and launch packet now exist:
 They pass the preflight checker as launchable intake artifacts only. They do
 not claim production readiness.
 
+The target-builder audit now exists:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json
+```
+
+It blocks the smoke run with
+`blocker_classification=gate14_raw_target_identity_missing`: the current
+Gate14 pair surface has `4800` tiles and the current raw-CFA target set has
+`117` rows, but direct row identity overlap is `0`. Do not train the floor
+student from the unrelated raw-CFA target set.
+
 ## 100 Percent Ladder
 
 Move rows in this exact order. Do not skip a row because a later dashboard
@@ -67,7 +79,7 @@ looks better.
 | order | row | receipt | pass condition |
 |---:|---|---|---|
 | 1 | Gate14 floor-student preflight | `premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json` | `launchable_preflight_passed`, candidate id `premium_still_sr_gate14_floor_student_v1`, no REF/source/JPEG render-time inputs, X2D+Z8 smokes required, median MAE recovery floor `1.0%`, worst-row floor `0.0%`. |
-| 2 | Gate14 floor-student target builder | `premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.npz` plus a JSON receipt | Builds candidate-only student targets from Gate 14 pseudo-label/source selection and selector sidecar hashes; no production renderer uses Gate 14 output directly. |
+| 2 | Gate14 floor-student target builder | `premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json` plus `gate14_floor_student_targets.npz` only if passed | Builds candidate-only student targets from Gate 14 pseudo-label/source selection and selector sidecar hashes; no production renderer uses Gate 14 output directly. Current result is blocked because direct row identity overlap is `0`. |
 | 3 | Paired smoke gates | `premium_still_sr_gate14_floor_student_x2d_smoke_20260702/train_receipt.json` and `premium_still_sr_gate14_floor_student_z8_smoke_20260702/train_receipt.json` | Both holdouts beat same-color Bayer interpolation by at least `1.0%` median MAE recovery and `0.0%` worst-row recovery; checkpoint and training-config hashes are recorded. |
 | 4 | Smoke acceptance | `premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | X2D and Z8 smoke receipts meet the preflight acceptance contract. If either fails, record the blocker class and return to target construction, not selector replay. |
 | 5 | Full promotion gate | `premium_still_sr_promotion_gate_<date>/promotion_gate.json` | 50 MP and 100 MP full-frame rows clear `15% / 15%` median MAE/RMSE recovery, nonnegative worst rows, editor/openability, exact-sidecar-only noise policy, and no REF/source/JPEG render-time inputs. |
@@ -111,6 +123,10 @@ python3 tools/build_premium_still_sr_launch_packet.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702 \
   --manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json \
   --require-launchable
+
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/build_premium_still_sr_gate14_floor_student_targets.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_targets_20260702
 
 python3 tools/check_premium_still_sr_promotion_gate.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_current_20260702

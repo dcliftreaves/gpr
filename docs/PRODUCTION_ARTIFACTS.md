@@ -92,6 +92,8 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate14 floor-student preflight dashboard | `artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/index.html` | `e98ab5bb24f8c255c15848742c4f2dfbfbf194877f4ccdf2fdf6a0402e22213c` |
 | Gate14 floor-student launch packet | `artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.json` | `5a660422a74619d550b04ab7719600823888571e2a4fd30820c7c0e47adb46fd` |
 | Gate14 floor-student launch packet Markdown | `artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.md` | `717db90dfc5f217dcf0cd587981e0e36052dabd350a107af4809933e1b182cfb` |
+| Gate14 floor-student target-builder blocker receipt | `artifacts/premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json` | `8afd133a3ea202d74068f5bde744068421eae29068145bcaa9d8ba31ba60ac1c` |
+| Gate14 floor-student target-builder blocker dashboard | `artifacts/premium_still_sr_gate14_floor_student_targets_20260702/index.html` | `72ca580f5c8ca6e986dfa705d8205b6f9ba0ed7d90b92c10a778eb6061d96fac` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -105,8 +107,11 @@ MAE/RMSE are `4.031355420019811%` / `3.753504206299621%`, leaving
 `10.96864457998019` / `11.24649579370038` percentage points to the floor. The
 next candidate contract is `premium_still_sr_gate14_floor_student_v1`. Its
 preflight and launch packet now pass as launchable intake artifacts only; the
-next production-moving receipt is the Gate14 floor-student target builder,
-followed by the paired X2D/Z8 smoke receipts named in the launch packet.
+target-builder audit is blocked with
+`gate14_raw_target_identity_missing`. The Gate14 pair surface has `4800` tiles,
+the existing raw-CFA target set has `117` rows, and direct row identity overlap
+is `0`; regenerate raw-CFA residual targets from the Gate14 pair/fixture
+surface before paired X2D/Z8 smoke training.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model
