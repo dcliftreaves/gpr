@@ -127,6 +127,13 @@ RESTORMER_REPEAT_TOKENS = {
     "restormer-style",
     "restormer_pixelshuffle",
 }
+REJECTED_SMOKE_CANDIDATE_IDS = {
+    "teacher_first_fullframe_raw_sr_smoke_v1",
+}
+REJECTED_SMOKE_OUTPUT_TOKENS = {
+    "/volumes/owc_8tb/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_x2d_20260702",
+    "/volumes/owc_8tb/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_z8_20260702",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -273,6 +280,12 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
     candidate_id = str(manifest.get("candidate_id") or "").strip()
     if not candidate_id:
         add_failure(failures, "candidate_id is required")
+    if candidate_id.lower() in REJECTED_SMOKE_CANDIDATE_IDS:
+        add_failure(
+            failures,
+            f"candidate_id {candidate_id!r} is already rejected by committed X2D/Z8 smoke receipts; "
+            "a new Gate A attempt needs a materially different candidate id and evidence path",
+        )
     if manifest.get("requires_material_edits_before_launch") is True:
         add_failure(
             failures,
@@ -407,6 +420,13 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
             add_failure(
                 failures,
                 f"smoke_gate_commands match rejected command tokens: {', '.join(rejected_command_tokens)}",
+            )
+        rejected_output_tokens = matching_tokens(smoke_text, REJECTED_SMOKE_OUTPUT_TOKENS)
+        if rejected_output_tokens:
+            add_failure(
+                failures,
+                "smoke_gate_commands reuse rejected teacher-first smoke output directories: "
+                + ", ".join(rejected_output_tokens),
             )
 
     baseline_text = text_blob(manifest.get("baseline_comparisons"))

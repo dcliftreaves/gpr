@@ -554,6 +554,8 @@ pillar.
 | Premium still-SR noise-policy gate dashboard | `artifacts/premium_still_sr_noise_policy_gate_20260702/index.html` | `d90b74c5d864b13b51ea429955e1776be39cb040254e3ff71407449f62c5044d` |
 | Premium still-SR promotion gate receipt | `artifacts/premium_still_sr_promotion_gate_20260702/premium_still_sr_promotion_gate.json` | `6a4b74bf24d59b79b08b2873bc3ab330070a4024b0c9eb091d8d373db25634d7` |
 | Premium still-SR promotion gate dashboard | `artifacts/premium_still_sr_promotion_gate_20260702/index.html` | `c3ba02586a9aaa34c11b130f0f52b91b3aa15a6c4bb05a0251cf6d7396c46a0b` |
+| Premium still-SR rejected relaunch guard JSON | `artifacts/premium_still_sr_rejected_relaunch_guard_20260702/preflight_audit.json` | `9704fada01ca037bfdd6fa839a953425c2a9502ff05cdb0ed7a1baaca7dd3320` |
+| Premium still-SR rejected relaunch guard dashboard | `artifacts/premium_still_sr_rejected_relaunch_guard_20260702/index.html` | `83fd3f994f3e5b9319e22db048c863f6e47ae3079daf92f934e15402317343ab` |
 | Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `3d95db1c9c468034e11ef255d3f3606fb5546e4a77b0d7eb49b8b82d11aaad13` |
 | Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `ba0ddcc00db1f9b22d2e3c138051cbd375a6a5c6b78f87f9ab623e7ade062968` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |

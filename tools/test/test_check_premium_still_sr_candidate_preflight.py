@@ -294,6 +294,42 @@ def main() -> int:
         assert any("minimum_median_mae_reduction_pct" in item for item in weak_failed["failures"])
         assert any("minimum_worst_row_mae_reduction_pct" in item for item in weak_failed["failures"])
 
+        rejected_smoke = json.loads(passing.read_text(encoding="utf-8"))
+        rejected_smoke["candidate_id"] = "teacher_first_fullframe_raw_sr_smoke_v1"
+        rejected_smoke["smoke_gate_commands"] = [
+            (
+                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/premium_still_sr_clean_source_pairs_routed_t64.npz "
+                "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_x2d_20260702 "
+                "--holdout-image x2d --model-arch row_psf_teacher"
+            ),
+            (
+                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/premium_still_sr_clean_source_pairs_routed_t64.npz "
+                "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_z8_20260702 "
+                "--holdout-image z8 --model-arch row_psf_teacher"
+            ),
+        ]
+        rejected_smoke_path = base / "rejected_smoke.json"
+        rejected_smoke_audit = base / "rejected_smoke_audit.json"
+        write_json(rejected_smoke_path, rejected_smoke)
+        proc = run_tool(rejected_smoke_path, "--json-out", str(rejected_smoke_audit), "--require-launchable")
+        assert proc.returncode != 0
+        rejected_failed = json.loads(rejected_smoke_audit.read_text(encoding="utf-8"))
+        assert any("already rejected" in item for item in rejected_failed["failures"])
+        assert any("reuse rejected teacher-first smoke output directories" in item for item in rejected_failed["failures"])
+
+        renamed_rejected_smoke = json.loads(rejected_smoke_path.read_text(encoding="utf-8"))
+        renamed_rejected_smoke["candidate_id"] = "renamed_teacher_first_replay"
+        renamed_rejected_path = base / "renamed_rejected_smoke.json"
+        renamed_rejected_audit = base / "renamed_rejected_smoke_audit.json"
+        write_json(renamed_rejected_path, renamed_rejected_smoke)
+        proc = run_tool(renamed_rejected_path, "--json-out", str(renamed_rejected_audit), "--require-launchable")
+        assert proc.returncode != 0
+        renamed_failed = json.loads(renamed_rejected_audit.read_text(encoding="utf-8"))
+        assert not any("already rejected" in item for item in renamed_failed["failures"])
+        assert any("reuse rejected teacher-first smoke output directories" in item for item in renamed_failed["failures"])
+
     print("test_check_premium_still_sr_candidate_preflight: PASS")
     return 0
 

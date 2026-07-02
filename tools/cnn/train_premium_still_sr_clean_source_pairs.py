@@ -16,19 +16,37 @@ import html
 import json
 import math
 import random
+import sys
 import time
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+try:
+    import numpy as np
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+except ModuleNotFoundError as exc:  # pragma: no cover - exercised in lean CLI envs
+    np = None  # type: ignore[assignment]
+    torch = None  # type: ignore[assignment]
+    F = None  # type: ignore[assignment]
+
+    class _MissingNN:
+        Module = object
+
+    nn = _MissingNN()  # type: ignore[assignment]
+    _MISSING_DEPS_ERROR: ModuleNotFoundError | None = exc
+else:
+    _MISSING_DEPS_ERROR = None
 
 
 SCHEMA = "gpr.premium_still_sr_clean_source_pair_model.v1"
 RAW_SCALE = 16383.0
-DEVICE = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+DEVICE = (
+    torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    if torch is not None
+    else "unavailable"
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -494,6 +512,16 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=20260702)
     ap.add_argument("--eval-every", type=int, default=100)
     args = ap.parse_args()
+
+    if _MISSING_DEPS_ERROR is not None:
+        print(
+            "train_premium_still_sr_clean_source_pairs.py requires numpy and torch "
+            "for training. Install tools/cnn/requirements.txt in the active "
+            "Python environment before running a model.",
+            file=sys.stderr,
+        )
+        print(f"missing dependency: {_MISSING_DEPS_ERROR.name}", file=sys.stderr)
+        return 2
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     rng = random.Random(args.seed)

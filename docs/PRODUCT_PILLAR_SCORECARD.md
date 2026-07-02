@@ -368,6 +368,12 @@ forbids source raw, REF/JPEG content, and exact source-noise addback at render
 time, but it keeps the current clean-signal U-Net, routed pixelshuffle, and
 routed NAF/detail model receipts blocked because none clear the 15 percent /
 15 percent holdout MAE/RMSE floors.
+The rejected relaunch guard now lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rejected_relaunch_guard_20260702/index.html`.
+It blocks `teacher_first_fullframe_raw_sr_smoke_v1` before a long run because
+that candidate id and the X2D/Z8 smoke output directories are already tied to
+committed rejection receipts. The next local Gate A move must use a materially
+different candidate id, evidence path, and X2D/Z8 smoke plan.
 The superseded transformer-teacher contract remains archived at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html`.
 The trainer now has PSF/kernel-conditioned `_psf` feature modes that can consume

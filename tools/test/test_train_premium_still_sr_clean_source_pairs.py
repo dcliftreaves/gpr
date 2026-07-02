@@ -37,6 +37,21 @@ def make_target(inp: np.ndarray, delta: int) -> np.ndarray:
 
 
 def main() -> int:
+    help_proc = subprocess.run(
+        [sys.executable, str(TOOL), "--help"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if help_proc.returncode != 0:
+        print(help_proc.stdout)
+        print(help_proc.stderr, file=sys.stderr)
+        return help_proc.returncode
+    assert "Train/evaluate clean-source RAW pair SR" in help_proc.stdout
+    assert "--pairs" in help_proc.stdout
+    assert "--output-dir" in help_proc.stdout
+
     if np is None:
         print("test_train_premium_still_sr_clean_source_pairs: SKIP missing numpy/torch")
         return 0

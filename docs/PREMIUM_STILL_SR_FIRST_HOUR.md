@@ -126,6 +126,10 @@ production-promoted.
    rejected repeat and has architecture, degradation, validation, runtime,
    baseline, timing/memory, editor-latitude, editable-raw, and noise-policy
    receipts planned before it burns training time.
+   The checker now explicitly blocks relaunching
+   `teacher_first_fullframe_raw_sr_smoke_v1` and any candidate preflight that
+   reuses the rejected X2D/Z8 smoke output directories from the committed
+   20260702 teacher-first receipts.
    The preflight now also rejects generic Restormer-style, NAF/detail, U-Net,
    or local residual repeats unless the manifest names new source/evidence or a
    teacher-first holdout gate. Examples that can pass this intake are
@@ -193,7 +197,8 @@ production-promoted.
 |---|---|
 | Product promotion boundary | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_20260702/index.html` |
 | Experiment scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/index.html` |
-| Latest launchable preflight rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_20260702_next/index.html` |
+| Rejected relaunch guard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rejected_relaunch_guard_20260702/index.html` |
+| Historical launchable preflight now blocked if reused | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_20260702_next/index.html` |
 | Teacher-first X2D smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_x2d_20260702/index.html` |
 | Teacher-first Z8 smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_z8_20260702/index.html` |
 | Current next-experiment contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html` |

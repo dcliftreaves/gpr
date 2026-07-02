@@ -157,6 +157,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702",
                 "premium_still_sr_noise_policy_gate_20260702",
                 "premium_still_sr_promotion_gate_20260702",
+                "premium_still_sr_rejected_relaunch_guard_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
@@ -1110,6 +1111,53 @@ def require_dashboard_contract(
         for token in ("97-receipt experiment scoreboard", "97 runtime-safe"):
             if token not in readme_plain:
                 failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
+
+    if entry_id == "premium_still_sr_rejected_relaunch_guard_20260702":
+        if entry.get("status") != "experimental-blocker":
+            failures.append(f"{entry_id}: rejected relaunch guard must remain experimental-blocker")
+        purpose = str(entry.get("purpose", ""))
+        for token in (
+            "teacher_first_fullframe_raw_sr_smoke_v1",
+            "blocked_before_long_run",
+            "reused rejected X2D/Z8 smoke output directories",
+        ):
+            if token not in purpose:
+                failures.append(f"{entry_id}: purpose missing {token!r}")
+        receipts = entry.get("receipts")
+        required_receipts = {
+            "artifacts/premium_still_sr_rejected_relaunch_guard_20260702/preflight_audit.json",
+            "artifacts/premium_still_sr_rejected_relaunch_guard_20260702/index.html",
+        }
+        if not isinstance(receipts, list):
+            failures.append(f"{entry_id}: receipts must be a list")
+        elif required_receipts - {str(item) for item in receipts}:
+            failures.append(f"{entry_id}: missing rejected relaunch guard receipts")
+        hashes = entry.get("hashes")
+        if not isinstance(hashes, dict):
+            failures.append(f"{entry_id}: rejected relaunch guard needs hashes")
+        else:
+            expected_hashes = {
+                "preflight_audit_json_sha256": "9704fada01ca037bfdd6fa839a953425c2a9502ff05cdb0ed7a1baaca7dd3320",
+                "dashboard_sha256": "83fd3f994f3e5b9319e22db048c863f6e47ae3079daf92f934e15402317343ab",
+            }
+            for key, expected in expected_hashes.items():
+                if hashes.get(key) != expected:
+                    failures.append(f"{entry_id}: hash {key} must stay {expected}")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: rejected relaunch guard needs metrics")
+        else:
+            expected_metrics = {
+                "launchable_for_production_attempt": 0,
+                "production_ready": 0,
+                "failure_count": 2,
+                "rejected_candidate_id_blocked": 1,
+                "rejected_output_dirs_blocked": 1,
+                "verdict_blocked_before_long_run": 1,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
 
     if entry_id == "premium_still_sr_promotion_gate_20260702":
         if entry.get("status") != "experimental-blocker":

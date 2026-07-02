@@ -83,6 +83,7 @@
           "premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702",
           "premium_still_sr_noise_policy_gate_20260702",
           "premium_still_sr_promotion_gate_20260702",
+          "premium_still_sr_rejected_relaunch_guard_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -2239,6 +2240,35 @@
         "clean_signal_policy_pass": 1,
         "model_policy_pass_count": 0,
         "requirement_status_open": 1
+      }
+    },
+    {
+      "id": "premium_still_sr_rejected_relaunch_guard_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Candidate-preflight guard proving teacher_first_fullframe_raw_sr_smoke_v1 is blocked_before_long_run because it reuses a committed rejected candidate id and reused rejected X2D/Z8 smoke output directories.",
+      "dashboard": "artifacts/premium_still_sr_rejected_relaunch_guard_20260702/index.html",
+      "docs": [
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_rejected_relaunch_guard_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_rejected_relaunch_guard_20260702/index.html"
+      ],
+      "hashes": {
+        "preflight_audit_json_sha256": "9704fada01ca037bfdd6fa839a953425c2a9502ff05cdb0ed7a1baaca7dd3320",
+        "dashboard_sha256": "83fd3f994f3e5b9319e22db048c863f6e47ae3079daf92f934e15402317343ab"
+      },
+      "metrics": {
+        "verdict_blocked_before_long_run": 1,
+        "launchable_for_production_attempt": 0,
+        "production_ready": 0,
+        "failure_count": 2,
+        "rejected_candidate_id_blocked": 1,
+        "rejected_output_dirs_blocked": 1
       }
     },
     {
