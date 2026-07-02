@@ -602,7 +602,105 @@ def validate_psf_pairs(rid: str, req: dict[str, Any], submission: dict[str, Any]
     return pass_result(rid, f"accepted {accepted} controlled PSF pair(s) plus negative controls", accepted)
 
 
-def validate_premium_still_sr(rid: str, submission: dict[str, Any]) -> dict[str, Any]:
+def valid_hash_value(value: Any) -> bool:
+    return isinstance(value, str) and bool(SHA_RE.match(value))
+
+
+def validate_premium_smoke_receipt(
+    row: dict[str, Any],
+    *,
+    holdout: str,
+    path_key: str,
+    path_root: Path | None,
+    failures: list[str],
+) -> None:
+    receipt = load_local_json(row.get(path_key), path_root, failures, path_key)
+    if receipt is None:
+        return
+    label = holdout.lower()
+    receipt_holdout = str(receipt.get("holdout") or receipt.get("camera") or "").lower()
+    if label not in receipt_holdout:
+        failures.append(f"{path_key} must identify {holdout} as the smoke holdout")
+    if not receipt.get("baseline_comparison"):
+        failures.append(f"{path_key} must include baseline_comparison")
+    for key in ("checkpoint_hash", "training_config_hash"):
+        if not valid_hash_value(receipt.get(key)):
+            failures.append(f"{path_key} {key} must be a 64-hex hash")
+    median = receipt.get("median_mae_reduction_pct")
+    if median is None:
+        median = receipt.get(f"{label}_smoke_median_mae_reduction_pct")
+    worst = receipt.get("worst_row_mae_reduction_pct")
+    if worst is None:
+        worst = receipt.get(f"{label}_smoke_worst_row_mae_reduction_pct")
+    ok, failure = number_greater_than({"value": median}, "value", 0)
+    if not ok:
+        failures.append(f"{path_key} median_mae_reduction_pct {failure.removeprefix('value ')}")
+    ok, failure = number_at_least({"value": worst}, "value", 0)
+    if not ok:
+        failures.append(f"{path_key} worst_row_mae_reduction_pct {failure.removeprefix('value ')}")
+
+
+def validate_premium_preflight_content(row: dict[str, Any], path_root: Path | None, failures: list[str]) -> None:
+    audit = load_local_json(
+        row.get("candidate_preflight_audit_path"),
+        path_root,
+        failures,
+        "candidate_preflight_audit",
+    )
+    if audit is not None:
+        if audit.get("schema") != "gpr.premium_still_sr_candidate_preflight_audit.v1":
+            failures.append("candidate_preflight_audit schema must be gpr.premium_still_sr_candidate_preflight_audit.v1")
+        if audit.get("launchable_for_production_attempt") is not True:
+            failures.append("candidate_preflight_audit launchable_for_production_attempt must be true")
+        if audit.get("verdict") != "launchable_preflight_passed":
+            failures.append("candidate_preflight_audit verdict must be launchable_preflight_passed")
+        if audit.get("production_ready") is True or audit.get("promotion_claimed") is True:
+            failures.append("candidate_preflight_audit must not claim production readiness or promotion")
+        acceptance = audit.get("smoke_gate_acceptance")
+        if not isinstance(acceptance, dict):
+            failures.append("candidate_preflight_audit missing smoke_gate_acceptance")
+        else:
+            baseline = str(acceptance.get("baseline") or "").lower()
+            if "same-color" not in baseline or "interpolation" not in baseline:
+                failures.append("candidate_preflight_audit smoke_gate_acceptance baseline must be same-color Bayer interpolation")
+            holdouts = {str(item).lower() for item in as_list(acceptance.get("required_holdouts"))}
+            missing = sorted(PREMIUM_REQUIRED_SMOKE_HOLDOUTS - holdouts)
+            if missing:
+                failures.append("candidate_preflight_audit smoke_gate_acceptance missing holdout(s): " + ", ".join(missing))
+
+    packet = load_local_json(row.get("launch_packet_path"), path_root, failures, "launch_packet")
+    if packet is not None:
+        if packet.get("schema") != "gpr.premium_still_sr_launch_packet.v1":
+            failures.append("launch_packet schema must be gpr.premium_still_sr_launch_packet.v1")
+        preflight = packet.get("preflight") if isinstance(packet.get("preflight"), dict) else {}
+        if preflight.get("launchable_for_production_attempt") is not True:
+            failures.append("launch_packet preflight.launchable_for_production_attempt must be true")
+        if preflight.get("verdict") != "launchable_preflight_passed":
+            failures.append("launch_packet preflight.verdict must be launchable_preflight_passed")
+
+    validate_premium_smoke_receipt(
+        row,
+        holdout="X2D",
+        path_key="x2d_smoke_receipt_path",
+        path_root=path_root,
+        failures=failures,
+    )
+    validate_premium_smoke_receipt(
+        row,
+        holdout="Z8",
+        path_key="z8_smoke_receipt_path",
+        path_root=path_root,
+        failures=failures,
+    )
+
+
+def validate_premium_still_sr(
+    rid: str,
+    submission: dict[str, Any],
+    *,
+    require_existing_files: bool = False,
+    path_root: Path | None = None,
+) -> dict[str, Any]:
     row = record_for(submission, rid)
     required_hashes = [
         "candidate_preflight_manifest_sha256",
@@ -687,6 +785,8 @@ def validate_premium_still_sr(rid: str, submission: dict[str, Any]) -> dict[str,
         failures.append("noise_policy_exact_sidecars_only must be true")
     if row.get("noise_policy_forbids_source_residual_noise") is not True:
         failures.append("noise_policy_forbids_source_residual_noise must be true")
+    if require_existing_files:
+        validate_premium_preflight_content(row, path_root, failures)
     if failures:
         return fail_result(rid, failures, 1 if row else 0)
     return pass_result(rid, "premium still-SR promotion evidence passes manifest checks", 1)
@@ -716,7 +816,12 @@ def validate_requirement(
     if sample_type == "controlled_same_scene_high_low_raw_pair_stack":
         return validate_psf_pairs(rid, req, submission)
     if sample_type == "model_promotion_receipt":
-        return validate_premium_still_sr(rid, submission)
+        return validate_premium_still_sr(
+            rid,
+            submission,
+            require_existing_files=require_existing_files,
+            path_root=path_root,
+        )
     return fail_result(rid, [f"unsupported requirement sample_type {sample_type!r}"])
 
 

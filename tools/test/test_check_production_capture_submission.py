@@ -72,6 +72,84 @@ def write_darkframe_audits(submission: dict, bundle: Path) -> None:
         record["source_provenance_audit_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def write_premium_still_sr_receipts(submission: dict, bundle: Path) -> None:
+    record = next(row for row in submission["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
+
+    def write_record(path_key: str, hash_key: str, payload: dict) -> None:
+        path = bundle / record[path_key]
+        path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        record[hash_key] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    write_record(
+        "candidate_preflight_manifest_path",
+        "candidate_preflight_manifest_sha256",
+        {
+            "schema": "gpr.premium_still_sr_candidate_preflight.v1",
+            "candidate_id": "fixture_candidate",
+            "launchable_for_production_attempt": True,
+            "smoke_gate_acceptance": {
+                "baseline": "same-color Bayer interpolation",
+                "required_holdouts": ["X2D", "Z8"],
+            },
+        },
+    )
+    write_record(
+        "candidate_preflight_audit_path",
+        "candidate_preflight_audit_sha256",
+        {
+            "schema": "gpr.premium_still_sr_candidate_preflight_audit.v1",
+            "launchable_for_production_attempt": True,
+            "production_ready": False,
+            "promotion_claimed": False,
+            "verdict": "launchable_preflight_passed",
+            "smoke_gate_acceptance": {
+                "baseline": "same-color Bayer interpolation",
+                "required_holdouts": ["X2D", "Z8"],
+            },
+        },
+    )
+    write_record(
+        "launch_packet_path",
+        "launch_packet_sha256",
+        {
+            "schema": "gpr.premium_still_sr_launch_packet.v1",
+            "preflight": {
+                "launchable_for_production_attempt": True,
+                "verdict": "launchable_preflight_passed",
+            },
+        },
+    )
+    write_record(
+        "x2d_smoke_receipt_path",
+        "x2d_smoke_receipt_sha256",
+        {
+            "holdout": "X2D",
+            "baseline_comparison": "same-color Bayer interpolation",
+            "checkpoint_hash": SHA,
+            "training_config_hash": SHA,
+            "median_mae_reduction_pct": record["x2d_smoke_median_mae_reduction_pct"],
+            "worst_row_mae_reduction_pct": record["x2d_smoke_worst_row_mae_reduction_pct"],
+        },
+    )
+    write_record(
+        "z8_smoke_receipt_path",
+        "z8_smoke_receipt_sha256",
+        {
+            "holdout": "Z8",
+            "baseline_comparison": "same-color Bayer interpolation",
+            "checkpoint_hash": SHA,
+            "training_config_hash": SHA,
+            "median_mae_reduction_pct": record["z8_smoke_median_mae_reduction_pct"],
+            "worst_row_mae_reduction_pct": record["z8_smoke_worst_row_mae_reduction_pct"],
+        },
+    )
+    write_record(
+        "baseline_comparison_path",
+        "baseline_comparison_sha256",
+        {"baseline": "same-color Bayer interpolation", "holdouts": ["X2D", "Z8"]},
+    )
+
+
 def temp_root() -> Path:
     root = Path(os.environ.get("GPR_TMPDIR") or "/Volumes/OWC_8TB/gpr_work/tmp")
     if not root.exists():
@@ -222,16 +300,22 @@ def valid_submission() -> dict:
             },
             {
                 "id": "premium_still_sr_promotion_receipts",
+                "candidate_preflight_manifest_path": "/captures/candidate_preflight.json",
                 "candidate_preflight_manifest_sha256": SHA,
+                "candidate_preflight_audit_path": "/captures/preflight_audit.json",
                 "candidate_preflight_audit_sha256": SHA,
                 "candidate_preflight_launchable": True,
+                "launch_packet_path": "/captures/launch_packet.json",
                 "launch_packet_sha256": SHA,
                 "smoke_gate_baseline": "same-color Bayer interpolation",
                 "smoke_gate_required_holdouts": ["X2D", "Z8"],
                 "smoke_gate_passed": True,
                 "smoke_gate_long_run_blocked_if_smoke_fails": True,
+                "x2d_smoke_receipt_path": "/captures/x2d_smoke_receipt.json",
                 "x2d_smoke_receipt_sha256": SHA,
+                "z8_smoke_receipt_path": "/captures/z8_smoke_receipt.json",
                 "z8_smoke_receipt_sha256": SHA,
+                "baseline_comparison_path": "/captures/baseline_comparison.json",
                 "baseline_comparison_sha256": SHA,
                 "x2d_smoke_median_mae_reduction_pct": 0.25,
                 "z8_smoke_median_mae_reduction_pct": 0.5,
@@ -451,6 +535,7 @@ def main() -> int:
         bundle = work / "bundle"
         materialize_path_hashes(strict, bundle, [0])
         write_darkframe_audits(strict, bundle)
+        write_premium_still_sr_receipts(strict, bundle)
         manifest.write_text(json.dumps(strict, indent=2) + "\n", encoding="utf-8")
         proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
         if proc.returncode != 0:
@@ -476,6 +561,19 @@ def main() -> int:
         proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
         assert proc.returncode == 1
         assert "not covered by source_provenance_audit" in proc.stdout
+
+        bad = json.loads(json.dumps(strict))
+        premium = next(row for row in bad["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
+        preflight_path = bundle / premium["candidate_preflight_audit_path"]
+        preflight = json.loads(preflight_path.read_text(encoding="utf-8"))
+        preflight["launchable_for_production_attempt"] = False
+        preflight["verdict"] = "blocked_before_long_run"
+        preflight_path.write_text(json.dumps(preflight, indent=2) + "\n", encoding="utf-8")
+        premium["candidate_preflight_audit_sha256"] = hashlib.sha256(preflight_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "candidate_preflight_audit launchable_for_production_attempt must be true" in proc.stdout
 
     print("test_check_production_capture_submission: PASS")
     return 0
