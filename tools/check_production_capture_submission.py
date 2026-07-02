@@ -33,6 +33,8 @@ REQUIRED_CAMERA_ROLE_RECEIPTS = {
     "preview_ui_receipt",
     "mission1_camera_closure_run",
 }
+CAMERA_STORAGE_ALLOWED_TOKENS = {"mission", "camera", "sd", "internal", "lexar", "silver"}
+CAMERA_STORAGE_FORBIDDEN_TOKENS = {"pi", "standin", "stand_in", "stand-in", "proxy", "ssd", "tmp", "tmpfs", "ramdisk"}
 PSF_HIGH_DIMS = (8192, 6144)
 PSF_LOW_DIMS = (4096, 3072)
 PSF_HIGH_BYTES = PSF_HIGH_DIMS[0] * PSF_HIGH_DIMS[1] * 2
@@ -562,6 +564,21 @@ def load_named_receipt(
     return load_local_json(receipt_path(receipts, name), path_root, failures, name)
 
 
+def label_key(value: Any) -> str:
+    return str(value or "").strip().casefold().replace("-", "_").replace(" ", "_")
+
+
+def validate_camera_storage_medium_label(row: dict[str, Any], failures: list[str]) -> None:
+    label = label_key(row.get("storage_medium"))
+    if not label or label.startswith("<"):
+        failures.append("storage_medium must name the real Mission/camera storage medium")
+        return
+    if any(token in label for token in CAMERA_STORAGE_FORBIDDEN_TOKENS):
+        failures.append("storage_medium must not name Pi, SSD, tmpfs, proxy, or stand-in storage")
+    if not any(token in label for token in CAMERA_STORAGE_ALLOWED_TOKENS):
+        failures.append("storage_medium must name Mission/camera SD, internal, or Lexar-class storage")
+
+
 def validate_strict_camera_role_receipt_content(
     row: dict[str, Any],
     *,
@@ -872,6 +889,7 @@ def validate_camera_role_receipts(
         failures.append(failure)
     if row.get("storage_budget_passed") is not True:
         failures.append("storage_budget_passed must be true")
+    validate_camera_storage_medium_label(row, failures)
     if row.get("preview_full_frame") is not True:
         failures.append("preview_full_frame must be true")
     if require_existing_files:

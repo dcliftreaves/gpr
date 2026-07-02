@@ -97,7 +97,9 @@ checker requires source hashes, fixed camera metadata, no-scene-signal flags for
 darkframes, camera-role Mission 1 receipts, and strict no-REF premium still-SR
 promotion receipts. Camera-role Mission 1 rows must include `gvid_path`,
 `gvid_sha256`, `source_width=4096`, `source_height=3072`, `source_fps>=20`,
-`encode_fps>=20`, `storage_medium`, `storage_write_mb_s>0`,
+`encode_fps>=20`, a real Mission/camera SD, internal, or Lexar-class
+`storage_medium` label that is not Pi/SSD/tmp/proxy stand-in storage,
+`storage_write_mb_s>0`,
 `storage_budget_passed=true`, `peak_rss_mb>0`, `preview_width=1024`,
 `preview_height=768`, and `preview_fps>=20`. Darkframe rows must set `source_kind` to
 `confirmed_darkframes`, `flat_dark_pair`, or `equivalent_no_scene_stack`, carry

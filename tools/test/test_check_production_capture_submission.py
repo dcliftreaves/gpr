@@ -907,6 +907,13 @@ def main() -> int:
         assert "storage_budget_passed must be true" in proc.stdout
 
         bad = valid_submission()
+        bad["requirements"][4]["storage_medium"] = "Pi 5 SSD tmpfs stand-in"
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "storage_medium must not name Pi, SSD, tmpfs, proxy, or stand-in storage" in proc.stdout
+
+        bad = valid_submission()
         bad["requirements"][6]["no_ref_runtime"] = False
         manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
         proc = run_tool(manifest)

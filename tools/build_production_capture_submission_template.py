@@ -111,7 +111,7 @@ def camera_role_template() -> dict[str, Any]:
         "source_height": 3072,
         "source_fps": "<measured_source_fps>",
         "encode_fps": "<measured_encode_fps>",
-        "storage_medium": "<Mission_1_SD_or_internal_storage_label>",
+        "storage_medium": "<Mission_1_SD_or_internal_camera_storage_label_not_Pi_SSD_tmp_or_proxy>",
         "storage_write_mb_s": "<measured_storage_write_MB_per_s>",
         "storage_budget_passed": True,
         "peak_rss_mb": "<peak_resident_set_MB>",
