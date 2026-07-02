@@ -486,10 +486,11 @@ remain open.
 | Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html` | `01eceab64395920d6818dc9b524801d350bca2f5cd252e57f0deee9d2020bb7b` |
 | Current raw-stills capture request JSON | `artifacts/stills_capture_request_strict_provenance_20260701/stills_capture_request.json` | `a6dfad28cf05b771226614c4a6316fbec7bcfec7b91e6347c959db0decc762c2` |
 | Current raw-stills capture request dashboard | `artifacts/stills_capture_request_strict_provenance_20260701/index.html` | `c067a6faa811908c19bfd6c99ac70ac75dcc653251d4bba4c9d31233a096f5b1` |
-| Mission/iPhone darkframe provenance packet JSON | `artifacts/darkframe_provenance_review_packet_commands_20260702/darkframe_provenance_review_packet.json` | `e868956f576ced658c49240c5569fb127add8418f818bf803d10b3f490e8ce34` |
-| Mission/iPhone darkframe provenance packet dashboard | `artifacts/darkframe_provenance_review_packet_commands_20260702/index.html` | `02e45c19d3b78d12317607cf67c622dac487a1f3b51dd7fdcdf43ba14d36a11a` |
-| iPhone darkframe provenance template | `artifacts/darkframe_provenance_review_packet_commands_20260702/source_provenance_manifest_templates/iphone_cfa_darkframe_stack__Apple_iPhone_7_Plus_ISO1250_RGGB.template.json` | `f6a95718ca973acb89467a99de97c2cadfbe91158305092874407f66dfe2abdd` |
-| Mission 1 darkframe provenance template | `artifacts/darkframe_provenance_review_packet_commands_20260702/source_provenance_manifest_templates/mission1_darkframe_stack__GoPro_MISSION_1_ISO232_RGGB.template.json` | `51b649476055a12268e6a661bf536e3e79d99c123b7ca1ef621beb10c7ac8079` |
+| Mission/iPhone darkframe provenance packet JSON | `artifacts/darkframe_provenance_review_packet_100_percent_20260702/darkframe_provenance_review_packet.json` | `52d825deb046a0bbb90e457759e39c32da8ecf3d7c607441b6562e67a75b9b7e` |
+| Mission/iPhone darkframe provenance packet dashboard | `artifacts/darkframe_provenance_review_packet_100_percent_20260702/index.html` | `d962acd4425f712c0e4aa5ffbf9c5ed703b4b6a707a31e40d5ca36b4521381dd` |
+| Mission/iPhone darkframe extraction progress JSON | `artifacts/darkframe_provenance_review_packet_100_percent_20260702/darkframe_extraction_progress.json` | `a7dc40baf4b53e35fae2ff7f8017f336e0d9d1e61c2ec5451fb2fbf4cd0e62cc` |
+| iPhone darkframe provenance template | `artifacts/darkframe_provenance_review_packet_100_percent_20260702/source_provenance_manifest_templates/iphone_cfa_darkframe_stack__Apple_iPhone_7_Plus_ISO1250_RGGB.template.json` | `f6a95718ca973acb89467a99de97c2cadfbe91158305092874407f66dfe2abdd` |
+| Mission 1 darkframe provenance template | `artifacts/darkframe_provenance_review_packet_100_percent_20260702/source_provenance_manifest_templates/mission1_darkframe_stack__GoPro_MISSION_1_ISO232_RGGB.template.json` | `51b649476055a12268e6a661bf536e3e79d99c123b7ca1ef621beb10c7ac8079` |
 
 ## Premium Still-SR Gap Artifacts
 

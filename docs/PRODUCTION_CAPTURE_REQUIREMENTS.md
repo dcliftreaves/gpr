@@ -169,15 +169,17 @@ into an auditable pass/fail package.
   This is the shortest human runbook for producing a promotable Mission 1 or
   iPhone darkframe sidecar package.
 - Darkframe provenance review packet:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_commands_20260702/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_100_percent_20260702/index.html`
   This packet hashes the current lowest-lift Mission 1 and iPhone CFA
   candidates, writes fill-in templates under
   `source_provenance_manifest_templates`, emits the exact extraction,
   source-provenance-audit, and noise-sidecar promotion command path, and reports
-  `production_sidecar_ready=false`. `mission1_darkframe_stack` still needs 2
-  additional matching true darkframes. `iphone_cfa_darkframe_stack` has 27
-  candidate ISO1250 RGGB files but still needs confirmed no-scene source
-  provenance before it can close.
+  `production_sidecar_ready=false`. The companion
+  `darkframe_extraction_progress` receipt records uint16 Bayer extraction for 2
+  Mission 1 candidates and 4 iPhone candidates, but `mission1_darkframe_stack`
+  still needs 2 additional matching true darkframes and
+  `iphone_cfa_darkframe_stack` still needs confirmed no-scene source provenance
+  before either sidecar can close.
 - Optional raw-video PSF research capture request:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`
 - Premium still-SR first-hour promotion checklist:

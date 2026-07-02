@@ -2522,11 +2522,11 @@
       }
     },
     {
-      "id": "darkframe_provenance_review_packet_commands_20260702",
+      "id": "darkframe_provenance_review_packet_100_percent_20260702",
       "family": "stills_fixtures",
       "status": "current",
-      "purpose": "Hash-strict Mission/iPhone darkframe provenance review packet. It records the exact lowest-lift candidate DNG source hashes, writes fill-in provenance manifest template files, and emits the extraction/provenance-audit/noise-sidecar promotion command path while keeping production sidecar readiness false until no-scene-signal confirmation and uint16 Bayer extraction receipts exist.",
-      "dashboard": "artifacts/darkframe_provenance_review_packet_commands_20260702/index.html",
+      "purpose": "Current hash-strict Mission/iPhone darkframe provenance review packet. It records the exact lowest-lift candidate DNG source hashes, writes fill-in provenance manifest template files, records uint16 Bayer extraction progress for 2 Mission 1 candidates and 4 iPhone candidates, and keeps production sidecar readiness false until Mission 1 has two additional matching true darkframes and iPhone no-scene-signal confirmation exists.",
+      "dashboard": "artifacts/darkframe_provenance_review_packet_100_percent_20260702/index.html",
       "docs": [
         "README.md",
         "docs/CAMERA_NOISE_CALIBRATION.md",
@@ -2534,20 +2534,25 @@
         "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md"
       ],
       "receipts": [
-        "artifacts/darkframe_provenance_review_packet_commands_20260702/darkframe_provenance_review_packet.json",
-        "artifacts/darkframe_provenance_review_packet_commands_20260702/index.html",
-        "artifacts/darkframe_provenance_review_packet_commands_20260702/source_provenance_manifest_templates/iphone_cfa_darkframe_stack__Apple_iPhone_7_Plus_ISO1250_RGGB.template.json",
-        "artifacts/darkframe_provenance_review_packet_commands_20260702/source_provenance_manifest_templates/mission1_darkframe_stack__GoPro_MISSION_1_ISO232_RGGB.template.json"
+        "artifacts/darkframe_provenance_review_packet_100_percent_20260702/darkframe_provenance_review_packet.json",
+        "artifacts/darkframe_provenance_review_packet_100_percent_20260702/index.html",
+        "artifacts/darkframe_provenance_review_packet_100_percent_20260702/darkframe_extraction_progress.json",
+        "artifacts/darkframe_provenance_review_packet_100_percent_20260702/source_provenance_manifest_templates/iphone_cfa_darkframe_stack__Apple_iPhone_7_Plus_ISO1250_RGGB.template.json",
+        "artifacts/darkframe_provenance_review_packet_100_percent_20260702/source_provenance_manifest_templates/mission1_darkframe_stack__GoPro_MISSION_1_ISO232_RGGB.template.json"
       ],
       "hashes": {
-        "darkframe_provenance_review_packet_json_sha256": "e868956f576ced658c49240c5569fb127add8418f818bf803d10b3f490e8ce34",
-        "dashboard_sha256": "02e45c19d3b78d12317607cf67c622dac487a1f3b51dd7fdcdf43ba14d36a11a",
+        "darkframe_provenance_review_packet_json_sha256": "52d825deb046a0bbb90e457759e39c32da8ecf3d7c607441b6562e67a75b9b7e",
+        "dashboard_sha256": "d962acd4425f712c0e4aa5ffbf9c5ed703b4b6a707a31e40d5ca36b4521381dd",
+        "darkframe_extraction_progress_json_sha256": "a7dc40baf4b53e35fae2ff7f8017f336e0d9d1e61c2ec5451fb2fbf4cd0e62cc",
         "iphone_template_sha256": "f6a95718ca973acb89467a99de97c2cadfbe91158305092874407f66dfe2abdd",
         "mission1_template_sha256": "51b649476055a12268e6a661bf536e3e79d99c123b7ca1ef621beb10c7ac8079"
       },
       "metrics": {
         "candidate_source_count": 29,
+        "extracted_frame_count": 6,
+        "iphone_extracted_count": 4,
         "minimum_additional_darkframes_needed": 2,
+        "mission1_extracted_count": 2,
         "promotion_command_groups": 2,
         "production_sidecar_ready": 0,
         "provenance_manifest_template_file_count": 2,
