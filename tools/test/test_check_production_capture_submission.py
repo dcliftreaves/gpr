@@ -69,6 +69,17 @@ def write_darkframe_audits(submission: dict, bundle: Path) -> None:
                     "extract_receipt_sha256": row["extract_receipt_sha256"],
                     "ready": True,
                     "linear_raw": False,
+                    "metadata": {
+                        "make": row["make"],
+                        "model": row["model"],
+                        "iso": row["iso"],
+                        "width": row["width"],
+                        "height": row["height"],
+                        "bit_depth": row["bit_depth"],
+                        "black_level": row["black_level"],
+                        "white_level": row["white_level"],
+                        "cfa_phase": row["cfa_phase"],
+                    },
                 }
             )
         audit = {
@@ -1197,6 +1208,22 @@ def main() -> int:
         proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
         assert proc.returncode == 1
         assert "source_provenance_audit ready frames must record linear_raw=false" in proc.stdout
+        write_darkframe_audits(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        dark = bad["requirements"][0]
+        audit_path = bundle / dark["source_provenance_audit_path"]
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit["frames"][0]["metadata"]["iso"] = 9999
+        audit["frames"][0]["metadata"]["cfa_phase"] = "BGGR"
+        audit_path.write_text(json.dumps(audit, indent=2) + "\n", encoding="utf-8")
+        dark["source_provenance_audit_sha256"] = hashlib.sha256(audit_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "source_provenance_audit frame metadata must match submitted darkframe stack" in proc.stdout
+        assert "iso" in proc.stdout
+        assert "cfa_phase" in proc.stdout
         write_darkframe_audits(strict, bundle)
 
         bad = json.loads(json.dumps(strict))

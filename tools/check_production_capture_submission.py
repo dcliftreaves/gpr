@@ -355,6 +355,17 @@ def submission_darkframe_signature(row: dict[str, Any]) -> tuple[str | None, str
     )
 
 
+def darkframe_metadata_matches(submitted: dict[str, Any], audit_frame: dict[str, Any]) -> list[str]:
+    metadata = audit_frame.get("metadata") if isinstance(audit_frame.get("metadata"), dict) else {}
+    failures: list[str] = []
+    for key in ("make", "model", "iso", "width", "height", "bit_depth", "black_level", "white_level"):
+        if str(metadata.get(key)) != str(submitted.get(key)):
+            failures.append(key)
+    if str(metadata.get("cfa_phase") or "").upper() != str(submitted.get("cfa_phase") or "").upper():
+        failures.append("cfa_phase")
+    return failures
+
+
 def validate_darkframe_audit_coverage(
     record: dict[str, Any],
     submitted_rows: list[dict[str, Any]],
@@ -376,15 +387,24 @@ def validate_darkframe_audit_coverage(
     audit_signatures = {audit_frame_signature(frame) for frame in ready_frames}
     if len(audit_signatures) < min_count:
         failures.append(f"source_provenance_audit file has {len(audit_signatures)} ready frame signature(s), need {min_count}")
+    frames_by_signature = {audit_frame_signature(frame): frame for frame in ready_frames}
     for frame in ready_frames:
         if frame.get("linear_raw") is not False:
             failures.append("source_provenance_audit ready frames must record linear_raw=false")
     for row in submitted_rows:
         signature = submission_darkframe_signature(row)
-        if signature not in audit_signatures:
+        audit_frame = frames_by_signature.get(signature)
+        if audit_frame is None:
             failures.append(
                 "darkframe evidence row is not covered by source_provenance_audit "
                 f"(extracted/source/receipt hash triple {signature})"
+            )
+            continue
+        metadata_failures = darkframe_metadata_matches(row, audit_frame)
+        if metadata_failures:
+            failures.append(
+                "source_provenance_audit frame metadata must match submitted darkframe stack "
+                f"for {', '.join(metadata_failures)}"
             )
 
 
