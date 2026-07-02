@@ -338,13 +338,14 @@ percent median RMSE recovery, but Z8 fails at -0.0736 percent median MAE and
 Z8 source/degradation target, teacher objective, or camera conditioning changes
 and a new paired X2D/Z8 smoke receipt passes.
 The current route-specialist readiness audit lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_route_readiness_20260702/index.html`.
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_route_readiness_with_rendered_20260702/index.html`.
 It selects the route-specialist/raw-CFA path as the next production direction:
 Mission 1 50 MP DNG/GPR, Z8 50 MP DNG, and X2D 100 MP DNG have route coverage
-and positive full-frame metric floors. It does not promote Premium Still/SR;
-the remaining blockers are rendered/editor-latitude review for every route,
-exact-sidecar-only noise policy in target construction, and production
-submission validation.
+and positive full-frame metric floors, and the routed rendered EV-stress proxy
+review covers Mission1/Z8/X2D with 36 rows and 33 model-better rows. It does not
+promote Premium Still/SR; the remaining blockers are true raw-editor
+latitude/openability for every route, exact-sidecar-only noise policy in target
+construction, and production submission validation.
 
 The premium still-SR blocker audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html`.

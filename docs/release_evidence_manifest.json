@@ -97,7 +97,8 @@
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629",
-          "premium_still_sr_route_readiness_20260702"
+          "premium_still_sr_route_readiness_20260702",
+          "premium_still_sr_route_readiness_with_rendered_20260702"
         ]
       },
       "open_gate": "Candidate-only 50 MP / 100 MP still-SR must clear broad Z8/X2D holdouts, editor-latitude review, and worst-row visual gates."
@@ -2644,6 +2645,56 @@
         "mission1_median_mae_improvement_pct": 46.672211992843614,
         "z8_median_mae_improvement_pct": 7.855391652779584,
         "x2d_median_mae_improvement_pct": 1.1989708797367278,
+        "clean_source_split_long_run_blocked": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_route_readiness_with_rendered_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Route-specialist Premium Still/SR readiness audit refreshed with the routed rendered EV-stress proxy review. Route coverage, positive full-frame metric floors, and rendered proxy coverage are ready for Mission 1, Z8, and X2D; production remains blocked by true raw-editor latitude/openability, exact-sidecar-only noise policy, and production submission validation.",
+      "dashboard": "artifacts/premium_still_sr_route_readiness_with_rendered_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_route_readiness.py",
+        "tools/test/test_build_premium_still_sr_route_readiness.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_route_readiness_with_rendered_20260702/route_readiness.json",
+        "artifacts/premium_still_sr_route_readiness_with_rendered_20260702/index.html",
+        "artifacts/premium_still_sr_rendered_review_routed_20260630/rendered_review.json",
+        "artifacts/premium_still_sr_rendered_review_routed_20260630/index.html",
+        "artifacts/premium_still_sr_rendered_review_routed_20260630/rendered_latitude_contact_sheet.jpg"
+      ],
+      "hashes": {
+        "route_readiness_json_sha256": "221fef0c7d7193576c0209680172e34e1638f2b4311f4d9622ab2d39963c2536",
+        "dashboard_sha256": "7386f06f1bdf3e0d1d4f650c47372cfac2b0e2725d6d89a737a3bcc56dd00b4b",
+        "rendered_review_json_sha256": "4f46ae35f0124e1dfbaf5331a73586657712c26de7a11bb5f8bc74307d7c0be3",
+        "rendered_review_dashboard_sha256": "f5fe20d411c0e8231e887e931891590040cb4a4dcc6d17f60febfdb1ce3d8b64",
+        "rendered_review_contact_sheet_sha256": "9486b3b47ca80fe67e22524c6c9a549197ba6e7b6d6f137ce9dce9d58644673e"
+      },
+      "metrics": {
+        "required_route_count": 4,
+        "route_coverage_ready": 1,
+        "fullframe_metric_floor_ready": 1,
+        "rendered_proxy_review_ready": 1,
+        "rendered_proxy_row_count": 36,
+        "rendered_proxy_model_better_count": 33,
+        "rendered_proxy_model_worse_count": 3,
+        "rendered_proxy_median_model_minus_baseline_mae": -0.00018307846039533615,
+        "mission1_median_mae_improvement_pct": 46.672211992843614,
+        "z8_median_mae_improvement_pct": 7.855391652779584,
+        "x2d_median_mae_improvement_pct": 1.1989708797367278,
+        "raw_editor_latitude_openability_ready": 0,
+        "exact_sidecar_noise_policy_ready": 0,
+        "production_submission_ready": 0,
         "clean_source_split_long_run_blocked": 1,
         "production_ready": 0
       }

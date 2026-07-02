@@ -26,10 +26,11 @@ REQUIRED_ROUTES = (
     "x2d:100mp:dng",
 )
 REQUIRED_BLOCKERS = (
-    "rendered/editor-latitude review is not present for every route",
+    "raw-editor latitude/openability receipt is not present for every route",
     "exact-sidecar-only noise policy is not wired into every routed target",
     "50 MP and 100 MP promotion submission has not passed check_production_capture_submission.py",
 )
+REQUIRED_RENDERED_ROUTES = ("mission1", "z8", "x2d")
 
 
 def external_root() -> Path:
@@ -130,6 +131,52 @@ def summarize_smoke(root: Path, path: Path) -> dict[str, Any]:
     }
 
 
+def summarize_rendered_review(root: Path, path: Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    resolved = resolve(root, path)
+    data = load_json(resolved)
+    rows = data.get("rows", [])
+    if not isinstance(rows, list):
+        rows = []
+    summary = data.get("summary", {})
+    if not isinstance(summary, dict):
+        summary = {}
+    model_delta = summary.get("model_minus_baseline_mae", {})
+    if not isinstance(model_delta, dict):
+        model_delta = {}
+    routes = sorted({str(row.get("route")) for row in rows if isinstance(row, dict) and row.get("route")})
+    model_better_count = int(summary.get("model_better_count") or 0)
+    model_worse_count = int(summary.get("model_worse_count") or 0)
+    row_count = int(summary.get("row_count") or len(rows))
+    dashboard = resolved.with_name("index.html")
+    contact_sheet = data.get("contact_sheet")
+    contact_sheet_path = Path(contact_sheet) if isinstance(contact_sheet, str) and contact_sheet else None
+    routes_ready = all(route in routes for route in REQUIRED_RENDERED_ROUTES)
+    return {
+        "receipt": artifact_ref(resolved),
+        "dashboard": artifact_ref(dashboard),
+        "contact_sheet": artifact_ref(contact_sheet_path) if contact_sheet_path else None,
+        "schema": data.get("schema"),
+        "review_kind": data.get("review_kind"),
+        "declared_production_ready": data.get("production_ready"),
+        "limitations": data.get("limitations", []),
+        "routes": routes,
+        "required_routes": list(REQUIRED_RENDERED_ROUTES),
+        "row_count": row_count,
+        "model_better_count": model_better_count,
+        "model_worse_count": model_worse_count,
+        "median_model_minus_baseline_mae": model_delta.get("median"),
+        "worst_model_minus_baseline_mae": model_delta.get("max"),
+        "rendered_proxy_ready": (
+            data.get("schema") == "gpr.premium_still_sr_rendered_review.v1"
+            and row_count > 0
+            and routes_ready
+            and model_better_count > model_worse_count
+        ),
+    }
+
+
 def candidate_for_route(router: dict[str, Any], route_key: str) -> str | None:
     routes = router.get("routing_policy", {}).get("routes", [])
     if not isinstance(routes, list):
@@ -151,6 +198,7 @@ def build_readiness(args: argparse.Namespace) -> dict[str, Any]:
         for route, summary_path in sorted(fullframe.items())
     }
     smoke_rows = [summarize_smoke(root, path) for path in args.rejected_smoke]
+    rendered_review = summarize_rendered_review(root, args.rendered_review)
 
     route_rows: list[dict[str, Any]] = []
     blockers: list[str] = list(REQUIRED_BLOCKERS)
@@ -183,6 +231,8 @@ def build_readiness(args: argparse.Namespace) -> dict[str, Any]:
     rejected_clean_source = any(smoke.get("promotion_ready") is False for smoke in smoke_rows)
     if rejected_clean_source:
         blockers.append("clean-source split candidate is rejected for long training because a paired smoke gate failed")
+    if rendered_review is None or not rendered_review.get("rendered_proxy_ready"):
+        blockers.append("rendered EV-stress proxy review is not present for every required route")
 
     return {
         "schema": SCHEMA,
@@ -193,14 +243,16 @@ def build_readiness(args: argparse.Namespace) -> dict[str, Any]:
         "routes": route_rows,
         "fullframe_summaries": fullframe_rows,
         "rejected_clean_source_smokes": smoke_rows,
+        "rendered_review": rendered_review,
         "route_coverage_ready": all(row["route_in_router_plan"] and row["has_fullframe_summary"] for row in route_rows),
         "fullframe_metric_floor_ready": all(row.get("positive_fullframe_metrics") is True for row in route_rows),
+        "rendered_proxy_review_ready": bool(rendered_review and rendered_review.get("rendered_proxy_ready")),
         "production_ready": False,
         "blockers": sorted(set(blockers)),
         "next_unambiguous_steps": [
             "Use the routed specialist/raw-CFA path as the next premium still-SR candidate direction; do not extend the rejected clean-source split into long training.",
             "Refresh routed full-frame gates with at least the Mission 1 50 MP DNG/GPR routes, Z8 50 MP DNG route, and X2D 100 MP DNG route.",
-            "Add rendered visual and editor-latitude receipts for every route.",
+            "Add true raw-editor latitude/openability receipts for every route; an EV-stress rendered proxy alone is not enough.",
             "Wire exact-sidecar-only noise policy into target construction and reject any source residual noise at render time.",
             "Build a production submission and run check_production_capture_submission.py before moving Premium still/SR above 60 percent.",
         ],
@@ -229,6 +281,15 @@ def render_html(data: dict[str, Any]) -> str:
         )
     blocker_items = "\n".join(f"<li>{html.escape(item)}</li>" for item in data["blockers"])
     next_items = "\n".join(f"<li>{html.escape(item)}</li>" for item in data["next_unambiguous_steps"])
+    rendered = data.get("rendered_review") or {}
+    rendered_block = ""
+    if rendered:
+        rendered_block = f"""
+<h2>Rendered EV-Stress Proxy Review</h2>
+<p>ready: {html.escape(str(data.get("rendered_proxy_review_ready")))}; routes: {html.escape(", ".join(rendered.get("routes", [])))}; rows: {html.escape(str(rendered.get("row_count")))}</p>
+<p>model better/worse: {html.escape(str(rendered.get("model_better_count")))}/{html.escape(str(rendered.get("model_worse_count")))}; median model-baseline MAE: {html.escape(str(rendered.get("median_model_minus_baseline_mae")))}</p>
+<p>This closes the rendered proxy check only. True raw-editor latitude/openability remains a promotion blocker until a dedicated receipt exists.</p>
+"""
     return f"""<!doctype html>
 <meta charset="utf-8">
 <title>Premium Still-SR Route Readiness</title>
@@ -241,11 +302,12 @@ th {{ background: #f4f6f8; }}
 </style>
 <h1>Premium Still-SR Route Readiness</h1>
 <p><span class="warn">production_ready={data["production_ready"]}</span></p>
-<p>Route coverage ready: {data["route_coverage_ready"]}; full-frame metric floor ready: {data["fullframe_metric_floor_ready"]}</p>
+<p>Route coverage ready: {data["route_coverage_ready"]}; full-frame metric floor ready: {data["fullframe_metric_floor_ready"]}; rendered proxy ready: {data.get("rendered_proxy_review_ready")}</p>
 <h2>Routes</h2>
 <table><thead><tr><th>route</th><th>candidate</th><th>in router</th><th>full-frame summary</th><th>images</th><th>RMSE improvement</th><th>MAE improvement</th><th>gradient improvement</th><th>positive metrics</th></tr></thead><tbody>
 {''.join(route_rows)}
 </tbody></table>
+{rendered_block}
 <h2>Blockers</h2>
 <ul>{blocker_items}</ul>
 <h2>Next Steps</h2>
@@ -259,6 +321,7 @@ def main() -> int:
     ap.add_argument("--router-plan", type=Path, required=True)
     ap.add_argument("--fullframe-summary", action="append", required=True, help="route_key=summary.json")
     ap.add_argument("--rejected-smoke", action="append", type=Path, default=[])
+    ap.add_argument("--rendered-review", type=Path)
     ap.add_argument("--output-dir", type=Path, required=True)
     args = ap.parse_args()
 

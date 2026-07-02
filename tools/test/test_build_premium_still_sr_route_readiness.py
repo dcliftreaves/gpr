@@ -74,6 +74,35 @@ def main() -> int:
                 "promotion_ready": False,
             },
         )
+        rendered = write_json(
+            root / "artifacts/rendered/rendered_review.json",
+            {
+                "schema": "gpr.premium_still_sr_rendered_review.v1",
+                "review_kind": "simple_demosaic_ev_stress_proxy",
+                "production_ready": False,
+                "contact_sheet": str(root / "artifacts/rendered/rendered_latitude_contact_sheet.jpg"),
+                "limitations": ["proxy only"],
+                "summary": {
+                    "row_count": 9,
+                    "model_better_count": 8,
+                    "model_worse_count": 1,
+                    "model_minus_baseline_mae": {"median": -0.01, "max": 0.001},
+                },
+                "rows": [
+                    {"route": "mission1"},
+                    {"route": "mission1"},
+                    {"route": "mission1"},
+                    {"route": "z8"},
+                    {"route": "z8"},
+                    {"route": "z8"},
+                    {"route": "x2d"},
+                    {"route": "x2d"},
+                    {"route": "x2d"},
+                ],
+            },
+        )
+        (root / "artifacts/rendered/index.html").write_text("<h1>rendered</h1>", encoding="utf-8")
+        (root / "artifacts/rendered/rendered_latitude_contact_sheet.jpg").write_bytes(b"jpg")
         args = [
             sys.executable,
             str(TOOL),
@@ -91,6 +120,8 @@ def main() -> int:
             f"x2d:100mp:dng={write_summary(root, 'x2d', 1, 2.0, 1.0, 1.0)}",
             "--rejected-smoke",
             str(smoke),
+            "--rendered-review",
+            str(rendered),
             "--output-dir",
             str(out),
         ]
@@ -99,8 +130,12 @@ def main() -> int:
         assert data["schema"] == "gpr.premium_still_sr_route_readiness.v1"
         assert data["route_coverage_ready"] is True
         assert data["fullframe_metric_floor_ready"] is True
+        assert data["rendered_proxy_review_ready"] is True
         assert data["production_ready"] is False
         assert "clean-source split candidate is rejected for long training because a paired smoke gate failed" in data["blockers"]
+        assert "rendered EV-stress proxy review is not present for every required route" not in data["blockers"]
+        assert "raw-editor latitude/openability receipt is not present for every route" in data["blockers"]
+        assert data["rendered_review"]["model_better_count"] == 8
         assert "Use the routed specialist/raw-CFA path" in data["next_unambiguous_steps"][0]
         assert "Premium Still-SR Route Readiness" in (out / "index.html").read_text(encoding="utf-8")
     print("test_build_premium_still_sr_route_readiness: PASS")
