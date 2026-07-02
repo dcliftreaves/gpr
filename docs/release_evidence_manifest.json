@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, clean-target noise policy, Gate 12 source audit, and Gate 12 candidate intake are in place; no Candidate-only 50 MP / 100 MP model receipt clears the 15% / 15% held-out promotion floor. Gate 12 launches an X2D synthetic known-degradation clean-source teacher command plus a Z8 exact-noop receipt command.",
+      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, clean-target noise policy, Gate 12 source audit, Gate 12 candidate intake, and failed Gate 12 paired smoke are in place; no Candidate-only 50 MP / 100 MP model receipt clears the 15% / 15% held-out promotion floor. Gate 12 proves Z8 exact-noop is safe but the X2D synthetic teacher does not beat nearest same-color.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -121,10 +121,11 @@
           "premium_still_sr_gate11_candidate_intake_20260702",
           "premium_still_sr_gate11_smoke_acceptance_20260702",
           "premium_still_sr_measured_degradation_teacher_source_audit_20260702",
-          "premium_still_sr_gate12_candidate_intake_20260702"
+          "premium_still_sr_gate12_candidate_intake_20260702",
+          "premium_still_sr_gate12_smoke_acceptance_20260702"
         ]
       },
-      "open_gate": "Gate 12 candidate intake is launchable as gate12_synthetic_x2d_teacher_z8_exact_noop_v1. The next local gate is premium_still_sr_gate12_smoke_acceptance_<date>: run the X2D synthetic teacher smoke command and Z8 exact-noop receipt command from the intake manifest, then require X2D positive median/nonnegative worst-row recovery and Z8 exact zero-regression before any long run."
+      "open_gate": "Gate 12 paired smoke is blocked before long run: X2D median/worst MAE recovery is -0.015976613123677263% / -0.22449340376395477%, while Z8 exact-noop passes at 0.0% / 0.0%. The next local gate is premium_still_sr_gate13_degradation_source_upgrade_<date>: replace or upgrade the X2D degradation/teacher source so source-level smoke beats nearest same-color before any long run."
     },
     {
       "id": "raw_video_reconstruction",
@@ -4611,6 +4612,53 @@
         "x2d_positive_training_allowed": 1,
         "z8_positive_training_allowed": 0,
         "z8_requires_exact_noop": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate12_smoke_acceptance_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gate 12 paired smoke acceptance for the synthetic known-degradation X2D teacher plus Z8 exact-noop policy. It blocks long training because the X2D smoke does not beat nearest same-color, while Z8 exact-noop passes.",
+      "dashboard": "artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate12_candidate_preflight.py",
+        "tools/build_premium_still_sr_exact_noop_receipt.py",
+        "tools/check_premium_still_sr_smoke_gate_acceptance.py",
+        "tools/cnn/train_premium_still_sr_clean_source_pairs.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate12_smoke_20260702/x2d_synthetic_teacher_smoke/train_receipt.json",
+        "artifacts/premium_still_sr_gate12_smoke_20260702/x2d_synthetic_teacher_smoke/index.html",
+        "artifacts/premium_still_sr_gate12_smoke_20260702/z8_exact_noop_smoke/train_receipt.json",
+        "artifacts/premium_still_sr_gate12_smoke_20260702/z8_exact_noop_smoke/index.html",
+        "artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/smoke_gate_acceptance.json",
+        "artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/index.html"
+      ],
+      "hashes": {
+        "x2d_smoke_receipt_sha256": "c7982b1478b227c18c18d213db83a4d080f0a966c76fa02d753d3cb455dc6550",
+        "x2d_smoke_dashboard_sha256": "e21c5dfdc1a2bb1f86c0d555ea600e3dac05718dc6e68f76e1bf7fd25cb1c488",
+        "z8_exact_noop_receipt_sha256": "a84f84f64b9c979e2e6d2629e8b274ead737019bf898692aec8ec802c3027aca",
+        "z8_exact_noop_dashboard_sha256": "e43ae887307caab1162b19c1a6b531a657c51bd483b6b006df1e839275e0d6d0",
+        "smoke_gate_acceptance_json_sha256": "1538519b3736ff28716c14dea44ad8bb3f324e35a1b6eeae4272b90460b65f2b",
+        "dashboard_sha256": "55b0d8ffa39906aadbef1b30844a8352bab3c925d82621dce15da5f41f6f8f24"
+      },
+      "metrics": {
+        "smoke_gate_passed": 0,
+        "long_run_allowed": 0,
+        "x2d_median_mae_improvement_pct": -0.015976613123677263,
+        "x2d_worst_row_mae_improvement_pct": -0.22449340376395477,
+        "x2d_median_rmse_improvement_pct": 0.0007006832933893013,
+        "x2d_baseline_beaten_on_holdout": 0,
+        "z8_exact_noop_passed": 1,
+        "z8_median_mae_improvement_pct": 0.0,
+        "z8_worst_row_mae_improvement_pct": 0.0,
         "production_ready": 0
       }
     }

@@ -68,6 +68,8 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate 12 candidate intake manifest | `artifacts/premium_still_sr_gate12_candidate_intake_20260702/candidate_preflight.json` | `e51f4f9b53c52cd56a4a681115177e30b866c3d49c308b9e86da7b50f99c006a` |
 | Gate 12 candidate intake audit | `artifacts/premium_still_sr_gate12_candidate_intake_20260702/preflight_audit.json` | `0a847465f563fc0d0e902423857d9db70b848fefdd4aa269a3e94168fd9decc4` |
 | Gate 12 candidate intake dashboard | `artifacts/premium_still_sr_gate12_candidate_intake_20260702/index.html` | `276270034b9335e63edaeec1e48467c5b083a6a22b1e3c53b522fb902730792c` |
+| Gate 12 paired smoke acceptance receipt | `artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/smoke_gate_acceptance.json` | `1538519b3736ff28716c14dea44ad8bb3f324e35a1b6eeae4272b90460b65f2b` |
+| Gate 12 paired smoke acceptance dashboard | `artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/index.html` | `55b0d8ffa39906aadbef1b30844a8352bab3c925d82621dce15da5f41f6f8f24` |
 
 These branches are blocked before long training. The next Premium Still/SR
 candidate must address raw-CFA no-op/benefit gating, route-specific Z8

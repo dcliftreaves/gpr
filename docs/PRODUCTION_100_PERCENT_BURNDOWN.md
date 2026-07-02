@@ -38,30 +38,33 @@ camera-role access. The latest Gate 5 branch is closed as a failed smoke:
 | Gate 11 route-isolated smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_smoke_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst raw MAE recovery is `-0.09995100006746782%` / `-2.156844783012532%`; Z8 median/worst raw MAE recovery is `0.0%` / `-14.118886237720433%`. This rules out the first route-isolated residual teacher/router pass as production work. |
 | Gate 12 measured/synthetic teacher-source audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_measured_degradation_teacher_source_audit_20260702/measured_degradation_teacher_source_audit.json` | Closed as `gate12_synthetic_teacher_preflight_allowed_x2d_z8_noop`. It rejects the failed source-minus-candidate raw-HF residual target, selects synthetic known-degradation clean-source Bayer pairs for X2D, and keeps Z8 exact no-op/new-source because Z8 source evidence is `0.649807764458084%` MAE and `28/36` rows are noise-floor. |
 | Gate 12 candidate intake | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_candidate_intake_20260702/candidate_preflight.json` | Closed as `launchable_preflight_passed`. It launches only the X2D synthetic known-degradation clean-source teacher command plus a Z8 exact-noop receipt command. It remains candidate-only/no-REF and `production_ready=false`. |
+| Gate 12 paired smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst MAE recovery is `-0.015976613123677263%` / `-0.22449340376395477%`, `baseline_beaten_on_holdout=false`, and Z8 exact-noop passes at `0.0%` / `0.0%`. This rules out the current synthetic known-degradation teacher as a production launch path. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
-Run `premium_still_sr_gate12_smoke_acceptance_<date>` from the Gate 12 intake
-manifest. Do not rerun source-frequency targets, generic full-crop U-Net
-residual training, masked-detail thresholds, candidate-HF no-op threshold
-tuning, simple frame-context conditioning, the Gate 9 route-conditioned/noise-
-aware U-Net smoke, the Gate 11 route-isolated residual smoke, or the older
+Build `premium_still_sr_gate13_degradation_source_upgrade_<date>`. Do not rerun
+source-frequency targets, generic full-crop U-Net residual training, masked-
+detail thresholds, candidate-HF no-op threshold tuning, simple frame-context
+conditioning, the Gate 9 route-conditioned/noise-aware U-Net smoke, the Gate 11
+route-isolated residual smoke, the Gate 12 synthetic teacher smoke, or the older
 clean-source residual families as production work.
 
-The smoke must create a positive no-REF X2D learning signal while preserving
-exact no-op behavior for Z8 low-evidence/noise-floor rows. Long training remains
-forbidden until paired smoke passes.
+The Gate 13 receipt must audit or construct a stronger X2D degradation/teacher
+source. The source may advance only if it creates a positive no-REF X2D learning
+signal against nearest same-color while preserving exact no-op behavior for Z8
+low-evidence/noise-floor rows. Long training remains forbidden until this
+source-level blocker is cleared.
 
 The candidate may advance only if all of these are true:
 
 | requirement | pass rule |
 |---|---|
-| X2D smoke | median MAE improvement `> 0.001%`, worst-row MAE improvement `>= 0%`, and baseline beaten. |
-| Z8 smoke | exact-noop receipt with median MAE improvement `0.0%`, worst-row MAE improvement `0.0%`, and no positive residual training unless a new source audit replaces the route policy. |
+| X2D source/teacher smoke | median MAE improvement `> 0.001%`, worst-row MAE improvement `>= 0%`, and baseline beaten against nearest same-color. |
+| Z8 policy | exact-noop with median MAE improvement `0.0%`, worst-row MAE improvement `0.0%`, and no positive residual training unless a new source audit replaces the route policy. |
 | Runtime inputs | `candidate_raw`, `camera_metadata`, and optional exact validated noise sidecar only. |
 | Forbidden inputs | No REF, source RAW, source RGB, source HF, JPEG target, source residual noise, or gate metric at render time. |
-| Long-run permission | `tools/check_premium_still_sr_smoke_gate_acceptance.py --require-pass` passes on the paired smoke receipts. |
+| Long-run permission | A new candidate preflight is generated only after the source/teacher upgrade clears the X2D smoke floor and keeps Z8 exact-noop. |
 | Production permission | The 15% / 15% promotion floor, nonnegative worst-row recovery, editor/openability, timing/memory, exact-sidecar-only noise policy, and `check_production_capture_submission.py` all pass. |
 
 ## Commands That Move The Gate
@@ -91,15 +94,18 @@ python3 tools/build_premium_still_sr_gate12_candidate_preflight.py \
   --smoke-output-root /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_<date> \
   --require-launchable
 
-# Next commands:
-# Run the two smoke commands recorded in candidate_preflight.json, then:
-# python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \
-#   /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_candidate_intake_<date>/candidate_preflight.json \
-#   --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_acceptance_<date>/smoke_gate_acceptance.json \
-#   --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_acceptance_<date>/index.html \
-#   --require-pass
+# Latest closed command:
+python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_candidate_intake_20260702/candidate_preflight.json \
+  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/smoke_gate_acceptance.json \
+  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/index.html \
+  --require-pass
+
+# Next tool to build:
+# tools/build_premium_still_sr_gate13_degradation_source_upgrade.py
 ```
 
-If the paired smoke fails, it must classify the failure as source/degradation
-mismatch, objective/gating failure, model capacity, camera-conditioning gap,
-timing/memory infeasibility, or noise-policy mismatch.
+If the Gate 13 source upgrade fails, it must classify the failure as
+source/degradation mismatch, objective/gating failure, model capacity,
+camera-conditioning gap, timing/memory infeasibility, insufficient clean source,
+or noise-policy mismatch.

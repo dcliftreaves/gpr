@@ -182,6 +182,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_gate11_smoke_acceptance_20260702",
                 "premium_still_sr_measured_degradation_teacher_source_audit_20260702",
                 "premium_still_sr_gate12_candidate_intake_20260702",
+                "premium_still_sr_gate12_smoke_acceptance_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
