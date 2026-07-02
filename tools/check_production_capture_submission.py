@@ -46,6 +46,8 @@ PSF_FIXED_SETTING_FIELDS = [
     "sharpening",
     "lens_correction",
 ]
+PSF_PAIR_SETTINGS_SCHEMA = "gpr.mission1_native_psf_pair_settings.v1"
+PSF_PAIR_MEASUREMENT_SCHEMA = "gpr.mission1_native_psf_pair_measurement.v1"
 PREMIUM_REQUIRED_RUNTIME_INPUTS = {"candidate_raw", "camera_metadata"}
 PREMIUM_REQUIRED_SMOKE_HOLDOUTS = {"x2d", "z8"}
 PREMIUM_FORBIDDEN_RUNTIME_INPUTS = {
@@ -859,7 +861,85 @@ def validate_camera_role_receipts(
     return pass_result(rid, "camera-role encode, storage, and preview receipts pass", len(receipts))
 
 
-def validate_psf_pairs(rid: str, req: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any]:
+def validate_strict_psf_pair_receipts(
+    pair: dict[str, Any],
+    pair_id: str,
+    path_root: Path | None,
+    failures: list[str],
+) -> None:
+    settings = load_local_json(pair.get("settings_receipt_path"), path_root, failures, f"pair {pair_id} settings_receipt")
+    if settings is not None:
+        if settings.get("schema") != PSF_PAIR_SETTINGS_SCHEMA:
+            failures.append(f"pair {pair_id} settings_receipt schema must be {PSF_PAIR_SETTINGS_SCHEMA}")
+        if settings.get("pair_id") != pair_id:
+            failures.append(f"pair {pair_id} settings_receipt pair_id must match")
+        for key in PSF_FIXED_SETTING_FIELDS:
+            if str(settings.get(key)) != str(pair.get(key)):
+                failures.append(f"pair {pair_id} settings_receipt {key} must match submitted pair")
+        if settings.get("fixed_settings") is not True:
+            failures.append(f"pair {pair_id} settings_receipt fixed_settings must be true")
+        for key in (
+            "high_source_sha256",
+            "low_source_sha256",
+            "high_bayer_sha256",
+            "low_bayer_sha256",
+        ):
+            if settings.get(key) != pair.get(key):
+                failures.append(f"pair {pair_id} settings_receipt {key} must match submitted pair")
+
+    measurement = load_local_json(
+        pair.get("measurement_receipt_path"),
+        path_root,
+        failures,
+        f"pair {pair_id} measurement_receipt",
+    )
+    if measurement is None:
+        return
+    if measurement.get("schema") != PSF_PAIR_MEASUREMENT_SCHEMA:
+        failures.append(f"pair {pair_id} measurement_receipt schema must be {PSF_PAIR_MEASUREMENT_SCHEMA}")
+    if measurement.get("pair_id") != pair_id:
+        failures.append(f"pair {pair_id} measurement_receipt pair_id must match")
+    if measurement.get("high_bayer_sha256") != pair.get("high_bayer_sha256"):
+        failures.append(f"pair {pair_id} measurement_receipt high_bayer_sha256 must match submitted pair")
+    if measurement.get("low_bayer_sha256") != pair.get("low_bayer_sha256"):
+        failures.append(f"pair {pair_id} measurement_receipt low_bayer_sha256 must match submitted pair")
+    for key, expected in (
+        ("high_width", PSF_HIGH_DIMS[0]),
+        ("high_height", PSF_HIGH_DIMS[1]),
+        ("low_width", PSF_LOW_DIMS[0]),
+        ("low_height", PSF_LOW_DIMS[1]),
+        ("high_bayer_bytes", PSF_HIGH_BYTES),
+        ("low_bayer_bytes", PSF_LOW_BYTES),
+    ):
+        ok, failure = number_equals(measurement, key, expected)
+        if not ok:
+            failures.append(f"pair {pair_id} measurement_receipt {failure}")
+    if pair.get("negative_control") is True:
+        if measurement.get("rejected_by_measurement") is not True:
+            failures.append(f"pair {pair_id} measurement_receipt rejected_by_measurement must be true")
+        if not measurement.get("rejection_reason"):
+            failures.append(f"pair {pair_id} measurement_receipt rejection_reason must be present")
+    else:
+        if measurement.get("accepted_by_measurement") is not True:
+            failures.append(f"pair {pair_id} measurement_receipt accepted_by_measurement must be true")
+        if nested_get(measurement, "alignment", "accepted_for_kernel") is not True:
+            failures.append(f"pair {pair_id} measurement_receipt alignment.accepted_for_kernel must be true")
+        ok, failure = number_greater_than(measurement.get("tile_summary", {}), "sharp_edge_tile_count", 0)
+        if not ok:
+            failures.append(f"pair {pair_id} measurement_receipt tile_summary.{failure}")
+        ok, failure = number_greater_than(measurement.get("tile_summary", {}), "texture_field_tile_count", 0)
+        if not ok:
+            failures.append(f"pair {pair_id} measurement_receipt tile_summary.{failure}")
+
+
+def validate_psf_pairs(
+    rid: str,
+    req: dict[str, Any],
+    submission: dict[str, Any],
+    *,
+    require_existing_files: bool = False,
+    path_root: Path | None = None,
+) -> dict[str, Any]:
     row = record_for(submission, rid)
     pairs = [item for item in as_list(row.get("pairs")) if isinstance(item, dict)]
     min_pairs = int(req.get("minimum_pair_count") or 3)
@@ -880,7 +960,9 @@ def validate_psf_pairs(rid: str, req: dict[str, Any], submission: dict[str, Any]
             "high_bayer_bytes",
             "low_bayer_bytes",
             "cfa_phase",
+            "settings_receipt_path",
             "settings_receipt_sha256",
+            "measurement_receipt_path",
             "measurement_receipt_sha256",
         ]
         missing = missing_fields(pair, required)
@@ -915,6 +997,8 @@ def validate_psf_pairs(rid: str, req: dict[str, Any], submission: dict[str, Any]
         fixed_missing = missing_fields(pair, PSF_FIXED_SETTING_FIELDS)
         if fixed_missing:
             failures.append(f"pair {pair_id} missing fixed setting field(s): {', '.join(fixed_missing)}")
+        if require_existing_files:
+            validate_strict_psf_pair_receipts(pair, pair_id, path_root, failures)
         if pair.get("negative_control") is True:
             if pair.get("expected_reject") is True and pair.get("rejected_by_measurement") is True and pair.get("rejection_reason"):
                 negative_controls += 1
@@ -1356,7 +1440,13 @@ def validate_requirement(
             path_root=path_root,
         )
     if sample_type == "controlled_same_scene_high_low_raw_pair_stack":
-        return validate_psf_pairs(rid, req, submission)
+        return validate_psf_pairs(
+            rid,
+            req,
+            submission,
+            require_existing_files=require_existing_files,
+            path_root=path_root,
+        )
     if sample_type == "model_promotion_receipt":
         return validate_premium_still_sr(
             rid,

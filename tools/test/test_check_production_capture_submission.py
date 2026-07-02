@@ -504,6 +504,62 @@ def write_premium_still_sr_receipts(submission: dict, bundle: Path) -> None:
     )
 
 
+def write_psf_pair_receipts(submission: dict, bundle: Path) -> None:
+    record = next(row for row in submission["requirements"] if row["id"] == "controlled_mission1_psf_pairs")
+    for pair in record["pairs"]:
+        settings = {
+            "schema": "gpr.mission1_native_psf_pair_settings.v1",
+            "pair_id": pair["id"],
+            "high_source_sha256": pair["high_source_sha256"],
+            "low_source_sha256": pair["low_source_sha256"],
+            "high_bayer_sha256": pair["high_bayer_sha256"],
+            "low_bayer_sha256": pair["low_bayer_sha256"],
+            "fixed_settings": True,
+            "iso": pair["iso"],
+            "exposure": pair["exposure"],
+            "white_balance": pair["white_balance"],
+            "lens_mode": pair["lens_mode"],
+            "stabilization": pair["stabilization"],
+            "sharpening": pair["sharpening"],
+            "lens_correction": pair["lens_correction"],
+        }
+        settings_path = bundle / pair["settings_receipt_path"]
+        settings_path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
+        pair["settings_receipt_sha256"] = hashlib.sha256(settings_path.read_bytes()).hexdigest()
+        measurement = {
+            "schema": "gpr.mission1_native_psf_pair_measurement.v1",
+            "pair_id": pair["id"],
+            "high_bayer_sha256": pair["high_bayer_sha256"],
+            "low_bayer_sha256": pair["low_bayer_sha256"],
+            "high_width": pair["high_width"],
+            "high_height": pair["high_height"],
+            "low_width": pair["low_width"],
+            "low_height": pair["low_height"],
+            "high_bayer_bytes": pair["high_bayer_bytes"],
+            "low_bayer_bytes": pair["low_bayer_bytes"],
+        }
+        if pair.get("negative_control") is True:
+            measurement.update(
+                {
+                    "accepted_by_measurement": False,
+                    "rejected_by_measurement": True,
+                    "rejection_reason": pair["rejection_reason"],
+                }
+            )
+        else:
+            measurement.update(
+                {
+                    "accepted_by_measurement": True,
+                    "rejected_by_measurement": False,
+                    "alignment": {"accepted_for_kernel": True, "correlation": 0.95},
+                    "tile_summary": {"sharp_edge_tile_count": 32, "texture_field_tile_count": 32},
+                }
+            )
+        measurement_path = bundle / pair["measurement_receipt_path"]
+        measurement_path.write_text(json.dumps(measurement, indent=2) + "\n", encoding="utf-8")
+        pair["measurement_receipt_sha256"] = hashlib.sha256(measurement_path.read_bytes()).hexdigest()
+
+
 def temp_root() -> Path:
     root = Path(os.environ.get("GPR_TMPDIR") or "/Volumes/OWC_8TB/gpr_work/tmp")
     if not root.exists():
@@ -569,7 +625,9 @@ def pair(idx: int, *, negative: bool = False) -> dict:
         "low_bayer_sha256": SHA_B,
         "high_extract_receipt_sha256": SHA,
         "low_extract_receipt_sha256": SHA_B,
+        "settings_receipt_path": f"/captures/pair_{idx}_settings.json",
         "settings_receipt_sha256": SHA,
+        "measurement_receipt_path": f"/captures/pair_{idx}_measurement.json",
         "measurement_receipt_sha256": SHA_B,
         "high_width": 8192,
         "high_height": 6144,
@@ -901,6 +959,40 @@ def main() -> int:
         assert audit["submission_valid"] is False
         assert audit["optional_research_fail_count"] == 1
         assert "controlled_mission1_psf_pairs" in proc.stdout
+
+        strict_all = valid_submission()
+        psf_bundle = work / "psf_bundle"
+        materialize_path_hashes(strict_all, psf_bundle, [0])
+        write_darkframe_audits(strict_all, psf_bundle)
+        write_camera_role_receipts(strict_all, psf_bundle)
+        write_premium_still_sr_receipts(strict_all, psf_bundle)
+        write_psf_pair_receipts(strict_all, psf_bundle)
+        manifest.write_text(json.dumps(strict_all, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(psf_bundle), "--json-out", str(out_json))
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        audit = json.loads(out_json.read_text(encoding="utf-8"))
+        assert audit["pass_count"] == 7
+        assert audit["optional_research_fail_count"] == 0
+
+        bad = json.loads(json.dumps(strict_all))
+        psf = next(row for row in bad["requirements"] if row["id"] == "controlled_mission1_psf_pairs")
+        bad_pair = psf["pairs"][0]
+        measurement_path = psf_bundle / bad_pair["measurement_receipt_path"]
+        measurement = json.loads(measurement_path.read_text(encoding="utf-8"))
+        measurement["accepted_by_measurement"] = False
+        measurement["alignment"]["accepted_for_kernel"] = False
+        measurement["tile_summary"]["sharp_edge_tile_count"] = 0
+        measurement_path.write_text(json.dumps(measurement, indent=2) + "\n", encoding="utf-8")
+        bad_pair["measurement_receipt_sha256"] = hashlib.sha256(measurement_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(psf_bundle))
+        assert proc.returncode == 1
+        assert "measurement_receipt accepted_by_measurement must be true" in proc.stdout
+        assert "measurement_receipt alignment.accepted_for_kernel must be true" in proc.stdout
+        assert "measurement_receipt tile_summary.sharp_edge_tile_count must be > 0" in proc.stdout
 
         strict = valid_release_blocking_submission()
         bundle = work / "bundle"
