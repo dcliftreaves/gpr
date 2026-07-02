@@ -188,6 +188,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702",
                 "premium_still_sr_gate13_source_or_objective_revision_20260702",
                 "premium_still_sr_gate14_candidate_intake_20260702",
+                "premium_still_sr_gate14_selector_smoke_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
@@ -1045,6 +1046,60 @@ def require_dashboard_contract(
                 x2d07_worst = float(metrics.get("x2d_2025_austin_07_worst_row_mae_improvement_pct"))
             except (TypeError, ValueError):
                 failures.append(f"{entry_id}: Gate 14 MAE metrics must be numeric")
+            else:
+                if global_median <= 0.001:
+                    failures.append(f"{entry_id}: global median MAE improvement must stay positive")
+                if x2d06_median <= 0.001 or x2d07_median <= 0.001:
+                    failures.append(f"{entry_id}: both X2D image medians must stay positive")
+                if min(global_worst, x2d06_worst, x2d07_worst) < 0.0:
+                    failures.append(f"{entry_id}: worst-row MAE improvement cannot regress")
+
+    if entry_id == "premium_still_sr_gate14_selector_smoke_20260702":
+        if entry.get("status") != "diagnostic":
+            failures.append(f"{entry_id}: Gate 14 selector smoke must remain diagnostic until full promotion passes")
+        hashes = entry.get("hashes")
+        if not isinstance(hashes, dict):
+            failures.append(f"{entry_id}: Gate 14 selector smoke needs hashes")
+        else:
+            for key in ("selector_smoke_json_sha256", "dashboard_sha256"):
+                value = hashes.get(key)
+                if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+                    failures.append(f"{entry_id}: hash {key} must be a sha256 hex string")
+        receipts = entry.get("receipts")
+        if not isinstance(receipts, list):
+            failures.append(f"{entry_id}: Gate 14 selector smoke needs receipt refs")
+        else:
+            for token in ("selector_smoke.json", "index.html"):
+                if not any(isinstance(item, str) and item.endswith(token) for item in receipts):
+                    failures.append(f"{entry_id}: receipts missing {token}")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: Gate 14 selector smoke needs metrics")
+        else:
+            expected_exact = {
+                "gate14_selector_smoke_passed": 1,
+                "promotion_gate_allowed": 1,
+                "long_run_allowed": 0,
+                "rule_count": 7,
+                "source_count": 6,
+                "assigned_row_count": 88,
+                "fallback_exact_noop_count": 40,
+                "selector_replay_matches_intake": 1,
+                "source_model_failure_count": 0,
+                "production_ready": 0,
+            }
+            for key, expected in expected_exact.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+            try:
+                global_median = float(metrics.get("global_median_mae_improvement_pct"))
+                global_worst = float(metrics.get("global_worst_row_mae_improvement_pct"))
+                x2d06_median = float(metrics.get("x2d_2025_austin_06_median_mae_improvement_pct"))
+                x2d06_worst = float(metrics.get("x2d_2025_austin_06_worst_row_mae_improvement_pct"))
+                x2d07_median = float(metrics.get("x2d_2025_austin_07_median_mae_improvement_pct"))
+                x2d07_worst = float(metrics.get("x2d_2025_austin_07_worst_row_mae_improvement_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: Gate 14 selector smoke MAE metrics must be numeric")
             else:
                 if global_median <= 0.001:
                     failures.append(f"{entry_id}: global median MAE improvement must stay positive")

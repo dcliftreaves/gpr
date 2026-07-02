@@ -81,12 +81,14 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate 14 candidate intake manifest | `artifacts/premium_still_sr_gate14_candidate_intake_20260702/candidate_preflight.json` | `505031517cac9ad64410e52956a9f6c73509b0a0bd29a080afbc8546684240bc` |
 | Gate 14 selector sidecar | `artifacts/premium_still_sr_gate14_candidate_intake_20260702/selector_sidecar.json` | `3d3648989d52da764b47ccd20ae8d3728c622ddb4ce980fa8a8a892fd0bbac99` |
 | Gate 14 candidate intake dashboard | `artifacts/premium_still_sr_gate14_candidate_intake_20260702/index.html` | `4bc9cdd4977ffdd9eaedc95f10555a465cfa4006df8379b1b435d2d104ebad64` |
+| Gate 14 selector smoke receipt | `artifacts/premium_still_sr_gate14_selector_smoke_20260702/selector_smoke.json` | `ebb5e77cbd7c00deec494f0f9d4b45e2e28a68067a5b42c93696ab687432ea3d` |
+| Gate 14 selector smoke dashboard | `artifacts/premium_still_sr_gate14_selector_smoke_20260702/index.html` | `6614c452d887a5d6fe34a2b72ebd81648a98b7e8896e0be6def2710e864edab5` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
-intake now persists the multi-source candidate-only selector as an executable
-sidecar and reproduces the Gate 13 pass in replay. Long training remains blocked
-until the selector sidecar is run through the actual model-loading/render path
-and that selector-smoke receipt passes.
+intake persists the multi-source candidate-only selector as an executable
+sidecar, and Gate 14 selector smoke now reproduces the pass through runtime
+feature recomputation, source/checkpoint hash checks, and first-match routing.
+The next production receipt is the full 50 MP / 100 MP promotion validation.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 14 executable selector intake passed as a persisted sidecar/replay; next is Gate 14 selector smoke through the actual render/model-loading path before any long run or promotion.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 14 selector smoke now passes through the persisted sidecar/runtime feature/checkpoint path; next is full 50 MP / 100 MP Premium still-SR promotion validation.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -127,10 +127,11 @@
           "premium_still_sr_gate13_tail_safe_source_smoke_20260702",
           "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702",
           "premium_still_sr_gate13_source_or_objective_revision_20260702",
-          "premium_still_sr_gate14_candidate_intake_20260702"
+          "premium_still_sr_gate14_candidate_intake_20260702",
+          "premium_still_sr_gate14_selector_smoke_20260702"
         ]
       },
-      "open_gate": "premium_still_sr_gate14_selector_smoke_<date>"
+      "open_gate": "premium_still_sr_promotion_receipts"
     },
     {
       "id": "raw_video_reconstruction",
@@ -4880,6 +4881,53 @@
         "x2d_2025_austin_07_worst_row_mae_improvement_pct": 0.0,
         "x2d_2025_austin_07_selected_positive_rows": 34,
         "z8_exact_noop_ok": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate14_selector_smoke_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Gate 14 selector smoke. It reloads the persisted selector sidecar, recomputes candidate-only runtime features, validates source/checkpoint hashes, executes first-match routing, and reproduces the Gate 14 intake pass. It allows full 50 MP / 100 MP promotion validation but is not itself production promotion.",
+      "dashboard": "artifacts/premium_still_sr_gate14_selector_smoke_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate14_selector_smoke.py",
+        "tools/test/test_build_premium_still_sr_gate14_selector_smoke.py",
+        "tools/build_premium_still_sr_gate14_candidate_intake.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate14_selector_smoke_20260702/selector_smoke.json",
+        "artifacts/premium_still_sr_gate14_selector_smoke_20260702/index.html"
+      ],
+      "hashes": {
+        "selector_smoke_json_sha256": "ebb5e77cbd7c00deec494f0f9d4b45e2e28a68067a5b42c93696ab687432ea3d",
+        "dashboard_sha256": "6614c452d887a5d6fe34a2b72ebd81648a98b7e8896e0be6def2710e864edab5"
+      },
+      "metrics": {
+        "gate14_selector_smoke_passed": 1,
+        "promotion_gate_allowed": 1,
+        "long_run_allowed": 0,
+        "rule_count": 7,
+        "source_count": 6,
+        "assigned_row_count": 88,
+        "fallback_exact_noop_count": 40,
+        "selector_replay_matches_intake": 1,
+        "source_model_failure_count": 0,
+        "global_median_mae_improvement_pct": 0.2506229397841941,
+        "global_worst_row_mae_improvement_pct": 0.0,
+        "x2d_2025_austin_06_median_mae_improvement_pct": 0.329828330762138,
+        "x2d_2025_austin_06_worst_row_mae_improvement_pct": 0.0,
+        "x2d_2025_austin_06_selected_positive_rows": 54,
+        "x2d_2025_austin_07_median_mae_improvement_pct": 0.02786331921791634,
+        "x2d_2025_austin_07_worst_row_mae_improvement_pct": 0.0,
+        "x2d_2025_austin_07_selected_positive_rows": 34,
         "production_ready": 0
       }
     }

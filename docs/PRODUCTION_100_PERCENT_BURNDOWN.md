@@ -19,8 +19,8 @@ reason it cannot pass.
 ## Current First Local Gate
 
 Gate 5 is the first open local gate because Gate 4 requires real Mission 1
-camera-role access. The latest Gate 5 branch moved from source/objective
-revision to Gate 14 selector smoke:
+camera-role access. The latest Gate 5 branch moved from selector smoke to full
+promotion validation:
 
 | branch | evidence | decision |
 |---|---|---|
@@ -45,37 +45,40 @@ revision to Gate 14 selector smoke:
 | Gate 13 feature-rich tail-safe source smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/feature_rich_tail_safe_source_smoke.json` | Blocked as `runtime_feature_separability_gap`. The wider candidate-only family includes scene-normalized tile stats, tile coordinates, and texture ratios (`78` features, `14393` predicates, `1398` safe predicates). Even the safe-feature OR upper bound covers only `25` positives in `x2d_2025_austin_07`, below the `32` required for a positive scene median. |
 | Gate 13 source/objective revision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/source_or_objective_revision.json` | Passed as a multi-source candidate-only selector upper bound. It uses `12` compatible X2D sources, `78` runtime features, and `10199` safe source/predicate selectors. X2D per-image median/worst MAE is `8.022846730221168%` / `0.0%` and `0.07380457072746566%` / `0.0%`; Z8 exact-noop remains `0.0%` / `0.0%`. This allows Gate 14 executable selector intake, not production promotion. |
 | Gate 14 candidate intake | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_candidate_intake_20260702/candidate_preflight.json` | Passed as executable selector intake. It persists a seven-rule first-match sidecar with six source mappings, 78 candidate-only runtime features, source/checkpoint hashes, feature schema, exact no-op fallback, and forbidden REF/source/JPEG/gate metric policy. Sidecar replay clears X2D with median/worst MAE `0.329828330762138%` / `0.0%` and `0.02786331921791634%` / `0.0%`; Z8 exact-noop remains `0.0%` / `0.0%`. This allows selector smoke, not promotion or long training. |
+| Gate 14 selector smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_selector_smoke_20260702/selector_smoke.json` | Passed as runtime selector smoke. It reloads the persisted sidecar, recomputes candidate-only runtime features, validates source/checkpoint hashes, executes first-match routing, and matches the intake replay. X2D median/worst MAE is `0.329828330762138%` / `0.0%` and `0.02786331921791634%` / `0.0%`; assigned rows `88`, exact-noop fallback rows `40`, source model failures `0`, and `promotion_gate_allowed=true`. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
-Build `premium_still_sr_gate14_selector_smoke_<date>`. Do not rerun
+Build `premium_still_sr_promotion_receipts`. Do not rerun
 source-frequency targets, generic full-crop U-Net residual training, masked-
 detail thresholds, candidate-HF no-op threshold tuning, simple frame-context
 conditioning, the Gate 9 route-conditioned/noise-aware U-Net smoke, the Gate 11
 route-isolated residual smoke, the Gate 12 synthetic teacher smoke, the older
 clean-source residual families, the ungated Gate 13 positive-median source, the
-simple Gate 13 tile-stat gate, the Gate 13 feature-rich safe-feature OR gate, or
-another Gate 13 source/objective upper-bound pass as production work.
+simple Gate 13 tile-stat gate, the Gate 13 feature-rich safe-feature OR gate,
+another Gate 13 source/objective upper-bound pass, Gate 14 intake, or Gate 14
+selector smoke as production work.
 
 The Gate 13 audit found enough X2D median signal to continue, but single-source
-tail-safe gating failed per scene. The Gate 14 intake moved the work forward by
-persisting an executable multi-source selector sidecar that clears both X2D
-scenes while preserving Z8 exact-noop in replay. The next receipt must run that
-sidecar through the actual selector/model-loading render path: source-model
-mapping, feature schema, checkpoint hashes, deterministic no-op fallback, and
-reproduction of the Gate 14 intake pass using candidate-only runtime inputs.
-Long training remains forbidden until selector smoke passes.
+tail-safe gating failed per scene. Gate 14 intake persisted an executable
+multi-source selector sidecar, and Gate 14 selector smoke proved the sidecar
+reproduces the intake pass through runtime feature recomputation,
+source/checkpoint hash checks, first-match routing, and exact no-op fallback.
+The next receipt must validate the full production surface: 50 MP and 100 MP
+holdouts, 15% / 15% MAE/RMSE floor, nonnegative worst rows, timing/memory,
+editor/openability, exact-sidecar-only noise policy, and production submission
+validation.
 
 The candidate may advance only if all of these are true:
 
 | requirement | pass rule |
 |---|---|
-| X2D executable selector smoke | actual render/model-loading path reproduces every X2D image median MAE improvement `> 0.001%`, worst-row MAE improvement `>= 0%`, and no selected negative rows. |
+| X2D routed promotion | full 50 MP / 100 MP route validation clears the 15% / 15% held-out MAE/RMSE floor, worst-row MAE improvement `>= 0%`, and no selected negative rows. |
 | Z8 policy | exact-noop with median MAE improvement `0.0%`, worst-row MAE improvement `0.0%`, and no positive residual training unless a new source audit replaces the route policy. |
 | Runtime inputs | `candidate_raw`, `camera_metadata`, and optional exact validated noise sidecar only. |
 | Forbidden inputs | No REF, source RAW, source RGB, source HF, JPEG target, source residual noise, or gate metric at render time. |
-| Long-run permission | A new candidate preflight is generated only after Gate 14 selector smoke reproduces the intake pass through the actual render/model-loading path and keeps Z8 exact-noop. |
+| Promotion permission | Full promotion validation is allowed because Gate 14 selector smoke reproduces the intake pass and keeps Z8 exact-noop. Production is still forbidden until the promotion and production-submission receipts pass. |
 | Production permission | The 15% / 15% promotion floor, nonnegative worst-row recovery, editor/openability, timing/memory, exact-sidecar-only noise policy, and `check_production_capture_submission.py` all pass. |
 
 ## Commands That Move The Gate
@@ -130,12 +133,15 @@ python3 tools/build_premium_still_sr_gate13_source_or_objective_revision.py \
 python3 tools/build_premium_still_sr_gate14_candidate_intake.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_candidate_intake_20260702
 
+python3 tools/build_premium_still_sr_gate14_selector_smoke.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_selector_smoke_20260702 \
+  --require-pass
+
 # Next receipt to build:
-# /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_selector_smoke_<date>/selector_smoke.json
+# /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_<date>/premium_still_sr_promotion_gate.json
 ```
 
-If Gate 14 selector smoke fails, it must classify the failure as selector
-reproducibility, source-model mapping, feature-schema drift, checkpoint drift,
-overfit upper bound, objective scale, model capacity, camera-conditioning gap,
-timing/memory infeasibility, insufficient clean source, noise-policy mismatch,
-or runtime feature separability.
+If promotion validation fails, it must classify the failure as 50 MP / 100 MP
+holdout quality, worst-row tail regression, editor/openability,
+timing/memory infeasibility, checkpoint drift, exact-sidecar-only noise-policy
+mismatch, production-submission failure, or insufficient clean source.
