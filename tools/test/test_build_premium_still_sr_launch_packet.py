@@ -68,6 +68,8 @@ def main() -> int:
                     "validation_plan": [
                         "held-out X2D full-image gate",
                         "held-out Z8 overlapped-tile gate",
+                        "50 MP full-frame gate row accounting",
+                        "100 MP full-frame gate row accounting",
                         "worst-row 100 percent crop review",
                     ],
                     "baseline_comparisons": [

@@ -220,6 +220,10 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
         add_failure(failures, "validation_plan must include held-out X2D evidence")
     if "z8" not in validation_text:
         add_failure(failures, "validation_plan must include held-out Z8 evidence")
+    if "50 mp" not in validation_text and "50mp" not in validation_text:
+        add_failure(failures, "validation_plan must include 50 MP full-frame gate row accounting")
+    if "100 mp" not in validation_text and "100mp" not in validation_text:
+        add_failure(failures, "validation_plan must include 100 MP full-frame gate row accounting")
     if not contains_any(validation_text, {"full-image", "full image", "full-frame", "full frame", "overlapped-tile", "overlapped tile"}):
         add_failure(failures, "validation_plan must include full-image or overlapped-tile evaluation")
 

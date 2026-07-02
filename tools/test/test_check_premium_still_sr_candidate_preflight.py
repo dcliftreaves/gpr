@@ -65,6 +65,8 @@ def main() -> int:
                 "validation_plan": [
                     "held-out X2D full-image gate",
                     "held-out Z8 overlapped-tile gate",
+                    "50 MP full-frame gate row accounting",
+                    "100 MP full-frame gate row accounting",
                     "worst-row 100 percent crop review",
                 ],
                 "baseline_comparisons": [
@@ -139,6 +141,8 @@ def main() -> int:
         assert any("rejected primary path" in item for item in failed["failures"])
         assert any("forbidden render-time content" in item for item in failed["failures"])
         assert any("held-out Z8" in item for item in failed["failures"])
+        assert any("50 MP" in item for item in failed["failures"])
+        assert any("100 MP" in item for item in failed["failures"])
 
         proc = run_tool(failing)
         assert proc.returncode == 0
