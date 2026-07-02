@@ -10,7 +10,7 @@ production-promoted.
 | question | current answer |
 |---|---|
 | Is premium still-SR shippable today? | No. The infrastructure exists, but current no-REF models do not clear the 50 MP / 100 MP still-SR promotion gate. |
-| What is the current scorecard state? | **95** runtime-safe training receipts, **0** promotable rows, and best older runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. The newest clean-source Restormer degradation/objective receipts also fail promotion. |
+| What is the current scorecard state? | **97** runtime-safe training receipts, **0** promotable rows, and best older runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. The newest teacher-first smoke gate also fails before long training: X2D is **+0.0038%** median MAE but **-0.0062%** RMSE, and Z8 is **-0.1618%** MAE / **-0.0448%** RMSE. |
 | What must a new candidate prove first? | Candidate-only runtime inputs, positive held-out recovery, 50 MP and 100 MP full-frame gates, editor-latitude review, worst-row review, editable raw outputs, timing, memory, and exact-sidecar-only noise policy. |
 | What is forbidden at render time? | REF/source/JPEG image content, source residual noise, hidden source-HF targets, or any noise addback not tied to a validated exact camera/ISO sidecar. |
 | What should happen before another long CNN run? | Build a small candidate and reject it early unless it improves held-out X2D and Z8 evidence with runtime-safe inputs. Do not scale the current Restormer same-color pair setup unless both smoke holdouts beat interpolation. |
@@ -192,7 +192,10 @@ production-promoted.
 | evidence | path |
 |---|---|
 | Product promotion boundary | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_20260702/index.html` |
-| Experiment scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/index.html` |
+| Experiment scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/index.html` |
+| Latest launchable preflight rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_20260702_next/index.html` |
+| Teacher-first X2D smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_x2d_20260702/index.html` |
+| Teacher-first Z8 smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_z8_20260702/index.html` |
 | Current next-experiment contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html` |
 | Clean-source pair audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/index.html` |
 | X2D routed holdout rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/index.html` |

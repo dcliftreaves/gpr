@@ -1019,7 +1019,7 @@ def require_dashboard_contract(
                 if worst_lpips > 0.15 or worst_ms < 0.95 or worst_y < 28.0 or worst_de > 3.0:
                     failures.append(f"{entry_id}: edge-safe metrics must clear PREVIEW thresholds")
 
-    if entry_id == "premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702":
+    if entry_id == "premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702":
         if entry.get("status") != "diagnostic":
             failures.append(f"{entry_id}: premium still-SR scoreboard must remain diagnostic until promoted")
         metrics = entry.get("metrics")
@@ -1027,8 +1027,8 @@ def require_dashboard_contract(
             failures.append(f"{entry_id}: premium still-SR scoreboard needs metrics")
         else:
             expected_metrics = {
-                "receipt_count": 95,
-                "runtime_safe_candidate_count": 95,
+                "receipt_count": 97,
+                "runtime_safe_candidate_count": 97,
                 "promotable_candidate_count": 0,
                 "promotion_threshold_pct": 15.0,
                 "production_ready": 0,
@@ -1078,20 +1078,36 @@ def require_dashboard_contract(
                     failures.append(f"{entry_id}: t64 Restormer degradation X2D MAE recovery drifted")
                 if abs(t64_degrade_z8 - (-0.39733391451713823)) > 1e-9:
                     failures.append(f"{entry_id}: t64 Restormer degradation Z8 MAE recovery drifted")
+            try:
+                teacher_x2d = float(metrics.get("latest_teacher_first_x2d_smoke_holdout_mae_recovery_pct"))
+                teacher_x2d_rmse = float(metrics.get("latest_teacher_first_x2d_smoke_holdout_rmse_recovery_pct"))
+                teacher_z8 = float(metrics.get("latest_teacher_first_z8_smoke_holdout_mae_recovery_pct"))
+                teacher_z8_rmse = float(metrics.get("latest_teacher_first_z8_smoke_holdout_rmse_recovery_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: latest teacher-first smoke metrics must be numeric")
+            else:
+                if abs(teacher_x2d - 0.0038058604915690002) > 1e-9:
+                    failures.append(f"{entry_id}: teacher-first X2D smoke MAE recovery drifted")
+                if abs(teacher_x2d_rmse - (-0.006220186753938305)) > 1e-9:
+                    failures.append(f"{entry_id}: teacher-first X2D smoke RMSE recovery drifted")
+                if abs(teacher_z8 - (-0.16182462980465134)) > 1e-9:
+                    failures.append(f"{entry_id}: teacher-first Z8 smoke MAE recovery drifted")
+                if abs(teacher_z8_rmse - (-0.044802686923713524)) > 1e-9:
+                    failures.append(f"{entry_id}: teacher-first Z8 smoke RMSE recovery drifted")
         hashes = entry.get("hashes")
         if not isinstance(hashes, dict):
             failures.append(f"{entry_id}: premium still-SR scoreboard needs hashes")
         else:
             expected_hashes = {
-                "scoreboard_json_sha256": "bf3d435931c2c526a9b73852d10745940b1c92f98dafb4511d1a03097e4f5d1e",
-                "dashboard_sha256": "858c7790b7729441cb95cd34f79425c60481545150cf27da2b3c6fb95ea9c14c",
+                "scoreboard_json_sha256": "5f28b461602539a6922fbaa434e41dc069097a76caec374f9fd43fdeba51064d",
+                "dashboard_sha256": "cd777fa2df56aee97c2b6d70d85a0e4807c0e4d05d922d9aa937c261d11e8d8a",
             }
             for key, expected in expected_hashes.items():
                 if hashes.get(key) != expected:
                     failures.append(f"{entry_id}: hash {key} must stay {expected}")
         readme_text = README.read_text(encoding="utf-8")
         readme_plain = re.sub(r"[*_`]", "", readme_text)
-        for token in ("95-receipt experiment scoreboard", "95 runtime-safe"):
+        for token in ("97-receipt experiment scoreboard", "97 runtime-safe"):
             if token not in readme_plain:
                 failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
 

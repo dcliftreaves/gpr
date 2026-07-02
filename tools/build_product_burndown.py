@@ -225,7 +225,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
                 "runtime_inputs includes candidate_raw and camera_metadata but excludes REF/source/JPEG content",
                 "candidate preflight passes with a materially new restoration-teacher, non-local/full-image, burst, or clean-source RAW SR architecture",
                 "realistic RAW degradation policy covers at least two of PSF/blur, noise/ISO, bit depth, compression/decode, sensor, and CFA behavior",
-                "same-color Bayer interpolation and the current 95-receipt still-SR scoreboard are explicit baselines",
+                "same-color Bayer interpolation and the current 97-receipt still-SR scoreboard are explicit baselines",
                 "Z8 held-out raw-residual recovery clears promotion threshold",
                 "X2D held-out raw-residual recovery clears promotion threshold",
                 "positive median_mae_reduction_pct_50mp and median_mae_reduction_pct_100mp",

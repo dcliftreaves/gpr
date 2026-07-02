@@ -1674,11 +1674,11 @@
       }
     },
     {
-      "id": "premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702",
+      "id": "premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702",
       "family": "premium_still_sr",
       "status": "diagnostic",
       "purpose": "Current premium still-SR experiment scoreboard. It scans rendered-HF, raw-CFA residual, clean-signal, and clean-source pair training receipts, normalizes the held-out MAE/RMSE recovery metrics, reports runtime-safe candidates separately, and records zero promotable rows against the 15 percent / 15 percent promotion threshold.",
-      "dashboard": "artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/index.html",
+      "dashboard": "artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/index.html",
       "docs": [
         "README.md",
         "docs/PREMIUM_STILL_SR.md",
@@ -1686,16 +1686,16 @@
         "docs/PRODUCTION_ARTIFACTS.md"
       ],
       "receipts": [
-        "artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/scoreboard.json",
-        "artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/index.html"
+        "artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/scoreboard.json",
+        "artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/index.html"
       ],
       "hashes": {
-        "scoreboard_json_sha256": "bf3d435931c2c526a9b73852d10745940b1c92f98dafb4511d1a03097e4f5d1e",
-        "dashboard_sha256": "858c7790b7729441cb95cd34f79425c60481545150cf27da2b3c6fb95ea9c14c"
+        "scoreboard_json_sha256": "5f28b461602539a6922fbaa434e41dc069097a76caec374f9fd43fdeba51064d",
+        "dashboard_sha256": "cd777fa2df56aee97c2b6d70d85a0e4807c0e4d05d922d9aa937c261d11e8d8a"
       },
       "metrics": {
-        "receipt_count": 95,
-        "runtime_safe_candidate_count": 95,
+        "receipt_count": 97,
+        "runtime_safe_candidate_count": 97,
         "promotable_candidate_count": 0,
         "best_runtime_safe_holdout_mae_recovery_pct": 4.031355420019811,
         "best_runtime_safe_holdout_rmse_recovery_pct": 3.753504206299621,
@@ -1710,7 +1710,11 @@
         "latest_restormer_degrade_t64_z8_smoke_holdout_mae_recovery_pct": -0.39733391451713823,
         "latest_restormer_degrade_t64_z8_smoke_holdout_rmse_recovery_pct": -0.26270213671681764,
         "promotion_threshold_pct": 15.0,
-        "production_ready": 0
+        "production_ready": 0,
+        "latest_teacher_first_x2d_smoke_holdout_mae_recovery_pct": 0.0038058604915690002,
+        "latest_teacher_first_x2d_smoke_holdout_rmse_recovery_pct": -0.006220186753938305,
+        "latest_teacher_first_z8_smoke_holdout_mae_recovery_pct": -0.16182462980465134,
+        "latest_teacher_first_z8_smoke_holdout_rmse_recovery_pct": -0.044802686923713524
       }
     },
     {
@@ -2178,7 +2182,7 @@
       "id": "premium_still_sr_promotion_gate_20260702",
       "family": "premium_still_sr",
       "status": "experimental-blocker",
-      "purpose": "Product-level promotion boundary for premium still-SR. It consolidates the 95-receipt experiment scoreboard, clean-signal/noise gate, formal still-SR gate receipt, and next-experiment contract into one current decision: safe to keep diagnostic, not production-promoted.",
+      "purpose": "Product-level promotion boundary for premium still-SR. It consolidates the 97-receipt experiment scoreboard, clean-signal/noise gate, formal still-SR gate receipt, and next-experiment contract into one current decision: safe to keep diagnostic, not production-promoted.",
       "dashboard": "artifacts/premium_still_sr_promotion_gate_20260702/index.html",
       "docs": [
         "README.md",

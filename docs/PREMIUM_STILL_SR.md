@@ -133,18 +133,18 @@ minimum held-out MAE/RMSE recovery thresholds:
 ```sh
 python3 tools/build_premium_still_sr_experiment_scoreboard.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702
 ```
 
 Current scoreboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/index.html
 ```
 
-The current scoreboard scans **95** premium still-SR training receipts across
+The current scoreboard scans **97** premium still-SR training receipts across
 the rendered-HF, raw-CFA residual, clean-signal, and clean-source pair schemas.
-All 95 rows are runtime-safe, but **0** are promotable. The best older
+All 97 rows are runtime-safe, but **0** are promotable. The best older
 runtime-safe row reaches only **4.03%** held-out MAE recovery and **3.75%**
 held-out RMSE recovery against a 15% / 15% promotion threshold, and the newest
 clean-source Restormer pair rows are far below that floor. The latest
@@ -152,9 +152,12 @@ degradation/objective ablation added Charbonnier loss, Laplacian loss,
 training-time RAW noise, per-plane gain jitter, and binomial blur, but it also
 fails: the X2D holdout reaches only **+0.0048%** median MAE recovery and
 **-0.0053%** RMSE recovery, while Z8 regresses at **-0.3973%** MAE and
-**-0.2627%** RMSE. This is a necessary promotion guard, not a full production
-gate. A future row must still pass full-frame raw/editor-latitude review before
-the premium still-SR pillar can move from diagnostic to production-ready.
+**-0.2627%** RMSE. A follow-up teacher-first smoke gate is also rejected before
+long training: X2D is only **+0.0038%** median MAE and **-0.0062%** median RMSE,
+while Z8 regresses at **-0.1618%** median MAE and **-0.0448%** median RMSE.
+This is a necessary promotion guard, not a full production gate. A future row
+must still pass full-frame raw/editor-latitude review before the premium
+still-SR pillar can move from diagnostic to production-ready.
 
 ## Promotion Boundary Gate
 
@@ -340,9 +343,23 @@ blocked before a long run.
 Current launch packet:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_20260702/launch_packet.json
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_20260702_next/launch_packet.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_20260702_next/index.html
 ```
+
+The latest launchable preflight deliberately allowed only short smoke gates:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_20260702_next/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_x2d_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_z8_20260702/index.html
+```
+
+That candidate is rejected before any long run. The X2D smoke has 576 holdout
+tiles and reaches **+0.0038%** median MAE recovery but **-0.0062%** median RMSE
+recovery. The Z8 smoke has 1,536 holdout tiles and regresses to **-0.1618%**
+median MAE and **-0.0448%** median RMSE. Because both smoke holdouts must beat
+same-color interpolation before long training, this path is diagnostic only.
 
 The first real-fixture smoke for that path now exists:
 
@@ -429,7 +446,7 @@ pass are also indexed:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_z8holdout_restormer_w32_d4_s500_20260702/index.html
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_x2dholdout_restormer_degrade_w32_d4_s100_20260702/index.html
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_z8holdout_restormer_degrade_w32_d4_s100_20260702/index.html
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/index.html
 ```
 
 That pair set covers 4,800 tiles from 75 images: 2,688 Mission 1 tiles, 1,536

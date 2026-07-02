@@ -297,8 +297,8 @@ track, while explicitly forbidding production promotion from the current
 unstable native Mission 1 kernel or partial historical SR rows.
 
 The current premium still-SR experiment scoreboard lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/index.html`.
-It now ranks 95 runtime-safe rendered-HF, raw-CFA residual, clean-signal, and
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/index.html`.
+It now ranks 97 runtime-safe rendered-HF, raw-CFA residual, clean-signal, and
 clean-source pair training receipts and records zero promotable rows. The best
 older runtime-safe row reaches 4.03 percent held-out MAE recovery and 3.75
 percent held-out RMSE recovery against the 15 percent / 15 percent promotion
