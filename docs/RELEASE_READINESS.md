@@ -80,6 +80,18 @@ re-expand it with bulky historical artifacts.
 Current local verification was rerun with large scratch and artifacts on
 `/Volumes/OWC_8TB/gpr_work`.
 
+Update on 2026-07-02:
+
+- GitHub CI is green on `master` for commit `2a632f1` after the production
+  capture checker began validating required per-plane darkframe noise metrics:
+  `https://github.com/dcliftreaves/gpr/actions/runs/28585301698`.
+- The current top-level production percentage remains 83 percent: raw stills
+  92 percent, raw video MVP 80 percent, premium still/SR 60 percent, and
+  approved raw-video reconstruction 100 percent for offline/post scope.
+- The active release blockers remain Mission/iPhone strict-provenance
+  darkframe sidecars, real Mission 1 camera-role receipts, and a promotable
+  no-REF 50 MP / 100 MP premium still-SR candidate.
+
 Update on 2026-07-01:
 
 - GitHub CI is green on `master` for commit `4e0b62f` after the SR shipping
