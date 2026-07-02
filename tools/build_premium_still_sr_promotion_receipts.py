@@ -26,6 +26,11 @@ DEFAULT_ROUTE_READINESS = DEFAULT_ROOT / "artifacts/premium_still_sr_route_readi
 DEFAULT_EDITOR_COVERAGE = DEFAULT_ROOT / "artifacts/premium_still_sr_editor_latitude_coverage_20260702/coverage.json"
 DEFAULT_NOISE_GATE = DEFAULT_ROOT / "artifacts/premium_still_sr_noise_policy_gate_20260702/premium_still_sr_noise_policy_gate.json"
 DEFAULT_PROMOTION_GATE = DEFAULT_ROOT / "artifacts/premium_still_sr_promotion_gate_current_20260702/premium_still_sr_promotion_gate.json"
+DEFAULT_SMOKE_ACCEPTANCE = (
+    DEFAULT_ROOT
+    / "artifacts/premium_still_sr_gate16_tail_safe_smoke_acceptance_20260702"
+    / "smoke_gate_acceptance.json"
+)
 DEFAULT_REQUIREMENTS = Path("docs/PRODUCTION_CAPTURE_REQUIREMENTS.json")
 
 PROMOTION_THRESHOLD_PCT = 15.0
@@ -168,6 +173,27 @@ def promotion_gate_status(path: Path, data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def smoke_acceptance_status(path: Path, data: dict[str, Any]) -> dict[str, Any]:
+    rows = [row for row in as_list(data.get("rows")) if isinstance(row, dict)]
+    by_holdout = {str(row.get("holdout") or "").lower(): row for row in rows}
+    x2d = as_dict(by_holdout.get("x2d"))
+    z8 = as_dict(by_holdout.get("z8"))
+    return {
+        "artifact": artifact(path),
+        "smoke_gate_passed": data.get("smoke_gate_passed") is True,
+        "long_run_allowed": data.get("long_run_allowed") is True,
+        "verdict": data.get("verdict"),
+        "candidate_id": data.get("candidate_id"),
+        "x2d_median_mae_reduction_pct": number(x2d.get("median_mae_improvement_pct")),
+        "x2d_worst_row_mae_reduction_pct": number(x2d.get("worst_row_mae_improvement_pct"), -999.0),
+        "z8_median_mae_reduction_pct": number(z8.get("median_mae_improvement_pct")),
+        "z8_worst_row_mae_reduction_pct": number(z8.get("worst_row_mae_improvement_pct"), -999.0),
+        "x2d_checkpoint_sha256": x2d.get("checkpoint_sha256"),
+        "z8_checkpoint_sha256": z8.get("checkpoint_sha256"),
+        "failures": as_list(data.get("failures")),
+    }
+
+
 def requirements_status(path: Path, data: dict[str, Any]) -> dict[str, Any]:
     rows = [row for row in as_list(data.get("requirements")) if isinstance(row, dict)]
     row = next((item for item in rows if item.get("id") == REQUIREMENT_ID), {})
@@ -200,6 +226,7 @@ def build_steps(statuses: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     editor = statuses["editor_openability"]
     noise = statuses["noise_policy"]
     promotion = statuses["promotion_gate"]
+    smoke = statuses["smoke_acceptance"]
     requirements = statuses["production_requirements"]
     return [
         {
@@ -225,6 +252,18 @@ def build_steps(statuses: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
             "done": noise["clean_signal_policy_pass"],
             "done_when": "Clean target policy passes and render-time source residual noise is forbidden.",
             "next": "Wire exact-sidecar-only policy into the promotable model receipt.",
+        },
+        {
+            "id": "paired_smoke_gate",
+            "done": (
+                smoke["smoke_gate_passed"]
+                and smoke["long_run_allowed"]
+                and smoke["x2d_median_mae_reduction_pct"] >= 1.0
+                and smoke["x2d_worst_row_mae_reduction_pct"] >= 0.0
+                and smoke["z8_worst_row_mae_reduction_pct"] >= 0.0
+            ),
+            "done_when": "Candidate-specific X2D and Z8 smoke acceptance passes before any long/full promotion run.",
+            "next": "Use the accepted smoke candidate in the full 50 MP / 100 MP promotion gate.",
         },
         {
             "id": "model_promotion_floor",
@@ -273,6 +312,8 @@ def classify_blockers(steps: list[dict[str, Any]], statuses: dict[str, dict[str,
     ids = {step["id"]: bool(step["done"]) for step in steps}
     if not ids["model_promotion_floor"]:
         blockers.append("model_promotion_floor_not_met")
+    if not ids["paired_smoke_gate"]:
+        blockers.append("paired_smoke_gate_not_passed")
     if not ids["full_50mp_100mp_gate"]:
         blockers.append("full_50mp_100mp_gate_missing")
     if not ids["timing_memory"]:
@@ -359,6 +400,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "editor_openability": editor_status(args.editor_coverage, load_json(args.editor_coverage)),
         "noise_policy": noise_status(args.noise_policy_gate, load_json(args.noise_policy_gate)),
         "promotion_gate": promotion_gate_status(args.promotion_gate, load_json(args.promotion_gate)),
+        "smoke_acceptance": smoke_acceptance_status(args.smoke_acceptance, load_json(args.smoke_acceptance)),
         "production_requirements": requirements_status(args.production_requirements, load_json(args.production_requirements)),
     }
     steps = build_steps(statuses)
@@ -409,6 +451,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--editor-coverage", type=Path, default=DEFAULT_EDITOR_COVERAGE)
     ap.add_argument("--noise-policy-gate", type=Path, default=DEFAULT_NOISE_GATE)
     ap.add_argument("--promotion-gate", type=Path, default=DEFAULT_PROMOTION_GATE)
+    ap.add_argument("--smoke-acceptance", type=Path, default=DEFAULT_SMOKE_ACCEPTANCE)
     ap.add_argument("--production-requirements", type=Path, default=DEFAULT_REQUIREMENTS)
     ap.add_argument("--output-dir", type=Path, required=True)
     ap.add_argument("--require-production-ready", action="store_true")

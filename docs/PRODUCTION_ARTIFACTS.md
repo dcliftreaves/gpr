@@ -85,6 +85,8 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate 14 selector smoke dashboard | `artifacts/premium_still_sr_gate14_selector_smoke_20260702/index.html` | `6614c452d887a5d6fe34a2b72ebd81648a98b7e8896e0be6def2710e864edab5` |
 | Premium still-SR promotion receipts rollup | `artifacts/premium_still_sr_promotion_receipts_20260702/premium_still_sr_promotion_receipts.json` | `bc434b71f1299eecdde9a22dae42a88de9845ff2885e7183b83d46310e25f779` |
 | Premium still-SR promotion receipts dashboard | `artifacts/premium_still_sr_promotion_receipts_20260702/index.html` | `c0c645b9a0626619b8921a0719f2e8a643dec62a295fe3df0008df5fe82ded63` |
+| Premium still-SR Gate16 promotion receipts rollup | `artifacts/premium_still_sr_promotion_receipts_gate16_20260702/premium_still_sr_promotion_receipts.json` | `15138fff61c3619649de5e1d4fd4348ea4de224e55d08a3a15e5e53f65492b51` |
+| Premium still-SR Gate16 promotion receipts dashboard | `artifacts/premium_still_sr_promotion_receipts_gate16_20260702/index.html` | `c3f8dedf635c35e9e465da41050c289a5a3eca372bcf86d8649afeac18d3ad7c` |
 | Premium still-SR model-floor gap receipt | `artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json` | `fb27020f6d29636ea690e109ae4d7dda7a1f0151d6b29fe42265ecf1d84b4d88` |
 | Premium still-SR model-floor gap dashboard | `artifacts/premium_still_sr_model_floor_gap_20260702/index.html` | `ddbbb904f78d2a210c297b36cc4899c44d5a684f7d6de5c091d6ac00315492fb` |
 | Gate14 floor-student candidate preflight | `artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json` | `bd87bcb70d1930317afaac009ab9e7f7321decea56a274ae05e76c487391c8b0` |
@@ -128,9 +130,10 @@ The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
 sidecar, and Gate 14 selector smoke now reproduces the pass through runtime
 feature recomputation, source/checkpoint hash checks, and first-match routing.
-The strict promotion receipt rollup now records 4/8 done steps. The first open
-step is `model_promotion_floor`; the current blockers are full 50 MP / 100 MP
-gate rows, timing/memory, exact noise-policy wiring, and production submission.
+The strict promotion receipt rollup now records 5/9 done steps after the Gate16
+paired-smoke pass. The first open step is `model_promotion_floor`; the current
+blockers are full 50 MP / 100 MP gate rows, timing/memory, exact noise-policy
+wiring, and production submission.
 The model-floor gap receipt quantifies the first blocker: best runtime-safe
 MAE/RMSE are `4.031355420019811%` / `3.753504206299621%`, leaving
 `10.96864457998019` / `11.24649579370038` percentage points to the floor. The

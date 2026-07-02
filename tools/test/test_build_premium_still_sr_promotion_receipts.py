@@ -111,6 +111,33 @@ def promotion(production_ready: bool) -> dict:
     }
 
 
+def smoke_acceptance() -> dict:
+    return {
+        "schema": "gpr.premium_still_sr_smoke_gate_acceptance.v1",
+        "candidate_id": "premium_still_sr_gate16_tail_safe_x2d_positive_z8_noop_v1",
+        "smoke_gate_passed": True,
+        "long_run_allowed": True,
+        "verdict": "long_run_allowed",
+        "failures": [],
+        "rows": [
+            {
+                "holdout": "x2d",
+                "passed": True,
+                "median_mae_improvement_pct": 17.0,
+                "worst_row_mae_improvement_pct": 0.0,
+                "checkpoint_sha256": "a" * 64,
+            },
+            {
+                "holdout": "z8",
+                "passed": True,
+                "median_mae_improvement_pct": 0.0,
+                "worst_row_mae_improvement_pct": 0.0,
+                "checkpoint_sha256": "b" * 64,
+            },
+        ],
+    }
+
+
 def requirements() -> dict:
     evidence = [
         "candidate raw",
@@ -146,6 +173,7 @@ def run_case(tmp: Path, production_ready: bool) -> dict:
     write_json(tmp / "editor.json", editor())
     write_json(tmp / "noise.json", noise(production_ready))
     write_json(tmp / "promotion.json", promotion(production_ready))
+    write_json(tmp / "smoke.json", smoke_acceptance())
     write_json(tmp / "requirements.json", requirements())
     args = type(
         "Args",
@@ -156,6 +184,7 @@ def run_case(tmp: Path, production_ready: bool) -> dict:
             "editor_coverage": tmp / "editor.json",
             "noise_policy_gate": tmp / "noise.json",
             "promotion_gate": tmp / "promotion.json",
+            "smoke_acceptance": tmp / "smoke.json",
             "production_requirements": tmp / "requirements.json",
             "output_dir": tmp / ("ready" if production_ready else "blocked"),
             "require_production_ready": False,
@@ -171,8 +200,9 @@ def main() -> int:
         blocked = run_case(root / "blocked_case", False)
         assert blocked["schema"] == "gpr.premium_still_sr_promotion_receipts.v1"
         assert blocked["production_ready"] is False
-        assert blocked["completion_percent"] == 50.0
+        assert blocked["completion_percent"] == 55.6
         assert blocked["first_open_step"] == "model_promotion_floor"
+        assert "paired_smoke_gate_not_passed" not in blocked["blocker_classifications"]
         assert "model_promotion_floor_not_met" in blocked["blocker_classifications"]
         assert "full_50mp_100mp_gate_missing" in blocked["blocker_classifications"]
         assert (root / "blocked_case" / "blocked" / "index.html").is_file()
