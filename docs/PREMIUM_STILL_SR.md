@@ -1,5 +1,9 @@
 # Premium Still SR
 
+For the shortest promotion checklist, start with
+[`PREMIUM_STILL_SR_FIRST_HOUR.md`](PREMIUM_STILL_SR_FIRST_HOUR.md). This page
+defines the full gate contract and current evidence in more detail.
+
 The premium still-SR pillar is separate from the current video SR work. It is
 allowed to spend much more time per image, but it must still preserve editable
 raw behavior, tone/color stability, camera noise policy, and worst-row visual

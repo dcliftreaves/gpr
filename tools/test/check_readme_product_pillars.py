@@ -142,6 +142,7 @@ REQUIRED_README_TOKENS = (
     "docs/GOPRO_MISSION1_QUICK_VALIDATION.md",
     "docs/GOPRO_LABS_FIRST_HOUR.md",
     "docs/PREMIUM_STILL_SR.md",
+    "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
     "docs/BAYER_RESIZE_PSF.md",
     "raw_video_psf_next_experiment_contract_20260701",
     "premium_still_sr_next_experiment_contract_transformer_teacher_20260701",

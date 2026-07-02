@@ -20,6 +20,8 @@ longer blocks release of the approved current raw-video SR workflow.
 For the shortest RAW-stills sample path, use
 [`RAW_STILLS_NOISE_FIRST_HOUR.md`](RAW_STILLS_NOISE_FIRST_HOUR.md). It turns
 the two open darkframe requirements into a capture/provenance/sidecar checklist.
+For the shortest premium still-SR model-promotion path, use
+[`PREMIUM_STILL_SR_FIRST_HOUR.md`](PREMIUM_STILL_SR_FIRST_HOUR.md).
 
 ## Open Requirements
 
@@ -153,6 +155,10 @@ into an auditable pass/fail package.
   provenance before it can close.
 - Optional raw-video PSF research capture request:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`
+- Premium still-SR first-hour promotion checklist:
+  [`PREMIUM_STILL_SR_FIRST_HOUR.md`](PREMIUM_STILL_SR_FIRST_HOUR.md)
+  This is the shortest human runbook for deciding whether a new offline
+  still-SR model is promotable or only diagnostic.
 - GoPro Mission 1 intake audit:
   `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701/index.html`
 - Product pillar scorecard:

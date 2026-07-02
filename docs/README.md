@@ -16,6 +16,7 @@ refreshed 2026-07-01.
 | camera-noise calibration policy and sidecar builder | `CAMERA_NOISE_CALIBRATION.md` |
 | RAW-stills Mission/iPhone noise-sidecar first-hour checklist | `RAW_STILLS_NOISE_FIRST_HOUR.md` |
 | premium still-SR gate policy and skeleton | `PREMIUM_STILL_SR.md` |
+| premium still-SR first-hour promotion checklist | `PREMIUM_STILL_SR_FIRST_HOUR.md` |
 | Bayer resize PSF policy and synthetic receipt builder | `BAYER_RESIZE_PSF.md` |
 | Release readiness and production proof | `RELEASE_READINESS.md` |
 | what ships today, by ship class | `SHIP_DECISION.md` |
