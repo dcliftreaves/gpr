@@ -1032,6 +1032,49 @@ def main() -> int:
 
         bad = json.loads(json.dumps(strict))
         camera = next(row for row in bad["requirements"] if row["id"] == "mission1_camera_role_receipts")
+
+        def rewrite_camera_receipt(name: str, payload: dict) -> None:
+            path = bundle / camera["receipts"][name]["path"]
+            path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            camera["receipts"][name]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+        target_bench_path = bundle / camera["receipts"]["labs_target_bench"]["path"]
+        target_bench = json.loads(target_bench_path.read_text(encoding="utf-8"))
+        target_bench["capture"]["frames_written"] = 12
+        target_bench["gvid"]["validation"]["frame_count"] = 12
+        rewrite_camera_receipt("labs_target_bench", target_bench)
+
+        handoff_path = bundle / camera["receipts"]["camera_handoff_receipt"]["path"]
+        handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+        handoff["capture"]["frames_requested"] = 12
+        handoff["capture"]["frames_written"] = 12
+        handoff["output"]["validation"]["frame_count"] = 12
+        rewrite_camera_receipt("camera_handoff_receipt", handoff)
+
+        preview_decode_path = bundle / camera["receipts"]["preview_decode_receipt"]["path"]
+        preview_decode = json.loads(preview_decode_path.read_text(encoding="utf-8"))
+        preview_decode["frame_count"] = 12
+        preview_decode["summary"]["decode_plus_target"]["n"] = 12
+        rewrite_camera_receipt("preview_decode_receipt", preview_decode)
+
+        preview_ui_path = bundle / camera["receipts"]["preview_ui_receipt"]["path"]
+        preview_ui = json.loads(preview_ui_path.read_text(encoding="utf-8"))
+        preview_ui["source"]["frame_count"] = 12
+        preview_ui["preview"]["frame_count"] = 12
+        rewrite_camera_receipt("preview_ui_receipt", preview_ui)
+
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "labs_target_bench capture.frames_written must be >= 120" in proc.stdout
+        assert "camera_handoff_receipt capture.frames_written must be >= 120" in proc.stdout
+        assert "preview_decode_receipt frame_count must be >= 120" in proc.stdout
+        assert "preview_ui_receipt source.frame_count must be >= 120" in proc.stdout
+        assert "preview_ui_receipt preview.frame_count must be >= 120" in proc.stdout
+        write_camera_role_receipts(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        camera = next(row for row in bad["requirements"] if row["id"] == "mission1_camera_role_receipts")
         handoff_path = bundle / camera["receipts"]["camera_handoff_receipt"]["path"]
         handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
         handoff["target"]["role"] = "stand-in"

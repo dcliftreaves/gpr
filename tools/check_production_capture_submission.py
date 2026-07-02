@@ -33,6 +33,7 @@ REQUIRED_CAMERA_ROLE_RECEIPTS = {
     "preview_ui_receipt",
     "mission1_camera_closure_run",
 }
+CAMERA_ROLE_MIN_SUSTAINED_FRAMES = 120
 CAMERA_STORAGE_ALLOWED_TOKENS = {"mission", "camera", "sd", "internal", "lexar", "silver"}
 CAMERA_STORAGE_FORBIDDEN_TOKENS = {"pi", "standin", "stand_in", "stand-in", "proxy", "ssd", "tmp", "tmpfs", "ramdisk"}
 PSF_HIGH_DIMS = (8192, 6144)
@@ -646,7 +647,11 @@ def validate_strict_camera_role_receipt_content(
         ok, failure = number_equals(target_bench.get("capture", {}), "dropped_frames", 0)
         if not ok:
             failures.append(f"labs_target_bench capture.{failure}")
-        ok, failure = number_at_least(target_bench.get("capture", {}), "frames_written", 1)
+        ok, failure = number_at_least(
+            target_bench.get("capture", {}),
+            "frames_written",
+            CAMERA_ROLE_MIN_SUSTAINED_FRAMES,
+        )
         if not ok:
             failures.append(f"labs_target_bench capture.{failure}")
         if nested_get(target_bench, "gvid", "sha256") != row.get("gvid_sha256"):
@@ -704,6 +709,13 @@ def validate_strict_camera_role_receipt_content(
         handoff_frames = numeric_value(nested_get(handoff, "capture", "frames_written"))
         handoff_output_frames = numeric_value(nested_get(handoff, "output", "validation", "frame_count"))
         target_frames = numeric_value(nested_get(target_bench or {}, "capture", "frames_written"))
+        ok, failure = number_at_least(
+            handoff.get("capture", {}),
+            "frames_written",
+            CAMERA_ROLE_MIN_SUSTAINED_FRAMES,
+        )
+        if not ok:
+            failures.append(f"camera_handoff_receipt capture.{failure}")
         if handoff_frames is not None and handoff_output_frames is not None and int(handoff_frames) != int(handoff_output_frames):
             failures.append("camera_handoff_receipt output.validation.frame_count must match capture.frames_written")
         if target_frames is not None and handoff_frames is not None and int(target_frames) != int(handoff_frames):
@@ -730,8 +742,8 @@ def validate_strict_camera_role_receipt_content(
         if preview_decode.get("raw_target") != "mission1_preview_4x_1024x768":
             failures.append("preview_decode_receipt raw_target must be mission1_preview_4x_1024x768")
         frame_count = numeric_value(preview_decode.get("frame_count"))
-        if frame_count is None or frame_count <= 0:
-            failures.append("preview_decode_receipt frame_count must be > 0")
+        if frame_count is None or frame_count < CAMERA_ROLE_MIN_SUSTAINED_FRAMES:
+            failures.append(f"preview_decode_receipt frame_count must be >= {CAMERA_ROLE_MIN_SUSTAINED_FRAMES}")
         elif target_bench is not None:
             target_frames = numeric_value(nested_get(target_bench, "capture", "frames_written"))
             if target_frames is not None and int(frame_count) != int(target_frames):
@@ -785,6 +797,10 @@ def validate_strict_camera_role_receipt_content(
         preview_frames = numeric_value(nested_get(preview, "preview", "frame_count"))
         decode_frames = numeric_value(preview_decode.get("frame_count")) if preview_decode is not None else None
         target_frames = numeric_value(nested_get(target_bench or {}, "capture", "frames_written"))
+        if preview_source_frames is None or preview_source_frames < CAMERA_ROLE_MIN_SUSTAINED_FRAMES:
+            failures.append(f"preview_ui_receipt source.frame_count must be >= {CAMERA_ROLE_MIN_SUSTAINED_FRAMES}")
+        if preview_frames is None or preview_frames < CAMERA_ROLE_MIN_SUSTAINED_FRAMES:
+            failures.append(f"preview_ui_receipt preview.frame_count must be >= {CAMERA_ROLE_MIN_SUSTAINED_FRAMES}")
         if preview_source_frames is not None and preview_frames is not None and int(preview_source_frames) != int(preview_frames):
             failures.append("preview_ui_receipt preview.frame_count must match source.frame_count")
         if decode_frames is not None and preview_frames is not None and int(decode_frames) != int(preview_frames):
