@@ -396,6 +396,68 @@ class WindowAttentionPixelShuffleSR(nn.Module):
         return torch.clamp(base + torch.tanh(residual) * self.residual_scale, 0.0, 1.0)
 
 
+class FrequencyPyramidPixelShuffleSR(nn.Module):
+    """RAW SR teacher with explicit LF/HF/global candidate-only branches."""
+
+    def __init__(self, width: int, depth: int, residual_scale: float) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        w = max(8, int(width))
+        block_count = max(1, int(depth))
+        self.local_head = nn.Sequential(nn.Conv2d(4, w, 3, padding=1), nn.GELU())
+        self.local_body = nn.Sequential(
+            *[
+                nn.Sequential(
+                    nn.Conv2d(w, w, 3, padding=1),
+                    nn.GELU(),
+                    nn.Conv2d(w, w, 3, padding=1),
+                    nn.GELU(),
+                )
+                for _ in range(block_count)
+            ]
+        )
+        self.low_branch = nn.Sequential(
+            nn.Conv2d(4, w, 3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(w, w, 3, padding=1),
+            nn.GELU(),
+        )
+        self.high_branch = nn.Sequential(
+            nn.Conv2d(4, w, 3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(w, w, 3, padding=1),
+            nn.GELU(),
+        )
+        self.global_branch = nn.Sequential(
+            nn.AdaptiveAvgPool2d((16, 16)),
+            nn.Conv2d(4, w, 3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(w, w, 3, padding=1),
+            nn.GELU(),
+        )
+        self.fuse = nn.Sequential(
+            nn.Conv2d(w * 4, w * 2, 1),
+            nn.GELU(),
+            nn.Conv2d(w * 2, w, 3, padding=1),
+            nn.GELU(),
+            nn.Conv2d(w, 16, 3, padding=1),
+        )
+        nn.init.zeros_(self.fuse[-1].weight)
+        nn.init.zeros_(self.fuse[-1].bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        base = torch.repeat_interleave(torch.repeat_interleave(x, 2, dim=2), 2, dim=3)
+        local = self.local_body(self.local_head(x))
+        low_input = F.avg_pool2d(x, kernel_size=3, stride=1, padding=1)
+        high_input = x - low_input
+        low = self.low_branch(low_input)
+        high = self.high_branch(high_input)
+        global_context = self.global_branch(x)
+        global_context = F.interpolate(global_context, size=x.shape[-2:], mode="bilinear", align_corners=False)
+        residual = F.pixel_shuffle(self.fuse(torch.cat([local, low, high, global_context], dim=1)), 2)
+        return torch.clamp(base + torch.tanh(residual) * self.residual_scale, 0.0, 1.0)
+
+
 def build_model(model_arch: str, width: int, depth: int, residual_scale: float) -> nn.Module:
     if model_arch == "residual_pixelshuffle":
         return ResidualPixelShuffleSR(width, depth, residual_scale)
@@ -405,6 +467,8 @@ def build_model(model_arch: str, width: int, depth: int, residual_scale: float) 
         return RestormerPixelShuffleSR(width, depth, residual_scale)
     if model_arch == "window_attention_pixelshuffle":
         return WindowAttentionPixelShuffleSR(width, depth, residual_scale)
+    if model_arch == "frequency_pyramid_pixelshuffle":
+        return FrequencyPyramidPixelShuffleSR(width, depth, residual_scale)
     raise ValueError(f"unknown model architecture: {model_arch}")
 
 
@@ -575,6 +639,7 @@ def main() -> int:
             "naf_residual_pixelshuffle",
             "restormer_pixelshuffle",
             "window_attention_pixelshuffle",
+            "frequency_pyramid_pixelshuffle",
         ],
         default="residual_pixelshuffle",
     )

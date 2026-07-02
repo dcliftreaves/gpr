@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no model receipt yet clears the 15% / 15% held-out promotion floor.",
+      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no model receipt yet clears the 15% / 15% held-out promotion floor. The latest frequency-pyramid smoke is blocked before long training because X2D fails worst-row MAE and Z8 regresses median/worst-row MAE.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -94,6 +94,10 @@
           "premium_still_sr_candidate_preflight_source_evidence_split_20260702",
           "premium_still_sr_launch_packet_source_evidence_split_20260702",
           "premium_still_sr_source_evidence_split_teacher_smoke_20260702_next",
+          "premium_still_sr_candidate_preflight_frequency_pyramid_20260702",
+          "premium_still_sr_frequency_pyramid_source_evidence_smoke_20260702",
+          "premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702",
+          "premium_still_sr_experiment_scoreboard_frequency_pyramid_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629",
@@ -2611,6 +2615,156 @@
         "z8_promotion_ready": 0,
         "paired_smoke_gate_passed": 0,
         "long_run_blocked": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_candidate_preflight_frequency_pyramid_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Launchable Gate A candidate preflight for the frequency-pyramid source-evidence teacher. This permits only paired X2D/Z8 smoke gates, not production promotion.",
+      "dashboard": "artifacts/premium_still_sr_candidate_preflight_frequency_pyramid_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_candidate_preflight_template.py",
+        "tools/check_premium_still_sr_candidate_preflight.py",
+        "tools/cnn/train_premium_still_sr_clean_source_pairs.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_candidate_preflight_frequency_pyramid_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_candidate_preflight_frequency_pyramid_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_candidate_preflight_frequency_pyramid_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "95a2107f3ddef434695ecf35ab0e927a8f81024350b42bce0a10da689176061e",
+        "preflight_audit_json_sha256": "76ced7b5084560f14ac5d280084df29c8af837211f69d7e5ca1cdd2c5258a0fc",
+        "dashboard_sha256": "4024416f55e36474ed34080381e0a16daaa152d997b25b499a77883200ad1d25"
+      },
+      "metrics": {
+        "launchable_for_production_attempt": 1,
+        "preflight_failure_count": 0,
+        "smoke_gate_command_count": 2,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_frequency_pyramid_source_evidence_smoke_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Paired frequency-pyramid source-evidence Premium Still/SR smoke receipts. X2D is barely positive on median MAE/RMSE but fails worst-row MAE; Z8 regresses median and worst-row MAE, so this branch must not launch a longer 50 MP / 100 MP run.",
+      "dashboard": "artifacts/premium_still_sr_frequency_pyramid_source_evidence_z8_smoke_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/cnn/train_premium_still_sr_clean_source_pairs.py",
+        "tools/test/test_train_premium_still_sr_clean_source_pairs.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_frequency_pyramid_source_evidence_x2d_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_frequency_pyramid_source_evidence_x2d_smoke_20260702/index.html",
+        "artifacts/premium_still_sr_frequency_pyramid_source_evidence_z8_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_frequency_pyramid_source_evidence_z8_smoke_20260702/index.html"
+      ],
+      "hashes": {
+        "x2d_train_receipt_json_sha256": "ffb06a4aa761c1f6c0ba9a220d02cc3cf7c3917eb86ec9b41c33d29acba29301",
+        "x2d_dashboard_sha256": "29cc9e989c42c0f08fdbf62986b03d6c65688dd343907ea0f45a307019e3036b",
+        "x2d_checkpoint_sha256": "398f4ab31e4d3bc7a7ec4a1a0389a5f0a47e27ddeae5108645160405146e01ce",
+        "z8_train_receipt_json_sha256": "6eba319e0ed9325bc5e1f93d31c83509fb315b73213c5a7a5e93d9e766cbee5c",
+        "z8_dashboard_sha256": "34dbba96f7e51c35cf1c2763f377ffece107d76eb92a5378ca141f79323db95a",
+        "z8_checkpoint_sha256": "e13ad58b996407c2e3e49ce47216bba5d56ae6b172330c11f78c96466a15f060"
+      },
+      "metrics": {
+        "x2d_holdout_tile_count": 576,
+        "x2d_median_mae_recovery_pct": 0.005422090158202289,
+        "x2d_worst_row_mae_recovery_pct": -4.850145322879209,
+        "x2d_median_rmse_recovery_pct": 0.00035584670685109013,
+        "x2d_baseline_beaten_on_holdout": 1,
+        "z8_holdout_tile_count": 1536,
+        "z8_median_mae_recovery_pct": -8.809287941837436,
+        "z8_worst_row_mae_recovery_pct": -67.44360239254922,
+        "z8_median_rmse_recovery_pct": -5.335307791429628,
+        "z8_baseline_beaten_on_holdout": 0,
+        "paired_smoke_gate_passed": 0,
+        "long_run_blocked": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Machine-checked smoke-gate acceptance receipt for the frequency-pyramid source-evidence candidate. It blocks long training because X2D worst-row MAE is negative and Z8 median/worst-row MAE is negative.",
+      "dashboard": "artifacts/premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/check_premium_still_sr_smoke_gate_acceptance.py",
+        "tools/test/test_check_premium_still_sr_smoke_gate_acceptance.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json",
+        "artifacts/premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702/index.html"
+      ],
+      "hashes": {
+        "smoke_gate_acceptance_json_sha256": "a37b13fe89d653a66e3f0bd432efd7f517fd918e90570a71c750e5a663afbd16",
+        "dashboard_sha256": "fafba7292e4bb64281fffb4acc9551d6aff99e1c0e106b31ec6f57b63cfdf98c"
+      },
+      "metrics": {
+        "smoke_gate_passed": 0,
+        "long_run_allowed": 0,
+        "x2d_median_mae_recovery_pct": 0.005422090158202289,
+        "x2d_worst_row_mae_recovery_pct": -4.850145322879209,
+        "z8_median_mae_recovery_pct": -8.809287941837436,
+        "z8_worst_row_mae_recovery_pct": -67.44360239254922,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_experiment_scoreboard_frequency_pyramid_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Premium Still/SR experiment scoreboard after adding the frequency-pyramid smoke receipts. It scans 113 runtime-safe receipts and still records zero promotable rows against the 15 percent / 15 percent promotion threshold.",
+      "dashboard": "artifacts/premium_still_sr_experiment_scoreboard_frequency_pyramid_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_experiment_scoreboard.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_experiment_scoreboard_frequency_pyramid_20260702/scoreboard.json",
+        "artifacts/premium_still_sr_experiment_scoreboard_frequency_pyramid_20260702/index.html"
+      ],
+      "hashes": {
+        "scoreboard_json_sha256": "c954ca7eee31f225c6d9c94b9264688b297d8ebfe942a9624e4b3a4d806301db",
+        "dashboard_sha256": "be055ceb74ea24a6a6ed9080ea5d352392cbf8ccf7a9092b439caebceef3fe7b"
+      },
+      "metrics": {
+        "receipt_count": 113,
+        "runtime_safe_candidate_count": 113,
+        "promotable_candidate_count": 0,
+        "best_runtime_safe_mae_recovery_pct": 4.031355420019811,
+        "best_runtime_safe_rmse_recovery_pct": 3.753504206299621,
         "production_ready": 0
       }
     },

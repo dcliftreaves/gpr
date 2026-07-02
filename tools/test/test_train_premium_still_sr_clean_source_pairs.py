@@ -52,6 +52,7 @@ def main() -> int:
     assert "--pairs" in help_proc.stdout
     assert "--output-dir" in help_proc.stdout
     assert "window_attention_pixelshuffle" in help_proc.stdout
+    assert "frequency_pyramid_pixelshuffle" in help_proc.stdout
 
     if np is None:
         print("test_train_premium_still_sr_clean_source_pairs: SKIP missing numpy/torch")
@@ -222,6 +223,44 @@ def main() -> int:
         window_receipt = json.loads((window_out / "train_receipt.json").read_text(encoding="utf-8"))
         assert window_receipt["config"]["model_arch"] == "window_attention_pixelshuffle"
         assert window_receipt["eval"]["holdout"]["tile_count"] == 2
+        frequency_out = td / "frequency_pyramid_run"
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--pairs",
+                str(pairs),
+                "--output-dir",
+                str(frequency_out),
+                "--holdout-image",
+                "holdout_b",
+                "--steps",
+                "1",
+                "--batch",
+                "2",
+                "--low-crop",
+                "8",
+                "--model-arch",
+                "frequency_pyramid_pixelshuffle",
+                "--width",
+                "8",
+                "--depth",
+                "1",
+                "--eval-every",
+                "1",
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        frequency_receipt = json.loads((frequency_out / "train_receipt.json").read_text(encoding="utf-8"))
+        assert frequency_receipt["config"]["model_arch"] == "frequency_pyramid_pixelshuffle"
+        assert frequency_receipt["eval"]["holdout"]["tile_count"] == 2
     print("test_train_premium_still_sr_clean_source_pairs: PASS")
     return 0
 

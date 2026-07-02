@@ -10,10 +10,10 @@ production-promoted.
 | question | current answer |
 |---|---|
 | Is premium still-SR shippable today? | No. The infrastructure exists, but current no-REF models do not clear the 50 MP / 100 MP still-SR promotion gate. |
-| What is the current scorecard state? | **99** runtime-safe training receipts, **0** promotable rows, and best older runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. The newest launchable window-attention smoke gate also fails before long training: X2D is **+0.0016%** median MAE but **-0.0095%** RMSE, and Z8 is **-0.5807%** MAE / **-0.3829%** RMSE. The source-evidence split smoke pass rejects that long-run direction: X2D passes at **+0.0088%** median MAE / **+0.0031%** median RMSE, but Z8 fails at **-0.0736%** median MAE / **-0.0189%** median RMSE. The route-specialist lane has route coverage, positive full-frame metric floors, routed rendered EV-stress proxy coverage, and 4/4 non-oracle editor/latitude coverage for Mission 1 DNG, Mission 1 GPR, Z8 DNG, and X2D DNG. The clean-target exact-sidecar policy passes; the remaining blocker is a no-REF model receipt that clears the 15% / 15% held-out floor and production submission validation. |
+| What is the current scorecard state? | **113** runtime-safe training receipts, **0** promotable rows, and best older runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. The window-attention smoke gate fails before long training. The source-evidence split smoke pass rejects that long-run direction: X2D passes at **+0.0088%** median MAE / **+0.0031%** median RMSE, but Z8 fails at **-0.0736%** median MAE / **-0.0189%** median RMSE. The frequency-pyramid source-evidence branch is also blocked: X2D median MAE is **+0.0054%** but worst-row MAE is **-4.8501%**; Z8 median MAE is **-8.8093%** and worst-row MAE is **-67.4436%**. The route-specialist lane has route coverage, positive full-frame metric floors, routed rendered EV-stress proxy coverage, and 4/4 non-oracle editor/latitude coverage for Mission 1 DNG, Mission 1 GPR, Z8 DNG, and X2D DNG. The clean-target exact-sidecar policy passes; the remaining blocker is a no-REF model receipt that clears the 15% / 15% held-out floor and production submission validation. |
 | What must a new candidate prove first? | Candidate-only runtime inputs, positive held-out recovery, 50 MP and 100 MP full-frame gates, editor-latitude review, worst-row review, editable raw outputs, timing, memory, and exact-sidecar-only noise policy. |
 | What is forbidden at render time? | REF/source/JPEG image content, source residual noise, hidden source-HF targets, or any noise addback not tied to a validated exact camera/ISO sidecar. |
-| What should happen before another long CNN run? | Do not scale the current Restormer, teacher-first, window-attention, or source-evidence split clean-source pair setup unless both smoke holdouts beat interpolation. The next run must be a materially different no-REF candidate-only model path aimed at clearing the 15% / 15% held-out floor; editor/latitude and clean-target noise policy are already covered. |
+| What should happen before another long CNN run? | Do not scale the current Restormer, teacher-first, window-attention, source-evidence split, or frequency-pyramid clean-source pair setup unless both smoke holdouts beat interpolation. The next run must be a materially different no-REF candidate-only model path, most likely no-op/benefit-gated residual learning, aimed at clearing the 15% / 15% held-out floor; editor/latitude and clean-target noise policy are already covered. |
 | Are the routed clean-source teacher commands the next run? | No. They are now labeled as rejected reference commands in the next-experiment contract. A new production attempt needs a preflight-proven architecture/degradation/validation change before another long run. |
 
 ## First-Hour Steps
@@ -178,7 +178,21 @@ production-promoted.
    `smoke_gate_acceptance`, or with an acceptance policy that allows zero median
    improvement or negative worst-row recovery, is blocked before launch.
 
-5. Rebuild the scoreboard and reject the candidate if it cannot beat the
+5. Check paired smoke acceptance before any long run:
+
+   ```sh
+   python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \
+     /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json \
+     --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_smoke_gate_acceptance_<date>/smoke_gate_acceptance.json \
+     --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_smoke_gate_acceptance_<date>/index.html \
+     --require-pass
+   ```
+
+   The frequency-pyramid candidate fails this checker at
+   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json`.
+   A long run from that branch is blocked.
+
+6. Rebuild the scoreboard and reject the candidate if it cannot beat the
    promotion floor:
 
    ```sh
@@ -187,7 +201,7 @@ production-promoted.
      --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_<date>
    ```
 
-6. Submit only candidates that survive the scoreboard to the full production
+7. Submit only candidates that survive the scoreboard to the full production
    capture checker:
 
    ```sh

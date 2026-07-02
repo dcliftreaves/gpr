@@ -31,6 +31,25 @@ Important paths:
 
 ## Required Registry Artifacts
 
+## Current 100 Percent Burndown Receipts
+
+The current execution queue is tracked in
+[`PRODUCTION_100_PERCENT_BURNDOWN.md`](PRODUCTION_100_PERCENT_BURNDOWN.md).
+The latest Premium Still/SR Gate A receipts are:
+
+| artifact | path | sha256 |
+|---|---|---|
+| frequency-pyramid candidate preflight | `artifacts/premium_still_sr_candidate_preflight_frequency_pyramid_20260702/candidate_preflight.json` | `95a2107f3ddef434695ecf35ab0e927a8f81024350b42bce0a10da689176061e` |
+| frequency-pyramid preflight audit | `artifacts/premium_still_sr_candidate_preflight_frequency_pyramid_20260702/preflight_audit.json` | `76ced7b5084560f14ac5d280084df29c8af837211f69d7e5ca1cdd2c5258a0fc` |
+| frequency-pyramid X2D smoke receipt | `artifacts/premium_still_sr_frequency_pyramid_source_evidence_x2d_smoke_20260702/train_receipt.json` | `ffb06a4aa761c1f6c0ba9a220d02cc3cf7c3917eb86ec9b41c33d29acba29301` |
+| frequency-pyramid Z8 smoke receipt | `artifacts/premium_still_sr_frequency_pyramid_source_evidence_z8_smoke_20260702/train_receipt.json` | `6eba319e0ed9325bc5e1f93d31c83509fb315b73213c5a7a5e93d9e766cbee5c` |
+| frequency-pyramid smoke acceptance blocker | `artifacts/premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `a37b13fe89d653a66e3f0bd432efd7f517fd918e90570a71c750e5a663afbd16` |
+| frequency-pyramid scoreboard | `artifacts/premium_still_sr_experiment_scoreboard_frequency_pyramid_20260702/scoreboard.json` | `c954ca7eee31f225c6d9c94b9264688b297d8ebfe942a9624e4b3a4d806301db` |
+
+This branch is blocked before long training. The next Premium Still/SR candidate
+must pass `tools/check_premium_still_sr_smoke_gate_acceptance.py --require-pass`
+on paired X2D/Z8 smoke receipts before it can consume a long run.
+
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model
 files. This keeps experimental, diagnostic, and guardrail registry entries
