@@ -312,6 +312,42 @@ def write_premium_still_sr_receipts(submission: dict, bundle: Path) -> None:
         "baseline_comparison_sha256",
         {"baseline": "same-color Bayer interpolation", "holdouts": ["X2D", "Z8"]},
     )
+    write_record(
+        "timing_memory_receipt_path",
+        "timing_memory_receipt_sha256",
+        {
+            "schema": "gpr.premium_still_sr_timing_memory.v1",
+            "performance": {
+                "render_seconds_per_50mp_frame": record["render_seconds_per_50mp_frame"],
+                "render_seconds_per_100mp_frame": record["render_seconds_per_100mp_frame"],
+                "peak_rss_gb": record["peak_rss_gb"],
+            },
+        },
+    )
+    write_record(
+        "noise_policy_receipt_path",
+        "noise_policy_receipt_sha256",
+        {
+            "schema": "gpr.premium_still_sr_noise_policy_gate.v1",
+            "production_ready": True,
+            "clean_signal": {
+                "policy_pass": True,
+                "row_count": 12,
+                "rows_with_noise_sidecars": 12,
+            },
+            "model_receipts": [
+                {
+                    "policy_pass": True,
+                    "promotion_ready_claimed": True,
+                    "runtime_policy": {
+                        "uses_source_raw_at_runtime": False,
+                        "uses_ref_or_jpeg_content_at_runtime": False,
+                    },
+                }
+            ],
+            "blockers": [],
+        },
+    )
 
 
 def temp_root() -> Path:
@@ -493,10 +529,15 @@ def valid_submission() -> dict:
                 "z8_smoke_worst_row_mae_reduction_pct": 0.1,
                 "checkpoint_sha256": SHA,
                 "training_config_sha256": SHA,
+                "training_target_path": "/captures/training_targets.npz",
                 "training_target_sha256": SHA,
+                "editable_raw_receipt_path": "/captures/editable_raw_receipt.json",
                 "editable_raw_receipt_sha256": SHA,
+                "review_dashboard_path": "/captures/dashboard.html",
                 "review_dashboard_sha256": SHA,
+                "timing_memory_receipt_path": "/captures/timing_memory_receipt.json",
                 "timing_memory_receipt_sha256": SHA,
+                "noise_policy_receipt_path": "/captures/noise_policy_receipt.json",
                 "noise_policy_receipt_sha256": SHA,
                 "runtime_inputs": [
                     "candidate_raw",
@@ -756,6 +797,35 @@ def main() -> int:
         assert proc.returncode == 1
         assert "baseline_comparison baseline must be same-color Bayer interpolation" in proc.stdout
         assert "baseline_comparison missing holdout(s): z8" in proc.stdout
+        write_premium_still_sr_receipts(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        premium = next(row for row in bad["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
+        timing_path = bundle / premium["timing_memory_receipt_path"]
+        timing = json.loads(timing_path.read_text(encoding="utf-8"))
+        timing["performance"]["render_seconds_per_100mp_frame"] = -1.0
+        timing_path.write_text(json.dumps(timing, indent=2) + "\n", encoding="utf-8")
+        premium["timing_memory_receipt_sha256"] = hashlib.sha256(timing_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "timing_memory_receipt render_seconds_per_100mp_frame must be > 0" in proc.stdout
+        write_premium_still_sr_receipts(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        premium = next(row for row in bad["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
+        noise_path = bundle / premium["noise_policy_receipt_path"]
+        noise = json.loads(noise_path.read_text(encoding="utf-8"))
+        noise["production_ready"] = False
+        noise["clean_signal"]["policy_pass"] = False
+        noise["blockers"] = ["diagnostic model only"]
+        noise_path.write_text(json.dumps(noise, indent=2) + "\n", encoding="utf-8")
+        premium["noise_policy_receipt_sha256"] = hashlib.sha256(noise_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "noise_policy_receipt production_ready must be true" in proc.stdout
+        assert "noise_policy_receipt clean_signal.policy_pass must be true" in proc.stdout
         write_premium_still_sr_receipts(strict, bundle)
 
         bad = json.loads(manifest.read_text(encoding="utf-8"))

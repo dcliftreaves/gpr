@@ -814,6 +814,86 @@ def validate_premium_smoke_acceptance(
         failures.append(f"{label} smoke_gate_acceptance missing holdout(s): " + ", ".join(missing))
 
 
+def numeric_value(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def receipt_number(receipt: dict[str, Any], key: str) -> float | None:
+    value = numeric_value(receipt.get(key))
+    if value is not None:
+        return value
+    for group_key in ("performance", "timing", "memory"):
+        group = receipt.get(group_key)
+        if isinstance(group, dict):
+            value = numeric_value(group.get(key))
+            if value is not None:
+                return value
+    return None
+
+
+def validate_premium_timing_memory_receipt(
+    row: dict[str, Any],
+    path_root: Path | None,
+    failures: list[str],
+) -> None:
+    receipt = load_local_json(row.get("timing_memory_receipt_path"), path_root, failures, "timing_memory_receipt")
+    if receipt is None:
+        return
+    if receipt.get("schema") != "gpr.premium_still_sr_timing_memory.v1":
+        failures.append("timing_memory_receipt schema must be gpr.premium_still_sr_timing_memory.v1")
+    for key in ("render_seconds_per_50mp_frame", "render_seconds_per_100mp_frame", "peak_rss_gb"):
+        value = receipt_number(receipt, key)
+        expected = numeric_value(row.get(key))
+        if value is None:
+            failures.append(f"timing_memory_receipt {key} must be numeric")
+        elif value <= 0:
+            failures.append(f"timing_memory_receipt {key} must be > 0")
+        elif expected is not None and abs(value - expected) > max(1.0e-6, abs(expected) * 1.0e-6):
+            failures.append(f"timing_memory_receipt {key} must match submitted {key}")
+
+
+def validate_premium_noise_policy_receipt(
+    row: dict[str, Any],
+    path_root: Path | None,
+    failures: list[str],
+) -> None:
+    receipt = load_local_json(row.get("noise_policy_receipt_path"), path_root, failures, "noise_policy_receipt")
+    if receipt is None:
+        return
+    if receipt.get("schema") != "gpr.premium_still_sr_noise_policy_gate.v1":
+        failures.append("noise_policy_receipt schema must be gpr.premium_still_sr_noise_policy_gate.v1")
+    if receipt.get("production_ready") is not True:
+        failures.append("noise_policy_receipt production_ready must be true")
+    clean = receipt.get("clean_signal") if isinstance(receipt.get("clean_signal"), dict) else {}
+    if clean.get("policy_pass") is not True:
+        failures.append("noise_policy_receipt clean_signal.policy_pass must be true")
+    row_count = numeric_value(clean.get("row_count"))
+    rows_with_noise = numeric_value(clean.get("rows_with_noise_sidecars"))
+    if row_count is None or row_count <= 0:
+        failures.append("noise_policy_receipt clean_signal.row_count must be > 0")
+    if rows_with_noise is None or rows_with_noise <= 0:
+        failures.append("noise_policy_receipt clean_signal.rows_with_noise_sidecars must be > 0")
+    if row_count is not None and rows_with_noise is not None and rows_with_noise < row_count:
+        failures.append("noise_policy_receipt clean_signal.rows_with_noise_sidecars must cover every row")
+    models = [item for item in as_list(receipt.get("model_receipts")) if isinstance(item, dict)]
+    if not any(model.get("policy_pass") is True for model in models):
+        failures.append("noise_policy_receipt needs at least one model receipt with policy_pass=true")
+    blockers = receipt.get("blockers")
+    if isinstance(blockers, list) and blockers:
+        failures.append("noise_policy_receipt blockers must be empty for production submission")
+    if row.get("noise_policy_exact_sidecars_only") is not True:
+        failures.append("noise_policy_exact_sidecars_only must be true")
+    if row.get("noise_policy_forbids_source_residual_noise") is not True:
+        failures.append("noise_policy_forbids_source_residual_noise must be true")
+
+
 def validate_premium_preflight_content(row: dict[str, Any], path_root: Path | None, failures: list[str]) -> None:
     manifest = load_local_json(
         row.get("candidate_preflight_manifest_path"),
@@ -887,6 +967,8 @@ def validate_premium_preflight_content(row: dict[str, Any], path_root: Path | No
         path_root=path_root,
         failures=failures,
     )
+    validate_premium_timing_memory_receipt(row, path_root, failures)
+    validate_premium_noise_policy_receipt(row, path_root, failures)
 
 
 def validate_premium_still_sr(
