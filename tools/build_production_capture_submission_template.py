@@ -235,6 +235,8 @@ def requirement_template(req: dict[str, Any]) -> dict[str, Any]:
         row["source_provenance_audit_schema"] = "gpr.darkframe_source_provenance_audit.v1"
         row["source_provenance_audit_ready_frame_count"] = count
         row["source_provenance_audit_production_ready"] = True
+        row["camera_noise_sidecar_path"] = "<camera_noise_calibration_sidecar.json>"
+        row["camera_noise_sidecar_sha256"] = SHA_PLACEHOLDER
         row["evidence"] = [darkframe_row(req, idx) for idx in range(count)]
     elif sample_type == "camera_hardware_receipt":
         row.update(camera_role_template())

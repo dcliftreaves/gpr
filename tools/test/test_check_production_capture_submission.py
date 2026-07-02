@@ -79,6 +79,66 @@ def write_darkframe_audits(submission: dict, bundle: Path) -> None:
         path = bundle / record["source_provenance_audit_path"]
         path.write_text(json.dumps(audit, indent=2) + "\n", encoding="utf-8")
         record["source_provenance_audit_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+        first = record["evidence"][0]
+        sidecar = {
+            "schema": "gpr.camera_noise_calibration.v1",
+            "camera": {
+                "make": first["make"],
+                "model": first["model"],
+                "width": first["width"],
+                "height": first["height"],
+                "bit_depth": first["bit_depth"],
+                "cfa_phase": first["cfa_phase"],
+                "black_level": first["black_level"],
+                "white_level": first["white_level"],
+            },
+            "calibrations": [
+                {
+                    "iso": first["iso"],
+                    "calibration_method": "darkframe_stack_per_plane_sigma_v1",
+                    "source_kind": "darkframes",
+                    "sample_count": len(record["evidence"]),
+                    "source": {
+                        "path": "raw_stack:test_fixture",
+                        "sha256": SHA,
+                        "frame_count": len(record["evidence"]),
+                        "frames": [
+                            {
+                                "raw_path": row["extracted_bayer_path"],
+                                "raw_sha256": row["extracted_bayer_sha256"],
+                                "original_path": row["source_path"],
+                                "original_sha256": row["sha256"],
+                                "extract_receipt": row["extract_receipt_path"],
+                                "no_scene_signal": True,
+                                "capture_setup": row["capture_setup"],
+                                "source_provenance_ready": True,
+                                "source_provenance_failure": None,
+                            }
+                            for row in record["evidence"]
+                        ],
+                        "source_provenance_manifest": "darkframe_source_provenance.json",
+                    },
+                    "per_plane": {
+                        "r": {"sigma_black": 1.0},
+                        "g1": {"sigma_black": 1.0},
+                        "b": {"sigma_black": 1.0},
+                        "g2": {"sigma_black": 1.0},
+                    },
+                    "noise_signal_audit": {
+                        "separates_noise_from_signal": True,
+                        "method": "darkframe_stack_sigma",
+                        "source_provenance_required": True,
+                        "source_provenance_ready": True,
+                        "source_provenance_manifest_present": True,
+                    },
+                    "usable_for_training_targets": True,
+                }
+            ],
+            "production_ready": True,
+        }
+        sidecar_path = bundle / record["camera_noise_sidecar_path"]
+        sidecar_path.write_text(json.dumps(sidecar, indent=2) + "\n", encoding="utf-8")
+        record["camera_noise_sidecar_sha256"] = hashlib.sha256(sidecar_path.read_bytes()).hexdigest()
 
 
 def write_camera_role_receipts(submission: dict, bundle: Path) -> None:
@@ -454,6 +514,8 @@ def valid_submission() -> dict:
                 "source_provenance_audit_schema": "gpr.darkframe_source_provenance_audit.v1",
                 "source_provenance_audit_ready_frame_count": 4,
                 "source_provenance_audit_production_ready": True,
+                "camera_noise_sidecar_path": "/captures/mission1_camera_noise_sidecar.json",
+                "camera_noise_sidecar_sha256": SHA,
                 "evidence": [darkframe("MISSION 1", idx) for idx in range(4)],
             },
             {
@@ -463,6 +525,8 @@ def valid_submission() -> dict:
                 "source_provenance_audit_schema": "gpr.darkframe_source_provenance_audit.v1",
                 "source_provenance_audit_ready_frame_count": 4,
                 "source_provenance_audit_production_ready": True,
+                "camera_noise_sidecar_path": "/captures/iphone_camera_noise_sidecar.json",
+                "camera_noise_sidecar_sha256": SHA,
                 "evidence": [darkframe("iPhone 15 Pro", idx, iphone=True) for idx in range(4)],
             },
             {
@@ -846,6 +910,22 @@ def main() -> int:
         proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
         assert proc.returncode == 1
         assert "not covered by source_provenance_audit" in proc.stdout
+        write_darkframe_audits(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        dark = bad["requirements"][0]
+        sidecar_path = bundle / dark["camera_noise_sidecar_path"]
+        sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+        sidecar["production_ready"] = False
+        sidecar["calibrations"][0]["noise_signal_audit"]["separates_noise_from_signal"] = False
+        sidecar["calibrations"][0]["usable_for_training_targets"] = False
+        sidecar_path.write_text(json.dumps(sidecar, indent=2) + "\n", encoding="utf-8")
+        dark["camera_noise_sidecar_sha256"] = hashlib.sha256(sidecar_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "camera_noise_sidecar production_ready must be true" in proc.stdout
+        assert "camera_noise_sidecar noise_signal_audit.separates_noise_from_signal must be true" in proc.stdout
 
         bad = json.loads(json.dumps(strict))
         premium = next(row for row in bad["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")

@@ -62,6 +62,7 @@ CONFIRMED_DARKFRAME_SOURCE_KINDS = {
     "equivalent_no_scene_stack",
 }
 DARKFRAME_SOURCE_PROVENANCE_AUDIT_SCHEMA = "gpr.darkframe_source_provenance_audit.v1"
+CAMERA_NOISE_CALIBRATION_SCHEMA = "gpr.camera_noise_calibration.v1"
 
 
 def parse_args() -> argparse.Namespace:
@@ -373,6 +374,61 @@ def validate_darkframe_audit_coverage(
             )
 
 
+def validate_camera_noise_sidecar(
+    record: dict[str, Any],
+    submitted_rows: list[dict[str, Any]],
+    min_count: int,
+    path_root: Path | None,
+    failures: list[str],
+) -> None:
+    sidecar = load_local_json(record.get("camera_noise_sidecar_path"), path_root, failures, "camera_noise_sidecar")
+    if sidecar is None:
+        return
+    if sidecar.get("schema") != CAMERA_NOISE_CALIBRATION_SCHEMA:
+        failures.append(f"camera_noise_sidecar schema must be {CAMERA_NOISE_CALIBRATION_SCHEMA}")
+    if sidecar.get("production_ready") is not True:
+        failures.append("camera_noise_sidecar production_ready must be true")
+    camera = sidecar.get("camera") if isinstance(sidecar.get("camera"), dict) else {}
+    first = submitted_rows[0] if submitted_rows else {}
+    for key in ("make", "model", "width", "height", "bit_depth", "black_level", "white_level"):
+        if first and str(camera.get(key)) != str(first.get(key)):
+            failures.append(f"camera_noise_sidecar camera.{key} must match submitted darkframe stack")
+    if first and str(camera.get("cfa_phase") or "").upper() != str(first.get("cfa_phase") or "").upper():
+        failures.append("camera_noise_sidecar camera.cfa_phase must match submitted darkframe stack")
+    calibrations = [row for row in as_list(sidecar.get("calibrations")) if isinstance(row, dict)]
+    if not calibrations:
+        failures.append("camera_noise_sidecar must include at least one calibration")
+        return
+    calibration = calibrations[0]
+    if first and str(calibration.get("iso")) != str(first.get("iso")):
+        failures.append("camera_noise_sidecar calibration iso must match submitted darkframe stack")
+    ok, failure = number_at_least(calibration, "sample_count", min_count)
+    if not ok:
+        failures.append(f"camera_noise_sidecar calibration.{failure}")
+    if calibration.get("usable_for_training_targets") is not True:
+        failures.append("camera_noise_sidecar calibration.usable_for_training_targets must be true")
+    audit = calibration.get("noise_signal_audit") if isinstance(calibration.get("noise_signal_audit"), dict) else {}
+    if audit.get("separates_noise_from_signal") is not True:
+        failures.append("camera_noise_sidecar noise_signal_audit.separates_noise_from_signal must be true")
+    if audit.get("source_provenance_required") is not True:
+        failures.append("camera_noise_sidecar noise_signal_audit.source_provenance_required must be true")
+    if audit.get("source_provenance_ready") is not True:
+        failures.append("camera_noise_sidecar noise_signal_audit.source_provenance_ready must be true")
+    source = calibration.get("source") if isinstance(calibration.get("source"), dict) else {}
+    ok, failure = number_at_least(source, "frame_count", min_count)
+    if not ok:
+        failures.append(f"camera_noise_sidecar source.{failure}")
+    sidecar_raw_hashes = {
+        str(frame.get("raw_sha256") or "").lower()
+        for frame in as_list(source.get("frames"))
+        if isinstance(frame, dict) and frame.get("source_provenance_ready") is True
+    }
+    submitted_raw_hashes = {str(row.get("extracted_bayer_sha256") or "").lower() for row in submitted_rows}
+    missing_hashes = sorted(submitted_raw_hashes - sidecar_raw_hashes)
+    if missing_hashes:
+        failures.append("camera_noise_sidecar source.frames must cover every submitted extracted Bayer hash")
+
+
 def validate_darkframe_stack(
     rid: str,
     req: dict[str, Any],
@@ -409,6 +465,8 @@ def validate_darkframe_stack(
         "source_provenance_audit_schema",
         "source_provenance_audit_ready_frame_count",
         "source_provenance_audit_production_ready",
+        "camera_noise_sidecar_path",
+        "camera_noise_sidecar_sha256",
     ]
     audit_missing = missing_fields(record, audit_required)
     if audit_missing:
@@ -416,6 +474,8 @@ def validate_darkframe_stack(
     else:
         if not has_sha(record, "source_provenance_audit_sha256"):
             failures.append("source_provenance_audit_sha256 must be a 64-hex hash")
+        if not has_sha(record, "camera_noise_sidecar_sha256"):
+            failures.append("camera_noise_sidecar_sha256 must be a 64-hex hash")
         if record.get("source_provenance_audit_schema") != DARKFRAME_SOURCE_PROVENANCE_AUDIT_SCHEMA:
             failures.append(f"source_provenance_audit_schema must be {DARKFRAME_SOURCE_PROVENANCE_AUDIT_SCHEMA}")
         ok, failure = number_at_least(record, "source_provenance_audit_ready_frame_count", min_count)
@@ -452,6 +512,7 @@ def validate_darkframe_stack(
 
     if require_existing_files and not audit_missing:
         validate_darkframe_audit_coverage(record, evidence_rows, min_count, path_root, failures)
+        validate_camera_noise_sidecar(record, evidence_rows, min_count, path_root, failures)
 
     best_count = max((len(rows) for rows in grouped.values()), default=0)
     if best_count < min_count:
