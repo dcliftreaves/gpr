@@ -46,6 +46,32 @@ def materialize_path_hashes(value, bundle: Path, counter: list[int]) -> None:
             materialize_path_hashes(item, bundle, counter)
 
 
+def write_darkframe_audits(submission: dict, bundle: Path) -> None:
+    for record in submission["requirements"]:
+        if record["id"] not in {"mission1_darkframe_stack", "iphone_cfa_darkframe_stack"}:
+            continue
+        frames = []
+        for idx, row in enumerate(record["evidence"]):
+            frames.append(
+                {
+                    "index": idx,
+                    "raw_sha256": row["extracted_bayer_sha256"],
+                    "original_sha256": row["sha256"],
+                    "extract_receipt_sha256": row["extract_receipt_sha256"],
+                    "ready": True,
+                }
+            )
+        audit = {
+            "schema": "gpr.darkframe_source_provenance_audit.v1",
+            "production_ready": True,
+            "ready_frame_count": len(frames),
+            "frames": frames,
+        }
+        path = bundle / record["source_provenance_audit_path"]
+        path.write_text(json.dumps(audit, indent=2) + "\n", encoding="utf-8")
+        record["source_provenance_audit_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def temp_root() -> Path:
     root = Path(os.environ.get("GPR_TMPDIR") or "/Volumes/OWC_8TB/gpr_work/tmp")
     if not root.exists():
@@ -400,6 +426,7 @@ def main() -> int:
         strict = valid_release_blocking_submission()
         bundle = work / "bundle"
         materialize_path_hashes(strict, bundle, [0])
+        write_darkframe_audits(strict, bundle)
         manifest.write_text(json.dumps(strict, indent=2) + "\n", encoding="utf-8")
         proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
         if proc.returncode != 0:
@@ -413,6 +440,18 @@ def main() -> int:
         proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
         assert proc.returncode == 1
         assert "sha256 mismatch" in proc.stdout
+
+        bad = json.loads(manifest.read_text(encoding="utf-8"))
+        bad["requirements"][0]["evidence"][0]["sha256"] = strict["requirements"][0]["evidence"][0]["sha256"]
+        audit_path = bundle / bad["requirements"][0]["source_provenance_audit_path"]
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit["frames"][0]["raw_sha256"] = "c" * 64
+        audit_path.write_text(json.dumps(audit, indent=2) + "\n", encoding="utf-8")
+        bad["requirements"][0]["source_provenance_audit_sha256"] = hashlib.sha256(audit_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "not covered by source_provenance_audit" in proc.stdout
 
     print("test_check_production_capture_submission: PASS")
     return 0

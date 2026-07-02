@@ -150,6 +150,21 @@ def validate_existing_files(submission: dict[str, Any], path_root: Path | None) 
     return failures
 
 
+def load_local_json(path_text: Any, path_root: Path | None, failures: list[str], label: str) -> dict[str, Any] | None:
+    path = resolve_evidence_path(path_text, path_root)
+    if path is None:
+        failures.append(f"{label} path is missing or unresolved")
+        return None
+    if not path.is_file():
+        failures.append(f"{label} {path_text} does not exist")
+        return None
+    try:
+        return load_json(path)
+    except Exception as exc:
+        failures.append(f"{label} {path_text} is not valid JSON: {exc}")
+        return None
+
+
 def as_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
@@ -300,7 +315,60 @@ def darkframe_key(row: dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
-def validate_darkframe_stack(rid: str, req: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any]:
+def audit_frame_signature(frame: dict[str, Any]) -> tuple[str | None, str | None, str | None]:
+    return (
+        str(frame.get("raw_sha256") or "").lower() or None,
+        str(frame.get("original_sha256") or "").lower() or None,
+        str(frame.get("extract_receipt_sha256") or "").lower() or None,
+    )
+
+
+def submission_darkframe_signature(row: dict[str, Any]) -> tuple[str | None, str | None, str | None]:
+    return (
+        str(row.get("extracted_bayer_sha256") or "").lower() or None,
+        str(row.get("sha256") or "").lower() or None,
+        str(row.get("extract_receipt_sha256") or "").lower() or None,
+    )
+
+
+def validate_darkframe_audit_coverage(
+    record: dict[str, Any],
+    submitted_rows: list[dict[str, Any]],
+    min_count: int,
+    path_root: Path | None,
+    failures: list[str],
+) -> None:
+    audit = load_local_json(record.get("source_provenance_audit_path"), path_root, failures, "source_provenance_audit")
+    if audit is None:
+        return
+    if audit.get("schema") != DARKFRAME_SOURCE_PROVENANCE_AUDIT_SCHEMA:
+        failures.append(f"source_provenance_audit file schema must be {DARKFRAME_SOURCE_PROVENANCE_AUDIT_SCHEMA}")
+    if audit.get("production_ready") is not True:
+        failures.append("source_provenance_audit file production_ready must be true")
+    ok, failure = number_at_least(audit, "ready_frame_count", min_count)
+    if not ok:
+        failures.append(f"source_provenance_audit file {failure}")
+    ready_frames = [row for row in as_list(audit.get("frames")) if isinstance(row, dict) and row.get("ready") is True]
+    audit_signatures = {audit_frame_signature(frame) for frame in ready_frames}
+    if len(audit_signatures) < min_count:
+        failures.append(f"source_provenance_audit file has {len(audit_signatures)} ready frame signature(s), need {min_count}")
+    for row in submitted_rows:
+        signature = submission_darkframe_signature(row)
+        if signature not in audit_signatures:
+            failures.append(
+                "darkframe evidence row is not covered by source_provenance_audit "
+                f"(extracted/source/receipt hash triple {signature})"
+            )
+
+
+def validate_darkframe_stack(
+    rid: str,
+    req: dict[str, Any],
+    submission: dict[str, Any],
+    *,
+    require_existing_files: bool = False,
+    path_root: Path | None = None,
+) -> dict[str, Any]:
     min_count = int(req.get("minimum_count") or 4)
     record = record_for(submission, rid)
     required = [
@@ -344,8 +412,9 @@ def validate_darkframe_stack(rid: str, req: dict[str, Any], submission: dict[str
         if record.get("source_provenance_audit_production_ready") is not True:
             failures.append("source_provenance_audit_production_ready must be true")
 
+    evidence_rows = rows_for(submission, rid)
     grouped: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
-    for row in rows_for(submission, rid):
+    for row in evidence_rows:
         local = missing_fields(row, required)
         if local:
             failures.append(f"darkframe missing {', '.join(local)}")
@@ -368,6 +437,9 @@ def validate_darkframe_stack(rid: str, req: dict[str, Any], submission: dict[str
             failures.append("iPhone darkframes must be CFA raw, not Linear Raw")
             continue
         grouped.setdefault(darkframe_key(row), []).append(row)
+
+    if require_existing_files and not audit_missing:
+        validate_darkframe_audit_coverage(record, evidence_rows, min_count, path_root, failures)
 
     best_count = max((len(rows) for rows in grouped.values()), default=0)
     if best_count < min_count:
@@ -594,13 +666,25 @@ def validate_premium_still_sr(rid: str, submission: dict[str, Any]) -> dict[str,
     return pass_result(rid, "premium still-SR promotion evidence passes manifest checks", 1)
 
 
-def validate_requirement(req: dict[str, Any], submission: dict[str, Any]) -> dict[str, Any]:
+def validate_requirement(
+    req: dict[str, Any],
+    submission: dict[str, Any],
+    *,
+    require_existing_files: bool = False,
+    path_root: Path | None = None,
+) -> dict[str, Any]:
     rid = str(req.get("id") or "")
     sample_type = req.get("sample_type")
     if sample_type == "real_camera_raw_fixture":
         return validate_real_fixture(rid, req, submission)
     if sample_type == "darkframe_stack":
-        return validate_darkframe_stack(rid, req, submission)
+        return validate_darkframe_stack(
+            rid,
+            req,
+            submission,
+            require_existing_files=require_existing_files,
+            path_root=path_root,
+        )
     if sample_type == "camera_hardware_receipt":
         return validate_camera_role_receipts(rid, submission)
     if sample_type == "controlled_same_scene_high_low_raw_pair_stack":
@@ -628,7 +712,12 @@ def build_audit(
         rid = str(row.get("id") or "")
         closure_blocking = required_for_release_closure(row)
         if closure_blocking or submission_has_requirement(submission, rid):
-            result = validate_requirement(row, submission)
+            result = validate_requirement(
+                row,
+                submission,
+                require_existing_files=require_existing_files,
+                path_root=path_root,
+            )
         else:
             priority = str(row.get("priority") or "required")
             status = str(row.get("status") or "")
