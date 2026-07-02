@@ -59,17 +59,27 @@ The candidate preflight and launch packet now exist:
 They pass the preflight checker as launchable intake artifacts only. They do
 not claim production readiness.
 
-The target-builder audit now exists:
+The target-builder now exists and passes:
 
 ```text
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json
 ```
 
-It blocks the smoke run with
-`blocker_classification=gate14_raw_target_identity_missing`: the current
-Gate14 pair surface has `4800` tiles and the current raw-CFA target set has
-`117` rows, but direct row identity overlap is `0`. Do not train the floor
-student from the unrelated raw-CFA target set.
+It built `2112` X2D/Z8 target rows from the Gate14 clean-source pair surface
+with candidate-only runtime inputs. The paired smoke gates have also run and
+are now the first blocker:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_x2d_smoke_20260702/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_z8_smoke_20260702/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json
+```
+
+The smoke acceptance verdict is `blocked_before_long_run`. X2D holdout median
+MAE recovery is `0.0%` with worst-row `-0.0009948811042696764%`; Z8 holdout
+median is `0.0%` with worst-row `0.0%`. No-op-off ablations also failed to
+clear the floor: X2D median `-0.0008484692747994224%`, Z8 median
+`0.00019770163681548142%`.
 
 ## 100 Percent Ladder
 
@@ -79,9 +89,9 @@ looks better.
 | order | row | receipt | pass condition |
 |---:|---|---|---|
 | 1 | Gate14 floor-student preflight | `premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json` | `launchable_preflight_passed`, candidate id `premium_still_sr_gate14_floor_student_v1`, no REF/source/JPEG render-time inputs, X2D+Z8 smokes required, median MAE recovery floor `1.0%`, worst-row floor `0.0%`. |
-| 2 | Gate14 floor-student target builder | `premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json` plus `gate14_floor_student_targets.npz` only if passed | Builds candidate-only student targets from Gate 14 pseudo-label/source selection and selector sidecar hashes; no production renderer uses Gate 14 output directly. Current result is blocked because direct row identity overlap is `0`. |
-| 3 | Paired smoke gates | `premium_still_sr_gate14_floor_student_x2d_smoke_20260702/train_receipt.json` and `premium_still_sr_gate14_floor_student_z8_smoke_20260702/train_receipt.json` | Both holdouts beat same-color Bayer interpolation by at least `1.0%` median MAE recovery and `0.0%` worst-row recovery; checkpoint and training-config hashes are recorded. |
-| 4 | Smoke acceptance | `premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | X2D and Z8 smoke receipts meet the preflight acceptance contract. If either fails, record the blocker class and return to target construction, not selector replay. |
+| 2 | Gate14 floor-student target builder | `premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json` plus `gate14_floor_student_targets.npz` | Passed: `2112` X2D/Z8 candidate-only student rows were built from the Gate14 clean-source pair surface. |
+| 3 | Paired smoke gates | `premium_still_sr_gate14_floor_student_x2d_smoke_20260702/train_receipt.json` and `premium_still_sr_gate14_floor_student_z8_smoke_20260702/train_receipt.json` | Failed current floor: X2D median `0.0%`, worst `-0.0009948811042696764%`; Z8 median `0.0%`, worst `0.0%`. |
+| 4 | Smoke acceptance | `premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Current verdict `blocked_before_long_run`; next action is a target/objective revision, not a long run or selector replay. |
 | 5 | Full promotion gate | `premium_still_sr_promotion_gate_<date>/promotion_gate.json` | 50 MP and 100 MP full-frame rows clear `15% / 15%` median MAE/RMSE recovery, nonnegative worst rows, editor/openability, exact-sidecar-only noise policy, and no REF/source/JPEG render-time inputs. |
 | 6 | Timing and memory | timing/memory receipt referenced by the promotion gate | Actual render path reports seconds per 50 MP frame, seconds per 100 MP frame, and peak RSS. |
 | 7 | Production submission | production capture/submission receipt | Checkpoint hash, sidecar/training config, dashboard, promotion gate, timing/memory, editable DNG/GPR, and noise-policy evidence all validate. |
@@ -126,10 +136,13 @@ python3 tools/build_premium_still_sr_launch_packet.py \
 
 /Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
   tools/build_premium_still_sr_gate14_floor_student_targets.py \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_targets_20260702
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_targets_20260702 \
+  --domains x2d,z8
 
-python3 tools/check_premium_still_sr_promotion_gate.py \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_current_20260702
+python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json \
+  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json \
+  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/index.html
 
 python3 tools/test/check_production_capture_requirements.py
 python3 tools/test/check_release_evidence_manifest.py

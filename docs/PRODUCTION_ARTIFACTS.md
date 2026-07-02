@@ -87,13 +87,20 @@ The latest Premium Still/SR Gate A receipts are:
 | Premium still-SR promotion receipts dashboard | `artifacts/premium_still_sr_promotion_receipts_20260702/index.html` | `c0c645b9a0626619b8921a0719f2e8a643dec62a295fe3df0008df5fe82ded63` |
 | Premium still-SR model-floor gap receipt | `artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json` | `fb27020f6d29636ea690e109ae4d7dda7a1f0151d6b29fe42265ecf1d84b4d88` |
 | Premium still-SR model-floor gap dashboard | `artifacts/premium_still_sr_model_floor_gap_20260702/index.html` | `ddbbb904f78d2a210c297b36cc4899c44d5a684f7d6de5c091d6ac00315492fb` |
-| Gate14 floor-student candidate preflight | `artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json` | `12e81d5cd3a3dd2efa92f41b601ce4417ac3048f5319b68b07fe76cd9d282335` |
-| Gate14 floor-student preflight audit | `artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json` | `8bcec5853d87edc0c6f2d48607b639fca280e8d494c49074376969be9ec3a022` |
+| Gate14 floor-student candidate preflight | `artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json` | `bd87bcb70d1930317afaac009ab9e7f7321decea56a274ae05e76c487391c8b0` |
+| Gate14 floor-student preflight audit | `artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json` | `37418a04d7c8ad63de30d0365e682ac4abad2a2a47a2b57d20d2f863a7764cb7` |
 | Gate14 floor-student preflight dashboard | `artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/index.html` | `e98ab5bb24f8c255c15848742c4f2dfbfbf194877f4ccdf2fdf6a0402e22213c` |
-| Gate14 floor-student launch packet | `artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.json` | `5a660422a74619d550b04ab7719600823888571e2a4fd30820c7c0e47adb46fd` |
-| Gate14 floor-student launch packet Markdown | `artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.md` | `717db90dfc5f217dcf0cd587981e0e36052dabd350a107af4809933e1b182cfb` |
-| Gate14 floor-student target-builder blocker receipt | `artifacts/premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json` | `8afd133a3ea202d74068f5bde744068421eae29068145bcaa9d8ba31ba60ac1c` |
-| Gate14 floor-student target-builder blocker dashboard | `artifacts/premium_still_sr_gate14_floor_student_targets_20260702/index.html` | `72ca580f5c8ca6e986dfa705d8205b6f9ba0ed7d90b92c10a778eb6061d96fac` |
+| Gate14 floor-student launch packet | `artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.json` | `7c56b41286f80a58f99e89dd3653cf39431474c32bd700dbfdf623c723eccd93` |
+| Gate14 floor-student launch packet Markdown | `artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.md` | `0e3fcf6443869a3a933881056e6c408214dfc9bfbfb7db56717eacf733488b76` |
+| Gate14 floor-student target-builder receipt | `artifacts/premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json` | `fa653809ddd13ab0dfeed7d2f4a7aaf19730a2be82c5f8bac55c67be5fe6d274` |
+| Gate14 floor-student target-builder dashboard | `artifacts/premium_still_sr_gate14_floor_student_targets_20260702/index.html` | `ca6048119c7ccbc08e29bdb864f57b88f11f996c0132b30cf215eec89066ad27` |
+| Gate14 floor-student target NPZ | `artifacts/premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.npz` | `f027a2b3426a78416269f608d1f850faaeddbd3e4598d46f21afc322f68d386e` |
+| Gate14 floor-student X2D smoke receipt | `artifacts/premium_still_sr_gate14_floor_student_x2d_smoke_20260702/train_receipt.json` | `3d0889aaae4b157445cc3794f10b64d7bece22360c413b0557f50db617128690` |
+| Gate14 floor-student Z8 smoke receipt | `artifacts/premium_still_sr_gate14_floor_student_z8_smoke_20260702/train_receipt.json` | `474382595d3125ed84a25b7aa17252aa4e672c370c94183c06a19d7631c3c544` |
+| Gate14 floor-student smoke acceptance blocker | `artifacts/premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `f72fd1937410951c2b53ebfd1f3e3988b838714df19698c1090ef8262b695b54` |
+| Gate14 floor-student smoke acceptance dashboard | `artifacts/premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/index.html` | `f2f52685fe1f6e890093ca89c7da03cb92b90ebd075da1438f8a15ba4c21fad5` |
+| Gate14 floor-student X2D no-op-off ablation | `artifacts/premium_still_sr_gate14_floor_student_x2d_noopoff_ablation_20260702/train_receipt.json` | `bf148a1afa5bf12041cbe4a72762d13960f41d54cbdba5c87cade2eb6270f6eb` |
+| Gate14 floor-student Z8 no-op-off ablation | `artifacts/premium_still_sr_gate14_floor_student_z8_noopoff_ablation_20260702/train_receipt.json` | `cc86507fd60cec13d74b8f503c1f612862725739c7a4a5e965d8217f9c7e9380` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -106,12 +113,13 @@ The model-floor gap receipt quantifies the first blocker: best runtime-safe
 MAE/RMSE are `4.031355420019811%` / `3.753504206299621%`, leaving
 `10.96864457998019` / `11.24649579370038` percentage points to the floor. The
 next candidate contract is `premium_still_sr_gate14_floor_student_v1`. Its
-preflight and launch packet now pass as launchable intake artifacts only; the
-target-builder audit is blocked with
-`gate14_raw_target_identity_missing`. The Gate14 pair surface has `4800` tiles,
-the existing raw-CFA target set has `117` rows, and direct row identity overlap
-is `0`; regenerate raw-CFA residual targets from the Gate14 pair/fixture
-surface before paired X2D/Z8 smoke training.
+preflight and launch packet now pass as launchable intake artifacts only. The
+target-builder now passes and built `2112` X2D/Z8 rows from the Gate14
+clean-source pair surface, but the paired smokes block a long run: X2D holdout
+median MAE recovery is `0.0%` with worst row `-0.0009948811042696764%`, and
+Z8 holdout median is `0.0%` with worst row `0.0%`. No-op-off ablations did not
+recover the floor, so the next step is target/objective revision plus strict
+noise-sidecar wiring, not another selector replay.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

@@ -1245,13 +1245,13 @@ def gate14_floor_student(candidate_id: str) -> dict[str, Any]:
             (
                 f"{python} tools/cnn/train_premium_still_sr_raw_cfa_residual.py "
                 f"--targets {targets} --output-dir {x2d_out} "
-                "--holdout-scene 2025_10_Oct_Austin_0702 "
+                "--holdout-scene x2d_2025_austin_07 "
                 f"{common_args}"
             ),
             (
                 f"{python} tools/cnn/train_premium_still_sr_raw_cfa_residual.py "
                 f"--targets {targets} --output-dir {z8_out} "
-                "--holdout-scene Z8Z_1353 "
+                "--holdout-scene z8_z8z_1353 "
                 f"{common_args}"
             ),
         ],

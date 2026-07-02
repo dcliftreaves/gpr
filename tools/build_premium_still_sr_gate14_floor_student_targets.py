@@ -2,10 +2,10 @@
 """Audit/build Gate14 floor-student raw-CFA targets.
 
 The Gate14 floor-student candidate may only train from target rows that can be
-traced back to the Gate14 selector/pseudo-label surface. This tool checks that
-identity before creating any training NPZ. If the current raw-CFA targets do not
-share row identity with the Gate14 rows, it writes a blocker receipt instead of
-silently launching a proxy run.
+traced back to the Gate14 selector/pseudo-label surface. The accepted path
+converts Gate14 clean-source pair tiles into the raw-CFA residual trainer
+layout: runtime candidate planes come only from the low-resolution Bayer tile,
+while the high-resolution source tile is training supervision only.
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover - exercised by dev env va
 
 
 SCHEMA = "gpr.premium_still_sr_gate14_floor_student_targets.v1"
+RAW_SCALE = 16383.0
 DEFAULT_ROOT = Path("/Volumes/OWC_8TB/gpr_work")
 DEFAULT_RAW_TARGETS = (
     DEFAULT_ROOT
@@ -61,6 +62,9 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--selector-sidecar", type=Path, default=DEFAULT_SELECTOR_SIDECAR)
     ap.add_argument("--selector-smoke", type=Path, default=DEFAULT_SELECTOR_SMOKE)
     ap.add_argument("--launch-packet", type=Path, default=DEFAULT_LAUNCH_PACKET)
+    ap.add_argument("--domains", default="all", help="Comma-separated domain filter, or all.")
+    ap.add_argument("--max-tiles", type=int, help="Optional development cap after domain filtering.")
+    ap.add_argument("--highpass-block", type=int, default=17)
     return ap.parse_args()
 
 
@@ -86,6 +90,22 @@ def load_npz_meta(path: Path) -> Any:
         return json.loads(str(z["meta"]))
 
 
+def load_pair_npz(path: Path) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
+    with np.load(path, allow_pickle=False) as z:
+        if "inputs" not in z.files or "targets" not in z.files or "meta" not in z.files:
+            raise ValueError(f"{path} must contain inputs, targets, and meta arrays")
+        inputs = z["inputs"].astype(np.float32) / RAW_SCALE
+        targets = z["targets"].astype(np.float32) / RAW_SCALE
+        meta = json.loads(str(z["meta"]))
+    if inputs.ndim != 4 or targets.ndim != 4 or inputs.shape[1] != 4 or targets.shape[1] != 4:
+        raise ValueError(f"{path} must contain NCHW CFA4 inputs/targets")
+    if targets.shape[2] != inputs.shape[2] * 2 or targets.shape[3] != inputs.shape[3] * 2:
+        raise ValueError(f"{path} target tiles must be 2x input tiles")
+    if not isinstance(meta, dict):
+        raise ValueError(f"{path} meta must be a JSON object")
+    return inputs, targets, meta
+
+
 def raw_rows(meta: Any) -> list[dict[str, Any]]:
     if not isinstance(meta, list):
         return []
@@ -99,6 +119,22 @@ def pair_tiles(meta: Any) -> list[dict[str, Any]]:
     if not isinstance(tiles, list):
         return []
     return [row for row in tiles if isinstance(row, dict)]
+
+
+def pair_images(meta: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(meta, dict):
+        return {}
+    images = meta.get("images")
+    if not isinstance(images, list):
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for row in images:
+        if not isinstance(row, dict):
+            continue
+        image_id = str(row.get("image_id") or "")
+        if image_id:
+            out[image_id] = row
+    return out
 
 
 def raw_identity(row: dict[str, Any]) -> tuple[str, str, str, str]:
@@ -133,6 +169,176 @@ def domain(row: dict[str, Any]) -> str:
     return "unknown"
 
 
+def parse_domain_filter(text: str) -> set[str] | None:
+    stripped = str(text or "all").strip().lower()
+    if not stripped or stripped == "all":
+        return None
+    return {part.strip() for part in stripped.split(",") if part.strip()}
+
+
+def plane_highpass(arr: np.ndarray, block: int) -> np.ndarray:
+    """High-pass NCHW CFA planes without mixing Bayer phases."""
+
+    block = max(3, int(block))
+    if block % 2 == 0:
+        block += 1
+    pad = block // 2
+    padded = np.pad(arr, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode="reflect")
+    csum = np.cumsum(np.cumsum(padded, axis=2, dtype=np.float64), axis=3, dtype=np.float64)
+    csum = np.pad(csum, ((0, 0), (0, 0), (1, 0), (1, 0)), mode="constant")
+    low = (
+        csum[:, :, block:, block:]
+        - csum[:, :, :-block, block:]
+        - csum[:, :, block:, :-block]
+        + csum[:, :, :-block, :-block]
+    ) / float(block * block)
+    return (arr.astype(np.float32) - low.astype(np.float32)).astype(np.float32)
+
+
+def upsample_low_to_high(inputs: np.ndarray) -> np.ndarray:
+    return np.repeat(np.repeat(inputs, 2, axis=2), 2, axis=3).astype(np.float32)
+
+
+def nchw_to_nhwc(arr: np.ndarray) -> np.ndarray:
+    return np.transpose(arr, (0, 2, 3, 1))
+
+
+def image_source_path(image: dict[str, Any]) -> str:
+    source = image.get("source")
+    if isinstance(source, dict):
+        return str(source.get("path") or "")
+    return ""
+
+
+def row_cfa_phase(tile: dict[str, Any]) -> str:
+    x = int(tile.get("high_x") or 0)
+    y = int(tile.get("high_y") or 0)
+    if (x & 1) == 0 and (y & 1) == 0:
+        return "RGGB"
+    if (x & 1) == 1 and (y & 1) == 0:
+        return "GRBG"
+    if (x & 1) == 0 and (y & 1) == 1:
+        return "GBRG"
+    return "BGGR"
+
+
+def source_sha(image: dict[str, Any]) -> str | None:
+    source = image.get("source")
+    if isinstance(source, dict):
+        return source.get("sha256") or image.get("source_sha256")
+    return image.get("source_sha256")
+
+
+def build_gate14_targets_from_pairs(
+    *,
+    gate14_pairs: Path,
+    output_npz: Path,
+    selector_sidecar_sha256: str,
+    selector_smoke_sha256: str,
+    launch_packet_sha256: str,
+    domains: set[str] | None,
+    max_tiles: int | None,
+    highpass_block: int,
+) -> tuple[list[dict[str, Any]], dict[str, int], str]:
+    inputs, targets, meta = load_pair_npz(gate14_pairs)
+    tiles = pair_tiles(meta)
+    images = pair_images(meta)
+    if len(tiles) != inputs.shape[0] or len(tiles) != targets.shape[0]:
+        raise ValueError(f"tile metadata count {len(tiles)} does not match pair arrays {inputs.shape[0]} / {targets.shape[0]}")
+
+    selected_indices: list[int] = []
+    selected_domains: list[str] = []
+    for idx, tile in enumerate(tiles):
+        image = images.get(str(tile.get("image_id") or ""), {})
+        d = domain({**image, **tile, "source": image.get("source")})
+        if domains is None or d in domains:
+            selected_indices.append(idx)
+            selected_domains.append(d)
+    if max_tiles is not None:
+        selected_indices = selected_indices[: max(0, int(max_tiles))]
+        selected_domains = selected_domains[: len(selected_indices)]
+    if not selected_indices:
+        raise ValueError("domain/max-tile filters selected no Gate14 tiles")
+
+    idx_arr = np.asarray(selected_indices, dtype=np.int64)
+    candidate = upsample_low_to_high(inputs[idx_arr])
+    source = targets[idx_arr].astype(np.float32)
+    residual = source - candidate
+    candidate_hf = plane_highpass(candidate, highpass_block)
+    source_hf = plane_highpass(source, highpass_block)
+    residual_hf = plane_highpass(residual, highpass_block)
+    render_hf_y = np.mean(residual_hf, axis=1).astype(np.float16)
+
+    rows: list[dict[str, Any]] = []
+    pairs_sha = sha256_file(gate14_pairs)
+    for out_idx, source_idx in enumerate(selected_indices):
+        tile = dict(tiles[source_idx])
+        image = images.get(str(tile.get("image_id") or ""), {})
+        crop_xy = [int(tile.get("high_x") or 0), int(tile.get("high_y") or 0)]
+        high_tile = int(tile.get("high_raw_tile") or targets.shape[2] * 2)
+        phase = row_cfa_phase(tile)
+        rows.append(
+            {
+                "scene_id": str(tile.get("image_id") or image.get("image_id") or ""),
+                "image_id": str(tile.get("image_id") or image.get("image_id") or ""),
+                "camera": image.get("camera"),
+                "camera_key": image.get("camera_key"),
+                "class": image.get("class"),
+                "domain": selected_domains[out_idx],
+                "source_dng": image_source_path(image),
+                "source_raw": image.get("raw_extract"),
+                "candidate_raw": "gate14_pair_low_bayer_same_color_2x_repeat",
+                "candidate_source": "Gate14 clean-source low Bayer tile only",
+                "crop": f"gate14_tile_{source_idx:05d}",
+                "crop_xy": crop_xy,
+                "candidate_raw_cfa_origin_xy": crop_xy,
+                "crop_size": high_tile,
+                "tile_index": int(source_idx),
+                "gate14_output_index": int(out_idx),
+                "high_x": crop_xy[0],
+                "high_y": crop_xy[1],
+                "low_x": int(tile.get("low_x") or 0),
+                "low_y": int(tile.get("low_y") or 0),
+                "low_tile": int(tile.get("low_tile") or inputs.shape[2]),
+                "high_raw_tile": high_tile,
+                "sample_source": tile.get("sample_source"),
+                "raw_target_kind": "gate14_low_bayer_to_high_bayer_same_color_highpass_residual",
+                "teacher_gate_before_student": True,
+                "selector_sidecar_sha256": selector_sidecar_sha256,
+                "selector_smoke_sha256": selector_smoke_sha256,
+                "launch_packet_sha256": launch_packet_sha256,
+                "selected_source_id": "gate14_clean_source_pair_high_tile",
+                "selected_route": "clean_source_pair_supervision",
+                "source_cfa_phase": "RGGB",
+                "crop_cfa_phase": phase,
+                "cfa_phase": phase,
+                "cfa_phase_source": "gate14_tile_origin_parity",
+                "ev": 0.0,
+                "noise_sidecars": image.get("noise_sidecars", []),
+                "gate14_pairs": str(gate14_pairs),
+                "gate14_pairs_sha256": pairs_sha,
+                "source_sha256": source_sha(image),
+                "raw_residual_abs_mean": float(np.mean(np.abs(residual[out_idx]))),
+                "raw_same_color_hf_residual_abs_mean": float(np.mean(np.abs(residual_hf[out_idx]))),
+                "source_raw_same_color_hf_abs_mean": float(np.mean(np.abs(source_hf[out_idx]))),
+                "candidate_raw_same_color_hf_abs_mean": float(np.mean(np.abs(candidate_hf[out_idx]))),
+                "render_hf_residual_y_abs_mean": float(np.mean(np.abs(render_hf_y[out_idx]))),
+            }
+        )
+
+    output_npz.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(
+        output_npz,
+        candidate_raw_cfa4=nchw_to_nhwc(candidate).astype(np.float16),
+        candidate_raw_hf_cfa4=nchw_to_nhwc(candidate_hf).astype(np.float16),
+        raw_hf_residual_cfa4=nchw_to_nhwc(residual_hf).astype(np.float16),
+        source_raw_hf_cfa4=nchw_to_nhwc(source_hf).astype(np.float16),
+        render_hf_residual_y=render_hf_y,
+        meta=np.asarray(json.dumps(rows, sort_keys=True)),
+    )
+    return rows, dict(sorted(Counter(selected_domains).items())), str(meta.get("schema") or "")
+
+
 def render_html(receipt: dict[str, Any]) -> str:
     blocker = receipt.get("blocker_classification") or "none"
     rows = "".join(
@@ -159,19 +365,22 @@ code {{ background: #eef2f5; padding: 1px 4px; border-radius: 4px; }}
 
 
 def build(args: argparse.Namespace) -> dict[str, Any]:
-    raw_meta = load_npz_meta(args.raw_targets)
     gate14_meta = load_npz_meta(args.gate14_pairs)
     sidecar = load_json(args.selector_sidecar)
     smoke = load_json(args.selector_smoke)
     launch = load_json(args.launch_packet)
 
-    raw = raw_rows(raw_meta)
     tiles = pair_tiles(gate14_meta)
-    raw_keys = {raw_identity(row) for row in raw}
-    gate14_keys = {gate14_identity(row) for row in tiles}
-    direct_matches = sorted(raw_keys & gate14_keys)
-    raw_domains = Counter(domain(row) for row in raw)
+    images = pair_images(gate14_meta)
+    enriched_tiles = [
+        {**images.get(str(tile.get("image_id") or ""), {}), **tile, "source": images.get(str(tile.get("image_id") or ""), {}).get("source")}
+        for tile in tiles
+    ]
     gate14_domains = Counter(domain(row) for row in tiles)
+    enriched_gate14_domains = Counter(domain(row) for row in enriched_tiles)
+    domain_filter = parse_domain_filter(args.domains)
+    allowed_tiles = [row for row in enriched_tiles if domain_filter is None or domain(row) in domain_filter]
+    selected_domain_counts = Counter(domain(row) for row in allowed_tiles)
 
     selector_ok = (
         sidecar.get("schema") == "gpr.premium_still_sr_multi_source_selector_sidecar.v1"
@@ -179,27 +388,39 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         and launch.get("candidate_id") == "premium_still_sr_gate14_floor_student_v1"
         and launch.get("preflight", {}).get("launchable_for_production_attempt") is True
     )
-    direct_identity_ok = bool(direct_matches)
-    domain_ok = raw_domains.get("x2d", 0) > 0 and raw_domains.get("z8", 0) > 0
-    target_builder_passed = bool(selector_ok and direct_identity_ok and domain_ok)
+    domain_ok = selected_domain_counts.get("x2d", 0) > 0 and selected_domain_counts.get("z8", 0) > 0
+    target_builder_passed = False
 
     blocker = None
     if not selector_ok:
         blocker = "gate14_launch_or_selector_receipt_invalid"
-    elif not direct_identity_ok:
-        blocker = "gate14_raw_target_identity_missing"
     elif not domain_ok:
         blocker = "gate14_raw_target_domain_coverage_missing"
 
     output_npz = args.output_dir / "gate14_floor_student_targets.npz"
+    built_rows: list[dict[str, Any]] = []
+    built_domain_counts: dict[str, int] = {}
+    source_pair_schema = None
+    output_npz_sha256 = None
+    if blocker is None:
+        built_rows, built_domain_counts, source_pair_schema = build_gate14_targets_from_pairs(
+            gate14_pairs=args.gate14_pairs,
+            output_npz=output_npz,
+            selector_sidecar_sha256=sha256_file(args.selector_sidecar),
+            selector_smoke_sha256=sha256_file(args.selector_smoke),
+            launch_packet_sha256=sha256_file(args.launch_packet),
+            domains=domain_filter,
+            max_tiles=args.max_tiles,
+            highpass_block=args.highpass_block,
+        )
+        target_builder_passed = bool(built_rows)
+        output_npz_sha256 = sha256_file(output_npz)
     next_action = (
         "Run the paired smoke commands from the launch packet."
         if target_builder_passed
         else (
-            "Regenerate raw-CFA residual targets from the Gate14 fixture/pair surface "
-            "while preserving image_id, tile_index, high_x/high_y, source raw path, "
-            "candidate raw path, selector sidecar hash, and selected source id per row; "
-            "then rerun this builder before any X2D/Z8 smoke training."
+            "Fix the Gate14 selector/launch receipts or X2D/Z8 domain coverage, "
+            "then rerun this builder before any smoke training."
         )
     )
     receipt = {
@@ -211,24 +432,33 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "target_builder_passed": target_builder_passed,
         "blocker_classification": blocker,
         "output_npz": str(output_npz) if target_builder_passed else None,
-        "output_npz_sha256": sha256_file(output_npz) if target_builder_passed and output_npz.exists() else None,
+        "output_npz_sha256": output_npz_sha256,
         "inputs": {
-            "raw_targets": {"path": str(args.raw_targets), "sha256": sha256_file(args.raw_targets)},
+            "raw_targets": {
+                "path": str(args.raw_targets),
+                "sha256": sha256_file(args.raw_targets) if args.raw_targets.exists() else None,
+                "role": "legacy comparison input; not used for Gate14 floor-student target generation",
+            },
             "gate14_pairs": {"path": str(args.gate14_pairs), "sha256": sha256_file(args.gate14_pairs)},
             "selector_sidecar": {"path": str(args.selector_sidecar), "sha256": sha256_file(args.selector_sidecar)},
             "selector_smoke": {"path": str(args.selector_smoke), "sha256": sha256_file(args.selector_smoke)},
             "launch_packet": {"path": str(args.launch_packet), "sha256": sha256_file(args.launch_packet)},
         },
         "coverage": {
-            "raw_target_row_count": len(raw),
             "gate14_pair_tile_count": len(tiles),
-            "direct_row_identity_match_count": len(direct_matches),
-            "raw_target_domain_counts": dict(sorted(raw_domains.items())),
             "gate14_pair_domain_counts": dict(sorted(gate14_domains.items())),
+            "gate14_pair_domain_counts_with_image_metadata": dict(sorted(enriched_gate14_domains.items())),
+            "domain_filter": sorted(domain_filter) if domain_filter is not None else ["all"],
+            "selected_gate14_pair_tile_count": len(allowed_tiles),
+            "selected_gate14_domain_counts": dict(sorted(selected_domain_counts.items())),
+            "built_target_row_count": len(built_rows),
+            "built_target_domain_counts": built_domain_counts,
             "selector_source_count": len(sidecar.get("sources") or []),
             "selector_rule_count": len(sidecar.get("rules") or []),
             "smoke_selected_row_count": smoke.get("selector_smoke_metrics", {}).get("selected_row_count"),
             "launch_packet_command_count": len(launch.get("next_commands") or []),
+            "source_pair_schema": source_pair_schema,
+            "highpass_block": int(args.highpass_block),
         },
         "identity_contract": {
             "required_shared_fields": [
@@ -247,6 +477,13 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                 "Gate14 selector/source evidence named by the model-floor gap."
             ),
         },
+        "target_policy": {
+            "runtime_candidate": "low Bayer tile upsampled by deterministic same-color 2x repeat",
+            "training_supervision": "high Bayer tile from Gate14 clean-source pair surface",
+            "render_time_forbidden_inputs": ["REF", "source raw", "JPEG", "gate metric rows"],
+            "teacher_gate_before_student": True,
+        },
+        "sample_rows": built_rows[:8],
         "next_unambiguous_action": next_action,
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -269,7 +506,8 @@ def main() -> int:
                 "dashboard": receipt["dashboard"],
                 "target_builder_passed": receipt["target_builder_passed"],
                 "blocker_classification": receipt["blocker_classification"],
-                "direct_row_identity_match_count": receipt["coverage"]["direct_row_identity_match_count"],
+                "built_target_row_count": receipt["coverage"]["built_target_row_count"],
+                "output_npz": receipt["output_npz"],
             },
             sort_keys=True,
         )
