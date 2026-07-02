@@ -214,13 +214,14 @@ ALLOWED_BLOCKERS = {
 
 README_REQUIRED_SECTIONS = (
     "## Open Raw Video For Action Cameras",
-    "## What It Enables",
-    "## Status At A Glance",
+    "## Product Status In One Screen",
+    "## Current Evidence Snapshot",
+    "## Stills Performance And CNN Latitude",
     "## Mission 1 Numbered List",
     "## Quality Model",
     "## Media And Dashboards",
     "## Raw Output Ladder",
-    "## Mission 1 Reality Check",
+    "## Final Camera Closure",
     "## Quick Start",
     "## Documentation",
 )

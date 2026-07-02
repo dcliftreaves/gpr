@@ -21,7 +21,7 @@ README = ROOT / "README.md"
 SCORECARD = ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md"
 SCORECARD_BUILDER = ROOT / "tools/build_product_pillar_scorecard.py"
 
-MAX_README_LINES = 620
+MAX_README_LINES = 520
 
 REQUIRED_SECTIONS = (
     "## Open Raw Video For Action Cameras",
@@ -30,6 +30,7 @@ REQUIRED_SECTIONS = (
     "## What Is Locked",
     "## Evidence Map",
     "## Visual Proof",
+    "## Current Evidence Snapshot",
     "## Stills Performance And CNN Latitude",
     "## Mission 1 Numbered List",
     "## Media And Dashboards",
@@ -146,6 +147,12 @@ REQUIRED_STATUS_MATRIX_TOKENS = (
 )
 
 FORBIDDEN_README_TOKENS = (
+    # The public page should stay product-led. These older headings repeated
+    # the same status in several places and made the README read like a logbook.
+    "## At A Glance",
+    "## What It Enables",
+    "## Status At A Glance",
+    "## Mission 1 Reality Check",
     # This folder contains a dashboard/contact-sheet movie, not the requested
     # continuous scene-video comparison. Keep it out of the public evidence map.
     "mission1_8k_sr_with_without_cnn_review_20260630",

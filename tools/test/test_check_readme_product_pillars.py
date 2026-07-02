@@ -140,6 +140,12 @@ def main() -> int:
             print(f"oversized README did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 
+        readme.write_text(good + "\n## At A Glance\nold duplicate status table\n", encoding="utf-8")
+        failures = module.validate(readme, scorecard)
+        if not failures or not any("## At A Glance" in failure for failure in failures):
+            print(f"duplicate public-status heading did not trigger expected failure: {failures}", file=sys.stderr)
+            return 1
+
         readme.write_text(
             good
             + "\n/Volumes/OWC_8TB/gpr_work/artifacts/"
