@@ -148,6 +148,7 @@ when all of these are true:
 | Open requirement IDs | [`PRODUCTION_CAPTURE_REQUIREMENTS.md`](PRODUCTION_CAPTURE_REQUIREMENTS.md) and [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json) |
 | Darkframe provenance review packet | `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_100_percent_20260702/index.html` |
 | Darkframe extraction progress | `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_100_percent_20260702/darkframe_extraction_progress.json` |
+| RAW-stills noise blocker audit | `/Volumes/OWC_8TB/gpr_work/artifacts/raw_stills_noise_blocker_audit_20260702/index.html` |
 | Raw-stills capture request | `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html` |
 | Current camera-noise coverage | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html` |
 | Runtime policy | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_runtime_policy_20260630/index.html` |

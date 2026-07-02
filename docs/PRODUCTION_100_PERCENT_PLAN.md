@@ -34,7 +34,7 @@ receipt, failing CI, or a broken public artifact.
 | row | current status | next unambiguous action | done when |
 |---|---|---|---|
 | Premium still/SR | Open. The teacher-first smoke candidate is rejected: X2D median MAE recovery was `+0.0038058604915690002%`, Z8 median MAE recovery was `-0.16182462980465134%`, and the 97-receipt scoreboard still has 0 promotable receipts. | Launch a materially different no-REF candidate only after the preflight proves it is not another scalar-loss/local-residual rerun. | The candidate beats the still baseline on 50 MP and 100 MP holdouts, has nonnegative worst-row recovery, records timing/memory/checkpoint hashes, and passes production submission validation. |
-| Mission/iPhone noise sidecars | Open. The refreshed review packet has 29 candidate sources, extracted Bayer receipts for 2 Mission 1 frames and 4 iPhone candidates, and `production_sidecar_ready=false`. | For Mission 1, capture two more matching ISO232 RGGB true darkframes or recapture a fresh four-frame stack. For iPhone, confirm no-scene provenance for four ISO1250 RGGB CFA candidates or recapture true darkframes. | Both `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` pass `check_darkframe_source_provenance.py` with `minimum-count 4`, then `build_camera_noise_calibration.py --require-source-provenance`, then `check_production_capture_submission.py`. |
+| Mission/iPhone noise sidecars | Open. The refreshed review packet has 29 candidate sources, extracted Bayer receipts for 2 Mission 1 frames and 4 iPhone candidates, and `production_sidecar_ready=false`. The blocker audit confirms the known Mission source root has 49 unique frame stems and no extra GPR-only frames. | For Mission 1, capture two more matching ISO232 RGGB true darkframes or recapture a fresh four-frame stack. For iPhone, confirm no-scene provenance for four ISO1250 RGGB CFA candidates or recapture true darkframes. | Both `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` pass `check_darkframe_source_provenance.py` with `minimum-count 4`, then `build_camera_noise_calibration.py --require-source-provenance`, then `check_production_capture_submission.py`. |
 | Mission 1 camera-role video MVP | Externally blocked. Pi 5 stand-ins are good enough for the current handoff, but they do not prove Mission 1 firmware production. | Give GoPro/Mission 1 firmware owners the first-hour runbook and require a camera-role run from real sensor/DMA or camera ring-buffer source, SD writer, and rear display. | Camera-role receipts validate with 4096 x 3072 source, 1024 x 768 preview, 20+ fps source/encode/preview, zero drops, valid `.gvid`, actual storage medium, memory, and 120+ sustained frames. |
 | Raw-video reconstruction | Closed for this release. Approved 4K cleanup and 8K SR are locked. | Keep the release evidence manifest and lock ledger green. | No reopened SR/PSF work is needed unless a locked receipt fails or a replacement already beats the same full artifact surface. |
 
@@ -97,6 +97,8 @@ Current packet:
 `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_100_percent_20260702/index.html`.
 Extraction progress:
 `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_100_percent_20260702/darkframe_extraction_progress.json`.
+Current blocker audit:
+`/Volumes/OWC_8TB/gpr_work/artifacts/raw_stills_noise_blocker_audit_20260702/index.html`.
 
 Required evidence:
 

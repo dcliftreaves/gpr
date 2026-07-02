@@ -180,6 +180,13 @@ into an auditable pass/fail package.
   still needs 2 additional matching true darkframes and
   `iphone_cfa_darkframe_stack` still needs confirmed no-scene source provenance
   before either sidecar can close.
+- RAW-stills noise blocker audit:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/raw_stills_noise_blocker_audit_20260702/index.html`
+  This audit records the current local blocker boundary: the known Mission 1
+  raw source root has 98 raw files but only 49 unique frame stems, because every
+  `.GPR` has a matching `.dng`; the best Mission group remains ISO232 RGGB with
+  2 candidates. iPhone ISO1250 RGGB has 27 dark-like CFA candidates, so the
+  iPhone blocker is no-scene source provenance rather than candidate count.
 - Optional raw-video PSF research capture request:
   `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html`
 - Premium still-SR first-hour promotion checklist:

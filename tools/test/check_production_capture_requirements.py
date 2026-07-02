@@ -207,6 +207,7 @@ def validate() -> list[str]:
             "stills_capture_request_strict_provenance_20260701",
             "darkframe_provenance_review_packet_100_percent_20260702",
             "darkframe_extraction_progress",
+            "raw_stills_noise_blocker_audit_20260702",
             "production_sidecar_ready=false",
             "source_provenance_manifest_templates",
             "promotion command path",

@@ -489,6 +489,8 @@ remain open.
 | Mission/iPhone darkframe provenance packet JSON | `artifacts/darkframe_provenance_review_packet_100_percent_20260702/darkframe_provenance_review_packet.json` | `52d825deb046a0bbb90e457759e39c32da8ecf3d7c607441b6562e67a75b9b7e` |
 | Mission/iPhone darkframe provenance packet dashboard | `artifacts/darkframe_provenance_review_packet_100_percent_20260702/index.html` | `d962acd4425f712c0e4aa5ffbf9c5ed703b4b6a707a31e40d5ca36b4521381dd` |
 | Mission/iPhone darkframe extraction progress JSON | `artifacts/darkframe_provenance_review_packet_100_percent_20260702/darkframe_extraction_progress.json` | `a7dc40baf4b53e35fae2ff7f8017f336e0d9d1e61c2ec5451fb2fbf4cd0e62cc` |
+| RAW-stills noise blocker audit JSON | `artifacts/raw_stills_noise_blocker_audit_20260702/raw_stills_noise_blocker_audit.json` | `e130a82586330a2d108e569cffc0e0a9715a4f0f5869655301357cefa6ad5178` |
+| RAW-stills noise blocker audit dashboard | `artifacts/raw_stills_noise_blocker_audit_20260702/index.html` | `64ce5cfe59734f1300806df8f916cb3518d45c8c0402549a0209870185d7ce26` |
 | iPhone darkframe provenance template | `artifacts/darkframe_provenance_review_packet_100_percent_20260702/source_provenance_manifest_templates/iphone_cfa_darkframe_stack__Apple_iPhone_7_Plus_ISO1250_RGGB.template.json` | `f6a95718ca973acb89467a99de97c2cadfbe91158305092874407f66dfe2abdd` |
 | Mission 1 darkframe provenance template | `artifacts/darkframe_provenance_review_packet_100_percent_20260702/source_provenance_manifest_templates/mission1_darkframe_stack__GoPro_MISSION_1_ISO232_RGGB.template.json` | `51b649476055a12268e6a661bf536e3e79d99c123b7ca1ef621beb10c7ac8079` |
 

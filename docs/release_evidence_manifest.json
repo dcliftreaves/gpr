@@ -2561,6 +2561,42 @@
       }
     },
     {
+      "id": "raw_stills_noise_blocker_audit_20260702",
+      "family": "stills_fixtures",
+      "status": "current",
+      "purpose": "Current blocker audit for the remaining Mission/iPhone raw-stills noise sidecars. It proves the known Mission 1 raw source root has 98 raw files but only 49 unique frame stems because every GPR has a matching DNG, keeps Mission blocked at two ISO232 RGGB candidates, and narrows iPhone to no-scene provenance rather than candidate count.",
+      "dashboard": "artifacts/raw_stills_noise_blocker_audit_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.md",
+        "docs/RAW_STILLS_NOISE_FIRST_HOUR.md"
+      ],
+      "receipts": [
+        "artifacts/raw_stills_noise_blocker_audit_20260702/raw_stills_noise_blocker_audit.json",
+        "artifacts/raw_stills_noise_blocker_audit_20260702/index.html"
+      ],
+      "hashes": {
+        "raw_stills_noise_blocker_audit_json_sha256": "e130a82586330a2d108e569cffc0e0a9715a4f0f5869655301357cefa6ad5178",
+        "dashboard_sha256": "64ce5cfe59734f1300806df8f916cb3518d45c8c0402549a0209870185d7ce26"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "mission_inventory_exhausted": 1,
+        "mission_known_unique_frame_count": 49,
+        "mission_raw_file_count": 98,
+        "mission_dng_count": 49,
+        "mission_gpr_count": 49,
+        "mission_gpr_adds_unique_frames": 0,
+        "mission_iso232_candidate_count": 2,
+        "mission_additional_matching_darkframes_needed": 2,
+        "iphone_iso1250_candidate_count": 27,
+        "iphone_candidate_count_is_sufficient": 1,
+        "iphone_missing_no_scene_provenance": 1
+      }
+    },
+    {
       "id": "camera_noise_runtime_policy_20260630",
       "family": "noise_signal",
       "status": "diagnostic",
