@@ -47,7 +47,7 @@ when it visibly improves the result.**
 |---|---:|---|---|
 | **Best RAW stills** | **92%** | 50 MP tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100 MP roundtrip; 12/14/16-bit support; real RGGB/GBRG/GRBG/BGGR coverage; X2D/Z8 noise sidecars. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
 | **GoPro RAW video MVP** | **80%** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor, and the same stream previews full-frame at 1024 x 768 above **20 fps**. | Real Mission 1 sensor/DMA or camera-ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, 120+ sustained frames, and timing receipts from the camera role. |
-| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, model-promotion tooling, the 99-receipt experiment scoreboard, X2D/Z8 source-evidence audits, rejected clean-source split smoke receipts, a route-specialist readiness audit, routed rendered EV-stress proxy review, and 4/4 editor/latitude coverage now exist. | Route-specialist full-frame metrics are positive. Editable DNG/GPR openability and non-oracle raw-editor latitude are proven for Mission 1 DNG, Mission 1 GPR, Z8 DNG, and X2D DNG. The exact-sidecar-only noise policy passes, but no model receipt clears the 15% / 15% promotion floor or production submission validation. |
+| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, model-promotion tooling, the 118-receipt experiment scoreboard, X2D/Z8 source-evidence audits, rejected clean-source/frequency-pyramid/gated-residual smoke receipts, a route-specialist readiness audit, routed rendered EV-stress proxy review, and 4/4 editor/latitude coverage now exist. | Route-specialist full-frame metrics are positive. Editable DNG/GPR openability and non-oracle raw-editor latitude are proven for Mission 1 DNG, Mission 1 GPR, Z8 DNG, and X2D DNG. The exact-sidecar-only noise policy passes, but no model receipt clears the 15% / 15% promotion floor or production submission validation. |
 | **RAW video reconstruction improvement** | **100%** | Approved offline/post 4K cleanup and 8K SR emit `.gvid`, editable raw, standalone no-CNN/CNN ProRes review movies, objective review, and manual signoff receipts. | No release blocker. PSF/blur modeling is parked as optional replacement research. |
 
 The denominator is the shippable production suite: **1. Best RAW stills**, **2. GoPro RAW video MVP**, **3. Premium still/SR**, and **4. Raw video reconstruction improvement**. PSF-aware video/SR remains optional research for a future replacement, not a blocker for the approved current release path.
@@ -95,7 +95,7 @@ candidate must submit `runtime_inputs` with `candidate_raw` and camera metadata,
 exclude REF/source/JPEG content at render time, report 50 MP and 100 MP gate row
 counts, show positive median MAE reduction with nonnegative worst-row MAE
 reduction, record seconds/frame and peak RSS, and prove exact-sidecar-only noise
-policy. The current scoreboard is deliberately not promotable: **99** runtime-safe
+policy. The current scoreboard is deliberately not promotable: **118** runtime-safe
 still-SR receipts, **0** promotable rows, best older runtime-safe row at **4.03%**
 held-out MAE recovery / **3.75%** held-out RMSE recovery against the **15% / 15%**
 promotion floor, and newer clean-source Restormer, teacher-first, and executable
@@ -107,14 +107,8 @@ but Z8 does not clear the 1% MAE source-evidence floor (**0.65%** MAE despite
 X2D passes the short smoke gate at **+0.0088%** median MAE and **+0.0031%**
 median RMSE recovery, while Z8 fails at **-0.0736%** median MAE and
 **-0.0189%** median RMSE. That rejects long training for the clean-source split.
-The next local Gate A lane is route-specialist/raw-CFA promotion: the readiness
-audit shows Mission 1 50 MP DNG/GPR, Z8 50 MP DNG, and X2D 100 MP DNG have
-route coverage and positive full-frame metric floors. The editor/latitude coverage
-audit is now 4/4 ready: Mission 1 DNG, Mission 1 GPR, Z8 DNG, and X2D DNG all
-have editable DNG/GPR openability and non-oracle rawpy/LibRaw latitude receipts.
-The exact-sidecar clean-target policy passes, but model promotion and production
-submission validation remain open because no model clears the 15% / 15% held-out
-recovery floor.
+The newer frequency-pyramid branch is also blocked: X2D worst-row MAE is **-4.85%**, and Z8 median/worst-row MAE are **-8.81%** / **-67.44%**. A gated no-op residual branch reduces Z8 damage to **-0.0777%** median and **-0.9817%** worst-row MAE, and the stricter identity probe nearly reaches interpolation parity, but it still does not create positive held-out recovery.
+The next local Gate A lane is route-specialist/raw-CFA promotion: the readiness audit shows Mission 1 50 MP DNG/GPR, Z8 50 MP DNG, and X2D 100 MP DNG have route coverage and positive full-frame metric floors. The editor/latitude coverage audit is now 4/4 ready, and the exact-sidecar clean-target policy passes, but no model clears the 15% / 15% held-out recovery floor.
 The rendered EV-stress proxy is already indexed separately and is not the same
 as raw-editor openability.
 
@@ -129,7 +123,7 @@ as raw-editor openability.
 | What work remains before calling the whole suite production-ready? | [`docs/PRODUCTION_100_PERCENT_PLAN.md`](docs/PRODUCTION_100_PERCENT_PLAN.md), [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md), [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md), [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md), and [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.json) |
 | What proves the stills path? | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md), [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md), [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md), and [`docs/RAW_STILLS_NOISE_FIRST_HOUR.md`](docs/RAW_STILLS_NOISE_FIRST_HOUR.md) |
 | What proves the GoPro/Mission raw-video path? | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md), [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md), [`docs/GOPRO_LABS_FIRST_HOUR.md`](docs/GOPRO_LABS_FIRST_HOUR.md), and [`docs/LABS_INTAKE.md`](docs/LABS_INTAKE.md) |
-| What proves or blocks premium still/SR? | [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md), [`docs/PREMIUM_STILL_SR_FIRST_HOUR.md`](docs/PREMIUM_STILL_SR_FIRST_HOUR.md), and the 99-receipt scoreboard at `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_window_attention_20260702/index.html` |
+| What proves or blocks premium still/SR? | [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md), [`docs/PREMIUM_STILL_SR_FIRST_HOUR.md`](docs/PREMIUM_STILL_SR_FIRST_HOUR.md), and the 118-receipt scoreboard at `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_gated_residual_20260702/index.html` |
 | What proves optional PSF video/SR research? | [`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md), the PSF research dashboards, and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_next_experiment_contract_20260701/index.html` |
 | What should a GoPro/Labs engineer run first? | [`docs/GOPRO_LABS_FIRST_HOUR.md`](docs/GOPRO_LABS_FIRST_HOUR.md) gives the one-page camera-role closure checklist and the shortcuts that do not count as Mission 1 firmware evidence. |
 
@@ -151,7 +145,7 @@ and receipts stay on the 8TB artifact root.
 | **Camera-back preview** | The same 4K `.gvid` decodes to full-frame 1024 x 768 RGB above **20 fps** on the Pi 5 stand-in. | Mission 1 rear-display/UI handoff remains unproven. |
 | **Offline reconstruction** | Approved 4K cleanup and candidate-aware 8K SR emit editable `.gvid` plus ProRes review media. | PSF-conditioned replacements are research until they beat the locked baseline. |
 | **Review/export scopes** | MOV / ProRes review outputs, PREVIEW offline/review, and PREVIEW live/camera-back are each tracked separately. | PREVIEW offline/review is not a live/camera-back preview path, and ProRes is not the primary raw deliverable. |
-| **Premium still/SR** | 99 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, rejected clean-source split receipts, route-specialist readiness evidence, routed rendered EV-stress proxy evidence, 4/4 non-oracle editor/latitude coverage, and exact-sidecar clean-target policy exist. | Current candidates are not promotable; next evidence is a model receipt that clears the 15% / 15% held-out recovery floor and production submission validation. |
+| **Premium still/SR** | 118 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, rejected clean-source/frequency-pyramid/gated-residual receipts, route-specialist readiness evidence, routed rendered EV-stress proxy evidence, 4/4 non-oracle editor/latitude coverage, and exact-sidecar clean-target policy exist. | Current candidates are not promotable; next evidence is a target/objective change that produces a no-REF model receipt clearing the paired smoke gate, the 15% / 15% held-out recovery floor, and production submission validation. |
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
 
@@ -290,7 +284,7 @@ catalog.
 | CNN readiness and locked reconstruction evidence | [`docs/CNN_PRODUCT_SCORECARD_2026-06-29.md`](docs/CNN_PRODUCT_SCORECARD_2026-06-29.md), [`docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md`](docs/MISSION1_CNN_NEXT_STEPS_2026-06-28.md), and [`docs/MISSION1_CODEC_CNN_RISK_BOUNDARY_2026-06-18.md`](docs/MISSION1_CODEC_CNN_RISK_BOUNDARY_2026-06-18.md) |
 | Mission 1 raw-video and preview handoff | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md), [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md), [`docs/LABS_INTAKE.md`](docs/LABS_INTAKE.md), and `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701/index.html` |
 | Raw stills, noise, and fixture coverage | [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md), [`docs/RAW_STILLS_NOISE_FIRST_HOUR.md`](docs/RAW_STILLS_NOISE_FIRST_HOUR.md), [`docs/LOCAL_FIXTURE_COMPATIBILITY.md`](docs/LOCAL_FIXTURE_COMPATIBILITY.md), and `/Volumes/OWC_8TB/gpr_work/artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html` |
-| Premium still/SR and optional PSF research | [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md), [`docs/PREMIUM_STILL_SR_FIRST_HOUR.md`](docs/PREMIUM_STILL_SR_FIRST_HOUR.md), [`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md), and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_window_attention_20260702/index.html` |
+| Premium still/SR and optional PSF research | [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md), [`docs/PREMIUM_STILL_SR_FIRST_HOUR.md`](docs/PREMIUM_STILL_SR_FIRST_HOUR.md), [`docs/BAYER_RESIZE_PSF.md`](docs/BAYER_RESIZE_PSF.md), and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_gated_residual_20260702/index.html` |
 | Approved 8K video CNN/SR A/B review | Z8 no-CNN/CNN ProRes movies live under `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/`; Mission 1 broad and strict sequential scenes live under `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/` and `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/`. |
 
 ## Raw Output Ladder

@@ -2231,7 +2231,7 @@
       "id": "premium_still_sr_promotion_gate_20260702",
       "family": "premium_still_sr",
       "status": "experimental-blocker",
-      "purpose": "Product-level promotion boundary for premium still-SR. It consolidates the 97-receipt experiment scoreboard, clean-signal/noise gate, formal still-SR gate receipt, and next-experiment contract into one current decision: safe to keep diagnostic, not production-promoted.",
+      "purpose": "Product-level promotion boundary for premium still-SR. It now feeds the current 118-receipt blocker evidence, clean-signal/noise gate, formal still-SR gate receipt, and next-experiment contract into one current decision: safe to keep diagnostic, not production-promoted.",
       "dashboard": "artifacts/premium_still_sr_promotion_gate_20260702/index.html",
       "docs": [
         "README.md",
@@ -2418,8 +2418,8 @@
     {
       "id": "premium_still_sr_experiment_scoreboard_window_attention_20260702",
       "family": "premium_still_sr",
-      "status": "current",
-      "purpose": "Current premium still-SR experiment scoreboard after the window-attention smoke rejection. It scans 99 runtime-safe receipts, records zero promotable rows against the 15 percent / 15 percent promotion threshold, and keeps the older 4.03 percent / 3.75 percent row as the best diagnostic baseline.",
+      "status": "diagnostic",
+      "purpose": "Historical premium still-SR experiment scoreboard after the window-attention smoke rejection. It scans 99 runtime-safe receipts, records zero promotable rows against the 15 percent / 15 percent promotion threshold, and keeps the older 4.03 percent / 3.75 percent row as the best diagnostic baseline. The current blocker evidence is the gated-residual 118-receipt scoreboard.",
       "dashboard": "artifacts/premium_still_sr_experiment_scoreboard_window_attention_20260702/index.html",
       "docs": [
         "README.md",

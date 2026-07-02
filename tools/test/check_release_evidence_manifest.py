@@ -168,6 +168,11 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_candidate_preflight_source_evidence_split_20260702",
                 "premium_still_sr_launch_packet_source_evidence_split_20260702",
                 "premium_still_sr_source_evidence_split_teacher_smoke_20260702_next",
+                "premium_still_sr_candidate_preflight_frequency_pyramid_20260702",
+                "premium_still_sr_frequency_pyramid_source_evidence_smoke_20260702",
+                "premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702",
+                "premium_still_sr_experiment_scoreboard_frequency_pyramid_20260702",
+                "premium_still_sr_gated_residual_smoke_20260702",
                 "premium_still_sr_route_readiness_20260702",
                 "premium_still_sr_route_readiness_with_rendered_20260702",
                 "premium_still_sr_editor_latitude_coverage_20260702",
@@ -1268,8 +1273,8 @@ def require_dashboard_contract(
                     failures.append(f"{entry_id}: Z8 train MAE recovery drifted")
 
     if entry_id == "premium_still_sr_experiment_scoreboard_window_attention_20260702":
-        if entry.get("status") != "current":
-            failures.append(f"{entry_id}: window-attention scoreboard must be current")
+        if entry.get("status") != "diagnostic":
+            failures.append(f"{entry_id}: window-attention scoreboard must remain diagnostic")
         metrics = entry.get("metrics")
         if not isinstance(metrics, dict):
             failures.append(f"{entry_id}: window-attention scoreboard needs metrics")
@@ -1306,9 +1311,39 @@ def require_dashboard_contract(
                     failures.append(f"{entry_id}: latest window-attention Z8 MAE drifted")
                 if abs(z8_rmse - (-0.3829316485837014)) > 1e-12:
                     failures.append(f"{entry_id}: latest window-attention Z8 RMSE drifted")
+    if entry_id == "premium_still_sr_gated_residual_smoke_20260702":
+        if entry.get("status") != "experimental-blocker":
+            failures.append(f"{entry_id}: gated-residual evidence must remain experimental-blocker")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: gated-residual evidence needs metrics")
+        else:
+            expected_metrics = {
+                "receipt_count": 118,
+                "runtime_safe_candidate_count": 118,
+                "promotable_candidate_count": 0,
+                "long_run_allowed": 0,
+                "production_ready": 0,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+            try:
+                z8_median = float(metrics.get("source_evidence_z8_median_mae_recovery_pct"))
+                z8_worst = float(metrics.get("source_evidence_z8_worst_row_mae_recovery_pct"))
+                identity_z8 = float(metrics.get("identity_z8_median_mae_recovery_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: gated-residual metrics must be numeric")
+            else:
+                if abs(z8_median - (-0.07770732977859413)) > 1e-12:
+                    failures.append(f"{entry_id}: source-evidence Z8 median MAE drifted")
+                if abs(z8_worst - (-0.9817010759922141)) > 1e-12:
+                    failures.append(f"{entry_id}: source-evidence Z8 worst-row MAE drifted")
+                if abs(identity_z8 - (-0.0014934440317522601)) > 1e-12:
+                    failures.append(f"{entry_id}: identity Z8 median MAE drifted")
         readme_text = README.read_text(encoding="utf-8")
         readme_plain = re.sub(r"[*_`]", "", readme_text)
-        for token in ("99-receipt experiment scoreboard", "99 runtime-safe"):
+        for token in ("118-receipt experiment scoreboard", "118 runtime-safe"):
             if token not in readme_plain:
                 failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
 

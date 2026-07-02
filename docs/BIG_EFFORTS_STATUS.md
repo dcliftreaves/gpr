@@ -16,7 +16,7 @@ For the shortest requirement-by-requirement closure audit, use
 |---|---:|---|---|
 | Raw stills for 50 MP / 100 MP cameras | 92% | Strong, production-gated for the current tested Bayer surface, including all normal unpacked 2x2 Bayer phases in committed synthetic conformance, real RGGB/GBRG/GRBG/BGGR fixture coverage, and calibrated X2D/Z8 noise sidecars. | Good enough to present as a working stills product path, with explicit open work on Mission/iPhone darkframe sidecars. |
 | Raw video MVP for GoPro / Mission 1 | 80% | Strong prototype/Labs handoff, blocked on real camera closure. | Good enough for GoPro engineers to pick up and run; not done until real sensor/DMA/storage/display receipts exist. |
-| Raw stills improvement / expensive SR | 60% | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, band diagnostics, raw-CFA expanded targets, no-REF HF residual probes, calibrated noise-clean target sweep, raw-CFA residual alignment audit, deduplicated 117-row raw target NPZ, raw-target SNR/distribution audits, PSF metadata gap audit, PSF sidecar contract, RCAB/NAF/U-Net/window-attention/Restormer receipts, overlapped-tile seam checks, and a 97-receipt experiment scoreboard with zero promotable rows. | Not done until a no-REF 50 MP / 100 MP candidate clears the still-SR promotion gate. The best older runtime-safe row is only 4.03% MAE / 3.75% RMSE recovery against a 15% / 15% floor. The newest t64 Restormer degradation/objective ablation adds Charbonnier, Laplacian, RAW noise, gain jitter, and blur, but still fails: X2D is only +0.0048% MAE recovery and Z8 regresses by -0.3973% MAE. The next pass needs a materially different clean-source/CFA-aware teacher or data objective with camera conditioning, calibrated noise/degradation synthesis, row-level PSF where available, and learned multiscale texture priors rather than another scalar loss, scale tweak, full-HF target replacement, frame-stat concatenation, same-color box pair objective, or global near-box PSF repeat. |
+| Raw stills improvement / expensive SR | 60% | Partly done through 1x still CNN, reusable 4K/8K SR machinery, routed Mission/Z8/X2D still-SR specialists, full-frame receipts, rendered proxy review, X2D editor-openability plus metadata-transplant proof, X2D rawpy latitude diagnostics, structured HF residual target datasets, raw-CFA expanded targets, no-REF HF residual probes, calibrated noise-clean target sweep, raw-target SNR/distribution audits, route-specialist readiness, exact-sidecar-only noise policy, editor/latitude coverage, and a 118-receipt experiment scoreboard with zero promotable rows. | Not done until a no-REF 50 MP / 100 MP candidate clears the still-SR promotion gate. The best older runtime-safe row is only 4.03% MAE / 3.75% RMSE recovery against a 15% / 15% floor. Frequency-pyramid is blocked by X2D worst-row MAE and severe Z8 regression; gated no-op residual reduces Z8 damage but converges toward interpolation parity instead of positive held-out recovery. The next pass must change the target/objective to preserve exact no-op behavior for low-error tiles while creating a stronger positive no-REF signal. |
 | Raw video reconstruction improvement | 100% | Shippable offline/post path through approved 4K cleanup, candidate-aware 8K SR, `.gvid` decode/SR, editable raw packaging, ProRes review, continuous no-CNN/CNN review media, objective visual-review, manual visual signoff, and registry/release receipts. | Closed for the approved current offline/post workflow. Controlled high/low PSF pairs and a PSF-conditioned replacement remain useful optional research / next-generation research, not blockers for shipping the approved current SR workflow. |
 
 ## 1. Raw Stills
@@ -484,17 +484,17 @@ Current evidence:
 - `tools/build_premium_still_sr_experiment_scoreboard.py` now ranks the
   premium still-SR training receipts and applies the no-REF runtime promotion
   guard:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/index.html`.
-  The current scoreboard scans 97 runtime-safe rendered-HF, raw-CFA residual,
-  clean-signal, and clean-source pair receipts and records zero promotable
-  rows. The best older runtime-safe row reaches 4.03 percent held-out MAE
-  recovery and 3.75 percent held-out RMSE recovery against the 15 percent /
-  15 percent promotion floor. The latest degradation/objective ablation adds
-  Charbonnier loss, Laplacian loss, training-time RAW noise, per-plane gain
-  jitter, and binomial blur, but remains rejected: X2D reaches only +0.0048
-  percent median MAE recovery and -0.0053 percent RMSE recovery, while Z8
-  regresses at -0.3973 percent MAE and -0.2627 percent RMSE. This confirms the
-  current 60 percent pillar score is still appropriate.
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_gated_residual_20260702/index.html`.
+  The current scoreboard scans 118 runtime-safe rendered-HF, raw-CFA residual,
+  clean-signal, clean-source pair, frequency-pyramid, and gated-residual
+  receipts and records zero promotable rows. The best older runtime-safe row
+  reaches 4.03 percent held-out MAE recovery and 3.75 percent held-out RMSE
+  recovery against the 15 percent / 15 percent promotion floor. The latest
+  frequency-pyramid branch is blocked by X2D worst-row MAE and severe Z8
+  regression; the gated no-op residual branch reduces Z8 damage but does not
+  produce positive held-out recovery. This confirms the current 60 percent
+  pillar score is still appropriate and narrows the next pass to a target or
+  objective change, not another architecture-only residual tweak.
 - `tools/cnn/analyze_premium_still_sr_hf_residual_bands.py` decomposes the X2D
   residual target by frequency and brightness. The current dashboard shows
   median Y residual absolute mean 0.02892, +2 EV median 0.05983, +2 EV p95
