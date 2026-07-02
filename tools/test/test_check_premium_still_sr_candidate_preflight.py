@@ -295,6 +295,39 @@ def main() -> int:
         unsupported_arch_failed = json.loads(unsupported_arch_audit.read_text(encoding="utf-8"))
         assert any("unsupported --model-arch" in item for item in unsupported_arch_failed["failures"])
 
+        exact_noop_route = json.loads(passing.read_text(encoding="utf-8"))
+        exact_noop_route["candidate_id"] = "gate15_x2d_positive_z8_noop_test"
+        exact_noop_route["smoke_gate_commands"][1] = (
+            "python3 tools/build_premium_still_sr_exact_noop_receipt.py "
+            "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/z8_exact_noop_smoke "
+            "--holdout z8 --mode exact-noop --row-count 4"
+        )
+        exact_noop_route["smoke_gate_acceptance"]["route_acceptance"] = {
+            "z8": {
+                "requires_exact_noop": True,
+                "minimum_median_mae_reduction_pct": 0.0,
+                "minimum_worst_row_mae_reduction_pct": 0.0,
+            }
+        }
+        exact_noop_path = base / "exact_noop_route.json"
+        exact_noop_audit = base / "exact_noop_route_audit.json"
+        write_json(exact_noop_path, exact_noop_route)
+        proc = run_tool(exact_noop_path, "--json-out", str(exact_noop_audit), "--require-launchable")
+        assert proc.returncode == 0
+        exact_noop_passed = json.loads(exact_noop_audit.read_text(encoding="utf-8"))
+        assert exact_noop_passed["launchable_for_production_attempt"] is True
+
+        unguarded_exact_noop = json.loads(passing.read_text(encoding="utf-8"))
+        unguarded_exact_noop["candidate_id"] = "unguarded_exact_noop_test"
+        unguarded_exact_noop["smoke_gate_commands"][1] = exact_noop_route["smoke_gate_commands"][1]
+        unguarded_path = base / "unguarded_exact_noop.json"
+        unguarded_audit = base / "unguarded_exact_noop_audit.json"
+        write_json(unguarded_path, unguarded_exact_noop)
+        proc = run_tool(unguarded_path, "--json-out", str(unguarded_audit), "--require-launchable")
+        assert proc.returncode != 0
+        unguarded_failed = json.loads(unguarded_audit.read_text(encoding="utf-8"))
+        assert any("exact-noop command is only valid" in item for item in unguarded_failed["failures"])
+
         weak_acceptance = json.loads(passing.read_text(encoding="utf-8"))
         weak_acceptance["smoke_gate_acceptance"]["minimum_median_mae_reduction_pct"] = 0.0
         weak_acceptance["smoke_gate_acceptance"]["minimum_worst_row_mae_reduction_pct"] = -0.1

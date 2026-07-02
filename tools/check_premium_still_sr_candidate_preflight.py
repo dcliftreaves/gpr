@@ -253,6 +253,21 @@ def is_exact_noop_command(command: str) -> bool:
     return EXACT_NOOP_COMMAND_TOKEN in text and "--mode exact-noop" in text
 
 
+def exact_noop_route_allowed(manifest: dict[str, Any], command: str) -> bool:
+    acceptance = manifest.get("smoke_gate_acceptance")
+    if not isinstance(acceptance, dict):
+        return False
+    route_acceptance = acceptance.get("route_acceptance")
+    if not isinstance(route_acceptance, dict):
+        return False
+    text = command.lower()
+    for route in ("x2d", "z8"):
+        if route in text:
+            route_rules = route_acceptance.get(route)
+            return isinstance(route_rules, dict) and route_rules.get("requires_exact_noop") is True
+    return False
+
+
 def command_text_without_training_only_targets(command: str) -> str:
     """Strip allowed training-target tokens before runtime/source-content checks."""
     try:
@@ -490,6 +505,11 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
             model_arches = option_values_for_command(command, "--model-arch")
             if not model_arches and not exact_noop:
                 add_failure(failures, f"smoke_gate_commands[{idx}] must include an explicit supported --model-arch")
+            if exact_noop and not exact_noop_route_allowed(manifest, command):
+                add_failure(
+                    failures,
+                    f"smoke_gate_commands[{idx}] exact-noop command is only valid when route_acceptance requires exact no-op",
+                )
             for model_arch in model_arches:
                 if model_arch not in SUPPORTED_TRAINER_MODEL_ARCHES:
                     add_failure(

@@ -109,6 +109,13 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate15 target-construction proposal dashboard | `artifacts/premium_still_sr_gate15_target_construction_proposal_20260702/index.html` | `bb914b94279d5b458a48e116cf0b712bc6ef3cf539fd2f44400df7c8bd2a2e6e` |
 | Gate15 target-construction preflight pass receipt | `artifacts/premium_still_sr_gate15_target_construction_preflight_with_proposal_20260702/target_construction_preflight.json` | `a503be325f7d4e781b0bfd7d7555f2b417582c2b42344e5182304301667a2add` |
 | Gate15 target-construction preflight pass dashboard | `artifacts/premium_still_sr_gate15_target_construction_preflight_with_proposal_20260702/index.html` | `fa2c5fad2b73404e562772f0e7908d6ac3cd9d6d919932ddc612f3a33b13194b` |
+| Gate15 smoke-target receipt | `artifacts/premium_still_sr_gate15_smoke_targets_20260702/gate15_smoke_targets.json` | `a88b0051ad68877c0dda668746ef823bf16641be98202d3d6e42315e5125bb71` |
+| Gate15 X2D-positive target NPZ | `artifacts/premium_still_sr_gate15_smoke_targets_20260702/gate15_x2d_positive_targets.npz` | `55a468f10defbdbca21b73b762964845a3efc0f43254b8c1ec3ad2a388943a96` |
+| Gate15 smoke launch preflight | `artifacts/premium_still_sr_gate15_smoke_targets_20260702/preflight_audit.json` | `6c92d1dd8d5a6deceba89add8abd0cb9424b8aed52a3e79128b86c5d072ddf71` |
+| Gate15 X2D positive smoke receipt | `artifacts/premium_still_sr_gate15_x2d_positive_smoke_20260702/train_receipt.json` | `faa2a154ccc5bdb0c09548e7e3cfe8835e18b8c4fcc30e7d93f3f97112e52829` |
+| Gate15 Z8 exact-noop smoke receipt | `artifacts/premium_still_sr_gate15_z8_exact_noop_smoke_20260702/train_receipt.json` | `3e4567709d876d1bc19a5dd1a4154a88c93d5c76163e288c250fd9cd7a783c7a` |
+| Gate15 smoke acceptance blocker | `artifacts/premium_still_sr_gate15_smoke_acceptance_20260702/smoke_gate_acceptance.json` | `6a9d4891b8b4cd86ccf056ca106944c49538adebc7ccb8422310d5d989081755` |
+| Gate15 smoke acceptance dashboard | `artifacts/premium_still_sr_gate15_smoke_acceptance_20260702/index.html` | `a31caeafce07f4f39dea6a7e2cc66f8fee30af1c4615ebd5fce0c315a609d378` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -144,8 +151,11 @@ metadata without loading the multi-GB arrays, marks X2D rows positive only when
 candidate HF and target residual clear the proposal floors, and keeps all Z8 rows
 exact no-op. The proposal records `463` X2D positive rows versus `289` needed,
 and `1536/1536` Z8 exact-noop rows. The preflight pass records
-`paired_smoke_allowed=true` and `long_run_allowed=false`, so the next evidence is
-paired X2D/Z8 smoke, not long training.
+`paired_smoke_allowed=true` and `long_run_allowed=false`. The paired smoke then
+ran and blocked the branch before long training: X2D holdout median/worst raw
+MAE recovery is `-0.000744993606797582%` / `-0.019091640791465258%`, while Z8
+exact-noop passes at `0.0%` / `0.0%`. That narrows the blocker from target-row
+availability to X2D objective learnability/generalization.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model
