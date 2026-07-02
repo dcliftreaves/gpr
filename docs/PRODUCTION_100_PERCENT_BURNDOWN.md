@@ -35,26 +35,28 @@ camera-role access. The latest Gate 5 branch is closed as a failed smoke:
 | replacement-contract route-conditioned/noise-aware smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst raw MAE recovery is `-0.16833363636675505%` / `-6.051057523320477%`; Z8 median/worst raw MAE recovery is `-1.5863477181003771%` / `-55.716890568612115%`. This rules out the first replacement-contract U-Net route split with continuous SNR weighting and high-energy emphasis. |
 | Gate 10 target/degradation decision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate10_target_degradation_decision_20260702/gate10_target_degradation_decision.json` | Closed as `source_degradation_target_mismatch`. Gate 10 records X2D median/worst raw MAE recovery at `-0.16833363636675505%` / `-6.051057523320477%`, Z8 at `-1.5863477181003771%` / `-55.716890568612115%`, X2D target-distribution mismatch at `3.4500243590744026x`, and Z8 mostly noise-floor targets (`28/36`). It sets `paired_smoke_allowed=false` and allows only a degradation-source audit before the next candidate intake. |
 | Gate 11 degradation-source audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_degradation_source_audit_20260702/degradation_source_audit.json` | Closed as `degradation_source_policy_ready_for_gate11_preflight`. It selects `route_isolated_teacher_then_router`: X2D may train on `70` signal/mixed rows with stratified target sampling and no-op fallback; Z8 must default no-op for noise-floor rows and cannot train positive residuals without a new source-evidence receipt. |
+| Gate 11 route-isolated smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_smoke_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst raw MAE recovery is `-0.09995100006746782%` / `-2.156844783012532%`; Z8 median/worst raw MAE recovery is `0.0%` / `-14.118886237720433%`. This rules out the first route-isolated residual teacher/router pass as production work. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
-Build `premium_still_sr_gate11_candidate_intake_<date>` from the route-isolated
-teacher/router policy. Do not rerun source-frequency targets, generic full-crop
-U-Net residual training, masked-detail thresholds, candidate-HF no-op threshold
-tuning, simple frame-context conditioning, the Gate 9 route-conditioned/noise-
-aware U-Net smoke, or the older clean-source residual families as production
-work. The preflight must encode:
+Build `premium_still_sr_measured_degradation_teacher_source_audit_<date>`.
+Do not rerun source-frequency targets, generic full-crop U-Net residual
+training, masked-detail thresholds, candidate-HF no-op threshold tuning, simple
+frame-context conditioning, the Gate 9 route-conditioned/noise-aware U-Net
+smoke, the Gate 11 route-isolated residual smoke, or the older clean-source
+residual families as production work. The audit must choose one of:
 
-1. X2D training on signal/mixed rows only, with stratified target sampling and
-   exact no-op fallback;
-2. Z8 no-op for current noise-floor rows and no positive residual training
-   unless a new source-evidence receipt passes;
-3. candidate-only runtime inputs with no REF/source/JPEG image content.
+1. a measured high/low or synthetic degradation teacher whose target is not the
+   failed source-minus-candidate raw-CFA residual;
+2. a deterministic no-op/selector baseline that cannot create negative
+   worst-row regressions;
+3. a new route-specific source-evidence path that proves positive signal before
+   any residual model trains.
 
-Only after that Gate 11 preflight exists may paired X2D/Z8 smoke run. The smoke
-must create a positive no-REF learning signal while preserving exact no-op
-behavior for low-error tiles.
+Only after that source audit exists may a Gate 12 candidate intake be built.
+The smoke must create a positive no-REF learning signal while preserving exact
+no-op behavior for low-error tiles.
 
 The candidate may advance only if all of these are true:
 
@@ -76,13 +78,23 @@ python3 tools/build_premium_still_sr_gate10_target_degradation_decision.py \
 python3 tools/build_premium_still_sr_degradation_source_audit.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_degradation_source_audit_<date>
 
-# Next tool to build: tools/build_premium_still_sr_gate11_candidate_preflight.py
-# The preflight must emit:
-# /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_candidate_intake_<date>/candidate_preflight.json
+python3 tools/build_premium_still_sr_gate11_candidate_preflight.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_candidate_intake_<date> \
+  --smoke-output-root /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_smoke_<date> \
+  --require-launchable
+
+python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_candidate_intake_<date>/candidate_preflight.json \
+  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_smoke_acceptance_<date>/smoke_gate_acceptance.json \
+  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_smoke_acceptance_<date>/index.html
+
+# Next tool to build:
+# tools/build_premium_still_sr_measured_degradation_teacher_source_audit.py
 ```
 
-Gate 11 paired smoke commands are intentionally absent until the candidate
-intake exists. If the preflight cannot encode the Gate 11 policy, it must
-classify the failure as source/degradation mismatch, objective/gating failure,
-model capacity, camera-conditioning gap, timing/memory infeasibility, or
-noise-policy mismatch.
+Gate 12 candidate intake and paired smoke commands are intentionally absent
+until the measured/synthetic degradation-teacher source audit exists. If the
+source audit cannot identify a replacement target family, it must classify the
+failure as source/degradation mismatch, objective/gating failure, model
+capacity, camera-conditioning gap, timing/memory infeasibility, or noise-policy
+mismatch.

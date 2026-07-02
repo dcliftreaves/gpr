@@ -178,6 +178,8 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_editor_latitude_coverage_20260702",
                 "premium_still_sr_gate10_target_degradation_decision_20260702",
                 "premium_still_sr_degradation_source_audit_20260702",
+                "premium_still_sr_gate11_candidate_intake_20260702",
+                "premium_still_sr_gate11_smoke_acceptance_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },

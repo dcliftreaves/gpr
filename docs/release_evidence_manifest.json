@@ -117,10 +117,12 @@
           "premium_still_sr_gate9_candidate_intake_20260702",
           "premium_still_sr_gate9_smoke_acceptance_20260702",
           "premium_still_sr_gate10_target_degradation_decision_20260702",
-          "premium_still_sr_degradation_source_audit_20260702"
+          "premium_still_sr_degradation_source_audit_20260702",
+          "premium_still_sr_gate11_candidate_intake_20260702",
+          "premium_still_sr_gate11_smoke_acceptance_20260702"
         ]
       },
-      "open_gate": "Gate 11 degradation-source audit selects route_isolated_teacher_then_router: X2D can train on 70 signal/mixed rows with stratified target sampling and exact no-op fallback, while Z8 must default no-op for noise-floor rows and cannot train positive residuals without a new source-evidence receipt. The next local gate is premium_still_sr_gate11_candidate_intake_<date>; it must encode this route policy, reject the Gate 9 source family, and remain candidate-only/no-REF before paired smoke."
+      "open_gate": "Gate 11 route-isolated teacher/router intake launched cleanly but failed paired smoke: X2D median/worst raw MAE recovery is -0.09995100006746782% / -2.156844783012532%, and Z8 is 0.0% / -14.118886237720433%. The next local gate is premium_still_sr_measured_degradation_teacher_source_audit_<date>; it must replace the failed source-minus-candidate raw-CFA residual target with a measured or synthetic degradation teacher source, or prove a deterministic no-op/selector baseline that cannot regress worst rows."
     },
     {
       "id": "raw_video_reconstruction",
@@ -4447,6 +4449,85 @@
         "z8_eligible_training_rows": 8,
         "z8_noise_floor_rows": 28,
         "z8_row_count": 36,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate11_candidate_intake_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Launchable Gate 11 route-isolated teacher/router candidate intake generated from the degradation-source audit. It defines separate X2D and Z8 smoke commands with X2D signal/mixed training and Z8 noise-floor no-op policy; it does not claim production readiness.",
+      "dashboard": "artifacts/premium_still_sr_gate11_candidate_intake_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate11_candidate_preflight.py",
+        "tools/check_premium_still_sr_candidate_preflight.py",
+        "tools/cnn/train_premium_still_sr_raw_cfa_residual.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate11_candidate_intake_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_gate11_candidate_intake_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_gate11_candidate_intake_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "3a52787127d4f1b9813fa8b1200d4dec982994c3fbdc5b4665efb61e539ce1e8",
+        "preflight_audit_json_sha256": "0597714fecfea274cddb0479633eebe419d24ad0a2668f9b829fb38786ded082",
+        "dashboard_sha256": "9f9560e95e795f712221f66dbc526572c746539f42d9741eb21ff674fe3ec571"
+      },
+      "metrics": {
+        "launchable_for_production_attempt": 1,
+        "preflight_failure_count": 0,
+        "smoke_gate_command_count": 2,
+        "x2d_eligible_training_rows": 70,
+        "z8_eligible_training_rows": 8,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate11_smoke_acceptance_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Paired Gate 11 route-isolated teacher/router smoke acceptance. The X2D route and Z8 no-op-gated route both fail the paired smoke floor, so no long 50 MP / 100 MP run is allowed.",
+      "dashboard": "artifacts/premium_still_sr_gate11_smoke_acceptance_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate11_candidate_preflight.py",
+        "tools/check_premium_still_sr_smoke_gate_acceptance.py",
+        "tools/cnn/train_premium_still_sr_raw_cfa_residual.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate11_smoke_20260702/x2d_smoke/train_receipt.json",
+        "artifacts/premium_still_sr_gate11_smoke_20260702/z8_smoke/train_receipt.json",
+        "artifacts/premium_still_sr_gate11_smoke_acceptance_20260702/smoke_gate_acceptance.json",
+        "artifacts/premium_still_sr_gate11_smoke_acceptance_20260702/index.html"
+      ],
+      "hashes": {
+        "x2d_train_receipt_json_sha256": "ca2fded29b6b9842110453b9e7e299af1242bdf00d5cf87285a5b3c99012de7b",
+        "x2d_checkpoint_sha256": "261ed10e7f243fef0d5a8ebae6a41024b4e06846e3ab445ef646a001e5da91c6",
+        "z8_train_receipt_json_sha256": "57d245a8601ab0e5b592992de451870823ee2c9fa1b2bde2bf28bc056d09ff2e",
+        "z8_checkpoint_sha256": "20a7a01e0a7067e1da0162f527fb5ed7e8335642effce61918cf46f028e81eb2",
+        "smoke_gate_acceptance_json_sha256": "4296049440626cbf8ca48747a02f3c4ad0d1217fde8779aee89b65cab55f433f",
+        "dashboard_sha256": "45ce5cbff784b683a73d33d6cf2cfc755a3e47581362777eda7c6b350b079927"
+      },
+      "metrics": {
+        "x2d_median_mae_recovery_pct": -0.09995100006746782,
+        "x2d_worst_mae_recovery_pct": -2.156844783012532,
+        "x2d_median_rmse_recovery_pct": 0.0005209788051724982,
+        "z8_median_mae_recovery_pct": 0.0,
+        "z8_worst_mae_recovery_pct": -14.118886237720433,
+        "z8_median_rmse_recovery_pct": 0.0,
+        "paired_smoke_gate_passed": 0,
+        "long_run_allowed": 0,
         "production_ready": 0
       }
     }

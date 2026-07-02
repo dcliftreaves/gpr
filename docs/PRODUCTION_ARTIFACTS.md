@@ -919,6 +919,13 @@ candidate-HF no-op or simple frame-context family.
 | Premium still-SR Gate 10 target/degradation decision dashboard | `artifacts/premium_still_sr_gate10_target_degradation_decision_20260702/index.html` | `fdc4237d79db4d430ebda4629555c96550f665b374a52c80ca5bff28666a5c3c` |
 | Premium still-SR degradation-source audit receipt | `artifacts/premium_still_sr_degradation_source_audit_20260702/degradation_source_audit.json` | `5c604bf1b3fad6193ef0c7b7adbd7e0b0979ef12bac034229dd2664f80a80034` |
 | Premium still-SR degradation-source audit dashboard | `artifacts/premium_still_sr_degradation_source_audit_20260702/index.html` | `10e4783f4bf51a88d4a430b854e435d25179ea41b34c5160aad6fe43dd50c98b` |
+| Premium still-SR Gate 11 candidate intake manifest | `artifacts/premium_still_sr_gate11_candidate_intake_20260702/candidate_preflight.json` | `3a52787127d4f1b9813fa8b1200d4dec982994c3fbdc5b4665efb61e539ce1e8` |
+| Premium still-SR Gate 11 candidate intake audit | `artifacts/premium_still_sr_gate11_candidate_intake_20260702/preflight_audit.json` | `0597714fecfea274cddb0479633eebe419d24ad0a2668f9b829fb38786ded082` |
+| Premium still-SR Gate 11 candidate intake dashboard | `artifacts/premium_still_sr_gate11_candidate_intake_20260702/index.html` | `9f9560e95e795f712221f66dbc526572c746539f42d9741eb21ff674fe3ec571` |
+| Premium still-SR Gate 11 X2D smoke receipt | `artifacts/premium_still_sr_gate11_smoke_20260702/x2d_smoke/train_receipt.json` | `ca2fded29b6b9842110453b9e7e299af1242bdf00d5cf87285a5b3c99012de7b` |
+| Premium still-SR Gate 11 Z8 smoke receipt | `artifacts/premium_still_sr_gate11_smoke_20260702/z8_smoke/train_receipt.json` | `57d245a8601ab0e5b592992de451870823ee2c9fa1b2bde2bf28bc056d09ff2e` |
+| Premium still-SR Gate 11 smoke acceptance receipt | `artifacts/premium_still_sr_gate11_smoke_acceptance_20260702/smoke_gate_acceptance.json` | `4296049440626cbf8ca48747a02f3c4ad0d1217fde8779aee89b65cab55f433f` |
+| Premium still-SR Gate 11 smoke acceptance dashboard | `artifacts/premium_still_sr_gate11_smoke_acceptance_20260702/index.html` | `45ce5cbff784b683a73d33d6cf2cfc755a3e47581362777eda7c6b350b079927` |
 
 ## Registry Review Artifacts
 
