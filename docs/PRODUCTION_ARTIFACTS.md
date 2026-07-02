@@ -103,6 +103,8 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate14 floor-student Z8 no-op-off ablation | `artifacts/premium_still_sr_gate14_floor_student_z8_noopoff_ablation_20260702/train_receipt.json` | `cc86507fd60cec13d74b8f503c1f612862725739c7a4a5e965d8217f9c7e9380` |
 | Gate14 objective-gate audit receipt | `artifacts/premium_still_sr_gate14_objective_gate_audit_20260702/objective_gate_audit.json` | `939a3621f3d71834a27e483ca128e1b722c40846c9d47e4d069d4e2bab18dfb4` |
 | Gate14 objective-gate audit dashboard | `artifacts/premium_still_sr_gate14_objective_gate_audit_20260702/index.html` | `201d21b67c7bc80ab0473bea2d9c7d62eb82f2c707782cf510b05f1aed5a9cd1` |
+| Gate15 target-construction preflight receipt | `artifacts/premium_still_sr_gate15_target_construction_preflight_20260702/target_construction_preflight.json` | `f2ccc0a47024c02c4c5d1b07bc445ae2f869d56e63b00e9872905ef41f3bcea3` |
+| Gate15 target-construction preflight dashboard | `artifacts/premium_still_sr_gate15_target_construction_preflight_20260702/index.html` | `531f620230c34d6453bb15f23f0bd208dd2c8f792e3ca671c59f2df36068adc2` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -128,6 +130,11 @@ are needed on both X2D/Z8, and source-HF/stored-HF has 2/17 on X2D and 0/17 on
 Z8. Even the oracle positive/no-op upper bound cannot clear the smoke floor, so
 the next Premium still-SR receipt must be a target-construction preflight that
 creates enough positive candidate-only rows before another paired smoke.
+That preflight is now executable and currently records
+`verdict=blocked_pending_target_construction_proposal`: no paired smoke is
+allowed until a Gate15 target proposal supplies row-level `pretraining_signal_rows`
+with enough X2D candidate-only positives for a median pass and Z8 exact-noop or
+positive-source-evidence rows.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model
