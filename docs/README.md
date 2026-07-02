@@ -1,7 +1,7 @@
 # GPR Docs Index
 
 Where to look for current production status, evidence, and runbooks. Last
-refreshed 2026-07-01.
+refreshed 2026-07-02.
 
 ## Start here
 
