@@ -32,6 +32,7 @@ refreshed 2026-07-01.
 | where production checkpoints/artifacts live | `PRODUCTION_ARTIFACTS.md` |
 | how tests/regression layers compose | `TESTING_METHODOLOGY.md` |
 | Labs firmware-prototype intake | `LABS_INTAKE.md` |
+| GoPro/Labs first-hour camera-role checklist | `GOPRO_LABS_FIRST_HOUR.md` |
 | Labs firmware contract, target bench, bundle, and CI plan | `LABS_FIRMWARE_API.md`, `LABS_TARGET_BENCH.md`, `LABS_ARTIFACT_BUNDLE.md`, `LABS_CI_PLAN.md` |
 | `.gvid` wire-contract conformance | `GVID_CONFORMANCE.md` |
 | Mission 1 evidence runbook | `LABS_MISSION1_RUNBOOK.md` |

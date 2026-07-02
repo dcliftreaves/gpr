@@ -48,6 +48,7 @@ ownership, and target CI.
 ## Reviewer Entry Points
 
 - Product/media overview: `../README.md`
+- First-hour GoPro/Labs camera-role checklist: `docs/GOPRO_LABS_FIRST_HOUR.md`
 - Release proof trail: `docs/RELEASE_READINESS.md`
 - Capture-to-review walkthrough: `docs/GETTING_STARTED.md`
 - Video status and target ladder: `docs/VIDEO_STATUS.md`
