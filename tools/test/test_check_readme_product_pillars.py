@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import tempfile
 from pathlib import Path
@@ -193,6 +194,23 @@ def main() -> int:
         failures = module.validate(readme, scorecard)
         if not failures or not any("95 runtime-safe" in failure for failure in failures):
             print(f"stale premium still-SR scoreboard count did not trigger expected failure: {failures}", file=sys.stderr)
+            return 1
+
+        manifest = tmp / "release_evidence_manifest.json"
+        manifest_data = json.loads((ROOT / "docs/release_evidence_manifest.json").read_text(encoding="utf-8"))
+        for pillar in manifest_data["product_pillars"]:
+            if pillar["id"] == "premium_still_sr":
+                pillar["readiness_percent"] = 61
+        manifest.write_text(json.dumps(manifest_data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        old_manifest = module.MANIFEST
+        try:
+            module.MANIFEST = manifest
+            scorecard.write_text((ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md").read_text(encoding="utf-8"), encoding="utf-8")
+            failures = module.validate(readme, scorecard)
+        finally:
+            module.MANIFEST = old_manifest
+        if not failures or not any("readiness drift" in failure and "premium_still_sr" in failure for failure in failures):
+            print(f"manifest/scorecard readiness drift did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 
     print("test_check_readme_product_pillars: PASS")

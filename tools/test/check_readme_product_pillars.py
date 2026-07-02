@@ -10,6 +10,7 @@ goals.
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import sys
 from pathlib import Path
@@ -20,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 README = ROOT / "README.md"
 SCORECARD = ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md"
 SCORECARD_BUILDER = ROOT / "tools/build_product_pillar_scorecard.py"
+MANIFEST = ROOT / "docs/release_evidence_manifest.json"
 
 MAX_README_LINES = 520
 
@@ -277,6 +279,27 @@ def expected_product_state_from_scorecard() -> tuple[int, dict[str, int], dict[s
     return overall, readme_by_label, svg_by_label
 
 
+def product_state_from_manifest() -> dict[str, dict[str, Any]]:
+    data = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    pillars = data.get("product_pillars")
+    if not isinstance(pillars, list):
+        raise ValueError("release evidence manifest missing product_pillars list")
+    result: dict[str, dict[str, Any]] = {}
+    for pillar in pillars:
+        if not isinstance(pillar, dict):
+            raise ValueError("release evidence manifest product_pillars entries must be objects")
+        pillar_id = str(pillar.get("id") or "")
+        if not pillar_id:
+            raise ValueError("release evidence manifest product_pillars entry missing id")
+        result[pillar_id] = {
+            "readiness_percent": int(pillar["readiness_percent"]),
+            "production_ready": bool(pillar["production_ready"]),
+            "release_label": str(pillar.get("release_label") or ""),
+            "status": str(pillar.get("status") or ""),
+        }
+    return result
+
+
 def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> list[str]:
     failures: list[str] = []
     if not readme_path.exists():
@@ -302,6 +325,46 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
     except Exception as exc:
         failures.append(f"could not build product scorecard for README percentage check: {exc}")
         expected_overall, expected_percentages, expected_svg_percentages = 0, {}, {}
+
+    try:
+        builder = load_scorecard_builder()
+        scorecard_data = builder.build_scorecard(builder.DEFAULT_EXTERNAL_ROOT)
+        manifest_pillars = product_state_from_manifest()
+        for pillar in scorecard_data.get("pillars", []):
+            if not isinstance(pillar, dict):
+                failures.append("product scorecard builder returned a non-object pillar")
+                continue
+            pillar_id = str(pillar.get("id") or "")
+            if pillar_id not in manifest_pillars:
+                failures.append(f"release evidence manifest missing product pillar {pillar_id!r}")
+                continue
+            manifest_pillar = manifest_pillars[pillar_id]
+            readiness = int(pillar.get("readiness_percent"))
+            manifest_readiness = int(manifest_pillar["readiness_percent"])
+            if readiness != manifest_readiness:
+                failures.append(
+                    f"pillar {pillar_id!r} readiness drift: scorecard {readiness}% "
+                    f"!= manifest {manifest_readiness}%"
+                )
+            production_ready = bool(pillar.get("production_ready"))
+            manifest_ready = bool(manifest_pillar["production_ready"])
+            if production_ready != manifest_ready:
+                failures.append(
+                    f"pillar {pillar_id!r} production_ready drift: scorecard "
+                    f"{production_ready} != manifest {manifest_ready}"
+                )
+        missing_from_scorecard = sorted(
+            set(manifest_pillars)
+            - {
+                str(pillar.get("id") or "")
+                for pillar in scorecard_data.get("pillars", [])
+                if isinstance(pillar, dict)
+            }
+        )
+        if missing_from_scorecard:
+            failures.append(f"product scorecard missing manifest pillars: {missing_from_scorecard}")
+    except Exception as exc:
+        failures.append(f"could not cross-check product scorecard against release manifest: {exc}")
 
     overall_token = f"Current four-pillar completion is **{expected_overall}%**"
     if expected_overall and overall_token not in readme:
