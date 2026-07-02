@@ -58,6 +58,7 @@ missing.
 
 | topic | document |
 |---|---|
+| Unambiguous 100% closure checklist | [`PRODUCTION_100_PERCENT_PLAN.md`](PRODUCTION_100_PERCENT_PLAN.md) |
 | Current percentages and long-form status | [`BIG_EFFORTS_STATUS.md`](BIG_EFFORTS_STATUS.md) |
 | Execution order and no-infinite-SR rule | [`HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](HIGH_LEVEL_GOAL_EXECUTION_PLAN.md) |
 | Locked paths versus open gates | [`PRODUCT_LOCK_LEDGER.md`](PRODUCT_LOCK_LEDGER.md) |

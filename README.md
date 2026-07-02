@@ -110,10 +110,10 @@ receipts that still fail the joint X2D/Z8 holdout gate.
 | question | source of truth |
 |---|---|
 | What is done, percent-wise, across the four pillars? | [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_ship_boundary_20260701/index.html` |
-| What exact evidence would make the active high-level goal complete? | [`docs/GOAL_CLOSURE_MATRIX.md`](docs/GOAL_CLOSURE_MATRIX.md) maps locked proof, open gates, next useful action, and non-claims. |
+| What exact evidence would make the active high-level goal complete? | [`docs/PRODUCTION_100_PERCENT_PLAN.md`](docs/PRODUCTION_100_PERCENT_PLAN.md) is the operational closure checklist; [`docs/GOAL_CLOSURE_MATRIX.md`](docs/GOAL_CLOSURE_MATRIX.md) maps locked proof, open gates, next useful action, and non-claims. |
 | Which outputs are locked, and what would count as a real regression? | [`docs/PRODUCT_LOCK_LEDGER.md`](docs/PRODUCT_LOCK_LEDGER.md) |
 | Where are worktrees, TMPDIR, dashboards, videos, checkpoints, and receipts? | [`docs/WORKSPACE_AND_ARTIFACT_MAP.md`](docs/WORKSPACE_AND_ARTIFACT_MAP.md), [`docs/PRODUCTION_ARTIFACTS.md`](docs/PRODUCTION_ARTIFACTS.md), and [`docs/release_evidence_manifest.json`](docs/release_evidence_manifest.json) |
-| What work remains before calling the whole suite production-ready? | [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md), [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md), [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md), and [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.json) |
+| What work remains before calling the whole suite production-ready? | [`docs/PRODUCTION_100_PERCENT_PLAN.md`](docs/PRODUCTION_100_PERCENT_PLAN.md), [`docs/BIG_EFFORTS_STATUS.md`](docs/BIG_EFFORTS_STATUS.md), [`docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md`](docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md), [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.md`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.md), and [`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json`](docs/PRODUCTION_CAPTURE_REQUIREMENTS.json) |
 | What proves the stills path? | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md), [`docs/CAPABILITIES.md`](docs/CAPABILITIES.md), [`docs/CAMERA_NOISE_CALIBRATION.md`](docs/CAMERA_NOISE_CALIBRATION.md), and [`docs/RAW_STILLS_NOISE_FIRST_HOUR.md`](docs/RAW_STILLS_NOISE_FIRST_HOUR.md) |
 | What proves the GoPro/Mission raw-video path? | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md), [`docs/GOPRO_MISSION1_QUICK_VALIDATION.md`](docs/GOPRO_MISSION1_QUICK_VALIDATION.md), [`docs/GOPRO_LABS_FIRST_HOUR.md`](docs/GOPRO_LABS_FIRST_HOUR.md), and [`docs/LABS_INTAKE.md`](docs/LABS_INTAKE.md) |
 | What proves or blocks premium still/SR? | [`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md), [`docs/PREMIUM_STILL_SR_FIRST_HOUR.md`](docs/PREMIUM_STILL_SR_FIRST_HOUR.md), and the 95-receipt scoreboard at `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/index.html` |
@@ -471,6 +471,7 @@ Full walkthrough: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
 |---|---|
 | [`docs/README.md`](docs/README.md) | Documentation index |
 | [`docs/RELEASE_READINESS.md`](docs/RELEASE_READINESS.md) | Production goal, current matrix, and release checks |
+| [`docs/PRODUCTION_100_PERCENT_PLAN.md`](docs/PRODUCTION_100_PERCENT_PLAN.md) | Unambiguous steps, evidence, commands, and stop conditions to reach 100% |
 | [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) | `.gvid` capture-to-ProRes walkthrough |
 | [`docs/SHIP_DECISION.md`](docs/SHIP_DECISION.md) | Current ship classes and quality-gate receipts |
 | [`docs/VIDEO_STATUS.md`](docs/VIDEO_STATUS.md) | Capture, PREVIEW, video, and review status |

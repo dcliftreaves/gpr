@@ -13,6 +13,7 @@ BIG_EFFORTS = ROOT / "docs/BIG_EFFORTS_STATUS.md"
 PLAN = ROOT / "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md"
 SHIP_DECISION = ROOT / "docs/SHIP_DECISION.md"
 GOAL_CLOSURE = ROOT / "docs/GOAL_CLOSURE_MATRIX.md"
+PRODUCTION_100 = ROOT / "docs/PRODUCTION_100_PERCENT_PLAN.md"
 
 
 DOC_TOKENS = {
@@ -20,6 +21,7 @@ DOC_TOKENS = {
         "Open Raw Video For Action Cameras",
         "8-bit JPEG size. 16-bit RAW quality.",
         "docs/GOAL_CLOSURE_MATRIX.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
         "The denominator is the shippable production suite",
         "**1. Best RAW stills**",
         "**2. GoPro RAW video MVP**",
@@ -94,6 +96,7 @@ DOC_TOKENS = {
     ),
     "docs/GOAL_CLOSURE_MATRIX.md": (
         "High-Level Goal Closure Matrix",
+        "PRODUCTION_100_PERCENT_PLAN.md",
         "Raw stills for 50 MP / 100 MP cameras",
         "GoPro RAW video MVP",
         "Premium still/SR",
@@ -106,6 +109,31 @@ DOC_TOKENS = {
         "PSF-conditioned models are optional replacement research",
         "Public docs are honest and useful",
         "Non-Claims",
+    ),
+    "docs/PRODUCTION_100_PERCENT_PLAN.md": (
+        "Production 100 Percent Plan",
+        "current 83 percent production-readiness estimate to 100 percent",
+        "Best RAW stills",
+        "GoPro RAW video MVP",
+        "Premium still/SR",
+        "RAW video reconstruction improvement",
+        "Execution Order",
+        "Premium still/SR promotion",
+        "Mission/iPhone camera-noise sidecars",
+        "Mission 1 camera-role raw-video closure",
+        "Locked raw-video reconstruction",
+        "Step 1: Premium Still/SR Promotion",
+        "runtime inputs include `candidate_raw` and `camera_metadata`",
+        "Runtime inputs exclude `REF`, `source_raw`, `source_rgb`, `source_hf`, JPEG/JPG targets, and gate metrics",
+        "Step 2: Mission/iPhone Camera-Noise Sidecars",
+        "unique provenance-ready raw hashes",
+        "Step 3: Mission 1 Camera-Role Raw Video MVP",
+        "120+ sustained frames",
+        "Storage medium names the actual camera SD/internal writer",
+        "Step 4: Protect Locked Raw-Video Reconstruction",
+        "Do not run another raw-video SR experiment as production work",
+        "Done Means",
+        "`docs/PRODUCTION_CAPTURE_REQUIREMENTS.json` has no open release-blocking",
     ),
 }
 
@@ -136,6 +164,8 @@ def path_for(label: str) -> Path:
         return SHIP_DECISION
     if label == "docs/GOAL_CLOSURE_MATRIX.md":
         return GOAL_CLOSURE
+    if label == "docs/PRODUCTION_100_PERCENT_PLAN.md":
+        return PRODUCTION_100
     raise KeyError(label)
 
 

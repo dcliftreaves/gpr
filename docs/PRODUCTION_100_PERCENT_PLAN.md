@@ -1,0 +1,205 @@
+# Production 100 Percent Plan
+
+Last refreshed: 2026-07-02
+
+This is the operational checklist for getting the four-pillar GPR goal from the
+current 83 percent production-readiness estimate to 100 percent. The rule is
+simple: a row is done only when its evidence exists, validates with the listed
+commands, and is linked from the product scorecard or release evidence manifest.
+
+## Current State
+
+| pillar | current | 100 percent requires |
+|---|---:|---|
+| Best RAW stills | 92% | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero camera-noise removal/addback is claimed. |
+| GoPro RAW video MVP | 80% | Real Mission 1 camera-role receipts from sensor/DMA or camera ring-buffer input, SD writer, rear display, valid `.gvid`, 120+ sustained frames, zero drops, timing, memory, and storage. |
+| Premium still/SR | 60% | A no-REF 50 MP / 100 MP candidate that beats the current still baseline and clears worst-row, editor-latitude, timing, memory, checkpoint, and exact-sidecar-only noise-policy gates. |
+| RAW video reconstruction improvement | 100% | Keep the approved 4K cleanup and 8K SR receipt set green; do not reopen it for PSF/blur research unless a replacement already beats the locked baseline with the same artifact surface. |
+
+## Execution Order
+
+| order | lane | owner | can move now? | completion evidence |
+|---:|---|---|---|---|
+| 1 | Premium still/SR promotion | CNN researcher | yes | `premium_still_sr_promotion_receipts` validates through the production submission checker, with no REF/source/JPEG image content at render time. |
+| 2 | Mission/iPhone camera-noise sidecars | sample curator | partly; capture/provenance may need new samples | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate with four same-camera/same-ISO no-scene-signal CFA frames and unique provenance-ready raw hashes. |
+| 3 | Mission 1 camera-role raw-video closure | GoPro firmware engineer | no, requires real Mission 1 camera-role access | `mission1_camera_role_receipts` validates with real camera source/storage/display receipts and 120+ sustained frames. |
+| 4 | Locked raw-video reconstruction | release owner | protect only | Existing 4K cleanup and 8K SR receipts, dashboards, ProRes media, editable raw outputs, hashes, registry, and CI remain valid. |
+
+## Step 1: Premium Still/SR Promotion
+
+Goal: make the slow, spend-compute-for-quality still path real, not just
+experimental.
+
+Required evidence:
+
+- Candidate runtime inputs include `candidate_raw` and `camera_metadata`.
+- Runtime inputs exclude `REF`, `source_raw`, `source_rgb`, `source_hf`, JPEG/JPG targets, and gate metrics.
+- Candidate is materially different from the failed scalar-loss, stored-HF,
+  same-color pair, simple capacity, frame-stat, and global-context probes.
+- Candidate uses a plausible restoration teacher or clean-source/CFA-aware
+  objective with camera conditioning and realistic RAW degradation.
+- 50 MP and 100 MP gates have positive median MAE/RMSE recovery.
+- Worst-row 50 MP and 100 MP recovery is nonnegative, with no severe tone or
+  texture failures.
+- Editor-latitude review opens and remains useful as editable raw.
+- Timing and memory receipts record seconds/frame and peak RSS.
+- Exact-sidecar-only noise policy passes; source residual noise is forbidden.
+
+Commands:
+
+```bash
+python3 tools/build_premium_still_sr_candidate_preflight_template.py \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json
+
+python3 tools/check_premium_still_sr_candidate_preflight.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json
+
+python3 tools/build_premium_still_sr_launch_packet.py \
+  --manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> \
+  --require-launchable
+
+python3 tools/build_premium_still_sr_gate_receipt.py \
+  --help
+
+python3 tools/check_production_capture_submission.py /path/to/submission.json \
+  --require-existing-files \
+  --path-root /path/to/submission_root
+```
+
+Stop condition:
+
+- Promote only if the production submission checker passes and the scorecard
+  can move `premium_still_sr` to 100 percent.
+- If it fails, stop only after the failure is assigned to data/teacher mismatch,
+  objective, crop/full-image context, camera conditioning, model capacity,
+  timing/memory infeasibility, or noise/degradation mismatch.
+
+## Step 2: Mission/iPhone Camera-Noise Sidecars
+
+Goal: make camera-noise-aware still compression/addback safe beyond the existing
+X2D/Z8 sidecars.
+
+Required evidence:
+
+- Four Mission 1 true darkframes under one camera/ISO/CFA/dimension key.
+- Four iPhone CFA true darkframes under one camera/ISO/CFA/dimension key.
+- Original source hashes, extracted Bayer hashes, extraction receipt hashes,
+  `no_scene_signal=true`, and capture proof for every frame.
+- `gpr.darkframe_source_provenance_audit.v1` passes with
+  `ready_frame_count>=4`, `production_ready=true`, and `linear_raw=false`.
+- `gpr.camera_noise_calibration.v1` sidecars pass with `production_ready=true`,
+  unique provenance-ready raw hashes, per-plane sigma, and
+  `separates_noise_from_signal=true`.
+
+Commands:
+
+```bash
+python3 tools/build_darkframe_candidate_audit.py \
+  --source-kind confirmed_darkframes \
+  --provenance-manifest <darkframe_source_provenance.json> \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/darkframe_candidate_audit_<camera>_<date> \
+  <darkframe roots>
+
+python3 tools/extract_raw_bayer_u16.py \
+  --input <darkframe.dng> \
+  --output <darkframe.raw> \
+  --write-receipt <extract_receipt.json>
+
+python3 tools/check_darkframe_source_provenance.py \
+  <darkframe_raw_source_provenance.json> \
+  --minimum-count 4 \
+  --require-existing-files \
+  --json-out <darkframe_source_provenance_audit.json>
+
+python3 tools/build_camera_noise_calibration.py \
+  --raw <darkframe0.raw> --raw <darkframe1.raw> --raw <darkframe2.raw> --raw <darkframe3.raw> \
+  --out <sidecar.json> \
+  --make <make> --model <model> --iso <iso> \
+  --width <w> --height <h> --bit-depth <bits> \
+  --black-level <black> --white-level <white> --cfa-phase <phase> \
+  --source-provenance-manifest <darkframe_raw_source_provenance.json> \
+  --require-source-provenance
+```
+
+Stop condition:
+
+- Promote nonzero Mission/iPhone noise removal/addback only after the production
+  submission checker accepts both sidecars.
+
+## Step 3: Mission 1 Camera-Role Raw Video MVP
+
+Goal: convert the Pi 5 stand-in proof into actual Mission 1 firmware evidence.
+
+Required evidence:
+
+- `target_preflight_receipt.json` with `target.role=camera`.
+- `labs_target_bench.json` from a real Mission 1 sensor/DMA or camera
+  ring-buffer source.
+- `camera_handoff_receipt.json` proving sensor/DMA handoff, storage handoff,
+  zero drops, valid `.gvid`, 4096 x 3072 source, and 120+ sustained frames.
+- `preview_decode_1024x768/receipt.json` proving decode from the same `.gvid`.
+- `preview_ui_receipt.json` proving full-frame rear-display preview at 1024 x
+  768, 20+ fps, and 120+ sustained frames.
+- `mission1_camera_closure_run.json` tying all camera-role receipts together.
+- Storage medium names the actual camera SD/internal writer, not Pi/SSD/tmpfs.
+
+Commands:
+
+```bash
+python3 tools/run_gopro_mission1_quick_validation.py \
+  --target-role camera \
+  --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_camera_validation_<date>
+
+python3 tools/check_mission1_camera_closure_run.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/mission1_camera_validation_<date>/mission1_camera_closure_run.json
+
+python3 tools/check_production_capture_submission.py /path/to/submission.json \
+  --require-existing-files \
+  --path-root /path/to/submission_root
+```
+
+Stop condition:
+
+- Mark raw-video MVP 100 percent only when real camera-role source, storage, and
+  display receipts validate. Pi stand-ins, wrapped `.GPR` payloads, JPEG-derived
+  media, and tiny smoke runs do not close this step.
+
+## Step 4: Protect Locked Raw-Video Reconstruction
+
+Goal: avoid wasting another day reopening approved video SR.
+
+Required evidence:
+
+- Current approved 4K cleanup and 8K SR dashboards remain linked.
+- `.gvid`, editable DNG/GPR, ProRes review outputs, objective visual review,
+  manual signoff, registry, release manifest, timing, memory, and hashes remain
+  valid.
+- PSF/blur work remains optional replacement research unless it already beats
+  the locked baseline with the same receipt surface.
+
+Commands:
+
+```bash
+python3 tools/test/check_product_lock_ledger.py
+python3 tools/test/check_readme_product_pillars.py
+python3 tools/test/check_release_evidence_manifest.py
+```
+
+Stop condition:
+
+- Do not run another raw-video SR experiment as production work unless a locked
+  raw-video reconstruction receipt fails or the replacement already clears the
+  same production gate.
+
+## Done Means
+
+The high-level goal is 100 percent only when:
+
+1. `docs/PRODUCTION_CAPTURE_REQUIREMENTS.json` has no open release-blocking
+   requirements.
+2. `docs/PRODUCT_PILLAR_SCORECARD.md`, the generated scorecard, README, lock
+   ledger, release evidence manifest, and this plan agree on all four pillars.
+3. `tools/test/check_product_burndown_contract.py`,
+   `tools/test/check_high_level_goal_contract.py`,
+   `tools/test/check_readme_product_pillars.py`, and CI pass on `master`.

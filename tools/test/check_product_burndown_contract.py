@@ -159,6 +159,22 @@ def validate_burndown(data: dict[str, Any]) -> list[str]:
             "burn-down must expose controlled_mission1_psf_pairs only as optional research, "
             f"got {data.get('optional_research_requirement_ids')!r}"
         )
+    queue = data.get("execution_queue")
+    if not isinstance(queue, dict):
+        failures.append("burn-down must expose an execution_queue")
+        queue = {}
+    local_titles = [str(row.get("title")) for row in queue.get("local_actions_now", []) if isinstance(row, dict)]
+    expected_local_titles = [
+        "Launch a preflighted premium still-SR restoration candidate",
+        "Add Mission 1 and iPhone darkframe sidecars",
+    ]
+    if local_titles != expected_local_titles:
+        failures.append(f"unexpected local execution queue: {local_titles!r}")
+    camera_titles = [str(row.get("title")) for row in queue.get("camera_blocked_actions", []) if isinstance(row, dict)]
+    if camera_titles != ["Replace Pi stand-in receipts with Mission 1 camera-role receipts"]:
+        failures.append(f"unexpected camera-blocked execution queue: {camera_titles!r}")
+    if queue.get("locked_release_pillars") != ["raw_video_reconstruction"]:
+        failures.append(f"unexpected locked release pillars: {queue.get('locked_release_pillars')!r}")
     if summary.get("optional_research_requirement_count") != 1:
         failures.append("burn-down must identify one optional research requirement outside release blockers")
     if summary.get("optional_research_action_count") != 2:

@@ -8,6 +8,7 @@ refreshed 2026-07-02.
 | if you want to know… | read |
 |---|---|
 | product overview, media, four product tracks, four-pillar product map, and quick start | `../README.md` |
+| unambiguous steps, evidence, commands, and stop conditions to reach 100% | `PRODUCTION_100_PERCENT_PLAN.md` |
 | shortest closure audit for the active high-level goal | `GOAL_CLOSURE_MATRIX.md` |
 | four big product efforts, current percentages, and what remains | `BIG_EFFORTS_STATUS.md` |
 | execution plan for the four big product efforts | `HIGH_LEVEL_GOAL_EXECUTION_PLAN.md` |

@@ -305,6 +305,27 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
     optional_research_actions = attach_requirements(optional_research_actions, requirement_map)
     actions.sort(key=lambda row: (row["priority"], row["pillar"], row["title"]))
     optional_research_actions.sort(key=lambda row: (row["priority"], row["pillar"], row["title"]))
+    local_actions_now = sorted(
+        [row for row in actions if row["can_do_without_camera"]],
+        key=lambda row: (
+            int(pillars[str(row["pillar"])]["readiness_percent"]),
+            int(row["priority"]),
+            str(row["title"]),
+        ),
+    )
+    camera_blocked_actions = sorted(
+        [row for row in actions if not row["can_do_without_camera"]],
+        key=lambda row: (
+            int(pillars[str(row["pillar"])]["readiness_percent"]),
+            int(row["priority"]),
+            str(row["title"]),
+        ),
+    )
+    locked_release_pillars = [
+        str(row["id"])
+        for row in scorecard["pillars"]
+        if str(row["id"]) in RELEASE_PILLAR_IDS and row.get("production_ready") is True
+    ]
     by_pillar: dict[str, list[dict[str, Any]]] = {}
     for row in actions:
         by_pillar.setdefault(str(row["pillar"]), []).append(row)
@@ -326,6 +347,29 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
         ],
         "optional_research_requirement_ids": optional_research_requirement_ids(requirements),
         "optional_research_actions": optional_research_actions,
+        "execution_queue": {
+            "local_actions_now": [
+                {
+                    "pillar": row["pillar"],
+                    "title": row["title"],
+                    "blocker_type": row["blocker_type"],
+                    "next_command": row["next_command"],
+                    "completion_gate": row["completion_gate"],
+                }
+                for row in local_actions_now
+            ],
+            "camera_blocked_actions": [
+                {
+                    "pillar": row["pillar"],
+                    "title": row["title"],
+                    "blocker_type": row["blocker_type"],
+                    "next_command": row["next_command"],
+                    "completion_gate": row["completion_gate"],
+                }
+                for row in camera_blocked_actions
+            ],
+            "locked_release_pillars": locked_release_pillars,
+        },
         "four_pillar_completion_percent": scorecard["four_pillar_completion_percent"],
         "production_ready": scorecard["production_ready"],
         "summary": {
@@ -433,6 +477,24 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
     )
     open_ids = ", ".join(f"`{item}`" for item in data["open_requirement_ids"])
     research_ids = ", ".join(f"`{item}`" for item in data["optional_research_requirement_ids"])
+    queue = data.get("execution_queue", {})
+    local_queue = queue.get("local_actions_now") or []
+    camera_queue = queue.get("camera_blocked_actions") or []
+    locked_queue = queue.get("locked_release_pillars") or []
+    local_html = "".join(
+        f"<li><strong>{html.escape(str(row['title']))}</strong> "
+        f"<span>{html.escape(str(row['pillar']).replace('_', ' '))}; "
+        f"{html.escape(str(row['blocker_type']).replace('_', ' '))}</span></li>"
+        for row in local_queue
+    ) or "<li>No local production actions are currently open.</li>"
+    camera_html = "".join(
+        f"<li><strong>{html.escape(str(row['title']))}</strong> "
+        f"<span>{html.escape(str(row['pillar']).replace('_', ' '))}; needs camera-role evidence</span></li>"
+        for row in camera_queue
+    ) or "<li>No camera-blocked production actions are currently open.</li>"
+    locked_html = "".join(
+        f"<li>{html.escape(str(item).replace('_', ' '))}</li>" for item in locked_queue
+    ) or "<li>No release pillar is fully locked yet.</li>"
     research_rows = []
     for row in data.get("optional_research_actions", []):
         evidence = "<br>".join(html.escape(str(item)) for item in row["evidence_required"])
@@ -497,6 +559,11 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
     .pct {{ font-size: 36px; font-weight: 760; margin-top: 6px; }}
     .detail {{ margin-top: 18px; background: white; border: 1px solid #dce2e7; border-radius: 8px; padding: 18px; }}
     .research {{ border-top: 5px solid #7a8591; }}
+    .queue {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 18px 0; }}
+    .queue > div {{ background: white; border: 1px solid #dce2e7; border-radius: 8px; padding: 16px; }}
+    .queue ol {{ margin: 0; padding-left: 20px; }}
+    .queue li {{ margin: 8px 0; }}
+    .queue span {{ display: block; color: #66727e; font-size: 13px; }}
     .meta {{ color: #66727e; font-size: 13px; margin-top: 20px; }}
   </style>
 </head>
@@ -510,6 +577,11 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
   </div>
   <p class="meta">Open production requirement IDs from {html.escape(data["source_requirements_path"])}: {html.escape(open_ids)}</p>
   <p class="meta">Optional research requirement IDs, excluded from release blocker counts: {html.escape(research_ids or 'none')}</p>
+  <section class="queue">
+    <div><h2>Local Next</h2><ol>{local_html}</ol></div>
+    <div><h2>Camera-Blocked</h2><ol>{camera_html}</ol></div>
+    <div><h2>Do Not Reopen</h2><ol>{locked_html}</ol></div>
+  </section>
   <div class="grid">{''.join(cards)}</div>
   {''.join(sections)}
   {research_section}
