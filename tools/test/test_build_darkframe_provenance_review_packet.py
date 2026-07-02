@@ -78,6 +78,19 @@ def main() -> int:
         written = json.loads(json_path.read_text(encoding="utf-8"))
         assert written["summary"]["provenance_manifest_template_file_count"] == 1
         template_rel = written["groups"][0]["provenance_manifest_template_file"]
+        commands = written["groups"][0]["promotion_commands"]
+        assert commands[0]["step"] == "extract_u16_bayer"
+        assert "tools/extract_raw_bayer_u16.py" in commands[0]["command"]
+        assert cand0.as_posix() in commands[0]["command"]
+        assert commands[-2]["step"] == "validate_source_provenance"
+        assert "tools/check_darkframe_source_provenance.py" in commands[-2]["command"]
+        assert "--require-existing-files" in commands[-2]["command"]
+        assert commands[-1]["step"] == "build_noise_sidecar_after_provenance_passes"
+        assert "tools/build_camera_noise_calibration.py" in commands[-1]["command"]
+        assert "--require-source-provenance" in commands[-1]["command"]
+        assert "GoPro" in commands[-1]["command"]
+        assert "232" in commands[-1]["command"]
+        assert "RGGB" in commands[-1]["command"]
         template_path = out / template_rel
         assert template_path.is_file()
         template = json.loads(template_path.read_text(encoding="utf-8"))
@@ -86,7 +99,10 @@ def main() -> int:
         assert template["camera"]["width"] == "<raw_bayer_width>"
         assert template["frames"][0]["original_sha256"] == module.sha256_file(cand0)
         assert template["frames"][0]["extract_receipt_sha256"] == "<64_hex_extract_receipt_sha256>"
-        assert template_rel in html_path.read_text(encoding="utf-8")
+        html_text = html_path.read_text(encoding="utf-8")
+        assert template_rel in html_text
+        assert "Promotion command path" in html_text
+        assert "tools/check_darkframe_source_provenance.py" in html_text
     print("test_build_darkframe_provenance_review_packet: PASS")
     return 0
 

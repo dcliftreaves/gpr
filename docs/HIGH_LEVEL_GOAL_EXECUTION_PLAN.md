@@ -256,7 +256,7 @@ Replacement evidence required:
    the handoff-ready raw-stills capture request is
    `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html`.
    The current darkframe provenance review packet is
-   `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_20260701/index.html`;
+   `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_commands_20260702/index.html`;
    it hashes the Mission/iPhone candidates, writes fill-in
    `source_provenance_manifest_templates`, and keeps
    `production_sidecar_ready=false` until Mission 1 has two additional matching

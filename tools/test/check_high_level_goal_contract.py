@@ -72,7 +72,7 @@ DOC_TOKENS = {
         "no-REF 50 MP / 100 MP promotion preflight",
         "same `.gvid`, editable raw",
         "ProRes, dashboard, timing, memory, and hash receipt surface",
-        "darkframe_provenance_review_packet_20260701",
+        "darkframe_provenance_review_packet_commands_20260702",
         "source_provenance_manifest_templates",
         "production_sidecar_ready=false",
         "camera access",

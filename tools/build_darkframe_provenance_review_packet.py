@@ -116,6 +116,125 @@ def slug(value: Any) -> str:
     return text or "darkframe_stack"
 
 
+def command_join(parts: list[str]) -> str:
+    return " ".join(str(part) for part in parts if str(part).strip())
+
+
+def command_group_slug(group: dict[str, Any]) -> str:
+    return f"{slug(group.get('requirement_id'))}__{slug(group.get('existing_group'))}"
+
+
+def promotion_commands(group: dict[str, Any], output_dir: Path) -> list[dict[str, Any]]:
+    """Build concrete handoff commands for a reviewed darkframe candidate group."""
+    base = output_dir.as_posix()
+    group_slug = command_group_slug(group)
+    template_rel = str(group.get("provenance_manifest_template_file") or "")
+    template_path = (
+        f"{base}/{template_rel}"
+        if template_rel
+        else f"{base}/source_provenance_manifest_templates/{group_slug}.template.json"
+    )
+    filled_manifest = f"{base}/filled_source_provenance/{group_slug}.json"
+    audit_path = f"{base}/source_provenance_audits/{group_slug}.audit.json"
+    sidecar_path = f"{base}/noise_sidecars/{group_slug}.noise_sidecar.json"
+    metadata = group.get("provenance_manifest_template", {}).get("camera", {})
+    raw_paths: list[str] = []
+    commands: list[dict[str, Any]] = []
+    for idx, row in enumerate(group.get("candidates") or []):
+        stem = slug(Path(str(row.get("original_path") or f"candidate_{idx}")).stem)
+        raw_path = f"{base}/extracted_bayer/{group_slug}_{idx}_{stem}.raw"
+        receipt_path = f"{base}/extract_receipts/{group_slug}_{idx}_{stem}.json"
+        raw_paths.append(raw_path)
+        commands.append(
+            {
+                "step": "extract_u16_bayer",
+                "source": row.get("original_path"),
+                "output_raw": raw_path,
+                "extract_receipt": receipt_path,
+                "command": command_join(
+                    [
+                        "python3 tools/extract_raw_bayer_u16.py",
+                        "--input",
+                        str(row.get("original_path")),
+                        "--output",
+                        raw_path,
+                        "--write-receipt",
+                        receipt_path,
+                    ]
+                ),
+            }
+        )
+    commands.append(
+        {
+            "step": "fill_source_provenance_manifest",
+            "template": template_path,
+            "output_manifest": filled_manifest,
+            "required_edits": [
+                "replace extracted raw paths and hashes from the extraction receipts",
+                "replace extraction receipt hashes",
+                "set no_scene_signal=true only after real no-light provenance is confirmed",
+                "replace capture_setup/proof with the lens-cap, body-cap, dark-bag, or recapture proof",
+                "replace any camera metadata placeholders before validation",
+            ],
+        }
+    )
+    commands.append(
+        {
+            "step": "validate_source_provenance",
+            "audit": audit_path,
+            "command": command_join(
+                [
+                    "python3 tools/check_darkframe_source_provenance.py",
+                    filled_manifest,
+                    "--minimum-count",
+                    "4",
+                    "--require-existing-files",
+                    "--json-out",
+                    audit_path,
+                ]
+            ),
+        }
+    )
+    raw_args = [part for raw_path in raw_paths[:4] for part in ("--raw", raw_path)]
+    commands.append(
+        {
+            "step": "build_noise_sidecar_after_provenance_passes",
+            "output_sidecar": sidecar_path,
+            "command": command_join(
+                [
+                    "python3 tools/build_camera_noise_calibration.py",
+                    *raw_args,
+                    "--out",
+                    sidecar_path,
+                    "--make",
+                    str(metadata.get("make") or "<camera_make>"),
+                    "--model",
+                    str(metadata.get("model") or "<camera_model>"),
+                    "--iso",
+                    str(metadata.get("iso") or "<integer_iso>"),
+                    "--width",
+                    str(metadata.get("width") or "<raw_bayer_width>"),
+                    "--height",
+                    str(metadata.get("height") or "<raw_bayer_height>"),
+                    "--bit-depth",
+                    str(metadata.get("bit_depth") or "<source_bit_depth>"),
+                    "--black-level",
+                    str(metadata.get("black_level") or "<raw_black_level>"),
+                    "--white-level",
+                    str(metadata.get("white_level") or "<raw_white_level>"),
+                    "--cfa-phase",
+                    str(metadata.get("cfa_phase") or "<RGGB_GRBG_GBRG_or_BGGR>"),
+                    "--source-provenance-manifest",
+                    filled_manifest,
+                    "--require-source-provenance",
+                ]
+            ),
+            "blocked_until": "validate_source_provenance exits OK and at least four extracted Bayer frames are listed in the filled manifest",
+        }
+    )
+    return commands
+
+
 def review_group(row: dict[str, Any]) -> dict[str, Any]:
     paths = [str(path) for path in row.get("candidate_paths") or []]
     candidates = candidate_rows(paths)
@@ -222,6 +341,22 @@ def render_html(data: dict[str, Any]) -> str:
             "</tr>"
             for row in group["candidates"]
         )
+        command_rows = "\n".join(
+            "<tr>"
+            f"<td>{html.escape(str(command.get('step')))}</td>"
+            "<td><code>"
+            f"{html.escape(str(command.get('command') or command.get('required_edits') or 'manual fill'))}"
+            "</code></td>"
+            "</tr>"
+            for command in group.get("promotion_commands", [])
+        )
+        commands_table = (
+            "<h3>Promotion command path</h3>"
+            "<table><thead><tr><th>Step</th><th>Command or required edit</th></tr></thead>"
+            f"<tbody>{command_rows}</tbody></table>"
+            if command_rows
+            else ""
+        )
         sections.append(
             f"""<section class="panel">
 <h2>{html.escape(str(group['camera']))}: {html.escape(str(group['existing_group']))}</h2>
@@ -229,6 +364,7 @@ def render_html(data: dict[str, Any]) -> str:
 <p><strong>Next action:</strong> {html.escape(str(group['next_action']))}</p>
 {template_note}
 <table><thead><tr><th>Original source</th><th>Exists</th><th>Bytes</th><th>SHA-256</th></tr></thead><tbody>{rows}</tbody></table>
+{commands_table}
 </section>"""
         )
     return f"""<!doctype html>
@@ -275,6 +411,9 @@ def attach_template_files(data: dict[str, Any], output_dir: Path) -> None:
     summary["provenance_manifest_templates_dir"] = (
         template_dir.relative_to(output_dir).as_posix() if count else ""
     )
+    for group in data.get("groups") or []:
+        if isinstance(group, dict):
+            group["promotion_commands"] = promotion_commands(group, output_dir)
 
 
 def write_outputs(data: dict[str, Any], output_dir: Path) -> tuple[Path, Path]:

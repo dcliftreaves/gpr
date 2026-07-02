@@ -154,10 +154,11 @@ into an auditable pass/fail package.
   This is the shortest human runbook for producing a promotable Mission 1 or
   iPhone darkframe sidecar package.
 - Darkframe provenance review packet:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_20260701/index.html`
+  `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_commands_20260702/index.html`
   This packet hashes the current lowest-lift Mission 1 and iPhone CFA
   candidates, writes fill-in templates under
-  `source_provenance_manifest_templates`, and reports
+  `source_provenance_manifest_templates`, emits the exact extraction,
+  source-provenance-audit, and noise-sidecar promotion command path, and reports
   `production_sidecar_ready=false`. `mission1_darkframe_stack` still needs 2
   additional matching true darkframes. `iphone_cfa_darkframe_stack` has 27
   candidate ISO1250 RGGB files but still needs confirmed no-scene source
