@@ -53,12 +53,21 @@ def rel(path: Path) -> str:
     return path.as_posix()
 
 
+def as_strings(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item) for item in value if item not in (None, "")]
+    if isinstance(value, str) and value:
+        return [value]
+    return []
+
+
 def command_sequence(
     output_dir: Path,
     external_root: Path,
     template: str,
     candidate_id: str | None,
     manifest_path: Path | None = None,
+    manifest: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     pair_dir = external_root / "artifacts/premium_still_sr_clean_source_pairs_<date>"
     model_dir = external_root / "artifacts/premium_still_sr_clean_source_teacher_smoke_<date>"
@@ -67,6 +76,7 @@ def command_sequence(
     work_dir = external_root / "tmp/premium_still_sr_pairs_<date>"
     fixture_manifest = external_root / "artifacts/premium_still_sr_fixture_manifest_<date>/fixture_manifest.json"
     pairs = pair_dir / "premium_still_sr_clean_source_pairs.npz"
+    smoke_commands = as_strings(manifest.get("smoke_gate_commands")) if manifest is not None else []
 
     template_args = ""
     if template != "clean_source_restormer_teacher":
@@ -97,7 +107,7 @@ def command_sequence(
             "receipt": rel(output_dir / "candidate_preflight.json"),
         })
 
-    return [
+    command_items = [
         *first_steps,
         {
             "step": "check_candidate_preflight",
@@ -132,50 +142,29 @@ def command_sequence(
             ),
             "receipt": rel(pair_dir / "audit/index.html"),
         },
-        {
-            "step": "train_teacher_x2d_holdout_smoke",
-            "command": (
-                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
-                f"--pairs {rel(pairs)} "
-                f"--output-dir {rel(model_dir / 'x2d_holdout')} "
-                "--holdout-image x2d "
-                "--steps 100 "
-                "--batch 4 "
-                "--low-crop 48 "
-                "--model-arch restormer_pixelshuffle "
-                "--width 32 "
-                "--depth 4 "
-                "--gradient-loss-weight 0.05 "
-                "--laplacian-loss-weight 0.03 "
-                "--loss-mode charbonnier "
-                "--train-input-noise-std-counts 2.0 "
-                "--train-input-gain-jitter-pct 0.5 "
-                "--train-input-blur-weight 0.10"
-            ),
-            "receipt": rel(model_dir / "x2d_holdout/train_receipt.json"),
-        },
-        {
-            "step": "train_teacher_z8_holdout_smoke",
-            "command": (
-                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
-                f"--pairs {rel(pairs)} "
-                f"--output-dir {rel(model_dir / 'z8_holdout')} "
-                "--holdout-image z8 "
-                "--steps 100 "
-                "--batch 4 "
-                "--low-crop 48 "
-                "--model-arch restormer_pixelshuffle "
-                "--width 32 "
-                "--depth 4 "
-                "--gradient-loss-weight 0.05 "
-                "--laplacian-loss-weight 0.03 "
-                "--loss-mode charbonnier "
-                "--train-input-noise-std-counts 2.0 "
-                "--train-input-gain-jitter-pct 0.5 "
-                "--train-input-blur-weight 0.10"
-            ),
-            "receipt": rel(model_dir / "z8_holdout/train_receipt.json"),
-        },
+    ]
+    if smoke_commands:
+        for idx, command in enumerate(smoke_commands, start=1):
+            command_items.append(
+                {
+                    "step": f"candidate_smoke_gate_{idx}",
+                    "command": command,
+                    "receipt": "defined by explicit candidate_preflight.json smoke_gate_commands",
+                }
+            )
+    else:
+        command_items.append(
+            {
+                "step": "candidate_smoke_gates_required",
+                "command": (
+                    "Edit candidate_preflight.json and add smoke_gate_commands for "
+                    "held-out X2D and Z8 before running a launchable packet."
+                ),
+                "receipt": rel(model_dir / "<candidate_smoke>/train_receipt.json"),
+            }
+        )
+    command_items.extend(
+        [
         {
             "step": "build_scoreboard",
             "command": (
@@ -194,7 +183,9 @@ def command_sequence(
             ),
             "receipt": rel(promotion_dir / "promotion_gate.json"),
         },
-    ]
+        ]
+    )
+    return command_items
 
 
 def build_packet(
@@ -226,7 +217,7 @@ def build_packet(
             "failures": failures,
             "verdict": "blocked_before_long_run",
         }
-    commands = command_sequence(output_dir, external_root, template, candidate_id, manifest_path)
+    commands = command_sequence(output_dir, external_root, template, candidate_id, manifest_path, manifest)
     packet = {
         "schema": SCHEMA,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

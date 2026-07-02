@@ -51,6 +51,9 @@ def main() -> int:
         assert "Restormer" in data["model_arch"]
         assert any("clean-source RAW SR" in item for item in data["architecture_deltas"])
         assert any("PSF" in item for item in data["degradation_deltas"])
+        assert len(data["smoke_gate_commands"]) == 2
+        assert any("x2d" in item.lower() for item in data["smoke_gate_commands"])
+        assert any("z8" in item.lower() for item in data["smoke_gate_commands"])
         assert data["noise_policy"]["exact_sidecars_only"] is True
 
         audit_json = base / "audit.json"

@@ -260,6 +260,14 @@ self-supervised clean-source RAW SR:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/premium_still_sr_next_experiment_contract.json
 ```
 
+Launch packets are now candidate-command driven. A production-attempt preflight
+must include explicit X2D and Z8 `smoke_gate_commands`; the packet records
+those exact commands instead of substituting a built-in Restormer smoke run.
+This prevents a manifest with new-source/PSF/burst wording from accidentally
+burning time on the rejected 20260702 Restormer/NAF/U-Net command family. The
+commands still have to remain short smoke gates until both holdouts beat
+same-color interpolation.
+
 That contract keeps the residual and clean-signal targets as rejection evidence
 and actual-still review inputs, but it does not use them as the next primary
 teacher objective. The next primary run should build low/high same-color Bayer
@@ -316,10 +324,11 @@ python3 tools/check_premium_still_sr_candidate_preflight.py \
 The launch packet and preflight are not promotion gates. They block obvious
 repeats of rejected primary paths and require the proposed run to name a
 material architecture delta, realistic RAW degradation beyond same-color box
-downsample, X2D and Z8 full-image or overlapped-tile validation, same-color
-interpolation/current baseline comparisons, candidate-only runtime inputs,
-exact-sidecar-only noise policy, and planned
-checkpoint/config/dashboard/timing/memory/editor/editable raw/noise receipts.
+downsample, concrete X2D and Z8 smoke-gate commands, X2D and Z8 full-image or
+overlapped-tile validation, same-color interpolation/current baseline
+comparisons, candidate-only runtime inputs, exact-sidecar-only noise policy,
+and planned checkpoint/config/dashboard/timing/memory/editor/editable raw/noise
+receipts.
 They also require a material source/evidence escape hatch for Restormer-style,
 NAF/detail, U-Net, or local residual families; otherwise the packet remains
 blocked before a long run.

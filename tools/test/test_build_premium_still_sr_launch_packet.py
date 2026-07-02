@@ -87,6 +87,18 @@ def main() -> int:
                         "editable DNG/GPR raw receipt",
                         "noise policy receipt",
                     ],
+                    "smoke_gate_commands": [
+                        (
+                            "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                            "--pairs /tmp/pairs.npz --output-dir /tmp/x2d_rowpsf_smoke "
+                            "--holdout-image x2d --model-arch row_psf_teacher"
+                        ),
+                        (
+                            "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                            "--pairs /tmp/pairs.npz --output-dir /tmp/z8_rowpsf_smoke "
+                            "--holdout-image z8 --model-arch row_psf_teacher"
+                        ),
+                    ],
                     "noise_policy": {
                         "exact_sidecars_only": True,
                         "forbids_source_residual_noise": True,
@@ -132,15 +144,14 @@ def main() -> int:
             "build_premium_still_sr_pairs.py",
             "audit_premium_still_sr_pairs.py",
             "train_premium_still_sr_clean_source_pairs.py",
-            "restormer_pixelshuffle",
-            "charbonnier",
-            "train-input-noise-std-counts",
-            "train-input-gain-jitter-pct",
-            "train-input-blur-weight",
+            "row_psf_teacher",
+            "/tmp/x2d_rowpsf_smoke",
+            "/tmp/z8_rowpsf_smoke",
             "build_premium_still_sr_experiment_scoreboard.py",
             "check_premium_still_sr_promotion_gate.py",
         ):
             assert token in commands, token
+        assert "restormer_pixelshuffle" not in commands
         repeats = " ".join(packet["blocked_repeats"])
         assert "residual_pixelshuffle" in repeats
         assert "local-CNN" in repeats

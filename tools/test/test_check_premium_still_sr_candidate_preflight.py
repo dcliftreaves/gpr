@@ -84,6 +84,18 @@ def main() -> int:
                     "editable DNG/GPR raw receipt",
                     "noise policy receipt",
                 ],
+                "smoke_gate_commands": [
+                    (
+                        "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                        "--pairs /tmp/pairs.npz --output-dir /tmp/x2d_rowpsf_smoke "
+                        "--holdout-image x2d --model-arch row_psf_teacher"
+                    ),
+                    (
+                        "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                        "--pairs /tmp/pairs.npz --output-dir /tmp/z8_rowpsf_smoke "
+                        "--holdout-image z8 --model-arch row_psf_teacher"
+                    ),
+                ],
                 "noise_policy": {
                     "exact_sidecars_only": True,
                     "forbids_source_residual_noise": True,
@@ -110,6 +122,7 @@ def main() -> int:
         assert "row-level psf" in audit["material_source_matches"]
         assert "restormer" in audit["architecture_delta_matches"]
         assert "psf" in audit["degradation_delta_matches"]
+        assert audit["smoke_gate_command_count"] == 2
         assert passing_html.exists()
 
         failing = base / "failing.json"

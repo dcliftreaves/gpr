@@ -94,6 +94,10 @@ REQUIRED_RECEIPT_TOKENS = {
     "editable",
     "noise",
 }
+REQUIRED_SMOKE_COMMAND_TOKENS = {
+    "python",
+    "--output-dir",
+}
 REQUIRED_MATERIAL_SOURCE_TOKENS = {
     "burst",
     "multi-frame",
@@ -268,6 +272,32 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
     if not contains_any(validation_text, {"full-image", "full image", "full-frame", "full frame", "overlapped-tile", "overlapped tile"}):
         add_failure(failures, "validation_plan must include full-image or overlapped-tile evaluation")
 
+    smoke_commands = as_strings(manifest.get("smoke_gate_commands"))
+    smoke_text = text_blob(smoke_commands)
+    if not smoke_commands:
+        add_failure(
+            failures,
+            "smoke_gate_commands must provide concrete X2D and Z8 smoke commands before launch",
+        )
+    else:
+        if not all(token in smoke_text for token in REQUIRED_SMOKE_COMMAND_TOKENS):
+            add_failure(
+                failures,
+                "smoke_gate_commands must include executable python commands with --output-dir receipts",
+            )
+        if "x2d" not in smoke_text:
+            add_failure(failures, "smoke_gate_commands must include an X2D smoke holdout")
+        if "z8" not in smoke_text:
+            add_failure(failures, "smoke_gate_commands must include a Z8 smoke holdout")
+        if contains_any(smoke_text, FORBIDDEN_RUNTIME_INPUTS):
+            add_failure(failures, "smoke_gate_commands include forbidden runtime/source content tokens")
+        rejected_command_tokens = matching_tokens(smoke_text, REJECTED_REPEAT_TOKENS)
+        if rejected_command_tokens:
+            add_failure(
+                failures,
+                f"smoke_gate_commands match rejected command tokens: {', '.join(rejected_command_tokens)}",
+            )
+
     baseline_text = text_blob(manifest.get("baseline_comparisons"))
     if "same-color" not in baseline_text or "interpolation" not in baseline_text:
         add_failure(failures, "baseline_comparisons must include same-color Bayer interpolation")
@@ -310,6 +340,7 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
         "architecture_delta_matches": architecture_matches,
         "degradation_delta_matches": degradation_matches,
         "material_source_matches": material_source_matches,
+        "smoke_gate_command_count": len(smoke_commands),
         "failures": failures,
         "warnings": warnings,
         "verdict": (
@@ -349,6 +380,7 @@ code {{ background: #f4f6f7; padding: 2px 4px; border-radius: 3px; }}
 <p><b>Material source/evidence:</b> {html.escape(', '.join(audit.get('material_source_matches') or []))}</p>
 <p><b>Architecture:</b> {html.escape(', '.join(audit.get('architecture_delta_matches') or []))}</p>
 <p><b>Degradation:</b> {html.escape(', '.join(audit.get('degradation_delta_matches') or []))}</p>
+<p><b>Smoke gate commands:</b> {int(audit.get('smoke_gate_command_count') or 0)}</p>
 """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(body, encoding="utf-8")

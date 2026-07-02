@@ -98,6 +98,18 @@ def clean_source_restormer_teacher(candidate_id: str) -> dict[str, Any]:
             "worst-row visual review",
             "seconds per frame and peak RSS",
         ],
+        "smoke_gate_commands": [
+            (
+                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                "--pairs <pairs.npz> --output-dir <x2d_smoke_out> "
+                "--holdout-image x2d <candidate-specific-args>"
+            ),
+            (
+                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                "--pairs <pairs.npz> --output-dir <z8_smoke_out> "
+                "--holdout-image z8 <candidate-specific-args>"
+            ),
+        ],
         "noise_policy": {
             "exact_sidecars_only": True,
             "forbids_source_residual_noise": True,

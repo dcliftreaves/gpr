@@ -116,7 +116,8 @@ file/hash mismatches. The production submission must include that audit as
 `source_provenance_audit_production_ready=true`. A premium still-SR submission
 must first build a candidate preflight scaffold, edit it with a non-placeholder
 `material_change_summary`, set `launchable_for_production_attempt=true` and
-`requires_material_edits_before_launch=false`, then emit
+`requires_material_edits_before_launch=false`, replace `smoke_gate_commands`
+with concrete X2D and Z8 smoke-gate commands for that candidate, then emit
 `tools/build_premium_still_sr_launch_packet.py --manifest <candidate_preflight.json> --require-launchable`
 and pass `tools/check_premium_still_sr_candidate_preflight.py --require-launchable`
 for a materially new restoration-teacher, non-local/full-image, burst, or

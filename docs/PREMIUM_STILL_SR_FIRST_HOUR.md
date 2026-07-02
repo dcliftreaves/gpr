@@ -91,7 +91,10 @@ production-promoted.
    `launchable_for_production_attempt=true`,
    `requires_material_edits_before_launch=false`, and replace
    `material_change_summary` only after the proposal names a real new
-   architecture/degradation/validation change. Then build the launch packet from
+   architecture/degradation/validation change. Also replace the placeholder
+   `smoke_gate_commands` with the exact X2D and Z8 smoke commands for that
+   candidate; launch packets now use those manifest commands directly rather
+   than a built-in Restormer command shape. Then build the launch packet from
    that explicit manifest:
 
    ```sh
@@ -103,9 +106,9 @@ production-promoted.
 
    The packet writes the candidate manifest, runs the launch preflight, records
    the exact next command sequence, and lists rejected repeat paths that should
-   not burn another long run. Its train commands are deliberately short smoke
-   gates; a longer run is allowed only after both X2D and Z8 smoke holdouts beat
-   same-color interpolation:
+   not burn another long run. Its train commands must come from the explicit
+   manifest and are deliberately short smoke gates; a longer run is allowed
+   only after both X2D and Z8 smoke holdouts beat same-color interpolation:
 
    ```sh
    python3 tools/check_premium_still_sr_candidate_preflight.py \
@@ -126,7 +129,9 @@ production-promoted.
    evidence, materially different target/source evidence, or an explicit rule
    that both X2D and Z8 smoke holdouts must beat same-color interpolation before
    any long run. Restormer plus blur/noise/decode wording alone is already
-   covered by rejected 20260702 receipts.
+   covered by rejected 20260702 receipts. A manifest without concrete X2D and
+   Z8 `smoke_gate_commands` is blocked before launch, even if the prose looks
+   material.
 
 5. Rebuild the scoreboard and reject the candidate if it cannot beat the
    promotion floor:
