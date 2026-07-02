@@ -78,6 +78,17 @@ def main() -> int:
                 row["pillar"] = "raw_stills"
         expect_failure(module, req_path, bad_pillar, "premium_still_sr")
 
+        bad_still_sr_smoke_gates = copy.deepcopy(source)
+        for row in bad_still_sr_smoke_gates["requirements"]:
+            if row["id"] == "premium_still_sr_promotion_receipts":
+                row["required_evidence"] = [
+                    item for item in row["required_evidence"] if "smoke_gate_commands" not in item
+                ]
+                row["acceptance"] = [
+                    item for item in row["acceptance"] if "smoke_gate_commands" not in item
+                ]
+        expect_failure(module, req_path, bad_still_sr_smoke_gates, "X2D and Z8 smoke_gate_commands")
+
         req_path.write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
         doc_path.write_text(source_doc.replace("mission1_camera_role_receipts", "camera_receipts"), encoding="utf-8")
         failures = module.validate()

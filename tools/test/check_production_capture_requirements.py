@@ -158,6 +158,7 @@ def validate() -> list[str]:
             required_evidence = " ".join(str(item) for item in as_list(row.get("required_evidence")))
             acceptance = " ".join(str(item) for item in as_list(row.get("acceptance")))
             for token in (
+                "X2D and Z8 smoke_gate_commands",
                 "candidate raw",
                 "camera metadata",
                 "50 MP and 100 MP",
@@ -176,6 +177,8 @@ def validate() -> list[str]:
                 failures.append(f"{rid}: validation must include build_premium_still_sr_candidate_preflight_template.py")
             if "build_premium_still_sr_launch_packet.py" not in commands:
                 failures.append(f"{rid}: validation must include build_premium_still_sr_launch_packet.py")
+            if "X2D and Z8 smoke_gate_commands" not in required_evidence + " " + acceptance:
+                failures.append(f"{rid}: model promotion requirement must require concrete X2D and Z8 smoke_gate_commands")
             if "--manifest" not in commands:
                 failures.append(f"{rid}: launch packet validation must require an explicit --manifest")
             if "--require-launchable" not in commands:
