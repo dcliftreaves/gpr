@@ -158,6 +158,17 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
     candidate_id = str(manifest.get("candidate_id") or "").strip()
     if not candidate_id:
         add_failure(failures, "candidate_id is required")
+    if manifest.get("requires_material_edits_before_launch") is True:
+        add_failure(
+            failures,
+            "generated proposal template still requires material edits before launch",
+        )
+    material_change = str(manifest.get("material_change_summary") or "").strip()
+    if not material_change or material_change.startswith("<"):
+        add_failure(
+            failures,
+            "material_change_summary must describe the concrete change from rejected receipts",
+        )
 
     runtime_inputs = {item.lower() for item in as_strings(manifest.get("runtime_inputs"))}
     missing_runtime = sorted(REQUIRED_RUNTIME_INPUTS - runtime_inputs)
@@ -241,8 +252,8 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
     if manifest.get("uses_ref_or_source_content_at_render_time") is True:
         add_failure(failures, "render-time REF/source content is forbidden")
 
-    if not failures and manifest.get("launchable_for_production_attempt") is not True:
-        warnings.append("preflight passes, but manifest does not explicitly set launchable_for_production_attempt=true")
+    if manifest.get("launchable_for_production_attempt") is not True:
+        add_failure(failures, "launchable_for_production_attempt must be true after material edits")
 
     return {
         "schema": SCHEMA,

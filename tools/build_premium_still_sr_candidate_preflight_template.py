@@ -33,7 +33,13 @@ def clean_source_restormer_teacher(candidate_id: str) -> dict[str, Any]:
         "schema": SCHEMA,
         "candidate_id": candidate_id,
         "candidate_kind": "teacher",
-        "launchable_for_production_attempt": True,
+        "launchable_for_production_attempt": False,
+        "requires_material_edits_before_launch": True,
+        "material_change_summary": (
+            "<replace with the concrete architecture/degradation/validation change "
+            "that is not already represented by the rejected 20260702 clean-source "
+            "Restormer, NAF/detail, clean-signal U-Net, or 12k window-attention receipts>"
+        ),
         "runtime_inputs": [
             "candidate_raw",
             "camera_metadata",
@@ -95,9 +101,10 @@ def clean_source_restormer_teacher(candidate_id: str) -> dict[str, Any]:
             "missing_sidecars": "metadata_only",
         },
         "notes": (
-            "Default launch proposal for the current premium still-SR lane. "
-            "It intentionally avoids REF/source/JPEG render-time content and "
-            "does not repeat the rejected residual/local-CNN primary paths."
+            "Reference proposal scaffold for the current premium still-SR lane. "
+            "It intentionally avoids REF/source/JPEG render-time content, but "
+            "must be edited with a concrete material change before it is "
+            "launchable."
         ),
     }
 

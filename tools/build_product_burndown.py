@@ -237,6 +237,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             ],
             next_command=(
                 "python3 tools/build_premium_still_sr_launch_packet.py "
+                "--manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json "
                 "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> "
                 "--require-launchable"
             ),

@@ -79,26 +79,33 @@ production-promoted.
    `next_candidate_preflight` with a materially different source target,
    degradation model, or teacher objective.
 
-   Before launching that run, build a launch packet. The packet writes the
-   candidate manifest, runs the launch preflight, records the exact next command
-   sequence, and lists rejected repeat paths that should not burn another long
-   run:
-
-   ```sh
-   python3 tools/build_premium_still_sr_launch_packet.py \
-     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> \
-     --require-launchable
-   ```
-
-   The launch packet calls the current recommended clean-source
-   restoration-teacher proposal shape and checker. Its train commands are
-   deliberately short smoke gates; a longer run is allowed only after both X2D
-   and Z8 smoke holdouts beat same-color interpolation:
+   Before launching that run, build a candidate preflight scaffold and edit it
+   with the concrete material change from the rejected 20260702 receipts:
 
    ```sh
    python3 tools/build_premium_still_sr_candidate_preflight_template.py \
      --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json
    ```
+
+   The generated scaffold is deliberately not launchable. Set
+   `launchable_for_production_attempt=true`,
+   `requires_material_edits_before_launch=false`, and replace
+   `material_change_summary` only after the proposal names a real new
+   architecture/degradation/validation change. Then build the launch packet from
+   that explicit manifest:
+
+   ```sh
+   python3 tools/build_premium_still_sr_launch_packet.py \
+     --manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json \
+     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> \
+     --require-launchable
+   ```
+
+   The packet writes the candidate manifest, runs the launch preflight, records
+   the exact next command sequence, and lists rejected repeat paths that should
+   not burn another long run. Its train commands are deliberately short smoke
+   gates; a longer run is allowed only after both X2D and Z8 smoke holdouts beat
+   same-color interpolation:
 
    ```sh
    python3 tools/check_premium_still_sr_candidate_preflight.py \

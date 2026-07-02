@@ -41,6 +41,11 @@ def main() -> int:
                 "candidate_id": "clean_source_raw_sr_restormer_teacher_v1",
                 "candidate_kind": "teacher",
                 "launchable_for_production_attempt": True,
+                "requires_material_edits_before_launch": False,
+                "material_change_summary": (
+                    "Adds camera-conditioned PSF/noise/decode degradation and "
+                    "joint X2D/Z8 overlapped-tile validation beyond rejected receipts."
+                ),
                 "runtime_inputs": ["candidate_raw", "camera_metadata", "validated_noise_sidecar_optional"],
                 "forbidden_runtime_inputs_absent": True,
                 "uses_ref_or_source_content_at_render_time": False,

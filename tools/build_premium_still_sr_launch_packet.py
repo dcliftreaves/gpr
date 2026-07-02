@@ -33,6 +33,15 @@ def parse_args() -> argparse.Namespace:
     )
     ap.add_argument("--candidate-id", default=None)
     ap.add_argument(
+        "--manifest",
+        type=Path,
+        help=(
+            "Explicit gpr.premium_still_sr_candidate_preflight.v1 proposal to "
+            "use for a launchable production attempt. Without this, the packet "
+            "is a planning/template artifact and --require-launchable will fail."
+        ),
+    )
+    ap.add_argument(
         "--require-launchable",
         action="store_true",
         help="Exit nonzero if the candidate preflight blocks the launch packet.",
@@ -49,6 +58,7 @@ def command_sequence(
     external_root: Path,
     template: str,
     candidate_id: str | None,
+    manifest_path: Path | None = None,
 ) -> list[dict[str, Any]]:
     pair_dir = external_root / "artifacts/premium_still_sr_clean_source_pairs_<date>"
     model_dir = external_root / "artifacts/premium_still_sr_clean_source_teacher_smoke_<date>"
@@ -64,8 +74,9 @@ def command_sequence(
     if candidate_id:
         template_args += f" --candidate-id {candidate_id}"
 
-    return [
-        {
+    first_steps = []
+    if manifest_path is None:
+        first_steps.append({
             "step": "write_candidate_preflight",
             "command": (
                 "python3 tools/build_premium_still_sr_candidate_preflight_template.py "
@@ -73,7 +84,21 @@ def command_sequence(
                 f"{template_args}"
             ),
             "receipt": rel(output_dir / "candidate_preflight.json"),
-        },
+        })
+    else:
+        first_steps.append({
+            "step": "copy_explicit_candidate_preflight",
+            "command": (
+                "python3 tools/build_premium_still_sr_launch_packet.py "
+                f"--manifest {rel(manifest_path)} "
+                f"--output-dir {rel(output_dir)} "
+                "--require-launchable"
+            ),
+            "receipt": rel(output_dir / "candidate_preflight.json"),
+        })
+
+    return [
+        *first_steps,
         {
             "step": "check_candidate_preflight",
             "command": (
@@ -178,14 +203,36 @@ def build_packet(
     external_root: Path,
     template: str,
     candidate_id: str | None,
+    manifest_path: Path | None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-    manifest = build_manifest(template, candidate_id)
+    if manifest_path is not None:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict):
+            raise TypeError(f"{manifest_path} must contain a JSON object")
+        manifest_source = manifest_path.as_posix()
+    else:
+        manifest = build_manifest(template, candidate_id)
+        manifest_source = "generated_template"
     audit = validate_preflight(manifest)
-    commands = command_sequence(output_dir, external_root, template, candidate_id)
+    if manifest_path is None:
+        failures = list(audit.get("failures") or [])
+        failures.append(
+            "explicit --manifest is required before a launch packet can pass --require-launchable; "
+            "the built-in template is reference/planning material only"
+        )
+        audit = {
+            **audit,
+            "launchable_for_production_attempt": False,
+            "failures": failures,
+            "verdict": "blocked_before_long_run",
+        }
+    commands = command_sequence(output_dir, external_root, template, candidate_id, manifest_path)
     packet = {
         "schema": SCHEMA,
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "candidate_id": audit["candidate_id"],
+        "manifest_source": manifest_source,
+        "explicit_manifest_required_for_launchable": True,
         "production_ready": False,
         "promotion_claimed": False,
         "preflight": {
@@ -258,6 +305,7 @@ def main() -> int:
         external_root=args.external_root,
         template=args.template,
         candidate_id=args.candidate_id,
+        manifest_path=args.manifest,
     )
 
     candidate_path = args.output_dir / "candidate_preflight.json"

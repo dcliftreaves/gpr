@@ -176,6 +176,8 @@ def validate() -> list[str]:
                 failures.append(f"{rid}: validation must include build_premium_still_sr_candidate_preflight_template.py")
             if "build_premium_still_sr_launch_packet.py" not in commands:
                 failures.append(f"{rid}: validation must include build_premium_still_sr_launch_packet.py")
+            if "--manifest" not in commands:
+                failures.append(f"{rid}: launch packet validation must require an explicit --manifest")
             if "--require-launchable" not in commands:
                 failures.append(f"{rid}: candidate preflight must require --require-launchable")
             if "train_premium_still_sr_raw_cfa_residual.py --help" in commands:

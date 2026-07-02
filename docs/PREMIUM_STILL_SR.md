@@ -270,24 +270,34 @@ same-color interpolation on held-out X2D and Z8 images with
 only after that teacher clears the holdout gate. Promotion still requires the
 actual still/editor-latitude gate with no REF/source/JPEG runtime inputs.
 
-Any proposed long run should first emit a launch packet. The packet writes the
+Any proposed long run should first emit an explicit candidate preflight
+manifest. The generated scaffold is a template, not a launchable proposal:
+
+```sh
+python3 tools/build_premium_still_sr_candidate_preflight_template.py \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json
+```
+
+Before it can launch, edit that manifest so it names the concrete change from
+the rejected 20260702 clean-source Restormer, NAF/detail, clean-signal U-Net,
+and 12k window-attention receipts. The edited manifest must set
+`launchable_for_production_attempt=true`,
+`requires_material_edits_before_launch=false`, and a non-placeholder
+`material_change_summary`.
+
+Then build the launch packet from the explicit manifest. The packet writes the
 candidate preflight, runs the preflight audit, and records the exact next
 commands plus the rejected repeat paths that must not be rerun as primary
 production attempts:
 
 ```sh
 python3 tools/build_premium_still_sr_launch_packet.py \
+  --manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> \
   --require-launchable
 ```
 
-The packet is the preferred next-action artifact. Its first two commands are
-the underlying preflight builder and checker:
-
-```sh
-python3 tools/build_premium_still_sr_candidate_preflight_template.py \
-  --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json
-```
+The underlying preflight checker is:
 
 ```sh
 python3 tools/check_premium_still_sr_candidate_preflight.py \

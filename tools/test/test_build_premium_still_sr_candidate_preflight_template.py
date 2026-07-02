@@ -39,7 +39,8 @@ def main() -> int:
         assert proc.stdout.strip() == str(good)
         data = json.loads(good.read_text(encoding="utf-8"))
         assert data["schema"] == "gpr.premium_still_sr_candidate_preflight.v1"
-        assert data["launchable_for_production_attempt"] is True
+        assert data["launchable_for_production_attempt"] is False
+        assert data["requires_material_edits_before_launch"] is True
         assert data["production_ready"] is False
         assert data["promotion_claimed"] is False
         assert data["runtime_inputs"] == [
@@ -59,6 +60,30 @@ def main() -> int:
                 sys.executable,
                 str(CHECKER),
                 str(good),
+                "--json-out",
+                str(audit_json),
+                "--html-out",
+                str(audit_html),
+                "--require-launchable",
+            ]
+        )
+        assert proc.returncode != 0
+        assert "material edits" in proc.stderr
+
+        edited = base / "edited_clean_source_restormer_teacher.json"
+        data["candidate_id"] = "contextual_raw_restoration_teacher_new_degradation_v1"
+        data["launchable_for_production_attempt"] = True
+        data["requires_material_edits_before_launch"] = False
+        data["material_change_summary"] = (
+            "Adds camera-conditioned PSF/noise/decode degradation plus joint "
+            "X2D/Z8 overlapped-tile validation before any long run."
+        )
+        edited.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        proc = run(
+            [
+                sys.executable,
+                str(CHECKER),
+                str(edited),
                 "--json-out",
                 str(audit_json),
                 "--html-out",
