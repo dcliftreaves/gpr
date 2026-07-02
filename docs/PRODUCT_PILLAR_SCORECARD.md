@@ -343,18 +343,16 @@ It selects the route-specialist/raw-CFA path as the next production direction:
 Mission 1 50 MP DNG/GPR, Z8 50 MP DNG, and X2D 100 MP DNG have route coverage
 and positive full-frame metric floors, and the routed rendered EV-stress proxy
 review covers Mission1/Z8/X2D with 36 rows and 33 model-better rows. It does not
-promote Premium Still/SR; the remaining blockers are true raw-editor
-latitude/openability for every route, exact-sidecar-only noise policy in target
-construction, and production submission validation.
+promote Premium Still/SR; the remaining blocker is a no-REF model receipt that
+clears the held-out promotion floor and then passes production submission
+validation.
 The current editor/latitude coverage audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_editor_latitude_coverage_20260702/index.html`.
-It is the concrete Gate A burn-down receipt for raw-editor coverage: X2D
-100 MP DNG is ready with non-oracle rawpy/LibRaw latitude and editable DNG/GPR
-openability, while Mission 1 50 MP DNG, Mission 1 50 MP GPR, and Z8 50 MP DNG
-are still missing matching editor/openability and latitude receipts. The next
-commands are therefore packaging/metadata transplant for those three routes,
-non-oracle raw-editor latitude review, rerun the coverage audit to 4/4, then
-wire exact-sidecar-only noise policy and run the production submission checker.
+It is the concrete Gate A burn-down receipt for raw-editor coverage: Mission 1
+50 MP DNG, Mission 1 50 MP GPR, Z8 50 MP DNG, and X2D 100 MP DNG are all ready
+with non-oracle rawpy/LibRaw latitude and editable DNG/GPR openability. The
+clean-signal target policy also passes exact-sidecar-only constraints; the next
+commands are therefore model-promotion commands, not more packaging.
 
 The premium still-SR blocker audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html`.
