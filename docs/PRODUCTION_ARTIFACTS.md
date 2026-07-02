@@ -78,12 +78,15 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate 13 feature-rich tail-safe source smoke dashboard | `artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/index.html` | `6f35d5ef0781048ad0ded34fcb3c56541a89df7094ad9b4fb3ce8d27e6124d1a` |
 | Gate 13 source/objective revision receipt | `artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/source_or_objective_revision.json` | `cd72bf04998f60134b1729178eda84232d69bb27990e4f3398c6ff434bb5845e` |
 | Gate 13 source/objective revision dashboard | `artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/index.html` | `5e99e307107adf08b328694214aec43eab7d6aef12340ce43bf6eb26c41f944d` |
+| Gate 14 candidate intake manifest | `artifacts/premium_still_sr_gate14_candidate_intake_20260702/candidate_preflight.json` | `505031517cac9ad64410e52956a9f6c73509b0a0bd29a080afbc8546684240bc` |
+| Gate 14 selector sidecar | `artifacts/premium_still_sr_gate14_candidate_intake_20260702/selector_sidecar.json` | `3d3648989d52da764b47ccd20ae8d3728c622ddb4ce980fa8a8a892fd0bbac99` |
+| Gate 14 candidate intake dashboard | `artifacts/premium_still_sr_gate14_candidate_intake_20260702/index.html` | `4bc9cdd4977ffdd9eaedc95f10555a465cfa4006df8379b1b435d2d104ebad64` |
 
-The single-source branches are blocked before long training. The latest
-source/objective revision moved the work to Gate 14: a multi-source
-candidate-only selector upper bound clears both X2D scenes with no selected
-negative rows and keeps Z8 exact-noop. Long training remains blocked until an
-executable selector sidecar reproduces that pass from runtime-safe inputs.
+The single-source branches are blocked before long training. Gate 14 candidate
+intake now persists the multi-source candidate-only selector as an executable
+sidecar and reproduces the Gate 13 pass in replay. Long training remains blocked
+until the selector sidecar is run through the actual model-loading/render path
+and that selector-smoke receipt passes.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

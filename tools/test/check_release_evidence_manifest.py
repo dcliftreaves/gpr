@@ -187,6 +187,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_gate13_tail_safe_source_smoke_20260702",
                 "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702",
                 "premium_still_sr_gate13_source_or_objective_revision_20260702",
+                "premium_still_sr_gate14_candidate_intake_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
@@ -989,6 +990,68 @@ def require_dashboard_contract(
                     float(value)
                 except (TypeError, ValueError):
                     failures.append(f"{entry_id}: metric {key} must be numeric")
+
+    if entry_id == "premium_still_sr_gate14_candidate_intake_20260702":
+        if entry.get("status") != "diagnostic":
+            failures.append(f"{entry_id}: Gate 14 intake must remain diagnostic until selector smoke and promotion pass")
+        hashes = entry.get("hashes")
+        if not isinstance(hashes, dict):
+            failures.append(f"{entry_id}: Gate 14 intake needs hashes")
+        else:
+            for key in (
+                "candidate_preflight_json_sha256",
+                "selector_sidecar_json_sha256",
+                "dashboard_sha256",
+            ):
+                value = hashes.get(key)
+                if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+                    failures.append(f"{entry_id}: hash {key} must be a sha256 hex string")
+        receipts = entry.get("receipts")
+        if not isinstance(receipts, list):
+            failures.append(f"{entry_id}: Gate 14 intake needs receipt refs")
+        else:
+            for token in (
+                "candidate_preflight.json",
+                "selector_sidecar.json",
+                "index.html",
+            ):
+                if not any(isinstance(item, str) and item.endswith(token) for item in receipts):
+                    failures.append(f"{entry_id}: receipts missing {token}")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: Gate 14 intake needs metrics")
+        else:
+            expected_exact = {
+                "gate14_candidate_intake_passed": 1,
+                "selector_smoke_allowed": 1,
+                "long_run_allowed": 0,
+                "rule_count": 7,
+                "source_count": 6,
+                "feature_count": 78,
+                "safe_selector_count": 10199,
+                "assigned_row_count": 88,
+                "z8_exact_noop_ok": 1,
+                "production_ready": 0,
+            }
+            for key, expected in expected_exact.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+            try:
+                global_median = float(metrics.get("global_median_mae_improvement_pct"))
+                global_worst = float(metrics.get("global_worst_row_mae_improvement_pct"))
+                x2d06_median = float(metrics.get("x2d_2025_austin_06_median_mae_improvement_pct"))
+                x2d06_worst = float(metrics.get("x2d_2025_austin_06_worst_row_mae_improvement_pct"))
+                x2d07_median = float(metrics.get("x2d_2025_austin_07_median_mae_improvement_pct"))
+                x2d07_worst = float(metrics.get("x2d_2025_austin_07_worst_row_mae_improvement_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: Gate 14 MAE metrics must be numeric")
+            else:
+                if global_median <= 0.001:
+                    failures.append(f"{entry_id}: global median MAE improvement must stay positive")
+                if x2d06_median <= 0.001 or x2d07_median <= 0.001:
+                    failures.append(f"{entry_id}: both X2D image medians must stay positive")
+                if min(global_worst, x2d06_worst, x2d07_worst) < 0.0:
+                    failures.append(f"{entry_id}: worst-row MAE improvement cannot regress")
 
     if entry_id == "raw_2k_l2hh_visual_proxy":
         failure_rows = entry.get("failure_rows")

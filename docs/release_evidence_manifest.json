@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 13 source/objective revision passed as a multi-source selector upper bound; next is Gate 14 executable selector intake before any long run or promotion.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 14 executable selector intake passed as a persisted sidecar/replay; next is Gate 14 selector smoke through the actual render/model-loading path before any long run or promotion.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -126,10 +126,11 @@
           "premium_still_sr_gate13_degradation_source_upgrade_20260702",
           "premium_still_sr_gate13_tail_safe_source_smoke_20260702",
           "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702",
-          "premium_still_sr_gate13_source_or_objective_revision_20260702"
+          "premium_still_sr_gate13_source_or_objective_revision_20260702",
+          "premium_still_sr_gate14_candidate_intake_20260702"
         ]
       },
-      "open_gate": "premium_still_sr_gate14_candidate_intake_<date>"
+      "open_gate": "premium_still_sr_gate14_selector_smoke_<date>"
     },
     {
       "id": "raw_video_reconstruction",
@@ -4829,6 +4830,55 @@
         "x2d_2025_austin_07_median_mae_improvement_pct": 0.07380457072746566,
         "x2d_2025_austin_07_worst_row_mae_improvement_pct": 0.0,
         "x2d_2025_austin_07_selected_positive_rows": 35,
+        "z8_exact_noop_ok": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate14_candidate_intake_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Gate 14 executable selector intake. It persists the Gate 13 multi-source upper bound as a deterministic candidate-only selector sidecar, reproduces the X2D pass in replay, preserves Z8 exact-noop, and allows selector smoke but not long-run promotion.",
+      "dashboard": "artifacts/premium_still_sr_gate14_candidate_intake_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate14_candidate_intake.py",
+        "tools/test/test_build_premium_still_sr_gate14_candidate_intake.py",
+        "tools/build_premium_still_sr_gate13_source_or_objective_revision.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate14_candidate_intake_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_gate14_candidate_intake_20260702/selector_sidecar.json",
+        "artifacts/premium_still_sr_gate14_candidate_intake_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "505031517cac9ad64410e52956a9f6c73509b0a0bd29a080afbc8546684240bc",
+        "selector_sidecar_json_sha256": "3d3648989d52da764b47ccd20ae8d3728c622ddb4ce980fa8a8a892fd0bbac99",
+        "dashboard_sha256": "4bc9cdd4977ffdd9eaedc95f10555a465cfa4006df8379b1b435d2d104ebad64"
+      },
+      "metrics": {
+        "gate14_candidate_intake_passed": 1,
+        "selector_smoke_allowed": 1,
+        "long_run_allowed": 0,
+        "rule_count": 7,
+        "source_count": 6,
+        "feature_count": 78,
+        "safe_selector_count": 10199,
+        "assigned_row_count": 88,
+        "global_median_mae_improvement_pct": 0.2506229397841941,
+        "global_worst_row_mae_improvement_pct": 0.0,
+        "x2d_2025_austin_06_median_mae_improvement_pct": 0.329828330762138,
+        "x2d_2025_austin_06_worst_row_mae_improvement_pct": 0.0,
+        "x2d_2025_austin_06_selected_positive_rows": 54,
+        "x2d_2025_austin_07_median_mae_improvement_pct": 0.02786331921791634,
+        "x2d_2025_austin_07_worst_row_mae_improvement_pct": 0.0,
+        "x2d_2025_austin_07_selected_positive_rows": 34,
         "z8_exact_noop_ok": 1,
         "production_ready": 0
       }
