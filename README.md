@@ -47,7 +47,7 @@ when it visibly improves the result.**
 |---|---:|---|---|
 | **Best RAW stills** | **92%** | 50 MP tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100 MP roundtrip; 12/14/16-bit support; real RGGB/GBRG/GRBG/BGGR coverage; X2D/Z8 noise sidecars. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
 | **GoPro RAW video MVP** | **80%** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor, and the same stream previews full-frame at 1024 x 768 above **20 fps**. | Real Mission 1 sensor/DMA or camera-ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, 120+ sustained frames, and timing receipts from the camera role. |
-| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, model-promotion tooling, the 124-receipt experiment scoreboard, X2D/Z8 source-evidence audits, rejected clean-source/frequency-pyramid/gated-residual/masked-detail/raw-CFA source-frequency/raw-CFA residual-signal/candidate-HF no-op/route-conditioned noise-aware/direct-clean 2x/source-HF stored-HF smoke receipts, a target/degradation blocker receipt, a replacement target/source contract, Gate 10 source/degradation decision, failed Gate 11 route-isolated teacher/router smoke, Gate 12 measured/synthetic teacher-source audit/intake/smoke, Gate 13 source/objective revision, Gate 14 executable selector intake/smoke, Gate14 floor-student preflight/launch packet/target builder, paired floor-student smoke receipts, Gate14 objective-gate audit, Gate15 target-construction proposal/preflight pass and blocked paired smoke, Gate16 tail-safe paired-smoke pass, a strict 5/9 promotion-receipts rollup, model-floor gap receipt, route-specialist readiness audit, routed rendered EV-stress proxy review, and 4/4 editor/latitude coverage now exist. | Route-specialist full-frame metrics are positive. Editable DNG/GPR openability and non-oracle raw-editor latitude are proven for Mission 1 DNG, Mission 1 GPR, Z8 DNG, and X2D DNG. The exact-sidecar-only noise policy passes and Gate 14 selector smoke reproduces the routed sidecar path, but the first open production step is still the full promotion gate: Gate16 smoke now passes with X2D median/worst raw MAE 17.09%/0.0% and Z8 exact-noop 0.0%/0.0%. Next is the 50 MP / 100 MP promotion receipt with timing, memory, editor/openability, and production submission checks. |
+| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, model-promotion tooling, the **124-receipt experiment scoreboard**, X2D/Z8 source-evidence audits, route-specialist readiness audit, exact-sidecar-only noise policy, 4/4 editor/latitude coverage, and Gate16 paired-smoke pass now exist. | Gate16 must now run the full 50 MP / 100 MP promotion receipt: 15% / 15% held-out MAE/RMSE, nonnegative worst rows, timing, memory, editor/openability, checkpoint hashes, exact-sidecar-only noise policy, and production submission checks. |
 | **RAW video reconstruction improvement** | **100%** | Approved offline/post 4K cleanup and 8K SR emit `.gvid`, editable raw, standalone no-CNN/CNN ProRes review movies, objective review, and manual signoff receipts. | No release blocker. PSF/blur modeling is parked as optional replacement research. |
 
 The denominator is the shippable production suite: **1. Best RAW stills**, **2. GoPro RAW video MVP**, **3. Premium still/SR**, and **4. Raw video reconstruction improvement**. PSF-aware video/SR remains optional research for a future replacement, not a blocker for the approved current release path.
@@ -59,6 +59,35 @@ Current action stack:
 | **Ship/protect** | Keep the locked still tiers, Pi-stand-in `.gvid` encode/preview, and approved 4K/8K reconstruction receipts green. | Do not reopen approved raw-video SR just because another model idea exists. |
 | **External closure** | Hand GoPro the Mission 1 camera-role validation package, and capture Mission/iPhone darkframes with strict source provenance. | Do not count Pi stand-ins, wrapped camera `.GPR` files, JPEG-derived media, or unproven dark-like scene frames as production closure. |
 | **Local model work** | Advance only premium still-SR candidates that satisfy the no-REF 50 MP / 100 MP promotion preflight in [`docs/PREMIUM_STILL_SR_FIRST_HOUR.md`](docs/PREMIUM_STILL_SR_FIRST_HOUR.md). | Do not rerun rejected local-CNN, clean-source residual, or scalar-loss variants as primary production attempts. |
+
+## 100% Execution Queue
+
+These are the only steps that move the project from **83%** to **100%**. Work
+counts only when the named receipt exists, validates, and is linked from the
+release evidence map.
+
+1. Keep CI green on latest `master`, including sensitive-content,
+   artifact-hygiene, release-manifest, README, and product-goal guards.
+2. Promote or reject Gate16 Premium still/SR with the full 50 MP / 100 MP
+   receipt: candidate-only runtime inputs with `candidate_raw`, no
+   REF/source/JPEG render-time content, 15% / 15% MAE/RMSE floor, nonnegative
+   worst rows, seconds/frame, peak RSS, exact-sidecar-only noise policy, and
+   production submission validation.
+3. Close raw-stills noise beyond X2D/Z8 with Mission 1 and iPhone
+   `gpr.camera_noise_calibration.v1` sidecars from strict same-camera,
+   same-ISO, no-scene-signal darkframe stacks.
+4. Close the GoPro raw-video MVP with a real Mission 1 camera-role run:
+   sensor/DMA or ring-buffer input, SD writer, rear-display handoff, valid
+   `.gvid`, zero drops, memory, 120+ sustained frames, 4096 x 3072 encode,
+   1024 x 768 preview, and the accepted 20+ fps floor.
+5. Protect locked raw-video reconstruction. PSF/blur remains optional
+   replacement research unless it beats the locked `.gvid`, editable raw,
+   ProRes, dashboard, timing, memory, and hash receipt surface.
+
+The short stop/go contract lives in
+[`docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md`](docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md);
+the detailed audit trail lives in
+[`docs/PRODUCTION_100_PERCENT_PLAN.md`](docs/PRODUCTION_100_PERCENT_PLAN.md).
 
 ## The Four Product Bets
 
@@ -90,33 +119,22 @@ dashboard, and receipt set. Otherwise SR iteration is research, not a reason to
 delay the current workflow. The only open SR model-promotion lane is premium
 still-SR, which has its own 50 MP / 100 MP gate.
 
-Premium still-SR promotion is intentionally stricter than "looks sharper." A
-candidate must submit `runtime_inputs` with `candidate_raw` and camera metadata,
-exclude REF/source/JPEG content at render time, report 50 MP and 100 MP gate row
-counts, show positive median MAE reduction with nonnegative worst-row MAE
-reduction, record seconds/frame and peak RSS, and prove exact-sidecar-only noise
-policy. The current scoreboard is deliberately not promotable: **124** runtime-safe
-still-SR receipts, **0** promotable rows, best older runtime-safe row at **4.03%**
-held-out MAE recovery / **3.75%** held-out RMSE recovery against the **15% / 15%**
-promotion floor, and newer clean-source Restormer, teacher-first, and executable
-window-attention smoke receipts that still fail the joint X2D/Z8 holdout gate.
-The latest candidate-only source-evidence audit is more specific: X2D has local
-signal above nearest same-color 2x (**4.82%** MAE / **11.52%** RMSE recovery),
-but Z8 does not clear the 1% MAE source-evidence floor (**0.65%** MAE despite
-**21.90%** RMSE recovery). The source-evidence split packet has now been run:
-X2D passes the short smoke gate at **+0.0088%** median MAE and **+0.0031%**
-median RMSE recovery, while Z8 fails at **-0.0736%** median MAE and
-**-0.0189%** median RMSE. That rejects long training for the clean-source split.
-The newer frequency-pyramid branch is also blocked: X2D worst-row MAE is **-4.85%**, and Z8 median/worst-row MAE are **-8.81%** / **-67.44%**. A gated no-op residual branch reduces Z8 damage to **-0.0777%** median and **-0.9817%** worst-row MAE, and the stricter identity probe nearly reaches interpolation parity, but it still does not create positive held-out recovery. The masked-detail/no-op target-objective branch is also closed as a failed smoke: X2D is essentially parity at **-0.00002%** median MAE with a **-0.0042%** worst row, Z8 regresses to **-0.0011%** median MAE with a **-0.0090%** worst row, and route-local scene smokes remain negative. The raw-CFA source-frequency branch is blocked by objective scale, with X2D/Z8 median raw MAE recovery at **-4968%** / **-503%**. The raw-CFA residual-signal branch is much closer on X2D but still blocked, with X2D/Z8 median raw MAE recovery at **-0.152%** / **-5.11%** and a severe Z8 worst-row tail. The candidate-HF no-op gate clips the Z8 tail to exact parity but still fails promotion: X2D median/worst raw MAE recovery is **-0.0063%** / **-0.232%**, and Z8 median is **0.000%**. The replacement-contract route-conditioned/noise-aware smoke also fails before long training: X2D median/worst raw MAE recovery is **-0.168%** / **-6.05%**, and Z8 is **-1.59%** / **-55.7%**. Gate 10 classifies this as a source/degradation target mismatch: X2D target distribution is **3.45x** off the same-camera train median and Z8 is mostly noise-floor targets (**28/36** rows). Gate 11 then tested `route_isolated_teacher_then_router` and failed before long training: X2D median/worst raw MAE recovery is **-0.100%** / **-2.16%**, and Z8 is **0.000%** / **-14.1%**. Gate 12 source audit rejects the failed source-minus-candidate raw-HF residual target, selects synthetic known-degradation clean-source Bayer pairs for the X2D route, and keeps Z8 exact no-op/new-source until positive source evidence exists. Gate 12 paired smoke is now closed as failed before long training: X2D median/worst MAE recovery is **-0.016%** / **-0.224%**, while Z8 exact-noop passes at **0.000%** / **0.000%**. Gate 13 then audited all available clean-source and exact-noop receipts: the best X2D source beats nearest same-color on median MAE (**+0.274%**) but still has a **-2.959%** worst row, so the blocker became `objective_gating_tail_regression`. The simple Gate 13 tail-safe smoke found **1394** aggregate-safe gates, with the best global gate at **+0.215%** median MAE and **0.000%** worst-row MAE, but **0** strict per-scene gates. The feature-rich Gate 13 smoke tested **78** runtime-safe features, **14393** predicates, and **1398** safe predicates; even the safe-feature OR upper bound covers only **25** positives in `x2d_2025_austin_07`, short of the **32** needed for positive scene median. Gate 13 source/objective revision then found a passing multi-source selector upper bound: **12** compatible X2D sources, **10,199** safe source/predicate selectors, `x2d_2025_austin_06` median/worst MAE **8.02%** / **0.00%**, `x2d_2025_austin_07` median/worst MAE **0.074%** / **0.00%**, and Z8 exact no-op still clean. Gate 14 intake converts that into a persisted executable sidecar, and Gate 14 selector smoke runs it through runtime feature recomputation, source/checkpoint hash checks, and first-match routing: **7** rules, **6** source mappings, **88** assigned rows, **40** exact-noop fallback rows, X2D median/worst MAE **0.330%** / **0.00%** and **0.0279%** / **0.00%**, source model failures **0**, and Z8 exact no-op still clean. Gate14 floor-student preflight and launch are also complete, and the target builder produced **2,112** X2D/Z8 rows. The paired floor-student smokes blocked long training: X2D holdout median/worst raw MAE recovery was **0.000%** / **-0.000995%**, Z8 was **0.000%** / **0.000%**, and no-op-off ablations did not create a promotable signal. The direct clean-source 2x and source-HF/stored-HF objective smokes also failed. The Gate14 objective-gate audit then proved threshold tuning cannot rescue those outputs: direct-clean has **0/33** positive-floor rows on X2D/Z8, and source-HF has **2/17** on X2D and **0/17** on Z8. Gate15 target construction then passed as pre-smoke intake with **463** X2D positive rows versus **289** needed and **1536/1536** Z8 exact-noop rows, but the materialized paired smoke blocked long training: X2D median/worst raw MAE recovery is **-0.000745%** / **-0.0191%**, while Z8 exact-noop passes at **0.000%** / **0.000%**. Gate16 fixes the smoke blocker with a candidate-only low-HF no-op tail gate at **0.0015**: X2D median/worst raw MAE recovery is **17.09%** / **0.00%**, Z8 exact-noop remains **0.00%** / **0.00%**, and `long_run_allowed=true`; the next evidence is the full 50 MP / 100 MP promotion gate.
-A direct clean-source 2x objective smoke was also blocked before long training:
-X2D only reached **0.0014%** median MAE with a **-0.0033%** worst row, and
-Z8 was negative at **-0.0021%** median / **-0.0117%** worst.
-A source-HF/stored-HF objective smoke was also blocked: X2D median was
-**0.000%** with a **-72.74%** worst row, and Z8 stayed exact no-op at
-**0.000%** / **0.000%**.
-The next local Gate A lane remains route-specialist/raw-CFA promotion, but not with the failed floor-student high-pass residual objective, the simple direct-clean 2x objective, or the same source-HF no-op threshold. The readiness audit shows Mission 1 50 MP DNG/GPR, Z8 50 MP DNG, and X2D 100 MP DNG have route coverage and positive full-frame metric floors. The editor/latitude coverage audit is now 4/4 ready, and the exact-sidecar clean-target policy passes, but no model clears the 15% / 15% held-out recovery floor.
-The rendered EV-stress proxy is already indexed separately and is not the same
-as raw-editor openability.
+Premium still-SR promotion is intentionally stricter than "looks sharper."
+The current scoreboard is deliberately not promotable: **124** runtime-safe
+still-SR receipts, **0** promotable rows, and the best older runtime-safe row
+is **4.03%** held-out MAE recovery / **3.75%** held-out RMSE recovery against
+the **15% / 15%** promotion floor. The important recent progress is narrower:
+Gate16 paired smoke finally produces a candidate-only branch with X2D
+median/worst raw MAE recovery at **17.09%** / **0.00%** while Z8 exact-noop
+remains **0.00%** / **0.00%**. That earns the full 50 MP / 100 MP promotion
+run; it does not make Premium still/SR production-ready.
+
+The next local Gate A lane is therefore unambiguous: execute the Gate16 full
+promotion package, not another threshold-tuning pass. The detailed failed-branch
+history, including frequency-pyramid, gated no-op residual, masked-detail/no-op,
+direct-clean 2x, and source-HF/stored-HF receipts, lives in
+[`docs/PREMIUM_STILL_SR.md`](docs/PREMIUM_STILL_SR.md) and
+[`docs/PRODUCTION_ARTIFACTS.md`](docs/PRODUCTION_ARTIFACTS.md).
 
 ## Evidence Map
 
@@ -151,7 +169,7 @@ and receipts stay on the 8TB artifact root.
 | **Camera-back preview** | The same 4K `.gvid` decodes to full-frame 1024 x 768 RGB above **20 fps** on the Pi 5 stand-in. | Mission 1 rear-display/UI handoff remains unproven. |
 | **Offline reconstruction** | Approved 4K cleanup and candidate-aware 8K SR emit editable `.gvid` plus ProRes review media. | PSF-conditioned replacements are research until they beat the locked baseline. |
 | **Review/export scopes** | MOV / ProRes review outputs, PREVIEW offline/review, and PREVIEW live/camera-back are each tracked separately. | PREVIEW offline/review is not a live/camera-back preview path, and ProRes is not the primary raw deliverable. |
-| **Premium still/SR** | 124 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, rejected clean-source/frequency-pyramid/gated-residual/masked-detail/route-conditioned noise-aware/direct-clean 2x/source-HF stored-HF receipts, Gate 10 source/degradation decision, failed Gate 11 route-isolated smoke, Gate 12 source audit, Gate 12 candidate intake, failed Gate 12 paired smoke, Gate 13 source audit, Gate 13 tail-safe smoke, Gate 13 feature-rich tail-safe smoke, Gate 13 multi-source source/objective revision, Gate 14 executable selector intake/smoke, Gate14 floor-student preflight/launch packet/target builder, paired floor-student smoke receipts, Gate14 objective-gate audit, Gate15 target-construction proposal/preflight pass and blocked paired smoke, Gate16 tail-safe paired-smoke pass, strict 5/9 promotion-receipts rollup, route-specialist readiness evidence, routed rendered EV-stress proxy evidence, 4/4 non-oracle editor/latitude coverage, and exact-sidecar clean-target policy exist. | Current candidate is still not production-promoted, but Gate16 now clears paired smoke and earns the next full promotion run. The remaining Premium still/SR blocker is the full 50 MP / 100 MP promotion receipt, including timing/memory, editor/openability, exact-sidecar-only noise policy, and production submission validation. |
+| **Premium still/SR** | 124 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, Gate16 tail-safe paired-smoke pass, strict 5/9 promotion-receipts rollup, route-specialist readiness evidence, 4/4 non-oracle editor/latitude coverage, and exact-sidecar clean-target policy exist. | Current candidate is still not production-promoted, but Gate16 now earns the next full promotion run. The remaining blocker is the full 50 MP / 100 MP promotion receipt, including timing/memory, editor/openability, exact-sidecar-only noise policy, and production submission validation. |
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
 
