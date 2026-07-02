@@ -7,6 +7,25 @@ whose status is not `closed` or `blocked_external`. Work on a row counts only
 when the named receipt exists, validates, and is linked from
 `release_evidence_manifest.json` or `PRODUCTION_ARTIFACTS.md`.
 
+## 100 Percent Definition
+
+The project is 100 percent production-ready only when every row below is closed
+by the named evidence. No dashboard, model checkpoint, local timing run, or
+visual review can substitute for the receipt named in the `receipt that moves
+it` column.
+
+| order | goal | 100 percent condition | current next move |
+|---:|---|---|---|
+| 1 | CI and repo hygiene | Latest `master` commit has passing GitHub Actions, sensitive-content guard, artifact-hygiene guard, release-manifest guard, README guards, and clean diff checks. | Protect on every push. |
+| 2 | Best RAW stills | 50 MP and 100 MP still tiers remain green, normal RGGB/GBRG/GRBG/BGGR Bayer support remains green, and Mission 1 plus iPhone camera-noise sidecars validate from strict true-dark provenance. | Capture/prove Mission 1 and iPhone true darkframes, then build strict sidecars. |
+| 3 | GoPro RAW video MVP | Real Mission 1 camera-role source/storage/display receipts prove 4096 x 3072 Bayer `.gvid` encode, 1024 x 768 preview decode, valid container, zero drops, memory, and 120+ sustained frames at the accepted 20+ fps floor. | Hand GoPro/Mission 1 firmware owners the camera-role runbook; local Pi stand-ins cannot close this gate. |
+| 4 | Premium still/SR | A no-REF 50 MP / 100 MP premium still candidate passes the full promotion gate: 15% / 15% held-out MAE/RMSE floor, nonnegative worst row, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. | Revise the Gate14 floor-student target/objective before any long run. |
+| 5 | RAW video reconstruction | Approved 4K cleanup and 8K SR release receipts stay locked and green; replacement research ships only if it beats the locked artifact surface. | Protect only. PSF/blur is optional research, not a release blocker. |
+
+The local priority order is fixed: **CI first, Premium still/SR target/objective
+revision second, Mission/iPhone darkframe provenance third, GoPro camera-role
+handoff fourth, locked raw-video reconstruction protection fifth.**
+
 | order | gate | status | exact next step | receipt that moves it |
 |---:|---|---|---|---|
 | 1 | CI and repo hygiene | closed/protect | Keep GitHub Actions green for the latest `master` push and run the sensitive-content, manifest, artifact-hygiene, and diff checks before each push. | Latest `master` CI run passes. |
