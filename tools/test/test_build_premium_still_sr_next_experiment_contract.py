@@ -314,6 +314,7 @@ def main() -> int:
         assert any("12k-step full-crop PSF/CFA window-attention teacher" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("clean-signal residual target plus the same small U-Net family" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("clean-source RAW SR teacher lift" in item for item in contract["do_not_repeat_as_primary_path"])
+        assert any("NAF-like residual pixelshuffle plus gradient/detail loss" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("clean-source RAW SR teacher beats same-color interpolation" in gate for gate in contract["success_gates"])
         assert any("X2D median raw-residual MAE recovery >= 15.0%" == gate for gate in contract["success_gates"])
         assert any("stored candidate-HF" in item for item in contract["do_not_repeat_as_primary_path"])
@@ -329,6 +330,7 @@ def main() -> int:
         assert any("simple CFA one-hot" in item for item in contract["do_not_repeat_as_primary_path"])
         minimum = contract["minimum_viable_next_pass"]
         assert any("clean-source RAW SR pairs" in item for item in minimum["must_change_from_failed_contract"])
+        assert any("NAF-like residual pixelshuffle teacher plus gradient/detail loss" in item for item in minimum["must_change_from_failed_contract"])
         assert any("beats same-color interpolation" in item for item in minimum["must_change_from_failed_contract"])
         assert any("denoising, deblurring/PSF, and SR as one raw-restoration objective" in item for item in minimum["must_change_from_failed_contract"])
         assert any("global near-box PSF" in item and "negative/control input" in item for item in minimum["must_change_from_failed_contract"])

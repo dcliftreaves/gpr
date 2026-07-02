@@ -249,6 +249,21 @@ Z8 by **-4.82%** MAE while improving RMSE by **3.39%**. The next pass should
 change degradation/objective/architecture and camera conditioning, not merely
 spend more time on this local teacher.
 
+The first bounded architecture/objective change is also a rejection receipt:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702/index.html
+```
+
+That run adds `model_arch=naf_residual_pixelshuffle` and
+`gradient_loss_weight=0.1` to the clean-source trainer. It is not enough:
+held-out X2D is **-0.35%** median MAE and **-0.36%** median RMSE versus
+interpolation, while held-out Z8 is **-10.09%** median MAE and **-4.94%**
+median RMSE. The next productive pass should change the degradation policy
+and/or use a non-local/full-image teacher, rather than another local NAF/detail
+loss sweep on the same same-color box-degraded pairs.
+
 ## Blocker Audit
 
 The blocker audit combines the experiment scoreboard, current readiness

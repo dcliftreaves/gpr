@@ -347,6 +347,10 @@ nearest same-color 2x median MAE of 12.40 and RMSE of 23.10. The matching
 training improves by 14.54 percent and 12.86 percent median MAE respectively,
 but held-out X2D regresses by -5.07 percent and held-out Z8 regresses by -4.82
 percent median MAE.
+A bounded NAF-like residual pixelshuffle plus gradient/detail-loss probe is
+also rejected on those routed clean-source pairs: the 500-step X2D holdout is
+about -0.35 percent median MAE and -0.36 percent RMSE versus interpolation,
+and the matched Z8 holdout regresses by about -10.09 percent median MAE.
 The superseded transformer-teacher contract remains archived at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html`.
 The trainer now has PSF/kernel-conditioned `_psf` feature modes that can consume

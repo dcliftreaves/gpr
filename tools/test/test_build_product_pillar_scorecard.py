@@ -102,6 +102,7 @@ def main() -> int:
         assert any("75 images and 1200 tiles" in item for item in data["pillars"][2]["done_evidence"])
         assert any("regresses held-out X2D" in item for item in data["pillars"][2]["done_evidence"])
         assert any("regresses held-out Z8" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("NAF-like residual pixelshuffle" in item for item in data["pillars"][2]["done_evidence"])
         assert any(
             "premium_still_sr_clean_source_pair_model_smoke_20260702/index.html" in ref["path"]
             for ref in data["pillars"][2]["evidence"]
@@ -116,6 +117,16 @@ def main() -> int:
         )
         assert any(
             "premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702/index.html"
+            in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702/index.html"
+            in ref["path"]
             for ref in data["pillars"][2]["evidence"]
         )
         assert any(

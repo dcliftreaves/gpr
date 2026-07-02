@@ -458,6 +458,8 @@ current evidence so strict local checks can verify it.
 | Premium still-SR routed clean-source pair audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/index.html` |
 | Premium still-SR routed X2D holdout rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/index.html` |
 | Premium still-SR routed Z8 holdout rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/index.html` |
+| Premium still-SR routed NAF/detail X2D rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702/index.html` |
+| Premium still-SR routed NAF/detail Z8 rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702/index.html` |
 | Premium still-SR superseded transformer-teacher contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html` |
 | Premium still-SR PSF metadata gap audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_metadata_gap_20260701/index.html` |
 | Premium still-SR PSF sidecar contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_sidecar_contract_20260701/index.html` |

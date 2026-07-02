@@ -72,6 +72,8 @@
           "premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702",
           "premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702",
           "premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702",
+          "premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702",
+          "premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -1859,8 +1861,8 @@
         "artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html"
       ],
       "hashes": {
-        "contract_json_sha256": "c80b2ebac14265a1da4390f9fe209622ede10b24dfc4709d5fb7e385528371a6",
-        "dashboard_sha256": "108b8bb2f199c1d348f2320d02a5ae1a9a9adc834e354bfc9e3f063ccf731103"
+        "contract_json_sha256": "223c5c100b5d7dfced120ae303620aeabef92c9162ec9ca8dd8e4543d244b110",
+        "dashboard_sha256": "2a94c9c3bc2ebd7ace875ff16b23e7c3b888d80a90c890b81090ad88eb1bb313"
       },
       "metrics": {
         "clean_signal_target_rows": 117,
@@ -2046,6 +2048,78 @@
         "train_median_rmse_gain_pct": 21.15042999136228,
         "holdout_median_mae_gain_pct": -4.8194134605455785,
         "holdout_median_rmse_gain_pct": 3.3928427185798586,
+        "baseline_beaten_on_holdout": 0,
+        "coverage_sufficient_for_promotion": 0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Bounded routed clean-source RAW SR teacher probe using a NAF-like residual pixelshuffle model plus gradient/detail loss with x2d_100mp_dng held out. It fails to beat nearest same-color 2x on held-out X2D, so another local architecture/detail-loss sweep is rejected.",
+      "dashboard": "artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702/index.html",
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702/premium_still_sr_clean_source_pair_model.pt"
+      ],
+      "hashes": {
+        "train_receipt_sha256": "47fecf0b55a2282ce965bc5ac5929b2cf5c168730348f6f99765cd0f3e88cdcb",
+        "dashboard_sha256": "0159756c9d009e0d72030e6f1f90d9bb6a1f470d9915a44a5a75fc5465ed7e09",
+        "checkpoint_sha256": "b50d3f76ca917ba494d1481928c0c1ffc0cb30887bb2f1d3204f86e1fd38820a"
+      },
+      "metrics": {
+        "steps": 500,
+        "train_tile_count": 1184,
+        "holdout_tile_count": 16,
+        "gradient_loss_weight": 0.1,
+        "train_median_mae_gain_pct": -0.2609444405577125,
+        "train_median_rmse_gain_pct": 4.875332920401684,
+        "holdout_median_mae_gain_pct": -0.3543438956758628,
+        "holdout_median_rmse_gain_pct": -0.3570300906837981,
+        "baseline_beaten_on_holdout": 0,
+        "coverage_sufficient_for_promotion": 0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Bounded routed clean-source RAW SR teacher probe using a NAF-like residual pixelshuffle model plus gradient/detail loss with z8_z8z_1330 held out. It regresses held-out Z8 MAE and RMSE, so this local teacher/objective is rejected.",
+      "dashboard": "artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702/index.html",
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702/premium_still_sr_clean_source_pair_model.pt"
+      ],
+      "hashes": {
+        "train_receipt_sha256": "d7bae678f565ddb2b0b9c798ec35d85293948973660b91544e2e9d3c4146c9b2",
+        "dashboard_sha256": "384190890479e0fac9b5c5b2f316e506595cabae595d6dfdce42adefae30c192",
+        "checkpoint_sha256": "d904f1ea020b954bb77844199fc06cb8b8687cfe7bc12c37a94faf11febd726a"
+      },
+      "metrics": {
+        "steps": 500,
+        "train_tile_count": 1184,
+        "holdout_tile_count": 16,
+        "gradient_loss_weight": 0.1,
+        "train_median_mae_gain_pct": -3.266660947918912,
+        "train_median_rmse_gain_pct": 2.7804484948906154,
+        "holdout_median_mae_gain_pct": -10.085299768982306,
+        "holdout_median_rmse_gain_pct": -4.938226711293112,
         "baseline_beaten_on_holdout": 0,
         "coverage_sufficient_for_promotion": 0,
         "production_ready": 0

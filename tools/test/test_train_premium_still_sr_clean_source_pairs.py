@@ -80,10 +80,14 @@ def main() -> int:
                 "2",
                 "--low-crop",
                 "8",
+                "--model-arch",
+                "naf_residual_pixelshuffle",
                 "--width",
                 "8",
                 "--depth",
                 "3",
+                "--gradient-loss-weight",
+                "0.1",
                 "--eval-every",
                 "1",
             ],
@@ -100,6 +104,9 @@ def main() -> int:
         assert receipt["schema"] == "gpr.premium_still_sr_clean_source_pair_model.v1"
         assert receipt["pair_meta"]["input_shape"] == [4, 4, 8, 8]
         assert receipt["pair_meta"]["target_shape"] == [4, 4, 16, 16]
+        assert receipt["config"]["model_arch"] == "naf_residual_pixelshuffle"
+        assert receipt["config"]["gradient_loss_weight"] == 0.1
+        assert "gradient_l1" in receipt["history"][0]
         assert receipt["eval"]["train"]["tile_count"] == 2
         assert receipt["eval"]["holdout"]["tile_count"] == 2
         assert receipt["promotion"]["coverage_sufficient_for_promotion"] is False

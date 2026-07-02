@@ -125,6 +125,66 @@ class ResidualPixelShuffleSR(nn.Module):
         return torch.clamp(base + residual * self.residual_scale, 0.0, 1.0)
 
 
+class NAFLikeBlock(nn.Module):
+    """Small restoration block with depthwise mixing and channel attention."""
+
+    def __init__(self, channels: int) -> None:
+        super().__init__()
+        hidden = channels * 2
+        self.expand = nn.Conv2d(channels, hidden, 1)
+        self.depthwise = nn.Conv2d(hidden, hidden, 3, padding=1, groups=hidden)
+        self.project = nn.Conv2d(channels, channels, 1)
+        self.attn = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(channels, max(4, channels // 4), 1),
+            nn.GELU(),
+            nn.Conv2d(max(4, channels // 4), channels, 1),
+            nn.Sigmoid(),
+        )
+        self.ffn = nn.Sequential(
+            nn.Conv2d(channels, hidden, 1),
+            nn.GELU(),
+            nn.Conv2d(hidden, channels, 1),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        y = self.depthwise(self.expand(x))
+        a, b = torch.chunk(y, 2, dim=1)
+        y = self.project(a * torch.sigmoid(b))
+        x = x + y * self.attn(y)
+        return x + self.ffn(x) * 0.1
+
+
+class NAFResidualPixelShuffleSR(nn.Module):
+    def __init__(self, width: int, depth: int, residual_scale: float) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        self.stem = nn.Conv2d(4, width, 3, padding=1)
+        self.blocks = nn.Sequential(*[NAFLikeBlock(width) for _ in range(max(1, depth))])
+        self.out = nn.Conv2d(width, 16, 3, padding=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        base = torch.repeat_interleave(torch.repeat_interleave(x, 2, dim=2), 2, dim=3)
+        residual = F.pixel_shuffle(self.out(self.blocks(self.stem(x))), 2)
+        return torch.clamp(base + residual * self.residual_scale, 0.0, 1.0)
+
+
+def build_model(model_arch: str, width: int, depth: int, residual_scale: float) -> nn.Module:
+    if model_arch == "residual_pixelshuffle":
+        return ResidualPixelShuffleSR(width, depth, residual_scale)
+    if model_arch == "naf_residual_pixelshuffle":
+        return NAFResidualPixelShuffleSR(width, depth, residual_scale)
+    raise ValueError(f"unknown model architecture: {model_arch}")
+
+
+def gradient_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    pred_dx = pred[:, :, :, 1:] - pred[:, :, :, :-1]
+    targ_dx = target[:, :, :, 1:] - target[:, :, :, :-1]
+    pred_dy = pred[:, :, 1:, :] - pred[:, :, :-1, :]
+    targ_dy = target[:, :, 1:, :] - target[:, :, :-1, :]
+    return F.l1_loss(pred_dx, targ_dx) + F.l1_loss(pred_dy, targ_dy)
+
+
 def tile_metrics(pred: np.ndarray, target: np.ndarray, baseline: np.ndarray) -> dict[str, float]:
     pred_counts = pred.astype(np.float64) * RAW_SCALE
     target_counts = target.astype(np.float64) * RAW_SCALE
@@ -240,9 +300,15 @@ def main() -> int:
     ap.add_argument("--steps", type=int, default=1000)
     ap.add_argument("--batch", type=int, default=4)
     ap.add_argument("--low-crop", type=int, default=48)
+    ap.add_argument(
+        "--model-arch",
+        choices=["residual_pixelshuffle", "naf_residual_pixelshuffle"],
+        default="residual_pixelshuffle",
+    )
     ap.add_argument("--width", type=int, default=32)
     ap.add_argument("--depth", type=int, default=5)
     ap.add_argument("--residual-scale", type=float, default=0.25)
+    ap.add_argument("--gradient-loss-weight", type=float, default=0.0)
     ap.add_argument("--lr", type=float, default=1.0e-3)
     ap.add_argument("--weight-decay", type=float, default=1.0e-4)
     ap.add_argument("--seed", type=int, default=20260702)
@@ -253,19 +319,28 @@ def main() -> int:
     rng = random.Random(args.seed)
     torch.manual_seed(args.seed)
     dataset = CleanSourcePairs(args.pairs, parse_image_list(args.holdout_image))
-    model = ResidualPixelShuffleSR(args.width, args.depth, args.residual_scale).to(DEVICE)
+    model = build_model(args.model_arch, args.width, args.depth, args.residual_scale).to(DEVICE)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     history: list[dict[str, Any]] = []
     t0 = time.time()
     for step in range(1, args.steps + 1):
         x, y = dataset.batch(args.batch, args.low_crop, rng)
         pred = model(x)
-        loss = F.l1_loss(pred, y)
+        pixel_l1 = F.l1_loss(pred, y)
+        detail_l1 = gradient_loss(pred, y) if args.gradient_loss_weight > 0.0 else pred.new_tensor(0.0)
+        loss = pixel_l1 + float(args.gradient_loss_weight) * detail_l1
         opt.zero_grad(set_to_none=True)
         loss.backward()
         opt.step()
         if step == 1 or step == args.steps or (args.eval_every > 0 and step % args.eval_every == 0):
-            history.append({"step": step, "train_l1": float(loss.detach().cpu().item())})
+            history.append(
+                {
+                    "step": step,
+                    "train_loss": float(loss.detach().cpu().item()),
+                    "pixel_l1": float(pixel_l1.detach().cpu().item()),
+                    "gradient_l1": float(detail_l1.detach().cpu().item()),
+                }
+            )
 
     train_eval = evaluate(model, dataset, dataset.train_idx, "train")
     holdout_eval = evaluate(model, dataset, dataset.eval_idx, "holdout")
@@ -275,10 +350,11 @@ def main() -> int:
             "schema": SCHEMA,
             "state_dict": model.state_dict(),
             "config": {
-                "architecture": "residual_pixelshuffle_sr",
+                "architecture": args.model_arch,
                 "width": args.width,
                 "depth": args.depth,
                 "residual_scale": args.residual_scale,
+                "gradient_loss_weight": args.gradient_loss_weight,
                 "raw_scale": RAW_SCALE,
             },
             "pair_npz_sha256": sha256_file(args.pairs),
@@ -301,9 +377,11 @@ def main() -> int:
             "steps": args.steps,
             "batch": args.batch,
             "low_crop": args.low_crop,
+            "model_arch": args.model_arch,
             "width": args.width,
             "depth": args.depth,
             "residual_scale": args.residual_scale,
+            "gradient_loss_weight": args.gradient_loss_weight,
             "lr": args.lr,
             "weight_decay": args.weight_decay,
             "seed": args.seed,
