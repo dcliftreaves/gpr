@@ -205,8 +205,10 @@ python3 tools/check_darkframe_source_provenance.py \
 ```
 
 The checker rejects placeholder values, missing source/extracted/receipt
-hashes, duplicate extracted raw hashes, missing `no_scene_signal=true`, and
-local file/hash mismatches when `--require-existing-files` is set.
+hashes, duplicate extracted raw or original-source hashes, mixed
+camera/ISO/CFA/dimension/bit-depth/level metadata, missing
+`no_scene_signal=true`, and local file/hash mismatches when
+`--require-existing-files` is set.
 
 After extracting the promoted frames, carry the same provenance into the final
 noise sidecar builder with:

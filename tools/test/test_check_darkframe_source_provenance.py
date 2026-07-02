@@ -55,6 +55,17 @@ def main() -> int:
             )
         manifest = {
             "schema": "gpr.darkframe_source_provenance_manifest.v1",
+            "camera": {
+                "make": "Fixture",
+                "model": "Strict Darkframe",
+                "iso": 1600,
+                "width": 16,
+                "height": 12,
+                "bit_depth": 14,
+                "black_level": 0,
+                "white_level": 16383,
+                "cfa_phase": "RGGB",
+            },
             "frames": frames,
         }
         manifest_path = root / "manifest.json"
@@ -66,6 +77,8 @@ def main() -> int:
         )
         assert audit["production_ready"] is True
         assert audit["ready_frame_count"] == 4
+        assert audit["frames"][0]["metadata"]["iso"] == 1600
+        assert audit["frames"][0]["metadata"]["cfa_phase"] == "RGGB"
         subprocess.run(
             [
                 sys.executable,
@@ -83,12 +96,16 @@ def main() -> int:
         bad = json.loads(json.dumps(manifest))
         bad["frames"][0]["no_scene_signal"] = False
         bad["frames"][1]["extract_receipt_sha256"] = "<64_hex_extract_receipt_sha256>"
+        bad["frames"][2]["iso"] = 3200
+        bad["frames"][3]["original_sha256"] = bad["frames"][2]["original_sha256"]
         bad_path = root / "bad.json"
         bad_path.write_text(json.dumps(bad), encoding="utf-8")
         bad_audit = module.validate_manifest(bad, bad_path)
         assert bad_audit["production_ready"] is False
         assert any("no_scene_signal" in item for item in bad_audit["failures"])
         assert any("extract_receipt_sha256" in item for item in bad_audit["failures"])
+        assert any("duplicate original source sha256" in item for item in bad_audit["failures"])
+        assert any("all frames must share one camera/ISO/CFA" in item for item in bad_audit["failures"])
         proc = subprocess.run([sys.executable, str(TOOL), str(bad_path)], check=False)
         assert proc.returncode == 1
     print("test_check_darkframe_source_provenance: PASS")

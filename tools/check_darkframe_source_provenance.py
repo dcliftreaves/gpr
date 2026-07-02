@@ -17,6 +17,18 @@ ACCEPTED_MANIFEST_SCHEMAS = {
     "gpr.darkframe_raw_source_provenance.v1",
 }
 SHA_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+VALID_CFA_PHASES = {"RGGB", "GRBG", "GBRG", "BGGR"}
+METADATA_FIELDS = (
+    "make",
+    "model",
+    "iso",
+    "width",
+    "height",
+    "bit_depth",
+    "black_level",
+    "white_level",
+    "cfa_phase",
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -51,7 +63,7 @@ def sha256_file(path: Path) -> str:
 
 
 def non_placeholder(value: Any) -> str:
-    text = str(value or "").strip()
+    text = "" if value is None else str(value).strip()
     if not text or text.startswith("<"):
         return ""
     return text
@@ -75,6 +87,77 @@ def first_sha(row: dict[str, Any], keys: tuple[str, ...]) -> str:
         if valid_sha(value):
             return value
     return ""
+
+
+def manifest_camera_value(manifest: dict[str, Any], key: str) -> Any:
+    for container_key in ("camera", "metadata", "grouping"):
+        container = manifest.get(container_key)
+        if isinstance(container, dict) and key in container:
+            return container.get(key)
+    return None
+
+
+def metadata_value(row: dict[str, Any], manifest: dict[str, Any], key: str) -> Any:
+    aliases = {
+        "make": ("make", "camera_make"),
+        "model": ("model", "camera_model"),
+        "bit_depth": ("bit_depth", "bits"),
+        "cfa_phase": ("cfa_phase", "cfa", "cfa_pattern"),
+    }.get(key, (key,))
+    for alias in aliases:
+        if alias in row:
+            return row.get(alias)
+    return manifest_camera_value(manifest, key)
+
+
+def normalized_metadata_value(value: Any, key: str, failures: list[str]) -> Any:
+    text = non_placeholder(value)
+    if not text:
+        failures.append(f"{key} metadata is missing or still a placeholder")
+        return None
+    if key in {"make", "model"}:
+        return text
+    if key == "cfa_phase":
+        phase = text.upper()
+        if phase not in VALID_CFA_PHASES:
+            failures.append(f"cfa_phase must be one of {sorted(VALID_CFA_PHASES)}, got {text!r}")
+            return None
+        return phase
+    if key in {"iso", "width", "height", "bit_depth"}:
+        try:
+            number = int(text)
+        except ValueError:
+            failures.append(f"{key} metadata must be an integer")
+            return None
+        if number <= 0:
+            failures.append(f"{key} metadata must be positive")
+            return None
+        return number
+    if key in {"black_level", "white_level"}:
+        try:
+            number_f = float(text)
+        except ValueError:
+            failures.append(f"{key} metadata must be numeric")
+            return None
+        if number_f < 0:
+            failures.append(f"{key} metadata must be nonnegative")
+            return None
+        return number_f
+    return text
+
+
+def frame_metadata(row: dict[str, Any], manifest: dict[str, Any], failures: list[str]) -> dict[str, Any]:
+    metadata = {
+        key: normalized_metadata_value(metadata_value(row, manifest, key), key, failures)
+        for key in METADATA_FIELDS
+    }
+    if (
+        metadata.get("black_level") is not None
+        and metadata.get("white_level") is not None
+        and float(metadata["white_level"]) <= float(metadata["black_level"])
+    ):
+        failures.append("white_level metadata must be greater than black_level metadata")
+    return metadata
 
 
 def resolve_path(text: str, manifest_path: Path, path_root: Path | None) -> Path:
@@ -106,6 +189,7 @@ def check_file_hash(
 def validate_frame(
     row: dict[str, Any],
     index: int,
+    manifest: dict[str, Any],
     manifest_path: Path,
     path_root: Path | None,
     require_existing_files: bool,
@@ -136,6 +220,7 @@ def validate_frame(
         failures.append("no_scene_signal must be true")
     if not capture_setup:
         failures.append("capture_setup/proof is missing or still a placeholder")
+    metadata = frame_metadata(row, manifest, failures)
 
     if require_existing_files:
         if raw_path and raw_sha:
@@ -155,6 +240,7 @@ def validate_frame(
         "extract_receipt_sha256": extract_receipt_sha or None,
         "no_scene_signal": row.get("no_scene_signal") is True,
         "capture_setup_present": bool(capture_setup),
+        "metadata": metadata,
         "ready": not failures,
         "failures": failures,
     }
@@ -183,6 +269,7 @@ def validate_manifest(
         validate_frame(
             row,
             idx,
+            manifest,
             manifest_path,
             path_root,
             require_existing_files,
@@ -195,6 +282,18 @@ def validate_manifest(
     duplicate_hashes = sorted({sha for sha in raw_hashes if raw_hashes.count(sha) > 1})
     if duplicate_hashes:
         failures.append(f"duplicate extracted raw sha256 value(s): {', '.join(duplicate_hashes)}")
+    original_hashes = [str(row.get("original_sha256")) for row in rows if row.get("original_sha256")]
+    duplicate_original_hashes = sorted({sha for sha in original_hashes if original_hashes.count(sha) > 1})
+    if duplicate_original_hashes:
+        failures.append(f"duplicate original source sha256 value(s): {', '.join(duplicate_original_hashes)}")
+    complete_metadata = [
+        tuple(row["metadata"].get(key) for key in METADATA_FIELDS)
+        for row in rows
+        if all(row["metadata"].get(key) is not None for key in METADATA_FIELDS)
+    ]
+    unique_metadata = sorted(set(complete_metadata))
+    if len(unique_metadata) > 1:
+        failures.append("all frames must share one camera/ISO/CFA/dimensions/bit-depth/level metadata key")
     if len(ready_rows) < minimum_count:
         failures.append(f"ready frame count is {len(ready_rows)}, need {minimum_count}")
     if not frames:

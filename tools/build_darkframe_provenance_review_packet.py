@@ -83,6 +83,33 @@ def provenance_template_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
     return template
 
 
+def template_camera_metadata(row: dict[str, Any]) -> dict[str, Any]:
+    camera = str(row.get("camera") or "").strip()
+    existing_group = str(row.get("existing_group") or "").strip()
+    parts = [part.strip() for part in existing_group.split("|")]
+    metadata = {
+        "make": "<camera_make>",
+        "model": "<camera_model>",
+        "iso": "<integer_iso>",
+        "width": "<raw_bayer_width>",
+        "height": "<raw_bayer_height>",
+        "bit_depth": "<source_bit_depth>",
+        "black_level": "<raw_black_level>",
+        "white_level": "<raw_white_level>",
+        "cfa_phase": "<RGGB_GRBG_GBRG_or_BGGR>",
+    }
+    if len(parts) >= 4:
+        metadata["make"] = parts[0] or metadata["make"]
+        metadata["model"] = parts[1] or metadata["model"]
+        if parts[2].upper().startswith("ISO"):
+            metadata["iso"] = parts[2][3:] or metadata["iso"]
+        if parts[3]:
+            metadata["cfa_phase"] = parts[3]
+    elif camera:
+        metadata["model"] = camera
+    return metadata
+
+
 def slug(value: Any) -> str:
     text = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value or "").strip())
     text = text.strip("._-")
@@ -118,6 +145,7 @@ def review_group(row: dict[str, Any]) -> dict[str, Any]:
         "candidates": candidates,
         "provenance_manifest_template": {
             "schema": "gpr.darkframe_source_provenance_manifest.v1",
+            "camera": template_camera_metadata(row),
             "frames": provenance_template_rows(candidates),
         },
     }

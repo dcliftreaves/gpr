@@ -57,6 +57,11 @@ def main() -> int:
         assert group["source_provenance_manifest_ready"] is False
         assert group["candidates"][0]["original_sha256"] == module.sha256_file(cand0)
         assert group["provenance_manifest_template"]["schema"] == "gpr.darkframe_source_provenance_manifest.v1"
+        assert group["provenance_manifest_template"]["camera"]["make"] == "GoPro"
+        assert group["provenance_manifest_template"]["camera"]["model"] == "MISSION 1"
+        assert group["provenance_manifest_template"]["camera"]["iso"] == "232"
+        assert group["provenance_manifest_template"]["camera"]["cfa_phase"] == "RGGB"
+        assert group["provenance_manifest_template"]["camera"]["width"] == "<raw_bayer_width>"
         assert group["provenance_manifest_template"]["frames"][0]["no_scene_signal"].startswith("<set true")
         html = module.render_html(packet)
         assert "Darkframe Provenance Review Packet" in html
@@ -77,6 +82,8 @@ def main() -> int:
         assert template_path.is_file()
         template = json.loads(template_path.read_text(encoding="utf-8"))
         assert template["schema"] == "gpr.darkframe_source_provenance_manifest.v1"
+        assert template["camera"]["make"] == "GoPro"
+        assert template["camera"]["width"] == "<raw_bayer_width>"
         assert template["frames"][0]["original_sha256"] == module.sha256_file(cand0)
         assert template["frames"][0]["extract_receipt_sha256"] == "<64_hex_extract_receipt_sha256>"
         assert template_rel in html_path.read_text(encoding="utf-8")

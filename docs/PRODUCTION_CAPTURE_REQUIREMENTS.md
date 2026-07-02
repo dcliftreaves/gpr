@@ -107,7 +107,8 @@ the original `source_path`/`sha256`, `extracted_bayer_path` and
 `capture_setup` or `proof`. Before building a production noise sidecar, run
 `python3 tools/check_darkframe_source_provenance.py <darkframe_raw_source_provenance.json> --minimum-count 4 --require-existing-files`
 against the filled extraction-provenance manifest; it rejects placeholders,
-missing hashes, duplicate extracted raw hashes, missing no-scene proof, and
+missing hashes, duplicate extracted raw or original-source hashes, mixed
+camera/ISO/CFA/dimension/bit-depth/level metadata, missing no-scene proof, and
 file/hash mismatches. The production submission must include that audit as
 `source_provenance_audit_path`, `source_provenance_audit_sha256`,
 `source_provenance_audit_schema=gpr.darkframe_source_provenance_audit.v1`,

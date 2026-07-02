@@ -50,8 +50,16 @@ status by itself.
    | `original_path` | original DNG/GPR source path |
    | `original_sha256` | SHA-256 of the original source |
    | `extract_receipt` | extraction receipt path |
+   | `extract_receipt_sha256` | SHA-256 of the extraction receipt |
+   | `make`, `model`, `iso` | camera and ISO metadata, either per row or in the manifest-level `camera` object |
+   | `width`, `height`, `bit_depth` | extracted Bayer dimensions and bit depth, either per row or in the manifest-level `camera` object |
+   | `black_level`, `white_level`, `cfa_phase` | raw level metadata and one of `RGGB`, `GRBG`, `GBRG`, or `BGGR`, either per row or in the manifest-level `camera` object |
    | `no_scene_signal` | `true` |
    | `capture_setup` or `proof` | non-empty proof that the frame is a darkframe or equivalent no-scene-signal capture |
+
+   The provenance checker rejects mixed camera/ISO/CFA/dimension/bit-depth/level
+   metadata and duplicate original-source hashes. Four rows must prove four
+   distinct original captures under one matching metadata key.
 
 5. Validate the provenance before building any sidecar:
 
@@ -142,4 +150,3 @@ when all of these are true:
 | Raw-stills capture request | `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html` |
 | Current camera-noise coverage | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/index.html` |
 | Runtime policy | `/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_runtime_policy_20260630/index.html` |
-
