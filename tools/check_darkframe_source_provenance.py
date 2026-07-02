@@ -220,6 +220,8 @@ def validate_frame(
         failures.append("no_scene_signal must be true")
     if not capture_setup:
         failures.append("capture_setup/proof is missing or still a placeholder")
+    if row.get("linear_raw") is True:
+        failures.append("linear_raw must be false; darkframe provenance requires sensor CFA raw")
     metadata = frame_metadata(row, manifest, failures)
 
     if require_existing_files:
@@ -240,6 +242,7 @@ def validate_frame(
         "extract_receipt_sha256": extract_receipt_sha or None,
         "no_scene_signal": row.get("no_scene_signal") is True,
         "capture_setup_present": bool(capture_setup),
+        "linear_raw": row.get("linear_raw") is True,
         "metadata": metadata,
         "ready": not failures,
         "failures": failures,

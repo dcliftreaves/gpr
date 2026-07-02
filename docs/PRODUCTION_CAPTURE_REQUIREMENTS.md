@@ -111,7 +111,8 @@ the original `source_path`/`sha256`, `extracted_bayer_path` and
 against the filled extraction-provenance manifest; it rejects placeholders,
 missing hashes, duplicate extracted raw or original-source hashes, mixed
 camera/ISO/CFA/dimension/bit-depth/level metadata, missing no-scene proof, and
-file/hash mismatches. The production submission must include that audit as
+Linear Raw rows, plus file/hash mismatches. The production submission must
+include that audit as
 `source_provenance_audit_path`, `source_provenance_audit_sha256`,
 `source_provenance_audit_schema=gpr.darkframe_source_provenance_audit.v1`,
 `source_provenance_audit_ready_frame_count>=4`, and

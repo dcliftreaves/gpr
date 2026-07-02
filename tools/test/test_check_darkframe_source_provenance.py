@@ -95,6 +95,7 @@ def main() -> int:
 
         bad = json.loads(json.dumps(manifest))
         bad["frames"][0]["no_scene_signal"] = False
+        bad["frames"][0]["linear_raw"] = True
         bad["frames"][1]["extract_receipt_sha256"] = "<64_hex_extract_receipt_sha256>"
         bad["frames"][2]["iso"] = 3200
         bad["frames"][3]["original_sha256"] = bad["frames"][2]["original_sha256"]
@@ -103,6 +104,7 @@ def main() -> int:
         bad_audit = module.validate_manifest(bad, bad_path)
         assert bad_audit["production_ready"] is False
         assert any("no_scene_signal" in item for item in bad_audit["failures"])
+        assert any("linear_raw must be false" in item for item in bad_audit["failures"])
         assert any("extract_receipt_sha256" in item for item in bad_audit["failures"])
         assert any("duplicate original source sha256" in item for item in bad_audit["failures"])
         assert any("all frames must share one camera/ISO/CFA" in item for item in bad_audit["failures"])
