@@ -547,6 +547,8 @@ pillar.
 | Premium still-SR routed NAF/detail Z8 rejection checkpoint | `artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702/premium_still_sr_clean_source_pair_model.pt` | `d904f1ea020b954bb77844199fc06cb8b8687cfe7bc12c37a94faf11febd726a` |
 | Premium still-SR noise-policy gate receipt | `artifacts/premium_still_sr_noise_policy_gate_20260702/premium_still_sr_noise_policy_gate.json` | `63805263c173a37434fc8f79ef1abdf2e3c292d98a396766370790e038a64475` |
 | Premium still-SR noise-policy gate dashboard | `artifacts/premium_still_sr_noise_policy_gate_20260702/index.html` | `d90b74c5d864b13b51ea429955e1776be39cb040254e3ff71407449f62c5044d` |
+| Premium still-SR promotion gate receipt | `artifacts/premium_still_sr_promotion_gate_20260702/premium_still_sr_promotion_gate.json` | `6a4b74bf24d59b79b08b2873bc3ab330070a4024b0c9eb091d8d373db25634d7` |
+| Premium still-SR promotion gate dashboard | `artifacts/premium_still_sr_promotion_gate_20260702/index.html` | `c3ba02586a9aaa34c11b130f0f52b91b3aa15a6c4bb05a0251cf6d7396c46a0b` |
 | Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `3d95db1c9c468034e11ef255d3f3606fb5546e4a77b0d7eb49b8b82d11aaad13` |
 | Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `ba0ddcc00db1f9b22d2e3c138051cbd375a6a5c6b78f87f9ab623e7ade062968` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |

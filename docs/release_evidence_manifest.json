@@ -76,6 +76,7 @@
           "premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702",
           "premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702",
           "premium_still_sr_noise_policy_gate_20260702",
+          "premium_still_sr_promotion_gate_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -2156,6 +2157,39 @@
         "holdout_mae_gain_pct_min": 15.0,
         "holdout_rmse_gain_pct_min": 15.0,
         "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_promotion_gate_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Product-level promotion boundary for premium still-SR. It consolidates the 82-receipt experiment scoreboard, clean-signal/noise gate, formal still-SR gate receipt, and next-experiment contract into one current decision: safe to keep diagnostic, not production-promoted.",
+      "dashboard": "artifacts/premium_still_sr_promotion_gate_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_promotion_gate_20260702/premium_still_sr_promotion_gate.json",
+        "artifacts/premium_still_sr_promotion_gate_20260702/index.html"
+      ],
+      "hashes": {
+        "promotion_gate_receipt_sha256": "6a4b74bf24d59b79b08b2873bc3ab330070a4024b0c9eb091d8d373db25634d7",
+        "dashboard_sha256": "c3ba02586a9aaa34c11b130f0f52b91b3aa15a6c4bb05a0251cf6d7396c46a0b"
+      },
+      "metrics": {
+        "promotion_safe": 1,
+        "production_ready": 0,
+        "scoreboard_receipt_count": 82,
+        "runtime_safe_candidate_count": 82,
+        "promotable_candidate_count": 0,
+        "best_runtime_safe_holdout_mae_gain_pct": 4.031355420019811,
+        "best_runtime_safe_holdout_rmse_gain_pct": 3.753504206299621,
+        "clean_signal_policy_pass": 1,
+        "model_policy_pass_count": 0,
+        "requirement_status_open": 1
       }
     },
     {

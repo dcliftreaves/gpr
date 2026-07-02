@@ -190,6 +190,7 @@ else
                 python3 tools/test/test_build_premium_still_sr_hf_residual_targets.py && \
                 python3 tools/test/test_audit_premium_still_sr_noise_clean_sweep.py && \
                 python3 tools/test/test_check_premium_still_sr_noise_policy.py && \
+                python3 tools/test/test_check_premium_still_sr_promotion_gate.py && \
                 python3 tools/test/test_audit_premium_still_sr_raw_cfa_residual.py && \
                 python3 tools/test/test_audit_premium_still_sr_frequency_filter.py && \
                 python3 tools/test/test_audit_premium_still_sr_raw_target_snr.py && \

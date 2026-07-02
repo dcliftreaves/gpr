@@ -150,6 +150,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702",
                 "premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702",
                 "premium_still_sr_noise_policy_gate_20260702",
+                "premium_still_sr_promotion_gate_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
@@ -1055,6 +1056,48 @@ def require_dashboard_contract(
         for token in ("82-receipt experiment scoreboard", "82 runtime-safe"):
             if token not in readme_plain:
                 failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
+
+    if entry_id == "premium_still_sr_promotion_gate_20260702":
+        if entry.get("status") != "experimental-blocker":
+            failures.append(f"{entry_id}: promotion gate must remain experimental-blocker until promoted")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: premium still-SR promotion gate needs metrics")
+        else:
+            expected_metrics = {
+                "promotion_safe": 1,
+                "production_ready": 0,
+                "scoreboard_receipt_count": 82,
+                "runtime_safe_candidate_count": 82,
+                "promotable_candidate_count": 0,
+                "clean_signal_policy_pass": 1,
+                "model_policy_pass_count": 0,
+                "requirement_status_open": 1,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+            try:
+                mae = float(metrics.get("best_runtime_safe_holdout_mae_gain_pct"))
+                rmse = float(metrics.get("best_runtime_safe_holdout_rmse_gain_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: best runtime-safe MAE/RMSE metrics must be numeric")
+            else:
+                if abs(mae - 4.031355420019811) > 1e-9:
+                    failures.append(f"{entry_id}: best runtime-safe MAE gain drifted")
+                if abs(rmse - 3.753504206299621) > 1e-9:
+                    failures.append(f"{entry_id}: best runtime-safe RMSE gain drifted")
+        hashes = entry.get("hashes")
+        if not isinstance(hashes, dict):
+            failures.append(f"{entry_id}: premium still-SR promotion gate needs hashes")
+        else:
+            expected_hashes = {
+                "promotion_gate_receipt_sha256": "6a4b74bf24d59b79b08b2873bc3ab330070a4024b0c9eb091d8d373db25634d7",
+                "dashboard_sha256": "c3ba02586a9aaa34c11b130f0f52b91b3aa15a6c4bb05a0251cf6d7396c46a0b",
+            }
+            for key, expected in expected_hashes.items():
+                if hashes.get(key) != expected:
+                    failures.append(f"{entry_id}: hash {key} must stay {expected}")
 
     require_receipt_refs(entry_id, entry, tracked, failures)
 

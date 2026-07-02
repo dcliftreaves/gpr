@@ -108,6 +108,29 @@ production gate. A future row must still pass full-frame raw/editor-latitude
 review before the premium still-SR pillar can move from diagnostic to
 production-ready.
 
+## Promotion Boundary Gate
+
+The current product-level promotion boundary is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_20260702/index.html
+```
+
+Build/check it with:
+
+```sh
+python3 tools/check_premium_still_sr_promotion_gate.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_20260702 \
+  --require-promotion-safe
+```
+
+It consolidates the experiment scoreboard, the clean-signal/noise-policy gate,
+the formal still-SR gate receipt, and the current next-experiment contract. The
+current result is `promotion_safe=true` and `production_ready=false`: the repo
+is safe to say the premium still-SR lane is active and diagnostic, but it must
+not claim a promoted 50 MP / 100 MP still-SR product until a candidate clears
+the full still gate.
+
 The first full 12k-step X2D scene-holdout window-attention teacher run is now
 also indexed:
 
