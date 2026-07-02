@@ -561,6 +561,22 @@ def baseline_worsening_loss(pred: torch.Tensor, target: torch.Tensor, baseline: 
     return torch.mean(torch.relu(pred_err - base_err))
 
 
+def masked_mean_abs(diff: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    denom = torch.clamp(mask.sum(), min=1.0)
+    return torch.sum(torch.abs(diff) * mask) / denom
+
+
+def target_detail_mask(
+    target: torch.Tensor,
+    clean_baseline: torch.Tensor,
+    threshold_counts: float,
+) -> torch.Tensor:
+    threshold = max(float(threshold_counts), 0.0) / RAW_SCALE
+    if threshold <= 0.0:
+        return torch.ones_like(target)
+    return (torch.abs(target - clean_baseline) > threshold).to(target.dtype)
+
+
 def degrade_training_input(
     x: torch.Tensor,
     *,
@@ -752,6 +768,28 @@ def main() -> int:
         default=0.0,
         help="penalize unnecessary deviation from same-color 2x interpolation",
     )
+    ap.add_argument(
+        "--detail-mask-threshold-counts",
+        type=float,
+        default=0.0,
+        help=(
+            "training-only target residual threshold in RAW counts; pixels whose "
+            "high-res target is not this far from clean same-color interpolation "
+            "are treated as no-detail/no-op pixels"
+        ),
+    )
+    ap.add_argument(
+        "--detail-mask-loss-weight",
+        type=float,
+        default=0.0,
+        help="extra loss weight on target pixels above the detail residual threshold",
+    )
+    ap.add_argument(
+        "--no-detail-noop-loss-weight",
+        type=float,
+        default=0.0,
+        help="extra loss weight that keeps low-error/no-detail pixels at same-color interpolation",
+    )
     ap.add_argument("--lr", type=float, default=1.0e-3)
     ap.add_argument("--weight-decay", type=float, default=1.0e-4)
     ap.add_argument("--seed", type=int, default=20260702)
@@ -786,6 +824,9 @@ def main() -> int:
         )
         pred = model(degraded_x)
         baseline = nearest_same_color_2x(degraded_x)
+        clean_baseline = nearest_same_color_2x(x)
+        detail_mask = target_detail_mask(y, clean_baseline, args.detail_mask_threshold_counts)
+        no_detail_mask = 1.0 - detail_mask
         pixel_l1 = F.l1_loss(pred, y)
         pixel_loss = charbonnier_loss(pred, y) if args.loss_mode == "charbonnier" else pixel_l1
         detail_l1 = gradient_loss(pred, y) if args.gradient_loss_weight > 0.0 else pred.new_tensor(0.0)
@@ -800,12 +841,24 @@ def main() -> int:
             if args.residual_energy_loss_weight > 0.0
             else pred.new_tensor(0.0)
         )
+        masked_detail_l1 = (
+            masked_mean_abs(pred - y, detail_mask)
+            if args.detail_mask_loss_weight > 0.0
+            else pred.new_tensor(0.0)
+        )
+        no_detail_noop_l1 = (
+            masked_mean_abs(pred - baseline, no_detail_mask)
+            if args.no_detail_noop_loss_weight > 0.0
+            else pred.new_tensor(0.0)
+        )
         loss = (
             pixel_loss
             + float(args.gradient_loss_weight) * detail_l1
             + float(args.laplacian_loss_weight) * lap_l1
             + float(args.baseline_worsening_loss_weight) * worsening_l1
             + float(args.residual_energy_loss_weight) * residual_l1
+            + float(args.detail_mask_loss_weight) * masked_detail_l1
+            + float(args.no_detail_noop_loss_weight) * no_detail_noop_l1
         )
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -821,6 +874,9 @@ def main() -> int:
                     "laplacian_l1": float(lap_l1.detach().cpu().item()),
                     "baseline_worsening_l1": float(worsening_l1.detach().cpu().item()),
                     "residual_energy_l1": float(residual_l1.detach().cpu().item()),
+                    "detail_mask_l1": float(masked_detail_l1.detach().cpu().item()),
+                    "no_detail_noop_l1": float(no_detail_noop_l1.detach().cpu().item()),
+                    "detail_mask_fraction": float(detail_mask.detach().mean().cpu().item()),
                 }
             )
 
@@ -844,6 +900,9 @@ def main() -> int:
                 "train_input_blur_weight": args.train_input_blur_weight,
                 "baseline_worsening_loss_weight": args.baseline_worsening_loss_weight,
                 "residual_energy_loss_weight": args.residual_energy_loss_weight,
+                "detail_mask_threshold_counts": args.detail_mask_threshold_counts,
+                "detail_mask_loss_weight": args.detail_mask_loss_weight,
+                "no_detail_noop_loss_weight": args.no_detail_noop_loss_weight,
                 "raw_scale": RAW_SCALE,
             },
             "pair_npz_sha256": sha256_file(args.pairs),
@@ -878,6 +937,9 @@ def main() -> int:
             "train_input_blur_weight": args.train_input_blur_weight,
             "baseline_worsening_loss_weight": args.baseline_worsening_loss_weight,
             "residual_energy_loss_weight": args.residual_energy_loss_weight,
+            "detail_mask_threshold_counts": args.detail_mask_threshold_counts,
+            "detail_mask_loss_weight": args.detail_mask_loss_weight,
+            "no_detail_noop_loss_weight": args.no_detail_noop_loss_weight,
             "lr": args.lr,
             "weight_decay": args.weight_decay,
             "seed": args.seed,

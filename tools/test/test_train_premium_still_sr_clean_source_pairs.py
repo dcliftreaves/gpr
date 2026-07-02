@@ -54,6 +54,9 @@ def main() -> int:
     assert "window_attention_pixelshuffle" in help_proc.stdout
     assert "frequency_pyramid_pixelshuffle" in help_proc.stdout
     assert "gated_frequency_pyramid_pixelshuffle" in help_proc.stdout
+    assert "--detail-mask-threshold-counts" in help_proc.stdout
+    assert "--detail-mask-loss-weight" in help_proc.stdout
+    assert "--no-detail-noop-loss-weight" in help_proc.stdout
 
     if np is None:
         print("test_train_premium_still_sr_clean_source_pairs: SKIP missing numpy/torch")
@@ -116,6 +119,12 @@ def main() -> int:
                 "0.5",
                 "--train-input-blur-weight",
                 "0.1",
+                "--detail-mask-threshold-counts",
+                "1.0",
+                "--detail-mask-loss-weight",
+                "0.25",
+                "--no-detail-noop-loss-weight",
+                "0.75",
                 "--eval-every",
                 "1",
             ],
@@ -139,9 +148,15 @@ def main() -> int:
         assert receipt["config"]["train_input_noise_std_counts"] == 2.0
         assert receipt["config"]["train_input_gain_jitter_pct"] == 0.5
         assert receipt["config"]["train_input_blur_weight"] == 0.1
+        assert receipt["config"]["detail_mask_threshold_counts"] == 1.0
+        assert receipt["config"]["detail_mask_loss_weight"] == 0.25
+        assert receipt["config"]["no_detail_noop_loss_weight"] == 0.75
         assert "gradient_l1" in receipt["history"][0]
         assert "laplacian_l1" in receipt["history"][0]
         assert "pixel_loss" in receipt["history"][0]
+        assert "detail_mask_l1" in receipt["history"][0]
+        assert "no_detail_noop_l1" in receipt["history"][0]
+        assert "detail_mask_fraction" in receipt["history"][0]
         assert receipt["eval"]["train"]["tile_count"] == 2
         assert receipt["eval"]["holdout"]["tile_count"] == 2
         assert receipt["promotion"]["coverage_sufficient_for_promotion"] is False

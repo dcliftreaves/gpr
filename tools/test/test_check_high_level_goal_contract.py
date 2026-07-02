@@ -56,15 +56,15 @@ def main() -> int:
         )
         paths["docs/BIG_EFFORTS_STATUS.md"].write_text(
             paths["docs/BIG_EFFORTS_STATUS.md"].read_text(encoding="utf-8").replace(
-                "118 runtime-safe rendered-HF, raw-CFA residual,\n"
-                "  clean-signal, clean-source pair, frequency-pyramid, and gated-residual",
+                "124 runtime-safe rendered-HF, raw-CFA residual,\n"
+                "  clean-signal, clean-source pair, frequency-pyramid, gated-residual, and masked-detail",
                 "many runtime-safe rendered-HF, raw-CFA residual,\n"
-                "  clean-signal, clean-source pair, frequency-pyramid, and gated-residual",
+                "  clean-signal, clean-source pair, frequency-pyramid, gated-residual, and masked-detail",
             ),
             encoding="utf-8",
         )
         failures = module.validate(paths)
-        if not failures or not any("118 runtime-safe" in failure for failure in failures):
+        if not failures or not any("124 runtime-safe" in failure for failure in failures):
             print(f"stale premium still-SR scoreboard count did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 

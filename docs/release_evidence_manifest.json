@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no model receipt yet clears the 15% / 15% held-out promotion floor. Frequency-pyramid and gated-residual smokes are blocked before long training; the gated no-op direction greatly reduces Z8 damage but remains at interpolation parity rather than positive held-out recovery.",
+      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no model receipt yet clears the 15% / 15% held-out promotion floor. Frequency-pyramid, gated-residual, and masked-detail/no-op smokes are blocked before long training; the current blocker is a target/source or teacher-objective gap, not more residual threshold tuning.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -99,6 +99,7 @@
           "premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702",
           "premium_still_sr_experiment_scoreboard_frequency_pyramid_20260702",
           "premium_still_sr_gated_residual_smoke_20260702",
+          "premium_still_sr_masked_detail_noop_smoke_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629",
@@ -2231,7 +2232,7 @@
       "id": "premium_still_sr_promotion_gate_20260702",
       "family": "premium_still_sr",
       "status": "experimental-blocker",
-      "purpose": "Product-level promotion boundary for premium still-SR. It now feeds the current 118-receipt blocker evidence, clean-signal/noise gate, formal still-SR gate receipt, and next-experiment contract into one current decision: safe to keep diagnostic, not production-promoted.",
+      "purpose": "Product-level promotion boundary for premium still-SR. It feeds the clean-signal/noise gate, formal still-SR gate receipt, and next-experiment contract into one current decision: safe to keep diagnostic, not production-promoted. The current blocker evidence is the later 124-receipt masked-detail/no-op scoreboard.",
       "dashboard": "artifacts/premium_still_sr_promotion_gate_20260702/index.html",
       "docs": [
         "README.md",
@@ -2419,7 +2420,7 @@
       "id": "premium_still_sr_experiment_scoreboard_window_attention_20260702",
       "family": "premium_still_sr",
       "status": "diagnostic",
-      "purpose": "Historical premium still-SR experiment scoreboard after the window-attention smoke rejection. It scans 99 runtime-safe receipts, records zero promotable rows against the 15 percent / 15 percent promotion threshold, and keeps the older 4.03 percent / 3.75 percent row as the best diagnostic baseline. The current blocker evidence is the gated-residual 118-receipt scoreboard.",
+      "purpose": "Historical premium still-SR experiment scoreboard after the window-attention smoke rejection. It scans 99 runtime-safe receipts, records zero promotable rows against the 15 percent / 15 percent promotion threshold, and keeps the older 4.03 percent / 3.75 percent row as the best diagnostic baseline. Later gated-residual and masked-detail/no-op scoreboards supersede it as blocker evidence.",
       "dashboard": "artifacts/premium_still_sr_experiment_scoreboard_window_attention_20260702/index.html",
       "docs": [
         "README.md",
@@ -2833,6 +2834,63 @@
         "identity_z8_worst_row_mae_recovery_pct": -0.011380055480565317,
         "identity_z8scene_median_mae_recovery_pct": -0.0006588337678938884,
         "identity_z8scene_worst_row_mae_recovery_pct": -0.004268781568468828,
+        "long_run_allowed": 0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_masked_detail_noop_smoke_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Masked-detail/no-op Premium Still/SR target-objective attempt after the gated-residual failure. It proves that thresholding target residual pixels is not enough: cross-camera X2D/Z8 smokes and route-local scene smokes stay below interpolation, so no long run is allowed.",
+      "dashboard": "artifacts/premium_still_sr_masked_detail_noop_smoke_gate_acceptance_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_candidate_preflight_template.py",
+        "tools/check_premium_still_sr_candidate_preflight.py",
+        "tools/check_premium_still_sr_smoke_gate_acceptance.py",
+        "tools/cnn/train_premium_still_sr_clean_source_pairs.py",
+        "tools/test/test_train_premium_still_sr_clean_source_pairs.py",
+        "tools/test/test_build_premium_still_sr_candidate_preflight_template.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_candidate_preflight_masked_detail_noop_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_candidate_preflight_masked_detail_noop_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_candidate_preflight_masked_detail_noop_20260702/index.html",
+        "artifacts/premium_still_sr_masked_detail_noop_x2d_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_masked_detail_noop_z8_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_masked_detail_noop_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json",
+        "artifacts/premium_still_sr_masked_detail_noop_smoke_gate_acceptance_20260702/index.html",
+        "artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json",
+        "artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "01d498a9416f1179c441b905d7d033fd3a568f82eb0ce99d5254ac1413f22393",
+        "preflight_audit_json_sha256": "5bc955b452cfc66828f74a7ae8a7c3a8a23c6d3d2671f5e65e8a8c0d3a7a80b2",
+        "preflight_dashboard_sha256": "0849840fd3eafa4b0cc3abf942fdcf920658a4b20d90000254935bf3b08228b6",
+        "x2d_train_receipt_sha256": "4cd1a0823c79c2627646f4ee7e05e8b06af5a10434eafdf599a44ed61df3b28b",
+        "z8_train_receipt_sha256": "cc0decc7b73628f6c6c1e6608fa91da820bd5bef09615985dd694d1e148e43b5",
+        "smoke_gate_acceptance_json_sha256": "5a8b79497cbd07b7297f16077c9ba44d6c1d784c8bb243e0bf7c795779e17f22",
+        "smoke_gate_dashboard_sha256": "fac75d022722f204fd6afa7b36de78fd8d4f0b28e8ae48813a046d4180d8750b",
+        "scoreboard_json_sha256": "c7dfd28783ae63e550c8bfba02b43dd3eadca64dc8fda56bc0254ba92a67b65f",
+        "scoreboard_dashboard_sha256": "088af7c2693b380af7e2b39eb8b61a3097e3f849c83942d46c87b114be8b2192"
+      },
+      "metrics": {
+        "receipt_count": 124,
+        "runtime_safe_candidate_count": 124,
+        "promotable_candidate_count": 0,
+        "x2d_median_mae_recovery_pct": -0.000016166284221217207,
+        "x2d_worst_row_mae_recovery_pct": -0.004217229249483704,
+        "z8_median_mae_recovery_pct": -0.0011404326756156245,
+        "z8_worst_row_mae_recovery_pct": -0.009009865416027604,
+        "x2d_scene_median_mae_recovery_pct": -0.00046702949446115994,
+        "z8_scene_median_mae_recovery_pct": -0.0016314142197311012,
         "long_run_allowed": 0,
         "production_ready": 0
       }

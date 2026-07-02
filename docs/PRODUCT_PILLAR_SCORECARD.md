@@ -88,7 +88,7 @@ Current interpretation:
 |---|---:|---|
 | Best RAW stills | 92% | Strong for the current tested Bayer surface, now including a real X2D 100MP visual roundtrip audit, real RGGB/GBRG/GRBG/BGGR fixture coverage, and explicit camera-noise coverage; Mission/iPhone darkframe sidecars are still open. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in, handoff package, and GoPro intake audit are strong; real Mission 1 sensor/DMA/storage/display receipts are still required. |
-| Premium still/SR | 60% | Raw-CFA targets, routed Mission/Z8/X2D specialists, rendered EV-stress proxy review, 4/4 editor/latitude coverage, the exact-sidecar-only noise policy, and 118 runtime-safe experiment receipts are in place, but 0 are promotable. The best older runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. Frequency-pyramid is blocked before long training: X2D worst-row MAE is -4.85%, and Z8 median/worst-row MAE are -8.81% / -67.44%. Gated no-op residual reduces Z8 damage to -0.0777% median / -0.9817% worst-row MAE, and stricter identity probes nearly reach interpolation parity, but no current candidate creates positive held-out recovery with nonnegative worst-row behavior. The next pass must change the target/objective so low-error tiles stay exact no-op while high-error tiles get a stronger positive no-REF learning signal. |
+| Premium still/SR | 60% | Raw-CFA targets, routed Mission/Z8/X2D specialists, rendered EV-stress proxy review, 4/4 editor/latitude coverage, the exact-sidecar-only noise policy, and 124 runtime-safe experiment receipts are in place, but 0 are promotable. The best older runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. Frequency-pyramid is blocked before long training: X2D worst-row MAE is -4.85%, and Z8 median/worst-row MAE are -8.81% / -67.44%. Gated no-op residual reduces Z8 damage to -0.0777% median / -0.9817% worst-row MAE, and stricter identity probes nearly reach interpolation parity. Masked-detail/no-op also fails X2D/Z8 and same-camera scene smokes, so no current candidate creates positive held-out recovery with nonnegative worst-row behavior. The next pass must change the target/source or teacher objective so low-error tiles stay exact no-op while high-error tiles get a stronger positive no-REF learning signal. |
 | RAW video reconstruction improvement | 100% | Current 4K cleanup and 8K SR baselines are approved for the offline/post workflow, including continuous 8K no-CNN versus CNN ProRes review media for whole-scene A/B, `.gvid` decode-to-SR, editable DNG/GPR packaging, 2K/8K ProRes review, Mission metadata-transplant receipts, 42-frame full-sequence `.gvid` packaging, objective visual-review, manual visual signoff, and release/registry receipts. The retained research lineage includes `psf_gradient_focus_from_detail_s400_fw6_gw12_s300` and `mission1_native12_8k_sr_coord_detail_psf_focus_step0075_v1`. Controlled high/low PSF pairs, native kernel measurement, and PSF-conditioned replacement training are preserved as optional research evidence, but no longer block shipping the approved current raw-video SR workflow. |
 
 The current real X2D 100MP still audit lives at
@@ -297,17 +297,18 @@ track, while explicitly forbidding production promotion from the current
 unstable native Mission 1 kernel or partial historical SR rows.
 
 The current premium still-SR experiment scoreboard lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_gated_residual_20260702/index.html`.
-It now ranks 118 runtime-safe rendered-HF, raw-CFA residual, clean-signal,
-clean-source pair, frequency-pyramid, and gated-residual training receipts and
-records zero promotable rows. The best older runtime-safe row reaches 4.03
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/index.html`.
+It now ranks 124 runtime-safe rendered-HF, raw-CFA residual, clean-signal,
+clean-source pair, frequency-pyramid, gated-residual, and masked-detail
+training receipts and records zero promotable rows. The best older runtime-safe row reaches 4.03
 percent held-out MAE recovery and 3.75 percent held-out RMSE recovery against
 the 15 percent / 15 percent promotion threshold. The latest frequency-pyramid
 branch is blocked by X2D worst-row MAE and severe Z8 median/worst-row
 regression, while the gated no-op residual branch reduces Z8 damage but
 converges toward interpolation parity instead of positive held-out recovery.
-Restormer, degradation/objective ablations, teacher-first, window-attention,
-frequency-pyramid, and gated-residual branches are diagnostic rather than
+Masked-detail/no-op also fails X2D/Z8 and route-local scene smokes. Restormer,
+degradation/objective ablations, teacher-first, window-attention,
+frequency-pyramid, gated-residual, and masked-detail branches are diagnostic rather than
 production-ready.
 The full 12k-step X2D scene-holdout window-attention teacher run is now one of
 those diagnostic rows: it trains slightly positive at 0.804 percent median raw

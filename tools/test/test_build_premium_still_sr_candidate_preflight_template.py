@@ -126,6 +126,49 @@ def main() -> int:
         assert "source-evidence" in audit["material_source_matches"]
         assert "local source evidence" in audit["material_source_matches"]
 
+        masked = base / "masked_detail_noop_teacher.json"
+        proc = run(
+            [
+                sys.executable,
+                str(BUILDER),
+                "--template",
+                "masked_detail_noop_teacher",
+                "--output",
+                str(masked),
+            ]
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        masked_data = json.loads(masked.read_text(encoding="utf-8"))
+        assert masked_data["candidate_id"] == "masked_detail_noop_teacher_v1"
+        assert masked_data["launchable_for_production_attempt"] is True
+        assert "target/objective" in masked_data["material_change_summary"]
+        assert any("target-derived detail mask" in item for item in masked_data["architecture_deltas"])
+        assert any("--detail-mask-threshold-counts 2.0" in item for item in masked_data["smoke_gate_commands"])
+        assert any("--no-detail-noop-loss-weight 2.00" in item for item in masked_data["smoke_gate_commands"])
+        proc = run(
+            [
+                sys.executable,
+                str(CHECKER),
+                str(masked),
+                "--json-out",
+                str(audit_json),
+                "--html-out",
+                str(audit_html),
+                "--require-launchable",
+            ]
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        audit = json.loads(audit_json.read_text(encoding="utf-8"))
+        assert audit["launchable_for_production_attempt"] is True
+        assert "target/objective" in audit["material_source_matches"]
+        assert "target-derived detail mask" in audit["material_source_matches"]
+
         edited = base / "edited_clean_source_restormer_teacher.json"
         data["candidate_id"] = "contextual_raw_restoration_teacher_new_degradation_v1"
         data["launchable_for_production_attempt"] = True

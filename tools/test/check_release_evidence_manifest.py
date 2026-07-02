@@ -1343,7 +1343,7 @@ def require_dashboard_contract(
                     failures.append(f"{entry_id}: identity Z8 median MAE drifted")
         readme_text = README.read_text(encoding="utf-8")
         readme_plain = re.sub(r"[*_`]", "", readme_text)
-        for token in ("118-receipt experiment scoreboard", "118 runtime-safe"):
+        for token in ("124-receipt experiment scoreboard", "124 runtime-safe"):
             if token not in readme_plain:
                 failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
 

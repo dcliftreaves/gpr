@@ -48,9 +48,14 @@ The latest Premium Still/SR Gate A receipts are:
 | gated-residual preflight | `artifacts/premium_still_sr_candidate_preflight_gated_residual_20260702/candidate_preflight.json` | `7a0b6836ff15eb358b22e0450206011f9b4ccb1960bd7025a344d7e5dc622801` |
 | gated-residual smoke acceptance blocker | `artifacts/premium_still_sr_gated_residual_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `3a430acf38e9b8666b94751de402f0db76b9e7f8fc509903c1a66095afcfc6d9` |
 | gated-residual scoreboard | `artifacts/premium_still_sr_experiment_scoreboard_gated_residual_20260702/scoreboard.json` | `cb6292ae1ae633f222ad17b6007d94e4fffea04dc760d5ac6ee29d22aa5cc6bc` |
+| masked-detail/no-op preflight | `artifacts/premium_still_sr_candidate_preflight_masked_detail_noop_20260702/candidate_preflight.json` | `01d498a9416f1179c441b905d7d033fd3a568f82eb0ce99d5254ac1413f22393` |
+| masked-detail/no-op X2D smoke receipt | `artifacts/premium_still_sr_masked_detail_noop_x2d_smoke_20260702/train_receipt.json` | `4cd1a0823c79c2627646f4ee7e05e8b06af5a10434eafdf599a44ed61df3b28b` |
+| masked-detail/no-op Z8 smoke receipt | `artifacts/premium_still_sr_masked_detail_noop_z8_smoke_20260702/train_receipt.json` | `cc0decc7b73628f6c6c1e6608fa91da820bd5bef09615985dd694d1e148e43b5` |
+| masked-detail/no-op smoke acceptance blocker | `artifacts/premium_still_sr_masked_detail_noop_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `5a8b79497cbd07b7297f16077c9ba44d6c1d784c8bb243e0bf7c795779e17f22` |
+| masked-detail/no-op scoreboard | `artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | `c7dfd28783ae63e550c8bfba02b43dd3eadca64dc8fda56bc0254ba92a67b65f` |
 
-Both branches are blocked before long training. The next Premium Still/SR
-candidate must change the target/objective and pass
+These branches are blocked before long training. The next Premium Still/SR
+candidate must change the target/source or teacher objective and pass
 `tools/check_premium_still_sr_smoke_gate_acceptance.py --require-pass` on paired
 X2D/Z8 smoke receipts before it can consume a long run.
 

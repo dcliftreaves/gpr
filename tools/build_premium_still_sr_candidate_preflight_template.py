@@ -25,6 +25,7 @@ def parse_args() -> argparse.Namespace:
             "source_evidence_split_teacher",
             "frequency_pyramid_source_evidence_teacher",
             "gated_residual_source_evidence_teacher",
+            "masked_detail_noop_teacher",
             "rejected_repeat_fixture",
         ),
         default="clean_source_restormer_teacher",
@@ -604,6 +605,176 @@ def gated_residual_source_evidence_teacher(candidate_id: str) -> dict[str, Any]:
     }
 
 
+def masked_detail_noop_teacher(candidate_id: str) -> dict[str, Any]:
+    pairs = (
+        "/Volumes/OWC_8TB/gpr_work/artifacts/"
+        "premium_still_sr_clean_source_pairs_routed_t64_20260702/"
+        "premium_still_sr_clean_source_pairs_routed_t64.npz"
+    )
+    x2d_out = (
+        "/Volumes/OWC_8TB/gpr_work/artifacts/"
+        "premium_still_sr_masked_detail_noop_x2d_smoke_20260702"
+    )
+    z8_out = (
+        "/Volumes/OWC_8TB/gpr_work/artifacts/"
+        "premium_still_sr_masked_detail_noop_z8_smoke_20260702"
+    )
+    common_args = (
+        "--model-arch gated_frequency_pyramid_pixelshuffle "
+        "--steps 320 --width 40 --depth 4 --batch 6 --low-crop 48 "
+        "--residual-scale 0.04 --loss-mode charbonnier "
+        "--baseline-worsening-loss-weight 2.00 "
+        "--residual-energy-loss-weight 0.02 "
+        "--detail-mask-threshold-counts 2.0 "
+        "--detail-mask-loss-weight 1.50 "
+        "--no-detail-noop-loss-weight 2.00 "
+        "--train-input-noise-std-counts 0.25 "
+        "--train-input-gain-jitter-pct 0.05 "
+        "--train-input-blur-weight 0.00"
+    )
+    return {
+        "schema": SCHEMA,
+        "candidate_id": candidate_id,
+        "candidate_kind": "teacher",
+        "launchable_for_production_attempt": True,
+        "requires_material_edits_before_launch": False,
+        "material_change_summary": (
+            "Changes the target/objective rather than the architecture: a "
+            "target-derived detail mask applies extra loss only where the "
+            "high-resolution RAW target differs from clean same-color "
+            "interpolation, while low-error tiles and low-detail pixels get an "
+            "explicit no-op behavior penalty. This keeps the gated residual "
+            "near interpolation where no signal exists and creates a stronger "
+            "positive no-REF learning signal where the target has recoverable "
+            "detail."
+        ),
+        "source_evidence_receipts": [
+            (
+                "/Volumes/OWC_8TB/gpr_work/artifacts/"
+                "premium_still_sr_source_evidence_x2dholdout_t64_20260702/"
+                "source_evidence_audit.json"
+            ),
+            (
+                "/Volumes/OWC_8TB/gpr_work/artifacts/"
+                "premium_still_sr_source_evidence_z8holdout_t64_20260702/"
+                "source_evidence_audit.json"
+            ),
+            (
+                "/Volumes/OWC_8TB/gpr_work/artifacts/"
+                "premium_still_sr_gated_residual_smoke_gate_acceptance_20260702/"
+                "smoke_gate_acceptance.json"
+            ),
+        ],
+        "runtime_inputs": [
+            "candidate_raw",
+            "camera_metadata",
+            "validated_noise_sidecar_optional",
+        ],
+        "forbidden_runtime_inputs_absent": True,
+        "uses_ref_or_source_content_at_render_time": False,
+        "promotion_claimed": False,
+        "production_ready": False,
+        "model_arch": (
+            "gated_frequency_pyramid_pixelshuffle masked-detail no-op RAW "
+            "restoration teacher"
+        ),
+        "architecture_family": "gated frequency-pyramid candidate-only RAW SR teacher",
+        "architecture_deltas": [
+            "full-image frequency-pyramid raw restoration teacher",
+            "explicit no-op benefit gate for residual strength",
+            "target-derived detail mask objective",
+            "global candidate-only context branch",
+            "CFA-phase-conditioned raw feature planes",
+        ],
+        "degradation_policy": (
+            "target/objective smoke gate: detail pixels are learned from the "
+            "high-resolution target while no-detail pixels are regularized back "
+            "to same-color interpolation; no long run is allowed unless both "
+            "X2D and Z8 beat interpolation"
+        ),
+        "degradation_deltas": [
+            "camera-specific RAW blur/PSF validation remains required before production",
+            "ISO-conditioned sensor noise sidecars remain exact-sidecar-only",
+            "bit-depth and compression/decode simulation remains part of the full gate",
+            "sensor and CFA phase aware downsample/decode path",
+            "target-derived masked-detail objective for high-error detail pixels",
+            "no-op behavior penalty for low-error tiles and no-detail pixels",
+        ],
+        "validation_plan": [
+            "held-out X2D full-image gate using the masked-detail objective",
+            "held-out Z8 overlapped-tile gate using the masked-detail objective",
+            "50 MP full-frame gate row accounting",
+            "100 MP full-frame gate row accounting",
+            "worst-row 100 percent crop review",
+            "both X2D and Z8 smoke holdouts beat same-color interpolation before long run",
+        ],
+        "holdouts": [
+            "X2D scene-held-out full-frame images",
+            "Z8 scene-held-out overlapped-tile images",
+        ],
+        "baseline_comparisons": [
+            "same-color Bayer interpolation baseline",
+            "current still-SR scoreboard and 12k window-attention rejection",
+            "frequency-pyramid smoke gate blocker receipt",
+            "gated-residual smoke gate blocker receipt",
+            "current 124-receipt still-SR experiment scoreboard",
+        ],
+        "planned_receipts": [
+            "checkpoint hash",
+            "training config hash",
+            "target dataset hash",
+            "dashboard",
+            "timing memory receipt",
+            "editor latitude review",
+            "editable DNG/GPR raw receipt",
+            "noise policy receipt",
+            "smoke gate acceptance receipt",
+        ],
+        "promotion_receipts": [
+            "50 MP full-frame gate",
+            "100 MP full-frame gate",
+            "worst-row visual review",
+            "seconds per frame and peak RSS",
+        ],
+        "smoke_gate_commands": [
+            (
+                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                f"--pairs {pairs} --output-dir {x2d_out} "
+                f"--holdout-image x2d {common_args}"
+            ),
+            (
+                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                f"--pairs {pairs} --output-dir {z8_out} "
+                f"--holdout-image z8 {common_args}"
+            ),
+        ],
+        "smoke_gate_acceptance": {
+            "baseline": "same-color Bayer interpolation",
+            "required_holdouts": ["X2D", "Z8"],
+            "minimum_median_mae_reduction_pct": 0.001,
+            "minimum_worst_row_mae_reduction_pct": 0.0,
+            "long_run_blocked_if_smoke_fails": True,
+            "receipt_fields_required": [
+                "x2d_smoke_receipt",
+                "z8_smoke_receipt",
+                "baseline_comparison",
+                "checkpoint_hash",
+                "training_config_hash",
+            ],
+        },
+        "noise_policy": {
+            "exact_sidecars_only": True,
+            "forbids_source_residual_noise": True,
+            "missing_sidecars": "metadata_only",
+        },
+        "notes": (
+            "Launchable Gate A intake manifest for a target/objective change. "
+            "It is still only a paired smoke gate; production promotion requires "
+            "the full 50 MP / 100 MP gate and production submission checker."
+        ),
+    }
+
+
 def rejected_repeat_fixture(candidate_id: str) -> dict[str, Any]:
     return {
         "schema": SCHEMA,
@@ -639,6 +810,8 @@ def build_manifest(template: str, candidate_id: str | None) -> dict[str, Any]:
         return frequency_pyramid_source_evidence_teacher(candidate_id or "frequency_pyramid_source_evidence_teacher_v1")
     if template == "gated_residual_source_evidence_teacher":
         return gated_residual_source_evidence_teacher(candidate_id or "gated_residual_source_evidence_teacher_v1")
+    if template == "masked_detail_noop_teacher":
+        return masked_detail_noop_teacher(candidate_id or "masked_detail_noop_teacher_v1")
     if template == "rejected_repeat_fixture":
         return rejected_repeat_fixture(candidate_id or "repeat_residual_pixelshuffle_local_cnn")
     raise ValueError(f"unknown template: {template}")

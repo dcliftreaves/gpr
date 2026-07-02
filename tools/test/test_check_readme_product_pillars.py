@@ -53,13 +53,14 @@ def main() -> int:
                     "Mission gradient median +0.253",
                     "The percentages are production-readiness burn-down estimates.",
                     "not regression signals for locked artifacts",
-                    "118 runtime-safe experiment receipts",
+                    "124 runtime-safe experiment receipts",
                     "0 are promotable",
                     "Frequency-pyramid is blocked before long training",
                     "X2D worst-row MAE is -4.85%",
                     "Z8 median/worst-row MAE are -8.81% / -67.44%",
                     "Gated no-op residual reduces Z8 damage",
                     "nearly reach interpolation parity",
+                    "Masked-detail/no-op also fails X2D/Z8 and same-camera scene smokes",
                     "positive held-out recovery with nonnegative worst-row behavior",
                     "zero promotable rows",
                     "4.03 percent held-out MAE recovery and 3.75 percent held-out RMSE recovery",
@@ -184,13 +185,13 @@ def main() -> int:
 
         scorecard.write_text(
             (ROOT / "docs/PRODUCT_PILLAR_SCORECARD.md").read_text(encoding="utf-8").replace(
-                "118 runtime-safe experiment receipts",
+                "124 runtime-safe experiment receipts",
                 "many runtime-safe experiment receipts",
             ),
             encoding="utf-8",
         )
         failures = module.validate(readme, scorecard)
-        if not failures or not any("118 runtime-safe" in failure for failure in failures):
+        if not failures or not any("124 runtime-safe" in failure for failure in failures):
             print(f"stale premium still-SR scoreboard count did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 
