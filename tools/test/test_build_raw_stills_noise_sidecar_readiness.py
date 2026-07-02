@@ -224,6 +224,39 @@ def main() -> int:
         assert bad_rows["mission1"]["runtime_policy_declares_nonzero_noise_addback"] is True
         assert bad_rows["mission1"]["runtime_nonzero_noise_addback_enabled"] is False
         assert "without validated sidecar coverage" in bad_rows["mission1"]["blocker"]
+
+        missing_iphone_coverage = json.loads(coverage.read_text(encoding="utf-8"))
+        missing_iphone_coverage["coverage"] = [
+            row for row in missing_iphone_coverage["coverage"] if row["key"] != "iphone"
+        ]
+        missing_iphone_runtime = json.loads(runtime.read_text(encoding="utf-8"))
+        missing_iphone_runtime["camera_policies"] = [
+            row for row in missing_iphone_runtime["camera_policies"] if row["camera_key"] != "iphone"
+        ]
+        missing_iphone_coverage_path = work / "missing_iphone_noise_coverage.json"
+        missing_iphone_runtime_path = work / "missing_iphone_runtime_policy.json"
+        missing_iphone_out = work / "missing_iphone_out"
+        write_json(missing_iphone_coverage_path, missing_iphone_coverage)
+        write_json(missing_iphone_runtime_path, missing_iphone_runtime)
+        missing_iphone = run_builder(
+            missing_iphone_coverage_path,
+            missing_iphone_runtime_path,
+            darkframes,
+            gap,
+            capture,
+            missing_iphone_out,
+        )
+        missing_rows = {row["camera_key"]: row for row in missing_iphone["camera_readiness"]}
+        assert "iphone" in missing_rows
+        assert missing_rows["iphone"]["production_ready"] is False
+        assert missing_iphone["summary"]["source_consistency_ok"] is False
+        assert missing_iphone["summary"]["source_consistency_errors"] == {
+            "iphone": [
+                "missing camera-noise coverage audit row",
+                "missing camera-noise runtime policy row",
+            ]
+        }
+        assert "missing camera-noise coverage" in missing_rows["iphone"]["blocker"]
     print("test_build_raw_stills_noise_sidecar_readiness: PASS")
     return 0
 

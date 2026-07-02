@@ -19,6 +19,7 @@ from typing import Any
 
 
 SCHEMA = "gpr.raw_stills_noise_sidecar_readiness.v1"
+REQUIRED_CAMERA_KEYS = {"iphone", "mission1", "x2d", "z8"}
 DEFAULT_COVERAGE = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/camera_noise_coverage_audit_20260630/noise_coverage.json"
 )
@@ -89,6 +90,10 @@ def readiness_row(
     sidecar_ready = bool(coverage_row.get("ready"))
     declared_runtime_ready = bool(policy_row.get("allow_nonzero_noise_addback"))
     consistency_errors: list[str] = []
+    if not coverage_row:
+        consistency_errors.append("missing camera-noise coverage audit row")
+    if not policy_row:
+        consistency_errors.append("missing camera-noise runtime policy row")
     if declared_runtime_ready and not sidecar_ready:
         consistency_errors.append("runtime policy enables nonzero addback without validated sidecar coverage")
     if sidecar_ready and not declared_runtime_ready:
@@ -144,6 +149,7 @@ def build_readiness(
     by_policy = policy_by_key(runtime_policy)
     by_request = request_by_requirement(capture_request)
     camera_keys = sorted(set(by_coverage) | set(by_policy))
+    camera_keys = sorted(set(camera_keys) | REQUIRED_CAMERA_KEYS)
     rows = [
         readiness_row(
             key,
