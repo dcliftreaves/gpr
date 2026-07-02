@@ -69,6 +69,9 @@
           "premium_still_sr_self_supervised_raw_sr_contract_20260702",
           "premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702",
           "premium_still_sr_clean_source_pair_model_smoke_20260702",
+          "premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702",
+          "premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702",
+          "premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -1856,8 +1859,8 @@
         "artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html"
       ],
       "hashes": {
-        "contract_json_sha256": "389e4468d08263343be289c2750d238b27bef8300b7cd83b44b319cabe0ca20f",
-        "dashboard_sha256": "e746243767170652ee193364fe37464329a44ae508e1acc0b276ded5318aa914"
+        "contract_json_sha256": "c80b2ebac14265a1da4390f9fe209622ede10b24dfc4709d5fb7e385528371a6",
+        "dashboard_sha256": "108b8bb2f199c1d348f2320d02a5ae1a9a9adc834e354bfc9e3f063ccf731103"
       },
       "metrics": {
         "clean_signal_target_rows": 117,
@@ -1934,6 +1937,115 @@
         "holdout_tile_count": 2,
         "holdout_median_mae_gain_pct": -0.08665718752635851,
         "holdout_median_rmse_gain_pct": -0.04932499721537129,
+        "baseline_beaten_on_holdout": 0,
+        "coverage_sufficient_for_promotion": 0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Broad routed clean-source RAW SR pair audit for the current premium still-SR path. It covers 75 Mission 1, Z8, and X2D source images, records the exact low/high same-color Bayer pair set, and locks the nearest same-color 2x interpolation baseline that the teacher must beat before distillation.",
+      "dashboard": "artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_self_supervised_raw_sr_pairs_routed_t16_20260702/premium_still_sr_clean_source_pairs_routed_t16.npz",
+        "artifacts/premium_still_sr_self_supervised_raw_sr_pairs_routed_t16_20260702/premium_still_sr_clean_source_pairs_routed_t16.npz.json",
+        "artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/pair_audit.json",
+        "artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/index.html"
+      ],
+      "hashes": {
+        "pair_npz_sha256": "53e7bb8b601a1156c3d1f3acb1bcc0ea0b9ff80b81fb734059a8dd9a3e745443",
+        "pair_metadata_sha256": "56e271e6fa9ce853545972a50e39d4dd33be27d1fd491908b003f64623f283d6",
+        "pair_audit_json_sha256": "98a5bb0a2e7c67ec422ff7118376e02769bf2eca142baaeeb12ca5cabee2d111",
+        "pair_audit_dashboard_sha256": "cfb7c5ccf6f93631a267085373e6ae8929d6c5980197667add60d62771aecd17"
+      },
+      "metrics": {
+        "image_count": 75,
+        "tile_count": 1200,
+        "input_planes": 4,
+        "input_tile": 96,
+        "target_tile": 192,
+        "nearest_same_color_2x_mae_median": 12.403764247894287,
+        "nearest_same_color_2x_rmse_median": 23.096327970119702,
+        "nearest_same_color_2x_psnr_db_median": 57.017019083161266,
+        "mission1_tile_count": 672,
+        "z8_tile_count": 384,
+        "x2d_tile_count": 144,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Routed clean-source RAW SR teacher probe with x2d_100mp_dng held out. The model improves the train split but regresses the held-out X2D image versus nearest same-color 2x, so it is rejection evidence rather than a promoted teacher.",
+      "dashboard": "artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/index.html",
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/premium_still_sr_clean_source_pair_model.pt"
+      ],
+      "hashes": {
+        "train_receipt_sha256": "c7dc2ed29aacb410126e2949ab8d54bb97e5d02ce8455fe8c56c8d6d529a0e4c",
+        "dashboard_sha256": "a154652069efbebcde7983c4ae789b6a078a23ebfc6e56500d584db73e36c723",
+        "checkpoint_sha256": "e2d015e1d33b0cf4aa92cc24b7e577ebe9d1fa140669006f45020e17ee253855"
+      },
+      "metrics": {
+        "steps": 1500,
+        "train_tile_count": 1184,
+        "holdout_tile_count": 16,
+        "train_median_mae_gain_pct": 14.54325714759819,
+        "train_median_rmse_gain_pct": 21.68473140794768,
+        "holdout_median_mae_gain_pct": -5.070621330864948,
+        "holdout_median_rmse_gain_pct": -5.015125984012537,
+        "baseline_beaten_on_holdout": 0,
+        "coverage_sufficient_for_promotion": 0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Routed clean-source RAW SR teacher probe with z8_z8z_1330 held out. The model improves the train split but still regresses held-out Z8 MAE versus nearest same-color 2x, so the current teacher is rejected before candidate-only distillation.",
+      "dashboard": "artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/index.html",
+        "artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/premium_still_sr_clean_source_pair_model.pt"
+      ],
+      "hashes": {
+        "train_receipt_sha256": "bad6848ed26ad07c3677343c8f39a75bbb349c4a71e7e387e8c4ab24cefa1f3e",
+        "dashboard_sha256": "01c799d87dae0489d01c090145c8fe0b69fcdb742b7770380f3b4fa26d2e6bb6",
+        "checkpoint_sha256": "5ec00d33900be5c18f90876fbec754d1ec154e76d92b7eb31656c54784d389ea"
+      },
+      "metrics": {
+        "steps": 1500,
+        "train_tile_count": 1184,
+        "holdout_tile_count": 16,
+        "train_median_mae_gain_pct": 12.863064273137498,
+        "train_median_rmse_gain_pct": 21.15042999136228,
+        "holdout_median_mae_gain_pct": -4.8194134605455785,
+        "holdout_median_rmse_gain_pct": 3.3928427185798586,
         "baseline_beaten_on_holdout": 0,
         "coverage_sufficient_for_promotion": 0,
         "production_ready": 0

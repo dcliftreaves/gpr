@@ -339,6 +339,14 @@ It proves the new `tools/cnn/train_premium_still_sr_clean_source_pairs.py`
 trainer/evaluator path runs, but it is diagnostic-only: with `x2d_100mp_dng`
 held out, median MAE gain is -0.087 percent and median RMSE gain is -0.049
 percent versus nearest same-color 2x.
+The broader routed clean-source pair set now lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/index.html`.
+It covers 75 images and 1200 tiles across Mission 1, Z8, and X2D with a
+nearest same-color 2x median MAE of 12.40 and RMSE of 23.10. The matching
+1500-step X2D and Z8 holdout model receipts are both rejection evidence:
+training improves by 14.54 percent and 12.86 percent median MAE respectively,
+but held-out X2D regresses by -5.07 percent and held-out Z8 regresses by -4.82
+percent median MAE.
 The superseded transformer-teacher contract remains archived at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html`.
 The trainer now has PSF/kernel-conditioned `_psf` feature modes that can consume

@@ -265,31 +265,40 @@ def main() -> int:
             "/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/raw_cfa_residual_targets_dedup.npz"
         )
         assert execution["clean_source_pair_npz"].endswith(
-            "/artifacts/premium_still_sr_self_supervised_raw_sr_pairs_20260702/premium_still_sr_clean_source_pairs.npz"
+            "/artifacts/premium_still_sr_self_supervised_raw_sr_pairs_routed_t16_20260702/premium_still_sr_clean_source_pairs_routed_t16.npz"
         )
         assert execution["clean_source_pair_audit_root"].endswith(
-            "/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_20260702"
+            "/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702"
         )
-        assert execution["clean_source_pair_model_root"].endswith(
-            "/artifacts/premium_still_sr_self_supervised_raw_sr_teacher_20260702"
+        assert execution["clean_source_pair_model_x2d_root"].endswith(
+            "/artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702"
+        )
+        assert execution["clean_source_pair_model_z8_root"].endswith(
+            "/artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702"
         )
         assert "blocker evidence" in execution["target_policy"]
         assert "self-supervised clean-source RAW SR pairs" in execution["target_policy"]
         assert "no REF/source/JPEG pixels at render time" in execution["runtime_input_policy"]
         assert "build_premium_still_sr_pairs.py" in execution["smoke_command"]
-        assert "--tiles-per-fixture 2" in execution["smoke_command"]
+        assert "--tiles-per-fixture 16" in execution["smoke_command"]
         assert "audit_premium_still_sr_pairs.py" in execution["pair_audit_command"]
         assert "--pairs" in execution["pair_audit_command"]
-        assert len(execution["full_train_commands"]) == 2
+        assert len(execution["full_train_commands"]) == 3
         assert execution["full_train_commands"][0]["id"] == "build_clean_source_raw_sr_pairs"
         assert execution["full_train_commands"][0]["holdout_scene"] == "x2d"
         assert "build_premium_still_sr_pairs.py" in execution["full_train_commands"][0]["command"]
-        assert "--tiles-per-fixture 64" in execution["full_train_commands"][0]["command"]
-        assert execution["full_train_commands"][1]["id"] == "teacher_clean_source_raw_sr_smoke"
-        assert execution["full_train_commands"][1]["holdout_scene"] == "z8"
+        assert "--tiles-per-fixture 16" in execution["full_train_commands"][0]["command"]
+        assert execution["full_train_commands"][1]["id"] == "teacher_clean_source_raw_sr_x2d_holdout"
+        assert execution["full_train_commands"][1]["holdout_scene"] == "x2d"
         assert "train_premium_still_sr_clean_source_pairs.py" in execution["full_train_commands"][1]["command"]
         assert "--output-dir" in execution["full_train_commands"][1]["command"]
+        assert "--holdout-image x2d_100mp_dng" in execution["full_train_commands"][1]["command"]
         assert "--low-crop 96" in execution["full_train_commands"][1]["command"]
+        assert execution["full_train_commands"][2]["id"] == "teacher_clean_source_raw_sr_z8_holdout"
+        assert execution["full_train_commands"][2]["holdout_scene"] == "z8"
+        assert "train_premium_still_sr_clean_source_pairs.py" in execution["full_train_commands"][2]["command"]
+        assert "--holdout-image z8_z8z_1330" in execution["full_train_commands"][2]["command"]
+        assert "--width 48" in execution["full_train_commands"][2]["command"]
         assert any("clean-source RAW SR pair receipt" in item for item in execution["required_followup_receipts"])
         assert any("pair_audit.json same-color interpolation baseline" in item for item in execution["required_followup_receipts"])
         assert any("train_premium_still_sr_clean_source_pairs.py train_receipt.json" in item for item in execution["required_followup_receipts"])

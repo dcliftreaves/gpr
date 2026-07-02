@@ -99,8 +99,23 @@ def main() -> int:
             for ref in data["pillars"][2]["evidence"]
         )
         assert any("clean-source pair model smoke" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("75 images and 1200 tiles" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("regresses held-out X2D" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("regresses held-out Z8" in item for item in data["pillars"][2]["done_evidence"])
         assert any(
             "premium_still_sr_clean_source_pair_model_smoke_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/index.html" in ref["path"]
             for ref in data["pillars"][2]["evidence"]
         )
         assert any(

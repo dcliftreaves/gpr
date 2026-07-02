@@ -298,33 +298,32 @@ def build_contract(
     z8_holdout_scene = pick_scene(scenes, "z8", "Z8Z_1330")
     rejected_full_window_attention = find_rejected_full_window_attention(scoreboard)
     fixture_manifest = (
-        external_root / "artifacts/premium_still_sr_fixture_manifest_20260629/fixture_manifest.json"
+        external_root / "artifacts/premium_still_sr_fixture_manifest_routed_20260630/fixture_manifest.json"
     ).as_posix()
     pair_npz = (
         external_root
-        / "artifacts/premium_still_sr_self_supervised_raw_sr_pairs_20260702/premium_still_sr_clean_source_pairs.npz"
+        / "artifacts/premium_still_sr_self_supervised_raw_sr_pairs_routed_t16_20260702/premium_still_sr_clean_source_pairs_routed_t16.npz"
     ).as_posix()
     pair_work_root = (
-        external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_pairs_20260702/work"
+        external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_pairs_routed_t16_20260702/work"
     ).as_posix()
     pair_audit_root = (
-        external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_20260702"
+        external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702"
     ).as_posix()
-    pair_model_root = (
-        external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_teacher_20260702"
+    x2d_pair_model_root = (
+        external_root / "artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702"
     ).as_posix()
-    teacher_ckpt = (
-        external_root
-        / "artifacts/premium_still_sr_self_supervised_raw_sr_teacher_20260702/premium_still_sr_raw_sr.pt"
+    z8_pair_model_root = (
+        external_root / "artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702"
     ).as_posix()
     smoke_args = [
         "python3 tools/cnn/build_premium_still_sr_pairs.py",
         f"--fixture-manifest {fixture_manifest}",
         f"--out {pair_npz}",
         f"--work-dir {pair_work_root}",
-        "--tiles-per-fixture 2",
-        "--low-plane-tile 48",
-        "--dataset-label premium_still_sr_clean_source_raw_sr_smoke",
+        "--tiles-per-fixture 16",
+        "--low-plane-tile 96",
+        "--dataset-label premium_still_sr_clean_source_raw_sr_pairs_routed_t16",
     ]
 
     return {
@@ -464,7 +463,8 @@ def build_contract(
                 "training_target_npz": dedup_target_npz,
                 "clean_source_pair_npz": pair_npz,
                 "clean_source_pair_audit_root": pair_audit_root,
-                "clean_source_pair_model_root": pair_model_root,
+                "clean_source_pair_model_x2d_root": x2d_pair_model_root,
+                "clean_source_pair_model_z8_root": z8_pair_model_root,
                 "target_policy": (
                     "Use the deduplicated 117-row raw-domain NPZ and 20260702 clean-signal target as blocker evidence "
                     "and actual-still review inputs, not as the next primary teacher objective. The next CNN should "
@@ -495,25 +495,43 @@ def build_contract(
                                 f"--fixture-manifest {fixture_manifest}",
                                 f"--out {pair_npz}",
                                 f"--work-dir {pair_work_root}",
-                                "--tiles-per-fixture 64",
+                                "--tiles-per-fixture 16",
                                 "--low-plane-tile 96",
-                                "--dataset-label premium_still_sr_clean_source_raw_sr_pairs",
+                                "--dataset-label premium_still_sr_clean_source_raw_sr_pairs_routed_t16",
                             ]
                         ),
                     },
                     {
-                        "id": "teacher_clean_source_raw_sr_smoke",
-                        "holdout_scene": z8_holdout_scene,
-                        "purpose": "Train the first clean-source RAW SR teacher smoke against the pair set before distillation or actual-still promotion.",
+                        "id": "teacher_clean_source_raw_sr_x2d_holdout",
+                        "holdout_scene": x2d_holdout_scene,
+                        "purpose": "Train the first clean-source RAW SR teacher against the routed pair set with an X2D image held out before distillation or actual-still promotion.",
                         "command": shell_command(
                             [
                                 f"GPR_TMPDIR={tmp_root} TMPDIR={tmp_root}",
                                 "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py",
                                 f"--pairs {pair_npz}",
-                                f"--output-dir {pair_model_root}",
-                                f"--checkpoint-name {Path(teacher_ckpt).name}",
-                                f"--holdout-image {x2d_holdout_scene}",
-                                "--steps 2000",
+                                f"--output-dir {x2d_pair_model_root}",
+                                "--holdout-image x2d_100mp_dng",
+                                "--steps 1500",
+                                "--batch 16",
+                                "--low-crop 96",
+                                "--width 48",
+                                "--depth 6",
+                            ]
+                        ),
+                    },
+                    {
+                        "id": "teacher_clean_source_raw_sr_z8_holdout",
+                        "holdout_scene": z8_holdout_scene,
+                        "purpose": "Train the first clean-source RAW SR teacher against the routed pair set with a Z8 image held out before distillation or actual-still promotion.",
+                        "command": shell_command(
+                            [
+                                f"GPR_TMPDIR={tmp_root} TMPDIR={tmp_root}",
+                                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py",
+                                f"--pairs {pair_npz}",
+                                f"--output-dir {z8_pair_model_root}",
+                                "--holdout-image z8_z8z_1330",
+                                "--steps 1500",
                                 "--batch 16",
                                 "--low-crop 96",
                                 "--width 48",

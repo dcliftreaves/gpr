@@ -228,6 +228,27 @@ the X2D holdout, with median MAE gain **-0.087%** and median RMSE gain
 also shows the next productive pass must broaden the pair set and/or improve
 the degradation/teacher objective before any candidate-only distillation.
 
+The broader routed clean-source pair set is now the current evidence baseline:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_pairs_routed_t16_20260702/premium_still_sr_clean_source_pairs_routed_t16.npz
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/index.html
+```
+
+It covers 75 images and 1200 tiles across Mission 1, Z8, and X2D: 672 Mission
+1 tiles, 384 Z8 tiles, and 144 X2D tiles. The nearest same-color 2x baseline
+has median MAE **12.40**, median RMSE **23.10**, and median PSNR **57.02 dB**
+overall. That fixes the tiny-smoke coverage gap, but it does not promote the
+current residual-pixelshuffle teacher. The 1500-step X2D holdout run improves
+train MAE by **14.54%** and train RMSE by **21.68%**, then regresses held-out
+X2D by **-5.07%** MAE and **-5.02%** RMSE. The matched Z8 holdout run improves
+train MAE by **12.86%** and train RMSE by **21.15%**, then regresses held-out
+Z8 by **-4.82%** MAE while improving RMSE by **3.39%**. The next pass should
+change degradation/objective/architecture and camera conditioning, not merely
+spend more time on this local teacher.
+
 ## Blocker Audit
 
 The blocker audit combines the experiment scoreboard, current readiness
