@@ -52,8 +52,47 @@ python3 tools/build_premium_still_sr_gate_receipt.py \
 
 This proves the gate contract and artifact hashing path. It does not promote a
 model. `--production-ready` is refused unless `--real-artifacts` is also set,
-and the receipt checker still requires real gate pass state, 50 MP fixtures,
-100 MP fixtures, and a passing raw-noise/signal audit.
+all four artifact paths exist, candidate-only runtime flags are present, both
+50 MP and 100 MP gate rows are nonzero, median MAE reductions are positive,
+worst-row MAE reductions are nonnegative, timing/memory are recorded, and the
+exact-sidecar-only noise policy passes. The receipt checker repeats those
+checks, so the builder and promotion gate fail in the same direction.
+
+A real production candidate receipt must use the explicit artifact path form:
+
+```sh
+python3 tools/build_premium_still_sr_gate_receipt.py \
+  --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate_<date> \
+  --real-artifacts \
+  --editable-dng <candidate.dng> \
+  --editable-gpr <candidate.gpr> \
+  --review-media <review.tiff-or-prores> \
+  --dashboard-artifact <dashboard.html> \
+  --checkpoint-sha256 <64-hex-sha256> \
+  --camera-count <n> \
+  --fifty-mp-or-larger-count <n> \
+  --hundred-mp-or-larger-count <n> \
+  --passed-gate \
+  --no-ref-runtime \
+  --forbidden-source-content-absent \
+  --full-frame-gate-50mp-passed \
+  --full-frame-gate-100mp-passed \
+  --full-frame-gate-50mp-row-count <n> \
+  --full-frame-gate-100mp-row-count <n> \
+  --median-mae-reduction-pct-50mp <pct> \
+  --median-mae-reduction-pct-100mp <pct> \
+  --worst-row-mae-reduction-pct-50mp <pct> \
+  --worst-row-mae-reduction-pct-100mp <pct> \
+  --editor-latitude-passed \
+  --beats-current-baseline \
+  --render-seconds-per-50mp-frame <seconds> \
+  --render-seconds-per-100mp-frame <seconds> \
+  --peak-rss-gb <gb> \
+  --raw-noise-signal-audit-passed \
+  --noise-policy-exact-sidecars-only \
+  --noise-policy-forbids-source-residual-noise \
+  --production-ready
+```
 
 ## Current-State Readiness Builder
 

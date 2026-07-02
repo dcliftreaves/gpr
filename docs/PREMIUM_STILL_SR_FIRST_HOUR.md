@@ -60,6 +60,14 @@ production-promoted.
    | performance | seconds per 50 MP frame, seconds per 100 MP frame, and peak RSS |
    | noise policy | exact-sidecar-only addback; source residual noise forbidden |
 
+   The production form of `tools/build_premium_still_sr_gate_receipt.py` now
+   refuses to write `production_ready=true` unless real editable DNG/GPR,
+   review media, dashboard paths, no-REF runtime flags, 50 MP / 100 MP rows,
+   positive median reductions, nonnegative worst-row reductions, timing/memory,
+   and exact-sidecar-only noise policy are supplied. Use the full command shape
+   in [`PREMIUM_STILL_SR.md`](PREMIUM_STILL_SR.md) only after a candidate has
+   real artifacts.
+
 5. Rebuild the scoreboard and reject the candidate if it cannot beat the
    promotion floor:
 
@@ -126,4 +134,3 @@ production-promoted.
 | Open production requirement | [`PRODUCTION_CAPTURE_REQUIREMENTS.md`](PRODUCTION_CAPTURE_REQUIREMENTS.md) and [`PRODUCTION_CAPTURE_REQUIREMENTS.json`](PRODUCTION_CAPTURE_REQUIREMENTS.json) |
 | Locked paths versus open gates | [`PRODUCT_LOCK_LEDGER.md`](PRODUCT_LOCK_LEDGER.md) |
 | Camera-noise policy | [`CAMERA_NOISE_CALIBRATION.md`](CAMERA_NOISE_CALIBRATION.md) |
-
