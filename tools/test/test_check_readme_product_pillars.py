@@ -111,13 +111,13 @@ def main() -> int:
             print(f"valid README unexpectedly failed: {failures}", file=sys.stderr)
             return 1
 
-        readme.write_text(good.replace("**3. Premium still/SR**", "**3. Offline tooling**"), encoding="utf-8")
+        readme.write_text(good.replace("| **Premium still/SR** | **60%**", "| **Offline tooling** | **60%**"), encoding="utf-8")
         failures = module.validate(readme, scorecard)
         if not failures or not any("Premium still/SR" in failure for failure in failures):
             print(f"missing premium pillar did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 
-        readme.write_text(good.replace("| Premium still/SR | **60%**", "| Premium still/SR | **95%**"), encoding="utf-8")
+        readme.write_text(good.replace("| **Premium still/SR** | **60%**", "| **Premium still/SR** | **95%**"), encoding="utf-8")
         failures = module.validate(readme, scorecard)
         if not failures or not any("Premium still/SR" in failure and "expected 60%" in failure for failure in failures):
             print(f"wrong premium percentage did not trigger expected failure: {failures}", file=sys.stderr)
@@ -130,6 +130,15 @@ def main() -> int:
             print(f"wrong SVG premium percentage did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
         status_matrix.write_text(status_matrix.read_text(encoding="utf-8").replace("<text>95%</text>", "<text>60%</text>"), encoding="utf-8")
+
+        long_readme = good + "\n" + "\n".join(
+            f"artifact dump row {i}" for i in range(module.MAX_README_LINES)
+        )
+        readme.write_text(long_readme, encoding="utf-8")
+        failures = module.validate(readme, scorecard)
+        if not failures or not any("too long" in failure for failure in failures):
+            print(f"oversized README did not trigger expected failure: {failures}", file=sys.stderr)
+            return 1
 
         readme.write_text(
             good
