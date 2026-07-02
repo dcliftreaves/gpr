@@ -74,15 +74,18 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate 13 degradation-source upgrade audit dashboard | `artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/index.html` | `a0a78254d9eb001ef1aa8fc5aedf38f95796131b8f723453033c14e51e9d6e3f` |
 | Gate 13 tail-safe source smoke receipt | `artifacts/premium_still_sr_gate13_tail_safe_source_smoke_20260702/tail_safe_source_smoke.json` | `823008da53a613f1ea9dac31f6271a923627586c92c5a45cd40a9fb320302e5b` |
 | Gate 13 tail-safe source smoke dashboard | `artifacts/premium_still_sr_gate13_tail_safe_source_smoke_20260702/index.html` | `4c423ad053670b0bb9d0040313f40ea788cf49793b088e0b7cc64296c2def51c` |
+| Gate 13 feature-rich tail-safe source smoke receipt | `artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/feature_rich_tail_safe_source_smoke.json` | `6e1430c6413c3fd411ac747fb7e0e4e216e9ea3571f070544bd41cd52069f554` |
+| Gate 13 feature-rich tail-safe source smoke dashboard | `artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/index.html` | `6f35d5ef0781048ad0ded34fcb3c56541a89df7094ad9b4fb3ce8d27e6124d1a` |
 
 These branches are blocked before long training. The next Premium Still/SR
-candidate must go beyond the Gate 13 simple candidate-stat gate. The latest
-tail-safe smoke found `1394` global-only no-op rules, but `0` strict per-image
-rules: the best aggregate rule has X2D median MAE `+0.215125015196241%` and
-worst-row MAE `0.0%`, but one X2D scene falls to a `0.0%` median. Long training
-remains blocked until a feature-rich or scene-normalized candidate-only gate
-keeps every X2D scene median positive, makes worst-row MAE nonnegative, and
-keeps Z8 exact-noop.
+candidate must change source/model/objective, not just add a wider runtime
+gate. The feature-rich tail-safe smoke tested `78` candidate-only runtime
+features, `14393` threshold predicates, and `1398` safe predicates. Even the
+safe-feature OR upper bound covers only `25` positive rows in
+`x2d_2025_austin_07`, short of the `32` needed for a positive per-scene median.
+Long training remains blocked until a revised source/objective creates positives
+that are separable by candidate-only runtime evidence while keeping Z8 exact-
+noop.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

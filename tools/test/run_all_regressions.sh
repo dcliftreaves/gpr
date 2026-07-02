@@ -216,6 +216,7 @@ else
                 python3 tools/test/test_check_premium_still_sr_smoke_gate_acceptance.py && \
                 python3 tools/test/test_build_premium_still_sr_gate13_degradation_source_upgrade.py && \
                 python3 tools/test/test_build_premium_still_sr_gate13_tail_safe_source_smoke.py && \
+                python3 tools/test/test_build_premium_still_sr_gate13_feature_rich_tail_safe_source_smoke.py && \
                 python3 tools/test/test_build_premium_still_sr_experiment_scoreboard.py && \
                 python3 tools/test/test_build_premium_still_sr_blocker_audit.py && \
                 python3 tools/test/test_build_premium_still_sr_target_expansion_plan.py && \

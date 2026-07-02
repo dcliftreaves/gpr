@@ -185,6 +185,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_gate12_smoke_acceptance_20260702",
                 "premium_still_sr_gate13_degradation_source_upgrade_20260702",
                 "premium_still_sr_gate13_tail_safe_source_smoke_20260702",
+                "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },

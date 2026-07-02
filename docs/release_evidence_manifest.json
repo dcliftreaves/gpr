@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 13 found a positive X2D median source, and the first tail-safe smoke found only aggregate-safe simple gates, not strict per-scene-safe gates.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 13 found a positive X2D median source, but both simple and feature-rich candidate-only runtime gates fail per-scene tail safety.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -124,10 +124,11 @@
           "premium_still_sr_gate12_candidate_intake_20260702",
           "premium_still_sr_gate12_smoke_acceptance_20260702",
           "premium_still_sr_gate13_degradation_source_upgrade_20260702",
-          "premium_still_sr_gate13_tail_safe_source_smoke_20260702"
+          "premium_still_sr_gate13_tail_safe_source_smoke_20260702",
+          "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702"
         ]
       },
-      "open_gate": "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_<date>"
+      "open_gate": "premium_still_sr_gate13_source_or_objective_revision_<date>"
     },
     {
       "id": "raw_video_reconstruction",
@@ -4738,6 +4739,49 @@
         "best_global_worst_row_mae_improvement_pct": 0.0,
         "x2d_2025_austin_06_best_global_median_mae_improvement_pct": 0.329828330762138,
         "x2d_2025_austin_07_best_global_median_mae_improvement_pct": 0.0,
+        "z8_exact_noop_ok": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Feature-rich Gate 13 smoke over candidate-only runtime features. It adds scene-normalized tile statistics, tile coordinates, and texture ratios, then proves the current positive X2D source is still not separable per scene by the safe-feature OR upper bound.",
+      "dashboard": "artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate13_feature_rich_tail_safe_source_smoke.py",
+        "tools/test/test_build_premium_still_sr_gate13_feature_rich_tail_safe_source_smoke.py",
+        "tools/build_premium_still_sr_gate13_tail_safe_source_smoke.py",
+        "tools/cnn/train_premium_still_sr_clean_source_pairs.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/feature_rich_tail_safe_source_smoke.json",
+        "artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/index.html"
+      ],
+      "hashes": {
+        "feature_rich_tail_safe_source_smoke_json_sha256": "6e1430c6413c3fd411ac747fb7e0e4e216e9ea3571f070544bd41cd52069f554",
+        "dashboard_sha256": "6f35d5ef0781048ad0ded34fcb3c56541a89df7094ad9b4fb3ce8d27e6124d1a"
+      },
+      "metrics": {
+        "smoke_gate_passed": 0,
+        "long_run_allowed": 0,
+        "gate14_candidate_intake_allowed": 0,
+        "feature_count": 78,
+        "predicate_count": 14393,
+        "safe_predicate_count": 1398,
+        "safe_feature_or_upper_bound_passes_strict": 0,
+        "safe_feature_or_upper_bound_global_median_mae_improvement_pct": 0.215125015196241,
+        "safe_feature_or_upper_bound_global_worst_row_mae_improvement_pct": 0.0,
+        "x2d_2025_austin_06_positive_rows_covered": 53,
+        "x2d_2025_austin_07_positive_rows_covered": 25,
+        "x2d_positive_rows_required_for_scene_median": 32,
         "z8_exact_noop_ok": 1,
         "production_ready": 0
       }
