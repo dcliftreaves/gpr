@@ -173,6 +173,8 @@ def premium_still_sr_template() -> dict[str, Any]:
         "z8_smoke_receipt_sha256": SHA_PLACEHOLDER,
         "baseline_comparison_path": "<same_color_bayer_interpolation_baseline_comparison.json>",
         "baseline_comparison_sha256": SHA_PLACEHOLDER,
+        "still_sr_gate_receipt_path": "<premium_still_sr_gate_receipt.json>",
+        "still_sr_gate_receipt_sha256": SHA_PLACEHOLDER,
         "x2d_smoke_median_mae_reduction_pct": "<x2d_smoke_median_mae_reduction_pct>",
         "z8_smoke_median_mae_reduction_pct": "<z8_smoke_median_mae_reduction_pct>",
         "x2d_smoke_worst_row_mae_reduction_pct": "<x2d_smoke_worst_row_mae_reduction_pct>",

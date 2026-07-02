@@ -16,6 +16,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from check_product_pillar_receipts import validate_still_sr_gate
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REQUIREMENTS = ROOT / "docs" / "PRODUCTION_CAPTURE_REQUIREMENTS.json"
@@ -955,6 +957,80 @@ def validate_premium_noise_policy_receipt(
         failures.append("noise_policy_forbids_source_residual_noise must be true")
 
 
+def gate_bool(gate: dict[str, Any], group: str, key: str) -> Any:
+    value = gate.get(group)
+    if isinstance(value, dict):
+        return value.get(key)
+    return None
+
+
+def gate_number(gate: dict[str, Any], group: str, key: str) -> float | None:
+    value = gate.get(group)
+    if not isinstance(value, dict):
+        return None
+    return numeric_value(value.get(key))
+
+
+def validate_premium_gate_receipt(
+    row: dict[str, Any],
+    path_root: Path | None,
+    failures: list[str],
+) -> None:
+    receipt = load_local_json(row.get("still_sr_gate_receipt_path"), path_root, failures, "still_sr_gate_receipt")
+    if receipt is None:
+        return
+    for failure in validate_still_sr_gate(receipt):
+        failures.append(f"still_sr_gate_receipt {failure}")
+    if receipt.get("production_ready") is not True:
+        failures.append("still_sr_gate_receipt production_ready must be true")
+    if nested_get(receipt, "candidate", "checkpoint_sha256") != row.get("checkpoint_sha256"):
+        failures.append("still_sr_gate_receipt candidate.checkpoint_sha256 must match submitted checkpoint_sha256")
+    runtime_inputs = nested_get(receipt, "runtime_policy", "runtime_inputs")
+    if isinstance(runtime_inputs, list) and set(str(item) for item in runtime_inputs) != set(row.get("runtime_inputs") or []):
+        failures.append("still_sr_gate_receipt runtime_policy.runtime_inputs must match submitted runtime_inputs")
+    if gate_bool(receipt, "runtime_policy", "no_ref_runtime") is not True:
+        failures.append("still_sr_gate_receipt runtime_policy.no_ref_runtime must be true")
+    if gate_bool(receipt, "runtime_policy", "forbidden_source_content_absent") is not True:
+        failures.append("still_sr_gate_receipt runtime_policy.forbidden_source_content_absent must be true")
+    for key in (
+        "full_frame_gate_50mp_passed",
+        "full_frame_gate_100mp_passed",
+        "editor_latitude_passed",
+        "beats_current_baseline",
+    ):
+        if gate_bool(receipt, "promotion_metrics", key) is not row.get(key):
+            failures.append(f"still_sr_gate_receipt promotion_metrics.{key} must match submitted {key}")
+    if gate_bool(receipt, "promotion_metrics", "severe_worst_row_failures") is not row.get("severe_worst_row_failures"):
+        failures.append(
+            "still_sr_gate_receipt promotion_metrics.severe_worst_row_failures must match submitted severe_worst_row_failures"
+        )
+    for key in (
+        "full_frame_gate_50mp_row_count",
+        "full_frame_gate_100mp_row_count",
+        "median_mae_reduction_pct_50mp",
+        "median_mae_reduction_pct_100mp",
+        "worst_row_mae_reduction_pct_50mp",
+        "worst_row_mae_reduction_pct_100mp",
+    ):
+        value = gate_number(receipt, "promotion_metrics", key)
+        expected = numeric_value(row.get(key))
+        if value is None:
+            failures.append(f"still_sr_gate_receipt promotion_metrics.{key} must be numeric")
+        elif expected is not None and abs(value - expected) > max(1.0e-6, abs(expected) * 1.0e-6):
+            failures.append(f"still_sr_gate_receipt promotion_metrics.{key} must match submitted {key}")
+    for key in ("render_seconds_per_50mp_frame", "render_seconds_per_100mp_frame", "peak_rss_gb"):
+        value = gate_number(receipt, "performance", key)
+        expected = numeric_value(row.get(key))
+        if value is None:
+            failures.append(f"still_sr_gate_receipt performance.{key} must be numeric")
+        elif expected is not None and abs(value - expected) > max(1.0e-6, abs(expected) * 1.0e-6):
+            failures.append(f"still_sr_gate_receipt performance.{key} must match submitted {key}")
+    if gate_bool(receipt, "noise_policy", "exact_sidecars_only") is not True:
+        failures.append("still_sr_gate_receipt noise_policy.exact_sidecars_only must be true")
+    if gate_bool(receipt, "noise_policy", "forbids_source_residual_noise") is not True:
+        failures.append("still_sr_gate_receipt noise_policy.forbids_source_residual_noise must be true")
+
+
 def validate_premium_preflight_content(row: dict[str, Any], path_root: Path | None, failures: list[str]) -> None:
     manifest = load_local_json(
         row.get("candidate_preflight_manifest_path"),
@@ -1030,6 +1106,7 @@ def validate_premium_preflight_content(row: dict[str, Any], path_root: Path | No
     )
     validate_premium_timing_memory_receipt(row, path_root, failures)
     validate_premium_noise_policy_receipt(row, path_root, failures)
+    validate_premium_gate_receipt(row, path_root, failures)
 
 
 def validate_premium_still_sr(
@@ -1047,6 +1124,7 @@ def validate_premium_still_sr(
         "x2d_smoke_receipt_sha256",
         "z8_smoke_receipt_sha256",
         "baseline_comparison_sha256",
+        "still_sr_gate_receipt_sha256",
         "checkpoint_sha256",
         "training_config_sha256",
         "training_target_sha256",

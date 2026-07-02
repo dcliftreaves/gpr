@@ -373,6 +373,79 @@ def write_premium_still_sr_receipts(submission: dict, bundle: Path) -> None:
         {"baseline": "same-color Bayer interpolation", "holdouts": ["X2D", "Z8"]},
     )
     write_record(
+        "still_sr_gate_receipt_path",
+        "still_sr_gate_receipt_sha256",
+        {
+            "schema": "gpr.premium_still_sr_gate.v1",
+            "candidate": {
+                "pipeline_id": "fixture_candidate",
+                "checkpoint_sha256": record["checkpoint_sha256"],
+                "target_role": "offline_premium_still",
+            },
+            "fixture_summary": {
+                "camera_count": 2,
+                "fifty_mp_or_larger_count": 8,
+                "hundred_mp_or_larger_count": 6,
+                "cfa_phases": ["RGGB", "GBRG"],
+            },
+            "outputs": {
+                "editable_dng": {
+                    "path": record["editable_raw_receipt_path"],
+                    "sha256": record["editable_raw_receipt_sha256"],
+                },
+                "editable_gpr": {
+                    "path": record["editable_raw_receipt_path"],
+                    "sha256": record["editable_raw_receipt_sha256"],
+                },
+                "review_tiff_or_prores": {
+                    "path": record["review_dashboard_path"],
+                    "sha256": record["review_dashboard_sha256"],
+                },
+                "dashboard": {
+                    "path": record["review_dashboard_path"],
+                    "sha256": record["review_dashboard_sha256"],
+                },
+            },
+            "baseline_comparison": {
+                "passed_gate": True,
+                "worst_lpips": 0.2,
+                "worst_delta_e2000": 1.0,
+                "min_raw_psnr_delta_db": 0.1,
+                "editor_latitude_score_delta": 0.1,
+            },
+            "runtime_policy": {
+                "runtime_inputs": record["runtime_inputs"],
+                "no_ref_runtime": True,
+                "forbidden_source_content_absent": True,
+            },
+            "promotion_metrics": {
+                "full_frame_gate_50mp_passed": record["full_frame_gate_50mp_passed"],
+                "full_frame_gate_100mp_passed": record["full_frame_gate_100mp_passed"],
+                "full_frame_gate_50mp_row_count": record["full_frame_gate_50mp_row_count"],
+                "full_frame_gate_100mp_row_count": record["full_frame_gate_100mp_row_count"],
+                "median_mae_reduction_pct_50mp": record["median_mae_reduction_pct_50mp"],
+                "median_mae_reduction_pct_100mp": record["median_mae_reduction_pct_100mp"],
+                "worst_row_mae_reduction_pct_50mp": record["worst_row_mae_reduction_pct_50mp"],
+                "worst_row_mae_reduction_pct_100mp": record["worst_row_mae_reduction_pct_100mp"],
+                "editor_latitude_passed": record["editor_latitude_passed"],
+                "beats_current_baseline": record["beats_current_baseline"],
+                "severe_worst_row_failures": record["severe_worst_row_failures"],
+            },
+            "performance": {
+                "render_seconds_per_50mp_frame": record["render_seconds_per_50mp_frame"],
+                "render_seconds_per_100mp_frame": record["render_seconds_per_100mp_frame"],
+                "peak_rss_gb": record["peak_rss_gb"],
+            },
+            "noise_policy": {
+                "mode": "requires_calibrated_camera_noise_sidecar",
+                "raw_noise_signal_audit_passed": True,
+                "exact_sidecars_only": record["noise_policy_exact_sidecars_only"],
+                "forbids_source_residual_noise": record["noise_policy_forbids_source_residual_noise"],
+            },
+            "production_ready": True,
+        },
+    )
+    write_record(
         "timing_memory_receipt_path",
         "timing_memory_receipt_sha256",
         {
@@ -587,6 +660,8 @@ def valid_submission() -> dict:
                 "z8_smoke_receipt_sha256": SHA,
                 "baseline_comparison_path": "/captures/baseline_comparison.json",
                 "baseline_comparison_sha256": SHA,
+                "still_sr_gate_receipt_path": "/captures/premium_still_sr_gate_receipt.json",
+                "still_sr_gate_receipt_sha256": SHA,
                 "x2d_smoke_median_mae_reduction_pct": 0.25,
                 "z8_smoke_median_mae_reduction_pct": 0.5,
                 "x2d_smoke_worst_row_mae_reduction_pct": 0.0,
@@ -890,6 +965,21 @@ def main() -> int:
         assert proc.returncode == 1
         assert "noise_policy_receipt production_ready must be true" in proc.stdout
         assert "noise_policy_receipt clean_signal.policy_pass must be true" in proc.stdout
+        write_premium_still_sr_receipts(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        premium = next(row for row in bad["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
+        gate_path = bundle / premium["still_sr_gate_receipt_path"]
+        gate = json.loads(gate_path.read_text(encoding="utf-8"))
+        gate["promotion_metrics"]["median_mae_reduction_pct_50mp"] = -2.0
+        gate["runtime_policy"]["no_ref_runtime"] = False
+        gate_path.write_text(json.dumps(gate, indent=2) + "\n", encoding="utf-8")
+        premium["still_sr_gate_receipt_sha256"] = hashlib.sha256(gate_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "still_sr_gate_receipt production_ready still-SR requires runtime_policy.no_ref_runtime=true" in proc.stdout
+        assert "still_sr_gate_receipt promotion_metrics.median_mae_reduction_pct_50mp must match submitted" in proc.stdout
         write_premium_still_sr_receipts(strict, bundle)
 
         bad = json.loads(manifest.read_text(encoding="utf-8"))
