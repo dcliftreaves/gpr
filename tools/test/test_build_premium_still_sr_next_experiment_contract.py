@@ -267,11 +267,16 @@ def main() -> int:
         assert execution["clean_source_pair_npz"].endswith(
             "/artifacts/premium_still_sr_self_supervised_raw_sr_pairs_20260702/premium_still_sr_clean_source_pairs.npz"
         )
+        assert execution["clean_source_pair_audit_root"].endswith(
+            "/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_20260702"
+        )
         assert "blocker evidence" in execution["target_policy"]
         assert "self-supervised clean-source RAW SR pairs" in execution["target_policy"]
         assert "no REF/source/JPEG pixels at render time" in execution["runtime_input_policy"]
         assert "build_premium_still_sr_pairs.py" in execution["smoke_command"]
         assert "--tiles-per-fixture 2" in execution["smoke_command"]
+        assert "audit_premium_still_sr_pairs.py" in execution["pair_audit_command"]
+        assert "--pairs" in execution["pair_audit_command"]
         assert len(execution["full_train_commands"]) == 2
         assert execution["full_train_commands"][0]["id"] == "build_clean_source_raw_sr_pairs"
         assert execution["full_train_commands"][0]["holdout_scene"] == "x2d"
@@ -281,7 +286,7 @@ def main() -> int:
         assert execution["full_train_commands"][1]["holdout_scene"] == "z8"
         assert "train_mission1_sr.py" in execution["full_train_commands"][1]["command"]
         assert any("clean-source RAW SR pair receipt" in item for item in execution["required_followup_receipts"])
-        assert any("same-color interpolation baseline receipt" in item for item in execution["required_followup_receipts"])
+        assert any("pair_audit.json same-color interpolation baseline" in item for item in execution["required_followup_receipts"])
         assert any("editable DNG and GPR" in item for item in execution["required_followup_receipts"])
         assert any("fails to beat same-color interpolation" in item for item in execution["promotion_reject_conditions"])
         assert any("source raw" in item for item in execution["promotion_reject_conditions"])
@@ -331,6 +336,7 @@ def main() -> int:
         assert "Minimum Viable Next Pass" in html
         assert "Implementation Blueprint" in html
         assert "Executable Next Pass" in html
+        assert "Pair audit command" in html
         assert "Full train commands" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
 

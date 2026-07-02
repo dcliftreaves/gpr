@@ -67,6 +67,7 @@
           "premium_still_sr_clean_signal_targets_20260702",
           "premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702",
           "premium_still_sr_self_supervised_raw_sr_contract_20260702",
+          "premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -1854,8 +1855,8 @@
         "artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html"
       ],
       "hashes": {
-        "contract_json_sha256": "5d474d695dd7961c4feae47434a459c61fc90edad7673d44b21555925a7879ac",
-        "dashboard_sha256": "36953df0df79d6fbbf95576b581335d0253479477f02a667115092085e1dba90"
+        "contract_json_sha256": "7a89fb417611f0c49a138b4417bc39fe8a883f7129734c59b3d7cb15cbf3936c",
+        "dashboard_sha256": "8d021e03eda3c363d74a86924ea5a5ad721cf54aa98139e25deea61e5d672137"
       },
       "metrics": {
         "clean_signal_target_rows": 117,
@@ -1865,6 +1866,43 @@
         "requires_clean_source_raw_sr_pairs": 1,
         "requires_teacher_beats_interpolation": 1,
         "requires_candidate_only_distillation": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Real-fixture smoke for the current premium still-SR clean-source RAW SR pair path. It builds DNG-only Mission 1, Z8, and X2D low/high same-color Bayer pairs, then records the nearest same-color 2x interpolation baseline that the first clean-source RAW SR teacher must beat.",
+      "dashboard": "artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702/index.html",
+      "docs": [
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_self_supervised_raw_sr_pairs_smoke_20260702/premium_still_sr_clean_source_pairs_smoke.npz",
+        "artifacts/premium_still_sr_self_supervised_raw_sr_pairs_smoke_20260702/premium_still_sr_clean_source_pairs_smoke.npz.json",
+        "artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702/pair_audit.json",
+        "artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702/index.html"
+      ],
+      "hashes": {
+        "pair_npz_sha256": "a0c8a396fda09fdc76d58ef44c8bec17f557a3789c4595ec3d19cfb12a129f5c",
+        "pair_metadata_sha256": "0b7d04c6002520d9979f04e78348393feb70cabc64a1a27c70f981f4f54814f2",
+        "pair_audit_json_sha256": "a492de1019370da2e17ea8917755ede0a634cdda74cb65688a8b375311c3eb78",
+        "pair_audit_dashboard_sha256": "4fe947ef8450bcfdd83fd62a1c957af2e0a2819e98dc60c9542d8f00089ea7dc"
+      },
+      "metrics": {
+        "image_count": 3,
+        "tile_count": 6,
+        "input_planes": 4,
+        "input_tile": 48,
+        "target_tile": 96,
+        "nearest_same_color_2x_mae_median": 19.238619804382324,
+        "nearest_same_color_2x_rmse_median": 49.47316458999556,
+        "nearest_same_color_2x_psnr_db_median": 50.42771188829216,
+        "mission1_tile_count": 2,
+        "z8_tile_count": 2,
+        "x2d_tile_count": 2,
         "production_ready": 0
       }
     },

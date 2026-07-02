@@ -180,6 +180,7 @@ else
                 python3 tools/test/test_build_100mp_still_visual_audit.py && \
                 python3 tools/test/test_build_premium_still_sr_fixture_manifest.py && \
                 python3 tools/test/test_build_premium_still_sr_pairs.py && \
+                python3 tools/test/test_audit_premium_still_sr_pairs.py && \
                 python3 tools/test/test_build_premium_still_sr_candidate_dashboard.py && \
                 python3 tools/test/test_build_premium_still_sr_visual_review.py && \
                 python3 tools/test/test_build_premium_still_sr_router_plan.py && \

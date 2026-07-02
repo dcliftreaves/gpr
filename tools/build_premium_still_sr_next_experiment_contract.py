@@ -307,6 +307,9 @@ def build_contract(
     pair_work_root = (
         external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_pairs_20260702/work"
     ).as_posix()
+    pair_audit_root = (
+        external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_20260702"
+    ).as_posix()
     teacher_ckpt = (
         external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_teacher_20260702/premium_still_sr_raw_sr.pt"
     ).as_posix()
@@ -441,7 +444,7 @@ def build_contract(
                 ],
                 "first_ablation_order": [
                     "self-supervised clean-source RAW SR pair build smoke with CFA/noise metadata preserved",
-                    "same-color interpolation baseline on the exact held-out pair set",
+                    "same-color interpolation baseline from audit_premium_still_sr_pairs.py on the exact held-out pair set",
                     "teacher smoke against held-out X2D and Z8 source images",
                     "teacher with realistic degradation/noise/PSF variants versus simple same-color box degradation",
                     "teacher full-image or overlapped-tile validation versus crop-only metrics",
@@ -456,6 +459,7 @@ def build_contract(
                 "canonical_full_target_npz": residual_npz,
                 "training_target_npz": dedup_target_npz,
                 "clean_source_pair_npz": pair_npz,
+                "clean_source_pair_audit_root": pair_audit_root,
                 "target_policy": (
                     "Use the deduplicated 117-row raw-domain NPZ and 20260702 clean-signal target as blocker evidence "
                     "and actual-still review inputs, not as the next primary teacher objective. The next CNN should "
@@ -512,9 +516,17 @@ def build_contract(
                         ),
                     },
                 ],
+                "pair_audit_command": shell_command(
+                    [
+                        f"GPR_TMPDIR={tmp_root} TMPDIR={tmp_root}",
+                        "python3 tools/cnn/audit_premium_still_sr_pairs.py",
+                        f"--pairs {pair_npz}",
+                        f"--output-dir {pair_audit_root}",
+                    ]
+                ),
                 "required_followup_receipts": [
                     "clean-source RAW SR pair receipt with source sha256, CFA phase, camera metadata, and noise sidecar provenance",
-                    "same-color interpolation baseline receipt on the exact held-out pair set",
+                    "pair_audit.json same-color interpolation baseline receipt on the exact held-out pair set",
                     "teacher train_receipt.json showing held-out X2D and Z8 improvement over interpolation",
                     "candidate-only distillation receipt only after teacher holdout success",
                     "overlap-vs-plain seam diagnostics from eval_overlap > 0 after a model exists",
@@ -771,6 +783,8 @@ pre {{ white-space: pre-wrap; word-break: break-word; background: #121820; color
 <p>{html.escape(str(execution.get('runtime_input_policy')))}</p>
 <h3>Smoke command</h3>
 <pre>{html.escape(str(execution.get('smoke_command')))}</pre>
+<h3>Pair audit command</h3>
+<pre>{html.escape(str(execution.get('pair_audit_command')))}</pre>
 <h3>Full train commands</h3>
 <div class="grid">{full_train_commands}</div>
 <h3>Required follow-up receipts</h3>

@@ -453,6 +453,7 @@ current evidence so strict local checks can verify it.
 | Premium still-SR experiment scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html` |
 | Premium still-SR blocker audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html` |
 | Premium still-SR current next experiment contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html` |
+| Premium still-SR clean-source RAW SR pair smoke/audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702/index.html` |
 | Premium still-SR superseded transformer-teacher contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html` |
 | Premium still-SR PSF metadata gap audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_metadata_gap_20260701/index.html` |
 | Premium still-SR PSF sidecar contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_psf_sidecar_contract_20260701/index.html` |

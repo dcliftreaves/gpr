@@ -199,6 +199,20 @@ same-color interpolation on held-out X2D and Z8 images with
 only after that teacher clears the holdout gate. Promotion still requires the
 actual still/editor-latitude gate with no REF/source/JPEG runtime inputs.
 
+The first real-fixture smoke for that path now exists:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_pairs_smoke_20260702/premium_still_sr_clean_source_pairs_smoke.npz
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702/index.html
+```
+
+It uses DNG-only Mission 1, Z8, and X2D fixtures: 6 tiles, 4 CFA planes,
+48x48 low-resolution inputs, and 96x96 high-resolution targets. The nearest
+same-color 2x interpolation baseline has median MAE **19.24**, median RMSE
+**49.47**, and median PSNR **50.43 dB** across the smoke tiles. A clean-source
+RAW SR teacher must beat that held-out baseline before candidate-only
+distillation or premium still-SR promotion.
+
 ## Blocker Audit
 
 The blocker audit combines the experiment scoreboard, current readiness
