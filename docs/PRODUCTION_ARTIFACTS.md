@@ -125,6 +125,8 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate16 paired-smoke launch preflight | `artifacts/premium_still_sr_gate16_tail_safe_smoke_20260702/preflight_audit.json` | `3d8e58ffa8e9ab25c3c1e0ab6f6abd245653e2154e5254ea331817443578511a` |
 | Gate16 paired-smoke acceptance pass | `artifacts/premium_still_sr_gate16_tail_safe_smoke_acceptance_20260702/smoke_gate_acceptance.json` | `aad2c58ff7d5e0c748e09f1e333cd4d239d3db9e3f45ba4fc622d41c527ac231` |
 | Gate16 paired-smoke acceptance dashboard | `artifacts/premium_still_sr_gate16_tail_safe_smoke_acceptance_20260702/index.html` | `76b2879e3349386e27b74f6728f92d0ec99f20fe75ec4f729e3657fe37047c34` |
+| Gate16 full-promotion launch packet | `artifacts/premium_still_sr_gate16_promotion_launch_packet_20260702/gate16_promotion_launch_packet.json` | `94aae3aeaafb80d5855d0b6f27737fe0c8e8c9917ff626fcdf14c42ab4e81d63` |
+| Gate16 full-promotion launch dashboard | `artifacts/premium_still_sr_gate16_promotion_launch_packet_20260702/index.html` | `4b3b6d0a5d143d7383f44b06e78aa1f7870be5384a41848b8c2a92fdf9d40dd4` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -134,10 +136,17 @@ The strict promotion receipt rollup now records 5/9 done steps after the Gate16
 paired-smoke pass. The first open step is `model_promotion_floor`; the current
 blockers are full 50 MP / 100 MP gate rows, timing/memory, exact noise-policy
 wiring, and production submission.
-The model-floor gap receipt quantifies the first blocker: best runtime-safe
-MAE/RMSE are `4.031355420019811%` / `3.753504206299621%`, leaving
+The Gate16 full-promotion launch packet records that prerequisites are ready
+for the full gate, but production remains false. Existing route-readiness
+metrics cannot substitute for the Gate16 full gate: the older X2D 100 MP route
+has only `1.1989708797367278%` MAE and `1.0257625656340554%` RMSE recovery
+against the `15%` / `15%` floor. The next artifact must therefore be
+Gate16-specific full-frame inference, timing, memory, noise-policy wiring, and
+production submission evidence.
+The older model-floor gap receipt quantified the previous blocker: best
+runtime-safe MAE/RMSE were `4.031355420019811%` / `3.753504206299621%`, leaving
 `10.96864457998019` / `11.24649579370038` percentage points to the floor. The
-next candidate contract is `premium_still_sr_gate14_floor_student_v1`. Its
+next candidate contract was `premium_still_sr_gate14_floor_student_v1`. Its
 preflight and launch packet now pass as launchable intake artifacts only. The
 target-builder now passes and built `2112` X2D/Z8 rows from the Gate14
 clean-source pair surface, but the paired smokes block a long run: X2D holdout

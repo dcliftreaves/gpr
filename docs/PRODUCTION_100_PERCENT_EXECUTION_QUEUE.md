@@ -108,6 +108,8 @@ Current proof:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate16_tail_safe_smoke_acceptance_20260702/smoke_gate_acceptance.json`
 - Gate16 X2D checkpoint:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate16_x2d_tail_safe_0015_smoke_20260702/premium_still_sr_raw_cfa_residual.pt`
+- Gate16 full-promotion launch packet:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate16_promotion_launch_packet_20260702/gate16_promotion_launch_packet.json`
 - Gate16-aware promotion rollup:
   `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_gate16_20260702/premium_still_sr_promotion_receipts.json`
 
@@ -117,3 +119,11 @@ The Gate16-aware rollup currently records `done_step_count=5`,
 `model_promotion_floor_not_met`, `full_50mp_100mp_gate_missing`,
 `timing_memory_missing`, `noise_policy_not_wired`, and
 `production_submission_missing_or_failed`.
+
+The Gate16 launch packet records `ready_to_launch_full_gate=true` and
+`first_open_step=gate16_full_frame_metric_generation`. It also records that
+older route-readiness metrics cannot close this gate: the previous X2D 100 MP
+route has only `1.1989708797367278%` MAE and `1.0257625656340554%` RMSE
+recovery against the `15%` / `15%` floor. The next run must therefore execute
+Gate16-specific full-frame inference and timing, not reuse the old route
+summary as production evidence.
