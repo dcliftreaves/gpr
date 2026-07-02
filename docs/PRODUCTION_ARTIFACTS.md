@@ -897,6 +897,17 @@ release mode.
 Commit only the registry hash, training sidecar summary, quality-gate receipt,
 and compact documentation needed to reproduce the artifact.
 
+## Premium Still-SR Target/Degradation Evidence
+
+These rows document the current first local Premium still/SR blocker. They do
+not promote a model; they prevent another long run from the rejected
+candidate-HF no-op or simple frame-context family.
+
+| artifact | path | sha256 |
+|---|---|---|
+| Premium still-SR target/degradation blocker receipt | `artifacts/premium_still_sr_target_degradation_evidence_20260702/target_degradation_evidence.json` | `2b4ca8ded91b402b941bdede67de24f7e9ed2dff4e02fe2219fd6d7766b24994` |
+| Premium still-SR target/degradation blocker dashboard | `artifacts/premium_still_sr_target_degradation_evidence_20260702/index.html` | `c99ae902e7519cea10d86664d62742430c3ba206244cbbd484a2dcea97f44603` |
+
 ## Registry Review Artifacts
 
 These rows are required by the release evidence manifest guard for temporary
