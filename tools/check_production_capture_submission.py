@@ -550,6 +550,7 @@ def validate_strict_camera_role_receipt_content(
     target_bench = load_named_receipt(receipts, "labs_target_bench", path_root, failures)
     target_preflight = load_named_receipt(receipts, "target_preflight_receipt", path_root, failures)
     handoff = load_named_receipt(receipts, "camera_handoff_receipt", path_root, failures)
+    preview_decode = load_named_receipt(receipts, "preview_decode_receipt", path_root, failures)
     preview = load_named_receipt(receipts, "preview_ui_receipt", path_root, failures)
     closure = load_named_receipt(receipts, "mission1_camera_closure_run", path_root, failures)
 
@@ -615,6 +616,38 @@ def validate_strict_camera_role_receipt_content(
         ok, failure = number_at_least(handoff.get("timing", {}), "fps_median", 20.0)
         if not ok:
             failures.append(f"camera_handoff_receipt timing.{failure}")
+
+    if preview_decode is not None:
+        if preview_decode.get("schema") != "gvid_decode_target_bench.v1":
+            failures.append("preview_decode_receipt schema must be gvid_decode_target_bench.v1")
+        if preview_decode.get("gvid_sha256") != row.get("gvid_sha256"):
+            failures.append("preview_decode_receipt gvid_sha256 must match submitted gvid_sha256")
+        for key, expected in (("sensor_width", 4096), ("sensor_height", 3072)):
+            ok, failure = number_equals(preview_decode, key, expected)
+            if not ok:
+                failures.append(f"preview_decode_receipt {failure}")
+        if preview_decode.get("raw_target") != "mission1_preview_4x_1024x768":
+            failures.append("preview_decode_receipt raw_target must be mission1_preview_4x_1024x768")
+        frame_count = numeric_value(preview_decode.get("frame_count"))
+        if frame_count is None or frame_count <= 0:
+            failures.append("preview_decode_receipt frame_count must be > 0")
+        elif target_bench is not None:
+            target_frames = numeric_value(nested_get(target_bench, "capture", "frames_written"))
+            if target_frames is not None and int(frame_count) != int(target_frames):
+                failures.append("preview_decode_receipt frame_count must match labs_target_bench capture.frames_written")
+        dims = nested_get(preview_decode, "summary", "dims")
+        if dims != [[1024, 768]]:
+            failures.append("preview_decode_receipt summary.dims must be [[1024, 768]]")
+        ok, failure = number_at_least(
+            nested_get(preview_decode, "summary", "decode_plus_target") or {},
+            "fps_median",
+            20.0,
+        )
+        if not ok:
+            failures.append(f"preview_decode_receipt summary.decode_plus_target.{failure}")
+        ok, failure = number_at_least(preview_decode.get("summary", {}), "actual_wall_fps_including_extract_process", 20.0)
+        if not ok:
+            failures.append(f"preview_decode_receipt summary.{failure}")
 
     if preview is not None:
         if preview.get("schema") != "gpr_labs_preview_ui_receipt.v1":

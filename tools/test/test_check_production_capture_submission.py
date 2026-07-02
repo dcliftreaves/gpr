@@ -229,7 +229,28 @@ def write_camera_role_receipts(submission: dict, bundle: Path) -> None:
     )
     write_receipt(
         "preview_decode_receipt",
-        {"schema": "gpr.preview_decode_fixture.v1", "gvid_sha256": gvid_sha},
+        {
+            "schema": "gvid_decode_target_bench.v1",
+            "gvid_sha256": gvid_sha,
+            "sensor_width": 4096,
+            "sensor_height": 3072,
+            "raw_target": "mission1_preview_4x_1024x768",
+            "frame_count": 120,
+            "summary": {
+                "decode_plus_target": {"n": 120, "fps_median": 43.0},
+                "actual_wall_fps_including_extract_process": 21.0,
+                "dims": [[1024, 768]],
+            },
+            "rows": [
+                {
+                    "frame_index": 0,
+                    "decode_width": 1024,
+                    "decode_height": 768,
+                    "width": 1024,
+                    "height": 768,
+                }
+            ],
+        },
     )
     write_receipt(
         "preview_ui_receipt",
@@ -908,6 +929,23 @@ def main() -> int:
         assert proc.returncode == 1
         assert "camera_handoff_receipt target.role must be camera" in proc.stdout
         assert "camera_handoff_receipt integration.raw_source_kind must be sensor_dma_capture or camera_ring_buffer" in proc.stdout
+        write_camera_role_receipts(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        camera = next(row for row in bad["requirements"] if row["id"] == "mission1_camera_role_receipts")
+        preview_decode_path = bundle / camera["receipts"]["preview_decode_receipt"]["path"]
+        preview_decode = json.loads(preview_decode_path.read_text(encoding="utf-8"))
+        preview_decode["summary"]["dims"] = [[960, 720]]
+        preview_decode["summary"]["decode_plus_target"]["fps_median"] = 12.0
+        preview_decode_path.write_text(json.dumps(preview_decode, indent=2) + "\n", encoding="utf-8")
+        camera["receipts"]["preview_decode_receipt"]["sha256"] = hashlib.sha256(
+            preview_decode_path.read_bytes()
+        ).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "preview_decode_receipt summary.dims must be [[1024, 768]]" in proc.stdout
+        assert "preview_decode_receipt summary.decode_plus_target.fps_median must be >= 20" in proc.stdout
         write_camera_role_receipts(strict, bundle)
 
         bad = json.loads(json.dumps(strict))
