@@ -72,13 +72,17 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate 12 paired smoke acceptance dashboard | `artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/index.html` | `55b0d8ffa39906aadbef1b30844a8352bab3c925d82621dce15da5f41f6f8f24` |
 | Gate 13 degradation-source upgrade audit receipt | `artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/gate13_degradation_source_upgrade.json` | `e7db5d337c44e48c52262f304aa090b69171fcc1980671d39168433f91bb53cd` |
 | Gate 13 degradation-source upgrade audit dashboard | `artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/index.html` | `a0a78254d9eb001ef1aa8fc5aedf38f95796131b8f723453033c14e51e9d6e3f` |
+| Gate 13 tail-safe source smoke receipt | `artifacts/premium_still_sr_gate13_tail_safe_source_smoke_20260702/tail_safe_source_smoke.json` | `823008da53a613f1ea9dac31f6271a923627586c92c5a45cd40a9fb320302e5b` |
+| Gate 13 tail-safe source smoke dashboard | `artifacts/premium_still_sr_gate13_tail_safe_source_smoke_20260702/index.html` | `4c423ad053670b0bb9d0040313f40ea788cf49793b088e0b7cc64296c2def51c` |
 
 These branches are blocked before long training. The next Premium Still/SR
-candidate must preserve the best Gate 13 X2D positive median while adding a
-tail-safe no-op gate that makes worst-row MAE nonnegative, keep Z8 exact-noop,
-and pass
-`tools/check_premium_still_sr_smoke_gate_acceptance.py --require-pass` on paired
-X2D/Z8 smoke receipts before it can consume a long run.
+candidate must go beyond the Gate 13 simple candidate-stat gate. The latest
+tail-safe smoke found `1394` global-only no-op rules, but `0` strict per-image
+rules: the best aggregate rule has X2D median MAE `+0.215125015196241%` and
+worst-row MAE `0.0%`, but one X2D scene falls to a `0.0%` median. Long training
+remains blocked until a feature-rich or scene-normalized candidate-only gate
+keeps every X2D scene median positive, makes worst-row MAE nonnegative, and
+keeps Z8 exact-noop.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model
