@@ -316,6 +316,15 @@ def validate(readme_path: Path = README, scorecard_path: Path = SCORECARD) -> li
 
     require_tokens(readme, REQUIRED_SECTIONS, readme_path.name, failures)
     require_tokens(readme, REQUIRED_README_TOKENS, readme_path.name, failures)
+    evidence_questions = re.findall(r"^\| What [^|]+\|", readme, flags=re.MULTILINE)
+    duplicate_evidence_questions = sorted(
+        question for question in set(evidence_questions) if evidence_questions.count(question) > 1
+    )
+    if duplicate_evidence_questions:
+        failures.append(
+            "README.md Evidence Map repeats question rows: "
+            + ", ".join(duplicate_evidence_questions)
+        )
     for token in FORBIDDEN_README_TOKENS:
         if token in readme:
             failures.append(f"{readme_path.name} must not reference rejected or superseded artifact {token!r}")
