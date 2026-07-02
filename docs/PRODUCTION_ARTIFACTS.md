@@ -70,10 +70,13 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate 12 candidate intake dashboard | `artifacts/premium_still_sr_gate12_candidate_intake_20260702/index.html` | `276270034b9335e63edaeec1e48467c5b083a6a22b1e3c53b522fb902730792c` |
 | Gate 12 paired smoke acceptance receipt | `artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/smoke_gate_acceptance.json` | `1538519b3736ff28716c14dea44ad8bb3f324e35a1b6eeae4272b90460b65f2b` |
 | Gate 12 paired smoke acceptance dashboard | `artifacts/premium_still_sr_gate12_smoke_acceptance_20260702/index.html` | `55b0d8ffa39906aadbef1b30844a8352bab3c925d82621dce15da5f41f6f8f24` |
+| Gate 13 degradation-source upgrade audit receipt | `artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/gate13_degradation_source_upgrade.json` | `e7db5d337c44e48c52262f304aa090b69171fcc1980671d39168433f91bb53cd` |
+| Gate 13 degradation-source upgrade audit dashboard | `artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/index.html` | `a0a78254d9eb001ef1aa8fc5aedf38f95796131b8f723453033c14e51e9d6e3f` |
 
 These branches are blocked before long training. The next Premium Still/SR
-candidate must address raw-CFA no-op/benefit gating, route-specific Z8
-conditioning, or target/degradation mismatch and pass
+candidate must preserve the best Gate 13 X2D positive median while adding a
+tail-safe no-op gate that makes worst-row MAE nonnegative, keep Z8 exact-noop,
+and pass
 `tools/check_premium_still_sr_smoke_gate_acceptance.py --require-pass` on paired
 X2D/Z8 smoke receipts before it can consume a long run.
 

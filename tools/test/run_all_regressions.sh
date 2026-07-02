@@ -214,6 +214,7 @@ else
                 python3 tools/test/test_build_premium_still_sr_exact_noop_receipt.py && \
                 python3 tools/test/test_build_premium_still_sr_gate12_candidate_preflight.py && \
                 python3 tools/test/test_check_premium_still_sr_smoke_gate_acceptance.py && \
+                python3 tools/test/test_build_premium_still_sr_gate13_degradation_source_upgrade.py && \
                 python3 tools/test/test_build_premium_still_sr_experiment_scoreboard.py && \
                 python3 tools/test/test_build_premium_still_sr_blocker_audit.py && \
                 python3 tools/test/test_build_premium_still_sr_target_expansion_plan.py && \

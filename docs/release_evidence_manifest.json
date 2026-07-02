@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, clean-target noise policy, Gate 12 source audit, Gate 12 candidate intake, and failed Gate 12 paired smoke are in place; no Candidate-only 50 MP / 100 MP model receipt clears the 15% / 15% held-out promotion floor. Gate 12 proves Z8 exact-noop is safe but the X2D synthetic teacher does not beat nearest same-color.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 13 found a positive X2D median source but blocked long training on negative worst-row MAE; next receipt is a tail-safe no-op source smoke.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -122,10 +122,11 @@
           "premium_still_sr_gate11_smoke_acceptance_20260702",
           "premium_still_sr_measured_degradation_teacher_source_audit_20260702",
           "premium_still_sr_gate12_candidate_intake_20260702",
-          "premium_still_sr_gate12_smoke_acceptance_20260702"
+          "premium_still_sr_gate12_smoke_acceptance_20260702",
+          "premium_still_sr_gate13_degradation_source_upgrade_20260702"
         ]
       },
-      "open_gate": "Gate 12 paired smoke is blocked before long run: X2D median/worst MAE recovery is -0.015976613123677263% / -0.22449340376395477%, while Z8 exact-noop passes at 0.0% / 0.0%. The next local gate is premium_still_sr_gate13_degradation_source_upgrade_<date>: replace or upgrade the X2D degradation/teacher source so source-level smoke beats nearest same-color before any long run."
+      "open_gate": "premium_still_sr_gate13_tail_safe_source_smoke_<date>"
     },
     {
       "id": "raw_video_reconstruction",
@@ -4659,6 +4660,45 @@
         "z8_exact_noop_passed": 1,
         "z8_median_mae_improvement_pct": 0.0,
         "z8_worst_row_mae_improvement_pct": 0.0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate13_degradation_source_upgrade_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gate 13 audit over available Premium still-SR clean-source and exact-noop receipts. It finds positive X2D median source signal but blocks long training because the best positive-median source still has a negative worst row, so the next local work is tail-safe no-op source smoke rather than another ungated long train.",
+      "dashboard": "artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate13_degradation_source_upgrade.py",
+        "tools/test/test_build_premium_still_sr_gate13_degradation_source_upgrade.py",
+        "tools/cnn/train_premium_still_sr_clean_source_pairs.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/gate13_degradation_source_upgrade.json",
+        "artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/index.html"
+      ],
+      "hashes": {
+        "gate13_degradation_source_upgrade_json_sha256": "e7db5d337c44e48c52262f304aa090b69171fcc1980671d39168433f91bb53cd",
+        "dashboard_sha256": "a0a78254d9eb001ef1aa8fc5aedf38f95796131b8f723453033c14e51e9d6e3f",
+        "best_x2d_source_receipt_sha256": "33e6f0c9042bc8292e18549110a11a5ce62e87e64d1ae00ec573a53797b0a27f"
+      },
+      "metrics": {
+        "source_upgrade_passed": 0,
+        "long_run_allowed": 0,
+        "gate14_candidate_intake_allowed": 0,
+        "passing_x2d_source_receipt_count": 0,
+        "positive_median_x2d_source_receipt_count": 6,
+        "best_x2d_median_mae_improvement_pct": 0.2741207579275717,
+        "best_x2d_worst_row_mae_improvement_pct": -2.959145874624423,
+        "best_x2d_median_rmse_improvement_pct": 0.23526188856007296,
+        "z8_exact_noop_ok": 1,
         "production_ready": 0
       }
     }
