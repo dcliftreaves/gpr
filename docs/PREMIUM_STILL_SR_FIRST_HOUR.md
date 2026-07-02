@@ -77,9 +77,19 @@ production-promoted.
    beyond same-color box downsample alone, joint X2D/Z8 holdout selection, and
    full-image or overlapped-tile validation.
 
-   Before launching that run, write a small proposal manifest and run the
-   launch preflight. The template builder emits the current recommended
-   clean-source restoration-teacher proposal shape:
+   Before launching that run, build a launch packet. The packet writes the
+   candidate manifest, runs the launch preflight, records the exact next command
+   sequence, and lists rejected repeat paths that should not burn another long
+   run:
+
+   ```sh
+   python3 tools/build_premium_still_sr_launch_packet.py \
+     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> \
+     --require-launchable
+   ```
+
+   The launch packet calls the current recommended clean-source
+   restoration-teacher proposal shape and checker:
 
    ```sh
    python3 tools/build_premium_still_sr_candidate_preflight_template.py \

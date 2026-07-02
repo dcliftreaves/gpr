@@ -133,6 +133,10 @@ def main() -> int:
             for command in premium_actions[0]["validation_commands"]
         )
         assert any(
+            "build_premium_still_sr_launch_packet.py" in command
+            for command in premium_actions[0]["validation_commands"]
+        )
+        assert any(
             "check_production_capture_submission.py" in command
             for command in premium_actions[0]["validation_commands"]
         )

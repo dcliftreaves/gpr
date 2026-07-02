@@ -236,10 +236,8 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
                 "worst-row dashboard shows no severe texture or tone failures",
             ],
             next_command=(
-                "python3 tools/check_premium_still_sr_candidate_preflight.py "
-                "<candidate_preflight.json> "
-                "--json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/audit.json "
-                "--html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/index.html "
+                "python3 tools/build_premium_still_sr_launch_packet.py "
+                "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> "
                 "--require-launchable"
             ),
             completion_gate=(

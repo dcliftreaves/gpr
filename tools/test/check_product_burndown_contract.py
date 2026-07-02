@@ -81,6 +81,7 @@ EXPECTED_PILLARS = {
                 "command_tokens": (
                     "build_premium_still_sr_candidate_preflight_template.py",
                     "check_premium_still_sr_candidate_preflight.py",
+                    "build_premium_still_sr_launch_packet.py",
                     "--require-launchable",
                     "build_premium_still_sr_gate_receipt.py",
                     "check_production_capture_submission.py",

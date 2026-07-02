@@ -113,7 +113,8 @@ file/hash mismatches. The production submission must include that audit as
 `source_provenance_audit_schema=gpr.darkframe_source_provenance_audit.v1`,
 `source_provenance_audit_ready_frame_count>=4`, and
 `source_provenance_audit_production_ready=true`. A premium still-SR submission
-must first pass
+must first emit
+`tools/build_premium_still_sr_launch_packet.py --require-launchable` and pass
 `tools/check_premium_still_sr_candidate_preflight.py --require-launchable` for
 a materially new restoration-teacher, non-local/full-image, burst, or
 clean-source RAW SR proposal. The final submission must name runtime inputs,
