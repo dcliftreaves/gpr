@@ -458,6 +458,61 @@ class FrequencyPyramidPixelShuffleSR(nn.Module):
         return torch.clamp(base + torch.tanh(residual) * self.residual_scale, 0.0, 1.0)
 
 
+class GatedFrequencyPyramidPixelShuffleSR(nn.Module):
+    """Frequency-pyramid RAW SR with an explicit candidate-only no-op gate."""
+
+    def __init__(self, width: int, depth: int, residual_scale: float) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        w = max(8, int(width))
+        block_count = max(1, int(depth))
+        self.local_head = nn.Sequential(nn.Conv2d(4, w, 3, padding=1), nn.GELU())
+        self.local_body = nn.Sequential(
+            *[
+                nn.Sequential(
+                    nn.Conv2d(w, w, 3, padding=1),
+                    nn.GELU(),
+                    nn.Conv2d(w, w, 3, padding=1),
+                    nn.GELU(),
+                )
+                for _ in range(block_count)
+            ]
+        )
+        self.low_branch = nn.Sequential(nn.Conv2d(4, w, 3, padding=1), nn.GELU())
+        self.high_branch = nn.Sequential(nn.Conv2d(4, w, 3, padding=1), nn.GELU())
+        self.global_branch = nn.Sequential(
+            nn.AdaptiveAvgPool2d((16, 16)),
+            nn.Conv2d(4, w, 3, padding=1),
+            nn.GELU(),
+        )
+        self.fuse = nn.Sequential(
+            nn.Conv2d(w * 4, w * 2, 1),
+            nn.GELU(),
+            nn.Conv2d(w * 2, w, 3, padding=1),
+            nn.GELU(),
+        )
+        self.residual_head = nn.Conv2d(w, 16, 3, padding=1)
+        self.gate_head = nn.Conv2d(w, 16, 3, padding=1)
+        nn.init.zeros_(self.residual_head.weight)
+        nn.init.zeros_(self.residual_head.bias)
+        nn.init.zeros_(self.gate_head.weight)
+        nn.init.constant_(self.gate_head.bias, -3.0)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        base = torch.repeat_interleave(torch.repeat_interleave(x, 2, dim=2), 2, dim=3)
+        local = self.local_body(self.local_head(x))
+        low_input = F.avg_pool2d(x, kernel_size=3, stride=1, padding=1)
+        high_input = x - low_input
+        low = self.low_branch(low_input)
+        high = self.high_branch(high_input)
+        global_context = self.global_branch(x)
+        global_context = F.interpolate(global_context, size=x.shape[-2:], mode="bilinear", align_corners=False)
+        fused = self.fuse(torch.cat([local, low, high, global_context], dim=1))
+        residual = F.pixel_shuffle(self.residual_head(fused), 2)
+        gate = torch.sigmoid(F.pixel_shuffle(self.gate_head(fused), 2))
+        return torch.clamp(base + torch.tanh(residual) * gate * self.residual_scale, 0.0, 1.0)
+
+
 def build_model(model_arch: str, width: int, depth: int, residual_scale: float) -> nn.Module:
     if model_arch == "residual_pixelshuffle":
         return ResidualPixelShuffleSR(width, depth, residual_scale)
@@ -469,6 +524,8 @@ def build_model(model_arch: str, width: int, depth: int, residual_scale: float) 
         return WindowAttentionPixelShuffleSR(width, depth, residual_scale)
     if model_arch == "frequency_pyramid_pixelshuffle":
         return FrequencyPyramidPixelShuffleSR(width, depth, residual_scale)
+    if model_arch == "gated_frequency_pyramid_pixelshuffle":
+        return GatedFrequencyPyramidPixelShuffleSR(width, depth, residual_scale)
     raise ValueError(f"unknown model architecture: {model_arch}")
 
 
@@ -492,6 +549,16 @@ def laplacian_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     pred_lap = F.conv2d(F.pad(pred, (1, 1, 1, 1), mode="reflect"), kernel, groups=channels)
     targ_lap = F.conv2d(F.pad(target, (1, 1, 1, 1), mode="reflect"), kernel, groups=channels)
     return F.l1_loss(pred_lap, targ_lap)
+
+
+def nearest_same_color_2x(x: torch.Tensor) -> torch.Tensor:
+    return torch.repeat_interleave(torch.repeat_interleave(x, 2, dim=2), 2, dim=3)
+
+
+def baseline_worsening_loss(pred: torch.Tensor, target: torch.Tensor, baseline: torch.Tensor) -> torch.Tensor:
+    pred_err = torch.mean(torch.abs(pred - target), dim=(1, 2, 3))
+    base_err = torch.mean(torch.abs(baseline - target), dim=(1, 2, 3))
+    return torch.mean(torch.relu(pred_err - base_err))
 
 
 def degrade_training_input(
@@ -640,6 +707,7 @@ def main() -> int:
             "restormer_pixelshuffle",
             "window_attention_pixelshuffle",
             "frequency_pyramid_pixelshuffle",
+            "gated_frequency_pyramid_pixelshuffle",
         ],
         default="residual_pixelshuffle",
     )
@@ -671,6 +739,18 @@ def main() -> int:
         type=float,
         default=0.0,
         help="training-only blend weight for a same-plane 3x3 blur on low planes",
+    )
+    ap.add_argument(
+        "--baseline-worsening-loss-weight",
+        type=float,
+        default=0.0,
+        help="penalize batch rows whose model MAE is worse than same-color 2x interpolation",
+    )
+    ap.add_argument(
+        "--residual-energy-loss-weight",
+        type=float,
+        default=0.0,
+        help="penalize unnecessary deviation from same-color 2x interpolation",
     )
     ap.add_argument("--lr", type=float, default=1.0e-3)
     ap.add_argument("--weight-decay", type=float, default=1.0e-4)
@@ -705,11 +785,28 @@ def main() -> int:
             blur_weight=args.train_input_blur_weight,
         )
         pred = model(degraded_x)
+        baseline = nearest_same_color_2x(degraded_x)
         pixel_l1 = F.l1_loss(pred, y)
         pixel_loss = charbonnier_loss(pred, y) if args.loss_mode == "charbonnier" else pixel_l1
         detail_l1 = gradient_loss(pred, y) if args.gradient_loss_weight > 0.0 else pred.new_tensor(0.0)
         lap_l1 = laplacian_loss(pred, y) if args.laplacian_loss_weight > 0.0 else pred.new_tensor(0.0)
-        loss = pixel_loss + float(args.gradient_loss_weight) * detail_l1 + float(args.laplacian_loss_weight) * lap_l1
+        worsening_l1 = (
+            baseline_worsening_loss(pred, y, baseline)
+            if args.baseline_worsening_loss_weight > 0.0
+            else pred.new_tensor(0.0)
+        )
+        residual_l1 = (
+            F.l1_loss(pred, baseline)
+            if args.residual_energy_loss_weight > 0.0
+            else pred.new_tensor(0.0)
+        )
+        loss = (
+            pixel_loss
+            + float(args.gradient_loss_weight) * detail_l1
+            + float(args.laplacian_loss_weight) * lap_l1
+            + float(args.baseline_worsening_loss_weight) * worsening_l1
+            + float(args.residual_energy_loss_weight) * residual_l1
+        )
         opt.zero_grad(set_to_none=True)
         loss.backward()
         opt.step()
@@ -722,6 +819,8 @@ def main() -> int:
                     "pixel_loss": float(pixel_loss.detach().cpu().item()),
                     "gradient_l1": float(detail_l1.detach().cpu().item()),
                     "laplacian_l1": float(lap_l1.detach().cpu().item()),
+                    "baseline_worsening_l1": float(worsening_l1.detach().cpu().item()),
+                    "residual_energy_l1": float(residual_l1.detach().cpu().item()),
                 }
             )
 
@@ -743,6 +842,8 @@ def main() -> int:
                 "train_input_noise_std_counts": args.train_input_noise_std_counts,
                 "train_input_gain_jitter_pct": args.train_input_gain_jitter_pct,
                 "train_input_blur_weight": args.train_input_blur_weight,
+                "baseline_worsening_loss_weight": args.baseline_worsening_loss_weight,
+                "residual_energy_loss_weight": args.residual_energy_loss_weight,
                 "raw_scale": RAW_SCALE,
             },
             "pair_npz_sha256": sha256_file(args.pairs),
@@ -775,6 +876,8 @@ def main() -> int:
             "train_input_noise_std_counts": args.train_input_noise_std_counts,
             "train_input_gain_jitter_pct": args.train_input_gain_jitter_pct,
             "train_input_blur_weight": args.train_input_blur_weight,
+            "baseline_worsening_loss_weight": args.baseline_worsening_loss_weight,
+            "residual_energy_loss_weight": args.residual_energy_loss_weight,
             "lr": args.lr,
             "weight_decay": args.weight_decay,
             "seed": args.seed,

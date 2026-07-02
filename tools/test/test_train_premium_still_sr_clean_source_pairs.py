@@ -53,6 +53,7 @@ def main() -> int:
     assert "--output-dir" in help_proc.stdout
     assert "window_attention_pixelshuffle" in help_proc.stdout
     assert "frequency_pyramid_pixelshuffle" in help_proc.stdout
+    assert "gated_frequency_pyramid_pixelshuffle" in help_proc.stdout
 
     if np is None:
         print("test_train_premium_still_sr_clean_source_pairs: SKIP missing numpy/torch")
@@ -261,6 +262,50 @@ def main() -> int:
         frequency_receipt = json.loads((frequency_out / "train_receipt.json").read_text(encoding="utf-8"))
         assert frequency_receipt["config"]["model_arch"] == "frequency_pyramid_pixelshuffle"
         assert frequency_receipt["eval"]["holdout"]["tile_count"] == 2
+        gated_out = td / "gated_frequency_pyramid_run"
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--pairs",
+                str(pairs),
+                "--output-dir",
+                str(gated_out),
+                "--holdout-image",
+                "holdout_b",
+                "--steps",
+                "1",
+                "--batch",
+                "2",
+                "--low-crop",
+                "8",
+                "--model-arch",
+                "gated_frequency_pyramid_pixelshuffle",
+                "--width",
+                "8",
+                "--depth",
+                "1",
+                "--baseline-worsening-loss-weight",
+                "0.5",
+                "--residual-energy-loss-weight",
+                "0.05",
+                "--eval-every",
+                "1",
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        gated_receipt = json.loads((gated_out / "train_receipt.json").read_text(encoding="utf-8"))
+        assert gated_receipt["config"]["model_arch"] == "gated_frequency_pyramid_pixelshuffle"
+        assert gated_receipt["config"]["baseline_worsening_loss_weight"] == 0.5
+        assert gated_receipt["config"]["residual_energy_loss_weight"] == 0.05
+        assert gated_receipt["eval"]["holdout"]["tile_count"] == 2
     print("test_train_premium_still_sr_clean_source_pairs: PASS")
     return 0
 

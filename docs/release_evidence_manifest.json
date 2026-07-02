@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no model receipt yet clears the 15% / 15% held-out promotion floor. The latest frequency-pyramid smoke is blocked before long training because X2D fails worst-row MAE and Z8 regresses median/worst-row MAE.",
+      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no model receipt yet clears the 15% / 15% held-out promotion floor. Frequency-pyramid and gated-residual smokes are blocked before long training; the gated no-op direction greatly reduces Z8 damage but remains at interpolation parity rather than positive held-out recovery.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -98,6 +98,7 @@
           "premium_still_sr_frequency_pyramid_source_evidence_smoke_20260702",
           "premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702",
           "premium_still_sr_experiment_scoreboard_frequency_pyramid_20260702",
+          "premium_still_sr_gated_residual_smoke_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629",
@@ -2765,6 +2766,74 @@
         "promotable_candidate_count": 0,
         "best_runtime_safe_mae_recovery_pct": 4.031355420019811,
         "best_runtime_safe_rmse_recovery_pct": 3.753504206299621,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gated_residual_smoke_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gated no-op residual Premium Still/SR attempt after the frequency-pyramid failure. It proves the no-op direction reduces Z8 damage, but both the source-evidence and stricter identity variants remain below the paired smoke gate, so no long run is allowed.",
+      "dashboard": "artifacts/premium_still_sr_gated_residual_smoke_gate_acceptance_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_candidate_preflight_template.py",
+        "tools/check_premium_still_sr_candidate_preflight.py",
+        "tools/check_premium_still_sr_smoke_gate_acceptance.py",
+        "tools/cnn/train_premium_still_sr_clean_source_pairs.py",
+        "tools/test/test_train_premium_still_sr_clean_source_pairs.py",
+        "tools/test/test_check_premium_still_sr_smoke_gate_acceptance.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_candidate_preflight_gated_residual_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_candidate_preflight_gated_residual_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_candidate_preflight_gated_residual_20260702/index.html",
+        "artifacts/premium_still_sr_gated_residual_source_evidence_x2d_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_gated_residual_source_evidence_z8_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_gated_residual_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json",
+        "artifacts/premium_still_sr_gated_residual_smoke_gate_acceptance_20260702/index.html",
+        "artifacts/premium_still_sr_gated_residual_identity_x2d_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_gated_residual_identity_z8_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_gated_residual_identity_z8scene1349_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_experiment_scoreboard_gated_residual_20260702/scoreboard.json",
+        "artifacts/premium_still_sr_experiment_scoreboard_gated_residual_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "7a0b6836ff15eb358b22e0450206011f9b4ccb1960bd7025a344d7e5dc622801",
+        "preflight_audit_json_sha256": "0c7dfd152e264e8880f1c2d0aa21b5a2ff5622ca546d23cccdae0cc48dc04a5e",
+        "preflight_dashboard_sha256": "737026bf733f801f39a22db121b87d4052374092ec7077c2e93d099a6c136319",
+        "x2d_source_evidence_train_receipt_sha256": "4db092f18ae9ac7c372626aca713ae8e71d9914bf54840cb342ba008ccdab3c8",
+        "z8_source_evidence_train_receipt_sha256": "60a3c05ada40b1ba027df8debc618487782f4eea925b5385eda933468607cc19",
+        "smoke_gate_acceptance_json_sha256": "3a430acf38e9b8666b94751de402f0db76b9e7f8fc509903c1a66095afcfc6d9",
+        "smoke_gate_dashboard_sha256": "b9a6c155e8b43acc86383e5440bdb2e3b027ffdfac4fadd65ce147558b194117",
+        "identity_x2d_train_receipt_sha256": "e1c3a395ebf6b460d2d74742195eeda535b0099a2ae5f8e32ea0d11ee5fc7ca3",
+        "identity_z8_train_receipt_sha256": "b391be453cbec5e609f1d700ef35ad53b52137f4cf04aaacec9cecd5a23e2ebe",
+        "identity_z8scene_train_receipt_sha256": "107e1c19d76ac70af15973cc83bfc9d470591da2061b3f736de7890e8bb20ec5",
+        "scoreboard_json_sha256": "cb6292ae1ae633f222ad17b6007d94e4fffea04dc760d5ac6ee29d22aa5cc6bc",
+        "scoreboard_dashboard_sha256": "637f1b84406d392633c408457ede011e536abd6787f2385305d7daf8f6ff0a16"
+      },
+      "metrics": {
+        "receipt_count": 118,
+        "runtime_safe_candidate_count": 118,
+        "promotable_candidate_count": 0,
+        "source_evidence_x2d_median_mae_recovery_pct": 0.009710479278016423,
+        "source_evidence_x2d_worst_row_mae_recovery_pct": -17.16908196504484,
+        "source_evidence_z8_median_mae_recovery_pct": -0.07770732977859413,
+        "source_evidence_z8_worst_row_mae_recovery_pct": -0.9817010759922141,
+        "identity_x2d_median_mae_recovery_pct": 0.00008488424079708562,
+        "identity_x2d_worst_row_mae_recovery_pct": -0.011432486540108134,
+        "identity_z8_median_mae_recovery_pct": -0.0014934440317522601,
+        "identity_z8_worst_row_mae_recovery_pct": -0.011380055480565317,
+        "identity_z8scene_median_mae_recovery_pct": -0.0006588337678938884,
+        "identity_z8scene_worst_row_mae_recovery_pct": -0.004268781568468828,
+        "long_run_allowed": 0,
         "production_ready": 0
       }
     },

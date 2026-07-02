@@ -45,10 +45,14 @@ The latest Premium Still/SR Gate A receipts are:
 | frequency-pyramid Z8 smoke receipt | `artifacts/premium_still_sr_frequency_pyramid_source_evidence_z8_smoke_20260702/train_receipt.json` | `6eba319e0ed9325bc5e1f93d31c83509fb315b73213c5a7a5e93d9e766cbee5c` |
 | frequency-pyramid smoke acceptance blocker | `artifacts/premium_still_sr_frequency_pyramid_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `a37b13fe89d653a66e3f0bd432efd7f517fd918e90570a71c750e5a663afbd16` |
 | frequency-pyramid scoreboard | `artifacts/premium_still_sr_experiment_scoreboard_frequency_pyramid_20260702/scoreboard.json` | `c954ca7eee31f225c6d9c94b9264688b297d8ebfe942a9624e4b3a4d806301db` |
+| gated-residual preflight | `artifacts/premium_still_sr_candidate_preflight_gated_residual_20260702/candidate_preflight.json` | `7a0b6836ff15eb358b22e0450206011f9b4ccb1960bd7025a344d7e5dc622801` |
+| gated-residual smoke acceptance blocker | `artifacts/premium_still_sr_gated_residual_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `3a430acf38e9b8666b94751de402f0db76b9e7f8fc509903c1a66095afcfc6d9` |
+| gated-residual scoreboard | `artifacts/premium_still_sr_experiment_scoreboard_gated_residual_20260702/scoreboard.json` | `cb6292ae1ae633f222ad17b6007d94e4fffea04dc760d5ac6ee29d22aa5cc6bc` |
 
-This branch is blocked before long training. The next Premium Still/SR candidate
-must pass `tools/check_premium_still_sr_smoke_gate_acceptance.py --require-pass`
-on paired X2D/Z8 smoke receipts before it can consume a long run.
+Both branches are blocked before long training. The next Premium Still/SR
+candidate must change the target/objective and pass
+`tools/check_premium_still_sr_smoke_gate_acceptance.py --require-pass` on paired
+X2D/Z8 smoke receipts before it can consume a long run.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

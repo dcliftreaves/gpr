@@ -105,6 +105,7 @@ SUPPORTED_TRAINER_MODEL_ARCHES = {
     "restormer_pixelshuffle",
     "window_attention_pixelshuffle",
     "frequency_pyramid_pixelshuffle",
+    "gated_frequency_pyramid_pixelshuffle",
 }
 REQUIRED_SMOKE_ACCEPTANCE_RECEIPT_FIELDS = {
     "x2d_smoke_receipt",
