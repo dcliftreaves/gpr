@@ -98,10 +98,11 @@
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629",
           "premium_still_sr_route_readiness_20260702",
-          "premium_still_sr_route_readiness_with_rendered_20260702"
+          "premium_still_sr_route_readiness_with_rendered_20260702",
+          "premium_still_sr_editor_latitude_coverage_20260702"
         ]
       },
-      "open_gate": "Candidate-only 50 MP / 100 MP still-SR must clear broad Z8/X2D holdouts, editor-latitude review, and worst-row visual gates."
+      "open_gate": "Candidate-only 50 MP / 100 MP still-SR must clear broad Mission 1/Z8/X2D holdouts, raw-editor latitude/openability review for every route, exact-sidecar-only noise policy, and worst-row visual gates."
     },
     {
       "id": "raw_video_reconstruction",
@@ -2696,6 +2697,50 @@
         "exact_sidecar_noise_policy_ready": 0,
         "production_submission_ready": 0,
         "clean_source_split_long_run_blocked": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_editor_latitude_coverage_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Route-level raw-editor/openability coverage audit for the Gate A route-specialist premium still-SR lane. X2D 100 MP DNG has non-oracle rawpy/LibRaw latitude and editable DNG/GPR openability evidence; Mission 1 DNG, Mission 1 GPR, and Z8 DNG remain blocked until their routed candidates are packaged and latitude-reviewed.",
+      "dashboard": "artifacts/premium_still_sr_editor_latitude_coverage_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_editor_latitude_coverage.py",
+        "tools/test/test_build_premium_still_sr_editor_latitude_coverage.py",
+        "tools/build_premium_still_sr_latitude_review.py",
+        "tools/build_premium_still_sr_editor_receipt.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_editor_latitude_coverage_20260702/coverage.json",
+        "artifacts/premium_still_sr_editor_latitude_coverage_20260702/index.html",
+        "artifacts/premium_still_sr_x2d_latitude_review_no_oracle_20260702/latitude_review.json",
+        "artifacts/premium_still_sr_x2d_latitude_review_no_oracle_20260702/index.html",
+        "artifacts/premium_still_sr_x2d_editor_receipt_20260630/editor_receipt_x2dscale_meta/editor_receipt.json"
+      ],
+      "hashes": {
+        "coverage_json_sha256": "02fa430e664505fff15521057e25a492e55e0960e4a822957219d28d2b2d3518",
+        "dashboard_sha256": "cc3798e0ef21a0e151242c83c8b14779948ffe6a54197522b907bde28ec4c5eb",
+        "x2d_no_oracle_latitude_json_sha256": "2a999ef852a773ac0aa953368e8889ea04cc06a3f00a867f13291dfa9ce1db22",
+        "x2d_no_oracle_latitude_dashboard_sha256": "20afc5ea2e45922aceea227dd3112f14c085cde58204fa80ca50854d754c1559"
+      },
+      "metrics": {
+        "required_route_count": 4,
+        "ready_route_count": 1,
+        "ready_x2d_100mp_dng": 1,
+        "missing_mission1_50mp_dng": 1,
+        "missing_mission1_50mp_gpr": 1,
+        "missing_z8_50mp_dng": 1,
+        "openability_route_coverage_ready": 0,
+        "latitude_route_coverage_ready": 0,
         "production_ready": 0
       }
     },

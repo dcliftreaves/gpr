@@ -48,13 +48,10 @@ when it visibly improves the result.**
 |---|---:|---|---|
 | **Best RAW stills** | **92%** | 50 MP tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100 MP roundtrip; 12/14/16-bit support; real RGGB/GBRG/GRBG/BGGR coverage; X2D/Z8 noise sidecars. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
 | **GoPro RAW video MVP** | **80%** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor, and the same stream previews full-frame at 1024 x 768 above **20 fps**. | Real Mission 1 sensor/DMA or camera-ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, 120+ sustained frames, and timing receipts from the camera role. |
-| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, editor-openability, model-promotion tooling, the 99-receipt experiment scoreboard, X2D/Z8 source-evidence audits, rejected clean-source split smoke receipts, a route-specialist readiness audit, and routed rendered EV-stress proxy review exist. | Route-specialist full-frame metrics are positive, and rendered proxy coverage is positive, but production still needs true raw-editor latitude/openability, exact-sidecar-only noise policy, and production submission validation. |
+| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, model-promotion tooling, the 99-receipt experiment scoreboard, X2D/Z8 source-evidence audits, rejected clean-source split smoke receipts, a route-specialist readiness audit, routed rendered EV-stress proxy review, and an editor/latitude coverage audit exist. | Route-specialist full-frame metrics are positive. X2D 100 MP DNG now has non-oracle raw-editor latitude plus editable DNG/GPR openability; Mission 1 DNG/GPR and Z8 DNG still need the same receipts, exact-sidecar-only noise policy, and production submission validation. |
 | **RAW video reconstruction improvement** | **100%** | Approved offline/post 4K cleanup and 8K SR emit `.gvid`, editable raw, standalone no-CNN/CNN ProRes review movies, objective review, and manual signoff receipts. | No release blocker. PSF/blur modeling is parked as optional replacement research. |
 
-The denominator is the shippable production suite: **1. Best RAW stills**,
-**2. GoPro RAW video MVP**, **3. Premium still/SR**, and
-**4. Raw video reconstruction improvement**. PSF-aware video/SR remains optional research
-for a future replacement, not a blocker for the approved current release path.
+The denominator is the shippable production suite: **1. Best RAW stills**, **2. GoPro RAW video MVP**, **3. Premium still/SR**, and **4. Raw video reconstruction improvement**. PSF-aware video/SR remains optional research for a future replacement, not a blocker for the approved current release path.
 
 Current action stack:
 
@@ -113,10 +110,13 @@ median RMSE recovery, while Z8 fails at **-0.0736%** median MAE and
 **-0.0189%** median RMSE. That rejects long training for the clean-source split.
 The next local Gate A lane is route-specialist/raw-CFA promotion: the readiness
 audit shows Mission 1 50 MP DNG/GPR, Z8 50 MP DNG, and X2D 100 MP DNG have
-route coverage and positive full-frame metric floors, but still need
-true raw-editor latitude/openability receipts, exact-sidecar-only noise policy,
-and production submission validation. The rendered EV-stress proxy is already
-indexed separately and is not the same as raw-editor openability.
+route coverage and positive full-frame metric floors. The editor/latitude coverage
+audit now proves X2D 100 MP DNG with non-oracle rawpy/LibRaw latitude and
+editable DNG/GPR openability, while Mission 1 50 MP DNG/GPR and Z8 50 MP DNG
+still need packaging, metadata transplant, and raw-editor latitude receipts.
+Exact-sidecar-only noise policy and production submission validation remain open.
+The rendered EV-stress proxy is already indexed separately and is not the same
+as raw-editor openability.
 
 ## Evidence Map
 
@@ -151,7 +151,7 @@ and receipts stay on the 8TB artifact root.
 | **Camera-back preview** | The same 4K `.gvid` decodes to full-frame 1024 x 768 RGB above **20 fps** on the Pi 5 stand-in. | Mission 1 rear-display/UI handoff remains unproven. |
 | **Offline reconstruction** | Approved 4K cleanup and candidate-aware 8K SR emit editable `.gvid` plus ProRes review media. | PSF-conditioned replacements are research until they beat the locked baseline. |
 | **Review/export scopes** | MOV / ProRes review outputs, PREVIEW offline/review, and PREVIEW live/camera-back are each tracked separately. | PREVIEW offline/review is not a live/camera-back preview path, and ProRes is not the primary raw deliverable. |
-| **Premium still/SR** | 99 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, rejected clean-source split receipts, route-specialist readiness evidence, and routed rendered EV-stress proxy evidence exist. | Current candidates are not promotable; next evidence is true raw-editor latitude/openability, exact-sidecar-only noise policy, and production submission validation. |
+| **Premium still/SR** | 99 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, rejected clean-source split receipts, route-specialist readiness evidence, routed rendered EV-stress proxy evidence, and X2D non-oracle editor/latitude evidence exist. | Current candidates are not promotable; next evidence is Mission 1 DNG/GPR and Z8 DNG editor/latitude coverage, exact-sidecar-only noise policy, and production submission validation. |
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
 
