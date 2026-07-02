@@ -181,6 +181,24 @@ example a true clean-source teacher, burst/multi-frame raw evidence, calibrated
 camera-specific degradation/noise synthesis, or a larger teacher whose first
 gate is holdout improvement before any long run.
 
+The current executable contract therefore moves the next primary pass to
+self-supervised clean-source RAW SR:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/premium_still_sr_next_experiment_contract.json
+```
+
+That contract keeps the residual and clean-signal targets as rejection evidence
+and actual-still review inputs, but it does not use them as the next primary
+teacher objective. The next primary run should build low/high same-color Bayer
+pairs from real high-quality 50 MP / 100 MP RAW sources with
+`tools/cnn/build_premium_still_sr_pairs.py`, prove a clean-source teacher beats
+same-color interpolation on held-out X2D and Z8 images with
+`tools/cnn/train_mission1_sr.py`, then distill into a candidate-only still path
+only after that teacher clears the holdout gate. Promotion still requires the
+actual still/editor-latitude gate with no REF/source/JPEG runtime inputs.
+
 ## Blocker Audit
 
 The blocker audit combines the experiment scoreboard, current readiness

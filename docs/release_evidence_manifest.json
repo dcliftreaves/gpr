@@ -66,6 +66,7 @@
           "premium_still_sr_signal_objective_gate_20260701",
           "premium_still_sr_clean_signal_targets_20260702",
           "premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702",
+          "premium_still_sr_self_supervised_raw_sr_contract_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -1833,6 +1834,37 @@
         "train_median_raw_mae_recovery_pct": -0.020709404085947104,
         "holdout_median_raw_mae_recovery_pct": -0.025025622746813577,
         "uses_source_raw_at_runtime": 0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_self_supervised_raw_sr_contract_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Current next-experiment contract for premium still-SR after the clean-signal U-Net rejection. It moves the next primary path to self-supervised clean-source RAW SR pairs from real high-quality Bayer sources, realistic degradation/noise modeling, and candidate-only distillation only after the teacher beats same-color interpolation on held-out X2D/Z8 images.",
+      "dashboard": "artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/premium_still_sr_next_experiment_contract.json",
+        "artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html"
+      ],
+      "hashes": {
+        "contract_json_sha256": "5d474d695dd7961c4feae47434a459c61fc90edad7673d44b21555925a7879ac",
+        "dashboard_sha256": "36953df0df79d6fbbf95576b581335d0253479477f02a667115092085e1dba90"
+      },
+      "metrics": {
+        "clean_signal_target_rows": 117,
+        "clean_signal_rows_with_noise_sidecars": 117,
+        "clean_signal_unet_steps": 700,
+        "clean_signal_unet_holdout_mae_recovery_pct": -0.025025622746813577,
+        "requires_clean_source_raw_sr_pairs": 1,
+        "requires_teacher_beats_interpolation": 1,
+        "requires_candidate_only_distillation": 1,
         "production_ready": 0
       }
     },

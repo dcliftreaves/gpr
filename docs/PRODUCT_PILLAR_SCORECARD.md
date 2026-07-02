@@ -321,13 +321,18 @@ full still/editor-latitude promotion gate.
 
 The current premium still-SR signal-objective gate lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_signal_objective_gate_20260701/index.html`.
-It supersedes the earlier transformer-teacher contract as the next action. The
-gate records the failed 12k-step full-crop PSF/CFA window-attention run and
-requires candidate-side signal learnability plus raw-target SNR/noise audits
-before another large CNN pass. The first audits are negative on the legacy raw
-residual objective: X2D is -1.238 percent median MAE recovery and Z8 is -2.632
-percent, so the next pass needs a clean-signal raw target/objective with
-calibrated noise addback rather than another model sweep over the same target.
+It superseded the earlier transformer-teacher contract and led to the
+clean-signal target/U-Net rejection. The first audits are negative on the
+legacy raw residual objective: X2D is -1.238 percent median MAE recovery and Z8
+is -2.632 percent. The bounded clean-signal U-Net then still regressed the X2D
+holdout at -0.025 percent median MAE recovery, so the current next pass moves
+off residual-cleaning and onto self-supervised clean-source RAW SR.
+The current next-experiment contract lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html`.
+It requires low/high same-color Bayer pairs from real high-quality 50 MP /
+100 MP sources, a clean-source teacher that beats same-color interpolation on
+held-out X2D/Z8 images, and candidate-only distillation only after that teacher
+gate passes.
 The superseded transformer-teacher contract remains archived at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html`.
 The trainer now has PSF/kernel-conditioned `_psf` feature modes that can consume
