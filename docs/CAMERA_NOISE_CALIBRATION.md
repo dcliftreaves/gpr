@@ -1,5 +1,9 @@
 # Camera Noise Calibration
 
+For the shortest Mission 1 / iPhone closure path, start with
+[`RAW_STILLS_NOISE_FIRST_HOUR.md`](RAW_STILLS_NOISE_FIRST_HOUR.md). This page
+defines the sidecar format and policy in more detail.
+
 The stills and CNN paths may use camera noise only when it is calibrated from
 source data that separates sensor noise from scene signal. A single normal
 photograph, REF residual, or visually noisy crop is not enough evidence.

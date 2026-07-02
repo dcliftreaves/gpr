@@ -17,6 +17,10 @@ model-promotion artifacts needed to finish the shippable product suite. PSF
 capture remains useful research for a future replacement model, but it no
 longer blocks release of the approved current raw-video SR workflow.
 
+For the shortest RAW-stills sample path, use
+[`RAW_STILLS_NOISE_FIRST_HOUR.md`](RAW_STILLS_NOISE_FIRST_HOUR.md). It turns
+the two open darkframe requirements into a capture/provenance/sidecar checklist.
+
 ## Open Requirements
 
 | id | pillar | required evidence | closure signal |
@@ -134,6 +138,10 @@ into an auditable pass/fail package.
   `/Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_strict_provenance_20260701/index.html`
   This request carries the exact committed requirement IDs it closes:
   `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack`.
+- RAW-stills noise first-hour checklist:
+  [`RAW_STILLS_NOISE_FIRST_HOUR.md`](RAW_STILLS_NOISE_FIRST_HOUR.md)
+  This is the shortest human runbook for producing a promotable Mission 1 or
+  iPhone darkframe sidecar package.
 - Darkframe provenance review packet:
   `/Volumes/OWC_8TB/gpr_work/artifacts/darkframe_provenance_review_packet_20260701/index.html`
   This packet hashes the current lowest-lift Mission 1 and iPhone CFA

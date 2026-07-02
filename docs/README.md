@@ -14,6 +14,7 @@ refreshed 2026-07-01.
 | locked product paths versus open production gates | `PRODUCT_LOCK_LEDGER.md` |
 | exact real samples and hardware receipts still needed | `PRODUCTION_CAPTURE_REQUIREMENTS.md`, `PRODUCTION_CAPTURE_REQUIREMENTS.json` |
 | camera-noise calibration policy and sidecar builder | `CAMERA_NOISE_CALIBRATION.md` |
+| RAW-stills Mission/iPhone noise-sidecar first-hour checklist | `RAW_STILLS_NOISE_FIRST_HOUR.md` |
 | premium still-SR gate policy and skeleton | `PREMIUM_STILL_SR.md` |
 | Bayer resize PSF policy and synthetic receipt builder | `BAYER_RESIZE_PSF.md` |
 | Release readiness and production proof | `RELEASE_READINESS.md` |
