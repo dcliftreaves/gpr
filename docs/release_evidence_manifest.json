@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no Candidate-only 50 MP / 100 MP model receipt yet clears the 15% / 15% held-out promotion floor. Frequency-pyramid, gated-residual, masked-detail/no-op, raw-CFA source-frequency, raw-CFA residual-signal, and candidate-HF no-op smokes are blocked before long training. The replacement target/source contract now permits only a new paired smoke preflight with noise-aware or row-filtered residual targets, route-conditioned X2D sampling, and a changed Z8 degradation/source policy.",
+      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no Candidate-only 50 MP / 100 MP model receipt clears the 15% / 15% held-out promotion floor. Frequency-pyramid, gated-residual, masked-detail/no-op, raw-CFA source-frequency, raw-CFA residual-signal, candidate-HF no-op, and Gate 9 route-conditioned/noise-aware smokes are blocked before long training. The next Premium still-SR candidate needs a replacement target/degradation source receipt or materially different route-conditioning proof before another paired smoke.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -113,10 +113,12 @@
           "premium_still_sr_candidate_preflight_rawcfa_candidate_hf_noop_20260702",
           "premium_still_sr_rawcfa_candidate_hf_noop_smoke_gate_acceptance_20260702",
           "premium_still_sr_target_degradation_evidence_20260702",
-          "premium_still_sr_replacement_target_source_contract_20260702"
+          "premium_still_sr_replacement_target_source_contract_20260702",
+          "premium_still_sr_gate9_candidate_intake_20260702",
+          "premium_still_sr_gate9_smoke_acceptance_20260702"
         ]
       },
-      "open_gate": "The replacement target/source contract is ready and permits only a new paired X2D/Z8 smoke preflight: noise-aware or row-filtered residual target, route-conditioned X2D sampling, changed Z8 degradation/source policy, candidate-only runtime inputs, and exact no-op behavior. No long run is allowed until that paired smoke gate passes; candidate-only 50 MP / 100 MP still-SR must still clear broad Mission 1/Z8/X2D holdouts, raw-editor latitude/openability review for every route, exact-sidecar-only noise policy, and worst-row visual gates."
+      "open_gate": "The replacement-contract route-conditioned/noise-aware paired smoke is blocked before long training: X2D median/worst raw MAE recovery is -0.16833363636675505% / -6.051057523320477%, and Z8 is -1.5863477181003771% / -55.716890568612115%. No long run is allowed until a replacement target/degradation source receipt or materially different route-conditioning proof clears paired X2D/Z8 smoke; candidate-only 50 MP / 100 MP still-SR must still clear broad Mission 1/Z8/X2D holdouts, raw-editor latitude/openability review for every route, exact-sidecar-only noise policy, and worst-row visual gates."
     },
     {
       "id": "raw_video_reconstruction",
@@ -4299,6 +4301,79 @@
         "z8_source_probe_median_mae_recovery_pct": 0.649807764458084,
         "z8_source_probe_median_rmse_recovery_pct": 21.89973637064664,
         "target_rmse_to_noise_sigma_median": 3.2456364920542846,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate9_candidate_intake_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Launchable Gate 9 candidate intake generated from the replacement target/source contract. It defines separate X2D and Z8 route-conditioned, noise-aware raw-CFA smoke commands and does not claim production readiness.",
+      "dashboard": "artifacts/premium_still_sr_gate9_candidate_intake_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate9_candidate_preflight.py",
+        "tools/check_premium_still_sr_candidate_preflight.py",
+        "tools/cnn/train_premium_still_sr_raw_cfa_residual.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate9_candidate_intake_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_gate9_candidate_intake_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_gate9_candidate_intake_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "65847a69831ffb04c432c8c48a0c6a90d26b8c1167ae4b207c88164b73a319a1",
+        "preflight_audit_json_sha256": "b65c4fbab7a833fac7c4594ab78f94e29b29633c282edc8d17f8c68cb67fc182"
+      },
+      "metrics": {
+        "launchable_for_production_attempt": 1,
+        "preflight_failure_count": 0,
+        "smoke_gate_command_count": 2,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate9_smoke_acceptance_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Paired Gate 9 replacement-contract smoke acceptance. The route-conditioned noise-aware raw-CFA U-Net smoke regresses both X2D and Z8, so it is blocked before any long 50 MP / 100 MP run.",
+      "dashboard": "artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate9_smoke_20260702/x2d_smoke/train_receipt.json",
+        "artifacts/premium_still_sr_gate9_smoke_20260702/z8_smoke/train_receipt.json",
+        "artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/smoke_gate_acceptance.json",
+        "artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/index.html"
+      ],
+      "hashes": {
+        "x2d_train_receipt_json_sha256": "1d2d13964375ab4c300c704d2300f387b6ae871a669f4abea20a0bdb155e062d",
+        "x2d_checkpoint_sha256": "b660e202074806a83abf0480dcc82f59dfafc8f31f3d35f1341e4cb7d3e0af39",
+        "z8_train_receipt_json_sha256": "d533ca971d3c99201fa677947de0bf0b9ab1a79366d8a340a58fbd74a4d026ac",
+        "z8_checkpoint_sha256": "5ab5c844322f1e5abf4340c0302c1c9ab7094a01baa0db5e35bbce1b98fdcd7b",
+        "smoke_gate_acceptance_json_sha256": "1189feafe319f801068b34899e29e169c3ff611df400bcce60df8e65ea6445b5",
+        "dashboard_sha256": "525e24bd3279f99c43837a86bd94940df82a8c8c2f7f8247a4305596875e6551"
+      },
+      "metrics": {
+        "x2d_holdout_tile_count": 9,
+        "x2d_median_mae_recovery_pct": -0.16833363636675505,
+        "x2d_worst_mae_recovery_pct": -6.051057523320477,
+        "x2d_median_rmse_recovery_pct": -0.0007761396151225931,
+        "z8_holdout_tile_count": 9,
+        "z8_median_mae_recovery_pct": -1.5863477181003771,
+        "z8_worst_mae_recovery_pct": -55.716890568612115,
+        "z8_median_rmse_recovery_pct": -0.00015295682755303108,
+        "paired_smoke_gate_passed": 0,
+        "long_run_allowed": 0,
         "production_ready": 0
       }
     }

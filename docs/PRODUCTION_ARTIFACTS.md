@@ -909,6 +909,12 @@ candidate-HF no-op or simple frame-context family.
 | Premium still-SR target/degradation blocker dashboard | `artifacts/premium_still_sr_target_degradation_evidence_20260702/index.html` | `c99ae902e7519cea10d86664d62742430c3ba206244cbbd484a2dcea97f44603` |
 | Premium still-SR replacement target/source contract receipt | `artifacts/premium_still_sr_replacement_target_source_contract_20260702/replacement_target_source_contract.json` | `5c7361bc5d5b4fb39419d8d4d0bf0062980efe33ab1610985cfeb9aff9ae35d2` |
 | Premium still-SR replacement target/source contract dashboard | `artifacts/premium_still_sr_replacement_target_source_contract_20260702/index.html` | `96f98566b0aa86f1bf4b3d87cea844438ed10a14cbd9f7f907b558d2a561615d` |
+| Premium still-SR Gate 9 candidate intake manifest | `artifacts/premium_still_sr_gate9_candidate_intake_20260702/candidate_preflight.json` | `65847a69831ffb04c432c8c48a0c6a90d26b8c1167ae4b207c88164b73a319a1` |
+| Premium still-SR Gate 9 candidate intake audit | `artifacts/premium_still_sr_gate9_candidate_intake_20260702/preflight_audit.json` | `b65c4fbab7a833fac7c4594ab78f94e29b29633c282edc8d17f8c68cb67fc182` |
+| Premium still-SR Gate 9 X2D smoke receipt | `artifacts/premium_still_sr_gate9_smoke_20260702/x2d_smoke/train_receipt.json` | `1d2d13964375ab4c300c704d2300f387b6ae871a669f4abea20a0bdb155e062d` |
+| Premium still-SR Gate 9 Z8 smoke receipt | `artifacts/premium_still_sr_gate9_smoke_20260702/z8_smoke/train_receipt.json` | `d533ca971d3c99201fa677947de0bf0b9ab1a79366d8a340a58fbd74a4d026ac` |
+| Premium still-SR Gate 9 smoke acceptance receipt | `artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/smoke_gate_acceptance.json` | `1189feafe319f801068b34899e29e169c3ff611df400bcce60df8e65ea6445b5` |
+| Premium still-SR Gate 9 smoke acceptance dashboard | `artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/index.html` | `525e24bd3279f99c43837a86bd94940df82a8c8c2f7f8247a4305596875e6551` |
 
 ## Registry Review Artifacts
 
