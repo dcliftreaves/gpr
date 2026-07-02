@@ -96,7 +96,8 @@
           "premium_still_sr_source_evidence_split_teacher_smoke_20260702_next",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
-          "cnn_product_scorecard_20260629"
+          "cnn_product_scorecard_20260629",
+          "premium_still_sr_route_readiness_20260702"
         ]
       },
       "open_gate": "Candidate-only 50 MP / 100 MP still-SR must clear broad Z8/X2D holdouts, editor-latitude review, and worst-row visual gates."
@@ -2608,6 +2609,42 @@
         "z8_promotion_ready": 0,
         "paired_smoke_gate_passed": 0,
         "long_run_blocked": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_route_readiness_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Current route-specialist Premium Still/SR readiness audit. Route coverage and full-frame metric floors are positive for Mission 1 50 MP DNG/GPR, Z8 50 MP DNG, and X2D 100 MP DNG, but production remains blocked by rendered/editor-latitude review, exact-sidecar-only noise policy, and production submission validation.",
+      "dashboard": "artifacts/premium_still_sr_route_readiness_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_route_readiness.py",
+        "tools/test/test_build_premium_still_sr_route_readiness.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_route_readiness_20260702/route_readiness.json",
+        "artifacts/premium_still_sr_route_readiness_20260702/index.html"
+      ],
+      "hashes": {
+        "route_readiness_json_sha256": "91b053d44441de6d76b4eb7026f2d52c4b7f9f981893ce562b74e01c16f276ac",
+        "dashboard_sha256": "8d25c67482e300d3930cc42b8f3307d903ae571e3f7e36b004cd9781f39b44a8"
+      },
+      "metrics": {
+        "required_route_count": 4,
+        "route_coverage_ready": 1,
+        "fullframe_metric_floor_ready": 1,
+        "mission1_median_mae_improvement_pct": 46.672211992843614,
+        "z8_median_mae_improvement_pct": 7.855391652779584,
+        "x2d_median_mae_improvement_pct": 1.1989708797367278,
+        "clean_source_split_long_run_blocked": 1,
         "production_ready": 0
       }
     },

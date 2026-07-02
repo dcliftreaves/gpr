@@ -48,7 +48,7 @@ when it visibly improves the result.**
 |---|---:|---|---|
 | **Best RAW stills** | **92%** | 50 MP tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100 MP roundtrip; 12/14/16-bit support; real RGGB/GBRG/GRBG/BGGR coverage; X2D/Z8 noise sidecars. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
 | **GoPro RAW video MVP** | **80%** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor, and the same stream previews full-frame at 1024 x 768 above **20 fps**. | Real Mission 1 sensor/DMA or camera-ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, 120+ sustained frames, and timing receipts from the camera role. |
-| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, editor-openability, model-promotion tooling, the 99-receipt experiment scoreboard, X2D/Z8 source-evidence audits, and the source-evidence split smoke receipts exist. | The split smoke gate passed X2D but failed Z8, so the next no-REF 50 MP / 100 MP candidate must repair the Z8 source/degradation mismatch before any long training run and still pass exact-sidecar-only noise-policy gates. |
+| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, editor-openability, model-promotion tooling, the 99-receipt experiment scoreboard, X2D/Z8 source-evidence audits, rejected clean-source split smoke receipts, and a route-specialist readiness audit exist. | Route-specialist full-frame metrics are positive, but production still needs rendered/editor-latitude receipts, exact-sidecar-only noise policy, and production submission validation. |
 | **RAW video reconstruction improvement** | **100%** | Approved offline/post 4K cleanup and 8K SR emit `.gvid`, editable raw, standalone no-CNN/CNN ProRes review movies, objective review, and manual signoff receipts. | No release blocker. PSF/blur modeling is parked as optional replacement research. |
 
 The denominator is the shippable production suite: **1. Best RAW stills**,
@@ -110,9 +110,12 @@ but Z8 does not clear the 1% MAE source-evidence floor (**0.65%** MAE despite
 **21.90%** RMSE recovery). The source-evidence split packet has now been run:
 X2D passes the short smoke gate at **+0.0088%** median MAE and **+0.0031%**
 median RMSE recovery, while Z8 fails at **-0.0736%** median MAE and
-**-0.0189%** median RMSE. That blocks long training. The next Gate A candidate
-must repair the Z8 source/degradation target before another long no-REF 50 MP /
-100 MP promotion attempt.
+**-0.0189%** median RMSE. That rejects long training for the clean-source split.
+The next local Gate A lane is route-specialist/raw-CFA promotion: the readiness
+audit shows Mission 1 50 MP DNG/GPR, Z8 50 MP DNG, and X2D 100 MP DNG have
+route coverage and positive full-frame metric floors, but still need
+rendered/editor-latitude receipts, exact-sidecar-only noise policy, and
+production submission validation.
 
 ## Evidence Map
 
@@ -147,7 +150,7 @@ and receipts stay on the 8TB artifact root.
 | **Camera-back preview** | The same 4K `.gvid` decodes to full-frame 1024 x 768 RGB above **20 fps** on the Pi 5 stand-in. | Mission 1 rear-display/UI handoff remains unproven. |
 | **Offline reconstruction** | Approved 4K cleanup and candidate-aware 8K SR emit editable `.gvid` plus ProRes review media. | PSF-conditioned replacements are research until they beat the locked baseline. |
 | **Review/export scopes** | MOV / ProRes review outputs, PREVIEW offline/review, and PREVIEW live/camera-back are each tracked separately. | PREVIEW offline/review is not a live/camera-back preview path, and ProRes is not the primary raw deliverable. |
-| **Premium still/SR** | 99 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, and a launchable source-evidence split packet exist. | Current candidates are not promotable; next evidence is the packet's X2D and Z8 smoke gates, with Z8 source/degradation repair required before long training. |
+| **Premium still/SR** | 99 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, rejected clean-source split receipts, and route-specialist readiness evidence exist. | Current candidates are not promotable; next evidence is routed rendered/editor-latitude review, exact-sidecar-only noise policy, and production submission validation. |
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
 

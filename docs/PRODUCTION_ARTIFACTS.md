@@ -580,6 +580,8 @@ pillar.
 | Premium still-SR source-evidence split X2D smoke dashboard | `artifacts/premium_still_sr_source_evidence_split_teacher_x2d_smoke_20260702_next/index.html` | `e9b66cb120c37a20ad3224f3d1e6ffa3bc53cd705ece14fb28703e77dd7ce792` |
 | Premium still-SR source-evidence split Z8 smoke receipt | `artifacts/premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next/train_receipt.json` | `c9bb11a03129e6536dbe65bf4c0db7475ad69fc181026b0d25493775df61e1e6` |
 | Premium still-SR source-evidence split Z8 smoke dashboard | `artifacts/premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next/index.html` | `f0fc672d30ceb8a5e21feb403389b72bf18c8957860d567fd4f47fb36e0cdfd4` |
+| Premium still-SR route-specialist readiness receipt | `artifacts/premium_still_sr_route_readiness_20260702/route_readiness.json` | `91b053d44441de6d76b4eb7026f2d52c4b7f9f981893ce562b74e01c16f276ac` |
+| Premium still-SR route-specialist readiness dashboard | `artifacts/premium_still_sr_route_readiness_20260702/index.html` | `8d25c67482e300d3930cc42b8f3307d903ae571e3f7e36b004cd9781f39b44a8` |
 | Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `3d95db1c9c468034e11ef255d3f3606fb5546e4a77b0d7eb49b8b82d11aaad13` |
 | Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `ba0ddcc00db1f9b22d2e3c138051cbd375a6a5c6b78f87f9ab623e7ade062968` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |

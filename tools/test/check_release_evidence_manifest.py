@@ -168,6 +168,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_candidate_preflight_source_evidence_split_20260702",
                 "premium_still_sr_launch_packet_source_evidence_split_20260702",
                 "premium_still_sr_source_evidence_split_teacher_smoke_20260702_next",
+                "premium_still_sr_route_readiness_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
