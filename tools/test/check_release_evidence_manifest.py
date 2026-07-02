@@ -143,6 +143,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_raw_cfa_residual_gap_20260701",
                 "premium_still_sr_self_supervised_raw_sr_contract_20260702",
                 "premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702",
+                "premium_still_sr_clean_source_pair_model_smoke_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },

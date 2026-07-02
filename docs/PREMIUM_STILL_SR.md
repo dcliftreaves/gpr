@@ -195,7 +195,7 @@ teacher objective. The next primary run should build low/high same-color Bayer
 pairs from real high-quality 50 MP / 100 MP RAW sources with
 `tools/cnn/build_premium_still_sr_pairs.py`, prove a clean-source teacher beats
 same-color interpolation on held-out X2D and Z8 images with
-`tools/cnn/train_mission1_sr.py`, then distill into a candidate-only still path
+`tools/cnn/train_premium_still_sr_clean_source_pairs.py`, then distill into a candidate-only still path
 only after that teacher clears the holdout gate. Promotion still requires the
 actual still/editor-latitude gate with no REF/source/JPEG runtime inputs.
 
@@ -212,6 +212,21 @@ same-color 2x interpolation baseline has median MAE **19.24**, median RMSE
 **49.47**, and median PSNR **50.43 dB** across the smoke tiles. A clean-source
 RAW SR teacher must beat that held-out baseline before candidate-only
 distillation or premium still-SR promotion.
+
+The first clean-source pair model smoke is also recorded:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_smoke_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_smoke_20260702/train_receipt.json
+```
+
+It trains `tools/cnn/train_premium_still_sr_clean_source_pairs.py` for 200
+steps on the 6-tile real-fixture smoke set with `x2d_100mp_dng` held out. This
+is a diagnostic-only run: the model does **not** beat nearest same-color 2x on
+the X2D holdout, with median MAE gain **-0.087%** and median RMSE gain
+**-0.049%**. The result proves the trainer/evaluator contract is wired, but it
+also shows the next productive pass must broaden the pair set and/or improve
+the degradation/teacher objective before any candidate-only distillation.
 
 ## Blocker Audit
 

@@ -68,6 +68,7 @@
           "premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702",
           "premium_still_sr_self_supervised_raw_sr_contract_20260702",
           "premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702",
+          "premium_still_sr_clean_source_pair_model_smoke_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -1855,8 +1856,8 @@
         "artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html"
       ],
       "hashes": {
-        "contract_json_sha256": "7a89fb417611f0c49a138b4417bc39fe8a883f7129734c59b3d7cb15cbf3936c",
-        "dashboard_sha256": "8d021e03eda3c363d74a86924ea5a5ad721cf54aa98139e25deea61e5d672137"
+        "contract_json_sha256": "389e4468d08263343be289c2750d238b27bef8300b7cd83b44b319cabe0ca20f",
+        "dashboard_sha256": "e746243767170652ee193364fe37464329a44ae508e1acc0b276ded5318aa914"
       },
       "metrics": {
         "clean_signal_target_rows": 117,
@@ -1903,6 +1904,38 @@
         "mission1_tile_count": 2,
         "z8_tile_count": 2,
         "x2d_tile_count": 2,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_clean_source_pair_model_smoke_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "First model smoke for the current clean-source RAW SR pair path. It trains the dedicated premium still-SR clean-source pair trainer on the real-fixture Mission 1/Z8/X2D smoke pair set, holds out X2D, and records that this tiny candidate does not beat nearest same-color 2x interpolation.",
+      "dashboard": "artifacts/premium_still_sr_clean_source_pair_model_smoke_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_clean_source_pair_model_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_clean_source_pair_model_smoke_20260702/index.html",
+        "artifacts/premium_still_sr_clean_source_pair_model_smoke_20260702/premium_still_sr_clean_source_pair_model.pt"
+      ],
+      "hashes": {
+        "train_receipt_sha256": "a7c9ce3ac56662e7701b8324b45847b1629506a1224a80aceb0aab386271a85a",
+        "dashboard_sha256": "613db125e2eac7691504b43ba0af7157e3ee4965d6487e5a933eadce821e45cc",
+        "checkpoint_sha256": "5c516db53755ede6c9d3c1923c8ae2d9f27c88cbe98740af402b16643803ef38"
+      },
+      "metrics": {
+        "steps": 200,
+        "train_tile_count": 4,
+        "holdout_tile_count": 2,
+        "holdout_median_mae_gain_pct": -0.08665718752635851,
+        "holdout_median_rmse_gain_pct": -0.04932499721537129,
+        "baseline_beaten_on_holdout": 0,
+        "coverage_sufficient_for_promotion": 0,
         "production_ready": 0
       }
     },

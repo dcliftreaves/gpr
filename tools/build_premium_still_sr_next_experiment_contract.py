@@ -310,8 +310,12 @@ def build_contract(
     pair_audit_root = (
         external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_20260702"
     ).as_posix()
+    pair_model_root = (
+        external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_teacher_20260702"
+    ).as_posix()
     teacher_ckpt = (
-        external_root / "artifacts/premium_still_sr_self_supervised_raw_sr_teacher_20260702/premium_still_sr_raw_sr.pt"
+        external_root
+        / "artifacts/premium_still_sr_self_supervised_raw_sr_teacher_20260702/premium_still_sr_raw_sr.pt"
     ).as_posix()
     smoke_args = [
         "python3 tools/cnn/build_premium_still_sr_pairs.py",
@@ -391,7 +395,7 @@ def build_contract(
                 ),
                 "self_supervised_raw_sr_contract": {
                     "pair_builder": "tools/cnn/build_premium_still_sr_pairs.py",
-                    "trainer": "tools/cnn/train_mission1_sr.py",
+                    "trainer": "tools/cnn/train_premium_still_sr_clean_source_pairs.py",
                     "pair_layout": [
                         "inputs: four same-color low-resolution Bayer planes built from real source RAW",
                         "targets: four same-color high-resolution Bayer planes from the same source RAW",
@@ -460,6 +464,7 @@ def build_contract(
                 "training_target_npz": dedup_target_npz,
                 "clean_source_pair_npz": pair_npz,
                 "clean_source_pair_audit_root": pair_audit_root,
+                "clean_source_pair_model_root": pair_model_root,
                 "target_policy": (
                     "Use the deduplicated 117-row raw-domain NPZ and 20260702 clean-signal target as blocker evidence "
                     "and actual-still review inputs, not as the next primary teacher objective. The next CNN should "
@@ -503,13 +508,14 @@ def build_contract(
                         "command": shell_command(
                             [
                                 f"GPR_TMPDIR={tmp_root} TMPDIR={tmp_root}",
-                                "python3 tools/cnn/train_mission1_sr.py",
+                                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py",
                                 f"--pairs {pair_npz}",
-                                f"--out {teacher_ckpt}",
+                                f"--output-dir {pair_model_root}",
+                                f"--checkpoint-name {Path(teacher_ckpt).name}",
                                 f"--holdout-image {x2d_holdout_scene}",
-                                "--architecture coord_detail_preclean_adapter_pixelshuffle",
                                 "--steps 2000",
                                 "--batch 16",
+                                "--low-crop 96",
                                 "--width 48",
                                 "--depth 6",
                             ]
@@ -527,6 +533,7 @@ def build_contract(
                 "required_followup_receipts": [
                     "clean-source RAW SR pair receipt with source sha256, CFA phase, camera metadata, and noise sidecar provenance",
                     "pair_audit.json same-color interpolation baseline receipt on the exact held-out pair set",
+                    "train_premium_still_sr_clean_source_pairs.py train_receipt.json proving whether the held-out teacher beats interpolation",
                     "teacher train_receipt.json showing held-out X2D and Z8 improvement over interpolation",
                     "candidate-only distillation receipt only after teacher holdout success",
                     "overlap-vs-plain seam diagnostics from eval_overlap > 0 after a model exists",

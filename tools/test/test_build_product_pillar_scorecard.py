@@ -98,6 +98,11 @@ def main() -> int:
             "premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702/index.html" in ref["path"]
             for ref in data["pillars"][2]["evidence"]
         )
+        assert any("clean-source pair model smoke" in item for item in data["pillars"][2]["done_evidence"])
+        assert any(
+            "premium_still_sr_clean_source_pair_model_smoke_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
         assert any(
             "premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/index.html"
             in ref["path"]

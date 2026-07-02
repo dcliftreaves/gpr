@@ -333,6 +333,12 @@ It requires low/high same-color Bayer pairs from real high-quality 50 MP /
 100 MP sources, a clean-source teacher that beats same-color interpolation on
 held-out X2D/Z8 images, and candidate-only distillation only after that teacher
 gate passes.
+The first dedicated clean-source pair model smoke now lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_smoke_20260702/index.html`.
+It proves the new `tools/cnn/train_premium_still_sr_clean_source_pairs.py`
+trainer/evaluator path runs, but it is diagnostic-only: with `x2d_100mp_dng`
+held out, median MAE gain is -0.087 percent and median RMSE gain is -0.049
+percent versus nearest same-color 2x.
 The superseded transformer-teacher contract remains archived at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html`.
 The trainer now has PSF/kernel-conditioned `_psf` feature modes that can consume

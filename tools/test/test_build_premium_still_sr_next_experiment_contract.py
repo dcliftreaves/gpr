@@ -240,7 +240,7 @@ def main() -> int:
         assert "candidate-only raw-CFA reconstruction student" in blueprint["student_family"]
         ss_contract = blueprint["self_supervised_raw_sr_contract"]
         assert ss_contract["pair_builder"] == "tools/cnn/build_premium_still_sr_pairs.py"
-        assert ss_contract["trainer"] == "tools/cnn/train_mission1_sr.py"
+        assert ss_contract["trainer"] == "tools/cnn/train_premium_still_sr_clean_source_pairs.py"
         assert any("inputs: four same-color low-resolution Bayer planes" in item for item in ss_contract["pair_layout"])
         assert any("realistic camera blur/PSF" in item for item in ss_contract["degradation_policy"])
         assert any("hold out entire images/scenes" in item for item in ss_contract["holdout_policy"])
@@ -270,6 +270,9 @@ def main() -> int:
         assert execution["clean_source_pair_audit_root"].endswith(
             "/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_20260702"
         )
+        assert execution["clean_source_pair_model_root"].endswith(
+            "/artifacts/premium_still_sr_self_supervised_raw_sr_teacher_20260702"
+        )
         assert "blocker evidence" in execution["target_policy"]
         assert "self-supervised clean-source RAW SR pairs" in execution["target_policy"]
         assert "no REF/source/JPEG pixels at render time" in execution["runtime_input_policy"]
@@ -284,9 +287,12 @@ def main() -> int:
         assert "--tiles-per-fixture 64" in execution["full_train_commands"][0]["command"]
         assert execution["full_train_commands"][1]["id"] == "teacher_clean_source_raw_sr_smoke"
         assert execution["full_train_commands"][1]["holdout_scene"] == "z8"
-        assert "train_mission1_sr.py" in execution["full_train_commands"][1]["command"]
+        assert "train_premium_still_sr_clean_source_pairs.py" in execution["full_train_commands"][1]["command"]
+        assert "--output-dir" in execution["full_train_commands"][1]["command"]
+        assert "--low-crop 96" in execution["full_train_commands"][1]["command"]
         assert any("clean-source RAW SR pair receipt" in item for item in execution["required_followup_receipts"])
         assert any("pair_audit.json same-color interpolation baseline" in item for item in execution["required_followup_receipts"])
+        assert any("train_premium_still_sr_clean_source_pairs.py train_receipt.json" in item for item in execution["required_followup_receipts"])
         assert any("editable DNG and GPR" in item for item in execution["required_followup_receipts"])
         assert any("fails to beat same-color interpolation" in item for item in execution["promotion_reject_conditions"])
         assert any("source raw" in item for item in execution["promotion_reject_conditions"])
