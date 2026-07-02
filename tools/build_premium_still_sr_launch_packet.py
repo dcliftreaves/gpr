@@ -120,7 +120,12 @@ def command_sequence(
                 "--model-arch restormer_pixelshuffle "
                 "--width 32 "
                 "--depth 4 "
-                "--gradient-loss-weight 0.05"
+                "--gradient-loss-weight 0.05 "
+                "--laplacian-loss-weight 0.03 "
+                "--loss-mode charbonnier "
+                "--train-input-noise-std-counts 2.0 "
+                "--train-input-gain-jitter-pct 0.5 "
+                "--train-input-blur-weight 0.10"
             ),
             "receipt": rel(model_dir / "x2d_holdout/train_receipt.json"),
         },
@@ -137,7 +142,12 @@ def command_sequence(
                 "--model-arch restormer_pixelshuffle "
                 "--width 32 "
                 "--depth 4 "
-                "--gradient-loss-weight 0.05"
+                "--gradient-loss-weight 0.05 "
+                "--laplacian-loss-weight 0.03 "
+                "--loss-mode charbonnier "
+                "--train-input-noise-std-counts 2.0 "
+                "--train-input-gain-jitter-pct 0.5 "
+                "--train-input-blur-weight 0.10"
             ),
             "receipt": rel(model_dir / "z8_holdout/train_receipt.json"),
         },

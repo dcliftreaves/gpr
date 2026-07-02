@@ -88,6 +88,16 @@ def main() -> int:
                 "3",
                 "--gradient-loss-weight",
                 "0.1",
+                "--laplacian-loss-weight",
+                "0.05",
+                "--loss-mode",
+                "charbonnier",
+                "--train-input-noise-std-counts",
+                "2.0",
+                "--train-input-gain-jitter-pct",
+                "0.5",
+                "--train-input-blur-weight",
+                "0.1",
                 "--eval-every",
                 "1",
             ],
@@ -106,7 +116,14 @@ def main() -> int:
         assert receipt["pair_meta"]["target_shape"] == [4, 4, 16, 16]
         assert receipt["config"]["model_arch"] == "naf_residual_pixelshuffle"
         assert receipt["config"]["gradient_loss_weight"] == 0.1
+        assert receipt["config"]["laplacian_loss_weight"] == 0.05
+        assert receipt["config"]["loss_mode"] == "charbonnier"
+        assert receipt["config"]["train_input_noise_std_counts"] == 2.0
+        assert receipt["config"]["train_input_gain_jitter_pct"] == 0.5
+        assert receipt["config"]["train_input_blur_weight"] == 0.1
         assert "gradient_l1" in receipt["history"][0]
+        assert "laplacian_l1" in receipt["history"][0]
+        assert "pixel_loss" in receipt["history"][0]
         assert receipt["eval"]["train"]["tile_count"] == 2
         assert receipt["eval"]["holdout"]["tile_count"] == 2
         assert receipt["promotion"]["coverage_sufficient_for_promotion"] is False

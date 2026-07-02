@@ -297,13 +297,16 @@ track, while explicitly forbidding production promotion from the current
 unstable native Mission 1 kernel or partial historical SR rows.
 
 The current premium still-SR experiment scoreboard lives at
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_t64_20260702/index.html`.
-It now ranks 93 runtime-safe rendered-HF, raw-CFA residual, clean-signal, and
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/index.html`.
+It now ranks 95 runtime-safe rendered-HF, raw-CFA residual, clean-signal, and
 clean-source pair training receipts and records zero promotable rows. The best
 older runtime-safe row reaches 4.03 percent held-out MAE recovery and 3.75
 percent held-out RMSE recovery against the 15 percent / 15 percent promotion
 threshold, while the newest clean-source Restormer pair rows remain far below
-promotion. Both branches are diagnostic rather than production-ready.
+promotion. The degradation/objective ablation with Charbonnier, Laplacian, RAW
+noise, gain jitter, and blur reaches only 0.0048 percent X2D MAE recovery and
+regresses Z8 by -0.3973 percent MAE. Both branches are diagnostic rather than
+production-ready.
 The full 12k-step X2D scene-holdout window-attention teacher run is now one of
 those diagnostic rows: it trains slightly positive at 0.804 percent median raw
 MAE recovery, but the 9-row X2D scene holdout is negative at -0.030 percent MAE

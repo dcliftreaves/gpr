@@ -59,6 +59,10 @@ def main() -> int:
             "audit_premium_still_sr_pairs.py",
             "train_premium_still_sr_clean_source_pairs.py",
             "restormer_pixelshuffle",
+            "charbonnier",
+            "train-input-noise-std-counts",
+            "train-input-gain-jitter-pct",
+            "train-input-blur-weight",
             "build_premium_still_sr_experiment_scoreboard.py",
             "check_premium_still_sr_promotion_gate.py",
         ):

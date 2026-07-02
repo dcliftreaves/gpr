@@ -499,8 +499,8 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
-| Premium still-SR experiment scoreboard JSON | `artifacts/premium_still_sr_experiment_scoreboard_restormer_t64_20260702/scoreboard.json` | `6408623f9554190ccd612ee7eccc60714b3e9a4c46ba5f88cdb3b01425368101` |
-| Premium still-SR experiment scoreboard dashboard | `artifacts/premium_still_sr_experiment_scoreboard_restormer_t64_20260702/index.html` | `2e2e112cf164771959619b73f5151e8014b81567b978a486732749a61a07bcd8` |
+| Premium still-SR experiment scoreboard JSON | `artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/scoreboard.json` | `bf3d435931c2c526a9b73852d10745940b1c92f98dafb4511d1a03097e4f5d1e` |
+| Premium still-SR experiment scoreboard dashboard | `artifacts/premium_still_sr_experiment_scoreboard_restormer_degrade_t64_20260702/index.html` | `858c7790b7729441cb95cd34f79425c60481545150cf27da2b3c6fb95ea9c14c` |
 | Premium still-SR full X2D window-attention receipt | `artifacts/premium_still_sr_window_attention_teacher_gate_20260701/x2d_scene_holdout_window_attention_teacher_cfa/train_receipt.json` | `cf22244dc3e9a2c97e62b735363b92347f4cc43985a476897bb8546c6c982d95` |
 | Premium still-SR full X2D window-attention dashboard | `artifacts/premium_still_sr_window_attention_teacher_gate_20260701/x2d_scene_holdout_window_attention_teacher_cfa/index.html` | `e9b8265055965091e71c0eaf4dda201091b019ed93c31342d3eb811667360961` |
 | Premium still-SR full X2D window-attention checkpoint | `artifacts/premium_still_sr_window_attention_teacher_gate_20260701/x2d_scene_holdout_window_attention_teacher_cfa/premium_still_sr_window_attention_x2d_holdout_cfa.pt` | `a853cf2daffeb29ddc0cc0b891f4c9f5926c7bad5b610b8b7628c960843f6a6b` |

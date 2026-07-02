@@ -62,7 +62,7 @@ EXPECTED_PILLARS = {
                     "clean-source RAW SR",
                     "realistic RAW degradation",
                     "same-color Bayer interpolation",
-                    "93-receipt still-SR scoreboard",
+                    "95-receipt still-SR scoreboard",
                     "Z8 held-out",
                     "X2D held-out",
                     "median_mae_reduction_pct_50mp",

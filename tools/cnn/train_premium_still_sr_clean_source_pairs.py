@@ -303,6 +303,43 @@ def gradient_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     return F.l1_loss(pred_dx, targ_dx) + F.l1_loss(pred_dy, targ_dy)
 
 
+def charbonnier_loss(pred: torch.Tensor, target: torch.Tensor, eps: float = 1.0e-3) -> torch.Tensor:
+    diff = pred - target
+    return torch.mean(torch.sqrt(diff * diff + float(eps) * float(eps)))
+
+
+def laplacian_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    channels = pred.shape[1]
+    kernel = pred.new_tensor([[0.0, 1.0, 0.0], [1.0, -4.0, 1.0], [0.0, 1.0, 0.0]])
+    kernel = kernel.view(1, 1, 3, 3).repeat(channels, 1, 1, 1)
+    pred_lap = F.conv2d(F.pad(pred, (1, 1, 1, 1), mode="reflect"), kernel, groups=channels)
+    targ_lap = F.conv2d(F.pad(target, (1, 1, 1, 1), mode="reflect"), kernel, groups=channels)
+    return F.l1_loss(pred_lap, targ_lap)
+
+
+def degrade_training_input(
+    x: torch.Tensor,
+    *,
+    noise_std_counts: float,
+    gain_jitter_pct: float,
+    blur_weight: float,
+) -> torch.Tensor:
+    out = x
+    if gain_jitter_pct > 0.0:
+        jitter = float(gain_jitter_pct) / 100.0
+        gain = 1.0 + (torch.rand((out.shape[0], out.shape[1], 1, 1), device=out.device) * 2.0 - 1.0) * jitter
+        out = out * gain
+    if noise_std_counts > 0.0:
+        out = out + torch.randn_like(out) * (float(noise_std_counts) / RAW_SCALE)
+    if blur_weight > 0.0:
+        channels = out.shape[1]
+        kernel = out.new_tensor([[1.0, 2.0, 1.0], [2.0, 4.0, 2.0], [1.0, 2.0, 1.0]]) / 16.0
+        kernel = kernel.view(1, 1, 3, 3).repeat(channels, 1, 1, 1)
+        blurred = F.conv2d(F.pad(out, (1, 1, 1, 1), mode="reflect"), kernel, groups=channels)
+        out = torch.lerp(out, blurred, min(max(float(blur_weight), 0.0), 1.0))
+    return torch.clamp(out, 0.0, 1.0)
+
+
 def tile_metrics(pred: np.ndarray, target: np.ndarray, baseline: np.ndarray) -> dict[str, float]:
     pred_counts = pred.astype(np.float64) * RAW_SCALE
     target_counts = target.astype(np.float64) * RAW_SCALE
@@ -427,6 +464,31 @@ def main() -> int:
     ap.add_argument("--depth", type=int, default=5)
     ap.add_argument("--residual-scale", type=float, default=0.25)
     ap.add_argument("--gradient-loss-weight", type=float, default=0.0)
+    ap.add_argument("--laplacian-loss-weight", type=float, default=0.0)
+    ap.add_argument(
+        "--loss-mode",
+        choices=["l1", "charbonnier"],
+        default="l1",
+        help="pixel-domain loss used before optional detail losses",
+    )
+    ap.add_argument(
+        "--train-input-noise-std-counts",
+        type=float,
+        default=0.0,
+        help="training-only Gaussian RAW noise injected into low planes, in normalized 14-bit counts",
+    )
+    ap.add_argument(
+        "--train-input-gain-jitter-pct",
+        type=float,
+        default=0.0,
+        help="training-only per-plane multiplicative gain jitter on low planes, in percent",
+    )
+    ap.add_argument(
+        "--train-input-blur-weight",
+        type=float,
+        default=0.0,
+        help="training-only blend weight for a same-plane 3x3 blur on low planes",
+    )
     ap.add_argument("--lr", type=float, default=1.0e-3)
     ap.add_argument("--weight-decay", type=float, default=1.0e-4)
     ap.add_argument("--seed", type=int, default=20260702)
@@ -443,10 +505,18 @@ def main() -> int:
     t0 = time.time()
     for step in range(1, args.steps + 1):
         x, y = dataset.batch(args.batch, args.low_crop, rng)
-        pred = model(x)
+        degraded_x = degrade_training_input(
+            x,
+            noise_std_counts=args.train_input_noise_std_counts,
+            gain_jitter_pct=args.train_input_gain_jitter_pct,
+            blur_weight=args.train_input_blur_weight,
+        )
+        pred = model(degraded_x)
         pixel_l1 = F.l1_loss(pred, y)
+        pixel_loss = charbonnier_loss(pred, y) if args.loss_mode == "charbonnier" else pixel_l1
         detail_l1 = gradient_loss(pred, y) if args.gradient_loss_weight > 0.0 else pred.new_tensor(0.0)
-        loss = pixel_l1 + float(args.gradient_loss_weight) * detail_l1
+        lap_l1 = laplacian_loss(pred, y) if args.laplacian_loss_weight > 0.0 else pred.new_tensor(0.0)
+        loss = pixel_loss + float(args.gradient_loss_weight) * detail_l1 + float(args.laplacian_loss_weight) * lap_l1
         opt.zero_grad(set_to_none=True)
         loss.backward()
         opt.step()
@@ -456,7 +526,9 @@ def main() -> int:
                     "step": step,
                     "train_loss": float(loss.detach().cpu().item()),
                     "pixel_l1": float(pixel_l1.detach().cpu().item()),
+                    "pixel_loss": float(pixel_loss.detach().cpu().item()),
                     "gradient_l1": float(detail_l1.detach().cpu().item()),
+                    "laplacian_l1": float(lap_l1.detach().cpu().item()),
                 }
             )
 
@@ -473,6 +545,11 @@ def main() -> int:
                 "depth": args.depth,
                 "residual_scale": args.residual_scale,
                 "gradient_loss_weight": args.gradient_loss_weight,
+                "laplacian_loss_weight": args.laplacian_loss_weight,
+                "loss_mode": args.loss_mode,
+                "train_input_noise_std_counts": args.train_input_noise_std_counts,
+                "train_input_gain_jitter_pct": args.train_input_gain_jitter_pct,
+                "train_input_blur_weight": args.train_input_blur_weight,
                 "raw_scale": RAW_SCALE,
             },
             "pair_npz_sha256": sha256_file(args.pairs),
@@ -500,6 +577,11 @@ def main() -> int:
             "depth": args.depth,
             "residual_scale": args.residual_scale,
             "gradient_loss_weight": args.gradient_loss_weight,
+            "laplacian_loss_weight": args.laplacian_loss_weight,
+            "loss_mode": args.loss_mode,
+            "train_input_noise_std_counts": args.train_input_noise_std_counts,
+            "train_input_gain_jitter_pct": args.train_input_gain_jitter_pct,
+            "train_input_blur_weight": args.train_input_blur_weight,
             "lr": args.lr,
             "weight_decay": args.weight_decay,
             "seed": args.seed,
