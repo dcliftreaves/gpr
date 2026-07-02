@@ -119,10 +119,10 @@ def write_darkframe_audits(submission: dict, bundle: Path) -> None:
                         "source_provenance_manifest": "darkframe_source_provenance.json",
                     },
                     "per_plane": {
-                        "r": {"sigma_black": 1.0},
-                        "g1": {"sigma_black": 1.0},
-                        "b": {"sigma_black": 1.0},
-                        "g2": {"sigma_black": 1.0},
+                        "r": {"mean_black": 64.0, "sigma_black": 1.0, "noise_profile_offset": 0.000001},
+                        "g1": {"mean_black": 64.0, "sigma_black": 1.0, "noise_profile_offset": 0.000001},
+                        "b": {"mean_black": 64.0, "sigma_black": 1.0, "noise_profile_offset": 0.000001},
+                        "g2": {"mean_black": 64.0, "sigma_black": 1.0, "noise_profile_offset": 0.000001},
                     },
                     "noise_signal_audit": {
                         "separates_noise_from_signal": True,
@@ -1188,6 +1188,21 @@ def main() -> int:
         assert proc.returncode == 1
         assert "camera_noise_sidecar production_ready must be true" in proc.stdout
         assert "camera_noise_sidecar noise_signal_audit.separates_noise_from_signal must be true" in proc.stdout
+        write_darkframe_audits(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        dark = bad["requirements"][0]
+        sidecar_path = bundle / dark["camera_noise_sidecar_path"]
+        sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+        sidecar["calibrations"][0]["per_plane"]["r"]["sigma_black"] = 0.0
+        sidecar["calibrations"][0]["per_plane"]["g1"].pop("mean_black")
+        sidecar_path.write_text(json.dumps(sidecar, indent=2) + "\n", encoding="utf-8")
+        dark["camera_noise_sidecar_sha256"] = hashlib.sha256(sidecar_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "camera_noise_sidecar per_plane.r.sigma_black must be > 0" in proc.stdout
+        assert "camera_noise_sidecar per_plane.g1.mean_black must be numeric and >= 0" in proc.stdout
 
         bad = json.loads(json.dumps(strict))
         premium = next(row for row in bad["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")

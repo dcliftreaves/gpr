@@ -411,6 +411,21 @@ def validate_camera_noise_sidecar(
         failures.append(f"camera_noise_sidecar calibration.{failure}")
     if calibration.get("usable_for_training_targets") is not True:
         failures.append("camera_noise_sidecar calibration.usable_for_training_targets must be true")
+    per_plane = calibration.get("per_plane") if isinstance(calibration.get("per_plane"), dict) else {}
+    for plane in ("r", "g1", "b", "g2"):
+        metrics = per_plane.get(plane)
+        if not isinstance(metrics, dict):
+            failures.append(f"camera_noise_sidecar per_plane.{plane} must be an object")
+            continue
+        ok, failure = number_at_least(metrics, "mean_black", 0.0)
+        if not ok:
+            failures.append(f"camera_noise_sidecar per_plane.{plane}.{failure}")
+        ok, failure = number_greater_than(metrics, "sigma_black", 0.0)
+        if not ok:
+            failures.append(f"camera_noise_sidecar per_plane.{plane}.{failure}")
+        ok, failure = number_at_least(metrics, "noise_profile_offset", 0.0)
+        if not ok:
+            failures.append(f"camera_noise_sidecar per_plane.{plane}.{failure}")
     audit = calibration.get("noise_signal_audit") if isinstance(calibration.get("noise_signal_audit"), dict) else {}
     if audit.get("separates_noise_from_signal") is not True:
         failures.append("camera_noise_sidecar noise_signal_audit.separates_noise_from_signal must be true")
