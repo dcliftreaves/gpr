@@ -122,7 +122,12 @@ def main() -> int:
         assert any("run_gopro_mission1_quick_validation.py" in command for command in video_actions[0]["validation_commands"])
         premium_actions = data["pillars"][2]["burn_down_actions"]
         assert premium_actions[0]["requirement_ids"] == ["premium_still_sr_promotion_receipts"]
+        assert premium_actions[0]["title"] == "Launch a preflighted premium still-SR restoration candidate"
         assert any("build_premium_still_sr_gate_receipt.py" in command for command in premium_actions[0]["validation_commands"])
+        assert any(
+            "check_premium_still_sr_candidate_preflight.py" in command
+            for command in premium_actions[0]["validation_commands"]
+        )
         assert any(
             "check_production_capture_submission.py" in command
             for command in premium_actions[0]["validation_commands"]
@@ -131,6 +136,11 @@ def main() -> int:
         assert "runtime_inputs" in premium_text
         assert "candidate_raw" in premium_text
         assert "REF/source/JPEG" in premium_text
+        assert "candidate preflight" in premium_text
+        assert "restoration-teacher" in premium_text
+        assert "realistic RAW degradation" in premium_text
+        assert "same-color Bayer interpolation" in premium_text
+        assert "82-receipt still-SR scoreboard" in premium_text
         assert "median_mae_reduction_pct_50mp" in premium_text
         assert "median_mae_reduction_pct_100mp" in premium_text
         assert "worst_row_mae_reduction_pct_50mp" in premium_text

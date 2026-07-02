@@ -50,12 +50,19 @@ EXPECTED_PILLARS = {
     "premium_still_sr": {
         "readiness": 60,
         "required_actions": {
-            "Promote a true raw-CFA residual still-SR model": {
+            "Launch a preflighted premium still-SR restoration candidate": {
                 "requirement_ids": ["premium_still_sr_promotion_receipts"],
                 "tokens": (
                     "runtime_inputs",
                     "candidate_raw",
                     "REF/source/JPEG",
+                    "candidate preflight",
+                    "restoration-teacher",
+                    "non-local/full-image",
+                    "clean-source RAW SR",
+                    "realistic RAW degradation",
+                    "same-color Bayer interpolation",
+                    "82-receipt still-SR scoreboard",
                     "Z8 held-out",
                     "X2D held-out",
                     "median_mae_reduction_pct_50mp",
@@ -72,7 +79,8 @@ EXPECTED_PILLARS = {
                 "requires_mission1_camera_role": False,
                 "requires_new_samples": False,
                 "command_tokens": (
-                    "train_premium_still_sr_raw_cfa_residual.py",
+                    "check_premium_still_sr_candidate_preflight.py",
+                    "--require-launchable",
                     "build_premium_still_sr_gate_receipt.py",
                     "check_production_capture_submission.py",
                 ),

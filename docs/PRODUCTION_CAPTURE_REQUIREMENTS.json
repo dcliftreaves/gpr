@@ -238,7 +238,7 @@
       "sample_type": "model_promotion_receipt",
       "status": "open",
       "minimum_count": 1,
-      "why_needed": "The still-SR pipeline, target builders, specialists, and raw-CFA residual trainers exist, but current no-REF models remain diagnostic and do not clear the production still/editor-latitude gate.",
+      "why_needed": "The still-SR pipeline, target builders, specialists, and raw-CFA residual trainers exist, but current no-REF residual/local-CNN models remain diagnostic and do not clear the production still/editor-latitude gate. The next launchable attempt must pass the premium still-SR candidate preflight before spending long training time.",
       "required_evidence": [
         "checkpoint hash and training config",
         "training target hash with runtime_inputs limited to candidate raw, camera metadata, and validated optional noise sidecars",
@@ -264,7 +264,7 @@
       ],
       "validation_commands": [
         "python3 tools/build_premium_still_sr_fixture_manifest.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_fixture_manifest_<date>",
-        "python3 tools/cnn/train_premium_still_sr_raw_cfa_residual.py --help",
+        "python3 tools/check_premium_still_sr_candidate_preflight.py <candidate_preflight.json> --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/audit.json --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/index.html --require-launchable",
         "python3 tools/build_premium_still_sr_gate_receipt.py --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate_<date>",
         "python3 tools/build_premium_still_sr_readiness.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_readiness_<date>",
         "python3 tools/build_production_capture_submission_template.py --output /Volumes/OWC_8TB/gpr_work/artifacts/production_capture_submission_<date>/submission_template.json",

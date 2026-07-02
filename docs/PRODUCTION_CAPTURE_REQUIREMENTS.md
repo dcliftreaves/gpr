@@ -30,7 +30,7 @@ For the shortest premium still-SR model-promotion path, use
 | `mission1_darkframe_stack` | RAW stills | Four matching no-scene-signal Mission 1 darkframes under one camera/ISO/CFA/dimensions key, with per-frame source provenance from original raw to extracted Bayer; current ISO232 RGGB candidate group has 2 and needs 2 more. | `gpr.camera_noise_calibration.v1` sidecar validates with `source_provenance_ready=true` and runtime policy allows exact-match noise use. |
 | `iphone_cfa_darkframe_stack` | RAW stills | Four matching no-scene-signal iPhone CFA DNG darkframes, with per-frame source provenance from original raw to extracted Bayer; Linear Raw does not count. The ISO1250 RGGB candidate group has enough dark-like frames but still needs no-scene provenance. | iPhone CFA sidecar validates with `source_provenance_ready=true` and Linear Raw remains a negative fixture. |
 | `mission1_camera_role_receipts` | RAW video MVP | Real Mission 1 sensor/DMA or camera ring-buffer source, SD writer, and rear-display receipts, plus scalar `source_fps`, `encode_fps`, `storage_write_mb_s`, `preview_fps`, `peak_rss_mb`, source/preview dimensions, `.gvid` hash, and `storage_budget_passed=true`. | Camera closure validator marks camera production ready; Pi stand-in receipts are replaced by camera-role evidence that proves 4096 x 3072 source, 1024 x 768 preview, 20+ fps source/encode/preview, storage budget, and memory. |
-| `premium_still_sr_promotion_receipts` | Premium still/SR | Checkpoint/config/target hashes, `runtime_inputs`, 50 MP and 100 MP full-frame gate row counts, median and worst-row MAE reduction, editor-latitude review, editable raw, timing/memory, and noise-policy receipts. | No-REF candidate beats current still-SR baselines on 50 MP and 100 MP gates, uses no REF/source/JPEG render-time content, records seconds/frame and peak RSS, and has no severe or negative worst-row failures. |
+| `premium_still_sr_promotion_receipts` | Premium still/SR | Candidate preflight, checkpoint/config/target hashes, `runtime_inputs`, 50 MP and 100 MP full-frame gate row counts, median and worst-row MAE reduction, editor-latitude review, editable raw, timing/memory, and noise-policy receipts. | No-REF candidate first passes the launch preflight, then beats current still-SR baselines on 50 MP and 100 MP gates, uses no REF/source/JPEG render-time content, records seconds/frame and peak RSS, and has no severe or negative worst-row failures. |
 
 ## Optional Research Requests
 
@@ -112,12 +112,16 @@ file/hash mismatches. The production submission must include that audit as
 `source_provenance_audit_path`, `source_provenance_audit_sha256`,
 `source_provenance_audit_schema=gpr.darkframe_source_provenance_audit.v1`,
 `source_provenance_audit_ready_frame_count>=4`, and
-`source_provenance_audit_production_ready=true`. A premium still-SR submission must name runtime
-inputs, include `candidate_raw` and `camera_metadata`, exclude REF/source/JPEG
-content, report 50 MP and 100 MP full-frame gate row counts, show positive
-median MAE reduction for both classes, show nonnegative worst-row MAE
-reduction, record seconds per 50 MP frame, seconds per 100 MP frame, peak RSS,
-and prove exact sidecar-only noise policy with source residual noise forbidden.
+`source_provenance_audit_production_ready=true`. A premium still-SR submission
+must first pass
+`tools/check_premium_still_sr_candidate_preflight.py --require-launchable` for
+a materially new restoration-teacher, non-local/full-image, burst, or
+clean-source RAW SR proposal. The final submission must name runtime inputs,
+include `candidate_raw` and `camera_metadata`, exclude REF/source/JPEG content,
+report 50 MP and 100 MP full-frame gate row counts, show positive median MAE
+reduction for both classes, show nonnegative worst-row MAE reduction, record
+seconds per 50 MP frame, seconds per 100 MP frame, peak RSS, and prove exact
+sidecar-only noise policy with source residual noise forbidden.
 The checker separates release closure from optional research. `all_requirements_closed`
 is driven by the open release-blocking requirements above; already-closed fixture
 rows and omitted optional PSF research rows are skipped. If optional PSF research

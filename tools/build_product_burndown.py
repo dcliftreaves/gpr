@@ -214,7 +214,7 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
         action(
             pillar="premium_still_sr",
             priority=1,
-            title="Promote a true raw-CFA residual still-SR model",
+            title="Launch a preflighted premium still-SR restoration candidate",
             owner="CNN researcher",
             requirement_ids=["premium_still_sr_promotion_receipts"],
             can_do_without_camera=True,
@@ -223,6 +223,9 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
             requires_new_samples=False,
             evidence_required=[
                 "runtime_inputs includes candidate_raw and camera_metadata but excludes REF/source/JPEG content",
+                "candidate preflight passes with a materially new restoration-teacher, non-local/full-image, burst, or clean-source RAW SR architecture",
+                "realistic RAW degradation policy covers at least two of PSF/blur, noise/ISO, bit depth, compression/decode, sensor, and CFA behavior",
+                "same-color Bayer interpolation and the current 82-receipt still-SR scoreboard are explicit baselines",
                 "Z8 held-out raw-residual recovery clears promotion threshold",
                 "X2D held-out raw-residual recovery clears promotion threshold",
                 "positive median_mae_reduction_pct_50mp and median_mae_reduction_pct_100mp",
@@ -233,13 +236,16 @@ def build_burndown(external_root: Path) -> dict[str, Any]:
                 "worst-row dashboard shows no severe texture or tone failures",
             ],
             next_command=(
-                "python3 tools/build_premium_still_sr_raw_cfa_residual_gap.py "
-                "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_<date>"
+                "python3 tools/check_premium_still_sr_candidate_preflight.py "
+                "<candidate_preflight.json> "
+                "--json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/audit.json "
+                "--html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/index.html "
+                "--require-launchable"
             ),
             completion_gate=(
-                "The model beats the current raw-CFA residual baselines on both Z8 and X2D broad holdouts, "
-                "passes the 50 MP / 100 MP still/editor-latitude gate, validates through "
-                "tools/check_production_capture_submission.py, and records runtime-input, noise-policy, timing, and memory receipts."
+                "The candidate first passes the launch preflight, then beats the current still-SR scoreboard on both Z8 and X2D broad holdouts, "
+                "passes the 50 MP / 100 MP still/editor-latitude gate, validates through tools/build_premium_still_sr_gate_receipt.py "
+                "and tools/check_production_capture_submission.py, and records runtime-input, noise-policy, timing, and memory receipts."
             ),
         ),
         action(

@@ -152,6 +152,30 @@ def validate() -> list[str]:
                 failures.append(f"{rid}: camera acceptance must require source/write/preview/memory scalar fields")
         if sample_type == "controlled_same_scene_high_low_raw_pair_stack" and int(row.get("minimum_pair_count") or 0) < 3:
             failures.append(f"{rid}: PSF capture requires minimum_pair_count >= 3")
+        if sample_type == "model_promotion_receipt":
+            why_needed = str(row.get("why_needed") or "")
+            commands = "\n".join(str(item) for item in as_list(row.get("validation_commands")))
+            required_evidence = " ".join(str(item) for item in as_list(row.get("required_evidence")))
+            acceptance = " ".join(str(item) for item in as_list(row.get("acceptance")))
+            for token in (
+                "candidate raw",
+                "camera metadata",
+                "50 MP and 100 MP",
+                "seconds per 50 MP frame",
+                "seconds per 100 MP frame",
+                "peak RSS",
+                "source residual noise",
+            ):
+                if token not in required_evidence and token not in acceptance:
+                    failures.append(f"{rid}: model promotion requirement must mention {token!r}")
+            if "current no-REF residual/local-CNN models remain diagnostic" not in why_needed:
+                failures.append(f"{rid}: why_needed must describe current residual/local-CNN models as diagnostic")
+            if "check_premium_still_sr_candidate_preflight.py" not in commands:
+                failures.append(f"{rid}: validation must include check_premium_still_sr_candidate_preflight.py")
+            if "--require-launchable" not in commands:
+                failures.append(f"{rid}: candidate preflight must require --require-launchable")
+            if "train_premium_still_sr_raw_cfa_residual.py --help" in commands:
+                failures.append(f"{rid}: validation must not route the next action back to the stale raw-CFA residual trainer help command")
 
     if seen_pillars != EXPECTED_PILLARS:
         failures.append(f"pillars covered are {sorted(seen_pillars)}, expected {sorted(EXPECTED_PILLARS)}")
