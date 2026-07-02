@@ -571,6 +571,10 @@ pillar.
 | Premium still-SR X2D source-evidence dashboard | `artifacts/premium_still_sr_source_evidence_x2dholdout_t64_20260702/index.html` | `e1e9b05afdf98c033a0e380787e5df5b3a878c67e3a3952f21027b54b19601c7` |
 | Premium still-SR Z8 source-evidence audit JSON | `artifacts/premium_still_sr_source_evidence_z8holdout_t64_20260702/source_evidence_audit.json` | `c2a15884c03c0beab41569cfcd2b44ed7cf691ab86216abb5c951fc3851f98be` |
 | Premium still-SR Z8 source-evidence dashboard | `artifacts/premium_still_sr_source_evidence_z8holdout_t64_20260702/index.html` | `6770eb7485692959e3d8938489cfb1ccacd2708de46f9dbfbd3d877f8e50d9f7` |
+| Premium still-SR source-evidence split candidate preflight | `artifacts/premium_still_sr_candidate_preflight_source_evidence_split_20260702/candidate_preflight.json` | `7e0bf67db35ac07641e1fc7dc424fe86663939630df36a62b9e9524b11a85905` |
+| Premium still-SR source-evidence split preflight audit | `artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/preflight_audit.json` | `325d54a392169c16cd069e86227e247e454968a306d6ada893e77228b9c7e195` |
+| Premium still-SR source-evidence split launch packet | `artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/launch_packet.json` | `5e9859564609a6cfa669cdc13956a519cf391bfa96aa9220c55e353496a6fcb0` |
+| Premium still-SR source-evidence split launch dashboard | `artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/index.html` | `d58afe3eab25e488f57a4a28f5916769d06d31444976294984cc8c2e2e300182` |
 | Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `3d95db1c9c468034e11ef255d3f3606fb5546e4a77b0d7eb49b8b82d11aaad13` |
 | Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `ba0ddcc00db1f9b22d2e3c138051cbd375a6a5c6b78f87f9ab623e7ade062968` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |

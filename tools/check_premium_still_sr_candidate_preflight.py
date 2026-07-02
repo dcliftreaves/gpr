@@ -124,7 +124,12 @@ REQUIRED_MATERIAL_SOURCE_TOKENS = {
     "row-level psf",
     "row level psf",
     "new source evidence",
+    "source evidence",
+    "source-evidence",
+    "local source evidence",
     "different target/source evidence",
+    "source/degradation mismatch",
+    "degradation mismatch",
     "teacher beats interpolation before long run",
     "smoke holdouts beat interpolation",
 }

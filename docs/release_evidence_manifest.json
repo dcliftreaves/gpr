@@ -91,6 +91,8 @@
           "premium_still_sr_experiment_scoreboard_window_attention_20260702",
           "premium_still_sr_source_evidence_x2dholdout_t64_20260702",
           "premium_still_sr_source_evidence_z8holdout_t64_20260702",
+          "premium_still_sr_candidate_preflight_source_evidence_split_20260702",
+          "premium_still_sr_launch_packet_source_evidence_split_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -2499,6 +2501,69 @@
         "median_linear_probe_rmse_recovery_pct": 21.89973637064664,
         "min_required_recovery_pct": 1.0,
         "source_evidence_present": 0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_candidate_preflight_source_evidence_split_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Launchable Gate A candidate preflight for the source-evidence split: use X2D candidate-only local source evidence as material supervision/objective and repair the Z8 source/degradation mismatch before any long premium still-SR run.",
+      "dashboard": "artifacts/premium_still_sr_candidate_preflight_source_evidence_split_20260702/candidate_preflight.json",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_candidate_preflight_source_evidence_split_20260702/candidate_preflight.json"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "7e0bf67db35ac07641e1fc7dc424fe86663939630df36a62b9e9524b11a85905"
+      },
+      "metrics": {
+        "launchable_for_production_attempt": 1,
+        "requires_material_edits_before_launch": 0,
+        "smoke_gate_command_count": 2,
+        "source_evidence_receipt_count": 2,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_launch_packet_source_evidence_split_20260702",
+      "family": "premium_still_sr",
+      "status": "current",
+      "purpose": "Current executable launch packet for the next premium still-SR Gate A step. It passed candidate preflight and defines the exact X2D and Z8 short smoke gates; it does not claim model production readiness.",
+      "dashboard": "artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/launch_packet.json",
+        "artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/launch_packet.md",
+        "artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "7e0bf67db35ac07641e1fc7dc424fe86663939630df36a62b9e9524b11a85905",
+        "preflight_audit_json_sha256": "325d54a392169c16cd069e86227e247e454968a306d6ada893e77228b9c7e195",
+        "launch_packet_json_sha256": "5e9859564609a6cfa669cdc13956a519cf391bfa96aa9220c55e353496a6fcb0",
+        "launch_packet_md_sha256": "e2a664d16a54d8a9554dd033e98178fc769761a347a28093c47bdde806cd11a0",
+        "dashboard_sha256": "d58afe3eab25e488f57a4a28f5916769d06d31444976294984cc8c2e2e300182"
+      },
+      "metrics": {
+        "launchable_for_production_attempt": 1,
+        "preflight_failure_count": 0,
+        "smoke_gate_command_count": 2,
+        "x2d_smoke_gate_defined": 1,
+        "z8_smoke_gate_defined": 1,
         "production_ready": 0
       }
     },

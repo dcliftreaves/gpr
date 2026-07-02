@@ -175,6 +175,48 @@ def main() -> int:
         assert "source-HF" in repeats
         assert any("50 MP" in item and "100 MP" in item for item in packet["promotion_stop_conditions"])
 
+        source_split = base / "source_split_packet"
+        proc = run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--output-dir",
+                str(source_split),
+                "--template",
+                "source_evidence_split_teacher",
+                "--require-launchable",
+            ]
+        )
+        assert proc.returncode != 0
+        source_packet = json.loads((source_split / "launch_packet.json").read_text(encoding="utf-8"))
+        assert source_packet["preflight"]["launchable_for_production_attempt"] is False
+        assert any("explicit --manifest" in item for item in source_packet["preflight"]["failures"])
+
+        source_manifest = source_split / "candidate_preflight.json"
+        source_good = base / "source_split_explicit_packet"
+        proc = run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--output-dir",
+                str(source_good),
+                "--manifest",
+                str(source_manifest),
+                "--require-launchable",
+            ]
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        source_packet = json.loads((source_good / "launch_packet.json").read_text(encoding="utf-8"))
+        assert source_packet["candidate_id"] == "source_evidence_split_teacher_v1"
+        assert source_packet["preflight"]["launchable_for_production_attempt"] is True
+        source_commands = "\n".join(item["command"] for item in source_packet["next_commands"])
+        assert "premium_still_sr_source_evidence_split_teacher_x2d_smoke_20260702_next" in source_commands
+        assert "premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next" in source_commands
+        assert "premium_still_sr_clean_source_pairs_routed_t64_20260702" in source_commands
+
         bad = base / "bad_packet"
         proc = run(
             [

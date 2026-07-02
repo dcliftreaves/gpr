@@ -325,6 +325,12 @@ median MAE recovery even though RMSE improves by 21.900 percent. That makes the
 next Gate A step explicit: use X2D local source evidence as a material
 teacher/objective input, and do not launch another long Z8 same-target CNN run
 until the source/degradation mismatch has a new receipt.
+The current source-evidence split launch packet lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/index.html`.
+It passes preflight with two smoke commands and zero preflight failures. The
+next production-moving receipt is the paired X2D/Z8 smoke result from that
+packet; long training remains blocked until both holdouts beat nearest
+same-color Bayer 2x.
 
 The premium still-SR blocker audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html`.

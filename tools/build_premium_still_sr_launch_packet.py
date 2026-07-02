@@ -28,7 +28,11 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--external-root", type=Path, default=DEFAULT_EXTERNAL_ROOT)
     ap.add_argument(
         "--template",
-        choices=("clean_source_restormer_teacher", "rejected_repeat_fixture"),
+        choices=(
+            "clean_source_restormer_teacher",
+            "source_evidence_split_teacher",
+            "rejected_repeat_fixture",
+        ),
         default="clean_source_restormer_teacher",
     )
     ap.add_argument("--candidate-id", default=None)

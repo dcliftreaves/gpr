@@ -165,6 +165,8 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_experiment_scoreboard_window_attention_20260702",
                 "premium_still_sr_source_evidence_x2dholdout_t64_20260702",
                 "premium_still_sr_source_evidence_z8holdout_t64_20260702",
+                "premium_still_sr_candidate_preflight_source_evidence_split_20260702",
+                "premium_still_sr_launch_packet_source_evidence_split_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
@@ -1365,6 +1367,60 @@ def require_dashboard_contract(
                     failures.append(f"{entry_id}: Z8 source-evidence MAE drifted")
                 if abs(rmse - 21.89973637064664) > 1e-12:
                     failures.append(f"{entry_id}: Z8 source-evidence RMSE drifted")
+
+    if entry_id == "premium_still_sr_candidate_preflight_source_evidence_split_20260702":
+        if entry.get("status") != "diagnostic":
+            failures.append(f"{entry_id}: source-evidence split preflight must remain diagnostic")
+        hashes = entry.get("hashes")
+        if not isinstance(hashes, dict) or hashes.get("candidate_preflight_json_sha256") != "7e0bf67db35ac07641e1fc7dc424fe86663939630df36a62b9e9524b11a85905":
+            failures.append(f"{entry_id}: candidate preflight hash drifted")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: source-evidence split preflight needs metrics")
+        else:
+            expected_metrics = {
+                "launchable_for_production_attempt": 1,
+                "requires_material_edits_before_launch": 0,
+                "smoke_gate_command_count": 2,
+                "source_evidence_receipt_count": 2,
+                "production_ready": 0,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+
+    if entry_id == "premium_still_sr_launch_packet_source_evidence_split_20260702":
+        if entry.get("status") != "current":
+            failures.append(f"{entry_id}: source-evidence split launch packet must be current")
+        hashes = entry.get("hashes")
+        if not isinstance(hashes, dict):
+            failures.append(f"{entry_id}: source-evidence split launch packet needs hashes")
+        else:
+            expected_hashes = {
+                "candidate_preflight_json_sha256": "7e0bf67db35ac07641e1fc7dc424fe86663939630df36a62b9e9524b11a85905",
+                "preflight_audit_json_sha256": "325d54a392169c16cd069e86227e247e454968a306d6ada893e77228b9c7e195",
+                "launch_packet_json_sha256": "5e9859564609a6cfa669cdc13956a519cf391bfa96aa9220c55e353496a6fcb0",
+                "launch_packet_md_sha256": "e2a664d16a54d8a9554dd033e98178fc769761a347a28093c47bdde806cd11a0",
+                "dashboard_sha256": "d58afe3eab25e488f57a4a28f5916769d06d31444976294984cc8c2e2e300182",
+            }
+            for key, expected in expected_hashes.items():
+                if hashes.get(key) != expected:
+                    failures.append(f"{entry_id}: hash {key} drifted")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: source-evidence split launch packet needs metrics")
+        else:
+            expected_metrics = {
+                "launchable_for_production_attempt": 1,
+                "preflight_failure_count": 0,
+                "smoke_gate_command_count": 2,
+                "x2d_smoke_gate_defined": 1,
+                "z8_smoke_gate_defined": 1,
+                "production_ready": 0,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
 
     if entry_id == "premium_still_sr_promotion_gate_20260702":
         if entry.get("status") != "experimental-blocker":

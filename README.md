@@ -109,7 +109,9 @@ signal above nearest same-color 2x (**4.82%** MAE / **11.52%** RMSE recovery),
 but Z8 does not clear the 1% MAE source-evidence floor (**0.65%** MAE despite
 **21.90%** RMSE recovery). The next Gate A candidate must use that X2D signal
 as a material teacher/objective and fix the Z8 source/degradation mismatch
-before any long training run.
+before any long training run. A launchable source-evidence split packet now
+exists; it defines the two required short smoke gates and still claims
+**0** production readiness until those X2D/Z8 receipts pass.
 
 ## Evidence Map
 
@@ -144,7 +146,7 @@ and receipts stay on the 8TB artifact root.
 | **Camera-back preview** | The same 4K `.gvid` decodes to full-frame 1024 x 768 RGB above **20 fps** on the Pi 5 stand-in. | Mission 1 rear-display/UI handoff remains unproven. |
 | **Offline reconstruction** | Approved 4K cleanup and candidate-aware 8K SR emit editable `.gvid` plus ProRes review media. | PSF-conditioned replacements are research until they beat the locked baseline. |
 | **Review/export scopes** | MOV / ProRes review outputs, PREVIEW offline/review, and PREVIEW live/camera-back are each tracked separately. | PREVIEW offline/review is not a live/camera-back preview path, and ProRes is not the primary raw deliverable. |
-| **Premium still/SR** | 99 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, and X2D/Z8 source-evidence audits exist. | Current candidates are not promotable; the latest executable window-attention smoke also fails X2D/Z8, and the source-evidence audit says X2D has usable local signal while Z8 needs source/degradation repair. |
+| **Premium still/SR** | 99 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, and a launchable source-evidence split packet exist. | Current candidates are not promotable; next evidence is the packet's X2D and Z8 smoke gates, with Z8 source/degradation repair required before long training. |
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
 

@@ -78,6 +78,52 @@ def main() -> int:
         assert proc.returncode != 0
         assert "material edits" in proc.stderr
 
+        source_split = base / "source_evidence_split_teacher.json"
+        proc = run(
+            [
+                sys.executable,
+                str(BUILDER),
+                "--template",
+                "source_evidence_split_teacher",
+                "--output",
+                str(source_split),
+            ]
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        source_data = json.loads(source_split.read_text(encoding="utf-8"))
+        assert source_data["candidate_id"] == "source_evidence_split_teacher_v1"
+        assert source_data["launchable_for_production_attempt"] is True
+        assert source_data["requires_material_edits_before_launch"] is False
+        assert len(source_data["source_evidence_receipts"]) == 2
+        assert "4.821 percent MAE" in source_data["material_change_summary"]
+        assert any("Z8 source/degradation mismatch repair" in item for item in source_data["degradation_deltas"])
+        assert any("source_evidence_split_teacher_x2d_smoke" in item for item in source_data["smoke_gate_commands"])
+        assert any("source_evidence_split_teacher_z8_smoke" in item for item in source_data["smoke_gate_commands"])
+        assert all("window_attention_pixelshuffle" in item for item in source_data["smoke_gate_commands"])
+        proc = run(
+            [
+                sys.executable,
+                str(CHECKER),
+                str(source_split),
+                "--json-out",
+                str(audit_json),
+                "--html-out",
+                str(audit_html),
+                "--require-launchable",
+            ]
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        audit = json.loads(audit_json.read_text(encoding="utf-8"))
+        assert audit["launchable_for_production_attempt"] is True
+        assert "source-evidence" in audit["material_source_matches"]
+        assert "local source evidence" in audit["material_source_matches"]
+
         edited = base / "edited_clean_source_restormer_teacher.json"
         data["candidate_id"] = "contextual_raw_restoration_teacher_new_degradation_v1"
         data["launchable_for_production_attempt"] = True

@@ -238,6 +238,7 @@ production-promoted.
 | Window-attention Z8 smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_smoke_z8_20260702/index.html` |
 | Source-evidence X2D audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_x2dholdout_t64_20260702/index.html` |
 | Source-evidence Z8 audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_z8holdout_t64_20260702/index.html` |
+| Source-evidence split launch packet | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/index.html` |
 | Historical launchable preflight now blocked if reused | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_20260702_next/index.html` |
 | Teacher-first X2D smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_x2d_20260702/index.html` |
 | Teacher-first Z8 smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_z8_20260702/index.html` |
