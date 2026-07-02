@@ -19,7 +19,8 @@ reason it cannot pass.
 ## Current First Local Gate
 
 Gate 5 is the first open local gate because Gate 4 requires real Mission 1
-camera-role access. The latest Gate 5 branch is closed as a failed smoke:
+camera-role access. The latest Gate 5 branch moved from source/objective
+revision to Gate 14 executable selector intake:
 
 | branch | evidence | decision |
 |---|---|---|
@@ -42,37 +43,38 @@ camera-role access. The latest Gate 5 branch is closed as a failed smoke:
 | Gate 13 degradation-source upgrade audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_degradation_source_upgrade_20260702/gate13_degradation_source_upgrade.json` | Closed as `objective_gating_tail_regression`. The best X2D source beats nearest same-color on median MAE (`+0.2741207579275717%`) and RMSE (`+0.23526188856007296%`), but worst-row MAE is `-2.959145874624423%`. Z8 exact-noop remains safe. This rules out an ungated long run from the positive-median source. |
 | Gate 13 tail-safe source smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_tail_safe_source_smoke_20260702/tail_safe_source_smoke.json` | Blocked as `scene_generalization_gap`. Simple candidate-only tile-stat rules can make the Gate 13 source tail-safe in aggregate (`+0.215125015196241%` median MAE, `0.0%` worst-row MAE, `1394` global-only rules), but no strict per-image rule exists (`0` strict rules). `x2d_2025_austin_07` falls to `0.0%` median under the best global rule, so long training remains forbidden. |
 | Gate 13 feature-rich tail-safe source smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/feature_rich_tail_safe_source_smoke.json` | Blocked as `runtime_feature_separability_gap`. The wider candidate-only family includes scene-normalized tile stats, tile coordinates, and texture ratios (`78` features, `14393` predicates, `1398` safe predicates). Even the safe-feature OR upper bound covers only `25` positives in `x2d_2025_austin_07`, below the `32` required for a positive scene median. |
+| Gate 13 source/objective revision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/source_or_objective_revision.json` | Passed as a multi-source candidate-only selector upper bound. It uses `12` compatible X2D sources, `78` runtime features, and `10199` safe source/predicate selectors. X2D per-image median/worst MAE is `8.022846730221168%` / `0.0%` and `0.07380457072746566%` / `0.0%`; Z8 exact-noop remains `0.0%` / `0.0%`. This allows Gate 14 executable selector intake, not production promotion. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
-Build `premium_still_sr_gate13_source_or_objective_revision_<date>`. Do not rerun
+Build `premium_still_sr_gate14_candidate_intake_<date>`. Do not rerun
 source-frequency targets, generic full-crop U-Net residual training, masked-
 detail thresholds, candidate-HF no-op threshold tuning, simple frame-context
 conditioning, the Gate 9 route-conditioned/noise-aware U-Net smoke, the Gate 11
 route-isolated residual smoke, the Gate 12 synthetic teacher smoke, the older
 clean-source residual families, the ungated Gate 13 positive-median source, the
-simple Gate 13 tile-stat gate, or the Gate 13 feature-rich safe-feature OR gate
-as production work.
+simple Gate 13 tile-stat gate, the Gate 13 feature-rich safe-feature OR gate, or
+another Gate 13 source/objective upper-bound pass as production work.
 
-The Gate 13 audit found enough X2D median signal to continue, but the first
-tail-safe smoke proves simple tile-stat gates are not enough: they can be safe
-only in aggregate, not per scene. The feature-rich smoke then proves the current
-positive source is not separable by the tested runtime-safe feature family.
-The next receipt must change the source/model/objective enough that positives
-become candidate-only separable per X2D scene, while preserving exact no-op
-behavior for Z8 low-evidence/noise-floor rows. Long training remains forbidden
-until this separability blocker is cleared.
+The Gate 13 audit found enough X2D median signal to continue, but single-source
+tail-safe gating failed per scene. The source/objective revision moved the work
+forward by proving a multi-source selector upper bound can clear both X2D
+scenes while preserving Z8 exact-noop. The next receipt must turn that upper
+bound into an executable selector sidecar: source-model mapping, feature schema,
+hashes, deterministic no-op fallback, and reproduction of the Gate 13 pass using
+candidate-only runtime inputs. Long training remains forbidden until Gate 14
+passes.
 
 The candidate may advance only if all of these are true:
 
 | requirement | pass rule |
 |---|---|
-| X2D source/teacher smoke | median MAE improvement `> 0.001%`, worst-row MAE improvement `>= 0%`, and baseline beaten against nearest same-color. |
+| X2D executable selector smoke | every X2D image median MAE improvement `> 0.001%`, worst-row MAE improvement `>= 0%`, and no selected negative rows. |
 | Z8 policy | exact-noop with median MAE improvement `0.0%`, worst-row MAE improvement `0.0%`, and no positive residual training unless a new source audit replaces the route policy. |
 | Runtime inputs | `candidate_raw`, `camera_metadata`, and optional exact validated noise sidecar only. |
 | Forbidden inputs | No REF, source RAW, source RGB, source HF, JPEG target, source residual noise, or gate metric at render time. |
-| Long-run permission | A new candidate preflight is generated only after the source/teacher upgrade clears the X2D smoke floor and keeps Z8 exact-noop. |
+| Long-run permission | A new candidate preflight is generated only after Gate 14 executable selector intake reproduces the Gate 13 pass and keeps Z8 exact-noop. |
 | Production permission | The 15% / 15% promotion floor, nonnegative worst-row recovery, editor/openability, timing/memory, exact-sidecar-only noise policy, and `check_production_capture_submission.py` all pass. |
 
 ## Commands That Move The Gate
@@ -119,11 +121,16 @@ python3 tools/build_premium_still_sr_gate13_tail_safe_source_smoke.py \
 python3 tools/build_premium_still_sr_gate13_feature_rich_tail_safe_source_smoke.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702
 
+# Latest closed command:
+python3 tools/build_premium_still_sr_gate13_source_or_objective_revision.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702
+
 # Next receipt to build:
-# /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate13_source_or_objective_revision_<date>/source_or_objective_revision.json
+# /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_candidate_intake_<date>/candidate_preflight.json
 ```
 
-If the Gate 13 source/objective revision fails, it must classify the failure as
-source/degradation mismatch, objective scale, model capacity, camera-conditioning
-gap, timing/memory infeasibility, insufficient clean source, noise-policy
-mismatch, or runtime feature separability.
+If Gate 14 fails, it must classify the failure as selector reproducibility,
+source-model mapping, feature-schema drift, overfit upper bound, objective scale,
+model capacity, camera-conditioning gap, timing/memory infeasibility,
+insufficient clean source, noise-policy mismatch, or runtime feature
+separability.

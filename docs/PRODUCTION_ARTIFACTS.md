@@ -76,16 +76,14 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate 13 tail-safe source smoke dashboard | `artifacts/premium_still_sr_gate13_tail_safe_source_smoke_20260702/index.html` | `4c423ad053670b0bb9d0040313f40ea788cf49793b088e0b7cc64296c2def51c` |
 | Gate 13 feature-rich tail-safe source smoke receipt | `artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/feature_rich_tail_safe_source_smoke.json` | `6e1430c6413c3fd411ac747fb7e0e4e216e9ea3571f070544bd41cd52069f554` |
 | Gate 13 feature-rich tail-safe source smoke dashboard | `artifacts/premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702/index.html` | `6f35d5ef0781048ad0ded34fcb3c56541a89df7094ad9b4fb3ce8d27e6124d1a` |
+| Gate 13 source/objective revision receipt | `artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/source_or_objective_revision.json` | `cd72bf04998f60134b1729178eda84232d69bb27990e4f3398c6ff434bb5845e` |
+| Gate 13 source/objective revision dashboard | `artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/index.html` | `5e99e307107adf08b328694214aec43eab7d6aef12340ce43bf6eb26c41f944d` |
 
-These branches are blocked before long training. The next Premium Still/SR
-candidate must change source/model/objective, not just add a wider runtime
-gate. The feature-rich tail-safe smoke tested `78` candidate-only runtime
-features, `14393` threshold predicates, and `1398` safe predicates. Even the
-safe-feature OR upper bound covers only `25` positive rows in
-`x2d_2025_austin_07`, short of the `32` needed for a positive per-scene median.
-Long training remains blocked until a revised source/objective creates positives
-that are separable by candidate-only runtime evidence while keeping Z8 exact-
-noop.
+The single-source branches are blocked before long training. The latest
+source/objective revision moved the work to Gate 14: a multi-source
+candidate-only selector upper bound clears both X2D scenes with no selected
+negative rows and keeps Z8 exact-noop. Long training remains blocked until an
+executable selector sidecar reproduces that pass from runtime-safe inputs.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

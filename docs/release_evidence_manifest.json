@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 13 found a positive X2D median source, but both simple and feature-rich candidate-only runtime gates fail per-scene tail safety.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 13 source/objective revision passed as a multi-source selector upper bound; next is Gate 14 executable selector intake before any long run or promotion.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -125,10 +125,11 @@
           "premium_still_sr_gate12_smoke_acceptance_20260702",
           "premium_still_sr_gate13_degradation_source_upgrade_20260702",
           "premium_still_sr_gate13_tail_safe_source_smoke_20260702",
-          "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702"
+          "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702",
+          "premium_still_sr_gate13_source_or_objective_revision_20260702"
         ]
       },
-      "open_gate": "premium_still_sr_gate13_source_or_objective_revision_<date>"
+      "open_gate": "premium_still_sr_gate14_candidate_intake_<date>"
     },
     {
       "id": "raw_video_reconstruction",
@@ -4782,6 +4783,52 @@
         "x2d_2025_austin_06_positive_rows_covered": 53,
         "x2d_2025_austin_07_positive_rows_covered": 25,
         "x2d_positive_rows_required_for_scene_median": 32,
+        "z8_exact_noop_ok": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate13_source_or_objective_revision_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Gate 13 source/objective revision. It changes the blocked single-source X2D path into a multi-source candidate-only selector upper bound and shows the next local gate is executable selector intake, not another long CNN run.",
+      "dashboard": "artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate13_source_or_objective_revision.py",
+        "tools/test/test_build_premium_still_sr_gate13_source_or_objective_revision.py",
+        "tools/build_premium_still_sr_gate13_feature_rich_tail_safe_source_smoke.py",
+        "tools/build_premium_still_sr_gate13_tail_safe_source_smoke.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/source_or_objective_revision.json",
+        "artifacts/premium_still_sr_gate13_source_or_objective_revision_20260702/index.html"
+      ],
+      "hashes": {
+        "source_or_objective_revision_json_sha256": "cd72bf04998f60134b1729178eda84232d69bb27990e4f3398c6ff434bb5845e",
+        "dashboard_sha256": "5e99e307107adf08b328694214aec43eab7d6aef12340ce43bf6eb26c41f944d"
+      },
+      "metrics": {
+        "source_or_objective_revision_passed": 1,
+        "gate14_candidate_intake_allowed": 1,
+        "long_run_allowed": 0,
+        "compatible_source_count": 12,
+        "feature_count": 78,
+        "safe_selector_count": 10199,
+        "global_median_mae_improvement_pct": 1.2146564853780117,
+        "global_worst_row_mae_improvement_pct": 0.0,
+        "x2d_2025_austin_06_median_mae_improvement_pct": 8.022846730221168,
+        "x2d_2025_austin_06_worst_row_mae_improvement_pct": 0.0,
+        "x2d_2025_austin_06_selected_positive_rows": 56,
+        "x2d_2025_austin_07_median_mae_improvement_pct": 0.07380457072746566,
+        "x2d_2025_austin_07_worst_row_mae_improvement_pct": 0.0,
+        "x2d_2025_austin_07_selected_positive_rows": 35,
         "z8_exact_noop_ok": 1,
         "production_ready": 0
       }
