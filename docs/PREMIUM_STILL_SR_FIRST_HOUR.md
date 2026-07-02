@@ -119,6 +119,14 @@ production-promoted.
    rejected repeat and has architecture, degradation, validation, runtime,
    baseline, timing/memory, editor-latitude, editable-raw, and noise-policy
    receipts planned before it burns training time.
+   The preflight now also rejects generic Restormer-style, NAF/detail, U-Net,
+   or local residual repeats unless the manifest names new source/evidence or a
+   teacher-first holdout gate. Examples that can pass this intake are
+   row-level measured PSF from real high/low pairs, burst or multi-frame raw
+   evidence, materially different target/source evidence, or an explicit rule
+   that both X2D and Z8 smoke holdouts must beat same-color interpolation before
+   any long run. Restormer plus blur/noise/decode wording alone is already
+   covered by rejected 20260702 receipts.
 
 5. Rebuild the scoreboard and reject the candidate if it cannot beat the
    promotion floor:

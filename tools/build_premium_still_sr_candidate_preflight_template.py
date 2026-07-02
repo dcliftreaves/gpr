@@ -38,7 +38,9 @@ def clean_source_restormer_teacher(candidate_id: str) -> dict[str, Any]:
         "material_change_summary": (
             "<replace with the concrete architecture/degradation/validation change "
             "that is not already represented by the rejected 20260702 clean-source "
-            "Restormer, NAF/detail, clean-signal U-Net, or 12k window-attention receipts>"
+            "Restormer, NAF/detail, clean-signal U-Net, or 12k window-attention receipts; "
+            "launchable proposals need new source evidence, measured/row-level PSF, "
+            "burst or multi-frame raw evidence, or an explicit teacher-first holdout gate>"
         ),
         "runtime_inputs": [
             "candidate_raw",
@@ -69,6 +71,7 @@ def clean_source_restormer_teacher(candidate_id: str) -> dict[str, Any]:
             "held-out Z8 overlapped-tile gate",
             "50 MP and 100 MP full-frame row accounting",
             "worst-row 100 percent crop review",
+            "both X2D and Z8 smoke holdouts must beat same-color interpolation before long run",
         ],
         "holdouts": [
             "X2D scene-held-out full-frame images",

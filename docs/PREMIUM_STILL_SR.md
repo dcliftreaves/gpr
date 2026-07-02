@@ -283,7 +283,13 @@ the rejected 20260702 clean-source Restormer, NAF/detail, clean-signal U-Net,
 and 12k window-attention receipts. The edited manifest must set
 `launchable_for_production_attempt=true`,
 `requires_material_edits_before_launch=false`, and a non-placeholder
-`material_change_summary`.
+`material_change_summary`. The preflight is stricter than generic "better
+Restormer plus blur/noise/decode" wording because that family is already
+covered by rejected 20260702 receipts. A launchable manifest must also name new
+source/evidence or a teacher-first holdout gate, such as row-level measured PSF
+from real high/low pairs, burst or multi-frame raw evidence, materially
+different target/source evidence, or a rule that both X2D and Z8 smoke holdouts
+must beat same-color interpolation before any long run.
 
 Then build the launch packet from the explicit manifest. The packet writes the
 candidate preflight, runs the preflight audit, and records the exact next
@@ -314,6 +320,9 @@ downsample, X2D and Z8 full-image or overlapped-tile validation, same-color
 interpolation/current baseline comparisons, candidate-only runtime inputs,
 exact-sidecar-only noise policy, and planned
 checkpoint/config/dashboard/timing/memory/editor/editable raw/noise receipts.
+They also require a material source/evidence escape hatch for Restormer-style,
+NAF/detail, U-Net, or local residual families; otherwise the packet remains
+blocked before a long run.
 
 Current launch packet:
 

@@ -94,6 +94,26 @@ REQUIRED_RECEIPT_TOKENS = {
     "editable",
     "noise",
 }
+REQUIRED_MATERIAL_SOURCE_TOKENS = {
+    "burst",
+    "multi-frame",
+    "multi frame",
+    "real high/low",
+    "high/low pair",
+    "high/low pairs",
+    "measured psf",
+    "row-level psf",
+    "row level psf",
+    "new source evidence",
+    "different target/source evidence",
+    "teacher beats interpolation before long run",
+    "smoke holdouts beat interpolation",
+}
+RESTORMER_REPEAT_TOKENS = {
+    "restormer",
+    "restormer-style",
+    "restormer_pixelshuffle",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -169,6 +189,21 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
             failures,
             "material_change_summary must describe the concrete change from rejected receipts",
         )
+    material_text = text_blob(
+        manifest.get("material_change_summary"),
+        manifest.get("architecture_deltas"),
+        manifest.get("degradation_deltas"),
+        manifest.get("validation_plan"),
+        manifest.get("baseline_comparisons"),
+        manifest.get("notes"),
+    )
+    material_source_matches = matching_tokens(material_text, REQUIRED_MATERIAL_SOURCE_TOKENS)
+    if not material_source_matches:
+        add_failure(
+            failures,
+            "material_change_summary must name new source/evidence or a teacher-first holdout gate "
+            "beyond the rejected Restormer/NAF/U-Net receipts",
+        )
 
     runtime_inputs = {item.lower() for item in as_strings(manifest.get("runtime_inputs"))}
     missing_runtime = sorted(REQUIRED_RUNTIME_INPUTS - runtime_inputs)
@@ -199,6 +234,12 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
         add_failure(
             failures,
             "architecture_deltas must include a material non-local/full-image/restoration-teacher change",
+        )
+    if matching_tokens(architecture_text, RESTORMER_REPEAT_TOKENS) and not material_source_matches:
+        add_failure(
+            failures,
+            "Restormer-style proposals must include new source evidence or an explicit teacher-first holdout gate; "
+            "the current Restormer degradation/objective receipts are rejected",
         )
 
     candidate_kind = str(manifest.get("candidate_kind") or "").lower()
@@ -268,6 +309,7 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
         "promotion_claimed": False,
         "architecture_delta_matches": architecture_matches,
         "degradation_delta_matches": degradation_matches,
+        "material_source_matches": material_source_matches,
         "failures": failures,
         "warnings": warnings,
         "verdict": (
@@ -304,6 +346,7 @@ code {{ background: #f4f6f7; padding: 2px 4px; border-radius: 3px; }}
 <h2>Warnings</h2>
 <ul>{warning_rows}</ul>
 <h2>Matched Deltas</h2>
+<p><b>Material source/evidence:</b> {html.escape(', '.join(audit.get('material_source_matches') or []))}</p>
 <p><b>Architecture:</b> {html.escape(', '.join(audit.get('architecture_delta_matches') or []))}</p>
 <p><b>Degradation:</b> {html.escape(', '.join(audit.get('degradation_delta_matches') or []))}</p>
 """

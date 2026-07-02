@@ -46,8 +46,9 @@ def main() -> int:
                     "launchable_for_production_attempt": True,
                     "requires_material_edits_before_launch": False,
                     "material_change_summary": (
-                        "Adds camera-conditioned PSF/noise/decode degradation and joint "
-                        "X2D/Z8 overlapped-tile validation beyond rejected receipts."
+                        "Adds row-level measured PSF sidecars from real high/low pairs, "
+                        "then requires the teacher beats interpolation before long run on "
+                        "joint X2D/Z8 overlapped-tile validation."
                     ),
                     "runtime_inputs": ["candidate_raw", "camera_metadata", "validated_noise_sidecar_optional"],
                     "forbidden_runtime_inputs_absent": True,
@@ -61,7 +62,7 @@ def main() -> int:
                         "self-supervised clean-source RAW SR objective",
                     ],
                     "degradation_deltas": [
-                        "realistic camera blur/PSF synthesis",
+                        "realistic camera blur/PSF synthesis from row-level PSF sidecars",
                         "ISO-conditioned calibrated sensor noise",
                         "bit-depth and compression/decode simulation",
                     ],
@@ -70,6 +71,7 @@ def main() -> int:
                         "held-out Z8 overlapped-tile gate",
                         "50 MP full-frame gate row accounting",
                         "100 MP full-frame gate row accounting",
+                        "both X2D and Z8 smoke holdouts beat interpolation before long run",
                         "worst-row 100 percent crop review",
                     ],
                     "baseline_comparisons": [
