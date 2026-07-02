@@ -26,6 +26,16 @@ source.
 
 ![GPR four-pillar production readiness](docs/img/readme_status_matrix.svg)
 
+## What Ships From The Same Raw Stream
+
+| output | why it matters |
+|---|---|
+| **Compact RAW stills** | 50 MP and 100 MP-class Bayer photos stay editable while landing near JPEG-sized file budgets. |
+| **Camera RAW video** | 4096 x 3072 Bayer frames become `.gvid` streams that are small enough for the accepted Pi 5 / Mission 1 stand-in write path. |
+| **Camera-back preview** | The same `.gvid` stream decodes to a full-frame 1024 x 768 preview instead of maintaining a separate preview-only codec. |
+| **Desktop reconstruction** | 4K cleanup and 8K SR run offline, where extra compute can buy detail without slowing capture. |
+| **Review media** | ProRes and dashboard outputs exist for inspection, but the editable Bayer `.gvid` / DNG / GPR artifacts remain the product source. |
+
 ## Product Status In One Screen
 
 Current four-pillar completion is **83%**. This is a production-readiness
