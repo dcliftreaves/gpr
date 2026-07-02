@@ -107,6 +107,7 @@ def camera_role_template() -> dict[str, Any]:
         "source_kind": "real_sensor_dma",
         "valid_gvid": True,
         "dropped_frames": 0,
+        "min_sustained_frames": 120,
         "source_width": 4096,
         "source_height": 3072,
         "source_fps": "<measured_source_fps>",

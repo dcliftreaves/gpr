@@ -47,7 +47,7 @@ when it visibly improves the result.**
 | product pillar | done | what is ready now | still blocking 100% |
 |---|---:|---|---|
 | **Best RAW stills** | **92%** | 50 MP tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100 MP roundtrip; 12/14/16-bit support; real RGGB/GBRG/GRBG/BGGR coverage; X2D/Z8 noise sidecars. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
-| **GoPro RAW video MVP** | **80%** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor, and the same stream previews full-frame at 1024 x 768 above **20 fps**. | Real Mission 1 sensor/DMA or camera-ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, and timing receipts from the camera role. |
+| **GoPro RAW video MVP** | **80%** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor, and the same stream previews full-frame at 1024 x 768 above **20 fps**. | Real Mission 1 sensor/DMA or camera-ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, 120+ sustained frames, and timing receipts from the camera role. |
 | **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, editor-openability, model-promotion tooling, and the 95-receipt experiment scoreboard exist. | A no-REF 50 MP / 100 MP candidate must beat the current still baseline and pass worst-row, editor-latitude, timing, memory, and exact-sidecar-only noise-policy gates. |
 | **RAW video reconstruction improvement** | **100%** | Approved offline/post 4K cleanup and 8K SR emit `.gvid`, editable raw, standalone no-CNN/CNN ProRes review movies, objective review, and manual signoff receipts. | No release blocker. PSF/blur modeling is parked as optional replacement research. |
 
@@ -73,7 +73,7 @@ receipts.
 | product bet | user-facing offer | current ship boundary |
 |---|---|---|
 | **1. Better RAW stills** | 50 MP and 100 MP-class editable Bayer photos at 8-bit JPEG size and 16-bit RAW quality, with normal CFA support and a path toward camera-noise-aware compression. | Ship the current 50 MP tiers and normal-Bayer support. Do not claim broad Mission/iPhone nonzero noise addback until strict-provenance darkframes exist. |
-| **2. GoPro RAW video MVP** | A GoPro-class raw-video stream: 4K Bayer frames into `.gvid`, decoded from the same stream for camera-back preview, then handed to desktop tools for post. | Ship as a Labs-ready handoff package from Pi 5 stand-in evidence; actual Mission 1 firmware readiness still needs camera-role receipts. |
+| **2. GoPro RAW video MVP** | A GoPro-class raw-video stream: 4K Bayer frames into `.gvid`, decoded from the same stream for camera-back preview, then handed to desktop tools for post. | Ship as a Labs-ready handoff package from Pi 5 stand-in evidence; actual Mission 1 firmware readiness still needs camera-role receipts with 120+ sustained frames. |
 | **3. Premium still improvement** | A slow offline still path that can spend serious compute on raw-CFA restoration, editor latitude, and texture recovery. | Do not promote current CNNs. Premium still-SR remains open until the no-REF 50 MP / 100 MP promotion gate passes. |
 | **4. RAW video reconstruction** | Approved 4K cleanup and offline 8K reconstruction for desktop/post, with editable `.gvid`/DNG/GPR outputs and ProRes review media. | Ship the approved offline/post path now. Reopen only if its locked gate/receipt/hash/manual review fails, or if a replacement beats it with the same `.gvid`, editable raw, ProRes, dashboard, timing, memory, and hash evidence. |
 
@@ -316,8 +316,8 @@ When the camera frame source, SD writer, and rear-display path are wired, remove
 | receipt | proves |
 |---|---|
 | `target_preflight_receipt.json` | `target.role=camera`, target paths/binaries/storage are ready, concrete frame-source/storage/display labels are recorded, and `target_preflight_ready=true` plus `camera_closure_possible=true` after the real camera frame source, storage path, and display path have been asserted |
-| `camera_handoff_receipt.json` | `target.role=camera`, `raw_source_kind=sensor_dma_capture` or `camera_ring_buffer`, sensor/DMA handoff executed, storage handoff executed, zero drops, valid `.gvid`, and `20+ fps` timing |
-| `preview_ui_receipt.json` | `target.role=camera`, UI path executed, full-frame 1024 x 768 preview, no drops, visual display check, and `20+ fps` timing |
+| `camera_handoff_receipt.json` | `target.role=camera`, `raw_source_kind=sensor_dma_capture` or `camera_ring_buffer`, sensor/DMA handoff executed, storage handoff executed, zero drops, valid `.gvid`, 120+ sustained frames, and `20+ fps` timing |
+| `preview_ui_receipt.json` | `target.role=camera`, UI path executed, full-frame 1024 x 768 preview, 120+ sustained frames, no drops, visual display check, and `20+ fps` timing |
 | `mission1_camera_closure_run.json` | the target preflight, encode, and preview receipts belong to the same camera closure package; production requires all three to be ready and aggregate-consistent |
 | `closure_package.json` | the final package retains SHA-pinned target preflight, camera handoff, and preview UI receipt summaries before production promotion |
 

@@ -13,7 +13,7 @@ run, what evidence counts, and what still blocks a production claim.
 | What is the current capture target? | 4096 x 3072 Bayer source frames into 4096 x 3072 `.gvid`, with a 20+ fps accepted floor for the Pi 5 stand-in and Mission 1 camera-role closure. |
 | What is the current preview target? | Decode the same 4096 x 3072 `.gvid` stream to full-frame 1024 x 768 RGB preview at 20+ fps. |
 | What has already passed? | Pi 5 stand-in receipts prove 20+ fps native12 `.gvid` encode, zero drops, valid container/recovery, Lexar SILVER PLUS write-budget fit, and 20+ fps 1024 x 768 preview decode. |
-| What is still missing? | A camera-role receipt from the real Mission 1 sensor/DMA or camera ring buffer, SD writer, and rear-display path. |
+| What is still missing? | A 120+ frame camera-role receipt from the real Mission 1 sensor/DMA or camera ring buffer, SD writer, and rear-display path. |
 
 ## First-Hour Steps
 
@@ -91,6 +91,7 @@ run, what evidence counts, and what still blocks a production claim.
 | encode fps | >= 20 |
 | preview dimensions | 1024 x 768 |
 | preview fps | >= 20 |
+| sustained frames | >= 120 across encode, handoff, decode, and preview UI receipts |
 | drops | zero, or a named blocker with frame indices and policy |
 | storage | SD writer executed, storage medium named, write MB/s recorded, budget passed |
 | memory | peak RSS or firmware heap high-water mark recorded |
@@ -133,4 +134,3 @@ blocker as one of:
 | Hardware execution runbook | [`LABS_MISSION1_RUNBOOK.md`](LABS_MISSION1_RUNBOOK.md) |
 | Open production requirements | [`PRODUCTION_CAPTURE_REQUIREMENTS.md`](PRODUCTION_CAPTURE_REQUIREMENTS.md) |
 | Product scorecard | [`PRODUCT_PILLAR_SCORECARD.md`](PRODUCT_PILLAR_SCORECARD.md) |
-
