@@ -77,6 +77,22 @@ production-promoted.
    beyond same-color box downsample alone, joint X2D/Z8 holdout selection, and
    full-image or overlapped-tile validation.
 
+   Before launching that run, write a small proposal manifest and run the
+   launch preflight:
+
+   ```sh
+   python3 tools/check_premium_still_sr_candidate_preflight.py \
+     <candidate_preflight.json> \
+     --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/audit.json \
+     --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/index.html \
+     --require-launchable
+   ```
+
+   This does not promote the model. It only proves the proposed run is not a
+   rejected repeat and has architecture, degradation, validation, runtime,
+   baseline, timing/memory, editor-latitude, editable-raw, and noise-policy
+   receipts planned before it burns training time.
+
 5. Rebuild the scoreboard and reject the candidate if it cannot beat the
    promotion floor:
 
@@ -120,6 +136,7 @@ production-promoted.
 | More time on the rejected 12k-step teacher | The 12k-step X2D scene-holdout run regressed; repeating the same objective is not a promotion path. |
 | Clean target alone | The clean-signal U-Net smoke still regressed X2D; the next pass needs materially different supervision or runtime signal. |
 | Re-running the routed local clean-source teacher | The 1500-step X2D/Z8 routed clean-source runs and NAF/detail variant are rejected reference receipts. The next run must change architecture, degradation policy, and validation scope before it can be treated as a production candidate. |
+| Skipping the launch preflight | It allows expensive repeats of already rejected architectures, degradation policies, or validation scopes. |
 | Runtime REF/source/HF leakage | It violates the no-REF production contract even if metrics improve. |
 | Noise synthesized without exact sidecars | It violates the camera-noise policy and can hide source-noise leakage. |
 

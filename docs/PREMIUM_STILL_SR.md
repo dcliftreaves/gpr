@@ -265,6 +265,24 @@ same-color interpolation on held-out X2D and Z8 images with
 only after that teacher clears the holdout gate. Promotion still requires the
 actual still/editor-latitude gate with no REF/source/JPEG runtime inputs.
 
+Any proposed long run should first pass the launch preflight:
+
+```sh
+python3 tools/check_premium_still_sr_candidate_preflight.py \
+  <candidate_preflight.json> \
+  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/audit.json \
+  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/index.html \
+  --require-launchable
+```
+
+The preflight is not a promotion gate. It blocks obvious repeats of rejected
+primary paths and requires the proposed run to name a material architecture
+delta, realistic RAW degradation beyond same-color box downsample, X2D and Z8
+full-image or overlapped-tile validation, same-color interpolation/current
+baseline comparisons, candidate-only runtime inputs, exact-sidecar-only noise
+policy, and planned checkpoint/config/dashboard/timing/memory/editor/editable
+raw/noise receipts.
+
 The first real-fixture smoke for that path now exists:
 
 ```text
