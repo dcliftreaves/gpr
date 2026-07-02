@@ -926,7 +926,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     inventory_path = args.inventory or args.external_root / "artifacts/cnn_dataset_inventory_20260630/cnn_dataset_inventory.json"
-    scoreboard_path = args.scoreboard or args.external_root / "artifacts/premium_still_sr_experiment_scoreboard_20260701/scoreboard.json"
+    scoreboard_path = args.scoreboard or args.external_root / "artifacts/premium_still_sr_experiment_scoreboard_restormer_t64_20260702/scoreboard.json"
     residual_gap_path = args.residual_gap or args.external_root / "artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json"
     data = build_contract(
         inventory=load_json(inventory_path),

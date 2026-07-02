@@ -95,7 +95,7 @@ REQUIRED_README_TOKENS = (
     "positive median MAE reduction with nonnegative worst-row MAE",
     "seconds/frame and peak RSS",
     "exact-sidecar-only noise",
-    "82** runtime-safe",
+    "93** runtime-safe",
     "**0** promotable rows",
     "**4.03%** held-out MAE recovery / **3.75%** held-out RMSE recovery",
     "**15% / 15%** promotion floor",
@@ -236,14 +236,15 @@ REQUIRED_SCORECARD_TOKENS = (
     "candidate-only local/full-crop/global-context/masked-context",
     "deeper gated pyramid U-Net",
     "premium_still_sr_patch_dictionary_x2dholdout_20260630/patch_dictionary_probe.json",
-    "82 runtime-safe rendered-HF and raw-CFA residual training receipts",
+    "93 runtime-safe rendered-HF, raw-CFA residual, clean-signal, and",
+    "newest clean-source Restormer pair rows remain far below",
     "full 12k-step X2D scene-holdout window-attention teacher run",
     "-0.030 percent MAE",
     "-0.098 percent RMSE",
     "zero promotable rows",
     "4.03",
     "3.75",
-    "15 percent / 15 percent promotion threshold",
+    "15 percent / 15 percent",
 )
 
 

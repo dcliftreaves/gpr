@@ -25,10 +25,12 @@ MAE_METRIC_KEYS = (
     "residual_mae_reduction_pct",
     "raw_residual_mae_reduction_pct",
     "exact_raw_mae_reduction_pct",
+    "mae_improvement_pct",
 )
 RMSE_METRIC_KEYS = (
     "residual_rmse_reduction_pct",
     "raw_residual_rmse_reduction_pct",
+    "rmse_improvement_pct",
 )
 
 
@@ -70,6 +72,13 @@ def split_metric_paths(split: str, metric_keys: tuple[str, ...]) -> list[list[st
     return [["eval", split, key, "median"] for key in metric_keys]
 
 
+def split_count(payload: dict[str, Any], split: str) -> Any:
+    return (
+        nested_value(payload, ["eval", split, "row_count"])
+        or nested_value(payload, ["eval", split, "tile_count"])
+    )
+
+
 def classify_receipt(path: Path, payload: dict[str, Any]) -> dict[str, Any] | None:
     schema = str(payload.get("schema", ""))
     if "premium_still_sr" not in schema:
@@ -82,17 +91,18 @@ def classify_receipt(path: Path, payload: dict[str, Any]) -> dict[str, Any] | No
     holdout_rmse, holdout_rmse_metric = first_nested_float(payload, split_metric_paths("holdout", RMSE_METRIC_KEYS))
     train_mae, train_mae_metric = first_nested_float(payload, split_metric_paths("train", MAE_METRIC_KEYS))
     train_rmse, train_rmse_metric = first_nested_float(payload, split_metric_paths("train", RMSE_METRIC_KEYS))
-    holdout_rows = nested_value(payload, ["eval", "holdout", "row_count"])
-    train_rows = nested_value(payload, ["eval", "train", "row_count"])
+    holdout_rows = split_count(payload, "holdout")
+    train_rows = split_count(payload, "train")
     if holdout_mae is None and holdout_rmse is None and train_mae is None and train_rmse is None:
         return None
 
     policy = payload.get("policy") if isinstance(payload.get("policy"), dict) else {}
     config = payload.get("config") if isinstance(payload.get("config"), dict) else {}
+    is_clean_source_pair_model = schema == "gpr.premium_still_sr_clean_source_pair_model.v1"
     source_runtime_flags = {
-        "uses_source_hf_at_runtime": policy.get("uses_source_hf_at_runtime") if policy else None,
-        "uses_source_raw_at_runtime": policy.get("uses_source_raw_at_runtime") if policy else None,
-        "uses_ref_at_runtime": policy.get("uses_ref_at_runtime") if policy else None,
+        "uses_source_hf_at_runtime": False if is_clean_source_pair_model else policy.get("uses_source_hf_at_runtime") if policy else None,
+        "uses_source_raw_at_runtime": False if is_clean_source_pair_model else policy.get("uses_source_raw_at_runtime") if policy else None,
+        "uses_ref_at_runtime": False if is_clean_source_pair_model else policy.get("uses_ref_at_runtime") if policy else None,
     }
     explicit_runtime_safe = [value for value in source_runtime_flags.values() if value is not None]
     uses_forbidden_runtime_content = any(value is True for value in explicit_runtime_safe)
@@ -111,8 +121,8 @@ def classify_receipt(path: Path, payload: dict[str, Any]) -> dict[str, Any] | No
         "experiment": path.parent.name,
         "checkpoint": payload.get("checkpoint"),
         "checkpoint_sha256": payload.get("checkpoint_sha256"),
-        "steps": payload.get("steps"),
-        "train_seconds": payload.get("train_seconds"),
+        "steps": payload.get("steps") or config.get("steps"),
+        "train_seconds": payload.get("train_seconds") or payload.get("elapsed_seconds"),
         "device": payload.get("device"),
         "model_arch": config.get("model_arch"),
         "feature_mode": config.get("feature_mode"),
@@ -130,13 +140,16 @@ def classify_receipt(path: Path, payload: dict[str, Any]) -> dict[str, Any] | No
         "holdout_mae_metric": holdout_mae_metric,
         "holdout_rmse_metric": holdout_rmse_metric,
         "uses_source_hf_at_training": policy.get("uses_source_hf_at_training"),
+        "uses_source_raw_at_training": True if is_clean_source_pair_model else policy.get("uses_source_raw_at_training"),
         "uses_source_hf_at_runtime": source_runtime_flags["uses_source_hf_at_runtime"],
         "uses_source_raw_at_runtime": source_runtime_flags["uses_source_raw_at_runtime"],
         "uses_ref_at_runtime": source_runtime_flags["uses_ref_at_runtime"],
         "runtime_safety_known": runtime_safety_known,
         "runtime_safe": runtime_safe,
         "uses_forbidden_runtime_content": uses_forbidden_runtime_content,
-        "production_status": policy.get("production_status"),
+        "production_status": policy.get("production_status") or (
+            "clean_source_teacher_not_final_candidate" if is_clean_source_pair_model else None
+        ),
         "promotion_ready": promotion_ready,
     }
 

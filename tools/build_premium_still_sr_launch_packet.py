@@ -51,7 +51,7 @@ def command_sequence(
     candidate_id: str | None,
 ) -> list[dict[str, Any]]:
     pair_dir = external_root / "artifacts/premium_still_sr_clean_source_pairs_<date>"
-    model_dir = external_root / "artifacts/premium_still_sr_clean_source_teacher_<date>"
+    model_dir = external_root / "artifacts/premium_still_sr_clean_source_teacher_smoke_<date>"
     scoreboard_dir = external_root / "artifacts/premium_still_sr_experiment_scoreboard_<date>"
     promotion_dir = external_root / "artifacts/premium_still_sr_promotion_gate_<date>"
     work_dir = external_root / "tmp/premium_still_sr_pairs_<date>"
@@ -108,33 +108,35 @@ def command_sequence(
             "receipt": rel(pair_dir / "audit/index.html"),
         },
         {
-            "step": "train_teacher_x2d_holdout",
+            "step": "train_teacher_x2d_holdout_smoke",
             "command": (
                 "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
                 f"--pairs {rel(pairs)} "
                 f"--output-dir {rel(model_dir / 'x2d_holdout')} "
                 "--holdout-image x2d "
-                "--steps 1500 "
+                "--steps 100 "
                 "--batch 4 "
                 "--low-crop 48 "
-                "--width 64 "
-                "--depth 8 "
+                "--model-arch restormer_pixelshuffle "
+                "--width 32 "
+                "--depth 4 "
                 "--gradient-loss-weight 0.05"
             ),
             "receipt": rel(model_dir / "x2d_holdout/train_receipt.json"),
         },
         {
-            "step": "train_teacher_z8_holdout",
+            "step": "train_teacher_z8_holdout_smoke",
             "command": (
                 "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
                 f"--pairs {rel(pairs)} "
                 f"--output-dir {rel(model_dir / 'z8_holdout')} "
                 "--holdout-image z8 "
-                "--steps 1500 "
+                "--steps 100 "
                 "--batch 4 "
                 "--low-crop 48 "
-                "--width 64 "
-                "--depth 8 "
+                "--model-arch restormer_pixelshuffle "
+                "--width 32 "
+                "--depth 4 "
                 "--gradient-loss-weight 0.05"
             ),
             "receipt": rel(model_dir / "z8_holdout/train_receipt.json"),
@@ -186,6 +188,7 @@ def build_packet(
         "blocked_repeats": [
             "residual_pixelshuffle local-CNN-only primary path",
             "clean-signal U-Net repeat without a new degradation/objective",
+            "restormer_pixelshuffle same-color pair trainer beyond smoke unless X2D and Z8 holdouts both improve",
             "source-HF or stored-HF render-time content",
             "same-color box downsample as the only degradation policy",
             "train-split-only or crop-only promotion evidence",
@@ -193,6 +196,7 @@ def build_packet(
         "promotion_stop_conditions": [
             "candidate-only runtime inputs: candidate_raw and camera_metadata, with no REF/source/JPEG content",
             "held-out X2D and Z8 full-image or overlapped-tile evidence",
+            "both X2D and Z8 smoke holdouts beat same-color interpolation before any longer run",
             "50 MP and 100 MP full-frame rows",
             "positive median MAE/RMSE recovery and nonnegative worst-row recovery",
             "editable DNG/GPR receipts and editor-latitude review",

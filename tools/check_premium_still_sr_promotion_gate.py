@@ -27,7 +27,7 @@ NEXT_CONTRACT_SCHEMA = "gpr.premium_still_sr_next_experiment_contract.v1"
 REQUIREMENT_ID = "premium_still_sr_promotion_receipts"
 
 DEFAULT_SCOREBOARD = Path(
-    "/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701/scoreboard.json"
+    "/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_t64_20260702/scoreboard.json"
 )
 DEFAULT_NOISE_GATE = Path(
     "/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_noise_policy_gate_20260702/"

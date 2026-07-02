@@ -71,7 +71,7 @@ def clean_source_restormer_teacher(candidate_id: str) -> dict[str, Any]:
         "baseline_comparisons": [
             "same-color Bayer interpolation baseline",
             "current still-SR scoreboard and 12k window-attention rejection",
-            "current 82-receipt still-SR experiment scoreboard",
+            "current 93-receipt still-SR experiment scoreboard",
         ],
         "planned_receipts": [
             "checkpoint hash",

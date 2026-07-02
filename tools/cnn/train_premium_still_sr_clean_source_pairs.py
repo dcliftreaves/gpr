@@ -65,6 +65,26 @@ def parse_image_list(values: list[str]) -> set[str]:
     return out
 
 
+def resolve_holdout_images(requested: set[str], unique_images: list[str]) -> set[str]:
+    if not requested:
+        return {unique_images[-1]}
+    available = set(unique_images)
+    resolved: set[str] = set()
+    missing: list[str] = []
+    for item in sorted(requested):
+        exact = item in available
+        prefix_matches = {image_id for image_id in available if image_id.startswith(item)}
+        if exact:
+            resolved.add(item)
+        elif prefix_matches:
+            resolved.update(prefix_matches)
+        else:
+            missing.append(item)
+    if missing:
+        raise ValueError(f"holdout image/group(s) not found in pairs: {missing}")
+    return resolved
+
+
 class CleanSourcePairs:
     def __init__(self, path: Path, holdout_images: set[str]) -> None:
         with np.load(path, allow_pickle=False) as z:
@@ -82,12 +102,7 @@ class CleanSourcePairs:
             raise ValueError("tile metadata count does not match input batch")
         self.image_ids = np.asarray([str(row.get("image_id")) for row in self.tiles])
         unique_images = sorted(set(self.image_ids.tolist()))
-        if holdout_images:
-            missing = sorted(holdout_images - set(unique_images))
-            if missing:
-                raise ValueError(f"holdout image(s) not found in pairs: {missing}")
-        else:
-            holdout_images = {unique_images[-1]}
+        holdout_images = resolve_holdout_images(holdout_images, unique_images)
         holdout_mask = np.isin(self.image_ids, sorted(holdout_images))
         self.train_idx = np.where(~holdout_mask)[0]
         self.eval_idx = np.where(holdout_mask)[0]
@@ -169,11 +184,114 @@ class NAFResidualPixelShuffleSR(nn.Module):
         return torch.clamp(base + residual * self.residual_scale, 0.0, 1.0)
 
 
+class SimpleGate(nn.Module):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        a, b = torch.chunk(x, 2, dim=1)
+        return a * b
+
+
+def attention_heads(channels: int) -> int:
+    for heads in (8, 4, 2):
+        if channels % heads == 0 and channels >= heads:
+            return heads
+    return 1
+
+
+class RestormerChannelAttentionBlock(nn.Module):
+    """Restormer-style transposed attention over feature channels."""
+
+    def __init__(self, channels: int, ffn_expansion: int = 2) -> None:
+        super().__init__()
+        self.channels = int(channels)
+        heads = attention_heads(self.channels)
+        self.heads = heads
+        self.channels_per_head = self.channels // heads
+        hidden = max(self.channels * int(ffn_expansion), self.channels)
+        if hidden % 2:
+            hidden += 1
+        self.norm1 = nn.GroupNorm(1, self.channels)
+        self.qkv = nn.Conv2d(self.channels, self.channels * 3, 1)
+        self.qkv_dw = nn.Conv2d(
+            self.channels * 3,
+            self.channels * 3,
+            3,
+            padding=1,
+            groups=self.channels * 3,
+        )
+        self.temperature = nn.Parameter(torch.ones((heads, 1, 1)))
+        self.project = nn.Conv2d(self.channels, self.channels, 1)
+        self.norm2 = nn.GroupNorm(1, self.channels)
+        self.ffn_in = nn.Conv2d(self.channels, hidden, 1)
+        self.ffn_dw = nn.Conv2d(hidden, hidden, 3, padding=1, groups=hidden)
+        self.ffn_gate = SimpleGate()
+        self.ffn_out = nn.Conv2d(hidden // 2, self.channels, 1)
+        self.attn_scale = nn.Parameter(torch.zeros((1, self.channels, 1, 1)))
+        self.ffn_scale = nn.Parameter(torch.zeros((1, self.channels, 1, 1)))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        batch, channels, height, width = x.shape
+        y = self.qkv_dw(self.qkv(self.norm1(x)))
+        q, k, v = torch.chunk(y, 3, dim=1)
+        q = q.view(batch, self.heads, self.channels_per_head, height * width)
+        k = k.view(batch, self.heads, self.channels_per_head, height * width)
+        v = v.view(batch, self.heads, self.channels_per_head, height * width)
+        q = F.normalize(q, dim=-1)
+        k = F.normalize(k, dim=-1)
+        attn = torch.matmul(q, k.transpose(-2, -1)) * self.temperature
+        attn = torch.softmax(attn, dim=-1)
+        y = torch.matmul(attn, v).view(batch, channels, height, width)
+        x = x + self.attn_scale * self.project(y)
+        z = self.ffn_dw(self.ffn_in(self.norm2(x)))
+        z = self.ffn_out(self.ffn_gate(z))
+        return x + self.ffn_scale * z
+
+
+class RestormerPixelShuffleSR(nn.Module):
+    """Clean-source RAW SR teacher with local, pyramid, and global context."""
+
+    def __init__(self, width: int, depth: int, residual_scale: float) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        w1 = max(8, int(width))
+        w2 = w1 * 2
+        self.head = nn.Sequential(nn.Conv2d(4, w1, 3, padding=1), nn.GELU())
+        self.local = nn.Sequential(*[RestormerChannelAttentionBlock(w1) for _ in range(max(1, int(depth)))])
+        self.down = nn.Sequential(nn.Conv2d(w1, w2, 3, stride=2, padding=1), nn.GELU())
+        self.context = nn.Sequential(*[RestormerChannelAttentionBlock(w2) for _ in range(max(1, int(depth) // 2))])
+        self.global_proj = nn.Sequential(nn.Conv2d(w1, w2, 1), nn.GELU())
+        self.global_body = nn.Sequential(*[RestormerChannelAttentionBlock(w2) for _ in range(max(1, int(depth) // 3))])
+        self.up = nn.Conv2d(w2, w1, 1)
+        self.global_up = nn.Conv2d(w2, w1, 1)
+        self.fuse = nn.Sequential(
+            nn.Conv2d(w1 * 3, w1, 1),
+            RestormerChannelAttentionBlock(w1),
+            RestormerChannelAttentionBlock(w1),
+        )
+        self.out = nn.Conv2d(w1, 16, 3, padding=1)
+        nn.init.zeros_(self.out.weight)
+        nn.init.zeros_(self.out.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        base = torch.repeat_interleave(torch.repeat_interleave(x, 2, dim=2), 2, dim=3)
+        local = self.local(self.head(x))
+        context = self.context(self.down(local))
+        context = F.interpolate(self.up(context), size=local.shape[-2:], mode="bilinear", align_corners=False)
+        global_size = (min(32, max(4, x.shape[-2] // 2)), min(32, max(4, x.shape[-1] // 2)))
+        global_context = self.global_proj(F.adaptive_avg_pool2d(local, global_size))
+        global_context = self.global_body(global_context)
+        global_context = F.interpolate(self.global_up(global_context), size=local.shape[-2:], mode="bilinear", align_corners=False)
+        fused = self.fuse(torch.cat([local, context, global_context], dim=1))
+        residual = F.pixel_shuffle(self.out(fused), 2)
+        return torch.clamp(base + torch.tanh(residual) * self.residual_scale, 0.0, 1.0)
+
+
 def build_model(model_arch: str, width: int, depth: int, residual_scale: float) -> nn.Module:
     if model_arch == "residual_pixelshuffle":
         return ResidualPixelShuffleSR(width, depth, residual_scale)
     if model_arch == "naf_residual_pixelshuffle":
         return NAFResidualPixelShuffleSR(width, depth, residual_scale)
+    if model_arch == "restormer_pixelshuffle":
+        return RestormerPixelShuffleSR(width, depth, residual_scale)
     raise ValueError(f"unknown model architecture: {model_arch}")
 
 
@@ -302,7 +420,7 @@ def main() -> int:
     ap.add_argument("--low-crop", type=int, default=48)
     ap.add_argument(
         "--model-arch",
-        choices=["residual_pixelshuffle", "naf_residual_pixelshuffle"],
+        choices=["residual_pixelshuffle", "naf_residual_pixelshuffle", "restormer_pixelshuffle"],
         default="residual_pixelshuffle",
     )
     ap.add_argument("--width", type=int, default=32)

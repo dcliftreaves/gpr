@@ -133,23 +133,24 @@ minimum held-out MAE/RMSE recovery thresholds:
 ```sh
 python3 tools/build_premium_still_sr_experiment_scoreboard.py \
   --external-root /Volumes/OWC_8TB/gpr_work \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_t64_20260702
 ```
 
 Current scoreboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_t64_20260702/index.html
 ```
 
-The current scoreboard scans **82** premium still-SR training receipts across
-the older rendered-HF and newer raw-CFA residual schemas. All 82 rows are
-runtime-safe, but **0** are promotable. The best runtime-safe row reaches only
-**4.03%** held-out MAE recovery and **3.75%** held-out RMSE recovery against a
-15% / 15% promotion threshold. This is a necessary promotion guard, not a full
-production gate. A future row must still pass full-frame raw/editor-latitude
-review before the premium still-SR pillar can move from diagnostic to
-production-ready.
+The current scoreboard scans **93** premium still-SR training receipts across
+the rendered-HF, raw-CFA residual, clean-signal, and clean-source pair schemas.
+All 93 rows are runtime-safe, but **0** are promotable. The best older
+runtime-safe row reaches only **4.03%** held-out MAE recovery and **3.75%**
+held-out RMSE recovery against a 15% / 15% promotion threshold, and the newest
+clean-source Restormer pair rows are far below that floor. This is a necessary
+promotion guard, not a full production gate. A future row must still pass
+full-frame raw/editor-latitude review before the premium still-SR pillar can
+move from diagnostic to production-ready.
 
 ## Promotion Boundary Gate
 
@@ -381,6 +382,29 @@ interpolation, while held-out Z8 is **-10.09%** median MAE and **-4.94%**
 median RMSE. The next productive pass should change the degradation policy
 and/or use a non-local/full-image teacher, rather than another local NAF/detail
 loss sweep on the same same-color box-degraded pairs.
+
+The expanded routed clean-source pair set and first Restormer-style trainer
+pass are also indexed:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/audit/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_x2dholdout_restormer_w32_d4_s100_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_z8holdout_restormer_w32_d4_s100_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_z8holdout_restormer_w32_d4_s500_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_t64_20260702/index.html
+```
+
+That pair set covers 4,800 tiles from 75 images: 2,688 Mission 1 tiles, 1,536
+Z8 tiles, and 576 X2D tiles. The nearest same-color 2x baseline has median MAE
+**12.68**, median RMSE **23.96**, and median PSNR **56.70 dB** overall. The new
+`restormer_pixelshuffle` architecture is materially less local than the earlier
+residual/NAF variants, but the current same-color pair objective still does not
+promote. The 100-step X2D holdout is only **+0.013%** median MAE and
+**+0.001%** median RMSE. The 100-step Z8 holdout regresses at **-0.072%** median
+MAE and **-0.047%** median RMSE. A longer 500-step Z8 pass improves the train
+split by **23.13%** MAE and **27.98%** RMSE, but regresses the Z8 holdout by
+**-5.06%** median MAE. That narrows the blocker to degradation/objective/domain
+generalization, not insufficient steps on this same Restormer pair setup.
 
 The current signal/noise policy is now machine-checked separately from model
 quality:

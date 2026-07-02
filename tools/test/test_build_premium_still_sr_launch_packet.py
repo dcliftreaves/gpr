@@ -58,6 +58,7 @@ def main() -> int:
             "build_premium_still_sr_pairs.py",
             "audit_premium_still_sr_pairs.py",
             "train_premium_still_sr_clean_source_pairs.py",
+            "restormer_pixelshuffle",
             "build_premium_still_sr_experiment_scoreboard.py",
             "check_premium_still_sr_promotion_gate.py",
         ):

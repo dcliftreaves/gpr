@@ -10,10 +10,10 @@ production-promoted.
 | question | current answer |
 |---|---|
 | Is premium still-SR shippable today? | No. The infrastructure exists, but current no-REF models do not clear the 50 MP / 100 MP still-SR promotion gate. |
-| What is the current scorecard state? | **82** runtime-safe training receipts, **0** promotable rows, and best runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. |
+| What is the current scorecard state? | **93** runtime-safe training receipts, **0** promotable rows, and best older runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. The newest clean-source Restormer pair receipts also fail promotion. |
 | What must a new candidate prove first? | Candidate-only runtime inputs, positive held-out recovery, 50 MP and 100 MP full-frame gates, editor-latitude review, worst-row review, editable raw outputs, timing, memory, and exact-sidecar-only noise policy. |
 | What is forbidden at render time? | REF/source/JPEG image content, source residual noise, hidden source-HF targets, or any noise addback not tied to a validated exact camera/ISO sidecar. |
-| What should happen before another long CNN run? | Build a small candidate and reject it early unless it improves held-out X2D and Z8 evidence with runtime-safe inputs. |
+| What should happen before another long CNN run? | Build a small candidate and reject it early unless it improves held-out X2D and Z8 evidence with runtime-safe inputs. Do not scale the current Restormer same-color pair setup unless both smoke holdouts beat interpolation. |
 | Are the routed clean-source teacher commands the next run? | No. They are now labeled as rejected reference commands in the next-experiment contract. A new production attempt needs a preflight-proven architecture/degradation/validation change before another long run. |
 
 ## First-Hour Steps
@@ -71,11 +71,11 @@ production-promoted.
 
    The routed `train_premium_still_sr_clean_source_pairs.py` X2D/Z8 commands in
    the 20260702 contract are reproduction references for rejected receipts, not
-   launchable production attempts. The next valid long run must first satisfy
-   the contract's `next_candidate_preflight`: non-local/full-image or otherwise
-   materially stronger RAW restoration architecture, realistic degradation
-   beyond same-color box downsample alone, joint X2D/Z8 holdout selection, and
-   full-image or overlapped-tile validation.
+   launchable production attempts. The newer t64 Restormer pair smoke also fails
+   promotion: X2D is only barely positive, Z8 is negative, and a longer Z8 pass
+   overfits the train split while regressing held-out MAE. The next valid long
+   run must first satisfy the contract's `next_candidate_preflight` with a real
+   degradation/objective/domain-generalization change, not just more steps.
 
    Before launching that run, build a launch packet. The packet writes the
    candidate manifest, runs the launch preflight, records the exact next command
@@ -89,7 +89,9 @@ production-promoted.
    ```
 
    The launch packet calls the current recommended clean-source
-   restoration-teacher proposal shape and checker:
+   restoration-teacher proposal shape and checker. Its train commands are
+   deliberately short smoke gates; a longer run is allowed only after both X2D
+   and Z8 smoke holdouts beat same-color interpolation:
 
    ```sh
    python3 tools/build_premium_still_sr_candidate_preflight_template.py \
@@ -151,7 +153,7 @@ production-promoted.
 | Positive train split only | Current evidence already shows train improvement can fail scene-held-out X2D. |
 | More time on the rejected 12k-step teacher | The 12k-step X2D scene-holdout run regressed; repeating the same objective is not a promotion path. |
 | Clean target alone | The clean-signal U-Net smoke still regressed X2D; the next pass needs materially different supervision or runtime signal. |
-| Re-running the routed local clean-source teacher | The 1500-step X2D/Z8 routed clean-source runs and NAF/detail variant are rejected reference receipts. The next run must change architecture, degradation policy, and validation scope before it can be treated as a production candidate. |
+| Re-running the routed local clean-source teacher | The 1500-step X2D/Z8 routed clean-source runs and NAF/detail variant are rejected reference receipts. The t64 Restormer smoke adds a stronger architecture but still fails the joint holdout gate, and the longer Z8 pass overfits. The next run must change degradation policy/objective and validation scope before it can be treated as a production candidate. |
 | Skipping the launch preflight | It allows expensive repeats of already rejected architectures, degradation policies, or validation scopes. |
 | Runtime REF/source/HF leakage | It violates the no-REF production contract even if metrics improve. |
 | Noise synthesized without exact sidecars | It violates the camera-noise policy and can hide source-noise leakage. |
@@ -161,11 +163,15 @@ production-promoted.
 | evidence | path |
 |---|---|
 | Product promotion boundary | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_20260702/index.html` |
-| Experiment scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html` |
+| Experiment scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_restormer_t64_20260702/index.html` |
 | Current next-experiment contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html` |
 | Clean-source pair audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/index.html` |
 | X2D routed holdout rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/index.html` |
 | Z8 routed holdout rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/index.html` |
+| t64 Restormer pair audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/audit/index.html` |
+| t64 Restormer X2D smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_x2dholdout_restormer_w32_d4_s100_20260702/index.html` |
+| t64 Restormer Z8 smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_z8holdout_restormer_w32_d4_s100_20260702/index.html` |
+| t64 Restormer Z8 overfit check | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pair_model_routed_t64_z8holdout_restormer_w32_d4_s500_20260702/index.html` |
 | Clean-signal target dashboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_signal_targets_20260702/index.html` |
 | Clean-signal U-Net rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702/index.html` |
 

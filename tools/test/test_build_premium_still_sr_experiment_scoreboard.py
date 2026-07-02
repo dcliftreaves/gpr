@@ -116,6 +116,44 @@ def write_raw_cfa_receipt(
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def write_clean_source_pair_receipt(
+    root: Path,
+    name: str,
+    *,
+    holdout_mae: float,
+    holdout_rmse: float,
+    train_mae: float,
+    model_arch: str = "restormer_pixelshuffle",
+) -> None:
+    path = root / "artifacts" / name / "train_receipt.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema": "gpr.premium_still_sr_clean_source_pair_model.v1",
+        "checkpoint": f"{name}.pt",
+        "checkpoint_sha256": "c" * 64,
+        "elapsed_seconds": 12.5,
+        "device": "mps",
+        "config": {
+            "model_arch": model_arch,
+            "steps": 100,
+            "holdout_images": ["x2d_scene"],
+        },
+        "eval": {
+            "train": {
+                "tile_count": 64,
+                "mae_improvement_pct": {"median": train_mae},
+                "rmse_improvement_pct": {"median": train_mae + 0.1},
+            },
+            "holdout": {
+                "tile_count": 32,
+                "mae_improvement_pct": {"median": holdout_mae},
+                "rmse_improvement_pct": {"median": holdout_rmse},
+            },
+        },
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory(prefix="gpr_premium_sr_scoreboard_", dir=temp_root()) as tmp:
         external = Path(tmp) / "external"
@@ -161,15 +199,22 @@ def main() -> int:
             train_mae=45.0,
             uses_source_raw_at_runtime=True,
         )
+        write_clean_source_pair_receipt(
+            external,
+            "premium_still_sr_clean_source_pair_restormer_smoke",
+            holdout_mae=0.2,
+            holdout_rmse=0.3,
+            train_mae=0.4,
+        )
 
         subprocess.run([sys.executable, str(TOOL), "--external-root", str(external), "--output-dir", str(out)], cwd=ROOT, check=True)
         scoreboard = json.loads((out / "scoreboard.json").read_text(encoding="utf-8"))
         html = (out / "index.html").read_text(encoding="utf-8")
 
         assert scoreboard["schema"] == "gpr.premium_still_sr_experiment_scoreboard.v1"
-        assert scoreboard["receipt_count"] == 5
+        assert scoreboard["receipt_count"] == 6
         assert scoreboard["promotable_candidate_count"] == 1
-        assert scoreboard["runtime_safe_candidate_count"] == 3
+        assert scoreboard["runtime_safe_candidate_count"] == 4
         assert scoreboard["production_ready"] is True
         assert scoreboard["best_candidate"]["experiment"] == "premium_still_sr_raw_cfa_oracle"
         assert scoreboard["best_candidate"]["runtime_safe"] is False
@@ -180,9 +225,20 @@ def main() -> int:
         raw_rows = [row for row in scoreboard["experiments"] if row["experiment"] == "premium_still_sr_raw_cfa_window_attention_smoke"]
         assert raw_rows and raw_rows[0]["holdout_mae_metric"].endswith("raw_residual_mae_reduction_pct.median")
         assert raw_rows[0]["runtime_safe"] is True
+        clean_rows = [
+            row for row in scoreboard["experiments"]
+            if row["experiment"] == "premium_still_sr_clean_source_pair_restormer_smoke"
+        ]
+        assert clean_rows
+        assert clean_rows[0]["model_arch"] == "restormer_pixelshuffle"
+        assert clean_rows[0]["holdout_mae_metric"].endswith("mae_improvement_pct.median")
+        assert clean_rows[0]["holdout_row_count"] == 32
+        assert clean_rows[0]["runtime_safe"] is True
+        assert clean_rows[0]["production_status"] == "clean_source_teacher_not_final_candidate"
         assert "Premium Still-SR Experiment Scoreboard" in html
         assert "premium_still_sr_candidate_weak" in html
         assert "window_attention_teacher" in html
+        assert "restormer_pixelshuffle" in html
 
     print("test_build_premium_still_sr_experiment_scoreboard: PASS")
     return 0

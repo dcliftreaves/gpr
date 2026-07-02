@@ -16,7 +16,7 @@ research or polish, not production closure.
 |---|---:|---|---|
 | Raw stills for 50 MP / 100 MP cameras | 92% | 50 MP q0/q3/q8 still tiers, X2D 100MP roundtrip, 12/14/16-bit normal Bayer support, and real RGGB/GBRG/GRBG/BGGR fixture coverage. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
 | GoPro RAW video MVP | 80% | Pi 5 stand-in 4096 x 3072 Bayer `.gvid` encode and 1024 x 768 preview decode above the accepted 20+ fps floor, plus `.gvid` validation and Labs handoff tooling. | Actual Mission 1 camera-role receipts for sensor/DMA or ring-buffer input, SD writer, rear display, zero drops, valid `.gvid`, timing, memory, and storage. |
-| Premium still/SR | 60% | Still-SR datasets, raw-CFA targets, routed specialists, editor-openability receipts, promotion tooling, and 82 runtime-safe experiment receipts. | A no-REF 50 MP / 100 MP candidate that beats the current still baseline and clears the promotion gate. Current best runtime-safe recovery is 4.03% MAE / 3.75% RMSE against the 15% / 15% floor. |
+| Premium still/SR | 60% | Still-SR datasets, raw-CFA targets, routed specialists, editor-openability receipts, promotion tooling, and 93 runtime-safe experiment receipts. | A no-REF 50 MP / 100 MP candidate that beats the current still baseline and clears the promotion gate. Current best older runtime-safe recovery is 4.03% MAE / 3.75% RMSE against the 15% / 15% floor; the newest t64 Restormer pair receipts also fail the joint X2D/Z8 holdout gate. |
 | Raw video reconstruction / PSF-aware improvement | 100% for the approved current workflow | Approved 4K cleanup and 8K SR baselines with `.gvid`, editable DNG/GPR, standalone ProRes A/B review media, objective review, manual signoff, registry, and release receipts. | No release blocker. Controlled high/low PSF pairs and PSF-conditioned models are optional replacement research until they beat the locked baseline with the same receipt surface. |
 
 ## What Would Make The Whole Goal Complete
@@ -66,4 +66,3 @@ missing.
 | GoPro/Labs first-hour handoff | [`GOPRO_LABS_FIRST_HOUR.md`](GOPRO_LABS_FIRST_HOUR.md) |
 | Premium still-SR first-hour promotion | [`PREMIUM_STILL_SR_FIRST_HOUR.md`](PREMIUM_STILL_SR_FIRST_HOUR.md) |
 | Raw-stills noise first-hour checklist | [`RAW_STILLS_NOISE_FIRST_HOUR.md`](RAW_STILLS_NOISE_FIRST_HOUR.md) |
-

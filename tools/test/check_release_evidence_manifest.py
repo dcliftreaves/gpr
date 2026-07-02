@@ -1000,7 +1000,7 @@ def require_dashboard_contract(
                 if worst_lpips > 0.15 or worst_ms < 0.95 or worst_y < 28.0 or worst_de > 3.0:
                     failures.append(f"{entry_id}: edge-safe metrics must clear PREVIEW thresholds")
 
-    if entry_id == "premium_still_sr_experiment_scoreboard_20260701":
+    if entry_id == "premium_still_sr_experiment_scoreboard_restormer_t64_20260702":
         if entry.get("status") != "diagnostic":
             failures.append(f"{entry_id}: premium still-SR scoreboard must remain diagnostic until promoted")
         metrics = entry.get("metrics")
@@ -1008,8 +1008,8 @@ def require_dashboard_contract(
             failures.append(f"{entry_id}: premium still-SR scoreboard needs metrics")
         else:
             expected_metrics = {
-                "receipt_count": 82,
-                "runtime_safe_candidate_count": 82,
+                "receipt_count": 93,
+                "runtime_safe_candidate_count": 93,
                 "promotable_candidate_count": 0,
                 "promotion_threshold_pct": 15.0,
                 "production_ready": 0,
@@ -1040,20 +1040,33 @@ def require_dashboard_contract(
                     failures.append(f"{entry_id}: latest full-window-attention RMSE recovery drifted")
                 if abs(latest_seconds - 31155.659887040965) > 1e-6:
                     failures.append(f"{entry_id}: latest full-window-attention train seconds drifted")
+            try:
+                t64_x2d = float(metrics.get("latest_restormer_t64_x2d_smoke_holdout_mae_recovery_pct"))
+                t64_z8 = float(metrics.get("latest_restormer_t64_z8_smoke_holdout_mae_recovery_pct"))
+                t64_z8_long = float(metrics.get("latest_restormer_t64_z8_500_holdout_mae_recovery_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: latest t64 Restormer metrics must be numeric")
+            else:
+                if abs(t64_x2d - 0.012555669788668303) > 1e-9:
+                    failures.append(f"{entry_id}: t64 Restormer X2D smoke MAE recovery drifted")
+                if abs(t64_z8 - (-0.07159335574486311)) > 1e-9:
+                    failures.append(f"{entry_id}: t64 Restormer Z8 smoke MAE recovery drifted")
+                if abs(t64_z8_long - (-5.058537022944154)) > 1e-9:
+                    failures.append(f"{entry_id}: t64 Restormer Z8 500-step MAE recovery drifted")
         hashes = entry.get("hashes")
         if not isinstance(hashes, dict):
             failures.append(f"{entry_id}: premium still-SR scoreboard needs hashes")
         else:
             expected_hashes = {
-                "scoreboard_json_sha256": "24388bc1b7b162535fb3e2010c0b1b05b189793cb314baf9e2ecd8a55a7ecac3",
-                "dashboard_sha256": "03118e71867c43efa7f84df9fd485f20df8fcd7789d73999027efd9abf762313",
+                "scoreboard_json_sha256": "6408623f9554190ccd612ee7eccc60714b3e9a4c46ba5f88cdb3b01425368101",
+                "dashboard_sha256": "2e2e112cf164771959619b73f5151e8014b81567b978a486732749a61a07bcd8",
             }
             for key, expected in expected_hashes.items():
                 if hashes.get(key) != expected:
                     failures.append(f"{entry_id}: hash {key} must stay {expected}")
         readme_text = README.read_text(encoding="utf-8")
         readme_plain = re.sub(r"[*_`]", "", readme_text)
-        for token in ("82-receipt experiment scoreboard", "82 runtime-safe"):
+        for token in ("93-receipt experiment scoreboard", "93 runtime-safe"):
             if token not in readme_plain:
                 failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
 

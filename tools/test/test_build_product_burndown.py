@@ -148,7 +148,7 @@ def main() -> int:
         assert "restoration-teacher" in premium_text
         assert "realistic RAW degradation" in premium_text
         assert "same-color Bayer interpolation" in premium_text
-        assert "82-receipt still-SR scoreboard" in premium_text
+        assert "93-receipt still-SR scoreboard" in premium_text
         assert "median_mae_reduction_pct_50mp" in premium_text
         assert "median_mae_reduction_pct_100mp" in premium_text
         assert "worst_row_mae_reduction_pct_50mp" in premium_text
