@@ -116,6 +116,13 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate15 Z8 exact-noop smoke receipt | `artifacts/premium_still_sr_gate15_z8_exact_noop_smoke_20260702/train_receipt.json` | `3e4567709d876d1bc19a5dd1a4154a88c93d5c76163e288c250fd9cd7a783c7a` |
 | Gate15 smoke acceptance blocker | `artifacts/premium_still_sr_gate15_smoke_acceptance_20260702/smoke_gate_acceptance.json` | `6a9d4891b8b4cd86ccf056ca106944c49538adebc7ccb8422310d5d989081755` |
 | Gate15 smoke acceptance dashboard | `artifacts/premium_still_sr_gate15_smoke_acceptance_20260702/index.html` | `a31caeafce07f4f39dea6a7e2cc66f8fee30af1c4615ebd5fce0c315a609d378` |
+| Gate16 X2D learnability probe | `artifacts/premium_still_sr_gate16_x2d_overfit_probe_20260702/train_receipt.json` | `26ebe022583beb46fbe2e5a58303c656a1fa07f79b05c95e072e45f29d763c41` |
+| Gate16 X2D tail-safe smoke receipt | `artifacts/premium_still_sr_gate16_x2d_tail_safe_0015_smoke_20260702/train_receipt.json` | `97018b91b37937481d7b27c9bc0d9f7f7f979a01cae62f4b10236bb6116fd9d0` |
+| Gate16 X2D tail-safe smoke dashboard | `artifacts/premium_still_sr_gate16_x2d_tail_safe_0015_smoke_20260702/index.html` | `7873da70f8158389b86a320fa78d535b5fc2e693869115e6123fa5a73b6dd175` |
+| Gate16 X2D tail-safe checkpoint | `artifacts/premium_still_sr_gate16_x2d_tail_safe_0015_smoke_20260702/premium_still_sr_raw_cfa_residual.pt` | `aeebad51bd54964b37c356457084197f6fadcad2b3df43cc44c6f8c3bdef6d1d` |
+| Gate16 paired-smoke launch preflight | `artifacts/premium_still_sr_gate16_tail_safe_smoke_20260702/preflight_audit.json` | `3d8e58ffa8e9ab25c3c1e0ab6f6abd245653e2154e5254ea331817443578511a` |
+| Gate16 paired-smoke acceptance pass | `artifacts/premium_still_sr_gate16_tail_safe_smoke_acceptance_20260702/smoke_gate_acceptance.json` | `aad2c58ff7d5e0c748e09f1e333cd4d239d3db9e3f45ba4fc622d41c527ac231` |
+| Gate16 paired-smoke acceptance dashboard | `artifacts/premium_still_sr_gate16_tail_safe_smoke_acceptance_20260702/index.html` | `76b2879e3349386e27b74f6728f92d0ec99f20fe75ec4f729e3657fe37047c34` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -156,6 +163,12 @@ ran and blocked the branch before long training: X2D holdout median/worst raw
 MAE recovery is `-0.000744993606797582%` / `-0.019091640791465258%`, while Z8
 exact-noop passes at `0.0%` / `0.0%`. That narrows the blocker from target-row
 availability to X2D objective learnability/generalization.
+Gate16 then changed the X2D objective/training setup and added a candidate-only
+low-HF no-op tail gate at `0.0015`. The paired-smoke acceptance now passes:
+X2D holdout median/worst raw MAE recovery is `17.086680690440865%` / `0.0%`,
+Z8 exact-noop remains `0.0%` / `0.0%`, and `long_run_allowed=true`. The next
+Premium still-SR evidence is the full 50 MP / 100 MP promotion gate for the
+Gate16 tail-safe candidate, not another smoke threshold search.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model
