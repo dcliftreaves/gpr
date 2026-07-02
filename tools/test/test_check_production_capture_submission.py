@@ -29,6 +29,15 @@ def path_hash_key(key: str) -> str | None:
 
 def materialize_path_hashes(value, bundle: Path, counter: list[int]) -> None:
     if isinstance(value, dict):
+        if isinstance(value.get("path"), str) and isinstance(value.get("sha256"), str):
+            counter[0] += 1
+            rel = Path("evidence") / f"{counter[0]:03d}_path.bin"
+            full = bundle / rel
+            full.parent.mkdir(parents=True, exist_ok=True)
+            payload = f"path:{counter[0]}\n".encode("utf-8")
+            full.write_bytes(payload)
+            value["path"] = rel.as_posix()
+            value["sha256"] = hashlib.sha256(payload).hexdigest()
         for key in list(value):
             hash_key = path_hash_key(key)
             if hash_key and isinstance(value.get(hash_key), str):
@@ -70,6 +79,161 @@ def write_darkframe_audits(submission: dict, bundle: Path) -> None:
         path = bundle / record["source_provenance_audit_path"]
         path.write_text(json.dumps(audit, indent=2) + "\n", encoding="utf-8")
         record["source_provenance_audit_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def write_camera_role_receipts(submission: dict, bundle: Path) -> None:
+    record = next(row for row in submission["requirements"] if row["id"] == "mission1_camera_role_receipts")
+    receipts = record["receipts"]
+    gvid_sha = record["gvid_sha256"]
+    source_provenance = {
+        "available": True,
+        "policy": "source_tree_digest_v1",
+        "sha256": "c" * 64,
+        "file_count": 4,
+        "total_bytes": 4096,
+    }
+
+    def write_receipt(name: str, payload: dict) -> None:
+        path = bundle / receipts[name]["path"]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        receipts[name]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    write_receipt(
+        "target_preflight_receipt",
+        {
+            "schema": "gpr.mission1_camera_target_preflight.v1",
+            "target": {"name": "Mission 1", "role": "camera"},
+            "verdict": {"target_preflight_ready": True, "camera_closure_possible": True},
+            "blockers": [],
+        },
+    )
+    write_receipt(
+        "labs_target_bench",
+        {
+            "schema": "gpr_labs_target_bench.v1",
+            "source_provenance": source_provenance,
+            "target": {"name": "Mission 1", "fps": 20.0, "actual_wall_fps": 20.8},
+            "capture": {
+                "source_width": 4096,
+                "source_height": 3072,
+                "capture_width": 4096,
+                "capture_height": 3072,
+                "pixel_format": 1,
+                "frames_written": 120,
+                "dropped_frames": 0,
+            },
+            "gvid": {"sha256": gvid_sha, "validation": {"valid": True, "frame_count": 120}},
+            "verdict": {"target_evidence": True},
+        },
+    )
+    write_receipt(
+        "camera_handoff_receipt",
+        {
+            "schema": "gpr_labs_camera_handoff_receipt.v1",
+            "source_provenance": source_provenance,
+            "target": {"name": "Mission 1", "role": "camera"},
+            "integration": {
+                "raw_source_kind": "sensor_dma_capture",
+                "frame_source": "Mission 1 sensor DMA Bayer frame callback",
+                "memory_ownership": "firmware owns input until encoder return",
+                "write_path": "Mission 1 firmware SD writer",
+                "sensor_dma_handoff": {"executed": True},
+                "storage_handoff": {
+                    "executed": True,
+                    "medium": "Mission 1 SD card writer",
+                    "ownership": "firmware storage queue",
+                },
+            },
+            "input_frame": {
+                "width": 4096,
+                "height": 3072,
+                "stride_bytes": 8192,
+                "bit_depth": 14,
+                "pixel_format": 1,
+                "target_fps": 20.0,
+            },
+            "capture": {"frames_requested": 120, "frames_written": 120, "dropped_frames": 0},
+            "timing": {"fps_median": 20.5, "median_ms": 48.7, "p95_ms": 50.0, "p99_ms": 52.0},
+            "storage": {"write_mb_s": 126.0, "flush_policy": "firmware storage completion"},
+            "memory": {"rss_kb": 393216},
+            "output": {"sha256": gvid_sha, "validation": {"valid": True, "frame_count": 120}},
+            "interruption_recovery": {"proven": True, "validator_rejects_truncated": True},
+            "verdict": {
+                "firmware_ready": True,
+                "target_evidence": True,
+                "fps_target_met": True,
+                "no_drops": True,
+            },
+        },
+    )
+    write_receipt(
+        "preview_decode_receipt",
+        {"schema": "gpr.preview_decode_fixture.v1", "gvid_sha256": gvid_sha},
+    )
+    write_receipt(
+        "preview_ui_receipt",
+        {
+            "schema": "gpr_labs_preview_ui_receipt.v1",
+            "source_provenance": source_provenance,
+            "target": {"name": "Mission 1", "role": "camera"},
+            "source": {
+                "width": 4096,
+                "height": 3072,
+                "frame_count": 120,
+                "bit_depth": 14,
+                "pixel_format": 1,
+                "gvid_sha256": gvid_sha,
+            },
+            "preview": {
+                "width": 1024,
+                "height": 768,
+                "frame_count": 120,
+                "target_fps": 20.0,
+                "full_frame_downsample": True,
+                "color_pipeline": "camera-wb + lightweight preview tone",
+                "tone_pipeline": "fixed preview tone curve",
+            },
+            "integration": {
+                "ui_path_executed": True,
+                "decode_path": "gvid preview RGB stream",
+                "presentation_path": "Mission 1 rear display compositor",
+                "buffer_ownership": "camera UI owns preview buffer through display present",
+                "display_surface": "Mission 1 rear display",
+            },
+            "timing": {"fps_median": 21.0, "median_ms": 47.6, "p95_ms": 49.0, "p99_ms": 51.0},
+            "memory": {"rss_kb": 65536},
+            "validation": {"output_valid": True, "no_drops": True, "visual_checked": True},
+            "verdict": {"ui_ready": True, "target_evidence": True, "fps_target_met": True},
+        },
+    )
+    write_receipt(
+        "mission1_camera_closure_run",
+        {
+            "schema": "gpr.mission1_camera_closure_run.v1",
+            "receipts": {
+                "target_bench": receipts["labs_target_bench"]["path"],
+                "target_preflight": receipts["target_preflight_receipt"]["path"],
+                "camera_handoff": receipts["camera_handoff_receipt"]["path"],
+                "preview_decode": receipts["preview_decode_receipt"]["path"],
+                "preview_ui": receipts["preview_ui_receipt"]["path"],
+            },
+            "steps": [
+                {"name": "validate_camera_handoff_receipt", "returncode": 0},
+                {"name": "validate_preview_ui_receipt", "returncode": 0},
+            ],
+            "verdict": {
+                "production_ready": True,
+                "target_preflight_ready": True,
+                "camera_closure_possible": True,
+                "firmware_ready": True,
+                "ui_ready": True,
+                "aggregate_consistency_ready": True,
+                "handoff_blocker": None,
+                "preview_blocker": None,
+            },
+        },
+    )
 
 
 def write_premium_still_sr_receipts(submission: dict, bundle: Path) -> None:
@@ -286,12 +450,18 @@ def valid_submission() -> dict:
                 "gvid_path": "/captures/mission1_camera_output.gvid",
                 "gvid_sha256": SHA,
                 "receipts": {
-                    "target_preflight_receipt": {"sha256": SHA},
-                    "labs_target_bench": {"sha256": SHA},
-                    "camera_handoff_receipt": {"sha256": SHA},
-                    "preview_decode_receipt": {"sha256": SHA},
-                    "preview_ui_receipt": {"sha256": SHA},
-                    "mission1_camera_closure_run": {"sha256": SHA},
+                    "target_preflight_receipt": {"path": "/captures/target_preflight_receipt.json", "sha256": SHA},
+                    "labs_target_bench": {"path": "/captures/labs_target_bench.json", "sha256": SHA},
+                    "camera_handoff_receipt": {"path": "/captures/camera_handoff_receipt.json", "sha256": SHA},
+                    "preview_decode_receipt": {
+                        "path": "/captures/preview_decode_1024x768_receipt.json",
+                        "sha256": SHA,
+                    },
+                    "preview_ui_receipt": {"path": "/captures/preview_ui_receipt.json", "sha256": SHA},
+                    "mission1_camera_closure_run": {
+                        "path": "/captures/mission1_camera_closure_run.json",
+                        "sha256": SHA,
+                    },
                 },
             },
             {
@@ -535,6 +705,7 @@ def main() -> int:
         bundle = work / "bundle"
         materialize_path_hashes(strict, bundle, [0])
         write_darkframe_audits(strict, bundle)
+        write_camera_role_receipts(strict, bundle)
         write_premium_still_sr_receipts(strict, bundle)
         manifest.write_text(json.dumps(strict, indent=2) + "\n", encoding="utf-8")
         proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
@@ -542,6 +713,22 @@ def main() -> int:
             print(proc.stdout)
             print(proc.stderr, file=sys.stderr)
             return proc.returncode
+
+        bad = json.loads(json.dumps(strict))
+        camera = next(row for row in bad["requirements"] if row["id"] == "mission1_camera_role_receipts")
+        handoff_path = bundle / camera["receipts"]["camera_handoff_receipt"]["path"]
+        handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+        handoff["target"]["role"] = "stand-in"
+        handoff["integration"]["raw_source_kind"] = "file_standin"
+        handoff["verdict"]["firmware_ready"] = False
+        handoff_path.write_text(json.dumps(handoff, indent=2) + "\n", encoding="utf-8")
+        camera["receipts"]["camera_handoff_receipt"]["sha256"] = hashlib.sha256(handoff_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "camera_handoff_receipt target.role must be camera" in proc.stdout
+        assert "camera_handoff_receipt integration.raw_source_kind must be sensor_dma_capture or camera_ring_buffer" in proc.stdout
+        write_camera_role_receipts(strict, bundle)
 
         bad = json.loads(json.dumps(strict))
         premium = next(row for row in bad["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")

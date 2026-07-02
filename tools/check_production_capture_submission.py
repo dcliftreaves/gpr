@@ -121,6 +121,8 @@ def hash_key_for_path_key(path_key: str) -> str | None:
 def iter_path_hash_pairs(value: Any) -> list[tuple[str, str, str]]:
     pairs: list[tuple[str, str, str]] = []
     if isinstance(value, dict):
+        if isinstance(value.get("path"), str) and isinstance(value.get("sha256"), str):
+            pairs.append(("path", str(value["path"]), str(value["sha256"])))
         for key, item in value.items():
             if key.endswith("_path") or key in {"source_path", "gvid_path"}:
                 hash_key = hash_key_for_path_key(key)
@@ -226,6 +228,15 @@ def number_equals(row: dict[str, Any], key: str, expected: int) -> tuple[bool, s
     if parsed != expected:
         return False, f"{key} must equal {expected}"
     return True, ""
+
+
+def nested_get(value: dict[str, Any], *keys: str) -> Any:
+    current: Any = value
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
 
 
 def missing_fields(row: dict[str, Any], fields: list[str]) -> list[str]:
@@ -450,7 +461,148 @@ def validate_darkframe_stack(
     return pass_result(rid, f"accepted {best_count}-frame same-camera/ISO/CFA darkframe stack", best_count)
 
 
-def validate_camera_role_receipts(rid: str, submission: dict[str, Any]) -> dict[str, Any]:
+def receipt_path(receipts: dict[str, Any], name: str) -> Any:
+    receipt = receipts.get(name)
+    if isinstance(receipt, dict):
+        return receipt.get("path")
+    return None
+
+
+def load_named_receipt(
+    receipts: dict[str, Any],
+    name: str,
+    path_root: Path | None,
+    failures: list[str],
+) -> dict[str, Any] | None:
+    return load_local_json(receipt_path(receipts, name), path_root, failures, name)
+
+
+def validate_strict_camera_role_receipt_content(
+    row: dict[str, Any],
+    *,
+    path_root: Path | None,
+    failures: list[str],
+) -> None:
+    receipts = row.get("receipts") if isinstance(row.get("receipts"), dict) else {}
+    target_bench = load_named_receipt(receipts, "labs_target_bench", path_root, failures)
+    target_preflight = load_named_receipt(receipts, "target_preflight_receipt", path_root, failures)
+    handoff = load_named_receipt(receipts, "camera_handoff_receipt", path_root, failures)
+    preview = load_named_receipt(receipts, "preview_ui_receipt", path_root, failures)
+    closure = load_named_receipt(receipts, "mission1_camera_closure_run", path_root, failures)
+
+    if target_bench is not None:
+        if target_bench.get("schema") != "gpr_labs_target_bench.v1":
+            failures.append("labs_target_bench schema must be gpr_labs_target_bench.v1")
+        if target_bench.get("simulated") is True:
+            failures.append("labs_target_bench must not be simulated")
+        if nested_get(target_bench, "verdict", "target_evidence") is not True:
+            failures.append("labs_target_bench verdict.target_evidence must be true")
+        for key, expected in (
+            ("source_width", 4096),
+            ("source_height", 3072),
+            ("capture_width", 4096),
+            ("capture_height", 3072),
+        ):
+            ok, failure = number_equals(target_bench.get("capture", {}), key, expected)
+            if not ok:
+                failures.append(f"labs_target_bench capture.{failure}")
+        ok, failure = number_equals(target_bench.get("capture", {}), "dropped_frames", 0)
+        if not ok:
+            failures.append(f"labs_target_bench capture.{failure}")
+        if nested_get(target_bench, "gvid", "sha256") != row.get("gvid_sha256"):
+            failures.append("labs_target_bench gvid.sha256 must match submitted gvid_sha256")
+
+    if target_preflight is not None:
+        if target_preflight.get("schema") != "gpr.mission1_camera_target_preflight.v1":
+            failures.append("target_preflight_receipt schema must be gpr.mission1_camera_target_preflight.v1")
+        if nested_get(target_preflight, "target", "role") != "camera":
+            failures.append("target_preflight_receipt target.role must be camera")
+        if nested_get(target_preflight, "verdict", "target_preflight_ready") is not True:
+            failures.append("target_preflight_receipt verdict.target_preflight_ready must be true")
+        if nested_get(target_preflight, "verdict", "camera_closure_possible") is not True:
+            failures.append("target_preflight_receipt verdict.camera_closure_possible must be true")
+
+    if handoff is not None:
+        if handoff.get("schema") != "gpr_labs_camera_handoff_receipt.v1":
+            failures.append("camera_handoff_receipt schema must be gpr_labs_camera_handoff_receipt.v1")
+        if nested_get(handoff, "target", "role") != "camera":
+            failures.append("camera_handoff_receipt target.role must be camera")
+        if nested_get(handoff, "integration", "raw_source_kind") not in {"sensor_dma_capture", "camera_ring_buffer"}:
+            failures.append("camera_handoff_receipt integration.raw_source_kind must be sensor_dma_capture or camera_ring_buffer")
+        if nested_get(handoff, "integration", "sensor_dma_handoff", "executed") is not True:
+            failures.append("camera_handoff_receipt integration.sensor_dma_handoff.executed must be true")
+        if nested_get(handoff, "integration", "storage_handoff", "executed") is not True:
+            failures.append("camera_handoff_receipt integration.storage_handoff.executed must be true")
+        if nested_get(handoff, "verdict", "firmware_ready") is not True:
+            failures.append("camera_handoff_receipt verdict.firmware_ready must be true")
+        for key in ("target_evidence", "fps_target_met", "no_drops"):
+            if nested_get(handoff, "verdict", key) is not True:
+                failures.append(f"camera_handoff_receipt verdict.{key} must be true")
+        if nested_get(handoff, "output", "sha256") != row.get("gvid_sha256"):
+            failures.append("camera_handoff_receipt output.sha256 must match submitted gvid_sha256")
+        ok, failure = number_equals(handoff.get("input_frame", {}), "width", 4096)
+        if not ok:
+            failures.append(f"camera_handoff_receipt input_frame.{failure}")
+        ok, failure = number_equals(handoff.get("input_frame", {}), "height", 3072)
+        if not ok:
+            failures.append(f"camera_handoff_receipt input_frame.{failure}")
+        ok, failure = number_equals(handoff.get("capture", {}), "dropped_frames", 0)
+        if not ok:
+            failures.append(f"camera_handoff_receipt capture.{failure}")
+        ok, failure = number_at_least(handoff.get("timing", {}), "fps_median", 20.0)
+        if not ok:
+            failures.append(f"camera_handoff_receipt timing.{failure}")
+
+    if preview is not None:
+        if preview.get("schema") != "gpr_labs_preview_ui_receipt.v1":
+            failures.append("preview_ui_receipt schema must be gpr_labs_preview_ui_receipt.v1")
+        if nested_get(preview, "target", "role") != "camera":
+            failures.append("preview_ui_receipt target.role must be camera")
+        if nested_get(preview, "verdict", "ui_ready") is not True:
+            failures.append("preview_ui_receipt verdict.ui_ready must be true")
+        if nested_get(preview, "verdict", "fps_target_met") is not True:
+            failures.append("preview_ui_receipt verdict.fps_target_met must be true")
+        if nested_get(preview, "integration", "ui_path_executed") is not True:
+            failures.append("preview_ui_receipt integration.ui_path_executed must be true")
+        for key in ("output_valid", "no_drops", "visual_checked"):
+            if nested_get(preview, "validation", key) is not True:
+                failures.append(f"preview_ui_receipt validation.{key} must be true")
+        if nested_get(preview, "source", "gvid_sha256") != row.get("gvid_sha256"):
+            failures.append("preview_ui_receipt source.gvid_sha256 must match submitted gvid_sha256")
+        for key, expected in (("width", 1024), ("height", 768)):
+            ok, failure = number_equals(preview.get("preview", {}), key, expected)
+            if not ok:
+                failures.append(f"preview_ui_receipt preview.{failure}")
+        ok, failure = number_at_least(preview.get("timing", {}), "fps_median", 20.0)
+        if not ok:
+            failures.append(f"preview_ui_receipt timing.{failure}")
+
+    if closure is not None:
+        if closure.get("schema") != "gpr.mission1_camera_closure_run.v1":
+            failures.append("mission1_camera_closure_run schema must be gpr.mission1_camera_closure_run.v1")
+        for key in (
+            "production_ready",
+            "target_preflight_ready",
+            "camera_closure_possible",
+            "firmware_ready",
+            "ui_ready",
+            "aggregate_consistency_ready",
+        ):
+            if nested_get(closure, "verdict", key) is not True:
+                failures.append(f"mission1_camera_closure_run verdict.{key} must be true")
+        if nested_get(closure, "verdict", "handoff_blocker") not in (None, ""):
+            failures.append("mission1_camera_closure_run verdict.handoff_blocker must be empty")
+        if nested_get(closure, "verdict", "preview_blocker") not in (None, ""):
+            failures.append("mission1_camera_closure_run verdict.preview_blocker must be empty")
+
+
+def validate_camera_role_receipts(
+    rid: str,
+    submission: dict[str, Any],
+    *,
+    require_existing_files: bool = False,
+    path_root: Path | None = None,
+) -> dict[str, Any]:
     row = record_for(submission, rid)
     receipts = row.get("receipts") if isinstance(row.get("receipts"), dict) else {}
     failures: list[str] = []
@@ -481,6 +633,8 @@ def validate_camera_role_receipts(rid: str, submission: dict[str, Any]) -> dict[
         if not isinstance(receipt, dict):
             failures.append(f"{name} receipt must be an object")
             continue
+        if require_existing_files and not receipt.get("path"):
+            failures.append(f"{name} receipt needs path in strict mode")
         if not has_sha(receipt):
             failures.append(f"{name} receipt needs sha256")
     if row.get("target_role") != "camera":
@@ -514,6 +668,8 @@ def validate_camera_role_receipts(rid: str, submission: dict[str, Any]) -> dict[
         failures.append("storage_budget_passed must be true")
     if row.get("preview_full_frame") is not True:
         failures.append("preview_full_frame must be true")
+    if require_existing_files:
+        validate_strict_camera_role_receipt_content(row, path_root=path_root, failures=failures)
     if failures:
         return fail_result(rid, failures, len(receipts))
     return pass_result(rid, "camera-role encode, storage, and preview receipts pass", len(receipts))
@@ -851,7 +1007,12 @@ def validate_requirement(
             path_root=path_root,
         )
     if sample_type == "camera_hardware_receipt":
-        return validate_camera_role_receipts(rid, submission)
+        return validate_camera_role_receipts(
+            rid,
+            submission,
+            require_existing_files=require_existing_files,
+            path_root=path_root,
+        )
     if sample_type == "controlled_same_scene_high_low_raw_pair_stack":
         return validate_psf_pairs(rid, req, submission)
     if sample_type == "model_promotion_receipt":
