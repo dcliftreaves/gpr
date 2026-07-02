@@ -71,6 +71,13 @@ def main() -> int:
         sr = next(row for row in data["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
         assert sr["no_ref_runtime"] is True
         assert "candidate_raw" in sr["runtime_inputs"]
+        assert sr["candidate_preflight_launchable"] is True
+        assert sr["smoke_gate_baseline"] == "same-color Bayer interpolation"
+        assert sr["smoke_gate_required_holdouts"] == ["X2D", "Z8"]
+        assert sr["smoke_gate_long_run_blocked_if_smoke_fails"] is True
+        assert "x2d_smoke_receipt_sha256" in sr
+        assert "z8_smoke_receipt_sha256" in sr
+        assert "baseline_comparison_sha256" in sr
         assert sr["noise_policy_exact_sidecars_only"] is True
         assert sr["noise_policy_forbids_source_residual_noise"] is True
         assert "full_frame_gate_50mp_row_count" in sr

@@ -222,6 +222,21 @@ def valid_submission() -> dict:
             },
             {
                 "id": "premium_still_sr_promotion_receipts",
+                "candidate_preflight_manifest_sha256": SHA,
+                "candidate_preflight_audit_sha256": SHA,
+                "candidate_preflight_launchable": True,
+                "launch_packet_sha256": SHA,
+                "smoke_gate_baseline": "same-color Bayer interpolation",
+                "smoke_gate_required_holdouts": ["X2D", "Z8"],
+                "smoke_gate_passed": True,
+                "smoke_gate_long_run_blocked_if_smoke_fails": True,
+                "x2d_smoke_receipt_sha256": SHA,
+                "z8_smoke_receipt_sha256": SHA,
+                "baseline_comparison_sha256": SHA,
+                "x2d_smoke_median_mae_reduction_pct": 0.25,
+                "z8_smoke_median_mae_reduction_pct": 0.5,
+                "x2d_smoke_worst_row_mae_reduction_pct": 0.0,
+                "z8_smoke_worst_row_mae_reduction_pct": 0.1,
                 "checkpoint_sha256": SHA,
                 "training_config_sha256": SHA,
                 "training_target_sha256": SHA,
@@ -398,6 +413,15 @@ def main() -> int:
         proc = run_tool(manifest)
         assert proc.returncode == 1
         assert "median_mae_reduction_pct_100mp must be > 0" in proc.stdout
+
+        bad = valid_submission()
+        bad["requirements"][6]["x2d_smoke_median_mae_reduction_pct"] = 0.0
+        bad["requirements"][6]["smoke_gate_required_holdouts"] = ["X2D"]
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest)
+        assert proc.returncode == 1
+        assert "x2d_smoke_median_mae_reduction_pct must be > 0" in proc.stdout
+        assert "smoke_gate_required_holdouts missing: z8" in proc.stdout
 
         bad = valid_submission()
         bad["requirements"][5]["pairs"][-1]["rejected_by_measurement"] = False

@@ -45,6 +45,7 @@ PSF_FIXED_SETTING_FIELDS = [
     "lens_correction",
 ]
 PREMIUM_REQUIRED_RUNTIME_INPUTS = {"candidate_raw", "camera_metadata"}
+PREMIUM_REQUIRED_SMOKE_HOLDOUTS = {"x2d", "z8"}
 PREMIUM_FORBIDDEN_RUNTIME_INPUTS = {
     "REF",
     "reference",
@@ -604,6 +605,12 @@ def validate_psf_pairs(rid: str, req: dict[str, Any], submission: dict[str, Any]
 def validate_premium_still_sr(rid: str, submission: dict[str, Any]) -> dict[str, Any]:
     row = record_for(submission, rid)
     required_hashes = [
+        "candidate_preflight_manifest_sha256",
+        "candidate_preflight_audit_sha256",
+        "launch_packet_sha256",
+        "x2d_smoke_receipt_sha256",
+        "z8_smoke_receipt_sha256",
+        "baseline_comparison_sha256",
         "checkpoint_sha256",
         "training_config_sha256",
         "training_target_sha256",
@@ -622,6 +629,9 @@ def validate_premium_still_sr(rid: str, submission: dict[str, Any]) -> dict[str,
         "editor_latitude_passed",
         "no_ref_runtime",
         "beats_current_baseline",
+        "candidate_preflight_launchable",
+        "smoke_gate_passed",
+        "smoke_gate_long_run_blocked_if_smoke_fails",
     ]
     for key in required_true:
         if row.get(key) is not True:
@@ -640,6 +650,22 @@ def validate_premium_still_sr(rid: str, submission: dict[str, Any]) -> dict[str,
             failures.append(f"runtime_inputs missing required input(s): {', '.join(missing_runtime)}")
         if forbidden_runtime:
             failures.append(f"runtime_inputs contains forbidden render-time input(s): {', '.join(forbidden_runtime)}")
+
+    smoke_baseline = str(row.get("smoke_gate_baseline") or "").lower()
+    if "same-color" not in smoke_baseline or "interpolation" not in smoke_baseline:
+        failures.append("smoke_gate_baseline must be same-color Bayer interpolation")
+    smoke_holdouts = {str(item).lower() for item in as_list(row.get("smoke_gate_required_holdouts"))}
+    missing_holdouts = sorted(PREMIUM_REQUIRED_SMOKE_HOLDOUTS - smoke_holdouts)
+    if missing_holdouts:
+        failures.append(f"smoke_gate_required_holdouts missing: {', '.join(missing_holdouts)}")
+    for key in ("x2d_smoke_median_mae_reduction_pct", "z8_smoke_median_mae_reduction_pct"):
+        ok, failure = number_greater_than(row, key, 0)
+        if not ok:
+            failures.append(failure)
+    for key in ("x2d_smoke_worst_row_mae_reduction_pct", "z8_smoke_worst_row_mae_reduction_pct"):
+        ok, failure = number_at_least(row, key, 0)
+        if not ok:
+            failures.append(failure)
 
     for key in ("full_frame_gate_50mp_row_count", "full_frame_gate_100mp_row_count"):
         ok, failure = number_at_least(row, key, 1)
