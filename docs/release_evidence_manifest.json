@@ -8,6 +8,8 @@
       "id": "raw_stills",
       "release_label": "RAW stills",
       "status": "locked_with_sample_gaps",
+      "readiness_percent": 92,
+      "production_ready": false,
       "summary": "50 MP still tiers, 12/14/16-bit support, real X2D 100 MP-class roundtrip evidence, normal Bayer parser/conformance coverage, real RGGB/GBRG/GRBG/BGGR fixture evidence, and camera-noise policy evidence.",
       "manifest_refs": {
         "production_paths": [
@@ -34,6 +36,8 @@
       "id": "raw_video_mvp",
       "release_label": "RAW video MVP",
       "status": "pi_stand_in_pass_camera_handoff_open",
+      "readiness_percent": 80,
+      "production_ready": false,
       "summary": "4096 x 3072 Bayer .gvid encode, 1024 x 768 preview, container validation, MOV/ProRes review, editable DNG/GPR packaging, and Mission 1 handoff tooling.",
       "manifest_refs": {
         "production_paths": [
@@ -59,6 +63,8 @@
       "id": "premium_still_sr",
       "release_label": "Premium still/SR",
       "status": "research_loop_working_candidate_not_promoted",
+      "readiness_percent": 60,
+      "production_ready": false,
       "summary": "Target builders, raw-CFA residual datasets, noise-conditioned probes, model receipts, overlap/seam diagnostics, and blocker dashboards for spend-time-for-quality still reconstruction.",
       "manifest_refs": {
         "dashboards": [
@@ -88,6 +94,8 @@
       "id": "raw_video_reconstruction",
       "release_label": "RAW video reconstruction",
       "status": "approved_offline_reconstruction_psf_research_optional",
+      "readiness_percent": 100,
+      "production_ready": true,
       "summary": "Approved 4K cleanup and offline 8K SR baselines, continuous no-CNN versus CNN review media, editable raw packaging, objective review, manual signoff, and hash/timing receipts for the current reconstruction release. Native PSF corpus/kernel audits are optional research for a future replacement.",
       "manifest_refs": {
         "raw_targets": [

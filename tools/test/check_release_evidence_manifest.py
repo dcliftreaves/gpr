@@ -105,6 +105,8 @@ REQUIRED_PRODUCT_PILLARS = {
     "raw_stills": {
         "label": "RAW stills",
         "status": "locked_with_sample_gaps",
+        "readiness_percent": 92,
+        "production_ready": False,
         "refs": {
             "production_paths": {"still_smallest", "still_primary", "still_archival"},
             "dashboards": {
@@ -119,6 +121,8 @@ REQUIRED_PRODUCT_PILLARS = {
     "raw_video_mvp": {
         "label": "RAW video MVP",
         "status": "pi_stand_in_pass_camera_handoff_open",
+        "readiness_percent": 80,
+        "production_ready": False,
         "refs": {
             "production_paths": {
                 "preview_live_mission1_1024",
@@ -138,6 +142,8 @@ REQUIRED_PRODUCT_PILLARS = {
     "premium_still_sr": {
         "label": "Premium still/SR",
         "status": "research_loop_working_candidate_not_promoted",
+        "readiness_percent": 60,
+        "production_ready": False,
         "refs": {
             "dashboards": {
                 "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -159,6 +165,8 @@ REQUIRED_PRODUCT_PILLARS = {
     "raw_video_reconstruction": {
         "label": "RAW video reconstruction",
         "status": "approved_offline_reconstruction_psf_research_optional",
+        "readiness_percent": 100,
+        "production_ready": True,
         "refs": {
             "raw_targets": {"8k_raw_2x"},
             "dashboards": {
@@ -714,6 +722,16 @@ def require_product_pillars_contract(manifest: dict[str, Any], failures: list[st
             failures.append(f"product_pillars.{pillar_id}: release_label must be {spec['label']!r}")
         if row.get("status") != spec["status"]:
             failures.append(f"product_pillars.{pillar_id}: status must be {spec['status']!r}")
+        if row.get("readiness_percent") != spec["readiness_percent"]:
+            failures.append(
+                f"product_pillars.{pillar_id}: readiness_percent must be "
+                f"{spec['readiness_percent']!r}"
+            )
+        if row.get("production_ready") is not spec["production_ready"]:
+            failures.append(
+                f"product_pillars.{pillar_id}: production_ready must be "
+                f"{spec['production_ready']!r}"
+            )
         summary = str(row.get("summary", ""))
         open_gate = str(row.get("open_gate", ""))
         for token in spec["tokens"]:
