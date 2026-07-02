@@ -303,6 +303,99 @@ class RestormerPixelShuffleSR(nn.Module):
         return torch.clamp(base + torch.tanh(residual) * self.residual_scale, 0.0, 1.0)
 
 
+class WindowAttentionBlock(nn.Module):
+    """Shifted-window spatial attention over raw feature planes."""
+
+    def __init__(self, channels: int, window_size: int = 8, shifted: bool = False) -> None:
+        super().__init__()
+        self.channels = int(channels)
+        self.window_size = int(window_size)
+        self.shifted = bool(shifted)
+        self.norm1 = nn.LayerNorm(self.channels)
+        self.attn = nn.MultiheadAttention(
+            self.channels,
+            attention_heads(self.channels),
+            batch_first=True,
+        )
+        self.norm2 = nn.GroupNorm(1, self.channels)
+        hidden = max(self.channels * 2, self.channels)
+        self.ffn = nn.Sequential(
+            nn.Conv2d(self.channels, hidden, 1),
+            nn.GELU(),
+            nn.Conv2d(hidden, hidden, 3, padding=1, groups=hidden),
+            nn.GELU(),
+            nn.Conv2d(hidden, self.channels, 1),
+        )
+        self.attn_scale = nn.Parameter(torch.zeros((1, self.channels, 1, 1)))
+        self.ffn_scale = nn.Parameter(torch.zeros((1, self.channels, 1, 1)))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        batch, channels, height, width = x.shape
+        window = max(2, min(self.window_size, height, width))
+        shift = window // 2 if self.shifted and height > window and width > window else 0
+        y = torch.roll(x, shifts=(-shift, -shift), dims=(2, 3)) if shift else x
+        pad_h = (window - height % window) % window
+        pad_w = (window - width % window) % window
+        if pad_h or pad_w:
+            y = F.pad(y, (0, pad_w, 0, pad_h), mode="reflect")
+        padded_h, padded_w = y.shape[-2:]
+        n_h = padded_h // window
+        n_w = padded_w // window
+        tokens = (
+            y.view(batch, channels, n_h, window, n_w, window)
+            .permute(0, 2, 4, 3, 5, 1)
+            .reshape(batch * n_h * n_w, window * window, channels)
+        )
+        attn_tokens, _ = self.attn(self.norm1(tokens), self.norm1(tokens), tokens, need_weights=False)
+        attn_map = (
+            attn_tokens.reshape(batch, n_h, n_w, window, window, channels)
+            .permute(0, 5, 1, 3, 2, 4)
+            .reshape(batch, channels, padded_h, padded_w)
+        )
+        if pad_h or pad_w:
+            attn_map = attn_map[:, :, :height, :width]
+        if shift:
+            attn_map = torch.roll(attn_map, shifts=(shift, shift), dims=(2, 3))
+        x = x + self.attn_scale * attn_map
+        return x + self.ffn_scale * self.ffn(self.norm2(x))
+
+
+class WindowAttentionPixelShuffleSR(nn.Module):
+    """Clean-source RAW SR teacher with shifted spatial windows and global context."""
+
+    def __init__(self, width: int, depth: int, residual_scale: float) -> None:
+        super().__init__()
+        self.residual_scale = float(residual_scale)
+        w = max(8, int(width))
+        blocks: list[nn.Module] = []
+        for idx in range(max(1, int(depth))):
+            blocks.append(WindowAttentionBlock(w, window_size=8, shifted=bool(idx % 2)))
+        self.head = nn.Sequential(nn.Conv2d(4, w, 3, padding=1), nn.GELU())
+        self.body = nn.Sequential(*blocks)
+        self.context = nn.Sequential(
+            nn.AdaptiveAvgPool2d((16, 16)),
+            WindowAttentionBlock(w, window_size=8, shifted=False),
+            WindowAttentionBlock(w, window_size=8, shifted=True),
+        )
+        self.fuse = nn.Sequential(
+            nn.Conv2d(w * 2, w, 1),
+            nn.GELU(),
+            nn.Conv2d(w, w, 3, padding=1),
+            nn.GELU(),
+        )
+        self.out = nn.Conv2d(w, 16, 3, padding=1)
+        nn.init.zeros_(self.out.weight)
+        nn.init.zeros_(self.out.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        base = torch.repeat_interleave(torch.repeat_interleave(x, 2, dim=2), 2, dim=3)
+        local = self.body(self.head(x))
+        context = self.context(local)
+        context = F.interpolate(context, size=local.shape[-2:], mode="bilinear", align_corners=False)
+        residual = F.pixel_shuffle(self.out(self.fuse(torch.cat([local, context], dim=1))), 2)
+        return torch.clamp(base + torch.tanh(residual) * self.residual_scale, 0.0, 1.0)
+
+
 def build_model(model_arch: str, width: int, depth: int, residual_scale: float) -> nn.Module:
     if model_arch == "residual_pixelshuffle":
         return ResidualPixelShuffleSR(width, depth, residual_scale)
@@ -310,6 +403,8 @@ def build_model(model_arch: str, width: int, depth: int, residual_scale: float) 
         return NAFResidualPixelShuffleSR(width, depth, residual_scale)
     if model_arch == "restormer_pixelshuffle":
         return RestormerPixelShuffleSR(width, depth, residual_scale)
+    if model_arch == "window_attention_pixelshuffle":
+        return WindowAttentionPixelShuffleSR(width, depth, residual_scale)
     raise ValueError(f"unknown model architecture: {model_arch}")
 
 
@@ -475,7 +570,12 @@ def main() -> int:
     ap.add_argument("--low-crop", type=int, default=48)
     ap.add_argument(
         "--model-arch",
-        choices=["residual_pixelshuffle", "naf_residual_pixelshuffle", "restormer_pixelshuffle"],
+        choices=[
+            "residual_pixelshuffle",
+            "naf_residual_pixelshuffle",
+            "restormer_pixelshuffle",
+            "window_attention_pixelshuffle",
+        ],
         default="residual_pixelshuffle",
     )
     ap.add_argument("--width", type=int, default=32)

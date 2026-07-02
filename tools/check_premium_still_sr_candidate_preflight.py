@@ -99,6 +99,12 @@ REQUIRED_SMOKE_COMMAND_TOKENS = {
     "python",
     "--output-dir",
 }
+SUPPORTED_TRAINER_MODEL_ARCHES = {
+    "residual_pixelshuffle",
+    "naf_residual_pixelshuffle",
+    "restormer_pixelshuffle",
+    "window_attention_pixelshuffle",
+}
 REQUIRED_SMOKE_ACCEPTANCE_RECEIPT_FIELDS = {
     "x2d_smoke_receipt",
     "z8_smoke_receipt",
@@ -200,6 +206,20 @@ def output_dirs_for_command(command: str) -> list[str]:
         elif part.startswith("--output-dir="):
             output_dirs.append(part.split("=", 1)[1])
     return output_dirs
+
+
+def option_values_for_command(command: str, option: str) -> list[str]:
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        return []
+    values: list[str] = []
+    for idx, part in enumerate(parts):
+        if part == option and idx + 1 < len(parts):
+            values.append(parts[idx + 1])
+        elif part.startswith(f"{option}="):
+            values.append(part.split("=", 1)[1])
+    return values
 
 
 def number_value(value: Any) -> float | None:
@@ -412,6 +432,15 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
                     add_failure(
                         failures,
                         f"smoke_gate_commands[{idx}] must write --output-dir receipts under {EXTERNAL_WORK_ROOT}",
+                    )
+            model_arches = option_values_for_command(command, "--model-arch")
+            if not model_arches:
+                add_failure(failures, f"smoke_gate_commands[{idx}] must include an explicit supported --model-arch")
+            for model_arch in model_arches:
+                if model_arch not in SUPPORTED_TRAINER_MODEL_ARCHES:
+                    add_failure(
+                        failures,
+                        f"smoke_gate_commands[{idx}] uses unsupported --model-arch {model_arch!r}",
                     )
         if contains_any(smoke_text, FORBIDDEN_RUNTIME_INPUTS):
             add_failure(failures, "smoke_gate_commands include forbidden runtime/source content tokens")

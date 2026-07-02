@@ -51,6 +51,7 @@ def main() -> int:
     assert "Train/evaluate clean-source RAW pair SR" in help_proc.stdout
     assert "--pairs" in help_proc.stdout
     assert "--output-dir" in help_proc.stdout
+    assert "window_attention_pixelshuffle" in help_proc.stdout
 
     if np is None:
         print("test_train_premium_still_sr_clean_source_pairs: SKIP missing numpy/torch")
@@ -183,6 +184,44 @@ def main() -> int:
         restormer_receipt = json.loads((restormer_out / "train_receipt.json").read_text(encoding="utf-8"))
         assert restormer_receipt["config"]["model_arch"] == "restormer_pixelshuffle"
         assert restormer_receipt["eval"]["holdout"]["tile_count"] == 2
+        window_out = td / "window_attention_run"
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--pairs",
+                str(pairs),
+                "--output-dir",
+                str(window_out),
+                "--holdout-image",
+                "holdout_b",
+                "--steps",
+                "1",
+                "--batch",
+                "2",
+                "--low-crop",
+                "8",
+                "--model-arch",
+                "window_attention_pixelshuffle",
+                "--width",
+                "8",
+                "--depth",
+                "1",
+                "--eval-every",
+                "1",
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        window_receipt = json.loads((window_out / "train_receipt.json").read_text(encoding="utf-8"))
+        assert window_receipt["config"]["model_arch"] == "window_attention_pixelshuffle"
+        assert window_receipt["eval"]["holdout"]["tile_count"] == 2
     print("test_train_premium_still_sr_clean_source_pairs: PASS")
     return 0
 

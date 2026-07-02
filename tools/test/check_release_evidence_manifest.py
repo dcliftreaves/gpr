@@ -158,6 +158,11 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_noise_policy_gate_20260702",
                 "premium_still_sr_promotion_gate_20260702",
                 "premium_still_sr_rejected_relaunch_guard_20260702",
+                "premium_still_sr_candidate_preflight_window_attention_20260702",
+                "premium_still_sr_launch_packet_window_attention_20260702",
+                "premium_still_sr_window_attention_smoke_x2d_20260702",
+                "premium_still_sr_window_attention_smoke_z8_20260702",
+                "premium_still_sr_experiment_scoreboard_window_attention_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
@@ -1106,12 +1111,6 @@ def require_dashboard_contract(
             for key, expected in expected_hashes.items():
                 if hashes.get(key) != expected:
                     failures.append(f"{entry_id}: hash {key} must stay {expected}")
-        readme_text = README.read_text(encoding="utf-8")
-        readme_plain = re.sub(r"[*_`]", "", readme_text)
-        for token in ("97-receipt experiment scoreboard", "97 runtime-safe"):
-            if token not in readme_plain:
-                failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
-
     if entry_id == "premium_still_sr_rejected_relaunch_guard_20260702":
         if entry.get("status") != "experimental-blocker":
             failures.append(f"{entry_id}: rejected relaunch guard must remain experimental-blocker")
@@ -1158,6 +1157,152 @@ def require_dashboard_contract(
             for key, expected in expected_metrics.items():
                 if metrics.get(key) != expected:
                     failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+
+    if entry_id == "premium_still_sr_candidate_preflight_window_attention_20260702":
+        if entry.get("status") != "diagnostic":
+            failures.append(f"{entry_id}: window-attention preflight must remain diagnostic")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: window-attention preflight needs metrics")
+        else:
+            expected_metrics = {
+                "launchable_for_production_attempt": 1,
+                "production_ready": 0,
+                "promotion_claimed": 0,
+                "smoke_gate_command_count": 2,
+                "requires_x2d_and_z8_smoke": 1,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+        purpose = str(entry.get("purpose", ""))
+        for token in ("window_attention_clean_source_teacher_v1", "window_attention_pixelshuffle", "fresh X2D/Z8"):
+            if token not in purpose:
+                failures.append(f"{entry_id}: purpose missing {token!r}")
+
+    if entry_id == "premium_still_sr_launch_packet_window_attention_20260702":
+        if entry.get("status") != "diagnostic":
+            failures.append(f"{entry_id}: window-attention launch packet must remain diagnostic")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: window-attention launch packet needs metrics")
+        else:
+            expected_metrics = {
+                "launchable_for_production_attempt": 1,
+                "production_ready": 0,
+                "promotion_claimed": 0,
+                "next_command_count": 9,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+
+    if entry_id == "premium_still_sr_window_attention_smoke_x2d_20260702":
+        if entry.get("status") != "experimental-blocker":
+            failures.append(f"{entry_id}: X2D window-attention smoke must remain experimental-blocker")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: X2D window-attention smoke needs metrics")
+        else:
+            expected_metrics = {
+                "steps": 120,
+                "holdout_tile_count": 576,
+                "train_tile_count": 4224,
+                "baseline_beaten_on_holdout": 0,
+                "production_ready": 0,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+            try:
+                holdout_mae = float(metrics.get("holdout_median_mae_recovery_pct"))
+                holdout_rmse = float(metrics.get("holdout_median_rmse_recovery_pct"))
+                train_mae = float(metrics.get("train_median_mae_recovery_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: X2D window-attention metrics must be numeric")
+            else:
+                if abs(holdout_mae - 0.001614994503120611) > 1e-12:
+                    failures.append(f"{entry_id}: X2D holdout MAE recovery drifted")
+                if abs(holdout_rmse - (-0.0094530994823499)) > 1e-12:
+                    failures.append(f"{entry_id}: X2D holdout RMSE recovery drifted")
+                if abs(train_mae - (-0.3055283588112552)) > 1e-12:
+                    failures.append(f"{entry_id}: X2D train MAE recovery drifted")
+
+    if entry_id == "premium_still_sr_window_attention_smoke_z8_20260702":
+        if entry.get("status") != "experimental-blocker":
+            failures.append(f"{entry_id}: Z8 window-attention smoke must remain experimental-blocker")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: Z8 window-attention smoke needs metrics")
+        else:
+            expected_metrics = {
+                "steps": 120,
+                "holdout_tile_count": 1536,
+                "train_tile_count": 3264,
+                "baseline_beaten_on_holdout": 0,
+                "production_ready": 0,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+            try:
+                holdout_mae = float(metrics.get("holdout_median_mae_recovery_pct"))
+                holdout_rmse = float(metrics.get("holdout_median_rmse_recovery_pct"))
+                train_mae = float(metrics.get("train_median_mae_recovery_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: Z8 window-attention metrics must be numeric")
+            else:
+                if abs(holdout_mae - (-0.5807092150718575)) > 1e-12:
+                    failures.append(f"{entry_id}: Z8 holdout MAE recovery drifted")
+                if abs(holdout_rmse - (-0.3829316485837014)) > 1e-12:
+                    failures.append(f"{entry_id}: Z8 holdout RMSE recovery drifted")
+                if abs(train_mae - (-0.1948074832812463)) > 1e-12:
+                    failures.append(f"{entry_id}: Z8 train MAE recovery drifted")
+
+    if entry_id == "premium_still_sr_experiment_scoreboard_window_attention_20260702":
+        if entry.get("status") != "current":
+            failures.append(f"{entry_id}: window-attention scoreboard must be current")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: window-attention scoreboard needs metrics")
+        else:
+            expected_metrics = {
+                "receipt_count": 99,
+                "runtime_safe_candidate_count": 99,
+                "promotable_candidate_count": 0,
+                "promotion_threshold_pct": 15.0,
+                "production_ready": 0,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+            try:
+                best_mae = float(metrics.get("best_runtime_safe_holdout_mae_recovery_pct"))
+                best_rmse = float(metrics.get("best_runtime_safe_holdout_rmse_recovery_pct"))
+                x2d_mae = float(metrics.get("latest_window_attention_x2d_smoke_holdout_mae_recovery_pct"))
+                x2d_rmse = float(metrics.get("latest_window_attention_x2d_smoke_holdout_rmse_recovery_pct"))
+                z8_mae = float(metrics.get("latest_window_attention_z8_smoke_holdout_mae_recovery_pct"))
+                z8_rmse = float(metrics.get("latest_window_attention_z8_smoke_holdout_rmse_recovery_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: window-attention scoreboard metrics must be numeric")
+            else:
+                if abs(best_mae - 4.031355420019811) > 1e-9:
+                    failures.append(f"{entry_id}: best runtime-safe MAE recovery drifted")
+                if abs(best_rmse - 3.753504206299621) > 1e-9:
+                    failures.append(f"{entry_id}: best runtime-safe RMSE recovery drifted")
+                if abs(x2d_mae - 0.001614994503120611) > 1e-12:
+                    failures.append(f"{entry_id}: latest window-attention X2D MAE drifted")
+                if abs(x2d_rmse - (-0.0094530994823499)) > 1e-12:
+                    failures.append(f"{entry_id}: latest window-attention X2D RMSE drifted")
+                if abs(z8_mae - (-0.5807092150718575)) > 1e-12:
+                    failures.append(f"{entry_id}: latest window-attention Z8 MAE drifted")
+                if abs(z8_rmse - (-0.3829316485837014)) > 1e-12:
+                    failures.append(f"{entry_id}: latest window-attention Z8 RMSE drifted")
+        readme_text = README.read_text(encoding="utf-8")
+        readme_plain = re.sub(r"[*_`]", "", readme_text)
+        for token in ("99-receipt experiment scoreboard", "99 runtime-safe"):
+            if token not in readme_plain:
+                failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
 
     if entry_id == "premium_still_sr_promotion_gate_20260702":
         if entry.get("status") != "experimental-blocker":

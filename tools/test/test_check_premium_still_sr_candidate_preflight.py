@@ -106,13 +106,13 @@ def main() -> int:
                         "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
                         "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs/pairs.npz "
                         "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/x2d_rowpsf_smoke "
-                        "--holdout-image x2d --model-arch row_psf_teacher"
+                        "--holdout-image x2d --model-arch window_attention_pixelshuffle"
                     ),
                     (
                         "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
                         "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs/pairs.npz "
                         "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/z8_rowpsf_smoke "
-                        "--holdout-image z8 --model-arch row_psf_teacher"
+                        "--holdout-image z8 --model-arch window_attention_pixelshuffle"
                     ),
                 ],
                 "smoke_gate_acceptance": smoke_gate_acceptance(),
@@ -254,7 +254,7 @@ def main() -> int:
                 "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
                 "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs/pairs.npz "
                 "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/x2d_z8_combined_smoke "
-                "--holdout-image x2d,z8 --model-arch row_psf_teacher"
+                "--holdout-image x2d,z8 --model-arch window_attention_pixelshuffle"
             )
         ]
         single_smoke_path = base / "single_smoke.json"
@@ -282,6 +282,19 @@ def main() -> int:
         local_tmp_failed = json.loads(local_tmp_audit.read_text(encoding="utf-8"))
         assert any("/Volumes/OWC_8TB/gpr_work" in item for item in local_tmp_failed["failures"])
 
+        unsupported_arch = json.loads(passing.read_text(encoding="utf-8"))
+        unsupported_arch["smoke_gate_commands"][0] = unsupported_arch["smoke_gate_commands"][0].replace(
+            "window_attention_pixelshuffle",
+            "row_psf_teacher",
+        )
+        unsupported_arch_path = base / "unsupported_arch_smoke.json"
+        unsupported_arch_audit = base / "unsupported_arch_smoke_audit.json"
+        write_json(unsupported_arch_path, unsupported_arch)
+        proc = run_tool(unsupported_arch_path, "--json-out", str(unsupported_arch_audit), "--require-launchable")
+        assert proc.returncode != 0
+        unsupported_arch_failed = json.loads(unsupported_arch_audit.read_text(encoding="utf-8"))
+        assert any("unsupported --model-arch" in item for item in unsupported_arch_failed["failures"])
+
         weak_acceptance = json.loads(passing.read_text(encoding="utf-8"))
         weak_acceptance["smoke_gate_acceptance"]["minimum_median_mae_reduction_pct"] = 0.0
         weak_acceptance["smoke_gate_acceptance"]["minimum_worst_row_mae_reduction_pct"] = -0.1
@@ -301,13 +314,13 @@ def main() -> int:
                 "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
                 "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/premium_still_sr_clean_source_pairs_routed_t64.npz "
                 "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_x2d_20260702 "
-                "--holdout-image x2d --model-arch row_psf_teacher"
+                "--holdout-image x2d --model-arch window_attention_pixelshuffle"
             ),
             (
                 "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
                 "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/premium_still_sr_clean_source_pairs_routed_t64.npz "
                 "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_z8_20260702 "
-                "--holdout-image z8 --model-arch row_psf_teacher"
+                "--holdout-image z8 --model-arch window_attention_pixelshuffle"
             ),
         ]
         rejected_smoke_path = base / "rejected_smoke.json"

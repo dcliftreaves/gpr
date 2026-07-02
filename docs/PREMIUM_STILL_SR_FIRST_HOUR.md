@@ -10,10 +10,10 @@ production-promoted.
 | question | current answer |
 |---|---|
 | Is premium still-SR shippable today? | No. The infrastructure exists, but current no-REF models do not clear the 50 MP / 100 MP still-SR promotion gate. |
-| What is the current scorecard state? | **97** runtime-safe training receipts, **0** promotable rows, and best older runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. The newest teacher-first smoke gate also fails before long training: X2D is **+0.0038%** median MAE but **-0.0062%** RMSE, and Z8 is **-0.1618%** MAE / **-0.0448%** RMSE. |
+| What is the current scorecard state? | **99** runtime-safe training receipts, **0** promotable rows, and best older runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. The newest launchable window-attention smoke gate also fails before long training: X2D is **+0.0016%** median MAE but **-0.0095%** RMSE, and Z8 is **-0.5807%** MAE / **-0.3829%** RMSE. |
 | What must a new candidate prove first? | Candidate-only runtime inputs, positive held-out recovery, 50 MP and 100 MP full-frame gates, editor-latitude review, worst-row review, editable raw outputs, timing, memory, and exact-sidecar-only noise policy. |
 | What is forbidden at render time? | REF/source/JPEG image content, source residual noise, hidden source-HF targets, or any noise addback not tied to a validated exact camera/ISO sidecar. |
-| What should happen before another long CNN run? | Build a small candidate and reject it early unless it improves held-out X2D and Z8 evidence with runtime-safe inputs. Do not scale the current Restormer same-color pair setup unless both smoke holdouts beat interpolation. |
+| What should happen before another long CNN run? | Build a small candidate and reject it early unless it improves held-out X2D and Z8 evidence with runtime-safe inputs. Do not scale the current Restormer, teacher-first, or window-attention clean-source pair setup unless both smoke holdouts beat interpolation. |
 | Are the routed clean-source teacher commands the next run? | No. They are now labeled as rejected reference commands in the next-experiment contract. A new production attempt needs a preflight-proven architecture/degradation/validation change before another long run. |
 
 ## First-Hour Steps
@@ -130,6 +130,9 @@ production-promoted.
    `teacher_first_fullframe_raw_sr_smoke_v1` and any candidate preflight that
    reuses the rejected X2D/Z8 smoke output directories from the committed
    20260702 teacher-first receipts.
+   It also requires each smoke command to declare a supported trainer
+   `--model-arch`; fake architecture names such as `row_psf_teacher` are
+   rejected before launch instead of being documented as plausible work.
    The preflight now also rejects generic Restormer-style, NAF/detail, U-Net,
    or local residual repeats unless the manifest names new source/evidence or a
    teacher-first holdout gate. Examples that can pass this intake are
@@ -137,7 +140,11 @@ production-promoted.
    evidence, materially different target/source evidence, or an explicit rule
    that both X2D and Z8 smoke holdouts must beat same-color interpolation before
    any long run. Restormer plus blur/noise/decode wording alone is already
-   covered by rejected 20260702 receipts. A manifest without concrete X2D and
+   covered by rejected 20260702 receipts. The
+   `window_attention_pixelshuffle` architecture is now executable and
+   preflight-supported, but the 20260702 smoke receipts show that an
+   architecture-only swap on the same clean-source pair target still fails the
+   joint gate. A manifest without concrete X2D and
    Z8 `smoke_gate_commands` is blocked before launch, even if the prose looks
    material. A manifest whose smoke commands still contain placeholders or write
    receipts to local `/tmp` is also blocked. A manifest without
@@ -186,7 +193,7 @@ production-promoted.
 | Positive train split only | Current evidence already shows train improvement can fail scene-held-out X2D. |
 | More time on the rejected 12k-step teacher | The 12k-step X2D scene-holdout run regressed; repeating the same objective is not a promotion path. |
 | Clean target alone | The clean-signal U-Net smoke still regressed X2D; the next pass needs materially different supervision or runtime signal. |
-| Re-running the routed local clean-source teacher | The 1500-step X2D/Z8 routed clean-source runs and NAF/detail variant are rejected reference receipts. The t64 Restormer smoke adds a stronger architecture but still fails the joint holdout gate, the longer Z8 pass overfits, and the degradation/objective ablation with Charbonnier, Laplacian, RAW noise, gain jitter, and blur also fails. The next run must change the target/source evidence or validation scope before it can be treated as a production candidate. |
+| Re-running the routed local clean-source teacher | The 1500-step X2D/Z8 routed clean-source runs and NAF/detail variant are rejected reference receipts. The t64 Restormer smoke adds a stronger architecture but still fails the joint holdout gate, the longer Z8 pass overfits, the degradation/objective ablation with Charbonnier, Laplacian, RAW noise, gain jitter, and blur also fails, and the window-attention architecture-only smoke fails both X2D/Z8 acceptance. The next run must change the target/source evidence, degradation synthesis, teacher objective, or validation scope before it can be treated as a production candidate. |
 | Skipping the launch preflight | It allows expensive repeats of already rejected architectures, degradation policies, or validation scopes. |
 | Runtime REF/source/HF leakage | It violates the no-REF production contract even if metrics improve. |
 | Noise synthesized without exact sidecars | It violates the camera-noise policy and can hide source-noise leakage. |
@@ -196,8 +203,12 @@ production-promoted.
 | evidence | path |
 |---|---|
 | Product promotion boundary | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_20260702/index.html` |
-| Experiment scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/index.html` |
+| Experiment scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_window_attention_20260702/index.html` |
 | Rejected relaunch guard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rejected_relaunch_guard_20260702/index.html` |
+| Window-attention launchable preflight | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_window_attention_20260702/index.html` |
+| Window-attention launch packet | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_window_attention_20260702/index.html` |
+| Window-attention X2D smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_smoke_x2d_20260702/index.html` |
+| Window-attention Z8 smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_smoke_z8_20260702/index.html` |
 | Historical launchable preflight now blocked if reused | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_20260702_next/index.html` |
 | Teacher-first X2D smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_x2d_20260702/index.html` |
 | Teacher-first Z8 smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_z8_20260702/index.html` |

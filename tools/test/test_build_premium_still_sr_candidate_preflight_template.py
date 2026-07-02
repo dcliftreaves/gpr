@@ -96,13 +96,13 @@ def main() -> int:
                 "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
                 "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs/pairs.npz "
                 "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/x2d_rowpsf_smoke "
-                "--holdout-image x2d --model-arch row_psf_teacher"
+                "--holdout-image x2d --model-arch window_attention_pixelshuffle"
             ),
             (
                 "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
                 "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs/pairs.npz "
                 "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/z8_rowpsf_smoke "
-                "--holdout-image z8 --model-arch row_psf_teacher"
+                "--holdout-image z8 --model-arch window_attention_pixelshuffle"
             ),
         ]
         edited.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
