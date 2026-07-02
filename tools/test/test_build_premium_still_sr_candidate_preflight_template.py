@@ -75,8 +75,13 @@ def main() -> int:
         data["launchable_for_production_attempt"] = True
         data["requires_material_edits_before_launch"] = False
         data["material_change_summary"] = (
-            "Adds camera-conditioned PSF/noise/decode degradation plus joint "
-            "X2D/Z8 overlapped-tile validation before any long run."
+            "Adds row-level measured PSF sidecars from real high/low pairs, "
+            "then requires the teacher beats interpolation before long run on "
+            "joint X2D/Z8 overlapped-tile validation."
+        )
+        data["degradation_deltas"][0] = "realistic camera blur/PSF synthesis from row-level PSF sidecars"
+        data["validation_plan"].append(
+            "both X2D and Z8 smoke holdouts beat interpolation before long run"
         )
         edited.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         proc = run(
