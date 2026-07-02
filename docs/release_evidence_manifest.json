@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 14 selector smoke now passes through the persisted sidecar/runtime feature/checkpoint path; next is full 50 MP / 100 MP Premium still-SR promotion validation.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 14 selector smoke passes, and the strict promotion-receipts rollup now records 4/8 done steps with model floor, full 50 MP / 100 MP gate, timing/memory, noise wiring, and production submission still open.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -128,10 +128,11 @@
           "premium_still_sr_gate13_feature_rich_tail_safe_source_smoke_20260702",
           "premium_still_sr_gate13_source_or_objective_revision_20260702",
           "premium_still_sr_gate14_candidate_intake_20260702",
-          "premium_still_sr_gate14_selector_smoke_20260702"
+          "premium_still_sr_gate14_selector_smoke_20260702",
+          "premium_still_sr_promotion_receipts_20260702"
         ]
       },
-      "open_gate": "premium_still_sr_promotion_receipts"
+      "open_gate": "Premium still-SR promotion is the first open local gate: build a candidate-only model that clears 15% / 15% held-out MAE/RMSE on 50 MP and 100 MP routes, records timing/memory, keeps exact-sidecar-only noise policy, and passes production submission validation."
     },
     {
       "id": "raw_video_reconstruction",
@@ -4930,6 +4931,57 @@
         "x2d_2025_austin_07_selected_positive_rows": 34,
         "production_ready": 0
       }
+    },
+    {
+      "id": "premium_still_sr_promotion_receipts_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Strict Premium still-SR promotion receipt. It consolidates Gate 14 selector smoke, route readiness, editor/openability, noise policy, formal promotion gate, and production-capture requirements. Current state is 50% complete, with model promotion floor, 50 MP / 100 MP full gate, timing/memory, noise wiring, and production submission still open.",
+      "dashboard": "artifacts/premium_still_sr_promotion_receipts_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_WORK_ORDER.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_promotion_receipts.py",
+        "tools/test/test_build_premium_still_sr_promotion_receipts.py",
+        "tools/check_premium_still_sr_promotion_gate.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_promotion_receipts_20260702/premium_still_sr_promotion_receipts.json",
+        "artifacts/premium_still_sr_promotion_receipts_20260702/index.html"
+      ],
+      "hashes": {
+        "promotion_receipts_json_sha256": "bc434b71f1299eecdde9a22dae42a88de9845ff2885e7183b83d46310e25f779",
+        "dashboard_sha256": "c0c645b9a0626619b8921a0719f2e8a643dec62a295fe3df0008df5fe82ded63"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "completion_percent": 50.0,
+        "done_step_count": 4,
+        "total_step_count": 8,
+        "gate14_selector_smoke_done": 1,
+        "route_coverage_done": 1,
+        "editor_openability_done": 1,
+        "clean_signal_noise_policy_done": 1,
+        "model_promotion_floor_done": 0,
+        "full_50mp_100mp_gate_done": 0,
+        "timing_memory_done": 0,
+        "production_submission_done": 0,
+        "blocker_count": 5
+      },
+      "blocker_classifications": [
+        "full_50mp_100mp_gate_missing",
+        "model_promotion_floor_not_met",
+        "noise_policy_not_wired",
+        "production_submission_missing_or_failed",
+        "timing_memory_missing"
+      ]
     }
   ],
   "release_checks": [

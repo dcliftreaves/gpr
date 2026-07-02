@@ -83,12 +83,16 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate 14 candidate intake dashboard | `artifacts/premium_still_sr_gate14_candidate_intake_20260702/index.html` | `4bc9cdd4977ffdd9eaedc95f10555a465cfa4006df8379b1b435d2d104ebad64` |
 | Gate 14 selector smoke receipt | `artifacts/premium_still_sr_gate14_selector_smoke_20260702/selector_smoke.json` | `ebb5e77cbd7c00deec494f0f9d4b45e2e28a68067a5b42c93696ab687432ea3d` |
 | Gate 14 selector smoke dashboard | `artifacts/premium_still_sr_gate14_selector_smoke_20260702/index.html` | `6614c452d887a5d6fe34a2b72ebd81648a98b7e8896e0be6def2710e864edab5` |
+| Premium still-SR promotion receipts rollup | `artifacts/premium_still_sr_promotion_receipts_20260702/premium_still_sr_promotion_receipts.json` | `bc434b71f1299eecdde9a22dae42a88de9845ff2885e7183b83d46310e25f779` |
+| Premium still-SR promotion receipts dashboard | `artifacts/premium_still_sr_promotion_receipts_20260702/index.html` | `c0c645b9a0626619b8921a0719f2e8a643dec62a295fe3df0008df5fe82ded63` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
 sidecar, and Gate 14 selector smoke now reproduces the pass through runtime
 feature recomputation, source/checkpoint hash checks, and first-match routing.
-The next production receipt is the full 50 MP / 100 MP promotion validation.
+The strict promotion receipt rollup now records 4/8 done steps. The first open
+step is `model_promotion_floor`; the current blockers are full 50 MP / 100 MP
+gate rows, timing/memory, exact noise-policy wiring, and production submission.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

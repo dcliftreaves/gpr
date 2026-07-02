@@ -189,6 +189,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_gate13_source_or_objective_revision_20260702",
                 "premium_still_sr_gate14_candidate_intake_20260702",
                 "premium_still_sr_gate14_selector_smoke_20260702",
+                "premium_still_sr_promotion_receipts_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
@@ -1107,6 +1108,60 @@ def require_dashboard_contract(
                     failures.append(f"{entry_id}: both X2D image medians must stay positive")
                 if min(global_worst, x2d06_worst, x2d07_worst) < 0.0:
                     failures.append(f"{entry_id}: worst-row MAE improvement cannot regress")
+
+    if entry_id == "premium_still_sr_promotion_receipts_20260702":
+        if entry.get("status") != "experimental-blocker":
+            failures.append(f"{entry_id}: promotion receipts must remain experimental-blocker until production passes")
+        hashes = entry.get("hashes")
+        if not isinstance(hashes, dict):
+            failures.append(f"{entry_id}: promotion receipts need hashes")
+        else:
+            expected_hashes = {
+                "promotion_receipts_json_sha256": "bc434b71f1299eecdde9a22dae42a88de9845ff2885e7183b83d46310e25f779",
+                "dashboard_sha256": "c0c645b9a0626619b8921a0719f2e8a643dec62a295fe3df0008df5fe82ded63",
+            }
+            for key, expected in expected_hashes.items():
+                if hashes.get(key) != expected:
+                    failures.append(f"{entry_id}: hash {key} must stay {expected}")
+        receipts = entry.get("receipts")
+        if not isinstance(receipts, list):
+            failures.append(f"{entry_id}: promotion receipts need receipt refs")
+        else:
+            for token in ("premium_still_sr_promotion_receipts.json", "index.html"):
+                if not any(isinstance(item, str) and item.endswith(token) for item in receipts):
+                    failures.append(f"{entry_id}: receipts missing {token}")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: promotion receipts need metrics")
+        else:
+            expected_metrics = {
+                "production_ready": 0,
+                "completion_percent": 50.0,
+                "done_step_count": 4,
+                "total_step_count": 8,
+                "gate14_selector_smoke_done": 1,
+                "route_coverage_done": 1,
+                "editor_openability_done": 1,
+                "clean_signal_noise_policy_done": 1,
+                "model_promotion_floor_done": 0,
+                "full_50mp_100mp_gate_done": 0,
+                "timing_memory_done": 0,
+                "production_submission_done": 0,
+                "blocker_count": 5,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+        blockers = entry.get("blocker_classifications")
+        expected_blockers = {
+            "full_50mp_100mp_gate_missing",
+            "model_promotion_floor_not_met",
+            "noise_policy_not_wired",
+            "production_submission_missing_or_failed",
+            "timing_memory_missing",
+        }
+        if set(blockers or []) != expected_blockers:
+            failures.append(f"{entry_id}: blocker_classifications must stay {sorted(expected_blockers)}")
 
     if entry_id == "raw_2k_l2hh_visual_proxy":
         failure_rows = entry.get("failure_rows")
