@@ -113,7 +113,12 @@ file/hash mismatches. The production submission must include that audit as
 `source_provenance_audit_path`, `source_provenance_audit_sha256`,
 `source_provenance_audit_schema=gpr.darkframe_source_provenance_audit.v1`,
 `source_provenance_audit_ready_frame_count>=4`, and
-`source_provenance_audit_production_ready=true`. A premium still-SR submission
+`source_provenance_audit_production_ready=true`.
+The referenced `gpr.camera_noise_calibration.v1` sidecar must also mark
+`production_ready=true`, match the submitted stack camera/ISO/CFA/dimensions,
+cover every submitted extracted-Bayer hash in `source.frames`, and include
+per-plane `mean_black>=0`, `sigma_black>0`, and `noise_profile_offset>=0` for
+`r`, `g1`, `b`, and `g2`. A premium still-SR submission
 must first build a candidate preflight scaffold, edit it with a non-placeholder
 `material_change_summary`, set `launchable_for_production_attempt=true` and
 `requires_material_edits_before_launch=false`, replace `smoke_gate_commands`

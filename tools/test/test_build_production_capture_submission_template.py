@@ -52,6 +52,13 @@ def main() -> int:
         assert mission["source_provenance_audit_schema"] == "gpr.darkframe_source_provenance_audit.v1"
         assert mission["source_provenance_audit_ready_frame_count"] == 4
         assert mission["source_provenance_audit_production_ready"] is True
+        sidecar_requirements = mission["camera_noise_sidecar_requirements"]
+        assert sidecar_requirements["schema"] == "gpr.camera_noise_calibration.v1"
+        assert sidecar_requirements["minimum_sample_count"] == 4
+        assert sidecar_requirements["required_per_plane_metrics"]["r"]["sigma_black"] == "numeric > 0"
+        assert sidecar_requirements["required_per_plane_metrics"]["g1"]["mean_black"] == "numeric >= 0"
+        assert sidecar_requirements["required_per_plane_metrics"]["b"]["noise_profile_offset"] == "numeric >= 0"
+        assert sidecar_requirements["source_frames_must_cover_submitted_extracted_bayer_hashes"] is True
         assert mission["evidence"][0]["no_scene_signal"] is True
         assert mission["evidence"][0]["source_kind"] == "confirmed_darkframes"
         assert "extracted_bayer_path" in mission["evidence"][0]

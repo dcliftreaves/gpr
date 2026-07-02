@@ -79,6 +79,28 @@ def darkframe_row(req: dict[str, Any], idx: int) -> dict[str, Any]:
     }
 
 
+def camera_noise_sidecar_requirements(count: int) -> dict[str, Any]:
+    return {
+        "schema": "gpr.camera_noise_calibration.v1",
+        "production_ready": True,
+        "minimum_sample_count": count,
+        "required_per_plane_metrics": {
+            plane: {
+                "mean_black": "numeric >= 0",
+                "sigma_black": "numeric > 0",
+                "noise_profile_offset": "numeric >= 0",
+            }
+            for plane in ("r", "g1", "b", "g2")
+        },
+        "noise_signal_audit": {
+            "separates_noise_from_signal": True,
+            "source_provenance_required": True,
+            "source_provenance_ready": True,
+        },
+        "source_frames_must_cover_submitted_extracted_bayer_hashes": True,
+    }
+
+
 def camera_role_template() -> dict[str, Any]:
     return {
         "target_role": "camera",
@@ -239,6 +261,7 @@ def requirement_template(req: dict[str, Any]) -> dict[str, Any]:
         row["source_provenance_audit_production_ready"] = True
         row["camera_noise_sidecar_path"] = "<camera_noise_calibration_sidecar.json>"
         row["camera_noise_sidecar_sha256"] = SHA_PLACEHOLDER
+        row["camera_noise_sidecar_requirements"] = camera_noise_sidecar_requirements(count)
         row["evidence"] = [darkframe_row(req, idx) for idx in range(count)]
     elif sample_type == "camera_hardware_receipt":
         row.update(camera_role_template())
