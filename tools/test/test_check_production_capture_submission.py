@@ -933,6 +933,27 @@ def main() -> int:
 
         bad = json.loads(json.dumps(strict))
         camera = next(row for row in bad["requirements"] if row["id"] == "mission1_camera_role_receipts")
+        target_bench_path = bundle / camera["receipts"]["labs_target_bench"]["path"]
+        target_bench = json.loads(target_bench_path.read_text(encoding="utf-8"))
+        target_bench["gvid"]["validation"]["valid"] = False
+        target_bench["gvid"]["validation"]["frame_count"] = 119
+        target_bench_path.write_text(json.dumps(target_bench, indent=2) + "\n", encoding="utf-8")
+        camera["receipts"]["labs_target_bench"]["sha256"] = hashlib.sha256(target_bench_path.read_bytes()).hexdigest()
+        handoff_path = bundle / camera["receipts"]["camera_handoff_receipt"]["path"]
+        handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+        handoff["output"]["validation"]["frame_count"] = 119
+        handoff_path.write_text(json.dumps(handoff, indent=2) + "\n", encoding="utf-8")
+        camera["receipts"]["camera_handoff_receipt"]["sha256"] = hashlib.sha256(handoff_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "labs_target_bench gvid.validation.valid must be true" in proc.stdout
+        assert "labs_target_bench gvid.validation.frame_count must match capture.frames_written" in proc.stdout
+        assert "camera_handoff_receipt output.validation.frame_count must match capture.frames_written" in proc.stdout
+        write_camera_role_receipts(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        camera = next(row for row in bad["requirements"] if row["id"] == "mission1_camera_role_receipts")
         preview_decode_path = bundle / camera["receipts"]["preview_decode_receipt"]["path"]
         preview_decode = json.loads(preview_decode_path.read_text(encoding="utf-8"))
         preview_decode["summary"]["dims"] = [[960, 720]]

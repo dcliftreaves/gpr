@@ -559,6 +559,8 @@ def validate_strict_camera_role_receipt_content(
             failures.append("labs_target_bench schema must be gpr_labs_target_bench.v1")
         if target_bench.get("simulated") is True:
             failures.append("labs_target_bench must not be simulated")
+        if nested_get(target_bench, "source_provenance", "available") is not True:
+            failures.append("labs_target_bench source_provenance.available must be true")
         if nested_get(target_bench, "verdict", "target_evidence") is not True:
             failures.append("labs_target_bench verdict.target_evidence must be true")
         for key, expected in (
@@ -573,8 +575,17 @@ def validate_strict_camera_role_receipt_content(
         ok, failure = number_equals(target_bench.get("capture", {}), "dropped_frames", 0)
         if not ok:
             failures.append(f"labs_target_bench capture.{failure}")
+        ok, failure = number_at_least(target_bench.get("capture", {}), "frames_written", 1)
+        if not ok:
+            failures.append(f"labs_target_bench capture.{failure}")
         if nested_get(target_bench, "gvid", "sha256") != row.get("gvid_sha256"):
             failures.append("labs_target_bench gvid.sha256 must match submitted gvid_sha256")
+        if nested_get(target_bench, "gvid", "validation", "valid") is not True:
+            failures.append("labs_target_bench gvid.validation.valid must be true")
+        target_frames = numeric_value(nested_get(target_bench, "capture", "frames_written"))
+        gvid_frames = numeric_value(nested_get(target_bench, "gvid", "validation", "frame_count"))
+        if target_frames is not None and gvid_frames is not None and int(target_frames) != int(gvid_frames):
+            failures.append("labs_target_bench gvid.validation.frame_count must match capture.frames_written")
 
     if target_preflight is not None:
         if target_preflight.get("schema") != "gpr.mission1_camera_target_preflight.v1":
@@ -589,6 +600,8 @@ def validate_strict_camera_role_receipt_content(
     if handoff is not None:
         if handoff.get("schema") != "gpr_labs_camera_handoff_receipt.v1":
             failures.append("camera_handoff_receipt schema must be gpr_labs_camera_handoff_receipt.v1")
+        if nested_get(handoff, "source_provenance", "available") is not True:
+            failures.append("camera_handoff_receipt source_provenance.available must be true")
         if nested_get(handoff, "target", "role") != "camera":
             failures.append("camera_handoff_receipt target.role must be camera")
         if nested_get(handoff, "integration", "raw_source_kind") not in {"sensor_dma_capture", "camera_ring_buffer"}:
@@ -604,6 +617,8 @@ def validate_strict_camera_role_receipt_content(
                 failures.append(f"camera_handoff_receipt verdict.{key} must be true")
         if nested_get(handoff, "output", "sha256") != row.get("gvid_sha256"):
             failures.append("camera_handoff_receipt output.sha256 must match submitted gvid_sha256")
+        if nested_get(handoff, "output", "validation", "valid") is not True:
+            failures.append("camera_handoff_receipt output.validation.valid must be true")
         ok, failure = number_equals(handoff.get("input_frame", {}), "width", 4096)
         if not ok:
             failures.append(f"camera_handoff_receipt input_frame.{failure}")
@@ -613,6 +628,19 @@ def validate_strict_camera_role_receipt_content(
         ok, failure = number_equals(handoff.get("capture", {}), "dropped_frames", 0)
         if not ok:
             failures.append(f"camera_handoff_receipt capture.{failure}")
+        handoff_frames = numeric_value(nested_get(handoff, "capture", "frames_written"))
+        handoff_output_frames = numeric_value(nested_get(handoff, "output", "validation", "frame_count"))
+        target_frames = numeric_value(nested_get(target_bench or {}, "capture", "frames_written"))
+        if handoff_frames is not None and handoff_output_frames is not None and int(handoff_frames) != int(handoff_output_frames):
+            failures.append("camera_handoff_receipt output.validation.frame_count must match capture.frames_written")
+        if target_frames is not None and handoff_frames is not None and int(target_frames) != int(handoff_frames):
+            failures.append("camera_handoff_receipt capture.frames_written must match labs_target_bench capture.frames_written")
+        ok, failure = number_greater_than(handoff.get("storage", {}), "write_mb_s", 0.0)
+        if not ok:
+            failures.append(f"camera_handoff_receipt storage.{failure}")
+        ok, failure = number_greater_than(handoff.get("memory", {}), "rss_kb", 0.0)
+        if not ok:
+            failures.append(f"camera_handoff_receipt memory.{failure}")
         ok, failure = number_at_least(handoff.get("timing", {}), "fps_median", 20.0)
         if not ok:
             failures.append(f"camera_handoff_receipt timing.{failure}")
@@ -652,6 +680,8 @@ def validate_strict_camera_role_receipt_content(
     if preview is not None:
         if preview.get("schema") != "gpr_labs_preview_ui_receipt.v1":
             failures.append("preview_ui_receipt schema must be gpr_labs_preview_ui_receipt.v1")
+        if nested_get(preview, "source_provenance", "available") is not True:
+            failures.append("preview_ui_receipt source_provenance.available must be true")
         if nested_get(preview, "target", "role") != "camera":
             failures.append("preview_ui_receipt target.role must be camera")
         if nested_get(preview, "verdict", "ui_ready") is not True:
@@ -665,6 +695,27 @@ def validate_strict_camera_role_receipt_content(
                 failures.append(f"preview_ui_receipt validation.{key} must be true")
         if nested_get(preview, "source", "gvid_sha256") != row.get("gvid_sha256"):
             failures.append("preview_ui_receipt source.gvid_sha256 must match submitted gvid_sha256")
+        for group, key, expected in (
+            ("source", "width", 4096),
+            ("source", "height", 3072),
+            ("preview", "width", 1024),
+            ("preview", "height", 768),
+        ):
+            ok, failure = number_equals(preview.get(group, {}), key, expected)
+            if not ok:
+                failures.append(f"preview_ui_receipt {group}.{failure}")
+        if nested_get(preview, "preview", "full_frame_downsample") is not True:
+            failures.append("preview_ui_receipt preview.full_frame_downsample must be true")
+        preview_source_frames = numeric_value(nested_get(preview, "source", "frame_count"))
+        preview_frames = numeric_value(nested_get(preview, "preview", "frame_count"))
+        decode_frames = numeric_value(preview_decode.get("frame_count")) if preview_decode is not None else None
+        target_frames = numeric_value(nested_get(target_bench or {}, "capture", "frames_written"))
+        if preview_source_frames is not None and preview_frames is not None and int(preview_source_frames) != int(preview_frames):
+            failures.append("preview_ui_receipt preview.frame_count must match source.frame_count")
+        if decode_frames is not None and preview_frames is not None and int(decode_frames) != int(preview_frames):
+            failures.append("preview_ui_receipt preview.frame_count must match preview_decode_receipt frame_count")
+        if target_frames is not None and preview_frames is not None and int(target_frames) != int(preview_frames):
+            failures.append("preview_ui_receipt preview.frame_count must match labs_target_bench capture.frames_written")
         for key, expected in (("width", 1024), ("height", 768)):
             ok, failure = number_equals(preview.get("preview", {}), key, expected)
             if not ok:
