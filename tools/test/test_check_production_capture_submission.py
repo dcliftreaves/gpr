@@ -1304,6 +1304,21 @@ def main() -> int:
         dark = bad["requirements"][0]
         sidecar_path = bundle / dark["camera_noise_sidecar_path"]
         sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+        frames = sidecar["calibrations"][0]["source"]["frames"]
+        sidecar["calibrations"][0]["source"]["frames"] = frames[:3] + [dict(frames[0])]
+        sidecar_path.write_text(json.dumps(sidecar, indent=2) + "\n", encoding="utf-8")
+        dark["camera_noise_sidecar_sha256"] = hashlib.sha256(sidecar_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "camera_noise_sidecar source.frames must include at least 4 unique raw_sha256 values" in proc.stdout
+        assert "camera_noise_sidecar source.frames must cover every submitted extracted Bayer hash" in proc.stdout
+        write_darkframe_audits(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        dark = bad["requirements"][0]
+        sidecar_path = bundle / dark["camera_noise_sidecar_path"]
+        sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
         sidecar["calibrations"][0]["source"]["frames"][0]["original_sha256"] = "d" * 64
         sidecar["calibrations"][0]["source"]["frames"][1]["no_scene_signal"] = False
         sidecar_path.write_text(json.dumps(sidecar, indent=2) + "\n", encoding="utf-8")

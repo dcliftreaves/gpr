@@ -98,6 +98,7 @@ def camera_noise_sidecar_requirements(count: int) -> dict[str, Any]:
             "source_provenance_ready": True,
         },
         "source_frames_must_cover_submitted_extracted_bayer_hashes": True,
+        "source_frames_must_include_unique_provenance_ready_raw_hashes": True,
     }
 
 

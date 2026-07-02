@@ -473,6 +473,12 @@ def validate_camera_noise_sidecar(
         for frame in as_list(source.get("frames"))
         if isinstance(frame, dict) and frame.get("source_provenance_ready") is True
     ]
+    if len(sidecar_frames) < min_count:
+        failures.append(f"camera_noise_sidecar source.frames must include at least {min_count} provenance-ready frames")
+    unique_raw_hashes = {str(frame.get("raw_sha256") or "").lower() for frame in sidecar_frames}
+    unique_raw_hashes.discard("")
+    if len(unique_raw_hashes) < min_count:
+        failures.append(f"camera_noise_sidecar source.frames must include at least {min_count} unique raw_sha256 values")
     sidecar_by_raw_hash = {str(frame.get("raw_sha256") or "").lower(): frame for frame in sidecar_frames}
     for row in submitted_rows:
         raw_hash = str(row.get("extracted_bayer_sha256") or "").lower()

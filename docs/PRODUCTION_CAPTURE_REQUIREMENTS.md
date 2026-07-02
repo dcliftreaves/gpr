@@ -122,7 +122,8 @@ camera/ISO/CFA/dimensions/bit-depth/black-level/white-level stack.
 The referenced `gpr.camera_noise_calibration.v1` sidecar must also mark
 `production_ready=true`, match the submitted stack camera/ISO/CFA/dimensions,
 cover every submitted extracted-Bayer hash in `source.frames`, preserve each
-submitted original source hash and `no_scene_signal=true`, and include per-plane
+submitted original source hash and `no_scene_signal=true`, list at least four
+provenance-ready frames with unique `raw_sha256` values, and include per-plane
 `mean_black>=0`, `sigma_black>0`, and `noise_profile_offset>=0` for `r`, `g1`,
 `b`, and `g2`. A premium still-SR submission
 must first build a candidate preflight scaffold, edit it with a non-placeholder

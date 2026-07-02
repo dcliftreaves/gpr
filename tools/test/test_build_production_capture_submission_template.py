@@ -59,6 +59,7 @@ def main() -> int:
         assert sidecar_requirements["required_per_plane_metrics"]["g1"]["mean_black"] == "numeric >= 0"
         assert sidecar_requirements["required_per_plane_metrics"]["b"]["noise_profile_offset"] == "numeric >= 0"
         assert sidecar_requirements["source_frames_must_cover_submitted_extracted_bayer_hashes"] is True
+        assert sidecar_requirements["source_frames_must_include_unique_provenance_ready_raw_hashes"] is True
         assert mission["evidence"][0]["no_scene_signal"] is True
         assert mission["evidence"][0]["source_kind"] == "confirmed_darkframes"
         assert "extracted_bayer_path" in mission["evidence"][0]
