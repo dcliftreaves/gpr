@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 14 selector smoke passes, and the strict promotion-receipts rollup now records 4/8 done steps with model floor, full 50 MP / 100 MP gate, timing/memory, noise wiring, and production submission still open.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 14 selector smoke passes, strict promotion receipts record 4/8 done steps, and the model-floor gap receipt now quantifies the remaining 15% / 15% gap: best runtime-safe MAE/RMSE are 4.03%/3.75%, with zero promotable rows.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -129,10 +129,11 @@
           "premium_still_sr_gate13_source_or_objective_revision_20260702",
           "premium_still_sr_gate14_candidate_intake_20260702",
           "premium_still_sr_gate14_selector_smoke_20260702",
-          "premium_still_sr_promotion_receipts_20260702"
+          "premium_still_sr_promotion_receipts_20260702",
+          "premium_still_sr_model_floor_gap_20260702"
         ]
       },
-      "open_gate": "Premium still-SR promotion is the first open local gate: build a candidate-only model that clears 15% / 15% held-out MAE/RMSE on 50 MP and 100 MP routes, records timing/memory, keeps exact-sidecar-only noise policy, and passes production submission validation."
+      "open_gate": "Premium still-SR promotion is the first open local gate: build premium_still_sr_gate14_floor_student_v1 or stronger measured-source evidence so the model floor reaches 15% / 15% before full 50 MP / 100 MP promotion validation."
     },
     {
       "id": "raw_video_reconstruction",
@@ -4982,6 +4983,54 @@
         "production_submission_missing_or_failed",
         "timing_memory_missing"
       ]
+    },
+    {
+      "id": "premium_still_sr_model_floor_gap_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Model-floor gap receipt for the first open Premium still-SR promotion step. It quantifies the distance from the 15% / 15% promotion floor and defines the next candidate contract as premium_still_sr_gate14_floor_student_v1 instead of another rejected branch replay.",
+      "dashboard": "artifacts/premium_still_sr_model_floor_gap_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_WORK_ORDER.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_model_floor_gap.py",
+        "tools/test/test_build_premium_still_sr_model_floor_gap.py",
+        "tools/build_premium_still_sr_promotion_receipts.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json",
+        "artifacts/premium_still_sr_model_floor_gap_20260702/index.html"
+      ],
+      "hashes": {
+        "model_floor_gap_json_sha256": "fb27020f6d29636ea690e109ae4d7dda7a1f0151d6b29fe42265ecf1d84b4d88",
+        "dashboard_sha256": "ddbbb904f78d2a210c297b36cc4899c44d5a684f7d6de5c091d6ac00315492fb"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "receipt_count": 124,
+        "runtime_safe_candidate_count": 124,
+        "promotable_candidate_count": 0,
+        "best_runtime_safe_mae_pct": 4.031355420019811,
+        "best_runtime_safe_rmse_pct": 3.753504206299621,
+        "best_runtime_safe_mae_gap_pct": 10.96864457998019,
+        "best_runtime_safe_rmse_gap_pct": 11.24649579370038,
+        "gate14_selector_global_median_mae_pct": 0.2506229397841941,
+        "gate14_selector_global_floor_gap_pct": 14.749377060215807,
+        "gate14_selector_negative_row_count": 0,
+        "gate14_selector_selected_row_count": 88
+      },
+      "next_candidate_contract": {
+        "candidate_id": "premium_still_sr_gate14_floor_student_v1",
+        "long_run_allowed": false,
+        "requires": "X2D and Z8 smoke evidence from candidate-only runtime inputs before any long run; full promotion still needs 50 MP / 100 MP rows, timing/memory, exact-sidecar noise policy, and production submission."
+      }
     }
   ],
   "release_checks": [

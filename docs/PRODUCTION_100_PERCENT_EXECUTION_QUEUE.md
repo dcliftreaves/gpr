@@ -51,3 +51,13 @@ It records `completion_percent=50.0`, `done_step_count=4`, and
 `model_promotion_floor_not_met`, `full_50mp_100mp_gate_missing`,
 `timing_memory_missing`, `noise_policy_not_wired`, and
 `production_submission_missing_or_failed`.
+
+The current model-floor receipt is:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json`
+
+It records the exact first blocker: best runtime-safe MAE/RMSE are
+`4.031355420019811%` / `3.753504206299621%` versus the `15% / 15%` floor, and
+Gate 14 selector global median MAE is `0.2506229397841941%`. The next candidate
+contract is `premium_still_sr_gate14_floor_student_v1`, not another Gate 14
+replay or rejected single-source branch.

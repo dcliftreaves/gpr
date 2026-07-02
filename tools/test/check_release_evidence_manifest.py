@@ -190,6 +190,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_gate14_candidate_intake_20260702",
                 "premium_still_sr_gate14_selector_smoke_20260702",
                 "premium_still_sr_promotion_receipts_20260702",
+                "premium_still_sr_model_floor_gap_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
@@ -1162,6 +1163,60 @@ def require_dashboard_contract(
         }
         if set(blockers or []) != expected_blockers:
             failures.append(f"{entry_id}: blocker_classifications must stay {sorted(expected_blockers)}")
+
+    if entry_id == "premium_still_sr_model_floor_gap_20260702":
+        if entry.get("status") != "experimental-blocker":
+            failures.append(f"{entry_id}: model-floor gap must remain experimental-blocker until production passes")
+        hashes = entry.get("hashes")
+        if not isinstance(hashes, dict):
+            failures.append(f"{entry_id}: model-floor gap needs hashes")
+        else:
+            expected_hashes = {
+                "model_floor_gap_json_sha256": "fb27020f6d29636ea690e109ae4d7dda7a1f0151d6b29fe42265ecf1d84b4d88",
+                "dashboard_sha256": "ddbbb904f78d2a210c297b36cc4899c44d5a684f7d6de5c091d6ac00315492fb",
+            }
+            for key, expected in expected_hashes.items():
+                if hashes.get(key) != expected:
+                    failures.append(f"{entry_id}: hash {key} must stay {expected}")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: model-floor gap needs metrics")
+        else:
+            expected_ints = {
+                "production_ready": 0,
+                "receipt_count": 124,
+                "runtime_safe_candidate_count": 124,
+                "promotable_candidate_count": 0,
+                "gate14_selector_negative_row_count": 0,
+                "gate14_selector_selected_row_count": 88,
+            }
+            for key, expected in expected_ints.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+            expected_float = {
+                "best_runtime_safe_mae_pct": 4.031355420019811,
+                "best_runtime_safe_rmse_pct": 3.753504206299621,
+                "best_runtime_safe_mae_gap_pct": 10.96864457998019,
+                "best_runtime_safe_rmse_gap_pct": 11.24649579370038,
+                "gate14_selector_global_median_mae_pct": 0.2506229397841941,
+                "gate14_selector_global_floor_gap_pct": 14.749377060215807,
+            }
+            for key, expected in expected_float.items():
+                try:
+                    value = float(metrics.get(key))
+                except (TypeError, ValueError):
+                    failures.append(f"{entry_id}: metric {key} must be numeric")
+                else:
+                    if abs(value - expected) > 1e-12:
+                        failures.append(f"{entry_id}: metric {key} drifted")
+        contract = entry.get("next_candidate_contract")
+        if not isinstance(contract, dict):
+            failures.append(f"{entry_id}: next_candidate_contract is required")
+        else:
+            if contract.get("candidate_id") != "premium_still_sr_gate14_floor_student_v1":
+                failures.append(f"{entry_id}: candidate_id must be premium_still_sr_gate14_floor_student_v1")
+            if contract.get("long_run_allowed") is not False:
+                failures.append(f"{entry_id}: long_run_allowed must be false until paired smoke passes")
 
     if entry_id == "raw_2k_l2hh_visual_proxy":
         failure_rows = entry.get("failure_rows")

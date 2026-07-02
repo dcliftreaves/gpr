@@ -47,12 +47,15 @@ promotion validation:
 | Gate 14 candidate intake | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_candidate_intake_20260702/candidate_preflight.json` | Passed as executable selector intake. It persists a seven-rule first-match sidecar with six source mappings, 78 candidate-only runtime features, source/checkpoint hashes, feature schema, exact no-op fallback, and forbidden REF/source/JPEG/gate metric policy. Sidecar replay clears X2D with median/worst MAE `0.329828330762138%` / `0.0%` and `0.02786331921791634%` / `0.0%`; Z8 exact-noop remains `0.0%` / `0.0%`. This allows selector smoke, not promotion or long training. |
 | Gate 14 selector smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_selector_smoke_20260702/selector_smoke.json` | Passed as runtime selector smoke. It reloads the persisted sidecar, recomputes candidate-only runtime features, validates source/checkpoint hashes, executes first-match routing, and matches the intake replay. X2D median/worst MAE is `0.329828330762138%` / `0.0%` and `0.02786331921791634%` / `0.0%`; assigned rows `88`, exact-noop fallback rows `40`, source model failures `0`, and `promotion_gate_allowed=true`. |
 | Premium still-SR promotion receipts rollup | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_20260702/premium_still_sr_promotion_receipts.json` | Open as strict 4/8 production rollup. Done steps are Gate 14 selector smoke, route coverage, editor/openability, and clean-signal noise policy. The first open step is `model_promotion_floor`; blockers are `model_promotion_floor_not_met`, `full_50mp_100mp_gate_missing`, `timing_memory_missing`, `noise_policy_not_wired`, and `production_submission_missing_or_failed`. |
+| Premium still-SR model-floor gap | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json` | Open as first-blocker receipt. Best runtime-safe MAE/RMSE are `4.031355420019811%` / `3.753504206299621%`, leaving `10.96864457998019` / `11.24649579370038` points to the `15% / 15%` promotion floor. Gate 14 selector is tail-safe but only `0.2506229397841941%` median MAE. The next candidate contract is `premium_still_sr_gate14_floor_student_v1`. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
 Continue `premium_still_sr_promotion_receipts` from the first open step
-`model_promotion_floor`. Do not rerun
+`model_promotion_floor`, using the `premium_still_sr_model_floor_gap_20260702`
+receipt and the `premium_still_sr_gate14_floor_student_v1` candidate contract.
+Do not rerun
 source-frequency targets, generic full-crop U-Net residual training, masked-
 detail thresholds, candidate-HF no-op threshold tuning, simple frame-context
 conditioning, the Gate 9 route-conditioned/noise-aware U-Net smoke, the Gate 11

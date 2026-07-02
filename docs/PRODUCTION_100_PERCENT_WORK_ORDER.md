@@ -37,6 +37,17 @@ The next exact receipt is:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_20260702/premium_still_sr_promotion_receipts.json
 ```
 
+The first open sub-receipt is:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json
+```
+
+It defines the next candidate contract as
+`premium_still_sr_gate14_floor_student_v1`: distill or replace the Gate 14
+routed selector/source evidence with a true candidate-only student or measured
+high/low raw source evidence before any long run.
+
 That receipt may say production is still blocked, but it must classify the
 blocker. Acceptable blocker classes are:
 
@@ -55,6 +66,9 @@ blocker. Acceptable blocker classes are:
 ```bash
 python3 tools/build_premium_still_sr_promotion_receipts.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_20260702
+
+python3 tools/build_premium_still_sr_model_floor_gap.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_model_floor_gap_20260702
 
 python3 tools/check_premium_still_sr_promotion_gate.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_current_20260702
