@@ -33,7 +33,7 @@ handoff fourth, locked raw-video reconstruction protection fifth.**
 | 3 | Premium still/SR Gate 14 intake | closed/local | Protect `premium_still_sr_gate14_candidate_intake_20260702`: selector sidecar, source-model mapping, feature schema, hashes, candidate-only runtime policy, and exact no-op fallback are persisted. | Gate 14 executable selector intake reproduces the Gate 13 pass using candidate-only runtime inputs and Z8 exact-noop. |
 | 4 | Premium still/SR Gate 14 selector smoke | closed/local | Protect `premium_still_sr_gate14_selector_smoke_20260702`: the persisted sidecar runs through runtime feature recomputation, source/checkpoint hash checks, first-match routing, and intake replay comparison. | Selector smoke reproduces the X2D pass, preserves Z8 exact-noop, records model/checkpoint hashes, and uses no REF/source/JPEG/gate metric inputs. |
 | 5 | Premium still/SR Gate14 floor-student launch packet | closed/local | Protect `premium_still_sr_gate14_floor_student_preflight_20260702` and `premium_still_sr_gate14_floor_student_launch_packet_20260702`: the next candidate named by the model-floor gap has a launchable preflight, paired X2D/Z8 smoke commands, exact no-op fallback, and no REF/source/JPEG render-time inputs. | `preflight_audit.json` says `launchable_preflight_passed` for `premium_still_sr_gate14_floor_student_v1`, with `1.0%` median MAE smoke floor and `0.0%` worst-row floor. |
-| 6 | Premium still/SR promotion | open/local | Revise the Gate14 floor-student target/objective after the paired smokes blocked the long run. The current high-pass residual U-Net failed, and the direct clean-source 2x objective has now also failed the paired smoke floor. The next objective must add a stronger source-HF/direct-clean signal plus strict noise-sidecar wiring before another long run. | `premium_still_sr_promotion_receipts` pass 15% / 15% held-out MAE/RMSE, nonnegative worst-row MAE, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. |
+| 6 | Premium still/SR promotion | open/local | Revise the Gate14 floor-student target/objective after the paired smokes blocked the long run. The current high-pass residual U-Net, direct clean-source 2x objective, and source-HF/stored-HF objective all failed the paired smoke floor. The next objective must change the candidate-only gate/target construction so X2D gets positive signal without tail damage and Z8 remains exact no-op unless positive source evidence exists. | `premium_still_sr_promotion_receipts` pass 15% / 15% held-out MAE/RMSE, nonnegative worst-row MAE, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. |
 | 7 | RAW stills noise sidecars | open/sample | Capture or prove Mission 1 and iPhone true darkframes with strict no-scene-signal provenance. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate, then camera-noise calibration sidecars pass `--require-source-provenance`. |
 | 8 | Mission 1 raw-video MVP | blocked_external | GoPro/Mission 1 firmware owner runs the camera-role validation on real sensor/DMA or camera ring-buffer source, SD writer, and rear display. | Real camera-role receipts show valid `.gvid`, zero drops, 120+ sustained frames, memory, 4096 x 3072 source encode, 1024 x 768 preview, and 20+ fps floor. |
 
@@ -136,3 +136,21 @@ That rules out the simple direct clean-source 2x replacement as the production
 objective. The next local Gate A action is a stronger target/objective revision:
 combine source-HF or direct-clean supervision with exact-sidecar-only noise
 gating and candidate-only no-op behavior, then re-run the paired X2D/Z8 smoke.
+
+The first source-HF/stored-HF revision has also been tested and is blocked
+before long training:
+
+- X2D source-HF/stored-HF smoke:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_sourcehf_storedhf_x2d_smoke_20260702/train_receipt.json`
+  with holdout median/worst raw MAE recovery `0.0%` /
+  `-72.74350477685562%`, checkpoint
+  `ba2d2ec480e753764f136d53a075f86eaae796435ed6867651d15dd14190dc65`.
+- Z8 source-HF/stored-HF smoke:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_sourcehf_storedhf_z8_smoke_20260702/train_receipt.json`
+  with holdout median/worst raw MAE recovery `0.0%` / `0.0%`, checkpoint
+  `e340f5fac100446dd26763e13336eb01a18bbb7fa72622706ef2608e55890f74`.
+
+That rules out this source-HF configuration: the candidate-HF no-op gate
+protects Z8 but collapses the median to no-op and leaves an unacceptable X2D
+tail. The next objective revision must change gate construction and target
+selection, not just rerun source-HF with the same no-op threshold.
