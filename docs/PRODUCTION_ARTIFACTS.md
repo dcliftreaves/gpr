@@ -105,6 +105,10 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate14 objective-gate audit dashboard | `artifacts/premium_still_sr_gate14_objective_gate_audit_20260702/index.html` | `201d21b67c7bc80ab0473bea2d9c7d62eb82f2c707782cf510b05f1aed5a9cd1` |
 | Gate15 target-construction preflight receipt | `artifacts/premium_still_sr_gate15_target_construction_preflight_20260702/target_construction_preflight.json` | `f2ccc0a47024c02c4c5d1b07bc445ae2f869d56e63b00e9872905ef41f3bcea3` |
 | Gate15 target-construction preflight dashboard | `artifacts/premium_still_sr_gate15_target_construction_preflight_20260702/index.html` | `531f620230c34d6453bb15f23f0bd208dd2c8f792e3ca671c59f2df36068adc2` |
+| Gate15 target-construction proposal receipt | `artifacts/premium_still_sr_gate15_target_construction_proposal_20260702/target_construction_proposal.json` | `253496f5206ed7d02029cff68c4c82f6a43f2cb23140f556082727dc028655c9` |
+| Gate15 target-construction proposal dashboard | `artifacts/premium_still_sr_gate15_target_construction_proposal_20260702/index.html` | `bb914b94279d5b458a48e116cf0b712bc6ef3cf539fd2f44400df7c8bd2a2e6e` |
+| Gate15 target-construction preflight pass receipt | `artifacts/premium_still_sr_gate15_target_construction_preflight_with_proposal_20260702/target_construction_preflight.json` | `a503be325f7d4e781b0bfd7d7555f2b417582c2b42344e5182304301667a2add` |
+| Gate15 target-construction preflight pass dashboard | `artifacts/premium_still_sr_gate15_target_construction_preflight_with_proposal_20260702/index.html` | `fa2c5fad2b73404e562772f0e7908d6ac3cd9d6d919932ddc612f3a33b13194b` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -135,6 +139,13 @@ That preflight is now executable and currently records
 allowed until a Gate15 target proposal supplies row-level `pretraining_signal_rows`
 with enough X2D candidate-only positives for a median pass and Z8 exact-noop or
 positive-source-evidence rows.
+The first Gate15 proposal now passes that preflight. It reads the Gate14 target
+metadata without loading the multi-GB arrays, marks X2D rows positive only when
+candidate HF and target residual clear the proposal floors, and keeps all Z8 rows
+exact no-op. The proposal records `463` X2D positive rows versus `289` needed,
+and `1536/1536` Z8 exact-noop rows. The preflight pass records
+`paired_smoke_allowed=true` and `long_run_allowed=false`, so the next evidence is
+paired X2D/Z8 smoke, not long training.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

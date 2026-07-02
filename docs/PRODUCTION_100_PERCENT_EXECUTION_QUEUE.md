@@ -31,7 +31,8 @@ item is `closed` or `blocked_external`.
    X2D has enough candidate-only positive rows to clear the 1% smoke median
    floor and that Z8 can remain exact no-op unless it has positive source
    evidence.
-5. Only after the Gate15 preflight passes, run paired X2D/Z8 smokes. A long run is
+5. Only after the Gate15 preflight passes, materialize or adapt the trainer to
+   the Gate15 target policy, then run paired X2D/Z8 smokes. A long run is
    allowed only if the paired smoke clears the 1% median MAE floor and 0.0%
    worst-row floor.
 6. Only after paired smoke passes, run the full 50 MP / 100 MP Premium still-SR
@@ -64,7 +65,7 @@ handoff fourth, locked raw-video reconstruction protection fifth.**
 | 3 | Premium still/SR Gate 14 intake | closed/local | Protect `premium_still_sr_gate14_candidate_intake_20260702`: selector sidecar, source-model mapping, feature schema, hashes, candidate-only runtime policy, and exact no-op fallback are persisted. | Gate 14 executable selector intake reproduces the Gate 13 pass using candidate-only runtime inputs and Z8 exact-noop. |
 | 4 | Premium still/SR Gate 14 selector smoke | closed/local | Protect `premium_still_sr_gate14_selector_smoke_20260702`: the persisted sidecar runs through runtime feature recomputation, source/checkpoint hash checks, first-match routing, and intake replay comparison. | Selector smoke reproduces the X2D pass, preserves Z8 exact-noop, records model/checkpoint hashes, and uses no REF/source/JPEG/gate metric inputs. |
 | 5 | Premium still/SR Gate14 floor-student launch packet | closed/local | Protect `premium_still_sr_gate14_floor_student_preflight_20260702` and `premium_still_sr_gate14_floor_student_launch_packet_20260702`: the next candidate named by the model-floor gap has a launchable preflight, paired X2D/Z8 smoke commands, exact no-op fallback, and no REF/source/JPEG render-time inputs. | `preflight_audit.json` says `launchable_preflight_passed` for `premium_still_sr_gate14_floor_student_v1`, with `1.0%` median MAE smoke floor and `0.0%` worst-row floor. |
-| 6 | Premium still/SR promotion | open/local | Build a Gate15 target-construction proposal, then pass the Gate15 preflight before any paired smoke or long run. The objective-gate audit proves the current high-pass residual U-Net, direct clean-source 2x objective, and source-HF/stored-HF objective cannot be rescued by candidate-only threshold gating: direct-clean has 0 positive-floor rows where 33 are needed on both X2D/Z8, source-HF has 2/17 on X2D and 0/17 on Z8. The Gate15 preflight now blocks at `proposal_missing` until a proposal supplies enough X2D candidate-only positive rows and Z8 exact-noop or positive-source-evidence rows. | `premium_still_sr_promotion_receipts` pass 15% / 15% held-out MAE/RMSE, nonnegative worst-row MAE, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. |
+| 6 | Premium still/SR promotion | open/local | Build the executable Gate15 paired-smoke path for `premium_still_sr_gate15_x2d_positive_z8_noop_v1`: first materialize a trainer-consumable target set or adapter from the proposal policy, then run X2D and Z8 smokes, then run smoke acceptance. Gate15 target construction now passes: the proposal has 463 X2D candidate-only positive rows versus 289 needed, 1536/1536 Z8 exact-noop rows, `paired_smoke_allowed=true`, and `long_run_allowed=false`. Do not run long training until paired smoke clears the 1% median MAE and 0.0% worst-row floors. | `premium_still_sr_promotion_receipts` pass 15% / 15% held-out MAE/RMSE, nonnegative worst-row MAE, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. |
 | 7 | RAW stills noise sidecars | open/sample | Capture or prove Mission 1 and iPhone true darkframes with strict no-scene-signal provenance. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate, then camera-noise calibration sidecars pass `--require-source-provenance`. |
 | 8 | Mission 1 raw-video MVP | blocked_external | GoPro/Mission 1 firmware owner runs the camera-role validation on real sensor/DMA or camera ring-buffer source, SD writer, and rear display. | Real camera-role receipts show valid `.gvid`, zero drops, 120+ sustained frames, memory, 4096 x 3072 source encode, 1024 x 768 preview, and 20+ fps floor. |
 
@@ -199,13 +200,17 @@ upper bound cannot clear the 1% median smoke floor on the current outputs. The
 next local step is therefore a target-construction preflight that proves enough
 positive candidate-only rows exist before any paired smoke or long training.
 
-The Gate15 preflight now exists and is the next machine gate:
+The Gate15 preflight now exists and has moved from missing proposal to passed
+target-construction intake:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate15_target_construction_preflight_20260702/target_construction_preflight.json`
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate15_target_construction_proposal_20260702/target_construction_proposal.json`
 
-It records `verdict=blocked_pending_target_construction_proposal`,
-`blocker_classification=proposal_missing`, `paired_smoke_allowed=false`, and
-`long_run_allowed=false`. The next action is no longer to write another trainer
-command; it is to create a Gate15 proposal with row-level
-`pretraining_signal_rows` proving the target construction has enough positive
-candidate-only X2D rows and no unsafe Z8 rows.
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate15_target_construction_preflight_with_proposal_20260702/target_construction_preflight.json`
+
+The proposal records `463` X2D candidate-only positive rows versus `289` needed
+for a median pass, and `1536/1536` Z8 exact-noop rows. The preflight records
+`verdict=gate15_target_construction_preflight_passed`,
+`paired_smoke_allowed=true`, `long_run_allowed=false`, and
+`blocker_classification=none`. The next action is paired X2D/Z8 smoke; a long
+run remains disallowed until that smoke clears the 1% median MAE and 0.0%
+worst-row floors.
