@@ -54,6 +54,11 @@ def main() -> int:
         assert len(data["smoke_gate_commands"]) == 2
         assert any("x2d" in item.lower() for item in data["smoke_gate_commands"])
         assert any("z8" in item.lower() for item in data["smoke_gate_commands"])
+        assert data["smoke_gate_acceptance"]["baseline"] == "same-color Bayer interpolation"
+        assert data["smoke_gate_acceptance"]["required_holdouts"] == ["X2D", "Z8"]
+        assert data["smoke_gate_acceptance"]["minimum_median_mae_reduction_pct"] > 0
+        assert data["smoke_gate_acceptance"]["minimum_worst_row_mae_reduction_pct"] == 0.0
+        assert data["smoke_gate_acceptance"]["long_run_blocked_if_smoke_fails"] is True
         assert data["noise_policy"]["exact_sidecars_only"] is True
 
         audit_json = base / "audit.json"

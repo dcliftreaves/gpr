@@ -152,6 +152,18 @@ def command_sequence(
                     "receipt": "defined by explicit candidate_preflight.json smoke_gate_commands",
                 }
             )
+        command_items.append(
+            {
+                "step": "check_smoke_gate_acceptance",
+                "command": (
+                    "Compare the X2D and Z8 smoke receipts against "
+                    "candidate_preflight.json smoke_gate_acceptance. Stop before "
+                    "any long run unless both holdouts beat same-color Bayer "
+                    "interpolation and meet the median/worst-row floors."
+                ),
+                "receipt": "x2d_smoke_receipt and z8_smoke_receipt with baseline_comparison, checkpoint_hash, and training_config_hash",
+            }
+        )
     else:
         command_items.append(
             {
@@ -245,6 +257,7 @@ def build_packet(
             "candidate-only runtime inputs: candidate_raw and camera_metadata, with no REF/source/JPEG content",
             "held-out X2D and Z8 full-image or overlapped-tile evidence",
             "both X2D and Z8 smoke holdouts beat same-color interpolation before any longer run",
+            "candidate_preflight.json smoke_gate_acceptance passes: positive median MAE recovery, nonnegative worst-row MAE recovery, and required receipt fields",
             "50 MP and 100 MP full-frame rows",
             "positive median MAE/RMSE recovery and nonnegative worst-row recovery",
             "editable DNG/GPR receipts and editor-latitude review",

@@ -94,9 +94,12 @@ production-promoted.
    architecture/degradation/validation change. Also replace the placeholder
    `smoke_gate_commands` with separate exact X2D and Z8 smoke commands for
    that candidate, and make every `--output-dir` land under
-   `/Volumes/OWC_8TB/gpr_work`; launch packets now use those manifest commands
-   directly rather than a built-in Restormer command shape. Then build the
-   launch packet from that explicit manifest:
+   `/Volumes/OWC_8TB/gpr_work`. Keep or edit `smoke_gate_acceptance` so it
+   explicitly blocks long training unless both X2D and Z8 smoke receipts beat
+   same-color Bayer interpolation with positive median MAE recovery and
+   nonnegative worst-row MAE recovery. Launch packets now use those manifest
+   commands directly rather than a built-in Restormer command shape. Then build
+   the launch packet from that explicit manifest:
 
    ```sh
    python3 tools/build_premium_still_sr_launch_packet.py \
@@ -133,7 +136,9 @@ production-promoted.
    covered by rejected 20260702 receipts. A manifest without concrete X2D and
    Z8 `smoke_gate_commands` is blocked before launch, even if the prose looks
    material. A manifest whose smoke commands still contain placeholders or write
-   receipts to local `/tmp` is also blocked.
+   receipts to local `/tmp` is also blocked. A manifest without
+   `smoke_gate_acceptance`, or with an acceptance policy that allows zero median
+   improvement or negative worst-row recovery, is blocked before launch.
 
 5. Rebuild the scoreboard and reject the candidate if it cannot beat the
    promotion floor:

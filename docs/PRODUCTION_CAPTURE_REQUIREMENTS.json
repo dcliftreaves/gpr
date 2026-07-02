@@ -242,6 +242,7 @@
       "required_evidence": [
         "checkpoint hash and training config",
         "candidate preflight manifest with separate concrete X2D and Z8 smoke_gate_commands for the proposed candidate, with receipts under /Volumes/OWC_8TB/gpr_work",
+        "candidate preflight smoke_gate_acceptance requiring same-color Bayer interpolation baseline, X2D and Z8 holdouts, positive median MAE recovery, nonnegative worst-row MAE recovery, and hard stop before long training if smoke fails",
         "training target hash with runtime_inputs limited to candidate raw, camera metadata, and validated optional noise sidecars",
         "50 MP and 100 MP full-frame raw-domain gates with row counts",
         "positive 50 MP and 100 MP median MAE reduction, with nonnegative worst-row MAE reduction",
@@ -254,6 +255,7 @@
       "acceptance": [
         "candidate beats current still-SR baselines on 50 MP and 100 MP holdouts",
         "candidate preflight and launch packet record separate candidate-specific X2D and Z8 smoke_gate_commands under /Volumes/OWC_8TB/gpr_work before any long training run",
+        "candidate preflight smoke_gate_acceptance blocks long training unless X2D and Z8 smoke receipts beat same-color Bayer interpolation with positive median MAE recovery and nonnegative worst-row MAE recovery",
         "runtime_inputs includes candidate_raw and camera_metadata",
         "no REF/source/JPEG image content is used at render time",
         "full_frame_gate_50mp_row_count and full_frame_gate_100mp_row_count are at least 1",

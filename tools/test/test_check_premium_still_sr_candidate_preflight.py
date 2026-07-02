@@ -13,6 +13,23 @@ ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools/check_premium_still_sr_candidate_preflight.py"
 
 
+def smoke_gate_acceptance() -> dict:
+    return {
+        "baseline": "same-color Bayer interpolation",
+        "required_holdouts": ["X2D", "Z8"],
+        "minimum_median_mae_reduction_pct": 0.001,
+        "minimum_worst_row_mae_reduction_pct": 0.0,
+        "long_run_blocked_if_smoke_fails": True,
+        "receipt_fields_required": [
+            "x2d_smoke_receipt",
+            "z8_smoke_receipt",
+            "baseline_comparison",
+            "checkpoint_hash",
+            "training_config_hash",
+        ],
+    }
+
+
 def write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -98,6 +115,7 @@ def main() -> int:
                         "--holdout-image z8 --model-arch row_psf_teacher"
                     ),
                 ],
+                "smoke_gate_acceptance": smoke_gate_acceptance(),
                 "noise_policy": {
                     "exact_sidecars_only": True,
                     "forbids_source_residual_noise": True,
@@ -124,6 +142,7 @@ def main() -> int:
         assert "row-level psf" in audit["material_source_matches"]
         assert "restormer" in audit["architecture_delta_matches"]
         assert "psf" in audit["degradation_delta_matches"]
+        assert audit["smoke_gate_acceptance"]["minimum_median_mae_reduction_pct"] == 0.001
         assert audit["smoke_gate_command_count"] == 2
         assert passing_html.exists()
 
@@ -159,6 +178,7 @@ def main() -> int:
         assert any("rejected primary path" in item for item in failed["failures"])
         assert any("forbidden render-time content" in item for item in failed["failures"])
         assert any("new source/evidence" in item for item in failed["failures"])
+        assert any("smoke_gate_acceptance" in item for item in failed["failures"])
         assert any("held-out Z8" in item for item in failed["failures"])
         assert any("50 MP" in item for item in failed["failures"])
         assert any("100 MP" in item for item in failed["failures"])
@@ -261,6 +281,18 @@ def main() -> int:
         assert proc.returncode != 0
         local_tmp_failed = json.loads(local_tmp_audit.read_text(encoding="utf-8"))
         assert any("/Volumes/OWC_8TB/gpr_work" in item for item in local_tmp_failed["failures"])
+
+        weak_acceptance = json.loads(passing.read_text(encoding="utf-8"))
+        weak_acceptance["smoke_gate_acceptance"]["minimum_median_mae_reduction_pct"] = 0.0
+        weak_acceptance["smoke_gate_acceptance"]["minimum_worst_row_mae_reduction_pct"] = -0.1
+        weak_acceptance_path = base / "weak_acceptance.json"
+        weak_acceptance_audit = base / "weak_acceptance_audit.json"
+        write_json(weak_acceptance_path, weak_acceptance)
+        proc = run_tool(weak_acceptance_path, "--json-out", str(weak_acceptance_audit), "--require-launchable")
+        assert proc.returncode != 0
+        weak_failed = json.loads(weak_acceptance_audit.read_text(encoding="utf-8"))
+        assert any("minimum_median_mae_reduction_pct" in item for item in weak_failed["failures"])
+        assert any("minimum_worst_row_mae_reduction_pct" in item for item in weak_failed["failures"])
 
     print("test_check_premium_still_sr_candidate_preflight: PASS")
     return 0

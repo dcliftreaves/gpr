@@ -101,6 +101,20 @@ def main() -> int:
                             "--holdout-image z8 --model-arch row_psf_teacher"
                         ),
                     ],
+                    "smoke_gate_acceptance": {
+                        "baseline": "same-color Bayer interpolation",
+                        "required_holdouts": ["X2D", "Z8"],
+                        "minimum_median_mae_reduction_pct": 0.001,
+                        "minimum_worst_row_mae_reduction_pct": 0.0,
+                        "long_run_blocked_if_smoke_fails": True,
+                        "receipt_fields_required": [
+                            "x2d_smoke_receipt",
+                            "z8_smoke_receipt",
+                            "baseline_comparison",
+                            "checkpoint_hash",
+                            "training_config_hash",
+                        ],
+                    },
                     "noise_policy": {
                         "exact_sidecars_only": True,
                         "forbids_source_residual_noise": True,
@@ -149,6 +163,7 @@ def main() -> int:
             "row_psf_teacher",
             "/Volumes/OWC_8TB/gpr_work/artifacts/x2d_rowpsf_smoke",
             "/Volumes/OWC_8TB/gpr_work/artifacts/z8_rowpsf_smoke",
+            "smoke_gate_acceptance",
             "build_premium_still_sr_experiment_scoreboard.py",
             "check_premium_still_sr_promotion_gate.py",
         ):

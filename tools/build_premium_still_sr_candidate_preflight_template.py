@@ -110,6 +110,20 @@ def clean_source_restormer_teacher(candidate_id: str) -> dict[str, Any]:
                 "--holdout-image z8 <candidate-specific-args>"
             ),
         ],
+        "smoke_gate_acceptance": {
+            "baseline": "same-color Bayer interpolation",
+            "required_holdouts": ["X2D", "Z8"],
+            "minimum_median_mae_reduction_pct": 0.001,
+            "minimum_worst_row_mae_reduction_pct": 0.0,
+            "long_run_blocked_if_smoke_fails": True,
+            "receipt_fields_required": [
+                "x2d_smoke_receipt",
+                "z8_smoke_receipt",
+                "baseline_comparison",
+                "checkpoint_hash",
+                "training_config_hash",
+            ],
+        },
         "noise_policy": {
             "exact_sidecars_only": True,
             "forbids_source_residual_noise": True,

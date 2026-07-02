@@ -99,6 +99,13 @@ REQUIRED_SMOKE_COMMAND_TOKENS = {
     "python",
     "--output-dir",
 }
+REQUIRED_SMOKE_ACCEPTANCE_RECEIPT_FIELDS = {
+    "x2d_smoke_receipt",
+    "z8_smoke_receipt",
+    "baseline_comparison",
+    "checkpoint_hash",
+    "training_config_hash",
+}
 EXTERNAL_WORK_ROOT = "/Volumes/OWC_8TB/gpr_work"
 REQUIRED_MATERIAL_SOURCE_TOKENS = {
     "burst",
@@ -186,6 +193,74 @@ def output_dirs_for_command(command: str) -> list[str]:
         elif part.startswith("--output-dir="):
             output_dirs.append(part.split("=", 1)[1])
     return output_dirs
+
+
+def number_value(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def validate_smoke_gate_acceptance(manifest: dict[str, Any], failures: list[str]) -> dict[str, Any]:
+    acceptance = manifest.get("smoke_gate_acceptance")
+    if not isinstance(acceptance, dict):
+        add_failure(
+            failures,
+            "smoke_gate_acceptance must define the X2D/Z8 pass criteria before a long run",
+        )
+        return {
+            "present": False,
+            "baseline": "",
+            "minimum_median_mae_reduction_pct": None,
+            "minimum_worst_row_mae_reduction_pct": None,
+            "receipt_fields_required": [],
+        }
+
+    baseline = str(acceptance.get("baseline") or "").lower()
+    if "same-color" not in baseline or "interpolation" not in baseline:
+        add_failure(
+            failures,
+            "smoke_gate_acceptance.baseline must be same-color Bayer interpolation",
+        )
+    if acceptance.get("long_run_blocked_if_smoke_fails") is not True:
+        add_failure(
+            failures,
+            "smoke_gate_acceptance.long_run_blocked_if_smoke_fails must be true",
+        )
+    holdouts = {item.lower() for item in as_strings(acceptance.get("required_holdouts"))}
+    if "x2d" not in holdouts or "z8" not in holdouts:
+        add_failure(failures, "smoke_gate_acceptance.required_holdouts must include X2D and Z8")
+    median_floor = number_value(acceptance.get("minimum_median_mae_reduction_pct"))
+    if median_floor is None or median_floor <= 0:
+        add_failure(
+            failures,
+            "smoke_gate_acceptance.minimum_median_mae_reduction_pct must be greater than 0",
+        )
+    worst_floor = number_value(acceptance.get("minimum_worst_row_mae_reduction_pct"))
+    if worst_floor is None or worst_floor < 0:
+        add_failure(
+            failures,
+            "smoke_gate_acceptance.minimum_worst_row_mae_reduction_pct must be at least 0",
+        )
+    receipt_fields = {item for item in as_strings(acceptance.get("receipt_fields_required"))}
+    missing_receipt_fields = sorted(REQUIRED_SMOKE_ACCEPTANCE_RECEIPT_FIELDS - receipt_fields)
+    if missing_receipt_fields:
+        add_failure(
+            failures,
+            "smoke_gate_acceptance.receipt_fields_required missing: "
+            + ", ".join(missing_receipt_fields),
+        )
+    return {
+        "present": True,
+        "baseline": acceptance.get("baseline"),
+        "required_holdouts": sorted(holdouts),
+        "minimum_median_mae_reduction_pct": median_floor,
+        "minimum_worst_row_mae_reduction_pct": worst_floor,
+        "receipt_fields_required": sorted(receipt_fields),
+    }
 
 
 def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
@@ -287,6 +362,7 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
         add_failure(failures, "validation_plan must include 100 MP full-frame gate row accounting")
     if not contains_any(validation_text, {"full-image", "full image", "full-frame", "full frame", "overlapped-tile", "overlapped tile"}):
         add_failure(failures, "validation_plan must include full-image or overlapped-tile evaluation")
+    smoke_acceptance = validate_smoke_gate_acceptance(manifest, failures)
 
     smoke_commands = as_strings(manifest.get("smoke_gate_commands"))
     smoke_text = text_blob(smoke_commands)
@@ -375,6 +451,7 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
         "architecture_delta_matches": architecture_matches,
         "degradation_delta_matches": degradation_matches,
         "material_source_matches": material_source_matches,
+        "smoke_gate_acceptance": smoke_acceptance,
         "smoke_gate_command_count": len(smoke_commands),
         "failures": failures,
         "warnings": warnings,

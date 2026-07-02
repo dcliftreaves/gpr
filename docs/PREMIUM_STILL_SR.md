@@ -265,8 +265,10 @@ must include explicit X2D and Z8 `smoke_gate_commands`; the packet records
 those exact commands instead of substituting a built-in Restormer smoke run.
 This prevents a manifest with new-source/PSF/burst wording from accidentally
 burning time on the rejected 20260702 Restormer/NAF/U-Net command family. The
-commands still have to remain short smoke gates until both holdouts beat
-same-color interpolation.
+commands still have to remain short smoke gates, and the manifest must include
+`smoke_gate_acceptance` that blocks a long run unless both holdouts beat
+same-color interpolation with positive median MAE recovery and nonnegative
+worst-row MAE recovery.
 
 That contract keeps the residual and clean-signal targets as rejection evidence
 and actual-still review inputs, but it does not use them as the next primary
@@ -297,7 +299,9 @@ covered by rejected 20260702 receipts. A launchable manifest must also name new
 source/evidence or a teacher-first holdout gate, such as row-level measured PSF
 from real high/low pairs, burst or multi-frame raw evidence, materially
 different target/source evidence, or a rule that both X2D and Z8 smoke holdouts
-must beat same-color interpolation before any long run.
+must beat same-color interpolation before any long run. The rule must be
+machine-readable in `smoke_gate_acceptance`, not only prose in
+`material_change_summary`.
 
 Then build the launch packet from the explicit manifest. The packet writes the
 candidate preflight, runs the preflight audit, and records the exact next
