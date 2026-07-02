@@ -125,6 +125,21 @@ That rules out "make the current full-crop PSF/CFA window-attention teacher
 longer" as the next primary move; the next pass needs a different objective or
 supervision strategy, not more time on the same setup.
 
+The post-failure signal-objective gate is now the current next-step contract:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_signal_objective_gate_20260701/index.html
+```
+
+It records the 12k-step window-attention rejection and replaces the stale
+"train another large teacher" instruction with pre-training signal/noise gates.
+The first candidate-side signal learnability audits are negative on both
+holdouts: X2D median MAE recovery is **-1.238%** and Z8 median MAE recovery is
+**-2.632%** using only runtime-safe candidate raw/HF/metadata features. That
+narrows the blocker again: the next large CNN should not train against the same
+legacy raw residual objective. It needs a clean-signal raw target/objective with
+calibrated noise separated for later exact or synthetic addback.
+
 ## Blocker Audit
 
 The blocker audit combines the experiment scoreboard, current readiness

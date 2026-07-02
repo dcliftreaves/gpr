@@ -70,7 +70,7 @@ For ML/CNN scripts, the current local environment is:
 | What proves the GoPro/Mission raw-video MVP proxy? | `docs/VIDEO_STATUS.md`, `docs/GOPRO_MISSION1_QUICK_VALIDATION.md`, and `/Volumes/OWC_8TB/gpr_work/artifacts/gopro_mission1_intake_audit_capture_requirements_20260701/index.html` |
 | What proves the camera-back preview proxy? | `docs/VIDEO_STATUS.md` and the Mission 1 numbered-list burndown in `docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md` |
 | What proves the approved 8K SR review path? | The standalone ProRes movies under `/Volumes/OWC_8TB/gpr_work/artifacts/z8_continuous_8k_no_cnn_vs_cnn_20260630/`, `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_true_no_cnn_vs_cnn_20260630/`, and `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/`. |
-| What proves or blocks premium still-SR? | `docs/PREMIUM_STILL_SR.md`, `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html`, and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html` |
+| What proves or blocks premium still-SR? | `docs/PREMIUM_STILL_SR.md`, `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html`, and `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_signal_objective_gate_20260701/index.html` |
 | What tracks optional PSF-aware video/SR research? | `docs/BAYER_RESIZE_PSF.md`, `/Volumes/OWC_8TB/gpr_work/artifacts/mission1_native_psf_kernel_stability_audit_20260630/index.html`, and `/Volumes/OWC_8TB/gpr_work/artifacts/raw_video_psf_capture_request_20260630/index.html` |
 
 ## Current Local Work Queue
@@ -83,7 +83,7 @@ with the full receipt surface.
 
 | priority | work | local status |
 |---|---|---|
-| 1 | Premium still-SR promotion | Local model-promotion work can continue from the raw-CFA residual target and blocker dashboards. The current blocker is X2D/domain-general raw-detail recovery strength, not missing tooling. |
+| 1 | Premium still-SR promotion | Local model-promotion work should continue from the signal-objective gate. The current blocker is not missing tooling or another long window-attention run; the legacy raw residual target has poor candidate-side learnability, so the next pass needs a clean-signal target/objective with calibrated noise addback. |
 | 2 | Mission 1 / iPhone noise sidecars | Local audits and sidecar builders are ready; Mission needs two more matching ISO232 RGGB darkframes, and iPhone needs confirmed no-scene provenance or recapture. |
 | 3 | Mission 1 raw-video MVP closure | Blocked on real Mission 1 sensor/DMA or camera-ring-buffer, SD writer, and rear-display receipts. Pi 5 stand-in receipts remain proxy evidence only. |
 

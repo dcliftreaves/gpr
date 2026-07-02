@@ -174,6 +174,26 @@ def pick_scene(scenes: list[Any], token: str, fallback: str) -> str:
     return fallback
 
 
+def find_rejected_full_window_attention(scoreboard: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the known expensive window-attention rejection, if indexed."""
+
+    candidates: list[dict[str, Any]] = []
+    for row in scoreboard.get("experiments", []):
+        if not isinstance(row, dict):
+            continue
+        if row.get("model_arch") != "window_attention_teacher":
+            continue
+        steps = row.get("steps")
+        if not isinstance(steps, int) or steps < 12000:
+            continue
+        holdout_mae = row.get("holdout_residual_mae_reduction_pct_median")
+        if isinstance(holdout_mae, (int, float)) and float(holdout_mae) <= 0.0:
+            candidates.append(row)
+    if not candidates:
+        return None
+    return sorted(candidates, key=lambda row: str(row.get("path") or ""))[-1]
+
+
 def build_contract(
     *,
     inventory: dict[str, Any],
@@ -219,59 +239,29 @@ def build_contract(
     psf_sidecar = (
         external_root / "artifacts/premium_still_sr_psf_sidecar_contract_20260701/premium_still_sr_psf_sidecar.json"
     ).as_posix()
-    run_root = (external_root / "artifacts/premium_still_sr_window_attention_teacher_gate_20260701").as_posix()
+    run_root = (external_root / "artifacts/premium_still_sr_signal_objective_gate_20260701").as_posix()
     tmp_root = (external_root / "tmp").as_posix()
     scenes = target.get("scenes", []) if isinstance(target.get("scenes"), list) else []
     x2d_holdout_scene = pick_scene(scenes, "x2d", "2024_April_X2D_1742")
     z8_holdout_scene = pick_scene(scenes, "z8", "Z8Z_1330")
-    common_train_args = [
-        "python3 tools/cnn/train_premium_still_sr_raw_cfa_residual.py",
+    rejected_full_window_attention = find_rejected_full_window_attention(scoreboard)
+    common_signal_audit_args = [
+        "python3 tools/cnn/audit_premium_still_sr_candidate_signal.py",
         f"--targets {dedup_target_npz}",
-        "--model-arch window_attention_teacher",
-        "--feature-mode raw_multiscale_coord_ev_noise_psf_cfa",
-        f"--psf-sidecar {psf_sidecar}",
-        "--sample-mode full_crop",
-        "--sample-balance scene",
-        "--width 48",
-        "--depth 8",
-        "--residual-scale 0.12",
-        "--steps 12000",
-        "--batch-size 1",
-        "--patch-size 512",
-        "--lr 2.0e-4",
-        "--weight-decay 1.0e-4",
-        "--grad-weight 0.05",
-        "--target-abs-weight 1.0",
-        "--band-weight 0.10",
-        "--spectral-weight 0.02",
-        "--eval-every 500",
-        "--eval-tile 512",
-        "--eval-overlap 64",
-        "--seam-check-width 16",
-        "--panel-rows 12",
-        "--save-best-holdout-checkpoint",
-        "--device mps",
+        "--samples-per-train-row 1024",
+        "--samples-per-holdout-row 2048",
+        "--ridge 1.0e-2",
+        f"--promotion-recovery-threshold {mae_threshold:.1f}",
     ]
     smoke_args = [
-        "python3 tools/cnn/train_premium_still_sr_raw_cfa_residual.py",
+        "python3 tools/cnn/audit_premium_still_sr_candidate_signal.py",
         f"--targets {dedup_target_npz}",
-        f"--output-dir {run_root}/smoke_window_attention_x2d",
-        "--checkpoint-name premium_still_sr_window_attention_smoke.pt",
-        "--model-arch window_attention_teacher",
-        "--feature-mode raw_multiscale_coord_ev_noise_psf_cfa",
-        f"--psf-sidecar {psf_sidecar}",
+        f"--output-dir {run_root}/smoke_signal_learnability_x2d",
         f"--holdout-scene {x2d_holdout_scene}",
-        "--sample-mode full_crop",
-        "--sample-balance scene",
-        "--width 8",
-        "--depth 2",
-        "--steps 3",
-        "--batch-size 1",
-        "--patch-size 128",
-        "--eval-tile 128",
-        "--eval-holdout-rows 1",
-        "--eval-train-rows 2",
-        "--device cpu",
+        "--samples-per-train-row 8",
+        "--samples-per-holdout-row 8",
+        "--max-train-rows 4",
+        "--max-holdout-rows 2",
     ]
 
     return {
@@ -316,18 +306,19 @@ def build_contract(
             "scoreboard_receipt_count": scoreboard.get("receipt_count"),
             "scoreboard_promotable_candidate_count": promotable_count,
             "scoreboard_best_candidate": scoreboard.get("best_candidate"),
+            "rejected_full_window_attention_teacher": rejected_full_window_attention,
             "residual_gap_production_ready": gap_production_ready,
             "best_by_camera": best_by_camera,
             "blockers": blockers,
         },
         "research_basis": RESEARCH_BASIS,
         "next_model_contract": {
-            "recommended_first_track": "full-image or structured raw-CFA residual learner",
+            "recommended_first_track": "signal-clean raw objective and learnability gate before another large CNN",
             "implementation_blueprint": {
                 "teacher_family": (
-                    "SwinIR/HAT/RBSFormer-style window or hybrid-attention raw restoration teacher, "
-                    "with Restormer-style high-resolution blocks as the fallback if window attention "
-                    "does not clear full-image placement gates"
+                    "realistic RAW degradation / clean-signal teacher first, then SwinIR/HAT/RBSFormer "
+                    "or Restormer-style raw restoration only after the target proves learnable above "
+                    "camera noise"
                 ),
                 "student_family": (
                     "candidate-only raw-CFA residual student distilled only after the teacher clears "
@@ -347,10 +338,12 @@ def build_contract(
                     "editable DNG/GPR reconstruction before review TIFF/ProRes export",
                 ],
                 "training_protocol": [
+                    "run candidate-only signal learnability and raw-target SNR audits before any multi-hour training job",
+                    "separate calibrated sensor noise from signal supervision; train against clean signal and add validated noise texture back after reconstruction",
                     "deduplicate the 351 rendered EV rows to the 117 unique raw scene/crop rows for raw-domain loss",
                     "use EV/rendered rows only for rendered/tone review gates, not as duplicated raw supervision",
                     "use Bayer-preserving flips/rotations or canonical phase remapping only when the output phase metadata is updated",
-                    "train with spatial raw residual loss plus frequency/detail-band terms that are ablated against the same target",
+                    "train with spatial raw signal loss plus frequency/detail-band terms that are ablated against the same target",
                     "treat denoise, deblur/PSF, and SR as one raw-restoration target, while keeping calibrated noise addback separate from signal supervision",
                     "start with teacher-scale capacity, then distill only after teacher evidence beats the locked baselines",
                 ],
@@ -362,23 +355,25 @@ def build_contract(
                     "timing and memory receipts, even if the path is offline-only",
                 ],
                 "first_ablation_order": [
-                    "window-attention teacher versus current best noise-floor U-Net on the same deduplicated rows",
-                    "teacher with and without Bayer phase conditioning",
-                    "teacher with and without validated noise-sidecar conditioning",
+                    "candidate-only signal learnability audit on X2D and Z8 holdouts",
+                    "raw-target SNR/noise-floor audit to prove the next target removes noise without removing signal",
+                    "clean-signal target builder or teacher that excludes exact source noise from the supervised target",
+                    "teacher with and without validated noise-sidecar conditioning and later exact noise addback",
                     "teacher with row-level/measured PSF variation versus no PSF conditioning; global near-box PSF is a control only",
-                    "teacher full-image or overlapped-tile validation versus crop-only metrics",
+                    "teacher full-image or overlapped-tile validation versus crop-only metrics after the signal target clears audits",
                     "distilled student only after teacher clears both camera holdouts",
                 ],
             },
             "execution_plan": {
-                "run_id": "premium_still_sr_window_attention_teacher_gate_20260701",
+                "run_id": "premium_still_sr_signal_objective_gate_20260701",
                 "artifact_root": run_root,
                 "tmp_root": tmp_root,
                 "canonical_full_target_npz": residual_npz,
                 "training_target_npz": dedup_target_npz,
                 "target_policy": (
-                    "Use the deduplicated 117-row raw-domain NPZ for raw-CFA loss. "
-                    "Use the full 351-row/EV target only for rendered tone and latitude review."
+                    "Use the deduplicated 117-row raw-domain NPZ for audits and only as the legacy baseline. "
+                    "The next CNN should train on a clean-signal raw target that has passed noise/SNR and "
+                    "candidate-learnability audits; use the full 351-row/EV target only for rendered tone and latitude review."
                 ),
                 "psf_sidecar": psf_sidecar,
                 "runtime_input_policy": (
@@ -393,37 +388,38 @@ def build_contract(
                 ),
                 "full_train_commands": [
                     {
-                        "id": "x2d_scene_holdout_window_attention_teacher",
+                        "id": "x2d_scene_holdout_signal_learnability_audit",
                         "holdout_scene": x2d_holdout_scene,
-                        "purpose": "Prove the hard 100MP/X2D still case improves with non-local raw-CFA detail priors.",
+                        "purpose": "Prove candidate-only raw/HF/metadata features carry learnable signal on the hard 100MP/X2D holdout before another expensive teacher run.",
                         "command": shell_command(
                             [
                                 f"GPR_TMPDIR={tmp_root} TMPDIR={tmp_root}",
-                                *common_train_args,
-                                f"--output-dir {run_root}/x2d_scene_holdout_window_attention_teacher",
-                                "--checkpoint-name premium_still_sr_window_attention_x2d_holdout.pt",
+                                *common_signal_audit_args,
+                                f"--output-dir {run_root}/x2d_scene_holdout_signal_learnability",
                                 f"--holdout-scene {x2d_holdout_scene}",
                             ]
                         ),
                     },
                     {
-                        "id": "z8_scene_holdout_window_attention_teacher",
+                        "id": "z8_scene_holdout_signal_learnability_audit",
                         "holdout_scene": z8_holdout_scene,
-                        "purpose": "Verify the 50MP/Z8 positive baseline is preserved while improving still detail.",
+                        "purpose": "Verify the 50MP/Z8 positive baseline has candidate-side learnable signal and is not only fitting target noise.",
                         "command": shell_command(
                             [
                                 f"GPR_TMPDIR={tmp_root} TMPDIR={tmp_root}",
-                                *common_train_args,
-                                f"--output-dir {run_root}/z8_scene_holdout_window_attention_teacher",
-                                "--checkpoint-name premium_still_sr_window_attention_z8_holdout.pt",
+                                *common_signal_audit_args,
+                                f"--output-dir {run_root}/z8_scene_holdout_signal_learnability",
                                 f"--holdout-scene {z8_holdout_scene}",
                             ]
                         ),
                     },
                 ],
                 "required_followup_receipts": [
-                    "train_receipt.json for X2D holdout and Z8 holdout",
-                    "overlap-vs-plain seam diagnostics from eval_overlap > 0",
+                    "candidate_signal_audit.json for X2D holdout and Z8 holdout",
+                    "raw-target SNR/noise-floor audit proving signal is not being stripped with noise",
+                    "clean-signal target receipt with exact noise sidecar provenance and addback policy",
+                    "train_receipt.json only after the signal/noise audits justify a teacher run",
+                    "overlap-vs-plain seam diagnostics from eval_overlap > 0 after a model exists",
                     "100 percent crop dashboard with worst rows, not only aggregate medians",
                     "editable DNG and GPR packaging/openability receipts",
                     "rendered latitude review from the full 351-row/EV review target",
@@ -431,6 +427,8 @@ def build_contract(
                     "scoreboard rebuild and premium still-SR gate receipt if the gates pass",
                 ],
                 "promotion_reject_conditions": [
+                    "candidate-only signal learnability remains near zero on X2D or Z8 holdout",
+                    "raw-target SNR audit shows the supervised target is mostly camera noise or strips scene signal",
                     f"either X2D or Z8 holdout median raw-residual MAE recovery is below {mae_threshold:.1f}%",
                     "any severe worst-row regression in editable/raw-editor or rendered-latitude review",
                     "the receipt reports source raw, source HF, REF, or JPEG target content as runtime input",
@@ -440,8 +438,10 @@ def build_contract(
             },
             "minimum_viable_next_pass": {
                 "must_change_from_failed_contract": [
-                    "use a full-image, full-crop, or otherwise structured context representation that is not reducible to independent local crop statistics",
-                    "add a materially stronger learned detail prior, teacher-distilled target, or global/contextual objective instead of only increasing local CNN capacity",
+                    "do not repeat the full-crop PSF/CFA window-attention run; it trained for 12k steps and regressed the X2D holdout",
+                    "prove the supervised target is clean signal rather than mostly exact source noise before training a larger model",
+                    "prove candidate-only runtime inputs have measurable holdout predictive power with a signal-learnability audit",
+                    "add a materially stronger learned detail prior, clean-signal teacher, or global/contextual objective instead of only increasing local CNN capacity",
                     "use overlapped tile inference or full-image/TLC-style validation so window/context seams and long-range placement errors are visible before promotion",
                     "condition on camera/noise and measured or modeled PSF metadata where available, rather than treating all resize/detail residuals as one distribution",
                     "treat a global near-box PSF as a negative/control input unless the sidecar has row-level or camera-specific kernel variation",
@@ -451,6 +451,8 @@ def build_contract(
                     "emit the same editable raw, rendered latitude, timing, memory, config, and noise-policy receipts required for promotion even if the result fails",
                 ],
                 "acceptable_first_tracks": [
+                    "clean-signal raw target builder that subtracts calibrated camera noise without borrowing source texture at render time",
+                    "candidate-side signal learnability audit plus target SNR/noise-floor audit before any long CNN pass",
                     "global-context encoder with raw-CFA residual decoder and candidate-only runtime inputs",
                     "PSF/kernel-conditioned global-context raw-CFA residual model using candidate raw plus measured or modeled kernel metadata",
                     "CFA-phase-conditioned raw-CFA residual model using RGGB/GBRG/GRBG/BGGR/unknown one-hot metadata for mixed normal-Bayer target sets",
@@ -463,6 +465,7 @@ def build_contract(
                     "scene-family routed specialists only if the router uses candidate raw/metadata and beats the shared baseline per family",
                 ],
                 "baseline_comparisons_required": [
+                    "full 12k-step X2D window-attention rejection",
                     "best X2D raw-CFA residual baseline",
                     "best Z8 raw-CFA residual baseline",
                     "small U-Net raw-domain probe",
@@ -471,6 +474,8 @@ def build_contract(
                     "patch-dictionary and low-order candidate-signal rejection probes",
                 ],
                 "early_reject_if": [
+                    "the candidate-only signal audit remains near zero on X2D or Z8",
+                    "the target SNR/noise audit says the target is dominated by calibrated noise rather than recoverable signal",
                     "X2D median raw-residual MAE recovery is not positive",
                     "Z8 median raw-residual MAE recovery drops below the existing positive baseline without a documented tradeoff",
                     "runtime input policy includes REF, source raw, source HF, or JPEG target content",
@@ -519,6 +524,7 @@ def build_contract(
                 "another global near-box PSF conditioning repeat without row-level camera/resize PSF variation",
                 "simple CFA one-hot or metadata plane add-on without a stronger raw-restoration objective",
                 "calibrated random-HF or noise addback as a substitute for learned signal detail",
+                "the 12k-step full-crop PSF/CFA window-attention teacher over the same raw residual target",
                 "another local CNN width/depth/loss sweep that does not add non-local attention, stronger teacher supervision, or full-image evaluation",
             ],
             "success_gates": [
@@ -697,7 +703,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     inventory_path = args.inventory or args.external_root / "artifacts/cnn_dataset_inventory_20260630/cnn_dataset_inventory.json"
-    scoreboard_path = args.scoreboard or args.external_root / "artifacts/premium_still_sr_experiment_scoreboard_20260630/scoreboard.json"
+    scoreboard_path = args.scoreboard or args.external_root / "artifacts/premium_still_sr_experiment_scoreboard_20260701/scoreboard.json"
     residual_gap_path = args.residual_gap or args.external_root / "artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json"
     data = build_contract(
         inventory=load_json(inventory_path),

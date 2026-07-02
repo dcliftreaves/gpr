@@ -61,6 +61,17 @@ def main() -> int:
                     "holdout_residual_mae_reduction_pct_median": 4.0,
                     "uses_source_hf_at_runtime": False,
                 },
+                "experiments": [
+                    {
+                        "experiment": "x2d_scene_holdout_window_attention_teacher_cfa",
+                        "path": "/synthetic/window_attention/train_receipt.json",
+                        "model_arch": "window_attention_teacher",
+                        "steps": 12000,
+                        "holdout_residual_mae_reduction_pct_median": -0.03,
+                        "holdout_residual_rmse_reduction_pct_median": -0.098,
+                        "runtime_safe": True,
+                    }
+                ],
             },
         )
         write_json(
@@ -163,6 +174,7 @@ def main() -> int:
         assert data["target_lock"]["row_count"] == 351
         assert data["current_model_state"]["scoreboard_promotable_candidate_count"] == 0
         assert data["current_model_state"]["best_by_camera"]["X2D"]["passes_threshold"] is False
+        assert data["current_model_state"]["rejected_full_window_attention_teacher"]["steps"] == 12000
         contract = data["next_model_contract"]
         research = data["research_basis"]
         assert any(row["id"] == "ntire_2024_raw_sr" for row in research)
@@ -178,45 +190,56 @@ def main() -> int:
         assert any(row["id"] == "swinir" for row in research)
         assert any(row["id"] == "restormer" for row in research)
         assert any(row["id"] == "hat" for row in research)
+        assert contract["recommended_first_track"] == "signal-clean raw objective and learnability gate before another large CNN"
         assert "source raw content" in contract["forbidden_runtime_inputs"]
         assert "JPEG-derived target content" in contract["forbidden_runtime_inputs"]
         assert "CFA phase / Bayer pattern metadata" in contract["allowed_runtime_inputs"]
         assert "trained model priors distilled from external or offline teachers" in contract["allowed_runtime_inputs"]
         blueprint = contract["implementation_blueprint"]
-        assert "RBSFormer-style" in blueprint["teacher_family"]
+        assert "clean-signal teacher" in blueprint["teacher_family"]
         assert "candidate-only raw-CFA residual student" in blueprint["student_family"]
         assert "four same-color candidate raw-CFA planes" in blueprint["input_tensor_contract"]
         assert any("BayerUnify-style canonical phase mapping" in item for item in blueprint["input_tensor_contract"])
         assert "four same-color raw-CFA residual planes" in blueprint["output_tensor_contract"]
+        assert any("signal learnability" in item for item in blueprint["training_protocol"])
+        assert any("calibrated sensor noise" in item for item in blueprint["training_protocol"])
         assert any("deduplicate the 351 rendered EV rows" in item for item in blueprint["training_protocol"])
         assert any("Bayer-preserving flips" in item for item in blueprint["training_protocol"])
         assert any("overlapped-tile inference" in item for item in blueprint["validation_protocol"])
-        assert any("window-attention teacher" in item for item in blueprint["first_ablation_order"])
+        assert any("candidate-only signal learnability audit" in item for item in blueprint["first_ablation_order"])
+        assert any("raw-target SNR/noise-floor audit" in item for item in blueprint["first_ablation_order"])
         assert any("global near-box PSF is a control only" in item for item in blueprint["first_ablation_order"])
         assert any("distilled student only after teacher clears" in item for item in blueprint["first_ablation_order"])
         execution = contract["execution_plan"]
-        assert execution["run_id"] == "premium_still_sr_window_attention_teacher_gate_20260701"
-        assert execution["artifact_root"].endswith("/artifacts/premium_still_sr_window_attention_teacher_gate_20260701")
+        assert execution["run_id"] == "premium_still_sr_signal_objective_gate_20260701"
+        assert execution["artifact_root"].endswith("/artifacts/premium_still_sr_signal_objective_gate_20260701")
         assert execution["tmp_root"] == str(base / "tmp")
         assert execution["canonical_full_target_npz"] == "/synthetic/residual/raw_cfa_residual_targets.npz"
         assert execution["training_target_npz"].endswith(
             "/artifacts/premium_still_sr_raw_cfa_residual_targets_dedup_20260701/raw_cfa_residual_targets_dedup.npz"
         )
-        assert "deduplicated 117-row raw-domain NPZ" in execution["target_policy"]
+        assert "legacy baseline" in execution["target_policy"]
+        assert "clean-signal raw target" in execution["target_policy"]
         assert "no REF/source/JPEG pixels at render time" in execution["runtime_input_policy"]
-        assert "window_attention_teacher" in execution["smoke_command"]
-        assert "--device cpu" in execution["smoke_command"]
+        assert "audit_premium_still_sr_candidate_signal.py" in execution["smoke_command"]
         assert "--holdout-scene x2d" in execution["smoke_command"]
         assert len(execution["full_train_commands"]) == 2
-        assert execution["full_train_commands"][0]["id"] == "x2d_scene_holdout_window_attention_teacher"
+        assert execution["full_train_commands"][0]["id"] == "x2d_scene_holdout_signal_learnability_audit"
         assert execution["full_train_commands"][0]["holdout_scene"] == "x2d"
-        assert "--eval-overlap 64" in execution["full_train_commands"][0]["command"]
-        assert "--save-best-holdout-checkpoint" in execution["full_train_commands"][0]["command"]
-        assert "--feature-mode raw_multiscale_coord_ev_noise_psf_cfa" in execution["full_train_commands"][0]["command"]
-        assert execution["full_train_commands"][1]["id"] == "z8_scene_holdout_window_attention_teacher"
+        assert "--samples-per-train-row 1024" in execution["full_train_commands"][0]["command"]
+        assert "--promotion-recovery-threshold 15.0" in execution["full_train_commands"][0]["command"]
+        assert execution["full_train_commands"][1]["id"] == "z8_scene_holdout_signal_learnability_audit"
         assert execution["full_train_commands"][1]["holdout_scene"] == "z8"
+        assert any("candidate_signal_audit.json" in item for item in execution["required_followup_receipts"])
+        assert any("clean-signal target receipt" in item for item in execution["required_followup_receipts"])
         assert any("editable DNG and GPR" in item for item in execution["required_followup_receipts"])
+        assert any("signal learnability remains near zero" in item for item in execution["promotion_reject_conditions"])
         assert any("source raw" in item for item in execution["promotion_reject_conditions"])
+        assert any("do not repeat the full-crop PSF/CFA window-attention run" in item for item in contract["minimum_viable_next_pass"]["must_change_from_failed_contract"])
+        assert any("clean-signal raw target builder" in item for item in contract["minimum_viable_next_pass"]["acceptable_first_tracks"])
+        assert any("full 12k-step X2D window-attention rejection" in item for item in contract["minimum_viable_next_pass"]["baseline_comparisons_required"])
+        assert any("candidate-only signal audit remains near zero" in item for item in contract["minimum_viable_next_pass"]["early_reject_if"])
+        assert any("12k-step full-crop PSF/CFA window-attention teacher" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("X2D median raw-residual MAE recovery >= 15.0%" == gate for gate in contract["success_gates"])
         assert any("stored candidate-HF" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("camera-balanced sampling" in item for item in contract["do_not_repeat_as_primary_path"])
@@ -230,7 +253,8 @@ def main() -> int:
         assert any("global near-box PSF conditioning repeat" in item for item in contract["do_not_repeat_as_primary_path"])
         assert any("simple CFA one-hot" in item for item in contract["do_not_repeat_as_primary_path"])
         minimum = contract["minimum_viable_next_pass"]
-        assert any("not reducible to independent local crop statistics" in item for item in minimum["must_change_from_failed_contract"])
+        assert any("clean signal rather than mostly exact source noise" in item for item in minimum["must_change_from_failed_contract"])
+        assert any("signal-learnability audit" in item for item in minimum["must_change_from_failed_contract"])
         assert any("denoising, deblurring/PSF, and SR as one raw-restoration objective" in item for item in minimum["must_change_from_failed_contract"])
         assert any("global near-box PSF" in item and "negative/control input" in item for item in minimum["must_change_from_failed_contract"])
         assert any("sensor-pattern alignment" in item for item in minimum["must_change_from_failed_contract"])

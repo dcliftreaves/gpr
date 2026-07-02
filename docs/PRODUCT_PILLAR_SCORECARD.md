@@ -319,13 +319,17 @@ learner with a stronger raw/CFA-aware or otherwise larger-context texture
 model, keep calibrated noise/signal cleaning in the feature contract, and run a
 full still/editor-latitude promotion gate.
 
-The premium still-SR next-experiment contract lives at
+The current premium still-SR signal-objective gate lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_signal_objective_gate_20260701/index.html`.
+It supersedes the earlier transformer-teacher contract as the next action. The
+gate records the failed 12k-step full-crop PSF/CFA window-attention run and
+requires candidate-side signal learnability plus raw-target SNR/noise audits
+before another large CNN pass. The first audits are negative on the legacy raw
+residual objective: X2D is -1.238 percent median MAE recovery and Z8 is -2.632
+percent, so the next pass needs a clean-signal raw target/objective with
+calibrated noise addback rather than another model sweep over the same target.
+The superseded transformer-teacher contract remains archived at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html`.
-It locks the next model pass to the canonical 351-row / 13-scene raw-CFA
-residual target, forbids REF/source/JPEG content at render time, records the
-failed local/context/noise/sampling-only paths that should not be repeated as the
-primary approach, and keeps the promotion gate at the current X2D/Z8 15 percent
-median raw-residual recovery threshold plus full still/editor-latitude receipts.
 The trainer now has PSF/kernel-conditioned `_psf` feature modes that can consume
 row metadata, explicit four-weight kernels, or a `gpr.bayer_resize_psf_receipt.v1`
 without adding source/REF content at runtime. That opens the intended

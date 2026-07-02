@@ -63,6 +63,7 @@
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
           "premium_still_sr_next_experiment_contract_transformer_teacher_20260701",
+          "premium_still_sr_signal_objective_gate_20260701",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -1709,6 +1710,47 @@
         "x2d_best_raw_residual_mae_recovery_pct": 0.1572830387663978,
         "z8_best_raw_residual_mae_recovery_pct": 0.4983379829708305,
         "promotion_threshold_pct": 15.0
+      }
+    },
+    {
+      "id": "premium_still_sr_signal_objective_gate_20260701",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Post-12k-failure premium still-SR signal-objective gate. It records the full-crop PSF/CFA window-attention rejection, replaces the stale train-next contract with pre-training signal/noise learnability audits, and shows that the legacy raw residual target has near-zero candidate-side linear predictive signal on both X2D and Z8 holdouts.",
+      "dashboard": "artifacts/premium_still_sr_signal_objective_gate_20260701/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_signal_objective_gate_20260701/premium_still_sr_next_experiment_contract.json",
+        "artifacts/premium_still_sr_signal_objective_gate_20260701/index.html",
+        "artifacts/premium_still_sr_signal_objective_gate_20260701/x2d_scene_holdout_signal_learnability/candidate_signal_audit.json",
+        "artifacts/premium_still_sr_signal_objective_gate_20260701/x2d_scene_holdout_signal_learnability/index.html",
+        "artifacts/premium_still_sr_signal_objective_gate_20260701/z8_scene_holdout_signal_learnability/candidate_signal_audit.json",
+        "artifacts/premium_still_sr_signal_objective_gate_20260701/z8_scene_holdout_signal_learnability/index.html"
+      ],
+      "hashes": {
+        "contract_json_sha256": "cf072e65663ab07d4ee0fef507ba7b1be1e8be1f1a37a3931653334a91ac8b9f",
+        "dashboard_sha256": "f587b5c11d333cfb14d569046fa73856b31f7e3ef4a6d4d98cae292beb072d80",
+        "x2d_signal_audit_json_sha256": "0ebeafa00f71b4a7947e9ff1d8326eb7c4eb8915bee1c5a56cdabae7a699b745",
+        "x2d_signal_audit_dashboard_sha256": "566a60cc184440e27592bb81de0869f2817ac6fac34704baf943a3aa57bc5fd9",
+        "z8_signal_audit_json_sha256": "c1839471d62069215106cbc7a43ba850b80f9e4350f2a577a8de744fc5ca1594",
+        "z8_signal_audit_dashboard_sha256": "fac124ac29be071983ccc93bfae8b901258b5b859ab8813a87f89a51a2296fa1"
+      },
+      "metrics": {
+        "x2d_holdout_rows": 9,
+        "x2d_candidate_signal_mae_recovery_pct_median": -1.2379033578423086,
+        "x2d_candidate_signal_rmse_recovery_pct_median": -1.5049058836242635,
+        "z8_holdout_rows": 9,
+        "z8_candidate_signal_mae_recovery_pct_median": -2.631621538403984,
+        "z8_candidate_signal_rmse_recovery_pct_median": -1.7805357055954514,
+        "latest_full_window_attention_holdout_mae_recovery_pct": -0.029526052219816575,
+        "latest_full_window_attention_train_seconds": 31155.659887040965,
+        "requires_clean_signal_target_before_next_large_cnn": 1,
+        "production_ready": 0
       }
     },
     {
