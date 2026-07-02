@@ -970,6 +970,27 @@ def main() -> int:
         write_camera_role_receipts(strict, bundle)
 
         bad = json.loads(json.dumps(strict))
+        camera = next(row for row in bad["requirements"] if row["id"] == "mission1_camera_role_receipts")
+        preview_ui_path = bundle / camera["receipts"]["preview_ui_receipt"]["path"]
+        preview_ui = json.loads(preview_ui_path.read_text(encoding="utf-8"))
+        preview_ui["source_provenance"]["sha256"] = "d" * 64
+        preview_ui_path.write_text(json.dumps(preview_ui, indent=2) + "\n", encoding="utf-8")
+        camera["receipts"]["preview_ui_receipt"]["sha256"] = hashlib.sha256(preview_ui_path.read_bytes()).hexdigest()
+        closure_path = bundle / camera["receipts"]["mission1_camera_closure_run"]["path"]
+        closure = json.loads(closure_path.read_text(encoding="utf-8"))
+        closure["receipts"]["preview_ui"] = "stale_preview_ui_receipt.json"
+        closure["steps"][1]["returncode"] = 1
+        closure_path.write_text(json.dumps(closure, indent=2) + "\n", encoding="utf-8")
+        camera["receipts"]["mission1_camera_closure_run"]["sha256"] = hashlib.sha256(closure_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "preview_ui_receipt source_provenance.sha256 must match camera_handoff_receipt" in proc.stdout
+        assert "mission1_camera_closure_run receipts.preview_ui must match submitted preview_ui receipt path" in proc.stdout
+        assert "mission1_camera_closure_run validate_preview_ui_receipt must return 0" in proc.stdout
+        write_camera_role_receipts(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
         premium = next(row for row in bad["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
         preflight_manifest_path = bundle / premium["candidate_preflight_manifest_path"]
         preflight_manifest = json.loads(preflight_manifest_path.read_text(encoding="utf-8"))
