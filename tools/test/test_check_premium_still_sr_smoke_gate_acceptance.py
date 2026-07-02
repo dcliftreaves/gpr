@@ -60,6 +60,27 @@ def raw_cfa_receipt(median: float, worst: float) -> dict:
     }
 
 
+def exact_noop_receipt() -> dict:
+    return {
+        "schema": "gpr.premium_still_sr_exact_noop_smoke.v1",
+        "mode": "exact-noop",
+        "checkpoint_sha256": "c" * 64,
+        "training_config_sha256": "d" * 64,
+        "config": {"mode": "exact-noop", "holdout": "z8"},
+        "eval": {
+            "holdout": {
+                "row_count": 36,
+                "mae_improvement_pct": {"count": 36, "median": 0.0, "min": 0.0},
+                "rmse_improvement_pct": {"count": 36, "median": 0.0, "min": 0.0},
+            }
+        },
+        "promotion": {
+            "baseline": "same-color Bayer interpolation",
+            "baseline_beaten_on_holdout": True,
+        },
+    }
+
+
 def manifest(root: Path) -> dict:
     return {
         "schema": "gpr.premium_still_sr_candidate_preflight.v1",
@@ -155,6 +176,36 @@ def main() -> int:
         assert x2d["baseline_beaten_on_holdout"] is True
         assert z8["median_mae_improvement_pct"] == -4.0
         assert z8["baseline_beaten_on_holdout"] is False
+
+        m = manifest(base)
+        m["smoke_gate_commands"][1] = (
+            "python3 tools/build_premium_still_sr_exact_noop_receipt.py "
+            f"--output-dir {base / 'artifacts/z8_smoke'} "
+            "--holdout z8 --mode exact-noop"
+        )
+        m["smoke_gate_acceptance"]["route_acceptance"] = {
+            "z8": {
+                "requires_exact_noop": True,
+                "minimum_median_mae_reduction_pct": 0.0,
+                "minimum_worst_row_mae_reduction_pct": 0.0,
+            }
+        }
+        write_json(mpath, m)
+        write_json(base / "artifacts/x2d_smoke/train_receipt.json", receipt(0.2, 0.0))
+        write_json(base / "artifacts/z8_smoke/train_receipt.json", exact_noop_receipt())
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), str(mpath), "--json-out", str(out), "--require-pass"],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert proc.returncode == 0
+        audit = json.loads(out.read_text(encoding="utf-8"))
+        z8 = next(row for row in audit["rows"] if row["holdout"] == "z8")
+        assert z8["passed"] is True
+        assert z8["exact_noop"] is True
+        assert z8["requires_exact_noop"] is True
 
     print("test_check_premium_still_sr_smoke_gate_acceptance: PASS")
     return 0

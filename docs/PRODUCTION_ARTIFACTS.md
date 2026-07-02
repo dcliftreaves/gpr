@@ -65,6 +65,9 @@ The latest Premium Still/SR Gate A receipts are:
 | raw-CFA residual-signal smoke acceptance blocker | `artifacts/premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `ca50946bb81020be8c42cee8306243371efa5d79a1bcbb6a9697dfb6948b7a62` |
 | Gate 12 measured/synthetic teacher-source audit receipt | `artifacts/premium_still_sr_measured_degradation_teacher_source_audit_20260702/measured_degradation_teacher_source_audit.json` | `062b5d1f166a104eb560c868c291cde4171a2c91ef69f92cf8b8c4e23c6d99ac` |
 | Gate 12 measured/synthetic teacher-source audit dashboard | `artifacts/premium_still_sr_measured_degradation_teacher_source_audit_20260702/index.html` | `566886cb2c89194e75cd83551b39113482e1c7b4a628ab2b2948f241c73f4174` |
+| Gate 12 candidate intake manifest | `artifacts/premium_still_sr_gate12_candidate_intake_20260702/candidate_preflight.json` | `e51f4f9b53c52cd56a4a681115177e30b866c3d49c308b9e86da7b50f99c006a` |
+| Gate 12 candidate intake audit | `artifacts/premium_still_sr_gate12_candidate_intake_20260702/preflight_audit.json` | `0a847465f563fc0d0e902423857d9db70b848fefdd4aa269a3e94168fd9decc4` |
+| Gate 12 candidate intake dashboard | `artifacts/premium_still_sr_gate12_candidate_intake_20260702/index.html` | `276270034b9335e63edaeec1e48467c5b083a6a22b1e3c53b522fb902730792c` |
 
 These branches are blocked before long training. The next Premium Still/SR
 candidate must address raw-CFA no-op/benefit gating, route-specific Z8

@@ -211,6 +211,9 @@ else
                 python3 tools/test/test_analyze_premium_still_sr_hf_residual_bands.py && \
                 python3 tools/test/test_train_premium_still_sr_hf_residual.py && \
                 python3 tools/test/test_build_premium_still_sr_measured_degradation_teacher_source_audit.py && \
+                python3 tools/test/test_build_premium_still_sr_exact_noop_receipt.py && \
+                python3 tools/test/test_build_premium_still_sr_gate12_candidate_preflight.py && \
+                python3 tools/test/test_check_premium_still_sr_smoke_gate_acceptance.py && \
                 python3 tools/test/test_build_premium_still_sr_experiment_scoreboard.py && \
                 python3 tools/test/test_build_premium_still_sr_blocker_audit.py && \
                 python3 tools/test/test_build_premium_still_sr_target_expansion_plan.py && \

@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no Candidate-only 50 MP / 100 MP model receipt clears the 15% / 15% held-out promotion floor. Gate 12 source audit rejects source-minus-candidate raw-HF residual targets, selects synthetic known-degradation clean-source Bayer pairs for X2D, and keeps Z8 exact no-op/new-source until positive source evidence exists.",
+      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, clean-target noise policy, Gate 12 source audit, and Gate 12 candidate intake are in place; no Candidate-only 50 MP / 100 MP model receipt clears the 15% / 15% held-out promotion floor. Gate 12 launches an X2D synthetic known-degradation clean-source teacher command plus a Z8 exact-noop receipt command.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -120,10 +120,11 @@
           "premium_still_sr_degradation_source_audit_20260702",
           "premium_still_sr_gate11_candidate_intake_20260702",
           "premium_still_sr_gate11_smoke_acceptance_20260702",
-          "premium_still_sr_measured_degradation_teacher_source_audit_20260702"
+          "premium_still_sr_measured_degradation_teacher_source_audit_20260702",
+          "premium_still_sr_gate12_candidate_intake_20260702"
         ]
       },
-      "open_gate": "Gate 12 measured/synthetic teacher-source audit selected synthetic_known_degradation_teacher_x2d_plus_z8_noop: X2D may train a synthetic known-degradation clean-source teacher route, Z8 must be exact no-op/new-source. The next local gate is premium_still_sr_gate12_candidate_intake_<date>; it must encode that route, reject raw-HF residual/Gate 11 rerun sources, remain candidate-only/no-REF, and forbid long runs before paired smoke."
+      "open_gate": "Gate 12 candidate intake is launchable as gate12_synthetic_x2d_teacher_z8_exact_noop_v1. The next local gate is premium_still_sr_gate12_smoke_acceptance_<date>: run the X2D synthetic teacher smoke command and Z8 exact-noop receipt command from the intake manifest, then require X2D positive median/nonnegative worst-row recovery and Z8 exact zero-regression before any long run."
     },
     {
       "id": "raw_video_reconstruction",
@@ -4568,6 +4569,48 @@
         "z8_noise_floor_rows": 28,
         "z8_row_count": 36,
         "z8_positive_training_allowed": 0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_gate12_candidate_intake_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Launchable Gate 12 candidate intake generated from the measured/synthetic teacher-source audit. It encodes X2D synthetic known-degradation clean-source Bayer teacher training and Z8 exact no-op/new-source policy, with candidate-only runtime inputs and no production claim.",
+      "dashboard": "artifacts/premium_still_sr_gate12_candidate_intake_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate12_candidate_preflight.py",
+        "tools/build_premium_still_sr_exact_noop_receipt.py",
+        "tools/check_premium_still_sr_candidate_preflight.py",
+        "tools/check_premium_still_sr_smoke_gate_acceptance.py",
+        "tools/test/test_build_premium_still_sr_gate12_candidate_preflight.py",
+        "tools/test/test_build_premium_still_sr_exact_noop_receipt.py",
+        "tools/test/test_check_premium_still_sr_smoke_gate_acceptance.py",
+        "tools/cnn/train_premium_still_sr_clean_source_pairs.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate12_candidate_intake_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_gate12_candidate_intake_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_gate12_candidate_intake_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "e51f4f9b53c52cd56a4a681115177e30b866c3d49c308b9e86da7b50f99c006a",
+        "preflight_audit_json_sha256": "0a847465f563fc0d0e902423857d9db70b848fefdd4aa269a3e94168fd9decc4",
+        "dashboard_sha256": "276270034b9335e63edaeec1e48467c5b083a6a22b1e3c53b522fb902730792c"
+      },
+      "metrics": {
+        "launchable_for_production_attempt": 1,
+        "preflight_failure_count": 0,
+        "smoke_gate_command_count": 2,
+        "x2d_positive_training_allowed": 1,
+        "z8_positive_training_allowed": 0,
+        "z8_requires_exact_noop": 1,
         "production_ready": 0
       }
     }

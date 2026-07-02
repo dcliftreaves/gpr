@@ -118,6 +118,8 @@ def receipt_row(
     receipt: dict[str, Any] | None,
     median_floor: float,
     worst_floor: float,
+    *,
+    requires_exact_noop: bool = False,
 ) -> dict[str, Any]:
     failures: list[str] = []
     if receipt is None:
@@ -147,7 +149,15 @@ def receipt_row(
         )
     checkpoint_sha = receipt.get("checkpoint_sha256")
     cfg_sha = receipt.get("training_config_sha256") or receipt.get("config_sha256") or config_sha256(receipt)
+    exact_noop = (
+        receipt.get("schema") == "gpr.premium_still_sr_exact_noop_smoke.v1"
+        and str(receipt.get("mode") or "") == "exact-noop"
+        and median_mae == 0.0
+        and worst_mae == 0.0
+    )
 
+    if requires_exact_noop and not exact_noop:
+        failures.append("route requires an exact-noop receipt with zero median and worst-row change")
     if median_mae is None or median_mae < median_floor:
         failures.append(
             f"median MAE improvement {median_mae} is below required floor {median_floor}"
@@ -171,6 +181,8 @@ def receipt_row(
         "failures": failures,
         "baseline": baseline,
         "baseline_beaten_on_holdout": baseline_beaten,
+        "exact_noop": exact_noop,
+        "requires_exact_noop": requires_exact_noop,
         "holdout_tile_count": (
             mae_metric.get("count")
             if isinstance(mae_metric, dict) and mae_metric.get("count") is not None
@@ -203,6 +215,9 @@ def build_audit(manifest_path: Path) -> dict[str, Any]:
     if worst_floor is None:
         worst_floor = 0.0
         failures.append("minimum_worst_row_mae_reduction_pct missing; defaulted to 0.0")
+    route_acceptance = acceptance.get("route_acceptance")
+    if not isinstance(route_acceptance, dict):
+        route_acceptance = {}
 
     commands = as_strings(manifest.get("smoke_gate_commands"))
     command_by_holdout: dict[str, str] = {}
@@ -225,6 +240,11 @@ def build_audit(manifest_path: Path) -> dict[str, Any]:
 
     rows: list[dict[str, Any]] = []
     for holdout in sorted(required_holdouts):
+        route_rules = route_acceptance.get(holdout)
+        if not isinstance(route_rules, dict):
+            route_rules = {}
+        route_median_floor = number(route_rules.get("minimum_median_mae_reduction_pct"))
+        route_worst_floor = number(route_rules.get("minimum_worst_row_mae_reduction_pct"))
         path = receipt_by_holdout.get(holdout)
         receipt = None
         if path is not None and path.exists():
@@ -237,8 +257,9 @@ def build_audit(manifest_path: Path) -> dict[str, Any]:
                 holdout,
                 path or Path(f"<missing-{holdout}-receipt>"),
                 receipt,
-                median_floor,
-                worst_floor,
+                median_floor if route_median_floor is None else route_median_floor,
+                worst_floor if route_worst_floor is None else route_worst_floor,
+                requires_exact_noop=route_rules.get("requires_exact_noop") is True,
             )
         )
 

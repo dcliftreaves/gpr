@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import shlex
 import sys
 import time
@@ -115,6 +116,7 @@ SUPPORTED_TRAINER_MODEL_ARCHES = {
     "pyramid_unet",
     "global_context_unet",
 }
+EXACT_NOOP_COMMAND_TOKEN = "tools/build_premium_still_sr_exact_noop_receipt.py"
 REQUIRED_SMOKE_ACCEPTANCE_RECEIPT_FIELDS = {
     "x2d_smoke_receipt",
     "z8_smoke_receipt",
@@ -122,7 +124,7 @@ REQUIRED_SMOKE_ACCEPTANCE_RECEIPT_FIELDS = {
     "checkpoint_hash",
     "training_config_hash",
 }
-EXTERNAL_WORK_ROOT = "/Volumes/OWC_8TB/gpr_work"
+EXTERNAL_WORK_ROOT = os.environ.get("GPR_EXTERNAL_ROOT") or "/Volumes/OWC_8TB/gpr_work"
 REQUIRED_MATERIAL_SOURCE_TOKENS = {
     "burst",
     "multi-frame",
@@ -244,6 +246,11 @@ def option_values_for_command(command: str, option: str) -> list[str]:
         elif part.startswith(f"{option}="):
             values.append(part.split("=", 1)[1])
     return values
+
+
+def is_exact_noop_command(command: str) -> bool:
+    text = command.lower()
+    return EXACT_NOOP_COMMAND_TOKEN in text and "--mode exact-noop" in text
 
 
 def command_text_without_training_only_targets(command: str) -> str:
@@ -479,8 +486,9 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
                         failures,
                         f"smoke_gate_commands[{idx}] must write --output-dir receipts under {EXTERNAL_WORK_ROOT}",
                     )
+            exact_noop = is_exact_noop_command(command)
             model_arches = option_values_for_command(command, "--model-arch")
-            if not model_arches:
+            if not model_arches and not exact_noop:
                 add_failure(failures, f"smoke_gate_commands[{idx}] must include an explicit supported --model-arch")
             for model_arch in model_arches:
                 if model_arch not in SUPPORTED_TRAINER_MODEL_ARCHES:
