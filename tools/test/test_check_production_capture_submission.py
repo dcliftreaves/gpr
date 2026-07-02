@@ -543,6 +543,34 @@ def main() -> int:
             print(proc.stderr, file=sys.stderr)
             return proc.returncode
 
+        bad = json.loads(json.dumps(strict))
+        premium = next(row for row in bad["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
+        preflight_manifest_path = bundle / premium["candidate_preflight_manifest_path"]
+        preflight_manifest = json.loads(preflight_manifest_path.read_text(encoding="utf-8"))
+        preflight_manifest["launchable_for_production_attempt"] = False
+        preflight_manifest_path.write_text(json.dumps(preflight_manifest, indent=2) + "\n", encoding="utf-8")
+        premium["candidate_preflight_manifest_sha256"] = hashlib.sha256(preflight_manifest_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "candidate_preflight_manifest launchable_for_production_attempt must be true" in proc.stdout
+        write_premium_still_sr_receipts(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        premium = next(row for row in bad["requirements"] if row["id"] == "premium_still_sr_promotion_receipts")
+        baseline_path = bundle / premium["baseline_comparison_path"]
+        baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+        baseline["baseline"] = "nearest-neighbor raw copy"
+        baseline["holdouts"] = ["X2D"]
+        baseline_path.write_text(json.dumps(baseline, indent=2) + "\n", encoding="utf-8")
+        premium["baseline_comparison_sha256"] = hashlib.sha256(baseline_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "baseline_comparison baseline must be same-color Bayer interpolation" in proc.stdout
+        assert "baseline_comparison missing holdout(s): z8" in proc.stdout
+        write_premium_still_sr_receipts(strict, bundle)
+
         bad = json.loads(manifest.read_text(encoding="utf-8"))
         bad["requirements"][0]["evidence"][0]["sha256"] = SHA
         manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")

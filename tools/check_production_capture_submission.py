@@ -640,7 +640,42 @@ def validate_premium_smoke_receipt(
         failures.append(f"{path_key} worst_row_mae_reduction_pct {failure.removeprefix('value ')}")
 
 
+def validate_premium_smoke_acceptance(
+    acceptance: Any,
+    *,
+    label: str,
+    failures: list[str],
+) -> None:
+    if not isinstance(acceptance, dict):
+        failures.append(f"{label} missing smoke_gate_acceptance")
+        return
+    baseline = str(acceptance.get("baseline") or "").lower()
+    if "same-color" not in baseline or "interpolation" not in baseline:
+        failures.append(f"{label} smoke_gate_acceptance baseline must be same-color Bayer interpolation")
+    holdouts = {str(item).lower() for item in as_list(acceptance.get("required_holdouts"))}
+    missing = sorted(PREMIUM_REQUIRED_SMOKE_HOLDOUTS - holdouts)
+    if missing:
+        failures.append(f"{label} smoke_gate_acceptance missing holdout(s): " + ", ".join(missing))
+
+
 def validate_premium_preflight_content(row: dict[str, Any], path_root: Path | None, failures: list[str]) -> None:
+    manifest = load_local_json(
+        row.get("candidate_preflight_manifest_path"),
+        path_root,
+        failures,
+        "candidate_preflight_manifest",
+    )
+    if manifest is not None:
+        if manifest.get("schema") != "gpr.premium_still_sr_candidate_preflight.v1":
+            failures.append("candidate_preflight_manifest schema must be gpr.premium_still_sr_candidate_preflight.v1")
+        if manifest.get("launchable_for_production_attempt") is not True:
+            failures.append("candidate_preflight_manifest launchable_for_production_attempt must be true")
+        validate_premium_smoke_acceptance(
+            manifest.get("smoke_gate_acceptance"),
+            label="candidate_preflight_manifest",
+            failures=failures,
+        )
+
     audit = load_local_json(
         row.get("candidate_preflight_audit_path"),
         path_root,
@@ -656,17 +691,11 @@ def validate_premium_preflight_content(row: dict[str, Any], path_root: Path | No
             failures.append("candidate_preflight_audit verdict must be launchable_preflight_passed")
         if audit.get("production_ready") is True or audit.get("promotion_claimed") is True:
             failures.append("candidate_preflight_audit must not claim production readiness or promotion")
-        acceptance = audit.get("smoke_gate_acceptance")
-        if not isinstance(acceptance, dict):
-            failures.append("candidate_preflight_audit missing smoke_gate_acceptance")
-        else:
-            baseline = str(acceptance.get("baseline") or "").lower()
-            if "same-color" not in baseline or "interpolation" not in baseline:
-                failures.append("candidate_preflight_audit smoke_gate_acceptance baseline must be same-color Bayer interpolation")
-            holdouts = {str(item).lower() for item in as_list(acceptance.get("required_holdouts"))}
-            missing = sorted(PREMIUM_REQUIRED_SMOKE_HOLDOUTS - holdouts)
-            if missing:
-                failures.append("candidate_preflight_audit smoke_gate_acceptance missing holdout(s): " + ", ".join(missing))
+        validate_premium_smoke_acceptance(
+            audit.get("smoke_gate_acceptance"),
+            label="candidate_preflight_audit",
+            failures=failures,
+        )
 
     packet = load_local_json(row.get("launch_packet_path"), path_root, failures, "launch_packet")
     if packet is not None:
@@ -677,6 +706,16 @@ def validate_premium_preflight_content(row: dict[str, Any], path_root: Path | No
             failures.append("launch_packet preflight.launchable_for_production_attempt must be true")
         if preflight.get("verdict") != "launchable_preflight_passed":
             failures.append("launch_packet preflight.verdict must be launchable_preflight_passed")
+
+    baseline = load_local_json(row.get("baseline_comparison_path"), path_root, failures, "baseline_comparison")
+    if baseline is not None:
+        baseline_name = str(baseline.get("baseline") or "").lower()
+        if "same-color" not in baseline_name or "interpolation" not in baseline_name:
+            failures.append("baseline_comparison baseline must be same-color Bayer interpolation")
+        holdouts = {str(item).lower() for item in as_list(baseline.get("holdouts"))}
+        missing = sorted(PREMIUM_REQUIRED_SMOKE_HOLDOUTS - holdouts)
+        if missing:
+            failures.append("baseline_comparison missing holdout(s): " + ", ".join(missing))
 
     validate_premium_smoke_receipt(
         row,
