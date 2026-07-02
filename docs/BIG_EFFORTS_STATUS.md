@@ -7,6 +7,8 @@ planning/status document, not a replacement for the release evidence manifest.
 If a metric here conflicts with a committed receipt, the receipt wins.
 The generated audit dashboard for these same four pillars is tracked in
 [`PRODUCT_PILLAR_SCORECARD.md`](PRODUCT_PILLAR_SCORECARD.md).
+For the shortest requirement-by-requirement closure audit, use
+[`GOAL_CLOSURE_MATRIX.md`](GOAL_CLOSURE_MATRIX.md).
 
 ## Summary
 

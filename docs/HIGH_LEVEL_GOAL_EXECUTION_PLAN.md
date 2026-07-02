@@ -5,6 +5,8 @@ Last refreshed: 2026-07-01
 This is the burndown plan for the four product pillars in the main README and
 `BIG_EFFORTS_STATUS.md`. It is intentionally execution-focused: every item
 should end in a committed test, receipt, dashboard, or explicit blocker.
+Use [`GOAL_CLOSURE_MATRIX.md`](GOAL_CLOSURE_MATRIX.md) as the shortest audit of
+the exact evidence that would make the active goal complete.
 
 ## Definition Of Done
 

@@ -207,6 +207,7 @@ the docs and external dashboards:
 | question | source of truth |
 |---|---|
 | What is done, percent-wise, across the four pillars? | [`docs/PRODUCT_PILLAR_SCORECARD.md`](docs/PRODUCT_PILLAR_SCORECARD.md) and `/Volumes/OWC_8TB/gpr_work/artifacts/product_pillar_scorecard_ship_boundary_20260701/index.html` |
+| What exact evidence would make the active high-level goal complete? | [`docs/GOAL_CLOSURE_MATRIX.md`](docs/GOAL_CLOSURE_MATRIX.md) maps the four efforts to locked proof, open gates, next useful action, and non-claims. |
 | Which outputs are locked, and what would count as a real regression? | [`docs/PRODUCT_LOCK_LEDGER.md`](docs/PRODUCT_LOCK_LEDGER.md) |
 | Where is the active worktree, external artifact root, TMPDIR, and latest review media? | [`docs/WORKSPACE_AND_ARTIFACT_MAP.md`](docs/WORKSPACE_AND_ARTIFACT_MAP.md) |
 | What does a release reviewer receive? | [`docs/RELEASE_ARTIFACTS.md`](docs/RELEASE_ARTIFACTS.md); generated bundle manifests carry RAW stills, RAW video MVP, premium still/SR, and raw-video reconstruction labels. PSF artifacts are research references. |

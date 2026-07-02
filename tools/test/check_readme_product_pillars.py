@@ -130,6 +130,7 @@ REQUIRED_README_TOKENS = (
     "SR model-promotion lane is premium still-SR",
     "SR iteration is research, not a",
     "docs/PRODUCT_PILLAR_SCORECARD.md",
+    "docs/GOAL_CLOSURE_MATRIX.md",
     "docs/PRODUCT_LOCK_LEDGER.md",
     "docs/WORKSPACE_AND_ARTIFACT_MAP.md",
     "docs/BIG_EFFORTS_STATUS.md",

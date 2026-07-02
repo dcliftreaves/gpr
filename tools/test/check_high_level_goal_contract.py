@@ -12,12 +12,14 @@ README = ROOT / "README.md"
 BIG_EFFORTS = ROOT / "docs/BIG_EFFORTS_STATUS.md"
 PLAN = ROOT / "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md"
 SHIP_DECISION = ROOT / "docs/SHIP_DECISION.md"
+GOAL_CLOSURE = ROOT / "docs/GOAL_CLOSURE_MATRIX.md"
 
 
 DOC_TOKENS = {
     "README.md": (
         "Open Raw Video For Action Cameras",
         "8-bit JPEG size. 16-bit RAW quality.",
+        "docs/GOAL_CLOSURE_MATRIX.md",
         "The denominator is the shippable production suite",
         "**1. Best RAW stills**",
         "**2. GoPro RAW video MVP**",
@@ -26,6 +28,7 @@ DOC_TOKENS = {
         "PSF-aware video/SR remains optional research",
     ),
     "docs/BIG_EFFORTS_STATUS.md": (
+        "GOAL_CLOSURE_MATRIX.md",
         "Raw stills for 50 MP / 100 MP cameras",
         "Raw video MVP for GoPro / Mission 1",
         "Raw stills improvement / expensive SR",
@@ -38,6 +41,7 @@ DOC_TOKENS = {
         "optional research",
     ),
     "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md": (
+        "GOAL_CLOSURE_MATRIX.md",
         "Raw stills pass committed gates",
         "50 MP / 100 MP camera",
         "Raw video has a GoPro/Mission 1 MVP path",
@@ -74,6 +78,21 @@ DOC_TOKENS = {
         "requirement for the current raw-video workflow",
         "future claim that a PSF-conditioned model replaces",
     ),
+    "docs/GOAL_CLOSURE_MATRIX.md": (
+        "High-Level Goal Closure Matrix",
+        "Raw stills for 50 MP / 100 MP cameras",
+        "GoPro RAW video MVP",
+        "Premium still/SR",
+        "Raw video reconstruction / PSF-aware improvement",
+        "What Would Make The Whole Goal Complete",
+        "Mission 1 and iPhone strict-provenance darkframe sidecars",
+        "Actual Mission 1 camera-role receipts",
+        "A no-REF 50 MP / 100 MP candidate",
+        "15% / 15% floor",
+        "PSF-conditioned models are optional replacement research",
+        "Public docs are honest and useful",
+        "Non-Claims",
+    ),
 }
 
 FORBIDDEN_TOKENS = {
@@ -101,6 +120,8 @@ def path_for(label: str) -> Path:
         return PLAN
     if label == "docs/SHIP_DECISION.md":
         return SHIP_DECISION
+    if label == "docs/GOAL_CLOSURE_MATRIX.md":
+        return GOAL_CLOSURE
     raise KeyError(label)
 
 
