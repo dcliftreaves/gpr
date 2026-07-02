@@ -248,7 +248,7 @@ def source_evidence_split_teacher(candidate_id: str) -> dict[str, Any]:
                 "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/"
                 "premium_still_sr_source_evidence_split_teacher_x2d_smoke_20260702_next "
                 "--holdout-image x2d --model-arch window_attention_pixelshuffle "
-                "--steps 150 --width 32 --depth 4 --batch-size 6 --low-crop 48 "
+                "--steps 150 --width 32 --depth 4 --batch 6 --low-crop 48 "
                 "--residual-scale 0.08"
             ),
             (
@@ -257,7 +257,7 @@ def source_evidence_split_teacher(candidate_id: str) -> dict[str, Any]:
                 "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/"
                 "premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next "
                 "--holdout-image z8 --model-arch window_attention_pixelshuffle "
-                "--steps 150 --width 32 --depth 4 --batch-size 6 --low-crop 48 "
+                "--steps 150 --width 32 --depth 4 --batch 6 --low-crop 48 "
                 "--residual-scale 0.08"
             ),
         ],

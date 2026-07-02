@@ -93,6 +93,7 @@
           "premium_still_sr_source_evidence_z8holdout_t64_20260702",
           "premium_still_sr_candidate_preflight_source_evidence_split_20260702",
           "premium_still_sr_launch_packet_source_evidence_split_20260702",
+          "premium_still_sr_source_evidence_split_teacher_smoke_20260702_next",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -2521,7 +2522,7 @@
         "artifacts/premium_still_sr_candidate_preflight_source_evidence_split_20260702/candidate_preflight.json"
       ],
       "hashes": {
-        "candidate_preflight_json_sha256": "7e0bf67db35ac07641e1fc7dc424fe86663939630df36a62b9e9524b11a85905"
+        "candidate_preflight_json_sha256": "7c2928aaa7906fba9795bf68d14ac033bbac73942396aa0fbb15899e83a2b635"
       },
       "metrics": {
         "launchable_for_production_attempt": 1,
@@ -2552,10 +2553,10 @@
         "artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/index.html"
       ],
       "hashes": {
-        "candidate_preflight_json_sha256": "7e0bf67db35ac07641e1fc7dc424fe86663939630df36a62b9e9524b11a85905",
-        "preflight_audit_json_sha256": "325d54a392169c16cd069e86227e247e454968a306d6ada893e77228b9c7e195",
-        "launch_packet_json_sha256": "5e9859564609a6cfa669cdc13956a519cf391bfa96aa9220c55e353496a6fcb0",
-        "launch_packet_md_sha256": "e2a664d16a54d8a9554dd033e98178fc769761a347a28093c47bdde806cd11a0",
+        "candidate_preflight_json_sha256": "7c2928aaa7906fba9795bf68d14ac033bbac73942396aa0fbb15899e83a2b635",
+        "preflight_audit_json_sha256": "9a7aa461d8f66d3aef76a71bc78a57b7370ab65fdd5f39c0e1dc371c5d77addc",
+        "launch_packet_json_sha256": "bc344fe21552859bbad4041ea27db5e6aedea4c495d8a35a7c5fa273b72e967d",
+        "launch_packet_md_sha256": "d04b24dd7ce816d1ce1f48d40c29e39065a450969378e167c3fd53350bb81367",
         "dashboard_sha256": "d58afe3eab25e488f57a4a28f5916769d06d31444976294984cc8c2e2e300182"
       },
       "metrics": {
@@ -2564,6 +2565,49 @@
         "smoke_gate_command_count": 2,
         "x2d_smoke_gate_defined": 1,
         "z8_smoke_gate_defined": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_source_evidence_split_teacher_smoke_20260702_next",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Paired source-evidence split Premium Still/SR smoke receipts. X2D passes the short gate, but Z8 fails, so the source-evidence split candidate must not launch a longer 50 MP / 100 MP run.",
+      "dashboard": "artifacts/premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_source_evidence_split_teacher_x2d_smoke_20260702_next/train_receipt.json",
+        "artifacts/premium_still_sr_source_evidence_split_teacher_x2d_smoke_20260702_next/index.html",
+        "artifacts/premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next/train_receipt.json",
+        "artifacts/premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next/index.html"
+      ],
+      "hashes": {
+        "x2d_train_receipt_json_sha256": "cc3b4226a71cea76a9ca0018dcb07b0c8c1d44f0f4d66ee02c628386fe6be033",
+        "x2d_dashboard_sha256": "e9b66cb120c37a20ad3224f3d1e6ffa3bc53cd705ece14fb28703e77dd7ce792",
+        "x2d_checkpoint_sha256": "56debabc3a4dd591646833c3d797715b603ead6b4604483f9614fd44a744a1ec",
+        "z8_train_receipt_json_sha256": "c9bb11a03129e6536dbe65bf4c0db7475ad69fc181026b0d25493775df61e1e6",
+        "z8_dashboard_sha256": "f0fc672d30ceb8a5e21feb403389b72bf18c8957860d567fd4f47fb36e0cdfd4",
+        "z8_checkpoint_sha256": "ea86ec6007cc83c083eeb2a5ca9307600f674f80caec58ae1d06376f42309f56"
+      },
+      "metrics": {
+        "x2d_holdout_tile_count": 576,
+        "x2d_median_mae_recovery_pct": 0.008822244790194556,
+        "x2d_median_rmse_recovery_pct": 0.003090454316737371,
+        "x2d_baseline_beaten_on_holdout": 1,
+        "x2d_promotion_ready": 1,
+        "z8_holdout_tile_count": 1536,
+        "z8_median_mae_recovery_pct": -0.07358643668344858,
+        "z8_median_rmse_recovery_pct": -0.01893710250797187,
+        "z8_baseline_beaten_on_holdout": 0,
+        "z8_promotion_ready": 0,
+        "paired_smoke_gate_passed": 0,
+        "long_run_blocked": 1,
         "production_ready": 0
       }
     },

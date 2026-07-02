@@ -103,6 +103,8 @@ def main() -> int:
         assert any("source_evidence_split_teacher_x2d_smoke" in item for item in source_data["smoke_gate_commands"])
         assert any("source_evidence_split_teacher_z8_smoke" in item for item in source_data["smoke_gate_commands"])
         assert all("window_attention_pixelshuffle" in item for item in source_data["smoke_gate_commands"])
+        assert all("--batch 6" in item for item in source_data["smoke_gate_commands"])
+        assert all("--batch-size" not in item for item in source_data["smoke_gate_commands"])
         proc = run(
             [
                 sys.executable,

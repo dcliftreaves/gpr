@@ -328,9 +328,15 @@ until the source/degradation mismatch has a new receipt.
 The current source-evidence split launch packet lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_source_evidence_split_20260702/index.html`.
 It passes preflight with two smoke commands and zero preflight failures. The
-next production-moving receipt is the paired X2D/Z8 smoke result from that
-packet; long training remains blocked until both holdouts beat nearest
-same-color Bayer 2x.
+paired smoke receipts now exist:
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_split_teacher_x2d_smoke_20260702_next/index.html`
+and
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next/index.html`.
+X2D clears the short smoke gate at +0.0088 percent median MAE and +0.0031
+percent median RMSE recovery, but Z8 fails at -0.0736 percent median MAE and
+-0.0189 percent median RMSE. Long training is therefore still blocked until the
+Z8 source/degradation target, teacher objective, or camera conditioning changes
+and a new paired X2D/Z8 smoke receipt passes.
 
 The premium still-SR blocker audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html`.
@@ -380,7 +386,9 @@ but not promotable: X2D is only +0.013 percent median MAE recovery, Z8 is
 regressing held-out Z8 MAE to -5.06 percent. A launchable
 `window_attention_pixelshuffle` smoke is also rejected on the same t64 pair
 target, with +0.0016 percent X2D MAE but negative RMSE and -0.5807 percent Z8
-MAE. That rules out more steps on architecture-only swaps over the same
+MAE. The follow-up source-evidence split smoke improves X2D enough to pass its
+short diagnostic gate, but still fails Z8 at -0.0736 percent median MAE. That
+rules out more steps on architecture-only swaps over the same
 clean-source/same-color pair objective as the next primary move.
 The premium still-SR noise-policy gate now lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_noise_policy_gate_20260702/index.html`.

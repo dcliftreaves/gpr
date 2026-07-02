@@ -48,7 +48,7 @@ when it visibly improves the result.**
 |---|---:|---|---|
 | **Best RAW stills** | **92%** | 50 MP tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100 MP roundtrip; 12/14/16-bit support; real RGGB/GBRG/GRBG/BGGR coverage; X2D/Z8 noise sidecars. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
 | **GoPro RAW video MVP** | **80%** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor, and the same stream previews full-frame at 1024 x 768 above **20 fps**. | Real Mission 1 sensor/DMA or camera-ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, 120+ sustained frames, and timing receipts from the camera role. |
-| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, editor-openability, model-promotion tooling, the 99-receipt experiment scoreboard, and the X2D/Z8 source-evidence audits exist. | A no-REF 50 MP / 100 MP candidate must beat the current still baseline and pass worst-row, editor-latitude, timing, memory, exact-sidecar-only noise-policy gates, and source-evidence preflight gates. |
+| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, editor-openability, model-promotion tooling, the 99-receipt experiment scoreboard, X2D/Z8 source-evidence audits, and the source-evidence split smoke receipts exist. | The split smoke gate passed X2D but failed Z8, so the next no-REF 50 MP / 100 MP candidate must repair the Z8 source/degradation mismatch before any long training run and still pass exact-sidecar-only noise-policy gates. |
 | **RAW video reconstruction improvement** | **100%** | Approved offline/post 4K cleanup and 8K SR emit `.gvid`, editable raw, standalone no-CNN/CNN ProRes review movies, objective review, and manual signoff receipts. | No release blocker. PSF/blur modeling is parked as optional replacement research. |
 
 The denominator is the shippable production suite: **1. Best RAW stills**,
@@ -107,11 +107,12 @@ window-attention smoke receipts that still fail the joint X2D/Z8 holdout gate.
 The latest candidate-only source-evidence audit is more specific: X2D has local
 signal above nearest same-color 2x (**4.82%** MAE / **11.52%** RMSE recovery),
 but Z8 does not clear the 1% MAE source-evidence floor (**0.65%** MAE despite
-**21.90%** RMSE recovery). The next Gate A candidate must use that X2D signal
-as a material teacher/objective and fix the Z8 source/degradation mismatch
-before any long training run. A launchable source-evidence split packet now
-exists; it defines the two required short smoke gates and still claims
-**0** production readiness until those X2D/Z8 receipts pass.
+**21.90%** RMSE recovery). The source-evidence split packet has now been run:
+X2D passes the short smoke gate at **+0.0088%** median MAE and **+0.0031%**
+median RMSE recovery, while Z8 fails at **-0.0736%** median MAE and
+**-0.0189%** median RMSE. That blocks long training. The next Gate A candidate
+must repair the Z8 source/degradation target before another long no-REF 50 MP /
+100 MP promotion attempt.
 
 ## Evidence Map
 
