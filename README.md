@@ -39,6 +39,14 @@ The key product line is deliberately plain: **capture editable Bayer, keep it
 small, preview from the same raw stream, then spend desktop compute only when it
 visibly improves the result.**
 
+Current action stack:
+
+| lane | action now | do not do |
+|---|---|---|
+| **Ship/protect** | Keep the locked still tiers, Pi-stand-in `.gvid` encode/preview, and approved 4K/8K reconstruction receipts green. | Do not reopen approved raw-video SR just because another model idea exists. |
+| **External closure** | Hand GoPro the Mission 1 camera-role validation package, and capture Mission/iPhone darkframes with strict source provenance. | Do not count Pi stand-ins, wrapped camera `.GPR` files, JPEG-derived media, or unproven dark-like scene frames as production closure. |
+| **Local model work** | Advance only premium still-SR candidates that satisfy the no-REF 50 MP / 100 MP promotion preflight in [`docs/PREMIUM_STILL_SR_FIRST_HOUR.md`](docs/PREMIUM_STILL_SR_FIRST_HOUR.md). | Do not rerun the rejected local-CNN, clean-source residual, or scalar-loss variants as primary production attempts. |
+
 ## The Four Product Bets
 
 | product bet | what a user gets | ship boundary |

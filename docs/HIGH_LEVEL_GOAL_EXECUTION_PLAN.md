@@ -98,6 +98,25 @@ The next local work should therefore default to premium still-SR and
 release hygiene unless new Mission 1 hardware receipts or missing fixtures have
 arrived. PSF-conditioned ablations are allowed only as optional research.
 
+## Current Action Stack
+
+Use this order when no new Mission 1 hardware receipts or Mission/iPhone
+darkframes have arrived:
+
+1. Protect the locked release paths: 50 MP still tiers, normal-Bayer still
+   coverage, Pi-stand-in `.gvid` encode/preview, and approved 4K/8K
+   reconstruction receipts.
+2. Keep the external closure packages ready for the people who can run them:
+   Mission 1 camera-role validation and Mission/iPhone strict-provenance
+   darkframe capture.
+3. Spend local model time only on premium still-SR candidates that satisfy the
+   current no-REF 50 MP / 100 MP promotion preflight. The rejected local-CNN,
+   clean-source residual, source-HF, scalar-loss, and simple capacity variants
+   are evidence, not primary next runs.
+4. Keep PSF/blur work in optional research unless it already beats the locked
+   raw-video reconstruction baseline and emits the same `.gvid`, editable raw,
+   ProRes, dashboard, timing, memory, and hash receipt surface.
+
 ## Current Burn-Down Order
 
 ### 1. Raw Stills Compatibility And Noise Policy
