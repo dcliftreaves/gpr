@@ -87,6 +87,11 @@ The latest Premium Still/SR Gate A receipts are:
 | Premium still-SR promotion receipts dashboard | `artifacts/premium_still_sr_promotion_receipts_20260702/index.html` | `c0c645b9a0626619b8921a0719f2e8a643dec62a295fe3df0008df5fe82ded63` |
 | Premium still-SR model-floor gap receipt | `artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json` | `fb27020f6d29636ea690e109ae4d7dda7a1f0151d6b29fe42265ecf1d84b4d88` |
 | Premium still-SR model-floor gap dashboard | `artifacts/premium_still_sr_model_floor_gap_20260702/index.html` | `ddbbb904f78d2a210c297b36cc4899c44d5a684f7d6de5c091d6ac00315492fb` |
+| Gate14 floor-student candidate preflight | `artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json` | `12e81d5cd3a3dd2efa92f41b601ce4417ac3048f5319b68b07fe76cd9d282335` |
+| Gate14 floor-student preflight audit | `artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json` | `8bcec5853d87edc0c6f2d48607b639fca280e8d494c49074376969be9ec3a022` |
+| Gate14 floor-student preflight dashboard | `artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/index.html` | `e98ab5bb24f8c255c15848742c4f2dfbfbf194877f4ccdf2fdf6a0402e22213c` |
+| Gate14 floor-student launch packet | `artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.json` | `5a660422a74619d550b04ab7719600823888571e2a4fd30820c7c0e47adb46fd` |
+| Gate14 floor-student launch packet Markdown | `artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.md` | `717db90dfc5f217dcf0cd587981e0e36052dabd350a107af4809933e1b182cfb` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -98,7 +103,10 @@ gate rows, timing/memory, exact noise-policy wiring, and production submission.
 The model-floor gap receipt quantifies the first blocker: best runtime-safe
 MAE/RMSE are `4.031355420019811%` / `3.753504206299621%`, leaving
 `10.96864457998019` / `11.24649579370038` percentage points to the floor. The
-next candidate contract is `premium_still_sr_gate14_floor_student_v1`.
+next candidate contract is `premium_still_sr_gate14_floor_student_v1`. Its
+preflight and launch packet now pass as launchable intake artifacts only; the
+next production-moving receipt is the Gate14 floor-student target builder,
+followed by the paired X2D/Z8 smoke receipts named in the launch packet.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

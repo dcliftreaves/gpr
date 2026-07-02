@@ -217,6 +217,51 @@ def main() -> int:
         assert "premium_still_sr_source_evidence_split_teacher_z8_smoke_20260702_next" in source_commands
         assert "premium_still_sr_clean_source_pairs_routed_t64_20260702" in source_commands
 
+        floor = base / "gate14_floor_student_packet"
+        proc = run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--output-dir",
+                str(floor),
+                "--template",
+                "gate14_floor_student",
+                "--require-launchable",
+            ]
+        )
+        assert proc.returncode != 0
+        floor_template_packet = json.loads((floor / "launch_packet.json").read_text(encoding="utf-8"))
+        assert floor_template_packet["preflight"]["launchable_for_production_attempt"] is False
+        assert any("explicit --manifest" in item for item in floor_template_packet["preflight"]["failures"])
+
+        floor_manifest = floor / "candidate_preflight.json"
+        floor_good = base / "gate14_floor_student_explicit_packet"
+        proc = run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--output-dir",
+                str(floor_good),
+                "--manifest",
+                str(floor_manifest),
+                "--require-launchable",
+            ]
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        floor_packet = json.loads((floor_good / "launch_packet.json").read_text(encoding="utf-8"))
+        assert floor_packet["candidate_id"] == "premium_still_sr_gate14_floor_student_v1"
+        assert floor_packet["preflight"]["launchable_for_production_attempt"] is True
+        floor_commands = "\n".join(item["command"] for item in floor_packet["next_commands"])
+        assert "premium_still_sr_gate14_floor_student_targets_20260702" in floor_commands
+        assert "premium_still_sr_gate14_floor_student_x2d_smoke_20260702" in floor_commands
+        assert "premium_still_sr_gate14_floor_student_z8_smoke_20260702" in floor_commands
+        assert "--sample-mode full_crop" in floor_commands
+        assert "--candidate-hf-noop-threshold 0.004" in floor_commands
+        assert "--manifest" in floor_commands
+
         bad = base / "bad_packet"
         proc = run(
             [

@@ -5,7 +5,7 @@ Last refreshed: 2026-07-02
 This file is the short, unambiguous execution contract. Start at the first row
 whose status is not `closed` or `blocked_external`. Work on a row counts only
 when the named receipt exists, validates, and is linked from
-`release_evidence_manifest.json`.
+`release_evidence_manifest.json` or `PRODUCTION_ARTIFACTS.md`.
 
 | order | gate | status | exact next step | receipt that moves it |
 |---:|---|---|---|---|
@@ -13,9 +13,10 @@ when the named receipt exists, validates, and is linked from
 | 2 | RAW video reconstruction | closed/protect | Do not reopen approved 4K cleanup or 8K SR unless a locked receipt fails or a replacement already beats the locked artifact surface. | Product lock ledger, README pillar guard, and release manifest guard pass. |
 | 3 | Premium still/SR Gate 14 intake | closed/local | Protect `premium_still_sr_gate14_candidate_intake_20260702`: selector sidecar, source-model mapping, feature schema, hashes, candidate-only runtime policy, and exact no-op fallback are persisted. | Gate 14 executable selector intake reproduces the Gate 13 pass using candidate-only runtime inputs and Z8 exact-noop. |
 | 4 | Premium still/SR Gate 14 selector smoke | closed/local | Protect `premium_still_sr_gate14_selector_smoke_20260702`: the persisted sidecar runs through runtime feature recomputation, source/checkpoint hash checks, first-match routing, and intake replay comparison. | Selector smoke reproduces the X2D pass, preserves Z8 exact-noop, records model/checkpoint hashes, and uses no REF/source/JPEG/gate metric inputs. |
-| 5 | Premium still/SR promotion | open/local | Continue from `premium_still_sr_promotion_receipts_20260702`: 4/8 receipt steps are done and the first open step is `model_promotion_floor`. | `premium_still_sr_promotion_receipts` pass 15% / 15% held-out MAE/RMSE, nonnegative worst-row MAE, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. |
-| 6 | RAW stills noise sidecars | open/sample | Capture or prove Mission 1 and iPhone true darkframes with strict no-scene-signal provenance. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate, then camera-noise calibration sidecars pass `--require-source-provenance`. |
-| 7 | Mission 1 raw-video MVP | blocked_external | GoPro/Mission 1 firmware owner runs the camera-role validation on real sensor/DMA or camera ring-buffer source, SD writer, and rear display. | Real camera-role receipts show valid `.gvid`, zero drops, 120+ sustained frames, memory, 4096 x 3072 source encode, 1024 x 768 preview, and 20+ fps floor. |
+| 5 | Premium still/SR Gate14 floor-student launch packet | closed/local | Protect `premium_still_sr_gate14_floor_student_preflight_20260702` and `premium_still_sr_gate14_floor_student_launch_packet_20260702`: the next candidate named by the model-floor gap has a launchable preflight, paired X2D/Z8 smoke commands, exact no-op fallback, and no REF/source/JPEG render-time inputs. | `preflight_audit.json` says `launchable_preflight_passed` for `premium_still_sr_gate14_floor_student_v1`, with `1.0%` median MAE smoke floor and `0.0%` worst-row floor. |
+| 6 | Premium still/SR promotion | open/local | Build the Gate14 floor-student target dataset, run the paired X2D/Z8 smokes, check smoke acceptance, then run the full 50 MP / 100 MP promotion gate. | `premium_still_sr_promotion_receipts` pass 15% / 15% held-out MAE/RMSE, nonnegative worst-row MAE, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. |
+| 7 | RAW stills noise sidecars | open/sample | Capture or prove Mission 1 and iPhone true darkframes with strict no-scene-signal provenance. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate, then camera-noise calibration sidecars pass `--require-source-provenance`. |
+| 8 | Mission 1 raw-video MVP | blocked_external | GoPro/Mission 1 firmware owner runs the camera-role validation on real sensor/DMA or camera ring-buffer source, SD writer, and rear display. | Real camera-role receipts show valid `.gvid`, zero drops, 120+ sustained frames, memory, 4096 x 3072 source encode, 1024 x 768 preview, and 20+ fps floor. |
 
 ## Current Local Result
 
@@ -61,3 +62,13 @@ It records the exact first blocker: best runtime-safe MAE/RMSE are
 Gate 14 selector global median MAE is `0.2506229397841941%`. The next candidate
 contract is `premium_still_sr_gate14_floor_student_v1`, not another Gate 14
 replay or rejected single-source branch.
+
+That candidate now has a launchable intake packet:
+
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.json`
+
+The preflight verdict is `launchable_preflight_passed`, with two required smoke
+commands: X2D and Z8. The next unambiguous action is to build
+`premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.npz`,
+then run the paired smoke commands from the launch packet. Do not run another
+Gate 14 selector replay as a substitute for the student target builder.

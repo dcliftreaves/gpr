@@ -29,6 +29,7 @@ def parse_args() -> argparse.Namespace:
             "raw_cfa_source_hf_teacher",
             "raw_cfa_residual_signal_teacher",
             "raw_cfa_candidate_hf_noop_teacher",
+            "gate14_floor_student",
             "rejected_repeat_fixture",
         ),
         default="clean_source_restormer_teacher",
@@ -1097,6 +1098,191 @@ def raw_cfa_candidate_hf_noop_teacher(candidate_id: str) -> dict[str, Any]:
     return manifest
 
 
+def gate14_floor_student(candidate_id: str) -> dict[str, Any]:
+    python = "/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python"
+    targets = (
+        "/Volumes/OWC_8TB/gpr_work/artifacts/"
+        "premium_still_sr_gate14_floor_student_targets_20260702/"
+        "gate14_floor_student_targets.npz"
+    )
+    x2d_out = (
+        "/Volumes/OWC_8TB/gpr_work/artifacts/"
+        "premium_still_sr_gate14_floor_student_x2d_smoke_20260702"
+    )
+    z8_out = (
+        "/Volumes/OWC_8TB/gpr_work/artifacts/"
+        "premium_still_sr_gate14_floor_student_z8_smoke_20260702"
+    )
+    common_args = (
+        "--model-arch unet "
+        "--feature-mode raw_context_coord_ev_noise_cfa "
+        "--target-representation residual --target-policy noise_soft_threshold "
+        "--noise-threshold-scale 1.0 "
+        "--sample-balance scene --sample-mode full_crop "
+        "--context-padding 24 --eval-overlap 64 --seam-check-width 16 "
+        "--steps 420 --batch-size 2 --patch-size 192 "
+        "--width 40 --depth 5 --residual-scale 0.04 --lr 0.0001 "
+        "--grad-weight 0.08 --target-abs-weight 0.25 "
+        "--band-weight 0.04 --band-blocks 9 17 33 "
+        "--snr-loss-weight-policy noise_floor_downweight "
+        "--snr-loss-weight-strength 0.75 "
+        "--target-energy-loss-weight-policy high_energy_emphasis "
+        "--target-energy-loss-weight-strength 0.35 "
+        "--candidate-hf-noop-threshold 0.004 "
+        "--candidate-hf-noop-softness 0.004 "
+        "--eval-holdout-rows 32 --eval-train-rows 32 "
+        "--eval-during-training-rows 12 --save-best-holdout-checkpoint "
+        "--seed 260702"
+    )
+    return {
+        "schema": SCHEMA,
+        "candidate_id": candidate_id,
+        "candidate_kind": "student",
+        "teacher_gate_before_student": True,
+        "launchable_for_production_attempt": True,
+        "requires_material_edits_before_launch": False,
+        "material_change_summary": (
+            "Distills the Gate 14 selector/source evidence into a true "
+            "candidate-only student. Gate 14 route decisions are training "
+            "pseudo-label/source selection only, not the production renderer. "
+            "The runtime path receives candidate raw CFA, camera metadata, "
+            "candidate-derived context features, and optional exact validated "
+            "noise sidecars; weak low-error rows retain exact no-op behavior."
+        ),
+        "source_evidence_receipts": [
+            (
+                "/Volumes/OWC_8TB/gpr_work/artifacts/"
+                "premium_still_sr_model_floor_gap_20260702/model_floor_gap.json"
+            ),
+            (
+                "/Volumes/OWC_8TB/gpr_work/artifacts/"
+                "premium_still_sr_gate14_candidate_intake_20260702/selector_sidecar.json"
+            ),
+            (
+                "/Volumes/OWC_8TB/gpr_work/artifacts/"
+                "premium_still_sr_gate14_selector_smoke_20260702/selector_smoke.json"
+            ),
+            (
+                "/Volumes/OWC_8TB/gpr_work/artifacts/"
+                "premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json"
+            ),
+        ],
+        "runtime_inputs": [
+            "candidate_raw",
+            "camera_metadata",
+            "candidate_tile_statistics",
+            "candidate_tile_coordinates",
+            "candidate_scene_normalized_tile_statistics",
+            "validated_noise_sidecar_optional",
+        ],
+        "forbidden_runtime_inputs_absent": True,
+        "uses_ref_or_source_content_at_render_time": False,
+        "promotion_claimed": False,
+        "production_ready": False,
+        "model_arch": "unet full-image Gate14 floor student raw-CFA restoration model",
+        "architecture_family": "full-image candidate-only RAW SR student distilled from Gate14 source evidence",
+        "architecture_deltas": [
+            "full-image raw-CFA restoration student",
+            "Gate14 selector pseudo-label source evidence used only during training",
+            "candidate-only context feature branch",
+            "CFA-phase-conditioned raw feature planes",
+            "candidate-HF no-op benefit gate for low-error rows",
+            "overlapped-tile evaluation with seam diagnostics",
+        ],
+        "degradation_policy": (
+            "student distillation smoke gate: train from Gate14 pseudo-label "
+            "source evidence and validate against same-color Bayer "
+            "interpolation before any long run; preserve exact no-op for Z8 "
+            "or any low-confidence tile until positive source evidence exists"
+        ),
+        "degradation_deltas": [
+            "camera-specific RAW blur/PSF validation remains required before production",
+            "ISO-conditioned calibrated sensor noise-floor downweighting",
+            "bit-depth and compression/decode simulation remains part of the full gate",
+            "sensor and CFA phase aware downsample/decode path",
+            "selector-derived pseudo-label source evidence replaces direct selector replay",
+            "candidate-only no-op behavior for low-error and low-HF tiles",
+        ],
+        "validation_plan": [
+            "held-out X2D full-image gate using Gate14 floor-student distillation targets",
+            "held-out Z8 overlapped-tile gate with exact no-op or positive source evidence",
+            "50 MP full-frame gate row accounting",
+            "100 MP full-frame gate row accounting",
+            "worst-row 100 percent crop review",
+            "both X2D and Z8 smoke holdouts beat same-color interpolation before long run",
+            "selector replay remains tail-safe but is not used as the production renderer",
+        ],
+        "holdouts": [
+            "X2D scene-held-out full-frame raw-CFA images",
+            "Z8 scene-held-out overlapped-tile raw-CFA images",
+        ],
+        "baseline_comparisons": [
+            "same-color Bayer interpolation baseline",
+            "Gate 14 selector smoke as pseudo-label/source evidence only",
+            "current still-SR scoreboard and 12k window-attention rejection",
+            "model-floor gap receipt for the 15 percent promotion floor",
+            "current 124-receipt still-SR experiment scoreboard",
+        ],
+        "planned_receipts": [
+            "checkpoint hash",
+            "training config hash",
+            "target dataset hash",
+            "dashboard",
+            "timing memory receipt",
+            "editor latitude review",
+            "editable DNG/GPR raw receipt",
+            "noise policy receipt",
+            "smoke gate acceptance receipt",
+            "Gate14 floor-student target builder receipt",
+        ],
+        "promotion_receipts": [
+            "50 MP full-frame gate",
+            "100 MP full-frame gate",
+            "worst-row visual review",
+            "seconds per frame and peak RSS",
+        ],
+        "smoke_gate_commands": [
+            (
+                f"{python} tools/cnn/train_premium_still_sr_raw_cfa_residual.py "
+                f"--targets {targets} --output-dir {x2d_out} "
+                "--holdout-scene 2025_10_Oct_Austin_0702 "
+                f"{common_args}"
+            ),
+            (
+                f"{python} tools/cnn/train_premium_still_sr_raw_cfa_residual.py "
+                f"--targets {targets} --output-dir {z8_out} "
+                "--holdout-scene Z8Z_1353 "
+                f"{common_args}"
+            ),
+        ],
+        "smoke_gate_acceptance": {
+            "baseline": "same-color Bayer interpolation",
+            "required_holdouts": ["X2D", "Z8"],
+            "minimum_median_mae_reduction_pct": 1.0,
+            "minimum_worst_row_mae_reduction_pct": 0.0,
+            "long_run_blocked_if_smoke_fails": True,
+            "receipt_fields_required": [
+                "x2d_smoke_receipt",
+                "z8_smoke_receipt",
+                "baseline_comparison",
+                "checkpoint_hash",
+                "training_config_hash",
+            ],
+        },
+        "noise_policy": {
+            "exact_sidecars_only": True,
+            "forbids_source_residual_noise": True,
+            "missing_sidecars": "metadata_only",
+        },
+        "notes": (
+            "Launchable intake manifest for the exact next candidate named by "
+            "the model-floor gap receipt. It is not a production claim; it only "
+            "permits the paired X2D/Z8 smoke gates and then the full 50 MP / "
+            "100 MP promotion gate if the smokes pass."
+        ),
+    }
+
+
 def rejected_repeat_fixture(candidate_id: str) -> dict[str, Any]:
     return {
         "schema": SCHEMA,
@@ -1140,6 +1326,8 @@ def build_manifest(template: str, candidate_id: str | None) -> dict[str, Any]:
         return raw_cfa_residual_signal_teacher(candidate_id or "raw_cfa_residual_signal_teacher_v1")
     if template == "raw_cfa_candidate_hf_noop_teacher":
         return raw_cfa_candidate_hf_noop_teacher(candidate_id or "raw_cfa_candidate_hf_noop_teacher_v1")
+    if template == "gate14_floor_student":
+        return gate14_floor_student(candidate_id or "premium_still_sr_gate14_floor_student_v1")
     if template == "rejected_repeat_fixture":
         return rejected_repeat_fixture(candidate_id or "repeat_residual_pixelshuffle_local_cnn")
     raise ValueError(f"unknown template: {template}")

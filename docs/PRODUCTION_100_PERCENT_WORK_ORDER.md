@@ -48,6 +48,33 @@ It defines the next candidate contract as
 routed selector/source evidence with a true candidate-only student or measured
 high/low raw source evidence before any long run.
 
+The candidate preflight and launch packet now exist:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.json
+```
+
+They pass the preflight checker as launchable intake artifacts only. They do
+not claim production readiness.
+
+## 100 Percent Ladder
+
+Move rows in this exact order. Do not skip a row because a later dashboard
+looks better.
+
+| order | row | receipt | pass condition |
+|---:|---|---|---|
+| 1 | Gate14 floor-student preflight | `premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json` | `launchable_preflight_passed`, candidate id `premium_still_sr_gate14_floor_student_v1`, no REF/source/JPEG render-time inputs, X2D+Z8 smokes required, median MAE recovery floor `1.0%`, worst-row floor `0.0%`. |
+| 2 | Gate14 floor-student target builder | `premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.npz` plus a JSON receipt | Builds candidate-only student targets from Gate 14 pseudo-label/source selection and selector sidecar hashes; no production renderer uses Gate 14 output directly. |
+| 3 | Paired smoke gates | `premium_still_sr_gate14_floor_student_x2d_smoke_20260702/train_receipt.json` and `premium_still_sr_gate14_floor_student_z8_smoke_20260702/train_receipt.json` | Both holdouts beat same-color Bayer interpolation by at least `1.0%` median MAE recovery and `0.0%` worst-row recovery; checkpoint and training-config hashes are recorded. |
+| 4 | Smoke acceptance | `premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | X2D and Z8 smoke receipts meet the preflight acceptance contract. If either fails, record the blocker class and return to target construction, not selector replay. |
+| 5 | Full promotion gate | `premium_still_sr_promotion_gate_<date>/promotion_gate.json` | 50 MP and 100 MP full-frame rows clear `15% / 15%` median MAE/RMSE recovery, nonnegative worst rows, editor/openability, exact-sidecar-only noise policy, and no REF/source/JPEG render-time inputs. |
+| 6 | Timing and memory | timing/memory receipt referenced by the promotion gate | Actual render path reports seconds per 50 MP frame, seconds per 100 MP frame, and peak RSS. |
+| 7 | Production submission | production capture/submission receipt | Checkpoint hash, sidecar/training config, dashboard, promotion gate, timing/memory, editable DNG/GPR, and noise-policy evidence all validate. |
+| 8 | CI and docs | latest pushed `master` GitHub Actions run | CI passes after docs/manifests/artifact hashes are updated; sensitive-content and artifact-hygiene guards pass locally. |
+
 That receipt may say production is still blocked, but it must classify the
 blocker. Acceptable blocker classes are:
 
@@ -69,6 +96,21 @@ python3 tools/build_premium_still_sr_promotion_receipts.py \
 
 python3 tools/build_premium_still_sr_model_floor_gap.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_model_floor_gap_20260702
+
+python3 tools/build_premium_still_sr_candidate_preflight_template.py \
+  --template gate14_floor_student \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json
+
+python3 tools/check_premium_still_sr_candidate_preflight.py \
+  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json \
+  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json \
+  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/index.html \
+  --require-launchable
+
+python3 tools/build_premium_still_sr_launch_packet.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702 \
+  --manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json \
+  --require-launchable
 
 python3 tools/check_premium_still_sr_promotion_gate.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_gate_current_20260702

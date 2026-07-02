@@ -31,6 +31,7 @@ def parse_args() -> argparse.Namespace:
         choices=(
             "clean_source_restormer_teacher",
             "source_evidence_split_teacher",
+            "gate14_floor_student",
             "rejected_repeat_fixture",
         ),
         default="clean_source_restormer_teacher",

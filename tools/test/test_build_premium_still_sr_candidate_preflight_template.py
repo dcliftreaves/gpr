@@ -212,6 +212,54 @@ def main() -> int:
         assert audit["launchable_for_production_attempt"] is True
         assert "no-op behavior" in audit["material_source_matches"]
 
+        floor_student = base / "gate14_floor_student.json"
+        proc = run(
+            [
+                sys.executable,
+                str(BUILDER),
+                "--template",
+                "gate14_floor_student",
+                "--output",
+                str(floor_student),
+            ]
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        floor_data = json.loads(floor_student.read_text(encoding="utf-8"))
+        assert floor_data["candidate_id"] == "premium_still_sr_gate14_floor_student_v1"
+        assert floor_data["candidate_kind"] == "student"
+        assert floor_data["teacher_gate_before_student"] is True
+        assert floor_data["launchable_for_production_attempt"] is True
+        assert "Gate 14 selector/source evidence" in floor_data["material_change_summary"]
+        assert floor_data["smoke_gate_acceptance"]["minimum_median_mae_reduction_pct"] == 1.0
+        assert any("gate14_floor_student_targets_20260702" in item for item in floor_data["smoke_gate_commands"])
+        assert any("gate14_floor_student_x2d_smoke_20260702" in item for item in floor_data["smoke_gate_commands"])
+        assert any("gate14_floor_student_z8_smoke_20260702" in item for item in floor_data["smoke_gate_commands"])
+        assert all("--sample-mode full_crop" in item for item in floor_data["smoke_gate_commands"])
+        assert all("--candidate-hf-noop-threshold 0.004" in item for item in floor_data["smoke_gate_commands"])
+        proc = run(
+            [
+                sys.executable,
+                str(CHECKER),
+                str(floor_student),
+                "--json-out",
+                str(audit_json),
+                "--html-out",
+                str(audit_html),
+                "--require-launchable",
+            ]
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        audit = json.loads(audit_json.read_text(encoding="utf-8"))
+        assert audit["launchable_for_production_attempt"] is True
+        assert "source evidence" in audit["material_source_matches"]
+        assert "no-op behavior" in audit["material_source_matches"]
+
         edited = base / "edited_clean_source_restormer_teacher.json"
         data["candidate_id"] = "contextual_raw_restoration_teacher_new_degradation_v1"
         data["launchable_for_production_attempt"] = True
