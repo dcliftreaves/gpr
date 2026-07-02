@@ -45,6 +45,21 @@ def receipt(median: float, worst: float, *, baseline_beaten: bool = True) -> dic
     }
 
 
+def raw_cfa_receipt(median: float, worst: float) -> dict:
+    return {
+        "schema": "gpr.premium_still_sr_raw_cfa_residual_model.v1",
+        "checkpoint_sha256": "b" * 64,
+        "config": {"model_arch": "unet", "steps": 4},
+        "eval": {
+            "holdout": {
+                "row_count": 2,
+                "raw_residual_mae_reduction_pct": {"median": median, "min": worst},
+                "raw_residual_rmse_reduction_pct": {"median": 0.4, "min": 0.1},
+            }
+        },
+    }
+
+
 def manifest(root: Path) -> dict:
     return {
         "schema": "gpr.premium_still_sr_candidate_preflight.v1",
@@ -121,6 +136,25 @@ def main() -> int:
         assert z8["passed"] is False
         assert any("median MAE" in item for item in z8["failures"])
         assert any("worst-row" in item for item in z8["failures"])
+
+        write_json(base / "artifacts/x2d_smoke/train_receipt.json", raw_cfa_receipt(0.2, 0.0))
+        write_json(base / "artifacts/z8_smoke/train_receipt.json", raw_cfa_receipt(-4.0, -5.0))
+        proc = subprocess.run(
+            [sys.executable, str(TOOL), str(mpath), "--json-out", str(out), "--require-pass"],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert proc.returncode != 0
+        audit = json.loads(out.read_text(encoding="utf-8"))
+        x2d = next(row for row in audit["rows"] if row["holdout"] == "x2d")
+        z8 = next(row for row in audit["rows"] if row["holdout"] == "z8")
+        assert x2d["median_mae_improvement_pct"] == 0.2
+        assert x2d["baseline"] == "same-color Bayer interpolation raw residual"
+        assert x2d["baseline_beaten_on_holdout"] is True
+        assert z8["median_mae_improvement_pct"] == -4.0
+        assert z8["baseline_beaten_on_holdout"] is False
 
     print("test_check_premium_still_sr_smoke_gate_acceptance: PASS")
     return 0

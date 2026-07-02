@@ -27,17 +27,27 @@ camera-role access. The latest Gate 5 branch is closed as a failed smoke:
 | gated no-op residual source-evidence teacher | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gated_residual_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. Z8 damage is reduced to `-0.07770732977859413%` median MAE and `-0.9817010759922141%` worst-row MAE, but X2D worst-row MAE is `-17.16908196504484%`. |
 | stricter gated identity probe | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gated_residual_identity_z8_smoke_20260702/train_receipt.json` | Not a launchable production branch. It nearly collapses to interpolation parity: X2D median/worst are `+0.00008488424079708562%` / `-0.011432486540108134%`; Z8 median/worst are `-0.0014934440317522601%` / `-0.011380055480565317%`. |
 | masked-detail/no-op target objective | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_masked_detail_noop_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst-row MAE is `-0.000016166284221217207%` / `-0.004217229249483704%`; Z8 median/worst-row MAE is `-0.0011404326756156245%` / `-0.009009865416027604%`. Same-camera scene smokes also stay negative, so this is an objective/gating failure rather than only a cross-camera split problem. |
+| raw-CFA source-frequency target objective | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. The absolute source-frequency target is the wrong objective scale: X2D median/worst-row raw MAE recovery is `-4968.130415027571%` / `-10524.379064644432%`; Z8 median/worst-row raw MAE recovery is `-502.5390630379172%` / `-966.3531327864554%`. |
+| raw-CFA residual signal objective | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. Direct raw-CFA residual training is near parity on X2D but still regresses: X2D median/worst-row raw MAE recovery is `-0.15178115040635068%` / `-5.352462806764585%`; Z8 median/worst-row raw MAE recovery is `-5.108265406545033%` / `-178.9545417615565%`. This points to route-specific no-op/benefit gating or Z8 target conditioning, not another generic U-Net residual smoke. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
-Build a new Premium still/SR candidate preflight that changes the **target/source
-or teacher objective**, not the residual architecture and not masked-detail
-thresholds. The no-op/benefit gate reduced the Z8 failure but converged to
-interpolation parity, and the masked-detail/no-op target-objective branch also
-failed same-camera scene smokes. The next candidate must create a stronger
-positive no-REF learning signal while preserving exact no-op behavior for
-low-error tiles.
+Build a new Premium still/SR candidate preflight that fixes the **raw-CFA route
+failure mode just evidenced**. Do not rerun source-frequency targets, generic
+full-crop U-Net residual training, masked-detail thresholds, or the older
+clean-source residual families as production work. The next candidate must be
+one of:
+
+1. a raw-CFA residual candidate with an explicit candidate-only no-op/benefit
+   gate that refuses to change low-benefit tiles and clips the worst-row tail;
+2. a route-specific Z8 residual-conditioning candidate that proves the
+   `Z8Z_1353` outlier is not target/degradation mismatch before mixing routes;
+3. a new target/degradation source receipt showing that the current raw-CFA
+   residual targets are mismatched to the candidate render path.
+
+It must create a positive no-REF learning signal while preserving exact no-op
+behavior for low-error tiles.
 
 The candidate may advance only if all of these are true:
 
@@ -64,10 +74,10 @@ python3 tools/check_premium_still_sr_candidate_preflight.py \
   --html-out /Volumes/OWC_8TB/gpr_work/artifacts/<candidate_preflight>/index.html \
   --require-launchable
 
-python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py \
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python tools/cnn/train_premium_still_sr_raw_cfa_residual.py \
   <exact X2D smoke command from candidate_preflight.json>
 
-python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py \
+/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python tools/cnn/train_premium_still_sr_raw_cfa_residual.py \
   <exact Z8 smoke command from candidate_preflight.json>
 
 python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \

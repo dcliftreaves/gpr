@@ -26,6 +26,8 @@ def parse_args() -> argparse.Namespace:
             "frequency_pyramid_source_evidence_teacher",
             "gated_residual_source_evidence_teacher",
             "masked_detail_noop_teacher",
+            "raw_cfa_source_hf_teacher",
+            "raw_cfa_residual_signal_teacher",
             "rejected_repeat_fixture",
         ),
         default="clean_source_restormer_teacher",
@@ -775,6 +777,255 @@ def masked_detail_noop_teacher(candidate_id: str) -> dict[str, Any]:
     }
 
 
+def raw_cfa_source_hf_teacher(candidate_id: str) -> dict[str, Any]:
+    python = "/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python"
+    targets = (
+        "/Volumes/OWC_8TB/gpr_work/artifacts/"
+        "premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/"
+        "raw_cfa_residual_targets_dedup.npz"
+    )
+    x2d_out = (
+        "/Volumes/OWC_8TB/gpr_work/artifacts/"
+        "premium_still_sr_rawcfa_sourcefreq_x2d_scene_smoke_20260702"
+    )
+    z8_out = (
+        "/Volumes/OWC_8TB/gpr_work/artifacts/"
+        "premium_still_sr_rawcfa_sourcefreq_z8_scene_smoke_20260702"
+    )
+    common_args = (
+        "--model-arch unet "
+        "--feature-mode raw_multiscale_coord_ev_noise_cfa "
+        "--target-representation source_hf "
+        "--target-policy raw "
+        "--target-scale-policy candidate_hf_abs_mean --target-scale-strength 0.75 "
+        "--sample-balance scene --sample-mode full_crop "
+        "--context-padding 16 --eval-overlap 64 --seam-check-width 16 "
+        "--steps 360 --batch-size 2 --patch-size 192 "
+        "--width 32 --depth 4 --residual-scale 0.04 --lr 0.0001 "
+        "--grad-weight 0.10 --target-abs-weight 0.02 "
+        "--band-weight 0.02 --band-blocks 9 17 33 "
+        "--eval-holdout-rows 27 --eval-train-rows 27 "
+        "--eval-during-training-rows 9 --save-best-holdout-checkpoint "
+        "--seed 260702"
+    )
+    return {
+        "schema": SCHEMA,
+        "candidate_id": candidate_id,
+        "candidate_kind": "teacher",
+        "launchable_for_production_attempt": True,
+        "requires_material_edits_before_launch": False,
+        "material_change_summary": (
+            "Changes the target/source objective from clean-source residual "
+            "losses to a raw-CFA source-HF teacher target. Source high-frequency "
+            "content is training supervision only; runtime inference receives "
+            "candidate raw CFA, camera metadata, and optional validated noise "
+            "sidecars, then converts the predicted source-HF target back into a "
+            "candidate residual. This directly tests a different target/source "
+            "objective after the masked-detail/no-op branch collapsed to "
+            "interpolation parity."
+        ),
+        "source_evidence_receipts": [
+            (
+                "/Volumes/OWC_8TB/gpr_work/artifacts/"
+                "premium_still_sr_raw_cfa_residual_targets_dedup_cfa_20260701/"
+                "raw_cfa_residual_targets_dedup.npz"
+            ),
+            (
+                "/Volumes/OWC_8TB/gpr_work/artifacts/"
+                "premium_still_sr_experiment_scoreboard_masked_detail_20260702/"
+                "scoreboard.json"
+            ),
+            (
+                "/Volumes/OWC_8TB/gpr_work/artifacts/"
+                "premium_still_sr_masked_detail_noop_smoke_gate_acceptance_20260702/"
+                "smoke_gate_acceptance.json"
+            ),
+        ],
+        "runtime_inputs": [
+            "candidate_raw",
+            "camera_metadata",
+            "validated_noise_sidecar_optional",
+        ],
+        "forbidden_runtime_inputs_absent": True,
+        "uses_ref_or_source_content_at_render_time": False,
+        "promotion_claimed": False,
+        "production_ready": False,
+        "model_arch": "unet raw-CFA source-frequency restoration teacher",
+        "architecture_family": "raw-CFA full-crop candidate-only RAW SR teacher",
+        "architecture_deltas": [
+            "full-image raw restoration teacher with full-crop sampling",
+            "CFA-phase-conditioned raw feature planes",
+            "overlapped-tile evaluation with seam diagnostics",
+            "candidate-only source-frequency prediction converted to residual",
+        ],
+        "degradation_policy": (
+            "raw-CFA target/objective smoke gate: train on source-frequency "
+            "teacher targets with candidate-HF runtime scaling; no long run is "
+            "allowed unless both X2D and Z8 beat same-color interpolation"
+        ),
+        "degradation_deltas": [
+            "camera-specific RAW blur/PSF validation remains required before production",
+            "ISO-conditioned calibrated sensor noise validation remains exact-sidecar-only",
+            "bit-depth and compression/decode simulation remains part of the full gate",
+            "sensor and CFA phase aware downsample/decode path",
+            "different target/source evidence from raw-CFA source-frequency targets",
+        ],
+        "validation_plan": [
+            "held-out X2D full-image raw-CFA gate using source-frequency target representation",
+            "held-out Z8 overlapped-tile raw-CFA gate using source-frequency target representation",
+            "50 MP full-frame gate row accounting",
+            "100 MP full-frame gate row accounting",
+            "worst-row 100 percent crop review",
+            "both X2D and Z8 smoke holdouts beat same-color interpolation before long run",
+        ],
+        "holdouts": [
+            "X2D scene-held-out full-frame raw-CFA images",
+            "Z8 scene-held-out overlapped-tile raw-CFA images",
+        ],
+        "baseline_comparisons": [
+            "same-color Bayer interpolation baseline",
+            "current still-SR scoreboard and 12k window-attention rejection",
+            "frequency-pyramid smoke gate blocker receipt",
+            "gated-residual smoke gate blocker receipt",
+            "masked-detail/no-op smoke gate blocker receipt",
+            "current 124-receipt still-SR experiment scoreboard",
+        ],
+        "planned_receipts": [
+            "checkpoint hash",
+            "training config hash",
+            "target dataset hash",
+            "dashboard",
+            "timing memory receipt",
+            "editor latitude review",
+            "editable DNG/GPR raw receipt",
+            "noise policy receipt",
+            "smoke gate acceptance receipt",
+        ],
+        "promotion_receipts": [
+            "50 MP full-frame gate",
+            "100 MP full-frame gate",
+            "worst-row visual review",
+            "seconds per frame and peak RSS",
+        ],
+        "smoke_gate_commands": [
+            (
+                f"{python} tools/cnn/train_premium_still_sr_raw_cfa_residual.py "
+                f"--targets {targets} --output-dir {x2d_out} "
+                "--holdout-scene 2025_10_Oct_Austin_0702 "
+                f"{common_args}"
+            ),
+            (
+                f"{python} tools/cnn/train_premium_still_sr_raw_cfa_residual.py "
+                f"--targets {targets} --output-dir {z8_out} "
+                "--holdout-scene Z8Z_1353 "
+                f"{common_args}"
+            ),
+        ],
+        "smoke_gate_acceptance": {
+            "baseline": "same-color Bayer interpolation",
+            "required_holdouts": ["X2D", "Z8"],
+            "minimum_median_mae_reduction_pct": 0.001,
+            "minimum_worst_row_mae_reduction_pct": 0.0,
+            "long_run_blocked_if_smoke_fails": True,
+            "receipt_fields_required": [
+                "x2d_smoke_receipt",
+                "z8_smoke_receipt",
+                "baseline_comparison",
+                "checkpoint_hash",
+                "training_config_hash",
+            ],
+        },
+        "noise_policy": {
+            "exact_sidecars_only": True,
+            "forbids_source_residual_noise": True,
+            "missing_sidecars": "metadata_only",
+        },
+        "notes": (
+            "Launchable Gate A intake manifest for a raw-CFA target/source "
+            "objective change. It remains a paired smoke gate only; production "
+            "promotion requires the full 50 MP / 100 MP gate and production "
+            "submission checker."
+        ),
+    }
+
+
+def raw_cfa_residual_signal_teacher(candidate_id: str) -> dict[str, Any]:
+    manifest = raw_cfa_source_hf_teacher(candidate_id)
+    manifest["material_change_summary"] = (
+        "Changes the target/source objective from clean-source rendered "
+        "residuals and the failed absolute source-frequency target to the "
+        "small raw-CFA source-minus-candidate residual itself. The smoke uses "
+        "noise-floor downweighting and high-energy target emphasis so the "
+        "model learns candidate-only signal corrections without trying to "
+        "reconstruct source highpass content or source residual noise."
+    )
+    manifest["model_arch"] = "unet raw-CFA residual signal restoration teacher"
+    manifest["architecture_family"] = "raw-CFA full-crop candidate-only residual RAW SR teacher"
+    manifest["architecture_deltas"] = [
+        "full-image raw residual restoration teacher with full-crop sampling",
+        "CFA-phase-conditioned raw feature planes",
+        "overlapped-tile evaluation with seam diagnostics",
+        "candidate-only residual prediction in raw-CFA space",
+    ]
+    manifest["degradation_policy"] = (
+        "raw-CFA target/objective smoke gate: train on source-minus-candidate "
+        "raw residual targets with calibrated noise-floor downweighting and "
+        "high-energy target emphasis; no long run is allowed unless both X2D "
+        "and Z8 beat same-color interpolation"
+    )
+    manifest["degradation_deltas"] = [
+        "camera-specific RAW blur/PSF validation remains required before production",
+        "ISO-conditioned calibrated sensor noise-floor downweighting",
+        "bit-depth and compression/decode simulation remains part of the full gate",
+        "sensor and CFA phase aware downsample/decode path",
+        "different target/source evidence from raw-CFA residual signal targets",
+    ]
+    manifest["validation_plan"] = [
+        "held-out X2D full-image raw-CFA gate using residual signal target representation",
+        "held-out Z8 overlapped-tile raw-CFA gate using residual signal target representation",
+        "50 MP full-frame gate row accounting",
+        "100 MP full-frame gate row accounting",
+        "worst-row 100 percent crop review",
+        "both X2D and Z8 smoke holdouts beat same-color interpolation before long run",
+    ]
+    manifest["baseline_comparisons"] = [
+        "same-color Bayer interpolation baseline",
+        "current still-SR scoreboard and 12k window-attention rejection",
+        "raw-CFA source-frequency target blocker receipt",
+        "frequency-pyramid smoke gate blocker receipt",
+        "gated-residual smoke gate blocker receipt",
+        "masked-detail/no-op smoke gate blocker receipt",
+        "current 124-receipt still-SR experiment scoreboard",
+    ]
+    manifest["source_evidence_receipts"] = [
+        *manifest["source_evidence_receipts"],
+        (
+            "/Volumes/OWC_8TB/gpr_work/artifacts/"
+            "premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702/"
+            "smoke_gate_acceptance.json"
+        ),
+    ]
+    manifest["smoke_gate_commands"] = [
+        command.replace("rawcfa_sourcefreq", "rawcfa_residual_signal")
+        .replace(
+            "--target-representation source_hf --target-policy raw "
+            "--target-scale-policy candidate_hf_abs_mean --target-scale-strength 0.75",
+            "--target-representation residual --target-policy noise_soft_threshold "
+            "--noise-threshold-scale 1.0 --snr-loss-weight-policy noise_floor_downweight "
+            "--snr-loss-weight-strength 0.5 --target-energy-loss-weight-policy "
+            "high_energy_emphasis --target-energy-loss-weight-strength 0.5",
+        )
+        for command in manifest["smoke_gate_commands"]
+    ]
+    manifest["notes"] = (
+        "Launchable Gate A intake manifest for a raw-CFA residual signal "
+        "objective after the source-frequency smoke failed by objective scale. "
+        "It remains a paired smoke gate only; production promotion requires "
+        "the full 50 MP / 100 MP gate and production submission checker."
+    )
+    return manifest
+
+
 def rejected_repeat_fixture(candidate_id: str) -> dict[str, Any]:
     return {
         "schema": SCHEMA,
@@ -812,6 +1063,10 @@ def build_manifest(template: str, candidate_id: str | None) -> dict[str, Any]:
         return gated_residual_source_evidence_teacher(candidate_id or "gated_residual_source_evidence_teacher_v1")
     if template == "masked_detail_noop_teacher":
         return masked_detail_noop_teacher(candidate_id or "masked_detail_noop_teacher_v1")
+    if template == "raw_cfa_source_hf_teacher":
+        return raw_cfa_source_hf_teacher(candidate_id or "raw_cfa_sourcefreq_teacher_v1")
+    if template == "raw_cfa_residual_signal_teacher":
+        return raw_cfa_residual_signal_teacher(candidate_id or "raw_cfa_residual_signal_teacher_v1")
     if template == "rejected_repeat_fixture":
         return rejected_repeat_fixture(candidate_id or "repeat_residual_pixelshuffle_local_cnn")
     raise ValueError(f"unknown template: {template}")

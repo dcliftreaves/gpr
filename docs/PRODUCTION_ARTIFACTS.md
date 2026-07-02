@@ -53,9 +53,20 @@ The latest Premium Still/SR Gate A receipts are:
 | masked-detail/no-op Z8 smoke receipt | `artifacts/premium_still_sr_masked_detail_noop_z8_smoke_20260702/train_receipt.json` | `cc0decc7b73628f6c6c1e6608fa91da820bd5bef09615985dd694d1e148e43b5` |
 | masked-detail/no-op smoke acceptance blocker | `artifacts/premium_still_sr_masked_detail_noop_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `5a8b79497cbd07b7297f16077c9ba44d6c1d784c8bb243e0bf7c795779e17f22` |
 | masked-detail/no-op scoreboard | `artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | `c7dfd28783ae63e550c8bfba02b43dd3eadca64dc8fda56bc0254ba92a67b65f` |
+| raw-CFA source-frequency preflight | `artifacts/premium_still_sr_candidate_preflight_rawcfa_sourcefreq_20260702/candidate_preflight.json` | `ab464c38b252baac33d78cfb507518f8ba91f8d45f1a5a72a38585a7d75a1d9a` |
+| raw-CFA source-frequency preflight audit | `artifacts/premium_still_sr_candidate_preflight_rawcfa_sourcefreq_20260702/preflight_audit.json` | `7b0464e4f8ead0848b88f71ff47ab652b047bc3e2287a0c9cf9e0a9b7463ad8b` |
+| raw-CFA source-frequency X2D smoke receipt | `artifacts/premium_still_sr_rawcfa_sourcefreq_x2d_scene_smoke_20260702/train_receipt.json` | `33ae5c79159391220de1c0536fab28a98a7071b162120b2bae33674c860a1c58` |
+| raw-CFA source-frequency Z8 smoke receipt | `artifacts/premium_still_sr_rawcfa_sourcefreq_z8_scene_smoke_20260702/train_receipt.json` | `adf89cb2fb711a141dffc4826bd67a312bffc33e55d18a5d8665355ad7fdc503` |
+| raw-CFA source-frequency smoke acceptance blocker | `artifacts/premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `d51f645b8b4478e9614b4dfbfb17a94a23be2234d2adadb27b388c01d14d672a` |
+| raw-CFA residual-signal preflight | `artifacts/premium_still_sr_candidate_preflight_rawcfa_residual_signal_20260702/candidate_preflight.json` | `0a1584b418cd8f1423a82289a63abaece1a459e4c480b175b72866f897fc4e22` |
+| raw-CFA residual-signal preflight audit | `artifacts/premium_still_sr_candidate_preflight_rawcfa_residual_signal_20260702/preflight_audit.json` | `52092df296c37556091d2de7ebd761da2add7362d2f548e9a5a4d1eab2f4651e` |
+| raw-CFA residual-signal X2D smoke receipt | `artifacts/premium_still_sr_rawcfa_residual_signal_x2d_scene_smoke_20260702/train_receipt.json` | `a9cbdbb75a0045a484b4f3213e61993c6db0fa705be7d54ae811d5ae2f1ce611` |
+| raw-CFA residual-signal Z8 smoke receipt | `artifacts/premium_still_sr_rawcfa_residual_signal_z8_scene_smoke_20260702/train_receipt.json` | `1757f9a00d1c2b8047103844aaf4734a8b196c0efc198b5e92171a4f8b35ed82` |
+| raw-CFA residual-signal smoke acceptance blocker | `artifacts/premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `ca50946bb81020be8c42cee8306243371efa5d79a1bcbb6a9697dfb6948b7a62` |
 
 These branches are blocked before long training. The next Premium Still/SR
-candidate must change the target/source or teacher objective and pass
+candidate must address raw-CFA no-op/benefit gating, route-specific Z8
+conditioning, or target/degradation mismatch and pass
 `tools/check_premium_still_sr_smoke_gate_acceptance.py --require-pass` on paired
 X2D/Z8 smoke receipts before it can consume a long run.
 

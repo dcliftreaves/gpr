@@ -99,6 +99,19 @@ def config_sha256(receipt: dict[str, Any]) -> str | None:
     return hashlib.sha256(payload).hexdigest()
 
 
+def holdout_metric(receipt: dict[str, Any], key: str) -> Any:
+    value = nested(receipt, ["eval", "holdout", key])
+    if value is not None:
+        return value
+    raw_key = {
+        "mae_improvement_pct": "raw_residual_mae_reduction_pct",
+        "rmse_improvement_pct": "raw_residual_rmse_reduction_pct",
+    }.get(key)
+    if raw_key:
+        return nested(receipt, ["eval", "holdout", raw_key])
+    return None
+
+
 def receipt_row(
     holdout: str,
     receipt_path: Path,
@@ -116,11 +129,22 @@ def receipt_row(
             "failures": [f"missing or unreadable receipt: {receipt_path}"],
         }
 
-    median_mae = number(nested(receipt, ["eval", "holdout", "mae_improvement_pct", "median"]))
-    worst_mae = number(nested(receipt, ["eval", "holdout", "mae_improvement_pct", "min"]))
-    median_rmse = number(nested(receipt, ["eval", "holdout", "rmse_improvement_pct", "median"]))
+    mae_metric = holdout_metric(receipt, "mae_improvement_pct")
+    rmse_metric = holdout_metric(receipt, "rmse_improvement_pct")
+    median_mae = number(mae_metric.get("median") if isinstance(mae_metric, dict) else None)
+    worst_mae = number(mae_metric.get("min") if isinstance(mae_metric, dict) else None)
+    median_rmse = number(rmse_metric.get("median") if isinstance(rmse_metric, dict) else None)
     baseline = nested(receipt, ["promotion", "baseline"])
     baseline_beaten = nested(receipt, ["promotion", "baseline_beaten_on_holdout"])
+    if baseline is None and receipt.get("schema") == "gpr.premium_still_sr_raw_cfa_residual_model.v1":
+        baseline = "same-color Bayer interpolation raw residual"
+    if baseline_beaten is None and receipt.get("schema") == "gpr.premium_still_sr_raw_cfa_residual_model.v1":
+        baseline_beaten = (
+            median_mae is not None
+            and worst_mae is not None
+            and median_mae >= median_floor
+            and worst_mae >= worst_floor
+        )
     checkpoint_sha = receipt.get("checkpoint_sha256")
     cfg_sha = receipt.get("training_config_sha256") or receipt.get("config_sha256") or config_sha256(receipt)
 
@@ -147,7 +171,11 @@ def receipt_row(
         "failures": failures,
         "baseline": baseline,
         "baseline_beaten_on_holdout": baseline_beaten,
-        "holdout_tile_count": nested(receipt, ["eval", "holdout", "mae_improvement_pct", "count"]),
+        "holdout_tile_count": (
+            mae_metric.get("count")
+            if isinstance(mae_metric, dict) and mae_metric.get("count") is not None
+            else nested(receipt, ["eval", "holdout", "row_count"])
+        ),
         "median_mae_improvement_pct": median_mae,
         "worst_row_mae_improvement_pct": worst_mae,
         "median_rmse_improvement_pct": median_rmse,

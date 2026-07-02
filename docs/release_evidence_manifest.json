@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no model receipt yet clears the 15% / 15% held-out promotion floor. Frequency-pyramid, gated-residual, and masked-detail/no-op smokes are blocked before long training; the current blocker is a target/source or teacher-objective gap, not more residual threshold tuning.",
+      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no model receipt yet clears the 15% / 15% held-out promotion floor. Frequency-pyramid, gated-residual, masked-detail/no-op, raw-CFA source-frequency, and raw-CFA residual-signal smokes are blocked before long training; the current blocker is raw-CFA no-op/benefit gating, route-specific Z8 conditioning, or target/degradation mismatch.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -105,7 +105,11 @@
           "cnn_product_scorecard_20260629",
           "premium_still_sr_route_readiness_20260702",
           "premium_still_sr_route_readiness_with_rendered_20260702",
-          "premium_still_sr_editor_latitude_coverage_20260702"
+          "premium_still_sr_editor_latitude_coverage_20260702",
+          "premium_still_sr_candidate_preflight_rawcfa_sourcefreq_20260702",
+          "premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702",
+          "premium_still_sr_candidate_preflight_rawcfa_residual_signal_20260702",
+          "premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702"
         ]
       },
       "open_gate": "Candidate-only 50 MP / 100 MP still-SR must clear broad Mission 1/Z8/X2D holdouts, raw-editor latitude/openability review for every route, exact-sidecar-only noise policy, and worst-row visual gates."
@@ -2828,7 +2832,7 @@
         "source_evidence_x2d_worst_row_mae_recovery_pct": -17.16908196504484,
         "source_evidence_z8_median_mae_recovery_pct": -0.07770732977859413,
         "source_evidence_z8_worst_row_mae_recovery_pct": -0.9817010759922141,
-        "identity_x2d_median_mae_recovery_pct": 0.00008488424079708562,
+        "identity_x2d_median_mae_recovery_pct": 8.488424079708562e-05,
         "identity_x2d_worst_row_mae_recovery_pct": -0.011432486540108134,
         "identity_z8_median_mae_recovery_pct": -0.0014934440317522601,
         "identity_z8_worst_row_mae_recovery_pct": -0.011380055480565317,
@@ -2885,7 +2889,7 @@
         "receipt_count": 124,
         "runtime_safe_candidate_count": 124,
         "promotable_candidate_count": 0,
-        "x2d_median_mae_recovery_pct": -0.000016166284221217207,
+        "x2d_median_mae_recovery_pct": -1.6166284221217207e-05,
         "x2d_worst_row_mae_recovery_pct": -0.004217229249483704,
         "z8_median_mae_recovery_pct": -0.0011404326756156245,
         "z8_worst_row_mae_recovery_pct": -0.009009865416027604,
@@ -4062,6 +4066,118 @@
         "archive_bytes": 49674524,
         "verification_failures": 0,
         "camera_production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_candidate_preflight_rawcfa_sourcefreq_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Launchable preflight for the raw-CFA source-frequency target/objective smoke. The paired smoke later blocked it by objective scale before any long run.",
+      "dashboard": "artifacts/premium_still_sr_candidate_preflight_rawcfa_sourcefreq_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_candidate_preflight_rawcfa_sourcefreq_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_candidate_preflight_rawcfa_sourcefreq_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_candidate_preflight_rawcfa_sourcefreq_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "ab464c38b252baac33d78cfb507518f8ba91f8d45f1a5a72a38585a7d75a1d9a",
+        "preflight_audit_json_sha256": "7b0464e4f8ead0848b88f71ff47ab652b047bc3e2287a0c9cf9e0a9b7463ad8b"
+      },
+      "metrics": {
+        "launchable_preflight": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Paired X2D/Z8 smoke-gate blocker for the raw-CFA source-frequency target. It records the objective-scale failure and blocks long training.",
+      "dashboard": "artifacts/premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_rawcfa_sourcefreq_x2d_scene_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_rawcfa_sourcefreq_z8_scene_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json",
+        "artifacts/premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702/index.html"
+      ],
+      "hashes": {
+        "x2d_train_receipt_sha256": "33ae5c79159391220de1c0536fab28a98a7071b162120b2bae33674c860a1c58",
+        "z8_train_receipt_sha256": "adf89cb2fb711a141dffc4826bd67a312bffc33e55d18a5d8665355ad7fdc503",
+        "smoke_gate_acceptance_json_sha256": "d51f645b8b4478e9614b4dfbfb17a94a23be2234d2adadb27b388c01d14d672a"
+      },
+      "metrics": {
+        "smoke_gate_passed": 0,
+        "x2d_median_raw_mae_recovery_pct": -4968.130415027571,
+        "x2d_worst_raw_mae_recovery_pct": -10524.379064644432,
+        "z8_median_raw_mae_recovery_pct": -502.5390630379172,
+        "z8_worst_raw_mae_recovery_pct": -966.3531327864554,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_candidate_preflight_rawcfa_residual_signal_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Launchable preflight for the raw-CFA residual-signal target/objective smoke after source-frequency failed by objective scale.",
+      "dashboard": "artifacts/premium_still_sr_candidate_preflight_rawcfa_residual_signal_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_candidate_preflight_rawcfa_residual_signal_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_candidate_preflight_rawcfa_residual_signal_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_candidate_preflight_rawcfa_residual_signal_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "0a1584b418cd8f1423a82289a63abaece1a459e4c480b175b72866f897fc4e22",
+        "preflight_audit_json_sha256": "52092df296c37556091d2de7ebd761da2add7362d2f548e9a5a4d1eab2f4651e"
+      },
+      "metrics": {
+        "launchable_preflight": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Paired X2D/Z8 smoke-gate blocker for the raw-CFA residual-signal objective. It narrows the next candidate to no-op/benefit gating, route-specific Z8 conditioning, or target/degradation mismatch.",
+      "dashboard": "artifacts/premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_rawcfa_residual_signal_x2d_scene_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_rawcfa_residual_signal_z8_scene_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json",
+        "artifacts/premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/index.html"
+      ],
+      "hashes": {
+        "x2d_train_receipt_sha256": "a9cbdbb75a0045a484b4f3213e61993c6db0fa705be7d54ae811d5ae2f1ce611",
+        "z8_train_receipt_sha256": "1757f9a00d1c2b8047103844aaf4734a8b196c0efc198b5e92171a4f8b35ed82",
+        "smoke_gate_acceptance_json_sha256": "ca50946bb81020be8c42cee8306243371efa5d79a1bcbb6a9697dfb6948b7a62"
+      },
+      "metrics": {
+        "smoke_gate_passed": 0,
+        "x2d_median_raw_mae_recovery_pct": -0.15178115040635068,
+        "x2d_worst_raw_mae_recovery_pct": -5.352462806764585,
+        "z8_median_raw_mae_recovery_pct": -5.108265406545033,
+        "z8_worst_raw_mae_recovery_pct": -178.9545417615565,
+        "production_ready": 0
       }
     }
   ],

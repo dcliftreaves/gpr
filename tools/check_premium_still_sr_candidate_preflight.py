@@ -106,6 +106,14 @@ SUPPORTED_TRAINER_MODEL_ARCHES = {
     "window_attention_pixelshuffle",
     "frequency_pyramid_pixelshuffle",
     "gated_frequency_pyramid_pixelshuffle",
+    "residual",
+    "unet",
+    "rcab_teacher",
+    "naf_teacher",
+    "window_attention_teacher",
+    "restormer_teacher",
+    "pyramid_unet",
+    "global_context_unet",
 }
 REQUIRED_SMOKE_ACCEPTANCE_RECEIPT_FIELDS = {
     "x2d_smoke_receipt",
@@ -236,6 +244,28 @@ def option_values_for_command(command: str, option: str) -> list[str]:
         elif part.startswith(f"{option}="):
             values.append(part.split("=", 1)[1])
     return values
+
+
+def command_text_without_training_only_targets(command: str) -> str:
+    """Strip allowed training-target tokens before runtime/source-content checks."""
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        return command.lower()
+    filtered: list[str] = []
+    skip_next = False
+    for idx, part in enumerate(parts):
+        if skip_next:
+            skip_next = False
+            continue
+        if part == "--target-representation" and idx + 1 < len(parts):
+            if parts[idx + 1] == "source_hf":
+                skip_next = True
+                continue
+        if part == "--target-representation=source_hf":
+            continue
+        filtered.append(part)
+    return " ".join(filtered).lower()
 
 
 def number_value(value: Any) -> float | None:
@@ -458,9 +488,12 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
                         failures,
                         f"smoke_gate_commands[{idx}] uses unsupported --model-arch {model_arch!r}",
                     )
-        if contains_any(smoke_text, FORBIDDEN_RUNTIME_INPUTS):
+        smoke_policy_text = text_blob(
+            [command_text_without_training_only_targets(command) for command in smoke_commands]
+        )
+        if contains_any(smoke_policy_text, FORBIDDEN_RUNTIME_INPUTS):
             add_failure(failures, "smoke_gate_commands include forbidden runtime/source content tokens")
-        rejected_command_tokens = matching_tokens(smoke_text, REJECTED_REPEAT_TOKENS)
+        rejected_command_tokens = matching_tokens(smoke_policy_text, REJECTED_REPEAT_TOKENS)
         if rejected_command_tokens:
             add_failure(
                 failures,
