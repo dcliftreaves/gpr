@@ -163,6 +163,8 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_window_attention_smoke_x2d_20260702",
                 "premium_still_sr_window_attention_smoke_z8_20260702",
                 "premium_still_sr_experiment_scoreboard_window_attention_20260702",
+                "premium_still_sr_source_evidence_x2dholdout_t64_20260702",
+                "premium_still_sr_source_evidence_z8holdout_t64_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
@@ -1303,6 +1305,66 @@ def require_dashboard_contract(
         for token in ("99-receipt experiment scoreboard", "99 runtime-safe"):
             if token not in readme_plain:
                 failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
+
+    if entry_id == "premium_still_sr_source_evidence_x2dholdout_t64_20260702":
+        if entry.get("status") != "diagnostic":
+            failures.append(f"{entry_id}: X2D source-evidence audit must remain diagnostic")
+        if entry.get("holdout_camera") != "x2d":
+            failures.append(f"{entry_id}: holdout_camera must stay 'x2d'")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: X2D source-evidence audit needs metrics")
+        else:
+            expected_metrics = {
+                "train_tile_count": 4224,
+                "holdout_tile_count": 576,
+                "min_required_recovery_pct": 1.0,
+                "source_evidence_present": 1,
+                "production_ready": 0,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+            try:
+                mae = float(metrics.get("median_linear_probe_mae_recovery_pct"))
+                rmse = float(metrics.get("median_linear_probe_rmse_recovery_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: X2D source-evidence metrics must be numeric")
+            else:
+                if abs(mae - 4.821260781753699) > 1e-12:
+                    failures.append(f"{entry_id}: X2D source-evidence MAE drifted")
+                if abs(rmse - 11.520193787949786) > 1e-12:
+                    failures.append(f"{entry_id}: X2D source-evidence RMSE drifted")
+
+    if entry_id == "premium_still_sr_source_evidence_z8holdout_t64_20260702":
+        if entry.get("status") != "experimental-blocker":
+            failures.append(f"{entry_id}: Z8 source-evidence audit must remain experimental-blocker")
+        if entry.get("holdout_camera") != "z8":
+            failures.append(f"{entry_id}: holdout_camera must stay 'z8'")
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, dict):
+            failures.append(f"{entry_id}: Z8 source-evidence audit needs metrics")
+        else:
+            expected_metrics = {
+                "train_tile_count": 3264,
+                "holdout_tile_count": 1536,
+                "min_required_recovery_pct": 1.0,
+                "source_evidence_present": 0,
+                "production_ready": 0,
+            }
+            for key, expected in expected_metrics.items():
+                if metrics.get(key) != expected:
+                    failures.append(f"{entry_id}: metric {key} must stay {expected!r}")
+            try:
+                mae = float(metrics.get("median_linear_probe_mae_recovery_pct"))
+                rmse = float(metrics.get("median_linear_probe_rmse_recovery_pct"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: Z8 source-evidence metrics must be numeric")
+            else:
+                if abs(mae - 0.649807764458084) > 1e-12:
+                    failures.append(f"{entry_id}: Z8 source-evidence MAE drifted")
+                if abs(rmse - 21.89973637064664) > 1e-12:
+                    failures.append(f"{entry_id}: Z8 source-evidence RMSE drifted")
 
     if entry_id == "premium_still_sr_promotion_gate_20260702":
         if entry.get("status") != "experimental-blocker":

@@ -10,10 +10,10 @@ production-promoted.
 | question | current answer |
 |---|---|
 | Is premium still-SR shippable today? | No. The infrastructure exists, but current no-REF models do not clear the 50 MP / 100 MP still-SR promotion gate. |
-| What is the current scorecard state? | **99** runtime-safe training receipts, **0** promotable rows, and best older runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. The newest launchable window-attention smoke gate also fails before long training: X2D is **+0.0016%** median MAE but **-0.0095%** RMSE, and Z8 is **-0.5807%** MAE / **-0.3829%** RMSE. |
+| What is the current scorecard state? | **99** runtime-safe training receipts, **0** promotable rows, and best older runtime-safe recovery of **4.03%** MAE / **3.75%** RMSE against the **15% / 15%** promotion floor. The newest launchable window-attention smoke gate also fails before long training: X2D is **+0.0016%** median MAE but **-0.0095%** RMSE, and Z8 is **-0.5807%** MAE / **-0.3829%** RMSE. The source-evidence audit now splits the blocker: X2D has **4.821%** local-probe MAE / **11.520%** RMSE recovery, while Z8 has only **0.650%** MAE recovery against the 1% source-evidence floor. |
 | What must a new candidate prove first? | Candidate-only runtime inputs, positive held-out recovery, 50 MP and 100 MP full-frame gates, editor-latitude review, worst-row review, editable raw outputs, timing, memory, and exact-sidecar-only noise policy. |
 | What is forbidden at render time? | REF/source/JPEG image content, source residual noise, hidden source-HF targets, or any noise addback not tied to a validated exact camera/ISO sidecar. |
-| What should happen before another long CNN run? | Build a small candidate and reject it early unless it improves held-out X2D and Z8 evidence with runtime-safe inputs. Do not scale the current Restormer, teacher-first, or window-attention clean-source pair setup unless both smoke holdouts beat interpolation. |
+| What should happen before another long CNN run? | Build a small candidate and reject it early unless it improves held-out X2D and Z8 evidence with runtime-safe inputs. The proposal must use X2D local source evidence as a material teacher/objective and change the Z8 source/degradation target before training long. Do not scale the current Restormer, teacher-first, or window-attention clean-source pair setup unless both smoke holdouts beat interpolation. |
 | Are the routed clean-source teacher commands the next run? | No. They are now labeled as rejected reference commands in the next-experiment contract. A new production attempt needs a preflight-proven architecture/degradation/validation change before another long run. |
 
 ## First-Hour Steps
@@ -79,8 +79,35 @@ production-promoted.
    `next_candidate_preflight` with a materially different source target,
    degradation model, or teacher objective.
 
-   Before launching that run, build a candidate preflight scaffold and edit it
-   with the concrete material change from the rejected 20260702 receipts:
+   Before launching that run, run or inspect the candidate-only source-evidence
+   audits and keep their paths in the candidate notes:
+
+   ```sh
+   python3 tools/cnn/audit_premium_still_sr_source_evidence.py \
+     --pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/premium_still_sr_clean_source_pairs_routed_t64.npz \
+     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_x2dholdout_t64_<date> \
+     --holdout-camera x2d \
+     --radius 1 \
+     --max-train-samples 200000 \
+     --ridge-lambda 1.0 \
+     --min-recovery-pct 1.0
+
+   python3 tools/cnn/audit_premium_still_sr_source_evidence.py \
+     --pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_source_pairs_routed_t64_20260702/premium_still_sr_clean_source_pairs_routed_t64.npz \
+     --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_z8holdout_t64_<date> \
+     --holdout-camera z8 \
+     --radius 1 \
+     --max-train-samples 200000 \
+     --ridge-lambda 1.0 \
+     --min-recovery-pct 1.0
+   ```
+
+   The current receipts say X2D has candidate-only local source evidence, but
+   Z8 does not clear the 1 percent MAE floor. A long run that ignores that
+   split is rejected before launch.
+
+   Then build a candidate preflight scaffold and edit it with the concrete
+   material change from the rejected 20260702 receipts:
 
    ```sh
    python3 tools/build_premium_still_sr_candidate_preflight_template.py \
@@ -209,6 +236,8 @@ production-promoted.
 | Window-attention launch packet | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_window_attention_20260702/index.html` |
 | Window-attention X2D smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_smoke_x2d_20260702/index.html` |
 | Window-attention Z8 smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_smoke_z8_20260702/index.html` |
+| Source-evidence X2D audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_x2dholdout_t64_20260702/index.html` |
+| Source-evidence Z8 audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_source_evidence_z8holdout_t64_20260702/index.html` |
 | Historical launchable preflight now blocked if reused | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_20260702_next/index.html` |
 | Teacher-first X2D smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_x2d_20260702/index.html` |
 | Teacher-first Z8 smoke rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_teacher_first_smoke_z8_20260702/index.html` |

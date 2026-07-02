@@ -48,7 +48,7 @@ when it visibly improves the result.**
 |---|---:|---|---|
 | **Best RAW stills** | **92%** | 50 MP tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100 MP roundtrip; 12/14/16-bit support; real RGGB/GBRG/GRBG/BGGR coverage; X2D/Z8 noise sidecars. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
 | **GoPro RAW video MVP** | **80%** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor, and the same stream previews full-frame at 1024 x 768 above **20 fps**. | Real Mission 1 sensor/DMA or camera-ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, 120+ sustained frames, and timing receipts from the camera role. |
-| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, editor-openability, model-promotion tooling, and the 99-receipt experiment scoreboard exist. | A no-REF 50 MP / 100 MP candidate must beat the current still baseline and pass worst-row, editor-latitude, timing, memory, and exact-sidecar-only noise-policy gates. |
+| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, editor-openability, model-promotion tooling, the 99-receipt experiment scoreboard, and the X2D/Z8 source-evidence audits exist. | A no-REF 50 MP / 100 MP candidate must beat the current still baseline and pass worst-row, editor-latitude, timing, memory, exact-sidecar-only noise-policy gates, and source-evidence preflight gates. |
 | **RAW video reconstruction improvement** | **100%** | Approved offline/post 4K cleanup and 8K SR emit `.gvid`, editable raw, standalone no-CNN/CNN ProRes review movies, objective review, and manual signoff receipts. | No release blocker. PSF/blur modeling is parked as optional replacement research. |
 
 The denominator is the shippable production suite: **1. Best RAW stills**,
@@ -104,6 +104,12 @@ still-SR receipts, **0** promotable rows, best older runtime-safe row at **4.03%
 held-out MAE recovery / **3.75%** held-out RMSE recovery against the **15% / 15%**
 promotion floor, and newer clean-source Restormer, teacher-first, and executable
 window-attention smoke receipts that still fail the joint X2D/Z8 holdout gate.
+The latest candidate-only source-evidence audit is more specific: X2D has local
+signal above nearest same-color 2x (**4.82%** MAE / **11.52%** RMSE recovery),
+but Z8 does not clear the 1% MAE source-evidence floor (**0.65%** MAE despite
+**21.90%** RMSE recovery). The next Gate A candidate must use that X2D signal
+as a material teacher/objective and fix the Z8 source/degradation mismatch
+before any long training run.
 
 ## Evidence Map
 
@@ -138,7 +144,7 @@ and receipts stay on the 8TB artifact root.
 | **Camera-back preview** | The same 4K `.gvid` decodes to full-frame 1024 x 768 RGB above **20 fps** on the Pi 5 stand-in. | Mission 1 rear-display/UI handoff remains unproven. |
 | **Offline reconstruction** | Approved 4K cleanup and candidate-aware 8K SR emit editable `.gvid` plus ProRes review media. | PSF-conditioned replacements are research until they beat the locked baseline. |
 | **Review/export scopes** | MOV / ProRes review outputs, PREVIEW offline/review, and PREVIEW live/camera-back are each tracked separately. | PREVIEW offline/review is not a live/camera-back preview path, and ProRes is not the primary raw deliverable. |
-| **Premium still/SR** | 99 runtime-safe experiment receipts, raw-CFA targets, routed specialists, and promotion tooling exist. | Current candidates are not promotable; the latest executable window-attention smoke also fails X2D/Z8, so the next pass needs materially better source evidence, degradation, or teacher objective. |
+| **Premium still/SR** | 99 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, and X2D/Z8 source-evidence audits exist. | Current candidates are not promotable; the latest executable window-attention smoke also fails X2D/Z8, and the source-evidence audit says X2D has usable local signal while Z8 needs source/degradation repair. |
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
 

@@ -89,6 +89,8 @@
           "premium_still_sr_window_attention_smoke_x2d_20260702",
           "premium_still_sr_window_attention_smoke_z8_20260702",
           "premium_still_sr_experiment_scoreboard_window_attention_20260702",
+          "premium_still_sr_source_evidence_x2dholdout_t64_20260702",
+          "premium_still_sr_source_evidence_z8holdout_t64_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -2433,6 +2435,70 @@
         "latest_window_attention_z8_smoke_holdout_mae_recovery_pct": -0.5807092150718575,
         "latest_window_attention_z8_smoke_holdout_rmse_recovery_pct": -0.3829316485837014,
         "promotion_threshold_pct": 15.0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_source_evidence_x2dholdout_t64_20260702",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Candidate-only local-ridge source-evidence audit on the t64 clean-source pair corpus with X2D held out. It shows observable local source signal beyond nearest same-color Bayer 2x, but still below the 15 percent promotion floor, so the next Gate A candidate should use this evidence as a material teacher/objective input rather than rerun an architecture-only smoke.",
+      "holdout_camera": "x2d",
+      "dashboard": "artifacts/premium_still_sr_source_evidence_x2dholdout_t64_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_source_evidence_x2dholdout_t64_20260702/source_evidence_audit.json",
+        "artifacts/premium_still_sr_source_evidence_x2dholdout_t64_20260702/index.html"
+      ],
+      "hashes": {
+        "source_evidence_audit_json_sha256": "e013bea535e72b8bc0d18bac44f02c5562494647e1a1d8d7e8c7ecd5b03053e7",
+        "dashboard_sha256": "e1e9b05afdf98c033a0e380787e5df5b3a878c67e3a3952f21027b54b19601c7"
+      },
+      "metrics": {
+        "train_tile_count": 4224,
+        "holdout_tile_count": 576,
+        "median_linear_probe_mae_recovery_pct": 4.821260781753699,
+        "median_linear_probe_rmse_recovery_pct": 11.520193787949786,
+        "min_required_recovery_pct": 1.0,
+        "source_evidence_present": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_source_evidence_z8holdout_t64_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Candidate-only local-ridge source-evidence audit on the t64 clean-source pair corpus with Z8 held out. RMSE improves, but median MAE recovery stays below the 1 percent source-evidence floor, so Z8 needs a different source/degradation target before another long same-target CNN run.",
+      "holdout_camera": "z8",
+      "dashboard": "artifacts/premium_still_sr_source_evidence_z8holdout_t64_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR_FIRST_HOUR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_source_evidence_z8holdout_t64_20260702/source_evidence_audit.json",
+        "artifacts/premium_still_sr_source_evidence_z8holdout_t64_20260702/index.html"
+      ],
+      "hashes": {
+        "source_evidence_audit_json_sha256": "c2a15884c03c0beab41569cfcd2b44ed7cf691ab86216abb5c951fc3851f98be",
+        "dashboard_sha256": "6770eb7485692959e3d8938489cfb1ccacd2708de46f9dbfbd3d877f8e50d9f7"
+      },
+      "metrics": {
+        "train_tile_count": 3264,
+        "holdout_tile_count": 1536,
+        "median_linear_probe_mae_recovery_pct": 0.649807764458084,
+        "median_linear_probe_rmse_recovery_pct": 21.89973637064664,
+        "min_required_recovery_pct": 1.0,
+        "source_evidence_present": 0,
         "production_ready": 0
       }
     },

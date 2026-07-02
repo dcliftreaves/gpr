@@ -567,6 +567,10 @@ pillar.
 | Premium still-SR window-attention Z8 smoke rejection dashboard | `artifacts/premium_still_sr_window_attention_smoke_z8_20260702/index.html` | `e4662cb0e62eca91af04643ab477199d8220a2c51dd24114f0dd25a94c7c26dc` |
 | Premium still-SR window-attention 99-receipt scoreboard JSON | `artifacts/premium_still_sr_experiment_scoreboard_window_attention_20260702/scoreboard.json` | `2f06947450beff9cc0d5c8ec9cafa4caa79a3a0ddc626a9109a7783fe0268bca` |
 | Premium still-SR window-attention 99-receipt scoreboard dashboard | `artifacts/premium_still_sr_experiment_scoreboard_window_attention_20260702/index.html` | `ba3e8fc7721bf19741c74a986fd8c8229e9eee564fe4b24a215c92004ff4c4fa` |
+| Premium still-SR X2D source-evidence audit JSON | `artifacts/premium_still_sr_source_evidence_x2dholdout_t64_20260702/source_evidence_audit.json` | `e013bea535e72b8bc0d18bac44f02c5562494647e1a1d8d7e8c7ecd5b03053e7` |
+| Premium still-SR X2D source-evidence dashboard | `artifacts/premium_still_sr_source_evidence_x2dholdout_t64_20260702/index.html` | `e1e9b05afdf98c033a0e380787e5df5b3a878c67e3a3952f21027b54b19601c7` |
+| Premium still-SR Z8 source-evidence audit JSON | `artifacts/premium_still_sr_source_evidence_z8holdout_t64_20260702/source_evidence_audit.json` | `c2a15884c03c0beab41569cfcd2b44ed7cf691ab86216abb5c951fc3851f98be` |
+| Premium still-SR Z8 source-evidence dashboard | `artifacts/premium_still_sr_source_evidence_z8holdout_t64_20260702/index.html` | `6770eb7485692959e3d8938489cfb1ccacd2708de46f9dbfbd3d877f8e50d9f7` |
 | Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `3d95db1c9c468034e11ef255d3f3606fb5546e4a77b0d7eb49b8b82d11aaad13` |
 | Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `ba0ddcc00db1f9b22d2e3c138051cbd375a6a5c6b78f87f9ab623e7ade062968` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |
