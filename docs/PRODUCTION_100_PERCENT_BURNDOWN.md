@@ -31,17 +31,18 @@ camera-role access. The latest Gate 5 branch is closed as a failed smoke:
 | raw-CFA residual signal objective | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. Direct raw-CFA residual training is near parity on X2D but still regresses: X2D median/worst-row raw MAE recovery is `-0.15178115040635068%` / `-5.352462806764585%`; Z8 median/worst-row raw MAE recovery is `-5.108265406545033%` / `-178.9545417615565%`. This points to route-specific no-op/benefit gating or Z8 target conditioning, not another generic U-Net residual smoke. |
 | raw-CFA candidate-HF no-op gate | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_candidate_hf_noop_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. Candidate-only HF gating clips the Z8 low-HF tail to exact parity, but does not create positive learning: X2D median/worst-row raw MAE recovery is `-0.006290143931539378%` / `-0.23156087540736878%`; Z8 median/worst-row raw MAE recovery is `0.0%` / `0.0%`, below the `>0.001%` median floor. A frame-context diagnostic also failed X2D at `-0.01923371655785397%` median, so simple gate/context tuning is not enough. |
 | target/degradation blocker receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_degradation_evidence_20260702/target_degradation_evidence.json` | Current local blocker is now explicit and machine-readable: long-run allowed is `false`; X2D candidate-HF no-op median/worst recovery is `-0.006290143931539378%` / `-0.23156087540736878%`; Z8 is safe but zero-benefit at `0.0%` / `0.0%`; frame-context X2D is worse at `-0.01923371655785397%`. This rules out simple no-op threshold tuning, simple frame-context conditioning, and another generic raw-CFA residual long run. |
+| replacement target/source contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_replacement_target_source_contract_20260702/replacement_target_source_contract.json` | Ready for paired smoke preflight only. X2D has candidate-only source evidence at `4.821260781753699%` MAE / `11.520193787949786%` RMSE but a `3.4500243590744026x` holdout target-distribution mismatch; Z8 has only `0.649807764458084%` MAE source evidence despite `21.89973637064664%` RMSE recovery; calibrated target SNR is mixed signal/noise. The next candidate must use noise-aware or row-filtered residual targets, route-conditioned X2D sampling, changed Z8 degradation/source policy, candidate-only runtime inputs, and exact no-op behavior. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
-Build the replacement Premium still/SR target/degradation **source** receipt or
-materially different route-conditioning candidate described by
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_degradation_evidence_20260702/index.html`.
-Do not rerun source-frequency targets, generic full-crop U-Net residual
-training, masked-detail thresholds, candidate-HF no-op threshold tuning, simple
-frame-context conditioning, or the older clean-source residual families as
-production work. The next candidate must be one of:
+Build the candidate preflight described by
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_replacement_target_source_contract_20260702/index.html`,
+then run paired X2D/Z8 smoke gates. Do not rerun source-frequency targets,
+generic full-crop U-Net residual training, masked-detail thresholds,
+candidate-HF no-op threshold tuning, simple frame-context conditioning, or the
+older clean-source residual families as production work. The next candidate
+must be one of:
 
 1. a new target/degradation source receipt showing that the current raw-CFA
    residual targets are mismatched to the candidate render path, with a

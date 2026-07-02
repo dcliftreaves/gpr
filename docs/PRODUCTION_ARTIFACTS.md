@@ -907,6 +907,8 @@ candidate-HF no-op or simple frame-context family.
 |---|---|---|
 | Premium still-SR target/degradation blocker receipt | `artifacts/premium_still_sr_target_degradation_evidence_20260702/target_degradation_evidence.json` | `2b4ca8ded91b402b941bdede67de24f7e9ed2dff4e02fe2219fd6d7766b24994` |
 | Premium still-SR target/degradation blocker dashboard | `artifacts/premium_still_sr_target_degradation_evidence_20260702/index.html` | `c99ae902e7519cea10d86664d62742430c3ba206244cbbd484a2dcea97f44603` |
+| Premium still-SR replacement target/source contract receipt | `artifacts/premium_still_sr_replacement_target_source_contract_20260702/replacement_target_source_contract.json` | `5c7361bc5d5b4fb39419d8d4d0bf0062980efe33ab1610985cfeb9aff9ae35d2` |
+| Premium still-SR replacement target/source contract dashboard | `artifacts/premium_still_sr_replacement_target_source_contract_20260702/index.html` | `96f98566b0aa86f1bf4b3d87cea844438ed10a14cbd9f7f907b558d2a561615d` |
 
 ## Registry Review Artifacts
 
