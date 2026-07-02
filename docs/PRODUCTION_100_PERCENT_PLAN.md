@@ -16,6 +16,27 @@ commands, and is linked from the product scorecard or release evidence manifest.
 | Premium still/SR | 60% | A no-REF 50 MP / 100 MP candidate that beats the current still baseline and clears worst-row, editor-latitude, timing, memory, checkpoint, and exact-sidecar-only noise-policy gates. |
 | RAW video reconstruction improvement | 100% | Keep the approved 4K cleanup and 8K SR receipt set green; do not reopen it for PSF/blur research unless a replacement already beats the locked baseline with the same artifact surface. |
 
+## 100 Percent Gate Queue
+
+This is the unambiguous execution queue. Work should always start at the first
+gate whose `status` is not `closed`, unless a gate is explicitly marked
+`blocked_on_external_input`. A gate can move only by creating or validating the
+named receipt. A dashboard, model run, or note that does not feed one of these
+receipts is not progress toward 100 percent.
+
+| gate | status | exact next command | receipt that moves the gate | closed only when |
+|---|---|---|---|---|
+| A: Premium still-SR promotion | open, local | `python3 tools/build_premium_still_sr_candidate_preflight_template.py --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json`, then edit the manifest with a concrete material source/architecture/degradation change and run `python3 tools/build_premium_still_sr_launch_packet.py --manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_launch_packet_<date> --require-launchable` | `premium_still_sr_promotion_receipts` | Launch preflight passes, X2D and Z8 smoke holdouts beat same-color Bayer interpolation, full 50 MP / 100 MP gate passes, worst-row recovery is nonnegative, editor-latitude review opens, timing/memory/checkpoint hashes exist, and `check_production_capture_submission.py` passes. |
+| B: Mission/iPhone noise sidecars | open, sample/provenance | `python3 tools/build_stills_capture_request.py --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/stills_capture_request_<date>` and then, only after true darkframe files/provenance exist, run the `build_darkframe_candidate_audit.py`, `check_darkframe_source_provenance.py`, and `build_camera_noise_calibration.py --require-source-provenance` commands listed below. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` | Mission 1 and iPhone each have four same-camera/same-ISO true no-scene-signal CFA frames, source/extraction hashes, `no_scene_signal=true` provenance, and production-ready `gpr.camera_noise_calibration.v1` sidecars. |
+| C: Mission 1 camera-role raw-video MVP | blocked_on_external_camera_role | `python3 tools/run_gopro_mission1_quick_validation.py --target-role camera --out-dir /Volumes/OWC_8TB/gpr_work/artifacts/mission1_camera_validation_<date>` on real Mission 1 firmware/hardware. | `mission1_camera_role_receipts` | Real sensor/DMA or camera ring-buffer source, actual SD/storage writer, actual rear display, valid `.gvid`, zero drops, 4096 x 3072 source, 1024 x 768 preview, 20+ fps source/encode/preview, memory receipt, and 120+ sustained frames validate. |
+| D: Locked raw-video reconstruction | closed, protect | `python3 tools/test/check_product_lock_ledger.py && python3 tools/test/check_readme_product_pillars.py && python3 tools/test/check_release_evidence_manifest.py` | existing 4K cleanup and 8K SR release receipts | The approved 4K cleanup and 8K SR receipt set remains green. PSF/blur or replacement SR work is optional research and cannot reopen this gate by itself. |
+
+Default rule for a work session: if Gate C cannot run because there is no real
+Mission 1 camera-role access, spend local compute on Gate A. If Gate A cannot
+launch because the proposal fails preflight, update the rejection evidence and
+move to Gate B capture/provenance packaging. Do not run raw-video SR research
+while Gate A or Gate B has a local next command.
+
 ## Execution Order
 
 | order | lane | owner | can move now? | completion evidence |

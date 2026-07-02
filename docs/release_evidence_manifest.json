@@ -1375,7 +1375,7 @@
     {
       "id": "product_burndown_ship_boundary_20260701",
       "family": "product_status",
-      "status": "current",
+      "status": "diagnostic",
       "purpose": "Four-pillar production burn-down showing the remaining evidence gates and which work can proceed without Mission 1 firmware access.",
       "dashboard": "artifacts/product_burndown_ship_boundary_20260701/index.html",
       "docs": [
@@ -1390,6 +1390,36 @@
       "hashes": {
         "product_burndown_json_sha256": "d23692d2faf7ffe08ddf299d152cbf8c2e02114b9ad6dc93a81f450e55129f64",
         "dashboard_sha256": "965dce9b3cbcc9d141970a2ab0b07246837497022e0a8fd6c9721873c7789b4f"
+      },
+      "metrics": {
+        "four_pillar_completion_percent": 83,
+        "action_count": 3,
+        "open_requirement_count": 4,
+        "non_camera_action_count": 2,
+        "camera_required_action_count": 1,
+        "requirement_linked": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "product_burndown_100_percent_queue_20260702",
+      "family": "product_status",
+      "status": "current",
+      "purpose": "Current four-pillar 100 percent queue with explicit local, sample/provenance, camera-role, and locked-release gates.",
+      "dashboard": "artifacts/product_burndown_100_percent_queue_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_CAPTURE_REQUIREMENTS.json"
+      ],
+      "receipts": [
+        "artifacts/product_burndown_100_percent_queue_20260702/product_burndown.json",
+        "artifacts/product_burndown_100_percent_queue_20260702/index.html"
+      ],
+      "hashes": {
+        "product_burndown_json_sha256": "1f6f5b8c53b3fd23e04144789f6b6a4d3edad29505450202bad761510418b941",
+        "dashboard_sha256": "046ee586ff241f23f53f56eacf0b683389cfa15b051408b294a8c95e36cb0438"
       },
       "metrics": {
         "four_pillar_completion_percent": 83,

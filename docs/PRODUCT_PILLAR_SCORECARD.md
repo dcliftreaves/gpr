@@ -28,7 +28,7 @@ Current generated dashboard:
 
 Companion production burn-down dashboard:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_ship_boundary_20260701/index.html`
+`/Volumes/OWC_8TB/gpr_work/artifacts/product_burndown_100_percent_queue_20260702/index.html`
 
 The burn-down is the action view over the same machine-readable capture
 requirements: it carries the requirement IDs, statuses, and validation commands
