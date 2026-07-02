@@ -87,12 +87,14 @@ def main() -> int:
                 "smoke_gate_commands": [
                     (
                         "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
-                        "--pairs /tmp/pairs.npz --output-dir /tmp/x2d_rowpsf_smoke "
+                        "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs/pairs.npz "
+                        "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/x2d_rowpsf_smoke "
                         "--holdout-image x2d --model-arch row_psf_teacher"
                     ),
                     (
                         "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
-                        "--pairs /tmp/pairs.npz --output-dir /tmp/z8_rowpsf_smoke "
+                        "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs/pairs.npz "
+                        "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/z8_rowpsf_smoke "
                         "--holdout-image z8 --model-arch row_psf_teacher"
                     ),
                 ],
@@ -225,6 +227,40 @@ def main() -> int:
         assert generic_failed["launchable_for_production_attempt"] is False
         assert any("new source/evidence" in item for item in generic_failed["failures"])
         assert any("Restormer-style proposals" in item for item in generic_failed["failures"])
+
+        single_smoke = json.loads(passing.read_text(encoding="utf-8"))
+        single_smoke["smoke_gate_commands"] = [
+            (
+                "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
+                "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs/pairs.npz "
+                "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/x2d_z8_combined_smoke "
+                "--holdout-image x2d,z8 --model-arch row_psf_teacher"
+            )
+        ]
+        single_smoke_path = base / "single_smoke.json"
+        single_smoke_audit = base / "single_smoke_audit.json"
+        write_json(single_smoke_path, single_smoke)
+        proc = run_tool(single_smoke_path, "--json-out", str(single_smoke_audit), "--require-launchable")
+        assert proc.returncode != 0
+        single_smoke_failed = json.loads(single_smoke_audit.read_text(encoding="utf-8"))
+        assert any("separate X2D and Z8" in item for item in single_smoke_failed["failures"])
+
+        local_tmp_smoke = json.loads(passing.read_text(encoding="utf-8"))
+        local_tmp_smoke["smoke_gate_commands"][0] = local_tmp_smoke["smoke_gate_commands"][0].replace(
+            "/Volumes/OWC_8TB/gpr_work/artifacts/x2d_rowpsf_smoke",
+            "/tmp/x2d_rowpsf_smoke",
+        )
+        local_tmp_smoke["smoke_gate_commands"][1] = local_tmp_smoke["smoke_gate_commands"][1].replace(
+            "/Volumes/OWC_8TB/gpr_work/artifacts/z8_rowpsf_smoke",
+            "/tmp/z8_rowpsf_smoke",
+        )
+        local_tmp_path = base / "local_tmp_smoke.json"
+        local_tmp_audit = base / "local_tmp_audit.json"
+        write_json(local_tmp_path, local_tmp_smoke)
+        proc = run_tool(local_tmp_path, "--json-out", str(local_tmp_audit), "--require-launchable")
+        assert proc.returncode != 0
+        local_tmp_failed = json.loads(local_tmp_audit.read_text(encoding="utf-8"))
+        assert any("/Volumes/OWC_8TB/gpr_work" in item for item in local_tmp_failed["failures"])
 
     print("test_check_premium_still_sr_candidate_preflight: PASS")
     return 0

@@ -92,10 +92,11 @@ production-promoted.
    `requires_material_edits_before_launch=false`, and replace
    `material_change_summary` only after the proposal names a real new
    architecture/degradation/validation change. Also replace the placeholder
-   `smoke_gate_commands` with the exact X2D and Z8 smoke commands for that
-   candidate; launch packets now use those manifest commands directly rather
-   than a built-in Restormer command shape. Then build the launch packet from
-   that explicit manifest:
+   `smoke_gate_commands` with separate exact X2D and Z8 smoke commands for
+   that candidate, and make every `--output-dir` land under
+   `/Volumes/OWC_8TB/gpr_work`; launch packets now use those manifest commands
+   directly rather than a built-in Restormer command shape. Then build the
+   launch packet from that explicit manifest:
 
    ```sh
    python3 tools/build_premium_still_sr_launch_packet.py \
@@ -131,7 +132,8 @@ production-promoted.
    any long run. Restormer plus blur/noise/decode wording alone is already
    covered by rejected 20260702 receipts. A manifest without concrete X2D and
    Z8 `smoke_gate_commands` is blocked before launch, even if the prose looks
-   material.
+   material. A manifest whose smoke commands still contain placeholders or write
+   receipts to local `/tmp` is also blocked.
 
 5. Rebuild the scoreboard and reject the candidate if it cannot beat the
    promotion floor:

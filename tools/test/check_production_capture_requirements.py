@@ -159,6 +159,7 @@ def validate() -> list[str]:
             acceptance = " ".join(str(item) for item in as_list(row.get("acceptance")))
             for token in (
                 "X2D and Z8 smoke_gate_commands",
+                "/Volumes/OWC_8TB/gpr_work",
                 "candidate raw",
                 "camera metadata",
                 "50 MP and 100 MP",

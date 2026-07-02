@@ -241,7 +241,7 @@
       "why_needed": "The still-SR pipeline, target builders, specialists, and raw-CFA residual trainers exist, but current no-REF residual/local-CNN models remain diagnostic and do not clear the production still/editor-latitude gate. The next launchable attempt must pass the premium still-SR candidate preflight before spending long training time.",
       "required_evidence": [
         "checkpoint hash and training config",
-        "candidate preflight manifest with concrete X2D and Z8 smoke_gate_commands for the proposed candidate",
+        "candidate preflight manifest with separate concrete X2D and Z8 smoke_gate_commands for the proposed candidate, with receipts under /Volumes/OWC_8TB/gpr_work",
         "training target hash with runtime_inputs limited to candidate raw, camera metadata, and validated optional noise sidecars",
         "50 MP and 100 MP full-frame raw-domain gates with row counts",
         "positive 50 MP and 100 MP median MAE reduction, with nonnegative worst-row MAE reduction",
@@ -253,7 +253,7 @@
       ],
       "acceptance": [
         "candidate beats current still-SR baselines on 50 MP and 100 MP holdouts",
-        "candidate preflight and launch packet record candidate-specific X2D and Z8 smoke_gate_commands before any long training run",
+        "candidate preflight and launch packet record separate candidate-specific X2D and Z8 smoke_gate_commands under /Volumes/OWC_8TB/gpr_work before any long training run",
         "runtime_inputs includes candidate_raw and camera_metadata",
         "no REF/source/JPEG image content is used at render time",
         "full_frame_gate_50mp_row_count and full_frame_gate_100mp_row_count are at least 1",

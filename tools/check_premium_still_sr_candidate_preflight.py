@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import shlex
 import sys
 import time
 from pathlib import Path
@@ -98,6 +99,7 @@ REQUIRED_SMOKE_COMMAND_TOKENS = {
     "python",
     "--output-dir",
 }
+EXTERNAL_WORK_ROOT = "/Volumes/OWC_8TB/gpr_work"
 REQUIRED_MATERIAL_SOURCE_TOKENS = {
     "burst",
     "multi-frame",
@@ -170,6 +172,20 @@ def matching_tokens(text: str, tokens: set[str]) -> list[str]:
 
 def add_failure(failures: list[str], message: str) -> None:
     failures.append(message)
+
+
+def output_dirs_for_command(command: str) -> list[str]:
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        return []
+    output_dirs: list[str] = []
+    for idx, part in enumerate(parts):
+        if part == "--output-dir" and idx + 1 < len(parts):
+            output_dirs.append(parts[idx + 1])
+        elif part.startswith("--output-dir="):
+            output_dirs.append(part.split("=", 1)[1])
+    return output_dirs
 
 
 def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
@@ -280,15 +296,34 @@ def validate_preflight(manifest: dict[str, Any]) -> dict[str, Any]:
             "smoke_gate_commands must provide concrete X2D and Z8 smoke commands before launch",
         )
     else:
+        smoke_command_texts = [command.lower() for command in smoke_commands]
+        if len(smoke_commands) < 2:
+            add_failure(
+                failures,
+                "smoke_gate_commands must include separate X2D and Z8 smoke commands",
+            )
         if not all(token in smoke_text for token in REQUIRED_SMOKE_COMMAND_TOKENS):
             add_failure(
                 failures,
                 "smoke_gate_commands must include executable python commands with --output-dir receipts",
             )
-        if "x2d" not in smoke_text:
-            add_failure(failures, "smoke_gate_commands must include an X2D smoke holdout")
-        if "z8" not in smoke_text:
-            add_failure(failures, "smoke_gate_commands must include a Z8 smoke holdout")
+        if "<" in smoke_text or ">" in smoke_text:
+            add_failure(failures, "smoke_gate_commands must not contain placeholder paths or arguments")
+        if not any("x2d" in command for command in smoke_command_texts):
+            add_failure(failures, "smoke_gate_commands must include a dedicated X2D smoke holdout command")
+        if not any("z8" in command for command in smoke_command_texts):
+            add_failure(failures, "smoke_gate_commands must include a dedicated Z8 smoke holdout command")
+        for idx, command in enumerate(smoke_commands, start=1):
+            output_dirs = output_dirs_for_command(command)
+            if not output_dirs:
+                add_failure(failures, f"smoke_gate_commands[{idx}] must include --output-dir")
+                continue
+            for output_dir in output_dirs:
+                if not output_dir.startswith(EXTERNAL_WORK_ROOT):
+                    add_failure(
+                        failures,
+                        f"smoke_gate_commands[{idx}] must write --output-dir receipts under {EXTERNAL_WORK_ROOT}",
+                    )
         if contains_any(smoke_text, FORBIDDEN_RUNTIME_INPUTS):
             add_failure(failures, "smoke_gate_commands include forbidden runtime/source content tokens")
         rejected_command_tokens = matching_tokens(smoke_text, REJECTED_REPEAT_TOKENS)

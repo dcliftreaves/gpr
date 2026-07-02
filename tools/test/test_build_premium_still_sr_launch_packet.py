@@ -90,12 +90,14 @@ def main() -> int:
                     "smoke_gate_commands": [
                         (
                             "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
-                            "--pairs /tmp/pairs.npz --output-dir /tmp/x2d_rowpsf_smoke "
+                            "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs/pairs.npz "
+                            "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/x2d_rowpsf_smoke "
                             "--holdout-image x2d --model-arch row_psf_teacher"
                         ),
                         (
                             "python3 tools/cnn/train_premium_still_sr_clean_source_pairs.py "
-                            "--pairs /tmp/pairs.npz --output-dir /tmp/z8_rowpsf_smoke "
+                            "--pairs /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_pairs/pairs.npz "
+                            "--output-dir /Volumes/OWC_8TB/gpr_work/artifacts/z8_rowpsf_smoke "
                             "--holdout-image z8 --model-arch row_psf_teacher"
                         ),
                     ],
@@ -145,8 +147,8 @@ def main() -> int:
             "audit_premium_still_sr_pairs.py",
             "train_premium_still_sr_clean_source_pairs.py",
             "row_psf_teacher",
-            "/tmp/x2d_rowpsf_smoke",
-            "/tmp/z8_rowpsf_smoke",
+            "/Volumes/OWC_8TB/gpr_work/artifacts/x2d_rowpsf_smoke",
+            "/Volumes/OWC_8TB/gpr_work/artifacts/z8_rowpsf_smoke",
             "build_premium_still_sr_experiment_scoreboard.py",
             "check_premium_still_sr_promotion_gate.py",
         ):
