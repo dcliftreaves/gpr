@@ -63,6 +63,8 @@ The latest Premium Still/SR Gate A receipts are:
 | raw-CFA residual-signal X2D smoke receipt | `artifacts/premium_still_sr_rawcfa_residual_signal_x2d_scene_smoke_20260702/train_receipt.json` | `a9cbdbb75a0045a484b4f3213e61993c6db0fa705be7d54ae811d5ae2f1ce611` |
 | raw-CFA residual-signal Z8 smoke receipt | `artifacts/premium_still_sr_rawcfa_residual_signal_z8_scene_smoke_20260702/train_receipt.json` | `1757f9a00d1c2b8047103844aaf4734a8b196c0efc198b5e92171a4f8b35ed82` |
 | raw-CFA residual-signal smoke acceptance blocker | `artifacts/premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | `ca50946bb81020be8c42cee8306243371efa5d79a1bcbb6a9697dfb6948b7a62` |
+| Gate 12 measured/synthetic teacher-source audit receipt | `artifacts/premium_still_sr_measured_degradation_teacher_source_audit_20260702/measured_degradation_teacher_source_audit.json` | `062b5d1f166a104eb560c868c291cde4171a2c91ef69f92cf8b8c4e23c6d99ac` |
+| Gate 12 measured/synthetic teacher-source audit dashboard | `artifacts/premium_still_sr_measured_degradation_teacher_source_audit_20260702/index.html` | `566886cb2c89194e75cd83551b39113482e1c7b4a628ab2b2948f241c73f4174` |
 
 These branches are blocked before long training. The next Premium Still/SR
 candidate must address raw-CFA no-op/benefit gating, route-specific Z8

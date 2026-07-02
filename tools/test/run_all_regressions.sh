@@ -210,6 +210,7 @@ else
                 python3 tools/test/test_merge_premium_still_sr_hf_residual_targets.py && \
                 python3 tools/test/test_analyze_premium_still_sr_hf_residual_bands.py && \
                 python3 tools/test/test_train_premium_still_sr_hf_residual.py && \
+                python3 tools/test/test_build_premium_still_sr_measured_degradation_teacher_source_audit.py && \
                 python3 tools/test/test_build_premium_still_sr_experiment_scoreboard.py && \
                 python3 tools/test/test_build_premium_still_sr_blocker_audit.py && \
                 python3 tools/test/test_build_premium_still_sr_target_expansion_plan.py && \
