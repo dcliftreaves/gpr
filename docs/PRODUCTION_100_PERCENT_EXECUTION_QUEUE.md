@@ -53,12 +53,13 @@ item is `closed` or `blocked_external`.
 | 1 | CI and repo hygiene | Latest `master` commit has passing GitHub Actions, sensitive-content guard, artifact-hygiene guard, release-manifest guard, README guards, and clean diff checks. | Protect on every push. |
 | 2 | Best RAW stills | 50 MP and 100 MP still tiers remain green, normal RGGB/GBRG/GRBG/BGGR Bayer support remains green, and Mission 1 plus iPhone camera-noise sidecars validate from strict true-dark provenance. | Capture/prove Mission 1 and iPhone true darkframes, then build strict sidecars. |
 | 3 | GoPro RAW video MVP | Real Mission 1 camera-role source/storage/display receipts prove 4096 x 3072 Bayer `.gvid` encode, 1024 x 768 preview decode, valid container, zero drops, memory, and 120+ sustained frames at the accepted 20+ fps floor. | Hand GoPro/Mission 1 firmware owners the camera-role runbook; local Pi stand-ins cannot close this gate. |
-| 4 | Premium still/SR | A no-REF 50 MP / 100 MP premium still candidate passes the full promotion gate: 15% / 15% held-out MAE/RMSE floor, nonnegative worst row, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. | Revise the Gate14 floor-student target/objective before any long run. |
+| 4 | Premium still/SR | A no-REF 50 MP / 100 MP premium still candidate passes the full promotion gate: 15% / 15% held-out MAE/RMSE floor, nonnegative worst row, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. | Run the full promotion-gate package for the accepted Gate16 candidate; do not reopen Gate14/Gate15 unless the full gate identifies a specific failed subcondition. |
 | 5 | RAW video reconstruction | Approved 4K cleanup and 8K SR release receipts stay locked and green; replacement research ships only if it beats the locked artifact surface. | Protect only. PSF/blur is optional research, not a release blocker. |
 
-The local priority order is fixed: **CI first, Premium still/SR target/objective
-revision second, Mission/iPhone darkframe provenance third, GoPro camera-role
-handoff fourth, locked raw-video reconstruction protection fifth.**
+The local priority order is fixed: **CI first, Gate16 full 50 MP / 100 MP
+Premium still-SR promotion second, Mission/iPhone darkframe provenance third,
+GoPro camera-role handoff fourth, locked raw-video reconstruction protection
+fifth.**
 
 | order | gate | status | exact next step | receipt that moves it |
 |---:|---|---|---|---|
@@ -73,171 +74,46 @@ handoff fourth, locked raw-video reconstruction protection fifth.**
 
 ## Current Local Result
 
-Gate 14 selector smoke passed as executable-selector runtime smoke, not as
-production. The receipt is:
+The current local state is Gate16 paired-smoke pass plus full-promotion open.
+Do not spend another day on ambiguous "improve CNN" work; burn down these rows
+in order:
 
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_selector_smoke_20260702/selector_smoke.json`
+1. Rebuild the strict promotion receipt rollup with the Gate16 smoke acceptance
+   input and keep `paired_smoke_gate=true`.
+2. Build the full Gate16 still-SR gate receipt with `--real-artifacts` for
+   50 MP and 100 MP review media, editable DNG/GPR evidence, dashboard, and
+   checkpoint hash `aeebad51bd54964b37c356457084197f6fadcad2b3df43cc44c6f8c3bdef6d1d`.
+3. The full gate must record both `full_frame_gate_50mp_row_count > 0` and
+   `full_frame_gate_100mp_row_count > 0`.
+4. The full gate must record both `median_mae_reduction_pct_50mp >= 15.0` and
+   `median_mae_reduction_pct_100mp >= 15.0`.
+5. The full gate must record both worst-row MAE reductions as `>= 0.0` and
+   `severe_worst_row_failures=false`.
+6. The full gate must record actual render timings:
+   `render_seconds_per_50mp_frame > 0`,
+   `render_seconds_per_100mp_frame > 0`, and `peak_rss_gb > 0`.
+7. The full gate must wire the exact-sidecar-only noise policy into the model
+   receipt: `raw_noise_signal_audit_passed=true`,
+   `exact_sidecars_only=true`, and `forbids_source_residual_noise=true`.
+8. Run `tools/check_premium_still_sr_promotion_gate.py` against that full gate
+   and require production-ready only after scoreboard, noise policy, full gate,
+   and next-contract state agree.
+9. Rebuild `tools/build_premium_still_sr_promotion_receipts.py`; the Premium
+   still/SR row is complete only when it reports `done_step_count=9`,
+   `completion_percent=100.0`, `production_ready=true`, and no blockers.
 
-The pass means this:
+Current proof:
 
-- The Gate 13 upper bound is now persisted and smoke-tested as a deterministic
-  seven-rule first-match selector sidecar with six source mappings and 78
-  candidate-only runtime features.
-- It clears both X2D scenes with zero negative selected rows through the runtime
-  selector smoke: `x2d_2025_austin_06` median MAE `0.329828330762138%`, worst `0.0%`;
-  `x2d_2025_austin_07` median MAE `0.02786331921791634%`, worst `0.0%`.
-- Z8 remains exact no-op at `0.0%` median and `0.0%` worst-row MAE.
-- Source receipts and checkpoints are readable and hash-stable; source model
-  failure count is `0`.
-- `promotion_gate_allowed=true`; `long_run_allowed=false`.
+- Gate16 acceptance:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate16_tail_safe_smoke_acceptance_20260702/smoke_gate_acceptance.json`
+- Gate16 X2D checkpoint:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate16_x2d_tail_safe_0015_smoke_20260702/premium_still_sr_raw_cfa_residual.pt`
+- Gate16-aware promotion rollup:
+  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_gate16_20260702/premium_still_sr_promotion_receipts.json`
 
-The next step is therefore not another broad CNN run or another selector pass.
-It is the full 50 MP / 100 MP Premium still-SR promotion validation with
-nonnegative worst-row recovery, timing/memory, editor/openability, exact
-sidecar-only noise policy, and production submission validation.
-
-The current strict promotion receipt is:
-
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_20260702/premium_still_sr_promotion_receipts.json`
-
-It records `completion_percent=50.0`, `done_step_count=4`, and
-`first_open_step=model_promotion_floor`. The blocker classes are
+The Gate16-aware rollup currently records `done_step_count=5`,
+`total_step_count=9`, `completion_percent=55.6`, and
+`first_open_step=model_promotion_floor`. The remaining blockers are
 `model_promotion_floor_not_met`, `full_50mp_100mp_gate_missing`,
 `timing_memory_missing`, `noise_policy_not_wired`, and
 `production_submission_missing_or_failed`.
-
-The current model-floor receipt is:
-
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json`
-
-It records the exact first blocker: best runtime-safe MAE/RMSE are
-`4.031355420019811%` / `3.753504206299621%` versus the `15% / 15%` floor, and
-Gate 14 selector global median MAE is `0.2506229397841941%`. The next candidate
-contract is `premium_still_sr_gate14_floor_student_v1`, not another Gate 14
-replay or rejected single-source branch.
-
-That candidate now has a launchable intake packet:
-
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.json`
-
-The preflight verdict is `launchable_preflight_passed`, with two required smoke
-commands: X2D and Z8. The launch packet requests
-`premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.npz`
-before those smokes. Do not run another Gate 14 selector replay as a substitute
-for the student target builder.
-
-The target-builder has now run and passed:
-
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json`
-
-It built `2112` X2D/Z8 target rows from the Gate14 clean-source pair surface:
-`576` X2D rows and `1536` Z8 rows.
-
-The paired smoke commands also ran:
-
-- X2D smoke receipt:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_x2d_smoke_20260702/train_receipt.json`
-  with holdout median MAE recovery `0.0%` and worst-row recovery
-  `-0.0009948811042696764%`.
-- Z8 smoke receipt:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_z8_smoke_20260702/train_receipt.json`
-  with holdout median MAE recovery `0.0%` and worst-row recovery `0.0%`.
-- Smoke acceptance:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json`
-  verdict `blocked_before_long_run`.
-
-No-op-off ablations did not fix the blocker: X2D median was
-`-0.0008484692747994224%`; Z8 median was `0.00019770163681548142%`.
-The next action is therefore a target/objective revision, not a longer run:
-try a stronger source-HF or direct clean-source 2x objective and wire strict
-noise sidecars before reattempting paired smokes.
-
-The first direct clean-source 2x objective revision has now been tested and is
-also blocked before long training:
-
-- X2D direct-clean 2x smoke:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_direct_clean2x_x2d_smoke_20260702/train_receipt.json`
-  with holdout median/worst MAE recovery `0.0014214634577010441%` /
-  `-0.003295453099076983%`, checkpoint
-  `45f7020d08ccf57a77fb741b09221d1d03ac32590dd82945990bdfdda0f98d49`.
-- Z8 direct-clean 2x smoke:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_direct_clean2x_z8_smoke_20260702/train_receipt.json`
-  with holdout median/worst MAE recovery `-0.002131528550201698%` /
-  `-0.01173024558700332%`, checkpoint
-  `d42c5b332f1d73a545cb729c8f151b48dc3fc07835db19735b9a416756baf37a`.
-
-That rules out the simple direct clean-source 2x replacement as the production
-objective. The next local Gate A action is a stronger target/objective revision:
-combine source-HF or direct-clean supervision with exact-sidecar-only noise
-gating and candidate-only no-op behavior, then re-run the paired X2D/Z8 smoke.
-
-The first source-HF/stored-HF revision has also been tested and is blocked
-before long training:
-
-- X2D source-HF/stored-HF smoke:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_sourcehf_storedhf_x2d_smoke_20260702/train_receipt.json`
-  with holdout median/worst raw MAE recovery `0.0%` /
-  `-72.74350477685562%`, checkpoint
-  `ba2d2ec480e753764f136d53a075f86eaae796435ed6867651d15dd14190dc65`.
-- Z8 source-HF/stored-HF smoke:
-  `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_sourcehf_storedhf_z8_smoke_20260702/train_receipt.json`
-  with holdout median/worst raw MAE recovery `0.0%` / `0.0%`, checkpoint
-  `e340f5fac100446dd26763e13336eb01a18bbb7fa72622706ef2608e55890f74`.
-
-That rules out this source-HF configuration: the candidate-HF no-op gate
-protects Z8 but collapses the median to no-op and leaves an unacceptable X2D
-tail. The next objective revision must change gate construction and target
-selection, not just rerun source-HF with the same no-op threshold.
-
-The Gate14 objective-gate audit then checked whether threshold gating could
-rescue either the direct-clean 2x or source-HF/stored-HF failures:
-
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_objective_gate_audit_20260702/objective_gate_audit.json`
-
-It records `verdict=blocked_before_gate_construction`,
-`blocker_classification=insufficient_positive_signal`,
-`gate_rescue_possible=false`, and `oracle_positive_signal_possible=false`.
-The audit is stronger than a threshold-search miss: even an oracle positive/no-op
-upper bound cannot clear the 1% median smoke floor on the current outputs. The
-next local step is therefore a target-construction preflight that proves enough
-positive candidate-only rows exist before any paired smoke or long training.
-
-The Gate15 preflight now exists and has moved from missing proposal to passed
-target-construction intake:
-
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate15_target_construction_proposal_20260702/target_construction_proposal.json`
-
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate15_target_construction_preflight_with_proposal_20260702/target_construction_preflight.json`
-
-The proposal records `463` X2D candidate-only positive rows versus `289` needed
-for a median pass, and `1536/1536` Z8 exact-noop rows. The preflight records
-`verdict=gate15_target_construction_preflight_passed`,
-`paired_smoke_allowed=true`, `long_run_allowed=false`, and
-`blocker_classification=none`.
-
-The Gate15 smoke path then materialized `463` X2D-positive target rows and a
-`1536`-row Z8 exact-noop leg:
-
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate15_smoke_targets_20260702/gate15_smoke_targets.json`
-
-The launch preflight passed, but smoke acceptance blocked the branch before
-long training:
-
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate15_smoke_acceptance_20260702/smoke_gate_acceptance.json`
-
-X2D holdout median/worst raw MAE recovery was
-`-0.000744993606797582%` / `-0.019091640791465258%`, below the `1.0%` /
-`0.0%` floors. Z8 exact-noop passed at `0.0%` / `0.0%`. The first open local
-action was therefore Gate16 learnability/objective evidence, not a longer
-Gate15 run.
-
-Gate16 now has that evidence and passes paired smoke:
-
-`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate16_tail_safe_smoke_acceptance_20260702/smoke_gate_acceptance.json`
-
-The accepted Gate16 candidate uses the Gate15 X2D-positive target set, changes
-the objective/training setup, and adds a candidate-only low-HF no-op tail gate
-at `0.0015`. It records X2D holdout median/worst raw MAE recovery
-`17.086680690440865%` / `0.0%`, Z8 exact-noop `0.0%` / `0.0%`, and
-`long_run_allowed=true`. The next local action is the full 50 MP / 100 MP
-Premium still-SR promotion receipt for the Gate16 candidate.
