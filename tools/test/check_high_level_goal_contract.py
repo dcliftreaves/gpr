@@ -41,6 +41,11 @@ DOC_TOKENS = {
         "camera-noise coverage audit",
         "real sensor/DMA",
         "no-REF",
+        "95-receipt experiment scoreboard",
+        "95 runtime-safe",
+        "Restormer degradation/objective",
+        "+0.0048% MAE recovery",
+        "-0.3973% MAE",
         "optional research",
     ),
     "docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md": (

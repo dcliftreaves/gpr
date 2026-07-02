@@ -54,6 +54,40 @@ def main() -> int:
             module.path_for("docs/BIG_EFFORTS_STATUS.md").read_text(encoding="utf-8"),
             encoding="utf-8",
         )
+        paths["docs/BIG_EFFORTS_STATUS.md"].write_text(
+            paths["docs/BIG_EFFORTS_STATUS.md"].read_text(encoding="utf-8").replace(
+                "95 runtime-safe rendered-HF, raw-CFA residual,\n"
+                "  clean-signal, and clean-source pair receipts",
+                "many runtime-safe rendered-HF, raw-CFA residual,\n"
+                "  clean-signal, and clean-source pair receipts",
+            ),
+            encoding="utf-8",
+        )
+        failures = module.validate(paths)
+        if not failures or not any("95 runtime-safe" in failure for failure in failures):
+            print(f"stale premium still-SR scoreboard count did not trigger expected failure: {failures}", file=sys.stderr)
+            return 1
+
+        paths["docs/BIG_EFFORTS_STATUS.md"].write_text(
+            module.path_for("docs/BIG_EFFORTS_STATUS.md").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+        paths["docs/BIG_EFFORTS_STATUS.md"].write_text(
+            paths["docs/BIG_EFFORTS_STATUS.md"].read_text(encoding="utf-8").replace(
+                "Restormer degradation/objective",
+                "Restormer pair",
+            ),
+            encoding="utf-8",
+        )
+        failures = module.validate(paths)
+        if not failures or not any("Restormer degradation/objective" in failure for failure in failures):
+            print(f"missing degradation/objective evidence did not trigger expected failure: {failures}", file=sys.stderr)
+            return 1
+
+        paths["docs/BIG_EFFORTS_STATUS.md"].write_text(
+            module.path_for("docs/BIG_EFFORTS_STATUS.md").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
         paths["docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md"].write_text(
             paths["docs/HIGH_LEVEL_GOAL_EXECUTION_PLAN.md"].read_text(encoding="utf-8").replace(
                 "Offline premium still improvement has a dedicated still-SR gate",
