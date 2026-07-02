@@ -101,6 +101,8 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate14 floor-student smoke acceptance dashboard | `artifacts/premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/index.html` | `f2f52685fe1f6e890093ca89c7da03cb92b90ebd075da1438f8a15ba4c21fad5` |
 | Gate14 floor-student X2D no-op-off ablation | `artifacts/premium_still_sr_gate14_floor_student_x2d_noopoff_ablation_20260702/train_receipt.json` | `bf148a1afa5bf12041cbe4a72762d13960f41d54cbdba5c87cade2eb6270f6eb` |
 | Gate14 floor-student Z8 no-op-off ablation | `artifacts/premium_still_sr_gate14_floor_student_z8_noopoff_ablation_20260702/train_receipt.json` | `cc86507fd60cec13d74b8f503c1f612862725739c7a4a5e965d8217f9c7e9380` |
+| Gate14 objective-gate audit receipt | `artifacts/premium_still_sr_gate14_objective_gate_audit_20260702/objective_gate_audit.json` | `939a3621f3d71834a27e483ca128e1b722c40846c9d47e4d069d4e2bab18dfb4` |
+| Gate14 objective-gate audit dashboard | `artifacts/premium_still_sr_gate14_objective_gate_audit_20260702/index.html` | `201d21b67c7bc80ab0473bea2d9c7d62eb82f2c707782cf510b05f1aed5a9cd1` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -120,6 +122,12 @@ median MAE recovery is `0.0%` with worst row `-0.0009948811042696764%`, and
 Z8 holdout median is `0.0%` with worst row `0.0%`. No-op-off ablations did not
 recover the floor, so the next step is target/objective revision plus strict
 noise-sidecar wiring, not another selector replay.
+The Gate14 objective-gate audit closes the threshold-tuning question for the
+current failed objectives: direct-clean 2x has 0 positive-floor rows where 33
+are needed on both X2D/Z8, and source-HF/stored-HF has 2/17 on X2D and 0/17 on
+Z8. Even the oracle positive/no-op upper bound cannot clear the smoke floor, so
+the next Premium still-SR receipt must be a target-construction preflight that
+creates enough positive candidate-only rows before another paired smoke.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

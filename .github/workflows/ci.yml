@@ -118,6 +118,8 @@ jobs:
           python3 tools/test/test_build_premium_still_sr_gate13_source_or_objective_revision.py
           python3 tools/test/test_build_premium_still_sr_gate14_candidate_intake.py
           python3 tools/test/test_build_premium_still_sr_gate14_selector_smoke.py
+          python3 tools/test/test_build_premium_still_sr_gate14_floor_student_targets.py
+          python3 tools/test/test_build_premium_still_sr_gate14_objective_gate_audit.py
           python3 tools/test/test_build_bayer_resize_psf_receipt.py
           python3 tools/test/test_build_bayer_resize_psf_known_kernel_validation.py
           python3 tools/test/test_build_raw_video_psf_audit.py
