@@ -189,6 +189,7 @@ else
                 python3 tools/test/test_audit_premium_still_sr_raw_cfa_residual.py && \
                 python3 tools/test/test_audit_premium_still_sr_frequency_filter.py && \
                 python3 tools/test/test_audit_premium_still_sr_raw_target_snr.py && \
+                python3 tools/test/test_build_premium_still_sr_clean_signal_targets.py && \
                 python3 tools/test/test_audit_premium_still_sr_target_distribution.py && \
                 python3 tools/test/test_audit_premium_still_sr_raw_target_duplicates.py && \
                 python3 tools/test/test_build_premium_still_sr_psf_metadata_gap.py && \

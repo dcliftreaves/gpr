@@ -140,6 +140,47 @@ narrows the blocker again: the next large CNN should not train against the same
 legacy raw residual objective. It needs a clean-signal raw target/objective with
 calibrated noise separated for later exact or synthetic addback.
 
+That clean-signal target pass is now materialized:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_signal_targets_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_signal_targets_20260702/clean_signal_targets.npz
+```
+
+The builder replaces the trainer-facing `raw_hf_residual_cfa4` with a
+calibrated per-plane noise confidence-gated residual, recomputes
+`source_raw_hf_cfa4` as `candidate_raw_hf_cfa4 + clean_target`, and records a
+runtime policy forbidding source raw, REF/JPEG content, and exact source-noise
+addback. On the 117-row deduplicated target, all rows have noise sidecars; the
+median target energy retained is **0.848x**, median active-pixel fraction is
+**42.16%**, and row classes are 81 retained-signal, 23 mixed-signal/noise, and
+13 suppressed-noise-floor.
+
+Follow-up audits show this is cleaner but still not promotable. The clean
+target SNR audit remains mixed, with 57 signal-dominated rows, 17 mixed rows,
+and 43 noise-floor rows. Candidate-only low-order learnability is still
+negative: the X2D scene holdout is **-4.325%** median MAE recovery and
+**-0.318%** median RMSE recovery; the Z8 holdout is dominated by near-zero
+clean targets, so percent recovery is numerically unstable and not a useful
+promotion signal.
+
+A bounded clean-signal U-Net promotion probe was also run:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702/train_receipt.json
+```
+
+It used the clean target, `raw_context_storedhf_coord_ev_noise_cfa`, scene
+balanced training, signal-or-mixed row filtering, overlap evaluation, and no
+source/REF/JPEG runtime inputs. The 700-step run still regressed the X2D
+holdout at **-0.025%** median raw MAE recovery. That rejects "clean the target
+and rerun the same small U-Net family" as a production path. The next still-SR
+candidate must change supervision or runtime signal more materially: for
+example a true clean-source teacher, burst/multi-frame raw evidence, calibrated
+camera-specific degradation/noise synthesis, or a larger teacher whose first
+gate is holdout improvement before any long run.
+
 ## Blocker Audit
 
 The blocker audit combines the experiment scoreboard, current readiness

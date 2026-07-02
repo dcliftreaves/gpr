@@ -1,6 +1,6 @@
 {
   "schema": "gpr_release_evidence_manifest.v1",
-  "updated": "2026-07-01",
+  "updated": "2026-07-02",
   "external_root": "/Volumes/OWC_8TB/gpr_work",
   "purpose": "Compact source-of-truth index for production and explicitly experimental GPR output paths. Heavy dashboards, videos, checkpoints, and rendered media remain outside the repo.",
   "product_pillars": [
@@ -64,6 +64,8 @@
           "premium_still_sr_raw_cfa_residual_gap_20260701",
           "premium_still_sr_next_experiment_contract_transformer_teacher_20260701",
           "premium_still_sr_signal_objective_gate_20260701",
+          "premium_still_sr_clean_signal_targets_20260702",
+          "premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -1750,6 +1752,87 @@
         "latest_full_window_attention_holdout_mae_recovery_pct": -0.029526052219816575,
         "latest_full_window_attention_train_seconds": 31155.659887040965,
         "requires_clean_signal_target_before_next_large_cnn": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_clean_signal_targets_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Calibrated clean-signal target package for premium still-SR. It replaces the trainer-facing raw residual with per-plane noise confidence-gated residuals and proves exact source residual/noise is not allowed at render time.",
+      "dashboard": "artifacts/premium_still_sr_clean_signal_targets_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_clean_signal_targets_20260702/clean_signal_targets.json",
+        "artifacts/premium_still_sr_clean_signal_targets_20260702/index.html",
+        "artifacts/premium_still_sr_clean_signal_targets_20260702/x2d_clean_signal_learnability/candidate_signal_audit.json",
+        "artifacts/premium_still_sr_clean_signal_targets_20260702/x2d_clean_signal_learnability/index.html",
+        "artifacts/premium_still_sr_clean_signal_targets_20260702/z8_clean_signal_learnability/candidate_signal_audit.json",
+        "artifacts/premium_still_sr_clean_signal_targets_20260702/z8_clean_signal_learnability/index.html",
+        "artifacts/premium_still_sr_clean_signal_targets_20260702/clean_signal_snr_audit/raw_target_snr_audit.json",
+        "artifacts/premium_still_sr_clean_signal_targets_20260702/clean_signal_snr_audit/index.html"
+      ],
+      "hashes": {
+        "clean_target_npz_sha256": "27c54dcd498c7c4c812d1d025763f9342bc463dcde4160aa35d2b8bf697710a8",
+        "clean_target_json_sha256": "61d6ad8f19a66a6221aea26fe7dc1dafa06c97cfc3de34c88fb48606d5f27a21",
+        "dashboard_sha256": "83b7ce1ae7cac8767bf8f0dea232ec457e463f864b0717d9f8a1feafab779eb2",
+        "x2d_signal_audit_json_sha256": "1c54d9e28d4d8e7ef591fe4270cd72c09f0f4c0636169beb962477bdb39d8136",
+        "x2d_signal_audit_dashboard_sha256": "a74897dd7c03bccf600e2efc8f7c5524678a547db581c489f2a0a1da3ee83f85",
+        "z8_signal_audit_json_sha256": "ee4cf33dea5aa6c7be38920d09bf736c4b1a4b4b2b92984356ceb43cc3b58c00",
+        "z8_signal_audit_dashboard_sha256": "d5d21c2d84945f41c15eb44ab0dbe4ab9fac2047926d793d7a09a830019febcb",
+        "snr_audit_json_sha256": "de5c690fcd0d7a794d58ef314dc5653ce38a1652eb5e3f81a866e1827d58ab8d",
+        "snr_audit_dashboard_sha256": "aeb6f2c5f57efa901cc9346e99cc0573c7abe4d15766e1330b9579030eee0643"
+      },
+      "metrics": {
+        "target_rows": 117,
+        "rows_with_noise_sidecars": 117,
+        "retained_signal_rows": 81,
+        "mixed_signal_noise_rows": 23,
+        "suppressed_noise_floor_rows": 13,
+        "median_target_energy_retained_fraction": 0.8483581601774646,
+        "median_active_pixel_fraction": 0.4215732150607639,
+        "x2d_clean_signal_mae_recovery_pct_median": -4.325254698660426,
+        "x2d_clean_signal_rmse_recovery_pct_median": -0.31756610074529584,
+        "clean_signal_snr_signal_dominated_rows": 57,
+        "clean_signal_snr_mixed_rows": 17,
+        "clean_signal_snr_noise_floor_rows": 43,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Bounded clean-signal U-Net promotion probe on the X2D scene holdout. It uses model_arch=unet, holdout_scene=2024_April_X2D_1742, and train_snr_class=signal_or_mixed, and verifies that clean-target gating alone plus the current small U-Net/runtime feature family is still not enough for premium still-SR promotion.",
+      "dashboard": "artifacts/premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_clean_signal_model_x2dsceneholdout_unet_w32_700_20260702/index.html"
+      ],
+      "hashes": {
+        "train_receipt_sha256": "abb7e0775fb0de7c05d3bff792fc618d39dc12adb0713701d84a9aa94bce9d1c",
+        "dashboard_sha256": "dcb6f26f67848c43894d59e0ec0b8742d8b1dc62242625085a8faf19cca9b0a8",
+        "checkpoint_sha256": "509a7a2e5d57769aa99c3852b46aaddb12f1ad714c0727fac59a07c38a977b88"
+      },
+      "metrics": {
+        "steps": 700,
+        "uses_unet_model": 1,
+        "uses_x2d_1742_holdout": 1,
+        "uses_signal_or_mixed_train_filter": 1,
+        "train_median_raw_mae_recovery_pct": -0.020709404085947104,
+        "holdout_median_raw_mae_recovery_pct": -0.025025622746813577,
+        "uses_source_raw_at_runtime": 0,
         "production_ready": 0
       }
     },
