@@ -154,6 +154,8 @@ def main() -> int:
                 "eval_tile": 40,
                 "eval_overlap": 0,
                 "seam_check_width": 0,
+                "candidate_hf_noop_threshold": 0.0,
+                "candidate_hf_noop_softness": 0.0,
                 "eval_train_rows": 0,
                 "eval_holdout_rows": 0,
                 "panel_rows": 2,
@@ -198,6 +200,11 @@ def main() -> int:
         assert receipt["config"]["target_scale_policy"] == "none"
         assert receipt["config"]["target_scale_strength"] == 1.0
         assert receipt["config"]["train_target_scale_stats"]["median"] == 1.0
+        assert receipt["config"]["candidate_hf_noop_threshold"] == 0.0
+        assert receipt["config"]["candidate_hf_noop_softness"] == 0.0
+        assert receipt["policy"]["candidate_hf_noop_gate"] == "disabled"
+        assert receipt["eval"]["holdout"]["candidate_hf_noop_row_count"] == 0
+        assert "candidate_hf_noop_gate" in receipt["eval"]["holdout"]["rows"][0]
         assert receipt["config"]["psf_conditioning_enabled"] is False
         assert receipt["config"]["psf_kernel_weights"] == [0.25, 0.25, 0.25, 0.25]
         assert receipt["config"]["cfa_phase_conditioning_enabled"] is False
@@ -279,6 +286,19 @@ def main() -> int:
         assert scale_receipt["policy"]["target_scale_policy"] == "candidate_hf_abs_mean"
         assert "target_scale" in scale_receipt["eval"]["holdout"]["rows"][0]
         args.target_scale_policy = "none"
+
+        args.output_dir = root / "candidate_hf_noop_holdout"
+        args.candidate_hf_noop_threshold = 999.0
+        args.candidate_hf_noop_softness = 0.0
+        noop_receipt = tool.train(args)
+        assert noop_receipt["eval"]["holdout"]["row_count"] == 1
+        assert noop_receipt["config"]["candidate_hf_noop_threshold"] == 999.0
+        assert noop_receipt["config"]["candidate_hf_noop_softness"] == 0.0
+        assert "enabled: exact no-op" in noop_receipt["policy"]["candidate_hf_noop_gate"]
+        assert noop_receipt["eval"]["holdout"]["candidate_hf_noop_row_count"] == 1
+        assert noop_receipt["eval"]["holdout"]["rows"][0]["candidate_hf_noop_gate"] == 0.0
+        assert noop_receipt["eval"]["holdout"]["rows"][0]["raw_residual_mae_reduction_pct"] == 0.0
+        args.candidate_hf_noop_threshold = 0.0
 
         args.output_dir = root / "source_hf_holdout"
         args.target_representation = "source_hf"

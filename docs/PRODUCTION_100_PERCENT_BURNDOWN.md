@@ -29,22 +29,26 @@ camera-role access. The latest Gate 5 branch is closed as a failed smoke:
 | masked-detail/no-op target objective | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_masked_detail_noop_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst-row MAE is `-0.000016166284221217207%` / `-0.004217229249483704%`; Z8 median/worst-row MAE is `-0.0011404326756156245%` / `-0.009009865416027604%`. Same-camera scene smokes also stay negative, so this is an objective/gating failure rather than only a cross-camera split problem. |
 | raw-CFA source-frequency target objective | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. The absolute source-frequency target is the wrong objective scale: X2D median/worst-row raw MAE recovery is `-4968.130415027571%` / `-10524.379064644432%`; Z8 median/worst-row raw MAE recovery is `-502.5390630379172%` / `-966.3531327864554%`. |
 | raw-CFA residual signal objective | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. Direct raw-CFA residual training is near parity on X2D but still regresses: X2D median/worst-row raw MAE recovery is `-0.15178115040635068%` / `-5.352462806764585%`; Z8 median/worst-row raw MAE recovery is `-5.108265406545033%` / `-178.9545417615565%`. This points to route-specific no-op/benefit gating or Z8 target conditioning, not another generic U-Net residual smoke. |
+| raw-CFA candidate-HF no-op gate | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_rawcfa_candidate_hf_noop_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. Candidate-only HF gating clips the Z8 low-HF tail to exact parity, but does not create positive learning: X2D median/worst-row raw MAE recovery is `-0.006290143931539378%` / `-0.23156087540736878%`; Z8 median/worst-row raw MAE recovery is `0.0%` / `0.0%`, below the `>0.001%` median floor. A frame-context diagnostic also failed X2D at `-0.01923371655785397%` median, so simple gate/context tuning is not enough. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
-Build a new Premium still/SR candidate preflight that fixes the **raw-CFA route
-failure mode just evidenced**. Do not rerun source-frequency targets, generic
-full-crop U-Net residual training, masked-detail thresholds, or the older
+Build a new Premium still/SR target/degradation evidence receipt that fixes the
+**raw-CFA objective failure mode just evidenced**. Do not rerun
+source-frequency targets, generic full-crop U-Net residual training,
+masked-detail thresholds, candidate-HF no-op threshold tuning, or the older
 clean-source residual families as production work. The next candidate must be
 one of:
 
-1. a raw-CFA residual candidate with an explicit candidate-only no-op/benefit
-   gate that refuses to change low-benefit tiles and clips the worst-row tail;
-2. a route-specific Z8 residual-conditioning candidate that proves the
-   `Z8Z_1353` outlier is not target/degradation mismatch before mixing routes;
-3. a new target/degradation source receipt showing that the current raw-CFA
-   residual targets are mismatched to the candidate render path.
+1. a new target/degradation source receipt showing that the current raw-CFA
+   residual targets are mismatched to the candidate render path, with a
+   proposed replacement objective;
+2. a materially different route-conditioning candidate, not just frame-context
+   plus the existing no-op gate, that proves the `Z8Z_1353` and X2D parity
+   failures are not target/degradation mismatch before mixing routes;
+3. a teacher/objective that creates a positive no-REF signal on both X2D and
+   Z8 while preserving exact no-op behavior for low-error tiles.
 
 It must create a positive no-REF learning signal while preserving exact no-op
 behavior for low-error tiles.

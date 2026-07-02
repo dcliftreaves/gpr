@@ -28,6 +28,7 @@ def parse_args() -> argparse.Namespace:
             "masked_detail_noop_teacher",
             "raw_cfa_source_hf_teacher",
             "raw_cfa_residual_signal_teacher",
+            "raw_cfa_candidate_hf_noop_teacher",
             "rejected_repeat_fixture",
         ),
         default="clean_source_restormer_teacher",
@@ -1026,6 +1027,76 @@ def raw_cfa_residual_signal_teacher(candidate_id: str) -> dict[str, Any]:
     return manifest
 
 
+def raw_cfa_candidate_hf_noop_teacher(candidate_id: str) -> dict[str, Any]:
+    manifest = raw_cfa_residual_signal_teacher(candidate_id)
+    manifest["material_change_summary"] = (
+        "Adds an explicit candidate-only no-op/benefit gate to the raw-CFA "
+        "residual path after the residual-signal smoke showed low-error and "
+        "low-HF rows being damaged by unconditional model output. Runtime "
+        "inference still receives only candidate raw CFA, camera metadata, "
+        "and optional validated noise sidecars; rows below the candidate HF "
+        "threshold are forced to exact same-color interpolation no-op."
+    )
+    manifest["model_arch"] = "unet raw-CFA residual signal teacher with candidate-HF no-op gate"
+    manifest["architecture_deltas"] = [
+        "candidate-only no-op benefit gate for low-error and low-HF tiles",
+        "full-image raw-CFA residual restoration teacher with random-patch training",
+        "CFA-phase-conditioned raw feature planes",
+        "overlapped-tile evaluation with seam diagnostics",
+        "candidate-only residual prediction in raw-CFA space",
+    ]
+    manifest["degradation_policy"] = (
+        "raw-CFA target/objective smoke gate with candidate-HF no-op behavior: "
+        "train on source-minus-candidate raw residual targets, but evaluate "
+        "the runtime path with exact no-op below the candidate-only HF floor; "
+        "no long run is allowed unless both X2D and Z8 beat same-color "
+        "interpolation with nonnegative worst rows"
+    )
+    manifest["degradation_deltas"] = [
+        "camera-specific RAW blur/PSF validation remains required before production",
+        "ISO-conditioned calibrated sensor noise-floor downweighting",
+        "bit-depth and compression/decode simulation remains part of the full gate",
+        "sensor and CFA phase aware downsample/decode path",
+        "candidate-only low-error tile no-op behavior",
+        "different target/source evidence from raw-CFA residual signal targets",
+    ]
+    manifest["baseline_comparisons"] = [
+        "same-color Bayer interpolation baseline",
+        "current still-SR scoreboard and 12k window-attention rejection",
+        "raw-CFA source-frequency target blocker receipt",
+        "raw-CFA residual-signal smoke blocker receipt",
+        "masked-detail/no-op smoke gate blocker receipt",
+        "current 124-receipt still-SR experiment scoreboard",
+    ]
+    manifest["source_evidence_receipts"] = [
+        *manifest["source_evidence_receipts"],
+        (
+            "/Volumes/OWC_8TB/gpr_work/artifacts/"
+            "premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702/"
+            "smoke_gate_acceptance.json"
+        ),
+    ]
+    manifest["smoke_gate_commands"] = [
+        command.replace("rawcfa_residual_signal", "rawcfa_candidate_hf_noop")
+        .replace("--sample-balance scene --sample-mode full_crop", "--sample-balance row --sample-mode random_patch")
+        .replace(
+            "--target-representation residual --target-policy noise_soft_threshold "
+            "--noise-threshold-scale 1.0 --snr-loss-weight-policy noise_floor_downweight "
+            "--snr-loss-weight-strength 0.5 --target-energy-loss-weight-policy "
+            "high_energy_emphasis --target-energy-loss-weight-strength 0.5",
+            "--target-representation residual --target-policy raw "
+            "--candidate-hf-noop-threshold 0.004 --candidate-hf-noop-softness 0.004",
+        )
+        for command in manifest["smoke_gate_commands"]
+    ]
+    manifest["notes"] = (
+        "Launchable Gate A intake manifest for the first candidate-only "
+        "raw-CFA no-op/benefit gate. It may advance only through the paired "
+        "X2D/Z8 smoke acceptance checker; it is not a production claim."
+    )
+    return manifest
+
+
 def rejected_repeat_fixture(candidate_id: str) -> dict[str, Any]:
     return {
         "schema": SCHEMA,
@@ -1067,6 +1138,8 @@ def build_manifest(template: str, candidate_id: str | None) -> dict[str, Any]:
         return raw_cfa_source_hf_teacher(candidate_id or "raw_cfa_sourcefreq_teacher_v1")
     if template == "raw_cfa_residual_signal_teacher":
         return raw_cfa_residual_signal_teacher(candidate_id or "raw_cfa_residual_signal_teacher_v1")
+    if template == "raw_cfa_candidate_hf_noop_teacher":
+        return raw_cfa_candidate_hf_noop_teacher(candidate_id or "raw_cfa_candidate_hf_noop_teacher_v1")
     if template == "rejected_repeat_fixture":
         return rejected_repeat_fixture(candidate_id or "repeat_residual_pixelshuffle_local_cnn")
     raise ValueError(f"unknown template: {template}")

@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no model receipt yet clears the 15% / 15% held-out promotion floor. Frequency-pyramid, gated-residual, masked-detail/no-op, raw-CFA source-frequency, and raw-CFA residual-signal smokes are blocked before long training; the current blocker is raw-CFA no-op/benefit gating, route-specific Z8 conditioning, or target/degradation mismatch.",
+      "summary": "Raw-CFA routed specialists, rendered proxy review, 4/4 editor/latitude coverage, and clean-target noise policy are in place; no Candidate-only 50 MP / 100 MP model receipt yet clears the 15% / 15% held-out promotion floor. Frequency-pyramid, gated-residual, masked-detail/no-op, raw-CFA source-frequency, raw-CFA residual-signal, and candidate-HF no-op smokes are blocked before long training; the current blocker is target/degradation mismatch or a materially different route-conditioning receipt.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -109,10 +109,12 @@
           "premium_still_sr_candidate_preflight_rawcfa_sourcefreq_20260702",
           "premium_still_sr_rawcfa_sourcefreq_smoke_gate_acceptance_20260702",
           "premium_still_sr_candidate_preflight_rawcfa_residual_signal_20260702",
-          "premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702"
+          "premium_still_sr_rawcfa_residual_signal_smoke_gate_acceptance_20260702",
+          "premium_still_sr_candidate_preflight_rawcfa_candidate_hf_noop_20260702",
+          "premium_still_sr_rawcfa_candidate_hf_noop_smoke_gate_acceptance_20260702"
         ]
       },
-      "open_gate": "Candidate-only 50 MP / 100 MP still-SR must clear broad Mission 1/Z8/X2D holdouts, raw-editor latitude/openability review for every route, exact-sidecar-only noise policy, and worst-row visual gates."
+      "open_gate": "Next local Premium still/SR work must provide new target/degradation evidence or a materially different route-conditioning receipt before any long run; candidate-only 50 MP / 100 MP still-SR must still clear broad Mission 1/Z8/X2D holdouts, raw-editor latitude/openability review for every route, exact-sidecar-only noise policy, and worst-row visual gates."
     },
     {
       "id": "raw_video_reconstruction",
@@ -4177,6 +4179,62 @@
         "x2d_worst_raw_mae_recovery_pct": -5.352462806764585,
         "z8_median_raw_mae_recovery_pct": -5.108265406545033,
         "z8_worst_raw_mae_recovery_pct": -178.9545417615565,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_candidate_preflight_rawcfa_candidate_hf_noop_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Launchable preflight for the raw-CFA candidate-HF no-op/benefit gate after the residual-signal smoke showed low-HF tail damage.",
+      "dashboard": "artifacts/premium_still_sr_candidate_preflight_rawcfa_candidate_hf_noop_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_candidate_preflight_rawcfa_candidate_hf_noop_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_candidate_preflight_rawcfa_candidate_hf_noop_20260702/preflight_audit.json",
+        "artifacts/premium_still_sr_candidate_preflight_rawcfa_candidate_hf_noop_20260702/index.html"
+      ],
+      "hashes": {
+        "candidate_preflight_json_sha256": "a9513ac2d3ad71c0381c6c657f37803c1ef9584a0fcbc0695a44b0ca4eab3963",
+        "preflight_audit_json_sha256": "65187446fdd7bee2576e1b44ab49b7dd230614208b42335d5349114e7e2b20b5"
+      },
+      "metrics": {
+        "launchable_preflight": 1,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_rawcfa_candidate_hf_noop_smoke_gate_acceptance_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Paired X2D/Z8 smoke-gate blocker for the raw-CFA candidate-HF no-op gate. It clips the Z8 low-HF tail to exact parity but still fails the positive median floor, so the next Gate A step is target/degradation evidence or materially different route conditioning.",
+      "dashboard": "artifacts/premium_still_sr_rawcfa_candidate_hf_noop_smoke_gate_acceptance_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_rawcfa_candidate_hf_noop_x2d_scene_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_rawcfa_candidate_hf_noop_z8_scene_smoke_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_rawcfa_candidate_hf_noop_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json",
+        "artifacts/premium_still_sr_rawcfa_candidate_hf_noop_smoke_gate_acceptance_20260702/index.html"
+      ],
+      "hashes": {
+        "x2d_train_receipt_sha256": "67754beaaeb9d6d8c6b2fbaaf71ef78ad842136e59f682ca57709e9cd9d36e81",
+        "z8_train_receipt_sha256": "30c1051903cbf42818533a1323012fd125cf833283d22ab7ffec47e0fdff12d8",
+        "smoke_gate_acceptance_json_sha256": "cc9d11463f3325be9d84e5cc40883978c42351ea2166355ceebf54218eee4665"
+      },
+      "metrics": {
+        "smoke_gate_passed": 0,
+        "x2d_median_raw_mae_recovery_pct": -0.006290143931539378,
+        "x2d_worst_raw_mae_recovery_pct": -0.23156087540736878,
+        "z8_median_raw_mae_recovery_pct": 0.0,
+        "z8_worst_raw_mae_recovery_pct": 0.0,
         "production_ready": 0
       }
     }

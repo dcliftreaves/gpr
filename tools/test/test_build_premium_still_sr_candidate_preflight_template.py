@@ -169,6 +169,49 @@ def main() -> int:
         assert "target/objective" in audit["material_source_matches"]
         assert "target-derived detail mask" in audit["material_source_matches"]
 
+        noop = base / "raw_cfa_candidate_hf_noop_teacher.json"
+        proc = run(
+            [
+                sys.executable,
+                str(BUILDER),
+                "--template",
+                "raw_cfa_candidate_hf_noop_teacher",
+                "--output",
+                str(noop),
+            ]
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        noop_data = json.loads(noop.read_text(encoding="utf-8"))
+        assert noop_data["candidate_id"] == "raw_cfa_candidate_hf_noop_teacher_v1"
+        assert noop_data["launchable_for_production_attempt"] is True
+        assert "candidate-only no-op/benefit gate" in noop_data["material_change_summary"]
+        assert any("candidate-HF no-op" in item or "no-op benefit gate" in item for item in noop_data["architecture_deltas"])
+        assert any("--candidate-hf-noop-threshold 0.004" in item for item in noop_data["smoke_gate_commands"])
+        assert any("--candidate-hf-noop-softness 0.004" in item for item in noop_data["smoke_gate_commands"])
+        assert all("--sample-mode random_patch" in item for item in noop_data["smoke_gate_commands"])
+        proc = run(
+            [
+                sys.executable,
+                str(CHECKER),
+                str(noop),
+                "--json-out",
+                str(audit_json),
+                "--html-out",
+                str(audit_html),
+                "--require-launchable",
+            ]
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+        audit = json.loads(audit_json.read_text(encoding="utf-8"))
+        assert audit["launchable_for_production_attempt"] is True
+        assert "no-op behavior" in audit["material_source_matches"]
+
         edited = base / "edited_clean_source_restormer_teacher.json"
         data["candidate_id"] = "contextual_raw_restoration_teacher_new_degradation_v1"
         data["launchable_for_production_attempt"] = True

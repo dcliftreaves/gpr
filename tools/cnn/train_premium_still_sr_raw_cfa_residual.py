@@ -1951,6 +1951,20 @@ def seam_mask(height: int, width: int, tile: int, seam_width: int, device: torch
     return mask
 
 
+def candidate_hf_noop_gate_value(candidate_hf_abs_mean: float, threshold: float, softness: float) -> float:
+    """Return a candidate-only residual gate; zero means exact interpolation no-op."""
+    threshold = max(0.0, float(threshold))
+    softness = max(0.0, float(softness))
+    value = max(0.0, float(candidate_hf_abs_mean))
+    if threshold <= 0.0:
+        return 1.0
+    if softness <= 0.0:
+        return 1.0 if value >= threshold else 0.0
+    if value <= threshold:
+        return 0.0
+    return min(1.0, (value - threshold) / softness)
+
+
 @torch.no_grad()
 def eval_rows(
     model: nn.Module,
@@ -1970,6 +1984,8 @@ def eval_rows(
     target_representation: str,
     eval_overlap: int = 0,
     seam_check_width: int = 0,
+    candidate_hf_noop_threshold: float = 0.0,
+    candidate_hf_noop_softness: float = 0.0,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     model.eval()
@@ -2016,6 +2032,13 @@ def eval_rows(
             target_scale=target_scale,
             target_representation=target_representation,
         )
+        candidate_hf_abs_mean = float(data.candidate_hf_abs_means[idx])
+        noop_gate = candidate_hf_noop_gate_value(
+            candidate_hf_abs_mean,
+            candidate_hf_noop_threshold,
+            candidate_hf_noop_softness,
+        )
+        pred = pred * noop_gate
         overlap_metrics: dict[str, float] = {}
         if eval_overlap > 0:
             plain_pred = tiled_residual_prediction(
@@ -2035,6 +2058,7 @@ def eval_rows(
                 target_scale=target_scale,
                 target_representation=target_representation,
             )
+            plain_pred = plain_pred * noop_gate
             delta = torch.abs(pred - plain_pred)
             overlap_metrics["overlap_vs_plain_mae"] = float(torch.mean(delta).cpu())
             overlap_metrics["overlap_vs_plain_max_abs"] = float(torch.max(delta).cpu())
@@ -2069,6 +2093,10 @@ def eval_rows(
                 "exact_raw_mae_reduction_pct": 100.0 * (raw_base_mae - raw_pred_mae) / max(raw_base_mae, 1.0e-12),
                 "target_scale": float(target_scale.cpu().item()),
                 "target_representation": target_representation,
+                "candidate_hf_abs_mean": candidate_hf_abs_mean,
+                "candidate_hf_noop_gate": noop_gate,
+                "candidate_hf_noop_threshold": max(0.0, float(candidate_hf_noop_threshold)),
+                "candidate_hf_noop_softness": max(0.0, float(candidate_hf_noop_softness)),
                 "psf_kernel_weights": [float(x) for x in data.psf_features[idx][:4]],
                 "psf_source": data.psf_sources[idx],
                 "cfa_phase": data.cfa_phase_labels[idx],
@@ -2090,6 +2118,10 @@ def eval_rows(
         "context_padding": context_padding,
         "eval_overlap": max(0, int(eval_overlap)),
         "seam_check_width": max(0, int(seam_check_width)),
+        "candidate_hf_noop_threshold": max(0.0, float(candidate_hf_noop_threshold)),
+        "candidate_hf_noop_softness": max(0.0, float(candidate_hf_noop_softness)),
+        "candidate_hf_noop_gate": stats([row["candidate_hf_noop_gate"] for row in rows]),
+        "candidate_hf_noop_row_count": sum(1 for row in rows if float(row["candidate_hf_noop_gate"]) <= 0.0),
         "rows": rows,
     }
     if eval_overlap > 0:
@@ -2128,6 +2160,8 @@ def write_panel_sheet(
     target_scale_strength: float,
     target_scale_reference_abs_mean: float,
     target_representation: str,
+    candidate_hf_noop_threshold: float,
+    candidate_hf_noop_softness: float,
 ) -> None:
     selected = indices[:max_rows]
     if not selected:
@@ -2169,6 +2203,11 @@ def write_panel_sheet(
             pred = pred - data.candidate_raw_hf[idx]
         elif target_representation != "residual":
             raise ValueError(f"unknown target_representation: {target_representation}")
+        pred *= candidate_hf_noop_gate_value(
+            data.candidate_hf_abs_means[idx],
+            candidate_hf_noop_threshold,
+            candidate_hf_noop_softness,
+        )
         target_t = torch.from_numpy(data.target[idx].transpose(2, 0, 1)).unsqueeze(0).to(device)
         target = (
             apply_target_policy(
@@ -2286,6 +2325,10 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         args.eval_overlap = 0
     if not hasattr(args, "seam_check_width"):
         args.seam_check_width = 0
+    if not hasattr(args, "candidate_hf_noop_threshold"):
+        args.candidate_hf_noop_threshold = 0.0
+    if not hasattr(args, "candidate_hf_noop_softness"):
+        args.candidate_hf_noop_softness = 0.0
     default_psf_kernel_weights = resolve_default_psf_kernel_weights(args)
     data = RawCfaResidualTargets(args.targets, default_psf_kernel_weights, args.psf_sidecar)
     if "storedhf" in args.feature_mode and data.candidate_raw_hf is None:
@@ -2434,6 +2477,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                     target_representation=args.target_representation,
                     eval_overlap=0,
                     seam_check_width=0,
+                    candidate_hf_noop_threshold=args.candidate_hf_noop_threshold,
+                    candidate_hf_noop_softness=args.candidate_hf_noop_softness,
                 )
                 probe_median = float(probe_eval["raw_residual_mae_reduction_pct"]["median"])
                 row["holdout_probe_row_count"] = len(probe_indices)
@@ -2480,6 +2525,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         target_representation=args.target_representation,
         eval_overlap=args.eval_overlap,
         seam_check_width=args.seam_check_width,
+        candidate_hf_noop_threshold=args.candidate_hf_noop_threshold,
+        candidate_hf_noop_softness=args.candidate_hf_noop_softness,
     )
     holdout_eval = None
     if eval_holdout_indices:
@@ -2500,6 +2547,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             target_representation=args.target_representation,
             eval_overlap=args.eval_overlap,
             seam_check_width=args.seam_check_width,
+            candidate_hf_noop_threshold=args.candidate_hf_noop_threshold,
+            candidate_hf_noop_softness=args.candidate_hf_noop_softness,
         )
     checkpoint = args.output_dir / args.checkpoint_name
     torch.save(
@@ -2539,6 +2588,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
                 "eval_during_training_rows": args.eval_during_training_rows,
                 "eval_overlap": args.eval_overlap,
                 "seam_check_width": args.seam_check_width,
+                "candidate_hf_noop_threshold": args.candidate_hf_noop_threshold,
+                "candidate_hf_noop_softness": args.candidate_hf_noop_softness,
                 "save_best_holdout_checkpoint": args.save_best_holdout_checkpoint,
                 "psf_receipt": str(args.psf_receipt) if args.psf_receipt else None,
                 "psf_sidecar": str(args.psf_sidecar) if args.psf_sidecar else None,
@@ -2566,6 +2617,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
         target_scale_strength=args.target_scale_strength,
         target_scale_reference_abs_mean=target_scale_reference_abs_mean,
         target_representation=args.target_representation,
+        candidate_hf_noop_threshold=args.candidate_hf_noop_threshold,
+        candidate_hf_noop_softness=args.candidate_hf_noop_softness,
     )
     receipt = {
         "schema": SCHEMA,
@@ -2669,6 +2722,8 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "eval_during_training_rows": args.eval_during_training_rows,
             "eval_overlap": args.eval_overlap,
             "seam_check_width": args.seam_check_width,
+            "candidate_hf_noop_threshold": args.candidate_hf_noop_threshold,
+            "candidate_hf_noop_softness": args.candidate_hf_noop_softness,
             "save_best_holdout_checkpoint": args.save_best_holdout_checkpoint,
             "seed": args.seed,
             "progress_jsonl": str(progress_path),
@@ -2708,6 +2763,19 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
             "target_energy_loss_weight_strength": args.target_energy_loss_weight_strength,
             "target_scale_policy": args.target_scale_policy,
             "target_scale_strength": args.target_scale_strength,
+            "candidate_hf_noop_gate": (
+                "disabled"
+                if args.candidate_hf_noop_threshold <= 0.0
+                else (
+                    "enabled: exact no-op for candidate_raw_hf_abs_mean below "
+                    f"{args.candidate_hf_noop_threshold:.6g}"
+                    + (
+                        ""
+                        if args.candidate_hf_noop_softness <= 0.0
+                        else f", soft ramp over {args.candidate_hf_noop_softness:.6g}"
+                    )
+                )
+            ),
             "psf_conditioning": (
                 "enabled: PSF/kernel scalar planes from row metadata, --psf-sidecar, --psf-kernel-weight, or --psf-receipt"
                 if "_psf" in args.feature_mode
@@ -2903,6 +2971,18 @@ def main() -> int:
         choices=("residual", "source_hf"),
         default="residual",
         help="Training target representation. residual preserves legacy source-minus-candidate residual training; source_hf predicts source raw HF and converts back to residual with candidate HF at eval/runtime.",
+    )
+    ap.add_argument(
+        "--candidate-hf-noop-threshold",
+        type=float,
+        default=0.0,
+        help="Candidate-only runtime gate: residual output is forced to exact no-op when candidate_raw_hf_abs_mean is below this threshold.",
+    )
+    ap.add_argument(
+        "--candidate-hf-noop-softness",
+        type=float,
+        default=0.0,
+        help="Optional soft ramp width above --candidate-hf-noop-threshold. Zero uses a hard gate.",
     )
     ap.add_argument(
         "--sample-balance",
