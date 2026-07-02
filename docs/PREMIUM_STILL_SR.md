@@ -315,6 +315,16 @@ Z8 by **-4.82%** MAE while improving RMSE by **3.39%**. The next pass should
 change degradation/objective/architecture and camera conditioning, not merely
 spend more time on this local teacher.
 
+The next-experiment contract now marks those routed X2D/Z8 teacher commands as
+`rejected_reference_do_not_rerun_as_primary` and
+`launchable_for_production_attempt=false`. They are useful for reproduction and
+comparison only. A new long run must first satisfy the contract's
+`next_candidate_preflight`: non-local/full-image or otherwise materially
+stronger RAW restoration architecture, realistic degradation beyond same-color
+box downsample alone, joint X2D/Z8 holdout selection, and full-image or
+overlapped-tile validation. Without that preflight delta, another run is a
+replay of known rejection evidence, not progress toward production.
+
 The first bounded architecture/objective change is also a rejection receipt:
 
 ```text

@@ -487,6 +487,8 @@ def build_contract(
                     {
                         "id": "build_clean_source_raw_sr_pairs",
                         "holdout_scene": x2d_holdout_scene,
+                        "status": "launchable_pair_builder",
+                        "launchable_for_production_attempt": True,
                         "purpose": "Build the next primary target: source-RAW-derived low/high same-color Bayer pairs with metadata preserved for clean-source RAW SR.",
                         "command": shell_command(
                             [
@@ -504,7 +506,13 @@ def build_contract(
                     {
                         "id": "teacher_clean_source_raw_sr_x2d_holdout",
                         "holdout_scene": x2d_holdout_scene,
-                        "purpose": "Train the first clean-source RAW SR teacher against the routed pair set with an X2D image held out before distillation or actual-still promotion.",
+                        "status": "rejected_reference_do_not_rerun_as_primary",
+                        "launchable_for_production_attempt": False,
+                        "rejection_reason": (
+                            "Existing 1500-step routed local residual-pixelshuffle teacher improved train loss "
+                            "but regressed held-out X2D; keep this command only as reproduction evidence."
+                        ),
+                        "purpose": "Reference command for the rejected routed X2D clean-source teacher; not the next production attempt.",
                         "command": shell_command(
                             [
                                 f"GPR_TMPDIR={tmp_root} TMPDIR={tmp_root}",
@@ -523,7 +531,13 @@ def build_contract(
                     {
                         "id": "teacher_clean_source_raw_sr_z8_holdout",
                         "holdout_scene": z8_holdout_scene,
-                        "purpose": "Train the first clean-source RAW SR teacher against the routed pair set with a Z8 image held out before distillation or actual-still promotion.",
+                        "status": "rejected_reference_do_not_rerun_as_primary",
+                        "launchable_for_production_attempt": False,
+                        "rejection_reason": (
+                            "Existing 1500-step routed local residual-pixelshuffle teacher improved train loss "
+                            "but regressed held-out Z8 MAE; keep this command only as reproduction evidence."
+                        ),
+                        "purpose": "Reference command for the rejected routed Z8 clean-source teacher; not the next production attempt.",
                         "command": shell_command(
                             [
                                 f"GPR_TMPDIR={tmp_root} TMPDIR={tmp_root}",
@@ -540,6 +554,36 @@ def build_contract(
                         ),
                     },
                 ],
+                "next_candidate_preflight": {
+                    "purpose": (
+                        "Prevent the next premium still-SR pass from being another expensive replay "
+                        "of a rejected local clean-source teacher."
+                    ),
+                    "new_run_must_not_match": [
+                        "residual_pixelshuffle or local-CNN-only teacher over the same routed_t16 pair set",
+                        "NAF-like residual pixelshuffle plus gradient/detail loss without changed degradation or non-local context",
+                        "clean-signal residual U-Net over the same 20260702 X2D scene holdout",
+                        "12k-step PSF/CFA window-attention raw-residual objective that already regressed X2D",
+                    ],
+                    "required_architecture_delta": [
+                        "non-local raw restoration teacher such as shifted-window, hybrid-attention, Restormer/RBSFormer-style, or equivalent full-image/context model",
+                        "explicit candidate-only student path only after the teacher beats same-color interpolation on both X2D and Z8 holdouts",
+                    ],
+                    "required_degradation_delta": [
+                        "realistic RAW degradation beyond same-color 2x box alone: camera blur/PSF, noise, bit depth, and compression/decode simulation",
+                        "camera/ISO conditioning that uses validated noise sidecars where available and leaves missing sidecars as metadata-only",
+                    ],
+                    "required_validation_delta": [
+                        "full-image or overlapped-tile evaluation before any promotion claim",
+                        "joint X2D plus Z8 holdout selection, not train loss and not a single-camera dashboard",
+                        "worst-row 100 percent crops plus editable DNG/GPR and rendered latitude receipts",
+                    ],
+                    "promotion_attempt_allowed_after_preflight": False,
+                    "promotion_attempt_allowed_when": (
+                        "a new teacher receipt records the architecture/degradation/validation deltas above "
+                        "and beats same-color interpolation on both held-out X2D and Z8 images"
+                    ),
+                },
                 "pair_audit_command": shell_command(
                     [
                         f"GPR_TMPDIR={tmp_root} TMPDIR={tmp_root}",
@@ -730,12 +774,28 @@ def render_html(data: dict[str, Any], json_path: Path) -> str:
     full_train_commands = "".join(
         "<section class=\"card\">"
         f"<h3>{html.escape(str(row.get('id')))}</h3>"
+        f"<p><strong>Status:</strong> {html.escape(str(row.get('status') or 'unspecified'))}</p>"
+        f"<p><strong>Launchable production attempt:</strong> {html.escape(str(row.get('launchable_for_production_attempt')).lower())}</p>"
         f"<p>{html.escape(str(row.get('purpose')))}</p>"
         f"<p><strong>Holdout:</strong> {html.escape(str(row.get('holdout_scene')))}</p>"
+        f"<p>{html.escape(str(row.get('rejection_reason') or ''))}</p>"
         f"<pre>{html.escape(str(row.get('command')))}</pre>"
         "</section>"
         for row in execution.get("full_train_commands", [])
         if isinstance(row, dict)
+    )
+    preflight = execution.get("next_candidate_preflight", {}) if isinstance(execution.get("next_candidate_preflight"), dict) else {}
+    preflight_must_not_match = "".join(
+        f"<li>{html.escape(str(item))}</li>" for item in preflight.get("new_run_must_not_match", [])
+    )
+    preflight_architecture = "".join(
+        f"<li>{html.escape(str(item))}</li>" for item in preflight.get("required_architecture_delta", [])
+    )
+    preflight_degradation = "".join(
+        f"<li>{html.escape(str(item))}</li>" for item in preflight.get("required_degradation_delta", [])
+    )
+    preflight_validation = "".join(
+        f"<li>{html.escape(str(item))}</li>" for item in preflight.get("required_validation_delta", [])
     )
     required_followup_receipts = "".join(
         f"<li>{html.escape(str(item))}</li>" for item in execution.get("required_followup_receipts", [])
@@ -812,8 +872,22 @@ pre {{ white-space: pre-wrap; word-break: break-word; background: #121820; color
 <pre>{html.escape(str(execution.get('smoke_command')))}</pre>
 <h3>Pair audit command</h3>
 <pre>{html.escape(str(execution.get('pair_audit_command')))}</pre>
-<h3>Full train commands</h3>
+<h3>Reference and launch commands</h3>
 <div class="grid">{full_train_commands}</div>
+<h3>Next candidate preflight</h3>
+<p>{html.escape(str(preflight.get('purpose') or ''))}</p>
+<table>
+  <tr><th>promotion attempt allowed now</th><td>{html.escape(str(preflight.get('promotion_attempt_allowed_after_preflight')).lower())}</td></tr>
+  <tr><th>allowed when</th><td>{html.escape(str(preflight.get('promotion_attempt_allowed_when') or ''))}</td></tr>
+</table>
+<h4>New run must not match</h4>
+<ul>{preflight_must_not_match}</ul>
+<h4>Required architecture delta</h4>
+<ul>{preflight_architecture}</ul>
+<h4>Required degradation delta</h4>
+<ul>{preflight_degradation}</ul>
+<h4>Required validation delta</h4>
+<ul>{preflight_validation}</ul>
 <h3>Required follow-up receipts</h3>
 <ul>{required_followup_receipts}</ul>
 <h3>Promotion reject conditions</h3>

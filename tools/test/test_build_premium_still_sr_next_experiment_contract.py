@@ -286,19 +286,35 @@ def main() -> int:
         assert len(execution["full_train_commands"]) == 3
         assert execution["full_train_commands"][0]["id"] == "build_clean_source_raw_sr_pairs"
         assert execution["full_train_commands"][0]["holdout_scene"] == "x2d"
+        assert execution["full_train_commands"][0]["status"] == "launchable_pair_builder"
+        assert execution["full_train_commands"][0]["launchable_for_production_attempt"] is True
         assert "build_premium_still_sr_pairs.py" in execution["full_train_commands"][0]["command"]
         assert "--tiles-per-fixture 16" in execution["full_train_commands"][0]["command"]
         assert execution["full_train_commands"][1]["id"] == "teacher_clean_source_raw_sr_x2d_holdout"
         assert execution["full_train_commands"][1]["holdout_scene"] == "x2d"
+        assert execution["full_train_commands"][1]["status"] == "rejected_reference_do_not_rerun_as_primary"
+        assert execution["full_train_commands"][1]["launchable_for_production_attempt"] is False
+        assert "regressed held-out X2D" in execution["full_train_commands"][1]["rejection_reason"]
         assert "train_premium_still_sr_clean_source_pairs.py" in execution["full_train_commands"][1]["command"]
         assert "--output-dir" in execution["full_train_commands"][1]["command"]
         assert "--holdout-image x2d_100mp_dng" in execution["full_train_commands"][1]["command"]
         assert "--low-crop 96" in execution["full_train_commands"][1]["command"]
         assert execution["full_train_commands"][2]["id"] == "teacher_clean_source_raw_sr_z8_holdout"
         assert execution["full_train_commands"][2]["holdout_scene"] == "z8"
+        assert execution["full_train_commands"][2]["status"] == "rejected_reference_do_not_rerun_as_primary"
+        assert execution["full_train_commands"][2]["launchable_for_production_attempt"] is False
+        assert "regressed held-out Z8" in execution["full_train_commands"][2]["rejection_reason"]
         assert "train_premium_still_sr_clean_source_pairs.py" in execution["full_train_commands"][2]["command"]
         assert "--holdout-image z8_z8z_1330" in execution["full_train_commands"][2]["command"]
         assert "--width 48" in execution["full_train_commands"][2]["command"]
+        preflight = execution["next_candidate_preflight"]
+        assert preflight["promotion_attempt_allowed_after_preflight"] is False
+        assert "expensive replay" in preflight["purpose"]
+        assert any("residual_pixelshuffle" in item for item in preflight["new_run_must_not_match"])
+        assert any("non-local raw restoration teacher" in item for item in preflight["required_architecture_delta"])
+        assert any("realistic RAW degradation" in item for item in preflight["required_degradation_delta"])
+        assert any("full-image or overlapped-tile evaluation" in item for item in preflight["required_validation_delta"])
+        assert "beats same-color interpolation" in preflight["promotion_attempt_allowed_when"]
         assert any("clean-source RAW SR pair receipt" in item for item in execution["required_followup_receipts"])
         assert any("pair_audit.json same-color interpolation baseline" in item for item in execution["required_followup_receipts"])
         assert any("train_premium_still_sr_clean_source_pairs.py train_receipt.json" in item for item in execution["required_followup_receipts"])
@@ -354,7 +370,9 @@ def main() -> int:
         assert "Implementation Blueprint" in html
         assert "Executable Next Pass" in html
         assert "Pair audit command" in html
-        assert "Full train commands" in html
+        assert "Reference and launch commands" in html
+        assert "Next candidate preflight" in html
+        assert "rejected_reference_do_not_rerun_as_primary" in html
         assert proc.stdout.strip() == str(out_dir / "index.html")
 
     print("test_build_premium_still_sr_next_experiment_contract: PASS")

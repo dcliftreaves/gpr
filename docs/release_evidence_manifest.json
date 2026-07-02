@@ -1864,8 +1864,8 @@
         "artifacts/premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html"
       ],
       "hashes": {
-        "contract_json_sha256": "223c5c100b5d7dfced120ae303620aeabef92c9162ec9ca8dd8e4543d244b110",
-        "dashboard_sha256": "2a94c9c3bc2ebd7ace875ff16b23e7c3b888d80a90c890b81090ad88eb1bb313"
+        "contract_json_sha256": "d79bdd20ac54ed3217bf64fa6b4746468af519d868045d840aef6da6ff84dde1",
+        "dashboard_sha256": "1fee33dc0859271479053de451cea2639b06121856a291d9d66af8d23803e238"
       },
       "metrics": {
         "clean_signal_target_rows": 117,

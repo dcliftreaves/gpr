@@ -14,6 +14,7 @@ production-promoted.
 | What must a new candidate prove first? | Candidate-only runtime inputs, positive held-out recovery, 50 MP and 100 MP full-frame gates, editor-latitude review, worst-row review, editable raw outputs, timing, memory, and exact-sidecar-only noise policy. |
 | What is forbidden at render time? | REF/source/JPEG image content, source residual noise, hidden source-HF targets, or any noise addback not tied to a validated exact camera/ISO sidecar. |
 | What should happen before another long CNN run? | Build a small candidate and reject it early unless it improves held-out X2D and Z8 evidence with runtime-safe inputs. |
+| Are the routed clean-source teacher commands the next run? | No. They are now labeled as rejected reference commands in the next-experiment contract. A new production attempt needs a preflight-proven architecture/degradation/validation change before another long run. |
 
 ## First-Hour Steps
 
@@ -68,6 +69,14 @@ production-promoted.
    in [`PREMIUM_STILL_SR.md`](PREMIUM_STILL_SR.md) only after a candidate has
    real artifacts.
 
+   The routed `train_premium_still_sr_clean_source_pairs.py` X2D/Z8 commands in
+   the 20260702 contract are reproduction references for rejected receipts, not
+   launchable production attempts. The next valid long run must first satisfy
+   the contract's `next_candidate_preflight`: non-local/full-image or otherwise
+   materially stronger RAW restoration architecture, realistic degradation
+   beyond same-color box downsample alone, joint X2D/Z8 holdout selection, and
+   full-image or overlapped-tile validation.
+
 5. Rebuild the scoreboard and reject the candidate if it cannot beat the
    promotion floor:
 
@@ -110,6 +119,7 @@ production-promoted.
 | Positive train split only | Current evidence already shows train improvement can fail scene-held-out X2D. |
 | More time on the rejected 12k-step teacher | The 12k-step X2D scene-holdout run regressed; repeating the same objective is not a promotion path. |
 | Clean target alone | The clean-signal U-Net smoke still regressed X2D; the next pass needs materially different supervision or runtime signal. |
+| Re-running the routed local clean-source teacher | The 1500-step X2D/Z8 routed clean-source runs and NAF/detail variant are rejected reference receipts. The next run must change architecture, degradation policy, and validation scope before it can be treated as a production candidate. |
 | Runtime REF/source/HF leakage | It violates the no-REF production contract even if metrics improve. |
 | Noise synthesized without exact sidecars | It violates the camera-noise policy and can hide source-noise leakage. |
 
