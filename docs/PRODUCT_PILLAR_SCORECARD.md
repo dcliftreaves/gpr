@@ -298,12 +298,18 @@ unstable native Mission 1 kernel or partial historical SR rows.
 
 The current premium still-SR experiment scoreboard lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html`.
-It now ranks 81 runtime-safe rendered-HF and raw-CFA residual training receipts
+It now ranks 82 runtime-safe rendered-HF and raw-CFA residual training receipts
 and records zero promotable rows. The best runtime-safe row reaches 4.03
 percent held-out MAE recovery and 3.75 percent held-out RMSE recovery against
 the 15 percent / 15 percent promotion threshold, while the best broad
 scene-held-out row remains 2.92 percent; both are diagnostic rather than
 production-ready.
+The full 12k-step X2D scene-holdout window-attention teacher run is now one of
+those diagnostic rows: it trains slightly positive at 0.804 percent median raw
+MAE recovery, but the 9-row X2D scene holdout is negative at -0.030 percent MAE
+and -0.098 percent RMSE after 31,155.66 seconds. That narrows the blocker: the
+current full-crop PSF/CFA window-attention objective is not the missing
+promotion lever.
 
 The premium still-SR blocker audit lives at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_blocker_audit_20260630/index.html`.

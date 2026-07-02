@@ -99,14 +99,31 @@ Current scoreboard:
 /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html
 ```
 
-The current scoreboard scans **81** premium still-SR training receipts across
-the older rendered-HF and newer raw-CFA residual schemas. All 81 rows are
+The current scoreboard scans **82** premium still-SR training receipts across
+the older rendered-HF and newer raw-CFA residual schemas. All 82 rows are
 runtime-safe, but **0** are promotable. The best runtime-safe row reaches only
 **4.03%** held-out MAE recovery and **3.75%** held-out RMSE recovery against a
 15% / 15% promotion threshold. This is a necessary promotion guard, not a full
 production gate. A future row must still pass full-frame raw/editor-latitude
 review before the premium still-SR pillar can move from diagnostic to
 production-ready.
+
+The first full 12k-step X2D scene-holdout window-attention teacher run is now
+also indexed:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_window_attention_teacher_gate_20260701/x2d_scene_holdout_window_attention_teacher_cfa/index.html
+```
+
+It used `window_attention_teacher`,
+`raw_multiscale_coord_ev_noise_psf_cfa`, full-crop sampling, row-level PSF
+sidecar conditioning, 512 px tiles, 64 px overlap, and no REF/source/JPEG
+runtime inputs. It trained for 31,155.66 seconds, reached **0.804%** median
+train raw MAE recovery, but regressed the 9-row X2D scene holdout at
+**-0.030%** median raw MAE recovery and **-0.098%** median raw RMSE recovery.
+That rules out "make the current full-crop PSF/CFA window-attention teacher
+longer" as the next primary move; the next pass needs a different objective or
+supervision strategy, not more time on the same setup.
 
 ## Blocker Audit
 

@@ -998,8 +998,8 @@ def require_dashboard_contract(
             failures.append(f"{entry_id}: premium still-SR scoreboard needs metrics")
         else:
             expected_metrics = {
-                "receipt_count": 81,
-                "runtime_safe_candidate_count": 81,
+                "receipt_count": 82,
+                "runtime_safe_candidate_count": 82,
                 "promotable_candidate_count": 0,
                 "promotion_threshold_pct": 15.0,
                 "production_ready": 0,
@@ -1017,20 +1017,33 @@ def require_dashboard_contract(
                     failures.append(f"{entry_id}: best runtime-safe MAE recovery drifted")
                 if abs(rmse - 3.753504206299621) > 1e-9:
                     failures.append(f"{entry_id}: best runtime-safe RMSE recovery drifted")
+            try:
+                latest_mae = float(metrics.get("latest_full_window_attention_holdout_mae_recovery_pct"))
+                latest_rmse = float(metrics.get("latest_full_window_attention_holdout_rmse_recovery_pct"))
+                latest_seconds = float(metrics.get("latest_full_window_attention_train_seconds"))
+            except (TypeError, ValueError):
+                failures.append(f"{entry_id}: latest full-window-attention metrics must be numeric")
+            else:
+                if abs(latest_mae - (-0.029526052219816575)) > 1e-9:
+                    failures.append(f"{entry_id}: latest full-window-attention MAE recovery drifted")
+                if abs(latest_rmse - (-0.09789250498606653)) > 1e-9:
+                    failures.append(f"{entry_id}: latest full-window-attention RMSE recovery drifted")
+                if abs(latest_seconds - 31155.659887040965) > 1e-6:
+                    failures.append(f"{entry_id}: latest full-window-attention train seconds drifted")
         hashes = entry.get("hashes")
         if not isinstance(hashes, dict):
             failures.append(f"{entry_id}: premium still-SR scoreboard needs hashes")
         else:
             expected_hashes = {
-                "scoreboard_json_sha256": "c4e5c8c3941b78d663993741b544b26c59770b32ddb0336c1c94e9ab07f45743",
-                "dashboard_sha256": "318e239f130171009ee947e3228d4d2ed8768a9bce9ecc34d4dfa692e4c51996",
+                "scoreboard_json_sha256": "24388bc1b7b162535fb3e2010c0b1b05b189793cb314baf9e2ecd8a55a7ecac3",
+                "dashboard_sha256": "03118e71867c43efa7f84df9fd485f20df8fcd7789d73999027efd9abf762313",
             }
             for key, expected in expected_hashes.items():
                 if hashes.get(key) != expected:
                     failures.append(f"{entry_id}: hash {key} must stay {expected}")
         readme_text = README.read_text(encoding="utf-8")
         readme_plain = re.sub(r"[*_`]", "", readme_text)
-        for token in ("81-receipt experiment scoreboard", "81 runtime-safe"):
+        for token in ("82-receipt experiment scoreboard", "82 runtime-safe"):
             if token not in readme_plain:
                 failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
 

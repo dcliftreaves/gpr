@@ -1366,8 +1366,8 @@
         "artifacts/product_burndown_ship_boundary_20260701/index.html"
       ],
       "hashes": {
-        "product_burndown_json_sha256": "f8d9cd9d4c491c8888d5c8ab0cc1f2d93368d8de95917d7c3e064f5f46d572bc",
-        "dashboard_sha256": "5a8513a3a798f5b111a47ab1e0d4b51ccc60b5f72721353746d37fb76b0d5d1f"
+        "product_burndown_json_sha256": "d23692d2faf7ffe08ddf299d152cbf8c2e02114b9ad6dc93a81f450e55129f64",
+        "dashboard_sha256": "965dce9b3cbcc9d141970a2ab0b07246837497022e0a8fd6c9721873c7789b4f"
       },
       "metrics": {
         "four_pillar_completion_percent": 83,
@@ -1668,15 +1668,18 @@
         "artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html"
       ],
       "hashes": {
-        "scoreboard_json_sha256": "c4e5c8c3941b78d663993741b544b26c59770b32ddb0336c1c94e9ab07f45743",
-        "dashboard_sha256": "318e239f130171009ee947e3228d4d2ed8768a9bce9ecc34d4dfa692e4c51996"
+        "scoreboard_json_sha256": "24388bc1b7b162535fb3e2010c0b1b05b189793cb314baf9e2ecd8a55a7ecac3",
+        "dashboard_sha256": "03118e71867c43efa7f84df9fd485f20df8fcd7789d73999027efd9abf762313"
       },
       "metrics": {
-        "receipt_count": 81,
-        "runtime_safe_candidate_count": 81,
+        "receipt_count": 82,
+        "runtime_safe_candidate_count": 82,
         "promotable_candidate_count": 0,
         "best_runtime_safe_holdout_mae_recovery_pct": 4.031355420019811,
         "best_runtime_safe_holdout_rmse_recovery_pct": 3.753504206299621,
+        "latest_full_window_attention_holdout_mae_recovery_pct": -0.029526052219816575,
+        "latest_full_window_attention_holdout_rmse_recovery_pct": -0.09789250498606653,
+        "latest_full_window_attention_train_seconds": 31155.659887040965,
         "promotion_threshold_pct": 15.0,
         "production_ready": 0
       }

@@ -497,8 +497,11 @@ pillar.
 
 | artifact | path | sha256 |
 |---|---|---|
-| Premium still-SR experiment scoreboard JSON | `artifacts/premium_still_sr_experiment_scoreboard_20260701/scoreboard.json` | `c4e5c8c3941b78d663993741b544b26c59770b32ddb0336c1c94e9ab07f45743` |
-| Premium still-SR experiment scoreboard dashboard | `artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html` | `318e239f130171009ee947e3228d4d2ed8768a9bce9ecc34d4dfa692e4c51996` |
+| Premium still-SR experiment scoreboard JSON | `artifacts/premium_still_sr_experiment_scoreboard_20260701/scoreboard.json` | `24388bc1b7b162535fb3e2010c0b1b05b189793cb314baf9e2ecd8a55a7ecac3` |
+| Premium still-SR experiment scoreboard dashboard | `artifacts/premium_still_sr_experiment_scoreboard_20260701/index.html` | `03118e71867c43efa7f84df9fd485f20df8fcd7789d73999027efd9abf762313` |
+| Premium still-SR full X2D window-attention receipt | `artifacts/premium_still_sr_window_attention_teacher_gate_20260701/x2d_scene_holdout_window_attention_teacher_cfa/train_receipt.json` | `cf22244dc3e9a2c97e62b735363b92347f4cc43985a476897bb8546c6c982d95` |
+| Premium still-SR full X2D window-attention dashboard | `artifacts/premium_still_sr_window_attention_teacher_gate_20260701/x2d_scene_holdout_window_attention_teacher_cfa/index.html` | `e9b8265055965091e71c0eaf4dda201091b019ed93c31342d3eb811667360961` |
+| Premium still-SR full X2D window-attention checkpoint | `artifacts/premium_still_sr_window_attention_teacher_gate_20260701/x2d_scene_holdout_window_attention_teacher_cfa/premium_still_sr_window_attention_x2d_holdout_cfa.pt` | `a853cf2daffeb29ddc0cc0b891f4c9f5926c7bad5b610b8b7628c960843f6a6b` |
 | Premium still-SR raw-CFA residual gap JSON | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/raw_cfa_residual_gap.json` | `3d95db1c9c468034e11ef255d3f3606fb5546e4a77b0d7eb49b8b82d11aaad13` |
 | Premium still-SR raw-CFA residual gap dashboard | `artifacts/premium_still_sr_raw_cfa_residual_gap_20260701/index.html` | `ba0ddcc00db1f9b22d2e3c138051cbd375a6a5c6b78f87f9ab623e7ade062968` |
 | Premium still-SR candidate-signal ridge audit JSON | `artifacts/premium_still_sr_candidate_signal_x2dholdout_20260630/candidate_signal_audit.json` | `0ff547e2b3eac9790ded2794f1ae2791438f1b6f309690c9f9c111d1b0d98967` |
