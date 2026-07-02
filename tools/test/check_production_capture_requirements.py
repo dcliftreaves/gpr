@@ -172,6 +172,8 @@ def validate() -> list[str]:
                 failures.append(f"{rid}: why_needed must describe current residual/local-CNN models as diagnostic")
             if "check_premium_still_sr_candidate_preflight.py" not in commands:
                 failures.append(f"{rid}: validation must include check_premium_still_sr_candidate_preflight.py")
+            if "build_premium_still_sr_candidate_preflight_template.py" not in commands:
+                failures.append(f"{rid}: validation must include build_premium_still_sr_candidate_preflight_template.py")
             if "--require-launchable" not in commands:
                 failures.append(f"{rid}: candidate preflight must require --require-launchable")
             if "train_premium_still_sr_raw_cfa_residual.py --help" in commands:

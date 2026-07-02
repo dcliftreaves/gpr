@@ -79,6 +79,7 @@ EXPECTED_PILLARS = {
                 "requires_mission1_camera_role": False,
                 "requires_new_samples": False,
                 "command_tokens": (
+                    "build_premium_still_sr_candidate_preflight_template.py",
                     "check_premium_still_sr_candidate_preflight.py",
                     "--require-launchable",
                     "build_premium_still_sr_gate_receipt.py",

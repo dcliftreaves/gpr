@@ -78,11 +78,17 @@ production-promoted.
    full-image or overlapped-tile validation.
 
    Before launching that run, write a small proposal manifest and run the
-   launch preflight:
+   launch preflight. The template builder emits the current recommended
+   clean-source restoration-teacher proposal shape:
+
+   ```sh
+   python3 tools/build_premium_still_sr_candidate_preflight_template.py \
+     --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json
+   ```
 
    ```sh
    python3 tools/check_premium_still_sr_candidate_preflight.py \
-     <candidate_preflight.json> \
+     /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json \
      --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/audit.json \
      --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/index.html \
      --require-launchable

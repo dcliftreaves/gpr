@@ -268,8 +268,13 @@ actual still/editor-latitude gate with no REF/source/JPEG runtime inputs.
 Any proposed long run should first pass the launch preflight:
 
 ```sh
+python3 tools/build_premium_still_sr_candidate_preflight_template.py \
+  --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json
+```
+
+```sh
 python3 tools/check_premium_still_sr_candidate_preflight.py \
-  <candidate_preflight.json> \
+  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/candidate_preflight.json \
   --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/audit.json \
   --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_preflight_<date>/index.html \
   --require-launchable
