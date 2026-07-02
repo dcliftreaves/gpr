@@ -351,6 +351,13 @@ A bounded NAF-like residual pixelshuffle plus gradient/detail-loss probe is
 also rejected on those routed clean-source pairs: the 500-step X2D holdout is
 about -0.35 percent median MAE and -0.36 percent RMSE versus interpolation,
 and the matched Z8 holdout regresses by about -10.09 percent median MAE.
+The premium still-SR noise-policy gate now lives at
+`/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_noise_policy_gate_20260702/index.html`.
+It confirms the clean-signal target has 117/117 calibrated noise sidecars and
+forbids source raw, REF/JPEG content, and exact source-noise addback at render
+time, but it keeps the current clean-signal U-Net, routed pixelshuffle, and
+routed NAF/detail model receipts blocked because none clear the 15 percent /
+15 percent holdout MAE/RMSE floors.
 The superseded transformer-teacher contract remains archived at
 `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_next_experiment_contract_transformer_teacher_20260701/index.html`.
 The trainer now has PSF/kernel-conditioned `_psf` feature modes that can consume

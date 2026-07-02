@@ -74,6 +74,7 @@
           "premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702",
           "premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702",
           "premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702",
+          "premium_still_sr_noise_policy_gate_20260702",
           "premium_still_sr_psf_metadata_gap_20260701",
           "premium_still_sr_psf_sidecar_contract_20260701",
           "cnn_product_scorecard_20260629"
@@ -2122,6 +2123,37 @@
         "holdout_median_rmse_gain_pct": -4.938226711293112,
         "baseline_beaten_on_holdout": 0,
         "coverage_sufficient_for_promotion": 0,
+        "production_ready": 0
+      }
+    },
+    {
+      "id": "premium_still_sr_noise_policy_gate_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Machine-checkable signal/noise policy gate for premium still-SR. It proves the clean-signal target has complete calibrated sidecar coverage and forbids source/REF/JPEG/exact-source-noise runtime use, while keeping the current model receipts blocked until a candidate clears the holdout floors.",
+      "dashboard": "artifacts/premium_still_sr_noise_policy_gate_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PREMIUM_STILL_SR.md",
+        "docs/PRODUCT_PILLAR_SCORECARD.md",
+        "docs/PRODUCTION_ARTIFACTS.md"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_noise_policy_gate_20260702/premium_still_sr_noise_policy_gate.json",
+        "artifacts/premium_still_sr_noise_policy_gate_20260702/index.html"
+      ],
+      "hashes": {
+        "gate_receipt_sha256": "63805263c173a37434fc8f79ef1abdf2e3c292d98a396766370790e038a64475",
+        "dashboard_sha256": "d90b74c5d864b13b51ea429955e1776be39cb040254e3ff71407449f62c5044d"
+      },
+      "metrics": {
+        "clean_target_rows": 117,
+        "rows_with_noise_sidecars": 117,
+        "clean_signal_policy_pass": 1,
+        "model_receipts_checked": 5,
+        "model_receipts_passing": 0,
+        "holdout_mae_gain_pct_min": 15.0,
+        "holdout_rmse_gain_pct_min": 15.0,
         "production_ready": 0
       }
     },

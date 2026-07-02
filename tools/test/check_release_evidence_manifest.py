@@ -149,6 +149,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702",
                 "premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702",
                 "premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702",
+                "premium_still_sr_noise_policy_gate_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },

@@ -264,6 +264,23 @@ median RMSE. The next productive pass should change the degradation policy
 and/or use a non-local/full-image teacher, rather than another local NAF/detail
 loss sweep on the same same-color box-degraded pairs.
 
+The current signal/noise policy is now machine-checked separately from model
+quality:
+
+```text
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_noise_policy_gate_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_noise_policy_gate_20260702/premium_still_sr_noise_policy_gate.json
+```
+
+That gate confirms the clean-signal target itself is usable as policy evidence:
+117/117 rows have calibrated noise sidecars, source raw is training-target only,
+REF/JPEG content is forbidden at render time, and exact source-noise addback is
+forbidden. It also keeps the current model state blocked: the clean-signal
+U-Net, routed residual-pixelshuffle teachers, and routed NAF/detail-loss
+teachers all fail the 15% / 15% holdout MAE/RMSE promotion floor. This is the
+guardrail that prevents a future still-SR receipt from claiming production
+quality merely because the noise policy is clean.
+
 ## Blocker Audit
 
 The blocker audit combines the experiment scoreboard, current readiness
