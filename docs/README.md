@@ -53,7 +53,7 @@ refreshed 2026-07-01.
 | 12MP Mission 1 native Bayer receipts | `VIDEO_STATUS.md`, `LABS_TARGET_BENCH.md` |
 | Mission 1 numbered-list readiness and closure blockers | `MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md`, `release_evidence_manifest.json` |
 | Real-sample and hardware receipt blockers | `PRODUCTION_CAPTURE_REQUIREMENTS.md`, `PRODUCTION_CAPTURE_REQUIREMENTS.json` |
-| 1x/2x CNN and SR status | `CNN_PRODUCT_SCORECARD_2026-06-29.md`, `VIDEO_STATUS.md`, `MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md` |
+| 1x/2x CNN and SR status | `PRODUCT_LOCK_LEDGER.md`, `PRODUCT_PILLAR_SCORECARD.md`, `CNN_PRODUCT_SCORECARD_2026-06-29.md`, `VIDEO_STATUS.md`. `MISSION1_SR_PRODUCTION_STATUS_2026-06-18.md` is historical iteration context only. |
 | Live/camera-back PREVIEW policy | `RAW_RESOLUTION_TARGETS_2026-06-14.md`, `../tools/live_preview_policy.py` |
 
 ## Current implementation notes

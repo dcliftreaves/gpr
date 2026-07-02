@@ -1,6 +1,16 @@
 # Mission 1 SR Production Status - 2026-06-18
 
-This note records the current 12MP-to-8K Bayer SR state for the production-readiness goal.
+Historical note. This file records the 2026-06-18 12MP-to-8K Bayer SR
+iteration state and is kept for traceability only.
+
+It is no longer the current shipping decision. The current release boundary is:
+Mission 1 4K cleanup and Mission 1 8K SR are approved offline/post product
+paths, while PSF/blur-conditioned replacements remain optional research. Use
+[`PRODUCT_LOCK_LEDGER.md`](PRODUCT_LOCK_LEDGER.md),
+[`PRODUCT_PILLAR_SCORECARD.md`](PRODUCT_PILLAR_SCORECARD.md), and
+[`CNN_PRODUCT_SCORECARD_2026-06-29.md`](CNN_PRODUCT_SCORECARD_2026-06-29.md)
+as the current source of truth. Do not read the rejected checkpoints below as a
+regression of the locked 4K/8K reconstruction path.
 
 ## Current Best Evidence
 
