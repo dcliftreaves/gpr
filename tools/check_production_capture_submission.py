@@ -376,6 +376,9 @@ def validate_darkframe_audit_coverage(
     audit_signatures = {audit_frame_signature(frame) for frame in ready_frames}
     if len(audit_signatures) < min_count:
         failures.append(f"source_provenance_audit file has {len(audit_signatures)} ready frame signature(s), need {min_count}")
+    for frame in ready_frames:
+        if frame.get("linear_raw") is not False:
+            failures.append("source_provenance_audit ready frames must record linear_raw=false")
     for row in submitted_rows:
         signature = submission_darkframe_signature(row)
         if signature not in audit_signatures:

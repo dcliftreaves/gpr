@@ -116,7 +116,8 @@ include that audit as
 `source_provenance_audit_path`, `source_provenance_audit_sha256`,
 `source_provenance_audit_schema=gpr.darkframe_source_provenance_audit.v1`,
 `source_provenance_audit_ready_frame_count>=4`, and
-`source_provenance_audit_production_ready=true`.
+`source_provenance_audit_production_ready=true`, with every ready audit frame
+recording `linear_raw=false`.
 The referenced `gpr.camera_noise_calibration.v1` sidecar must also mark
 `production_ready=true`, match the submitted stack camera/ISO/CFA/dimensions,
 cover every submitted extracted-Bayer hash in `source.frames`, and include

@@ -68,6 +68,7 @@ def write_darkframe_audits(submission: dict, bundle: Path) -> None:
                     "original_sha256": row["sha256"],
                     "extract_receipt_sha256": row["extract_receipt_sha256"],
                     "ready": True,
+                    "linear_raw": False,
                 }
             )
         audit = {
@@ -1183,6 +1184,19 @@ def main() -> int:
         proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
         assert proc.returncode == 1
         assert "not covered by source_provenance_audit" in proc.stdout
+        write_darkframe_audits(strict, bundle)
+
+        bad = json.loads(json.dumps(strict))
+        dark = bad["requirements"][0]
+        audit_path = bundle / dark["source_provenance_audit_path"]
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit["frames"][0]["linear_raw"] = True
+        audit_path.write_text(json.dumps(audit, indent=2) + "\n", encoding="utf-8")
+        dark["source_provenance_audit_sha256"] = hashlib.sha256(audit_path.read_bytes()).hexdigest()
+        manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
+        proc = run_tool(manifest, "--require-existing-files", "--path-root", str(bundle))
+        assert proc.returncode == 1
+        assert "source_provenance_audit ready frames must record linear_raw=false" in proc.stdout
         write_darkframe_audits(strict, bundle)
 
         bad = json.loads(json.dumps(strict))
