@@ -915,6 +915,10 @@ candidate-HF no-op or simple frame-context family.
 | Premium still-SR Gate 9 Z8 smoke receipt | `artifacts/premium_still_sr_gate9_smoke_20260702/z8_smoke/train_receipt.json` | `d533ca971d3c99201fa677947de0bf0b9ab1a79366d8a340a58fbd74a4d026ac` |
 | Premium still-SR Gate 9 smoke acceptance receipt | `artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/smoke_gate_acceptance.json` | `1189feafe319f801068b34899e29e169c3ff611df400bcce60df8e65ea6445b5` |
 | Premium still-SR Gate 9 smoke acceptance dashboard | `artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/index.html` | `525e24bd3279f99c43837a86bd94940df82a8c8c2f7f8247a4305596875e6551` |
+| Premium still-SR Gate 10 target/degradation decision receipt | `artifacts/premium_still_sr_gate10_target_degradation_decision_20260702/gate10_target_degradation_decision.json` | `5e3ce2cf5c9d5fae55fbb3a97e99238ab68d6e42d040457306be505368575941` |
+| Premium still-SR Gate 10 target/degradation decision dashboard | `artifacts/premium_still_sr_gate10_target_degradation_decision_20260702/index.html` | `fdc4237d79db4d430ebda4629555c96550f665b374a52c80ca5bff28666a5c3c` |
+| Premium still-SR degradation-source audit receipt | `artifacts/premium_still_sr_degradation_source_audit_20260702/degradation_source_audit.json` | `5c604bf1b3fad6193ef0c7b7adbd7e0b0979ef12bac034229dd2664f80a80034` |
+| Premium still-SR degradation-source audit dashboard | `artifacts/premium_still_sr_degradation_source_audit_20260702/index.html` | `10e4783f4bf51a88d4a430b854e435d25179ea41b34c5160aad6fe43dd50c98b` |
 
 ## Registry Review Artifacts
 

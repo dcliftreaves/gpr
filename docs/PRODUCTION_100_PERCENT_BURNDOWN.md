@@ -33,28 +33,27 @@ camera-role access. The latest Gate 5 branch is closed as a failed smoke:
 | target/degradation blocker receipt | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_target_degradation_evidence_20260702/target_degradation_evidence.json` | Current local blocker is now explicit and machine-readable: long-run allowed is `false`; X2D candidate-HF no-op median/worst recovery is `-0.006290143931539378%` / `-0.23156087540736878%`; Z8 is safe but zero-benefit at `0.0%` / `0.0%`; frame-context X2D is worse at `-0.01923371655785397%`. This rules out simple no-op threshold tuning, simple frame-context conditioning, and another generic raw-CFA residual long run. |
 | replacement target/source contract | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_replacement_target_source_contract_20260702/replacement_target_source_contract.json` | Ready for paired smoke preflight only. X2D has candidate-only source evidence at `4.821260781753699%` MAE / `11.520193787949786%` RMSE but a `3.4500243590744026x` holdout target-distribution mismatch; Z8 has only `0.649807764458084%` MAE source evidence despite `21.89973637064664%` RMSE recovery; calibrated target SNR is mixed signal/noise. The next candidate must use noise-aware or row-filtered residual targets, route-conditioned X2D sampling, changed Z8 degradation/source policy, candidate-only runtime inputs, and exact no-op behavior. |
 | replacement-contract route-conditioned/noise-aware smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate9_smoke_acceptance_20260702/smoke_gate_acceptance.json` | Blocked before long run. X2D median/worst raw MAE recovery is `-0.16833363636675505%` / `-6.051057523320477%`; Z8 median/worst raw MAE recovery is `-1.5863477181003771%` / `-55.716890568612115%`. This rules out the first replacement-contract U-Net route split with continuous SNR weighting and high-energy emphasis. |
+| Gate 10 target/degradation decision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate10_target_degradation_decision_20260702/gate10_target_degradation_decision.json` | Closed as `source_degradation_target_mismatch`. Gate 10 records X2D median/worst raw MAE recovery at `-0.16833363636675505%` / `-6.051057523320477%`, Z8 at `-1.5863477181003771%` / `-55.716890568612115%`, X2D target-distribution mismatch at `3.4500243590744026x`, and Z8 mostly noise-floor targets (`28/36`). It sets `paired_smoke_allowed=false` and allows only a degradation-source audit before the next candidate intake. |
+| Gate 11 degradation-source audit | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_degradation_source_audit_20260702/degradation_source_audit.json` | Closed as `degradation_source_policy_ready_for_gate11_preflight`. It selects `route_isolated_teacher_then_router`: X2D may train on `70` signal/mixed rows with stratified target sampling and no-op fallback; Z8 must default no-op for noise-floor rows and cannot train positive residuals without a new source-evidence receipt. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
-Build a replacement target/degradation source receipt or a materially different
-route-conditioning proof before launching another paired smoke. Do not rerun
-source-frequency targets, generic full-crop U-Net residual training,
-masked-detail thresholds, candidate-HF no-op threshold tuning, simple
-frame-context conditioning, the Gate 9 route-conditioned/noise-aware U-Net
-smoke, or the older clean-source residual families as production work. The next
-candidate must be one of:
+Build `premium_still_sr_gate11_candidate_intake_<date>` from the route-isolated
+teacher/router policy. Do not rerun source-frequency targets, generic full-crop
+U-Net residual training, masked-detail thresholds, candidate-HF no-op threshold
+tuning, simple frame-context conditioning, the Gate 9 route-conditioned/noise-
+aware U-Net smoke, or the older clean-source residual families as production
+work. The preflight must encode:
 
-1. a new target/degradation source receipt showing that the current raw-CFA
-   residual targets are mismatched to the candidate render path, with a
-   proposed replacement objective;
-2. a materially different route-conditioning candidate, not just frame-context
-   plus the existing no-op gate, that proves the `Z8Z_1353` and X2D parity
-   failures are not target/degradation mismatch before mixing routes;
-3. a teacher/objective that creates a positive no-REF signal on both X2D and
-   Z8 while preserving exact no-op behavior for low-error tiles.
+1. X2D training on signal/mixed rows only, with stratified target sampling and
+   exact no-op fallback;
+2. Z8 no-op for current noise-floor rows and no positive residual training
+   unless a new source-evidence receipt passes;
+3. candidate-only runtime inputs with no REF/source/JPEG image content.
 
-It must create a positive no-REF learning signal while preserving exact no-op
+Only after that Gate 11 preflight exists may paired X2D/Z8 smoke run. The smoke
+must create a positive no-REF learning signal while preserving exact no-op
 behavior for low-error tiles.
 
 The candidate may advance only if all of these are true:
@@ -71,32 +70,19 @@ The candidate may advance only if all of these are true:
 ## Commands That Move The Gate
 
 ```bash
-python3 tools/build_premium_still_sr_gate9_candidate_preflight.py \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/<candidate_intake> \
-  --smoke-output-root /Volumes/OWC_8TB/gpr_work/artifacts/<candidate_smoke> \
-  --candidate-id <new_candidate_id> \
-  --require-launchable
+python3 tools/build_premium_still_sr_gate10_target_degradation_decision.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate10_target_degradation_decision_<date>
 
-python3 tools/check_premium_still_sr_candidate_preflight.py \
-  /Volumes/OWC_8TB/gpr_work/artifacts/<candidate_intake>/candidate_preflight.json \
-  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/<candidate_intake>/preflight_audit.json \
-  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/<candidate_intake>/index.html \
-  --require-launchable
+python3 tools/build_premium_still_sr_degradation_source_audit.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_degradation_source_audit_<date>
 
-/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python tools/cnn/train_premium_still_sr_raw_cfa_residual.py \
-  <exact X2D smoke command from candidate_preflight.json>
-
-/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python tools/cnn/train_premium_still_sr_raw_cfa_residual.py \
-  <exact Z8 smoke command from candidate_preflight.json>
-
-python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \
-  /Volumes/OWC_8TB/gpr_work/artifacts/<candidate_intake>/candidate_preflight.json \
-  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/<candidate_smoke_gate>/smoke_gate_acceptance.json \
-  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/<candidate_smoke_gate>/index.html \
-  --require-pass
+# Next tool to build: tools/build_premium_still_sr_gate11_candidate_preflight.py
+# The preflight must emit:
+# /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate11_candidate_intake_<date>/candidate_preflight.json
 ```
 
-If this fails, the blocker receipt must classify the failure as one of:
-source/degradation mismatch, objective/gating failure, model capacity,
-camera-conditioning gap, timing/memory infeasibility, or noise-policy mismatch.
-Then start the next candidate from that classification, not from visual taste.
+Gate 11 paired smoke commands are intentionally absent until the candidate
+intake exists. If the preflight cannot encode the Gate 11 policy, it must
+classify the failure as source/degradation mismatch, objective/gating failure,
+model capacity, camera-conditioning gap, timing/memory infeasibility, or
+noise-policy mismatch.

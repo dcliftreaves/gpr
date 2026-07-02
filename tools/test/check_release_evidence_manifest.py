@@ -176,6 +176,8 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_route_readiness_20260702",
                 "premium_still_sr_route_readiness_with_rendered_20260702",
                 "premium_still_sr_editor_latitude_coverage_20260702",
+                "premium_still_sr_gate10_target_degradation_decision_20260702",
+                "premium_still_sr_degradation_source_audit_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
