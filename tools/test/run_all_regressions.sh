@@ -169,6 +169,7 @@ else
                 python3 tools/test/test_convert_darkframe_calibration_to_noise_sidecars.py && \
                 python3 tools/test/test_build_camera_noise_coverage_audit.py && \
                 python3 tools/test/test_build_raw_stills_noise_sidecar_readiness.py && \
+                python3 tools/test/test_check_raw_stills_noise_promotion_gate.py && \
                 python3 tools/test/test_build_darkframe_candidate_audit.py && \
                 python3 tools/test/test_build_darkframe_provenance_review_packet.py && \
                 python3 tools/test/test_build_bayer_phase_fixture_inventory.py && \

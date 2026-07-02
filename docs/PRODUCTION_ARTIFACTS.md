@@ -480,6 +480,8 @@ remain open.
 | Full-manifest Mission/iPhone darkframe dashboard | `artifacts/darkframe_candidate_audit_mission_iphone_fullmanifest_20260701/index.html` | `bae377aeef9fa8f48947cb54d087af975b309b7315797616376db0ac785002a1` |
 | Raw-stills noise sidecar readiness JSON | `artifacts/raw_stills_noise_sidecar_readiness_20260701/raw_stills_noise_sidecar_readiness.json` | `402980e03c440e89c7bc399808cd2bb87d72fdb175cf0bb71bffc76d2e4e7e92` |
 | Raw-stills noise sidecar readiness dashboard | `artifacts/raw_stills_noise_sidecar_readiness_20260701/index.html` | `bbea0d5409cb7074f8a3babd2a5fc82de0b7322057b726023fc214653290a03d` |
+| Raw-stills noise promotion gate JSON | `artifacts/raw_stills_noise_promotion_gate_20260702/raw_stills_noise_promotion_gate.json` | `442878809190061731cbb4d447b8c98e80a43de9fadcc5c460cf7e5d9975e822` |
+| Raw-stills noise promotion gate dashboard | `artifacts/raw_stills_noise_promotion_gate_20260702/index.html` | `a7c6b307878bc315f1069a7b82aca2aee445fd8e6e1dd8376ba90dbc00a2057f` |
 | Current stills fixture gap plan JSON | `artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/stills_fixture_gap_plan.json` | `ecd791fd1b2405d2acc5e15c466bd5b67a9b9d002659a383c53d36a2c793f53a` |
 | Current stills fixture gap plan dashboard | `artifacts/stills_fixture_gap_plan_noise_fullmanifest_20260701/index.html` | `01eceab64395920d6818dc9b524801d350bca2f5cd252e57f0deee9d2020bb7b` |
 | Current raw-stills capture request JSON | `artifacts/stills_capture_request_strict_provenance_20260701/stills_capture_request.json` | `a6dfad28cf05b771226614c4a6316fbec7bcfec7b91e6347c959db0decc762c2` |

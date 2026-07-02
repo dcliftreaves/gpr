@@ -24,7 +24,8 @@
           "stills_fixture_gap_plan_noise_fullmanifest_20260701",
           "stills_capture_request_strict_provenance_20260701",
           "camera_noise_runtime_policy_20260630",
-          "raw_stills_noise_sidecar_readiness_20260701"
+          "raw_stills_noise_sidecar_readiness_20260701",
+          "raw_stills_noise_promotion_gate_20260702"
         ]
       },
       "open_gate": "Mission 1/iPhone darkframe sidecars are still required before broad-camera nonzero noise-addback claims are complete; real RGGB/GBRG/GRBG/BGGR fixture coverage is closed for the stills path."
@@ -2550,6 +2551,34 @@
         "source_consistency_error_count": 0,
         "darkframe_like_count": 59,
         "production_stack_ready_group_count": 0
+      }
+    },
+    {
+      "id": "raw_stills_noise_promotion_gate_20260702",
+      "family": "noise_signal",
+      "status": "current",
+      "purpose": "Machine-checkable RAW-stills noise promotion guard. It keeps X2D/Z8 calibrated sidecar addback enabled while refusing Mission/iPhone nonzero noise addback claims until strict-provenance darkframe sidecars exist.",
+      "dashboard": "artifacts/raw_stills_noise_promotion_gate_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "receipts": [
+        "artifacts/raw_stills_noise_promotion_gate_20260702/raw_stills_noise_promotion_gate.json",
+        "artifacts/raw_stills_noise_promotion_gate_20260702/index.html"
+      ],
+      "hashes": {
+        "raw_stills_noise_promotion_gate_json_sha256": "442878809190061731cbb4d447b8c98e80a43de9fadcc5c460cf7e5d9975e822",
+        "dashboard_sha256": "a7c6b307878bc315f1069a7b82aca2aee445fd8e6e1dd8376ba90dbc00a2057f"
+      },
+      "metrics": {
+        "promotion_safe": 1,
+        "production_ready": 0,
+        "ready_camera_count": 2,
+        "blocked_camera_count": 2,
+        "mission_iphone_noise_addback_enabled": 0,
+        "source_consistency_ok": 1
       }
     },
     {
