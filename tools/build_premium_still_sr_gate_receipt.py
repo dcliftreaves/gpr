@@ -20,6 +20,19 @@ from typing import Any
 
 SCHEMA = "gpr.premium_still_sr_gate.v1"
 NORMAL_BAYER_PHASES = ("RGGB", "GBRG", "GRBG", "BGGR")
+FORBIDDEN_PRODUCTION_RUNTIME_INPUTS = {
+    "ref",
+    "reference",
+    "reference_image",
+    "source_raw",
+    "source_rgb",
+    "source_hf",
+    "jpeg",
+    "jpg",
+    "jpeg_target",
+    "jpg_target",
+    "gate_metrics",
+}
 
 
 def sha256_file(path: Path) -> str:
@@ -80,6 +93,10 @@ def hash_candidate(args: argparse.Namespace) -> str:
     return h.hexdigest()
 
 
+def runtime_input_key(value: str) -> str:
+    return value.strip().casefold().replace("-", "_")
+
+
 def production_validation_errors(args: argparse.Namespace) -> list[str]:
     errors: list[str] = []
     for label, path in (
@@ -107,7 +124,11 @@ def production_validation_errors(args: argparse.Namespace) -> list[str]:
     missing_runtime = sorted(required_runtime - runtime_inputs)
     if missing_runtime:
         errors.append("--runtime-input is missing required production input(s): " + ", ".join(missing_runtime))
-    forbidden_runtime = sorted({"ref", "reference", "source", "jpeg", "jpg", "gate_metrics"} & runtime_inputs)
+    forbidden_runtime = sorted(
+        item
+        for item in runtime_inputs
+        if runtime_input_key(item) in FORBIDDEN_PRODUCTION_RUNTIME_INPUTS
+    )
     if forbidden_runtime:
         errors.append("--runtime-input contains forbidden production input(s): " + ", ".join(forbidden_runtime))
     required_flags = (

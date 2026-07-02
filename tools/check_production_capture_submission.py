@@ -52,13 +52,18 @@ PREMIUM_REQUIRED_RUNTIME_INPUTS = {"candidate_raw", "camera_metadata"}
 PREMIUM_REQUIRED_SMOKE_HOLDOUTS = {"x2d", "z8"}
 PREMIUM_FORBIDDEN_RUNTIME_INPUTS = {
     "REF",
+    "ref",
     "reference",
     "reference_image",
     "source_raw",
     "source_rgb",
     "source_hf",
     "JPEG_target",
+    "jpeg",
+    "jpg",
     "jpeg_target",
+    "jpg_target",
+    "gate_metrics",
 }
 CONFIRMED_DARKFRAME_SOURCE_KINDS = {
     "confirmed_darkframes",
@@ -1108,6 +1113,15 @@ def numeric_value(value: Any) -> float | None:
         return None
 
 
+def runtime_input_key(value: str) -> str:
+    return value.strip().casefold().replace("-", "_")
+
+
+def forbidden_runtime_inputs(runtime_inputs: list[str]) -> list[str]:
+    forbidden_keys = {runtime_input_key(item) for item in PREMIUM_FORBIDDEN_RUNTIME_INPUTS}
+    return sorted(item for item in runtime_inputs if runtime_input_key(item) in forbidden_keys)
+
+
 def receipt_number(receipt: dict[str, Any], key: str) -> float | None:
     value = numeric_value(receipt.get(key))
     if value is not None:
@@ -1379,7 +1393,7 @@ def validate_premium_still_sr(
     else:
         runtime_set = set(runtime_inputs)
         missing_runtime = sorted(PREMIUM_REQUIRED_RUNTIME_INPUTS - runtime_set)
-        forbidden_runtime = sorted(PREMIUM_FORBIDDEN_RUNTIME_INPUTS & runtime_set)
+        forbidden_runtime = forbidden_runtime_inputs(runtime_inputs)
         if missing_runtime:
             failures.append(f"runtime_inputs missing required input(s): {', '.join(missing_runtime)}")
         if forbidden_runtime:

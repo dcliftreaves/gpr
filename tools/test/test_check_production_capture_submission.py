@@ -915,10 +915,14 @@ def main() -> int:
 
         bad = valid_submission()
         bad["requirements"][6]["runtime_inputs"].append("REF")
+        bad["requirements"][6]["runtime_inputs"].append("Source_Raw")
+        bad["requirements"][6]["runtime_inputs"].append("JPG-target")
         manifest.write_text(json.dumps(bad, indent=2) + "\n", encoding="utf-8")
         proc = run_tool(manifest)
         assert proc.returncode == 1
         assert "forbidden render-time input" in proc.stdout
+        assert "Source_Raw" in proc.stdout
+        assert "JPG-target" in proc.stdout
 
         bad = valid_submission()
         bad["requirements"][6]["median_mae_reduction_pct_100mp"] = 0.0
