@@ -467,15 +467,22 @@ def validate_camera_noise_sidecar(
     ok, failure = number_at_least(source, "frame_count", min_count)
     if not ok:
         failures.append(f"camera_noise_sidecar source.{failure}")
-    sidecar_raw_hashes = {
-        str(frame.get("raw_sha256") or "").lower()
+    sidecar_frames = [
+        frame
         for frame in as_list(source.get("frames"))
         if isinstance(frame, dict) and frame.get("source_provenance_ready") is True
-    }
-    submitted_raw_hashes = {str(row.get("extracted_bayer_sha256") or "").lower() for row in submitted_rows}
-    missing_hashes = sorted(submitted_raw_hashes - sidecar_raw_hashes)
-    if missing_hashes:
-        failures.append("camera_noise_sidecar source.frames must cover every submitted extracted Bayer hash")
+    ]
+    sidecar_by_raw_hash = {str(frame.get("raw_sha256") or "").lower(): frame for frame in sidecar_frames}
+    for row in submitted_rows:
+        raw_hash = str(row.get("extracted_bayer_sha256") or "").lower()
+        frame = sidecar_by_raw_hash.get(raw_hash)
+        if frame is None:
+            failures.append("camera_noise_sidecar source.frames must cover every submitted extracted Bayer hash")
+            continue
+        if str(frame.get("original_sha256") or "").lower() != str(row.get("sha256") or "").lower():
+            failures.append("camera_noise_sidecar source.frames original_sha256 must match submitted source hash")
+        if frame.get("no_scene_signal") is not True:
+            failures.append("camera_noise_sidecar source.frames must preserve no_scene_signal=true")
 
 
 def validate_darkframe_stack(

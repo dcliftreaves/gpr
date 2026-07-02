@@ -121,9 +121,10 @@ recording `linear_raw=false` and metadata matching the submitted
 camera/ISO/CFA/dimensions/bit-depth/black-level/white-level stack.
 The referenced `gpr.camera_noise_calibration.v1` sidecar must also mark
 `production_ready=true`, match the submitted stack camera/ISO/CFA/dimensions,
-cover every submitted extracted-Bayer hash in `source.frames`, and include
-per-plane `mean_black>=0`, `sigma_black>0`, and `noise_profile_offset>=0` for
-`r`, `g1`, `b`, and `g2`. A premium still-SR submission
+cover every submitted extracted-Bayer hash in `source.frames`, preserve each
+submitted original source hash and `no_scene_signal=true`, and include per-plane
+`mean_black>=0`, `sigma_black>0`, and `noise_profile_offset>=0` for `r`, `g1`,
+`b`, and `g2`. A premium still-SR submission
 must first build a candidate preflight scaffold, edit it with a non-placeholder
 `material_change_summary`, set `launchable_for_production_attempt=true` and
 `requires_material_edits_before_launch=false`, replace `smoke_gate_commands`
