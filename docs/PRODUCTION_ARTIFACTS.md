@@ -129,6 +129,22 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate16 full-promotion launch dashboard | `artifacts/premium_still_sr_gate16_promotion_launch_packet_20260702/index.html` | `4b3b6d0a5d143d7383f44b06e78aa1f7870be5384a41848b8c2a92fdf9d40dd4` |
 | Gate16 all-target-row audit receipt | `artifacts/premium_still_sr_gate16_target_row_audit_20260702/gate16_target_row_audit.json` | `8d840be3d091120e6c10af05eabe5fb7eb58a37bf8413c2ddf19cd2e57947f3e` |
 | Gate16 all-target-row audit dashboard | `artifacts/premium_still_sr_gate16_target_row_audit_20260702/index.html` | `05a9c19f319c9e1b3745e12515a10b1ff1dbcb843b8fb565731b1657b8bf3cd0` |
+| Gate17 balanced replacement target receipt | `artifacts/premium_still_sr_gate17_replacement_targets_20260702/gate17_replacement_targets.json` | `d95fd62f5eea650ff49346fe80b865f006db72a02b816734f6298d1721b63e77` |
+| Gate17 balanced replacement target dashboard | `artifacts/premium_still_sr_gate17_replacement_targets_20260702/index.html` | `c084b436303bef67a6ea6c3e87007ced331841a3822ff3fea4999381d765809a` |
+| Gate17 balanced replacement target preflight | `artifacts/premium_still_sr_gate17_replacement_targets_20260702/candidate_preflight.json` | `55a8b9a5344730bdda804e9c4d17da498b2aadb457c1b6a2fadecc66116e8b37` |
+| Gate17 balanced replacement target NPZ | `artifacts/premium_still_sr_gate17_replacement_targets_20260702/gate17_replacement_targets.npz` | `ede00ce9c8c5e52362b08c5f37a4ed7bb37894fae24fe9968ea4cf599924e11d` |
+| Gate17 rejected train receipt | `artifacts/premium_still_sr_gate17_balanced_smoke_train_20260702/train_receipt.json` | `08cfad61e3bbe17a00f0bebdb275dcc8247df22a6f7d98e3cdfb5a97fbd8cf4c` |
+| Gate17 rejected train dashboard | `artifacts/premium_still_sr_gate17_balanced_smoke_train_20260702/index.html` | `5a1524c8b0fc83e3a085ab2dbeeb9c5b4db56191de7ddc0be2459c4da1df1afa` |
+| Gate17 rejected checkpoint | `artifacts/premium_still_sr_gate17_balanced_smoke_train_20260702/premium_still_sr_raw_cfa_residual.pt` | `504de611b6a34d52393b6e95f25880c8cfc30cab77a00a20b8c85c5729bdba47` |
+| Gate17 broad target-row rejection audit | `artifacts/premium_still_sr_gate17_balanced_target_row_audit_20260702/gate16_target_row_audit.json` | `281297cf202a26fd5e4cde77d92c6470f4272d921c29b6c7c840482b78810116` |
+| Gate17 broad target-row rejection dashboard | `artifacts/premium_still_sr_gate17_balanced_target_row_audit_20260702/index.html` | `15a8127c7c6cdf7657099c09fd55f1c4ba675df38887dd732ecb359ef97d659e` |
+| Gate18 candidate/objective revision receipt | `artifacts/premium_still_sr_gate18_candidate_objective_revision_20260703/gate18_candidate_objective_revision.json` | `dd3e50d8c26743eb289f9cca28ec88560e080835e934c8455c297127f96f192d` |
+| Gate18 candidate/objective revision dashboard | `artifacts/premium_still_sr_gate18_candidate_objective_revision_20260703/index.html` | `c68d2f54c0582d2a2d76f1c05d5d5cb1237570722d9449bf94008d0b0a769391` |
+| Gate18 rejected train receipt | `artifacts/premium_still_sr_gate18_tail_safe_context_train_20260703/train_receipt.json` | `501de561c30b2204873de2cb0972f00b9e21271eb49d6cc670c0cf5e74d2478a` |
+| Gate18 rejected train dashboard | `artifacts/premium_still_sr_gate18_tail_safe_context_train_20260703/index.html` | `05ea32cc1055706114ab8cc091aceca0e98291bda5765c47612ab40d03ea5653` |
+| Gate18 rejected checkpoint | `artifacts/premium_still_sr_gate18_tail_safe_context_train_20260703/premium_still_sr_raw_cfa_residual.pt` | `29fda8df2ccbaeed35d35c5b868996c027b6756f6ddbc433aff77f87c5fa16d3` |
+| Gate18 broad target-row rejection audit | `artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/gate16_target_row_audit.json` | `75f6bb1e97cadbcf6d4baaa85db8af1ad52c86fb45e19ea03dd18f49c3b704df` |
+| Gate18 broad target-row rejection dashboard | `artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/index.html` | `c11403805a3f3b9862daec71595a5c4019e1e0b9042341ea0e7ee4e2e82fda57` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -137,9 +153,19 @@ feature recomputation, source/checkpoint hash checks, and first-match routing.
 The strict promotion receipt rollup records 5/9 done steps after the Gate16
 paired-smoke pass. The later Gate16 all-target-row audit supersedes the
 full-promotion launch packet and rejects Gate16 as the production candidate.
-The current blockers are replacement target/model construction, broad 50 MP /
-100 MP target-row pass, full-frame gate rows, timing/memory, exact noise-policy
-wiring, and production submission.
+Gate17 closes the replacement target-construction step with `1152` balanced
+target rows: `576` 50 MP and `576` 100 MP. The first Gate17 model train and
+broad target-row audit reject the unmodified raw-CFA residual candidate:
+overall median MAE recovery is `-0.23468499188533842%`, overall median RMSE
+recovery is `0.34200684333480724%`, 100 MP worst MAE is
+`-35.30304893327897%`, and 50 MP worst MAE is `-2.259351982942634%`. The
+current blockers are Gate18 training, broad 50 MP / 100 MP target-row pass,
+full-frame gate rows, timing/memory, exact noise-policy wiring, and production
+submission. Gate18 revision closed candidate/objective selection and its
+train/audit ran. The result is safer but still rejected: overall median
+MAE/RMSE recovery is `0.0%` / `0.0%`, 100 MP worst MAE is
+`-0.0912221669777865%`, and 50 MP worst MAE is `-0.0068758277986793615%`.
+The next evidence must be Gate19 positive-signal/source revision.
 The older model-floor gap receipt quantified the previous blocker: best
 runtime-safe MAE/RMSE were `4.031355420019811%` / `3.753504206299621%`, leaving
 `10.96864457998019` / `11.24649579370038` percentage points to the floor. The
@@ -180,8 +206,11 @@ all-target-row audit rejects that candidate for production promotion:
 `target_row_count=463`, `row_scope=target_row_tile`, only `100mp` rows,
 median MAE/RMSE recovery of `-0.12226915231999792%` /
 `-0.1296250122706981%`, worst MAE recovery of `-9.625700832601128%`, and no
-full-frame 50 MP / 100 MP evidence. The next Premium still-SR evidence must be
-a replacement target/model package that passes broad target-row coverage before
+full-frame 50 MP / 100 MP evidence. Gate17 now supplies the replacement target
+package with both classes, and the first Gate17 checkpoint is rejected by its
+broad target-row audit. Gate18 revision, training, and audit now show that a
+tail-safe/context objective collapses toward no-op. The next Premium still-SR
+evidence must recover positive signal without reopening tail regression before
 full promotion.
 
 Release mode verifies every checkpoint and registered training-pair field

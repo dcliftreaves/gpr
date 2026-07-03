@@ -48,13 +48,22 @@ promotion validation:
 | Gate 14 selector smoke | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_selector_smoke_20260702/selector_smoke.json` | Passed as runtime selector smoke. It reloads the persisted sidecar, recomputes candidate-only runtime features, validates source/checkpoint hashes, executes first-match routing, and matches the intake replay. X2D median/worst MAE is `0.329828330762138%` / `0.0%` and `0.02786331921791634%` / `0.0%`; assigned rows `88`, exact-noop fallback rows `40`, source model failures `0`, and `promotion_gate_allowed=true`. |
 | Premium still-SR promotion receipts rollup | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_20260702/premium_still_sr_promotion_receipts.json` | Open as strict 4/8 production rollup. Done steps are Gate 14 selector smoke, route coverage, editor/openability, and clean-signal noise policy. The first open step is `model_promotion_floor`; blockers are `model_promotion_floor_not_met`, `full_50mp_100mp_gate_missing`, `timing_memory_missing`, `noise_policy_not_wired`, and `production_submission_missing_or_failed`. |
 | Premium still-SR model-floor gap | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json` | Open as first-blocker receipt. Best runtime-safe MAE/RMSE are `4.031355420019811%` / `3.753504206299621%`, leaving `10.96864457998019` / `11.24649579370038` points to the `15% / 15%` promotion floor. Gate 14 selector is tail-safe but only `0.2506229397841941%` median MAE. The next candidate contract is `premium_still_sr_gate14_floor_student_v1`. |
+| Gate16 broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate16_target_row_audit_20260702/gate16_target_row_audit.json` | Closed as rejection evidence. Gate16 has 463 X2D/100 MP target-tile rows, no 50 MP rows, no full-frame scope, `-0.12226915231999792%` median MAE recovery, `-0.1296250122706981%` median RMSE recovery, and `-9.625700832601128%` worst-row MAE. |
+| Gate17 balanced target package | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_replacement_targets_20260702/gate17_replacement_targets.json` | Closed as target-construction evidence. It provides 1152 balanced target rows, 576 50 MP and 576 100 MP, with candidate-only runtime policy and no production claim. |
+| Gate17 broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_balanced_target_row_audit_20260702/gate16_target_row_audit.json` | Closed as model rejection evidence. Overall median MAE/RMSE recovery is `-0.23468499188533842%` / `0.34200684333480724%`; 100 MP median MAE/RMSE is `-0.20590927436038237%` / `-0.20105907022904856%`; 50 MP median MAE/RMSE is `-0.23798252847127244%` / `0.8416423186511623%`; 100 MP/50 MP worst MAE is `-35.30304893327897%` / `-2.259351982942634%`. |
+| Gate18 candidate/objective revision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate18_candidate_objective_revision_20260703/gate18_candidate_objective_revision.json` | Closed as next-candidate planning evidence. It names `premium_still_sr_gate18_tail_safe_context_objective_v1`, rejects unchanged Gate17 reruns, and emits exact training plus broad target-row audit commands. |
+| Gate18 broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/gate16_target_row_audit.json` | Closed as safety/no-op rejection evidence. Overall median MAE/RMSE is `0.0%` / `0.0%`, 100 MP worst MAE is `-0.0912221669777865%`, and 50 MP worst MAE is `-0.0068758277986793615%`. Tail safety improved, but positive signal was not recovered. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
 Continue `premium_still_sr_promotion_receipts` from the first open step
-`model_promotion_floor`, using the `premium_still_sr_model_floor_gap_20260702`
-receipt and the `premium_still_sr_gate14_floor_student_v1` candidate contract.
+`model_promotion_floor`, using the Gate17 target package and Gate17 rejection
+audit. Gate18 candidate/objective revision and train/audit are closed as a
+safety/no-op rejection. The next local receipt is
+`premium_still_sr_gate19_positive_signal_source_revision_<date>/gate19_positive_signal_source_revision.json`.
+It must recover positive signal without an unchanged Gate17 rerun or another
+safety-only Gate18 no-op.
 Do not rerun
 source-frequency targets, generic full-crop U-Net residual training, masked-
 detail thresholds, candidate-HF no-op threshold tuning, simple frame-context
@@ -62,8 +71,9 @@ conditioning, the Gate 9 route-conditioned/noise-aware U-Net smoke, the Gate 11
 route-isolated residual smoke, the Gate 12 synthetic teacher smoke, the older
 clean-source residual families, the ungated Gate 13 positive-median source, the
 simple Gate 13 tile-stat gate, the Gate 13 feature-rich safe-feature OR gate,
-another Gate 13 source/objective upper-bound pass, Gate 14 intake, or Gate 14
-selector smoke as production work.
+another Gate 13 source/objective upper-bound pass, Gate 14 intake, Gate 14
+selector smoke, Gate16 target-row audit, or unchanged Gate17 training as
+production work.
 
 The Gate 13 audit found enough X2D median signal to continue, but single-source
 tail-safe gating failed per scene. Gate 14 intake persisted an executable

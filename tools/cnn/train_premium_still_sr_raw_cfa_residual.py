@@ -1432,11 +1432,19 @@ class RawCfaResidualGlobalContextUNet(nn.Module):
         nn.init.zeros_(self.tail.weight)
         nn.init.zeros_(self.tail.bias)
 
+    @staticmethod
+    def _context_dim(dim: int) -> int:
+        target = min(24, int(dim))
+        for value in range(target, 0, -1):
+            if dim % value == 0:
+                return value
+        return 1
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         e0 = self.enc0(x)
         e1 = self.enc1(e0)
         e2 = self.enc2(e1)
-        context_size = (min(24, x.shape[-2]), min(24, x.shape[-1]))
+        context_size = (self._context_dim(x.shape[-2]), self._context_dim(x.shape[-1]))
         g = self.context(F.adaptive_avg_pool2d(x, context_size))
         g = F.interpolate(g, size=e2.shape[-2:], mode="bilinear", align_corners=False)
         b = self.bottleneck(e2 + g)

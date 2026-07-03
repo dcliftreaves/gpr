@@ -1,6 +1,6 @@
 {
   "schema": "gpr_release_evidence_manifest.v1",
-  "updated": "2026-07-02",
+  "updated": "2026-07-03",
   "external_root": "/Volumes/OWC_8TB/gpr_work",
   "purpose": "Compact source-of-truth index for production and explicitly experimental GPR output paths. Heavy dashboards, videos, checkpoints, and rendered media remain outside the repo.",
   "product_pillars": [
@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate16 paired smoke passed, but the all-target-row audit rejected that checkpoint for promotion: 463 X2D/100 MP tile rows, no 50 MP rows, no full-frame scope, -0.12% median MAE recovery, -0.13% median RMSE recovery, and -9.63% worst-row MAE.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate16 paired smoke passed, but the all-target-row audit rejected that checkpoint for promotion: 463 X2D/100 MP tile rows, no 50 MP rows, no full-frame scope, -0.12% median MAE recovery, -0.13% median RMSE recovery, and -9.63% worst-row MAE. Gate17 provides a balanced replacement target package with 576 50 MP rows and 576 100 MP rows, but the first Gate17 checkpoint is rejected by the broad audit: -0.23% median MAE, 0.34% median RMSE, -35.30% worst 100 MP MAE, and -2.26% worst 50 MP MAE. Gate18 is safer but rejected as effectively no-op: 0.00% median MAE/RMSE, -0.09% worst 100 MP MAE, and -0.0069% worst 50 MP MAE.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -131,10 +131,14 @@
           "premium_still_sr_gate14_selector_smoke_20260702",
           "premium_still_sr_promotion_receipts_20260702",
           "premium_still_sr_model_floor_gap_20260702",
-          "premium_still_sr_gate16_target_row_audit_20260702"
+          "premium_still_sr_gate16_target_row_audit_20260702",
+          "premium_still_sr_gate17_replacement_targets_20260702",
+          "premium_still_sr_gate17_balanced_target_row_audit_20260702",
+          "premium_still_sr_gate18_candidate_objective_revision_20260703",
+          "premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703"
         ]
       },
-      "open_gate": "Premium still-SR promotion is the first open local gate: build a replacement target/model package after the Gate16 all-target-row rejection, require broad 50 MP and 100 MP target-row pass, then run the full 50 MP / 100 MP promotion validation."
+      "open_gate": "Premium still-SR promotion is the first open local gate: Gate19 must recover positive signal without reopening tail regression, then require broad 50 MP and 100 MP target-row pass before full promotion validation."
     },
     {
       "id": "raw_video_reconstruction",
@@ -5077,6 +5081,211 @@
         "full_50mp_100mp_gate_missing",
         "model_promotion_floor_not_met"
       ]
+    },
+    {
+      "id": "premium_still_sr_gate17_replacement_targets_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gate17 balanced Premium still-SR replacement target package. It closes replacement target construction after the Gate16 rejection by selecting equal 50 MP and 100 MP target-row coverage from the Gate14 clean-source target surface, while preserving candidate-only runtime policy and making no production claim.",
+      "dashboard": "artifacts/premium_still_sr_gate17_replacement_targets_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate17_replacement_targets.py",
+        "tools/test/test_build_premium_still_sr_gate17_replacement_targets.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate17_replacement_targets_20260702/gate17_replacement_targets.json",
+        "artifacts/premium_still_sr_gate17_replacement_targets_20260702/candidate_preflight.json",
+        "artifacts/premium_still_sr_gate17_replacement_targets_20260702/index.html"
+      ],
+      "hashes": {
+        "gate17_replacement_targets_json_sha256": "d95fd62f5eea650ff49346fe80b865f006db72a02b816734f6298d1721b63e77",
+        "candidate_preflight_sha256": "55a8b9a5344730bdda804e9c4d17da498b2aadb457c1b6a2fadecc66116e8b37",
+        "dashboard_sha256": "c084b436303bef67a6ea6c3e87007ced331841a3822ff3fea4999381d765809a",
+        "target_npz_sha256": "ede00ce9c8c5e52362b08c5f37a4ed7bb37894fae24fe9968ea4cf599924e11d"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "paired_smoke_ready": 1,
+        "source_row_count": 2112,
+        "selected_row_count": 1152,
+        "row_count_50mp": 576,
+        "row_count_100mp": 576,
+        "rows_per_class": 576,
+        "row_scope_target_row_tile": 1,
+        "target_npz_size_gb": 1.0
+      },
+      "blocker_classifications": [
+        "model_promotion_floor_not_met",
+        "full_50mp_100mp_gate_missing"
+      ]
+    },
+    {
+      "id": "premium_still_sr_gate17_balanced_target_row_audit_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gate17 broad target-row rejection audit. It evaluates the first balanced Gate17 checkpoint on all 1152 target rows and proves the unmodified raw-CFA residual candidate cannot move to full 50 MP / 100 MP promotion.",
+      "dashboard": "artifacts/premium_still_sr_gate17_balanced_target_row_audit_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate16_target_row_audit.py",
+        "tools/build_premium_still_sr_gate17_replacement_targets.py",
+        "tools/cnn/train_premium_still_sr_raw_cfa_residual.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate17_balanced_smoke_train_20260702/train_receipt.json",
+        "artifacts/premium_still_sr_gate17_balanced_smoke_train_20260702/index.html",
+        "artifacts/premium_still_sr_gate17_balanced_smoke_train_20260702/premium_still_sr_raw_cfa_residual.pt",
+        "artifacts/premium_still_sr_gate17_balanced_target_row_audit_20260702/gate16_target_row_audit.json",
+        "artifacts/premium_still_sr_gate17_balanced_target_row_audit_20260702/index.html"
+      ],
+      "hashes": {
+        "train_receipt_sha256": "08cfad61e3bbe17a00f0bebdb275dcc8247df22a6f7d98e3cdfb5a97fbd8cf4c",
+        "train_dashboard_sha256": "5a1524c8b0fc83e3a085ab2dbeeb9c5b4db56191de7ddc0be2459c4da1df1afa",
+        "checkpoint_sha256": "504de611b6a34d52393b6e95f25880c8cfc30cab77a00a20b8c85c5729bdba47",
+        "target_row_audit_sha256": "281297cf202a26fd5e4cde77d92c6470f4272d921c29b6c7c840482b78810116",
+        "target_row_audit_dashboard_sha256": "15a8127c7c6cdf7657099c09fd55f1c4ba675df38887dd732ecb359ef97d659e"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "production_promotable_from_this_audit": 0,
+        "target_row_count": 1152,
+        "row_scope_target_row_tile": 1,
+        "full_frame_evidence": 0,
+        "row_count_50mp": 576,
+        "row_count_100mp": 576,
+        "overall_median_mae_reduction_pct": -0.23468499188533842,
+        "overall_median_rmse_reduction_pct": 0.34200684333480724,
+        "median_mae_reduction_pct_100mp": -0.20590927436038237,
+        "median_rmse_reduction_pct_100mp": -0.20105907022904856,
+        "worst_mae_reduction_pct_100mp": -35.30304893327897,
+        "median_mae_reduction_pct_50mp": -0.23798252847127244,
+        "median_rmse_reduction_pct_50mp": 0.8416423186511623,
+        "worst_mae_reduction_pct_50mp": -2.259351982942634,
+        "eval_seconds": 45.65526591707021,
+        "target_rows_per_second": 25.23257672165424,
+        "peak_rss_gb": 3.56121826171875,
+        "train_seconds": 71.66210791701451
+      },
+      "blocker_classifications": [
+        "model_promotion_floor_not_met",
+        "worst_row_tail_regression",
+        "full_frame_50mp_100mp_gate_missing"
+      ]
+    },
+    {
+      "id": "premium_still_sr_gate18_candidate_objective_revision_20260703",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gate18 Premium still-SR candidate/objective revision receipt. It converts the Gate17 broad-audit rejection into an exact next candidate, training command, audit command, no-REF runtime policy, and pass thresholds.",
+      "dashboard": "artifacts/premium_still_sr_gate18_candidate_objective_revision_20260703/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate18_candidate_objective_revision.py",
+        "tools/test/test_build_premium_still_sr_gate18_candidate_objective_revision.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate18_candidate_objective_revision_20260703/gate18_candidate_objective_revision.json",
+        "artifacts/premium_still_sr_gate18_candidate_objective_revision_20260703/index.html"
+      ],
+      "hashes": {
+        "gate18_candidate_objective_revision_sha256": "dd3e50d8c26743eb289f9cca28ec88560e080835e934c8455c297127f96f192d",
+        "dashboard_sha256": "c68d2f54c0582d2a2d76f1c05d5d5cb1237570722d9449bf94008d0b0a769391"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "gate17_target_row_count": 1152,
+        "gate17_row_count_50mp": 576,
+        "gate17_row_count_100mp": 576,
+        "gate17_overall_median_mae_recovery_pct": -0.23468499188533842,
+        "gate17_overall_median_rmse_recovery_pct": 0.34200684333480724,
+        "gate18_revision_ready": 1,
+        "candidate_only_runtime": 1,
+        "promotion_floor_pct": 15.0,
+        "worst_row_floor_pct": 0.0
+      },
+      "blocker_classifications": [
+        "gate18_training_not_run",
+        "gate18_target_row_audit_missing",
+        "full_frame_50mp_100mp_gate_missing"
+      ]
+    },
+    {
+      "id": "premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gate18 Premium still-SR train/audit rejection. It validates that the tail-safe context objective is much safer than Gate17 but collapses toward no-op and still cannot move to full 50 MP / 100 MP promotion.",
+      "dashboard": "artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/cnn/train_premium_still_sr_raw_cfa_residual.py",
+        "tools/build_premium_still_sr_gate16_target_row_audit.py",
+        "tools/build_premium_still_sr_gate18_candidate_objective_revision.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate18_tail_safe_context_train_20260703/train_receipt.json",
+        "artifacts/premium_still_sr_gate18_tail_safe_context_train_20260703/index.html",
+        "artifacts/premium_still_sr_gate18_tail_safe_context_train_20260703/premium_still_sr_raw_cfa_residual.pt",
+        "artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/gate16_target_row_audit.json",
+        "artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/index.html"
+      ],
+      "hashes": {
+        "train_receipt_sha256": "501de561c30b2204873de2cb0972f00b9e21271eb49d6cc670c0cf5e74d2478a",
+        "train_dashboard_sha256": "05ea32cc1055706114ab8cc091aceca0e98291bda5765c47612ab40d03ea5653",
+        "checkpoint_sha256": "29fda8df2ccbaeed35d35c5b868996c027b6756f6ddbc433aff77f87c5fa16d3",
+        "target_row_audit_sha256": "75f6bb1e97cadbcf6d4baaa85db8af1ad52c86fb45e19ea03dd18f49c3b704df",
+        "target_row_audit_dashboard_sha256": "c11403805a3f3b9862daec71595a5c4019e1e0b9042341ea0e7ee4e2e82fda57"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "production_promotable_from_this_audit": 0,
+        "target_row_count": 1152,
+        "row_scope_target_row_tile": 1,
+        "full_frame_evidence": 0,
+        "row_count_50mp": 576,
+        "row_count_100mp": 576,
+        "overall_median_mae_reduction_pct": 0.0,
+        "overall_median_rmse_reduction_pct": 0.0,
+        "median_mae_reduction_pct_100mp": 0.0003333080800917615,
+        "median_rmse_reduction_pct_100mp": 0.0,
+        "worst_mae_reduction_pct_100mp": -0.0912221669777865,
+        "median_mae_reduction_pct_50mp": 0.0,
+        "median_rmse_reduction_pct_50mp": 0.0,
+        "worst_mae_reduction_pct_50mp": -0.0068758277986793615,
+        "eval_seconds": 38.910676915664226,
+        "target_rows_per_second": 29.60626982914915,
+        "peak_rss_gb": 3.5772247314453125,
+        "train_checkpoint_sha_recorded": 1
+      },
+      "blocker_classifications": [
+        "positive_signal_not_recovered",
+        "model_promotion_floor_not_met",
+        "full_frame_50mp_100mp_gate_missing"
+      ]
     }
   ],
   "release_checks": [
@@ -5087,6 +5296,8 @@
     "python3 tools/test/test_check_readme_media.py",
     "python3 tools/test/check_release_evidence_manifest.py",
     "python3 tools/test/test_build_premium_still_sr_gate16_target_row_audit.py",
+    "python3 tools/test/test_build_premium_still_sr_gate17_replacement_targets.py",
+    "python3 tools/test/test_build_premium_still_sr_gate18_candidate_objective_revision.py",
     "python3 tools/test/check_labs_readiness.py",
     "python3 tools/test/test_mission1_numbered_list_readiness.py",
     "python3 tools/test/test_mission1_numbered_list_closure_plan.py",

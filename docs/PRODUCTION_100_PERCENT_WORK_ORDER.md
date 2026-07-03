@@ -31,55 +31,34 @@ Continue from the first open local row. Stop only when one of these is true:
 
 The first open local row is **Premium still/SR promotion**.
 
-The next exact receipt is:
+The first open sub-receipt is Gate18 candidate/objective revision. Gate17 target
+construction is useful and closed; the first Gate17 trained checkpoint is
+rejected by the broad audit and must not be rerun unchanged as the production
+path.
+
+Current closed/rejected evidence:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_20260702/premium_still_sr_promotion_receipts.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_replacement_targets_20260702/gate17_replacement_targets.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_balanced_smoke_train_20260702/train_receipt.json
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_balanced_target_row_audit_20260702/gate16_target_row_audit.json
 ```
 
-The first open sub-receipt is:
+Gate17 audit summary:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_model_floor_gap_20260702/model_floor_gap.json
+target rows: 1152 total, 576 50 MP, 576 100 MP
+overall median MAE / RMSE recovery: -0.23468499188533842% / 0.34200684333480724%
+100 MP median MAE / RMSE recovery: -0.20590927436038237% / -0.20105907022904856%
+50 MP median MAE / RMSE recovery: -0.23798252847127244% / 0.8416423186511623%
+100 MP / 50 MP worst MAE recovery: -35.30304893327897% / -2.259351982942634%
+verdict: rejected before full-frame promotion
 ```
 
-It defines the next candidate contract as
-`premium_still_sr_gate14_floor_student_v1`: distill or replace the Gate 14
-routed selector/source evidence with a true candidate-only student or measured
-high/low raw source evidence before any long run.
-
-The candidate preflight and launch packet now exist:
-
-```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702/launch_packet.json
-```
-
-They pass the preflight checker as launchable intake artifacts only. They do
-not claim production readiness.
-
-The target-builder now exists and passes:
-
-```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json
-```
-
-It built `2112` X2D/Z8 target rows from the Gate14 clean-source pair surface
-with candidate-only runtime inputs. The paired smoke gates have also run and
-are now the first blocker:
-
-```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_x2d_smoke_20260702/train_receipt.json
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_z8_smoke_20260702/train_receipt.json
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json
-```
-
-The smoke acceptance verdict is `blocked_before_long_run`. X2D holdout median
-MAE recovery is `0.0%` with worst-row `-0.0009948811042696764%`; Z8 holdout
-median is `0.0%` with worst-row `0.0%`. No-op-off ablations also failed to
-clear the floor: X2D median `-0.0008484692747994224%`, Z8 median
-`0.00019770163681548142%`.
+Gate18 candidate/objective revision and train/audit are now built from this
+failure. Gate18 is safer than Gate17, but it collapses toward no-op and remains
+far below the 15% / 15% promotion floor. The first open local row is now Gate19:
+recover positive signal while preserving the Gate18 tail safety.
 
 ## 100 Percent Ladder
 
@@ -88,14 +67,16 @@ looks better.
 
 | order | row | receipt | pass condition |
 |---:|---|---|---|
-| 1 | Gate14 floor-student preflight | `premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json` | `launchable_preflight_passed`, candidate id `premium_still_sr_gate14_floor_student_v1`, no REF/source/JPEG render-time inputs, X2D+Z8 smokes required, median MAE recovery floor `1.0%`, worst-row floor `0.0%`. |
-| 2 | Gate14 floor-student target builder | `premium_still_sr_gate14_floor_student_targets_20260702/gate14_floor_student_targets.json` plus `gate14_floor_student_targets.npz` | Passed: `2112` X2D/Z8 candidate-only student rows were built from the Gate14 clean-source pair surface. |
-| 3 | Paired smoke gates | `premium_still_sr_gate14_floor_student_x2d_smoke_20260702/train_receipt.json` and `premium_still_sr_gate14_floor_student_z8_smoke_20260702/train_receipt.json` | Failed current floor: X2D median `0.0%`, worst `-0.0009948811042696764%`; Z8 median `0.0%`, worst `0.0%`. |
-| 4 | Smoke acceptance | `premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json` | Current verdict `blocked_before_long_run`; next action is a target/objective revision, not a long run or selector replay. |
-| 5 | Full promotion gate | `premium_still_sr_promotion_gate_<date>/promotion_gate.json` | 50 MP and 100 MP full-frame rows clear `15% / 15%` median MAE/RMSE recovery, nonnegative worst rows, editor/openability, exact-sidecar-only noise policy, and no REF/source/JPEG render-time inputs. |
-| 6 | Timing and memory | timing/memory receipt referenced by the promotion gate | Actual render path reports seconds per 50 MP frame, seconds per 100 MP frame, and peak RSS. |
-| 7 | Production submission | production capture/submission receipt | Checkpoint hash, sidecar/training config, dashboard, promotion gate, timing/memory, editable DNG/GPR, and noise-policy evidence all validate. |
-| 8 | CI and docs | latest pushed `master` GitHub Actions run | CI passes after docs/manifests/artifact hashes are updated; sensitive-content and artifact-hygiene guards pass locally. |
+| 1 | Gate17 target construction | `premium_still_sr_gate17_replacement_targets_20260702/gate17_replacement_targets.json` plus NPZ | Closed: 1152 balanced rows, 576 50 MP and 576 100 MP, candidate-only runtime policy, no REF/source/JPEG. |
+| 2 | Gate17 baseline train/audit | `premium_still_sr_gate17_balanced_target_row_audit_20260702/gate16_target_row_audit.json` | Closed/rejected: broad target-row audit ran and records negative median MAE plus negative worst rows. |
+| 3 | Gate18 candidate/objective revision | `premium_still_sr_gate18_candidate_objective_revision_20260703/gate18_candidate_objective_revision.json` | Closed: names `premium_still_sr_gate18_tail_safe_context_objective_v1`, rejects unchanged Gate17 reruns, includes exact training/audit commands, and keeps no-REF candidate-only runtime inputs. |
+| 4 | Gate18 broad target-row audit | `premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/gate16_target_row_audit.json` | Closed/rejected: broad 50 MP / 100 MP coverage, safer worst rows, but no positive median recovery. |
+| 5 | Gate19 positive-signal/source revision | `premium_still_sr_gate19_positive_signal_source_revision_<date>/gate19_positive_signal_source_revision.json` | Names how positive signal is recovered without REF/source/JPEG runtime content and without reopening Gate17 tail failures. |
+| 6 | Gate19 broad target-row audit | `premium_still_sr_gate19_target_row_audit_<date>/gate16_target_row_audit.json` | 50 MP and 100 MP target rows clear `15% / 15%` median MAE/RMSE recovery and nonnegative worst-row MAE. |
+| 7 | Full promotion gate | `premium_still_sr_promotion_gate_<date>/promotion_gate.json` | 50 MP and 100 MP full-frame rows clear the same floors, editor/openability, exact-sidecar-only noise policy, and no REF/source/JPEG render-time inputs. |
+| 8 | Timing and memory | timing/memory receipt referenced by the promotion gate | Actual render path reports seconds per 50 MP frame, seconds per 100 MP frame, and peak RSS. |
+| 9 | Production submission | production capture/submission receipt | Checkpoint hash, sidecar/training config, dashboard, promotion gate, timing/memory, editable DNG/GPR, and noise-policy evidence all validate. |
+| 10 | CI and docs | latest pushed `master` GitHub Actions run | CI passes after docs/manifests/artifact hashes are updated; sensitive-content and artifact-hygiene guards pass locally. |
 
 That receipt may say production is still blocked, but it must classify the
 blocker. Acceptable blocker classes are:
@@ -113,36 +94,24 @@ blocker. Acceptable blocker classes are:
 ## Commands For The Current Row
 
 ```bash
-python3 tools/build_premium_still_sr_promotion_receipts.py \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_promotion_receipts_20260702
+env TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp \
+  /Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/build_premium_still_sr_gate17_replacement_targets.py \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_replacement_targets_20260702
 
-python3 tools/build_premium_still_sr_model_floor_gap.py \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_model_floor_gap_20260702
+env TMPDIR=/Volumes/OWC_8TB/gpr_work/tmp \
+  /Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
+  tools/build_premium_still_sr_gate16_target_row_audit.py \
+  --candidate-id premium_still_sr_gate17_balanced_50mp_100mp_v1 \
+  --train-receipt /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_balanced_smoke_train_20260702/train_receipt.json \
+  --targets /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_replacement_targets_20260702/gate17_replacement_targets.npz \
+  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_balanced_target_row_audit_20260702
 
-python3 tools/build_premium_still_sr_candidate_preflight_template.py \
-  --template gate14_floor_student \
-  --output /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json
-
-python3 tools/check_premium_still_sr_candidate_preflight.py \
-  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json \
-  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/preflight_audit.json \
-  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/index.html \
-  --require-launchable
-
-python3 tools/build_premium_still_sr_launch_packet.py \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_launch_packet_20260702 \
-  --manifest /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json \
-  --require-launchable
-
-/Volumes/OWC_8TB/gpr_work/venvs/gpr_ml/bin/python \
-  tools/build_premium_still_sr_gate14_floor_student_targets.py \
-  --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_targets_20260702 \
-  --domains x2d,z8
-
-python3 tools/check_premium_still_sr_smoke_gate_acceptance.py \
-  /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_preflight_20260702/candidate_preflight.json \
-  --json-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/smoke_gate_acceptance.json \
-  --html-out /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate14_floor_student_smoke_gate_acceptance_20260702/index.html
+# Next local production work:
+# 1. Build Gate19 positive-signal/source revision from:
+#    /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/gate16_target_row_audit.json
+# 2. Train only the command named by that Gate19 revision receipt.
+# 3. Run the broad 50 MP / 100 MP target-row audit before any full promotion gate.
 
 python3 tools/test/check_production_capture_requirements.py
 python3 tools/test/check_release_evidence_manifest.py
