@@ -57,14 +57,23 @@ item is `closed` or `blocked_external`.
    worst rows but collapses toward no-op: overall median MAE/RMSE `0.0%` /
    `0.0%`, 100 MP worst MAE `-0.0912221669777865%`, and 50 MP worst MAE
    `-0.0068758277986793615%`.
-11. Build Gate19 to recover positive signal without reopening tail regression,
-   then run broad target-row audit before any full 50 MP / 100 MP promotion
-   receipt: 15% / 15% held-out MAE/RMSE, nonnegative worst row,
-   editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only
-   noise policy, and production submission validation.
-12. Close raw-stills noise by proving Mission 1 and iPhone true-dark provenance,
+11. Gate19 positive-signal/source revision is closed as a rejected branch. The
+   source-HF objective missed broad target-row quality with overall median
+   MAE/RMSE `-14.17838003215098%` / `-13.181758464778333%`, 100 MP median
+   MAE `-13.116189248074146%`, 50 MP median MAE
+   `-15.64244661023621%`, and severe negative tails.
+12. Gate17 scalar-direction calibration is closed as a rejection. Its best
+   scalar is `0.025`, with only `0.017883242885033075%` overall median MAE
+   recovery and a negative worst row, so scalar tuning cannot close the model
+   floor.
+13. Build Gate20 to recover positive signal with a changed
+   supervision/objective, then run broad target-row audit before any full 50 MP
+   / 100 MP promotion receipt: 15% / 15% held-out MAE/RMSE, nonnegative worst
+   row, editor/openability, timing/memory, checkpoint hashes,
+   exact-sidecar-only noise policy, and production submission validation.
+14. Close raw-stills noise by proving Mission 1 and iPhone true-dark provenance,
    then building strict camera-noise sidecars.
-13. Close GoPro raw-video MVP only with a real Mission 1 camera-role run:
+15. Close GoPro raw-video MVP only with a real Mission 1 camera-role run:
    sensor/DMA or camera ring-buffer source, SD writer, rear display, valid
    `.gvid`, zero drops, memory, 120+ sustained frames, 4096 x 3072 encode,
    1024 x 768 preview, and the accepted 20+ fps floor.
@@ -74,11 +83,11 @@ item is `closed` or `blocked_external`.
 | 1 | CI and repo hygiene | Latest `master` commit has passing GitHub Actions, sensitive-content guard, artifact-hygiene guard, release-manifest guard, README guards, and clean diff checks. | Protect on every push. |
 | 2 | Best RAW stills | 50 MP and 100 MP still tiers remain green, normal RGGB/GBRG/GRBG/BGGR Bayer support remains green, and Mission 1 plus iPhone camera-noise sidecars validate from strict true-dark provenance. | Capture/prove Mission 1 and iPhone true darkframes, then build strict sidecars. |
 | 3 | GoPro RAW video MVP | Real Mission 1 camera-role source/storage/display receipts prove 4096 x 3072 Bayer `.gvid` encode, 1024 x 768 preview decode, valid container, zero drops, memory, and 120+ sustained frames at the accepted 20+ fps floor. | Hand GoPro/Mission 1 firmware owners the camera-role runbook; local Pi stand-ins cannot close this gate. |
-| 4 | Premium still/SR | A no-REF 50 MP / 100 MP premium still candidate passes the full promotion gate: 15% / 15% held-out MAE/RMSE floor, nonnegative worst row, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. | Build Gate19 from the Gate18 no-op rejection, then require broad 50 MP / 100 MP target-row pass before full promotion. |
+| 4 | Premium still/SR | A no-REF 50 MP / 100 MP premium still candidate passes the full promotion gate: 15% / 15% held-out MAE/RMSE floor, nonnegative worst row, editor/openability, timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and production submission validation. | Build Gate20 from the Gate19 and scalar-calibration rejections, then require broad 50 MP / 100 MP target-row pass before full promotion. |
 | 5 | RAW video reconstruction | Approved 4K cleanup and 8K SR release receipts stay locked and green; replacement research ships only if it beats the locked artifact surface. | Protect only. PSF/blur is optional research, not a release blocker. |
 
-The local priority order is fixed: **CI first, Gate19 Premium still/SR
-positive-signal/source revision second, Mission/iPhone darkframe provenance
+The local priority order is fixed: **CI first, Gate20 Premium still/SR
+supervision/objective revision second, Mission/iPhone darkframe provenance
 third, GoPro camera-role handoff fourth, locked raw-video reconstruction
 protection fifth.**
 
@@ -93,22 +102,25 @@ protection fifth.**
 | 7 | Premium still/SR Gate17 training/audit | closed/rejected | Protect `premium_still_sr_gate17_balanced_smoke_train_20260702` and `premium_still_sr_gate17_balanced_target_row_audit_20260702` as rejection evidence. Do not rerun the same training command as the production path. | Audit records 1,152 balanced rows, target-row/tile scope, `production_ready=false`, median MAE/RMSE below floor, and negative worst rows on both classes. |
 | 8 | Premium still/SR Gate18 candidate/objective revision | closed/local | Protect `premium_still_sr_gate18_candidate_objective_revision_20260703`: it names the changed objective and exact next commands. | `gate18_candidate_objective_revision.json` records no-REF candidate-only runtime policy, Gate17 rejection metrics, and `premium_still_sr_gate18_tail_safe_context_objective_v1`. |
 | 9 | Premium still/SR Gate18 training/audit | closed/rejected | Protect `premium_still_sr_gate18_tail_safe_context_train_20260703` and `premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703` as rejection evidence. | Audit records broad 50 MP / 100 MP coverage, improved tail safety, `production_ready=false`, and no positive median recovery. |
-| 10 | Premium still/SR Gate19 positive-signal/source revision | open/local | Build a new candidate/source receipt that explains how positive signal will recover without reintroducing Gate17 tail failures. | Gate19 revision names exact train/audit commands and preserves no-REF candidate-only runtime inputs. |
-| 11 | RAW stills noise sidecars | open/sample | Capture or prove Mission 1 and iPhone true darkframes with strict no-scene-signal provenance. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate, then camera-noise calibration sidecars pass `--require-source-provenance`. |
-| 12 | Mission 1 raw-video MVP | blocked_external | GoPro/Mission 1 firmware owner runs the camera-role validation on real sensor/DMA or camera ring-buffer source, SD writer, and rear display. | Real camera-role receipts show valid `.gvid`, zero drops, 120+ sustained frames, memory, 4096 x 3072 source encode, 1024 x 768 preview, and 20+ fps floor. |
+| 10 | Premium still/SR Gate19 positive-signal/source revision | closed/rejected | Protect `premium_still_sr_gate19_source_hf_positive_signal_train_20260703` and its broad audit as rejection evidence. | Audit records broad 50 MP / 100 MP coverage, `production_ready=false`, negative median MAE/RMSE, and severe negative tails. |
+| 11 | Premium still/SR direction calibration | closed/rejected | Protect `premium_still_sr_gate17_direction_calibration_audit_20260703` as evidence that scalar tuning does not close the model floor. | Best scalar is `0.025`, with `0.017883242885033075%` median MAE recovery and a negative worst row. |
+| 12 | Premium still/SR Gate20 supervision/objective revision | open/local | Build a new candidate receipt that changes supervision/objective rather than scaling Gate17 or repeating source-HF direct prediction. | Gate20 revision names exact train/audit commands, preserves no-REF candidate-only runtime inputs, and states why Gate17/Gate18/Gate19 are not being rerun. |
+| 13 | RAW stills noise sidecars | open/sample | Capture or prove Mission 1 and iPhone true darkframes with strict no-scene-signal provenance. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate, then camera-noise calibration sidecars pass `--require-source-provenance`. |
+| 14 | Mission 1 raw-video MVP | blocked_external | GoPro/Mission 1 firmware owner runs the camera-role validation on real sensor/DMA or camera ring-buffer source, SD writer, and rear display. | Real camera-role receipts show valid `.gvid`, zero drops, 120+ sustained frames, memory, 4096 x 3072 source encode, 1024 x 768 preview, and 20+ fps floor. |
 
 ## Current Local Result
 
 The current local state is Gate16 paired-smoke pass, Gate16 all-target-row
 rejection, Gate17 balanced target-package construction, Gate17 training/audit
-rejection, Gate18 candidate/objective revision, and Gate18 training/audit
-rejection. Do not spend
+rejection, Gate18 candidate/objective revision, Gate18 training/audit
+rejection, Gate19 source-HF rejection, and Gate17 scalar-calibration rejection.
+Do not spend
 another day on ambiguous "improve CNN" work; burn down these rows in order:
 
-1. Build a Gate19 positive-signal/source revision whose runtime inputs remain
+1. Build a Gate20 supervision/objective revision whose runtime inputs remain
    candidate-only: `candidate_raw` plus camera metadata/sidecars, with no
    REF/source/JPEG render-time content.
-2. Run Gate19 train and `tools/build_premium_still_sr_gate16_target_row_audit.py`
+2. Run Gate20 train and `tools/build_premium_still_sr_gate16_target_row_audit.py`
    or its
    successor on the replacement. It must record both `50mp` and `100mp`
    row counts, median MAE/RMSE recovery `>= 15.0`, and worst-row MAE recovery
@@ -178,4 +190,7 @@ full promotion attempt. Gate17 is now the replacement target package and a
 rejected baseline model. Gate18 revision/training/audit now shows that
 tail-safe context training collapses toward no-op. The next run must build
 Gate19, recover positive 50 MP / 100 MP target-row signal, and preserve the
-tail safety before full-frame inference and timing.
+tail safety before full-frame inference and timing. Gate19 source-HF training
+and Gate17 scalar calibration now prove the next attempt must change
+supervision/objective rather than use direct source-HF prediction or scalar
+output tuning.

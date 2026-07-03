@@ -47,7 +47,7 @@ when it visibly improves the result.**
 |---|---:|---|---|
 | **Best RAW stills** | **92%** | 50 MP tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100 MP roundtrip; 12/14/16-bit support; real RGGB/GBRG/GRBG/BGGR coverage; X2D/Z8 noise sidecars. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
 | **GoPro RAW video MVP** | **80%** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor, and the same stream previews full-frame at 1024 x 768 above **20 fps**. | Real Mission 1 sensor/DMA or camera-ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, 120+ sustained frames, and timing receipts from the camera role. |
-| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, model-promotion tooling, the **124-receipt experiment scoreboard**, X2D/Z8 source-evidence audits, route-specialist readiness audit, exact-sidecar-only noise policy, 4/4 editor/latitude coverage, Gate16 rejection audit, Gate17 balanced **576 50 MP + 576 100 MP** target package, Gate17 broad audit rejection, Gate18 revision receipt, and Gate18 broad audit rejection now exist. | Gate19 must restore positive signal without reopening tail regression, then pass broad 50 MP / 100 MP target-row audit before any full promotion receipt: 15% / 15% held-out MAE/RMSE, nonnegative worst rows, timing, memory, editor/openability, checkpoint hashes, exact-sidecar-only noise policy, and production submission checks. |
+| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, model-promotion tooling, the **124-receipt experiment scoreboard**, X2D/Z8 source-evidence audits, route-specialist readiness audit, exact-sidecar-only noise policy, 4/4 editor/latitude coverage, Gate16 rejection audit, Gate17 balanced **576 50 MP + 576 100 MP** target package, Gate18 revision receipt, Gate17/Gate18/Gate19 broad audit rejections, and Gate17 scalar-direction calibration rejection now exist. | Gate20 must change supervision/objective, not scale old checkpoints: pass broad 50 MP / 100 MP target-row audit before any full promotion receipt: 15% / 15% held-out MAE/RMSE, nonnegative worst rows, timing, memory, editor/openability, checkpoint hashes, exact-sidecar-only noise policy, and production submission checks. |
 | **RAW video reconstruction improvement** | **100%** | Approved offline/post 4K cleanup and 8K SR emit `.gvid`, editable raw, standalone no-CNN/CNN ProRes review movies, objective review, and manual signoff receipts. | No release blocker. PSF/blur modeling is parked as optional replacement research. |
 
 The denominator is the shippable production suite: **1. Best RAW stills**, **2. GoPro RAW video MVP**, **3. Premium still/SR**, and **4. Raw video reconstruction improvement**. PSF-aware video/SR remains optional research for a future replacement, not a blocker for the approved current release path.
@@ -68,7 +68,7 @@ release evidence map.
 
 1. Keep CI green on latest `master`, including sensitive-content,
    artifact-hygiene, release-manifest, README, and product-goal guards.
-2. Build Gate19 from the Gate18 rejection: same **balanced 576-row-per-class target package**, but a stronger positive-signal target/source strategy. It
+2. Build Gate20 from the Gate19 rejection: same **balanced 576-row-per-class target package**, but a stronger supervision/objective strategy. It
    must keep candidate-only runtime inputs with `candidate_raw`, no REF/source/JPEG
    render-time content, 15% / 15% MAE/RMSE floor on both 50 MP and 100 MP rows,
    nonnegative worst rows, seconds/frame, peak RSS, exact-sidecar-only noise
@@ -140,10 +140,16 @@ Gate17 now provides that package: **1,152** balanced target rows, split into
 is rejected by the broad audit: **1,152** rows, **-0.23%** median MAE recovery,
 **0.34%** median RMSE recovery, **-35.30%** worst 100 MP MAE, and **-2.26%**
 worst 50 MP MAE. Gate18 candidate/objective revision and audit now exist.
+Gate18 candidate/objective revision and Gate18 revision receipt are closed.
 Gate18 is much safer but effectively no-op: **0.00%** overall median MAE/RMSE,
-**-0.09%** worst 100 MP MAE, and **-0.0069%** worst 50 MP MAE. The next step is
-Gate19 positive-signal/source revision, not another target-construction pass,
-the same Gate17 training run, or another safety-only no-op gate.
+**-0.09%** worst 100 MP MAE, and **-0.0069%** worst 50 MP MAE. The
+Gate19 positive-signal/source revision is also rejected: the source-HF objective
+records **-14.18%** overall median MAE, **-13.18%** median RMSE, and very bad
+tails. Gate17 scalar-direction calibration is rejected too; the best scalar is
+only **0.025**, with **0.018%** median MAE recovery and a negative worst row.
+The next step is Gate20 supervision/objective revision, not another
+target-construction pass, the same Gate17 training run, scalar tuning, or
+another safety-only no-op gate.
 The detailed failed-branch history, including
 frequency-pyramid, gated no-op residual, masked-detail/no-op, direct-clean 2x,
 source-HF/stored-HF, and Gate16 receipts, lives in
@@ -183,7 +189,7 @@ and receipts stay on the 8TB artifact root.
 | **Camera-back preview** | The same 4K `.gvid` decodes to full-frame 1024 x 768 RGB above **20 fps** on the Pi 5 stand-in. | Mission 1 rear-display/UI handoff remains unproven. |
 | **Offline reconstruction** | Approved 4K cleanup and candidate-aware 8K SR emit editable `.gvid` plus ProRes review media. | PSF-conditioned replacements are research until they beat the locked baseline. |
 | **Review/export scopes** | MOV / ProRes review outputs, PREVIEW offline/review, and PREVIEW live/camera-back are each tracked separately. | PREVIEW offline/review is not a live/camera-back preview path, and ProRes is not the primary raw deliverable. |
-| **Premium still/SR** | 124 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, Gate16 rejection audit, Gate17 balanced 50 MP / 100 MP target package, Gate17 broad audit rejection, Gate18 revision and broad audit rejection, strict 5/9 promotion-receipts rollup, route-specialist readiness evidence, 4/4 non-oracle editor/latitude coverage, and exact-sidecar clean-target policy exist. | Gate19 must recover positive signal and pass broad target-row audit before the full promotion receipt with timing/memory, editor/openability, exact-sidecar-only noise policy, and production submission validation. |
+| **Premium still/SR** | 124 runtime-safe experiment receipts, raw-CFA targets, routed specialists, promotion tooling, X2D/Z8 source-evidence audits, Gate16 rejection audit, Gate17 balanced 50 MP / 100 MP target package, Gate17/Gate18/Gate19 broad audit rejections, Gate17 scalar-direction calibration rejection, strict 5/9 promotion-receipts rollup, route-specialist readiness evidence, 4/4 non-oracle editor/latitude coverage, and exact-sidecar clean-target policy exist. | Gate20 must recover positive signal and pass broad target-row audit before the full promotion receipt with timing/memory, editor/openability, exact-sidecar-only noise policy, and production submission validation. |
 
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
 

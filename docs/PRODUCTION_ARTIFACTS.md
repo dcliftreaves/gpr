@@ -145,6 +145,15 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate18 rejected checkpoint | `artifacts/premium_still_sr_gate18_tail_safe_context_train_20260703/premium_still_sr_raw_cfa_residual.pt` | `29fda8df2ccbaeed35d35c5b868996c027b6756f6ddbc433aff77f87c5fa16d3` |
 | Gate18 broad target-row rejection audit | `artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/gate16_target_row_audit.json` | `75f6bb1e97cadbcf6d4baaa85db8af1ad52c86fb45e19ea03dd18f49c3b704df` |
 | Gate18 broad target-row rejection dashboard | `artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/index.html` | `c11403805a3f3b9862daec71595a5c4019e1e0b9042341ea0e7ee4e2e82fda57` |
+| Gate19 positive-signal/source revision receipt | `artifacts/premium_still_sr_gate19_positive_signal_source_revision_20260703/gate19_positive_signal_source_revision.json` | `19b2f0c3d58969f2947fd9f504461e92fff57b573fef0bb327c4f3368e47bc1a` |
+| Gate19 positive-signal/source revision dashboard | `artifacts/premium_still_sr_gate19_positive_signal_source_revision_20260703/index.html` | `bd169d6bf66d2189c5f6c87c5f4f65f363d797fdabd40961d516a36bab8d31d0` |
+| Gate19 rejected train receipt | `artifacts/premium_still_sr_gate19_source_hf_positive_signal_train_20260703/train_receipt.json` | `4e43400990e7cc33f9a0b01f7ac2d3571d182a2303a3f39e9bd22d33426aa52e` |
+| Gate19 rejected train dashboard | `artifacts/premium_still_sr_gate19_source_hf_positive_signal_train_20260703/index.html` | `f796f96805ed0db748308b5a9e3e7e4def0309831e2c19fd6437349d1a2afb65` |
+| Gate19 rejected checkpoint | `artifacts/premium_still_sr_gate19_source_hf_positive_signal_train_20260703/premium_still_sr_raw_cfa_residual.pt` | `fa90f7cd502801ec4beb53a1a4134d7568e0d6927fd4694a55f39524a0f2a88e` |
+| Gate19 broad target-row rejection audit | `artifacts/premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703/gate16_target_row_audit.json` | `cd4769df49cd7a1d1ab79b4f78b40fda3a6c278a41b827fde2787a70bae6e7f2` |
+| Gate19 broad target-row rejection dashboard | `artifacts/premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703/index.html` | `939a0c328d3075eceac65651dd8cc294162015544b93705d2832f36263fdb481` |
+| Gate17 direction calibration audit | `artifacts/premium_still_sr_gate17_direction_calibration_audit_20260703/direction_calibration_audit.json` | `2dbdef4ffea970e7ebb97e0e8d89b70cd8289ccef9268848261f280af5ab6a62` |
+| Gate17 direction calibration dashboard | `artifacts/premium_still_sr_gate17_direction_calibration_audit_20260703/index.html` | `b012f941b09844e503d38d3b758be1eebad8bd784685142aab415bd5df0b0897` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -159,13 +168,16 @@ broad target-row audit reject the unmodified raw-CFA residual candidate:
 overall median MAE recovery is `-0.23468499188533842%`, overall median RMSE
 recovery is `0.34200684333480724%`, 100 MP worst MAE is
 `-35.30304893327897%`, and 50 MP worst MAE is `-2.259351982942634%`. The
-current blockers are Gate18 training, broad 50 MP / 100 MP target-row pass,
-full-frame gate rows, timing/memory, exact noise-policy wiring, and production
-submission. Gate18 revision closed candidate/objective selection and its
-train/audit ran. The result is safer but still rejected: overall median
-MAE/RMSE recovery is `0.0%` / `0.0%`, 100 MP worst MAE is
+current blockers are Gate20 supervision/objective revision, broad 50 MP / 100
+MP target-row pass, full-frame gate rows, timing/memory, exact noise-policy
+wiring, and production submission. Gate18 revision closed candidate/objective
+selection and its train/audit ran. The result is safer but still rejected:
+overall median MAE/RMSE recovery is `0.0%` / `0.0%`, 100 MP worst MAE is
 `-0.0912221669777865%`, and 50 MP worst MAE is `-0.0068758277986793615%`.
-The next evidence must be Gate19 positive-signal/source revision.
+Gate19 source-HF direct prediction is also rejected with `-14.17838003215098%`
+overall median MAE recovery, and Gate17 scalar calibration proves scalar output
+tuning cannot close the floor. The next evidence must be Gate20
+supervision/objective revision.
 The older model-floor gap receipt quantified the previous blocker: best
 runtime-safe MAE/RMSE were `4.031355420019811%` / `3.753504206299621%`, leaving
 `10.96864457998019` / `11.24649579370038` percentage points to the floor. The

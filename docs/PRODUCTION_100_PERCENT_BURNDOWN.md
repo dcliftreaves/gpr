@@ -53,17 +53,18 @@ promotion validation:
 | Gate17 broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_balanced_target_row_audit_20260702/gate16_target_row_audit.json` | Closed as model rejection evidence. Overall median MAE/RMSE recovery is `-0.23468499188533842%` / `0.34200684333480724%`; 100 MP median MAE/RMSE is `-0.20590927436038237%` / `-0.20105907022904856%`; 50 MP median MAE/RMSE is `-0.23798252847127244%` / `0.8416423186511623%`; 100 MP/50 MP worst MAE is `-35.30304893327897%` / `-2.259351982942634%`. |
 | Gate18 candidate/objective revision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate18_candidate_objective_revision_20260703/gate18_candidate_objective_revision.json` | Closed as next-candidate planning evidence. It names `premium_still_sr_gate18_tail_safe_context_objective_v1`, rejects unchanged Gate17 reruns, and emits exact training plus broad target-row audit commands. |
 | Gate18 broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/gate16_target_row_audit.json` | Closed as safety/no-op rejection evidence. Overall median MAE/RMSE is `0.0%` / `0.0%`, 100 MP worst MAE is `-0.0912221669777865%`, and 50 MP worst MAE is `-0.0068758277986793615%`. Tail safety improved, but positive signal was not recovered. |
+| Gate19 source-HF broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703/gate16_target_row_audit.json` | Closed as source-objective rejection evidence. Overall median MAE/RMSE is `-14.17838003215098%` / `-13.181758464778333%`, 100 MP median MAE is `-13.116189248074146%`, 50 MP median MAE is `-15.64244661023621%`, and tails are severe. |
+| Gate17 scalar-direction calibration rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_direction_calibration_audit_20260703/direction_calibration_audit.json` | Closed as calibration rejection evidence. The best scalar is `0.025`, with only `0.017883242885033075%` overall median MAE recovery and a negative worst row, so output scaling cannot close the 15% floor. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
 Continue `premium_still_sr_promotion_receipts` from the first open step
-`model_promotion_floor`, using the Gate17 target package and Gate17 rejection
-audit. Gate18 candidate/objective revision and train/audit are closed as a
-safety/no-op rejection. The next local receipt is
-`premium_still_sr_gate19_positive_signal_source_revision_<date>/gate19_positive_signal_source_revision.json`.
-It must recover positive signal without an unchanged Gate17 rerun or another
-safety-only Gate18 no-op.
+`model_promotion_floor`, using the Gate17 target package plus the Gate17,
+Gate18, Gate19, and scalar-calibration rejection receipts. The next local
+receipt is `premium_still_sr_gate20_supervision_objective_revision_<date>/...`.
+It must recover positive signal without an unchanged Gate17 rerun, source-HF
+direct prediction, scalar-output tuning, or another safety-only Gate18 no-op.
 Do not rerun
 source-frequency targets, generic full-crop U-Net residual training, masked-
 detail thresholds, candidate-HF no-op threshold tuning, simple frame-context

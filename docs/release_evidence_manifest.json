@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate16 paired smoke passed, but the all-target-row audit rejected that checkpoint for promotion: 463 X2D/100 MP tile rows, no 50 MP rows, no full-frame scope, -0.12% median MAE recovery, -0.13% median RMSE recovery, and -9.63% worst-row MAE. Gate17 provides a balanced replacement target package with 576 50 MP rows and 576 100 MP rows, but the first Gate17 checkpoint is rejected by the broad audit: -0.23% median MAE, 0.34% median RMSE, -35.30% worst 100 MP MAE, and -2.26% worst 50 MP MAE. Gate18 is safer but rejected as effectively no-op: 0.00% median MAE/RMSE, -0.09% worst 100 MP MAE, and -0.0069% worst 50 MP MAE.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate16 paired smoke passed, but the all-target-row audit rejected that checkpoint for promotion: 463 X2D/100 MP tile rows, no 50 MP rows, no full-frame scope, -0.12% median MAE recovery, -0.13% median RMSE recovery, and -9.63% worst-row MAE. Gate17 provides a balanced replacement target package with 576 50 MP rows and 576 100 MP rows, but the first Gate17 checkpoint is rejected by the broad audit: -0.23% median MAE, 0.34% median RMSE, -35.30% worst 100 MP MAE, and -2.26% worst 50 MP MAE. Gate18 is safer but rejected as effectively no-op: 0.00% median MAE/RMSE, -0.09% worst 100 MP MAE, and -0.0069% worst 50 MP MAE. Gate19 source-HF direct prediction is rejected: -14.18% median MAE, -13.18% median RMSE, and severe tails. Gate17 scalar calibration is rejected: best scalar 0.025, 0.018% median MAE, and a negative worst row.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -135,10 +135,12 @@
           "premium_still_sr_gate17_replacement_targets_20260702",
           "premium_still_sr_gate17_balanced_target_row_audit_20260702",
           "premium_still_sr_gate18_candidate_objective_revision_20260703",
-          "premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703"
+          "premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703",
+          "premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703",
+          "premium_still_sr_gate17_direction_calibration_audit_20260703"
         ]
       },
-      "open_gate": "Premium still-SR promotion is the first open local gate: Gate19 must recover positive signal without reopening tail regression, then require broad 50 MP and 100 MP target-row pass before full promotion validation."
+      "open_gate": "Premium still-SR promotion is the first open local gate: Gate20 must recover positive signal with a changed supervision/objective, then require broad 50 MP and 100 MP target-row pass before full promotion validation."
     },
     {
       "id": "raw_video_reconstruction",
@@ -5286,6 +5288,112 @@
         "model_promotion_floor_not_met",
         "full_frame_50mp_100mp_gate_missing"
       ]
+    },
+    {
+      "id": "premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gate19 Premium still-SR source-HF train/audit rejection. It validates that direct source-HF prediction with candidate stored-HF runtime inputs is not a promotable positive-signal path.",
+      "dashboard": "artifacts/premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate19_positive_signal_source_revision.py",
+        "tools/test/test_build_premium_still_sr_gate19_positive_signal_source_revision.py",
+        "tools/cnn/train_premium_still_sr_raw_cfa_residual.py",
+        "tools/build_premium_still_sr_gate16_target_row_audit.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate19_positive_signal_source_revision_20260703/gate19_positive_signal_source_revision.json",
+        "artifacts/premium_still_sr_gate19_source_hf_positive_signal_train_20260703/train_receipt.json",
+        "artifacts/premium_still_sr_gate19_source_hf_positive_signal_train_20260703/index.html",
+        "artifacts/premium_still_sr_gate19_source_hf_positive_signal_train_20260703/premium_still_sr_raw_cfa_residual.pt",
+        "artifacts/premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703/gate16_target_row_audit.json",
+        "artifacts/premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703/index.html"
+      ],
+      "hashes": {
+        "gate19_positive_signal_source_revision_sha256": "19b2f0c3d58969f2947fd9f504461e92fff57b573fef0bb327c4f3368e47bc1a",
+        "train_receipt_sha256": "4e43400990e7cc33f9a0b01f7ac2d3571d182a2303a3f39e9bd22d33426aa52e",
+        "train_dashboard_sha256": "f796f96805ed0db748308b5a9e3e7e4def0309831e2c19fd6437349d1a2afb65",
+        "checkpoint_sha256": "fa90f7cd502801ec4beb53a1a4134d7568e0d6927fd4694a55f39524a0f2a88e",
+        "target_row_audit_sha256": "cd4769df49cd7a1d1ab79b4f78b40fda3a6c278a41b827fde2787a70bae6e7f2",
+        "target_row_audit_dashboard_sha256": "939a0c328d3075eceac65651dd8cc294162015544b93705d2832f36263fdb481"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "production_promotable_from_this_audit": 0,
+        "target_row_count": 1152,
+        "row_scope_target_row_tile": 1,
+        "full_frame_evidence": 0,
+        "row_count_50mp": 576,
+        "row_count_100mp": 576,
+        "overall_median_mae_reduction_pct": -14.17838003215098,
+        "overall_median_rmse_reduction_pct": -13.181758464778333,
+        "median_mae_reduction_pct_100mp": -13.116189248074146,
+        "median_rmse_reduction_pct_100mp": -12.968375147407524,
+        "worst_mae_reduction_pct_100mp": -271.563044590361,
+        "median_mae_reduction_pct_50mp": -15.64244661023621,
+        "median_rmse_reduction_pct_50mp": -14.57488922709249,
+        "worst_mae_reduction_pct_50mp": -233.59191592539057,
+        "eval_seconds": 88.20855483366176,
+        "target_rows_per_second": 13.059957757752299,
+        "peak_rss_gb": 3.70440673828125
+      },
+      "blocker_classifications": [
+        "source_hf_objective_wrong",
+        "model_promotion_floor_not_met",
+        "worst_row_tail_regression",
+        "full_frame_50mp_100mp_gate_missing"
+      ]
+    },
+    {
+      "id": "premium_still_sr_gate17_direction_calibration_audit_20260703",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gate17 scalar-direction calibration rejection. It proves that fixed candidate-only scalar tuning cannot turn the Gate17 checkpoint into a promotable 50 MP / 100 MP candidate.",
+      "dashboard": "artifacts/premium_still_sr_gate17_direction_calibration_audit_20260703/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_direction_calibration_audit.py",
+        "tools/cnn/train_premium_still_sr_raw_cfa_residual.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate17_direction_calibration_audit_20260703/direction_calibration_audit.json",
+        "artifacts/premium_still_sr_gate17_direction_calibration_audit_20260703/index.html"
+      ],
+      "hashes": {
+        "direction_calibration_audit_sha256": "2dbdef4ffea970e7ebb97e0e8d89b70cd8289ccef9268848261f280af5ab6a62",
+        "direction_calibration_dashboard_sha256": "b012f941b09844e503d38d3b758be1eebad8bd784685142aab415bd5df0b0897"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "target_row_count": 1152,
+        "row_count_50mp": 576,
+        "row_count_100mp": 576,
+        "best_alpha": 0.025,
+        "best_overall_median_mae_reduction_pct": 0.017883242885033075,
+        "best_overall_median_rmse_reduction_pct": 0.03313025840365027,
+        "best_worst_mae_reduction_pct": -0.8444927923589591,
+        "eval_seconds": 31.960015083197504,
+        "target_rows_per_second": 36.04503930931017,
+        "peak_rss_gb": 3.51800537109375
+      },
+      "blocker_classifications": [
+        "scalar_tuning_cannot_close_floor",
+        "model_promotion_floor_not_met",
+        "full_frame_50mp_100mp_gate_missing"
+      ]
     }
   ],
   "release_checks": [
@@ -5298,6 +5406,7 @@
     "python3 tools/test/test_build_premium_still_sr_gate16_target_row_audit.py",
     "python3 tools/test/test_build_premium_still_sr_gate17_replacement_targets.py",
     "python3 tools/test/test_build_premium_still_sr_gate18_candidate_objective_revision.py",
+    "python3 tools/test/test_build_premium_still_sr_gate19_positive_signal_source_revision.py",
     "python3 tools/test/check_labs_readiness.py",
     "python3 tools/test/test_mission1_numbered_list_readiness.py",
     "python3 tools/test/test_mission1_numbered_list_closure_plan.py",
