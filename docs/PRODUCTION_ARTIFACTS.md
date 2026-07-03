@@ -127,22 +127,19 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate16 paired-smoke acceptance dashboard | `artifacts/premium_still_sr_gate16_tail_safe_smoke_acceptance_20260702/index.html` | `76b2879e3349386e27b74f6728f92d0ec99f20fe75ec4f729e3657fe37047c34` |
 | Gate16 full-promotion launch packet | `artifacts/premium_still_sr_gate16_promotion_launch_packet_20260702/gate16_promotion_launch_packet.json` | `94aae3aeaafb80d5855d0b6f27737fe0c8e8c9917ff626fcdf14c42ab4e81d63` |
 | Gate16 full-promotion launch dashboard | `artifacts/premium_still_sr_gate16_promotion_launch_packet_20260702/index.html` | `4b3b6d0a5d143d7383f44b06e78aa1f7870be5384a41848b8c2a92fdf9d40dd4` |
+| Gate16 all-target-row audit receipt | `artifacts/premium_still_sr_gate16_target_row_audit_20260702/gate16_target_row_audit.json` | `8d840be3d091120e6c10af05eabe5fb7eb58a37bf8413c2ddf19cd2e57947f3e` |
+| Gate16 all-target-row audit dashboard | `artifacts/premium_still_sr_gate16_target_row_audit_20260702/index.html` | `05a9c19f319c9e1b3745e12515a10b1ff1dbcb843b8fb565731b1657b8bf3cd0` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
 sidecar, and Gate 14 selector smoke now reproduces the pass through runtime
 feature recomputation, source/checkpoint hash checks, and first-match routing.
-The strict promotion receipt rollup now records 5/9 done steps after the Gate16
-paired-smoke pass. The first open step is `model_promotion_floor`; the current
-blockers are full 50 MP / 100 MP gate rows, timing/memory, exact noise-policy
+The strict promotion receipt rollup records 5/9 done steps after the Gate16
+paired-smoke pass. The later Gate16 all-target-row audit supersedes the
+full-promotion launch packet and rejects Gate16 as the production candidate.
+The current blockers are replacement target/model construction, broad 50 MP /
+100 MP target-row pass, full-frame gate rows, timing/memory, exact noise-policy
 wiring, and production submission.
-The Gate16 full-promotion launch packet records that prerequisites are ready
-for the full gate, but production remains false. Existing route-readiness
-metrics cannot substitute for the Gate16 full gate: the older X2D 100 MP route
-has only `1.1989708797367278%` MAE and `1.0257625656340554%` RMSE recovery
-against the `15%` / `15%` floor. The next artifact must therefore be
-Gate16-specific full-frame inference, timing, memory, noise-policy wiring, and
-production submission evidence.
 The older model-floor gap receipt quantified the previous blocker: best
 runtime-safe MAE/RMSE were `4.031355420019811%` / `3.753504206299621%`, leaving
 `10.96864457998019` / `11.24649579370038` percentage points to the floor. The
@@ -176,11 +173,16 @@ MAE recovery is `-0.000744993606797582%` / `-0.019091640791465258%`, while Z8
 exact-noop passes at `0.0%` / `0.0%`. That narrows the blocker from target-row
 availability to X2D objective learnability/generalization.
 Gate16 then changed the X2D objective/training setup and added a candidate-only
-low-HF no-op tail gate at `0.0015`. The paired-smoke acceptance now passes:
+low-HF no-op tail gate at `0.0015`. The paired-smoke acceptance passes:
 X2D holdout median/worst raw MAE recovery is `17.086680690440865%` / `0.0%`,
-Z8 exact-noop remains `0.0%` / `0.0%`, and `long_run_allowed=true`. The next
-Premium still-SR evidence is the full 50 MP / 100 MP promotion gate for the
-Gate16 tail-safe candidate, not another smoke threshold search.
+Z8 exact-noop remains `0.0%` / `0.0%`, and `long_run_allowed=true`. The
+all-target-row audit rejects that candidate for production promotion:
+`target_row_count=463`, `row_scope=target_row_tile`, only `100mp` rows,
+median MAE/RMSE recovery of `-0.12226915231999792%` /
+`-0.1296250122706981%`, worst MAE recovery of `-9.625700832601128%`, and no
+full-frame 50 MP / 100 MP evidence. The next Premium still-SR evidence must be
+a replacement target/model package that passes broad target-row coverage before
+full promotion.
 
 Release mode verifies every checkpoint and registered training-pair field
 referenced by `pipelines/registry.json`, not just the three core shipping model

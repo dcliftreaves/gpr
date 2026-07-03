@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate 14 selector smoke passes, strict promotion receipts record 4/8 done steps, and the model-floor gap receipt now quantifies the remaining 15% / 15% gap: best runtime-safe MAE/RMSE are 4.03%/3.75%, with zero promotable rows.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate16 paired smoke passed, but the all-target-row audit rejected that checkpoint for promotion: 463 X2D/100 MP tile rows, no 50 MP rows, no full-frame scope, -0.12% median MAE recovery, -0.13% median RMSE recovery, and -9.63% worst-row MAE.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -130,10 +130,11 @@
           "premium_still_sr_gate14_candidate_intake_20260702",
           "premium_still_sr_gate14_selector_smoke_20260702",
           "premium_still_sr_promotion_receipts_20260702",
-          "premium_still_sr_model_floor_gap_20260702"
+          "premium_still_sr_model_floor_gap_20260702",
+          "premium_still_sr_gate16_target_row_audit_20260702"
         ]
       },
-      "open_gate": "Premium still-SR promotion is the first open local gate: build premium_still_sr_gate14_floor_student_v1 or stronger measured-source evidence so the model floor reaches 15% / 15% before full 50 MP / 100 MP promotion validation."
+      "open_gate": "Premium still-SR promotion is the first open local gate: build a replacement target/model package after the Gate16 all-target-row rejection, require broad 50 MP and 100 MP target-row pass, then run the full 50 MP / 100 MP promotion validation."
     },
     {
       "id": "raw_video_reconstruction",
@@ -5031,6 +5032,51 @@
         "long_run_allowed": false,
         "requires": "X2D and Z8 smoke evidence from candidate-only runtime inputs before any long run; full promotion still needs 50 MP / 100 MP rows, timing/memory, exact-sidecar noise policy, and production submission."
       }
+    },
+    {
+      "id": "premium_still_sr_gate16_target_row_audit_20260702",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gate16 all-target-row audit. It replays the Gate16 tail-safe checkpoint over all available target rows and rejects the candidate for production promotion because broad target-row metrics do not generalize and the evidence is 100 MP target-tile scope only.",
+      "dashboard": "artifacts/premium_still_sr_gate16_target_row_audit_20260702/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate16_target_row_audit.py",
+        "tools/test/test_build_premium_still_sr_gate16_target_row_audit.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate16_target_row_audit_20260702/gate16_target_row_audit.json",
+        "artifacts/premium_still_sr_gate16_target_row_audit_20260702/index.html"
+      ],
+      "hashes": {
+        "gate16_target_row_audit_json_sha256": "8d840be3d091120e6c10af05eabe5fb7eb58a37bf8413c2ddf19cd2e57947f3e",
+        "dashboard_sha256": "05a9c19f319c9e1b3745e12515a10b1ff1dbcb843b8fb565731b1657b8bf3cd0"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "production_promotable_from_this_audit": 0,
+        "target_row_count": 463,
+        "row_scope_target_row_tile": 1,
+        "full_frame_evidence": 0,
+        "row_count_100mp": 463,
+        "row_count_50mp": 0,
+        "median_mae_reduction_pct_100mp": -0.12226915231999792,
+        "median_rmse_reduction_pct_100mp": -0.1296250122706981,
+        "worst_mae_reduction_pct_100mp": -9.625700832601128,
+        "eval_seconds": 23.727227999828756,
+        "target_rows_per_second": 19.513446745795235,
+        "peak_rss_gb": 1.6404266357421875
+      },
+      "blocker_classifications": [
+        "full_50mp_100mp_gate_missing",
+        "model_promotion_floor_not_met"
+      ]
     }
   ],
   "release_checks": [
@@ -5040,6 +5086,7 @@
     "python3 tools/test/check_readme_media.py",
     "python3 tools/test/test_check_readme_media.py",
     "python3 tools/test/check_release_evidence_manifest.py",
+    "python3 tools/test/test_build_premium_still_sr_gate16_target_row_audit.py",
     "python3 tools/test/check_labs_readiness.py",
     "python3 tools/test/test_mission1_numbered_list_readiness.py",
     "python3 tools/test/test_mission1_numbered_list_closure_plan.py",

@@ -191,6 +191,7 @@ REQUIRED_PRODUCT_PILLARS = {
                 "premium_still_sr_gate14_selector_smoke_20260702",
                 "premium_still_sr_promotion_receipts_20260702",
                 "premium_still_sr_model_floor_gap_20260702",
+                "premium_still_sr_gate16_target_row_audit_20260702",
                 "cnn_product_scorecard_20260629",
             },
         },
