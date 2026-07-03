@@ -16,7 +16,9 @@ reconstruction without making JPEG the master.
 
 ![GPR raw capture suite: RAW stills, 4K Bayer .gvid, preview decode, and 8K SR review](docs/img/readme_showcase.webp)
 
-The bet is simple: record Bayer, keep it small, preview from the same raw stream,
+GPR started as a practical still-photo problem: RAW files should stay editable,
+but they should not have to move through the world as giant assets. The same
+idea became a video pipeline. The working rule is: record Bayer, keep it small, preview from the same raw stream,
 and spend desktop compute later when it visibly improves the image.
 
 ## What It Enables
@@ -28,7 +30,16 @@ and spend desktop compute later when it visibly improves the image.
 | **Premium still/SR** | A slow offline still path for maximum quality, currently gated until a better no-REF model wins. |
 | **Video reconstruction** | Approved 4K cleanup and 8K SR for desktop/post, with editable raw plus ProRes review media. |
 
+The pipeline has one rule: the editable Bayer stream is the source of truth.
+Stills, preview, `.gvid`, and ProRes review media all branch from raw sensor
+data, so the fast camera path can stay simple while slower reconstruction stays
+optional.
+
 ![GPR still and video pipeline flow](docs/img/readme_pipeline_flow.svg)
+
+The readiness view separates what is already proven from what still needs a
+camera-side or model-promotion receipt. It is a product boundary, not a running
+experiment log.
 
 ![GPR four-pillar production readiness](docs/img/readme_status_matrix.svg)
 
@@ -38,11 +49,27 @@ The small assets below are committed so the repo can be understood without
 opening a dashboard server. Full receipts, hashes, dashboards, and videos live
 in the linked evidence docs.
 
+Stills came first. The target is simple to explain but hard to do well: make
+large 50 MP and 100 MP-class Bayer captures small enough to treat like everyday
+files while preserving 16-bit RAW editability and visual headroom.
+
 ![Three STILL tiers, fine-detail crop](docs/img/still_three_tiers.png)
+
+Video made the same constraint harder. The raw stream has to be compact enough
+to write continuously and direct enough to preview without a separate JPEG-first
+path. This timelapse shows the preview side of that same raw-stream idea.
 
 ![Raw Bayer timelapse decoded through the GPR preview path](docs/img/readme_z8_timelapse_1024.webp)
 
+The Mission native12 crop sheet is the camera MVP at 100% scale: real Bayer
+dimensions, codec receipts, and visible crop evidence instead of a wrapper
+around existing JPEG/GPR payloads.
+
 ![Mission native12 100 percent crop sheet](docs/img/readme_mission1_native12_100pct.png)
+
+Offline reconstruction is where compute is allowed to be expensive. The 2x
+contact sheet shows the post path improving review output while keeping the
+editable raw/video source separate from the rendered media.
 
 ![Mission native12 2x SR contact sheet](docs/img/readme_mission1_2x_sr_contact.png)
 
@@ -56,11 +83,20 @@ in the linked evidence docs.
 | **Camera preview** | The same 4K `.gvid` previews full-frame at 1024 x 768 above **20 fps** on the Pi 5 stand-in. | Real camera UI/display handoff is the remaining proof. |
 | **4K/8K reconstruction** | Offline 4K cleanup and 8K SR are approved for desktop/post review and editable raw outputs. | PSF/blur work is optional replacement research, not a release blocker. |
 
+The performance claim matters because raw video is only useful when capture does
+not miss frames. These numbers anchor the Pi 5 stand-in path, while the docs
+keep the real Mission 1 sensor/DMA and SD-writer handoff open until GoPro-side
+receipts exist.
+
 ![Native 12MP encode speed evidence](docs/img/readme_native12_fps_plot.svg)
+
+CNNs and SR are quality levers, not the camera capture mechanism. The camera
+path stands on Bayer plus `.gvid`; models can improve stills or reconstruction
+when the workflow can afford the extra time.
 
 ![CNN and SR improvement plot](docs/img/readme_cnn_sr_plot.svg)
 
-## Human Summary
+## Capabilities
 
 GPR is organized around four product outcomes:
 
@@ -79,7 +115,7 @@ artifacts.
 
 ## Traceability
 
-The README stays product-facing. Detailed proof lives here:
+Detailed engineering receipts live here:
 
 PREVIEW offline/review and PREVIEW live/camera-back are tracked separately;
 offline/review PREVIEW is not a live/camera-back preview path.
