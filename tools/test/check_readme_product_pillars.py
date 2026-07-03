@@ -30,7 +30,7 @@ REQUIRED_SECTIONS = (
     "## What It Enables",
     "## Image Proof",
     "## Performance Snapshot",
-    "## Human Summary",
+    "## Capabilities",
     "## Traceability",
     "## Quick Start",
     "## Repository Map",
@@ -57,6 +57,14 @@ REQUIRED_README_TOKENS = (
     "not a regression signal for locked",
     "record Bayer, keep it small, preview from the same raw stream",
     "spend desktop compute later",
+    "GPR started as a practical still-photo problem",
+    "the editable Bayer stream is the source of truth",
+    "The readiness view separates what is already proven",
+    "Stills came first",
+    "Video made the same constraint harder",
+    "The Mission native12 crop sheet is the camera MVP at 100% scale",
+    "Offline reconstruction is where compute is allowed to be expensive",
+    "CNNs and SR are quality levers, not the camera capture mechanism",
     "**1. Best RAW stills**",
     "**2. GoPro RAW video MVP**",
     "**3. Premium still/SR**",
@@ -135,6 +143,7 @@ FORBIDDEN_README_TOKENS = (
     "Gate22 conditioned",
     "Gate23 clean-residual",
     "124 runtime-safe",
+    "Human " + "Summary",
 )
 
 README_PILLAR_LABELS = {

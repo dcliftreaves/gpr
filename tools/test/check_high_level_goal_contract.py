@@ -27,7 +27,7 @@ DOC_TOKENS = {
         "**3. Premium still/SR**",
         "**4. RAW video reconstruction**",
         "PSF/blur work is optional replacement research, not a release blocker",
-        "The README stays product-facing. Detailed proof lives here",
+        "Detailed engineering receipts live here",
         "no-REF 50 MP / 100 MP gate",
     ),
     "docs/BIG_EFFORTS_STATUS.md": (
