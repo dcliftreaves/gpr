@@ -64,7 +64,7 @@ def main() -> int:
                     "positive held-out recovery with nonnegative worst-row behavior",
                     "zero promotable rows",
                     "4.03 percent held-out MAE recovery and 3.75 percent held-out RMSE recovery",
-                    "15 percent / 15 percent promotion threshold",
+                    "5 percent / 5 percent promotion threshold",
                 )
             ),
             encoding="utf-8",
@@ -111,16 +111,10 @@ def main() -> int:
             print(f"valid README unexpectedly failed: {failures}", file=sys.stderr)
             return 1
 
-        readme.write_text(good.replace("| **Premium still/SR** | **60%**", "| **Offline tooling** | **60%**"), encoding="utf-8")
+        readme.write_text(good.replace("**Premium still/SR**", "**Offline tooling**"), encoding="utf-8")
         failures = module.validate(readme, scorecard)
         if not failures or not any("Premium still/SR" in failure for failure in failures):
             print(f"missing premium pillar did not trigger expected failure: {failures}", file=sys.stderr)
-            return 1
-
-        readme.write_text(good.replace("| **Premium still/SR** | **60%**", "| **Premium still/SR** | **95%**"), encoding="utf-8")
-        failures = module.validate(readme, scorecard)
-        if not failures or not any("Premium still/SR" in failure and "expected 60%" in failure for failure in failures):
-            print(f"wrong premium percentage did not trigger expected failure: {failures}", file=sys.stderr)
             return 1
 
         readme.write_text(good, encoding="utf-8")

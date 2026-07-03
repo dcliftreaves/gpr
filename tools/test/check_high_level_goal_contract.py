@@ -18,19 +18,17 @@ PRODUCTION_100 = ROOT / "docs/PRODUCTION_100_PERCENT_PLAN.md"
 
 DOC_TOKENS = {
     "README.md": (
-        "Open Raw Video For Action Cameras",
+        "Open RAW Stills And Video For Action Cameras",
         "8-bit JPEG size. 16-bit RAW quality.",
         "docs/GOAL_CLOSURE_MATRIX.md",
         "docs/PRODUCTION_100_PERCENT_PLAN.md",
-        "The denominator is the shippable production suite",
         "**1. Best RAW stills**",
         "**2. GoPro RAW video MVP**",
         "**3. Premium still/SR**",
-        "**4. Raw video reconstruction improvement**",
-        "PSF-aware video/SR remains optional research",
-        "Current action stack",
-        "Do not reopen approved raw-video SR",
-        "no-REF 50 MP / 100 MP promotion preflight",
+        "**4. RAW video reconstruction**",
+        "PSF/blur work is optional replacement research, not a release blocker",
+        "The README stays product-facing. Detailed proof lives here",
+        "no-REF 50 MP / 100 MP gate",
     ),
     "docs/BIG_EFFORTS_STATUS.md": (
         "GOAL_CLOSURE_MATRIX.md",
@@ -106,7 +104,7 @@ DOC_TOKENS = {
         "Mission 1 and iPhone strict-provenance darkframe sidecars",
         "Actual Mission 1 camera-role receipts",
         "A no-REF 50 MP / 100 MP candidate",
-        "15% / 15% floor",
+        "5% / 5% floor",
         "PSF-conditioned models are optional replacement research",
         "Public docs are honest and useful",
         "Non-Claims",

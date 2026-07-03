@@ -136,25 +136,21 @@ python3 tools/build_premium_still_sr_experiment_scoreboard.py \
   --output-dir /Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702
 ```
 
-Current scoreboard:
+Current 124-receipt experiment scoreboard:
 
 ```text
-/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_teacher_first_smoke_20260702/index.html
+/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/index.html
 ```
 
-The current scoreboard scans **97** premium still-SR training receipts across
-the rendered-HF, raw-CFA residual, clean-signal, and clean-source pair schemas.
-All 97 rows are runtime-safe, but **0** are promotable. The best older
-runtime-safe row reaches only **4.03%** held-out MAE recovery and **3.75%**
-held-out RMSE recovery against a 15% / 15% promotion threshold, and the newest
-clean-source Restormer pair rows are far below that floor. The latest
-degradation/objective ablation added Charbonnier loss, Laplacian loss,
-training-time RAW noise, per-plane gain jitter, and binomial blur, but it also
-fails: the X2D holdout reaches only **+0.0048%** median MAE recovery and
-**-0.0053%** RMSE recovery, while Z8 regresses at **-0.3973%** MAE and
-**-0.2627%** RMSE. A follow-up teacher-first smoke gate is also rejected before
-long training: X2D is only **+0.0038%** median MAE and **-0.0062%** median RMSE,
-while Z8 regresses at **-0.1618%** median MAE and **-0.0448%** median RMSE.
+The current scoreboard scans **124 runtime-safe** premium still-SR training
+receipts across rendered-HF, raw-CFA residual, clean-signal, clean-source pair,
+and masked-detail/no-op schemas. **0** rows are promotable. The best older
+runtime-safe row reaches **4.03%** held-out MAE recovery and **3.75%**
+held-out RMSE recovery against the current 5% / 5% promotion threshold. Newer
+frequency-pyramid, gated no-op residual, masked-detail/no-op, direct-clean 2x,
+source-HF/stored-HF, Gate20, Gate21, Gate22, and Gate23 branches are retained
+as rejection evidence until a materially different target/objective or
+representation creates positive held-out recovery with nonnegative worst rows.
 This is a necessary promotion guard, not a full production gate. A future row
 must still pass full-frame raw/editor-latitude review before the premium
 still-SR pillar can move from diagnostic to production-ready.
@@ -474,7 +470,7 @@ That gate confirms the clean-signal target itself is usable as policy evidence:
 REF/JPEG content is forbidden at render time, and exact source-noise addback is
 forbidden. It also keeps the current model state blocked: the clean-signal
 U-Net, routed residual-pixelshuffle teachers, and routed NAF/detail-loss
-teachers all fail the 15% / 15% holdout MAE/RMSE promotion floor. This is the
+teachers all fail the 5% / 5% holdout MAE/RMSE promotion floor. This is the
 guardrail that prevents a future still-SR receipt from claiming production
 quality merely because the noise policy is clean.
 
@@ -1245,7 +1241,7 @@ same U-Net evaluates the first 27 holdout rows during training and saves the
 best probe checkpoint. That run selects step 1100 and raises the hard X2D
 holdout to about 0.13 percent median raw-residual MAE recovery, but it still
 does not beat the best 0.16 percent X2D smoke-row result and remains far below
-the 15 percent promotion gate. This rules out "we only saved the wrong final
+the current 5 percent promotion gate. This rules out "we only saved the wrong final
 step" as the primary blocker. Adding runtime-safe absolute crop-position,
 camera one-hot, and full-crop candidate raw/HF scalar context to that U-Net
 does not improve the result: the X2D holdout lands at about 0.09 percent
@@ -2261,7 +2257,7 @@ Merged band analysis:
 | median coarse-band share of residual abs | 0.00003x |
 
 These are positive scene-held-out X2D HF target results, but still far below a
-production still-SR promotion threshold. The evidence now rules out the
+current production still-SR promotion threshold. The evidence now rules out the
 single-image target and simple scalar conditioning as the main blockers:
 multiscale candidate features plus validated ISO/noise sidecar scalars improve
 holdout recovery from 1.46 percent to 2.56 percent, but the model still

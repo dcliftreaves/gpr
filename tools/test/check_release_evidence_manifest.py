@@ -260,49 +260,38 @@ ALLOWED_BLOCKERS = {
 }
 
 README_REQUIRED_SECTIONS = (
-    "## Open Raw Video For Action Cameras",
-    "## Product Status In One Screen",
-    "## Current Evidence Snapshot",
-    "## Stills Performance And CNN Latitude",
-    "## Mission 1 Numbered List",
-    "## Quality Model",
-    "## Media And Dashboards",
-    "## Raw Output Ladder",
-    "## Final Camera Closure",
+    "## Open RAW Stills And Video For Action Cameras",
+    "## What It Enables",
+    "## Image Proof",
+    "## Performance Snapshot",
+    "## Human Summary",
+    "## Traceability",
     "## Quick Start",
-    "## Documentation",
+    "## Repository Map",
 )
 
 README_REQUIRED_TOKENS = (
-    "8-bit JPEG size. 16-bit RAW quality. Editable Bayer video.",
-    "open raw Bayer media suite",
-    "actual Mission 1 sensor/DMA",
+    "8-bit JPEG size. 16-bit RAW quality. Editable Bayer stills and video.",
+    "keeps the sensor data alive",
+    "record Bayer, keep it small, preview from the same raw stream",
+    "Actual Mission 1 sensor/DMA",
     "docs/img/readme_showcase.webp",
     "docs/img/readme_z8_timelapse_1024.webp",
     "docs/img/readme_pipeline_flow.svg",
     "docs/img/readme_status_matrix.svg",
     "docs/img/still_three_tiers.png",
     ".gvid",
-    "MOV / ProRes",
+    "ProRes review media",
     "PREVIEW offline/review",
     "PREVIEW live/camera-back",
-    "mission1_preview_1024",
-    "mission1_native12_4k_gvid",
-    "camera MVP stand-in",
-    "20.50 fps wall / 21.52 fps median",
-    "4k_raw_1x",
-    "8k_raw_2x",
-    "Mission 1 Numbered List",
-    "docs/MISSION1_NUMBERED_LIST_BURNDOWN_2026-06-25.md",
-    "gpr_labs_encoder",
-    "test_labs_encoder_api",
-    "target_preflight_receipt.json",
-    "mission1_camera_closure_run.json",
-    "Real Mission 1 sensor/DMA/storage handoff receipt",
-    "Real Mission 1 UI/display receipt",
-    "4K cleanup production signoff",
-    "/Volumes/OWC_8TB/gpr_work/artifacts",
-    "docs/RELEASE_READINESS.md",
+    "not a live/camera-back preview path",
+    "4096 x 3072 Bayer `.gvid` clears the accepted **20+ fps** Pi 5 stand-in floor",
+    "same 4K `.gvid` previews full-frame at 1024 x 768 above **20 fps**",
+    "Offline 4K cleanup and 8K SR are approved",
+    "docs/PRODUCT_PILLAR_SCORECARD.md",
+    "docs/PRODUCTION_100_PERCENT_PLAN.md",
+    "docs/VIDEO_STATUS.md",
+    "docs/PRODUCTION_ARTIFACTS.md",
 )
 
 RELEASE_READINESS_REQUIRED_SECTIONS = (
@@ -1585,11 +1574,11 @@ def require_dashboard_contract(
                     failures.append(f"{entry_id}: source-evidence Z8 worst-row MAE drifted")
                 if abs(identity_z8 - (-0.0014934440317522601)) > 1e-12:
                     failures.append(f"{entry_id}: identity Z8 median MAE drifted")
-        readme_text = README.read_text(encoding="utf-8")
-        readme_plain = re.sub(r"[*_`]", "", readme_text)
+        premium_doc = ROOT / "docs/PREMIUM_STILL_SR.md"
+        premium_plain = re.sub(r"[*_`]", "", premium_doc.read_text(encoding="utf-8"))
         for token in ("124-receipt experiment scoreboard", "124 runtime-safe"):
-            if token not in readme_plain:
-                failures.append(f"{entry_id}: README missing current premium still-SR token {token!r}")
+            if token not in premium_plain:
+                failures.append(f"{entry_id}: docs/PREMIUM_STILL_SR.md missing current premium still-SR token {token!r}")
 
     if entry_id == "premium_still_sr_source_evidence_x2dholdout_t64_20260702":
         if entry.get("status") != "diagnostic":
