@@ -66,7 +66,7 @@ These are the remaining items that prevent a broader production claim:
 |---|---|---|
 | Mission 1 firmware readiness | Pi 5 stand-in receipts prove valid `.gvid`, zero drops, interrupted-tail recovery, storage-budget fit, 20+ fps native 12MP true-Bayer recompression, and 1024 x 768 preview from the same stream. | Actual Mission 1 sensor/DMA or camera ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, and 20+ fps camera-role timing receipts. |
 | Mission 1 and iPhone noise sidecars | X2D and Z8 have validated camera-noise sidecars. Mission 1 and iPhone have candidate dark-like stacks, but not strict-provenance production sidecars. | Same-camera, same-ISO no-scene-signal darkframe stacks with source hashes, extraction receipts, `gpr.camera_noise_calibration.v1` sidecars, and raw-noise/signal audit pass. |
-| Premium still-SR promotion | The raw-CFA target set, editable raw packaging, X2D/Z8/Mission specialists, and many diagnostic CNN receipts exist. Gate17 has balanced 50 MP / 100 MP target rows, but the first Gate17 checkpoint is rejected by the broad audit. Gate18 is safer but no-op. Gate19 source-HF direct prediction, Gate17 scalar calibration, and candidate-HF feature scaling are rejected. Gate20 revision is closed, and target rebuilding works, but coverage is short: actual coverage is 108 50 MP rows and 243 100 MP rows; strict planning reaches 594 50 MP rows but only 243 100 MP rows. | Add or locate more X2D/100 MP sources with validated noise sidecars, rerun strict Gate20 target expansion until both classes clear 576 rows, then clear no-REF/candidate-only preflight before training. |
+| Premium still-SR promotion | The raw-CFA target set, editable raw packaging, X2D/Z8/Mission specialists, and many diagnostic CNN receipts exist. Gate17 has balanced 50 MP / 100 MP target rows, but the first Gate17 checkpoint is rejected by the broad audit. Gate18 is safer but no-op. Gate19 source-HF direct prediction, Gate17 scalar calibration, and candidate-HF feature scaling are rejected. Gate20 revision is closed, and expanded target coverage is now authorized: actual coverage is 594 50 MP rows and 999 100 MP rows, 1,593 total rows. | Run Gate20 no-REF/candidate-only preflight, training, broad audit, and full promotion receipt. |
 | Optional stretch work, not release blockers | Strict 24 fps native12 timing, 8K live-camera SR, and PSF-conditioned video/SR replacement all have useful research receipts and rejection evidence. | Keep them out of the release blocker list unless the product target is raised or a replacement already beats the locked baseline with the full receipt set. |
 
 The production branch should stay narrow: keep reusable source, tests, registry
@@ -93,10 +93,11 @@ Update on 2026-07-02:
   also rejected. Candidate-HF feature scaling is rejected too, and Gate20
   supervision/objective revision is now closed as the contract for
   `premium_still_sr_gate20_rebuilt_supervision_v1`. The rebuilt target pass
-  generated 351 rows, but the coverage audit blocks training until more
-  X2D/100 MP rows exist. The next local work is X2D/100 MP target-source
-  expansion, not another unchanged Gate17 run, source-HF direct run, scalar
-  tuning pass, candidate-HF scaling pass, or safety-only Gate18 rerun.
+  generated 351 rows and initially blocked training. The expanded X2D source
+  pass then generated 1,593 rows: 594 50 MP rows and 999 100 MP rows, with
+  `gate20_training_authorized=true`. The next local work is Gate20 no-REF
+  training and broad audit, not another unchanged Gate17 run, source-HF direct
+  run, scalar tuning pass, candidate-HF scaling pass, or safety-only Gate18 rerun.
 - The current top-level production percentage remains 83 percent: raw stills
   92 percent, raw video MVP 80 percent, premium still/SR 60 percent, and
   approved raw-video reconstruction 100 percent for offline/post scope.

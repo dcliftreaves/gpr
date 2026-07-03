@@ -73,14 +73,14 @@ item is `closed` or `blocked_external`.
 14. Gate20 supervision/objective revision is closed as a local receipt. It
    names `premium_still_sr_gate20_rebuilt_supervision_v1` and requires rebuilt
    supervision targets before any new long train.
-15. Gate20 rebuilt-supervision target generation is closed as a coverage
-   blocker. The actual build created 351 rows: 108 50 MP rows and 243 100 MP
-   rows. A strict planner can reach 594 50 MP rows, but still only 243 100 MP
-   rows, so Gate20 training is not authorized.
-16. Add or locate more X2D/100 MP DNG sources with validated camera-noise
-   sidecars, then rerun strict Gate20 target expansion until 100 MP rows reach
-   576 before no-REF preflight, training, and broad audit.
-17. After Gate20 target coverage passes, run no-REF preflight, training, and
+15. The first Gate20 rebuilt-supervision target generation is closed as a
+   coverage blocker. The actual build created 351 rows: 108 50 MP rows and
+   243 100 MP rows.
+16. Gate20 X2D/100 MP source expansion is closed as an authorization receipt.
+   The expanded manifest adds 29 audited X2D scene DNGs, the strict target
+   rebuild created 1,593 rows, and coverage is now 594 50 MP rows plus 999
+   100 MP rows. `gate20_training_authorized=true`.
+17. Run Gate20 no-REF preflight, training, and
    broad target-row audit before any full 50 MP / 100 MP promotion receipt:
    15% / 15% held-out MAE/RMSE, nonnegative worst row, editor/openability,
    timing/memory, checkpoint hashes, exact-sidecar-only noise policy, and
@@ -120,10 +120,11 @@ fifth.**
 | 11 | Premium still/SR direction calibration | closed/rejected | Protect `premium_still_sr_gate17_direction_calibration_audit_20260703` as evidence that scalar tuning does not close the model floor. | Best scalar is `0.025`, with `0.017883242885033075%` median MAE recovery and a negative worst row. |
 | 12 | Premium still/SR candidate-HF feature audit | closed/rejected | Protect `premium_still_sr_candidate_hf_feature_audit_20260703` as evidence that stored candidate-HF scalar transforms are not predictive. | Best alpha is `-0.025`, median MAE recovery is `-0.004920370968732175%`, and `next_decision=candidate_hf_feature_not_predictive_change_supervision`. |
 | 13 | Premium still/SR Gate20 supervision/objective revision | closed/local | Protect `premium_still_sr_gate20_supervision_objective_revision_20260703`: it rejects Gate17/Gate18/Gate19/scalar/candidate-HF reruns and names the rebuilt-supervision target commands. | `gate20_supervision_objective_revision.json` records candidate-only runtime policy, exact prior rejection hashes, `first_open_step=gate20_rebuild_supervision_targets`, and `premium_still_sr_gate20_rebuilt_supervision_v1`. |
-| 14 | Premium still/SR Gate20 rebuilt supervision targets | closed/blocked | Protect `premium_still_sr_gate20_rebuilt_supervision_targets_20260703`, strict plan, and `premium_still_sr_gate20_target_coverage_audit_20260703` as target-construction evidence. | Actual rebuilt targets have 351 rows: 108 50 MP and 243 100 MP. Strict planner reaches 594 50 MP rows but only 243 100 MP rows; `gate20_training_authorized=false`. |
-| 15 | Premium still/SR Gate20 100 MP source expansion | open/local | Add or locate enough X2D/100 MP DNG sources with validated camera-noise sidecars, then rerun strict Gate20 target expansion. | Strict Gate20 target coverage records `row_floor_100mp_passed=true`, `row_floor_50mp_passed=true`, and `total_row_floor_passed=true` before training starts. |
-| 16 | RAW stills noise sidecars | open/sample | Capture or prove Mission 1 and iPhone true darkframes with strict no-scene-signal provenance. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate, then camera-noise calibration sidecars pass `--require-source-provenance`. |
-| 17 | Mission 1 raw-video MVP | blocked_external | GoPro/Mission 1 firmware owner runs the camera-role validation on real sensor/DMA or camera ring-buffer source, SD writer, and rear display. | Real camera-role receipts show valid `.gvid`, zero drops, 120+ sustained frames, memory, 4096 x 3072 source encode, 1024 x 768 preview, and 20+ fps floor. |
+| 14 | Premium still/SR Gate20 first rebuilt supervision targets | closed/blocked | Protect `premium_still_sr_gate20_rebuilt_supervision_targets_20260703`, strict plan, and `premium_still_sr_gate20_target_coverage_audit_20260703` as target-construction evidence. | Actual rebuilt targets have 351 rows: 108 50 MP and 243 100 MP. Strict planner reaches 594 50 MP rows but only 243 100 MP rows; `gate20_training_authorized=false`. |
+| 15 | Premium still/SR Gate20 expanded X2D target package | closed/local | Protect `premium_still_sr_x2d_manifest_expansion_gate20_20260703`, `premium_still_sr_gate20_strict_expanded_x2d_plan_20260703`, `premium_still_sr_gate20_expanded_x2d_targets_20260703`, and `premium_still_sr_gate20_target_coverage_audit_expanded_x2d_20260703`. | Expanded rebuilt targets have 1,593 rows: 594 50 MP and 999 100 MP. Both row floors and the total floor pass; `gate20_training_authorized=true`. |
+| 16 | Premium still/SR Gate20 train/audit | open/local | Run no-REF/candidate-only preflight, Gate20 training, broad target-row audit, and the full 50 MP / 100 MP promotion receipt. | Median MAE/RMSE recovery clears 15% / 15%, worst-row MAE is nonnegative, timing/memory/checkpoint hashes are recorded, editor/openability passes, exact-sidecar-only noise policy passes, and production submission validates. |
+| 17 | RAW stills noise sidecars | open/sample | Capture or prove Mission 1 and iPhone true darkframes with strict no-scene-signal provenance. | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate, then camera-noise calibration sidecars pass `--require-source-provenance`. |
+| 18 | Mission 1 raw-video MVP | blocked_external | GoPro/Mission 1 firmware owner runs the camera-role validation on real sensor/DMA or camera ring-buffer source, SD writer, and rear display. | Real camera-role receipts show valid `.gvid`, zero drops, 120+ sustained frames, memory, 4096 x 3072 source encode, 1024 x 768 preview, and 20+ fps floor. |
 
 ## Current Local Result
 
@@ -131,23 +132,21 @@ The current local state is Gate16 paired-smoke pass, Gate16 all-target-row
 rejection, Gate17 balanced target-package construction, Gate17 training/audit
 rejection, Gate18 candidate/objective revision, Gate18 training/audit
 rejection, Gate19 source-HF rejection, Gate17 scalar-calibration rejection,
-candidate-HF feature rejection, and Gate20 supervision/objective revision.
+candidate-HF feature rejection, Gate20 supervision/objective revision, and
+Gate20 expanded X2D target coverage authorization.
 Do not spend
 another day on ambiguous "improve CNN" work; burn down these rows in order:
 
-1. Add or locate more X2D/100 MP DNG sources with validated noise sidecars, then
-   rerun strict Gate20 target expansion. The current actual build has only 243
-   100 MP rows and training is explicitly not authorized.
-2. Only if the target coverage audit authorizes training, run Gate20 train and
+1. Run Gate20 train and
    `tools/build_premium_still_sr_gate16_target_row_audit.py`
    or its
    successor on the replacement. It must record both `50mp` and `100mp`
    row counts, median MAE/RMSE recovery `>= 15.0`, and worst-row MAE recovery
    `>= 0.0` before a full promotion run is allowed.
-3. Build the full 50 MP / 100 MP still-SR gate receipt with `--real-artifacts`
+2. Build the full 50 MP / 100 MP still-SR gate receipt with `--real-artifacts`
    for review media, editable DNG/GPR evidence, dashboard, checkpoint hash,
    actual render timings, and peak RSS.
-4. The full gate must record both `full_frame_gate_50mp_row_count > 0` and
+3. The full gate must record both `full_frame_gate_50mp_row_count > 0` and
    `full_frame_gate_100mp_row_count > 0`.
 5. The full gate must record both `median_mae_reduction_pct_50mp >= 15.0` and
    `median_mae_reduction_pct_100mp >= 15.0`.

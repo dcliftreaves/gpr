@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate16 paired smoke passed, but the all-target-row audit rejected that checkpoint for promotion. Gate17 provides a balanced replacement target package with 576 50 MP rows and 576 100 MP rows, but Gate17, Gate18, and Gate19 broad audits are rejected. Gate17 scalar calibration and candidate-HF feature scaling are rejected. Gate20 supervision/objective revision is closed, and target rebuilding works, but target coverage blocks training: actual coverage is 108 50 MP rows and 243 100 MP rows; strict planning reaches 594 50 MP rows but only 243 100 MP rows.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate16 paired smoke passed, but the all-target-row audit rejected that checkpoint for promotion. Gate17 provides a balanced replacement target package with 576 50 MP rows and 576 100 MP rows, but Gate17, Gate18, and Gate19 broad audits are rejected. Gate17 scalar calibration and candidate-HF feature scaling are rejected. Gate20 supervision/objective revision is closed, and expanded rebuilt-supervision target coverage now authorizes training: actual coverage is 594 50 MP rows and 999 100 MP rows, 1,593 total rows.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -143,7 +143,7 @@
           "premium_still_sr_gate20_target_coverage_audit_20260703"
         ]
       },
-      "open_gate": "Premium still-SR promotion is the first open local gate: add or locate more X2D/100 MP rebuilt-supervision sources with validated sidecars, rerun strict Gate20 target expansion until both classes clear 576 rows, then train only after target coverage authorizes it."
+      "open_gate": "Premium still-SR promotion is the first open local gate: run Gate20 no-REF/candidate-only preflight, training, broad target-row audit, and full promotion receipts using the authorized 594-row 50 MP / 999-row 100 MP rebuilt-supervision package."
     },
     {
       "id": "raw_video_reconstruction",
@@ -5546,6 +5546,65 @@
         "target_coverage_blocked_add_100mp_sources",
         "gate20_training_not_authorized",
         "model_promotion_floor_not_testable_yet"
+      ]
+    },
+    {
+      "id": "premium_still_sr_gate20_expanded_x2d_target_coverage_20260703",
+      "family": "premium_still_sr",
+      "status": "current",
+      "purpose": "Gate20 expanded X2D rebuilt-supervision target coverage authorization. It adds audited X2D scene DNGs to the fixture manifest, rebuilds the strict 50 MP / 100 MP target package, and authorizes Gate20 training.",
+      "dashboard": "artifacts/premium_still_sr_gate20_target_coverage_audit_expanded_x2d_20260703/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/RELEASE_READINESS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_x2d_manifest_expansion.py",
+        "tools/test/test_build_premium_still_sr_x2d_manifest_expansion.py",
+        "tools/build_premium_still_sr_target_expansion_plan.py",
+        "tools/cnn/build_premium_still_sr_expanded_hf_targets_from_plan.py",
+        "tools/build_premium_still_sr_gate20_target_coverage_audit.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_x2d_manifest_expansion_gate20_20260703/fixture_manifest.json",
+        "artifacts/premium_still_sr_x2d_manifest_expansion_gate20_20260703/x2d_manifest_expansion_receipt.json",
+        "artifacts/premium_still_sr_x2d_manifest_expansion_gate20_20260703/index.html",
+        "artifacts/premium_still_sr_gate20_strict_expanded_x2d_plan_20260703/target_expansion_plan.json",
+        "artifacts/premium_still_sr_gate20_strict_expanded_x2d_plan_20260703/index.html",
+        "artifacts/premium_still_sr_gate20_expanded_x2d_targets_20260703/expanded_target_build_receipt.json",
+        "artifacts/premium_still_sr_gate20_expanded_x2d_targets_20260703/merged/merge_receipt.json",
+        "artifacts/premium_still_sr_gate20_expanded_x2d_targets_20260703/merged/hf_residual_targets_merged.npz",
+        "artifacts/premium_still_sr_gate20_target_coverage_audit_expanded_x2d_20260703/gate20_target_coverage_audit.json",
+        "artifacts/premium_still_sr_gate20_target_coverage_audit_expanded_x2d_20260703/index.html"
+      ],
+      "hashes": {
+        "x2d_manifest_expansion_receipt_sha256": "d851d167cbed0b3b2c7d1897ed1a407c543eac71cf1dfed24d5e6429313bc73f",
+        "strict_expanded_target_plan_sha256": "ad6049d63f706336f6a4f42eb52f19e9c0a87f8265190e4c3dcef416e3233dd2",
+        "expanded_target_build_receipt_sha256": "23bbd5498d00b15d47682ed2eec67cc1269b5cfc95b7ea8383edebcbee354407",
+        "merge_receipt_sha256": "6bedd713384e1473d01645ef421a796f18bd81b3c6a0b96dcf30f14a9b5f605f",
+        "merged_npz_sha256": "0dab0e109709c540f03b64d7457c56d24a6bdbd4ad0fbfdca99427856974dc89",
+        "gate20_target_coverage_audit_sha256": "e7cda87530d2548ab48db38f75dd5c6673313889e5799444ceda93b6762f7a60"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "gate20_training_authorized": 1,
+        "actual_total_rows": 1593,
+        "actual_rows_50mp": 594,
+        "actual_rows_100mp": 999,
+        "actual_scenes_50mp": 22,
+        "actual_scenes_100mp": 37,
+        "row_floor_50mp_passed": 1,
+        "row_floor_100mp_passed": 1,
+        "total_row_floor_passed": 1
+      },
+      "blocker_classifications": [
+        "target_coverage_authorized",
+        "gate20_training_next",
+        "model_promotion_floor_not_tested_yet"
       ]
     }
   ],

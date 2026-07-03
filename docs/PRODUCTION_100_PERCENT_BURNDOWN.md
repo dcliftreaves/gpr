@@ -14,7 +14,7 @@ reason it cannot pass.
 | 2 | RAW video reconstruction | closed; protect | 100 | Existing 4K cleanup and 8K SR lock-ledger, dashboards, ProRes media, editable raw receipts, and manifest guards remain green. |
 | 3 | RAW stills | open on darkframe provenance | 92 | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate with four same-camera/same-ISO no-scene-signal CFA frames each, then camera-noise sidecars pass strict provenance. |
 | 4 | RAW video MVP | externally blocked on camera-role run | 80 | Real Mission 1 camera-role receipts from sensor/DMA or camera ring-buffer source, SD writer, rear display, valid `.gvid`, zero drops, memory, and 120+ sustained frames at the accepted 20+ fps floor. |
-| 5 | Premium still/SR | open local blocker | 60 | Gate20 needs more X2D/100 MP rebuilt-supervision sources. The current target rebuild has 351 rows and the strict planner can reach 594 50 MP rows but only 243 100 MP rows; training stays blocked until both classes clear 576 rows. |
+| 5 | Premium still/SR | open local model gate | 60 | Gate20 target coverage is now authorized: expanded rebuilt supervision has 1,593 rows, with 594 50 MP rows and 999 100 MP rows. The next receipt is no-REF Gate20 training plus broad 50 MP / 100 MP audit. |
 
 ## Current First Local Gate
 
@@ -58,6 +58,7 @@ promotion validation:
 | Candidate-HF feature audit rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_hf_feature_audit_20260703/candidate_hf_feature_audit.json` | Closed as feature-signal rejection evidence. The best scalar is `-0.025`, median MAE recovery is `-0.004920370968732175%`, and the decision is `candidate_hf_feature_not_predictive_change_supervision`, so stored candidate-HF scaling cannot be the Gate20 path. |
 | Gate20 supervision/objective revision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate20_supervision_objective_revision_20260703/gate20_supervision_objective_revision.json` | Closed as the next-candidate contract. It names `premium_still_sr_gate20_rebuilt_supervision_v1`, forbids Gate17/Gate18/Gate19/scalar/candidate-HF reruns, and sets `first_open_step=gate20_rebuild_supervision_targets`. |
 | Gate20 rebuilt-supervision target coverage | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate20_target_coverage_audit_20260703/gate20_target_coverage_audit.json` | Closed as a target-coverage blocker. Actual rebuilt target coverage is 108 50 MP rows and 243 100 MP rows. The strict planner can reach 594 50 MP rows but still only 243 100 MP rows, so `gate20_training_authorized=false`. |
+| Gate20 expanded X2D rebuilt-supervision target coverage | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate20_target_coverage_audit_expanded_x2d_20260703/gate20_target_coverage_audit.json` | Closed as target-coverage authorization. Expanded rebuilt target coverage is 594 50 MP rows and 999 100 MP rows, 1,593 total rows, both class floors pass, and `gate20_training_authorized=true`. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
@@ -65,12 +66,10 @@ promotion validation:
 Continue `premium_still_sr_promotion_receipts` from the first open step
 `model_promotion_floor`, using the Gate17 target package plus the Gate17,
 Gate18, Gate19, scalar-calibration, candidate-HF, and Gate20 revision receipts.
-The next local receipt is a strict Gate20 target expansion rerun after adding
-more X2D/100 MP sources with validated camera-noise sidecars. The current
-rebuilt-supervision package proves the machinery works, but not the coverage:
-actual rows are 108 50 MP / 243 100 MP, and the strict planner remains short on
-100 MP at 243 rows. Do not train until the target coverage audit records both
-50 MP and 100 MP row floors as passed.
+The next local receipt is Gate20 no-REF training and broad target-row audit
+using the authorized expanded target package. The coverage blocker is closed:
+actual rows are 594 50 MP / 999 100 MP, 1,593 total rows, and the target
+coverage audit records both row floors as passed.
 Do not rerun
 source-frequency targets, generic full-crop U-Net residual training, masked-
 detail thresholds, candidate-HF no-op threshold tuning, simple frame-context
