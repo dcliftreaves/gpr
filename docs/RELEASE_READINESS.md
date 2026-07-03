@@ -66,7 +66,7 @@ These are the remaining items that prevent a broader production claim:
 |---|---|---|
 | Mission 1 firmware readiness | Pi 5 stand-in receipts prove valid `.gvid`, zero drops, interrupted-tail recovery, storage-budget fit, 20+ fps native 12MP true-Bayer recompression, and 1024 x 768 preview from the same stream. | Actual Mission 1 sensor/DMA or camera ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, and 20+ fps camera-role timing receipts. |
 | Mission 1 and iPhone noise sidecars | X2D and Z8 have validated camera-noise sidecars. Mission 1 and iPhone have candidate dark-like stacks, but not strict-provenance production sidecars. | Same-camera, same-ISO no-scene-signal darkframe stacks with source hashes, extraction receipts, `gpr.camera_noise_calibration.v1` sidecars, and raw-noise/signal audit pass. |
-| Premium still-SR promotion | The raw-CFA target set, editable raw packaging, X2D/Z8/Mission specialists, and many diagnostic CNN receipts exist. Gate17 has balanced 50 MP / 100 MP target rows, but the first Gate17 checkpoint is rejected by the broad audit. Gate18 is safer but no-op: `0.0%` median MAE/RMSE, `-0.0912221669777865%` worst 100 MP MAE, and `-0.0068758277986793615%` worst 50 MP MAE. Gate19 source-HF direct prediction is rejected: `-14.17838003215098%` median MAE and severe tails. Gate17 scalar calibration is rejected: best scalar `0.025`, only `0.017883242885033075%` median MAE. | Gate20 must recover positive signal with changed supervision/objective, clear the dedicated still-SR gate for both 50 MP and 100 MP rows, emit editable DNG/GPR plus review media, record timing/RSS, and prove exact-sidecar-only noise policy. |
+| Premium still-SR promotion | The raw-CFA target set, editable raw packaging, X2D/Z8/Mission specialists, and many diagnostic CNN receipts exist. Gate17 has balanced 50 MP / 100 MP target rows, but the first Gate17 checkpoint is rejected by the broad audit. Gate18 is safer but no-op. Gate19 source-HF direct prediction, Gate17 scalar calibration, and candidate-HF feature scaling are rejected. Gate20 revision is closed, and target rebuilding works, but coverage is short: actual coverage is 108 50 MP rows and 243 100 MP rows; strict planning reaches 594 50 MP rows but only 243 100 MP rows. | Add or locate more X2D/100 MP sources with validated noise sidecars, rerun strict Gate20 target expansion until both classes clear 576 rows, then clear no-REF/candidate-only preflight before training. |
 | Optional stretch work, not release blockers | Strict 24 fps native12 timing, 8K live-camera SR, and PSF-conditioned video/SR replacement all have useful research receipts and rejection evidence. | Keep them out of the release blocker list unless the product target is raised or a replacement already beats the locked baseline with the full receipt set. |
 
 The production branch should stay narrow: keep reusable source, tests, registry
@@ -90,9 +90,13 @@ Update on 2026-07-02:
   in the broad target-row audit. Gate18 candidate/objective revision,
   training, and broad audit also ran; it improved tail safety but collapsed to
   no-op. Gate19 source-HF direct prediction and Gate17 scalar calibration are
-  also rejected. The next local work is Gate20 supervision/objective revision,
-  not another unchanged Gate17 run, source-HF direct run, scalar tuning pass,
-  or safety-only Gate18 rerun.
+  also rejected. Candidate-HF feature scaling is rejected too, and Gate20
+  supervision/objective revision is now closed as the contract for
+  `premium_still_sr_gate20_rebuilt_supervision_v1`. The rebuilt target pass
+  generated 351 rows, but the coverage audit blocks training until more
+  X2D/100 MP rows exist. The next local work is X2D/100 MP target-source
+  expansion, not another unchanged Gate17 run, source-HF direct run, scalar
+  tuning pass, candidate-HF scaling pass, or safety-only Gate18 rerun.
 - The current top-level production percentage remains 83 percent: raw stills
   92 percent, raw video MVP 80 percent, premium still/SR 60 percent, and
   approved raw-video reconstruction 100 percent for offline/post scope.
@@ -276,6 +280,9 @@ python3 tools/test/test_build_premium_still_sr_gate16_target_row_audit.py
 python3 tools/test/test_build_premium_still_sr_gate17_replacement_targets.py
 python3 tools/test/test_build_premium_still_sr_gate18_candidate_objective_revision.py
 python3 tools/test/test_build_premium_still_sr_gate19_positive_signal_source_revision.py
+python3 tools/test/test_build_premium_still_sr_candidate_hf_feature_audit.py
+python3 tools/test/test_build_premium_still_sr_gate20_supervision_objective_revision.py
+python3 tools/test/test_build_premium_still_sr_gate20_target_coverage_audit.py
 python3 tools/test/check_labs_readiness.py
 python3 tools/test/test_mission1_numbered_list_readiness.py
 python3 tools/test/test_mission1_numbered_list_closure_plan.py

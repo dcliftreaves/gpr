@@ -65,7 +65,7 @@
       "status": "research_loop_working_candidate_not_promoted",
       "readiness_percent": 60,
       "production_ready": false,
-      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate16 paired smoke passed, but the all-target-row audit rejected that checkpoint for promotion: 463 X2D/100 MP tile rows, no 50 MP rows, no full-frame scope, -0.12% median MAE recovery, -0.13% median RMSE recovery, and -9.63% worst-row MAE. Gate17 provides a balanced replacement target package with 576 50 MP rows and 576 100 MP rows, but the first Gate17 checkpoint is rejected by the broad audit: -0.23% median MAE, 0.34% median RMSE, -35.30% worst 100 MP MAE, and -2.26% worst 50 MP MAE. Gate18 is safer but rejected as effectively no-op: 0.00% median MAE/RMSE, -0.09% worst 100 MP MAE, and -0.0069% worst 50 MP MAE. Gate19 source-HF direct prediction is rejected: -14.18% median MAE, -13.18% median RMSE, and severe tails. Gate17 scalar calibration is rejected: best scalar 0.025, 0.018% median MAE, and a negative worst row.",
+      "summary": "Candidate-only 50 MP / 100 MP promotion remains open. Gate16 paired smoke passed, but the all-target-row audit rejected that checkpoint for promotion. Gate17 provides a balanced replacement target package with 576 50 MP rows and 576 100 MP rows, but Gate17, Gate18, and Gate19 broad audits are rejected. Gate17 scalar calibration and candidate-HF feature scaling are rejected. Gate20 supervision/objective revision is closed, and target rebuilding works, but target coverage blocks training: actual coverage is 108 50 MP rows and 243 100 MP rows; strict planning reaches 594 50 MP rows but only 243 100 MP rows.",
       "manifest_refs": {
         "dashboards": [
           "premium_still_sr_raw_cfa_residual_gap_20260701",
@@ -137,10 +137,13 @@
           "premium_still_sr_gate18_candidate_objective_revision_20260703",
           "premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703",
           "premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703",
-          "premium_still_sr_gate17_direction_calibration_audit_20260703"
+          "premium_still_sr_gate17_direction_calibration_audit_20260703",
+          "premium_still_sr_candidate_hf_feature_audit_20260703",
+          "premium_still_sr_gate20_supervision_objective_revision_20260703",
+          "premium_still_sr_gate20_target_coverage_audit_20260703"
         ]
       },
-      "open_gate": "Premium still-SR promotion is the first open local gate: Gate20 must recover positive signal with a changed supervision/objective, then require broad 50 MP and 100 MP target-row pass before full promotion validation."
+      "open_gate": "Premium still-SR promotion is the first open local gate: add or locate more X2D/100 MP rebuilt-supervision sources with validated sidecars, rerun strict Gate20 target expansion until both classes clear 576 rows, then train only after target coverage authorizes it."
     },
     {
       "id": "raw_video_reconstruction",
@@ -5394,6 +5397,156 @@
         "model_promotion_floor_not_met",
         "full_frame_50mp_100mp_gate_missing"
       ]
+    },
+    {
+      "id": "premium_still_sr_candidate_hf_feature_audit_20260703",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Premium still-SR candidate-HF feature audit rejection. It proves stored candidate-HF scalar transforms do not predict the balanced Gate17 raw-HF residual target package.",
+      "dashboard": "artifacts/premium_still_sr_candidate_hf_feature_audit_20260703/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_candidate_hf_feature_audit.py",
+        "tools/test/test_build_premium_still_sr_candidate_hf_feature_audit.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_candidate_hf_feature_audit_20260703/candidate_hf_feature_audit.json",
+        "artifacts/premium_still_sr_candidate_hf_feature_audit_20260703/index.html"
+      ],
+      "hashes": {
+        "candidate_hf_feature_audit_sha256": "49c1389ee721b89951ca12aca9a93758d598df5641b69389960cff52b42a7d45",
+        "candidate_hf_feature_dashboard_sha256": "a75dd8b61671c7e56224b5d71937231593d6b7e634c976f7696bb617ebd96a46"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "target_row_count": 1152,
+        "row_count_50mp": 576,
+        "row_count_100mp": 576,
+        "best_alpha": -0.025,
+        "best_overall_median_mae_reduction_pct": -0.004920370968732175,
+        "best_overall_median_rmse_reduction_pct": -0.010540486615906914,
+        "best_worst_mae_reduction_pct": -3.094519725325922,
+        "eval_seconds": 3.7426726669073105,
+        "target_rows_per_second": 307.80114590554064
+      },
+      "blocker_classifications": [
+        "candidate_hf_feature_not_predictive",
+        "model_promotion_floor_not_met",
+        "supervision_objective_must_change"
+      ]
+    },
+    {
+      "id": "premium_still_sr_gate20_supervision_objective_revision_20260703",
+      "family": "premium_still_sr",
+      "status": "diagnostic",
+      "purpose": "Gate20 Premium still-SR supervision/objective revision. It converts the Gate17/Gate18/Gate19/scalar/candidate-HF rejection family into a rebuilt-supervision target contract before new training.",
+      "dashboard": "artifacts/premium_still_sr_gate20_supervision_objective_revision_20260703/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate20_supervision_objective_revision.py",
+        "tools/test/test_build_premium_still_sr_gate20_supervision_objective_revision.py",
+        "tools/build_premium_still_sr_target_expansion_plan.py",
+        "tools/cnn/build_premium_still_sr_expanded_hf_targets_from_plan.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate20_supervision_objective_revision_20260703/gate20_supervision_objective_revision.json",
+        "artifacts/premium_still_sr_gate20_supervision_objective_revision_20260703/index.html"
+      ],
+      "hashes": {
+        "gate20_supervision_objective_revision_sha256": "1cb6fb3f30e27048627054698f05fbae71a538f99fbf1385f18e9677a665b0f8",
+        "gate20_supervision_objective_revision_dashboard_sha256": "c5b7333a1ff6ff7dc1203a67d95f7b14fd0f77909ae06cff6027b0d0dd21471f"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "gate17_rows_50mp": 576,
+        "gate17_rows_100mp": 576,
+        "gate19_overall_median_mae_pct": -14.17838003215098,
+        "gate19_overall_median_rmse_pct": -13.181758464778333,
+        "gate17_direction_best_alpha": 0.025,
+        "gate17_direction_best_median_mae_pct": 0.017883242885033075,
+        "candidate_hf_best_alpha": -0.025,
+        "candidate_hf_best_median_mae_pct": -0.004920370968732175
+      },
+      "blocker_classifications": [
+        "first_open_step_gate20_rebuild_supervision_targets",
+        "supervision_objective_must_change",
+        "full_frame_50mp_100mp_gate_missing"
+      ]
+    },
+    {
+      "id": "premium_still_sr_gate20_target_coverage_audit_20260703",
+      "family": "premium_still_sr",
+      "status": "experimental-blocker",
+      "purpose": "Gate20 rebuilt-supervision target coverage audit. It proves the target-building machinery works, but blocks training because 100 MP/X2D rebuilt-supervision coverage is below the 576-row floor.",
+      "dashboard": "artifacts/premium_still_sr_gate20_target_coverage_audit_20260703/index.html",
+      "docs": [
+        "README.md",
+        "docs/PRODUCTION_100_PERCENT_EXECUTION_QUEUE.md",
+        "docs/PRODUCTION_100_PERCENT_BURNDOWN.md",
+        "docs/PRODUCTION_100_PERCENT_PLAN.md",
+        "docs/PRODUCTION_ARTIFACTS.md",
+        "docs/release_evidence_manifest.json"
+      ],
+      "tools": [
+        "tools/build_premium_still_sr_gate20_target_coverage_audit.py",
+        "tools/test/test_build_premium_still_sr_gate20_target_coverage_audit.py",
+        "tools/build_premium_still_sr_target_expansion_plan.py",
+        "tools/cnn/build_premium_still_sr_expanded_hf_targets_from_plan.py"
+      ],
+      "receipts": [
+        "artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_20260703/target_expansion_plan/target_expansion_plan.json",
+        "artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_20260703/target_expansion_plan/index.html",
+        "artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_20260703/expanded_hf_targets/expanded_target_build_receipt.json",
+        "artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_20260703/expanded_hf_targets/merged/merge_receipt.json",
+        "artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_20260703/expanded_hf_targets/merged/hf_residual_targets_merged.npz",
+        "artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_strict_20260703/target_expansion_plan/target_expansion_plan.json",
+        "artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_strict_20260703/target_expansion_plan/index.html",
+        "artifacts/premium_still_sr_gate20_target_coverage_audit_20260703/gate20_target_coverage_audit.json",
+        "artifacts/premium_still_sr_gate20_target_coverage_audit_20260703/index.html"
+      ],
+      "hashes": {
+        "target_expansion_plan_sha256": "341c2aa023f325113cba9a0f6a9499d9763663ab454d9f031abcd4e463c18953",
+        "target_expansion_plan_dashboard_sha256": "e2e9d13d68ca7b202b2fea531ecf20a681f7b0ee43efa7beb8bc1f01cb68861f",
+        "expanded_target_build_receipt_sha256": "26015cf40d23719ad04c7ec9e1fa9f15f6af479954c3f0eb04905f67c73dcd2a",
+        "merge_receipt_sha256": "bef4396561012158e4f7d9f11feec5b2eb028109d54be6154abca64862cb0d85",
+        "merged_npz_sha256": "abec809dba88b3b17793bacf9fc5eaf5a96094c185263abf864b856184a438a8",
+        "strict_target_expansion_plan_sha256": "1b6ac821aee9664661e8c29db4726256b45c1665bbb963f79999dd665d3e648c",
+        "strict_target_expansion_plan_dashboard_sha256": "fb9a4095124018ae12ab608a8ea6d162295270bec66a283761b1fc27e4c5f1fc",
+        "gate20_target_coverage_audit_sha256": "168f3dba1092eee93b9aa2c2f13497f2cb2001aae8d579ec59e5d11c3d727443",
+        "gate20_target_coverage_dashboard_sha256": "21e1a31a9dc75b313572a06cf885282df688d58c34f76177a9284a31d16be874"
+      },
+      "metrics": {
+        "production_ready": 0,
+        "gate20_training_authorized": 0,
+        "actual_total_rows": 351,
+        "actual_rows_50mp": 108,
+        "actual_rows_100mp": 243,
+        "strict_total_rows": 837,
+        "strict_rows_50mp": 594,
+        "strict_rows_100mp": 243,
+        "row_floor_50mp_passed_in_strict_plan": 1,
+        "row_floor_100mp_passed_in_strict_plan": 0,
+        "total_row_floor_passed_in_strict_plan": 0
+      },
+      "blocker_classifications": [
+        "target_coverage_blocked_add_100mp_sources",
+        "gate20_training_not_authorized",
+        "model_promotion_floor_not_testable_yet"
+      ]
     }
   ],
   "release_checks": [
@@ -5407,6 +5560,9 @@
     "python3 tools/test/test_build_premium_still_sr_gate17_replacement_targets.py",
     "python3 tools/test/test_build_premium_still_sr_gate18_candidate_objective_revision.py",
     "python3 tools/test/test_build_premium_still_sr_gate19_positive_signal_source_revision.py",
+    "python3 tools/test/test_build_premium_still_sr_candidate_hf_feature_audit.py",
+    "python3 tools/test/test_build_premium_still_sr_gate20_supervision_objective_revision.py",
+    "python3 tools/test/test_build_premium_still_sr_gate20_target_coverage_audit.py",
     "python3 tools/test/check_labs_readiness.py",
     "python3 tools/test/test_mission1_numbered_list_readiness.py",
     "python3 tools/test/test_mission1_numbered_list_closure_plan.py",

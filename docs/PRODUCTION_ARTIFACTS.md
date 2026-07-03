@@ -154,6 +154,16 @@ The latest Premium Still/SR Gate A receipts are:
 | Gate19 broad target-row rejection dashboard | `artifacts/premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703/index.html` | `939a0c328d3075eceac65651dd8cc294162015544b93705d2832f36263fdb481` |
 | Gate17 direction calibration audit | `artifacts/premium_still_sr_gate17_direction_calibration_audit_20260703/direction_calibration_audit.json` | `2dbdef4ffea970e7ebb97e0e8d89b70cd8289ccef9268848261f280af5ab6a62` |
 | Gate17 direction calibration dashboard | `artifacts/premium_still_sr_gate17_direction_calibration_audit_20260703/index.html` | `b012f941b09844e503d38d3b758be1eebad8bd784685142aab415bd5df0b0897` |
+| Candidate-HF feature audit rejection | `artifacts/premium_still_sr_candidate_hf_feature_audit_20260703/candidate_hf_feature_audit.json` | `49c1389ee721b89951ca12aca9a93758d598df5641b69389960cff52b42a7d45` |
+| Candidate-HF feature audit dashboard | `artifacts/premium_still_sr_candidate_hf_feature_audit_20260703/index.html` | `a75dd8b61671c7e56224b5d71937231593d6b7e634c976f7696bb617ebd96a46` |
+| Gate20 supervision/objective revision receipt | `artifacts/premium_still_sr_gate20_supervision_objective_revision_20260703/gate20_supervision_objective_revision.json` | `1cb6fb3f30e27048627054698f05fbae71a538f99fbf1385f18e9677a665b0f8` |
+| Gate20 supervision/objective revision dashboard | `artifacts/premium_still_sr_gate20_supervision_objective_revision_20260703/index.html` | `c5b7333a1ff6ff7dc1203a67d95f7b14fd0f77909ae06cff6027b0d0dd21471f` |
+| Gate20 target expansion plan | `artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_20260703/target_expansion_plan/target_expansion_plan.json` | `341c2aa023f325113cba9a0f6a9499d9763663ab454d9f031abcd4e463c18953` |
+| Gate20 expanded target build receipt | `artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_20260703/expanded_hf_targets/expanded_target_build_receipt.json` | `26015cf40d23719ad04c7ec9e1fa9f15f6af479954c3f0eb04905f67c73dcd2a` |
+| Gate20 merged rebuilt target NPZ | `artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_20260703/expanded_hf_targets/merged/hf_residual_targets_merged.npz` | `abec809dba88b3b17793bacf9fc5eaf5a96094c185263abf864b856184a438a8` |
+| Gate20 strict target expansion plan | `artifacts/premium_still_sr_gate20_rebuilt_supervision_targets_strict_20260703/target_expansion_plan/target_expansion_plan.json` | `1b6ac821aee9664661e8c29db4726256b45c1665bbb963f79999dd665d3e648c` |
+| Gate20 target coverage audit | `artifacts/premium_still_sr_gate20_target_coverage_audit_20260703/gate20_target_coverage_audit.json` | `168f3dba1092eee93b9aa2c2f13497f2cb2001aae8d579ec59e5d11c3d727443` |
+| Gate20 target coverage dashboard | `artifacts/premium_still_sr_gate20_target_coverage_audit_20260703/index.html` | `21e1a31a9dc75b313572a06cf885282df688d58c34f76177a9284a31d16be874` |
 
 The single-source branches are blocked before long training. Gate 14 candidate
 intake persists the multi-source candidate-only selector as an executable
@@ -168,16 +178,20 @@ broad target-row audit reject the unmodified raw-CFA residual candidate:
 overall median MAE recovery is `-0.23468499188533842%`, overall median RMSE
 recovery is `0.34200684333480724%`, 100 MP worst MAE is
 `-35.30304893327897%`, and 50 MP worst MAE is `-2.259351982942634%`. The
-current blockers are Gate20 supervision/objective revision, broad 50 MP / 100
-MP target-row pass, full-frame gate rows, timing/memory, exact noise-policy
+current blockers are Gate20 rebuilt-supervision targets, broad 50 MP / 100 MP
+target-row pass, full-frame gate rows, timing/memory, exact noise-policy
 wiring, and production submission. Gate18 revision closed candidate/objective
 selection and its train/audit ran. The result is safer but still rejected:
 overall median MAE/RMSE recovery is `0.0%` / `0.0%`, 100 MP worst MAE is
 `-0.0912221669777865%`, and 50 MP worst MAE is `-0.0068758277986793615%`.
 Gate19 source-HF direct prediction is also rejected with `-14.17838003215098%`
-overall median MAE recovery, and Gate17 scalar calibration proves scalar output
-tuning cannot close the floor. The next evidence must be Gate20
-supervision/objective revision.
+overall median MAE recovery, Gate17 scalar calibration proves scalar output
+tuning cannot close the floor, and candidate-HF feature scaling is not
+predictive. Gate20 supervision/objective revision now closes the planning step.
+The rebuilt-target machinery works but is coverage-blocked: actual coverage is
+108 50 MP rows and 243 100 MP rows; strict planning can reach 594 50 MP rows
+but only 243 100 MP rows. The next evidence must add X2D/100 MP
+rebuilt-supervision sources before any new long training run.
 The older model-floor gap receipt quantified the previous blocker: best
 runtime-safe MAE/RMSE were `4.031355420019811%` / `3.753504206299621%`, leaving
 `10.96864457998019` / `11.24649579370038` percentage points to the floor. The

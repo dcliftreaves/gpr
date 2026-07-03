@@ -1,6 +1,6 @@
 # Production 100 Percent Burn-Down
 
-Last refreshed: 2026-07-02
+Last refreshed: 2026-07-03
 
 This is the short execution list. Work starts at the first local open gate and
 only moves when the named receipt passes or the blocker receipt names the exact
@@ -14,7 +14,7 @@ reason it cannot pass.
 | 2 | RAW video reconstruction | closed; protect | 100 | Existing 4K cleanup and 8K SR lock-ledger, dashboards, ProRes media, editable raw receipts, and manifest guards remain green. |
 | 3 | RAW stills | open on darkframe provenance | 92 | `mission1_darkframe_stack` and `iphone_cfa_darkframe_stack` validate with four same-camera/same-ISO no-scene-signal CFA frames each, then camera-noise sidecars pass strict provenance. |
 | 4 | RAW video MVP | externally blocked on camera-role run | 80 | Real Mission 1 camera-role receipts from sensor/DMA or camera ring-buffer source, SD writer, rear display, valid `.gvid`, zero drops, memory, and 120+ sustained frames at the accepted 20+ fps floor. |
-| 5 | Premium still/SR | open local blocker | 60 | A candidate-only no-REF model receipt clears 15% / 15% held-out MAE/RMSE, nonnegative worst-row MAE, 50 MP + 100 MP route coverage, editor/openability, timing/memory, exact-sidecar-only noise policy, and production submission validation. |
+| 5 | Premium still/SR | open local blocker | 60 | Gate20 needs more X2D/100 MP rebuilt-supervision sources. The current target rebuild has 351 rows and the strict planner can reach 594 50 MP rows but only 243 100 MP rows; training stays blocked until both classes clear 576 rows. |
 
 ## Current First Local Gate
 
@@ -55,16 +55,22 @@ promotion validation:
 | Gate18 broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate18_tail_safe_context_target_row_audit_20260703/gate16_target_row_audit.json` | Closed as safety/no-op rejection evidence. Overall median MAE/RMSE is `0.0%` / `0.0%`, 100 MP worst MAE is `-0.0912221669777865%`, and 50 MP worst MAE is `-0.0068758277986793615%`. Tail safety improved, but positive signal was not recovered. |
 | Gate19 source-HF broad target-row rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate19_source_hf_positive_signal_target_row_audit_20260703/gate16_target_row_audit.json` | Closed as source-objective rejection evidence. Overall median MAE/RMSE is `-14.17838003215098%` / `-13.181758464778333%`, 100 MP median MAE is `-13.116189248074146%`, 50 MP median MAE is `-15.64244661023621%`, and tails are severe. |
 | Gate17 scalar-direction calibration rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate17_direction_calibration_audit_20260703/direction_calibration_audit.json` | Closed as calibration rejection evidence. The best scalar is `0.025`, with only `0.017883242885033075%` overall median MAE recovery and a negative worst row, so output scaling cannot close the 15% floor. |
+| Candidate-HF feature audit rejection | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_candidate_hf_feature_audit_20260703/candidate_hf_feature_audit.json` | Closed as feature-signal rejection evidence. The best scalar is `-0.025`, median MAE recovery is `-0.004920370968732175%`, and the decision is `candidate_hf_feature_not_predictive_change_supervision`, so stored candidate-HF scaling cannot be the Gate20 path. |
+| Gate20 supervision/objective revision | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate20_supervision_objective_revision_20260703/gate20_supervision_objective_revision.json` | Closed as the next-candidate contract. It names `premium_still_sr_gate20_rebuilt_supervision_v1`, forbids Gate17/Gate18/Gate19/scalar/candidate-HF reruns, and sets `first_open_step=gate20_rebuild_supervision_targets`. |
+| Gate20 rebuilt-supervision target coverage | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_gate20_target_coverage_audit_20260703/gate20_target_coverage_audit.json` | Closed as a target-coverage blocker. Actual rebuilt target coverage is 108 50 MP rows and 243 100 MP rows. The strict planner can reach 594 50 MP rows but still only 243 100 MP rows, so `gate20_training_authorized=false`. |
 | current scoreboard | `/Volumes/OWC_8TB/gpr_work/artifacts/premium_still_sr_experiment_scoreboard_masked_detail_20260702/scoreboard.json` | 124 runtime-safe receipts, 0 promotable receipts, best runtime-safe row remains 4.03% MAE / 3.75% RMSE versus the 15% / 15% floor. |
 
 ## Next Unambiguous Step
 
 Continue `premium_still_sr_promotion_receipts` from the first open step
 `model_promotion_floor`, using the Gate17 target package plus the Gate17,
-Gate18, Gate19, and scalar-calibration rejection receipts. The next local
-receipt is `premium_still_sr_gate20_supervision_objective_revision_<date>/...`.
-It must recover positive signal without an unchanged Gate17 rerun, source-HF
-direct prediction, scalar-output tuning, or another safety-only Gate18 no-op.
+Gate18, Gate19, scalar-calibration, candidate-HF, and Gate20 revision receipts.
+The next local receipt is a strict Gate20 target expansion rerun after adding
+more X2D/100 MP sources with validated camera-noise sidecars. The current
+rebuilt-supervision package proves the machinery works, but not the coverage:
+actual rows are 108 50 MP / 243 100 MP, and the strict planner remains short on
+100 MP at 243 rows. Do not train until the target coverage audit records both
+50 MP and 100 MP row floors as passed.
 Do not rerun
 source-frequency targets, generic full-crop U-Net residual training, masked-
 detail thresholds, candidate-HF no-op threshold tuning, simple frame-context

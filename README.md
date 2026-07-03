@@ -47,7 +47,7 @@ when it visibly improves the result.**
 |---|---:|---|---|
 | **Best RAW stills** | **92%** | 50 MP tiers at **9.80 MB**, **15.05 MB**, and **27.17 MB**; X2D 100 MP roundtrip; 12/14/16-bit support; real RGGB/GBRG/GRBG/BGGR coverage; X2D/Z8 noise sidecars. | Mission 1 and iPhone strict-provenance darkframe sidecars before broad nonzero noise addback is claimed. |
 | **GoPro RAW video MVP** | **80%** | True 4096 x 3072 Bayer frames recompress into `.gvid` above the accepted **20+ fps** Pi 5 stand-in floor, and the same stream previews full-frame at 1024 x 768 above **20 fps**. | Real Mission 1 sensor/DMA or camera-ring-buffer source, SD writer, rear-display handoff, zero drops, valid `.gvid`, 120+ sustained frames, and timing receipts from the camera role. |
-| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, model-promotion tooling, the **124-receipt experiment scoreboard**, X2D/Z8 source-evidence audits, route-specialist readiness audit, exact-sidecar-only noise policy, 4/4 editor/latitude coverage, Gate16 rejection audit, Gate17 balanced **576 50 MP + 576 100 MP** target package, Gate18 revision receipt, Gate17/Gate18/Gate19 broad audit rejections, and Gate17 scalar-direction calibration rejection now exist. | Gate20 must change supervision/objective, not scale old checkpoints: pass broad 50 MP / 100 MP target-row audit before any full promotion receipt: 15% / 15% held-out MAE/RMSE, nonnegative worst rows, timing, memory, editor/openability, checkpoint hashes, exact-sidecar-only noise policy, and production submission checks. |
+| **Premium still/SR** | **60%** | Raw-CFA targets, routed specialists, model-promotion tooling, the **124-receipt experiment scoreboard**, X2D/Z8 source-evidence audits, route-specialist readiness audit, exact-sidecar-only noise policy, 4/4 editor/latitude coverage, Gate16 rejection audit, Gate17 balanced **576 50 MP + 576 100 MP** target package, Gate18 revision receipt, Gate17/Gate18/Gate19 broad audit rejections, Gate17 scalar-direction calibration rejection, candidate-HF scalar-signal rejection, Gate20 revision, and Gate20 target-coverage audit now exist. | Gate20 needs more X2D/100 MP rebuilt-supervision sources before training: pass broad 50 MP / 100 MP target-row audit before any full promotion receipt: 15% / 15% held-out MAE/RMSE, nonnegative worst rows, timing, memory, editor/openability, checkpoint hashes, exact-sidecar-only noise policy, and production submission checks. |
 | **RAW video reconstruction improvement** | **100%** | Approved offline/post 4K cleanup and 8K SR emit `.gvid`, editable raw, standalone no-CNN/CNN ProRes review movies, objective review, and manual signoff receipts. | No release blocker. PSF/blur modeling is parked as optional replacement research. |
 
 The denominator is the shippable production suite: **1. Best RAW stills**, **2. GoPro RAW video MVP**, **3. Premium still/SR**, and **4. Raw video reconstruction improvement**. PSF-aware video/SR remains optional research for a future replacement, not a blocker for the approved current release path.
@@ -68,11 +68,10 @@ release evidence map.
 
 1. Keep CI green on latest `master`, including sensitive-content,
    artifact-hygiene, release-manifest, README, and product-goal guards.
-2. Build Gate20 from the Gate19 rejection: same **balanced 576-row-per-class target package**, but a stronger supervision/objective strategy. It
-   must keep candidate-only runtime inputs with `candidate_raw`, no REF/source/JPEG
-   render-time content, 15% / 15% MAE/RMSE floor on both 50 MP and 100 MP rows,
-   nonnegative worst rows, seconds/frame, peak RSS, exact-sidecar-only noise
-   policy, and production submission validation before promotion.
+2. Continue Gate20 from the rejected Gate17/Gate18/Gate19/scalar/candidate-HF
+   family: add X2D/100 MP rebuilt-supervision sources until both 50 MP and
+   100 MP target rows clear 576 before any new long train. Use runtime inputs with `candidate_raw`,
+   no REF/source/JPEG content, seconds/frame, and peak RSS.
 3. Close raw-stills noise beyond X2D/Z8 with Mission 1 and iPhone
    `gpr.camera_noise_calibration.v1` sidecars from strict same-camera,
    same-ISO, no-scene-signal darkframe stacks.
@@ -139,17 +138,20 @@ Gate17 now provides that package: **1,152** balanced target rows, split into
 **576** 50 MP rows and **576** 100 MP rows. The first Gate17 trained checkpoint
 is rejected by the broad audit: **1,152** rows, **-0.23%** median MAE recovery,
 **0.34%** median RMSE recovery, **-35.30%** worst 100 MP MAE, and **-2.26%**
-worst 50 MP MAE. Gate18 candidate/objective revision and audit now exist.
-Gate18 candidate/objective revision and Gate18 revision receipt are closed.
+worst 50 MP MAE. Gate18 candidate/objective revision and Gate18 revision receipt are closed.
 Gate18 is much safer but effectively no-op: **0.00%** overall median MAE/RMSE,
 **-0.09%** worst 100 MP MAE, and **-0.0069%** worst 50 MP MAE. The
 Gate19 positive-signal/source revision is also rejected: the source-HF objective
 records **-14.18%** overall median MAE, **-13.18%** median RMSE, and very bad
 tails. Gate17 scalar-direction calibration is rejected too; the best scalar is
 only **0.025**, with **0.018%** median MAE recovery and a negative worst row.
-The next step is Gate20 supervision/objective revision, not another
-target-construction pass, the same Gate17 training run, scalar tuning, or
-another safety-only no-op gate.
+The candidate-HF feature audit is also rejected: the best scalar is **-0.025**,
+with **-0.0049%** median MAE recovery, so stored candidate-HF does not predict the residual.
+Gate20 supervision/objective revision is now the active path, but the first
+target rebuild is coverage-blocked: 108 50 MP rows and 243 100 MP rows; strict
+planning can reach 594 50 MP rows but still only 243 100 MP rows. Add X2D/100
+MP rebuilt-supervision sources before training, not another target-construction
+pass, Gate17 rerun, scalar tuning, candidate-HF scaling, or safety-only no-op gate.
 The detailed failed-branch history, including
 frequency-pyramid, gated no-op residual, masked-detail/no-op, direct-clean 2x,
 source-HF/stored-HF, and Gate16 receipts, lives in
