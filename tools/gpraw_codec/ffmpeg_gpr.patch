@@ -1,0 +1,89 @@
+From: Happy GPR <david@happy.ai>
+Subject: [PATCH] libavcodec: add GoPro RAW (GPR/fused VC-5) decoder
+
+Adds a thin decoder that wraps libvc5_decoder's gpr_decode_fused()
+entry point. One AVPacket = one self-contained GPR frame (FUSED_HEADER
++ band manifest + rANS bands). Output is AV_PIX_FMT_BAYER_RGGB16LE
+(or GBRG16LE) for downstream demosaic via swscale or lavfi.
+
+Stream identification: codec_tag 'GPRr' as used by the .gpraw / .mov
+container (tools/gpraw in the gpr repo). codec_tag is mapped to
+AV_CODEC_ID_GPR in libavformat/isom_tags.c.
+
+Linking: build with
+    --extra-cflags="-I/path/to/gpr/source/lib/vc5_decoder"
+    --extra-ldflags="-L/path/to/gpr/build-local/source/lib/vc5_decoder \
+                     -L/path/to/gpr/build-local/source/lib/vc5_common \
+                     -L/path/to/gpr/build-local/source/lib/common"
+    --extra-libs="-lvc5_decoder -lvc5_common -lcommon"
+
+(Or use the install_patch.sh script in tools/gpraw_codec/.)
+
+---
+ libavcodec/Makefile         |  1 +
+ libavcodec/allcodecs.c      |  1 +
+ libavcodec/codec_desc.c     |  7 +++++++
+ libavcodec/codec_id.h       |  1 +
+ libavcodec/gpr.c            | new file
+ libavformat/isom_tags.c     |  2 ++
+ 6 files changed
+---
+
+diff --git a/libavcodec/Makefile b/libavcodec/Makefile
+--- a/libavcodec/Makefile
++++ b/libavcodec/Makefile
+@@ -307,6 +307,7 @@ OBJS-$(CONFIG_CDXL_DECODER)            += cdxl.o
+ OBJS-$(CONFIG_CFHD_DECODER)            += cfhd.o cfhddata.o cfhddsp.o
+ OBJS-$(CONFIG_CFHD_ENCODER)            += cfhdenc.o cfhddata.o cfhdencdsp.o
++OBJS-$(CONFIG_GPR_DECODER)             += gpr.o
+ OBJS-$(CONFIG_CINEPAK_DECODER)         += cinepak.o
+ OBJS-$(CONFIG_CINEPAK_ENCODER)         += cinepakenc.o elbg.o
+
+diff --git a/libavcodec/allcodecs.c b/libavcodec/allcodecs.c
+--- a/libavcodec/allcodecs.c
++++ b/libavcodec/allcodecs.c
+@@ -79,6 +79,7 @@ extern const FFCodec ff_cdxl_decoder;
+ extern const FFCodec ff_cfhd_encoder;
+ extern const FFCodec ff_cfhd_decoder;
++extern const FFCodec ff_gpr_decoder;
+ extern const FFCodec ff_cinepak_encoder;
+ extern const FFCodec ff_cinepak_decoder;
+
+diff --git a/libavcodec/codec_desc.c b/libavcodec/codec_desc.c
+--- a/libavcodec/codec_desc.c
++++ b/libavcodec/codec_desc.c
+@@ -1559,6 +1559,13 @@
+         .long_name = NULL_IF_CONFIG_SMALL("GoPro CineForm HD"),
+         .props     = AV_CODEC_PROP_LOSSY,
+     },
++    {
++        .id        = AV_CODEC_ID_GPR,
++        .type      = AVMEDIA_TYPE_VIDEO,
++        .name      = "gpr",
++        .long_name = NULL_IF_CONFIG_SMALL("GoPro RAW (fused VC-5)"),
++        .props     = AV_CODEC_PROP_LOSSY,
++    },
+     {
+         .id        = AV_CODEC_ID_TRUEMOTION2RT,
+
+diff --git a/libavcodec/codec_id.h b/libavcodec/codec_id.h
+--- a/libavcodec/codec_id.h
++++ b/libavcodec/codec_id.h
+@@ -271,6 +271,7 @@ enum AVCodecID {
+     AV_CODEC_ID_DAALA,
+     AV_CODEC_ID_CFHD,
++    AV_CODEC_ID_GPR,
+     AV_CODEC_ID_TRUEMOTION2RT,
+     AV_CODEC_ID_M101,
+     AV_CODEC_ID_MAGICYUV,
+
+diff --git a/libavformat/isom_tags.c b/libavformat/isom_tags.c
+--- a/libavformat/isom_tags.c
++++ b/libavformat/isom_tags.c
+@@ -300,6 +300,8 @@
+     { AV_CODEC_ID_CFHD, MKTAG('C', 'F', 'H', 'D') },
+
++    { AV_CODEC_ID_GPR,  MKTAG('G', 'P', 'R', 'r') },
++    { AV_CODEC_ID_GPR,  MKTAG('G', 'P', 'R', '1') },
++
+     { AV_CODEC_ID_LCEVC, MKTAG('l', 'v', 'c', '1') },

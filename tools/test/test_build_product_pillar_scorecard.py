@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+"""Regression test for the four-pillar product scorecard builder."""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+TOOL = ROOT / "tools/build_product_pillar_scorecard.py"
+
+
+def temp_root() -> Path:
+    if os.environ.get("GPR_TMPDIR"):
+        root = Path(os.environ["GPR_TMPDIR"])
+    elif Path("/Volumes/OWC_8TB/gpr_work/tmp").exists():
+        root = Path("/Volumes/OWC_8TB/gpr_work/tmp")
+    else:
+        root = Path(tempfile.gettempdir())
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def main() -> int:
+    with tempfile.TemporaryDirectory(prefix="gpr_product_pillar_scorecard_", dir=temp_root()) as tmp:
+        external = Path(tmp) / "external"
+        out_dir = Path(tmp) / "out"
+        external.mkdir()
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(TOOL),
+                "--external-root",
+                str(external),
+                "--output-dir",
+                str(out_dir),
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if proc.returncode != 0:
+            print(proc.stdout)
+            print(proc.stderr, file=sys.stderr)
+            return proc.returncode
+
+        summary = out_dir / "scorecard.json"
+        dashboard = out_dir / "index.html"
+        data = json.loads(summary.read_text(encoding="utf-8"))
+        assert data["schema"] == "gpr.product_pillar_scorecard.v1"
+        assert data["production_ready"] is False
+        assert data["four_pillar_completion_percent"] == 83
+        assert data["score_semantics"]["kind"] == "readiness_burndown_estimate"
+        assert data["score_semantics"]["not_a_quality_metric"] is True
+        assert data["score_semantics"]["not_a_locked_artifact_regression_signal"] is True
+        assert "shippable production suite" in data["score_semantics"]["denominator"]
+        assert "PSF-aware replacement work is optional research" in data["score_semantics"]["denominator"]
+        assert [p["id"] for p in data["pillars"]] == [
+            "raw_stills",
+            "raw_video_mvp",
+            "premium_still_sr",
+            "raw_video_reconstruction",
+        ]
+        assert data["pillars"][0]["readiness_percent"] == 92
+        assert data["pillars"][0]["lock_ledger_paths"] == [
+            "STILL smallest",
+            "STILL primary",
+            "STILL archival",
+            "Broad real-camera Bayer phase coverage",
+        ]
+        assert "Broad real-camera Bayer phase coverage" not in data["pillars"][0]["open_production_gates"]
+        assert any("X2D 100MP" in item for item in data["pillars"][0]["locked_artifacts"])
+        assert any("RGGB/GBRG/GRBG/BGGR" in item for item in data["pillars"][0]["locked_artifacts"])
+        assert any("3,000-file" in item for item in data["pillars"][0]["done_evidence"])
+        assert data["pillars"][1]["readiness_percent"] == 80
+        assert "VIDEO_FREEZE" in data["pillars"][1]["lock_ledger_paths"]
+        assert "UPRESABLE editable raw" in data["pillars"][1]["lock_ledger_paths"]
+        assert "Real Mission 1 camera-role raw-video closure" in data["pillars"][1]["open_production_gates"]
+        assert any("20 fps" in item for item in data["pillars"][1]["locked_artifacts"])
+        assert data["pillars"][2]["readiness_percent"] == 60
+        assert "Premium still-SR promotion" in data["pillars"][2]["open_production_gates"]
+        assert any("351-row" in item for item in data["pillars"][2]["locked_artifacts"])
+        assert any("next-experiment contract" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("window_attention_teacher" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("overlapped-tile final evaluation" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("matched global-context" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("fixed non-box PSF/CFA" in item for item in data["pillars"][2]["done_evidence"])
+        assert any(
+            "premium_still_sr_self_supervised_raw_sr_contract_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_self_supervised_raw_sr_pair_audit_smoke_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any("clean-source pair model smoke" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("75 images and 1200 tiles" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("regresses held-out X2D" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("regresses held-out Z8" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("NAF-like residual pixelshuffle" in item for item in data["pillars"][2]["done_evidence"])
+        assert any("noise-policy gate" in item for item in data["pillars"][2]["done_evidence"])
+        assert any(
+            "premium_still_sr_clean_source_pair_model_smoke_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_self_supervised_raw_sr_pair_audit_routed_t16_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_clean_source_pair_model_routed_x2dholdout_w48_1500_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_clean_source_pair_model_routed_z8holdout_w48_1500_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_clean_source_pair_model_routed_x2dholdout_naf_grad_w48_500_20260702/index.html"
+            in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_clean_source_pair_model_routed_z8holdout_naf_grad_w48_500_20260702/index.html"
+            in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_noise_policy_gate_20260702/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_raw_cfa_residual_model_dedup_window_attention_teacher_smoke_20260701/index.html"
+            in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_window_attention_overlap_eval_smoke_20260701/index.html" in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_globalctx_matched_w32_1200_20260701/index.html"
+            in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert any(
+            "premium_still_sr_raw_cfa_residual_model_x2dsceneholdout_nonboxpsf_cfa_naf_w32_800_20260701/index.html"
+            in ref["path"]
+            for ref in data["pillars"][2]["evidence"]
+        )
+        assert data["pillars"][3]["readiness_percent"] == 100
+        assert data["pillars"][3]["title"] == "4. RAW video reconstruction improvement"
+        assert data["pillars"][3]["production_ready"] is True
+        assert data["pillars"][3]["open_production_gates"] == []
+        assert any("8K SR" in item for item in data["pillars"][3]["locked_artifacts"])
+        assert any("continuous 8K no-CNN versus CNN" in item for item in data["pillars"][3]["locked_artifacts"])
+        assert any("Standalone 8K ProRes A/B" in item for item in data["pillars"][3]["done_evidence"])
+        assert not any("PSF" in item or "psf" in item for item in data["pillars"][3]["locked_artifacts"])
+        assert not any("PSF" in item or "psf" in item for item in data["pillars"][3]["done_evidence"])
+        assert any("42-frame full-sequence .gvid packaging" in item for item in data["pillars"][3]["done_evidence"])
+        assert any("approved 4K/8K reconstruction path is frozen" in item for item in data["pillars"][3]["done_evidence"])
+        assert any("no release blocker" in item.lower() for item in data["pillars"][3]["open_work"])
+        assert any("optional research" in item.lower() for item in data["pillars"][3]["open_work"])
+        assert "research_evidence" in data["pillars"][3]
+        assert any(
+            "z8_continuous_8k_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
+            for ref in data["pillars"][3]["evidence"]
+        )
+        assert any(
+            "mission1_8k_true_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
+            for ref in data["pillars"][3]["evidence"]
+        )
+        assert any(
+            "mission1_8k_scene_GP017497_508_no_cnn_vs_cnn_20260630/receipt.json" in ref["path"]
+            for ref in data["pillars"][3]["evidence"]
+        )
+        assert any(
+            "mission1_native120_gvid_to_8k_sr_coord_detail_psf_focus_step0075_sequence_packaging_42f_20260701/receipt.json" in ref["path"]
+            for ref in data["pillars"][3]["evidence"]
+        )
+        assert any(
+            "mission1_8k_sr_coord_detail_psf_focus_step0075_review_candidate_audit_20260701/review_candidate_audit.json" in ref["path"]
+            for ref in data["pillars"][3]["evidence"]
+        )
+        assert any(
+            "raw_video_psf_detail_metric_audit_rerun_20260701/index.html" in ref["path"]
+            for ref in data["pillars"][3]["research_evidence"]
+        )
+        assert any(
+            "current_goal_sr_psf_gradient_focus_20260701/psf_gradient_focus_from_detail_s400_fw6_gw12_s300_decision.json" in ref["path"]
+            for ref in data["pillars"][3]["research_evidence"]
+        )
+        assert any(
+            "current_goal_sr_coord_detail_context_20260701/coord_detail_from_psf_focus_s150_step000075_decision.json" in ref["path"]
+            for ref in data["pillars"][3]["research_evidence"]
+        )
+        assert any(ref["exists"] for ref in data["pillars"][0]["evidence"] if ref["kind"] == "repo")
+        all_refs = []
+        for pillar in data["pillars"]:
+            all_refs.extend(pillar["evidence"])
+            all_refs.extend(pillar.get("research_evidence", []))
+        assert any(not ref["exists"] for ref in all_refs if ref["kind"] == "artifact")
+
+        html = dashboard.read_text(encoding="utf-8")
+        assert "GPR Product Pillar Scorecard" in html
+        assert "Best RAW stills" in html
+        assert "GoPro RAW video MVP" in html
+        assert "Lock ledger paths" in html
+        assert "Open production gates" in html
+        assert "Locked artifacts" in html
+        assert "Readiness percentages are not quality metrics" in html
+        assert "continuous 8K no-CNN versus CNN ProRes review media" in html
+        assert "Research Parking Lot" in html
+        assert "production ready: false" in html
+        assert proc.stdout.strip() == str(dashboard)
+    print("test_build_product_pillar_scorecard: PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

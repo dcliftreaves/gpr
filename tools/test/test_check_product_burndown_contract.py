@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Regression-test the product burn-down contract guard."""
+
+from __future__ import annotations
+
+import copy
+import importlib.util
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+TOOL = ROOT / "tools/test/check_product_burndown_contract.py"
+
+
+def import_tool():
+    spec = importlib.util.spec_from_file_location("check_product_burndown_contract_under_test", TOOL)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def expect_failure(module, payload: dict, needle: str) -> None:
+    failures = module.validate_burndown(payload)
+    if not any(needle in failure for failure in failures):
+        raise AssertionError(f"expected failure containing {needle!r}, got {failures!r}")
+
+
+def main() -> int:
+    module = import_tool()
+    data = module.build_burndown(module.DEFAULT_EXTERNAL_ROOT)
+    failures = module.validate_burndown(data)
+    if failures:
+        print(f"current burn-down unexpectedly failed: {failures}", file=sys.stderr)
+        return 1
+
+    bad_ready = copy.deepcopy(data)
+    bad_ready["production_ready"] = True
+    expect_failure(module, bad_ready, "production_ready=false")
+
+    bad_camera = copy.deepcopy(data)
+    bad_camera["summary"]["camera_required_action_count"] = 0
+    expect_failure(module, bad_camera, "camera-required")
+
+    bad_blocker_count = copy.deepcopy(data)
+    bad_blocker_count["summary"]["blocker_type_counts"]["model_promotion"] = 2
+    expect_failure(module, bad_blocker_count, "blocker_type_counts")
+
+    bad_stills = copy.deepcopy(data)
+    bad_stills["pillars"][0]["burn_down_actions"][0]["evidence_required"] = [
+        "generic darkframe receipt",
+        "generic sidecar",
+        "generic audit",
+    ]
+    bad_stills["pillars"][0]["burn_down_actions"][0]["completion_gate"] = "Noise sidecar exists."
+    expect_failure(module, bad_stills, "Mission 1 darkframes")
+
+    bad_requirement_link = copy.deepcopy(data)
+    bad_requirement_link["pillars"][0]["burn_down_actions"][0]["requirement_ids"] = ["mission1_darkframe_stack"]
+    expect_failure(module, bad_requirement_link, "requirement_ids")
+
+    bad_validation_command = copy.deepcopy(data)
+    bad_validation_command["pillars"][1]["burn_down_actions"][0]["validation_commands"] = []
+    expect_failure(module, bad_validation_command, "validation_commands")
+
+    bad_stills_blocker = copy.deepcopy(data)
+    bad_stills_blocker["pillars"][0]["burn_down_actions"][0]["blocker_type"] = "model_promotion"
+    expect_failure(module, bad_stills_blocker, "blocker_type")
+
+    bad_video_role = copy.deepcopy(data)
+    bad_video_role["pillars"][1]["burn_down_actions"][0]["requires_mission1_camera_role"] = False
+    expect_failure(module, bad_video_role, "requires_mission1_camera_role")
+
+    print("test_check_product_burndown_contract: PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
