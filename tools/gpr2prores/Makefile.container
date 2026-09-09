@@ -1,0 +1,25 @@
+# Standalone Makefile for gpr_mov_tool (the container pack/unpack utility).
+# The full Makefile in the playback PR supersedes this; this exists so the
+# container PR is independently buildable.
+GPR_BUILD = ../../build-local
+CC      = clang
+CFLAGS  = -O2 -g -Wall -Wno-deprecated-declarations -fobjc-arc \
+          -I/opt/homebrew/include -mmacosx-version-min=14.0
+LDFLAGS = -L/opt/homebrew/lib -framework Foundation -framework CoreFoundation \
+          -framework CoreGraphics -framework ImageIO -framework CoreServices \
+          -lavformat -lavcodec -lavutil -lswresample
+
+GPR_LIBS = $(GPR_BUILD)/source/lib/vc5_decoder/libvc5_decoder.a \
+           $(GPR_BUILD)/source/lib/vc5_common/libvc5_common.a \
+           $(GPR_BUILD)/source/lib/common/libcommon.a
+
+OBJS = gpr_mov_tool.o GPRMovWriter.o GPRMovReader.o GPRFileReader.o DNGExif.o
+
+gpr_mov_tool: $(OBJS)
+	$(CC) $^ $(GPR_LIBS) $(LDFLAGS) -o $@
+
+%.o: %.m
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f *.o gpr_mov_tool
